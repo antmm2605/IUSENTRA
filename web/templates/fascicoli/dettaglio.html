@@ -531,12 +531,13 @@
 
     {# ---- Depositi telematici — adattivo per tipo fascicolo ---- #}
     {% set ftipo = fascicolo.tipo.value if fascicolo.tipo else 'CIVILE' %}
+    {% set fsource = (fascicolo.source or '')|upper %}
     {% if ftipo == 'PENALE' %}
       {% set dep_icon      = 'bi-shield-fill' %}
       {% set dep_col       = 'danger' %}
       {% set dep_label     = 'Depositi PDP Penale' %}
-      {% set dep_portale_label = 'Consulta su PDP' %}
-      {% set dep_portale_url   = url_for('pdp_home', id_fasc=fascicolo.id) %}
+      {% set dep_portale_label = 'Workflow PDP' %}
+      {% set dep_portale_url   = url_for('pdp_penale_workspace', id_fasc=fascicolo.id) %}
       {% set dep_canali    = ['PDP_PENALE', 'CARTACEO'] %}
       {% set dep_hint      = 'Usa <strong>Prepara atto</strong> per la checklist del deposito penale (firma CAdES .p7m via PDP), oppure <strong>Registra manuale</strong> per annotare un deposito già effettuato.' %}
     {% elif ftipo == 'AMMINISTRATIVO' %}
@@ -564,6 +565,7 @@
       {% set dep_canali    = ['PCT_TELEMATICO', 'PEC', 'CARTACEO'] %}
       {% set dep_hint      = 'Usa <strong>Prepara atto</strong> per la checklist del redattore atti (Consolle Avvocato / FileSafe / Lextel), oppure <strong>Registra manuale</strong> per annotare un deposito già effettuato.' %}
     {% endif %}
+    {% set show_pst_navigation = ftipo == 'CIVILE' %}
     {% set ns_prep = namespace(wizard_tmpls=[]) %}
     {% for tmpl in checklist_templates %}
       {% if tmpl.canale in dep_canali %}
@@ -630,9 +632,7 @@
               </ul>
             </div>
             {% endif %}
-            <button type="button" class="btn btn-sm btn-info text-white flex-shrink-0" id="btnPstAcquireAllHeader">
-              <i class="bi bi-cloud-arrow-down me-1"></i><span class="d-none d-sm-inline">Acquisisci fascicolo</span><span class="d-sm-none">Acquisisci</span>
-            </button>
+            {% if show_pst_navigation %}
             <button class="btn btn-sm btn-outline-info flex-shrink-0" data-bs-toggle="modal"
                    data-bs-target="#modalNavigaPst">
               <i class="bi bi-diagram-3 me-1"></i>Naviga PST
@@ -640,6 +640,7 @@
               <span class="badge bg-info text-dark rounded-pill ms-1">{{ pst_import_pending }}</span>
               {% endif %}
             </button>
+            {% endif %}
           <button class="btn btn-sm btn-outline-primary flex-shrink-0" data-bs-toggle="modal"
                   data-bs-target="#modalDocumento">
             <i class="bi bi-upload me-1"></i>Carica
@@ -942,17 +943,34 @@
             deposit{% if ns_portale.depositi == 1 %}o{% else %}i{% endif %} portale.
           </div>
           <div class="mt-1">
+            {% if show_pst_navigation %}
             Qui, in <strong>Documenti fascicolo</strong>, puoi portare dentro i file con
             download diretto via <strong>Local Signer</strong> e servizi PST ufficiali,
             oppure acquisendo documenti gia' presenti nei download locali.
+            {% elif ftipo == 'PENALE' %}
+            Qui, in <strong>Documenti fascicolo</strong>, puoi integrare i file gia' scaricati dal portale
+            ufficiale e governare accesso atti, password PEC e import del pacchetto dal <strong>Workflow PDP</strong>.
+            {% else %}
+            Qui, in <strong>Documenti fascicolo</strong>, puoi integrare i file gia' scaricati dal portale
+            ufficiale senza creare una nuova pratica.
+            {% endif %}
           </div>
+          {% if show_pst_navigation %}
           <div class="mt-3">
               <button type="button" class="btn btn-sm btn-outline-info" data-bs-toggle="modal"
                      data-bs-target="#modalNavigaPst">
                 <i class="bi bi-diagram-3 me-1"></i>Naviga PST e acquisisci i file ufficiali
               </button>
           </div>
+          {% elif ftipo == 'PENALE' %}
+          <div class="mt-3">
+            <a href="{{ url_for('pdp_penale_workspace', id_fasc=fascicolo.id) }}" class="btn btn-sm btn-outline-danger">
+              <i class="bi bi-shield-lock me-1"></i>Apri workflow PDP
+            </a>
+          </div>
+          {% endif %}
           {% elif 'Importato da PolisWeb' in (fascicolo.note or '') %}
+          {% if show_pst_navigation %}
           <div class="mt-2">
             I documenti ufficiali restano consultabili dal portale ministeriale e possono
             essere acquisiti anche direttamente dentro HACS:
@@ -964,6 +982,7 @@
                 <i class="bi bi-diagram-3 me-1"></i>Naviga PST e acquisisci i file ufficiali
               </button>
           </div>
+          {% endif %}
           {% endif %}
         </div>
         {% endif %}
@@ -1148,8 +1167,8 @@
       {% set dep_icon      = 'bi-shield-fill' %}
       {% set dep_col       = 'danger' %}
       {% set dep_label     = 'Depositi PDP Penale' %}
-      {% set dep_portale_label = 'Consulta su PDP' %}
-      {% set dep_portale_url   = url_for('pdp_home', id_fasc=fascicolo.id) %}
+      {% set dep_portale_label = 'Workflow PDP' %}
+      {% set dep_portale_url   = url_for('pdp_penale_workspace', id_fasc=fascicolo.id) %}
       {% set dep_canali    = ['PDP_PENALE', 'CARTACEO'] %}
       {% set dep_hint      = 'Usa <strong>Prepara atto</strong> per la checklist del deposito penale (firma CAdES .p7m via PDP), oppure <strong>Registra manuale</strong> per annotare un deposito già effettuato.' %}
       {% elif ftipo == 'AMMINISTRATIVO' %}
@@ -1251,6 +1270,7 @@
             <i class="bi bi-search me-1"></i><span class="d-none d-sm-inline">{{ dep_portale_label }}</span><span class="d-sm-none">Portale</span>
           </a>
 
+            {% if show_pst_navigation %}
             <button class="btn btn-sm btn-outline-info fw-semibold" data-bs-toggle="modal"
                   data-bs-target="#modalNavigaPst">
               <i class="bi bi-diagram-3 me-1"></i><span class="d-none d-sm-inline">Naviga PST</span>
@@ -1258,6 +1278,7 @@
               <span class="badge bg-info text-dark rounded-pill ms-1">{{ pst_import_pending }}</span>
               {% endif %}
             </button>
+            {% endif %}
 
           <button class="btn btn-sm btn-outline-secondary" id="btnSyncPecCancelleria"
                   title="Sincronizza la casella PEC, aggiorna gli esiti del deposito e carica le comunicazioni di cancelleria"
@@ -2266,6 +2287,7 @@
           </div>
         </div>
 
+        <div class="accordion" id="accordionConformita">
         <div class="accordion-item border rounded-4 mb-2 overflow-hidden" id="complianceChecklistSection" style="scroll-margin-top:1rem">
           <h2 class="accordion-header">
             <button class="accordion-button collapsed" type="button"
@@ -2290,7 +2312,7 @@
               </div>
             </button>
           </h2>
-          <div class="accordion-collapse collapse" id="complianceChecklistBody">
+          <div class="accordion-collapse collapse" id="complianceChecklistBody" data-bs-parent="#accordionConformita">
             <div class="accordion-body">
               <div class="list-group list-group-flush">
                 {% for item in rc.checklist %}
@@ -2361,7 +2383,7 @@
               </div>
             </button>
           </h2>
-          <div class="accordion-collapse collapse" id="complianceWorkflowBody">
+          <div class="accordion-collapse collapse" id="complianceWorkflowBody" data-bs-parent="#accordionConformita">
             <div class="accordion-body">
               <div class="list-group list-group-flush">
                 {% for step in rc.workflow %}
@@ -2404,7 +2426,6 @@
           </div>
         </div>
 
-        <div class="accordion" id="accordionConformita">
           {% for group in rc.groups %}
           {% set group_tone = rc_status_map.get(group.status, 'secondary') %}
           <div class="accordion-item border rounded-4 mb-2 overflow-hidden" id="complianceGroupCard{{ loop.index }}" style="scroll-margin-top:1rem">

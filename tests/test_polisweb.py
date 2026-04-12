@@ -1243,7 +1243,7 @@ def test_dettaglio_fascicolo_mostra_download_ufficiale_portale(tmp_path):
     assert "Scarica + importa selezionati" in body
     assert "Acquisisci intero fascicolo" in body
     assert "Conserva anche l'albero tecnico originale del portale" in body
-    assert "Acquisisci fascicolo" in body
+    assert "Acquisisci fascicolo" not in body
     assert "_PST_NAV_ITEMS" in body
     assert "/pst/download-documenti-batch" in body
 
@@ -3158,6 +3158,7 @@ def test_api_portale_acquisizione_import_pdp_via_local_signer_non_richiede_certi
     assert data["ok"] is True
     assert data["result"]["created"] is True
     assert data["result"]["id_fascicolo"]
+    assert data["result"]["workflow_url"]
 
 
 def test_api_portale_acquisizione_import_pdp_importa_file_raccolti_dal_browser(tmp_path):
@@ -3307,6 +3308,7 @@ def test_api_portale_acquisizione_import_pdp_importa_file_raccolti_dal_browser(t
     assert data["ok"] is True
     assert data["result"]["summary"]["documenti"] == 1
     assert data["result"]["summary"]["depositi"] == 1
+    assert data["result"]["workflow_url"]
 
     gestione_fascicoli = GestioneFascicoli(
         db_path=cfg["FASCICOLI_DB"],

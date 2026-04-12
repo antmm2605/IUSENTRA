@@ -107,6 +107,35 @@ def test_workspace_pdp_penale_renderizza_link_nel_dettaglio(tmp_path: Path):
     assert "Workflow PDP Penale" in html
 
 
+def test_dettaglio_penale_importato_nasconde_navigazioni_portale_non_coerenti(tmp_path: Path):
+    cfg = _cfg_web(tmp_path)
+    fasc_id, _ = _seed_penal_workspace(cfg)
+    fascicoli = GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+    )
+    fascicoli.aggiorna(fasc_id, source="PDP")
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        login = client.post(
+            "/login",
+            data={"username": "admin-penale", "password": "Admin1234!"},
+            follow_redirects=True,
+        )
+        assert login.status_code == 200
+
+        detail = client.get(f"/fascicoli/{fasc_id}", follow_redirects=True)
+        html = detail.get_data(as_text=True)
+
+    assert detail.status_code == 200
+    assert "Workflow PDP" in html
+    assert "Consulta su PDP" not in html
+    assert 'data-bs-target="#modalNavigaPst"' not in html
+    assert "Acquisisci fascicolo" not in html
+
+
 def test_workspace_pdp_penale_registra_case_documenti_accesso_pec_e_task(tmp_path: Path):
     cfg = _cfg_web(tmp_path)
     fasc_id, local_doc_id = _seed_penal_workspace(cfg)
@@ -390,3 +419,169 @@ def test_workspace_pdp_penale_completa_flusso_generazione_deposito_sync_e_import
             assert any(event["event_type"] == "download_imported" for event in events)
         finally:
             repo.close()
+
+
+def test_acquisizione_guidata_pdp_riusa_fascicolo_esistente_e_apre_workflow(tmp_path: Path):
+    cfg = _cfg_web(tmp_path)
+    fasc_id, _ = _seed_penal_workspace(cfg)
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        login = client.post(
+            "/login",
+            data={"username": "admin-penale", "password": "Admin1234!"},
+            follow_redirects=True,
+        )
+        assert login.status_code == 200
+
+        response = client.post(
+            "/api/portali/pdp/acquisizione/import",
+            json={
+                "selection": {
+                    "external_id": "PALERMO:12345:2026:RGNR",
+                    "numero": "12345",
+                    "anno": 2026,
+                    "ufficio_codice": "0580010",
+                    "ufficio_nome": "Procura della Repubblica di Palermo",
+                    "procedimento": "RGNR",
+                    "stato": "PENDENTE",
+                    "oggetto": "Procedimento penale demo",
+                    "parti": ["Mario Rossi"],
+                    "controparti": [],
+                    "payload": {
+                        "numero_rg": "12345",
+                        "anno_rg": 2026,
+                        "tipo_registro": "RGNR",
+                        "fase": "INDAGINI_PRELIMINARI",
+                        "stato": "PENDENTE",
+                        "reato": "Procedimento penale demo",
+                        "sezione": "GIP",
+                        "giudice": "Dott. Bianchi",
+                        "data_iscrizione": "2026-01-10",
+                        "data_udienza": "2026-06-20",
+                        "imputati": ["Mario Rossi"],
+                        "parti_offese": [],
+                        "nome_ufficio": "Procura della Repubblica di Palermo",
+                    },
+                },
+                "preview": {
+                    "identity": {
+                        "numero": "12345",
+                        "anno": 2026,
+                        "ufficio_nome": "Procura della Repubblica di Palermo",
+                        "ufficio_codice": "0580010",
+                        "procedimento": "RGNR",
+                        "stato": "PENDENTE",
+                        "oggetto": "Procedimento penale demo",
+                        "data_udienza": "2026-06-20",
+                    },
+                    "parti": ["Mario Rossi"],
+                    "controparti": [],
+                    "eventi": [],
+                    "documenti": [],
+                    "depositi": [],
+                    "counts": {
+                        "parti": 1,
+                        "documenti": 0,
+                        "depositi": 0,
+                        "eventi": 0,
+                        "udienze": 0,
+                        "provvedimenti": 0,
+                    },
+                },
+                "mapping": {"mode": "create_new"},
+                "options": {
+                    "importa_parti": True,
+                    "importa_documenti": False,
+                    "importa_scadenze": False,
+                    "importa_eventi": False,
+                    "importa_udienze": False,
+                },
+            },
+            follow_redirects=True,
+        )
+
+    data = response.get_json()
+    assert response.status_code == 200
+    assert data["ok"] is True
+    assert data["result"]["created"] is False
+    assert data["result"]["auto_integrated"] is True
+    assert data["result"]["id_fascicolo"] == fasc_id
+    assert data["result"]["workflow_url"]
+
+    fascicoli = GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+    )
+    assert len(fascicoli.tutti()) == 1
+    fascicolo = fascicoli.get(fasc_id)
+    assert fascicolo is not None
+    assert fascicolo.source == "PDP"
+
+    repo = PDPPenaleWorkflowRepository(cfg["PDP_PENALE_DB"])
+    try:
+        cases = repo.list_cases_for_practice(fasc_id)
+        assert len(cases) == 1
+        assert cases[0]["register_number"] == "12345"
+    finally:
+        repo.close()
+
+
+def test_route_importa_pdp_riusa_fascicolo_esistente_senza_duplicarlo(tmp_path: Path, monkeypatch):
+    cfg = _cfg_web(tmp_path)
+    fasc_id, _ = _seed_penal_workspace(cfg)
+
+    import pct.pdp as pdp_module
+
+    def _client_non_atteso(*args, **kwargs):
+        raise AssertionError("L'import diretto PDP non deve creare un nuovo fascicolo se esiste già.")
+
+    monkeypatch.setattr(pdp_module, "crea_client_pdp", _client_non_atteso)
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        login = client.post(
+            "/login",
+            data={"username": "admin-penale", "password": "Admin1234!"},
+            follow_redirects=True,
+        )
+        assert login.status_code == 200
+
+        response = client.post(
+            "/pdp/importa",
+            data={
+                "demo_mode": "1",
+                "numero_rg": "12345",
+                "anno_rg": "2026",
+                "tipo_registro": "RGNR",
+                "fase": "INDAGINI_PRELIMINARI",
+                "stato": "PENDENTE",
+                "reato": "Procedimento penale demo",
+                "sezione": "GIP",
+                "giudice": "Dott. Bianchi",
+                "data_iscrizione": "2026-01-10",
+                "data_udienza": "2026-06-20",
+                "imputati_json": '["Mario Rossi"]',
+                "parti_offese_json": "[]",
+                "codice_ufficio": "",
+                "nome_ufficio": "Procura della Repubblica di Palermo",
+            },
+            follow_redirects=False,
+        )
+
+    assert response.status_code == 302
+    assert f"/fascicoli/{fasc_id}" in response.headers["Location"]
+
+    fascicoli = GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+    )
+    assert len(fascicoli.tutti()) == 1
+
+    repo = PDPPenaleWorkflowRepository(cfg["PDP_PENALE_DB"])
+    try:
+        assert len(repo.list_cases_for_practice(fasc_id)) == 1
+    finally:
+        repo.close()

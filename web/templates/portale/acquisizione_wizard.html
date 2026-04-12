@@ -3,6 +3,12 @@
 {% block pct_modulo %}{{ spec.id }}{% endblock %}
 
 {% block content %}
+{% set search_ui = spec.search_ui if spec.search_ui is defined else {} %}
+{% set search_assistito_label = search_ui.assistito_label if search_ui.assistito_label is defined else 'Parte assistita / soggetto principale' %}
+{% set search_assistito_placeholder = search_ui.assistito_placeholder if search_ui.assistito_placeholder is defined else 'Parte, imputato, ricorrente...' %}
+{% set show_search_controparte = search_ui.show_controparte if search_ui.show_controparte is defined else True %}
+{% set show_search_cf = search_ui.show_cf if search_ui.show_cf is defined else True %}
+{% set show_search_oggetto = search_ui.show_oggetto if search_ui.show_oggetto is defined else True %}
 <style>
   .aw-shell{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:1.25rem}
   .aw-steps{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:.5rem}
@@ -56,10 +62,10 @@
         <div class="col-xl-4"><label class="form-label fw-semibold">Ufficio giudiziario</label><div class="position-relative"><input class="form-control" id="awOfficeInput" placeholder="Cerca ufficio, città o sezione..."><input type="hidden" id="awOfficeValue"><div class="list-group position-absolute start-0 end-0 mt-1 shadow-sm" style="display:none;z-index:20" id="awOfficeDropdown"></div></div><div class="form-text" id="awOfficeHelp"></div></div>
         <div class="col-md-3 col-xl-2"><label class="form-label fw-semibold">Numero</label><input class="form-control" id="awNumero" placeholder="es. 1234"></div>
         <div class="col-md-3 col-xl-2"><label class="form-label fw-semibold">Anno</label><input class="form-control" id="awAnno" type="number" min="1990" max="{{ oggi.year }}" placeholder="{{ oggi.year }}"></div>
-        <div class="col-md-6 col-xl-4"><label class="form-label fw-semibold">Parte assistita / soggetto principale</label><input class="form-control" id="awAssistito" placeholder="Parte, imputato, ricorrente..."></div>
-        <div class="col-md-6 col-xl-4"><label class="form-label fw-semibold">Controparte / resistente</label><input class="form-control" id="awControparte" placeholder="Controparte, parte offesa, resistente..."></div>
-        <div class="col-md-6 col-xl-4"><label class="form-label fw-semibold">Codice fiscale / P.IVA</label><input class="form-control" id="awCf" placeholder="Codice fiscale o partita IVA"></div>
-        <div class="col-md-6 col-xl-4"><label class="form-label fw-semibold">Oggetto / materia</label><input class="form-control" id="awOggetto" placeholder="Oggetto, materia, reato..."></div>
+        <div class="col-md-6 col-xl-4"><label class="form-label fw-semibold">{{ search_assistito_label }}</label><input class="form-control" id="awAssistito" placeholder="{{ search_assistito_placeholder }}"></div>
+        <div class="col-md-6 col-xl-4 {{ 'd-none' if not show_search_controparte else '' }}"><label class="form-label fw-semibold">Controparte / resistente</label><input class="form-control" id="awControparte" placeholder="Controparte, parte offesa, resistente..."></div>
+        <div class="col-md-6 col-xl-4 {{ 'd-none' if not show_search_cf else '' }}"><label class="form-label fw-semibold">Codice fiscale / P.IVA</label><input class="form-control" id="awCf" placeholder="Codice fiscale o partita IVA"></div>
+        <div class="col-md-6 col-xl-4 {{ 'd-none' if not show_search_oggetto else '' }}"><label class="form-label fw-semibold">Oggetto / materia</label><input class="form-control" id="awOggetto" placeholder="Oggetto, materia, reato..."></div>
       </div>
       <div class="d-flex flex-wrap gap-2 mt-3 mb-3" id="awQuickFilters">{% for filtro in spec.quick_filters %}<button type="button" class="btn btn-sm btn-outline-secondary awQuick" data-filter="{{ filtro }}">{{ filtro|capitalize }}</button>{% endfor %}</div>
       <div class="d-flex justify-content-between align-items-center mb-2"><h3 class="h6 mb-0">Risultati trovati</h3><small class="text-muted" id="awResultsMeta">Nessuna ricerca eseguita.</small></div>
@@ -1812,7 +1818,11 @@ async function awStartImport() {
   const usedBrowserDownloads = collectionMode === 'browser-downloads';
   state.innerHTML = `
     <div class="alert alert-success rounded-4 mb-0">
-      <div class="fw-semibold mb-1"><i class="bi bi-check-circle-fill me-1"></i>${AW_STATE.importResult?.created ? 'Nuova pratica creata' : 'Pratica aggiornata / collegata'}</div>
+      <div class="fw-semibold mb-1"><i class="bi bi-check-circle-fill me-1"></i>${
+        AW_STATE.importResult?.auto_integrated
+          ? 'Fascicolo esistente integrato'
+          : (AW_STATE.importResult?.created ? 'Nuova pratica creata' : 'Pratica aggiornata / collegata')
+      }</div>
       <div class="small">
         Documenti importati: ${awEscape(summary.documenti || 0)} ·
         Depositi censiti: ${awEscape(summary.depositi || 0)} ·
@@ -1829,6 +1839,7 @@ async function awStartImport() {
   actions.innerHTML = [
     ['Apri quadro pratica', AW_STATE.importResult?.quadro_url, AW_BOOT.spec.color],
     ['Apri fascicolo', AW_STATE.importResult?.dettaglio_url, 'outline-' + AW_BOOT.spec.color],
+    ['Apri workflow PDP', AW_STATE.importResult?.workflow_url, 'outline-' + AW_BOOT.spec.color],
     ['Apri documenti', AW_STATE.importResult?.documenti_url, 'outline-' + AW_BOOT.spec.color],
     ['Apri timeline', AW_STATE.importResult?.timeline_url, 'outline-' + AW_BOOT.spec.color],
     ['Apri scadenziario', AW_STATE.importResult?.scadenziario_url, 'outline-' + AW_BOOT.spec.color],

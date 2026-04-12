@@ -4947,6 +4947,13 @@ def create_app(config: dict | None = None) -> Flask:
             "source_label": "Portale Deposito Atti Penale",
             "requires_local_signer": True,
             "quick_filters": ["dibattimento", "gip", "gup", "esecuzioni", "attivi", "recenti"],
+            "search_ui": {
+                "assistito_label": "Imputato / indagato",
+                "assistito_placeholder": "Nome imputato o indagato...",
+                "show_controparte": False,
+                "show_cf": False,
+                "show_oggetto": False,
+            },
         },
         "pat": {
             "id": "pat",
@@ -5450,6 +5457,132 @@ def create_app(config: dict | None = None) -> Flask:
         view["counts"] = counts
         return view
 
+    def _normalize_portale_match_text(value: Any) -> str:
+        text = str(value or "").strip().upper()
+        text = re.sub(r"\s+", " ", text)
+        return text
+
+    def _expected_fascicolo_types_for_portale(
+        portale: str, selection: dict[str, Any] | None = None
+    ) -> set[str]:
+        portale_norm = str(portale or "").strip().lower()
+        selection = selection or {}
+        procedimento = _normalize_portale_match_text(selection.get("procedimento"))
+        if portale_norm == "pdp":
+            return {"PENALE"}
+        if portale_norm == "pat":
+            return {"AMMINISTRATIVO"}
+        if portale_norm == "ptt":
+            return {"TRIBUTARIO", "ALTRO"}
+        if procedimento == "PENALE":
+            return {"PENALE"}
+        if procedimento == "LAVORO":
+            return {"LAVORO", "CIVILE"}
+        if procedimento in {"FAMIGLIA", "MINORI"}:
+            return {"FAMIGLIA", "CIVILE"}
+        return {"CIVILE", "LAVORO", "FAMIGLIA", "ALTRO"}
+
+    def _is_fascicolo_type_compatible_for_portale(
+        fasc: Fascicolo, portale: str, selection: dict[str, Any] | None = None
+    ) -> bool:
+        expected = _expected_fascicolo_types_for_portale(portale, selection)
+        fasc_type = _normalize_portale_match_text(getattr(getattr(fasc, "tipo", None), "value", ""))
+        return not expected or fasc_type in expected
+
+    def _selection_rg_identity(selection: dict[str, Any]) -> dict[str, Any]:
+        numero = str(selection.get("numero") or "").strip()
+        try:
+            anno = int(selection.get("anno") or 0)
+        except (TypeError, ValueError):
+            anno = 0
+        ufficio_nome = str(
+            selection.get("ufficio_nome")
+            or _resolve_ufficio_nome(str(selection.get("ufficio_codice") or ""))
+        ).strip()
+        external_id = str(selection.get("external_id") or "").strip()
+        return {
+            "numero": numero,
+            "anno": anno,
+            "ufficio_nome": ufficio_nome,
+            "external_id": external_id,
+        }
+
+    def _fascicolo_matches_selection(
+        fasc: Fascicolo,
+        portale: str,
+        selection: dict[str, Any],
+        *,
+        strict: bool,
+    ) -> bool:
+        if not _is_fascicolo_type_compatible_for_portale(fasc, portale, selection):
+            return False
+        identity = _selection_rg_identity(selection)
+        sel_numero = identity["numero"]
+        sel_anno = int(identity["anno"] or 0)
+        sel_ufficio = _normalize_portale_match_text(identity["ufficio_nome"])
+        fasc_numero = str(getattr(fasc, "numero_rg", "") or "").strip()
+        try:
+            fasc_anno = int(getattr(fasc, "anno_rg", 0) or 0)
+        except (TypeError, ValueError):
+            fasc_anno = 0
+        fasc_ufficio = _normalize_portale_match_text(getattr(fasc, "tribunale", ""))
+        if strict:
+            return bool(
+                sel_numero
+                and sel_anno
+                and sel_ufficio
+                and fasc_numero == sel_numero
+                and fasc_anno == sel_anno
+                and fasc_ufficio == sel_ufficio
+            )
+        if fasc_numero and sel_numero and fasc_numero != sel_numero:
+            return False
+        if fasc_anno and sel_anno and fasc_anno != sel_anno:
+            return False
+        if fasc_ufficio and sel_ufficio and fasc_ufficio != sel_ufficio:
+            return False
+        return True
+
+    def _find_exact_fascicolo_locale_portale(
+        portale: str, selection: dict[str, Any]
+    ) -> Optional[Fascicolo]:
+        identity = _selection_rg_identity(selection)
+        expected_external_id = identity["external_id"]
+        fascicoli = list(get_fascicoli().tutti())
+        if expected_external_id:
+            for fasc in fascicoli:
+                if not _is_fascicolo_type_compatible_for_portale(fasc, portale, selection):
+                    continue
+                if str(getattr(fasc, "source_external_id", "") or "").strip() == expected_external_id:
+                    return fasc
+        for fasc in fascicoli:
+            if _fascicolo_matches_selection(fasc, portale, selection, strict=True):
+                return fasc
+        return None
+
+    def _resolve_portale_import_target(
+        portale: str,
+        selection: dict[str, Any],
+        mapping: dict[str, str],
+    ) -> tuple[str, Optional[Fascicolo], bool]:
+        gf = get_fascicoli()
+        requested_mode = mapping.get("mode") or "create_new"
+        target_id = str(mapping.get("target_fascicolo_id") or "").strip()
+        if requested_mode in {"attach_existing", "update_existing"}:
+            if not target_id:
+                raise ValueError("Fascicolo locale selezionato non trovato.")
+            target = gf.get(target_id)
+            if not target:
+                raise ValueError("Fascicolo locale selezionato non trovato.")
+            if not _fascicolo_matches_selection(target, portale, selection, strict=False):
+                raise ValueError("Il fascicolo locale selezionato non è compatibile con il fascicolo del portale.")
+            resolved_mode = "update_existing" if requested_mode == "update_existing" else "attach_existing"
+            return resolved_mode, target, False
+        exact = _find_exact_fascicolo_locale_portale(portale, selection)
+        if exact:
+            return "update_existing", exact, True
+        return "create_new", None, False
+
     def _find_matching_fascicoli_locali(selection: dict[str, Any]) -> list[dict[str, Any]]:
         matches: list[dict[str, Any]] = []
         numero = str(selection.get("numero") or "").strip()
@@ -5473,6 +5606,63 @@ def create_app(config: dict | None = None) -> Flask:
                     }
                 )
         return matches
+
+    def _sync_existing_fascicolo_from_portale(
+        portale: str,
+        target: Fascicolo,
+        selection: dict[str, Any],
+        preview: dict[str, Any],
+        *,
+        preserve_blank: bool,
+        append_import_note: bool,
+        user_name: str,
+        log_id: str = "",
+    ) -> Fascicolo:
+        identity = dict(preview.get("identity") or {})
+        payload = dict(selection.get("payload") or {})
+
+        def _take(current: Any, incoming: Any) -> Any:
+            if preserve_blank and str(current or "").strip():
+                return current
+            return incoming
+
+        tipo_procedimento = (
+            str(selection.get("procedimento") or "").strip()
+            or str(payload.get("tipo_registro") or payload.get("tipo") or "").strip()
+            or str(target.tipo_procedimento or "").strip()
+        )
+        update_fields: dict[str, Any] = {
+            "tribunale": _take(
+                target.tribunale,
+                selection.get("ufficio_nome") or identity.get("ufficio_nome") or target.tribunale,
+            ),
+            "numero_rg": _take(target.numero_rg, selection.get("numero") or target.numero_rg),
+            "anno_rg": target.anno_rg or int(selection.get("anno") or 0),
+            "oggetto": _take(target.oggetto, identity.get("oggetto") or target.oggetto),
+            "sezione": _take(target.sezione, identity.get("sezione") or target.sezione),
+            "giudice": _take(
+                target.giudice,
+                payload.get("giudice") or payload.get("giudice_relatore") or target.giudice,
+            ),
+            "tipo_procedimento": _take(target.tipo_procedimento, tipo_procedimento),
+        }
+        if append_import_note:
+            nota_import = f"Sincronizzato da {_portale_source_name(portale)} il {date.today().isoformat()}"
+            update_fields["note"] = " | ".join(part for part in [target.note.strip(), nota_import] if part)
+        stato_portale = stato_fascicolo_da_descrizione_portale(
+            identity.get("stato") or selection.get("stato") or payload.get("stato"),
+            default=None,
+        )
+        if stato_portale and stato_portale != target.stato:
+            update_fields["stato"] = stato_portale
+        updated = get_fascicoli().aggiorna(target.id, **update_fields)
+        get_fascicoli().registra_onboarding(
+            target.id,
+            f"Acquisizione guidata da {_portale_source_name(portale)}",
+            note=f"Import log {log_id}" if log_id else "",
+            avvocato=user_name,
+        )
+        return updated
 
     def _coerce_import_options(data: dict[str, Any]) -> dict[str, bool]:
         def _b(key: str, default: bool = False) -> bool:
@@ -5524,6 +5714,20 @@ def create_app(config: dict | None = None) -> Flask:
         warnings: list[dict[str, Any]] = []
         oks: list[dict[str, Any]] = []
         candidates = _find_matching_fascicoli_locali(selection)
+        resolved_mode = mapping.get("mode") or "create_new"
+        auto_target: Optional[Fascicolo] = None
+        auto_integrated = False
+        try:
+            resolved_mode, auto_target, auto_integrated = _resolve_portale_import_target(portale, selection, mapping)
+        except Exception as target_error:
+            if (mapping.get("mode") or "create_new") in {"attach_existing", "update_existing"}:
+                blockers.append(
+                    {
+                        "label": "Pratica locale non compatibile",
+                        "detail": str(target_error),
+                        "tone": "danger",
+                    }
+                )
         counts = dict(preview.get("counts") or {})
         mode = mapping.get("mode") or "create_new"
         target_id = mapping.get("target_fascicolo_id") or ""
@@ -5568,7 +5772,15 @@ def create_app(config: dict | None = None) -> Flask:
         if mode in {"attach_existing", "update_existing"} and not target_id:
             blockers.append({"label": "Pratica locale non selezionata", "detail": "Per collegare o aggiornare devi scegliere un fascicolo esistente.", "tone": "danger"})
 
-        if mode == "create_new" and candidates:
+        if auto_integrated and auto_target is not None:
+            warnings.append(
+                {
+                    "label": "Pratica locale già presente",
+                    "detail": f"L'importazione aggiornerà automaticamente {auto_target.titolo} invece di creare un duplicato.",
+                    "tone": "warning",
+                }
+            )
+        elif mode == "create_new" and candidates:
             warnings.append({"label": "Possibile duplicato locale", "detail": f"Esistono {len(candidates)} fascicoli con RG o parti compatibili.", "tone": "warning"})
 
         if options.get("importa_scadenze") and not preview.get("identity", {}).get("data_udienza"):
@@ -5583,6 +5795,9 @@ def create_app(config: dict | None = None) -> Flask:
             "warnings": warnings,
             "ok": oks,
             "existing_matches": candidates,
+            "resolved_mode": resolved_mode,
+            "auto_integrated": auto_integrated,
+            "auto_target_fascicolo_id": getattr(auto_target, "id", "") if auto_target else "",
             "summary_text": (
                 "Importazione pronta: nessun blocco rilevato."
                 if not blockers
@@ -5849,14 +6064,7 @@ def create_app(config: dict | None = None) -> Flask:
         gf = get_fascicoli()
         gc = get_clienti()
         gsog = get_soggetti()
-        stato_portale = stato_fascicolo_da_descrizione_portale(
-            (preview.get("identity") or {}).get("stato")
-            or selection.get("stato")
-            or (selection.get("payload") or {}).get("stato"),
-            default=None,
-        )
-        mode = mapping.get("mode") or "create_new"
-        target_id = mapping.get("target_fascicolo_id") or ""
+        mode, resolved_target, auto_integrated = _resolve_portale_import_target(portale, selection, mapping)
         id_fasc = ""
         created = False
 
@@ -5924,7 +6132,7 @@ def create_app(config: dict | None = None) -> Flask:
             id_fasc = risultato.id_fascicolo_locale
             created = True
         else:
-            target = gf.get(target_id)
+            target = resolved_target
             if not target:
                 raise ValueError("Fascicolo locale selezionato non trovato.")
             if portale == "pst":
@@ -5948,33 +6156,15 @@ def create_app(config: dict | None = None) -> Flask:
                     raise ValueError(risultato.messaggio or "Sincronizzazione PST non riuscita.")
                 id_fasc = risultato.id_fascicolo_locale
             else:
-                identity = preview.get("identity") or {}
-                preserve_blank = options.get("sovrascrivi_solo_vuoti", True)
-
-                def _take(current: Any, incoming: Any) -> Any:
-                    if preserve_blank and str(current or "").strip():
-                        return current
-                    return incoming
-
-                update_fields = {
-                    "tribunale": _take(target.tribunale, identity.get("ufficio_nome") or target.tribunale),
-                    "numero_rg": _take(target.numero_rg, selection.get("numero") or target.numero_rg),
-                    "anno_rg": target.anno_rg or int(selection.get("anno") or 0),
-                    "oggetto": _take(target.oggetto, identity.get("oggetto") or target.oggetto),
-                    "sezione": _take(target.sezione, identity.get("sezione") or target.sezione),
-                    "giudice": _take(target.giudice, selection.get("payload", {}).get("giudice") or selection.get("payload", {}).get("giudice_relatore") or target.giudice),
-                }
-                if not options.get("non_toccare_note_interne", True):
-                    nota_import = f"Sincronizzato da {_portale_source_name(portale)} il {date.today().isoformat()}"
-                    update_fields["note"] = " | ".join(part for part in [target.note.strip(), nota_import] if part)
-                if stato_portale and stato_portale != target.stato:
-                    update_fields["stato"] = stato_portale
-                gf.aggiorna(target.id, **update_fields)
-                gf.registra_onboarding(
-                    target.id,
-                    f"Acquisizione guidata da {_portale_source_name(portale)}",
-                    note=f"Import log {log_id}",
-                    avvocato=user_name,
+                target = _sync_existing_fascicolo_from_portale(
+                    portale,
+                    target,
+                    selection,
+                    preview,
+                    preserve_blank=options.get("sovrascrivi_solo_vuoti", True),
+                    append_import_note=not options.get("non_toccare_note_interne", True),
+                    user_name=user_name,
+                    log_id=log_id,
                 )
                 id_fasc = target.id
 
@@ -6034,16 +6224,32 @@ def create_app(config: dict | None = None) -> Flask:
             sync_status="IMPORTATO" if created else "SINCRONIZZATO",
         )
 
+        workflow_url = ""
+        if portale == "pdp":
+            case = _ensure_pdp_penale_case_after_import(
+                id_fasc=id_fasc,
+                selection=selection,
+                preview=preview,
+                user_name=user_name,
+                imported_documents=int(import_result.get("documenti_importati", 0) or 0),
+                downloaded_files=decoded_items or files,
+            )
+            if case:
+                workflow_url = url_for("pdp_penale_workspace", id_fasc=id_fasc, case_id=case["id"])
+
         fasc = gf.get(id_fasc)
         return {
             "id_fascicolo": id_fasc,
             "created": created,
+            "resolved_mode": mode,
+            "auto_integrated": auto_integrated,
             "import_log_id": log_id,
             "quadro_url": url_for("quadro_fascicolo", id_fasc=id_fasc),
             "dettaglio_url": url_for("dettaglio_fascicolo", id_fasc=id_fasc),
             "scadenziario_url": url_for("dettaglio_fascicolo", id_fasc=id_fasc) + "#sezione-udienze-scadenze",
-            "timeline_url": url_for("dettaglio_fascicolo", id_fasc=id_fasc) + "#sezione-attivita",
-            "documenti_url": url_for("dettaglio_fascicolo", id_fasc=id_fasc) + "#sezione-documenti",
+            "timeline_url": url_for("dettaglio_fascicolo", id_fasc=id_fasc) + "#sezione-attivita-processuali",
+            "documenti_url": url_for("dettaglio_fascicolo", id_fasc=id_fasc) + "#sezione-documenti-fascicolo",
+            "workflow_url": workflow_url,
             "summary": {
                 "numero_pratica": getattr(fasc, "numero", ""),
                 "titolo": getattr(fasc, "titolo", ""),
@@ -6058,6 +6264,50 @@ def create_app(config: dict | None = None) -> Flask:
                 "albero_originale_salvato": bool(albero_originale_salvato),
             },
         }
+
+    def _register_direct_portale_import_sync(
+        portale: str,
+        selection: dict[str, Any],
+        preview: dict[str, Any],
+        *,
+        id_fasc: str,
+        created: bool,
+        user_name: str,
+    ) -> str:
+        log_id = _append_portale_import_log(
+            {
+                "portale": _portale_source_name(portale),
+                "selection": selection,
+                "preview_counts": preview.get("counts") or {},
+                "options": {"direct_import": True},
+                "mapping": {"mode": "create_new"},
+                "analysis": {},
+                "utente": user_name,
+            }
+        )
+        fasc = get_fascicoli().get(id_fasc)
+        if not fasc:
+            return log_id
+        _update_fascicolo_sync_metadata(
+            id_fasc,
+            portale=portale,
+            selection=selection,
+            import_log_id=log_id,
+            has_conflicts=False,
+            document_sync_enabled=False,
+            events_sync_enabled=False,
+            sync_status="IMPORTATO" if created else "SINCRONIZZATO",
+        )
+        if portale == "pdp":
+            _ensure_pdp_penale_case_after_import(
+                id_fasc=id_fasc,
+                selection=selection,
+                preview=preview,
+                user_name=user_name,
+                imported_documents=0,
+                downloaded_files=[],
+            )
+        return log_id
 
     def _build_access_status_payload(portale: str) -> dict[str, Any]:
         spec = _spec_portale_acquisizione(portale)
@@ -7191,71 +7441,14 @@ read -r -p "Premi Invio per chiudere..." _
 
     @app.route("/pdp/ricerca", methods=["POST"])
     def pdp_ricerca():
-        f          = request.form
-        ufficio    = f.get("ufficio", "").strip()
-        demo_mode  = f.get("demo_mode") == "1" or _polis_demo_mode()
-
-        if not ufficio:
-            flash("Seleziona un ufficio giudiziario.", "warning")
-            return redirect(url_for("pdp_home"))
-        if _portale_local_channel_enabled("pdp"):
-            flash(
-                "Per PDP Penale la ricerca guidata usa il wizard browser-side con Local Signer.",
-                "info",
-            )
-            return redirect(url_for("portale_acquisizione_wizard", portale="pdp"))
-
-        id_fasc       = f.get("id_fasc", "").strip()
-        fascicolo_ctx = get_fascicoli().get(id_fasc) if id_fasc else None
-        numero_rg     = f.get("numero_rg", "").strip() or None
-        anno_rg_str   = f.get("anno_rg", "").strip()
-        anno_rg       = int(anno_rg_str) if anno_rg_str.isdigit() else None
-        nome_imputato = f.get("nome_imputato", "").strip() or None
-        tipo_registro = f.get("tipo_registro", "").strip() or None
-
-        try:
-            from pct.pdp import crea_client_pdp
-            client = crea_client_pdp(demo=demo_mode)
-            fascicoli = client.ricerca_fascicoli(
-                ufficio=ufficio,
-                numero_rg=numero_rg,
-                anno_rg=anno_rg,
-                nome_imputato=nome_imputato,
-                tipo_registro=tipo_registro,
-            )
-            # Risolvi nome ufficio dal codice
-            try:
-                from pct.uffici_giudiziari import get_gestore as _get_uff
-                _uff = next(
-                    (u for u in _get_uff(
-                        os.getenv("PCT_UFFICI_DB", "/data/uffici/uffici_giudiziari.json")
-                    ).carica() if u.get("codice") == ufficio),
-                    None,
-                )
-                ufficio_sel_nome = _uff["nome"] if _uff else ufficio
-            except Exception:
-                ufficio_sel_nome = ufficio
-            return render_template(
-                "pdp.html",
-                demo_mode=demo_mode,
-                fascicoli=fascicoli,
-                ufficio_sel=ufficio,
-                ufficio_sel_nome=ufficio_sel_nome,
-                numero_rg=numero_rg or "",
-                anno_rg=anno_rg or "",
-                nome_imputato=nome_imputato or "",
-                tipo_registro=tipo_registro or "",
-                fascicolo=fascicolo_ctx,
-                id_fasc=id_fasc,
-                oggi=date.today(),
-            )
-        except Exception as e:
-            app.logger.exception("Errore pdp_ricerca: %s", e)
-            if _is_portale_dns_error(e):
-                flash(_portale_browser_guided_message("pdp"), "warning")
-                return redirect(url_for("portale_acquisizione_wizard", portale="pdp"))
-            flash(str(e), "danger")
-            return redirect(url_for("pdp_home", id_fasc=id_fasc) if id_fasc else url_for("pdp_home"))
+        id_fasc = str(request.form.get("id_fasc") or "").strip()
+        flash(
+            "Per PDP Penale la ricerca diretta è stata sostituita dall'acquisizione guidata, così evitiamo richieste inutili e agganciamo subito il workflow PDP.",
+            "info",
+        )
+        if id_fasc:
+            return redirect(url_for("portale_acquisizione_wizard", portale="pdp", id_fasc=id_fasc))
+        return redirect(url_for("portale_acquisizione_wizard", portale="pdp"))
 
     @app.route("/pdp/documenti")
     def pdp_documenti():
@@ -7346,17 +7539,48 @@ read -r -p "Premi Invio per chiudere..." _
                 codice_ufficio=f.get("codice_ufficio", ""),
                 nome_ufficio=f.get("nome_ufficio", ""),
             )
+            selection = _serialize_portale_search_item("pdp", fascicolo)
+            preview = _build_portale_preview("pdp", selection, [])
+            avv = getattr(getattr(g, "utente_corrente", None), "username", "") or ""
+            target = _find_exact_fascicolo_locale_portale("pdp", selection)
+            if target:
+                target = _sync_existing_fascicolo_from_portale(
+                    "pdp",
+                    target,
+                    selection,
+                    preview,
+                    preserve_blank=True,
+                    append_import_note=True,
+                    user_name=avv,
+                )
+                _register_direct_portale_import_sync(
+                    "pdp",
+                    selection,
+                    preview,
+                    id_fasc=target.id,
+                    created=False,
+                    user_name=avv,
+                )
+                flash("Pratica penale già presente: fascicolo locale integrato senza creare duplicati.", "success")
+                return redirect(url_for("dettaglio_fascicolo", id_fasc=target.id))
             if _portale_local_channel_enabled("pdp"):
                 client = ClientPDP(
                     codice_fiscale_avvocato=_codice_fiscale_avvocato_portale()
                 )
             else:
                 client = crea_client_pdp(demo=demo_mode)
-            avv       = g.utente_corrente.username if g.utente_corrente else ""
             risultato = client.importa_fascicolo(fascicolo, get_fascicoli(), get_clienti(), avv)
             for avviso in risultato.avvisi:
                 flash(avviso, "warning")
             if risultato.successo and risultato.id_fascicolo_locale:
+                _register_direct_portale_import_sync(
+                    "pdp",
+                    selection,
+                    preview,
+                    id_fasc=risultato.id_fascicolo_locale,
+                    created=True,
+                    user_name=avv,
+                )
                 flash(risultato.messaggio, "success")
                 return redirect(url_for("dettaglio_fascicolo",
                                         id_fasc=risultato.id_fascicolo_locale))
@@ -7531,17 +7755,48 @@ read -r -p "Premi Invio per chiudere..." _
                 codice_ufficio=f.get("codice_ufficio", ""),
                 nome_ufficio=f.get("nome_ufficio", ""),
             )
+            selection = _serialize_portale_search_item("pat", fascicolo)
+            preview = _build_portale_preview("pat", selection, [])
+            avv = getattr(getattr(g, "utente_corrente", None), "username", "") or ""
+            target = _find_exact_fascicolo_locale_portale("pat", selection)
+            if target:
+                target = _sync_existing_fascicolo_from_portale(
+                    "pat",
+                    target,
+                    selection,
+                    preview,
+                    preserve_blank=True,
+                    append_import_note=True,
+                    user_name=avv,
+                )
+                _register_direct_portale_import_sync(
+                    "pat",
+                    selection,
+                    preview,
+                    id_fasc=target.id,
+                    created=False,
+                    user_name=avv,
+                )
+                flash("Pratica amministrativa già presente: fascicolo locale integrato senza creare duplicati.", "success")
+                return redirect(url_for("dettaglio_fascicolo", id_fasc=target.id))
             if _portale_local_channel_enabled("pat"):
                 client = ClientPAT(
                     codice_fiscale_avvocato=_codice_fiscale_avvocato_portale()
                 )
             else:
                 client = crea_client_pat(demo=demo_mode)
-            avv       = g.utente_corrente.username if g.utente_corrente else ""
             risultato = client.importa_fascicolo(fascicolo, get_fascicoli(), get_clienti(), avv)
             for avviso in risultato.avvisi:
                 flash(avviso, "warning")
             if risultato.successo and risultato.id_fascicolo_locale:
+                _register_direct_portale_import_sync(
+                    "pat",
+                    selection,
+                    preview,
+                    id_fasc=risultato.id_fascicolo_locale,
+                    created=True,
+                    user_name=avv,
+                )
                 flash(risultato.messaggio, "success")
                 return redirect(url_for("dettaglio_fascicolo",
                                         id_fasc=risultato.id_fascicolo_locale))
@@ -7723,17 +7978,48 @@ read -r -p "Premi Invio per chiudere..." _
                 codice_commissione=f.get("codice_commissione", ""),
                 nome_commissione=f.get("nome_commissione", ""),
             )
+            selection = _serialize_portale_search_item("ptt", fascicolo)
+            preview = _build_portale_preview("ptt", selection, [])
+            avv = getattr(getattr(g, "utente_corrente", None), "username", "") or ""
+            target = _find_exact_fascicolo_locale_portale("ptt", selection)
+            if target:
+                target = _sync_existing_fascicolo_from_portale(
+                    "ptt",
+                    target,
+                    selection,
+                    preview,
+                    preserve_blank=True,
+                    append_import_note=True,
+                    user_name=avv,
+                )
+                _register_direct_portale_import_sync(
+                    "ptt",
+                    selection,
+                    preview,
+                    id_fasc=target.id,
+                    created=False,
+                    user_name=avv,
+                )
+                flash("Pratica tributaria già presente: fascicolo locale integrato senza creare duplicati.", "success")
+                return redirect(url_for("dettaglio_fascicolo", id_fasc=target.id))
             if _portale_local_channel_enabled("ptt"):
                 client = ClientSIGIT(
                     codice_fiscale_avvocato=_codice_fiscale_avvocato_portale()
                 )
             else:
                 client = crea_client_sigit(demo=demo_mode)
-            avv       = g.utente_corrente.username if g.utente_corrente else ""
             risultato = client.importa_fascicolo(fascicolo, get_fascicoli(), get_clienti(), avv)
             for avviso in risultato.avvisi:
                 flash(avviso, "warning")
             if risultato.successo and risultato.id_fascicolo_locale:
+                _register_direct_portale_import_sync(
+                    "ptt",
+                    selection,
+                    preview,
+                    id_fasc=risultato.id_fascicolo_locale,
+                    created=True,
+                    user_name=avv,
+                )
                 flash(risultato.messaggio, "success")
                 return redirect(url_for("dettaglio_fascicolo",
                                         id_fasc=risultato.id_fascicolo_locale))
@@ -9334,6 +9620,120 @@ read -r -p "Premi Invio per chiudere..." _
             "current_ministry_status": "",
             "notes": "",
         }
+
+    def _ensure_pdp_penale_case_after_import(
+        *,
+        id_fasc: str,
+        selection: dict[str, Any],
+        preview: dict[str, Any],
+        user_name: str,
+        imported_documents: int = 0,
+        downloaded_files: list[dict[str, Any]] | None = None,
+    ) -> dict[str, Any]:
+        fasc = get_fascicoli().get(id_fasc)
+        if not fasc or getattr(getattr(fasc, "tipo", None), "value", "") != "PENALE":
+            return {}
+        cliente = get_clienti().get(fasc.id_cliente) if fasc.id_cliente else None
+        defaults = _pdp_penale_case_defaults(fasc, cliente)
+        payload = dict(selection.get("payload") or {})
+        identity = dict(preview.get("identity") or {})
+        repository = get_pdp_penale()
+        minister_status = str(
+            payload.get("ministry_status")
+            or selection.get("current_ministry_status")
+            or ""
+        ).strip().upper()
+        if minister_status not in {
+            "INVIATO",
+            "IN_TRANSITO",
+            "ACCETTATO",
+            "IN_VERIFICA",
+            "RIFIUTATO",
+            "ERRORE_TECNICO",
+        }:
+            minister_status = ""
+        case_payload = dict(defaults)
+        case_payload.update(
+            {
+                "practice_id": fasc.id,
+                "minister_case_ref": str(
+                    selection.get("external_id")
+                    or payload.get("id_fascicolo")
+                    or defaults.get("minister_case_ref")
+                    or ""
+                ).strip()
+                or None,
+                "office_name": str(selection.get("ufficio_nome") or defaults["office_name"]).strip(),
+                "register_type": str(
+                    selection.get("procedimento")
+                    or payload.get("tipo_registro")
+                    or defaults["register_type"]
+                ).strip()
+                or defaults["register_type"],
+                "register_number": str(selection.get("numero") or defaults["register_number"]).strip(),
+                "register_year": int(selection.get("anno") or defaults["register_year"] or date.today().year),
+                "proceeding_type": str(
+                    payload.get("fase")
+                    or payload.get("tipo_registro")
+                    or defaults["proceeding_type"]
+                ).strip()
+                or defaults["proceeding_type"],
+                "judge_name": str(payload.get("giudice") or defaults["judge_name"]).strip(),
+                "chamber_section": str(selection.get("sezione") or payload.get("sezione") or defaults["chamber_section"]).strip(),
+                "assisted_party_name": str(
+                    (selection.get("parti") or [defaults["assisted_party_name"]])[0]
+                    if (selection.get("parti") or [defaults["assisted_party_name"]])
+                    else defaults["assisted_party_name"]
+                ).strip(),
+                "current_ministry_status": minister_status or None,
+            }
+        )
+        available_docs = int(preview.get("counts", {}).get("documenti", 0) or 0)
+        downloaded_count = len(downloaded_files or [])
+        if imported_documents > 0 or downloaded_count > 0:
+            case_payload["import_status"] = "completed"
+        elif available_docs > 0:
+            case_payload["import_status"] = "waiting_download"
+        office_name_norm = _normalize_portale_match_text(case_payload["office_name"])
+        register_type_norm = _normalize_portale_match_text(case_payload["register_type"])
+        register_number = str(case_payload["register_number"] or "").strip()
+        register_year = int(case_payload["register_year"] or 0)
+        minister_ref = str(case_payload.get("minister_case_ref") or "").strip()
+        current_case = None
+        for row in repository.list_cases_for_practice(fasc.id):
+            if minister_ref and str(row.get("minister_case_ref") or "").strip() == minister_ref:
+                current_case = row
+                break
+            if (
+                _normalize_portale_match_text(row.get("office_name")) == office_name_norm
+                and _normalize_portale_match_text(row.get("register_type")) == register_type_norm
+                and str(row.get("register_number") or "").strip() == register_number
+                and int(row.get("register_year") or 0) == register_year
+            ):
+                current_case = row
+                break
+        if current_case:
+            case = repository.update_case(str(current_case["id"]), **case_payload)
+            event_type = "guided_import_synced"
+            title = "Workflow PDP aggiornato dall'acquisizione guidata"
+        else:
+            case = repository.create_case(**case_payload)
+            event_type = "guided_import_created"
+            title = "Workflow PDP creato dall'acquisizione guidata"
+        repository.add_event(
+            str(case["id"]),
+            event_type=event_type,
+            event_source="import",
+            title=title,
+            description=f"{case_payload['register_type']} {case_payload['register_number']}/{case_payload['register_year']}",
+            payload_json={
+                "import_status": case_payload.get("import_status") or "",
+                "available_documents": available_docs,
+                "imported_documents": imported_documents,
+            },
+            created_by_user_id=getattr(g.utente_corrente, "id", "") or user_name,
+        )
+        return case
 
     def _pdp_penale_access_status_from_request_status(request_status: str) -> str:
         mapping = {

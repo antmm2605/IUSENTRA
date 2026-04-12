@@ -67,6 +67,7 @@ services:
       PCT_PORTALE_DB:       /data/portale/portali.json
       PCT_PORTALE_UPLOADS:  /data/portale/uploads
       PCT_FATTURAZIONE_DB:  /data/fatturazione/parcelle.json
+      PCT_GIURISPRUDENZA_DB: /data/intelligence/giurisprudenza.json
       PCT_NOTIFICHE_LOG:    /data/notifiche/log.json
       PCT_TEMPLATE_ATTI_DB: /data/template_atti/templates.json
       PCT_PAGAMENTI_DIR:    /data/pagamenti

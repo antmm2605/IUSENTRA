@@ -185,6 +185,13 @@ def _quick_links() -> list:
             "accent": "danger",
         },
         {
+            "title": "Archivio Sentenze",
+            "text": "Schede giurisprudenziali, massime, orientamenti e recupero assistito dalle fonti presidiate.",
+            "url": url_for("giurisprudenza.index"),
+            "icon": "bi-bank2",
+            "accent": "info",
+        },
+        {
             "title": "Cabina Telematica",
             "text": "PST, PDP, PAT e PTT con workflow guidati, fascicoli interni e controlli.",
             "url": url_for("telematico_dashboard"),

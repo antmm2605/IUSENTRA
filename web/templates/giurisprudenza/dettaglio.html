@@ -1,0 +1,245 @@
+{% extends "base.html" %}
+{% block title %}Scheda Sentenza{% endblock %}
+{% block page_title %}Scheda Sentenza{% endblock %}
+
+{% block content %}
+<style>
+  .jd-shell { display: grid; gap: 1.5rem; }
+  .jd-hero,
+  .jd-card,
+  .jd-meta,
+  .jd-related { border-radius: 22px; border: 1px solid rgba(15, 23, 42, .08); background: #fff; box-shadow: 0 14px 36px rgba(15, 23, 42, .05); }
+  .jd-hero { background: linear-gradient(135deg, rgba(16, 81, 143, .08), rgba(13, 148, 136, .08)); }
+  .jd-kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1rem; }
+  .jd-kpi { border-radius: 18px; border: 1px solid rgba(15, 23, 42, .08); padding: 1rem; background: linear-gradient(180deg, #fff, #f8fbff); }
+  .jd-chip { display: inline-flex; align-items: center; gap: .45rem; border-radius: 999px; padding: .4rem .8rem; font-size: .84rem; font-weight: 600; border: 1px solid rgba(15, 23, 42, .08); background: #f8fafc; color: #17324f; }
+  .jd-tags { display: flex; flex-wrap: wrap; gap: .55rem; }
+  .jd-grid { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(300px, .9fr); gap: 1.5rem; }
+  .jd-panel-title { font-size: 1.02rem; font-weight: 700; margin-bottom: 1rem; }
+  .jd-deflist { display: grid; gap: .85rem; }
+  .jd-defitem { display: grid; gap: .2rem; }
+  .jd-defitem dt { margin: 0; font-size: .76rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: #64748b; }
+  .jd-defitem dd { margin: 0; color: #0f172a; }
+  .jd-source-box { border-radius: 18px; border: 1px dashed rgba(15, 23, 42, .16); background: rgba(248, 250, 252, .9); }
+  .jd-related-item { border-top: 1px solid rgba(15, 23, 42, .08); padding-top: 1rem; margin-top: 1rem; }
+  @media (max-width: 1199.98px) {
+    .jd-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .jd-grid { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 767.98px) {
+    .jd-kpis { grid-template-columns: 1fr; }
+  }
+</style>
+
+<div class="jd-shell">
+  <section class="jd-hero p-4 p-lg-5">
+    <div class="d-flex flex-column flex-xl-row gap-4 justify-content-between">
+      <div class="flex-grow-1">
+        <div class="d-flex flex-wrap gap-2 mb-3">
+          <span class="jd-chip"><i class="bi bi-bank2"></i>{{ record.source_label }}</span>
+          {% if record.area %}<span class="jd-chip">{{ record.area }}</span>{% endif %}
+          {% if record.branca %}<span class="jd-chip">{{ record.branca }}</span>{% endif %}
+          {% if record.sottobranca %}<span class="jd-chip">{{ record.sottobranca }}</span>{% endif %}
+        </div>
+        <h1 class="h2 mb-3">{{ record.titolo }}</h1>
+        <p class="text-muted mb-0">
+          La scheda unisce fonte ufficiale, classificazione giuridica, dati processuali, massima e uso pratico nel gestionale.
+        </p>
+      </div>
+      <div class="d-grid gap-2" style="min-width:min(100%, 260px)">
+        <a href="{{ url_for('giurisprudenza.modifica', judgment_id=record.id) }}" class="btn btn-primary">
+          <i class="bi bi-pencil-square me-2"></i>Modifica scheda
+        </a>
+        <a href="{{ url_for('giurisprudenza.index') }}" class="btn btn-outline-secondary">
+          <i class="bi bi-arrow-left me-2"></i>Torna all'archivio
+        </a>
+        {% if fonte and fonte.handoff_url %}
+        <a href="{{ fonte.handoff_url }}" class="btn btn-outline-dark">
+          <i class="bi bi-box-arrow-up-right me-2"></i>{{ fonte.handoff_label }}
+        </a>
+        {% elif record.url_origine %}
+        <a href="{{ record.url_origine }}" class="btn btn-outline-dark" target="_blank" rel="noopener">
+          <i class="bi bi-box-arrow-up-right me-2"></i>Apri fonte ufficiale
+        </a>
+        {% endif %}
+      </div>
+    </div>
+  </section>
+
+  <section class="jd-kpis">
+    <div class="jd-kpi">
+      <div class="small text-muted mb-1">Numero provvedimento</div>
+      <div class="fs-5 fw-semibold">{{ record.numero_provvedimento or "Non indicato" }}</div>
+    </div>
+    <div class="jd-kpi">
+      <div class="small text-muted mb-1">Data deposito</div>
+      <div class="fs-5 fw-semibold">{{ record.data_deposito_fmt or "Non indicata" }}</div>
+    </div>
+    <div class="jd-kpi">
+      <div class="small text-muted mb-1">Data decisione</div>
+      <div class="fs-5 fw-semibold">{{ record.data_decisione_fmt or "Non indicata" }}</div>
+    </div>
+    <div class="jd-kpi">
+      <div class="small text-muted mb-1">Uso nel software</div>
+      <div class="fs-5 fw-semibold">{{ record.uso_nel_software or "Da valutare" }}</div>
+    </div>
+  </section>
+
+  <section class="jd-grid">
+    <div class="d-grid gap-4">
+      <article class="jd-card p-4">
+        <div class="jd-panel-title">Massima e principio di diritto</div>
+        <div class="d-grid gap-4">
+          <div>
+            <div class="small text-muted text-uppercase fw-semibold mb-2">Massima sintetica</div>
+            <div>{{ record.massima or "Massima non ancora redatta." }}</div>
+          </div>
+          <div>
+            <div class="small text-muted text-uppercase fw-semibold mb-2">Principio di diritto</div>
+            <div>{{ record.principio_diritto or "Principio di diritto non ancora valorizzato." }}</div>
+          </div>
+          <div>
+            <div class="small text-muted text-uppercase fw-semibold mb-2">Abstract operativo</div>
+            <div>{{ record.abstract or "Abstract non disponibile." }}</div>
+          </div>
+        </div>
+      </article>
+
+      <article class="jd-card p-4">
+        <div class="jd-panel-title">Classificazione giuridica</div>
+        <div class="jd-deflist">
+          <div class="jd-defitem"><dt>Area</dt><dd>{{ record.area or "Non classificata" }}</dd></div>
+          <div class="jd-defitem"><dt>Branca</dt><dd>{{ record.branca or "Non classificata" }}</dd></div>
+          <div class="jd-defitem"><dt>Sottobranca</dt><dd>{{ record.sottobranca or "Non classificata" }}</dd></div>
+          <div class="jd-defitem"><dt>Microtema</dt><dd>{{ record.microtema or "Non indicato" }}</dd></div>
+          <div class="jd-defitem"><dt>Materia</dt><dd>{{ record.materia or "Non indicata" }}</dd></div>
+          <div class="jd-defitem"><dt>Esito</dt><dd>{{ record.esito or "Non indicato" }}</dd></div>
+          <div class="jd-defitem"><dt>Orientamento</dt><dd>{{ record.orientamento or "Non indicato" }}</dd></div>
+          <div class="jd-defitem"><dt>Rilevanza pratica</dt><dd>{{ record.rilevanza_pratica or "Non indicata" }}</dd></div>
+        </div>
+      </article>
+
+      <article class="jd-card p-4">
+        <div class="jd-panel-title">Tag, norme e collegamenti</div>
+        <div class="d-grid gap-4">
+          <div>
+            <div class="small text-muted text-uppercase fw-semibold mb-2">Parole chiave</div>
+            <div class="jd-tags">
+              {% for item in record.parole_chiave %}
+              <span class="jd-chip">{{ item }}</span>
+              {% else %}
+              <span class="text-muted">Nessuna parola chiave inserita.</span>
+              {% endfor %}
+            </div>
+          </div>
+          <div>
+            <div class="small text-muted text-uppercase fw-semibold mb-2">Norme citate</div>
+            <div class="jd-tags">
+              {% for item in record.norme_citate %}
+              <span class="jd-chip">{{ item }}</span>
+              {% else %}
+              <span class="text-muted">Nessuna norma collegata.</span>
+              {% endfor %}
+            </div>
+          </div>
+          <div>
+            <div class="small text-muted text-uppercase fw-semibold mb-2">Fascicoli collegati</div>
+            <div class="jd-tags">
+              {% for item in record.fascicoli_collegati %}
+              <span class="jd-chip">{{ item }}</span>
+              {% else %}
+              <span class="text-muted">Nessun fascicolo interno collegato.</span>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <article class="jd-related p-4">
+        <div class="d-flex align-items-center justify-content-between gap-3 mb-3">
+          <div class="jd-panel-title mb-0">Precedenti correlati</div>
+          <span class="text-muted small">{{ correlati|length }} schede</span>
+        </div>
+        {% for item in correlati %}
+        <div class="jd-related-item {% if loop.first %}mt-0 pt-0 border-top-0{% endif %}">
+          <div class="d-flex flex-column flex-lg-row justify-content-between gap-3">
+            <div>
+              <div class="fw-semibold">{{ item.titolo }}</div>
+              <div class="small text-muted mt-1">
+                {{ item.source_label }}{% if item.numero_provvedimento %} · n. {{ item.numero_provvedimento }}{% endif %}
+                {% if item.data_deposito_fmt %} · deposito {{ item.data_deposito_fmt }}{% endif %}
+              </div>
+              {% if item.massima %}
+              <div class="small mt-2">{{ item.massima }}</div>
+              {% endif %}
+            </div>
+            <div class="d-grid">
+              <a href="{{ url_for('giurisprudenza.dettaglio', judgment_id=item.id) }}" class="btn btn-sm btn-outline-primary">
+                Apri scheda
+              </a>
+            </div>
+          </div>
+        </div>
+        {% else %}
+        <div class="text-muted">Nessun precedente correlato ancora disponibile sulla stessa fonte o sulla stessa branca.</div>
+        {% endfor %}
+      </article>
+    </div>
+
+    <aside class="d-grid gap-4">
+      <div class="jd-meta p-4">
+        <div class="jd-panel-title">Metadati processuali</div>
+        <dl class="jd-deflist">
+          <div class="jd-defitem"><dt>Giurisdizione</dt><dd>{{ record.giurisdizione or "Non indicata" }}</dd></div>
+          <div class="jd-defitem"><dt>Organo giudicante</dt><dd>{{ record.organo_giudicante or "Non indicato" }}</dd></div>
+          <div class="jd-defitem"><dt>Ufficio</dt><dd>{{ record.ufficio or "Non indicato" }}</dd></div>
+          <div class="jd-defitem"><dt>Grado</dt><dd>{{ record.grado or "Non indicato" }}</dd></div>
+          <div class="jd-defitem"><dt>Sezione</dt><dd>{{ record.sezione or "Non indicata" }}</dd></div>
+          <div class="jd-defitem"><dt>Rito</dt><dd>{{ record.rito or "Non indicato" }}</dd></div>
+          <div class="jd-defitem"><dt>Tipo provvedimento</dt><dd>{{ record.tipo_provvedimento or "Non indicato" }}</dd></div>
+          <div class="jd-defitem"><dt>ECLI</dt><dd>{{ record.ecli or "Non disponibile" }}</dd></div>
+          <div class="jd-defitem"><dt>Identificatore stabile</dt><dd class="small">{{ record.identificatore_stabile }}</dd></div>
+          <div class="jd-defitem"><dt>Aggiornata il</dt><dd>{{ record.updated_at_fmt or "Non disponibile" }}</dd></div>
+          <div class="jd-defitem"><dt>Ultimo recupero</dt><dd>{{ record.ultimo_sync_at_fmt or "Nessun recupero automatico" }}</dd></div>
+        </dl>
+      </div>
+
+      <div class="jd-meta jd-source-box p-4">
+        <div class="jd-panel-title">Strategia fonte</div>
+        {% if fonte %}
+        <div class="d-grid gap-3">
+          <div>
+            <div class="fw-semibold">{{ fonte.nome }}</div>
+            <div class="small text-muted">{{ fonte.coverage }}</div>
+          </div>
+          <div class="small">
+            <strong>Modalita accesso:</strong> {{ fonte.access_mode|replace('_', ' ') }}<br>
+            <strong>Recupero:</strong> {{ fonte.sync_mode|replace('_', ' ') }}
+          </div>
+          <div class="small text-muted">{{ fonte.note }}</div>
+          <div class="d-grid gap-2">
+            {% if fonte.handoff_url %}
+            <a href="{{ fonte.handoff_url }}" class="btn btn-outline-dark">
+              <i class="bi bi-arrow-right-circle me-2"></i>{{ fonte.handoff_label }}
+            </a>
+            {% endif %}
+            {% if fonte.official_url %}
+            <a href="{{ fonte.official_url }}" target="_blank" rel="noopener" class="btn btn-outline-primary">
+              <i class="bi bi-box-arrow-up-right me-2"></i>Vai alla fonte ufficiale
+            </a>
+            {% endif %}
+          </div>
+        </div>
+        {% else %}
+        <div class="text-muted">Fonte non riconosciuta oppure scheda interna redazionale.</div>
+        {% endif %}
+      </div>
+
+      <div class="jd-meta p-4">
+        <div class="jd-panel-title">Note operative</div>
+        <div>{{ record.note_redazionali or "Nessuna nota operativa inserita." }}</div>
+      </div>
+    </aside>
+  </section>
+</div>
+{% endblock %}

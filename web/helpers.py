@@ -21,6 +21,7 @@ from pct.auth import GestioneUtenti
 from pct.search_index import IndiceRicerca
 from pct.wizard_pro import GestioneWizardPro
 from pct.legal_intelligence import GestioneLegalIntelligence
+from pct.giurisprudenza import GestioneGiurisprudenza
 from pct.normative_tables import GestioneTabelleNormative
 from pct.calendar_sync import GestioneCalendarSync
 from pct.soggetti import GestioneSoggetti
@@ -87,6 +88,10 @@ def get_legal_intelligence() -> GestioneLegalIntelligence:
 
 def get_normative_tables() -> GestioneTabelleNormative:
     return GestioneTabelleNormative(db_path=_cfg("NORMATIVE_TABLES_DB"))
+
+
+def get_giurisprudenza() -> GestioneGiurisprudenza:
+    return GestioneGiurisprudenza(db_path=_cfg("GIURISPRUDENZA_DB"))
 
 
 def get_calendar_sync() -> GestioneCalendarSync:

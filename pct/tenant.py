@@ -708,6 +708,7 @@ class GestioneTenant:
             "WIZARD_PRO_DB":     f"{base}/wizard_pro/sessioni.json",
             "LEGAL_INTELLIGENCE_DB": f"{base}/intelligence/motori.json",
             "NORMATIVE_TABLES_DB": f"{base}/intelligence/tabelle_normative.json",
+            "GIURISPRUDENZA_DB": f"{base}/intelligence/giurisprudenza.json",
             "VALIDATION_RUNS_DB": f"{base}/intelligence/validation_runs.json",
             "REDACTION_ASSISTANT_DB": f"{base}/intelligence/assistente_redazionale.json",
             # Percorsi aggiuntivi necessari per isolamento tenant completo

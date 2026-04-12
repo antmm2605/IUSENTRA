@@ -1,0 +1,354 @@
+{% extends "base.html" %}
+{% block title %}Archivio Sentenze{% endblock %}
+{% block page_title %}Archivio Sentenze{% endblock %}
+
+{% block content %}
+<style>
+  .jud-hero, .jud-card, .jud-side, .jud-source, .jud-run { border-radius: 20px; }
+  .jud-hero { background: linear-gradient(135deg, rgba(26,58,92,.08), rgba(15,145,156,.08)); border: 1px solid rgba(26,58,92,.12); }
+  .jud-card, .jud-side, .jud-source, .jud-run { border: 1px solid rgba(15,23,42,.08); box-shadow: 0 14px 32px rgba(15,23,42,.05); background: #fff; }
+  .jud-stat { border-radius: 18px; border: 1px solid rgba(15,23,42,.08); background: linear-gradient(180deg, #fff, #f8fbff); }
+  .jud-chip { display:inline-flex; align-items:center; gap:.4rem; border-radius:999px; padding:.35rem .75rem; font-size:.82rem; font-weight:600; background:#f3f6fb; color:#17324f; border:1px solid rgba(23,50,79,.08); }
+  .jud-list { display:grid; gap:1rem; }
+  .jud-links { display:flex; flex-wrap:wrap; gap:.5rem; }
+  .jud-taxonomy-item { border-top:1px solid rgba(15,23,42,.08); padding-top:.8rem; margin-top:.8rem; }
+  .jud-summary { color:#516070; font-size:.95rem; }
+  @media (max-width: 991.98px) {
+    .jud-actions { width:100%; }
+    .jud-actions .btn { width:100%; }
+  }
+</style>
+
+<div class="jud-hero p-4 mb-4">
+  <div class="d-flex flex-column flex-xl-row gap-4 align-items-xl-center justify-content-between">
+    <div class="pe-xl-4">
+      <div class="d-inline-flex align-items-center gap-2 small fw-semibold text-primary mb-2">
+        <i class="bi bi-bank2"></i>
+        Motore giurisprudenziale interno
+      </div>
+      <h1 class="h2 mb-2">Sentenze, massime e orientamenti con fonti ufficiali separate</h1>
+      <p class="jud-summary mb-0">
+        L'archivio distingue fonte, giurisdizione, grado, tassonomia giuridica e metadati processuali.
+        Dove la fonte è pubblica il recupero è leggero e assistito; dove serve autenticazione il gestionale
+        governa handoff e classificazione interna senza promettere letture live non ufficiali.
+      </p>
+    </div>
+    <div class="jud-actions d-grid gap-2">
+      <a href="{{ url_for('giurisprudenza.nuova') }}" class="btn btn-primary">
+        <i class="bi bi-plus-circle me-2"></i>Nuova scheda sentenza
+      </a>
+      <form method="post" action="{{ url_for('giurisprudenza.sync') }}">
+        <button class="btn btn-outline-primary w-100">
+          <i class="bi bi-arrow-repeat me-2"></i>Recupera fonti aperte
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-6 col-xl-2">
+    <div class="jud-stat p-3 h-100">
+      <div class="small text-muted mb-1">Schede archiviate</div>
+      <div class="fs-3 fw-bold">{{ statistiche.totale_sentenze }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-xl-2">
+    <div class="jud-stat p-3 h-100">
+      <div class="small text-muted mb-1">Fonti presidiate</div>
+      <div class="fs-3 fw-bold">{{ statistiche.fonti_attive }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-xl-2">
+    <div class="jud-stat p-3 h-100">
+      <div class="small text-muted mb-1">Fonti già usate</div>
+      <div class="fs-3 fw-bold">{{ statistiche.fonti_usate }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-xl-2">
+    <div class="jud-stat p-3 h-100">
+      <div class="small text-muted mb-1">Aree coperte</div>
+      <div class="fs-3 fw-bold">{{ statistiche.aree_coperte }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-xl-2">
+    <div class="jud-stat p-3 h-100">
+      <div class="small text-muted mb-1">Sync pubblici</div>
+      <div class="fs-3 fw-bold">{{ statistiche.sync_pubblici }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-xl-2">
+    <div class="jud-stat p-3 h-100">
+      <div class="small text-muted mb-1">Da classificare</div>
+      <div class="fs-3 fw-bold text-warning">{{ statistiche.bozze_da_classificare }}</div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4 mb-4">
+  <div class="col-xl-8">
+    <div class="jud-card p-4">
+      <div class="d-flex flex-column flex-lg-row gap-3 justify-content-between align-items-lg-center mb-3">
+        <div>
+          <h2 class="h5 mb-1">Recupero assistito da fonti ufficiali</h2>
+          <div class="text-muted small">Importa una scheda da URL ufficiale oppure passa dal portale corretto quando la fonte richiede autenticazione.</div>
+        </div>
+        <a href="{{ url_for('legal_intelligence.index') }}" class="btn btn-outline-secondary">
+          <i class="bi bi-diagram-3 me-2"></i>Ricerca legale
+        </a>
+      </div>
+      <form method="post" action="{{ url_for('giurisprudenza.importa_url') }}" class="row g-3">
+        <div class="col-lg-4">
+          <label class="form-label">Fonte</label>
+          <select name="source_system" class="form-select">
+            <option value="">Rileva da URL</option>
+            {% for fonte in fonti %}
+            <option value="{{ fonte.id }}">{{ fonte.nome }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-lg-8">
+          <label class="form-label">URL ufficiale sentenza o ricerca</label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="bi bi-link-45deg"></i></span>
+            <input type="url" name="source_url" class="form-control" placeholder="https://..." required>
+            <button class="btn btn-primary">Importa da URL</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+  <div class="col-xl-4">
+    <div class="jud-side p-4 h-100">
+      <h2 class="h6 mb-3">Principi di progetto</h2>
+      <div class="d-flex flex-column gap-2 small text-muted">
+        <div><strong class="text-dark">Classificazione doppia:</strong> area / branca / sottobranca e, in parallelo, giurisdizione / grado / rito / organo.</div>
+        <div><strong class="text-dark">Fonte separata:</strong> Cassazione, merito civile, Corte costituzionale, amministrativo, tributario, UE e CEDU non vengono mischiati in un contenitore piatto.</div>
+        <div><strong class="text-dark">Recupero prudente:</strong> sync leggero solo sulle fonti aperte; handoff assistito per PST, portali autenticati e motori non esposti come API pubbliche.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4">
+  <div class="col-xl-4">
+    <div class="jud-side p-4 mb-4">
+      <h2 class="h5 mb-3">Filtri archivio</h2>
+      <form method="get" class="row g-3">
+        <div class="col-12">
+          <label class="form-label">Ricerca libera</label>
+          <input type="text" class="form-control" name="q" value="{{ filtri_correnti.q }}" placeholder="massima, norma, microtema, ECLI...">
+        </div>
+        <div class="col-md-6 col-xl-12">
+          <label class="form-label">Fonte</label>
+          <select class="form-select" name="source_system">
+            <option value="">Tutte</option>
+            {% for fonte in fonti %}
+            <option value="{{ fonte.id }}" {% if filtri_correnti.source_system == fonte.id %}selected{% endif %}>{{ fonte.nome }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-6 col-xl-12">
+          <label class="form-label">Giurisdizione</label>
+          <select class="form-select" name="giurisdizione">
+            <option value="">Tutte</option>
+            {% for fonte in giurisdizioni %}
+            <option value="{{ fonte }}" {% if filtri_correnti.giurisdizione == fonte %}selected{% endif %}>{{ fonte }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-6 col-xl-12">
+          <label class="form-label">Area</label>
+          <select class="form-select" name="area">
+            <option value="">Tutte</option>
+            {% for voce in filtri_catalogo.aree %}
+            <option value="{{ voce }}" {% if filtri_correnti.area == voce %}selected{% endif %}>{{ voce }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-6 col-xl-12">
+          <label class="form-label">Branca</label>
+          <select class="form-select" name="branca">
+            <option value="">Tutte</option>
+            {% for voce in filtri_catalogo.branche %}
+            <option value="{{ voce }}" {% if filtri_correnti.branca == voce %}selected{% endif %}>{{ voce }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-6 col-xl-12">
+          <label class="form-label">Sottobranca</label>
+          <select class="form-select" name="sottobranca">
+            <option value="">Tutte</option>
+            {% for voce in filtri_catalogo.sottobranche %}
+            <option value="{{ voce }}" {% if filtri_correnti.sottobranca == voce %}selected{% endif %}>{{ voce }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-6 col-xl-12">
+          <label class="form-label">Grado</label>
+          <select class="form-select" name="grado">
+            <option value="">Tutti</option>
+            {% for voce in filtri_catalogo.gradi %}
+            <option value="{{ voce }}" {% if filtri_correnti.grado == voce %}selected{% endif %}>{{ voce }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-6 col-xl-12">
+          <label class="form-label">Orientamento</label>
+          <select class="form-select" name="orientamento">
+            <option value="">Tutti</option>
+            {% for voce in orientamenti %}
+            <option value="{{ voce }}" {% if filtri_correnti.orientamento == voce %}selected{% endif %}>{{ voce|capitalize }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-6 col-xl-12">
+          <label class="form-label">Uso nel software</label>
+          <select class="form-select" name="uso_nel_software">
+            <option value="">Tutti</option>
+            {% for voce in usi_nel_software %}
+            <option value="{{ voce }}" {% if filtri_correnti.uso_nel_software == voce %}selected{% endif %}>{{ voce|capitalize }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-12 d-flex gap-2">
+          <button class="btn btn-primary flex-grow-1">Applica filtri</button>
+          <a href="{{ url_for('giurisprudenza.index') }}" class="btn btn-outline-secondary">Reset</a>
+        </div>
+      </form>
+    </div>
+
+    <div class="jud-side p-4">
+      <h2 class="h5 mb-3">Tassonomia guidata</h2>
+      {% for area in tassonomia %}
+      <div class="jud-taxonomy-item">
+        <div class="d-flex align-items-center gap-2 fw-semibold">
+          <i class="bi {{ area.icon }} text-primary"></i>{{ area.title }}
+        </div>
+        <div class="small text-muted mt-1">{{ area.description }}</div>
+        <div class="jud-links mt-2">
+          {% for branch in area.branches[:5] %}
+          <a class="jud-chip text-decoration-none" href="{{ url_for('giurisprudenza.index', area=area.title, branca=branch.title) }}">{{ branch.title }}</a>
+          {% endfor %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="col-xl-8">
+    <div class="jud-card p-4 mb-4">
+      <div class="d-flex align-items-center justify-content-between mb-3">
+        <h2 class="h5 mb-0">Fonti ufficiali presidiate</h2>
+        <span class="text-muted small">{{ fonti|length }} fonti</span>
+      </div>
+      <div class="row g-3">
+        {% for fonte in fonti %}
+        <div class="col-lg-6">
+          <div class="jud-source p-3 h-100">
+            <div class="d-flex align-items-start justify-content-between gap-3 mb-2">
+              <div>
+                <div class="fw-semibold">{{ fonte.nome }}</div>
+                <div class="small text-muted">{{ fonte.giurisdizione }} · {{ fonte.coverage }}</div>
+              </div>
+              <span class="badge text-bg-light">{{ fonte.badge }}</span>
+            </div>
+            <div class="small text-muted mb-2">{{ fonte.note }}</div>
+            <div class="small mb-3">
+              <strong>Schede archiviate:</strong> {{ fonte.judgment_count }}
+              {% if fonte.last_run_fmt %}<br><strong>Ultimo recupero:</strong> {{ fonte.last_run_fmt }}{% endif %}
+            </div>
+            <div class="d-flex flex-wrap gap-2">
+              {% if fonte.official_url %}
+              <a href="{{ fonte.official_url }}" class="btn btn-sm btn-outline-secondary" target="_blank" rel="noopener">{{ fonte.search_label }}</a>
+              {% endif %}
+              {% if fonte.handoff_url %}
+              <a href="{{ fonte.handoff_url }}" class="btn btn-sm btn-outline-primary">{{ fonte.handoff_label }}</a>
+              {% endif %}
+              {% if fonte.supports_auto_sync %}
+              <form method="post" action="{{ url_for('giurisprudenza.sync') }}">
+                <input type="hidden" name="source_id" value="{{ fonte.id }}">
+                <button class="btn btn-sm btn-primary">Recupera ultime decisioni</button>
+              </form>
+              {% else %}
+              <a href="{{ url_for('giurisprudenza.nuova', source=fonte.id) }}" class="btn btn-sm btn-outline-dark">Nuova scheda assistita</a>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="jud-card p-4 mb-4">
+      <div class="d-flex align-items-center justify-content-between mb-3">
+        <h2 class="h5 mb-0">Archivio interno sentenze</h2>
+        <span class="text-muted small">{{ risultati|length }} risultati</span>
+      </div>
+      <div class="jud-list">
+        {% for item in risultati %}
+        <a href="{{ url_for('giurisprudenza.dettaglio', judgment_id=item.id) }}" class="jud-source p-3 text-decoration-none text-dark">
+          <div class="d-flex flex-column flex-lg-row justify-content-between gap-3">
+            <div class="flex-grow-1">
+              <div class="d-flex flex-wrap gap-2 mb-2">
+                <span class="jud-chip">{{ item.source_label }}</span>
+                {% if item.area %}<span class="jud-chip">{{ item.area }}</span>{% endif %}
+                {% if item.branca %}<span class="jud-chip">{{ item.branca }}</span>{% endif %}
+                {% if item.sottobranca %}<span class="jud-chip">{{ item.sottobranca }}</span>{% endif %}
+              </div>
+              <div class="fw-semibold mb-1">{{ item.titolo }}</div>
+              <div class="small text-muted mb-2">
+                {{ item.organo_giudicante or 'Organo da completare' }}
+                {% if item.grado %} · {{ item.grado }}{% endif %}
+                {% if item.numero_provvedimento %} · n. {{ item.numero_provvedimento }}{% endif %}
+                {% if item.data_deposito_fmt %} · deposito {{ item.data_deposito_fmt }}{% endif %}
+              </div>
+              {% if item.massima %}
+              <div class="small">{{ item.massima }}</div>
+              {% elif item.abstract %}
+              <div class="small text-muted">{{ item.abstract }}</div>
+              {% endif %}
+            </div>
+            <div class="text-lg-end small text-muted">
+              {% if item.orientamento %}<div><strong>Orientamento:</strong> {{ item.orientamento }}</div>{% endif %}
+              {% if item.uso_nel_software %}<div><strong>Uso:</strong> {{ item.uso_nel_software }}</div>{% endif %}
+              {% if item.ultimo_sync_at_fmt %}<div><strong>Sync:</strong> {{ item.ultimo_sync_at_fmt }}</div>{% endif %}
+              {% if item.updated_at_fmt %}<div><strong>Aggiornata:</strong> {{ item.updated_at_fmt }}</div>{% endif %}
+            </div>
+          </div>
+        </a>
+        {% else %}
+        <div class="text-muted">
+          Nessuna scheda sentenza ancora presente. Puoi iniziare da una nuova scheda manuale, da un URL ufficiale oppure dal recupero delle fonti aperte.
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="jud-card p-4">
+      <div class="d-flex align-items-center justify-content-between mb-3">
+        <h2 class="h5 mb-0">Log recuperi recenti</h2>
+        <span class="text-muted small">{{ run_log|length }} run</span>
+      </div>
+      <div class="d-flex flex-column gap-2">
+        {% for run in run_log %}
+        <div class="jud-run p-3">
+          <div class="d-flex align-items-center justify-content-between gap-3">
+            <div>
+              <div class="fw-semibold">{{ run.source_label }}</div>
+              <div class="small text-muted">{{ run.message }}</div>
+            </div>
+            <div class="text-end small">
+              <div class="fw-semibold">{{ run.checked_at_fmt }}</div>
+              <div class="text-muted">{{ run.status|replace('_', ' ') }} · {{ run.imported }} importati</div>
+            </div>
+          </div>
+        </div>
+        {% else %}
+        <div class="text-muted small">Nessun recupero eseguito finora.</div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

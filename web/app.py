@@ -372,6 +372,13 @@ def create_app(config: dict | None = None) -> Flask:
             _data_peer_path(app.config["CLIENTI_DB"], "intelligence", "tabelle_normative.json"),
         ),
     )
+    app.config["GIURISPRUDENZA_DB"] = cfg.get(
+        "GIURISPRUDENZA_DB",
+        os.getenv(
+            "PCT_GIURISPRUDENZA_DB",
+            _data_peer_path(app.config["CLIENTI_DB"], "intelligence", "giurisprudenza.json"),
+        ),
+    )
     app.config["VALIDATION_RUNS_DB"] = cfg.get(
         "VALIDATION_RUNS_DB",
         os.getenv(
@@ -541,6 +548,7 @@ def create_app(config: dict | None = None) -> Flask:
             "wizard_pro": _cfg_data_path("WIZARD_PRO_DB"),
             "legal_intelligence": _cfg_data_path("LEGAL_INTELLIGENCE_DB"),
             "normative_tables": _cfg_data_path("NORMATIVE_TABLES_DB"),
+            "giurisprudenza": _cfg_data_path("GIURISPRUDENZA_DB"),
             "validation_runs": _cfg_data_path("VALIDATION_RUNS_DB"),
             "template_atti": _cfg_data_path("TEMPLATE_ATTI_DB"),
             "template_atti_prefs": _cfg_data_path("TEMPLATE_ATTI_PREFS_DB"),
@@ -15308,6 +15316,9 @@ read -r -p "Premi Invio per chiudere..." _
 
     from web.blueprints.legal_intelligence import legal_intelligence as legal_intelligence_bp  # Motori legali /legal-intelligence/*
     app.register_blueprint(legal_intelligence_bp)
+
+    from web.blueprints.giurisprudenza import giurisprudenza as giurisprudenza_bp  # Archivio sentenze /giurisprudenza/*
+    app.register_blueprint(giurisprudenza_bp)
 
     from web.blueprints.export_csv import export_csv as export_csv_bp  # Export CSV /export/*
     app.register_blueprint(export_csv_bp)

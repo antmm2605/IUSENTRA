@@ -18,7 +18,10 @@ document.addEventListener('DOMContentLoaded', function() {
     <h1 class="ds-ph-title">Motori Legali</h1>
     <p class="ds-ph-sub">Fonti ufficiali, monitoraggio, audit e vantaggio competitivo integrati nel gestionale.</p>
   </div>
-  <div class="ms-auto d-flex gap-2">
+  <div class="ms-auto d-flex flex-wrap gap-2 justify-content-end">
+    <a href="{{ url_for('giurisprudenza.index') }}" class="btn btn-outline-dark">
+      <i class="bi bi-bank2 me-2"></i>Archivio sentenze
+    </a>
     <a href="{{ url_for('legal_intelligence.registro_mediazione') }}" class="btn btn-outline-secondary">
       <i class="bi bi-building-check me-2"></i>Registro mediazione
     </a>

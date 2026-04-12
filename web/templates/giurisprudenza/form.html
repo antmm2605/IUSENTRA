@@ -1,0 +1,383 @@
+{% extends "base.html" %}
+{% block title %}Scheda Sentenza{% endblock %}
+{% block page_title %}Scheda Sentenza{% endblock %}
+
+{% block content %}
+<style>
+  .jf-shell { display: grid; gap: 1.5rem; }
+  .jf-hero,
+  .jf-card,
+  .jf-side { border-radius: 22px; border: 1px solid rgba(15, 23, 42, .08); background: #fff; box-shadow: 0 14px 36px rgba(15, 23, 42, .05); }
+  .jf-hero { background: linear-gradient(135deg, rgba(16, 81, 143, .08), rgba(217, 70, 239, .06)); }
+  .jf-layout { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(320px, .9fr); gap: 1.5rem; }
+  .jf-grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+  .jf-grid-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
+  .jf-card h2,
+  .jf-side h2 { font-size: 1.05rem; margin-bottom: 1rem; }
+  .jf-help { border-radius: 18px; border: 1px dashed rgba(15, 23, 42, .16); background: rgba(248, 250, 252, .9); }
+  .jf-preview { border-radius: 18px; border: 1px solid rgba(15, 23, 42, .08); background: linear-gradient(180deg, #fff, #f8fbff); }
+  @media (max-width: 1199.98px) {
+    .jf-layout { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 767.98px) {
+    .jf-grid-2,
+    .jf-grid-3 { grid-template-columns: 1fr; }
+  }
+</style>
+
+<div class="jf-shell">
+  <section class="jf-hero p-4 p-lg-5">
+    <div class="d-flex flex-column flex-xl-row gap-4 justify-content-between">
+      <div class="flex-grow-1">
+        <div class="d-inline-flex align-items-center gap-2 small fw-semibold text-primary mb-2">
+          <i class="bi bi-pencil-square"></i>
+          Redazione e recupero giurisprudenza
+        </div>
+        <h1 class="h2 mb-2">
+          {% if record.id %}Aggiorna scheda sentenza{% else %}Nuova scheda sentenza{% endif %}
+        </h1>
+        <p class="text-muted mb-0">
+          Compila i metadati processuali, classifica correttamente la decisione e rendila subito utilizzabile nel gestionale.
+        </p>
+      </div>
+      <div class="d-grid gap-2" style="min-width:min(100%, 260px)">
+        <button form="judgmentForm" class="btn btn-primary">
+          <i class="bi bi-save me-2"></i>Salva scheda
+        </button>
+        <a href="{{ url_for('giurisprudenza.index') }}" class="btn btn-outline-secondary">
+          <i class="bi bi-arrow-left me-2"></i>Torna all'archivio
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <section class="jf-layout">
+    <form id="judgmentForm" method="post" class="d-grid gap-4">
+      <div class="jf-card p-4">
+        <h2>Dati identificativi e fonte</h2>
+        <div class="jf-grid-2">
+          <div class="form-floating">
+            <select class="form-select" id="source_system" name="source_system">
+              {% for fonte in fonti %}
+              <option value="{{ fonte.id }}" {% if record.source_system == fonte.id %}selected{% endif %}>{{ fonte.nome }}</option>
+              {% endfor %}
+            </select>
+            <label for="source_system">Fonte ufficiale o redazionale</label>
+          </div>
+          <div class="form-floating">
+            <input class="form-control" id="titolo" name="titolo" value="{{ record.titolo or '' }}" placeholder="Titolo decisione" required>
+            <label for="titolo">Titolo scheda</label>
+          </div>
+          <div class="form-floating">
+            <input class="form-control" id="numero_provvedimento" name="numero_provvedimento" value="{{ record.numero_provvedimento or '' }}" placeholder="Numero provvedimento">
+            <label for="numero_provvedimento">Numero sentenza / ordinanza / decreto</label>
+          </div>
+          <div class="form-floating">
+            <select class="form-select" id="tipo_provvedimento" name="tipo_provvedimento">
+              <option value="">Seleziona</option>
+              {% for label in tipi_provvedimento %}
+              <option value="{{ label }}" {% if record.tipo_provvedimento == label %}selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+            </select>
+            <label for="tipo_provvedimento">Tipo provvedimento</label>
+          </div>
+          <div class="form-floating">
+            <input type="date" class="form-control" id="data_decisione" name="data_decisione" value="{{ record.data_decisione or '' }}">
+            <label for="data_decisione">Data decisione</label>
+          </div>
+          <div class="form-floating">
+            <input type="date" class="form-control" id="data_deposito" name="data_deposito" value="{{ record.data_deposito or '' }}">
+            <label for="data_deposito">Data deposito</label>
+          </div>
+          <div class="form-floating">
+            <input class="form-control" id="ecli" name="ecli" value="{{ record.ecli or '' }}" placeholder="ECLI">
+            <label for="ecli">ECLI</label>
+          </div>
+          <div class="form-floating">
+            <input class="form-control" id="url_origine" name="url_origine" value="{{ record.url_origine or '' }}" placeholder="https://...">
+            <label for="url_origine">URL origine</label>
+          </div>
+        </div>
+      </div>
+
+      <div class="jf-card p-4">
+        <h2>Classificazione giuridica e processuale</h2>
+        <div class="jf-grid-3">
+          <div class="form-floating">
+            <select class="form-select" id="giurisdizione" name="giurisdizione">
+              <option value="">Seleziona</option>
+              {% for fonte in fonti %}
+              <option value="{{ fonte.giurisdizione }}" {% if record.giurisdizione == fonte.giurisdizione %}selected{% endif %}>{{ fonte.giurisdizione }}</option>
+              {% endfor %}
+            </select>
+            <label for="giurisdizione">Giurisdizione</label>
+          </div>
+          <div class="form-floating">
+            <input class="form-control" id="grado" name="grado" value="{{ record.grado or '' }}" placeholder="Grado">
+            <label for="grado">Grado</label>
+          </div>
+          <div class="form-floating">
+            <input class="form-control" id="sezione" name="sezione" value="{{ record.sezione or '' }}" placeholder="Sezione">
+            <label for="sezione">Sezione</label>
+          </div>
+          <div class="form-floating">
+            <input class="form-control" id="organo_giudicante" name="organo_giudicante" value="{{ record.organo_giudicante or '' }}" placeholder="Organo giudicante">
+            <label for="organo_giudicante">Organo giudicante</label>
+          </div>
+          <div class="form-floating">
+            <input class="form-control" id="ufficio" name="ufficio" value="{{ record.ufficio or '' }}" placeholder="Ufficio">
+            <label for="ufficio">Ufficio</label>
+          </div>
+          <div class="form-floating">
+            <input class="form-control" id="rito" name="rito" value="{{ record.rito or '' }}" placeholder="Rito">
+            <label for="rito">Rito</label>
+          </div>
+          <div class="form-floating">
+            <select class="form-select" id="area" name="area">
+              <option value="">Seleziona</option>
+              {% for area in tassonomia %}
+              <option value="{{ area.title }}" {% if record.area == area.title %}selected{% endif %}>{{ area.title }}</option>
+              {% endfor %}
+            </select>
+            <label for="area">Area</label>
+          </div>
+          <div class="form-floating">
+            <select class="form-select" id="branca" name="branca">
+              <option value="">Seleziona</option>
+            </select>
+            <label for="branca">Branca</label>
+          </div>
+          <div class="form-floating">
+            <select class="form-select" id="sottobranca" name="sottobranca">
+              <option value="">Seleziona</option>
+            </select>
+            <label for="sottobranca">Sottobranca</label>
+          </div>
+          <div class="form-floating">
+            <input class="form-control" id="microtema" name="microtema" value="{{ record.microtema or '' }}" placeholder="Microtema">
+            <label for="microtema">Microtema</label>
+          </div>
+          <div class="form-floating">
+            <input class="form-control" id="materia" name="materia" value="{{ record.materia or '' }}" placeholder="Materia">
+            <label for="materia">Materia</label>
+          </div>
+          <div class="form-floating">
+            <input class="form-control" id="esito" name="esito" value="{{ record.esito or '' }}" placeholder="Esito">
+            <label for="esito">Esito</label>
+          </div>
+          <div class="form-floating">
+            <select class="form-select" id="orientamento" name="orientamento">
+              <option value="">Seleziona</option>
+              {% for label in orientamenti %}
+              <option value="{{ label }}" {% if record.orientamento == label %}selected{% endif %}>{{ label|capitalize }}</option>
+              {% endfor %}
+            </select>
+            <label for="orientamento">Orientamento</label>
+          </div>
+          <div class="form-floating">
+            <select class="form-select" id="rilevanza_pratica" name="rilevanza_pratica">
+              <option value="">Seleziona</option>
+              {% for label in rilevanze %}
+              <option value="{{ label }}" {% if record.rilevanza_pratica == label %}selected{% endif %}>{{ label|capitalize }}</option>
+              {% endfor %}
+            </select>
+            <label for="rilevanza_pratica">Rilevanza pratica</label>
+          </div>
+          <div class="form-floating">
+            <select class="form-select" id="uso_nel_software" name="uso_nel_software">
+              <option value="">Seleziona</option>
+              {% for label in usi_nel_software %}
+              <option value="{{ label }}" {% if record.uso_nel_software == label %}selected{% endif %}>{{ label|capitalize }}</option>
+              {% endfor %}
+            </select>
+            <label for="uso_nel_software">Uso nel software</label>
+          </div>
+        </div>
+      </div>
+
+      <div class="jf-card p-4">
+        <h2>Contenuto redazionale</h2>
+        <div class="d-grid gap-3">
+          <div class="form-floating">
+            <textarea class="form-control" id="massima" name="massima" placeholder="Massima sintetica" style="height: 120px">{{ record.massima or '' }}</textarea>
+            <label for="massima">Massima sintetica</label>
+          </div>
+          <div class="form-floating">
+            <textarea class="form-control" id="principio_diritto" name="principio_diritto" placeholder="Principio di diritto" style="height: 120px">{{ record.principio_diritto or '' }}</textarea>
+            <label for="principio_diritto">Principio di diritto</label>
+          </div>
+          <div class="form-floating">
+            <textarea class="form-control" id="abstract" name="abstract" placeholder="Abstract operativo" style="height: 140px">{{ record.abstract or '' }}</textarea>
+            <label for="abstract">Abstract operativo</label>
+          </div>
+          <div class="form-floating">
+            <textarea class="form-control" id="note_redazionali" name="note_redazionali" placeholder="Note operative" style="height: 120px">{{ record.note_redazionali or '' }}</textarea>
+            <label for="note_redazionali">Note operative</label>
+          </div>
+        </div>
+      </div>
+
+      <div class="jf-card p-4">
+        <h2>Tag, norme e collegamenti</h2>
+        <div class="jf-grid-2">
+          <div class="form-floating">
+            <textarea class="form-control" id="parole_chiave" name="parole_chiave" placeholder="Parole chiave" style="height: 120px">{{ (record.parole_chiave or [])|join(', ') }}</textarea>
+            <label for="parole_chiave">Parole chiave separate da virgola</label>
+          </div>
+          <div class="form-floating">
+            <textarea class="form-control" id="norme_citate" name="norme_citate" placeholder="Norme citate" style="height: 120px">{{ (record.norme_citate or [])|join(', ') }}</textarea>
+            <label for="norme_citate">Norme citate separate da virgola</label>
+          </div>
+          <div class="form-floating">
+            <textarea class="form-control" id="collegamenti_precedenti" name="collegamenti_precedenti" placeholder="Precedenti" style="height: 120px">{{ (record.collegamenti_precedenti or [])|join(', ') }}</textarea>
+            <label for="collegamenti_precedenti">Collegamenti a precedenti</label>
+          </div>
+          <div class="form-floating">
+            <textarea class="form-control" id="collegamenti_norme" name="collegamenti_norme" placeholder="Norme collegate" style="height: 120px">{{ (record.collegamenti_norme or [])|join(', ') }}</textarea>
+            <label for="collegamenti_norme">Collegamenti a norme</label>
+          </div>
+          <div class="form-floating">
+            <textarea class="form-control" id="fascicoli_collegati" name="fascicoli_collegati" placeholder="Fascicoli collegati" style="height: 120px">{{ (record.fascicoli_collegati or [])|join(', ') }}</textarea>
+            <label for="fascicoli_collegati">Fascicoli interni collegati</label>
+          </div>
+        </div>
+      </div>
+    </form>
+
+    <aside class="d-grid gap-4">
+      <div class="jf-side jf-help p-4">
+        <h2>Workflow consigliato</h2>
+        <div class="d-grid gap-3 small text-muted">
+          <div><strong class="text-dark">1.</strong> Scegli la fonte corretta e valorizza il numero provvedimento.</div>
+          <div><strong class="text-dark">2.</strong> Classifica per area, branca, sottobranca e microtema.</div>
+          <div><strong class="text-dark">3.</strong> Separa i metadati processuali da massima e abstract operativo.</div>
+          <div><strong class="text-dark">4.</strong> Collega norme, fascicoli interni e orientamento utile agli atti.</div>
+        </div>
+      </div>
+
+      <div class="jf-side jf-preview p-4">
+        <h2>Anteprima di struttura</h2>
+        <div class="d-grid gap-3">
+          <div>
+            <div class="small text-muted text-uppercase fw-semibold mb-1">Fonte</div>
+            <div id="previewFonte">{{ record.source_label or "Inserimento redazionale interno" }}</div>
+          </div>
+          <div>
+            <div class="small text-muted text-uppercase fw-semibold mb-1">Classificazione</div>
+            <div id="previewClassificazione">
+              {{ record.area or "Area" }}{% if record.branca %} / {{ record.branca }}{% endif %}{% if record.sottobranca %} / {{ record.sottobranca }}{% endif %}
+            </div>
+          </div>
+          <div>
+            <div class="small text-muted text-uppercase fw-semibold mb-1">Uso pratico</div>
+            <div id="previewUso">{{ record.uso_nel_software or "Uso da definire" }}</div>
+          </div>
+          <div>
+            <div class="small text-muted text-uppercase fw-semibold mb-1">Identificazione</div>
+            <div id="previewNumero">
+              {% if record.numero_provvedimento %}n. {{ record.numero_provvedimento }}{% else %}Numero non indicato{% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="jf-side p-4">
+        <h2>Fonti presidiate</h2>
+        <div class="d-grid gap-3">
+          {% for fonte in fonti %}
+          <div class="border rounded-4 p-3">
+            <div class="fw-semibold">{{ fonte.nome }}</div>
+            <div class="small text-muted mt-1">{{ fonte.coverage }}</div>
+            {% if fonte.handoff_url %}
+            <a href="{{ fonte.handoff_url }}" class="small text-decoration-none mt-2 d-inline-flex align-items-center gap-2">
+              <i class="bi bi-box-arrow-up-right"></i>{{ fonte.handoff_label }}
+            </a>
+            {% elif fonte.official_url %}
+            <a href="{{ fonte.official_url }}" target="_blank" rel="noopener" class="small text-decoration-none mt-2 d-inline-flex align-items-center gap-2">
+              <i class="bi bi-box-arrow-up-right"></i>Apri fonte ufficiale
+            </a>
+            {% endif %}
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </aside>
+  </section>
+</div>
+
+<script>
+  (() => {
+    const taxonomy = {{ tassonomia_lookup|tojson }};
+    const areaEl = document.getElementById("area");
+    const branchEl = document.getElementById("branca");
+    const subbranchEl = document.getElementById("sottobranca");
+    const sourceEl = document.getElementById("source_system");
+    const useEl = document.getElementById("uso_nel_software");
+    const numberEl = document.getElementById("numero_provvedimento");
+
+    const recordValues = {
+      branca: {{ (record.branca or "")|tojson }},
+      sottobranca: {{ (record.sottobranca or "")|tojson }}
+    };
+
+    function fillSelect(select, values, selected) {
+      const current = selected || "";
+      select.innerHTML = '<option value="">Seleziona</option>';
+      (values || []).forEach((value) => {
+        const option = document.createElement("option");
+        option.value = value;
+        option.textContent = value;
+        if (value === current) option.selected = true;
+        select.appendChild(option);
+      });
+    }
+
+    function refreshBranches() {
+      const area = areaEl.value || "";
+      const branches = Object.keys(taxonomy[area] || {});
+      fillSelect(branchEl, branches, recordValues.branca);
+      refreshSubbranches();
+      recordValues.branca = "";
+    }
+
+    function refreshSubbranches() {
+      const area = areaEl.value || "";
+      const branch = branchEl.value || recordValues.branca || "";
+      const subbranches = (taxonomy[area] || {})[branch] || [];
+      fillSelect(subbranchEl, subbranches, recordValues.sottobranca);
+      recordValues.sottobranca = "";
+    }
+
+    function syncPreview() {
+      const sourceOption = sourceEl.options[sourceEl.selectedIndex];
+      const sourceLabel = sourceOption ? sourceOption.textContent : "Fonte non selezionata";
+      const area = areaEl.value || "Area";
+      const branch = branchEl.value || "";
+      const subbranch = subbranchEl.value || "";
+      const useLabel = useEl.value || "Uso da definire";
+      const numberLabel = numberEl.value ? `n. ${numberEl.value}` : "Numero non indicato";
+      document.getElementById("previewFonte").textContent = sourceLabel;
+      document.getElementById("previewClassificazione").textContent = [area, branch, subbranch].filter(Boolean).join(" / ");
+      document.getElementById("previewUso").textContent = useLabel;
+      document.getElementById("previewNumero").textContent = numberLabel;
+    }
+
+    areaEl.addEventListener("change", () => {
+      recordValues.branca = "";
+      recordValues.sottobranca = "";
+      refreshBranches();
+      syncPreview();
+    });
+    branchEl.addEventListener("change", () => {
+      recordValues.sottobranca = "";
+      refreshSubbranches();
+      syncPreview();
+    });
+    [subbranchEl, sourceEl, useEl, numberEl].forEach((el) => el.addEventListener("change", syncPreview));
+    numberEl.addEventListener("input", syncPreview);
+
+    refreshBranches();
+    syncPreview();
+  })();
+</script>
+{% endblock %}

@@ -1,4 +1,4 @@
-#  version: 2.149.9
+#  version: 2.150.1
 #  Studio Legale PCT — Dockerfile produzione (versione integrale)
 #
 #  Build multi-stage:
@@ -67,7 +67,7 @@ RUN mkdir -p /out && /tmp/dart-sass/sass --no-source-map --style=compressed \
 FROM python:3.12-slim
 
 LABEL org.opencontainers.image.title="HACS - Studio Legale PCT" \
-      org.opencontainers.image.version="2.149.9" \
+      org.opencontainers.image.version="2.150.1" \
       org.opencontainers.image.description="Gestionale PCT per studi legali italiani" \
       org.opencontainers.image.created="2026-03-18"
 
@@ -91,11 +91,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Copia il venv compilato dallo stage builder
 COPY --from=builder /venv /venv
 ENV PATH="/venv/bin:$PATH"
+ENV PYTHONDONTWRITEBYTECODE=1
 
 WORKDIR /app
 
 # Copia tutto il sorgente (templates, static, blueprints, ecc.)
 COPY . .
+RUN find /app -type d -name '__pycache__' -prune -exec rm -rf {} + \
+    && find /app -type f \( -name '*.pyc' -o -name '*.pyo' \) -delete
 
 # Sovrascrive i CSS con quelli compilati da SCSS (dart-sass, stage sass-builder)
 COPY --from=sass-builder /out/ web/static/css/
@@ -132,6 +135,7 @@ ENV PCT_AGENDA_DB=/data/agenda/appuntamenti.json \
     PCT_NOTIFICHE_LOG=/data/notifiche/log.json \
     PCT_WIZARD_PRO_DB=/data/wizard_pro/sessioni.json \
     PCT_LEGAL_INTELLIGENCE_DB=/data/intelligence/motori.json \
+    PCT_GIURISPRUDENZA_DB=/data/intelligence/giurisprudenza.json \
     PCT_NORMATIVE_TABLES_DB=/data/intelligence/tabelle_normative.json \
     PCT_VALIDATION_RUNS_DB=/data/intelligence/validation_runs.json \
     PCT_REDACTION_ASSISTANT_DB=/data/intelligence/assistente_redazionale.json \

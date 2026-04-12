@@ -1,7 +1,10 @@
+import io
+import zipfile
 from pathlib import Path
 
 from pct.auth import GestioneUtenti, RuoloUtente
 from pct.clienti import GestioneClienti, TipoCliente
+from pct.email_client import EmailRicevuta, GestioneEmailRicevute
 from pct.fascicoli import GestioneFascicoli, TipoDocumento, TipoFascicolo
 from pct.pdp_penale_workflow import PDPPenaleWorkflowRepository
 from web.app import create_app
@@ -21,6 +24,7 @@ def _cfg_web(tmp_path: Path) -> dict:
         "AGENDA_DB": str(tmp_path / "agenda.json"),
         "SCADENZIARIO_DB": str(tmp_path / "scadenze.json"),
         "MESSAGGI_DB": str(tmp_path / "messaggi.json"),
+        "EMAIL_CASELLA_DB": str(tmp_path / "email" / "casella.json"),
         "SEARCH_INDEX": str(tmp_path / "search.db"),
         "SOGGETTI_DB": str(tmp_path / "soggetti.json"),
         "SOGGETTI_PARTI_DB": str(tmp_path / "parti.json"),
@@ -227,5 +231,162 @@ def test_workspace_pdp_penale_registra_case_documenti_accesso_pec_e_task(tmp_pat
             assert pec_messages[0]["extracted_password"] == "PDP-ABC-123"
             assert updated_tasks[0]["status"] == "done"
             assert any(event["event_type"] == "task_completed" for event in events)
+        finally:
+            repo.close()
+
+
+def test_workspace_pdp_penale_completa_flusso_generazione_deposito_sync_e_import(
+    tmp_path: Path,
+    monkeypatch,
+):
+    cfg = _cfg_web(tmp_path)
+    fasc_id, local_doc_id = _seed_penal_workspace(cfg)
+    app = create_app(cfg)
+
+    with app.test_client() as client:
+        login = client.post(
+            "/login",
+            data={"username": "admin-penale", "password": "Admin1234!"},
+            follow_redirects=True,
+        )
+        assert login.status_code == 200
+
+        create_case = client.post(
+            f"/fascicoli/{fasc_id}/penale/pdp/case",
+            data={
+                "office_name": "Procura della Repubblica di Palermo",
+                "office_type": "Procura",
+                "district": "Palermo",
+                "register_type": "RGNR",
+                "register_number": "12345",
+                "register_year": "2026",
+                "proceeding_type": "indagini_preliminari",
+                "assisted_party_name": "Mario Rossi",
+                "assisted_party_cf": "RSSMRA80A01H501Z",
+                "defense_counsel_name": "Avv. Roberto Montagnese",
+                "defense_counsel_cf": "MNTRRT00A00G273X",
+                "nomination_status": "deposited",
+                "access_status": "draft",
+                "import_status": "not_started",
+            },
+            follow_redirects=True,
+        )
+        assert create_case.status_code == 200
+
+        repo = PDPPenaleWorkflowRepository(cfg["PDP_PENALE_DB"])
+        try:
+            case_id = str(repo.list_cases_for_practice(fasc_id)[0]["id"])
+
+            link_doc = client.post(
+                f"/fascicoli/{fasc_id}/penale/pdp/case/{case_id}/document-link",
+                data={"local_doc_id": local_doc_id, "document_role": "nomination"},
+                follow_redirects=True,
+            )
+            assert link_doc.status_code == 200
+
+            generated = client.post(
+                f"/fascicoli/{fasc_id}/penale/pdp/case/{case_id}/generate-request",
+                follow_redirects=True,
+            )
+            assert generated.status_code == 200
+
+            fascicoli = GestioneFascicoli(
+                db_path=cfg["FASCICOLI_DB"],
+                documents_dir=cfg["FASCICOLI_DOCS"],
+                archive_dir=cfg["FASCICOLI_ARCH"],
+            )
+            fascicolo = fascicoli.get(fasc_id)
+            generated_doc = next(
+                doc for doc in fascicolo.documenti
+                if doc.nome.startswith("richiesta_accesso_pdp_")
+            )
+
+            import pct.pdp as pdp_module
+
+            class _FakePDPClient:
+                def deposita_atto(self, **kwargs):
+                    assert kwargs["numero_rg"] == "12345"
+                    return {
+                        "codiceEsito": "0",
+                        "descrizioneEsito": "Deposito accettato dal sistema PDP",
+                        "idDeposito": "PDP-DEP-001",
+                        "dataDeposito": "2026-04-12T10:30",
+                        "stato": "INVIATO",
+                    }
+
+            monkeypatch.setattr(pdp_module, "crea_client_pdp", lambda demo=False: _FakePDPClient())
+
+            deposit = client.post(
+                f"/fascicoli/{fasc_id}/penale/pdp/case/{case_id}/deposit",
+                data={
+                    "local_doc_id": generated_doc.id,
+                    "tipo_atto": "RICHIESTA",
+                    "oggetto": "Richiesta accesso atti procedimento 12345/2026",
+                },
+                follow_redirects=True,
+            )
+            assert deposit.status_code == 200
+
+            ge = GestioneEmailRicevute(db_path=cfg["EMAIL_CASELLA_DB"])
+            ge.aggiungi(
+                EmailRicevuta(
+                    id="mail-pdp-001",
+                    mittente="procura@giustiziapec.it",
+                    destinatari="difensore@examplepec.it",
+                    oggetto="Password accesso fascicolo RGNR 12345/2026",
+                    data="2026-04-12T11:00:00",
+                    corpo_testo=(
+                        "Procura della Repubblica di Palermo. "
+                        "Password di accesso: PDP-ABC-123. "
+                        "Documenti disponibili fino al 15/04/2026 18:30."
+                    ),
+                    message_id="<pdp-mail-001@examplepec.it>",
+                )
+            )
+
+            sync_pec = client.post(
+                f"/fascicoli/{fasc_id}/penale/pdp/case/{case_id}/sync-pec",
+                follow_redirects=True,
+            )
+            assert sync_pec.status_code == 200
+
+            zip_buffer = io.BytesIO()
+            with zipfile.ZipFile(zip_buffer, "w") as zf:
+                zf.writestr("verbale_udienza.pdf", b"%PDF-verbale")
+                zf.writestr("decreto_giudizio.pdf.p7m", b"FAKE-P7M")
+            zip_buffer.seek(0)
+
+            imported = client.post(
+                f"/fascicoli/{fasc_id}/penale/pdp/case/{case_id}/import-download",
+                data={
+                    "note_importazione": "Pacchetto ufficiale scaricato dal PDP",
+                    "files": (zip_buffer, "fascicolo_pdp.zip"),
+                },
+                content_type="multipart/form-data",
+                follow_redirects=True,
+            )
+            assert imported.status_code == 200
+
+            updated_case = repo.get_case(case_id)
+            requests = repo.list_access_requests(case_id)
+            pec_messages = repo.list_pec_messages(case_id)
+            module_documents = repo.list_case_documents(case_id)
+            tasks = repo.list_tasks(case_id)
+            events = repo.list_case_events(case_id)
+
+            assert updated_case["access_status"] == "authorized"
+            assert updated_case["current_ministry_status"] in {"INVIATO", "ACCETTATO"}
+            assert updated_case["download_available_until"] == "2026-04-15T18:30"
+            assert updated_case["import_status"] == "completed"
+            assert any(row["request_status"] in {"authorized", "downloaded"} for row in requests)
+            assert any(row["request_reference"] == "PDP-DEP-001" for row in requests)
+            assert len(pec_messages) == 1
+            assert pec_messages[0]["extracted_password"] == "PDP-ABC-123"
+            assert any(doc["document_role"] == "access_request" for doc in module_documents)
+            assert any(doc["document_role"] == "hearing_minutes" for doc in module_documents)
+            assert any(doc["document_role"] == "decree" for doc in module_documents)
+            assert any(task["task_type"] == "download_case_file" for task in tasks)
+            assert any(event["event_type"] == "deposit_submitted" for event in events)
+            assert any(event["event_type"] == "download_imported" for event in events)
         finally:
             repo.close()

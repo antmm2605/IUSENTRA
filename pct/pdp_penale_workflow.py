@@ -16,8 +16,10 @@ Python/Flask + SQLite, senza introdurre un backend Go parallelo.
 from __future__ import annotations
 
 import json
+import re
 import sqlite3
 import uuid
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Iterable, Mapping
 
@@ -322,6 +324,106 @@ def _normalize_value(value: Any) -> Any:
     return value
 
 
+def _normalize_text(*parts: Any) -> str:
+    return " ".join(str(part or "").strip() for part in parts if str(part or "").strip()).lower()
+
+
+def pdp_penale_classifica_documento(
+    nome_file: str,
+    titolo: str = "",
+    note: str = "",
+) -> dict[str, str]:
+    testo = _normalize_text(nome_file, titolo, note)
+    ruolo = "other"
+    categoria = ""
+    if "nomina" in testo or "procura" in testo:
+        ruolo = "nomination"
+        categoria = "titolo_accesso"
+    elif "accesso" in testo or "istanza" in testo or "richiesta" in testo:
+        ruolo = "access_request"
+        categoria = "istanza_accesso"
+    elif "pagopa" in testo or "contribut" in testo or "ricevuta" in testo:
+        ruolo = "payment_receipt"
+        categoria = "pagamento"
+    elif "gratuito patrocinio" in testo or "patrocinio" in testo:
+        ruolo = "legal_aid_order"
+        categoria = "gratuito_patrocinio"
+    elif "verbale" in testo or "udienza" in testo:
+        ruolo = "hearing_minutes"
+        categoria = "udienza"
+    elif "ordinanza" in testo:
+        ruolo = "ordinance"
+        categoria = "provvedimento"
+    elif "sentenza" in testo:
+        ruolo = "judgment"
+        categoria = "provvedimento"
+    elif "decreto" in testo:
+        ruolo = "decree"
+        categoria = "provvedimento"
+    elif "memoria" in testo or "difens" in testo or "istanza difensiva" in testo:
+        ruolo = "defense_brief"
+        categoria = "atto_difensivo"
+    elif "pec" in testo or nome_file.lower().endswith(".eml"):
+        ruolo = "pec_message"
+        categoria = "comunicazione"
+    elif nome_file.lower().endswith(".zip"):
+        ruolo = "download_package"
+        categoria = "pacchetto_download"
+    elif "allegat" in testo:
+        ruolo = "attachment"
+        categoria = "allegato"
+    elif "fascicolo" in testo or "minister" in testo:
+        ruolo = "ministry_document"
+        categoria = "fascicolo_ministeriale"
+    return {
+        "document_role": ruolo,
+        "document_category": categoria,
+    }
+
+
+def pdp_penale_estrai_password(testo: str, subject: str = "") -> str:
+    merged = " ".join(part for part in [subject, testo] if str(part or "").strip())
+    patterns = (
+        r"(?:password(?:\s+di\s+accesso)?|pwd|codice\s+di\s+accesso)\s*(?:[:=\-])\s*([A-Za-z0-9][A-Za-z0-9._@#/\-]{3,})",
+        r"(?:password\s+di\s+accesso|codice\s+di\s+accesso)\s+([A-Za-z0-9][A-Za-z0-9._@#/\-]{3,})",
+    )
+    for pattern in patterns:
+        match = re.search(pattern, merged, re.IGNORECASE)
+        if match:
+            return match.group(1).strip().rstrip(".,;:)")
+    return ""
+
+
+def pdp_penale_estrai_scadenza_download(testo: str, reference_iso: str = "") -> str:
+    source = " ".join(str(testo or "").split())
+    if not source:
+        return ""
+
+    iso_match = re.search(r"\b(\d{4}-\d{2}-\d{2})(?:[T\s](\d{2}:\d{2}))?\b", source)
+    if iso_match:
+        giorno = iso_match.group(1)
+        ora = iso_match.group(2) or "23:59"
+        return f"{giorno}T{ora}"
+
+    ita_match = re.search(r"\b(\d{2})[/-](\d{2})[/-](\d{4})(?:\s*(?:alle|ore)?\s*(\d{2}:\d{2}))?\b", source, re.IGNORECASE)
+    if ita_match:
+        giorno = int(ita_match.group(1))
+        mese = int(ita_match.group(2))
+        anno = int(ita_match.group(3))
+        ora = ita_match.group(4) or "23:59"
+        return f"{anno:04d}-{mese:02d}-{giorno:02d}T{ora}"
+
+    giorni_match = re.search(r"\b(?:entro|disponibil[ei]\s+per)\s+(\d+)\s+giorn", source, re.IGNORECASE)
+    if giorni_match and reference_iso:
+        try:
+            base = datetime.fromisoformat(str(reference_iso).replace("Z", "+00:00"))
+            limite = base + timedelta(days=int(giorni_match.group(1)))
+            return limite.replace(second=0, microsecond=0).isoformat(timespec="minutes")
+        except Exception:
+            return ""
+    return ""
+
+
 class PDPPenaleWorkflowRepository:
     """CRUD principale del modulo PDP Penale su SQLite."""
 
@@ -352,6 +454,28 @@ class PDPPenaleWorkflowRepository:
         "last_sync_at",
         "notes",
         "archived",
+    }
+    _ACCESS_REQUEST_MUTABLE_FIELDS = {
+        "request_type",
+        "request_reference",
+        "request_status",
+        "submitted_at",
+        "office_response_at",
+        "authorized_at",
+        "denied_at",
+        "payment_required",
+        "payment_amount",
+        "payment_due_date",
+        "payment_done",
+        "payment_receipt_document_id",
+        "legal_aid_declared",
+        "legal_aid_document_id",
+        "pec_password_received_at",
+        "download_link_available",
+        "download_available_until",
+        "downloaded_at",
+        "ministry_status",
+        "notes",
     }
 
     def __init__(self, db: sqlite3.Connection | Any | str) -> None:
@@ -526,6 +650,14 @@ class PDPPenaleWorkflowRepository:
             (criminal_case_id,),
         ).fetchall()
         return [_row_to_dict(row) for row in rows if row is not None]
+
+    def update_access_request(self, access_request_id: str, **changes: Any) -> dict[str, Any]:
+        filtered = {
+            key: value
+            for key, value in changes.items()
+            if key in self._ACCESS_REQUEST_MUTABLE_FIELDS and key != "id"
+        }
+        return self._update("criminal_access_requests", access_request_id, filtered)
 
     def link_document_to_access_request(
         self,

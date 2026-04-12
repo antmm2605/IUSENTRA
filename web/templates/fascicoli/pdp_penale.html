@@ -9,9 +9,14 @@
 {% set local_documents = workspace.local_documents or [] %}
 {% set module_documents = workspace.module_documents or [] %}
 {% set access_requests = workspace.access_requests or [] %}
+{% set primary_request = workspace.primary_request or {} %}
 {% set pec_messages = workspace.pec_messages or [] %}
 {% set tasks = workspace.tasks or [] %}
 {% set events = workspace.events or [] %}
+{% set deposit_documents = workspace.deposit_documents or [] %}
+{% set password_available = workspace.password_available or false %}
+{% set download_available_until = workspace.download_available_until or '' %}
+{% set download_state = workspace.download_state or 'missing' %}
 {% set status_case = {
   'draft':'secondary','ready':'info','submitted':'primary','waiting_authorization':'warning',
   'authorized':'success','denied':'danger','expired':'dark','technical_error':'danger',
@@ -70,6 +75,41 @@
     <span class="num">{{ stats.tasks_open or 0 }}</span> task aperti
   </span>
 </div>
+
+{% if active_case and download_state == 'open' %}
+<div class="alert alert-warning shadow-sm d-flex justify-content-between align-items-start gap-3 flex-wrap">
+  <div>
+    <div class="fw-semibold mb-1">
+      <i class="bi bi-bell-fill me-1"></i>Password PEC rilevata: finestra download aperta
+    </div>
+    <div class="small">
+      {% if password_available %}La password e disponibile nel workflow.{% endif %}
+      {% if download_available_until %} I documenti risultano scaricabili fino a <strong>{{ download_available_until }}</strong>.{% endif %}
+    </div>
+  </div>
+  <a href="{{ url_for('portale_acquisizione_wizard', portale='pdp') }}" class="btn btn-sm btn-warning">
+    <i class="bi bi-box-arrow-up-right me-1"></i>Apri PDP ufficiale
+  </a>
+</div>
+{% elif active_case and download_state == 'expired' %}
+<div class="alert alert-danger shadow-sm">
+  <div class="fw-semibold mb-1">
+    <i class="bi bi-exclamation-octagon me-1"></i>Finestra download scaduta
+  </div>
+  <div class="small">
+    La disponibilita risultava aperta fino a {{ download_available_until }}. Conviene registrare una nuova richiesta o chiedere una nuova password.
+  </div>
+</div>
+{% elif active_case and password_available %}
+<div class="alert alert-success shadow-sm">
+  <div class="fw-semibold mb-1">
+    <i class="bi bi-key-fill me-1"></i>Password PEC disponibile
+  </div>
+  <div class="small">
+    Appena scarichi il pacchetto ufficiale dal portale puoi importarlo e classificarlo direttamente qui.
+  </div>
+</div>
+{% endif %}
 
 {% if not active_case %}
 <div class="alert alert-warning shadow-sm">
@@ -289,20 +329,30 @@
                   {% if doc.firmato %}<span class="badge bg-success">Firmato</span>{% endif %}
                 </div>
               </div>
-              {% if active_case %}
-              <form method="post" action="{{ url_for('pdp_penale_link_local_document', id_fasc=fascicolo.id, case_id=active_case.id) }}" class="d-flex gap-2 flex-wrap">
-                <input type="hidden" name="local_doc_id" value="{{ doc.id }}">
-                <input type="hidden" name="title" value="{{ doc.nome }}">
-                <select name="document_role" class="form-select form-select-sm" style="min-width:170px">
-                  {% for role in ['nomination', 'payment_receipt', 'legal_aid_order', 'decree', 'ordinance', 'judgment', 'hearing_minutes', 'defense_brief', 'attachment', 'other'] %}
-                  <option value="{{ role }}" {{ 'selected' if doc.role_suggestion == role }}>{{ role.replace('_', ' ') }}</option>
-                  {% endfor %}
-                </select>
-                <button type="submit" class="btn btn-sm btn-outline-primary">
-                  <i class="bi bi-link-45deg me-1"></i>Collega
-                </button>
-              </form>
-              {% endif %}
+              <div class="d-flex gap-2 flex-wrap align-items-start">
+                <a href="{{ url_for('visualizza_documento', id_fasc=fascicolo.id, id_doc=doc.id) }}"
+                   target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary">
+                  <i class="bi bi-eye me-1"></i>Apri
+                </a>
+                <a href="{{ url_for('scarica_documento', id_fasc=fascicolo.id, id_doc=doc.id) }}"
+                   class="btn btn-sm btn-outline-dark">
+                  <i class="bi bi-download me-1"></i>Scarica
+                </a>
+                {% if active_case %}
+                <form method="post" action="{{ url_for('pdp_penale_link_local_document', id_fasc=fascicolo.id, case_id=active_case.id) }}" class="d-flex gap-2 flex-wrap">
+                  <input type="hidden" name="local_doc_id" value="{{ doc.id }}">
+                  <input type="hidden" name="title" value="{{ doc.nome }}">
+                  <select name="document_role" class="form-select form-select-sm" style="min-width:170px">
+                    {% for role in ['nomination', 'access_request', 'payment_receipt', 'legal_aid_order', 'decree', 'ordinance', 'judgment', 'hearing_minutes', 'defense_brief', 'attachment', 'other'] %}
+                    <option value="{{ role }}" {{ 'selected' if doc.role_suggestion == role }}>{{ role.replace('_', ' ') }}</option>
+                    {% endfor %}
+                  </select>
+                  <button type="submit" class="btn btn-sm btn-outline-primary">
+                    <i class="bi bi-link-45deg me-1"></i>Collega
+                  </button>
+                </form>
+                {% endif %}
+              </div>
             </div>
           </div>
           {% endfor %}
@@ -321,6 +371,21 @@
       </div>
       <div class="card-body">
         {% if active_case %}
+        <div class="d-flex flex-wrap gap-2 mb-3">
+          <form method="post" action="{{ url_for('pdp_penale_generate_access_request', id_fasc=fascicolo.id, case_id=active_case.id) }}">
+            <button type="submit" class="btn btn-sm btn-danger">
+              <i class="bi bi-file-earmark-pdf me-1"></i>Genera richiesta accesso
+            </button>
+          </form>
+          <form method="post" action="{{ url_for('pdp_penale_sync_pec', id_fasc=fascicolo.id, case_id=active_case.id) }}">
+            <button type="submit" class="btn btn-sm btn-outline-warning">
+              <i class="bi bi-arrow-repeat me-1"></i>Sincronizza PEC
+            </button>
+          </form>
+          <a href="{{ url_for('portale_acquisizione_wizard', portale='pdp') }}" class="btn btn-sm btn-outline-danger">
+            <i class="bi bi-box-arrow-up-right me-1"></i>Apri PDP ufficiale
+          </a>
+        </div>
         <div class="accordion" id="accPdpQuickActions">
           <div class="accordion-item">
             <h2 class="accordion-header">
@@ -392,6 +457,47 @@
 
           <div class="accordion-item">
             <h2 class="accordion-header">
+              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#accDepositPdp">
+                Deposita tramite PDP
+              </button>
+            </h2>
+            <div id="accDepositPdp" class="accordion-collapse collapse" data-bs-parent="#accPdpQuickActions">
+              <div class="accordion-body">
+                <form method="post" action="{{ url_for('pdp_penale_deposit_request', id_fasc=fascicolo.id, case_id=active_case.id) }}">
+                  <div class="row g-2">
+                    <div class="col-12">
+                      <label class="form-label small fw-semibold">Documento da depositare</label>
+                      <select name="local_doc_id" class="form-select form-select-sm">
+                        {% for doc in deposit_documents %}
+                        <option value="{{ doc.id }}">
+                          {{ doc.nome }}{% if doc.firmato %} - firmato{% endif %} - {{ (doc.role_suggestion or 'other').replace('_', ' ') }}
+                        </option>
+                        {% endfor %}
+                      </select>
+                      <div class="form-text">
+                        In produzione seleziona preferibilmente il documento gia firmato. Il PDF generato dal workflow puo essere firmato dal fascicolo e poi depositato.
+                      </div>
+                    </div>
+                    <div class="col-md-4">
+                      <label class="form-label small fw-semibold">Tipo atto</label>
+                      <input type="text" name="tipo_atto" class="form-control form-control-sm" value="RICHIESTA">
+                    </div>
+                    <div class="col-md-8">
+                      <label class="form-label small fw-semibold">Oggetto</label>
+                      <input type="text" name="oggetto" class="form-control form-control-sm"
+                             value="Richiesta accesso atti - {{ active_case.register_type or 'RGNR' }} {{ active_case.register_number }}/{{ active_case.register_year }}">
+                    </div>
+                  </div>
+                  <button type="submit" class="btn btn-sm btn-primary mt-3" {% if not deposit_documents %}disabled{% endif %}>
+                    <i class="bi bi-cloud-upload me-1"></i>Deposita atto
+                  </button>
+                </form>
+              </div>
+            </div>
+          </div>
+
+          <div class="accordion-item">
+            <h2 class="accordion-header">
               <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#accPecPdp">
                 Registra PEC / password
               </button>
@@ -431,6 +537,37 @@
                   </div>
                   <button type="submit" class="btn btn-sm btn-warning mt-3">
                     <i class="bi bi-envelope-check me-1"></i>Registra PEC
+                  </button>
+                </form>
+              </div>
+            </div>
+          </div>
+
+          <div class="accordion-item">
+            <h2 class="accordion-header">
+              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#accImportPdp">
+                Importa ZIP / cartella scaricata
+              </button>
+            </h2>
+            <div id="accImportPdp" class="accordion-collapse collapse" data-bs-parent="#accPdpQuickActions">
+              <div class="accordion-body">
+                <form method="post" action="{{ url_for('pdp_penale_import_download', id_fasc=fascicolo.id, case_id=active_case.id) }}" enctype="multipart/form-data">
+                  <div class="row g-2">
+                    <div class="col-12">
+                      <label class="form-label small fw-semibold">ZIP o cartella scaricata dal PDP</label>
+                      <input type="file" name="files" class="form-control form-control-sm" multiple webkitdirectory directory>
+                      <div class="form-text">
+                        Puoi caricare piu file o una cartella intera. Se lasci vuoto, HACS prova a leggere l'inbox tecnica del fascicolo.
+                      </div>
+                    </div>
+                    <div class="col-12">
+                      <label class="form-label small fw-semibold">Note importazione</label>
+                      <input type="text" name="note_importazione" class="form-control form-control-sm"
+                             placeholder="Es. documenti scaricati dal fascicolo digitale autorizzato">
+                    </div>
+                  </div>
+                  <button type="submit" class="btn btn-sm btn-success mt-3">
+                    <i class="bi bi-inboxes me-1"></i>Importa e classifica
                   </button>
                 </form>
               </div>
@@ -598,12 +735,20 @@
                 <div class="small text-muted font-monospace">{{ doc.file_path }}</div>
                 {% endif %}
               </div>
-              <div class="d-flex gap-1 flex-wrap">
+              <div class="d-flex gap-1 flex-wrap align-items-start">
                 {% if doc.signed %}
                 <span class="badge bg-success">Firmato</span>
                 {% endif %}
                 {% if doc.pdfa %}
                 <span class="badge bg-info">PDF/A</span>
+                {% endif %}
+                {% if doc.local_doc_id %}
+                <a href="{{ doc.view_url }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary">
+                  <i class="bi bi-eye"></i>
+                </a>
+                <a href="{{ doc.download_url }}" class="btn btn-sm btn-outline-dark">
+                  <i class="bi bi-download"></i>
+                </a>
                 {% endif %}
               </div>
             </div>

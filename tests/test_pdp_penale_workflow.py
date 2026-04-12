@@ -4,7 +4,12 @@ import sqlite3
 from pathlib import Path
 
 from pct.database import SCHEMA_SQL
-from pct.pdp_penale_workflow import PDPPenaleWorkflowRepository
+from pct.pdp_penale_workflow import (
+    PDPPenaleWorkflowRepository,
+    pdp_penale_classifica_documento,
+    pdp_penale_estrai_password,
+    pdp_penale_estrai_scadenza_download,
+)
 from pct.storage import StudioDB
 
 
@@ -158,4 +163,17 @@ def test_repository_pdp_penale_funziona_con_studiodb(tmp_path: Path):
     loaded = repo.get_case(str(case["id"]))
     assert loaded["office_name"] == "Procura della Repubblica di Catanzaro"
     assert loaded["practice_id"] == "FASC-JSON-01"
+
+
+def test_helper_pdp_penale_classifica_documenti_e_parse_pec():
+    assert pdp_penale_classifica_documento("richiesta_accesso_atti.pdf")["document_role"] == "access_request"
+    assert pdp_penale_classifica_documento("verbale_udienza.pdf")["document_role"] == "hearing_minutes"
+    assert pdp_penale_classifica_documento("decreto_giudizio.pdf.p7m")["document_role"] == "decree"
+
+    testo = (
+        "Si comunica che la password di accesso: PDP-ABC-123 "
+        "e che i documenti sono disponibili fino al 15/04/2026 18:30."
+    )
+    assert pdp_penale_estrai_password(testo, "Password accesso fascicolo") == "PDP-ABC-123"
+    assert pdp_penale_estrai_scadenza_download(testo) == "2026-04-15T18:30"
 

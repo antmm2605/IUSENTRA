@@ -66,6 +66,32 @@
     Qui cerchi e importi il fascicolo dal canale ufficiale. Appena confermi l'importazione, il gestionale apre il workflow PDP della pratica creata o aggiornata.
   </div>
 </div>
+{% elif wizard_portale == 'pat' %}
+<div class="alert alert-success-subtle border border-success-subtle rounded-4 mb-4">
+  <div class="d-flex flex-column flex-lg-row justify-content-between align-items-start gap-3">
+    <div>
+      <div class="fw-semibold mb-1"><i class="bi bi-signpost-2 me-1 text-success"></i>Fascicolo PAT interno, consultazione ufficiale sul portale</div>
+      <div class="small">
+        Il wizard PAT prepara il fascicolo interno di studio e non promette una lettura live diretta da SIGA.
+        Deposito e consultazione restano nel <strong>Portale dell'Avvocato ufficiale</strong>; HACS importa poi
+        file, ricevute, provvedimenti ed esiti gia scaricati dal browser.
+      </div>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+      <a href="https://www.giustizia-amministrativa.it/portale-avvocato" target="_blank" rel="noopener" class="btn btn-outline-success btn-sm">
+        <i class="bi bi-box-arrow-up-right me-1"></i>Apri Portale Avvocato
+      </a>
+      <a href="https://www.giustizia-amministrativa.it/portale-avvocato" target="_blank" rel="noopener" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-send-check me-1"></i>Nuovo deposito Form Web
+      </a>
+      {% if linked_fascicolo_url %}
+      <a href="{{ linked_fascicolo_url }}" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-folder2-open me-1"></i>Apri fascicolo interno
+      </a>
+      {% endif %}
+    </div>
+  </div>
+</div>
 {% endif %}
 
 <div class="aw-steps mb-4" id="awSteps"></div>
@@ -136,15 +162,39 @@
       <div class="aw-box bg-light-subtle mb-3">
         <div class="form-check form-switch mb-3">
           <input class="form-check-input" type="checkbox" id="scarica_originale_portale" checked>
-          <label class="form-check-label fw-semibold" for="scarica_originale_portale">Scarica l'originale firmato presente nel repository del portale</label>
+          <label class="form-check-label fw-semibold" for="scarica_originale_portale">
+            {% if wizard_portale == 'pat' %}
+            Raccogli i file gia scaricati dal Portale dell'Avvocato
+            {% else %}
+            Scarica l'originale firmato presente nel repository del portale
+            {% endif %}
+          </label>
         </div>
-        <div class="small text-muted mb-3">Se attivo, per CAdES il PST restituisce il file firmato <code>.p7m</code> e per PAdES il documento firmato cosi com'e nel repository. Se disattivo, il portale restituisce la copia di consultazione con coccardina o informazioni blu secondo le regole ministeriali.</div>
+        <div class="small text-muted mb-3">
+          {% if wizard_portale == 'pat' %}
+          Se attivo, HACS verifica nei download locali del browser i file gia consultati o scaricati dal Portale dell'Avvocato e li aggancia al fascicolo interno. Se disattivo, il gestionale importa solo dati, ricevute e catalogo del fascicolo senza cercare i file locali.
+          {% else %}
+          Se attivo, per CAdES il PST restituisce il file firmato <code>.p7m</code> e per PAdES il documento firmato cosi com'e nel repository. Se disattivo, il portale restituisce la copia di consultazione con coccardina o informazioni blu secondo le regole ministeriali.
+          {% endif %}
+        </div>
         <hr class="my-3">
         <div class="form-check form-switch">
           <input class="form-check-input" type="checkbox" id="mantieni_albero_originale">
-          <label class="form-check-label fw-semibold" for="mantieni_albero_originale">Conserva anche l'albero tecnico originale del portale</label>
+          <label class="form-check-label fw-semibold" for="mantieni_albero_originale">
+            {% if wizard_portale == 'pat' %}
+            Archivia anche la struttura tecnica dell'import PAT
+            {% else %}
+            Conserva anche l'albero tecnico originale del portale
+            {% endif %}
+          </label>
         </div>
-          <div class="small text-muted mt-2">Il catalogo ufficiale dei documenti del portale resta sempre collegato al fascicolo. Se attivo, HACS archivia in piu anche una copia tecnica separata dell'albero originale scaricato dal portale.</div>
+          <div class="small text-muted mt-2">
+            {% if wizard_portale == 'pat' %}
+            Il catalogo ufficiale dei documenti PAT resta sempre collegato al fascicolo interno. Se attivo, HACS archivia in piu anche la struttura tecnica dei file importati dal browser per controlli e riconciliazioni future.
+            {% else %}
+            Il catalogo ufficiale dei documenti del portale resta sempre collegato al fascicolo. Se attivo, HACS archivia in piu anche una copia tecnica separata dell'albero originale scaricato dal portale.
+            {% endif %}
+          </div>
       </div>
       <div class="alert alert-light border rounded-4" id="awImportState">Pronto per l’importazione finale.</div>
       <div id="awDownloadProgress" style="display:none" class="mb-3">
@@ -469,7 +519,9 @@ function awGuidedBrowserAssistInfo(query = null) {
   if (AW_BOOT.portale === 'pdp') {
     info.reason = "Il Portale Deposito atti Penali usa l'area riservata PST nel browser ufficiale." + commonSuffix;
   } else if (AW_BOOT.portale === 'pat') {
-    info.reason = "Il Processo Amministrativo Telematico usa il Portale Avvocato nel browser ufficiale." + commonSuffix;
+    info.reason = "Il Processo Amministrativo Telematico usa il Portale dell'Avvocato ufficiale: HACS prepara il fascicolo interno e rinvia consultazione e deposito Form Web al browser autenticato." + commonSuffix;
+    info.metaReady = "Portale dell'Avvocato pronto: puoi proseguire con fascicolo PAT interno e import guidato.";
+    info.metaMissing = "Compila ufficio, numero e anno per continuare con fascicolo PAT interno assistito.";
   } else if (AW_BOOT.portale === 'ptt') {
     info.reason = 'Il Processo Tributario Telematico usa SIGIT nel browser ufficiale.' + commonSuffix;
   }
@@ -628,10 +680,13 @@ function awManualNoticeHtml() {
   if (!selection.manual_mode) return '';
   const portaleUrl = selection.manual_portale_url || awOfficialPortalUrl();
   const reason = String(selection.manual_reason || '').trim();
+  const body = AW_BOOT.portale === 'pat'
+    ? "HACS continua con i dati di RG, ufficio e parti gia' inseriti. Documenti, ricevute, provvedimenti ed esiti PAT si completano importando i file gia scaricati dal Portale dell'Avvocato."
+    : "HACS continua con i dati di RG, ufficio e parti gia' inseriti. Documenti, eventi e catalogo di deposito possono essere completati dal portale ufficiale dopo l'importazione.";
   return `
     <div class="alert alert-warning rounded-4 mb-3">
       <div class="fw-semibold">Acquisizione assistita via browser ufficiale</div>
-      <div class="small mt-1">HACS continua con i dati di RG, ufficio e parti gia' inseriti. Documenti, eventi e catalogo di deposito possono essere completati dal portale ufficiale dopo l'importazione.</div>
+      <div class="small mt-1">${body}</div>
       ${portaleUrl ? `<div class="small mt-2"><a href="${awEscape(portaleUrl)}" target="_blank" rel="noopener">Apri portale ufficiale</a></div>` : ''}
       ${reason ? `<div class="small text-muted mt-2">${awEscape(reason)}</div>` : ''}
     </div>`;
@@ -1347,7 +1402,9 @@ function awRenderAccess() {
     </div>`).join('');
   const note = [];
   if (browserAssistMode) {
-    note.push('Step 1 guidato: HACS non interroga un endpoint tecnico del portale. Prepara la pratica in modalita assistita e rimanda la consultazione al browser ufficiale.');
+    note.push(AW_BOOT.portale === 'pat'
+      ? "Step 1 guidato: HACS non interroga SIGA in tempo reale. Prepara il fascicolo PAT interno in modalita assistita e rinvia consultazione e deposito al Portale dell'Avvocato."
+      : 'Step 1 guidato: HACS non interroga un endpoint tecnico del portale. Prepara la pratica in modalita assistita e rimanda la consultazione al browser ufficiale.');
   } else if (signerPreferred) {
     note.push(AW_BOOT.portale === 'pst'
       ? 'Step 1 leggero: il wizard non apre ancora la sessione PST. Il primo accesso reale viene eseguito alla ricerca del fascicolo.'
@@ -1902,8 +1959,8 @@ async function awStartImport() {
       </div>
       ${downloadSummary && !usedBrowserDownloads ? `<div class="small mt-1">Modalita documenti PST: ${awEscape(summary.modalita_documento_portale === 'copia' ? 'copia portale con annotazioni ministeriali' : 'originale firmato del repository')}</div>` : ''}
       ${downloadSummary ? `<div class="small mt-1">${awEscape(downloadSummary.documenti_scaricati || 0)} ${usedBrowserDownloads ? 'file locali raccolti dai download del browser ufficiale' : 'allegati scaricati dal portale e ripartiti nelle sezioni del fascicolo'}${failureCount ? ` · <span class="text-warning">${awEscape(failureCount)} download da verificare</span>` : ''}.</div>` : ''}
-      ${downloadSummary ? `<div class="small mt-1 text-muted">${usedBrowserDownloads ? 'Nel fascicolo trovi il catalogo ufficiale del portale e i file gia scaricati nel browser, senza nuovi download automatici dal gestionale.' : 'Nel fascicolo vedrai sempre il catalogo ufficiale dei documenti del portale. L\'opzione dell\'albero tecnico salva solo una copia tecnica separata, non cambia questa vista.'}</div>` : ''}
-      ${summary.albero_originale_salvato ? '<div class="small mt-1">Albero tecnico originale del portale archiviato.</div>' : ''}
+      ${downloadSummary ? `<div class="small mt-1 text-muted">${usedBrowserDownloads ? (AW_BOOT.portale === 'pat' ? 'Nel fascicolo PAT interno trovi catalogo ufficiale, ricevute e file gia scaricati dal Portale dell\\'Avvocato, senza lettura live diretta da SIGA.' : 'Nel fascicolo trovi il catalogo ufficiale del portale e i file gia scaricati nel browser, senza nuovi download automatici dal gestionale.') : 'Nel fascicolo vedrai sempre il catalogo ufficiale dei documenti del portale. L\\'opzione dell\\'albero tecnico salva solo una copia tecnica separata, non cambia questa vista.'}</div>` : ''}
+      ${summary.albero_originale_salvato ? `<div class="small mt-1">${AW_BOOT.portale === 'pat' ? 'Archivio tecnico dell\\'import PAT archiviato.' : 'Albero tecnico originale del portale archiviato.'}</div>` : ''}
       <div class="small mt-1 text-muted">Import log ${awEscape(AW_STATE.importResult?.import_log_id || '')}</div>
     </div>`;
   actions.innerHTML = [
@@ -1915,6 +1972,15 @@ async function awStartImport() {
     ['Apri scadenziario', AW_STATE.importResult?.scadenziario_url, 'outline-' + AW_BOOT.spec.color],
   ].filter(([, url]) => !!url).map(([label, url, cls]) => `<a class="btn btn-${cls}" href="${url}">${label}</a>`).join('');
   awRenderSidebar();
+}
+function awSidebarPortalModeLabel(options) {
+  if (AW_BOOT.portale === 'pat') {
+    return options.scarica_originale_portale ? 'Import file browser PAT' : 'Solo fascicolo interno PAT';
+  }
+  return options.scarica_originale_portale ? 'Originale firmato' : 'Copia portale';
+}
+function awSidebarPortalTreeLabel() {
+  return AW_BOOT.portale === 'pat' ? 'Archivio tecnico import' : 'Albero originale';
 }
 function awRenderSidebar() {
   const list = document.getElementById('awSidebarList');
@@ -1942,8 +2008,8 @@ function awRenderSidebar() {
     ['Udienze', counts.udienze || 0],
     ['Provvedimenti', counts.provvedimenti || 0],
   ].map(([label, count]) => `<span class="badge text-bg-light border">${label}: ${awEscape(count)}</span>`).join('')
-    + `<span class="badge text-bg-light border">${options.scarica_originale_portale ? 'Originale firmato' : 'Copia portale'}</span>`
-    + (options.mantieni_albero_originale ? '<span class="badge text-bg-light border">Albero originale</span>' : '');
+    + `<span class="badge text-bg-light border">${awSidebarPortalModeLabel(options)}</span>`
+    + (options.mantieni_albero_originale ? `<span class="badge text-bg-light border">${awSidebarPortalTreeLabel()}</span>` : '');
   if (AW_STATE.importResult?.summary) {
     note.textContent = `Import completato. Pratica ${AW_STATE.importResult.summary.numero_pratica || ''} pronta per essere governata dal gestionale.`;
   } else if (AW_STATE.analysis?.next_step) {

@@ -5133,10 +5133,12 @@ def create_app(config: dict | None = None) -> Flask:
         return (portale or "").strip().lower() in {"pst", "pdp", "pat", "ptt"} and _polis_auth_mode() == "pkcs11"
 
     def _portale_browser_channel_required(portale: str) -> bool:
-        """Di default PDP/PAT/PTT seguono la stessa logica del PST; il browser-only resta solo opt-in via env."""
+        """PAT usa sempre il canale browser ufficiale; PDP/PTT restano opt-in via env."""
         portale_norm = (portale or "").strip().lower()
         if _polis_demo_mode() or portale_norm not in {"pdp", "pat", "ptt"}:
             return False
+        if portale_norm == "pat":
+            return True
         truthy = {"1", "true", "yes", "on"}
         return (
             str(os.getenv("PCT_PORTALI_BROWSER_ONLY", "") or "").strip().lower() in truthy
@@ -5388,6 +5390,12 @@ def create_app(config: dict | None = None) -> Flask:
             "ptt": "PTT",
         }
         label = labels.get((portale or "").strip().lower(), (portale or "").upper())
+        if (portale or "").strip().lower() == "pat":
+            return (
+                "Per PAT la consultazione pratica passa dal Portale dell'Avvocato ufficiale. "
+                "Usa l'acquisizione guidata, poi importa nel fascicolo interno documenti, ricevute ed esiti "
+                "gia consultati o scaricati dal portale."
+            )
         return (
             f"L'endpoint ufficiale di {label} non è raggiungibile dal backend server. "
             "Usa l'acquisizione guidata dal browser con Local Signer su questo PC."
@@ -6876,7 +6884,11 @@ def create_app(config: dict | None = None) -> Flask:
             status_text = "Modalità demo / fallback"
             environment_label = "Simulazione / compatibilità"
         elif browser_channel_required:
-            status_text = "Consultazione via browser ufficiale"
+            status_text = (
+                "Consultazione via Portale dell'Avvocato"
+                if portale == "pat"
+                else "Consultazione via browser ufficiale"
+            )
             environment_label = "Produzione guidata assistita"
         elif pkcs11_mode:
             status_text = "Accesso via Local Signer / Aruba Key"
@@ -6946,19 +6958,10 @@ def create_app(config: dict | None = None) -> Flask:
                     tipo_registro=str(query.get("registro") or "").strip() or None,
                 )
             elif portale == "pat":
-                if _portale_local_channel_enabled(portale):
-                    raise ValueError("Per PAT la ricerca guidata usa il Local Signer dal browser.")
-                from pct.pat import crea_client_pat
-
-                ufficio = str(query.get("ufficio_codice") or "").strip()
-                if not ufficio:
-                    raise ValueError("Seleziona un ufficio giudiziario.")
-                fascicoli = crea_client_pat(demo=_polis_demo_mode()).ricerca_fascicoli(
-                    ufficio=ufficio,
-                    numero_ricorso=numero,
-                    anno=anno,
-                    nome_ricorrente=assistito,
-                    materia=str(query.get("materia") or "").strip() or None,
+                raise ValueError(
+                    "Per PAT l'acquisizione guidata non promette una ricerca live diretta da SIGA. "
+                    "Apri il Portale dell'Avvocato ufficiale dal browser e usa HACS per il fascicolo interno, "
+                    "le ricevute e l'import guidato dei file gia scaricati."
                 )
             else:
                 if _portale_local_channel_enabled(portale):
@@ -7018,14 +7021,10 @@ def create_app(config: dict | None = None) -> Flask:
                     int(selection.get("anno") or 0),
                 )
             elif portale == "pat":
-                if _portale_local_channel_enabled(portale):
-                    raise ValueError("Anteprima documenti PAT via browser locale richiesta.")
-                from pct.pat import crea_client_pat
-
-                docs = crea_client_pat(demo=_polis_demo_mode()).consulta_documenti(
-                    str(selection.get("ufficio_codice") or "").strip(),
-                    str(selection.get("numero") or "").strip(),
-                    int(selection.get("anno") or 0),
+                raise ValueError(
+                    "Per PAT la consultazione del fascicolo si completa nel Portale dell'Avvocato ufficiale. "
+                    "In HACS puoi continuare con il fascicolo PAT interno e con l'import guidato di documenti, "
+                    "provvedimenti e ricevute gia scaricati dal portale."
                 )
             else:
                 if _portale_local_channel_enabled(portale):
@@ -8150,141 +8149,36 @@ read -r -p "Premi Invio per chiudere..." _
         demo_mode = _polis_demo_mode()
         id_fasc = request.args.get("id_fasc", "")
         fascicolo_ctx = get_fascicoli().get(id_fasc) if id_fasc else None
-        return render_template("pat.html", demo_mode=demo_mode, oggi=date.today(),
-                               fascicolo=fascicolo_ctx, id_fasc=id_fasc)
+        return render_template(
+            "pat.html",
+            demo_mode=demo_mode,
+            oggi=date.today(),
+            fascicolo=fascicolo_ctx,
+            id_fasc=id_fasc,
+            official_portal_url="https://www.giustizia-amministrativa.it/portale-avvocato",
+        )
 
     @app.route("/pat/ricerca", methods=["POST"])
     def pat_ricerca():
-        f         = request.form
-        ufficio   = f.get("ufficio", "").strip()
-        demo_mode = f.get("demo_mode") == "1" or _polis_demo_mode()
-
-        if not ufficio:
-            flash("Seleziona un ufficio giudiziario.", "warning")
-            return redirect(url_for("pat_home"))
-        if _portale_local_channel_enabled("pat"):
-            flash(
-                "Per PAT la ricerca guidata usa il wizard browser-side con Local Signer.",
-                "info",
-            )
-            return redirect(url_for("portale_acquisizione_wizard", portale="pat"))
-
-        id_fasc         = f.get("id_fasc", "").strip()
-        fascicolo_ctx   = get_fascicoli().get(id_fasc) if id_fasc else None
-        numero_ricorso  = f.get("numero_ricorso", "").strip() or None
-        anno_str        = f.get("anno", "").strip()
-        anno            = int(anno_str) if anno_str.isdigit() else None
-        nome_ricorrente = f.get("nome_ricorrente", "").strip() or None
-        materia         = f.get("materia", "").strip() or None
-
-        try:
-            from pct.pat import crea_client_pat
-            client    = crea_client_pat(demo=demo_mode)
-            fascicoli = client.ricerca_fascicoli(
-                ufficio=ufficio,
-                numero_ricorso=numero_ricorso,
-                anno=anno,
-                nome_ricorrente=nome_ricorrente,
-                materia=materia,
-            )
-            try:
-                from pct.uffici_giudiziari import get_gestore as _get_uff
-                _uff = next(
-                    (u for u in _get_uff(
-                        os.getenv("PCT_UFFICI_DB", "/data/uffici/uffici_giudiziari.json")
-                    ).carica() if u.get("codice") == ufficio),
-                    None,
-                )
-                ufficio_sel_nome = _uff["nome"] if _uff else ufficio
-            except Exception:
-                ufficio_sel_nome = ufficio
-            return render_template(
-                "pat.html",
-                demo_mode=demo_mode,
-                fascicoli=fascicoli,
-                ufficio_sel=ufficio,
-                ufficio_sel_nome=ufficio_sel_nome,
-                numero_ricorso=numero_ricorso or "",
-                anno=anno or "",
-                nome_ricorrente=nome_ricorrente or "",
-                materia=materia or "",
-                fascicolo=fascicolo_ctx,
-                id_fasc=id_fasc,
-                oggi=date.today(),
-            )
-        except Exception as e:
-            app.logger.exception("Errore pat_ricerca: %s", e)
-            if _is_portale_dns_error(e):
-                flash(_portale_browser_guided_message("pat"), "warning")
-                return redirect(url_for("portale_acquisizione_wizard", portale="pat"))
-            flash(str(e), "danger")
-            return redirect(url_for("pat_home", id_fasc=id_fasc) if id_fasc else url_for("pat_home"))
+        id_fasc = request.form.get("id_fasc", "").strip()
+        flash(
+            "Nel PAT la consultazione del fascicolo passa dal Portale dell'Avvocato ufficiale: "
+            "usa Acquisizione guidata e importa nel fascicolo interno file, ricevute ed esiti.",
+            "info",
+        )
+        return redirect(
+            url_for("portale_acquisizione_wizard", portale="pat", id_fasc=id_fasc or None)
+        )
 
     @app.route("/pat/documenti")
     def pat_documenti():
-        codice_ufficio = request.args.get("codice_ufficio", "")
-        numero_ricorso = request.args.get("numero_ricorso", "")
-        anno_str       = request.args.get("anno", "0")
-        anno           = int(anno_str) if anno_str.isdigit() else 0
-        demo_mode      = _polis_demo_mode()
-        if _portale_local_channel_enabled("pat"):
-            flash(
-                "Per PAT l'anteprima documenti usa il wizard browser-side con Local Signer.",
-                "info",
-            )
-            return redirect(url_for("portale_acquisizione_wizard", portale="pat"))
-        try:
-            from pct.pat import crea_client_pat
-            client    = crea_client_pat(demo=demo_mode)
-            documenti = client.consulta_documenti(codice_ufficio, numero_ricorso, anno)
-        except Exception as e:
-            app.logger.exception("Errore pat_documenti: %s", e)
-            if _is_portale_dns_error(e):
-                flash(_portale_browser_guided_message("pat"), "warning")
-                return redirect(url_for("portale_acquisizione_wizard", portale="pat"))
-            documenti = []
-            flash(str(e), "danger")
-
-        # Risolvi nome ufficio dal codice
-        nome_ufficio = codice_ufficio
-        try:
-            from pct.uffici_giudiziari import get_gestore as _get_uff
-            _uff = next(
-                (u for u in _get_uff(
-                    os.getenv("PCT_UFFICI_DB", "/data/uffici/uffici_giudiziari.json")
-                ).carica() if u.get("codice") == codice_ufficio),
-                None,
-            )
-            nome_ufficio = _uff["nome"] if _uff else codice_ufficio
-        except Exception:
-            pass
-
-        # Raggruppa per id_deposito → lista ordinata per data (più recenti prima)
-        from collections import OrderedDict
-        _gruppi: dict = OrderedDict()
-        for doc in sorted(documenti, key=lambda d: d.data_deposito or "", reverse=True):
-            chiave = doc.id_deposito or f"__{doc.data_deposito}__{doc.mittente}"
-            if chiave not in _gruppi:
-                _gruppi[chiave] = {
-                    "id_deposito": doc.id_deposito or chiave,
-                    "tipo_atto": doc.tipo_atto or doc.tipo.replace("_", " ").title(),
-                    "data_deposito": doc.data_deposito,
-                    "mittente": doc.mittente,
-                    "documenti": [],
-                }
-            _gruppi[chiave]["documenti"].append(doc)
-        depositi = list(_gruppi.values())
-
-        return render_template(
-            "pat_documenti.html",
-            documenti=documenti,
-            depositi=depositi,
-            numero_ricorso=numero_ricorso,
-            anno=anno,
-            codice_ufficio=codice_ufficio,
-            nome_ufficio=nome_ufficio,
-            demo_mode=demo_mode,
+        id_fasc = str(request.args.get("id_fasc") or "").strip()
+        flash(
+            "Nel PAT la consultazione dei documenti si completa sul Portale dell'Avvocato ufficiale. "
+            "In HACS trovi il fascicolo PAT interno e importi i file gia scaricati dal portale.",
+            "info",
         )
+        return redirect(url_for("portale_acquisizione_wizard", portale="pat", id_fasc=id_fasc or None))
 
     @app.route("/pat/importa", methods=["POST"])
     def pat_importa():

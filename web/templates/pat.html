@@ -1,484 +1,205 @@
 {% extends "base.html" %}
-{% block title %}PAT — Processo Amministrativo Telematico{% endblock %}
+{% block title %}PAT - Portale Avvocato{% endblock %}
 {% block pct_modulo %}pat{% endblock %}
 
 {% from 'includes/_fascicolo_banner.html' import banner_fascicolo %}
 {% block content %}
 
-{{ banner_fascicolo(portale_col='info', portale_label='PAT Amministrativo') }}
+{{ banner_fascicolo(portale_col='success', portale_label='PAT Amministrativo') }}
 
-  <div class="d-flex align-items-center gap-2 mb-3 flex-wrap">
-    <i class="bi bi-building-check fs-4 text-success"></i>
-    <h4 class="mb-0 fw-bold">PAT Amministrativo</h4>
-    <a href="{{ url_for('telematico_dashboard') }}" class="btn btn-sm btn-outline-secondary">
-      <i class="bi bi-grid-1x2 me-1"></i>Cabina Telematica
-    </a>
-    <span class="badge bg-light text-dark border ms-1" style="font-size:.72rem">
-      Processo Amministrativo Telematico — SIGA
-    </span>
-    {% if demo_mode %}
-    <span class="badge bg-warning text-dark ms-2">
-      <i class="bi bi-cone me-1"></i>MODALITÀ DEMO
-    </span>
-    {% endif %}
-  </div>
-
+<div class="d-flex align-items-center gap-2 mb-3 flex-wrap">
+  <i class="bi bi-building-check fs-4 text-success"></i>
+  <h4 class="mb-0 fw-bold">PAT Amministrativo</h4>
+  <span class="badge bg-light text-dark border ms-1" style="font-size:.72rem">
+    Nuovo Portale dell'Avvocato - SIGA
+  </span>
+  <a href="{{ url_for('telematico_dashboard') }}" class="btn btn-sm btn-outline-secondary ms-auto">
+    <i class="bi bi-grid-1x2 me-1"></i>Cabina Telematica
+  </a>
   {% if demo_mode %}
-  <div class="alert alert-warning alert-dismissible fade show small mb-3">
-    <i class="bi bi-cone me-2"></i>
-    <strong>Certificato non configurato — modalità demo (offline).</strong>
-    I risultati mostrati sono dati di esempio.
-    Per accedere al PAT reale configurare il certificato CNS in
-    <a href="{{ url_for('impostazioni.index', tab='firma') }}" class="alert-link">Impostazioni → Firma Digitale</a>
-    oppure utilizzare le credenziali SPID/CIE sul portale SIGA.
-    <ul class="mb-0 mt-1">
-      <li><strong>P12/PFX:</strong> <code>PCT_FIRMA_P12</code> + <code>PCT_FIRMA_PASSWORD</code></li>
-      <li><strong>PEM:</strong> <code>PCT_FIRMA_CERT</code> + <code>PCT_FIRMA_KEY</code></li>
-    </ul>
-    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-  </div>
+  <span class="badge bg-warning text-dark ms-2">
+    <i class="bi bi-cone me-1"></i>MODALITA DEMO
+  </span>
   {% endif %}
+</div>
 
-  {% with messages = get_flashed_messages(with_categories=true) %}
-    {% for cat, msg in messages %}
-    <div class="alert alert-{{ 'success' if cat == 'success' else ('warning' if cat == 'warning' else 'danger') }} alert-dismissible fade show">
-      {{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    </div>
-    {% endfor %}
-  {% endwith %}
+{% if demo_mode %}
+<div class="alert alert-warning alert-dismissible fade show small mb-3">
+  <i class="bi bi-cone me-2"></i>
+  <strong>Certificato non configurato - modalita demo (offline).</strong>
+  Il PAT reale richiede accesso tramite il Portale dell'Avvocato con identita digitale. Configura CNS/CIE in
+  <a href="{{ url_for('impostazioni.index', tab='firma') }}" class="alert-link">Impostazioni -> Firma Digitale</a>
+  per le funzioni assistite del gestionale.
+  <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+{% endif %}
 
-  <div class="alert alert-success-subtle border border-success-subtle rounded-4 mb-3 d-flex flex-wrap justify-content-between align-items-center gap-3">
-    <div>
-      <strong><i class="bi bi-stars me-1"></i>Percorso consigliato</strong>
-      Usa <strong>Acquisizione guidata</strong> per analizzare il ricorso, capire cosa importare e collocarlo in modo pulito nel gestionale.
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% for cat, msg in messages %}
+  <div class="alert alert-{{ 'success' if cat == 'success' else ('warning' if cat == 'warning' else ('info' if cat == 'info' else 'danger')) }} alert-dismissible fade show">
+    {{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+  {% endfor %}
+{% endwith %}
+
+<div class="alert alert-success-subtle border border-success-subtle rounded-4 mb-4 d-flex flex-column flex-lg-row justify-content-between align-items-start gap-3">
+  <div>
+    <div class="fw-semibold mb-1"><i class="bi bi-signpost-2 me-1"></i>Modello corretto del PAT</div>
+    <div class="small">
+      In HACS il <strong>fascicolo PAT e interno</strong>: deposito e consultazione restano sul
+      <strong>Portale dell'Avvocato ufficiale</strong>, mentre il gestionale governa controlli,
+      timeline, esiti, ricevute, provvedimenti e import dei file gia scaricati dal portale.
     </div>
-    <a class="btn btn-success" href="{{ url_for('portale_acquisizione_wizard', portale='pat') }}">
+  </div>
+  <div class="d-flex gap-2 flex-wrap">
+    <a class="btn btn-success" href="{{ url_for('portale_acquisizione_wizard', portale='pat', id_fasc=fascicolo.id if fascicolo else None) }}">
       <i class="bi bi-diagram-3 me-1"></i>Acquisizione guidata
     </a>
+    <a class="btn btn-outline-success" href="{{ official_portal_url }}" target="_blank" rel="noopener">
+      <i class="bi bi-box-arrow-up-right me-1"></i>Apri Portale Avvocato
+    </a>
   </div>
+</div>
 
-  {# ---- Form ricerca ---- #}
-  <div class="card shadow-sm mb-4">
-    <div class="card-header fw-semibold d-flex align-items-center gap-2">
-      <i class="bi bi-search text-success"></i>Ricerca ricorsi amministrativi
-      <button type="button" class="btn-help ms-1"
-              data-bs-toggle="popover"
-              data-bs-title="Come funziona la ricerca PAT"
-              data-bs-content="<p class='mb-1'>Cerca ricorsi nel <strong>SIGA (Sistema Informativo della Giustizia Amministrativa)</strong> tramite servizio SOAP PAT.</p><ul><li>Seleziona il TAR o il Consiglio di Stato e inserisci almeno il numero ricorso oppure il nome del ricorrente.</li><li>In <strong>modalità demo</strong> vengono mostrati dati di esempio.</li></ul>">?</button>
+{% if fascicolo %}
+<div class="card shadow-sm mb-4 border-success-subtle">
+  <div class="card-body d-flex justify-content-between align-items-start gap-3 flex-wrap">
+    <div>
+      <div class="small text-uppercase text-muted fw-semibold mb-1">Pratica collegata</div>
+      <div class="fw-semibold">{{ fascicolo.titolo }}</div>
+      <div class="small text-muted">
+        {{ fascicolo.tribunale or 'Ufficio da completare' }}
+        {% if fascicolo.rg_completo %} - {{ fascicolo.rg_completo }}{% endif %}
+      </div>
     </div>
-    <div class="card-body">
-      <form method="post" action="{{ url_for('pat_ricerca') }}">
-        <input type="hidden" name="demo_mode" value="{{ '1' if demo_mode else '0' }}">
-        <input type="hidden" name="id_fasc" value="{{ id_fasc or '' }}">
+    <div class="d-flex gap-2 flex-wrap">
+      <a class="btn btn-outline-success btn-sm" href="{{ url_for('dettaglio_fascicolo', id_fasc=fascicolo.id) }}">
+        <i class="bi bi-folder2-open me-1"></i>Apri fascicolo interno
+      </a>
+      <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('portale_acquisizione_wizard', portale='pat', id_fasc=fascicolo.id) }}">
+        <i class="bi bi-arrow-repeat me-1"></i>Riprendi acquisizione
+      </a>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<div class="row g-3 mb-4">
+  <div class="col-12 col-xl-7">
+    <div class="card shadow-sm h-100">
+      <div class="card-header fw-semibold small">
+        <i class="bi bi-compass me-2 text-success"></i>Azioni ufficiali e assistite
+      </div>
+      <div class="card-body">
         <div class="row g-3">
-
-          {# ---- Ufficio giudiziario — solo TAR/CDS ---- #}
-          <div class="col-md-5">
-            <label class="form-label fw-semibold">
-              Ufficio giudiziario <span class="text-danger">*</span>
-            </label>
-            <div class="uff-tabs mb-1" id="ufficio-tabs" role="tablist">
-              <button type="button" class="uff-tab active" data-tipo="TAR"><i class="bi bi-building-check me-1"></i>TAR</button>
-              <button type="button" class="uff-tab" data-tipo="CDS"><i class="bi bi-columns-gap me-1"></i>Consiglio di Stato</button>
-              <button type="button" class="uff-tab" data-tipo="CGARS"><i class="bi bi-shield-half me-1"></i>CGARS</button>
+          <div class="col-12 col-md-6">
+            <div class="border rounded-4 p-3 h-100">
+              <div class="fw-semibold mb-2">Portale ufficiale</div>
+              <div class="small text-muted mb-3">
+                Il deposito Form Web e la consultazione del fascicolo PAT si eseguono nel Nuovo Portale dell'Avvocato con accesso autenticato.
+              </div>
+              <div class="d-grid gap-2">
+                <a class="btn btn-success" href="{{ official_portal_url }}" target="_blank" rel="noopener">
+                  <i class="bi bi-box-arrow-up-right me-1"></i>Apri Portale Avvocato
+                </a>
+                <a class="btn btn-outline-success" href="{{ official_portal_url }}" target="_blank" rel="noopener">
+                  <i class="bi bi-send-check me-1"></i>Nuovo deposito Form Web
+                </a>
+                <a class="btn btn-outline-secondary" href="{{ official_portal_url }}" target="_blank" rel="noopener">
+                  <i class="bi bi-search me-1"></i>Consulta fascicolo sul portale
+                </a>
+              </div>
             </div>
-            <div class="position-relative" id="ufficio-wrap">
-              <div class="input-group">
-                <span class="input-group-text bg-white" id="ufficio-tipo-icon">
-                  <i class="bi bi-building-check text-muted"></i>
+          </div>
+          <div class="col-12 col-md-6">
+            <div class="border rounded-4 p-3 h-100">
+              <div class="fw-semibold mb-2">Gestione in HACS</div>
+              <div class="small text-muted mb-3">
+                HACS prepara il fascicolo PAT interno, evita duplicati e integra i file gia scaricati dal portale ufficiale.
+              </div>
+              <div class="d-grid gap-2">
+                <a class="btn btn-outline-success" href="{{ url_for('portale_acquisizione_wizard', portale='pat', id_fasc=fascicolo.id if fascicolo else None) }}">
+                  <i class="bi bi-diagram-3 me-1"></i>Acquisizione guidata
+                </a>
+                {% if fascicolo %}
+                <a class="btn btn-outline-secondary" href="{{ url_for('dettaglio_fascicolo', id_fasc=fascicolo.id) }}#sezione-documenti-fascicolo">
+                  <i class="bi bi-paperclip me-1"></i>Importa documenti / ricevute PAT
+                </a>
+                <a class="btn btn-outline-secondary" href="{{ url_for('dettaglio_fascicolo', id_fasc=fascicolo.id) }}">
+                  <i class="bi bi-clock-history me-1"></i>Apri timeline pratica
+                </a>
+                {% else %}
+                <span class="badge text-bg-light border text-start p-2">
+                  Collega o crea prima una pratica interna per archiviare fascicolo, ricevute e provvedimenti.
                 </span>
-                <input type="text" id="ufficio-input" class="form-control border-start-0 ps-0"
-                       placeholder="Cerca TAR per regione (es. Lombardia)…"
-                       autocomplete="off"
-                       value="{{ ufficio_sel_nome or '' }}"
-                       required>
-                <button type="button" class="btn btn-outline-secondary" id="ufficio-clear"
-                        title="Cancella" style="display:none">
-                  <i class="bi bi-x-lg"></i>
-                </button>
-              </div>
-              <div id="ufficio-dropdown"></div>
-            </div>
-            <input type="hidden" name="ufficio" id="ufficio-value" value="{{ ufficio_sel or '' }}">
-            <div id="ufficio-sel-badge" class="mt-1" style="display:none">
-              <span class="badge bg-success-subtle text-success-emphasis border border-success-subtle small"
-                    id="ufficio-sel-label"></span>
-            </div>
-          </div>
-
-          {# ---- Numero ricorso ---- #}
-          <div class="col-md-2">
-            <label class="form-label fw-semibold">N. Ricorso</label>
-            <input type="text" name="numero_ricorso" class="form-control"
-                   placeholder="es. 1876"
-                   value="{{ numero_ricorso or '' }}">
-          </div>
-
-          {# ---- Anno ---- #}
-          <div class="col-md-2">
-            <label class="form-label fw-semibold">Anno</label>
-            <input type="number" name="anno" class="form-control"
-                   placeholder="{{ oggi.year }}"
-                   min="1990" max="{{ oggi.year }}"
-                   value="{{ anno or '' }}">
-          </div>
-
-          {# ---- Materia ---- #}
-          <div class="col-md-3 d-flex align-items-end">
-            <div class="w-100">
-              <label class="form-label fw-semibold">Materia</label>
-              <select name="materia" class="form-select">
-                <option value="">Tutte</option>
-                <option value="APPALTI"      {% if materia == 'APPALTI'      %}selected{% endif %}>Appalti e contratti pubblici</option>
-                <option value="URBANISTICA"  {% if materia == 'URBANISTICA'  %}selected{% endif %}>Urbanistica ed edilizia</option>
-                <option value="PERSONALE"    {% if materia == 'PERSONALE'    %}selected{% endif %}>Personale (pubblico impiego)</option>
-                <option value="TRIBUTI"      {% if materia == 'TRIBUTI'      %}selected{% endif %}>Tributi e fiscale</option>
-                <option value="AMBIENTE"     {% if materia == 'AMBIENTE'     %}selected{% endif %}>Ambiente</option>
-                <option value="SANITA"       {% if materia == 'SANITA'       %}selected{% endif %}>Sanità</option>
-                <option value="IMMIGRAZIONE" {% if materia == 'IMMIGRAZIONE' %}selected{% endif %}>Immigrazione</option>
-                <option value="ALTRO"        {% if materia == 'ALTRO'        %}selected{% endif %}>Altro</option>
-              </select>
-            </div>
-          </div>
-
-          {# ---- Nome ricorrente ---- #}
-          <div class="col-md-5">
-            <label class="form-label fw-semibold">
-              Nome ricorrente
-              <button type="button" class="btn-help"
-                      data-bs-toggle="popover"
-                      data-bs-title="Ricerca per nome ricorrente"
-                      data-bs-content="Digita almeno 2 caratteri per cercare tra i clienti in anagrafica. Puoi anche inserire un nome o ragione sociale manualmente.">?</button>
-            </label>
-            <div class="position-relative" id="nome-parte-wrap">
-              <input type="text" name="nome_ricorrente" id="nome-parte-input" class="form-control"
-                     placeholder="es. Costruzioni Alfa S.r.l. — cerca nei tuoi clienti"
-                     autocomplete="off"
-                     value="{{ nome_ricorrente or (fascicolo.nome_cliente if fascicolo else '') }}">
-              <div id="nome-parte-dropdown"
-                   style="display:none;position:absolute;top:100%;left:0;right:0;z-index:9998;
-                          background:#fff;border:1px solid #dee2e6;border-radius:8px;
-                          box-shadow:0 6px 20px rgba(0,0,0,.13);max-height:240px;overflow-y:auto;margin-top:2px">
+                {% endif %}
               </div>
             </div>
           </div>
-
-          {# ---- Cerca ---- #}
-          <div class="col-md-4 d-flex align-items-end">
-            <button type="submit" class="btn btn-success w-100">
-              <i class="bi bi-search me-1"></i>Cerca nel SIGA
-            </button>
-          </div>
-
-        </div>
-      </form>
-    </div>
-  </div>
-
-  {# ---- Risultati ricerca ---- #}
-  {% if fascicoli is defined %}
-  <div class="card shadow-sm mb-4">
-    <div class="card-header fw-semibold d-flex justify-content-between align-items-center">
-      <span>
-        <i class="bi bi-list-ul me-2 text-success"></i>
-        Risultati — {{ fascicoli|length }} ricorso/i trovati
-      </span>
-    </div>
-    {% if fascicoli %}
-    <div class="table-responsive">
-      <table class="table table-hover align-middle mb-0 small mob-cards">
-        <thead class="table-light">
-          <tr>
-            <th>N. Ricorso</th>
-            <th>Tipo</th>
-            <th>Oggetto / Materia</th>
-            <th>Ricorrente</th>
-            <th>Resistente</th>
-            <th>Udienza</th>
-            <th>Stato</th>
-            <th class="text-end">Azioni</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for f in fascicoli %}
-          <tr>
-            <td data-label="Ricorso" class="text-nowrap fw-semibold">
-              {{ f.numero_ricorso }}/{{ f.anno }}
-              {% if f.sezione %}<br><small class="text-muted">{{ f.sezione }}</small>{% endif %}
-            </td>
-            <td data-label="Tipo" data-mob-hide>
-              <span class="badge bg-success-subtle text-success-emphasis border border-success-subtle">
-                {{ f.tipo }}
-              </span>
-            </td>
-            <td data-label="Oggetto">
-              {{ f.oggetto or f.materia or '—' }}
-              {% if f.giudice_relatore %}<br><small class="text-muted">Rel. {{ f.giudice_relatore }}</small>{% endif %}
-            </td>
-            <td data-label="Ricorrente" class="small text-muted" data-mob-hide>
-              {% for r in f.ricorrenti[:2] %}{{ r }}<br>{% endfor %}
-              {% if f.ricorrenti|length > 2 %}<em>+{{ f.ricorrenti|length - 2 }} altri</em>{% endif %}
-              {% if not f.ricorrenti %}—{% endif %}
-            </td>
-            <td data-label="Resistente" class="small text-muted" data-mob-hide>
-              {% for r in f.resistenti[:2] %}{{ r }}<br>{% endfor %}
-              {% if f.resistenti|length > 2 %}<em>+{{ f.resistenti|length - 2 }} altri</em>{% endif %}
-              {% if not f.resistenti %}—{% endif %}
-            </td>
-            <td data-label="Udienza" class="text-nowrap">
-              {% if f.data_udienza %}
-                <span class="badge bg-info text-dark">{{ f.data_udienza }}</span>
-              {% else %}—{% endif %}
-            </td>
-            <td data-label="Stato">
-              <span class="badge rounded-pill
-                {% if f.stato == 'PENDENTE' %}bg-primary
-                {% elif f.stato == 'DEFINITO' %}bg-success
-                {% elif f.stato == 'SOSPESO' %}bg-warning text-dark
-                {% elif f.stato == 'RINVIATO' %}bg-secondary
-                {% else %}bg-secondary{% endif %}">
-                {{ f.stato }}
-              </span>
-            </td>
-            <td data-label="" class="text-end text-nowrap">
-              <a href="{{ url_for('pat_documenti',
-                          codice_ufficio=f.codice_ufficio,
-                          numero_ricorso=f.numero_ricorso,
-                          anno=f.anno) }}"
-                 class="btn btn-sm btn-outline-secondary"
-                 title="Visualizza documenti nel fascicolo telematico">
-                <i class="bi bi-files"></i>
-              </a>
-              <form method="post" action="{{ url_for('pat_importa') }}"
-                    class="d-inline"
-                    onsubmit="return confirm('Importare N.RG {{ f.numero_ricorso }}/{{ f.anno }} come nuovo fascicolo amministrativo?')">
-                <input type="hidden" name="demo_mode" value="{{ '1' if demo_mode else '0' }}">
-                <input type="hidden" name="numero_ricorso" value="{{ f.numero_ricorso }}">
-                <input type="hidden" name="anno" value="{{ f.anno }}">
-                <input type="hidden" name="tipo" value="{{ f.tipo }}">
-                <input type="hidden" name="stato" value="{{ f.stato }}">
-                <input type="hidden" name="materia" value="{{ f.materia }}">
-                <input type="hidden" name="sezione" value="{{ f.sezione }}">
-                <input type="hidden" name="giudice_relatore" value="{{ f.giudice_relatore }}">
-                <input type="hidden" name="data_deposito" value="{{ f.data_deposito }}">
-                <input type="hidden" name="data_udienza" value="{{ f.data_udienza }}">
-                <input type="hidden" name="oggetto" value="{{ f.oggetto }}">
-                <input type="hidden" name="ricorrenti_json" value="{{ f.ricorrenti | tojson }}">
-                <input type="hidden" name="resistenti_json" value="{{ f.resistenti | tojson }}">
-                <input type="hidden" name="codice_ufficio" value="{{ f.codice_ufficio }}">
-                <input type="hidden" name="nome_ufficio" value="{{ f.nome_ufficio }}">
-                <button type="submit" class="btn btn-sm btn-success"
-                        title="Importa come nuovo fascicolo amministrativo">
-                  <i class="bi bi-download me-1"></i>Importa
-                </button>
-              </form>
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-    {% else %}
-    <div class="text-center py-4 text-muted small">
-      <i class="bi bi-search fs-4 d-block mb-2"></i>
-      Nessun ricorso trovato con i criteri specificati.
-    </div>
-    {% endif %}
-  </div>
-  {% endif %}
-
-  {# ---- Info tecnica ---- #}
-  <div class="card shadow-sm">
-    <div class="card-header fw-semibold small">
-      <i class="bi bi-info-circle me-2 text-success"></i>Come funziona l'integrazione PAT
-    </div>
-    <div class="card-body small text-muted">
-      <div class="row g-3">
-        <div class="col-md-4">
-          <div class="fw-semibold text-dark mb-1">
-            <i class="bi bi-building-check text-success me-1"></i>SIGA — Sistema Informativo
-          </div>
-          Il <strong>Processo Amministrativo Telematico</strong> è il sistema di giustizia digitale
-          per TAR e Consiglio di Stato (D.P.C.M. 16/02/2016). Consente deposito
-          e consultazione ricorsi tramite web service con autenticazione CNS/CIE.
-        </div>
-        <div class="col-md-4">
-          <div class="fw-semibold text-dark mb-1">
-            <i class="bi bi-download text-success me-1"></i>Importazione pratiche
-          </div>
-          La funzione "Importa" crea automaticamente un nuovo fascicolo di tipo
-          <strong>Amministrativo</strong> con i dati del ricorso, la materia,
-          il giudice relatore e la prossima udienza nell'agenda.
-        </div>
-        <div class="col-md-4">
-          <div class="fw-semibold text-dark mb-1">
-            <i class="bi bi-key text-success me-1"></i>Accesso
-          </div>
-          Usa le stesse credenziali CNS del PCT civile oppure accedi direttamente al
-          <a href="https://www.giustizia-amministrativa.it/pac" target="_blank" rel="noopener">portale PAT</a>
-          con SPID/CIE per il download degli atti.
         </div>
       </div>
     </div>
   </div>
 
-{% endblock %}
-
-{% block extra_scripts %}
-<script>
-// ---------------------------------------------------------------- Autocomplete nome ricorrente
-(function () {
-  const inp  = document.getElementById('nome-parte-input');
-  const drop = document.getElementById('nome-parte-dropdown');
-  if (!inp || !drop) return;
-  let timer = null;
-  function escH(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-  function mostra(clienti) {
-    if (!clienti.length) { drop.style.display = 'none'; return; }
-    drop.innerHTML = clienti.map(c => {
-      const sub = [c.tipo, c.codice_fiscale || c.cf || ''].filter(Boolean).join(' · ');
-      return `<div class="uff-item" data-nome="${escH(c.nome_completo || c.nome || '')}" style="cursor:pointer">
-        <i class="bi bi-person text-success uff-icon"></i>
-        <div class="uff-body">
-          <div class="uff-nome">${escH(c.nome_completo || c.nome || '')}</div>
-          ${sub ? `<div class="uff-sub">${escH(sub)}</div>` : ''}
+  <div class="col-12 col-xl-5">
+    <div class="card shadow-sm h-100">
+      <div class="card-header fw-semibold small">
+        <i class="bi bi-folder-symlink me-2 text-success"></i>Fascicolo PAT interno
+      </div>
+      <div class="card-body">
+        <div class="small text-muted mb-3">
+          La vista interna non sostituisce SIGA: ricostruisce un fascicolo operativo di studio con cartelle coerenti e cronologia completa.
         </div>
-      </div>`;
-    }).join('');
-    drop.querySelectorAll('.uff-item').forEach(el => {
-      el.addEventListener('mousedown', e => { e.preventDefault(); inp.value = el.dataset.nome; drop.style.display = 'none'; });
-    });
-    drop.style.display = 'block';
-  }
-  inp.addEventListener('input', function () {
-    clearTimeout(timer); const q = this.value.trim();
-    if (q.length < 2) { drop.style.display = 'none'; return; }
-    timer = setTimeout(() => {
-      fetch('/api/clienti?q=' + encodeURIComponent(q))
-        .then(r => r.json()).then(mostra).catch(() => { drop.style.display = 'none'; });
-    }, 200);
-  });
-  document.addEventListener('click', e => {
-    if (!document.getElementById('nome-parte-wrap')?.contains(e.target)) drop.style.display = 'none';
-  });
-})();
-
-// ---------------------------------------------------------------- Autocomplete uffici (solo TAR/CDS)
-(function () {
-  const input    = document.getElementById('ufficio-input');
-  const hidden   = document.getElementById('ufficio-value');
-  const dropdown = document.getElementById('ufficio-dropdown');
-  const clearBtn = document.getElementById('ufficio-clear');
-  const badge    = document.getElementById('ufficio-sel-badge');
-  const badgeLbl = document.getElementById('ufficio-sel-label');
-  const tabs     = document.getElementById('ufficio-tabs');
-  const tipoIcon = document.getElementById('ufficio-tipo-icon');
-  if (!input) return;
-
-  const TIPO_ICONS  = { TAR: 'bi-building-check', CDS: 'bi-columns-gap', CGARS: 'bi-shield-half' };
-  const TIPO_LABEL  = { TAR: 'TAR', CDS: 'Consiglio di Stato', CGARS: 'CGARS' };
-  const TIPO_PH     = { TAR: 'TAR per regione (es. Lombardia)...', CDS: 'Consiglio di Stato...', CGARS: 'CGARS Sicilia...' };
-
-  // Default: TAR
-  let tipoFiltro = 'TAR', items = [], focusIdx = -1, timer = null;
-
-  function posiziona() {
-    const rect = input.getBoundingClientRect();
-    dropdown.style.top   = (rect.bottom + 4) + 'px';
-    dropdown.style.left  = rect.left + 'px';
-    dropdown.style.width = rect.width + 'px';
-    dropdown.style.maxHeight = Math.min(340, window.innerHeight - rect.bottom - 8) + 'px';
-  }
-
-  tabs?.querySelectorAll('.uff-tab').forEach(tab => {
-    tab.addEventListener('click', e => {
-      e.stopPropagation();
-      tabs.querySelectorAll('.uff-tab').forEach(t => t.classList.remove('active'));
-      tab.classList.add('active');
-      tipoFiltro = tab.dataset.tipo;
-      tipoIcon.innerHTML = `<i class="bi ${TIPO_ICONS[tipoFiltro] || 'bi-building-check'} text-muted"></i>`;
-      input.placeholder = TIPO_PH[tipoFiltro] || 'Cerca ufficio…';
-      if (input.value.trim().length >= 2) cerca(input.value.trim()); else chiudi();
-      input.focus();
-    });
-  });
-
-  function renderDropdown(data) {
-    focusIdx = -1; items = []; posiziona();
-    if (!data.length) {
-      dropdown.innerHTML = `<div class="uff-empty"><i class="bi bi-search me-1"></i>Nessun ufficio trovato</div>`;
-      dropdown.classList.add('show'); return;
-    }
-    let html = '';
-    data.forEach(u => {
-      const idx = items.length; items.push(u);
-      html += `<div class="uff-item" data-idx="${idx}" tabindex="-1">
-        <i class="bi ${TIPO_ICONS[u.tipo] || 'bi-building-check'} uff-icon"></i>
-        <div class="uff-body">
-          <div class="uff-nome">${u.nome}</div>
-          <div class="uff-sub">${u.distretto || ''}${u.pec ? ' · <span class="font-monospace small">' + u.pec + '</span>' : ''}</div>
+        <div class="row g-2 small">
+          {% for voce in [
+            'Atti introduttivi',
+            'Depositi successivi',
+            'Ricevute',
+            'Provvedimenti',
+            'Allegati',
+            'Fascicolo importato',
+            'Timeline'
+          ] %}
+          <div class="col-6">
+            <div class="border rounded-3 px-3 py-2 h-100 bg-light-subtle">{{ voce }}</div>
+          </div>
+          {% endfor %}
         </div>
-      </div>`;
-    });
-    dropdown.innerHTML = html; dropdown.classList.add('show');
-    dropdown.querySelectorAll('.uff-item').forEach(el => {
-      el.addEventListener('mousedown', e => { e.preventDefault(); seleziona(items[+el.dataset.idx]); });
-    });
-  }
+        <div class="alert alert-light border rounded-4 small mt-3 mb-0">
+          <i class="bi bi-shield-check me-1 text-success"></i>
+          Il gestionale e forte <strong>prima</strong> del deposito e <strong>dopo</strong> il deposito: controlli, handoff al portale, esiti, import e governo della pratica.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 
-  function seleziona(u) {
-    input.value = u.nome; hidden.value = u.codice;
-    badgeLbl.innerHTML = `<i class="bi ${TIPO_ICONS[u.tipo] || 'bi-building-check'} me-1"></i><strong>${u.nome}</strong>`;
-    badge.style.display = 'block'; clearBtn.style.display = 'inline-flex';
-    input.setCustomValidity(''); chiudi();
-  }
-  function chiudi() { dropdown.classList.remove('show'); focusIdx = -1; }
-  function muoviFocus(dir) {
-    const els = dropdown.querySelectorAll('.uff-item'); if (!els.length) return;
-    els[focusIdx]?.classList.remove('focused');
-    focusIdx = (focusIdx + dir + els.length) % els.length;
-    els[focusIdx]?.classList.add('focused'); els[focusIdx]?.scrollIntoView({ block: 'nearest' });
-  }
-  function cerca(q) {
-    fetch(`/api/uffici?q=${encodeURIComponent(q)}&tipo=${tipoFiltro}`)
-      .then(r => r.json()).then(renderDropdown).catch(() => chiudi());
-  }
+<div class="card shadow-sm">
+  <div class="card-header fw-semibold small">
+    <i class="bi bi-info-circle me-2 text-success"></i>Come funziona il modulo PAT
+  </div>
+  <div class="card-body small text-muted">
+    <div class="row g-3">
+      <div class="col-12 col-md-4">
+        <div class="fw-semibold text-dark mb-1">
+          <i class="bi bi-1-circle text-success me-1"></i>Preparazione guidata
+        </div>
+        HACS controlla dati, allegati, coerenza della pratica, mappa il fascicolo locale e prepara l'acquisizione senza promettere una lettura live diretta da SIGA.
+      </div>
+      <div class="col-12 col-md-4">
+        <div class="fw-semibold text-dark mb-1">
+          <i class="bi bi-2-circle text-success me-1"></i>Portale ufficiale al centro
+        </div>
+        Per deposito Form Web e consultazione fascicolo l'utente lavora nel Portale dell'Avvocato ufficiale con autenticazione istituzionale.
+      </div>
+      <div class="col-12 col-md-4">
+        <div class="fw-semibold text-dark mb-1">
+          <i class="bi bi-3-circle text-success me-1"></i>Rientro nel gestionale
+        </div>
+        Appena rientri in HACS, importi documenti, ricevute ed esiti nel Fascicolo PAT interno, con timeline e collegamenti rapidi alla pratica.
+      </div>
+    </div>
+  </div>
+</div>
 
-  input.addEventListener('input', function () {
-    clearTimeout(timer); const q = this.value.trim();
-    hidden.value = ''; badge.style.display = 'none';
-    clearBtn.style.display = q ? 'inline-flex' : 'none';
-    if (q.length < 2) { chiudi(); return; }
-    timer = setTimeout(() => cerca(q), 180);
-  });
-  input.addEventListener('keydown', function (e) {
-    if (e.key === 'ArrowDown') { e.preventDefault(); muoviFocus(+1); return; }
-    if (e.key === 'ArrowUp')   { e.preventDefault(); muoviFocus(-1); return; }
-    if (e.key === 'Enter') {
-      const els = dropdown.querySelectorAll('.uff-item');
-      if (focusIdx >= 0 && els[focusIdx]) { e.preventDefault(); seleziona(items[focusIdx]); } return;
-    }
-    if (e.key === 'Escape') { chiudi(); return; }
-  });
-  input.closest('form').addEventListener('submit', function (e) {
-    if (!hidden.value && input.value.trim()) {
-      fetch(`/api/uffici?q=${encodeURIComponent(input.value.trim())}&tipo=${tipoFiltro}&limit=1`)
-        .then(r => r.json()).then(data => {
-          if (data.length) { seleziona(data[0]); this.submit(); }
-          else { input.setCustomValidity('Seleziona un ufficio dalla lista'); input.reportValidity(); }
-        });
-      e.preventDefault(); return;
-    }
-    if (!hidden.value) { input.setCustomValidity('Seleziona un ufficio dalla lista'); input.reportValidity(); e.preventDefault(); }
-  });
-  input.addEventListener('input', () => input.setCustomValidity(''));
-  clearBtn.addEventListener('click', () => { input.value = ''; hidden.value = ''; badge.style.display = 'none'; clearBtn.style.display = 'none'; chiudi(); input.focus(); });
-  document.addEventListener('click', e => {
-    if (!document.getElementById('ufficio-wrap')?.contains(e.target) && !document.getElementById('ufficio-tabs')?.contains(e.target)) chiudi();
-  });
-  window.addEventListener('scroll', () => { if (dropdown.classList.contains('show')) posiziona(); }, { passive: true });
-  window.addEventListener('resize', () => { if (dropdown.classList.contains('show')) posiziona(); }, { passive: true });
-  if (hidden.value && input.value) { badgeLbl.textContent = input.value; badge.style.display = 'block'; clearBtn.style.display = 'inline-flex'; }
-})();
-</script>
 {% endblock %}

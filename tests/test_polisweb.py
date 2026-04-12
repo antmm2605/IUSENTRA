@@ -1047,9 +1047,8 @@ def test_route_documenti_pdp_raggruppa_buste_e_fallback_senza_id(tmp_path, monke
     assert "BUSTA-PDP-002" in body
 
 
-def test_route_documenti_pat_raggruppa_buste_e_fallback_senza_id(tmp_path, monkeypatch):
+def test_route_documenti_pat_reindirizza_a_home_con_portale_ufficiale(tmp_path):
     from pct.auth import GestioneUtenti, RuoloUtente
-    from pct.pat import DocumentoPAT
     from web.app import create_app
 
     cfg = _cfg_web(tmp_path)
@@ -1065,46 +1064,6 @@ def test_route_documenti_pat_raggruppa_buste_e_fallback_senza_id(tmp_path, monke
         email="avvocato@example.com",
     )
 
-    class _FakePATClient:
-        def consulta_documenti(self, codice_ufficio, numero_ricorso, anno):
-            return [
-                DocumentoPAT(
-                    "PAT-001",
-                    "ricorso_principale.pdf.p7m",
-                    "RICORSO",
-                    "2026-02-28",
-                    "avv.demo@pec.it",
-                    312000,
-                    True,
-                    "",
-                    "Ricorso principale",
-                ),
-                DocumentoPAT(
-                    "PAT-002",
-                    "allegato_ricorso.pdf.p7m",
-                    "ALLEGATO",
-                    "2026-02-28",
-                    "avv.demo@pec.it",
-                    88000,
-                    True,
-                    "",
-                    "Ricorso principale",
-                ),
-                DocumentoPAT(
-                    "PAT-003",
-                    "ordinanza_cautelare.pdf.p7m",
-                    "ORDINANZA",
-                    "2026-03-10",
-                    "tar.demo@giustizia-amministrativa.it",
-                    48000,
-                    True,
-                    "BUSTA-PAT-003",
-                    "Ordinanza cautelare",
-                ),
-            ]
-
-    monkeypatch.setattr("pct.pat.crea_client_pat", lambda demo=False: _FakePATClient())
-
     app = create_app(cfg)
     with app.test_client() as client:
         client.post(
@@ -1119,15 +1078,9 @@ def test_route_documenti_pat_raggruppa_buste_e_fallback_senza_id(tmp_path, monke
 
     body = response.data.decode("utf-8")
     assert response.status_code == 200
-    assert "Espandi tutto" in body
-    assert "Riduci" in body
-    assert 'data-bs-parent="#accordionDepositi"' not in body
-    assert "2 atti" in body
-    assert "3 file totali" in body
-    assert "ricorso_principale.pdf.p7m" in body
-    assert "allegato_ricorso.pdf.p7m" in body
-    assert "ordinanza_cautelare.pdf.p7m" in body
-    assert "BUSTA-PAT-003" in body
+    assert "Portale dell'Avvocato ufficiale" in body
+    assert "Fascicolo PAT interno" in body
+    assert "Acquisizione guidata" in body
 
 
 def test_dettaglio_fascicolo_mostra_cartella_import_portale(tmp_path):
@@ -2910,6 +2863,51 @@ def test_api_acquisizione_status_portale_p12_non_forza_browser_only(tmp_path):
     assert data["status"]["environment_label"] == "Produzione guidata"
 
 
+def test_api_acquisizione_status_pat_forza_browser_ufficiale(tmp_path):
+    from pct.auth import GestioneUtenti, RuoloUtente
+    from web.app import create_app
+
+    cfg = _cfg_web(tmp_path)
+    studio_cfg = tmp_path / "config" / "studio.json"
+    p12_path = tmp_path / "firma-test.p12"
+    p12_path.write_bytes(b"fake-p12")
+
+    gs = GestioneConfigStudio(str(studio_cfg))
+    studio = gs.config
+    studio.firma.p12_path = str(p12_path)
+    studio.firma.backend_preferito = "p12"
+    studio.firma.cf_avvocato = "RSSMRA80A01H501Z"
+    gs.aggiorna(studio)
+
+    gu = GestioneUtenti(
+        db_path=cfg["AUTH_DB"],
+        audit_path=cfg["AUDIT_DB"],
+        secret_key="test",
+    )
+    gu.crea(
+        username="avvocato",
+        password="Avv12345!",
+        ruolo=RuoloUtente.AVVOCATO,
+        email="avvocato@example.com",
+    )
+
+    app = create_app({**cfg, "STUDIO_CONFIG": str(studio_cfg)})
+    with app.test_client() as client:
+        client.post(
+            "/login",
+            data={"username": "avvocato", "password": "Avv12345!"},
+            follow_redirects=True,
+        )
+        response = client.get("/api/portali/pat/acquisizione/status", follow_redirects=True)
+
+    data = response.get_json()
+    assert response.status_code == 200
+    assert data["ok"] is True
+    assert data["status"]["browser_channel_required"] is True
+    assert data["status"]["status_text"] == "Consultazione via Portale dell'Avvocato"
+    assert data["status"]["environment_label"] == "Produzione guidata assistita"
+
+
 def test_route_home_portali_mostra_link_acquisizione_guidata(tmp_path):
     from pct.auth import GestioneUtenti, RuoloUtente
     from web.app import create_app
@@ -2945,6 +2943,50 @@ def test_route_home_portali_mostra_link_acquisizione_guidata(tmp_path):
             body = response.data.decode("utf-8")
             assert response.status_code == 200
             assert expected in body
+        pat_response = client.get("/pat", follow_redirects=True)
+
+    pat_body = pat_response.data.decode("utf-8")
+    assert "Apri Portale Avvocato" in pat_body
+    assert "Nuovo deposito Form Web" in pat_body
+    assert "Consulta fascicolo sul portale" in pat_body
+    assert "Fascicolo PAT interno" in pat_body
+    assert "Cerca nel SIGA" not in pat_body
+
+
+def test_route_pat_ricerca_reindirizza_al_wizard_guidato(tmp_path):
+    from pct.auth import GestioneUtenti, RuoloUtente
+    from web.app import create_app
+
+    cfg = _cfg_web(tmp_path)
+    gu = GestioneUtenti(
+        db_path=cfg["AUTH_DB"],
+        audit_path=cfg["AUDIT_DB"],
+        secret_key="test",
+    )
+    gu.crea(
+        username="avvocato",
+        password="Avv12345!",
+        ruolo=RuoloUtente.AVVOCATO,
+        email="avvocato@example.com",
+    )
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        client.post(
+            "/login",
+            data={"username": "avvocato", "password": "Avv12345!"},
+            follow_redirects=True,
+        )
+        response = client.post(
+            "/pat/ricerca",
+            data={"ufficio": "TARLZ", "numero_ricorso": "1876", "anno": "2026"},
+            follow_redirects=True,
+        )
+
+    body = response.data.decode("utf-8")
+    assert response.status_code == 200
+    assert "Acquisizione guidata" in body
+    assert "Portale dell'Avvocato ufficiale" in body
 
 
 def test_api_acquisizione_search_portali_p12_usa_backend_server(tmp_path, monkeypatch):
@@ -3000,29 +3042,6 @@ def test_api_acquisizione_search_portali_p12_usa_backend_server(tmp_path, monkey
                 )
             ]
 
-    class _FakePatClient:
-        def ricerca_fascicoli(self, **kwargs):
-            return [
-                SimpleNamespace(
-                    numero_ricorso="1876",
-                    anno=2026,
-                    tipo="RICORSO",
-                    stato="PENDENTE",
-                    materia="APPALTI",
-                    sezione="I",
-                    giudice_relatore="Cons. Bianchi",
-                    data_deposito="2026-02-10",
-                    data_udienza="2026-06-01",
-                    ricorrenti=["Alfa Srl"],
-                    resistenti=["Comune"],
-                    controinteressati=[],
-                    oggetto="Annullamento aggiudicazione",
-                    note="",
-                    codice_ufficio="TARLZ",
-                    nome_ufficio="TAR Lazio",
-                )
-            ]
-
     class _FakePttClient:
         def ricerca_fascicoli(self, **kwargs):
             return [
@@ -3047,7 +3066,11 @@ def test_api_acquisizione_search_portali_p12_usa_backend_server(tmp_path, monkey
             ]
 
     monkeypatch.setattr(pdp_module, "crea_client_pdp", lambda demo=False: _FakePdpClient())
-    monkeypatch.setattr(pat_module, "crea_client_pat", lambda demo=False: _FakePatClient())
+    monkeypatch.setattr(
+        pat_module,
+        "crea_client_pat",
+        lambda demo=False: (_ for _ in ()).throw(AssertionError("PAT non deve usare una ricerca live lato backend.")),
+    )
     monkeypatch.setattr(sigit_module, "crea_client_sigit", lambda demo=False: _FakePttClient())
 
     app = create_app({**cfg, "STUDIO_CONFIG": str(studio_cfg)})
@@ -3057,12 +3080,11 @@ def test_api_acquisizione_search_portali_p12_usa_backend_server(tmp_path, monkey
             data={"username": "avvocato", "password": "Avv12345!"},
             follow_redirects=True,
         )
-        checks = [
+        ok_checks = [
             ("pdp", {"ufficio_codice": "0580010", "numero": "4521", "anno": "2026"}),
-            ("pat", {"ufficio_codice": "TARLZ", "numero": "1876", "anno": "2026"}),
             ("ptt", {"ufficio_codice": "CPT030000", "numero": "1234", "anno": "2026"}),
         ]
-        for portale, payload in checks:
+        for portale, payload in ok_checks:
             response = client.post(
                 f"/api/portali/{portale}/acquisizione/search",
                 json=payload,
@@ -3072,6 +3094,17 @@ def test_api_acquisizione_search_portali_p12_usa_backend_server(tmp_path, monkey
             assert response.status_code == 200
             assert data["ok"] is True
             assert len(data["results"]) == 1
+
+        pat_response = client.post(
+            "/api/portali/pat/acquisizione/search",
+            json={"ufficio_codice": "TARLZ", "numero": "1876", "anno": "2026"},
+            follow_redirects=True,
+        )
+
+    pat_data = pat_response.get_json()
+    assert pat_response.status_code == 200
+    assert pat_data["ok"] is False
+    assert "Portale dell'Avvocato" in pat_data["errore"]
 
 
 def test_api_portale_acquisizione_analyze_manual_mode_non_blocca_parti_mancanti(tmp_path):

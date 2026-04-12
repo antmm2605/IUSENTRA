@@ -6,11 +6,17 @@ from web.app import create_app
 
 
 class DummyResponse:
-    def __init__(self, content: bytes, status_code: int = 200, url: str = "https://example.test"):
+    def __init__(
+        self,
+        content: bytes,
+        status_code: int = 200,
+        url: str = "https://example.test",
+        content_type: str = "text/html; charset=utf-8",
+    ):
         self.content = content
         self.status_code = status_code
         self.url = url
-        self.headers = {"content-type": "text/html; charset=utf-8"}
+        self.headers = {"content-type": content_type}
 
 
 def _cfg_web(tmp_path: Path) -> dict:
@@ -105,6 +111,72 @@ def test_sync_fonte_pubblica_importa_candidati(tmp_path: Path):
     assert rows[0]["source_label"] == "Corte di Cassazione"
 
 
+def test_sync_curia_importa_homepage_pubblica(tmp_path: Path):
+    gestore = GestioneGiurisprudenza(str(tmp_path / "giurisprudenza.json"))
+    html = b"""
+    <html><body>
+      <a href="/site/jcms/p1_1000082060/en/recent-judgment-joined-cases-c-696/23-p">
+        Recent judgment: Joined cases C-696/23 P Pumpyanskiy and C-704/23 P Khudaverdyan v Council
+      </a>
+      <a href="/site/upload/docs/application/pdf/2026-03/cp260049en.pdf">
+        Judgment of the Court in Case C-412/24 Faure Le Page
+      </a>
+      <a href="/site/upload/docs/application/pdf/2026-03/cp260049it.pdf">IT</a>
+    </body></html>
+    """
+
+    report = gestore.sync_sources(
+        source_ids=["curia"],
+        request_get=lambda *args, **kwargs: DummyResponse(
+            html,
+            url="https://curia.europa.eu/site/",
+        ),
+    )
+
+    rows = gestore.cerca(source_system="curia")
+
+    assert report["ok"] is True
+    assert report["imported_total"] == 2
+    assert len(rows) == 2
+    assert any("C-696/23 P" in (row.get("numero_provvedimento") or "") for row in rows)
+    assert any("C-412/24" in (row.get("numero_provvedimento") or "") for row in rows)
+
+
+def test_sync_hudoc_importa_feed_rss(tmp_path: Path):
+    gestore = GestioneGiurisprudenza(str(tmp_path / "giurisprudenza.json"))
+    rss = b"""
+    <rss version="2.0">
+      <channel>
+        <title>ECHR HUDOC Search Feed</title>
+        <item>
+          <title>CASE OF H.D. v. ITALY</title>
+          <pubDate>Thu, 09 Apr 2026 00:00:00 GMT</pubDate>
+          <description>41645/23 - Chamber Judgment</description>
+          <link>http://hudoc.echr.coe.int/eng#{&quot;itemid&quot;:[&quot;001-249529&quot;]}</link>
+        </item>
+      </channel>
+    </rss>
+    """
+
+    report = gestore.sync_sources(
+        source_ids=["hudoc"],
+        request_get=lambda *args, **kwargs: DummyResponse(
+            rss,
+            url="https://hudoc.echr.coe.int/app/transform/rss",
+            content_type="text/xml; charset=utf-8",
+        ),
+    )
+
+    rows = gestore.cerca(source_system="hudoc")
+
+    assert report["ok"] is True
+    assert report["imported_total"] == 1
+    assert len(rows) == 1
+    assert rows[0]["numero_provvedimento"] == "41645/23"
+    assert rows[0]["url_origine"] == "https://hudoc.echr.coe.int/?i=001-249529"
+    assert rows[0]["data_deposito"] == "2026-04-09"
+
+
 def test_sync_fonte_protetta_restituisce_handoff(tmp_path: Path):
     gestore = GestioneGiurisprudenza(str(tmp_path / "giurisprudenza.json"))
 
@@ -187,6 +259,14 @@ def test_importa_da_materiale_html_file(tmp_path: Path):
     record = report["records"][0]
     assert record["titolo"]
     assert "soccorso istruttorio" in record["massima"].lower()
+
+
+def test_statistiche_sync_pubblici_include_fonti_europee(tmp_path: Path):
+    gestore = GestioneGiurisprudenza(str(tmp_path / "giurisprudenza.json"))
+
+    stats = gestore.statistiche()
+
+    assert stats["sync_pubblici"] >= 5
 
 
 def test_blueprint_archivio_sentenze_renderizza_indice_e_salvataggio(tmp_path: Path):

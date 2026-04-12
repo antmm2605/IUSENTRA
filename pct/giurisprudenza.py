@@ -6,12 +6,15 @@ import io
 import re
 import unicodedata
 import uuid
+from email.utils import parsedate_to_datetime
+from html import escape as _html_escape
 from dataclasses import asdict, dataclass, field
 from datetime import date, datetime
 from typing import Any, Callable, Dict, Iterable, List, Optional
-from urllib.parse import urljoin, urlparse
+from urllib.parse import urlencode, urljoin, urlparse
 
 import requests
+from lxml import etree as lxml_etree
 from lxml import html as lxml_html
 import pdfplumber
 
@@ -82,6 +85,10 @@ def _extract_date(text: str) -> str:
     raw = _clean_spaces(text)
     if not raw:
         return ""
+    try:
+        return parsedate_to_datetime(raw).date().isoformat()
+    except Exception:
+        pass
     match = re.search(r"(\d{1,2})[/-](\d{1,2})[/-](\d{4})", raw)
     if match:
         day, month, year = (int(match.group(1)), int(match.group(2)), int(match.group(3)))
@@ -102,6 +109,30 @@ def _extract_date(text: str) -> str:
         "ottobre": 10,
         "novembre": 11,
         "dicembre": 12,
+        "jan": 1,
+        "january": 1,
+        "feb": 2,
+        "february": 2,
+        "mar": 3,
+        "march": 3,
+        "apr": 4,
+        "april": 4,
+        "may": 5,
+        "jun": 6,
+        "june": 6,
+        "jul": 7,
+        "july": 7,
+        "aug": 8,
+        "august": 8,
+        "sep": 9,
+        "sept": 9,
+        "september": 9,
+        "oct": 10,
+        "october": 10,
+        "nov": 11,
+        "november": 11,
+        "dec": 12,
+        "december": 12,
     }
     match = re.search(r"(\d{1,2})\s+([a-z]+)\s+(\d{4})", raw, re.IGNORECASE)
     if match:
@@ -126,6 +157,19 @@ def _extract_number(text: str) -> str:
     return match.group(1) if match else ""
 
 
+def _extract_case_reference(text: str) -> str:
+    raw = _clean_spaces(text)
+    if not raw:
+        return ""
+    eu_refs = re.findall(r"\b(?:[A-Z]{1,3}-\d+/\d+(?:\s*[A-Z])?)\b", raw)
+    if eu_refs:
+        return "; ".join(eu_refs[:4])
+    application_ref = re.search(r"\b(\d{3,6}/\d{2,4}(?:\s*;\s*\d{3,6}/\d{2,4})*)\b", raw)
+    if application_ref:
+        return re.sub(r"\s*;\s*", "; ", application_ref.group(1))
+    return ""
+
+
 def _extract_ecli(text: str) -> str:
     match = re.search(r"(ECLI:[A-Z]{2}:[A-Z0-9_.:]+)", text or "", re.IGNORECASE)
     return match.group(1).upper() if match else ""
@@ -141,6 +185,17 @@ def _truncate(text: str, limit: int = 280) -> str:
 def _source_url(existing_id: str, fallback: str) -> str:
     src = FONTI_UFFICIALI.get(existing_id)
     return src.official_url if src else fallback
+
+
+def _hudoc_rss_url(language: str = "eng") -> str:
+    query = "contentsitename:ECHR AND (NOT (doctype=PR OR doctype=HFCOMOLD OR doctype=HECOMOLD))"
+    params = {
+        "library": f"echr{language}",
+        "query": query,
+        "sort": "kpdate Descending",
+        "start": "0",
+    }
+    return "https://hudoc.echr.coe.int/app/transform/rss?" + urlencode(params)
 
 
 @dataclass(frozen=True)
@@ -261,16 +316,16 @@ SOURCE_SPECS: List[FonteGiurisprudenziale] = [
         giurisdizione="UE / CEDU",
         coverage="Corte di Giustizia e Tribunale dell'Unione europea con ricerca giurisprudenziale.",
         official_url="https://curia.europa.eu/jcms/jcms/j_6/it/",
-        search_url="https://curia.europa.eu/juris/recherche.jsf?language=it",
+        search_url="https://curia.europa.eu/site/",
         access_mode="pubblico",
-        sync_mode="recupero_assistito",
+        sync_mode="automatico_leggero",
         note="Motore ufficiale UE; utile per ECLI, giurisprudenza su appalti, concorrenza, consumatori e fiscalità.",
         badge="Fonte europea",
         icon="bi-globe-europe-africa",
         search_label="Apri CURIA",
-        supports_auto_sync=False,
+        supports_auto_sync=True,
         default_area="UE / CEDU",
-        link_keywords=["judgment", "order", "ecli", "curia", "case"],
+        link_keywords=["judgment", "opinion", "order", "curia", "case", "recent judgment"],
     ),
     FonteGiurisprudenziale(
         id="hudoc",
@@ -278,16 +333,16 @@ SOURCE_SPECS: List[FonteGiurisprudenziale] = [
         giurisdizione="UE / CEDU",
         coverage="Sentenze e decisioni della Corte EDU con filtri per Stato, articolo e materia.",
         official_url="https://hudoc.echr.coe.int/",
-        search_url="https://hudoc.echr.coe.int/",
+        search_url=_hudoc_rss_url(),
         access_mode="pubblico",
-        sync_mode="recupero_assistito",
+        sync_mode="automatico_leggero",
         note="Fonte ufficiale CEDU; utile per equo processo, proprietà, vita privata e familiare.",
         badge="Fonte europea",
         icon="bi-globe2",
         search_label="Apri HUDOC",
-        supports_auto_sync=False,
+        supports_auto_sync=True,
         default_area="UE / CEDU",
-        link_keywords=["judgment", "decision", "article", "italy", "echr"],
+        link_keywords=["judgment", "decision", "article", "italy", "echr", "hudoc"],
     ),
     FonteGiurisprudenziale(
         id="corte_conti",
@@ -831,7 +886,7 @@ class GestioneGiurisprudenza:
                 "abstract": abstract,
                 "massima": abstract if len(abstract) <= 220 else "",
                 "ecli": ecli,
-                "numero_provvedimento": _extract_number(text or title),
+                "numero_provvedimento": _extract_case_reference(text or title) or _extract_number(text or title),
                 "data_deposito": _extract_date(text or title),
                 "data_decisione": _extract_date(title),
                 "identificatore_stabile": ecli or f"{detected_source}:{_sha1(cleaned_url)}",
@@ -976,6 +1031,41 @@ class GestioneGiurisprudenza:
             raise RuntimeError(f"Fonte ufficiale non raggiungibile ({status_code}).")
         final_url = str(getattr(response, "url", url) or url)
         content = bytes(getattr(response, "content", b"") or b"")
+        content_type = str(getattr(response, "headers", {}).get("content-type", "") or "").lower()
+        if "pdf" in content_type or final_url.lower().endswith(".pdf"):
+            text = self._extract_material_text(final_url, content)
+            synthetic_html = (
+                "<html><head><title>"
+                + _html_escape(final_url.rsplit("/", 1)[-1] or "documento.pdf")
+                + "</title></head><body><main>"
+                + _html_escape(text)
+                + "</main></body></html>"
+            )
+            document = lxml_html.fromstring(synthetic_html.encode("utf-8"))
+            title = self._material_title(text, final_url, "Documento ufficiale")
+            return {
+                "final_url": final_url,
+                "content": content,
+                "text": text,
+                "document": document,
+                "title": title,
+                "summary": _truncate(text, 320),
+            }
+        if "xml" in content_type or final_url.lower().endswith(".xml") or content.lstrip().startswith(b"<rss"):
+            try:
+                document = lxml_etree.fromstring(content)
+            except Exception as exc:
+                raise RuntimeError(f"Feed ufficiale non leggibile: {exc}") from exc
+            title = _clean_spaces(" ".join(document.xpath("//channel/title/text()") or document.xpath("//title/text()"))) or final_url
+            summary = _clean_spaces(" ".join(document.xpath("//channel/description/text()") or document.xpath("//description/text()"))) or title
+            return {
+                "final_url": final_url,
+                "content": content,
+                "text": content.decode("utf-8", errors="ignore"),
+                "document": document,
+                "title": title,
+                "summary": _truncate(summary, 320),
+            }
         text = content.decode("utf-8", errors="ignore")
         try:
             document = lxml_html.fromstring(content)
@@ -993,6 +1083,12 @@ class GestioneGiurisprudenza:
         }
 
     def _extract_candidates(self, document: Any, base_url: str, source: FonteGiurisprudenziale) -> List[Dict[str, Any]]:
+        if document is not None and getattr(document, "tag", "").lower() == "rss":
+            return self._extract_rss_candidates(document, source)
+        if document is not None and document.xpath("//item"):
+            return self._extract_rss_candidates(document, source)
+        if source.id == "curia":
+            return self._extract_curia_candidates(document, base_url, source)
         candidates: List[Dict[str, Any]] = []
         seen = set()
         keywords = [keyword.lower() for keyword in (source.link_keywords or [])]
@@ -1020,7 +1116,7 @@ class GestioneGiurisprudenza:
                 "summary": summary,
                 "url": url,
                 "ecli": _extract_ecli(context),
-                "numero_provvedimento": _extract_number(context or title),
+                "numero_provvedimento": _extract_case_reference(context or title) or _extract_number(context or title),
                 "data_deposito": _extract_date(context or title),
                 "data_decisione": _extract_date(title),
                 "tipo_provvedimento": self._guess_tipo(title + " " + context),
@@ -1034,7 +1130,96 @@ class GestioneGiurisprudenza:
         for label in TIPI_PROVVEDIMENTO:
             if label in lowered:
                 return label.title()
+        english_aliases = {
+            "judgment": "Sentenza",
+            "decision": "Decisione",
+            "order": "Ordinanza",
+            "opinion": "Parere",
+        }
+        for token, mapped in english_aliases.items():
+            if token in lowered:
+                return mapped
         return ""
+
+    def _extract_rss_candidates(self, document: Any, source: FonteGiurisprudenziale) -> List[Dict[str, Any]]:
+        candidates: List[Dict[str, Any]] = []
+        seen = set()
+        for item in document.xpath("//item"):
+            title = _clean_spaces(" ".join(item.xpath("./title/text()")))
+            url = self._normalize_hudoc_link(_clean_spaces(" ".join(item.xpath("./link/text()"))))
+            summary = _truncate(_clean_spaces(" ".join(item.xpath("./description/text()"))) or title, 220)
+            pub_date = _clean_spaces(" ".join(item.xpath("./pubDate/text()")))
+            if not title or not url or url in seen:
+                continue
+            seen.add(url)
+            combined = f"{title} {summary}"
+            candidates.append(
+                {
+                    "title": title,
+                    "summary": summary,
+                    "url": url,
+                    "ecli": _extract_ecli(combined),
+                    "numero_provvedimento": _extract_case_reference(combined) or _extract_number(combined),
+                    "data_deposito": _extract_date(pub_date),
+                    "data_decisione": _extract_date(pub_date),
+                    "tipo_provvedimento": self._guess_tipo(combined),
+                    "keywords": [source.nome, source.giurisdizione, source.default_area],
+                }
+            )
+        return candidates
+
+    def _extract_curia_candidates(self, document: Any, base_url: str, source: FonteGiurisprudenziale) -> List[Dict[str, Any]]:
+        candidates: List[Dict[str, Any]] = []
+        seen = set()
+        skip_titles = {"latest judgments and opinions", "yearly selection of major judgments"}
+        for anchor in document.xpath("//a[@href]"):
+            href = str(anchor.get("href") or "").strip()
+            if not href or href.startswith("javascript:") or href.startswith("mailto:"):
+                continue
+            text = _clean_spaces(" ".join(anchor.xpath(".//text()")))
+            url = urljoin(base_url, href)
+            lowered_text = text.lower()
+            if not text or lowered_text in skip_titles or re.fullmatch(r"[A-Z]{2}", text or ""):
+                continue
+            if len(text) < 18 and "recent-judgment" not in url.lower():
+                continue
+            bag = f"{text} {url}".lower()
+            if not (
+                "recent-judgment" in bag
+                or ("judgment" in bag and "case" in bag)
+                or "opinion" in bag
+                or re.search(r"/cp\d+.*(?:it|en)\.pdf$", url, re.IGNORECASE)
+            ):
+                continue
+            if url in seen:
+                continue
+            seen.add(url)
+            context_node = anchor.getparent() if anchor.getparent() is not None else anchor
+            context = _clean_spaces(" ".join(context_node.xpath(".//text()")))
+            combined = f"{text} {context}"
+            candidates.append(
+                {
+                    "title": text,
+                    "summary": _truncate(context or text, 220),
+                    "url": url,
+                    "ecli": _extract_ecli(combined),
+                    "numero_provvedimento": _extract_case_reference(combined) or _extract_number(combined),
+                    "data_deposito": _extract_date(combined) or _extract_date(url.replace("/", " ")),
+                    "data_decisione": _extract_date(text) or _extract_date(combined),
+                    "tipo_provvedimento": self._guess_tipo(combined),
+                    "keywords": [source.nome, source.giurisdizione, source.default_area],
+                }
+            )
+        return candidates
+
+    def _normalize_hudoc_link(self, url: str) -> str:
+        raw = _clean_spaces(url)
+        if "itemid" not in raw:
+            return raw
+        match = re.search(r'"itemid"\s*:\s*\[\s*"([^"]+)"\s*\]', raw)
+        if not match:
+            return raw
+        return f"https://hudoc.echr.coe.int/?i={match.group(1)}"
 
     def _source(self, source_id: str) -> Optional[FonteGiurisprudenziale]:
         return next((source for source in SOURCE_SPECS if source.id == source_id), None)
@@ -1123,7 +1308,7 @@ class GestioneGiurisprudenza:
                 "abstract": summary,
                 "massima": self._extract_massima(block, fallback=summary),
                 "principio_diritto": self._extract_principio(block),
-                "numero_provvedimento": _extract_number(block or title),
+                "numero_provvedimento": _extract_case_reference(block or title) or _extract_number(block or title),
                 "data_deposito": deposito,
                 "data_decisione": _extract_date(title) or deposito,
                 "tipo_provvedimento": self._guess_tipo(block),

@@ -30,6 +30,7 @@ from pct.catalogo_strutturale import (
     ensure_catalogo_strutturale_schema,
     seed_catalogo_strutturale,
 )
+from pct.pdp_penale_workflow import SCHEMA_SQL_PDP_PENALE
 
 
 # ================================================================ Dataclasses
@@ -367,7 +368,7 @@ CREATE TABLE IF NOT EXISTS search_ocr_cache (
     testo        TEXT,
     elaborato_il TEXT
 );
-"""
+""" + "\n" + SCHEMA_SQL_PDP_PENALE
 
 
 # ================================================================ GestioneDatabase

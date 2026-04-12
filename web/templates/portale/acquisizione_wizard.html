@@ -92,6 +92,32 @@
     </div>
   </div>
 </div>
+{% elif wizard_portale == 'ptt' %}
+<div class="alert alert-warning-subtle border border-warning-subtle rounded-4 mb-4">
+  <div class="d-flex flex-column flex-lg-row justify-content-between align-items-start gap-3">
+    <div>
+      <div class="fw-semibold mb-1"><i class="bi bi-signpost-2 me-1 text-warning"></i>Fascicolo tributario interno, consultazione nel portale ufficiale</div>
+      <div class="small">
+        Il wizard PTT non promette una lettura live diretta da SIGIT. HACS prepara la pratica interna,
+        poi ti accompagna su <strong>PTT / SIGIT</strong> e <strong>Telecontenzioso</strong> per consultare,
+        scaricare e importare nel gestionale fascicolo, ricevute, provvedimenti ed esiti.
+      </div>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+      <a href="https://sigit.giustiziatributaria.gov.it/Sigit/" target="_blank" rel="noopener" class="btn btn-outline-warning btn-sm">
+        <i class="bi bi-box-arrow-up-right me-1"></i>Apri PTT / SIGIT
+      </a>
+      <a href="https://sigit.giustiziatributaria.gov.it/Sigit/index.do" target="_blank" rel="noopener" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-search me-1"></i>Apri Telecontenzioso
+      </a>
+      {% if linked_fascicolo_url %}
+      <a href="{{ linked_fascicolo_url }}" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-folder2-open me-1"></i>Apri fascicolo interno
+      </a>
+      {% endif %}
+    </div>
+  </div>
+</div>
 {% endif %}
 
 <div class="aw-steps mb-4" id="awSteps"></div>
@@ -500,7 +526,7 @@ function awOfficialPortalUrl() {
   const urls = {
     pdp: 'https://pst.giustizia.it/PST/it/services.page',
     pat: 'https://www.giustizia-amministrativa.it/portale-avvocato',
-    ptt: 'https://sigit.finanze.it/NIRWeb/login.jsp',
+    ptt: 'https://sigit.giustiziatributaria.gov.it/Sigit/',
   };
   return urls[AW_BOOT.portale] || '';
 }
@@ -523,7 +549,9 @@ function awGuidedBrowserAssistInfo(query = null) {
     info.metaReady = "Portale dell'Avvocato pronto: puoi proseguire con fascicolo PAT interno e import guidato.";
     info.metaMissing = "Compila ufficio, numero e anno per continuare con fascicolo PAT interno assistito.";
   } else if (AW_BOOT.portale === 'ptt') {
-    info.reason = 'Il Processo Tributario Telematico usa SIGIT nel browser ufficiale.' + commonSuffix;
+    info.reason = "Il Processo Tributario Telematico usa PTT / SIGIT e i servizi collegati, come Telecontenzioso, nel browser ufficiale. HACS prepara il fascicolo tributario interno e importa poi i file gia scaricati." + commonSuffix;
+    info.metaReady = "Portale PTT pronto: puoi proseguire con fascicolo tributario interno e import guidato.";
+    info.metaMissing = "Compila ufficio, numero e anno per continuare con fascicolo tributario interno assistito.";
   }
   return info;
 }
@@ -682,7 +710,9 @@ function awManualNoticeHtml() {
   const reason = String(selection.manual_reason || '').trim();
   const body = AW_BOOT.portale === 'pat'
     ? "HACS continua con i dati di RG, ufficio e parti gia' inseriti. Documenti, ricevute, provvedimenti ed esiti PAT si completano importando i file gia scaricati dal Portale dell'Avvocato."
-    : "HACS continua con i dati di RG, ufficio e parti gia' inseriti. Documenti, eventi e catalogo di deposito possono essere completati dal portale ufficiale dopo l'importazione.";
+    : (AW_BOOT.portale === 'ptt'
+      ? "HACS continua con i dati di RG, ufficio e parti gia' inseriti. Consultazione del fascicolo, Telecontenzioso, accesso temporaneo e download del fascicolo processuale si completano nel portale ufficiale PTT / SIGIT; poi importi nel gestionale file, ricevute, provvedimenti ed esiti."
+      : "HACS continua con i dati di RG, ufficio e parti gia' inseriti. Documenti, eventi e catalogo di deposito possono essere completati dal portale ufficiale dopo l'importazione.");
   return `
     <div class="alert alert-warning rounded-4 mb-3">
       <div class="fw-semibold">Acquisizione assistita via browser ufficiale</div>
@@ -1404,7 +1434,9 @@ function awRenderAccess() {
   if (browserAssistMode) {
     note.push(AW_BOOT.portale === 'pat'
       ? "Step 1 guidato: HACS non interroga SIGA in tempo reale. Prepara il fascicolo PAT interno in modalita assistita e rinvia consultazione e deposito al Portale dell'Avvocato."
-      : 'Step 1 guidato: HACS non interroga un endpoint tecnico del portale. Prepara la pratica in modalita assistita e rimanda la consultazione al browser ufficiale.');
+      : (AW_BOOT.portale === 'ptt'
+        ? "Step 1 guidato: HACS non interroga SIGIT in tempo reale. Prepara il fascicolo tributario interno in modalita assistita e rimanda consultazione, Telecontenzioso e download del fascicolo al portale ufficiale."
+        : 'Step 1 guidato: HACS non interroga un endpoint tecnico del portale. Prepara la pratica in modalita assistita e rimanda la consultazione al browser ufficiale.'));
   } else if (signerPreferred) {
     note.push(AW_BOOT.portale === 'pst'
       ? 'Step 1 leggero: il wizard non apre ancora la sessione PST. Il primo accesso reale viene eseguito alla ricerca del fascicolo.'

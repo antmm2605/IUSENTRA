@@ -576,10 +576,10 @@
       {% set dep_icon      = 'bi-receipt-cutoff' %}
       {% set dep_col       = 'warning' %}
       {% set dep_label     = 'Depositi PTT Tributario' %}
-      {% set dep_portale_label = 'Consulta su SIGIT' %}
+      {% set dep_portale_label = 'Apri PTT / SIGIT' %}
       {% set dep_portale_url   = url_for('sigit_home', id_fasc=fascicolo.id) %}
       {% set dep_canali    = ['PTT_TRIBUTARIO', 'CARTACEO'] %}
-      {% set dep_hint      = 'Usa <strong>Prepara atto</strong> per la checklist del deposito tributario (firma CAdES .p7m via SIGIT/PTT), oppure <strong>Registra manuale</strong> per annotare un deposito già effettuato.' %}
+      {% set dep_hint      = 'Usa <strong>Prepara atto</strong> per la checklist PTT, poi completa consultazione, Telecontenzioso e download del fascicolo nel portale ufficiale. HACS governa il fascicolo tributario interno con ricevute, provvedimenti ed esiti importati.' %}
     {% else %}
       {% set dep_icon      = 'bi-send-fill' %}
       {% set dep_col       = 'primary' %}
@@ -1208,10 +1208,10 @@
         {% set dep_icon      = 'bi-receipt-cutoff' %}
         {% set dep_col       = 'warning' %}
         {% set dep_label     = 'Depositi PTT Tributario' %}
-        {% set dep_portale_label = 'Consulta su SIGIT' %}
+        {% set dep_portale_label = 'Apri PTT / SIGIT' %}
         {% set dep_portale_url   = url_for('sigit_home', id_fasc=fascicolo.id) %}
         {% set dep_canali    = ['PTT_TRIBUTARIO', 'CARTACEO'] %}
-        {% set dep_hint      = 'Usa <strong>Prepara atto</strong> per la checklist del deposito tributario (firma CAdES .p7m via SIGIT/PTT), oppure <strong>Registra manuale</strong> per annotare un deposito già effettuato.' %}
+        {% set dep_hint      = 'Usa <strong>Prepara atto</strong> per la checklist PTT, poi completa consultazione, Telecontenzioso e download del fascicolo nel portale ufficiale. HACS governa il fascicolo tributario interno con ricevute, provvedimenti ed esiti importati.' %}
       {% else %}
         {% set dep_icon      = 'bi-send-fill' %}
         {% set dep_col       = 'primary' %}

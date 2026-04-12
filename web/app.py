@@ -5133,11 +5133,11 @@ def create_app(config: dict | None = None) -> Flask:
         return (portale or "").strip().lower() in {"pst", "pdp", "pat", "ptt"} and _polis_auth_mode() == "pkcs11"
 
     def _portale_browser_channel_required(portale: str) -> bool:
-        """PAT usa sempre il canale browser ufficiale; PDP/PTT restano opt-in via env."""
+        """PAT e PTT usano sempre il canale browser ufficiale; PDP resta opt-in via env."""
         portale_norm = (portale or "").strip().lower()
         if _polis_demo_mode() or portale_norm not in {"pdp", "pat", "ptt"}:
             return False
-        if portale_norm == "pat":
+        if portale_norm in {"pat", "ptt"}:
             return True
         truthy = {"1", "true", "yes", "on"}
         return (
@@ -5395,6 +5395,13 @@ def create_app(config: dict | None = None) -> Flask:
                 "Per PAT la consultazione pratica passa dal Portale dell'Avvocato ufficiale. "
                 "Usa l'acquisizione guidata, poi importa nel fascicolo interno documenti, ricevute ed esiti "
                 "gia consultati o scaricati dal portale."
+            )
+        if (portale or "").strip().lower() == "ptt":
+            return (
+                "Per PTT / SIGIT HACS non promette una sincronizzazione live del fascicolo ministeriale. "
+                "Usa l'acquisizione guidata, apri il portale ufficiale o Telecontenzioso nel browser, "
+                "consulta o scarica il fascicolo processuale e poi importa nel fascicolo tributario interno "
+                "documenti, ricevute, provvedimenti ed esiti."
             )
         return (
             f"L'endpoint ufficiale di {label} non è raggiungibile dal backend server. "
@@ -6884,11 +6891,12 @@ def create_app(config: dict | None = None) -> Flask:
             status_text = "Modalità demo / fallback"
             environment_label = "Simulazione / compatibilità"
         elif browser_channel_required:
-            status_text = (
-                "Consultazione via Portale dell'Avvocato"
-                if portale == "pat"
-                else "Consultazione via browser ufficiale"
-            )
+            if portale == "pat":
+                status_text = "Consultazione via Portale dell'Avvocato"
+            elif portale == "ptt":
+                status_text = "Consultazione via PTT / SIGIT"
+            else:
+                status_text = "Consultazione via browser ufficiale"
             environment_label = "Produzione guidata assistita"
         elif pkcs11_mode:
             status_text = "Accesso via Local Signer / Aruba Key"
@@ -6964,19 +6972,10 @@ def create_app(config: dict | None = None) -> Flask:
                     "le ricevute e l'import guidato dei file gia scaricati."
                 )
             else:
-                if _portale_local_channel_enabled(portale):
-                    raise ValueError("Per PTT la ricerca guidata usa il Local Signer dal browser.")
-                from pct.sigit import crea_client_sigit
-
-                ufficio = str(query.get("ufficio_codice") or "").strip()
-                if not ufficio:
-                    raise ValueError("Seleziona un ufficio giudiziario tributario.")
-                fascicoli = crea_client_sigit(demo=_polis_demo_mode()).ricerca_fascicoli(
-                    commissione=ufficio,
-                    numero_rgt=numero,
-                    anno_rgt=anno,
-                    nome_ricorrente=assistito,
-                    tipo=str(query.get("materia") or "").strip() or None,
+                raise ValueError(
+                    "Per PTT / SIGIT l'acquisizione guidata non promette una ricerca live diretta del fascicolo. "
+                    "Apri il portale ufficiale o Telecontenzioso nel browser, consulta il fascicolo processuale e "
+                    "poi usa HACS per il fascicolo tributario interno e per l'import guidato dei file gia scaricati."
                 )
         except Exception as e:
             if _is_portale_dns_error(e):
@@ -7027,14 +7026,10 @@ def create_app(config: dict | None = None) -> Flask:
                     "provvedimenti e ricevute gia scaricati dal portale."
                 )
             else:
-                if _portale_local_channel_enabled(portale):
-                    raise ValueError("Anteprima documenti PTT via browser locale richiesta.")
-                from pct.sigit import crea_client_sigit
-
-                docs = crea_client_sigit(demo=_polis_demo_mode()).consulta_documenti(
-                    str(selection.get("ufficio_codice") or "").strip(),
-                    str(selection.get("numero") or "").strip(),
-                    int(selection.get("anno") or 0),
+                raise ValueError(
+                    "Per PTT / SIGIT la consultazione del fascicolo si completa nel portale ufficiale e nei servizi "
+                    "collegati, come Telecontenzioso. In HACS prosegui con il fascicolo tributario interno e con "
+                    "l'import guidato di documenti, ricevute, provvedimenti ed esiti gia scaricati."
                 )
         except Exception as e:
             if _is_portale_dns_error(e):
@@ -8264,6 +8259,9 @@ read -r -p "Premi Invio per chiudere..." _
                                demo_mode=demo_mode,
                                id_fasc=id_fasc,
                                fascicolo=fascicolo,
+                               official_portal_url="https://sigit.giustiziatributaria.gov.it/Sigit/",
+                               telecontenzioso_url="https://sigit.giustiziatributaria.gov.it/Sigit/index.do",
+                               temporary_access_url="https://sigit.giustiziatributaria.gov.it/Sigit/",
                                commissione_sel="",
                                commissione_sel_nome="",
                                numero_rgt=None,
@@ -8274,133 +8272,21 @@ read -r -p "Premi Invio per chiudere..." _
 
     @app.route("/sigit/ricerca", methods=["POST"])
     def sigit_ricerca():
-        f         = request.form
-        demo_mode = f.get("demo_mode") == "1" or _polis_demo_mode()
-        commissione   = f.get("commissione", "").strip()
-        if not commissione:
-            flash("Seleziona un ufficio giudiziario tributario.", "warning")
-            return redirect(url_for("sigit_home"))
-        if _portale_local_channel_enabled("ptt"):
-            flash(
-                "Per PTT la ricerca guidata usa il wizard browser-side con Local Signer.",
-                "info",
-            )
-            return redirect(url_for("portale_acquisizione_wizard", portale="ptt"))
-        numero_rgt    = f.get("numero_rgt", "").strip() or None
-        anno_rgt_str  = f.get("anno_rgt", "").strip()
-        anno_rgt      = int(anno_rgt_str) if anno_rgt_str.isdigit() else None
-        materia       = f.get("materia", "").strip() or None
-        nome_ricorrente = f.get("nome_ricorrente", "").strip() or None
-        id_fasc       = f.get("id_fasc", "")
-        fascicolo     = get_fascicoli().get(id_fasc) if id_fasc else None
-        fascicoli = []
-        try:
-            from pct.sigit import crea_client_sigit
-            client    = crea_client_sigit(demo=demo_mode)
-            fascicoli = client.ricerca_fascicoli(
-                commissione=commissione,
-                numero_rgt=numero_rgt,
-                anno_rgt=anno_rgt,
-                nome_ricorrente=nome_ricorrente,
-                tipo=materia,
-            )
-            try:
-                from pct.uffici_giudiziari import get_gestore as _get_uff
-                _uff = next(
-                    (
-                        u for u in _get_uff(os.getenv("PCT_UFFICI_DB", "/data/uffici/uffici_giudiziari.json")).carica()
-                        if u.get("codice") == commissione
-                    ),
-                    None,
-                )
-                commissione_sel_nome = _uff["nome"] if _uff else commissione
-            except Exception:
-                commissione_sel_nome = commissione
-        except Exception as e:
-            if _is_portale_dns_error(e):
-                flash(_portale_browser_guided_message("ptt"), "warning")
-                return redirect(url_for("portale_acquisizione_wizard", portale="ptt"))
-            flash(str(e), "danger")
-            commissione_sel_nome = commissione
-        return render_template("sigit.html",
-                               demo_mode=demo_mode,
-                               id_fasc=id_fasc,
-                               fascicolo=fascicolo,
-                               commissione_sel=commissione,
-                               commissione_sel_nome=commissione_sel_nome,
-                               numero_rgt=numero_rgt or "",
-                               anno_rgt=anno_rgt or "",
-                               materia=materia or "",
-                               nome_ricorrente=nome_ricorrente or "",
-                               fascicoli=fascicoli,
-                               oggi=date.today())
+        id_fasc = request.form.get("id_fasc", "").strip()
+        flash(_portale_browser_guided_message("ptt"), "info")
+        kwargs = {"portale": "ptt"}
+        if id_fasc:
+            kwargs["id_fasc"] = id_fasc
+        return redirect(url_for("portale_acquisizione_wizard", **kwargs))
 
     @app.route("/sigit/documenti")
     def sigit_documenti():
-        demo_mode        = request.args.get("demo_mode") == "1" or _polis_demo_mode()
-        codice_commissione = request.args.get("codice_commissione", "")
-        numero_rgt       = request.args.get("numero_rgt", "")
-        anno_rgt_str     = request.args.get("anno_rgt", "")
-        anno_rgt         = int(anno_rgt_str) if anno_rgt_str.isdigit() else 0
-        documenti = []
-        depositi  = []
-        nome_commissione = codice_commissione
-        if _portale_local_channel_enabled("ptt"):
-            flash(
-                "Per PTT l'anteprima documenti usa il wizard browser-side con Local Signer.",
-                "info",
-            )
-            return redirect(url_for("portale_acquisizione_wizard", portale="ptt"))
-        try:
-            from pct.sigit import crea_client_sigit
-            client    = crea_client_sigit(demo=demo_mode)
-            documenti = client.consulta_documenti(
-                codice_commissione=codice_commissione,
-                numero_rgt=numero_rgt,
-                anno_rgt=anno_rgt,
-            )
-            try:
-                from pct.uffici_giudiziari import get_gestore as _get_uff
-                _uff = next(
-                    (
-                        u for u in _get_uff(os.getenv("PCT_UFFICI_DB", "/data/uffici/uffici_giudiziari.json")).carica()
-                        if u.get("codice") == codice_commissione
-                    ),
-                    None,
-                )
-                if _uff:
-                    nome_commissione = _uff["nome"]
-            except Exception:
-                pass
-            # Raggruppa per id_deposito (regola buste CLAUDE.md)
-            from collections import OrderedDict
-            buste: dict = OrderedDict()
-            for doc in documenti:
-                chiave = doc.id_deposito if doc.id_deposito else f"__{doc.data_deposito}__{doc.mittente}"
-                if chiave not in buste:
-                    buste[chiave] = {
-                        "id_deposito":   doc.id_deposito,
-                        "tipo_atto":     doc.tipo_atto or doc.tipo,
-                        "data_deposito": doc.data_deposito,
-                        "mittente":      doc.mittente,
-                        "documenti":     [],
-                    }
-                buste[chiave]["documenti"].append(doc)
-            depositi = sorted(buste.values(), key=lambda b: b["data_deposito"] or "", reverse=True)
-        except Exception as e:
-            if _is_portale_dns_error(e):
-                flash(_portale_browser_guided_message("ptt"), "warning")
-                return redirect(url_for("portale_acquisizione_wizard", portale="ptt"))
-            flash(str(e), "danger")
-        return render_template("sigit_documenti.html",
-                               demo_mode=demo_mode,
-                               codice_commissione=codice_commissione,
-                               nome_commissione=nome_commissione,
-                               numero_rgt=numero_rgt,
-                               anno_rgt=anno_rgt,
-                               documenti=documenti,
-                               depositi=depositi,
-                               oggi=date.today())
+        id_fasc = request.args.get("id_fasc", "").strip()
+        flash(_portale_browser_guided_message("ptt"), "info")
+        kwargs = {"portale": "ptt"}
+        if id_fasc:
+            kwargs["id_fasc"] = id_fasc
+        return redirect(url_for("portale_acquisizione_wizard", **kwargs))
 
     @app.route("/sigit/importa", methods=["POST"])
     def sigit_importa():

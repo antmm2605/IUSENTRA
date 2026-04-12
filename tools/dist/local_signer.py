@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-HACS Local Signer — v1.5.34
+HACS Local Signer - v1.5.37
 
 Servizio HTTP locale (localhost:27272) che firma documenti con smart card e token CNS/CIE
 (o qualsiasi token PKCS#11) e consente l'accesso autenticato al PST.
@@ -77,7 +77,7 @@ except Exception:
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.5.36"
+VERSION = "1.5.37"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
@@ -1235,6 +1235,73 @@ def _windows_lista_certificati() -> list[dict]:
     except Exception as e:
         log.warning("_windows_lista_certificati: %s", e)
         return []
+
+
+def _windows_seleziona_cert() -> Optional[dict]:
+    """
+    Apre la finestra nativa Windows di selezione certificato e restituisce
+    il certificato scelto come dict compatibile con _windows_lista_certificati().
+
+    Ritorna None se l'utente annulla. Disponibile solo su Windows.
+    """
+    if sys.platform != "win32":
+        raise RuntimeError("Selezione nativa disponibile solo su Windows")
+
+    import ctypes
+
+    try:
+        crypt32 = ctypes.WinDLL("Crypt32.dll", use_last_error=True)
+        cryptui = ctypes.WinDLL("CryptUI.dll", use_last_error=True)
+    except OSError as e:
+        raise RuntimeError(
+            "Componenti Windows per la selezione certificato non disponibili. "
+            "Verificare l'installazione del sistema o del middleware smart card."
+        ) from e
+
+    crypt32.CertOpenSystemStoreW.restype = ctypes.c_void_p
+    crypt32.CertOpenSystemStoreW.argtypes = [ctypes.c_void_p, ctypes.c_wchar_p]
+    crypt32.CertCloseStore.restype = ctypes.c_bool
+    crypt32.CertCloseStore.argtypes = [ctypes.c_void_p, ctypes.c_uint]
+    crypt32.CertFreeCertificateContext.restype = ctypes.c_bool
+    crypt32.CertFreeCertificateContext.argtypes = [ctypes.c_void_p]
+
+    cryptui.CryptUIDlgSelectCertificateFromStore.restype = ctypes.c_void_p
+    cryptui.CryptUIDlgSelectCertificateFromStore.argtypes = [
+        ctypes.c_void_p,
+        ctypes.c_void_p,
+        ctypes.c_wchar_p,
+        ctypes.c_wchar_p,
+        ctypes.c_uint,
+        ctypes.c_uint,
+        ctypes.c_void_p,
+    ]
+
+    h_store = crypt32.CertOpenSystemStoreW(None, "MY")
+    if not h_store:
+        raise RuntimeError(f"CertOpenSystemStoreW fallito (err {ctypes.get_last_error()})")
+
+    cert_ctx = None
+    try:
+        cert_ctx = cryptui.CryptUIDlgSelectCertificateFromStore(
+            h_store,
+            None,
+            "HACS - Seleziona certificato PST",
+            "Seleziona il certificato di autenticazione web per il PST "
+            "(smart card o token CNS/CIE).",
+            0,
+            0,
+            None,
+        )
+        if not cert_ctx:
+            return None
+        info = _estrai_info_cert_ctx(crypt32, cert_ctx)
+        if not info:
+            raise RuntimeError("Impossibile leggere il certificato selezionato.")
+        return info
+    finally:
+        if cert_ctx:
+            crypt32.CertFreeCertificateContext(cert_ctx)
+        crypt32.CertCloseStore(h_store, 0)
 
 
 def _cert_match_normalized(value: str) -> str:

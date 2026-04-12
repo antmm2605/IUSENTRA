@@ -534,6 +534,54 @@ def test_ping_windows_usa_il_filtro_cf_per_esporre_il_certificato_preferito():
     assert payload["certificato_windows_selezionato"]["emittente"] == "ArubaPEC EU Authentica Certificates CA G1"
 
 
+def test_seleziona_certificato_windows_usa_dialog_nativo_quando_non_c_e_auto_pick():
+    module = _load_local_signer()
+
+    orig_platform = module.sys.platform
+    orig_lista = module._windows_lista_certificati
+    orig_pick = module._pick_preferred_windows_cert
+    orig_select = module._windows_seleziona_cert
+    orig_remember = module._ricorda_certificato_windows
+    orig_cached = module._ultimo_certificato_windows
+    captured = {}
+    remembered = {}
+
+    class _FakeHandler:
+        path = "/seleziona-certificato?auto=1&prefer_cf=MNTRRT64L01L063H"
+
+        def _send_json(self, payload, status=200):
+            captured["payload"] = payload
+            captured["status"] = status
+
+    try:
+        module.sys.platform = "win32"
+        module._windows_lista_certificati = lambda: []
+        module._pick_preferred_windows_cert = lambda *args, **kwargs: None
+        module._windows_seleziona_cert = lambda: {
+            "thumbprint": "MANUAL-SELECT",
+            "soggetto": "ROBERTO MONTAGNESE",
+            "emittente": "ArubaPEC EU Authentica Certificates CA G1",
+            "scadenza": "2029-02-23",
+            "codice_fiscale": "MNTRRT64L01L063H",
+        }
+        module._ricorda_certificato_windows = lambda cert: remembered.update(cert or {})
+
+        module._Handler._seleziona_certificato(_FakeHandler())
+    finally:
+        module.sys.platform = orig_platform
+        module._windows_lista_certificati = orig_lista
+        module._pick_preferred_windows_cert = orig_pick
+        module._windows_seleziona_cert = orig_select
+        module._ricorda_certificato_windows = orig_remember
+        module._ultimo_certificato_windows = orig_cached
+
+    payload = captured["payload"]
+    assert payload["ok"] is True
+    assert payload["auto_selezionato"] is False
+    assert payload["thumbprint"] == "MANUAL-SELECT"
+    assert remembered["thumbprint"] == "MANUAL-SELECT"
+
+
 def test_ping_light_non_interroga_store_certificati_windows():
     module = _load_local_signer()
 

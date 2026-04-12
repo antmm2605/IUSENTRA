@@ -179,6 +179,49 @@ def _build_correction_context() -> dict:
     }
 
 
+def _fallback_template_fields() -> list[dict]:
+    return [
+        {"name": "destinatario_nome", "label": "Destinatario", "type": "text", "placeholder": "Nome e cognome / ragione sociale", "section": "Campi rapidi", "rows": 1},
+        {"name": "destinatario_indirizzo", "label": "Indirizzo / PEC", "type": "text", "placeholder": "Via, CAP, citta o PEC", "section": "Campi rapidi", "rows": 1},
+        {"name": "oggetto_diffida", "label": "Oggetto / descrizione", "type": "textarea", "placeholder": "Descrivi l'oggetto della richiesta o del documento", "section": "Campi rapidi", "rows": 4},
+        {"name": "importo_dovuto", "label": "Importo", "type": "text", "placeholder": "Euro 0,00", "section": "Campi rapidi", "rows": 1},
+        {"name": "titolo_credito", "label": "Titolo / causale", "type": "text", "placeholder": "es. canone, compenso, fattura", "section": "Campi rapidi", "rows": 1},
+        {"name": "termine_giorni", "label": "Termine (giorni)", "type": "number", "placeholder": "15", "section": "Campi rapidi", "rows": 1},
+        {"name": "tribunale_competente", "label": "Autorita / tribunale competente", "type": "text", "placeholder": "es. Tribunale di Milano", "section": "Campi rapidi", "rows": 1},
+        {"name": "durata_anni", "label": "Durata anni", "type": "number", "placeholder": "5", "section": "Campi rapidi", "rows": 1},
+    ]
+
+
+def _group_template_fields(fields: list[dict] | None) -> list[dict]:
+    grouped: dict[str, list[dict]] = {}
+    ordered_sections: list[str] = []
+    for field in fields or []:
+        section = field.get("section") or "Contenuto"
+        if section not in grouped:
+            grouped[section] = []
+            ordered_sections.append(section)
+        grouped[section].append(field)
+    return [{"title": title, "fields": grouped[title]} for title in ordered_sections]
+
+
+def _prefill_template_fields(template, *, cliente=None, fascicolo=None, parti=None) -> dict[str, str]:
+    assistito = getattr(parti, "assistito_principale", None) if parti else None
+    controparte = getattr(parti, "controparte_principale", None) if parti else None
+    values = {
+        "autorita_competente": getattr(fascicolo, "tribunale", "") or "",
+        "procedimento_riferimento": getattr(fascicolo, "numero_rg", "") or "",
+        "oggetto_atto": getattr(fascicolo, "titolo", "") or "",
+        "controparte_nome": getattr(controparte, "nome_completo", "") or "",
+        "assistito_nome": getattr(assistito, "nome_completo", "") or getattr(cliente, "nome_completo", "") or "",
+        "destinatario_nome": getattr(controparte, "nome_completo", "") or "",
+        "domicilio_eletto": current_app.config.get("STUDIO_INDIRIZZO", "") or "",
+        "termine_giorni": "15",
+        "durata_anni": "5",
+        "tribunale_competente": getattr(fascicolo, "tribunale", "") or "",
+    }
+    return values
+
+
 def _contesto_compilatore(model_code: str, *, payload: dict, selected_cliente=None,
                           selected_fascicolo=None, errors: dict | None = None,
                           assistant_analysis: dict | None = None,
@@ -312,11 +355,87 @@ def lista():
     templates = gt.tutti()
     from pct.template_atti import CATEGORIE
     from pct.compilatore_atti import modelli_per_area
+    builtin_templates = [t for t in templates if t.builtin]
+    custom_templates = [t for t in templates if not t.builtin]
+    area_options = sorted({t.area for t in builtin_templates if t.area})
+    branch_options = sorted({t.branca for t in builtin_templates if t.branca})
+    channel_options = sorted({t.canale_telematico for t in builtin_templates if t.canale_telematico})
+    profile_options = sorted({t.profilo_deposito for t in builtin_templates if t.profilo_deposito})
+    collections: dict[str, list] = {}
+    for tmpl in builtin_templates:
+        key = tmpl.collezione or tmpl.categoria or "Altro"
+        collections.setdefault(key, []).append(tmpl)
+    workspace_sections = [
+        {
+            "title": title,
+            "count": len(items),
+            "templates": sorted(items, key=lambda item: (item.ordine, item.titolo.lower())),
+        }
+        for title, items in collections.items()
+    ]
+    workspace_sections.sort(key=lambda section: section["templates"][0].ordine if section["templates"] else 9999)
+    featured_titles = {
+        "Atto di citazione",
+        "Ricorso per decreto ingiuntivo",
+        "Atto di precetto",
+        "Ricorso per separazione giudiziale",
+        "Ricorso lavoro",
+        "Nomina del difensore di fiducia",
+    }
+    featured_templates = [t for t in builtin_templates if t.titolo in featured_titles][:6]
+    stats = {
+        "totale": len(builtin_templates),
+        "con_compilatore": sum(1 for t in builtin_templates if t.link_compilatore_code),
+        "canali": len(channel_options),
+        "collezioni": len(workspace_sections),
+        "custom": len(custom_templates),
+    }
     return render_template(
         "template_atti/lista.html",
         templates=templates,
+        builtin_templates=builtin_templates,
+        custom_templates=custom_templates,
+        workspace_sections=workspace_sections,
+        area_options=area_options,
+        branch_options=branch_options,
+        channel_options=channel_options,
+        profile_options=profile_options,
+        featured_templates=featured_templates,
+        stats=stats,
         categorie=CATEGORIE,
         modelli_compilatore=modelli_per_area(),
+    )
+
+
+@template_atti.route("/scheda/<id_template>", methods=["GET"])
+@_richiedi_login
+def scheda(id_template: str):
+    gt = _get_gt()
+    template = gt.get(id_template)
+    if not template:
+        abort(404)
+    related = []
+    for candidate in gt.tutti():
+        if candidate.id == template.id:
+            continue
+        if template.branca and candidate.branca == template.branca:
+            related.append(candidate)
+        elif template.area and candidate.area == template.area:
+            related.append(candidate)
+        if len(related) >= 8:
+            break
+    compiler_model = None
+    if template.link_compilatore_code:
+        from pct.compilatore_atti import get_modello
+
+        compiler_model = get_modello(template.link_compilatore_code)
+    field_sections = _group_template_fields(template.campi_guidati or _fallback_template_fields())
+    return render_template(
+        "template_atti/scheda.html",
+        t=template,
+        related_templates=related,
+        compiler_model=compiler_model,
+        field_sections=field_sections,
     )
 
 
@@ -485,6 +604,26 @@ def usa(id_template: str):
         abort(404)
     clienti   = get_clienti().tutti()
     fascicoli_tutti = get_fascicoli().tutti()
+    selected_cliente = None
+    selected_fascicolo = None
+    selected_cliente_id = request.args.get("id_cliente", "").strip()
+    selected_fascicolo_id = request.args.get("id_fascicolo", "").strip()
+    if selected_cliente_id:
+        selected_cliente = get_clienti().get(selected_cliente_id)
+    if selected_fascicolo_id:
+        selected_fascicolo = get_fascicoli().get(selected_fascicolo_id)
+    if selected_fascicolo and not selected_cliente and getattr(selected_fascicolo, "id_cliente", ""):
+        selected_cliente = get_clienti().get(selected_fascicolo.id_cliente)
+        selected_cliente_id = getattr(selected_cliente, "id", selected_cliente_id) if selected_cliente else selected_cliente_id
+    _, parti_prefill = _build_parti_template_context(selected_fascicolo_id)
+    field_specs = t.campi_guidati or _fallback_template_fields()
+    field_sections = _group_template_fields(field_specs)
+    form_values = _prefill_template_fields(
+        t,
+        cliente=selected_cliente,
+        fascicolo=selected_fascicolo,
+        parti=parti_prefill,
+    )
 
     if request.method == "POST":
         f = request.form
@@ -500,14 +639,23 @@ def usa(id_template: str):
         variabili["fascicolo"]           = fascicolo
         variabili["soggetti"]            = soggetti_fascicolo
         variabili["parti"]               = parti
-        variabili["destinatario_nome"]   = f.get("destinatario_nome", "")
-        variabili["destinatario_indirizzo"] = f.get("destinatario_indirizzo", "")
-        variabili["oggetto_diffida"]     = f.get("oggetto_diffida", "")
-        variabili["importo_dovuto"]      = f.get("importo_dovuto", "")
-        variabili["titolo_credito"]      = f.get("titolo_credito", "")
-        variabili["termine_giorni"]      = f.get("termine_giorni", "15")
-        variabili["tribunale_competente"] = f.get("tribunale_competente", "")
-        variabili["durata_anni"]         = f.get("durata_anni", "5")
+        submitted_fields = {}
+        for field in field_specs:
+            value = f.get(field["name"], "")
+            variabili[field["name"]] = value
+            submitted_fields[field["name"]] = value
+        for legacy_name, default in {
+            "destinatario_nome": "",
+            "destinatario_indirizzo": "",
+            "oggetto_diffida": "",
+            "importo_dovuto": "",
+            "titolo_credito": "",
+            "termine_giorni": "15",
+            "tribunale_competente": "",
+            "durata_anni": "5",
+        }.items():
+            variabili.setdefault(legacy_name, f.get(legacy_name, default))
+            submitted_fields.setdefault(legacy_name, variabili[legacy_name])
 
         try:
             testo_generato = gt.renderizza(id_template, variabili)
@@ -524,18 +672,22 @@ def usa(id_template: str):
             variabili_json=_variabili_safe(variabili),
             cliente=cliente,
             fascicolo=fascicolo,
+            submitted_fields=submitted_fields,
         )
 
     fascicoli = []
-    if request.args.get("id_cliente"):
-        fascicoli = [f for f in fascicoli_tutti
-                     if f.id_cliente == request.args.get("id_cliente")]
+    if selected_cliente_id:
+        fascicoli = [f for f in fascicoli_tutti if f.id_cliente == selected_cliente_id]
 
     return render_template(
         "template_atti/usa.html",
         t=t,
         clienti=clienti,
         fascicoli=fascicoli,
+        field_sections=field_sections,
+        form_values=form_values,
+        selected_cliente_id=selected_cliente_id,
+        selected_fascicolo_id=selected_fascicolo_id,
     )
 
 

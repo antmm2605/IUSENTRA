@@ -1,143 +1,374 @@
 {% extends "base.html" %}
-{% block title %}Template Atti{% endblock %}
+{% block title %}Workspace Atti{% endblock %}
+{% block pct_modulo %}template_atti{% endblock %}
 
 {% block content %}
+<style>
+  .acts-workspace { display:flex; flex-direction:column; gap:1rem; }
+  .acts-hero {
+    display:grid; grid-template-columns:minmax(0,1.6fr) minmax(20rem,.9fr); gap:1rem;
+    padding:1.35rem 1.4rem; border:1px solid rgba(15,23,42,.08); border-radius:1.4rem;
+    background:linear-gradient(145deg,#fbfdff 0%,#eef4ff 100%);
+    box-shadow:0 1rem 2.5rem rgba(15,23,42,.06);
+  }
+  .acts-hero-main { display:flex; gap:1rem; min-width:0; }
+  .acts-hero-icon {
+    width:3.5rem; height:3.5rem; border-radius:1rem; display:flex; align-items:center; justify-content:center;
+    background:rgba(13,110,253,.12); color:#0d6efd; font-size:1.35rem; flex:0 0 auto;
+  }
+  .acts-kicker { font-size:.76rem; text-transform:uppercase; letter-spacing:.08em; color:#6b7280; font-weight:700; }
+  .acts-title { margin:.1rem 0 .35rem; font-size:clamp(1.8rem,2.4vw,2.5rem); line-height:1.02; color:#173457; font-weight:800; }
+  .acts-sub { margin:0; max-width:52rem; color:#56657d; font-size:.96rem; }
+  .acts-featured { display:flex; flex-wrap:wrap; gap:.45rem; margin-top:.85rem; }
+  .acts-link-chip {
+    display:inline-flex; align-items:center; gap:.4rem; padding:.45rem .75rem; border-radius:999px;
+    border:1px solid rgba(15,23,42,.08); background:rgba(255,255,255,.92); color:#26415f;
+    font-size:.8rem; font-weight:600; text-decoration:none;
+  }
+  .acts-link-chip:hover { background:#fff; border-color:rgba(13,110,253,.18); color:#0d6efd; }
+  .acts-hero-side { display:flex; flex-direction:column; gap:.75rem; }
+  .acts-actions { display:flex; flex-wrap:wrap; gap:.6rem; justify-content:flex-end; }
+  .acts-stat-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.7rem; }
+  .acts-stat {
+    padding:.85rem .95rem; border-radius:1rem; background:rgba(255,255,255,.82); border:1px solid rgba(15,23,42,.08);
+  }
+  .acts-stat-value { font-size:1.45rem; font-weight:800; color:#173457; line-height:1; }
+  .acts-stat-label { font-size:.78rem; color:#66758a; margin-top:.25rem; }
 
-{# ── Page Header ── #}
-<div class="ds-ph">
-  <div class="ds-ph-icon"><i class="bi bi-file-earmark-text"></i></div>
-  <div class="ds-ph-body">
-    <h1 class="ds-ph-title">Template Atti</h1>
-    <p class="ds-ph-sub">Modelli predefiniti per la redazione degli atti legali</p>
-  </div>
-  <div class="ds-ph-actions">
-    <a href="{{ url_for('template_atti.catalogo') }}" class="ds-btn ds-btn-secondary">
-      <i class="bi bi-journals"></i><span class="d-none d-sm-inline">Catalogo atti</span>
-    </a>
-    <a href="{{ url_for('template_atti.nuovo') }}" class="ds-btn ds-btn-primary">
-      <i class="bi bi-plus-lg"></i><span class="d-none d-sm-inline">Nuovo template</span>
-    </a>
-  </div>
-</div>
+  .acts-toolbar {
+    padding:1rem 1.05rem; border:1px solid rgba(15,23,42,.08); border-radius:1.2rem;
+    background:#fff; box-shadow:0 .75rem 2rem rgba(15,23,42,.04); display:flex; flex-direction:column; gap:.85rem;
+  }
+  .acts-toolbar-row { display:grid; grid-template-columns:minmax(0,1.4fr) repeat(4,minmax(0,1fr)) auto; gap:.65rem; align-items:center; }
+  .acts-toolbar-row--secondary { display:flex; flex-wrap:wrap; gap:.55rem; justify-content:space-between; align-items:center; }
+  .acts-search-wrap { position:relative; }
+  .acts-search-wrap i { position:absolute; left:.85rem; top:50%; transform:translateY(-50%); color:#7a8799; }
+  .acts-search-input { padding-left:2.4rem; border-radius:1rem; min-height:2.7rem; }
+  .acts-select, .acts-search-input { border-color:rgba(15,23,42,.12); }
+  .acts-toggle {
+    display:inline-flex; align-items:center; gap:.5rem; padding:.55rem .75rem; border-radius:1rem;
+    border:1px solid rgba(15,23,42,.08); background:#f8fafc; font-size:.82rem; font-weight:600; color:#334155;
+  }
+  .acts-pills { display:flex; flex-wrap:wrap; gap:.45rem; }
+  .acts-pill {
+    padding:.42rem .8rem; border-radius:999px; border:1px solid rgba(13,110,253,.14);
+    background:#f8fbff; color:#315172; font-size:.8rem; font-weight:700; cursor:pointer;
+  }
+  .acts-pill.is-active { background:#0d6efd; color:#fff; border-color:#0d6efd; }
 
-{% with messages = get_flashed_messages(with_categories=true) %}
-  {% for cat, msg in messages %}
-  <div class="alert alert-{{ 'success' if cat == 'success' else ('warning' if cat == 'warning' else 'danger') }} alert-dismissible fade show">
-    {{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-  </div>
-  {% endfor %}
-{% endwith %}
+  .acts-section { display:flex; flex-direction:column; gap:.75rem; }
+  .acts-section-header { display:flex; align-items:center; justify-content:space-between; gap:.75rem; }
+  .acts-section-title { font-size:1rem; font-weight:800; color:#173457; margin:0; }
+  .acts-section-count { font-size:.78rem; color:#6b7280; font-weight:700; text-transform:uppercase; letter-spacing:.05em; }
+  .acts-grid { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:.8rem; }
+  .acts-card {
+    border:1px solid rgba(15,23,42,.08); border-radius:1.15rem; background:#fff; box-shadow:0 .55rem 1.6rem rgba(15,23,42,.04);
+    padding:.95rem; display:flex; flex-direction:column; gap:.65rem; min-width:0;
+  }
+  .acts-card-top { display:flex; align-items:flex-start; justify-content:space-between; gap:.6rem; }
+  .acts-card-title { font-weight:800; color:#173457; font-size:.91rem; line-height:1.3; margin:0; }
+  .acts-card-code {
+    display:inline-flex; align-items:center; padding:.16rem .45rem; border-radius:.5rem; background:#eef4ff; color:#375a85;
+    border:1px solid rgba(13,110,253,.12); font-family:ui-monospace,SFMono-Regular,monospace; font-size:.67rem; font-weight:700;
+  }
+  .acts-card-desc { font-size:.8rem; color:#5f6f84; line-height:1.45; min-height:3.6em; }
+  .acts-card-meta, .acts-card-tags { display:flex; flex-wrap:wrap; gap:.35rem; }
+  .acts-card-meta span, .acts-card-tags span {
+    display:inline-flex; align-items:center; padding:.22rem .55rem; border-radius:999px; background:#f8fafc;
+    border:1px solid rgba(15,23,42,.08); color:#475569; font-size:.68rem; font-weight:700;
+  }
+  .acts-card-list { margin:0; padding-left:1rem; font-size:.77rem; color:#4b5b70; display:flex; flex-direction:column; gap:.18rem; }
+  .acts-card-footer { margin-top:auto; display:grid; grid-template-columns:1fr auto auto; gap:.45rem; }
+  .acts-card-footer .btn { border-radius:.85rem; }
+  .acts-custom-panel {
+    padding:1rem 1.05rem; border:1px dashed rgba(15,23,42,.15); border-radius:1.15rem; background:#fbfcfe;
+  }
+  .acts-empty {
+    display:none; padding:2.8rem 1rem; text-align:center; color:#64748b; border:1px dashed rgba(15,23,42,.12);
+    border-radius:1.2rem; background:#fff;
+  }
 
-{% if modelli_compilatore %}
-<div class="mb-5">
-  <div class="d-flex align-items-center justify-content-between mb-3">
-    <div>
-      <p class="section-label mb-1">Compilatore Guidato</p>
-      <div class="text-muted small">Atti strutturati con campi base dalla pratica, wizard modello e suggerimenti operativi.</div>
-    </div>
-  </div>
-  {% for group in modelli_compilatore %}
-  <div class="mb-4">
-    <div class="small fw-semibold text-uppercase text-muted mb-2">{{ group.label }}</div>
-    <div class="row g-3">
-      {% for model in group.models %}
-      <div class="col-md-6 col-xl-4">
-        <div class="card border-0 shadow-sm h-100" style="border-radius:16px;">
-          <div class="card-body d-flex flex-column">
-            <div class="d-flex align-items-start gap-2 mb-2">
-              <i class="bi bi-magic text-primary fs-4 flex-shrink-0"></i>
-              <div>
-                <div class="fw-semibold" style="font-size:.9rem;">{{ model.name }}</div>
-                <span class="badge bg-light text-dark border" style="font-size:.62rem;">{{ model.code }}</span>
-              </div>
-            </div>
-            <div class="text-muted mb-3" style="font-size:.78rem; flex-grow:1;">
-              {{ model.required_extra_fields|length }} campi specifici del modello, validazione guidata e anteprima PDF.
-            </div>
-            <a href="{{ url_for('template_atti.compila', model_code=model.code) }}" class="btn btn-sm btn-primary">
-              <i class="bi bi-play-circle me-1"></i>Compila atto
-            </a>
-          </div>
+  @media (max-width: 1600px) { .acts-grid { grid-template-columns:repeat(4,minmax(0,1fr)); } }
+  @media (max-width: 1240px) {
+    .acts-hero { grid-template-columns:1fr; }
+    .acts-toolbar-row { grid-template-columns:minmax(0,1fr) repeat(2,minmax(0,1fr)); }
+    .acts-grid { grid-template-columns:repeat(3,minmax(0,1fr)); }
+  }
+  @media (max-width: 900px) {
+    .acts-toolbar-row { grid-template-columns:1fr 1fr; }
+    .acts-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  }
+  @media (max-width: 576px) {
+    .acts-hero, .acts-toolbar, .acts-custom-panel { padding:.95rem; }
+    .acts-toolbar-row { grid-template-columns:1fr; }
+    .acts-stat-grid { grid-template-columns:1fr 1fr; }
+    .acts-grid { grid-template-columns:1fr; }
+    .acts-card-footer { grid-template-columns:1fr 1fr; }
+    .acts-card-footer .btn:first-child { grid-column:1 / -1; }
+  }
+</style>
+
+<div class="acts-workspace">
+  <section class="acts-hero">
+    <div class="acts-hero-main">
+      <div class="acts-hero-icon"><i class="bi bi-file-richtext"></i></div>
+      <div class="min-w-0">
+        <div class="acts-kicker">Workspace atti e modelli</div>
+        <h1 class="acts-title">Catalogo built-in con generazione reale</h1>
+        <p class="acts-sub">
+          Procure, atti introduttivi, memorie, esecuzioni, famiglia, lavoro, penale, amministrativo, tributario,
+          UNEP e stragiudiziale nello stesso spazio operativo, con metadati, controlli e collegamenti al compilatore guidato.
+        </p>
+        {% if featured_templates %}
+        <div class="acts-featured">
+          {% for t in featured_templates %}
+          <a href="{{ url_for('template_atti.scheda', id_template=t.id) }}" class="acts-link-chip">
+            <i class="bi bi-lightning-charge"></i>{{ t.titolo }}
+          </a>
+          {% endfor %}
         </div>
+        {% endif %}
       </div>
+    </div>
+    <div class="acts-hero-side">
+      <div class="acts-actions">
+        <a href="{{ url_for('template_atti.catalogo') }}" class="btn btn-outline-secondary">
+          <i class="bi bi-diagram-3 me-1"></i>Compilatore guidato
+        </a>
+        <a href="{{ url_for('template_atti.nuovo') }}" class="btn btn-primary">
+          <i class="bi bi-plus-lg me-1"></i>Nuovo template
+        </a>
+      </div>
+      <div class="acts-stat-grid">
+        <div class="acts-stat"><div class="acts-stat-value">{{ stats.totale }}</div><div class="acts-stat-label">modelli built-in</div></div>
+        <div class="acts-stat"><div class="acts-stat-value">{{ stats.con_compilatore }}</div><div class="acts-stat-label">con compilatore</div></div>
+        <div class="acts-stat"><div class="acts-stat-value">{{ stats.collezioni }}</div><div class="acts-stat-label">collezioni verticali</div></div>
+        <div class="acts-stat"><div class="acts-stat-value">{{ stats.custom }}</div><div class="acts-stat-label">template personali</div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="acts-toolbar">
+    <div class="acts-toolbar-row">
+      <div class="acts-search-wrap">
+        <i class="bi bi-search"></i>
+        <input id="actsSearch" type="search" class="form-control acts-search-input" placeholder="Cerca per titolo, branca, microtema o codice">
+      </div>
+      <select id="actsArea" class="form-select acts-select">
+        <option value="">Tutte le aree</option>
+        {% for value in area_options %}<option value="{{ value }}">{{ value }}</option>{% endfor %}
+      </select>
+      <select id="actsBranch" class="form-select acts-select">
+        <option value="">Tutte le branche</option>
+        {% for value in branch_options %}<option value="{{ value }}">{{ value }}</option>{% endfor %}
+      </select>
+      <select id="actsChannel" class="form-select acts-select">
+        <option value="">Tutti i canali</option>
+        {% for value in channel_options %}<option value="{{ value }}">{{ value }}</option>{% endfor %}
+      </select>
+      <select id="actsProfile" class="form-select acts-select">
+        <option value="">Tutti i profili</option>
+        {% for value in profile_options %}<option value="{{ value }}">{{ value|replace('_', ' ')|title }}</option>{% endfor %}
+      </select>
+      <label class="acts-toggle">
+        <input id="actsCompilerOnly" type="checkbox" class="form-check-input mt-0">
+        Solo modelli con compilatore
+      </label>
+    </div>
+    <div class="acts-toolbar-row--secondary">
+      <div class="acts-pills" id="actsPills">
+        <button type="button" class="acts-pill is-active" data-collection="">Tutte le collezioni</button>
+        {% for section in workspace_sections %}
+        <button type="button" class="acts-pill" data-collection="{{ section.title }}">{{ section.title }}</button>
+        {% endfor %}
+      </div>
+      <div class="small text-muted fw-semibold"><span id="actsVisibleCount">{{ builtin_templates|length }}</span> modelli visibili</div>
+    </div>
+  </section>
+
+  <div id="actsEmpty" class="acts-empty">
+    <div class="fs-3 mb-2"><i class="bi bi-search"></i></div>
+    <div class="fw-semibold mb-1">Nessun modello corrisponde ai filtri</div>
+    <div class="small">Rimuovi alcuni filtri o prova una parola chiave diversa.</div>
+  </div>
+
+  {% for section in workspace_sections %}
+  <section class="acts-section" data-section="{{ section.title }}">
+    <div class="acts-section-header">
+      <h2 class="acts-section-title">{{ section.title }}</h2>
+      <div class="acts-section-count">{{ section.count }} modelli</div>
+    </div>
+    <div class="acts-grid">
+      {% for t in section.templates %}
+      <article
+        class="acts-card js-act-card"
+        data-area="{{ t.area }}"
+        data-branch="{{ t.branca }}"
+        data-channel="{{ t.canale_telematico }}"
+        data-profile="{{ t.profilo_deposito }}"
+        data-collection="{{ section.title }}"
+        data-compiler="{{ 1 if t.link_compilatore_code else 0 }}"
+        data-search="{{ (t.titolo ~ ' ' ~ t.codice ~ ' ' ~ t.branca ~ ' ' ~ t.sottobranca ~ ' ' ~ t.microtema ~ ' ' ~ (t.parole_chiave|join(' ')))|lower }}"
+      >
+        <div class="acts-card-top">
+          <div>
+            <div class="acts-card-code">{{ t.codice or 'CUSTOM' }}</div>
+            <h3 class="acts-card-title mt-2">{{ t.titolo }}</h3>
+          </div>
+          {% if t.link_compilatore_code %}
+          <span class="badge bg-primary-subtle text-primary border border-primary-subtle">Guidato</span>
+          {% else %}
+          <span class="badge bg-light text-dark border">Template</span>
+          {% endif %}
+        </div>
+        <div class="acts-card-desc">{{ t.descrizione or t.note }}</div>
+        <div class="acts-card-meta">
+          <span>{{ t.area }}</span>
+          <span>{{ t.canale_telematico }}</span>
+          <span>{{ t.grado }}</span>
+        </div>
+        <div class="acts-card-tags">
+          <span>{{ t.branca }}</span>
+          <span>{{ t.profilo_deposito|replace('_', ' ')|title }}</span>
+        </div>
+        {% if t.controlli_conformita %}
+        <ul class="acts-card-list">
+          {% for item in t.controlli_conformita[:2] %}
+          <li>{{ item }}</li>
+          {% endfor %}
+        </ul>
+        {% endif %}
+        <div class="acts-card-footer">
+          <a href="{{ url_for('template_atti.usa', id_template=t.id) }}" class="btn btn-sm btn-primary">
+            <i class="bi bi-magic me-1"></i>Genera
+          </a>
+          <a href="{{ url_for('template_atti.scheda', id_template=t.id) }}" class="btn btn-sm btn-outline-secondary" title="Scheda modello">
+            <i class="bi bi-info-circle"></i>
+          </a>
+          {% if t.link_compilatore_code %}
+          <a href="{{ url_for('template_atti.compila', model_code=t.link_compilatore_code) }}" class="btn btn-sm btn-outline-primary" title="Compilatore guidato">
+            <i class="bi bi-bezier2"></i>
+          </a>
+          {% else %}
+          <form method="post" action="{{ url_for('template_atti.clona', id_template=t.id) }}">
+            <button type="submit" class="btn btn-sm btn-outline-primary" title="Duplica in libreria personale">
+              <i class="bi bi-copy"></i>
+            </button>
+          </form>
+          {% endif %}
+        </div>
+      </article>
       {% endfor %}
     </div>
-  </div>
+  </section>
   {% endfor %}
-</div>
-{% endif %}
 
-{% set per_categoria = {} %}
-{% for t in templates %}
-  {% if t.categoria not in per_categoria %}{% set _ = per_categoria.update({t.categoria: []}) %}{% endif %}
-  {% set _ = per_categoria[t.categoria].append(t) %}
-{% endfor %}
-
-{% for cat, tmpl_list in per_categoria.items() %}
-<div class="mb-4">
-  <p class="section-label">{{ cat }}</p>
-  <div class="row g-3">
-    {% for t in tmpl_list %}
-    <div class="col-md-6 col-lg-4">
-      <div class="card border-0 shadow-sm h-100" style="border-radius:16px;">
-        <div class="card-body d-flex flex-column">
-          <div class="d-flex align-items-start gap-2 mb-2">
-            <i class="bi {% if t.builtin %}bi-file-earmark-lock2 text-warning{% else %}bi-file-earmark-text text-primary{% endif %} fs-4 flex-shrink-0"></i>
-            <div>
-              <div class="fw-semibold" style="font-size:.9rem;">{{ t.titolo }}</div>
-              {% if t.builtin %}
-              <span class="badge bg-warning text-dark" style="font-size:.62rem;">BUILT-IN</span>
-              {% endif %}
-            </div>
-          </div>
-          {% if t.note %}
-          <div class="text-muted mb-3" style="font-size:.78rem; flex-grow:1;">{{ t.note }}</div>
-          {% else %}
-          <div class="flex-grow-1"></div>
-          {% endif %}
-          <div class="d-flex gap-2 mt-2">
-            <a href="{{ url_for('template_atti.usa', id_template=t.id) }}"
-               class="btn btn-sm btn-primary flex-grow-1">
-              <i class="bi bi-magic me-1"></i>Genera atto
-            </a>
-            <div class="dropdown">
-              <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="dropdown">
-                <i class="bi bi-three-dots"></i>
-              </button>
-              <ul class="dropdown-menu dropdown-menu-end">
-                <li>
-                  <form method="post" action="{{ url_for('template_atti.clona', id_template=t.id) }}">
-                    <button type="submit" class="dropdown-item">
-                      <i class="bi bi-copy me-2"></i>Clona
-                    </button>
-                  </form>
-                </li>
-                {% if not t.builtin %}
-                <li>
-                  <a href="{{ url_for('template_atti.modifica', id_template=t.id) }}"
-                     class="dropdown-item">
-                    <i class="bi bi-pencil me-2"></i>Modifica
-                  </a>
-                </li>
-                <li><hr class="dropdown-divider"></li>
-                <li>
-                  <form method="post"
-                        action="{{ url_for('template_atti.elimina', id_template=t.id) }}"
-                        onsubmit="return confirm('Eliminare questo template?')">
-                    <button type="submit" class="dropdown-item text-danger">
-                      <i class="bi bi-trash me-2"></i>Elimina
-                    </button>
-                  </form>
-                </li>
-                {% endif %}
-              </ul>
-            </div>
-          </div>
-        </div>
+  {% if custom_templates %}
+  <section class="acts-custom-panel">
+    <div class="d-flex align-items-center justify-content-between gap-2 flex-wrap mb-3">
+      <div>
+        <div class="acts-kicker">Libreria personale</div>
+        <h2 class="acts-section-title mb-0">Template personalizzati</h2>
       </div>
+      <a href="{{ url_for('template_atti.nuovo') }}" class="btn btn-sm btn-outline-primary">
+        <i class="bi bi-plus-lg me-1"></i>Nuovo template
+      </a>
     </div>
-    {% endfor %}
-  </div>
+    <div class="acts-grid" style="grid-template-columns:repeat(auto-fill,minmax(16rem,1fr));">
+      {% for t in custom_templates %}
+      <article class="acts-card">
+        <div class="acts-card-top">
+          <div>
+            <div class="acts-card-code">{{ t.codice or 'CUSTOM' }}</div>
+            <h3 class="acts-card-title mt-2">{{ t.titolo }}</h3>
+          </div>
+          <span class="badge bg-light text-dark border">Custom</span>
+        </div>
+        <div class="acts-card-desc">{{ t.note or 'Template personalizzato dello studio.' }}</div>
+        <div class="acts-card-meta">
+          <span>{{ t.categoria }}</span>
+        </div>
+        <div class="acts-card-footer">
+          <a href="{{ url_for('template_atti.usa', id_template=t.id) }}" class="btn btn-sm btn-primary">
+            <i class="bi bi-magic me-1"></i>Genera
+          </a>
+          <a href="{{ url_for('template_atti.modifica', id_template=t.id) }}" class="btn btn-sm btn-outline-secondary" title="Modifica">
+            <i class="bi bi-pencil"></i>
+          </a>
+          <form method="post" action="{{ url_for('template_atti.elimina', id_template=t.id) }}" onsubmit="return confirm('Eliminare questo template?');">
+            <button type="submit" class="btn btn-sm btn-outline-danger" title="Elimina">
+              <i class="bi bi-trash"></i>
+            </button>
+          </form>
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
 </div>
-{% endfor %}
+
+<script>
+(function () {
+  const cards = Array.from(document.querySelectorAll('.js-act-card'));
+  const sections = Array.from(document.querySelectorAll('.acts-section'));
+  const searchEl = document.getElementById('actsSearch');
+  const areaEl = document.getElementById('actsArea');
+  const branchEl = document.getElementById('actsBranch');
+  const channelEl = document.getElementById('actsChannel');
+  const profileEl = document.getElementById('actsProfile');
+  const compilerEl = document.getElementById('actsCompilerOnly');
+  const visibleCountEl = document.getElementById('actsVisibleCount');
+  const emptyEl = document.getElementById('actsEmpty');
+  let currentCollection = '';
+
+  document.querySelectorAll('#actsPills .acts-pill').forEach((pill) => {
+    pill.addEventListener('click', () => {
+      document.querySelectorAll('#actsPills .acts-pill').forEach((node) => node.classList.remove('is-active'));
+      pill.classList.add('is-active');
+      currentCollection = pill.dataset.collection || '';
+      applyFilters();
+    });
+  });
+
+  [searchEl, areaEl, branchEl, channelEl, profileEl, compilerEl].forEach((node) => {
+    node?.addEventListener('input', applyFilters);
+    node?.addEventListener('change', applyFilters);
+  });
+
+  function applyFilters() {
+    const q = (searchEl.value || '').trim().toLowerCase();
+    const area = areaEl.value || '';
+    const branch = branchEl.value || '';
+    const channel = channelEl.value || '';
+    const profile = profileEl.value || '';
+    const compilerOnly = !!compilerEl.checked;
+    let visible = 0;
+
+    cards.forEach((card) => {
+      const matches =
+        (!q || (card.dataset.search || '').includes(q)) &&
+        (!area || card.dataset.area === area) &&
+        (!branch || card.dataset.branch === branch) &&
+        (!channel || card.dataset.channel === channel) &&
+        (!profile || card.dataset.profile === profile) &&
+        (!currentCollection || card.dataset.collection === currentCollection) &&
+        (!compilerOnly || card.dataset.compiler === '1');
+
+      card.style.display = matches ? '' : 'none';
+      if (matches) visible += 1;
+    });
+
+    sections.forEach((section) => {
+      const anyVisible = Array.from(section.querySelectorAll('.js-act-card')).some((card) => card.style.display !== 'none');
+      section.style.display = anyVisible ? '' : 'none';
+    });
+
+    visibleCountEl.textContent = visible;
+    emptyEl.style.display = visible ? 'none' : 'block';
+  }
+
+  applyFilters();
+})();
+</script>
 {% endblock %}

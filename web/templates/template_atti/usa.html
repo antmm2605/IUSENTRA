@@ -1,119 +1,195 @@
 {% extends "base.html" %}
-{% block title %}Genera — {{ t.titolo }}{% endblock %}
+{% block title %}Genera - {{ t.titolo }}{% endblock %}
 
 {% block content %}
-<div class="d-flex align-items-center gap-2 mb-4">
-  <a href="{{ url_for('template_atti.lista') }}" class="btn btn-sm btn-outline-secondary">
-    <i class="bi bi-arrow-left"></i>
-  </a>
-  <h4 class="mb-0 fw-bold">Genera: {{ t.titolo }}</h4>
-</div>
+<style>
+  .act-use-page { display:flex; flex-direction:column; gap:1rem; }
+  .act-use-hero, .act-use-card {
+    border:1px solid rgba(15,23,42,.08); border-radius:1.2rem; background:#fff;
+    box-shadow:0 .75rem 2rem rgba(15,23,42,.05);
+  }
+  .act-use-hero { padding:1.2rem 1.25rem; display:grid; grid-template-columns:minmax(0,1.4fr) minmax(18rem,.8fr); gap:1rem; }
+  .act-use-title { margin:.2rem 0 .35rem; font-size:clamp(1.55rem,2.2vw,2.05rem); color:#173457; font-weight:800; }
+  .act-use-sub { margin:0; color:#5f6f84; font-size:.93rem; max-width:48rem; }
+  .act-use-badges { display:flex; flex-wrap:wrap; gap:.45rem; margin-top:.7rem; }
+  .act-use-badges span {
+    display:inline-flex; align-items:center; padding:.28rem .6rem; border-radius:999px; background:#f8fafc;
+    border:1px solid rgba(15,23,42,.08); color:#46586f; font-size:.72rem; font-weight:700;
+  }
+  .act-use-actions { display:flex; flex-wrap:wrap; justify-content:flex-end; gap:.55rem; }
+  .act-use-layout { display:grid; grid-template-columns:minmax(0,1.45fr) minmax(20rem,.85fr); gap:1rem; }
+  .act-use-card { padding:1rem; }
+  .act-use-card h2 { font-size:1rem; color:#173457; font-weight:800; margin:0 0 .8rem; }
+  .act-use-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.8rem; }
+  .act-use-field { display:flex; flex-direction:column; gap:.35rem; }
+  .act-use-field textarea { min-height:6rem; resize:vertical; }
+  .act-use-field--full { grid-column:1 / -1; }
+  .act-use-section { padding-top:.7rem; margin-top:.7rem; border-top:1px solid rgba(15,23,42,.08); }
+  .act-use-section:first-child { margin-top:0; padding-top:0; border-top:0; }
+  .act-use-section-title { font-size:.78rem; text-transform:uppercase; letter-spacing:.07em; color:#64748b; font-weight:800; margin-bottom:.7rem; }
+  .act-use-list { margin:0; padding-left:1rem; color:#4a5b71; font-size:.82rem; display:flex; flex-direction:column; gap:.3rem; }
+  .act-use-preview { font-size:.82rem; color:#4c617b; line-height:1.5; white-space:pre-wrap; max-height:23rem; overflow:auto; background:#fbfdff; border:1px solid rgba(15,23,42,.06); border-radius:1rem; padding:.9rem; }
+  .act-use-submit { display:flex; gap:.65rem; flex-wrap:wrap; }
+  .act-use-submit .btn { border-radius:.95rem; }
+  @media (max-width: 1100px) {
+    .act-use-hero, .act-use-layout { grid-template-columns:1fr; }
+  }
+  @media (max-width: 640px) {
+    .act-use-hero, .act-use-card { padding:.9rem; }
+    .act-use-grid { grid-template-columns:1fr; }
+  }
+</style>
 
-<form method="post" action="{{ url_for('template_atti.usa', id_template=t.id) }}">
-  <div class="row g-4">
-    <div class="col-lg-7">
+<div class="act-use-page">
+  <section class="act-use-hero">
+    <div>
+      <div class="small text-uppercase fw-bold text-secondary">Generazione guidata</div>
+      <h1 class="act-use-title">{{ t.titolo }}</h1>
+      <p class="act-use-sub">
+        Compila i dati essenziali della pratica, integra le variabili specifiche dell'atto e genera una bozza pronta per la revisione finale in editor.
+      </p>
+      <div class="act-use-badges">
+        {% if t.codice %}<span>{{ t.codice }}</span>{% endif %}
+        {% if t.area %}<span>{{ t.area }}</span>{% endif %}
+        {% if t.branca %}<span>{{ t.branca }}</span>{% endif %}
+        {% if t.canale_telematico %}<span>{{ t.canale_telematico }}</span>{% endif %}
+        {% if t.profilo_deposito %}<span>{{ t.profilo_deposito|replace('_', ' ')|title }}</span>{% endif %}
+      </div>
+    </div>
+    <div class="act-use-actions">
+      <a href="{{ url_for('template_atti.lista') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i>Workspace
+      </a>
+      <a href="{{ url_for('template_atti.scheda', id_template=t.id) }}" class="btn btn-outline-primary">
+        <i class="bi bi-info-circle me-1"></i>Scheda modello
+      </a>
+      {% if t.link_compilatore_code %}
+      <a href="{{ url_for('template_atti.compila', model_code=t.link_compilatore_code) }}" class="btn btn-primary">
+        <i class="bi bi-bezier2 me-1"></i>Compilatore guidato
+      </a>
+      {% endif %}
+    </div>
+  </section>
 
-      <!-- Cliente e fascicolo -->
-      <div class="card border-0 shadow-sm mb-4" style="border-radius:16px;">
-        <div class="card-body">
-          <h6 class="fw-semibold mb-3"><i class="bi bi-person me-2"></i>Cliente e pratica</h6>
-          <div class="row g-3">
-            <div class="col-md-6">
-              <label class="form-label fw-semibold" style="font-size:.82rem;">Cliente</label>
-              <select name="id_cliente" id="sel-cliente" class="form-select form-select-sm">
-                <option value="">— Nessun cliente —</option>
+  <form method="post" action="{{ url_for('template_atti.usa', id_template=t.id) }}">
+    <div class="act-use-layout">
+      <section class="act-use-card">
+        <h2><i class="bi bi-magic me-2"></i>Dati di generazione</h2>
+
+        <div class="act-use-section">
+          <div class="act-use-section-title">Cliente e pratica</div>
+          <div class="act-use-grid">
+            <div class="act-use-field">
+              <label class="form-label fw-semibold small">Cliente</label>
+              <select name="id_cliente" id="sel-cliente" class="form-select">
+                <option value="">-- Nessun cliente --</option>
                 {% for c in clienti %}
-                <option value="{{ c.id }}">{{ c.nome_completo }}</option>
+                <option value="{{ c.id }}" {% if selected_cliente_id == c.id %}selected{% endif %}>{{ c.nome_completo }}</option>
                 {% endfor %}
               </select>
             </div>
-            <div class="col-md-6">
-              <label class="form-label fw-semibold" style="font-size:.82rem;">Pratica (opz.)</label>
-              <select name="id_fascicolo" id="sel-fascicolo" class="form-select form-select-sm">
-                <option value="">— Nessuna pratica —</option>
+            <div class="act-use-field">
+              <label class="form-label fw-semibold small">Pratica</label>
+              <select name="id_fascicolo" id="sel-fascicolo" class="form-select">
+                <option value="">-- Nessuna pratica --</option>
                 {% for f in fascicoli %}
-                <option value="{{ f.id }}">{{ f.titolo }}</option>
+                <option value="{{ f.id }}" {% if selected_fascicolo_id == f.id %}selected{% endif %}>{{ f.titolo }}</option>
                 {% endfor %}
               </select>
             </div>
           </div>
         </div>
-      </div>
 
-      <!-- Variabili extra -->
-      <div class="card border-0 shadow-sm mb-4" style="border-radius:16px;">
-        <div class="card-body">
-          <h6 class="fw-semibold mb-3"><i class="bi bi-pencil-square me-2"></i>Campi aggiuntivi</h6>
-          <div class="row g-3">
-            <div class="col-12">
-              <label class="form-label fw-semibold" style="font-size:.82rem;">Destinatario (se diverso dal cliente)</label>
-              <input type="text" name="destinatario_nome" class="form-control form-control-sm"
-                     placeholder="Nome e cognome / Ragione sociale">
+        {% for section in field_sections %}
+        <div class="act-use-section">
+          <div class="act-use-section-title">{{ section.title }}</div>
+          <div class="act-use-grid">
+            {% for field in section.fields %}
+            {% set current = form_values.get(field.name, '') %}
+            <div class="act-use-field {% if field.type == 'textarea' or field.rows > 1 %}act-use-field--full{% endif %}">
+              <label class="form-label fw-semibold small">{{ field.label }}</label>
+              {% if field.type == 'textarea' %}
+              <textarea
+                name="{{ field.name }}"
+                rows="{{ field.rows or 4 }}"
+                class="form-control"
+                placeholder="{{ field.placeholder or '' }}"
+              >{{ current }}</textarea>
+              {% else %}
+              <input
+                type="{{ 'number' if field.type == 'number' else 'text' }}"
+                name="{{ field.name }}"
+                value="{{ current }}"
+                class="form-control"
+                placeholder="{{ field.placeholder or '' }}"
+              >
+              {% endif %}
+              {% if field.help_text %}<div class="small text-muted">{{ field.help_text }}</div>{% endif %}
             </div>
-            <div class="col-12">
-              <label class="form-label fw-semibold" style="font-size:.82rem;">Indirizzo destinatario</label>
-              <input type="text" name="destinatario_indirizzo" class="form-control form-control-sm"
-                     placeholder="Via, n. — CAP Città (Prov.)">
-            </div>
-            <div class="col-12">
-              <label class="form-label fw-semibold" style="font-size:.82rem;">Oggetto / Descrizione controversia</label>
-              <textarea name="oggetto_diffida" class="form-control form-control-sm" rows="3"
-                        placeholder="Descrivi l'oggetto della diffida / messa in mora..."></textarea>
-            </div>
-            <div class="col-md-4">
-              <label class="form-label fw-semibold" style="font-size:.82rem;">Importo dovuto (€)</label>
-              <input type="text" name="importo_dovuto" class="form-control form-control-sm" placeholder="0,00">
-            </div>
-            <div class="col-md-4">
-              <label class="form-label fw-semibold" style="font-size:.82rem;">Titolo credito</label>
-              <input type="text" name="titolo_credito" class="form-control form-control-sm"
-                     placeholder="es. compenso, affitto...">
-            </div>
-            <div class="col-md-4">
-              <label class="form-label fw-semibold" style="font-size:.82rem;">Termine (giorni)</label>
-              <input type="number" name="termine_giorni" class="form-control form-control-sm"
-                     value="15" min="1" max="365">
-            </div>
-            <div class="col-md-6">
-              <label class="form-label fw-semibold" style="font-size:.82rem;">Tribunale competente</label>
-              <input type="text" name="tribunale_competente" class="form-control form-control-sm"
-                     placeholder="es. Milano, Roma...">
-            </div>
+            {% endfor %}
           </div>
         </div>
-      </div>
+        {% endfor %}
 
-      <button type="submit" class="btn btn-primary btn-lg w-100">
-        <i class="bi bi-magic me-2"></i>Genera documento
-      </button>
-    </div>
+        <div class="act-use-submit mt-3">
+          <button type="submit" class="btn btn-primary flex-grow-1">
+            <i class="bi bi-stars me-2"></i>Genera bozza
+          </button>
+          <button type="button" class="btn btn-outline-secondary" onclick="window.scrollTo({ top: 0, behavior: 'smooth' })">
+            <i class="bi bi-arrow-up"></i>
+          </button>
+        </div>
+      </section>
 
-    <!-- Anteprima template -->
-    <div class="col-lg-5">
-      <div class="card border-0 shadow-sm" style="border-radius:16px;">
-        <div class="card-header fw-semibold" style="background:transparent;font-size:.85rem;">
-          <i class="bi bi-eye me-2"></i>Struttura template
+      <aside class="act-use-card">
+        <h2><i class="bi bi-shield-check me-2"></i>Assetto del modello</h2>
+        {% if t.descrizione %}
+        <p class="text-muted small mb-3">{{ t.descrizione }}</p>
+        {% endif %}
+
+        {% if t.allegati_obbligatori %}
+        <div class="act-use-section">
+          <div class="act-use-section-title">Allegati obbligatori</div>
+          <ul class="act-use-list">
+            {% for item in t.allegati_obbligatori %}
+            <li>{{ item }}</li>
+            {% endfor %}
+          </ul>
         </div>
-        <div class="card-body">
-          <pre style="font-size:.72rem; max-height:400px; overflow-y:auto; white-space:pre-wrap; color:#374151;">{{ t.corpo[:1200] }}{% if t.corpo|length > 1200 %}...{% endif %}</pre>
+        {% endif %}
+
+        {% if t.controlli_conformita %}
+        <div class="act-use-section">
+          <div class="act-use-section-title">Controlli di conformita</div>
+          <ul class="act-use-list">
+            {% for item in t.controlli_conformita %}
+            <li>{{ item }}</li>
+            {% endfor %}
+          </ul>
         </div>
-      </div>
+        {% endif %}
+
+        <div class="act-use-section">
+          <div class="act-use-section-title">Struttura base</div>
+          <div class="act-use-preview">{{ t.corpo[:1200] }}{% if t.corpo|length > 1200 %}...{% endif %}</div>
+        </div>
+      </aside>
     </div>
-  </div>
-</form>
+  </form>
+</div>
 {% endblock %}
 
 {% block extra_scripts %}
 <script>
-document.getElementById('sel-cliente').addEventListener('change', function() {
+document.getElementById('sel-cliente')?.addEventListener('change', function() {
   const id = this.value;
   const sel = document.getElementById('sel-fascicolo');
-  sel.innerHTML = '<option value="">— Nessuna pratica —</option>';
+  sel.innerHTML = '<option value="">-- Nessuna pratica --</option>';
   if (!id) return;
   fetch(`/fatturazione/ajax/fascicoli/${id}`)
-    .then(r => r.json())
-    .then(data => {
-      data.forEach(f => {
+    .then((r) => r.json())
+    .then((data) => {
+      data.forEach((f) => {
         const opt = document.createElement('option');
         opt.value = f.id;
         opt.textContent = f.titolo + (f.numero_rg ? ` · RG ${f.numero_rg}` : '');

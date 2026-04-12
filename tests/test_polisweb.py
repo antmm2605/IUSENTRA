@@ -2336,6 +2336,121 @@ def test_dettaglio_fascicolo_mostra_azioni_per_documento_ufficiale_acquisito(tmp
     assert "Acquisito nel fascicolo" in body
     assert f"/fascicoli/{fascicolo.id}/documenti/{doc.id}/scarica" in body
     assert f"/fascicoli/{fascicolo.id}/documenti/{doc.id}/visualizza" in body
+    assert f"/fascicoli/{fascicolo.id}/documenti/{doc.id}/editor" not in body
+
+
+def test_dettaglio_fascicolo_visualizzatore_prefetch_blob_per_pdf(tmp_path):
+    from pct.auth import GestioneUtenti, RuoloUtente
+    from web.app import create_app
+
+    cfg = _cfg_web(tmp_path)
+    gu = GestioneUtenti(
+        db_path=cfg["AUTH_DB"],
+        audit_path=cfg["AUDIT_DB"],
+        secret_key="test",
+    )
+    gu.crea(
+        username="avvocato",
+        password="Avv12345!",
+        ruolo=RuoloUtente.AVVOCATO,
+        email="avvocato@example.com",
+    )
+
+    gestione_fascicoli = GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+    )
+    fascicolo = gestione_fascicoli.nuovo(
+        titolo="RG 708/2025",
+        tipo=TipoFascicolo.CIVILE,
+    )
+    gestione_fascicoli.aggiungi_documento(
+        fascicolo.id,
+        "memoria.pdf",
+        TipoDocumento.ATTO_GIUDIZIARIO,
+        b"%PDF-1.4\n% test\n1 0 obj\n<<>>\nendobj\ntrailer\n<<>>\n%%EOF",
+        caricato_da="avvocato",
+    )
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        client.post(
+            "/login",
+            data={"username": "avvocato", "password": "Avv12345!"},
+            follow_redirects=True,
+        )
+        response = client.get(f"/fascicoli/{fascicolo.id}", follow_redirects=True)
+
+    body = response.data.decode("utf-8")
+    assert response.status_code == 200
+    assert "response.blob()" in body
+    assert "URL.createObjectURL" in body
+    assert "Impossibile caricare l\\'anteprima" in body
+
+
+def test_editor_documento_firmato_reindirizza_a_visualizzazione(tmp_path):
+    from asn1crypto import cms, algos
+    from pct.auth import GestioneUtenti, RuoloUtente
+    from web.app import create_app
+
+    cfg = _cfg_web(tmp_path)
+    gu = GestioneUtenti(
+        db_path=cfg["AUTH_DB"],
+        audit_path=cfg["AUDIT_DB"],
+        secret_key="test",
+    )
+    gu.crea(
+        username="avvocato",
+        password="Avv12345!",
+        ruolo=RuoloUtente.AVVOCATO,
+        email="avvocato@example.com",
+    )
+
+    gestione_fascicoli = GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+    )
+    fascicolo = gestione_fascicoli.nuovo(
+        titolo="RG 807/2025",
+        tipo=TipoFascicolo.CIVILE,
+    )
+    pdf_bytes = b"%PDF-1.4\n% demo\n1 0 obj\n<<>>\nendobj\ntrailer\n<<>>\n%%EOF"
+    signed = cms.SignedData(
+        {
+            "version": "v1",
+            "digest_algorithms": [algos.DigestAlgorithm({"algorithm": "sha256"})],
+            "encap_content_info": {"content_type": "data", "content": pdf_bytes},
+            "signer_infos": [],
+        }
+    )
+    p7m_bytes = cms.ContentInfo({"content_type": "signed_data", "content": signed}).dump()
+    doc = gestione_fascicoli.aggiungi_documento(
+        fascicolo.id,
+        "atto.pdf.p7m",
+        TipoDocumento.ATTO_GIUDIZIARIO,
+        p7m_bytes,
+        firmato=True,
+        caricato_da="avvocato",
+    )
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        client.post(
+            "/login",
+            data={"username": "avvocato", "password": "Avv12345!"},
+            follow_redirects=True,
+        )
+        response = client.get(
+            f"/fascicoli/{fascicolo.id}/documenti/{doc.id}/editor",
+            follow_redirects=False,
+        )
+
+    assert response.status_code == 302
+    assert response.headers["Location"].endswith(
+        f"/fascicoli/{fascicolo.id}/documenti/{doc.id}/visualizza"
+    )
 
 
 def test_visualizza_documento_estrae_pdf_da_p7m(tmp_path):

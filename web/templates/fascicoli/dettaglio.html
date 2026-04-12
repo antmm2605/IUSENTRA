@@ -291,9 +291,10 @@
                         {%- set _pnome_pre = _pnome[:-4] if _pnome.lower().endswith('.p7m') else _pnome %}
                         {%- set _pext = _pnome_pre.rsplit('.',1)[-1].lower() if '.' in _pnome_pre else '' %}
                         {%- set _pvis = _pext in ['pdf','jpg','jpeg','png','gif'] %}
+                        {%- set _peditor = _pext in ('docx', 'txt', 'html', 'htm', 'pdf') and not pdoc.local_doc_firmato and not _pnome.lower().endswith('.p7m') %}
                         <div class="d-flex gap-1 flex-wrap">
                           {# Editor #}
-                          {% if _pext in ('docx', 'txt', 'html', 'htm', 'pdf') %}
+                          {% if _peditor %}
                           <a href="{{ url_for('editor_documento', id_fasc=fascicolo.id, id_doc=pdoc.local_doc_id) }}"
                             class="btn btn-sm btn-primary" title="Apri nell'editor">
                             <i class="bi bi-pencil-square"></i>
@@ -688,6 +689,7 @@
         {% set nome_preview = doc.nome[:-4] if doc.nome.lower().endswith('.p7m') else doc.nome %}
         {% set ext = nome_preview.rsplit('.',1)[-1].lower() if '.' in nome_preview else '' %}
         {% set visualizzabile = ext in ['pdf','jpg','jpeg','png','gif'] %}
+        {% set editorabile = ext in ('docx', 'txt', 'html', 'htm', 'pdf') and not doc.firmato_digitalmente and not doc.nome.lower().endswith('.p7m') %}
         <tr>
           <td data-label="Nome" style="min-width:0">
             <div style="min-width:0;word-break:break-word;overflow-wrap:anywhere">
@@ -785,7 +787,7 @@
             {# TUTTI I BOTTONI INLINE #}
             <div class="d-flex gap-1 flex-wrap align-items-center">
               {# Editor: primo bottone — testo sempre visibile #}
-              {% if ext in ('docx', 'txt', 'html', 'htm', 'pdf') %}
+              {% if editorabile %}
               <a href="{{ url_for('editor_documento', id_fasc=fascicolo.id, id_doc=doc.id) }}"
                 class="btn btn-sm btn-primary" title="Apri nell'editor">
                 <i class="bi bi-pencil-square me-1"></i>Editor
@@ -1662,7 +1664,7 @@
                             </div>
                             <div class="d-flex gap-1 flex-wrap mt-1">
                               {# Editor #}
-                              {% if _dext in ('docx', 'txt', 'html', 'htm', 'pdf') %}
+                              {% if _dext in ('docx', 'txt', 'html', 'htm', 'pdf') and not ddoc.firmato_digitalmente and not ddoc.nome.lower().endswith('.p7m') %}
                               <a href="{{ url_for('editor_documento', id_fasc=fascicolo.id, id_doc=ddoc.id) }}"
                                 class="btn btn-sm btn-primary py-0 px-1" title="Editor" style="font-size:.7rem">
                                 <i class="bi bi-pencil-square"></i>
@@ -1795,9 +1797,10 @@
                             {%- set _mn_pre = _mn[:-4] if _mn.lower().endswith('.p7m') else _mn %}
                             {%- set _mext = _mn_pre.rsplit('.',1)[-1].lower() if '.' in _mn_pre else '' %}
                             {%- set _mvis = _mext in ['pdf','jpg','jpeg','png','gif'] %}
+                            {%- set _meditor = _mext in ('docx', 'txt', 'html', 'htm', 'pdf') and not pdoc.local_doc_firmato and not _mn.lower().endswith('.p7m') %}
                             <div class="d-flex gap-1 flex-wrap mt-2">
                               {# Editor #}
-                              {% if _mext in ('docx', 'txt', 'html', 'htm', 'pdf') %}
+                              {% if _meditor %}
                               <a href="{{ url_for('editor_documento', id_fasc=fascicolo.id, id_doc=pdoc.local_doc_id) }}"
                                 class="btn btn-sm btn-primary" title="Apri nell'editor">
                                 <i class="bi bi-pencil-square"></i>
@@ -3637,12 +3640,67 @@ var _visDettaglioAperto = false;
 
 var _visLoadTimer = null;
 var _visReady = false;  // true dopo che il src reale è stato impostato
+var _visBlobUrl = null;
+var _visOpenSeq = 0;
+
+function _visNomePreview(nome) {
+  const valore = String(nome || '').trim();
+  return valore.toLowerCase().endsWith('.p7m') ? valore.slice(0, -4) : valore;
+}
+
+function _visPreviewKindFromName(nome) {
+  const lower = _visNomePreview(nome).toLowerCase();
+  if (lower.endsWith('.pdf')) return 'pdf';
+  if (lower.endsWith('.jpg') || lower.endsWith('.jpeg') || lower.endsWith('.png') || lower.endsWith('.gif')) return 'image';
+  return 'other';
+}
+
+function _visRilasciaBlobUrl() {
+  if (!_visBlobUrl) return;
+  try { URL.revokeObjectURL(_visBlobUrl); } catch (_) {}
+  _visBlobUrl = null;
+}
+
+function _visMostraMessaggio(titolo, messaggio, scaricaUrl) {
+  const iframe = document.getElementById('visualizzatore-iframe');
+  const nomeSafe = _escHtml(titolo || 'Documento');
+  const testoSafe = _escHtml(messaggio || 'Impossibile caricare l\'anteprima.');
+  const scaricaSafe = _escHtml(scaricaUrl || '#');
+
+  _visReady = false;
+  if (_visLoadTimer) { clearTimeout(_visLoadTimer); _visLoadTimer = null; }
+  document.getElementById('vis-loading').style.display = 'none';
+  iframe.style.display = 'block';
+  iframe.srcdoc = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+      </head>
+      <body class="bg-light d-flex align-items-center justify-content-center" style="min-height:100vh">
+        <div class="text-center p-4">
+          <i class="bi bi-file-earmark-break text-secondary" style="font-size:3rem"></i>
+          <h6 class="mt-3 mb-2">${nomeSafe}</h6>
+          <p class="text-muted small mb-3">${testoSafe}</p>
+          <a href="${scaricaSafe}" class="btn btn-primary btn-sm">
+            <i class="bi bi-download me-1"></i>Scarica documento
+          </a>
+        </div>
+      </body>
+    </html>`;
+}
 
 function apriVisualizzatore(btn) {
+  const openSeq = ++_visOpenSeq;
   _visReady = false;
+  _visRilasciaBlobUrl();
 
   const nome = btn.dataset.docNome || '';
   const ext  = nome.split('.').pop().toLowerCase();
+  const previewKind = _visPreviewKindFromName(nome);
 
   // Icona file dinamica
   const icone = { pdf:'bi-file-earmark-pdf text-danger', p7m:'bi-file-earmark-lock2 text-success',
@@ -3657,6 +3715,7 @@ function apriVisualizzatore(btn) {
   // Spinner + iframe reset: usa about:blank (più prevedibile di removeAttribute)
   const iframe = document.getElementById('visualizzatore-iframe');
   iframe.style.display = 'none';
+  iframe.removeAttribute('srcdoc');
   iframe.src = 'about:blank';
   document.getElementById('vis-loading').style.display = 'flex';
 
@@ -3675,17 +3734,61 @@ function apriVisualizzatore(btn) {
   bootstrap.Modal.getOrCreateInstance(document.getElementById('modalVisualizzatore')).show();
 
   var docUrl = btn.dataset.docUrl || '';
+  var scaricaUrl = btn.dataset.scaricaUrl || '#';
 
   // Carica il documento nell'iframe dopo un breve delay per l'animazione del modal
-  setTimeout(function() {
-    _visReady = true;
-    iframe.src = docUrl;
+  setTimeout(async function() {
+    if (openSeq !== _visOpenSeq) return;
+    if (!docUrl) {
+      _visMostraMessaggio(nome, 'Anteprima non disponibile per questo documento.', scaricaUrl);
+      return;
+    }
+    try {
+      if (previewKind === 'pdf' || previewKind === 'image') {
+        const response = await fetch(docUrl, { credentials: 'same-origin' });
+        if (openSeq !== _visOpenSeq) return;
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
-    // Timeout di sicurezza: forza la visualizzazione dopo 5s in ogni caso
-    _visLoadTimer = setTimeout(function() {
-      document.getElementById('vis-loading').style.display = 'none';
-      iframe.style.display = 'block';
-    }, 5000);
+        const contentType = String(response.headers.get('content-type') || '').toLowerCase();
+        if (contentType.includes('text/html')) {
+          const html = await response.text();
+          if (openSeq !== _visOpenSeq) return;
+          _visReady = true;
+          iframe.srcdoc = html;
+          iframe.style.display = 'block';
+          document.getElementById('vis-loading').style.display = 'none';
+          return;
+        }
+
+        const blob = await response.blob();
+        if (openSeq !== _visOpenSeq) return;
+        const mime = blob.type || contentType || (previewKind === 'pdf' ? 'application/pdf' : '');
+        const blobFinale = mime && blob.type !== mime ? new Blob([blob], { type: mime }) : blob;
+        _visBlobUrl = URL.createObjectURL(blobFinale);
+        _visReady = true;
+        iframe.src = _visBlobUrl;
+        _visLoadTimer = setTimeout(function() {
+          visIframeLoaded();
+        }, previewKind === 'pdf' ? 1200 : 600);
+        return;
+      }
+
+      _visReady = true;
+      iframe.src = docUrl;
+
+      // Timeout di sicurezza: forza la visualizzazione dopo 5s in ogni caso
+      _visLoadTimer = setTimeout(function() {
+        document.getElementById('vis-loading').style.display = 'none';
+        iframe.style.display = 'block';
+      }, 5000);
+    } catch (err) {
+      console.error('Errore preview documento:', err);
+      _visMostraMessaggio(
+        nome,
+        'Impossibile caricare l\'anteprima. Usa Scarica documento per aprirlo localmente.',
+        scaricaUrl
+      );
+    }
   }, 100);
 
   // Fetch info firma se disponibile
@@ -3693,7 +3796,10 @@ function apriVisualizzatore(btn) {
   if (infoUrl) {
     fetch(infoUrl)
       .then(r => r.json())
-      .then(data => { if (data.firme && data.firme.length > 0) _visMostraFirme(data.firme); })
+      .then(data => {
+        if (openSeq !== _visOpenSeq) return;
+        if (data.firme && data.firme.length > 0) _visMostraFirme(data.firme);
+      })
       .catch(() => {});
   }
 }
@@ -3783,8 +3889,11 @@ function _escHtml(s) {
 }
 
 document.getElementById('modalVisualizzatore').addEventListener('hidden.bs.modal', function () {
+  _visOpenSeq += 1;
   _visReady = false;
   if (_visLoadTimer) { clearTimeout(_visLoadTimer); _visLoadTimer = null; }
+  _visRilasciaBlobUrl();
+  document.getElementById('visualizzatore-iframe').removeAttribute('srcdoc');
   document.getElementById('visualizzatore-iframe').src = 'about:blank';
   document.getElementById('vis-loading').style.display = 'none';
 });

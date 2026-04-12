@@ -12567,6 +12567,8 @@ read -r -p "Premi Invio per chiudere..." _
             if not doc:
                 flash("Documento non trovato.", "warning")
                 return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
+            if doc.firmato_digitalmente or doc.nome.lower().endswith(".p7m"):
+                return redirect(url_for("visualizza_documento", id_fasc=id_fasc, id_doc=id_doc))
             if not estensione_editabile(doc.nome):
                 flash(f"Formato '{doc.nome.split('.')[-1].upper()}' non supportato dall'editor.", "warning")
                 return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))

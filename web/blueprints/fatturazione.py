@@ -121,6 +121,7 @@ def lista():
     anno = int(request.args.get("anno", date.today().year))
     stato_filtro = request.args.get("stato", "")
     cliente_filtro = request.args.get("id_cliente", "")
+    q = request.args.get("q", "").strip()
 
     parcelle = gf.tutte()
     parcelle = [p for p in parcelle if p.data_emissione.startswith(str(anno))]
@@ -129,6 +130,14 @@ def lista():
         parcelle = [p for p in parcelle if p.stato.value == stato_filtro]
     if cliente_filtro:
         parcelle = [p for p in parcelle if p.id_cliente == cliente_filtro]
+
+    # Ricerca testuale per numero o cliente
+    if q:
+        clienti_map_tmp = {c.id: c for c in get_clienti().tutti()}
+        ql = q.lower()
+        parcelle = [p for p in parcelle
+                    if ql in p.numero.lower()
+                    or ql in (clienti_map_tmp.get(p.id_cliente, None) and clienti_map_tmp[p.id_cliente].nome_completo or "").lower()]
 
     stats = gf.statistiche(anno)
     clienti_map = {c.id: c for c in get_clienti().tutti()}
@@ -146,6 +155,7 @@ def lista():
         anni_disponibili=anni_disponibili,
         stato_filtro=stato_filtro,
         cliente_filtro=cliente_filtro,
+        q=q,
     )
 
 

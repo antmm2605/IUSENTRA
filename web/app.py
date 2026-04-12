@@ -3100,18 +3100,36 @@ def create_app(config: dict | None = None) -> Flask:
         filtro_tipo = request.args.get("tipo", "")
         filtro_priorita = request.args.get("priorita", "")
         id_fascicolo = request.args.get("id_fascicolo", "")
+        q = request.args.get("q", "").strip()
+        filtro_dal = request.args.get("dal", "")
+        filtro_al = request.args.get("al", "")
+        filtro_perentorio = request.args.get("perentorio", "")
         scadenze = gs.tutte(
             tipo=TipoTermine(filtro_tipo) if filtro_tipo else None,
             priorita=PrioritaTermine(filtro_priorita) if filtro_priorita else None,
             id_fascicolo=id_fascicolo,
         )
+        # Filtro testuale
+        if q:
+            ql = q.lower()
+            scadenze = [s for s in scadenze if ql in s.titolo.lower() or ql in (s.descrizione or "").lower()]
+        # Filtro date
+        if filtro_dal:
+            scadenze = [s for s in scadenze if s.data_scadenza >= filtro_dal]
+        if filtro_al:
+            scadenze = [s for s in scadenze if s.data_scadenza <= filtro_al]
+        # Filtro perentorio
+        if filtro_perentorio:
+            scadenze = [s for s in scadenze if s.perentorio]
         scadute = gs.scadute()
+        scadenze_critiche = gs.imminenti(entro_giorni=3)
         imminenti = gs.imminenti(entro_giorni=7)
         stats = gs.statistiche()
         return render_template(
             "scadenziario/lista.html",
             scadenze=scadenze,
             scadute=scadute,
+            scadenze_critiche=scadenze_critiche,
             imminenti=imminenti,
             stats=stats,
             tipi=list(TipoTermine),
@@ -3119,6 +3137,10 @@ def create_app(config: dict | None = None) -> Flask:
             filtro_tipo=filtro_tipo,
             filtro_priorita=filtro_priorita,
             id_fascicolo=id_fascicolo,
+            q=q,
+            filtro_dal=filtro_dal,
+            filtro_al=filtro_al,
+            filtro_perentorio=filtro_perentorio,
         )
 
     @app.route("/scadenziario/nuova", methods=["GET", "POST"])
@@ -9203,9 +9225,16 @@ read -r -p "Premi Invio per chiudere..." _
         testo = request.args.get("q", "").strip()
         stato_f = request.args.get("stato", "")
         tipo_f = request.args.get("tipo", "")
+        filtro_dal = request.args.get("dal", "")
+        filtro_al = request.args.get("al", "")
         stato = StatoFascicolo(stato_f) if stato_f else None
         tipo = TipoFascicolo(tipo_f) if tipo_f else None
         fascicoli = gf.cerca(testo=testo, stato=stato, tipo=tipo) if testo else gf.tutti(stato=stato, tipo=tipo)
+        # Filtro date apertura
+        if filtro_dal:
+            fascicoli = [f for f in fascicoli if getattr(f, 'data_apertura', '') >= filtro_dal]
+        if filtro_al:
+            fascicoli = [f for f in fascicoli if getattr(f, 'data_apertura', '') <= filtro_al]
         stats = gf.statistiche()
         scadenze = gf.fascicoli_con_scadenze_imminenti(entro_giorni=7)
         return render_template(
@@ -9216,6 +9245,8 @@ read -r -p "Premi Invio per chiudere..." _
             q=testo,
             stato_filtro=stato_f,
             tipo_filtro=tipo_f,
+            filtro_dal=filtro_dal,
+            filtro_al=filtro_al,
             tipi=list(TipoFascicolo),
             stati=list(StatoFascicolo),
         )

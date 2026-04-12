@@ -56,7 +56,7 @@
   <div class="fw-semibold mb-1"><i class="bi bi-upload me-1"></i>Importazione dei file gia scaricati</div>
   <div class="small">
     Sei entrato dal portale con il focus sull'import manuale. I file reali si caricano nello
-    <strong>Step 7 - Importazione finale</strong>, nella sezione <strong>Importa ZIP, file o cartella gia scaricati</strong>.
+    <strong>Fase 7 - Importazione finale</strong>, nella sezione <strong>Importa ZIP, file o cartella gia scaricati</strong>.
     Prima completa ricerca, selezione e mappatura del fascicolo da integrare nel gestionale.
   </div>
 </div>
@@ -138,7 +138,7 @@
   <div class="d-flex flex-column gap-3">
     <section class="aw-pane active" data-step="1"><div class="card shadow-sm border-0"><div class="card-body p-4">
       <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-3">
-        <div><h2 class="h5 mb-1">Step 1 — Accesso e sorgente</h2><p class="text-muted mb-0">Verifica canale di accesso, certificato attivo e stato connessione.</p></div>
+        <div><h2 class="h5 mb-1">Fase 1 — Accesso e sorgente</h2><p class="text-muted mb-0">Verifica canale di accesso, certificato attivo e stato connessione.</p></div>
         <div class="d-flex gap-2"><button class="btn btn-outline-{{ spec.color }}" type="button" id="awTest">Test connessione</button><button class="btn btn-{{ spec.color }}" type="button" id="awGoSearch">Continua</button></div>
       </div>
       <div class="row g-3" id="awAccessGrid"></div>
@@ -147,7 +147,7 @@
 
     <section class="aw-pane" data-step="2"><div class="card shadow-sm border-0"><div class="card-body p-4">
       <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-3">
-        <div><h2 class="h5 mb-1">Step 2 — Ricerca fascicolo</h2><p class="text-muted mb-0">Trova il fascicolo giusto con ufficio, RG, parti e filtri rapidi.</p></div>
+        <div><h2 class="h5 mb-1">Fase 2 — Ricerca fascicolo</h2><p class="text-muted mb-0">Trova il fascicolo giusto con ufficio, RG, parti e filtri rapidi.</p></div>
         <button class="btn btn-{{ spec.color }}" type="button" id="awSearch">Cerca</button>
       </div>
       <div class="row g-3">
@@ -165,18 +165,18 @@
     </div></div></section>
 
     <section class="aw-pane" data-step="3"><div class="card shadow-sm border-0"><div class="card-body p-4">
-      <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-3"><div><h2 class="h5 mb-1">Step 3 — Anteprima dati trovati</h2><p class="text-muted mb-0">Controlla dati fascicolo, parti, eventi e documenti disponibili.</p></div><button class="btn btn-{{ spec.color }}" type="button" id="awGoSelection">Continua</button></div>
+      <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-3"><div><h2 class="h5 mb-1">Fase 3 — Anteprima dati trovati</h2><p class="text-muted mb-0">Controlla dati fascicolo, parti, eventi e documenti disponibili.</p></div><button class="btn btn-{{ spec.color }}" type="button" id="awGoSelection">Continua</button></div>
       <ul class="nav nav-pills gap-2 mb-3" id="awPreviewTabs"></ul>
       <div id="awPreview"></div>
     </div></div></section>
 
     <section class="aw-pane" data-step="4"><div class="card shadow-sm border-0"><div class="card-body p-4">
-      <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-3"><div><h2 class="h5 mb-1">Step 4 — Scelta contenuti da importare</h2><p class="text-muted mb-0">Seleziona cosa importare e con quali regole di sicurezza.</p></div><button class="btn btn-{{ spec.color }}" type="button" id="awGoMapping">Continua</button></div>
+      <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-3"><div><h2 class="h5 mb-1">Fase 4 — Scelta contenuti da importare</h2><p class="text-muted mb-0">Seleziona cosa importare e con quali regole di sicurezza.</p></div><button class="btn btn-{{ spec.color }}" type="button" id="awGoMapping">Continua</button></div>
       <div class="row g-3" id="awSelectionGrid"></div>
     </div></div></section>
 
     <section class="aw-pane" data-step="5"><div class="card shadow-sm border-0"><div class="card-body p-4">
-      <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-3"><div><h2 class="h5 mb-1">Step 5 — Mappatura nel gestionale</h2><p class="text-muted mb-0">Decidi se creare, collegare o aggiornare una pratica esistente.</p></div><button class="btn btn-{{ spec.color }}" type="button" id="awAnalyze">Analizza conflitti</button></div>
+      <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-3"><div><h2 class="h5 mb-1">Fase 5 — Mappatura nel gestionale</h2><p class="text-muted mb-0">Decidi se creare, collegare o aggiornare una pratica esistente.</p></div><button class="btn btn-{{ spec.color }}" type="button" id="awAnalyze">Analizza conflitti</button></div>
       <div class="row g-3">
         <div class="col-lg-4"><label class="aw-box h-100 d-block"><div class="form-check mb-2"><input class="form-check-input" type="radio" name="awMapMode" value="create_new" {{ 'checked' if linked_mode == 'create_new' else '' }}><span class="form-check-label fw-semibold">Crea nuova pratica</span></div><div class="small text-muted">Precompila area, procedimento, RG e parti dal portale.</div></label></div>
         <div class="col-lg-4"><label class="aw-box h-100 d-block"><div class="form-check mb-2"><input class="form-check-input" type="radio" name="awMapMode" value="attach_existing" {{ 'checked' if linked_mode == 'attach_existing' else '' }}><span class="form-check-label fw-semibold">Collega a pratica esistente</span></div><div class="small text-muted">Mantieni il fascicolo locale come primario e collega l'origine telematica.</div></label></div>
@@ -189,14 +189,14 @@
     </div></div></section>
 
     <section class="aw-pane" data-step="6"><div class="card shadow-sm border-0"><div class="card-body p-4">
-      <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-3"><div><h2 class="h5 mb-1">Step 6 — Controllo e conflitti</h2><p class="text-muted mb-0">Semafori chiari, duplicati, campi mancanti e decisione finale.</p></div><button class="btn btn-{{ spec.color }}" type="button" id="awGoImport">Vai all’importazione</button></div>
+      <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-3"><div><h2 class="h5 mb-1">Fase 6 — Controllo e conflitti</h2><p class="text-muted mb-0">Semafori chiari, duplicati, campi mancanti e decisione finale.</p></div><button class="btn btn-{{ spec.color }}" type="button" id="awGoImport">Vai all’importazione</button></div>
       <div class="row g-3 mb-3"><div class="col-md-4"><div class="aw-box"><div class="small text-muted">Punteggio</div><div class="h2 mb-0" id="awScore">—</div></div></div><div class="col-md-4"><div class="aw-box"><div class="small text-muted">Blocchi</div><div class="h2 mb-0 text-danger" id="awBlockers">—</div></div></div><div class="col-md-4"><div class="aw-box"><div class="small text-muted">Avvisi</div><div class="h2 mb-0 text-warning" id="awWarnings">—</div></div></div></div>
       <div class="alert alert-light border rounded-4" id="awAnalysisSummary">Nessuna analisi eseguita.</div>
       <div class="row g-3"><div class="col-lg-6"><div class="d-flex flex-column gap-2" id="awIssues"></div></div><div class="col-lg-6"><div class="d-flex flex-column gap-2 mb-3" id="awOk"></div><div class="aw-box bg-light-subtle" id="awMatches"></div></div></div>
     </div></div></section>
 
     <section class="aw-pane" data-step="7"><div class="card shadow-sm border-0"><div class="card-body p-4">
-      <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-3"><div><h2 class="h5 mb-1">Step 7 — Importazione finale</h2><p class="text-muted mb-0">Conferma l’acquisizione, importa i file reali e apri subito il quadro della pratica importata.</p></div><button class="btn btn-{{ spec.color }}" type="button" id="awImport">Importa</button></div>
+      <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-3"><div><h2 class="h5 mb-1">Fase 7 — Importazione finale</h2><p class="text-muted mb-0">Conferma l’acquisizione, importa i file reali e apri subito il quadro della pratica importata.</p></div><button class="btn btn-{{ spec.color }}" type="button" id="awImport">Importa</button></div>
       <div class="aw-box bg-light-subtle mb-3">
         <div class="form-check form-switch mb-3">
           <input class="form-check-input" type="checkbox" id="scarica_originale_portale" checked>
@@ -1550,7 +1550,7 @@ function awRenderAccess() {
     {
       title: 'Stato connessione',
       value: awEscape(status.status_text || 'Da testare'),
-      detail: status.last_sync_at ? `Ultimo log ${awFormatDate(status.last_sync_at)}` : 'Nessun import guidato registrato',
+      detail: status.last_sync_at ? `Ultimo allineamento ${awFormatDate(status.last_sync_at)}` : 'Nessun import guidato registrato',
       tone: status.test_ok ? 'success' : 'warning',
     },
   ];
@@ -1568,14 +1568,14 @@ function awRenderAccess() {
   const note = [];
   if (browserAssistMode) {
     note.push(AW_BOOT.portale === 'pat'
-      ? "Step 1 guidato: HACS non interroga SIGA in tempo reale. Prepara il fascicolo PAT interno in modalita assistita e rinvia consultazione e deposito al Portale dell'Avvocato."
+      ? "Fase 1 guidata: HACS non interroga SIGA in tempo reale. Prepara il fascicolo PAT interno in modalita assistita e rinvia consultazione e deposito al Portale dell'Avvocato."
       : (AW_BOOT.portale === 'ptt'
-        ? "Step 1 guidato: HACS non interroga SIGIT in tempo reale. Prepara il fascicolo tributario interno in modalita assistita e rimanda consultazione, Telecontenzioso e download del fascicolo al portale ufficiale."
-        : 'Step 1 guidato: HACS non interroga un endpoint tecnico del portale. Prepara la pratica in modalita assistita e rimanda la consultazione al browser ufficiale.'));
+        ? "Fase 1 guidata: HACS non interroga SIGIT in tempo reale. Prepara il fascicolo tributario interno in modalita assistita e rimanda consultazione, Telecontenzioso e download del fascicolo al portale ufficiale."
+        : 'Fase 1 guidata: HACS non interroga un endpoint tecnico del portale. Prepara la pratica in modalita assistita e rimanda la consultazione al browser ufficiale.'));
   } else if (signerPreferred) {
     note.push(AW_BOOT.portale === 'pst'
-      ? 'Step 1 leggero: il wizard non apre ancora la sessione PST. Il primo accesso reale viene eseguito alla ricerca del fascicolo.'
-      : `Step 1 leggero: il wizard non apre ancora il canale ${awEscape(awLocalSignerPortaleLabel())}. Il primo accesso reale viene eseguito alla ricerca del fascicolo.`);
+      ? 'Fase 1 leggera: il wizard non apre ancora la sessione PST. Il primo accesso reale viene eseguito alla ricerca del fascicolo.'
+      : `Fase 1 leggera: il wizard non apre ancora il canale ${awEscape(awLocalSignerPortaleLabel())}. Il primo accesso reale viene eseguito alla ricerca del fascicolo.`);
   }
   if (browserAssistMode && awLocalSignerReachable()) {
     note.push('Local Signer rilevato: HACS puo\' riusare il browser locale per aprire il portale ufficiale, ma l\'acquisizione resta assistita.');
@@ -1588,7 +1588,7 @@ function awRenderAccess() {
   if (status.local_signer_error) note.push(`Local Signer: ${awEscape(status.local_signer_error)}`);
   if (AW_PST_CERT?.soggetto) note.push(`Certificato selezionato: ${awEscape(AW_PST_CERT.soggetto)} (${awEscape(AW_PST_CERT.emittente || '')})`);
   if (AW_PST_SESSION?.session_id && awHasActivePstSession(AW_PST_SESSION.tribunale || '')) note.push('Sessione PST gia attiva nel browser corrente: il wizard riusera il canale autenticato.');
-  if (status.last_import_log_id) note.push(`Ultimo import log: ${awEscape(status.last_import_log_id)}`);
+  if (status.last_import_log_id) note.push(`Ultimo registro importazione: ${awEscape(status.last_import_log_id)}`);
   document.getElementById('awAccessNote').innerHTML = note.length ? note.join('<br>') : 'Verifica l\'accesso e continua con la ricerca del fascicolo.';
 }
 function awPickAutoSelectionIndex(results, query) {
@@ -1801,7 +1801,7 @@ function awRenderPreview() {
         <div class="col-md-6"><div class="aw-box h-100"><div class="small text-muted">Identita pratica</div><div class="fw-semibold">RG ${awEscape(identity.numero)}/${awEscape(identity.anno)}</div><div class="small text-muted mt-1">${awEscape(identity.ufficio_nome || identity.ufficio_codice || 'Ufficio non disponibile')}</div>${identity.id_fascicolo ? `<div class="small text-muted mt-1">ID fascicolo PST: ${awEscape(identity.id_fascicolo)}</div>` : ''}</div></div>
         <div class="col-md-6"><div class="aw-box h-100"><div class="small text-muted">Procedimento</div><div class="fw-semibold">${awEscape(identity.procedimento || 'Non indicato')}</div><div class="small text-muted mt-1">${awEscape(identity.stato || 'Stato non disponibile')}${identity.sub_procedimento ? ` · Sub-procedimento ${awEscape(identity.sub_procedimento)}` : ''}</div></div></div>
         <div class="col-md-6"><div class="aw-box h-100"><div class="small text-muted">Oggetto</div><div class="fw-semibold">${awEscape(identity.oggetto || 'Oggetto non disponibile')}</div></div></div>
-        <div class="col-md-6"><div class="aw-box h-100"><div class="small text-muted">Timeline minima</div><div class="small">Iscrizione: ${awEscape(identity.data_iscrizione || 'n.d.')}<br>Ultima attivita: ${awEscape(identity.ultima_attivita || 'n.d.')}<br>Prossima udienza: ${awEscape(identity.data_udienza || 'n.d.')}</div></div></div>
+    <div class="col-md-6"><div class="aw-box h-100"><div class="small text-muted">Cronologia minima</div><div class="small">Iscrizione: ${awEscape(awFormatDate(identity.data_iscrizione))}<br>Ultima attivita: ${awEscape(awFormatDate(identity.ultima_attivita))}<br>Prossima udienza: ${awEscape(awFormatDate(identity.data_udienza))}</div></div></div>
       </div>`;
     return;
   }
@@ -1852,7 +1852,7 @@ function awRenderSelectionOptions() {
     ['importa_dati_pratica', 'Dati anagrafici pratica', counts.parti || 0, 'Crea una pratica pulita con RG, oggetto, ufficio e stato.'],
     ['importa_parti', 'Parti e soggetti', counts.parti || 0, 'Importa assistiti, controparti e relazioni soggetto/pratica.'],
     ['importa_difensori', 'Difensori', counts.difensori || 0, 'Conserva eventuali difensori strutturati dal portale.'],
-    ['importa_eventi', 'Eventi e cronologia', counts.eventi || 0, 'Integra eventi rilevanti e timeline portale.'],
+    ['importa_eventi', 'Eventi e cronologia', counts.eventi || 0, 'Integra eventi rilevanti e cronologia del portale.'],
     ['importa_udienze', 'Udienze', counts.udienze || 0, 'Rende governabile il calendario processuale.'],
     ['importa_scadenze', 'Scadenze', counts.udienze || 0, 'Trasforma le date strutturate in scadenziario interno.'],
     ['importa_documenti', 'Documenti e allegati', counts.documenti || 0, 'Popola archivio documentale e vista a buste.'],
@@ -2073,7 +2073,7 @@ async function awStartImport() {
         documenti_scaricati: manualUploadedFiles.length,
         collection_mode: 'manual-upload',
       };
-      state.innerHTML = `<i class="bi bi-check-circle text-success me-1"></i>Upload manuale pronto: ${manualUploadedFiles.length} file selezionati. Importazione in corso...`;
+      state.innerHTML = `<i class="bi bi-check-circle text-success me-1"></i>Caricamento manuale pronto: ${manualUploadedFiles.length} file selezionati. Importazione in corso...`;
     } else if (AW_BOOT.portale === 'pst' && awShouldImportPortalFiles(options) && selectedDocsCount > 0) {
       state.innerHTML = 'Apertura sessione PST e scaricamento allegati in corso — inserire il PIN una sola volta se richiesto...';
       downloadSummary = await awEnsurePstDownloadedFiles();
@@ -2143,14 +2143,14 @@ async function awStartImport() {
       ${downloadSummary ? `<div class="small mt-1">${awEscape(downloadSummary.documenti_scaricati || 0)} ${usedManualUploads ? 'file caricati manualmente dal tuo computer' : (usedBrowserDownloads ? 'file locali raccolti dai download del browser ufficiale' : 'allegati scaricati dal portale e ripartiti nelle sezioni del fascicolo')}${failureCount ? ` · <span class="text-warning">${awEscape(failureCount)} download da verificare</span>` : ''}.</div>` : ''}
       ${downloadSummary ? `<div class="small mt-1 text-muted">${usedManualUploads ? 'Nel fascicolo trovi i file che hai selezionato manualmente, piu il catalogo ufficiale dei documenti del portale per i collegamenti a buste e controlli.' : (usedBrowserDownloads ? (AW_BOOT.portale === 'pat' ? "Nel fascicolo PAT interno trovi catalogo ufficiale, ricevute e file gia scaricati dal Portale dell'Avvocato, senza lettura live diretta da SIGA." : 'Nel fascicolo trovi il catalogo ufficiale del portale e i file gia scaricati nel browser, senza nuovi download automatici dal gestionale.') : "Nel fascicolo vedrai sempre il catalogo ufficiale dei documenti del portale. L'opzione dell'albero tecnico salva solo una copia tecnica separata, non cambia questa vista.")}</div>` : ''}
       ${summary.albero_originale_salvato ? `<div class="small mt-1">${AW_BOOT.portale === 'pat' ? "Archivio tecnico dell'import PAT archiviato." : 'Albero tecnico originale del portale archiviato.'}</div>` : ''}
-      <div class="small mt-1 text-muted">Import log ${awEscape(AW_STATE.importResult?.import_log_id || '')}</div>
+      <div class="small mt-1 text-muted">Registro importazione ${awEscape(AW_STATE.importResult?.import_log_id || '')}</div>
     </div>`;
   actions.innerHTML = [
     ['Apri quadro pratica', AW_STATE.importResult?.quadro_url, AW_BOOT.spec.color],
     ['Apri fascicolo', AW_STATE.importResult?.dettaglio_url, 'outline-' + AW_BOOT.spec.color],
     ['Apri workflow PDP', AW_STATE.importResult?.workflow_url, 'outline-' + AW_BOOT.spec.color],
     ['Apri documenti', AW_STATE.importResult?.documenti_url, 'outline-' + AW_BOOT.spec.color],
-    ['Apri timeline', AW_STATE.importResult?.timeline_url, 'outline-' + AW_BOOT.spec.color],
+    ['Apri cronologia', AW_STATE.importResult?.timeline_url, 'outline-' + AW_BOOT.spec.color],
     ['Apri scadenziario', AW_STATE.importResult?.scadenziario_url, 'outline-' + AW_BOOT.spec.color],
   ].filter(([, url]) => !!url).map(([label, url, cls]) => `<a class="btn btn-${cls}" href="${url}">${label}</a>`).join('');
   awRenderSidebar();
@@ -2191,7 +2191,7 @@ function awRenderSidebar() {
     ['Provvedimenti', counts.provvedimenti || 0],
   ].map(([label, count]) => `<span class="badge text-bg-light border">${label}: ${awEscape(count)}</span>`).join('')
     + `<span class="badge text-bg-light border">${awSidebarPortalModeLabel(options)}</span>`
-    + ((AW_STATE.manualUploadedFiles || []).length ? `<span class="badge text-bg-light border">Upload manuale: ${awEscape((AW_STATE.manualUploadedFiles || []).length)}</span>` : '')
+    + ((AW_STATE.manualUploadedFiles || []).length ? `<span class="badge text-bg-light border">Caricamento manuale: ${awEscape((AW_STATE.manualUploadedFiles || []).length)}</span>` : '')
     + (options.mantieni_albero_originale ? `<span class="badge text-bg-light border">${awSidebarPortalTreeLabel()}</span>` : '');
   if (AW_STATE.importResult?.summary) {
     note.textContent = `Import completato. Pratica ${AW_STATE.importResult.summary.numero_pratica || ''} pronta per essere governata dal gestionale.`;

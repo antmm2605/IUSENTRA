@@ -60,7 +60,7 @@
 
             {% if db.ultimo_test %}
             <span class="text-muted ms-1" style="font-size:.72rem">
-              Ultimo test: {{ db.ultimo_test[:16].replace('T',' ') }}
+              Ultimo test: {{ db.ultimo_test|fmt_dataora }}
             </span>
             {% endif %}
           </div>

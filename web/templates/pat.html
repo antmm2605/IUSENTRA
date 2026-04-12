@@ -55,7 +55,7 @@
     <div class="small">
       In HACS il <strong>fascicolo PAT e interno</strong>: deposito e consultazione restano sul
       <strong>Portale dell'Avvocato ufficiale</strong>, mentre il gestionale governa controlli,
-      timeline, esiti, ricevute, provvedimenti e import dei file gia scaricati dal portale.
+      cronologia, esiti, ricevute, provvedimenti e import dei file gia scaricati dal portale.
     </div>
   </div>
   <div class="d-flex gap-2 flex-wrap">
@@ -126,7 +126,7 @@
               <div class="fw-semibold mb-2">Gestione in HACS</div>
               <div class="small text-muted mb-3 portal-hub-copy">
                 HACS prepara il fascicolo PAT interno, evita duplicati e integra i file gia scaricati dal portale ufficiale.
-                Lo step finale del wizard mostra anche l'upload manuale di ZIP, file e cartelle gia scaricati.
+        La fase finale del wizard mostra anche il caricamento manuale di ZIP, file e cartelle gia scaricati.
               </div>
               <div class="portal-hub-actions">
                 <a class="btn btn-outline-success" href="{{ url_for('portale_acquisizione_wizard', portale='pat', id_fasc=fascicolo.id if fascicolo else None) }}">
@@ -140,7 +140,7 @@
                   <i class="bi bi-paperclip me-1"></i>Importa documenti / ricevute PAT
                 </a>
                 <a class="btn btn-outline-secondary" href="{{ url_for('dettaglio_fascicolo', id_fasc=fascicolo.id) }}">
-                  <i class="bi bi-clock-history me-1"></i>Apri timeline pratica
+                  <i class="bi bi-clock-history me-1"></i>Apri cronologia pratica
                 </a>
                 {% else %}
                 <div class="portal-hub-note small text-muted">
@@ -172,7 +172,7 @@
             'Provvedimenti',
             'Allegati',
             'Fascicolo importato',
-            'Timeline'
+            'Cronologia'
           ] %}
           <div class="col-6">
             <div class="border rounded-3 px-3 py-2 h-100 bg-light-subtle">{{ voce }}</div>
@@ -210,7 +210,7 @@
         <div class="fw-semibold text-dark mb-1">
           <i class="bi bi-3-circle text-success me-1"></i>Rientro nel gestionale
         </div>
-        Appena rientri in HACS, importi documenti, ricevute ed esiti nel Fascicolo PAT interno, con timeline e collegamenti rapidi alla pratica.
+        Appena rientri in HACS, importi documenti, ricevute ed esiti nel Fascicolo PAT interno, con cronologia e collegamenti rapidi alla pratica.
       </div>
     </div>
   </div>

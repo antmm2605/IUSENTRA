@@ -27,7 +27,7 @@
           <span class="text-muted small">&lt;{{ em.mittente }}&gt;</span>
           {% endif %}
           {% set ts = em.timestamp %}{% if ts %}
-          <span class="text-muted small ms-auto text-nowrap">{{ ts[:16]|replace('T',' ') }}</span>
+          <span class="text-muted small ms-auto text-nowrap">{{ ts|fmt_dataora }}</span>
           {% endif %}
         </div>
         <div class="text-muted small mt-1">
@@ -40,7 +40,7 @@
         <div class="det-meta-expand d-none mt-2 p-2 bg-light rounded border small text-muted" style="line-height:1.9">
           {% if em.mittente %}<div><strong class="me-2">Da</strong>{{ em.mittente_nome or '' }} &lt;{{ em.mittente }}&gt;</div>{% endif %}
           {% if em.destinatari %}<div><strong class="me-2">A</strong>{{ em.destinatari }}</div>{% endif %}
-          {% set ts2 = em.timestamp %}{% if ts2 %}<div><strong class="me-2">Data</strong>{{ ts2[:16]|replace('T',' ') }}</div>{% endif %}
+          {% set ts2 = em.timestamp %}{% if ts2 %}<div><strong class="me-2">Data</strong>{{ ts2|fmt_dataora }}</div>{% endif %}
           {% if em.oggetto %}<div><strong class="me-2">Oggetto</strong>{{ em.oggetto }}</div>{% endif %}
           {% if em.message_id %}<div class="text-muted" style="font-size:.72rem"><strong class="me-2">Message-ID</strong>{{ em.message_id }}</div>{% endif %}
         </div>

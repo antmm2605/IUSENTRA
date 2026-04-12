@@ -263,7 +263,7 @@
           <tr>
             <th>Profilo</th>
             <th>Origine</th>
-            <th>Ultimo sync</th>
+                <th>Ultimo allineamento</th>
             <th>Esito</th>
             <th class="text-end">Azioni</th>
           </tr>
@@ -279,7 +279,7 @@
               <div class="small font-monospace text-break">{{ profilo.source_url }}</div>
             </td>
             <td>
-              <div class="small">{{ profilo.last_sync_at[:16]|replace('T', ' ') if profilo.last_sync_at else 'Mai' }}</div>
+              <div class="small">{{ profilo.last_sync_at|fmt_dataora if profilo.last_sync_at else 'Mai' }}</div>
               <div class="text-muted small">
                 C {{ profilo.last_created or 0 }} · A {{ profilo.last_updated or 0 }} · S {{ profilo.last_skipped or 0 }}
               </div>
@@ -300,7 +300,7 @@
               <div class="d-flex justify-content-end gap-2 flex-wrap">
                 <form method="post" action="{{ url_for('sync_profilo_calendario', profile_id=profilo.id) }}">
                   <button class="btn btn-sm btn-outline-primary" type="submit">
-                    <i class="bi bi-arrow-repeat me-1"></i>Sync ora
+                    <i class="bi bi-arrow-repeat me-1"></i>Sincronizza ora
                   </button>
                 </form>
                 <form method="post" action="{{ url_for('toggle_profilo_calendario', profile_id=profilo.id) }}">

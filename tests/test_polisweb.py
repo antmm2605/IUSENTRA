@@ -2738,8 +2738,8 @@ def test_route_wizard_acquisizione_portali_renderizza_step_guida(tmp_path):
             body = response.data.decode("utf-8")
             assert response.status_code == 200
             assert titolo in body
-            assert "Step 1" in body
-            assert "Step 7" in body
+            assert "Fase 1" in body
+            assert "Fase 7" in body
             assert "Riepilogo sempre visibile" in body
             assert "Importa ZIP, file o cartella gia scaricati" in body
             assert "awManualUploadFiles" in body
@@ -2748,7 +2748,7 @@ def test_route_wizard_acquisizione_portali_renderizza_step_guida(tmp_path):
         manual_body = manual_response.data.decode("utf-8")
         assert manual_response.status_code == 200
         assert "Importazione dei file gia scaricati" in manual_body
-        assert "Step 7 - Importazione finale" in manual_body
+        assert "Fase 7" in manual_body
 
 
 def test_route_wizard_acquisizione_portali_espone_fallback_manuale(tmp_path):

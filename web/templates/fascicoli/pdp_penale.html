@@ -84,7 +84,7 @@
     </div>
     <div class="small">
       {% if password_available %}La password e disponibile nel workflow.{% endif %}
-      {% if download_available_until %} I documenti risultano scaricabili fino a <strong>{{ download_available_until }}</strong>.{% endif %}
+      {% if download_available_until %} I documenti risultano scaricabili fino a <strong>{{ download_available_until|fmt_dataora }}</strong>.{% endif %}
     </div>
   </div>
   <a href="{{ url_for('portale_acquisizione_wizard', portale='pdp', id_fasc=fascicolo.id) }}" class="btn btn-sm btn-warning">
@@ -97,7 +97,7 @@
     <i class="bi bi-exclamation-octagon me-1"></i>Finestra download scaduta
   </div>
   <div class="small">
-    La disponibilita risultava aperta fino a {{ download_available_until }}. Conviene registrare una nuova richiesta o chiedere una nuova password.
+    La disponibilita risultava aperta fino a {{ download_available_until|fmt_dataora }}. Conviene registrare una nuova richiesta o chiedere una nuova password.
   </div>
 </div>
 {% elif active_case and password_available %}
@@ -169,7 +169,7 @@
           </div>
           {% if active_case.download_available_until %}
           <div class="mt-2 text-muted">
-            <i class="bi bi-clock-history me-1"></i>Finestra download: {{ active_case.download_available_until }}
+            <i class="bi bi-clock-history me-1"></i>Finestra download: {{ active_case.download_available_until|fmt_dataora }}
           </div>
           {% endif %}
         </div>
@@ -288,7 +288,7 @@
             </div>
             <div class="col-md-6">
               <label class="form-label fw-semibold">Download disponibile fino a</label>
-              <input type="text" name="download_available_until" class="form-control" value="{{ case_form.download_available_until or '' }}" placeholder="2026-04-12T18:00">
+              <input type="text" name="download_available_until" class="form-control" value="{{ case_form.download_available_until|fmt_dataora if case_form.download_available_until else '' }}" placeholder="12/04/2026 18:00">
             </div>
             <div class="col-12">
               <label class="form-label fw-semibold">Note operative</label>
@@ -432,7 +432,7 @@
                     </div>
                     <div class="col-md-6">
                       <label class="form-label small fw-semibold">Download fino a</label>
-                      <input type="text" name="download_available_until" class="form-control form-control-sm" placeholder="2026-04-12T18:00">
+                      <input type="text" name="download_available_until" class="form-control form-control-sm" placeholder="12/04/2026 18:00">
                     </div>
                     <div class="col-md-6 form-check mt-4 ms-2">
                       <input class="form-check-input" type="checkbox" name="payment_required" value="1" id="payment-required">
@@ -524,7 +524,7 @@
                     </div>
                     <div class="col-md-6">
                       <label class="form-label small fw-semibold">Download fino a</label>
-                      <input type="text" name="download_available_until" class="form-control form-control-sm" placeholder="2026-04-12T18:00">
+                      <input type="text" name="download_available_until" class="form-control form-control-sm" placeholder="12/04/2026 18:00">
                     </div>
                     <div class="col-12">
                       <label class="form-label small fw-semibold">Testo PEC</label>
@@ -650,7 +650,7 @@
                   {% if item.request_reference %} - Rif. {{ item.request_reference }}{% endif %}
                 </div>
                 {% if item.download_available_until %}
-                <div class="small text-muted">Download fino a {{ item.download_available_until }}</div>
+                <div class="small text-muted">Download fino a {{ item.download_available_until|fmt_dataora }}</div>
                 {% endif %}
               </div>
               {% if item.ministry_status %}
@@ -777,7 +777,7 @@
                 <div class="fw-semibold">{{ msg.subject }}</div>
                 <div class="small text-muted">
                   {{ msg.sender or 'mittente n.d.' }}
-                  {% if msg.received_at %} - {{ msg.received_at }}{% endif %}
+                  {% if msg.received_at %} - {{ msg.received_at|fmt_dataora }}{% endif %}
                 </div>
                 {% if msg.extracted_password %}
                 <div class="small">Password: <code>{{ msg.extracted_password }}</code></div>
@@ -805,7 +805,7 @@
 
 <div class="card shadow-sm mt-3">
   <div class="card-header fw-semibold">
-    <i class="bi bi-clock-history me-2 text-secondary"></i>Timeline operativa
+    <i class="bi bi-clock-history me-2 text-secondary"></i>Cronologia operativa
   </div>
   <div class="card-body">
     {% if events %}
@@ -823,13 +823,13 @@
             <div class="small mt-1">{{ event.description }}</div>
             {% endif %}
           </div>
-          <div class="text-muted small text-nowrap">{{ event.created_at }}</div>
+          <div class="text-muted small text-nowrap">{{ event.created_at|fmt_dataora }}</div>
         </div>
       </div>
       {% endfor %}
     </div>
     {% else %}
-    <div class="text-muted small">La timeline e vuota: i nuovi salvataggi del workflow PDP compariranno qui.</div>
+      <div class="text-muted small">La cronologia e vuota: i nuovi salvataggi del workflow PDP compariranno qui.</div>
     {% endif %}
   </div>
 </div>

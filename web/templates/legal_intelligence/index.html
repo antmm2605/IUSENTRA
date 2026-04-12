@@ -105,7 +105,7 @@ document.addEventListener('DOMContentLoaded', function() {
       </div>
       <div class="small text-muted mt-2">
         {% if snapshot.mediazione_registry.table.sync_status == 'sincronizzata' %}
-        {{ snapshot.mediazione_registry.total_rows }} organismi in cache | {{ snapshot.mediazione_registry.data_origin_label or 'cache interna' }} | ultimo sync {{ snapshot.mediazione_registry.table.last_synced_at[:16]|replace('T', ' ') if snapshot.mediazione_registry.table.last_synced_at else 'n/d' }}
+        {{ snapshot.mediazione_registry.total_rows }} organismi in cache | {{ snapshot.mediazione_registry.data_origin_label or 'cache interna' }} | ultimo allineamento {{ snapshot.mediazione_registry.table.last_synced_at|fmt_dataora if snapshot.mediazione_registry.table.last_synced_at else 'n/d' }}
         {% else %}
         Stato attuale: {{ snapshot.mediazione_registry.table.sync_status|replace('_', ' ') }}{% if snapshot.mediazione_registry.table.last_warning %} | {{ snapshot.mediazione_registry.table.last_warning }}{% endif %}
         {% endif %}
@@ -266,7 +266,7 @@ document.addEventListener('DOMContentLoaded', function() {
             </td>
             <td>
               {% if row.last_check %}
-              <span class="small">{{ row.last_check[:16]|replace('T', ' ') }}</span>
+              <span class="small">{{ row.last_check|fmt_dataora }}</span>
               <div class="small text-muted">{{ row.summary }}</div>
               {% else %}
               <span class="small text-muted">mai</span>
@@ -303,8 +303,8 @@ document.addEventListener('DOMContentLoaded', function() {
         il sistema ha rilevato una modifica nella fonte ufficiale corrispondente rispetto all'ultima acquisizione.
         I dati in uso sono quelli dell'ultimo seed valido (nessuna interruzione operativa).
         <strong>Cosa fare:</strong> verifica il contenuto aggiornato sulla fonte ufficiale indicata, poi clicca
-        <em>"Esegui sync"</em> per aggiornare e azzerare l'alert.
-        Il sync automatico giornaliero (ore 04:30) rieseguirà il controllo ogni notte.
+          <em>"Esegui sincronizzazione"</em> per aggiornare e azzerare l'alert.
+          La sincronizzazione automatica giornaliera (ore 04:30) rieseguira il controllo ogni notte.
       </div>
     </div>
     {% endif %}
@@ -317,9 +317,9 @@ document.addEventListener('DOMContentLoaded', function() {
             <th>
               Stato
               <i class="bi bi-question-circle text-muted ms-1" data-bs-toggle="tooltip"
-                 title="sincronizzata = OK aggiornata · verifica richiesta = fonte cambiata, dati seed ancora validi, eseguire sync per confermare · errore = fonte non raggiungibile"></i>
+                 title="sincronizzata = OK aggiornata · verifica richiesta = fonte cambiata, dati seed ancora validi, eseguire sincronizzazione per confermare · errore = fonte non raggiungibile"></i>
             </th>
-            <th>Ultimo sync</th>
+              <th>Ultimo allineamento</th>
             <th>Note / Warning</th>
           </tr>
         </thead>
@@ -339,7 +339,7 @@ document.addEventListener('DOMContentLoaded', function() {
               {% elif row.sync_status == 'verifica_richiesta' %}
               <span class="badge text-bg-warning"
                     data-bs-toggle="tooltip"
-                    title="La fonte ufficiale è cambiata dall'ultima acquisizione. I dati seed sono ancora validi. Esegui 'Sync normativo' per verificare e aggiornare.">
+                    title="La fonte ufficiale è cambiata dall'ultima acquisizione. I dati seed sono ancora validi. Esegui 'Sincronizza normativa' per verificare e aggiornare.">
                 <i class="bi bi-exclamation-triangle me-1"></i>verifica richiesta
               </span>
               {% else %}
@@ -352,7 +352,7 @@ document.addEventListener('DOMContentLoaded', function() {
             </td>
             <td class="small">
               {% if row.last_synced_at %}
-              {{ row.last_synced_at[:16]|replace('T', ' ') }}
+              {{ row.last_synced_at|fmt_dataora }}
               {% else %}
               <span class="text-muted">mai</span>
               {% endif %}
@@ -429,7 +429,7 @@ document.addEventListener('DOMContentLoaded', function() {
         <tbody>
           {% for trace in snapshot.recent_audits %}
           <tr>
-            <td class="small">{{ trace.created_at[:16]|replace('T', ' ') }}</td>
+            <td class="small">{{ trace.created_at|fmt_dataora }}</td>
             <td class="small">{{ trace.query }}</td>
             <td class="small">{{ trace.engine_ids|join(', ') }}</td>
             <td class="small">{{ trace.ai_model or 'n/d' }}</td>

@@ -418,7 +418,7 @@
       </div>
       <div class="collapse" id="collapse-sezione-attivita-processuali">
       <div class="card-body py-2 border-bottom bg-light-subtle small text-muted">
-        Timeline procedurale del fascicolo: passaggi, adempimenti operativi e storico delle lavorazioni, separata da udienze, scadenze e comunicazioni di cancelleria.
+        Cronologia procedurale del fascicolo: passaggi, adempimenti operativi e storico delle lavorazioni, separata da udienze, scadenze e comunicazioni di cancelleria.
       </div>
       <div class="card-body p-0">
         {% if WFS.attivita_processuali %}
@@ -749,7 +749,7 @@
               <div class="mt-1">
                 <span class="badge {{ _dep_cls }}"
                       style="font-size:.7rem"
-                      title="Deposito {{ doc.id_deposito_pct }}{% if _dep_obj %} — {{ _dep_obj.stato }} del {{ _dep_obj.timestamp[:10] }}{% endif %}">
+                      title="Deposito {{ doc.id_deposito_pct }}{% if _dep_obj %} — {{ _dep_obj.stato }} del {{ _dep_obj.timestamp|fmt_data }}{% endif %}">
                   <i class="bi {{ _dep_icon }} me-1"></i>{{ _dep_lbl }}
                   <span class="opacity-75 ms-1 font-monospace" style="font-size:.65rem">{{ doc.id_deposito_pct }}</span>
                 </span>
@@ -759,7 +759,7 @@
                 {% if '[wizard:' in doc.note %}
                   {% set step_raw = doc.note.split(':')[-1].split(']')[0] %}
                   {% if step_raw != 'indice' %}
-                  <div class="text-muted" style="font-size:.72rem">{{ step_raw|replace('step','Step ') }}</div>
+                  <div class="text-muted" style="font-size:.72rem">{{ step_raw|replace('step','Fase ') }}</div>
                   {% endif %}
                 {% else %}
                   <div class="text-muted" style="font-size:.72rem">{{ doc.note }}</div>
@@ -1308,7 +1308,7 @@
           <button class="btn btn-sm btn-outline-secondary" id="btnSyncPecCancelleria"
                   title="Sincronizza la casella PEC, aggiorna gli esiti del deposito e carica le comunicazioni di cancelleria"
                   onclick="_syncPecCancelleria(this)">
-            <i class="bi bi-envelope-arrow-down me-1"></i><span class="d-none d-sm-inline">Sync PEC</span>
+            <i class="bi bi-envelope-arrow-down me-1"></i><span class="d-none d-sm-inline">Sincronizza PEC</span>
           </button>
 
           <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal"
@@ -1418,7 +1418,7 @@
                         srcdoc="{{ att.email_html|e }}"></iframe>
                 {% else %}
                 <div class="alert alert-warning small mb-0">
-                  Corpo email non ancora disponibile in archivio locale. Esegui <strong>Sync PEC</strong> per completare le comunicazioni salvate in precedenza.
+                  Corpo email non ancora disponibile in archivio locale. Esegui <strong>Sincronizza PEC</strong> per completare le comunicazioni salvate in precedenza.
                 </div>
                 {% endif %}
               </div>
@@ -1488,7 +1488,7 @@
                     {% else %}{{ dep.stato }}{% endif %}
                   </span>
                   <span class="text-muted small font-monospace">{{ dep.id }}</span>
-                  <span class="text-muted small">{{ dep.timestamp[:10] }}</span>
+                  <span class="text-muted small">{{ dep.timestamp|fmt_data }}</span>
                 </div>
 
                 <div class="text-muted small mb-2">
@@ -2484,7 +2484,7 @@
                   </div>
                 </div>
                 {% else %}
-                <div class="list-group-item text-muted">Nessuno step configurato.</div>
+                <div class="list-group-item text-muted">Nessuna fase configurata.</div>
                 {% endfor %}
               </div>
               <div class="pt-3 border-top mt-3">

@@ -114,7 +114,7 @@
               </div>
               <div class="small tm-muted mb-3">
                 {% if card.last_sync_at %}
-                Ultimo allineamento: {{ (card.last_sync_at|replace('T', ' '))[:16] }}
+                Ultimo allineamento: {{ card.last_sync_at|fmt_dataora }}
                 {% else %}
                 Nessun allineamento ancora registrato.
                 {% endif %}
@@ -138,7 +138,7 @@
       <div class="tm-card-body">
         <div class="d-flex justify-content-between align-items-center gap-2 mb-3">
           <div>
-            <div class="small text-uppercase tm-muted fw-semibold">Timeline</div>
+            <div class="small text-uppercase tm-muted fw-semibold">Cronologia</div>
             <h2 class="h5 mb-0">Attività telematiche recenti</h2>
           </div>
           <span class="badge text-bg-light border">{{ recent_events|length }} eventi</span>
@@ -149,7 +149,7 @@
             <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
               <div>
                 <div class="fw-semibold">{{ row.title }}</div>
-                <div class="small tm-muted">{{ row.service_code|replace('_', ' ')|title }} · {{ (row.created_at|replace('T', ' '))[:16] }}</div>
+                <div class="small tm-muted">{{ row.service_code|replace('_', ' ')|title }} · {{ row.created_at|fmt_dataora }}</div>
                 {% if row.description %}
                 <div class="small mt-2">{{ row.description }}</div>
                 {% endif %}
@@ -205,7 +205,7 @@
             </div>
             <div class="text-end">
               <div class="small tm-muted mb-2">
-                {% if row.last_sync_at %}Sync {{ (row.last_sync_at|replace('T', ' '))[:16] }}{% endif %}
+                {% if row.last_sync_at %}Allineato il {{ row.last_sync_at|fmt_dataora }}{% endif %}
               </div>
               {% if row.practice_url %}
               <a href="{{ row.practice_url }}" class="btn btn-outline-primary btn-sm">

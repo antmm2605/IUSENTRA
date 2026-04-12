@@ -2797,3 +2797,207 @@ tr[data-swipe-delete] {
   .ds-stat-card-value { color: #f1f5f9; }
   .ds-stat-card-label { color: #94a3b8; }
 }
+
+
+/* ================================================================
+   STATISTICHE STUDIO — Design system cards & charts
+   ================================================================ */
+
+/* ── KPI Card ── */
+.stat-kpi-card {
+  --kpi-color: #1a3a5c;
+  background: var(--ds-surface, #fff);
+  border: 1px solid var(--ds-border, #e2e8f0);
+  border-radius: 12px;
+  padding: .75rem .65rem;
+  text-align: center;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+  transition: box-shadow .15s, transform .12s;
+}
+.stat-kpi-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: var(--kpi-color);
+  border-radius: 12px 12px 0 0;
+}
+.stat-kpi-card:hover {
+  box-shadow: 0 4px 16px rgba(0,0,0,.08);
+  transform: translateY(-1px);
+}
+.stat-kpi-icon {
+  font-size: 1.3rem;
+  color: var(--kpi-color);
+  margin-bottom: .2rem;
+}
+.stat-kpi-val {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--ds-text, #0f172a);
+  line-height: 1.3;
+}
+.stat-kpi-label {
+  font-size: .65rem;
+  color: var(--ds-muted, #64748b);
+  text-transform: uppercase;
+  letter-spacing: .03em;
+  font-weight: 500;
+  margin-top: .1rem;
+}
+
+/* ── Produttivita Card ── */
+.stat-prod-card {
+  display: flex;
+  align-items: center;
+  gap: .65rem;
+  background: var(--ds-surface, #fff);
+  border: 1px solid var(--ds-border, #e2e8f0);
+  border-radius: 12px;
+  padding: .65rem .85rem;
+  height: 100%;
+}
+.stat-prod-icon { font-size: 1.4rem; flex-shrink: 0; }
+.stat-prod-body { flex: 1; min-width: 0; }
+.stat-prod-val { font-size: 1.1rem; font-weight: 700; color: var(--ds-text, #0f172a); }
+.stat-prod-label {
+  font-size: .68rem;
+  color: var(--ds-muted, #64748b);
+  text-transform: uppercase;
+  letter-spacing: .03em;
+}
+
+/* ── Chart Card ── */
+.stat-chart-card {
+  background: var(--ds-surface, #fff);
+  border: 1px solid var(--ds-border, #e2e8f0);
+  border-radius: 12px;
+  overflow: hidden;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+.stat-chart-header {
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+  padding: .6rem .85rem;
+  font-size: .78rem;
+  font-weight: 600;
+  color: var(--ds-text, #0f172a);
+  border-bottom: 1px solid var(--ds-border, #e2e8f0);
+}
+.stat-chart-header i { font-size: .9rem; }
+.stat-chart-body {
+  flex: 1;
+  padding: .65rem;
+  position: relative;
+  min-height: 220px;
+}
+.stat-chart-body-sm { min-height: 200px; }
+
+/* Empty state per charts */
+.stat-chart-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1rem;
+  color: var(--ds-muted, #94a3b8);
+  gap: .5rem;
+  text-align: center;
+}
+.stat-chart-empty i { font-size: 2rem; opacity: .5; }
+.stat-chart-empty span { font-size: .78rem; }
+
+/* ── Export grid ── */
+.stat-export-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .4rem;
+  padding: .65rem .85rem;
+}
+.stat-export-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  padding: .35rem .75rem;
+  font-size: .76rem;
+  font-weight: 500;
+  border: 1px solid rgba(37,99,235,.25);
+  border-radius: 8px;
+  color: #2563eb;
+  background: rgba(37,99,235,.04);
+  text-decoration: none;
+  transition: all .15s;
+}
+.stat-export-btn:hover {
+  background: rgba(37,99,235,.1);
+  color: #1d4ed8;
+  border-color: rgba(37,99,235,.4);
+}
+.stat-export-btn i { font-size: .85rem; }
+.stat-export-btn-success {
+  color: #16a34a;
+  border-color: rgba(22,163,74,.25);
+  background: rgba(22,163,74,.04);
+}
+.stat-export-btn-success:hover {
+  background: rgba(22,163,74,.1);
+  color: #15803d;
+  border-color: rgba(22,163,74,.4);
+}
+.stat-export-btn-muted {
+  color: #64748b;
+  border-color: rgba(100,116,139,.25);
+  background: rgba(100,116,139,.04);
+}
+.stat-export-btn-muted:hover {
+  background: rgba(100,116,139,.1);
+  color: #475569;
+  border-color: rgba(100,116,139,.4);
+}
+
+/* ── Responsive — Tablet ── */
+@media (min-width: 768px) and (max-width: 991.98px) {
+  .stat-kpi-card { padding: .6rem .5rem; }
+  .stat-kpi-icon { font-size: 1.1rem; }
+  .stat-kpi-val { font-size: .95rem; }
+  .stat-chart-body { min-height: 180px; }
+  .stat-chart-body-sm { min-height: 170px; }
+}
+
+/* ── Responsive — Mobile ── */
+@media (max-width: 575px) {
+  .stat-kpi-card { padding: .55rem .4rem; border-radius: 10px; }
+  .stat-kpi-icon { font-size: 1rem; margin-bottom: .1rem; }
+  .stat-kpi-val { font-size: .88rem; }
+  .stat-kpi-label { font-size: .58rem; }
+  .stat-prod-card { padding: .5rem .65rem; border-radius: 10px; }
+  .stat-prod-icon { font-size: 1.2rem; }
+  .stat-prod-val { font-size: .95rem; }
+  .stat-prod-label { font-size: .6rem; }
+  .stat-chart-card { border-radius: 10px; }
+  .stat-chart-header { padding: .5rem .65rem; font-size: .74rem; }
+  .stat-chart-body { padding: .4rem; min-height: 180px; }
+  .stat-chart-body-sm { min-height: 160px; }
+  .stat-export-grid { padding: .5rem .65rem; }
+  .stat-export-btn { padding: .3rem .55rem; font-size: .7rem; }
+}
+
+/* ── Dark mode ── */
+[data-bs-theme="dark"] {
+  .stat-kpi-card { background: #1e293b; border-color: #334155; }
+  .stat-kpi-val { color: #f1f5f9; }
+  .stat-prod-card { background: #1e293b; border-color: #334155; }
+  .stat-prod-val { color: #f1f5f9; }
+  .stat-chart-card { background: #1e293b; border-color: #334155; }
+  .stat-chart-header { color: #e2e8f0; border-bottom-color: #334155; }
+  .stat-chart-empty { color: #64748b; }
+  .stat-export-btn { color: #60a5fa; border-color: rgba(96,165,250,.2); background: rgba(96,165,250,.06); }
+  .stat-export-btn:hover { background: rgba(96,165,250,.12); color: #93bbfd; }
+  .stat-export-btn-success { color: #4ade80; border-color: rgba(74,222,128,.2); background: rgba(74,222,128,.06); }
+  .stat-export-btn-muted { color: #94a3b8; border-color: rgba(148,163,184,.2); background: rgba(148,163,184,.06); }
+}

@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Statistiche Studio{% endblock %}
+{% block pct_modulo %}statistiche{% endblock %}
 
 {% block content %}
 
@@ -8,256 +9,453 @@
   <div class="ds-ph-icon"><i class="bi bi-bar-chart-line"></i></div>
   <div class="ds-ph-body">
     <h1 class="ds-ph-title">Statistiche Studio</h1>
-    <p class="ds-ph-sub" id="anno-label">Caricamento...</p>
+    <p class="ds-ph-sub" id="anno-label">Anno {{ oggi.year }}</p>
+  </div>
+  <div class="ds-ph-actions">
+    <button class="ds-btn ds-btn-outline" onclick="ricaricaTutto()" title="Ricarica dati">
+      <i class="bi bi-arrow-clockwise"></i>
+    </button>
   </div>
 </div>
 
-<!-- KPI cards -->
-<div class="row g-3 mb-4" id="kpi-cards">
-  {% for _ in range(6) %}
-  <div class="col-6 col-md-4 col-lg-2">
-    <div class="card border-0 shadow-sm h-100 text-center py-3" style="border-radius:14px;">
-      <div class="placeholder-glow"><span class="placeholder col-6"></span></div>
+{# ── KPI Cards ── #}
+<div class="row g-2 mb-3" id="kpi-cards">
+  {% for _ in range(8) %}
+  <div class="col-6 col-sm-4 col-lg-3 col-xl">
+    <div class="stat-kpi-card placeholder-glow">
+      <span class="placeholder col-6"></span>
     </div>
   </div>
   {% endfor %}
 </div>
 
-<!-- Grafici riga 1 -->
-<div class="row g-4 mb-4">
+{# ── Produttivita pills ── #}
+<div class="row g-2 mb-3" id="produttivita-row" style="display:none">
+  <div class="col-sm-4">
+    <div class="stat-prod-card">
+      <div class="stat-prod-icon" style="color:#2563eb"><i class="bi bi-stopwatch"></i></div>
+      <div class="stat-prod-body">
+        <div class="stat-prod-val" id="prod-durata">--</div>
+        <div class="stat-prod-label">Durata media fascicoli</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-sm-4">
+    <div class="stat-prod-card">
+      <div class="stat-prod-icon" style="color:#16a34a"><i class="bi bi-check2-circle"></i></div>
+      <div class="stat-prod-body">
+        <div class="stat-prod-val" id="prod-chiusura">--</div>
+        <div class="stat-prod-label">Tasso chiusura fascicoli</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-sm-4">
+    <div class="stat-prod-card">
+      <div class="stat-prod-icon" style="color:#c8972b"><i class="bi bi-calendar-check"></i></div>
+      <div class="stat-prod-body">
+        <div class="stat-prod-val" id="prod-scadenze">--</div>
+        <div class="stat-prod-label">Scadenze rispettate</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{# ── Grafici riga 1: Fatturato (large) + Fascicoli tipo (small) ── #}
+<div class="row g-3 mb-3">
   <div class="col-lg-8">
-    <div class="card border-0 shadow-sm h-100" style="border-radius:16px;">
-      <div class="card-body">
-        <div class="fw-semibold mb-3" style="font-size:.88rem;">
-          <i class="bi bi-graph-up me-2 text-primary"></i>Fatturato mensile (anno corrente)
-        </div>
-        <canvas id="chart-fatturato" height="220"></canvas>
+    <div class="stat-chart-card">
+      <div class="stat-chart-header">
+        <i class="bi bi-graph-up text-primary"></i>
+        <span>Fatturato mensile ({{ oggi.year }})</span>
+      </div>
+      <div class="stat-chart-body">
+        <canvas id="chart-fatturato"></canvas>
+      </div>
+      <div class="stat-chart-empty d-none" id="empty-fatturato">
+        <i class="bi bi-receipt"></i>
+        <span>Nessuna parcella emessa quest'anno</span>
       </div>
     </div>
   </div>
   <div class="col-lg-4">
-    <div class="card border-0 shadow-sm h-100" style="border-radius:16px;">
-      <div class="card-body">
-        <div class="fw-semibold mb-3" style="font-size:.88rem;">
-          <i class="bi bi-folder2 me-2 text-primary"></i>Fascicoli per tipo
-        </div>
-        <canvas id="chart-fascicoli-tipo" height="220"></canvas>
+    <div class="stat-chart-card">
+      <div class="stat-chart-header">
+        <i class="bi bi-folder2 text-primary"></i>
+        <span>Fascicoli per tipo</span>
+      </div>
+      <div class="stat-chart-body stat-chart-body-sm">
+        <canvas id="chart-fascicoli-tipo"></canvas>
+      </div>
+      <div class="stat-chart-empty d-none" id="empty-fascicoli-tipo">
+        <i class="bi bi-folder-x"></i>
+        <span>Nessun fascicolo</span>
       </div>
     </div>
   </div>
 </div>
 
-<!-- Grafici riga 2 -->
-<div class="row g-4 mb-4">
-  <div class="col-md-4">
-    <div class="card border-0 shadow-sm h-100" style="border-radius:16px;">
-      <div class="card-body">
-        <div class="fw-semibold mb-3" style="font-size:.88rem;">
-          <i class="bi bi-people me-2 text-primary"></i>Nuovi clienti per mese
-        </div>
-        <canvas id="chart-clienti" height="200"></canvas>
+{# ── Grafici riga 2: Clienti + Scadenze + Appuntamenti ── #}
+<div class="row g-3 mb-3">
+  <div class="col-md-6 col-lg-4">
+    <div class="stat-chart-card">
+      <div class="stat-chart-header">
+        <i class="bi bi-people text-primary"></i>
+        <span>Nuovi clienti per mese</span>
+      </div>
+      <div class="stat-chart-body stat-chart-body-sm">
+        <canvas id="chart-clienti"></canvas>
+      </div>
+      <div class="stat-chart-empty d-none" id="empty-clienti">
+        <i class="bi bi-person-x"></i>
+        <span>Nessun nuovo cliente quest'anno</span>
       </div>
     </div>
   </div>
-  <div class="col-md-4">
-    <div class="card border-0 shadow-sm h-100" style="border-radius:16px;">
-      <div class="card-body">
-        <div class="fw-semibold mb-3" style="font-size:.88rem;">
-          <i class="bi bi-clock-history me-2 text-primary"></i>Scadenze per priorità
-        </div>
-        <canvas id="chart-scadenze" height="200"></canvas>
+  <div class="col-md-6 col-lg-4">
+    <div class="stat-chart-card">
+      <div class="stat-chart-header">
+        <i class="bi bi-clock-history text-primary"></i>
+        <span>Scadenze per priorita</span>
+      </div>
+      <div class="stat-chart-body stat-chart-body-sm">
+        <canvas id="chart-scadenze"></canvas>
+      </div>
+      <div class="stat-chart-empty d-none" id="empty-scadenze">
+        <i class="bi bi-clock"></i>
+        <span>Nessuna scadenza</span>
       </div>
     </div>
   </div>
-  <div class="col-md-4">
-    <div class="card border-0 shadow-sm h-100" style="border-radius:16px;">
-      <div class="card-body">
-        <div class="fw-semibold mb-3" style="font-size:.88rem;">
-          <i class="bi bi-calendar-event me-2 text-primary"></i>Appuntamenti per tipo
-        </div>
-        <canvas id="chart-appuntamenti" height="200"></canvas>
+  <div class="col-md-6 col-lg-4">
+    <div class="stat-chart-card">
+      <div class="stat-chart-header">
+        <i class="bi bi-calendar-event text-primary"></i>
+        <span>Appuntamenti per tipo</span>
+      </div>
+      <div class="stat-chart-body stat-chart-body-sm">
+        <canvas id="chart-appuntamenti"></canvas>
+      </div>
+      <div class="stat-chart-empty d-none" id="empty-appuntamenti">
+        <i class="bi bi-calendar-x"></i>
+        <span>Nessun appuntamento quest'anno</span>
       </div>
     </div>
   </div>
 </div>
 
-<!-- Fascicoli per stato -->
-<div class="row g-4">
-  <div class="col-md-6">
-    <div class="card border-0 shadow-sm" style="border-radius:16px;">
-      <div class="card-body">
-        <div class="fw-semibold mb-3" style="font-size:.88rem;">
-          <i class="bi bi-pie-chart me-2 text-primary"></i>Fascicoli per stato
-        </div>
-        <canvas id="chart-fascicoli-stato" height="200"></canvas>
+{# ── Grafici riga 3: Fascicoli stato + Depositi trend ── #}
+<div class="row g-3 mb-3">
+  <div class="col-md-6 col-lg-4">
+    <div class="stat-chart-card">
+      <div class="stat-chart-header">
+        <i class="bi bi-pie-chart text-primary"></i>
+        <span>Fascicoli per stato</span>
+      </div>
+      <div class="stat-chart-body stat-chart-body-sm">
+        <canvas id="chart-fascicoli-stato"></canvas>
+      </div>
+      <div class="stat-chart-empty d-none" id="empty-fascicoli-stato">
+        <i class="bi bi-folder-x"></i>
+        <span>Nessun fascicolo</span>
       </div>
     </div>
   </div>
-  <div class="col-md-6">
-    <div class="card border-0 shadow-sm" style="border-radius:16px;" id="card-export">
-      <div class="card-body">
-        <div class="fw-semibold mb-3" style="font-size:.88rem;">
-          <i class="bi bi-download me-2 text-primary"></i>Export dati
-        </div>
-        <div class="d-flex flex-column gap-2">
-          <a href="/export/clienti.csv" class="btn btn-outline-primary btn-sm">
-            <i class="bi bi-people me-2"></i>Clienti CSV
-          </a>
-          <a href="/export/fascicoli.csv" class="btn btn-outline-primary btn-sm">
-            <i class="bi bi-folder2 me-2"></i>Fascicoli CSV
-          </a>
-          <a href="/export/agenda.csv" class="btn btn-outline-primary btn-sm">
-            <i class="bi bi-calendar-event me-2"></i>Agenda CSV
-          </a>
-          <a href="/export/scadenze.csv" class="btn btn-outline-primary btn-sm">
-            <i class="bi bi-clock-history me-2"></i>Scadenze CSV
-          </a>
-          <a href="/export/fatturazione.csv" class="btn btn-outline-success btn-sm">
-            <i class="bi bi-receipt me-2"></i>Parcelle CSV
-          </a>
-          <a href="/agenda/export.ics" class="btn btn-outline-secondary btn-sm">
-            <i class="bi bi-calendar-check me-2"></i>Agenda iCal (.ics)
-          </a>
-          <a href="/scadenziario/export.ics" class="btn btn-outline-secondary btn-sm">
-            <i class="bi bi-calendar-x me-2"></i>Scadenze iCal (.ics)
-          </a>
-        </div>
+  <div class="col-md-6 col-lg-8">
+    <div class="stat-chart-card">
+      <div class="stat-chart-header">
+        <i class="bi bi-send text-primary"></i>
+        <span>Depositi telematici ({{ oggi.year }})</span>
+      </div>
+      <div class="stat-chart-body">
+        <canvas id="chart-depositi"></canvas>
+      </div>
+      <div class="stat-chart-empty d-none" id="empty-depositi">
+        <i class="bi bi-send-x"></i>
+        <span>Nessun deposito telematico quest'anno</span>
       </div>
     </div>
   </div>
 </div>
+
+{# ── Export dati ── #}
+<div class="stat-chart-card mb-3">
+  <div class="stat-chart-header">
+    <i class="bi bi-download text-primary"></i>
+    <span>Export dati</span>
+  </div>
+  <div class="stat-export-grid">
+    <a href="/export/clienti.csv" class="stat-export-btn">
+      <i class="bi bi-people"></i>Clienti CSV
+    </a>
+    <a href="/export/fascicoli.csv" class="stat-export-btn">
+      <i class="bi bi-folder2"></i>Fascicoli CSV
+    </a>
+    <a href="/export/agenda.csv" class="stat-export-btn">
+      <i class="bi bi-calendar-event"></i>Agenda CSV
+    </a>
+    <a href="/export/scadenze.csv" class="stat-export-btn">
+      <i class="bi bi-clock-history"></i>Scadenze CSV
+    </a>
+    <a href="/export/fatturazione.csv" class="stat-export-btn stat-export-btn-success">
+      <i class="bi bi-receipt"></i>Parcelle CSV
+    </a>
+    <a href="/agenda/export.ics" class="stat-export-btn stat-export-btn-muted">
+      <i class="bi bi-calendar-check"></i>Agenda iCal
+    </a>
+    <a href="/scadenziario/export.ics" class="stat-export-btn stat-export-btn-muted">
+      <i class="bi bi-calendar-x"></i>Scadenze iCal
+    </a>
+  </div>
+</div>
+
 {% endblock %}
 
 {% block extra_scripts %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <script>
+(function() {
+'use strict';
+
 const PRIMARY  = '#1a3a5c';
 const ACCENT   = '#c8972b';
-const PALETTE  = ['#1a3a5c','#c8972b','#2563eb','#16a34a','#dc2626','#7c3aed','#0891b2','#ea580c'];
-const PALETTE_LIGHT = PALETTE.map(c => c + '99');
+const PALETTE  = ['#1a3a5c','#c8972b','#2563eb','#16a34a','#dc2626','#7c3aed','#0891b2','#ea580c','#6366f1','#059669'];
 
 Chart.defaults.font.family = "'Inter', system-ui, sans-serif";
 Chart.defaults.font.size = 11;
+Chart.defaults.plugins.legend.labels.usePointStyle = true;
+Chart.defaults.plugins.legend.labels.pointStyleWidth = 8;
+Chart.defaults.plugins.legend.labels.padding = 12;
+Chart.defaults.maintainAspectRatio = false;
 
+/* ── Fetch con error handling robusto ── */
 async function fetchJSON(url) {
-  const r = await fetch(url);
-  return r.json();
+  try {
+    const r = await fetch(url);
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    return await r.json();
+  } catch (e) {
+    console.warn(`[Statistiche] Errore fetch ${url}:`, e);
+    return null;
+  }
 }
 
-// KPI cards
+/* ── Formattazione valuta ── */
+function eur(v) { return '€ ' + (v||0).toLocaleString('it-IT', {minimumFractionDigits:0, maximumFractionDigits:0}); }
+
+/* ── Show empty state se nessun dato ── */
+function checkEmpty(id, data) {
+  const el = document.getElementById('empty-' + id);
+  const canvas = document.getElementById('chart-' + id);
+  if (!el || !canvas) return false;
+  const hasData = data && data.data && data.data.some(v => v > 0);
+  if (!hasData) {
+    canvas.style.display = 'none';
+    el.classList.remove('d-none');
+    return true;
+  }
+  return false;
+}
+
+function checkEmptyMulti(id, datasets) {
+  const el = document.getElementById('empty-' + id);
+  const canvas = document.getElementById('chart-' + id);
+  if (!el || !canvas) return false;
+  const hasData = datasets.some(ds => ds.some(v => v > 0));
+  if (!hasData) {
+    canvas.style.display = 'none';
+    el.classList.remove('d-none');
+    return true;
+  }
+  return false;
+}
+
+/* ═══════════════════════ KPI CARDS ═══════════════════════ */
 async function caricaKPI() {
   const data = await fetchJSON('/statistiche/api/riepilogo');
-  const anno = new Date().getFullYear();
-  document.getElementById('anno-label').textContent = `Anno ${anno}`;
+  if (!data) {
+    document.getElementById('kpi-cards').innerHTML =
+      '<div class="col-12"><div class="alert alert-warning py-2 mb-0" style="font-size:.82rem"><i class="bi bi-exclamation-triangle me-2"></i>Impossibile caricare le statistiche. Riprova.</div></div>';
+    return;
+  }
+
   const kpi = [
-    { label: 'Clienti totali',     valore: data.clienti?.totale || 0,         icon: 'bi-people-fill',      color: PRIMARY },
-    { label: 'Fascicoli aperti',   valore: data.fascicoli?.aperti || 0,        icon: 'bi-folder2-open',     color: '#2563eb' },
-    { label: 'Fatturato lordo',    valore: '€ ' + (data.fatturato?.fatturato_lordo||0).toLocaleString('it'), icon: 'bi-receipt', color: '#16a34a' },
-    { label: 'Da incassare',       valore: '€ ' + (data.fatturato?.da_incassare||0).toLocaleString('it'),    icon: 'bi-clock',   color: ACCENT },
-    { label: 'App. oggi',          valore: data.oggi?.appuntamenti || 0,        icon: 'bi-calendar-check',  color: '#7c3aed' },
-    { label: 'Scadenze urgenti',   valore: data.scadenze?.critiche || data.scadenze?.scadute || 0, icon: 'bi-exclamation-triangle', color: '#dc2626' },
+    { label: 'Clienti totali',   val: data.clienti?.totale || 0,          icon: 'bi-people-fill',           color: PRIMARY },
+    { label: 'Fascicoli attivi', val: data.fascicoli?.attivi || data.fascicoli?.aperti || 0, icon: 'bi-folder2-open', color: '#2563eb' },
+    { label: 'Fatturato lordo',  val: eur(data.fatturato?.fatturato_lordo),icon: 'bi-cash-stack',            color: '#16a34a' },
+    { label: 'Da incassare',     val: eur(data.fatturato?.da_incassare),   icon: 'bi-hourglass-split',       color: ACCENT },
+    { label: 'Incassato',        val: eur(data.fatturato?.incassato),      icon: 'bi-check2-circle',         color: '#059669' },
+    { label: 'App. oggi',        val: data.oggi?.appuntamenti || 0,        icon: 'bi-calendar-check',        color: '#7c3aed' },
+    { label: 'Scadenze aperte',  val: data.scadenze?.aperte || 0,         icon: 'bi-clock-history',         color: '#ea580c' },
+    { label: 'Scadenze urgenti', val: data.scadenze?.critiche || data.scadenze?.scadute || 0, icon: 'bi-exclamation-triangle-fill', color: '#dc2626' },
   ];
+
   document.getElementById('kpi-cards').innerHTML = kpi.map(k => `
-    <div class="col-6 col-md-4 col-lg-2">
-      <div class="card border-0 shadow-sm h-100 text-center py-3" style="border-radius:14px; border-top:3px solid ${k.color}!important;">
-        <i class="bi ${k.icon} fs-4 mb-1" style="color:${k.color}"></i>
-        <div class="fw-bold" style="font-size:1.05rem;">${k.valore}</div>
-        <div class="text-muted" style="font-size:.7rem;">${k.label}</div>
+    <div class="col-6 col-sm-4 col-lg-3 col-xl">
+      <div class="stat-kpi-card" style="--kpi-color:${k.color}">
+        <div class="stat-kpi-icon"><i class="bi ${k.icon}"></i></div>
+        <div class="stat-kpi-val">${k.val}</div>
+        <div class="stat-kpi-label">${k.label}</div>
       </div>
     </div>`).join('');
 }
 
-// Chart: fatturato mensile (bar + line)
+/* ═══════════════════════ PRODUTTIVITA ═══════════════════════ */
+async function caricaProduttivita() {
+  const data = await fetchJSON('/statistiche/api/produttivita');
+  if (!data) return;
+  document.getElementById('produttivita-row').style.display = '';
+  document.getElementById('prod-durata').textContent = data.durata_media_gg + ' gg';
+  document.getElementById('prod-chiusura').textContent = data.tasso_chiusura_pct + '%';
+  document.getElementById('prod-scadenze').textContent = data.tasso_scadenze_rispettate_pct + '%';
+}
+
+/* ═══════════════════════ CHARTS ═══════════════════════ */
+
 async function chartFatturato() {
   const data = await fetchJSON('/statistiche/api/fatturato-mensile');
+  if (!data) return;
+  if (checkEmptyMulti('fatturato', [data.fatturato, data.incassato])) return;
   new Chart(document.getElementById('chart-fatturato'), {
     type: 'bar',
     data: {
       labels: data.labels,
       datasets: [
-        { label: 'Fatturato', data: data.fatturato, backgroundColor: PRIMARY + 'cc', borderRadius: 4 },
-        { label: 'Incassato', data: data.incassato,  type: 'line', borderColor: ACCENT,
-          backgroundColor: ACCENT + '22', fill: true, tension: 0.4, pointRadius: 4,
+        { label: 'Fatturato', data: data.fatturato, backgroundColor: PRIMARY + 'cc',
+          borderRadius: 4, barPercentage: 0.7 },
+        { label: 'Incassato', data: data.incassato, type: 'line', borderColor: ACCENT,
+          backgroundColor: ACCENT + '18', fill: true, tension: 0.4, pointRadius: 3,
           borderWidth: 2, pointBackgroundColor: ACCENT },
       ]
     },
-    options: { responsive: true, plugins: { legend: { position: 'top' } },
-               scales: { y: { ticks: { callback: v => '€' + v.toLocaleString('it') } } } }
+    options: {
+      responsive: true,
+      plugins: { legend: { position: 'top' } },
+      scales: { y: { ticks: { callback: v => '€' + v.toLocaleString('it') }, beginAtZero: true } }
+    }
   });
 }
 
-// Chart: fascicoli per tipo (doughnut)
 async function chartFascicoliTipo() {
   const data = await fetchJSON('/statistiche/api/fascicoli-per-tipo');
+  if (!data || checkEmpty('fascicoli-tipo', data)) return;
   new Chart(document.getElementById('chart-fascicoli-tipo'), {
     type: 'doughnut',
     data: { labels: data.labels, datasets: [{ data: data.data,
-            backgroundColor: PALETTE, borderWidth: 2 }] },
-    options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+            backgroundColor: PALETTE.slice(0, data.labels.length), borderWidth: 1 }] },
+    options: { responsive: true, cutout: '55%',
+               plugins: { legend: { position: 'bottom', labels: { font: { size: 10 } } } } }
   });
 }
 
-// Chart: clienti per mese (bar)
 async function chartClienti() {
   const data = await fetchJSON('/statistiche/api/clienti-per-mese');
+  if (!data || checkEmpty('clienti', data)) return;
   new Chart(document.getElementById('chart-clienti'), {
     type: 'bar',
     data: { labels: data.labels, datasets: [{ label: 'Nuovi clienti',
-            data: data.data, backgroundColor: '#2563eb99', borderRadius: 4 }] },
+            data: data.data, backgroundColor: '#2563eb88', borderRadius: 3, barPercentage: 0.6 }] },
     options: { responsive: true, plugins: { legend: { display: false } },
-               scales: { y: { ticks: { precision: 0 } } } }
+               scales: { y: { ticks: { precision: 0 }, beginAtZero: true } } }
   });
 }
 
-// Chart: scadenze per priorità (pie)
 async function chartScadenze() {
   const data = await fetchJSON('/statistiche/api/scadenze-per-priorita');
+  if (!data || checkEmpty('scadenze', data)) return;
   const colori = { CRITICA: '#dc2626', ALTA: '#ea580c', MEDIA: ACCENT, BASSA: '#6b7280' };
-  const bg = data.labels.map(l => colori[l] || PALETTE[0]);
+  const bg = data.labels.map(l => colori[l] || PALETTE[2]);
   new Chart(document.getElementById('chart-scadenze'), {
-    type: 'pie',
+    type: 'doughnut',
     data: { labels: data.labels, datasets: [{ data: data.data,
-            backgroundColor: bg, borderWidth: 2 }] },
-    options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+            backgroundColor: bg, borderWidth: 1 }] },
+    options: { responsive: true, cutout: '50%',
+               plugins: { legend: { position: 'bottom', labels: { font: { size: 10 } } } } }
   });
 }
 
-// Chart: appuntamenti per tipo (horizontal bar)
 async function chartAppuntamenti() {
   const data = await fetchJSON('/statistiche/api/appuntamenti-per-tipo');
+  if (!data || checkEmpty('appuntamenti', data)) return;
   new Chart(document.getElementById('chart-appuntamenti'), {
     type: 'bar',
-    data: { labels: data.labels, datasets: [{ label: 'N°',
-            data: data.data, backgroundColor: '#7c3aed99', borderRadius: 4 }] },
+    data: { labels: data.labels, datasets: [{ label: 'N.',
+            data: data.data, backgroundColor: '#7c3aed88', borderRadius: 3, barPercentage: 0.6 }] },
     options: { indexAxis: 'y', responsive: true,
                plugins: { legend: { display: false } },
-               scales: { x: { ticks: { precision: 0 } } } }
+               scales: { x: { ticks: { precision: 0 }, beginAtZero: true } } }
   });
 }
 
-// Chart: fascicoli per stato (doughnut)
 async function chartFascicoliStato() {
   const data = await fetchJSON('/statistiche/api/fascicoli-per-stato');
-  const colori = { APERTO: '#2563eb', CHIUSO: '#6b7280', ARCHIVIATO: '#94a3b8',
-                   SOSPESO: ACCENT, URGENTE: '#dc2626' };
+  if (!data || checkEmpty('fascicoli-stato', data)) return;
+  const colori = { APERTO: '#2563eb', IN_CORSO: '#0891b2', CHIUSO: '#6b7280',
+                   ARCHIVIATO: '#94a3b8', SOSPESO: ACCENT, URGENTE: '#dc2626',
+                   DEFINITO: '#16a34a' };
   const bg = data.labels.map(l => colori[l] || PALETTE[2]);
   new Chart(document.getElementById('chart-fascicoli-stato'), {
     type: 'doughnut',
     data: { labels: data.labels, datasets: [{ data: data.data,
-            backgroundColor: bg, borderWidth: 2 }] },
-    options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+            backgroundColor: bg, borderWidth: 1 }] },
+    options: { responsive: true, cutout: '50%',
+               plugins: { legend: { position: 'bottom', labels: { font: { size: 10 } } } } }
   });
 }
 
-// Carica tutto
-Promise.all([
-  caricaKPI(),
-  chartFatturato(),
-  chartFascicoliTipo(),
-  chartClienti(),
-  chartScadenze(),
-  chartAppuntamenti(),
-  chartFascicoliStato(),
-]).catch(console.error);
+async function chartDepositi() {
+  const data = await fetchJSON('/statistiche/api/depositi-trend');
+  if (!data) return;
+  if (checkEmptyMulti('depositi', [data.depositi, data.accettati, data.rifiutati])) return;
+  new Chart(document.getElementById('chart-depositi'), {
+    type: 'bar',
+    data: {
+      labels: data.labels,
+      datasets: [
+        { label: 'Depositati', data: data.depositi, backgroundColor: '#2563ebaa', borderRadius: 3, barPercentage: 0.7 },
+        { label: 'Accettati',  data: data.accettati, backgroundColor: '#16a34aaa', borderRadius: 3, barPercentage: 0.7 },
+        { label: 'Rifiutati',  data: data.rifiutati, backgroundColor: '#dc2626aa', borderRadius: 3, barPercentage: 0.7 },
+      ]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { position: 'top' } },
+      scales: { y: { ticks: { precision: 0 }, beginAtZero: true } }
+    }
+  });
+}
+
+/* ═══════════════════════ INIT ═══════════════════════ */
+function caricaTutto() {
+  Promise.allSettled([
+    caricaKPI(),
+    caricaProduttivita(),
+    chartFatturato(),
+    chartFascicoliTipo(),
+    chartClienti(),
+    chartScadenze(),
+    chartAppuntamenti(),
+    chartFascicoliStato(),
+    chartDepositi(),
+  ]).then(results => {
+    const errori = results.filter(r => r.status === 'rejected');
+    if (errori.length) console.warn('[Statistiche] Errori:', errori);
+  });
+}
+
+window.ricaricaTutto = function() {
+  document.getElementById('kpi-cards').innerHTML =
+    Array(8).fill('<div class="col-6 col-sm-4 col-lg-3 col-xl"><div class="stat-kpi-card placeholder-glow"><span class="placeholder col-6"></span></div></div>').join('');
+  document.getElementById('produttivita-row').style.display = 'none';
+  document.querySelectorAll('.stat-chart-body canvas').forEach(c => {
+    const ctx = c.getContext('2d'); ctx.clearRect(0, 0, c.width, c.height);
+    const chart = Chart.getChart(c); if (chart) chart.destroy();
+    c.style.display = '';
+  });
+  document.querySelectorAll('.stat-chart-empty').forEach(e => e.classList.add('d-none'));
+  caricaTutto();
+};
+
+caricaTutto();
+})();
 </script>
 {% endblock %}

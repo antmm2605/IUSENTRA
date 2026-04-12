@@ -1,9 +1,7 @@
-# ============================================================
 #  Railway — Configurazione deploy
 #  Docs: https://docs.railway.app
-#  version: 2.148.5
+#  version: 2.148.6
 #  redeploy: 2026-04-12T06:30
-# ============================================================
 
 [build]
 builder = "DOCKERFILE"
@@ -15,10 +13,8 @@ healthcheckTimeout = 60
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 5
 
-# ============================================================
 #  VARIABILI D'AMBIENTE — da impostare nel pannello Railway:
 #  Settings → Variables
-# ============================================================
 #
 #  OBBLIGATORIE:
 #  PCT_SECRET_KEY     = <stringa casuale 32+ caratteri — cifra le password nel config JSON>
@@ -34,4 +30,3 @@ restartPolicyMaxRetries = 5
 #  VOLUME (persistenza dati):
 #  Vai su: progetto → Service → Volumes → Add Volume
 #  Mount path: /data
-# ============================================================

@@ -1,5 +1,4 @@
-# ============================================================
-#  version: 2.148.5
+#  version: 2.148.6
 #  Studio Legale PCT — Dockerfile produzione (versione integrale)
 #
 #  Build multi-stage:
@@ -8,7 +7,6 @@
 #
 #  Build:  docker build -t hacs .
 #  Run:    docker run -p 8080:8080 -v hacs-data:/data hacs
-# ============================================================
 
 
 # ─────────────────────────────────────────────────────────────
@@ -69,7 +67,7 @@ RUN mkdir -p /out && /tmp/dart-sass/sass --no-source-map --style=compressed \
 FROM python:3.12-slim
 
 LABEL org.opencontainers.image.title="HACS - Studio Legale PCT" \
-      org.opencontainers.image.version="2.148.5" \
+      org.opencontainers.image.version="2.148.6" \
       org.opencontainers.image.description="Gestionale PCT per studi legali italiani" \
       org.opencontainers.image.created="2026-03-18"
 

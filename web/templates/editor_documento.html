@@ -185,8 +185,8 @@
               <div class="mt-1">
                 <span class="badge bg-success-subtle text-success border border-success-subtle"
                       style="font-size:.68rem"
-                      title="Incluso nel deposito {{ doc.id_deposito_pct }}{% if _dep_obj %} del {{ _dep_obj.timestamp|fmt_data }}{% endif %}">
-                  <i class="bi bi-send-check me-1"></i>Dep. {{ doc.id_deposito_pct }}{% if _dep_obj %} · {{ _dep_obj.timestamp|fmt_data }}{% endif %}
+                      title="Incluso nel deposito {{ doc.id_deposito_pct }}{% if _dep_obj %} del {{ _dep_obj.timestamp[:10] }}{% endif %}">
+                  <i class="bi bi-send-check me-1"></i>Dep. {{ doc.id_deposito_pct }}{% if _dep_obj %} · {{ _dep_obj.timestamp[:10] }}{% endif %}
                 </span>
               </div>
               {% endif %}
@@ -194,7 +194,7 @@
                 {% if '[wizard:' in doc.note %}
                   {% set step_raw = doc.note.split(':')[-1].split(']')[0] %}
                   {% if step_raw != 'indice' %}
-                  <div class="text-muted" style="font-size:.72rem">{{ step_raw|replace('step','Fase ') }}</div>
+                  <div class="text-muted" style="font-size:.72rem">{{ step_raw|replace('step','Step ') }}</div>
                   {% endif %}
                 {% else %}
                   <div class="text-muted" style="font-size:.72rem">{{ doc.note }}</div>
@@ -530,7 +530,7 @@
                     {{ dep.stato }}
                   </span>
                   <span class="text-muted small font-monospace">{{ dep.id }}</span>
-                  <span class="text-muted small">{{ dep.timestamp|fmt_data }}</span>
+                  <span class="text-muted small">{{ dep.timestamp[:10] }}</span>
                 </div>
 
                 <div class="text-muted small mb-2">{{ dep.pec_destinatario }}</div>

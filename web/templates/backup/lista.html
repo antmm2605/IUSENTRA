@@ -92,7 +92,7 @@
         <tbody>
           {% for r in backup_list %}
           <tr>
-            <td class="small font-monospace text-nowrap">{{ r.timestamp|fmt_dataora }}</td>
+            <td class="small font-monospace text-nowrap">{{ r.timestamp[:16].replace('T',' ') }}</td>
             <td>
               <span class="badge {{ 'bg-primary' if r.tipo.value == 'COMPLETO' else 'bg-secondary' }}">
                 {{ r.tipo.value }}

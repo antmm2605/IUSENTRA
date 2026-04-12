@@ -2469,7 +2469,7 @@ def create_app(config: dict | None = None) -> Flask:
                 documenti_creati.append({"doc": doc_esistente, "item": item})
                 continue
             tipo_doc = _tipo_documento_da_item_portale(item)
-            note_doc = [f"Importato da {fonte} il {date.today().strftime('%d/%m/%Y')}"]
+            note_doc = [f"Importato da {fonte} il {date.today().isoformat()}"]
             if note_importazione:
                 note_doc.append(note_importazione)
             origine = (item.get("origine", "") or "").strip()
@@ -2866,151 +2866,6 @@ def create_app(config: dict | None = None) -> Flask:
             return val
         except Exception:
             return val
-
-    def _formatta_valore_data(val: Any, include_time: bool = False) -> str:
-        if val in (None, ""):
-            return "—"
-        try:
-            from datetime import date as _date, datetime as _dt
-            import re
-
-            if isinstance(val, _dt):
-                has_time = include_time and any((val.hour, val.minute, val.second, val.microsecond))
-                return val.strftime("%d/%m/%Y %H:%M" if has_time else "%d/%m/%Y")
-            if isinstance(val, _date):
-                return val.strftime("%d/%m/%Y")
-
-            testo = str(val).strip()
-            if not testo:
-                return "—"
-            if testo.lower() in {"n/d", "n.d.", "nd", "mai", "—"}:
-                return testo
-
-            has_time = bool(re.search(r"(?:T|\s)\d{2}:\d{2}", testo))
-            dt_value: _dt | None = None
-
-            for fmt in (
-                "%Y-%m-%dT%H:%M:%S.%f%z",
-                "%Y-%m-%dT%H:%M:%S%z",
-                "%Y-%m-%d %H:%M:%S.%f%z",
-                "%Y-%m-%d %H:%M:%S%z",
-                "%Y-%m-%dT%H:%M:%S.%f",
-                "%Y-%m-%dT%H:%M:%S",
-                "%Y-%m-%dT%H:%M",
-                "%Y-%m-%d %H:%M:%S.%f",
-                "%Y-%m-%d %H:%M:%S",
-                "%Y-%m-%d %H:%M",
-                "%d/%m/%Y %H:%M:%S",
-                "%d/%m/%Y %H:%M",
-                "%d-%m-%Y %H:%M:%S",
-                "%d-%m-%Y %H:%M",
-            ):
-                try:
-                    dt_value = _dt.strptime(testo.replace("Z", "+00:00"), fmt)
-                    break
-                except ValueError:
-                    continue
-
-            if dt_value is None:
-                for fmt in ("%Y-%m-%d", "%d/%m/%Y", "%d-%m-%Y", "%Y/%m/%d"):
-                    try:
-                        d = _dt.strptime(testo[:10], fmt).date()
-                        return d.strftime("%d/%m/%Y")
-                    except ValueError:
-                        continue
-
-            if dt_value is None:
-                try:
-                    dt_value = _dt.fromisoformat(testo.replace("Z", "+00:00"))
-                except ValueError:
-                    dt_value = None
-
-            if dt_value is None:
-                return testo
-            return dt_value.strftime("%d/%m/%Y %H:%M" if include_time and has_time else "%d/%m/%Y")
-        except Exception:
-            return str(val)
-
-    def _normalizza_data_input(
-        val: Any,
-        *,
-        include_time: bool = False,
-        end_of_day: bool = False,
-    ) -> str | None:
-        if val in (None, ""):
-            return None
-        try:
-            from datetime import date as _date, datetime as _dt, time as _time
-            import re
-
-            if isinstance(val, _dt):
-                if include_time:
-                    return val.replace(second=0, microsecond=0).isoformat(timespec="minutes")
-                return val.date().isoformat()
-            if isinstance(val, _date):
-                return val.isoformat()
-
-            testo = str(val).strip()
-            if not testo:
-                return None
-
-            testo = testo.replace("T", " ").replace("Z", "+00:00")
-            if re.fullmatch(r"\d{2}/\d{2}/\d{4}", testo):
-                parsed = _dt.strptime(testo, "%d/%m/%Y")
-                if include_time:
-                    if end_of_day:
-                        parsed = _dt.combine(parsed.date(), _time(23, 59))
-                    return parsed.isoformat(timespec="minutes")
-                return parsed.date().isoformat()
-            if re.fullmatch(r"\d{2}-\d{2}-\d{4}", testo):
-                parsed = _dt.strptime(testo, "%d-%m-%Y")
-                if include_time:
-                    if end_of_day:
-                        parsed = _dt.combine(parsed.date(), _time(23, 59))
-                    return parsed.isoformat(timespec="minutes")
-                return parsed.date().isoformat()
-            if re.fullmatch(r"\d{2}/\d{2}/\d{4}\s+\d{2}:\d{2}", testo):
-                return _dt.strptime(testo, "%d/%m/%Y %H:%M").isoformat(timespec="minutes")
-            if re.fullmatch(r"\d{2}-\d{2}-\d{4}\s+\d{2}:\d{2}", testo):
-                return _dt.strptime(testo, "%d-%m-%Y %H:%M").isoformat(timespec="minutes")
-
-            if include_time:
-                for fmt in (
-                    "%Y-%m-%d %H:%M:%S.%f%z",
-                    "%Y-%m-%d %H:%M:%S%z",
-                    "%Y-%m-%d %H:%M%z",
-                    "%Y-%m-%d %H:%M:%S.%f",
-                    "%Y-%m-%d %H:%M:%S",
-                    "%Y-%m-%d %H:%M",
-                ):
-                    try:
-                        return _dt.strptime(testo, fmt).isoformat(timespec="minutes")
-                    except ValueError:
-                        continue
-            else:
-                for fmt in ("%Y-%m-%d", "%Y/%m/%d"):
-                    try:
-                        return _dt.strptime(testo[:10], fmt).date().isoformat()
-                    except ValueError:
-                        continue
-
-            try:
-                parsed = _dt.fromisoformat(testo)
-                if include_time:
-                    return parsed.isoformat(timespec="minutes")
-                return parsed.date().isoformat()
-            except ValueError:
-                return testo
-        except Exception:
-            return str(val).strip() or None
-
-    @app.template_filter("fmt_data")
-    def fmt_data(val: str) -> str:
-        return _formatta_valore_data(val, include_time=False)
-
-    @app.template_filter("fmt_dataora")
-    def fmt_dataora(val: str) -> str:
-        return _formatta_valore_data(val, include_time=True)
 
     @app.context_processor
     def inject_globals():
@@ -6130,7 +5985,7 @@ def create_app(config: dict | None = None) -> Flask:
             "tipo_procedimento": _take(target.tipo_procedimento, tipo_procedimento),
         }
         if append_import_note:
-            nota_import = f"Sincronizzato da {_portale_source_name(portale)} il {date.today().strftime('%d/%m/%Y')}"
+            nota_import = f"Sincronizzato da {_portale_source_name(portale)} il {date.today().isoformat()}"
             update_fields["note"] = " | ".join(part for part in [target.note.strip(), nota_import] if part)
         stato_portale = stato_fascicolo_da_descrizione_portale(
             identity.get("stato") or selection.get("stato") or payload.get("stato"),
@@ -11264,10 +11119,7 @@ read -r -p "Premi Invio per chiudere..." _
                 "access_status": str(form.get("access_status") or "draft").strip(),
                 "import_status": str(form.get("import_status") or "not_started").strip(),
                 "current_ministry_status": str(form.get("current_ministry_status") or "").strip() or None,
-                "download_available_until": _normalizza_data_input(
-                    form.get("download_available_until"),
-                    include_time=True,
-                ),
+                "download_available_until": str(form.get("download_available_until") or "").strip() or None,
                 "notes": str(form.get("notes") or "").strip() or None,
             }
             required = {
@@ -11391,32 +11243,26 @@ read -r -p "Premi Invio per chiudere..." _
             form = request.form
             request_status = str(form.get("request_status") or "prepared").strip()
             ministry_status = str(form.get("ministry_status") or "").strip() or None
-            download_until = _normalizza_data_input(
-                form.get("download_available_until"),
-                include_time=True,
-            )
+            download_until = str(form.get("download_available_until") or "").strip() or None
             request_reference = str(form.get("request_reference") or "").strip() or _pdp_penale_request_reference(repo.get_case(case_id))
             access_request = repo.create_access_request(
                 case_id,
                 request_type=str(form.get("request_type") or "access_to_case_file").strip(),
                 request_reference=request_reference,
                 request_status=request_status,
-                submitted_at=_normalizza_data_input(form.get("submitted_at"), include_time=True),
-                office_response_at=_normalizza_data_input(form.get("office_response_at"), include_time=True),
-                authorized_at=_normalizza_data_input(form.get("authorized_at"), include_time=True),
-                denied_at=_normalizza_data_input(form.get("denied_at"), include_time=True),
+                submitted_at=str(form.get("submitted_at") or "").strip() or None,
+                office_response_at=str(form.get("office_response_at") or "").strip() or None,
+                authorized_at=str(form.get("authorized_at") or "").strip() or None,
+                denied_at=str(form.get("denied_at") or "").strip() or None,
                 payment_required=int(_pdp_penale_bool(form.get("payment_required"))),
                 payment_amount=_pdp_penale_float(form.get("payment_amount"), 0.0) or None,
-                payment_due_date=_normalizza_data_input(form.get("payment_due_date")),
+                payment_due_date=str(form.get("payment_due_date") or "").strip() or None,
                 payment_done=int(_pdp_penale_bool(form.get("payment_done"))),
                 legal_aid_declared=int(_pdp_penale_bool(form.get("legal_aid_declared"))),
-                pec_password_received_at=_normalizza_data_input(
-                    form.get("pec_password_received_at"),
-                    include_time=True,
-                ),
+                pec_password_received_at=str(form.get("pec_password_received_at") or "").strip() or None,
                 download_link_available=int(bool(download_until)),
                 download_available_until=download_until,
-                downloaded_at=_normalizza_data_input(form.get("downloaded_at"), include_time=True),
+                downloaded_at=str(form.get("downloaded_at") or "").strip() or None,
                 ministry_status=ministry_status,
                 notes=str(form.get("notes") or "").strip() or None,
             )
@@ -11723,7 +11569,7 @@ read -r -p "Premi Invio per chiudere..." _
                 if result["password_found"]:
                     msg += f" Password trovata in {result['password_found']} PEC."
                 if result["download_available_until"]:
-                    msg += f" Download disponibile fino a {_formatta_valore_data(result['download_available_until'], include_time=True)}."
+                    msg += f" Download disponibile fino a {result['download_available_until']}."
                 flash(msg, "success")
             elif str((result.get("sync_result") or {}).get("errore") or "").strip():
                 flash(
@@ -11811,10 +11657,9 @@ read -r -p "Premi Invio per chiudere..." _
             body_text = str(form.get("body_text") or "").strip()
             subject = str(form.get("subject") or "Comunicazione PDP Penale").strip()
             extracted_password = str(form.get("extracted_password") or "").strip() or pdp_penale_estrai_password(body_text, subject)
-            message_date = _normalizza_data_input(form.get("message_date"), include_time=True)
             download_until = (
-                _normalizza_data_input(form.get("download_available_until"), include_time=True)
-                or pdp_penale_estrai_scadenza_download(body_text, message_date or "")
+                str(form.get("download_available_until") or "").strip()
+                or pdp_penale_estrai_scadenza_download(body_text, str(form.get("message_date") or "").strip())
                 or None
             )
             pec = repo.register_pec_message(
@@ -11823,7 +11668,7 @@ read -r -p "Premi Invio per chiudere..." _
                 subject=subject,
                 sender=str(form.get("sender") or "").strip() or None,
                 recipient=str(form.get("recipient") or "").strip() or None,
-                message_date=message_date,
+                message_date=str(form.get("message_date") or "").strip() or None,
                 body_text=body_text or None,
                 raw_eml_path=str(form.get("raw_eml_path") or "").strip() or None,
                 matched=1,

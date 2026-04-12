@@ -187,7 +187,7 @@
               <div class="fw-semibold">{{ entry.cliente }}</div>
               <div class="text-muted">
                 {{ entry.tipo.replace('_', ' ').title() }} ·
-                {{ entry.ts|fmt_dataora }}
+                {{ entry.ts[:16].replace('T', ' ') }}
               </div>
               {% if entry.esito.get('errore') %}
               <div class="text-danger" style="font-size:.75rem;">{{ entry.esito.errore }}</div>

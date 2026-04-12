@@ -210,7 +210,7 @@
         <div class="flex-grow-1">
           <div class="fw-semibold">{{ dep.tipo_atto }}</div>
           <div class="d-flex gap-2 flex-wrap mt-1" style="font-size:.72rem">
-            <span class="text-muted"><i class="bi bi-calendar3 me-1"></i>{{ dep.data_deposito|fmt_data or '—' }}</span>
+            <span class="text-muted"><i class="bi bi-calendar3 me-1"></i>{{ dep.data_deposito or '—' }}</span>
             <span class="text-muted"><i class="bi bi-envelope me-1"></i>{{ dep.mittente or '—' }}</span>
             <span class="badge bg-light text-dark border">{{ dep.documenti | length }} file</span>
             {% if n_atto %}<span class="badge bg-primary-subtle text-primary-emphasis border border-primary-subtle">{{ n_atto }} atto{% if n_atto>1 %}i{% endif %}</span>{% endif %}

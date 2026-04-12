@@ -63,8 +63,8 @@
             {% endif %}
             {% if u.totp_attivato %}<i class="bi bi-shield-fill-check text-info ms-1" title="2FA attivo"></i>{% endif %}
           </td>
-          <td class="small text-muted">{{ u.creato_il|fmt_data if u.creato_il else '—' }}</td>
-          <td class="small text-muted">{{ u.ultimo_accesso|fmt_dataora if u.ultimo_accesso else 'Mai' }}</td>
+          <td class="small text-muted">{{ u.creato_il[:10] if u.creato_il else '—' }}</td>
+          <td class="small text-muted">{{ u.ultimo_accesso[:10] if u.ultimo_accesso else 'Mai' }}</td>
           <td class="text-end">
             <div class="btn-group btn-group-sm">
               <!-- Reset password -->

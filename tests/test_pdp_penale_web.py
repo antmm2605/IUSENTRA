@@ -310,52 +310,6 @@ def test_workspace_pdp_penale_registra_case_documenti_accesso_pec_e_task(tmp_pat
             repo.close()
 
 
-def test_workspace_pdp_penale_formatta_date_in_italiano_e_accetta_input_italiano(tmp_path: Path):
-    cfg = _cfg_web(tmp_path)
-    fasc_id, _ = _seed_penal_workspace(cfg)
-
-    app = create_app(cfg)
-    with app.test_client() as client:
-        login = client.post(
-            "/login",
-            data={"username": "admin-penale", "password": "Admin1234!"},
-            follow_redirects=True,
-        )
-        assert login.status_code == 200
-
-        response = client.post(
-            f"/fascicoli/{fasc_id}/penale/pdp/case",
-            data={
-                "office_name": "Procura della Repubblica di Palermo",
-                "office_type": "Procura",
-                "district": "Palermo",
-                "register_type": "RGNR",
-                "register_number": "12345",
-                "register_year": "2026",
-                "proceeding_type": "indagini_preliminari",
-                "assisted_party_name": "Mario Rossi",
-                "assisted_party_cf": "RSSMRA80A01H501Z",
-                "defense_counsel_name": "Avv. Roberto Montagnese",
-                "defense_counsel_cf": "MNTRRT00A00G273X",
-                "download_available_until": "15/04/2026 18:00",
-            },
-            follow_redirects=True,
-        )
-        html = response.get_data(as_text=True)
-
-    assert response.status_code == 200
-    assert 'value="15/04/2026 18:00"' in html
-    assert 'placeholder="12/04/2026 18:00"' in html
-
-    repo = PDPPenaleWorkflowRepository(cfg["PDP_PENALE_DB"])
-    try:
-        cases = repo.list_cases_for_practice(fasc_id)
-        assert len(cases) == 1
-        assert cases[0]["download_available_until"] == "2026-04-15T18:00"
-    finally:
-        repo.close()
-
-
 def test_workspace_pdp_penale_completa_flusso_generazione_deposito_sync_e_import(
     tmp_path: Path,
     monkeypatch,

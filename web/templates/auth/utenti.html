@@ -73,7 +73,7 @@
               {% endif %}
             </td>
             <td class="small text-muted">
-              {{ u.ultimo_accesso|fmt_dataora if u.ultimo_accesso else 'Mai' }}
+              {{ u.ultimo_accesso[:16].replace('T',' ') if u.ultimo_accesso else 'Mai' }}
             </td>
             <td>
               <div class="btn-group btn-group-sm">

@@ -94,8 +94,8 @@
 
       <div class="card-footer text-muted small">
         ID: <code>{{ app.id }}</code> &nbsp;·&nbsp;
-        Creato: {{ app.creato_il|fmt_dataora }} &nbsp;·&nbsp;
-        Modificato: {{ app.modificato_il|fmt_dataora }}
+        Creato: {{ app.creato_il[:16].replace('T',' ') }} &nbsp;·&nbsp;
+        Modificato: {{ app.modificato_il[:16].replace('T',' ') }}
       </div>
     </div>
   </div>

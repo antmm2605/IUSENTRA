@@ -36,7 +36,7 @@
         <div class="col-md-6">
           <label class="form-label fw-semibold">Ultimo accesso</label>
           <input type="text" class="form-control"
-                 value="{{ utente.ultimo_accesso|fmt_dataora if utente.ultimo_accesso else '—' }}"
+                 value="{{ utente.ultimo_accesso[:19].replace('T',' ') if utente.ultimo_accesso else '—' }}"
                  disabled>
         </div>
       </div>

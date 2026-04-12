@@ -129,9 +129,6 @@ def test_dashboard_telematico_renderizza_canali_e_backfill(tmp_path: Path):
     assert "PST / PolisWeb" in html
     assert "PAT / SIGA" in html
     assert "Acquisizione guidata" in html
-    assert "Cronologia" in html
-    assert "12/04/2026 11:58" in html
-    assert "2026-04-12T11:58:00" not in html
 
     repo = TelematicoWorkflowRepository(cfg["TELEMATICO_DB"])
     try:

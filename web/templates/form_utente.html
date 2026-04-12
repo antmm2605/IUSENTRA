@@ -65,7 +65,7 @@
         <tbody>
           {% for e in eventi %}
           <tr>
-            <td class="text-nowrap">{{ e.timestamp|fmt_dataora }}</td>
+            <td class="text-nowrap">{{ e.timestamp[:19].replace('T',' ') }}</td>
             <td>{{ e.username or '—' }}</td>
             <td>{{ e.azione }}</td>
             <td class="small">

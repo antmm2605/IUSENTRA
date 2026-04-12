@@ -476,7 +476,7 @@
         <tbody>
           {% for e in audit_trail %}
           <tr>
-            <td class="text-nowrap text-muted">{{ e.timestamp|fmt_dataora }}</td>
+            <td class="text-nowrap text-muted">{{ e.timestamp[:16].replace('T',' ') }}</td>
             <td>{{ e.username or '—' }}</td>
             <td>
               <span class="badge bg-light text-dark border">{{ e.azione }}</span>

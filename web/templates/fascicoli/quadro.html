@@ -144,18 +144,18 @@
             </div>
             <div class="col-md-3">
               <div class="text-muted">Ultima sincronizzazione</div>
-              <div class="fw-semibold">{{ fascicolo.last_sync_at|fmt_dataora if fascicolo.last_sync_at else '—' }}</div>
+              <div class="fw-semibold">{{ fascicolo.last_sync_at|fmt_data if fascicolo.last_sync_at else '—' }}</div>
             </div>
             <div class="col-md-3">
-              <div class="text-muted">Registro importazione</div>
+              <div class="text-muted">Import log</div>
               <div class="fw-semibold">{{ fascicolo.import_log_id or '—' }}</div>
             </div>
             <div class="col-md-3">
-              <div class="text-muted">Sincronizzazione documenti</div>
+              <div class="text-muted">Documenti sync</div>
               <div class="fw-semibold">{{ 'Attiva' if fascicolo.document_sync_enabled else 'Non attiva' }}</div>
             </div>
             <div class="col-md-3">
-              <div class="text-muted">Sincronizzazione eventi</div>
+              <div class="text-muted">Eventi sync</div>
               <div class="fw-semibold">{{ 'Attiva' if fascicolo.events_sync_enabled else 'Non attiva' }}</div>
             </div>
             <div class="col-md-6">
@@ -176,7 +176,7 @@
               <i class="bi bi-files me-1"></i>Apri documenti
             </a>
             <a href="{{ url_for('dettaglio_fascicolo', id_fasc=fascicolo.id) }}#sezione-attivita" class="btn btn-sm btn-outline-secondary">
-              <i class="bi bi-clock-history me-1"></i>Apri cronologia
+              <i class="bi bi-clock-history me-1"></i>Apri timeline
             </a>
             <a href="{{ url_for('deposito_prepara', id_fasc=fascicolo.id) }}" class="btn btn-sm btn-outline-success">
               <i class="bi bi-send me-1"></i>Prepara deposito

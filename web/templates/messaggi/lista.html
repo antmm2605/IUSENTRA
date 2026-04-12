@@ -94,7 +94,7 @@
         <tbody>
           {% for m in messaggi %}
           <tr>
-            <td data-label="Data" class="small text-nowrap d-none d-md-table-cell">{{ m.creato_il|fmt_dataora }}</td>
+            <td data-label="Data" class="small text-nowrap d-none d-md-table-cell">{{ m.creato_il[:16].replace('T',' ') }}</td>
             <td data-label="Canale">
               {% if m.canale.value == 'EMAIL' %}
                 <span class="badge bg-primary">EMAIL</span>

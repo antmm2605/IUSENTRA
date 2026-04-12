@@ -302,7 +302,7 @@
           <span class="badge bg-secondary">Non testata</span>
           {% endif %}
           {% if db.ultimo_test %}
-          <span class="text-muted">{{ db.ultimo_test|fmt_dataora }}</span>
+          <span class="text-muted">{{ db.ultimo_test[:16].replace('T',' ') }}</span>
           {% endif %}
         </div>
         {% if db.errore_connessione %}

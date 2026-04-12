@@ -55,7 +55,7 @@
     <div class="small">
       In HACS il <strong>fascicolo tributario e interno</strong>: il portale ufficiale PTT / SIGIT,
       Telecontenzioso e gli altri servizi riservati restano il punto di consultazione e download.
-      Il gestionale governa controlli, cronologia, esiti, ricevute, provvedimenti e import del fascicolo scaricato.
+      Il gestionale governa controlli, timeline, esiti, ricevute, provvedimenti e import del fascicolo scaricato.
     </div>
   </div>
   <div class="d-flex gap-2 flex-wrap">
@@ -129,7 +129,7 @@
               <div class="fw-semibold mb-2">Gestione in HACS</div>
               <div class="small text-muted mb-3 portal-hub-copy">
                 HACS prepara il fascicolo tributario interno, evita duplicati e integra atti, ricevute, provvedimenti ed esiti gia scaricati dal portale ufficiale.
-                Nella fase finale del wizard puoi anche caricare manualmente ZIP, file o cartelle gia scaricati.
+                Nello step finale del wizard puoi anche caricare manualmente ZIP, file o cartelle gia scaricati.
               </div>
               <div class="portal-hub-actions">
                 <a class="btn btn-outline-warning" href="{{ url_for('portale_acquisizione_wizard', portale='ptt', id_fasc=fascicolo.id if fascicolo else None) }}">
@@ -170,7 +170,7 @@
         <div class="row g-2 small">
           {% for voce in [
             'Dati controversia',
-            'Cronologia',
+            'Timeline',
             'Depositi telematici',
             'Documenti',
             'Ricevute',
@@ -215,7 +215,7 @@
         <div class="fw-semibold text-dark mb-1">
           <i class="bi bi-3-circle text-warning me-1"></i>Rientro nel gestionale
         </div>
-        Appena rientri in HACS, importi nel Fascicolo Tributario Interno documenti, ricevute, provvedimenti ed esiti, con cronologia e collegamenti rapidi alla pratica.
+        Appena rientri in HACS, importi nel Fascicolo Tributario Interno documenti, ricevute, provvedimenti ed esiti, con timeline e collegamenti rapidi alla pratica.
       </div>
     </div>
   </div>

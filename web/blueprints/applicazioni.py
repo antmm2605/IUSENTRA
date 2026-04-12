@@ -8,6 +8,7 @@ from werkzeug.routing import BuildError
 
 from pct.applicazioni_catalogo import (
     applicazioni_correlate,
+    applicazioni_primo_piano,
     cerca_applicazioni,
     catalogo_applicazioni,
     get_applicazione,
@@ -103,6 +104,54 @@ def _resolve_grouped_entries(entries):
         block["items"] = [_resolve_entry_url(item) for item in section["items"]]
         grouped.append(block)
     return grouped
+
+
+def _ordina_entries(entries, ordinamento: str):
+    rows = list(entries or [])
+    if ordinamento == "titolo":
+        return sorted(rows, key=lambda item: (item.get("title", ""), item.get("order", 0)))
+    if ordinamento == "sezione":
+        return sorted(rows, key=lambda item: (item.get("section_title", ""), item.get("title", "")))
+    if ordinamento == "accesso":
+        rank = {"diretta": 0, "guidata": 1, "catalogo": 2}
+        return sorted(rows, key=lambda item: (rank.get(item.get("access_mode"), 9), item.get("title", "")))
+    return sorted(
+        rows,
+        key=lambda item: (
+            0 if item.get("featured") else 1,
+            0 if item.get("access_mode") == "diretta" else 1 if item.get("access_mode") == "guidata" else 2,
+            item.get("order", 0),
+        ),
+    )
+
+
+def _workspace_actions(entry: dict) -> list:
+    return [
+        {
+            "label": entry.get("cta_label", "Apri modulo"),
+            "icon": "bi-box-arrow-up-right",
+            "url": entry.get("href") or entry.get("detail_url"),
+            "variant": "primary",
+        },
+        {
+            "label": "Apri area",
+            "icon": "bi-grid",
+            "url": url_for("applicazioni.index", sezione=entry.get("section_id", "")),
+            "variant": "outline-secondary",
+        },
+        {
+            "label": "Stessa tipologia",
+            "icon": "bi-funnel",
+            "url": url_for("applicazioni.index", tipo=entry.get("workspace_kind", "")),
+            "variant": "outline-dark",
+        },
+        {
+            "label": "Stessa modalità",
+            "icon": "bi-diagram-3",
+            "url": url_for("applicazioni.index", modalita=entry.get("access_mode", "")),
+            "variant": "outline-primary",
+        },
+    ]
 
 
 def _rassegna_rows(snapshot: dict) -> dict:
@@ -228,20 +277,84 @@ def index():
     q = (request.args.get("q") or "").strip()
     sezione = (request.args.get("sezione") or "").strip()
     stato = (request.args.get("stato") or "").strip()
-    entries = cerca_applicazioni(q=q, sezione=sezione, stato=stato)
+    tipo = (request.args.get("tipo") or "").strip()
+    modalita = (request.args.get("modalita") or "").strip()
+    ordinamento = (request.args.get("ordinamento") or "priorita").strip() or "priorita"
+    solo_primo_piano = (request.args.get("solo_primo_piano") or "").strip() in {"1", "true", "on", "yes"}
+    entries = cerca_applicazioni(
+        q=q,
+        sezione=sezione,
+        stato=stato,
+        tipo=tipo,
+        modalita=modalita,
+        solo_primo_piano=solo_primo_piano,
+    )
+    entries = _ordina_entries(entries, ordinamento)
     snapshot = _snapshot()
+    grouped_entries = _resolve_grouped_entries(entries)
+    section_shortcuts = [
+        {
+            "id": section["id"],
+            "title": section["title"],
+            "icon": section["icon"],
+            "count": len(section["items"]),
+            "url": url_for("applicazioni.index", sezione=section["id"]),
+        }
+        for section in grouped_entries
+    ]
+    featured_base = entries if entries else catalogo_applicazioni()
+    featured_entries = [_resolve_entry_url(item) for item in applicazioni_primo_piano(featured_base, limit=15)]
+    filtri_attivi = [
+        value
+        for value in (
+            q,
+            next((s["title"] for s in get_sezioni_catalogo() if s["id"] == sezione), ""),
+            stato,
+            tipo,
+            modalita,
+            "solo primo piano" if solo_primo_piano else "",
+        )
+        if value
+    ]
     return render_template(
         "applicazioni/index.html",
         oggi=date.today(),
         query=q,
         sezione_sel=sezione,
         stato_sel=stato,
+        tipo_sel=tipo,
+        modalita_sel=modalita,
+        ordinamento_sel=ordinamento,
+        solo_primo_piano=solo_primo_piano,
         sezioni=get_sezioni_catalogo(),
-        grouped_entries=_resolve_grouped_entries(entries),
+        grouped_entries=grouped_entries,
         stats=statistiche_catalogo(catalogo_applicazioni()),
         filtered_stats=statistiche_catalogo(entries),
         quick_links=_quick_links(),
         rassegna=_rassegna_rows(snapshot),
+        featured_entries=featured_entries,
+        section_shortcuts=section_shortcuts,
+        filtri_attivi=filtri_attivi,
+        tipo_options=[
+            ("rassegna", "Rassegna"),
+            ("catalogo", "Catalogo"),
+            ("calcolo", "Calcolo"),
+            ("scadenze", "Scadenze"),
+            ("atti", "Atti"),
+            ("economico", "Economico"),
+            ("danni", "Danni"),
+            ("penale", "Penale"),
+            ("patrimonio", "Patrimonio"),
+            ("finanza", "Finanza"),
+            ("fiscale", "Fiscale"),
+            ("utility", "Utility"),
+            ("collegamenti", "Collegamenti"),
+        ],
+        modalita_options=[
+            ("diretta", "Accesso diretto"),
+            ("guidata", "Percorso guidato"),
+            ("catalogo", "Scheda workspace"),
+        ],
     )
 
 
@@ -261,4 +374,5 @@ def dettaglio(app_id: str):
         entry=resolved,
         section=section,
         correlati=correlati,
+        azioni_workspace=_workspace_actions(resolved),
     )

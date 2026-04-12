@@ -44,12 +44,14 @@ def test_applicazioni_index_renderizza_catalogo_e_rassegna(tmp_path: Path):
         body = response.get_data(as_text=True)
 
     assert response.status_code == 200
-    assert "Applicazioni di Studio" in body
+    assert "Workspace applicazioni professionali" in body
+    assert "Filtri avanzati" in body
+    assert "Primo piano operativo" in body
     assert "Notizie Giuridiche" in body
     assert "Calcolo Interessi Legali" in body
     assert "Link Ricerca PEC" in body
-    assert "Strumenti Legali" in body
-    assert "Workflow guidato" in body
+    assert "Azioni immediate" in body
+    assert "Percorso guidato" in body
 
 
 def test_applicazioni_index_filtra_per_query_e_area(tmp_path: Path):
@@ -57,12 +59,25 @@ def test_applicazioni_index_filtra_per_query_e_area(tmp_path: Path):
 
     with app.test_client() as client:
         client.post("/login", data={"username": "admin", "password": "admin"}, follow_redirects=True)
-        response = client.get("/applicazioni/?q=cedolare&sezione=proprieta_successioni")
+        response = client.get("/applicazioni/?q=cedolare&sezione=proprieta_successioni&tipo=patrimonio")
         body = response.get_data(as_text=True)
 
     assert response.status_code == 200
     assert "Calcolo Cedolare Secca" in body
     assert "Calcolo Danno Biologico" not in body
+
+
+def test_applicazioni_index_filtra_primo_piano_e_modalita(tmp_path: Path):
+    app = create_app(_cfg_web(tmp_path))
+
+    with app.test_client() as client:
+        client.post("/login", data={"username": "admin", "password": "admin"}, follow_redirects=True)
+        response = client.get("/applicazioni/?solo_primo_piano=1&modalita=diretta&q=interessi")
+        body = response.get_data(as_text=True)
+
+    assert response.status_code == 200
+    assert "Calcolo Interessi Legali" in body
+    assert "Rivalutazione Mensile" not in body
 
 
 def test_applicazioni_dettaglio_collega_modulo_operativo(tmp_path: Path):
@@ -75,7 +90,9 @@ def test_applicazioni_dettaglio_collega_modulo_operativo(tmp_path: Path):
 
     assert response.status_code == 200
     assert "Calcolo Interessi Legali" in body
-    assert "Applicazioni correlate" in body
+    assert "Azioni workspace" in body
+    assert "Moduli correlati" in body
+    assert "Stessa tipologia" in body
     assert '/strumenti-legali/?tool=interessi' in body
 
 
@@ -89,3 +106,12 @@ def test_sidebar_studio_include_link_applicazioni(tmp_path: Path):
 
     assert response.status_code == 200
     assert ">Applicazioni</span>" in body
+
+
+def test_template_applicazioni_workspace_usa_griglie_compatte():
+    index_html = Path("web/templates/applicazioni/index.html").read_text(encoding="utf-8")
+    detail_html = Path("web/templates/applicazioni/dettaglio.html").read_text(encoding="utf-8")
+
+    assert "grid-template-columns: repeat(5, minmax(0, 1fr));" in index_html
+    assert "grid-template-columns: repeat(4, minmax(0, 1fr));" in detail_html
+    assert "solo_primo_piano" in index_html

@@ -4,110 +4,274 @@
 
 {% block content %}
 <style>
-  .app-detail-shell { display:flex; flex-direction:column; gap:1.25rem; }
-  .app-detail-hero,
-  .app-detail-card,
-  .app-detail-related { border:0; border-radius:24px; box-shadow:0 12px 30px rgba(20,34,52,.08); background:#fff; }
-  .app-detail-hero { padding:1.4rem; background:linear-gradient(135deg,#f8fbff 0%,#ffffff 60%,#eef4ff 100%); }
-  .app-detail-chip { display:inline-flex; align-items:center; gap:.4rem; padding:.35rem .72rem; border-radius:999px; background:rgba(13,110,253,.08); color:#0d6efd; font-size:.78rem; font-weight:700; }
-  .app-detail-related .card-body { padding:1rem; }
-  .app-detail-related-item { height:100%; border:1px solid rgba(16,35,61,.08); border-radius:18px; padding:1rem; display:flex; flex-direction:column; gap:.8rem; background:#fff; }
-  @media (max-width: 575.98px) {
-    .app-detail-hero { padding:1.15rem; }
+  .app-workspace {
+    display: grid;
+    gap: 1.25rem;
+  }
+  .app-hero,
+  .app-panel,
+  .app-action-card,
+  .app-related-card {
+    border: 1px solid rgba(15, 23, 42, .08);
+    border-radius: 24px;
+    background: #fff;
+    box-shadow: 0 18px 42px rgba(15, 23, 42, .06);
+  }
+  .app-hero {
+    padding: 1.5rem;
+    background:
+      radial-gradient(circle at top right, rgba(37, 99, 235, .12), transparent 28%),
+      linear-gradient(135deg, #f8fbff, #ffffff 60%, #f3f7fd);
+  }
+  .app-hero-meta,
+  .app-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem;
+  }
+  .app-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: .45rem;
+    border-radius: 999px;
+    padding: .4rem .8rem;
+    font-size: .8rem;
+    font-weight: 700;
+    background: rgba(37, 99, 235, .08);
+    color: #1d4ed8;
+    border: 1px solid rgba(37, 99, 235, .12);
+  }
+  .app-hero-grid,
+  .app-main-grid {
+    display: grid;
+    gap: 1.25rem;
+  }
+  .app-hero-grid {
+    grid-template-columns: minmax(0, 1.3fr) minmax(300px, .95fr);
+    align-items: start;
+  }
+  .app-main-grid {
+    grid-template-columns: minmax(0, 1.4fr) minmax(320px, .85fr);
+  }
+  .app-panel-body,
+  .app-action-card,
+  .app-related-card {
+    padding: 1rem;
+  }
+  .app-panel-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: start;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1rem;
+  }
+  .app-action-grid,
+  .app-related-grid {
+    display: grid;
+    gap: .9rem;
+  }
+  .app-action-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  .app-related-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  .app-action-card,
+  .app-related-card {
+    display: flex;
+    flex-direction: column;
+    gap: .8rem;
+    height: 100%;
+  }
+  .app-action-card .btn,
+  .app-related-card .btn {
+    margin-top: auto;
+  }
+  .app-info-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+  }
+  .app-info-box {
+    border: 1px solid rgba(15, 23, 42, .08);
+    border-radius: 18px;
+    padding: .95rem 1rem;
+    background: linear-gradient(180deg, #fff, #f8fbff);
+  }
+  .app-info-label {
+    color: var(--bs-secondary-color);
+    font-size: .8rem;
+    margin-bottom: .25rem;
+  }
+  .app-info-value {
+    font-weight: 700;
+    color: #0f172a;
+  }
+
+  @media (max-width: 1399.98px) {
+    .app-action-grid,
+    .app-related-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+  @media (max-width: 1199.98px) {
+    .app-hero-grid,
+    .app-main-grid,
+    .app-action-grid,
+    .app-related-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+  @media (max-width: 767.98px) {
+    .app-hero,
+    .app-panel,
+    .app-action-card,
+    .app-related-card {
+      border-radius: 20px;
+    }
+    .app-hero-grid,
+    .app-main-grid,
+    .app-action-grid,
+    .app-related-grid,
+    .app-info-grid {
+      grid-template-columns: 1fr;
+    }
   }
 </style>
 
-<div class="app-detail-shell">
-  <div class="app-detail-hero">
-    <div class="d-flex flex-wrap gap-2 align-items-center mb-3">
-      <a href="{{ url_for('applicazioni.index') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-2"></i>Torna al catalogo</a>
-      {% if section %}
-      <span class="app-detail-chip"><i class="bi {{ section.icon }}"></i>{{ section.title }}</span>
-      {% endif %}
-      <span class="badge {{ entry.status_badge_class }}">{{ entry.status_label }}</span>
+<div class="app-workspace">
+  <section class="app-hero">
+    <div class="app-hero-grid">
+      <div>
+        <div class="app-hero-meta mb-3">
+          <a href="{{ url_for('applicazioni.index') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-2"></i>Torna al workspace</a>
+          {% if section %}
+          <span class="app-tag"><i class="bi {{ section.icon }}"></i>{{ section.title }}</span>
+          {% endif %}
+          <span class="badge {{ entry.status_badge_class }}">{{ entry.status_label }}</span>
+          <span class="badge {{ entry.access_mode_badge_class }}">{{ entry.access_mode_label }}</span>
+        </div>
+        <h1 class="h2 mb-2">{{ entry.title }}</h1>
+        <p class="text-muted mb-3">{{ entry.summary }}</p>
+        <div class="app-tags">
+          <span class="app-tag">{{ entry.workspace_kind_label }}</span>
+          <span class="app-tag">{{ entry.section_title }}</span>
+          {% if entry.featured %}<span class="app-tag"><i class="bi bi-star-fill"></i>Primo piano</span>{% endif %}
+        </div>
+      </div>
+      <div class="app-panel-body border rounded-4">
+        <div class="small text-muted mb-1">Azione principale</div>
+        <div class="fs-5 fw-bold mb-2">{{ entry.cta_label }}</div>
+        <div class="small text-muted mb-3">{{ entry.access_mode_description }}</div>
+        <a href="{{ entry.href }}" class="btn btn-primary w-100">{{ entry.cta_label }}</a>
+      </div>
     </div>
-    <h1 class="h2 mb-2">{{ entry.title }}</h1>
-    <p class="text-muted mb-3">{{ entry.summary }}</p>
-    <div class="d-flex flex-wrap gap-2">
-      <a href="{{ entry.href }}" class="btn btn-primary">{{ entry.cta_label }}</a>
-      {% if entry.is_direct %}
-      <a href="{{ entry.detail_url }}" class="btn btn-outline-secondary disabled" aria-disabled="true">Sei nella scheda corrente</a>
-      {% endif %}
-    </div>
-  </div>
+  </section>
 
-  <div class="row g-3">
-    <div class="col-lg-7">
-      <div class="app-detail-card">
-        <div class="card-body p-4">
-          <div class="fw-semibold mb-2">Come usarla nel gestionale</div>
-          <p class="text-muted mb-3">
-            Questa voce e collocata nell'area <strong>{{ entry.section_title }}</strong> ed e gestita come
-            <strong>{{ entry.status_label|lower }}</strong>. In HACS il pulsante principale ti porta nel modulo
-            piu coerente oggi disponibile, mantenendo il catalogo ordinato e senza scorciatoie fuorvianti.
-          </p>
-          <div class="row g-3">
-            <div class="col-md-6">
-              <div class="border rounded-4 p-3 h-100">
-                <div class="small text-muted mb-1">Area di appartenenza</div>
-                <div class="fw-semibold">{{ entry.section_title }}</div>
-                <div class="small text-muted mt-2">{{ entry.section_description }}</div>
-              </div>
-            </div>
-            <div class="col-md-6">
-              <div class="border rounded-4 p-3 h-100">
-                <div class="small text-muted mb-1">Percorso operativo</div>
-                <div class="fw-semibold">{{ entry.status_label }}</div>
-                <div class="small text-muted mt-2">{{ entry.status_description }}</div>
-              </div>
-            </div>
-          </div>
+  <section class="app-panel">
+    <div class="app-panel-body">
+      <div class="app-panel-head">
+        <div>
+          <h2 class="h4 mb-1">Azioni workspace</h2>
+          <div class="text-muted">Azioni compatte per lavorare sul modulo, tornare all’area o filtrare moduli simili.</div>
         </div>
       </div>
-    </div>
-    <div class="col-lg-5">
-      <div class="app-detail-card">
-        <div class="card-body p-4">
-          <div class="fw-semibold mb-2">Azione consigliata</div>
-          <p class="text-muted mb-3">
-            Apri il modulo collegato per lavorare subito, oppure rientra nel catalogo per filtrare tutta l'area
-            {{ entry.section_title|lower }} insieme alle voci correlate.
-          </p>
-          <div class="d-grid gap-2">
-            <a href="{{ entry.href }}" class="btn btn-primary">{{ entry.cta_label }}</a>
-            <a href="{{ url_for('applicazioni.index', sezione=entry.section_id) }}" class="btn btn-outline-secondary">Vedi tutta l'area</a>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  {% if correlati %}
-  <div class="app-detail-related">
-    <div class="card-body">
-      <div class="d-flex align-items-center justify-content-between mb-3">
-        <div class="fw-semibold">Applicazioni correlate</div>
-        <a href="{{ url_for('applicazioni.index', sezione=entry.section_id) }}" class="btn btn-sm btn-outline-secondary">Apri area completa</a>
-      </div>
-      <div class="row g-3">
-        {% for item in correlati %}
-        <div class="col-md-6 col-xl-4">
-          <div class="app-detail-related-item">
-            <div class="d-flex align-items-start justify-content-between gap-2">
-              <div class="fw-semibold">{{ item.title }}</div>
-              <span class="badge {{ item.status_badge_class }}">{{ item.status_label }}</span>
-            </div>
-            <div class="small text-muted">{{ item.summary }}</div>
-            <div class="mt-auto d-flex gap-2">
-              <a href="{{ item.href }}" class="btn btn-sm btn-primary">{{ item.cta_label }}</a>
-              <a href="{{ item.detail_url }}" class="btn btn-sm btn-outline-secondary">Scheda</a>
-            </div>
-          </div>
-        </div>
+      <div class="app-action-grid">
+        {% for action in azioni_workspace %}
+        <article class="app-action-card">
+          <div class="small text-muted">Azione</div>
+          <div class="fw-semibold">{{ action.label }}</div>
+          <div class="small text-muted">Percorso rapido dal workspace senza perdere il contesto del modulo.</div>
+          <a href="{{ action.url }}" class="btn btn-{{ action.variant }}"><i class="bi {{ action.icon }} me-2"></i>{{ action.label }}</a>
+        </article>
         {% endfor %}
       </div>
     </div>
-  </div>
+  </section>
+
+  <section class="app-main-grid">
+    <article class="app-panel">
+      <div class="app-panel-body">
+        <div class="app-panel-head">
+          <div>
+            <h2 class="h4 mb-1">Profilo operativo</h2>
+            <div class="text-muted">Come usare questa voce dentro HACS e qual è il suo ruolo nel workspace.</div>
+          </div>
+        </div>
+        <div class="app-info-grid">
+          <div class="app-info-box">
+            <div class="app-info-label">Area di lavoro</div>
+            <div class="app-info-value">{{ entry.section_title }}</div>
+          </div>
+          <div class="app-info-box">
+            <div class="app-info-label">Tipologia</div>
+            <div class="app-info-value">{{ entry.workspace_kind_label }}</div>
+          </div>
+          <div class="app-info-box">
+            <div class="app-info-label">Stato modulo</div>
+            <div class="app-info-value">{{ entry.status_label }}</div>
+          </div>
+          <div class="app-info-box">
+            <div class="app-info-label">Modalità di accesso</div>
+            <div class="app-info-value">{{ entry.access_mode_label }}</div>
+          </div>
+        </div>
+
+        <div class="mt-4">
+          <div class="fw-semibold mb-2">Uso nel gestionale</div>
+          <p class="text-muted mb-0">
+            Questa voce è stata organizzata come modulo di lavoro del workspace applicazioni: non resta isolata
+            in un catalogo piatto, ma mantiene collegamenti rapidi all’area, ai moduli simili e al percorso
+            operativo più utile oggi disponibile nel gestionale.
+          </p>
+        </div>
+      </div>
+    </article>
+
+    <aside class="app-panel">
+      <div class="app-panel-body">
+        <div class="app-panel-head">
+          <div>
+            <h2 class="h4 mb-1">Collegamenti rapidi</h2>
+            <div class="text-muted">Navigazione inversa e accessi laterali dal modulo corrente.</div>
+          </div>
+        </div>
+        <div class="d-grid gap-2">
+          <a href="{{ entry.href }}" class="btn btn-primary">{{ entry.cta_label }}</a>
+          <a href="{{ url_for('applicazioni.index', sezione=entry.section_id) }}" class="btn btn-outline-secondary">Apri tutta l’area</a>
+          <a href="{{ url_for('applicazioni.index', q=entry.title) }}" class="btn btn-outline-dark">Ricerca stessa voce</a>
+          <a href="{{ url_for('applicazioni.index', tipo=entry.workspace_kind) }}" class="btn btn-outline-primary">Filtra stessa tipologia</a>
+        </div>
+      </div>
+    </aside>
+  </section>
+
+  {% if correlati %}
+  <section class="app-panel">
+    <div class="app-panel-body">
+      <div class="app-panel-head">
+        <div>
+          <h2 class="h4 mb-1">Moduli correlati</h2>
+          <div class="text-muted">Stessa area di lavoro, stessa tipologia o percorsi complementari del modulo attuale.</div>
+        </div>
+        <a href="{{ url_for('applicazioni.index', sezione=entry.section_id) }}" class="btn btn-sm btn-outline-secondary">Apri area completa</a>
+      </div>
+      <div class="app-related-grid">
+        {% for item in correlati %}
+        <article class="app-related-card">
+          <div class="small text-muted">{{ item.workspace_kind_label }} · {{ item.access_mode_label }}</div>
+          <div class="fw-semibold">{{ item.title }}</div>
+          <div class="small text-muted">{{ item.summary }}</div>
+          <div class="d-grid gap-2 mt-auto">
+            <a href="{{ item.href }}" class="btn btn-sm btn-primary">{{ item.cta_label }}</a>
+            <a href="{{ item.detail_url }}" class="btn btn-sm btn-outline-secondary">Apri scheda</a>
+          </div>
+        </article>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
   {% endif %}
 </div>
 {% endblock %}

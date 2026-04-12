@@ -17,6 +17,37 @@ def _normalize(value: str) -> str:
     return _slug(value).replace("_", " ").strip()
 
 
+def _pretty_label(value: str) -> str:
+    text = str(value or "")
+    replacements = {
+        "Attivita": "Attività",
+        "Utilita": "Utilità",
+        "Responsabilita": "Responsabilità",
+        "Proprieta": "Proprietà",
+        "Fiscalita": "Fiscalità",
+        "Morosita": "Morosità",
+        "Conformita": "Conformità",
+        "Nullita": "Nullità",
+        "Annullabilita": "Annullabilità",
+        "Servitu": "Servitù",
+        "Capacita": "Capacità",
+        "Reversibilita": "Reversibilità",
+        "Eta": "Età",
+        "Unita": "Unità",
+        "Legittimita": "Legittimità",
+        "Citta": "Città",
+        "Societa": "Società",
+        "Mobilita": "Mobilità",
+        "Sanita": "Sanità",
+        "Pubblica Utilita": "Pubblica Utilità",
+        "Volonta": "Volontà",
+        "Entita": "Entità",
+    }
+    for raw, pretty in replacements.items():
+        text = re.sub(rf"\b{re.escape(raw)}\b", pretty, text)
+    return text
+
+
 SECTION_SPECS: List[Dict[str, Any]] = [
     {
         "id": "rassegna_stampa",
@@ -366,6 +397,62 @@ SECTION_SPECS: List[Dict[str, Any]] = [
 ]
 
 
+SECTION_KIND_META: Dict[str, Dict[str, str]] = {
+    "rassegna_stampa": {"id": "rassegna", "label": "Rassegna", "badge_class": "text-bg-danger-subtle text-danger"},
+    "applicazioni": {"id": "catalogo", "label": "Catalogo", "badge_class": "text-bg-primary-subtle text-primary"},
+    "rivalutazioni_istat": {"id": "calcolo", "label": "Calcolo", "badge_class": "text-bg-info-subtle text-info-emphasis"},
+    "tassi_e_interessi": {"id": "calcolo", "label": "Calcolo", "badge_class": "text-bg-info-subtle text-info-emphasis"},
+    "scadenze_e_termini": {"id": "scadenze", "label": "Scadenze", "badge_class": "text-bg-warning-subtle text-warning-emphasis"},
+    "atti_giudiziari": {"id": "atti", "label": "Atti", "badge_class": "text-bg-secondary-subtle text-secondary-emphasis"},
+    "fatturazione_avvocati": {"id": "economico", "label": "Economico", "badge_class": "text-bg-success-subtle text-success-emphasis"},
+    "risarcimento_danni": {"id": "danni", "label": "Danni", "badge_class": "text-bg-danger-subtle text-danger"},
+    "diritto_penale": {"id": "penale", "label": "Penale", "badge_class": "text-bg-dark-subtle text-dark"},
+    "proprieta_successioni": {"id": "patrimonio", "label": "Patrimonio", "badge_class": "text-bg-warning-subtle text-warning-emphasis"},
+    "investimenti_finanziari": {"id": "finanza", "label": "Finanza", "badge_class": "text-bg-primary-subtle text-primary"},
+    "dichiarazione_redditi": {"id": "fiscale", "label": "Fiscale", "badge_class": "text-bg-success-subtle text-success-emphasis"},
+    "applicazioni_varie": {"id": "utility", "label": "Utility", "badge_class": "text-bg-secondary-subtle text-secondary-emphasis"},
+    "utilita": {"id": "collegamenti", "label": "Collegamenti", "badge_class": "text-bg-info-subtle text-info-emphasis"},
+}
+
+
+ACCESS_META: Dict[str, Dict[str, str]] = {
+    "diretta": {
+        "label": "Accesso diretto",
+        "badge_class": "text-bg-success-subtle text-success-emphasis",
+        "description": "Apre subito un modulo già operativo nel gestionale.",
+    },
+    "guidata": {
+        "label": "Percorso guidato",
+        "badge_class": "text-bg-primary-subtle text-primary-emphasis",
+        "description": "Porta in un workflow o in un modulo collegato, con supporto operativo.",
+    },
+    "catalogo": {
+        "label": "Scheda workspace",
+        "badge_class": "text-bg-secondary-subtle text-secondary-emphasis",
+        "description": "Voce catalogata con scheda completa, collegamenti rapidi e moduli correlati.",
+    },
+}
+
+
+FEATURED_DEFAULT_SLUGS = {
+    "notizie_giuridiche",
+    "notizie_consumatori",
+    "ricerca_applicazioni",
+    "calcolo_interessi_legali",
+    "calcolo_interessi_di_mora",
+    "calcolo_contributo_unificato",
+    "deposito_telematico_documenti",
+    "visibilita_fascicolo_telematico",
+    "fatturazione_avvocati",
+    "calcolo_preventivo",
+    "calcolo_danno_biologico",
+    "calcolo_prescrizione_reati",
+    "calcolo_eredita",
+    "calcolo_tfr",
+    "link_ricerca_pec",
+}
+
+
 ITEM_OVERRIDES: Dict[str, Dict[str, Any]] = {
     "notizie_giuridiche": {
         "summary": "Rassegna di fonti ufficiali, alert e monitor normativi per l'aggiornamento giuridico dello studio.",
@@ -483,25 +570,42 @@ def _build_entry(section_spec: Dict[str, Any], raw_title: str, order: int) -> Di
     override = dict(ITEM_OVERRIDES.get(_slug(raw_title), {}))
     status = override.get("status") or section_spec.get("default_status") or "catalogata"
     status_meta = STATUS_META.get(status, STATUS_META["catalogata"])
+    section_kind = SECTION_KIND_META.get(section_spec["id"], SECTION_KIND_META["applicazioni_varie"])
+    access_mode = "diretta" if status == "operativa" else "guidata" if status == "guidata" else "catalogo"
+    access_meta = ACCESS_META[access_mode]
+    featured = bool(override.get("featured", _slug(raw_title) in FEATURED_DEFAULT_SLUGS))
+    title = _pretty_label(raw_title)
+    section_title = _pretty_label(section_spec["title"])
+    section_description = _pretty_label(section_spec["description"])
+    summary = _pretty_label(override.get("summary") or _default_summary(section_title, title))
+    cta_label = _pretty_label(override.get("cta_label") or section_spec.get("default_cta_label") or "Apri scheda")
     entry = {
         "id": _slug(raw_title),
-        "title": raw_title,
+        "title": title,
         "section_id": section_spec["id"],
-        "section_title": section_spec["title"],
+        "section_title": section_title,
         "section_icon": section_spec["icon"],
         "section_accent": section_spec["accent"],
-        "section_description": section_spec["description"],
+        "section_description": section_description,
         "status": status,
         "status_label": status_meta["label"],
         "status_badge_class": status_meta["badge_class"],
         "status_description": status_meta["description"],
-        "summary": override.get("summary") or _default_summary(section_spec["title"], raw_title),
+        "summary": summary,
         "endpoint": override.get("endpoint", section_spec.get("default_endpoint")),
         "params": dict(section_spec.get("default_params") or {}),
-        "cta_label": override.get("cta_label") or section_spec.get("default_cta_label") or "Apri scheda",
+        "cta_label": cta_label,
         "keywords": list(override.get("keywords") or []),
         "order": order,
         "available": override.get("available", True),
+        "workspace_kind": section_kind["id"],
+        "workspace_kind_label": section_kind["label"],
+        "workspace_kind_badge_class": section_kind["badge_class"],
+        "access_mode": access_mode,
+        "access_mode_label": access_meta["label"],
+        "access_mode_badge_class": access_meta["badge_class"],
+        "access_mode_description": access_meta["description"],
+        "featured": featured,
     }
     entry["params"].update(dict(override.get("params") or {}))
     search_parts = [
@@ -509,6 +613,8 @@ def _build_entry(section_spec: Dict[str, Any], raw_title: str, order: int) -> Di
         entry["summary"],
         entry["section_title"],
         entry["status_label"],
+        entry["workspace_kind_label"],
+        entry["access_mode_label"],
         " ".join(entry["keywords"]),
     ]
     entry["search_text"] = " ".join(_normalize(part) for part in search_parts if part)
@@ -529,11 +635,12 @@ def get_sezioni_catalogo() -> List[Dict[str, Any]]:
     return [
         {
             "id": section["id"],
-            "title": section["title"],
+            "title": _pretty_label(section["title"]),
             "icon": section["icon"],
             "accent": section["accent"],
-            "description": section["description"],
+            "description": _pretty_label(section["description"]),
             "items_count": len(section["items"]),
+            "workspace_kind": SECTION_KIND_META.get(section["id"], SECTION_KIND_META["applicazioni_varie"])["label"],
         }
         for section in SECTION_SPECS
     ]
@@ -550,6 +657,9 @@ def cerca_applicazioni(
     q: str = "",
     sezione: str = "",
     stato: str = "",
+    tipo: str = "",
+    modalita: str = "",
+    solo_primo_piano: bool = False,
     entries: Optional[Iterable[Dict[str, Any]]] = None,
 ) -> List[Dict[str, Any]]:
     risultati: List[Dict[str, Any]] = []
@@ -557,6 +667,12 @@ def cerca_applicazioni(
         if sezione and entry["section_id"] != sezione:
             continue
         if stato and entry["status"] != stato:
+            continue
+        if tipo and entry["workspace_kind"] != tipo:
+            continue
+        if modalita and entry["access_mode"] != modalita:
+            continue
+        if solo_primo_piano and not entry["featured"]:
             continue
         if not _match_query(entry, q):
             continue
@@ -606,16 +722,39 @@ def applicazioni_correlate(app_id: str, *, limit: int = 6) -> List[Dict[str, Any
     return correlati[:limit]
 
 
+def applicazioni_primo_piano(entries: Optional[Iterable[Dict[str, Any]]] = None, *, limit: int = 15) -> List[Dict[str, Any]]:
+    items = list(entries or catalogo_applicazioni())
+    ranked = sorted(
+        [dict(item) for item in items if item.get("featured")],
+        key=lambda item: (
+            0 if item.get("access_mode") == "diretta" else 1 if item.get("access_mode") == "guidata" else 2,
+            item.get("order", 0),
+        ),
+    )
+    return ranked[:limit]
+
+
 def statistiche_catalogo(entries: Optional[Iterable[Dict[str, Any]]] = None) -> Dict[str, Any]:
     items = list(entries or catalogo_applicazioni())
     by_status = {key: 0 for key in STATUS_META}
     by_section: Dict[str, int] = {}
+    by_kind: Dict[str, int] = {}
+    by_access: Dict[str, int] = {}
+    featured_count = 0
     for item in items:
         by_status[item["status"]] = by_status.get(item["status"], 0) + 1
         by_section[item["section_id"]] = by_section.get(item["section_id"], 0) + 1
+        by_kind[item["workspace_kind"]] = by_kind.get(item["workspace_kind"], 0) + 1
+        by_access[item["access_mode"]] = by_access.get(item["access_mode"], 0) + 1
+        if item.get("featured"):
+            featured_count += 1
     return {
         "totale": len(items),
         "per_stato": by_status,
         "per_sezione": by_section,
+        "per_tipo": by_kind,
+        "per_modalita": by_access,
         "sezioni_attive": len(by_section),
+        "primo_piano": featured_count,
+        "accessi_diretti": by_access.get("diretta", 0),
     }

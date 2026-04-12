@@ -1,5 +1,0 @@
-HACS Local Signer
-Versione: 1.5.15
-Generato: 2026-04-07 12:25 UTC
-Piattaforme: Windows (EXE offline), macOS (.command), Linux (.run)
-Punto ufficiale download: https://studio-legale-pct-production.up.railway.app/impostazioni?tab=firma

@@ -1,0 +1,228 @@
+{% extends "base.html" %}
+{% block title %}Cabina Telematica{% endblock %}
+
+{% block content %}
+<style>
+  .tm-shell{display:flex;flex-direction:column;gap:1.25rem}
+  .tm-hero{border-radius:1.5rem;padding:1.35rem 1.4rem;background:linear-gradient(135deg,#0f172a 0%,#1e3a5f 55%,#2563eb 100%);color:#fff;box-shadow:0 18px 45px rgba(15,23,42,.18)}
+  .tm-hero p{max-width:72ch}
+  .tm-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1rem}
+  .tm-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem}
+  .tm-card{border:1px solid rgba(15,23,42,.08);border-radius:1.25rem;background:#fff;box-shadow:0 10px 24px rgba(15,23,42,.06)}
+  .tm-card-body{padding:1.1rem 1.1rem 1rem}
+  .tm-stat{padding:1rem;border-radius:1rem;background:#fff;border:1px solid rgba(15,23,42,.08);box-shadow:0 8px 20px rgba(15,23,42,.04)}
+  .tm-stat-value{font-size:2rem;line-height:1;font-weight:700}
+  .tm-channel{height:100%}
+  .tm-channel .badge{font-size:.72rem}
+  .tm-status-dot{width:.7rem;height:.7rem;border-radius:999px;display:inline-block}
+  .tm-list{display:flex;flex-direction:column;gap:.85rem}
+  .tm-list-item{padding:.9rem 1rem;border:1px solid rgba(15,23,42,.08);border-radius:1rem;background:#fff}
+  .tm-kpi{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.6rem}
+  .tm-kpi-box{padding:.75rem .8rem;border-radius:.95rem;background:#f8fafc;border:1px solid #e2e8f0}
+  .tm-muted{color:#64748b}
+  @media (max-width: 1199.98px){.tm-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+  @media (max-width: 991.98px){.tm-grid{grid-template-columns:1fr}}
+  @media (max-width: 767.98px){
+    .tm-hero{padding:1.1rem 1rem}
+    .tm-stats{grid-template-columns:1fr}
+    .tm-kpi{grid-template-columns:1fr}
+  }
+</style>
+
+<div class="tm-shell">
+  <section class="tm-hero">
+    <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
+      <div>
+        <div class="small text-uppercase fw-semibold opacity-75 mb-2">Core unico, canali distinti</div>
+        <h1 class="h3 mb-2">Cabina Telematica</h1>
+        <p class="mb-0 opacity-90">
+          Una regia unica per PST / PDP, PAT / SIGA e PTT / SIGIT: stato connessioni, pratiche sincronizzate,
+          import fascicoli e prossime azioni operative nello stesso punto.
+        </p>
+      </div>
+      <div class="d-flex gap-2 flex-wrap">
+        <a href="{{ url_for('deposito_checklist') }}" class="btn btn-light">
+          <i class="bi bi-list-check me-1"></i>Checklist deposito
+        </a>
+        <a href="{{ url_for('guida_firma_digitale') }}" class="btn btn-outline-light">
+          <i class="bi bi-pen me-1"></i>Firma digitale
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <section class="tm-stats">
+    <div class="tm-stat">
+      <div class="small tm-muted mb-2">Casi telematici censiti</div>
+      <div class="tm-stat-value">{{ stats.totale or 0 }}</div>
+      <div class="small tm-muted mt-2">Core unificato alimentato dai fascicoli già sincronizzati.</div>
+    </div>
+    <div class="tm-stat">
+      <div class="small tm-muted mb-2">PST / PDP</div>
+      <div class="tm-stat-value">{{ ((stats.per_service or {}).get('polisweb_consultazione', {}).get('totale', 0) or 0) + ((stats.per_service or {}).get('pdp_penale', {}).get('totale', 0) or 0) }}</div>
+      <div class="small tm-muted mt-2">Ministero della Giustizia: consultazione, accesso atti e workflow penale.</div>
+    </div>
+    <div class="tm-stat">
+      <div class="small tm-muted mb-2">PAT / SIGA</div>
+      <div class="tm-stat-value">{{ (stats.per_service or {}).get('pat_siga', {}).get('totale', 0) or 0 }}</div>
+      <div class="small tm-muted mt-2">Fascicoli amministrativi, depositi e consultazione canale dedicato.</div>
+    </div>
+    <div class="tm-stat">
+      <div class="small tm-muted mb-2">PTT / SIGIT</div>
+      <div class="tm-stat-value">{{ (stats.per_service or {}).get('ptt_sigit', {}).get('totale', 0) or 0 }}</div>
+      <div class="small tm-muted mt-2">Workflow tributario con fascicoli, esiti e import dal portale ufficiale.</div>
+    </div>
+  </section>
+
+  <section class="tm-grid">
+    <div class="tm-card">
+      <div class="tm-card-body">
+        <div class="d-flex justify-content-between align-items-center gap-2 mb-3">
+          <div>
+            <div class="small text-uppercase tm-muted fw-semibold">Canali ufficiali</div>
+            <h2 class="h5 mb-0">Connessioni e accesso</h2>
+          </div>
+          <span class="badge text-bg-light border">Desktop · Tablet · Mobile</span>
+        </div>
+        <div class="row g-3">
+          {% for card in connection_cards %}
+          <div class="col-12 col-md-6">
+            <div class="tm-channel tm-list-item">
+              <div class="d-flex justify-content-between align-items-start gap-3 mb-2">
+                <div>
+                  <div class="fw-semibold">
+                    <i class="bi {{ card.spec.icon }} text-{{ card.spec.color }} me-1"></i>{{ card.spec.label }}
+                  </div>
+                  <div class="small tm-muted">{{ card.environment_label }}</div>
+                </div>
+                {% set tone = 'secondary' if card.demo_mode else ('warning' if card.browser_channel_required else 'success') %}
+                <span class="badge text-bg-{{ tone }}">{{ card.status_text }}</span>
+              </div>
+              <div class="tm-kpi mb-3">
+                <div class="tm-kpi-box">
+                  <div class="small tm-muted">Casi</div>
+                  <div class="fw-semibold">{{ card.totale }}</div>
+                </div>
+                <div class="tm-kpi-box">
+                  <div class="small tm-muted">Import completi</div>
+                  <div class="fw-semibold">{{ card.import_completed }}</div>
+                </div>
+                <div class="tm-kpi-box">
+                  <div class="small tm-muted">Da presidiare</div>
+                  <div class="fw-semibold">{{ card.attention_needed }}</div>
+                </div>
+              </div>
+              <div class="small tm-muted mb-3">
+                {% if card.last_sync_at %}
+                Ultimo allineamento: {{ (card.last_sync_at|replace('T', ' '))[:16] }}
+                {% else %}
+                Nessun allineamento ancora registrato.
+                {% endif %}
+              </div>
+              <div class="d-flex gap-2 flex-wrap">
+                <a href="{{ card.home_url }}" class="btn btn-outline-{{ card.spec.color }} btn-sm">
+                  <i class="bi bi-box-arrow-up-right me-1"></i>Apri canale
+                </a>
+                <a href="{{ card.acquisizione_url }}" class="btn btn-{{ card.spec.color }} btn-sm">
+                  <i class="bi bi-diagram-3 me-1"></i>Acquisizione guidata
+                </a>
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <div class="tm-card">
+      <div class="tm-card-body">
+        <div class="d-flex justify-content-between align-items-center gap-2 mb-3">
+          <div>
+            <div class="small text-uppercase tm-muted fw-semibold">Timeline</div>
+            <h2 class="h5 mb-0">Attività telematiche recenti</h2>
+          </div>
+          <span class="badge text-bg-light border">{{ recent_events|length }} eventi</span>
+        </div>
+        <div class="tm-list">
+          {% for row in recent_events %}
+          <div class="tm-list-item">
+            <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
+              <div>
+                <div class="fw-semibold">{{ row.title }}</div>
+                <div class="small tm-muted">{{ row.service_code|replace('_', ' ')|title }} · {{ (row.created_at|replace('T', ' '))[:16] }}</div>
+                {% if row.description %}
+                <div class="small mt-2">{{ row.description }}</div>
+                {% endif %}
+                {% if row.practice_url %}
+                <a href="{{ row.practice_url }}" class="small text-decoration-none">Apri pratica collegata{% if row.practice_title %}: {{ row.practice_title }}{% endif %}</a>
+                {% endif %}
+              </div>
+              <span class="badge text-bg-light border">{{ row.event_source|replace('_', ' ') }}</span>
+            </div>
+          </div>
+          {% else %}
+          <div class="tm-list-item">
+            <div class="fw-semibold">Nessun evento ancora registrato</div>
+            <div class="small tm-muted mt-1">Appena sincronizzi o importi un fascicolo telematico, qui vedremo il tracciato operativo comune.</div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="tm-card">
+    <div class="tm-card-body">
+      <div class="d-flex justify-content-between align-items-center gap-2 mb-3 flex-wrap">
+        <div>
+          <div class="small text-uppercase tm-muted fw-semibold">Pratiche recenti</div>
+          <h2 class="h5 mb-0">Casi nel core telematico</h2>
+        </div>
+        <span class="badge text-bg-light border">{{ recent_cases|length }} righe</span>
+      </div>
+      <div class="tm-list">
+        {% for row in recent_cases %}
+        <div class="tm-list-item">
+          <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
+            <div>
+              <div class="fw-semibold">{{ row.service_label }}</div>
+              <div class="small tm-muted">
+                {{ row.office_name }}{% if row.register_number and row.register_year %} · {{ row.register_type or 'RG' }} {{ row.register_number }}/{{ row.register_year }}{% endif %}
+              </div>
+              <div class="mt-2">
+                <span class="badge text-bg-light border">{{ row.internal_status|replace('_', ' ')|title }}</span>
+                {% if row.native_status %}
+                <span class="badge text-bg-light border">{{ row.native_status|replace('_', ' ')|title }}</span>
+                {% endif %}
+              </div>
+              <div class="small mt-2">
+                <strong>Soggetto:</strong> {{ row.subject_name }}
+                {% if row.counsel_name %}<span class="tm-muted"> · Difensore {{ row.counsel_name }}</span>{% endif %}
+              </div>
+              <div class="small tm-muted mt-1">
+                Documenti censiti: {{ row.documents_count or 0 }} · Task aperti: {{ row.open_tasks_count or 0 }}
+              </div>
+            </div>
+            <div class="text-end">
+              <div class="small tm-muted mb-2">
+                {% if row.last_sync_at %}Sync {{ (row.last_sync_at|replace('T', ' '))[:16] }}{% endif %}
+              </div>
+              {% if row.practice_url %}
+              <a href="{{ row.practice_url }}" class="btn btn-outline-primary btn-sm">
+                <i class="bi bi-folder2-open me-1"></i>Apri pratica
+              </a>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+        {% else %}
+        <div class="tm-list-item">
+          <div class="fw-semibold">Nessun caso ancora sincronizzato</div>
+          <div class="small tm-muted mt-1">Usa una delle acquisizioni guidate per popolare il core telematico comune.</div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+</div>
+{% endblock %}

@@ -57,6 +57,7 @@ def _cfg_web(tmp_path: Path) -> dict:
         "SOGGETTI_DB": str(tmp_path / "soggetti.json"),
         "SOGGETTI_PARTI_DB": str(tmp_path / "parti.json"),
         "PST_IMPORT_DIR": str(tmp_path / "pst_import"),
+        "TELEMATICO_DB": str(tmp_path / "telematico" / "workflow.db"),
     }
 
 

@@ -32,6 +32,7 @@ def _cfg_web(tmp_path: Path) -> dict:
         "VALIDATION_RUNS_DB": str(tmp_path / "validation_runs.json"),
         "STUDIO_CONFIG": str(tmp_path / "config" / "studio.json"),
         "PDP_PENALE_DB": str(tmp_path / "penale" / "pdp_penale.db"),
+        "TELEMATICO_DB": str(tmp_path / "telematico" / "workflow.db"),
     }
 
 

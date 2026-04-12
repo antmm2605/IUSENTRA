@@ -216,13 +216,17 @@
     </a>
 
     {# ---- Sezione: PCT / Telematico ---- #}
-    {% set _pct = request.endpoint in ('polisWeb_home','polisWeb_ricerca','polisWeb_documenti','polisWeb_importa','pdp_home','pdp_ricerca','pdp_documenti','pdp_importa','pat_home','pat_ricerca','pat_documenti','pat_importa','sigit_home','sigit_ricerca','sigit_documenti','sigit_importa','tribunali','deposito_checklist','guida_firma_digitale') %}
+    {% set _pct = request.endpoint in ('telematico_dashboard','portale_acquisizione_wizard','polisWeb_home','polisWeb_ricerca','polisWeb_documenti','polisWeb_importa','pdp_home','pdp_ricerca','pdp_documenti','pdp_importa','pat_home','pat_ricerca','pat_documenti','pat_importa','sigit_home','sigit_ricerca','sigit_documenti','sigit_importa','tribunali','deposito_checklist','guida_firma_digitale') %}
     <button class="sb-toggle {% if _pct %}open{% endif %}"
             data-bs-toggle="collapse" data-bs-target="#sb-pct" aria-expanded="{{ 'true' if _pct else 'false' }}">
       <span><i class="bi bi-send-exclamation"></i>PCT / Telematico</span>
       <i class="bi bi-chevron-down sb-chev"></i>
     </button>
     <div class="collapse {% if _pct %}show{% endif %}" id="sb-pct">
+      <a href="{{ url_for('telematico_dashboard') }}"
+         class="nav-link sb-link {% if request.endpoint == 'telematico_dashboard' %}active{% endif %}">
+        <i class="bi bi-grid-1x2-fill"></i><span class="sb-txt">Cabina Telematica</span>
+      </a>
       <a href="{{ url_for('polisWeb_home') }}"
          class="nav-link sb-link {% if request.endpoint in ('polisWeb_home','polisWeb_ricerca','polisWeb_documenti','polisWeb_importa') %}active{% endif %}">
         <i class="bi bi-building-fill-check"></i><span class="sb-txt">PolisWeb / PST</span>

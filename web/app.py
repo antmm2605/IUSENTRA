@@ -129,6 +129,7 @@ from pct.pdp_penale_workflow import (
     pdp_penale_estrai_password,
     pdp_penale_estrai_scadenza_download,
 )
+from pct.telematico_workflow import TelematicoWorkflowRepository
 from pct import __version__ as APP_VERSION
 
 # ------------------------------------------------------------------ cifratura documenti (AES-256-GCM)
@@ -385,6 +386,13 @@ def create_app(config: dict | None = None) -> Flask:
             _data_peer_path(app.config["CLIENTI_DB"], "penale", "pdp_penale.db"),
         ),
     )
+    app.config["TELEMATICO_DB"] = cfg.get(
+        "TELEMATICO_DB",
+        os.getenv(
+            "PCT_TELEMATICO_DB",
+            _data_peer_path(app.config["CLIENTI_DB"], "telematico", "workflow.db"),
+        ),
+    )
     # WhatsApp / notifiche
     app.config["TWILIO_SID"]     = os.getenv("PCT_TWILIO_SID", "")
     app.config["TWILIO_TOKEN"]   = os.getenv("PCT_TWILIO_TOKEN", "")
@@ -538,6 +546,7 @@ def create_app(config: dict | None = None) -> Flask:
             "template_atti_prefs": _cfg_data_path("TEMPLATE_ATTI_PREFS_DB"),
             "redaction_assistant": _cfg_data_path("REDACTION_ASSISTANT_DB"),
             "search_index": _cfg_data_path("SEARCH_INDEX"),
+            "telematico": _cfg_data_path("TELEMATICO_DB"),
         }
 
     def _bootstrap_runtime_data_modules() -> dict[str, str]:
@@ -602,6 +611,12 @@ def create_app(config: dict | None = None) -> Flask:
             backend = get_studio_db() or _cfg_data_path("PDP_PENALE_DB")
             g._pdp_penale_repo = PDPPenaleWorkflowRepository(backend)
         return g._pdp_penale_repo
+
+    def get_telematico() -> TelematicoWorkflowRepository:
+        if not hasattr(g, "_telematico_repo"):
+            backend = get_studio_db() or _cfg_data_path("TELEMATICO_DB")
+            g._telematico_repo = TelematicoWorkflowRepository(backend)
+        return g._telematico_repo
 
     def get_deposito_guidato():
         if not hasattr(g, "_deposito_guidato"):
@@ -4981,7 +4996,105 @@ def create_app(config: dict | None = None) -> Flask:
             app.logger.exception("Errore api_portale_acquisizione_import(%s): %s", portale, e)
             return jsonify({"ok": False, "errore": str(e)}), 200
 
-    # ---------------------------------------------------------------- PolisWeb — Consultazione e importazione fascicoli
+    @app.route("/api/telematico/connection-status", methods=["GET"])
+    def api_telematico_connection_status():
+        try:
+            cards = []
+            for portale in ("pst", "pdp", "pat", "ptt"):
+                payload = _build_access_status_payload(portale)
+                spec = dict(payload.get("spec") or {})
+                cards.append(
+                    {
+                        "portale": portale,
+                        "label": spec.get("label"),
+                        "color": spec.get("color"),
+                        "status_text": payload.get("status_text"),
+                        "environment_label": payload.get("environment_label"),
+                        "demo_mode": bool(payload.get("demo_mode")),
+                        "pkcs11_mode": bool(payload.get("pkcs11_mode")),
+                        "browser_channel_required": bool(payload.get("browser_channel_required")),
+                        "last_sync_at": payload.get("last_sync_at"),
+                    }
+                )
+            return jsonify({"ok": True, "cards": cards})
+        except Exception as e:
+            app.logger.exception("Errore api_telematico_connection_status: %s", e)
+            return jsonify({"ok": False, "errore": str(e), "cards": []}), 200
+
+    @app.route("/telematico", methods=["GET"])
+    def telematico_dashboard():
+        try:
+            _backfill_telematico_from_existing_fascicoli()
+            repo = get_telematico()
+            stats = repo.case_stats()
+            recent_cases = repo.list_cases(limit=18)
+            recent_events = repo.list_recent_events(limit=12)
+            service_map = {
+                "pst": "polisweb_consultazione",
+                "pdp": "pdp_penale",
+                "pat": "pat_siga",
+                "ptt": "ptt_sigit",
+            }
+            routes_map = {
+                "pst": ("polisWeb_home", "pst"),
+                "pdp": ("pdp_home", "pdp"),
+                "pat": ("pat_home", "pat"),
+                "ptt": ("sigit_home", "ptt"),
+            }
+            connection_cards = []
+            for portale in ("pst", "pdp", "pat", "ptt"):
+                payload = _build_access_status_payload(portale)
+                spec = dict(payload.get("spec") or {})
+                service_stats = dict((stats.get("per_service") or {}).get(service_map[portale]) or {})
+                home_endpoint, wizard_portale = routes_map[portale]
+                connection_cards.append(
+                    {
+                        "portale": portale,
+                        "spec": spec,
+                        "status_text": payload.get("status_text"),
+                        "environment_label": payload.get("environment_label"),
+                        "demo_mode": bool(payload.get("demo_mode")),
+                        "pkcs11_mode": bool(payload.get("pkcs11_mode")),
+                        "browser_channel_required": bool(payload.get("browser_channel_required")),
+                        "last_sync_at": payload.get("last_sync_at"),
+                        "last_import_log_id": payload.get("last_import_log_id"),
+                        "totale": int(service_stats.get("totale") or 0),
+                        "import_completed": int(service_stats.get("import_completed") or 0),
+                        "attention_needed": int(service_stats.get("attention_needed") or 0),
+                        "home_url": url_for(home_endpoint),
+                        "acquisizione_url": url_for("portale_acquisizione_wizard", portale=wizard_portale),
+                    }
+                )
+            fascicoli_index = {fasc.id: fasc for fasc in get_fascicoli().tutti()}
+            for row in recent_cases:
+                fasc = fascicoli_index.get(str(row.get("practice_id") or ""))
+                row["practice_url"] = url_for("dettaglio_fascicolo", id_fasc=row["practice_id"]) if fasc else ""
+                row["practice_title"] = getattr(fasc, "titolo", "") if fasc else ""
+                row["practice_number"] = getattr(fasc, "numero", "") if fasc else ""
+                row["service_label"] = {
+                    "polisweb_consultazione": "PST / PolisWeb",
+                    "pdp_penale": "PDP Penale",
+                    "pat_siga": "PAT / SIGA",
+                    "ptt_sigit": "PTT / SIGIT",
+                }.get(str(row.get("service_code") or ""), str(row.get("service_code") or ""))
+            for row in recent_events:
+                fasc = fascicoli_index.get(str(row.get("practice_id") or ""))
+                row["practice_url"] = url_for("dettaglio_fascicolo", id_fasc=row["practice_id"]) if fasc else ""
+                row["practice_title"] = getattr(fasc, "titolo", "") if fasc else ""
+            return render_template(
+                "telematico_dashboard.html",
+                oggi=date.today(),
+                stats=stats,
+                connection_cards=connection_cards,
+                recent_cases=recent_cases,
+                recent_events=recent_events,
+            )
+        except Exception as e:
+            app.logger.exception("Errore telematico_dashboard: %s", e)
+            flash(f"Errore cabina telematica: {e}", "danger")
+            return redirect(url_for("dashboard"))
+
+    # ---------------------------------------------------------------- PolisWeb – Consultazione e importazione fascicoli
 
     def _polis_auth_mode() -> str:
         """
@@ -5188,6 +5301,70 @@ def create_app(config: dict | None = None) -> Flask:
             "pat": "PAT",
             "ptt": "PTT",
         }.get((portale or "").strip().lower(), (portale or "").upper())
+
+    def _telematico_channel_family(portale: str) -> str:
+        return {
+            "pst": "ministero",
+            "pdp": "ministero",
+            "pat": "amministrativo",
+            "ptt": "tributario",
+        }.get((portale or "").strip().lower(), "ministero")
+
+    def _telematico_service_code(portale: str) -> str:
+        return {
+            "pst": "polisweb_consultazione",
+            "pdp": "pdp_penale",
+            "pat": "pat_siga",
+            "ptt": "ptt_sigit",
+        }.get((portale or "").strip().lower(), "polisweb_consultazione")
+
+    def _telematico_internal_status(
+        *,
+        sync_status: str = "",
+        native_status: str = "",
+        has_documents: bool = False,
+        documents_imported: bool = False,
+        needs_manual_review: bool = False,
+    ) -> str:
+        native = str(native_status or "").strip().upper()
+        sync = str(sync_status or "").strip().upper()
+        if native in {"RIFIUTATO", "ERRORE_TECNICO"}:
+            return "rejected" if native == "RIFIUTATO" else "technical_error"
+        if needs_manual_review:
+            return "manual_review_required"
+        if documents_imported or sync in {"IMPORTATO", "SINCRONIZZATO"}:
+            return "import_completed"
+        if has_documents:
+            return "download_available"
+        if native in {"ACCETTATO", "AUTHORIZED"}:
+            return "accepted"
+        if native in {"INVIATO", "IN_TRANSITO", "IN_VERIFICA"}:
+            return "submitted"
+        return "draft"
+
+    def _telematico_transmission_status(native_status: str = "", has_documents: bool = False) -> str:
+        native = str(native_status or "").strip().upper()
+        if native == "RIFIUTATO":
+            return "rejected"
+        if native == "ERRORE_TECNICO":
+            return "technical_error"
+        if native in {"INVIATO", "IN_TRANSITO", "IN_VERIFICA"}:
+            return "submitted"
+        if native in {"ACCETTATO", "AUTHORIZED"} or has_documents:
+            return "accepted"
+        return "closed"
+
+    def _telematico_document_role(doc: dict[str, Any]) -> str:
+        tipo = str((doc or {}).get("tipo_atto") or (doc or {}).get("tipo") or "").upper()
+        nome = str((doc or {}).get("nome") or "").upper()
+        testo = f"{tipo} {nome}"
+        if "SENTENZA" in testo:
+            return "judgment"
+        if "ORDINANZA" in testo or "DECRETO" in testo or "PROVVEDIMENTO" in testo:
+            return "judicial_order"
+        if "VERBALE" in testo or "UDIENZA" in testo:
+            return "hearing_minutes"
+        return "main_act" if "RICORSO" in testo or "ATTO" in testo or "MEMORIA" in testo else "attachment"
 
     def _is_portale_dns_error(exc: Exception) -> bool:
         text = str(exc or "").lower()
@@ -6152,6 +6329,213 @@ def create_app(config: dict | None = None) -> Flask:
             events_sync_enabled=events_sync_enabled,
         )
 
+    def _selection_preview_from_existing_fascicolo_telematico(fasc: Fascicolo) -> tuple[str, dict[str, Any], dict[str, Any]]:
+        source_map = {
+            "PST": "pst",
+            "PDP": "pdp",
+            "PAT": "pat",
+            "PTT": "ptt",
+        }
+        portale = source_map.get(str(getattr(fasc, "source", "") or "").strip().upper(), "")
+        if not portale:
+            return "", {}, {}
+        documenti: list[dict[str, Any]] = []
+        for dep in list(getattr(fasc, "depositi_pct", []) or []):
+            if getattr(dep, "documenti_portale", None):
+                documenti.extend(list(dep.documenti_portale or []))
+        if not documenti:
+            for doc in list(getattr(fasc, "documenti", []) or []):
+                if not str(getattr(doc, "id_deposito_pct", "") or "").strip():
+                    continue
+                documenti.append(
+                    {
+                        "id_documento": str(doc.id),
+                        "nome": str(doc.nome or "").strip(),
+                        "tipo": getattr(getattr(doc, "tipo", None), "value", ""),
+                        "data_deposito": str(getattr(doc, "data_documento", "") or "").strip(),
+                        "mittente": str(fasc.avvocato_referente or fasc.avvocato_dominus or "").strip(),
+                        "dimensione_bytes": int(getattr(doc, "dimensione_bytes", 0) or 0),
+                        "disponibile": True,
+                        "id_deposito": str(getattr(doc, "id_deposito_pct", "") or "").strip(),
+                        "tipo_atto": "",
+                    }
+                )
+        selection = {
+            "external_id": str(getattr(fasc, "source_external_id", "") or "").strip()
+            or f"{fasc.tribunale}:{fasc.numero_rg}:{fasc.anno_rg}:{fasc.tipo_procedimento or getattr(getattr(fasc, 'tipo', None), 'value', '')}",
+            "numero": str(getattr(fasc, "numero_rg", "") or "").strip(),
+            "anno": int(getattr(fasc, "anno_rg", 0) or 0),
+            "ufficio_codice": "",
+            "ufficio_nome": str(getattr(fasc, "tribunale", "") or "").strip(),
+            "procedimento": str(getattr(fasc, "tipo_procedimento", "") or getattr(getattr(fasc, "tipo", None), "value", "")).strip(),
+            "sezione": str(getattr(fasc, "sezione", "") or "").strip(),
+            "stato": str(getattr(fasc, "sync_status", "") or getattr(getattr(fasc, "stato", None), "value", "")).strip(),
+            "oggetto": str(getattr(fasc, "oggetto", "") or "").strip(),
+            "parti": [str(getattr(fasc, "nome_cliente", "") or "").strip()] if str(getattr(fasc, "nome_cliente", "") or "").strip() else [],
+            "controparti": [str(getattr(fasc, "controparte", "") or "").strip()] if str(getattr(fasc, "controparte", "") or "").strip() else [],
+            "ultima_attivita": str(getattr(fasc, "last_sync_at", "") or getattr(fasc, "modificato_il", "") or "").strip(),
+            "payload": {},
+        }
+        preview = _build_portale_preview(portale, selection, documenti)
+        return portale, selection, preview
+
+    def _sync_telematico_case_from_portale(
+        portale: str,
+        *,
+        id_fasc: str,
+        selection: dict[str, Any],
+        preview: dict[str, Any],
+        import_log_id: str = "",
+        sync_status: str = "",
+        document_sync_enabled: bool = False,
+        workflow_url: str = "",
+        user_name: str = "",
+        backfill: bool = False,
+    ) -> dict[str, Any]:
+        fasc = get_fascicoli().get(id_fasc)
+        if not fasc:
+            return {}
+        repo = get_telematico()
+        cfg = get_config_studio().config
+        identity = dict((preview or {}).get("identity") or {})
+        native_status = str(identity.get("stato") or selection.get("stato") or "").strip().upper()
+        has_documents = int((preview.get("counts") or {}).get("documenti", 0) or 0) > 0
+        portal_case_ref = str(selection.get("external_id") or getattr(fasc, "source_external_id", "") or "").strip()
+        existing_case = repo.find_case(
+            practice_id=id_fasc,
+            service_code=_telematico_service_code(portale),
+            portal_case_ref=portal_case_ref or None,
+            office_name=str(selection.get("ufficio_nome") or getattr(fasc, "tribunale", "") or "").strip() or None,
+            register_type=str(selection.get("procedimento") or getattr(fasc, "tipo_procedimento", "") or "").strip() or None,
+            register_number=str(selection.get("numero") or getattr(fasc, "numero_rg", "") or "").strip() or None,
+            register_year=int(selection.get("anno") or getattr(fasc, "anno_rg", 0) or 0) or None,
+        )
+        counsel_name = (
+            str(getattr(fasc, "avvocato_referente", "") or "").strip()
+            or str(getattr(fasc, "avvocato_dominus", "") or "").strip()
+            or str(getattr(cfg.studio, "nome_avvocato", "") or "").strip()
+            or str(user_name or "").strip()
+        )
+        counsel_cf = (
+            str(getattr(cfg.firma, "cf_avvocato", "") or "").strip().upper()
+            or str(getattr(cfg.studio, "codice_fiscale_avvocato", "") or "").strip().upper()
+        )
+        case = repo.upsert_case(
+            id=str((existing_case or {}).get("id") or "").strip() or None,
+            practice_id=id_fasc,
+            channel_family=_telematico_channel_family(portale),
+            service_code=_telematico_service_code(portale),
+            office_name=str(selection.get("ufficio_nome") or getattr(fasc, "tribunale", "") or "").strip() or "Ufficio da completare",
+            office_type="",
+            district="",
+            register_type=str(selection.get("procedimento") or getattr(fasc, "tipo_procedimento", "") or "").strip(),
+            register_number=str(selection.get("numero") or getattr(fasc, "numero_rg", "") or "").strip(),
+            register_year=int(selection.get("anno") or getattr(fasc, "anno_rg", 0) or 0),
+            subject_name=str((selection.get("parti") or [getattr(fasc, "nome_cliente", "")])[0] or getattr(fasc, "nome_cliente", "")).strip() or "Parte non definita",
+            subject_cf="",
+            counterparty_name=str((selection.get("controparti") or [getattr(fasc, "controparte", "")])[0] or getattr(fasc, "controparte", "")).strip(),
+            counsel_name=counsel_name or "Difensore da completare",
+            counsel_cf=counsel_cf or "N/D",
+            portal_case_ref=portal_case_ref or None,
+            portal_case_url="",
+            workflow_url=workflow_url or None,
+            internal_status=_telematico_internal_status(
+                sync_status=sync_status or getattr(fasc, "sync_status", ""),
+                native_status=native_status,
+                has_documents=has_documents,
+                documents_imported=bool(document_sync_enabled),
+                needs_manual_review=bool(getattr(fasc, "has_conflicts", False)),
+            ),
+            native_status=native_status or None,
+            import_log_id=import_log_id or getattr(fasc, "import_log_id", "") or None,
+            notes=str(getattr(fasc, "note", "") or "").strip() or None,
+            last_sync_at=str(getattr(fasc, "last_sync_at", "") or datetime.now().isoformat()),
+        )
+        if not (backfill and existing_case):
+            repo.add_event(
+                str(case["id"]),
+                event_type="telematico_sync",
+                event_source="import" if not backfill else "system",
+                title=f"{_portale_source_name(portale)} sincronizzato nel core telematico",
+                description=f"Pratica {getattr(fasc, 'numero', '')} allineata con il canale {_portale_source_name(portale)}.",
+                payload_json={
+                    "practice_id": id_fasc,
+                    "import_log_id": import_log_id,
+                    "documents": int((preview.get('counts') or {}).get('documenti', 0) or 0),
+                },
+                created_by_user_id=getattr(getattr(g, "utente_corrente", None), "id", "") or None,
+            )
+        depositi = list(preview.get("depositi") or [])
+        if not depositi and list(preview.get("documenti") or []):
+            depositi = _group_portale_documents(list(preview.get("documenti") or []))
+        for deposito in depositi:
+            transmission = repo.upsert_transmission(
+                str(case["id"]),
+                transmission_type="case_import",
+                act_type=str(deposito.get("tipo_atto") or "Deposito ufficiale").strip(),
+                portal_reference=str(deposito.get("id_deposito") or import_log_id or portal_case_ref or "").strip() or None,
+                internal_status=_telematico_transmission_status(native_status, has_documents=bool(deposito.get("documenti"))),
+                native_status=native_status or None,
+                submitted_at=str(deposito.get("data_deposito") or identity.get("data_iscrizione") or "").strip() or None,
+                outcome_at=str(identity.get("ultima_attivita") or deposito.get("data_deposito") or "").strip() or None,
+                notes=f"Catalogo {_portale_source_name(portale)} allineato nel core telematico.",
+            )
+            for doc in list(deposito.get("documenti") or []):
+                doc_ref = str(doc.get("id_cat") or doc.get("id_documento") or "").strip()
+                tele_doc = repo.upsert_document(
+                    str(case["id"]),
+                    document_role=_telematico_document_role(doc),
+                    document_category=str(doc.get("tipo") or "").strip() or None,
+                    title=str(doc.get("nome") or "Documento ufficiale").strip(),
+                    original_filename=str(doc.get("nome") or "").strip() or None,
+                    file_size_bytes=int(doc.get("dimensione_bytes") or 0) or None,
+                    source_type="portal",
+                    signed=1 if str(doc.get("nome") or "").lower().endswith(".p7m") else 0,
+                    portal_document_ref=doc_ref or None,
+                    portal_document_date=str(doc.get("data_deposito") or "").strip() or None,
+                    id_deposito=str(deposito.get("id_deposito") or "").strip(),
+                    tipo_atto=str(deposito.get("tipo_atto") or doc.get("tipo_atto") or "").strip(),
+                    data_deposito=str(doc.get("data_deposito") or deposito.get("data_deposito") or "").strip() or None,
+                    mittente=str(doc.get("mittente") or deposito.get("mittente") or "").strip() or None,
+                    notes=f"Documento censito da {_portale_source_name(portale)}.",
+                )
+                repo.link_document_to_transmission(
+                    str(transmission["id"]),
+                    str(tele_doc["id"]),
+                    relation_type="main_act" if tele_doc.get("document_role") == "main_act" else "attachment",
+                )
+        if has_documents and not document_sync_enabled:
+            repo.ensure_task(
+                str(case["id"]),
+                task_type="download_case_file",
+                title="Completare acquisizione documenti dal portale ufficiale",
+                description=f"Il fascicolo {_portale_source_name(portale)} ha documenti censiti ma non ancora integrati nel fascicolo locale.",
+                priority="high",
+                assigned_user_id=getattr(getattr(g, "utente_corrente", None), "id", "") or "",
+            )
+        else:
+            repo.close_tasks(str(case["id"]), task_type="download_case_file")
+        return case
+
+    def _backfill_telematico_from_existing_fascicoli() -> None:
+        for fasc in get_fascicoli().tutti():
+            if str(getattr(fasc, "source", "") or "").strip().upper() not in {"PST", "PDP", "PAT", "PTT"}:
+                continue
+            portale, selection, preview = _selection_preview_from_existing_fascicolo_telematico(fasc)
+            if not portale or not selection:
+                continue
+            _sync_telematico_case_from_portale(
+                portale,
+                id_fasc=fasc.id,
+                selection=selection,
+                preview=preview,
+                import_log_id=str(getattr(fasc, "import_log_id", "") or ""),
+                sync_status=str(getattr(fasc, "sync_status", "") or ""),
+                document_sync_enabled=bool(getattr(fasc, "document_sync_enabled", False)),
+                user_name=getattr(getattr(g, "utente_corrente", None), "username", "") or "",
+                backfill=True,
+            )
+
     def _importa_o_collega_fascicolo_portale(
         portale: str,
         selection: dict[str, Any],
@@ -6381,6 +6765,18 @@ def create_app(config: dict | None = None) -> Flask:
             if case:
                 workflow_url = url_for("pdp_penale_workspace", id_fasc=id_fasc, case_id=case["id"])
 
+        _sync_telematico_case_from_portale(
+            portale,
+            id_fasc=id_fasc,
+            selection=selection,
+            preview=preview_for_files if preview_for_files else preview,
+            import_log_id=log_id,
+            sync_status="IMPORTATO" if created else "SINCRONIZZATO",
+            document_sync_enabled=bool(importa_file_portale),
+            workflow_url=workflow_url,
+            user_name=user_name,
+        )
+
         fasc = gf.get(id_fasc)
         return {
             "id_fascicolo": id_fasc,
@@ -6443,7 +6839,7 @@ def create_app(config: dict | None = None) -> Flask:
             sync_status="IMPORTATO" if created else "SINCRONIZZATO",
         )
         if portale == "pdp":
-            _ensure_pdp_penale_case_after_import(
+            case = _ensure_pdp_penale_case_after_import(
                 id_fasc=id_fasc,
                 selection=selection,
                 preview=preview,
@@ -6451,6 +6847,20 @@ def create_app(config: dict | None = None) -> Flask:
                 imported_documents=0,
                 downloaded_files=[],
             )
+            workflow_url = url_for("pdp_penale_workspace", id_fasc=id_fasc, case_id=case["id"]) if case else ""
+        else:
+            workflow_url = ""
+        _sync_telematico_case_from_portale(
+            portale,
+            id_fasc=id_fasc,
+            selection=selection,
+            preview=preview,
+            import_log_id=log_id,
+            sync_status="IMPORTATO" if created else "SINCRONIZZATO",
+            document_sync_enabled=False,
+            workflow_url=workflow_url,
+            user_name=user_name,
+        )
         return log_id
 
     def _build_access_status_payload(portale: str) -> dict[str, Any]:

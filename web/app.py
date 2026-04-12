@@ -4865,6 +4865,7 @@ def create_app(config: dict | None = None) -> Flask:
             flash("Portale non supportato.", "warning")
             return redirect(url_for("dashboard"))
         id_fasc = str(request.args.get("id_fasc") or "").strip()
+        wizard_focus = str(request.args.get("focus") or "").strip().lower()
         linked_fascicolo = get_fascicoli().get(id_fasc) if id_fasc else None
         linked_fascicolo_url = (
             url_for("dettaglio_fascicolo", id_fasc=linked_fascicolo.id)
@@ -4898,6 +4899,7 @@ def create_app(config: dict | None = None) -> Flask:
             wizard_return_url=wizard_return_url,
             wizard_return_label=wizard_return_label,
             wizard_initial_mapping=wizard_initial_mapping,
+            wizard_focus=wizard_focus,
             oggi=date.today(),
         )
 

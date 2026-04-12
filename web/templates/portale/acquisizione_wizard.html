@@ -11,6 +11,7 @@
 {% set show_search_oggetto = search_ui.show_oggetto if search_ui.show_oggetto is defined else True %}
 {% set linked_mode = wizard_initial_mapping.mode if wizard_initial_mapping else 'create_new' %}
 {% set linked_target_id = wizard_initial_mapping.target_fascicolo_id if wizard_initial_mapping else '' %}
+{% set wizard_focus_manual = wizard_focus == 'manual-upload' %}
 <style>
   .aw-shell{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:1.25rem}
   .aw-steps{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:.5rem}
@@ -49,6 +50,17 @@
     <a href="{{ wizard_return_url or url_for(spec.home_endpoint) }}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>{{ wizard_return_label or 'Torna al portale' }}</a>
   </div>
 </div>
+
+{% if wizard_focus_manual %}
+<div class="alert alert-{{ spec.color }}-subtle border border-{{ spec.color }}-subtle rounded-4 mb-4">
+  <div class="fw-semibold mb-1"><i class="bi bi-upload me-1"></i>Importazione dei file gia scaricati</div>
+  <div class="small">
+    Sei entrato dal portale con il focus sull'import manuale. I file reali si caricano nello
+    <strong>Step 7 - Importazione finale</strong>, nella sezione <strong>Importa ZIP, file o cartella gia scaricati</strong>.
+    Prima completa ricerca, selezione e mappatura del fascicolo da integrare nel gestionale.
+  </div>
+</div>
+{% endif %}
 
 {% if wizard_portale == 'pdp' and linked_fascicolo %}
 <div class="alert alert-danger-subtle border border-danger-subtle rounded-4 mb-4">
@@ -222,6 +234,37 @@
             {% endif %}
           </div>
       </div>
+      <div class="aw-box border mb-3">
+        <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-2">
+          <div>
+            <div class="fw-semibold mb-1">
+              <i class="bi bi-upload me-1 text-{{ spec.color }}"></i>Importa ZIP, file o cartella gia scaricati
+            </div>
+            <div class="small text-muted">
+              Se hai gia scaricato il fascicolo dal portale ufficiale, puoi selezionare qui i file reali.
+              HACS usera questi file come fonte prioritaria per l'importazione e per il collegamento alle buste del fascicolo interno.
+            </div>
+          </div>
+          <button class="btn btn-sm btn-outline-secondary" type="button" id="awManualUploadClear">
+            <i class="bi bi-x-circle me-1"></i>Svuota selezione
+          </button>
+        </div>
+        <div class="row g-3">
+          <div class="col-lg-6">
+            <label class="form-label fw-semibold" for="awManualUploadFiles">File o ZIP scaricati</label>
+            <input class="form-control" id="awManualUploadFiles" type="file" multiple accept=".zip,.pdf,.p7m,.eml,.msg,.xml,.html,.htm,.txt">
+            <div class="form-text">Puoi scegliere piu file insieme oppure un archivio ZIP del fascicolo.</div>
+          </div>
+          <div class="col-lg-6">
+            <label class="form-label fw-semibold" for="awManualUploadFolder">Cartella scaricata</label>
+            <input class="form-control" id="awManualUploadFolder" type="file" multiple webkitdirectory directory>
+            <div class="form-text">Se il browser lo supporta, puoi selezionare direttamente la cartella del download.</div>
+          </div>
+        </div>
+        <div class="alert alert-light border rounded-4 mt-3 mb-0 small" id="awManualUploadSummary">
+          Nessun file manuale selezionato. In assenza di upload, HACS prova a recuperare i file gia scaricati dal browser ufficiale o dal Local Signer.
+        </div>
+      </div>
       <div class="alert alert-light border rounded-4" id="awImportState">Pronto per l’importazione finale.</div>
       <div id="awDownloadProgress" style="display:none" class="mb-3">
         <div class="d-flex justify-content-between align-items-center mb-1">
@@ -266,6 +309,7 @@ const AW_BOOT = {{ {
     "workflow_url": linked_workflow_url,
   } if linked_fascicolo else None),
   "initialMapping": wizard_initial_mapping,
+  "focus": wizard_focus,
 }|tojson }};
 const AW_STATE = {
   step:1,
@@ -278,6 +322,7 @@ const AW_STATE = {
   importResult:null,
   previewTab:'dati',
   downloadedFiles:[],
+  manualUploadedFiles:[],
   downloadSummary:null,
   downloadCacheKey:'',
   downloadWarning:null,
@@ -1389,6 +1434,95 @@ async function awEnsureBrowserDownloadedFiles({ force = false } = {}) {
   }
   return summary;
 }
+function awIsoDateFromTimestamp(value) {
+  const ts = Number(value || 0);
+  if (!ts) return '';
+  const parsed = new Date(ts);
+  if (Number.isNaN(parsed.getTime())) return '';
+  const yyyy = parsed.getFullYear();
+  const mm = String(parsed.getMonth() + 1).padStart(2, '0');
+  const dd = String(parsed.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+function awReadFileAsBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error(`Impossibile leggere il file ${file?.name || ''}`));
+    reader.onload = () => {
+      const result = String(reader.result || '');
+      const parts = result.split(',', 2);
+      resolve(parts.length === 2 ? parts[1] : result);
+    };
+    reader.readAsDataURL(file);
+  });
+}
+async function awCollectManualUploadFiles(fileList) {
+  const files = Array.from(fileList || []).filter(file => file && file.name);
+  const collected = [];
+  for (const file of files) {
+    const contenuto_b64 = await awReadFileAsBase64(file);
+    const origineRelativa = String(file.webkitRelativePath || '').trim();
+    collected.push({
+      nome: file.name,
+      nome_file_originale: file.name,
+      contenuto_b64,
+      origine: origineRelativa ? `upload-cartella:${origineRelativa}` : `upload:${file.name}`,
+      data_documento: awIsoDateFromTimestamp(file.lastModified) || '',
+      content_type: String(file.type || '').trim(),
+      id_documento_portale: '',
+      id_deposito_esterno: '',
+      id_deposito_pct: '',
+      tipo_atto: '',
+      tipo: '',
+      original_documento_portale: true,
+      modalita_documento_portale: 'upload-manuale',
+    });
+  }
+  return collected;
+}
+function awRenderManualUploadSummary() {
+  const summary = document.getElementById('awManualUploadSummary');
+  if (!summary) return;
+  const files = Array.isArray(AW_STATE.manualUploadedFiles) ? AW_STATE.manualUploadedFiles : [];
+  if (!files.length) {
+    summary.innerHTML = 'Nessun file manuale selezionato. In assenza di upload, HACS prova a recuperare i file gia scaricati dal browser ufficiale o dal Local Signer.';
+    return;
+  }
+  const preview = files.slice(0, 4).map(file => awEscape(file.nome || file.nome_file_originale || 'documento')).join(' · ');
+  const extra = files.length > 4 ? ` <span class="text-muted">(+${files.length - 4} altri)</span>` : '';
+  summary.innerHTML = `<span class="text-success"><i class="bi bi-check-circle me-1"></i>${files.length} file pronti per l'importazione manuale.</span><br><span>${preview}${extra}</span>`;
+}
+async function awSetManualUploadFiles(fileList) {
+  const summary = document.getElementById('awManualUploadSummary');
+  if (summary) {
+    summary.innerHTML = '<span class="text-muted">Preparazione dei file selezionati in corso...</span>';
+  }
+  try {
+    AW_STATE.manualUploadedFiles = await awCollectManualUploadFiles(fileList);
+    AW_STATE.downloadedFiles = [];
+    AW_STATE.downloadSummary = null;
+    AW_STATE.downloadCacheKey = '';
+    AW_STATE.downloadWarning = null;
+    awRenderManualUploadSummary();
+    awRenderSidebar();
+  } catch (err) {
+    AW_STATE.manualUploadedFiles = [];
+    awRenderManualUploadSummary();
+    awRenderSidebar();
+    if (summary) {
+      summary.innerHTML = `<span class="text-danger"><i class="bi bi-x-circle me-1"></i>${awEscape(String(err))}</span>`;
+    }
+  }
+}
+function awClearManualUploadFiles() {
+  AW_STATE.manualUploadedFiles = [];
+  const fileInput = document.getElementById('awManualUploadFiles');
+  const folderInput = document.getElementById('awManualUploadFolder');
+  if (fileInput) fileInput.value = '';
+  if (folderInput) folderInput.value = '';
+  awRenderManualUploadSummary();
+  awRenderSidebar();
+}
 function awRenderAccess() {
   const status = AW_STATE.status || {};
   const signer = status.local_signer || {};
@@ -1585,8 +1719,10 @@ async function awSelectResult(index, jumpPreview, options = {}) {
   AW_STATE.importResult = null;
   AW_STATE.previewTab = 'dati';
   AW_STATE.downloadedFiles = [];
+  AW_STATE.manualUploadedFiles = [];
   AW_STATE.downloadSummary = null;
   AW_STATE.downloadCacheKey = '';
+  awClearManualUploadFiles();
   document.getElementById('awPreview').innerHTML = '<div class="aw-box text-muted">Sto preparando l’anteprima del fascicolo e dei documenti disponibili...</div>';
   awRenderSidebar();
   try {
@@ -1923,10 +2059,22 @@ async function awStartImport() {
   importBtn.disabled = true;
   const options = awCurrentOptions();
   let downloadedFiles = Array.isArray(AW_STATE.downloadedFiles) ? AW_STATE.downloadedFiles : [];
+  const manualUploadedFiles = Array.isArray(AW_STATE.manualUploadedFiles) ? AW_STATE.manualUploadedFiles : [];
   let downloadSummary = null;
   try {
     const selectedDocsCount = awSelectedPreviewDocuments(options).length;
-    if (AW_BOOT.portale === 'pst' && awShouldImportPortalFiles(options) && selectedDocsCount > 0) {
+    if (manualUploadedFiles.length && awShouldImportPortalFiles(options) && selectedDocsCount > 0) {
+      downloadedFiles = manualUploadedFiles;
+      downloadSummary = {
+        ok: true,
+        files: manualUploadedFiles,
+        failures: [],
+        documenti_richiesti: selectedDocsCount,
+        documenti_scaricati: manualUploadedFiles.length,
+        collection_mode: 'manual-upload',
+      };
+      state.innerHTML = `<i class="bi bi-check-circle text-success me-1"></i>Upload manuale pronto: ${manualUploadedFiles.length} file selezionati. Importazione in corso...`;
+    } else if (AW_BOOT.portale === 'pst' && awShouldImportPortalFiles(options) && selectedDocsCount > 0) {
       state.innerHTML = 'Apertura sessione PST e scaricamento allegati in corso — inserire il PIN una sola volta se richiesto...';
       downloadSummary = await awEnsurePstDownloadedFiles();
       downloadedFiles = Array.isArray(downloadSummary.files) ? downloadSummary.files : [];
@@ -1976,6 +2124,7 @@ async function awStartImport() {
   const failureCount = Number(downloadSummary?.failures?.length || 0);
   const collectionMode = String(downloadSummary?.collection_mode || '').toLowerCase();
   const usedBrowserDownloads = collectionMode === 'browser-downloads';
+  const usedManualUploads = collectionMode === 'manual-upload';
   state.innerHTML = `
     <div class="alert alert-success rounded-4 mb-0">
       <div class="fw-semibold mb-1"><i class="bi bi-check-circle-fill me-1"></i>${
@@ -1991,8 +2140,8 @@ async function awStartImport() {
         Conflitti risolti: ${awEscape(summary.conflitti_risolti || 0)}
       </div>
       ${downloadSummary && !usedBrowserDownloads ? `<div class="small mt-1">Modalita documenti PST: ${awEscape(summary.modalita_documento_portale === 'copia' ? 'copia portale con annotazioni ministeriali' : 'originale firmato del repository')}</div>` : ''}
-      ${downloadSummary ? `<div class="small mt-1">${awEscape(downloadSummary.documenti_scaricati || 0)} ${usedBrowserDownloads ? 'file locali raccolti dai download del browser ufficiale' : 'allegati scaricati dal portale e ripartiti nelle sezioni del fascicolo'}${failureCount ? ` · <span class="text-warning">${awEscape(failureCount)} download da verificare</span>` : ''}.</div>` : ''}
-      ${downloadSummary ? `<div class="small mt-1 text-muted">${usedBrowserDownloads ? (AW_BOOT.portale === 'pat' ? "Nel fascicolo PAT interno trovi catalogo ufficiale, ricevute e file gia scaricati dal Portale dell'Avvocato, senza lettura live diretta da SIGA." : 'Nel fascicolo trovi il catalogo ufficiale del portale e i file gia scaricati nel browser, senza nuovi download automatici dal gestionale.') : "Nel fascicolo vedrai sempre il catalogo ufficiale dei documenti del portale. L'opzione dell'albero tecnico salva solo una copia tecnica separata, non cambia questa vista."}</div>` : ''}
+      ${downloadSummary ? `<div class="small mt-1">${awEscape(downloadSummary.documenti_scaricati || 0)} ${usedManualUploads ? 'file caricati manualmente dal tuo computer' : (usedBrowserDownloads ? 'file locali raccolti dai download del browser ufficiale' : 'allegati scaricati dal portale e ripartiti nelle sezioni del fascicolo')}${failureCount ? ` · <span class="text-warning">${awEscape(failureCount)} download da verificare</span>` : ''}.</div>` : ''}
+      ${downloadSummary ? `<div class="small mt-1 text-muted">${usedManualUploads ? 'Nel fascicolo trovi i file che hai selezionato manualmente, piu il catalogo ufficiale dei documenti del portale per i collegamenti a buste e controlli.' : (usedBrowserDownloads ? (AW_BOOT.portale === 'pat' ? "Nel fascicolo PAT interno trovi catalogo ufficiale, ricevute e file gia scaricati dal Portale dell'Avvocato, senza lettura live diretta da SIGA." : 'Nel fascicolo trovi il catalogo ufficiale del portale e i file gia scaricati nel browser, senza nuovi download automatici dal gestionale.') : "Nel fascicolo vedrai sempre il catalogo ufficiale dei documenti del portale. L'opzione dell'albero tecnico salva solo una copia tecnica separata, non cambia questa vista.")}</div>` : ''}
       ${summary.albero_originale_salvato ? `<div class="small mt-1">${AW_BOOT.portale === 'pat' ? "Archivio tecnico dell'import PAT archiviato." : 'Albero tecnico originale del portale archiviato.'}</div>` : ''}
       <div class="small mt-1 text-muted">Import log ${awEscape(AW_STATE.importResult?.import_log_id || '')}</div>
     </div>`;
@@ -2042,9 +2191,12 @@ function awRenderSidebar() {
     ['Provvedimenti', counts.provvedimenti || 0],
   ].map(([label, count]) => `<span class="badge text-bg-light border">${label}: ${awEscape(count)}</span>`).join('')
     + `<span class="badge text-bg-light border">${awSidebarPortalModeLabel(options)}</span>`
+    + ((AW_STATE.manualUploadedFiles || []).length ? `<span class="badge text-bg-light border">Upload manuale: ${awEscape((AW_STATE.manualUploadedFiles || []).length)}</span>` : '')
     + (options.mantieni_albero_originale ? `<span class="badge text-bg-light border">${awSidebarPortalTreeLabel()}</span>` : '');
   if (AW_STATE.importResult?.summary) {
     note.textContent = `Import completato. Pratica ${AW_STATE.importResult.summary.numero_pratica || ''} pronta per essere governata dal gestionale.`;
+  } else if ((AW_STATE.manualUploadedFiles || []).length) {
+    note.textContent = `Sono pronti ${(AW_STATE.manualUploadedFiles || []).length} file selezionati manualmente: puoi completare verifica e importazione senza dipendere dai download automatici.`;
   } else if (AW_STATE.analysis?.next_step) {
     note.textContent = `${AW_STATE.analysis.next_step.label}: ${AW_STATE.analysis.next_step.detail || ''}`;
   } else {
@@ -2196,10 +2348,18 @@ document.getElementById('awTest').addEventListener('click', async () => {
     if ((AW_STATE.analysis?.blockers || []).length) return alert('Risolvi prima i blocchi evidenziati.');
     awGoStep(7);
   });
+  document.getElementById('awManualUploadFiles').addEventListener('change', async event => {
+    await awSetManualUploadFiles(event.target.files);
+  });
+  document.getElementById('awManualUploadFolder').addEventListener('change', async event => {
+    await awSetManualUploadFiles(event.target.files);
+  });
+  document.getElementById('awManualUploadClear').addEventListener('click', awClearManualUploadFiles);
   document.getElementById('awImport').addEventListener('click', awStartImport);
 }
 document.addEventListener('DOMContentLoaded', async () => {
   awBindActions();
+  awRenderManualUploadSummary();
   try {
     awLoadPstCert();
     awLoadPstSession();

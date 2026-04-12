@@ -62,6 +62,9 @@
     <a class="btn btn-success" href="{{ url_for('portale_acquisizione_wizard', portale='pat', id_fasc=fascicolo.id if fascicolo else None) }}">
       <i class="bi bi-diagram-3 me-1"></i>Acquisizione guidata
     </a>
+    <a class="btn btn-outline-secondary" href="{{ url_for('portale_acquisizione_wizard', portale='pat', id_fasc=fascicolo.id if fascicolo else None, focus='manual-upload') }}">
+      <i class="bi bi-upload me-1"></i>Importa file gia scaricati
+    </a>
     <a class="btn btn-outline-success" href="{{ official_portal_url }}" target="_blank" rel="noopener">
       <i class="bi bi-box-arrow-up-right me-1"></i>Apri Portale Avvocato
     </a>
@@ -123,10 +126,14 @@
               <div class="fw-semibold mb-2">Gestione in HACS</div>
               <div class="small text-muted mb-3 portal-hub-copy">
                 HACS prepara il fascicolo PAT interno, evita duplicati e integra i file gia scaricati dal portale ufficiale.
+                Lo step finale del wizard mostra anche l'upload manuale di ZIP, file e cartelle gia scaricati.
               </div>
               <div class="portal-hub-actions">
                 <a class="btn btn-outline-success" href="{{ url_for('portale_acquisizione_wizard', portale='pat', id_fasc=fascicolo.id if fascicolo else None) }}">
-                  <i class="bi bi-diagram-3 me-1"></i>Acquisizione guidata
+                  <i class="bi bi-diagram-3 me-1"></i>Acquisizione guidata e import file
+                </a>
+                <a class="btn btn-outline-secondary" href="{{ url_for('portale_acquisizione_wizard', portale='pat', id_fasc=fascicolo.id if fascicolo else None, focus='manual-upload') }}">
+                  <i class="bi bi-upload me-1"></i>Importa file gia scaricati
                 </a>
                 {% if fascicolo %}
                 <a class="btn btn-outline-secondary" href="{{ url_for('dettaglio_fascicolo', id_fasc=fascicolo.id) }}#sezione-documenti-fascicolo">

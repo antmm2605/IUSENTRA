@@ -2741,6 +2741,14 @@ def test_route_wizard_acquisizione_portali_renderizza_step_guida(tmp_path):
             assert "Step 1" in body
             assert "Step 7" in body
             assert "Riepilogo sempre visibile" in body
+            assert "Importa ZIP, file o cartella gia scaricati" in body
+            assert "awManualUploadFiles" in body
+            assert "awManualUploadFolder" in body
+        manual_response = client.get("/portali/pat/acquisizione?focus=manual-upload", follow_redirects=True)
+        manual_body = manual_response.data.decode("utf-8")
+        assert manual_response.status_code == 200
+        assert "Importazione dei file gia scaricati" in manual_body
+        assert "Step 7 - Importazione finale" in manual_body
 
 
 def test_route_wizard_acquisizione_portali_espone_fallback_manuale(tmp_path):
@@ -2949,12 +2957,16 @@ def test_route_home_portali_mostra_link_acquisizione_guidata(tmp_path):
             assert expected in body
         pat_response = client.get("/pat", follow_redirects=True)
         ptt_response = client.get("/sigit", follow_redirects=True)
+        pdp_response = client.get("/pdp", follow_redirects=True)
 
     pat_body = pat_response.data.decode("utf-8")
     ptt_body = ptt_response.data.decode("utf-8")
     assert "Apri Portale Avvocato" in pat_body
     assert "Nuovo deposito Form Web" in pat_body
     assert "Consulta fascicolo sul portale" in pat_body
+    assert "Acquisizione guidata e import file" in pat_body
+    assert "Importa file gia scaricati" in pat_body
+    assert "focus=manual-upload" in pat_body
     assert "Fascicolo PAT interno" in pat_body
     assert "Cerca nel SIGA" not in pat_body
     assert "portal-hub-pane" in pat_body
@@ -2962,11 +2974,17 @@ def test_route_home_portali_mostra_link_acquisizione_guidata(tmp_path):
     assert "Apri PTT / SIGIT" in ptt_body
     assert "Apri Telecontenzioso" in ptt_body
     assert "Accesso temporaneo al fascicolo" in ptt_body
+    assert "Acquisizione guidata e import file" in ptt_body
+    assert "Importa file gia scaricati" in ptt_body
+    assert "focus=manual-upload" in ptt_body
     assert "Fascicolo Tributario Interno" in ptt_body
     assert "Cerca nel SIGIT" not in ptt_body
     assert "portal-hub-pane" in ptt_body
     assert "portal-hub-note" in ptt_body
     assert 'href="https://sigit.giustiziatributaria.gov.it/Sigit/index.do"' in ptt_body
+    pdp_body = pdp_response.data.decode("utf-8")
+    assert "Importa file gia scaricati" in pdp_body
+    assert "focus=manual-upload" in pdp_body
     assert 'href="https://sigit.giustiziatributaria.gov.it/FascicoloProcessuale/login.jsp"' in ptt_body
     assert 'href="https://sigit.giustiziatributaria.gov.it/Sigit/"' not in ptt_body
 

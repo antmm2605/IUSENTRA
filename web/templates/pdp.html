@@ -47,9 +47,14 @@
     Nel penale non chiediamo una ricerca piena dal gestionale: la via corretta e' <strong>Acquisizione guidata</strong>,
     che cerca il fascicolo dal canale ufficiale, evita duplicati locali e apre subito il <strong>workflow PDP</strong>.
   </div>
-  <a class="btn btn-danger" href="{{ url_for('portale_acquisizione_wizard', portale='pdp', id_fasc=fascicolo.id if fascicolo else None) }}">
-    <i class="bi bi-diagram-3 me-1"></i>Acquisizione guidata
-  </a>
+  <div class="d-flex gap-2 flex-wrap">
+    <a class="btn btn-danger" href="{{ url_for('portale_acquisizione_wizard', portale='pdp', id_fasc=fascicolo.id if fascicolo else None) }}">
+      <i class="bi bi-diagram-3 me-1"></i>Acquisizione guidata
+    </a>
+    <a class="btn btn-outline-secondary" href="{{ url_for('portale_acquisizione_wizard', portale='pdp', id_fasc=fascicolo.id if fascicolo else None, focus='manual-upload') }}">
+      <i class="bi bi-upload me-1"></i>Importa file gia scaricati
+    </a>
+  </div>
 </div>
 
 {% if fascicolo %}
@@ -89,12 +94,14 @@
         cercare, verificare e importare il fascicolo corretto senza creare doppioni.
       </div>
       <div class="col-md-4">
-        <div class="fw-semibold text-dark mb-1">
-          <i class="bi bi-arrow-repeat text-danger me-1"></i>Importazione intelligente
-        </div>
-        Se la pratica esiste gia', HACS la integra. Se manca, la crea. Nel penale aggancia anche il
-        workflow PDP per accesso atti, PEC, password e import fascicolo.
+      <div class="fw-semibold text-dark mb-1">
+        <i class="bi bi-arrow-repeat text-danger me-1"></i>Importazione intelligente
       </div>
+      Se la pratica esiste gia', HACS la integra. Se manca, la crea. Nel penale aggancia anche il
+      workflow PDP per accesso atti, PEC, password e import fascicolo. Dopo il download dal portale,
+      l'import dei file reali avviene nello Step 7 dell'acquisizione guidata oppure dal workspace PDP.
+      Il pulsante <strong>Importa file gia scaricati</strong> apre direttamente il wizard con questo focus.
+    </div>
       <div class="col-md-4">
         <div class="fw-semibold text-dark mb-1">
           <i class="bi bi-key text-danger me-1"></i>Credenziali

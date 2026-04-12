@@ -39,6 +39,12 @@
     </p>
   </div>
   <div class="ds-ph-actions">
+    {% if fascicolo.tipo.value == 'PENALE' %}
+    <a href="{{ url_for('pdp_penale_workspace', id_fasc=fascicolo.id) }}"
+       class="ds-btn ds-btn-primary" title="Workflow PDP Penale">
+      <i class="bi bi-shield-lock"></i><span class="d-none d-sm-inline">Workflow PDP</span>
+    </a>
+    {% endif %}
     <a href="{{ url_for('quadro_fascicolo', id_fasc=fascicolo.id) }}"
        class="ds-btn ds-btn-ghost" title="Quadro sinottico della pratica">
       <i class="bi bi-grid-3x3-gap"></i><span class="d-none d-sm-inline">Quadro</span>
@@ -87,6 +93,48 @@
     </div>
   </div>
 </div>
+
+{% if pdp_penale_summary and pdp_penale_summary.enabled %}
+<div class="card shadow-sm mb-3 border-danger-subtle" id="sezione-pdp-penale" style="scroll-margin-top:1rem">
+  <div class="card-body d-flex justify-content-between align-items-start gap-3 flex-wrap">
+    <div>
+      <div class="fw-semibold text-danger mb-1">
+        <i class="bi bi-shield-lock me-1"></i>Workflow PDP Penale
+      </div>
+      <div class="small text-muted">
+        {% if pdp_penale_summary.has_case %}
+          {{ pdp_penale_summary.case_count }} fascicol{{ 'o' if pdp_penale_summary.case_count == 1 else 'i' }} ministerial{{ 'e' if pdp_penale_summary.case_count == 1 else 'i' }}
+          collegat{{ 'o' if pdp_penale_summary.case_count == 1 else 'i' }} ·
+          {{ pdp_penale_summary.documents_count }} documenti ·
+          {{ pdp_penale_summary.open_tasks }} task aperti
+        {% else %}
+          Nessun case PDP registrato: apri il workspace penale per censire il fascicolo ministeriale, la richiesta accesso atti e la PEC.
+        {% endif %}
+      </div>
+      {% if pdp_penale_summary.active_case %}
+      <div class="d-flex gap-2 flex-wrap mt-2">
+        <span class="badge bg-light text-dark border">
+          {{ (pdp_penale_summary.active_case.register_type or 'RGNR') }} {{ pdp_penale_summary.active_case.register_number }}/{{ pdp_penale_summary.active_case.register_year }}
+        </span>
+        <span class="badge bg-light text-dark border">
+          Accesso {{ (pdp_penale_summary.active_case.access_status or 'draft').replace('_', ' ') }}
+        </span>
+        {% if pdp_penale_summary.active_case.current_ministry_status %}
+        <span class="badge bg-light text-dark border">
+          Ministero {{ pdp_penale_summary.active_case.current_ministry_status.replace('_', ' ') }}
+        </span>
+        {% endif %}
+      </div>
+      {% endif %}
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+      <a href="{{ pdp_penale_summary.url }}" class="btn btn-outline-danger btn-sm">
+        <i class="bi bi-arrow-right-circle me-1"></i>Apri workspace
+      </a>
+    </div>
+  </div>
+</div>
+{% endif %}
 
 <div class="row g-3">
 

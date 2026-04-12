@@ -1,0 +1,691 @@
+{% extends "base.html" %}
+{% block title %}Workflow PDP Penale - {{ fascicolo.titolo }}{% endblock %}
+{% block page_title %}Workflow PDP Penale{% endblock %}
+
+{% set active_case = workspace.active_case or {} %}
+{% set case_form = workspace.case_form or {} %}
+{% set stats = workspace.stats or {} %}
+{% set checklist = workspace.wizard_checklist or [] %}
+{% set local_documents = workspace.local_documents or [] %}
+{% set module_documents = workspace.module_documents or [] %}
+{% set access_requests = workspace.access_requests or [] %}
+{% set pec_messages = workspace.pec_messages or [] %}
+{% set tasks = workspace.tasks or [] %}
+{% set events = workspace.events or [] %}
+{% set status_case = {
+  'draft':'secondary','ready':'info','submitted':'primary','waiting_authorization':'warning',
+  'authorized':'success','denied':'danger','expired':'dark','technical_error':'danger',
+  'manual_intervention_required':'warning'
+} %}
+{% set status_nomina = {
+  'missing':'secondary','to_be_deposited':'warning','deposited':'info','accepted':'success','rejected':'danger'
+} %}
+{% set status_import = {
+  'not_started':'secondary','waiting_download':'warning','downloaded':'info','partial_import':'warning',
+  'completed':'success','failed':'danger'
+} %}
+{% set status_ministry = {
+  'INVIATO':'primary','IN_TRANSITO':'info','ACCETTATO':'success','IN_VERIFICA':'warning',
+  'RIFIUTATO':'danger','ERRORE_TECNICO':'danger'
+} %}
+
+{% block content %}
+<div class="ds-ph">
+  <div class="ds-ph-icon"><i class="bi bi-shield-lock"></i></div>
+  <div class="ds-ph-body">
+    <h1 class="ds-ph-title">Workflow PDP Penale</h1>
+    <p class="ds-ph-sub">
+      Fascicolo interno {{ fascicolo.rg_completo or fascicolo.numero }} - {{ fascicolo.titolo }}
+    </p>
+  </div>
+  <div class="ds-ph-actions">
+    <a href="{{ url_for('dettaglio_fascicolo', id_fasc=fascicolo.id) }}" class="ds-btn ds-btn-ghost">
+      <i class="bi bi-arrow-left"></i><span class="d-none d-sm-inline">Fascicolo</span>
+    </a>
+    <a href="{{ url_for('portale_acquisizione_wizard', portale='pdp') }}" class="ds-btn ds-btn-outline">
+      <i class="bi bi-search"></i><span class="d-none d-sm-inline">Acquisizione PDP</span>
+    </a>
+  </div>
+</div>
+
+<div class="ds-stats mb-3">
+  <span class="ds-stat-pill">
+    <i class="bi bi-folder-check text-danger"></i>
+    <span class="num">{{ stats.case_count or 0 }}</span> fascicoli ministeriali
+  </span>
+  <span class="ds-stat-pill">
+    <i class="bi bi-paperclip text-primary"></i>
+    <span class="num">{{ stats.documents_count or 0 }}</span> documenti collegati
+  </span>
+  <span class="ds-stat-pill">
+    <i class="bi bi-send-check text-success"></i>
+    <span class="num">{{ stats.requests_count or 0 }}</span> richieste accesso
+  </span>
+  <span class="ds-stat-pill">
+    <i class="bi bi-envelope-lock text-warning"></i>
+    <span class="num">{{ stats.pec_count or 0 }}</span> PEC monitorate
+  </span>
+  <span class="ds-stat-pill">
+    <i class="bi bi-list-task text-dark"></i>
+    <span class="num">{{ stats.tasks_open or 0 }}</span> task aperti
+  </span>
+</div>
+
+{% if not active_case %}
+<div class="alert alert-warning shadow-sm">
+  <div class="fw-semibold mb-1">
+    <i class="bi bi-exclamation-triangle me-1"></i>Nessun fascicolo ministeriale PDP registrato
+  </div>
+  <div class="small">
+    Parti dalla scheda qui sotto: salviamo il riferimento ministeriale del procedimento, poi potrai registrare richiesta accesso atti, PEC, password e task operativi.
+  </div>
+</div>
+{% endif %}
+
+<div class="row g-3">
+  <div class="col-xl-4">
+    <div class="card shadow-sm h-100">
+      <div class="card-header fw-semibold">
+        <i class="bi bi-ui-checks-grid me-2 text-danger"></i>Wizard accesso fascicolo PDP
+      </div>
+      <div class="card-body">
+        <div class="small text-muted mb-3">
+          Checklist operativa allineata al flusso reale: prerequisiti, nomina, richiesta accesso, PEC e import.
+        </div>
+        <div class="list-group list-group-flush">
+          {% for item in checklist %}
+          <div class="list-group-item px-0">
+            <div class="d-flex justify-content-between align-items-start gap-2">
+              <div>
+                <div class="fw-semibold">{{ item.title }}</div>
+                <div class="small text-muted">{{ item.detail }}</div>
+              </div>
+              <span class="badge bg-{{ item.variant }}">
+                {% if item.done %}OK{% else %}Da gestire{% endif %}
+              </span>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% if active_case %}
+        <hr>
+        <div class="small">
+          <div class="fw-semibold mb-2">Stato attivo</div>
+          <div class="d-flex flex-wrap gap-2">
+            <span class="badge bg-{{ status_nomina.get(active_case.nomination_status, 'secondary') }}">
+              Nomina: {{ (active_case.nomination_status or 'missing').replace('_', ' ') }}
+            </span>
+            <span class="badge bg-{{ status_case.get(active_case.access_status, 'secondary') }}">
+              Accesso: {{ (active_case.access_status or 'draft').replace('_', ' ') }}
+            </span>
+            <span class="badge bg-{{ status_import.get(active_case.import_status, 'secondary') }}">
+              Import: {{ (active_case.import_status or 'not_started').replace('_', ' ') }}
+            </span>
+            {% if active_case.current_ministry_status %}
+            <span class="badge bg-{{ status_ministry.get(active_case.current_ministry_status, 'secondary') }}">
+              Ministero: {{ active_case.current_ministry_status.replace('_', ' ') }}
+            </span>
+            {% endif %}
+          </div>
+          {% if active_case.download_available_until %}
+          <div class="mt-2 text-muted">
+            <i class="bi bi-clock-history me-1"></i>Finestra download: {{ active_case.download_available_until }}
+          </div>
+          {% endif %}
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-8">
+    <div class="card shadow-sm">
+      <div class="card-header fw-semibold d-flex justify-content-between align-items-center gap-2 flex-wrap">
+        <span><i class="bi bi-diagram-3 me-2 text-danger"></i>Fascicolo ministeriale PDP</span>
+        {% if workspace.cases %}
+        <div class="d-flex flex-wrap gap-2">
+          {% for case in workspace.cases %}
+          <a href="{{ url_for('pdp_penale_workspace', id_fasc=fascicolo.id, case_id=case.id) }}"
+             class="btn btn-sm {% if active_case and case.id == active_case.id %}btn-danger{% else %}btn-outline-secondary{% endif %}">
+            {{ case.register_type or 'RGNR' }} {{ case.register_number }}/{{ case.register_year }}
+          </a>
+          {% endfor %}
+        </div>
+        {% endif %}
+      </div>
+      <div class="card-body">
+        <form method="post" action="{{ url_for('pdp_penale_save_case', id_fasc=fascicolo.id) }}">
+          <input type="hidden" name="case_id" value="{{ active_case.id or '' }}">
+          <div class="row g-3">
+            <div class="col-md-8">
+              <label class="form-label fw-semibold">Ufficio giudiziario</label>
+              <input type="text" name="office_name" class="form-control" value="{{ case_form.office_name or '' }}" placeholder="Procura della Repubblica di ...">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">Tipo ufficio</label>
+              <input type="text" name="office_type" class="form-control" value="{{ case_form.office_type or '' }}" placeholder="Procura / Tribunale / GIP-GUP">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">Distretto / sede</label>
+              <input type="text" name="district" class="form-control" value="{{ case_form.district or '' }}">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">Tipo registro</label>
+              <input type="text" name="register_type" class="form-control" value="{{ case_form.register_type or '' }}" placeholder="RGNR">
+            </div>
+            <div class="col-md-2">
+              <label class="form-label fw-semibold">Numero</label>
+              <input type="text" name="register_number" class="form-control" value="{{ case_form.register_number or '' }}">
+            </div>
+            <div class="col-md-2">
+              <label class="form-label fw-semibold">Anno</label>
+              <input type="number" name="register_year" class="form-control" value="{{ case_form.register_year or oggi.year }}">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Tipo procedimento</label>
+              <input type="text" name="proceeding_type" class="form-control" value="{{ case_form.proceeding_type or '' }}">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label fw-semibold">PM</label>
+              <input type="text" name="prosecutor_name" class="form-control" value="{{ case_form.prosecutor_name or '' }}">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label fw-semibold">Sezione / camera</label>
+              <input type="text" name="chamber_section" class="form-control" value="{{ case_form.chamber_section or '' }}">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Assistito / imputato / indagato</label>
+              <input type="text" name="assisted_party_name" class="form-control" value="{{ case_form.assisted_party_name or '' }}">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Codice fiscale assistito</label>
+              <input type="text" name="assisted_party_cf" class="form-control" value="{{ case_form.assisted_party_cf or '' }}">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Difensore</label>
+              <input type="text" name="defense_counsel_name" class="form-control" value="{{ case_form.defense_counsel_name or '' }}">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Codice fiscale difensore</label>
+              <input type="text" name="defense_counsel_cf" class="form-control" value="{{ case_form.defense_counsel_cf or '' }}">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label fw-semibold">Stato nomina</label>
+              <select name="nomination_status" class="form-select">
+                {% for value in ['missing', 'to_be_deposited', 'deposited', 'accepted', 'rejected'] %}
+                <option value="{{ value }}" {{ 'selected' if case_form.nomination_status == value }}>{{ value.replace('_', ' ') }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label fw-semibold">Stato accesso</label>
+              <select name="access_status" class="form-select">
+                {% for value in ['draft', 'ready', 'submitted', 'waiting_authorization', 'authorized', 'denied', 'expired', 'technical_error', 'manual_intervention_required'] %}
+                <option value="{{ value }}" {{ 'selected' if case_form.access_status == value }}>{{ value.replace('_', ' ') }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label fw-semibold">Stato import</label>
+              <select name="import_status" class="form-select">
+                {% for value in ['not_started', 'waiting_download', 'downloaded', 'partial_import', 'completed', 'failed'] %}
+                <option value="{{ value }}" {{ 'selected' if case_form.import_status == value }}>{{ value.replace('_', ' ') }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label fw-semibold">Stato ministeriale</label>
+              <select name="current_ministry_status" class="form-select">
+                <option value="">-</option>
+                {% for value in ['INVIATO', 'IN_TRANSITO', 'ACCETTATO', 'IN_VERIFICA', 'RIFIUTATO', 'ERRORE_TECNICO'] %}
+                <option value="{{ value }}" {{ 'selected' if case_form.current_ministry_status == value }}>{{ value.replace('_', ' ') }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Riferimento ministeriale / esterno</label>
+              <input type="text" name="minister_case_ref" class="form-control" value="{{ case_form.minister_case_ref or '' }}">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Download disponibile fino a</label>
+              <input type="text" name="download_available_until" class="form-control" value="{{ case_form.download_available_until or '' }}" placeholder="2026-04-12T18:00">
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-semibold">Note operative</label>
+              <textarea name="notes" class="form-control" rows="3">{{ case_form.notes or '' }}</textarea>
+            </div>
+          </div>
+          <div class="mt-3 d-flex justify-content-end gap-2 flex-wrap">
+            <button type="submit" class="btn btn-danger">
+              <i class="bi bi-save me-1"></i>{% if active_case %}Aggiorna fascicolo ministeriale{% else %}Crea fascicolo ministeriale{% endif %}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3 mt-1">
+  <div class="col-xl-6">
+    <div class="card shadow-sm h-100">
+      <div class="card-header fw-semibold">
+        <i class="bi bi-paperclip me-2 text-primary"></i>Documenti gia presenti nel fascicolo
+      </div>
+      <div class="card-body">
+        {% if local_documents %}
+        <div class="list-group list-group-flush">
+          {% for doc in local_documents[:10] %}
+          <div class="list-group-item px-0">
+            <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
+              <div>
+                <div class="fw-semibold">{{ doc.nome }}</div>
+                <div class="small text-muted">
+                  {{ doc.tipo or 'Documento' }}
+                  {% if doc.note %} - {{ doc.note|truncate(80) }}{% endif %}
+                </div>
+                <div class="small text-muted">
+                  Suggerimento: <span class="badge bg-light text-dark border">{{ (doc.role_suggestion or 'other').replace('_', ' ') }}</span>
+                  {% if doc.firmato %}<span class="badge bg-success">Firmato</span>{% endif %}
+                </div>
+              </div>
+              {% if active_case %}
+              <form method="post" action="{{ url_for('pdp_penale_link_local_document', id_fasc=fascicolo.id, case_id=active_case.id) }}" class="d-flex gap-2 flex-wrap">
+                <input type="hidden" name="local_doc_id" value="{{ doc.id }}">
+                <input type="hidden" name="title" value="{{ doc.nome }}">
+                <select name="document_role" class="form-select form-select-sm" style="min-width:170px">
+                  {% for role in ['nomination', 'payment_receipt', 'legal_aid_order', 'decree', 'ordinance', 'judgment', 'hearing_minutes', 'defense_brief', 'attachment', 'other'] %}
+                  <option value="{{ role }}" {{ 'selected' if doc.role_suggestion == role }}>{{ role.replace('_', ' ') }}</option>
+                  {% endfor %}
+                </select>
+                <button type="submit" class="btn btn-sm btn-outline-primary">
+                  <i class="bi bi-link-45deg me-1"></i>Collega
+                </button>
+              </form>
+              {% endif %}
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-muted small">Questo fascicolo non contiene ancora documenti locali da ricondurre al workflow penale.</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-6">
+    <div class="card shadow-sm h-100">
+      <div class="card-header fw-semibold">
+        <i class="bi bi-lightning-charge me-2 text-warning"></i>Azioni rapide
+      </div>
+      <div class="card-body">
+        {% if active_case %}
+        <div class="accordion" id="accPdpQuickActions">
+          <div class="accordion-item">
+            <h2 class="accordion-header">
+              <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#accAccessRequest">
+                Registra richiesta accesso atti
+              </button>
+            </h2>
+            <div id="accAccessRequest" class="accordion-collapse collapse show" data-bs-parent="#accPdpQuickActions">
+              <div class="accordion-body">
+                <form method="post" action="{{ url_for('pdp_penale_create_access_request', id_fasc=fascicolo.id, case_id=active_case.id) }}">
+                  <div class="row g-2">
+                    <div class="col-md-6">
+                      <label class="form-label small fw-semibold">Tipo richiesta</label>
+                      <select name="request_type" class="form-select form-select-sm">
+                        {% for value in ['access_to_case_file', 'document_copy_request', 'supplementary_request', 'reissue_password', 'other'] %}
+                        <option value="{{ value }}">{{ value.replace('_', ' ') }}</option>
+                        {% endfor %}
+                      </select>
+                    </div>
+                    <div class="col-md-6">
+                      <label class="form-label small fw-semibold">Stato richiesta</label>
+                      <select name="request_status" class="form-select form-select-sm">
+                        {% for value in ['draft', 'prepared', 'submitted', 'in_review', 'authorized', 'denied', 'expired', 'downloaded', 'closed', 'technical_error'] %}
+                        <option value="{{ value }}">{{ value.replace('_', ' ') }}</option>
+                        {% endfor %}
+                      </select>
+                    </div>
+                    <div class="col-md-6">
+                      <label class="form-label small fw-semibold">Riferimento</label>
+                      <input type="text" name="request_reference" class="form-control form-control-sm">
+                    </div>
+                    <div class="col-md-6">
+                      <label class="form-label small fw-semibold">Stato ministeriale</label>
+                      <select name="ministry_status" class="form-select form-select-sm">
+                        <option value="">-</option>
+                        {% for value in ['INVIATO', 'IN_TRANSITO', 'ACCETTATO', 'IN_VERIFICA', 'RIFIUTATO', 'ERRORE_TECNICO'] %}
+                        <option value="{{ value }}">{{ value.replace('_', ' ') }}</option>
+                        {% endfor %}
+                      </select>
+                    </div>
+                    <div class="col-md-6">
+                      <label class="form-label small fw-semibold">Importo pagamento</label>
+                      <input type="number" step="0.01" min="0" name="payment_amount" class="form-control form-control-sm">
+                    </div>
+                    <div class="col-md-6">
+                      <label class="form-label small fw-semibold">Download fino a</label>
+                      <input type="text" name="download_available_until" class="form-control form-control-sm" placeholder="2026-04-12T18:00">
+                    </div>
+                    <div class="col-md-6 form-check mt-4 ms-2">
+                      <input class="form-check-input" type="checkbox" name="payment_required" value="1" id="payment-required">
+                      <label class="form-check-label small" for="payment-required">Pagamento richiesto</label>
+                    </div>
+                    <div class="col-md-6 form-check mt-4 ms-2">
+                      <input class="form-check-input" type="checkbox" name="legal_aid_declared" value="1" id="legal-aid-declared">
+                      <label class="form-check-label small" for="legal-aid-declared">Gratuito patrocinio</label>
+                    </div>
+                    <div class="col-12">
+                      <label class="form-label small fw-semibold">Note</label>
+                      <textarea name="notes" class="form-control form-control-sm" rows="2"></textarea>
+                    </div>
+                  </div>
+                  <button type="submit" class="btn btn-sm btn-danger mt-3">
+                    <i class="bi bi-send-check me-1"></i>Registra richiesta
+                  </button>
+                </form>
+              </div>
+            </div>
+          </div>
+
+          <div class="accordion-item">
+            <h2 class="accordion-header">
+              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#accPecPdp">
+                Registra PEC / password
+              </button>
+            </h2>
+            <div id="accPecPdp" class="accordion-collapse collapse" data-bs-parent="#accPdpQuickActions">
+              <div class="accordion-body">
+                <form method="post" action="{{ url_for('pdp_penale_register_pec', id_fasc=fascicolo.id, case_id=active_case.id) }}">
+                  <div class="row g-2">
+                    <div class="col-md-6">
+                      <label class="form-label small fw-semibold">Casella PEC</label>
+                      <input type="text" name="mailbox" class="form-control form-control-sm" value="{{ cliente.email if cliente and cliente.email else '' }}">
+                    </div>
+                    <div class="col-md-6">
+                      <label class="form-label small fw-semibold">Mittente</label>
+                      <input type="text" name="sender" class="form-control form-control-sm" placeholder="procura@giustiziapec.it">
+                    </div>
+                    <div class="col-12">
+                      <label class="form-label small fw-semibold">Oggetto</label>
+                      <input type="text" name="subject" class="form-control form-control-sm" value="Password accesso fascicolo PDP">
+                    </div>
+                    <div class="col-md-6">
+                      <label class="form-label small fw-semibold">Password estratta</label>
+                      <input type="text" name="extracted_password" class="form-control form-control-sm">
+                    </div>
+                    <div class="col-md-6">
+                      <label class="form-label small fw-semibold">Download fino a</label>
+                      <input type="text" name="download_available_until" class="form-control form-control-sm" placeholder="2026-04-12T18:00">
+                    </div>
+                    <div class="col-12">
+                      <label class="form-label small fw-semibold">Testo PEC</label>
+                      <textarea name="body_text" class="form-control form-control-sm" rows="3"></textarea>
+                    </div>
+                    <div class="col-12 form-check mt-2 ms-2">
+                      <input class="form-check-input" type="checkbox" name="contains_download_notice" value="1" id="contains-download-notice">
+                      <label class="form-check-label small" for="contains-download-notice">La PEC contiene avviso di disponibilita download</label>
+                    </div>
+                  </div>
+                  <button type="submit" class="btn btn-sm btn-warning mt-3">
+                    <i class="bi bi-envelope-check me-1"></i>Registra PEC
+                  </button>
+                </form>
+              </div>
+            </div>
+          </div>
+
+          <div class="accordion-item">
+            <h2 class="accordion-header">
+              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#accTaskPdp">
+                Crea task operativo
+              </button>
+            </h2>
+            <div id="accTaskPdp" class="accordion-collapse collapse" data-bs-parent="#accPdpQuickActions">
+              <div class="accordion-body">
+                <form method="post" action="{{ url_for('pdp_penale_create_task', id_fasc=fascicolo.id, case_id=active_case.id) }}">
+                  <div class="row g-2">
+                    <div class="col-md-6">
+                      <label class="form-label small fw-semibold">Tipo task</label>
+                      <select name="task_type" class="form-select form-select-sm">
+                        {% for value in ['check_nomination', 'prepare_access_request', 'deposit_request', 'wait_office_response', 'check_pec', 'download_case_file', 'import_documents', 'verify_documents', 'manual_review', 'other'] %}
+                        <option value="{{ value }}">{{ value.replace('_', ' ') }}</option>
+                        {% endfor %}
+                      </select>
+                    </div>
+                    <div class="col-md-6">
+                      <label class="form-label small fw-semibold">Priorita</label>
+                      <select name="priority" class="form-select form-select-sm">
+                        {% for value in ['low', 'medium', 'high', 'urgent'] %}
+                        <option value="{{ value }}">{{ value }}</option>
+                        {% endfor %}
+                      </select>
+                    </div>
+                    <div class="col-12">
+                      <label class="form-label small fw-semibold">Titolo</label>
+                      <input type="text" name="title" class="form-control form-control-sm" placeholder="Scaricare fascicolo entro 3 giorni">
+                    </div>
+                    <div class="col-md-6">
+                      <label class="form-label small fw-semibold">Scadenza</label>
+                      <input type="date" name="due_at" class="form-control form-control-sm">
+                    </div>
+                    <div class="col-12">
+                      <label class="form-label small fw-semibold">Descrizione</label>
+                      <textarea name="description" class="form-control form-control-sm" rows="2"></textarea>
+                    </div>
+                  </div>
+                  <button type="submit" class="btn btn-sm btn-dark mt-3">
+                    <i class="bi bi-plus-circle me-1"></i>Crea task
+                  </button>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+        {% else %}
+        <div class="text-muted small">
+          Salva prima il fascicolo ministeriale PDP. Appena esiste un case attivo potrai registrare richieste accesso, PEC e task operativi.
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3 mt-1">
+  <div class="col-xl-6">
+    <div class="card shadow-sm h-100">
+      <div class="card-header fw-semibold">
+        <i class="bi bi-journal-check me-2 text-success"></i>Richieste accesso atti
+      </div>
+      <div class="card-body">
+        {% if access_requests %}
+        <div class="list-group list-group-flush">
+          {% for item in access_requests %}
+          <div class="list-group-item px-0">
+            <div class="d-flex justify-content-between align-items-start gap-2">
+              <div>
+                <div class="fw-semibold">{{ (item.request_type or 'access_to_case_file').replace('_', ' ') }}</div>
+                <div class="small text-muted">
+                  Stato {{ (item.request_status or 'draft').replace('_', ' ') }}
+                  {% if item.request_reference %} - Rif. {{ item.request_reference }}{% endif %}
+                </div>
+                {% if item.download_available_until %}
+                <div class="small text-muted">Download fino a {{ item.download_available_until }}</div>
+                {% endif %}
+              </div>
+              {% if item.ministry_status %}
+              <span class="badge bg-{{ status_ministry.get(item.ministry_status, 'secondary') }}">{{ item.ministry_status.replace('_', ' ') }}</span>
+              {% endif %}
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-muted small">Nessuna richiesta registrata.</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-6">
+    <div class="card shadow-sm h-100">
+      <div class="card-header fw-semibold">
+        <i class="bi bi-list-task me-2 text-dark"></i>Task operativi
+      </div>
+      <div class="card-body">
+        {% if tasks %}
+        <div class="list-group list-group-flush">
+          {% for task in tasks %}
+          <div class="list-group-item px-0">
+            <div class="d-flex justify-content-between align-items-start gap-2 flex-wrap">
+              <div>
+                <div class="fw-semibold">{{ task.title }}</div>
+                <div class="small text-muted">
+                  {{ (task.task_type or 'other').replace('_', ' ') }} - {{ (task.priority or 'medium') }}
+                  {% if task.due_at %} - scadenza {{ task.due_at }}{% endif %}
+                </div>
+                {% if task.description %}
+                <div class="small mt-1">{{ task.description }}</div>
+                {% endif %}
+              </div>
+              <div class="d-flex gap-2 align-items-center flex-wrap">
+                <span class="badge {% if task.status == 'done' %}bg-success{% elif task.status == 'in_progress' %}bg-warning{% else %}bg-secondary{% endif %}">
+                  {{ (task.status or 'open').replace('_', ' ') }}
+                </span>
+                {% if task.status in ['open', 'in_progress'] %}
+                <form method="post" action="{{ url_for('pdp_penale_complete_task', id_fasc=fascicolo.id, task_id=task.id) }}" class="d-flex gap-2 flex-wrap">
+                  <input type="text" name="completion_note" class="form-control form-control-sm" style="min-width:180px" placeholder="Nota chiusura">
+                  <button type="submit" class="btn btn-sm btn-outline-success">
+                    <i class="bi bi-check2-circle me-1"></i>Completa
+                  </button>
+                </form>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-muted small">Nessun task aperto sul workflow penale.</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3 mt-1">
+  <div class="col-xl-6">
+    <div class="card shadow-sm h-100">
+      <div class="card-header fw-semibold">
+        <i class="bi bi-collection me-2 text-primary"></i>Documenti collegati al modulo
+      </div>
+      <div class="card-body">
+        {% if module_documents %}
+        <div class="list-group list-group-flush">
+          {% for doc in module_documents %}
+          <div class="list-group-item px-0">
+            <div class="d-flex justify-content-between align-items-start gap-2">
+              <div>
+                <div class="fw-semibold">{{ doc.title }}</div>
+                <div class="small text-muted">
+                  {{ (doc.document_role or 'other').replace('_', ' ') }}
+                  {% if doc.original_filename %} - {{ doc.original_filename }}{% endif %}
+                </div>
+                {% if doc.file_path %}
+                <div class="small text-muted font-monospace">{{ doc.file_path }}</div>
+                {% endif %}
+              </div>
+              <div class="d-flex gap-1 flex-wrap">
+                {% if doc.signed %}
+                <span class="badge bg-success">Firmato</span>
+                {% endif %}
+                {% if doc.pdfa %}
+                <span class="badge bg-info">PDF/A</span>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-muted small">Nessun documento collegato al workflow penale.</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-6">
+    <div class="card shadow-sm h-100">
+      <div class="card-header fw-semibold">
+        <i class="bi bi-envelope-paper me-2 text-warning"></i>PEC e password
+      </div>
+      <div class="card-body">
+        {% if pec_messages %}
+        <div class="list-group list-group-flush">
+          {% for msg in pec_messages %}
+          <div class="list-group-item px-0">
+            <div class="d-flex justify-content-between align-items-start gap-2">
+              <div>
+                <div class="fw-semibold">{{ msg.subject }}</div>
+                <div class="small text-muted">
+                  {{ msg.sender or 'mittente n.d.' }}
+                  {% if msg.received_at %} - {{ msg.received_at }}{% endif %}
+                </div>
+                {% if msg.extracted_password %}
+                <div class="small">Password: <code>{{ msg.extracted_password }}</code></div>
+                {% endif %}
+              </div>
+              <div class="d-flex gap-1 flex-wrap">
+                {% if msg.contains_password %}
+                <span class="badge bg-success">Password trovata</span>
+                {% endif %}
+                {% if msg.contains_download_notice %}
+                <span class="badge bg-warning text-dark">Download disponibile</span>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-muted small">Nessuna PEC registrata sul workflow penale.</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card shadow-sm mt-3">
+  <div class="card-header fw-semibold">
+    <i class="bi bi-clock-history me-2 text-secondary"></i>Timeline operativa
+  </div>
+  <div class="card-body">
+    {% if events %}
+    <div class="list-group list-group-flush">
+      {% for event in events %}
+      <div class="list-group-item px-0">
+        <div class="d-flex justify-content-between align-items-start gap-2">
+          <div>
+            <div class="fw-semibold">{{ event.title }}</div>
+            <div class="small text-muted">
+              {{ (event.event_source or 'system').replace('_', ' ') }}
+              {% if event.event_type %} - {{ event.event_type.replace('_', ' ') }}{% endif %}
+            </div>
+            {% if event.description %}
+            <div class="small mt-1">{{ event.description }}</div>
+            {% endif %}
+          </div>
+          <div class="text-muted small text-nowrap">{{ event.created_at }}</div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="text-muted small">La timeline e vuota: i nuovi salvataggi del workflow PDP compariranno qui.</div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

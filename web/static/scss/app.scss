@@ -1829,7 +1829,8 @@ tr[data-swipe-delete] {
 /* ---- ds-* mobile ---- */
 @media (max-width: 575px) {
   .ds-ph { flex-wrap: wrap; gap: .75rem; }
-  .ds-ph-actions { width: 100%; justify-content: flex-end; }
+  .ds-ph-actions { display: flex; gap: .4rem; flex-shrink: 0; }
+  .ds-ph-actions .ds-btn { flex: 0 0 auto; white-space: nowrap; }
   .ds-ph-icon { width: 40px; height: 40px; font-size: 1.1rem; }
   .ds-search-bar { flex-direction: column; align-items: stretch; }
   .ds-search-input { min-width: 0; }

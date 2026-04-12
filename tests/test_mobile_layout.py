@@ -55,12 +55,16 @@ def test_dashboard_mobile_header_usa_griglia_coerente(tmp_path: Path):
         html = page.get_data(as_text=True)
 
     css = Path("web/static/css/mobile.css").read_text(encoding="utf-8")
+    scss = Path("web/static/scss/mobile.scss").read_text(encoding="utf-8")
 
     assert page.status_code == 200
     assert 'class="ds-ph-actions"' in html
     assert "grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));" in css
     assert ".ds-ph-actions .d-none.d-sm-inline" in css
     assert ".topbar-actions .btn," in css
+    assert "grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));" in scss
+    assert ".ds-ph-actions .d-none.d-sm-inline" in scss
+    assert ".topbar-actions .btn," in scss
 
 
 def test_agenda_mobile_toolbar_ha_layout_dedicato(tmp_path: Path):
@@ -80,6 +84,7 @@ def test_agenda_mobile_toolbar_ha_layout_dedicato(tmp_path: Path):
         html = page.get_data(as_text=True)
 
     css = Path("web/static/css/mobile.css").read_text(encoding="utf-8")
+    scss = Path("web/static/scss/mobile.scss").read_text(encoding="utf-8")
 
     assert page.status_code == 200
     assert "agenda-toolbar" in html
@@ -87,3 +92,5 @@ def test_agenda_mobile_toolbar_ha_layout_dedicato(tmp_path: Path):
     assert "agenda-toolbar-group--nav" in html
     assert ".agenda-toolbar-group--vista" in css
     assert ".agenda-toolbar-label" in css
+    assert ".agenda-toolbar-group--vista" in scss
+    assert ".agenda-toolbar-label" in scss

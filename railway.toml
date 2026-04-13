@@ -1,6 +1,6 @@
 #  Railway — Configurazione deploy
 #  Docs: https://docs.railway.app
-#  version: 2.154.12
+#  version: 2.154.13
 #  redeploy: 2026-04-13T21:35:00
 
 [build]

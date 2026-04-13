@@ -222,6 +222,22 @@ def test_docker_compose_prevede_runtime_ollama_sulla_stessa_macchina():
     assert 'host.docker.internal:host-gateway' in compose
 
 
+def test_runtime_cloud_hosted_sposta_ai_locale_su_storage_effimero(monkeypatch, tmp_path: Path):
+    from web.app import create_app
+
+    monkeypatch.setenv("RAILWAY_PROJECT_ID", "proj-test")
+    monkeypatch.delenv("PCT_LOCAL_AI_DB", raising=False)
+    monkeypatch.delenv("PCT_LOCAL_AI_MODELS_DIR", raising=False)
+    monkeypatch.delenv("PCT_LOCAL_AI_AUTO_BOOTSTRAP", raising=False)
+
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    app = create_app(_cfg_web(tmp_path))
+
+    assert Path(app.config["LOCAL_AI_DB"]).as_posix() == "/tmp/hacs-runtime/local_ai/local_ai.db"
+    assert Path(app.config["LOCAL_AI_MODELS_DIR"]).as_posix() == "/tmp/hacs-runtime/local_ai/models"
+    assert app.config["LOCAL_AI_AUTO_BOOTSTRAP"] is False
+
+
 def test_scss_governance_usa_bundle_modulari_e_niente_style_inline():
     app_scss = (REPO_ROOT / "web/static/scss/app.scss").read_text(encoding="utf-8")
     assert "@use 'components/feedback';" in app_scss
@@ -403,6 +419,8 @@ def test_lex_assistant_usa_componente_esterno_e_posizione_persistente():
     assert "remoteHosted" in widget_js
     assert "Lex sta scrivendo dal dispositivo locale" in widget_js
     assert "Risposta generata sul dispositivo locale." in widget_js
+    assert "Companion locale non raggiungibile, attivo fallback sul runtime locale di HACS..." in widget_js
+    assert "sendLocal(text);" in widget_js
 
     assert ".pct-ai-widget" in widget_scss
     assert ".pct-ai-widget--custom" in widget_scss
@@ -421,3 +439,92 @@ def test_modal_firma_deposito_prevede_riavvio_local_signer():
     assert "spazio limitato HACS ha sostituito la copia precedente" in dettaglio
     assert "sincronizzazione in tempo reale" in deposito
     assert "spazio limitato HACS ha sostituito la copia precedente" in deposito
+
+
+def test_assistente_stato_usa_runtime_ollama_risolto(monkeypatch, tmp_path: Path):
+    from web.app import create_app
+
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    app = create_app(_cfg_web(tmp_path))
+
+    class FakeLocalAiService:
+        def health_snapshot(self):
+            return {
+                "runtime_base_url_live": "http://host.docker.internal:11434/api",
+                "resolved_models": {"chat": "gemma3:1b"},
+                "settings": {"base_url": "http://127.0.0.1:11434/api"},
+            }
+
+    class FakeResponse:
+        def json(self):
+            return {"models": [{"name": "gemma3:1b"}]}
+
+    called = {}
+
+    def fake_get(url, timeout):
+        called["url"] = url
+        called["timeout"] = timeout
+        return FakeResponse()
+
+    monkeypatch.setattr("web.services.ollama_runtime.get_local_ai_service", lambda: FakeLocalAiService())
+    monkeypatch.setattr("web.blueprints.assistente.requests.get", fake_get)
+
+    with app.test_client() as client:
+        client.post("/login", data={"username": "admin", "password": "admin"}, follow_redirects=True)
+        response = client.get("/api/assistente/stato")
+
+    payload = response.get_json()
+    assert response.status_code == 200
+    assert payload["ok"] is True
+    assert payload["url"] == "http://host.docker.internal:11434"
+    assert payload["modello_attivo"] == "gemma3:1b"
+    assert called["url"] == "http://host.docker.internal:11434/api/tags"
+    assert called["timeout"] == 3
+
+
+def test_assistente_chat_usa_runtime_ollama_risolto(monkeypatch, tmp_path: Path):
+    from web.app import create_app
+
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    app = create_app(_cfg_web(tmp_path))
+
+    class FakeLocalAiService:
+        def health_snapshot(self):
+            return {
+                "runtime_base_url_live": "http://host.docker.internal:11434/api",
+                "resolved_models": {"chat": "gemma3:1b"},
+                "settings": {"base_url": "http://127.0.0.1:11434/api"},
+            }
+
+    class FakeStreamResponse:
+        def iter_lines(self):
+            yield json.dumps({"message": {"content": "Ciao"}, "done": False}).encode("utf-8")
+            yield json.dumps({"done": True}).encode("utf-8")
+
+    called = {}
+
+    def fake_post(url, json=None, stream=None, timeout=None):
+        called["url"] = url
+        called["json"] = json or {}
+        called["stream"] = stream
+        called["timeout"] = timeout
+        return FakeStreamResponse()
+
+    monkeypatch.setattr("web.services.ollama_runtime.get_local_ai_service", lambda: FakeLocalAiService())
+    monkeypatch.setattr("web.blueprints.assistente.requests.post", fake_post)
+
+    with app.test_client() as client:
+        client.post("/login", data={"username": "admin", "password": "admin"}, follow_redirects=True)
+        response = client.post(
+            "/api/assistente/chat",
+            json={"messages": [{"role": "user", "content": "Ciao Lex"}]},
+        )
+
+    body = response.get_data(as_text=True)
+    assert response.status_code == 200
+    assert called["url"] == "http://host.docker.internal:11434/api/chat"
+    assert called["json"]["model"] == "gemma3:1b"
+    assert called["stream"] is True
+    assert called["timeout"] == 180
+    assert '"token": "Ciao"' in body
+    assert "[DONE]" in body

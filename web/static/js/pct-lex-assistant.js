@@ -349,7 +349,7 @@
     });
   }
 
-  function sendRemote(text) {
+  function sendViaCompanion(text) {
     if (!browserBridge() || !bridgeConfig) {
       setBubbleContent(state.currentBubble, 'Il bridge AI locale non e\' disponibile su questo browser.');
       finalizeRequest('Bridge AI locale non disponibile.');
@@ -407,6 +407,11 @@
           return;
         }
         if (isCompanionTransportError(error)) {
+          if (!bridgeConfig.remoteHosted) {
+            setStatus('Companion locale non raggiungibile, attivo fallback sul runtime locale di HACS...');
+            sendLocal(text);
+            return;
+          }
           setBubbleHtml(state.currentBubble, renderCompanionHelp(false));
           finalizeRequest('Companion locale non raggiungibile.');
           return;
@@ -450,8 +455,8 @@
 
     state.currentBubble = appendMessage('assistant', '');
 
-    if (bridgeConfig && bridgeConfig.remoteHosted) {
-      sendRemote(text);
+    if (bridgeConfig) {
+      sendViaCompanion(text);
       return;
     }
 

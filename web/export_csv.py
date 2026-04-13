@@ -23,6 +23,12 @@ from flask import (
     stream_with_context,
 )
 
+from web.services.ollama_runtime import (
+    resolved_ollama_api_base_url,
+    resolved_ollama_base_url,
+    resolved_ollama_chat_model,
+)
+
 assistente = Blueprint("assistente", __name__)
 
 # ── System prompt ──────────────────────────────────────────────────────────────
@@ -138,11 +144,15 @@ Amministrativo (PAT):
 # ── Helpers ────────────────────────────────────────────────────────────────────
 
 def _ollama_url() -> str:
-    return current_app.config.get("OLLAMA_URL", "http://localhost:11434")
+    return resolved_ollama_base_url()
+
+
+def _ollama_api_url() -> str:
+    return resolved_ollama_api_base_url()
 
 
 def _ollama_model() -> str:
-    return current_app.config.get("OLLAMA_MODEL", "mistral")
+    return resolved_ollama_chat_model("mistral")
 
 
 def _richiedi_login(fn):
@@ -221,7 +231,7 @@ def _build_fascicolo_context(fascicolo_id: str) -> str:
 @_richiedi_login
 def assistente_stato():
     try:
-        r = requests.get(f"{_ollama_url()}/api/tags", timeout=3)
+        r = requests.get(f"{_ollama_api_url()}/tags", timeout=3)
         modelli = [m["name"] for m in r.json().get("models", [])]
         return {
             "ok": True,
@@ -265,7 +275,7 @@ def assistente_chat():
     def generate():
         try:
             r = requests.post(
-                f"{_ollama_url()}/api/chat",
+                f"{_ollama_api_url()}/chat",
                 json=payload,
                 stream=True,
                 timeout=180,

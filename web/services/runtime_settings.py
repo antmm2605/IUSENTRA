@@ -10,6 +10,7 @@ from typing import Any
 from flask import Flask
 
 from pct.local_ai import strip_api_suffix
+from web.services.hosted_runtime import apply_hosted_local_ai_safety_overrides
 
 
 def apply_runtime_settings(
@@ -83,6 +84,7 @@ def apply_runtime_settings(
     )
 
     apply_persistent_studio_overrides(app)
+    apply_hosted_local_ai_safety_overrides(app, dict(cfg))
 
 
 def apply_persistent_studio_overrides(app: Flask) -> None:

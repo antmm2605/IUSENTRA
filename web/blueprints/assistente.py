@@ -25,6 +25,11 @@ from flask import (
 
 from web.helpers import get_legal_intelligence
 from web.services.local_ai_runtime import get_local_ai_service
+from web.services.ollama_runtime import (
+    resolved_ollama_api_base_url,
+    resolved_ollama_base_url,
+    resolved_ollama_chat_model,
+)
 from pct.legal_intelligence import fonti_per_query, motori_per_query
 
 assistente = Blueprint("assistente", __name__)
@@ -142,19 +147,15 @@ Amministrativo (PAT):
 # ── Helpers ────────────────────────────────────────────────────────────────────
 
 def _ollama_url() -> str:
-    return current_app.config.get("OLLAMA_URL", "http://localhost:11434")
+    return resolved_ollama_base_url()
+
+
+def _ollama_api_url() -> str:
+    return resolved_ollama_api_base_url()
 
 
 def _ollama_model() -> str:
-    configured = current_app.config.get("OLLAMA_MODEL", "mistral")
-    try:
-        snapshot = get_local_ai_service().health_snapshot()
-        model_name = str((snapshot.get("resolved_models") or {}).get("chat") or "").strip()
-        if model_name:
-            return model_name
-    except Exception:
-        current_app.logger.exception("Errore risoluzione modello effettivo assistente")
-    return configured
+    return resolved_ollama_chat_model("mistral")
 
 
 def _richiedi_login(fn):
@@ -279,7 +280,7 @@ def _assistente_prompt(*, question: str, fascicolo_id: str, messages: list[dict[
 @_richiedi_login
 def assistente_stato():
     try:
-        r = requests.get(f"{_ollama_url()}/api/tags", timeout=3)
+        r = requests.get(f"{_ollama_api_url()}/tags", timeout=3)
         modelli = [m["name"] for m in r.json().get("models", [])]
         return {
             "ok": True,
@@ -370,7 +371,7 @@ def assistente_chat():
     def generate():
         try:
             r = requests.post(
-                f"{_ollama_url()}/api/chat",
+                f"{_ollama_api_url()}/chat",
                 json=payload,
                 stream=True,
                 timeout=180,

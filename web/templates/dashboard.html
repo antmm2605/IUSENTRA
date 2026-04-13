@@ -12,6 +12,9 @@
     <p class="ds-ph-sub">Panoramica dello studio — {{ oggi.strftime('%d %B %Y') }}</p>
   </div>
   <div class="ds-ph-actions">
+    <a href="{{ url_for('workspace_intelligente') }}" class="ds-btn ds-btn-ghost">
+      <i class="bi bi-stars"></i><span class="d-none d-sm-inline">Cabina</span>
+    </a>
     <a href="{{ url_for('nuovo_appuntamento') }}" class="ds-btn ds-btn-outline">
       <i class="bi bi-calendar-plus"></i><span class="d-none d-sm-inline">Appuntamento</span>
     </a>

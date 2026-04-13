@@ -14,6 +14,9 @@
     <p class="ds-ph-sub">Termini, udienze e scadenze del tuo studio</p>
   </div>
   <div class="ds-ph-actions">
+    <a href="{{ url_for('workspace_intelligente') }}" class="ds-btn ds-btn-ghost">
+      <i class="bi bi-stars"></i><span class="d-none d-sm-inline">Cabina</span>
+    </a>
     <a href="{{ url_for('export_scadenziario_csv') }}?tipo={{ filtro_tipo }}&priorita={{ filtro_priorita }}&id_fascicolo={{ id_fascicolo }}"
        class="ds-btn ds-btn-outline" title="Esporta CSV">
       <i class="bi bi-filetype-csv"></i><span class="d-none d-sm-inline">CSV</span>

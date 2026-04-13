@@ -14,6 +14,7 @@ from __future__ import annotations
 import logging
 import os
 from datetime import datetime
+from pathlib import Path
 
 logger = logging.getLogger("pct.scheduler")
 
@@ -259,6 +260,50 @@ def start_scheduler(app):
                 logger.warning("[scheduler] Calendar sync multi-tenant non disponibile: %s", e)
         yield "default", app.config["AGENDA_DB"], app.config.get("CALENDAR_SYNC_DB", "./agenda/calendar_sync.json")
 
+    def _workspace_intelligence_targets():
+        if app.config.get("MULTI_TENANT"):
+            try:
+                from pct.tenant import GestioneTenant, StatoTenant
+
+                tm = GestioneTenant(registry_path=app.config["TENANTS_REGISTRY"])
+                found = False
+                for studio in tm.lista():
+                    if studio.stato == StatoTenant.SOSPESO:
+                        continue
+                    paths = tm.percorsi_dati(studio.slug)
+                    found = True
+                    yield {
+                        "label": studio.slug,
+                        "agenda_db": paths["AGENDA_DB"],
+                        "calendar_sync_db": paths["CALENDAR_SYNC_DB"],
+                        "fascicoli_db": paths["FASCICOLI_DB"],
+                        "fascicoli_docs": paths["FASCICOLI_DOCS"],
+                        "fascicoli_arch": paths["FASCICOLI_ARCH"],
+                        "scadenziario_db": paths["SCADENZIARIO_DB"],
+                        "giurisprudenza_db": paths["GIURISPRUDENZA_DB"],
+                        "studio_config_db": paths.get("CONFIG_STUDIO_DB", ""),
+                        "snapshot_db": paths.get(
+                            "WORKSPACE_INTELLIGENCE_DB",
+                            str(Path(paths["GIURISPRUDENZA_DB"]).with_name("workspace_intelligence.json")),
+                        ),
+                    }
+                if found:
+                    return
+            except Exception as e:
+                logger.warning("[scheduler] Workspace intelligence multi-tenant non disponibile: %s", e)
+        yield {
+            "label": "default",
+            "agenda_db": app.config["AGENDA_DB"],
+            "calendar_sync_db": app.config.get("CALENDAR_SYNC_DB", "./agenda/calendar_sync.json"),
+            "fascicoli_db": app.config["FASCICOLI_DB"],
+            "fascicoli_docs": app.config["FASCICOLI_DOCS"],
+            "fascicoli_arch": app.config["FASCICOLI_ARCH"],
+            "scadenziario_db": app.config["SCADENZIARIO_DB"],
+            "giurisprudenza_db": app.config.get("GIURISPRUDENZA_DB", "./intelligence/giurisprudenza.json"),
+            "studio_config_db": app.config.get("STUDIO_CONFIG") or app.config.get("CONFIG_STUDIO_DB", ""),
+            "snapshot_db": app.config.get("WORKSPACE_INTELLIGENCE_DB", "./intelligence/workspace_intelligence.json"),
+        }
+
     @scheduler.scheduled_job(CronTrigger(minute=12), id="calendar_sync_hourly")
     def _calendar_sync_hourly():
         with app.app_context():
@@ -291,6 +336,64 @@ def start_scheduler(app):
                     )
             except Exception as e:
                 logger.error("[scheduler] Calendar sync fallito: %s", e)
+
+    @scheduler.scheduled_job(CronTrigger(minute="*/20"), id="workspace_intelligence_snapshot")
+    def _workspace_intelligence_snapshot():
+        with app.app_context():
+            try:
+                from pct.agenda import Agenda
+                from pct.calendar_sync import GestioneCalendarSync
+                from pct.fascicoli import GestioneFascicoli
+                from pct.giurisprudenza import GestioneGiurisprudenza
+                from pct.scadenziario import GestioneScadenziario, regola_patrono_studio
+                from pct.workspace_intelligente import WorkspaceIntelligenteService
+                from pct.config_studio import GestioneConfigStudio
+
+                processed_targets = 0
+                for target in _workspace_intelligence_targets():
+                    if not os.path.exists(target["fascicoli_db"]):
+                        continue
+                    service = WorkspaceIntelligenteService(
+                        agenda=Agenda(db_path=target["agenda_db"]),
+                        scadenziario=GestioneScadenziario(db_path=target["scadenziario_db"]),
+                        fascicoli=GestioneFascicoli(
+                            db_path=target["fascicoli_db"],
+                            documents_dir=target["fascicoli_docs"],
+                            archive_dir=target["fascicoli_arch"],
+                        ),
+                        calendar_sync=GestioneCalendarSync(db_path=target["calendar_sync_db"]),
+                        giurisprudenza=GestioneGiurisprudenza(db_path=target["giurisprudenza_db"]),
+                    )
+
+                    try:
+                        config_path = target.get("studio_config_db") or app.config.get("STUDIO_CONFIG") or app.config.get("CONFIG_STUDIO_DB", "")
+                        if config_path and os.path.exists(config_path):
+                            studio_cfg = GestioneConfigStudio(config_path=config_path).config.studio
+                            service.studio_patron_rule = regola_patrono_studio(
+                                "default-studio",
+                                str(getattr(studio_cfg, "patron_name", "") or "").strip(),
+                                int(getattr(studio_cfg, "patron_day", 0) or 0),
+                                int(getattr(studio_cfg, "patron_month", 0) or 0),
+                            )
+                    except Exception as config_error:
+                        logger.debug(
+                            "[scheduler] Workspace intelligence %s: patrono studio non disponibile (%s)",
+                            target["label"],
+                            config_error,
+                        )
+
+                    snapshot = service.save_snapshot(target["snapshot_db"])
+                    processed_targets += 1
+                    logger.info(
+                        "[scheduler] Workspace intelligence %s: %d fascicoli attenzionati, %d scadenze urgenti",
+                        target["label"],
+                        snapshot.get("overview", {}).get("summary", {}).get("fascicoli_attenzionati", 0),
+                        snapshot.get("overview", {}).get("summary", {}).get("scadenze_urgenti", 0),
+                    )
+                if processed_targets:
+                    logger.info("[scheduler] Workspace intelligence aggiornato per %d target", processed_targets)
+            except Exception as e:
+                logger.error("[scheduler] Workspace intelligence fallito: %s", e)
 
     # ---- Polling automatico esiti depositi telematici (ogni 15 minuti) ----
     # Aggiorna EsitoDepositoPCT in stati pendenti (INVIATO → ACCETTATO_PEC → CONSEGNATO)

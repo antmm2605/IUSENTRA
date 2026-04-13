@@ -36,6 +36,7 @@ TOOLS_DIR      = Path(__file__).resolve().parent
 REPO_DIR       = TOOLS_DIR.parent
 DIST_DIR       = TOOLS_DIR / "dist"
 LS_PY          = TOOLS_DIR / "local_signer.py"
+AI_BRIDGE_PY   = TOOLS_DIR / "local_ai_host_bridge.py"
 REQS_TXT       = TOOLS_DIR / "requirements_local_signer.txt"
 INSTALL_PS1    = TOOLS_DIR / "installa_local_signer_locale.ps1"
 UFFICI_JSON    = REPO_DIR / "pct" / "data" / "uffici_ministero.json"
@@ -211,6 +212,7 @@ def build_windows_exe(version: str) -> bytes:
     files = [
         ("installa_local_signer_locale.ps1", ps1_crlf),
         ("local_signer.py",                  LS_PY.read_bytes()),
+        ("local_ai_host_bridge.py",          AI_BRIDGE_PY.read_bytes()),
         ("requirements_local_signer.txt",    REQS_TXT.read_bytes()),
         ("uffici_ministero.json",            UFFICI_JSON.read_bytes()),
         ("local_signer_release.txt",         release_txt),
@@ -282,8 +284,9 @@ def build_macos_command(version: str, base_url: str) -> str:
           read -r -p "Premi Invio per uscire..." _; exit 1
         fi
 
-        curl -fsSL "$BASE_URL/polisWeb/local-signer/download" -o "$DIR/local_signer.py"
-        curl -fsSL "$BASE_URL/polisWeb/local-signer/download/uffici" -o "$DATA_DIR/uffici_ministero.json"
+curl -fsSL "$BASE_URL/polisWeb/local-signer/download" -o "$DIR/local_signer.py"
+curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-ai-bridge" -o "$DIR/local_ai_host_bridge.py"
+curl -fsSL "$BASE_URL/polisWeb/local-signer/download/uffici" -o "$DATA_DIR/uffici_ministero.json"
         python3 -m venv "$VENV"
         "$PY" -m pip install --quiet --upgrade pip
         "$PY" -m pip install --quiet python-pkcs11 asn1crypto cryptography zeep
@@ -349,8 +352,9 @@ def build_linux_run(version: str, base_url: str) -> str:
           read -r -p "Premi Invio per uscire..." _; exit 1
         fi
 
-        curl -fsSL "$BASE_URL/polisWeb/local-signer/download" -o "$DIR/local_signer.py"
-        curl -fsSL "$BASE_URL/polisWeb/local-signer/download/uffici" -o "$DATA_DIR/uffici_ministero.json"
+curl -fsSL "$BASE_URL/polisWeb/local-signer/download" -o "$DIR/local_signer.py"
+curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-ai-bridge" -o "$DIR/local_ai_host_bridge.py"
+curl -fsSL "$BASE_URL/polisWeb/local-signer/download/uffici" -o "$DATA_DIR/uffici_ministero.json"
         python3 -m venv "$VENV"
         "$PY" -m pip install --quiet --upgrade pip
         "$PY" -m pip install --quiet python-pkcs11 asn1crypto cryptography zeep

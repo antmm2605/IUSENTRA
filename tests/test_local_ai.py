@@ -250,7 +250,8 @@ def test_impostazioni_template_contains_ai_locale_tab():
     assert "AI Locale" in html
     assert "Prepara runtime automatico" in html
     assert "runLocalAiBootstrap" in html
-    assert "Runtime sullo stesso host di HACS" in html
+    assert "Companion locale sul dispositivo cliente" in html
+    assert "127.0.0.1:27272" in html
     assert "ai-installer-summary" in html
     assert "http://host.docker.internal:11434/api" in html
 

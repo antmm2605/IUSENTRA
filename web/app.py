@@ -7080,6 +7080,9 @@ def create_app(config: dict | None = None) -> Flask:
     def _local_signer_source_path() -> Path:
         return _local_signer_tools_dir() / "local_signer.py"
 
+    def _local_ai_bridge_source_path() -> Path:
+        return _local_signer_tools_dir() / "local_ai_host_bridge.py"
+
     def _local_signer_version() -> str:
         source = _local_signer_source_path().read_text(encoding="utf-8")
         match = re.search(r'(?m)^VERSION\s*=\s*"([^"]+)"', source)
@@ -7114,6 +7117,9 @@ def create_app(config: dict | None = None) -> Flask:
 
     def _local_signer_python_name() -> str:
         return f"local_signer-{_local_signer_version()}.py"
+
+    def _local_ai_bridge_python_name() -> str:
+        return f"local_ai_host_bridge-{_local_signer_version()}.py"
 
     def _local_signer_windows_exe_path() -> Path:
         # Restituisce solo il path dell'exe versionato (es. SetupLocalSigner-1.5.10.exe).
@@ -7161,6 +7167,7 @@ $ErrorActionPreference = 'Stop'
 $dir    = "$env:APPDATA\\HACS\\LocalSigner"
 $venv   = "$dir\\.venv"
 $py     = "$dir\\local_signer.py"
+$aiBridge = "$dir\\local_ai_host_bridge.py"
 $dataDir = "$dir\\data"
 $uffici = "$dataDir\\uffici_ministero.json"
 $starterCmd = "$dir\\\\start_local_signer.cmd"
@@ -7177,6 +7184,8 @@ New-Item -ItemType Directory -Force -Path $dataDir | Out-Null
 
 Write-Host "  Scarico local_signer.py..."
 Invoke-WebRequest "{base_url}/polisWeb/local-signer/download" -OutFile $py -UseBasicParsing
+Write-Host "  Scarico bridge AI locale..."
+Invoke-WebRequest "{base_url}/polisWeb/local-signer/download/local-ai-bridge" -OutFile $aiBridge -UseBasicParsing
 Write-Host "  Scarico registro uffici PST..."
 Invoke-WebRequest "{base_url}/polisWeb/local-signer/download/uffici" -OutFile $uffici -UseBasicParsing
 
@@ -7343,6 +7352,7 @@ if ! command -v python3 >/dev/null 2>&1; then
 fi
 
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download" -o "$DIR/local_signer.py"
+curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-ai-bridge" -o "$DIR/local_ai_host_bridge.py"
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/uffici" -o "$DATA_DIR/uffici_ministero.json"
 python3 -m venv "$VENV"
 "$PY" -m pip install --quiet --upgrade pip
@@ -7414,6 +7424,7 @@ if ! command -v python3 >/dev/null 2>&1; then
 fi
 
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download" -o "$DIR/local_signer.py"
+curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-ai-bridge" -o "$DIR/local_ai_host_bridge.py"
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/uffici" -o "$DATA_DIR/uffici_ministero.json"
 python3 -m venv "$VENV"
 "$PY" -m pip install --quiet --upgrade pip
@@ -7458,6 +7469,22 @@ read -r -p "Premi Invio per chiudere..." _
                 ls_path,
                 as_attachment=True,
                 download_name=_local_signer_python_name(),
+                mimetype="text/x-python",
+            )
+        except Exception as e:
+            return str(e), 500
+
+    @app.route("/polisWeb/local-signer/download/local-ai-bridge")
+    def polis_local_ai_bridge_download():
+        """Serve il bridge AI locale distribuito insieme al Local Signer."""
+        try:
+            bridge_path = _local_ai_bridge_source_path()
+            if not bridge_path.exists():
+                return "File non trovato", 404
+            return send_file(
+                bridge_path,
+                as_attachment=True,
+                download_name=_local_ai_bridge_python_name(),
                 mimetype="text/x-python",
             )
         except Exception as e:

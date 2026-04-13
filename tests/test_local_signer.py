@@ -410,6 +410,97 @@ def test_cors_preflight_private_network_risponde_header_atteso():
     assert ("Access-Control-Allow-Private-Network", "true") in captured
 
 
+def test_ai_status_bridge_locale_restituisce_snapshot():
+    module = _load_local_signer()
+    original = module._get_local_ai_bridge
+    captured = {}
+
+    class _FakeBridge:
+        def health_snapshot(self, payload):
+            captured["payload"] = payload
+            return {
+                "ok": True,
+                "runtime": {"status": "ready"},
+                "installer": {"strategy_label": "Companion locale"},
+                "models": [],
+                "counts": {},
+            }
+
+    class _FakeHandler:
+        command = "GET"
+        path = "/ai/status?base_url=http://127.0.0.1:11434/api&chat_model=gemma3%3A1b"
+        headers = {}
+
+        def _read_json(self):
+            return {}
+
+        def _query_params(self):
+            return module._Handler._query_params(self)
+
+        def _local_ai_request_payload(self, payload_override=None):
+            return module._Handler._local_ai_request_payload(self, payload_override)
+
+        def _send_json(self, data, status=200):
+            captured["data"] = data
+            captured["status"] = status
+
+    try:
+        module._get_local_ai_bridge = lambda: _FakeBridge()
+        module._Handler._ai_status(_FakeHandler())
+    finally:
+        module._get_local_ai_bridge = original
+
+    assert captured["status"] == 200
+    assert captured["data"]["runtime"]["status"] == "ready"
+    assert captured["payload"]["base_url"] == "http://127.0.0.1:11434/api"
+    assert captured["payload"]["chat_model"] == "gemma3:1b"
+
+
+def test_ai_bootstrap_bridge_locale_usa_force_e_payload():
+    module = _load_local_signer()
+    original = module._get_local_ai_bridge
+    captured = {}
+
+    class _FakeBridge:
+        def bootstrap_runtime(self, payload, force=False):
+            captured["payload"] = payload
+            captured["force"] = force
+            return {"ok": True, "result": {"status": "ready"}, "status_payload": {"runtime": {"status": "ready"}}}
+
+    class _FakeHandler:
+        command = "POST"
+        path = "/ai/bootstrap"
+        headers = {}
+
+        def _read_json(self):
+            return {
+                "force": True,
+                "base_url": "http://127.0.0.1:11434/api",
+                "chat_model": "gemma3:1b",
+            }
+
+        def _query_params(self):
+            return {}
+
+        def _local_ai_request_payload(self, payload_override=None):
+            return module._Handler._local_ai_request_payload(self, payload_override)
+
+        def _send_json(self, data, status=200):
+            captured["data"] = data
+            captured["status"] = status
+
+    try:
+        module._get_local_ai_bridge = lambda: _FakeBridge()
+        module._Handler._ai_bootstrap(_FakeHandler())
+    finally:
+        module._get_local_ai_bridge = original
+
+    assert captured["status"] == 200
+    assert captured["data"]["result"]["status"] == "ready"
+    assert captured["force"] is True
+    assert captured["payload"]["chat_model"] == "gemma3:1b"
+
+
 def test_riusa_certificato_windows_selezionato_per_chiamate_pst_successive():
     module = _load_local_signer()
 

@@ -17,8 +17,12 @@ Avvio rapido:
 API:
     GET  /ping                   → health + info token (senza PIN)
     GET  /diagnosi               → diagnostica completa: middleware, token, curl
+    GET  /ai/status              → stato AI locale sul dispositivo cliente
     GET  /certificati            → elenca certificati Windows MY store
     GET  /seleziona-certificato  → apre dialog nativo Windows di selezione cert
+    POST /ai/bootstrap           → provisioning runtime Ollama e modelli locali
+    POST /ai/chat                → prompt locale inoltrato a Ollama
+    POST /ai/embed               → embeddings locali inoltrati a Ollama
     POST /firma                  → firma documento CAdES-BES
     POST /firma-batch            → firma più documenti con una sola sessione PIN
     POST /pst/preflight-auth     → verifica certificato + prompt PIN per accesso PST
@@ -64,9 +68,12 @@ from pathlib import Path
 from typing import Any, Dict, Optional
 from urllib.parse import parse_qs, urlparse
 
+_THIS_DIR = Path(__file__).resolve().parent
 _REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
+if str(_THIS_DIR) not in sys.path:
+    sys.path.insert(0, str(_THIS_DIR))
 
 try:
     from pct.uffici_giudiziari import risolvi_base_pst as _risolvi_base_pst_hacs
@@ -75,9 +82,14 @@ except Exception:
     _risolvi_base_pst_hacs = None
     _risolvi_codice_ministero_hacs = None
 
+try:
+    from local_ai_host_bridge import LocalAiHostBridge
+except Exception:
+    LocalAiHostBridge = None  # type: ignore[assignment]
+
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.5.37"
+VERSION = "1.5.38"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
@@ -185,6 +197,7 @@ _pin_session_lock = threading.Lock()
 _pst_session_cache: dict[str, dict] = {}
 _pst_session_lock = threading.Lock()
 _LOCALHOST_ORIGIN_HOSTS = {"localhost", "127.0.0.1", "::1"}
+_local_ai_bridge_instance = None
 
 # Host PST dove il tentativo cookie-only ha fallito (mTLS obbligatorio).
 # Salvato in memoria per saltare il tentativo inutile nelle chiamate successive
@@ -196,6 +209,24 @@ _mTLS_required_lock = threading.Lock()
 
 def _utcnow_naive() -> datetime:
     return datetime.now(UTC).replace(tzinfo=None)
+
+
+def _coerce_bool(value: Any, default: bool = False) -> bool:
+    if value is None or value == "":
+        return default
+    return str(value).strip().lower() in _TRUE_VALUES
+
+
+def _get_local_ai_bridge():
+    global _local_ai_bridge_instance
+    if _local_ai_bridge_instance is None:
+        if LocalAiHostBridge is None:
+            raise RuntimeError(
+                "Bridge AI locale non disponibile in questo pacchetto del Local Signer. "
+                "Aggiorna il Local Signer dall'area impostazioni di HACS."
+            )
+        _local_ai_bridge_instance = LocalAiHostBridge(root_dir=_THIS_DIR)
+    return _local_ai_bridge_instance
 
 
 def _snapshot_paths() -> list[Path]:
@@ -4998,6 +5029,28 @@ class _Handler(BaseHTTPRequestHandler):
         except json.JSONDecodeError:
             return {}
 
+    def _query_params(self) -> dict[str, Any]:
+        parsed = parse_qs(urlparse(self.path).query or "")
+        return {key: values[0] for key, values in parsed.items() if values}
+
+    def _local_ai_request_payload(self, payload_override: dict[str, Any] | None = None) -> dict[str, Any]:
+        payload = self._query_params()
+        if payload_override is not None:
+            payload.update(payload_override)
+        elif self.command == "POST":
+            payload.update(self._read_json())
+        return {
+            "enabled": _coerce_bool(payload.get("enabled"), True),
+            "base_url": str(payload.get("base_url") or "http://127.0.0.1:11434/api").strip(),
+            "auto_bootstrap": _coerce_bool(payload.get("auto_bootstrap"), True),
+            "chat_model": str(payload.get("chat_model") or "").strip(),
+            "embed_model": str(payload.get("embed_model") or "").strip(),
+            "keep_alive": str(payload.get("keep_alive") or "10m").strip() or "10m",
+            "auto_index_documents": _coerce_bool(payload.get("auto_index_documents"), True),
+            "model": str(payload.get("model") or "").strip(),
+            "prompt": str(payload.get("prompt") or "").strip(),
+        }
+
     def do_OPTIONS(self):  # noqa: N802
         self.send_response(204)
         self._add_cors()
@@ -5011,12 +5064,14 @@ class _Handler(BaseHTTPRequestHandler):
             self._send_json({"errore": "CORS: origine non consentita"}, 403)
             return
         path = urlparse(self.path).path
-        if path in {"/ping", "/seleziona-certificato", "/pst/status"}:
+        if path in {"/ping", "/seleziona-certificato", "/pst/status", "/ai/status"}:
             log.info("HTTP GET %s", path)
         if path == "/ping":
             self._ping()
         elif path == "/diagnosi":
             self._diagnosi()
+        elif path == "/ai/status":
+            self._ai_status()
         elif path == "/certificati":
             self._certificati()
         elif path == "/seleziona-certificato":
@@ -5032,6 +5087,9 @@ class _Handler(BaseHTTPRequestHandler):
             return
         path = urlparse(self.path).path
         if path in {
+            "/ai/bootstrap",
+            "/ai/chat",
+            "/ai/embed",
             "/pst/preflight-auth",
             "/pst/ricerca",
             "/pst/documenti",
@@ -5044,7 +5102,13 @@ class _Handler(BaseHTTPRequestHandler):
             "/ptt/documenti",
         }:
             log.info("HTTP POST %s", path)
-        if path == "/firma":
+        if path == "/ai/bootstrap":
+            self._ai_bootstrap()
+        elif path == "/ai/chat":
+            self._ai_chat()
+        elif path == "/ai/embed":
+            self._ai_embed()
+        elif path == "/firma":
             self._firma()
         elif path == "/firma-batch":
             self._firma_batch()
@@ -5076,6 +5140,61 @@ class _Handler(BaseHTTPRequestHandler):
             self._send_json({"errore": "Not found"}, 404)
 
     # ── Handlers ────────────────────────────────────────────────────────────────
+
+    def _ai_status(self):
+        try:
+            bridge = _get_local_ai_bridge()
+            payload = bridge.health_snapshot(self._local_ai_request_payload())
+            self._send_json(payload)
+        except Exception as e:
+            log.error("Errore AI status locale: %s", e)
+            self._send_json({"ok": False, "errore": str(e)}, 500)
+
+    def _ai_bootstrap(self):
+        try:
+            data = self._read_json()
+            bridge = _get_local_ai_bridge()
+            payload = bridge.bootstrap_runtime(
+                self._local_ai_request_payload(data),
+                force=_coerce_bool(data.get("force"), False),
+            )
+            self._send_json(payload)
+        except Exception as e:
+            log.error("Errore AI bootstrap locale: %s", e)
+            self._send_json({"ok": False, "errore": str(e)}, 500)
+
+    def _ai_chat(self):
+        data = self._local_ai_request_payload()
+        prompt = str(data.get("prompt") or "").strip()
+        if not prompt:
+            self._send_json({"ok": False, "errore": "Prompt mancante."}, 400)
+            return
+        try:
+            bridge = _get_local_ai_bridge()
+            payload = bridge.chat(prompt, data)
+            self._send_json(payload)
+        except Exception as e:
+            log.error("Errore AI chat locale: %s", e)
+            self._send_json({"ok": False, "errore": str(e)}, 500)
+
+    def _ai_embed(self):
+        raw_body = self._read_json()
+        data = self._local_ai_request_payload(raw_body)
+        raw_inputs = raw_body.get("inputs")
+        if not isinstance(raw_inputs, list) or not raw_inputs:
+            prompt = str(data.get("prompt") or "").strip()
+            raw_inputs = [prompt] if prompt else []
+        inputs = [str(value or "").strip() for value in raw_inputs if str(value or "").strip()]
+        if not inputs:
+            self._send_json({"ok": False, "errore": "Testo da indicizzare mancante."}, 400)
+            return
+        try:
+            bridge = _get_local_ai_bridge()
+            payload = bridge.embed(inputs, data)
+            self._send_json(payload)
+        except Exception as e:
+            log.error("Errore AI embed locale: %s", e)
+            self._send_json({"ok": False, "errore": str(e)}, 500)
 
     def _ping(self):
         lib = _trova_libreria()

@@ -991,7 +991,15 @@
 {% endif %}
 
 {% if tab_attivo == 'ai' %}
-<div class="row g-4 settings-ai-layout">
+<div class="row g-4 settings-ai-layout" id="ai-panel-root"
+     data-ai-mode="{{ 'local' if request.host.split(':')[0] in ['localhost', '127.0.0.1'] else 'remote' }}"
+     data-local-signer-url="http://127.0.0.1:27272"
+     data-local-signer-download-page="{{ local_signer.download_page }}"
+     data-local-signer-setup-windows="{{ url_for('polis_local_signer_setup_windows') }}"
+     data-local-signer-setup-macos="{{ url_for('polis_local_signer_setup_macos') }}"
+     data-local-signer-setup-linux="{{ url_for('polis_local_signer_setup_linux') }}"
+     data-runtime-status-url="/api/local-ai/status"
+     data-runtime-bootstrap-url="/api/local-ai/bootstrap">
   <div class="col-lg-7 settings-ai-layout__main">
     <div class="card border-0 shadow-sm settings-card settings-card--primary">
       <div class="card-body p-4 d-grid gap-4">
@@ -1001,12 +1009,12 @@
             <h6 class="fw-bold mb-1"><i class="bi bi-cpu-fill text-primary me-2"></i>AI locale con Ollama</h6>
             <p class="text-muted mb-0 settings-ai-hero__text">
               Runtime locale non bloccante per fascicoli, documenti, agenda, scadenziario e workspace intelligente.
-              La soluzione corretta e' gestirlo sulla stessa macchina che esegue HACS, non nel browser del cliente.
+              Quando HACS e' online, il browser usa un companion locale sul dispositivo cliente per parlare con Ollama.
             </p>
           </div>
           <div class="settings-ai-hero__meta">
             <span class="badge text-bg-secondary" id="ai-runtime-badge">Verifica in corso</span>
-            <div class="settings-ai-hero__note">Runtime sullo stesso host di HACS</div>
+            <div class="settings-ai-hero__note">Companion locale sul dispositivo cliente</div>
           </div>
         </div>
 
@@ -1017,9 +1025,9 @@
           <div class="ui-feedback__content">
             <div class="ui-feedback__title">Distribuzione consigliata</div>
             <div class="ui-feedback__body">
-              HACS non distribuisce Ollama al browser del cliente finale. In base al sistema operativo
-              reale e alla modalita' di esecuzione sceglie automaticamente la strategia corretta:
-              runtime nativo sull'host Windows o Linux, oppure sidecar Docker solo quando serve davvero.
+              La web app online non puo' raggiungere direttamente <span class="font-monospace">localhost:11434</span>
+              del cliente. Per questo HACS usa il Local Signer come companion locale: il browser parla con
+              <span class="font-monospace">127.0.0.1:27272</span> sul dispositivo cliente, e il companion gestisce Ollama.
             </div>
           </div>
         </div>
@@ -1041,13 +1049,13 @@
                 <input class="form-check-input" type="checkbox" role="switch" name="ai_auto_bootstrap" id="ai_auto_bootstrap" value="1" {{ 'checked' if cfg.ai.auto_bootstrap }}>
                 <label class="form-check-label fw-semibold" for="ai_auto_bootstrap">Provisioning e avvio automatici</label>
               </div>
-              <div class="form-text">HACS sceglie in automatico la strategia corretta per il sistema reale: su Windows o macOS in Docker privilegia il runtime dell'host; il sidecar Docker resta un fallback opzionale.</div>
+              <div class="form-text">Quando HACS e' online, il bootstrap passa dal companion locale del cliente. In locale o self-hosted resta disponibile anche il controllo lato server.</div>
             </div>
             <div class="col-12">
               <label class="form-label fw-semibold">Base URL del runtime</label>
               <input type="text" name="ai_base_url" id="ai_base_url" class="form-control font-monospace"
                      value="{{ cfg.ai.base_url }}" placeholder="http://127.0.0.1:11434/api">
-              <div class="form-text">In Docker su Windows o macOS il valore consigliato e' <span class="font-monospace">http://host.docker.internal:11434/api</span>. Il sidecar Docker resta disponibile solo se attivato esplicitamente.</div>
+              <div class="form-text">Sul dispositivo cliente il valore consigliato resta <span class="font-monospace">http://127.0.0.1:11434/api</span>. Nelle installazioni locali containerizzate puo' essere utile <span class="font-monospace">http://host.docker.internal:11434/api</span>.</div>
             </div>
             <div class="col-md-6">
               <label class="form-label fw-semibold">Modello conversazionale preferito</label>
@@ -1096,7 +1104,7 @@
     <div class="card border-0 shadow-sm h-100 settings-card settings-card--aside">
       <div class="card-body p-4 d-grid gap-4">
         <h6 class="fw-bold mb-3"><i class="bi bi-speedometer2 text-primary me-2"></i>Stato operativo</h6>
-        <div class="small text-muted mb-3">Questo pannello legge lo stato reale del runtime locale e dell’indice documentale.</div>
+        <div class="small text-muted mb-3">Questo pannello legge lo stato reale del runtime locale e dell'indice documentale dal companion del dispositivo cliente oppure dal server locale, in base all'ambiente.</div>
         <div id="ai-runtime-summary" class="settings-ai-summary-grid">
           <div class="text-muted">In attesa di stato…</div>
         </div>

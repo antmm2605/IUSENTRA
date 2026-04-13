@@ -69,6 +69,7 @@ $installHeader = @"
 Write-Utf8TextFile -Path $buildInstallPs1 -Content ($installHeader + $installScriptSource)
 Write-Utf8TextFile -Path $outputPs1Versioned -Content ($installHeader + $installScriptSource)
 Copy-Item (Join-Path $toolsDir "local_signer.py") $buildDir -Force
+Copy-Item (Join-Path $toolsDir "local_ai_host_bridge.py") $buildDir -Force
 Copy-Item (Join-Path $toolsDir "requirements_local_signer.txt") $buildDir -Force
 Copy-Item $ufficiJson $buildDir -Force
 
@@ -117,12 +118,14 @@ SourceFiles0=$escapedSource
 %FILE2%=
 %FILE3%=
 %FILE4%=
+%FILE5%=
 [Strings]
 FILE0=installa_local_signer_locale.ps1
 FILE1=local_signer.py
-FILE2=requirements_local_signer.txt
-FILE3=uffici_ministero.json
-FILE4=local_signer_release.txt
+FILE2=local_ai_host_bridge.py
+FILE3=requirements_local_signer.txt
+FILE4=uffici_ministero.json
+FILE5=local_signer_release.txt
 "@
 
 Set-Content -Path $sedFile -Value $sed -Encoding ASCII

@@ -173,7 +173,7 @@ def test_template_principali_usano_copy_italiana_e_date_localizzate():
         "web/templates/admin/base.html": ["Esci", "Piattaforma"],
         "web/templates/dashboard.html": ["Panoramica dello studio"],
         "web/templates/agenda.html": ["Sincronizzazione automatica", "Configura sincronizzazione calendario"],
-        "web/templates/impostazioni/index.html": ["Runtime sullo stesso host di HACS", "Prepara runtime automatico"],
+        "web/templates/impostazioni/index.html": ["Companion locale sul dispositivo cliente", "Prepara runtime automatico"],
         "web/templates/notifiche/pannello.html": ["Invia messaggio", "Registro notifiche"],
         "web/templates/workspace_intelligente.html": ["Assistente operativo locale", "Ultima sincronizzazione"],
         "web/templates/portale/base.html": ["Operazione completata", "Inizio"],
@@ -271,7 +271,35 @@ def test_impostazioni_js_e_esterno_e_senza_duplicazioni():
     assert ai_js.count("function renderLocalAiStatus") == 1
     assert ai_js.count("async function refreshLocalAiStatus") == 1
     assert ai_js.count("async function runLocalAiBootstrap") == 1
-    assert "Gestito sull\\\\'host Windows/macOS" not in ai_js
+    assert "127.0.0.1:27272" in ai_js
+    assert "/ai/status" in ai_js
+    assert "/ai/bootstrap" in ai_js
+    assert "companion locale" in ai_js
+    assert 'data-local-signer-url="http://127.0.0.1:27272"' in template
+    assert "data-local-signer-setup-windows" in template
+    assert "Quando HACS e' online" in template
+
+
+def test_local_signer_distribution_include_bridge_ai(tmp_path: Path):
+    app = create_app(_cfg_web(tmp_path))
+
+    with app.test_client() as client:
+        bridge = client.get("/polisWeb/local-signer/download/local-ai-bridge")
+
+    assert bridge.status_code == 200
+    bridge_source = bridge.get_data(as_text=True)
+    assert "class LocalAiHostBridge" in bridge_source
+    assert "class OllamaLocalClient" in bridge_source
+
+    build_dist = (REPO_ROOT / "tools/build_dist.py").read_text(encoding="utf-8")
+    build_windows = (REPO_ROOT / "tools/build_local_signer_windows_exe.ps1").read_text(encoding="utf-8")
+    installer = (REPO_ROOT / "tools/installa_local_signer_locale.ps1").read_text(encoding="utf-8")
+    web_app = (REPO_ROOT / "web/app.py").read_text(encoding="utf-8")
+
+    assert "local_ai_host_bridge.py" in build_dist
+    assert "local_ai_host_bridge.py" in build_windows
+    assert "local_ai_host_bridge.py" in installer
+    assert "/polisWeb/local-signer/download/local-ai-bridge" in web_app
 
 
 def test_notifiche_whatsapp_usa_js_esterno_e_date_localizzate():

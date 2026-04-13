@@ -2,6 +2,7 @@ import tempfile
 from pathlib import Path
 
 from pct.auth import GestioneUtenti, RuoloUtente
+from pct.compilatore_atti import MODEL_INDEX
 from pct.template_atti import GestioneTemplateAtti
 from web.app import create_app
 
@@ -60,6 +61,8 @@ def test_catalogo_builtin_supera_cento_modelli_e_contiene_atti_richiesti(tmp_pat
     builtins = [t for t in gt.tutti() if t.builtin]
 
     assert len(builtins) >= 100
+    assert all(t.link_compilatore_code for t in builtins)
+    assert all(t.link_compilatore_code in MODEL_INDEX for t in builtins)
 
     by_title = {t.titolo: t for t in builtins}
     assert "Procura speciale per ricorso monitorio" in by_title
@@ -136,3 +139,18 @@ def test_generazione_builtin_con_campi_guidati_restituisce_anteprima(tmp_path):
     assert "Risarcimento danni da inadempimento" in html
     assert "Beta S.r.l." in html
     assert "Violazione degli articoli 1218 e 1453 c.c." in html
+
+
+def test_compilatore_alias_builtin_apre_wizard_specifico(tmp_path):
+    _, app = _bootstrap_app(tmp_path)
+    with app.test_client() as client:
+        _login_client(client)
+        response_procura = client.get("/template-atti/compila/CIV_PROC_001")
+        response_querela = client.get("/template-atti/compila/PEN_BLT_001")
+
+    assert response_procura.status_code == 200
+    assert response_querela.status_code == 200
+    html_procura = response_procura.get_data(as_text=True)
+    html_querela = response_querela.get_data(as_text=True)
+    assert "Procura alle liti" in html_procura
+    assert "Querela" in html_querela

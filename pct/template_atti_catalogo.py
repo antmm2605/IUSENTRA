@@ -4,6 +4,8 @@ from __future__ import annotations
 from copy import deepcopy
 from typing import Any, Iterable
 
+from pct.template_atti_compiler_bindings import compiler_binding_map_by_title
+
 
 def _field(
     name: str,
@@ -1073,6 +1075,7 @@ BUILTIN_TEMPLATE_SPECS.extend(
 
 
 def build_builtin_templates() -> list[dict[str, Any]]:
+    compiler_links = compiler_binding_map_by_title()
     templates: list[dict[str, Any]] = []
     for order, spec in enumerate(BUILTIN_TEMPLATE_SPECS, start=1):
         item = deepcopy(spec)
@@ -1085,6 +1088,10 @@ def build_builtin_templates() -> list[dict[str, Any]]:
         item["campi_guidati"] = _copy_fields(*field_names)
         item["corpo"] = _render_body(family, item["titolo"], item)
         item["ordine"] = order
+        if not item.get("link_compilatore_code"):
+            binding = compiler_links.get(item["titolo"])
+            if binding:
+                item["link_compilatore_code"] = binding["compiler_code"]
         templates.append(item)
     return templates
 

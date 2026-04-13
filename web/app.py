@@ -2237,87 +2237,60 @@ def create_app(config: dict | None = None) -> Flask:
         return data_corrente
 
     def _luogo_timbro_firma_visibile() -> str:
+        from visible_signature import resolve_visible_signature_place
+
         try:
-            indirizzo = str(get_config_studio().config.studio.indirizzo or "").strip()
+            studio_cfg = get_config_studio().config.studio
         except Exception:
-            indirizzo = ""
-        if not indirizzo:
-            return ""
-        parti = [p.strip() for p in re.split(r"[;,|-]", indirizzo) if p.strip()]
-        if not parti:
-            return ""
-        candidato = re.sub(r"^\d{5}\s+", "", parti[-1]).strip()
-        if not candidato:
-            return ""
-        return candidato if len(candidato) <= 48 else ""
+            studio_cfg = None
+        return resolve_visible_signature_place(
+            city=getattr(studio_cfg, "city", "") if studio_cfg else "",
+            address=getattr(studio_cfg, "indirizzo", "") if studio_cfg else "",
+        )
 
     def _formatta_data_firma_visibile(valore: str) -> str:
-        raw = str(valore or "").strip()
-        if not raw:
-            return ""
-        try:
-            dt = datetime.fromisoformat(raw.replace("Z", "+00:00"))
-        except Exception:
-            for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%d"):
-                try:
-                    dt = datetime.strptime(raw, fmt)
-                    break
-                except Exception:
-                    dt = None
-            if dt is None:
-                return ""
-        try:
-            if getattr(dt, "tzinfo", None) is not None:
-                dt = dt.astimezone()
-        except Exception:
-            pass
-        return dt.strftime("%d/%m/%Y ore %H:%M")
+        from visible_signature import format_visible_signature_datetime
+
+        return format_visible_signature_datetime(valore)
 
     def _testo_timbro_firma_visibile(firme: list[dict]) -> str:
+        from visible_signature import build_visible_signature_text
+
         if not firme:
             return ""
         firma = (firme or [{}])[0] or {}
-        intestatario = str(firma.get("intestatario") or firma.get("cn") or "").strip()
-        data_firma = _formatta_data_firma_visibile(str(firma.get("data_firma") or "").strip())
-        righe = ["Per autentica e sottoscrizione"]
-        if intestatario and data_firma:
-            righe.append(f"Firmato da: {intestatario} in data {data_firma}")
-        elif intestatario:
-            righe.append(f"Firmato da: {intestatario}")
-        elif data_firma:
-            righe.append(f"Firmato in data {data_firma}")
-        luogo = _luogo_timbro_firma_visibile()
-        if luogo:
-            righe.append(f"Luogo: {luogo}")
-        return "\n".join(righe)
+        return build_visible_signature_text(
+            intestatario=str(firma.get("intestatario") or firma.get("cn") or "").strip(),
+            data_firma=firma.get("data_firma"),
+            luogo=_luogo_timbro_firma_visibile(),
+        )
 
     def _applica_timbro_firma_visibile(pdf_data: bytes, firme: list[dict]) -> bytes:
+        from visible_signature import (
+            apply_visible_signature_stamp_from_firme,
+            has_visible_signature_stamp,
+        )
+
+        try:
+            studio_cfg = get_config_studio().config.studio
+        except Exception:
+            studio_cfg = None
+
+        stamped = apply_visible_signature_stamp_from_firme(
+            pdf_data,
+            firme,
+            city=getattr(studio_cfg, "city", "") if studio_cfg else "",
+            address=getattr(studio_cfg, "indirizzo", "") if studio_cfg else "",
+        )
+        if stamped != pdf_data or has_visible_signature_stamp(pdf_data):
+            return stamped
         if not pdf_data.startswith(b"%PDF"):
             return pdf_data
         testo = _testo_timbro_firma_visibile(firme)
         if not testo:
             return pdf_data
-        try:
-            from pyhanko.pdf_utils.incremental_writer import IncrementalPdfFileWriter
-            from pyhanko.pdf_utils.layout import BoxConstraints
-            from pyhanko.stamp import TextStamp, TextStampStyle
-
-            buf_in = io.BytesIO(pdf_data)
-            writer = IncrementalPdfFileWriter(buf_in)
-            style = TextStampStyle(
-                stamp_text=testo,
-                background_opacity=0.88,
-                border_width=2,
-                border_color=(0.80, 0.12, 0.12),
-            )
-            stamp = TextStamp(writer, style, box=BoxConstraints(width=390, height=82))
-            stamp.apply(0, 24, 24)
-            buf_out = io.BytesIO()
-            writer.write(buf_out)
-            return buf_out.getvalue()
-        except Exception as e:
-            app.logger.warning("Impossibile applicare il timbro firma visibile: %s", e)
-            return pdf_data
+        app.logger.warning("Impossibile applicare il timbro firma visibile: fallback non disponibile")
+        return pdf_data
 
     def _catalogo_documenti_portale_fascicolo(fasc: Fascicolo) -> list[dict]:
         documenti_locali_per_deposito: dict[str, dict[str, list[Documento]]] = {}
@@ -7332,6 +7305,9 @@ def create_app(config: dict | None = None) -> Flask:
     def _local_ai_lex_context_source_path() -> Path:
         return _local_signer_tools_dir() / "lex_document_context.py"
 
+    def _local_signer_visible_signature_source_path() -> Path:
+        return Path(__file__).parent.parent / "visible_signature.py"
+
     def _local_signer_version() -> str:
         source = _local_signer_source_path().read_text(encoding="utf-8")
         match = re.search(r'(?m)^VERSION\s*=\s*"([^"]+)"', source)
@@ -7372,6 +7348,9 @@ def create_app(config: dict | None = None) -> Flask:
 
     def _local_ai_lex_context_python_name() -> str:
         return f"lex_document_context-{_local_signer_version()}.py"
+
+    def _local_signer_visible_signature_python_name() -> str:
+        return f"visible_signature-{_local_signer_version()}.py"
 
     def _local_signer_windows_exe_path() -> Path:
         # Restituisce solo il path dell'exe versionato (es. SetupLocalSigner-1.5.10.exe).
@@ -7421,6 +7400,7 @@ $venv   = "$dir\\.venv"
 $py     = "$dir\\local_signer.py"
 $aiBridge = "$dir\\local_ai_host_bridge.py"
 $lexContext = "$dir\\lex_document_context.py"
+$visibleSignature = "$dir\\visible_signature.py"
 $dataDir = "$dir\\data"
 $uffici = "$dataDir\\uffici_ministero.json"
 $starterCmd = "$dir\\\\start_local_signer.cmd"
@@ -7441,6 +7421,8 @@ Write-Host "  Scarico bridge AI locale..."
 Invoke-WebRequest "{base_url}/polisWeb/local-signer/download/local-ai-bridge" -OutFile $aiBridge -UseBasicParsing
 Write-Host "  Scarico parser documenti per Lex..."
 Invoke-WebRequest "{base_url}/polisWeb/local-signer/download/lex-document-context" -OutFile $lexContext -UseBasicParsing
+Write-Host "  Scarico modulo firma visibile..."
+Invoke-WebRequest "{base_url}/polisWeb/local-signer/download/visible-signature" -OutFile $visibleSignature -UseBasicParsing
 Write-Host "  Scarico registro uffici PST..."
 Invoke-WebRequest "{base_url}/polisWeb/local-signer/download/uffici" -OutFile $uffici -UseBasicParsing
 
@@ -7460,7 +7442,7 @@ Write-Host "  Aggiorno pip..."
 & $pyExe -m pip install --quiet --upgrade pip
 
 Write-Host "  Installo dipendenze Local Signer..."
-    & $pyExe -m pip install --quiet python-pkcs11 asn1crypto cryptography zeep pdfplumber mammoth
+    & $pyExe -m pip install --quiet python-pkcs11 asn1crypto cryptography zeep pdfplumber mammoth pypdf
 
 function Test-LocalSignerOnline {{
     try {{
@@ -7626,10 +7608,11 @@ fi
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download" -o "$DIR/local_signer.py"
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-ai-bridge" -o "$DIR/local_ai_host_bridge.py"
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/lex-document-context" -o "$DIR/lex_document_context.py"
+curl -fsSL "$BASE_URL/polisWeb/local-signer/download/visible-signature" -o "$DIR/visible_signature.py"
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/uffici" -o "$DATA_DIR/uffici_ministero.json"
 python3 -m venv "$VENV"
 "$PY" -m pip install --quiet --upgrade pip
-  "$PY" -m pip install --quiet python-pkcs11 asn1crypto cryptography zeep pdfplumber mammoth
+  "$PY" -m pip install --quiet python-pkcs11 asn1crypto cryptography zeep pdfplumber mammoth pypdf
 
 cat > "$PLIST" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
@@ -7699,10 +7682,11 @@ fi
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download" -o "$DIR/local_signer.py"
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-ai-bridge" -o "$DIR/local_ai_host_bridge.py"
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/lex-document-context" -o "$DIR/lex_document_context.py"
+curl -fsSL "$BASE_URL/polisWeb/local-signer/download/visible-signature" -o "$DIR/visible_signature.py"
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/uffici" -o "$DATA_DIR/uffici_ministero.json"
 python3 -m venv "$VENV"
 "$PY" -m pip install --quiet --upgrade pip
-  "$PY" -m pip install --quiet python-pkcs11 asn1crypto cryptography zeep pdfplumber mammoth
+  "$PY" -m pip install --quiet python-pkcs11 asn1crypto cryptography zeep pdfplumber mammoth pypdf
 
 cat > "$SERVICE" <<EOF
 [Unit]
@@ -7775,6 +7759,22 @@ read -r -p "Premi Invio per chiudere..." _
                 context_path,
                 as_attachment=True,
                 download_name=_local_ai_lex_context_python_name(),
+                mimetype="text/x-python",
+            )
+        except Exception as e:
+            return str(e), 500
+
+    @app.route("/polisWeb/local-signer/download/visible-signature")
+    def polis_local_signer_visible_signature_download():
+        """Serve il modulo condiviso della firma visibile per il Local Signer."""
+        try:
+            helper_path = _local_signer_visible_signature_source_path()
+            if not helper_path.exists():
+                return "File non trovato", 404
+            return send_file(
+                helper_path,
+                as_attachment=True,
+                download_name=_local_signer_visible_signature_python_name(),
                 mimetype="text/x-python",
             )
         except Exception as e:

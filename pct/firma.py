@@ -12,14 +12,17 @@ nello studio.
 
 import os
 import tempfile
+from datetime import datetime
 from pathlib import Path
 from typing import Optional
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.hazmat.backends import default_backend
 from cryptography import x509
+from cryptography.x509.oid import NameOID
 from cryptography.hazmat.primitives.serialization import pkcs12
 from cryptography.hazmat.primitives.serialization import pkcs7
+from visible_signature import prepare_document_for_signature, resolve_visible_signature_place
 
 
 class FirmaDigitale:
@@ -229,6 +232,27 @@ class FirmaDigitale:
 
     # ---------------------------------------------------------------- firma
 
+    def _prepare_pdf_for_visible_signature(self, documento: bytes) -> bytes:
+        luogo = resolve_visible_signature_place(
+            city=os.getenv("PCT_STUDIO_CITY", ""),
+            address=os.getenv("PCT_STUDIO_INDIRIZZO", ""),
+        )
+        issuer_cn = ""
+        try:
+            issuer_cn_attrs = self._certificate.issuer.get_attributes_for_oid(NameOID.COMMON_NAME)
+            if issuer_cn_attrs:
+                issuer_cn = str(issuer_cn_attrs[0].value or "").strip()
+        except Exception:
+            issuer_cn = ""
+        return prepare_document_for_signature(
+            documento,
+            intestatario=self.intestatario,
+            data_firma=datetime.now().astimezone(),
+            luogo=luogo,
+            issuer=issuer_cn,
+            serial=format(getattr(self._certificate, "serial_number", 0), "X"),
+        )
+
     def firma_cades(self, documento: bytes, detached: bool = True) -> bytes:
         """
         Firma un documento in formato CAdES (.p7m).
@@ -240,6 +264,8 @@ class FirmaDigitale:
         Returns:
             Documento firmato in formato CAdES
         """
+        if not detached:
+            documento = self._prepare_pdf_for_visible_signature(documento)
         builder = pkcs7.PKCS7SignatureBuilder()
         builder = builder.set_data(documento)
         builder = builder.add_signer(
@@ -265,17 +291,27 @@ class FirmaDigitale:
         Returns:
             Percorso al PDF firmato
         """
+        tmp_visible_path: str | None = None
         try:
             from pyhanko.sign import signers, fields
             from pyhanko.sign.fields import SigFieldSpec
             from pyhanko.pdf_utils.incremental_writer import IncrementalPdfFileWriter
+
+            source_path = pdf_path
+            original_pdf = Path(pdf_path).read_bytes()
+            prepared_pdf = self._prepare_pdf_for_visible_signature(original_pdf)
+            if prepared_pdf != original_pdf:
+                with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_visible:
+                    tmp_visible.write(prepared_pdf)
+                    tmp_visible_path = tmp_visible.name
+                source_path = tmp_visible_path
 
             signer = signers.SimpleSigner(
                 signing_cert=self._certificate,
                 signing_key=self._private_key,
                 cert_registry=signers.SimpleCertificateStore.build(self._chain),
             )
-            with open(pdf_path, "rb") as inf:
+            with open(source_path, "rb") as inf:
                 writer = IncrementalPdfFileWriter(inf)
                 fields.append_signature_field(writer, SigFieldSpec("Signature"))
                 meta = signers.PdfSignatureMetadata(field_name="Signature")
@@ -285,6 +321,12 @@ class FirmaDigitale:
             raise RuntimeError(
                 "pyhanko non installato. Eseguire: pip install pyhanko"
             )
+        finally:
+            if tmp_visible_path:
+                try:
+                    os.unlink(tmp_visible_path)
+                except FileNotFoundError:
+                    pass
         return output_path
 
     def salva_documento_firmato(
@@ -302,7 +344,8 @@ class FirmaDigitale:
             Percorso al file firmato
         """
         if formato == "cades":
-            firmato = self.firma_cades(documento)
+            detached = not documento.startswith(b"%PDF")
+            firmato = self.firma_cades(documento, detached=detached)
             out = output_path if output_path.endswith(".p7m") else output_path + ".p7m"
             with open(out, "wb") as f:
                 f.write(firmato)

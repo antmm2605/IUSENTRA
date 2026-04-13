@@ -1656,6 +1656,22 @@ def test_download_registro_uffici_local_signer_e_pubblico(tmp_path):
     assert '"0530010"' in body
 
 
+def test_download_visible_signature_local_signer_e_pubblico(tmp_path):
+    from web.app import create_app
+
+    version = _local_signer_version()
+    app = create_app(_cfg_web(tmp_path))
+    with app.test_client() as c:
+        r = c.get("/polisWeb/local-signer/download/visible-signature")
+
+    assert r.status_code == 200
+    assert "attachment" in r.headers.get("Content-Disposition", "")
+    assert f"visible_signature-{version}.py" in r.headers.get("Content-Disposition", "")
+    body = r.data.decode("utf-8")
+    assert "def apply_visible_signature_stamp" in body
+    assert "Firmato digitalmente da" in body
+
+
 def test_installer_local_signer_windows_setup_route_e_pubblica(tmp_path):
     from web.app import create_app
 
@@ -1707,6 +1723,7 @@ def test_installer_local_signer_macos_e_pubblico(tmp_path):
     body = r.data.decode("utf-8")
     assert "LaunchAgents" in body
     assert "/polisWeb/local-signer/download" in body
+    assert "/polisWeb/local-signer/download/visible-signature" in body
     assert "zeep" in body
 
 
@@ -1726,6 +1743,7 @@ def test_installer_local_signer_linux_e_pubblico(tmp_path):
     body = r.data.decode("utf-8")
     assert "systemd/user" in body
     assert "/polisWeb/local-signer/download" in body
+    assert "/polisWeb/local-signer/download/visible-signature" in body
     assert "zeep" in body
 
 

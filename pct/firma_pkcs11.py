@@ -33,8 +33,11 @@ from __future__ import annotations
 import hashlib
 import logging
 import os
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
+
+from visible_signature import prepare_document_for_signature, resolve_visible_signature_place
 
 logger = logging.getLogger(__name__)
 
@@ -510,6 +513,29 @@ class FirmaPKCS11:
 
     # ── firma in-device ──────────────────────────────────────────────────────
 
+    def _prepare_pdf_for_visible_signature(self, documento: bytes) -> bytes:
+        luogo = resolve_visible_signature_place(
+            city=os.getenv("PCT_STUDIO_CITY", ""),
+            address=os.getenv("PCT_STUDIO_INDIRIZZO", ""),
+        )
+        issuer_cn = ""
+        try:
+            from cryptography.x509.oid import NameOID
+
+            issuer_cn_attrs = self._cert.issuer.get_attributes_for_oid(NameOID.COMMON_NAME)
+            if issuer_cn_attrs:
+                issuer_cn = str(issuer_cn_attrs[0].value or "").strip()
+        except Exception:
+            issuer_cn = ""
+        return prepare_document_for_signature(
+            documento,
+            intestatario=self.intestatario,
+            data_firma=datetime.now().astimezone(),
+            luogo=luogo,
+            issuer=issuer_cn,
+            serial=format(getattr(self._cert, "serial_number", 0), "X"),
+        )
+
     def firma_cades(self, documento: bytes, detached: bool = True) -> bytes:
         """
         Firma un documento in formato CAdES-BES (.p7m) usando la chiave in-device.
@@ -525,6 +551,9 @@ class FirmaPKCS11:
             Busta PKCS#7 DER con firma CAdES-BES.
         """
         from pkcs11 import Attribute, ObjectClass, Mechanism
+
+        if not detached:
+            documento = self._prepare_pdf_for_visible_signature(documento)
 
         sess = self._get_session()
         cert = self._get_cert()
@@ -627,7 +656,8 @@ class FirmaPKCS11:
                 "FirmaPKCS#11 supporta solo formato 'cades' (.p7m). "
                 "Per PAdES usare FirmaDigitale con file P12/PEM."
             )
-        firmato = self.firma_cades(documento)
+        detached = not documento.startswith(b"%PDF")
+        firmato = self.firma_cades(documento, detached=detached)
         out = output_path if output_path.endswith(".p7m") else output_path + ".p7m"
         with open(out, "wb") as fh:
             fh.write(firmato)

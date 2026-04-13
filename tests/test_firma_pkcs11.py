@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 
 import pct.firma_pkcs11 as firma_pkcs11
+from pct.firma import FirmaDigitale
 
 
 def test_libreria_disponibile_prefers_best_scored_candidate(monkeypatch):
@@ -78,3 +79,37 @@ def test_build_cades_bes_embeds_content_and_certificate():
     assert len(signed_data["signer_infos"]) == 1
     assert len(signed_data["certificates"]) == 1
     assert signed_data["encap_content_info"]["content"].native == documento
+
+
+def test_salva_documento_firmato_pkcs11_pdf_usa_cades_contenente_pdf(tmp_path, monkeypatch):
+    signer = object.__new__(firma_pkcs11.FirmaPKCS11)
+    captured = {}
+
+    def _fake_firma_cades(documento, detached=True):
+        captured["documento"] = documento
+        captured["detached"] = detached
+        return b"firmato"
+
+    monkeypatch.setattr(signer, "firma_cades", _fake_firma_cades)
+
+    output = signer.salva_documento_firmato(b"%PDF-1.4\nstub\n%%EOF", str(tmp_path / "atto.pdf"))
+
+    assert output.endswith(".p7m")
+    assert captured["detached"] is False
+
+
+def test_salva_documento_firmato_standard_pdf_usa_cades_contenente_pdf(tmp_path, monkeypatch):
+    signer = object.__new__(FirmaDigitale)
+    captured = {}
+
+    def _fake_firma_cades(documento, detached=True):
+        captured["documento"] = documento
+        captured["detached"] = detached
+        return b"firmato"
+
+    monkeypatch.setattr(signer, "firma_cades", _fake_firma_cades)
+
+    output = signer.salva_documento_firmato(b"%PDF-1.4\nstub\n%%EOF", str(tmp_path / "atto.pdf"))
+
+    assert output.endswith(".p7m")
+    assert captured["detached"] is False

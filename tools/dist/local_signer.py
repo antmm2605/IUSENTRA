@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-HACS Local Signer - v1.5.44
+HACS Local Signer - v1.6.2
 
 Servizio HTTP locale (localhost:27272) che firma documenti con smart card e token CNS/CIE
 (o qualsiasi token PKCS#11) e consente l'accesso autenticato al PST.
@@ -98,7 +98,7 @@ except Exception:
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.6.0"
+VERSION = "1.6.2"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
@@ -1980,6 +1980,27 @@ def _firma_info_dict(intestatario: str, scadenza, *, pin_session_id: Optional[st
     return info
 
 
+def _prepare_documento_firma_visibile(
+    documento: bytes,
+    intestatario: str = "",
+    issuer: str = "",
+    serial: str = "",
+) -> bytes:
+    try:
+        from visible_signature import prepare_document_for_signature
+
+        return prepare_document_for_signature(
+            documento,
+            intestatario=intestatario,
+            data_firma=datetime.now(UTC),
+            issuer=issuer,
+            serial=serial,
+        )
+    except Exception as exc:
+        log.warning("Impossibile applicare la firma visibile locale: %s", exc)
+        return documento
+
+
 def _firma_documento_via_sessione(pin_session_id: str, documento: bytes) -> tuple[bytes, dict]:
     entry = _get_pin_session(pin_session_id)
     if not entry:
@@ -2066,6 +2087,24 @@ def _firma_inline(lib_path: str, documento: bytes, pin: str,
             raise RuntimeError("Nessun certificato nel token")
 
         cert_der = bytes(certs[0][Attribute.VALUE])
+        try:
+            from cryptography import x509 as cx509
+            from cryptography.hazmat.backends import default_backend
+
+            cert_obj = cx509.load_der_x509_certificate(cert_der, default_backend())
+            cn_list = cert_obj.subject.get_attributes_for_oid(cx509.NameOID.COMMON_NAME)
+            intestatario = cn_list[0].value if cn_list else ""
+            scadenza = _format_cert_not_valid_after(cert_obj)
+            issuer_cn_list = cert_obj.issuer.get_attributes_for_oid(cx509.NameOID.COMMON_NAME)
+            issuer = issuer_cn_list[0].value if issuer_cn_list else ""
+            serial = format(getattr(cert_obj, "serial_number", 0), "X")
+        except Exception:
+            intestatario = ""
+            scadenza = ""
+            issuer = ""
+            serial = ""
+
+        documento = _prepare_documento_firma_visibile(documento, intestatario, issuer, serial)
         signed_attrs_der = _build_signed_attrs_der_inline(documento)
 
         # Firma RSA-PKCS1v15-SHA256 in-device sui SignedAttributes CAdES.
@@ -2091,18 +2130,6 @@ def _firma_inline(lib_path: str, documento: bytes, pin: str,
             cert_der,
             signed_attrs_der=signed_attrs_der,
         )
-
-    # Informazioni certificato
-    try:
-        from cryptography import x509 as cx509
-        from cryptography.hazmat.backends import default_backend
-        cert_obj = cx509.load_der_x509_certificate(cert_der, default_backend())
-        cn_list = cert_obj.subject.get_attributes_for_oid(cx509.NameOID.COMMON_NAME)
-        intestatario = cn_list[0].value if cn_list else ""
-        scadenza = _format_cert_not_valid_after(cert_obj)
-    except Exception:
-        intestatario = ""
-        scadenza = ""
 
     return firmato, {"intestatario": intestatario, "scadenza": scadenza}
 

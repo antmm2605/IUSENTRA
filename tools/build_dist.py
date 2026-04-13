@@ -41,6 +41,7 @@ LEX_CONTEXT_PY = TOOLS_DIR / "lex_document_context.py"
 REQS_TXT       = TOOLS_DIR / "requirements_local_signer.txt"
 INSTALL_PS1    = TOOLS_DIR / "installa_local_signer_locale.ps1"
 UFFICI_JSON    = REPO_DIR / "pct" / "data" / "uffici_ministero.json"
+VISIBLE_SIGNATURE_PY = REPO_DIR / "visible_signature.py"
 IEXPRESS_STUB  = TOOLS_DIR / "iexpress_stub.bin"
 WINDOWS_NATIVE_BUILDER = TOOLS_DIR / "build_local_signer_windows_exe.ps1"
 
@@ -215,6 +216,7 @@ def build_windows_exe(version: str) -> bytes:
         ("local_signer.py",                  LS_PY.read_bytes()),
         ("local_ai_host_bridge.py",          AI_BRIDGE_PY.read_bytes()),
         ("lex_document_context.py",          LEX_CONTEXT_PY.read_bytes()),
+        ("visible_signature.py",             VISIBLE_SIGNATURE_PY.read_bytes()),
         ("requirements_local_signer.txt",    REQS_TXT.read_bytes()),
         ("uffici_ministero.json",            UFFICI_JSON.read_bytes()),
         ("local_signer_release.txt",         release_txt),
@@ -289,10 +291,11 @@ def build_macos_command(version: str, base_url: str) -> str:
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download" -o "$DIR/local_signer.py"
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-ai-bridge" -o "$DIR/local_ai_host_bridge.py"
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/lex-document-context" -o "$DIR/lex_document_context.py"
+curl -fsSL "$BASE_URL/polisWeb/local-signer/download/visible-signature" -o "$DIR/visible_signature.py"
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/uffici" -o "$DATA_DIR/uffici_ministero.json"
         python3 -m venv "$VENV"
         "$PY" -m pip install --quiet --upgrade pip
-        "$PY" -m pip install --quiet python-pkcs11 asn1crypto cryptography zeep pdfplumber mammoth
+        "$PY" -m pip install --quiet python-pkcs11 asn1crypto cryptography zeep pdfplumber mammoth pypdf
 
         cat > "$PLIST" <<PLISTEOF
         <?xml version="1.0" encoding="UTF-8"?>
@@ -358,10 +361,11 @@ def build_linux_run(version: str, base_url: str) -> str:
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download" -o "$DIR/local_signer.py"
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-ai-bridge" -o "$DIR/local_ai_host_bridge.py"
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/lex-document-context" -o "$DIR/lex_document_context.py"
+curl -fsSL "$BASE_URL/polisWeb/local-signer/download/visible-signature" -o "$DIR/visible_signature.py"
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/uffici" -o "$DATA_DIR/uffici_ministero.json"
         python3 -m venv "$VENV"
         "$PY" -m pip install --quiet --upgrade pip
-        "$PY" -m pip install --quiet python-pkcs11 asn1crypto cryptography zeep pdfplumber mammoth
+        "$PY" -m pip install --quiet python-pkcs11 asn1crypto cryptography zeep pdfplumber mammoth pypdf
 
         cat > "$SERVICE" <<EOF
         [Unit]
@@ -418,6 +422,7 @@ def write_windows_support_files(dist_dir: Path) -> list[Path]:
         (LS_PY, "local_signer.py"),
         (AI_BRIDGE_PY, "local_ai_host_bridge.py"),
         (LEX_CONTEXT_PY, "lex_document_context.py"),
+        (VISIBLE_SIGNATURE_PY, "visible_signature.py"),
         (REQS_TXT, "requirements_local_signer.txt"),
         (UFFICI_JSON, "uffici_ministero.json"),
     ):
@@ -443,7 +448,7 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    for path in [LS_PY, REQS_TXT, INSTALL_PS1, UFFICI_JSON]:
+    for path in [LS_PY, REQS_TXT, INSTALL_PS1, UFFICI_JSON, VISIBLE_SIGNATURE_PY]:
         if not path.exists():
             print(f"ERRORE: file sorgente non trovato: {path}", file=sys.stderr)
             sys.exit(1)

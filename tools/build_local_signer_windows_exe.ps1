@@ -13,6 +13,7 @@ $distDir = Join-Path $toolsDir "dist"
 $buildDir = Join-Path $toolsDir ".iexpress-build"
 $iexpressExe = Join-Path $env:SystemRoot "System32\iexpress.exe"
 $localSignerPy = Join-Path $toolsDir "local_signer.py"
+$visibleSignaturePy = Join-Path $repoDir "visible_signature.py"
 $ufficiJson = Join-Path $repoDir "pct\data\uffici_ministero.json"
 $baseUrl = "https://studio-legale-pct-production.up.railway.app"
 $downloadPage = "$baseUrl/impostazioni?tab=firma"
@@ -30,6 +31,9 @@ function Write-Utf8TextFile {
 
 if (-not (Test-Path $localSignerPy)) {
     throw "File Local Signer non trovato: $localSignerPy"
+}
+if (-not (Test-Path $visibleSignaturePy)) {
+    throw "File firma visibile non trovato: $visibleSignaturePy"
 }
 
 $sourceText = [System.IO.File]::ReadAllText($localSignerPy)
@@ -71,6 +75,7 @@ Write-Utf8TextFile -Path $outputPs1Versioned -Content ($installHeader + $install
 Copy-Item (Join-Path $toolsDir "local_signer.py") $buildDir -Force
 Copy-Item (Join-Path $toolsDir "local_ai_host_bridge.py") $buildDir -Force
 Copy-Item (Join-Path $toolsDir "lex_document_context.py") $buildDir -Force
+Copy-Item $visibleSignaturePy $buildDir -Force
 Copy-Item (Join-Path $toolsDir "requirements_local_signer.txt") $buildDir -Force
 Copy-Item $ufficiJson $buildDir -Force
 
@@ -121,14 +126,16 @@ SourceFiles0=$escapedSource
 %FILE4%=
 %FILE5%=
 %FILE6%=
+%FILE7%=
 [Strings]
 FILE0=installa_local_signer_locale.ps1
 FILE1=local_signer.py
 FILE2=local_ai_host_bridge.py
 FILE3=lex_document_context.py
-FILE4=requirements_local_signer.txt
-FILE5=uffici_ministero.json
-FILE6=local_signer_release.txt
+FILE4=visible_signature.py
+FILE5=requirements_local_signer.txt
+FILE6=uffici_ministero.json
+FILE7=local_signer_release.txt
 "@
 
 Set-Content -Path $sedFile -Value $sed -Encoding ASCII
@@ -169,10 +176,13 @@ if ! command -v python3 >/dev/null 2>&1; then
 fi
 
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download" -o "$DIR/local_signer.py"
+curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-ai-bridge" -o "$DIR/local_ai_host_bridge.py"
+curl -fsSL "$BASE_URL/polisWeb/local-signer/download/lex-document-context" -o "$DIR/lex_document_context.py"
+curl -fsSL "$BASE_URL/polisWeb/local-signer/download/visible-signature" -o "$DIR/visible_signature.py"
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/uffici" -o "$DATA_DIR/uffici_ministero.json"
 python3 -m venv "$VENV"
 "$PY" -m pip install --quiet --upgrade pip
-"$PY" -m pip install --quiet python-pkcs11 asn1crypto cryptography zeep
+"$PY" -m pip install --quiet python-pkcs11 asn1crypto cryptography zeep pdfplumber mammoth pypdf
 
 cat > "$PLIST" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
@@ -246,10 +256,13 @@ if ! command -v python3 >/dev/null 2>&1; then
 fi
 
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download" -o "$DIR/local_signer.py"
+curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-ai-bridge" -o "$DIR/local_ai_host_bridge.py"
+curl -fsSL "$BASE_URL/polisWeb/local-signer/download/lex-document-context" -o "$DIR/lex_document_context.py"
+curl -fsSL "$BASE_URL/polisWeb/local-signer/download/visible-signature" -o "$DIR/visible_signature.py"
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/uffici" -o "$DATA_DIR/uffici_ministero.json"
 python3 -m venv "$VENV"
 "$PY" -m pip install --quiet --upgrade pip
-"$PY" -m pip install --quiet python-pkcs11 asn1crypto cryptography zeep
+"$PY" -m pip install --quiet python-pkcs11 asn1crypto cryptography zeep pdfplumber mammoth pypdf
 
 cat > "$SERVICE" <<EOF
 [Unit]

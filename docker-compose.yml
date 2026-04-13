@@ -42,6 +42,9 @@ services:
       # Se non usi firma PKCS#11 puoi commentare questa riga.
       - /run/pcscd:/run/pcscd
 
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
     env_file:
       - .env
 
@@ -74,6 +77,9 @@ services:
       PCT_TENANTS_REGISTRY: /data/tenants.json
       PCT_STUDIO_CONFIG:    /data/config/studio.json
       PCT_MULTI_TENANT:     "1"
+      PCT_LOCAL_AI_BASE_URL: ${PCT_LOCAL_AI_BASE_URL:-http://host.docker.internal:11434/api}
+      PCT_HOST_PLATFORM:    ${OS:-}
+      PCT_HOST_MACHINE:     ${PROCESSOR_ARCHITECTURE:-}
       # PKCS#11 — percorso libreria OpenSC nel container (auto-rilevato se non impostato)
       PCT_PKCS11_LIBRARY:   /usr/lib/x86_64-linux-gnu/opensc-pkcs11.so
 
@@ -93,6 +99,17 @@ services:
     #       memory: 768M
     #     reservations:
     #       memory: 256M
+
+  ollama:
+    profiles: ["ollama-sidecar"]
+    image: ollama/ollama:latest
+    container_name: hacs-ollama
+    restart: unless-stopped
+    command: ["serve"]
+    ports:
+      - "11434:11434"
+    volumes:
+      - ./data/intelligence/models:/root/.ollama
 
 
   # --------------------------------------------------------------------------

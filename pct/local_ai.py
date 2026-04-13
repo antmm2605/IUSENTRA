@@ -417,11 +417,12 @@ class LocalAIService:
     def _load_settings(self) -> LocalAiSettings:
         from pct.config_studio import GestioneConfigStudio
 
+        settings = LocalAiSettings()
         try:
             cfg = GestioneConfigStudio(config_path=str(self.config_path)).config
             ai = getattr(cfg, "ai", None)
             if ai:
-                return LocalAiSettings(
+                settings = LocalAiSettings(
                     enabled=bool(getattr(ai, "enabled", True)),
                     base_url=_normalize_api_base_url(getattr(ai, "base_url", "") or "http://127.0.0.1:11434/api"),
                     auto_bootstrap=bool(getattr(ai, "auto_bootstrap", True)),
@@ -432,11 +433,99 @@ class LocalAIService:
                 )
         except Exception:
             pass
-        return LocalAiSettings()
+        env_map = {
+            "enabled": "PCT_LOCAL_AI_ENABLED",
+            "base_url": "PCT_LOCAL_AI_BASE_URL",
+            "auto_bootstrap": "PCT_LOCAL_AI_AUTO_BOOTSTRAP",
+            "chat_model": "PCT_LOCAL_AI_CHAT_MODEL",
+            "embed_model": "PCT_LOCAL_AI_EMBED_MODEL",
+            "keep_alive": "PCT_LOCAL_AI_KEEP_ALIVE",
+            "auto_index_documents": "PCT_LOCAL_AI_AUTO_INDEX_DOCUMENTS",
+        }
+        if env_map["enabled"] in os.environ:
+            settings.enabled = os.getenv(env_map["enabled"], "1").lower() not in {"0", "false", "no"}
+        if env_map["base_url"] in os.environ:
+            settings.base_url = _normalize_api_base_url(os.getenv(env_map["base_url"], "") or settings.base_url)
+        if env_map["auto_bootstrap"] in os.environ:
+            settings.auto_bootstrap = os.getenv(env_map["auto_bootstrap"], "1").lower() not in {"0", "false", "no"}
+        if env_map["chat_model"] in os.environ:
+            settings.chat_model = str(os.getenv(env_map["chat_model"], "") or "").strip()
+        if env_map["embed_model"] in os.environ:
+            settings.embed_model = str(os.getenv(env_map["embed_model"], "") or "").strip()
+        if env_map["keep_alive"] in os.environ:
+            settings.keep_alive = str(os.getenv(env_map["keep_alive"], "10m") or "10m").strip()
+        if env_map["auto_index_documents"] in os.environ:
+            settings.auto_index_documents = os.getenv(env_map["auto_index_documents"], "1").lower() not in {
+                "0",
+                "false",
+                "no",
+            }
+        return settings
 
     def _ollama_client(self, settings: LocalAiSettings | None = None) -> OllamaHttpClient:
         cfg = settings or self._load_settings()
         return OllamaHttpClient(cfg.base_url)
+
+    def _candidate_base_urls(self, settings: LocalAiSettings) -> list[str]:
+        urls: list[str] = []
+
+        def _append(value: str | None) -> None:
+            raw = str(value or "").strip()
+            if not raw:
+                return
+            normalized = _normalize_api_base_url(raw)
+            if normalized not in urls:
+                urls.append(normalized)
+
+        _append(settings.base_url)
+        _append(os.getenv("PCT_OLLAMA_URL", ""))
+        provisioner = self._runtime_provisioner()
+        if getattr(provisioner, "containerized", False):
+            host_platform = str(getattr(provisioner, "host_platform_name", "") or "")
+            if host_platform in {"windows", "darwin"}:
+                _append("http://host.docker.internal:11434/api")
+                _append("http://ollama:11434/api")
+            else:
+                _append("http://ollama:11434/api")
+                _append("http://host.docker.internal:11434/api")
+        return urls
+
+    def _resolve_live_runtime(
+        self,
+        settings: LocalAiSettings,
+    ) -> tuple[OllamaHttpClient, str | None, str]:
+        last_client = self._ollama_client(settings)
+        last_base_url = settings.base_url
+        for base_url in self._candidate_base_urls(settings):
+            client = OllamaHttpClient(base_url)
+            version = client.get_version()
+            last_client = client
+            last_base_url = base_url
+            if version:
+                return client, version, base_url
+        return last_client, None, last_base_url
+
+    def _missing_runtime_message(self, settings: LocalAiSettings) -> str:
+        provisioner = self._runtime_provisioner()
+        tried = ", ".join(self._candidate_base_urls(settings))
+        strategy_code = ""
+        strategy_resolver = getattr(provisioner, "strategy_code", None)
+        if callable(strategy_resolver):
+            strategy_code = str(strategy_resolver() or "")
+        if strategy_code in {"host_bridge_windows", "host_bridge_darwin"}:
+            return (
+                "Runtime Ollama non raggiungibile sull'host reale della macchina che esegue HACS. "
+                "Se HACS gira in Docker su Windows o macOS, la strategia corretta e' usare Ollama "
+                "sull'host e collegarlo dal container tramite host.docker.internal. "
+                f"URL verificati: {tried}"
+            )
+        if strategy_code == "docker_service":
+            return (
+                "Servizio Ollama non raggiungibile sulla stessa macchina di HACS. "
+                "Se HACS gira in Docker, la strategia corretta e' il servizio Docker 'ollama' "
+                f"oppure un runtime esposto all'URL host raggiungibile dal container. URL verificati: {tried}"
+            )
+        return f"Ollama non raggiungibile. URL verificati: {tried}"
 
     def _select_profile(self, ram_gb: float, disk_free_gb: float, policy: dict[str, Any]) -> str:
         profiles = policy.get("profiles") or {}
@@ -647,30 +736,30 @@ class LocalAIService:
     def _runtime_provisioner(self) -> OllamaRuntimeProvisioner:
         return OllamaRuntimeProvisioner(self.app_root, self.models_path)
 
-    def _start_windows_ollama(self, settings: LocalAiSettings, policy: dict[str, Any]) -> str:
+    def _start_managed_ollama(self, settings: LocalAiSettings, policy: dict[str, Any]) -> str:
         timeout_s = float(policy.get("ollama", {}).get("startupTimeoutMs", 45000)) / 1000.0
         interval = max(float(policy.get("ollama", {}).get("healthPollIntervalMs", 1500)) / 1000.0, 0.4)
-        client = self._ollama_client(settings)
         provisioner = self._runtime_provisioner()
         candidate = provisioner.discover_executable()
         if candidate is None:
-            candidate = provisioner.ensure_windows_runtime()
+            candidate = provisioner.ensure_runtime()
         env = dict(os.environ)
         env["OLLAMA_HOST"] = "127.0.0.1:11434"
         env["OLLAMA_MODELS"] = str(self.models_path)
-        creationflags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
-        subprocess.Popen(
-            [str(candidate), "serve"],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-            stdin=subprocess.DEVNULL,
-            cwd=str(candidate.parent),
-            env=env,
-            creationflags=creationflags,
-        )
+        popen_kwargs: dict[str, Any] = {
+            "args": [str(candidate), "serve"],
+            "stdout": subprocess.DEVNULL,
+            "stderr": subprocess.DEVNULL,
+            "stdin": subprocess.DEVNULL,
+            "cwd": str(candidate.parent),
+            "env": env,
+        }
+        if os.name == "nt":
+            popen_kwargs["creationflags"] = getattr(subprocess, "CREATE_NO_WINDOW", 0)
+        subprocess.Popen(**popen_kwargs)
         deadline = time.time() + timeout_s
         while time.time() < deadline:
-            version = client.get_version()
+            _, version, _ = self._resolve_live_runtime(settings)
             if version:
                 return str(candidate)
             time.sleep(interval)
@@ -744,18 +833,19 @@ class LocalAIService:
                     "embed_model": model_policy["embed_model"],
                 }
 
-            client = self._ollama_client(settings)
-            version = client.get_version()
+            client, version, resolved_base_url = self._resolve_live_runtime(settings)
             install_path = ""
-            if not version and os.name == "nt" and settings.auto_bootstrap:
+            strategy = self._runtime_provisioner().strategy_code()
+            if not version and strategy in {"host_managed_windows", "host_managed_linux"} and settings.auto_bootstrap:
                 try:
-                    install_path = self._start_windows_ollama(settings, policy)
-                    version = client.get_version()
+                    install_path = self._start_managed_ollama(settings, policy)
+                    client, version, resolved_base_url = self._resolve_live_runtime(settings)
                 except Exception as exc:
                     self._upsert_runtime(
                         conn,
                         {
                             "status": "error",
+                            "api_base_url": resolved_base_url,
                             "install_path": install_path or None,
                             "last_error": str(exc),
                             "last_health_check_at": _now_iso(),
@@ -774,13 +864,14 @@ class LocalAIService:
                     conn,
                     {
                         "status": "missing",
-                        "last_error": "Ollama non raggiungibile",
+                        "api_base_url": resolved_base_url,
+                        "last_error": self._missing_runtime_message(settings),
                         "last_health_check_at": _now_iso(),
                     },
                 )
                 return {
                     "status": "missing",
-                    "error": "Ollama non raggiungibile",
+                    "error": self._missing_runtime_message(settings),
                     "hardware_profile": hardware["profile"],
                     "chat_model": model_policy["chat_model"],
                     "embed_model": model_policy["embed_model"],
@@ -821,6 +912,7 @@ class LocalAIService:
                 conn,
                 {
                     "status": "ready",
+                    "api_base_url": resolved_base_url,
                     "ollama_version": version,
                     "install_path": install_path or self._runtime_row(conn).get("install_path"),
                     "last_error": None,
@@ -853,8 +945,7 @@ class LocalAIService:
                     (SELECT COUNT(*) FROM rag_chunks WHERE embedding_state = 'pending') AS chunks_pending
                 """
             ).fetchone()
-        client = self._ollama_client(settings)
-        version = client.get_version()
+        client, version, resolved_base_url = self._resolve_live_runtime(settings)
         running_models: list[dict[str, Any]] = []
         try:
             running_models = client.list_running_models() if version else []
@@ -874,6 +965,7 @@ class LocalAIService:
             "runtime": runtime,
             "runtime_online": bool(version),
             "runtime_version_live": version,
+            "runtime_base_url_live": resolved_base_url if version else "",
             "models": models,
             "running_models": running_models,
             "policy": policy,

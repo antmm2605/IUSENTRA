@@ -248,10 +248,11 @@ def test_impostazioni_template_contains_ai_locale_tab():
     html = (REPO_ROOT / "web" / "templates" / "impostazioni" / "index.html").read_text(encoding="utf-8")
 
     assert "AI Locale" in html
-    assert "Installa e prepara runtime" in html
+    assert "Prepara runtime automatico" in html
     assert "runLocalAiBootstrap" in html
     assert "Runtime sullo stesso host di HACS" in html
     assert "ai-installer-summary" in html
+    assert "http://host.docker.internal:11434/api" in html
 
 
 def test_ollama_runtime_provisioner_selects_windows_zip_asset(tmp_path: Path):
@@ -284,3 +285,48 @@ def test_ollama_runtime_provisioner_selects_windows_zip_asset(tmp_path: Path):
 
     assert asset is not None
     assert asset["name"] == "ollama-windows-amd64.zip"
+
+
+def test_ollama_runtime_provisioner_prefers_host_bridge_strategy_on_windows_host_container(tmp_path: Path, monkeypatch):
+    monkeypatch.setenv("PCT_HOST_PLATFORM", "Windows_NT")
+    monkeypatch.setenv("PCT_HOST_MACHINE", "AMD64")
+    monkeypatch.setattr(OllamaRuntimeProvisioner, "_detect_execution_platform_name", lambda self: "linux")
+    monkeypatch.setattr(OllamaRuntimeProvisioner, "_detect_containerized", lambda self: True)
+    monkeypatch.setattr(
+        OllamaRuntimeProvisioner,
+        "fetch_latest_release",
+        lambda self, **kwargs: {
+            "version": "v0.20.6",
+            "html_url": "https://example.test/releases/v0.20.6",
+            "published_at": "2026-04-13T00:59:00Z",
+            "assets": [
+                {
+                    "name": "ollama-windows-amd64.zip",
+                    "browser_download_url": "https://example.test/ollama-windows-amd64.zip",
+                    "size": 781000000,
+                    "updated_at": "2026-04-13T00:59:00Z",
+                }
+            ],
+        },
+    )
+
+    provisioner = OllamaRuntimeProvisioner(
+        app_root=tmp_path,
+        models_path=tmp_path / "models",
+    )
+
+    snapshot = provisioner.installer_snapshot()
+
+    assert snapshot["host_platform"] == "windows"
+    assert snapshot["execution_platform"] == "linux"
+    assert snapshot["strategy_code"] == "host_bridge_windows"
+    assert snapshot["asset_name"] == "ollama-windows-amd64.zip"
+
+
+def test_local_ai_settings_env_override_runtime_url(tmp_path: Path, monkeypatch):
+    monkeypatch.setenv("PCT_LOCAL_AI_BASE_URL", "http://ollama:11434/api")
+    service = _service(tmp_path)
+
+    settings = service._load_settings()
+
+    assert settings.base_url == "http://ollama:11434/api"

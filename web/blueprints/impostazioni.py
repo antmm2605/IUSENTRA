@@ -10,6 +10,7 @@ Routes:
 """
 from __future__ import annotations
 
+import os
 from functools import wraps
 from pathlib import Path
 
@@ -145,6 +146,30 @@ def _applica_ad_app(cfg):
     app.config["OLLAMA_MODEL"] = cfg.ai.chat_model or app.config.get("OLLAMA_MODEL", "mistral")
     # Reschedule job se lo scheduler è attivo
     _reschedule_jobs(app, cfg)
+
+
+def _applica_override_ai_runtime(cfg):
+    ai_cfg = cfg.ai
+
+    if "PCT_LOCAL_AI_ENABLED" in os.environ:
+        ai_cfg.enabled = os.getenv("PCT_LOCAL_AI_ENABLED", "1").lower() not in {"0", "false", "no"}
+    if "PCT_LOCAL_AI_BASE_URL" in os.environ:
+        ai_cfg.base_url = os.getenv("PCT_LOCAL_AI_BASE_URL", ai_cfg.base_url).strip() or ai_cfg.base_url
+    if "PCT_LOCAL_AI_AUTO_BOOTSTRAP" in os.environ:
+        ai_cfg.auto_bootstrap = os.getenv("PCT_LOCAL_AI_AUTO_BOOTSTRAP", "1").lower() not in {"0", "false", "no"}
+    if "PCT_LOCAL_AI_CHAT_MODEL" in os.environ:
+        ai_cfg.chat_model = os.getenv("PCT_LOCAL_AI_CHAT_MODEL", "").strip()
+    if "PCT_LOCAL_AI_EMBED_MODEL" in os.environ:
+        ai_cfg.embed_model = os.getenv("PCT_LOCAL_AI_EMBED_MODEL", "").strip()
+    if "PCT_LOCAL_AI_KEEP_ALIVE" in os.environ:
+        ai_cfg.keep_alive = os.getenv("PCT_LOCAL_AI_KEEP_ALIVE", "10m").strip() or "10m"
+    if "PCT_LOCAL_AI_AUTO_INDEX_DOCUMENTS" in os.environ:
+        ai_cfg.auto_index_documents = os.getenv("PCT_LOCAL_AI_AUTO_INDEX_DOCUMENTS", "1").lower() not in {
+            "0",
+            "false",
+            "no",
+        }
+    return cfg
 
 
 def _reschedule_jobs(app, cfg):
@@ -292,7 +317,7 @@ def index():
         flash("Impostazioni salvate.", "success")
         return redirect(url_for("impostazioni.index", tab=tab))
 
-    cfg = gs.config
+    cfg = _applica_override_ai_runtime(gs.config)
     tab_attivo = request.args.get("tab", "studio")
     return render_template(
         "impostazioni/index.html",

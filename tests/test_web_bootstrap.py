@@ -173,7 +173,7 @@ def test_template_principali_usano_copy_italiana_e_date_localizzate():
         "web/templates/admin/base.html": ["Esci", "Piattaforma"],
         "web/templates/dashboard.html": ["Panoramica dello studio"],
         "web/templates/agenda.html": ["Sincronizzazione automatica", "Configura sincronizzazione calendario"],
-        "web/templates/impostazioni/index.html": ["Runtime sullo stesso host di HACS", "Installa e prepara runtime"],
+        "web/templates/impostazioni/index.html": ["Runtime sullo stesso host di HACS", "Prepara runtime automatico"],
         "web/templates/workspace_intelligente.html": ["Assistente operativo locale", "Ultima sincronizzazione"],
         "web/templates/portale/base.html": ["Operazione completata", "Inizio"],
         "web/templates/telematico_dashboard.html": ["Cabina Telematica", "Ultimo allineamento"],
@@ -208,6 +208,16 @@ def test_template_principali_usano_copy_italiana_e_date_localizzate():
     assert "{{ oggi|fmt_data }}" in base_content
     telematico_content = (REPO_ROOT / "web/templates/telematico_dashboard.html").read_text(encoding="utf-8")
     assert "|fmt_dataora" in telematico_content
+
+
+def test_docker_compose_prevede_runtime_ollama_sulla_stessa_macchina():
+    compose = (REPO_ROOT / "docker-compose.yml").read_text(encoding="utf-8")
+
+    assert "ollama:" in compose
+    assert 'profiles: ["ollama-sidecar"]' in compose
+    assert "image: ollama/ollama:latest" in compose
+    assert "PCT_LOCAL_AI_BASE_URL: ${PCT_LOCAL_AI_BASE_URL:-http://host.docker.internal:11434/api}" in compose
+    assert 'host.docker.internal:host-gateway' in compose
 
 
 def test_scss_governance_usa_bundle_modulari_e_niente_style_inline():

@@ -323,6 +323,109 @@ class LocalAiHostBridge:
             "embed": settings["embed_model"] or rule["embedModel"],
         }
 
+    def _is_embedding_model(self, model_name: str) -> bool:
+        normalized = str(model_name or "").strip().lower()
+        return normalized.startswith("embedding") or "embed" in normalized
+
+    def _fallback_profile_order(self, profile: str) -> list[str]:
+        if profile == "strong":
+            return ["strong", "medium", "weak"]
+        if profile == "medium":
+            return ["medium", "weak", "strong"]
+        return ["weak", "medium", "strong"]
+
+    def _policy_model_candidates(self, *, role: str, profile: str) -> list[str]:
+        field = "chatModel" if role == "chat" else "embedModel"
+        seen: set[str] = set()
+        candidates: list[str] = []
+        for code in self._fallback_profile_order(profile):
+            model_name = str(DEFAULT_POLICY["profiles"].get(code, {}).get(field) or "").strip()
+            if not model_name or model_name in seen:
+                continue
+            seen.add(model_name)
+            candidates.append(model_name)
+        if role == "embed" and "embeddinggemma:300m" not in seen:
+            candidates.append("embeddinggemma:300m")
+        return candidates
+
+    def _available_model_names(
+        self,
+        *,
+        installed_models: list[dict[str, Any]] | None = None,
+        running_models: list[dict[str, Any]] | None = None,
+        role: str,
+    ) -> list[str]:
+        rows = list(running_models or []) + list(installed_models or [])
+        names: list[str] = []
+        for row in rows:
+            model_name = str(row.get("name") or row.get("model") or "").strip()
+            if not model_name or model_name in names:
+                continue
+            if role == "embed" and not self._is_embedding_model(model_name):
+                continue
+            if role == "chat" and self._is_embedding_model(model_name):
+                continue
+            names.append(model_name)
+        return names
+
+    def _effective_model_name(
+        self,
+        *,
+        role: str,
+        preferred_model: str,
+        profile: str,
+        installed_models: list[dict[str, Any]] | None = None,
+        running_models: list[dict[str, Any]] | None = None,
+    ) -> tuple[str, str, str]:
+        available_names = self._available_model_names(
+            installed_models=installed_models,
+            running_models=running_models,
+            role=role,
+        )
+        if preferred_model in available_names or not available_names:
+            return preferred_model, "preferred", ""
+
+        for candidate in self._policy_model_candidates(role=role, profile=profile):
+            if candidate in available_names:
+                return candidate, "fallback", f"preferred_missing:{preferred_model}"
+
+        return available_names[0], "fallback", f"preferred_missing:{preferred_model}"
+
+    def resolve_effective_models(
+        self,
+        settings: dict[str, Any],
+        hardware: dict[str, Any],
+        *,
+        installed_models: list[dict[str, Any]] | None = None,
+        running_models: list[dict[str, Any]] | None = None,
+    ) -> dict[str, Any]:
+        preferred = self.resolve_models(settings, hardware)
+        chat, chat_source, chat_reason = self._effective_model_name(
+            role="chat",
+            preferred_model=str(preferred["chat"] or ""),
+            profile=str(preferred["profile"] or "weak"),
+            installed_models=installed_models,
+            running_models=running_models,
+        )
+        embed, embed_source, embed_reason = self._effective_model_name(
+            role="embed",
+            preferred_model=str(preferred["embed"] or ""),
+            profile=str(preferred["profile"] or "weak"),
+            installed_models=installed_models,
+            running_models=running_models,
+        )
+        return {
+            "profile": preferred["profile"],
+            "preferred_chat": preferred["chat"],
+            "preferred_embed": preferred["embed"],
+            "chat": chat,
+            "embed": embed,
+            "chat_source": chat_source,
+            "embed_source": embed_source,
+            "chat_reason": chat_reason,
+            "embed_reason": embed_reason,
+        }
+
     def _load_cached_release(self) -> dict[str, Any] | None:
         try:
             return json.loads(self.release_cache_path.read_text(encoding="utf-8"))
@@ -603,6 +706,11 @@ class LocalAiHostBridge:
         rows: list[dict[str, Any]] = []
         for role, model_name in (("chat", resolved_models["chat"]), ("embed", resolved_models["embed"])):
             current = installed_map.get(model_name) or {}
+            preferred_key = "preferred_chat" if role == "chat" else "preferred_embed"
+            note_parts = [f"hardware_profile={resolved_models['profile']}"]
+            preferred_model = str(resolved_models.get(preferred_key) or "").strip()
+            if preferred_model and preferred_model != model_name:
+                note_parts.append(f"preferred_model={preferred_model}")
             rows.append(
                 {
                     "id": f"{role}:{model_name}",
@@ -613,7 +721,7 @@ class LocalAiHostBridge:
                     "context_window": None,
                     "is_active": 1,
                     "last_verified_at": verified_at,
-                    "notes": f"hardware_profile={resolved_models['profile']}",
+                    "notes": " ".join(note_parts),
                 }
             )
         return rows
@@ -621,7 +729,6 @@ class LocalAiHostBridge:
     def health_snapshot(self, overrides: dict[str, Any] | None = None, *, last_error: str | None = None) -> dict[str, Any]:
         settings = self._settings(overrides)
         hardware = self.detect_hardware()
-        resolved_models = self.resolve_models(settings, hardware)
         client = OllamaLocalClient(settings["base_url"])
         verified_at = _now_iso()
         version = client.get_version() if settings["enabled"] else None
@@ -639,6 +746,13 @@ class LocalAiHostBridge:
                 running_models = []
         elif settings["enabled"]:
             runtime_error = last_error or "Ollama non raggiungibile"
+
+        resolved_models = self.resolve_effective_models(
+            settings,
+            hardware,
+            installed_models=installed_models,
+            running_models=running_models,
+        )
 
         runtime_status = "disabled" if not settings["enabled"] else ("ready" if version else ("error" if last_error else "missing"))
         installer = self.installer_snapshot(settings=settings, hardware=hardware, live_version=version)
@@ -674,6 +788,10 @@ class LocalAiHostBridge:
                 verified_at=verified_at,
             ),
             "running_models": running_models,
+            "preferred_models": {
+                "chat": resolved_models.get("preferred_chat") or "",
+                "embed": resolved_models.get("preferred_embed") or "",
+            },
             "resolved_models": {
                 "chat": resolved_models["chat"],
                 "embed": resolved_models["embed"],
@@ -703,7 +821,7 @@ class LocalAiHostBridge:
             }
 
         hardware = self.detect_hardware()
-        resolved_models = self.resolve_models(settings, hardware)
+        preferred_models = self.resolve_models(settings, hardware)
         client = OllamaLocalClient(settings["base_url"])
         version = client.get_version()
 
@@ -712,7 +830,7 @@ class LocalAiHostBridge:
                 executable = self._ensure_runtime_binary(hardware=hardware, force_download=force)
                 self._start_runtime(executable)
                 version = self._wait_for_runtime(client)
-            self._ensure_models(client, resolved_models, settings["keep_alive"])
+            self._ensure_models(client, preferred_models, settings["keep_alive"])
         except Exception as exc:
             payload = self.health_snapshot(settings, last_error=str(exc))
             payload["runtime"]["status"] = "error"
@@ -734,8 +852,8 @@ class LocalAiHostBridge:
                 "status": "ready",
                 "error": "",
                 "version": version or "",
-                "chat_model": resolved_models["chat"],
-                "embed_model": resolved_models["embed"],
+                "chat_model": payload.get("resolved_models", {}).get("chat") or preferred_models["chat"],
+                "embed_model": payload.get("resolved_models", {}).get("embed") or preferred_models["embed"],
             },
             "status_payload": payload,
         }
@@ -743,9 +861,29 @@ class LocalAiHostBridge:
     def chat(self, prompt: str, overrides: dict[str, Any] | None = None) -> dict[str, Any]:
         settings = self._settings(overrides)
         hardware = self.detect_hardware()
-        resolved_models = self.resolve_models(settings, hardware)
-        model_name = str((overrides or {}).get("model") or resolved_models["chat"]).strip()
         client = OllamaLocalClient(settings["base_url"])
+        version = client.get_version() if settings["enabled"] else None
+        installed_models: list[dict[str, Any]] = []
+        running_models: list[dict[str, Any]] = []
+        if version:
+            try:
+                installed_models = client.list_models()
+            except Exception:
+                installed_models = []
+            try:
+                running_models = client.list_running_models()
+            except Exception:
+                running_models = []
+        effective_settings = dict(settings)
+        if str((overrides or {}).get("model") or "").strip():
+            effective_settings["chat_model"] = str((overrides or {}).get("model") or "").strip()
+        resolved_models = self.resolve_effective_models(
+            effective_settings,
+            hardware,
+            installed_models=installed_models,
+            running_models=running_models,
+        )
+        model_name = str(resolved_models["chat"]).strip()
         payload = client.generate(model_name, prompt, settings["keep_alive"])
         return {
             "ok": True,
@@ -783,12 +921,32 @@ class LocalAiHostBridge:
         overrides = dict(payload or {})
         settings = self._settings(overrides)
         hardware = self.detect_hardware()
-        resolved_models = self.resolve_models(settings, hardware)
-        model_name = str(overrides.get("model") or resolved_models["chat"]).strip()
         question = str(overrides.get("question") or "").strip()
         sources = list(overrides.get("sources") or [])
         prompt = self._rag_prompt(question=question, prompt=str(overrides.get("prompt") or ""), sources=sources)
         client = OllamaLocalClient(settings["base_url"])
+        version = client.get_version() if settings["enabled"] else None
+        installed_models: list[dict[str, Any]] = []
+        running_models: list[dict[str, Any]] = []
+        if version:
+            try:
+                installed_models = client.list_models()
+            except Exception:
+                installed_models = []
+            try:
+                running_models = client.list_running_models()
+            except Exception:
+                running_models = []
+        effective_settings = dict(settings)
+        if str(overrides.get("model") or "").strip():
+            effective_settings["chat_model"] = str(overrides.get("model") or "").strip()
+        resolved_models = self.resolve_effective_models(
+            effective_settings,
+            hardware,
+            installed_models=installed_models,
+            running_models=running_models,
+        )
+        model_name = str(resolved_models["chat"]).strip()
         response = client.generate(model_name, prompt, settings["keep_alive"])
         citations = [str(item.get("citation") or "").strip() for item in sources if str(item.get("citation") or "").strip()]
         return {
@@ -807,9 +965,29 @@ class LocalAiHostBridge:
     def embed(self, inputs: list[str], overrides: dict[str, Any] | None = None) -> dict[str, Any]:
         settings = self._settings(overrides)
         hardware = self.detect_hardware()
-        resolved_models = self.resolve_models(settings, hardware)
-        model_name = str((overrides or {}).get("model") or resolved_models["embed"]).strip()
         client = OllamaLocalClient(settings["base_url"])
+        version = client.get_version() if settings["enabled"] else None
+        installed_models: list[dict[str, Any]] = []
+        running_models: list[dict[str, Any]] = []
+        if version:
+            try:
+                installed_models = client.list_models()
+            except Exception:
+                installed_models = []
+            try:
+                running_models = client.list_running_models()
+            except Exception:
+                running_models = []
+        effective_settings = dict(settings)
+        if str((overrides or {}).get("model") or "").strip():
+            effective_settings["embed_model"] = str((overrides or {}).get("model") or "").strip()
+        resolved_models = self.resolve_effective_models(
+            effective_settings,
+            hardware,
+            installed_models=installed_models,
+            running_models=running_models,
+        )
+        model_name = str(resolved_models["embed"]).strip()
         payload = client.embed_texts(model_name, inputs)
         return {
             "ok": True,

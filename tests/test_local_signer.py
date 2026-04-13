@@ -19,6 +19,16 @@ def _load_local_signer():
     return module
 
 
+def _load_local_ai_host_bridge():
+    root = Path(__file__).resolve().parents[1]
+    path = root / "tools" / "local_ai_host_bridge.py"
+    spec = importlib.util.spec_from_file_location("hacs_local_ai_host_bridge", path)
+    module = importlib.util.module_from_spec(spec)
+    assert spec and spec.loader
+    spec.loader.exec_module(module)
+    return module
+
+
 def _local_signer_version():
     return _load_local_signer().VERSION
 
@@ -587,6 +597,61 @@ def test_ai_rag_query_bridge_locale_inoltra_prompt_e_fonti():
     assert captured["payload"]["prompt"] == "Contesto pronto"
     assert captured["payload"]["question"] == "Qual e' la prossima attivita' utile?"
     assert captured["payload"]["base_url"] == "http://127.0.0.1:11434/api"
+
+
+def test_local_ai_bridge_risolve_modello_effettivo_su_installato_disponibile(tmp_path):
+    module = _load_local_ai_host_bridge()
+    bridge = module.LocalAiHostBridge(root_dir=tmp_path)
+
+    resolved = bridge.resolve_effective_models(
+        {"enabled": True, "base_url": "http://127.0.0.1:11434/api", "chat_model": "", "embed_model": "", "keep_alive": "10m", "auto_bootstrap": True, "auto_index_documents": True},
+        {"profile": "strong"},
+        installed_models=[{"name": "gemma3:1b"}, {"name": "embeddinggemma:300m"}],
+        running_models=[{"name": "gemma3:1b"}],
+    )
+
+    assert resolved["preferred_chat"] == "gemma3:4b"
+    assert resolved["chat"] == "gemma3:1b"
+    assert resolved["chat_source"] == "fallback"
+    assert resolved["embed"] == "embeddinggemma:300m"
+
+
+def test_local_ai_bridge_chat_usa_modello_effettivo_disponibile(tmp_path, monkeypatch):
+    module = _load_local_ai_host_bridge()
+    captured = {}
+
+    class DummyClient:
+        def __init__(self, base_url):
+            self.base_url = base_url
+
+        def get_version(self):
+            return "0.20.5"
+
+        def list_models(self):
+            return [{"name": "gemma3:1b"}, {"name": "embeddinggemma:300m"}]
+
+        def list_running_models(self):
+            return [{"name": "gemma3:1b"}]
+
+        def generate(self, model_name, prompt, keep_alive):
+            captured["model_name"] = model_name
+            captured["prompt"] = prompt
+            captured["keep_alive"] = keep_alive
+            return {"response": "ok"}
+
+    monkeypatch.setattr(module, "OllamaLocalClient", DummyClient)
+    bridge = module.LocalAiHostBridge(root_dir=tmp_path)
+    monkeypatch.setattr(
+        bridge,
+        "detect_hardware",
+        lambda: {"profile": "strong"},
+    )
+
+    result = bridge.chat("Ciao Lex")
+
+    assert result["ok"] is True
+    assert result["model"] == "gemma3:1b"
+    assert captured["model_name"] == "gemma3:1b"
 
 
 def test_riusa_certificato_windows_selezionato_per_chiamate_pst_successive():

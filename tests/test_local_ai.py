@@ -146,6 +146,72 @@ def test_local_ai_health_snapshot_exposes_installer_and_resolved_models(tmp_path
     assert snapshot["resolved_models"]["embed"]
 
 
+def test_local_ai_health_snapshot_fallback_su_modello_installato_disponibile(tmp_path: Path, monkeypatch):
+    service = _service(tmp_path)
+
+    class DummyProvisioner:
+        def installer_snapshot(self, *, live_version=None):
+            return {"strategy_label": "Runtime locale gestito"}
+
+    class DummyClient:
+        def list_models(self):
+            return [{"name": "gemma3:1b"}, {"name": "embeddinggemma:300m"}]
+
+        def list_running_models(self):
+            return [{"name": "gemma3:1b"}]
+
+    monkeypatch.setattr(service, "_runtime_provisioner", lambda: DummyProvisioner())
+    monkeypatch.setattr(
+        service,
+        "_detect_hardware",
+        lambda: {
+            "profile": "strong",
+            "ram_gb": 32.0,
+            "disk_free_gb": 60.0,
+            "cpu_name": "CPU Test",
+            "gpu_vendor": "",
+            "gpu_name": "",
+            "os_version": "Windows 11",
+        },
+    )
+    monkeypatch.setattr(service, "_resolve_live_runtime", lambda settings: (DummyClient(), "0.20.5", settings.base_url))
+
+    snapshot = service.health_snapshot()
+
+    assert snapshot["preferred_models"]["chat"] == "gemma3:4b"
+    assert snapshot["resolved_models"]["chat"] == "gemma3:1b"
+    assert snapshot["resolved_models"]["embed"] == "embeddinggemma:300m"
+
+
+def test_local_ai_active_model_fallback_su_runtime_disponibile(tmp_path: Path, monkeypatch):
+    service = _service(tmp_path)
+
+    class DummyClient:
+        def list_models(self):
+            return [{"name": "gemma3:1b"}, {"name": "embeddinggemma:300m"}]
+
+        def list_running_models(self):
+            return [{"name": "gemma3:1b"}]
+
+    monkeypatch.setattr(
+        service,
+        "_detect_hardware",
+        lambda: {
+            "profile": "strong",
+            "ram_gb": 32.0,
+            "disk_free_gb": 60.0,
+            "cpu_name": "CPU Test",
+            "gpu_vendor": "",
+            "gpu_name": "",
+            "os_version": "Windows 11",
+        },
+    )
+    monkeypatch.setattr(service, "_resolve_live_runtime", lambda settings: (DummyClient(), "0.20.5", settings.base_url))
+
+    assert service._active_model("chat") == "gemma3:1b"
+    assert service._active_model("embed") == "embeddinggemma:300m"
+
+
 def test_local_ai_ask_fascicolo_builds_context_and_returns_answer(tmp_path: Path, monkeypatch):
     service = _service(tmp_path)
     captured: dict[str, str] = {}

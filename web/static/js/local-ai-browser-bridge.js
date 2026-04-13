@@ -80,6 +80,28 @@
     };
   }
 
+  function isCompanionTransportError(error) {
+    const message = String((error && error.message) || '').toLowerCase();
+    const status = Number((error && error.httpStatus) || 0);
+    if (!status) {
+      return true;
+    }
+    return (
+      message.includes('failed to fetch') ||
+      message.includes('networkerror') ||
+      message.includes('load failed') ||
+      message.includes('network request failed')
+    );
+  }
+
+  function companionRuntimeHelp(error) {
+    return {
+      title: 'Companion locale raggiunto, ma la richiesta non e\' andata a buon fine',
+      body: 'Il Local Signer risponde correttamente su questo dispositivo, ma il modulo AI locale ha restituito un errore operativo.',
+      detail: String((error && error.message) || 'Errore operativo del modulo AI locale.'),
+    };
+  }
+
   function runtimeLabel(runtime) {
     const labels = {
       missing: 'non disponibile',
@@ -170,6 +192,8 @@
     runCompanionRagQuery,
     runServerReindex,
     companionHelp,
+    isCompanionTransportError,
+    companionRuntimeHelp,
     runtimeLabel,
   };
 })();

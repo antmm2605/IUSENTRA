@@ -349,10 +349,14 @@ def test_ai_operativa_usa_bridge_browser_e_template_senza_logica_inline():
     assert "127.0.0.1:27272" in bridge_js
     assert "fetch(config.localSignerUrl + '/ai/status', {\n        method: 'GET',\n      });" in bridge_js
     assert "fetchCompanionPing" in bridge_js
+    assert "isCompanionTransportError" in bridge_js
+    assert "companionRuntimeHelp" in bridge_js
     assert "renderCompanionHelp" in fascicolo_js
+    assert "renderCompanionRuntimeHelp" in fascicolo_js
     assert "fetchServerContext" in fascicolo_js
     assert "runCompanionRagQuery" in fascicolo_js
     assert "renderCompanionHelp" in workspace_js
+    assert "renderCompanionRuntimeHelp" in workspace_js
     assert "fetchServerContext" in workspace_js
     assert "runCompanionRagQuery" in workspace_js
 

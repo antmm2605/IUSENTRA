@@ -41,6 +41,21 @@
     );
   }
 
+  function renderCompanionRuntimeHelp(error) {
+    const issue = bridge() && typeof bridge().companionRuntimeHelp === 'function'
+      ? bridge().companionRuntimeHelp(error)
+      : {
+          title: 'Companion locale raggiunto, ma la richiesta non e\' andata a buon fine',
+          body: 'Il Local Signer e\' stato contattato correttamente, ma il modulo AI locale ha restituito un errore operativo.',
+          detail: String((error && error.message) || 'Errore operativo del modulo AI locale.'),
+        };
+    return (
+      '<div class="wi-answer-muted text-warning fw-semibold mb-2">' + escapeHtml(issue.title) + '</div>' +
+      '<div class="wi-answer-muted">' + escapeHtml(issue.body) + '</div>' +
+      '<div class="small mt-2"><code>' + escapeHtml(issue.detail) + '</code></div>'
+    );
+  }
+
   async function refreshWorkspaceAiRuntime() {
     const currentRoot = root();
     const status = document.getElementById('workspace-ai-status');
@@ -99,9 +114,15 @@
       refreshWorkspaceAiRuntime();
     } catch (error) {
       const outdated = Number(error.httpStatus || 0) === 404;
-      answer.innerHTML = config.remoteHosted
-        ? renderCompanionHelp(config, outdated)
-        : '<div class="wi-answer-muted text-danger">Errore durante l\'analisi AI della cabina intelligente.</div>';
+      if (!config.remoteHosted) {
+        answer.innerHTML = '<div class="wi-answer-muted text-danger">Errore durante l\'analisi AI della cabina intelligente.</div>';
+      } else if (outdated) {
+        answer.innerHTML = renderCompanionHelp(config, true);
+      } else if (bridge().isCompanionTransportError(error)) {
+        answer.innerHTML = renderCompanionHelp(config, false);
+      } else {
+        answer.innerHTML = renderCompanionRuntimeHelp(error);
+      }
     } finally {
       button.disabled = false;
     }

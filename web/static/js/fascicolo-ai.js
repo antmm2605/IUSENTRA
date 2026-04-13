@@ -56,6 +56,21 @@
     );
   }
 
+  function renderCompanionRuntimeHelp(error) {
+    const issue = bridge() && typeof bridge().companionRuntimeHelp === 'function'
+      ? bridge().companionRuntimeHelp(error)
+      : {
+          title: 'Companion locale raggiunto, ma la richiesta non e\' andata a buon fine',
+          body: 'Il Local Signer e\' stato contattato correttamente, ma il modulo AI locale ha restituito un errore operativo.',
+          detail: String((error && error.message) || 'Errore operativo del modulo AI locale.'),
+        };
+    return (
+      '<div class="text-warning fw-semibold mb-2">' + escapeHtml(issue.title) + '</div>' +
+      '<div class="small text-muted">' + escapeHtml(issue.body) + '</div>' +
+      '<div class="small mt-2"><code>' + escapeHtml(issue.detail) + '</code></div>'
+    );
+  }
+
   async function refreshFascicoloAiRuntime() {
     const target = runtimeEl();
     const currentRoot = root();
@@ -109,11 +124,15 @@
       refreshFascicoloAiRuntime();
     } catch (error) {
       const outdated = Number(error.httpStatus || 0) === 404;
-      showAnswerHtml(
-        config.remoteHosted
-          ? renderCompanionHelp(config, outdated)
-          : '<span class="text-danger">Errore durante l\'analisi AI del fascicolo.</span>'
-      );
+      if (!config.remoteHosted) {
+        showAnswerHtml('<span class="text-danger">Errore durante l\'analisi AI del fascicolo.</span>');
+      } else if (outdated) {
+        showAnswerHtml(renderCompanionHelp(config, true));
+      } else if (bridge().isCompanionTransportError(error)) {
+        showAnswerHtml(renderCompanionHelp(config, false));
+      } else {
+        showAnswerHtml(renderCompanionRuntimeHelp(error));
+      }
     } finally {
       button.disabled = false;
     }

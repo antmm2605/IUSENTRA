@@ -726,6 +726,100 @@ class LocalAIService:
             "disable_rag_by_default": bool(row.get("disableRagByDefault", False)),
         }
 
+    def _is_embedding_model(self, model_name: str) -> bool:
+        normalized = str(model_name or "").strip().lower()
+        return normalized.startswith("embedding") or "embed" in normalized
+
+    def _fallback_profile_order(self, profile_code: str) -> list[str]:
+        if profile_code == "strong":
+            return ["strong", "medium", "weak"]
+        if profile_code == "medium":
+            return ["medium", "weak", "strong"]
+        return ["weak", "medium", "strong"]
+
+    def _policy_model_candidates(
+        self,
+        *,
+        role: str,
+        profile_code: str,
+        policy: dict[str, Any],
+    ) -> list[str]:
+        field = "chatModel" if role == "chat" else "embedModel"
+        seen: set[str] = set()
+        candidates: list[str] = []
+        for code in self._fallback_profile_order(profile_code):
+            model_name = str((policy.get("profiles") or {}).get(code, {}).get(field) or "").strip()
+            if not model_name or model_name in seen:
+                continue
+            seen.add(model_name)
+            candidates.append(model_name)
+        if role == "embed" and "embeddinggemma:300m" not in seen:
+            candidates.append("embeddinggemma:300m")
+        return candidates
+
+    def _available_model_names(
+        self,
+        *,
+        role: str,
+        installed_models: Iterable[dict[str, Any]] | None = None,
+        running_models: Iterable[dict[str, Any]] | None = None,
+        db_models: Iterable[dict[str, Any]] | None = None,
+    ) -> list[str]:
+        names: list[str] = []
+        for row in list(running_models or []) + list(installed_models or []) + list(db_models or []):
+            model_name = str(row.get("name") or row.get("model_name") or row.get("model") or "").strip()
+            if not model_name or model_name in names:
+                continue
+            if role == "embed" and not self._is_embedding_model(model_name):
+                continue
+            if role == "chat" and self._is_embedding_model(model_name):
+                continue
+            names.append(model_name)
+        return names
+
+    def _resolve_effective_models(
+        self,
+        *,
+        settings: LocalAiSettings,
+        hardware: dict[str, Any],
+        policy: dict[str, Any],
+        installed_models: Iterable[dict[str, Any]] | None = None,
+        running_models: Iterable[dict[str, Any]] | None = None,
+        db_models: Iterable[dict[str, Any]] | None = None,
+    ) -> dict[str, Any]:
+        preferred = self._resolve_model_policy(hardware, settings, policy)
+
+        def _pick(role: str, preferred_model: str) -> tuple[str, str]:
+            available = self._available_model_names(
+                role=role,
+                installed_models=installed_models,
+                running_models=running_models,
+                db_models=db_models,
+            )
+            if preferred_model in available or not available:
+                return preferred_model, "preferred"
+            for candidate in self._policy_model_candidates(
+                role=role,
+                profile_code=str(preferred["profile"] or "weak"),
+                policy=policy,
+            ):
+                if candidate in available:
+                    return candidate, "fallback"
+            return available[0], "fallback"
+
+        chat_model, chat_source = _pick("chat", str(preferred["chat_model"] or ""))
+        embed_model, embed_source = _pick("embed", str(preferred["embed_model"] or ""))
+        return {
+            "profile": preferred["profile"],
+            "preferred_chat_model": preferred["chat_model"],
+            "preferred_embed_model": preferred["embed_model"],
+            "chat_model": chat_model,
+            "embed_model": embed_model,
+            "chat_source": chat_source,
+            "embed_source": embed_source,
+            "disable_rag_by_default": preferred["disable_rag_by_default"],
+        }
+
     def _assert_embedding_runtime(self, runtime_version: str, model_name: str, policy: dict[str, Any]) -> None:
         if not str(model_name or "").startswith("embeddinggemma"):
             return
@@ -932,7 +1026,6 @@ class LocalAIService:
         settings = self._load_settings()
         policy = self._load_policy()
         hardware = self._detect_hardware()
-        model_policy = self._resolve_model_policy(hardware, settings, policy)
         with self._connect() as conn:
             runtime = self._runtime_row(conn)
             models = [dict(row) for row in conn.execute("SELECT * FROM local_ai_models ORDER BY role, model_name").fetchall()]
@@ -946,11 +1039,24 @@ class LocalAIService:
                 """
             ).fetchone()
         client, version, resolved_base_url = self._resolve_live_runtime(settings)
+        installed_models: list[dict[str, Any]] = []
         running_models: list[dict[str, Any]] = []
+        try:
+            installed_models = client.list_models() if version else []
+        except Exception:
+            installed_models = []
         try:
             running_models = client.list_running_models() if version else []
         except Exception:
             running_models = []
+        model_policy = self._resolve_effective_models(
+            settings=settings,
+            hardware=hardware,
+            policy=policy,
+            installed_models=installed_models,
+            running_models=running_models,
+            db_models=models,
+        )
         installer = self._runtime_provisioner().installer_snapshot(live_version=version)
         return {
             "settings": {
@@ -969,6 +1075,10 @@ class LocalAIService:
             "models": models,
             "running_models": running_models,
             "policy": policy,
+            "preferred_models": {
+                "chat": model_policy["preferred_chat_model"],
+                "embed": model_policy["preferred_embed_model"],
+            },
             "resolved_models": {
                 "chat": model_policy["chat_model"],
                 "embed": model_policy["embed_model"],
@@ -988,8 +1098,27 @@ class LocalAIService:
                 return str(row["model_name"] or "").strip() or None
         settings = self._load_settings()
         hardware = self._detect_hardware()
-        policy = self._resolve_model_policy(hardware, settings, self._load_policy())
-        return policy["chat_model"] if role == "chat" else policy["embed_model"]
+        policy = self._load_policy()
+        client, version, _ = self._resolve_live_runtime(settings)
+        installed_models: list[dict[str, Any]] = []
+        running_models: list[dict[str, Any]] = []
+        if version:
+            try:
+                installed_models = client.list_models()
+            except Exception:
+                installed_models = []
+            try:
+                running_models = client.list_running_models()
+            except Exception:
+                running_models = []
+        resolved = self._resolve_effective_models(
+            settings=settings,
+            hardware=hardware,
+            policy=policy,
+            installed_models=installed_models,
+            running_models=running_models,
+        )
+        return resolved["chat_model"] if role == "chat" else resolved["embed_model"]
 
     def _read_document_file(self, file_path: Path) -> bytes:
         data = file_path.read_bytes()

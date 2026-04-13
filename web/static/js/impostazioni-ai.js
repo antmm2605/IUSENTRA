@@ -230,6 +230,7 @@
     const runtime = payload?.runtime || {};
     const counts = payload?.counts || {};
     const installerData = payload?.installer || {};
+    const preferredModels = payload?.preferred_models || {};
     const resolvedModels = payload?.resolved_models || {};
     const runtimeStatus = runtime.status || 'missing';
     const runtimeLive = Boolean(payload?.runtime_online);
@@ -239,6 +240,19 @@
     const executionLabel = installerData.containerized ? 'container ' + executionPlatform : executionPlatform;
     const detectedExecutable = installerData.detected_executable || 'Non ancora rilevato';
     const statusMeta = aiStatusMeta(runtimeStatus);
+    const chatModelValue = resolvedModels.chat || 'n.d.';
+    const embedModelValue = resolvedModels.embed || 'n.d.';
+    const preferredChatValue = preferredModels.chat || '';
+    const preferredEmbedValue = preferredModels.embed || '';
+    const modelMeta = [];
+    if (preferredChatValue && preferredChatValue !== chatModelValue) {
+      modelMeta.push('Policy preferita ' + escapeHtml(preferredChatValue));
+    }
+    modelMeta.push(
+      preferredEmbedValue && preferredEmbedValue !== embedModelValue
+        ? 'Embeddings ' + escapeHtml(embedModelValue) + ' · policy ' + escapeHtml(preferredEmbedValue)
+        : 'Embeddings ' + escapeHtml(embedModelValue)
+    );
 
     setAiBadge(statusMeta.label, statusMeta.tone);
 
@@ -269,9 +283,9 @@
       '<div class="settings-ai-stat__meta">Chunk in coda ' + formatNumberIt(counts.chunks_pending ?? 0) + '</div>' +
       '</article>' +
       '<article class="settings-ai-stat">' +
-      '<div class="settings-ai-stat__label">Policy attiva</div>' +
-      '<div class="settings-ai-stat__value">' + escapeHtml(resolvedModels.chat || 'n.d.') + '</div>' +
-      '<div class="settings-ai-stat__meta">Embeddings ' + escapeHtml(resolvedModels.embed || 'n.d.') + '</div>' +
+      '<div class="settings-ai-stat__label">Modello operativo</div>' +
+      '<div class="settings-ai-stat__value">' + escapeHtml(chatModelValue) + '</div>' +
+      '<div class="settings-ai-stat__meta">' + modelMeta.join(' · ') + '</div>' +
       '</article>' +
       '<article class="settings-ai-stat">' +
       '<div class="settings-ai-stat__label">Runtime collegato</div>' +

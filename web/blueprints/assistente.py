@@ -24,6 +24,7 @@ from flask import (
 )
 
 from web.helpers import get_legal_intelligence
+from web.services.local_ai_runtime import get_local_ai_service
 from pct.legal_intelligence import fonti_per_query, motori_per_query
 
 assistente = Blueprint("assistente", __name__)
@@ -145,7 +146,15 @@ def _ollama_url() -> str:
 
 
 def _ollama_model() -> str:
-    return current_app.config.get("OLLAMA_MODEL", "mistral")
+    configured = current_app.config.get("OLLAMA_MODEL", "mistral")
+    try:
+        snapshot = get_local_ai_service().health_snapshot()
+        model_name = str((snapshot.get("resolved_models") or {}).get("chat") or "").strip()
+        if model_name:
+            return model_name
+    except Exception:
+        current_app.logger.exception("Errore risoluzione modello effettivo assistente")
+    return configured
 
 
 def _richiedi_login(fn):

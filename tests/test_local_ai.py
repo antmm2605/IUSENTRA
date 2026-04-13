@@ -1,4 +1,5 @@
 import json
+import sqlite3
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -492,3 +493,27 @@ def test_local_ai_settings_env_override_runtime_url(tmp_path: Path, monkeypatch)
     settings = service._load_settings()
 
     assert settings.base_url == "http://ollama:11434/api"
+
+
+def test_local_ai_connect_fallback_su_journal_delete_quando_wal_non_disponibile(tmp_path: Path, monkeypatch):
+    service = _service(tmp_path)
+
+    class FakeConnection:
+        def __init__(self):
+            self.row_factory = None
+            self.commands: list[str] = []
+
+        def execute(self, sql: str, *args, **kwargs):
+            self.commands.append(sql)
+            if sql == "PRAGMA journal_mode = WAL":
+                raise sqlite3.OperationalError("WAL non disponibile")
+            return self
+
+    fake = FakeConnection()
+    monkeypatch.setattr(sqlite3, "connect", lambda *args, **kwargs: fake)
+
+    conn = service._connect()
+
+    assert conn is fake
+    assert "PRAGMA journal_mode = WAL" in fake.commands
+    assert "PRAGMA journal_mode = DELETE" in fake.commands

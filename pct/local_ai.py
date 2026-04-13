@@ -4,6 +4,7 @@ import hashlib
 import html as html_lib
 import io
 import json
+import logging
 import math
 import mimetypes
 import os
@@ -26,6 +27,7 @@ import requests
 
 from pct.local_ai_runtime import OllamaRuntimeProvisioner
 
+logger = logging.getLogger("pct.local_ai")
 
 _ENC_MAGIC = b"PCTENC\x01"
 
@@ -343,7 +345,15 @@ class LocalAIService:
         conn = sqlite3.connect(str(self.db_path), timeout=30, check_same_thread=False)
         conn.row_factory = sqlite3.Row
         conn.execute("PRAGMA foreign_keys = ON")
-        conn.execute("PRAGMA journal_mode = WAL")
+        try:
+            conn.execute("PRAGMA journal_mode = WAL")
+        except sqlite3.OperationalError as exc:
+            logger.warning(
+                "SQLite WAL non disponibile per %s, fallback a DELETE: %s",
+                self.db_path,
+                exc,
+            )
+            conn.execute("PRAGMA journal_mode = DELETE")
         conn.execute("PRAGMA synchronous = NORMAL")
         conn.execute("PRAGMA busy_timeout = 5000")
         return conn

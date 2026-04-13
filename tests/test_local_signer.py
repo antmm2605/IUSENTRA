@@ -501,6 +501,57 @@ def test_ai_bootstrap_bridge_locale_usa_force_e_payload():
     assert captured["payload"]["chat_model"] == "gemma3:1b"
 
 
+def test_ai_rag_query_bridge_locale_inoltra_prompt_e_fonti():
+    module = _load_local_signer()
+    original = module._get_local_ai_bridge
+    captured = {}
+
+    class _FakeBridge:
+        def rag_query(self, payload):
+            captured["payload"] = payload
+            return {
+                "ok": True,
+                "answer": "Risposta locale.",
+                "citations": ["Fonte A"],
+                "sources": payload.get("sources") or [],
+            }
+
+    class _FakeHandler:
+        command = "POST"
+        path = "/ai/rag/query"
+        headers = {}
+
+        def _read_json(self):
+            return {
+                "question": "Qual e' la prossima attivita' utile?",
+                "prompt": "Contesto pronto",
+                "sources": [{"id": "chunk-1"}],
+                "base_url": "http://127.0.0.1:11434/api",
+            }
+
+        def _query_params(self):
+            return {}
+
+        def _local_ai_request_payload(self, payload_override=None):
+            return module._Handler._local_ai_request_payload(self, payload_override)
+
+        def _send_json(self, data, status=200):
+            captured["data"] = data
+            captured["status"] = status
+
+    try:
+        module._get_local_ai_bridge = lambda: _FakeBridge()
+        module._Handler._ai_rag_query(_FakeHandler())
+    finally:
+        module._get_local_ai_bridge = original
+
+    assert captured["status"] == 200
+    assert captured["data"]["ok"] is True
+    assert captured["payload"]["prompt"] == "Contesto pronto"
+    assert captured["payload"]["question"] == "Qual e' la prossima attivita' utile?"
+    assert captured["payload"]["base_url"] == "http://127.0.0.1:11434/api"
+
+
 def test_riusa_certificato_windows_selezionato_per_chiamate_pst_successive():
     module = _load_local_signer()
 

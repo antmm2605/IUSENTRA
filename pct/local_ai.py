@@ -1711,6 +1711,43 @@ class LocalAIService:
             ]
         )
 
+    def prepare_fascicolo_query(
+        self,
+        *,
+        fascicolo: Any,
+        documents_dir: str,
+        question: str,
+        apps: Iterable[Any] | None = None,
+        scadenze: Iterable[Any] | None = None,
+        workspace: dict[str, Any] | None = None,
+        intelligenza: dict[str, Any] | None = None,
+        auto_index: bool | None = None,
+    ) -> dict[str, Any]:
+        settings = self._load_settings()
+        should_index = settings.auto_index_documents if auto_index is None else bool(auto_index)
+        indexing = None
+        if should_index:
+            indexing = self.index_fascicolo_documents(fascicolo, documents_dir)
+        rag_rows = self.hybrid_search(question, practice_id=str(getattr(fascicolo, "id", "")), top_k=8)
+        prompt = self._prompt_for_fascicolo(
+            fascicolo=fascicolo,
+            question=question,
+            workspace=workspace,
+            intelligenza=intelligenza,
+            apps=apps or [],
+            scadenze=scadenze or [],
+            rag_rows=rag_rows,
+        )
+        return {
+            "ok": True,
+            "query_type": "fascicolo_ai",
+            "question": question,
+            "prompt": prompt,
+            "sources": rag_rows,
+            "citations": [row.get("citation") for row in rag_rows if row.get("citation")],
+            "indexing": indexing,
+        }
+
     def _prompt_for_workspace(self, *, question: str, overview: dict[str, Any], rag_rows: list[dict[str, Any]]) -> str:
         focus_lines = [
             f"Scadenze urgenti: {len(overview.get('scadenze_urgenti') or [])}",
@@ -1749,6 +1786,67 @@ class LocalAIService:
             ]
         )
 
+    def prepare_workspace_query(
+        self,
+        *,
+        question: str,
+        overview: dict[str, Any],
+    ) -> dict[str, Any]:
+        rag_rows = self.hybrid_search(question, top_k=8)
+        prompt = self._prompt_for_workspace(question=question, overview=overview, rag_rows=rag_rows)
+        return {
+            "ok": True,
+            "query_type": "workspace_ai",
+            "question": question,
+            "prompt": prompt,
+            "sources": rag_rows,
+            "citations": [row.get("citation") for row in rag_rows if row.get("citation")],
+        }
+
+    def _complete_prepared_query(
+        self,
+        *,
+        prepared: dict[str, Any],
+        runtime: dict[str, Any],
+        keep_alive: str,
+    ) -> dict[str, Any]:
+        client = self._ollama_client(self._load_settings())
+        chat_model = str(runtime.get("chat_model") or self._active_model("chat") or "")
+        started = time.time()
+        response = client.generate(chat_model, str(prepared.get("prompt") or ""), keep_alive=keep_alive)
+        duration_ms = int((time.time() - started) * 1000)
+        with self._connect() as conn:
+            conn.execute(
+                """
+                INSERT INTO rag_query_logs (
+                    id, query_text, query_type, top_k, duration_ms, load_duration_ms,
+                    prompt_eval_count, eval_count, retrieved_ids_json, created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    uuid.uuid4().hex,
+                    str(prepared.get("question") or ""),
+                    str(prepared.get("query_type") or "rag_query"),
+                    len(prepared.get("sources") or []),
+                    duration_ms,
+                    response.get("load_duration"),
+                    response.get("prompt_eval_count"),
+                    response.get("eval_count"),
+                    json.dumps([row.get("id") for row in prepared.get("sources") or []], ensure_ascii=False),
+                    _now_iso(),
+                ),
+            )
+            conn.commit()
+        return {
+            "ok": True,
+            "status": "ready",
+            "answer": str(response.get("response") or "").strip(),
+            "sources": prepared.get("sources") or [],
+            "citations": prepared.get("citations") or [],
+            "runtime": runtime,
+            "indexing": prepared.get("indexing"),
+        }
+
     def ask_fascicolo(
         self,
         *,
@@ -1772,57 +1870,18 @@ class LocalAIService:
                 "answer": "",
             }
         settings = self._load_settings()
-        should_index = settings.auto_index_documents if auto_index is None else bool(auto_index)
-        indexing = None
-        if should_index:
-            indexing = self.index_fascicolo_documents(fascicolo, documents_dir)
-            self.embed_pending_chunks(limit=200)
-        rag_rows = self.hybrid_search(question, practice_id=str(getattr(fascicolo, "id", "")), top_k=8)
-        prompt = self._prompt_for_fascicolo(
+        prepared = self.prepare_fascicolo_query(
             fascicolo=fascicolo,
+            documents_dir=documents_dir,
             question=question,
-            workspace=workspace,
-            intelligenza=intelligenza,
             apps=apps or [],
             scadenze=scadenze or [],
-            rag_rows=rag_rows,
+            workspace=workspace,
+            intelligenza=intelligenza,
+            auto_index=auto_index,
         )
-        client = self._ollama_client(settings)
-        chat_model = str(bootstrap.get("chat_model") or self._active_model("chat") or "")
-        started = time.time()
-        response = client.generate(chat_model, prompt, keep_alive=settings.keep_alive)
-        duration_ms = int((time.time() - started) * 1000)
-        with self._connect() as conn:
-            conn.execute(
-                """
-                INSERT INTO rag_query_logs (
-                    id, query_text, query_type, top_k, duration_ms, load_duration_ms,
-                    prompt_eval_count, eval_count, retrieved_ids_json, created_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """,
-                (
-                    uuid.uuid4().hex,
-                    question,
-                    "fascicolo_ai",
-                    8,
-                    duration_ms,
-                    response.get("load_duration"),
-                    response.get("prompt_eval_count"),
-                    response.get("eval_count"),
-                    json.dumps([row.get("id") for row in rag_rows], ensure_ascii=False),
-                    _now_iso(),
-                ),
-            )
-            conn.commit()
-        return {
-            "ok": True,
-            "status": "ready",
-            "answer": str(response.get("response") or "").strip(),
-            "sources": rag_rows,
-            "citations": [row.get("citation") for row in rag_rows if row.get("citation")],
-            "indexing": indexing,
-            "runtime": bootstrap,
-        }
+        self.embed_pending_chunks(limit=200)
+        return self._complete_prepared_query(prepared=prepared, runtime=bootstrap, keep_alive=settings.keep_alive)
 
     def ask_workspace(
         self,
@@ -1841,43 +1900,8 @@ class LocalAIService:
                 "answer": "",
             }
         settings = self._load_settings()
-        rag_rows = self.hybrid_search(question, top_k=8)
-        prompt = self._prompt_for_workspace(question=question, overview=overview, rag_rows=rag_rows)
-        client = self._ollama_client(settings)
-        chat_model = str(bootstrap.get("chat_model") or self._active_model("chat") or "")
-        started = time.time()
-        response = client.generate(chat_model, prompt, keep_alive=settings.keep_alive)
-        duration_ms = int((time.time() - started) * 1000)
-        with self._connect() as conn:
-            conn.execute(
-                """
-                INSERT INTO rag_query_logs (
-                    id, query_text, query_type, top_k, duration_ms, load_duration_ms,
-                    prompt_eval_count, eval_count, retrieved_ids_json, created_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """,
-                (
-                    uuid.uuid4().hex,
-                    question,
-                    "workspace_ai",
-                    8,
-                    duration_ms,
-                    response.get("load_duration"),
-                    response.get("prompt_eval_count"),
-                    response.get("eval_count"),
-                    json.dumps([row.get("id") for row in rag_rows], ensure_ascii=False),
-                    _now_iso(),
-                ),
-            )
-            conn.commit()
-        return {
-            "ok": True,
-            "status": "ready",
-            "answer": str(response.get("response") or "").strip(),
-            "sources": rag_rows,
-            "citations": [row.get("citation") for row in rag_rows if row.get("citation")],
-            "runtime": bootstrap,
-        }
+        prepared = self.prepare_workspace_query(question=question, overview=overview)
+        return self._complete_prepared_query(prepared=prepared, runtime=bootstrap, keep_alive=settings.keep_alive)
 
     def scheduled_maintenance(self, fascicoli_gestore: Any | None = None, documents_dir: str | None = None) -> dict[str, Any]:
         bootstrap = self.bootstrap_runtime()

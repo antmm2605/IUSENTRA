@@ -244,6 +244,64 @@ def test_api_local_ai_status_and_fascicolo_ai(tmp_path: Path, monkeypatch):
     assert fascicolo_response.get_json()["answer"] == "Analisi fascicolo"
 
 
+def test_api_local_ai_context_endpoints_prepare_payloads(tmp_path: Path, monkeypatch):
+    _write_studio_config(tmp_path / "config" / "studio.json", enabled=True)
+    app = create_app(_cfg_web(tmp_path))
+
+    gf = GestioneFascicoli(
+        db_path=str(tmp_path / "fascicoli.json"),
+        documents_dir=str(tmp_path / "docs"),
+        archive_dir=str(tmp_path / "arch"),
+    )
+    fascicolo = gf.nuovo("Pratica contesto AI", TipoFascicolo.CIVILE)
+
+    monkeypatch.setattr(
+        LocalAIService,
+        "prepare_fascicolo_query",
+        lambda self, **kwargs: {
+            "ok": True,
+            "query_type": "fascicolo_ai",
+            "question": kwargs["question"],
+            "prompt": "Contesto fascicolo pronto",
+            "sources": [{"id": "chunk-fascicolo"}],
+            "citations": ["Fonte fascicolo"],
+        },
+    )
+    monkeypatch.setattr(
+        LocalAIService,
+        "prepare_workspace_query",
+        lambda self, **kwargs: {
+            "ok": True,
+            "query_type": "workspace_ai",
+            "question": kwargs["question"],
+            "prompt": "Contesto workspace pronto",
+            "sources": [{"id": "chunk-workspace"}],
+            "citations": ["Fonte workspace"],
+        },
+    )
+
+    with app.test_client() as client:
+        client.post("/login", data={"username": "admin", "password": "admin"}, follow_redirects=True)
+        fascicolo_response = client.post(
+            f"/api/fascicoli/{fascicolo.id}/ai/context",
+            json={"question": "Quale memoria devo preparare?"},
+        )
+        workspace_response = client.post(
+            "/api/workspace-intelligente/ai/context",
+            json={"question": "Quali priorita' operative ho oggi?", "giorni": 7},
+        )
+
+    assert fascicolo_response.status_code == 200
+    assert fascicolo_response.get_json()["ok"] is True
+    assert fascicolo_response.get_json()["prompt"] == "Contesto fascicolo pronto"
+    assert fascicolo_response.get_json()["citations"] == ["Fonte fascicolo"]
+
+    assert workspace_response.status_code == 200
+    assert workspace_response.get_json()["ok"] is True
+    assert workspace_response.get_json()["prompt"] == "Contesto workspace pronto"
+    assert workspace_response.get_json()["citations"] == ["Fonte workspace"]
+
+
 def test_impostazioni_template_contains_ai_locale_tab():
     html = (REPO_ROOT / "web" / "templates" / "impostazioni" / "index.html").read_text(encoding="utf-8")
 

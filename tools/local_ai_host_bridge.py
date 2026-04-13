@@ -754,6 +754,56 @@ class LocalAiHostBridge:
             "created_at": _now_iso(),
         }
 
+    def _rag_prompt(self, *, question: str, prompt: str, sources: list[dict[str, Any]]) -> str:
+        provided = str(prompt or "").strip()
+        if provided:
+            return provided
+        context = "\n\n---\n\n".join(
+            f"[Fonte {index + 1}] {str(source.get('citation') or source.get('title') or 'Documento').strip()}\n"
+            f"{str(source.get('text') or '').strip()}"
+            for index, source in enumerate(sources)
+            if str(source.get("text") or "").strip()
+        ) or "Nessuna fonte documentale disponibile."
+        return "\n".join(
+            [
+                "Sei l'assistente operativo locale di HACS.",
+                "Rispondi usando solo il contesto fornito.",
+                "Se il contesto e' insufficiente, dichiaralo in modo esplicito.",
+                "",
+                f"Domanda: {question.strip()}",
+                "",
+                "Contesto documentale:",
+                context,
+                "",
+                "Chiudi con una sezione 'Fonti' che elenchi solo i riferimenti effettivamente usati.",
+            ]
+        )
+
+    def rag_query(self, payload: dict[str, Any] | None = None) -> dict[str, Any]:
+        overrides = dict(payload or {})
+        settings = self._settings(overrides)
+        hardware = self.detect_hardware()
+        resolved_models = self.resolve_models(settings, hardware)
+        model_name = str(overrides.get("model") or resolved_models["chat"]).strip()
+        question = str(overrides.get("question") or "").strip()
+        sources = list(overrides.get("sources") or [])
+        prompt = self._rag_prompt(question=question, prompt=str(overrides.get("prompt") or ""), sources=sources)
+        client = OllamaLocalClient(settings["base_url"])
+        response = client.generate(model_name, prompt, settings["keep_alive"])
+        citations = [str(item.get("citation") or "").strip() for item in sources if str(item.get("citation") or "").strip()]
+        return {
+            "ok": True,
+            "model": model_name,
+            "question": question,
+            "answer": str(response.get("response") or "").strip(),
+            "sources": sources,
+            "citations": citations,
+            "created_at": _now_iso(),
+            "load_duration": response.get("load_duration"),
+            "prompt_eval_count": response.get("prompt_eval_count"),
+            "eval_count": response.get("eval_count"),
+        }
+
     def embed(self, inputs: list[str], overrides: dict[str, Any] | None = None) -> dict[str, Any]:
         settings = self._settings(overrides)
         hardware = self.detect_hardware()

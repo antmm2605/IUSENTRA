@@ -81,15 +81,27 @@
   </div>
 </div>
 
-<div class="wi-panel p-4 mb-4">
-  <div class="d-flex justify-content-between align-items-center gap-3 flex-wrap mb-3">
+<div
+  id="workspace-ai-root"
+  class="wi-panel p-4 mb-4 hacs-local-ai-panel"
+  data-ai-mode="{{ 'local' if request.host.split(':')[0] in ['localhost', '127.0.0.1'] else 'remote' }}"
+  data-local-signer-url="http://127.0.0.1:27272"
+  data-local-signer-download-page="{{ url_for('impostazioni.index', tab='firma', _external=True) }}"
+  data-local-signer-setup-windows="{{ url_for('polis_local_signer_setup_windows') }}"
+  data-local-signer-setup-macos="{{ url_for('polis_local_signer_setup_macos') }}"
+  data-local-signer-setup-linux="{{ url_for('polis_local_signer_setup_linux') }}"
+  data-runtime-status-url="/api/local-ai/status"
+  data-server-ask-url="{{ url_for('api_workspace_intelligente_ai') }}"
+  data-server-context-url="{{ url_for('api_workspace_intelligente_ai_context') }}"
+  data-horizon-days="{{ horizon_days }}">
+  <div class="d-flex justify-content-between align-items-center gap-3 flex-wrap mb-3 hacs-local-ai-toolbar">
     <div>
       <h2 class="h5 mb-1">Assistente operativo locale</h2>
       <div class="small text-muted">Domande contestuali su agenda, scadenze, fascicoli e documenti già presenti nel gestionale.</div>
     </div>
-    <div id="workspace-ai-status" class="small text-muted">Assistente locale in attesa di verifica</div>
+    <div id="workspace-ai-status" class="small text-muted hacs-local-ai-runtime">Assistente locale in attesa di verifica</div>
   </div>
-  <div class="row g-3">
+  <div class="row g-3 hacs-local-ai-grid">
     <div class="col-lg-8">
       <textarea id="workspace-ai-question" class="form-control" rows="3" placeholder="Esempio: quali sono le priorità operative dei prossimi 7 giorni e quali fascicoli devo presidiare per primi?"></textarea>
     </div>
@@ -97,12 +109,12 @@
       <button type="button" class="btn btn-primary" id="workspace-ai-ask-btn" onclick="askWorkspaceAi()">
         <i class="bi bi-stars me-2"></i>Analizza cabina
       </button>
-      <button type="button" class="btn btn-outline-secondary" onclick="refreshWorkspaceAiRuntime()">
+      <button type="button" class="btn btn-outline-secondary hacs-local-ai-secondary-btn" onclick="refreshWorkspaceAiRuntime()">
         <i class="bi bi-arrow-repeat me-2"></i>Aggiorna stato runtime
       </button>
     </div>
   </div>
-  <div id="workspace-ai-answer" class="wi-answer-card mt-3">
+  <div id="workspace-ai-answer" class="wi-answer-card mt-3 hacs-local-ai-answer">
     <div class="wi-answer-muted">Le risposte compariranno qui con le fonti documentali usate.</div>
   </div>
 </div>
@@ -388,66 +400,9 @@
   </div>
 </div>
 </div>
-<script>
-async function refreshWorkspaceAiRuntime() {
-  const status = document.getElementById('workspace-ai-status');
-  if (!status) return;
-  status.textContent = 'Verifica del runtime locale in corso...';
-  const statiRuntime = {
-    missing: 'non disponibile',
-    installing: 'installazione',
-    starting: 'avvio',
-    ready: 'pronto',
-    error: 'errore',
-    disabled: 'disattivato',
-  };
-  try {
-    const response = await fetch('/api/local-ai/status', { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
-    const payload = await response.json();
-    const runtime = payload.runtime || {};
-    const stato = statiRuntime[runtime.status] || runtime.status || 'non disponibile';
-    status.textContent = `Runtime locale: ${stato} · profilo ${runtime.hardware_profile || 'n.d.'}`;
-  } catch (error) {
-    status.textContent = 'Runtime locale non raggiungibile';
-  }
-}
+{% endblock %}
 
-async function askWorkspaceAi() {
-  const questionEl = document.getElementById('workspace-ai-question');
-  const answerEl = document.getElementById('workspace-ai-answer');
-  const btn = document.getElementById('workspace-ai-ask-btn');
-  if (!questionEl || !answerEl || !btn) return;
-  const question = questionEl.value.trim();
-  if (!question) {
-    answerEl.innerHTML = '<div class="wi-answer-muted text-danger">Inserisci una domanda operativa per ottenere una risposta contestuale.</div>';
-    return;
-  }
-  btn.disabled = true;
-  answerEl.innerHTML = '<div class="wi-answer-muted">Analisi della cabina intelligente in corso...</div>';
-  try {
-    const response = await fetch('/api/workspace-intelligente/ai', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
-      body: JSON.stringify({ question, giorni: {{ horizon_days|tojson }} }),
-    });
-    const payload = await response.json();
-    if (!payload.ok) {
-      answerEl.innerHTML = `<div class="wi-answer-muted text-danger">${payload.errore || 'AI locale momentaneamente non disponibile.'}</div>`;
-      return;
-    }
-    const citations = (payload.citations || []).map(item => `<li>${item}</li>`).join('');
-    answerEl.innerHTML = `
-      <div class="wi-answer-text">${payload.answer || ''}</div>
-      ${citations ? `<div class="mt-3"><div class="fw-semibold mb-1">Fonti</div><ul class="small mb-0">${citations}</ul></div>` : ''}
-    `;
-    refreshWorkspaceAiRuntime();
-  } catch (error) {
-    answerEl.innerHTML = '<div class="wi-answer-muted text-danger">Errore durante l’analisi AI della cabina intelligente.</div>';
-  } finally {
-    btn.disabled = false;
-  }
-}
-
-document.addEventListener('DOMContentLoaded', refreshWorkspaceAiRuntime);
-</script>
+{% block extra_scripts %}
+<script src="/static/js/local-ai-browser-bridge.js?v={{ app_version }}"></script>
+<script src="/static/js/workspace-ai.js?v={{ app_version }}"></script>
 {% endblock %}

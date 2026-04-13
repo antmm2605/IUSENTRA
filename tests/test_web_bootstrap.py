@@ -226,6 +226,7 @@ def test_scss_governance_usa_bundle_modulari_e_niente_style_inline():
     app_scss = (REPO_ROOT / "web/static/scss/app.scss").read_text(encoding="utf-8")
     assert "@use 'components/feedback';" in app_scss
     assert "@use 'components/compact-panels';" in app_scss
+    assert "@use 'components/local-ai-assistant';" in app_scss
     assert "@use 'pages/dashboard';" in app_scss
     assert "@use 'pages/notifiche-whatsapp';" in app_scss
     assert "@use 'pages/settings';" in app_scss
@@ -316,3 +317,35 @@ def test_notifiche_whatsapp_usa_js_esterno_e_date_localizzate():
     assert "Apri il link WhatsApp" in template
     assert "showFeedback(" in script
     assert "dataset.promemoriaCount" in script
+
+
+def test_ai_operativa_usa_bridge_browser_e_template_senza_logica_inline():
+    fascicolo_template = (REPO_ROOT / "web/templates/fascicoli/dettaglio.html").read_text(encoding="utf-8")
+    workspace_template = (REPO_ROOT / "web/templates/workspace_intelligente.html").read_text(encoding="utf-8")
+    bridge_js = (REPO_ROOT / "web/static/js/local-ai-browser-bridge.js").read_text(encoding="utf-8")
+    fascicolo_js = (REPO_ROOT / "web/static/js/fascicolo-ai.js").read_text(encoding="utf-8")
+    workspace_js = (REPO_ROOT / "web/static/js/workspace-ai.js").read_text(encoding="utf-8")
+
+    assert 'id="fascicolo-ai-root"' in fascicolo_template
+    assert 'data-local-signer-url="http://127.0.0.1:27272"' in fascicolo_template
+    assert "/static/js/local-ai-browser-bridge.js?v={{ app_version }}" in fascicolo_template
+    assert "/static/js/fascicolo-ai.js?v={{ app_version }}" in fascicolo_template
+    assert "async function askFascicoloAi" not in fascicolo_template
+    assert "async function _refreshFascicoloAiRuntime" not in fascicolo_template
+
+    assert 'id="workspace-ai-root"' in workspace_template
+    assert 'data-local-signer-url="http://127.0.0.1:27272"' in workspace_template
+    assert "/static/js/local-ai-browser-bridge.js?v={{ app_version }}" in workspace_template
+    assert "/static/js/workspace-ai.js?v={{ app_version }}" in workspace_template
+    assert "async function askWorkspaceAi" not in workspace_template
+    assert "async function refreshWorkspaceAiRuntime" not in workspace_template
+
+    assert "window.HacsLocalAiBrowserBridge" in bridge_js
+    assert "/ai/rag/query" in bridge_js
+    assert "127.0.0.1:27272" in bridge_js
+    assert "renderCompanionHelp" in fascicolo_js
+    assert "fetchServerContext" in fascicolo_js
+    assert "runCompanionRagQuery" in fascicolo_js
+    assert "renderCompanionHelp" in workspace_js
+    assert "fetchServerContext" in workspace_js
+    assert "runCompanionRagQuery" in workspace_js

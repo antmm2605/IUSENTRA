@@ -22,6 +22,7 @@ API:
     GET  /seleziona-certificato  → apre dialog nativo Windows di selezione cert
     POST /ai/bootstrap           → provisioning runtime Ollama e modelli locali
     POST /ai/chat                → prompt locale inoltrato a Ollama
+    POST /ai/rag/query           → risposta locale su contesto RAG preparato da HACS
     POST /ai/embed               → embeddings locali inoltrati a Ollama
     POST /firma                  → firma documento CAdES-BES
     POST /firma-batch            → firma più documenti con una sola sessione PIN
@@ -89,7 +90,7 @@ except Exception:
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.5.38"
+VERSION = "1.5.39"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
@@ -5089,6 +5090,7 @@ class _Handler(BaseHTTPRequestHandler):
         if path in {
             "/ai/bootstrap",
             "/ai/chat",
+            "/ai/rag/query",
             "/ai/embed",
             "/pst/preflight-auth",
             "/pst/ricerca",
@@ -5106,6 +5108,8 @@ class _Handler(BaseHTTPRequestHandler):
             self._ai_bootstrap()
         elif path == "/ai/chat":
             self._ai_chat()
+        elif path == "/ai/rag/query":
+            self._ai_rag_query()
         elif path == "/ai/embed":
             self._ai_embed()
         elif path == "/firma":
@@ -5175,6 +5179,21 @@ class _Handler(BaseHTTPRequestHandler):
             self._send_json(payload)
         except Exception as e:
             log.error("Errore AI chat locale: %s", e)
+            self._send_json({"ok": False, "errore": str(e)}, 500)
+
+    def _ai_rag_query(self):
+        data = self._read_json()
+        question = str(data.get("question") or "").strip()
+        prompt = str(data.get("prompt") or "").strip()
+        if not question and not prompt:
+            self._send_json({"ok": False, "errore": "Domanda mancante."}, 400)
+            return
+        try:
+            bridge = _get_local_ai_bridge()
+            payload = bridge.rag_query({**self._local_ai_request_payload(data), **data})
+            self._send_json(payload)
+        except Exception as e:
+            log.error("Errore AI rag query locale: %s", e)
             self._send_json({"ok": False, "errore": str(e)}, 500)
 
     def _ai_embed(self):

@@ -3621,6 +3621,20 @@ def create_app(config: dict | None = None) -> Flask:
             app.logger.exception("Errore api_workspace_intelligente_ai: %s", e)
             return jsonify({"ok": False, "errore": str(e), "answer": "", "sources": []}), 200
 
+    @app.route("/api/workspace-intelligente/ai/context", methods=["POST"])
+    def api_workspace_intelligente_ai_context():
+        try:
+            data = request.get_json(silent=True) or {}
+            question = str(data.get("question", "") or "").strip()
+            if not question:
+                return jsonify({"ok": False, "errore": "Domanda mancante."}), 200
+            horizon_days = max(int(data.get("giorni", 14) or 14), 1)
+            overview = get_workspace_intelligente().panoramica(horizon_days=horizon_days)
+            return jsonify(get_local_ai_service().prepare_workspace_query(question=question, overview=overview))
+        except Exception as e:
+            app.logger.exception("Errore api_workspace_intelligente_ai_context: %s", e)
+            return jsonify({"ok": False, "errore": str(e), "prompt": "", "sources": []}), 200
+
     @app.route("/api/fascicoli/<id_fasc>/ai", methods=["POST"])
     def api_fascicolo_ai(id_fasc):
         try:
@@ -3658,6 +3672,44 @@ def create_app(config: dict | None = None) -> Flask:
         except Exception as e:
             app.logger.exception("Errore api_fascicolo_ai(%s): %s", id_fasc, e)
             return jsonify({"ok": False, "errore": str(e), "answer": "", "sources": []}), 200
+
+    @app.route("/api/fascicoli/<id_fasc>/ai/context", methods=["POST"])
+    def api_fascicolo_ai_context(id_fasc):
+        try:
+            data = request.get_json(silent=True) or {}
+            question = str(data.get("question", "") or "").strip()
+            if not question:
+                return jsonify({"ok": False, "errore": "Domanda mancante."}), 200
+            fasc = get_fascicoli().get(id_fasc)
+            if not fasc:
+                return jsonify({"ok": False, "errore": "Fascicolo non trovato."}), 200
+            agenda = get_agenda()
+            scadenze_fascicolo = get_scadenziario().tutte(id_fascicolo=id_fasc, solo_aperte=False)
+            apps = agenda.cerca(testo=fasc.numero_rg) if getattr(fasc, "numero_rg", "") else []
+            workspace_fascicolo = _build_fascicolo_workspace(
+                fasc,
+                apps=apps,
+                scadenze=scadenze_fascicolo,
+            )
+            intelligenza_fascicolo = get_workspace_intelligente().per_fascicolo(
+                fasc,
+                apps=apps,
+                scadenze=scadenze_fascicolo,
+            )
+            result = get_local_ai_service().prepare_fascicolo_query(
+                fascicolo=fasc,
+                documents_dir=_cfg_data_path("FASCICOLI_DOCS"),
+                question=question,
+                apps=apps,
+                scadenze=scadenze_fascicolo,
+                workspace=workspace_fascicolo,
+                intelligenza=intelligenza_fascicolo,
+                auto_index=data.get("auto_index"),
+            )
+            return jsonify(result)
+        except Exception as e:
+            app.logger.exception("Errore api_fascicolo_ai_context(%s): %s", id_fasc, e)
+            return jsonify({"ok": False, "errore": str(e), "prompt": "", "sources": []}), 200
 
     @app.route("/api/fascicoli/<id_fasc>/ai/reindex", methods=["POST"])
     def api_fascicolo_ai_reindex(id_fasc):

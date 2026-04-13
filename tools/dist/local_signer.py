@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-HACS Local Signer - v1.5.37
+HACS Local Signer - v1.5.41
 
 Servizio HTTP locale (localhost:27272) che firma documenti con smart card e token CNS/CIE
 (o qualsiasi token PKCS#11) e consente l'accesso autenticato al PST.
@@ -90,7 +90,7 @@ except Exception:
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.5.40"
+VERSION = "1.5.41"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
@@ -210,6 +210,85 @@ _mTLS_required_lock = threading.Lock()
 
 def _utcnow_naive() -> datetime:
     return datetime.now(UTC).replace(tzinfo=None)
+
+
+def _pkcs11_text(value: Any) -> str:
+    if isinstance(value, bytes):
+        for encoding in ("utf-8", "latin-1"):
+            try:
+                return value.decode(encoding).strip("\x00").strip()
+            except Exception:
+                continue
+        return value.hex()
+    return str(value or "").strip()
+
+
+def _probe_token_info_fresh(lib_path: str) -> list[dict[str, Any]]:
+    script = """
+import json
+import sys
+
+try:
+    import pkcs11
+except Exception as exc:
+    print(json.dumps({"ok": False, "error": str(exc)}, ensure_ascii=False))
+    raise SystemExit(0)
+
+def _clean(value):
+    if isinstance(value, bytes):
+        for encoding in ("utf-8", "latin-1"):
+            try:
+                return value.decode(encoding).strip("\\x00").strip()
+            except Exception:
+                continue
+        return value.hex()
+    return str(value or "").strip()
+
+payload = {"ok": True, "token": []}
+try:
+    lib = pkcs11.lib(sys.argv[1])
+    for slot in lib.get_slots(token_present=True):
+        token = slot.get_token()
+        payload["token"].append({
+            "slot_id": getattr(slot, "slot_id", None),
+            "label": _clean(getattr(token, "label", "")),
+            "manufacturer": _clean(getattr(token, "manufacturer_id", "")),
+            "model": _clean(getattr(token, "model", "")),
+            "serial": _clean(getattr(token, "serial", "")),
+        })
+except Exception as exc:
+    payload = {"ok": False, "error": str(exc), "token": []}
+
+print(json.dumps(payload, ensure_ascii=False))
+""".strip()
+
+    try:
+        proc = subprocess.run(
+            [sys.executable, "-c", script, lib_path],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            timeout=8,
+            check=False,
+            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+        )
+    except Exception as exc:
+        log.debug("Probe PKCS#11 fresco non riuscito: %s", exc)
+        return []
+
+    raw = (proc.stdout or "").strip()
+    if not raw:
+        return []
+    try:
+        payload = json.loads(raw)
+    except json.JSONDecodeError:
+        log.debug("Probe PKCS#11 fresco non decodificabile: %s", raw)
+        return []
+    if not payload.get("ok"):
+        log.debug("Probe PKCS#11 fresco senza token: %s", payload.get("error"))
+        return []
+    token = payload.get("token") or []
+    return token if isinstance(token, list) else []
 
 
 def _coerce_bool(value: Any, default: bool = False) -> bool:
@@ -1114,10 +1193,10 @@ def _info_token(lib_path: str) -> list[dict]:
             tok = slot.get_token()
             tokens.append({
                 "slot_id": slot.slot_id,
-                "label":        (tok.label or "").strip(),
-                "manufacturer": (tok.manufacturer_id or "").strip(),
-                "model":        (tok.model or "").strip(),
-                "serial":       (tok.serial or "").strip(),
+                "label":        _pkcs11_text(getattr(tok, "label", "")),
+                "manufacturer": _pkcs11_text(getattr(tok, "manufacturer_id", "")),
+                "model":        _pkcs11_text(getattr(tok, "model", "")),
+                "serial":       _pkcs11_text(getattr(tok, "serial", "")),
             })
         except Exception as e:
             log.warning("Slot %s: %s", getattr(slot, "slot_id", "?"), e)
@@ -5283,6 +5362,16 @@ class _Handler(BaseHTTPRequestHandler):
                 resp["token"] = _info_token(lib)
             except RuntimeError as e:
                 resp["errore_token"] = str(e)
+                if sys.platform == "win32" and "Nessun token PKCS#11 rilevato" in resp["errore_token"]:
+                    fresh_tokens = _probe_token_info_fresh(lib)
+                    if fresh_tokens:
+                        resp["token_probe_fresh"] = fresh_tokens
+                        resp["riavvio_signer_consigliato"] = True
+                        resp["nota_riavvio_signer"] = (
+                            "Il token Aruba e' stato rilevato da un controllo fresco, "
+                            "ma il processo Local Signer attivo non e' piu' allineato. "
+                            "Riavvia il Local Signer da HACS e riprova."
+                        )
             except Exception as e:
                 resp["errore_token"] = f"Errore inatteso: {e}"
         self._send_json(resp)

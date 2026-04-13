@@ -171,13 +171,28 @@ class ConfigFirma:
 
     @property
     def pkcs11_configurato(self) -> bool:
-        """True se il formato PKCS#11 è disponibile (libreria presente + configurazione esplicita)."""
+        """
+        True se il backend PKCS#11 è stato scelto/configurato in modo esplicito.
+
+        Non basta che sul sistema esista una DLL rilevabile automaticamente:
+        per evitare fallback silenziosi su Aruba Key / token USB, consideriamo
+        il backend attivo solo quando c'è almeno un indizio di configurazione
+        esplicita (libreria salvata, slot/label salvati, oppure override env).
+        """
         import os as _os
         from pct.firma_pkcs11 import libreria_disponibile as _lib_disp
+
         if self.pkcs11_library:
             return _os.path.exists(self.pkcs11_library)
-        # Se non specificata ma rilevabile automaticamente, considera configurato
-        return _lib_disp() is not None
+
+        env_lib = _os.getenv("PCT_PKCS11_LIBRARY", "").strip()
+        if env_lib:
+            return _os.path.exists(env_lib)
+
+        if self.pkcs11_slot or self.pkcs11_label:
+            return _lib_disp() is not None
+
+        return False
 
     @property
     def backend_firma_effettivo(self) -> str:

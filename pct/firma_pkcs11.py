@@ -40,6 +40,24 @@ logger = logging.getLogger(__name__)
 
 # ── Percorsi di default per librerie PKCS#11 ────────────────────────────────
 _LIBRERIE_DEFAULT: List[str] = [
+    # Windows — Bit4id / Aruba Key
+    r"C:\Windows\System32\bit4xpki.dll",
+    r"C:\Windows\SysWOW64\bit4xpki.dll",
+    r"C:\Program Files\Bit4id\MinVa\bit4xpki.dll",
+    r"C:\Program Files (x86)\Bit4id\MinVa\bit4xpki.dll",
+    r"C:\Program Files\Bit4id\bit4xpki.dll",
+    r"C:\Program Files (x86)\Bit4id\bit4xpki.dll",
+    r"C:\Program Files\Bit4id\MinVa\windows\bit4xpki.dll",
+    r"C:\Program Files (x86)\Bit4id\MinVa\windows\bit4xpki.dll",
+    # Windows — Namirial / provider vari
+    r"C:\Windows\System32\OkiPKCS11.dll",
+    r"C:\Windows\SysWOW64\OkiPKCS11.dll",
+    r"C:\Program Files\Namirial\pkcs11.dll",
+    r"C:\Program Files (x86)\Namirial\pkcs11.dll",
+    r"C:\Windows\System32\cvP11.dll",
+    r"C:\Windows\System32\cvcP11.dll",
+    r"C:\Windows\SysWOW64\cvP11.dll",
+    r"C:\Windows\SysWOW64\cvcP11.dll",
     # Linux — OpenSC (funziona con Aruba Key via pcscd)
     "/usr/lib/x86_64-linux-gnu/opensc-pkcs11.so",
     "/usr/lib/opensc-pkcs11.so",
@@ -50,7 +68,7 @@ _LIBRERIE_DEFAULT: List[str] = [
     # macOS — OpenSC
     "/usr/local/lib/opensc-pkcs11.so",
     "/Library/OpenSC/lib/opensc-pkcs11.so",
-    # Windows — Aruba / DigitSign
+    # Windows — fallback storici
     r"C:\Windows\System32\aetpkss1.dll",
     r"C:\Windows\System32\bit4opki.dll",
     r"C:\Windows\System32\cmP11.dll",
@@ -59,6 +77,39 @@ _LIBRERIE_DEFAULT: List[str] = [
 _ENV_LIBRARY = "PCT_PKCS11_LIBRARY"
 _ENV_SLOT    = "PCT_PKCS11_SLOT"
 _ENV_LABEL   = "PCT_PKCS11_LABEL"
+
+
+def _score_library(lib_path: str) -> int:
+    try:
+        import pkcs11
+    except Exception:
+        return 1 if Path(lib_path).exists() else 0
+
+    try:
+        lib = pkcs11.lib(lib_path)
+    except Exception:
+        return 0
+
+    try:
+        slots = list(lib.get_slots(token_present=True))
+        return 3 if slots else 1
+    except Exception:
+        return 1
+
+
+def _candidate_libraries() -> List[str]:
+    candidati: List[str] = []
+
+    def _add(path: str) -> None:
+        valore = str(path or "").strip()
+        if valore and Path(valore).exists() and valore not in candidati:
+            candidati.append(valore)
+
+    env_lib = os.environ.get(_ENV_LIBRARY, "")
+    _add(env_lib)
+    for lib in _LIBRERIE_DEFAULT:
+        _add(lib)
+    return candidati
 
 
 def libreria_disponibile() -> Optional[str]:
@@ -71,10 +122,17 @@ def libreria_disponibile() -> Optional[str]:
     env_lib = os.environ.get(_ENV_LIBRARY, "")
     if env_lib and Path(env_lib).exists():
         return env_lib
-    for lib in _LIBRERIE_DEFAULT:
-        if Path(lib).exists():
-            return lib
-    return None
+
+    candidati = _candidate_libraries()
+    if not candidati:
+        return None
+
+    candidati_ordinati = sorted(
+        candidati,
+        key=_score_library,
+        reverse=True,
+    )
+    return candidati_ordinati[0]
 
 
 # ── TokenInfo ────────────────────────────────────────────────────────────────

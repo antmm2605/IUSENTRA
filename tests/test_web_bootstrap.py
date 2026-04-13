@@ -391,3 +391,11 @@ def test_lex_assistant_usa_componente_esterno_e_posizione_persistente():
     assert ".pct-ai-widget--custom" in widget_scss
     assert ".pct-ai-drag-hint" in widget_scss
     assert "cursor: move;" in widget_scss
+
+
+def test_modal_firma_deposito_prevede_riavvio_local_signer():
+    dettaglio = (REPO_ROOT / "web/templates/fascicoli/dettaglio.html").read_text(encoding="utf-8")
+
+    assert "Riavvia Local Signer" in dettaglio
+    assert "hacs-local-signer://restart" in dettaglio
+    assert "riavvio_signer_consigliato" in dettaglio

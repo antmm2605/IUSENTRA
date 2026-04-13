@@ -7373,11 +7373,18 @@ set "PYW=%DIR%.venv\\Scripts\\pythonw.exe"
 set "PY=%DIR%local_signer.py"
 set "TARGET=%DIR%local_signer.py"
 set "PCT_LOCAL_SIGNER_ALLOWED_ORIGINS=__ALLOWED_ORIGINS__"
+set "FORCE_RESTART=0"
 
+if /I "%~1"=="--force" set "FORCE_RESTART=1"
+echo %~1 | find /I "hacs-local-signer://restart" >nul 2>&1 && set "FORCE_RESTART=1"
+
+if "%FORCE_RESTART%"=="0" (
 powershell -NoProfile -Command "try {{ $r = Invoke-RestMethod 'http://127.0.0.1:27272/ping' -UseBasicParsing -TimeoutSec 2; if ($r.ok) {{ exit 0 }} }} catch {{}}; exit 1" >nul 2>&1
 if not errorlevel 1 goto :online
+)
 
 powershell -NoProfile -Command "$target = [regex]::Escape($env:TARGET); Get-CimInstance Win32_Process | Where-Object {{ $_.Name -in @('python.exe','pythonw.exe') -and $_.CommandLine -and $_.CommandLine -match $target }} | ForEach-Object {{ try {{ Stop-Process -Id $_.ProcessId -Force -ErrorAction Stop }} catch {{}} }}" >nul 2>&1
+powershell -NoProfile -Command "Get-NetTCPConnection -LocalAddress 127.0.0.1 -LocalPort 27272 -State Listen -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -Unique | ForEach-Object {{ try {{ Stop-Process -Id $_ -Force -ErrorAction Stop }} catch {{}} }}" >nul 2>&1
 
 if exist "%PYW%" if exist "%PY%" (
     start "" "%PYW%" "%PY%"
@@ -7395,7 +7402,14 @@ $cmd = $cmd.Replace('__ALLOWED_ORIGINS__', $allowedOrigins)
 Set-Content -Path $starterCmd -Value $cmd -Encoding ASCII
 $vbs = @"
 Set shell = CreateObject("WScript.Shell")
-shell.Run Chr(34) & "$starterCmd" & Chr(34) & " --background", 0, False
+Dim extra
+extra = " --background"
+If WScript.Arguments.Count > 0 Then
+  If InStr(LCase(WScript.Arguments(0)), "hacs-local-signer://restart") > 0 Then
+    extra = extra & " --force"
+  End If
+End If
+shell.Run Chr(34) & "$starterCmd" & Chr(34) & extra, 0, False
 "@
 Set-Content -Path $starterVbs -Value $vbs -Encoding ASCII
 

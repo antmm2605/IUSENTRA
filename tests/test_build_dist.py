@@ -40,6 +40,9 @@ def test_build_windows_ps1_include_versione_e_script_originale():
     assert f"HACS Local Signer Setup v{versione}" in contenuto
     assert "param(" in contenuto
     assert "Find-PythonCommand" in contenuto
+    assert "FORCE_RESTART" in contenuto
+    assert "hacs-local-signer://restart" in contenuto
+    assert "Get-NetTCPConnection -LocalAddress 127.0.0.1 -LocalPort 27272" in contenuto
 
 
 def test_write_windows_support_files_copia_i_file_necessari(monkeypatch, tmp_path):

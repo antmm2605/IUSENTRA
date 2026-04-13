@@ -702,6 +702,70 @@ def test_ping_windows_usa_il_filtro_cf_per_esporre_il_certificato_preferito():
     assert payload["certificato_windows_selezionato"]["emittente"] == "ArubaPEC EU Authentica Certificates CA G1"
 
 
+def test_ping_windows_suggerisce_riavvio_quando_il_probe_fresco_vede_il_token():
+    module = _load_local_signer()
+
+    orig_platform = module.sys.platform
+    orig_trova = module._trova_libreria
+    orig_curl = module._curl_disponibile
+    orig_lista = module._windows_lista_certificati
+    orig_info = module._info_token
+    orig_probe = module._probe_token_info_fresh
+    captured = {}
+
+    class _FakeHandler:
+        path = "/ping"
+
+        def _send_json(self, payload, status=200):
+            captured["payload"] = payload
+            captured["status"] = status
+
+    try:
+        module.sys.platform = "win32"
+        module._trova_libreria = lambda: "C:\\Windows\\System32\\bit4xpki.dll"
+        module._curl_disponibile = lambda: True
+        module._windows_lista_certificati = lambda: [
+            {
+                "thumbprint": "AUTH-CF",
+                "soggetto": "ROBERTO MONTAGNESE",
+                "emittente": "ArubaPEC EU Authentica Certificates CA G1",
+                "scadenza": "2029-02-23",
+            }
+        ]
+
+        def _fake_info_token(_lib_path):
+            raise RuntimeError(
+                "Nessun token PKCS#11 rilevato.\n"
+                "Verificare che la smart card/token CNS-CIE sia inserita e che il middleware locale sia installato."
+            )
+
+        module._info_token = _fake_info_token
+        module._probe_token_info_fresh = lambda _lib_path: [
+            {
+                "slot_id": 0,
+                "label": "CNS",
+                "manufacturer": "Bit4id",
+                "model": "JS2048 (LB)",
+                "serial": "7430010029148677",
+            }
+        ]
+
+        module._Handler._ping(_FakeHandler())
+    finally:
+        module.sys.platform = orig_platform
+        module._trova_libreria = orig_trova
+        module._curl_disponibile = orig_curl
+        module._windows_lista_certificati = orig_lista
+        module._info_token = orig_info
+        module._probe_token_info_fresh = orig_probe
+
+    payload = captured["payload"]
+    assert payload["ok"] is True
+    assert payload["riavvio_signer_consigliato"] is True
+    assert payload["token_probe_fresh"][0]["slot_id"] == 0
+    assert "Riavvia il Local Signer" in payload["nota_riavvio_signer"]
+
+
 def test_seleziona_certificato_windows_usa_dialog_nativo_quando_non_c_e_auto_pick():
     module = _load_local_signer()
 

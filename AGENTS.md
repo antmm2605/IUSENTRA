@@ -5,6 +5,7 @@
 - **Procedi sempre senza chiedere conferma.** L'utente ha autorizzato tutte le operazioni in modo permanente.
 - Commit, push, modifica file, creazione file: esegui direttamente.
 - Branch di sviluppo: `Codex/legal-electronic-filing-kIxcV`
+- **Branch remoto da sincronizzare sempre insieme al branch di sviluppo:** `claude/legal-electronic-filing-kIxcV`
 
 ## Progetto
 
@@ -125,10 +126,12 @@ python -m pytest tests/ -v
 **Sincronizzazione obbligatoria locale / GitHub / Railway:**
 - Dopo ogni modifica completata, la copia locale deve coincidere con il branch GitHub di lavoro e con la release destinata a Railway.
 - Non lasciare mai commit solo in locale: eseguire sempre `git push` del branch di lavoro.
+- Eseguire sempre anche il push dello stesso commit su `claude/legal-electronic-filing-kIxcV` oltre che su `Codex/legal-electronic-filing-kIxcV`.
 - Se Railway è collegato a un branch remoto diverso dal branch locale corrente, riallineare anche quel branch remoto allo stesso commit della copia locale.
 - Considerare il lavoro concluso solo quando risultano allineati:
   - file locali
   - branch GitHub di lavoro
+  - branch remoto `claude/legal-electronic-filing-kIxcV`
   - branch remoto usato da Railway
   - `railway.toml` con la stessa versione del codice locale
 

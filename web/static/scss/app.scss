@@ -3007,6 +3007,11 @@ tr[data-swipe-delete] {
    QD — Quadro Fascicolo Design System
    ═══════════════════════════════════════════════════════════════ */
 
+/* ── Section override — remove height:100% from standalone asse cards ── */
+.qd-section {
+  height: auto !important;
+}
+
 /* ── Quick-nav bar ── */
 .qd-nav {
   display: flex;

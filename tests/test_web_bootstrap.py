@@ -362,10 +362,15 @@ def test_lex_assistant_usa_componente_esterno_e_posizione_persistente():
     widget_scss = (REPO_ROOT / "web/static/scss/components/_pct-lex-assistant.scss").read_text(encoding="utf-8")
 
     assert '{% include "components/pct_ai_widget.html" %}' in base_template
+    assert "/static/js/local-ai-browser-bridge.js?v={{ app_version }}" in base_template
     assert "/static/js/pct-lex-assistant.js?v={{ app_version }}" in base_template
 
     assert 'data-chat-url="{{ url_for(\'assistente.assistente_chat\') }}"' in widget_template
     assert 'data-status-url="{{ url_for(\'assistente.assistente_stato\') }}"' in widget_template
+    assert 'data-server-context-url="{{ url_for(\'assistente.assistente_context\') }}"' in widget_template
+    assert 'data-local-signer-url="http://127.0.0.1:27272"' in widget_template
+    assert "data-local-signer-setup-windows" in widget_template
+    assert 'data-ai-mode="{{ \'local\' if request.host.split(\':\')[0] in [\'localhost\', \'127.0.0.1\'] else \'remote\' }}"' in widget_template
     assert 'data-pct-ai-drag-handle="true"' in widget_template
     assert "posizione resta salvata su questo browser" in widget_template
     assert "<script>" not in widget_template
@@ -376,6 +381,11 @@ def test_lex_assistant_usa_componente_esterno_e_posizione_persistente():
     assert "data-pct-ai-drag-handle" in widget_template
     assert "dataset.chatUrl" in widget_js
     assert "dataset.statusUrl" in widget_js
+    assert "fetchServerContext" in widget_js
+    assert "runCompanionRagQuery" in widget_js
+    assert "companionHelp" in widget_js
+    assert "remoteHosted" in widget_js
+    assert "Risposta generata sul dispositivo locale." in widget_js
 
     assert ".pct-ai-widget" in widget_scss
     assert ".pct-ai-widget--custom" in widget_scss

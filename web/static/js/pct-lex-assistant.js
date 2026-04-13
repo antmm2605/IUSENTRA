@@ -25,6 +25,7 @@
   var badge;
   var storageKey = STORAGE_FALLBACK;
   var dragHandle;
+  var bridgeConfig = null;
 
   function query(id) {
     return document.getElementById(id);
@@ -85,6 +86,10 @@
     }
   }
 
+  function browserBridge() {
+    return window.HacsLocalAiBrowserBridge || null;
+  }
+
   function scrollBottom() {
     if (messages) {
       messages.scrollTop = messages.scrollHeight;
@@ -115,6 +120,48 @@
     }
   }
 
+  function setBubbleHtml(element, html) {
+    if (element) {
+      element.innerHTML = html || '';
+    }
+  }
+
+  function renderSources(payload) {
+    var citations = Array.isArray(payload && payload.citations) ? payload.citations.filter(Boolean) : [];
+    if (!citations.length) {
+      return '';
+    }
+    return (
+      '<div class="pct-ai-sources mt-3">' +
+        '<div class="fw-semibold small mb-1">Fonti</div>' +
+        '<ul class="small mb-0">' +
+          citations.map(function (item) { return '<li>' + escapeHtml(item) + '</li>'; }).join('') +
+        '</ul>' +
+      '</div>'
+    );
+  }
+
+  function renderCompanionHelp(outdated) {
+    if (!browserBridge() || !bridgeConfig) {
+      return '<div class="text-danger">Companion locale non raggiungibile su questo dispositivo.</div>';
+    }
+    var help = browserBridge().companionHelp(bridgeConfig, { outdated: outdated });
+    return (
+      '<div class="text-danger fw-semibold mb-2">' + escapeHtml(help.title || 'Companion locale non disponibile') + '</div>' +
+      '<div class="small text-muted">' + escapeHtml(help.body || '') + '</div>' +
+      (help.actionUrl
+        ? '<div class="mt-3"><a class="btn btn-sm btn-outline-primary" href="' + escapeHtml(help.actionUrl) + '" target="_blank" rel="noreferrer">' +
+            '<i class="bi bi-box-arrow-up-right me-2"></i>' + escapeHtml(help.actionLabel || 'Apri istruzioni') +
+          '</a></div>'
+        : '')
+    );
+  }
+
+  function setAnswerPayload(element, payload) {
+    var answer = payload && payload.answer ? renderMarkdown(payload.answer) : '<p>Nessuna risposta disponibile.</p>';
+    setBubbleHtml(element, answer + renderSources(payload || {}));
+  }
+
   function defaultIntroMarkup() {
     return (
       '<div class="pct-ai-msg pct-ai-msg--assistant">' +
@@ -127,6 +174,7 @@
             '<li>Verifiche operative su firma digitale, PEC e PDF/A</li>' +
             '<li>Richiami rapidi alla normativa del deposito telematico</li>' +
           '</ul>' +
+          '<p>Se HACS e\' online, Lex usa il companion locale di questo dispositivo per parlare con Ollama in modo sicuro e non bloccante.</p>' +
           '<p class="mb-0">Se il pannello ti intralcia, trascinalo dove preferisci: la posizione resta salvata su questo browser.</p>' +
         '</div>' +
       '</div>'
@@ -175,6 +223,15 @@
     setOpen(!state.open);
   }
 
+  function finalizeRequest(message) {
+    state.streaming = false;
+    if (sendButton) {
+      sendButton.disabled = false;
+    }
+    setStatus(message || 'Assistente pronto.');
+    scrollBottom();
+  }
+
   function payloadBase() {
     return {
       messages: state.history.slice(-20),
@@ -182,39 +239,7 @@
     };
   }
 
-  function finalizeRequest() {
-    state.streaming = false;
-    if (sendButton) {
-      sendButton.disabled = false;
-    }
-    setStatus('Assistente pronto.');
-    scrollBottom();
-  }
-
-  function send() {
-    if (state.streaming || !input) {
-      return;
-    }
-
-    var text = String(input.value || '').trim();
-    if (!text) {
-      return;
-    }
-
-    input.value = '';
-    autoResize();
-
-    state.history.push({ role: 'user', content: text });
-    appendMessage('user', text);
-
-    state.streaming = true;
-    setStatus('Lex sta preparando la risposta...');
-    if (sendButton) {
-      sendButton.disabled = true;
-    }
-
-    state.currentBubble = appendMessage('assistant', '');
-
+  function sendLocal(text) {
     fetch(widget.dataset.chatUrl || '/api/assistente/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -268,7 +293,7 @@
               }
             } catch (error) {
               setBubbleContent(state.currentBubble, 'Risposta non leggibile ricevuta dal servizio.');
-              finalizeRequest();
+              finalizeRequest('Assistente momentaneamente non disponibile.');
             }
           });
 
@@ -283,8 +308,70 @@
       return readChunk();
     }).catch(function (error) {
       setBubbleContent(state.currentBubble, 'Errore di connessione: ' + escapeHtml(error.message));
-      finalizeRequest();
+      finalizeRequest('Connessione al runtime non riuscita.');
     });
+  }
+
+  function sendRemote(text) {
+    if (!browserBridge() || !bridgeConfig) {
+      setBubbleContent(state.currentBubble, 'Il bridge AI locale non e\' disponibile su questo browser.');
+      finalizeRequest('Bridge AI locale non disponibile.');
+      return;
+    }
+
+    setStatus('Lex sta interrogando il companion locale del dispositivo...');
+    browserBridge()
+      .fetchServerContext(bridgeConfig, {
+        question: text,
+        messages: state.history.slice(-20),
+        fascicolo_id: state.fascId || '',
+      })
+      .then(function (prepared) {
+        return browserBridge().runCompanionRagQuery(bridgeConfig, prepared);
+      })
+      .then(function (payload) {
+        setAnswerPayload(state.currentBubble, payload);
+        state.history.push({ role: 'assistant', content: String(payload.answer || '').trim() });
+        checkStatus();
+        finalizeRequest('Risposta generata sul dispositivo locale.');
+      })
+      .catch(function (error) {
+        var outdated = Number(error && error.httpStatus || 0) === 404;
+        setBubbleHtml(state.currentBubble, renderCompanionHelp(outdated));
+        finalizeRequest('Companion locale non raggiungibile.');
+      });
+  }
+
+  function send() {
+    if (state.streaming || !input) {
+      return;
+    }
+
+    var text = String(input.value || '').trim();
+    if (!text) {
+      return;
+    }
+
+    input.value = '';
+    autoResize();
+
+    state.history.push({ role: 'user', content: text });
+    appendMessage('user', text);
+
+    state.streaming = true;
+    if (sendButton) {
+      sendButton.disabled = true;
+    }
+
+    state.currentBubble = appendMessage('assistant', '');
+
+    if (bridgeConfig && bridgeConfig.remoteHosted) {
+      sendRemote(text);
+      return;
+    }
+
+    setStatus('Lex sta preparando la risposta...');
+    sendLocal(text);
   }
 
   function updateBadge(ok, label) {
@@ -297,18 +384,53 @@
     badge.classList.toggle('is-online', ok);
   }
 
+  function checkRemoteStatus() {
+    if (!browserBridge() || !bridgeConfig) {
+      updateBadge(false, 'Bridge assente');
+      setStatus('Bridge AI locale non disponibile sul browser corrente.');
+      return;
+    }
+
+    browserBridge()
+      .fetchRuntimeStatus(bridgeConfig)
+      .then(function (data) {
+        var runtime = data.runtime || {};
+        var ready = Boolean(data.runtime_online || runtime.status === 'ready');
+        var modelLabel = (data.resolved_models && data.resolved_models.chat) || 'Companion locale';
+        updateBadge(ready, ready ? modelLabel : 'Companion offline');
+        setStatus(
+          ready
+            ? 'Lex e\' collegato al companion locale di questo dispositivo.'
+            : 'Il companion locale non e\' ancora operativo su questo dispositivo.'
+        );
+      })
+      .catch(function () {
+        updateBadge(false, 'Companion offline');
+        setStatus('Il browser non riesce a raggiungere il companion locale su questo dispositivo.');
+      });
+  }
+
   function checkStatus() {
+    bridgeConfig = browserBridge() && widget ? browserBridge().rootConfig(widget) : null;
+    if (bridgeConfig && bridgeConfig.remoteHosted) {
+      checkRemoteStatus();
+      return;
+    }
+
     fetch(widget.dataset.statusUrl || '/api/assistente/stato')
       .then(function (response) { return response.json(); })
       .then(function (data) {
         if (data.ok) {
           updateBadge(true, data.modello_attivo || 'Operativo');
+          setStatus('Lex e\' pronto sul runtime locale di HACS.');
         } else {
           updateBadge(false, 'Offline');
+          setStatus('Runtime locale non disponibile su questa installazione.');
         }
       })
       .catch(function () {
         updateBadge(false, 'Offline');
+        setStatus('Stato del runtime non disponibile in questo momento.');
       });
   }
 
@@ -509,12 +631,13 @@
     }
 
     storageKey = widget.dataset.storageKey || STORAGE_FALLBACK;
+    bridgeConfig = browserBridge() ? browserBridge().rootConfig(widget) : null;
 
     bindEvents();
     initContext();
     restorePosition();
-    checkStatus();
     clearHistory();
+    checkStatus();
   }
 
   window.pctAI = {

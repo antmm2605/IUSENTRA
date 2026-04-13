@@ -2095,6 +2095,7 @@ document.addEventListener('DOMContentLoaded', function () { window.pctAI.init();
 {% endif %}
 {% include "components/pct_ai_widget.html" %}
 {% if g.utente_corrente %}
+<script src="/static/js/local-ai-browser-bridge.js?v={{ app_version }}" defer></script>
 <script src="/static/js/pct-lex-assistant.js?v={{ app_version }}" defer></script>
 {% endif %}
 </body>

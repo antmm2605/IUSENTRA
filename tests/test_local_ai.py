@@ -302,6 +302,42 @@ def test_api_local_ai_context_endpoints_prepare_payloads(tmp_path: Path, monkeyp
     assert workspace_response.get_json()["citations"] == ["Fonte workspace"]
 
 
+def test_api_assistente_context_prepara_prompt_per_companion_locale(tmp_path: Path):
+    _write_studio_config(tmp_path / "config" / "studio.json", enabled=True)
+    app = create_app(_cfg_web(tmp_path))
+
+    gf = GestioneFascicoli(
+        db_path=str(tmp_path / "fascicoli.json"),
+        documents_dir=str(tmp_path / "docs"),
+        archive_dir=str(tmp_path / "arch"),
+    )
+    fascicolo = gf.nuovo("Opposizione a decreto ingiuntivo", TipoFascicolo.CIVILE)
+
+    with app.test_client() as client:
+        client.post("/login", data={"username": "admin", "password": "admin"}, follow_redirects=True)
+        response = client.post(
+            "/api/assistente/context",
+            json={
+                "question": "Qual e' la prossima attivita' operativa?",
+                "fascicolo_id": fascicolo.id,
+                "messages": [
+                    {"role": "user", "content": "Ho appena aperto il fascicolo."},
+                    {"role": "assistant", "content": "Perfetto, possiamo impostare le prossime azioni."},
+                ],
+            },
+        )
+
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert payload["ok"] is True
+    assert payload["query_type"] == "assistente_chat"
+    assert payload["question"] == "Qual e' la prossima attivita' operativa?"
+    assert "CONTESTO FASCICOLO ATTIVO" in payload["prompt"]
+    assert "CONVERSAZIONE RECENTE" in payload["prompt"]
+    assert fascicolo.id in payload["prompt"]
+    assert payload["sources"] == []
+
+
 def test_impostazioni_template_contains_ai_locale_tab():
     html = (REPO_ROOT / "web" / "templates" / "impostazioni" / "index.html").read_text(encoding="utf-8")
 

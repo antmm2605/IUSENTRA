@@ -2,8 +2,15 @@
 <div
   id="pct-ai-widget"
   class="pct-ai-widget"
+  data-ai-mode="{{ 'local' if request.host.split(':')[0] in ['localhost', '127.0.0.1'] else 'remote' }}"
   data-chat-url="{{ url_for('assistente.assistente_chat') }}"
   data-status-url="{{ url_for('assistente.assistente_stato') }}"
+  data-server-context-url="{{ url_for('assistente.assistente_context') }}"
+  data-local-signer-url="http://127.0.0.1:27272"
+  data-local-signer-download-page="{{ url_for('impostazioni.index', tab='firma', _external=True) }}"
+  data-local-signer-setup-windows="{{ url_for('polis_local_signer_setup_windows') }}"
+  data-local-signer-setup-macos="{{ url_for('polis_local_signer_setup_macos') }}"
+  data-local-signer-setup-linux="{{ url_for('polis_local_signer_setup_linux') }}"
   data-storage-key="hacs-pct-ai-layout-v1"
 >
   <button
@@ -77,6 +84,7 @@
             <li>Verifiche operative su firma digitale, PEC e PDF/A</li>
             <li>Richiami rapidi alla normativa del deposito telematico</li>
           </ul>
+          <p>Se HACS e' online, Lex usa il companion locale di questo dispositivo per parlare con Ollama in modo sicuro e non bloccante.</p>
           <p class="mb-0">Se il pannello ti intralcia, trascinalo dove preferisci: la posizione resta salvata su questo browser.</p>
         </div>
       </div>

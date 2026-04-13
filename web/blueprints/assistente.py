@@ -218,6 +218,52 @@ def _build_fascicolo_context(fascicolo_id: str) -> str:
         return ""
 
 
+def _latest_user_message(messages: list[dict[str, object]] | None) -> str:
+    for msg in reversed(messages or []):
+        if str(msg.get("role") or "") != "user":
+            continue
+        content = str(msg.get("content") or "").strip()
+        if content:
+            return content
+    return ""
+
+
+def _conversation_excerpt(messages: list[dict[str, object]] | None, limit: int = 8) -> str:
+    rows: list[str] = []
+    for msg in list(messages or [])[-limit:]:
+        role = str(msg.get("role") or "").strip().lower()
+        content = str(msg.get("content") or "").strip()
+        if not content:
+            continue
+        label = "Utente" if role == "user" else "Lex"
+        rows.append(f"{label}: {content}")
+    return "\n".join(rows)
+
+
+def _assistente_prompt(*, question: str, fascicolo_id: str, messages: list[dict[str, object]] | None) -> str:
+    parts = [_SYSTEM_PROMPT + _build_fascicolo_context(fascicolo_id)]
+    conversation = _conversation_excerpt(messages)
+    if conversation:
+        parts.extend(
+            [
+                "",
+                "═══ CONVERSAZIONE RECENTE ═══",
+                conversation,
+            ]
+        )
+    parts.extend(
+        [
+            "",
+            "═══ DOMANDA ATTUALE ═══",
+            question.strip(),
+            "",
+            "Rispondi in italiano con taglio pratico, professionale e operativo.",
+            "Se mancano dati o il contesto non basta, dichiaralo chiaramente senza inventare.",
+        ]
+    )
+    return "\n".join(part for part in parts if part is not None)
+
+
 # ── Route: stato ──────────────────────────────────────────────────────────────
 
 @assistente.route("/api/assistente/stato")
@@ -243,6 +289,39 @@ def assistente_stato():
         return {"ok": False, "errore": str(e), "modelli": []}, 200
 
 
+@assistente.route("/api/assistente/context", methods=["POST"])
+@_richiedi_login
+def assistente_context():
+    data = request.get_json(silent=True) or {}
+    messages = data.get("messages", [])
+    fascicolo_id = str(data.get("fascicolo_id", "") or "").strip()
+    question = str(data.get("question", "") or "").strip() or _latest_user_message(messages)
+    if not question:
+        return {"ok": False, "errore": "Domanda mancante.", "prompt": "", "sources": [], "citations": []}, 200
+
+    try:
+        get_legal_intelligence().registra_trace_risposta(
+            query=question,
+            user=getattr(g.get("utente_corrente"), "username", ""),
+            engine_ids=motori_per_query(question),
+            source_ids=fonti_per_query(question),
+            ai_model=_ollama_model(),
+            result_summary="Contesto assistente Lex preparato per il companion locale.",
+            warning="La risposta finale viene generata sul dispositivo cliente tramite companion locale.",
+        )
+    except Exception:
+        current_app.logger.exception("Errore audit assistente_context")
+
+    return {
+        "ok": True,
+        "query_type": "assistente_chat",
+        "question": question,
+        "prompt": _assistente_prompt(question=question, fascicolo_id=fascicolo_id, messages=messages),
+        "sources": [],
+        "citations": [],
+    }, 200
+
+
 # ── Route: chat (streaming SSE) ───────────────────────────────────────────────
 
 @assistente.route("/api/assistente/chat", methods=["POST"])
@@ -251,14 +330,7 @@ def assistente_chat():
     data = request.get_json(silent=True) or {}
     messages: list = data.get("messages", [])
     fascicolo_id: str = data.get("fascicolo_id", "")
-    last_user_message = next(
-        (
-            (msg.get("content", "") or "").strip()
-            for msg in reversed(messages)
-            if (msg.get("role") or "") == "user"
-        ),
-        "",
-    )
+    last_user_message = _latest_user_message(messages)
 
     # System prompt + eventuale contesto fascicolo
     system_content = _SYSTEM_PROMPT + _build_fascicolo_context(fascicolo_id)

@@ -192,6 +192,7 @@
     function seleziona(u) {
       input.value = u.nome;
       hidden.value = usaNome ? u.nome : u.codice;
+      hidden.dispatchEvent(new Event('change', { bubbles: true }));
       if (badgeLbl) {
         badgeLbl.innerHTML = `<i class="bi ${TIPO_ICONS[u.tipo] || 'bi-building'} me-1"></i><strong>${u.nome}</strong> <span class="opacity-75">(${u.distretto})</span>`;
       }
@@ -287,6 +288,7 @@
       clearBtn.addEventListener('click', () => {
         input.value = '';
         hidden.value = '';
+        hidden.dispatchEvent(new Event('change', { bubbles: true }));
         if (badge) badge.style.display = 'none';
         clearBtn.style.display = 'none';
         chiudi();

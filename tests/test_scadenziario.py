@@ -1,10 +1,19 @@
 """Test per lo scadenziario legale intelligente."""
 
+import json
+
 import pytest
 from datetime import date, timedelta
 
 from pct.scadenziario import (
     GestioneScadenziario,
+    ModalitaOperativa,
+    ProfiloTermine,
+    calcola_scadenza_avanzata,
+    profili_termine_builtin,
+    regola_patrono_studio,
+    regola_patrono_ufficio,
+    regole_calendario_nazionali,
     Scadenza,
     TipoTermine,
     PrioritaTermine,
@@ -16,6 +25,8 @@ from pct.scadenziario import (
     prossimo_giorno_lavorativo,
     _calcola_pasqua,
 )
+from pct.auth import GestioneUtenti
+from web.app import create_app
 
 
 @pytest.fixture
@@ -338,3 +349,184 @@ def test_statistiche(gs):
     assert stats["totale"] == 2
     assert stats["completate"] == 1
     assert stats["aperte"] == 1
+
+
+def test_calcolo_avanzato_separa_scadenza_legale_e_operativa():
+    profile = ProfiloTermine.from_dict(profili_termine_builtin()["TERM_30_DAYS"])
+    national = regole_calendario_nazionali()
+    procedural = [r for r in national if r.kind == "procedural_suspension"]
+    office_rule = regola_patrono_ufficio("trib-palermo", "Patrono ufficio", 15, 7, operating_mode=ModalitaOperativa.CHIUSO.value)
+    studio_rule = regola_patrono_studio("default-studio", "Patrono studio", 15, 7)
+
+    result = calcola_scadenza_avanzata(
+        start_at="2026-06-15T10:00:00",
+        profile=profile,
+        national_rules=national,
+        office_rules=[office_rule],
+        studio_rules=[studio_rule],
+        procedural_rules=procedural,
+        operational_lead_business_days=2,
+    )
+
+    assert result.raw_due_at.startswith("2026-07-15")
+    assert result.legal_due_at.startswith("2026-07-16")
+    assert result.operational_due_at.startswith("2026-07-13")
+    assert result.office_mode_on_legal_due_date == "open"
+    assert any("Proroga" in item for item in result.trace)
+
+
+def test_regola_4_ottobre_non_bloccante_di_default():
+    rules = regole_calendario_nazionali()
+    oct_rule = next(rule for rule in rules if rule.code == "OCT_4_OBSERVANCE")
+    assert oct_rule.applies_to_legal_deadlines is False
+    assert oct_rule.operating_mode == "open"
+
+
+def test_scadenza_avanzata_persistita_salva_trace_e_date(gs):
+    sc = gs.nuova(
+        titolo="Termine con trace",
+        tipo=TipoTermine.ALTRO,
+        data_scadenza="2026-07-16",
+        raw_due_at="2026-07-15T10:00:00",
+        legal_due_at="2026-07-16T10:00:00",
+        operational_due_at="2026-07-13T10:00:00",
+        deadline_profile_code="TERM_30_DAYS",
+        trace_json=json.dumps(["giorno iniziale escluso", "proroga finale"], ensure_ascii=False),
+        judicial_office_name="Tribunale di Palermo",
+        office_mode_on_legal_due_date="open",
+    )
+    assert sc.ha_calcolo_avanzato is True
+    assert sc.trace == ["giorno iniziale escluso", "proroga finale"]
+    assert sc.operational_due_at_obj is not None
+
+
+def _cfg_web(tmp_path):
+    return {
+        "TESTING": True,
+        "AUTH_DB": str(tmp_path / "utenti.json"),
+        "AUDIT_DB": str(tmp_path / "audit.json"),
+        "CLIENTI_DB": str(tmp_path / "clienti.json"),
+        "CONDIVISIONI_DB": str(tmp_path / "condivisioni.json"),
+        "FASCICOLI_DB": str(tmp_path / "fascicoli.json"),
+        "FASCICOLI_DOCS": str(tmp_path / "docs"),
+        "FASCICOLI_ARCH": str(tmp_path / "arch"),
+        "AGENDA_DB": str(tmp_path / "agenda.json"),
+        "SCADENZIARIO_DB": str(tmp_path / "scadenze.json"),
+        "MESSAGGI_DB": str(tmp_path / "messaggi.json"),
+        "SEARCH_INDEX": str(tmp_path / "search.db"),
+        "SOGGETTI_DB": str(tmp_path / "soggetti.json"),
+        "SOGGETTI_PARTI_DB": str(tmp_path / "parti.json"),
+        "PST_IMPORT_DIR": str(tmp_path / "pst_import"),
+        "VALIDATION_RUNS_DB": str(tmp_path / "validation_runs.json"),
+        "REDACTION_ASSISTANT_DB": str(tmp_path / "assistente_redazionale.json"),
+        "PREVENTIVI_DB": str(tmp_path / "preventivi.json"),
+        "STUDIO_CONFIG": str(tmp_path / "studio.json"),
+        "UFFICI_GIUDIZIARI_DB": str(tmp_path / "uffici.json"),
+    }
+
+
+def test_route_calcola_termine_avanzato_restituisce_trace(tmp_path):
+    cfg = _cfg_web(tmp_path)
+    GestioneUtenti(db_path=cfg["AUTH_DB"], audit_path=cfg["AUDIT_DB"], secret_key="test")
+    app = create_app(cfg)
+    client = app.test_client()
+    login = client.post("/login", data={"username": "admin", "password": "admin"}, follow_redirects=True)
+    assert login.status_code == 200
+
+    response = client.post(
+        "/scadenziario/calcola-termine",
+        json={
+            "deadline_profile_code": "TERM_30_DAYS",
+            "source_event_at": "2026-06-15T10:00:00",
+            "operational_lead_business_days": 2,
+            "office_patron_name": "Patrono ufficio",
+            "office_patron_day": 15,
+            "office_patron_month": 7,
+            "office_operating_mode": "closed",
+        },
+    )
+
+    assert response.status_code == 200
+    data = response.get_json()
+    assert data["data_scadenza"] == "2026-07-16"
+    assert data["operational_due_at"].startswith("2026-07-14")
+    assert isinstance(data["trace"], list)
+
+
+def test_route_nuova_scadenza_avanzata_salva_note(tmp_path):
+    cfg = _cfg_web(tmp_path)
+    GestioneUtenti(db_path=cfg["AUTH_DB"], audit_path=cfg["AUDIT_DB"], secret_key="test")
+    app = create_app(cfg)
+    client = app.test_client()
+    login = client.post("/login", data={"username": "admin", "password": "admin"}, follow_redirects=True)
+    assert login.status_code == 200
+
+    response = client.post(
+        "/scadenziario/nuova",
+        data={
+            "titolo": "Deposito memoria istruttoria",
+            "tipo": TipoTermine.DEPOSITO_MEMORIA.value,
+            "deadline_profile_code": "TERM_30_DAYS",
+            "source_event_at": "2026-06-15T10:00",
+            "note": "Preparare allegati e firma entro il giorno precedente.",
+            "perentorio": "1",
+        },
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 302
+    gs = GestioneScadenziario(db_path=cfg["SCADENZIARIO_DB"])
+    scadenze = gs.tutte(solo_aperte=False)
+    assert len(scadenze) == 1
+    assert scadenze[0].note == "Preparare allegati e firma entro il giorno precedente."
+    assert scadenze[0].legal_due_at.startswith("2026-07-15")
+
+
+def test_route_modifica_manuale_azzera_metadati_calcolo_avanzato(tmp_path):
+    cfg = _cfg_web(tmp_path)
+    GestioneUtenti(db_path=cfg["AUTH_DB"], audit_path=cfg["AUDIT_DB"], secret_key="test")
+    gs = GestioneScadenziario(db_path=cfg["SCADENZIARIO_DB"])
+    sc = gs.nuova(
+        titolo="Termine da ripulire",
+        tipo=TipoTermine.ALTRO,
+        data_scadenza="2026-07-16",
+        deadline_profile_code="TERM_30_DAYS",
+        source_event_type="notifica",
+        source_event_at="2026-06-15T10:00:00",
+        raw_due_at="2026-07-15T10:00:00",
+        legal_due_at="2026-07-16T10:00:00",
+        operational_due_at="2026-07-14T10:00:00",
+        office_mode_on_legal_due_date="closed",
+        trace_json=json.dumps(["proroga finale"], ensure_ascii=False),
+        judicial_office_id="trib-001",
+        judicial_office_name="Tribunale test",
+    )
+    app = create_app(cfg)
+    client = app.test_client()
+    login = client.post("/login", data={"username": "admin", "password": "admin"}, follow_redirects=True)
+    assert login.status_code == 200
+
+    response = client.post(
+        f"/scadenziario/{sc.id}/modifica",
+        data={
+            "titolo": "Termine manuale",
+            "tipo": TipoTermine.ALTRO.value,
+            "data_scadenza": "2026-08-20",
+            "data_decorrenza": "",
+            "descrizione": "Aggiornato manualmente",
+            "note": "Senza motore avanzato",
+        },
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 302
+    aggiornato = GestioneScadenziario(db_path=cfg["SCADENZIARIO_DB"]).get(sc.id)
+    assert aggiornato is not None
+    assert aggiornato.data_scadenza == "2026-08-20"
+    assert aggiornato.deadline_profile_code == ""
+    assert aggiornato.source_event_at == ""
+    assert aggiornato.raw_due_at == ""
+    assert aggiornato.legal_due_at == ""
+    assert aggiornato.operational_due_at == ""
+    assert aggiornato.trace == []
+    assert aggiornato.note == "Senza motore avanzato"

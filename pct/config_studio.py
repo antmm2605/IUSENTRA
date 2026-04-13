@@ -92,6 +92,11 @@ class ConfigDatiStudio:
     piva: str = ""
     cf: str = ""
     indirizzo: str = ""
+    city: str = ""
+    province: str = ""
+    patron_name: str = ""
+    patron_day: int = 0
+    patron_month: int = 0
     telefono: str = ""
     email: str = ""
     sito_web: str = ""
@@ -351,6 +356,11 @@ class GestioneConfigStudio:
                 piva=os.getenv("PCT_STUDIO_PIVA", ""),
                 cf=os.getenv("PCT_STUDIO_CF", ""),
                 indirizzo=os.getenv("PCT_STUDIO_INDIRIZZO", ""),
+                city=os.getenv("PCT_STUDIO_CITY", ""),
+                province=os.getenv("PCT_STUDIO_PROVINCE", ""),
+                patron_name=os.getenv("PCT_STUDIO_PATRON_NAME", ""),
+                patron_day=int(os.getenv("PCT_STUDIO_PATRON_DAY", "0") or "0"),
+                patron_month=int(os.getenv("PCT_STUDIO_PATRON_MONTH", "0") or "0"),
                 iban=os.getenv("PCT_STUDIO_IBAN", ""),
                 codice_fiscale_avvocato=os.getenv("PCT_CF_AVVOCATO", ""),
             ),

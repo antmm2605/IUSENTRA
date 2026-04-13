@@ -47,15 +47,21 @@ def test_build_windows_ps1_include_versione_e_script_originale():
 
 def test_write_windows_support_files_copia_i_file_necessari(monkeypatch, tmp_path):
     ls_py = tmp_path / "local_signer.py"
+    ai_bridge = tmp_path / "local_ai_host_bridge.py"
+    lex_context = tmp_path / "lex_document_context.py"
     reqs = tmp_path / "requirements_local_signer.txt"
     uffici = tmp_path / "uffici_ministero.json"
     dist = tmp_path / "dist"
     dist.mkdir()
     ls_py.write_text("VERSION = '1.5.16'\n", encoding="utf-8")
+    ai_bridge.write_text("def bridge():\n    return 'ok'\n", encoding="utf-8")
+    lex_context.write_text("def parse_document():\n    return []\n", encoding="utf-8")
     reqs.write_text("cryptography\n", encoding="utf-8")
     uffici.write_text('{"uffici":[]}', encoding="utf-8")
 
     monkeypatch.setattr(build_dist, "LS_PY", ls_py)
+    monkeypatch.setattr(build_dist, "AI_BRIDGE_PY", ai_bridge)
+    monkeypatch.setattr(build_dist, "LEX_CONTEXT_PY", lex_context)
     monkeypatch.setattr(build_dist, "REQS_TXT", reqs)
     monkeypatch.setattr(build_dist, "UFFICI_JSON", uffici)
 
@@ -63,10 +69,14 @@ def test_write_windows_support_files_copia_i_file_necessari(monkeypatch, tmp_pat
 
     assert [path.name for path in copied] == [
         "local_signer.py",
+        "local_ai_host_bridge.py",
+        "lex_document_context.py",
         "requirements_local_signer.txt",
         "uffici_ministero.json",
     ]
     assert (dist / "local_signer.py").read_text(encoding="utf-8") == "VERSION = '1.5.16'\n"
+    assert (dist / "local_ai_host_bridge.py").read_text(encoding="utf-8") == "def bridge():\n    return 'ok'\n"
+    assert (dist / "lex_document_context.py").read_text(encoding="utf-8") == "def parse_document():\n    return []\n"
     assert (dist / "requirements_local_signer.txt").read_text(encoding="utf-8") == "cryptography\n"
     assert (dist / "uffici_ministero.json").read_text(encoding="utf-8") == '{"uffici":[]}'
 

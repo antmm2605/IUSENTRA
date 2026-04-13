@@ -325,11 +325,15 @@ def test_local_signer_distribution_include_bridge_ai(tmp_path: Path):
 
     with app.test_client() as client:
         bridge = client.get("/polisWeb/local-signer/download/local-ai-bridge")
+        lex_context = client.get("/polisWeb/local-signer/download/lex-document-context")
 
     assert bridge.status_code == 200
     bridge_source = bridge.get_data(as_text=True)
     assert "class LocalAiHostBridge" in bridge_source
     assert "class OllamaLocalClient" in bridge_source
+
+    assert lex_context.status_code == 200
+    assert "build_attachment_prompt_block" in lex_context.get_data(as_text=True)
 
     build_dist = (REPO_ROOT / "tools/build_dist.py").read_text(encoding="utf-8")
     build_windows = (REPO_ROOT / "tools/build_local_signer_windows_exe.ps1").read_text(encoding="utf-8")
@@ -337,9 +341,13 @@ def test_local_signer_distribution_include_bridge_ai(tmp_path: Path):
     web_app = (REPO_ROOT / "web/app.py").read_text(encoding="utf-8")
 
     assert "local_ai_host_bridge.py" in build_dist
+    assert "lex_document_context.py" in build_dist
     assert "local_ai_host_bridge.py" in build_windows
+    assert "lex_document_context.py" in build_windows
     assert "local_ai_host_bridge.py" in installer
+    assert "lex_document_context.py" in installer
     assert "/polisWeb/local-signer/download/local-ai-bridge" in web_app
+    assert "/polisWeb/local-signer/download/lex-document-context" in web_app
 
 
 def test_notifiche_whatsapp_usa_js_esterno_e_date_localizzate():
@@ -382,9 +390,12 @@ def test_ai_operativa_usa_bridge_browser_e_template_senza_logica_inline():
     assert "window.HacsLocalAiBrowserBridge" in bridge_js
     assert "/ai/rag/query" in bridge_js
     assert "/ai/rag/query/stream" in bridge_js
+    assert "/ai/attachments/parse" in bridge_js
     assert "/ping" in bridge_js
     assert "127.0.0.1:27272" in bridge_js
     assert "fetch(config.localSignerUrl + '/ai/status', {\n        method: 'GET',\n      });" in bridge_js
+    assert "parseServerAttachments" in bridge_js
+    assert "parseCompanionAttachments" in bridge_js
     assert "fetchCompanionPing" in bridge_js
     assert "isCompanionTransportError" in bridge_js
     assert "companionRuntimeHelp" in bridge_js
@@ -402,29 +413,48 @@ def test_ai_operativa_usa_bridge_browser_e_template_senza_logica_inline():
 def test_lex_assistant_usa_componente_esterno_e_posizione_persistente():
     base_template = (REPO_ROOT / "web/templates/base.html").read_text(encoding="utf-8")
     widget_template = (REPO_ROOT / "web/templates/components/pct_ai_widget.html").read_text(encoding="utf-8")
+    widget_docs_js = (REPO_ROOT / "web/static/js/pct-lex-assistant-documents.js").read_text(encoding="utf-8")
+    widget_voice_js = (REPO_ROOT / "web/static/js/pct-lex-assistant-voice.js").read_text(encoding="utf-8")
     widget_js = (REPO_ROOT / "web/static/js/pct-lex-assistant.js").read_text(encoding="utf-8")
     widget_scss = (REPO_ROOT / "web/static/scss/components/_pct-lex-assistant.scss").read_text(encoding="utf-8")
 
     assert '{% include "components/pct_ai_widget.html" %}' in base_template
     assert "/static/js/local-ai-browser-bridge.js?v={{ app_version }}" in base_template
+    assert "/static/js/pct-lex-assistant-documents.js?v={{ app_version }}" in base_template
+    assert "/static/js/pct-lex-assistant-voice.js?v={{ app_version }}" in base_template
     assert "/static/js/pct-lex-assistant.js?v={{ app_version }}" in base_template
 
     assert 'data-chat-url="{{ url_for(\'assistente.assistente_chat\') }}"' in widget_template
     assert 'data-status-url="{{ url_for(\'assistente.assistente_stato\') }}"' in widget_template
     assert 'data-server-context-url="{{ url_for(\'assistente.assistente_context\') }}"' in widget_template
+    assert 'data-server-attachments-url="{{ url_for(\'assistente.assistente_attachments\') }}"' in widget_template
     assert 'data-local-signer-url="http://127.0.0.1:27272"' in widget_template
     assert "data-local-signer-setup-windows" in widget_template
     assert 'data-ai-mode="{{ \'local\' if request.host.split(\':\')[0] in [\'localhost\', \'127.0.0.1\'] else \'remote\' }}"' in widget_template
     assert 'data-pct-ai-drag-handle="true"' in widget_template
-    assert "posizione resta salvata su questo browser" in widget_template
+    assert "posizione e dimensioni restano salvate su questo browser" in widget_template
+    assert "Carica documenti" in widget_template
+    assert "Scarica il riepilogo della conversazione" in widget_template
+    assert "Detta la richiesta a Lex" in widget_template
+    assert "Ridimensiona la finestra di Lex" in widget_template
     assert "<script>" not in widget_template
 
+    assert "parseAttachments" in widget_docs_js
+    assert "buildPromptBlock" in widget_docs_js
+    assert "triggerDownload" in widget_docs_js
+    assert "SpeechRecognition" in widget_voice_js or "webkitSpeechRecognition" in widget_voice_js
+    assert "speechSynthesis" in widget_voice_js
     assert "window.localStorage" in widget_js
     assert "resetPosition" in widget_js
+    assert "startResize" in widget_js
+    assert "handleUpload" in widget_js
+    assert "speakAnswer" in widget_js
     assert "pct-ai-widget--custom" in widget_js
     assert "data-pct-ai-drag-handle" in widget_template
     assert "dataset.chatUrl" in widget_js
     assert "dataset.statusUrl" in widget_js
+    assert "documentsHelper" in widget_js
+    assert "voiceHelper" in widget_js
     assert "fetchServerContext" in widget_js
     assert "streamCompanionRagQuery" in widget_js
     assert "companionHelp" in widget_js
@@ -446,6 +476,9 @@ def test_lex_assistant_usa_componente_esterno_e_posizione_persistente():
     assert ".pct-ai-widget--custom" in widget_scss
     assert ".pct-ai-drag-hint" in widget_scss
     assert "cursor: move;" in widget_scss
+    assert ".pct-ai-toolbar" in widget_scss
+    assert ".pct-ai-attachments" in widget_scss
+    assert ".pct-ai-resize-handle" in widget_scss
 
 
 def test_modal_firma_deposito_prevede_riavvio_local_signer():

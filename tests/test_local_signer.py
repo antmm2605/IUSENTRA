@@ -548,6 +548,34 @@ def test_ai_bootstrap_bridge_locale_usa_force_e_payload():
     assert captured["payload"]["chat_model"] == "gemma3:1b"
 
 
+def test_ai_attachments_parse_locale_restituisce_documenti_normalizzati():
+    module = _load_local_signer()
+    captured = {}
+
+    payload_file = {
+        "name": "nota.txt",
+        "mime_type": "text/plain",
+        "content_base64": "data:text/plain;base64," + base64.b64encode("Promemoria deposito telematico".encode("utf-8")).decode("ascii"),
+    }
+
+    class _FakeHandler:
+        headers = {}
+
+        def _read_json(self):
+            return {"files": [payload_file]}
+
+        def _send_json(self, data, status=200):
+            captured["data"] = data
+            captured["status"] = status
+
+    module._Handler._ai_attachments_parse(_FakeHandler())
+
+    assert captured["status"] == 200
+    assert captured["data"]["ok"] is True
+    assert captured["data"]["attachments"][0]["name"] == "nota.txt"
+    assert "DOCUMENTI CARICATI DALL'UTENTE" in captured["data"]["prompt_block"]
+
+
 def test_ai_rag_query_bridge_locale_inoltra_prompt_e_fonti():
     module = _load_local_signer()
     original = module._get_local_ai_bridge

@@ -31,6 +31,7 @@ from web.services.ollama_runtime import (
     resolved_ollama_chat_model,
 )
 from pct.legal_intelligence import fonti_per_query, motori_per_query
+from tools.lex_document_context import build_attachment_prompt_block, parse_attachment_payloads
 
 assistente = Blueprint("assistente", __name__)
 
@@ -274,6 +275,27 @@ def _assistente_prompt(*, question: str, fascicolo_id: str, messages: list[dict[
     return "\n".join(part for part in parts if part is not None)
 
 
+def _normalized_attachments(raw: list[dict[str, object]] | None) -> list[dict[str, object]]:
+    attachments: list[dict[str, object]] = []
+    for item in list(raw or []):
+        excerpt = str(item.get("text_excerpt") or "").strip()
+        if not excerpt:
+            continue
+        attachments.append(
+            {
+                "id": str(item.get("id") or "").strip(),
+                "name": str(item.get("name") or "Documento").strip() or "Documento",
+                "mime_type": str(item.get("mime_type") or "").strip(),
+                "size_bytes": item.get("size_bytes") or 0,
+                "page_count": item.get("page_count"),
+                "text_excerpt": excerpt,
+                "text_chars": item.get("text_chars") or len(excerpt),
+                "truncated": bool(item.get("truncated")),
+            }
+        )
+    return attachments
+
+
 # ── Route: stato ──────────────────────────────────────────────────────────────
 
 @assistente.route("/api/assistente/stato")
@@ -304,6 +326,7 @@ def assistente_stato():
 def assistente_context():
     data = request.get_json(silent=True) or {}
     messages = data.get("messages", [])
+    attachments = _normalized_attachments(data.get("attachments"))
     fascicolo_id = str(data.get("fascicolo_id", "") or "").strip()
     question = str(data.get("question", "") or "").strip() or _latest_user_message(messages)
     if not question:
@@ -326,9 +349,24 @@ def assistente_context():
         "ok": True,
         "query_type": "assistente_chat",
         "question": question,
-        "prompt": _assistente_prompt(question=question, fascicolo_id=fascicolo_id, messages=messages),
+        "prompt": _assistente_prompt(question=question, fascicolo_id=fascicolo_id, messages=messages)
+        + ("\n\n" + build_attachment_prompt_block(attachments) if attachments else ""),
         "sources": [],
         "citations": [],
+        "attachments": attachments,
+    }, 200
+
+
+@assistente.route("/api/assistente/attachments", methods=["POST"])
+@_richiedi_login
+def assistente_attachments():
+    data = request.get_json(silent=True) or {}
+    attachments, errors = parse_attachment_payloads(data.get("files") or [])
+    return {
+        "ok": True,
+        "attachments": attachments,
+        "errors": errors,
+        "prompt_block": build_attachment_prompt_block(attachments),
     }, 200
 
 
@@ -339,11 +377,14 @@ def assistente_context():
 def assistente_chat():
     data = request.get_json(silent=True) or {}
     messages: list = data.get("messages", [])
+    attachments = _normalized_attachments(data.get("attachments"))
     fascicolo_id: str = data.get("fascicolo_id", "")
     last_user_message = _latest_user_message(messages)
 
     # System prompt + eventuale contesto fascicolo
     system_content = _SYSTEM_PROMPT + _build_fascicolo_context(fascicolo_id)
+    if attachments:
+        system_content += "\n\n" + build_attachment_prompt_block(attachments)
 
     payload = {
         "model": _ollama_model(),

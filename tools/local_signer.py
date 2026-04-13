@@ -90,9 +90,15 @@ try:
 except Exception:
     LocalAiHostBridge = None  # type: ignore[assignment]
 
+try:
+    from lex_document_context import build_attachment_prompt_block, parse_attachment_payloads
+except Exception:
+    build_attachment_prompt_block = None  # type: ignore[assignment]
+    parse_attachment_payloads = None  # type: ignore[assignment]
+
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.5.44"
+VERSION = "1.6.0"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
@@ -5219,6 +5225,7 @@ class _Handler(BaseHTTPRequestHandler):
         path = urlparse(self.path).path
         if path in {
             "/ai/bootstrap",
+            "/ai/attachments/parse",
             "/ai/chat",
             "/ai/chat/stream",
             "/ai/rag/query",
@@ -5238,6 +5245,8 @@ class _Handler(BaseHTTPRequestHandler):
             log.info("HTTP POST %s", path)
         if path == "/ai/bootstrap":
             self._ai_bootstrap()
+        elif path == "/ai/attachments/parse":
+            self._ai_attachments_parse()
         elif path == "/ai/chat":
             self._ai_chat()
         elif path == "/ai/chat/stream":
@@ -5301,6 +5310,28 @@ class _Handler(BaseHTTPRequestHandler):
             self._send_json(payload)
         except Exception as e:
             log.error("Errore AI bootstrap locale: %s", e)
+            self._send_json({"ok": False, "errore": str(e)}, 500)
+
+    def _ai_attachments_parse(self):
+        if parse_attachment_payloads is None or build_attachment_prompt_block is None:
+            self._send_json(
+                {"ok": False, "errore": "Parser documentale locale non disponibile sul companion."},
+                500,
+            )
+            return
+        try:
+            data = self._read_json()
+            attachments, errors = parse_attachment_payloads(data.get("files") or [])
+            self._send_json(
+                {
+                    "ok": True,
+                    "attachments": attachments,
+                    "errors": errors,
+                    "prompt_block": build_attachment_prompt_block(attachments),
+                }
+            )
+        except Exception as e:
+            log.error("Errore parsing documenti Lex locale: %s", e)
             self._send_json({"ok": False, "errore": str(e)}, 500)
 
     def _ai_chat(self):

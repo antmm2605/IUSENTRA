@@ -57,23 +57,23 @@ def _local_signer_meta() -> dict[str, str]:
     match = _re.search(r'(?m)^VERSION\s*=\s*"([^"]+)"', source)
     version = match.group(1) if match else "n.d."
 
-    # Determina il filename Windows mostrato in UI:
-    # CMD > EXE > PS1 offline > PS1 online (generato al volo)
+    # Determina il filename Windows mostrato in UI.
+    # L'eseguibile .exe resta il pacchetto ufficiale pubblicato per Windows.
     win_cmd  = dist_dir / f"SetupLocalSigner-{version}.cmd"
     win_exe  = dist_dir / f"SetupLocalSigner-{version}.exe"
     win_ps1  = dist_dir / f"SetupLocalSigner-{version}.ps1"
-    if win_cmd.exists():
-        windows_filename = win_cmd.name
-        windows_tipo     = "cmd"
-    elif win_exe.exists():
+    if win_exe.exists():
         windows_filename = win_exe.name
         windows_tipo     = "exe"
+    elif win_cmd.exists():
+        windows_filename = win_exe.name
+        windows_tipo     = "exe_pending"
     elif win_ps1.exists():
-        windows_filename = win_ps1.name
+        windows_filename = win_exe.name
         windows_tipo     = "ps1_offline"
     else:
-        windows_filename = f"InstallaLocalSigner-{version}.ps1"
-        windows_tipo     = "ps1_online"
+        windows_filename = f"SetupLocalSigner-{version}.exe"
+        windows_tipo     = "exe_pending"
 
     return {
         "version": version,

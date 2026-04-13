@@ -6,6 +6,7 @@
   data-chat-url="{{ url_for('assistente.assistente_chat') }}"
   data-status-url="{{ url_for('assistente.assistente_stato') }}"
   data-server-context-url="{{ url_for('assistente.assistente_context') }}"
+  data-server-attachments-url="{{ url_for('assistente.assistente_attachments') }}"
   data-local-signer-url="http://127.0.0.1:27272"
   data-local-signer-download-page="{{ url_for('impostazioni.index', tab='firma', _external=True) }}"
   data-local-signer-setup-windows="{{ url_for('polis_local_signer_setup_windows') }}"
@@ -51,12 +52,19 @@
           </div>
           <div class="pct-ai-header__meta">
             <span id="pct-ai-model-badge" class="pct-ai-model-badge">Verifica modello</span>
+            <span id="pct-ai-voice-badge" class="pct-ai-model-badge">Voce pronta</span>
             <span class="pct-ai-drag-hint"><i class="bi bi-grip-horizontal"></i> Trascina</span>
           </div>
         </div>
       </div>
       <div class="pct-ai-header__actions">
-        <button id="pct-ai-reset-position" class="pct-ai-hbtn" type="button" title="Ripristina la posizione predefinita" aria-label="Ripristina la posizione predefinita">
+        <button id="pct-ai-export" class="pct-ai-hbtn" type="button" title="Scarica il riepilogo della conversazione" aria-label="Scarica il riepilogo della conversazione">
+          <i class="bi bi-download"></i>
+        </button>
+        <button id="pct-ai-voice-toggle" class="pct-ai-hbtn" type="button" title="Attiva o disattiva la risposta vocale" aria-label="Attiva o disattiva la risposta vocale">
+          <i class="bi bi-volume-up-fill"></i>
+        </button>
+        <button id="pct-ai-reset-position" class="pct-ai-hbtn" type="button" title="Ripristina posizione e dimensioni predefinite" aria-label="Ripristina posizione e dimensioni predefinite">
           <i class="bi bi-arrow-down-right-square"></i>
         </button>
         <button id="pct-ai-clear" class="pct-ai-hbtn" type="button" title="Nuova conversazione" aria-label="Nuova conversazione">
@@ -85,12 +93,30 @@
             <li>Richiami rapidi alla normativa del deposito telematico</li>
           </ul>
           <p>Se HACS e' online, Lex usa il companion locale di questo dispositivo per parlare con Ollama in modo sicuro e non bloccante.</p>
-          <p class="mb-0">Se il pannello ti intralcia, trascinalo dove preferisci: la posizione resta salvata su questo browser.</p>
+          <p class="mb-0">Se il pannello ti intralcia, trascinalo o ridimensionalo come preferisci: posizione e dimensioni restano salvate su questo browser.</p>
         </div>
       </div>
     </div>
 
     <footer class="pct-ai-footer">
+      <div class="pct-ai-toolbar">
+        <label for="pct-ai-upload" class="pct-ai-tool-btn pct-ai-tool-btn--upload" title="Carica documenti nel contesto di Lex">
+          <i class="bi bi-paperclip"></i>
+          <span>Carica documenti</span>
+        </label>
+        <input
+          id="pct-ai-upload"
+          class="pct-ai-upload-input"
+          type="file"
+          multiple
+          accept=".pdf,.docx,.txt,.md,.json,.html,.htm,.csv"
+        >
+        <button id="pct-ai-mic" class="pct-ai-tool-btn" type="button" title="Detta la richiesta a Lex" aria-label="Detta la richiesta a Lex">
+          <i class="bi bi-mic-fill"></i>
+          <span>Detta</span>
+        </button>
+      </div>
+      <div id="pct-ai-attachments" class="pct-ai-attachments" hidden></div>
       <div class="pct-ai-input-wrap">
         <textarea
           id="pct-ai-input"
@@ -103,6 +129,9 @@
         </button>
       </div>
       <div id="pct-ai-status" class="pct-ai-status-bar">Assistente pronto.</div>
+      <button id="pct-ai-resize-handle" class="pct-ai-resize-handle" type="button" title="Ridimensiona la finestra di Lex" aria-label="Ridimensiona la finestra di Lex">
+        <i class="bi bi-arrows-angle-expand"></i>
+      </button>
     </footer>
   </section>
 </div>

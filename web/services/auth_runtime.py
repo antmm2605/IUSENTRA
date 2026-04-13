@@ -25,6 +25,7 @@ def register_auth_runtime(
         "admin.esci_impersonazione",
         "polis_local_signer_download",
         "polis_local_ai_bridge_download",
+        "polis_local_ai_lex_context_download",
         "polis_local_signer_download_uffici",
         "polis_local_signer_installa",
         "polis_local_signer_setup_windows",

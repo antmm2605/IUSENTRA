@@ -5,3 +5,5 @@ python-pkcs11>=0.7.0
 asn1crypto>=1.5.0
 cryptography>=41.0.0
 zeep>=4.2.1
+pdfplumber>=0.10.0
+mammoth>=1.6.0

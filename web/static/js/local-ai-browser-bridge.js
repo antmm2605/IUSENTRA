@@ -30,6 +30,7 @@
       runtimeBootstrapUrl: dataset.runtimeBootstrapUrl || '/api/local-ai/bootstrap',
       serverAskUrl: dataset.serverAskUrl || '',
       serverContextUrl: dataset.serverContextUrl || '',
+      serverAttachmentsUrl: dataset.serverAttachmentsUrl || '',
       serverReindexUrl: dataset.serverReindexUrl || '',
     };
   }
@@ -170,6 +171,29 @@
     return readJsonResponse(response);
   }
 
+  async function parseServerAttachments(config, payload) {
+    const response = await fetch(config.serverAttachmentsUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest',
+      },
+      body: JSON.stringify(payload || {}),
+    });
+    return readJsonResponse(response);
+  }
+
+  async function parseCompanionAttachments(config, payload) {
+    const response = await fetch(config.localSignerUrl + '/ai/attachments/parse', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload || {}),
+    });
+    return readJsonResponse(response);
+  }
+
   async function streamCompanionSse(config, path, payload, handlers) {
     const response = await fetch(config.localSignerUrl + path, {
       method: 'POST',
@@ -265,6 +289,8 @@
     fetchRuntimeStatus,
     fetchCompanionPing,
     fetchServerContext,
+    parseServerAttachments,
+    parseCompanionAttachments,
     fetchServerAnswer,
     runCompanionRagQuery,
     streamCompanionChat,

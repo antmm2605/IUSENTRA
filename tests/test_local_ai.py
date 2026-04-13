@@ -1,3 +1,4 @@
+import base64
 import json
 import sqlite3
 from pathlib import Path
@@ -403,6 +404,59 @@ def test_api_assistente_context_prepara_prompt_per_companion_locale(tmp_path: Pa
     assert "CONVERSAZIONE RECENTE" in payload["prompt"]
     assert fascicolo.id in payload["prompt"]
     assert payload["sources"] == []
+
+
+def test_api_assistente_attachments_parse_documenti_locali(tmp_path: Path):
+    _write_studio_config(tmp_path / "config" / "studio.json", enabled=True)
+    app = create_app(_cfg_web(tmp_path))
+
+    file_payload = {
+        "name": "memo.txt",
+        "mime_type": "text/plain",
+        "content_base64": "data:text/plain;base64," + base64.b64encode(
+            "Promemoria udienza e deposito memoria ex art. 183".encode("utf-8")
+        ).decode("ascii"),
+    }
+
+    with app.test_client() as client:
+        client.post("/login", data={"username": "admin", "password": "admin"}, follow_redirects=True)
+        response = client.post("/api/assistente/attachments", json={"files": [file_payload]})
+
+    payload = response.get_json()
+    assert response.status_code == 200
+    assert payload["ok"] is True
+    assert payload["attachments"][0]["name"] == "memo.txt"
+    assert "DOCUMENTI CARICATI DALL'UTENTE" in payload["prompt_block"]
+
+
+def test_api_assistente_context_integra_documenti_caricati(tmp_path: Path):
+    _write_studio_config(tmp_path / "config" / "studio.json", enabled=True)
+    app = create_app(_cfg_web(tmp_path))
+
+    with app.test_client() as client:
+        client.post("/login", data={"username": "admin", "password": "admin"}, follow_redirects=True)
+        response = client.post(
+            "/api/assistente/context",
+            json={
+                "question": "Quali documenti devo controllare prima del deposito?",
+                "attachments": [
+                    {
+                        "id": "doc-1",
+                        "name": "memo.txt",
+                        "mime_type": "text/plain",
+                        "text_excerpt": "Promemoria per controllare procura, nota di iscrizione e allegati firmati.",
+                        "text_chars": 72,
+                        "truncated": False,
+                    }
+                ],
+            },
+        )
+
+    payload = response.get_json()
+    assert response.status_code == 200
+    assert payload["ok"] is True
+    assert "DOCUMENTI CARICATI DALL'UTENTE" in payload["prompt"]
+    assert "Promemoria per controllare procura" in payload["prompt"]
 
 
 def test_impostazioni_template_contains_ai_locale_tab():

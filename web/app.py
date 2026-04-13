@@ -2776,6 +2776,50 @@ def create_app(config: dict | None = None) -> Flask:
             utente=u.username if u else "sistema",
         )
 
+    def _audit_and_sync_best_effort(
+        *,
+        audit_azione: str = "",
+        audit_risorsa_tipo: str = "",
+        audit_risorsa_id: str = "",
+        audit_dettagli: str = "",
+        sync_tipo: str = "",
+        sync_modulo: str = "",
+        sync_id_risorsa: str = "",
+    ) -> list[str]:
+        """
+        Registra audit e sincronizzazione senza bloccare le azioni utente.
+
+        Firma, upload documenti e depositi non devono fallire se il canale
+        realtime o il log audit hanno un problema operativo.
+        """
+        avvisi: list[str] = []
+        if audit_azione:
+            try:
+                audit(
+                    audit_azione,
+                    audit_risorsa_tipo,
+                    audit_risorsa_id,
+                    audit_dettagli,
+                )
+            except Exception as exc:
+                app.logger.exception("Errore audit best-effort %s: %s", audit_azione, exc)
+                avvisi.append("audit")
+
+        if sync_tipo and sync_modulo:
+            try:
+                sync_pubblica(sync_tipo, sync_modulo, sync_id_risorsa)
+            except Exception as exc:
+                app.logger.exception(
+                    "Errore sincronizzazione best-effort %s/%s/%s: %s",
+                    sync_tipo,
+                    sync_modulo,
+                    sync_id_risorsa,
+                    exc,
+                )
+                avvisi.append("sync")
+
+        return avvisi
+
     # ---------------------------------------------------------------- context
     register_template_runtime(
         app,
@@ -12923,10 +12967,15 @@ read -r -p "Premi Invio per chiudere..." _
             except Exception:
                 pass
 
-            audit("firma.pkcs11", "documento", id_doc,
-                  dettagli=f"Firmato via PKCS#11 da {intestatario} — {nome_firmato}")
-            _sync.pubblica("modifica", "fascicoli", id_fasc,
-                           utente=u.username if u else "")
+            avvisi_operativi = _audit_and_sync_best_effort(
+                audit_azione="firma.pkcs11",
+                audit_risorsa_tipo="documento",
+                audit_risorsa_id=id_doc,
+                audit_dettagli=f"Firmato via PKCS#11 da {intestatario} — {nome_firmato}",
+                sync_tipo="modifica",
+                sync_modulo="fascicoli",
+                sync_id_risorsa=id_fasc,
+            )
 
             return jsonify({
                 "ok": True,
@@ -12938,6 +12987,8 @@ read -r -p "Premi Invio per chiudere..." _
                     f"Documento firmato con successo da {intestatario}. "
                     + (stato_cert["messaggio"] if stato_cert.get("avviso_imminente") else "")
                 ),
+                "warning": bool(avvisi_operativi),
+                "warning_codes": avvisi_operativi,
             })
 
         except Exception as e:
@@ -13126,13 +13177,15 @@ read -r -p "Premi Invio per chiudere..." _
             fasc.modificato_il = __import__("datetime").datetime.now().isoformat()
             gf._salva()
 
-            audit(
-                "firma.pkcs11.batch",
-                "fascicolo",
-                id_fasc,
-                dettagli=f"Firmati {firmati} documenti via PKCS#11 nel fascicolo {id_fasc}",
+            avvisi_operativi = _audit_and_sync_best_effort(
+                audit_azione="firma.pkcs11.batch",
+                audit_risorsa_tipo="fascicolo",
+                audit_risorsa_id=id_fasc,
+                audit_dettagli=f"Firmati {firmati} documenti via PKCS#11 nel fascicolo {id_fasc}",
+                sync_tipo="modifica",
+                sync_modulo="fascicoli",
+                sync_id_risorsa=id_fasc,
             )
-            _sync.pubblica("modifica", "fascicoli", id_fasc, utente=u.username if u else "")
 
             return jsonify({
                 "ok": errori == 0,
@@ -13143,6 +13196,8 @@ read -r -p "Premi Invio per chiudere..." _
                 "scadenza": stato_cert.get("scadenza", ""),
                 "avviso_scadenza": stato_cert.get("avviso_imminente", False),
                 "risultati": risultati,
+                "warning": bool(avvisi_operativi),
+                "warning_codes": avvisi_operativi,
                 "messaggio": (
                     f"Firma batch completata: {firmati} firmati, {saltati} già firmati, {errori} errori."
                 ),
@@ -13203,12 +13258,33 @@ read -r -p "Premi Invio per chiudere..." _
                 )
             doc = gf.segna_firmato(id_fasc, id_doc)
             messaggio = f"Documento '{doc.nome}' contrassegnato come firmato per deposito."
-            audit("fascicoli.documento.firma", "fascicolo", id_fasc,
-                  dettagli=f"doc {id_doc} — {doc.nome}")
-            _sync.pubblica("modifica", "fascicoli", id_fasc, utente=u.username if u else "")
-            return _chiudi_risposta(True, messaggio, "success", nome_firmato=doc.nome)
+            avvisi_operativi = _audit_and_sync_best_effort(
+                audit_azione="fascicoli.documento.firma",
+                audit_risorsa_tipo="fascicolo",
+                audit_risorsa_id=id_fasc,
+                audit_dettagli=f"doc {id_doc} — {doc.nome}",
+                sync_tipo="modifica",
+                sync_modulo="fascicoli",
+                sync_id_risorsa=id_fasc,
+            )
+            return _chiudi_risposta(
+                True,
+                messaggio,
+                "success",
+                nome_firmato=doc.nome,
+                warning=bool(avvisi_operativi),
+                warning_codes=avvisi_operativi,
+            )
         except (ValueError, KeyError) as e:
             return _chiudi_risposta(False, str(e), "danger", status=400)
+        except Exception as e:
+            app.logger.exception("Errore firma_documento(%s, %s): %s", id_fasc, id_doc, e)
+            return _chiudi_risposta(
+                False,
+                f"Errore tecnico durante il salvataggio del documento firmato: {e}",
+                "danger",
+                status=500,
+            )
 
     @app.route("/fascicoli/<id_fasc>/documenti/<id_doc>/elimina", methods=["POST"])
     def elimina_documento(id_fasc, id_doc):

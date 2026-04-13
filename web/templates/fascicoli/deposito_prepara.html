@@ -755,6 +755,18 @@ function _base64ToUint8ArraySafe(b64) {
   return bytes;
 }
 
+function _depositoUploadWarningText(payload) {
+  if (!payload || !payload.warning) return '';
+  const codes = Array.isArray(payload.warning_codes) ? payload.warning_codes : [];
+  if (codes.includes('sync')) {
+    return "Documento salvato correttamente. La sincronizzazione in tempo reale e' momentaneamente non disponibile.";
+  }
+  if (codes.includes('audit')) {
+    return "Documento salvato correttamente. La registrazione del log operativo verra' riallineata automaticamente.";
+  }
+  return 'Documento salvato correttamente con un avviso operativo non bloccante.';
+}
+
 // ── Stato PKCS#11 / Local Signer ─────────────────────────────────────────────
 let _pkcs11PendingAction = null;  // 'pec' | 'demo' | 'busta' — azione da eseguire dopo firma
 let _pkcs11TokenSlot = null;       // slot_id del token rilevato (server-side)
@@ -1030,6 +1042,8 @@ function avviaFirmaPkcs11() {
       const msgParts = [`Firmato da <strong>${d.intestatario || 'token'}</strong>`];
       if (d.scadenza) msgParts.push(`· certificato valido fino al ${d.scadenza}`);
       if (d.avviso_scadenza) msgParts.push('· <span class="text-warning">certificato in scadenza!</span>');
+      const uploadWarning = _depositoUploadWarningText(d);
+      if (uploadWarning) msgParts.push(`<span class="text-warning">${uploadWarning}</span>`);
       document.getElementById('pkcs11SuccessMsg').innerHTML = msgParts.join(' ');
       document.getElementById('pkcs11Success').style.display = '';
       document.getElementById('btnContinuaDopoFirma').classList.remove('d-none');
@@ -1166,7 +1180,7 @@ function avviaFirmaLocalSigner() {
         if (!r.ok || payload.ok === false) {
           throw new Error(payload.messaggio || ('Errore upload .p7m: HTTP ' + r.status));
         }
-        return d;  // restituiamo d con info firma
+        return Object.assign({}, d, { upload_payload: payload });  // restituiamo d con info firma
       });
     })
     .then(d => {
@@ -1178,6 +1192,8 @@ function avviaFirmaLocalSigner() {
       const msg = [];
       if (d.intestatario) msg.push(`Firmato da <strong>${d.intestatario}</strong>`);
       if (d.scadenza) msg.push(`· cert. valido fino al ${d.scadenza}`);
+      const uploadWarning = _depositoUploadWarningText(d.upload_payload);
+      if (uploadWarning) msg.push(`<span class="text-warning">${uploadWarning}</span>`);
       document.getElementById('lsSuccessMsg').innerHTML = msg.join(' ') || 'Firma completata.';
       document.getElementById('lsSuccess').style.display = '';
       document.getElementById('btnContinuaDopoFirma').classList.remove('d-none');
@@ -1283,8 +1299,9 @@ function caricaP7mFirmato(input) {
     _docFirmato[mainDocId] = true;
     const nomeP7m = file.name;
     _aggiornaBadgeFirmato(mainDocId, nomeP7m);
+    const uploadWarning = _depositoUploadWarningText(payload);
     statusEl.innerHTML = `<span class="text-success"><i class="bi bi-patch-check-fill me-1"></i>
-      <strong>${nomeP7m}</strong> caricato correttamente.</span>`;
+      <strong>${nomeP7m}</strong> caricato correttamente.</span>${uploadWarning ? `<div class="small text-warning mt-1"><i class="bi bi-exclamation-circle me-1"></i>${uploadWarning}</div>` : ''}`;
     document.getElementById('btnContinuaDopoFirma').classList.remove('d-none');
   })
   .catch(e => {

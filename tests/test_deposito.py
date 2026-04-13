@@ -724,6 +724,125 @@ def test_firma_documento_ajax_rifiuta_p7m_non_valido(tmp_path):
     assert fascicolo_reload.documenti[0].firmato_digitalmente is False
 
 
+def test_firma_documento_ajax_valido_non_fallisce_se_sync_realtime_ha_errori(tmp_path, monkeypatch):
+    from datetime import UTC, datetime, timedelta
+
+    from cryptography import x509
+    from cryptography.hazmat.primitives import hashes, serialization
+    from cryptography.hazmat.primitives.asymmetric import padding, rsa
+    from cryptography.x509.oid import NameOID
+
+    from pct.firma_pkcs11 import _build_cades_bes
+    from tools import local_signer as local_signer_mod
+
+    cfg = _cfg_web(tmp_path)
+    cfg["STUDIO_CONFIG"] = str(tmp_path / "studio.json")
+
+    libreria = tmp_path / "bit4id.dll"
+    libreria.write_bytes(b"fake")
+    GestioneConfigStudio(cfg["STUDIO_CONFIG"]).aggiorna(
+        ConfigStudio(firma=ConfigFirma(backend_preferito="pkcs11", pkcs11_library=str(libreria)))
+    )
+
+    class _FakeSyncBroken:
+        n_connessi = 0
+
+        def pubblica(self, *args, **kwargs):
+            raise RuntimeError("sync down")
+
+    monkeypatch.setattr("web.app.get_gestore", lambda: _FakeSyncBroken())
+
+    gu = GestioneUtenti(
+        db_path=cfg["AUTH_DB"],
+        audit_path=cfg["AUDIT_DB"],
+        secret_key="test",
+    )
+    gu.crea(
+        username="upload-sync-admin",
+        password="Admin1234!",
+        ruolo=RuoloUtente.AMMINISTRATORE,
+        email="admin@example.com",
+    )
+
+    gf = GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+    )
+    fascicolo = gf.nuovo(
+        titolo="Procura firmata",
+        tipo=TipoFascicolo.CIVILE,
+        tribunale="Tribunale di Milano",
+        numero_rg="123",
+        anno_rg=2026,
+        controparte="Controparte",
+        id_cliente="cliente-1",
+    )
+    doc = gf.aggiungi_documento(
+        fascicolo.id,
+        "procura.pdf",
+        TipoDocumento.PROCURA,
+        b"%PDF-1.4\nprocura valida",
+        caricato_da="upload-sync-admin",
+        firmato=False,
+    )
+
+    key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    subject = issuer = x509.Name(
+        [x509.NameAttribute(NameOID.COMMON_NAME, "Avv. Test Firmatario")]
+    )
+    cert = (
+        x509.CertificateBuilder()
+        .subject_name(subject)
+        .issuer_name(issuer)
+        .public_key(key.public_key())
+        .serial_number(x509.random_serial_number())
+        .not_valid_before(datetime.now(UTC) - timedelta(days=1))
+        .not_valid_after(datetime.now(UTC) + timedelta(days=365))
+        .sign(key, hashes.SHA256())
+    )
+    documento = b"%PDF-1.4\nprocura valida"
+    signed_attrs = local_signer_mod._build_signed_attrs_der_inline(documento)
+    signature = key.sign(signed_attrs, padding.PKCS1v15(), hashes.SHA256())
+    p7m_valido = _build_cades_bes(
+        documento=documento,
+        signature_bytes=signature,
+        cert_der=cert.public_bytes(serialization.Encoding.DER),
+        signed_attrs_der=signed_attrs,
+        detached=False,
+    )
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        client.post(
+            "/login",
+            data={"username": "upload-sync-admin", "password": "Admin1234!"},
+            follow_redirects=True,
+        )
+        response = client.post(
+            f"/fascicoli/{fascicolo.id}/documenti/{doc.id}/firma",
+            data={"file": (io.BytesIO(p7m_valido), "procura.pdf.p7m")},
+            content_type="multipart/form-data",
+            headers={"X-Requested-With": "XMLHttpRequest"},
+        )
+
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert payload["ok"] is True
+    assert payload["warning"] is True
+    assert "sync" in payload["warning_codes"]
+
+    gf_reload = GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+    )
+    fascicolo_reload = gf_reload.get(fascicolo.id)
+    assert fascicolo_reload is not None
+    assert fascicolo_reload.documenti[0].nome == "procura.pdf.p7m"
+    assert fascicolo_reload.documenti[0].firmato_digitalmente is True
+
+
 def test_wizard_tributario_renderizza_prededeposito_sigit_demo(tmp_path):
     cfg = _cfg_web(tmp_path)
     cfg["STUDIO_CONFIG"] = str(tmp_path / "studio.json")

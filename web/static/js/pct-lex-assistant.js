@@ -157,6 +157,20 @@
     );
   }
 
+  function renderServerPreparationHelp(error) {
+    var authProblem = Number(error && error.httpStatus || 0) === 401 || Number(error && error.httpStatus || 0) === 403;
+    var message = escapeHtml((error && error.message) || 'Il server HACS non e\' riuscito a preparare il contesto della richiesta.');
+    return (
+      '<div class="text-danger fw-semibold mb-2">' + (authProblem ? 'Sessione scaduta o non autorizzata' : 'Preparazione richiesta non riuscita') + '</div>' +
+      '<div class="small text-muted">' + (
+        authProblem
+          ? 'Ricarica la pagina ed effettua nuovamente l\'accesso a HACS prima di chiedere una risposta a Lex.'
+          : 'Lex non e\' riuscito a preparare il contesto sul server HACS prima di interrogare il companion locale.'
+      ) + '</div>' +
+      '<div class="small mt-2"><code>' + message + '</code></div>'
+    );
+  }
+
   function setAnswerPayload(element, payload) {
     var answer = payload && payload.answer ? renderMarkdown(payload.answer) : '<p>Nessuna risposta disponibile.</p>';
     setBubbleHtml(element, answer + renderSources(payload || {}));
@@ -327,7 +341,13 @@
         fascicolo_id: state.fascId || '',
       })
       .then(function (prepared) {
-        return browserBridge().runCompanionRagQuery(bridgeConfig, prepared);
+        return browserBridge()
+          .runCompanionRagQuery(bridgeConfig, prepared)
+          .catch(function (error) {
+            error = error || new Error('Companion locale non raggiungibile.');
+            error.__companionStage = true;
+            throw error;
+          });
       })
       .then(function (payload) {
         setAnswerPayload(state.currentBubble, payload);
@@ -336,6 +356,15 @@
         finalizeRequest('Risposta generata sul dispositivo locale.');
       })
       .catch(function (error) {
+        if (!error || !error.__companionStage) {
+          setBubbleHtml(state.currentBubble, renderServerPreparationHelp(error));
+          finalizeRequest(
+            Number(error && error.httpStatus || 0) === 401 || Number(error && error.httpStatus || 0) === 403
+              ? 'Sessione HACS da rinnovare.'
+              : 'Preparazione della richiesta non riuscita.'
+          );
+          return;
+        }
         var outdated = Number(error && error.httpStatus || 0) === 404;
         setBubbleHtml(state.currentBubble, renderCompanionHelp(outdated));
         finalizeRequest('Companion locale non raggiungibile.');

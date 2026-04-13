@@ -384,6 +384,10 @@ def test_lex_assistant_usa_componente_esterno_e_posizione_persistente():
     assert "fetchServerContext" in widget_js
     assert "runCompanionRagQuery" in widget_js
     assert "companionHelp" in widget_js
+    assert "renderServerPreparationHelp" in widget_js
+    assert "__companionStage" in widget_js
+    assert "Preparazione richiesta non riuscita" in widget_js
+    assert "Sessione scaduta o non autorizzata" in widget_js
     assert "remoteHosted" in widget_js
     assert "Risposta generata sul dispositivo locale." in widget_js
 
@@ -395,7 +399,10 @@ def test_lex_assistant_usa_componente_esterno_e_posizione_persistente():
 
 def test_modal_firma_deposito_prevede_riavvio_local_signer():
     dettaglio = (REPO_ROOT / "web/templates/fascicoli/dettaglio.html").read_text(encoding="utf-8")
+    deposito = (REPO_ROOT / "web/templates/fascicoli/deposito_prepara.html").read_text(encoding="utf-8")
 
     assert "Riavvia Local Signer" in dettaglio
     assert "hacs-local-signer://restart" in dettaglio
     assert "riavvio_signer_consigliato" in dettaglio
+    assert "sincronizzazione in tempo reale" in dettaglio
+    assert "sincronizzazione in tempo reale" in deposito

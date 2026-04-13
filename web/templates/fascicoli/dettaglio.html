@@ -4049,6 +4049,18 @@ function _detFBase64ToUint8ArraySafe(b64) {
   return bytes;
 }
 
+function _detFUploadWarningText(payload) {
+  if (!payload || !payload.warning) return '';
+  const codes = Array.isArray(payload.warning_codes) ? payload.warning_codes : [];
+  if (codes.includes('sync')) {
+    return "Documento salvato correttamente. La sincronizzazione in tempo reale e' momentaneamente non disponibile.";
+  }
+  if (codes.includes('audit')) {
+    return "Documento salvato correttamente. La registrazione del log operativo verra' riallineata automaticamente.";
+  }
+  return 'Documento salvato correttamente con un avviso operativo non bloccante.';
+}
+
 function _detFShowDetecting(text) {
   ['fPathLS','fPathPkcs11','fPathEsterna','fSwitchPath'].forEach(id => document.getElementById(id).style.display = 'none');
   ['fBtnLS','fBtnPkcs11','fBtnDone'].forEach(id => document.getElementById(id).classList.add('d-none'));
@@ -4266,7 +4278,7 @@ function _detFAvviaLS() {
           if (!r.ok || payload.ok === false) {
             throw new Error(payload.messaggio || ('Errore upload .p7m: HTTP ' + r.status));
           }
-          return d;
+          return Object.assign({}, d, { upload_payload: payload });
         });
     })
     .then(d => {
@@ -4274,6 +4286,8 @@ function _detFAvviaLS() {
       const msg = [];
       if (d.intestatario) msg.push(`Firmato da <strong>${d.intestatario}</strong>`);
       if (d.scadenza) msg.push(`· cert. valido fino al ${d.scadenza}`);
+      const uploadWarning = _detFUploadWarningText(d.upload_payload);
+      if (uploadWarning) msg.push(`<span class="text-warning">${uploadWarning}</span>`);
       document.getElementById('fLsSuccessMsg').innerHTML = msg.join(' ') || 'Firma completata.';
       document.getElementById('fLsSuccess').style.display = '';
       document.getElementById('fBtnDone').classList.remove('d-none');
@@ -4317,6 +4331,8 @@ function _detFAvviaPkcs11() {
       if (d.intestatario) msg.push(`Firmato da <strong>${d.intestatario}</strong>`);
       if (d.scadenza) msg.push(`· cert. valido fino al ${d.scadenza}`);
       if (d.avviso_scadenza) msg.push('· <span class="text-warning">certificato in scadenza!</span>');
+      const uploadWarning = _detFUploadWarningText(d);
+      if (uploadWarning) msg.push(`<span class="text-warning">${uploadWarning}</span>`);
       document.getElementById('fPkcs11SuccessMsg').innerHTML = msg.join(' ');
       document.getElementById('fPkcs11Success').style.display = '';
       document.getElementById('fBtnDone').classList.remove('d-none');
@@ -4357,7 +4373,8 @@ function _detFCaricaP7m(input) {
     .then(async r => {
       const payload = await r.json().catch(() => ({}));
       if (!r.ok || payload.ok === false) throw new Error(payload.messaggio || ('HTTP ' + r.status));
-      statusEl.innerHTML = `<span class="text-success"><i class="bi bi-patch-check-fill me-1"></i><strong>${file.name}</strong> caricato correttamente.</span>`;
+      const uploadWarning = _detFUploadWarningText(payload);
+      statusEl.innerHTML = `<span class="text-success"><i class="bi bi-patch-check-fill me-1"></i><strong>${file.name}</strong> caricato correttamente.</span>${uploadWarning ? `<div class="small text-warning mt-1"><i class="bi bi-exclamation-circle me-1"></i>${uploadWarning}</div>` : ''}`;
       document.getElementById('fBtnDone').classList.remove('d-none');
     })
     .catch(e => {

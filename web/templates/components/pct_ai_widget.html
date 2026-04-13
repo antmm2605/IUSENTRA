@@ -1,0 +1,101 @@
+{% if g.utente_corrente %}
+<div
+  id="pct-ai-widget"
+  class="pct-ai-widget"
+  data-chat-url="{{ url_for('assistente.assistente_chat') }}"
+  data-status-url="{{ url_for('assistente.assistente_stato') }}"
+  data-storage-key="hacs-pct-ai-layout-v1"
+>
+  <button
+    id="pct-ai-fab"
+    class="pct-ai-fab"
+    type="button"
+    title="Apri l'assistente Lex"
+    aria-label="Apri l'assistente Lex"
+  >
+    <span class="pct-ai-fab__halo" aria-hidden="true"></span>
+    <span class="pct-ai-fab__icon"><i class="bi bi-stars"></i></span>
+    <span class="pct-ai-fab__label">
+      <strong>Lex</strong>
+      <small>Assistente PCT</small>
+    </span>
+  </button>
+
+  <section
+    id="pct-ai-panel"
+    class="pct-ai-panel"
+    hidden
+    role="dialog"
+    aria-label="Assistente PCT"
+    aria-modal="false"
+  >
+    <header
+      id="pct-ai-header"
+      class="pct-ai-header"
+      data-pct-ai-drag-handle="true"
+      title="Trascina il pannello per spostarlo"
+    >
+      <div class="pct-ai-header__brand">
+        <div class="pct-ai-header__icon"><i class="bi bi-stars"></i></div>
+        <div class="pct-ai-header__copy">
+          <div class="pct-ai-header__title-row">
+            <strong>Lex</strong>
+            <span class="pct-ai-header__subtitle">Assistente PCT</span>
+          </div>
+          <div class="pct-ai-header__meta">
+            <span id="pct-ai-model-badge" class="pct-ai-model-badge">Verifica modello</span>
+            <span class="pct-ai-drag-hint"><i class="bi bi-grip-horizontal"></i> Trascina</span>
+          </div>
+        </div>
+      </div>
+      <div class="pct-ai-header__actions">
+        <button id="pct-ai-reset-position" class="pct-ai-hbtn" type="button" title="Ripristina la posizione predefinita" aria-label="Ripristina la posizione predefinita">
+          <i class="bi bi-arrow-down-right-square"></i>
+        </button>
+        <button id="pct-ai-clear" class="pct-ai-hbtn" type="button" title="Nuova conversazione" aria-label="Nuova conversazione">
+          <i class="bi bi-arrow-counterclockwise"></i>
+        </button>
+        <button id="pct-ai-close" class="pct-ai-hbtn" type="button" title="Chiudi assistente" aria-label="Chiudi assistente">
+          <i class="bi bi-x-lg"></i>
+        </button>
+      </div>
+    </header>
+
+    <div id="pct-ai-ctx" class="pct-ai-ctx" hidden>
+      <i class="bi bi-folder2-open"></i>
+      <span id="pct-ai-ctx-label"></span>
+    </div>
+
+    <div id="pct-ai-messages" class="pct-ai-messages">
+      <div class="pct-ai-msg pct-ai-msg--assistant">
+        <div class="pct-ai-avatar pct-ai-avatar--ai"><i class="bi bi-stars"></i></div>
+        <div class="pct-ai-bubble">
+          <p>Ciao, sono <strong>Lex</strong>. Ti aiuto con deposito telematico, firma digitale, PEC e stati del fascicolo.</p>
+          <ul>
+            <li>Preparazione buste e invio depositi PCT, PDP e PAT</li>
+            <li>Lettura errori, esiti controlli e stati di cancelleria</li>
+            <li>Verifiche operative su firma digitale, PEC e PDF/A</li>
+            <li>Richiami rapidi alla normativa del deposito telematico</li>
+          </ul>
+          <p class="mb-0">Se il pannello ti intralcia, trascinalo dove preferisci: la posizione resta salvata su questo browser.</p>
+        </div>
+      </div>
+    </div>
+
+    <footer class="pct-ai-footer">
+      <div class="pct-ai-input-wrap">
+        <textarea
+          id="pct-ai-input"
+          class="pct-ai-input"
+          placeholder="Scrivi una domanda operativa sul deposito telematico..."
+          rows="1"
+        ></textarea>
+        <button id="pct-ai-send" class="pct-ai-send-btn" type="button" title="Invia domanda" aria-label="Invia domanda">
+          <i class="bi bi-send-fill"></i>
+        </button>
+      </div>
+      <div id="pct-ai-status" class="pct-ai-status-bar">Assistente pronto.</div>
+    </footer>
+  </section>
+</div>
+{% endif %}

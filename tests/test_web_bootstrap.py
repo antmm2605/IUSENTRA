@@ -227,6 +227,7 @@ def test_scss_governance_usa_bundle_modulari_e_niente_style_inline():
     assert "@use 'components/feedback';" in app_scss
     assert "@use 'components/compact-panels';" in app_scss
     assert "@use 'components/local-ai-assistant';" in app_scss
+    assert "@use 'components/pct-lex-assistant';" in app_scss
     assert "@use 'pages/dashboard';" in app_scss
     assert "@use 'pages/notifiche-whatsapp';" in app_scss
     assert "@use 'pages/settings';" in app_scss
@@ -352,3 +353,31 @@ def test_ai_operativa_usa_bridge_browser_e_template_senza_logica_inline():
     assert "renderCompanionHelp" in workspace_js
     assert "fetchServerContext" in workspace_js
     assert "runCompanionRagQuery" in workspace_js
+
+
+def test_lex_assistant_usa_componente_esterno_e_posizione_persistente():
+    base_template = (REPO_ROOT / "web/templates/base.html").read_text(encoding="utf-8")
+    widget_template = (REPO_ROOT / "web/templates/components/pct_ai_widget.html").read_text(encoding="utf-8")
+    widget_js = (REPO_ROOT / "web/static/js/pct-lex-assistant.js").read_text(encoding="utf-8")
+    widget_scss = (REPO_ROOT / "web/static/scss/components/_pct-lex-assistant.scss").read_text(encoding="utf-8")
+
+    assert '{% include "components/pct_ai_widget.html" %}' in base_template
+    assert "/static/js/pct-lex-assistant.js?v={{ app_version }}" in base_template
+
+    assert 'data-chat-url="{{ url_for(\'assistente.assistente_chat\') }}"' in widget_template
+    assert 'data-status-url="{{ url_for(\'assistente.assistente_stato\') }}"' in widget_template
+    assert 'data-pct-ai-drag-handle="true"' in widget_template
+    assert "posizione resta salvata su questo browser" in widget_template
+    assert "<script>" not in widget_template
+
+    assert "window.localStorage" in widget_js
+    assert "resetPosition" in widget_js
+    assert "pct-ai-widget--custom" in widget_js
+    assert "data-pct-ai-drag-handle" in widget_template
+    assert "dataset.chatUrl" in widget_js
+    assert "dataset.statusUrl" in widget_js
+
+    assert ".pct-ai-widget" in widget_scss
+    assert ".pct-ai-widget--custom" in widget_scss
+    assert ".pct-ai-drag-hint" in widget_scss
+    assert "cursor: move;" in widget_scss

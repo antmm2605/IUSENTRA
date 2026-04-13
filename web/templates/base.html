@@ -1793,7 +1793,7 @@ if ('serviceWorker' in navigator) {
    Assistente virtuale PCT — Lex
    Floating chat widget (visibile solo agli utenti autenticati)
    ═══════════════════════════════════════════════════════════════ #}
-{% if g.utente_corrente %}
+{% if false and g.utente_corrente %}
 <!-- Pulsante FAB -->
 <button id="pct-ai-fab" class="pct-ai-fab" title="Assistente PCT — Lex"
         onclick="pctAI.toggle()" aria-label="Apri assistente virtuale">
@@ -2092,6 +2092,10 @@ document.addEventListener('DOMContentLoaded', function () { window.pctAI.init();
 
 })();
 </script>
+{% endif %}
+{% include "components/pct_ai_widget.html" %}
+{% if g.utente_corrente %}
+<script src="/static/js/pct-lex-assistant.js?v={{ app_version }}" defer></script>
 {% endif %}
 </body>
 </html>

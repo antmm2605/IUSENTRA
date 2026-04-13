@@ -562,6 +562,46 @@ def _resolve_ipv4(hostname: str, port: int) -> str | None:
     return None
 
 
+def _resolve_ipv6(hostname: str, port: int) -> str | None:
+    """Risolve hostname in IPv6 usando DNS-over-HTTPS come primario.
+
+    Analogo a _resolve_ipv4() ma interroga record AAAA invece di A.
+    Usato come fallback quando IPv4 è bloccato (es. Railway anti-spam).
+
+    Usa l'IP diretto 1.1.1.1 (Cloudflare DoH) e 8.8.8.8 (Google DoH) per
+    bypassare completamente il resolver DNS di sistema.
+
+    Fallback a socket.getaddrinfo (sistema) se tutti i DoH falliscono.
+    """
+    import urllib.request as _ur
+    import json as _js
+    # 1. DoH via IP diretto (nessuna dipendenza dal DNS di sistema)
+    _doh_endpoints = [
+        "https://1.1.1.1/dns-query",          # Cloudflare — IP diretto, no DNS
+        "https://8.8.8.8/dns-query",           # Google — IP diretto, no DNS
+    ]
+    for doh_url in _doh_endpoints:
+        try:
+            req = _ur.Request(
+                f"{doh_url}?name={hostname}&type=AAAA",
+                headers={"Accept": "application/dns-json"},
+            )
+            with _ur.urlopen(req, timeout=5) as resp:
+                for ans in _js.loads(resp.read()).get("Answer", []):
+                    if ans.get("type") == 28:  # record AAAA
+                        return ans["data"]
+        except Exception:
+            continue
+    # 2. Fallback: resolver DNS di sistema
+    try:
+        infos = _socket_mod.getaddrinfo(hostname, port, _socket_mod.AF_INET6, _socket_mod.SOCK_STREAM)
+        if infos:
+            return infos[0][4][0]
+    except _socket_mod.gaierror:
+        pass
+    return None
+
+
 class _SMTPv4(_smtplib.SMTP):
     """SMTP con connessione forzata su IPv4 e risoluzione DNS via Cloudflare DoH.
 
@@ -598,6 +638,45 @@ class _SMTP_SSLv4(_smtplib.SMTP_SSL):
             raw = _socket_mod.socket(_socket_mod.AF_INET, _socket_mod.SOCK_STREAM)
             raw.settimeout(timeout)
             raw.connect((ipv4_addr, port))
+            return self._ssl_context().wrap_socket(raw, server_hostname=host)
+        return super()._get_socket(host, port, timeout)
+
+
+class _SMTPv6(_smtplib.SMTP):
+    """SMTP con connessione forzata su IPv6 e risoluzione DNS via Cloudflare DoH.
+
+    Usato come fallback quando IPv4 è bloccato dall'anti-spam di Railway.
+    Preserva l'hostname originale in self._host per SNI/TLS.
+    """
+    def _get_socket(self, host, port, timeout):
+        ipv6_addr = _resolve_ipv6(host, port)
+        if ipv6_addr:
+            sock = _socket_mod.socket(_socket_mod.AF_INET6, _socket_mod.SOCK_STREAM)
+            sock.settimeout(timeout)
+            sock.connect((ipv6_addr, port, 0, 0))  # (addr, port, flowinfo, scope_id)
+            return sock
+        return super()._get_socket(host, port, timeout)
+
+
+class _SMTP_SSLv6(_smtplib.SMTP_SSL):
+    """SMTP_SSL con connessione forzata su IPv6 e risoluzione DNS via Cloudflare DoH."""
+    def _ssl_context(self):
+        ctx = getattr(self, "context", None) or getattr(self, "_context", None)
+        if ctx is None:
+            import ssl as _ssl
+            ctx = _ssl.create_default_context()
+            try:
+                self.context = ctx
+            except Exception:
+                self._context = ctx
+        return ctx
+
+    def _get_socket(self, host, port, timeout):
+        ipv6_addr = _resolve_ipv6(host, port)
+        if ipv6_addr:
+            raw = _socket_mod.socket(_socket_mod.AF_INET6, _socket_mod.SOCK_STREAM)
+            raw.settimeout(timeout)
+            raw.connect((ipv6_addr, port, 0, 0))
             return self._ssl_context().wrap_socket(raw, server_hostname=host)
         return super()._get_socket(host, port, timeout)
 
@@ -674,9 +753,16 @@ def test_pec_imap(cfg: ConfigPEC) -> Dict[str, Any]:
 
 
 def test_smtp_email(cfg: ConfigSMTP) -> Dict[str, Any]:
-    """Testa la connessione SMTP email normale."""
+    """Testa la connessione SMTP email normale.
+
+    Prova prima IPv4; se fallisce con timeout o connessione rifiutata (tipico
+    blocco anti-spam di Railway), ritenta via IPv6. Restituisce il primo
+    tentativo riuscito. Se entrambi falliscono, restituisce l'errore IPv4
+    (più informativo per il debug).
+    """
     import smtplib
     import ssl as _ssl
+    import errno as _errno
     if not cfg.host:
         return {"ok": False, "messaggio": "Host SMTP non configurato. Vai in Impostazioni → Email SMTP e inserisci l'indirizzo del server (es. smtp.gmail.com)."}
     # Porta 25 è bloccata da GCP/Railway/AWS outbound (anti-spam) → timeout garantito
@@ -685,25 +771,73 @@ def test_smtp_email(cfg: ConfigSMTP) -> Dict[str, Any]:
             "Porta 25 bloccata: Railway/GCP blocca outbound porta 25 per prevenire spam. "
             "Usare porta 587 (STARTTLS) o 465 (SSL diretto)."
         )}
-    # Risolvi IPv4 con lo stesso metodo usato dalla connessione (DoH → fallback sistema)
-    _resolved_ip = _resolve_ipv4(cfg.host, cfg.port)
-    _ip_tag = f" [{_resolved_ip}:{cfg.port}]" if _resolved_ip else ""
-    try:
-        ctx = _ssl.create_default_context()
-        if cfg.use_tls:
-            # STARTTLS (porta 587 — Gmail, Outlook, IONOS…)
-            with _SMTPv4(cfg.host, cfg.port, timeout=15) as s:
-                s.starttls(context=ctx)
-                if cfg.username:
-                    s.login(cfg.username, cfg.password)
-        else:
-            # SSL diretto (porta 465 — Aruba, altri provider con SSL nativo)
-            with _SMTP_SSLv4(cfg.host, cfg.port, context=ctx, timeout=15) as s:
-                if cfg.username:
-                    s.login(cfg.username, cfg.password)
-        return {"ok": True, "messaggio": f"Connessione SMTP email riuscita{_ip_tag}."}
-    except Exception as e:
-        return {"ok": False, "messaggio": _msg_errore_rete(e, f"Errore SMTP email{_ip_tag}")}
+
+    ctx = _ssl.create_default_context()
+
+    def _tenta_ipv4():
+        """Tenta la connessione SMTP via IPv4. Restituisce (ok, messaggio, eccezione)."""
+        _resolved_ip = _resolve_ipv4(cfg.host, cfg.port)
+        _ip_tag = f" [{_resolved_ip}:{cfg.port}]" if _resolved_ip else ""
+        try:
+            if cfg.use_tls:
+                with _SMTPv4(cfg.host, cfg.port, timeout=15) as s:
+                    s.starttls(context=ctx)
+                    if cfg.username:
+                        s.login(cfg.username, cfg.password)
+            else:
+                with _SMTP_SSLv4(cfg.host, cfg.port, context=ctx, timeout=15) as s:
+                    if cfg.username:
+                        s.login(cfg.username, cfg.password)
+            return True, f"Connessione SMTP email riuscita{_ip_tag}.", None
+        except Exception as exc:
+            return False, _msg_errore_rete(exc, f"Errore SMTP email{_ip_tag}"), exc
+
+    def _tenta_ipv6():
+        """Tenta la connessione SMTP via IPv6. Restituisce (ok, messaggio, eccezione)."""
+        _resolved_ip = _resolve_ipv6(cfg.host, cfg.port)
+        _ip_tag = f" [IPv6 {_resolved_ip}:{cfg.port}]" if _resolved_ip else " [IPv6]"
+        try:
+            if cfg.use_tls:
+                with _SMTPv6(cfg.host, cfg.port, timeout=15) as s:
+                    s.starttls(context=ctx)
+                    if cfg.username:
+                        s.login(cfg.username, cfg.password)
+            else:
+                with _SMTP_SSLv6(cfg.host, cfg.port, context=ctx, timeout=15) as s:
+                    if cfg.username:
+                        s.login(cfg.username, cfg.password)
+            return True, f"Connessione SMTP email riuscita{_ip_tag}.", None
+        except Exception as exc:
+            return False, _msg_errore_rete(exc, f"Errore SMTP email{_ip_tag}"), exc
+
+    def _e_errore_rete(exc: Exception) -> bool:
+        """True se l'eccezione indica un blocco di rete (timeout / connessione rifiutata)."""
+        if exc is None:
+            return False
+        codice = getattr(exc, "errno", None)
+        if codice in (_errno.ETIMEDOUT, _errno.ECONNREFUSED, _errno.ENETUNREACH):
+            return True
+        if isinstance(exc, (TimeoutError, ConnectionRefusedError)):
+            return True
+        # smtplib wrappa i timeout in SMTPConnectError con il messaggio originale
+        msg = str(exc).lower()
+        return "timed out" in msg or "timeout" in msg or "connection refused" in msg
+
+    # ── Tentativo 1: IPv4 ────────────────────────────────────────────────────
+    ok4, msg4, exc4 = _tenta_ipv4()
+    if ok4:
+        return {"ok": True, "messaggio": msg4}
+
+    # ── Tentativo 2: IPv6 (solo se IPv4 ha fallito per blocco di rete) ───────
+    if _e_errore_rete(exc4):
+        ok6, msg6, exc6 = _tenta_ipv6()
+        if ok6:
+            return {"ok": True, "messaggio": msg6}
+        # Entrambi falliti: restituisce errore IPv4 (più informativo) con nota IPv6
+        return {"ok": False, "messaggio": f"{msg4} (fallback IPv6 tentato: {msg6})"}
+
+    # IPv4 fallito per motivo non di rete (credenziali errate, TLS, ecc.)
+    return {"ok": False, "messaggio": msg4}
 
 
 def test_whatsapp(cfg: ConfigWhatsApp) -> Dict[str, Any]:

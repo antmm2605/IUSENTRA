@@ -1055,7 +1055,7 @@
               <label class="form-label fw-semibold">Base URL del runtime</label>
               <input type="text" name="ai_base_url" id="ai_base_url" class="form-control font-monospace"
                      value="{{ cfg.ai.base_url }}" placeholder="http://127.0.0.1:11434/api">
-              <div class="form-text">Sul dispositivo cliente il valore consigliato resta <span class="font-monospace">http://127.0.0.1:11434/api</span>. Nelle installazioni locali containerizzate puo' essere utile <span class="font-monospace">http://host.docker.internal:11434/api</span>.</div>
+              <div class="form-text">Sul dispositivo cliente il valore consigliato resta <span class="font-monospace">http://127.0.0.1:11434/api</span>. Nelle installazioni locali containerizzate puo' essere utile <span class="font-monospace">http://host.docker.internal:11434/api</span>. Se apri la sola root <span class="font-monospace">/api</span> e vedi <span class="font-monospace">404 page not found</span>, e' normale: il controllo corretto va fatto su <span class="font-monospace">/api/version</span>.</div>
             </div>
             <div class="col-md-6">
               <label class="form-label fw-semibold">Modello conversazionale preferito</label>

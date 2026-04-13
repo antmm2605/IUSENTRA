@@ -276,6 +276,8 @@ def test_impostazioni_js_e_esterno_e_senza_duplicazioni():
     assert "/ai/status" in ai_js
     assert "/ai/bootstrap" in ai_js
     assert "companion locale" in ai_js
+    assert "fetch(config.localSignerUrl + '/ai/status?' + params.toString(), {\n      method: 'GET',\n    });" in ai_js
+    assert "fetch(config.localSignerUrl + '/ai/bootstrap', {\n          method: 'POST'," in ai_js
     assert 'data-local-signer-url="http://127.0.0.1:27272"' in template
     assert "data-local-signer-setup-windows" in template
     assert "Quando HACS e' online" in template
@@ -343,6 +345,7 @@ def test_ai_operativa_usa_bridge_browser_e_template_senza_logica_inline():
     assert "window.HacsLocalAiBrowserBridge" in bridge_js
     assert "/ai/rag/query" in bridge_js
     assert "127.0.0.1:27272" in bridge_js
+    assert "fetch(config.localSignerUrl + '/ai/status', {\n        method: 'GET',\n      });" in bridge_js
     assert "renderCompanionHelp" in fascicolo_js
     assert "fetchServerContext" in fascicolo_js
     assert "runCompanionRagQuery" in fascicolo_js

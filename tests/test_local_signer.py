@@ -408,6 +408,7 @@ def test_cors_preflight_private_network_risponde_header_atteso():
 
     assert ("Access-Control-Allow-Origin", "https://studio-legale-pct-production.up.railway.app") in captured
     assert ("Access-Control-Allow-Private-Network", "true") in captured
+    assert ("Access-Control-Allow-Headers", "Content-Type, X-Signer-Token, X-Requested-With") in captured
 
 
 def test_ai_status_bridge_locale_restituisce_snapshot():
@@ -454,6 +455,31 @@ def test_ai_status_bridge_locale_restituisce_snapshot():
     assert captured["data"]["runtime"]["status"] == "ready"
     assert captured["payload"]["base_url"] == "http://127.0.0.1:11434/api"
     assert captured["payload"]["chat_model"] == "gemma3:1b"
+
+
+def test_root_locale_risponde_come_ping():
+    module = _load_local_signer()
+    captured = {}
+
+    class _FakeHandler:
+        headers = {}
+        path = "/"
+
+        def _cors_ok(self):
+            return True
+
+        def _send_json(self, data, status=200):
+            captured["data"] = data
+            captured["status"] = status
+
+        def _ping(self):
+            self._send_json({"ok": True, "versione": module.VERSION})
+
+    module._Handler.do_GET(_FakeHandler())
+
+    assert captured["status"] == 200
+    assert captured["data"]["ok"] is True
+    assert captured["data"]["versione"] == module.VERSION
 
 
 def test_ai_bootstrap_bridge_locale_usa_force_e_payload():

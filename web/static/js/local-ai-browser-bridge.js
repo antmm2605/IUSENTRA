@@ -96,7 +96,6 @@
     if (config.remoteHosted) {
       const response = await fetch(config.localSignerUrl + '/ai/status', {
         method: 'GET',
-        headers: { 'X-Requested-With': 'XMLHttpRequest' },
       });
       return readJsonResponse(response);
     }
@@ -136,7 +135,6 @@
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-Requested-With': 'XMLHttpRequest',
       },
       body: JSON.stringify(payload || {}),
     });

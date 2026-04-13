@@ -386,7 +386,6 @@
     const params = new URLSearchParams(currentAiSettings());
     const response = await fetch(config.localSignerUrl + '/ai/status?' + params.toString(), {
       method: 'GET',
-      headers: { 'X-Requested-With': 'XMLHttpRequest' },
     });
     return readJsonResponse(response);
   }
@@ -472,7 +471,6 @@
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'X-Requested-With': 'XMLHttpRequest',
           },
           body: JSON.stringify(Object.assign({}, currentAiSettings(), { force: true })),
         });

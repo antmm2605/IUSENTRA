@@ -90,7 +90,7 @@ except Exception:
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.5.39"
+VERSION = "1.5.40"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
@@ -4998,7 +4998,7 @@ class _Handler(BaseHTTPRequestHandler):
         self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
         self.send_header(
             "Access-Control-Allow-Headers",
-            "Content-Type, X-Signer-Token"
+            "Content-Type, X-Signer-Token, X-Requested-With"
         )
         self.send_header("Access-Control-Max-Age", "86400")
         self.send_header("Vary", "Origin")
@@ -5065,9 +5065,9 @@ class _Handler(BaseHTTPRequestHandler):
             self._send_json({"errore": "CORS: origine non consentita"}, 403)
             return
         path = urlparse(self.path).path
-        if path in {"/ping", "/seleziona-certificato", "/pst/status", "/ai/status"}:
+        if path in {"/", "/ping", "/seleziona-certificato", "/pst/status", "/ai/status"}:
             log.info("HTTP GET %s", path)
-        if path == "/ping":
+        if path in {"/", "/ping"}:
             self._ping()
         elif path == "/diagnosi":
             self._diagnosi()

@@ -26,8 +26,13 @@ from pct.clienti import Indirizzo, Recapiti
 # ── Enumerazioni ────────────────────────────────────────────────────────────
 
 class TipoSoggetto(Enum):
-    PERSONA_FISICA    = "PERSONA_FISICA"
-    PERSONA_GIURIDICA = "PERSONA_GIURIDICA"
+    PERSONA_FISICA            = "PERSONA_FISICA"
+    PERSONA_GIURIDICA         = "PERSONA_GIURIDICA"
+    PUBBLICA_AMMINISTRAZIONE  = "PUBBLICA_AMMINISTRAZIONE"
+    ENTE                      = "ENTE"
+    CONDOMINIO                = "CONDOMINIO"
+    ASSOCIAZIONE              = "ASSOCIAZIONE"
+    PROFESSIONISTA            = "PROFESSIONISTA"
 
 
 class RuoloSoggetto(Enum):
@@ -143,20 +148,31 @@ class Soggetto:
 
     @property
     def nome_completo(self) -> str:
-        if self.tipo == TipoSoggetto.PERSONA_GIURIDICA:
+        if self.tipo in (TipoSoggetto.PERSONA_GIURIDICA, TipoSoggetto.PUBBLICA_AMMINISTRAZIONE,
+                         TipoSoggetto.ENTE, TipoSoggetto.CONDOMINIO, TipoSoggetto.ASSOCIAZIONE):
             return self.ragione_sociale or "—"
         parts = [self.cognome, self.nome]
         return " ".join(p for p in parts if p) or "—"
 
     @property
     def identificativo(self) -> str:
-        if self.tipo == TipoSoggetto.PERSONA_GIURIDICA:
+        if self.tipo in (TipoSoggetto.PERSONA_GIURIDICA, TipoSoggetto.PUBBLICA_AMMINISTRAZIONE,
+                         TipoSoggetto.ENTE, TipoSoggetto.CONDOMINIO, TipoSoggetto.ASSOCIAZIONE):
             return self.partita_iva or self.codice_fiscale or ""
         return self.codice_fiscale or ""
 
     @property
     def sigla_tipo(self) -> str:
-        return "PG" if self.tipo == TipoSoggetto.PERSONA_GIURIDICA else "PF"
+        _sigla = {
+            TipoSoggetto.PERSONA_FISICA: "PF",
+            TipoSoggetto.PERSONA_GIURIDICA: "PG",
+            TipoSoggetto.PUBBLICA_AMMINISTRAZIONE: "PA",
+            TipoSoggetto.ENTE: "EN",
+            TipoSoggetto.CONDOMINIO: "CO",
+            TipoSoggetto.ASSOCIAZIONE: "AS",
+            TipoSoggetto.PROFESSIONISTA: "PR",
+        }
+        return _sigla.get(self.tipo, "PF")
 
     # ── Serde ──
 

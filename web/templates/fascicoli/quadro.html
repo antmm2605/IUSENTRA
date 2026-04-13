@@ -154,6 +154,9 @@
               <div class="qd-parte-nome">{{ sogg.nome_completo }}</div>
               <div class="qd-parte-ruolo">{{ parte.ruolo.label }}</div>
             </div>
+            <a href="{{ url_for('dettaglio_soggetto', id_soggetto=sogg.id) }}" class="qd-link-btn ms-auto" title="Scheda soggetto">
+              <i class="bi bi-arrow-right"></i>
+            </a>
           </div>
           {% endfor %}
         </div>

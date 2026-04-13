@@ -136,6 +136,7 @@ ENV PCT_AGENDA_DB=/data/agenda/appuntamenti.json \
     PCT_WIZARD_PRO_DB=/data/wizard_pro/sessioni.json \
     PCT_LEGAL_INTELLIGENCE_DB=/data/intelligence/motori.json \
     PCT_GIURISPRUDENZA_DB=/data/intelligence/giurisprudenza.json \
+    PCT_WORKSPACE_INTELLIGENCE_DB=/data/intelligence/workspace_intelligence.json \
     PCT_NORMATIVE_TABLES_DB=/data/intelligence/tabelle_normative.json \
     PCT_VALIDATION_RUNS_DB=/data/intelligence/validation_runs.json \
     PCT_REDACTION_ASSISTANT_DB=/data/intelligence/assistente_redazionale.json \

@@ -139,6 +139,7 @@ from pct.pdp_penale_workflow import (
     pdp_penale_estrai_scadenza_download,
 )
 from pct.telematico_workflow import TelematicoWorkflowRepository
+from pct.workspace_intelligente import WorkspaceIntelligenteService
 from pct import __version__ as APP_VERSION
 
 # ------------------------------------------------------------------ cifratura documenti (AES-256-GCM)
@@ -388,6 +389,13 @@ def create_app(config: dict | None = None) -> Flask:
             _data_peer_path(app.config["CLIENTI_DB"], "intelligence", "giurisprudenza.json"),
         ),
     )
+    app.config["WORKSPACE_INTELLIGENCE_DB"] = cfg.get(
+        "WORKSPACE_INTELLIGENCE_DB",
+        os.getenv(
+            "PCT_WORKSPACE_INTELLIGENCE_DB",
+            _data_peer_path(app.config["CLIENTI_DB"], "intelligence", "workspace_intelligence.json"),
+        ),
+    )
     app.config["VALIDATION_RUNS_DB"] = cfg.get(
         "VALIDATION_RUNS_DB",
         os.getenv(
@@ -558,6 +566,7 @@ def create_app(config: dict | None = None) -> Flask:
             "legal_intelligence": _cfg_data_path("LEGAL_INTELLIGENCE_DB"),
             "normative_tables": _cfg_data_path("NORMATIVE_TABLES_DB"),
             "giurisprudenza": _cfg_data_path("GIURISPRUDENZA_DB"),
+            "workspace_intelligence": _cfg_data_path("WORKSPACE_INTELLIGENCE_DB"),
             "validation_runs": _cfg_data_path("VALIDATION_RUNS_DB"),
             "template_atti": _cfg_data_path("TEMPLATE_ATTI_DB"),
             "template_atti_prefs": _cfg_data_path("TEMPLATE_ATTI_PREFS_DB"),
@@ -605,6 +614,13 @@ def create_app(config: dict | None = None) -> Flask:
             g._calendar_sync = GestioneCalendarSync(db_path=_cfg_data_path("CALENDAR_SYNC_DB"))
         return g._calendar_sync
 
+    def get_giurisprudenza():
+        if not hasattr(g, "_giurisprudenza"):
+            from pct.giurisprudenza import GestioneGiurisprudenza
+
+            g._giurisprudenza = GestioneGiurisprudenza(db_path=_cfg_data_path("GIURISPRUDENZA_DB"))
+        return g._giurisprudenza
+
     def get_clienti() -> GestioneClienti:
         if not hasattr(g, "_clienti"):
             g._clienti = GestioneClienti(
@@ -648,6 +664,18 @@ def create_app(config: dict | None = None) -> Flask:
                 pst_timeout=float(app.config.get("PST_SOAP_TIMEOUT", 8.0) or 8.0),
             )
         return g._deposito_guidato
+
+    def get_workspace_intelligente() -> WorkspaceIntelligenteService:
+        if not hasattr(g, "_workspace_intelligente"):
+            g._workspace_intelligente = WorkspaceIntelligenteService(
+                agenda=get_agenda(),
+                scadenziario=get_scadenziario(),
+                fascicoli=get_fascicoli(),
+                calendar_sync=get_calendar_sync(),
+                giurisprudenza=get_giurisprudenza(),
+                studio_patron_rule=_studio_patron_rule_from_config(),
+            )
+        return g._workspace_intelligente
 
     def _documento_payload_per_validazione(gf: GestioneFascicoli, fasc: Fascicolo, doc_id: str) -> dict | None:
         doc = next((item for item in fasc.documenti if item.id == doc_id), None)
@@ -3862,6 +3890,30 @@ def create_app(config: dict | None = None) -> Flask:
             app.logger.exception("Errore api_scadenziario_statistiche: %s", e)
             return jsonify({"errore": str(e)})
 
+    @app.route("/workspace-intelligente")
+    def workspace_intelligente():
+        try:
+            horizon_days = max(int(request.args.get("giorni", 14) or 14), 1)
+        except ValueError:
+            horizon_days = 14
+        focus = str(request.args.get("focus", "tutto") or "tutto").strip().lower()
+        overview = get_workspace_intelligente().panoramica(horizon_days=horizon_days)
+        return render_template(
+            "workspace_intelligente.html",
+            overview=overview,
+            horizon_days=horizon_days,
+            focus=focus,
+        )
+
+    @app.route("/api/workspace-intelligente")
+    def api_workspace_intelligente():
+        try:
+            horizon_days = max(int(request.args.get("giorni", 14) or 14), 1)
+            return jsonify(get_workspace_intelligente().panoramica(horizon_days=horizon_days))
+        except Exception as e:
+            app.logger.exception("Errore api_workspace_intelligente: %s", e)
+            return jsonify({"errore": str(e), "summary": {}, "actions": []}), 200
+
     # ---------------------------------------------------------------- dashboard
 
     @app.route("/")
@@ -3879,6 +3931,7 @@ def create_app(config: dict | None = None) -> Flask:
         stats_sc = gs.statistiche()
         stats_fascicoli = get_fascicoli().statistiche()
         stats_clienti = get_clienti().statistiche()
+        workspace_overview = get_workspace_intelligente().panoramica(horizon_days=14, hot_limit=6)
         # #4 — Cartelle condivise per collaboratori
         u_dash = g.utente_corrente
         cartelle_mie = []
@@ -3916,6 +3969,7 @@ def create_app(config: dict | None = None) -> Flask:
             cartelle_mie=cartelle_mie,
             accessi_in_scadenza=accessi_in_scadenza,
             clienti_doc_scaduti=clienti_doc_scaduti,
+            workspace_overview=workspace_overview,
         )
 
     # ---------------------------------------------------------------- agenda
@@ -11257,6 +11311,11 @@ read -r -p "Premi Invio per chiudere..." _
             apps=apps,
             scadenze=scadenze_fascicolo,
         )
+        intelligenza_fascicolo = get_workspace_intelligente().per_fascicolo(
+            fasc,
+            apps=apps,
+            scadenze=scadenze_fascicolo,
+        )
         return render_template(
             "fascicoli/dettaglio.html",
             fascicolo=fasc,
@@ -11266,6 +11325,7 @@ read -r -p "Premi Invio per chiudere..." _
             apps=apps,
             scadenze_fascicolo=scadenze_fascicolo,
             workspace_fascicolo=workspace_fascicolo,
+            intelligenza_fascicolo=intelligenza_fascicolo,
             tipi_doc=list(TipoDocumento),
             tipi_att=list(TipoAttivita),
             esiti=list(EsitoAttivita),

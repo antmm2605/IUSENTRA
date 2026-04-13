@@ -33,6 +33,9 @@ from flask import (
     send_file,
     Response,
     has_request_context,
+    session,
+    g,
+    abort,
 )
 
 from pct.agenda import (
@@ -140,8 +143,11 @@ from pct.pdp_penale_workflow import (
 )
 from pct.telematico_workflow import TelematicoWorkflowRepository
 from pct.workspace_intelligente import WorkspaceIntelligenteService
-from pct.local_ai import LocalAIService, strip_api_suffix
+from pct.local_ai import LocalAIService
 from pct import __version__ as APP_VERSION
+from web.bootstrap.register_blueprints import register_blueprints
+from web.services.auth_runtime import register_auth_runtime
+from web.services.runtime_settings import apply_runtime_settings
 
 # ------------------------------------------------------------------ cifratura documenti (AES-256-GCM)
 
@@ -471,107 +477,7 @@ def create_app(config: dict | None = None) -> Flask:
     app.config["PST_SOAP_TIMEOUT"] = float(
         cfg.get("PST_SOAP_TIMEOUT", os.getenv("PCT_PST_SOAP_TIMEOUT", "8")) or 8
     )
-    # Scheduler
-    app.config["BACKUP_ORA"]       = os.getenv("PCT_BACKUP_ORA", "02:00")
-    app.config["WA_REMINDER_ORA"]  = os.getenv("PCT_WA_REMINDER_ORA", "18:00")
-    # AI locale / Ollama
-    app.config["LOCAL_AI_DB"] = cfg.get(
-        "LOCAL_AI_DB",
-        os.getenv(
-            "PCT_LOCAL_AI_DB",
-            _data_peer_path(app.config["CLIENTI_DB"], "intelligence", "local_ai.db"),
-        ),
-    )
-    app.config["LOCAL_AI_POLICY"] = cfg.get(
-        "LOCAL_AI_POLICY",
-        os.getenv("PCT_LOCAL_AI_POLICY", "./config/ai-policy.json"),
-    )
-    app.config["LOCAL_AI_MODELS_DIR"] = cfg.get(
-        "LOCAL_AI_MODELS_DIR",
-        os.getenv(
-            "PCT_LOCAL_AI_MODELS_DIR",
-            str(Path(app.config["LOCAL_AI_DB"]).parent / "models"),
-        ),
-    )
-    app.config["LOCAL_AI_ENABLED"] = os.getenv("PCT_LOCAL_AI_ENABLED", "1").lower() not in ("0", "false", "no")
-    app.config["LOCAL_AI_BASE_URL"] = os.getenv("PCT_LOCAL_AI_BASE_URL", "http://127.0.0.1:11434/api")
-    app.config["LOCAL_AI_AUTO_BOOTSTRAP"] = os.getenv("PCT_LOCAL_AI_AUTO_BOOTSTRAP", "1").lower() not in ("0", "false", "no")
-    app.config["LOCAL_AI_CHAT_MODEL"] = os.getenv("PCT_LOCAL_AI_CHAT_MODEL", "")
-    app.config["LOCAL_AI_EMBED_MODEL"] = os.getenv("PCT_LOCAL_AI_EMBED_MODEL", "")
-    app.config["LOCAL_AI_KEEP_ALIVE"] = os.getenv("PCT_LOCAL_AI_KEEP_ALIVE", "10m")
-    app.config["LOCAL_AI_AUTO_INDEX_DOCUMENTS"] = os.getenv("PCT_LOCAL_AI_AUTO_INDEX_DOCUMENTS", "1").lower() not in ("0", "false", "no")
-    # Assistente virtuale PCT (Ollama locale)
-    app.config["OLLAMA_URL"]       = os.getenv("PCT_OLLAMA_URL", strip_api_suffix(app.config["LOCAL_AI_BASE_URL"]))
-    app.config["OLLAMA_MODEL"]     = os.getenv("PCT_OLLAMA_MODEL", app.config["LOCAL_AI_CHAT_MODEL"] or "mistral")
-    # Pagamenti digitali
-    app.config["PAGAMENTI_DIR"] = cfg.get(
-        "PAGAMENTI_DIR", os.getenv("PCT_PAGAMENTI_DIR", "./pagamenti")
-    )
-    # Multi-tenant
-    app.config["TENANTS_REGISTRY"] = cfg.get(
-        "TENANTS_REGISTRY", os.getenv("PCT_TENANTS_REGISTRY", "./data/tenants.json")
-    )
-    app.config["MULTI_TENANT"] = os.getenv("PCT_MULTI_TENANT", "1").lower() not in ("0", "false", "no")
-    # Impostazioni studio persistenti (PEC, firma, SMTP, WhatsApp, scheduler)
-    app.config["STUDIO_CONFIG"] = cfg.get(
-        "STUDIO_CONFIG", os.getenv("PCT_STUDIO_CONFIG", "./config/studio.json")
-    )
-    app.config["CONFIG_STUDIO_DB"] = cfg.get(
-        "CONFIG_STUDIO_DB",
-        os.getenv("PCT_CONFIG_STUDIO_DB", app.config["STUDIO_CONFIG"]),
-    )
-    # ── Carica config studio da JSON al boot (prevale sulle env vars se esiste) ──
-    try:
-        from pct.config_studio import GestioneConfigStudio as _GCS
-        _gs_boot = _GCS(app.config["STUDIO_CONFIG"])
-        _sc = _gs_boot.config
-        # Dati studio
-        if _sc.studio.nome:
-            app.config["STUDIO_NOME"]      = _sc.studio.nome
-            app.config["STUDIO_AVVOCATO"]  = _sc.studio.avvocato
-            app.config["STUDIO_PIVA"]      = _sc.studio.piva
-            app.config["STUDIO_CF"]        = _sc.studio.cf
-            app.config["STUDIO_INDIRIZZO"] = _sc.studio.indirizzo
-            app.config["STUDIO_IBAN"]      = _sc.studio.iban
-        # WhatsApp
-        if _sc.whatsapp.twilio_sid:
-            app.config["TWILIO_SID"]    = _sc.whatsapp.twilio_sid
-            app.config["TWILIO_TOKEN"]  = _sc.whatsapp.twilio_token
-            app.config["TWILIO_NUMERO"] = _sc.whatsapp.twilio_numero
-        if _sc.whatsapp.callmebot_key:
-            app.config["CALLMEBOT_KEY"] = _sc.whatsapp.callmebot_key
-        # Scheduler
-        if _sc.scheduler.backup_ora:
-            app.config["BACKUP_ORA"]       = _sc.scheduler.backup_ora
-            app.config["WA_REMINDER_ORA"]  = _sc.scheduler.wa_reminder_ora
-        # AI locale
-        app.config["LOCAL_AI_ENABLED"] = bool(getattr(_sc.ai, "enabled", True))
-        app.config["LOCAL_AI_BASE_URL"] = getattr(_sc.ai, "base_url", "http://127.0.0.1:11434/api")
-        app.config["LOCAL_AI_AUTO_BOOTSTRAP"] = bool(getattr(_sc.ai, "auto_bootstrap", True))
-        app.config["LOCAL_AI_CHAT_MODEL"] = getattr(_sc.ai, "chat_model", "")
-        app.config["LOCAL_AI_EMBED_MODEL"] = getattr(_sc.ai, "embed_model", "")
-        app.config["LOCAL_AI_KEEP_ALIVE"] = getattr(_sc.ai, "keep_alive", "10m")
-        app.config["LOCAL_AI_AUTO_INDEX_DOCUMENTS"] = bool(getattr(_sc.ai, "auto_index_documents", True))
-        app.config["OLLAMA_URL"] = strip_api_suffix(app.config["LOCAL_AI_BASE_URL"])
-        if app.config["LOCAL_AI_CHAT_MODEL"]:
-            app.config["OLLAMA_MODEL"] = app.config["LOCAL_AI_CHAT_MODEL"]
-        # SMTP — conservati in chiavi proprie per get_messaggi()
-        app.config["SMTP_HOST"]     = _sc.smtp.host or os.getenv("PCT_SMTP_HOST", "")
-        app.config["SMTP_PORT"]     = _sc.smtp.port or int(os.getenv("PCT_SMTP_PORT", "587"))
-        app.config["SMTP_USER"]     = _sc.smtp.username or os.getenv("PCT_SMTP_USER", "")
-        app.config["SMTP_PASS"]     = _sc.smtp.password or os.getenv("PCT_SMTP_PASS", "")
-        app.config["SMTP_FROM"]     = _sc.smtp.from_address or os.getenv("PCT_SMTP_FROM", "")
-        app.config["SMTP_FROM_NAME"]= _sc.smtp.from_name or app.config.get("STUDIO_NOME", "Studio Legale")
-        app.config["SMTP_USE_TLS"]  = _sc.smtp.use_tls
-    except Exception:
-        # Fallback: usa solo env vars (già impostati sopra)
-        app.config.setdefault("SMTP_HOST",      os.getenv("PCT_SMTP_HOST", ""))
-        app.config.setdefault("SMTP_PORT",      int(os.getenv("PCT_SMTP_PORT", "587")))
-        app.config.setdefault("SMTP_USER",      os.getenv("PCT_SMTP_USER", ""))
-        app.config.setdefault("SMTP_PASS",      os.getenv("PCT_SMTP_PASS", ""))
-        app.config.setdefault("SMTP_FROM",      os.getenv("PCT_SMTP_FROM", ""))
-        app.config.setdefault("SMTP_FROM_NAME", app.config.get("STUDIO_NOME", "Studio Legale"))
-        app.config.setdefault("SMTP_USE_TLS",   True)
+    apply_runtime_settings(app, cfg, data_peer_path=_data_peer_path)
 
     def _cfg_data_path(key: str) -> str:
         if has_request_context():
@@ -2842,90 +2748,11 @@ def create_app(config: dict | None = None) -> Flask:
     _sync = get_gestore()
 
     # ---------------------------------------------------------------- auth middleware
-
-    from flask import session, g, abort
-
-    @app.before_request
-    def carica_utente_corrente():
-        """Inietta g.utente_corrente ad ogni request; verifica inattività (8h)."""
-        g.utente_corrente = None
-        uid = session.get("user_id")
-        if uid:
-            last = session.get("last_activity")
-            if last:
-                try:
-                    delta = datetime.now() - datetime.fromisoformat(last)
-                    if delta.total_seconds() > 8 * 3600:
-                        session.clear()
-                        return redirect(url_for("login", next=request.path, timeout=1))
-                except ValueError:
-                    pass
-            session["last_activity"] = datetime.now().isoformat()
-            # Multi-tenant: carica utente dal corretto auth db in base al tenant in sessione
-            tenant_slug = session.get("tenant_slug", "")
-            if tenant_slug and app.config.get("MULTI_TENANT"):
-                from pct.tenant import GestioneTenant
-                tm = GestioneTenant(registry_path=app.config["TENANTS_REGISTRY"])
-                percorsi = tm.percorsi_dati(tenant_slug)
-                gu = GestioneUtenti(
-                    db_path=percorsi["AUTH_DB"],
-                    audit_path=percorsi["AUDIT_DB"],
-                    secret_key=app.secret_key,
-                    crea_admin_se_vuoto=False,
-                )
-            else:
-                gu = get_utenti()
-            g.utente_corrente = gu.get(uid)
-
-    @app.before_request
-    def carica_tenant():
-        """
-        Inietta g.tenant (StudioLegale) in base al tenant_slug nella sessione.
-        Se multi-tenant attivo, sovrascrive i percorsi dati in g.data_paths.
-        """
-        g.tenant = None
-        g.data_paths = {}  # paths per-request; vuoto = usa config globale
-        if not app.config.get("MULTI_TENANT"):
-            return
-        u = getattr(g, "utente_corrente", None)
-        tenant_slug = session.get("tenant_slug") or (u.tenant_slug if u else "")
-        if not tenant_slug:
-            return
-        from pct.tenant import GestioneTenant
-        tm = GestioneTenant(registry_path=app.config["TENANTS_REGISTRY"])
-        studio = tm.get(tenant_slug)
-        if studio:
-            g.tenant = studio
-            g.data_paths = tm.percorsi_dati(tenant_slug)
-            _bootstrap_runtime_data_modules()
-
-    # Route pubbliche che non richiedono login.
-    # Le route del Local Signer devono essere scaricabili senza sessione:
-    # - il browser può aprire il download in un contesto senza cookie;
-    # - lo script PowerShell scarica local_signer.py senza autenticarsi.
-    _ROUTE_PUBBLICHE = {
-        "login",
-        "login_2fa",
-        "static",
-        "logout",
-        "admin.esci_impersonazione",
-        "polis_local_signer_download",
-        "polis_local_signer_download_uffici",
-        "polis_local_signer_installa",
-        "polis_local_signer_setup_windows",
-        "polis_local_signer_setup_windows_exe",
-        "polis_local_signer_setup_macos",
-        "polis_local_signer_setup_linux",
-    }
-
-    @app.before_request
-    def richiedi_login():
-        if request.endpoint in _ROUTE_PUBBLICHE:
-            return
-        if request.endpoint and request.endpoint.startswith(("api_", "portale")):
-            return  # API e portale gestiscono autonomamente
-        if g.utente_corrente is None:
-            return redirect(url_for("login", next=request.path))
+    register_auth_runtime(
+        app,
+        get_utenti=get_utenti,
+        bootstrap_runtime_data_modules=_bootstrap_runtime_data_modules,
+    )
 
     def audit(azione: str, risorsa_tipo: str = "", risorsa_id: str = "", dettagli: str = ""):
         """Helper per registrare un evento audit."""
@@ -3049,113 +2876,6 @@ def create_app(config: dict | None = None) -> Flask:
         tb_str = "".join(_tb.format_exception(type(e), e, e.__traceback__))
         app.logger.error("500 Internal Server Error: %s\n%s", e, tb_str)
         return render_template("errori/500.html"), 500
-
-    # ================================================================ AUTH
-
-    @app.route("/login", methods=["GET", "POST"])
-    def login():
-        if g.utente_corrente:
-            return redirect(url_for("dashboard"))
-        errore = None
-        if request.method == "POST":
-            studio_slug = request.form.get("studio_slug", "").strip().lower()
-            # Multi-tenant: se è specificato uno studio, carica auth da quel tenant
-            if studio_slug and app.config.get("MULTI_TENANT"):
-                from pct.tenant import GestioneTenant
-                tm = GestioneTenant(registry_path=app.config["TENANTS_REGISTRY"])
-                studio = tm.get(studio_slug)
-                if not studio:
-                    return render_template("auth/login.html", errore="Studio non trovato.", multi_tenant=True)
-                percorsi = tm.percorsi_dati(studio_slug)
-                gu = GestioneUtenti(
-                    db_path=percorsi["AUTH_DB"],
-                    audit_path=percorsi["AUDIT_DB"],
-                    secret_key=app.secret_key,
-                    crea_admin_se_vuoto=False,
-                )
-            else:
-                gu = get_utenti()
-            utente = gu.autentica(
-                request.form.get("username", ""),
-                request.form.get("password", ""),
-            )
-            if utente:
-                if utente.totp_attivato:
-                    # Credenziali OK ma serve verifica 2FA
-                    session.clear()
-                    session["totp_pending_uid"] = utente.id
-                    session["totp_pending_next"] = request.args.get("next") or url_for("dashboard")
-                    return redirect(url_for("login_2fa"))
-                session.clear()
-                session["user_id"] = utente.id
-                session["tenant_slug"] = utente.tenant_slug or ""
-                session["last_activity"] = datetime.now().isoformat()
-                session.permanent = True
-                gu.registra_evento(
-                    "auth.login",
-                    id_utente=utente.id,
-                    username=utente.username,
-                    ip=request.remote_addr or "",
-                )
-                next_url = request.args.get("next") or url_for("dashboard")
-                return redirect(next_url)
-            else:
-                errore = "Credenziali non valide o utente disabilitato."
-                gu.registra_evento(
-                    "auth.login_fallito",
-                    username=request.form.get("username", ""),
-                    ip=request.remote_addr or "",
-                    esito="ERRORE",
-                )
-        return render_template(
-            "auth/login.html",
-            errore=errore,
-            multi_tenant=app.config.get("MULTI_TENANT", False),
-        )
-
-    @app.route("/logout", methods=["POST"])
-    def logout():
-        u = g.utente_corrente
-        if u:
-            get_utenti().registra_evento(
-                "auth.logout",
-                id_utente=u.id,
-                username=u.username,
-                ip=request.remote_addr or "",
-            )
-        session.clear()
-        flash("Disconnessione effettuata.", "info")
-        return redirect(url_for("login"))
-
-    @app.route("/login/2fa", methods=["GET", "POST"])
-    def login_2fa():
-        """Secondo step di login: verifica codice TOTP."""
-        uid = session.get("totp_pending_uid")
-        if not uid:
-            return redirect(url_for("login"))
-        gu = get_utenti()
-        utente = gu.get(uid)
-        if not utente or not utente.totp_attivato:
-            session.pop("totp_pending_uid", None)
-            return redirect(url_for("login"))
-        errore = None
-        if request.method == "POST":
-            codice = request.form.get("codice", "").strip()
-            if verifica_totp(utente.totp_secret, codice):
-                next_url = session.pop("totp_pending_next", url_for("dashboard"))
-                session.clear()
-                session["user_id"] = utente.id
-                session["tenant_slug"] = utente.tenant_slug or ""
-                session["last_activity"] = datetime.now().isoformat()
-                session.permanent = True
-                gu.registra_evento("auth.login", id_utente=utente.id,
-                                   username=utente.username, ip=request.remote_addr or "")
-                return redirect(next_url)
-            errore = "Codice non valido. Riprova."
-            gu.registra_evento("auth.2fa_fallito", id_utente=utente.id,
-                               username=utente.username, ip=request.remote_addr or "",
-                               esito="ERRORE")
-        return render_template("auth/login_2fa.html", errore=errore, username=utente.username)
 
     @app.route("/profilo", methods=["GET", "POST"])
     def profilo():
@@ -15699,61 +15419,7 @@ read -r -p "Premi Invio per chiudere..." _
         return send_file(zip_path, as_attachment=True, download_name=nome_file, mimetype="application/zip")
 
     # ================================================================ BLUEPRINTS
-    # Importati qui (non in cima) per evitare import circolari:
-    # i blueprint usano web.helpers che usa current_app, valido solo dentro create_app().
-    from web.blueprints.api_v1 import api_v1        # REST API /api/v1/*
-    app.register_blueprint(api_v1)
-
-    from web.blueprints.portale import portale as portale_bp  # Portale cliente /portale/*
-    app.register_blueprint(portale_bp)
-
-    from web.blueprints.fatturazione import fatturazione as fatturazione_bp  # Parcelle /fatturazione/*
-    app.register_blueprint(fatturazione_bp)
-
-    from web.blueprints.notifiche import notifiche as notifiche_bp  # WhatsApp /notifiche/*
-    app.register_blueprint(notifiche_bp)
-
-    from web.blueprints.template_atti import template_atti as template_atti_bp  # Template atti /template-atti/*
-    app.register_blueprint(template_atti_bp)
-
-    from web.blueprints.statistiche import statistiche as statistiche_bp  # Statistiche /statistiche/*
-    app.register_blueprint(statistiche_bp)
-
-    from web.blueprints.legal_intelligence import legal_intelligence as legal_intelligence_bp  # Motori legali /legal-intelligence/*
-    app.register_blueprint(legal_intelligence_bp)
-
-    from web.blueprints.giurisprudenza import giurisprudenza as giurisprudenza_bp  # Archivio sentenze /giurisprudenza/*
-    app.register_blueprint(giurisprudenza_bp)
-
-    from web.blueprints.export_csv import export_csv as export_csv_bp  # Export CSV /export/*
-    app.register_blueprint(export_csv_bp)
-
-    from web.blueprints.pagamenti import pagamenti as pagamenti_bp  # Pagamenti digitali
-    app.register_blueprint(pagamenti_bp)
-
-    from web.blueprints.admin import admin_bp  # Pannello Admin multi-tenant /admin/*
-    app.register_blueprint(admin_bp)
-
-    from web.blueprints.impostazioni import impostazioni as impostazioni_bp  # Impostazioni studio /impostazioni/*
-    app.register_blueprint(impostazioni_bp)
-
-    from web.blueprints.email_client import email_client as email_client_bp  # Client email /email/*
-    app.register_blueprint(email_client_bp)
-
-    from web.blueprints.assistente import assistente as assistente_bp  # Assistente PCT /api/assistente/*
-    app.register_blueprint(assistente_bp)
-
-    from web.blueprints.preventivi import preventivi as preventivi_bp  # Preventivi e incarichi /preventivi/*
-    app.register_blueprint(preventivi_bp)
-
-    from web.blueprints.strumenti_legali import strumenti_legali as strumenti_legali_bp  # Hub strumenti legali /strumenti-legali/*
-    app.register_blueprint(strumenti_legali_bp)
-
-    from web.blueprints.applicazioni import applicazioni as applicazioni_bp  # Catalogo applicazioni /applicazioni/*
-    app.register_blueprint(applicazioni_bp)
-
-    from web.blueprints.wizard_pro import wizard_pro_bp  # Wizard Pro /wizard-pro/*
-    app.register_blueprint(wizard_pro_bp)
+    register_blueprints(app)
 
     # ----------------------------------------------------------------
     # iCal — download diretto (retrocompatibilità)

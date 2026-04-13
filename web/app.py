@@ -12798,7 +12798,7 @@ read -r -p "Premi Invio per chiudere..." _
         """
         try:
             from dataclasses import replace as _dc_replace
-            from pct.firma import crea_signer_da_config
+            from pct.firma import busta_cades_valida, crea_signer_da_config
 
             data          = request.get_json(force=True) or {}
             id_fasc       = data.get("fascicolo_id", "").strip()
@@ -12901,6 +12901,14 @@ read -r -p "Premi Invio per chiudere..." _
                 return jsonify({"ok": False, "messaggio": "Il file firmato non è stato generato dal token PKCS#11."}), 500
 
             contenuto_firmato = Path(firmato_path).read_bytes()
+            if not busta_cades_valida(contenuto_firmato):
+                return jsonify({
+                    "ok": False,
+                    "messaggio": (
+                        "Il token ha restituito un file .p7m non valido. "
+                        "Aggiorna il Local Signer e ripeti la firma."
+                    ),
+                }), 500
             gf.sostituisci_documento(
                 id_fasc=id_fasc,
                 id_doc=id_doc,
@@ -12949,7 +12957,7 @@ read -r -p "Premi Invio per chiudere..." _
         """
         try:
             from dataclasses import replace as _dc_replace
-            from pct.firma import crea_signer_da_config
+            from pct.firma import busta_cades_valida, crea_signer_da_config
 
             data = request.get_json(force=True) or {}
             id_fasc = str(data.get("fascicolo_id") or "").strip()
@@ -13065,12 +13073,47 @@ read -r -p "Premi Invio per chiudere..." _
 
                     firma.salva_documento_firmato(contenuto, str(doc_path), formato="cades")
                     firmato_path = str(doc_path) + ".p7m"
-
                     nome_firmato = doc.nome if doc.nome.endswith(".p7m") else f"{doc.nome}.p7m"
-                    doc.nome = nome_firmato
-                    doc.firmato_digitalmente = True
-                    if os.path.exists(firmato_path):
-                        doc.dimensione_bytes = os.path.getsize(firmato_path)
+
+                    if not os.path.exists(firmato_path):
+                        risultati.append({
+                            "ok": False,
+                            "documento_id": id_doc,
+                            "messaggio": "Il file .p7m firmato non è stato generato.",
+                        })
+                        errori += 1
+                        continue
+
+                    contenuto_firmato = Path(firmato_path).read_bytes()
+                    if not busta_cades_valida(contenuto_firmato):
+                        risultati.append({
+                            "ok": False,
+                            "documento_id": id_doc,
+                            "messaggio": (
+                                "Il file .p7m generato non contiene una firma CAdES valida. "
+                                "Aggiorna il Local Signer e ripeti la firma."
+                            ),
+                        })
+                        errori += 1
+                        try:
+                            Path(firmato_path).unlink(missing_ok=True)
+                        except Exception:
+                            pass
+                        continue
+
+                    gf.sostituisci_documento(
+                        id_fasc=id_fasc,
+                        id_doc=id_doc,
+                        nome_file=nome_firmato,
+                        contenuto=_encrypt_doc(contenuto_firmato),
+                        caricato_da=u.username if u else "",
+                        note="Versione firmata per deposito",
+                    )
+                    gf.segna_firmato(id_fasc, id_doc)
+                    try:
+                        Path(firmato_path).unlink(missing_ok=True)
+                    except Exception:
+                        pass
 
                     risultati.append({
                         "ok": True,
@@ -13115,10 +13158,23 @@ read -r -p "Premi Invio per chiudere..." _
         """Carica la versione firmata (.p7m/.pdf) e marca il documento come firmato."""
         gf = get_fascicoli()
         u = g.utente_corrente
+        richiesta_ajax = request.headers.get("X-Requested-With") == "XMLHttpRequest"
+
+        def _chiudi_risposta(ok: bool, messaggio: str, categoria: str, status: int = 200, **extra):
+            if richiesta_ajax:
+                payload = {"ok": ok, "messaggio": messaggio}
+                payload.update(extra)
+                return jsonify(payload), status
+            flash(messaggio, categoria)
+            return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
+
         try:
             if "file" in request.files and request.files["file"].filename:
+                from pct.firma import busta_cades_valida
+
                 file = request.files["file"]
                 cfg_firma = get_config_studio().config.firma
+                payload_firmato = file.read()
                 if getattr(cfg_firma, "configurato", False):
                     est = Path(file.filename or "").suffix.lower()
                     if est == ".pdf":
@@ -13131,23 +13187,28 @@ read -r -p "Premi Invio per chiudere..." _
                             "Usa un file .p7m (CAdES) oppure .pdf firmato (PAdES)."
                         )
                     cfg_firma.valida_formato_firma(formato_file)
+                    if formato_file == "cades" and not busta_cades_valida(payload_firmato):
+                        raise ValueError(
+                            "Il file .p7m caricato non contiene una firma CAdES valida. "
+                            "Non caricare PDF rinominati in .p7m: verifica prima il file in ArubaSign o Dike."
+                        )
                 note = request.form.get("note", "Versione firmata per deposito").strip()
                 gf.sostituisci_documento(
                     id_fasc=id_fasc,
                     id_doc=id_doc,
                     nome_file=file.filename,
-                    contenuto=_encrypt_doc(file.read()),
+                    contenuto=_encrypt_doc(payload_firmato),
                     caricato_da=u.username if u else "",
                     note=note,
                 )
             doc = gf.segna_firmato(id_fasc, id_doc)
-            flash(f"Documento '{doc.nome}' contrassegnato come firmato per deposito.", "success")
+            messaggio = f"Documento '{doc.nome}' contrassegnato come firmato per deposito."
             audit("fascicoli.documento.firma", "fascicolo", id_fasc,
                   dettagli=f"doc {id_doc} — {doc.nome}")
             _sync.pubblica("modifica", "fascicoli", id_fasc, utente=u.username if u else "")
+            return _chiudi_risposta(True, messaggio, "success", nome_firmato=doc.nome)
         except (ValueError, KeyError) as e:
-            flash(str(e), "danger")
-        return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
+            return _chiudi_risposta(False, str(e), "danger", status=400)
 
     @app.route("/fascicoli/<id_fasc>/documenti/<id_doc>/elimina", methods=["POST"])
     def elimina_documento(id_fasc, id_doc):

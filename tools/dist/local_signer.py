@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-HACS Local Signer - v1.5.41
+HACS Local Signer - v1.5.42
 
 Servizio HTTP locale (localhost:27272) che firma documenti con smart card e token CNS/CIE
 (o qualsiasi token PKCS#11) e consente l'accesso autenticato al PST.
@@ -90,7 +90,7 @@ except Exception:
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.5.41"
+VERSION = "1.5.42"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
@@ -2066,10 +2066,16 @@ def _firma_inline(lib_path: str, documento: bytes, pin: str,
             signed_attrs_der, mechanism=Mechanism.SHA256_RSA_PKCS
         ))
 
-    # CAdES-BES minimale usando asn1crypto
+        # CAdES-BES minimale usando il builder condiviso se disponibile
     try:
         from pct.firma_pkcs11 import _build_cades_bes
-        firmato = _build_cades_bes(documento, firma_bytes, cert_der)
+        firmato = _build_cades_bes(
+            documento=documento,
+            signature_bytes=firma_bytes,
+            cert_der=cert_der,
+            signed_attrs_der=signed_attrs_der,
+            detached=False,
+        )
     except ImportError:
         firmato = _build_cades_bes_inline(
             documento,
@@ -2121,15 +2127,15 @@ def _build_cades_bes_inline(
     Usato solo se pct.firma_pkcs11 non è disponibile.
     """
     try:
-        from asn1crypto import cms, algos, core, pem as asn1_pem
-        from cryptography import x509 as cx509
-        from cryptography.hazmat.backends import default_backend
+        from asn1crypto import cms, algos, core, x509 as asn1_x509
+    except ImportError as exc:
+        raise RuntimeError(
+            "Dipendenza mancante nel Local Signer: installare asn1crypto per costruire la firma CAdES."
+        ) from exc
 
-        cert_obj = cx509.load_der_x509_certificate(cert_der, default_backend())
-        issuer_der = cert_obj.issuer.public_bytes(default_backend())
-        serial = cert_obj.serial_number
-
-        doc_digest = hashlib.sha256(documento).digest()
+    try:
+        cert_asn1 = asn1_x509.Certificate.load(cert_der)
+        tbs = cert_asn1["tbs_certificate"]
         signed_attrs_der = signed_attrs_der or _build_signed_attrs_der_inline(documento)
         signed_attrs = cms.CMSAttributes.load(signed_attrs_der)
 
@@ -2137,8 +2143,8 @@ def _build_cades_bes_inline(
             "version": "v1",
             "sid": cms.SignerIdentifier({
                 "issuer_and_serial_number": cms.IssuerAndSerialNumber({
-                    "issuer": cx509.Name.from_der(issuer_der),
-                    "serial_number": serial,
+                    "issuer": tbs["issuer"],
+                    "serial_number": tbs["serial_number"],
                 }),
             }),
             "digest_algorithm": algos.DigestAlgorithm({"algorithm": "sha256"}),
@@ -2152,25 +2158,28 @@ def _build_cades_bes_inline(
             "digest_algorithms": cms.DigestAlgorithms([
                 algos.DigestAlgorithm({"algorithm": "sha256"})
             ]),
-            "encap_content_info": cms.EncapsulatedContentInfo({
-                "content_type": cms.ContentType("data"),
-            }),
+            "encap_content_info": {
+                "content_type": "data",
+                "content": documento,
+            },
             "certificates": cms.CertificateSet([
-                cms.CertificateChoices({"certificate": cx509.Certificate.load(cert_der)})
+                cms.CertificateChoices(name="certificate", value=cert_asn1)
             ]),
             "signer_infos": cms.SignerInfos([signer_info]),
         })
 
         envelope = cms.ContentInfo({
-            "content_type": cms.ContentType("signed_data"),
+            "content_type": "signed_data",
             "content": signed_data,
         })
         return envelope.dump()
 
-    except Exception as e:
-        log.warning("_build_cades_bes_inline fallback: %s", e)
-        # Ultima risorsa: ritorna firma grezza avvolta in PKCS#7 dummy
-        return firma
+    except Exception as exc:
+        log.exception("_build_cades_bes_inline fallita")
+        raise RuntimeError(
+            "Impossibile costruire una busta CAdES valida nel Local Signer. "
+            "Aggiorna il pacchetto Local Signer e riprova."
+        ) from exc
 
 
 # ── PST helpers ────────────────────────────────────────────────────────────────

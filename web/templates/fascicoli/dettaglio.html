@@ -4261,7 +4261,13 @@ function _detFAvviaLS() {
       const fd = new FormData();
       fd.append('file', new File([new Blob([firmataBytes], { type: 'application/pkcs7-mime' })], nomeP7m));
       return fetch(_detFDoc.firmaUrl, { method: 'POST', body: fd, headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-        .then(r => { if (!r.ok) throw new Error('Errore upload .p7m: HTTP ' + r.status); return d; });
+        .then(async r => {
+          const payload = await r.json().catch(() => ({}));
+          if (!r.ok || payload.ok === false) {
+            throw new Error(payload.messaggio || ('Errore upload .p7m: HTTP ' + r.status));
+          }
+          return d;
+        });
     })
     .then(d => {
       document.getElementById('fLsProgress').style.display = 'none';
@@ -4348,8 +4354,9 @@ function _detFCaricaP7m(input) {
   if (note) fd.append('note', note);
 
   fetch(_detFDoc.firmaUrl, { method: 'POST', body: fd, headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-    .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); })
-    .then(() => {
+    .then(async r => {
+      const payload = await r.json().catch(() => ({}));
+      if (!r.ok || payload.ok === false) throw new Error(payload.messaggio || ('HTTP ' + r.status));
       statusEl.innerHTML = `<span class="text-success"><i class="bi bi-patch-check-fill me-1"></i><strong>${file.name}</strong> caricato correttamente.</span>`;
       document.getElementById('fBtnDone').classList.remove('d-none');
     })

@@ -79,6 +79,76 @@ _ENV_SLOT    = "PCT_PKCS11_SLOT"
 _ENV_LABEL   = "PCT_PKCS11_LABEL"
 
 
+def _build_cades_bes(
+    documento: bytes,
+    signature_bytes: bytes,
+    cert_der: bytes,
+    signed_attrs_der: bytes,
+    *,
+    detached: bool = False,
+) -> bytes:
+    """
+    Costruisce una busta CAdES-BES DER valida a partire da firma, certificato
+    e SignedAttributes già preparati.
+    """
+    try:
+        from asn1crypto import cms, algos, core, x509 as _ax509
+    except ImportError as exc:
+        raise ImportError(
+            "asn1crypto non installato. Eseguire: pip install asn1crypto"
+        ) from exc
+
+    cert_asn1 = _ax509.Certificate.load(cert_der)
+    tbs = cert_asn1["tbs_certificate"]
+    signed_attrs_obj = cms.CMSAttributes.load(signed_attrs_der)
+
+    signer_info = cms.SignerInfo({
+        "version": cms.CMSVersion(1),
+        "sid": cms.SignerIdentifier({
+            "issuer_and_serial_number": cms.IssuerAndSerialNumber({
+                "issuer": tbs["issuer"],
+                "serial_number": tbs["serial_number"],
+            }),
+        }),
+        "digest_algorithm": algos.DigestAlgorithm({
+            "algorithm": algos.DigestAlgorithmId("sha256"),
+        }),
+        "signed_attrs": signed_attrs_obj,
+        "signature_algorithm": algos.SignedDigestAlgorithm({
+            "algorithm": algos.SignedDigestAlgorithmId("sha256_rsa"),
+        }),
+        "signature": core.OctetString(signature_bytes),
+    })
+
+    encap_content_info = {"content_type": cms.ContentType("data")}
+    if not detached:
+        encap_content_info["content"] = documento
+
+    signed_data = cms.SignedData({
+        "version": cms.CMSVersion(1),
+        "digest_algorithms": cms.DigestAlgorithms([
+            algos.DigestAlgorithm({
+                "algorithm": algos.DigestAlgorithmId("sha256"),
+            }),
+        ]),
+        "encap_content_info": encap_content_info,
+        "certificates": cms.CertificateSet([
+            cms.CertificateChoices(
+                name="certificate",
+                value=cert_asn1,
+            ),
+        ]),
+        "signer_infos": cms.SignerInfos([signer_info]),
+    })
+
+    content_info = cms.ContentInfo({
+        "content_type": cms.ContentType("signed_data"),
+        "content": signed_data,
+    })
+
+    return content_info.dump()
+
+
 def _score_library(lib_path: str) -> int:
     try:
         import pkcs11
@@ -525,77 +595,13 @@ class FirmaPKCS11:
         """
         Costruisce la busta PKCS#7 SignedData DER conforme a RFC 5652 e CAdES-BES.
         """
-        try:
-            from asn1crypto import cms, algos, core, x509 as _ax509
-        except ImportError:
-            raise ImportError(
-                "asn1crypto non installato. "
-                "Eseguire: pip install asn1crypto"
-            )
-
-        # Parsing del certificato
-        cert_asn1 = _ax509.Certificate.load(self._cert_der)
-        tbs       = cert_asn1["tbs_certificate"]
-
-        # Ri-parse dei SignedAttributes per inserirli nel SignerInfo
-        # (asn1crypto li ri-codificherà con tag [0] IMPLICIT nel SignerInfo)
-        signed_attrs_obj = cms.CMSAttributes.load(signed_attrs_der)
-
-        # SignerInfo
-        signer_info = cms.SignerInfo({
-            "version": cms.CMSVersion(1),
-            "sid": cms.SignerIdentifier({
-                "issuer_and_serial_number": cms.IssuerAndSerialNumber({
-                    "issuer":         tbs["issuer"],
-                    "serial_number":  tbs["serial_number"],
-                }),
-            }),
-            "digest_algorithm": algos.DigestAlgorithm({
-                "algorithm": algos.DigestAlgorithmId("sha256"),
-            }),
-            "signed_attrs": signed_attrs_obj,
-            "signature_algorithm": algos.SignedDigestAlgorithm({
-                "algorithm": algos.SignedDigestAlgorithmId("sha256_rsa"),
-            }),
-            "signature": core.OctetString(signature_bytes),
-        })
-
-        # EncapsulatedContentInfo (detached = senza contenuto embedded)
-        if detached:
-            encap = cms.EncapsulatedContentInfo({
-                "content_type": cms.ContentType("data"),
-            })
-        else:
-            encap = cms.EncapsulatedContentInfo({
-                "content_type": cms.ContentType("data"),
-                "content": cms.ParsableOctetString(documento),
-            })
-
-        # SignedData
-        signed_data = cms.SignedData({
-            "version": cms.CMSVersion(1),
-            "digest_algorithms": cms.DigestAlgorithms([
-                algos.DigestAlgorithm({
-                    "algorithm": algos.DigestAlgorithmId("sha256"),
-                }),
-            ]),
-            "encap_content_info": encap,
-            "certificates": cms.CertificateSet([
-                cms.CertificateChoices(
-                    name="certificate",
-                    value=cert_asn1,
-                ),
-            ]),
-            "signer_infos": cms.SignerInfos([signer_info]),
-        })
-
-        # ContentInfo (wrapper esterno)
-        content_info = cms.ContentInfo({
-            "content_type": cms.ContentType("signed_data"),
-            "content": signed_data,
-        })
-
-        return content_info.dump()
+        return _build_cades_bes(
+            documento=documento,
+            signature_bytes=signature_bytes,
+            cert_der=self._cert_der,
+            signed_attrs_der=signed_attrs_der,
+            detached=detached,
+        )
 
     # ── salva documento firmato (interfaccia FirmaDigitale) ─────────────────
 

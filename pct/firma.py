@@ -371,6 +371,27 @@ def _is_cades(data: bytes) -> bool:
         return False
 
 
+def busta_cades_valida(data: bytes) -> bool:
+    """
+    Verifica che il payload sia una busta CAdES/PKCS#7 realmente firmata.
+
+    Non basta che il file abbia estensione ``.p7m``: deve contenere
+    ``SignedData`` con almeno un firmatario e almeno un certificato.
+    """
+    try:
+        from asn1crypto import cms
+
+        ci = cms.ContentInfo.load(data)
+        if ci["content_type"].native != "signed_data":
+            return False
+        signed_data = ci["content"]
+        signer_infos = signed_data["signer_infos"]
+        certs = signed_data["certificates"]
+        return bool(signer_infos) and certs is not None and len(certs) > 0
+    except Exception:
+        return False
+
+
 def _dn_campo(asn1_name, campo_hf: str) -> str:
     """Estrae un campo dal Distinguished Name tramite human_friendly label."""
     try:

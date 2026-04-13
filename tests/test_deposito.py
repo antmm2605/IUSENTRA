@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import io
 import os
 from pathlib import Path
 from types import SimpleNamespace
@@ -13,7 +14,7 @@ from pct.cli import cli
 from pct.config_studio import ConfigFirma, ConfigStudio, GestioneConfigStudio
 from pct.deposito import DepositoCivile
 from pct.fascicoli import EsitoDepositoPCT, GestioneFascicoli, TipoDocumento, TipoFascicolo
-from pct.firma import FirmaDigitale, crea_signer_da_config
+from pct.firma import FirmaDigitale, busta_cades_valida, crea_signer_da_config
 from pct.pec import ConfigPEC
 from web.app import create_app
 
@@ -509,6 +510,15 @@ def test_api_pkcs11_firma_documento_blocca_pades(tmp_path):
 
 
 def test_api_pkcs11_firma_documenti_batch_usa_una_sola_sessione(tmp_path, monkeypatch):
+    from datetime import UTC, datetime, timedelta
+
+    from cryptography import x509
+    from cryptography.hazmat.primitives import hashes, serialization
+    from cryptography.hazmat.primitives.asymmetric import padding, rsa
+    from cryptography.x509.oid import NameOID
+
+    import pct.firma_pkcs11 as firma_pkcs11
+
     cfg = _cfg_web(tmp_path)
     cfg["STUDIO_CONFIG"] = str(tmp_path / "studio.json")
     libreria = tmp_path / "bit4id.dll"
@@ -548,6 +558,21 @@ def test_api_pkcs11_firma_documenti_batch_usa_una_sola_sessione(tmp_path, monkey
     )
 
     calls = {"pins": [], "salvati": []}
+    key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    subject = issuer = x509.Name([
+        x509.NameAttribute(NameOID.COUNTRY_NAME, "IT"),
+        x509.NameAttribute(NameOID.COMMON_NAME, "Avv. Batch"),
+    ])
+    cert = (
+        x509.CertificateBuilder()
+        .subject_name(subject)
+        .issuer_name(issuer)
+        .public_key(key.public_key())
+        .serial_number(x509.random_serial_number())
+        .not_valid_before(datetime.now(UTC) - timedelta(days=1))
+        .not_valid_after(datetime.now(UTC) + timedelta(days=30))
+        .sign(key, hashes.SHA256())
+    )
 
     class _FakeSigner:
         intestatario = "Avv. Batch"
@@ -568,7 +593,21 @@ def test_api_pkcs11_firma_documenti_batch_usa_una_sola_sessione(tmp_path, monkey
 
         def salva_documento_firmato(self, contenuto, output_path, formato="cades"):
             calls["salvati"].append({"output_path": output_path, "formato": formato})
-            Path(str(output_path) + ".p7m").write_bytes(contenuto + b".p7m")
+            digest = hashes.Hash(hashes.SHA256())
+            digest.update(contenuto)
+            signed_attrs_der = firma_pkcs11.FirmaPKCS11._build_signed_attrs(
+                object.__new__(firma_pkcs11.FirmaPKCS11),
+                digest.finalize(),
+            )
+            signature = key.sign(signed_attrs_der, padding.PKCS1v15(), hashes.SHA256())
+            p7m = firma_pkcs11._build_cades_bes(
+                documento=contenuto,
+                signature_bytes=signature,
+                cert_der=cert.public_bytes(serialization.Encoding.DER),
+                signed_attrs_der=signed_attrs_der,
+                detached=False,
+            )
+            Path(str(output_path) + ".p7m").write_bytes(p7m)
             return str(output_path) + ".p7m"
 
     def _fake_crea_signer(cfg_firma, pin=None):
@@ -612,6 +651,77 @@ def test_api_pkcs11_firma_documenti_batch_usa_una_sola_sessione(tmp_path, monkey
     assert all(doc.firmato_digitalmente for doc in fascicolo_reload.documenti[:2])
     assert fascicolo_reload.documenti[0].nome.endswith(".p7m")
     assert fascicolo_reload.documenti[1].nome.endswith(".p7m")
+
+    path_doc1 = gf_reload.percorso_documento(fascicolo.id, doc1.id)
+    assert path_doc1 is not None
+    contenuto_doc1 = path_doc1.read_bytes()
+    assert busta_cades_valida(contenuto_doc1) is True
+    assert contenuto_doc1 != b"%PDF-ORIG-1%"
+
+
+def test_firma_documento_ajax_rifiuta_p7m_non_valido(tmp_path):
+    cfg = _cfg_web(tmp_path)
+    cfg["STUDIO_CONFIG"] = str(tmp_path / "studio.json")
+
+    libreria = tmp_path / "bit4id.dll"
+    libreria.write_bytes(b"fake")
+    GestioneConfigStudio(cfg["STUDIO_CONFIG"]).aggiorna(
+        ConfigStudio(firma=ConfigFirma(backend_preferito="pkcs11", pkcs11_library=str(libreria)))
+    )
+
+    gu = GestioneUtenti(
+        db_path=cfg["AUTH_DB"],
+        audit_path=cfg["AUDIT_DB"],
+        secret_key="test",
+    )
+    gu.crea(
+        username="upload-admin",
+        password="Admin1234!",
+        ruolo=RuoloUtente.AMMINISTRATORE,
+        email="admin@example.com",
+    )
+
+    gf = GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+    )
+    fascicolo = gf.nuovo(titolo="Fascicolo test upload firma", tipo=TipoFascicolo.CIVILE)
+    doc = gf.aggiungi_documento(
+        fascicolo.id,
+        "procura.pdf",
+        TipoDocumento.PROCURA,
+        b"%PDF-ORIG%",
+    )
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        client.post(
+            "/login",
+            data={"username": "upload-admin", "password": "Admin1234!"},
+            follow_redirects=True,
+        )
+        response = client.post(
+            f"/fascicoli/{fascicolo.id}/documenti/{doc.id}/firma",
+            data={"file": (io.BytesIO(b"%PDF-rinominato%"), "procura.pdf.p7m")},
+            content_type="multipart/form-data",
+            headers={"X-Requested-With": "XMLHttpRequest"},
+        )
+
+    assert response.status_code == 400
+    payload = response.get_json()
+    assert payload["ok"] is False
+    assert "firma CAdES valida" in payload["messaggio"]
+
+    gf_reload = GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+    )
+    fascicolo_reload = gf_reload.get(fascicolo.id)
+    assert fascicolo_reload is not None
+    assert fascicolo_reload.documenti[0].nome == "procura.pdf"
+    assert fascicolo_reload.documenti[0].firmato_digitalmente is False
 
 
 def test_wizard_tributario_renderizza_prededeposito_sigit_demo(tmp_path):

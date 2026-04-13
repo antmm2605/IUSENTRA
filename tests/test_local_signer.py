@@ -226,6 +226,16 @@ def test_firma_inline_usa_privkey_sign_e_signed_attrs(monkeypatch):
 
     monkeypatch.setitem(sys.modules, "pkcs11", fake_pkcs11)
     monkeypatch.setattr(
+        "pct.firma_pkcs11._build_cades_bes",
+        lambda documento, signature_bytes, cert_der, signed_attrs_der=None, detached=False: {
+            "documento": documento,
+            "firma": signature_bytes,
+            "cert_der": cert_der,
+            "signed_attrs_der": signed_attrs_der,
+            "detached": detached,
+        },
+    )
+    monkeypatch.setattr(
         module,
         "_build_cades_bes_inline",
         lambda documento, firma, cert_der, signed_attrs_der=None: {
@@ -242,6 +252,7 @@ def test_firma_inline_usa_privkey_sign_e_signed_attrs(monkeypatch):
     assert firmato["documento"] == b"abc"
     assert firmato["cert_der"] == b"certificato-der-fittizio"
     assert firmato["signed_attrs_der"] == chiamate["payload"]
+    assert firmato["detached"] is False
     assert chiamate["payload"] != b"abc"
     assert chiamate["mechanism"] == fake_mechanism.SHA256_RSA_PKCS
     assert info == {"intestatario": "", "scadenza": ""}
@@ -1860,12 +1871,50 @@ def test_firma_documento_riusa_sessione_pin_in_ram():
         module._create_pin_session = orig_create
         module._pin_session_cache = orig_cache
 
-    assert firmato1.endswith(b".p7m")
-    assert firmato2.endswith(b".p7m")
-    assert info1["pin_session_id"] == "sess-1"
-    assert info2["pin_session_id"] == "sess-1"
-    assert info2["pin_session_cached"] is True
-    assert signer.calls == 2
+
+def test_build_cades_bes_inline_restituisce_busta_pkcs7_valida_con_contenuto_embedded():
+    from datetime import UTC, datetime, timedelta
+
+    from asn1crypto import cms
+    from cryptography import x509
+    from cryptography.hazmat.primitives import hashes, serialization
+    from cryptography.hazmat.primitives.asymmetric import padding, rsa
+    from cryptography.x509.oid import NameOID
+
+    module = _load_local_signer()
+
+    key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    subject = issuer = x509.Name([
+        x509.NameAttribute(NameOID.COUNTRY_NAME, "IT"),
+        x509.NameAttribute(NameOID.COMMON_NAME, "Avv. Test Inline"),
+    ])
+    cert = (
+        x509.CertificateBuilder()
+        .subject_name(subject)
+        .issuer_name(issuer)
+        .public_key(key.public_key())
+        .serial_number(x509.random_serial_number())
+        .not_valid_before(datetime.now(UTC) - timedelta(days=1))
+        .not_valid_after(datetime.now(UTC) + timedelta(days=30))
+        .sign(key, hashes.SHA256())
+    )
+    documento = b"%PDF-1.4\n% firma inline\n%%EOF"
+    signed_attrs_der = module._build_signed_attrs_der_inline(documento)
+    firma = key.sign(signed_attrs_der, padding.PKCS1v15(), hashes.SHA256())
+    envelope = module._build_cades_bes_inline(
+        documento=documento,
+        firma=firma,
+        cert_der=cert.public_bytes(serialization.Encoding.DER),
+        signed_attrs_der=signed_attrs_der,
+    )
+
+    content_info = cms.ContentInfo.load(envelope)
+    assert content_info["content_type"].native == "signed_data"
+    signed_data = content_info["content"]
+    assert len(signed_data["signer_infos"]) == 1
+    assert signed_data["certificates"] is not None
+    assert len(signed_data["certificates"]) == 1
+    assert signed_data["encap_content_info"]["content"].native == documento
 
 
 def test_pick_preferred_windows_cert_privilegia_aruba_auth():

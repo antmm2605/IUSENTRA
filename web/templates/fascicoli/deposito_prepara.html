@@ -1161,8 +1161,11 @@ function avviaFirmaLocalSigner() {
       return fetch('/fascicoli/{{ fascicolo.id }}/documenti/' + mainDocId + '/firma', {
         method: 'POST', body: fd,
         headers: { 'X-Requested-With': 'XMLHttpRequest' },
-      }).then(r => {
-        if (!r.ok) throw new Error('Errore upload .p7m: HTTP ' + r.status);
+      }).then(async r => {
+        const payload = await r.json().catch(() => ({}));
+        if (!r.ok || payload.ok === false) {
+          throw new Error(payload.messaggio || ('Errore upload .p7m: HTTP ' + r.status));
+        }
         return d;  // restituiamo d con info firma
       });
     })
@@ -1273,11 +1276,9 @@ function caricaP7mFirmato(input) {
     method: 'POST', body: fd,
     headers: { 'X-Requested-With': 'XMLHttpRequest' },
   })
-  .then(r => {
-    if (!r.ok) throw new Error('HTTP ' + r.status);
-    return r.text();
-  })
-  .then(() => {
+  .then(async r => {
+    const payload = await r.json().catch(() => ({}));
+    if (!r.ok || payload.ok === false) throw new Error(payload.messaggio || ('HTTP ' + r.status));
     // Aggiorna stato locale
     _docFirmato[mainDocId] = true;
     const nomeP7m = file.name;

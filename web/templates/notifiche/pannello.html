@@ -2,254 +2,321 @@
 {% block title %}Notifiche WhatsApp{% endblock %}
 
 {% block content %}
-
-{# ── Page Header ── #}
-<div class="ds-ph">
-  <div class="ds-ph-icon" style="background:#25D366;color:#fff"><i class="bi bi-whatsapp"></i></div>
-  <div class="ds-ph-body">
-    <h1 class="ds-ph-title">Notifiche WhatsApp</h1>
-    <p class="ds-ph-sub">Promemoria automatici e comunicazioni ai clienti via WhatsApp</p>
+<div
+  class="wa-page"
+  data-wa-link-url="{{ url_for('notifiche.wa_link_ajax') }}"
+>
+  <div class="ds-ph wa-hero">
+    <div class="ds-ph-icon wa-hero__icon"><i class="bi bi-whatsapp"></i></div>
+    <div class="ds-ph-body">
+      <h1 class="ds-ph-title">Notifiche WhatsApp</h1>
+      <p class="ds-ph-sub">Promemoria automatici, invii manuali e registro operativo in un pannello unico.</p>
+    </div>
+    {% if app_domani_con_cell %}
+    <div class="ds-ph-actions">
+      <form
+        method="post"
+        action="{{ url_for('notifiche.promemoria_domani') }}"
+        id="wa-promemoria-form"
+        data-promemoria-count="{{ app_domani_con_cell|length }}"
+      >
+        <button type="submit" class="ds-btn ds-btn-primary">
+          <i class="bi bi-alarm"></i><span>Invia promemoria di domani ({{ app_domani_con_cell|length }})</span>
+        </button>
+      </form>
+    </div>
+    {% endif %}
   </div>
-  {% if app_domani_con_cell %}
-  <div class="ds-ph-actions">
-    <form method="post" action="{{ url_for('notifiche.promemoria_domani') }}"
-          onsubmit="return confirm('Inviare promemoria a {{ app_domani_con_cell|length }} cliente/i con appuntamenti domani?')">
-      <button type="submit" class="ds-btn ds-btn-primary">
-        <i class="bi bi-alarm"></i>Promemoria domani ({{ app_domani_con_cell|length }})
-      </button>
-    </form>
-  </div>
-  {% endif %}
-</div>
 
-{% with messages = get_flashed_messages(with_categories=true) %}
-  {% for cat, msg in messages %}
-  <div class="alert alert-{{ 'success' if cat == 'success' else ('info' if cat == 'info' else ('warning' if cat == 'warning' else 'danger')) }} alert-dismissible fade show">
-    {{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-  </div>
-  {% endfor %}
-{% endwith %}
-
-<div class="row g-4">
-  <!-- Colonna sinistra: invio e config -->
-  <div class="col-lg-7">
-
-    <!-- Stato configurazione -->
-    <div class="card border-0 shadow-sm mb-4" style="border-radius:16px;">
-      <div class="card-body">
-        <h6 class="fw-semibold mb-3"><i class="bi bi-gear me-2"></i>Configurazione canale</h6>
+  <div class="wa-kpi-grid">
+    <article class="wa-kpi">
+      <div class="wa-kpi__label">Canale attivo</div>
+      <div class="wa-kpi__value">
         {% if config.ha_twilio %}
-        <div class="alert alert-success py-2 mb-0">
-          <i class="bi bi-check-circle-fill me-2"></i>
-          <strong>Twilio WhatsApp API</strong> configurata — invio automatico attivo.
-        </div>
+        Twilio WhatsApp API
         {% elif config.ha_callmebot %}
-        <div class="alert alert-info py-2 mb-0">
-          <i class="bi bi-info-circle-fill me-2"></i>
-          <strong>CallMeBot API</strong> configurata — invio automatico attivo.
-        </div>
+        CallMeBot
         {% else %}
-        <div class="alert alert-warning py-2 mb-2">
-          <i class="bi bi-exclamation-triangle-fill me-2"></i>
-          <strong>Nessuna API configurata.</strong> I messaggi genereranno un link WhatsApp da aprire manualmente.
-        </div>
-        <div style="font-size:.8rem;" class="text-muted">
-          Per abilitare l'invio automatico configura una delle seguenti variabili d'ambiente:<br>
-          <code>PCT_TWILIO_SID</code>, <code>PCT_TWILIO_TOKEN</code>, <code>PCT_TWILIO_NUMERO</code> (Twilio)
-          <br>oppure <code>PCT_CALLMEBOT_KEY</code> (CallMeBot — gratuito)
-        </div>
+        Invio manuale
         {% endif %}
       </div>
+      <div class="wa-kpi__meta">
+        {% if config.ha_twilio %}
+        Invio automatico professionale pronto all'uso.
+        {% elif config.ha_callmebot %}
+        Invio automatico attivo con canale leggero.
+        {% else %}
+        Il sistema prepara il link WhatsApp senza bloccare il lavoro.
+        {% endif %}
+      </div>
+    </article>
+    <article class="wa-kpi">
+      <div class="wa-kpi__label">Promemoria per domani</div>
+      <div class="wa-kpi__value">{{ app_domani_con_cell|length }}</div>
+      <div class="wa-kpi__meta">{{ app_domani|length }} appuntamenti trovati nel calendario operativo.</div>
+    </article>
+    <article class="wa-kpi">
+      <div class="wa-kpi__label">Registro notifiche</div>
+      <div class="wa-kpi__value">{{ log|length }}</div>
+      <div class="wa-kpi__meta">Storico recente degli invii e dei link preparati.</div>
+    </article>
+  </div>
+
+  {% set flash_titles = {
+    'success': 'Operazione completata',
+    'info': 'Informazione utile',
+    'warning': 'Controllo richiesto',
+    'danger': 'Azione non completata'
+  } %}
+  {% set flash_icons = {
+    'success': 'bi-check-circle-fill',
+    'info': 'bi-info-circle-fill',
+    'warning': 'bi-exclamation-triangle-fill',
+    'danger': 'bi-x-octagon-fill'
+  } %}
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div class="ui-feedback-stack wa-flash-stack">
+      {% for cat, msg in messages %}
+      {% set tone = cat if cat in ('success', 'warning', 'danger') else 'info' %}
+      <div class="ui-feedback wa-flash{% if tone != 'info' %} ui-feedback--{{ tone }}{% endif %}">
+        <div class="ui-feedback__icon">
+          <i class="bi {{ flash_icons.get(cat, 'bi-info-circle-fill') }}"></i>
+        </div>
+        <div class="ui-feedback__content">
+          <div class="ui-feedback__title">{{ flash_titles.get(cat, 'Aggiornamento') }}</div>
+          <div class="ui-feedback__body">{{ msg }}</div>
+        </div>
+      </div>
+      {% endfor %}
     </div>
+    {% endif %}
+  {% endwith %}
 
-    <!-- Invio messaggio libero -->
-    <div class="card border-0 shadow-sm mb-4" style="border-radius:16px;">
-      <div class="card-body">
-        <h6 class="fw-semibold mb-3"><i class="bi bi-chat-dots me-2"></i>Invia messaggio</h6>
-        <form method="post" action="{{ url_for('notifiche.invia') }}" id="form-invia">
-          <div class="mb-3">
-            <label class="form-label fw-semibold" style="font-size:.82rem;">Cliente</label>
-            <select name="id_cliente" id="sel-cliente" class="form-select form-select-sm" required>
-              <option value="">— Seleziona cliente —</option>
-              {% for c in clienti %}
-              {% set numero = c.recapiti.cellulare if c.recapiti else '' %}
-              <option value="{{ c.id }}"
-                      data-numero="{{ numero }}"
-                      {% if not numero %}disabled style="color:#aaa"{% endif %}>
-                {{ c.nome_completo }}
-                {% if numero %} · {{ numero }}{% else %} (no cellulare){% endif %}
-              </option>
-              {% endfor %}
-            </select>
-          </div>
-          <div class="mb-3">
-            <label class="form-label fw-semibold" style="font-size:.82rem;">Testo messaggio</label>
-            <textarea name="testo" id="testo-msg" class="form-control form-control-sm" rows="4"
-                      placeholder="Scrivi il messaggio da inviare al cliente..." required></textarea>
-            <div class="form-text text-end"><span id="char-count">0</span> caratteri</div>
-          </div>
-
-          <!-- Template rapidi -->
-          <div class="mb-3">
-            <span class="text-muted me-2" style="font-size:.75rem;">Template rapidi:</span>
-            {% set templates = [
-              ('Appuntamento', 'La informiamo che ha un appuntamento in studio. La preghiamo di confermare la sua presenza.'),
-              ('Documenti', 'La informiamo che sono necessari ulteriori documenti per la sua pratica. Potrebbe portarli in studio o caricarli dal portale cliente?'),
-              ('Pratica', 'La sua pratica è in avanzamento. La contatteremo presto per aggiornarla sugli sviluppi.'),
-              ('Pagamento', 'La informiamo che è disponibile una nuova parcella relativa ai servizi resi. La preghiamo di effettuare il pagamento entro i termini indicati.'),
-            ] %}
-            {% for label, testo in templates %}
-            <button type="button" class="btn btn-sm btn-outline-secondary me-1 mb-1 btn-template"
-                    data-testo="{{ testo }}" style="font-size:.72rem;">
-              {{ label }}
-            </button>
-            {% endfor %}
-          </div>
-
-          <!-- Preview link WA (se no API) -->
-          <div id="wa-link-preview" class="mb-3 d-none">
-            <a id="wa-link-btn" href="#" target="_blank"
-               class="btn btn-success w-100">
-              <i class="bi bi-whatsapp me-2"></i>Apri WhatsApp e invia
+  <div class="row g-4">
+    <div class="col-xl-7">
+      <div class="wa-card">
+        <div class="wa-card__body">
+          <div class="wa-card__header">
+            <div>
+              <h2 class="wa-card__title"><i class="bi bi-gear me-2"></i>Configurazione del canale</h2>
+              <p class="wa-card__subtitle">Stato del provider attivo e indicazioni operative per l'invio.</p>
+            </div>
+            <a href="{{ url_for('impostazioni.index', tab='whatsapp') }}" class="btn btn-outline-secondary btn-sm">
+              <i class="bi bi-sliders me-1"></i>Apri impostazioni
             </a>
           </div>
 
-          <div class="d-flex gap-2">
-            <button type="submit" class="btn btn-primary flex-grow-1">
-              <i class="bi bi-send me-2"></i>Invia
-            </button>
-            {% if not config.ha_twilio and not config.ha_callmebot %}
-            <button type="button" id="btn-genera-link" class="btn btn-outline-success">
-              <i class="bi bi-link-45deg me-1"></i>Link WA
-            </button>
-            {% endif %}
-          </div>
-        </form>
-      </div>
-    </div>
-
-    <!-- Appuntamenti domani -->
-    {% if app_domani %}
-    <div class="card border-0 shadow-sm mb-4" style="border-radius:16px;">
-      <div class="card-body">
-        <h6 class="fw-semibold mb-3">
-          <i class="bi bi-calendar-event me-2 text-warning"></i>
-          Appuntamenti domani ({{ app_domani|length }})
-        </h6>
-        <div class="d-flex flex-column gap-2">
-          {% for a in app_domani %}
-          <div class="d-flex align-items-center gap-2 border rounded px-3 py-2"
-               style="font-size:.85rem; border-radius:10px!important;">
-            <i class="bi bi-clock text-muted"></i>
-            <div class="flex-grow-1">
-              <div class="fw-semibold">{{ a.titolo }}</div>
-              <div class="text-muted" style="font-size:.75rem;">
-                {{ a.data_ora.strftime('%H:%M') }}
-                {% if a.luogo %} · {{ a.luogo }}{% endif %}
-              </div>
+          {% if config.ha_twilio %}
+          <div class="ui-feedback ui-feedback--success wa-inline-feedback">
+            <div class="ui-feedback__icon"><i class="bi bi-check-circle-fill"></i></div>
+            <div class="ui-feedback__content">
+              <div class="ui-feedback__title">Twilio WhatsApp API configurata</div>
+              <div class="ui-feedback__body">L'invio automatico e' attivo e puo' essere usato per messaggi manuali e promemoria.</div>
             </div>
-            {% if a.id_cliente %}
-            {% set c = namespace(obj=none) %}
-            {% for cl in clienti %}{% if cl.id == a.id_cliente %}{% set c.obj = cl %}{% endif %}{% endfor %}
-            {% if c.obj %}
-            <span class="badge {% if c.obj.recapiti and c.obj.recapiti.cellulare %}bg-success{% else %}bg-secondary{% endif %}"
-                  style="font-size:.65rem;">
-              {{ '✓ cellulare' if c.obj.recapiti and c.obj.recapiti.cellulare else 'no cellulare' }}
-            </span>
-            {% endif %}
-            {% endif %}
           </div>
-          {% endfor %}
+          {% elif config.ha_callmebot %}
+          <div class="ui-feedback wa-inline-feedback">
+            <div class="ui-feedback__icon"><i class="bi bi-info-circle-fill"></i></div>
+            <div class="ui-feedback__content">
+              <div class="ui-feedback__title">CallMeBot configurato</div>
+              <div class="ui-feedback__body">Il canale automatico e' attivo. Verifica periodicamente la chiave API per evitare interruzioni.</div>
+            </div>
+          </div>
+          {% else %}
+          <div class="ui-feedback ui-feedback--warning wa-inline-feedback">
+            <div class="ui-feedback__icon"><i class="bi bi-exclamation-triangle-fill"></i></div>
+            <div class="ui-feedback__content">
+              <div class="ui-feedback__title">Invio automatico non configurato</div>
+              <div class="ui-feedback__body">HACS resta operativo: prepara il link WhatsApp e ti accompagna nell'invio manuale senza perdere il tracciamento.</div>
+            </div>
+          </div>
+          <div class="wa-config-note">
+            <p class="mb-2">Per abilitare l'invio automatico configura uno dei canali supportati:</p>
+            <ul class="mb-0">
+              <li><code>PCT_TWILIO_SID</code>, <code>PCT_TWILIO_TOKEN</code>, <code>PCT_TWILIO_NUMERO</code> per Twilio</li>
+              <li><code>PCT_CALLMEBOT_KEY</code> per CallMeBot</li>
+            </ul>
+          </div>
+          {% endif %}
         </div>
       </div>
-    </div>
-    {% endif %}
 
-  </div>
+      <div class="wa-card">
+        <div class="wa-card__body">
+          <div class="wa-card__header">
+            <div>
+              <h2 class="wa-card__title"><i class="bi bi-chat-dots me-2"></i>Invio messaggio</h2>
+              <p class="wa-card__subtitle">Componi il testo, scegli un cliente e invia con il canale disponibile.</p>
+            </div>
+          </div>
 
-  <!-- Log notifiche -->
-  <div class="col-lg-5">
-    <div class="card border-0 shadow-sm" style="border-radius:16px;">
-      <div class="card-header fw-semibold" style="background:transparent;font-size:.85rem;">
-        <i class="bi bi-clock-history me-2"></i>Ultime notifiche
-      </div>
-      {% if log %}
-      <div class="list-group list-group-flush" style="max-height:600px;overflow-y:auto;">
-        {% for entry in log[:50] %}
-        <div class="list-group-item py-2">
-          <div class="d-flex align-items-start gap-2">
-            <i class="bi
-              {% if entry.esito.ok == true %}bi-check-circle-fill text-success
-              {% elif entry.esito.ok == false %}bi-x-circle-fill text-danger
-              {% else %}bi-link-45deg text-warning{% endif %}
-              mt-1" style="font-size:.9rem;"></i>
-            <div class="flex-grow-1" style="font-size:.8rem;">
-              <div class="fw-semibold">{{ entry.cliente }}</div>
-              <div class="text-muted">
-                {{ entry.tipo.replace('_', ' ').title() }} ·
-                {{ entry.ts[:16].replace('T', ' ') }}
+          <div id="wa-action-feedback" class="ui-feedback-stack d-none" aria-live="polite"></div>
+
+          <form method="post" action="{{ url_for('notifiche.invia') }}" id="form-invia" class="wa-form">
+            <div class="row g-3">
+              <div class="col-12">
+                <label class="form-label fw-semibold wa-form__label">Cliente</label>
+                <select name="id_cliente" id="sel-cliente" class="form-select form-select-sm" required>
+                  <option value="">Seleziona un cliente</option>
+                  {% for c in clienti %}
+                  {% set numero = c.recapiti.cellulare if c.recapiti else '' %}
+                  <option value="{{ c.id }}" data-numero="{{ numero }}" {% if not numero %}disabled{% endif %}>
+                    {{ c.nome_completo }}{% if numero %} · {{ numero }}{% else %} · senza numero WhatsApp{% endif %}
+                  </option>
+                  {% endfor %}
+                </select>
               </div>
-              {% if entry.esito.get('errore') %}
-              <div class="text-danger" style="font-size:.75rem;">{{ entry.esito.errore }}</div>
-              {% elif entry.esito.get('wa_link') %}
-              <a href="{{ entry.esito.wa_link }}" target="_blank"
-                 class="text-success" style="font-size:.75rem;">
-                Apri link WA
+
+              <div class="col-12">
+                <label class="form-label fw-semibold wa-form__label">Testo del messaggio</label>
+                <textarea
+                  name="testo"
+                  id="testo-msg"
+                  class="form-control form-control-sm wa-form__textarea"
+                  rows="4"
+                  placeholder="Scrivi il messaggio da inviare al cliente..."
+                  required
+                ></textarea>
+                <div class="form-text text-end"><span id="char-count">0</span> caratteri</div>
+              </div>
+
+              <div class="col-12">
+                <div class="wa-template-row">
+                  <span class="wa-template-row__label">Template rapidi</span>
+                  {% set templates = [
+                    ('Appuntamento', 'La informiamo che ha un appuntamento in studio. La preghiamo di confermare la sua presenza.'),
+                    ('Documenti', 'La informiamo che sono necessari ulteriori documenti per la sua pratica. Può portarli in studio oppure caricarli dal portale cliente.'),
+                    ('Aggiornamento pratica', 'La sua pratica e\' in avanzamento. La contatteremo presto per aggiornarla sugli sviluppi.'),
+                    ('Pagamento', 'La informiamo che e\' disponibile una nuova parcella relativa ai servizi resi. La preghiamo di effettuare il pagamento entro i termini indicati.')
+                  ] %}
+                  <div class="wa-template-row__actions">
+                    {% for label, testo in templates %}
+                    <button
+                      type="button"
+                      class="btn btn-sm btn-outline-secondary wa-template-chip"
+                      data-template-text="{{ testo }}"
+                    >
+                      {{ label }}
+                    </button>
+                    {% endfor %}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div id="wa-link-preview" class="wa-preview d-none">
+              <div class="wa-preview__copy">
+                <div class="wa-preview__title">Link WhatsApp pronto</div>
+                <div class="wa-preview__body">Puoi aprire il link sullo stesso dispositivo e completare l'invio manualmente con il testo gia' compilato.</div>
+              </div>
+              <a id="wa-link-btn" href="#" target="_blank" rel="noreferrer" class="btn btn-success">
+                <i class="bi bi-whatsapp me-2"></i>Apri WhatsApp
               </a>
+            </div>
+
+            <div class="wa-actions">
+              <button type="submit" class="btn btn-primary wa-actions__primary">
+                <i class="bi bi-send me-2"></i>Invia messaggio
+              </button>
+              {% if not config.ha_twilio and not config.ha_callmebot %}
+              <button type="button" id="btn-genera-link" class="btn btn-outline-success">
+                <i class="bi bi-link-45deg me-1"></i>Prepara link WhatsApp
+              </button>
               {% endif %}
             </div>
+          </form>
+        </div>
+      </div>
+
+      {% if app_domani %}
+      <div class="wa-card">
+        <div class="wa-card__body">
+          <div class="wa-card__header">
+            <div>
+              <h2 class="wa-card__title"><i class="bi bi-calendar-event me-2"></i>Appuntamenti di domani</h2>
+              <p class="wa-card__subtitle">Elenco operativo degli appuntamenti già pronti per il promemoria.</p>
+            </div>
+            <span class="badge text-bg-light wa-badge">{{ app_domani|length }} in agenda</span>
+          </div>
+
+          <div class="wa-appointment-list">
+            {% for a in app_domani %}
+            {% set cliente = clienti_by_id.get(a.id_cliente) if a.id_cliente else none %}
+            {% set ha_cellulare = cliente and cliente.recapiti and cliente.recapiti.cellulare %}
+            <article class="wa-appointment-item">
+              <div class="wa-appointment-item__icon">
+                <i class="bi bi-clock-history"></i>
+              </div>
+              <div class="wa-appointment-item__body">
+                <div class="wa-appointment-item__title">{{ a.titolo }}</div>
+                <div class="wa-appointment-item__meta">
+                  {{ a.data_ora|fmt_ora }}{% if a.luogo %} · {{ a.luogo }}{% endif %}
+                </div>
+              </div>
+              <span class="badge {% if ha_cellulare %}bg-success-subtle text-success-emphasis{% else %}bg-secondary-subtle text-secondary-emphasis{% endif %} wa-appointment-item__badge">
+                {% if ha_cellulare %}Numero presente{% else %}Numero assente{% endif %}
+              </span>
+            </article>
+            {% endfor %}
           </div>
         </div>
-        {% endfor %}
-      </div>
-      {% else %}
-      <div class="card-body text-center text-muted py-4" style="font-size:.85rem;">
-        <i class="bi bi-inbox fs-2 d-block mb-2 opacity-40"></i>
-        Nessuna notifica inviata.
       </div>
       {% endif %}
+    </div>
+
+    <div class="col-xl-5">
+      <div class="wa-card wa-card--sticky">
+        <div class="wa-card__body">
+          <div class="wa-card__header">
+            <div>
+              <h2 class="wa-card__title"><i class="bi bi-clock-history me-2"></i>Registro notifiche</h2>
+              <p class="wa-card__subtitle">Esito, data italiana e accesso rapido alle ultime operazioni.</p>
+            </div>
+          </div>
+
+          {% if log %}
+          <div class="wa-log-list">
+            {% for entry in log[:50] %}
+            <article class="wa-log-item">
+              <div class="wa-log-item__icon">
+                <i class="bi {% if entry.esito.ok == true %}bi-check-circle-fill text-success{% elif entry.esito.ok == false %}bi-x-circle-fill text-danger{% else %}bi-link-45deg text-warning{% endif %}"></i>
+              </div>
+              <div class="wa-log-item__body">
+                <div class="wa-log-item__title">{{ entry.cliente }}</div>
+                <div class="wa-log-item__meta">
+                  {% if entry.tipo == 'promemoria_appuntamento' %}
+                  Promemoria appuntamento
+                  {% else %}
+                  Messaggio manuale
+                  {% endif %}
+                  · {{ entry.ts|fmt_dataora }}
+                </div>
+                {% if entry.esito.get('errore') %}
+                <div class="wa-log-item__error">{{ entry.esito.errore }}</div>
+                {% elif entry.esito.get('wa_link') %}
+                <a href="{{ entry.esito.wa_link }}" target="_blank" rel="noreferrer" class="wa-log-item__link">
+                  Apri il link WhatsApp
+                </a>
+                {% endif %}
+              </div>
+            </article>
+            {% endfor %}
+          </div>
+          {% else %}
+          <div class="wa-empty-state">
+            <i class="bi bi-inbox"></i>
+            <div class="wa-empty-state__title">Nessuna notifica registrata</div>
+            <div class="wa-empty-state__body">Le prossime operazioni compariranno qui con esito e dettaglio del canale utilizzato.</div>
+          </div>
+          {% endif %}
+        </div>
+      </div>
     </div>
   </div>
 </div>
 {% endblock %}
 
 {% block extra_scripts %}
-<script>
-const selCliente = document.getElementById('sel-cliente');
-const testoMsg   = document.getElementById('testo-msg');
-const charCount  = document.getElementById('char-count');
-const waPreview  = document.getElementById('wa-link-preview');
-const waBtn      = document.getElementById('wa-link-btn');
-const btnGeneraLink = document.getElementById('btn-genera-link');
-
-testoMsg.addEventListener('input', () => {
-  charCount.textContent = testoMsg.value.length;
-});
-
-document.querySelectorAll('.btn-template').forEach(btn => {
-  btn.addEventListener('click', () => {
-    testoMsg.value = btn.dataset.testo;
-    charCount.textContent = testoMsg.value.length;
-  });
-});
-
-if (btnGeneraLink) {
-  btnGeneraLink.addEventListener('click', async () => {
-    const numero = selCliente.options[selCliente.selectedIndex]?.dataset.numero;
-    const testo  = testoMsg.value.trim();
-    if (!numero || !testo) { alert('Seleziona cliente e scrivi il messaggio.'); return; }
-    const resp = await fetch('{{ url_for("notifiche.wa_link_ajax") }}', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({numero, testo}),
-    });
-    const data = await resp.json();
-    if (data.link) {
-      waBtn.href = data.link;
-      waPreview.classList.remove('d-none');
-      waBtn.scrollIntoView({behavior:'smooth'});
-    }
-  });
-}
-</script>
+<script src="/static/js/notifiche-whatsapp.js?v={{ app_version }}"></script>
 {% endblock %}

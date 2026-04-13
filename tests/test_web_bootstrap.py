@@ -174,6 +174,7 @@ def test_template_principali_usano_copy_italiana_e_date_localizzate():
         "web/templates/dashboard.html": ["Panoramica dello studio"],
         "web/templates/agenda.html": ["Sincronizzazione automatica", "Configura sincronizzazione calendario"],
         "web/templates/impostazioni/index.html": ["Runtime sullo stesso host di HACS", "Prepara runtime automatico"],
+        "web/templates/notifiche/pannello.html": ["Invia messaggio", "Registro notifiche"],
         "web/templates/workspace_intelligente.html": ["Assistente operativo locale", "Ultima sincronizzazione"],
         "web/templates/portale/base.html": ["Operazione completata", "Inizio"],
         "web/templates/telematico_dashboard.html": ["Cabina Telematica", "Ultimo allineamento"],
@@ -189,6 +190,7 @@ def test_template_principali_usano_copy_italiana_e_date_localizzate():
         "web/templates/dashboard.html",
         "web/templates/agenda.html",
         "web/templates/dettaglio_appuntamento.html",
+        "web/templates/notifiche/pannello.html",
         "web/templates/portale/home.html",
         "web/templates/telematico_dashboard.html",
         "web/templates/form_preventivo.html",
@@ -225,6 +227,7 @@ def test_scss_governance_usa_bundle_modulari_e_niente_style_inline():
     assert "@use 'components/feedback';" in app_scss
     assert "@use 'components/compact-panels';" in app_scss
     assert "@use 'pages/dashboard';" in app_scss
+    assert "@use 'pages/notifiche-whatsapp';" in app_scss
     assert "@use 'pages/settings';" in app_scss
     assert "@use 'pages/telematico-dashboard';" in app_scss
     assert "@use 'pages/workspace-intelligente';" in app_scss
@@ -236,6 +239,7 @@ def test_scss_governance_usa_bundle_modulari_e_niente_style_inline():
         "web/templates/base.html",
         "web/templates/dashboard.html",
         "web/templates/impostazioni/index.html",
+        "web/templates/notifiche/pannello.html",
         "web/templates/workspace_intelligente.html",
         "web/templates/portale/base.html",
         "web/templates/portale/home.html",
@@ -268,3 +272,19 @@ def test_impostazioni_js_e_esterno_e_senza_duplicazioni():
     assert ai_js.count("async function refreshLocalAiStatus") == 1
     assert ai_js.count("async function runLocalAiBootstrap") == 1
     assert "Gestito sull\\\\'host Windows/macOS" not in ai_js
+
+
+def test_notifiche_whatsapp_usa_js_esterno_e_date_localizzate():
+    template = (REPO_ROOT / "web/templates/notifiche/pannello.html").read_text(encoding="utf-8")
+    script = (REPO_ROOT / "web/static/js/notifiche-whatsapp.js").read_text(encoding="utf-8")
+
+    assert "/static/js/notifiche-whatsapp.js?v={{ app_version }}" in template
+    assert "{% block extra_scripts %}" in template
+    assert "<script>" not in template
+    assert "strftime('%H:%M')" not in template
+    assert "|fmt_ora" in template
+    assert "|fmt_dataora" in template
+    assert "Link WA" not in template
+    assert "Apri il link WhatsApp" in template
+    assert "showFeedback(" in script
+    assert "dataset.promemoriaCount" in script

@@ -79,19 +79,17 @@ def _leggi_log() -> list:
 def pannello():
     config = _config_wa()
     clienti = get_clienti().tutti()
+    clienti_by_id = {c.id: c for c in clienti}
     log = _leggi_log()
-    domani = (date.today().isoformat()[:8].replace("-", "") and
-              str((date.today().year * 10000 + (date.today().month) * 100 + date.today().day + 1)))
-    # Conta appuntamenti domani
     from datetime import timedelta
+
     domani_dt = date.today() + timedelta(days=1)
     ag = get_agenda()
     app_domani = [a for a in ag.tutti() if a.data_ora_dt.date() == domani_dt]
     app_domani_con_cell = []
-    gc = get_clienti()
     for a in app_domani:
         if a.id_cliente:
-            c = gc.get(a.id_cliente)
+            c = clienti_by_id.get(a.id_cliente)
             if c and getattr(getattr(c, "recapiti", None), "cellulare", ""):
                 app_domani_con_cell.append(a)
 
@@ -99,6 +97,7 @@ def pannello():
         "notifiche/pannello.html",
         config=config,
         clienti=clienti,
+        clienti_by_id=clienti_by_id,
         log=log,
         app_domani=app_domani,
         app_domani_con_cell=app_domani_con_cell,
@@ -115,16 +114,16 @@ def invia():
     id_cliente = f.get("id_cliente", "").strip()
     testo = f.get("testo", "").strip()
     if not id_cliente or not testo:
-        flash("Seleziona cliente e inserisci il messaggio.", "danger")
+        flash("Seleziona un cliente e scrivi il testo del messaggio prima di procedere.", "danger")
         return redirect(url_for("notifiche.pannello"))
     gc = get_clienti()
     cliente = gc.get(id_cliente)
     if not cliente:
-        flash("Cliente non trovato.", "danger")
+        flash("Il cliente selezionato non e' disponibile. Aggiorna la pagina e riprova.", "danger")
         return redirect(url_for("notifiche.pannello"))
     numero = getattr(getattr(cliente, "recapiti", None), "cellulare", "") or ""
     if not numero:
-        flash("Il cliente non ha un numero di cellulare registrato.", "warning")
+        flash("Per questo cliente non risulta un numero WhatsApp utilizzabile. Aggiorna l'anagrafica e riprova.", "warning")
         return redirect(url_for("notifiche.pannello"))
     config = _config_wa()
     studio_nome = current_app.config.get("STUDIO_NOME", "Studio Legale PCT")
@@ -139,7 +138,7 @@ def invia():
         "utente": g.utente_corrente.username if g.utente_corrente else "",
     })
     if esito.get("ok") is True:
-        flash(f"Messaggio inviato a {cliente.nome_completo}.", "success")
+        flash(f"Messaggio inviato correttamente a {cliente.nome_completo}.", "success")
     elif esito.get("ok") is None:
         # wa.me link: apre pagina di conferma
         from flask import session
@@ -147,9 +146,12 @@ def invia():
             "link": esito["wa_link"],
             "cliente": cliente.nome_completo,
         }
-        flash("Nessuna API configurata. Usa il link WhatsApp per inviare manualmente.", "info")
+        flash(
+            "Canale automatico non configurato. Ho preparato un link WhatsApp per completare l'invio manualmente.",
+            "info",
+        )
     else:
-        flash(f"Errore invio: {esito.get('errore','sconosciuto')}", "danger")
+        flash(f"Invio non completato: {esito.get('errore', 'errore sconosciuto')}", "danger")
     return redirect(url_for("notifiche.pannello"))
 
 
@@ -179,10 +181,24 @@ def promemoria_domani():
             "utente": g.utente_corrente.username if g.utente_corrente else "system",
         })
     if not risultati:
-        flash("Nessun appuntamento domani con cellulare registrato.", "info")
+        flash("Per domani non risultano appuntamenti con un numero WhatsApp utilizzabile.", "info")
     else:
         ok = sum(1 for r in risultati if r["esito"].get("ok") is True)
-        flash(f"Promemoria inviati: {ok}/{len(risultati)}.", "success" if ok else "warning")
+        if ok == len(risultati):
+            flash(
+                f"Promemoria inviati correttamente: {ok} su {len(risultati)}.",
+                "success",
+            )
+        elif ok > 0:
+            flash(
+                f"Promemoria elaborati: {ok} inviati automaticamente su {len(risultati)}. Controlla il registro per i restanti.",
+                "warning",
+            )
+        else:
+            flash(
+                "Nessun promemoria e' stato inviato automaticamente. Verifica il canale configurato e i recapiti dei clienti.",
+                "warning",
+            )
     return redirect(url_for("notifiche.pannello"))
 
 
@@ -196,6 +212,6 @@ def wa_link_ajax():
     numero = data.get("numero", "").strip()
     testo = data.get("testo", "").strip()
     if not numero or not testo:
-        return jsonify({"errore": "numero e testo richiesti"}), 400
+        return jsonify({"errore": "Seleziona un cliente con numero WhatsApp e inserisci il testo del messaggio."}), 400
     link = wa_link(numero, testo)
     return jsonify({"link": link})

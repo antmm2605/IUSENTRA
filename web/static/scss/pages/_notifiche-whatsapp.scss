@@ -1,0 +1,385 @@
+.wa-page {
+  display: grid;
+  gap: 1rem;
+}
+
+.wa-hero__icon {
+  background: linear-gradient(135deg, #25d366, #128c7e);
+  color: #fff;
+  box-shadow: 0 16px 28px rgba(37, 211, 102, 0.22);
+}
+
+.wa-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.9rem;
+}
+
+.wa-kpi,
+.wa-card {
+  border-radius: 22px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.98));
+  box-shadow: 0 16px 34px rgba(15, 23, 42, 0.05);
+}
+
+.wa-kpi {
+  padding: 1rem 1.05rem;
+  min-height: 136px;
+}
+
+.wa-kpi__label {
+  font-size: 0.73rem;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.wa-kpi__value {
+  margin-top: 0.35rem;
+  font-size: 1.08rem;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.3;
+}
+
+.wa-kpi__meta {
+  margin-top: 0.4rem;
+  font-size: 0.84rem;
+  color: #475569;
+  line-height: 1.45;
+}
+
+.wa-card__body {
+  padding: 1.1rem 1.15rem;
+}
+
+.wa-card__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.9rem;
+  margin-bottom: 1rem;
+}
+
+.wa-card__title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.wa-card__subtitle {
+  margin: 0.2rem 0 0;
+  font-size: 0.86rem;
+  color: #64748b;
+}
+
+.wa-inline-feedback,
+.wa-flash {
+  margin-bottom: 0;
+}
+
+.wa-flash-stack {
+  margin-bottom: 0;
+}
+
+.wa-config-note {
+  margin-top: 0.9rem;
+  border-radius: 18px;
+  padding: 0.95rem 1rem;
+  background: rgba(248, 250, 252, 0.92);
+  border: 1px dashed rgba(148, 163, 184, 0.42);
+  color: #475569;
+  font-size: 0.88rem;
+}
+
+.wa-config-note ul {
+  margin: 0;
+  padding-left: 1.15rem;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.wa-form__label {
+  font-size: 0.84rem;
+}
+
+.wa-form__textarea {
+  min-height: 128px;
+}
+
+.wa-template-row {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.wa-template-row__label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.wa-template-row__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.wa-template-chip {
+  border-radius: 999px;
+  font-size: 0.76rem;
+  padding-inline: 0.85rem;
+}
+
+.wa-preview {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.9rem;
+  padding: 0.95rem 1rem;
+  margin-top: 1rem;
+  border-radius: 18px;
+  border: 1px solid rgba(22, 163, 74, 0.2);
+  background: linear-gradient(180deg, rgba(236, 253, 243, 0.96), rgba(255, 255, 255, 0.98));
+}
+
+.wa-preview__copy {
+  min-width: 0;
+}
+
+.wa-preview__title {
+  font-weight: 700;
+  color: #14532d;
+}
+
+.wa-preview__body {
+  margin-top: 0.2rem;
+  color: #166534;
+  font-size: 0.85rem;
+}
+
+.wa-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+  align-items: center;
+  margin-top: 1.1rem;
+}
+
+.wa-actions__primary {
+  flex: 1 1 260px;
+}
+
+.wa-badge {
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.45rem 0.7rem;
+}
+
+.wa-appointment-list,
+.wa-log-list {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.wa-appointment-item,
+.wa-log-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.8rem;
+  border-radius: 18px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  background: rgba(255, 255, 255, 0.94);
+  padding: 0.9rem 0.95rem;
+}
+
+.wa-appointment-item__icon,
+.wa-log-item__icon {
+  width: 42px;
+  height: 42px;
+  flex-shrink: 0;
+  border-radius: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(37, 99, 235, 0.08);
+  color: #1d4ed8;
+  font-size: 1rem;
+}
+
+.wa-appointment-item__body,
+.wa-log-item__body {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.wa-appointment-item__title,
+.wa-log-item__title {
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.35;
+}
+
+.wa-appointment-item__meta,
+.wa-log-item__meta {
+  margin-top: 0.2rem;
+  color: #64748b;
+  font-size: 0.83rem;
+  line-height: 1.45;
+}
+
+.wa-appointment-item__badge {
+  flex-shrink: 0;
+  border-radius: 999px;
+  font-size: 0.69rem;
+  font-weight: 700;
+  padding: 0.45rem 0.65rem;
+}
+
+.wa-log-item__error {
+  margin-top: 0.28rem;
+  color: #b91c1c;
+  font-size: 0.8rem;
+}
+
+.wa-log-item__link {
+  margin-top: 0.3rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: #15803d;
+  font-size: 0.82rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.wa-log-item__link:hover {
+  color: #166534;
+  text-decoration: underline;
+}
+
+.wa-empty-state {
+  border-radius: 20px;
+  border: 1px dashed rgba(148, 163, 184, 0.45);
+  background: rgba(248, 250, 252, 0.8);
+  padding: 1.5rem 1.15rem;
+  text-align: center;
+  color: #64748b;
+}
+
+.wa-empty-state > i {
+  font-size: 2rem;
+  display: inline-flex;
+  margin-bottom: 0.7rem;
+  opacity: 0.5;
+}
+
+.wa-empty-state__title {
+  font-weight: 700;
+  color: #334155;
+}
+
+.wa-empty-state__body {
+  margin-top: 0.25rem;
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+@media (min-width: 1200px) {
+  .wa-card--sticky {
+    position: sticky;
+    top: 1rem;
+  }
+}
+
+@media (max-width: 991.98px) {
+  .wa-kpi,
+  .wa-card {
+    border-radius: 20px;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .wa-kpi-grid {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  .wa-card__body {
+    padding: 0.95rem;
+  }
+
+  .wa-card__header,
+  .wa-preview,
+  .wa-actions,
+  .wa-appointment-item,
+  .wa-log-item {
+    flex-direction: column;
+  }
+
+  .wa-card__header .btn,
+  .wa-preview .btn,
+  .wa-actions .btn {
+    width: 100%;
+  }
+
+  .wa-appointment-item__badge {
+    align-self: flex-start;
+  }
+}
+
+[data-bs-theme="dark"] {
+  .wa-kpi,
+  .wa-card,
+  .wa-appointment-item,
+  .wa-log-item {
+    background: linear-gradient(180deg, rgba(30, 41, 59, 0.96), rgba(15, 23, 42, 0.96));
+    border-color: rgba(148, 163, 184, 0.18);
+  }
+
+  .wa-kpi__value,
+  .wa-card__title,
+  .wa-appointment-item__title,
+  .wa-log-item__title,
+  .wa-empty-state__title {
+    color: #f8fafc;
+  }
+
+  .wa-kpi__label,
+  .wa-kpi__meta,
+  .wa-card__subtitle,
+  .wa-preview__body,
+  .wa-appointment-item__meta,
+  .wa-log-item__meta,
+  .wa-config-note,
+  .wa-empty-state {
+    color: #94a3b8;
+  }
+
+  .wa-config-note,
+  .wa-empty-state {
+    background: rgba(15, 23, 42, 0.65);
+    border-color: rgba(148, 163, 184, 0.24);
+  }
+
+  .wa-template-chip {
+    color: #e2e8f0;
+    border-color: rgba(148, 163, 184, 0.24);
+    background: rgba(15, 23, 42, 0.48);
+  }
+
+  .wa-template-chip:hover {
+    color: #fff;
+    background: rgba(30, 64, 175, 0.4);
+    border-color: rgba(96, 165, 250, 0.32);
+  }
+
+  .wa-log-item__link {
+    color: #4ade80;
+  }
+}

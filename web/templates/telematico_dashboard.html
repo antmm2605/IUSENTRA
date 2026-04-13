@@ -205,7 +205,7 @@
             </div>
             <div class="text-end">
               <div class="small tm-muted mb-2">
-                {% if row.last_sync_at %}Sync {{ (row.last_sync_at|replace('T', ' '))[:16] }}{% endif %}
+                {% if row.last_sync_at %}Sincronizzato {{ (row.last_sync_at|replace('T', ' '))[:16] }}{% endif %}
               </div>
               {% if row.practice_url %}
               <a href="{{ row.practice_url }}" class="btn btn-outline-primary btn-sm">

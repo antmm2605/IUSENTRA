@@ -7,7 +7,7 @@
 <div class="mb-4">
   <h5 class="fw-bold mb-1">Ciao, {{ cliente.nome_completo }} 👋</h5>
   <p class="text-muted mb-0" style="font-size:.85rem;">
-    Benvenuto nel tuo spazio riservato — {{ oggi.strftime('%d %B %Y') }}
+    Benvenuto nel tuo spazio riservato — {{ oggi|fmt_data_estesa }}
   </p>
 </div>
 
@@ -114,8 +114,8 @@
   <div class="portale-card card">
     <div class="card-body d-flex align-items-center gap-3 py-2">
       <div class="text-center" style="min-width:42px;">
-        <div class="fw-bold text-primary" style="font-size:1.1rem;">{{ a.data_ora.strftime('%d') }}</div>
-        <div class="text-muted" style="font-size:.65rem;text-transform:uppercase;">{{ a.data_ora.strftime('%b') }}</div>
+        <div class="fw-bold text-primary" style="font-size:1.1rem;">{{ '%02d'|format(a.data_ora.day) }}</div>
+        <div class="text-muted" style="font-size:.65rem;text-transform:uppercase;">{{ a.data_ora|fmt_mese_breve }}</div>
       </div>
       <div>
         <div class="fw-semibold" style="font-size:.9rem;">{{ a.titolo }}</div>

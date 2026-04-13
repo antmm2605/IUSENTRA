@@ -1,6 +1,6 @@
 {% extends "base.html" %}
-{% block title %}Dashboard — Studio Legale PCT{% endblock %}
-{% block page_title %}Dashboard{% endblock %}
+{% block title %}Panoramica — Studio Legale PCT{% endblock %}
+{% block page_title %}Panoramica{% endblock %}
 
 {% block content %}
 
@@ -8,8 +8,8 @@
 <div class="ds-ph">
   <div class="ds-ph-icon"><i class="bi bi-speedometer2"></i></div>
   <div class="ds-ph-body">
-    <h1 class="ds-ph-title">Dashboard</h1>
-    <p class="ds-ph-sub">Panoramica dello studio — {{ oggi.strftime('%d %B %Y') }}</p>
+    <h1 class="ds-ph-title">Panoramica</h1>
+    <p class="ds-ph-sub">Panoramica dello studio — {{ oggi|fmt_data_estesa }}</p>
   </div>
   <div class="ds-ph-actions">
     <a href="{{ url_for('workspace_intelligente') }}" class="ds-btn ds-btn-ghost">
@@ -103,7 +103,7 @@
   <div class="col-12 col-md-6 col-lg-8">
     <div class="card shadow-sm h-100">
       <div class="card-header fw-semibold d-flex justify-content-between align-items-center">
-        <span><i class="bi bi-calendar-day me-2 text-primary"></i>Oggi — {{ oggi.strftime('%d %B %Y') }}</span>
+        <span><i class="bi bi-calendar-day me-2 text-primary"></i>Oggi — {{ oggi|fmt_data_estesa }}</span>
         <a href="{{ url_for('agenda_view') }}?vista=giorno" class="btn btn-sm btn-outline-primary">
           Apri agenda
         </a>

@@ -130,7 +130,7 @@
         <span class="wi-chip"><i class="bi bi-stars"></i>Regia operativa dello studio</span>
         <span class="wi-chip"><i class="bi bi-arrow-repeat"></i>Snapshot {{ overview.generated_at|fmt_dataora }}</span>
       </div>
-      <h1 class="h2 mb-2">Scadenze, agenda, sync, fascicoli e giurisprudenza in un unico quadro</h1>
+      <h1 class="h2 mb-2">Scadenze, agenda, sincronizzazioni, fascicoli e giurisprudenza in un unico quadro</h1>
       <p class="mb-0" style="max-width: 880px; color: rgba(255,255,255,.84)">
         La cabina intelligente mette insieme termini processuali, promemoria, patroni di studio e uffici,
         sincronizzazioni calendario e sentenze utili per la pratica. L'obiettivo e semplice: mostrarti la prossima azione giusta senza farti cambiare pannello.
@@ -184,7 +184,7 @@
   <div class="wi-kpi">
     <div class="small text-muted mb-1">Agenda sincronizzata</div>
     <div class="fs-3 fw-bold">{{ overview.summary.appuntamenti_orizzonte }}</div>
-    <div class="small wi-muted">{{ overview.summary.profili_sync_attivi }} profili attivi</div>
+    <div class="small wi-muted">{{ overview.summary.profili_sync_attivi }} profili di sincronizzazione attivi</div>
   </div>
   <div class="wi-kpi">
     <div class="small text-muted mb-1">Promemoria e notifiche</div>
@@ -194,7 +194,7 @@
   <div class="wi-kpi">
     <div class="small text-muted mb-1">Fascicoli attenzionati</div>
     <div class="fs-3 fw-bold">{{ overview.summary.fascicoli_attenzionati }}</div>
-    <div class="small wi-muted">{{ overview.summary.profili_sync_da_verificare }} sync da verificare</div>
+    <div class="small wi-muted">{{ overview.summary.profili_sync_da_verificare }} sincronizzazioni da verificare</div>
   </div>
 </div>
 
@@ -327,7 +327,7 @@
       <h2 class="h5 mb-1">Sincronizzazione calendari</h2>
       <div class="small text-muted">Profili Google Calendar, Outlook, Apple o WebCal gestiti dal server e verificati automaticamente.</div>
     </div>
-    <a href="{{ url_for('impostazioni_calendario') }}" class="btn btn-sm btn-outline-primary">Gestisci sync</a>
+    <a href="{{ url_for('impostazioni_calendario') }}" class="btn btn-sm btn-outline-primary">Gestisci sincronizzazioni</a>
   </div>
   <div class="wi-sync-grid">
     {% for sync in overview.sync_profiles %}
@@ -341,7 +341,7 @@
       </div>
       <div class="small wi-muted mt-3">
         {% if sync.last_sync_at %}
-          Ultimo sync {{ sync.last_sync_at|fmt_dataora }}
+          Ultima sincronizzazione {{ sync.last_sync_at|fmt_dataora }}
           {% if sync.hours_since is not none %} · {{ sync.hours_since }} h fa{% endif %}
         {% else %}
           Nessuna sincronizzazione eseguita finora.
@@ -499,11 +499,20 @@ async function refreshWorkspaceAiRuntime() {
   const status = document.getElementById('workspace-ai-status');
   if (!status) return;
   status.textContent = 'Verifica runtime…';
+  const statiRuntime = {
+    missing: 'non disponibile',
+    installing: 'installazione',
+    starting: 'avvio',
+    ready: 'pronto',
+    error: 'errore',
+    disabled: 'disattivato',
+  };
   try {
     const response = await fetch('/api/local-ai/status', { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
     const payload = await response.json();
     const runtime = payload.runtime || {};
-    status.textContent = `Runtime: ${runtime.status || 'missing'} · profilo ${runtime.hardware_profile || 'n.d.'}`;
+    const stato = statiRuntime[runtime.status] || runtime.status || 'non disponibile';
+    status.textContent = `Runtime locale: ${stato} · profilo ${runtime.hardware_profile || 'n.d.'}`;
   } catch (error) {
     status.textContent = 'Runtime non raggiungibile';
   }

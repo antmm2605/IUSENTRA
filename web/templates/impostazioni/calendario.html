@@ -263,7 +263,7 @@
           <tr>
             <th>Profilo</th>
             <th>Origine</th>
-            <th>Ultimo sync</th>
+              <th>Ultima sincronizzazione</th>
             <th>Esito</th>
             <th class="text-end">Azioni</th>
           </tr>
@@ -300,7 +300,7 @@
               <div class="d-flex justify-content-end gap-2 flex-wrap">
                 <form method="post" action="{{ url_for('sync_profilo_calendario', profile_id=profilo.id) }}">
                   <button class="btn btn-sm btn-outline-primary" type="submit">
-                    <i class="bi bi-arrow-repeat me-1"></i>Sync ora
+                    <i class="bi bi-arrow-repeat me-1"></i>Sincronizza ora
                   </button>
                 </form>
                 <form method="post" action="{{ url_for('toggle_profilo_calendario', profile_id=profilo.id) }}">

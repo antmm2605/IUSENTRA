@@ -336,6 +336,22 @@ Dopo l'installazione su tutte le piattaforme: tornare su HACS → Impostazioni �
 - Nessuna dipendenza esterna aggiunta senza necessità
 - Mantenere coerenza visiva con Bootstrap 5 e le classi già usate nel progetto
 
+## Modularizzazione governabile — REGOLA OBBLIGATORIA
+
+- Ogni nuova funzionalità o refactor deve produrre **codice governabile**, quindi moduli piccoli, leggibili e con responsabilità chiare.
+- **Non è ammesso** spostare logica da un monolite a un nuovo file grande equivalente: se un modulo cresce, va ulteriormente suddiviso in componenti gestibili.
+- La separazione va mantenuta per livelli:
+  - `web/bootstrap/` → wiring Flask, registrazioni, hook, bootstrap
+  - `web/services/` → logica applicativa trasversale e servizi UI/runtime
+  - `pct/` → dominio e logica di business legale/PCT
+- Prima di aggiungere nuovo codice in `web/app.py`, verificare sempre se può vivere in un modulo dedicato.
+
+## UI italiana e date — REGOLA OBBLIGATORIA
+
+- Tutto il testo visibile in UI deve essere in **lingua italiana**. Evitare etichette miste come `Dashboard`, `Logout`, `Sync`, `Runtime: missing` quando sono esposte all'utente finale.
+- Tutte le date/ore **esposte in UI** devono usare formati italiani tramite i filtri template condivisi (`fmt_data`, `fmt_dataora`, `fmt_data_estesa`, ecc.), non `strftime('%B')` o `strftime('%A')` direttamente nei template.
+- Eccezione consentita: i valori tecnici per campi HTML `type=\"date\"`, `datetime-local`, attributi `data-*`, API o payload macchina possono restare in formato ISO.
+
 ## Versioning — REGOLA OBBLIGATORIA
 
 **Ad ogni implementazione (nuova funzionalità, bug fix, qualsiasi modifica al codice) eseguire SEMPRE il bump di versione e aggiornare tutti e quattro i file:**

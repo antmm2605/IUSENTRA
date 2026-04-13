@@ -130,10 +130,25 @@ def test_template_runtime_registers_filters_and_globals(tmp_path: Path):
 
     assert app.jinja_env.filters["fmt_data"]("2026-04-13") == "13/04/2026"
     assert app.jinja_env.filters["fmt_dataora"]("2026-04-13T09:45:00") == "13/04/2026 09:45"
+    assert app.jinja_env.filters["fmt_data_estesa"]("2026-04-13") == "13 aprile 2026"
+    assert (
+        app.jinja_env.filters["fmt_data_estesa_con_giorno"]("2026-04-13")
+        == "lunedì 13 aprile 2026"
+    )
+    assert (
+        app.jinja_env.filters["fmt_data_breve_con_giorno"]("2026-04-13")
+        == "lun 13 apr 2026"
+    )
+    assert app.jinja_env.filters["fmt_giorno_mese"]("2026-04-13") == "13 apr"
+    assert app.jinja_env.filters["fmt_giorno_mese_anno"]("2026-04-13") == "13 apr 2026"
+    assert app.jinja_env.filters["fmt_mese_breve"]("2026-04-13") == "apr"
+    assert app.jinja_env.filters["fmt_ora"]("2026-04-13T09:45:00") == "09:45"
     assert globals_map["app_version"] == APP_VERSION
     assert globals_map["TipoAppuntamento"] is not None
     assert globals_map["recenti"] == []
     assert hasattr(globals_map["oggi"], "strftime")
+    assert globals_map["mesi_italiani"][3] == "aprile"
+    assert globals_map["giorni_settimana_brevi_italiani"][0] == "lun"
 
 
 def test_pwa_routes_and_error_handlers_restano_registrati(tmp_path: Path):
@@ -150,3 +165,34 @@ def test_pwa_routes_and_error_handlers_restano_registrati(tmp_path: Path):
     assert "javascript" in service_worker.content_type
     assert offline.status_code == 200
     assert missing.status_code == 404
+
+
+def test_template_principali_usano_copy_italiana_e_date_localizzate():
+    template_checks = {
+        "web/templates/base.html": ["Panoramica"],
+        "web/templates/admin/base.html": ["Esci", "Piattaforma"],
+        "web/templates/dashboard.html": ["Panoramica dello studio"],
+        "web/templates/agenda.html": ["Sincronizzazione automatica", "Configura sincronizzazione calendario"],
+        "web/templates/workspace_intelligente.html": ["Runtime locale", "Ultima sincronizzazione"],
+    }
+
+    for relative_path, expected_snippets in template_checks.items():
+        content = (REPO_ROOT / relative_path).read_text(encoding="utf-8")
+        for snippet in expected_snippets:
+            assert snippet in content
+
+    locale_sensitive_templates = [
+        "web/templates/dashboard.html",
+        "web/templates/agenda.html",
+        "web/templates/dettaglio_appuntamento.html",
+        "web/templates/portale/home.html",
+        "web/templates/form_preventivo.html",
+        "web/templates/clienti/cartella.html",
+        "web/templates/cartelle_condivise.html",
+    ]
+    for relative_path in locale_sensitive_templates:
+        content = (REPO_ROOT / relative_path).read_text(encoding="utf-8")
+        assert "strftime('%A" not in content
+        assert "strftime('%a" not in content
+        assert "strftime('%B" not in content
+        assert "strftime('%b" not in content

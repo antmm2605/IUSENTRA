@@ -108,7 +108,7 @@ document.addEventListener('DOMContentLoaded', function() {
       </div>
       <div class="small text-muted mt-2">
         {% if snapshot.mediazione_registry.table.sync_status == 'sincronizzata' %}
-        {{ snapshot.mediazione_registry.total_rows }} organismi in cache | {{ snapshot.mediazione_registry.data_origin_label or 'cache interna' }} | ultimo sync {{ snapshot.mediazione_registry.table.last_synced_at[:16]|replace('T', ' ') if snapshot.mediazione_registry.table.last_synced_at else 'n/d' }}
+        {{ snapshot.mediazione_registry.total_rows }} organismi in cache | {{ snapshot.mediazione_registry.data_origin_label or 'cache interna' }} | ultima sincronizzazione {{ snapshot.mediazione_registry.table.last_synced_at[:16]|replace('T', ' ') if snapshot.mediazione_registry.table.last_synced_at else 'n/d' }}
         {% else %}
         Stato attuale: {{ snapshot.mediazione_registry.table.sync_status|replace('_', ' ') }}{% if snapshot.mediazione_registry.table.last_warning %} | {{ snapshot.mediazione_registry.table.last_warning }}{% endif %}
         {% endif %}
@@ -306,8 +306,8 @@ document.addEventListener('DOMContentLoaded', function() {
         il sistema ha rilevato una modifica nella fonte ufficiale corrispondente rispetto all'ultima acquisizione.
         I dati in uso sono quelli dell'ultimo seed valido (nessuna interruzione operativa).
         <strong>Cosa fare:</strong> verifica il contenuto aggiornato sulla fonte ufficiale indicata, poi clicca
-        <em>"Esegui sync"</em> per aggiornare e azzerare l'alert.
-        Il sync automatico giornaliero (ore 04:30) rieseguirà il controllo ogni notte.
+        <em>"Esegui sincronizzazione"</em> per aggiornare e azzerare l'alert.
+        La sincronizzazione automatica giornaliera (ore 04:30) rieseguirà il controllo ogni notte.
       </div>
     </div>
     {% endif %}
@@ -320,9 +320,9 @@ document.addEventListener('DOMContentLoaded', function() {
             <th>
               Stato
               <i class="bi bi-question-circle text-muted ms-1" data-bs-toggle="tooltip"
-                 title="sincronizzata = OK aggiornata · verifica richiesta = fonte cambiata, dati seed ancora validi, eseguire sync per confermare · errore = fonte non raggiungibile"></i>
+                  title="sincronizzata = OK aggiornata · verifica richiesta = fonte cambiata, dati seed ancora validi, eseguire sincronizzazione per confermare · errore = fonte non raggiungibile"></i>
             </th>
-            <th>Ultimo sync</th>
+              <th>Ultima sincronizzazione</th>
             <th>Note / Warning</th>
           </tr>
         </thead>
@@ -342,7 +342,7 @@ document.addEventListener('DOMContentLoaded', function() {
               {% elif row.sync_status == 'verifica_richiesta' %}
               <span class="badge text-bg-warning"
                     data-bs-toggle="tooltip"
-                    title="La fonte ufficiale è cambiata dall'ultima acquisizione. I dati seed sono ancora validi. Esegui 'Sync normativo' per verificare e aggiornare.">
+                     title="La fonte ufficiale è cambiata dall'ultima acquisizione. I dati seed sono ancora validi. Esegui 'Sincronizzazione normativa' per verificare e aggiornare.">
                 <i class="bi bi-exclamation-triangle me-1"></i>verifica richiesta
               </span>
               {% else %}

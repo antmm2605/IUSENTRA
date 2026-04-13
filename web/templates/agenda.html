@@ -27,10 +27,10 @@
         <i class="bi bi-calendar2-check"></i>
         <span class="d-none d-sm-inline">iCal</span>
         <span class="badge rounded-pill d-none d-sm-inline ms-1"
-              style="background:rgba(26,115,232,.12);color:#1a73e8;font-size:.6rem;padding:.2em .5em">SYNC</span>
+              style="background:rgba(26,115,232,.12);color:#1a73e8;font-size:.6rem;padding:.2em .5em">SINC.</span>
       </button>
       <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 py-2" style="min-width:270px">
-        {# ── Sync automatica ── #}
+        {# ── Sincronizzazione automatica ── #}
         <li>
           <div class="px-3 py-2 d-flex align-items-center gap-2 border-bottom mb-1">
             <span class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
@@ -46,7 +46,7 @@
         <li>
           <a class="dropdown-item py-2" href="{{ url_for('impostazioni_calendario') }}">
             <i class="bi bi-gear me-2 text-primary"></i>
-            <span>Configura sync calendario…</span>
+            <span>Configura sincronizzazione calendario…</span>
           </a>
         </li>
         <li><hr class="dropdown-divider my-1"></li>
@@ -85,7 +85,7 @@
           <div class="px-3 py-1">
             <span class="small text-muted d-flex align-items-start gap-1">
               <i class="bi bi-info-circle flex-shrink-0 mt-1" style="font-size:.75rem"></i>
-              <span style="font-size:.75rem">Il download è importazione una-tantum. Per la <strong>sync automatica</strong> usa "Configura sync".</span>
+              <span style="font-size:.75rem">Il download è un'importazione una tantum. Per la <strong>sincronizzazione automatica</strong> usa "Configura sincronizzazione".</span>
             </span>
           </div>
         </li>
@@ -131,9 +131,9 @@
 
       <span class="fw-semibold text-primary small agenda-toolbar-label">
         {% if vista == 'giorno' %}
-          {{ giorno.strftime('%a %d %b %Y') }}
+          {{ giorno|fmt_data_breve_con_giorno }}
         {% elif vista == 'settimana' %}
-          {{ inizio.strftime('%d %b') }} – {{ fine.strftime('%d %b %Y') }}
+          {{ inizio|fmt_giorno_mese }} – {{ fine|fmt_giorno_mese_anno }}
         {% else %}
           {{ nomi_mesi[mese] }} {{ anno }}
         {% endif %}

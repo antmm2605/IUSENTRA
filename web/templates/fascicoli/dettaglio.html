@@ -1397,7 +1397,7 @@
           <button class="btn btn-sm btn-outline-secondary" id="btnSyncPecCancelleria"
                   title="Sincronizza la casella PEC, aggiorna gli esiti del deposito e carica le comunicazioni di cancelleria"
                   onclick="_syncPecCancelleria(this)">
-            <i class="bi bi-envelope-arrow-down me-1"></i><span class="d-none d-sm-inline">Sync PEC</span>
+            <i class="bi bi-envelope-arrow-down me-1"></i><span class="d-none d-sm-inline">Sincronizza PEC</span>
           </button>
 
           <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal"
@@ -1507,7 +1507,7 @@
                         srcdoc="{{ att.email_html|e }}"></iframe>
                 {% else %}
                 <div class="alert alert-warning small mb-0">
-                  Corpo email non ancora disponibile in archivio locale. Esegui <strong>Sync PEC</strong> per completare le comunicazioni salvate in precedenza.
+                  Corpo email non ancora disponibile in archivio locale. Esegui <strong>Sincronizza PEC</strong> per completare le comunicazioni salvate in precedenza.
                 </div>
                 {% endif %}
               </div>
@@ -5405,11 +5405,20 @@ async function _refreshFascicoloAiRuntime() {
   const target = document.getElementById('fascicolo-ai-runtime');
   if (!target) return;
   target.textContent = 'Verifica runtime…';
+  const statiRuntime = {
+    missing: 'non disponibile',
+    installing: 'installazione',
+    starting: 'avvio',
+    ready: 'pronto',
+    error: 'errore',
+    disabled: 'disattivato',
+  };
   try {
     const response = await fetch('/api/local-ai/status', { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
     const payload = await response.json();
     const runtime = payload.runtime || {};
-    target.textContent = `Runtime: ${runtime.status || 'missing'} · profilo ${runtime.hardware_profile || 'n.d.'}`;
+    const stato = statiRuntime[runtime.status] || runtime.status || 'non disponibile';
+    target.textContent = `Runtime locale: ${stato} · profilo ${runtime.hardware_profile || 'n.d.'}`;
   } catch (error) {
     target.textContent = 'Runtime non disponibile';
   }

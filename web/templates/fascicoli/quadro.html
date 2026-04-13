@@ -315,7 +315,7 @@
         <div class="qd-sync-bar">
           <div class="d-flex align-items-center gap-2 flex-wrap">
             <i class="bi bi-arrow-repeat text-muted"></i>
-            <span class="small fw-semibold">Sync</span>
+            <span class="small fw-semibold">Sincronizzazione</span>
             <span class="small text-muted">{{ fascicolo.source or 'Locale' }}</span>
             {% if fascicolo.sync_status %}
             <span class="badge bg-{{ 'success' if fascicolo.sync_status in ['IMPORTATO','SINCRONIZZATO'] else ('warning text-dark' if fascicolo.sync_status in ['DA_VERIFICARE','PARZIALE'] else 'secondary') }}" style="font-size:.6rem">{{ fascicolo.sync_status.replace('_',' ') }}</span>

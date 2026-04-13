@@ -13,7 +13,7 @@
     <p class="ds-ph-sub">
       <span class="badge badge-{{ app.tipo.value }} me-1">{{ app.tipo.value }}</span>
       <span class="badge bg-{{ sc[app.stato.value] }} me-1">{{ app.stato.value }}</span>
-      {{ app.data_ora_dt.strftime('%d/%m/%Y %H:%M') }}
+      {{ app.data_ora_dt|fmt_dataora }}
       {% if app.luogo %} · {{ app.luogo }}{% endif %}
     </p>
   </div>
@@ -42,9 +42,9 @@
           <div class="col-sm-6">
             <div class="small text-muted mb-1"><i class="bi bi-calendar me-1"></i>Data e ora</div>
             <div class="fw-semibold">
-              {{ app.data_ora_dt.strftime('%A %d %B %Y') }}<br>
-              <span class="fs-5">{{ app.data_ora_dt.strftime('%H:%M') }}</span>
-              <span class="text-muted">–{{ app.fine_dt.strftime('%H:%M') }}</span>
+              {{ app.data_ora_dt|fmt_data_estesa_con_giorno }}<br>
+              <span class="fs-5">{{ app.data_ora_dt|fmt_ora }}</span>
+              <span class="text-muted">–{{ app.fine_dt|fmt_ora }}</span>
               <span class="small text-muted">({{ app.durata_minuti }} min)</span>
             </div>
           </div>
@@ -94,8 +94,8 @@
 
       <div class="card-footer text-muted small">
         ID: <code>{{ app.id }}</code> &nbsp;·&nbsp;
-        Creato: {{ app.creato_il[:16].replace('T',' ') }} &nbsp;·&nbsp;
-        Modificato: {{ app.modificato_il[:16].replace('T',' ') }}
+        Creato: {{ app.creato_il|fmt_dataora }} &nbsp;·&nbsp;
+        Modificato: {{ app.modificato_il|fmt_dataora }}
       </div>
     </div>
   </div>

@@ -78,7 +78,7 @@
   </div>
   <div class="col-6 col-md-3">
     <div class="jud-stat p-3 h-100">
-      <div class="small text-muted mb-1">Sync pubblici</div>
+      <div class="small text-muted mb-1">Sincronizzazioni pubbliche</div>
       <div class="fs-3 fw-bold">{{ statistiche.sync_pubblici }}</div>
     </div>
   </div>
@@ -141,7 +141,7 @@
       <div class="d-flex flex-column gap-2 small text-muted">
         <div><strong class="text-dark">Classificazione doppia:</strong> area / branca / sottobranca e, in parallelo, giurisdizione / grado / rito / organo.</div>
         <div><strong class="text-dark">Fonte separata:</strong> Cassazione, merito civile, Corte costituzionale, amministrativo, tributario, UE e CEDU non vengono mischiati in un contenitore piatto.</div>
-        <div><strong class="text-dark">Recupero prudente:</strong> sync leggero solo sulle fonti aperte; handoff assistito per PST, portali autenticati e motori non esposti come API pubbliche.</div>
+        <div><strong class="text-dark">Recupero prudente:</strong> sincronizzazione leggera solo sulle fonti aperte; handoff assistito per PST, portali autenticati e motori non esposti come API pubbliche.</div>
       </div>
     </div>
   </div>
@@ -434,7 +434,7 @@
               {% if item.uso_nel_software %}<div><strong>Uso:</strong> {{ item.uso_nel_software }}</div>{% endif %}
               {% if item.text_versions_count %}<div><strong>Versioni testo:</strong> {{ item.text_versions_count }}</div>{% endif %}
               {% if item.raw_documents_count %}<div><strong>Documenti raw:</strong> {{ item.raw_documents_count }}</div>{% endif %}
-              {% if item.ultimo_sync_at_fmt %}<div><strong>Sync:</strong> {{ item.ultimo_sync_at_fmt }}</div>{% endif %}
+              {% if item.ultimo_sync_at_fmt %}<div><strong>Sincronizzazione:</strong> {{ item.ultimo_sync_at_fmt }}</div>{% endif %}
               {% if item.updated_at_fmt %}<div><strong>Aggiornata:</strong> {{ item.updated_at_fmt }}</div>{% endif %}
             </div>
           </div>

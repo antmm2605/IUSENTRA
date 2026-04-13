@@ -8,6 +8,21 @@ from typing import Any
 
 from flask import Flask, g, session
 
+from web.services.ui_localization import (
+    MONTHS_IT,
+    MONTHS_SHORT_IT,
+    WEEKDAYS_IT,
+    WEEKDAYS_SHORT_IT,
+    format_date,
+    format_date_long,
+    format_datetime,
+    format_day_month,
+    format_day_month_year,
+    format_month_short,
+    format_short_weekday_date,
+    format_time_only,
+)
+
 
 def register_template_runtime(
     app: Flask,
@@ -19,42 +34,50 @@ def register_template_runtime(
     """Register shared Jinja filters and context globals."""
 
     @app.template_filter("fmt_data")
-    def fmt_data(val: str) -> str:
-        if not val:
-            return "—"
-        try:
-            testo = str(val).strip()
-            for sep in ("T", " "):
-                if sep in testo:
-                    testo = testo.split(sep)[0]
-                    break
-            for fmt in ("%Y-%m-%d", "%d/%m/%Y", "%d-%m-%Y", "%Y/%m/%d"):
-                try:
-                    parsed = datetime.strptime(testo[:10], fmt).date()
-                    return parsed.strftime("%d/%m/%Y")
-                except ValueError:
-                    continue
-            return val
-        except Exception:
-            return val
+    def fmt_data(val: Any) -> str:
+        return format_date(val)
 
     @app.template_filter("fmt_dataora")
-    def fmt_dataora(val: str) -> str:
-        if not val:
-            return "—"
-        try:
-            testo = str(val).strip().replace("Z", "")
-            if len(testo) == 10:
-                return datetime.fromisoformat(testo + "T00:00:00").strftime("%d/%m/%Y")
-            return datetime.fromisoformat(testo).strftime("%d/%m/%Y %H:%M")
-        except Exception:
-            return fmt_data(val)
+    def fmt_dataora(val: Any) -> str:
+        return format_datetime(val)
+
+    @app.template_filter("fmt_ora")
+    def fmt_ora(val: Any) -> str:
+        return format_time_only(val)
+
+    @app.template_filter("fmt_data_estesa")
+    def fmt_data_estesa(val: Any) -> str:
+        return format_date_long(val)
+
+    @app.template_filter("fmt_data_estesa_con_giorno")
+    def fmt_data_estesa_con_giorno(val: Any) -> str:
+        return format_date_long(val, include_weekday=True)
+
+    @app.template_filter("fmt_data_breve_con_giorno")
+    def fmt_data_breve_con_giorno(val: Any) -> str:
+        return format_short_weekday_date(val)
+
+    @app.template_filter("fmt_giorno_mese")
+    def fmt_giorno_mese(val: Any) -> str:
+        return format_day_month(val)
+
+    @app.template_filter("fmt_giorno_mese_anno")
+    def fmt_giorno_mese_anno(val: Any) -> str:
+        return format_day_month_year(val)
+
+    @app.template_filter("fmt_mese_breve")
+    def fmt_mese_breve(val: Any) -> str:
+        return format_month_short(val)
 
     @app.context_processor
     def inject_globals():
         return {
             "oggi": date.today(),
             "ora_adesso": datetime.now().strftime("%H:%M"),
+            "mesi_italiani": MONTHS_IT,
+            "mesi_italiani_brevi": MONTHS_SHORT_IT,
+            "giorni_settimana_italiani": WEEKDAYS_IT,
+            "giorni_settimana_brevi_italiani": WEEKDAYS_SHORT_IT,
             **template_symbols,
             "utente_corrente": g.get("utente_corrente"),
             "n_operatori_connessi": connected_operators(),

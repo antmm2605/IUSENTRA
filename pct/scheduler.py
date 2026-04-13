@@ -16,6 +16,8 @@ import os
 from datetime import datetime
 from pathlib import Path
 
+from pct.runtime_env import is_managed_cloud_runtime
+
 logger = logging.getLogger("pct.scheduler")
 
 
@@ -409,6 +411,12 @@ def start_scheduler(app):
     def _local_ai_maintenance():
         with app.app_context():
             try:
+                if is_managed_cloud_runtime():
+                    logger.info(
+                        "[scheduler] Local AI maintenance disabilitata su runtime cloud-hosted: AI delegata al companion locale del cliente."
+                    )
+                    return
+
                 from pct.fascicoli import GestioneFascicoli
                 from pct.local_ai import LocalAIService
 

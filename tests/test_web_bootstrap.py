@@ -1,6 +1,8 @@
 import json
 from pathlib import Path
 
+from flask import g
+
 from pct import __version__ as APP_VERSION
 from web.app import create_app
 
@@ -236,6 +238,24 @@ def test_runtime_cloud_hosted_sposta_ai_locale_su_storage_effimero(monkeypatch, 
     assert Path(app.config["LOCAL_AI_DB"]).as_posix() == "/tmp/hacs-runtime/local_ai/local_ai.db"
     assert Path(app.config["LOCAL_AI_MODELS_DIR"]).as_posix() == "/tmp/hacs-runtime/local_ai/models"
     assert app.config["LOCAL_AI_AUTO_BOOTSTRAP"] is False
+
+
+def test_runtime_cloud_hosted_ignora_percorsi_ai_del_tenant(monkeypatch, tmp_path: Path):
+    from web.services.local_ai_runtime import get_local_ai_service
+
+    monkeypatch.setenv("RAILWAY_PROJECT_ID", "proj-test")
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    app = create_app(_cfg_web(tmp_path))
+
+    with app.test_request_context("/"):
+        g.data_paths = {
+            "LOCAL_AI_DB": "/data/tenants/demo/intelligence/local_ai.db",
+            "LOCAL_AI_MODELS_DIR": "/data/tenants/demo/intelligence/models",
+        }
+        service = get_local_ai_service()
+
+    assert service.db_path.as_posix() == "/tmp/hacs-runtime/local_ai/local_ai.db"
+    assert service.models_path.as_posix() == "/tmp/hacs-runtime/local_ai/models"
 
 
 def test_scss_governance_usa_bundle_modulari_e_niente_style_inline():

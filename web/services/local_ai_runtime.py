@@ -7,10 +7,13 @@ from pathlib import Path
 from flask import current_app, g, has_request_context
 
 from pct.local_ai import LocalAIService
+from pct.runtime_env import is_managed_cloud_runtime
 
 
 def _cfg_data_path(key: str) -> str:
     app = current_app._get_current_object()
+    if is_managed_cloud_runtime() and key in {"LOCAL_AI_DB", "LOCAL_AI_MODELS_DIR"}:
+        return app.config[key]
     if has_request_context():
         paths = getattr(g, "data_paths", {}) or {}
         return paths.get(key, app.config[key])

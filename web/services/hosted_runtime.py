@@ -7,19 +7,7 @@ import shutil
 from pathlib import Path
 
 from flask import Flask
-
-
-def is_managed_cloud_runtime() -> bool:
-    return any(
-        os.getenv(name)
-        for name in (
-            "RAILWAY_ENVIRONMENT",
-            "RAILWAY_PROJECT_ID",
-            "RAILWAY_SERVICE_ID",
-            "RENDER",
-            "RENDER_SERVICE_ID",
-        )
-    )
+from pct.runtime_env import is_managed_cloud_runtime
 
 
 def _ephemeral_local_ai_root() -> Path:

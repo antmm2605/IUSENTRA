@@ -7,6 +7,20 @@
 - Branch di sviluppo: `Codex/legal-electronic-filing-kIxcV`
 - **Branch remoto da sincronizzare sempre insieme al branch di sviluppo:** `claude/legal-electronic-filing-kIxcV`
 
+## Igiene repository — Regola obbligatoria
+
+- Sulla macchina locale deve esistere **una sola copia attiva del progetto**: `D:\legale\hacs`.
+- **Worktree, cartelle duplicate, cloni temporanei e versioni parallele** del repository devono essere rimossi a fine lavoro.
+- I **soli branch ammessi**, sia locali sia remoti, sono:
+  - `Codex/legal-electronic-filing-kIxcV`
+  - `claude/legal-electronic-filing-kIxcV`
+- Non creare branch aggiuntivi per task temporanei. Tutto il lavoro deve confluire nel branch di sviluppo corrente e venire sincronizzato anche sul branch gemello.
+- A fine implementazione verificare sempre che:
+  - `git worktree list` mostri solo `D:\legale\hacs`
+  - `git branch --all` mostri solo i due branch ammessi più `origin/HEAD`
+  - i due branch locali e i due branch remoti puntino allo **stesso commit**
+- Per enforcement e cleanup usare lo script: `scripts/repo_hygiene.ps1`
+
 ## Progetto
 
 **HACS** — gestionale per studi legali (Python/Flask).

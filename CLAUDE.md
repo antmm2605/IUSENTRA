@@ -17,6 +17,16 @@ git push origin claude/legal-electronic-filing-kIxcV:Codex/legal-electronic-fili
 
 **Nota**: il server accetta push solo su branch `claude/*` per le sessioni Claude. Se il push su `Codex/` restituisce 403, documentare il tentativo nel commit message ma non bloccarsi — il branch `claude/` è la fonte di verità e verrà sincronizzato esternamente.
 
+## Igiene repository — Regola obbligatoria
+
+- Sulla macchina locale deve esistere **una sola copia attiva del progetto**: `D:\legale\hacs`.
+- I **soli branch ammessi**, sia locali sia remoti, sono:
+  - `claude/legal-electronic-filing-kIxcV`
+  - `Codex/legal-electronic-filing-kIxcV`
+- Worktree, cartelle duplicate, branch temporanei e cloni di supporto devono essere rimossi a fine lavoro.
+- A fine task verificare sempre che i due branch ammessi puntino allo **stesso commit**.
+- Per audit e cleanup usare lo script `scripts/repo_hygiene.ps1`.
+
 ## Progetto
 
 **HACS** — gestionale per studi legali (Python/Flask).

@@ -158,7 +158,7 @@ python -m pytest tests/ -v
   - `components/` per pattern condivisi
   - `pages/` per le viste specifiche
   - `mobile.scss` solo per adattamenti trasversali mobile/tablet
-- Gli entrypoint compilati restano quelli caricati dalla UI (`app.scss`, `design-system.scss`, `mobile.scss`, `editor-word.scss`): non creare file SCSS orfani non inclusi nel bundle.
+- Gli entrypoint compilati restano quelli caricati dalla UI (`app.scss`, `design-system.scss`, `mobile.scss`, `editor-word.scss`, `portal.scss`): non creare file SCSS orfani non inclusi nel bundle.
 - Dopo modifiche SCSS, verificare sempre la compilazione CSS nel flusso Docker locale obbligatorio della release.
 - La UI deve essere progettata in modo **responsive** per desktop, tablet e mobile, con card compatte, gerarchia chiara e senza spazi morti.
 - I feedback utente per azioni completate, errori, avvisi o stati intermedi devono usare messaggi professionali, chiari e in italiano.

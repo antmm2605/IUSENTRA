@@ -2,40 +2,13 @@
 {% block title %}Cabina Telematica{% endblock %}
 
 {% block content %}
-<style>
-  .tm-shell{display:flex;flex-direction:column;gap:1.25rem}
-  .tm-hero{border-radius:1.5rem;padding:1.35rem 1.4rem;background:linear-gradient(135deg,#0f172a 0%,#1e3a5f 55%,#2563eb 100%);color:#fff;box-shadow:0 18px 45px rgba(15,23,42,.18)}
-  .tm-hero p{max-width:72ch}
-  .tm-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1rem}
-  .tm-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem}
-  .tm-card{border:1px solid rgba(15,23,42,.08);border-radius:1.25rem;background:#fff;box-shadow:0 10px 24px rgba(15,23,42,.06)}
-  .tm-card-body{padding:1.1rem 1.1rem 1rem}
-  .tm-stat{padding:1rem;border-radius:1rem;background:#fff;border:1px solid rgba(15,23,42,.08);box-shadow:0 8px 20px rgba(15,23,42,.04)}
-  .tm-stat-value{font-size:2rem;line-height:1;font-weight:700}
-  .tm-channel{height:100%}
-  .tm-channel .badge{font-size:.72rem}
-  .tm-status-dot{width:.7rem;height:.7rem;border-radius:999px;display:inline-block}
-  .tm-list{display:flex;flex-direction:column;gap:.85rem}
-  .tm-list-item{padding:.9rem 1rem;border:1px solid rgba(15,23,42,.08);border-radius:1rem;background:#fff}
-  .tm-kpi{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.6rem}
-  .tm-kpi-box{padding:.75rem .8rem;border-radius:.95rem;background:#f8fafc;border:1px solid #e2e8f0}
-  .tm-muted{color:#64748b}
-  @media (max-width: 1199.98px){.tm-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
-  @media (max-width: 991.98px){.tm-grid{grid-template-columns:1fr}}
-  @media (max-width: 767.98px){
-    .tm-hero{padding:1.1rem 1rem}
-    .tm-stats{grid-template-columns:1fr}
-    .tm-kpi{grid-template-columns:1fr}
-  }
-</style>
-
 <div class="tm-shell">
   <section class="tm-hero">
     <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
       <div>
         <div class="small text-uppercase fw-semibold opacity-75 mb-2">Core unico, canali distinti</div>
         <h1 class="h3 mb-2">Cabina Telematica</h1>
-        <p class="mb-0 opacity-90">
+        <p class="mb-0 opacity-90 tm-hero__copy">
           Una regia unica per PST / PDP, PAT / SIGA e PTT / SIGIT: stato connessioni, pratiche sincronizzate,
           import fascicoli e prossime azioni operative nello stesso punto.
         </p>
@@ -55,7 +28,7 @@
     <div class="tm-stat">
       <div class="small tm-muted mb-2">Casi telematici censiti</div>
       <div class="tm-stat-value">{{ stats.totale or 0 }}</div>
-      <div class="small tm-muted mt-2">Core unificato alimentato dai fascicoli già sincronizzati.</div>
+      <div class="small tm-muted mt-2">Core unificato alimentato dai fascicoli gia sincronizzati.</div>
     </div>
     <div class="tm-stat">
       <div class="small tm-muted mb-2">PST / PDP</div>
@@ -82,7 +55,7 @@
             <div class="small text-uppercase tm-muted fw-semibold">Canali ufficiali</div>
             <h2 class="h5 mb-0">Connessioni e accesso</h2>
           </div>
-          <span class="badge text-bg-light border">Desktop · Tablet · Mobile</span>
+          <span class="badge text-bg-light border">Desktop, tablet e mobile</span>
         </div>
         <div class="row g-3">
           {% for card in connection_cards %}
@@ -114,7 +87,7 @@
               </div>
               <div class="small tm-muted mb-3">
                 {% if card.last_sync_at %}
-                Ultimo allineamento: {{ (card.last_sync_at|replace('T', ' '))[:16] }}
+                Ultimo allineamento: {{ card.last_sync_at|fmt_dataora }}
                 {% else %}
                 Nessun allineamento ancora registrato.
                 {% endif %}
@@ -139,7 +112,7 @@
         <div class="d-flex justify-content-between align-items-center gap-2 mb-3">
           <div>
             <div class="small text-uppercase tm-muted fw-semibold">Timeline</div>
-            <h2 class="h5 mb-0">Attività telematiche recenti</h2>
+            <h2 class="h5 mb-0">Attivita telematiche recenti</h2>
           </div>
           <span class="badge text-bg-light border">{{ recent_events|length }} eventi</span>
         </div>
@@ -149,7 +122,7 @@
             <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
               <div>
                 <div class="fw-semibold">{{ row.title }}</div>
-                <div class="small tm-muted">{{ row.service_code|replace('_', ' ')|title }} · {{ (row.created_at|replace('T', ' '))[:16] }}</div>
+                <div class="small tm-muted">{{ row.service_code|replace('_', ' ')|title }} - {{ row.created_at|fmt_dataora }}</div>
                 {% if row.description %}
                 <div class="small mt-2">{{ row.description }}</div>
                 {% endif %}
@@ -187,7 +160,7 @@
             <div>
               <div class="fw-semibold">{{ row.service_label }}</div>
               <div class="small tm-muted">
-                {{ row.office_name }}{% if row.register_number and row.register_year %} · {{ row.register_type or 'RG' }} {{ row.register_number }}/{{ row.register_year }}{% endif %}
+                {{ row.office_name }}{% if row.register_number and row.register_year %} - {{ row.register_type or 'RG' }} {{ row.register_number }}/{{ row.register_year }}{% endif %}
               </div>
               <div class="mt-2">
                 <span class="badge text-bg-light border">{{ row.internal_status|replace('_', ' ')|title }}</span>
@@ -197,15 +170,15 @@
               </div>
               <div class="small mt-2">
                 <strong>Soggetto:</strong> {{ row.subject_name }}
-                {% if row.counsel_name %}<span class="tm-muted"> · Difensore {{ row.counsel_name }}</span>{% endif %}
+                {% if row.counsel_name %}<span class="tm-muted"> - Difensore {{ row.counsel_name }}</span>{% endif %}
               </div>
               <div class="small tm-muted mt-1">
-                Documenti censiti: {{ row.documents_count or 0 }} · Task aperti: {{ row.open_tasks_count or 0 }}
+                Documenti censiti: {{ row.documents_count or 0 }} - Task aperti: {{ row.open_tasks_count or 0 }}
               </div>
             </div>
             <div class="text-end">
               <div class="small tm-muted mb-2">
-                {% if row.last_sync_at %}Sincronizzato {{ (row.last_sync_at|replace('T', ' '))[:16] }}{% endif %}
+                {% if row.last_sync_at %}Sincronizzato {{ row.last_sync_at|fmt_dataora }}{% endif %}
               </div>
               {% if row.practice_url %}
               <a href="{{ row.practice_url }}" class="btn btn-outline-primary btn-sm">

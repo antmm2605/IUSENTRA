@@ -78,7 +78,7 @@
       <div>
         <div class="fw-semibold" style="font-size:.9rem;">{{ a.titolo }}</div>
         <div class="text-muted" style="font-size:.78rem;">
-          <i class="bi bi-clock me-1"></i>{{ a.data_ora.strftime('%H:%M') }}
+          <i class="bi bi-clock me-1"></i>{{ a.data_ora|fmt_ora }}
           {% if a.luogo %} · {{ a.luogo }}{% endif %}
         </div>
       </div>
@@ -102,7 +102,7 @@
         fs-5"></i>
       <div>
         <div class="fw-semibold" style="font-size:.88rem;">{{ s.titolo }}</div>
-        <div class="text-muted" style="font-size:.78rem;">{{ s.scadenza.strftime('%d/%m/%Y') }}</div>
+        <div class="text-muted" style="font-size:.78rem;">{{ s.scadenza|fmt_data }}</div>
       </div>
       {% if s.perentorio %}
       <span class="badge bg-danger ms-auto" style="font-size:.6rem;">PERENTORIO</span>

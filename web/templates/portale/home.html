@@ -3,269 +3,261 @@
 {% set active_tab = "home" %}
 
 {% block content %}
-<!-- Saluto -->
-<div class="mb-4">
-  <h5 class="fw-bold mb-1">Ciao, {{ cliente.nome_completo }} 👋</h5>
-  <p class="text-muted mb-0" style="font-size:.85rem;">
-    Benvenuto nel tuo spazio riservato — {{ oggi|fmt_data_estesa }}
-  </p>
-</div>
-
-<!-- Banner privacy non firmata -->
-{% if p.permessi.firma_privacy and not p.privacy_firmata %}
-<a href="{{ url_for('portale.privacy', token=token) }}" class="text-decoration-none">
-  <div class="alert alert-warning d-flex align-items-center gap-2 mb-4 portale-card" role="alert" style="border-left:4px solid #c8972b; border-radius:12px;">
-    <i class="bi bi-shield-exclamation fs-4"></i>
-    <div>
-      <div class="fw-semibold">Privacy da firmare</div>
-      <div style="font-size:.82rem;">Firma il consenso al trattamento dei dati personali.</div>
-    </div>
-    <i class="bi bi-chevron-right ms-auto"></i>
+<div class="portale-home">
+  <div class="portale-home__intro">
+    <h5 class="portale-home__title mb-1">Benvenuto, {{ cliente.nome_completo }}</h5>
+    <p class="portale-home__subtitle mb-0">
+      Benvenuto nel tuo spazio riservato - {{ oggi|fmt_data_estesa }}
+    </p>
   </div>
-</a>
-{% endif %}
 
-{% if azioni_richieste %}
-<p class="section-header">Azioni richieste</p>
-<div class="d-flex flex-column gap-2 mb-4">
-  {% for action in azioni_richieste[:2] %}
-  <div class="portale-card card border-warning-subtle">
-    <div class="card-body">
-      <div class="fw-semibold">{{ action.title }}</div>
-      <div class="text-muted mb-3" style="font-size:.8rem;">{{ action.subtitle }}</div>
-      <form method="post" action="{{ action.action_url }}">
-        <button type="submit" class="btn btn-sm btn-success">{{ action.button_label }}</button>
-      </form>
-    </div>
-  </div>
-  {% endfor %}
-</div>
-{% endif %}
-
-<!-- Fascicoli -->
-{% if p.permessi.vedi_fascicoli and fascicoli %}
-<p class="section-header" id="fascicoli">Le tue pratiche</p>
-<div class="d-flex flex-column gap-3 mb-4">
-  {% for f in fascicoli %}
-  <div class="portale-card card">
-    <div class="card-body">
-      {% set tracker = tracker_map.get(f.id) if tracker_map else None %}
-      <div class="d-flex align-items-start gap-2">
-        <span class="badge rounded-pill
-          {% if f.stato.value == 'APERTO' %}bg-primary
-          {% elif f.stato.value == 'CHIUSO' %}bg-secondary
-          {% else %}bg-dark{% endif %}
-          mt-1" style="font-size:.65rem;">{{ f.stato.value }}</span>
-        <div class="flex-grow-1">
-          <div class="fw-semibold">{{ f.titolo }}</div>
-          <div class="text-muted" style="font-size:.8rem;">
-            {{ f.tipo.value }}
-            {% if f.numero_rg %} · RG {{ f.numero_rg }}{% endif %}
-          </div>
-          {% if f.tribunale %}
-          <div class="text-muted" style="font-size:.78rem;">
-            <i class="bi bi-building me-1"></i>{{ f.tribunale }}
-          </div>
-          {% endif %}
-          {% if tracker %}
-          <div class="mt-3">
-            <div class="d-flex justify-content-between align-items-center mb-1">
-              <div class="small fw-semibold text-uppercase text-muted">Stato pratica</div>
-              <div class="small fw-semibold text-primary">{{ tracker.current_label }}</div>
-            </div>
-            <div class="progress" style="height:8px;border-radius:999px;">
-              <div class="progress-bar" role="progressbar" style="width: {{ tracker.percent }}%; background:linear-gradient(90deg, #1a3a5c, #3b82f6);" aria-valuenow="{{ tracker.percent }}" aria-valuemin="0" aria-valuemax="100"></div>
-            </div>
-            <div class="d-flex justify-content-between mt-2" style="gap:.4rem;">
-              {% for step in tracker.steps %}
-              <div class="small {% if step.complete %}text-primary fw-semibold{% else %}text-muted{% endif %}" style="font-size:.68rem;">
-                {{ step.label }}
-              </div>
-              {% endfor %}
-            </div>
-            {% if tracker.last_event %}
-            <div class="small text-muted mt-2"><i class="bi bi-clock-history me-1"></i>Ultimo evento: {{ tracker.last_event }}</div>
-            {% endif %}
-            {% if tracker.next_event %}
-            <div class="small text-muted mt-1"><i class="bi bi-arrow-right-circle me-1"></i>Prossimo passaggio: {{ tracker.next_event }}</div>
-            {% endif %}
-          </div>
-          {% endif %}
+  {% if p.permessi.firma_privacy and not p.privacy_firmata %}
+  <a href="{{ url_for('portale.privacy', token=token) }}" class="text-decoration-none">
+    <div class="ui-feedback ui-feedback--warning portale-home__privacy-banner" role="status">
+      <div class="ui-feedback__icon">
+        <i class="bi bi-shield-exclamation"></i>
+      </div>
+      <div class="ui-feedback__content">
+        <div class="ui-feedback__title">Privacy da firmare</div>
+        <div class="portale-home__privacy-copy">
+          Firma il consenso al trattamento dei dati personali per completare il profilo del portale.
         </div>
+      </div>
+      <div class="ui-feedback__actions">
+        <i class="bi bi-chevron-right"></i>
       </div>
     </div>
-  </div>
-  {% endfor %}
-</div>
-{% elif p.permessi.vedi_fascicoli %}
-<div class="portale-card card mb-4">
-  <div class="card-body text-center py-4 text-muted">
-    <i class="bi bi-folder2 fs-1 d-block mb-2 opacity-50"></i>
-    Nessuna pratica disponibile.
-  </div>
-</div>
-{% endif %}
+  </a>
+  {% endif %}
 
-<!-- Appuntamenti -->
-{% if p.permessi.vedi_appuntamenti and appuntamenti %}
-<p class="section-header">Prossimi appuntamenti</p>
-<div class="d-flex flex-column gap-2 mb-4">
-  {% for a in appuntamenti %}
-  <div class="portale-card card">
-    <div class="card-body d-flex align-items-center gap-3 py-2">
-      <div class="text-center" style="min-width:42px;">
-        <div class="fw-bold text-primary" style="font-size:1.1rem;">{{ '%02d'|format(a.data_ora.day) }}</div>
-        <div class="text-muted" style="font-size:.65rem;text-transform:uppercase;">{{ a.data_ora|fmt_mese_breve }}</div>
-      </div>
-      <div>
-        <div class="fw-semibold" style="font-size:.9rem;">{{ a.titolo }}</div>
-        <div class="text-muted" style="font-size:.78rem;">
-          <i class="bi bi-clock me-1"></i>{{ a.data_ora.strftime('%H:%M') }}
-          {% if a.luogo %} · {{ a.luogo }}{% endif %}
+  {% if azioni_richieste %}
+  <section>
+    <p class="section-header">Azioni richieste</p>
+    <div class="portale-home__stack portale-home__stack--tight mb-4">
+      {% for action in azioni_richieste[:2] %}
+      <div class="portale-card card border-warning-subtle portale-home__section-card">
+        <div class="card-body portale-home__card-body">
+          <div class="fw-semibold">{{ action.title }}</div>
+          <div class="portale-home__meta mb-3">{{ action.subtitle }}</div>
+          <form method="post" action="{{ action.action_url }}">
+            <button type="submit" class="btn btn-sm btn-success">{{ action.button_label }}</button>
+          </form>
         </div>
-      </div>
-    </div>
-  </div>
-  {% endfor %}
-</div>
-{% endif %}
-
-<!-- Scadenze imminenti -->
-{% if p.permessi.vedi_scadenze and scadenze %}
-<p class="section-header">Scadenze nei prossimi 30 giorni</p>
-<div class="d-flex flex-column gap-2 mb-4">
-  {% for s in scadenze %}
-  <div class="portale-card card">
-    <div class="card-body d-flex align-items-center gap-2 py-2">
-      <i class="bi bi-calendar-event
-        {% if s.priorita.value == 'CRITICA' %}text-danger
-        {% elif s.priorita.value == 'ALTA' %}text-warning
-        {% else %}text-secondary{% endif %}
-        fs-5"></i>
-      <div>
-        <div class="fw-semibold" style="font-size:.88rem;">{{ s.titolo }}</div>
-        <div class="text-muted" style="font-size:.78rem;">{{ s.scadenza.strftime('%d/%m/%Y') }}</div>
-      </div>
-      {% if s.perentorio %}
-      <span class="badge bg-danger ms-auto" style="font-size:.6rem;">PERENTORIO</span>
-      {% endif %}
-    </div>
-  </div>
-  {% endfor %}
-</div>
-{% endif %}
-
-<!-- Documenti economici -->
-{% if p.permessi.vedi_economici %}
-<p class="section-header">Preventivi, incarichi e parcelle</p>
-<div class="portale-card card mb-4">
-  <div class="card-body">
-    <div class="d-flex align-items-start justify-content-between gap-3 mb-3">
-      <div>
-        <div class="fw-semibold">Area economica del tuo rapporto con lo studio</div>
-        <div class="text-muted" style="font-size:.8rem;">
-          Qui trovi i documenti economici disponibili in PDF, pronti da aprire, scaricare o stampare.
-        </div>
-      </div>
-      <a href="{{ url_for('portale.economici', token=token) }}" class="btn btn-sm btn-outline-primary">
-        <i class="bi bi-wallet2 me-1"></i>Apri area
-      </a>
-    </div>
-
-    <div class="row g-2 mb-3 text-center">
-      <div class="col-4">
-        <div class="border rounded-3 py-2 h-100">
-          <div class="fw-bold text-primary">{{ economici.stats.preventivi }}</div>
-          <div class="text-muted" style="font-size:.72rem;">Preventivi</div>
-        </div>
-      </div>
-      <div class="col-4">
-        <div class="border rounded-3 py-2 h-100">
-          <div class="fw-bold text-primary">{{ economici.stats.conferimenti }}</div>
-          <div class="text-muted" style="font-size:.72rem;">Incarichi</div>
-        </div>
-      </div>
-      <div class="col-4">
-        <div class="border rounded-3 py-2 h-100">
-          <div class="fw-bold text-primary">{{ economici.stats.parcelle }}</div>
-          <div class="text-muted" style="font-size:.72rem;">Parcelle</div>
-        </div>
-      </div>
-    </div>
-
-    {% if economici.timeline %}
-    <div class="d-flex flex-column gap-2">
-      {% for item in economici.timeline[:3] %}
-      <div class="d-flex align-items-start gap-2 border rounded-3 p-2">
-        <i class="bi {% if item.kind == 'preventivo' %}bi-file-earmark-text{% elif item.kind == 'conferimento' %}bi-file-earmark-check{% else %}bi-receipt{% endif %} text-primary mt-1"></i>
-        <div class="flex-grow-1">
-          <div class="fw-semibold" style="font-size:.86rem;">
-            {{ item.numero }} · {{ item.titolo }}
-          </div>
-          <div class="text-muted" style="font-size:.76rem;">
-            {{ item.data }}
-            {% if item.fascicolo_label %} · {{ item.fascicolo_label }}{% endif %}
-          </div>
-        </div>
-        <div class="fw-semibold text-nowrap" style="font-size:.82rem;">€ {{ "%.2f"|format(item.totale) }}</div>
       </div>
       {% endfor %}
     </div>
-    {% else %}
-    <div class="text-muted" style="font-size:.82rem;">Nessun documento economico ancora disponibile.</div>
-    {% endif %}
-  </div>
-</div>
-{% endif %}
+  </section>
+  {% endif %}
 
-<!-- Quick actions -->
-<p class="section-header">Azioni rapide</p>
-<div class="row g-3 mb-2">
-  {% if p.permessi.carica_documenti %}
-  <div class="col-6">
-    <a href="{{ url_for('portale.documenti', token=token) }}" class="text-decoration-none">
-      <div class="portale-card card h-100 text-center py-3">
-        <i class="bi bi-cloud-upload fs-2 text-primary mb-1"></i>
-        <div style="font-size:.8rem;font-weight:600;">Carica documenti</div>
+  {% if p.permessi.vedi_fascicoli and fascicoli %}
+  <section>
+    <p class="section-header" id="fascicoli">Le tue pratiche</p>
+    <div class="portale-home__stack mb-4">
+      {% for f in fascicoli %}
+      {% set tracker = tracker_map.get(f.id) if tracker_map else None %}
+      <div class="portale-card card portale-home__section-card">
+        <div class="card-body portale-home__card-body">
+          <div class="d-flex align-items-start gap-2">
+            <span class="badge rounded-pill portale-home__status-badge {% if f.stato.value == 'APERTO' %}bg-primary{% elif f.stato.value == 'CHIUSO' %}bg-secondary{% else %}bg-dark{% endif %} mt-1">{{ f.stato.value }}</span>
+            <div class="flex-grow-1 min-width-0">
+              <div class="fw-semibold">{{ f.titolo }}</div>
+              <div class="portale-home__meta">
+                {{ f.tipo.value }}{% if f.numero_rg %} - RG {{ f.numero_rg }}{% endif %}
+              </div>
+              {% if f.tribunale %}
+              <div class="portale-home__meta-sm">
+                <i class="bi bi-building me-1"></i>{{ f.tribunale }}
+              </div>
+              {% endif %}
+              {% if tracker %}
+              <div class="portale-home__tracker">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                  <div class="portale-home__tracker-label">Stato pratica</div>
+                  <div class="portale-home__tracker-value">{{ tracker.current_label }}</div>
+                </div>
+                <div class="portale-home__progress">
+                  <div class="portale-home__progress-bar" role="progressbar" style="width: {{ tracker.percent }}%;" aria-valuenow="{{ tracker.percent }}" aria-valuemin="0" aria-valuemax="100"></div>
+                </div>
+                <div class="portale-home__steps mt-2">
+                  {% for step in tracker.steps %}
+                  <div class="portale-home__step {% if step.complete %}portale-home__step--done{% else %}text-muted{% endif %}">
+                    {{ step.label }}
+                  </div>
+                  {% endfor %}
+                </div>
+                {% if tracker.last_event %}
+                <div class="portale-home__meta-sm mt-2"><i class="bi bi-clock-history me-1"></i>Ultimo evento: {{ tracker.last_event }}</div>
+                {% endif %}
+                {% if tracker.next_event %}
+                <div class="portale-home__meta-sm mt-1"><i class="bi bi-arrow-right-circle me-1"></i>Prossimo passaggio: {{ tracker.next_event }}</div>
+                {% endif %}
+              </div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
       </div>
-    </a>
+      {% endfor %}
+    </div>
+  </section>
+  {% elif p.permessi.vedi_fascicoli %}
+  <div class="portale-card card mb-4 portale-home__section-card">
+    <div class="card-body portale-home__card-body text-center text-muted">
+      <i class="bi bi-folder2 fs-1 d-block mb-2 opacity-50"></i>
+      Nessuna pratica disponibile.
+    </div>
   </div>
   {% endif %}
-  {% if p.permessi.vedi_anagrafica %}
-  <div class="col-6">
-    <a href="{{ url_for('portale.anagrafica', token=token) }}" class="text-decoration-none">
-      <div class="portale-card card h-100 text-center py-3">
-        <i class="bi bi-person-vcard fs-2 text-primary mb-1"></i>
-        <div style="font-size:.8rem;font-weight:600;">I miei dati</div>
+
+  {% if p.permessi.vedi_appuntamenti and appuntamenti %}
+  <section>
+    <p class="section-header">Prossimi appuntamenti</p>
+    <div class="portale-home__stack portale-home__stack--tight mb-4">
+      {% for a in appuntamenti %}
+      <div class="portale-card card portale-home__section-card">
+        <div class="card-body portale-home__card-body d-flex align-items-center gap-3 py-2">
+          <div class="portale-home__datebox">
+            <div class="fw-bold text-primary portale-home__day">{{ '%02d'|format(a.data_ora.day) }}</div>
+            <div class="text-muted portale-home__month">{{ a.data_ora|fmt_mese_breve }}</div>
+          </div>
+          <div class="min-width-0">
+            <div class="portale-home__appointment-title">{{ a.titolo }}</div>
+            <div class="portale-home__meta-sm">
+              <i class="bi bi-clock me-1"></i>{{ a.data_ora|fmt_ora }}
+              {% if a.luogo %} - {{ a.luogo }}{% endif %}
+            </div>
+          </div>
+        </div>
       </div>
-    </a>
-  </div>
+      {% endfor %}
+    </div>
+  </section>
   {% endif %}
+
+  {% if p.permessi.vedi_scadenze and scadenze %}
+  <section>
+    <p class="section-header">Scadenze nei prossimi 30 giorni</p>
+    <div class="portale-home__stack portale-home__stack--tight mb-4">
+      {% for s in scadenze %}
+      <div class="portale-card card portale-home__section-card">
+        <div class="card-body portale-home__card-body d-flex align-items-center gap-2 py-2">
+          <i class="bi bi-calendar-event {% if s.priorita.value == 'CRITICA' %}text-danger{% elif s.priorita.value == 'ALTA' %}text-warning{% else %}text-secondary{% endif %} fs-5"></i>
+          <div class="min-width-0">
+            <div class="portale-home__deadline-title">{{ s.titolo }}</div>
+            <div class="portale-home__meta-sm">{{ s.scadenza|fmt_data }}</div>
+          </div>
+          {% if s.perentorio %}
+          <span class="badge bg-danger ms-auto portale-home__status-badge">PERENTORIO</span>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
   {% if p.permessi.vedi_economici %}
-  <div class="col-6">
-    <a href="{{ url_for('portale.economici', token=token) }}" class="text-decoration-none">
-      <div class="portale-card card h-100 text-center py-3">
-        <i class="bi bi-wallet2 fs-2 text-primary mb-1"></i>
-        <div style="font-size:.8rem;font-weight:600;">Documenti economici</div>
-      </div>
-    </a>
-  </div>
-  {% endif %}
-  {% if p.permessi.firma_privacy and not p.privacy_firmata %}
-  <div class="col-6">
-    <a href="{{ url_for('portale.privacy', token=token) }}" class="text-decoration-none">
-      <div class="portale-card card h-100 text-center py-3">
-        <i class="bi bi-shield-check fs-2" style="color:var(--accent)" mb-1"></i>
-        <div style="font-size:.8rem;font-weight:600;">Firma Privacy</div>
-      </div>
-    </a>
-  </div>
-  {% endif %}
-</div>
+  <section>
+    <p class="section-header">Preventivi, incarichi e parcelle</p>
+    <div class="portale-card card mb-4 portale-home__section-card">
+      <div class="card-body portale-home__card-body">
+        <div class="d-flex align-items-start justify-content-between gap-3 mb-3">
+          <div>
+            <div class="fw-semibold">Area economica del tuo rapporto con lo studio</div>
+            <div class="portale-home__economy-intro">
+              Qui trovi i documenti economici disponibili in PDF, pronti da aprire, scaricare o stampare.
+            </div>
+          </div>
+          <a href="{{ url_for('portale.economici', token=token) }}" class="btn btn-sm btn-outline-primary">
+            <i class="bi bi-wallet2 me-1"></i>Apri area
+          </a>
+        </div>
 
-<!-- Footer -->
-<div class="text-center text-muted mt-4 pb-2" style="font-size:.72rem;">
-  Portale riservato — accesso protetto tramite link sicuro.<br>
-  {{ studio_nome }}
+        <div class="row g-2 mb-3 text-center portale-home__economy-stats">
+          <div class="col-4">
+            <div class="portale-home__economy-box h-100">
+              <div class="fw-bold text-primary">{{ economici.stats.preventivi }}</div>
+              <div class="portale-home__economy-label">Preventivi</div>
+            </div>
+          </div>
+          <div class="col-4">
+            <div class="portale-home__economy-box h-100">
+              <div class="fw-bold text-primary">{{ economici.stats.conferimenti }}</div>
+              <div class="portale-home__economy-label">Incarichi</div>
+            </div>
+          </div>
+          <div class="col-4">
+            <div class="portale-home__economy-box h-100">
+              <div class="fw-bold text-primary">{{ economici.stats.parcelle }}</div>
+              <div class="portale-home__economy-label">Parcelle</div>
+            </div>
+          </div>
+        </div>
+
+        {% if economici.timeline %}
+        <div class="portale-home__economy-item-wrap">
+          {% for item in economici.timeline[:3] %}
+          <div class="d-flex align-items-start gap-2 portale-home__economy-item">
+            <i class="bi {% if item.kind == 'preventivo' %}bi-file-earmark-text{% elif item.kind == 'conferimento' %}bi-file-earmark-check{% else %}bi-receipt{% endif %} text-primary mt-1"></i>
+            <div class="flex-grow-1 min-width-0">
+              <div class="portale-home__economy-title">{{ item.numero }} - {{ item.titolo }}</div>
+              <div class="portale-home__meta-sm">
+                {{ item.data }}{% if item.fascicolo_label %} - {{ item.fascicolo_label }}{% endif %}
+              </div>
+            </div>
+            <div class="portale-home__economy-total text-nowrap">EUR {{ "%.2f"|format(item.totale) }}</div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="portale-home__meta">Nessun documento economico ancora disponibile.</div>
+        {% endif %}
+      </div>
+    </div>
+  </section>
+  {% endif %}
+
+  <section>
+    <p class="section-header">Azioni rapide</p>
+    <div class="portale-home__actions mb-2">
+      {% if p.permessi.carica_documenti %}
+      <a href="{{ url_for('portale.documenti', token=token) }}" class="text-decoration-none">
+        <div class="portale-card card portale-home__action-card">
+          <i class="bi bi-cloud-upload fs-2 text-primary mb-1"></i>
+          <div class="portale-home__action-title">Carica documenti</div>
+        </div>
+      </a>
+      {% endif %}
+      {% if p.permessi.vedi_anagrafica %}
+      <a href="{{ url_for('portale.anagrafica', token=token) }}" class="text-decoration-none">
+        <div class="portale-card card portale-home__action-card">
+          <i class="bi bi-person-vcard fs-2 text-primary mb-1"></i>
+          <div class="portale-home__action-title">I miei dati</div>
+        </div>
+      </a>
+      {% endif %}
+      {% if p.permessi.vedi_economici %}
+      <a href="{{ url_for('portale.economici', token=token) }}" class="text-decoration-none">
+        <div class="portale-card card portale-home__action-card">
+          <i class="bi bi-wallet2 fs-2 text-primary mb-1"></i>
+          <div class="portale-home__action-title">Documenti economici</div>
+        </div>
+      </a>
+      {% endif %}
+      {% if p.permessi.firma_privacy and not p.privacy_firmata %}
+      <a href="{{ url_for('portale.privacy', token=token) }}" class="text-decoration-none">
+        <div class="portale-card card portale-home__action-card">
+          <i class="bi bi-shield-check fs-2 text-warning mb-1"></i>
+          <div class="portale-home__action-title">Firma privacy</div>
+        </div>
+      </a>
+      {% endif %}
+    </div>
+  </section>
+
+  <div class="portale-home__footer-note mt-4">
+    Portale riservato - accesso protetto tramite link sicuro.<br>
+    {{ studio_nome }}
+  </div>
 </div>
 {% endblock %}

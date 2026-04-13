@@ -1,0 +1,247 @@
+.portale-home {
+  display: grid;
+  gap: 1rem;
+}
+
+.portale-home__intro {
+  margin-bottom: 0.25rem;
+}
+
+.portale-home__title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.portale-home__subtitle {
+  color: #64748b;
+  font-size: 0.9rem;
+}
+
+.portale-home__privacy-copy {
+  color: #475569;
+  font-size: 0.83rem;
+}
+
+.portale-home__privacy-banner {
+  border-left: 4px solid var(--ptl-accent);
+}
+
+.portale-home__stack {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.portale-home__stack--tight {
+  gap: 0.7rem;
+}
+
+.portale-home__card-body {
+  padding: 1rem;
+}
+
+.portale-home__section-card {
+  overflow: hidden;
+}
+
+.portale-home__meta {
+  color: #64748b;
+  font-size: 0.82rem;
+}
+
+.portale-home__meta-sm {
+  color: #64748b;
+  font-size: 0.78rem;
+}
+
+.portale-home__status-badge {
+  font-size: 0.68rem;
+}
+
+.portale-home__tracker {
+  margin-top: 0.9rem;
+}
+
+.portale-home__progress {
+  height: 8px;
+  border-radius: 999px;
+  background: #e2e8f0;
+  overflow: hidden;
+}
+
+.portale-home__progress-bar {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #1a3a5c, #3b82f6);
+}
+
+.portale-home__timeline {
+  display: grid;
+  gap: 0.55rem;
+  margin-top: 0.9rem;
+}
+
+.portale-home__tracker-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+.portale-home__tracker-value {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #2563eb;
+}
+
+.portale-home__steps {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(88px, 1fr));
+  gap: 0.35rem;
+}
+
+.portale-home__step {
+  font-size: 0.68rem;
+}
+
+.portale-home__step--done {
+  color: #2563eb;
+  font-weight: 700;
+}
+
+.portale-home__datebox {
+  min-width: 46px;
+  text-align: center;
+}
+
+.portale-home__day {
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.portale-home__month {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+}
+
+.portale-home__appointment-title {
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+.portale-home__deadline-title {
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.portale-home__actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+
+.portale-home__action-card {
+  display: grid;
+  place-items: center;
+  min-height: 108px;
+  text-align: center;
+  padding: 1rem 0.85rem;
+}
+
+.portale-home__action-title {
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.portale-home__economy-intro {
+  font-size: 0.8rem;
+  color: #64748b;
+}
+
+.portale-home__economy-stats {
+  row-gap: 0.6rem;
+}
+
+.portale-home__economy-box {
+  border: 1px solid var(--ptl-border);
+  border-radius: 14px;
+  padding: 0.8rem 0.65rem;
+  background: var(--ptl-surface-soft);
+}
+
+.portale-home__economy-label {
+  font-size: 0.74rem;
+  color: #64748b;
+}
+
+.portale-home__economy-item-wrap {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.portale-home__economy-item {
+  border: 1px solid var(--ptl-border);
+  border-radius: 14px;
+  padding: 0.75rem;
+  background: #fff;
+}
+
+.portale-home__economy-title {
+  font-size: 0.86rem;
+  font-weight: 600;
+}
+
+.portale-home__economy-total {
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.portale-home__footer-note {
+  text-align: center;
+  color: #64748b;
+  font-size: 0.74rem;
+  padding-bottom: 0.5rem;
+}
+
+@media (max-width: 575.98px) {
+  .portale-home__actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.7rem;
+  }
+
+  .portale-home__action-card {
+    min-height: 96px;
+    padding: 0.85rem 0.65rem;
+  }
+
+  .portale-home__card-body {
+    padding: 0.9rem;
+  }
+}
+
+[data-bs-theme="dark"] {
+  .portale-home__title {
+    color: #f8fafc;
+  }
+
+  .portale-home__subtitle,
+  .portale-home__privacy-copy,
+  .portale-home__meta,
+  .portale-home__meta-sm,
+  .portale-home__economy-intro,
+  .portale-home__economy-label,
+  .portale-home__footer-note {
+    color: #94a3b8;
+  }
+
+  .portale-home__tracker-label {
+    color: #94a3b8;
+  }
+
+  .portale-home__economy-box,
+  .portale-home__economy-item {
+    background: #111b2d;
+    border-color: rgba(148, 163, 184, 0.16);
+  }
+}

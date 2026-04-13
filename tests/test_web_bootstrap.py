@@ -174,6 +174,8 @@ def test_template_principali_usano_copy_italiana_e_date_localizzate():
         "web/templates/dashboard.html": ["Panoramica dello studio"],
         "web/templates/agenda.html": ["Sincronizzazione automatica", "Configura sincronizzazione calendario"],
         "web/templates/workspace_intelligente.html": ["Assistente operativo locale", "Ultima sincronizzazione"],
+        "web/templates/portale/base.html": ["Operazione completata", "Inizio"],
+        "web/templates/telematico_dashboard.html": ["Cabina Telematica", "Ultimo allineamento"],
     }
 
     for relative_path, expected_snippets in template_checks.items():
@@ -187,6 +189,7 @@ def test_template_principali_usano_copy_italiana_e_date_localizzate():
         "web/templates/agenda.html",
         "web/templates/dettaglio_appuntamento.html",
         "web/templates/portale/home.html",
+        "web/templates/telematico_dashboard.html",
         "web/templates/form_preventivo.html",
         "web/templates/clienti/cartella.html",
         "web/templates/cartelle_condivise.html",
@@ -197,9 +200,13 @@ def test_template_principali_usano_copy_italiana_e_date_localizzate():
         assert "strftime('%a" not in content
         assert "strftime('%B" not in content
         assert "strftime('%b" not in content
+        assert "strftime('%H:%M')" not in content
+        assert "strftime('%d/%m/%Y')" not in content
 
     base_content = (REPO_ROOT / "web/templates/base.html").read_text(encoding="utf-8")
     assert "{{ oggi|fmt_data }}" in base_content
+    telematico_content = (REPO_ROOT / "web/templates/telematico_dashboard.html").read_text(encoding="utf-8")
+    assert "|fmt_dataora" in telematico_content
 
 
 def test_scss_governance_usa_bundle_modulari_e_niente_style_inline():
@@ -207,12 +214,22 @@ def test_scss_governance_usa_bundle_modulari_e_niente_style_inline():
     assert "@use 'components/feedback';" in app_scss
     assert "@use 'components/compact-panels';" in app_scss
     assert "@use 'pages/dashboard';" in app_scss
+    assert "@use 'pages/telematico-dashboard';" in app_scss
     assert "@use 'pages/workspace-intelligente';" in app_scss
+    portal_scss = (REPO_ROOT / "web/static/scss/portal.scss").read_text(encoding="utf-8")
+    assert "@use 'components/portale-shell';" in portal_scss
+    assert "@use 'pages/portale-home';" in portal_scss
 
     for relative_path in (
         "web/templates/base.html",
         "web/templates/dashboard.html",
         "web/templates/workspace_intelligente.html",
+        "web/templates/portale/base.html",
+        "web/templates/portale/home.html",
+        "web/templates/telematico_dashboard.html",
     ):
         content = (REPO_ROOT / relative_path).read_text(encoding="utf-8")
         assert "<style>" not in content
+
+    portale_base = (REPO_ROOT / "web/templates/portale/base.html").read_text(encoding="utf-8")
+    assert "/static/css/portal.css?v={{ app_version }}" in portale_base

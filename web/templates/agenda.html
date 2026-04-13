@@ -176,7 +176,7 @@
                 data-time="{{ a.data_ora_dt.strftime('%H:%M:%S') }}">
               <td data-label="Ora" class="fw-semibold text-nowrap dnd-handle" style="cursor:grab">
                 <i class="bi bi-grip-vertical text-muted me-1 d-none d-md-inline"></i>
-                {{ a.data_ora_dt.strftime('%H:%M') }}–{{ a.fine_dt.strftime('%H:%M') }}
+                {{ a.data_ora_dt|fmt_ora }}-{{ a.fine_dt|fmt_ora }}
               </td>
               <td data-label="Titolo">
                 <span class="dnd-app-pill app-row"
@@ -248,7 +248,7 @@
              data-id="{{ a.id }}"
              data-titolo="{{ a.titolo }}"
              onclick="return !window._wasDragging">
-            {{ a.data_ora_dt.strftime('%H:%M') }} {{ a.titolo|truncate(20, killwords=True) }}
+            {{ a.data_ora_dt|fmt_ora }} {{ a.titolo|truncate(20, killwords=True) }}
           </a>
           {% endfor %}
         </div>
@@ -304,7 +304,7 @@
              data-id="{{ a.id }}"
              data-titolo="{{ a.titolo }}"
              onclick="return !window._wasDragging">
-            {{ a.data_ora_dt.strftime('%H:%M') }} {{ a.titolo|truncate(14, killwords=True) }}
+            {{ a.data_ora_dt|fmt_ora }} {{ a.titolo|truncate(14, killwords=True) }}
           </a>
           {% endfor %}
         </div>

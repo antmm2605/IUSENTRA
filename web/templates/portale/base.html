@@ -4,164 +4,41 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
   <meta name="theme-color" content="#1a3a5c">
-  <title>{% block title %}Portale Cliente{% endblock %} — {{ studio_nome }}</title>
+  <title>{% block title %}Portale Cliente{% endblock %} - {{ studio_nome }}</title>
 
-  <!-- Bootstrap CSS -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
-  <!-- Inter Font -->
+  <link rel="stylesheet" href="/static/css/portal.css?v={{ app_version }}">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-
-  <style>
-    :root {
-      --primary: #1a3a5c;
-      --accent:  #c8972b;
-      --font:    'Inter', system-ui, sans-serif;
-    }
-    body {
-      font-family: var(--font);
-      background: #f4f6fa;
-      min-height: 100dvh;
-    }
-    [data-bs-theme="dark"] body { background: #0f172a; }
-
-    /* Topbar portale */
-    .portale-topbar {
-      background: var(--primary);
-      color: #fff;
-      padding: .75rem 1rem;
-      display: flex;
-      align-items: center;
-      gap: .75rem;
-      position: sticky;
-      top: 0;
-      z-index: 100;
-      box-shadow: 0 2px 8px rgba(0,0,0,.25);
-    }
-    .portale-topbar .studio-name {
-      font-weight: 700;
-      font-size: .95rem;
-      letter-spacing: .01em;
-      flex: 1;
-    }
-    .portale-topbar .badge-portale {
-      background: var(--accent);
-      color: #fff;
-      font-size: .7rem;
-      font-weight: 600;
-      border-radius: 4px;
-      padding: 2px 7px;
-    }
-
-    /* Card stilizzata */
-    .portale-card {
-      border: none;
-      border-radius: 16px;
-      box-shadow: 0 2px 12px rgba(0,0,0,.08);
-    }
-    [data-bs-theme="dark"] .portale-card {
-      box-shadow: 0 2px 12px rgba(0,0,0,.35);
-    }
-
-    /* Bottom nav portale */
-    .portale-bottom-nav {
-      position: fixed;
-      bottom: 0; left: 0; right: 0;
-      background: #fff;
-      border-top: 1px solid rgba(0,0,0,.1);
-      display: flex;
-      z-index: 100;
-      padding-bottom: env(safe-area-inset-bottom);
-    }
-    [data-bs-theme="dark"] .portale-bottom-nav {
-      background: #1e293b;
-      border-top-color: rgba(255,255,255,.08);
-    }
-    .pbn-item {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: .5rem .25rem;
-      text-decoration: none;
-      color: #6b7280;
-      font-size: .65rem;
-      font-weight: 500;
-      gap: 2px;
-      transition: color .15s;
-    }
-    .pbn-item i { font-size: 1.3rem; }
-    .pbn-item.active { color: var(--primary); }
-    [data-bs-theme="dark"] .pbn-item.active { color: #60a5fa; }
-    [data-bs-theme="dark"] .pbn-item { color: #94a3b8; }
-
-    /* Content padding for bottom nav */
-    .portale-content {
-      padding: 1rem 1rem 6rem;
-      max-width: 720px;
-      margin: 0 auto;
-    }
-
-    /* Section header */
-    .section-header {
-      font-size: .7rem;
-      font-weight: 700;
-      letter-spacing: .08em;
-      text-transform: uppercase;
-      color: #6b7280;
-      margin-bottom: .5rem;
-    }
-
-    /* Accent button */
-    .btn-portale {
-      background: var(--primary);
-      color: #fff;
-      border: none;
-      border-radius: 10px;
-      font-weight: 600;
-      padding: .6rem 1.5rem;
-    }
-    .btn-portale:hover { background: #15304f; color: #fff; }
-
-    /* Upload drag zone */
-    .upload-zone {
-      border: 2px dashed #cbd5e1;
-      border-radius: 16px;
-      padding: 2.5rem 1rem;
-      text-align: center;
-      cursor: pointer;
-      transition: border-color .2s, background .2s;
-    }
-    .upload-zone:hover, .upload-zone.drag-over {
-      border-color: var(--primary);
-      background: rgba(26,58,92,.04);
-    }
-    .upload-zone i { font-size: 2.5rem; color: #94a3b8; }
-  </style>
   {% block extra_head %}{% endblock %}
 </head>
-<body>
+<body class="portale-layout">
 
-<!-- Topbar -->
 <header class="portale-topbar">
-  <i class="bi bi-briefcase-fill" style="font-size:1.3rem;opacity:.9"></i>
+  <i class="bi bi-briefcase-fill portale-topbar__icon"></i>
   <span class="studio-name">{{ studio_nome }}</span>
   <span class="badge-portale">Portale</span>
-  <button class="btn btn-sm btn-link text-white p-0 ms-1" onclick="toggleTheme()" title="Tema">
+  <button class="btn btn-sm btn-link p-0 ms-1 portale-theme-btn" onclick="toggleTheme()" title="Tema">
     <i class="bi bi-moon-stars-fill" id="btn-tema-icon"></i>
   </button>
 </header>
 
-<!-- Main content -->
 <main class="portale-content">
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
-      <div class="mb-3">
+      <div class="ui-feedback-stack portale-feedback-stack">
         {% for cat, msg in messages %}
-        <div class="alert alert-{{ 'warning' if cat == 'warning' else ('danger' if cat == 'danger' else 'success') }} alert-dismissible fade show portale-card" role="alert">
-          {{ msg }}
-          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        {% set tone = 'warning' if cat == 'warning' else ('danger' if cat == 'danger' else 'success') %}
+        {% set icon = 'bi-exclamation-triangle' if tone == 'warning' else ('bi-x-circle' if tone == 'danger' else 'bi-check-circle') %}
+        {% set title = 'Attenzione' if tone == 'warning' else ('Operazione non completata' if tone == 'danger' else 'Operazione completata') %}
+        <div class="ui-feedback ui-feedback--{{ tone }}" role="status" aria-live="polite">
+          <div class="ui-feedback__icon">
+            <i class="bi {{ icon }}"></i>
+          </div>
+          <div class="ui-feedback__content">
+            <div class="ui-feedback__title">{{ title }}</div>
+            <div class="ui-feedback__body">{{ msg }}</div>
+          </div>
         </div>
         {% endfor %}
       </div>
@@ -170,70 +47,65 @@
   {% block content %}{% endblock %}
 </main>
 
-<!-- Bottom navigation (only when token available) -->
 {% if token is defined and token %}
 <nav class="portale-bottom-nav">
-  <a href="{{ url_for('portale.home', token=token) }}"
-     class="pbn-item {% if active_tab == 'home' %}active{% endif %}">
+  <a href="{{ url_for('portale.home', token=token) }}" class="pbn-item {% if active_tab == 'home' %}active{% endif %}">
     <i class="bi bi-house-fill"></i>
-    <span>Home</span>
+    <span>Inizio</span>
   </a>
   {% if p.permessi.vedi_fascicoli %}
-  <a href="{{ url_for('portale.home', token=token) }}#fascicoli"
-     class="pbn-item {% if active_tab == 'fascicoli' %}active{% endif %}">
+  <a href="{{ url_for('portale.home', token=token) }}#fascicoli" class="pbn-item {% if active_tab == 'fascicoli' %}active{% endif %}">
     <i class="bi bi-folder2-open"></i>
     <span>Pratiche</span>
   </a>
   {% endif %}
   {% if p.permessi.carica_documenti %}
-  <a href="{{ url_for('portale.documenti', token=token) }}"
-     class="pbn-item {% if active_tab == 'documenti' %}active{% endif %}">
+  <a href="{{ url_for('portale.documenti', token=token) }}" class="pbn-item {% if active_tab == 'documenti' %}active{% endif %}">
     <i class="bi bi-cloud-upload-fill"></i>
     <span>Documenti</span>
   </a>
   {% endif %}
   {% if p.permessi.vedi_economici %}
-  <a href="{{ url_for('portale.economici', token=token) }}"
-     class="pbn-item {% if active_tab == 'economici' %}active{% endif %}">
+  <a href="{{ url_for('portale.economici', token=token) }}" class="pbn-item {% if active_tab == 'economici' %}active{% endif %}">
     <i class="bi bi-wallet2"></i>
     <span>Economici</span>
   </a>
   {% endif %}
   {% if p.permessi.vedi_anagrafica %}
-  <a href="{{ url_for('portale.anagrafica', token=token) }}"
-     class="pbn-item {% if active_tab == 'anagrafica' %}active{% endif %}">
+  <a href="{{ url_for('portale.anagrafica', token=token) }}" class="pbn-item {% if active_tab == 'anagrafica' %}active{% endif %}">
     <i class="bi bi-person-fill"></i>
     <span>Profilo</span>
   </a>
   {% endif %}
   {% if p.permessi.firma_privacy and not p.privacy_firmata %}
-  <a href="{{ url_for('portale.privacy', token=token) }}"
-     class="pbn-item {% if active_tab == 'privacy' %}active{% endif %}">
-    <i class="bi bi-shield-check-fill" style="color:var(--accent)"></i>
+  <a href="{{ url_for('portale.privacy', token=token) }}" class="pbn-item pbn-item--accent {% if active_tab == 'privacy' %}active{% endif %}">
+    <i class="bi bi-shield-check-fill"></i>
     <span>Privacy</span>
   </a>
   {% endif %}
 </nav>
 {% endif %}
 
-<!-- Bootstrap JS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-  // Dark mode
-  (function(){
-    var t = localStorage.getItem('pct-theme') || 'light';
-    document.documentElement.setAttribute('data-bs-theme', t);
+  (function() {
+    var theme = localStorage.getItem('pct-theme') || 'light';
+    document.documentElement.setAttribute('data-bs-theme', theme);
     var icon = document.getElementById('btn-tema-icon');
-    if(icon) icon.className = t === 'dark' ? 'bi bi-sun-fill' : 'bi bi-moon-stars-fill';
+    if (icon) {
+      icon.className = theme === 'dark' ? 'bi bi-sun-fill' : 'bi bi-moon-stars-fill';
+    }
   })();
 
   function toggleTheme() {
-    var cur = document.documentElement.getAttribute('data-bs-theme') || 'light';
-    var next = cur === 'dark' ? 'light' : 'dark';
+    var current = document.documentElement.getAttribute('data-bs-theme') || 'light';
+    var next = current === 'dark' ? 'light' : 'dark';
     document.documentElement.setAttribute('data-bs-theme', next);
     localStorage.setItem('pct-theme', next);
     var icon = document.getElementById('btn-tema-icon');
-    if(icon) icon.className = next === 'dark' ? 'bi bi-sun-fill' : 'bi bi-moon-stars-fill';
+    if (icon) {
+      icon.className = next === 'dark' ? 'bi bi-sun-fill' : 'bi bi-moon-stars-fill';
+    }
   }
 </script>
 {% block extra_scripts %}{% endblock %}

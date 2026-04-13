@@ -1,4 +1,4 @@
-#  version: 2.153.5
+#  version: 2.153.6
 #  Studio Legale PCT — Dockerfile produzione (versione integrale)
 #
 #  Build multi-stage:
@@ -58,7 +58,8 @@ RUN mkdir -p /out && /tmp/dart-sass/sass --no-source-map --style=compressed \
       app.scss:/out/app.css \
       design-system.scss:/out/design-system.css \
       editor-word.scss:/out/editor-word.css \
-      mobile.scss:/out/mobile.css
+      mobile.scss:/out/mobile.css \
+      portal.scss:/out/portal.css
 
 
 # ─────────────────────────────────────────────────────────────
@@ -67,7 +68,7 @@ RUN mkdir -p /out && /tmp/dart-sass/sass --no-source-map --style=compressed \
 FROM python:3.12-slim
 
 LABEL org.opencontainers.image.title="HACS - Studio Legale PCT" \
-      org.opencontainers.image.version="2.153.5" \
+      org.opencontainers.image.version="2.153.6" \
       org.opencontainers.image.description="Gestionale PCT per studi legali italiani" \
       org.opencontainers.image.created="2026-03-18"
 

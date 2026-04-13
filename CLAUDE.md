@@ -55,7 +55,7 @@ git push origin claude/legal-electronic-filing-kIxcV:Codex/legal-electronic-fili
   - `components/` per pattern condivisi
   - `pages/` per le viste specifiche
   - `mobile.scss` solo per adattamenti trasversali mobile/tablet
-- Gli entrypoint compilati restano quelli caricati dalla UI (`app.scss`, `design-system.scss`, `mobile.scss`, `editor-word.scss`): non creare file SCSS orfani non inclusi nel bundle.
+- Gli entrypoint compilati restano quelli caricati dalla UI (`app.scss`, `design-system.scss`, `mobile.scss`, `editor-word.scss`, `portal.scss`): non creare file SCSS orfani non inclusi nel bundle.
 - Dopo modifiche SCSS, verificare sempre la compilazione CSS nel flusso Docker locale della release.
 - La UI deve essere responsive su desktop, tablet e mobile, con card compatte, senza spazi morti e con messaggi utente professionali in lingua italiana.
 

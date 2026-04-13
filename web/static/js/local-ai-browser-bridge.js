@@ -106,6 +106,13 @@
     return readJsonResponse(response);
   }
 
+  async function fetchCompanionPing(config) {
+    const response = await fetch(config.localSignerUrl + '/ping', {
+      method: 'GET',
+    });
+    return readJsonResponse(response);
+  }
+
   async function fetchServerContext(config, payload) {
     const response = await fetch(config.serverContextUrl, {
       method: 'POST',
@@ -157,6 +164,7 @@
     rootConfig,
     readJsonResponse,
     fetchRuntimeStatus,
+    fetchCompanionPing,
     fetchServerContext,
     fetchServerAnswer,
     runCompanionRagQuery,

@@ -866,6 +866,8 @@ class GestioneFascicoli:
         contenuto: bytes,
         caricato_da: str = "",
         note: str = "",
+        preserve_version_snapshot: bool = True,
+        reuse_existing_path: bool = False,
     ) -> "Documento":
         """
         Sostituisce il file di un documento esistente mantenendo lo storico
@@ -876,27 +878,31 @@ class GestioneFascicoli:
         if not doc:
             raise KeyError(f"Documento '{id_doc}' non trovato nel fascicolo.")
 
-        # Archivia versione precedente
-        doc.versioni.append(DocumentoVersione(
-            hash_sha256=doc.hash_sha256,
-            percorso=doc.percorso,
-            dimensione_bytes=doc.dimensione_bytes,
-            sostituito_il=datetime.now().isoformat(),
-            sostituito_da=caricato_da,
-        ))
+        if preserve_version_snapshot:
+            doc.versioni.append(DocumentoVersione(
+                hash_sha256=doc.hash_sha256,
+                percorso="" if reuse_existing_path else doc.percorso,
+                dimensione_bytes=doc.dimensione_bytes,
+                sostituito_il=datetime.now().isoformat(),
+                sostituito_da=caricato_da,
+            ))
 
         # Salva nuovo file (path basato sul nuovo nome per evitare collisioni)
         fasc_dir = self.documents_dir / id_fasc
         fasc_dir.mkdir(parents=True, exist_ok=True)
-        nome_safe = Path(nome_file).name
-        dest = fasc_dir / nome_safe
-        if dest.exists() and str(dest.relative_to(self.documents_dir)) != doc.percorso:
-            stem, suffix = Path(nome_safe).stem, Path(nome_safe).suffix
-            nome_safe = f"{stem}_{uuid.uuid4().hex[:4]}{suffix}"
+        if reuse_existing_path and doc.percorso:
+            dest = self.documents_dir / doc.percorso
+        else:
+            nome_safe = Path(nome_file).name
             dest = fasc_dir / nome_safe
+            if dest.exists() and str(dest.relative_to(self.documents_dir)) != doc.percorso:
+                stem, suffix = Path(nome_safe).stem, Path(nome_safe).suffix
+                nome_safe = f"{stem}_{uuid.uuid4().hex[:4]}{suffix}"
+                dest = fasc_dir / nome_safe
         dest.write_bytes(contenuto)
 
-        doc.percorso = str(dest.relative_to(self.documents_dir))
+        if not (reuse_existing_path and doc.percorso):
+            doc.percorso = str(dest.relative_to(self.documents_dir))
         doc.nome = nome_file
         doc.dimensione_bytes = len(contenuto)
         doc.hash_sha256 = hashlib.sha256(contenuto).hexdigest()

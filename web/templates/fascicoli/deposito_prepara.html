@@ -758,6 +758,9 @@ function _base64ToUint8ArraySafe(b64) {
 function _depositoUploadWarningText(payload) {
   if (!payload || !payload.warning) return '';
   const codes = Array.isArray(payload.warning_codes) ? payload.warning_codes : [];
+  if (codes.includes('storage_compact')) {
+    return "Documento salvato correttamente. Per completare la firma con spazio limitato HACS ha sostituito la copia precedente senza conservarne uno snapshot locale.";
+  }
   if (codes.includes('sync')) {
     return "Documento salvato correttamente. La sincronizzazione in tempo reale e' momentaneamente non disponibile.";
   }

@@ -345,8 +345,10 @@ def test_ai_operativa_usa_bridge_browser_e_template_senza_logica_inline():
 
     assert "window.HacsLocalAiBrowserBridge" in bridge_js
     assert "/ai/rag/query" in bridge_js
+    assert "/ping" in bridge_js
     assert "127.0.0.1:27272" in bridge_js
     assert "fetch(config.localSignerUrl + '/ai/status', {\n        method: 'GET',\n      });" in bridge_js
+    assert "fetchCompanionPing" in bridge_js
     assert "renderCompanionHelp" in fascicolo_js
     assert "fetchServerContext" in fascicolo_js
     assert "runCompanionRagQuery" in fascicolo_js
@@ -384,10 +386,14 @@ def test_lex_assistant_usa_componente_esterno_e_posizione_persistente():
     assert "fetchServerContext" in widget_js
     assert "runCompanionRagQuery" in widget_js
     assert "companionHelp" in widget_js
+    assert "renderCompanionRuntimeHelp" in widget_js
+    assert "isCompanionTransportError" in widget_js
     assert "renderServerPreparationHelp" in widget_js
     assert "__companionStage" in widget_js
     assert "Preparazione richiesta non riuscita" in widget_js
     assert "Sessione scaduta o non autorizzata" in widget_js
+    assert "Companion locale raggiunto, ma la richiesta non e\\' andata a buon fine" in widget_js
+    assert "Local Signer raggiungibile, ma il modulo AI locale non e\\' operativo su questo dispositivo." in widget_js
     assert "remoteHosted" in widget_js
     assert "Risposta generata sul dispositivo locale." in widget_js
 
@@ -405,4 +411,6 @@ def test_modal_firma_deposito_prevede_riavvio_local_signer():
     assert "hacs-local-signer://restart" in dettaglio
     assert "riavvio_signer_consigliato" in dettaglio
     assert "sincronizzazione in tempo reale" in dettaglio
+    assert "spazio limitato HACS ha sostituito la copia precedente" in dettaglio
     assert "sincronizzazione in tempo reale" in deposito
+    assert "spazio limitato HACS ha sostituito la copia precedente" in deposito

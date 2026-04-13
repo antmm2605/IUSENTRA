@@ -8,6 +8,7 @@ Avvio:
 
 import csv
 import base64
+import errno
 import io
 import os
 import json
@@ -2819,6 +2820,74 @@ def create_app(config: dict | None = None) -> Flask:
                 avvisi.append("sync")
 
         return avvisi
+
+    def _is_no_space_error(error: Exception) -> bool:
+        return isinstance(error, OSError) and getattr(error, "errno", None) == errno.ENOSPC
+
+    def _cleanup_partial_signed_variant(gf: GestioneFascicoli, id_fasc: str, id_doc: str, nome_file: str) -> None:
+        try:
+            fasc = gf.get(id_fasc)
+            doc = next((item for item in (getattr(fasc, "documenti", []) or []) if item.id == id_doc), None)
+            if not doc:
+                return
+            current_path = str(doc.percorso or "").strip()
+            target_path = str((Path(id_fasc) / Path(nome_file).name).as_posix())
+            if not target_path or target_path == current_path:
+                return
+            orphan = gf.documents_dir / target_path
+            if orphan.exists():
+                orphan.unlink()
+        except Exception:
+            app.logger.debug("Pulizia file firmato parziale non riuscita per %s/%s", id_fasc, id_doc)
+
+    def _signature_storage_error_message(error: Exception) -> str:
+        if _is_no_space_error(error):
+            return (
+                "Spazio di archiviazione insufficiente sul server HACS. "
+                "La firma e' stata prodotta ma il server non riesce a salvare una nuova copia del documento."
+            )
+        return f"Errore tecnico durante il salvataggio del documento firmato: {error}"
+
+    def _salva_documento_firmato_resiliente(
+        *,
+        gf: GestioneFascicoli,
+        id_fasc: str,
+        id_doc: str,
+        nome_file: str,
+        contenuto: bytes,
+        caricato_da: str,
+        note: str,
+    ) -> list[str]:
+        try:
+            gf.sostituisci_documento(
+                id_fasc=id_fasc,
+                id_doc=id_doc,
+                nome_file=nome_file,
+                contenuto=contenuto,
+                caricato_da=caricato_da,
+                note=note,
+            )
+            return []
+        except OSError as exc:
+            if not _is_no_space_error(exc):
+                raise
+            app.logger.warning(
+                "Spazio insufficiente durante il salvataggio firmato %s/%s; attivo fallback compatto.",
+                id_fasc,
+                id_doc,
+            )
+            _cleanup_partial_signed_variant(gf, id_fasc, id_doc, nome_file)
+            gf.sostituisci_documento(
+                id_fasc=id_fasc,
+                id_doc=id_doc,
+                nome_file=nome_file,
+                contenuto=contenuto,
+                caricato_da=caricato_da,
+                note=note,
+                preserve_version_snapshot=False,
+                reuse_existing_path=True,
+            )
+            return ["storage_compact"]
 
     # ---------------------------------------------------------------- context
     register_template_runtime(
@@ -12953,7 +13022,8 @@ read -r -p "Premi Invio per chiudere..." _
                         "Aggiorna il Local Signer e ripeti la firma."
                     ),
                 }), 500
-            gf.sostituisci_documento(
+            avvisi_storage = _salva_documento_firmato_resiliente(
+                gf=gf,
                 id_fasc=id_fasc,
                 id_doc=id_doc,
                 nome_file=nome_firmato,
@@ -12977,6 +13047,8 @@ read -r -p "Premi Invio per chiudere..." _
                 sync_id_risorsa=id_fasc,
             )
 
+            warning_codes = avvisi_storage + avvisi_operativi
+
             return jsonify({
                 "ok": True,
                 "nome_firmato": nome_firmato,
@@ -12987,13 +13059,13 @@ read -r -p "Premi Invio per chiudere..." _
                     f"Documento firmato con successo da {intestatario}. "
                     + (stato_cert["messaggio"] if stato_cert.get("avviso_imminente") else "")
                 ),
-                "warning": bool(avvisi_operativi),
-                "warning_codes": avvisi_operativi,
+                "warning": bool(warning_codes),
+                "warning_codes": warning_codes,
             })
 
         except Exception as e:
             app.logger.exception("Errore api_pkcs11_firma_documento: %s", e)
-            return jsonify({"ok": False, "messaggio": str(e)})
+            return jsonify({"ok": False, "messaggio": _signature_storage_error_message(e)})
 
     @app.route("/api/firma/pkcs11/firma-documenti-batch", methods=["POST"])
     def api_pkcs11_firma_documenti_batch():
@@ -13081,6 +13153,7 @@ read -r -p "Premi Invio per chiudere..." _
             firmati = 0
             saltati = 0
             errori = 0
+            warning_codes_batch: set[str] = set()
 
             with crea_signer_da_config(cfg_firma_runtime, pin=pin) as firma:
                 stato_cert = firma.verifica_scadenza()
@@ -13152,7 +13225,8 @@ read -r -p "Premi Invio per chiudere..." _
                             pass
                         continue
 
-                    gf.sostituisci_documento(
+                    avvisi_storage = _salva_documento_firmato_resiliente(
+                        gf=gf,
                         id_fasc=id_fasc,
                         id_doc=id_doc,
                         nome_file=nome_firmato,
@@ -13166,10 +13240,13 @@ read -r -p "Premi Invio per chiudere..." _
                     except Exception:
                         pass
 
+                    warning_codes_batch.update(avvisi_storage)
                     risultati.append({
                         "ok": True,
                         "documento_id": id_doc,
                         "nome_firmato": nome_firmato,
+                        "warning": bool(avvisi_storage),
+                        "warning_codes": avvisi_storage,
                         "messaggio": "Documento firmato con successo.",
                     })
                     firmati += 1
@@ -13186,6 +13263,7 @@ read -r -p "Premi Invio per chiudere..." _
                 sync_modulo="fascicoli",
                 sync_id_risorsa=id_fasc,
             )
+            warning_codes = sorted(warning_codes_batch) + avvisi_operativi
 
             return jsonify({
                 "ok": errori == 0,
@@ -13196,15 +13274,15 @@ read -r -p "Premi Invio per chiudere..." _
                 "scadenza": stato_cert.get("scadenza", ""),
                 "avviso_scadenza": stato_cert.get("avviso_imminente", False),
                 "risultati": risultati,
-                "warning": bool(avvisi_operativi),
-                "warning_codes": avvisi_operativi,
+                "warning": bool(warning_codes),
+                "warning_codes": warning_codes,
                 "messaggio": (
                     f"Firma batch completata: {firmati} firmati, {saltati} già firmati, {errori} errori."
                 ),
             })
         except Exception as e:
             app.logger.exception("Errore api_pkcs11_firma_documenti_batch: %s", e)
-            return jsonify({"ok": False, "messaggio": str(e)})
+            return jsonify({"ok": False, "messaggio": _signature_storage_error_message(e)})
 
     # ─────────────────────────────────────────────────────────────────────────
 
@@ -13248,7 +13326,8 @@ read -r -p "Premi Invio per chiudere..." _
                             "Non caricare PDF rinominati in .p7m: verifica prima il file in ArubaSign o Dike."
                         )
                 note = request.form.get("note", "Versione firmata per deposito").strip()
-                gf.sostituisci_documento(
+                avvisi_storage = _salva_documento_firmato_resiliente(
+                    gf=gf,
                     id_fasc=id_fasc,
                     id_doc=id_doc,
                     nome_file=file.filename,
@@ -13256,6 +13335,8 @@ read -r -p "Premi Invio per chiudere..." _
                     caricato_da=u.username if u else "",
                     note=note,
                 )
+            else:
+                avvisi_storage = []
             doc = gf.segna_firmato(id_fasc, id_doc)
             messaggio = f"Documento '{doc.nome}' contrassegnato come firmato per deposito."
             avvisi_operativi = _audit_and_sync_best_effort(
@@ -13267,13 +13348,14 @@ read -r -p "Premi Invio per chiudere..." _
                 sync_modulo="fascicoli",
                 sync_id_risorsa=id_fasc,
             )
+            warning_codes = avvisi_storage + avvisi_operativi
             return _chiudi_risposta(
                 True,
                 messaggio,
                 "success",
                 nome_firmato=doc.nome,
-                warning=bool(avvisi_operativi),
-                warning_codes=avvisi_operativi,
+                warning=bool(warning_codes),
+                warning_codes=warning_codes,
             )
         except (ValueError, KeyError) as e:
             return _chiudi_risposta(False, str(e), "danger", status=400)
@@ -13281,7 +13363,7 @@ read -r -p "Premi Invio per chiudere..." _
             app.logger.exception("Errore firma_documento(%s, %s): %s", id_fasc, id_doc, e)
             return _chiudi_risposta(
                 False,
-                f"Errore tecnico durante il salvataggio del documento firmato: {e}",
+                _signature_storage_error_message(e),
                 "danger",
                 status=500,
             )

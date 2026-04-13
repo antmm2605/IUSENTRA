@@ -157,6 +157,29 @@
     );
   }
 
+  function isCompanionTransportError(error) {
+    var message = String((error && error.message) || '').toLowerCase();
+    var status = Number(error && error.httpStatus || 0);
+    if (!status) {
+      return true;
+    }
+    return (
+      message.indexOf('failed to fetch') >= 0 ||
+      message.indexOf('networkerror') >= 0 ||
+      message.indexOf('load failed') >= 0 ||
+      message.indexOf('network request failed') >= 0
+    );
+  }
+
+  function renderCompanionRuntimeHelp(error) {
+    var message = escapeHtml((error && error.message) || 'Il companion locale ha rifiutato la richiesta AI.');
+    return (
+      '<div class="text-warning fw-semibold mb-2">Companion locale raggiunto, ma la richiesta non e\' andata a buon fine</div>' +
+      '<div class="small text-muted">Lex e\' riuscito a contattare il Local Signer su questo dispositivo, ma il modulo AI locale ha restituito un errore operativo.</div>' +
+      '<div class="small mt-2"><code>' + message + '</code></div>'
+    );
+  }
+
   function renderServerPreparationHelp(error) {
     var authProblem = Number(error && error.httpStatus || 0) === 401 || Number(error && error.httpStatus || 0) === 403;
     var message = escapeHtml((error && error.message) || 'Il server HACS non e\' riuscito a preparare il contesto della richiesta.');
@@ -366,8 +389,18 @@
           return;
         }
         var outdated = Number(error && error.httpStatus || 0) === 404;
-        setBubbleHtml(state.currentBubble, renderCompanionHelp(outdated));
-        finalizeRequest('Companion locale non raggiungibile.');
+        if (outdated) {
+          setBubbleHtml(state.currentBubble, renderCompanionHelp(true));
+          finalizeRequest('Aggiornamento del companion locale richiesto.');
+          return;
+        }
+        if (isCompanionTransportError(error)) {
+          setBubbleHtml(state.currentBubble, renderCompanionHelp(false));
+          finalizeRequest('Companion locale non raggiungibile.');
+          return;
+        }
+        setBubbleHtml(state.currentBubble, renderCompanionRuntimeHelp(error));
+        finalizeRequest('Companion locale raggiunto, ma la richiesta non e\' andata a buon fine.');
       });
   }
 
@@ -434,8 +467,16 @@
         );
       })
       .catch(function () {
-        updateBadge(false, 'Companion offline');
-        setStatus('Il browser non riesce a raggiungere il companion locale su questo dispositivo.');
+        browserBridge()
+          .fetchCompanionPing(bridgeConfig)
+          .then(function () {
+            updateBadge(false, 'AI locale non pronta');
+            setStatus('Local Signer raggiungibile, ma il modulo AI locale non e\' operativo su questo dispositivo.');
+          })
+          .catch(function () {
+            updateBadge(false, 'Companion offline');
+            setStatus('Il browser non riesce a raggiungere il companion locale su questo dispositivo.');
+          });
       });
   }
 

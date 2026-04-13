@@ -38,18 +38,23 @@
       <i class="bi bi-person-badge text-primary"></i> Tipo soggetto
     </div>
     <div class="ds-form-card-body">
-      <div class="d-flex gap-3 flex-wrap">
+      <div class="d-flex gap-2 flex-wrap">
         {% for tv, tl, ti in [
-            ('PERSONA_FISICA',    'Persona fisica',    'bi-person-fill'),
-            ('PERSONA_GIURIDICA', 'Persona giuridica', 'bi-building-fill'),
+            ('PERSONA_FISICA',           'Persona fisica',           'bi-person-fill'),
+            ('PERSONA_GIURIDICA',        'Persona giuridica',        'bi-building-fill'),
+            ('PUBBLICA_AMMINISTRAZIONE', 'Pubblica Amministrazione', 'bi-bank'),
+            ('ENTE',                     'Ente',                     'bi-hospital'),
+            ('CONDOMINIO',               'Condominio',               'bi-houses'),
+            ('ASSOCIAZIONE',             'Associazione',             'bi-people-fill'),
+            ('PROFESSIONISTA',           'Professionista',           'bi-briefcase-fill'),
         ] %}
-        <label class="tipo-toggle flex-fill text-center py-3 border rounded-3 cursor-pointer"
-               style="cursor:pointer;transition:all .15s"
+        <label class="tipo-toggle text-center py-2 px-3 border rounded-3"
+               style="cursor:pointer;transition:all .15s;min-width:120px;flex:1 1 120px"
                data-tipo="{{ tv }}">
           <input type="radio" name="tipo" value="{{ tv }}" class="visually-hidden tipo-radio"
                  {{ 'checked' if (soggetto and soggetto.tipo.value == tv) or (not soggetto and (prefill.get('tipo') or 'PERSONA_FISICA') == tv) }}>
-          <i class="bi {{ ti }} d-block fs-3 mb-1"></i>
-          <div class="fw-semibold small">{{ tl }}</div>
+          <i class="bi {{ ti }} d-block fs-4 mb-1"></i>
+          <div class="fw-semibold" style="font-size:.72rem">{{ tl }}</div>
         </label>
         {% endfor %}
       </div>
@@ -58,7 +63,8 @@
 
   {# ── Dati persona fisica ── #}
   {% set _tipo_init = soggetto.tipo.value if soggetto else (prefill.get('tipo') or 'PERSONA_FISICA') %}
-  <div class="ds-form-card" id="section-pf" style="{{ 'display:none' if _tipo_init == 'PERSONA_GIURIDICA' else '' }}">
+  {% set _tipi_pg = ['PERSONA_GIURIDICA','PUBBLICA_AMMINISTRAZIONE','ENTE','CONDOMINIO','ASSOCIAZIONE'] %}
+  <div class="ds-form-card" id="section-pf" style="{{ 'display:none' if _tipo_init in _tipi_pg else '' }}">
     <div class="ds-form-card-header">
       <i class="bi bi-person text-primary"></i> Dati anagrafici
     </div>
@@ -103,7 +109,7 @@
   </div>
 
   {# ── Dati persona giuridica ── #}
-  <div class="ds-form-card" id="section-pg" style="{{ '' if _tipo_init == 'PERSONA_GIURIDICA' else 'display:none' }}">
+  <div class="ds-form-card" id="section-pg" style="{{ '' if _tipo_init in _tipi_pg else 'display:none' }}">
     <div class="ds-form-card-header">
       <i class="bi bi-building text-success"></i> Dati aziendali
     </div>
@@ -342,9 +348,12 @@
   const secPF    = document.getElementById('section-pf');
   const secPG    = document.getElementById('section-pg');
 
+  const tipiPG = ['PERSONA_GIURIDICA','PUBBLICA_AMMINISTRAZIONE','ENTE','CONDOMINIO','ASSOCIAZIONE'];
+
   function aggiornaTipo(val) {
-    secPF.style.display = val === 'PERSONA_FISICA'    ? '' : 'none';
-    secPG.style.display = val === 'PERSONA_GIURIDICA' ? '' : 'none';
+    const isPG = tipiPG.includes(val);
+    secPF.style.display = isPG ? 'none' : '';
+    secPG.style.display = isPG ? ''     : 'none';
     toggles.forEach(t => {
       const isActive = t.dataset.tipo === val;
       t.style.background   = isActive ? 'var(--ds-primary)'     : '';

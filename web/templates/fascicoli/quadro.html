@@ -147,13 +147,16 @@
       </div>
       <div class="qd-info-body">
         <div class="qd-parti-grid">
-          {% for p in parti %}
+          {% for parte, sogg in parti %}
           <div class="qd-parte-chip">
             <i class="bi bi-person-fill qd-parte-icon"></i>
             <div class="qd-parte-body">
-              <div class="qd-parte-nome">{{ p.nome }} {{ p.cognome }}</div>
-              <div class="qd-parte-ruolo">{{ p.ruolo.value.replace('_',' ') if p.ruolo else 'Parte' }}</div>
+              <div class="qd-parte-nome">{{ sogg.nome_completo }}</div>
+              <div class="qd-parte-ruolo">{{ parte.ruolo.label }}</div>
             </div>
+            <a href="{{ url_for('dettaglio_soggetto', id_soggetto=sogg.id) }}" class="qd-link-btn ms-auto" title="Scheda soggetto">
+              <i class="bi bi-arrow-right"></i>
+            </a>
           </div>
           {% endfor %}
         </div>
@@ -167,7 +170,7 @@
 {# ═══════════════════════════════════════════════════════════
    ASSE 1 — COMMERCIALE
    ═══════════════════════════════════════════════════════════ #}
-<div class="stat-chart-card mb-3" id="asse-commerciale">
+<div class="stat-chart-card qd-section mb-3" id="asse-commerciale">
   <div class="stat-chart-header">
     <i class="bi bi-briefcase text-primary"></i>
     <span>Commerciale</span>
@@ -230,7 +233,7 @@
 {# ═══════════════════════════════════════════════════════════
    ASSE 2 — OPERATIVO
    ═══════════════════════════════════════════════════════════ #}
-<div class="stat-chart-card mb-3" id="asse-operativo">
+<div class="stat-chart-card qd-section mb-3" id="asse-operativo">
   <div class="stat-chart-header">
     <i class="bi bi-diagram-3 text-success"></i>
     <span>Operativo</span>
@@ -333,7 +336,7 @@
 {# ═══════════════════════════════════════════════════════════
    ASSE 3 — CONFORMITA
    ═══════════════════════════════════════════════════════════ #}
-<div class="stat-chart-card mb-3" id="asse-conformita">
+<div class="stat-chart-card qd-section mb-3" id="asse-conformita">
   <div class="stat-chart-header">
     <i class="bi bi-shield-check {% if blocchi %}text-danger{% elif avvisi %}text-warning{% else %}text-success{% endif %}"></i>
     <span>Conformita</span>
@@ -390,7 +393,7 @@
 {# ═══════════════════════════════════════════════════════════
    ASSE 4 — ECONOMICO
    ═══════════════════════════════════════════════════════════ #}
-<div class="stat-chart-card mb-3" id="asse-economico">
+<div class="stat-chart-card qd-section mb-3" id="asse-economico">
   <div class="stat-chart-header">
     <i class="bi bi-currency-euro text-warning"></i>
     <span>Economico</span>
@@ -477,7 +480,7 @@
 {# ═══════════════════════════════════════════════════════════
    ASSE 5 — DOCUMENTALE
    ═══════════════════════════════════════════════════════════ #}
-<div class="stat-chart-card mb-3" id="asse-documentale">
+<div class="stat-chart-card qd-section mb-3" id="asse-documentale">
   <div class="stat-chart-header">
     <i class="bi bi-paperclip text-info"></i>
     <span>Documenti</span>

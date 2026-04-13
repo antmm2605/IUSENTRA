@@ -1,6 +1,7 @@
 import json
 from pathlib import Path
 
+from pct import __version__ as APP_VERSION
 from web.app import create_app
 
 
@@ -116,3 +117,36 @@ def test_auth_guard_keeps_login_public_and_redirects_protected_routes(tmp_path: 
     assert login_page.status_code == 200
     assert protected.status_code == 302
     assert protected.headers["Location"].endswith("/login?next=/profilo")
+
+
+def test_template_runtime_registers_filters_and_globals(tmp_path: Path):
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    app = create_app(_cfg_web(tmp_path))
+
+    with app.test_request_context("/"):
+        globals_map = {}
+        for processor in app.template_context_processors[None]:
+            globals_map.update(processor())
+
+    assert app.jinja_env.filters["fmt_data"]("2026-04-13") == "13/04/2026"
+    assert app.jinja_env.filters["fmt_dataora"]("2026-04-13T09:45:00") == "13/04/2026 09:45"
+    assert globals_map["app_version"] == APP_VERSION
+    assert globals_map["TipoAppuntamento"] is not None
+    assert globals_map["recenti"] == []
+    assert hasattr(globals_map["oggi"], "strftime")
+
+
+def test_pwa_routes_and_error_handlers_restano_registrati(tmp_path: Path):
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    app = create_app(_cfg_web(tmp_path))
+
+    with app.test_client() as client:
+        client.post("/login", data={"username": "admin", "password": "admin"}, follow_redirects=True)
+        service_worker = client.get("/sw.js")
+        offline = client.get("/offline")
+        missing = client.get("/percorso-inesistente")
+
+    assert service_worker.status_code == 200
+    assert "javascript" in service_worker.content_type
+    assert offline.status_code == 200
+    assert missing.status_code == 404

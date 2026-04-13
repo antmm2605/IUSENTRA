@@ -1,0 +1,20 @@
+"""Infrastructure routes for the PWA shell."""
+
+from __future__ import annotations
+
+from flask import Flask, render_template, send_file
+
+
+def register_pwa_routes(app: Flask) -> None:
+    """Register service worker and offline fallback routes."""
+
+    @app.route("/sw.js")
+    def service_worker():
+        return send_file(
+            app.root_path + "/static/sw.js",
+            mimetype="application/javascript",
+        )
+
+    @app.route("/offline")
+    def offline():
+        return render_template("offline.html")

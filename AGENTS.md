@@ -30,6 +30,17 @@
 - Persistenza: file JSON per clienti, fascicoli, agenda, ecc.
 - Stack: Python 3, Flask, Bootstrap 5, Bootstrap Icons
 
+## Modularizzazione governabile — Regola obbligatoria
+
+- Ogni nuovo modulo o refactor deve produrre **codice governabile**, quindi con responsabilità piccole e confini chiari.
+- È vietato spostare logica da `web/app.py` o da un monolite esistente dentro un nuovo file unico altrettanto grande.
+- Quando una feature nuova ha più responsabilità, va divisa **subito** in più moduli gestibili, ad esempio:
+  - `bootstrap/` per wiring Flask, registrazioni e setup
+  - `services/` per orchestrazione applicativa
+  - `pct/` per logica di dominio
+- Ogni estrazione deve preferire moduli focalizzati e testabili, invece di helper generici pieni di funzioni eterogenee.
+- Se un modulo cresce troppo o mescola routing, configurazione, template context e logica business, va ulteriormente spezzato prima di considerare il lavoro concluso.
+
 ## Regola obbligatoria — Portale Servizi Telematici
 
 **Qualsiasi implementazione che coinvolga i portali telematici (PST/polisWeb, PDP, PAT) deve sempre rispettare le regole impartite dal Portale Servizi Telematici del Ministero della Giustizia.**

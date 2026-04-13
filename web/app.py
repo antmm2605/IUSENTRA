@@ -145,7 +145,10 @@ from pct.telematico_workflow import TelematicoWorkflowRepository
 from pct.workspace_intelligente import WorkspaceIntelligenteService
 from pct.local_ai import LocalAIService
 from pct import __version__ as APP_VERSION
+from web.bootstrap.error_handlers import register_error_handlers
+from web.bootstrap.pwa_routes import register_pwa_routes
 from web.bootstrap.register_blueprints import register_blueprints
+from web.bootstrap.template_runtime import register_template_runtime
 from web.services.auth_runtime import register_auth_runtime
 from web.services.runtime_settings import apply_runtime_settings
 
@@ -2785,47 +2788,9 @@ def create_app(config: dict | None = None) -> Flask:
         )
 
     # ---------------------------------------------------------------- context
-
-    @app.template_filter("fmt_data")
-    def fmt_data(val: str) -> str:
-        if not val:
-            return "—"
-        try:
-            from datetime import date, datetime as _dt
-            testo = str(val).strip()
-            # Rimuovi parte oraria se presente (es. "2023-06-08T10:00:00" → "2023-06-08")
-            for sep in ("T", " "):
-                if sep in testo:
-                    testo = testo.split(sep)[0]
-                    break
-            # Prova i formati più comuni in ordine
-            for fmt in ("%Y-%m-%d", "%d/%m/%Y", "%d-%m-%Y", "%Y/%m/%d"):
-                try:
-                    d = _dt.strptime(testo[:10], fmt).date()
-                    return d.strftime("%d/%m/%Y")
-                except ValueError:
-                    continue
-            return val
-        except Exception:
-            return val
-
-    @app.template_filter("fmt_dataora")
-    def fmt_dataora(val: str) -> str:
-        if not val:
-            return "â€”"
-        try:
-            testo = str(val).strip().replace("Z", "")
-            if len(testo) == 10:
-                return datetime.fromisoformat(testo + "T00:00:00").strftime("%d/%m/%Y")
-            return datetime.fromisoformat(testo).strftime("%d/%m/%Y %H:%M")
-        except Exception:
-            return fmt_data(val)
-
-    @app.context_processor
-    def inject_globals():
-        return {
-            "oggi": date.today(),
-            "ora_adesso": datetime.now().strftime("%H:%M"),
+    register_template_runtime(
+        app,
+        template_symbols={
             "TipoAppuntamento": TipoAppuntamento,
             "StatoAppuntamento": StatoAppuntamento,
             "TipoCliente": TipoCliente,
@@ -2834,48 +2799,17 @@ def create_app(config: dict | None = None) -> Flask:
             "StatoFascicolo": StatoFascicolo,
             "TipoAttivita": TipoAttivita,
             "EsitoAttivita": EsitoAttivita,
-            "utente_corrente": g.get("utente_corrente"),
             "RuoloUtente": RuoloUtente,
             "DESCRIZIONI_RUOLI": DESCRIZIONI_RUOLI,
-            "n_operatori_connessi": _sync.n_connessi,
             "RuoloCondivisione": RuoloCondivisione,
-            "recenti": session.get("recenti", []),
-            "app_version": APP_VERSION,
-        }
+        },
+        app_version=APP_VERSION,
+        connected_operators=lambda: _sync.n_connessi,
+    )
 
-    # ================================================================ PWA
-
-    @app.route("/sw.js")
-    def service_worker():
-        """Service Worker servito dalla root per scope '/'."""
-        return send_file(
-            app.root_path + "/static/sw.js",
-            mimetype="application/javascript",
-        )
-
-    @app.route("/offline")
-    def offline():
-        """Pagina fallback mostrata dal service worker quando si è offline."""
-        return render_template("offline.html")
-
-    # ================================================================ ERRORI
-
-    @app.errorhandler(403)
-    def errore_403(e):
-        return render_template("errori/403.html"), 403
-
-    @app.errorhandler(404)
-    def errore_404(e):
-        return render_template("errori/404.html"), 404
-
-    @app.errorhandler(500)
-    def errore_500(e):
-        import traceback as _tb
-        # e.__traceback__ è l'unico modo affidabile per ottenere il traceback
-        # fuori dal contesto dell'eccezione (come in Flask error handler)
-        tb_str = "".join(_tb.format_exception(type(e), e, e.__traceback__))
-        app.logger.error("500 Internal Server Error: %s\n%s", e, tb_str)
-        return render_template("errori/500.html"), 500
+    # ================================================================ PWA / ERRORI
+    register_pwa_routes(app)
+    register_error_handlers(app)
 
     @app.route("/profilo", methods=["GET", "POST"])
     def profilo():

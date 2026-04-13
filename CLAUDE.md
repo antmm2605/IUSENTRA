@@ -37,6 +37,17 @@ git push origin claude/legal-electronic-filing-kIxcV:Codex/legal-electronic-fili
 - Stack: Python 3.12, Flask 3, Bootstrap 5, Bootstrap Icons, Gunicorn + gevent, Nginx
 - Versione corrente: **2.79.1** (fonte di verità: `pct/__init__.py`)
 
+## Modularizzazione governabile — Regola obbligatoria
+
+- Ogni nuovo modulo o refactor deve produrre **codice governabile**, con responsabilità piccole e leggibili.
+- Non è ammesso trasferire codice da un monolite a un nuovo file unico altrettanto esteso.
+- Se una modifica tocca wiring Flask, servizi applicativi e logica di dominio, le parti vanno separate in moduli distinti.
+- Struttura preferita:
+  - `web/bootstrap/` per registrazioni, setup e integrazione Flask
+  - `web/services/` per orchestrazione applicativa
+  - `pct/` per regole di dominio e persistenza
+- Un refactor non è considerato concluso se lascia un nuovo modulo ambiguo, multi-uso o difficile da testare.
+
 ## Architettura del progetto
 
 ```

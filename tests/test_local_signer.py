@@ -654,6 +654,62 @@ def test_local_ai_bridge_chat_usa_modello_effettivo_disponibile(tmp_path, monkey
     assert captured["model_name"] == "gemma3:1b"
 
 
+def test_local_ai_bridge_rag_query_stream_restituisce_token_e_fonti_finali(tmp_path, monkeypatch):
+    module = _load_local_ai_host_bridge()
+
+    class DummyClient:
+        def __init__(self, base_url):
+            self.base_url = base_url
+
+        def get_version(self):
+            return "0.20.5"
+
+        def list_models(self):
+            return [{"name": "gemma3:1b"}, {"name": "embeddinggemma:300m"}]
+
+        def list_running_models(self):
+            return [{"name": "gemma3:1b"}]
+
+        def generate_stream(self, model_name, prompt, keep_alive):
+            assert model_name == "gemma3:1b"
+            assert "Contesto pronto" in prompt
+            yield {"response": "Ciao "}
+            yield {"response": "mondo"}
+            yield {"done": True, "eval_count": 12}
+
+    monkeypatch.setattr(module, "OllamaLocalClient", DummyClient)
+    bridge = module.LocalAiHostBridge(root_dir=tmp_path)
+    monkeypatch.setattr(bridge, "detect_hardware", lambda: {"profile": "strong"})
+
+    events = list(
+        bridge.rag_query_stream(
+            {
+                "question": "Che cosa devo fare adesso?",
+                "prompt": "Contesto pronto",
+                "sources": [{"id": "chunk-1", "citation": "Fonte 1"}],
+            }
+        )
+    )
+
+    assert events[0]["token"] == "Ciao "
+    assert events[1]["token"] == "mondo"
+    assert events[-1]["done"] is True
+    assert events[-1]["answer"] == "Ciao mondo"
+    assert events[-1]["citations"] == ["Fonte 1"]
+    assert events[-1]["sources"][0]["id"] == "chunk-1"
+
+
+def test_local_signer_launcher_windows_usa_avvio_silenzioso():
+    installer = (Path(__file__).resolve().parents[1] / "tools" / "installa_local_signer_locale.ps1").read_text(encoding="utf-8")
+    launcher = (Path(__file__).resolve().parents[1] / "tools" / "avvia_local_signer.bat").read_text(encoding="utf-8")
+
+    assert 'set "SILENT_MODE=0"' in installer
+    assert 'powershell -NoProfile -WindowStyle Hidden -Command "Start-Process -WindowStyle Hidden -FilePath $env:PYW -ArgumentList @($env:PY)"' in installer
+    assert 'if "%SILENT_MODE%"=="1" exit /b 0' in installer
+    assert 'set "SILENT_MODE=0"' in launcher
+    assert 'if "%SILENT_MODE%"=="1" exit /b 0' in launcher
+
+
 def test_riusa_certificato_windows_selezionato_per_chiamate_pst_successive():
     module = _load_local_signer()
 

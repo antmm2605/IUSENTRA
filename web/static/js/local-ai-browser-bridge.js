@@ -170,6 +170,83 @@
     return readJsonResponse(response);
   }
 
+  async function streamCompanionSse(config, path, payload, handlers) {
+    const response = await fetch(config.localSignerUrl + path, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload || {}),
+    });
+    if (!response.ok) {
+      await readJsonResponse(response);
+    }
+    if (!response.body) {
+      throw new Error('Il browser non supporta lo streaming della risposta locale.');
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let finalPayload = null;
+
+    while (true) {
+      const result = await reader.read();
+      if (result.done) {
+        return finalPayload || {};
+      }
+
+      buffer += decoder.decode(result.value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+
+      for (const line of lines) {
+        if (line.indexOf('data: ') !== 0) {
+          continue;
+        }
+        const raw = line.slice(6).trim();
+        if (!raw) {
+          continue;
+        }
+        if (raw === '[DONE]') {
+          if (handlers && typeof handlers.onDone === 'function') {
+            handlers.onDone(finalPayload || {});
+          }
+          return finalPayload || {};
+        }
+
+        let data = {};
+        try {
+          data = JSON.parse(raw);
+        } catch (error) {
+          throw new Error('Risposta non leggibile ricevuta dal companion locale.');
+        }
+
+        if (data.errore) {
+          const err = new Error(data.errore);
+          err.payload = data;
+          throw err;
+        }
+
+        if (data.token && handlers && typeof handlers.onToken === 'function') {
+          handlers.onToken(String(data.token || ''), data);
+        }
+
+        if (data.done) {
+          finalPayload = data;
+        }
+      }
+    }
+  }
+
+  async function streamCompanionChat(config, payload, handlers) {
+    return streamCompanionSse(config, '/ai/chat/stream', payload, handlers);
+  }
+
+  async function streamCompanionRagQuery(config, payload, handlers) {
+    return streamCompanionSse(config, '/ai/rag/query/stream', payload, handlers);
+  }
+
   async function runServerReindex(config, payload) {
     const response = await fetch(config.serverReindexUrl, {
       method: 'POST',
@@ -190,6 +267,8 @@
     fetchServerContext,
     fetchServerAnswer,
     runCompanionRagQuery,
+    streamCompanionChat,
+    streamCompanionRagQuery,
     runServerReindex,
     companionHelp,
     isCompanionTransportError,

@@ -364,15 +364,27 @@
         fascicolo_id: state.fascId || '',
       })
       .then(function (prepared) {
+        var partial = '';
         return browserBridge()
-          .runCompanionRagQuery(bridgeConfig, prepared)
+          .streamCompanionRagQuery(bridgeConfig, prepared, {
+            onToken: function (token) {
+              partial += String(token || '');
+              setStatus('Lex sta scrivendo dal dispositivo locale...');
+              setBubbleContent(state.currentBubble, partial);
+              scrollBottom();
+            },
+          })
           .catch(function (error) {
             error = error || new Error('Companion locale non raggiungibile.');
             error.__companionStage = true;
+            error.__partialAnswer = partial;
             throw error;
           });
       })
       .then(function (payload) {
+        if (!payload.answer && state.currentBubble) {
+          payload.answer = state.currentBubble.textContent || '';
+        }
         setAnswerPayload(state.currentBubble, payload);
         state.history.push({ role: 'assistant', content: String(payload.answer || '').trim() });
         checkStatus();
@@ -397,6 +409,17 @@
         if (isCompanionTransportError(error)) {
           setBubbleHtml(state.currentBubble, renderCompanionHelp(false));
           finalizeRequest('Companion locale non raggiungibile.');
+          return;
+        }
+        if (error && error.__partialAnswer) {
+          setBubbleHtml(
+            state.currentBubble,
+            renderMarkdown(error.__partialAnswer) +
+              '<div class="small text-warning mt-3">La risposta si e\' interrotta prima del completamento.</div>' +
+              '<div class="small mt-2"><code>' + escapeHtml((error && error.message) || 'Errore operativo del modulo AI locale.') + '</code></div>'
+          );
+          state.history.push({ role: 'assistant', content: String(error.__partialAnswer || '').trim() });
+          finalizeRequest('Risposta interrotta dal companion locale.');
           return;
         }
         setBubbleHtml(state.currentBubble, renderCompanionRuntimeHelp(error));

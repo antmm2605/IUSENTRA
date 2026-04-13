@@ -7487,26 +7487,29 @@ set "PY=%DIR%local_signer.py"
 set "TARGET=%DIR%local_signer.py"
 set "PCT_LOCAL_SIGNER_ALLOWED_ORIGINS=__ALLOWED_ORIGINS__"
 set "FORCE_RESTART=0"
+set "SILENT_MODE=0"
 
 if /I "%~1"=="--force" set "FORCE_RESTART=1"
+if /I "%~1"=="--silent" set "SILENT_MODE=1"
 echo %~1 | find /I "hacs-local-signer://restart" >nul 2>&1 && set "FORCE_RESTART=1"
 
 if "%FORCE_RESTART%"=="0" (
-powershell -NoProfile -Command "try {{ $r = Invoke-RestMethod 'http://127.0.0.1:27272/ping' -UseBasicParsing -TimeoutSec 2; if ($r.ok) {{ exit 0 }} }} catch {{}}; exit 1" >nul 2>&1
+powershell -NoProfile -WindowStyle Hidden -Command "try {{ $r = Invoke-RestMethod 'http://127.0.0.1:27272/ping' -UseBasicParsing -TimeoutSec 2; if ($r.ok) {{ exit 0 }} }} catch {{}}; exit 1" >nul 2>&1
 if not errorlevel 1 goto :online
 )
 
-powershell -NoProfile -Command "$target = [regex]::Escape($env:TARGET); Get-CimInstance Win32_Process | Where-Object {{ $_.Name -in @('python.exe','pythonw.exe') -and $_.CommandLine -and $_.CommandLine -match $target }} | ForEach-Object {{ try {{ Stop-Process -Id $_.ProcessId -Force -ErrorAction Stop }} catch {{}} }}" >nul 2>&1
-powershell -NoProfile -Command "Get-NetTCPConnection -LocalAddress 127.0.0.1 -LocalPort 27272 -State Listen -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -Unique | ForEach-Object {{ try {{ Stop-Process -Id $_ -Force -ErrorAction Stop }} catch {{}} }}" >nul 2>&1
+powershell -NoProfile -WindowStyle Hidden -Command "$target = [regex]::Escape($env:TARGET); Get-CimInstance Win32_Process | Where-Object {{ $_.Name -in @('python.exe','pythonw.exe') -and $_.CommandLine -and $_.CommandLine -match $target }} | ForEach-Object {{ try {{ Stop-Process -Id $_.ProcessId -Force -ErrorAction Stop }} catch {{}} }}" >nul 2>&1
+powershell -NoProfile -WindowStyle Hidden -Command "Get-NetTCPConnection -LocalAddress 127.0.0.1 -LocalPort 27272 -State Listen -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -Unique | ForEach-Object {{ try {{ Stop-Process -Id $_ -Force -ErrorAction Stop }} catch {{}} }}" >nul 2>&1
 
 if exist "%PYW%" if exist "%PY%" (
-    start "" "%PYW%" "%PY%"
+    powershell -NoProfile -WindowStyle Hidden -Command "Start-Process -WindowStyle Hidden -FilePath $env:PYW -ArgumentList @($env:PY)"
 ) else (
     exit /b 1
 )
 
 :online
 if /I "%~1"=="--background" exit /b 0
+if "%SILENT_MODE%"=="1" exit /b 0
 timeout /t 2 >nul
 start "" "http://127.0.0.1:27272/diagnosi"
 exit /b 0

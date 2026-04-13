@@ -345,12 +345,14 @@ def test_ai_operativa_usa_bridge_browser_e_template_senza_logica_inline():
 
     assert "window.HacsLocalAiBrowserBridge" in bridge_js
     assert "/ai/rag/query" in bridge_js
+    assert "/ai/rag/query/stream" in bridge_js
     assert "/ping" in bridge_js
     assert "127.0.0.1:27272" in bridge_js
     assert "fetch(config.localSignerUrl + '/ai/status', {\n        method: 'GET',\n      });" in bridge_js
     assert "fetchCompanionPing" in bridge_js
     assert "isCompanionTransportError" in bridge_js
     assert "companionRuntimeHelp" in bridge_js
+    assert "streamCompanionRagQuery" in bridge_js
     assert "renderCompanionHelp" in fascicolo_js
     assert "renderCompanionRuntimeHelp" in fascicolo_js
     assert "fetchServerContext" in fascicolo_js
@@ -388,7 +390,7 @@ def test_lex_assistant_usa_componente_esterno_e_posizione_persistente():
     assert "dataset.chatUrl" in widget_js
     assert "dataset.statusUrl" in widget_js
     assert "fetchServerContext" in widget_js
-    assert "runCompanionRagQuery" in widget_js
+    assert "streamCompanionRagQuery" in widget_js
     assert "companionHelp" in widget_js
     assert "renderCompanionRuntimeHelp" in widget_js
     assert "isCompanionTransportError" in widget_js
@@ -399,6 +401,7 @@ def test_lex_assistant_usa_componente_esterno_e_posizione_persistente():
     assert "Companion locale raggiunto, ma la richiesta non e\\' andata a buon fine" in widget_js
     assert "Local Signer raggiungibile, ma il modulo AI locale non e\\' operativo su questo dispositivo." in widget_js
     assert "remoteHosted" in widget_js
+    assert "Lex sta scrivendo dal dispositivo locale" in widget_js
     assert "Risposta generata sul dispositivo locale." in widget_js
 
     assert ".pct-ai-widget" in widget_scss

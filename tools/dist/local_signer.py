@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-HACS Local Signer - v1.5.43
+HACS Local Signer - v1.5.44
 
 Servizio HTTP locale (localhost:27272) che firma documenti con smart card e token CNS/CIE
 (o qualsiasi token PKCS#11) e consente l'accesso autenticato al PST.
@@ -22,7 +22,9 @@ API:
     GET  /seleziona-certificato  → apre dialog nativo Windows di selezione cert
     POST /ai/bootstrap           → provisioning runtime Ollama e modelli locali
     POST /ai/chat                → prompt locale inoltrato a Ollama
+    POST /ai/chat/stream         → risposta streaming locale da Ollama
     POST /ai/rag/query           → risposta locale su contesto RAG preparato da HACS
+    POST /ai/rag/query/stream    → risposta streaming locale su contesto RAG preparato da HACS
     POST /ai/embed               → embeddings locali inoltrati a Ollama
     POST /firma                  → firma documento CAdES-BES
     POST /firma-batch            → firma più documenti con una sola sessione PIN
@@ -90,7 +92,7 @@ except Exception:
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.5.43"
+VERSION = "1.5.44"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
@@ -5108,6 +5110,46 @@ class _Handler(BaseHTTPRequestHandler):
         finally:
             self.close_connection = True
 
+    def _begin_sse(self, status: int = 200):
+        self.send_response(status)
+        self.send_header("Content-Type", "text/event-stream; charset=utf-8")
+        self.send_header("Cache-Control", "no-cache")
+        self.send_header("X-Accel-Buffering", "no")
+        self.send_header("Connection", "close")
+        self._add_cors()
+        self.end_headers()
+
+    def _write_sse_event(self, payload: dict | str):
+        if payload == "[DONE]":
+            raw = b"data: [DONE]\n\n"
+        else:
+            raw = f"data: {json.dumps(payload, ensure_ascii=False, default=str)}\n\n".encode("utf-8")
+        try:
+            self.wfile.write(raw)
+            self.wfile.flush()
+        except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError) as e:
+            log.debug("Client disconnesso durante lo stream %s: %s", self.path, e)
+            raise
+
+    def _stream_sse(self, events):
+        self._begin_sse()
+        try:
+            for payload in events:
+                self._write_sse_event(payload)
+                if isinstance(payload, dict) and payload.get("done"):
+                    self._write_sse_event("[DONE]")
+                    return
+        except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError):
+            return
+        except Exception as e:
+            try:
+                self._write_sse_event({"errore": str(e)})
+                self._write_sse_event("[DONE]")
+            except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError):
+                pass
+        finally:
+            self.close_connection = True
+
     def _read_json(self) -> dict:
         length = int(self.headers.get("Content-Length", 0))
         if not length:
@@ -5178,7 +5220,9 @@ class _Handler(BaseHTTPRequestHandler):
         if path in {
             "/ai/bootstrap",
             "/ai/chat",
+            "/ai/chat/stream",
             "/ai/rag/query",
+            "/ai/rag/query/stream",
             "/ai/embed",
             "/pst/preflight-auth",
             "/pst/ricerca",
@@ -5196,8 +5240,12 @@ class _Handler(BaseHTTPRequestHandler):
             self._ai_bootstrap()
         elif path == "/ai/chat":
             self._ai_chat()
+        elif path == "/ai/chat/stream":
+            self._ai_chat_stream()
         elif path == "/ai/rag/query":
             self._ai_rag_query()
+        elif path == "/ai/rag/query/stream":
+            self._ai_rag_query_stream()
         elif path == "/ai/embed":
             self._ai_embed()
         elif path == "/firma":
@@ -5269,6 +5317,19 @@ class _Handler(BaseHTTPRequestHandler):
             log.error("Errore AI chat locale: %s", e)
             self._send_json({"ok": False, "errore": str(e)}, 500)
 
+    def _ai_chat_stream(self):
+        data = self._local_ai_request_payload()
+        prompt = str(data.get("prompt") or "").strip()
+        if not prompt:
+            self._send_json({"ok": False, "errore": "Prompt mancante."}, 400)
+            return
+        try:
+            bridge = _get_local_ai_bridge()
+            self._stream_sse(bridge.chat_stream(prompt, data))
+        except Exception as e:
+            log.error("Errore AI chat streaming locale: %s", e)
+            self._send_json({"ok": False, "errore": str(e)}, 500)
+
     def _ai_rag_query(self):
         data = self._read_json()
         question = str(data.get("question") or "").strip()
@@ -5282,6 +5343,20 @@ class _Handler(BaseHTTPRequestHandler):
             self._send_json(payload)
         except Exception as e:
             log.error("Errore AI rag query locale: %s", e)
+            self._send_json({"ok": False, "errore": str(e)}, 500)
+
+    def _ai_rag_query_stream(self):
+        data = self._read_json()
+        question = str(data.get("question") or "").strip()
+        prompt = str(data.get("prompt") or "").strip()
+        if not question and not prompt:
+            self._send_json({"ok": False, "errore": "Domanda mancante."}, 400)
+            return
+        try:
+            bridge = _get_local_ai_bridge()
+            self._stream_sse(bridge.rag_query_stream({**self._local_ai_request_payload(data), **data}))
+        except Exception as e:
+            log.error("Errore AI rag query streaming locale: %s", e)
             self._send_json({"ok": False, "errore": str(e)}, 500)
 
     def _ai_embed(self):

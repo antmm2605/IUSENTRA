@@ -13,7 +13,7 @@ import urllib.error
 import urllib.request
 import zipfile
 from pathlib import Path
-from typing import Any
+from typing import Any, Iterator
 
 
 DEFAULT_POLICY: dict[str, Any] = {
@@ -182,6 +182,38 @@ class OllamaLocalClient:
             payload={"model": model_name, "prompt": prompt, "stream": False, "keep_alive": keep_alive},
             timeout=300,
         )
+
+    def generate_stream(self, model_name: str, prompt: str, keep_alive: str, timeout: float = 300.0) -> Iterator[dict[str, Any]]:
+        payload = {"model": model_name, "prompt": prompt, "stream": True, "keep_alive": keep_alive}
+        data = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+        request = urllib.request.Request(
+            f"{self.base_url}/generate",
+            data=data,
+            headers={
+                "Accept": "application/json",
+                "Content-Type": "application/json",
+            },
+            method="POST",
+        )
+        try:
+            response = urllib.request.urlopen(request, timeout=timeout)
+        except urllib.error.HTTPError as exc:
+            details = exc.read().decode("utf-8", errors="replace")
+            raise RuntimeError(f"Ollama HTTP {exc.code} su /generate: {details}") from exc
+        except urllib.error.URLError as exc:
+            raise RuntimeError(str(exc.reason or exc)) from exc
+
+        try:
+            for raw_line in response:
+                line = raw_line.decode("utf-8", errors="replace").strip()
+                if not line:
+                    continue
+                try:
+                    yield json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+        finally:
+            response.close()
 
 
 class LocalAiHostBridge:
@@ -471,6 +503,46 @@ class LocalAiHostBridge:
         }
         self.release_cache_path.write_text(json.dumps(curated, ensure_ascii=False, indent=2), encoding="utf-8")
         return curated
+
+    def _runtime_inventory(
+        self,
+        client: OllamaLocalClient,
+        *,
+        enabled: bool,
+    ) -> tuple[str | None, list[dict[str, Any]], list[dict[str, Any]]]:
+        version = client.get_version() if enabled else None
+        installed_models: list[dict[str, Any]] = []
+        running_models: list[dict[str, Any]] = []
+        if version:
+            try:
+                installed_models = client.list_models()
+            except Exception:
+                installed_models = []
+            try:
+                running_models = client.list_running_models()
+            except Exception:
+                running_models = []
+        return version, installed_models, running_models
+
+    def _resolved_chat_model(
+        self,
+        *,
+        settings: dict[str, Any],
+        hardware: dict[str, Any],
+        installed_models: list[dict[str, Any]],
+        running_models: list[dict[str, Any]],
+        requested_model: str = "",
+    ) -> str:
+        effective_settings = dict(settings)
+        if requested_model:
+            effective_settings["chat_model"] = requested_model
+        resolved_models = self.resolve_effective_models(
+            effective_settings,
+            hardware,
+            installed_models=installed_models,
+            running_models=running_models,
+        )
+        return str(resolved_models["chat"]).strip()
 
     def _select_download_asset(self, release: dict[str, Any], hardware: dict[str, Any]) -> dict[str, Any] | None:
         host_platform = hardware["host_platform"]
@@ -862,28 +934,14 @@ class LocalAiHostBridge:
         settings = self._settings(overrides)
         hardware = self.detect_hardware()
         client = OllamaLocalClient(settings["base_url"])
-        version = client.get_version() if settings["enabled"] else None
-        installed_models: list[dict[str, Any]] = []
-        running_models: list[dict[str, Any]] = []
-        if version:
-            try:
-                installed_models = client.list_models()
-            except Exception:
-                installed_models = []
-            try:
-                running_models = client.list_running_models()
-            except Exception:
-                running_models = []
-        effective_settings = dict(settings)
-        if str((overrides or {}).get("model") or "").strip():
-            effective_settings["chat_model"] = str((overrides or {}).get("model") or "").strip()
-        resolved_models = self.resolve_effective_models(
-            effective_settings,
-            hardware,
+        _version, installed_models, running_models = self._runtime_inventory(client, enabled=settings["enabled"])
+        model_name = self._resolved_chat_model(
+            settings=settings,
+            hardware=hardware,
             installed_models=installed_models,
             running_models=running_models,
+            requested_model=str((overrides or {}).get("model") or "").strip(),
         )
-        model_name = str(resolved_models["chat"]).strip()
         payload = client.generate(model_name, prompt, settings["keep_alive"])
         return {
             "ok": True,
@@ -891,6 +949,36 @@ class LocalAiHostBridge:
             "response": str(payload.get("response") or "").strip(),
             "created_at": _now_iso(),
         }
+
+    def chat_stream(self, prompt: str, overrides: dict[str, Any] | None = None) -> Iterator[dict[str, Any]]:
+        settings = self._settings(overrides)
+        hardware = self.detect_hardware()
+        client = OllamaLocalClient(settings["base_url"])
+        _version, installed_models, running_models = self._runtime_inventory(client, enabled=settings["enabled"])
+        model_name = self._resolved_chat_model(
+            settings=settings,
+            hardware=hardware,
+            installed_models=installed_models,
+            running_models=running_models,
+            requested_model=str((overrides or {}).get("model") or "").strip(),
+        )
+        full_parts: list[str] = []
+        for event in client.generate_stream(model_name, prompt, settings["keep_alive"]):
+            token = str(event.get("response") or "")
+            if token:
+                full_parts.append(token)
+                yield {"token": token, "model": model_name}
+            if event.get("done"):
+                yield {
+                    "done": True,
+                    "model": model_name,
+                    "answer": "".join(full_parts).strip(),
+                    "created_at": _now_iso(),
+                    "load_duration": event.get("load_duration"),
+                    "prompt_eval_count": event.get("prompt_eval_count"),
+                    "eval_count": event.get("eval_count"),
+                }
+                return
 
     def _rag_prompt(self, *, question: str, prompt: str, sources: list[dict[str, Any]]) -> str:
         provided = str(prompt or "").strip()
@@ -925,28 +1013,14 @@ class LocalAiHostBridge:
         sources = list(overrides.get("sources") or [])
         prompt = self._rag_prompt(question=question, prompt=str(overrides.get("prompt") or ""), sources=sources)
         client = OllamaLocalClient(settings["base_url"])
-        version = client.get_version() if settings["enabled"] else None
-        installed_models: list[dict[str, Any]] = []
-        running_models: list[dict[str, Any]] = []
-        if version:
-            try:
-                installed_models = client.list_models()
-            except Exception:
-                installed_models = []
-            try:
-                running_models = client.list_running_models()
-            except Exception:
-                running_models = []
-        effective_settings = dict(settings)
-        if str(overrides.get("model") or "").strip():
-            effective_settings["chat_model"] = str(overrides.get("model") or "").strip()
-        resolved_models = self.resolve_effective_models(
-            effective_settings,
-            hardware,
+        _version, installed_models, running_models = self._runtime_inventory(client, enabled=settings["enabled"])
+        model_name = self._resolved_chat_model(
+            settings=settings,
+            hardware=hardware,
             installed_models=installed_models,
             running_models=running_models,
+            requested_model=str(overrides.get("model") or "").strip(),
         )
-        model_name = str(resolved_models["chat"]).strip()
         response = client.generate(model_name, prompt, settings["keep_alive"])
         citations = [str(item.get("citation") or "").strip() for item in sources if str(item.get("citation") or "").strip()]
         return {
@@ -961,6 +1035,44 @@ class LocalAiHostBridge:
             "prompt_eval_count": response.get("prompt_eval_count"),
             "eval_count": response.get("eval_count"),
         }
+
+    def rag_query_stream(self, payload: dict[str, Any] | None = None) -> Iterator[dict[str, Any]]:
+        overrides = dict(payload or {})
+        settings = self._settings(overrides)
+        hardware = self.detect_hardware()
+        question = str(overrides.get("question") or "").strip()
+        sources = list(overrides.get("sources") or [])
+        citations = [str(item.get("citation") or "").strip() for item in sources if str(item.get("citation") or "").strip()]
+        prompt = self._rag_prompt(question=question, prompt=str(overrides.get("prompt") or ""), sources=sources)
+        client = OllamaLocalClient(settings["base_url"])
+        _version, installed_models, running_models = self._runtime_inventory(client, enabled=settings["enabled"])
+        model_name = self._resolved_chat_model(
+            settings=settings,
+            hardware=hardware,
+            installed_models=installed_models,
+            running_models=running_models,
+            requested_model=str(overrides.get("model") or "").strip(),
+        )
+        full_parts: list[str] = []
+        for event in client.generate_stream(model_name, prompt, settings["keep_alive"]):
+            token = str(event.get("response") or "")
+            if token:
+                full_parts.append(token)
+                yield {"token": token, "model": model_name}
+            if event.get("done"):
+                yield {
+                    "done": True,
+                    "model": model_name,
+                    "question": question,
+                    "answer": "".join(full_parts).strip(),
+                    "sources": sources,
+                    "citations": citations,
+                    "created_at": _now_iso(),
+                    "load_duration": event.get("load_duration"),
+                    "prompt_eval_count": event.get("prompt_eval_count"),
+                    "eval_count": event.get("eval_count"),
+                }
+                return
 
     def embed(self, inputs: list[str], overrides: dict[str, Any] | None = None) -> dict[str, Any]:
         settings = self._settings(overrides)

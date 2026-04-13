@@ -102,13 +102,21 @@ from pct.soggetti import (
 )
 from pct.scadenziario import (
     GestioneScadenziario,
+    ProfiloTermine,
+    RegolaCalendario,
     Scadenza,
     TipoTermine,
     PrioritaTermine,
     StatoTermine,
     PRESET_TERMINI,
     calcola_termine,
+    calcola_scadenza_avanzata,
     festività_italiane,
+    profilo_da_preset,
+    profili_termine_builtin,
+    regola_patrono_studio,
+    regola_patrono_ufficio,
+    regole_calendario_nazionali,
     è_giorno_lavorativo,
 )
 from pct.search_index import IndiceRicerca
@@ -2671,6 +2679,26 @@ def create_app(config: dict | None = None) -> Flask:
             )
         return g._scadenziario
 
+    def _resolve_judicial_office_by_code(codice: str) -> dict:
+        if not codice:
+            return {}
+        try:
+            from pct.uffici_giudiziari import get_gestore as _get_uffici
+
+            cache_path = app.config.get("UFFICI_GIUDIZIARI_DB") or os.getenv("PCT_UFFICI_DB", "/data/uffici/uffici_giudiziari.json")
+            return next((u for u in _get_uffici(cache_path).carica() if u.get("codice") == codice), {}) or {}
+        except Exception:
+            return {}
+
+    def _studio_patron_rule_from_config():
+        cfg = get_config_studio().config.studio
+        return regola_patrono_studio(
+            "default-studio",
+            str(getattr(cfg, "patron_name", "") or "").strip(),
+            int(getattr(cfg, "patron_day", 0) or 0),
+            int(getattr(cfg, "patron_month", 0) or 0),
+        )
+
     def get_soggetti() -> GestioneSoggetti:
         if not hasattr(g, "_soggetti"):
             g._soggetti = GestioneSoggetti(
@@ -2874,6 +2902,18 @@ def create_app(config: dict | None = None) -> Flask:
             return val
         except Exception:
             return val
+
+    @app.template_filter("fmt_dataora")
+    def fmt_dataora(val: str) -> str:
+        if not val:
+            return "â€”"
+        try:
+            testo = str(val).strip().replace("Z", "")
+            if len(testo) == 10:
+                return datetime.fromisoformat(testo + "T00:00:00").strftime("%d/%m/%Y")
+            return datetime.fromisoformat(testo).strftime("%d/%m/%Y %H:%M")
+        except Exception:
+            return fmt_data(val)
 
     @app.context_processor
     def inject_globals():
@@ -3300,6 +3340,103 @@ def create_app(config: dict | None = None) -> Flask:
             filtro_perentorio=filtro_perentorio,
         )
 
+    def _scadenziario_form_context(scadenza: Scadenza | None = None):
+        gf = get_fascicoli()
+        gu = get_utenti()
+        id_cliente_get = request.args.get("id_cliente", "")
+        from_cliente_get = request.args.get("from_cliente", "")
+        fascicoli = gf.tutti()
+        id_fascicolo_presel = ""
+        if id_cliente_get and not scadenza:
+            fascicoli_cliente = [f for f in fascicoli if f.id_cliente == id_cliente_get]
+            if fascicoli_cliente:
+                fascicoli = fascicoli_cliente
+                id_fascicolo_presel = fascicoli_cliente[0].id
+        return {
+            "tipi": list(TipoTermine),
+            "preset_list": PRESET_TERMINI,
+            "profili_termine": profili_termine_builtin(),
+            "fascicoli": fascicoli,
+            "utenti": gu.tutti(solo_attivi=True),
+            "scadenza": scadenza,
+            "id_cliente": id_cliente_get,
+            "from_cliente": from_cliente_get,
+            "id_fascicolo_presel": id_fascicolo_presel,
+            "studio_cfg": get_config_studio().config.studio,
+        }
+
+    def _parse_int(value, default=0):
+        try:
+            return int(value or default)
+        except (TypeError, ValueError):
+            return default
+
+    def _parse_bool(value) -> bool:
+        return str(value or "").strip().lower() in {"1", "true", "on", "yes"}
+
+    def _calcola_scadenza_form_payload(payload: dict) -> dict:
+        preset_key = str(payload.get("preset", "") or "").strip()
+        profile_code = str(payload.get("deadline_profile_code", "") or "").strip()
+        source_event_at = str(payload.get("source_event_at", "") or payload.get("data_inizio", "") or payload.get("data_decorrenza", "") or "").strip()
+        office_code = str(payload.get("judicial_office_id", "") or "").strip()
+        office_info = _resolve_judicial_office_by_code(office_code)
+        office_patron_name = str(payload.get("office_patron_name", "") or "").strip()
+        office_patron_day = _parse_int(payload.get("office_patron_day", 0))
+        office_patron_month = _parse_int(payload.get("office_patron_month", 0))
+        office_operating_mode = str(payload.get("office_operating_mode", "") or "open").strip() or "open"
+        operational_lead_business_days = _parse_int(payload.get("operational_lead_business_days", 0))
+        october_observance_blocks = _parse_bool(payload.get("october_observance_blocks"))
+
+        if preset_key:
+            profile = profilo_da_preset(preset_key)
+        elif profile_code:
+            profili = profili_termine_builtin()
+            if profile_code not in profili:
+                raise ValueError("Profilo termine non valido")
+            profile = ProfiloTermine.from_dict(profili[profile_code])
+        else:
+            raise ValueError("Seleziona un preset o un profilo termine")
+
+        if not source_event_at:
+            raise ValueError("Data/ora evento origine obbligatoria per il calcolo del termine")
+
+        office_rule = regola_patrono_ufficio(
+            office_code,
+            office_patron_name,
+            office_patron_day,
+            office_patron_month,
+            operating_mode=office_operating_mode,
+            source_url=str(payload.get("office_source_url", "") or "").strip(),
+            verified_at=str(payload.get("office_verified_at", "") or "").strip(),
+        )
+        studio_rule = _studio_patron_rule_from_config()
+        result = GestioneScadenziario.calcola_avanzata(
+            start_at=source_event_at,
+            profile=profile,
+            studio_rule=studio_rule,
+            office_rule=office_rule,
+            include_october_observance_blocking=october_observance_blocks,
+            operational_lead_business_days=operational_lead_business_days,
+        )
+        return {
+            "profile": profile,
+            "result": result,
+            "source_event_at": source_event_at,
+            "judicial_office_id": office_code,
+            "judicial_office_name": str(office_info.get("nome") or "").strip(),
+            "judicial_office_type": str(office_info.get("tipo") or "").strip(),
+            "judicial_office_city": str(office_info.get("citta") or office_info.get("city") or "").strip(),
+            "judicial_office_patron_name": office_patron_name,
+            "judicial_office_patron_day": office_patron_day,
+            "judicial_office_patron_month": office_patron_month,
+            "judicial_office_operating_mode": office_operating_mode,
+            "judicial_office_source_url": str(payload.get("office_source_url", "") or "").strip(),
+            "judicial_office_verified_at": str(payload.get("office_verified_at", "") or "").strip(),
+            "operational_lead_business_days": operational_lead_business_days,
+            "october_observance_blocks": october_observance_blocks,
+            "preset_key": preset_key,
+        }
+
     @app.route("/scadenziario/nuova", methods=["GET", "POST"])
     def nuova_scadenza():
         if request.method == "POST":
@@ -3309,21 +3446,43 @@ def create_app(config: dict | None = None) -> Flask:
             try:
                 preset = f.get("preset", "")
                 data_scadenza = f.get("data_scadenza", "").strip()
-                if not preset and not data_scadenza:
-                    raise ValueError("Data scadenza obbligatoria")
-                if preset:
-                    data_decorrenza = f.get("data_decorrenza", "").strip()
-                    if not data_decorrenza:
-                        raise ValueError("Seleziona la data decorrenza per il calcolo automatico del termine")
-                    sc = gs.nuova_da_preset(
-                        preset_key=preset,
+                usa_calcolo = bool(preset or f.get("deadline_profile_code") or f.get("source_event_at"))
+                if usa_calcolo:
+                    calc = _calcola_scadenza_form_payload(dict(f))
+                    sc = gs.nuova(
                         titolo=f["titolo"].strip(),
-                        data_decorrenza=data_decorrenza,
+                        tipo=TipoTermine(f["tipo"]),
+                        data_scadenza=calc["result"].legal_due_at[:10],
                         id_fascicolo=f.get("id_fascicolo", ""),
+                        descrizione=f.get("descrizione", ""),
+                        data_decorrenza=calc["source_event_at"][:10],
                         perentorio=f.get("perentorio") == "1",
                         id_utente_responsabile=f.get("id_utente", ""),
+                        note=f.get("note", ""),
+                        source_event_type=(PRESET_TERMINI.get(calc["preset_key"], {}).get("source_event_type", "") if calc["preset_key"] else "evento"),
+                        source_event_at=calc["source_event_at"],
+                        deadline_profile_code=calc["profile"].code,
+                        judicial_office_id=calc["judicial_office_id"],
+                        judicial_office_name=calc["judicial_office_name"],
+                        judicial_office_type=calc["judicial_office_type"],
+                        judicial_office_city=calc["judicial_office_city"],
+                        judicial_office_patron_name=calc["judicial_office_patron_name"],
+                        judicial_office_patron_day=calc["judicial_office_patron_day"],
+                        judicial_office_patron_month=calc["judicial_office_patron_month"],
+                        judicial_office_operating_mode=calc["judicial_office_operating_mode"],
+                        judicial_office_source_url=calc["judicial_office_source_url"],
+                        judicial_office_verified_at=calc["judicial_office_verified_at"],
+                        raw_due_at=calc["result"].raw_due_at,
+                        legal_due_at=calc["result"].legal_due_at,
+                        operational_due_at=calc["result"].operational_due_at or "",
+                        office_mode_on_legal_due_date=calc["result"].office_mode_on_legal_due_date,
+                        trace_json=json.dumps(calc["result"].trace, ensure_ascii=False),
+                        operational_lead_business_days=calc["operational_lead_business_days"],
+                        october_observance_blocks=calc["october_observance_blocks"],
                     )
                 else:
+                    if not data_scadenza:
+                        raise ValueError("Data scadenza obbligatoria")
                     sc = gs.nuova(
                         titolo=f["titolo"].strip(),
                         tipo=TipoTermine(f["tipo"]),
@@ -3333,6 +3492,7 @@ def create_app(config: dict | None = None) -> Flask:
                         data_decorrenza=f.get("data_decorrenza", "").strip(),
                         perentorio=f.get("perentorio") == "1",
                         id_utente_responsabile=f.get("id_utente", ""),
+                        note=f.get("note", ""),
                     )
                 audit("scadenziario.crea", "scadenza", sc.id, sc.titolo)
                 flash(f"Scadenza '{sc.titolo}' creata.", "success")
@@ -3342,29 +3502,7 @@ def create_app(config: dict | None = None) -> Flask:
                 return redirect(url_for("scadenziario"))
             except (ValueError, KeyError) as e:
                 flash(str(e), "danger")
-        gf = get_fascicoli()
-        gu = get_utenti()
-        id_cliente_get = request.args.get("id_cliente", "")
-        from_cliente_get = request.args.get("from_cliente", "")
-        # Fascicoli pre-filtrati per cliente se arrivato dalla cartella
-        fascicoli = gf.tutti()
-        id_fascicolo_presel = ""
-        if id_cliente_get:
-            fascicoli_cliente = [f for f in fascicoli if f.id_cliente == id_cliente_get]
-            if fascicoli_cliente:
-                fascicoli = fascicoli_cliente
-                id_fascicolo_presel = fascicoli_cliente[0].id
-        return render_template(
-            "scadenziario/form.html",
-            tipi=list(TipoTermine),
-            preset_list=PRESET_TERMINI,
-            fascicoli=fascicoli,
-            utenti=gu.tutti(solo_attivi=True),
-            scadenza=None,
-            id_cliente=id_cliente_get,
-            from_cliente=from_cliente_get,
-            id_fascicolo_presel=id_fascicolo_presel,
-        )
+        return render_template("scadenziario/form.html", **_scadenziario_form_context())
 
     @app.route("/scadenziario/<id_sc>")
     def dettaglio_scadenza(id_sc):
@@ -3385,31 +3523,74 @@ def create_app(config: dict | None = None) -> Flask:
         if request.method == "POST":
             f = request.form
             try:
-                gs.aggiorna(
-                    id_sc,
+                calc_payload = None
+                if f.get("deadline_profile_code") or f.get("source_event_at"):
+                    calc_payload = _calcola_scadenza_form_payload(dict(f))
+                update_kwargs = dict(
                     titolo=f.get("titolo", sc.titolo),
                     tipo=f.get("tipo", sc.tipo.value),
-                    data_scadenza=f.get("data_scadenza", sc.data_scadenza),
+                    data_scadenza=(calc_payload["result"].legal_due_at[:10] if calc_payload else f.get("data_scadenza", sc.data_scadenza)),
                     descrizione=f.get("descrizione", sc.descrizione),
+                    data_decorrenza=(calc_payload["source_event_at"][:10] if calc_payload else f.get("data_decorrenza", sc.data_decorrenza)),
                     perentorio=f.get("perentorio") == "1",
                     note=f.get("note", sc.note),
+                    id_fascicolo=f.get("id_fascicolo", sc.id_fascicolo),
+                    id_utente_responsabile=f.get("id_utente", sc.id_utente_responsabile),
                 )
+                if calc_payload:
+                    update_kwargs.update(
+                        source_event_type=(PRESET_TERMINI.get(calc_payload["preset_key"], {}).get("source_event_type", "") if calc_payload["preset_key"] else (sc.source_event_type or "evento")),
+                        source_event_at=calc_payload["source_event_at"],
+                        deadline_profile_code=calc_payload["profile"].code,
+                        judicial_office_id=calc_payload["judicial_office_id"],
+                        judicial_office_name=calc_payload["judicial_office_name"],
+                        judicial_office_type=calc_payload["judicial_office_type"],
+                        judicial_office_city=calc_payload["judicial_office_city"],
+                        judicial_office_patron_name=calc_payload["judicial_office_patron_name"],
+                        judicial_office_patron_day=calc_payload["judicial_office_patron_day"],
+                        judicial_office_patron_month=calc_payload["judicial_office_patron_month"],
+                        judicial_office_operating_mode=calc_payload["judicial_office_operating_mode"],
+                        judicial_office_source_url=calc_payload["judicial_office_source_url"],
+                        judicial_office_verified_at=calc_payload["judicial_office_verified_at"],
+                        raw_due_at=calc_payload["result"].raw_due_at,
+                        legal_due_at=calc_payload["result"].legal_due_at,
+                        operational_due_at=calc_payload["result"].operational_due_at or "",
+                        office_mode_on_legal_due_date=calc_payload["result"].office_mode_on_legal_due_date,
+                        trace_json=json.dumps(calc_payload["result"].trace, ensure_ascii=False),
+                        operational_lead_business_days=calc_payload["operational_lead_business_days"],
+                        october_observance_blocks=calc_payload["october_observance_blocks"],
+                    )
+                else:
+                    update_kwargs.update(
+                        source_event_type="",
+                        source_event_at="",
+                        deadline_profile_code="",
+                        judicial_office_id="",
+                        judicial_office_name="",
+                        judicial_office_type="",
+                        judicial_office_city="",
+                        judicial_office_patron_name="",
+                        judicial_office_patron_day=0,
+                        judicial_office_patron_month=0,
+                        judicial_office_operating_mode="open",
+                        judicial_office_source_url="",
+                        judicial_office_verified_at="",
+                        raw_due_at="",
+                        legal_due_at="",
+                        operational_due_at="",
+                        office_mode_on_legal_due_date="open",
+                        trace_json="[]",
+                        operational_lead_business_days=0,
+                        october_observance_blocks=False,
+                    )
+                gs.aggiorna(id_sc, **update_kwargs)
                 audit("scadenziario.modifica", "scadenza", id_sc)
                 flash("Scadenza aggiornata.", "success")
                 sync_pubblica("modifica", "scadenze", id_sc)
                 return redirect(url_for("scadenziario"))
             except (ValueError, KeyError) as e:
                 flash(str(e), "danger")
-        gf = get_fascicoli()
-        gu = get_utenti()
-        return render_template(
-            "scadenziario/form.html",
-            tipi=list(TipoTermine),
-            preset_list=PRESET_TERMINI,
-            fascicoli=gf.tutti(),
-            utenti=gu.tutti(solo_attivi=True),
-            scadenza=sc,
-        )
+        return render_template("scadenziario/form.html", **_scadenziario_form_context(sc))
 
     @app.route("/scadenziario/<id_sc>/completa", methods=["POST"])
     def completa_scadenza(id_sc):
@@ -3610,27 +3791,32 @@ def create_app(config: dict | None = None) -> Flask:
 
     @app.route("/scadenziario/calcola-termine", methods=["POST"])
     def calcola_termine_route():
-        """API AJAX per il calcolo dinamico del termine."""
+        """API AJAX per il calcolo dinamico del termine, con motore avanzato."""
         data = request.get_json() or {}
         try:
+            if data.get("preset") or data.get("deadline_profile_code"):
+                calc = _calcola_scadenza_form_payload(data)
+                return jsonify({
+                    "data_scadenza": calc["result"].legal_due_at[:10],
+                    "raw_due_at": calc["result"].raw_due_at,
+                    "legal_due_at": calc["result"].legal_due_at,
+                    "operational_due_at": calc["result"].operational_due_at,
+                    "office_mode_on_legal_due_date": calc["result"].office_mode_on_legal_due_date,
+                    "trace": calc["result"].trace,
+                    "judicial_office_name": calc["judicial_office_name"],
+                    "profile_code": calc["profile"].code,
+                    "profile_label": calc["profile"].label,
+                })
             d_inizio = date.fromisoformat(data["data_inizio"])
-            giorni = int(data.get("giorni", 0))
-            mesi = int(data.get("mesi", 0))
-            anni = int(data.get("anni", 0))
-            tipo = data.get("tipo", "liberi")
-            sospensione = data.get("sospensione_feriale", True)
             d_scadenza = calcola_termine(
                 d_inizio,
-                giorni=giorni,
-                tipo=tipo,
-                sospensione_feriale=sospensione,
-                mesi=mesi,
-                anni=anni,
+                giorni=int(data.get("giorni", 0)),
+                tipo=data.get("tipo", "liberi"),
+                sospensione_feriale=data.get("sospensione_feriale", True),
+                mesi=int(data.get("mesi", 0)),
+                anni=int(data.get("anni", 0)),
             )
-            return jsonify({
-                "data_scadenza": d_scadenza.isoformat(),
-                "lavorativo": è_giorno_lavorativo(d_scadenza),
-            })
+            return jsonify({"data_scadenza": d_scadenza.isoformat(), "lavorativo": è_giorno_lavorativo(d_scadenza)})
         except (KeyError, ValueError) as e:
             return jsonify({"errore": str(e)}), 400
 

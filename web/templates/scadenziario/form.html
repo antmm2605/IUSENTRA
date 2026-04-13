@@ -1,250 +1,319 @@
 {% extends "base.html" %}
+{% from "includes/_ufficio_picker.html" import ufficio_picker %}
+{% set office_mode_labels = {'open': 'Aperto', 'closed': 'Chiuso', 'urgent_only': 'Solo atti urgenti', 'limited_hours': 'Orari limitati'} %}
 {% block title %}{{ 'Modifica' if scadenza else 'Nuova' }} Scadenza{% endblock %}
 {% block page_title %}{{ 'Modifica' if scadenza else 'Nuova' }} Scadenza{% endblock %}
 
 {% block content %}
-
-{# ── Page Header ── #}
 <div class="ds-ph">
-  <div class="ds-ph-icon">
-    <i class="bi bi-{% if scadenza %}pencil{% else %}calendar-event{% endif %}"></i>
-  </div>
+  <div class="ds-ph-icon"><i class="bi bi-{% if scadenza %}pencil{% else %}calendar-event{% endif %}"></i></div>
   <div class="ds-ph-body">
     <h1 class="ds-ph-title">{{ 'Modifica: ' + scadenza.titolo if scadenza else 'Nuova Scadenza' }}</h1>
-    <p class="ds-ph-sub">Inserisci i dati della scadenza</p>
+    <p class="ds-ph-sub">Motore termini processuali con calendario nazionale, sospensione feriale e patroni studio/ufficio</p>
   </div>
   <div class="ds-ph-actions">
-    {% if scadenza %}
-    <a href="{{ url_for('dettaglio_scadenza', id_sc=scadenza.id) }}" class="ds-btn ds-btn-ghost">
-      <i class="bi bi-arrow-left"></i><span class="d-none d-sm-inline">Dettaglio</span>
-    </a>
-    {% else %}
     <a href="{{ url_for('scadenziario') }}" class="ds-btn ds-btn-ghost">
       <i class="bi bi-arrow-left"></i><span class="d-none d-sm-inline">Scadenziario</span>
     </a>
-    {% endif %}
   </div>
 </div>
 
 <div class="row g-4">
+  <div class="col-xl-8">
+    <form method="post" id="form-scadenza">
+      <input type="hidden" name="from_cliente" value="{{ from_cliente or '' }}">
+      <input type="hidden" name="id_cliente" value="{{ id_cliente or '' }}">
 
-{# ── Colonna form principale ── #}
-<div class="col-lg-8">
-<form method="post" id="form-scadenza">
-<input type="hidden" name="from_cliente" value="{{ from_cliente or '' }}">
-<input type="hidden" name="id_cliente" value="{{ id_cliente or '' }}">
-
-{% if from_cliente %}
-<div class="alert alert-info border-0 d-flex align-items-center gap-2 py-2 mb-3">
-  <i class="bi bi-info-circle-fill"></i>
-  <span>Stai aggiungendo una scadenza dalla cartella cliente.
-  <a href="{{ url_for('cartella_cliente', id_cliente=from_cliente) }}"
-     class="fw-semibold">Torna alla cartella</a></span>
-</div>
-{% endif %}
-
-{# Preset termini processuali #}
-{% if not scadenza %}
-<div class="card shadow-sm mb-3">
-  <div class="card-header fw-semibold">
-    <i class="bi bi-lightning me-2 text-warning"></i>Calcolo automatico della data di scadenza
-    <span class="badge bg-secondary ms-2">opzionale</span>
-  </div>
-  <div class="card-body">
-    <div class="row g-3 align-items-end">
-      <div class="col-md-5">
-        <label class="form-label fw-semibold">Tipo termine</label>
-        <select name="preset" id="preset" class="form-select" onchange="aggiornaPreset()">
-          <option value="">— Nessun preset, inserimento manuale —</option>
-          {% for key, p in preset_list.items() %}
-          <option value="{{ key }}">{{ p.label }}</option>
-          {% endfor %}
-        </select>
-      </div>
-      <div class="col-md-3" id="riga-decorrenza-preset" style="display:none">
-        <label class="form-label fw-semibold">Data di inizio</label>
-        <input type="date" id="data-decorrenza-preset" class="form-control"
-               onchange="calcolaTermine()">
-      </div>
-      <div class="col-md-3" id="riga-scadenza-calcolata" style="display:none">
-        <label class="form-label fw-semibold">Data scadenza calcolata</label>
-        <input type="text" id="scadenza-calcolata" class="form-control font-monospace"
-               readonly style="background:#e8f5e9">
-      </div>
-    </div>
-    <div id="preset-descrizione" class="small text-muted mt-2"></div>
-  </div>
-</div>
-{% endif %}
-
-{# Dati scadenza #}
-<div class="card shadow-sm mb-3">
-  <div class="card-header fw-semibold">
-    <i class="bi bi-calendar-event me-2 text-primary"></i>Dati scadenza
-  </div>
-  <div class="card-body">
-    <div class="row g-3">
-      <div class="col-md-8">
-        <label class="form-label fw-semibold">Titolo <span class="text-danger">*</span></label>
-        <input type="text" name="titolo" class="form-control" required
-               value="{{ scadenza.titolo if scadenza else '' }}"
-               placeholder="es. Deposito memoria art. 171-ter n. 1">
-      </div>
-      <div class="col-md-4">
-        <label class="form-label fw-semibold">Tipo <span class="text-danger">*</span></label>
-        <select name="tipo" class="form-select" required>
-          {% for t in tipi %}
-          <option value="{{ t.value }}"
-            {{ 'selected' if scadenza and scadenza.tipo == t }}>
-            {{ t.value.replace('_',' ') }}
-          </option>
-          {% endfor %}
-        </select>
-      </div>
-      <div class="col-md-4">
-        <label class="form-label fw-semibold">Data scadenza <span class="text-danger">*</span></label>
-        <input type="date" name="data_scadenza" id="data_scadenza" class="form-control" required
-               value="{{ scadenza.data_scadenza if scadenza else '' }}">
-      </div>
-      <div class="col-md-4">
-        <label class="form-label fw-semibold">Data decorrenza</label>
-        <input type="date" name="data_decorrenza" class="form-control"
-               value="{{ scadenza.data_decorrenza if scadenza else '' }}">
-        <div class="form-text">Giorno di partenza del termine (es. data della notifica)</div>
-      </div>
-      <div class="col-md-4 d-flex align-items-end">
-        <div class="form-check form-switch pb-1">
-          <input class="form-check-input" type="checkbox" name="perentorio"
-                 value="1" id="perentorio"
-                 {{ 'checked' if scadenza and scadenza.perentorio }}>
-          <label class="form-check-label fw-semibold" for="perentorio">
-            Termine perentorio
-            <i class="bi bi-info-circle text-muted" title="Il mancato rispetto determina la perdita del diritto e non è recuperabile"></i>
-          </label>
+      <div class="card shadow-sm mb-3">
+        <div class="card-header fw-semibold"><i class="bi bi-lightning-charge me-2 text-primary"></i>Calcolo professionale del termine</div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-lg-6">
+              <label class="form-label fw-semibold">Preset processuale</label>
+              <select name="preset" id="preset" class="form-select">
+                <option value="">Nessun preset rapido</option>
+                {% for key, p in preset_list.items() %}
+                <option value="{{ key }}" {{ 'selected' if scadenza and scadenza.deadline_profile_code == p.profile_code }}>
+                  {{ p.label }}
+                </option>
+                {% endfor %}
+              </select>
+              <div id="preset-descrizione" class="form-text">Usa i preset per impugnazioni, memorie e termini processuali ricorrenti.</div>
+            </div>
+            <div class="col-lg-6">
+              <label class="form-label fw-semibold">Profilo termine</label>
+              <select name="deadline_profile_code" id="deadline_profile_code" class="form-select">
+                <option value="">Seleziona un profilo</option>
+                {% for code, p in profili_termine.items() %}
+                <option value="{{ code }}" {{ 'selected' if scadenza and scadenza.deadline_profile_code == code }}>
+                  {{ p.label }}
+                </option>
+                {% endfor %}
+              </select>
+              <div class="form-text">Usalo quando vuoi il motore avanzato senza preset processuale.</div>
+            </div>
+            <div class="col-lg-6">
+              <label class="form-label fw-semibold">Evento origine</label>
+              <input type="datetime-local" name="source_event_at" id="source_event_at" class="form-control"
+                     value="{{ (scadenza.source_event_at[:16] if scadenza and scadenza.source_event_at else '') }}">
+              <div class="form-text">Data e ora da cui parte il termine: notifica, deposito, comunicazione o udienza.</div>
+            </div>
+            <div class="col-lg-3">
+              <label class="form-label fw-semibold">Anticipo operativo</label>
+              <input type="number" name="operational_lead_business_days" id="operational_lead_business_days" class="form-control"
+                     min="0" max="30" value="{{ scadenza.operational_lead_business_days if scadenza else 2 }}">
+              <div class="form-text">Giorni lavorativi interni da anticipare.</div>
+            </div>
+            <div class="col-lg-3 d-flex align-items-end">
+              <div class="form-check form-switch mb-2">
+                <input class="form-check-input" type="checkbox" name="october_observance_blocks" id="october_observance_blocks" value="1"
+                       {{ 'checked' if scadenza and scadenza.october_observance_blocks }}>
+                <label class="form-check-label fw-semibold" for="october_observance_blocks">4 ottobre bloccante</label>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
-      <div class="col-md-6">
-        <label class="form-label fw-semibold">Fascicolo</label>
-        <select name="id_fascicolo" class="form-select">
-          <option value="">— Nessun fascicolo —</option>
-          {% for f in fascicoli %}
-          <option value="{{ f.id }}"
-            {{ 'selected' if (scadenza and scadenza.id_fascicolo == f.id) or (not scadenza and id_fascicolo_presel and id_fascicolo_presel == f.id) }}>
-            {{ f.numero }} — {{ f.titolo }}
-          </option>
-          {% endfor %}
-        </select>
+
+      <div class="card shadow-sm mb-3">
+        <div class="card-header fw-semibold"><i class="bi bi-bank me-2 text-primary"></i>Calendario dell'ufficio competente</div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-12">
+              <label class="form-label fw-semibold">Ufficio giudiziario</label>
+              {{ ufficio_picker("judicial_office_id",
+                  current_value = scadenza.judicial_office_id if scadenza else "",
+                  current_text = scadenza.judicial_office_name if scadenza else "",
+                  usa_nome = false,
+                  uid = "uffp-scad-ufficio") }}
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">Patrono ufficio</label>
+              <input type="text" name="office_patron_name" id="office_patron_name" class="form-control"
+                     value="{{ scadenza.judicial_office_patron_name if scadenza else '' }}" placeholder="Santa Rosalia">
+            </div>
+            <div class="col-md-2">
+              <label class="form-label fw-semibold">Giorno</label>
+              <input type="number" name="office_patron_day" id="office_patron_day" class="form-control"
+                     min="1" max="31" value="{{ scadenza.judicial_office_patron_day if scadenza and scadenza.judicial_office_patron_day else '' }}">
+            </div>
+            <div class="col-md-2">
+              <label class="form-label fw-semibold">Mese</label>
+              <input type="number" name="office_patron_month" id="office_patron_month" class="form-control"
+                     min="1" max="12" value="{{ scadenza.judicial_office_patron_month if scadenza and scadenza.judicial_office_patron_month else '' }}">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">Modalita ufficio nel giorno del patrono</label>
+              <select name="office_operating_mode" id="office_operating_mode" class="form-select">
+                {% set office_mode = scadenza.judicial_office_operating_mode if scadenza else 'open' %}
+                <option value="open" {{ 'selected' if office_mode == 'open' }}>Aperto</option>
+                <option value="closed" {{ 'selected' if office_mode == 'closed' }}>Chiuso</option>
+                <option value="urgent_only" {{ 'selected' if office_mode == 'urgent_only' }}>Solo atti urgenti</option>
+                <option value="limited_hours" {{ 'selected' if office_mode == 'limited_hours' }}>Orari limitati</option>
+              </select>
+            </div>
+            <div class="col-md-8">
+              <label class="form-label fw-semibold">Fonte ufficio / avviso</label>
+              <input type="url" name="office_source_url" id="office_source_url" class="form-control"
+                     value="{{ scadenza.judicial_office_source_url if scadenza else '' }}" placeholder="https://...">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">Ultima verifica</label>
+              <input type="date" name="office_verified_at" id="office_verified_at" class="form-control"
+                     value="{{ scadenza.judicial_office_verified_at[:10] if scadenza and scadenza.judicial_office_verified_at else '' }}">
+            </div>
+          </div>
+        </div>
       </div>
-      <div class="col-md-6">
-        <label class="form-label fw-semibold">Responsabile</label>
-        <select name="id_utente" class="form-select">
-          <option value="">— Nessun responsabile —</option>
-          {% for u in utenti %}
-          <option value="{{ u.id }}"
-            {{ 'selected' if scadenza and scadenza.id_utente_responsabile == u.id }}>
-            {{ u.nome_completo or u.username }}
-          </option>
-          {% endfor %}
-        </select>
+
+      <div class="card shadow-sm mb-3">
+        <div class="card-header fw-semibold"><i class="bi bi-journal-text me-2 text-primary"></i>Dati scadenza</div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-lg-8">
+              <label class="form-label fw-semibold">Titolo <span class="text-danger">*</span></label>
+              <input type="text" name="titolo" class="form-control" required value="{{ scadenza.titolo if scadenza else '' }}" placeholder="es. Deposito memoria art. 171-ter n. 1">
+            </div>
+            <div class="col-lg-4">
+              <label class="form-label fw-semibold">Tipo <span class="text-danger">*</span></label>
+              <select name="tipo" class="form-select" required>
+                {% for t in tipi %}
+                <option value="{{ t.value }}" {{ 'selected' if scadenza and scadenza.tipo == t }}>{{ t.value.replace('_',' ') }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-lg-4">
+              <label class="form-label fw-semibold">Data scadenza manuale</label>
+              <input type="date" name="data_scadenza" id="data_scadenza" class="form-control" value="{{ scadenza.data_scadenza if scadenza else '' }}">
+              <div class="form-text">Usata solo se non attivi il motore di calcolo.</div>
+            </div>
+            <div class="col-lg-4">
+              <label class="form-label fw-semibold">Data decorrenza</label>
+              <input type="date" name="data_decorrenza" class="form-control" value="{{ scadenza.data_decorrenza if scadenza else '' }}">
+            </div>
+            <div class="col-lg-4 d-flex align-items-end">
+              <div class="form-check form-switch pb-1">
+                <input class="form-check-input" type="checkbox" name="perentorio" value="1" id="perentorio" {{ 'checked' if scadenza and scadenza.perentorio }}>
+                <label class="form-check-label fw-semibold" for="perentorio">Termine perentorio</label>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Fascicolo</label>
+              <select name="id_fascicolo" class="form-select">
+                <option value="">Nessun fascicolo</option>
+                {% for f in fascicoli %}
+                <option value="{{ f.id }}" {{ 'selected' if (scadenza and scadenza.id_fascicolo == f.id) or (not scadenza and id_fascicolo_presel and id_fascicolo_presel == f.id) }}>{{ f.numero }} - {{ f.titolo }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Responsabile</label>
+              <select name="id_utente" class="form-select">
+                <option value="">Nessun responsabile</option>
+                {% for u in utenti %}
+                <option value="{{ u.id }}" {{ 'selected' if scadenza and scadenza.id_utente_responsabile == u.id }}>{{ u.nome_completo or u.username }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-semibold">Descrizione</label>
+              <textarea name="descrizione" class="form-control" rows="2">{{ scadenza.descrizione if scadenza else '' }}</textarea>
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-semibold">Note</label>
+              <textarea name="note" class="form-control" rows="2">{{ scadenza.note if scadenza else '' }}</textarea>
+            </div>
+          </div>
+        </div>
       </div>
-      <div class="col-12">
-        <label class="form-label fw-semibold">Descrizione</label>
-        <textarea name="descrizione" class="form-control" rows="2"
-          placeholder="Norma di riferimento, contesto…">{{ scadenza.descrizione if scadenza else '' }}</textarea>
+
+      <div class="d-flex gap-2 mb-4">
+        <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>{{ 'Salva modifiche' if scadenza else 'Crea scadenza' }}</button>
+        <a href="{{ url_for('scadenziario') }}" class="btn btn-outline-secondary">Annulla</a>
       </div>
-      <div class="col-12">
-        <label class="form-label fw-semibold">Note</label>
-        <textarea name="note" class="form-control" rows="2">{{ scadenza.note if scadenza else '' }}</textarea>
+    </form>
+  </div>
+
+  <div class="col-xl-4">
+    <div class="card shadow-sm mb-3">
+      <div class="card-header fw-semibold"><i class="bi bi-clock-history me-2 text-primary"></i>Riepilogo del calcolo</div>
+      <div class="card-body">
+        <div class="row g-2">
+          <div class="col-6"><div class="border rounded-3 p-3 h-100"><div class="small text-muted">Scadenza legale</div><div class="fw-semibold" id="preview-legal">{{ scadenza.legal_due_at|fmt_dataora if scadenza and scadenza.legal_due_at else '—' }}</div></div></div>
+          <div class="col-6"><div class="border rounded-3 p-3 h-100"><div class="small text-muted">Scadenza operativa</div><div class="fw-semibold" id="preview-operational">{{ scadenza.operational_due_at|fmt_dataora if scadenza and scadenza.operational_due_at else '—' }}</div></div></div>
+          <div class="col-6"><div class="border rounded-3 p-3 h-100"><div class="small text-muted">Scadenza grezza</div><div class="fw-semibold" id="preview-raw">{{ scadenza.raw_due_at|fmt_dataora if scadenza and scadenza.raw_due_at else '—' }}</div></div></div>
+          <div class="col-6"><div class="border rounded-3 p-3 h-100"><div class="small text-muted">Modalita ufficio</div><div class="fw-semibold" id="preview-office-mode">{{ office_mode_labels.get(scadenza.office_mode_on_legal_due_date, 'Aperto') if scadenza and scadenza.office_mode_on_legal_due_date else '—' }}</div></div></div>
+        </div>
+        <div class="alert alert-light border mt-3 mb-0 small">
+          <div class="fw-semibold mb-1">Studio</div>
+          {{ studio_cfg.nome }}{% if studio_cfg.city %} · {{ studio_cfg.city }}{% endif %}{% if studio_cfg.patron_name and studio_cfg.patron_day and studio_cfg.patron_month %}<br>Patrono interno: {{ studio_cfg.patron_name }} ({{ "%02d"|format(studio_cfg.patron_day) }}/{{ "%02d"|format(studio_cfg.patron_month) }}){% endif %}
+        </div>
+      </div>
+    </div>
+
+    <div class="card shadow-sm">
+      <div class="card-header fw-semibold"><i class="bi bi-list-check me-2 text-primary"></i>Trace del calcolo</div>
+      <div class="card-body">
+        <ol class="small mb-0 ps-3" id="preview-trace">
+          {% if scadenza and scadenza.trace %}
+            {% for item in scadenza.trace %}
+            <li>{{ item }}</li>
+            {% endfor %}
+          {% else %}
+            <li class="text-muted">Seleziona profilo o preset e inserisci l'evento origine per vedere il trace.</li>
+          {% endif %}
+        </ol>
       </div>
     </div>
   </div>
 </div>
-
-<div class="d-flex gap-2 mb-4">
-  <button type="submit" class="btn btn-primary">
-    <i class="bi bi-check-lg me-1"></i>{{ 'Salva modifiche' if scadenza else 'Crea scadenza' }}
-  </button>
-  {% if from_cliente %}
-  <a href="{{ url_for('cartella_cliente', id_cliente=from_cliente) }}"
-     class="btn btn-outline-secondary">Annulla</a>
-  {% else %}
-  <a href="{{ url_for('scadenziario') }}" class="btn btn-outline-secondary">Annulla</a>
-  {% endif %}
-</div>
-</form>
-</div>{# /col-lg-8 #}
-
-{# ── Sidebar info ── #}
-<div class="col-lg-4">
-  <div class="card shadow-sm mb-3">
-    <div class="card-header fw-semibold">
-      <i class="bi bi-info-circle me-2 text-primary"></i>Guida rapida
-    </div>
-    <div class="card-body small text-muted">
-      <p class="mb-2"><strong>Termine perentorio</strong>: il mancato rispetto determina la decadenza dal diritto, non sanabile.</p>
-      <p class="mb-2"><strong>Data decorrenza</strong>: giorno da cui inizia a decorrere il termine (es. data di notifica).</p>
-      <p class="mb-0"><strong>Calcolo automatico</strong>: usa i preset per calcolare automaticamente la data di scadenza dai termini processuali comuni (art. 171-ter, 190 c.p.c., impugnazioni e termini lunghi).</p>
-    </div>
-  </div>
-  <div class="card shadow-sm">
-    <div class="card-header fw-semibold">
-      <i class="bi bi-bell me-2 text-muted"></i>Preavvisi automatici
-    </div>
-    <div class="card-body small text-muted">
-      Il sistema invierà avvisi automatici a <strong>30, 15, 7 e 1 giorno</strong> prima della scadenza. Per i termini perentori l'avviso è prioritario.
-    </div>
-  </div>
-</div>{# /col-lg-4 #}
-
-</div>{# /row #}
 {% endblock %}
 
 {% block scripts %}
 <script>
 const PRESETS = {{ preset_list | tojson }};
+const OFFICE_MODE_LABELS = {
+  open: 'Aperto',
+  closed: 'Chiuso',
+  urgent_only: 'Solo atti urgenti',
+  limited_hours: 'Orari limitati',
+};
+const profileSelect = document.getElementById('deadline_profile_code');
+const presetSelect = document.getElementById('preset');
+const fieldsToWatch = ['preset','deadline_profile_code','source_event_at','judicial_office_id','office_patron_name','office_patron_day','office_patron_month','office_operating_mode','office_source_url','office_verified_at','operational_lead_business_days','october_observance_blocks'];
 
-function aggiornaPreset() {
-  const key = document.getElementById('preset').value;
-  const rigaDec = document.getElementById('riga-decorrenza-preset');
-  const rigaCalc = document.getElementById('riga-scadenza-calcolata');
-  const desc = document.getElementById('preset-descrizione');
-  if (key && PRESETS[key]) {
-    rigaDec.style.display = '';
-    rigaCalc.style.display = '';
-    desc.textContent = PRESETS[key].descrizione || '';
-  } else {
-    rigaDec.style.display = 'none';
-    rigaCalc.style.display = 'none';
-    desc.textContent = '';
-    document.getElementById('scadenza-calcolata').value = '';
+function profileFromPreset() {
+  const key = presetSelect.value;
+  const info = PRESETS[key];
+  if (!info) {
+    document.getElementById('preset-descrizione').textContent = 'Usa i preset per impugnazioni, memorie e termini processuali ricorrenti.';
+    return;
   }
+  document.getElementById('preset-descrizione').textContent = info.descrizione || '';
+  if (info.profile_code) profileSelect.value = info.profile_code;
 }
 
-async function calcolaTermine() {
-  const key = document.getElementById('preset').value;
-  const dataInizio = document.getElementById('data-decorrenza-preset').value;
-  if (!key || !dataInizio) return;
-  const p = PRESETS[key];
+function formPayload() {
+  return {
+    preset: document.getElementById('preset').value,
+    deadline_profile_code: document.getElementById('deadline_profile_code').value,
+    source_event_at: document.getElementById('source_event_at').value,
+    judicial_office_id: document.querySelector('[name="judicial_office_id"]').value,
+    office_patron_name: document.getElementById('office_patron_name').value,
+    office_patron_day: document.getElementById('office_patron_day').value,
+    office_patron_month: document.getElementById('office_patron_month').value,
+    office_operating_mode: document.getElementById('office_operating_mode').value,
+    office_source_url: document.getElementById('office_source_url').value,
+    office_verified_at: document.getElementById('office_verified_at').value,
+    operational_lead_business_days: document.getElementById('operational_lead_business_days').value,
+    october_observance_blocks: document.getElementById('october_observance_blocks').checked ? '1' : '',
+  };
+}
+
+function setText(id, value) {
+  document.getElementById(id).textContent = value || '—';
+}
+
+async function aggiornaPreview() {
+  const payload = formPayload();
+  if ((!payload.preset && !payload.deadline_profile_code) || !payload.source_event_at) return;
   try {
     const resp = await fetch('/scadenziario/calcola-termine', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({
-        data_inizio: dataInizio,
-        giorni: p.giorni || 0,
-        mesi: p.mesi || 0,
-        anni: p.anni || 0,
-        tipo: p.tipo,
-        sospensione_feriale: p.sospensione_feriale !== false,
-      })
+      body: JSON.stringify(payload)
     });
     const data = await resp.json();
-    if (data.data_scadenza) {
-      document.getElementById('scadenza-calcolata').value = data.data_scadenza;
-      // Copia nel campo principale
-      document.getElementById('data_scadenza').value = data.data_scadenza;
+    if (!resp.ok || data.errore) return;
+    document.getElementById('data_scadenza').value = data.data_scadenza || '';
+    setText('preview-legal', data.legal_due_at || data.data_scadenza);
+    setText('preview-operational', data.operational_due_at);
+    setText('preview-raw', data.raw_due_at);
+    setText('preview-office-mode', OFFICE_MODE_LABELS[data.office_mode_on_legal_due_date] || 'Aperto');
+    const trace = document.getElementById('preview-trace');
+    trace.innerHTML = '';
+    (data.trace || []).forEach((item) => {
+      const li = document.createElement('li');
+      li.textContent = item;
+      trace.appendChild(li);
+    });
+    if (!(data.trace || []).length) {
+      const li = document.createElement('li');
+      li.className = 'text-muted';
+      li.textContent = 'Nessun passaggio tracciato.';
+      trace.appendChild(li);
     }
-  } catch(e) { console.error(e); }
+  } catch (err) {
+    console.error(err);
+  }
 }
+
+presetSelect.addEventListener('change', () => { profileFromPreset(); aggiornaPreview(); });
+fieldsToWatch.forEach((name) => {
+  const el = document.querySelector(`[name="${name}"]`) || document.getElementById(name);
+  if (!el) return;
+  el.addEventListener('change', aggiornaPreview);
+});
+profileFromPreset();
 </script>
 {% endblock %}

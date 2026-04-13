@@ -98,6 +98,35 @@
                  value="{{ cfg.studio.indirizzo }}" placeholder="Via Roma 1, 20100 Milano (MI)">
         </div>
         <div class="col-md-4">
+          <label class="form-label fw-semibold">Citta studio</label>
+          <input type="text" name="city" class="form-control"
+                 value="{{ cfg.studio.city }}" placeholder="Milano">
+        </div>
+        <div class="col-md-2">
+          <label class="form-label fw-semibold">Provincia</label>
+          <input type="text" name="province" class="form-control text-uppercase"
+                 value="{{ cfg.studio.province }}" placeholder="MI" maxlength="2">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label fw-semibold">Santo patrono studio</label>
+          <input type="text" name="patron_name" class="form-control"
+                 value="{{ cfg.studio.patron_name }}" placeholder="Sant'Ambrogio">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label fw-semibold">Data patrono</label>
+          <div class="row g-2">
+            <div class="col-6">
+              <input type="number" name="patron_day" class="form-control"
+                     value="{{ cfg.studio.patron_day or '' }}" placeholder="7" min="1" max="31">
+            </div>
+            <div class="col-6">
+              <input type="number" name="patron_month" class="form-control"
+                     value="{{ cfg.studio.patron_month or '' }}" placeholder="12" min="1" max="12">
+            </div>
+          </div>
+          <div class="form-text">Incide sulla scadenza operativa interna, non su quella legale.</div>
+        </div>
+        <div class="col-md-4">
           <label class="form-label fw-semibold">Telefono</label>
           <input type="tel" name="telefono" class="form-control"
                  value="{{ cfg.studio.telefono }}" placeholder="+39 02 1234567">

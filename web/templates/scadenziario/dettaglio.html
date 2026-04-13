@@ -1,184 +1,101 @@
 {% extends "base.html" %}
-{% block title %}Scadenza — {{ sc.titolo }}{% endblock %}
+{% set office_mode_labels = {'open': 'Aperto', 'closed': 'Chiuso', 'urgent_only': 'Solo atti urgenti', 'limited_hours': 'Orari limitati'} %}
+{% block title %}Scadenza - {{ sc.titolo }}{% endblock %}
 {% block page_title %}Dettaglio Scadenza{% endblock %}
 
 {% block content %}
 {% set pcol = {'CRITICA':'danger','ALTA':'warning','MEDIA':'primary','BASSA':'secondary'} %}
-{% set plabel = {'CRITICA':'Critica','ALTA':'Alta','MEDIA':'Media','BASSA':'Bassa'} %}
-{% set slabel = {'APERTA':'Aperta','COMPLETATO':'Completata','SCADUTO':'Scaduta'} %}
 {% set g = sc.giorni_alla_scadenza %}
-
-{# ── Page Header ── #}
 <div class="ds-ph">
-  <div class="ds-ph-icon">
-    <i class="bi bi-{% if sc.priorita.value == 'CRITICA' %}alarm-fill{% elif sc.priorita.value == 'ALTA' %}exclamation-triangle-fill{% else %}calendar-event{% endif %}"></i>
-  </div>
+  <div class="ds-ph-icon"><i class="bi bi-calendar-event"></i></div>
   <div class="ds-ph-body">
-    <h1 class="ds-ph-title">
-      {{ sc.titolo }}
-      {% if sc.perentorio %}<span class="badge bg-danger ms-2 fs-6">Termine perentorio</span>{% endif %}
-    </h1>
-    <p class="ds-ph-sub">
-      <span class="badge bg-{{ pcol.get(sc.priorita.value,'secondary') }}{% if sc.priorita.value == 'ALTA' %} text-dark{% endif %} me-1">{{ plabel.get(sc.priorita.value, sc.priorita.value) }}</span>
-      <span class="badge bg-secondary me-1">{{ slabel.get(sc.stato.value, sc.stato.value) }}</span>
-      {{ sc.tipo.value.replace('_',' ') }}
-      · {{ sc.data_scadenza|fmt_data }}
-    </p>
+    <h1 class="ds-ph-title">{{ sc.titolo }}{% if sc.perentorio %}<span class="badge bg-danger ms-2">Termine perentorio</span>{% endif %}</h1>
+    <p class="ds-ph-sub">{{ sc.tipo.value.replace('_',' ') }} · {{ sc.data_scadenza|fmt_data }}</p>
   </div>
   <div class="ds-ph-actions">
-    <a href="{{ url_for('modifica_scadenza', id_sc=sc.id) }}" class="ds-btn ds-btn-outline">
-      <i class="bi bi-pencil"></i><span class="d-none d-sm-inline">Modifica</span>
-    </a>
-    <a href="{{ url_for('scadenziario') }}" class="ds-btn ds-btn-ghost">
-      <i class="bi bi-arrow-left"></i><span class="d-none d-sm-inline">Scadenziario</span>
-    </a>
+    <a href="{{ url_for('modifica_scadenza', id_sc=sc.id) }}" class="ds-btn ds-btn-outline"><i class="bi bi-pencil"></i><span class="d-none d-sm-inline">Modifica</span></a>
+    <a href="{{ url_for('scadenziario') }}" class="ds-btn ds-btn-ghost"><i class="bi bi-arrow-left"></i><span class="d-none d-sm-inline">Scadenziario</span></a>
   </div>
 </div>
 
 <div class="row g-3">
-
-{# ── Colonna principale ── #}
-<div class="col-lg-8">
-
-<div class="card shadow-sm mb-3
-  {{ 'border-danger' if sc.priorita.value == 'CRITICA' else ('border-warning' if sc.priorita.value == 'ALTA' else '') }}">
-  <div class="card-header fw-semibold">
-    <i class="bi bi-calendar-event me-2 text-primary"></i>Dettaglio scadenza
-  </div>
-  <div class="card-body">
-
-    {# Countdown prominente #}
-    <div class="text-center py-3 mb-3 rounded
-      {{ 'bg-danger bg-opacity-10' if sc.priorita.value == 'CRITICA'
-         else ('bg-warning bg-opacity-10' if sc.priorita.value == 'ALTA'
-         else 'bg-light') }}">
-      {% if g is not none %}
-        {% if sc.stato.value == 'COMPLETATO' %}
-          <div class="fs-1 text-success"><i class="bi bi-check-circle-fill"></i></div>
-          <div class="fw-semibold text-success">Completata</div>
-        {% elif sc.stato.value == 'SCADUTO' %}
-          <div class="fs-1 text-danger"><i class="bi bi-exclamation-octagon-fill"></i></div>
-          <div class="fw-semibold text-danger">Scaduta</div>
-        {% elif g < 0 %}
-          <div class="display-4 fw-bold text-danger">{{ g * -1 }}</div>
-          <div class="text-danger fw-semibold">giorni fa</div>
-        {% elif g == 0 %}
-          <div class="display-4 fw-bold text-danger">OGGI</div>
-        {% else %}
-          <div class="display-4 fw-bold text-{{ pcol.get(sc.priorita.value,'secondary') }}">{{ g }}</div>
-          <div class="text-muted fw-semibold">giorni alla scadenza</div>
-        {% endif %}
-        <div class="text-muted mt-1">{{ sc.data_scadenza|fmt_data }}</div>
-      {% endif %}
+  <div class="col-xl-8">
+    <div class="card shadow-sm mb-3">
+      <div class="card-header fw-semibold"><i class="bi bi-clock-history me-2 text-primary"></i>Scadenza legale e operativa</div>
+      <div class="card-body">
+        <div class="row g-3">
+          <div class="col-md-4"><div class="border rounded-3 p-3 h-100"><div class="small text-muted">Scadenza legale</div><div class="fw-semibold">{{ sc.legal_due_at|fmt_dataora if sc.legal_due_at else sc.data_scadenza|fmt_data }}</div></div></div>
+          <div class="col-md-4"><div class="border rounded-3 p-3 h-100"><div class="small text-muted">Scadenza operativa</div><div class="fw-semibold">{{ sc.operational_due_at|fmt_dataora if sc.operational_due_at else '—' }}</div></div></div>
+          <div class="col-md-4"><div class="border rounded-3 p-3 h-100"><div class="small text-muted">Modalita ufficio nel giorno finale</div><div class="fw-semibold">{{ office_mode_labels.get(sc.office_mode_on_legal_due_date, 'Aperto') }}</div></div></div>
+          <div class="col-md-4"><div class="border rounded-3 p-3 h-100"><div class="small text-muted">Scadenza grezza</div><div class="fw-semibold">{{ sc.raw_due_at|fmt_dataora if sc.raw_due_at else '—' }}</div></div></div>
+          <div class="col-md-4"><div class="border rounded-3 p-3 h-100"><div class="small text-muted">Giorni alla scadenza</div><div class="fw-semibold text-{{ pcol.get(sc.priorita.value,'secondary') }}">{{ 'OGGI' if g == 0 else (g|string + ' gg' if g is not none else '—') }}</div></div></div>
+          <div class="col-md-4"><div class="border rounded-3 p-3 h-100"><div class="small text-muted">Profilo termine</div><div class="fw-semibold">{{ sc.deadline_profile_code or 'manuale' }}</div></div></div>
+        </div>
+      </div>
     </div>
 
-    <dl class="row mb-0">
-      <dt class="col-sm-3">Stato</dt>
-      <dd class="col-sm-9">
-        <span class="badge bg-{{ pcol.get(sc.priorita.value,'secondary') }}
-          {{ ' text-dark' if sc.priorita.value == 'ALTA' else '' }}">
-          {{ plabel.get(sc.priorita.value, sc.priorita.value) }}
-        </span>
-        <span class="badge bg-secondary ms-1">{{ slabel.get(sc.stato.value, sc.stato.value) }}</span>
-      </dd>
+    <div class="card shadow-sm mb-3">
+      <div class="card-header fw-semibold"><i class="bi bi-bank me-2 text-primary"></i>Calendario applicato</div>
+      <div class="card-body">
+        <dl class="row mb-0">
+          <dt class="col-sm-4">Ufficio giudiziario</dt>
+          <dd class="col-sm-8">{{ sc.judicial_office_name or 'Non impostato' }}</dd>
+          <dt class="col-sm-4">Patrono ufficio</dt>
+          <dd class="col-sm-8">
+            {% if sc.judicial_office_patron_name and sc.judicial_office_patron_day and sc.judicial_office_patron_month %}
+              {{ sc.judicial_office_patron_name }} ({{ "%02d"|format(sc.judicial_office_patron_day) }}/{{ "%02d"|format(sc.judicial_office_patron_month) }})
+            {% else %}
+              Non impostato
+            {% endif %}
+          </dd>
+          <dt class="col-sm-4">Fonte ufficio</dt>
+          <dd class="col-sm-8">{% if sc.judicial_office_source_url %}<a href="{{ sc.judicial_office_source_url }}" target="_blank" rel="noopener">{{ sc.judicial_office_source_url }}</a>{% else %}—{% endif %}</dd>
+          <dt class="col-sm-4">Ultima verifica</dt>
+          <dd class="col-sm-8">{{ sc.judicial_office_verified_at|fmt_data if sc.judicial_office_verified_at else '—' }}</dd>
+          <dt class="col-sm-4">Evento origine</dt>
+          <dd class="col-sm-8">{{ sc.source_event_at|fmt_dataora if sc.source_event_at else (sc.data_decorrenza|fmt_data if sc.data_decorrenza else '—') }}</dd>
+        </dl>
+      </div>
+    </div>
 
-      <dt class="col-sm-3">Tipo</dt>
-      <dd class="col-sm-9">{{ sc.tipo.value.replace('_',' ') }}</dd>
+    <div class="card shadow-sm">
+      <div class="card-header fw-semibold"><i class="bi bi-list-check me-2 text-primary"></i>Trace del calcolo</div>
+      <div class="card-body">
+        <ol class="small ps-3 mb-0">
+          {% for item in sc.trace %}
+          <li>{{ item }}</li>
+          {% else %}
+          <li class="text-muted">Nessun trace disponibile: scadenza manuale o dati legacy.</li>
+          {% endfor %}
+        </ol>
+      </div>
+    </div>
+  </div>
 
-      {% if sc.data_decorrenza %}
-      <dt class="col-sm-3">Decorrenza</dt>
-      <dd class="col-sm-9 font-monospace">{{ sc.data_decorrenza|fmt_data }}</dd>
-      {% endif %}
+  <div class="col-xl-4">
+    <div class="card shadow-sm mb-3">
+      <div class="card-header fw-semibold"><i class="bi bi-journal-text me-2 text-primary"></i>Dati scadenza</div>
+      <div class="card-body small">
+        <div class="mb-2"><strong>Descrizione:</strong> {{ sc.descrizione or '—' }}</div>
+        <div class="mb-2"><strong>Fascicolo:</strong> {{ sc.id_fascicolo or '—' }}</div>
+        <div class="mb-2"><strong>Responsabile:</strong> {{ sc.id_utente_responsabile or '—' }}</div>
+        <div class="mb-2"><strong>Preavvisi:</strong> {{ sc.giorni_preavviso|join(', ') if sc.giorni_preavviso else '—' }}</div>
+        <div class="mb-0"><strong>Note:</strong> {{ sc.note or '—' }}</div>
+      </div>
+    </div>
 
-      {% if sc.descrizione %}
-      <dt class="col-sm-3">Descrizione</dt>
-      <dd class="col-sm-9">{{ sc.descrizione }}</dd>
-      {% endif %}
-
-      {% if sc.id_fascicolo %}
-      <dt class="col-sm-3">Fascicolo</dt>
-      <dd class="col-sm-9 font-monospace small">{{ sc.id_fascicolo }}</dd>
-      {% endif %}
-
-      {% if sc.id_utente_responsabile %}
-      <dt class="col-sm-3">Responsabile</dt>
-      <dd class="col-sm-9 font-monospace small">{{ sc.id_utente_responsabile }}</dd>
-      {% endif %}
-
-      <dt class="col-sm-3">Avvisi preavviso</dt>
-      <dd class="col-sm-9">
-        {% for gg in sc.giorni_preavviso %}
-        <span class="badge {{ 'bg-success' if gg in sc.avvisi_inviati else 'bg-light text-dark border' }} me-1">
-          {{ gg }} gg
-          {% if gg in sc.avvisi_inviati %}<i class="bi bi-check-lg ms-1"></i>{% endif %}
-        </span>
-        {% endfor %}
-      </dd>
-
-      {% if sc.note %}
-      <dt class="col-sm-3">Note</dt>
-      <dd class="col-sm-9">{{ sc.note }}</dd>
-      {% endif %}
-    </dl>
+    <div class="card shadow-sm">
+      <div class="card-header fw-semibold"><i class="bi bi-lightning me-2 text-primary"></i>Azioni</div>
+      <div class="card-body d-grid gap-2">
+        <a href="{{ url_for('modifica_scadenza', id_sc=sc.id) }}" class="btn btn-outline-primary btn-sm"><i class="bi bi-pencil me-1"></i>Modifica scadenza</a>
+        {% if sc.stato.value == 'APERTO' %}
+        <form method="post" action="{{ url_for('completa_scadenza', id_sc=sc.id) }}">
+          <button type="submit" class="btn btn-success btn-sm w-100"><i class="bi bi-check-lg me-1"></i>Segna come completata</button>
+        </form>
+        {% endif %}
+        <a href="{{ url_for('scadenziario') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Torna alla lista</a>
+      </div>
+    </div>
   </div>
 </div>
-
-</div>{# /col-lg-8 #}
-
-{# ── Sidebar azioni ── #}
-<div class="col-lg-4">
-
-  {# Azioni rapide #}
-  <div class="card shadow-sm mb-3">
-    <div class="card-header fw-semibold">
-      <i class="bi bi-lightning me-2 text-primary"></i>Azioni
-    </div>
-    <div class="card-body d-flex flex-column gap-2">
-      <a href="{{ url_for('modifica_scadenza', id_sc=sc.id) }}" class="btn btn-outline-primary btn-sm">
-        <i class="bi bi-pencil me-1"></i>Modifica scadenza
-      </a>
-      {% if sc.stato.value == 'APERTO' %}
-      <form method="post" action="{{ url_for('completa_scadenza', id_sc=sc.id) }}">
-        <button type="submit" class="btn btn-success btn-sm w-100"
-                onclick="return confirm('Segnare come completata?')">
-          <i class="bi bi-check-lg me-1"></i>Segna come completata
-        </button>
-      </form>
-      <form method="post" action="{{ url_for('elimina_scadenza', id_sc=sc.id) }}"
-            onsubmit="return confirm('Eliminare la scadenza?')">
-        <button type="submit" class="btn btn-outline-danger btn-sm w-100">
-          <i class="bi bi-trash me-1"></i>Elimina
-        </button>
-      </form>
-      {% endif %}
-      <a href="{{ url_for('scadenziario') }}" class="btn btn-outline-secondary btn-sm">
-        <i class="bi bi-arrow-left me-1"></i>Torna alla lista
-      </a>
-    </div>
-  </div>
-
-  {# Preavvisi #}
-  <div class="card shadow-sm mb-3">
-    <div class="card-header fw-semibold">
-      <i class="bi bi-bell me-2 text-muted"></i>Preavvisi configurati
-    </div>
-    <div class="card-body">
-      {% for gg in sc.giorni_preavviso %}
-      <div class="d-flex justify-content-between align-items-center mb-1">
-        <span class="small">{{ gg }} giorni prima</span>
-        {% if gg in sc.avvisi_inviati %}
-        <span class="badge bg-success"><i class="bi bi-check-lg me-1"></i>Inviato</span>
-        {% else %}
-        <span class="badge bg-light text-dark border">In attesa</span>
-        {% endif %}
-      </div>
-      {% else %}
-      <div class="text-muted small">Nessun preavviso configurato</div>
-      {% endfor %}
-    </div>
-  </div>
-
-</div>{# /col-lg-4 #}
-
-</div>{# /row #}
 {% endblock %}

@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% block pct_modulo %}scadenze{% endblock %}
+{% set office_mode_labels = {'open': 'Aperto', 'closed': 'Chiuso', 'urgent_only': 'Solo atti urgenti', 'limited_hours': 'Orari limitati'} %}
 {% block title %}Scadenziario{% endblock %}
 {% block page_title %}Scadenziario Legale{% endblock %}
 
@@ -100,6 +101,14 @@
   <span class="ds-stat-pill">
     <i class="bi bi-alarm text-info"></i>
     <span class="num">{{ stats.imminenti_7gg }}</span> entro 7 gg
+  </span>
+  <span class="ds-stat-pill">
+    <i class="bi bi-gear-wide-connected text-secondary"></i>
+    <span class="num">{{ stats.avanzate }}</span> avanzate
+  </span>
+  <span class="ds-stat-pill">
+    <i class="bi bi-chevron-double-left text-dark"></i>
+    <span class="num">{{ stats.con_anticipo_operativo }}</span> operative
   </span>
 </div>
 
@@ -211,7 +220,7 @@
                      title="Seleziona/deseleziona tutte">
             </th>
             <th>Scadenza</th><th>Titolo</th><th class="d-none d-md-table-cell">Tipo</th>
-            <th>Priorità</th><th class="d-none d-lg-table-cell">Fascicolo</th><th>Giorni</th><th></th>
+            <th class="d-none d-lg-table-cell">Operativa</th><th>Priorità</th><th class="d-none d-lg-table-cell">Fascicolo</th><th>Giorni</th><th></th>
           </tr>
         </thead>
         <tbody>
@@ -237,11 +246,26 @@
                 {{ s.descrizione }}
               </div>
               {% endif %}
+              {% if s.ha_calcolo_avanzato %}
+              <div class="small text-muted mt-1">
+                <i class="bi bi-bank me-1"></i>{{ s.judicial_office_name or 'Ufficio non impostato' }}
+                {% if s.office_mode_on_legal_due_date and s.office_mode_on_legal_due_date != 'open' %}
+                · <span class="fw-semibold">{{ office_mode_labels.get(s.office_mode_on_legal_due_date, s.office_mode_on_legal_due_date) }}</span>
+                {% endif %}
+              </div>
+              {% endif %}
             </td>
             <td data-label="Tipo" class="d-none d-md-table-cell">
               <span class="badge bg-light text-dark border small">
                 {{ s.tipo.value.replace('_',' ') }}
               </span>
+            </td>
+            <td data-label="Operativa" class="d-none d-lg-table-cell">
+              {% if s.operational_due_at %}
+              <span class="badge bg-light text-dark border">{{ s.operational_due_at|fmt_data }}</span>
+              {% else %}
+              —
+              {% endif %}
             </td>
             <td data-label="Priorità">
               {% set pcol = {'CRITICA':'danger','ALTA':'warning','MEDIA':'primary','BASSA':'secondary'} %}

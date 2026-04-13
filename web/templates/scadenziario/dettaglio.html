@@ -6,6 +6,7 @@
 {% block content %}
 {% set pcol = {'CRITICA':'danger','ALTA':'warning','MEDIA':'primary','BASSA':'secondary'} %}
 {% set g = sc.giorni_alla_scadenza %}
+{% set profilo = profili_termine.get(sc.deadline_profile_code, {}) if profili_termine else {} %}
 <div class="ds-ph">
   <div class="ds-ph-icon"><i class="bi bi-calendar-event"></i></div>
   <div class="ds-ph-body">
@@ -20,24 +21,45 @@
 
 <div class="row g-3">
   <div class="col-xl-8">
+    {% if sc.riepilogo_operativo %}
+    <div class="alert alert-light border shadow-sm mb-3">
+      <div class="fw-semibold mb-2"><i class="bi bi-compass me-2 text-primary"></i>Quadro operativo del termine</div>
+      <ul class="small mb-0 ps-3">
+        {% for voce in sc.riepilogo_operativo %}
+        <li>{{ voce }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+
     <div class="card shadow-sm mb-3">
       <div class="card-header fw-semibold"><i class="bi bi-clock-history me-2 text-primary"></i>Scadenza legale e operativa</div>
       <div class="card-body">
         <div class="row g-3">
           <div class="col-md-4"><div class="border rounded-3 p-3 h-100"><div class="small text-muted">Scadenza legale</div><div class="fw-semibold">{{ sc.legal_due_at|fmt_dataora if sc.legal_due_at else sc.data_scadenza|fmt_data }}</div></div></div>
           <div class="col-md-4"><div class="border rounded-3 p-3 h-100"><div class="small text-muted">Scadenza operativa</div><div class="fw-semibold">{{ sc.operational_due_at|fmt_dataora if sc.operational_due_at else '—' }}</div></div></div>
-          <div class="col-md-4"><div class="border rounded-3 p-3 h-100"><div class="small text-muted">Modalita ufficio nel giorno finale</div><div class="fw-semibold">{{ office_mode_labels.get(sc.office_mode_on_legal_due_date, 'Aperto') }}</div></div></div>
+          <div class="col-md-4"><div class="border rounded-3 p-3 h-100"><div class="small text-muted">Modalita ufficio nel giorno finale</div><div class="fw-semibold">{{ sc.office_mode_label }}</div></div></div>
           <div class="col-md-4"><div class="border rounded-3 p-3 h-100"><div class="small text-muted">Scadenza grezza</div><div class="fw-semibold">{{ sc.raw_due_at|fmt_dataora if sc.raw_due_at else '—' }}</div></div></div>
           <div class="col-md-4"><div class="border rounded-3 p-3 h-100"><div class="small text-muted">Giorni alla scadenza</div><div class="fw-semibold text-{{ pcol.get(sc.priorita.value,'secondary') }}">{{ 'OGGI' if g == 0 else (g|string + ' gg' if g is not none else '—') }}</div></div></div>
-          <div class="col-md-4"><div class="border rounded-3 p-3 h-100"><div class="small text-muted">Profilo termine</div><div class="fw-semibold">{{ sc.deadline_profile_code or 'manuale' }}</div></div></div>
+          <div class="col-md-4"><div class="border rounded-3 p-3 h-100"><div class="small text-muted">Profilo termine</div><div class="fw-semibold">{{ profilo.label if profilo else (sc.deadline_profile_code or 'Manuale') }}</div></div></div>
         </div>
       </div>
     </div>
 
     <div class="card shadow-sm mb-3">
-      <div class="card-header fw-semibold"><i class="bi bi-bank me-2 text-primary"></i>Calendario applicato</div>
+      <div class="card-header fw-semibold"><i class="bi bi-bank me-2 text-primary"></i>Calendario applicato e contesto</div>
       <div class="card-body">
         <dl class="row mb-0">
+          <dt class="col-sm-4">Studio</dt>
+          <dd class="col-sm-8">{{ studio_cfg.nome }}{% if studio_cfg.city %} · {{ studio_cfg.city }}{% endif %}</dd>
+          <dt class="col-sm-4">Patrono studio</dt>
+          <dd class="col-sm-8">
+            {% if studio_cfg.patron_name and studio_cfg.patron_day and studio_cfg.patron_month %}
+              {{ studio_cfg.patron_name }} ({{ "%02d"|format(studio_cfg.patron_day) }}/{{ "%02d"|format(studio_cfg.patron_month) }})
+            {% else %}
+              Non impostato
+            {% endif %}
+          </dd>
           <dt class="col-sm-4">Ufficio giudiziario</dt>
           <dd class="col-sm-8">{{ sc.judicial_office_name or 'Non impostato' }}</dd>
           <dt class="col-sm-4">Patrono ufficio</dt>
@@ -48,12 +70,18 @@
               Non impostato
             {% endif %}
           </dd>
+          <dt class="col-sm-4">Modalita patrono ufficio</dt>
+          <dd class="col-sm-8">{{ office_mode_labels.get(sc.judicial_office_operating_mode, 'Aperto') }}</dd>
           <dt class="col-sm-4">Fonte ufficio</dt>
           <dd class="col-sm-8">{% if sc.judicial_office_source_url %}<a href="{{ sc.judicial_office_source_url }}" target="_blank" rel="noopener">{{ sc.judicial_office_source_url }}</a>{% else %}—{% endif %}</dd>
           <dt class="col-sm-4">Ultima verifica</dt>
           <dd class="col-sm-8">{{ sc.judicial_office_verified_at|fmt_data if sc.judicial_office_verified_at else '—' }}</dd>
           <dt class="col-sm-4">Evento origine</dt>
-          <dd class="col-sm-8">{{ sc.source_event_at|fmt_dataora if sc.source_event_at else (sc.data_decorrenza|fmt_data if sc.data_decorrenza else '—') }}</dd>
+          <dd class="col-sm-8">{{ sc.source_event_type_label }}{% if sc.source_event_at %} · {{ sc.source_event_at|fmt_dataora }}{% elif sc.data_decorrenza %} · {{ sc.data_decorrenza|fmt_data }}{% endif %}</dd>
+          <dt class="col-sm-4">Anticipo operativo</dt>
+          <dd class="col-sm-8">{{ sc.operational_lead_business_days }} giorno{% if sc.operational_lead_business_days != 1 %}i{% endif %} lavorativo{% if sc.operational_lead_business_days != 1 %}i{% endif %}</dd>
+          <dt class="col-sm-4">4 ottobre</dt>
+          <dd class="col-sm-8">{{ 'Osservanza bloccante' if sc.october_observance_blocks else 'Osservanza non bloccante' }}</dd>
         </dl>
       </div>
     </div>

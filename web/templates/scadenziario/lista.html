@@ -136,7 +136,7 @@
   <button type="submit" class="ds-btn ds-btn-outline">
     <i class="bi bi-funnel"></i>Filtra
   </button>
-  {% if q|default('') or filtro_tipo or filtro_priorita or filtro_dal or filtro_al or filtro_perentorio %}
+  {% if q|default('') or filtro_tipo or filtro_priorita or filtro_dal or filtro_al or filtro_perentorio or filtro_avanzate or filtro_operative %}
   <a href="{{ url_for('scadenziario') }}" class="ds-btn ds-btn-ghost">
     <i class="bi bi-x-circle"></i>Reset
   </a>
@@ -144,7 +144,7 @@
 </form>
 
 {# ── Filtri avanzati ── #}
-{% set ha_filtri_avanzati = filtro_dal or filtro_al or filtro_perentorio %}
+{% set ha_filtri_avanzati = filtro_dal or filtro_al or filtro_perentorio or filtro_avanzate or filtro_operative %}
 <div class="mb-3">
   <a class="ds-filter-toggle" data-bs-toggle="collapse" href="#filtriAvanzati"
      aria-expanded="{{ 'true' if ha_filtri_avanzati else 'false' }}">
@@ -176,6 +176,26 @@
                    name="perentorio" value="1" {{ 'checked' if filtro_perentorio }}>
             <label class="form-check-label small fw-semibold" for="filtro-perentorio">
               Solo perentorie
+            </label>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>&nbsp;</label>
+          <div class="form-check mt-1">
+            <input type="checkbox" class="form-check-input" id="filtro-avanzate"
+                   name="avanzate" value="1" {{ 'checked' if filtro_avanzate }}>
+            <label class="form-check-label small fw-semibold" for="filtro-avanzate">
+              Solo calcolo avanzato
+            </label>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>&nbsp;</label>
+          <div class="form-check mt-1">
+            <input type="checkbox" class="form-check-input" id="filtro-operative"
+                   name="operative" value="1" {{ 'checked' if filtro_operative }}>
+            <label class="form-check-label small fw-semibold" for="filtro-operative">
+              Solo con anticipo operativo
             </label>
           </div>
         </div>
@@ -251,6 +271,17 @@
                 <i class="bi bi-bank me-1"></i>{{ s.judicial_office_name or 'Ufficio non impostato' }}
                 {% if s.office_mode_on_legal_due_date and s.office_mode_on_legal_due_date != 'open' %}
                 · <span class="fw-semibold">{{ office_mode_labels.get(s.office_mode_on_legal_due_date, s.office_mode_on_legal_due_date) }}</span>
+                {% endif %}
+              </div>
+              <div class="small mt-2 d-flex gap-1 flex-wrap">
+                {% if s.ha_proroga_finale %}
+                <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle">Prorogata</span>
+                {% endif %}
+                {% if s.operational_due_at %}
+                <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle">Anticipo operativo</span>
+                {% endif %}
+                {% if s.ha_sospensione_feriale %}
+                <span class="badge bg-secondary-subtle text-secondary-emphasis border border-secondary-subtle">Sospensione feriale</span>
                 {% endif %}
               </div>
               {% endif %}

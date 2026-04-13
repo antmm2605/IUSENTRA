@@ -117,6 +117,7 @@ from pct.scadenziario import (
     regola_patrono_studio,
     regola_patrono_ufficio,
     regole_calendario_nazionali,
+    riepilogo_operativo_scadenza,
     è_giorno_lavorativo,
 )
 from pct.search_index import IndiceRicerca
@@ -3301,6 +3302,8 @@ def create_app(config: dict | None = None) -> Flask:
         filtro_dal = request.args.get("dal", "")
         filtro_al = request.args.get("al", "")
         filtro_perentorio = request.args.get("perentorio", "")
+        filtro_avanzate = request.args.get("avanzate", "")
+        filtro_operative = request.args.get("operative", "")
         scadenze = gs.tutte(
             tipo=TipoTermine(filtro_tipo) if filtro_tipo else None,
             priorita=PrioritaTermine(filtro_priorita) if filtro_priorita else None,
@@ -3318,6 +3321,10 @@ def create_app(config: dict | None = None) -> Flask:
         # Filtro perentorio
         if filtro_perentorio:
             scadenze = [s for s in scadenze if s.perentorio]
+        if filtro_avanzate:
+            scadenze = [s for s in scadenze if s.ha_calcolo_avanzato]
+        if filtro_operative:
+            scadenze = [s for s in scadenze if bool(s.operational_due_at)]
         scadute = gs.scadute()
         scadenze_critiche = gs.imminenti(entro_giorni=3)
         imminenti = gs.imminenti(entro_giorni=7)
@@ -3338,6 +3345,8 @@ def create_app(config: dict | None = None) -> Flask:
             filtro_dal=filtro_dal,
             filtro_al=filtro_al,
             filtro_perentorio=filtro_perentorio,
+            filtro_avanzate=filtro_avanzate,
+            filtro_operative=filtro_operative,
         )
 
     def _scadenziario_form_context(scadenza: Scadenza | None = None):
@@ -3511,7 +3520,12 @@ def create_app(config: dict | None = None) -> Flask:
         if not sc:
             flash("Scadenza non trovata.", "warning")
             return redirect(url_for("scadenziario"))
-        return render_template("scadenziario/dettaglio.html", sc=sc)
+        return render_template(
+            "scadenziario/dettaglio.html",
+            sc=sc,
+            studio_cfg=get_config_studio().config.studio,
+            profili_termine=profili_termine_builtin(),
+        )
 
     @app.route("/scadenziario/<id_sc>/modifica", methods=["GET", "POST"])
     def modifica_scadenza(id_sc):
@@ -3803,6 +3817,15 @@ def create_app(config: dict | None = None) -> Flask:
                     "operational_due_at": calc["result"].operational_due_at,
                     "office_mode_on_legal_due_date": calc["result"].office_mode_on_legal_due_date,
                     "trace": calc["result"].trace,
+                    "operational_notes": riepilogo_operativo_scadenza(
+                        trace=calc["result"].trace,
+                        operational_due_at=calc["result"].operational_due_at,
+                        operational_lead_business_days=calc["operational_lead_business_days"],
+                        october_observance_blocks=calc["october_observance_blocks"],
+                        office_patron_day=calc["judicial_office_patron_day"],
+                        office_patron_month=calc["judicial_office_patron_month"],
+                        office_operating_mode=calc["judicial_office_operating_mode"],
+                    ),
                     "judicial_office_name": calc["judicial_office_name"],
                     "profile_code": calc["profile"].code,
                     "profile_label": calc["profile"].label,

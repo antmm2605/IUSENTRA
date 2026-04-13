@@ -59,6 +59,14 @@ git push origin claude/legal-electronic-filing-kIxcV:Codex/legal-electronic-fili
 - Dopo modifiche SCSS, verificare sempre la compilazione CSS nel flusso Docker locale della release.
 - La UI deve essere responsive su desktop, tablet e mobile, con card compatte, senza spazi morti e con messaggi utente professionali in lingua italiana.
 
+## AI locale — Regola obbligatoria
+
+- Il runtime AI locale (`Ollama`) va sempre trattato come **runtime sullo stesso host che esegue HACS**, non come componente distribuito al browser del cliente.
+- Strategia preferita:
+  - Windows self-hosted → provisioning automatico del pacchetto standalone ufficiale sullo stesso host
+  - altri host/server → guida chiara e non bloccante, senza installazioni opache dal browser
+- Nessuna funzione core del gestionale deve bloccarsi se l'AI locale non è disponibile.
+
 ## Architettura del progetto
 
 ```

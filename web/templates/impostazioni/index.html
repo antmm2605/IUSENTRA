@@ -29,7 +29,7 @@
 {% endwith %}
 
 {# ── Tab navigation ── #}
-<ul class="nav nav-pills mb-4 gap-1 flex-wrap" id="settings-tabs" role="tablist">
+<ul class="nav nav-pills mb-4 gap-1 flex-wrap settings-tabs" id="settings-tabs" role="tablist">
   {% set tabs = [
     ('studio',    'bi-building',         'Dati Studio'),
     ('pec',       'bi-envelope-at-fill', 'PEC'),
@@ -42,8 +42,7 @@
   {% for slug, icon, label in tabs %}
   <li class="nav-item" role="presentation">
     <a href="{{ url_for('impostazioni.index', tab=slug) }}"
-       class="nav-link px-3 py-2 {{ 'active' if tab_attivo == slug }}"
-       style="border-radius:10px; font-size:.85rem;">
+       class="nav-link px-3 py-2 settings-tab-link {{ 'active' if tab_attivo == slug }}">
       <i class="bi {{ icon }} me-1"></i>{{ label }}
     </a>
   </li>
@@ -1058,21 +1057,42 @@ function testaPkcs11() {
 {% endif %}
 
 {% if tab_attivo == 'ai' %}
-<div class="row g-4">
-  <div class="col-lg-7">
-    <div class="card border-0 shadow-sm" style="border-radius:18px;">
-      <div class="card-body p-4">
-        <div class="d-flex align-items-start justify-content-between gap-3 mb-3 flex-wrap">
-          <div>
+<div class="row g-4 settings-ai-layout">
+  <div class="col-lg-7 settings-ai-layout__main">
+    <div class="card border-0 shadow-sm settings-card settings-card--primary">
+      <div class="card-body p-4 d-grid gap-4">
+        <div class="d-flex align-items-start justify-content-between gap-3 mb-3 flex-wrap settings-ai-hero">
+          <div class="settings-ai-hero__body">
+            <div class="settings-ai-hero__eyebrow">Intelligenza locale governata</div>
             <h6 class="fw-bold mb-1"><i class="bi bi-cpu-fill text-primary me-2"></i>AI locale con Ollama</h6>
-            <p class="text-muted mb-0" style="font-size:.82rem;">
+            <p class="text-muted mb-0 settings-ai-hero__text">
               Runtime locale non bloccante per fascicoli, documenti, agenda, scadenziario e workspace intelligente.
+              La soluzione corretta è gestirlo sulla stessa macchina che esegue HACS, non nel browser del cliente.
             </p>
           </div>
-          <span class="badge text-bg-secondary" id="ai-runtime-badge">Verifica in corso</span>
+          <div class="settings-ai-hero__meta">
+            <span class="badge text-bg-secondary" id="ai-runtime-badge">Verifica in corso</span>
+            <div class="settings-ai-hero__note">Runtime sullo stesso host di HACS</div>
+          </div>
         </div>
 
-        <form method="post">
+        <div class="ui-feedback ui-feedback--warning settings-ai-explainer">
+          <div class="ui-feedback__icon">
+            <i class="bi bi-shield-check"></i>
+          </div>
+          <div class="ui-feedback__content">
+            <div class="ui-feedback__title">Distribuzione consigliata</div>
+            <div class="ui-feedback__body">
+              HACS non distribuisce Ollama al browser del cliente finale. Quando il runtime manca,
+              il bootstrap prepara il pacchetto ufficiale sulla stessa macchina che ospita l'applicazione.
+              Se il provisioning automatico non è disponibile, il gestionale continua a funzionare e mostra una guida chiara per l'host corrente.
+            </div>
+          </div>
+        </div>
+
+        <div id="ai-action-feedback" class="ui-feedback-stack d-none"></div>
+
+        <form method="post" class="settings-ai-form">
           <input type="hidden" name="_tab" value="ai">
           <div class="row g-3">
             <div class="col-md-6">
@@ -1085,49 +1105,52 @@ function testaPkcs11() {
             <div class="col-md-6">
               <div class="form-check form-switch">
                 <input class="form-check-input" type="checkbox" role="switch" name="ai_auto_bootstrap" id="ai_auto_bootstrap" value="1" {{ 'checked' if cfg.ai.auto_bootstrap }}>
-                <label class="form-check-label fw-semibold" for="ai_auto_bootstrap">Bootstrap automatico Ollama</label>
+                <label class="form-check-label fw-semibold" for="ai_auto_bootstrap">Provisioning e avvio automatici</label>
               </div>
-              <div class="form-text">Su Windows prova ad avviare il runtime locale se presente nello zip standalone.</div>
+              <div class="form-text">Su Windows HACS prova a rilevare, scaricare e avviare il runtime ufficiale sullo stesso host.</div>
             </div>
             <div class="col-12">
-              <label class="form-label fw-semibold">Base URL runtime</label>
+              <label class="form-label fw-semibold">Base URL del runtime</label>
               <input type="text" name="ai_base_url" id="ai_base_url" class="form-control font-monospace"
                      value="{{ cfg.ai.base_url }}" placeholder="http://127.0.0.1:11434/api">
+              <div class="form-text">Lascia l'indirizzo locale standard se Ollama gira sulla stessa macchina di HACS.</div>
             </div>
             <div class="col-md-6">
-              <label class="form-label fw-semibold">Modello chat preferito</label>
+              <label class="form-label fw-semibold">Modello conversazionale preferito</label>
               <input type="text" name="ai_chat_model" id="ai_chat_model" class="form-control font-monospace"
-                     value="{{ cfg.ai.chat_model }}" placeholder="Lascia vuoto per policy hardware">
+                     value="{{ cfg.ai.chat_model }}" placeholder="Lascia vuoto per la policy hardware">
               <div class="form-text">Weak: qwen2.5:0.5b · Medium: gemma3:1b · Strong: gemma3:4b</div>
             </div>
             <div class="col-md-6">
               <label class="form-label fw-semibold">Modello embeddings preferito</label>
               <input type="text" name="ai_embed_model" id="ai_embed_model" class="form-control font-monospace"
-                     value="{{ cfg.ai.embed_model }}" placeholder="Lascia vuoto per policy hardware">
-              <div class="form-text">Default consigliato: embeddinggemma:300m</div>
+                     value="{{ cfg.ai.embed_model }}" placeholder="Lascia vuoto per la policy hardware">
+              <div class="form-text">Consigliato: embeddinggemma:300m</div>
             </div>
             <div class="col-md-6">
-              <label class="form-label fw-semibold">Keep alive modelli</label>
+              <label class="form-label fw-semibold">Mantieni attivi i modelli</label>
               <input type="text" name="ai_keep_alive" class="form-control font-monospace"
                      value="{{ cfg.ai.keep_alive }}" placeholder="10m">
+              <div class="form-text">Tempo di permanenza in memoria dopo l'ultimo utilizzo.</div>
             </div>
             <div class="col-md-6">
-              <div class="form-check form-switch mt-4">
+              <div class="form-check form-switch mt-4 settings-ai-form__switch">
                 <input class="form-check-input" type="checkbox" role="switch" name="ai_auto_index_documents" id="ai_auto_index_documents" value="1" {{ 'checked' if cfg.ai.auto_index_documents }}>
-                <label class="form-check-label fw-semibold" for="ai_auto_index_documents">Indicizza documenti fascicolo in automatico</label>
+                <label class="form-check-label fw-semibold" for="ai_auto_index_documents">Indicizza i documenti del fascicolo in automatico</label>
               </div>
+              <div class="form-text">Il retrieval locale resta separato dal gestionale e non blocca l'operatività ordinaria.</div>
             </div>
           </div>
 
-          <div class="d-flex gap-2 mt-4 flex-wrap">
+          <div class="d-flex gap-2 mt-4 flex-wrap settings-ai-actions">
             <button type="submit" class="btn btn-primary">
               <i class="bi bi-floppy me-2"></i>Salva impostazioni AI
             </button>
             <button type="button" class="btn btn-outline-primary" id="ai-bootstrap-btn" onclick="runLocalAiBootstrap()">
-              <i class="bi bi-rocket-takeoff me-2"></i>Bootstrap runtime
+              <i class="bi bi-rocket-takeoff me-2"></i>Installa e prepara runtime
             </button>
-            <button type="button" class="btn btn-outline-secondary" id="ai-refresh-btn" onclick="refreshLocalAiStatus()">
-              <i class="bi bi-arrow-repeat me-2"></i>Aggiorna stato
+            <button type="button" class="btn btn-outline-secondary" id="ai-refresh-btn" onclick="refreshLocalAiStatus(true)">
+              <i class="bi bi-arrow-repeat me-2"></i>Aggiorna stato operativo
             </button>
           </div>
         </form>
@@ -1135,18 +1158,34 @@ function testaPkcs11() {
     </div>
   </div>
 
-  <div class="col-lg-5">
-    <div class="card border-0 shadow-sm h-100" style="border-radius:18px;">
-      <div class="card-body p-4">
-        <h6 class="fw-bold mb-3"><i class="bi bi-speedometer2 text-primary me-2"></i>Stato runtime</h6>
+  <div class="col-lg-5 settings-ai-layout__aside">
+    <div class="card border-0 shadow-sm h-100 settings-card settings-card--aside">
+      <div class="card-body p-4 d-grid gap-4">
+        <h6 class="fw-bold mb-3"><i class="bi bi-speedometer2 text-primary me-2"></i>Stato operativo</h6>
         <div class="small text-muted mb-3">Questo pannello legge lo stato reale del runtime locale e dell’indice documentale.</div>
-        <div id="ai-runtime-summary" class="small d-grid gap-2">
+        <div id="ai-runtime-summary" class="settings-ai-summary-grid">
           <div class="text-muted">In attesa di stato…</div>
         </div>
+        <div>
+          <div class="settings-ai-section-head mt-1">
+            <div>
+              <h6 class="fw-bold mb-1"><i class="bi bi-box-seam text-primary me-2"></i>Provisioning runtime</h6>
+              <p class="text-muted mb-0 small">Strategia di installazione e pacchetto ufficiale consigliato.</p>
+            </div>
+          </div>
+          <div id="ai-installer-summary" class="settings-ai-installer">
+            <div class="settings-ai-empty">Le informazioni di provisioning saranno disponibili dopo il controllo dello stato.</div>
+          </div>
+        </div>
         <hr>
-        <div class="small text-muted mb-2">Modelli attivi</div>
-        <div id="ai-models-summary" class="d-grid gap-2">
-          <div class="text-muted small">Nessun dato disponibile.</div>
+        <div class="settings-ai-section-head">
+          <div>
+            <h6 class="fw-bold mb-1"><i class="bi bi-layers text-primary me-2"></i>Modelli attivi</h6>
+            <p class="text-muted mb-0 small">Modelli installati, policy risolta e stato di attivazione.</p>
+          </div>
+        </div>
+        <div id="ai-models-summary" class="settings-ai-models">
+          <div class="settings-ai-empty">Nessun modello registrato al momento.</div>
         </div>
       </div>
     </div>
@@ -1155,15 +1194,6 @@ function testaPkcs11() {
 {% endif %}
 
 {# ════════════════════════════════════════ JS ════════════════════════════════ #}
-<style>
-  .test-result { font-size:.82rem; }
-  .test-ok   { color: var(--bs-success); }
-  .test-fail { color: var(--bs-danger); }
-  .test-spin { color: var(--bs-secondary); }
-  .nav-pills .nav-link { color: var(--bs-body-color); }
-  .nav-pills .nav-link.active { background: var(--bs-primary); color:#fff; }
-</style>
-
 <script>
 /* ── toggle password visibility ── */
 function togglePwd(id, btn) {
@@ -1353,6 +1383,242 @@ async function runLocalAiBootstrap() {
   }
 }
 
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function formatDateTimeIt(value) {
+  if (!value) return 'n.d.';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return escapeHtml(value);
+  return new Intl.DateTimeFormat('it-IT', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(date);
+}
+
+function formatNumberIt(value, options = {}) {
+  if (value === null || value === undefined || value === '') return 'n.d.';
+  const numeric = Number(value);
+  if (Number.isNaN(numeric)) return escapeHtml(value);
+  return new Intl.NumberFormat('it-IT', options).format(numeric);
+}
+
+function formatBytes(value) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric) || numeric <= 0) return 'n.d.';
+  const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+  let size = numeric;
+  let unitIndex = 0;
+  while (size >= 1024 && unitIndex < units.length - 1) {
+    size /= 1024;
+    unitIndex += 1;
+  }
+  return `${formatNumberIt(size, { maximumFractionDigits: size >= 100 ? 0 : 1 })} ${units[unitIndex]}`;
+}
+
+function aiStatusMeta(status) {
+  const labels = {
+    ready: { label: 'Operativo', tone: 'success', icon: 'bi-check-circle-fill' },
+    missing: { label: 'Runtime non disponibile', tone: 'warning', icon: 'bi-exclamation-triangle-fill' },
+    starting: { label: 'Avvio in corso', tone: 'info', icon: 'bi-arrow-repeat' },
+    installing: { label: 'Installazione in corso', tone: 'info', icon: 'bi-box-arrow-in-down' },
+    error: { label: 'Errore operativo', tone: 'danger', icon: 'bi-x-octagon-fill' },
+    disabled: { label: 'Disattivato', tone: 'secondary', icon: 'bi-pause-circle-fill' },
+  };
+  return labels[status] || { label: escapeHtml(status || 'Stato sconosciuto'), tone: 'secondary', icon: 'bi-question-circle' };
+}
+
+function aiRoleLabel(role) {
+  if (role === 'chat') return 'Conversazione';
+  if (role === 'embed') return 'Embeddings';
+  return escapeHtml(role || 'Modello');
+}
+
+function aiInstallStateLabel(state) {
+  const labels = {
+    ready: 'Pronto',
+    missing: 'Assente',
+    pulling: 'Download in corso',
+    error: 'Errore',
+  };
+  return labels[state] || escapeHtml(state || 'n.d.');
+}
+
+function showAiFeedback(kind, title, body) {
+  const stack = document.getElementById('ai-action-feedback');
+  if (!stack) return;
+  stack.classList.remove('d-none');
+  stack.innerHTML = `
+    <div class="ui-feedback ui-feedback--${escapeHtml(kind)}">
+      <div class="ui-feedback__icon">
+        <i class="bi ${kind === 'success' ? 'bi-check-circle-fill' : kind === 'warning' ? 'bi-exclamation-triangle-fill' : 'bi-info-circle-fill'}"></i>
+      </div>
+      <div class="ui-feedback__content">
+        <div class="ui-feedback__title">${escapeHtml(title)}</div>
+        <div class="ui-feedback__body">${escapeHtml(body)}</div>
+      </div>
+    </div>
+  `;
+}
+
+function renderLocalAiStatus(payload) {
+  const summary = document.getElementById('ai-runtime-summary');
+  const models = document.getElementById('ai-models-summary');
+  const installer = document.getElementById('ai-installer-summary');
+  if (!summary || !models || !installer) return;
+
+  const runtime = payload?.runtime || {};
+  const counts = payload?.counts || {};
+  const installerData = payload?.installer || {};
+  const resolvedModels = payload?.resolved_models || {};
+  const runtimeStatus = runtime.status || 'missing';
+  const runtimeLive = Boolean(payload?.runtime_online);
+  const statusMeta = aiStatusMeta(runtimeStatus);
+  setAiBadge(statusMeta.label, statusMeta.tone);
+
+  summary.innerHTML = `
+    <article class="settings-ai-stat settings-ai-stat--${statusMeta.tone}">
+      <div class="settings-ai-stat__label">Stato operativo</div>
+      <div class="settings-ai-stat__value"><i class="bi ${statusMeta.icon} me-2"></i>${statusMeta.label}</div>
+      <div class="settings-ai-stat__meta">Runtime online: ${runtimeLive ? 'sì' : 'no'}</div>
+    </article>
+    <article class="settings-ai-stat">
+      <div class="settings-ai-stat__label">Versione live</div>
+      <div class="settings-ai-stat__value">${escapeHtml(payload?.runtime_version_live || 'n.d.')}</div>
+      <div class="settings-ai-stat__meta">Ultimo controllo: ${formatDateTimeIt(runtime.last_health_check_at)}</div>
+    </article>
+    <article class="settings-ai-stat">
+      <div class="settings-ai-stat__label">Profilo hardware</div>
+      <div class="settings-ai-stat__value">${escapeHtml(runtime.hardware_profile || 'n.d.')}</div>
+      <div class="settings-ai-stat__meta">RAM ${formatNumberIt(runtime.ram_gb, { maximumFractionDigits: 1 })} GB · Disco libero ${formatNumberIt(runtime.disk_free_gb, { maximumFractionDigits: 1 })} GB</div>
+    </article>
+    <article class="settings-ai-stat">
+      <div class="settings-ai-stat__label">Documenti indicizzati</div>
+      <div class="settings-ai-stat__value">${formatNumberIt(counts.documents_total ?? 0)}</div>
+      <div class="settings-ai-stat__meta">Chunk totali ${formatNumberIt(counts.chunks_total ?? 0)}</div>
+    </article>
+    <article class="settings-ai-stat">
+      <div class="settings-ai-stat__label">Embeddings pronti</div>
+      <div class="settings-ai-stat__value">${formatNumberIt(counts.chunks_embedded ?? 0)}</div>
+      <div class="settings-ai-stat__meta">Chunk in coda ${formatNumberIt(counts.chunks_pending ?? 0)}</div>
+    </article>
+    <article class="settings-ai-stat">
+      <div class="settings-ai-stat__label">Policy attiva</div>
+      <div class="settings-ai-stat__value">${escapeHtml(resolvedModels.chat || 'n.d.')}</div>
+      <div class="settings-ai-stat__meta">Embeddings ${escapeHtml(resolvedModels.embed || 'n.d.')}</div>
+    </article>
+    ${runtime.last_error ? `
+      <article class="settings-ai-stat settings-ai-stat--danger settings-ai-stat--full">
+        <div class="settings-ai-stat__label">Ultimo errore</div>
+        <div class="settings-ai-stat__meta">${escapeHtml(runtime.last_error)}</div>
+      </article>
+    ` : ''}
+  `;
+
+  installer.innerHTML = `
+    <div class="settings-ai-installer__hero">
+      <div class="settings-ai-installer__title">${escapeHtml(installerData.summary_title || 'Provisioning locale')}</div>
+      <div class="settings-ai-installer__body">${escapeHtml(installerData.summary_body || 'Informazioni di provisioning non disponibili.')}</div>
+    </div>
+    <div class="settings-ai-installer__grid">
+      <div class="settings-ai-installer__item">
+        <div class="settings-ai-installer__label">Strategia</div>
+        <div class="settings-ai-installer__value">${escapeHtml(installerData.strategy_label || 'n.d.')}</div>
+      </div>
+      <div class="settings-ai-installer__item">
+        <div class="settings-ai-installer__label">Versione ufficiale rilevata</div>
+        <div class="settings-ai-installer__value">${escapeHtml(installerData.latest_version || 'n.d.')}</div>
+        <div class="settings-ai-installer__meta">${formatDateTimeIt(installerData.latest_published_at)}</div>
+      </div>
+      <div class="settings-ai-installer__item">
+        <div class="settings-ai-installer__label">Pacchetto consigliato</div>
+        <div class="settings-ai-installer__value">${escapeHtml(installerData.asset_name || 'n.d.')}</div>
+        <div class="settings-ai-installer__meta">${formatBytes(installerData.asset_size_bytes)}</div>
+      </div>
+      <div class="settings-ai-installer__item">
+        <div class="settings-ai-installer__label">Percorso gestito</div>
+        <div class="settings-ai-installer__value settings-ai-installer__value--mono">${escapeHtml(installerData.managed_runtime_dir || 'n.d.')}</div>
+      </div>
+      <div class="settings-ai-installer__item settings-ai-installer__item--full">
+        <div class="settings-ai-installer__label">Eseguibile rilevato</div>
+        <div class="settings-ai-installer__value settings-ai-installer__value--mono">${escapeHtml(installerData.detected_executable || 'Non ancora rilevato')}</div>
+      </div>
+      <div class="settings-ai-installer__item settings-ai-installer__item--full">
+        <div class="settings-ai-installer__label">Ambito di distribuzione</div>
+        <div class="settings-ai-installer__body">${escapeHtml(installerData.distribution_scope || '')}</div>
+      </div>
+    </div>
+    ${installerData.asset_download_url ? `
+      <a class="btn btn-sm btn-outline-primary mt-3" href="${escapeHtml(installerData.asset_download_url)}" target="_blank" rel="noreferrer">
+        <i class="bi bi-box-arrow-up-right me-2"></i>Apri il download ufficiale
+      </a>
+    ` : ''}
+  `;
+
+  const rows = (payload?.models || []).map(row => `
+    <article class="settings-ai-model">
+      <div class="settings-ai-model__title">${escapeHtml(row.model_name)}</div>
+      <div class="settings-ai-model__meta">${aiRoleLabel(row.role)} · ${aiInstallStateLabel(row.install_state)}${row.is_active ? ' · attivo' : ''}</div>
+      ${row.last_verified_at ? `<div class="settings-ai-model__foot">Ultima verifica ${formatDateTimeIt(row.last_verified_at)}</div>` : ''}
+    </article>
+  `);
+  models.innerHTML = rows.length ? rows.join('') : '<div class="settings-ai-empty">Nessun modello registrato al momento.</div>';
+}
+
+async function refreshLocalAiStatus(showMessage = false) {
+  if (!document.getElementById('ai-runtime-summary')) return;
+  setAiBadge('Verifica in corso', 'secondary');
+  try {
+    const response = await fetch('/api/local-ai/status', { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+    const payload = await response.json();
+    renderLocalAiStatus(payload);
+    if (showMessage) {
+      showAiFeedback('success', 'Stato aggiornato', 'Il pannello AI locale è stato aggiornato con lo stato reale del runtime e dell\'indice documentale.');
+    }
+  } catch (error) {
+    setAiBadge('Errore runtime', 'danger');
+    const summary = document.getElementById('ai-runtime-summary');
+    if (summary) {
+      summary.innerHTML = `<div class="settings-ai-empty text-danger">Non è stato possibile leggere lo stato dell'AI locale.</div>`;
+    }
+    showAiFeedback('danger', 'Controllo non riuscito', 'Non sono riuscito a leggere lo stato del runtime locale. Verifica la connettività del servizio o riprova tra pochi istanti.');
+  }
+}
+
+async function runLocalAiBootstrap() {
+  const btn = document.getElementById('ai-bootstrap-btn');
+  if (btn) btn.disabled = true;
+  setAiBadge('Preparazione in corso', 'info');
+  showAiFeedback('warning', 'Preparazione runtime in corso', 'Sto verificando il runtime locale, il pacchetto ufficiale e i modelli richiesti per il profilo hardware corrente.');
+  try {
+    const response = await fetch('/api/local-ai/bootstrap', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+      body: JSON.stringify({ force: true }),
+    });
+    const payload = await response.json();
+    renderLocalAiStatus(payload.status_payload || payload);
+    const result = payload?.result || {};
+    const meta = aiStatusMeta(result.status || 'ready');
+    const message = result.status === 'ready'
+      ? 'Il runtime locale è stato preparato correttamente e i modelli richiesti risultano disponibili.'
+      : result.error || 'La procedura è terminata, ma il runtime richiede ancora un controllo manuale.';
+    showAiFeedback(meta.tone === 'danger' ? 'danger' : meta.tone === 'warning' ? 'warning' : 'success', meta.label, message);
+  } catch (error) {
+    setAiBadge('Preparazione fallita', 'danger');
+    showAiFeedback('danger', 'Preparazione non riuscita', 'Non sono riuscito a completare la preparazione del runtime locale. Il gestionale resta operativo e puoi riprovare senza interrompere il lavoro.');
+  } finally {
+    if (btn) btn.disabled = false;
+    await refreshLocalAiStatus();
+  }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
   if (document.getElementById('ai-runtime-summary')) {
     refreshLocalAiStatus();
@@ -1360,8 +1626,4 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 
-<style>
-@keyframes spin { to { transform: rotate(360deg); } }
-.spin { display:inline-block; animation: spin .8s linear infinite; }
-</style>
 {% endblock %}

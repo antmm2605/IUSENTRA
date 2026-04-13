@@ -143,13 +143,13 @@ from pct.pdp_penale_workflow import (
 )
 from pct.telematico_workflow import TelematicoWorkflowRepository
 from pct.workspace_intelligente import WorkspaceIntelligenteService
-from pct.local_ai import LocalAIService
 from pct import __version__ as APP_VERSION
 from web.bootstrap.error_handlers import register_error_handlers
 from web.bootstrap.pwa_routes import register_pwa_routes
 from web.bootstrap.register_blueprints import register_blueprints
 from web.bootstrap.template_runtime import register_template_runtime
 from web.services.auth_runtime import register_auth_runtime
+from web.services.local_ai_runtime import get_local_ai_service
 from web.services.runtime_settings import apply_runtime_settings
 
 # ------------------------------------------------------------------ cifratura documenti (AES-256-GCM)
@@ -624,17 +624,6 @@ def create_app(config: dict | None = None) -> Flask:
                 studio_patron_rule=_studio_patron_rule_from_config(),
             )
         return g._workspace_intelligente
-
-    def get_local_ai() -> LocalAIService:
-        if not hasattr(g, "_local_ai"):
-            g._local_ai = LocalAIService(
-                db_path=_cfg_data_path("LOCAL_AI_DB"),
-                policy_path=app.config.get("LOCAL_AI_POLICY", "./config/ai-policy.json"),
-                config_path=app.config.get("STUDIO_CONFIG", "./config/studio.json"),
-                app_root=str(Path(__file__).resolve().parents[1]),
-                models_path=_cfg_data_path("LOCAL_AI_MODELS_DIR"),
-            )
-        return g._local_ai
 
     def _documento_payload_per_validazione(gf: GestioneFascicoli, fasc: Fascicolo, doc_id: str) -> dict | None:
         doc = next((item for item in fasc.documenti if item.id == doc_id), None)
@@ -3618,24 +3607,6 @@ def create_app(config: dict | None = None) -> Flask:
             app.logger.exception("Errore api_workspace_intelligente: %s", e)
             return jsonify({"errore": str(e), "summary": {}, "actions": []}), 200
 
-    @app.route("/api/local-ai/status")
-    def api_local_ai_status():
-        try:
-            return jsonify(get_local_ai().health_snapshot())
-        except Exception as e:
-            app.logger.exception("Errore api_local_ai_status: %s", e)
-            return jsonify({"errore": str(e), "runtime": {"status": "error"}, "models": [], "counts": {}}), 200
-
-    @app.route("/api/local-ai/bootstrap", methods=["POST"])
-    def api_local_ai_bootstrap():
-        try:
-            data = request.get_json(silent=True) or {}
-            result = get_local_ai().bootstrap_runtime(force=bool(data.get("force")))
-            return jsonify({"result": result, "status_payload": get_local_ai().health_snapshot()})
-        except Exception as e:
-            app.logger.exception("Errore api_local_ai_bootstrap: %s", e)
-            return jsonify({"errore": str(e), "runtime": {"status": "error"}}), 200
-
     @app.route("/api/workspace-intelligente/ai", methods=["POST"])
     def api_workspace_intelligente_ai():
         try:
@@ -3645,7 +3616,7 @@ def create_app(config: dict | None = None) -> Flask:
                 return jsonify({"ok": False, "errore": "Domanda mancante."}), 200
             horizon_days = max(int(data.get("giorni", 14) or 14), 1)
             overview = get_workspace_intelligente().panoramica(horizon_days=horizon_days)
-            return jsonify(get_local_ai().ask_workspace(question=question, overview=overview))
+            return jsonify(get_local_ai_service().ask_workspace(question=question, overview=overview))
         except Exception as e:
             app.logger.exception("Errore api_workspace_intelligente_ai: %s", e)
             return jsonify({"ok": False, "errore": str(e), "answer": "", "sources": []}), 200
@@ -3673,7 +3644,7 @@ def create_app(config: dict | None = None) -> Flask:
                 apps=apps,
                 scadenze=scadenze_fascicolo,
             )
-            result = get_local_ai().ask_fascicolo(
+            result = get_local_ai_service().ask_fascicolo(
                 fascicolo=fasc,
                 documents_dir=_cfg_data_path("FASCICOLI_DOCS"),
                 question=question,
@@ -3694,12 +3665,12 @@ def create_app(config: dict | None = None) -> Flask:
             fasc = get_fascicoli().get(id_fasc)
             if not fasc:
                 return jsonify({"ok": False, "errore": "Fascicolo non trovato."}), 200
-            result = get_local_ai().reindex_fascicolo(
+            result = get_local_ai_service().reindex_fascicolo(
                 fasc,
                 _cfg_data_path("FASCICOLI_DOCS"),
                 force=True,
             )
-            return jsonify({"ok": True, "result": result, "status_payload": get_local_ai().health_snapshot()})
+            return jsonify({"ok": True, "result": result, "status_payload": get_local_ai_service().health_snapshot()})
         except Exception as e:
             app.logger.exception("Errore api_fascicolo_ai_reindex(%s): %s", id_fasc, e)
             return jsonify({"ok": False, "errore": str(e)}), 200

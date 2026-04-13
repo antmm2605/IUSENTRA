@@ -163,6 +163,14 @@ python -m pytest tests/ -v
 - La UI deve essere progettata in modo **responsive** per desktop, tablet e mobile, con card compatte, gerarchia chiara e senza spazi morti.
 - I feedback utente per azioni completate, errori, avvisi o stati intermedi devono usare messaggi professionali, chiari e in italiano.
 
+## AI locale — REGOLA OBBLIGATORIA
+
+- Il runtime AI locale (`Ollama`) va sempre trattato come **runtime sullo stesso host che esegue HACS**, non come componente da distribuire al browser del cliente.
+- La strategia preferita è:
+  - Windows self-hosted → provisioning automatico del pacchetto standalone ufficiale sullo stesso host
+  - altri host/server → guida chiara e non bloccante, senza installazioni opache dal browser
+- Il gestionale deve continuare a funzionare anche se il runtime AI non è disponibile: nessuna funzione core di fascicoli, agenda, documenti o scadenziario deve bloccarsi per assenza di Ollama.
+
 ## Versioning — REGOLA OBBLIGATORIA
 
 **Ad ogni implementazione (nuova funzionalità, bug fix, qualsiasi modifica al codice) eseguire SEMPRE il bump di versione e aggiornare tutti e quattro i file:**

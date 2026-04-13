@@ -173,6 +173,7 @@ def test_template_principali_usano_copy_italiana_e_date_localizzate():
         "web/templates/admin/base.html": ["Esci", "Piattaforma"],
         "web/templates/dashboard.html": ["Panoramica dello studio"],
         "web/templates/agenda.html": ["Sincronizzazione automatica", "Configura sincronizzazione calendario"],
+        "web/templates/impostazioni/index.html": ["Runtime sullo stesso host di HACS", "Installa e prepara runtime"],
         "web/templates/workspace_intelligente.html": ["Assistente operativo locale", "Ultima sincronizzazione"],
         "web/templates/portale/base.html": ["Operazione completata", "Inizio"],
         "web/templates/telematico_dashboard.html": ["Cabina Telematica", "Ultimo allineamento"],
@@ -214,6 +215,7 @@ def test_scss_governance_usa_bundle_modulari_e_niente_style_inline():
     assert "@use 'components/feedback';" in app_scss
     assert "@use 'components/compact-panels';" in app_scss
     assert "@use 'pages/dashboard';" in app_scss
+    assert "@use 'pages/settings';" in app_scss
     assert "@use 'pages/telematico-dashboard';" in app_scss
     assert "@use 'pages/workspace-intelligente';" in app_scss
     portal_scss = (REPO_ROOT / "web/static/scss/portal.scss").read_text(encoding="utf-8")
@@ -223,6 +225,7 @@ def test_scss_governance_usa_bundle_modulari_e_niente_style_inline():
     for relative_path in (
         "web/templates/base.html",
         "web/templates/dashboard.html",
+        "web/templates/impostazioni/index.html",
         "web/templates/workspace_intelligente.html",
         "web/templates/portale/base.html",
         "web/templates/portale/home.html",

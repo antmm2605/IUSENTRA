@@ -24,6 +24,8 @@ from typing import Any, Iterable
 import pdfplumber
 import requests
 
+from pct.local_ai_runtime import OllamaRuntimeProvisioner
+
 
 _ENC_MAGIC = b"PCTENC\x01"
 
@@ -642,44 +644,37 @@ class LocalAIService:
         if _compare_versions(runtime_version, minimum) < 0:
             raise RuntimeError(f"embeddinggemma richiede Ollama >= {minimum}, trovato {runtime_version}")
 
-    def _ollama_executable_candidates(self) -> list[Path]:
-        candidates = [
-            self.app_root / "bin" / "ollama" / "ollama.exe",
-            self.app_root / "tools" / "ollama" / "ollama.exe",
-        ]
-        which_path = shutil.which("ollama")
-        if which_path:
-            candidates.append(Path(which_path))
-        return candidates
+    def _runtime_provisioner(self) -> OllamaRuntimeProvisioner:
+        return OllamaRuntimeProvisioner(self.app_root, self.models_path)
 
     def _start_windows_ollama(self, settings: LocalAiSettings, policy: dict[str, Any]) -> str:
         timeout_s = float(policy.get("ollama", {}).get("startupTimeoutMs", 45000)) / 1000.0
         interval = max(float(policy.get("ollama", {}).get("healthPollIntervalMs", 1500)) / 1000.0, 0.4)
         client = self._ollama_client(settings)
-        for candidate in self._ollama_executable_candidates():
-            if not candidate.exists():
-                continue
-            env = dict(os.environ)
-            env["OLLAMA_HOST"] = "127.0.0.1:11434"
-            env["OLLAMA_MODELS"] = str(self.models_path)
-            creationflags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
-            subprocess.Popen(
-                [str(candidate), "serve"],
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-                stdin=subprocess.DEVNULL,
-                cwd=str(candidate.parent),
-                env=env,
-                creationflags=creationflags,
-            )
-            deadline = time.time() + timeout_s
-            while time.time() < deadline:
-                version = client.get_version()
-                if version:
-                    return str(candidate)
-                time.sleep(interval)
-            raise TimeoutError("Timeout avvio Ollama locale")
-        raise FileNotFoundError("Runtime Ollama non trovato nei percorsi previsti")
+        provisioner = self._runtime_provisioner()
+        candidate = provisioner.discover_executable()
+        if candidate is None:
+            candidate = provisioner.ensure_windows_runtime()
+        env = dict(os.environ)
+        env["OLLAMA_HOST"] = "127.0.0.1:11434"
+        env["OLLAMA_MODELS"] = str(self.models_path)
+        creationflags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
+        subprocess.Popen(
+            [str(candidate), "serve"],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            stdin=subprocess.DEVNULL,
+            cwd=str(candidate.parent),
+            env=env,
+            creationflags=creationflags,
+        )
+        deadline = time.time() + timeout_s
+        while time.time() < deadline:
+            version = client.get_version()
+            if version:
+                return str(candidate)
+            time.sleep(interval)
+        raise TimeoutError("Timeout avvio Ollama locale")
 
     def _ensure_model_installed(
         self,
@@ -844,6 +839,8 @@ class LocalAIService:
     def health_snapshot(self) -> dict[str, Any]:
         settings = self._load_settings()
         policy = self._load_policy()
+        hardware = self._detect_hardware()
+        model_policy = self._resolve_model_policy(hardware, settings, policy)
         with self._connect() as conn:
             runtime = self._runtime_row(conn)
             models = [dict(row) for row in conn.execute("SELECT * FROM local_ai_models ORDER BY role, model_name").fetchall()]
@@ -863,6 +860,7 @@ class LocalAIService:
             running_models = client.list_running_models() if version else []
         except Exception:
             running_models = []
+        installer = self._runtime_provisioner().installer_snapshot(live_version=version)
         return {
             "settings": {
                 "enabled": settings.enabled,
@@ -879,6 +877,11 @@ class LocalAIService:
             "models": models,
             "running_models": running_models,
             "policy": policy,
+            "resolved_models": {
+                "chat": model_policy["chat_model"],
+                "embed": model_policy["embed_model"],
+            },
+            "installer": installer,
             "counts": dict(counts or {}),
             "models_path": str(self.models_path),
         }

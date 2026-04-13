@@ -4,6 +4,7 @@ from types import SimpleNamespace
 
 from pct.fascicoli import GestioneFascicoli, TipoFascicolo
 from pct.local_ai import LocalAIService
+from pct.local_ai_runtime import OllamaRuntimeProvisioner
 from web.app import create_app
 
 
@@ -124,6 +125,27 @@ def test_local_ai_index_and_hybrid_search(tmp_path: Path, monkeypatch):
     assert "Atto di opposizione" in results[0]["citation"]
 
 
+def test_local_ai_health_snapshot_exposes_installer_and_resolved_models(tmp_path: Path, monkeypatch):
+    service = _service(tmp_path)
+
+    class DummyProvisioner:
+        def installer_snapshot(self, *, live_version=None):
+            return {
+                "strategy_label": "Runtime locale gestito sullo stesso host di HACS",
+                "summary_title": "Provisioning automatico disponibile",
+                "summary_body": "Runtime installato e avviato sulla stessa macchina di HACS.",
+                "managed_runtime_dir": str(tmp_path / "bin" / "ollama"),
+            }
+
+    monkeypatch.setattr(service, "_runtime_provisioner", lambda: DummyProvisioner())
+
+    snapshot = service.health_snapshot()
+
+    assert snapshot["installer"]["strategy_label"] == "Runtime locale gestito sullo stesso host di HACS"
+    assert snapshot["resolved_models"]["chat"]
+    assert snapshot["resolved_models"]["embed"]
+
+
 def test_local_ai_ask_fascicolo_builds_context_and_returns_answer(tmp_path: Path, monkeypatch):
     service = _service(tmp_path)
     captured: dict[str, str] = {}
@@ -226,5 +248,39 @@ def test_impostazioni_template_contains_ai_locale_tab():
     html = (REPO_ROOT / "web" / "templates" / "impostazioni" / "index.html").read_text(encoding="utf-8")
 
     assert "AI Locale" in html
-    assert "Bootstrap runtime" in html
+    assert "Installa e prepara runtime" in html
     assert "runLocalAiBootstrap" in html
+    assert "Runtime sullo stesso host di HACS" in html
+    assert "ai-installer-summary" in html
+
+
+def test_ollama_runtime_provisioner_selects_windows_zip_asset(tmp_path: Path):
+    provisioner = OllamaRuntimeProvisioner(
+        app_root=tmp_path,
+        models_path=tmp_path / "models",
+        platform_name="windows",
+        machine_name="AMD64",
+    )
+
+    release = {
+        "version": "v0.20.6",
+        "assets": [
+            {
+                "name": "ollama-windows-amd64.zip",
+                "browser_download_url": "https://example.test/ollama-windows-amd64.zip",
+                "size": 781000000,
+                "updated_at": "2026-04-12T22:13:20Z",
+            },
+            {
+                "name": "ollama-windows-arm64.zip",
+                "browser_download_url": "https://example.test/ollama-windows-arm64.zip",
+                "size": 650000000,
+                "updated_at": "2026-04-12T22:13:20Z",
+            },
+        ],
+    }
+
+    asset = provisioner.select_download_asset(release)
+
+    assert asset is not None
+    assert asset["name"] == "ollama-windows-amd64.zip"

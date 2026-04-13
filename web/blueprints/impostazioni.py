@@ -19,6 +19,8 @@ from flask import (
 )
 from werkzeug.utils import secure_filename
 
+from web.services.local_ai_runtime import get_local_ai_service
+
 impostazioni = Blueprint("impostazioni", __name__)
 
 
@@ -373,3 +375,26 @@ def test_whatsapp():
         callmebot_key=data.get("callmebot_key") or cfg_wa.callmebot_key,
     )
     return jsonify(_test(wa))
+
+
+@impostazioni.route("/api/local-ai/status")
+@_richiedi_login
+def api_local_ai_status():
+    try:
+        return jsonify(get_local_ai_service().health_snapshot())
+    except Exception as e:
+        current_app.logger.exception("Errore api_local_ai_status: %s", e)
+        return jsonify({"errore": str(e), "runtime": {"status": "error"}, "models": [], "counts": {}}), 200
+
+
+@impostazioni.route("/api/local-ai/bootstrap", methods=["POST"])
+@_richiedi_login
+def api_local_ai_bootstrap():
+    try:
+        data = request.get_json(silent=True) or {}
+        service = get_local_ai_service()
+        result = service.bootstrap_runtime(force=bool(data.get("force")))
+        return jsonify({"result": result, "status_payload": service.health_snapshot()})
+    except Exception as e:
+        current_app.logger.exception("Errore api_local_ai_bootstrap: %s", e)
+        return jsonify({"errore": str(e), "runtime": {"status": "error"}}), 200

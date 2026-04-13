@@ -246,3 +246,25 @@ def test_scss_governance_usa_bundle_modulari_e_niente_style_inline():
 
     portale_base = (REPO_ROOT / "web/templates/portale/base.html").read_text(encoding="utf-8")
     assert "/static/css/portal.css?v={{ app_version }}" in portale_base
+
+
+def test_impostazioni_js_e_esterno_e_senza_duplicazioni():
+    template = (REPO_ROOT / "web/templates/impostazioni/index.html").read_text(encoding="utf-8")
+    firma_js = (REPO_ROOT / "web/static/js/impostazioni-firma.js").read_text(encoding="utf-8")
+    common_js = (REPO_ROOT / "web/static/js/impostazioni-common.js").read_text(encoding="utf-8")
+    ai_js = (REPO_ROOT / "web/static/js/impostazioni-ai.js").read_text(encoding="utf-8")
+
+    assert "/static/js/impostazioni-firma.js?v={{ app_version }}" in template
+    assert "/static/js/impostazioni-common.js?v={{ app_version }}" in template
+    assert "/static/js/impostazioni-ai.js?v={{ app_version }}" in template
+    assert "function renderLocalAiStatus" not in template
+    assert "async function refreshLocalAiStatus" not in template
+    assert "async function runLocalAiBootstrap" not in template
+    assert "<script>" not in template
+
+    assert firma_js.count("function scegliModalita") == 1
+    assert common_js.count("function togglePwd") == 1
+    assert ai_js.count("function renderLocalAiStatus") == 1
+    assert ai_js.count("async function refreshLocalAiStatus") == 1
+    assert ai_js.count("async function runLocalAiBootstrap") == 1
+    assert "Gestito sull\\\\'host Windows/macOS" not in ai_js

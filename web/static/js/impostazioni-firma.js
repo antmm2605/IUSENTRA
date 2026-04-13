@@ -1,0 +1,119 @@
+(function () {
+  function scegliModalita(formato) {
+    document.querySelectorAll('input[name="firma_formato"]').forEach(function (radio) {
+      radio.checked = radio.value === formato;
+    });
+
+    ['pkcs11', 'p12', 'pem'].forEach(function (chiave) {
+      const sezione = document.getElementById('sezione_' + chiave);
+      if (sezione) {
+        sezione.classList.toggle('d-none', chiave !== formato);
+      }
+    });
+
+    document.querySelectorAll('.firma-card').forEach(function (card) {
+      card.classList.remove('border-primary');
+      card.classList.add('border');
+      card.style.background = '';
+    });
+
+    const cardAttiva = document.getElementById('card_' + formato);
+    if (cardAttiva) {
+      cardAttiva.classList.remove('border');
+      cardAttiva.classList.add('border-primary');
+      cardAttiva.style.background = 'rgba(var(--bs-primary-rgb), .04)';
+    }
+
+    if (formato === 'pem') {
+      const avanzate = document.getElementById('avanzate-firma');
+      if (avanzate && !avanzate.classList.contains('show')) {
+        new bootstrap.Collapse(avanzate, { toggle: true });
+      }
+    }
+  }
+
+  function evidenziaPacchettoHost() {
+    const userAgent = (navigator.userAgent || '').toLowerCase();
+    let piattaforma = '';
+    if (userAgent.includes('windows')) {
+      piattaforma = 'windows';
+    } else if (userAgent.includes('mac os') || userAgent.includes('macintosh')) {
+      piattaforma = 'macos';
+    } else if (userAgent.includes('linux')) {
+      piattaforma = 'linux';
+    }
+
+    if (!piattaforma) {
+      return;
+    }
+
+    const mappa = {
+      windows: 'btn-local-signer-windows',
+      macos: 'btn-local-signer-macos',
+      linux: 'btn-local-signer-linux',
+    };
+
+    Object.keys(mappa).forEach(function (chiave) {
+      const bottone = document.getElementById(mappa[chiave]);
+      if (!bottone) {
+        return;
+      }
+
+      bottone.classList.remove('btn-primary', 'btn-outline-secondary');
+      bottone.classList.add(chiave === piattaforma ? 'btn-primary' : 'btn-outline-secondary');
+    });
+  }
+
+  function testaPkcs11() {
+    const bottone = document.getElementById('btnTestPkcs11');
+    const risultato = document.getElementById('pkcs11TestResult');
+    if (!bottone || !risultato) {
+      return;
+    }
+
+    bottone.disabled = true;
+    risultato.innerHTML = '<span class="text-muted"><i class="bi bi-hourglass-split me-1"></i>Verifica in corso...</span>';
+
+    fetch('/api/firma/pkcs11/status', {
+      headers: { 'X-Requested-With': 'XMLHttpRequest' },
+    })
+      .then(function (response) {
+        return response.json();
+      })
+      .then(function (payload) {
+        if (payload.disponibile && Array.isArray(payload.token) && payload.token.length > 0) {
+          const token = payload.token[0];
+          risultato.innerHTML =
+            '<span class="text-success"><i class="bi bi-check-circle-fill me-1"></i>Token rilevato: <strong>' +
+            (token.label || token.manufacturer || 'Dispositivo PKCS#11') +
+            '</strong></span>';
+          return;
+        }
+
+        if (payload.disponibile) {
+          risultato.innerHTML =
+            '<span class="text-warning"><i class="bi bi-exclamation-triangle me-1"></i>Nessun token inserito. Collega il dispositivo e riprova.</span>';
+          return;
+        }
+
+        risultato.innerHTML =
+          '<span class="text-danger"><i class="bi bi-x-circle me-1"></i>' +
+          (payload.messaggio || 'Il driver PKCS#11 non e\' disponibile.') +
+          '</span>';
+      })
+      .catch(function (errore) {
+        risultato.innerHTML = '<span class="text-danger">Errore: ' + errore + '</span>';
+      })
+      .finally(function () {
+        bottone.disabled = false;
+      });
+  }
+
+  document.addEventListener('DOMContentLoaded', function () {
+    evidenziaPacchettoHost();
+  });
+
+  window.scegliModalita = scegliModalita;
+  window.switchFirmaFmt = scegliModalita;
+  window.testaPkcs11 = testaPkcs11;
+})();

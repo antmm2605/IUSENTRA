@@ -15,6 +15,8 @@ import copy
 from datetime import date
 from typing import Any, Dict, Iterable, List, Optional
 
+from pct.template_atti_compiler_bindings import compiler_alias_specs
+
 
 def _fc(label: str, field_type: str = "text") -> dict[str, str]:
     return {"label": label, "type": field_type}
@@ -399,6 +401,29 @@ FIELD_CATALOG_RAW.update(
         "appeal_case_reference": _fc("Riferimento Giudizio d'Appello"),
         "defences_against_appeal_grounds": _fc("Difese contro i Motivi di Appello", "richtext"),
         "request_subject": _fc("Oggetto dell'Istanza"),
+        "granting_party": _fc("Conferente"),
+        "appointed_professional": _fc("Professionista / difensore incaricato"),
+        "mandate_subject": _fc("Oggetto del mandato"),
+        "special_powers_requested": _fc("Poteri speciali e facolta", "richtext"),
+        "domicile_election_details": _fc("Domicilio eletto"),
+        "substitute_or_domiciliatary": _fc("Domiciliatario / sostituto indicato"),
+        "revocation_or_renunciation_notes": _fc("Revoca, rinuncia o note sul mandato", "richtext"),
+        "notified_act_reference": _fc("Atto o riferimento da notificare"),
+        "notification_recipient": _fc("Destinatario della notifica"),
+        "notification_mode": _fc("Modalita di notifica"),
+        "notification_request_details": _fc("Attivita richiesta", "richtext"),
+        "conformity_attestation_notes": _fc("Attestazioni e riferimenti di conformita", "richtext"),
+        "complainant_person": _fc("Persona offesa / denunciante"),
+        "reported_person": _fc("Soggetto indicato"),
+        "reported_facts": _fc("Fatti denunciati / querelati", "richtext"),
+        "offence_hypothesis": _fc("Ipotesi di reato o qualificazione prospettata"),
+        "witnesses_and_evidence": _fc("Testimoni e fonti di prova", "richtext"),
+        "criminal_requests": _fc("Richieste all'autorita", "richtext"),
+        "civil_party": _fc("Parte civile"),
+        "damage_description": _fc("Descrizione del danno", "richtext"),
+        "civil_claim_requests": _fc("Richieste risarcitorie e processuali", "richtext"),
+        "witness_list_details": _fc("Lista testi", "richtext"),
+        "topics_of_examination": _fc("Capitoli di prova e temi di esame", "richtext"),
     }
 )
 
@@ -437,6 +462,9 @@ MODELS: list[dict[str, Any]] = [
     _model("CIV_LAVMEM_001", "CIVILE", "Memoria Difensiva Lavoro", "court_name", "proceeding_number", "respondent_party", "defence_on_facts", "exceptions", "evidence_means", "documents_offered"),
     _model("CIV_SFRINT_001", "CIVILE", "Intimazione di Sfratto", "competent_court", "landlord", "tenant", "lease_agreement", "property_address", "grounds_for_eviction", "rent_or_charges_due", "order_to_release_property", "hearing_date"),
     _model("CIV_CONVSFR_001", "CIVILE", "Citazione per Convalida di Sfratto", "competent_court", "landlord", "tenant", "lease_agreement", "property_address", "grounds_for_validation", "unpaid_rents_or_contract_expiry", "hearing_date", "request_for_validation"),
+    _model("CIV_PROCBASE_001", "CIVILE", "Procura / Mandato Difensivo", "granting_party", "appointed_professional", "mandate_subject", "special_powers_requested", "domicile_election_details", "substitute_or_domiciliatary", "revocation_or_renunciation_notes", "supporting_documents"),
+    _model("CIV_NOTIFBASE_001", "CIVILE", "Notifica / Adempimento Accessorio", "requesting_party", "notified_act_reference", "notification_recipient", "notification_mode", "notification_request_details", "conformity_attestation_notes", "supporting_documents"),
+    _model("CIV_PIGBASE_001", "CIVILE", "Pignoramento Mobiliare / Immobiliare", "proceeding_creditor", "enforced_debtor", "enforcement_title", "precetto_reference", "attached_credits_or_amounts", "request_for_validation", "property_address", "supporting_documents"),
     _model("PEN_NOM_001", "PENALE", "Nomina Difensore", "proceeding_authority", "assisted_person", "criminal_proceeding_reference", "appointed_defender", "defender_bar_association", "defender_pec", "elected_domicile", "assisted_person_signature"),
     _model("PEN_MEM_001", "PENALE", "Memoria Difensiva", "proceeding_authority", "assisted_person", "criminal_proceeding_reference", "defensive_arguments", "specific_requests", "documents_offered"),
     _model("PEN_IST_001", "PENALE", "Istanza Generica Penale", "proceeding_authority", "assisted_person", "criminal_proceeding_reference", "request_content", "request_reason"),
@@ -448,6 +476,9 @@ MODELS: list[dict[str, Any]] = [
     _model("PEN_PM_001", "PENALE", "Istanza al Pubblico Ministero", "competent_prosecutor_office", "assisted_person", "criminal_proceeding_reference", "request_content", "request_reason"),
     _model("PEN_DISSEQ_001", "PENALE", "Istanza di Dissequestro", "competent_authority", "seized_asset", "seizure_report_reference", "applicant", "grounds_for_release", "supporting_documents"),
     _model("PEN_NOTEUD_001", "PENALE", "Note d'Udienza Penale", "hearing_authority", "criminal_proceeding_reference", "party", "defensive_position_summary", "final_conclusions"),
+    _model("PEN_SEGNBASE_001", "PENALE", "Querela / Denuncia", "proceeding_authority", "complainant_person", "reported_person", "reported_facts", "offence_hypothesis", "witnesses_and_evidence", "criminal_requests", "supporting_documents"),
+    _model("PEN_PARTECIVBASE_001", "PENALE", "Costituzione di Parte Civile", "proceeding_authority", "civil_party", "defendant_person", "criminal_proceeding_reference", "damage_description", "civil_claim_requests", "supporting_documents"),
+    _model("PEN_LISTATESTI_001", "PENALE", "Lista Testi", "hearing_authority", "criminal_proceeding_reference", "party", "hearing_date", "witness_list_details", "topics_of_examination", "supporting_documents"),
     _model("AMM_RIC_001", "AMMINISTRATIVO", "Ricorso al TAR", "competent_tar", "claimant", "respondent_administration", "interested_third_parties", "challenged_administrative_act", "knowledge_or_service_date", "legal_arguments", "request_for_annulment_or_other_relief", "interim_relief_request", "documents_offered", "case_value"),
     _model("AMM_MOTAGG_001", "AMMINISTRATIVO", "Motivi Aggiunti", "main_case_reference", "claimant", "new_act_or_new_grounds", "knowledge_date", "supervening_facts", "additional_grounds", "specific_requests", "documents_offered"),
     _model("AMM_ICAUT_001", "AMMINISTRATIVO", "Istanza Cautelare Amministrativa", "linked_case_reference", "applicant_party", "serious_and_irreparable_harm", "fumus_boni_iuris", "requested_interim_measure", "documents_offered"),
@@ -501,6 +532,30 @@ MODELS: list[dict[str, Any]] = [
     _model("IMM_CITTA_001", "IMMIGRAZIONE", "Ricorso per Cittadinanza", "immigration_court", "foreigner_applicant", "nationality", "citizenship_grounds", "residence_years", "integration_elements", "legal_arguments", "documents_offered"),
     _model("IMM_RIUN_001", "IMMIGRAZIONE", "Istanza Ricongiungimento Familiare", "immigration_court", "foreigner_applicant", "nationality", "permit_type", "legal_arguments", "integration_elements", "supporting_documents"),
 ]
+
+
+def _extend_with_builtin_alias_models(models: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    index = {model["code"]: model for model in models}
+    extended = list(models)
+    for binding in compiler_alias_specs():
+        alias_code = binding["compiler_code"]
+        if alias_code in index:
+            continue
+        base = index.get(binding["base_code"])
+        if not base:
+            continue
+        alias = copy.deepcopy(base)
+        alias["code"] = alias_code
+        alias["name"] = binding["title"]
+        if binding.get("area"):
+            alias["area"] = binding["area"]
+        alias["alias_of"] = binding["base_code"]
+        extended.append(alias)
+        index[alias_code] = alias
+    return extended
+
+
+MODELS = _extend_with_builtin_alias_models(MODELS)
 
 
 AREA_ORDINE = ["STRAGIUDIZIALE", "CIVILE", "PENALE", "AMMINISTRATIVO", "TRIBUTARIO", "FAMIGLIA", "LAVORO", "SOCIETARIO", "IMMIGRAZIONE"]
@@ -760,6 +815,86 @@ AREA_PRO_GUIDANCE: dict[str, dict[str, Any]] = {
             "Regole tecniche del processo tributario telematico.",
         ],
     },
+    "FAMIGLIA": {
+        "summary": "Atto in materia di famiglia, persone o volontaria giurisdizione, impostato per evidenziare interesse del minore, assetto familiare e richieste al giudice competente.",
+        "when_to_use": [
+            "Per procedimenti familiari, camerali o di volontaria giurisdizione che richiedono una ricostruzione ordinata del contesto personale e relazionale.",
+            "Quando servono richieste calibrate su tutela, affidamento, amministrazione di sostegno o autorizzazioni del giudice tutelare.",
+        ],
+        "structure": [
+            "Ufficio competente, parti coinvolte e rapporto familiare o di protezione.",
+            "Esposizione della situazione personale e delle esigenze di tutela.",
+            "Richieste finali, interesse del minore o del beneficiario e allegati a supporto.",
+        ],
+        "technical_notes": [
+            "Controlla sempre competenza territoriale, rito e documentazione anagrafica o medica essenziale.",
+            "Le richieste devono essere coerenti con l'interesse del minore o della persona da proteggere.",
+        ],
+        "references": [
+            "Codice civile e codice di procedura civile.",
+            "Rito unitario in materia di persone, minorenni e famiglie dove applicabile.",
+        ],
+    },
+    "LAVORO": {
+        "summary": "Atto in materia di lavoro o previdenza pensato per valorizzare contratto, fatti di rapporto, eccezioni e richieste economiche o reintegratorie.",
+        "when_to_use": [
+            "Per controversie individuali di lavoro, licenziamento, differenze retributive, previdenza e procedimenti urgenti collegati al rapporto.",
+            "Quando occorre una traccia strutturata pronta per deposito e revisione processuale.",
+        ],
+        "structure": [
+            "Tribunale del lavoro o autorita competente, parti e rapporto dedotto.",
+            "Ricostruzione del rapporto, fatti rilevanti, norme applicabili e richieste.",
+            "Mezzi istruttori, documenti e conclusioni.",
+        ],
+        "technical_notes": [
+            "Verifica sempre i termini decadenziali e la prova documentale del rapporto di lavoro o del provvedimento impugnato.",
+            "Mantieni separati fatti storici, eccezioni e quantificazione economica delle domande.",
+        ],
+        "references": [
+            "Codice di procedura civile, rito del lavoro.",
+            "Normativa sostanziale lavoristica e previdenziale applicabile.",
+        ],
+    },
+    "SOCIETARIO": {
+        "summary": "Atto societario o commerciale organizzato per pareri, contratti e contenzioso con focus su delibere, governance e operazioni straordinarie.",
+        "when_to_use": [
+            "Per attività consultiva o contenziosa su società, organi, patti, contratti commerciali e responsabilità gestorie.",
+            "Quando serve una bozza leggibile, pronta per revisione tecnica o utilizzo interno di studio.",
+        ],
+        "structure": [
+            "Parti o società coinvolte, oggetto dell'operazione o della controversia.",
+            "Ricostruzione dei fatti o del quesito, analisi e indicazioni operative.",
+            "Clausole, richieste o conclusioni finali.",
+        ],
+        "technical_notes": [
+            "Controlla statuto, delibere, patti e documentazione camerale richiamata nell'atto.",
+            "Per i contratti, mantieni coerenti oggetto, corrispettivo, durata e clausole di uscita.",
+        ],
+        "references": [
+            "Codice civile, libri IV e V.",
+            "Normativa societaria e commerciale speciale dove applicabile.",
+        ],
+    },
+    "IMMIGRAZIONE": {
+        "summary": "Atto in materia di immigrazione e cittadinanza con focus su status personale, provvedimento impugnato, vulnerabilità e integrazione.",
+        "when_to_use": [
+            "Per ricorsi su permesso di soggiorno, protezione internazionale, espulsione, cittadinanza o istanze correlate.",
+            "Quando serve una traccia organica che unisca fatto personale, profili documentali e richieste all'autorità.",
+        ],
+        "structure": [
+            "Autorita competente, richiedente e provvedimento o situazione giuridica rilevante.",
+            "Fatti, paese di origine, integrazione in Italia e motivi giuridici.",
+            "Richieste finali e allegati essenziali.",
+        ],
+        "technical_notes": [
+            "Verifica termini, notifica del provvedimento e documentazione personale e amministrativa disponibile.",
+            "Organizza con chiarezza i profili di vulnerabilità e gli elementi di integrazione sociale.",
+        ],
+        "references": [
+            "Testo unico immigrazione.",
+            "Normativa e giurisprudenza su protezione internazionale e cittadinanza.",
+        ],
+    },
 }
 
 MODEL_GUIDANCE_OVERRIDES: dict[str, dict[str, Any]] = {
@@ -882,6 +1017,10 @@ AREA_DEFAULT_SECTIONS: dict[str, list[str]] = {
     "PENALE": ["intestazione", "autorita", "posizione_difensiva", "richieste", "allegati", "firma"],
     "AMMINISTRATIVO": ["intestazione", "parti", "fatti", "motivi", "domanda_cautelare", "conclusioni", "allegati", "firma"],
     "TRIBUTARIO": ["intestazione", "parti", "atto_impugnato", "motivi", "domanda_cautelare", "conclusioni", "allegati", "firma"],
+    "FAMIGLIA": ["intestazione", "parti", "contesto_familiare", "interesse_protetto", "richieste", "allegati", "firma"],
+    "LAVORO": ["intestazione", "parti", "rapporto", "fatti", "diritto", "richieste", "allegati", "firma"],
+    "SOCIETARIO": ["intestazione", "parti", "operazione_o_controversia", "analisi", "clausole_o_richieste", "allegati", "firma"],
+    "IMMIGRAZIONE": ["intestazione", "richiedente", "provvedimento_o_status", "fatti", "motivi", "richieste", "allegati", "firma"],
 }
 
 MODEL_SECTION_OVERRIDES: dict[str, list[str]] = {
@@ -889,6 +1028,12 @@ MODEL_SECTION_OVERRIDES: dict[str, list[str]] = {
     "CIV_CIT_001": ["intestazione", "parti", "fatto", "diritto", "vocatio_in_ius", "avvertimenti_rito", "conclusioni", "fase_istruttoria", "dichiarazione_valore", "firma"],
     "CIV_RDI_001": ["intestazione", "ricorrente", "debitore", "credito", "prova_scritta", "richieste", "provvisoria_esecutorieta", "allegati", "firma"],
     "CIV_COM_001": ["intestazione", "parti", "posizione_sui_fatti", "eccezioni_processuali", "eccezioni_di_merito", "domande", "mezzi_istruttori", "conclusioni", "firma"],
+    "CIV_PROCBASE_001": ["intestazione", "mandato", "poteri", "domicilio", "allegati", "firma"],
+    "CIV_NOTIFBASE_001": ["intestazione", "atto_da_notificare", "destinatario", "modalita", "attestazioni", "allegati", "firma"],
+    "CIV_PIGBASE_001": ["intestazione", "parti", "titolo_e_precetto", "beni_oggetto", "richieste", "allegati", "firma"],
+    "PEN_SEGNBASE_001": ["intestazione", "persona_offesa", "fatti", "qualificazione", "richieste", "allegati", "firma"],
+    "PEN_PARTECIVBASE_001": ["intestazione", "parte_civile", "procedimento", "danno", "richieste", "allegati", "firma"],
+    "PEN_LISTATESTI_001": ["intestazione", "procedimento", "lista_testi", "capitoli", "allegati", "firma"],
 }
 
 MODEL_RENDERER_OVERRIDES: dict[str, str] = {
@@ -902,6 +1047,10 @@ DEFAULT_RENDERERS_BY_AREA: dict[str, str] = {
     "PENALE": "criminal_defense_v1",
     "AMMINISTRATIVO": "administrative_litigation_v1",
     "TRIBUTARIO": "tax_litigation_v1",
+    "FAMIGLIA": "civil_judicial_v1",
+    "LAVORO": "civil_judicial_v1",
+    "SOCIETARIO": "generic_professional_v1",
+    "IMMIGRAZIONE": "civil_judicial_v1",
 }
 
 MODEL_PREFILL_MAP_OVERRIDES: dict[str, dict[str, list[str]]] = {
@@ -943,6 +1092,34 @@ MODEL_PREFILL_MAP_OVERRIDES: dict[str, dict[str, list[str]]] = {
         "lawyer_pec": ["config.SMTP_FROM", "config.PCT_STUDIO_PEC"],
         "documents_offered": ["fascicolo.documenti[].nome"],
     },
+    "CIV_PROCBASE_001": {
+        "granting_party": ["cliente.nome_completo", "fascicolo.nome_cliente"],
+        "appointed_professional": ["utente.nome_completo", "config.STUDIO_AVVOCATO"],
+        "mandate_subject": ["fascicolo.oggetto", "fascicolo.titolo"],
+        "domicile_election_details": ["config.STUDIO_INDIRIZZO"],
+    },
+    "CIV_NOTIFBASE_001": {
+        "requesting_party": ["cliente.nome_completo", "fascicolo.nome_cliente"],
+        "notified_act_reference": ["fascicolo.oggetto", "fascicolo.titolo"],
+        "notification_recipient": ["fascicolo.controparte"],
+        "supporting_documents": ["fascicolo.documenti[].nome"],
+    },
+    "PEN_SEGNBASE_001": {
+        "complainant_person": ["cliente.nome_completo", "fascicolo.nome_cliente"],
+        "reported_person": ["fascicolo.controparte"],
+        "reported_facts": ["fascicolo.note"],
+        "supporting_documents": ["fascicolo.documenti[].nome"],
+    },
+    "PEN_PARTECIVBASE_001": {
+        "civil_party": ["cliente.nome_completo", "fascicolo.nome_cliente"],
+        "criminal_proceeding_reference": ["fascicolo.rg_completo", "fascicolo.numero"],
+        "damage_description": ["fascicolo.note"],
+        "supporting_documents": ["fascicolo.documenti[].nome"],
+    },
+    "PEN_LISTATESTI_001": {
+        "criminal_proceeding_reference": ["fascicolo.rg_completo", "fascicolo.numero"],
+        "witness_list_details": ["fascicolo.documenti[].nome"],
+    },
 }
 
 MODEL_SUGGESTED_ATTACHMENTS_OVERRIDES: dict[str, list[str]] = {
@@ -957,6 +1134,30 @@ MODEL_SUGGESTED_ATTACHMENTS_OVERRIDES: dict[str, list[str]] = {
     "CIV_RDI_001": [
         "Prova scritta del credito: contratto, fatture, DDT, estratto autentico o riconoscimento del debito.",
         "Documentazione sulla scadenza del credito e sugli interessi richiesti.",
+    ],
+    "CIV_PROCBASE_001": [
+        "Documento di identita del conferente e, se necessario, codice fiscale o visura aggiornata.",
+        "Atto o procedimento cui la procura si riferisce, se gia individuato.",
+    ],
+    "CIV_NOTIFBASE_001": [
+        "Atto o documento da notificare o attestare.",
+        "Relazione di notifica, attestazione o prova del deposito collegato.",
+    ],
+    "CIV_PIGBASE_001": [
+        "Titolo esecutivo e atto di precetto gia notificati.",
+        "Documentazione sui beni o sugli immobili da sottoporre a esecuzione.",
+    ],
+    "PEN_SEGNBASE_001": [
+        "Documento di identita della persona offesa o del denunciante.",
+        "Documenti, screenshot, referti o altre fonti di prova dei fatti esposti.",
+    ],
+    "PEN_PARTECIVBASE_001": [
+        "Documentazione del danno subito e titoli giustificativi della pretesa risarcitoria.",
+        "Atto di nomina del difensore e procura speciale, se richiesta.",
+    ],
+    "PEN_LISTATESTI_001": [
+        "Elenco nominativo dei testi con recapiti e qualifica.",
+        "Schema dei capitoli di prova e riferimenti agli atti gia prodotti.",
     ],
 }
 
@@ -1111,6 +1312,18 @@ MODEL_ESSENTIAL_DOCS: dict[str, list[str]] = {
         "Contratto di locazione.",
         "Documentazione dei canoni insoluti o della scadenza contrattuale.",
     ],
+    "CIV_PROCBASE_001": [
+        "Documento di identita del conferente.",
+        "Riferimento alla pratica o al procedimento cui il mandato si collega.",
+    ],
+    "CIV_NOTIFBASE_001": [
+        "Atto o documento da notificare o attestare.",
+        "Riferimenti del fascicolo o del deposito collegato.",
+    ],
+    "CIV_PIGBASE_001": [
+        "Titolo esecutivo e precetto gia notificato.",
+        "Documentazione dei beni o dell'immobile da aggredire.",
+    ],
     # ── PENALE ──────────────────────────────────────────────────────────────
     "PEN_NOM_001": [
         "Nomina sottoscritta dall'assistito.",
@@ -1153,6 +1366,18 @@ MODEL_ESSENTIAL_DOCS: dict[str, list[str]] = {
     ],
     "PEN_NOTEUD_001": [
         "Verbale dell'udienza e atti del dibattimento rilevanti.",
+    ],
+    "PEN_SEGNBASE_001": [
+        "Documento di identita del denunciante o querelante.",
+        "Prove documentali o digitali dei fatti esposti.",
+    ],
+    "PEN_PARTECIVBASE_001": [
+        "Documentazione del danno e titoli giustificativi della pretesa.",
+        "Procura o nomina difensiva necessaria per la costituzione.",
+    ],
+    "PEN_LISTATESTI_001": [
+        "Elenco dei testi con dati identificativi.",
+        "Capitoli di prova e riferimenti ai fatti contestati.",
     ],
     # ── AMMINISTRATIVO ───────────────────────────────────────────────────────
     "AMM_RIC_001": [
@@ -1724,6 +1949,55 @@ def _prefill_extra_field(field_name: str, *, fascicolo: Any = None, cliente: Any
     config = config or {}
     lawyer_name = _first_non_empty(getattr(utente, "nome_completo", ""), getattr(utente, "username", ""), config.get("STUDIO_AVVOCATO", ""))
     lawyer_pec = _first_non_empty(config.get("SMTP_FROM", ""), config.get("PCT_STUDIO_PEC", ""))
+    if field_name == "granting_party":
+        return _resolve_cliente_label(cliente, fascicolo)
+    if field_name == "appointed_professional":
+        return lawyer_name
+    if field_name == "mandate_subject":
+        return _first_non_empty(getattr(fascicolo, "oggetto", ""), getattr(fascicolo, "titolo", "Mandato difensivo"))
+    if field_name == "special_powers_requested":
+        return (
+            "con facolta di rappresentanza e difesa in ogni fase e grado del procedimento, "
+            "di conciliare, transigere, rinunciare agli atti, chiamare terzi e proporre impugnazioni ove occorra"
+        )
+    if field_name == "domicile_election_details":
+        return _first_non_empty(config.get("STUDIO_INDIRIZZO", ""), "")
+    if field_name == "substitute_or_domiciliatary":
+        return lawyer_name
+    if field_name == "revocation_or_renunciation_notes":
+        return _first_non_empty(getattr(fascicolo, "note", ""), "")
+    if field_name == "notified_act_reference":
+        return _first_non_empty(getattr(fascicolo, "titolo", ""), getattr(fascicolo, "oggetto", ""))
+    if field_name == "notification_recipient":
+        return _resolve_controparte_label(fascicolo)
+    if field_name == "notification_mode":
+        return "PEC" if lawyer_pec else "Ufficiale giudiziario / notificazione in proprio"
+    if field_name == "notification_request_details":
+        return _first_non_empty(getattr(fascicolo, "note", ""), "")
+    if field_name == "conformity_attestation_notes":
+        return "Si attesta la conformita del documento analogico o informatico ai fini dell'utilizzo processuale e della notifica."
+    if field_name == "complainant_person":
+        return _resolve_cliente_label(cliente, fascicolo)
+    if field_name == "reported_person":
+        return _resolve_controparte_label(fascicolo)
+    if field_name == "reported_facts":
+        return _first_non_empty(getattr(fascicolo, "note", ""), "")
+    if field_name == "offence_hypothesis":
+        return _first_non_empty(getattr(fascicolo, "oggetto", ""), "")
+    if field_name == "witnesses_and_evidence":
+        return "\n".join(list(allegati or []))
+    if field_name == "criminal_requests":
+        return "Si chiede che l'Autorita procedente voglia procedere nei confronti dei responsabili e svolgere ogni attivita investigativa utile."
+    if field_name == "civil_party":
+        return _resolve_cliente_label(cliente, fascicolo)
+    if field_name == "damage_description":
+        return _first_non_empty(getattr(fascicolo, "note", ""), "")
+    if field_name == "civil_claim_requests":
+        return "Si chiede l'ammissione della costituzione di parte civile e la condanna al risarcimento dei danni patrimoniali e non patrimoniali."
+    if field_name == "witness_list_details":
+        return "\n".join(list(allegati or []))
+    if field_name == "topics_of_examination":
+        return "Indicazione sintetica dei capitoli di prova e dei fatti sui quali ciascun teste deve essere escusso."
     if field_name == "court_name":
         return _resolve_court_heading(fascicolo)
     if field_name in FIELD_ALIASES_BY_ROLE["cliente"]:

@@ -1,7 +1,10 @@
+import io
+import json
+import zipfile
 from pathlib import Path
 
 from pct.auth import GestioneUtenti, RuoloUtente
-from pct.giurisprudenza import GestioneGiurisprudenza
+from pct.giurisprudenza import GIURISPRUDENZA_STORAGE_VERSION, GestioneGiurisprudenza
 from web.app import create_app
 
 
@@ -17,6 +20,39 @@ class DummyResponse:
         self.status_code = status_code
         self.url = url
         self.headers = {"content-type": content_type}
+
+
+def _dummy_get_factory(mapping):
+    def _get(url, *args, **kwargs):
+        payload = mapping.get(url)
+        if payload is None:
+            raise AssertionError(f"URL non atteso nel test: {url}")
+        if isinstance(payload, DummyResponse):
+            return payload
+        content = payload.get("content", b"")
+        if isinstance(content, str):
+            content = content.encode("utf-8")
+        return DummyResponse(
+            content,
+            status_code=payload.get("status_code", 200),
+            url=payload.get("url", url),
+            content_type=payload.get("content_type", "text/html; charset=utf-8"),
+        )
+
+    return _get
+
+
+def _build_corte_cost_zip(records: list[dict]) -> bytes:
+    inner_buffer = io.BytesIO()
+    with zipfile.ZipFile(inner_buffer, "w", compression=zipfile.ZIP_DEFLATED) as inner_zip:
+        inner_zip.writestr(
+            "pronunce_2026.json",
+            json.dumps({"elenco_pronunce": records}, ensure_ascii=False).encode("cp1252", errors="ignore"),
+        )
+    outer_buffer = io.BytesIO()
+    with zipfile.ZipFile(outer_buffer, "w", compression=zipfile.ZIP_DEFLATED) as outer_zip:
+        outer_zip.writestr("P_json_2026.zip", inner_buffer.getvalue())
+    return outer_buffer.getvalue()
 
 
 def _cfg_web(tmp_path: Path) -> dict:
@@ -80,6 +116,195 @@ def test_giurisprudenza_salva_e_cerca_per_classificazione(tmp_path: Path):
     assert len(found) == 1
     assert found[0]["microtema"] == "consenso informato"
     assert found[0]["anno"] == "2026"
+
+
+def test_storage_v2_migra_giudizi_esistenti_e_seed_fonti(tmp_path: Path):
+    db_path = tmp_path / "giurisprudenza.json"
+    db_path.write_text(
+        json.dumps(
+            {
+                "judgments": [
+                    {
+                        "id": "j-1",
+                        "titolo": "Sentenza di merito su appalto",
+                        "source_system": "manuale_interno",
+                        "massima": "Il collaudo non esclude l'inadempimento.",
+                        "fascicoli_collegati": ["FASC-001"],
+                        "created_at": "2026-04-10T10:00:00",
+                        "updated_at": "2026-04-10T10:00:00",
+                    }
+                ],
+                "sync_runs": [
+                    {
+                        "id": "run-1",
+                        "source_id": "manuale_interno",
+                        "checked_at": "2026-04-10T10:30:00",
+                        "status": "manuale",
+                    }
+                ],
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+
+    gestore = GestioneGiurisprudenza(str(db_path))
+    record = gestore.get("j-1")
+    stats = gestore.storage_stats()
+
+    assert stats["storage_version"] == GIURISPRUDENZA_STORAGE_VERSION
+    assert stats["legal_sources"] >= 8
+    assert stats["ingestion_runs"] == 1
+    assert stats["judgment_texts"] == 1
+    assert stats["practice_judgments"] == 1
+    assert record is not None
+    assert record["text_versions_count"] == 1
+    assert record["practice_links_count"] == 1
+    assert record["testo_normalizzato"] == "Il collaudo non esclude l'inadempimento."
+
+
+def test_sync_openga_importa_e_aggiorna_dataset_ufficiale(tmp_path: Path):
+    gestore = GestioneGiurisprudenza(str(tmp_path / "giurisprudenza.json"))
+    search_url = "https://openga.giustizia-amministrativa.it/api/3/action/package_search?q=sentenze&rows=100"
+    resource_url = "https://openga.giustizia-amministrativa.it/dataset/tar-lazio-2026.json"
+    search_payload = {
+        "result": {
+            "results": [
+                {
+                    "metadata_modified": "2026-04-12T12:00:00",
+                    "resources": [
+                        {
+                            "format": "JSON",
+                            "name": "Sentenze TAR Lazio 2026",
+                            "url": resource_url,
+                        }
+                    ],
+                }
+            ]
+        }
+    }
+    first_rows = [
+        {
+            "TIPO_PROVVEDIMENTO": "sentenza",
+            "NOME_SEDE": "TAR Lazio - Roma",
+            "NOME_SEZIONE": "Sezione III",
+            "NUMERO_PROVVEDIMENTO": "1001",
+            "DATA_PUBBLICAZIONE": "2026-04-12",
+            "TIPO_RICORSO": "Appalti pubblici",
+            "TIPO_UDIENZA": "Pubblica",
+            "ESITO_PROVVEDIMENTO": "Accoglimento",
+            "OGGETTO_RICORSO": "Revisione prezzi e riequilibrio contrattuale negli appalti pubblici.",
+            "CODICE_SEDE": "TAR-LAZIO",
+        }
+    ]
+
+    report = gestore.sync_sources(
+        source_ids=["openga"],
+        request_get=_dummy_get_factory(
+            {
+                search_url: {
+                    "content": json.dumps(search_payload, ensure_ascii=False),
+                    "content_type": "application/json",
+                },
+                resource_url: {
+                    "content": json.dumps(first_rows, ensure_ascii=False),
+                    "content_type": "application/json",
+                },
+            }
+        ),
+    )
+
+    rows = gestore.cerca(source_system="openga")
+    record = gestore.get(rows[0]["id"])
+
+    assert report["ok"] is True
+    assert report["imported_total"] == 1
+    assert report["updated_total"] == 0
+    assert report["changed_total"] == 1
+    assert len(rows) == 1
+    assert rows[0]["grado"] == "TAR"
+    assert rows[0]["organo_giudicante"] == "TAR Lazio - Roma"
+    assert rows[0]["materia"] == "Appalti pubblici"
+    assert record["raw_documents_count"] == 1
+    assert record["text_versions_count"] == 1
+
+    second_rows = [dict(first_rows[0], OGGETTO_RICORSO="Revisione prezzi, compensazione e riequilibrio del contratto pubblico.")]
+    report_update = gestore.sync_sources(
+        source_ids=["openga"],
+        request_get=_dummy_get_factory(
+            {
+                search_url: {
+                    "content": json.dumps(search_payload, ensure_ascii=False),
+                    "content_type": "application/json",
+                },
+                resource_url: {
+                    "content": json.dumps(second_rows, ensure_ascii=False),
+                    "content_type": "application/json",
+                },
+            }
+        ),
+    )
+
+    rows_after = gestore.cerca(source_system="openga")
+    updated_record = gestore.get(rows_after[0]["id"])
+
+    assert report_update["imported_total"] == 0
+    assert report_update["updated_total"] == 1
+    assert report_update["changed_total"] == 1
+    assert len(rows_after) == 1
+    assert updated_record["text_versions_count"] == 2
+    assert "compensazione" in updated_record["testo_normalizzato"].lower()
+
+
+def test_sync_corte_costituzionale_importa_dataset_open_data(tmp_path: Path):
+    gestore = GestioneGiurisprudenza(str(tmp_path / "giurisprudenza.json"))
+    page_url = "https://dati.cortecostituzionale.it/Scarica_i_dati/Scarica_i_dati"
+    zip_url = "https://dati.cortecostituzionale.it/opendata/distribuzione/pronunce/P_json2001_oggi.zip"
+    page_html = f"""
+    <html><body>
+      <a href="{zip_url}">Scarica pronunce JSON</a>
+    </body></html>
+    """
+    zip_bytes = _build_corte_cost_zip(
+        [
+            {
+                "numero_pronuncia": "77",
+                "anno_pronuncia": "2026",
+                "data_decisione": "2026-04-01",
+                "data_deposito": "2026-04-09",
+                "epigrafe": "Giudizio di legittimita costituzionale in via incidentale.",
+                "testo": "La Corte dichiara l'illegittimita costituzionale della norma nei limiti indicati.",
+                "dispositivo": "Illegittimita costituzionale parziale.",
+                "ecli": "ECLI:IT:COST:2026:77",
+                "tipologia_pronuncia": "S",
+                "presidente": "Rossi",
+                "relatore_pronuncia": "Bianchi",
+            }
+        ]
+    )
+
+    report = gestore.sync_sources(
+        source_ids=["corte_costituzionale"],
+        request_get=_dummy_get_factory(
+            {
+                page_url: {"content": page_html},
+                zip_url: {"content": zip_bytes, "content_type": "application/zip"},
+            }
+        ),
+    )
+
+    rows = gestore.cerca(source_system="corte_costituzionale")
+    record = gestore.get(rows[0]["id"])
+
+    assert report["ok"] is True
+    assert report["imported_total"] == 1
+    assert len(rows) == 1
+    assert rows[0]["ecli"] == "ECLI:IT:COST:2026:77"
+    assert rows[0]["grado"] == "Corte costituzionale"
+    assert rows[0]["tipo_provvedimento"] == "Sentenza"
+    assert record["raw_documents_count"] == 1
+    assert record["text_versions_count"] == 1
+    assert "illegittimita costituzionale" in record["testo_normalizzato"].lower()
 
 
 def test_sync_fonte_pubblica_importa_candidati(tmp_path: Path):
@@ -205,6 +430,7 @@ def test_importa_da_url_pubblico_compila_metadati(tmp_path: Path):
     assert record["source_system"] == "corte_costituzionale"
     assert record["ecli"] == "ECLI:IT:COST:2026:77"
     assert record["data_deposito"] == "2026-04-09"
+    assert gestore.get(record["id"])["raw_documents_count"] == 1
 
 
 def test_importa_da_materiale_simpliciter_crea_e_aggiorna_schede(tmp_path: Path):
@@ -310,6 +536,8 @@ def test_blueprint_archivio_sentenze_renderizza_indice_e_salvataggio(tmp_path: P
     assert "Scheda Sentenza" in detail_html
     assert "TAR su accesso agli atti negli appalti" in detail_html
     assert "precedente forte" in detail_html
+    assert "Archivio tecnico" in detail_html
+    assert "Testo normalizzato e archivio redazionale" in detail_html
 
 
 def test_blueprint_importa_materiale_cliente(tmp_path: Path):
@@ -367,6 +595,10 @@ def test_template_giurisprudenza_usa_layout_responsive():
     assert ".jud-actions .btn { width:100%; }" in index_html
     assert "Import assistito da materiale cliente" in index_html
     assert "Importa materiale cliente" in index_html
+    assert "Documenti raw" in index_html
+    assert "Licenza / note" in index_html
     assert ".jf-layout { display: grid;" in form_html
     assert "@media (max-width: 1199.98px)" in form_html
     assert "@media (max-width: 767.98px)" in detail_html
+    assert "Testo normalizzato e archivio redazionale" in detail_html
+    assert "Archivio tecnico" in detail_html

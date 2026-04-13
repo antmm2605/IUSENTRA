@@ -130,6 +130,7 @@ def index():
         "giurisprudenza/index.html",
         oggi=date.today(),
         statistiche=gestore.statistiche(),
+        storage_stats=gestore.storage_stats(),
         fonti=fonti,
         giurisdizioni=sorted({item["giurisdizione"] for item in fonti if item.get("giurisdizione")}),
         tassonomia=gestore.tassonomia(),
@@ -179,6 +180,9 @@ def dettaglio(judgment_id: str):
         record=_decorate_record(record),
         fonte=fonte,
         correlati=[_decorate_record(row) for row in gestore.related(judgment_id)],
+        text_versions=[dict(item, created_at_fmt=_fmt_datetime_it(item.get("created_at", ""))) for item in gestore.judgment_text_versions(judgment_id)],
+        raw_documents=[dict(item, downloaded_at_fmt=_fmt_datetime_it(item.get("downloaded_at", ""))) for item in gestore.raw_documents(judgment_id)],
+        practice_links=gestore.practice_links(judgment_id),
     )
 
 
@@ -211,7 +215,11 @@ def sync():
     try:
         report = gestore.sync_sources(source_ids=[source_id] if source_id else None)
         flash(
-            f"Recupero sentenze completato: {report.get('imported_total', 0)} schede nuove o aggiornate.",
+            (
+                "Recupero sentenze completato: "
+                f"{report.get('changed_total', 0)} schede toccate "
+                f"({report.get('imported_total', 0)} nuove, {report.get('updated_total', 0)} aggiornate)."
+            ),
             "success",
         )
     except Exception as exc:

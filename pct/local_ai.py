@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import html as html_lib
 import io
 import json
 import math
@@ -13,16 +14,29 @@ import sqlite3
 import subprocess
 import time
 import uuid
-from dataclasses import asdict, dataclass
+import xml.etree.ElementTree as ET
+import zipfile
+from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, Iterable
 
 import pdfplumber
 import requests
 
 
 _ENC_MAGIC = b"PCTENC\x01"
+
+_HEADING_PATTERNS: list[tuple[str, re.Pattern[str]]] = [
+    ("intestazione", re.compile(r"^(TRIBUNALE|CORTE D'APPELLO|CORTE DI CASSAZIONE|GIUDICE DI PACE|TAR|CONSIGLIO DI STATO)\b", re.I)),
+    ("parti", re.compile(r"^(RICORRENTE|RICORRENTI|ATTORE|ATTRICE|CONVENUTO|CONVENUTA|APPELLANTE|APPELLATO|OPPONENTE|OPPOSTO)\b", re.I)),
+    ("fatto", re.compile(r"^(FATTO|IN FATTO|SVOLGIMENTO DEL PROCESSO|ESPOSIZIONE DEI FATTI)\b", re.I)),
+    ("diritto", re.compile(r"^(DIRITTO|IN DIRITTO|MOTIVI IN DIRITTO|CONSIDERATO IN DIRITTO)\b", re.I)),
+    ("motivazione", re.compile(r"^(MOTIVAZIONE|MOTIVI DELLA DECISIONE|RITENUTO IN FATTO E IN DIRITTO|OSSERVA|RILEVATO CHE|CONSIDERATO CHE)\b", re.I)),
+    ("conclusioni", re.compile(r"^(CONCLUSIONI|PER QUESTI MOTIVI|P\.Q\.M\.|PQM|CHIEDE|SI CHIEDE)\b", re.I)),
+    ("dispositivo", re.compile(r"^(DISPOSITIVO|P\.Q\.M\.|PQM)\b", re.I)),
+    ("allegati", re.compile(r"^(ALLEGATI|DOCUMENTI ALLEGATI|ELENCO ALLEGATI)\b", re.I)),
+]
 
 
 def _now_iso() -> str:
@@ -121,6 +135,106 @@ def _decrypt_document_bytes(data: bytes) -> bytes:
     return AESGCM(key).decrypt(nonce, ciphertext, None)
 
 
+def _normalize_text(text: str) -> str:
+    return (
+        str(text or "")
+        .replace("\u00a0", " ")
+        .replace("\r", "")
+        .replace("\t", " ")
+        .replace("\x00", " ")
+    )
+
+
+def _strip_html(raw: str) -> str:
+    text = re.sub(r"<script[\s\S]*?</script>", " ", str(raw or ""), flags=re.I)
+    text = re.sub(r"<style[\s\S]*?</style>", " ", text, flags=re.I)
+    text = re.sub(r"<[^>]+>", " ", text)
+    text = html_lib.unescape(text)
+    return _clean_spaces(text.replace(" .", "."))
+
+
+def _detect_language(text: str) -> str | None:
+    sample = str(text or "").lower()[:3000]
+    hits = [
+        "tribunale",
+        "ricorrente",
+        "convenuto",
+        "sentenza",
+        "decreto",
+        "diritto",
+        "fatto",
+        "conclusioni",
+        "udienza",
+        "procura",
+    ]
+    return "it" if sum(1 for token in hits if token in sample) >= 3 else None
+
+
+def _is_supported_mime(mime_type: str) -> bool:
+    return mime_type in {
+        "text/plain",
+        "text/markdown",
+        "text/html",
+        "application/xhtml+xml",
+        "application/json",
+        "application/pdf",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    }
+
+
+def _docx_text_from_bytes(data: bytes) -> str:
+    namespaces = {
+        "w": "http://schemas.openxmlformats.org/wordprocessingml/2006/main",
+    }
+    chunks: list[str] = []
+    with zipfile.ZipFile(io.BytesIO(data)) as archive:
+        names = sorted(
+            [
+                name
+                for name in archive.namelist()
+                if name == "word/document.xml"
+                or name.startswith("word/header")
+                or name.startswith("word/footer")
+                or name.startswith("word/footnotes")
+                or name.startswith("word/endnotes")
+            ]
+        )
+        for name in names:
+            try:
+                root = ET.fromstring(archive.read(name))
+            except Exception:
+                continue
+            paragraphs: list[str] = []
+            for paragraph in root.findall(".//w:p", namespaces):
+                texts = [node.text or "" for node in paragraph.findall(".//w:t", namespaces)]
+                line = _clean_spaces("".join(texts))
+                if line:
+                    paragraphs.append(line)
+            if paragraphs:
+                chunks.append("\n\n".join(paragraphs))
+    return "\n\n".join(chunks).strip()
+
+
+def _paragraphs(text: str) -> list[str]:
+    return [
+        chunk.strip()
+        for chunk in re.split(r"\n{2,}", _normalize_text(text))
+        if chunk and chunk.strip()
+    ]
+
+
+def _looks_like_heading(text: str) -> tuple[str, str | None]:
+    raw = _clean_spaces(text)
+    if not raw:
+        return "corpo", None
+    for section_type, regex in _HEADING_PATTERNS:
+        if regex.search(raw):
+            return section_type, raw
+    if len(raw) <= 90 and raw.upper() == raw and re.search(r"[A-ZÀ-ÖØ-Þ]", raw):
+        return "sezione", raw
+    return "corpo", None
+
+
 @dataclass
 class LocalAiSettings:
     enabled: bool = True
@@ -166,14 +280,14 @@ class OllamaHttpClient:
         return list(self._request("GET", "/ps", timeout=10).get("models") or [])
 
     def pull_model(self, model_name: str) -> dict[str, Any]:
-        return self._request("POST", "/pull", payload={"model": model_name, "stream": False}, timeout=600)
+        return self._request("POST", "/pull", payload={"model": model_name, "stream": False}, timeout=900)
 
     def warmup_model(self, model_name: str, keep_alive: str = "10m") -> dict[str, Any]:
         return self._request(
             "POST",
             "/generate",
             payload={"model": model_name, "prompt": "ok", "stream": False, "keep_alive": keep_alive},
-            timeout=180,
+            timeout=240,
         )
 
     def embed_texts(self, model_name: str, inputs: list[str]) -> dict[str, Any]:
@@ -181,7 +295,7 @@ class OllamaHttpClient:
             "POST",
             "/embed",
             payload={"model": model_name, "input": inputs, "truncate": True},
-            timeout=180,
+            timeout=240,
         )
         embeddings = data.get("embeddings") or []
         if not embeddings:
@@ -199,7 +313,7 @@ class OllamaHttpClient:
             "POST",
             "/generate",
             payload={"model": model_name, "prompt": prompt, "stream": False, "keep_alive": keep_alive},
-            timeout=240,
+            timeout=300,
         )
 
 
@@ -236,8 +350,20 @@ class LocalAIService:
         sql = self.schema_path.read_text(encoding="utf-8")
         with self._connect() as conn:
             conn.executescript(sql)
-            columns = {row["name"] for row in conn.execute("PRAGMA table_info(rag_documents)").fetchall()}
-            if "practice_id" not in columns:
+            conn.executescript(
+                """
+                DROP TRIGGER IF EXISTS rag_chunks_au;
+                CREATE TRIGGER rag_chunks_au
+                AFTER UPDATE OF id, document_id, practice_id, text ON rag_chunks BEGIN
+                    INSERT INTO rag_chunks_fts(rag_chunks_fts, rowid, id, document_id, practice_id, text)
+                    VALUES ('delete', old.rowid, old.id, old.document_id, old.practice_id, old.text);
+                    INSERT INTO rag_chunks_fts(rowid, id, document_id, practice_id, text)
+                    VALUES (new.rowid, new.id, new.document_id, new.practice_id, new.text);
+                END;
+                """
+            )
+            doc_columns = {row["name"] for row in conn.execute("PRAGMA table_info(rag_documents)").fetchall()}
+            if "practice_id" not in doc_columns:
                 conn.execute("ALTER TABLE rag_documents ADD COLUMN practice_id TEXT")
             chunk_columns = {row["name"] for row in conn.execute("PRAGMA table_info(rag_chunks)").fetchall()}
             if "embedding_json" not in chunk_columns:
@@ -509,13 +635,27 @@ class LocalAIService:
             "disable_rag_by_default": bool(row.get("disableRagByDefault", False)),
         }
 
+    def _assert_embedding_runtime(self, runtime_version: str, model_name: str, policy: dict[str, Any]) -> None:
+        if not str(model_name or "").startswith("embeddinggemma"):
+            return
+        minimum = str(policy.get("ollama", {}).get("minVersionForEmbeddingGemma", "0.11.10"))
+        if _compare_versions(runtime_version, minimum) < 0:
+            raise RuntimeError(f"embeddinggemma richiede Ollama >= {minimum}, trovato {runtime_version}")
+
     def _ollama_executable_candidates(self) -> list[Path]:
-        return [
+        candidates = [
             self.app_root / "bin" / "ollama" / "ollama.exe",
             self.app_root / "tools" / "ollama" / "ollama.exe",
         ]
+        which_path = shutil.which("ollama")
+        if which_path:
+            candidates.append(Path(which_path))
+        return candidates
 
     def _start_windows_ollama(self, settings: LocalAiSettings, policy: dict[str, Any]) -> str:
+        timeout_s = float(policy.get("ollama", {}).get("startupTimeoutMs", 45000)) / 1000.0
+        interval = max(float(policy.get("ollama", {}).get("healthPollIntervalMs", 1500)) / 1000.0, 0.4)
+        client = self._ollama_client(settings)
         for candidate in self._ollama_executable_candidates():
             if not candidate.exists():
                 continue
@@ -532,16 +672,52 @@ class LocalAIService:
                 env=env,
                 creationflags=creationflags,
             )
-            deadline = time.time() + (float(policy.get("ollama", {}).get("startupTimeoutMs", 45000)) / 1000.0)
-            client = self._ollama_client(settings)
-            interval = float(policy.get("ollama", {}).get("healthPollIntervalMs", 1500)) / 1000.0
+            deadline = time.time() + timeout_s
             while time.time() < deadline:
                 version = client.get_version()
                 if version:
                     return str(candidate)
-                time.sleep(max(interval, 0.4))
+                time.sleep(interval)
             raise TimeoutError("Timeout avvio Ollama locale")
         raise FileNotFoundError("Runtime Ollama non trovato nei percorsi previsti")
+
+    def _ensure_model_installed(
+        self,
+        conn: sqlite3.Connection,
+        client: OllamaHttpClient,
+        role: str,
+        model_name: str,
+        installed: dict[str, dict[str, Any]],
+        force_pull: bool = False,
+    ) -> None:
+        details = installed.get(model_name) or {}
+        if not details or force_pull:
+            self._upsert_model(
+                conn,
+                {
+                    "id": f"{role}:{model_name}",
+                    "role": role,
+                    "model_name": model_name,
+                    "install_state": "pulling",
+                    "notes": "Download modello in corso",
+                },
+            )
+            conn.commit()
+            client.pull_model(model_name)
+            installed = {row.get("name"): row for row in client.list_models()}
+            details = installed.get(model_name) or {}
+        self._upsert_model(
+            conn,
+            {
+                "id": f"{role}:{model_name}",
+                "role": role,
+                "model_name": model_name,
+                "install_state": "ready",
+                "size_bytes": details.get("size"),
+                "context_window": None,
+                "notes": json.dumps(details.get("details") or {}, ensure_ascii=False) if details.get("details") else None,
+            },
+        )
 
     def bootstrap_runtime(self, *, force: bool = False) -> dict[str, Any]:
         settings = self._load_settings()
@@ -614,3 +790,1027 @@ class LocalAIService:
                     "chat_model": model_policy["chat_model"],
                     "embed_model": model_policy["embed_model"],
                 }
+
+            try:
+                self._assert_embedding_runtime(version, model_policy["embed_model"], policy)
+                installed = {row.get("name"): row for row in client.list_models()}
+                self._ensure_model_installed(conn, client, "chat", model_policy["chat_model"], installed, force_pull=force)
+                installed = {row.get("name"): row for row in client.list_models()}
+                self._ensure_model_installed(conn, client, "embed", model_policy["embed_model"], installed, force_pull=force)
+                client.warmup_model(
+                    model_policy["chat_model"],
+                    keep_alive=settings.keep_alive or policy.get("ollama", {}).get("defaultWarmupKeepAlive", "10m"),
+                )
+                client.embed_texts(model_policy["embed_model"], ["test"])
+            except Exception as exc:
+                self._upsert_runtime(
+                    conn,
+                    {
+                        "status": "error",
+                        "ollama_version": version,
+                        "install_path": install_path or None,
+                        "last_error": str(exc),
+                        "last_health_check_at": _now_iso(),
+                    },
+                )
+                conn.commit()
+                return {
+                    "status": "error",
+                    "error": str(exc),
+                    "hardware_profile": hardware["profile"],
+                    "chat_model": model_policy["chat_model"],
+                    "embed_model": model_policy["embed_model"],
+                }
+
+            self._upsert_runtime(
+                conn,
+                {
+                    "status": "ready",
+                    "ollama_version": version,
+                    "install_path": install_path or self._runtime_row(conn).get("install_path"),
+                    "last_error": None,
+                    "last_health_check_at": _now_iso(),
+                },
+            )
+            conn.commit()
+            return {
+                "status": "ready",
+                "version": version,
+                "hardware_profile": hardware["profile"],
+                "chat_model": model_policy["chat_model"],
+                "embed_model": model_policy["embed_model"],
+            }
+
+    def health_snapshot(self) -> dict[str, Any]:
+        settings = self._load_settings()
+        policy = self._load_policy()
+        with self._connect() as conn:
+            runtime = self._runtime_row(conn)
+            models = [dict(row) for row in conn.execute("SELECT * FROM local_ai_models ORDER BY role, model_name").fetchall()]
+            counts = conn.execute(
+                """
+                SELECT
+                    (SELECT COUNT(*) FROM rag_documents) AS documents_total,
+                    (SELECT COUNT(*) FROM rag_chunks) AS chunks_total,
+                    (SELECT COUNT(*) FROM rag_chunks WHERE embedding_state = 'embedded') AS chunks_embedded,
+                    (SELECT COUNT(*) FROM rag_chunks WHERE embedding_state = 'pending') AS chunks_pending
+                """
+            ).fetchone()
+        client = self._ollama_client(settings)
+        version = client.get_version()
+        running_models: list[dict[str, Any]] = []
+        try:
+            running_models = client.list_running_models() if version else []
+        except Exception:
+            running_models = []
+        return {
+            "settings": {
+                "enabled": settings.enabled,
+                "base_url": settings.base_url,
+                "auto_bootstrap": settings.auto_bootstrap,
+                "chat_model": settings.chat_model,
+                "embed_model": settings.embed_model,
+                "keep_alive": settings.keep_alive,
+                "auto_index_documents": settings.auto_index_documents,
+            },
+            "runtime": runtime,
+            "runtime_online": bool(version),
+            "runtime_version_live": version,
+            "models": models,
+            "running_models": running_models,
+            "policy": policy,
+            "counts": dict(counts or {}),
+            "models_path": str(self.models_path),
+        }
+
+    def _active_model(self, role: str) -> str | None:
+        with self._connect() as conn:
+            row = conn.execute(
+                "SELECT model_name FROM local_ai_models WHERE role = ? AND is_active = 1 ORDER BY last_verified_at DESC LIMIT 1",
+                (role,),
+            ).fetchone()
+            if row:
+                return str(row["model_name"] or "").strip() or None
+        settings = self._load_settings()
+        hardware = self._detect_hardware()
+        policy = self._resolve_model_policy(hardware, settings, self._load_policy())
+        return policy["chat_model"] if role == "chat" else policy["embed_model"]
+
+    def _read_document_file(self, file_path: Path) -> bytes:
+        data = file_path.read_bytes()
+        try:
+            return _decrypt_document_bytes(data)
+        except Exception:
+            return data
+
+    def _extract_pdf_pages(self, data: bytes) -> list[dict[str, Any]]:
+        pages: list[dict[str, Any]] = []
+        with pdfplumber.open(io.BytesIO(data)) as pdf:
+            for index, page in enumerate(pdf.pages, start=1):
+                text = _normalize_text(page.extract_text() or "")
+                text = re.sub(r"[ \t]+", " ", text)
+                text = re.sub(r"\n{3,}", "\n\n", text).strip()
+                if text:
+                    pages.append({"page_number": index, "text": text})
+        if not pages:
+            raise ValueError("PDF senza testo estraibile. OCR non attivo di default.")
+        return pages
+
+    def _extract_docx_pages(self, data: bytes) -> list[dict[str, Any]]:
+        text = _docx_text_from_bytes(data)
+        if not text.strip():
+            raise ValueError("DOCX senza testo estraibile")
+        return [{"page_number": 1, "text": _normalize_text(text).strip()}]
+
+    def _extract_text_pages(self, data: bytes, mime_type: str) -> list[dict[str, Any]]:
+        if mime_type in {"text/plain", "text/markdown"}:
+            return [{"page_number": 1, "text": _normalize_text(data.decode("utf-8", errors="replace")).strip()}]
+        if mime_type == "application/json":
+            try:
+                parsed = json.loads(data.decode("utf-8", errors="replace"))
+                text = json.dumps(parsed, ensure_ascii=False, indent=2)
+            except Exception:
+                text = data.decode("utf-8", errors="replace")
+            return [{"page_number": 1, "text": _normalize_text(text).strip()}]
+        if mime_type in {"text/html", "application/xhtml+xml"}:
+            text = _strip_html(data.decode("utf-8", errors="replace"))
+            return [{"page_number": 1, "text": _normalize_text(text).strip()}]
+        if mime_type == "application/pdf":
+            return self._extract_pdf_pages(data)
+        if mime_type == "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+            return self._extract_docx_pages(data)
+        raise ValueError(f"Formato non supportato per parsing locale: {mime_type}")
+
+    def _detect_mime(self, file_path: Path, explicit: str | None = None) -> str:
+        if explicit:
+            return explicit
+        mime_type, _ = mimetypes.guess_type(str(file_path))
+        if mime_type == "text/markdown":
+            return mime_type
+        if file_path.suffix.lower() == ".md":
+            return "text/markdown"
+        if file_path.suffix.lower() == ".docx":
+            return "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        return mime_type or "application/octet-stream"
+
+    def _build_sections(self, pages: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        sections: list[dict[str, Any]] = []
+        current: dict[str, Any] | None = None
+        for page in pages:
+            for paragraph in _paragraphs(page.get("text", "")):
+                section_type, heading = _looks_like_heading(paragraph)
+                if heading and section_type != "corpo":
+                    if current and current.get("text"):
+                        sections.append(current)
+                    current = {
+                        "section_type": section_type,
+                        "heading": heading,
+                        "text": "",
+                        "page_from": page.get("page_number"),
+                        "page_to": page.get("page_number"),
+                    }
+                    continue
+                if current is None:
+                    current = {
+                        "section_type": "corpo",
+                        "heading": None,
+                        "text": "",
+                        "page_from": page.get("page_number"),
+                        "page_to": page.get("page_number"),
+                    }
+                current["text"] = f"{current.get('text', '').rstrip()}\n\n{paragraph}".strip()
+                current["page_to"] = page.get("page_number")
+        if current and current.get("text"):
+            sections.append(current)
+        if not sections:
+            joined = "\n\n".join(page.get("text", "") for page in pages if page.get("text"))
+            if joined.strip():
+                sections.append(
+                    {
+                        "section_type": "corpo",
+                        "heading": None,
+                        "text": joined.strip(),
+                        "page_from": pages[0].get("page_number") if pages else None,
+                        "page_to": pages[-1].get("page_number") if pages else None,
+                    }
+                )
+        return sections
+
+    def _split_section(self, text: str, max_tokens: int = 800, overlap_tokens: int = 100) -> list[str]:
+        paragraphs = _paragraphs(text)
+        if not paragraphs:
+            return []
+        chunks: list[str] = []
+        current: list[str] = []
+        current_tokens = 0
+        for paragraph in paragraphs:
+            paragraph_tokens = _estimate_tokens(paragraph)
+            if current and current_tokens + paragraph_tokens > max_tokens:
+                chunks.append("\n\n".join(current).strip())
+                overlap: list[str] = []
+                overlap_count = 0
+                for existing in reversed(current):
+                    existing_tokens = _estimate_tokens(existing)
+                    if overlap and overlap_count + existing_tokens > overlap_tokens:
+                        break
+                    overlap.insert(0, existing)
+                    overlap_count += existing_tokens
+                current = overlap + [paragraph]
+                current_tokens = _estimate_tokens("\n\n".join(current))
+            else:
+                current.append(paragraph)
+                current_tokens += paragraph_tokens
+        if current:
+            chunks.append("\n\n".join(current).strip())
+        return [chunk for chunk in chunks if chunk]
+
+    def _parse_document_bytes(
+        self,
+        *,
+        data: bytes,
+        file_path: Path,
+        mime_type: str,
+        title: str,
+    ) -> dict[str, Any]:
+        pages = self._extract_text_pages(data, mime_type)
+        pages = [{"page_number": page["page_number"], "text": _normalize_text(page["text"]).strip()} for page in pages if page.get("text", "").strip()]
+        raw_text = "\n\n".join(page["text"] for page in pages)
+        sections = self._build_sections(pages)
+        return {
+            "title": title,
+            "mime_type": mime_type,
+            "file_path": str(file_path),
+            "raw_text": raw_text,
+            "pages": pages,
+            "sections": sections,
+            "language": _detect_language(raw_text),
+        }
+
+    def _build_chunk_rows(
+        self,
+        *,
+        document_id: str,
+        practice_id: str | None,
+        parsed: dict[str, Any],
+    ) -> list[dict[str, Any]]:
+        rows: list[dict[str, Any]] = []
+        ordinal = 1
+        for section in parsed.get("sections") or []:
+            for chunk_text in self._split_section(section.get("text", "")):
+                rows.append(
+                    {
+                        "id": uuid.uuid4().hex,
+                        "document_id": document_id,
+                        "practice_id": practice_id,
+                        "section_type": section.get("section_type"),
+                        "ordinal": ordinal,
+                        "page_from": section.get("page_from"),
+                        "page_to": section.get("page_to"),
+                        "token_estimate": _estimate_tokens(chunk_text),
+                        "text": chunk_text,
+                        "metadata_json": json.dumps(
+                            {
+                                "heading": section.get("heading"),
+                                "section_type": section.get("section_type"),
+                                "page_from": section.get("page_from"),
+                                "page_to": section.get("page_to"),
+                            },
+                            ensure_ascii=False,
+                        ),
+                        "embedding_state": "pending",
+                        "embedding_json": None,
+                        "embedding_dimensions": None,
+                        "created_at": _now_iso(),
+                        "updated_at": _now_iso(),
+                    }
+                )
+                ordinal += 1
+        return rows
+
+    def _document_by_source(self, conn: sqlite3.Connection, source_type: str, source_id: str) -> dict[str, Any] | None:
+        row = conn.execute(
+            "SELECT * FROM rag_documents WHERE source_type = ? AND source_id = ? LIMIT 1",
+            (source_type, source_id),
+        ).fetchone()
+        return dict(row) if row else None
+
+    def _upsert_document(
+        self,
+        conn: sqlite3.Connection,
+        *,
+        document_id: str | None,
+        source_type: str,
+        source_id: str,
+        practice_id: str | None,
+        title: str,
+        file_path: str,
+        mime_type: str,
+        sha256: str,
+    ) -> str:
+        now = _now_iso()
+        existing = self._document_by_source(conn, source_type, source_id)
+        if existing:
+            conn.execute(
+                """
+                UPDATE rag_documents
+                SET
+                    practice_id = ?,
+                    title = ?,
+                    file_path = ?,
+                    mime_type = ?,
+                    sha256 = ?,
+                    parse_state = 'pending',
+                    chunk_count = 0,
+                    last_indexed_at = NULL,
+                    updated_at = ?
+                WHERE id = ?
+                """,
+                (
+                    practice_id,
+                    title,
+                    file_path,
+                    mime_type,
+                    sha256,
+                    now,
+                    existing["id"],
+                ),
+            )
+            return str(existing["id"])
+        doc_id = document_id or uuid.uuid4().hex
+        conn.execute(
+            """
+            INSERT INTO rag_documents (
+                id, source_type, source_id, practice_id, title, file_path, mime_type, sha256,
+                language, parse_state, chunk_count, last_indexed_at, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                doc_id,
+                source_type,
+                source_id,
+                practice_id,
+                title,
+                file_path,
+                mime_type,
+                sha256,
+                None,
+                "pending",
+                0,
+                None,
+                now,
+                now,
+            ),
+        )
+        return doc_id
+
+    def _replace_document_chunks(self, conn: sqlite3.Connection, document_id: str, chunk_rows: list[dict[str, Any]]) -> None:
+        conn.execute("DELETE FROM rag_chunks WHERE document_id = ?", (document_id,))
+        for row in chunk_rows:
+            conn.execute(
+                """
+                INSERT INTO rag_chunks (
+                    id, document_id, practice_id, section_type, ordinal, page_from, page_to,
+                    token_estimate, text, metadata_json, embedding_state, embedding_json,
+                    embedding_dimensions, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    row["id"],
+                    row["document_id"],
+                    row["practice_id"],
+                    row["section_type"],
+                    row["ordinal"],
+                    row["page_from"],
+                    row["page_to"],
+                    row["token_estimate"],
+                    row["text"],
+                    row["metadata_json"],
+                    row["embedding_state"],
+                    row["embedding_json"],
+                    row["embedding_dimensions"],
+                    row["created_at"],
+                    row["updated_at"],
+                ),
+            )
+
+    def index_file(
+        self,
+        *,
+        source_type: str,
+        source_id: str,
+        practice_id: str | None,
+        file_path: str,
+        title: str | None = None,
+        mime_type: str | None = None,
+        force: bool = False,
+    ) -> dict[str, Any]:
+        resolved = Path(file_path)
+        if not resolved.exists():
+            raise FileNotFoundError(f"Documento non trovato: {resolved}")
+        detected_mime = self._detect_mime(resolved, mime_type)
+        if not _is_supported_mime(detected_mime):
+            return {"status": "unsupported", "file_path": str(resolved), "mime_type": detected_mime}
+        data = self._read_document_file(resolved)
+        sha256 = _sha256_bytes(data)
+        with self._connect() as conn:
+            existing = self._document_by_source(conn, source_type, source_id)
+            if existing and not force and existing.get("sha256") == sha256 and str(existing.get("parse_state") or "") == "parsed":
+                return {
+                    "status": "skipped",
+                    "document_id": existing["id"],
+                    "chunk_count": int(existing.get("chunk_count") or 0),
+                    "mime_type": detected_mime,
+                }
+            document_id = self._upsert_document(
+                conn,
+                document_id=existing["id"] if existing else None,
+                source_type=source_type,
+                source_id=source_id,
+                practice_id=practice_id,
+                title=title or resolved.name,
+                file_path=str(resolved),
+                mime_type=detected_mime,
+                sha256=sha256,
+            )
+            try:
+                parsed = self._parse_document_bytes(
+                    data=data,
+                    file_path=resolved,
+                    mime_type=detected_mime,
+                    title=title or resolved.name,
+                )
+                chunk_rows = self._build_chunk_rows(document_id=document_id, practice_id=practice_id, parsed=parsed)
+                self._replace_document_chunks(conn, document_id, chunk_rows)
+                conn.execute(
+                    """
+                    UPDATE rag_documents
+                    SET language = ?, parse_state = 'parsed', chunk_count = ?, last_indexed_at = ?, updated_at = ?, practice_id = ?
+                    WHERE id = ?
+                    """,
+                    (
+                        parsed.get("language"),
+                        len(chunk_rows),
+                        _now_iso(),
+                        _now_iso(),
+                        practice_id,
+                        document_id,
+                    ),
+                )
+                conn.commit()
+                return {
+                    "status": "indexed",
+                    "document_id": document_id,
+                    "chunk_count": len(chunk_rows),
+                    "mime_type": detected_mime,
+                    "language": parsed.get("language"),
+                }
+            except Exception:
+                conn.execute(
+                    "UPDATE rag_documents SET parse_state = 'error', updated_at = ? WHERE id = ?",
+                    (_now_iso(), document_id),
+                )
+                conn.commit()
+                raise
+
+    def index_fascicolo_documents(self, fascicolo: Any, documents_dir: str, *, force: bool = False, limit: int | None = None) -> dict[str, Any]:
+        results = {"indexed": 0, "skipped": 0, "unsupported": 0, "errors": []}
+        docs = list(getattr(fascicolo, "documenti", []) or [])
+        if limit:
+            docs = docs[:limit]
+        for doc in docs:
+            try:
+                raw_path = getattr(doc, "percorso", "")
+                path = Path(raw_path)
+                full_path = path if path.is_absolute() else Path(documents_dir) / raw_path
+                outcome = self.index_file(
+                    source_type="fascicolo_documento",
+                    source_id=str(getattr(doc, "id", "")),
+                    practice_id=str(getattr(fascicolo, "id", "")) or None,
+                    file_path=str(full_path),
+                    title=str(getattr(doc, "nome", "") or full_path.name),
+                    force=force,
+                )
+                results[outcome["status"]] = results.get(outcome["status"], 0) + 1
+            except Exception as exc:
+                results["errors"].append(
+                    {
+                        "document_id": str(getattr(doc, "id", "")),
+                        "nome": str(getattr(doc, "nome", "")),
+                        "errore": str(exc),
+                    }
+                )
+        return results
+
+    def embed_pending_chunks(self, *, limit: int = 100) -> dict[str, Any]:
+        bootstrap = self.bootstrap_runtime()
+        if bootstrap.get("status") != "ready":
+            return {"status": bootstrap.get("status"), "embedded": 0, "error": bootstrap.get("error")}
+        embed_model = bootstrap.get("embed_model") or self._active_model("embed")
+        if not embed_model:
+            return {"status": "error", "embedded": 0, "error": "Modello embedding non disponibile"}
+        settings = self._load_settings()
+        client = self._ollama_client(settings)
+        with self._connect() as conn:
+            rows = [
+                dict(row)
+                for row in conn.execute(
+                    """
+                    SELECT id, text
+                    FROM rag_chunks
+                    WHERE embedding_state = 'pending'
+                    ORDER BY created_at ASC
+                    LIMIT ?
+                    """,
+                    (limit,),
+                ).fetchall()
+            ]
+            if not rows:
+                return {"status": "ready", "embedded": 0, "vector_dimensions": None}
+            embed_result = client.embed_texts(str(embed_model), [str(row["text"] or "") for row in rows])
+            vectors = embed_result.get("embeddings") or []
+            if len(vectors) != len(rows):
+                raise ValueError("Numero embeddings diverso dai chunk in pending")
+            touched_documents: set[str] = set()
+            id_to_document: dict[str, str] = {}
+            for row in conn.execute(
+                "SELECT id, document_id FROM rag_chunks WHERE id IN ({})".format(",".join("?" for _ in rows)),
+                tuple(item["id"] for item in rows),
+            ).fetchall():
+                id_to_document[str(row["id"])] = str(row["document_id"])
+            for idx, row in enumerate(rows):
+                vector = vectors[idx]
+                conn.execute(
+                    """
+                    UPDATE rag_chunks
+                    SET embedding_state = 'embedded', embedding_json = ?, embedding_dimensions = ?, updated_at = ?
+                    WHERE id = ?
+                    """,
+                    (json.dumps(vector), len(vector), _now_iso(), row["id"]),
+                )
+                if id_to_document.get(str(row["id"])):
+                    touched_documents.add(id_to_document[str(row["id"])])
+            for document_id in touched_documents:
+                count_row = conn.execute(
+                    "SELECT COUNT(*) AS total FROM rag_chunks WHERE document_id = ?",
+                    (document_id,),
+                ).fetchone()
+                conn.execute(
+                    "UPDATE rag_documents SET chunk_count = ?, last_indexed_at = ?, updated_at = ? WHERE id = ?",
+                    (int(count_row["total"] or 0), _now_iso(), _now_iso(), document_id),
+                )
+            conn.commit()
+            return {
+                "status": "ready",
+                "embedded": len(rows),
+                "vector_dimensions": len(vectors[0]) if vectors else None,
+                "load_duration_ms": embed_result.get("load_duration"),
+                "prompt_eval_count": embed_result.get("prompt_eval_count"),
+                "eval_count": embed_result.get("eval_count"),
+            }
+
+    def reindex_fascicolo(self, fascicolo: Any, documents_dir: str, *, force: bool = False) -> dict[str, Any]:
+        doc_result = self.index_fascicolo_documents(fascicolo, documents_dir, force=force)
+        embed_result = self.embed_pending_chunks(limit=200)
+        return {
+            "documents": doc_result,
+            "embeddings": embed_result,
+        }
+
+    def _fts_rows(self, conn: sqlite3.Connection, query_text: str, practice_id: str | None, document_id: str | None, top_k: int) -> list[dict[str, Any]]:
+        tokens = _extract_text_tokens(query_text)[:10]
+        if not tokens:
+            return []
+        fts_query = " OR ".join(f'"{token}"' for token in tokens)
+        conditions = ["rag_chunks_fts MATCH ?"]
+        params: list[Any] = [fts_query]
+        if practice_id:
+            conditions.append("c.practice_id = ?")
+            params.append(practice_id)
+        if document_id:
+            conditions.append("c.document_id = ?")
+            params.append(document_id)
+        sql = f"""
+            SELECT
+                c.id, c.document_id, c.practice_id, c.section_type, c.ordinal,
+                c.page_from, c.page_to, c.text, c.metadata_json,
+                bm25(rag_chunks_fts) AS bm25_score
+            FROM rag_chunks_fts
+            JOIN rag_chunks AS c ON c.rowid = rag_chunks_fts.rowid
+            WHERE {' AND '.join(conditions)}
+            ORDER BY bm25_score ASC
+            LIMIT ?
+        """
+        params.append(top_k * 3)
+        return [dict(row) for row in conn.execute(sql, params).fetchall()]
+
+    def _vector_rows(self, conn: sqlite3.Connection, query_vector: list[float], practice_id: str | None, document_id: str | None, top_k: int) -> list[dict[str, Any]]:
+        conditions = ["embedding_state = 'embedded'", "embedding_json IS NOT NULL"]
+        params: list[Any] = []
+        if practice_id:
+            conditions.append("practice_id = ?")
+            params.append(practice_id)
+        if document_id:
+            conditions.append("document_id = ?")
+            params.append(document_id)
+        sql = f"""
+            SELECT
+                id, document_id, practice_id, section_type, ordinal,
+                page_from, page_to, text, metadata_json, embedding_json
+            FROM rag_chunks
+            WHERE {' AND '.join(conditions)}
+            ORDER BY updated_at DESC
+            LIMIT ?
+        """
+        params.append(max(200, top_k * 40))
+        rows: list[dict[str, Any]] = []
+        for row in conn.execute(sql, params).fetchall():
+            payload = dict(row)
+            try:
+                vector = json.loads(payload.pop("embedding_json") or "[]")
+            except Exception:
+                vector = []
+            payload["vector_score"] = _cosine_similarity(query_vector, vector)
+            rows.append(payload)
+        rows.sort(key=lambda item: float(item.get("vector_score") or 0), reverse=True)
+        return rows[: top_k * 3]
+
+    def _document_titles(self, conn: sqlite3.Connection, document_ids: Iterable[str]) -> dict[str, str]:
+        ids = [doc_id for doc_id in document_ids if doc_id]
+        if not ids:
+            return {}
+        placeholders = ",".join("?" for _ in ids)
+        sql = f"SELECT id, title FROM rag_documents WHERE id IN ({placeholders})"
+        return {str(row["id"]): str(row["title"] or "Documento") for row in conn.execute(sql, ids).fetchall()}
+
+    def _citation_for_row(self, row: dict[str, Any], title: str) -> str:
+        page_from = row.get("page_from")
+        page_to = row.get("page_to")
+        if page_from and page_to and page_from != page_to:
+            page_label = f"pp. {page_from}-{page_to}"
+        elif page_from or page_to:
+            page_label = f"p. {page_from or page_to}"
+        else:
+            page_label = "pagina n.d."
+        section_type = str(row.get("section_type") or "sezione").strip()
+        return f"{title}, {page_label} · {section_type} · chunk {str(row.get('id', ''))[:8]}"
+
+    def hybrid_search(
+        self,
+        query_text: str,
+        *,
+        practice_id: str | None = None,
+        document_id: str | None = None,
+        top_k: int = 8,
+    ) -> list[dict[str, Any]]:
+        if not str(query_text or "").strip():
+            return []
+        settings = self._load_settings()
+        client = self._ollama_client(settings)
+        embed_model = self._active_model("embed")
+        query_vector: list[float] = []
+        load_duration = None
+        prompt_eval_count = None
+        if embed_model:
+            try:
+                embed_result = client.embed_texts(embed_model, [query_text])
+                query_vector = list(embed_result.get("embeddings") or [[]])[0]
+                load_duration = embed_result.get("load_duration")
+                prompt_eval_count = embed_result.get("prompt_eval_count")
+            except Exception:
+                query_vector = []
+        with self._connect() as conn:
+            text_rows = self._fts_rows(conn, query_text, practice_id, document_id, top_k)
+            vector_rows = self._vector_rows(conn, query_vector, practice_id, document_id, top_k) if query_vector else []
+            by_id: dict[str, dict[str, Any]] = {}
+            for index, row in enumerate(vector_rows):
+                item = by_id.setdefault(str(row["id"]), dict(row))
+                item["hybrid_score"] = float(item.get("hybrid_score") or 0.0) + (1.0 / (61 + index))
+                item["vector_score"] = row.get("vector_score")
+            for index, row in enumerate(text_rows):
+                item = by_id.setdefault(str(row["id"]), dict(row))
+                item["hybrid_score"] = float(item.get("hybrid_score") or 0.0) + (1.0 / (61 + index))
+                item["text_score"] = row.get("bm25_score")
+            document_titles = self._document_titles(conn, [row.get("document_id") for row in by_id.values()])
+            ordered = sorted(by_id.values(), key=lambda item: float(item.get("hybrid_score") or 0.0), reverse=True)[:top_k]
+            for row in ordered:
+                title = document_titles.get(str(row.get("document_id")), "Documento")
+                row["citation"] = self._citation_for_row(row, title)
+                row["title"] = title
+            conn.execute(
+                """
+                INSERT INTO rag_query_logs (
+                    id, query_text, query_type, top_k, duration_ms, load_duration_ms,
+                    prompt_eval_count, eval_count, retrieved_ids_json, created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    uuid.uuid4().hex,
+                    query_text,
+                    "hybrid",
+                    top_k,
+                    None,
+                    load_duration,
+                    prompt_eval_count,
+                    None,
+                    json.dumps([row["id"] for row in ordered], ensure_ascii=False),
+                    _now_iso(),
+                ),
+            )
+            conn.commit()
+            return ordered
+
+    def _summarize_scadenze(self, scadenze: Iterable[Any]) -> list[str]:
+        rows: list[str] = []
+        for item in list(scadenze or [])[:8]:
+            titolo = _clean_spaces(getattr(item, "titolo", "") or getattr(item, "descrizione", ""))
+            data = getattr(item, "data_scadenza", "") or getattr(item, "data", "")
+            stato = getattr(item, "stato", "")
+            rows.append(f"- {titolo or 'Scadenza'} · {data} · {getattr(stato, 'value', stato) or 'n.d.'}")
+        return rows
+
+    def _summarize_apps(self, apps: Iterable[Any]) -> list[str]:
+        rows: list[str] = []
+        for item in list(apps or [])[:8]:
+            titolo = _clean_spaces(getattr(item, "titolo", "") or getattr(item, "descrizione", ""))
+            data = getattr(item, "data_ora", "") or getattr(item, "data", "")
+            luogo = _clean_spaces(getattr(item, "luogo", ""))
+            label = f"- {titolo or 'Appuntamento'} · {data}"
+            if luogo:
+                label += f" · {luogo}"
+            rows.append(label)
+        return rows
+
+    def _prompt_for_fascicolo(
+        self,
+        *,
+        fascicolo: Any,
+        question: str,
+        workspace: dict[str, Any] | None,
+        intelligenza: dict[str, Any] | None,
+        apps: Iterable[Any],
+        scadenze: Iterable[Any],
+        rag_rows: list[dict[str, Any]],
+    ) -> str:
+        fascicolo_lines = [
+            f"ID fascicolo: {getattr(fascicolo, 'id', '')}",
+            f"Titolo: {getattr(fascicolo, 'titolo', '')}",
+            f"Oggetto: {getattr(fascicolo, 'oggetto', '')}",
+            f"Tribunale/ufficio: {getattr(fascicolo, 'tribunale', '')}",
+            f"Numero RG: {getattr(fascicolo, 'numero_rg', '')}",
+            f"Anno RG: {getattr(fascicolo, 'anno_rg', '')}",
+            f"Controparte: {getattr(fascicolo, 'controparte', '')}",
+            f"Stato: {getattr(getattr(fascicolo, 'stato', ''), 'value', getattr(fascicolo, 'stato', ''))}",
+            f"Tipo: {getattr(getattr(fascicolo, 'tipo', ''), 'value', getattr(fascicolo, 'tipo', ''))}",
+        ]
+        if workspace:
+            prossime = workspace.get("prossime_azioni") or workspace.get("azioni") or []
+            if prossime:
+                fascicolo_lines.append("Azioni operative:")
+                fascicolo_lines.extend(f"- {str(item)}" for item in prossime[:6])
+        if intelligenza:
+            evidenze = intelligenza.get("evidenze") or intelligenza.get("alert") or []
+            if evidenze:
+                fascicolo_lines.append("Alert intelligenti:")
+                fascicolo_lines.extend(f"- {str(item)}" for item in evidenze[:6])
+            giuri = intelligenza.get("giurisprudenza_suggerita") or []
+            if giuri:
+                fascicolo_lines.append("Giurisprudenza suggerita:")
+                for row in giuri[:5]:
+                    fascicolo_lines.append(
+                        f"- {row.get('autorita') or row.get('authority') or 'Giurisprudenza'} · "
+                        f"{row.get('numero') or row.get('decision_number') or ''} · "
+                        f"{row.get('titolo') or row.get('title') or row.get('massima') or ''}"
+                    )
+        app_lines = self._summarize_apps(apps)
+        if app_lines:
+            fascicolo_lines.append("Agenda collegata:")
+            fascicolo_lines.extend(app_lines)
+        scadenza_lines = self._summarize_scadenze(scadenze)
+        if scadenza_lines:
+            fascicolo_lines.append("Scadenziario collegato:")
+            fascicolo_lines.extend(scadenza_lines)
+        context = "\n".join(line for line in fascicolo_lines if _clean_spaces(line))
+        rag_context = "\n\n---\n\n".join(
+            f"[Fonte {idx + 1}] {row.get('citation')}\n{row.get('text')}"
+            for idx, row in enumerate(rag_rows)
+        ) or "Nessun documento indicizzato rilevante."
+        return "\n".join(
+            [
+                "Sei l'assistente locale operativo di HACS per studi legali italiani.",
+                "Rispondi in italiano, con taglio pratico e professionale.",
+                "Usa solo il contesto fornito. Se il contesto non basta, dichiaralo chiaramente.",
+                "Non inventare norme, date, esiti o documenti mancanti.",
+                "Se citi documenti, usa le citazioni fornite nel contesto.",
+                "",
+                "Domanda utente:",
+                question.strip(),
+                "",
+                "Contesto fascicolo:",
+                context,
+                "",
+                "Contesto documentale RAG:",
+                rag_context,
+                "",
+                "Struttura la risposta in modo operativo.",
+                "Chiudi sempre con una sezione 'Fonti' che elenchi solo le fonti effettivamente usate.",
+            ]
+        )
+
+    def _prompt_for_workspace(self, *, question: str, overview: dict[str, Any], rag_rows: list[dict[str, Any]]) -> str:
+        focus_lines = [
+            f"Scadenze urgenti: {len(overview.get('scadenze_urgenti') or [])}",
+            f"Appuntamenti imminenti: {len(overview.get('appuntamenti_imminenti') or [])}",
+            f"Fascicoli hot: {len(overview.get('fascicoli_urgenti') or [])}",
+        ]
+        patron = overview.get("patrono_studio") or {}
+        if patron:
+            focus_lines.append(
+                f"Patrono studio: {patron.get('label') or patron.get('patron_name') or ''} · "
+                f"{patron.get('status_label') or patron.get('status') or ''}"
+            )
+        sync_profiles = overview.get("calendar_sync") or overview.get("sincronizzazioni") or []
+        if sync_profiles:
+            focus_lines.append(f"Profili agenda sincronizzati: {len(sync_profiles)}")
+        rag_context = "\n\n---\n\n".join(
+            f"[Fonte {idx + 1}] {row.get('citation')}\n{row.get('text')}"
+            for idx, row in enumerate(rag_rows)
+        ) or "Nessun documento indicizzato rilevante."
+        return "\n".join(
+            [
+                "Sei l'assistente operativo locale di HACS.",
+                "Aiuti lo studio a coordinare agenda, scadenziario, fascicoli e documenti.",
+                "Usa solo il contesto disponibile. Se serve altro, dillo.",
+                "",
+                f"Domanda: {question.strip()}",
+                "",
+                "Quadro operativo:",
+                "\n".join(focus_lines),
+                "",
+                "Contesto documentale RAG:",
+                rag_context,
+                "",
+                "Rispondi con priorità pratiche, rischi e prossimi passi.",
+                "Chiudi con una sezione 'Fonti'.",
+            ]
+        )
+
+    def ask_fascicolo(
+        self,
+        *,
+        fascicolo: Any,
+        documents_dir: str,
+        question: str,
+        apps: Iterable[Any] | None = None,
+        scadenze: Iterable[Any] | None = None,
+        workspace: dict[str, Any] | None = None,
+        intelligenza: dict[str, Any] | None = None,
+        auto_index: bool | None = None,
+    ) -> dict[str, Any]:
+        bootstrap = self.bootstrap_runtime()
+        if bootstrap.get("status") != "ready":
+            return {
+                "ok": False,
+                "status": bootstrap.get("status"),
+                "errore": bootstrap.get("error") or "AI locale non pronta",
+                "sources": [],
+                "citations": [],
+                "answer": "",
+            }
+        settings = self._load_settings()
+        should_index = settings.auto_index_documents if auto_index is None else bool(auto_index)
+        indexing = None
+        if should_index:
+            indexing = self.index_fascicolo_documents(fascicolo, documents_dir)
+            self.embed_pending_chunks(limit=200)
+        rag_rows = self.hybrid_search(question, practice_id=str(getattr(fascicolo, "id", "")), top_k=8)
+        prompt = self._prompt_for_fascicolo(
+            fascicolo=fascicolo,
+            question=question,
+            workspace=workspace,
+            intelligenza=intelligenza,
+            apps=apps or [],
+            scadenze=scadenze or [],
+            rag_rows=rag_rows,
+        )
+        client = self._ollama_client(settings)
+        chat_model = str(bootstrap.get("chat_model") or self._active_model("chat") or "")
+        started = time.time()
+        response = client.generate(chat_model, prompt, keep_alive=settings.keep_alive)
+        duration_ms = int((time.time() - started) * 1000)
+        with self._connect() as conn:
+            conn.execute(
+                """
+                INSERT INTO rag_query_logs (
+                    id, query_text, query_type, top_k, duration_ms, load_duration_ms,
+                    prompt_eval_count, eval_count, retrieved_ids_json, created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    uuid.uuid4().hex,
+                    question,
+                    "fascicolo_ai",
+                    8,
+                    duration_ms,
+                    response.get("load_duration"),
+                    response.get("prompt_eval_count"),
+                    response.get("eval_count"),
+                    json.dumps([row.get("id") for row in rag_rows], ensure_ascii=False),
+                    _now_iso(),
+                ),
+            )
+            conn.commit()
+        return {
+            "ok": True,
+            "status": "ready",
+            "answer": str(response.get("response") or "").strip(),
+            "sources": rag_rows,
+            "citations": [row.get("citation") for row in rag_rows if row.get("citation")],
+            "indexing": indexing,
+            "runtime": bootstrap,
+        }
+
+    def ask_workspace(
+        self,
+        *,
+        question: str,
+        overview: dict[str, Any],
+    ) -> dict[str, Any]:
+        bootstrap = self.bootstrap_runtime()
+        if bootstrap.get("status") != "ready":
+            return {
+                "ok": False,
+                "status": bootstrap.get("status"),
+                "errore": bootstrap.get("error") or "AI locale non pronta",
+                "sources": [],
+                "citations": [],
+                "answer": "",
+            }
+        settings = self._load_settings()
+        rag_rows = self.hybrid_search(question, top_k=8)
+        prompt = self._prompt_for_workspace(question=question, overview=overview, rag_rows=rag_rows)
+        client = self._ollama_client(settings)
+        chat_model = str(bootstrap.get("chat_model") or self._active_model("chat") or "")
+        started = time.time()
+        response = client.generate(chat_model, prompt, keep_alive=settings.keep_alive)
+        duration_ms = int((time.time() - started) * 1000)
+        with self._connect() as conn:
+            conn.execute(
+                """
+                INSERT INTO rag_query_logs (
+                    id, query_text, query_type, top_k, duration_ms, load_duration_ms,
+                    prompt_eval_count, eval_count, retrieved_ids_json, created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    uuid.uuid4().hex,
+                    question,
+                    "workspace_ai",
+                    8,
+                    duration_ms,
+                    response.get("load_duration"),
+                    response.get("prompt_eval_count"),
+                    response.get("eval_count"),
+                    json.dumps([row.get("id") for row in rag_rows], ensure_ascii=False),
+                    _now_iso(),
+                ),
+            )
+            conn.commit()
+        return {
+            "ok": True,
+            "status": "ready",
+            "answer": str(response.get("response") or "").strip(),
+            "sources": rag_rows,
+            "citations": [row.get("citation") for row in rag_rows if row.get("citation")],
+            "runtime": bootstrap,
+        }
+
+    def scheduled_maintenance(self, fascicoli_gestore: Any | None = None, documents_dir: str | None = None) -> dict[str, Any]:
+        bootstrap = self.bootstrap_runtime()
+        if bootstrap.get("status") != "ready":
+            return {"status": bootstrap.get("status"), "error": bootstrap.get("error")}
+        indexed_total = 0
+        error_total = 0
+        if fascicoli_gestore and documents_dir and self._load_settings().auto_index_documents:
+            try:
+                fascicoli = list(fascicoli_gestore.tutti())[:10]
+                for fascicolo in fascicoli:
+                    outcome = self.index_fascicolo_documents(fascicolo, documents_dir, limit=12)
+                    indexed_total += int(outcome.get("indexed") or 0)
+                    error_total += len(outcome.get("errors") or [])
+            except Exception as exc:
+                return {"status": "error", "error": str(exc)}
+        embeddings = self.embed_pending_chunks(limit=250)
+        return {
+            "status": "ready",
+            "indexed": indexed_total,
+            "index_errors": error_total,
+            "embeddings": embeddings,
+        }
+
+
+__all__ = [
+    "LocalAIService",
+    "LocalAiSettings",
+    "OllamaHttpClient",
+    "strip_api_suffix",
+]

@@ -117,6 +117,7 @@ from pct.scadenziario import (
     regola_patrono_studio,
     regola_patrono_ufficio,
     regole_calendario_nazionali,
+    riepilogo_operativo_scadenza,
     è_giorno_lavorativo,
 )
 from pct.search_index import IndiceRicerca
@@ -139,6 +140,7 @@ from pct.pdp_penale_workflow import (
 )
 from pct.telematico_workflow import TelematicoWorkflowRepository
 from pct.workspace_intelligente import WorkspaceIntelligenteService
+from pct.local_ai import LocalAIService, strip_api_suffix
 from pct import __version__ as APP_VERSION
 
 # ------------------------------------------------------------------ cifratura documenti (AES-256-GCM)
@@ -472,9 +474,35 @@ def create_app(config: dict | None = None) -> Flask:
     # Scheduler
     app.config["BACKUP_ORA"]       = os.getenv("PCT_BACKUP_ORA", "02:00")
     app.config["WA_REMINDER_ORA"]  = os.getenv("PCT_WA_REMINDER_ORA", "18:00")
+    # AI locale / Ollama
+    app.config["LOCAL_AI_DB"] = cfg.get(
+        "LOCAL_AI_DB",
+        os.getenv(
+            "PCT_LOCAL_AI_DB",
+            _data_peer_path(app.config["CLIENTI_DB"], "intelligence", "local_ai.db"),
+        ),
+    )
+    app.config["LOCAL_AI_POLICY"] = cfg.get(
+        "LOCAL_AI_POLICY",
+        os.getenv("PCT_LOCAL_AI_POLICY", "./config/ai-policy.json"),
+    )
+    app.config["LOCAL_AI_MODELS_DIR"] = cfg.get(
+        "LOCAL_AI_MODELS_DIR",
+        os.getenv(
+            "PCT_LOCAL_AI_MODELS_DIR",
+            str(Path(app.config["LOCAL_AI_DB"]).parent / "models"),
+        ),
+    )
+    app.config["LOCAL_AI_ENABLED"] = os.getenv("PCT_LOCAL_AI_ENABLED", "1").lower() not in ("0", "false", "no")
+    app.config["LOCAL_AI_BASE_URL"] = os.getenv("PCT_LOCAL_AI_BASE_URL", "http://127.0.0.1:11434/api")
+    app.config["LOCAL_AI_AUTO_BOOTSTRAP"] = os.getenv("PCT_LOCAL_AI_AUTO_BOOTSTRAP", "1").lower() not in ("0", "false", "no")
+    app.config["LOCAL_AI_CHAT_MODEL"] = os.getenv("PCT_LOCAL_AI_CHAT_MODEL", "")
+    app.config["LOCAL_AI_EMBED_MODEL"] = os.getenv("PCT_LOCAL_AI_EMBED_MODEL", "")
+    app.config["LOCAL_AI_KEEP_ALIVE"] = os.getenv("PCT_LOCAL_AI_KEEP_ALIVE", "10m")
+    app.config["LOCAL_AI_AUTO_INDEX_DOCUMENTS"] = os.getenv("PCT_LOCAL_AI_AUTO_INDEX_DOCUMENTS", "1").lower() not in ("0", "false", "no")
     # Assistente virtuale PCT (Ollama locale)
-    app.config["OLLAMA_URL"]       = os.getenv("PCT_OLLAMA_URL", "http://localhost:11434")
-    app.config["OLLAMA_MODEL"]     = os.getenv("PCT_OLLAMA_MODEL", "mistral")
+    app.config["OLLAMA_URL"]       = os.getenv("PCT_OLLAMA_URL", strip_api_suffix(app.config["LOCAL_AI_BASE_URL"]))
+    app.config["OLLAMA_MODEL"]     = os.getenv("PCT_OLLAMA_MODEL", app.config["LOCAL_AI_CHAT_MODEL"] or "mistral")
     # Pagamenti digitali
     app.config["PAGAMENTI_DIR"] = cfg.get(
         "PAGAMENTI_DIR", os.getenv("PCT_PAGAMENTI_DIR", "./pagamenti")
@@ -516,6 +544,17 @@ def create_app(config: dict | None = None) -> Flask:
         if _sc.scheduler.backup_ora:
             app.config["BACKUP_ORA"]       = _sc.scheduler.backup_ora
             app.config["WA_REMINDER_ORA"]  = _sc.scheduler.wa_reminder_ora
+        # AI locale
+        app.config["LOCAL_AI_ENABLED"] = bool(getattr(_sc.ai, "enabled", True))
+        app.config["LOCAL_AI_BASE_URL"] = getattr(_sc.ai, "base_url", "http://127.0.0.1:11434/api")
+        app.config["LOCAL_AI_AUTO_BOOTSTRAP"] = bool(getattr(_sc.ai, "auto_bootstrap", True))
+        app.config["LOCAL_AI_CHAT_MODEL"] = getattr(_sc.ai, "chat_model", "")
+        app.config["LOCAL_AI_EMBED_MODEL"] = getattr(_sc.ai, "embed_model", "")
+        app.config["LOCAL_AI_KEEP_ALIVE"] = getattr(_sc.ai, "keep_alive", "10m")
+        app.config["LOCAL_AI_AUTO_INDEX_DOCUMENTS"] = bool(getattr(_sc.ai, "auto_index_documents", True))
+        app.config["OLLAMA_URL"] = strip_api_suffix(app.config["LOCAL_AI_BASE_URL"])
+        if app.config["LOCAL_AI_CHAT_MODEL"]:
+            app.config["OLLAMA_MODEL"] = app.config["LOCAL_AI_CHAT_MODEL"]
         # SMTP — conservati in chiavi proprie per get_messaggi()
         app.config["SMTP_HOST"]     = _sc.smtp.host or os.getenv("PCT_SMTP_HOST", "")
         app.config["SMTP_PORT"]     = _sc.smtp.port or int(os.getenv("PCT_SMTP_PORT", "587"))
@@ -566,6 +605,7 @@ def create_app(config: dict | None = None) -> Flask:
             "normative_tables": _cfg_data_path("NORMATIVE_TABLES_DB"),
             "giurisprudenza": _cfg_data_path("GIURISPRUDENZA_DB"),
             "workspace_intelligence": _cfg_data_path("WORKSPACE_INTELLIGENCE_DB"),
+            "local_ai": _cfg_data_path("LOCAL_AI_DB"),
             "validation_runs": _cfg_data_path("VALIDATION_RUNS_DB"),
             "template_atti": _cfg_data_path("TEMPLATE_ATTI_DB"),
             "template_atti_prefs": _cfg_data_path("TEMPLATE_ATTI_PREFS_DB"),
@@ -675,6 +715,17 @@ def create_app(config: dict | None = None) -> Flask:
                 studio_patron_rule=_studio_patron_rule_from_config(),
             )
         return g._workspace_intelligente
+
+    def get_local_ai() -> LocalAIService:
+        if not hasattr(g, "_local_ai"):
+            g._local_ai = LocalAIService(
+                db_path=_cfg_data_path("LOCAL_AI_DB"),
+                policy_path=app.config.get("LOCAL_AI_POLICY", "./config/ai-policy.json"),
+                config_path=app.config.get("STUDIO_CONFIG", "./config/studio.json"),
+                app_root=str(Path(__file__).resolve().parents[1]),
+                models_path=_cfg_data_path("LOCAL_AI_MODELS_DIR"),
+            )
+        return g._local_ai
 
     def _documento_payload_per_validazione(gf: GestioneFascicoli, fasc: Fascicolo, doc_id: str) -> dict | None:
         doc = next((item for item in fasc.documenti if item.id == doc_id), None)
@@ -3329,6 +3380,8 @@ def create_app(config: dict | None = None) -> Flask:
         filtro_dal = request.args.get("dal", "")
         filtro_al = request.args.get("al", "")
         filtro_perentorio = request.args.get("perentorio", "")
+        filtro_avanzate = request.args.get("avanzate", "")
+        filtro_operative = request.args.get("operative", "")
         scadenze = gs.tutte(
             tipo=TipoTermine(filtro_tipo) if filtro_tipo else None,
             priorita=PrioritaTermine(filtro_priorita) if filtro_priorita else None,
@@ -3346,6 +3399,10 @@ def create_app(config: dict | None = None) -> Flask:
         # Filtro perentorio
         if filtro_perentorio:
             scadenze = [s for s in scadenze if s.perentorio]
+        if filtro_avanzate:
+            scadenze = [s for s in scadenze if s.ha_calcolo_avanzato]
+        if filtro_operative:
+            scadenze = [s for s in scadenze if bool(s.operational_due_at)]
         scadute = gs.scadute()
         scadenze_critiche = gs.imminenti(entro_giorni=3)
         imminenti = gs.imminenti(entro_giorni=7)
@@ -3366,6 +3423,8 @@ def create_app(config: dict | None = None) -> Flask:
             filtro_dal=filtro_dal,
             filtro_al=filtro_al,
             filtro_perentorio=filtro_perentorio,
+            filtro_avanzate=filtro_avanzate,
+            filtro_operative=filtro_operative,
         )
 
     def _scadenziario_form_context(scadenza: Scadenza | None = None):
@@ -3539,7 +3598,12 @@ def create_app(config: dict | None = None) -> Flask:
         if not sc:
             flash("Scadenza non trovata.", "warning")
             return redirect(url_for("scadenziario"))
-        return render_template("scadenziario/dettaglio.html", sc=sc)
+        return render_template(
+            "scadenziario/dettaglio.html",
+            sc=sc,
+            studio_cfg=get_config_studio().config.studio,
+            profili_termine=profili_termine_builtin(),
+        )
 
     @app.route("/scadenziario/<id_sc>/modifica", methods=["GET", "POST"])
     def modifica_scadenza(id_sc):
@@ -3831,6 +3895,15 @@ def create_app(config: dict | None = None) -> Flask:
                     "operational_due_at": calc["result"].operational_due_at,
                     "office_mode_on_legal_due_date": calc["result"].office_mode_on_legal_due_date,
                     "trace": calc["result"].trace,
+                    "operational_notes": riepilogo_operativo_scadenza(
+                        trace=calc["result"].trace,
+                        operational_due_at=calc["result"].operational_due_at,
+                        operational_lead_business_days=calc["operational_lead_business_days"],
+                        october_observance_blocks=calc["october_observance_blocks"],
+                        office_patron_day=calc["judicial_office_patron_day"],
+                        office_patron_month=calc["judicial_office_patron_month"],
+                        office_operating_mode=calc["judicial_office_operating_mode"],
+                    ),
                     "judicial_office_name": calc["judicial_office_name"],
                     "profile_code": calc["profile"].code,
                     "profile_label": calc["profile"].label,
@@ -3890,6 +3963,92 @@ def create_app(config: dict | None = None) -> Flask:
         except Exception as e:
             app.logger.exception("Errore api_workspace_intelligente: %s", e)
             return jsonify({"errore": str(e), "summary": {}, "actions": []}), 200
+
+    @app.route("/api/local-ai/status")
+    def api_local_ai_status():
+        try:
+            return jsonify(get_local_ai().health_snapshot())
+        except Exception as e:
+            app.logger.exception("Errore api_local_ai_status: %s", e)
+            return jsonify({"errore": str(e), "runtime": {"status": "error"}, "models": [], "counts": {}}), 200
+
+    @app.route("/api/local-ai/bootstrap", methods=["POST"])
+    def api_local_ai_bootstrap():
+        try:
+            data = request.get_json(silent=True) or {}
+            result = get_local_ai().bootstrap_runtime(force=bool(data.get("force")))
+            return jsonify({"result": result, "status_payload": get_local_ai().health_snapshot()})
+        except Exception as e:
+            app.logger.exception("Errore api_local_ai_bootstrap: %s", e)
+            return jsonify({"errore": str(e), "runtime": {"status": "error"}}), 200
+
+    @app.route("/api/workspace-intelligente/ai", methods=["POST"])
+    def api_workspace_intelligente_ai():
+        try:
+            data = request.get_json(silent=True) or {}
+            question = str(data.get("question", "") or "").strip()
+            if not question:
+                return jsonify({"ok": False, "errore": "Domanda mancante."}), 200
+            horizon_days = max(int(data.get("giorni", 14) or 14), 1)
+            overview = get_workspace_intelligente().panoramica(horizon_days=horizon_days)
+            return jsonify(get_local_ai().ask_workspace(question=question, overview=overview))
+        except Exception as e:
+            app.logger.exception("Errore api_workspace_intelligente_ai: %s", e)
+            return jsonify({"ok": False, "errore": str(e), "answer": "", "sources": []}), 200
+
+    @app.route("/api/fascicoli/<id_fasc>/ai", methods=["POST"])
+    def api_fascicolo_ai(id_fasc):
+        try:
+            data = request.get_json(silent=True) or {}
+            question = str(data.get("question", "") or "").strip()
+            if not question:
+                return jsonify({"ok": False, "errore": "Domanda mancante."}), 200
+            fasc = get_fascicoli().get(id_fasc)
+            if not fasc:
+                return jsonify({"ok": False, "errore": "Fascicolo non trovato."}), 200
+            agenda = get_agenda()
+            scadenze_fascicolo = get_scadenziario().tutte(id_fascicolo=id_fasc, solo_aperte=False)
+            apps = agenda.cerca(testo=fasc.numero_rg) if getattr(fasc, "numero_rg", "") else []
+            workspace_fascicolo = _build_fascicolo_workspace(
+                fasc,
+                apps=apps,
+                scadenze=scadenze_fascicolo,
+            )
+            intelligenza_fascicolo = get_workspace_intelligente().per_fascicolo(
+                fasc,
+                apps=apps,
+                scadenze=scadenze_fascicolo,
+            )
+            result = get_local_ai().ask_fascicolo(
+                fascicolo=fasc,
+                documents_dir=_cfg_data_path("FASCICOLI_DOCS"),
+                question=question,
+                apps=apps,
+                scadenze=scadenze_fascicolo,
+                workspace=workspace_fascicolo,
+                intelligenza=intelligenza_fascicolo,
+                auto_index=data.get("auto_index"),
+            )
+            return jsonify(result)
+        except Exception as e:
+            app.logger.exception("Errore api_fascicolo_ai(%s): %s", id_fasc, e)
+            return jsonify({"ok": False, "errore": str(e), "answer": "", "sources": []}), 200
+
+    @app.route("/api/fascicoli/<id_fasc>/ai/reindex", methods=["POST"])
+    def api_fascicolo_ai_reindex(id_fasc):
+        try:
+            fasc = get_fascicoli().get(id_fasc)
+            if not fasc:
+                return jsonify({"ok": False, "errore": "Fascicolo non trovato."}), 200
+            result = get_local_ai().reindex_fascicolo(
+                fasc,
+                _cfg_data_path("FASCICOLI_DOCS"),
+                force=True,
+            )
+            return jsonify({"ok": True, "result": result, "status_payload": get_local_ai().health_snapshot()})
+        except Exception as e:
+            app.logger.exception("Errore api_fascicolo_ai_reindex(%s): %s", id_fasc, e)
+            return jsonify({"ok": False, "errore": str(e)}), 200
 
     # ---------------------------------------------------------------- dashboard
 

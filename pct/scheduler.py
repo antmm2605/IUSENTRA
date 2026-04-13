@@ -286,6 +286,14 @@ def start_scheduler(app):
                             "WORKSPACE_INTELLIGENCE_DB",
                             str(Path(paths["GIURISPRUDENZA_DB"]).with_name("workspace_intelligence.json")),
                         ),
+                        "local_ai_db": paths.get(
+                            "LOCAL_AI_DB",
+                            str(Path(paths["GIURISPRUDENZA_DB"]).with_name("local_ai.db")),
+                        ),
+                        "local_ai_models_dir": paths.get(
+                            "LOCAL_AI_MODELS_DIR",
+                            str(Path(paths["GIURISPRUDENZA_DB"]).with_name("models")),
+                        ),
                     }
                 if found:
                     return
@@ -302,6 +310,8 @@ def start_scheduler(app):
             "giurisprudenza_db": app.config.get("GIURISPRUDENZA_DB", "./intelligence/giurisprudenza.json"),
             "studio_config_db": app.config.get("STUDIO_CONFIG") or app.config.get("CONFIG_STUDIO_DB", ""),
             "snapshot_db": app.config.get("WORKSPACE_INTELLIGENCE_DB", "./intelligence/workspace_intelligence.json"),
+            "local_ai_db": app.config.get("LOCAL_AI_DB", "./intelligence/local_ai.db"),
+            "local_ai_models_dir": app.config.get("LOCAL_AI_MODELS_DIR", "./intelligence/models"),
         }
 
     @scheduler.scheduled_job(CronTrigger(minute=12), id="calendar_sync_hourly")
@@ -394,6 +404,43 @@ def start_scheduler(app):
                     logger.info("[scheduler] Workspace intelligence aggiornato per %d target", processed_targets)
             except Exception as e:
                 logger.error("[scheduler] Workspace intelligence fallito: %s", e)
+
+    @scheduler.scheduled_job(CronTrigger(minute="*/30"), id="local_ai_maintenance")
+    def _local_ai_maintenance():
+        with app.app_context():
+            try:
+                from pct.fascicoli import GestioneFascicoli
+                from pct.local_ai import LocalAIService
+
+                processed_targets = 0
+                for target in _workspace_intelligence_targets():
+                    service = LocalAIService(
+                        db_path=target["local_ai_db"],
+                        policy_path=app.config.get("LOCAL_AI_POLICY", "./config/ai-policy.json"),
+                        config_path=target.get("studio_config_db") or app.config.get("STUDIO_CONFIG", "./config/studio.json"),
+                        app_root=str(Path(__file__).resolve().parents[1]),
+                        models_path=target["local_ai_models_dir"],
+                    )
+                    fascicoli = None
+                    if os.path.exists(target["fascicoli_db"]):
+                        fascicoli = GestioneFascicoli(
+                            db_path=target["fascicoli_db"],
+                            documents_dir=target["fascicoli_docs"],
+                            archive_dir=target["fascicoli_arch"],
+                        )
+                    report = service.scheduled_maintenance(fascicoli, target["fascicoli_docs"])
+                    processed_targets += 1
+                    logger.info(
+                        "[scheduler] Local AI %s: stato=%s, indexed=%s, embed=%s",
+                        target["label"],
+                        report.get("status"),
+                        report.get("indexed", 0),
+                        (report.get("embeddings") or {}).get("embedded", 0),
+                    )
+                if processed_targets:
+                    logger.info("[scheduler] Local AI maintenance completata per %d target", processed_targets)
+            except Exception as e:
+                logger.error("[scheduler] Local AI maintenance fallita: %s", e)
 
     # ---- Polling automatico esiti depositi telematici (ogni 15 minuti) ----
     # Aggiorna EsitoDepositoPCT in stati pendenti (INVIATO → ACCETTATO_PEC → CONSEGNATO)

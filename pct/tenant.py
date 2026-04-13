@@ -710,6 +710,8 @@ class GestioneTenant:
             "NORMATIVE_TABLES_DB": f"{base}/intelligence/tabelle_normative.json",
             "GIURISPRUDENZA_DB": f"{base}/intelligence/giurisprudenza.json",
             "WORKSPACE_INTELLIGENCE_DB": f"{base}/intelligence/workspace_intelligence.json",
+            "LOCAL_AI_DB": f"{base}/intelligence/local_ai.db",
+            "LOCAL_AI_MODELS_DIR": f"{base}/intelligence/models",
             "VALIDATION_RUNS_DB": f"{base}/intelligence/validation_runs.json",
             "REDACTION_ASSISTANT_DB": f"{base}/intelligence/assistente_redazionale.json",
             "CONFIG_STUDIO_DB": f"{base}/config/studio.json",

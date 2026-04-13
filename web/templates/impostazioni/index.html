@@ -37,6 +37,7 @@
     ('smtp',      'bi-at',               'Email SMTP'),
     ('whatsapp',  'bi-whatsapp',         'WhatsApp'),
     ('scheduler', 'bi-clock-history',    'Scheduler'),
+    ('ai',        'bi-cpu-fill',         'AI Locale'),
   ] %}
   {% for slug, icon, label in tabs %}
   <li class="nav-item" role="presentation">
@@ -1056,6 +1057,103 @@ function testaPkcs11() {
 </div>
 {% endif %}
 
+{% if tab_attivo == 'ai' %}
+<div class="row g-4">
+  <div class="col-lg-7">
+    <div class="card border-0 shadow-sm" style="border-radius:18px;">
+      <div class="card-body p-4">
+        <div class="d-flex align-items-start justify-content-between gap-3 mb-3 flex-wrap">
+          <div>
+            <h6 class="fw-bold mb-1"><i class="bi bi-cpu-fill text-primary me-2"></i>AI locale con Ollama</h6>
+            <p class="text-muted mb-0" style="font-size:.82rem;">
+              Runtime locale non bloccante per fascicoli, documenti, agenda, scadenziario e workspace intelligente.
+            </p>
+          </div>
+          <span class="badge text-bg-secondary" id="ai-runtime-badge">Verifica in corso</span>
+        </div>
+
+        <form method="post">
+          <input type="hidden" name="_tab" value="ai">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" role="switch" name="ai_enabled" id="ai_enabled" value="1" {{ 'checked' if cfg.ai.enabled }}>
+                <label class="form-check-label fw-semibold" for="ai_enabled">Modulo AI locale attivo</label>
+              </div>
+              <div class="form-text">Se disattivato, HACS continua a funzionare normalmente senza AI.</div>
+            </div>
+            <div class="col-md-6">
+              <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" role="switch" name="ai_auto_bootstrap" id="ai_auto_bootstrap" value="1" {{ 'checked' if cfg.ai.auto_bootstrap }}>
+                <label class="form-check-label fw-semibold" for="ai_auto_bootstrap">Bootstrap automatico Ollama</label>
+              </div>
+              <div class="form-text">Su Windows prova ad avviare il runtime locale se presente nello zip standalone.</div>
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-semibold">Base URL runtime</label>
+              <input type="text" name="ai_base_url" id="ai_base_url" class="form-control font-monospace"
+                     value="{{ cfg.ai.base_url }}" placeholder="http://127.0.0.1:11434/api">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Modello chat preferito</label>
+              <input type="text" name="ai_chat_model" id="ai_chat_model" class="form-control font-monospace"
+                     value="{{ cfg.ai.chat_model }}" placeholder="Lascia vuoto per policy hardware">
+              <div class="form-text">Weak: qwen2.5:0.5b · Medium: gemma3:1b · Strong: gemma3:4b</div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Modello embeddings preferito</label>
+              <input type="text" name="ai_embed_model" id="ai_embed_model" class="form-control font-monospace"
+                     value="{{ cfg.ai.embed_model }}" placeholder="Lascia vuoto per policy hardware">
+              <div class="form-text">Default consigliato: embeddinggemma:300m</div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Keep alive modelli</label>
+              <input type="text" name="ai_keep_alive" class="form-control font-monospace"
+                     value="{{ cfg.ai.keep_alive }}" placeholder="10m">
+            </div>
+            <div class="col-md-6">
+              <div class="form-check form-switch mt-4">
+                <input class="form-check-input" type="checkbox" role="switch" name="ai_auto_index_documents" id="ai_auto_index_documents" value="1" {{ 'checked' if cfg.ai.auto_index_documents }}>
+                <label class="form-check-label fw-semibold" for="ai_auto_index_documents">Indicizza documenti fascicolo in automatico</label>
+              </div>
+            </div>
+          </div>
+
+          <div class="d-flex gap-2 mt-4 flex-wrap">
+            <button type="submit" class="btn btn-primary">
+              <i class="bi bi-floppy me-2"></i>Salva impostazioni AI
+            </button>
+            <button type="button" class="btn btn-outline-primary" id="ai-bootstrap-btn" onclick="runLocalAiBootstrap()">
+              <i class="bi bi-rocket-takeoff me-2"></i>Bootstrap runtime
+            </button>
+            <button type="button" class="btn btn-outline-secondary" id="ai-refresh-btn" onclick="refreshLocalAiStatus()">
+              <i class="bi bi-arrow-repeat me-2"></i>Aggiorna stato
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-5">
+    <div class="card border-0 shadow-sm h-100" style="border-radius:18px;">
+      <div class="card-body p-4">
+        <h6 class="fw-bold mb-3"><i class="bi bi-speedometer2 text-primary me-2"></i>Stato runtime</h6>
+        <div class="small text-muted mb-3">Questo pannello legge lo stato reale del runtime locale e dell’indice documentale.</div>
+        <div id="ai-runtime-summary" class="small d-grid gap-2">
+          <div class="text-muted">In attesa di stato…</div>
+        </div>
+        <hr>
+        <div class="small text-muted mb-2">Modelli attivi</div>
+        <div id="ai-models-summary" class="d-grid gap-2">
+          <div class="text-muted small">Nessun dato disponibile.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
 {# ════════════════════════════════════════ JS ════════════════════════════════ #}
 <style>
   .test-result { font-size:.82rem; }
@@ -1171,6 +1269,95 @@ async function testConn(tipo, btnId, resId) {
     btn.disabled = false;
   }
 }
+
+function setAiBadge(label, tone='secondary') {
+  const badge = document.getElementById('ai-runtime-badge');
+  if (!badge) return;
+  badge.className = `badge text-bg-${tone}`;
+  badge.textContent = label;
+}
+
+function renderLocalAiStatus(payload) {
+  const summary = document.getElementById('ai-runtime-summary');
+  const models = document.getElementById('ai-models-summary');
+  if (!summary || !models) return;
+
+  const runtime = payload?.runtime || {};
+  const counts = payload?.counts || {};
+  const runtimeLive = payload?.runtime_online;
+  const runtimeStatus = runtime.status || 'missing';
+  const toneMap = {
+    ready: 'success',
+    missing: 'warning',
+    starting: 'info',
+    installing: 'info',
+    error: 'danger',
+    disabled: 'secondary',
+  };
+  setAiBadge(runtimeStatus === 'ready' ? 'Runtime pronto' : runtimeStatus, toneMap[runtimeStatus] || 'secondary');
+
+  summary.innerHTML = `
+    <div><strong>Stato:</strong> ${runtimeStatus}</div>
+    <div><strong>Versione live:</strong> ${payload?.runtime_version_live || 'n.d.'}</div>
+    <div><strong>Hardware profile:</strong> ${runtime.hardware_profile || 'n.d.'}</div>
+    <div><strong>RAM:</strong> ${runtime.ram_gb ?? 'n.d.'} GB</div>
+    <div><strong>Disco libero:</strong> ${runtime.disk_free_gb ?? 'n.d.'} GB</div>
+    <div><strong>Documenti RAG:</strong> ${counts.documents_total ?? 0}</div>
+    <div><strong>Chunk totali:</strong> ${counts.chunks_total ?? 0}</div>
+    <div><strong>Chunk embedded:</strong> ${counts.chunks_embedded ?? 0}</div>
+    <div><strong>Chunk pending:</strong> ${counts.chunks_pending ?? 0}</div>
+    <div><strong>Runtime online:</strong> ${runtimeLive ? 'sì' : 'no'}</div>
+    ${runtime.last_error ? `<div class="text-danger"><strong>Ultimo errore:</strong> ${runtime.last_error}</div>` : ''}
+  `;
+
+  const rows = (payload?.models || []).map(row => `
+    <div class="border rounded-3 p-2 small">
+      <div class="fw-semibold">${row.model_name}</div>
+      <div class="text-muted">${row.role} · ${row.install_state}${row.is_active ? ' · attivo' : ''}</div>
+    </div>
+  `);
+  models.innerHTML = rows.length ? rows.join('') : '<div class="text-muted small">Nessun modello registrato.</div>';
+}
+
+async function refreshLocalAiStatus() {
+  if (!document.getElementById('ai-runtime-summary')) return;
+  setAiBadge('Verifica in corso', 'secondary');
+  try {
+    const response = await fetch('/api/local-ai/status', { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+    const payload = await response.json();
+    renderLocalAiStatus(payload);
+  } catch (error) {
+    setAiBadge('Errore runtime', 'danger');
+    const summary = document.getElementById('ai-runtime-summary');
+    if (summary) summary.innerHTML = `<div class="text-danger small">Errore caricamento stato AI locale.</div>`;
+  }
+}
+
+async function runLocalAiBootstrap() {
+  const btn = document.getElementById('ai-bootstrap-btn');
+  if (btn) btn.disabled = true;
+  setAiBadge('Bootstrap in corso', 'info');
+  try {
+    const response = await fetch('/api/local-ai/bootstrap', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+      body: JSON.stringify({ force: true }),
+    });
+    const payload = await response.json();
+    renderLocalAiStatus(payload.status_payload || payload);
+  } catch (error) {
+    setAiBadge('Bootstrap fallito', 'danger');
+  } finally {
+    if (btn) btn.disabled = false;
+    await refreshLocalAiStatus();
+  }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  if (document.getElementById('ai-runtime-summary')) {
+    refreshLocalAiStatus();
+  }
+});
 </script>
 
 <style>

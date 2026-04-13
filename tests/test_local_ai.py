@@ -1,0 +1,230 @@
+import json
+from pathlib import Path
+from types import SimpleNamespace
+
+from pct.fascicoli import GestioneFascicoli, TipoFascicolo
+from pct.local_ai import LocalAIService
+from web.app import create_app
+
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+
+
+def _write_studio_config(path: Path, enabled: bool = True) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        json.dumps(
+            {
+                "studio": {"nome": "Studio Test"},
+                "ai": {
+                    "enabled": enabled,
+                    "base_url": "http://127.0.0.1:11434/api",
+                    "auto_bootstrap": True,
+                    "chat_model": "",
+                    "embed_model": "",
+                    "keep_alive": "10m",
+                    "auto_index_documents": True,
+                },
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+
+
+def _service(tmp_path: Path, *, enabled: bool = True) -> LocalAIService:
+    config_path = tmp_path / "config" / "studio.json"
+    _write_studio_config(config_path, enabled=enabled)
+    return LocalAIService(
+        db_path=str(tmp_path / "intelligence" / "local_ai.db"),
+        policy_path=str(REPO_ROOT / "config" / "ai-policy.json"),
+        config_path=str(config_path),
+        app_root=str(REPO_ROOT),
+        models_path=str(tmp_path / "intelligence" / "models"),
+    )
+
+
+def _cfg_web(tmp_path: Path) -> dict:
+    return {
+        "TESTING": True,
+        "SECRET_KEY": "test",
+        "AUTH_DB": str(tmp_path / "utenti.json"),
+        "AUDIT_DB": str(tmp_path / "audit.json"),
+        "CLIENTI_DB": str(tmp_path / "clienti.json"),
+        "CONDIVISIONI_DB": str(tmp_path / "condivisioni.json"),
+        "FASCICOLI_DB": str(tmp_path / "fascicoli.json"),
+        "FASCICOLI_DOCS": str(tmp_path / "docs"),
+        "FASCICOLI_ARCH": str(tmp_path / "arch"),
+        "AGENDA_DB": str(tmp_path / "agenda.json"),
+        "SCADENZIARIO_DB": str(tmp_path / "scadenze.json"),
+        "MESSAGGI_DB": str(tmp_path / "messaggi.json"),
+        "EMAIL_CASELLA_DB": str(tmp_path / "email" / "casella.json"),
+        "SEARCH_INDEX": str(tmp_path / "search.db"),
+        "SOGGETTI_DB": str(tmp_path / "soggetti.json"),
+        "SOGGETTI_PARTI_DB": str(tmp_path / "parti.json"),
+        "PST_IMPORT_DIR": str(tmp_path / "pst_import"),
+        "VALIDATION_RUNS_DB": str(tmp_path / "validation_runs.json"),
+        "LEGAL_INTELLIGENCE_DB": str(tmp_path / "intelligence" / "motori.json"),
+        "NORMATIVE_TABLES_DB": str(tmp_path / "intelligence" / "tabelle_normative.json"),
+        "GIURISPRUDENZA_DB": str(tmp_path / "intelligence" / "giurisprudenza.json"),
+        "WORKSPACE_INTELLIGENCE_DB": str(tmp_path / "intelligence" / "workspace_intelligence.json"),
+        "LOCAL_AI_DB": str(tmp_path / "intelligence" / "local_ai.db"),
+        "LOCAL_AI_POLICY": str(REPO_ROOT / "config" / "ai-policy.json"),
+        "LOCAL_AI_MODELS_DIR": str(tmp_path / "intelligence" / "models"),
+        "STUDIO_CONFIG": str(tmp_path / "config" / "studio.json"),
+        "PDP_PENALE_DB": str(tmp_path / "penale" / "pdp_penale.db"),
+        "TELEMATICO_DB": str(tmp_path / "telematico" / "workflow.db"),
+        "PORTALE_DB": str(tmp_path / "portale" / "portali.json"),
+        "PORTALE_UPLOADS": str(tmp_path / "portale" / "uploads"),
+    }
+
+
+def test_local_ai_bootstrap_disabled_is_non_blocking(tmp_path: Path):
+    service = _service(tmp_path, enabled=False)
+
+    result = service.bootstrap_runtime()
+    snapshot = service.health_snapshot()
+
+    assert result["status"] == "disabled"
+    assert snapshot["runtime"]["status"] == "disabled"
+
+
+def test_local_ai_index_and_hybrid_search(tmp_path: Path, monkeypatch):
+    service = _service(tmp_path)
+    document_path = tmp_path / "atto.txt"
+    document_path.write_text(
+        "TRIBUNALE DI PALERMO\n\nIN DIRITTO\n\nOpposizione a decreto ingiuntivo con contestazione estratti conto.",
+        encoding="utf-8",
+    )
+
+    indexed = service.index_file(
+        source_type="fascicolo_documento",
+        source_id="DOC1",
+        practice_id="P1",
+        file_path=str(document_path),
+        title="Atto di opposizione",
+    )
+    assert indexed["status"] == "indexed"
+    assert indexed["chunk_count"] >= 1
+
+    class DummyClient:
+        def embed_texts(self, model_name, inputs):
+            return {"embeddings": [[1.0, 0.0]], "load_duration": 1, "prompt_eval_count": 3}
+
+    monkeypatch.setattr(service, "bootstrap_runtime", lambda force=False: {"status": "ready", "embed_model": "embeddinggemma:300m"})
+    monkeypatch.setattr(service, "_ollama_client", lambda settings=None: DummyClient())
+    monkeypatch.setattr(service, "_active_model", lambda role: "embeddinggemma:300m" if role == "embed" else "gemma3:1b")
+    embedded = service.embed_pending_chunks(limit=20)
+    assert embedded["embedded"] >= 1
+
+    results = service.hybrid_search("decreto ingiuntivo opposizione", practice_id="P1", top_k=3)
+
+    assert results
+    assert results[0]["document_id"]
+    assert "Atto di opposizione" in results[0]["citation"]
+
+
+def test_local_ai_ask_fascicolo_builds_context_and_returns_answer(tmp_path: Path, monkeypatch):
+    service = _service(tmp_path)
+    captured: dict[str, str] = {}
+
+    class DummyClient:
+        def generate(self, model_name, prompt, keep_alive="10m"):
+            captured["prompt"] = prompt
+            return {
+                "response": "Risposta operativa.\n\nFonti\n- Atto di opposizione",
+                "load_duration": 1,
+                "prompt_eval_count": 4,
+                "eval_count": 12,
+            }
+
+    monkeypatch.setattr(service, "bootstrap_runtime", lambda force=False: {"status": "ready", "chat_model": "gemma3:1b"})
+    monkeypatch.setattr(service, "index_fascicolo_documents", lambda *args, **kwargs: {"indexed": 1, "skipped": 0, "unsupported": 0, "errors": []})
+    monkeypatch.setattr(service, "embed_pending_chunks", lambda *args, **kwargs: {"status": "ready", "embedded": 1})
+    monkeypatch.setattr(
+        service,
+        "hybrid_search",
+        lambda *args, **kwargs: [
+            {
+                "id": "chunk-1",
+                "document_id": "doc-1",
+                "practice_id": "F1",
+                "section_type": "diritto",
+                "page_from": 1,
+                "page_to": 1,
+                "text": "Opposizione a decreto ingiuntivo fondata su contestazione degli estratti conto.",
+                "citation": "Atto di opposizione, p. 1 · diritto · chunk chunk-1",
+            }
+        ],
+    )
+    monkeypatch.setattr(service, "_ollama_client", lambda settings=None: DummyClient())
+
+    fascicolo = SimpleNamespace(
+        id="F1",
+        titolo="Opposizione DI",
+        oggetto="Opposizione a decreto ingiuntivo",
+        tribunale="Tribunale di Palermo",
+        numero_rg="123",
+        anno_rg=2026,
+        controparte="Beta Srl",
+        stato=SimpleNamespace(value="APERTO"),
+        tipo=SimpleNamespace(value="CIVILE"),
+        documenti=[],
+    )
+
+    result = service.ask_fascicolo(
+        fascicolo=fascicolo,
+        documents_dir=str(tmp_path / "docs"),
+        question="Quali sono i prossimi rischi processuali?",
+        apps=[],
+        scadenze=[],
+        workspace={"prossime_azioni": ["Verificare comparsa conclusionale"]},
+        intelligenza={"evidenze": ["Scadenza memoria 183 in arrivo"]},
+    )
+
+    assert result["ok"] is True
+    assert "Opposizione DI" in captured["prompt"]
+    assert "Atto di opposizione" in captured["prompt"]
+    assert "Scadenza memoria 183 in arrivo" in captured["prompt"]
+    assert result["answer"].startswith("Risposta operativa")
+
+
+def test_api_local_ai_status_and_fascicolo_ai(tmp_path: Path, monkeypatch):
+    _write_studio_config(tmp_path / "config" / "studio.json", enabled=True)
+    app = create_app(_cfg_web(tmp_path))
+
+    gf = GestioneFascicoli(
+        db_path=str(tmp_path / "fascicoli.json"),
+        documents_dir=str(tmp_path / "docs"),
+        archive_dir=str(tmp_path / "arch"),
+    )
+    fascicolo = gf.nuovo("Pratica opposizione", TipoFascicolo.CIVILE)
+
+    monkeypatch.setattr(
+        LocalAIService,
+        "ask_fascicolo",
+        lambda self, **kwargs: {"ok": True, "status": "ready", "answer": "Analisi fascicolo", "citations": ["Fonte A"], "sources": []},
+    )
+
+    with app.test_client() as client:
+        client.post("/login", data={"username": "admin", "password": "admin"}, follow_redirects=True)
+
+        status_response = client.get("/api/local-ai/status")
+        fascicolo_response = client.post(
+            f"/api/fascicoli/{fascicolo.id}/ai",
+            json={"question": "Che cosa presidio oggi?"},
+        )
+
+    assert status_response.status_code == 200
+    assert "runtime" in status_response.get_json()
+    assert fascicolo_response.status_code == 200
+    assert fascicolo_response.get_json()["ok"] is True
+    assert fascicolo_response.get_json()["answer"] == "Analisi fascicolo"
+
+
+def test_impostazioni_template_contains_ai_locale_tab():
+    html = (REPO_ROOT / "web" / "templates" / "impostazioni" / "index.html").read_text(encoding="utf-8")
+
+    assert "AI Locale" in html
+    assert "Bootstrap runtime" in html
+    assert "runLocalAiBootstrap" in html

@@ -72,6 +72,24 @@ class TipoRegolaCalendario(str, Enum):
     OSSERVANZA = "observance"
 
 
+OFFICE_MODE_LABELS: Dict[str, str] = {
+    ModalitaOperativa.APERTO.value: "Aperto",
+    ModalitaOperativa.CHIUSO.value: "Chiuso",
+    ModalitaOperativa.SOLO_URGENTI.value: "Solo atti urgenti",
+    ModalitaOperativa.ORARI_LIMITATI.value: "Orari limitati",
+}
+
+
+SOURCE_EVENT_TYPE_LABELS: Dict[str, str] = {
+    "evento": "Evento generatore",
+    "notifica": "Notifica",
+    "deposito": "Deposito",
+    "deposito_sentenza": "Deposito della sentenza",
+    "udienza": "Udienza",
+    "comunicazione": "Comunicazione",
+}
+
+
 def _calcola_pasqua(anno: int) -> date:
     a = anno % 19
     b = anno // 100
@@ -479,6 +497,33 @@ def calcola_scadenza_avanzata(start_at: str | datetime | date, profile: ProfiloT
     return EsitoCalcoloScadenza(raw_due_at=_iso_dt(raw_due), legal_due_at=_iso_dt(legal_due), operational_due_at=_iso_dt(operational_due) if operational_due else None, office_mode_on_legal_due_date=_dominant_operating_mode(legal_due, office_rules, "legal"), trace=trace)
 
 
+def riepilogo_operativo_scadenza(*, trace: Optional[List[str]] = None, operational_due_at: str | None = None, operational_lead_business_days: int = 0, october_observance_blocks: bool = False, office_patron_day: int = 0, office_patron_month: int = 0, office_operating_mode: str = ModalitaOperativa.APERTO.value) -> List[str]:
+    voci: List[str] = []
+    trace_items = [str(item or "").strip() for item in (trace or []) if str(item or "").strip()]
+    if any("proroga" in item.lower() for item in trace_items):
+        voci.append("La scadenza legale e stata prorogata al primo giorno utile.")
+    if operational_due_at:
+        if operational_lead_business_days > 0:
+            unita = "giorno lavorativo" if operational_lead_business_days == 1 else "giorni lavorativi"
+            voci.append(f"Preparazione interna anticipata di {operational_lead_business_days} {unita}.")
+        else:
+            voci.append("E' presente una scadenza operativa interna distinta da quella legale.")
+    if any("feriale" in item.lower() for item in trace_items):
+        voci.append("Il calcolo ha intercettato la sospensione feriale dei termini.")
+    if october_observance_blocks:
+        voci.append("Il 4 ottobre e trattato come osservanza bloccante per questo termine.")
+    if office_patron_day and office_patron_month and office_operating_mode and office_operating_mode != ModalitaOperativa.APERTO.value:
+        voci.append(
+            "Nel giorno del patrono l'ufficio e configurato come: "
+            f"{OFFICE_MODE_LABELS.get(office_operating_mode, office_operating_mode).lower()}."
+        )
+    deduped: List[str] = []
+    for voce in voci:
+        if voce not in deduped:
+            deduped.append(voce)
+    return deduped
+
+
 PRESET_TERMINI: Dict[str, Dict[str, Any]] = {
     "impugnazione_sentenza_civile": {"label": "Impugnazione sentenza civile", "giorni": 30, "tipo": "liberi", "sospensione_feriale": True, "descrizione": "Art. 325 c.p.c. - 30 giorni dalla notifica della sentenza, con sospensione feriale se applicabile.", "profile_code": "TERM_30_DAYS", "source_event_type": "notifica", "operational_lead_business_days": 2},
     "appello_breve": {"label": "Appello (termine breve)", "giorni": 30, "tipo": "liberi", "sospensione_feriale": True, "descrizione": "Art. 325 c.p.c. - 30 giorni dalla notifica della sentenza.", "profile_code": "TERM_30_DAYS", "source_event_type": "notifica", "operational_lead_business_days": 2},
@@ -605,6 +650,42 @@ class Scadenza:
     @property
     def ha_calcolo_avanzato(self) -> bool:
         return bool(self.legal_due_at or self.deadline_profile_code or self.trace)
+
+    @property
+    def source_event_type_label(self) -> str:
+        if not self.source_event_type:
+            return "Evento origine"
+        return SOURCE_EVENT_TYPE_LABELS.get(
+            self.source_event_type,
+            self.source_event_type.replace("_", " ").capitalize(),
+        )
+
+    @property
+    def office_mode_label(self) -> str:
+        return OFFICE_MODE_LABELS.get(
+            self.office_mode_on_legal_due_date or ModalitaOperativa.APERTO.value,
+            self.office_mode_on_legal_due_date or "Aperto",
+        )
+
+    @property
+    def ha_proroga_finale(self) -> bool:
+        return any("proroga" in item.lower() for item in self.trace)
+
+    @property
+    def ha_sospensione_feriale(self) -> bool:
+        return any("feriale" in item.lower() for item in self.trace)
+
+    @property
+    def riepilogo_operativo(self) -> List[str]:
+        return riepilogo_operativo_scadenza(
+            trace=self.trace,
+            operational_due_at=self.operational_due_at,
+            operational_lead_business_days=self.operational_lead_business_days,
+            october_observance_blocks=self.october_observance_blocks,
+            office_patron_day=self.judicial_office_patron_day,
+            office_patron_month=self.judicial_office_patron_month,
+            office_operating_mode=self.judicial_office_operating_mode,
+        )
 
     def _calcola_priorita(self) -> PrioritaTermine:
         giorni = self.giorni_alla_scadenza

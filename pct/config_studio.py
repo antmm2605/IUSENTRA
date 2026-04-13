@@ -280,6 +280,17 @@ class ConfigScheduler:
 
 
 @dataclass
+class ConfigLocalAI:
+    enabled: bool = True
+    base_url: str = "http://127.0.0.1:11434/api"
+    auto_bootstrap: bool = True
+    chat_model: str = ""
+    embed_model: str = ""
+    keep_alive: str = "10m"
+    auto_index_documents: bool = True
+
+
+@dataclass
 class ConfigStudio:
     studio: ConfigDatiStudio = field(default_factory=ConfigDatiStudio)
     pec: ConfigPEC = field(default_factory=ConfigPEC)
@@ -287,6 +298,7 @@ class ConfigStudio:
     smtp: ConfigSMTP = field(default_factory=ConfigSMTP)
     whatsapp: ConfigWhatsApp = field(default_factory=ConfigWhatsApp)
     scheduler: ConfigScheduler = field(default_factory=ConfigScheduler)
+    ai: ConfigLocalAI = field(default_factory=ConfigLocalAI)
 
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)
@@ -303,6 +315,7 @@ class ConfigStudio:
             smtp=_pick(ConfigSMTP, d.get("smtp", {})),
             whatsapp=_pick(ConfigWhatsApp, d.get("whatsapp", {})),
             scheduler=_pick(ConfigScheduler, d.get("scheduler", {})),
+            ai=_pick(ConfigLocalAI, d.get("ai", {})),
         )
 
 
@@ -401,6 +414,15 @@ class GestioneConfigStudio:
             scheduler=ConfigScheduler(
                 backup_ora=os.getenv("PCT_BACKUP_ORA", "02:00"),
                 wa_reminder_ora=os.getenv("PCT_WA_REMINDER_ORA", "18:00"),
+            ),
+            ai=ConfigLocalAI(
+                enabled=os.getenv("PCT_LOCAL_AI_ENABLED", "1").lower() not in {"0", "false", "no"},
+                base_url=os.getenv("PCT_LOCAL_AI_BASE_URL", "http://127.0.0.1:11434/api"),
+                auto_bootstrap=os.getenv("PCT_LOCAL_AI_AUTO_BOOTSTRAP", "1").lower() not in {"0", "false", "no"},
+                chat_model=os.getenv("PCT_LOCAL_AI_CHAT_MODEL", ""),
+                embed_model=os.getenv("PCT_LOCAL_AI_EMBED_MODEL", ""),
+                keep_alive=os.getenv("PCT_LOCAL_AI_KEEP_ALIVE", "10m"),
+                auto_index_documents=os.getenv("PCT_LOCAL_AI_AUTO_INDEX_DOCUMENTS", "1").lower() not in {"0", "false", "no"},
             ),
         )
 

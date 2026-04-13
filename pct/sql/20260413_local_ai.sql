@@ -100,7 +100,8 @@ CREATE TRIGGER IF NOT EXISTS rag_chunks_ad AFTER DELETE ON rag_chunks BEGIN
     VALUES ('delete', old.rowid, old.id, old.document_id, old.practice_id, old.text);
 END;
 
-CREATE TRIGGER IF NOT EXISTS rag_chunks_au AFTER UPDATE ON rag_chunks BEGIN
+CREATE TRIGGER IF NOT EXISTS rag_chunks_au
+AFTER UPDATE OF id, document_id, practice_id, text ON rag_chunks BEGIN
     INSERT INTO rag_chunks_fts(rag_chunks_fts, rowid, id, document_id, practice_id, text)
     VALUES ('delete', old.rowid, old.id, old.document_id, old.practice_id, old.text);
     INSERT INTO rag_chunks_fts(rowid, id, document_id, practice_id, text)

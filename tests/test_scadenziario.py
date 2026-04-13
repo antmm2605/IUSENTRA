@@ -14,6 +14,7 @@ from pct.scadenziario import (
     regola_patrono_studio,
     regola_patrono_ufficio,
     regole_calendario_nazionali,
+    riepilogo_operativo_scadenza,
     Scadenza,
     TipoTermine,
     PrioritaTermine,
@@ -26,6 +27,7 @@ from pct.scadenziario import (
     _calcola_pasqua,
 )
 from pct.auth import GestioneUtenti
+from pct.config_studio import GestioneConfigStudio
 from web.app import create_app
 
 
@@ -381,7 +383,21 @@ def test_regola_4_ottobre_non_bloccante_di_default():
     assert oct_rule.applies_to_legal_deadlines is False
     assert oct_rule.operating_mode == "open"
 
-
+def test_riepilogo_operativo_scadenza_evidenzia_proroga_e_anticipo():
+    note = riepilogo_operativo_scadenza(
+        trace=["Proroga dal 2026-07-15 al giorno successivo utile", "Giorno sospeso per periodo feriale -> 2026-08-05"],
+        operational_due_at="2026-07-13T10:00:00",
+        operational_lead_business_days=2,
+        october_observance_blocks=True,
+        office_patron_day=15,
+        office_patron_month=7,
+        office_operating_mode=ModalitaOperativa.SOLO_URGENTI.value,
+    )
+    assert any("prorogata" in item.lower() for item in note)
+    assert any("2 giorni lavorativi" in item for item in note)
+    assert any("sospensione feriale" in item.lower() for item in note)
+    assert any("4 ottobre" in item for item in note)
+    assert any("solo atti urgenti" in item.lower() for item in note)
 def test_scadenza_avanzata_persistita_salva_trace_e_date(gs):
     sc = gs.nuova(
         titolo="Termine con trace",
@@ -398,6 +414,7 @@ def test_scadenza_avanzata_persistita_salva_trace_e_date(gs):
     assert sc.ha_calcolo_avanzato is True
     assert sc.trace == ["giorno iniziale escluso", "proroga finale"]
     assert sc.operational_due_at_obj is not None
+    assert any("prorogata" in item.lower() for item in sc.riepilogo_operativo)
 
 
 def _cfg_web(tmp_path):
@@ -451,6 +468,7 @@ def test_route_calcola_termine_avanzato_restituisce_trace(tmp_path):
     assert data["data_scadenza"] == "2026-07-16"
     assert data["operational_due_at"].startswith("2026-07-14")
     assert isinstance(data["trace"], list)
+    assert any("prorogata" in item.lower() for item in data["operational_notes"])
 
 
 def test_route_nuova_scadenza_avanzata_salva_note(tmp_path):
@@ -530,3 +548,86 @@ def test_route_modifica_manuale_azzera_metadati_calcolo_avanzato(tmp_path):
     assert aggiornato.operational_due_at == ""
     assert aggiornato.trace == []
     assert aggiornato.note == "Senza motore avanzato"
+
+
+def test_route_scadenziario_filtra_avanzate_e_operative(tmp_path):
+    cfg = _cfg_web(tmp_path)
+    GestioneUtenti(db_path=cfg["AUTH_DB"], audit_path=cfg["AUDIT_DB"], secret_key="test")
+    gs = GestioneScadenziario(db_path=cfg["SCADENZIARIO_DB"])
+    gs.nuova(
+        titolo="Termine avanzato",
+        tipo=TipoTermine.ALTRO,
+        data_scadenza="2026-07-16",
+        deadline_profile_code="TERM_30_DAYS",
+        legal_due_at="2026-07-16T10:00:00",
+        operational_due_at="2026-07-14T10:00:00",
+        trace_json=json.dumps(["Proroga finale"], ensure_ascii=False),
+    )
+    gs.nuova(
+        titolo="Termine manuale",
+        tipo=TipoTermine.ALTRO,
+        data_scadenza="2026-08-20",
+    )
+    app = create_app(cfg)
+    client = app.test_client()
+    login = client.post("/login", data={"username": "admin", "password": "admin"}, follow_redirects=True)
+    assert login.status_code == 200
+
+    response = client.get("/scadenziario?avanzate=1&operative=1")
+
+    assert response.status_code == 200
+    body = response.get_data(as_text=True)
+    assert "Termine avanzato" in body
+    assert "Termine manuale" not in body
+    assert "Solo calcolo avanzato" in body
+    assert "Solo con anticipo operativo" in body
+
+
+def test_dettaglio_scadenza_mostra_studio_e_contesto(tmp_path):
+    cfg = _cfg_web(tmp_path)
+    GestioneUtenti(db_path=cfg["AUTH_DB"], audit_path=cfg["AUDIT_DB"], secret_key="test")
+    GestioneConfigStudio(config_path=cfg["STUDIO_CONFIG"]).aggiorna_sezione(
+        "studio",
+        {
+            "nome": "Studio Test Palermo",
+            "city": "Palermo",
+            "patron_name": "Santa Rosalia",
+            "patron_day": 15,
+            "patron_month": 7,
+        },
+    )
+    gs = GestioneScadenziario(db_path=cfg["SCADENZIARIO_DB"])
+    sc = gs.nuova(
+        titolo="Termine con contesto",
+        tipo=TipoTermine.ALTRO,
+        data_scadenza="2026-07-16",
+        source_event_type="notifica",
+        source_event_at="2026-06-15T10:00:00",
+        deadline_profile_code="TERM_30_DAYS",
+        legal_due_at="2026-07-16T10:00:00",
+        operational_due_at="2026-07-14T10:00:00",
+        trace_json=json.dumps(["Proroga finale"], ensure_ascii=False),
+        judicial_office_name="Tribunale di Palermo",
+        judicial_office_patron_name="Santa Rosalia",
+        judicial_office_patron_day=15,
+        judicial_office_patron_month=7,
+        judicial_office_operating_mode="urgent_only",
+        judicial_office_source_url="https://tribunale.example/patrono",
+        judicial_office_verified_at="2026-07-01",
+        operational_lead_business_days=2,
+        october_observance_blocks=True,
+    )
+    app = create_app(cfg)
+    client = app.test_client()
+    login = client.post("/login", data={"username": "admin", "password": "admin"}, follow_redirects=True)
+    assert login.status_code == 200
+
+    response = client.get(f"/scadenziario/{sc.id}")
+
+    assert response.status_code == 200
+    body = response.get_data(as_text=True)
+    assert "Studio Test Palermo" in body
+    assert "Santa Rosalia" in body
+    assert "Solo atti urgenti" in body
+    assert "Osservanza bloccante" in body
+    assert "Notifica" in body

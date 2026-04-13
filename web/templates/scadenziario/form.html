@@ -208,6 +208,18 @@
           <div class="fw-semibold mb-1">Studio</div>
           {{ studio_cfg.nome }}{% if studio_cfg.city %} · {{ studio_cfg.city }}{% endif %}{% if studio_cfg.patron_name and studio_cfg.patron_day and studio_cfg.patron_month %}<br>Patrono interno: {{ studio_cfg.patron_name }} ({{ "%02d"|format(studio_cfg.patron_day) }}/{{ "%02d"|format(studio_cfg.patron_month) }}){% endif %}
         </div>
+        <div class="alert alert-light border mt-3 mb-0 small">
+          <div class="fw-semibold mb-1">Quadro operativo</div>
+          <ul class="mb-0 ps-3" id="preview-operational-notes">
+            {% if scadenza and scadenza.riepilogo_operativo %}
+              {% for item in scadenza.riepilogo_operativo %}
+              <li>{{ item }}</li>
+              {% endfor %}
+            {% else %}
+              <li class="text-muted">Il riepilogo appare appena completi il calcolo del termine.</li>
+            {% endif %}
+          </ul>
+        </div>
       </div>
     </div>
 
@@ -274,6 +286,24 @@ function setText(id, value) {
   document.getElementById(id).textContent = value || '—';
 }
 
+function setOperationalNotes(items) {
+  const target = document.getElementById('preview-operational-notes');
+  target.innerHTML = '';
+  const notes = Array.isArray(items) ? items.filter(Boolean) : [];
+  if (!notes.length) {
+    const li = document.createElement('li');
+    li.className = 'text-muted';
+    li.textContent = 'Nessun alert operativo per il calcolo corrente.';
+    target.appendChild(li);
+    return;
+  }
+  notes.forEach((item) => {
+    const li = document.createElement('li');
+    li.textContent = item;
+    target.appendChild(li);
+  });
+}
+
 async function aggiornaPreview() {
   const payload = formPayload();
   if ((!payload.preset && !payload.deadline_profile_code) || !payload.source_event_at) return;
@@ -290,6 +320,7 @@ async function aggiornaPreview() {
     setText('preview-operational', data.operational_due_at);
     setText('preview-raw', data.raw_due_at);
     setText('preview-office-mode', OFFICE_MODE_LABELS[data.office_mode_on_legal_due_date] || 'Aperto');
+    setOperationalNotes(data.operational_notes || []);
     const trace = document.getElementById('preview-trace');
     trace.innerHTML = '';
     (data.trace || []).forEach((item) => {

@@ -104,6 +104,8 @@ def _salva_upload_firma(storage, prefix: str, allowed_exts: set[str]) -> str:
 
 def _applica_ad_app(cfg):
     """Sincronizza la configurazione salvata con app.config (nessun restart)."""
+    from pct.local_ai import strip_api_suffix
+
     app = current_app._get_current_object()
     s = cfg.studio
     # Dati studio
@@ -129,6 +131,16 @@ def _applica_ad_app(cfg):
     # Scheduler
     app.config["BACKUP_ORA"]      = cfg.scheduler.backup_ora
     app.config["WA_REMINDER_ORA"] = cfg.scheduler.wa_reminder_ora
+    # AI locale / compat legacy assistente Ollama
+    app.config["LOCAL_AI_ENABLED"] = cfg.ai.enabled
+    app.config["LOCAL_AI_BASE_URL"] = cfg.ai.base_url
+    app.config["LOCAL_AI_AUTO_BOOTSTRAP"] = cfg.ai.auto_bootstrap
+    app.config["LOCAL_AI_CHAT_MODEL"] = cfg.ai.chat_model
+    app.config["LOCAL_AI_EMBED_MODEL"] = cfg.ai.embed_model
+    app.config["LOCAL_AI_KEEP_ALIVE"] = cfg.ai.keep_alive
+    app.config["LOCAL_AI_AUTO_INDEX_DOCUMENTS"] = cfg.ai.auto_index_documents
+    app.config["OLLAMA_URL"] = strip_api_suffix(cfg.ai.base_url)
+    app.config["OLLAMA_MODEL"] = cfg.ai.chat_model or app.config.get("OLLAMA_MODEL", "mistral")
     # Reschedule job se lo scheduler è attivo
     _reschedule_jobs(app, cfg)
 
@@ -165,7 +177,7 @@ def index():
 
         from pct.config_studio import (
             ConfigDatiStudio, ConfigPEC,
-            ConfigFirma, ConfigSMTP, ConfigWhatsApp, ConfigScheduler,
+            ConfigFirma, ConfigSMTP, ConfigWhatsApp, ConfigScheduler, ConfigLocalAI,
         )
         cfg = gs.config
         try:
@@ -258,6 +270,16 @@ def index():
                     wa_reminder_ora=f.get("wa_reminder_ora", "18:00").strip(),
                     backup_abilitato=bool(f.get("backup_abilitato")),
                     wa_reminder_abilitato=bool(f.get("wa_reminder_abilitato")),
+                )
+            elif tab == "ai":
+                cfg.ai = ConfigLocalAI(
+                    enabled=bool(f.get("ai_enabled")),
+                    base_url=f.get("ai_base_url", "http://127.0.0.1:11434/api").strip(),
+                    auto_bootstrap=bool(f.get("ai_auto_bootstrap")),
+                    chat_model=f.get("ai_chat_model", "").strip(),
+                    embed_model=f.get("ai_embed_model", "").strip(),
+                    keep_alive=f.get("ai_keep_alive", "10m").strip(),
+                    auto_index_documents=bool(f.get("ai_auto_index_documents")),
                 )
         except ValueError as e:
             flash(str(e), "danger")

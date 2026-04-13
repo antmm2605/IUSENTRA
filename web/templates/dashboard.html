@@ -3,6 +3,7 @@
 {% block page_title %}Panoramica{% endblock %}
 
 {% block content %}
+<div class="dashboard-page">
 
 {# ── Page Header ── #}
 <div class="ds-ph">
@@ -46,34 +47,40 @@
 
 {# ---- Scadenze critiche alert ---- #}
 {% if scadenze_critiche %}
-<div class="alert alert-danger d-flex align-items-start gap-3 mb-3">
-  <i class="bi bi-alarm-fill fs-4 flex-shrink-0 mt-1"></i>
-  <div class="flex-grow-1">
-    <div class="fw-semibold mb-1">
+<div class="ui-feedback ui-feedback--danger mb-3">
+  <div class="ui-feedback__icon">
+    <i class="bi bi-alarm-fill"></i>
+  </div>
+  <div class="ui-feedback__content">
+    <div class="ui-feedback__title">
       {% if scadenze_critiche|length == 1 %}1 scadenza urgente{% else %}{{ scadenze_critiche|length }} scadenze urgenti{% endif %} entro 3 giorni
     </div>
-    {% for s in scadenze_critiche %}
-    {% set g = s.giorni_alla_scadenza %}
-    <div class="small">
-      <a href="{{ url_for('dettaglio_scadenza', id_sc=s.id) }}"
-         class="text-danger fw-semibold text-decoration-none">{{ s.titolo }}</a>
-      — {% if g == 0 %}OGGI{% elif g == 1 %}domani{% else %}tra {{ g }} gg{% endif %}
-      {% if s.perentorio %}<span class="badge bg-danger ms-1">PERENTORIO</span>{% endif %}
+    <div class="ui-feedback__body ui-feedback__list">
+      {% for s in scadenze_critiche %}
+      {% set g = s.giorni_alla_scadenza %}
+      <div class="small">
+        <a href="{{ url_for('dettaglio_scadenza', id_sc=s.id) }}"
+           class="text-danger fw-semibold text-decoration-none">{{ s.titolo }}</a>
+        - {% if g == 0 %}oggi{% elif g == 1 %}domani{% else %}tra {{ g }} giorni{% endif %}
+        {% if s.perentorio %}<span class="badge bg-danger ms-1">Perentorio</span>{% endif %}
+      </div>
+      {% endfor %}
     </div>
-    {% endfor %}
   </div>
-  <a href="{{ url_for('scadenziario') }}" class="btn btn-sm btn-danger flex-shrink-0">
-    Scadenziario
-  </a>
+  <div class="ui-feedback__actions">
+    <a href="{{ url_for('scadenziario') }}" class="btn btn-sm btn-danger flex-shrink-0">
+      Scadenziario
+    </a>
+  </div>
 </div>
 {% endif %}
 
-<div class="row g-3">
+<div class="row g-3 dashboard-grid-tight">
 
   {# ---- Reminder imminenti ---- #}
   <div class="col-12 col-md-6 col-lg-4">
-    <div class="card shadow-sm h-100">
-      <div class="card-header bg-warning-subtle fw-semibold">
+    <div class="card dashboard-card h-100">
+      <div class="card-header ui-panel-compact__header ui-panel-compact__header--warning fw-semibold">
         <i class="bi bi-bell-fill text-warning me-2"></i>Promemoria imminenti
         <span class="badge bg-warning text-dark ms-1">{{ reminder|length }}</span>
       </div>
@@ -81,11 +88,11 @@
         {% if reminder %}
           <ul class="list-group list-group-flush">
             {% for a in reminder %}
-            <li class="list-group-item">
+            <li class="list-group-item dashboard-list-item">
               <a href="{{ url_for('dettaglio_appuntamento', id_app=a.id) }}" class="text-decoration-none">
                 <div class="fw-semibold text-dark">{{ a.titolo }}</div>
-                <div class="small text-muted">
-                  <i class="bi bi-clock me-1"></i>{{ a.data_ora_dt.strftime('%H:%M') }}
+                <div class="ui-meta-line mt-1">
+                  <span><i class="bi bi-clock me-1"></i>{{ a.data_ora_dt|fmt_ora }}</span>
                   {% if a.luogo %} · {{ a.luogo }}{% endif %}
                 </div>
               </a>
@@ -93,7 +100,7 @@
             {% endfor %}
           </ul>
         {% else %}
-          <div class="text-muted text-center py-4 small">Nessun promemoria nelle prossime 2 ore</div>
+          <div class="ui-empty-state">Nessun promemoria nelle prossime 2 ore.</div>
         {% endif %}
       </div>
     </div>
@@ -101,8 +108,8 @@
 
   {# ---- Appuntamenti di oggi ---- #}
   <div class="col-12 col-md-6 col-lg-8">
-    <div class="card shadow-sm h-100">
-      <div class="card-header fw-semibold d-flex justify-content-between align-items-center">
+    <div class="card dashboard-card h-100">
+      <div class="card-header ui-panel-compact__header fw-semibold d-flex justify-content-between align-items-center">
         <span><i class="bi bi-calendar-day me-2 text-primary"></i>Oggi — {{ oggi|fmt_data_estesa }}</span>
         <a href="{{ url_for('agenda_view') }}?vista=giorno" class="btn btn-sm btn-outline-primary">
           Apri agenda
@@ -110,8 +117,8 @@
       </div>
       <div class="card-body p-0">
         {% if apps_oggi %}
-          <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0 mob-cards">
+          <div class="table-responsive dashboard-table-wrap">
+            <table class="table table-hover align-middle mb-0 mob-cards dashboard-table">
               <thead class="table-light">
                 <tr>
                   <th>Ora</th><th>Titolo</th><th>Tipo</th><th>Cliente</th><th>Stato</th><th></th>
@@ -123,8 +130,8 @@
                 {% set sl = {'PROGRAMMATO':'Programmato','CONFERMATO':'Confermato','COMPLETATO':'Completato','ANNULLATO':'Annullato','RINVIATO':'Rinviato'} %}
                 <tr>
                   <td data-label="Ora" class="text-nowrap fw-semibold">
-                    {{ a.data_ora_dt.strftime('%H:%M') }}
-                    <span class="text-muted fw-normal">–{{ a.fine_dt.strftime('%H:%M') }}</span>
+                    {{ a.data_ora_dt|fmt_ora }}
+                    <span class="text-muted fw-normal">- {{ a.fine_dt|fmt_ora }}</span>
                   </td>
                   <td data-label="Appuntamento">
                     <a href="{{ url_for('dettaglio_appuntamento', id_app=a.id) }}"
@@ -132,7 +139,7 @@
                     {% if a.luogo %}<div class="small text-muted">{{ a.luogo }}</div>{% endif %}
                   </td>
                   <td data-label="Tipo" data-mob-hide>
-                    <span class="badge badge-{{ a.tipo.value }} rounded-pill">{{ a.tipo.value }}</span>
+                    <span class="badge badge-{{ a.tipo.value }} rounded-pill">{{ a.tipo.value|replace('_', ' ')|title }}</span>
                   </td>
                   <td data-label="Cliente" class="small" data-mob-hide>{{ a.cliente or '—' }}</td>
                   <td data-label="Stato">
@@ -150,7 +157,7 @@
             </table>
           </div>
         {% else %}
-          <div class="text-muted text-center py-5">
+          <div class="ui-empty-state py-5">
             <i class="bi bi-calendar-x fs-2 d-block mb-2"></i>Nessun appuntamento oggi
           </div>
         {% endif %}
@@ -162,10 +169,10 @@
 
 {# ---- #4 Widget cartelle condivise (solo per utenti senza accesso globale) ---- #}
 {% if cartelle_mie %}
-<div class="row g-3 mt-1">
+<div class="row g-3 mt-1 dashboard-grid-tight">
   <div class="col-12">
-    <div class="card shadow-sm border-0">
-      <div class="card-header d-flex justify-content-between align-items-center bg-success bg-opacity-10">
+    <div class="card dashboard-card border-0">
+      <div class="card-header ui-panel-compact__header ui-panel-compact__header--success d-flex justify-content-between align-items-center">
         <h6 class="mb-0 fw-semibold text-success">
           <i class="bi bi-folder-symlink me-2"></i>Le mie cartelle condivise
         </h6>
@@ -235,10 +242,10 @@
 
 {# ---- Widget documenti identità scaduti ---- #}
 {% if clienti_doc_scaduti %}
-<div class="row g-3 mt-1">
+<div class="row g-3 mt-1 dashboard-grid-tight">
   <div class="col-12">
-    <div class="card shadow-sm border-warning">
-      <div class="card-header d-flex justify-content-between align-items-center bg-warning bg-opacity-10">
+    <div class="card dashboard-card border-warning">
+      <div class="card-header ui-panel-compact__header ui-panel-compact__header--warning d-flex justify-content-between align-items-center">
         <h6 class="mb-0 fw-semibold text-warning">
           <i class="bi bi-credit-card me-2"></i>Documenti d'identità scaduti
           <span class="badge bg-warning text-dark ms-1">{{ clienti_doc_scaduti|length }}</span>
@@ -280,12 +287,12 @@
 {% endif %}
 
 {# ---- Grafici statistiche ---- #}
-<div class="row g-3 mt-1">
+<div class="row g-3 mt-1 dashboard-grid-tight">
 
   {# Appuntamenti per tipo (barre) #}
   <div class="col-lg-4 col-md-6">
-    <div class="card shadow-sm h-100">
-      <div class="card-header fw-semibold">
+    <div class="card dashboard-card dashboard-chart-card h-100">
+      <div class="card-header ui-panel-compact__header fw-semibold">
         <i class="bi bi-bar-chart me-2 text-primary"></i>Appuntamenti per tipo
       </div>
       <div class="card-body d-flex align-items-center justify-content-center">
@@ -296,8 +303,8 @@
 
   {# Fascicoli per stato (donut) #}
   <div class="col-lg-4 col-md-6">
-    <div class="card shadow-sm h-100">
-      <div class="card-header fw-semibold">
+    <div class="card dashboard-card dashboard-chart-card h-100">
+      <div class="card-header ui-panel-compact__header fw-semibold">
         <i class="bi bi-pie-chart me-2 text-success"></i>Fascicoli per stato
       </div>
       <div class="card-body d-flex align-items-center justify-content-center">
@@ -308,8 +315,8 @@
 
   {# Scadenze per priorità (donut) #}
   <div class="col-lg-4 col-md-12">
-    <div class="card shadow-sm h-100">
-      <div class="card-header fw-semibold">
+    <div class="card dashboard-card dashboard-chart-card h-100">
+      <div class="card-header ui-panel-compact__header fw-semibold">
         <i class="bi bi-alarm me-2 text-danger"></i>Scadenze per priorità
       </div>
       <div class="card-body d-flex align-items-center justify-content-center">
@@ -320,6 +327,7 @@
 
 </div>
 
+ </div>
 {% endblock %}
 
 {% block scripts %}

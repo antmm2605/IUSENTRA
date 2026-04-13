@@ -3,140 +3,21 @@
 {% block page_title %}Cabina Intelligente{% endblock %}
 
 {% block content %}
-<style>
-  .wi-hero,
-  .wi-card,
-  .wi-panel,
-  .wi-fascicolo,
-  .wi-source {
-    border-radius: 22px;
-    border: 1px solid rgba(15, 23, 42, 0.08);
-    background: #fff;
-    box-shadow: 0 16px 34px rgba(15, 23, 42, 0.06);
-  }
-  .wi-hero {
-    background:
-      radial-gradient(circle at top right, rgba(37, 99, 235, 0.14), transparent 34%),
-      linear-gradient(135deg, rgba(15, 23, 42, 0.98), rgba(29, 78, 216, 0.95));
-    color: #fff;
-    border-color: rgba(96, 165, 250, 0.18);
-  }
-  .wi-kpi-grid {
-    display: grid;
-    gap: 1rem;
-    grid-template-columns: repeat(1, minmax(0, 1fr));
-  }
-  .wi-kpi {
-    border-radius: 18px;
-    padding: 1rem;
-    background: linear-gradient(180deg, #ffffff, #f8fbff);
-    border: 1px solid rgba(37, 99, 235, 0.08);
-  }
-  .wi-action-grid,
-  .wi-sync-grid,
-  .wi-source-grid {
-    display: grid;
-    gap: 1rem;
-    grid-template-columns: repeat(1, minmax(0, 1fr));
-  }
-  .wi-fascicoli-grid {
-    display: grid;
-    gap: 1rem;
-    grid-template-columns: repeat(1, minmax(0, 1fr));
-  }
-  .wi-chip {
-    display: inline-flex;
-    align-items: center;
-    gap: .45rem;
-    padding: .42rem .8rem;
-    border-radius: 999px;
-    background: rgba(255, 255, 255, 0.12);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    font-size: .8rem;
-    font-weight: 600;
-  }
-  .wi-filter-pill {
-    display: inline-flex;
-    align-items: center;
-    gap: .4rem;
-    padding: .45rem .8rem;
-    border-radius: 999px;
-    border: 1px solid rgba(15, 23, 42, 0.08);
-    background: #fff;
-    color: #17324f;
-    text-decoration: none;
-    font-weight: 600;
-  }
-  .wi-filter-pill.active {
-    background: #17324f;
-    color: #fff;
-    border-color: #17324f;
-  }
-  .wi-list {
-    display: grid;
-    gap: .85rem;
-  }
-  .wi-list-item {
-    border: 1px solid rgba(15, 23, 42, 0.08);
-    border-radius: 18px;
-    padding: .95rem 1rem;
-    background: linear-gradient(180deg, #fff, #fbfdff);
-  }
-  .wi-source-note,
-  .wi-muted {
-    color: #5b6677;
-  }
-  .wi-score {
-    min-width: 42px;
-    height: 42px;
-    border-radius: 14px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(37, 99, 235, 0.1);
-    color: #1d4ed8;
-    font-weight: 800;
-  }
-  @media (min-width: 768px) {
-    .wi-kpi-grid,
-    .wi-action-grid,
-    .wi-sync-grid,
-    .wi-source-grid {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-    .wi-fascicoli-grid {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-  }
-  @media (min-width: 1200px) {
-    .wi-kpi-grid {
-      grid-template-columns: repeat(5, minmax(0, 1fr));
-    }
-    .wi-action-grid,
-    .wi-sync-grid,
-    .wi-source-grid {
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-    }
-    .wi-fascicoli-grid {
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-    }
-  }
-</style>
-
-<div class="wi-hero p-4 mb-4">
+<div class="workspace-page">
+<div class="wi-hero p-4">
   <div class="d-flex flex-column flex-xl-row gap-4 justify-content-between align-items-xl-center">
     <div class="pe-xl-4">
       <div class="d-flex flex-wrap gap-2 align-items-center mb-3">
         <span class="wi-chip"><i class="bi bi-stars"></i>Regia operativa dello studio</span>
-        <span class="wi-chip"><i class="bi bi-arrow-repeat"></i>Snapshot {{ overview.generated_at|fmt_dataora }}</span>
+        <span class="wi-chip"><i class="bi bi-arrow-repeat"></i>Quadro aggiornato {{ overview.generated_at|fmt_dataora }}</span>
       </div>
       <h1 class="h2 mb-2">Scadenze, agenda, sincronizzazioni, fascicoli e giurisprudenza in un unico quadro</h1>
-      <p class="mb-0" style="max-width: 880px; color: rgba(255,255,255,.84)">
+      <p class="mb-0 wi-hero-copy">
         La cabina intelligente mette insieme termini processuali, promemoria, patroni di studio e uffici,
-        sincronizzazioni calendario e sentenze utili per la pratica. L'obiettivo e semplice: mostrarti la prossima azione giusta senza farti cambiare pannello.
+        sincronizzazioni calendario e sentenze utili per la pratica. L'obiettivo è semplice: mostrarti la prossima azione giusta senza farti cambiare pannello.
       </p>
     </div>
-    <div class="d-grid gap-2" style="min-width:min(100%, 260px)">
+    <div class="d-grid gap-2 wi-hero-actions">
       <a href="{{ url_for('nuova_scadenza') }}" class="btn btn-light">
         <i class="bi bi-calendar-plus me-2"></i>Nuova scadenza
       </a>
@@ -150,14 +31,16 @@
   </div>
 </div>
 
-<div class="d-flex flex-wrap gap-2 mb-4">
-  {% for item in [('tutto', 'Tutto', 'grid-1x2'), ('scadenze', 'Scadenze', 'alarm'), ('agenda', 'Agenda', 'calendar3'), ('fascicoli', 'Fascicoli', 'folder2-open'), ('giurisprudenza', 'Sentenze', 'bank2')] %}
-  <a href="{{ url_for('workspace_intelligente', giorni=horizon_days, focus=item[0]) }}"
-     class="wi-filter-pill {% if focus == item[0] %}active{% endif %}">
-    <i class="bi bi-{{ item[2] }}"></i>{{ item[1] }}
-  </a>
-  {% endfor %}
-  <div class="ms-auto">
+<div class="wi-toolbar">
+  <div class="wi-toolbar__filters">
+    {% for item in [('tutto', 'Tutto', 'grid-1x2'), ('scadenze', 'Scadenze', 'alarm'), ('agenda', 'Agenda', 'calendar3'), ('fascicoli', 'Fascicoli', 'folder2-open'), ('giurisprudenza', 'Sentenze', 'bank2')] %}
+    <a href="{{ url_for('workspace_intelligente', giorni=horizon_days, focus=item[0]) }}"
+       class="wi-filter-pill {% if focus == item[0] %}active{% endif %}">
+      <i class="bi bi-{{ item[2] }}"></i>{{ item[1] }}
+    </a>
+    {% endfor %}
+  </div>
+  <div class="wi-toolbar__controls">
     <form method="get" class="d-flex gap-2 align-items-center">
       <input type="hidden" name="focus" value="{{ focus }}">
       <label class="small text-muted fw-semibold" for="giorni">Orizzonte</label>
@@ -204,7 +87,7 @@
       <h2 class="h5 mb-1">Assistente operativo locale</h2>
       <div class="small text-muted">Domande contestuali su agenda, scadenze, fascicoli e documenti già presenti nel gestionale.</div>
     </div>
-    <div id="workspace-ai-status" class="small text-muted">AI locale in attesa…</div>
+    <div id="workspace-ai-status" class="small text-muted">Assistente locale in attesa di verifica</div>
   </div>
   <div class="row g-3">
     <div class="col-lg-8">
@@ -219,7 +102,9 @@
       </button>
     </div>
   </div>
-  <div id="workspace-ai-answer" class="mt-3 small text-muted">Le risposte compariranno qui con le fonti documentali usate.</div>
+  <div id="workspace-ai-answer" class="wi-answer-card mt-3">
+    <div class="wi-answer-muted">Le risposte compariranno qui con le fonti documentali usate.</div>
+  </div>
 </div>
 
 {% if overview.actions %}
@@ -227,10 +112,18 @@
   <div class="d-flex justify-content-between align-items-center gap-3 flex-wrap mb-3">
     <div>
       <h2 class="h5 mb-1">Regia automatica</h2>
-      <div class="small text-muted">Le prossime azioni utili vengono proposte direttamente a partire dai dati gia presenti nel gestionale.</div>
+      <div class="small text-muted">Le prossime azioni utili vengono proposte direttamente a partire dai dati già presenti nel gestionale.</div>
     </div>
   </div>
   <div class="wi-action-grid">
+    {% set tone_labels = {
+      'danger': 'Critica',
+      'warning': 'Da presidiare',
+      'success': 'In ordine',
+      'primary': 'Prioritaria',
+      'secondary': 'Informativa',
+      'info': 'Informativa',
+    } %}
     {% for action in overview.actions %}
     <a href="{{ action.href }}" class="text-decoration-none">
       <div class="wi-card p-3 h-100 border-{{ action.tone }}-subtle">
@@ -239,7 +132,7 @@
             <div class="fw-semibold text-dark">{{ action.title }}</div>
             <div class="small wi-muted mt-1">{{ action.description }}</div>
           </div>
-          <span class="badge text-bg-{{ action.tone }}">{{ action.tone|upper }}</span>
+          <span class="badge text-bg-{{ action.tone }}">{{ tone_labels.get(action.tone, 'Operativa') }}</span>
         </div>
       </div>
     </a>
@@ -306,7 +199,7 @@
                 {% if app.external_provider %} · {{ app.external_provider|replace('_', ' ')|title }}{% endif %}
               </div>
             </div>
-            <span class="badge bg-light text-dark border">{{ app.tipo.value }}</span>
+            <span class="badge bg-light text-dark border">{{ app.tipo.value|replace('_', ' ')|title }}</span>
           </div>
         </div>
         {% else %}
@@ -436,7 +329,7 @@
   <div class="col-xl-7">
     <div class="wi-panel p-4 h-100">
       <h2 class="h5 mb-1">Fonti presidiate per i termini</h2>
-      <div class="small text-muted mb-3">Le regole processuali restano tracciate e distinguono calendario nazionale, sospensione feriale e operativita locale di studio o ufficio.</div>
+      <div class="small text-muted mb-3">Le regole processuali restano tracciate e distinguono calendario nazionale, sospensione feriale e operatività locale di studio o ufficio.</div>
       <div class="wi-source-grid">
         {% for source in overview.fonti_calcolo %}
         <div class="wi-source p-3 h-100">
@@ -476,7 +369,7 @@
               Nessun patrono configurato
             {% endif %}
             {% if office.operating_mode and office.operating_mode != 'open' %}
-             · modalita {{ office.operating_mode|replace('_', ' ') }}
+             · modalità {{ office.operating_mode|replace('_', ' ') }}
             {% endif %}
           </div>
           {% if office.source_url %}
@@ -494,11 +387,12 @@
     </div>
   </div>
 </div>
+</div>
 <script>
 async function refreshWorkspaceAiRuntime() {
   const status = document.getElementById('workspace-ai-status');
   if (!status) return;
-  status.textContent = 'Verifica runtime…';
+  status.textContent = 'Verifica del runtime locale in corso...';
   const statiRuntime = {
     missing: 'non disponibile',
     installing: 'installazione',
@@ -514,7 +408,7 @@ async function refreshWorkspaceAiRuntime() {
     const stato = statiRuntime[runtime.status] || runtime.status || 'non disponibile';
     status.textContent = `Runtime locale: ${stato} · profilo ${runtime.hardware_profile || 'n.d.'}`;
   } catch (error) {
-    status.textContent = 'Runtime non raggiungibile';
+    status.textContent = 'Runtime locale non raggiungibile';
   }
 }
 
@@ -525,11 +419,11 @@ async function askWorkspaceAi() {
   if (!questionEl || !answerEl || !btn) return;
   const question = questionEl.value.trim();
   if (!question) {
-    answerEl.innerHTML = '<span class="text-danger">Inserisci una domanda operativa.</span>';
+    answerEl.innerHTML = '<div class="wi-answer-muted text-danger">Inserisci una domanda operativa per ottenere una risposta contestuale.</div>';
     return;
   }
   btn.disabled = true;
-  answerEl.textContent = 'Analisi in corso…';
+  answerEl.innerHTML = '<div class="wi-answer-muted">Analisi della cabina intelligente in corso...</div>';
   try {
     const response = await fetch('/api/workspace-intelligente/ai', {
       method: 'POST',
@@ -538,17 +432,17 @@ async function askWorkspaceAi() {
     });
     const payload = await response.json();
     if (!payload.ok) {
-      answerEl.innerHTML = `<span class="text-danger">${payload.errore || 'AI locale non disponibile.'}</span>`;
+      answerEl.innerHTML = `<div class="wi-answer-muted text-danger">${payload.errore || 'AI locale momentaneamente non disponibile.'}</div>`;
       return;
     }
     const citations = (payload.citations || []).map(item => `<li>${item}</li>`).join('');
     answerEl.innerHTML = `
-      <div class="small text-dark" style="white-space:pre-wrap">${payload.answer || ''}</div>
+      <div class="wi-answer-text">${payload.answer || ''}</div>
       ${citations ? `<div class="mt-3"><div class="fw-semibold mb-1">Fonti</div><ul class="small mb-0">${citations}</ul></div>` : ''}
     `;
     refreshWorkspaceAiRuntime();
   } catch (error) {
-    answerEl.innerHTML = '<span class="text-danger">Errore durante l’analisi AI del workspace.</span>';
+    answerEl.innerHTML = '<div class="wi-answer-muted text-danger">Errore durante l’analisi AI della cabina intelligente.</div>';
   } finally {
     btn.disabled = false;
   }

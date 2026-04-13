@@ -151,6 +151,18 @@ python -m pytest tests/ -v
 - Tutte le date/ore **esposte in UI** devono usare formati italiani tramite i filtri template condivisi (`fmt_data`, `fmt_dataora`, `fmt_data_estesa`, ecc.), non `strftime('%B')` o `strftime('%A')` direttamente nei template.
 - Eccezione consentita: i valori tecnici per campi HTML `type=\"date\"`, `datetime-local`, attributi `data-*`, API o payload macchina possono restare in formato ISO.
 
+## SCSS e UI responsive — REGOLA OBBLIGATORIA
+
+- I nuovi stili UI non vanno inseriti nei template con blocchi `<style>` o con accumulo di `style="..."`, salvo casi eccezionali strettamente tecnici.
+- Ogni nuova regola grafica deve vivere in `web/static/scss/` ed essere organizzata in moduli **governabili**:
+  - `components/` per pattern condivisi
+  - `pages/` per le viste specifiche
+  - `mobile.scss` solo per adattamenti trasversali mobile/tablet
+- Gli entrypoint compilati restano quelli caricati dalla UI (`app.scss`, `design-system.scss`, `mobile.scss`, `editor-word.scss`): non creare file SCSS orfani non inclusi nel bundle.
+- Dopo modifiche SCSS, verificare sempre la compilazione CSS nel flusso Docker locale obbligatorio della release.
+- La UI deve essere progettata in modo **responsive** per desktop, tablet e mobile, con card compatte, gerarchia chiara e senza spazi morti.
+- I feedback utente per azioni completate, errori, avvisi o stati intermedi devono usare messaggi professionali, chiari e in italiano.
+
 ## Versioning — REGOLA OBBLIGATORIA
 
 **Ad ogni implementazione (nuova funzionalità, bug fix, qualsiasi modifica al codice) eseguire SEMPRE il bump di versione e aggiornare tutti e quattro i file:**

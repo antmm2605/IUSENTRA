@@ -48,6 +48,17 @@ git push origin claude/legal-electronic-filing-kIxcV:Codex/legal-electronic-fili
   - `pct/` per regole di dominio e persistenza
 - Un refactor non è considerato concluso se lascia un nuovo modulo ambiguo, multi-uso o difficile da testare.
 
+## SCSS e UI responsive — Regola obbligatoria
+
+- I nuovi stili UI non vanno inseriti nei template con blocchi `<style>` o con accumulo di `style="..."`, salvo casi eccezionali strettamente tecnici.
+- Ogni nuova regola grafica deve vivere in `web/static/scss/` ed essere organizzata in moduli governabili:
+  - `components/` per pattern condivisi
+  - `pages/` per le viste specifiche
+  - `mobile.scss` solo per adattamenti trasversali mobile/tablet
+- Gli entrypoint compilati restano quelli caricati dalla UI (`app.scss`, `design-system.scss`, `mobile.scss`, `editor-word.scss`): non creare file SCSS orfani non inclusi nel bundle.
+- Dopo modifiche SCSS, verificare sempre la compilazione CSS nel flusso Docker locale della release.
+- La UI deve essere responsive su desktop, tablet e mobile, con card compatte, senza spazi morti e con messaggi utente professionali in lingua italiana.
+
 ## Architettura del progetto
 
 ```

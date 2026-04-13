@@ -427,21 +427,21 @@
           <span class="input-group-text bg-white"><i class="bi bi-search text-muted"></i></span>
           <input type="text" id="search-input" name="q"
                  class="form-control border-start-0 ps-0"
-                 placeholder="Cerca fascicoli, clienti…"
+                 placeholder="Cerca fascicoli, clienti..."
                  value="{{ request.args.get('q','') }}">
         </div>
       </form>
       <div id="search-dropdown"></div>
     </div>
     <span class="topbar-date d-none d-md-inline">
-      <i class="bi bi-calendar3"></i>{{ oggi.strftime('%d/%m/%Y') }}
+      <i class="bi bi-calendar3"></i>{{ oggi|fmt_data }}
     </span>
     <a href="{{ url_for('workspace_intelligente') }}" class="btn btn-sm btn-outline-primary d-none d-md-inline-flex"
        title="Cabina intelligente">
       <i class="bi bi-stars"></i><span class="d-none d-md-inline ms-1">Cabina</span>
     </a>
     <a href="{{ url_for('scadenziario') }}" class="btn btn-sm btn-outline-danger position-relative"
-       title="Scadenziario — scadenze entro 7 giorni" id="btn-scadenziario-nav">
+       title="Scadenziario - scadenze entro 7 giorni" id="btn-scadenziario-nav">
       <i class="bi bi-calendar-event"></i>
       <span id="badge-scadenze-nav"
             class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
@@ -451,7 +451,7 @@
        title="Nuovo appuntamento">
       <i class="bi bi-plus-lg"></i><span class="d-none d-md-inline ms-1">Nuovo</span>
     </a>
-    <div id="htmx-loader" title="Caricamento…"></div>
+    <div id="htmx-loader" title="Caricamento in corso"></div>
     {# ── Indicatore stato worker OCR ── #}
     <span id="ocr-pill" title="Worker OCR — elaborazione documenti in corso" style="display:none">
       <span class="spinner-border ocr-pill-spinner" role="status" aria-hidden="true"></span>
@@ -542,12 +542,38 @@
   </div>
 
   {% with messages = get_flashed_messages(with_categories=true) %}
-    {% for cat, msg in messages %}
-      <div class="alert alert-{{ cat }} alert-dismissible fade show mb-3" role="alert">
-        {{ msg }}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-      </div>
-    {% endfor %}
+    {% if messages %}
+    <div class="ui-feedback-stack" aria-live="polite">
+      {% set flash_meta = {
+        'success': {'tone': 'success', 'icon': 'check2-circle', 'title': 'Operazione completata'},
+        'successo': {'tone': 'success', 'icon': 'check2-circle', 'title': 'Operazione completata'},
+        'info': {'tone': 'info', 'icon': 'info-circle', 'title': 'Informazione di sistema'},
+        'message': {'tone': 'info', 'icon': 'info-circle', 'title': 'Informazione di sistema'},
+        'warning': {'tone': 'warning', 'icon': 'exclamation-triangle', 'title': 'Attenzione operativa'},
+        'avviso': {'tone': 'warning', 'icon': 'exclamation-triangle', 'title': 'Attenzione operativa'},
+        'danger': {'tone': 'danger', 'icon': 'x-octagon', 'title': 'Azione non completata'},
+        'error': {'tone': 'danger', 'icon': 'x-octagon', 'title': 'Azione non completata'},
+        'errore': {'tone': 'danger', 'icon': 'x-octagon', 'title': 'Azione non completata'},
+      } %}
+      {% for cat, msg in messages %}
+        {% set meta = flash_meta.get(cat, flash_meta['info']) %}
+        <div class="ui-feedback ui-feedback--{{ meta.tone }}" role="alert">
+          <div class="ui-feedback__icon">
+            <i class="bi bi-{{ meta.icon }}"></i>
+          </div>
+          <div class="ui-feedback__content">
+            <div class="ui-feedback__title">{{ meta.title }}</div>
+            <div class="ui-feedback__body">{{ msg }}</div>
+          </div>
+          <div class="ui-feedback__actions">
+            <button type="button" class="ui-feedback__close" data-bs-dismiss="alert" aria-label="Chiudi messaggio">
+              <i class="bi bi-x-lg"></i>
+            </button>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+    {% endif %}
   {% endwith %}
 
   {% block content %}{% endblock %}

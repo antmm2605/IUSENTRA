@@ -1,0 +1,124 @@
+.ui-feedback-stack {
+  display: grid;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.ui-feedback {
+  --ui-feedback-bg: #eff6ff;
+  --ui-feedback-border: rgba(37, 99, 235, 0.22);
+  --ui-feedback-accent: #2563eb;
+  --ui-feedback-icon-bg: rgba(37, 99, 235, 0.12);
+  display: flex;
+  align-items: flex-start;
+  gap: 0.9rem;
+  padding: 0.95rem 1rem;
+  border-radius: 20px;
+  border: 1px solid var(--ui-feedback-border);
+  background: linear-gradient(180deg, #ffffff, var(--ui-feedback-bg));
+  box-shadow: 0 14px 28px rgba(15, 23, 42, 0.06);
+  position: relative;
+  overflow: hidden;
+}
+
+.ui-feedback::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  background: var(--ui-feedback-accent);
+}
+
+.ui-feedback--success {
+  --ui-feedback-bg: #ecfdf3;
+  --ui-feedback-border: rgba(22, 163, 74, 0.2);
+  --ui-feedback-accent: #16a34a;
+  --ui-feedback-icon-bg: rgba(22, 163, 74, 0.12);
+}
+
+.ui-feedback--warning {
+  --ui-feedback-bg: #fff8e8;
+  --ui-feedback-border: rgba(217, 119, 6, 0.22);
+  --ui-feedback-accent: #d97706;
+  --ui-feedback-icon-bg: rgba(217, 119, 6, 0.12);
+}
+
+.ui-feedback--danger,
+.ui-feedback--error {
+  --ui-feedback-bg: #fff1f2;
+  --ui-feedback-border: rgba(225, 29, 72, 0.22);
+  --ui-feedback-accent: #e11d48;
+  --ui-feedback-icon-bg: rgba(225, 29, 72, 0.12);
+}
+
+.ui-feedback__icon {
+  width: 42px;
+  height: 42px;
+  flex-shrink: 0;
+  border-radius: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--ui-feedback-icon-bg);
+  color: var(--ui-feedback-accent);
+  font-size: 1.1rem;
+}
+
+.ui-feedback__content {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.ui-feedback__title {
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 0.15rem;
+}
+
+.ui-feedback__body {
+  color: #475569;
+  font-size: 0.94rem;
+}
+
+.ui-feedback__body a {
+  color: inherit;
+}
+
+.ui-feedback__actions {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.ui-feedback__close {
+  border: 0;
+  background: transparent;
+  color: #64748b;
+  padding: 0.15rem;
+  line-height: 1;
+}
+
+.ui-feedback__list {
+  display: grid;
+  gap: 0.3rem;
+  margin-top: 0.35rem;
+}
+
+@media (max-width: 768px) {
+  .ui-feedback {
+    padding: 0.9rem 0.95rem;
+    border-radius: 18px;
+    gap: 0.75rem;
+  }
+
+  .ui-feedback__icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 12px;
+  }
+
+  .ui-feedback__actions {
+    align-self: center;
+  }
+}

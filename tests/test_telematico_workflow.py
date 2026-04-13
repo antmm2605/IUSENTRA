@@ -1,3 +1,4 @@
+import sqlite3
 from pathlib import Path
 
 from pct.telematico_workflow import TelematicoWorkflowRepository
@@ -113,5 +114,43 @@ def test_telematico_repository_recent_events(tmp_path: Path):
         assert len(events) == 1
         assert events[0]["service_code"] == "pat_siga"
         assert "PAT sincronizzato" in events[0]["title"]
+    finally:
+        repo.close()
+
+
+def test_telematico_repository_recupera_errore_sqlite_spazio_temporaneo(tmp_path: Path, monkeypatch):
+    repo = TelematicoWorkflowRepository(str(tmp_path / "workflow.db"))
+    try:
+        repo.upsert_case(
+            practice_id="FASC-003",
+            channel_family="ministero",
+            service_code="pdp_penale",
+            office_name="Procura della Repubblica di Palermo",
+            register_type="RGNR",
+            register_number="444",
+            register_year=2026,
+            subject_name="Mario Rossi",
+            counsel_name="Avv. Roberto Montagnese",
+            counsel_cf="MNTRRT00A00G273X",
+            portal_case_ref="PDP:444:2026",
+            internal_status="import_completed",
+        )
+
+        original_execute = repo._execute_raw
+        state = {"failed_once": False}
+
+        def flaky_execute(sql, params=()):
+            if "v_telematic_case_overview" in sql and not state["failed_once"]:
+                state["failed_once"] = True
+                raise sqlite3.OperationalError("database or disk is full")
+            return original_execute(sql, params)
+
+        monkeypatch.setattr(repo, "_execute_raw", flaky_execute)
+
+        rows = repo.list_cases(practice_id="FASC-003")
+
+        assert len(rows) == 1
+        assert rows[0]["practice_id"] == "FASC-003"
+        assert state["failed_once"] is True
     finally:
         repo.close()

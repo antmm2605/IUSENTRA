@@ -1,3 +1,4 @@
+import sqlite3
 from pathlib import Path
 
 from pct.auth import GestioneUtenti, RuoloUtente
@@ -184,3 +185,55 @@ def test_api_portali_acquisizione_status_risponde_per_tutti_i_canali(tmp_path: P
             assert payload["ok"] is True
             assert payload["status"]["portale"] == portale
             assert payload["status"]["spec"]["id"] == portale
+
+
+def test_dashboard_telematico_resta_disponibile_se_sqlite_segnala_spazio_pieno(tmp_path: Path, monkeypatch):
+    cfg = _cfg_web(tmp_path)
+    _seed_pat_fascicolo(cfg)
+    app = create_app(cfg)
+
+    def broken_case_stats(self):
+        raise sqlite3.OperationalError("database or disk is full")
+
+    monkeypatch.setattr(TelematicoWorkflowRepository, "case_stats", broken_case_stats)
+
+    with app.test_client() as client:
+        login = client.post(
+            "/login",
+            data={"username": "admin-telematico", "password": "Admin1234!"},
+            follow_redirects=True,
+        )
+        assert login.status_code == 200
+
+        page = client.get("/telematico", follow_redirects=True)
+        html = page.get_data(as_text=True)
+
+    assert page.status_code == 200
+    assert "Cabina Telematica" in html
+    assert "Archivio telematico temporaneamente non disponibile" in html
+
+
+def test_dashboard_telematico_resta_disponibile_se_backfill_fallisce(tmp_path: Path, monkeypatch):
+    cfg = _cfg_web(tmp_path)
+    _seed_pat_fascicolo(cfg)
+    app = create_app(cfg)
+
+    def broken_upsert_case(self, **fields):
+        raise sqlite3.OperationalError("database or disk is full")
+
+    monkeypatch.setattr(TelematicoWorkflowRepository, "upsert_case", broken_upsert_case)
+
+    with app.test_client() as client:
+        login = client.post(
+            "/login",
+            data={"username": "admin-telematico", "password": "Admin1234!"},
+            follow_redirects=True,
+        )
+        assert login.status_code == 200
+
+        page = client.get("/telematico", follow_redirects=True)
+        html = page.get_data(as_text=True)
+
+    assert page.status_code == 200
+    assert "Cabina Telematica" in html
+    assert "Allineamento parziale" in html

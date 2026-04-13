@@ -5110,11 +5110,27 @@ def create_app(config: dict | None = None) -> Flask:
     @app.route("/telematico", methods=["GET"])
     def telematico_dashboard():
         try:
-            _backfill_telematico_from_existing_fascicoli()
-            repo = get_telematico()
-            stats = repo.case_stats()
-            recent_cases = repo.list_cases(limit=18)
-            recent_events = repo.list_recent_events(limit=12)
+            backfill_summary = {"processed": 0, "failed": 0}
+            dashboard_notices = []
+            try:
+                backfill_summary = _backfill_telematico_from_existing_fascicoli()
+            except Exception as e:
+                app.logger.exception("Errore backfill telematico_dashboard: %s", e)
+                backfill_summary = {"processed": 0, "failed": 1}
+
+            stats = {"totale": 0, "per_service": {}}
+            recent_cases = []
+            recent_events = []
+            read_warning = ""
+            try:
+                repo = get_telematico()
+                stats = repo.case_stats()
+                recent_cases = repo.list_cases(limit=18)
+                recent_events = repo.list_recent_events(limit=12)
+            except Exception as e:
+                app.logger.exception("Errore lettura telematico_dashboard: %s", e)
+                read_warning = _telematico_dashboard_warning_message(e)
+
             service_map = {
                 "pst": "polisweb_consultazione",
                 "pdp": "pdp_penale",
@@ -5167,6 +5183,25 @@ def create_app(config: dict | None = None) -> Flask:
                 fasc = fascicoli_index.get(str(row.get("practice_id") or ""))
                 row["practice_url"] = url_for("dettaglio_fascicolo", id_fasc=row["practice_id"]) if fasc else ""
                 row["practice_title"] = getattr(fasc, "titolo", "") if fasc else ""
+            if backfill_summary.get("failed", 0):
+                dashboard_notices.append(
+                    {
+                        "tone": "warning",
+                        "title": "Allineamento parziale",
+                        "body": (
+                            "Allineamento telematico eseguito in modalita' protetta: alcuni fascicoli "
+                            "non sono stati aggiornati, ma la cabina resta operativa."
+                        ),
+                    }
+                )
+            if read_warning:
+                dashboard_notices.append(
+                    {
+                        "tone": "warning",
+                        "title": "Archivio telematico presidiato",
+                        "body": read_warning,
+                    }
+                )
             return render_template(
                 "telematico_dashboard.html",
                 oggi=date.today(),
@@ -5174,11 +5209,28 @@ def create_app(config: dict | None = None) -> Flask:
                 connection_cards=connection_cards,
                 recent_cases=recent_cases,
                 recent_events=recent_events,
+                dashboard_notices=dashboard_notices,
             )
         except Exception as e:
             app.logger.exception("Errore telematico_dashboard: %s", e)
-            flash(f"Errore cabina telematica: {e}", "danger")
-            return redirect(url_for("dashboard"))
+            return render_template(
+                "telematico_dashboard.html",
+                oggi=date.today(),
+                stats={"totale": 0, "per_service": {}},
+                connection_cards=[],
+                recent_cases=[],
+                recent_events=[],
+                dashboard_notices=[
+                    {
+                        "tone": "warning",
+                        "title": "Modalita' ridotta",
+                        "body": (
+                            "Cabina telematica temporaneamente disponibile in modalita' ridotta. "
+                            "Riprova tra poco o verifica il registro applicativo."
+                        ),
+                    }
+                ],
+            )
 
     # ---------------------------------------------------------------- PolisWeb – Consultazione e importazione fascicoli
 
@@ -6618,24 +6670,53 @@ def create_app(config: dict | None = None) -> Flask:
             repo.close_tasks(str(case["id"]), task_type="download_case_file")
         return case
 
-    def _backfill_telematico_from_existing_fascicoli() -> None:
+    def _backfill_telematico_from_existing_fascicoli() -> dict[str, int]:
+        summary = {"processed": 0, "failed": 0}
         for fasc in get_fascicoli().tutti():
             if str(getattr(fasc, "source", "") or "").strip().upper() not in {"PST", "PDP", "PAT", "PTT"}:
                 continue
             portale, selection, preview = _selection_preview_from_existing_fascicolo_telematico(fasc)
             if not portale or not selection:
                 continue
-            _sync_telematico_case_from_portale(
-                portale,
-                id_fasc=fasc.id,
-                selection=selection,
-                preview=preview,
-                import_log_id=str(getattr(fasc, "import_log_id", "") or ""),
-                sync_status=str(getattr(fasc, "sync_status", "") or ""),
-                document_sync_enabled=bool(getattr(fasc, "document_sync_enabled", False)),
-                user_name=getattr(getattr(g, "utente_corrente", None), "username", "") or "",
-                backfill=True,
+            try:
+                _sync_telematico_case_from_portale(
+                    portale,
+                    id_fasc=fasc.id,
+                    selection=selection,
+                    preview=preview,
+                    import_log_id=str(getattr(fasc, "import_log_id", "") or ""),
+                    sync_status=str(getattr(fasc, "sync_status", "") or ""),
+                    document_sync_enabled=bool(getattr(fasc, "document_sync_enabled", False)),
+                    user_name=getattr(getattr(g, "utente_corrente", None), "username", "") or "",
+                    backfill=True,
+                )
+                summary["processed"] += 1
+            except Exception as e:
+                summary["failed"] += 1
+                app.logger.exception(
+                    "Errore backfill telematico fascicolo %s (%s): %s",
+                    getattr(fasc, "id", ""),
+                    getattr(fasc, "numero", ""),
+                    e,
+                )
+        return summary
+
+    def _telematico_dashboard_warning_message(error: Exception) -> str:
+        message = str(error).strip().lower()
+        if "archivio telematico temporaneamente non disponibile" in message or "database or disk is full" in message:
+            return (
+                "Archivio telematico temporaneamente non disponibile. HACS ha messo in pausa "
+                "l'aggiornamento SQLite e continuera' a riprovare automaticamente."
             )
+        if "temporaneamente occupato" in message or "database is locked" in message:
+            return (
+                "Archivio telematico temporaneamente occupato da un aggiornamento in corso. "
+                "La pagina resta disponibile e il sistema riprovera' automaticamente."
+            )
+        return (
+            "Cabina telematica disponibile in modalita' ridotta. "
+            "Il sistema ha intercettato un errore tecnico e continuera' a lavorare in sicurezza."
+        )
 
     def _importa_o_collega_fascicolo_portale(
         portale: str,

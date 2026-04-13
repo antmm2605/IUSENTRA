@@ -24,6 +24,17 @@
     </div>
   </section>
 
+  {% if dashboard_notices %}
+  <section class="tm-notices">
+    {% for notice in dashboard_notices %}
+    <div class="alert alert-{{ notice.tone }} border-0 shadow-sm mb-3" role="alert">
+      <div class="fw-semibold mb-1">{{ notice.title }}</div>
+      <div class="small mb-0">{{ notice.body }}</div>
+    </div>
+    {% endfor %}
+  </section>
+  {% endif %}
+
   <section class="tm-stats">
     <div class="tm-stat">
       <div class="small tm-muted mb-2">Casi telematici censiti</div>

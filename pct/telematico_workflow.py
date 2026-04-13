@@ -353,42 +353,130 @@ class TelematicoWorkflowRepository:
         else:
             db_path = Path(str(db))
             db_path.parent.mkdir(parents=True, exist_ok=True)
-            self.conn = sqlite3.connect(str(db_path), check_same_thread=False)
+            self.conn = sqlite3.connect(str(db_path), check_same_thread=False, timeout=5.0)
             self.conn.row_factory = sqlite3.Row
-            self.conn.execute("PRAGMA journal_mode=WAL")
-            self.conn.execute("PRAGMA foreign_keys=ON")
-            self.conn.execute("PRAGMA synchronous=NORMAL")
             self._owns_connection = True
+        self._configure_connection()
         ensure_telematico_schema(self.conn)
 
     def close(self) -> None:
         if self._owns_connection:
             self.conn.close()
 
+    def _configure_connection(self) -> None:
+        pragmas = [
+            "PRAGMA foreign_keys=ON",
+            "PRAGMA synchronous=NORMAL",
+            "PRAGMA busy_timeout=5000",
+            "PRAGMA temp_store=MEMORY",
+            "PRAGMA wal_autocheckpoint=1000",
+        ]
+        if self._owns_connection:
+            pragmas.insert(0, "PRAGMA journal_mode=WAL")
+        for pragma in pragmas:
+            self._safe_pragma(pragma)
+
+    def _safe_pragma(self, sql: str) -> None:
+        try:
+            self.conn.execute(sql)
+        except sqlite3.Error:
+            return
+
+    def _execute_raw(self, sql: str, params: list[Any] | tuple[Any, ...] = ()) -> sqlite3.Cursor:
+        return self.conn.execute(sql, params)
+
+    def _run_sql(
+        self,
+        sql: str,
+        params: list[Any] | tuple[Any, ...] = (),
+        *,
+        commit: bool = False,
+    ) -> sqlite3.Cursor:
+        for attempt in range(2):
+            try:
+                cursor = self._execute_raw(sql, params)
+                if commit:
+                    self.conn.commit()
+                return cursor
+            except sqlite3.OperationalError as exc:
+                if commit:
+                    try:
+                        self.conn.rollback()
+                    except sqlite3.Error:
+                        pass
+                if attempt == 0 and self._attempt_operational_recovery(exc):
+                    continue
+                raise self._normalize_operational_error(exc) from exc
+
+    def _fetchone(
+        self,
+        sql: str,
+        params: list[Any] | tuple[Any, ...] = (),
+    ) -> sqlite3.Row | None:
+        return self._run_sql(sql, params).fetchone()
+
+    def _fetchall(
+        self,
+        sql: str,
+        params: list[Any] | tuple[Any, ...] = (),
+    ) -> list[sqlite3.Row]:
+        return self._run_sql(sql, params).fetchall()
+
+    def _attempt_operational_recovery(self, exc: sqlite3.OperationalError) -> bool:
+        message = str(exc).strip().lower()
+        recoverable_tokens = (
+            "database or disk is full",
+            "database is locked",
+            "database table is locked",
+            "disk i/o error",
+        )
+        if not any(token in message for token in recoverable_tokens):
+            return False
+        try:
+            self.conn.rollback()
+        except sqlite3.Error:
+            pass
+        self._safe_pragma("PRAGMA temp_store=MEMORY")
+        self._safe_pragma("PRAGMA wal_checkpoint(TRUNCATE)")
+        self._safe_pragma("PRAGMA optimize")
+        return True
+
+    def _normalize_operational_error(self, exc: sqlite3.OperationalError) -> sqlite3.OperationalError:
+        message = str(exc).strip().lower()
+        if "database or disk is full" in message:
+            return sqlite3.OperationalError(
+                "Archivio telematico temporaneamente non disponibile: SQLite ha esaurito lo spazio operativo temporaneo."
+            )
+        if "database is locked" in message or "database table is locked" in message:
+            return sqlite3.OperationalError(
+                "Archivio telematico temporaneamente occupato: un altro processo sta completando l'aggiornamento."
+            )
+        return exc
+
     def _insert(self, table: str, data: Mapping[str, Any]) -> dict[str, Any]:
         columns = list(data.keys())
         placeholders = ", ".join("?" for _ in columns)
-        self.conn.execute(
+        self._run_sql(
             f"INSERT INTO {table} ({', '.join(columns)}) VALUES ({placeholders})",
             [data[col] for col in columns],
+            commit=True,
         )
-        self.conn.commit()
-        row = self.conn.execute(f"SELECT * FROM {table} WHERE id = ?", (data["id"],)).fetchone()
+        row = self._fetchone(f"SELECT * FROM {table} WHERE id = ?", (data["id"],))
         return _row_to_dict(row) or dict(data)
 
     def _update(self, table: str, row_id: str, data: Mapping[str, Any]) -> dict[str, Any]:
         assignments = ", ".join(f"{column} = ?" for column in data.keys())
-        self.conn.execute(
+        self._run_sql(
             f"UPDATE {table} SET {assignments} WHERE id = ?",
             [*data.values(), row_id],
+            commit=True,
         )
-        self.conn.commit()
-        row = self.conn.execute(f"SELECT * FROM {table} WHERE id = ?", (row_id,)).fetchone()
+        row = self._fetchone(f"SELECT * FROM {table} WHERE id = ?", (row_id,))
         return _row_to_dict(row) or {"id": row_id, **data}
 
     def get_case(self, case_id: str) -> dict[str, Any] | None:
         return _row_to_dict(
-            self.conn.execute("SELECT * FROM telematic_cases WHERE id = ?", (case_id,)).fetchone()
+            self._fetchone("SELECT * FROM telematic_cases WHERE id = ?", (case_id,))
         )
 
     def list_cases(self, *, practice_id: str | None = None, service_code: str | None = None, limit: int = 50) -> list[dict[str, Any]]:
@@ -401,15 +489,15 @@ class TelematicoWorkflowRepository:
             clauses.append("service_code = ?")
             params.append(service_code)
         where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
-        rows = self.conn.execute(
+        rows = self._fetchall(
             "SELECT * FROM v_telematic_case_overview "
             f"{where} ORDER BY COALESCE(last_sync_at, updated_at, created_at) DESC LIMIT ?",
             [*params, max(1, int(limit or 50))],
-        ).fetchall()
+        )
         return [_row_to_dict(row) or {} for row in rows]
 
     def list_recent_events(self, *, limit: int = 25) -> list[dict[str, Any]]:
-        rows = self.conn.execute(
+        rows = self._fetchall(
             """
             SELECT e.*, c.practice_id, c.service_code, c.channel_family
             FROM telematic_events e
@@ -418,7 +506,7 @@ class TelematicoWorkflowRepository:
             LIMIT ?
             """,
             (max(1, int(limit or 25)),),
-        ).fetchall()
+        )
         return [_row_to_dict(row) or {} for row in rows]
 
     def find_case(
@@ -436,14 +524,14 @@ class TelematicoWorkflowRepository:
         if case_id:
             return self.get_case(case_id)
         if practice_id and service_code and portal_case_ref:
-            row = self.conn.execute(
+            row = self._fetchone(
                 "SELECT * FROM telematic_cases WHERE practice_id = ? AND service_code = ? AND portal_case_ref = ? ORDER BY updated_at DESC LIMIT 1",
                 (practice_id, service_code, portal_case_ref),
-            ).fetchone()
+            )
             if row:
                 return _row_to_dict(row)
         if practice_id and service_code and office_name and register_number and register_year:
-            row = self.conn.execute(
+            row = self._fetchone(
                 """
                 SELECT * FROM telematic_cases
                 WHERE practice_id = ? AND service_code = ? AND office_name = ?
@@ -453,14 +541,14 @@ class TelematicoWorkflowRepository:
                 ORDER BY updated_at DESC LIMIT 1
                 """,
                 (practice_id, service_code, office_name, register_type or "", register_number or "", int(register_year or 0)),
-            ).fetchone()
+            )
             if row:
                 return _row_to_dict(row)
         if practice_id and service_code:
-            row = self.conn.execute(
+            row = self._fetchone(
                 "SELECT * FROM telematic_cases WHERE practice_id = ? AND service_code = ? ORDER BY updated_at DESC LIMIT 1",
                 (practice_id, service_code),
-            ).fetchone()
+            )
             return _row_to_dict(row)
         return None
 
@@ -497,17 +585,17 @@ class TelematicoWorkflowRepository:
 
     def find_transmission(self, telematic_case_id: str, *, portal_reference: str = "", act_type: str = "") -> dict[str, Any] | None:
         if portal_reference:
-            row = self.conn.execute(
+            row = self._fetchone(
                 "SELECT * FROM telematic_transmissions WHERE telematic_case_id = ? AND portal_reference = ? ORDER BY updated_at DESC LIMIT 1",
                 (telematic_case_id, portal_reference),
-            ).fetchone()
+            )
             if row:
                 return _row_to_dict(row)
         if act_type:
-            row = self.conn.execute(
+            row = self._fetchone(
                 "SELECT * FROM telematic_transmissions WHERE telematic_case_id = ? AND act_type = ? ORDER BY updated_at DESC LIMIT 1",
                 (telematic_case_id, act_type),
-            ).fetchone()
+            )
             return _row_to_dict(row)
         return None
 
@@ -524,17 +612,17 @@ class TelematicoWorkflowRepository:
 
     def find_document(self, telematic_case_id: str, *, portal_document_ref: str = "", title: str = "", id_deposito: str = "") -> dict[str, Any] | None:
         if portal_document_ref:
-            row = self.conn.execute(
+            row = self._fetchone(
                 "SELECT * FROM telematic_documents WHERE telematic_case_id = ? AND portal_document_ref = ? ORDER BY created_at DESC LIMIT 1",
                 (telematic_case_id, portal_document_ref),
-            ).fetchone()
+            )
             if row:
                 return _row_to_dict(row)
         if title and id_deposito:
-            row = self.conn.execute(
+            row = self._fetchone(
                 "SELECT * FROM telematic_documents WHERE telematic_case_id = ? AND title = ? AND id_deposito = ? ORDER BY created_at DESC LIMIT 1",
                 (telematic_case_id, title, id_deposito),
-            ).fetchone()
+            )
             return _row_to_dict(row)
         return None
 
@@ -551,10 +639,10 @@ class TelematicoWorkflowRepository:
         return self._insert("telematic_documents", {"id": str(fields.get("id") or _new_id("tm_doc")), "telematic_case_id": telematic_case_id, **payload})
 
     def link_document_to_transmission(self, transmission_id: str, document_id: str, *, relation_type: str = "attachment") -> dict[str, Any]:
-        existing = self.conn.execute(
+        existing = self._fetchone(
             "SELECT * FROM telematic_document_links WHERE transmission_id = ? AND document_id = ? AND relation_type = ? LIMIT 1",
             (transmission_id, document_id, relation_type),
-        ).fetchone()
+        )
         if existing:
             return _row_to_dict(existing) or {}
         return self._insert(
@@ -568,10 +656,10 @@ class TelematicoWorkflowRepository:
         )
 
     def ensure_task(self, telematic_case_id: str, *, task_type: str, title: str, description: str = "", priority: str = "medium", due_at: str = "", assigned_user_id: str = "", status: str = "open") -> dict[str, Any]:
-        existing = self.conn.execute(
+        existing = self._fetchone(
             "SELECT * FROM telematic_tasks WHERE telematic_case_id = ? AND task_type = ? AND status IN ('open', 'in_progress') ORDER BY created_at DESC LIMIT 1",
             (telematic_case_id, task_type),
-        ).fetchone()
+        )
         payload = {
             "title": title,
             "description": description,
@@ -593,14 +681,14 @@ class TelematicoWorkflowRepository:
         )
 
     def close_tasks(self, telematic_case_id: str, *, task_type: str) -> None:
-        self.conn.execute(
+        self._run_sql(
             "UPDATE telematic_tasks SET status = 'done', completed_at = datetime('now') WHERE telematic_case_id = ? AND task_type = ? AND status IN ('open', 'in_progress')",
             (telematic_case_id, task_type),
+            commit=True,
         )
-        self.conn.commit()
 
     def case_stats(self) -> dict[str, Any]:
-        rows = self.conn.execute(
+        rows = self._fetchall(
             """
             SELECT
                 service_code,
@@ -611,7 +699,7 @@ class TelematicoWorkflowRepository:
             WHERE archived = 0
             GROUP BY service_code
             """
-        ).fetchall()
+        )
         per_service = {_row["service_code"]: _row_to_dict(_row) for _row in rows}
         return {
             "totale": sum(int((row or {}).get("totale") or 0) for row in per_service.values()),

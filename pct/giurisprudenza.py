@@ -3,9 +3,11 @@ from __future__ import annotations
 import copy
 import hashlib
 import io
+import json
 import re
 import unicodedata
 import uuid
+import zipfile
 from email.utils import parsedate_to_datetime
 from html import escape as _html_escape
 from dataclasses import asdict, dataclass, field
@@ -24,6 +26,8 @@ from pct.legal_intelligence import FONTI_UFFICIALI
 USER_AGENT_GIURISPRUDENZA = "HACS-Giurisprudenza/1.0"
 MAX_SYNC_ITEMS = 12
 MAX_SYNC_RUNS = 300
+GIURISPRUDENZA_STORAGE_VERSION = 2
+MAX_TEXT_VERSIONS = 8
 
 
 def _now_iso() -> str:
@@ -187,6 +191,17 @@ def _source_url(existing_id: str, fallback: str) -> str:
     return src.official_url if src else fallback
 
 
+def _infer_openga_grade(office_name: str) -> str:
+    lowered = _clean_spaces(office_name).lower()
+    if "consiglio di stato" in lowered:
+        return "Consiglio di Stato"
+    if "consiglio di giustizia amministrativa" in lowered or "c.g.a." in lowered:
+        return "CGA"
+    if "tar" in lowered:
+        return "TAR"
+    return ""
+
+
 def _hudoc_rss_url(language: str = "eng") -> str:
     query = "contentsitename:ECHR AND (NOT (doctype=PR OR doctype=HFCOMOLD OR doctype=HECOMOLD))"
     params = {
@@ -215,6 +230,7 @@ class FonteGiurisprudenziale:
     supports_auto_sync: bool = False
     default_area: str = ""
     default_grade: str = ""
+    license_note: str = ""
     link_keywords: List[str] = field(default_factory=list)
 
     def to_dict(self) -> Dict[str, Any]:
@@ -222,6 +238,27 @@ class FonteGiurisprudenziale:
 
 
 SOURCE_SPECS: List[FonteGiurisprudenziale] = [
+    FonteGiurisprudenziale(
+        id="openga",
+        nome="OpenGA - Giustizia amministrativa",
+        giurisdizione="Amministrativa",
+        coverage="Dataset ufficiali di provvedimenti amministrativi in formato CSV, JSON e ODS per sede e anno.",
+        official_url="https://openga.giustizia-amministrativa.it/",
+        search_url="https://openga.giustizia-amministrativa.it/api/3/action/package_search?q=sentenze&rows=100",
+        access_mode="open_data",
+        sync_mode="automatico_dataset",
+        note=(
+            "Canale migliore per popolamento automatico della giurisprudenza amministrativa: "
+            "dataset ufficiali CKAN, aggiornamento mensile e licenza aperta."
+        ),
+        badge="Open data",
+        icon="bi-database-check",
+        search_label="Apri OpenGA",
+        supports_auto_sync=True,
+        default_area="Amministrativo",
+        license_note="CC BY 4.0",
+        link_keywords=["sentenze", "provvedimenti", "dataset", "json"],
+    ),
     FonteGiurisprudenziale(
         id="cassazione",
         nome="Corte di Cassazione",
@@ -237,6 +274,7 @@ SOURCE_SPECS: List[FonteGiurisprudenziale] = [
         search_label="Apri Cassazione",
         supports_auto_sync=True,
         default_grade="Cassazione",
+        license_note="Consultazione pubblica istituzionale",
         link_keywords=["sentenza", "ordinanza", "massimario", "principio", "diritto"],
     ),
     FonteGiurisprudenziale(
@@ -257,6 +295,7 @@ SOURCE_SPECS: List[FonteGiurisprudenziale] = [
         search_label="Apri PST area riservata",
         supports_auto_sync=False,
         default_area="Civile",
+        license_note="Accesso autenticato PST",
         link_keywords=["tribunale", "corte d'appello", "sentenza", "ordinanza"],
     ),
     FonteGiurisprudenziale(
@@ -265,15 +304,16 @@ SOURCE_SPECS: List[FonteGiurisprudenziale] = [
         giurisdizione="Costituzionale",
         coverage="Pronunce, massime, ultimo deposito e schede ufficiali.",
         official_url=_source_url("corte_costituzionale", "https://www.cortecostituzionale.it/"),
-        search_url="https://www.cortecostituzionale.it/",
-        access_mode="pubblico",
-        sync_mode="automatico_leggero",
-        note="Fonte primaria per sentenze, ordinanze e massime costituzionali.",
+        search_url="https://dati.cortecostituzionale.it/Scarica_i_dati/Scarica_i_dati",
+        access_mode="open_data",
+        sync_mode="automatico_dataset",
+        note="Fonte primaria per pronunce costituzionali da dataset ufficiali aperti, con testi integrali e metadati strutturati.",
         badge="Fonte primaria",
         icon="bi-columns-gap",
         search_label="Apri Corte costituzionale",
         supports_auto_sync=True,
         default_area="Costituzionale",
+        license_note="CC BY-SA 3.0",
         link_keywords=["sentenza", "ordinanza", "pronuncia", "massima", "deposito"],
     ),
     FonteGiurisprudenziale(
@@ -291,6 +331,7 @@ SOURCE_SPECS: List[FonteGiurisprudenziale] = [
         search_label="Apri Giustizia amministrativa",
         supports_auto_sync=True,
         default_area="Amministrativo",
+        license_note="Consultazione pubblica istituzionale",
         link_keywords=["decisione", "sentenza", "ordinanza", "parere", "massima"],
     ),
     FonteGiurisprudenziale(
@@ -308,6 +349,7 @@ SOURCE_SPECS: List[FonteGiurisprudenziale] = [
         search_label="Apri Giustizia tributaria",
         supports_auto_sync=False,
         default_area="Tributario",
+        license_note="Portale istituzionale e banca dati ufficiale",
         link_keywords=["decisione", "massima", "sentenza", "tributaria"],
     ),
     FonteGiurisprudenziale(
@@ -325,6 +367,7 @@ SOURCE_SPECS: List[FonteGiurisprudenziale] = [
         search_label="Apri CURIA",
         supports_auto_sync=True,
         default_area="UE / CEDU",
+        license_note="Consultazione pubblica ufficiale",
         link_keywords=["judgment", "opinion", "order", "curia", "case", "recent judgment"],
     ),
     FonteGiurisprudenziale(
@@ -342,6 +385,7 @@ SOURCE_SPECS: List[FonteGiurisprudenziale] = [
         search_label="Apri HUDOC",
         supports_auto_sync=True,
         default_area="UE / CEDU",
+        license_note="Consultazione pubblica ufficiale",
         link_keywords=["judgment", "decision", "article", "italy", "echr", "hudoc"],
     ),
     FonteGiurisprudenziale(
@@ -358,6 +402,7 @@ SOURCE_SPECS: List[FonteGiurisprudenziale] = [
         icon="bi-safe2",
         supports_auto_sync=False,
         default_area="Contabile",
+        license_note="Consultazione pubblica istituzionale",
         link_keywords=["sentenza", "decisione", "responsabilità", "erariale"],
     ),
     FonteGiurisprudenziale(
@@ -377,6 +422,7 @@ SOURCE_SPECS: List[FonteGiurisprudenziale] = [
         icon="bi-inbox",
         search_label="Apri Simpliciter",
         supports_auto_sync=False,
+        license_note="Materiale fornito dal cliente",
         link_keywords=["sentenza", "ordinanza", "decreto", "decisione", "massima", "principio di diritto"],
     ),
     FonteGiurisprudenziale(
@@ -393,6 +439,7 @@ SOURCE_SPECS: List[FonteGiurisprudenziale] = [
         icon="bi-pencil-square",
         search_label="Nuova scheda",
         supports_auto_sync=False,
+        license_note="Archivio interno studio",
     ),
 ]
 
@@ -556,19 +603,138 @@ class GestioneGiurisprudenza:
     def __init__(self, db_path: str = "./intelligence/giurisprudenza.json", timeout: int = 12):
         self.db_path = db_path
         self.timeout = timeout
-        self._data: Dict[str, Any] = {"judgments": [], "sync_runs": []}
+        self._data: Dict[str, Any] = self._empty_storage()
         self._load()
+
+    def _empty_storage(self) -> Dict[str, Any]:
+        return {
+            "storage_version": GIURISPRUDENZA_STORAGE_VERSION,
+            "legal_sources": [],
+            "ingestion_runs": [],
+            "raw_documents": [],
+            "judgment_texts": [],
+            "practice_judgments": [],
+            "judgments": [],
+            "sync_runs": [],
+        }
 
     def _load(self) -> None:
         try:
             raw = _cache.load(self.db_path, default={}) or {}
-            self._data["judgments"] = list(raw.get("judgments") or [])
-            self._data["sync_runs"] = list(raw.get("sync_runs") or [])
+            base = self._empty_storage()
+            base["judgments"] = list(raw.get("judgments") or [])
+            base["ingestion_runs"] = list(raw.get("ingestion_runs") or raw.get("sync_runs") or [])
+            base["sync_runs"] = list(base["ingestion_runs"])
+            base["legal_sources"] = list(raw.get("legal_sources") or [])
+            base["raw_documents"] = list(raw.get("raw_documents") or [])
+            base["judgment_texts"] = list(raw.get("judgment_texts") or [])
+            base["practice_judgments"] = list(raw.get("practice_judgments") or [])
+            base["storage_version"] = int(raw.get("storage_version") or GIURISPRUDENZA_STORAGE_VERSION)
+            self._data = base
+            changed = self._seed_sources_registry()
+            changed = self._migrate_existing_judgments() or changed
+            if changed:
+                self._save()
         except Exception:
-            self._data = {"judgments": [], "sync_runs": []}
+            self._data = self._empty_storage()
+            self._seed_sources_registry()
 
     def _save(self) -> None:
-        _cache.save(self.db_path, self._data, indent=2)
+        payload = dict(self._data)
+        payload["sync_runs"] = list(payload.get("ingestion_runs") or [])
+        _cache.save(self.db_path, payload, indent=2)
+
+    def _seed_sources_registry(self) -> bool:
+        rows = {str(item.get("id") or ""): dict(item) for item in self._data.get("legal_sources", []) if item.get("id")}
+        changed = False
+        seeded: List[Dict[str, Any]] = []
+        for source in SOURCE_SPECS:
+            current = rows.get(source.id, {})
+            normalized = {
+                "id": source.id,
+                "code": source.id.upper(),
+                "name": source.nome,
+                "type": source.sync_mode,
+                "official_url": source.official_url,
+                "search_url": source.search_url,
+                "license_note": source.license_note,
+                "access_mode": source.access_mode,
+                "sync_mode": source.sync_mode,
+                "is_active": current.get("is_active", True),
+                "giurisdizione": source.giurisdizione,
+                "coverage": source.coverage,
+                "badge": source.badge,
+                "icon": source.icon,
+                "search_label": source.search_label,
+                "supports_auto_sync": source.supports_auto_sync,
+                "default_area": source.default_area,
+                "default_grade": source.default_grade,
+                "link_keywords": list(source.link_keywords or []),
+                "note": source.note,
+                "created_at": current.get("created_at") or _now_iso(),
+                "updated_at": _now_iso(),
+            }
+            seeded.append(normalized)
+            comparable_current = dict(current)
+            comparable_current.pop("updated_at", None)
+            comparable_normalized = dict(normalized)
+            comparable_normalized.pop("updated_at", None)
+            if comparable_current != comparable_normalized:
+                changed = True
+        if changed or len(seeded) != len(self._data.get("legal_sources", [])):
+            self._data["legal_sources"] = seeded
+        return changed
+
+    def _migrate_existing_judgments(self) -> bool:
+        changed = False
+        if not self._data.get("judgment_texts"):
+            versions: List[Dict[str, Any]] = []
+            for row in self._data.get("judgments", []):
+                text_original = _clean_spaces(
+                    "\n\n".join(
+                        item
+                        for item in [
+                            row.get("massima", ""),
+                            row.get("principio_diritto", ""),
+                            row.get("abstract", ""),
+                        ]
+                        if str(item or "").strip()
+                    )
+                )
+                if not text_original:
+                    continue
+                versions.append(
+                    {
+                        "id": uuid.uuid4().hex,
+                        "judgment_id": row.get("id"),
+                        "text_original": text_original,
+                        "text_cleaned": text_original,
+                        "text_structured": "",
+                        "language": "it",
+                        "version": 1,
+                        "created_at": row.get("created_at") or _now_iso(),
+                    }
+                )
+            self._data["judgment_texts"] = versions
+            changed = bool(versions)
+        if not self._data.get("practice_judgments"):
+            links: List[Dict[str, Any]] = []
+            for row in self._data.get("judgments", []):
+                for practice_id in _split_multi(row.get("fascicoli_collegati") or []):
+                    links.append(
+                        {
+                            "id": uuid.uuid4().hex,
+                            "practice_id": practice_id,
+                            "judgment_id": row.get("id"),
+                            "link_type": "collegata",
+                            "note": "",
+                            "relevance_score": "",
+                            "created_at": row.get("created_at") or _now_iso(),
+                        }
+                    )
+            self._data["practice_judgments"] = links
+            changed = bool(links) or changed
+        return changed
 
     def catalogo_fonti(self) -> List[Dict[str, Any]]:
         latest_runs = self._latest_runs()
@@ -577,11 +743,12 @@ class GestioneGiurisprudenza:
             source_id = row.get("source_system") or "manuale_interno"
             counts[source_id] = counts.get(source_id, 0) + 1
         out: List[Dict[str, Any]] = []
-        for source in SOURCE_SPECS:
-            item = source.to_dict()
-            item["judgment_count"] = counts.get(source.id, 0)
-            item["last_run"] = latest_runs.get(source.id)
-            out.append(item)
+        for item in self._data.get("legal_sources", []):
+            row = dict(item)
+            row["nome"] = row.get("nome") or row.get("name") or row.get("id")
+            row["judgment_count"] = counts.get(row["id"], 0)
+            row["last_run"] = latest_runs.get(row["id"])
+            out.append(row)
         return out
 
     def tassonomia(self) -> List[Dict[str, Any]]:
@@ -593,11 +760,14 @@ class GestioneGiurisprudenza:
         aree = {item.get("area") for item in judgments if item.get("area")}
         return {
             "totale_sentenze": len(judgments),
-            "fonti_attive": len(SOURCE_SPECS),
+            "fonti_attive": len(self._data.get("legal_sources", [])),
             "fonti_usate": len(source_ids),
             "aree_coperte": len(aree),
             "sync_pubblici": len([source for source in SOURCE_SPECS if source.supports_auto_sync]),
             "bozze_da_classificare": len([row for row in judgments if not row.get("branca") or not row.get("sottobranca")]),
+            "documenti_raw": len(self._data.get("raw_documents", [])),
+            "testi_normalizzati": len(self._data.get("judgment_texts", [])),
+            "fascicoli_collegati": len(self._data.get("practice_judgments", [])),
         }
 
     def filtri(self) -> Dict[str, List[str]]:
@@ -620,16 +790,35 @@ class GestioneGiurisprudenza:
 
     def _latest_runs(self) -> Dict[str, Dict[str, Any]]:
         latest: Dict[str, Dict[str, Any]] = {}
-        for row in self._data.get("sync_runs", []):
+        for row in self._data.get("ingestion_runs", []):
             source_id = row.get("source_id")
             current = latest.get(source_id)
-            if current is None or str(row.get("checked_at", "")) >= str(current.get("checked_at", "")):
+            marker = row.get("ended_at") or row.get("checked_at") or row.get("started_at") or ""
+            current_marker = (
+                current.get("ended_at") or current.get("checked_at") or current.get("started_at") or ""
+            ) if current else ""
+            if current is None or str(marker) >= str(current_marker):
                 latest[source_id] = row
         return latest
 
     def recent_sync_runs(self, limit: int = 12) -> List[Dict[str, Any]]:
-        rows = sorted(self._data.get("sync_runs", []), key=lambda item: item.get("checked_at", ""), reverse=True)
+        rows = sorted(
+            self._data.get("ingestion_runs", []),
+            key=lambda item: item.get("ended_at") or item.get("checked_at") or item.get("started_at") or "",
+            reverse=True,
+        )
         return rows[:limit]
+
+    def storage_stats(self) -> Dict[str, int]:
+        return {
+            "storage_version": int(self._data.get("storage_version") or GIURISPRUDENZA_STORAGE_VERSION),
+            "legal_sources": len(self._data.get("legal_sources", [])),
+            "ingestion_runs": len(self._data.get("ingestion_runs", [])),
+            "raw_documents": len(self._data.get("raw_documents", [])),
+            "judgments": len(self._data.get("judgments", [])),
+            "judgment_texts": len(self._data.get("judgment_texts", [])),
+            "practice_judgments": len(self._data.get("practice_judgments", [])),
+        }
 
     def empty_record(self, source_id: str = "manuale_interno") -> Dict[str, Any]:
         source = self._source(source_id)
@@ -722,6 +911,9 @@ class GestioneGiurisprudenza:
             )
             haystack += " " + " ".join(row.get("norme_citate") or [])
             haystack += " " + " ".join(row.get("parole_chiave") or [])
+            latest_text = self._latest_text_row(row.get("id"))
+            if latest_text:
+                haystack += " " + str(latest_text.get("text_cleaned") or "")
             return query in _normalize(haystack)
 
         filtered = [row for row in rows if _matches(row)]
@@ -735,10 +927,41 @@ class GestioneGiurisprudenza:
         )
         return filtered
 
+    def judgment_text_versions(self, judgment_id: str) -> List[Dict[str, Any]]:
+        rows = [dict(row) for row in self._data.get("judgment_texts", []) if row.get("judgment_id") == judgment_id]
+        rows.sort(key=lambda item: (item.get("version", 0), item.get("created_at", "")), reverse=True)
+        return rows
+
+    def raw_documents(self, judgment_id: str) -> List[Dict[str, Any]]:
+        rows = [dict(row) for row in self._data.get("raw_documents", []) if row.get("judgment_id") == judgment_id]
+        rows.sort(key=lambda item: item.get("downloaded_at", ""), reverse=True)
+        return rows
+
+    def practice_links(self, judgment_id: str) -> List[Dict[str, Any]]:
+        rows = [dict(row) for row in self._data.get("practice_judgments", []) if row.get("judgment_id") == judgment_id]
+        rows.sort(key=lambda item: item.get("created_at", ""), reverse=True)
+        return rows
+
+    def _latest_text_row(self, judgment_id: str) -> Optional[Dict[str, Any]]:
+        rows = self.judgment_text_versions(judgment_id)
+        return rows[0] if rows else None
+
     def get(self, judgment_id: str) -> Optional[Dict[str, Any]]:
         for row in self._data.get("judgments", []):
             if row.get("id") == judgment_id:
-                return dict(row)
+                item = dict(row)
+                latest_text = self._latest_text_row(judgment_id)
+                raw_rows = self.raw_documents(judgment_id)
+                practice_rows = self.practice_links(judgment_id)
+                item["text_versions_count"] = len(self.judgment_text_versions(judgment_id))
+                item["raw_documents_count"] = len(raw_rows)
+                item["practice_links_count"] = len(practice_rows)
+                item["testo_integrale"] = (latest_text or {}).get("text_original", "")
+                item["testo_normalizzato"] = (latest_text or {}).get("text_cleaned", "")
+                item["latest_text_version"] = (latest_text or {}).get("version", 0)
+                item["practice_links"] = practice_rows
+                item["raw_items"] = raw_rows[:5]
+                return item
         return None
 
     def related(self, judgment_id: str, limit: int = 6) -> List[Dict[str, Any]]:
@@ -774,6 +997,20 @@ class GestioneGiurisprudenza:
         if not replaced:
             judgments.append(record)
         self._data["judgments"] = judgments
+        self._sync_practice_links(record)
+        self._store_text_version(
+            record["id"],
+            payload.get("text_original")
+            or "\n\n".join(
+                item
+                for item in [
+                    record.get("massima", ""),
+                    record.get("principio_diritto", ""),
+                    record.get("abstract", ""),
+                ]
+                if str(item or "").strip()
+            ),
+        )
         self._save()
         return record
 
@@ -830,6 +1067,10 @@ class GestioneGiurisprudenza:
             payload.update(candidate)
             payload["source_system"] = detected_source
             payload["url_origine"] = payload.get("url_origine") or url
+            payload["text_original"] = payload.get("text_original") or material_text
+            payload["raw_text"] = material_text
+            payload["raw_json"] = {"source_url": url, "file_name": uploaded_name} if (url or uploaded_name) else {}
+            payload["mime_type"] = "text/plain" if material_text else "application/octet-stream"
             payload["note_redazionali"] = payload.get("note_redazionali") or self._import_note(source, uploaded_name)
             for key, value in (hints or {}).items():
                 if value and key in payload and not payload.get(key):
@@ -878,6 +1119,19 @@ class GestioneGiurisprudenza:
             title = response.get("title") or title
             abstract = _truncate(response.get("summary") or text, 320)
             ecli = _extract_ecli(text)
+        elif source and source.access_mode == "open_data":
+            response = self._fetch(cleaned_url, request_get=request_get)
+            text = response.get("text", "")
+            title = response.get("title") or title
+            abstract = _truncate(response.get("summary") or text, 320)
+            ecli = _extract_ecli(text)
+        mime_type = str((response or {}).get("content_type") or "text/html")
+        raw_json: Any = {}
+        if "json" in mime_type and text:
+            try:
+                raw_json = json.loads(text)
+            except Exception:
+                raw_json = {}
         payload = self.empty_record(detected_source)
         payload.update(
             {
@@ -890,13 +1144,19 @@ class GestioneGiurisprudenza:
                 "data_deposito": _extract_date(text or title),
                 "data_decisione": _extract_date(title),
                 "identificatore_stabile": ecli or f"{detected_source}:{_sha1(cleaned_url)}",
+                "text_original": text,
+                "raw_text": text,
+                "raw_json": raw_json,
+                "mime_type": mime_type,
                 "note_redazionali": (
                     "Scheda creata da recupero URL ufficiale. "
                     + ("Completare classificazione e metadati processuali." if not source or source.access_mode != "pubblico" else "")
                 ).strip(),
             }
         )
-        return self.salva(payload)
+        result = self._upsert_import_payload(payload)
+        self._save()
+        return result["record"]
 
     def sync_sources(
         self,
@@ -912,8 +1172,15 @@ class GestioneGiurisprudenza:
             run = self._sync_source(source, request_get=request_get)
             imported_total += int(run.get("imported", 0) or 0)
             runs.append(run)
+        updated_total = sum(int(run.get("updated", 0) or 0) for run in runs)
         self._save()
-        return {"ok": True, "runs": runs, "imported_total": imported_total}
+        return {
+            "ok": True,
+            "runs": runs,
+            "imported_total": imported_total,
+            "updated_total": updated_total,
+            "changed_total": imported_total + updated_total,
+        }
 
     def _sync_source(
         self,
@@ -921,15 +1188,23 @@ class GestioneGiurisprudenza:
         *,
         request_get: Optional[Callable[..., Any]] = None,
     ) -> Dict[str, Any]:
-        checked_at = _now_iso()
+        started_at = _now_iso()
+        run_id = uuid.uuid4().hex
         if not source.supports_auto_sync:
             run = {
-                "id": uuid.uuid4().hex,
+                "id": run_id,
                 "source_id": source.id,
                 "source_label": source.nome,
-                "checked_at": checked_at,
+                "checked_at": started_at,
+                "started_at": started_at,
+                "ended_at": started_at,
                 "status": "handoff_richiesto",
+                "items_found": 0,
+                "items_imported": 0,
+                "items_updated": 0,
+                "items_skipped": 0,
                 "imported": 0,
+                "updated": 0,
                 "candidates": 0,
                 "message": "La fonte richiede recupero assistito o consultazione dal portale ufficiale.",
             }
@@ -937,31 +1212,52 @@ class GestioneGiurisprudenza:
             return run
 
         try:
-            response = self._fetch(source.search_url or source.official_url, request_get=request_get)
-            candidates = self._extract_candidates(response["document"], response["final_url"], source)
+            candidates = self._sync_candidates_for_source(source, request_get=request_get)
             imported = 0
+            updated = 0
+            skipped = 0
             for candidate in candidates[:MAX_SYNC_ITEMS]:
-                saved = self._upsert_synced_candidate(source, candidate, checked_at)
-                if saved:
+                result = self._upsert_synced_candidate(source, candidate, started_at, run_id=run_id)
+                if result == "created":
                     imported += 1
+                elif result == "updated":
+                    updated += 1
+                else:
+                    skipped += 1
+            ended_at = _now_iso()
             run = {
-                "id": uuid.uuid4().hex,
+                "id": run_id,
                 "source_id": source.id,
                 "source_label": source.nome,
-                "checked_at": checked_at,
+                "checked_at": ended_at,
+                "started_at": started_at,
+                "ended_at": ended_at,
                 "status": "ok" if candidates else "vuoto",
+                "items_found": len(candidates),
+                "items_imported": imported,
+                "items_updated": updated,
+                "items_skipped": skipped,
                 "imported": imported,
+                "updated": updated,
                 "candidates": len(candidates),
                 "message": "Recupero completato." if candidates else "Nessuna decisione pubblica individuata nella pagina ufficiale monitorata.",
             }
         except Exception as exc:
+            ended_at = _now_iso()
             run = {
-                "id": uuid.uuid4().hex,
+                "id": run_id,
                 "source_id": source.id,
                 "source_label": source.nome,
-                "checked_at": checked_at,
+                "checked_at": ended_at,
+                "started_at": started_at,
+                "ended_at": ended_at,
                 "status": "errore",
+                "items_found": 0,
+                "items_imported": 0,
+                "items_updated": 0,
+                "items_skipped": 0,
                 "imported": 0,
+                "updated": 0,
                 "candidates": 0,
                 "message": _truncate(str(exc), 240),
             }
@@ -969,19 +1265,22 @@ class GestioneGiurisprudenza:
         return run
 
     def _append_sync_run(self, run: Dict[str, Any]) -> None:
-        runs = list(self._data.get("sync_runs", []))
+        runs = list(self._data.get("ingestion_runs", []))
         runs.append(run)
         if len(runs) > MAX_SYNC_RUNS:
             runs = runs[-MAX_SYNC_RUNS:]
-        self._data["sync_runs"] = runs
+        self._data["ingestion_runs"] = runs
+        self._data["sync_runs"] = list(runs)
 
     def _upsert_synced_candidate(
         self,
         source: FonteGiurisprudenziale,
         candidate: Dict[str, Any],
         checked_at: str,
-    ) -> bool:
-        stable_id = candidate.get("ecli") or f"{source.id}:{_sha1(candidate.get('url', '') or candidate.get('title', ''))}"
+        *,
+        run_id: str = "",
+    ) -> str:
+        stable_id = candidate.get("identificatore_stabile") or candidate.get("ecli") or f"{source.id}:{_sha1(candidate.get('url', '') or candidate.get('title', ''))}"
         judgments = list(self._data.get("judgments", []))
         existing_idx = next((idx for idx, row in enumerate(judgments) if row.get("identificatore_stabile") == stable_id), None)
         payload = self.empty_record(source.id)
@@ -989,7 +1288,8 @@ class GestioneGiurisprudenza:
             {
                 "titolo": candidate.get("title", source.nome),
                 "abstract": candidate.get("summary", ""),
-                "massima": candidate.get("summary", ""),
+                "massima": candidate.get("massima", candidate.get("summary", "")),
+                "principio_diritto": candidate.get("principio_diritto", ""),
                 "tipo_provvedimento": candidate.get("tipo_provvedimento", ""),
                 "numero_provvedimento": candidate.get("numero_provvedimento", ""),
                 "data_deposito": candidate.get("data_deposito", ""),
@@ -997,26 +1297,314 @@ class GestioneGiurisprudenza:
                 "ecli": candidate.get("ecli", ""),
                 "identificatore_stabile": stable_id,
                 "url_origine": candidate.get("url", source.official_url),
-                "organo_giudicante": source.nome,
-                "ufficio": source.nome,
-                "area": source.default_area,
-                "grado": source.default_grade,
+                "organo_giudicante": candidate.get("organo_giudicante", source.nome),
+                "ufficio": candidate.get("ufficio", source.nome),
+                "sezione": candidate.get("sezione", ""),
+                "area": candidate.get("area", source.default_area),
+                "grado": candidate.get("grado", source.default_grade),
+                "rito": candidate.get("rito", ""),
+                "materia": candidate.get("materia", ""),
+                "esito": candidate.get("esito", ""),
                 "parole_chiave": _split_multi(candidate.get("keywords", [])),
-                "note_redazionali": "Scheda generata da recupero automatico leggero. Verificare classificazione giuridica e massima.",
+                "note_redazionali": candidate.get(
+                    "note_redazionali",
+                    "Scheda generata da recupero automatico leggero. Verificare classificazione giuridica e massima.",
+                ),
                 "ultimo_sync_at": checked_at,
             }
         )
         if existing_idx is not None:
             current = dict(judgments[existing_idx])
             current.update({k: v for k, v in payload.items() if v not in ("", [], {})})
-            current["updated_at"] = _now_iso()
-            judgments[existing_idx] = current
+            record = self._normalize_record(current)
+            judgments[existing_idx] = record
             self._data["judgments"] = judgments
-            return False
+            self._store_raw_document(source, candidate, record["id"], checked_at, run_id=run_id)
+            self._store_text_version(record["id"], candidate.get("text_original") or payload.get("massima") or payload.get("abstract"))
+            self._sync_practice_links(record)
+            return "updated"
         saved = self._normalize_record(payload)
         judgments.append(saved)
         self._data["judgments"] = judgments
-        return True
+        self._store_raw_document(source, candidate, saved["id"], checked_at, run_id=run_id)
+        self._store_text_version(saved["id"], candidate.get("text_original") or payload.get("massima") or payload.get("abstract"))
+        self._sync_practice_links(saved)
+        return "created"
+
+    def _sync_candidates_for_source(
+        self,
+        source: FonteGiurisprudenziale,
+        *,
+        request_get: Optional[Callable[..., Any]] = None,
+    ) -> List[Dict[str, Any]]:
+        if source.id == "openga":
+            return self._fetch_openga_candidates(source, request_get=request_get)
+        if source.id == "corte_costituzionale":
+            return self._fetch_corte_costituzionale_candidates(source, request_get=request_get)
+        response = self._fetch(source.search_url or source.official_url, request_get=request_get)
+        return self._extract_candidates(response["document"], response["final_url"], source)
+
+    def _store_raw_document(
+        self,
+        source: FonteGiurisprudenziale,
+        candidate: Dict[str, Any],
+        judgment_id: str,
+        downloaded_at: str,
+        *,
+        run_id: str = "",
+    ) -> None:
+        raw_text = str(candidate.get("raw_text") or "")
+        raw_json = candidate.get("raw_json")
+        raw_json_text = json.dumps(raw_json, ensure_ascii=False) if isinstance(raw_json, (dict, list)) else str(raw_json or "")
+        digest_seed = raw_json_text or raw_text or str(candidate.get("url") or candidate.get("external_id") or judgment_id)
+        sha256 = hashlib.sha256(digest_seed.encode("utf-8", errors="ignore")).hexdigest()
+        rows = list(self._data.get("raw_documents", []))
+        existing_idx = next((idx for idx, row in enumerate(rows) if row.get("sha256") == sha256 and row.get("judgment_id") == judgment_id), None)
+        payload = {
+            "id": rows[existing_idx]["id"] if existing_idx is not None else uuid.uuid4().hex,
+            "judgment_id": judgment_id,
+            "source_id": source.id,
+            "run_id": run_id,
+            "external_id": candidate.get("external_id") or candidate.get("identificatore_stabile") or "",
+            "source_url": candidate.get("url", source.official_url),
+            "mime_type": candidate.get("mime_type") or ("application/json" if raw_json_text else "text/plain"),
+            "raw_text": raw_text,
+            "raw_json": raw_json_text,
+            "file_path": candidate.get("file_path", ""),
+            "sha256": sha256,
+            "downloaded_at": downloaded_at,
+        }
+        if existing_idx is not None:
+            rows[existing_idx] = payload
+        else:
+            rows.append(payload)
+        self._data["raw_documents"] = rows
+
+    def _store_text_version(self, judgment_id: str, text_original: str, *, language: str = "it") -> None:
+        text = _clean_spaces(str(text_original or ""))
+        if not text:
+            return
+        cleaned = text
+        rows = self.judgment_text_versions(judgment_id)
+        latest = rows[0] if rows else None
+        if latest and _clean_spaces(latest.get("text_cleaned", "")) == cleaned:
+            return
+        version = max((int(row.get("version") or 0) for row in rows), default=0) + 1
+        payload = {
+            "id": uuid.uuid4().hex,
+            "judgment_id": judgment_id,
+            "text_original": text,
+            "text_cleaned": cleaned,
+            "text_structured": "",
+            "language": language,
+            "version": version,
+            "created_at": _now_iso(),
+        }
+        all_rows = list(self._data.get("judgment_texts", []))
+        all_rows.append(payload)
+        per_judgment = [row for row in all_rows if row.get("judgment_id") == judgment_id]
+        if len(per_judgment) > MAX_TEXT_VERSIONS:
+            removable = sorted(per_judgment, key=lambda item: (item.get("version", 0), item.get("created_at", "")))[:-MAX_TEXT_VERSIONS]
+            removable_ids = {row["id"] for row in removable}
+            all_rows = [row for row in all_rows if row.get("id") not in removable_ids]
+        self._data["judgment_texts"] = all_rows
+
+    def _sync_practice_links(self, record: Dict[str, Any]) -> None:
+        wanted = _split_multi(record.get("fascicoli_collegati") or [])
+        current = [dict(row) for row in self._data.get("practice_judgments", [])]
+        kept = [row for row in current if row.get("judgment_id") != record.get("id")]
+        for practice_id in wanted:
+            kept.append(
+                {
+                    "id": uuid.uuid4().hex,
+                    "practice_id": practice_id,
+                    "judgment_id": record.get("id"),
+                    "link_type": "collegata",
+                    "note": "",
+                    "relevance_score": "",
+                    "created_at": _now_iso(),
+                }
+            )
+        self._data["practice_judgments"] = kept
+
+    def _fetch_json_payload(
+        self,
+        url: str,
+        *,
+        request_get: Optional[Callable[..., Any]] = None,
+    ) -> Any:
+        getter = request_get or requests.get
+        response = getter(
+            url,
+            headers={"User-Agent": USER_AGENT_GIURISPRUDENZA},
+            timeout=self.timeout,
+            allow_redirects=True,
+        )
+        status_code = int(getattr(response, "status_code", 0) or 0)
+        if status_code >= 400:
+            raise RuntimeError(f"Fonte ufficiale non raggiungibile ({status_code}).")
+        return json.loads(bytes(getattr(response, "content", b"") or b"").decode("utf-8", errors="ignore") or "{}")
+
+    def _fetch_binary(
+        self,
+        url: str,
+        *,
+        request_get: Optional[Callable[..., Any]] = None,
+    ) -> bytes:
+        getter = request_get or requests.get
+        response = getter(
+            url,
+            headers={"User-Agent": USER_AGENT_GIURISPRUDENZA},
+            timeout=max(self.timeout, 40),
+            allow_redirects=True,
+        )
+        status_code = int(getattr(response, "status_code", 0) or 0)
+        if status_code >= 400:
+            raise RuntimeError(f"Download ufficiale non riuscito ({status_code}).")
+        return bytes(getattr(response, "content", b"") or b"")
+
+    def _fetch_openga_candidates(
+        self,
+        source: FonteGiurisprudenziale,
+        *,
+        request_get: Optional[Callable[..., Any]] = None,
+    ) -> List[Dict[str, Any]]:
+        payload = self._fetch_json_payload(source.search_url, request_get=request_get)
+        results = list(((payload or {}).get("result") or {}).get("results") or [])
+        current_year = date.today().year
+        packages = sorted(results, key=lambda item: str(item.get("metadata_modified") or ""), reverse=True)
+        candidates: List[Dict[str, Any]] = []
+        seen = set()
+        for package in packages:
+            if len(candidates) >= MAX_SYNC_ITEMS * 3:
+                break
+            for resource in package.get("resources") or []:
+                if len(candidates) >= MAX_SYNC_ITEMS * 3:
+                    break
+                format_name = str(resource.get("format") or "").upper()
+                resource_name = str(resource.get("name") or "")
+                resource_url = str(resource.get("url") or "")
+                if format_name != "JSON" or not resource_url:
+                    continue
+                year_match = re.search(r"\b(20\d{2})\b", resource_name)
+                resource_year = int(year_match.group(1)) if year_match else current_year
+                if resource_year < current_year - 1:
+                    continue
+                rows = self._fetch_json_payload(resource_url, request_get=request_get)
+                if not isinstance(rows, list):
+                    continue
+                sorted_rows = sorted(rows, key=lambda item: str(item.get("DATA_PUBBLICAZIONE") or ""), reverse=True)
+                for item in sorted_rows[:12]:
+                    external_id = f"{item.get('CODICE_SEDE', '')}:{item.get('NUMERO_PROVVEDIMENTO', '')}:{item.get('DATA_PUBBLICAZIONE', '')}"
+                    if not external_id or external_id in seen:
+                        continue
+                    seen.add(external_id)
+                    office_name = _clean_spaces(str(item.get("NOME_SEDE") or source.nome))
+                    oggetto = _clean_spaces(str(item.get("OGGETTO_RICORSO") or ""))
+                    tipo = _clean_spaces(str(item.get("TIPO_PROVVEDIMENTO") or "Sentenza")).title()
+                    titolo = f"{tipo} n. {item.get('NUMERO_PROVVEDIMENTO', '')} - {item.get('NOME_SEDE', '')}".strip(" -")
+                    candidates.append(
+                        {
+                            "external_id": external_id,
+                            "title": titolo,
+                            "summary": _truncate(oggetto or f"{item.get('TIPO_RICORSO', '')} - {item.get('ESITO_PROVVEDIMENTO', '')}", 320),
+                            "massima": _truncate(oggetto, 220),
+                            "url": resource_url,
+                            "data_deposito": item.get("DATA_PUBBLICAZIONE", ""),
+                            "data_decisione": item.get("DATA_PUBBLICAZIONE", ""),
+                            "tipo_provvedimento": tipo,
+                            "numero_provvedimento": str(item.get("NUMERO_PROVVEDIMENTO") or ""),
+                            "organo_giudicante": office_name,
+                            "ufficio": office_name,
+                            "grado": _infer_openga_grade(office_name),
+                            "sezione": _clean_spaces(str(item.get("NOME_SEZIONE") or "")),
+                            "materia": _clean_spaces(str(item.get("TIPO_RICORSO") or "")),
+                            "rito": _clean_spaces(str(item.get("TIPO_UDIENZA") or "")),
+                            "esito": _clean_spaces(str(item.get("ESITO_PROVVEDIMENTO") or "")),
+                            "keywords": _split_multi(
+                                [
+                                    item.get("NOME_SEDE", ""),
+                                    item.get("NOME_SEZIONE", ""),
+                                    item.get("TIPO_RICORSO", ""),
+                                    item.get("ESITO_PROVVEDIMENTO", ""),
+                                    "OpenGA",
+                                ]
+                            ),
+                            "raw_json": item,
+                            "raw_text": oggetto,
+                            "mime_type": "application/json",
+                            "identificatore_stabile": f"openga:{external_id}",
+                            "note_redazionali": "Scheda generata da dataset ufficiale OpenGA. Verificare classificazione interna, tema e sottobranca.",
+                        }
+                    )
+        return candidates
+
+    def _fetch_corte_costituzionale_candidates(
+        self,
+        source: FonteGiurisprudenziale,
+        *,
+        request_get: Optional[Callable[..., Any]] = None,
+    ) -> List[Dict[str, Any]]:
+        page = self._fetch(source.search_url or source.official_url, request_get=request_get)
+        html_text = str(page.get("text") or "")
+        match = re.search(
+            r"https://dati\.cortecostituzionale\.it/opendata/distribuzione/pronunce/P_json2001_oggi\.zip",
+            html_text,
+            re.IGNORECASE,
+        )
+        zip_url = match.group(0) if match else "https://dati.cortecostituzionale.it/opendata/distribuzione/pronunce/P_json2001_oggi.zip"
+        outer_bytes = self._fetch_binary(zip_url, request_get=request_get)
+        outer_zip = zipfile.ZipFile(io.BytesIO(outer_bytes))
+        year_candidates = [date.today().year, date.today().year - 1]
+        inner_name = next((name for year in year_candidates for name in outer_zip.namelist() if f"{year}" in name), outer_zip.namelist()[-1])
+        inner_zip = zipfile.ZipFile(io.BytesIO(outer_zip.read(inner_name)))
+        json_name = inner_zip.namelist()[0]
+        raw_json_text = inner_zip.read(json_name).decode("cp1252", errors="ignore")
+        payload = json.loads(raw_json_text)
+        records = list(payload.get("elenco_pronunce") or [])
+        records.sort(key=lambda item: _parse_iso_date(item.get("data_deposito", "")).replace("-", ""), reverse=True)
+        candidates: List[Dict[str, Any]] = []
+        for item in records[: MAX_SYNC_ITEMS * 3]:
+            numero = str(item.get("numero_pronuncia") or "")
+            anno = str(item.get("anno_pronuncia") or "")
+            deposito = _parse_iso_date(str(item.get("data_deposito") or ""))
+            decisione = _parse_iso_date(str(item.get("data_decisione") or ""))
+            ecli = _clean_spaces(str(item.get("ecli") or ""))
+            tipologia = self._map_corte_cost_tipo(str(item.get("tipologia_pronuncia") or ""))
+            epigrafe = _clean_spaces(str(item.get("epigrafe") or ""))
+            testo = _clean_spaces(str(item.get("testo") or ""))
+            dispositivo = _clean_spaces(str(item.get("dispositivo") or ""))
+            title = f"{tipologia} n. {numero}/{anno} - Corte costituzionale".strip()
+            candidates.append(
+                {
+                    "external_id": f"{anno}:{numero}",
+                    "title": title,
+                    "summary": _truncate(epigrafe or dispositivo or testo, 320),
+                    "massima": _truncate(epigrafe or dispositivo, 220),
+                    "principio_diritto": _truncate(dispositivo, 260),
+                    "url": source.official_url,
+                    "ecli": ecli,
+                    "data_deposito": deposito,
+                    "data_decisione": decisione,
+                    "tipo_provvedimento": tipologia,
+                    "numero_provvedimento": f"{numero}/{anno}" if numero and anno else numero,
+                    "organo_giudicante": source.nome,
+                    "ufficio": source.nome,
+                    "grado": "Corte costituzionale",
+                    "keywords": _split_multi([source.nome, "pronuncia", item.get("presidente", ""), item.get("relatore_pronuncia", "")]),
+                    "raw_json": item,
+                    "raw_text": testo,
+                    "text_original": testo,
+                    "mime_type": "application/json",
+                    "identificatore_stabile": ecli or f"corte_costituzionale:{anno}:{numero}",
+                    "note_redazionali": "Scheda generata da dataset open data della Corte costituzionale. Verificare classificazione e collegamenti normativi.",
+                }
+            )
+        return candidates
+
+    def _map_corte_cost_tipo(self, value: str) -> str:
+        mapping = {"S": "Sentenza", "O": "Ordinanza", "D": "Decreto"}
+        return mapping.get(_clean_spaces(value).upper(), _clean_spaces(value).title() or "Pronuncia")
 
     def _fetch(self, url: str, *, request_get: Optional[Callable[..., Any]] = None) -> Dict[str, Any]:
         getter = request_get or requests.get
@@ -1046,9 +1634,29 @@ class GestioneGiurisprudenza:
             return {
                 "final_url": final_url,
                 "content": content,
+                "content_type": content_type,
                 "text": text,
                 "document": document,
                 "title": title,
+                "summary": _truncate(text, 320),
+            }
+        if "json" in content_type or final_url.lower().endswith(".json"):
+            text = content.decode("utf-8", errors="ignore")
+            synthetic_html = (
+                "<html><head><title>"
+                + _html_escape(final_url.rsplit("/", 1)[-1] or "documento.json")
+                + "</title></head><body><main>"
+                + _html_escape(text[:8000])
+                + "</main></body></html>"
+            )
+            document = lxml_html.fromstring(synthetic_html.encode("utf-8"))
+            return {
+                "final_url": final_url,
+                "content": content,
+                "content_type": content_type,
+                "text": text,
+                "document": document,
+                "title": final_url.rsplit("/", 1)[-1] or final_url,
                 "summary": _truncate(text, 320),
             }
         if "xml" in content_type or final_url.lower().endswith(".xml") or content.lstrip().startswith(b"<rss"):
@@ -1061,6 +1669,7 @@ class GestioneGiurisprudenza:
             return {
                 "final_url": final_url,
                 "content": content,
+                "content_type": content_type,
                 "text": content.decode("utf-8", errors="ignore"),
                 "document": document,
                 "title": title,
@@ -1076,6 +1685,7 @@ class GestioneGiurisprudenza:
         return {
             "final_url": final_url,
             "content": content,
+            "content_type": content_type,
             "text": text,
             "document": document,
             "title": title,
@@ -1228,6 +1838,8 @@ class GestioneGiurisprudenza:
         host = (urlparse(url or "").hostname or "").lower()
         if "simpliciter.ai" in host:
             return "simpliciter_cliente"
+        if "openga.giustizia-amministrativa.it" in host:
+            return "openga"
         if "cortedicassazione" in host:
             return "cassazione"
         if "cortecostituzionale" in host:
@@ -1421,10 +2033,38 @@ class GestioneGiurisprudenza:
             record = self._normalize_record(merged)
             judgments[existing_idx] = record
             self._data["judgments"] = judgments
+            self._store_raw_document(
+                self._source(record.get("source_system") or "") or self._source("manuale_interno"),
+                {
+                    "external_id": stable,
+                    "url": payload.get("url_origine") or record.get("url_origine"),
+                    "raw_text": payload.get("raw_text") or payload.get("text_original") or "",
+                    "raw_json": payload.get("raw_json") or {},
+                    "mime_type": payload.get("mime_type") or "text/plain",
+                },
+                record["id"],
+                _now_iso(),
+            )
+            self._store_text_version(record["id"], payload.get("text_original") or payload.get("raw_text") or record.get("abstract") or "")
+            self._sync_practice_links(record)
             return {"created": False, "record": record}
         record = self._normalize_record(payload)
         judgments.append(record)
         self._data["judgments"] = judgments
+        self._store_raw_document(
+            self._source(record.get("source_system") or "") or self._source("manuale_interno"),
+            {
+                "external_id": stable or record.get("identificatore_stabile"),
+                "url": payload.get("url_origine") or record.get("url_origine"),
+                "raw_text": payload.get("raw_text") or payload.get("text_original") or "",
+                "raw_json": payload.get("raw_json") or {},
+                "mime_type": payload.get("mime_type") or "text/plain",
+            },
+            record["id"],
+            _now_iso(),
+        )
+        self._store_text_version(record["id"], payload.get("text_original") or payload.get("raw_text") or record.get("abstract") or "")
+        self._sync_practice_links(record)
         return {"created": True, "record": record}
 
     def _normalize_record(self, payload: Dict[str, Any]) -> Dict[str, Any]:

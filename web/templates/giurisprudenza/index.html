@@ -44,43 +44,60 @@
       </form>
     </div>
   </div>
+  <div class="d-flex flex-wrap gap-2 mt-3">
+    <span class="jud-chip"><i class="bi bi-archive"></i>Storage v{{ storage_stats.storage_version }}</span>
+    <span class="jud-chip"><i class="bi bi-file-earmark-medical"></i>{{ statistiche.documenti_raw }} raw</span>
+    <span class="jud-chip"><i class="bi bi-journal-text"></i>{{ statistiche.testi_normalizzati }} versioni testo</span>
+  </div>
 </div>
 
 <div class="row g-3 mb-4">
-  <div class="col-6 col-xl-2">
+  <div class="col-6 col-md-3">
     <div class="jud-stat p-3 h-100">
       <div class="small text-muted mb-1">Schede archiviate</div>
       <div class="fs-3 fw-bold">{{ statistiche.totale_sentenze }}</div>
     </div>
   </div>
-  <div class="col-6 col-xl-2">
+  <div class="col-6 col-md-3">
     <div class="jud-stat p-3 h-100">
       <div class="small text-muted mb-1">Fonti presidiate</div>
       <div class="fs-3 fw-bold">{{ statistiche.fonti_attive }}</div>
     </div>
   </div>
-  <div class="col-6 col-xl-2">
+  <div class="col-6 col-md-3">
     <div class="jud-stat p-3 h-100">
       <div class="small text-muted mb-1">Fonti già usate</div>
       <div class="fs-3 fw-bold">{{ statistiche.fonti_usate }}</div>
     </div>
   </div>
-  <div class="col-6 col-xl-2">
+  <div class="col-6 col-md-3">
     <div class="jud-stat p-3 h-100">
       <div class="small text-muted mb-1">Aree coperte</div>
       <div class="fs-3 fw-bold">{{ statistiche.aree_coperte }}</div>
     </div>
   </div>
-  <div class="col-6 col-xl-2">
+  <div class="col-6 col-md-3">
     <div class="jud-stat p-3 h-100">
       <div class="small text-muted mb-1">Sync pubblici</div>
       <div class="fs-3 fw-bold">{{ statistiche.sync_pubblici }}</div>
     </div>
   </div>
-  <div class="col-6 col-xl-2">
+  <div class="col-6 col-md-3">
     <div class="jud-stat p-3 h-100">
       <div class="small text-muted mb-1">Da classificare</div>
       <div class="fs-3 fw-bold text-warning">{{ statistiche.bozze_da_classificare }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="jud-stat p-3 h-100">
+      <div class="small text-muted mb-1">Documenti raw</div>
+      <div class="fs-3 fw-bold">{{ statistiche.documenti_raw }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="jud-stat p-3 h-100">
+      <div class="small text-muted mb-1">Versioni testo</div>
+      <div class="fs-3 fw-bold">{{ statistiche.testi_normalizzati }}</div>
     </div>
   </div>
 </div>
@@ -354,6 +371,11 @@
               <strong>Schede archiviate:</strong> {{ fonte.judgment_count }}
               {% if fonte.last_run_fmt %}<br><strong>Ultimo recupero:</strong> {{ fonte.last_run_fmt }}{% endif %}
             </div>
+            <div class="small text-muted mb-3">
+              <div><strong class="text-dark">Accesso:</strong> {{ fonte.access_mode|replace('_', ' ') }}</div>
+              <div><strong class="text-dark">Recupero:</strong> {{ fonte.sync_mode|replace('_', ' ') }}</div>
+              <div><strong class="text-dark">Licenza / note:</strong> {{ fonte.license_note or 'Da verificare sulla fonte ufficiale' }}</div>
+            </div>
             <div class="d-flex flex-wrap gap-2">
               {% if fonte.official_url %}
               <a href="{{ fonte.official_url }}" class="btn btn-sm btn-outline-secondary" target="_blank" rel="noopener">{{ fonte.search_label }}</a>
@@ -410,6 +432,8 @@
             <div class="text-lg-end small text-muted">
               {% if item.orientamento %}<div><strong>Orientamento:</strong> {{ item.orientamento }}</div>{% endif %}
               {% if item.uso_nel_software %}<div><strong>Uso:</strong> {{ item.uso_nel_software }}</div>{% endif %}
+              {% if item.text_versions_count %}<div><strong>Versioni testo:</strong> {{ item.text_versions_count }}</div>{% endif %}
+              {% if item.raw_documents_count %}<div><strong>Documenti raw:</strong> {{ item.raw_documents_count }}</div>{% endif %}
               {% if item.ultimo_sync_at_fmt %}<div><strong>Sync:</strong> {{ item.ultimo_sync_at_fmt }}</div>{% endif %}
               {% if item.updated_at_fmt %}<div><strong>Aggiornata:</strong> {{ item.updated_at_fmt }}</div>{% endif %}
             </div>

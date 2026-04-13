@@ -106,6 +106,29 @@
       </article>
 
       <article class="jd-card p-4">
+        <div class="d-flex align-items-center justify-content-between gap-3 mb-3">
+          <div class="jd-panel-title mb-0">Testo normalizzato e archivio redazionale</div>
+          <span class="text-muted small">{{ record.text_versions_count }} versioni</span>
+        </div>
+        <div class="d-grid gap-4">
+          <div>
+            <div class="small text-muted text-uppercase fw-semibold mb-2">Testo normalizzato corrente</div>
+            <div>{{ record.testo_normalizzato or record.testo_integrale or "Testo non ancora acquisito." }}</div>
+          </div>
+          <div>
+            <div class="small text-muted text-uppercase fw-semibold mb-2">Versioni memorizzate</div>
+            <div class="jd-tags">
+              {% for item in text_versions[:4] %}
+              <span class="jd-chip">v{{ item.version }} · {{ item.created_at_fmt or item.created_at }}</span>
+              {% else %}
+              <span class="text-muted">Nessuna versione testo disponibile.</span>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <article class="jd-card p-4">
         <div class="jd-panel-title">Classificazione giuridica</div>
         <div class="jd-deflist">
           <div class="jd-defitem"><dt>Area</dt><dd>{{ record.area or "Non classificata" }}</dd></div>
@@ -214,7 +237,8 @@
           </div>
           <div class="small">
             <strong>Modalita accesso:</strong> {{ fonte.access_mode|replace('_', ' ') }}<br>
-            <strong>Recupero:</strong> {{ fonte.sync_mode|replace('_', ' ') }}
+            <strong>Recupero:</strong> {{ fonte.sync_mode|replace('_', ' ') }}<br>
+            <strong>Licenza / note:</strong> {{ fonte.license_note or "Da verificare sulla fonte ufficiale" }}
           </div>
           <div class="small text-muted">{{ fonte.note }}</div>
           <div class="d-grid gap-2">
@@ -233,6 +257,39 @@
         {% else %}
         <div class="text-muted">Fonte non riconosciuta oppure scheda interna redazionale.</div>
         {% endif %}
+      </div>
+
+      <div class="jd-meta p-4">
+        <div class="d-flex align-items-center justify-content-between gap-3 mb-3">
+          <div class="jd-panel-title mb-0">Archivio tecnico</div>
+          <span class="text-muted small">{{ raw_documents|length }} raw · {{ practice_links|length }} link fascicolo</span>
+        </div>
+        <div class="d-grid gap-3">
+          <div>
+            <div class="small text-muted text-uppercase fw-semibold mb-2">Documenti originali salvati</div>
+            <div class="d-grid gap-2">
+              {% for item in raw_documents[:4] %}
+              <div class="small border rounded-3 p-2">
+                <div class="fw-semibold">{{ item.mime_type or "documento" }}</div>
+                <div class="text-muted">{{ item.downloaded_at_fmt or item.downloaded_at }}</div>
+                {% if item.source_url %}<div class="text-break">{{ item.source_url }}</div>{% endif %}
+              </div>
+              {% else %}
+              <div class="text-muted small">Nessun documento raw disponibile.</div>
+              {% endfor %}
+            </div>
+          </div>
+          <div>
+            <div class="small text-muted text-uppercase fw-semibold mb-2">Collegamenti a fascicolo</div>
+            <div class="jd-tags">
+              {% for item in practice_links %}
+              <span class="jd-chip">{{ item.practice_id }}</span>
+              {% else %}
+              <span class="text-muted">Nessun fascicolo collegato nel registry interno.</span>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
       </div>
 
       <div class="jd-meta p-4">

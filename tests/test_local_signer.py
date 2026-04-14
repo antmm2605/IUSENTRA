@@ -682,6 +682,51 @@ def test_local_ai_bridge_chat_usa_modello_effettivo_disponibile(tmp_path, monkey
     assert captured["model_name"] == "gemma3:1b"
 
 
+def test_local_ai_bridge_snapshot_windows_propone_installer_e_download_modello_automatico(tmp_path, monkeypatch):
+    module = _load_local_ai_host_bridge()
+    bridge = module.LocalAiHostBridge(root_dir=tmp_path)
+    hardware = {
+        "host_platform": "windows",
+        "host_machine": "amd64",
+        "profile": "medium",
+    }
+    monkeypatch.setattr(
+        bridge,
+        "fetch_latest_release",
+        lambda **kwargs: {
+            "version": "v0.20.7",
+            "html_url": "https://example.test/releases/v0.20.7",
+            "published_at": "2026-04-14T09:00:00Z",
+            "assets": [
+                {
+                    "name": "OllamaSetup.exe",
+                    "browser_download_url": "https://example.test/OllamaSetup.exe",
+                    "size": 812000000,
+                    "updated_at": "2026-04-14T09:00:00Z",
+                },
+                {
+                    "name": "ollama-windows-amd64.zip",
+                    "browser_download_url": "https://example.test/ollama-windows-amd64.zip",
+                    "size": 781000000,
+                    "updated_at": "2026-04-14T09:00:00Z",
+                },
+            ],
+        },
+    )
+
+    snapshot = bridge.installer_snapshot(
+        settings={"enabled": True},
+        hardware=hardware,
+        live_version=None,
+    )
+
+    assert snapshot["asset_name"] == "OllamaSetup.exe"
+    assert snapshot["asset_label"] == "Installer consigliato"
+    assert snapshot["asset_cta_label"] == "Scarica installer ufficiale"
+    assert "profilo hardware" in snapshot["summary_body"]
+    assert "profilo hardware" in snapshot["post_install_note"]
+
+
 def test_local_ai_bridge_rag_query_stream_restituisce_token_e_fonti_finali(tmp_path, monkeypatch):
     module = _load_local_ai_host_bridge()
 

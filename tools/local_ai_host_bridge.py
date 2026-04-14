@@ -544,16 +544,25 @@ class LocalAiHostBridge:
         )
         return str(resolved_models["chat"]).strip()
 
-    def _select_download_asset(self, release: dict[str, Any], hardware: dict[str, Any]) -> dict[str, Any] | None:
+    def _select_download_asset(
+        self,
+        release: dict[str, Any],
+        hardware: dict[str, Any],
+        *,
+        purpose: str = "installer",
+    ) -> dict[str, Any] | None:
         host_platform = hardware["host_platform"]
         host_machine = hardware["host_machine"]
         preferred: list[str] = []
         if host_platform == "windows":
-            preferred = ["ollama-windows-arm64.zip"] if host_machine == "arm64" else ["ollama-windows-amd64.zip"]
+            if purpose == "runtime":
+                preferred = ["ollama-windows-arm64.zip"] if host_machine == "arm64" else ["ollama-windows-amd64.zip"]
+            else:
+                preferred = ["OllamaSetup.exe"]
         elif host_platform == "linux":
             preferred = ["ollama-linux-arm64.tgz"] if host_machine == "arm64" else ["ollama-linux-amd64.tgz"]
         elif host_platform == "darwin":
-            preferred = ["Ollama-darwin.zip"]
+            preferred = ["Ollama.dmg", "Ollama-darwin.zip"]
         for name in preferred:
             for asset in release.get("assets") or []:
                 if asset.get("name") == name:
@@ -616,11 +625,12 @@ class LocalAiHostBridge:
             "latest_version": "",
             "latest_release_url": "",
             "latest_published_at": "",
+            "post_install_note": "",
         }
 
         try:
             release = self.fetch_latest_release()
-            asset = self._select_download_asset(release, hardware)
+            asset = self._select_download_asset(release, hardware, purpose="installer")
             snapshot.update(
                 {
                     "latest_version": release.get("version") or "",
@@ -630,6 +640,12 @@ class LocalAiHostBridge:
                     "asset_download_url": asset.get("browser_download_url") if asset else "",
                     "asset_size_bytes": asset.get("size") if asset else None,
                     "asset_updated_at": asset.get("updated_at") if asset else "",
+                    "asset_label": "Installer consigliato" if hardware["host_platform"] == "windows" else "Pacchetto consigliato",
+                    "asset_cta_label": "Scarica installer ufficiale" if hardware["host_platform"] == "windows" else "Apri il download ufficiale",
+                    "post_install_note": (
+                        "Dopo l'installazione il companion locale prepara automaticamente il modello operativo "
+                        "piu' adatto al profilo hardware del dispositivo e il modello embeddings consigliato."
+                    ),
                 }
             )
         except Exception as exc:
@@ -644,8 +660,9 @@ class LocalAiHostBridge:
         elif hardware["host_platform"] == "windows":
             snapshot["summary_title"] = "Provisioning automatico sul dispositivo Windows"
             snapshot["summary_body"] = (
-                "Il Local Signer puo' preparare Ollama sul PC Windows del cliente e poi collegare la web app "
-                "ai modelli locali tramite localhost."
+                "Sul PC Windows del cliente il percorso consigliato e' installare Ollama con l'installer ufficiale. "
+                "Dopo l'installazione HACS rileva automaticamente il runtime locale, scarica il modello operativo giusto "
+                "per il profilo hardware e collega la web app ai modelli tramite localhost."
             )
         else:
             snapshot["summary_title"] = "Installazione guidata sul dispositivo locale"
@@ -705,7 +722,7 @@ class LocalAiHostBridge:
             raise RuntimeError("Installazione automatica disponibile al momento solo su Windows o Linux.")
 
         release = self.fetch_latest_release(force_refresh=force_download)
-        asset = self._select_download_asset(release, hardware)
+        asset = self._select_download_asset(release, hardware, purpose="runtime")
         if not asset:
             raise RuntimeError("Pacchetto ufficiale Ollama non disponibile per questo sistema.")
         archive_path = self._download_asset(asset, force_download=force_download)

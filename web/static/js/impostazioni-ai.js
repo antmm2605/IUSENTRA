@@ -307,15 +307,18 @@
       '<div class="settings-ai-installer__grid">' +
       '<div class="settings-ai-installer__item"><div class="settings-ai-installer__label">Strategia</div><div class="settings-ai-installer__value">' + escapeHtml(installerData.strategy_label || 'n.d.') + '</div></div>' +
       '<div class="settings-ai-installer__item"><div class="settings-ai-installer__label">Versione ufficiale rilevata</div><div class="settings-ai-installer__value">' + escapeHtml(installerData.latest_version || 'n.d.') + '</div><div class="settings-ai-installer__meta">' + formatDateTimeIt(installerData.latest_published_at) + '</div></div>' +
-      '<div class="settings-ai-installer__item"><div class="settings-ai-installer__label">Pacchetto consigliato</div><div class="settings-ai-installer__value">' + escapeHtml(installerData.asset_name || 'n.d.') + '</div><div class="settings-ai-installer__meta">' + formatBytes(installerData.asset_size_bytes) + '</div></div>' +
+      '<div class="settings-ai-installer__item"><div class="settings-ai-installer__label">' + escapeHtml(installerData.asset_label || 'Pacchetto consigliato') + '</div><div class="settings-ai-installer__value">' + escapeHtml(installerData.asset_name || 'n.d.') + '</div><div class="settings-ai-installer__meta">' + formatBytes(installerData.asset_size_bytes) + '</div></div>' +
       '<div class="settings-ai-installer__item"><div class="settings-ai-installer__label">Percorso gestito</div><div class="settings-ai-installer__value settings-ai-installer__value--mono">' + escapeHtml(installerData.managed_runtime_dir || 'n.d.') + '</div></div>' +
       '<div class="settings-ai-installer__item"><div class="settings-ai-installer__label">Host reale</div><div class="settings-ai-installer__value">' + escapeHtml(hostPlatform) + '</div><div class="settings-ai-installer__meta">Architettura ' + escapeHtml(installerData.host_machine || installerData.machine || 'n.d.') + '</div></div>' +
       '<div class="settings-ai-installer__item"><div class="settings-ai-installer__label">Ambiente HACS</div><div class="settings-ai-installer__value">' + escapeHtml(executionLabel) + '</div><div class="settings-ai-installer__meta">' + (installerData.containerized ? 'Runtime applicativo in container' : 'Runtime applicativo nativo') + '</div></div>' +
       '<div class="settings-ai-installer__item settings-ai-installer__item--full"><div class="settings-ai-installer__label">Eseguibile rilevato</div><div class="settings-ai-installer__value settings-ai-installer__value--mono">' + escapeHtml(detectedExecutable) + '</div></div>' +
       '<div class="settings-ai-installer__item settings-ai-installer__item--full"><div class="settings-ai-installer__label">Ambito di distribuzione</div><div class="settings-ai-installer__body">' + escapeHtml(installerData.distribution_scope || '') + '</div></div>' +
+      (installerData.post_install_note
+        ? '<div class="settings-ai-installer__item settings-ai-installer__item--full"><div class="settings-ai-installer__label">Dopo l\'installazione</div><div class="settings-ai-installer__body">' + escapeHtml(installerData.post_install_note) + '</div></div>'
+        : '') +
       '</div>' +
       (installerData.asset_download_url
-        ? '<a class="btn btn-sm btn-outline-primary mt-3" href="' + escapeHtml(installerData.asset_download_url) + '" target="_blank" rel="noreferrer"><i class="bi bi-box-arrow-up-right me-2"></i>Apri il download ufficiale</a>'
+        ? '<a class="btn btn-sm btn-outline-primary mt-3" href="' + escapeHtml(installerData.asset_download_url) + '" target="_blank" rel="noreferrer"><i class="bi bi-box-arrow-up-right me-2"></i>' + escapeHtml(installerData.asset_cta_label || 'Apri il download ufficiale') + '</a>'
         : '') +
       installerActionsHtml(installerData.install_actions);
 

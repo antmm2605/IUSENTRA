@@ -122,6 +122,7 @@ class OllamaRuntimeProvisioner:
         *,
         platform_name: str | None = None,
         machine_name: str | None = None,
+        purpose: str = "installer",
     ) -> dict[str, Any] | None:
         assets = release.get("assets") or []
         target_platform = self._normalize_platform_name(platform_name or self.host_platform_name)
@@ -129,7 +130,10 @@ class OllamaRuntimeProvisioner:
         preferred_names: list[str] = []
 
         if target_platform == "windows":
-            preferred_names = ["ollama-windows-arm64.zip"] if target_machine == "arm64" else ["ollama-windows-amd64.zip"]
+            if purpose == "runtime":
+                preferred_names = ["ollama-windows-arm64.zip"] if target_machine == "arm64" else ["ollama-windows-amd64.zip"]
+            else:
+                preferred_names = ["OllamaSetup.exe"]
         elif target_platform == "linux":
             if target_machine == "arm64":
                 preferred_names = ["ollama-linux-arm64.tar.zst", "ollama-linux-arm64.tgz"]
@@ -179,6 +183,7 @@ class OllamaRuntimeProvisioner:
             "candidate_paths": [str(path) for path in self.candidate_executables()],
             "distribution_scope": "Il runtime AI viene gestito sulla stessa macchina che esegue HACS e non viene distribuito al browser del cliente.",
             "strategy_code": strategy,
+            "post_install_note": "",
         }
 
         if strategy == "docker_service":
@@ -213,7 +218,12 @@ class OllamaRuntimeProvisioner:
                 }
             )
             if strategy in {"host_managed_windows", "host_bridge_windows"}:
-                asset = self.select_download_asset(release, platform_name="windows", machine_name=self.host_machine_name)
+                asset = self.select_download_asset(
+                    release,
+                    platform_name="windows",
+                    machine_name=self.host_machine_name,
+                    purpose="installer",
+                )
                 snapshot.update(
                     {
                         "download_supported": bool(asset and asset.get("browser_download_url")),
@@ -221,6 +231,12 @@ class OllamaRuntimeProvisioner:
                         "asset_download_url": asset.get("browser_download_url") if asset else "",
                         "asset_size_bytes": asset.get("size") if asset else None,
                         "asset_updated_at": asset.get("updated_at") if asset else "",
+                        "asset_label": "Installer Windows consigliato",
+                        "asset_cta_label": "Scarica installer Windows ufficiale",
+                        "post_install_note": (
+                            "Dopo l'installazione HACS rileva il runtime locale e prepara automaticamente "
+                            "il modello operativo piu' adatto al profilo hardware del PC, insieme al modello embeddings consigliato."
+                        ),
                     }
                 )
             elif strategy == "host_managed_linux":
@@ -232,6 +248,12 @@ class OllamaRuntimeProvisioner:
                         "asset_download_url": asset.get("browser_download_url") if asset else "",
                         "asset_size_bytes": asset.get("size") if asset else None,
                         "asset_updated_at": asset.get("updated_at") if asset else "",
+                        "asset_label": "Pacchetto consigliato",
+                        "asset_cta_label": "Apri il download ufficiale",
+                        "post_install_note": (
+                            "Dopo l'installazione HACS prepara automaticamente il modello operativo coerente con il profilo hardware "
+                            "e il modello embeddings consigliato."
+                        ),
                     }
                 )
         except Exception as exc:
@@ -267,8 +289,10 @@ class OllamaRuntimeProvisioner:
         elif strategy == "host_bridge_windows":
             snapshot["summary_title"] = "Host Windows rilevato"
             snapshot["summary_body"] = (
-                "HACS gira in un container, ma l'host reale e' Windows. La strategia corretta e' usare "
-                "Ollama Windows sull'host e collegare il container a quell'istanza tramite host.docker.internal."
+                "HACS gira in un container, ma l'host reale e' Windows. Per l'utente finale la strada corretta "
+                "e' installare Ollama con l'installer ufficiale Windows e poi lasciare che HACS si colleghi "
+                "automaticamente a quell'istanza tramite host.docker.internal. Una volta disponibile il runtime, "
+                "HACS prepara anche il modello operativo corretto in base al profilo hardware."
             )
         elif strategy == "host_bridge_darwin":
             snapshot["summary_title"] = "Host macOS rilevato"
@@ -280,8 +304,9 @@ class OllamaRuntimeProvisioner:
             snapshot["summary_title"] = "Provisioning automatico su Windows"
             snapshot["summary_body"] = (
                 "La strategia corretta e' installare Ollama sulla stessa macchina Windows che esegue HACS. "
-                "Se il runtime non e' presente, il bootstrap puo' scaricare il pacchetto ufficiale e "
-                "prepararlo in automatico."
+                "Per l'utente finale il flusso consigliato e' usare l'installer ufficiale Windows; il bootstrap "
+                "automatico resta disponibile solo come supporto tecnico. Dopo l'installazione, HACS scarica e prepara "
+                "il modello operativo in base al profilo hardware."
             )
         elif strategy == "host_managed_linux":
             snapshot["summary_title"] = "Provisioning automatico su Linux"
@@ -318,7 +343,12 @@ class OllamaRuntimeProvisioner:
             return detected
 
         release = self.fetch_latest_release(force_refresh=force_download)
-        asset = self.select_download_asset(release, platform_name="windows", machine_name=self.host_machine_name)
+        asset = self.select_download_asset(
+            release,
+            platform_name="windows",
+            machine_name=self.host_machine_name,
+            purpose="runtime",
+        )
         if not asset or not asset.get("browser_download_url"):
             raise RuntimeError("Pacchetto standalone ufficiale per Windows non disponibile nella release corrente di Ollama.")
 

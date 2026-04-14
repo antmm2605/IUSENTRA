@@ -472,7 +472,7 @@ def test_impostazioni_template_contains_ai_locale_tab():
     assert "/api/version" in html
 
 
-def test_ollama_runtime_provisioner_selects_windows_zip_asset(tmp_path: Path):
+def test_ollama_runtime_provisioner_selects_windows_installer_asset_per_l_utente(tmp_path: Path):
     provisioner = OllamaRuntimeProvisioner(
         app_root=tmp_path,
         models_path=tmp_path / "models",
@@ -483,6 +483,12 @@ def test_ollama_runtime_provisioner_selects_windows_zip_asset(tmp_path: Path):
     release = {
         "version": "v0.20.6",
         "assets": [
+            {
+                "name": "OllamaSetup.exe",
+                "browser_download_url": "https://example.test/OllamaSetup.exe",
+                "size": 812000000,
+                "updated_at": "2026-04-12T22:13:20Z",
+            },
             {
                 "name": "ollama-windows-amd64.zip",
                 "browser_download_url": "https://example.test/ollama-windows-amd64.zip",
@@ -501,6 +507,38 @@ def test_ollama_runtime_provisioner_selects_windows_zip_asset(tmp_path: Path):
     asset = provisioner.select_download_asset(release)
 
     assert asset is not None
+    assert asset["name"] == "OllamaSetup.exe"
+
+
+def test_ollama_runtime_provisioner_selects_windows_zip_asset_per_bootstrap_tecnico(tmp_path: Path):
+    provisioner = OllamaRuntimeProvisioner(
+        app_root=tmp_path,
+        models_path=tmp_path / "models",
+        platform_name="windows",
+        machine_name="AMD64",
+    )
+
+    release = {
+        "version": "v0.20.6",
+        "assets": [
+            {
+                "name": "OllamaSetup.exe",
+                "browser_download_url": "https://example.test/OllamaSetup.exe",
+                "size": 812000000,
+                "updated_at": "2026-04-12T22:13:20Z",
+            },
+            {
+                "name": "ollama-windows-amd64.zip",
+                "browser_download_url": "https://example.test/ollama-windows-amd64.zip",
+                "size": 781000000,
+                "updated_at": "2026-04-12T22:13:20Z",
+            },
+        ],
+    }
+
+    asset = provisioner.select_download_asset(release, purpose="runtime")
+
+    assert asset is not None
     assert asset["name"] == "ollama-windows-amd64.zip"
 
 
@@ -509,6 +547,7 @@ def test_ollama_runtime_provisioner_prefers_host_bridge_strategy_on_windows_host
     monkeypatch.setenv("PCT_HOST_MACHINE", "AMD64")
     monkeypatch.setattr(OllamaRuntimeProvisioner, "_detect_execution_platform_name", lambda self: "linux")
     monkeypatch.setattr(OllamaRuntimeProvisioner, "_detect_containerized", lambda self: True)
+    monkeypatch.setattr(OllamaRuntimeProvisioner, "discover_executable", lambda self: None)
     monkeypatch.setattr(
         OllamaRuntimeProvisioner,
         "fetch_latest_release",
@@ -518,9 +557,9 @@ def test_ollama_runtime_provisioner_prefers_host_bridge_strategy_on_windows_host
             "published_at": "2026-04-13T00:59:00Z",
             "assets": [
                 {
-                    "name": "ollama-windows-amd64.zip",
-                    "browser_download_url": "https://example.test/ollama-windows-amd64.zip",
-                    "size": 781000000,
+                    "name": "OllamaSetup.exe",
+                    "browser_download_url": "https://example.test/OllamaSetup.exe",
+                    "size": 812000000,
                     "updated_at": "2026-04-13T00:59:00Z",
                 }
             ],
@@ -537,7 +576,10 @@ def test_ollama_runtime_provisioner_prefers_host_bridge_strategy_on_windows_host
     assert snapshot["host_platform"] == "windows"
     assert snapshot["execution_platform"] == "linux"
     assert snapshot["strategy_code"] == "host_bridge_windows"
-    assert snapshot["asset_name"] == "ollama-windows-amd64.zip"
+    assert snapshot["asset_name"] == "OllamaSetup.exe"
+    assert snapshot["asset_label"] == "Installer Windows consigliato"
+    assert "profilo hardware" in snapshot["summary_body"]
+    assert "profilo hardware" in snapshot["post_install_note"]
 
 
 def test_local_ai_settings_env_override_runtime_url(tmp_path: Path, monkeypatch):

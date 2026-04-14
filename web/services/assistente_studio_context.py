@@ -54,6 +54,13 @@ _DEFAULT_DETAIL_SECTION_TITLES: tuple[str, ...] = (
     "Template atti",
 )
 
+_CHAT_DETAIL_SECTION_TITLES: tuple[str, ...] = (
+    "Fascicoli",
+    "Clienti",
+    "Agenda",
+    "Scadenziario",
+)
+
 _SECTION_KEYWORDS: dict[str, tuple[str, ...]] = {
     "Fascicoli": ("fascicolo", "fascicoli", "rg", "pratica", "causa", "giudice", "udienza"),
     "Clienti": ("cliente", "clienti", "assistito", "anagrafica", "anagrafiche"),
@@ -233,10 +240,56 @@ def _select_detail_sections(question: str) -> set[str]:
     return set(selected[:5])
 
 
-def _should_include_live_web(question: str) -> bool:
+def _select_detail_sections_for_chat(question: str) -> set[str]:
+    text = _clean_spaces(question).lower()
+    if not text:
+        return set(_CHAT_DETAIL_SECTION_TITLES)
+
+    scored = [
+        (title, _keyword_score(text, keywords))
+        for title, keywords in _SECTION_KEYWORDS.items()
+        if title != "Ricerca legale e fonti web"
+    ]
+    selected = [title for title, score in scored if score > 0]
+    if not selected:
+        return set(_CHAT_DETAIL_SECTION_TITLES)
+
+    selected.sort(key=lambda title: _keyword_score(text, _SECTION_KEYWORDS.get(title, ())), reverse=True)
+    return set(selected[:4])
+
+
+def _should_include_live_web(question: str, *, chat_mode: bool = False) -> bool:
     text = _clean_spaces(question).lower()
     if not text:
         return False
+    if chat_mode:
+        if any(
+            phrase in text
+            for phrase in (
+                "cerca sul web",
+                "sul web",
+                "fonte ufficiale",
+                "fonti ufficiali",
+                "verifica la normativa",
+                "verifica normativa",
+                "verifica la legge",
+                "aggiornamento",
+                "aggiornata",
+                "aggiornato",
+                "ultima sentenza",
+                "ultime sentenze",
+                "ultima normativa",
+                "ultime novita",
+                "oggi",
+            )
+        ):
+            return True
+        has_recency = any(token in text for token in ("ultima", "ultime", "recente", "recenti", "oggi"))
+        has_legal_lookup = any(
+            token in text
+            for token in ("sentenza", "sentenze", "normativa", "legge", "decreto", "provvedimento", "massima")
+        )
+        return has_recency and has_legal_lookup
     return any(keyword in text for keyword in _LIVE_WEB_KEYWORDS)
 
 
@@ -932,8 +985,9 @@ def _document_rag_lines(question: str) -> tuple[list[str], list[dict[str, Any]]]
     return lines, rows[:4]
 
 
-def build_lex_studio_context(question: str) -> dict[str, Any]:
+def build_lex_studio_context(question: str, *, mode: str = "default") -> dict[str, Any]:
     q = _clean_spaces(question)
+    chat_mode = str(mode or "").strip().lower() == "chat"
     sections: list[str] = [
         "Lex deve restare sempre consultivo, non decisionale, e formulare solo suggerimenti, ipotesi operative, check-list, rischi e prossimi passi.",
         "Se manca il contesto o serve una verifica aggiornata sul web, Lex deve dirlo chiaramente e indicare le fonti ufficiali web piu' adatte senza inventare.",
@@ -941,8 +995,8 @@ def build_lex_studio_context(question: str) -> dict[str, Any]:
     sources: list[dict[str, Any]] = []
     priority_sources: list[dict[str, Any]] = []
     live_source_ids: list[str] = []
-    selected_detail_titles = _select_detail_sections(q)
-    include_live_web = _should_include_live_web(q)
+    selected_detail_titles = _select_detail_sections_for_chat(q) if chat_mode else _select_detail_sections(q)
+    include_live_web = _should_include_live_web(q, chat_mode=chat_mode)
 
     _append_section(sections, "Profilo studio", _studio_profile_lines())
 
@@ -1018,8 +1072,12 @@ def build_lex_studio_context(question: str) -> dict[str, Any]:
 
     return {
         "prompt_block": "\n".join(sections).strip(),
-        "sources": deduped_sources[:12],
-        "citations": [row.get("citation") for row in deduped_sources[:12] if row.get("citation")],
+        "sources": deduped_sources[:10 if chat_mode else 12],
+        "citations": [
+            row.get("citation")
+            for row in deduped_sources[:10 if chat_mode else 12]
+            if row.get("citation")
+        ],
         "engine_ids": motori_per_query(q),
         "source_ids": list(dict.fromkeys([*fonti_per_query(q), *live_source_ids])),
     }
@@ -1028,4 +1086,4 @@ def build_lex_studio_context(question: str) -> dict[str, Any]:
 def warm_lex_studio_context(*, question: str = "", context_label: str = "") -> dict[str, Any]:
     """Pre-riscalda il contesto studio di Lex per accorciare il tempo alla prima risposta."""
     seed = _clean_spaces(question) or _clean_spaces(context_label)
-    return build_lex_studio_context(seed)
+    return build_lex_studio_context(seed, mode="chat")

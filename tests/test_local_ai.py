@@ -431,22 +431,21 @@ def test_api_assistente_context_prepara_prompt_per_companion_locale(tmp_path: Pa
     assert payload["ok"] is True
     assert payload["query_type"] == "assistente_chat"
     assert payload["question"] == "Qual e' la prossima attivita' operativa?"
-    assert "CONTESTO FASCICOLO ATTIVO" in payload["prompt"]
-    assert "CONVERSAZIONE RECENTE" in payload["prompt"]
-    assert "PROFILO STUDIO" in payload["prompt"]
-    assert "IMPOSTAZIONI STUDIO" in payload["prompt"]
-    assert "PEC E CANALI EMAIL" in payload["prompt"]
-    assert "TEMPLATE ATTI" in payload["prompt"]
-    assert "PREVENTIVI" in payload["prompt"]
-    assert "FATTURAZIONE" in payload["prompt"]
-    assert "RICERCA LEGALE E FONTI WEB" in payload["prompt"]
+    assert "Fascicolo attivo:" in payload["prompt"]
+    assert "Memoria di sessione:" in payload["prompt"]
+    assert "=== PROFILO STUDIO ===" in payload["prompt"]
+    assert "=== IMPOSTAZIONI STUDIO ===" in payload["prompt"]
+    assert "=== PEC E CANALI EMAIL ===" in payload["prompt"]
+    assert "=== AGENDA ===" in payload["prompt"] or "=== SCADENZIARIO ===" in payload["prompt"]
     assert "studio@pec.example.it" in payload["prompt"]
     assert "smtp.pec.aruba.it" in payload["prompt"]
-    assert "assistente consultivo" in payload["prompt"]
-    assert fascicolo.id in payload["prompt"]
+    assert "assistente consultivo" in payload["prompt"] or "assistente consultivo di HACS" in payload["prompt"]
+    assert "CONVERSAZIONE RECENTE" not in payload["prompt"]
     assert payload["sources"]
     assert any(
-        citation == "Tariffario forense" or "Fonte ufficiale -" in citation
+        citation in {"Impostazioni studio", "PEC e canali email"}
+        or citation.startswith("Agenda -")
+        or citation.startswith("Scadenza -")
         for citation in payload["citations"]
     )
 
@@ -488,7 +487,7 @@ def test_api_assistente_context_integra_fonti_ufficiali_web_live(tmp_path: Path,
     payload = response.get_json()
     assert response.status_code == 200
     assert payload["ok"] is True
-    assert "VERIFICA LIVE FONTI UFFICIALI WEB" in payload["prompt"]
+    assert "=== VERIFICA LIVE FONTI UFFICIALI WEB ===" in payload["prompt"]
     assert "Normattiva: risorsa live raggiunta" in payload["prompt"]
     assert any(citation == "Fonte ufficiale live - Normattiva" for citation in payload["citations"])
     assert any(source["id"] == "live-web:normattiva" for source in payload["sources"])
@@ -728,3 +727,105 @@ def test_local_ai_connect_fallback_su_journal_delete_quando_wal_non_disponibile(
     assert conn is fake
     assert "PRAGMA journal_mode = WAL" in fake.commands
     assert "PRAGMA journal_mode = DELETE" in fake.commands
+
+
+def test_get_local_ai_service_riusa_singleton_applicativo_su_richieste_multiple(tmp_path: Path):
+    from web.services.local_ai_runtime import get_local_ai_service
+
+    _write_studio_config(tmp_path / "config" / "studio.json", enabled=True)
+    app = create_app(_cfg_web(tmp_path))
+
+    with app.test_request_context("/"):
+        first = get_local_ai_service()
+
+    with app.test_request_context("/"):
+        second = get_local_ai_service()
+
+    assert first is second
+    assert len(app.extensions.get("local_ai_services") or {}) == 1
+
+
+def test_resolved_ollama_runtime_cache_evita_health_snapshot_ripetuti(tmp_path: Path, monkeypatch):
+    from web.services.ollama_runtime import (
+        clear_ollama_runtime_resolution_cache,
+        resolved_ollama_api_base_url,
+        resolved_ollama_chat_model,
+    )
+
+    _write_studio_config(tmp_path / "config" / "studio.json", enabled=True)
+    app = create_app(_cfg_web(tmp_path))
+    calls = {"count": 0}
+
+    class FakeLocalAiService:
+        def health_snapshot(self):
+            calls["count"] += 1
+            return {
+                "runtime_base_url_live": "http://host.docker.internal:11434/api",
+                "resolved_models": {"chat": "gemma3:1b"},
+                "settings": {"base_url": "http://127.0.0.1:11434/api"},
+            }
+
+    monkeypatch.setattr("web.services.ollama_runtime.get_local_ai_service", lambda: FakeLocalAiService())
+
+    with app.app_context():
+        clear_ollama_runtime_resolution_cache()
+        assert resolved_ollama_api_base_url() == "http://host.docker.internal:11434/api"
+        assert resolved_ollama_chat_model("mistral") == "gemma3:1b"
+        assert resolved_ollama_api_base_url() == "http://host.docker.internal:11434/api"
+        assert resolved_ollama_chat_model("mistral") == "gemma3:1b"
+
+    assert calls["count"] == 1
+
+
+def test_assistente_chat_non_duplica_cronologia_nel_system_prompt_e_usa_keep_alive(tmp_path: Path, monkeypatch):
+    _write_studio_config(tmp_path / "config" / "studio.json", enabled=True)
+    app = create_app(_cfg_web(tmp_path))
+
+    class FakeLocalAiService:
+        def _load_settings(self):
+            return SimpleNamespace(keep_alive="12m")
+
+        def health_snapshot(self):
+            return {
+                "runtime_base_url_live": "http://host.docker.internal:11434/api",
+                "resolved_models": {"chat": "gemma3:1b"},
+                "settings": {"base_url": "http://127.0.0.1:11434/api"},
+            }
+
+    class FakeStreamResponse:
+        def iter_lines(self):
+            yield json.dumps({"message": {"content": "Ciao"}, "done": False}).encode("utf-8")
+            yield json.dumps({"done": True}).encode("utf-8")
+
+    captured: dict[str, object] = {}
+
+    def fake_post(url, json=None, stream=None, timeout=None):
+        captured["url"] = url
+        captured["json"] = json or {}
+        captured["stream"] = stream
+        captured["timeout"] = timeout
+        return FakeStreamResponse()
+
+    monkeypatch.setattr("web.services.ollama_runtime.get_local_ai_service", lambda: FakeLocalAiService())
+    monkeypatch.setattr("web.blueprints.assistente.requests.post", fake_post)
+
+    messages = [
+        {"role": "user", "content": "Apri il fascicolo Rossi."},
+        {"role": "assistant", "content": "Perfetto, lo sto leggendo."},
+        {"role": "user", "content": "Qual e' il prossimo adempimento?"},
+    ]
+
+    with app.test_client() as client:
+        client.post("/login", data={"username": "admin", "password": "admin"}, follow_redirects=True)
+        response = client.post("/api/assistente/chat", json={"messages": messages})
+
+    payload = captured["json"]
+    system_prompt = payload["messages"][0]["content"]
+
+    assert response.status_code == 200
+    assert captured["url"] == "http://host.docker.internal:11434/api/chat"
+    assert payload["model"] == "gemma3:1b"
+    assert payload["keep_alive"] == "12m"
+    assert "Memoria di sessione:" not in system_prompt
+    assert "CONVERSAZIONE RECENTE" not in system_prompt
+    assert payload["messages"][1:] == messages

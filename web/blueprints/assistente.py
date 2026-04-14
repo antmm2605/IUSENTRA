@@ -26,6 +26,10 @@ from flask import (
 )
 
 from web.helpers import get_legal_intelligence
+from web.services.assistente_prompt import (
+    build_assistente_prompt,
+    latest_user_message,
+)
 from web.services.assistente_studio_context import build_lex_studio_context, warm_lex_studio_context
 from web.services.assistente_document_export import (
     build_docx_bytes,
@@ -36,6 +40,9 @@ from web.services.ollama_runtime import (
     resolved_ollama_api_base_url,
     resolved_ollama_base_url,
     resolved_ollama_chat_model,
+    resolved_ollama_keep_alive,
+    resolved_ollama_runtime,
+    warm_ollama_chat_runtime,
 )
 from pct.legal_intelligence import fonti_per_query, motori_per_query
 from tools.lex_document_context import build_attachment_prompt_block, parse_attachment_payloads
@@ -244,13 +251,7 @@ def _build_fascicolo_context(fascicolo_id: str) -> str:
 
 
 def _latest_user_message(messages: list[dict[str, object]] | None) -> str:
-    for msg in reversed(messages or []):
-        if str(msg.get("role") or "") != "user":
-            continue
-        content = str(msg.get("content") or "").strip()
-        if content:
-            return content
-    return ""
+    return latest_user_message(messages)
 
 
 def _conversation_excerpt(messages: list[dict[str, object]] | None, limit: int = 8) -> str:
@@ -271,6 +272,7 @@ def _assistente_prompt(
     fascicolo_id: str,
     messages: list[dict[str, object]] | None,
     studio_context: str = "",
+    include_conversation: bool = False,
 ) -> str:
     parts = [_SYSTEM_PROMPT + _build_fascicolo_context(fascicolo_id)]
     if studio_context.strip():
@@ -297,6 +299,23 @@ def _assistente_prompt(
         ]
     )
     return "\n".join(part for part in parts if part is not None)
+
+
+def _assistente_prompt_modulare(
+    *,
+    question: str,
+    fascicolo_id: str,
+    messages: list[dict[str, object]] | None,
+    studio_context: str = "",
+    include_conversation: bool = False,
+) -> str:
+    return build_assistente_prompt(
+        question=question,
+        fascicolo_id=fascicolo_id,
+        studio_context=studio_context,
+        messages=messages,
+        include_conversation=include_conversation,
+    )
 
 
 def _normalized_attachments(raw: list[dict[str, object]] | None) -> list[dict[str, object]]:
@@ -326,12 +345,13 @@ def _normalized_attachments(raw: list[dict[str, object]] | None) -> list[dict[st
 @_richiedi_login
 def assistente_stato():
     try:
-        r = requests.get(f"{_ollama_api_url()}/tags", timeout=3)
+        runtime = resolved_ollama_runtime()
+        r = requests.get(f"{runtime.get('api_base_url') or _ollama_api_url()}/tags", timeout=3)
         modelli = [m["name"] for m in r.json().get("models", [])]
         return {
             "ok": True,
-            "url": _ollama_url(),
-            "modello_attivo": _ollama_model(),
+            "url": runtime.get("base_url") or _ollama_url(),
+            "modello_attivo": runtime.get("chat_model") or _ollama_model(),
             "modelli": modelli,
         }
     except requests.exceptions.ConnectionError:
@@ -349,19 +369,21 @@ def assistente_stato():
 @_richiedi_login
 def assistente_context():
     data = request.get_json(silent=True) or {}
-    messages = data.get("messages", [])
+    messages = list(data.get("messages", []) or [])[-12:]
     attachments = _normalized_attachments(data.get("attachments"))
     fascicolo_id = str(data.get("fascicolo_id", "") or "").strip()
     question = str(data.get("question", "") or "").strip() or _latest_user_message(messages)
     if not question:
         return {"ok": False, "errore": "Domanda mancante.", "prompt": "", "sources": [], "citations": []}, 200
 
-    studio_context = build_lex_studio_context(question)
-    prompt = _assistente_prompt(
+    runtime = resolved_ollama_runtime()
+    studio_context = build_lex_studio_context(question, mode="chat")
+    prompt = _assistente_prompt_modulare(
         question=question,
         fascicolo_id=fascicolo_id,
         messages=messages,
         studio_context=studio_context.get("prompt_block", ""),
+        include_conversation=True,
     )
     if attachments:
         prompt += "\n\n" + build_attachment_prompt_block(attachments)
@@ -372,7 +394,7 @@ def assistente_context():
             user=getattr(g.get("utente_corrente"), "username", ""),
             engine_ids=studio_context.get("engine_ids") or motori_per_query(question),
             source_ids=studio_context.get("source_ids") or fonti_per_query(question),
-            ai_model=_ollama_model(),
+            ai_model=runtime.get("chat_model") or _ollama_model(),
             result_summary="Contesto assistente Lex preparato per il companion locale.",
             warning="La risposta finale viene generata sul dispositivo cliente tramite companion locale.",
         )
@@ -397,10 +419,12 @@ def assistente_warmup():
     question = str(data.get("question", "") or "").strip()
     context_label = str(data.get("context_label", "") or "").strip()
     warmed = warm_lex_studio_context(question=question, context_label=context_label)
+    runtime = warm_ollama_chat_runtime()
     return {
         "ok": True,
         "prewarmed": True,
         "sources_ready": len(warmed.get("sources") or []),
+        "runtime": runtime,
     }, 200
 
 
@@ -458,26 +482,31 @@ def assistente_documento():
 @_richiedi_login
 def assistente_chat():
     data = request.get_json(silent=True) or {}
-    messages: list = data.get("messages", [])
+    messages: list = list(data.get("messages", []) or [])[-12:]
     attachments = _normalized_attachments(data.get("attachments"))
     fascicolo_id: str = data.get("fascicolo_id", "")
     last_user_message = _latest_user_message(messages)
-    studio_context = build_lex_studio_context(last_user_message)
+    runtime = resolved_ollama_runtime()
+    api_base_url = str(runtime.get("api_base_url") or _ollama_api_url()).rstrip("/")
+    chat_model = runtime.get("chat_model") or _ollama_model()
+    keep_alive = runtime.get("keep_alive") or resolved_ollama_keep_alive()
+    studio_context = build_lex_studio_context(last_user_message, mode="chat")
 
     # System prompt + eventuale contesto fascicolo
-    system_content = _assistente_prompt(
+    system_content = _assistente_prompt_modulare(
         question=last_user_message or "Richiesta operativa",
         fascicolo_id=fascicolo_id,
-        messages=messages[:-1],
+        messages=messages,
         studio_context=studio_context.get("prompt_block", ""),
     )
     if attachments:
         system_content += "\n\n" + build_attachment_prompt_block(attachments)
 
     payload = {
-        "model": _ollama_model(),
+        "model": chat_model,
         "messages": [{"role": "system", "content": system_content}] + messages,
         "stream": True,
+        "keep_alive": keep_alive,
         "options": {
             "temperature": 0.3,   # risposte più precise/deterministiche
             "num_ctx": 4096,
@@ -490,7 +519,7 @@ def assistente_chat():
             user=getattr(g.get("utente_corrente"), "username", ""),
             engine_ids=studio_context.get("engine_ids") or motori_per_query(last_user_message),
             source_ids=studio_context.get("source_ids") or fonti_per_query(last_user_message),
-            ai_model=_ollama_model(),
+            ai_model=chat_model,
             result_summary="Richiesta inviata all'assistente Lex.",
             warning="Risposta generativa locale: verificare sempre le fonti ufficiali prima dell'uso professionale.",
         )
@@ -500,7 +529,7 @@ def assistente_chat():
     def generate():
         try:
             r = requests.post(
-                f"{_ollama_api_url()}/chat",
+                f"{api_base_url}/chat",
                 json=payload,
                 stream=True,
                 timeout=180,

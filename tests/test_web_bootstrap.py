@@ -572,23 +572,31 @@ def test_contesto_lex_compatta_le_sezioni_e_limita_le_fonti():
     context_service = (REPO_ROOT / "web/services/assistente_studio_context.py").read_text(encoding="utf-8")
     cache_service = (REPO_ROOT / "web/services/assistente_context_cache.py").read_text(encoding="utf-8")
     assistente_blueprint = (REPO_ROOT / "web/blueprints/assistente.py").read_text(encoding="utf-8")
+    assistente_prompt = (REPO_ROOT / "web/services/assistente_prompt.py").read_text(encoding="utf-8")
 
     assert "def _select_detail_sections" in context_service
+    assert "def _select_detail_sections_for_chat" in context_service
     assert "def _should_include_live_web" in context_service
     assert "_DEFAULT_DETAIL_SECTION_TITLES" in context_service
+    assert "_CHAT_DETAIL_SECTION_TITLES" in context_service
     assert "_SECTION_KEYWORDS" in context_service
     assert "_cached_section_payload" in context_service
     assert "_SECTION_CACHE_TTLS" in context_service
     assert "_SECTION_DEPENDENCY_KEYS" in context_service
-    assert "selected_detail_titles = _select_detail_sections(q)" in context_service
-    assert "include_live_web = _should_include_live_web(q)" in context_service
-    assert '"sources": deduped_sources[:12]' in context_service
-    assert '"citations": [row.get("citation") for row in deduped_sources[:12] if row.get("citation")]' in context_service
+    assert 'chat_mode = str(mode or "").strip().lower() == "chat"' in context_service
+    assert "selected_detail_titles = _select_detail_sections_for_chat(q) if chat_mode else _select_detail_sections(q)" in context_service
+    assert "include_live_web = _should_include_live_web(q, chat_mode=chat_mode)" in context_service
+    assert '"sources": deduped_sources[:10 if chat_mode else 12]' in context_service
     assert "warm_lex_studio_context" in context_service
     assert "cached_compute" in cache_service
     assert "build_file_fingerprint" in cache_service
     assert "question_signature" in cache_service
     assert '@assistente.route("/api/assistente/warmup", methods=["POST"])' in assistente_blueprint
+    assert "warm_ollama_chat_runtime" in assistente_blueprint
+    assert "resolved_ollama_keep_alive" in assistente_blueprint
+    assert "build_assistente_prompt" in assistente_prompt
+    assert "_PROMPT_PROFILE_BLOCKS" in assistente_prompt
+    assert "_PROMPT_PROFILE_KEYWORDS" in assistente_prompt
 
 
 def test_preparazione_udienza_guidata_usa_componenti_modulari_e_js_esterno():

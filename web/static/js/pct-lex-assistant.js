@@ -63,6 +63,18 @@
       .replace(/'/g, '&#39;');
   }
 
+  function lexIconUrl() {
+    return (widget && widget.dataset && widget.dataset.lexIconUrl) || '/static/img/lex-mark.png';
+  }
+
+  function assistantAvatarMarkup() {
+    return (
+      '<div class="pct-ai-avatar pct-ai-avatar--ai">' +
+        '<img src="' + escapeHtml(lexIconUrl()) + '" alt="" aria-hidden="true" class="pct-ai-brand-mark pct-ai-brand-mark--avatar">' +
+      '</div>'
+    );
+  }
+
   function renderMarkdown(text) {
     if (!text) {
       return '';
@@ -125,11 +137,11 @@
     }
 
     var wrap = document.createElement('div');
-    var avatarIcon = role === 'user' ? 'person-fill' : 'stars';
-    var avatarClass = role === 'user' ? 'pct-ai-avatar--user' : 'pct-ai-avatar--ai';
     wrap.className = 'pct-ai-msg pct-ai-msg--' + role;
     wrap.innerHTML =
-      '<div class="pct-ai-avatar ' + avatarClass + '"><i class="bi bi-' + avatarIcon + '"></i></div>' +
+      (role === 'user'
+        ? '<div class="pct-ai-avatar pct-ai-avatar--user"><i class="bi bi-person-fill"></i></div>'
+        : assistantAvatarMarkup()) +
       '<div class="pct-ai-bubble">' + (content ? renderMarkdown(content) : '<span class="pct-ai-cursor">...</span>') + '</div>';
 
     messages.appendChild(wrap);
@@ -310,7 +322,7 @@
   function defaultIntroMarkup() {
     return (
       '<div class="pct-ai-msg pct-ai-msg--assistant">' +
-        '<div class="pct-ai-avatar pct-ai-avatar--ai"><i class="bi bi-stars"></i></div>' +
+        assistantAvatarMarkup() +
         '<div class="pct-ai-bubble">' +
           '<p>Ciao, sono <strong>Lex</strong>. Ti supporto su fascicoli, clienti, agenda, scadenziario, deposito telematico, firma digitale, PEC e moduli operativi dello studio.</p>' +
           '<ul>' +

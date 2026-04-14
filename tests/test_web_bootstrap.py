@@ -432,6 +432,7 @@ def test_lex_assistant_usa_componente_esterno_e_posizione_persistente():
     widget_voice_js = (REPO_ROOT / "web/static/js/pct-lex-assistant-voice.js").read_text(encoding="utf-8")
     widget_js = (REPO_ROOT / "web/static/js/pct-lex-assistant.js").read_text(encoding="utf-8")
     widget_scss = (REPO_ROOT / "web/static/scss/components/_pct-lex-assistant.scss").read_text(encoding="utf-8")
+    widget_icon = REPO_ROOT / "web/static/img/lex-mark.png"
 
     assert '{% include "components/pct_ai_widget.html" %}' in base_template
     assert "/static/js/local-ai-browser-bridge.js?v={{ app_version }}" in base_template
@@ -444,6 +445,7 @@ def test_lex_assistant_usa_componente_esterno_e_posizione_persistente():
     assert 'data-server-context-url="{{ url_for(\'assistente.assistente_context\') }}"' in widget_template
     assert 'data-server-attachments-url="{{ url_for(\'assistente.assistente_attachments\') }}"' in widget_template
     assert 'data-local-signer-url="http://127.0.0.1:27272"' in widget_template
+    assert 'data-lex-icon-url="{{ url_for(\'static\', filename=\'img/lex-mark.png\') }}?v={{ app_version }}"' in widget_template
     assert "data-local-signer-setup-windows" in widget_template
     assert 'data-ai-mode="{{ \'local\' if request.host.split(\':\')[0] in [\'localhost\', \'127.0.0.1\'] else \'remote\' }}"' in widget_template
     assert 'data-pct-ai-drag-handle="true"' in widget_template
@@ -452,7 +454,11 @@ def test_lex_assistant_usa_componente_esterno_e_posizione_persistente():
     assert "Scarica il riepilogo della conversazione" in widget_template
     assert "Detta la richiesta a Lex" in widget_template
     assert "Ridimensiona la finestra di Lex" in widget_template
+    assert "pct-ai-brand-mark" in widget_template
+    assert "pct-ai-fab__label" not in widget_template
+    assert "pct-ai-header__subtitle" not in widget_template
     assert "<script>" not in widget_template
+    assert widget_icon.exists()
 
     assert "parseAttachments" in widget_docs_js
     assert "buildPromptBlock" in widget_docs_js
@@ -460,6 +466,8 @@ def test_lex_assistant_usa_componente_esterno_e_posizione_persistente():
     assert "SpeechRecognition" in widget_voice_js or "webkitSpeechRecognition" in widget_voice_js
     assert "speechSynthesis" in widget_voice_js
     assert "window.localStorage" in widget_js
+    assert "assistantAvatarMarkup" in widget_js
+    assert "dataset.lexIconUrl" in widget_js
     assert "resetPosition" in widget_js
     assert "startResize" in widget_js
     assert "handleUpload" in widget_js
@@ -489,6 +497,7 @@ def test_lex_assistant_usa_componente_esterno_e_posizione_persistente():
     assert "sendLocal(text);" in widget_js
 
     assert ".pct-ai-widget" in widget_scss
+    assert ".pct-ai-brand-mark" in widget_scss
     assert ".pct-ai-widget--custom" in widget_scss
     assert ".pct-ai-drag-hint" in widget_scss
     assert "cursor: move;" in widget_scss

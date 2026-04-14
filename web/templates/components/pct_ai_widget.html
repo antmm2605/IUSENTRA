@@ -12,6 +12,7 @@
   data-local-signer-setup-windows="{{ url_for('polis_local_signer_setup_windows') }}"
   data-local-signer-setup-macos="{{ url_for('polis_local_signer_setup_macos') }}"
   data-local-signer-setup-linux="{{ url_for('polis_local_signer_setup_linux') }}"
+  data-lex-icon-url="{{ url_for('static', filename='img/lex-mark.png') }}?v={{ app_version }}"
   data-storage-key="hacs-pct-ai-layout-v1"
 >
   <button
@@ -22,11 +23,15 @@
     aria-label="Apri l'assistente Lex"
   >
     <span class="pct-ai-fab__halo" aria-hidden="true"></span>
-    <span class="pct-ai-fab__icon"><i class="bi bi-stars"></i></span>
-    <span class="pct-ai-fab__label">
-      <strong>Lex</strong>
-      <small>Assistente PCT</small>
+    <span class="pct-ai-fab__icon">
+      <img
+        src="{{ url_for('static', filename='img/lex-mark.png') }}?v={{ app_version }}"
+        alt=""
+        aria-hidden="true"
+        class="pct-ai-brand-mark pct-ai-brand-mark--fab"
+      >
     </span>
+    <span class="visually-hidden">Apri l'assistente Lex</span>
   </button>
 
   <section
@@ -44,12 +49,15 @@
       title="Trascina il pannello per spostarlo"
     >
       <div class="pct-ai-header__brand">
-        <div class="pct-ai-header__icon"><i class="bi bi-stars"></i></div>
+        <div class="pct-ai-header__icon">
+          <img
+            src="{{ url_for('static', filename='img/lex-mark.png') }}?v={{ app_version }}"
+            alt=""
+            aria-hidden="true"
+            class="pct-ai-brand-mark pct-ai-brand-mark--header"
+          >
+        </div>
         <div class="pct-ai-header__copy">
-          <div class="pct-ai-header__title-row">
-            <strong>Lex</strong>
-            <span class="pct-ai-header__subtitle">Assistente PCT</span>
-          </div>
           <div class="pct-ai-header__meta">
             <span id="pct-ai-model-badge" class="pct-ai-model-badge">Verifica modello</span>
             <span id="pct-ai-voice-badge" class="pct-ai-model-badge">Voce pronta</span>
@@ -83,7 +91,14 @@
 
     <div id="pct-ai-messages" class="pct-ai-messages">
       <div class="pct-ai-msg pct-ai-msg--assistant">
-        <div class="pct-ai-avatar pct-ai-avatar--ai"><i class="bi bi-stars"></i></div>
+        <div class="pct-ai-avatar pct-ai-avatar--ai">
+          <img
+            src="{{ url_for('static', filename='img/lex-mark.png') }}?v={{ app_version }}"
+            alt=""
+            aria-hidden="true"
+            class="pct-ai-brand-mark pct-ai-brand-mark--avatar"
+          >
+        </div>
         <div class="pct-ai-bubble">
           <p>Ciao, sono <strong>Lex</strong>. Ti supporto su fascicoli, clienti, agenda, scadenziario, deposito telematico, firma digitale, PEC e moduli operativi dello studio.</p>
           <ul>

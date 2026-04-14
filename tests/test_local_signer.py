@@ -1768,15 +1768,11 @@ def test_tab_firma_mostra_download_local_signer_per_tutte_le_piattaforme(tmp_pat
     assert "/polisWeb/local-signer/setup/windows" in body
     assert "/polisWeb/local-signer/setup/macos" in body
     assert "/polisWeb/local-signer/setup/linux" in body
-    assert "/polisWeb/local-signer/download" in body
-    assert "/polisWeb/local-signer/download/uffici" in body
-    assert f"SetupLocalSigner-{version}.exe" in body
-    assert f"InstallaLocalSigner-{version}.command" in body
-    assert f"InstallaLocalSigner-{version}.run" in body
     assert f"Versione corrente pubblicata: v{version}" in body
-    assert "Su Windows con Local Signer lascia vuoto" in body
-    assert "bit4xpki.dll" in body
-    assert "https://studio-legale-pct-production.up.railway.app/impostazioni?tab=firma" in body
+    assert "Script Python" not in body
+    assert "Registro uffici PST" not in body
+    assert "Pacchetti disponibili:" not in body
+    assert "bit4xpki.dll" not in body
 
 
 def test_impostazioni_firma_carica_p12_nel_volume_configurato(tmp_path):

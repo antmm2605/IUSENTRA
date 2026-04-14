@@ -448,28 +448,8 @@
             <div class="text-muted mt-2" style="font-size:.75rem;">
               v{{ local_signer.version }} · Doppio clic per installare
             </div>
-            <div class="d-flex flex-wrap gap-2 mt-3">
-              <a href="{{ url_for('polis_local_signer_download') }}"
-                 class="btn btn-outline-secondary btn-sm"
-                 target="_blank" rel="noopener">
-                <i class="bi bi-file-earmark-code me-1"></i>Script Python
-              </a>
-              <a href="{{ url_for('polis_local_signer_download_uffici') }}"
-                 class="btn btn-outline-secondary btn-sm"
-                 target="_blank" rel="noopener">
-                <i class="bi bi-buildings me-1"></i>Registro uffici PST
-              </a>
-            </div>
             <div class="small text-muted mt-3">
-              Versione corrente pubblicata: v{{ local_signer.version }}<br>
-              Pacchetti disponibili:
-              <code>{{ local_signer.windows_filename }}</code>,
-              <code>{{ local_signer.macos_filename }}</code>,
-              <code>{{ local_signer.linux_filename }}</code><br>
-              Su Windows con Local Signer lascia vuoto il campo libreria PKCS#11:
-              Aruba Key rileva automaticamente <code>bit4xpki.dll</code>.<br>
-              Pagina ufficiale pacchetti:
-              <a href="{{ local_signer.download_page }}" target="_blank" rel="noopener">{{ local_signer.download_page }}</a>
+              Versione corrente pubblicata: v{{ local_signer.version }}
             </div>
           </div>
         </div>

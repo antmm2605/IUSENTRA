@@ -24,7 +24,7 @@ from flask import (
 )
 
 from web.helpers import get_legal_intelligence
-from web.services.local_ai_runtime import get_local_ai_service
+from web.services.assistente_studio_context import build_lex_studio_context
 from web.services.ollama_runtime import (
     resolved_ollama_api_base_url,
     resolved_ollama_base_url,
@@ -37,9 +37,12 @@ assistente = Blueprint("assistente", __name__)
 
 # ── System prompt ──────────────────────────────────────────────────────────────
 _SYSTEM_PROMPT = """\
-Sei Lex, l'assistente virtuale specializzato in deposito telematico italiano per studi legali.
+Sei Lex, l'assistente virtuale consultivo di HACS per studi legali.
 Parli sempre in italiano, in modo preciso, pratico e professionale.
 Se non sei sicuro di qualcosa, dillo chiaramente.
+Aiuti su deposito telematico, fascicoli, clienti, agenda, scadenziario, documenti, template atti,
+tariffario, preventivi, fatturazione, ricerca legale, archivio sentenze, strumenti legali e applicazioni.
+Non hai poteri decisionali: puoi solo fornire suggerimenti, check-list, rischi, prossimi passi e fonti.
 
 ═══ COMPETENZE PRINCIPALI ═══
 
@@ -251,8 +254,16 @@ def _conversation_excerpt(messages: list[dict[str, object]] | None, limit: int =
     return "\n".join(rows)
 
 
-def _assistente_prompt(*, question: str, fascicolo_id: str, messages: list[dict[str, object]] | None) -> str:
+def _assistente_prompt(
+    *,
+    question: str,
+    fascicolo_id: str,
+    messages: list[dict[str, object]] | None,
+    studio_context: str = "",
+) -> str:
     parts = [_SYSTEM_PROMPT + _build_fascicolo_context(fascicolo_id)]
+    if studio_context.strip():
+        parts.extend(["", studio_context.strip()])
     conversation = _conversation_excerpt(messages)
     if conversation:
         parts.extend(
@@ -332,12 +343,22 @@ def assistente_context():
     if not question:
         return {"ok": False, "errore": "Domanda mancante.", "prompt": "", "sources": [], "citations": []}, 200
 
+    studio_context = build_lex_studio_context(question)
+    prompt = _assistente_prompt(
+        question=question,
+        fascicolo_id=fascicolo_id,
+        messages=messages,
+        studio_context=studio_context.get("prompt_block", ""),
+    )
+    if attachments:
+        prompt += "\n\n" + build_attachment_prompt_block(attachments)
+
     try:
         get_legal_intelligence().registra_trace_risposta(
             query=question,
             user=getattr(g.get("utente_corrente"), "username", ""),
-            engine_ids=motori_per_query(question),
-            source_ids=fonti_per_query(question),
+            engine_ids=studio_context.get("engine_ids") or motori_per_query(question),
+            source_ids=studio_context.get("source_ids") or fonti_per_query(question),
             ai_model=_ollama_model(),
             result_summary="Contesto assistente Lex preparato per il companion locale.",
             warning="La risposta finale viene generata sul dispositivo cliente tramite companion locale.",
@@ -349,10 +370,9 @@ def assistente_context():
         "ok": True,
         "query_type": "assistente_chat",
         "question": question,
-        "prompt": _assistente_prompt(question=question, fascicolo_id=fascicolo_id, messages=messages)
-        + ("\n\n" + build_attachment_prompt_block(attachments) if attachments else ""),
-        "sources": [],
-        "citations": [],
+        "prompt": prompt,
+        "sources": studio_context.get("sources") or [],
+        "citations": studio_context.get("citations") or [],
         "attachments": attachments,
     }, 200
 
@@ -380,9 +400,15 @@ def assistente_chat():
     attachments = _normalized_attachments(data.get("attachments"))
     fascicolo_id: str = data.get("fascicolo_id", "")
     last_user_message = _latest_user_message(messages)
+    studio_context = build_lex_studio_context(last_user_message)
 
     # System prompt + eventuale contesto fascicolo
-    system_content = _SYSTEM_PROMPT + _build_fascicolo_context(fascicolo_id)
+    system_content = _assistente_prompt(
+        question=last_user_message or "Richiesta operativa",
+        fascicolo_id=fascicolo_id,
+        messages=messages[:-1],
+        studio_context=studio_context.get("prompt_block", ""),
+    )
     if attachments:
         system_content += "\n\n" + build_attachment_prompt_block(attachments)
 
@@ -400,8 +426,8 @@ def assistente_chat():
         get_legal_intelligence().registra_trace_risposta(
             query=last_user_message or "Richiesta assistente PCT",
             user=getattr(g.get("utente_corrente"), "username", ""),
-            engine_ids=motori_per_query(last_user_message),
-            source_ids=fonti_per_query(last_user_message),
+            engine_ids=studio_context.get("engine_ids") or motori_per_query(last_user_message),
+            source_ids=studio_context.get("source_ids") or fonti_per_query(last_user_message),
             ai_model=_ollama_model(),
             result_summary="Richiesta inviata all'assistente Lex.",
             warning="Risposta generativa locale: verificare sempre le fonti ufficiali prima dell'uso professionale.",

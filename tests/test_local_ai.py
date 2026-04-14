@@ -18,7 +18,11 @@ def _write_studio_config(path: Path, enabled: bool = True) -> None:
     path.write_text(
         json.dumps(
             {
-                "studio": {"nome": "Studio Test"},
+                "studio": {
+                    "nome": "Studio Test",
+                    "city": "Taurianova",
+                    "province": "RC",
+                },
                 "ai": {
                     "enabled": enabled,
                     "base_url": "http://127.0.0.1:11434/api",
@@ -71,6 +75,10 @@ def _cfg_web(tmp_path: Path) -> dict:
         "NORMATIVE_TABLES_DB": str(tmp_path / "intelligence" / "tabelle_normative.json"),
         "GIURISPRUDENZA_DB": str(tmp_path / "intelligence" / "giurisprudenza.json"),
         "WORKSPACE_INTELLIGENCE_DB": str(tmp_path / "intelligence" / "workspace_intelligence.json"),
+        "TEMPLATE_ATTI_DB": str(tmp_path / "template_atti" / "templates.json"),
+        "TEMPLATE_ATTI_PREFS_DB": str(tmp_path / "template_atti" / "editor_layout.json"),
+        "PREVENTIVI_DB": str(tmp_path / "preventivi" / "preventivi.json"),
+        "FATTURAZIONE_DB": str(tmp_path / "fatturazione" / "parcelle.json"),
         "LOCAL_AI_DB": str(tmp_path / "intelligence" / "local_ai.db"),
         "LOCAL_AI_POLICY": str(REPO_ROOT / "config" / "ai-policy.json"),
         "LOCAL_AI_MODELS_DIR": str(tmp_path / "intelligence" / "models"),
@@ -402,8 +410,18 @@ def test_api_assistente_context_prepara_prompt_per_companion_locale(tmp_path: Pa
     assert payload["question"] == "Qual e' la prossima attivita' operativa?"
     assert "CONTESTO FASCICOLO ATTIVO" in payload["prompt"]
     assert "CONVERSAZIONE RECENTE" in payload["prompt"]
+    assert "PROFILO STUDIO" in payload["prompt"]
+    assert "TEMPLATE ATTI" in payload["prompt"]
+    assert "PREVENTIVI" in payload["prompt"]
+    assert "FATTURAZIONE" in payload["prompt"]
+    assert "RICERCA LEGALE E FONTI WEB" in payload["prompt"]
+    assert "assistente consultivo" in payload["prompt"]
     assert fascicolo.id in payload["prompt"]
-    assert payload["sources"] == []
+    assert payload["sources"]
+    assert any(
+        citation == "Tariffario forense" or "Fonte ufficiale -" in citation
+        for citation in payload["citations"]
+    )
 
 
 def test_api_assistente_attachments_parse_documenti_locali(tmp_path: Path):

@@ -18,6 +18,8 @@ def _write_studio_config(path: Path) -> None:
                 "studio": {
                     "nome": "Studio Refactor",
                     "avvocato": "Avv. Refactor",
+                    "city": "Taurianova",
+                    "province": "RC",
                 },
                 "scheduler": {
                     "backup_ora": "03:30",
@@ -63,6 +65,10 @@ def _cfg_web(tmp_path: Path) -> dict:
         "NORMATIVE_TABLES_DB": str(tmp_path / "intelligence" / "tabelle_normative.json"),
         "GIURISPRUDENZA_DB": str(tmp_path / "intelligence" / "giurisprudenza.json"),
         "WORKSPACE_INTELLIGENCE_DB": str(tmp_path / "intelligence" / "workspace_intelligence.json"),
+        "TEMPLATE_ATTI_DB": str(tmp_path / "template_atti" / "templates.json"),
+        "TEMPLATE_ATTI_PREFS_DB": str(tmp_path / "template_atti" / "editor_layout.json"),
+        "PREVENTIVI_DB": str(tmp_path / "preventivi" / "preventivi.json"),
+        "FATTURAZIONE_DB": str(tmp_path / "fatturazione" / "parcelle.json"),
         "LOCAL_AI_DB": str(tmp_path / "intelligence" / "local_ai.db"),
         "LOCAL_AI_POLICY": str(REPO_ROOT / "config" / "ai-policy.json"),
         "LOCAL_AI_MODELS_DIR": str(tmp_path / "intelligence" / "models"),

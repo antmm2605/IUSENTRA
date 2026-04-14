@@ -312,13 +312,14 @@
       '<div class="pct-ai-msg pct-ai-msg--assistant">' +
         '<div class="pct-ai-avatar pct-ai-avatar--ai"><i class="bi bi-stars"></i></div>' +
         '<div class="pct-ai-bubble">' +
-          '<p>Ciao, sono <strong>Lex</strong>. Ti aiuto con deposito telematico, firma digitale, PEC e stati del fascicolo.</p>' +
+          '<p>Ciao, sono <strong>Lex</strong>. Ti supporto su fascicoli, clienti, agenda, scadenziario, deposito telematico, firma digitale, PEC e moduli operativi dello studio.</p>' +
           '<ul>' +
-            '<li>Preparazione buste e invio depositi PCT, PDP e PAT</li>' +
-            '<li>Lettura errori, esiti controlli e stati di cancelleria</li>' +
-            '<li>Verifiche operative su firma digitale, PEC e PDF/A</li>' +
-            '<li>Richiami rapidi alla normativa del deposito telematico</li>' +
+            '<li>Suggerimenti su PCT, PDP, PAT, firma digitale, PEC e PDF/A</li>' +
+            '<li>Supporto consultivo su clienti, agenda, scadenziario, soggetti e fascicoli</li>' +
+            '<li>Contesto operativo su template atti, tariffario, preventivi, fatturazione e applicazioni</li>' +
+            '<li>Piste di ricerca legale con archivio sentenze e fonti ufficiali web</li>' +
           '</ul>' +
+          '<p>Lex resta sempre consultivo: suggerisce controlli, rischi e prossimi passi, ma non prende decisioni al posto del professionista.</p>' +
           '<p>Se HACS e\' online, Lex usa il companion locale di questo dispositivo per parlare con Ollama in modo sicuro e non bloccante.</p>' +
           '<p>Puoi caricare documenti, dettare la richiesta con la voce e scaricare il riepilogo operativo della conversazione.</p>' +
           '<p class="mb-0">Se il pannello ti intralcia, trascinalo o ridimensionalo: posizione e dimensioni restano salvate su questo browser.</p>' +

@@ -55,12 +55,27 @@ def is_pdf_download_request(text: str) -> bool:
 def has_verified_legal_reference(source: dict[str, Any]) -> bool:
     if bool(source.get("verified_reference")):
         return True
+    verification_state = _normalize_text(
+        source.get("stato_verifica_fonte") or source.get("stato_verifica")
+    )
+    ecli = _clean_spaces(source.get("ecli"))
+    organo = _clean_spaces(source.get("organo_giudicante"))
+    numero = _clean_spaces(source.get("numero_sentenza") or source.get("numero_provvedimento"))
+    anno = _clean_spaces(source.get("anno_sentenza") or source.get("anno"))
     text = _clean_spaces(source.get("text"))
     title = _clean_spaces(source.get("title"))
     citation = _clean_spaces(source.get("citation"))
     official = _clean_spaces(
-        source.get("official_url") or source.get("final_url") or source.get("url")
+        source.get("official_url")
+        or source.get("url_pagina_ufficiale")
+        or source.get("url_pdf_ufficiale")
+        or source.get("final_url")
+        or source.get("url")
     )
+    if verification_state in {"verificata", "parzialmente_verificata"} and (
+        official or ecli or (organo and numero and anno)
+    ):
+        return True
     return bool((title or citation or text) and official)
 
 
@@ -72,7 +87,14 @@ def has_verified_pdf_reference(sources: list[dict[str, Any]] | None) -> bool:
     for row in collect_verified_legal_references(sources):
         final_url = _normalize_text(row.get("final_url") or row.get("url"))
         kind = _normalize_text(row.get("kind"))
-        if bool(row.get("downloadable_pdf")) or kind == "pdf" or final_url.endswith(".pdf"):
+        direct_pdf = _normalize_text(row.get("url_pdf_ufficiale"))
+        if (
+            bool(row.get("downloadable_pdf"))
+            or bool(row.get("pdf_ufficiale_presente"))
+            or kind == "pdf"
+            or final_url.endswith(".pdf")
+            or direct_pdf.endswith(".pdf")
+        ):
             return True
     return False
 

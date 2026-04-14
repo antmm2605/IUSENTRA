@@ -21,6 +21,10 @@ from lxml import html as lxml_html
 import pdfplumber
 
 from pct import cache as _cache
+from pct.giurisprudenza_corpus import (
+    GestioneCorpusGiurisprudenza,
+    derive_corpus_db_path,
+)
 from pct.legal_intelligence import FONTI_UFFICIALI
 
 USER_AGENT_GIURISPRUDENZA = "HACS-Giurisprudenza/1.0"
@@ -167,7 +171,8 @@ def _extract_case_reference(text: str) -> str:
         return ""
     eu_refs = re.findall(r"\b(?:[A-Z]{1,3}-\d+/\d+(?:\s*[A-Z])?)\b", raw)
     if eu_refs:
-        return "; ".join(eu_refs[:4])
+        unique_refs = list(dict.fromkeys(ref.strip() for ref in eu_refs if ref.strip()))
+        return "; ".join(unique_refs[:4])
     application_ref = re.search(r"\b(\d{3,6}/\d{2,4}(?:\s*;\s*\d{3,6}/\d{2,4})*)\b", raw)
     if application_ref:
         return re.sub(r"\s*;\s*", "; ", application_ref.group(1))
@@ -602,8 +607,10 @@ def tassonomia_flat() -> Dict[str, List[str]]:
 class GestioneGiurisprudenza:
     def __init__(self, db_path: str = "./intelligence/giurisprudenza.json", timeout: int = 12):
         self.db_path = db_path
+        self.corpus_db_path = derive_corpus_db_path(db_path)
         self.timeout = timeout
         self._data: Dict[str, Any] = self._empty_storage()
+        self._corpus = GestioneCorpusGiurisprudenza(self.corpus_db_path)
         self._load()
 
     def _empty_storage(self) -> Dict[str, Any]:
@@ -758,6 +765,7 @@ class GestioneGiurisprudenza:
         judgments = list(self._data.get("judgments", []))
         source_ids = {item.get("source_system") for item in judgments if item.get("source_system")}
         aree = {item.get("area") for item in judgments if item.get("area")}
+        corpus_stats = self._corpus.storage_stats()
         return {
             "totale_sentenze": len(judgments),
             "fonti_attive": len(self._data.get("legal_sources", [])),
@@ -768,6 +776,10 @@ class GestioneGiurisprudenza:
             "documenti_raw": len(self._data.get("raw_documents", [])),
             "testi_normalizzati": len(self._data.get("judgment_texts", [])),
             "fascicoli_collegati": len(self._data.get("practice_judgments", [])),
+            "corpus_professionale_attivo": True,
+            "corpus_sentenze": int(corpus_stats.get("sentenze", 0)),
+            "corpus_documenti": int(corpus_stats.get("documenti_sentenza", 0)),
+            "corpus_principi": int(corpus_stats.get("principi_diritto", 0)),
         }
 
     def filtri(self) -> Dict[str, List[str]]:
@@ -810,7 +822,7 @@ class GestioneGiurisprudenza:
         return rows[:limit]
 
     def storage_stats(self) -> Dict[str, int]:
-        return {
+        stats = {
             "storage_version": int(self._data.get("storage_version") or GIURISPRUDENZA_STORAGE_VERSION),
             "legal_sources": len(self._data.get("legal_sources", [])),
             "ingestion_runs": len(self._data.get("ingestion_runs", [])),
@@ -819,6 +831,43 @@ class GestioneGiurisprudenza:
             "judgment_texts": len(self._data.get("judgment_texts", [])),
             "practice_judgments": len(self._data.get("practice_judgments", [])),
         }
+        corpus_stats = self._corpus.storage_stats()
+        stats["corpus_sentenze"] = int(corpus_stats.get("sentenze", 0))
+        stats["corpus_documenti"] = int(corpus_stats.get("documenti_sentenza", 0))
+        stats["corpus_massime"] = int(corpus_stats.get("massime", 0))
+        stats["corpus_principi"] = int(corpus_stats.get("principi_diritto", 0))
+        return stats
+
+    def cerca_corpus_professionale(
+        self,
+        *,
+        q: str = "",
+        organo_giudicante: str = "",
+        materia_principale: str = "",
+        stato_verifica: str = "",
+        solo_con_pdf: bool = False,
+        limit: int = 20,
+    ) -> List[Dict[str, Any]]:
+        return self._corpus.cerca_sentenze(
+            q=q,
+            organo_giudicante=organo_giudicante,
+            materia_principale=materia_principale,
+            stato_verifica=stato_verifica,
+            solo_con_pdf=solo_con_pdf,
+            limit=limit,
+        )
+
+    def scheda_corpus_professionale(self, sentenza_id: Any) -> Dict[str, Any] | None:
+        try:
+            return self._corpus.get_sentenza(int(sentenza_id))
+        except (TypeError, ValueError):
+            return None
+
+    def riferimento_professionale_verificato(self, sentenza_id: Any) -> bool:
+        return self._corpus.can_cite_sentenza(self.scheda_corpus_professionale(sentenza_id))
+
+    def pdf_professionale_disponibile(self, sentenza_id: Any) -> bool:
+        return self._corpus.can_offer_pdf(self.scheda_corpus_professionale(sentenza_id))
 
     def empty_record(self, source_id: str = "manuale_interno") -> Dict[str, Any]:
         source = self._source(source_id)
@@ -844,6 +893,7 @@ class GestioneGiurisprudenza:
             "parole_chiave": [],
             "massima": "",
             "principio_diritto": "",
+            "principio_sintetico": "",
             "abstract": "",
             "esito": "",
             "orientamento": "",
@@ -852,8 +902,14 @@ class GestioneGiurisprudenza:
             "ecli": "",
             "identificatore_stabile": "",
             "url_origine": source.official_url if source else "",
+            "url_pagina_ufficiale": source.official_url if source else "",
+            "url_pdf_ufficiale": "",
+            "stato_verifica_fonte": "da_verificare",
+            "fonte_ufficiale_confermata": False,
+            "pdf_ufficiale_presente": False,
             "collegamenti_precedenti": [],
             "collegamenti_norme": [],
+            "precedenti_citati": [],
             "fascicoli_collegati": [],
             "note_redazionali": "",
         }
@@ -1011,6 +1067,7 @@ class GestioneGiurisprudenza:
                 if str(item or "").strip()
             ),
         )
+        self._sync_record_to_corpus(record, payload=payload)
         self._save()
         return record
 
@@ -1290,6 +1347,7 @@ class GestioneGiurisprudenza:
                 "abstract": candidate.get("summary", ""),
                 "massima": candidate.get("massima", candidate.get("summary", "")),
                 "principio_diritto": candidate.get("principio_diritto", ""),
+                "principio_sintetico": candidate.get("principio_diritto", ""),
                 "tipo_provvedimento": candidate.get("tipo_provvedimento", ""),
                 "numero_provvedimento": candidate.get("numero_provvedimento", ""),
                 "data_deposito": candidate.get("data_deposito", ""),
@@ -1297,6 +1355,8 @@ class GestioneGiurisprudenza:
                 "ecli": candidate.get("ecli", ""),
                 "identificatore_stabile": stable_id,
                 "url_origine": candidate.get("url", source.official_url),
+                "url_pagina_ufficiale": candidate.get("url", source.official_url),
+                "url_pdf_ufficiale": candidate.get("pdf_url", candidate.get("url", "") if str(candidate.get("url", "")).lower().endswith(".pdf") else ""),
                 "organo_giudicante": candidate.get("organo_giudicante", source.nome),
                 "ufficio": candidate.get("ufficio", source.nome),
                 "sezione": candidate.get("sezione", ""),
@@ -1306,6 +1366,12 @@ class GestioneGiurisprudenza:
                 "materia": candidate.get("materia", ""),
                 "esito": candidate.get("esito", ""),
                 "parole_chiave": _split_multi(candidate.get("keywords", [])),
+                "stato_verifica_fonte": candidate.get(
+                    "stato_verifica",
+                    "parzialmente_verificata" if candidate.get("url") and source.access_mode in {"pubblico", "open_data"} else "da_verificare",
+                ),
+                "fonte_ufficiale_confermata": bool(candidate.get("url")) and source.access_mode in {"pubblico", "open_data"},
+                "pdf_ufficiale_presente": bool(candidate.get("pdf_url")) or str(candidate.get("url", "")).lower().endswith(".pdf"),
                 "note_redazionali": candidate.get(
                     "note_redazionali",
                     "Scheda generata da recupero automatico leggero. Verificare classificazione giuridica e massima.",
@@ -1322,6 +1388,7 @@ class GestioneGiurisprudenza:
             self._store_raw_document(source, candidate, record["id"], checked_at, run_id=run_id)
             self._store_text_version(record["id"], candidate.get("text_original") or payload.get("massima") or payload.get("abstract"))
             self._sync_practice_links(record)
+            self._sync_record_to_corpus(record, payload=payload)
             return "updated"
         saved = self._normalize_record(payload)
         judgments.append(saved)
@@ -1329,6 +1396,7 @@ class GestioneGiurisprudenza:
         self._store_raw_document(source, candidate, saved["id"], checked_at, run_id=run_id)
         self._store_text_version(saved["id"], candidate.get("text_original") or payload.get("massima") or payload.get("abstract"))
         self._sync_practice_links(saved)
+        self._sync_record_to_corpus(saved, payload=payload)
         return "created"
 
     def _sync_candidates_for_source(
@@ -1805,6 +1873,8 @@ class GestioneGiurisprudenza:
                 continue
             seen.add(url)
             context_node = anchor.getparent() if anchor.getparent() is not None else anchor
+            if getattr(context_node, "tag", "").lower() in {"body", "html"}:
+                context_node = anchor
             context = _clean_spaces(" ".join(context_node.xpath(".//text()")))
             combined = f"{text} {context}"
             candidates.append(
@@ -2047,6 +2117,7 @@ class GestioneGiurisprudenza:
             )
             self._store_text_version(record["id"], payload.get("text_original") or payload.get("raw_text") or record.get("abstract") or "")
             self._sync_practice_links(record)
+            self._sync_record_to_corpus(record, payload=payload)
             return {"created": False, "record": record}
         record = self._normalize_record(payload)
         judgments.append(record)
@@ -2065,6 +2136,7 @@ class GestioneGiurisprudenza:
         )
         self._store_text_version(record["id"], payload.get("text_original") or payload.get("raw_text") or record.get("abstract") or "")
         self._sync_practice_links(record)
+        self._sync_record_to_corpus(record, payload=payload)
         return {"created": True, "record": record}
 
     def _normalize_record(self, payload: Dict[str, Any]) -> Dict[str, Any]:
@@ -2101,6 +2173,7 @@ class GestioneGiurisprudenza:
             "parole_chiave": _split_multi(payload.get("parole_chiave") or existing.get("parole_chiave") or []),
             "massima": _clean_spaces(str(payload.get("massima") or existing.get("massima") or "")),
             "principio_diritto": _clean_spaces(str(payload.get("principio_diritto") or existing.get("principio_diritto") or "")),
+            "principio_sintetico": _clean_spaces(str(payload.get("principio_sintetico") or existing.get("principio_sintetico") or payload.get("principio_diritto") or "")),
             "abstract": _clean_spaces(str(payload.get("abstract") or existing.get("abstract") or "")),
             "esito": _clean_spaces(str(payload.get("esito") or existing.get("esito") or "")),
             "orientamento": _clean_spaces(str(payload.get("orientamento") or existing.get("orientamento") or "")),
@@ -2109,8 +2182,14 @@ class GestioneGiurisprudenza:
             "ecli": _clean_spaces(str(payload.get("ecli") or existing.get("ecli") or "")),
             "identificatore_stabile": stable,
             "url_origine": _clean_spaces(str(payload.get("url_origine") or existing.get("url_origine") or (source.official_url if source else ""))),
+            "url_pagina_ufficiale": _clean_spaces(str(payload.get("url_pagina_ufficiale") or existing.get("url_pagina_ufficiale") or payload.get("url_origine") or existing.get("url_origine") or (source.official_url if source else ""))),
+            "url_pdf_ufficiale": _clean_spaces(str(payload.get("url_pdf_ufficiale") or existing.get("url_pdf_ufficiale") or "")),
+            "stato_verifica_fonte": _clean_spaces(str(payload.get("stato_verifica_fonte") or existing.get("stato_verifica_fonte") or "da_verificare")),
+            "fonte_ufficiale_confermata": bool(payload.get("fonte_ufficiale_confermata") if payload.get("fonte_ufficiale_confermata") is not None else existing.get("fonte_ufficiale_confermata")),
+            "pdf_ufficiale_presente": bool(payload.get("pdf_ufficiale_presente") if payload.get("pdf_ufficiale_presente") is not None else existing.get("pdf_ufficiale_presente")),
             "collegamenti_precedenti": _split_multi(payload.get("collegamenti_precedenti") or existing.get("collegamenti_precedenti") or []),
             "collegamenti_norme": _split_multi(payload.get("collegamenti_norme") or existing.get("collegamenti_norme") or []),
+            "precedenti_citati": _split_multi(payload.get("precedenti_citati") or existing.get("precedenti_citati") or []),
             "fascicoli_collegati": _split_multi(payload.get("fascicoli_collegati") or existing.get("fascicoli_collegati") or []),
             "note_redazionali": _clean_spaces(str(payload.get("note_redazionali") or existing.get("note_redazionali") or "")),
             "created_at": existing.get("created_at") or now,
@@ -2120,6 +2199,181 @@ class GestioneGiurisprudenza:
             "access_mode": source.access_mode if source else "",
         }
         return record
+
+    def _corpus_payload_from_record(
+        self,
+        record: Dict[str, Any],
+        payload: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        raw_payload = dict(payload or {})
+        source = self._source(record.get("source_system") or "") or self._source("manuale_interno")
+        number = _clean_spaces(record.get("numero_provvedimento"))
+        year = 0
+        if "/" in number:
+            tail = number.split("/")[-1].strip()
+            if len(tail) == 4 and tail.isdigit():
+                year = int(tail)
+            elif len(tail) == 2 and tail.isdigit():
+                year = int(f"20{tail}")
+        source_kind = "ufficiale" if source and source.access_mode in {"pubblico", "open_data"} else "import_manuale"
+        stato_verifica = _clean_spaces(raw_payload.get("stato_verifica_fonte") or record.get("stato_verifica_fonte") or "")
+        if not stato_verifica:
+            if source and source.access_mode in {"pubblico", "open_data"} and record.get("url_pagina_ufficiale"):
+                stato_verifica = "parzialmente_verificata"
+            else:
+                stato_verifica = "da_verificare"
+        official_page = _clean_spaces(raw_payload.get("url_pagina_ufficiale") or record.get("url_pagina_ufficiale") or record.get("url_origine") or "")
+        official_pdf = _clean_spaces(raw_payload.get("url_pdf_ufficiale") or record.get("url_pdf_ufficiale") or "")
+        if not official_pdf and official_page.lower().endswith(".pdf"):
+            official_pdf = official_page
+        fonte_confermata = bool(
+            raw_payload.get("fonte_ufficiale_confermata")
+            if raw_payload.get("fonte_ufficiale_confermata") is not None
+            else record.get("fonte_ufficiale_confermata")
+        )
+        if not fonte_confermata and source and source.access_mode in {"pubblico", "open_data"} and official_page:
+            fonte_confermata = True
+        documents: List[Dict[str, Any]] = []
+        if official_page:
+            doc_type = "pdf_ufficiale" if official_pdf else ("html_ufficiale" if official_page.startswith("http") else "altro")
+            documents.append(
+                {
+                    "tipo_documento": doc_type,
+                    "titolo": record.get("titolo") or "Documento ufficiale",
+                    "url_origine": official_pdf or official_page,
+                    "mime_type": "application/pdf" if official_pdf else "text/html",
+                    "ufficiale": True,
+                    "valido": True,
+                }
+            )
+        for raw_item in self.raw_documents(record.get("id"))[:1]:
+            documents.append(
+                {
+                    "tipo_documento": "allegato",
+                    "titolo": record.get("titolo") or "Documento importato",
+                    "url_origine": raw_item.get("source_url") or "",
+                    "mime_type": raw_item.get("mime_type") or "",
+                    "sha256": raw_item.get("sha256") or "",
+                    "testo_estratto": raw_item.get("raw_text") or "",
+                    "testo_estratto_chars": len(raw_item.get("raw_text") or ""),
+                    "ufficiale": False,
+                    "valido": True,
+                }
+            )
+        principles = []
+        if record.get("principio_diritto"):
+            principles.append(
+                {
+                    "testo": record.get("principio_diritto"),
+                    "formulazione_breve": record.get("principio_sintetico") or record.get("principio_diritto"),
+                    "ufficiale": fonte_confermata,
+                    "livello_affidabilita": 80 if fonte_confermata else 55,
+                    "tema": record.get("microtema") or record.get("branca"),
+                    "sotto_tema": record.get("sottobranca"),
+                    "principale": True,
+                }
+            )
+        massime = []
+        if record.get("massima"):
+            massime.append(
+                {
+                    "testo": record.get("massima"),
+                    "sintetica": record.get("massima"),
+                    "ufficiale": fonte_confermata,
+                    "fonte_massima": source.nome if source else "",
+                    "stato_verifica": stato_verifica,
+                    "principale": True,
+                }
+            )
+        norms = [
+            {
+                "tipo_norma": "norma",
+                "testo_riferimento": ref,
+                "primaria": idx == 0,
+            }
+            for idx, ref in enumerate(_split_multi(record.get("norme_citate") or []))
+        ]
+        precedents = [
+            {
+                "riferimento_testuale": ref,
+                "tipo_relazione": "citata",
+                "verificata": fonte_confermata,
+            }
+            for ref in _split_multi(record.get("precedenti_citati") or record.get("collegamenti_precedenti") or [])
+        ]
+        verifications = []
+        if official_page:
+            verifications.append(
+                {
+                    "tipo_verifica": "esistenza_url",
+                    "esito": "ok" if fonte_confermata else "warning",
+                    "dettaglio": official_page,
+                }
+            )
+        if official_pdf:
+            verifications.append(
+                {
+                    "tipo_verifica": "pdf_presente",
+                    "esito": "ok",
+                    "dettaglio": official_pdf,
+                }
+            )
+        return {
+            "uuid_interno": record.get("identificatore_stabile") or record.get("id"),
+            "fonte": {
+                "codice": source.id if source else record.get("source_system") or "manuale_interno",
+                "nome": source.nome if source else record.get("source_label") or "Fonte interna",
+                "tipo_fonte": source_kind,
+                "ente": record.get("organo_giudicante") or (source.nome if source else ""),
+                "url_home": source.official_url if source else official_page,
+                "url_ricerca": source.search_url if source else "",
+            },
+            "ecli": record.get("ecli"),
+            "numero_sentenza": number,
+            "anno_sentenza": year,
+            "organo_giudicante": record.get("organo_giudicante") or record.get("ufficio") or (source.nome if source else ""),
+            "sezione": record.get("sezione"),
+            "data_decisione": record.get("data_decisione"),
+            "data_deposito": record.get("data_deposito"),
+            "area_diritto": record.get("area"),
+            "materia_principale": record.get("branca") or record.get("materia"),
+            "sottomateria_principale": record.get("sottobranca") or record.get("microtema"),
+            "rito": record.get("rito"),
+            "grado_giudizio": record.get("grado"),
+            "tipo_provvedimento": (record.get("tipo_provvedimento") or "provvedimento").lower(),
+            "titolo": record.get("titolo"),
+            "oggetto": record.get("materia") or record.get("microtema"),
+            "abstract": record.get("abstract"),
+            "principio_sintetico": record.get("principio_sintetico") or record.get("principio_diritto"),
+            "massima_ufficiale": record.get("massima"),
+            "testo_integrale": record.get("testo_integrale") or record.get("testo_normalizzato") or "",
+            "esito": record.get("esito"),
+            "orientamento": record.get("orientamento") or "non_classificato",
+            "rilevanza": 80 if record.get("uso_nel_software") == "precedente forte" else 55,
+            "precedente_guida": record.get("uso_nel_software") in {"precedente forte", "citabile in atto"},
+            "sezioni_unite": "sezioni unite" in _clean_spaces(record.get("sezione")).lower(),
+            "nomofilattica": bool(record.get("ecli")) and "cass" in _clean_spaces(record.get("ecli")).lower(),
+            "stato_verifica": stato_verifica,
+            "fonte_ufficiale_confermata": fonte_confermata,
+            "pdf_ufficiale_presente": bool(official_pdf),
+            "testo_integrale_presente": bool(record.get("testo_integrale") or record.get("testo_normalizzato")),
+            "url_pagina_ufficiale": official_page,
+            "url_pdf_ufficiale": official_pdf,
+            "url_html_ufficiale": official_page if official_page and not official_pdf else "",
+            "documenti": documents,
+            "massime": massime,
+            "principi_diritto": principles,
+            "norme": norms,
+            "precedenti": precedents,
+            "verifiche": verifications,
+        }
+
+    def _sync_record_to_corpus(
+        self,
+        record: Dict[str, Any],
+        payload: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        self._corpus.salva_sentenza(self._corpus_payload_from_record(record, payload=payload))
 
 
 __all__ = [

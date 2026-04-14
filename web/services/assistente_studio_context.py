@@ -1027,8 +1027,17 @@ def _archivio_sentenze_lines(question: str) -> tuple[list[str], list[dict[str, A
     gestore = get_giurisprudenza()
     stats = gestore.statistiche()
     rows = gestore.cerca(q=question)[:4] if _clean_spaces(question) else gestore.cerca()[:4]
+    corpus_rows = (
+        gestore.cerca_corpus_professionale(q=question, limit=4)
+        if _clean_spaces(question)
+        else gestore.cerca_corpus_professionale(limit=4)
+    )
     lines = [
-        f"Archivio sentenze: {stats.get('totale_sentenze', 0)} provvedimenti indicizzati, {stats.get('fonti_attive', 0)} fonti attive.",
+        (
+            f"Archivio sentenze: {stats.get('totale_sentenze', 0)} provvedimenti indicizzati, "
+            f"{stats.get('fonti_attive', 0)} fonti attive. "
+            f"Corpus professionale: {stats.get('corpus_sentenze', 0)} schede strutturate."
+        ),
     ]
     if rows:
         lines.append(
@@ -1039,18 +1048,98 @@ def _archivio_sentenze_lines(question: str) -> tuple[list[str], list[dict[str, A
                     110,
                 )
                 for row in rows
+              )
+              + "."
+          )
+    if corpus_rows:
+        lines.append(
+            "Corpus giurisprudenziale verificabile: "
+            + "; ".join(
+                _truncate(
+                    (
+                        f"{row.get('titolo') or row.get('organo_giudicante') or 'Pronuncia'} "
+                        f"({row.get('stato_verifica') or 'da verificare'})"
+                    ),
+                    120,
+                )
+                for row in corpus_rows
             )
             + "."
         )
-    sources = [
-        _source(
+    sources = []
+    seen_source_ids: set[str] = set()
+    for idx, row in enumerate(corpus_rows):
+        full_record = gestore.scheda_corpus_professionale(row.get("id"))
+        if not full_record:
+            continue
+        source_row = _source(
+            f"Corpus sentenze - {full_record.get('titolo') or full_record.get('organo_giudicante') or 'Pronuncia'}",
+            (
+                f"Organo: {full_record.get('organo_giudicante') or 'n.d.'}. "
+                f"Sezione: {full_record.get('sezione') or 'n.d.'}. "
+                f"Principio: {full_record.get('principio_sintetico') or full_record.get('massima_ufficiale') or full_record.get('abstract') or 'Pronuncia strutturata nel corpus giurisprudenziale.'}"
+            ),
+            source_id=f"corpus-sentenza:{full_record.get('id') or idx}",
+            title=full_record.get("titolo") or full_record.get("organo_giudicante") or "Pronuncia",
+        )
+        source_row["official_url"] = (
+            full_record.get("url_pagina_ufficiale")
+            or full_record.get("url_pdf_ufficiale")
+            or ""
+        )
+        source_row["url_pagina_ufficiale"] = full_record.get("url_pagina_ufficiale") or ""
+        source_row["url_pdf_ufficiale"] = full_record.get("url_pdf_ufficiale") or ""
+        source_row["stato_verifica_fonte"] = full_record.get("stato_verifica") or "da_verificare"
+        source_row["verified_reference"] = gestore.riferimento_professionale_verificato(full_record.get("id"))
+        source_row["downloadable_pdf"] = gestore.pdf_professionale_disponibile(full_record.get("id"))
+        source_row["pdf_ufficiale_presente"] = bool(full_record.get("pdf_ufficiale_presente"))
+        source_row["ecli"] = full_record.get("ecli") or ""
+        source_row["organo_giudicante"] = full_record.get("organo_giudicante") or ""
+        source_row["numero_provvedimento"] = full_record.get("numero_sentenza") or ""
+        source_row["anno"] = full_record.get("anno_sentenza") or ""
+        source_row_id = str(source_row.get("id") or "")
+        if source_row_id in seen_source_ids:
+            continue
+        seen_source_ids.add(source_row_id)
+        sources.append(source_row)
+    for idx, row in enumerate(rows):
+        official_url = (
+            row.get("url_pagina_ufficiale")
+            or row.get("url_pdf_ufficiale")
+            or row.get("url_origine")
+            or ""
+        )
+        source_row = _source(
             f"Archivio sentenze - {row.get('titolo') or row.get('organo_giudicante') or 'Pronuncia'}",
-            f"Area: {row.get('area') or 'n.d.'}. Branca: {row.get('branca') or 'n.d.'}. Sintesi: {row.get('sintesi') or row.get('massima') or 'Provvedimento disponibile in archivio.'}",
+            (
+                f"Area: {row.get('area') or 'n.d.'}. "
+                f"Branca: {row.get('branca') or 'n.d.'}. "
+                f"Sintesi: {row.get('sintesi') or row.get('massima') or 'Provvedimento disponibile in archivio.'}"
+            ),
             source_id=f"sentenza:{row.get('id') or row.get('hash') or idx}",
             title=row.get("titolo") or row.get("organo_giudicante") or "Pronuncia",
         )
-        for idx, row in enumerate(rows)
-    ]
+        source_row["official_url"] = official_url
+        source_row["url_pagina_ufficiale"] = row.get("url_pagina_ufficiale") or official_url
+        source_row["url_pdf_ufficiale"] = row.get("url_pdf_ufficiale") or ""
+        source_row["stato_verifica_fonte"] = row.get("stato_verifica_fonte") or "da_verificare"
+        source_row["verified_reference"] = (
+            row.get("stato_verifica_fonte") in {"verificata", "parzialmente_verificata"}
+            and bool(official_url or row.get("ecli"))
+        )
+        source_row["downloadable_pdf"] = bool(row.get("pdf_ufficiale_presente")) and bool(
+            row.get("url_pdf_ufficiale")
+        )
+        source_row["pdf_ufficiale_presente"] = bool(row.get("pdf_ufficiale_presente"))
+        source_row["ecli"] = row.get("ecli") or ""
+        source_row["organo_giudicante"] = row.get("organo_giudicante") or ""
+        source_row["numero_provvedimento"] = row.get("numero_provvedimento") or ""
+        source_row["anno"] = row.get("anno") or ""
+        source_row_id = str(source_row.get("id") or "")
+        if source_row_id in seen_source_ids:
+            continue
+        seen_source_ids.add(source_row_id)
+        sources.append(source_row)
     return lines, sources
 
 

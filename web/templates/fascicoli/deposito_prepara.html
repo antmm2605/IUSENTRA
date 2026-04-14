@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "components/firma_visibile_selector.html" import render_firma_visibile_selector %}
 {% set fascicolo_ref_principale = fascicolo.rg_completo or fascicolo.numero %}
 {% set fascicolo_ref_interno = fascicolo.numero if fascicolo.rg_completo else "" %}
 {% block title %}Deposito — {{ fascicolo_ref_principale }}{% endblock %}
@@ -482,6 +483,8 @@
           </div>
         </div>
 
+        {{ render_firma_visibile_selector('depositoFirma') }}
+
         {# ════════════ PATH L — Local Signer (Windows / Aruba Key in-device) ════════════ #}
         {# Usa http://localhost:27272 — avviare tools/avvia_local_signer.bat #}
         <div id="pathLocalSigner" style="display:none">
@@ -719,6 +722,7 @@
 {% endblock %}{# /modals #}
 
 {% block extra_scripts %}
+<script src="/static/js/firma-visibile-mode.js?v={{ app_version }}"></script>
 <script>
 let mainDocId = null;
 const allegatiSet = new Set();
@@ -753,6 +757,12 @@ function _base64ToUint8ArraySafe(b64) {
     bytes[i] = binary.charCodeAt(i);
   }
   return bytes;
+}
+
+function _depositoFirmaVisibleMode() {
+  return window.HacsFirmaVisibileMode
+    ? window.HacsFirmaVisibileMode.getSelectedMode('depositoFirma_firma_visibile_mode')
+    : 'laterale';
 }
 
 function _depositoUploadWarningText(payload) {
@@ -1031,6 +1041,7 @@ function avviaFirmaPkcs11() {
       documento_id: mainDocId,
       pin: pin,
       slot_id: _pkcs11TokenSlot,
+      visible_signature_mode: _depositoFirmaVisibleMode(),
     }),
   })
   .then(r => r.json())
@@ -1159,6 +1170,7 @@ function avviaFirmaLocalSigner() {
           pin: _lsPinSessionId ? '' : pin,
           pin_session_id: _lsPinSessionId || '',
           slot_id: _lsTokenSlot,
+          visible_signature_mode: _depositoFirmaVisibleMode(),
         }),
       });
     })

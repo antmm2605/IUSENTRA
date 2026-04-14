@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "components/firma_visibile_selector.html" import render_firma_visibile_selector %}
 {% set fascicolo_ref_principale = fascicolo.rg_completo or fascicolo.numero %}
 {% set fascicolo_ref_interno = fascicolo.numero if fascicolo.rg_completo else "" %}
 {% block title %}{{ fascicolo_ref_principale }} — {{ fascicolo.titolo }}{% endblock %}
@@ -3444,6 +3445,7 @@
         </div>
 
         {# ════ PATH L — Local Signer (Windows / Aruba Key) ════ #}
+        {{ render_firma_visibile_selector('dettaglioFirma') }}
         <div id="fPathLS" style="display:none">
           <div id="fLsInfo" class="alert alert-success small d-flex gap-2 mb-3">
             <i class="bi bi-usb-symbol flex-shrink-0 mt-1"></i><span></span>
@@ -3748,6 +3750,7 @@
 {% endblock %}{# /modals #}
 
 {% block scripts %}
+<script src="/static/js/firma-visibile-mode.js?v={{ app_version }}"></script>
 <script>
 // ---- Visualizzatore documenti inline con pannello certificati ----
 
@@ -4049,6 +4052,12 @@ function _detFBase64ToUint8ArraySafe(b64) {
   return bytes;
 }
 
+function _detFFirmaVisibleMode() {
+  return window.HacsFirmaVisibileMode
+    ? window.HacsFirmaVisibileMode.getSelectedMode('dettaglioFirma_firma_visibile_mode')
+    : 'laterale';
+}
+
 function _detFUploadWarningText(payload) {
   if (!payload || !payload.warning) return '';
   const codes = Array.isArray(payload.warning_codes) ? payload.warning_codes : [];
@@ -4264,7 +4273,13 @@ function _detFAvviaLS() {
       return fetch(_LS_BASE_DET + '/firma', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ documento: b64, pin: _detFLsPinSession ? '' : pin, pin_session_id: _detFLsPinSession || '', slot_id: _detFLsSlot }),
+        body: JSON.stringify({
+          documento: b64,
+          pin: _detFLsPinSession ? '' : pin,
+          pin_session_id: _detFLsPinSession || '',
+          slot_id: _detFLsSlot,
+          visible_signature_mode: _detFFirmaVisibleMode(),
+        }),
       });
     })
     .then(r => r.json())
@@ -4324,7 +4339,13 @@ function _detFAvviaPkcs11() {
   fetch('/api/firma/pkcs11/firma-documento', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ fascicolo_id: '{{ fascicolo.id }}', documento_id: _detFDoc.id, pin: pin, slot_id: _detFPkcsSlot }),
+    body: JSON.stringify({
+      fascicolo_id: '{{ fascicolo.id }}',
+      documento_id: _detFDoc.id,
+      pin: pin,
+      slot_id: _detFPkcsSlot,
+      visible_signature_mode: _detFFirmaVisibleMode(),
+    }),
   })
   .then(r => r.json())
   .then(d => {

@@ -513,7 +513,12 @@ class FirmaPKCS11:
 
     # ── firma in-device ──────────────────────────────────────────────────────
 
-    def _prepare_pdf_for_visible_signature(self, documento: bytes) -> bytes:
+    def _prepare_pdf_for_visible_signature(
+        self,
+        documento: bytes,
+        *,
+        visible_signature_mode: str = "laterale",
+    ) -> bytes:
         luogo = resolve_visible_signature_place(
             city=os.getenv("PCT_STUDIO_CITY", ""),
             address=os.getenv("PCT_STUDIO_INDIRIZZO", ""),
@@ -534,9 +539,16 @@ class FirmaPKCS11:
             luogo=luogo,
             issuer=issuer_cn,
             serial=format(getattr(self._cert, "serial_number", 0), "X"),
+            mode=visible_signature_mode,
         )
 
-    def firma_cades(self, documento: bytes, detached: bool = True) -> bytes:
+    def firma_cades(
+        self,
+        documento: bytes,
+        detached: bool = True,
+        *,
+        visible_signature_mode: str = "laterale",
+    ) -> bytes:
         """
         Firma un documento in formato CAdES-BES (.p7m) usando la chiave in-device.
 
@@ -553,7 +565,10 @@ class FirmaPKCS11:
         from pkcs11 import Attribute, ObjectClass, Mechanism
 
         if not detached:
-            documento = self._prepare_pdf_for_visible_signature(documento)
+            documento = self._prepare_pdf_for_visible_signature(
+                documento,
+                visible_signature_mode=visible_signature_mode,
+            )
 
         sess = self._get_session()
         cert = self._get_cert()
@@ -639,6 +654,8 @@ class FirmaPKCS11:
         documento: bytes,
         output_path: str,
         formato: str = "cades",
+        *,
+        visible_signature_mode: str = "laterale",
     ) -> str:
         """
         Firma e salva un documento (interfaccia compatibile con FirmaDigitale).
@@ -657,7 +674,11 @@ class FirmaPKCS11:
                 "Per PAdES usare FirmaDigitale con file P12/PEM."
             )
         detached = not documento.startswith(b"%PDF")
-        firmato = self.firma_cades(documento, detached=detached)
+        firmato = self.firma_cades(
+            documento,
+            detached=detached,
+            visible_signature_mode=visible_signature_mode,
+        )
         out = output_path if output_path.endswith(".p7m") else output_path + ".p7m"
         with open(out, "wb") as fh:
             fh.write(firmato)

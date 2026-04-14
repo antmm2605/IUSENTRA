@@ -2001,9 +2001,11 @@ def test_firma_documento_riusa_sessione_pin_in_ram():
             self.closed = False
             self.intestatario = "Avv. Test"
             self.scadenza = __import__("datetime").datetime(2029, 2, 23, 12, 0, 0)
+            self.visible_signature_modes = []
 
-        def firma_cades(self, documento, detached=False):
+        def firma_cades(self, documento, detached=False, visible_signature_mode="laterale"):
             self.calls += 1
+            self.visible_signature_modes.append(visible_signature_mode)
             return documento + b".p7m"
 
         def close(self):
@@ -2037,6 +2039,13 @@ def test_firma_documento_riusa_sessione_pin_in_ram():
     finally:
         module._create_pin_session = orig_create
         module._pin_session_cache = orig_cache
+
+    assert firmato1 == b"doc-1.p7m"
+    assert firmato2 == b"doc-2.p7m"
+    assert info1["pin_session_id"] == "sess-1"
+    assert info2["pin_session_id"] == "sess-1"
+    assert signer.calls == 2
+    assert signer.visible_signature_modes == ["laterale", "laterale"]
 
 
 def test_build_cades_bes_inline_restituisce_busta_pkcs7_valida_con_contenuto_embedded():
@@ -2141,13 +2150,21 @@ def test_firma_batch_riusa_sessione_pin_per_tutto_il_lotto():
     try:
         module._trova_libreria = lambda: "fake.dll"
 
-        def _fake_firma_documento(lib_path, documento, pin, slot_id, pin_session_id=None):
+        def _fake_firma_documento(
+            lib_path,
+            documento,
+            pin,
+            slot_id,
+            pin_session_id=None,
+            visible_signature_mode="laterale",
+        ):
             calls.append({
                 "lib_path": lib_path,
                 "documento": documento,
                 "pin": pin,
                 "slot_id": slot_id,
                 "pin_session_id": pin_session_id,
+                "visible_signature_mode": visible_signature_mode,
             })
             session_id = pin_session_id or "sess-1"
             return documento + b".p7m", {
@@ -2167,6 +2184,7 @@ def test_firma_batch_riusa_sessione_pin_per_tutto_il_lotto():
                 ],
                 "pin": "123456",
                 "slot_id": 0,
+                "visible_signature_mode": "basso_destra",
             }
         )
 
@@ -2181,8 +2199,10 @@ def test_firma_batch_riusa_sessione_pin_per_tutto_il_lotto():
     assert captured["payload"]["pin_session_id"] == "sess-1"
     assert calls[0]["pin"] == "123456"
     assert calls[0]["pin_session_id"] is None
+    assert calls[0]["visible_signature_mode"] == "basso_destra"
     assert calls[1]["pin"] == ""
     assert calls[1]["pin_session_id"] == "sess-1"
+    assert calls[1]["visible_signature_mode"] == "basso_destra"
 
 
 def test_download_documenti_batch_esegue_preflight_una_sola_volta():

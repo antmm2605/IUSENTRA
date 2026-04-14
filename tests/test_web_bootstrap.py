@@ -490,6 +490,8 @@ def test_lex_assistant_usa_componente_esterno_e_posizione_persistente():
 def test_modal_firma_deposito_prevede_riavvio_local_signer():
     dettaglio = (REPO_ROOT / "web/templates/fascicoli/dettaglio.html").read_text(encoding="utf-8")
     deposito = (REPO_ROOT / "web/templates/fascicoli/deposito_prepara.html").read_text(encoding="utf-8")
+    selector = (REPO_ROOT / "web/templates/components/firma_visibile_selector.html").read_text(encoding="utf-8")
+    helper_js = (REPO_ROOT / "web/static/js/firma-visibile-mode.js").read_text(encoding="utf-8")
 
     assert "Riavvia Local Signer" in dettaglio
     assert "hacs-local-signer://restart" in dettaglio
@@ -498,6 +500,16 @@ def test_modal_firma_deposito_prevede_riavvio_local_signer():
     assert "spazio limitato HACS ha sostituito la copia precedente" in dettaglio
     assert "sincronizzazione in tempo reale" in deposito
     assert "spazio limitato HACS ha sostituito la copia precedente" in deposito
+    assert '{% from "components/firma_visibile_selector.html" import render_firma_visibile_selector %}' in dettaglio
+    assert '{% from "components/firma_visibile_selector.html" import render_firma_visibile_selector %}' in deposito
+    assert "{{ render_firma_visibile_selector('dettaglioFirma') }}" in dettaglio
+    assert "{{ render_firma_visibile_selector('depositoFirma') }}" in deposito
+    assert "/static/js/firma-visibile-mode.js?v={{ app_version }}" in dettaglio
+    assert "/static/js/firma-visibile-mode.js?v={{ app_version }}" in deposito
+    assert "Laterale verticale" in selector
+    assert "In basso a destra" in selector
+    assert "window.HacsFirmaVisibileMode" in helper_js
+    assert "getSelectedMode" in helper_js
 
 
 def test_assistente_stato_usa_runtime_ollama_risolto(monkeypatch, tmp_path: Path):

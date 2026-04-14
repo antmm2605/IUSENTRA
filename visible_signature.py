@@ -5,9 +5,23 @@ import re
 from datetime import datetime
 from typing import Any
 
+CM_TO_PT = 28.35
+VISIBLE_SIGNATURE_MODE_LATERALE = "laterale"
+VISIBLE_SIGNATURE_MODE_BASSO_DESTRA = "basso_destra"
+VISIBLE_SIGNATURE_MODES = {
+    VISIBLE_SIGNATURE_MODE_LATERALE,
+    VISIBLE_SIGNATURE_MODE_BASSO_DESTRA,
+}
 VISIBLE_SIGNATURE_PREFIX = "Firmato digitalmente da"
 VISIBLE_SIGNATURE_DATE_LABEL = "Data e ora firma:"
 VISIBLE_SIGNATURE_METADATA_KEY = "/HACSSignatureStamp"
+
+
+def normalize_visible_signature_mode(value: Any) -> str:
+    mode = str(value or "").strip().lower()
+    if mode in VISIBLE_SIGNATURE_MODES:
+        return mode
+    return VISIBLE_SIGNATURE_MODE_LATERALE
 
 
 def resolve_visible_signature_place(*, city: str = "", address: str = "") -> str:
@@ -94,6 +108,23 @@ def build_visible_signature_text(
     return "\n".join(line for line in lines if line.strip())
 
 
+def _normalize_visible_signature_name(
+    intestatario: str = "",
+    *,
+    uppercase: bool = False,
+    force_avv_prefix: bool = False,
+) -> str:
+    value = str(intestatario or "").strip()
+    if not value:
+        return ""
+
+    normalized = value.upper()
+    if force_avv_prefix and not normalized.startswith(("AVV.", "AVV ", "AVVOCATO ", "AVVOCATA ")):
+        value = f"Avv. {value}"
+
+    return value.upper() if uppercase else value
+
+
 def has_visible_signature_stamp(pdf_data: bytes) -> bool:
     if not pdf_data.startswith(b"%PDF"):
         return False
@@ -117,6 +148,7 @@ def apply_visible_signature_stamp(
     luogo: str = "",
     issuer: str = "",
     serial: str = "",
+    mode: str = VISIBLE_SIGNATURE_MODE_LATERALE,
 ) -> bytes:
     if not pdf_data.startswith(b"%PDF"):
         return pdf_data
@@ -130,6 +162,7 @@ def apply_visible_signature_stamp(
         issuer=issuer,
         serial=serial,
     )
+    resolved_mode = normalize_visible_signature_mode(mode)
     if not stamp_text:
         return pdf_data
 
@@ -163,24 +196,27 @@ def apply_visible_signature_stamp(
                 overlay = canvas.Canvas(overlay_buffer, pagesize=(width, height))
 
                 muted = Color(0.23, 0.23, 0.23)
-                overlay.setFillColor(muted)
-                overlay.setFont("Helvetica", 6.4)
-                overlay.saveState()
-                overlay.translate(width - 8.5, 22)
-                overlay.rotate(90)
-                overlay.drawString(
-                    0,
-                    0,
-                    _build_visible_signature_side_text(
+                if resolved_mode == VISIBLE_SIGNATURE_MODE_BASSO_DESTRA:
+                    _draw_visible_signature_bottom_right_text(
+                        overlay,
+                        width=width,
+                        height=height,
+                        color=muted,
+                        intestatario=signer_name,
+                        data_firma=data_firma,
+                        luogo=signature_place,
+                    )
+                else:
+                    _draw_visible_signature_side_mark(
+                        overlay,
+                        width=width,
+                        height=height,
+                        color=muted,
                         intestatario=signer_name,
                         data_firma=data_firma,
                         luogo=signature_place,
                         issuer=issuer,
-                        serial=serial,
-                    ),
-                )
-                overlay.restoreState()
-                _draw_visible_signature_seal(overlay, width=width, height=height)
+                    )
 
                 overlay.save()
                 overlay_buffer.seek(0)
@@ -209,10 +245,16 @@ def apply_visible_signature_stamp(
         return _apply_visible_signature_stamp_fallback(
             pdf_data,
             stamp_text=stamp_text,
+            mode=resolved_mode,
         )
 
 
-def _apply_visible_signature_stamp_fallback(pdf_data: bytes, *, stamp_text: str) -> bytes:
+def _apply_visible_signature_stamp_fallback(
+    pdf_data: bytes,
+    *,
+    stamp_text: str,
+    mode: str = VISIBLE_SIGNATURE_MODE_LATERALE,
+) -> bytes:
     try:
         from pyhanko.pdf_utils.incremental_writer import IncrementalPdfFileWriter
         from pyhanko.pdf_utils.layout import BoxConstraints
@@ -232,8 +274,9 @@ def _apply_visible_signature_stamp_fallback(pdf_data: bytes, *, stamp_text: str)
             page_count = 1
 
         dest_page = page_count - 1
-        box_width = 236
-        box_height = 92
+        resolved_mode = normalize_visible_signature_mode(mode)
+        box_width = 280 if resolved_mode == VISIBLE_SIGNATURE_MODE_BASSO_DESTRA else 236
+        box_height = 72 if resolved_mode == VISIBLE_SIGNATURE_MODE_BASSO_DESTRA else 92
         page_width = 595.0
         try:
             page_ref, _ = writer.find_page_for_modification(dest_page)
@@ -243,15 +286,17 @@ def _apply_visible_signature_stamp_fallback(pdf_data: bytes, *, stamp_text: str)
         except Exception:
             page_width = 595.0
 
-        x = max(24, int(page_width - box_width - 24))
-        y = 28
+        x_margin = int(CM_TO_PT)
+        y_margin = int(CM_TO_PT)
+        x = max(x_margin, int(page_width - box_width - x_margin))
+        y = y_margin
         style = TextStampStyle(
             stamp_text=stamp_text,
             border_width=1,
             border_color=(0.12, 0.31, 0.55),
             text_box_style=TextBoxStyle(
-                font_size=9,
-                leading=11,
+                font_size=11 if resolved_mode == VISIBLE_SIGNATURE_MODE_BASSO_DESTRA else 10,
+                leading=13 if resolved_mode == VISIBLE_SIGNATURE_MODE_BASSO_DESTRA else 11,
                 text_color=(0.11, 0.16, 0.24),
             ),
         )
@@ -273,6 +318,7 @@ def prepare_document_for_signature(
     luogo: str = "",
     issuer: str = "",
     serial: str = "",
+    mode: str = VISIBLE_SIGNATURE_MODE_LATERALE,
 ) -> bytes:
     if not document_data.startswith(b"%PDF"):
         return document_data
@@ -283,6 +329,7 @@ def prepare_document_for_signature(
         luogo=luogo,
         issuer=issuer,
         serial=serial,
+        mode=mode,
     )
 
 
@@ -292,6 +339,7 @@ def apply_visible_signature_stamp_from_firme(
     *,
     city: str = "",
     address: str = "",
+    mode: str = VISIBLE_SIGNATURE_MODE_LATERALE,
 ) -> bytes:
     if not firme:
         return pdf_data
@@ -304,6 +352,7 @@ def apply_visible_signature_stamp_from_firme(
         luogo=resolve_visible_signature_place(city=city, address=address),
         issuer=str(signature.get("emittente_cn") or signature.get("emittente") or "").strip(),
         serial=str(signature.get("seriale") or "").strip(),
+        mode=mode,
     )
 
 
@@ -324,18 +373,19 @@ def _build_visible_signature_side_text(
     serial: str = "",
 ) -> str:
     segments: list[str] = []
-    signer_name = str(intestatario or "").strip()
+    signer_name = _normalize_visible_signature_name(
+        intestatario,
+        uppercase=True,
+        force_avv_prefix=True,
+    )
     issuer_value = str(issuer or "").strip()
-    serial_value = str(serial or "").strip()
     date_value = format_visible_signature_datetime(data_firma)
     place_value = str(luogo or "").strip()
 
     if signer_name:
-        segments.append(f"Firmato da: {signer_name.upper()}")
+        segments.append(f"Firmato da: {signer_name}")
     if issuer_value:
         segments.append(f"Emesso da: {issuer_value.upper()}")
-    if serial_value:
-        segments.append(f"Seriale: {serial_value.upper()}")
     if date_value:
         segments.append(f"Data e ora firma: {date_value}")
     if place_value:
@@ -343,14 +393,109 @@ def _build_visible_signature_side_text(
     return "  ".join(segments)
 
 
-def _draw_visible_signature_seal(overlay, *, width: float, height: float) -> None:
+def _build_visible_signature_bottom_lines(
+    *,
+    intestatario: str = "",
+    data_firma: Any = None,
+    luogo: str = "",
+) -> tuple[str, str]:
+    signer_name = str(intestatario or "").strip().upper()
+    place_value = str(luogo or "").strip()
+    date_value = format_visible_signature_datetime(data_firma)
+
+    first_line = VISIBLE_SIGNATURE_PREFIX
+    if signer_name:
+        first_line = f"{first_line} {signer_name}"
+
+    second_parts = []
+    if place_value:
+        second_parts.append(place_value)
+    if date_value:
+        second_parts.append(date_value)
+    second_line = " - ".join(part for part in second_parts if part).strip()
+    return first_line, second_line
+
+
+def _draw_visible_signature_side_mark(
+    overlay,
+    *,
+    width: float,
+    height: float,
+    color,
+    intestatario: str = "",
+    data_firma: Any = None,
+    luogo: str = "",
+    issuer: str = "",
+) -> None:
+    right_margin = CM_TO_PT
+    bottom_margin = CM_TO_PT
+    overlay.setFillColor(color)
+    overlay.setFont("Helvetica", 10)
+    overlay.saveState()
+    overlay.translate(width - right_margin, bottom_margin)
+    overlay.rotate(90)
+    overlay.drawString(
+        0,
+        0,
+        _build_visible_signature_side_text(
+            intestatario=intestatario,
+            data_firma=data_firma,
+            luogo=luogo,
+            issuer=issuer,
+        ),
+    )
+    overlay.restoreState()
+    _draw_visible_signature_seal(
+        overlay,
+        anchor_x=width - right_margin + 1.5,
+        anchor_y=bottom_margin - 3,
+    )
+
+
+def _draw_visible_signature_bottom_right_text(
+    overlay,
+    *,
+    width: float,
+    height: float,
+    color,
+    intestatario: str = "",
+    data_firma: Any = None,
+    luogo: str = "",
+) -> None:
+    del height
+    right_margin = CM_TO_PT
+    bottom_margin = CM_TO_PT
+    line_one, line_two = _build_visible_signature_bottom_lines(
+        intestatario=intestatario,
+        data_firma=data_firma,
+        luogo=luogo,
+    )
+
+    overlay.saveState()
+    overlay.setFillColor(color)
+    overlay.setFont("Helvetica", 11)
+    baseline_y = bottom_margin + 14
+    if line_two:
+        overlay.drawRightString(width - right_margin, baseline_y + 14, line_one)
+        overlay.drawRightString(width - right_margin, baseline_y, line_two)
+    else:
+        overlay.drawRightString(width - right_margin, baseline_y + 7, line_one)
+    overlay.restoreState()
+
+
+def _draw_visible_signature_seal(
+    overlay,
+    *,
+    anchor_x: float,
+    anchor_y: float,
+) -> None:
     try:
         from reportlab.lib.colors import Color
     except Exception:
         return
 
-    center_x = width - 11.5
-    center_y = 18
+    center_x = anchor_x
+    center_y = anchor_y
     outline = Color(0.55, 0.55, 0.55)
     fill = Color(0.92, 0.92, 0.92)
 

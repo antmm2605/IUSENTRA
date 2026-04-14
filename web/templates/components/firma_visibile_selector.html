@@ -1,0 +1,46 @@
+{% macro render_firma_visibile_selector(prefix='firmaVisibile') %}
+<div
+  class="alert alert-light border small mb-3"
+  id="{{ prefix }}VisibleSignatureRoot"
+  data-firma-visibile-root="true"
+  data-signature-mode-name="{{ prefix }}_firma_visibile_mode"
+>
+  <div class="fw-semibold mb-1">Modalità firma visibile nel PDF</div>
+  <div class="text-muted mb-2">
+    Scegli come mostrare la firma digitale nel documento prima del deposito.
+  </div>
+  <div class="d-grid gap-2">
+    <label class="border rounded px-3 py-2 d-flex gap-2 align-items-start">
+      <input
+        class="form-check-input mt-1"
+        type="radio"
+        name="{{ prefix }}_firma_visibile_mode"
+        value="laterale"
+      >
+      <span>
+        <span class="fw-semibold d-block">Laterale verticale</span>
+        <span class="text-muted">
+          Testo laterale sul margine destro con rientro di circa 1 cm, sigillo in basso e corpo 10.
+        </span>
+      </span>
+    </label>
+    <label class="border rounded px-3 py-2 d-flex gap-2 align-items-start">
+      <input
+        class="form-check-input mt-1"
+        type="radio"
+        name="{{ prefix }}_firma_visibile_mode"
+        value="basso_destra"
+      >
+      <span>
+        <span class="fw-semibold d-block">In basso a destra</span>
+        <span class="text-muted">
+          Testo orizzontale su due righe in basso a destra con corpo 11.
+        </span>
+      </span>
+    </label>
+  </div>
+  <div class="form-text mt-2">
+    La preferenza resta salvata su questo browser. Con la firma esterna la resa visibile finale dipende dal software di firma utilizzato.
+  </div>
+</div>
+{% endmacro %}

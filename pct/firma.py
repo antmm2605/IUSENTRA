@@ -232,7 +232,12 @@ class FirmaDigitale:
 
     # ---------------------------------------------------------------- firma
 
-    def _prepare_pdf_for_visible_signature(self, documento: bytes) -> bytes:
+    def _prepare_pdf_for_visible_signature(
+        self,
+        documento: bytes,
+        *,
+        visible_signature_mode: str = "laterale",
+    ) -> bytes:
         luogo = resolve_visible_signature_place(
             city=os.getenv("PCT_STUDIO_CITY", ""),
             address=os.getenv("PCT_STUDIO_INDIRIZZO", ""),
@@ -251,9 +256,16 @@ class FirmaDigitale:
             luogo=luogo,
             issuer=issuer_cn,
             serial=format(getattr(self._certificate, "serial_number", 0), "X"),
+            mode=visible_signature_mode,
         )
 
-    def firma_cades(self, documento: bytes, detached: bool = True) -> bytes:
+    def firma_cades(
+        self,
+        documento: bytes,
+        detached: bool = True,
+        *,
+        visible_signature_mode: str = "laterale",
+    ) -> bytes:
         """
         Firma un documento in formato CAdES (.p7m).
 
@@ -265,7 +277,10 @@ class FirmaDigitale:
             Documento firmato in formato CAdES
         """
         if not detached:
-            documento = self._prepare_pdf_for_visible_signature(documento)
+            documento = self._prepare_pdf_for_visible_signature(
+                documento,
+                visible_signature_mode=visible_signature_mode,
+            )
         builder = pkcs7.PKCS7SignatureBuilder()
         builder = builder.set_data(documento)
         builder = builder.add_signer(
@@ -280,7 +295,13 @@ class FirmaDigitale:
         signed = builder.sign(serialization.Encoding.DER, options)
         return signed
 
-    def firma_pades(self, pdf_path: str, output_path: str) -> str:
+    def firma_pades(
+        self,
+        pdf_path: str,
+        output_path: str,
+        *,
+        visible_signature_mode: str = "laterale",
+    ) -> str:
         """
         Firma un PDF in formato PAdES (firma incorporata nel PDF).
 
@@ -299,7 +320,10 @@ class FirmaDigitale:
 
             source_path = pdf_path
             original_pdf = Path(pdf_path).read_bytes()
-            prepared_pdf = self._prepare_pdf_for_visible_signature(original_pdf)
+            prepared_pdf = self._prepare_pdf_for_visible_signature(
+                original_pdf,
+                visible_signature_mode=visible_signature_mode,
+            )
             if prepared_pdf != original_pdf:
                 with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_visible:
                     tmp_visible.write(prepared_pdf)
@@ -330,7 +354,12 @@ class FirmaDigitale:
         return output_path
 
     def salva_documento_firmato(
-        self, documento: bytes, output_path: str, formato: str = "cades"
+        self,
+        documento: bytes,
+        output_path: str,
+        formato: str = "cades",
+        *,
+        visible_signature_mode: str = "laterale",
     ) -> str:
         """
         Firma e salva un documento.
@@ -345,7 +374,11 @@ class FirmaDigitale:
         """
         if formato == "cades":
             detached = not documento.startswith(b"%PDF")
-            firmato = self.firma_cades(documento, detached=detached)
+            firmato = self.firma_cades(
+                documento,
+                detached=detached,
+                visible_signature_mode=visible_signature_mode,
+            )
             out = output_path if output_path.endswith(".p7m") else output_path + ".p7m"
             with open(out, "wb") as f:
                 f.write(firmato)
@@ -356,7 +389,11 @@ class FirmaDigitale:
                 tmp.write(documento)
                 tmp_path = tmp.name
             try:
-                return self.firma_pades(tmp_path, output_path)
+                return self.firma_pades(
+                    tmp_path,
+                    output_path,
+                    visible_signature_mode=visible_signature_mode,
+                )
             finally:
                 try:
                     os.unlink(tmp_path)

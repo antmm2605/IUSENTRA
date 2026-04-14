@@ -2253,6 +2253,11 @@ def create_app(config: dict | None = None) -> Flask:
 
         return format_visible_signature_datetime(valore)
 
+    def _normalizza_modalita_firma_visibile(valore: str) -> str:
+        from visible_signature import normalize_visible_signature_mode
+
+        return normalize_visible_signature_mode(valore)
+
     def _testo_timbro_firma_visibile(firme: list[dict]) -> str:
         from visible_signature import build_visible_signature_text
 
@@ -12948,6 +12953,9 @@ read -r -p "Premi Invio per chiudere..." _
             id_doc        = data.get("documento_id", "").strip()
             pin           = data.get("pin", "")
             formato       = str(data.get("formato") or "cades").strip().lower()
+            visible_signature_mode = _normalizza_modalita_firma_visibile(
+                str(data.get("visible_signature_mode") or "laterale").strip()
+            )
             slot_raw      = data.get("slot_id")
 
             if not id_fasc or not id_doc:
@@ -13030,7 +13038,12 @@ read -r -p "Premi Invio per chiudere..." _
 
                 # Salva la versione firmata (aggiunge .p7m)
                 output_path = str(doc_path) + ".p7m"
-                firma.salva_documento_firmato(contenuto, str(doc_path), formato="cades")
+                firma.salva_documento_firmato(
+                    contenuto,
+                    str(doc_path),
+                    formato="cades",
+                    visible_signature_mode=visible_signature_mode,
+                )
                 # salva_documento_firmato aggiunge .p7m se non presente
                 firmato_path = output_path if output_path.endswith(".p7m") else str(doc_path) + ".p7m"
 
@@ -13091,6 +13104,7 @@ read -r -p "Premi Invio per chiudere..." _
                 ),
                 "warning": bool(warning_codes),
                 "warning_codes": warning_codes,
+                "visible_signature_mode": visible_signature_mode,
             })
 
         except Exception as e:
@@ -13121,6 +13135,9 @@ read -r -p "Premi Invio per chiudere..." _
             ]
             pin = data.get("pin", "")
             formato = str(data.get("formato") or "cades").strip().lower()
+            visible_signature_mode = _normalizza_modalita_firma_visibile(
+                str(data.get("visible_signature_mode") or "laterale").strip()
+            )
             slot_raw = data.get("slot_id")
 
             if not id_fasc or not documento_ids:
@@ -13225,7 +13242,12 @@ read -r -p "Premi Invio per chiudere..." _
                     with open(doc_path, "rb") as fh:
                         contenuto = fh.read()
 
-                    firma.salva_documento_firmato(contenuto, str(doc_path), formato="cades")
+                    firma.salva_documento_firmato(
+                        contenuto,
+                        str(doc_path),
+                        formato="cades",
+                        visible_signature_mode=visible_signature_mode,
+                    )
                     firmato_path = str(doc_path) + ".p7m"
                     nome_firmato = doc.nome if doc.nome.endswith(".p7m") else f"{doc.nome}.p7m"
 
@@ -13306,6 +13328,7 @@ read -r -p "Premi Invio per chiudere..." _
                 "risultati": risultati,
                 "warning": bool(warning_codes),
                 "warning_codes": warning_codes,
+                "visible_signature_mode": visible_signature_mode,
                 "messaggio": (
                     f"Firma batch completata: {firmati} firmati, {saltati} già firmati, {errori} errori."
                 ),

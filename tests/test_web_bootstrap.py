@@ -374,17 +374,20 @@ def test_notifiche_whatsapp_usa_js_esterno_e_date_localizzate():
 
 def test_ai_operativa_usa_bridge_browser_e_template_senza_logica_inline():
     fascicolo_template = (REPO_ROOT / "web/templates/fascicoli/dettaglio.html").read_text(encoding="utf-8")
+    fascicolo_component = (REPO_ROOT / "web/templates/components/fascicolo_smart_board.html").read_text(encoding="utf-8")
     workspace_template = (REPO_ROOT / "web/templates/workspace_intelligente.html").read_text(encoding="utf-8")
     bridge_js = (REPO_ROOT / "web/static/js/local-ai-browser-bridge.js").read_text(encoding="utf-8")
     fascicolo_js = (REPO_ROOT / "web/static/js/fascicolo-ai.js").read_text(encoding="utf-8")
     workspace_js = (REPO_ROOT / "web/static/js/workspace-ai.js").read_text(encoding="utf-8")
 
-    assert 'id="fascicolo-ai-root"' in fascicolo_template
-    assert 'data-local-signer-url="http://127.0.0.1:27272"' in fascicolo_template
+    assert '{% include "components/fascicolo_smart_board.html" %}' in fascicolo_template
     assert "/static/js/local-ai-browser-bridge.js?v={{ app_version }}" in fascicolo_template
     assert "/static/js/fascicolo-ai.js?v={{ app_version }}" in fascicolo_template
     assert "async function askFascicoloAi" not in fascicolo_template
     assert "async function _refreshFascicoloAiRuntime" not in fascicolo_template
+    assert 'id="fascicolo-ai-root"' in fascicolo_component
+    assert 'data-local-signer-url="http://127.0.0.1:27272"' in fascicolo_component
+    assert 'data-server-context-url="{{ url_for(\'api_fascicolo_ai_context\', id_fasc=fascicolo.id) }}"' in fascicolo_component
 
     assert 'id="workspace-ai-root"' in workspace_template
     assert 'data-local-signer-url="http://127.0.0.1:27272"' in workspace_template
@@ -510,6 +513,26 @@ def test_modal_firma_deposito_prevede_riavvio_local_signer():
     assert "In basso a destra" in selector
     assert "window.HacsFirmaVisibileMode" in helper_js
     assert "getSelectedMode" in helper_js
+
+
+def test_quadro_intelligente_fascicolo_e_collassabile_con_collegamenti_rapidi():
+    dettaglio = (REPO_ROOT / "web/templates/fascicoli/dettaglio.html").read_text(encoding="utf-8")
+    smart_board = (REPO_ROOT / "web/templates/components/fascicolo_smart_board.html").read_text(encoding="utf-8")
+    app_scss = (REPO_ROOT / "web/static/scss/app.scss").read_text(encoding="utf-8")
+    smart_board_scss = (REPO_ROOT / "web/static/scss/pages/_fascicolo-smart-board.scss").read_text(encoding="utf-8")
+
+    assert '{% include "components/fascicolo_smart_board.html" %}' in dettaglio
+    assert 'data-bs-target="#collapse-sezione-intelligenza-fascicolo"' in smart_board
+    assert 'id="collapse-sezione-intelligenza-fascicolo"' in smart_board
+    assert "Cambia stato" in smart_board
+    assert "Azioni" in smart_board
+    assert "Avanzamento pratica" in smart_board
+    assert "Cliente" in smart_board
+    assert "Parti del procedimento" in smart_board
+    assert "Collegamenti rapidi" in smart_board
+    assert "@use 'pages/fascicolo-smart-board';" in app_scss
+    assert ".fascicolo-smart-board__quick-link" in smart_board_scss
+    assert ".fascicolo-smart-board__hero" in smart_board_scss
 
 
 def test_assistente_stato_usa_runtime_ollama_risolto(monkeypatch, tmp_path: Path):

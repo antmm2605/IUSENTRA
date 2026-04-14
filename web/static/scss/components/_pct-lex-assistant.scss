@@ -287,6 +287,10 @@
   flex-direction: row-reverse;
 }
 
+.pct-ai-widget .pct-ai-msg--meta {
+  align-items: stretch;
+}
+
 .pct-ai-widget .pct-ai-avatar {
   width: 2rem;
   height: 2rem;
@@ -326,6 +330,13 @@
   line-height: 1.56;
   box-shadow: 0 12px 28px rgba(15, 23, 42, 0.06);
   word-break: break-word;
+}
+
+.pct-ai-widget .pct-ai-bubble--meta {
+  background: linear-gradient(180deg, rgba(18, 61, 114, 0.08), rgba(18, 61, 114, 0.03));
+  border-style: dashed;
+  color: #1e3a5f;
+  font-size: 0.8rem;
 }
 
 .pct-ai-widget .pct-ai-bubble p {
@@ -585,6 +596,50 @@
   padding-right: 2rem;
   font-size: 0.74rem;
   color: #64748b;
+  display: flex;
+  align-items: center;
+}
+
+.pct-ai-widget .pct-ai-status-pill,
+.pct-ai-widget .pct-ai-status-reflection {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 1.9rem;
+  padding: 0.2rem 0.62rem;
+  border-radius: 999px;
+  font-weight: 600;
+}
+
+.pct-ai-widget .pct-ai-status-pill {
+  color: #12467c;
+  background: rgba(37, 99, 235, 0.08);
+}
+
+.pct-ai-widget .pct-ai-status-pill span:last-child {
+  animation: pct-lex-soft-blink 1.25s ease-in-out infinite;
+}
+
+.pct-ai-widget .pct-ai-status-reflection {
+  color: #30516d;
+  background: rgba(148, 163, 184, 0.14);
+}
+
+.pct-ai-widget .pct-ai-status-pill__dot {
+  width: 0.54rem;
+  height: 0.54rem;
+  border-radius: 50%;
+  background: #2563eb;
+  box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.34);
+  animation: pct-lex-thinking-pulse 1.2s ease-in-out infinite;
+}
+
+.pct-ai-widget .pct-ai-thinking-complete {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: #1d4ed8;
+  font-weight: 600;
 }
 
 .pct-ai-widget .pct-ai-resize-handle {
@@ -616,6 +671,31 @@
 @keyframes pct-lex-blink {
   50% {
     opacity: 0;
+  }
+}
+
+@keyframes pct-lex-thinking-pulse {
+  0% {
+    transform: scale(0.88);
+    box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.34);
+  }
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0.38rem rgba(37, 99, 235, 0);
+  }
+  100% {
+    transform: scale(0.88);
+    box-shadow: 0 0 0 0 rgba(37, 99, 235, 0);
+  }
+}
+
+@keyframes pct-lex-soft-blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.56;
   }
 }
 

@@ -501,6 +501,9 @@ def test_lex_assistant_usa_componente_esterno_e_posizione_persistente():
     assert "DEFAULT_SILENCE_MS = 3000" in widget_voice_js
     assert "recognition.continuous = true" in widget_voice_js
     assert "preferFemale" in widget_voice_js
+    assert "splitSpeechChunks" in widget_voice_js
+    assert "NATURAL_HINTS" in widget_voice_js
+    assert "window.setTimeout(speakNext, 80)" in widget_voice_js
     assert "window.localStorage" in widget_js
     assert "window.sessionStorage" in widget_js
     assert "saveConversationMemory" in widget_js
@@ -509,6 +512,11 @@ def test_lex_assistant_usa_componente_esterno_e_posizione_persistente():
     assert "primeAssistantContext" in widget_js
     assert "widget.dataset.warmupUrl" in widget_js
     assert "state.contextWarmStarted = true" in widget_js
+    assert "buildThinkingNote" in widget_js
+    assert "Sto pensando" in widget_js
+    assert "Riflessione" in widget_js
+    assert "pct-ai-status-pill" in widget_js
+    assert "appendMetaMessage" in widget_js
     assert "assistantAvatarMarkup" in widget_js
     assert "dataset.lexIconUrl" in widget_js
     assert "resetPosition" in widget_js
@@ -548,6 +556,11 @@ def test_lex_assistant_usa_componente_esterno_e_posizione_persistente():
     assert ".pct-ai-widget--custom" in widget_scss
     assert ".pct-ai-drag-hint" in widget_scss
     assert "cursor: move;" in widget_scss
+    assert ".pct-ai-msg--meta" in widget_scss
+    assert ".pct-ai-bubble--meta" in widget_scss
+    assert ".pct-ai-status-pill" in widget_scss
+    assert "@keyframes pct-lex-thinking-pulse" in widget_scss
+    assert "@keyframes pct-lex-soft-blink" in widget_scss
     assert ".pct-ai-toolbar" in widget_scss
     assert ".pct-ai-attachments" in widget_scss
     assert ".pct-ai-resize-handle" in widget_scss

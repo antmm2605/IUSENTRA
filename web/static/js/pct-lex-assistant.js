@@ -23,6 +23,7 @@
     resize: null,
     listening: false,
     voiceReplyEnabled: true,
+    thinking: null,
   };
 
   var widget;
@@ -113,8 +114,18 @@
 
   function setStatus(message) {
     if (statusBar) {
+      statusBar.classList.remove('is-thinking', 'is-reflection');
       statusBar.textContent = message || '';
     }
+  }
+
+  function setStatusHtml(html, mode) {
+    if (!statusBar) {
+      return;
+    }
+    statusBar.classList.toggle('is-thinking', mode === 'thinking');
+    statusBar.classList.toggle('is-reflection', mode === 'reflection');
+    statusBar.innerHTML = html || '';
   }
 
   function browserBridge() {
@@ -153,6 +164,22 @@
     return wrap.querySelector('.pct-ai-bubble');
   }
 
+  function appendMetaMessage(content) {
+    if (!messages) {
+      return null;
+    }
+
+    var wrap = document.createElement('div');
+    wrap.className = 'pct-ai-msg pct-ai-msg--meta';
+    wrap.innerHTML =
+      assistantAvatarMarkup() +
+      '<div class="pct-ai-bubble pct-ai-bubble--meta">' + renderMarkdown(content || '') + '</div>';
+
+    messages.appendChild(wrap);
+    scrollBottom();
+    return wrap.querySelector('.pct-ai-bubble');
+  }
+
   function setBubbleContent(element, content) {
     if (element) {
       element.innerHTML = content ? renderMarkdown(content) : '<span class="pct-ai-cursor">...</span>';
@@ -167,6 +194,158 @@
 
   function renderSources(payload) {
     return '';
+  }
+
+  function queryProfile(question) {
+    var text = String(question || '').toLowerCase();
+    return {
+      liveWeb: /ultima|ultime|oggi|aggiornat|recente|sentenza|cassazione|tar|consiglio di stato|norma|normativa|decreto/.test(text),
+      documents: /document|allegat|verbale|memoria|ricorso|atto|bozza/.test(text),
+      deadlines: /scadenz|termine|udienza|agenda|calendario/.test(text),
+    };
+  }
+
+  function thinkingElapsedMs() {
+    if (!state.thinking || !state.thinking.startedAt) {
+      return 0;
+    }
+    return Math.max(0, Date.now() - state.thinking.startedAt);
+  }
+
+  function formatReflectionDuration(durationMs) {
+    var seconds = Math.max(0, Number(durationMs || 0)) / 1000;
+    return seconds.toLocaleString('it-IT', {
+      minimumFractionDigits: seconds < 10 ? 1 : 0,
+      maximumFractionDigits: seconds < 10 ? 1 : 0,
+    }) + ' s';
+  }
+
+  function buildThinkingNote(question, stage) {
+    var profile = queryProfile(question);
+    if (stage === 1) {
+      if (profile.liveWeb) {
+        return 'Cerco l’aggiornamento più recente su fonti ufficiali e ti porto una risposta concreta con data, giudice e principio.';
+      }
+      if (profile.documents) {
+        return 'Sto leggendo il contesto utile tra fascicolo, documenti e moduli intelligenti per risponderti in modo concreto.';
+      }
+      if (profile.deadlines) {
+        return 'Sto incrociando scadenze, agenda e stato operativo per darti un riepilogo davvero utilizzabile.';
+      }
+      return 'Sto preparando una risposta concreta, usando solo il contesto utile per non farti perdere tempo.';
+    }
+
+    if (profile.liveWeb) {
+      return 'Sto verificando i riferimenti più recenti e li sto trasformando in una sintesi utile, con i dettagli che contano davvero.';
+    }
+    if (profile.documents) {
+      return 'Sto selezionando solo i passaggi davvero rilevanti e li sto ordinando in una risposta chiara e pronta da usare.';
+    }
+    return 'Sto rifinendo la risposta per dartela già ordinata, leggibile e subito spendibile.';
+  }
+
+  function renderThinkingStatus() {
+    if (!state.thinking || !state.thinking.active) {
+      return;
+    }
+
+    var elapsed = thinkingElapsedMs();
+    var suffix = elapsed >= 1400 ? ' · ' + formatReflectionDuration(elapsed) : '';
+    setStatusHtml(
+      '<span class="pct-ai-status-pill">' +
+        '<span class="pct-ai-status-pill__dot"></span>' +
+        '<span>Sto pensando' + suffix + '</span>' +
+      '</span>',
+      'thinking'
+    );
+  }
+
+  function ensureThinkingNote(stage) {
+    if (!state.thinking || !state.thinking.active || state.thinking.receivedFirstToken) {
+      return;
+    }
+    var text = buildThinkingNote(state.thinking.question, stage);
+    if (!text) {
+      return;
+    }
+    if (!state.thinking.noteBubble) {
+      state.thinking.noteBubble = appendMetaMessage(text);
+      return;
+    }
+    setBubbleContent(state.thinking.noteBubble, text);
+  }
+
+  function stopThinkingTimers() {
+    if (!state.thinking) {
+      return;
+    }
+    if (state.thinking.statusTimer) {
+      window.clearInterval(state.thinking.statusTimer);
+      state.thinking.statusTimer = null;
+    }
+    if (state.thinking.stageOneTimer) {
+      window.clearTimeout(state.thinking.stageOneTimer);
+      state.thinking.stageOneTimer = null;
+    }
+    if (state.thinking.stageTwoTimer) {
+      window.clearTimeout(state.thinking.stageTwoTimer);
+      state.thinking.stageTwoTimer = null;
+    }
+  }
+
+  function startThinkingFeedback(question) {
+    stopThinkingTimers();
+    state.thinking = {
+      active: true,
+      question: String(question || '').trim(),
+      startedAt: Date.now(),
+      receivedFirstToken: false,
+      noteBubble: null,
+      statusTimer: window.setInterval(renderThinkingStatus, 250),
+      stageOneTimer: null,
+      stageTwoTimer: null,
+    };
+    renderThinkingStatus();
+    state.thinking.stageOneTimer = window.setTimeout(function () {
+      ensureThinkingNote(1);
+    }, 900);
+    state.thinking.stageTwoTimer = window.setTimeout(function () {
+      ensureThinkingNote(2);
+    }, 3200);
+  }
+
+  function markThinkingTokenReceived() {
+    if (!state.thinking || state.thinking.receivedFirstToken) {
+      return;
+    }
+    state.thinking.receivedFirstToken = true;
+    if (state.thinking.noteBubble) {
+      setBubbleHtml(
+        state.thinking.noteBubble,
+        '<div class="pct-ai-thinking-complete">' +
+          '<i class="bi bi-stars"></i>' +
+          '<span>Risposta in arrivo.</span>' +
+        '</div>'
+      );
+    }
+  }
+
+  function finalizeThinkingFeedback(success) {
+    if (!state.thinking) {
+      return;
+    }
+    var elapsed = thinkingElapsedMs();
+    stopThinkingTimers();
+    if (success) {
+      setStatusHtml(
+        '<span class="pct-ai-status-reflection">' +
+          '<i class="bi bi-hourglass-split"></i>' +
+          '<span>Riflessione · ' + formatReflectionDuration(elapsed) + '</span>' +
+        '</span>',
+        'reflection'
+      );
+    }
+    state.thinking.active = false;
   }
 
   function generatedDocumentPayload(payload) {
@@ -288,8 +467,9 @@
     }
     voice.speak(clean, {
       lang: 'it-IT',
-      rate: 0.96,
-      pitch: 1.05,
+      rate: 0.93,
+      pitch: 1.08,
+      volume: 0.98,
       preferFemale: true,
     });
   }
@@ -464,6 +644,7 @@
   }
 
   function clearHistory() {
+    finalizeThinkingFeedback(false);
     state.sessionId = generateSessionId();
     state.history = [];
     state.currentBubble = null;
@@ -580,7 +761,9 @@
     if (sendButton) {
       sendButton.disabled = false;
     }
-    setStatus(message || 'Assistente pronto.');
+    if (!(statusBar && statusBar.classList.contains('is-reflection'))) {
+      setStatus(message || 'Assistente pronto.');
+    }
     scrollBottom();
   }
 
@@ -653,6 +836,7 @@
             state.history.push({ role: 'assistant', content: full });
             saveConversationMemory();
             speakAnswer(full);
+            finalizeThinkingFeedback(true);
             finalizeRequest();
             return;
           }
@@ -672,6 +856,7 @@
                 state.history.push({ role: 'assistant', content: full });
                 saveConversationMemory();
                 speakAnswer(full);
+                finalizeThinkingFeedback(true);
                 finalizeRequest();
                 return;
               }
@@ -682,16 +867,19 @@
                 setBubbleContent(state.currentBubble, 'Attenzione: ' + data.errore);
                 state.history.push({ role: 'assistant', content: data.errore });
                 saveConversationMemory();
+                finalizeThinkingFeedback(false);
                 finalizeRequest();
                 return;
               }
               if (data.token) {
+                markThinkingTokenReceived();
                 full += data.token;
                 setBubbleContent(state.currentBubble, full);
                 scrollBottom();
               }
             } catch (error) {
               setBubbleContent(state.currentBubble, 'Risposta non leggibile ricevuta dal servizio.');
+              finalizeThinkingFeedback(false);
               finalizeRequest('Assistente momentaneamente non disponibile.');
             }
           });
@@ -707,6 +895,7 @@
       return readChunk();
     }).catch(function (error) {
       setBubbleContent(state.currentBubble, 'Errore di connessione: ' + escapeHtml(error.message));
+      finalizeThinkingFeedback(false);
       finalizeRequest('Connessione al runtime non riuscita.');
     });
   }
@@ -736,6 +925,7 @@
         return browserBridge()
           .streamCompanionRagQuery(bridgeConfig, prepared, {
             onToken: function (token) {
+              markThinkingTokenReceived();
               partial += String(token || '');
               setStatus('Lex sta scrivendo dal dispositivo locale...');
               setBubbleContent(state.currentBubble, partial);
@@ -758,11 +948,13 @@
         state.history.push({ role: 'assistant', content: String(payload.answer || '').trim() });
         saveConversationMemory();
         speakAnswer(payload.answer || '');
+        finalizeThinkingFeedback(true);
         checkStatus();
         finalizeRequest('Risposta generata sul dispositivo locale.');
       })
       .catch(function (error) {
         if (!error || !error.__companionStage) {
+          finalizeThinkingFeedback(false);
           setBubbleHtml(state.currentBubble, renderServerPreparationHelp(error));
           finalizeRequest(
             Number(error && error.httpStatus || 0) === 401 || Number(error && error.httpStatus || 0) === 403
@@ -773,6 +965,7 @@
         }
         var outdated = Number(error && error.httpStatus || 0) === 404;
         if (outdated) {
+          finalizeThinkingFeedback(false);
           setBubbleHtml(state.currentBubble, renderCompanionHelp(true));
           finalizeRequest('Aggiornamento del companion locale richiesto.');
           return;
@@ -783,11 +976,13 @@
             sendLocal(text);
             return;
           }
+          finalizeThinkingFeedback(false);
           setBubbleHtml(state.currentBubble, renderCompanionHelp(false));
           finalizeRequest('Companion locale non raggiungibile.');
           return;
         }
         if (error && error.__partialAnswer) {
+          finalizeThinkingFeedback(false);
           setBubbleHtml(
             state.currentBubble,
             renderMarkdown(error.__partialAnswer) +
@@ -799,6 +994,7 @@
           finalizeRequest('Risposta interrotta dal companion locale.');
           return;
         }
+        finalizeThinkingFeedback(false);
         setBubbleHtml(state.currentBubble, renderCompanionRuntimeHelp(error));
         finalizeRequest('Companion locale raggiunto, ma la richiesta non e\' andata a buon fine.');
       });
@@ -825,6 +1021,7 @@
     appendMessage('user', text);
 
     state.streaming = true;
+    startThinkingFeedback(text);
     if (sendButton) {
       sendButton.disabled = true;
     }

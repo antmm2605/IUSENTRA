@@ -144,6 +144,8 @@ def test_assistente_prompt_separa_voce_e_regole_tecniche():
     assert "=== GESTIONE DELLA RELAZIONE QUOTIDIANA ===" in prompt
     assert "Se il messaggio e' solo sociale o relazionale" in prompt
     assert "Se il messaggio combina cortesia e richiesta operativa" in prompt
+    assert "Quando l'utente chiede cosa fare oggi, da dove partire o qual e' il quadro della giornata" in prompt
+    assert "Se l'utente fa un follow-up breve come \"cosa dobbiamo fare\", \"e oggi?\" o \"da dove partiamo?\"" in prompt
     assert "=== AGGIORNAMENTI E FONTI UFFICIALI ===" in prompt
     assert "=== REGOLE TECNICHE PEC E FIRMA ===" in prompt
 
@@ -159,6 +161,17 @@ def test_assistente_prompt_aggiunge_apertura_relazionale_quando_serve():
     assert "Apertura relazionale da mantenere:" in prompt
     assert "- Apri in modo breve e naturale con: Buongiorno." in prompt
     assert "Segnale sociale rilevato: greeting_with_request." in prompt
+
+
+def test_assistente_prompt_supporta_apertura_iniziale_guidata():
+    prompt = build_assistente_prompt(
+        question="oggi cosa dobbiamo fare",
+        fascicolo_id="",
+        opening_line="Buongiorno. Ti faccio subito il quadro operativo di oggi.",
+    )
+
+    assert "Apertura iniziale da mantenere:" in prompt
+    assert "- Apri esattamente con: Buongiorno. Ti faccio subito il quadro operativo di oggi." in prompt
 
 
 def test_local_ai_index_and_hybrid_search(tmp_path: Path, monkeypatch):

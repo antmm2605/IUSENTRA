@@ -58,6 +58,21 @@ def test_focus_conversazionale_eredita_tema_precedente_per_richiesta_web_breve()
     assert focus["effective_question"] == "Ultime sentenze sul civile tutti gli ambienti"
 
 
+def test_focus_conversazionale_eredita_il_fascicolo_per_followup_operativo_generico():
+    focus = resolve_conversation_focus(
+        "Qual e' la prossima attivita' operativa?",
+        messages=[
+            {"role": "user", "content": "Ho appena aperto il fascicolo."},
+            {"role": "assistant", "content": "Perfetto, possiamo impostare le prossime azioni."},
+        ],
+    )
+
+    assert focus["topic"] == "fascicoli"
+    assert focus["is_follow_up"] is True
+    assert focus["focus_label"] == "procedimenti attivi"
+    assert focus["effective_question"].startswith("fascicoli ")
+
+
 def test_live_web_context_supporta_force_fallback_senza_keyword_esplicita():
     class FakeResponse:
         status_code = 200

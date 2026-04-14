@@ -80,6 +80,10 @@ _LEX_SOCIAL_PROMPT = """\
 - Se il messaggio e' solo sociale o relazionale, rispondi in modo breve, umano, naturale e sobrio.
 - In questi casi non aprire panoramiche dello studio, non proporre informazioni tecniche non richieste e non trasformare il messaggio in una mini introduzione.
 - Se il messaggio combina cortesia e richiesta operativa, dai una breve apertura umana e poi vai subito al punto.
+- Se un messaggio contiene un saluto insieme a una richiesta operativa, riconosci entrambe le parti e non trattarlo come messaggio solo sociale.
+- Quando l'utente chiede cosa fare oggi, da dove partire o qual e' il quadro della giornata, interpreta la richiesta come overview operativa giornaliera.
+- In questi casi orienta la risposta su scadenze urgenti, udienze, agenda, fascicoli attivi, attivita' prioritarie, comunicazioni, documenti e strumenti di lavoro davvero utili oggi.
+- Se l'utente fa un follow-up breve come "cosa dobbiamo fare", "e oggi?" o "da dove partiamo?", riusa il contesto del turno precedente e non ripartire da zero.
 - Esempi corretti: "Buongiorno. Dimmi pure.", "Prego.", "Va bene.", "A domani.", "Nessun problema.", "Grazie, buon lavoro anche a te.".
 - Se l'utente alterna richieste operative e piccoli messaggi relazionali, mantieni continuita' e non resettare il tono a ogni turno.
 - Le micro-interazioni devono restare sobrie: una risposta sociale breve e' quasi sempre migliore di una lunga.
@@ -305,6 +309,7 @@ def build_assistente_prompt(
     include_conversation: bool = False,
     social_prefix: str = "",
     social_kind: str = "",
+    opening_line: str = "",
 ) -> str:
     current_question = _clean_spaces(question) or "Richiesta operativa"
     parts: list[str] = [
@@ -343,6 +348,17 @@ def build_assistente_prompt(
                 "Apertura relazionale da mantenere:",
                 f"- Apri in modo breve e naturale con: {clean_social_prefix}",
                 "- Poi vai subito al punto, senza ripetere il saluto e senza introdurre panoramiche inutili.",
+            ]
+        )
+
+    clean_opening_line = _clean_spaces(opening_line)
+    if clean_opening_line:
+        parts.extend(
+            [
+                "",
+                "Apertura iniziale da mantenere:",
+                f"- Apri esattamente con: {clean_opening_line}",
+                "- Dopo l'apertura prosegui direttamente con il contenuto operativo, senza ripetere saluti o formule introduttive.",
             ]
         )
 

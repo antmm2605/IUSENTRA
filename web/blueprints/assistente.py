@@ -26,13 +26,15 @@ from flask import (
 
 from web.helpers import get_legal_intelligence
 from web.services.assistente_prompt import build_assistente_prompt
-from web.services.assistente_followup import latest_user_message, resolve_followup_query
-from web.services.assistente_social import (
-    build_social_reply,
-    classify_social_message,
-    is_social_only_intent,
+from web.services.assistente_followup import resolve_followup_query
+from web.services.assistente_social_intent import (
+    build_daily_overview_lead,
+    build_social_only_reply,
+    latest_user_message,
+    resolve_social_and_operational_intent,
 )
 from web.services.assistente_studio_context import build_lex_studio_context, warm_lex_studio_context
+from web.services.assistente_today_summary import build_today_operational_summary
 from web.services.assistente_document_export import (
     build_docx_bytes,
     build_export_filename,
@@ -108,7 +110,7 @@ def _social_context_payload(question: str, reply: str) -> dict[str, object]:
     return {
         "ok": True,
         "query_type": "social_only",
-        "question": question,
+        "question": "",
         "prompt": "",
         "answer": reply,
         "sources": [],
@@ -120,6 +122,18 @@ def _social_context_payload(question: str, reply: str) -> dict[str, object]:
         "social_kind": "social_only",
         "social_prefix": "",
         "effective_question": "",
+        "routing": {
+            "reason": "social_only",
+            "is_social_only": True,
+            "is_social_with_request": False,
+            "is_daily_overview": False,
+            "is_followup": False,
+            "reused_previous_topic": False,
+            "social_kind": "social_only",
+            "social_prefix": "",
+            "request_text": "",
+            "effective_query": "",
+        },
         "followup_resolution": {
             "effective_query": "",
             "is_followup": False,
@@ -153,6 +167,21 @@ def _resolve_current_and_previous_user_messages(
     return current_user_message, previous_user_message, normalized_messages
 
 
+def _routing_payload(routing) -> dict[str, object]:
+    return {
+        "reason": str(routing.reason or "").strip(),
+        "is_social_only": bool(routing.is_social_only),
+        "is_social_with_request": bool(routing.is_social_with_request),
+        "is_daily_overview": bool(routing.is_daily_overview),
+        "is_followup": bool(routing.is_followup),
+        "reused_previous_topic": bool(routing.reused_previous_topic),
+        "social_kind": str(routing.social_kind or "").strip(),
+        "social_prefix": str(routing.social_prefix or "").strip(),
+        "request_text": str(routing.request_text or "").strip(),
+        "effective_query": str(routing.effective_query or "").strip(),
+    }
+
+
 def _followup_resolution_payload(followup) -> dict[str, object]:
     return {
         "effective_query": str(followup.effective_query or "").strip(),
@@ -179,6 +208,35 @@ def _followup_prompt_block(followup) -> str:
             "In questa risposta il web va usato solo come supporto operativo mirato, dopo aver sfruttato il contesto interno utile."
         )
     return "\n".join(lines).strip()
+
+
+def _routing_prompt_block(routing, *, opening_line: str = "") -> str:
+    lines: list[str] = []
+    if bool(routing.is_daily_overview):
+        lines.append(
+            "Overview giornaliera: Lex deve costruire un quadro operativo di oggi ordinato per priorita', partendo da scadenze, udienze, agenda e fascicoli attivi."
+        )
+    if bool(routing.is_followup) and bool(routing.reused_previous_topic):
+        lines.append(
+            "Follow-up breve: il contesto del turno precedente va riusato senza ripartire da zero."
+        )
+    clean_opening_line = str(opening_line or "").strip()
+    if clean_opening_line:
+        lines.append(
+            "L'apertura iniziale e' gia' stata resa all'utente: dopo quel testo Lex deve continuare direttamente con il contenuto operativo senza ripetere il saluto."
+        )
+    return "\n".join(lines).strip()
+
+
+def _build_context_payload(
+    *,
+    effective_question: str,
+    history_messages: list[dict[str, object]],
+    routing,
+) -> dict[str, object]:
+    if bool(routing.is_daily_overview):
+        return build_today_operational_summary(question=effective_question)
+    return build_lex_studio_context(effective_question, mode="chat", messages=history_messages)
 
 
 # ── Route: stato ──────────────────────────────────────────────────────────────
@@ -217,53 +275,69 @@ def assistente_context():
     messages = list(data.get("messages", []) or [])[-12:]
     attachments = _normalized_attachments(data.get("attachments"))
     fascicolo_id = str(data.get("fascicolo_id", "") or "").strip()
-    question, previous_user_message, history_messages = _resolve_current_and_previous_user_messages(
+    current_user_message, previous_user_message, history_messages = _resolve_current_and_previous_user_messages(
         explicit_question=str(data.get("question", "") or "").strip(),
         messages=messages,
     )
-    if not question:
+    if not current_user_message:
         return {"ok": False, "errore": "Domanda mancante.", "prompt": "", "sources": [], "citations": []}, 200
 
-    social_intent = classify_social_message(question)
-    if is_social_only_intent(social_intent):
-        reply = build_social_reply(social_intent) or "Dimmi pure."
-        return _social_context_payload(question, reply), 200
+    routing = resolve_social_and_operational_intent(
+        current_user_message,
+        previous_user_text=previous_user_message,
+    )
+    if routing.is_social_only:
+        reply = build_social_only_reply(routing.social_kind, routing.raw_text) or "Dimmi pure."
+        payload = _social_context_payload(current_user_message, reply)
+        payload["routing"] = _routing_payload(routing)
+        payload["social_kind"] = routing.social_kind
+        payload["social_prefix"] = routing.social_prefix
+        return payload, 200
 
-    base_question = str(social_intent.remaining_text or question).strip() or question
+    base_question = str(routing.effective_query or current_user_message).strip() or current_user_message
     followup = resolve_followup_query(
         base_question,
         previous_user_text=previous_user_message,
     )
     user_effective_question = str(followup.effective_query or base_question).strip() or base_question
-    social_prefix = build_social_reply(social_intent) if social_intent.kind.endswith("_with_request") else ""
+    social_prefix = str(routing.social_prefix or "").strip() if routing.is_social_with_request else ""
+    opening_line = build_daily_overview_lead(social_prefix) if routing.is_daily_overview else ""
+    prompt_social_prefix = "" if opening_line else social_prefix
 
     runtime = resolved_ollama_runtime()
-    studio_context = build_lex_studio_context(user_effective_question, mode="chat", messages=history_messages)
+    studio_context = _build_context_payload(
+        effective_question=user_effective_question,
+        history_messages=history_messages,
+        routing=routing,
+    )
     resolved_effective_question = str(studio_context.get("effective_question") or user_effective_question).strip() or user_effective_question
     prompt_question = resolved_effective_question
     followup_block = _followup_prompt_block(followup)
+    routing_block = _routing_prompt_block(routing, opening_line=opening_line)
     web_execution_requested = bool(studio_context.get("web_execution_requested")) or bool(followup.is_web_request)
     web_fallback_used = bool(studio_context.get("web_fallback_used")) or bool(
         followup.is_web_request and followup.needs_web_search
     )
     studio_prompt_block = str(studio_context.get("prompt_block", "") or "").strip()
-    if followup_block:
-        studio_prompt_block = "\n\n".join(block for block in [studio_prompt_block, followup_block] if block)
+    studio_prompt_block = "\n\n".join(
+        block for block in [studio_prompt_block, routing_block, followup_block] if block
+    )
     prompt = build_assistente_prompt(
         question=prompt_question,
         fascicolo_id=fascicolo_id,
         messages=history_messages,
         studio_context=studio_prompt_block,
         include_conversation=True,
-        social_prefix=social_prefix,
-        social_kind=social_intent.kind,
+        social_prefix=prompt_social_prefix,
+        social_kind=routing.social_kind,
+        opening_line=opening_line,
     )
     if attachments:
         prompt += "\n\n" + build_attachment_prompt_block(attachments)
 
     try:
         get_legal_intelligence().registra_trace_risposta(
-            query=question,
+            query=current_user_message,
             user=getattr(g.get("utente_corrente"), "username", ""),
             engine_ids=studio_context.get("engine_ids") or motori_per_query(prompt_question),
             source_ids=studio_context.get("source_ids") or fonti_per_query(prompt_question),
@@ -277,7 +351,7 @@ def assistente_context():
     return {
         "ok": True,
         "query_type": "assistente_chat",
-        "question": question,
+        "question": current_user_message,
         "effective_question": resolved_effective_question,
         "prompt": prompt,
         "sources": studio_context.get("sources") or [],
@@ -287,8 +361,10 @@ def assistente_context():
         "focus_topic": str(studio_context.get("focus_topic") or "").strip(),
         "web_fallback_used": web_fallback_used,
         "web_execution_requested": web_execution_requested,
-        "social_kind": social_intent.kind,
+        "social_kind": routing.social_kind,
         "social_prefix": str(social_prefix or "").strip(),
+        "daily_overview_lead": opening_line,
+        "routing": _routing_payload(routing),
         "followup_resolution": _followup_resolution_payload(followup),
     }, 200
 
@@ -366,13 +442,16 @@ def assistente_chat():
     messages: list = list(data.get("messages", []) or [])[-12:]
     attachments = _normalized_attachments(data.get("attachments"))
     fascicolo_id: str = data.get("fascicolo_id", "")
-    last_user_text, previous_user_text, history_messages = _resolve_current_and_previous_user_messages(
+    current_user_message, previous_user_text, history_messages = _resolve_current_and_previous_user_messages(
         explicit_question="",
         messages=messages,
     )
-    social_intent = classify_social_message(last_user_text)
-    if is_social_only_intent(social_intent):
-        reply = build_social_reply(social_intent) or "Dimmi pure."
+    routing = resolve_social_and_operational_intent(
+        current_user_message,
+        previous_user_text=previous_user_text,
+    )
+    if routing.is_social_only:
+        reply = build_social_only_reply(routing.social_kind, routing.raw_text) or "Dimmi pure."
 
         def generate_social():
             yield f"data: {json.dumps({'token': reply})}\n\n"
@@ -388,30 +467,42 @@ def assistente_chat():
             },
         )
 
-    base_question = str(social_intent.remaining_text or last_user_text).strip() or "Richiesta operativa"
+    base_question = str(routing.effective_query or current_user_message).strip() or "Richiesta operativa"
     followup = resolve_followup_query(
         base_question,
         previous_user_text=previous_user_text,
     )
     user_effective_question = str(followup.effective_query or base_question).strip() or "Richiesta operativa"
-    social_prefix = build_social_reply(social_intent) if social_intent.kind.endswith("_with_request") else ""
+    social_prefix = str(routing.social_prefix or "").strip() if routing.is_social_with_request else ""
+    stream_opening_line = build_daily_overview_lead(social_prefix) if routing.is_daily_overview else social_prefix
     runtime = resolved_ollama_runtime()
     api_base_url = str(runtime.get("api_base_url") or "").rstrip("/")
     base_url = str(runtime.get("base_url") or "").rstrip("/")
     chat_model = str(runtime.get("chat_model") or "mistral").strip() or "mistral"
     keep_alive = str(runtime.get("keep_alive") or "10m").strip() or "10m"
-    studio_context = build_lex_studio_context(user_effective_question, mode="chat", messages=history_messages)
+    studio_context = _build_context_payload(
+        effective_question=user_effective_question,
+        history_messages=history_messages,
+        routing=routing,
+    )
     resolved_effective_question = str(studio_context.get("effective_question") or user_effective_question).strip() or "Richiesta operativa"
     prompt_question = resolved_effective_question
-    llm_messages = _messages_with_effective_question(
-        messages,
-        effective_question=resolved_effective_question,
-        original_question=last_user_text,
+    rewrite_last_user_message = bool(followup.reused_previous_topic or routing.reused_previous_topic)
+    llm_messages = (
+        _messages_with_effective_question(
+            messages,
+            effective_question=resolved_effective_question,
+            original_question=current_user_message,
+        )
+        if rewrite_last_user_message
+        else [dict(item or {}) for item in messages]
     )
     followup_block = _followup_prompt_block(followup)
+    routing_block = _routing_prompt_block(routing, opening_line=stream_opening_line)
     studio_prompt_block = str(studio_context.get("prompt_block", "") or "").strip()
-    if followup_block:
-        studio_prompt_block = "\n\n".join(block for block in [studio_prompt_block, followup_block] if block)
+    studio_prompt_block = "\n\n".join(
+        block for block in [studio_prompt_block, routing_block, followup_block] if block
+    )
 
     # System prompt + eventuale contesto fascicolo
     system_content = build_assistente_prompt(
@@ -419,8 +510,9 @@ def assistente_chat():
         fascicolo_id=fascicolo_id,
         messages=history_messages,
         studio_context=studio_prompt_block,
-        social_prefix=social_prefix,
-        social_kind=social_intent.kind,
+        social_prefix="",
+        social_kind=routing.social_kind,
+        opening_line="",
     )
     if attachments:
         system_content += "\n\n" + build_attachment_prompt_block(attachments)
@@ -438,7 +530,7 @@ def assistente_chat():
 
     try:
         get_legal_intelligence().registra_trace_risposta(
-            query=last_user_text or "Richiesta assistente PCT",
+            query=current_user_message or "Richiesta assistente PCT",
             user=getattr(g.get("utente_corrente"), "username", ""),
             engine_ids=studio_context.get("engine_ids") or motori_per_query(prompt_question),
             source_ids=studio_context.get("source_ids") or fonti_per_query(prompt_question),
@@ -452,6 +544,9 @@ def assistente_chat():
     def generate():
         try:
             prefixed = False
+            if stream_opening_line:
+                yield f"data: {json.dumps({'token': stream_opening_line + ' '})}\n\n"
+                prefixed = True
             r = requests.post(
                 f"{api_base_url}/chat",
                 json=payload,
@@ -465,9 +560,6 @@ def assistente_chat():
                     chunk = json.loads(line)
                     token = chunk.get("message", {}).get("content", "")
                     if token:
-                        if social_prefix and not prefixed:
-                            token = f"{social_prefix} {token}".strip()
-                            prefixed = True
                         yield f"data: {json.dumps({'token': token})}\n\n"
                     if chunk.get("done"):
                         yield "data: [DONE]\n\n"

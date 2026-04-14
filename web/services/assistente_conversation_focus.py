@@ -121,10 +121,6 @@ _FOLLOW_UP_MARKERS: tuple[str, ...] = (
     "quale delle due",
     "quale dei tre",
     "quale delle tre",
-    "di oggi",
-    "di domani",
-    "attivi",
-    "attive",
     "le 2 fasi",
     "le due fasi",
     "quello prima",
@@ -132,6 +128,16 @@ _FOLLOW_UP_MARKERS: tuple[str, ...] = (
 )
 
 _GENERIC_SECTION_FALLBACK: tuple[str, ...] = ("Fascicoli", "Clienti", "Agenda", "Scadenziario")
+_GENERIC_OPERATIONAL_FOLLOW_UP_PATTERNS: tuple[str, ...] = (
+    r"\bprossim[a-z']*\b",
+    r"\battivit[a-z']*\b",
+    r"\bazione\b",
+    r"\bazioni\b",
+    r"\badempiment[a-z']*\b",
+    r"\bpasso successivo\b",
+    r"\bcosa facciamo\b",
+    r"\bda dove partiamo\b",
+)
 
 
 def _clean_spaces(value: Any) -> str:
@@ -169,6 +175,13 @@ def _looks_like_follow_up(question: str) -> bool:
     if any(marker in haystack for marker in _FOLLOW_UP_MARKERS):
         return True
     return _word_count(haystack) <= 4 and _find_topic_rule(haystack) is None
+
+
+def _looks_like_generic_operational_follow_up(question: str) -> bool:
+    haystack = _clean_spaces(question).lower()
+    if not haystack:
+        return False
+    return any(re.search(pattern, haystack) for pattern in _GENERIC_OPERATIONAL_FOLLOW_UP_PATTERNS)
 
 
 def _recent_topic_rule(messages: list[dict[str, object]] | None, current_question: str) -> dict[str, Any] | None:
@@ -231,6 +244,10 @@ def resolve_conversation_focus(
         resolved_rule = prior_rule
 
     if resolved_rule is None and prior_rule is not None and _word_count(base_question) <= 3:
+        resolved_rule = prior_rule
+        is_follow_up = True
+
+    if resolved_rule is None and prior_rule is not None and _looks_like_generic_operational_follow_up(base_question):
         resolved_rule = prior_rule
         is_follow_up = True
 

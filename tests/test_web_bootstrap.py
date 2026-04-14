@@ -597,6 +597,8 @@ def test_contesto_lex_compatta_le_sezioni_e_limita_le_fonti():
     focus_service = (REPO_ROOT / "web/services/assistente_conversation_focus.py").read_text(encoding="utf-8")
     live_web_service = (REPO_ROOT / "web/services/assistente_live_web.py").read_text(encoding="utf-8")
     social_service = (REPO_ROOT / "web/services/assistente_social.py").read_text(encoding="utf-8")
+    social_intent_service = (REPO_ROOT / "web/services/assistente_social_intent.py").read_text(encoding="utf-8")
+    today_summary_service = (REPO_ROOT / "web/services/assistente_today_summary.py").read_text(encoding="utf-8")
     web_execution_service = (REPO_ROOT / "web/services/assistente_web_execution.py").read_text(encoding="utf-8")
     assistente_blueprint = (REPO_ROOT / "web/blueprints/assistente.py").read_text(encoding="utf-8")
     assistente_prompt = (REPO_ROOT / "web/services/assistente_prompt.py").read_text(encoding="utf-8")
@@ -635,6 +637,12 @@ def test_contesto_lex_compatta_le_sezioni_e_limita_le_fonti():
     assert "build_social_reply" in social_service
     assert "prepend_social_prefix" in social_service
     assert "is_social_only_intent" in social_service
+    assert "class SocialRoutingResult" in social_intent_service
+    assert "resolve_social_and_operational_intent" in social_intent_service
+    assert "build_daily_overview_lead" in social_intent_service
+    assert "build_social_only_reply" in social_intent_service
+    assert "build_today_operational_summary" in today_summary_service
+    assert "_TODAY_SECTION_FACTORIES" in today_summary_service
     assert "class WebExecutionIntent" in web_execution_service
     assert "is_web_execution_request" in web_execution_service
     assert "resolve_effective_query" in web_execution_service
@@ -646,8 +654,14 @@ def test_contesto_lex_compatta_le_sezioni_e_limita_le_fonti():
     assert "keep_alive = str(runtime.get(\"keep_alive\") or \"10m\").strip() or \"10m\"" in assistente_blueprint
     assert "_social_context_payload" in assistente_blueprint
     assert "_messages_with_effective_question" in assistente_blueprint
-    assert "classify_social_message" in assistente_blueprint
+    assert "_routing_payload" in assistente_blueprint
+    assert "_routing_prompt_block" in assistente_blueprint
+    assert "_build_context_payload" in assistente_blueprint
+    assert "resolve_social_and_operational_intent" in assistente_blueprint
+    assert "build_today_operational_summary" in assistente_blueprint
     assert '"query_type": "social_only"' in assistente_blueprint
+    assert '"routing": _routing_payload(routing)' in assistente_blueprint
+    assert '"daily_overview_lead": opening_line' in assistente_blueprint
     assert '"social_prefix": str(social_prefix or "").strip()' in assistente_blueprint
     assert '"focus_label": str(studio_context.get("focus_label") or "").strip()' in assistente_blueprint
     assert "web_fallback_used = bool(studio_context.get(\"web_fallback_used\")) or bool(" in assistente_blueprint
@@ -663,6 +677,7 @@ def test_contesto_lex_compatta_le_sezioni_e_limita_le_fonti():
     assert "_LEX_SOCIAL_PROMPT" in assistente_prompt
     assert "_PROMPT_PROFILE_BLOCKS" in assistente_prompt
     assert "_PROMPT_PROFILE_KEYWORDS" in assistente_prompt
+    assert "Apertura iniziale da mantenere:" in assistente_prompt
 
 
 def test_preparazione_udienza_guidata_usa_componenti_modulari_e_js_esterno():

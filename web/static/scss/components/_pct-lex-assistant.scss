@@ -153,7 +153,7 @@
   border-radius: 1.65rem;
 }
 
-.pct-ai-widget--fullscreen .pct-ai-fab,
+.pct-ai-widget--fullscreen.pct-ai-widget--open .pct-ai-fab,
 .pct-ai-widget--fullscreen .pct-ai-drag-hint,
 .pct-ai-widget--fullscreen .pct-ai-resize-handle {
   display: none;

@@ -524,7 +524,10 @@ def test_lex_assistant_usa_componente_esterno_e_posizione_persistente():
     assert "toggleFullscreen" in widget_js
     assert "closeAssistant" in widget_js
     assert "state.fullscreen = false" in widget_js
-    assert "if (!state.open && state.fullscreen)" in widget_js
+    assert "if (!state.open && state.fullscreen && options.exitFullscreen !== false)" in widget_js
+    assert "setFullscreen(false, { silent: true });" in widget_js
+    assert "if (!state.open && saved.fullscreen)" in widget_js
+    assert "state.fullscreen = Boolean(saved.fullscreen && state.open);" in widget_js
     assert "resolveConversationFocus" in widget_js
     assert "renderReferenceLabel" in widget_js
     assert "appendMetaMessage" not in widget_js
@@ -568,6 +571,7 @@ def test_lex_assistant_usa_componente_esterno_e_posizione_persistente():
     assert "pct-ai-thinking-copy" in widget_scss
     assert "pct-ai-status-pill--inline" in widget_scss
     assert "pct-ai-widget--fullscreen" in widget_scss
+    assert ".pct-ai-widget--fullscreen.pct-ai-widget--open .pct-ai-fab" in widget_scss
 
     assert ".pct-ai-widget" in widget_scss
     assert ".pct-ai-brand-mark" in widget_scss

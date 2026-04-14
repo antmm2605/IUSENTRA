@@ -980,13 +980,14 @@
     input.style.height = Math.min(input.scrollHeight, 132) + 'px';
   }
 
-  function setOpen(nextOpen) {
+  function setOpen(nextOpen, options) {
+    options = options || {};
     state.open = Boolean(nextOpen);
     if (!panel || !fab || !widget) {
       return;
     }
 
-    if (!state.open && state.fullscreen) {
+    if (!state.open && state.fullscreen && options.exitFullscreen !== false) {
       setFullscreen(false, { silent: true });
     }
 
@@ -1011,7 +1012,10 @@
   }
 
   function closeAssistant() {
-    setOpen(false);
+    if (state.fullscreen) {
+      setFullscreen(false, { silent: true });
+    }
+    setOpen(false, { exitFullscreen: false });
   }
 
   function finalizeRequest(message) {
@@ -1511,7 +1515,8 @@
     widget.style.bottom = 'auto';
   }
 
-  function resetPosition() {
+  function resetPosition(options) {
+    options = options || {};
     if (!widget) {
       return;
     }
@@ -1521,7 +1526,9 @@
     applyFullscreenState();
     widget.classList.remove('pct-ai-widget--custom');
     clearInlineLayoutStyles();
-    setStatus('Posizione e dimensioni ripristinate in basso a destra.');
+    if (!options.silent) {
+      setStatus('Posizione e dimensioni ripristinate in basso a destra.');
+    }
   }
 
   function restorePosition() {
@@ -1530,7 +1537,11 @@
     }
 
     var saved = getSavedLayout() || {};
-    state.fullscreen = Boolean(saved.fullscreen);
+    if (!state.open && saved.fullscreen) {
+      saveLayout({ fullscreen: false });
+      saved.fullscreen = false;
+    }
+    state.fullscreen = Boolean(saved.fullscreen && state.open);
     applyFullscreenState();
 
     if (state.fullscreen) {

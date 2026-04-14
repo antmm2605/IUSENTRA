@@ -7,6 +7,7 @@
   data-status-url="{{ url_for('assistente.assistente_stato') }}"
   data-server-context-url="{{ url_for('assistente.assistente_context') }}"
   data-server-attachments-url="{{ url_for('assistente.assistente_attachments') }}"
+  data-export-document-url="{{ url_for('assistente.assistente_documento') }}"
   data-local-signer-url="http://127.0.0.1:27272"
   data-local-signer-download-page="{{ url_for('impostazioni.index', tab='firma', _external=True) }}"
   data-local-signer-setup-windows="{{ url_for('polis_local_signer_setup_windows') }}"
@@ -100,17 +101,18 @@
           >
         </div>
         <div class="pct-ai-bubble">
-          <p>Ciao, sono <strong>Lex</strong>. Ti supporto su fascicoli, clienti, agenda, scadenziario, deposito telematico, firma digitale, PEC e moduli operativi dello studio.</p>
+          <p>Ciao, sono <strong>Lex</strong>. Ti supporto su fascicoli, clienti, soggetti, dati studio, PEC, agenda, scadenziario, deposito telematico, firma digitale e moduli operativi dello studio.</p>
           <ul>
             <li>Suggerimenti su PCT, PDP, PAT, firma digitale, PEC e PDF/A</li>
-            <li>Supporto consultivo su clienti, agenda, scadenziario, soggetti e fascicoli</li>
+            <li>Supporto consultivo su clienti, soggetti, dati studio, PEC, agenda, scadenziario e fascicoli</li>
             <li>Contesto operativo su template atti, tariffario, preventivi, fatturazione e applicazioni</li>
             <li>Piste di ricerca legale con archivio sentenze e fonti ufficiali web live</li>
           </ul>
           <p>Lex resta sempre consultivo: suggerisce controlli, rischi e prossimi passi, ma non prende decisioni al posto del professionista.</p>
           <p>Quando la domanda lo richiede, puo' consultare automaticamente fonti ufficiali web per aggiungere riferimenti aggiornati alla risposta.</p>
           <p>Se HACS e' online, Lex usa il companion locale di questo dispositivo per parlare con Ollama in modo sicuro e non bloccante.</p>
-          <p class="mb-0">Se il pannello ti intralcia, trascinalo o ridimensionalo come preferisci: posizione e dimensioni restano salvate su questo browser.</p>
+          <p>Puoi anche scaricare il singolo documento generato da Lex in formato Word o Markdown, oltre al riepilogo completo della conversazione.</p>
+          <p class="mb-0">Se il pannello ti intralcia, trascinalo o ridimensionalo: posizione e dimensioni restano salvate su questo browser.</p>
         </div>
       </div>
     </div>

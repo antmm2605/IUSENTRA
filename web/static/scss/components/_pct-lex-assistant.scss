@@ -357,6 +357,56 @@
   overflow-x: auto;
 }
 
+.pct-ai-widget .pct-ai-generated-actions {
+  display: grid;
+  gap: 0.55rem;
+  margin-top: 0.8rem;
+  padding-top: 0.72rem;
+  border-top: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.pct-ai-widget .pct-ai-generated-actions__meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.74rem;
+  color: #5b6677;
+  font-weight: 600;
+}
+
+.pct-ai-widget .pct-ai-generated-actions__buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.pct-ai-widget .pct-ai-generated-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.38rem;
+  min-height: 2rem;
+  padding: 0.42rem 0.72rem;
+  border-radius: 0.82rem;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  background: rgba(248, 250, 252, 0.96);
+  color: #0f3e74;
+  font-size: 0.76rem;
+  font-weight: 700;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+
+.pct-ai-widget .pct-ai-generated-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 18px rgba(15, 23, 42, 0.08);
+  border-color: rgba(37, 99, 235, 0.22);
+}
+
+.pct-ai-widget .pct-ai-generated-btn--primary {
+  background: linear-gradient(135deg, #0f3e74, #1754a3);
+  color: #fff;
+  border-color: transparent;
+}
+
 .pct-ai-widget .pct-ai-msg--user .pct-ai-bubble {
   background: linear-gradient(135deg, #123c6d, #154887);
   color: #fff;
@@ -640,6 +690,15 @@
   .pct-ai-widget .pct-ai-bubble {
     max-width: 100%;
   }
+
+  .pct-ai-widget .pct-ai-generated-actions__buttons {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .pct-ai-widget .pct-ai-generated-btn {
+    justify-content: center;
+  }
 }
 
 [data-bs-theme="dark"] .pct-ai-widget .pct-ai-panel {
@@ -666,6 +725,25 @@
   background: rgba(30, 41, 59, 0.94);
   border-color: rgba(148, 163, 184, 0.14);
   color: #e2e8f0;
+}
+
+[data-bs-theme="dark"] .pct-ai-widget .pct-ai-generated-actions {
+  border-top-color: rgba(148, 163, 184, 0.14);
+}
+
+[data-bs-theme="dark"] .pct-ai-widget .pct-ai-generated-actions__meta {
+  color: #cbd5e1;
+}
+
+[data-bs-theme="dark"] .pct-ai-widget .pct-ai-generated-btn {
+  background: rgba(30, 41, 59, 0.92);
+  border-color: rgba(148, 163, 184, 0.16);
+  color: #dbeafe;
+}
+
+[data-bs-theme="dark"] .pct-ai-widget .pct-ai-generated-btn--primary {
+  background: linear-gradient(135deg, #1d4f91, #2563eb);
+  color: #fff;
 }
 
 [data-bs-theme="dark"] .pct-ai-widget .pct-ai-msg--user .pct-ai-bubble {

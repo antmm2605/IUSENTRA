@@ -1,6 +1,8 @@
 import base64
+import io
 import json
 import sqlite3
+import zipfile
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -20,8 +22,29 @@ def _write_studio_config(path: Path, enabled: bool = True) -> None:
             {
                 "studio": {
                     "nome": "Studio Test",
+                    "avvocato": "Avv. Test",
+                    "indirizzo": "Via Roma 12",
                     "city": "Taurianova",
                     "province": "RC",
+                    "telefono": "0966 123456",
+                    "email": "studio@example.it",
+                },
+                "pec": {
+                    "indirizzo": "studio@pec.example.it",
+                    "password": "segreta",
+                    "smtp_host": "smtp.pec.aruba.it",
+                    "smtp_port": 465,
+                    "imap_host": "imaps.pec.aruba.it",
+                    "imap_port": 993,
+                    "use_ssl": True,
+                },
+                "smtp": {
+                    "host": "smtp.office365.com",
+                    "port": 587,
+                    "username": "studio@example.it",
+                    "from_address": "studio@example.it",
+                    "from_name": "Studio Test",
+                    "use_tls": True,
                 },
                 "ai": {
                     "enabled": enabled,
@@ -411,10 +434,14 @@ def test_api_assistente_context_prepara_prompt_per_companion_locale(tmp_path: Pa
     assert "CONTESTO FASCICOLO ATTIVO" in payload["prompt"]
     assert "CONVERSAZIONE RECENTE" in payload["prompt"]
     assert "PROFILO STUDIO" in payload["prompt"]
+    assert "IMPOSTAZIONI STUDIO" in payload["prompt"]
+    assert "PEC E CANALI EMAIL" in payload["prompt"]
     assert "TEMPLATE ATTI" in payload["prompt"]
     assert "PREVENTIVI" in payload["prompt"]
     assert "FATTURAZIONE" in payload["prompt"]
     assert "RICERCA LEGALE E FONTI WEB" in payload["prompt"]
+    assert "studio@pec.example.it" in payload["prompt"]
+    assert "smtp.pec.aruba.it" in payload["prompt"]
     assert "assistente consultivo" in payload["prompt"]
     assert fascicolo.id in payload["prompt"]
     assert payload["sources"]
@@ -488,6 +515,33 @@ def test_api_assistente_attachments_parse_documenti_locali(tmp_path: Path):
     assert payload["ok"] is True
     assert payload["attachments"][0]["name"] == "memo.txt"
     assert "DOCUMENTI CARICATI DALL'UTENTE" in payload["prompt_block"]
+
+
+def test_api_assistente_documento_esporta_docx(tmp_path: Path):
+    _write_studio_config(tmp_path / "config" / "studio.json", enabled=True)
+    app = create_app(_cfg_web(tmp_path))
+
+    with app.test_client() as client:
+        client.post("/login", data={"username": "admin", "password": "admin"}, follow_redirects=True)
+        response = client.post(
+            "/api/assistente/documento",
+            json={
+                "title": "Bozza memoria conclusionale",
+                "question": "Preparami una bozza di memoria conclusionale",
+                "answer": "# Bozza memoria conclusionale\n\n- Primo punto operativo\n- Secondo punto operativo",
+                "citations": ["Tariffario forense", "Fonte ufficiale - Normattiva"],
+                "context_label": "Contesto fascicolo attivo",
+            },
+        )
+
+    assert response.status_code == 200
+    assert response.mimetype == "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    assert "attachment;" in response.headers.get("Content-Disposition", "")
+    with zipfile.ZipFile(io.BytesIO(response.data)) as archive:
+        xml = archive.read("word/document.xml").decode("utf-8", errors="ignore")
+    assert "Bozza memoria conclusionale" in xml
+    assert "Tariffario forense" in xml
+    assert "Contesto fascicolo attivo" in xml
 
 
 def test_api_assistente_context_integra_documenti_caricati(tmp_path: Path):

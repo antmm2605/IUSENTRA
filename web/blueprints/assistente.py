@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import json
 import os
+from io import BytesIO
 
 import requests
 from flask import (
@@ -20,11 +21,17 @@ from flask import (
     current_app,
     g,
     request,
+    send_file,
     stream_with_context,
 )
 
 from web.helpers import get_legal_intelligence
 from web.services.assistente_studio_context import build_lex_studio_context
+from web.services.assistente_document_export import (
+    build_docx_bytes,
+    build_export_filename,
+    infer_export_title,
+)
 from web.services.ollama_runtime import (
     resolved_ollama_api_base_url,
     resolved_ollama_base_url,
@@ -388,6 +395,41 @@ def assistente_attachments():
         "errors": errors,
         "prompt_block": build_attachment_prompt_block(attachments),
     }, 200
+
+
+@assistente.route("/api/assistente/documento", methods=["POST"])
+@_richiedi_login
+def assistente_documento():
+    try:
+        data = request.get_json(silent=True) or {}
+        answer = str(data.get("answer") or "").strip()
+        if not answer:
+            return {"ok": False, "errore": "Contenuto del documento mancante."}, 400
+
+        title = infer_export_title(
+            title=str(data.get("title") or ""),
+            question=str(data.get("question") or ""),
+            answer=answer,
+        )
+        citations = data.get("citations") or []
+        context_label = str(data.get("context_label") or "").strip()
+        docx_bytes = build_docx_bytes(
+            title=title,
+            question=str(data.get("question") or ""),
+            answer=answer,
+            citations=citations if isinstance(citations, list) else [],
+            context_label=context_label,
+        )
+        file_name = build_export_filename(title, "docx")
+        return send_file(
+            BytesIO(docx_bytes),
+            mimetype="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            as_attachment=True,
+            download_name=file_name,
+        )
+    except Exception as exc:
+        current_app.logger.exception("Errore assistente_documento: %s", exc)
+        return {"ok": False, "errore": str(exc)}, 200
 
 
 # ── Route: chat (streaming SSE) ───────────────────────────────────────────────

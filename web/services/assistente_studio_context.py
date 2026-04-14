@@ -161,6 +161,108 @@ def _studio_profile_lines() -> list[str]:
     return lines
 
 
+def _settings_studio_lines() -> tuple[list[str], list[dict[str, Any]]]:
+    config = _load_studio_config()
+    studio = getattr(config, "studio", None)
+    if not studio:
+        return (
+            ["Impostazioni studio non disponibili in questo momento."],
+            [],
+        )
+
+    address = _clean_spaces(getattr(studio, "indirizzo", ""))
+    city = _clean_spaces(getattr(studio, "city", ""))
+    province = _clean_spaces(getattr(studio, "province", ""))
+    full_address = ", ".join(part for part in [address, city, province] if part)
+    phone = _clean_spaces(getattr(studio, "telefono", ""))
+    email = _clean_spaces(getattr(studio, "email", ""))
+    website = _clean_spaces(getattr(studio, "sito_web", ""))
+    vat = _clean_spaces(getattr(studio, "piva", ""))
+    tax_code = _clean_spaces(getattr(studio, "cf", ""))
+
+    lines = [
+        f"Denominazione studio: {_clean_spaces(getattr(studio, 'nome', 'Studio Legale PCT')) or 'Studio Legale PCT'}.",
+    ]
+    if full_address:
+        lines.append(f"Sede operativa: {full_address}.")
+    if phone or email:
+        recapiti = []
+        if phone:
+            recapiti.append(f"telefono {phone}")
+        if email:
+            recapiti.append(f"email {email}")
+        lines.append("Recapiti studio: " + ", ".join(recapiti) + ".")
+    if website:
+        lines.append(f"Sito web studio: {website}.")
+    if vat or tax_code:
+        fiscal = []
+        if vat:
+            fiscal.append(f"P.IVA {vat}")
+        if tax_code:
+            fiscal.append(f"CF {tax_code}")
+        lines.append("Dati fiscali studio: " + ", ".join(fiscal) + ".")
+
+    sources = [
+        _source(
+            "Impostazioni studio",
+            " ".join(lines),
+            source_id="studio:impostazioni",
+            title="Impostazioni studio",
+        )
+    ]
+    return lines, sources
+
+
+def _pec_lines() -> tuple[list[str], list[dict[str, Any]]]:
+    config = _load_studio_config()
+    pec = getattr(config, "pec", None)
+    smtp = getattr(config, "smtp", None)
+    if not pec and not smtp:
+        return (
+            ["Configurazione PEC e canali email non disponibile in questo momento."],
+            [],
+        )
+
+    lines: list[str] = []
+    if pec:
+        pec_address = _clean_spaces(getattr(pec, "indirizzo", ""))
+        if pec_address:
+            lines.append(f"PEC studio configurata: {pec_address}.")
+        else:
+            lines.append("PEC studio non ancora configurata.")
+        pec_mode = "SSL attivo" if bool(getattr(pec, "use_ssl", False)) else "SSL disattivo"
+        lines.append(
+            "Canale PEC: "
+            f"SMTP {getattr(pec, 'smtp_host', '') or 'n.d.'}:{getattr(pec, 'smtp_port', '') or 'n.d.'}, "
+            f"IMAP {getattr(pec, 'imap_host', '') or 'n.d.'}:{getattr(pec, 'imap_port', '') or 'n.d.'}, "
+            f"{pec_mode}."
+        )
+        if _clean_spaces(getattr(pec, "password", "")):
+            lines.append("Password PEC configurata e protetta: mai riportata nel contesto di Lex.")
+
+    if smtp:
+        smtp_host = _clean_spaces(getattr(smtp, "host", ""))
+        smtp_from = _clean_spaces(getattr(smtp, "from_address", "")) or _clean_spaces(getattr(smtp, "username", ""))
+        if smtp_host or smtp_from:
+            tls_mode = "TLS attivo" if bool(getattr(smtp, "use_tls", False)) else "TLS disattivo"
+            lines.append(
+                "Email SMTP studio: "
+                f"host {smtp_host or 'n.d.'}:{getattr(smtp, 'port', '') or 'n.d.'}, "
+                f"mittente {smtp_from or 'n.d.'}, "
+                f"{tls_mode}."
+            )
+
+    sources = [
+        _source(
+            "PEC e canali email",
+            " ".join(lines),
+            source_id="studio:pec",
+            title="PEC e canali email",
+        )
+    ]
+    return lines, sources
+
+
 def _operational_lines() -> tuple[list[str], list[dict[str, Any]]]:
     sources: list[dict[str, Any]] = []
     clienti_stats = get_clienti().statistiche()
@@ -677,6 +779,8 @@ def build_lex_studio_context(question: str) -> dict[str, Any]:
     _append_section(sections, "Profilo studio", _studio_profile_lines())
 
     for title, builder in [
+        ("Impostazioni studio", _settings_studio_lines),
+        ("PEC e canali email", _pec_lines),
         ("Quadro operativo", _operational_lines),
         ("Fascicoli", lambda: _fascicoli_lines(q)),
         ("Clienti", lambda: _clienti_lines(q)),

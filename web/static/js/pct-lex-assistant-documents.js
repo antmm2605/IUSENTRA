@@ -30,12 +30,11 @@
     return new Promise(function (resolve, reject) {
       var reader = new FileReader();
       reader.onload = function () {
-        var result = String(reader.result || '');
         resolve({
           name: file.name || 'documento',
           mime_type: file.type || '',
           size_bytes: file.size || 0,
-          content_base64: result,
+          content_base64: String(reader.result || ''),
         });
       };
       reader.onerror = function () {
@@ -55,7 +54,7 @@
 
     var lines = [
       '',
-      "═══ DOCUMENTI CARICATI DALL'UTENTE ═══",
+      "=== DOCUMENTI CARICATI DALL'UTENTE ===",
       'Usa i documenti caricati come contesto operativo aggiuntivo.',
     ];
 
@@ -67,7 +66,7 @@
       if (item.page_count) {
         meta.push('pagine ' + item.page_count);
       }
-      lines.push('[' + meta.join(' · ') + ']');
+      lines.push('[' + meta.join(' - ') + ']');
       lines.push(String(item.text_excerpt || '').trim());
       if (item.truncated) {
         lines.push('(Estratto abbreviato per mantenere la risposta rapida.)');
@@ -75,8 +74,57 @@
       lines.push('');
     });
 
-    lines.push('═══ FINE DOCUMENTI CARICATI ═══');
+    lines.push('=== FINE DOCUMENTI CARICATI ===');
     return lines.join('\n').trim();
+  }
+
+  function stripMarkdown(value) {
+    return String(value || '')
+      .replace(/```[\s\S]*?```/g, ' ')
+      .replace(/^#{1,6}\s+/gm, '')
+      .replace(/^\s*[-*]\s+/gm, '')
+      .replace(/^\s*\d+[.)]\s+/gm, '')
+      .replace(/\*\*(.*?)\*\*/g, '$1')
+      .replace(/`([^`]+)`/g, '$1')
+      .replace(/\[(.*?)\]\((.*?)\)/g, '$1')
+      .replace(/[_>*#]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  function sanitizeTitle(value) {
+    var title = stripMarkdown(value || '').replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim();
+    return title || 'Documento generato da Lex';
+  }
+
+  function slugifyTitle(value, fallbackExtension) {
+    var slug = sanitizeTitle(value)
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+    return (slug || 'documento-generato-da-lex') + '.' + fallbackExtension;
+  }
+
+  function suggestGeneratedTitle(options) {
+    var explicit = sanitizeTitle(options && options.title);
+    if (explicit !== 'Documento generato da Lex') {
+      return explicit;
+    }
+
+    var answer = String((options && options.answer) || '');
+    var lines = answer.split(/\r?\n/);
+    for (var i = 0; i < lines.length; i += 1) {
+      var line = sanitizeTitle(lines[i].replace(/^#{1,6}\s+/, ''));
+      if (line && line !== 'Documento generato da Lex') {
+        return line.slice(0, 96);
+      }
+    }
+
+    var question = sanitizeTitle(options && options.question);
+    if (question !== 'Documento generato da Lex') {
+      return question.slice(0, 96);
+    }
+    return explicit;
   }
 
   function renderAttachmentShelf(container, attachments) {
@@ -94,7 +142,7 @@
         '<div class="pct-ai-attachment">' +
           '<div class="pct-ai-attachment__meta">' +
             '<div class="pct-ai-attachment__title"><i class="bi bi-file-earmark-text"></i><span>' + escapeHtml(item.name) + '</span></div>' +
-            '<div class="pct-ai-attachment__detail">' + escapeHtml(item.mime_type || 'documento') + ' · ' + escapeHtml(bytesLabel(item.size_bytes)) + '</div>' +
+            '<div class="pct-ai-attachment__detail">' + escapeHtml(item.mime_type || 'documento') + ' - ' + escapeHtml(bytesLabel(item.size_bytes)) + '</div>' +
           '</div>' +
           '<button class="pct-ai-attachment__remove" type="button" data-attachment-id="' + escapeHtml(item.id) + '" title="Rimuovi documento" aria-label="Rimuovi documento">' +
             '<i class="bi bi-x-lg"></i>' +
@@ -117,6 +165,26 @@
     });
   }
 
+  function buildGeneratedDocumentActions(options) {
+    var title = escapeHtml(suggestGeneratedTitle(options || {}));
+    return (
+      '<div class="pct-ai-generated-actions" data-generated-document-actions="true">' +
+        '<div class="pct-ai-generated-actions__meta">' +
+          '<i class="bi bi-file-earmark-richtext"></i>' +
+          '<span>' + title + '</span>' +
+        '</div>' +
+        '<div class="pct-ai-generated-actions__buttons">' +
+          '<button class="pct-ai-generated-btn pct-ai-generated-btn--primary" type="button" data-generated-download="docx">' +
+            '<i class="bi bi-file-earmark-word"></i><span>Scarica Word</span>' +
+          '</button>' +
+          '<button class="pct-ai-generated-btn" type="button" data-generated-download="md">' +
+            '<i class="bi bi-file-earmark-text"></i><span>Scarica Markdown</span>' +
+          '</button>' +
+        '</div>' +
+      '</div>'
+    );
+  }
+
   async function parseAttachments(options) {
     var files = Array.prototype.slice.call((options && options.files) || []).slice(0, MAX_FILES);
     if (!files.length) {
@@ -134,7 +202,7 @@
       : Promise.reject(new Error('Parser documentale del server non disponibile.'));
   }
 
-  function buildDownloadBlob(options) {
+  function buildConversationBlob(options) {
     var timestamp = new Date();
     var rows = [
       '# Conversazione Lex',
@@ -164,16 +232,50 @@
       rows.push('');
     });
 
-    var blob = new Blob([rows.join('\n')], { type: 'text/markdown;charset=utf-8' });
-    var fileName = 'lex-conversazione-' +
-      timestamp.toLocaleDateString('it-IT').replace(/\//g, '-') + '-' +
-      timestamp.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }).replace(':', '-') +
-      '.md';
-    return { blob: blob, fileName: fileName };
+    return {
+      blob: new Blob([rows.join('\n')], { type: 'text/markdown;charset=utf-8' }),
+      fileName: 'lex-conversazione-' +
+        timestamp.toLocaleDateString('it-IT').replace(/\//g, '-') + '-' +
+        timestamp.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }).replace(':', '-') +
+        '.md',
+    };
   }
 
-  function triggerDownload(options) {
-    var payload = buildDownloadBlob(options || {});
+  function buildGeneratedMarkdownBlob(options) {
+    var title = suggestGeneratedTitle(options || {});
+    var rows = [
+      '# ' + title,
+      '',
+      'Generato da Lex il: ' + new Date().toLocaleString('it-IT'),
+    ];
+    if (options && options.contextLabel) {
+      rows.push('Contesto: ' + options.contextLabel);
+    }
+    if (options && options.question) {
+      rows.push('');
+      rows.push('## Richiesta iniziale');
+      rows.push(String(options.question || '').trim());
+    }
+    rows.push('');
+    rows.push('## Contenuto generato');
+    rows.push(String((options && options.answer) || '').trim());
+
+    var citations = Array.isArray(options && options.citations) ? options.citations.filter(Boolean) : [];
+    if (citations.length) {
+      rows.push('');
+      rows.push('## Fonti');
+      citations.forEach(function (item) {
+        rows.push('- ' + item);
+      });
+    }
+
+    return {
+      blob: new Blob([rows.join('\n')], { type: 'text/markdown;charset=utf-8' }),
+      fileName: slugifyTitle(title, 'md'),
+    };
+  }
+
+  function triggerBlobDownload(payload) {
     var url = window.URL.createObjectURL(payload.blob);
     var link = document.createElement('a');
     link.href = url;
@@ -186,11 +288,55 @@
     }, 1000);
   }
 
+  function triggerDownload(options) {
+    triggerBlobDownload(buildConversationBlob(options || {}));
+  }
+
+  function downloadGeneratedMarkdown(options) {
+    triggerBlobDownload(buildGeneratedMarkdownBlob(options || {}));
+  }
+
+  async function downloadGeneratedDocx(options) {
+    var response = await fetch(String((options && options.exportUrl) || ''), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title: suggestGeneratedTitle(options || {}),
+        question: String((options && options.question) || ''),
+        answer: String((options && options.answer) || ''),
+        citations: Array.isArray(options && options.citations) ? options.citations : [],
+        context_label: String((options && options.contextLabel) || ''),
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Export Word non disponibile in questo momento.');
+    }
+
+    var contentType = String(response.headers.get('content-type') || '');
+    if (contentType.indexOf('application/json') >= 0) {
+      var payload = await response.json();
+      throw new Error(String((payload && payload.errore) || 'Export Word non riuscito.'));
+    }
+
+    var blob = await response.blob();
+    var disposition = String(response.headers.get('content-disposition') || '');
+    var match = disposition.match(/filename="?([^"]+)"?/i);
+    triggerBlobDownload({
+      blob: blob,
+      fileName: match ? match[1] : slugifyTitle(suggestGeneratedTitle(options || {}), 'docx'),
+    });
+  }
+
   window.PctLexDocuments = {
     bindShelfRemoval: bindShelfRemoval,
+    buildGeneratedDocumentActions: buildGeneratedDocumentActions,
     buildPromptBlock: buildPromptBlock,
+    downloadGeneratedDocx: downloadGeneratedDocx,
+    downloadGeneratedMarkdown: downloadGeneratedMarkdown,
     parseAttachments: parseAttachments,
     renderAttachmentShelf: renderAttachmentShelf,
+    suggestGeneratedTitle: suggestGeneratedTitle,
     triggerDownload: triggerDownload,
   };
 })();

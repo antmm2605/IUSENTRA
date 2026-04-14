@@ -18,8 +18,28 @@ def _write_studio_config(path: Path) -> None:
                 "studio": {
                     "nome": "Studio Refactor",
                     "avvocato": "Avv. Refactor",
+                    "indirizzo": "Via Roma 20",
                     "city": "Taurianova",
                     "province": "RC",
+                    "telefono": "0966 654321",
+                    "email": "studio.refactor@example.it",
+                },
+                "pec": {
+                    "indirizzo": "studio.refactor@pec.example.it",
+                    "password": "segreta",
+                    "smtp_host": "smtp.pec.aruba.it",
+                    "smtp_port": 465,
+                    "imap_host": "imaps.pec.aruba.it",
+                    "imap_port": 993,
+                    "use_ssl": True,
+                },
+                "smtp": {
+                    "host": "smtp.office365.com",
+                    "port": 587,
+                    "username": "studio.refactor@example.it",
+                    "from_address": "studio.refactor@example.it",
+                    "from_name": "Studio Refactor",
+                    "use_tls": True,
                 },
                 "scheduler": {
                     "backup_ora": "03:30",
@@ -444,6 +464,7 @@ def test_lex_assistant_usa_componente_esterno_e_posizione_persistente():
     assert 'data-status-url="{{ url_for(\'assistente.assistente_stato\') }}"' in widget_template
     assert 'data-server-context-url="{{ url_for(\'assistente.assistente_context\') }}"' in widget_template
     assert 'data-server-attachments-url="{{ url_for(\'assistente.assistente_attachments\') }}"' in widget_template
+    assert 'data-export-document-url="{{ url_for(\'assistente.assistente_documento\') }}"' in widget_template
     assert 'data-local-signer-url="http://127.0.0.1:27272"' in widget_template
     assert 'data-lex-icon-url="{{ url_for(\'static\', filename=\'img/lex-mark.png\') }}?v={{ app_version }}"' in widget_template
     assert "data-local-signer-setup-windows" in widget_template
@@ -458,11 +479,17 @@ def test_lex_assistant_usa_componente_esterno_e_posizione_persistente():
     assert "pct-ai-fab__label" not in widget_template
     assert "pct-ai-header__subtitle" not in widget_template
     assert "<script>" not in widget_template
+    assert "scaricare il singolo documento generato da Lex" in widget_template
     assert widget_icon.exists()
 
     assert "parseAttachments" in widget_docs_js
     assert "buildPromptBlock" in widget_docs_js
     assert "triggerDownload" in widget_docs_js
+    assert "buildGeneratedDocumentActions" in widget_docs_js
+    assert "downloadGeneratedDocx" in widget_docs_js
+    assert "downloadGeneratedMarkdown" in widget_docs_js
+    assert "suggestGeneratedTitle" in widget_docs_js
+    assert "data-generated-download" in widget_docs_js
     assert "SpeechRecognition" in widget_voice_js or "webkitSpeechRecognition" in widget_voice_js
     assert "speechSynthesis" in widget_voice_js
     assert "window.localStorage" in widget_js
@@ -476,6 +503,8 @@ def test_lex_assistant_usa_componente_esterno_e_posizione_persistente():
     assert "data-pct-ai-drag-handle" in widget_template
     assert "dataset.chatUrl" in widget_js
     assert "dataset.statusUrl" in widget_js
+    assert "generatedDocumentPayload" in widget_js
+    assert "renderGeneratedDocumentActions" in widget_js
     assert "documentsHelper" in widget_js
     assert "voiceHelper" in widget_js
     assert "fetchServerContext" in widget_js
@@ -504,6 +533,8 @@ def test_lex_assistant_usa_componente_esterno_e_posizione_persistente():
     assert ".pct-ai-toolbar" in widget_scss
     assert ".pct-ai-attachments" in widget_scss
     assert ".pct-ai-resize-handle" in widget_scss
+    assert ".pct-ai-generated-actions" in widget_scss
+    assert ".pct-ai-generated-btn" in widget_scss
     assert "fonti ufficiali web live" in widget_template
 
 

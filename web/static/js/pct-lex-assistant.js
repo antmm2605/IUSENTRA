@@ -176,6 +176,41 @@
     );
   }
 
+  function generatedDocumentPayload(payload) {
+    if (!payload || !payload.answer) {
+      return null;
+    }
+    var docs = documentsHelper();
+    var suggestedTitle = docs && docs.suggestGeneratedTitle
+      ? docs.suggestGeneratedTitle({
+          title: payload.title || '',
+          question: payload.question || '',
+          answer: payload.answer || '',
+        })
+      : 'Documento generato da Lex';
+
+    return {
+      title: suggestedTitle,
+      question: String(payload.question || '').trim(),
+      answer: String(payload.answer || '').trim(),
+      citations: Array.isArray(payload.citations) ? payload.citations.filter(Boolean) : [],
+      contextLabel: ctx && !ctx.hidden && ctxLabel ? String(ctxLabel.textContent || '').trim() : '',
+      exportUrl: widget && widget.dataset ? widget.dataset.exportDocumentUrl || '' : '',
+    };
+  }
+
+  function renderGeneratedDocumentActions(payload) {
+    var docs = documentsHelper();
+    if (!docs || !docs.buildGeneratedDocumentActions) {
+      return '';
+    }
+    var exportPayload = generatedDocumentPayload(payload);
+    if (!exportPayload) {
+      return '';
+    }
+    return docs.buildGeneratedDocumentActions(exportPayload);
+  }
+
   function voicePreferenceKey() {
     return storageKey + ':prefs';
   }
@@ -316,7 +351,14 @@
 
   function setAnswerPayload(element, payload) {
     var answer = payload && payload.answer ? renderMarkdown(payload.answer) : '<p>Nessuna risposta disponibile.</p>';
-    setBubbleHtml(element, answer + renderSources(payload || {}));
+    var exportPayload = generatedDocumentPayload(payload || {});
+    if (element) {
+      element._generatedDocument = exportPayload;
+    }
+    setBubbleHtml(
+      element,
+      answer + renderSources(payload || {}) + renderGeneratedDocumentActions(payload || {})
+    );
   }
 
   function defaultIntroMarkup() {
@@ -324,17 +366,17 @@
       '<div class="pct-ai-msg pct-ai-msg--assistant">' +
         assistantAvatarMarkup() +
         '<div class="pct-ai-bubble">' +
-          '<p>Ciao, sono <strong>Lex</strong>. Ti supporto su fascicoli, clienti, agenda, scadenziario, deposito telematico, firma digitale, PEC e moduli operativi dello studio.</p>' +
+          '<p>Ciao, sono <strong>Lex</strong>. Ti supporto su fascicoli, clienti, soggetti, dati studio, PEC, agenda, scadenziario, deposito telematico, firma digitale e moduli operativi dello studio.</p>' +
           '<ul>' +
             '<li>Suggerimenti su PCT, PDP, PAT, firma digitale, PEC e PDF/A</li>' +
-            '<li>Supporto consultivo su clienti, agenda, scadenziario, soggetti e fascicoli</li>' +
+            '<li>Supporto consultivo su clienti, soggetti, dati studio, PEC, agenda, scadenziario e fascicoli</li>' +
             '<li>Contesto operativo su template atti, tariffario, preventivi, fatturazione e applicazioni</li>' +
             '<li>Piste di ricerca legale con archivio sentenze e fonti ufficiali web live</li>' +
           '</ul>' +
           '<p>Lex resta sempre consultivo: suggerisce controlli, rischi e prossimi passi, ma non prende decisioni al posto del professionista.</p>' +
           '<p>Quando la domanda lo richiede, puo\' consultare automaticamente fonti ufficiali web per aggiungere riferimenti aggiornati alla risposta.</p>' +
           '<p>Se HACS e\' online, Lex usa il companion locale di questo dispositivo per parlare con Ollama in modo sicuro e non bloccante.</p>' +
-          '<p>Puoi caricare documenti, dettare la richiesta con la voce e scaricare il riepilogo operativo della conversazione.</p>' +
+          '<p>Puoi caricare documenti, dettare la richiesta con la voce e scaricare il singolo documento generato da Lex oppure il riepilogo completo della conversazione.</p>' +
           '<p class="mb-0">Se il pannello ti intralcia, trascinalo o ridimensionalo: posizione e dimensioni restano salvate su questo browser.</p>' +
         '</div>' +
       '</div>'
@@ -488,6 +530,7 @@
       function readChunk() {
         return reader.read().then(function (result) {
           if (result.done) {
+            setAnswerPayload(state.currentBubble, { answer: full, citations: [], question: text });
             state.history.push({ role: 'assistant', content: full });
             speakAnswer(full);
             finalizeRequest();
@@ -505,6 +548,7 @@
 
             var raw = line.slice(6).trim();
               if (raw === '[DONE]') {
+                setAnswerPayload(state.currentBubble, { answer: full, citations: [], question: text });
                 state.history.push({ role: 'assistant', content: full });
                 speakAnswer(full);
                 finalizeRequest();
@@ -586,6 +630,7 @@
         if (!payload.answer && state.currentBubble) {
           payload.answer = state.currentBubble.textContent || '';
         }
+        payload.question = text;
         setAnswerPayload(state.currentBubble, payload);
         state.history.push({ role: 'assistant', content: String(payload.answer || '').trim() });
         speakAnswer(payload.answer || '');
@@ -978,6 +1023,36 @@
     }
     if (attachmentsShelf && documentsHelper()) {
       documentsHelper().bindShelfRemoval(attachmentsShelf, removeAttachment);
+    }
+    if (messages) {
+      messages.addEventListener('click', function (event) {
+        var button = event.target.closest('[data-generated-download]');
+        var docs = documentsHelper();
+        if (!button || !docs) {
+          return;
+        }
+        var bubble = button.closest('.pct-ai-bubble');
+        var payload = bubble && bubble._generatedDocument;
+        if (!payload) {
+          return;
+        }
+        var format = String(button.getAttribute('data-generated-download') || '');
+        if (format === 'md' && docs.downloadGeneratedMarkdown) {
+          docs.downloadGeneratedMarkdown(payload);
+          setStatus('Documento Markdown generato da Lex scaricato.');
+          return;
+        }
+        if (format === 'docx' && docs.downloadGeneratedDocx) {
+          setStatus('Lex sta preparando il documento Word...');
+          docs.downloadGeneratedDocx(payload)
+            .then(function () {
+              setStatus('Documento Word generato da Lex scaricato.');
+            })
+            .catch(function (error) {
+              setStatus('Export Word non riuscito: ' + String((error && error.message) || 'errore sconosciuto'));
+            });
+        }
+      });
     }
     if (voiceToggleButton) {
       voiceToggleButton.addEventListener('click', function () {

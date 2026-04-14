@@ -67,6 +67,18 @@ git push origin claude/legal-electronic-filing-kIxcV:Codex/legal-electronic-fili
   - altri host/server → guida chiara e non bloccante, senza installazioni opache dal browser
 - Nessuna funzione core del gestionale deve bloccarsi se l'AI locale non è disponibile.
 
+## Railway CLI — Regola obbligatoria
+
+- L'ambiente è abilitato anche alla **Railway CLI** con accesso operativo.
+- Quando un problema si manifesta solo su Railway o in modo diverso rispetto a `localhost`, la verifica deve includere anche il servizio online tramite Railway CLI.
+- Controlli minimi da fare nei casi rilevanti:
+  - shell del container Railway
+  - log del servizio
+  - stato e contenuto del volume `/data`
+  - variabili/runtime effettivi in produzione
+  - risposta reale delle route online coinvolte
+- Per differenze ambiente locale/produzione, non considerare concluso un fix finché non è stato verificato anche online quando Railway è raggiungibile.
+
 ## Architettura del progetto
 
 ```

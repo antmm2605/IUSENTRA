@@ -171,6 +171,18 @@ python -m pytest tests/ -v
   - altri host/server → guida chiara e non bloccante, senza installazioni opache dal browser
 - Il gestionale deve continuare a funzionare anche se il runtime AI non è disponibile: nessuna funzione core di fascicoli, agenda, documenti o scadenziario deve bloccarsi per assenza di Ollama.
 
+## Railway CLI — REGOLA OBBLIGATORIA
+
+- L'ambiente di lavoro è abilitato anche alla **Railway CLI** con login valido.
+- Quando un comportamento differisce tra `localhost` e produzione Railway, la verifica non può fermarsi al test locale: usare anche Railway CLI per controllare il servizio online.
+- In questi casi verificare sempre, quando rilevante:
+  - shell del container Railway
+  - log applicativi
+  - stato del volume `/data`
+  - variabili/runtime effettivi del servizio online
+  - risposta reale delle route in produzione
+- Se un fix riguarda deploy, storage, AI locale, Local Signer bridge, SMTP, portali o differenze di configurazione tra ambienti, includere esplicitamente un controllo Railway nel flusso di test finale.
+
 ## Versioning — REGOLA OBBLIGATORIA
 
 **Ad ogni implementazione (nuova funzionalità, bug fix, qualsiasi modifica al codice) eseguire SEMPRE il bump di versione e aggiornare tutti e quattro i file:**

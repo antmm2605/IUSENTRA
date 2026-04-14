@@ -13,6 +13,7 @@
   var state = {
     open: false,
     streaming: false,
+    fullscreen: false,
     history: [],
     attachments: [],
     sessionId: null,
@@ -41,6 +42,7 @@
   var uploadInput;
   var attachmentsShelf;
   var exportButton;
+  var fullscreenButton;
   var micButton;
   var voiceToggleButton;
   var resizeHandle;
@@ -343,6 +345,9 @@
 
   function buildThinkingNote(question, stage) {
     var profile = queryProfile(question);
+    if (stage !== 1 && stage !== 2) {
+      return '';
+    }
     if (stage === 1) {
       if (profile.liveWeb) {
         return 'Cerco l’aggiornamento più recente su fonti ufficiali e ti porto una risposta concreta con data, giudice e principio.';
@@ -365,12 +370,60 @@
     return 'Sto rifinendo la risposta per dartela già ordinata, leggibile e subito spendibile.';
   }
 
-  function renderThinkingStatus() {
-    if (!state.thinking || !state.thinking.active) {
+  function buildThinkingBubbleHtmlLegacy(question, stage, elapsed) {
+    var suffix = elapsed >= 1400 ? ' Â· ' + formatReflectionDuration(elapsed) : '';
+    var note = buildThinkingNote(question, stage);
+    return (
+      '<div class="pct-ai-thinking-box">' +
+        '<span class="pct-ai-status-pill pct-ai-status-pill--inline">' +
+          '<span class="pct-ai-status-pill__dot"></span>' +
+          '<span>Sto pensando' + suffix + '</span>' +
+        '</span>' +
+        (note ? '<div class="pct-ai-thinking-copy">' + escapeHtml(note) + '</div>' : '') +
+      '</div>'
+    );
+  }
+
+  function renderReflectionStatusLegacy(durationMs) {
+    setStatusHtml(
+      '<span class="pct-ai-status-reflection">' +
+        '<i class="bi bi-hourglass-split"></i>' +
+        '<span>Riflessione Â· ' + formatReflectionDuration(durationMs) + '</span>' +
+      '</span>',
+      'reflection'
+    );
+  }
+
+  function buildThinkingBubbleHtml(question, stage, elapsed) {
+    var suffix = elapsed >= 1400 ? ' - ' + formatReflectionDuration(elapsed) : '';
+    var note = buildThinkingNote(question, stage);
+    return (
+      '<div class="pct-ai-thinking-box">' +
+        '<span class="pct-ai-status-pill pct-ai-status-pill--inline">' +
+          '<span class="pct-ai-status-pill__dot"></span>' +
+          '<span>Sto pensando' + suffix + '</span>' +
+        '</span>' +
+        (note ? '<div class="pct-ai-thinking-copy">' + escapeHtml(note) + '</div>' : '') +
+      '</div>'
+    );
+  }
+
+  function renderReflectionStatus(durationMs) {
+    setStatusHtml(
+      '<span class="pct-ai-status-reflection">' +
+        '<i class="bi bi-hourglass-split"></i>' +
+        '<span>Riflessione - ' + formatReflectionDuration(durationMs) + '</span>' +
+      '</span>',
+      'reflection'
+    );
+  }
+
+  function renderThinkingStatusLegacy() {
+    if (!state.thinking || !state.thinking.active || state.thinking.receivedFirstToken || !state.currentBubble) {
       return;
     }
 
-    var elapsed = thinkingElapsedMs();
+    var elapsed = Number(state.thinking.reflectionDurationMs || thinkingElapsedMs() || 0);
     var suffix = elapsed >= 1400 ? ' · ' + formatReflectionDuration(elapsed) : '';
     setStatusHtml(
       '<span class="pct-ai-status-pill">' +
@@ -381,7 +434,7 @@
     );
   }
 
-  function ensureThinkingNote(stage) {
+  function ensureThinkingNoteLegacy(stage) {
     if (!state.thinking || !state.thinking.active || state.thinking.receivedFirstToken) {
       return;
     }
@@ -391,6 +444,30 @@
     }
     setBubbleContent(state.currentBubble, text);
     scrollBottom();
+  }
+
+  function renderThinkingStatus() {
+    if (!state.thinking || !state.thinking.active || state.thinking.receivedFirstToken || !state.currentBubble) {
+      return;
+    }
+
+    setBubbleHtml(
+      state.currentBubble,
+      buildThinkingBubbleHtml(
+        state.thinking.question,
+        Number(state.thinking.stage || 0),
+        thinkingElapsedMs()
+      )
+    );
+    scrollBottom();
+  }
+
+  function ensureThinkingNote(stage) {
+    if (!state.thinking || !state.thinking.active || state.thinking.receivedFirstToken) {
+      return;
+    }
+    state.thinking.stage = Number(stage || 0);
+    renderThinkingStatus();
   }
 
   function stopThinkingTimers() {
@@ -417,11 +494,14 @@
       active: true,
       question: String(question || '').trim(),
       startedAt: Date.now(),
+      stage: 0,
       receivedFirstToken: false,
+      reflectionDurationMs: 0,
       statusTimer: window.setInterval(renderThinkingStatus, 250),
       stageOneTimer: null,
       stageTwoTimer: null,
     };
+    setStatus('');
     renderThinkingStatus();
     state.thinking.stageOneTimer = window.setTimeout(function () {
       ensureThinkingNote(1);
@@ -435,17 +515,19 @@
     if (!state.thinking || state.thinking.receivedFirstToken) {
       return;
     }
+    var durationMs = thinkingElapsedMs();
     state.thinking.receivedFirstToken = true;
-    if (statusBar && statusBar.classList.contains('is-thinking')) {
-      setStatus('');
-    }
+    state.thinking.reflectionDurationMs = durationMs;
+    state.thinking.active = false;
+    stopThinkingTimers();
+    renderReflectionStatus(durationMs);
   }
 
-  function finalizeThinkingFeedback(success) {
+  function finalizeThinkingFeedbackLegacy(success) {
     if (!state.thinking) {
       return;
     }
-    var elapsed = thinkingElapsedMs();
+    var elapsed = Number(state.thinking.reflectionDurationMs || thinkingElapsedMs() || 0);
     stopThinkingTimers();
     if (success) {
       setStatusHtml(
@@ -455,6 +537,20 @@
         '</span>',
         'reflection'
       );
+    }
+    state.thinking.active = false;
+  }
+
+  function finalizeThinkingFeedback(success) {
+    if (!state.thinking) {
+      return;
+    }
+    var elapsed = Number(state.thinking.reflectionDurationMs || thinkingElapsedMs() || 0);
+    stopThinkingTimers();
+    if (success) {
+      renderReflectionStatus(elapsed);
+    } else if (statusBar && (statusBar.classList.contains('is-thinking') || statusBar.classList.contains('is-reflection'))) {
+      setStatus('');
     }
     state.thinking.active = false;
   }
@@ -1054,7 +1150,6 @@
       return;
     }
 
-    setStatus('Lex sta interrogando il companion locale del dispositivo...');
     var preparedFocusLabel = state.pendingFocus && state.pendingFocus.focusLabel ? String(state.pendingFocus.focusLabel) : '';
     browserBridge()
       .fetchServerContext(bridgeConfig, {
@@ -1081,7 +1176,6 @@
             onToken: function (token) {
               markThinkingTokenReceived();
               partial += String(token || '');
-              setStatus('Lex sta scrivendo dal dispositivo locale...');
               setBubbleContent(state.currentBubble, partial);
               scrollBottom();
             },
@@ -1111,7 +1205,6 @@
         saveConversationMemory();
         speakAnswer(payload.answer || '');
         finalizeThinkingFeedback(true);
-        checkStatus();
         finalizeRequest('Risposta generata sul dispositivo locale.');
       })
       .catch(function (error) {
@@ -1197,20 +1290,18 @@
     saveConversationMemory();
     appendMessage('user', text);
 
+    state.currentBubble = appendMessage('assistant', '');
     state.streaming = true;
     startThinkingFeedback(text);
     if (sendButton) {
       sendButton.disabled = true;
     }
 
-    state.currentBubble = appendMessage('assistant', '');
-
     if (bridgeConfig) {
       sendViaCompanion(text);
       return;
     }
 
-    setStatus('Lex sta preparando la risposta...');
     sendLocal(text);
   }
 
@@ -1308,6 +1399,56 @@
     }
   }
 
+  function clearInlineLayoutStyles() {
+    if (!widget) {
+      return;
+    }
+    widget.style.left = '';
+    widget.style.top = '';
+    widget.style.right = '';
+    widget.style.bottom = '';
+    widget.style.width = '';
+    widget.style.height = '';
+  }
+
+  function applyFullscreenState() {
+    if (!widget) {
+      return;
+    }
+    widget.classList.toggle('pct-ai-widget--fullscreen', Boolean(state.fullscreen));
+    if (fullscreenButton) {
+      fullscreenButton.innerHTML = '<i class="bi bi-' + (state.fullscreen ? 'fullscreen-exit' : 'arrows-fullscreen') + '"></i>';
+      fullscreenButton.title = state.fullscreen ? 'Esci da tutto schermo' : 'Apri Lex a tutto schermo';
+      fullscreenButton.setAttribute('aria-label', fullscreenButton.title);
+      fullscreenButton.classList.toggle('is-active', Boolean(state.fullscreen));
+    }
+  }
+
+  function setFullscreen(nextFullscreen, options) {
+    options = options || {};
+    state.fullscreen = Boolean(nextFullscreen);
+    if (state.fullscreen) {
+      clearInlineLayoutStyles();
+      if (widget) {
+        widget.classList.remove('pct-ai-widget--custom');
+      }
+    }
+    applyFullscreenState();
+    if (options.persist !== false) {
+      saveLayout({ fullscreen: state.fullscreen });
+    }
+    if (!state.fullscreen) {
+      restorePosition();
+    }
+    if (!options.silent) {
+      setStatus(state.fullscreen ? 'Lex aperta a tutto schermo.' : 'Lex tornata alla dimensione precedente.');
+    }
+  }
+
+  function toggleFullscreen() {
+    setFullscreen(!state.fullscreen);
+  }
+
   function applyCustomLayout(layout) {
     if (!widget || !layout || !isDesktop()) {
       return;
@@ -1338,13 +1479,10 @@
     }
 
     clearSavedPosition();
+    state.fullscreen = false;
+    applyFullscreenState();
     widget.classList.remove('pct-ai-widget--custom');
-    widget.style.left = '';
-    widget.style.top = '';
-    widget.style.right = '';
-    widget.style.bottom = '';
-    widget.style.width = '';
-    widget.style.height = '';
+    clearInlineLayoutStyles();
     setStatus('Posizione e dimensioni ripristinate in basso a destra.');
   }
 
@@ -1353,14 +1491,27 @@
       return;
     }
 
-    if (!isDesktop()) {
-      resetPosition();
+    var saved = getSavedLayout() || {};
+    state.fullscreen = Boolean(saved.fullscreen);
+    applyFullscreenState();
+
+    if (state.fullscreen) {
+      widget.classList.remove('pct-ai-widget--custom');
+      clearInlineLayoutStyles();
       return;
     }
 
-    var saved = getSavedLayout();
-    if (saved) {
+    if (!isDesktop()) {
+      widget.classList.remove('pct-ai-widget--custom');
+      clearInlineLayoutStyles();
+      return;
+    }
+
+    if (saved && (saved.width || saved.height || saved.left || saved.top)) {
       applyCustomLayout(saved);
+    } else {
+      widget.classList.remove('pct-ai-widget--custom');
+      clearInlineLayoutStyles();
     }
   }
 
@@ -1404,7 +1555,7 @@
   }
 
   function startDrag(event) {
-    if (!isDesktop() || !widget || event.button !== 0) {
+    if (!isDesktop() || !widget || event.button !== 0 || state.fullscreen) {
       return;
     }
 
@@ -1474,7 +1625,7 @@
   }
 
   function startResize(event) {
-    if (!isDesktop() || !widget || event.button !== 0) {
+    if (!isDesktop() || !widget || event.button !== 0 || state.fullscreen) {
       return;
     }
     event.preventDefault();
@@ -1504,6 +1655,9 @@
     query('pct-ai-close').addEventListener('click', function () { setOpen(false); });
     query('pct-ai-clear').addEventListener('click', clearHistory);
     query('pct-ai-reset-position').addEventListener('click', resetPosition);
+    if (fullscreenButton) {
+      fullscreenButton.addEventListener('click', toggleFullscreen);
+    }
     if (exportButton) {
       exportButton.addEventListener('click', function () {
         var docs = documentsHelper();
@@ -1628,7 +1782,12 @@
       if (isDesktop()) {
         restorePosition();
       } else {
-        resetPosition();
+        restorePosition();
+      }
+    });
+    window.addEventListener('keydown', function (event) {
+      if (event.key === 'Escape' && state.fullscreen) {
+        setFullscreen(false, { silent: true });
       }
     });
   }
@@ -1658,6 +1817,7 @@
     uploadInput = query('pct-ai-upload');
     attachmentsShelf = query('pct-ai-attachments');
     exportButton = query('pct-ai-export');
+    fullscreenButton = query('pct-ai-fullscreen');
     micButton = query('pct-ai-mic');
     voiceToggleButton = query('pct-ai-voice-toggle');
     resizeHandle = query('pct-ai-resize-handle');
@@ -1699,6 +1859,7 @@
     send: send,
     clearHistory: clearHistory,
     resetPosition: resetPosition,
+    toggleFullscreen: toggleFullscreen,
   };
 
   document.addEventListener('DOMContentLoaded', init);

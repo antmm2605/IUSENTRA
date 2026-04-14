@@ -480,6 +480,7 @@ def test_lex_assistant_usa_componente_esterno_e_posizione_persistente():
     assert "Ti supporto su fascicoli" not in widget_template
     assert "Carica documenti" in widget_template
     assert "Scarica il riepilogo della conversazione" in widget_template
+    assert "Apri Lex a tutto schermo" in widget_template
     assert "Detta la richiesta a Lex" in widget_template
     assert "Ridimensiona la finestra di Lex" in widget_template
     assert "pct-ai-brand-mark" in widget_template
@@ -515,7 +516,13 @@ def test_lex_assistant_usa_componente_esterno_e_posizione_persistente():
     assert "buildThinkingNote" in widget_js
     assert "Sto pensando" in widget_js
     assert "Riflessione" in widget_js
+    assert "buildThinkingBubbleHtml" in widget_js
+    assert "renderReflectionStatus" in widget_js
     assert "pct-ai-status-pill" in widget_js
+    assert "pct-ai-widget--fullscreen" in widget_js
+    assert "setFullscreen" in widget_js
+    assert "toggleFullscreen" in widget_js
+    assert "state.fullscreen = false" in widget_js
     assert "resolveConversationFocus" in widget_js
     assert "renderReferenceLabel" in widget_js
     assert "appendMetaMessage" not in widget_js
@@ -549,10 +556,13 @@ def test_lex_assistant_usa_componente_esterno_e_posizione_persistente():
     assert "Companion locale raggiunto, ma la richiesta non e\\' andata a buon fine" in widget_js
     assert "Local Signer raggiungibile, ma il modulo AI locale non e\\' operativo su questo dispositivo." in widget_js
     assert "remoteHosted" in widget_js
-    assert "Lex sta scrivendo dal dispositivo locale" in widget_js
+    assert "Lex sta scrivendo dal dispositivo locale" not in widget_js
     assert "Risposta generata sul dispositivo locale." in widget_js
     assert "Companion locale non raggiungibile, attivo fallback sul runtime locale di HACS..." in widget_js
     assert "sendLocal(text);" in widget_js
+    assert "pct-ai-thinking-copy" in widget_scss
+    assert "pct-ai-status-pill--inline" in widget_scss
+    assert "pct-ai-widget--fullscreen" in widget_scss
 
     assert ".pct-ai-widget" in widget_scss
     assert ".pct-ai-brand-mark" in widget_scss

@@ -137,6 +137,8 @@ def test_assistente_prompt_separa_voce_e_regole_tecniche():
     assert "richiesta breve ma chiaramente tematizzata" in prompt
     assert "Le domande brevi successive vanno interpretate in continuita' con il turno precedente." in prompt
     assert "Non riaprire ogni risposta con \"Ciao, sono Lex.\"" in prompt
+    assert "Quando l'utente chiede di cercare, controllare, verificare o guardare qualcosa sul web" in prompt
+    assert "In questi casi esegui la ricerca e usa le fonti ufficiali pertinenti" in prompt
     assert "=== GESTIONE DELLA RELAZIONE QUOTIDIANA ===" in prompt
     assert "Se il messaggio e' solo sociale o relazionale" in prompt
     assert "Se il messaggio combina cortesia e richiesta operativa" in prompt
@@ -526,6 +528,52 @@ def test_api_assistente_context_integra_fonti_ufficiali_web_live(tmp_path: Path,
     assert payload["web_fallback_used"] is True
     assert any(citation == "Fonte ufficiale live - Normattiva" for citation in payload["citations"])
     assert any(source["id"] == "live-web:normattiva" for source in payload["sources"])
+
+
+def test_api_assistente_context_eredita_tema_precedente_per_verifica_web(tmp_path: Path, monkeypatch):
+    _write_studio_config(tmp_path / "config" / "studio.json", enabled=True)
+    app = create_app(_cfg_web(tmp_path))
+
+    monkeypatch.setattr(
+        "web.services.assistente_studio_context.build_live_official_web_context",
+        lambda question, **kwargs: {
+            "lines": [
+                "Cassazione: risorsa live raggiunta, titolo 'Sentenza civile recente', URL https://www.cortedicassazione.it/.",
+            ],
+            "sources": [
+                {
+                    "id": "live-web:cassazione",
+                    "title": "Cassazione",
+                    "citation": "Fonte ufficiale live - Cassazione",
+                    "text": "Sentenza civile recente. URL ufficiale: https://www.cortedicassazione.it/.",
+                }
+            ],
+            "citations": ["Fonte ufficiale live - Cassazione"],
+            "source_ids": ["cassazione"],
+        },
+    )
+
+    with app.test_client() as client:
+        client.post("/login", data={"username": "admin", "password": "admin"}, follow_redirects=True)
+        response = client.post(
+            "/api/assistente/context",
+            json={
+                "messages": [
+                    {"role": "user", "content": "Ultime sentenze sul civile tutti gli ambienti"},
+                    {"role": "assistant", "content": "Controllo le sentenze civili piu' recenti."},
+                    {"role": "user", "content": "Puoi controllare tu sul web"},
+                ],
+            },
+        )
+
+    payload = response.get_json()
+    assert response.status_code == 200
+    assert payload["ok"] is True
+    assert payload["effective_question"] == "Ultime sentenze sul civile tutti gli ambienti"
+    assert payload["web_execution_requested"] is True
+    assert payload["web_fallback_used"] is True
+    assert "Richiesta web presa in carico" in payload["prompt"]
+    assert "Cassazione: risorsa live raggiunta" in payload["prompt"]
 
 
 def test_api_assistente_attachments_parse_documenti_locali(tmp_path: Path):

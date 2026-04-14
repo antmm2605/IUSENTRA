@@ -177,7 +177,8 @@ def assistente_context():
 
     runtime = resolved_ollama_runtime()
     studio_context = build_lex_studio_context(user_effective_question, mode="chat", messages=history_messages)
-    prompt_question = str(studio_context.get("effective_question") or user_effective_question).strip() or user_effective_question
+    resolved_effective_question = str(studio_context.get("effective_question") or user_effective_question).strip() or user_effective_question
+    prompt_question = resolved_effective_question
     prompt = build_assistente_prompt(
         question=prompt_question,
         fascicolo_id=fascicolo_id,
@@ -207,7 +208,7 @@ def assistente_context():
         "ok": True,
         "query_type": "assistente_chat",
         "question": question,
-        "effective_question": user_effective_question,
+        "effective_question": resolved_effective_question,
         "prompt": prompt,
         "sources": studio_context.get("sources") or [],
         "citations": studio_context.get("citations") or [],
@@ -215,6 +216,7 @@ def assistente_context():
         "focus_label": str(studio_context.get("focus_label") or "").strip(),
         "focus_topic": str(studio_context.get("focus_topic") or "").strip(),
         "web_fallback_used": bool(studio_context.get("web_fallback_used")),
+        "web_execution_requested": bool(studio_context.get("web_execution_requested")),
         "social_kind": social_intent.kind,
         "social_prefix": str(social_prefix or "").strip(),
     }, 200
@@ -316,18 +318,19 @@ def assistente_chat():
     effective_question = str(social_intent.remaining_text or last_user_text).strip() or "Richiesta operativa"
     user_effective_question = effective_question
     social_prefix = build_social_reply(social_intent) if social_intent.kind.endswith("_with_request") else ""
-    llm_messages = _messages_with_effective_question(
-        messages,
-        effective_question=user_effective_question,
-        original_question=last_user_text,
-    )
     runtime = resolved_ollama_runtime()
     api_base_url = str(runtime.get("api_base_url") or "").rstrip("/")
     base_url = str(runtime.get("base_url") or "").rstrip("/")
     chat_model = str(runtime.get("chat_model") or "mistral").strip() or "mistral"
     keep_alive = str(runtime.get("keep_alive") or "10m").strip() or "10m"
     studio_context = build_lex_studio_context(user_effective_question, mode="chat", messages=history_messages)
-    prompt_question = str(studio_context.get("effective_question") or user_effective_question).strip() or "Richiesta operativa"
+    resolved_effective_question = str(studio_context.get("effective_question") or user_effective_question).strip() or "Richiesta operativa"
+    prompt_question = resolved_effective_question
+    llm_messages = _messages_with_effective_question(
+        messages,
+        effective_question=resolved_effective_question,
+        original_question=last_user_text,
+    )
 
     # System prompt + eventuale contesto fascicolo
     system_content = build_assistente_prompt(

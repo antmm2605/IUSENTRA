@@ -1,5 +1,9 @@
 from web.services.assistente_conversation_focus import resolve_conversation_focus
 from web.services.assistente_live_web import build_live_official_web_context
+from web.services.assistente_web_execution import (
+    is_web_execution_request,
+    resolve_effective_query,
+)
 
 
 def test_focus_conversazionale_instrada_richiesta_tematizzata_breve():
@@ -25,6 +29,33 @@ def test_focus_conversazionale_recupera_follow_up_dalla_storia():
     assert focus["is_follow_up"] is True
     assert focus["focus_label"] == "procedimenti attivi"
     assert focus["effective_question"].startswith("udienze ")
+
+
+def test_web_execution_request_riconosce_follow_up_operativo():
+    assert is_web_execution_request("puoi controllare tu sul web") is True
+    assert (
+        resolve_effective_query(
+            "puoi controllare tu sul web",
+            "ultime sentenze sul civile tutti gli ambienti",
+        )
+        == "ultime sentenze sul civile tutti gli ambienti"
+    )
+
+
+def test_focus_conversazionale_eredita_tema_precedente_per_richiesta_web_breve():
+    focus = resolve_conversation_focus(
+        "puoi controllare tu sul web",
+        messages=[
+            {"role": "user", "content": "Ultime sentenze sul civile tutti gli ambienti"},
+            {"role": "assistant", "content": "Posso controllare le sentenze civili piu' recenti."},
+        ],
+    )
+
+    assert focus["topic"] == "sentenze_web"
+    assert focus["include_live_web"] is True
+    assert focus["web_execution_requested"] is True
+    assert focus["inherited_previous_theme"] is True
+    assert focus["effective_question"] == "Ultime sentenze sul civile tutti gli ambienti"
 
 
 def test_live_web_context_supporta_force_fallback_senza_keyword_esplicita():

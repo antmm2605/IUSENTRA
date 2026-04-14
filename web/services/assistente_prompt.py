@@ -60,6 +60,16 @@ _LEX_CONTEXT_ROUTING_PROMPT = """\
 - Se il contesto e' debole o assente, dillo chiaramente e usa le fonti ufficiali solo quando servono davvero; non attivare il web per richieste operative interne di studio.
 """
 
+_LEX_WEB_EXECUTION_PROMPT = """\
+=== GESTIONE DELLE RICHIESTE DI RICERCA E VERIFICA WEB ===
+- Quando l'utente chiede di cercare, controllare, verificare o guardare qualcosa sul web, interpreta la richiesta come operativa.
+- In questi casi esegui la ricerca e usa le fonti ufficiali pertinenti; non limitarti a suggerire siti da consultare.
+- Se il messaggio corrente e' breve ma il tema e' gia' nel turno precedente, eredita il referente piu' vicino della conversazione e non chiedere di nuovo l'argomento.
+- Se il perimetro e' ampio, prendilo comunque in carico e poi restringilo con un criterio utile; non scaricare il lavoro sull'utente.
+- Riporta prima i risultati rilevanti, poi eventuali limiti o verifiche ulteriori.
+- Evita formule come "ti posso indicare alcune risorse utili", "puoi consultare questi siti" o "se mi indichi meglio cosa cerchi" quando la richiesta di ricerca e' gia' chiara.
+"""
+
 _LEX_SOCIAL_PROMPT = """\
 === GESTIONE DELLA RELAZIONE QUOTIDIANA ===
 - Lex deve riconoscere saluti, ringraziamenti, conferme brevi, chiusure relazionali, scuse e feedback positivi.
@@ -301,6 +311,8 @@ def build_assistente_prompt(
         _LEX_OPERATION_GUARDRAILS,
         "",
         _LEX_CONTEXT_ROUTING_PROMPT,
+        "",
+        _LEX_WEB_EXECUTION_PROMPT,
         "",
         _LEX_SOCIAL_PROMPT,
     ]

@@ -986,6 +986,10 @@
       return;
     }
 
+    if (!state.open && state.fullscreen) {
+      setFullscreen(false, { silent: true });
+    }
+
     panel.hidden = !state.open;
     fab.classList.toggle('pct-ai-fab--active', state.open);
     widget.classList.toggle('pct-ai-widget--open', state.open);
@@ -1004,6 +1008,10 @@
 
   function toggle() {
     setOpen(!state.open);
+  }
+
+  function closeAssistant() {
+    setOpen(false);
   }
 
   function finalizeRequest(message) {
@@ -1682,7 +1690,7 @@
   function bindEvents() {
     fab.addEventListener('click', toggle);
     sendButton.addEventListener('click', send);
-    query('pct-ai-close').addEventListener('click', function () { setOpen(false); });
+    query('pct-ai-close').addEventListener('click', closeAssistant);
     query('pct-ai-clear').addEventListener('click', clearHistory);
     query('pct-ai-reset-position').addEventListener('click', resetPosition);
     if (fullscreenButton) {

@@ -522,7 +522,9 @@ def test_lex_assistant_usa_componente_esterno_e_posizione_persistente():
     assert "pct-ai-widget--fullscreen" in widget_js
     assert "setFullscreen" in widget_js
     assert "toggleFullscreen" in widget_js
+    assert "closeAssistant" in widget_js
     assert "state.fullscreen = false" in widget_js
+    assert "if (!state.open && state.fullscreen)" in widget_js
     assert "resolveConversationFocus" in widget_js
     assert "renderReferenceLabel" in widget_js
     assert "appendMetaMessage" not in widget_js
@@ -591,6 +593,7 @@ def test_contesto_lex_compatta_le_sezioni_e_limita_le_fonti():
     focus_service = (REPO_ROOT / "web/services/assistente_conversation_focus.py").read_text(encoding="utf-8")
     live_web_service = (REPO_ROOT / "web/services/assistente_live_web.py").read_text(encoding="utf-8")
     social_service = (REPO_ROOT / "web/services/assistente_social.py").read_text(encoding="utf-8")
+    web_execution_service = (REPO_ROOT / "web/services/assistente_web_execution.py").read_text(encoding="utf-8")
     assistente_blueprint = (REPO_ROOT / "web/blueprints/assistente.py").read_text(encoding="utf-8")
     assistente_prompt = (REPO_ROOT / "web/services/assistente_prompt.py").read_text(encoding="utf-8")
 
@@ -608,7 +611,7 @@ def test_contesto_lex_compatta_le_sezioni_e_limita_le_fonti():
     assert "_SECTION_DEPENDENCY_KEYS" in context_service
     assert 'chat_mode = str(mode or "").strip().lower() == "chat"' in context_service
     assert "selected_detail_titles = (" in context_service
-    assert "force_web_fallback = _should_force_web_fallback(" in context_service
+    assert "force_web_fallback = web_execution_requested or _should_force_web_fallback(" in context_service
     assert '"sources": deduped_sources[:10 if chat_mode else 12]' in context_service
     assert '"web_fallback_used": bool(force_web_fallback)' in context_service
     assert "warm_lex_studio_context" in context_service
@@ -618,6 +621,9 @@ def test_contesto_lex_compatta_le_sezioni_e_limita_le_fonti():
     assert "resolve_conversation_focus" in focus_service
     assert "_TOPIC_RULES" in focus_service
     assert "_FOLLOW_UP_MARKERS" in focus_service
+    assert "resolve_web_execution_intent" in focus_service
+    assert '"web_execution_requested": bool(web_intent.requested)' in focus_service
+    assert '"inherited_previous_theme": bool(web_intent.inherited_previous_theme)' in focus_service
     assert "_FALLBACK_DEFAULT_SOURCE_IDS" in live_web_service
     assert "force: bool = False" in live_web_service
     assert "explicit_source_ids" in live_web_service
@@ -625,6 +631,10 @@ def test_contesto_lex_compatta_le_sezioni_e_limita_le_fonti():
     assert "build_social_reply" in social_service
     assert "prepend_social_prefix" in social_service
     assert "is_social_only_intent" in social_service
+    assert "class WebExecutionIntent" in web_execution_service
+    assert "is_web_execution_request" in web_execution_service
+    assert "resolve_effective_query" in web_execution_service
+    assert "resolve_web_execution_intent" in web_execution_service
     assert '@assistente.route("/api/assistente/warmup", methods=["POST"])' in assistente_blueprint
     assert "warm_ollama_chat_runtime" in assistente_blueprint
     assert "resolved_ollama_runtime()" in assistente_blueprint
@@ -637,11 +647,13 @@ def test_contesto_lex_compatta_le_sezioni_e_limita_le_fonti():
     assert '"social_prefix": str(social_prefix or "").strip()' in assistente_blueprint
     assert '"focus_label": str(studio_context.get("focus_label") or "").strip()' in assistente_blueprint
     assert '"web_fallback_used": bool(studio_context.get("web_fallback_used"))' in assistente_blueprint
+    assert '"web_execution_requested": bool(studio_context.get("web_execution_requested"))' in assistente_blueprint
     assert "build_assistente_prompt" in assistente_prompt
     assert "_LEX_VOICE_PROMPT" in assistente_prompt
     assert "_LEX_WRITING_PROMPT" in assistente_prompt
     assert "_LEX_OPERATION_GUARDRAILS" in assistente_prompt
     assert "_LEX_CONTEXT_ROUTING_PROMPT" in assistente_prompt
+    assert "_LEX_WEB_EXECUTION_PROMPT" in assistente_prompt
     assert "_LEX_SOCIAL_PROMPT" in assistente_prompt
     assert "_PROMPT_PROFILE_BLOCKS" in assistente_prompt
     assert "_PROMPT_PROFILE_KEYWORDS" in assistente_prompt

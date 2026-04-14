@@ -5,6 +5,8 @@ from __future__ import annotations
 import re
 from typing import Any
 
+from web.services.assistente_web_execution import resolve_web_execution_intent
+
 
 _TOPIC_RULES: tuple[dict[str, Any], ...] = (
     {
@@ -218,15 +220,17 @@ def resolve_conversation_focus(
     """Determina il focus minimo utile per richieste brevi e follow-up."""
 
     clean_question = _clean_spaces(question)
-    current_rule = _find_topic_rule(clean_question)
+    web_intent = resolve_web_execution_intent(clean_question, messages=messages)
+    base_question = _clean_spaces(web_intent.effective_query or clean_question)
+    current_rule = _find_topic_rule(base_question)
     prior_rule = _recent_topic_rule(messages, clean_question)
-    is_follow_up = _looks_like_follow_up(clean_question)
+    is_follow_up = _looks_like_follow_up(clean_question) or web_intent.inherited_previous_theme
 
     resolved_rule = current_rule
     if resolved_rule is None and is_follow_up:
         resolved_rule = prior_rule
 
-    if resolved_rule is None and prior_rule is not None and _word_count(clean_question) <= 3:
+    if resolved_rule is None and prior_rule is not None and _word_count(base_question) <= 3:
         resolved_rule = prior_rule
         is_follow_up = True
 
@@ -234,22 +238,33 @@ def resolve_conversation_focus(
         return {
             "topic": "",
             "focus_label": "",
-            "effective_question": clean_question,
+            "effective_question": base_question or clean_question,
             "section_titles": list(_GENERIC_SECTION_FALLBACK),
-            "include_live_web": False,
-            "is_follow_up": False,
+            "include_live_web": bool(web_intent.requested),
+            "is_follow_up": bool(is_follow_up),
             "has_explicit_overview": False,
+            "web_execution_requested": bool(web_intent.requested),
+            "inherited_previous_theme": bool(web_intent.inherited_previous_theme),
+            "previous_user_text": web_intent.previous_user_text,
         }
 
-    focus_label = _topic_label(resolved_rule, clean_question)
+    focus_label = _topic_label(resolved_rule, clean_question if not web_intent.inherited_previous_theme else base_question)
+    effective_question = (
+        base_question
+        if web_intent.inherited_previous_theme
+        else _effective_question(clean_question, resolved_rule, is_follow_up=is_follow_up)
+    )
     return {
         "topic": str(resolved_rule.get("topic") or "").strip(),
         "focus_label": focus_label,
-        "effective_question": _effective_question(clean_question, resolved_rule, is_follow_up=is_follow_up),
+        "effective_question": effective_question,
         "section_titles": list(resolved_rule.get("sections") or _GENERIC_SECTION_FALLBACK),
-        "include_live_web": bool(resolved_rule.get("include_live_web")),
+        "include_live_web": bool(resolved_rule.get("include_live_web")) or bool(web_intent.requested),
         "is_follow_up": is_follow_up,
         "has_explicit_overview": str(resolved_rule.get("topic") or "").strip() == "dashboard",
+        "web_execution_requested": bool(web_intent.requested),
+        "inherited_previous_theme": bool(web_intent.inherited_previous_theme),
+        "previous_user_text": web_intent.previous_user_text,
     }
 
 

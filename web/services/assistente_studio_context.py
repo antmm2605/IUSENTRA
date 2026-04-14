@@ -38,6 +38,7 @@ from web.services.assistente_context_cache import (
 )
 from web.services.assistente_conversation_focus import resolve_conversation_focus
 from web.services.assistente_live_web import build_live_official_web_context
+from web.services.assistente_web_execution import is_web_execution_request
 from web.services.local_ai_runtime import get_local_ai_service
 
 
@@ -274,6 +275,8 @@ def _should_include_live_web(question: str, *, chat_mode: bool = False) -> bool:
     text = _clean_spaces(question).lower()
     if not text:
         return False
+    if chat_mode and is_web_execution_request(text):
+        return True
     if chat_mode:
         if any(
             _contains_query_token(text, phrase)
@@ -1141,9 +1144,14 @@ def build_lex_studio_context(
         "Se manca il contesto o serve una verifica aggiornata sul web, Lex deve dirlo chiaramente e indicare le fonti ufficiali web piu' adatte senza inventare.",
     ]
     focus_label = _clean_spaces(focus.get("focus_label"))
+    web_execution_requested = bool(focus.get("web_execution_requested"))
     if chat_mode and focus_label:
         sections.append(
             f"Per questa richiesta resta focalizzata su {focus_label} e non allargare la risposta alla panoramica generale dello studio salvo richiesta esplicita."
+        )
+    if chat_mode and web_execution_requested:
+        sections.append(
+            "L'utente ha chiesto una verifica web operativa: Lex deve prendere in carico la ricerca, usare il tema gia' emerso nella conversazione e riportare direttamente i risultati rilevanti."
         )
     sources: list[dict[str, Any]] = []
     priority_sources: list[dict[str, Any]] = []
@@ -1177,6 +1185,7 @@ def build_lex_studio_context(
         ("Tariffario", lambda: _tariffario_lines(effective_question)),
         ("Preventivi", lambda: _preventivi_lines(effective_question)),
         ("Fatturazione", lambda: _fatturazione_lines(effective_question)),
+        ("Ricerca legale e fonti web", lambda: _ricerca_legale_lines(effective_question)),
         ("Archivio sentenze", lambda: _archivio_sentenze_lines(effective_question)),
         ("Strumenti legali", lambda: _strumenti_legali_lines(effective_question)),
         ("Applicazioni", lambda: _applicazioni_lines(effective_question)),
@@ -1206,7 +1215,7 @@ def build_lex_studio_context(
         sources.extend(section_sources or [])
 
     local_sources = _dedupe_sources(sources)
-    force_web_fallback = _should_force_web_fallback(
+    force_web_fallback = web_execution_requested or _should_force_web_fallback(
         effective_question,
         local_sources=local_sources,
         chat_mode=chat_mode,
@@ -1220,7 +1229,12 @@ def build_lex_studio_context(
             )
             lines = list(payload.get("lines") or [])
             web_sources = list(payload.get("sources") or [])
-            if force_web_fallback and lines:
+            if web_execution_requested and lines:
+                lines = [
+                    "Richiesta web presa in carico: Lex integra direttamente con fonti ufficiali live pertinenti.",
+                    *lines,
+                ]
+            elif force_web_fallback and lines:
                 lines = [
                     "Il contesto interno non offre riferimenti sufficienti su questa richiesta. Lex integra con fonti ufficiali live mirate.",
                     *lines,
@@ -1247,6 +1261,7 @@ def build_lex_studio_context(
         "focus_topic": _clean_spaces(focus.get("topic")),
         "effective_question": effective_question,
         "web_fallback_used": bool(force_web_fallback),
+        "web_execution_requested": bool(web_execution_requested),
     }
 
 

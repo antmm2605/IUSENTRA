@@ -137,8 +137,24 @@ def test_assistente_prompt_separa_voce_e_regole_tecniche():
     assert "richiesta breve ma chiaramente tematizzata" in prompt
     assert "Le domande brevi successive vanno interpretate in continuita' con il turno precedente." in prompt
     assert "Non riaprire ogni risposta con \"Ciao, sono Lex.\"" in prompt
+    assert "=== GESTIONE DELLA RELAZIONE QUOTIDIANA ===" in prompt
+    assert "Se il messaggio e' solo sociale o relazionale" in prompt
+    assert "Se il messaggio combina cortesia e richiesta operativa" in prompt
     assert "=== AGGIORNAMENTI E FONTI UFFICIALI ===" in prompt
     assert "=== REGOLE TECNICHE PEC E FIRMA ===" in prompt
+
+
+def test_assistente_prompt_aggiunge_apertura_relazionale_quando_serve():
+    prompt = build_assistente_prompt(
+        question="mi controlli le udienze di oggi?",
+        fascicolo_id="",
+        social_prefix="Buongiorno.",
+        social_kind="greeting_with_request",
+    )
+
+    assert "Apertura relazionale da mantenere:" in prompt
+    assert "- Apri in modo breve e naturale con: Buongiorno." in prompt
+    assert "Segnale sociale rilevato: greeting_with_request." in prompt
 
 
 def test_local_ai_index_and_hybrid_search(tmp_path: Path, monkeypatch):

@@ -60,6 +60,20 @@ _LEX_CONTEXT_ROUTING_PROMPT = """\
 - Se il contesto e' debole o assente, dillo chiaramente e usa le fonti ufficiali solo quando servono davvero; non attivare il web per richieste operative interne di studio.
 """
 
+_LEX_SOCIAL_PROMPT = """\
+=== GESTIONE DELLA RELAZIONE QUOTIDIANA ===
+- Lex deve riconoscere saluti, ringraziamenti, conferme brevi, chiusure relazionali, scuse e feedback positivi.
+- Se il messaggio e' solo sociale o relazionale, rispondi in modo breve, umano, naturale e sobrio.
+- In questi casi non aprire panoramiche dello studio, non proporre informazioni tecniche non richieste e non trasformare il messaggio in una mini introduzione.
+- Se il messaggio combina cortesia e richiesta operativa, dai una breve apertura umana e poi vai subito al punto.
+- Esempi corretti: "Buongiorno. Dimmi pure.", "Prego.", "Va bene.", "A domani.", "Nessun problema.", "Grazie, buon lavoro anche a te.".
+- Se l'utente alterna richieste operative e piccoli messaggi relazionali, mantieni continuita' e non resettare il tono a ogni turno.
+- Le micro-interazioni devono restare sobrie: una risposta sociale breve e' quasi sempre migliore di una lunga.
+- Puoi variare leggermente formule come "Prego.", "Di nulla.", "Va bene.", "Perfetto.", "A dopo.", "Ti ascolto.", ma sempre con misura.
+- Evita formule da call center o troppo enfatiche come "Resto a disposizione", "Sono sempre qui per aiutarti", "E' stato un piacere aiutarti", "Che piacere sentirti".
+- Non usare emoji, non usare punti esclamativi in eccesso e non essere mai servile o artificiale.
+"""
+
 _PROMPT_PROFILE_BLOCKS: dict[str, str] = {
     "pct": """\
 === REGOLE TECNICHE PCT ===
@@ -275,6 +289,8 @@ def build_assistente_prompt(
     studio_context: str = "",
     messages: list[dict[str, object]] | None = None,
     include_conversation: bool = False,
+    social_prefix: str = "",
+    social_kind: str = "",
 ) -> str:
     current_question = _clean_spaces(question) or "Richiesta operativa"
     parts: list[str] = [
@@ -285,6 +301,8 @@ def build_assistente_prompt(
         _LEX_OPERATION_GUARDRAILS,
         "",
         _LEX_CONTEXT_ROUTING_PROMPT,
+        "",
+        _LEX_SOCIAL_PROMPT,
     ]
     parts.extend(["", *(_select_profile_blocks(current_question) or [])])
 
@@ -301,12 +319,24 @@ def build_assistente_prompt(
         if conversation:
             parts.extend(["", "Memoria di sessione:", conversation])
 
+    clean_social_prefix = _clean_spaces(social_prefix)
+    if clean_social_prefix:
+        parts.extend(
+            [
+                "",
+                "Apertura relazionale da mantenere:",
+                f"- Apri in modo breve e naturale con: {clean_social_prefix}",
+                "- Poi vai subito al punto, senza ripetere il saluto e senza introdurre panoramiche inutili.",
+            ]
+        )
+
     parts.extend(
         [
             "",
             f"Domanda attuale: {current_question}",
             "Rispondi in italiano in modo umano, chiaro, operativo e subito utilizzabile.",
             "Non mostrare intestazioni tecniche come Fonti, Contesto o Moduli consultati se non richieste in modo esplicito.",
+            f"Segnale sociale rilevato: {social_kind or 'nessuno'}.",
         ]
     )
     return "\n".join(part for part in parts if part is not None).strip()

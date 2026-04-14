@@ -1,0 +1,175 @@
+import json
+from pathlib import Path
+
+from web.app import create_app
+from web.services.assistente_social import (
+    build_social_reply,
+    classify_social_message,
+    prepend_social_prefix,
+)
+
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+
+
+def _write_studio_config(path: Path) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        json.dumps(
+            {
+                "studio": {
+                    "nome": "Studio Social Test",
+                    "avvocato": "Avv. Social",
+                    "indirizzo": "Via Roma 12",
+                    "city": "Taurianova",
+                    "province": "RC",
+                    "telefono": "0966 123456",
+                    "email": "studio@example.it",
+                },
+                "pec": {
+                    "indirizzo": "studio@pec.example.it",
+                    "password": "segreta",
+                    "smtp_host": "smtp.pec.aruba.it",
+                    "smtp_port": 465,
+                    "imap_host": "imaps.pec.aruba.it",
+                    "imap_port": 993,
+                    "use_ssl": True,
+                },
+                "smtp": {
+                    "host": "smtp.office365.com",
+                    "port": 587,
+                    "username": "studio@example.it",
+                    "from_address": "studio@example.it",
+                    "from_name": "Studio Social Test",
+                    "use_tls": True,
+                },
+                "ai": {
+                    "enabled": True,
+                    "base_url": "http://127.0.0.1:11434/api",
+                    "auto_bootstrap": True,
+                    "chat_model": "gemma3:1b",
+                    "embed_model": "embeddinggemma:300m",
+                    "keep_alive": "10m",
+                    "auto_index_documents": True,
+                },
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+
+
+def _cfg_web(tmp_path: Path) -> dict:
+    return {
+        "TESTING": True,
+        "SECRET_KEY": "test",
+        "AUTH_DB": str(tmp_path / "utenti.json"),
+        "AUDIT_DB": str(tmp_path / "audit.json"),
+        "CLIENTI_DB": str(tmp_path / "clienti.json"),
+        "CONDIVISIONI_DB": str(tmp_path / "condivisioni.json"),
+        "FASCICOLI_DB": str(tmp_path / "fascicoli.json"),
+        "FASCICOLI_DOCS": str(tmp_path / "docs"),
+        "FASCICOLI_ARCH": str(tmp_path / "arch"),
+        "AGENDA_DB": str(tmp_path / "agenda.json"),
+        "SCADENZIARIO_DB": str(tmp_path / "scadenze.json"),
+        "MESSAGGI_DB": str(tmp_path / "messaggi.json"),
+        "EMAIL_CASELLA_DB": str(tmp_path / "email" / "casella.json"),
+        "SEARCH_INDEX": str(tmp_path / "search.db"),
+        "SOGGETTI_DB": str(tmp_path / "soggetti.json"),
+        "SOGGETTI_PARTI_DB": str(tmp_path / "parti.json"),
+        "PST_IMPORT_DIR": str(tmp_path / "pst_import"),
+        "VALIDATION_RUNS_DB": str(tmp_path / "validation_runs.json"),
+        "LEGAL_INTELLIGENCE_DB": str(tmp_path / "intelligence" / "motori.json"),
+        "NORMATIVE_TABLES_DB": str(tmp_path / "intelligence" / "tabelle_normative.json"),
+        "GIURISPRUDENZA_DB": str(tmp_path / "intelligence" / "giurisprudenza.json"),
+        "WORKSPACE_INTELLIGENCE_DB": str(tmp_path / "intelligence" / "workspace_intelligence.json"),
+        "TEMPLATE_ATTI_DB": str(tmp_path / "template_atti" / "templates.json"),
+        "TEMPLATE_ATTI_PREFS_DB": str(tmp_path / "template_atti" / "editor_layout.json"),
+        "PREVENTIVI_DB": str(tmp_path / "preventivi" / "preventivi.json"),
+        "FATTURAZIONE_DB": str(tmp_path / "fatturazione" / "parcelle.json"),
+        "LOCAL_AI_DB": str(tmp_path / "intelligence" / "local_ai.db"),
+        "LOCAL_AI_POLICY": str(REPO_ROOT / "config" / "ai-policy.json"),
+        "LOCAL_AI_MODELS_DIR": str(tmp_path / "intelligence" / "models"),
+        "STUDIO_CONFIG": str(tmp_path / "config" / "studio.json"),
+        "PDP_PENALE_DB": str(tmp_path / "penale" / "pdp_penale.db"),
+        "TELEMATICO_DB": str(tmp_path / "telematico" / "workflow.db"),
+        "PORTALE_DB": str(tmp_path / "portale" / "portali.json"),
+        "PORTALE_UPLOADS": str(tmp_path / "portale" / "uploads"),
+    }
+
+
+def test_classify_social_message_riconosce_saluti_e_messaggi_misti():
+    greeting = classify_social_message("Buongiorno")
+    mixed = classify_social_message("Grazie, ora passiamo ai fascicoli attivi")
+    greeting_with_name = classify_social_message("Ciao Lex")
+
+    assert greeting.kind == "greeting"
+    assert build_social_reply(greeting) == "Buongiorno. Dimmi pure."
+
+    assert mixed.kind == "thanks_with_request"
+    assert mixed.remaining_text == "ora passiamo ai fascicoli attivi"
+    assert build_social_reply(mixed) == "Prego."
+    assert greeting_with_name.kind == "greeting"
+
+
+def test_prepend_social_prefix_evita_duplicazioni():
+    assert prepend_social_prefix("Buongiorno.", "Controllo subito le udienze.") == "Buongiorno. Controllo subito le udienze."
+    assert prepend_social_prefix("Prego.", "Prego. Passiamo ai fascicoli attivi.") == "Prego. Passiamo ai fascicoli attivi."
+
+
+def test_assistente_context_risponde_subito_a_messaggio_sociale(tmp_path: Path):
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    app = create_app(_cfg_web(tmp_path))
+
+    with app.test_client() as client:
+        client.post("/login", data={"username": "admin", "password": "admin"}, follow_redirects=True)
+        response = client.post("/api/assistente/context", json={"question": "buongiorno"})
+
+    payload = response.get_json()
+    assert response.status_code == 200
+    assert payload["ok"] is True
+    assert payload["query_type"] == "social_only"
+    assert payload["answer"] == "Buongiorno. Dimmi pure."
+    assert payload["sources"] == []
+    assert payload["citations"] == []
+
+
+def test_assistente_chat_bypassa_ollama_per_messaggio_sociale(monkeypatch, tmp_path: Path):
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    app = create_app(_cfg_web(tmp_path))
+
+    def _unexpected_post(*args, **kwargs):
+        raise AssertionError("Ollama non dovrebbe essere chiamato per un messaggio solo sociale.")
+
+    monkeypatch.setattr("web.blueprints.assistente.requests.post", _unexpected_post)
+
+    with app.test_client() as client:
+        client.post("/login", data={"username": "admin", "password": "admin"}, follow_redirects=True)
+        response = client.post(
+            "/api/assistente/chat",
+            json={"messages": [{"role": "user", "content": "grazie"}]},
+        )
+
+    body = response.get_data(as_text=True)
+    assert response.status_code == 200
+    assert "Prego." in body
+
+
+def test_assistente_context_messaggio_misto_restituisce_prefix_e_domanda_effettiva(tmp_path: Path):
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    app = create_app(_cfg_web(tmp_path))
+
+    with app.test_client() as client:
+        client.post("/login", data={"username": "admin", "password": "admin"}, follow_redirects=True)
+        response = client.post(
+            "/api/assistente/context",
+            json={"question": "Buongiorno, mi controlli le udienze di oggi?"},
+        )
+
+    payload = response.get_json()
+    assert response.status_code == 200
+    assert payload["ok"] is True
+    assert payload["query_type"] == "assistente_chat"
+    assert payload["social_kind"] == "greeting_with_request"
+    assert payload["social_prefix"] == "Buongiorno."
+    assert payload["effective_question"] == "mi controlli le udienze di oggi?"

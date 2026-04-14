@@ -71,6 +71,21 @@
       .replace(/'/g, '&#39;');
   }
 
+  function prependSocialPrefix(prefix, answer) {
+    var cleanPrefix = String(prefix || '').trim();
+    var cleanAnswer = String(answer || '').trim();
+    if (!cleanPrefix) {
+      return cleanAnswer;
+    }
+    if (!cleanAnswer) {
+      return cleanPrefix;
+    }
+    if (cleanAnswer.toLowerCase().indexOf(cleanPrefix.toLowerCase()) === 0) {
+      return cleanAnswer;
+    }
+    return (cleanPrefix + ' ' + cleanAnswer).trim();
+  }
+
   function lexIconUrl() {
     return (widget && widget.dataset && widget.dataset.lexIconUrl) || '/static/img/lex-mark.png';
   }
@@ -1151,6 +1166,7 @@
     }
 
     var preparedFocusLabel = state.pendingFocus && state.pendingFocus.focusLabel ? String(state.pendingFocus.focusLabel) : '';
+    var preparedSocialPrefix = '';
     browserBridge()
       .fetchServerContext(bridgeConfig, {
         question: text,
@@ -1165,6 +1181,16 @@
       })
       .then(function (prepared) {
         preparedFocusLabel = String(prepared && prepared.focus_label || preparedFocusLabel || '').trim();
+        preparedSocialPrefix = String(prepared && prepared.social_prefix || '').trim();
+        if (String(prepared && prepared.query_type || '').trim() === 'social_only' && prepared && prepared.answer) {
+          return {
+            answer: String(prepared.answer || '').trim(),
+            citations: prepared.citations || [],
+            sources: prepared.sources || [],
+            question: text,
+            referenceLabel: '',
+          };
+        }
         var docs = documentsHelper();
         var docsBlock = docs ? docs.buildPromptBlock(state.attachments) : '';
         if (docsBlock) {
@@ -1175,6 +1201,9 @@
           .streamCompanionRagQuery(bridgeConfig, prepared, {
             onToken: function (token) {
               markThinkingTokenReceived();
+              if (preparedSocialPrefix && !partial.trim()) {
+                partial = prependSocialPrefix(preparedSocialPrefix, partial);
+              }
               partial += String(token || '');
               setBubbleContent(state.currentBubble, partial);
               scrollBottom();
@@ -1193,6 +1222,7 @@
         }
         payload.question = text;
         payload.referenceLabel = String(payload.referenceLabel || preparedFocusLabel || '').trim();
+        payload.answer = prependSocialPrefix(preparedSocialPrefix, payload.answer || '');
         setAnswerPayload(state.currentBubble, payload);
         state.history.push({
           role: 'assistant',

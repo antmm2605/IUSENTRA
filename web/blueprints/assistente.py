@@ -29,6 +29,11 @@ from web.services.assistente_prompt import (
     build_assistente_prompt,
     latest_user_message,
 )
+from web.services.assistente_social import (
+    build_social_reply,
+    classify_social_message,
+    is_social_only_intent,
+)
 from web.services.assistente_studio_context import build_lex_studio_context, warm_lex_studio_context
 from web.services.assistente_document_export import (
     build_docx_bytes,
@@ -78,6 +83,48 @@ def _normalized_attachments(raw: list[dict[str, object]] | None) -> list[dict[st
     return attachments
 
 
+def _messages_with_effective_question(
+    messages: list[dict[str, object]] | None,
+    *,
+    effective_question: str,
+    original_question: str,
+) -> list[dict[str, object]]:
+    normalized = [dict(item or {}) for item in list(messages or [])]
+    if not normalized:
+        return []
+    clean_effective = str(effective_question or "").strip()
+    clean_original = str(original_question or "").strip()
+    if not clean_effective or clean_effective == clean_original:
+        return normalized
+
+    for idx in range(len(normalized) - 1, -1, -1):
+        role = str(normalized[idx].get("role") or "").strip().lower()
+        if role != "user":
+            continue
+        normalized[idx]["content"] = clean_effective
+        break
+    return normalized
+
+
+def _social_context_payload(question: str, reply: str) -> dict[str, object]:
+    return {
+        "ok": True,
+        "query_type": "social_only",
+        "question": question,
+        "prompt": "",
+        "answer": reply,
+        "sources": [],
+        "citations": [],
+        "attachments": [],
+        "focus_label": "",
+        "focus_topic": "sociale",
+        "web_fallback_used": False,
+        "social_kind": "social_only",
+        "social_prefix": "",
+        "effective_question": "",
+    }
+
+
 # ── Route: stato ──────────────────────────────────────────────────────────────
 
 @assistente.route("/api/assistente/stato")
@@ -119,15 +166,26 @@ def assistente_context():
     if not question:
         return {"ok": False, "errore": "Domanda mancante.", "prompt": "", "sources": [], "citations": []}, 200
 
+    social_intent = classify_social_message(question)
+    if is_social_only_intent(social_intent):
+        reply = build_social_reply(social_intent) or "Dimmi pure."
+        return _social_context_payload(question, reply), 200
+
+    effective_question = str(social_intent.remaining_text or question).strip() or question
+    user_effective_question = effective_question
+    social_prefix = build_social_reply(social_intent) if social_intent.kind.endswith("_with_request") else ""
+
     runtime = resolved_ollama_runtime()
-    studio_context = build_lex_studio_context(question, mode="chat", messages=history_messages)
-    effective_question = str(studio_context.get("effective_question") or question).strip() or question
+    studio_context = build_lex_studio_context(user_effective_question, mode="chat", messages=history_messages)
+    prompt_question = str(studio_context.get("effective_question") or user_effective_question).strip() or user_effective_question
     prompt = build_assistente_prompt(
-        question=effective_question,
+        question=prompt_question,
         fascicolo_id=fascicolo_id,
         messages=history_messages,
         studio_context=studio_context.get("prompt_block", ""),
         include_conversation=True,
+        social_prefix=social_prefix,
+        social_kind=social_intent.kind,
     )
     if attachments:
         prompt += "\n\n" + build_attachment_prompt_block(attachments)
@@ -136,8 +194,8 @@ def assistente_context():
         get_legal_intelligence().registra_trace_risposta(
             query=question,
             user=getattr(g.get("utente_corrente"), "username", ""),
-            engine_ids=studio_context.get("engine_ids") or motori_per_query(effective_question),
-            source_ids=studio_context.get("source_ids") or fonti_per_query(effective_question),
+            engine_ids=studio_context.get("engine_ids") or motori_per_query(prompt_question),
+            source_ids=studio_context.get("source_ids") or fonti_per_query(prompt_question),
             ai_model=runtime.get("chat_model") or "mistral",
             result_summary="Contesto assistente Lex preparato per il companion locale.",
             warning="La risposta finale viene generata sul dispositivo cliente tramite companion locale.",
@@ -149,6 +207,7 @@ def assistente_context():
         "ok": True,
         "query_type": "assistente_chat",
         "question": question,
+        "effective_question": user_effective_question,
         "prompt": prompt,
         "sources": studio_context.get("sources") or [],
         "citations": studio_context.get("citations") or [],
@@ -156,6 +215,8 @@ def assistente_context():
         "focus_label": str(studio_context.get("focus_label") or "").strip(),
         "focus_topic": str(studio_context.get("focus_topic") or "").strip(),
         "web_fallback_used": bool(studio_context.get("web_fallback_used")),
+        "social_kind": social_intent.kind,
+        "social_prefix": str(social_prefix or "").strip(),
     }, 200
 
 
@@ -232,29 +293,57 @@ def assistente_chat():
     messages: list = list(data.get("messages", []) or [])[-12:]
     attachments = _normalized_attachments(data.get("attachments"))
     fascicolo_id: str = data.get("fascicolo_id", "")
-    last_user_message = latest_user_message(messages)
-    history_messages = messages[:-1] if last_user_message and latest_user_message(messages) == last_user_message else messages
+    last_user_text = latest_user_message(messages)
+    history_messages = messages[:-1] if last_user_text and latest_user_message(messages) == last_user_text else messages
+    social_intent = classify_social_message(last_user_text)
+    if is_social_only_intent(social_intent):
+        reply = build_social_reply(social_intent) or "Dimmi pure."
+
+        def generate_social():
+            yield f"data: {json.dumps({'token': reply})}\n\n"
+            yield "data: [DONE]\n\n"
+
+        return Response(
+            stream_with_context(generate_social()),
+            mimetype="text/event-stream",
+            headers={
+                "Cache-Control": "no-cache",
+                "X-Accel-Buffering": "no",
+                "Connection": "keep-alive",
+            },
+        )
+
+    effective_question = str(social_intent.remaining_text or last_user_text).strip() or "Richiesta operativa"
+    user_effective_question = effective_question
+    social_prefix = build_social_reply(social_intent) if social_intent.kind.endswith("_with_request") else ""
+    llm_messages = _messages_with_effective_question(
+        messages,
+        effective_question=user_effective_question,
+        original_question=last_user_text,
+    )
     runtime = resolved_ollama_runtime()
     api_base_url = str(runtime.get("api_base_url") or "").rstrip("/")
     base_url = str(runtime.get("base_url") or "").rstrip("/")
     chat_model = str(runtime.get("chat_model") or "mistral").strip() or "mistral"
     keep_alive = str(runtime.get("keep_alive") or "10m").strip() or "10m"
-    studio_context = build_lex_studio_context(last_user_message, mode="chat", messages=history_messages)
-    effective_question = str(studio_context.get("effective_question") or last_user_message).strip() or "Richiesta operativa"
+    studio_context = build_lex_studio_context(user_effective_question, mode="chat", messages=history_messages)
+    prompt_question = str(studio_context.get("effective_question") or user_effective_question).strip() or "Richiesta operativa"
 
     # System prompt + eventuale contesto fascicolo
     system_content = build_assistente_prompt(
-        question=effective_question,
+        question=prompt_question,
         fascicolo_id=fascicolo_id,
         messages=history_messages,
         studio_context=studio_context.get("prompt_block", ""),
+        social_prefix=social_prefix,
+        social_kind=social_intent.kind,
     )
     if attachments:
         system_content += "\n\n" + build_attachment_prompt_block(attachments)
 
     payload = {
         "model": chat_model,
-        "messages": [{"role": "system", "content": system_content}] + messages,
+        "messages": [{"role": "system", "content": system_content}] + llm_messages,
         "stream": True,
         "keep_alive": keep_alive,
         "options": {
@@ -265,10 +354,10 @@ def assistente_chat():
 
     try:
         get_legal_intelligence().registra_trace_risposta(
-            query=last_user_message or "Richiesta assistente PCT",
+            query=last_user_text or "Richiesta assistente PCT",
             user=getattr(g.get("utente_corrente"), "username", ""),
-            engine_ids=studio_context.get("engine_ids") or motori_per_query(effective_question),
-            source_ids=studio_context.get("source_ids") or fonti_per_query(effective_question),
+            engine_ids=studio_context.get("engine_ids") or motori_per_query(prompt_question),
+            source_ids=studio_context.get("source_ids") or fonti_per_query(prompt_question),
             ai_model=chat_model,
             result_summary="Richiesta inviata all'assistente Lex.",
             warning="Risposta generativa locale: verificare sempre le fonti ufficiali prima dell'uso professionale.",
@@ -278,6 +367,7 @@ def assistente_chat():
 
     def generate():
         try:
+            prefixed = False
             r = requests.post(
                 f"{api_base_url}/chat",
                 json=payload,
@@ -291,6 +381,9 @@ def assistente_chat():
                     chunk = json.loads(line)
                     token = chunk.get("message", {}).get("content", "")
                     if token:
+                        if social_prefix and not prefixed:
+                            token = f"{social_prefix} {token}".strip()
+                            prefixed = True
                         yield f"data: {json.dumps({'token': token})}\n\n"
                     if chunk.get("done"):
                         yield "data: [DONE]\n\n"

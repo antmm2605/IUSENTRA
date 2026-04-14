@@ -542,6 +542,9 @@ def test_lex_assistant_usa_componente_esterno_e_posizione_persistente():
     assert "voiceHelper" in widget_js
     assert "fetchServerContext" in widget_js
     assert "streamCompanionRagQuery" in widget_js
+    assert "prependSocialPrefix" in widget_js
+    assert "social_prefix" in widget_js
+    assert "social_only" in widget_js
     assert "Ciao, sono Lex." in widget_js
     assert "Riferimento:" in widget_js
     assert "<div class=\"fw-semibold small mb-1\">Fonti</div>" not in widget_js
@@ -587,6 +590,7 @@ def test_contesto_lex_compatta_le_sezioni_e_limita_le_fonti():
     cache_service = (REPO_ROOT / "web/services/assistente_context_cache.py").read_text(encoding="utf-8")
     focus_service = (REPO_ROOT / "web/services/assistente_conversation_focus.py").read_text(encoding="utf-8")
     live_web_service = (REPO_ROOT / "web/services/assistente_live_web.py").read_text(encoding="utf-8")
+    social_service = (REPO_ROOT / "web/services/assistente_social.py").read_text(encoding="utf-8")
     assistente_blueprint = (REPO_ROOT / "web/blueprints/assistente.py").read_text(encoding="utf-8")
     assistente_prompt = (REPO_ROOT / "web/services/assistente_prompt.py").read_text(encoding="utf-8")
 
@@ -617,11 +621,20 @@ def test_contesto_lex_compatta_le_sezioni_e_limita_le_fonti():
     assert "_FALLBACK_DEFAULT_SOURCE_IDS" in live_web_service
     assert "force: bool = False" in live_web_service
     assert "explicit_source_ids" in live_web_service
+    assert "classify_social_message" in social_service
+    assert "build_social_reply" in social_service
+    assert "prepend_social_prefix" in social_service
+    assert "is_social_only_intent" in social_service
     assert '@assistente.route("/api/assistente/warmup", methods=["POST"])' in assistente_blueprint
     assert "warm_ollama_chat_runtime" in assistente_blueprint
     assert "resolved_ollama_runtime()" in assistente_blueprint
     assert "chat_model = str(runtime.get(\"chat_model\") or \"mistral\").strip() or \"mistral\"" in assistente_blueprint
     assert "keep_alive = str(runtime.get(\"keep_alive\") or \"10m\").strip() or \"10m\"" in assistente_blueprint
+    assert "_social_context_payload" in assistente_blueprint
+    assert "_messages_with_effective_question" in assistente_blueprint
+    assert "classify_social_message" in assistente_blueprint
+    assert '"query_type": "social_only"' in assistente_blueprint
+    assert '"social_prefix": str(social_prefix or "").strip()' in assistente_blueprint
     assert '"focus_label": str(studio_context.get("focus_label") or "").strip()' in assistente_blueprint
     assert '"web_fallback_used": bool(studio_context.get("web_fallback_used"))' in assistente_blueprint
     assert "build_assistente_prompt" in assistente_prompt
@@ -629,6 +642,7 @@ def test_contesto_lex_compatta_le_sezioni_e_limita_le_fonti():
     assert "_LEX_WRITING_PROMPT" in assistente_prompt
     assert "_LEX_OPERATION_GUARDRAILS" in assistente_prompt
     assert "_LEX_CONTEXT_ROUTING_PROMPT" in assistente_prompt
+    assert "_LEX_SOCIAL_PROMPT" in assistente_prompt
     assert "_PROMPT_PROFILE_BLOCKS" in assistente_prompt
     assert "_PROMPT_PROFILE_KEYWORDS" in assistente_prompt
 
@@ -826,7 +840,7 @@ def test_assistente_chat_usa_runtime_ollama_risolto(monkeypatch, tmp_path: Path)
         client.post("/login", data={"username": "admin", "password": "admin"}, follow_redirects=True)
         response = client.post(
             "/api/assistente/chat",
-            json={"messages": [{"role": "user", "content": "Ciao Lex"}]},
+            json={"messages": [{"role": "user", "content": "Qual e' lo stato del fascicolo?"}]},
         )
 
     body = response.get_data(as_text=True)

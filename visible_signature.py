@@ -373,33 +373,30 @@ def _build_visible_signature_location_line(*, luogo: str = "", data_firma: Any =
     return luogo_value or data_value
 
 
-def _build_visible_signature_side_lines(
+def _build_visible_signature_side_text(
     *,
     intestatario: str = "",
     data_firma: Any = None,
     luogo: str = "",
     issuer: str = "",
     serial: str = "",
-) -> list[str]:
-    lines: list[str] = []
+) -> str:
+    segments: list[str] = []
     signer_name = _normalize_visible_signature_name(
         intestatario,
         uppercase=True,
         force_avv_prefix=True,
     )
-    issuer_value = str(issuer or "").strip()
     date_value = format_visible_signature_datetime(data_firma)
     place_value = str(luogo or "").strip()
 
     if signer_name:
-        lines.append(f"Firmato da: {signer_name}")
+        segments.append(f"Firmato da: {signer_name}")
     if date_value:
-        lines.append(f"Data e ora firma: {date_value}")
+        segments.append(f"Data e ora firma: {date_value}")
     if place_value:
-        lines.append(f"Luogo firma: {place_value.upper()}")
-    if issuer_value:
-        lines.append(f"Emesso da: {issuer_value.upper()}")
-    return lines
+        segments.append(f"Luogo firma: {place_value.upper()}")
+    return " | ".join(segment for segment in segments if segment.strip())
 
 
 def _build_visible_signature_bottom_lines(
@@ -443,24 +440,18 @@ def _draw_visible_signature_side_mark(
 ) -> None:
     right_margin = CM_TO_PT
     bottom_margin = CM_TO_PT
-    line_step = 12.0
-    lines = _build_visible_signature_side_lines(
+    side_text = _build_visible_signature_side_text(
         intestatario=intestatario,
         data_firma=data_firma,
         luogo=luogo,
         issuer=issuer,
     )
     overlay.setFillColor(color)
+    overlay.setFont("Helvetica", 10)
     overlay.saveState()
     overlay.translate(width - right_margin, bottom_margin)
     overlay.rotate(90)
-    text_object = overlay.beginText()
-    text_object.setTextOrigin(0, 0)
-    text_object.setFont("Helvetica", 10)
-    text_object.setLeading(line_step)
-    for line in lines:
-        text_object.textLine(line)
-    overlay.drawText(text_object)
+    overlay.drawString(0, 0, side_text)
     overlay.restoreState()
     _draw_visible_signature_seal(
         overlay,

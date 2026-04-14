@@ -10,7 +10,7 @@ from visible_signature import (
     VISIBLE_SIGNATURE_METADATA_KEY,
     VISIBLE_SIGNATURE_MODE_BASSO_DESTRA,
     VISIBLE_SIGNATURE_MODE_LATERALE,
-    _build_visible_signature_side_lines,
+    _build_visible_signature_side_text,
     _draw_visible_signature_bottom_right_text,
     _draw_visible_signature_seal,
     apply_visible_signature_stamp,
@@ -101,18 +101,19 @@ def test_apply_visible_signature_stamp_modalita_laterale_aggiunge_prefisso_avv()
     assert "Firmato da: AVV. ANTONIO MAMMOLA" in text
 
 
-def test_visible_signature_side_lines_espongono_data_e_orario_prima_dell_emittente():
-    lines = _build_visible_signature_side_lines(
+def test_visible_signature_side_text_espone_tutto_su_unica_riga_verticale():
+    side_text = _build_visible_signature_side_text(
         intestatario="Antonio Mammola",
         data_firma="2026-04-14T09:32:00+00:00",
         luogo="Reggio Calabria",
         issuer="ArubaPEC EU Authentication Certificates CA G1",
     )
 
-    assert lines[0] == "Firmato da: AVV. ANTONIO MAMMOLA"
-    assert lines[1] == "Data e ora firma: 14/04/2026 alle ore 11:32"
-    assert lines[2] == "Luogo firma: REGGIO CALABRIA"
-    assert lines[3].startswith("Emesso da: ARUBAPEC")
+    assert side_text == (
+        "Firmato da: AVV. ANTONIO MAMMOLA | "
+        "Data e ora firma: 14/04/2026 alle ore 11:32 | "
+        "Luogo firma: REGGIO CALABRIA"
+    )
 
 
 def test_apply_visible_signature_stamp_is_idempotent():

@@ -183,6 +183,9 @@ def test_assistente_context_guida_l_apertura_su_ricerca_web_sentenze_civili(tmp_
     assert payload["language_mode"] == "civil_case_law_web"
     assert payload["opening_line"].startswith("Controllo io sul web.")
     assert "Cassazione" in payload["opening_line"]
+    assert payload["execution_policy"]["llm_role"] == "voce_e_ragionamento_locale"
+    assert payload["execution_policy"]["truth_strategy"] == "fonti_ufficiali_verificate"
+    assert payload["execution_policy"]["requires_verified_legal_reference"] is True
 
 
 def test_assistente_context_copre_l_area_economica_di_studio(tmp_path: Path):

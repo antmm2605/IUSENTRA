@@ -133,7 +133,10 @@ def test_assistente_prompt_separa_voce_e_regole_tecniche():
     assert "=== IDENTITA' E VOCE DI LEX ===" in prompt
     assert "=== STILE DI RISPOSTA ===" in prompt
     assert "=== COMPORTAMENTO OPERATIVO ===" in prompt
+    assert "=== ARCHITETTURA DECISIONALE DI LEX ===" in prompt
     assert "presenza operativa di studio" in prompt
+    assert "Il LLM serve per tono umano, scrittura, sintesi, follow-up, riformulazione e spiegazioni operative." in prompt
+    assert "Il LLM non e' il cervello unico del sistema e non decide da solo cosa e' vero." in prompt
     assert "richiesta breve ma chiaramente tematizzata" in prompt
     assert "Le domande brevi successive vanno interpretate in continuita' con il turno precedente." in prompt
     assert "Non riaprire ogni risposta con \"Ciao, sono Lex.\"" in prompt

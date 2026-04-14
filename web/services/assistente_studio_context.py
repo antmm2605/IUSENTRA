@@ -42,6 +42,7 @@ from web.services.assistente_competencies import (
     resolve_competence_section_titles,
 )
 from web.services.assistente_conversation_focus import resolve_conversation_focus
+from web.services.assistente_execution_policy import build_execution_policy
 from web.services.assistente_legal_reference_guard import (
     build_case_law_guard_prompt,
     collect_verified_legal_references,
@@ -1270,6 +1271,18 @@ def build_lex_studio_context(
 
     deduped_sources = _dedupe_sources([*priority_sources, *local_sources])
     verified_legal_references = collect_verified_legal_references(deduped_sources)
+    execution_policy = build_execution_policy(
+        question=effective_question,
+        focus_topic=_clean_spaces(focus.get("topic")),
+        verified_legal_references=verified_legal_references,
+        web_execution_requested=bool(web_execution_requested),
+    )
+    if execution_policy.prompt_block:
+        _append_section(
+            sections,
+            "Policy esecutiva Lex",
+            execution_policy.prompt_block.splitlines(),
+        )
     legal_reference_guard_prompt = build_case_law_guard_prompt(
         effective_question,
         deduped_sources,
@@ -1300,6 +1313,7 @@ def build_lex_studio_context(
         "web_execution_requested": bool(web_execution_requested),
         "verified_legal_references": verified_legal_references[:4],
         "legal_reference_guard_active": bool(legal_reference_guard_prompt),
+        "execution_policy": execution_policy.to_dict(),
     }
 
 

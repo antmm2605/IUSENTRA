@@ -10,6 +10,7 @@ from pct.fascicoli import GestioneFascicoli, TipoFascicolo
 from pct.local_ai import LocalAIService
 from pct.local_ai_runtime import OllamaRuntimeProvisioner
 from web.app import create_app
+from web.services.assistente_prompt import build_assistente_prompt
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -121,6 +122,20 @@ def test_local_ai_bootstrap_disabled_is_non_blocking(tmp_path: Path):
 
     assert result["status"] == "disabled"
     assert snapshot["runtime"]["status"] == "disabled"
+
+
+def test_assistente_prompt_separa_voce_e_regole_tecniche():
+    prompt = build_assistente_prompt(
+        question="Verifica l'ultima sentenza civile e un problema di firma digitale",
+        fascicolo_id="",
+    )
+
+    assert "=== IDENTITA' E VOCE DI LEX ===" in prompt
+    assert "=== STILE DI RISPOSTA ===" in prompt
+    assert "=== COMPORTAMENTO OPERATIVO ===" in prompt
+    assert "presenza operativa di studio" in prompt
+    assert "=== AGGIORNAMENTI E FONTI UFFICIALI ===" in prompt
+    assert "=== REGOLE TECNICHE PEC E FIRMA ===" in prompt
 
 
 def test_local_ai_index_and_hybrid_search(tmp_path: Path, monkeypatch):
@@ -437,9 +452,13 @@ def test_api_assistente_context_prepara_prompt_per_companion_locale(tmp_path: Pa
     assert "=== IMPOSTAZIONI STUDIO ===" in payload["prompt"]
     assert "=== PEC E CANALI EMAIL ===" in payload["prompt"]
     assert "=== AGENDA ===" in payload["prompt"] or "=== SCADENZIARIO ===" in payload["prompt"]
+    assert "=== IDENTITA' E VOCE DI LEX ===" in payload["prompt"]
+    assert "=== STILE DI RISPOSTA ===" in payload["prompt"]
+    assert "=== COMPORTAMENTO OPERATIVO ===" in payload["prompt"]
+    assert "presenza operativa di studio" in payload["prompt"]
     assert "studio@pec.example.it" in payload["prompt"]
     assert "smtp.pec.aruba.it" in payload["prompt"]
-    assert "assistente consultivo" in payload["prompt"] or "assistente consultivo di HACS" in payload["prompt"]
+    assert "assistente consultivo di HACS" in payload["prompt"]
     assert "CONVERSAZIONE RECENTE" not in payload["prompt"]
     assert payload["sources"]
     assert any(
@@ -826,6 +845,8 @@ def test_assistente_chat_non_duplica_cronologia_nel_system_prompt_e_usa_keep_ali
     assert captured["url"] == "http://host.docker.internal:11434/api/chat"
     assert payload["model"] == "gemma3:1b"
     assert payload["keep_alive"] == "12m"
+    assert "=== IDENTITA' E VOCE DI LEX ===" in system_prompt
+    assert "=== STILE DI RISPOSTA ===" in system_prompt
     assert "Memoria di sessione:" not in system_prompt
     assert "CONVERSAZIONE RECENTE" not in system_prompt
     assert payload["messages"][1:] == messages

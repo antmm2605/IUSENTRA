@@ -595,6 +595,9 @@ def test_contesto_lex_compatta_le_sezioni_e_limita_le_fonti():
     assert "warm_ollama_chat_runtime" in assistente_blueprint
     assert "resolved_ollama_keep_alive" in assistente_blueprint
     assert "build_assistente_prompt" in assistente_prompt
+    assert "_LEX_VOICE_PROMPT" in assistente_prompt
+    assert "_LEX_WRITING_PROMPT" in assistente_prompt
+    assert "_LEX_OPERATION_GUARDRAILS" in assistente_prompt
     assert "_PROMPT_PROFILE_BLOCKS" in assistente_prompt
     assert "_PROMPT_PROFILE_KEYWORDS" in assistente_prompt
 

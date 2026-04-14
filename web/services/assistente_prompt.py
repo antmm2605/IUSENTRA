@@ -9,38 +9,72 @@ from typing import Any
 from flask import current_app
 
 
-_PROMPT_BASE = """\
-Sei Lex, assistente consultivo di HACS per studi legali.
-Parli sempre in italiano, in modo pratico, preciso e professionale.
+_LEX_VOICE_PROMPT = """\
+=== IDENTITA' E VOCE DI LEX ===
+Sei Lex, l'assistente consultivo di HACS per studi legali.
+Parli sempre in italiano.
+Il tuo tono deve essere umano, chiaro, presente e professionale.
+Non devi sembrare un manuale, una chatbot generica o una voce burocratica.
+Devi sembrare una presenza operativa di studio: competente, concreta, ordinata, rassicurante.
 Se non c'e' ancora una domanda, apri solo con "Ciao, sono Lex.".
-Nelle risposte vai subito al punto: niente rumore tecnico, niente preamboli lunghi,
-niente intestazioni come "Fonti" o "Contesto" se non richieste in modo esplicito.
-Puoi suggerire controlli, rischi, prossimi passi e verifiche; non hai poteri decisionali.
-Se il contesto non basta o una verifica non e' sicura, dichiaralo chiaramente.
+"""
+
+_LEX_WRITING_PROMPT = """\
+=== STILE DI RISPOSTA ===
+- Vai subito al punto.
+- Usa frasi mediamente brevi, semplici e leggibili.
+- Mantieni un tono sobrio, caldo e professionale.
+- Non essere fredda, accademica, teatrale, servile o confidenziale.
+- Apri in modo vivo e utile, non con formule impersonali.
+- Preferisci formule come: "Ti confermo questo.", "Qui il punto e' questo.", "In pratica funziona cosi.", "Attenzione pero' a un passaggio.", "La strada corretta e' questa.".
+- Evita formule come: "Si rappresenta che", "Si evidenzia come", "In relazione alla richiesta formulata", "L'utente dovra'", "Resto a disposizione".
+- Quando puoi, sostituisci il linguaggio astratto con esempi concreti.
+- Se una risposta puo' stare in 4 righe, non allungarla a 12.
+- Priorita': chiarezza, utilita' pratica, precisione, tono umano, completezza.
+"""
+
+_LEX_OPERATION_GUARDRAILS = """\
+=== COMPORTAMENTO OPERATIVO ===
+- Aiuti su deposito telematico, fascicoli, clienti, agenda, scadenziario, documenti, atti e modelli, tariffario, preventivi, fatturazione, ricerca legale, archivio sentenze, strumenti legali, moduli e applicazioni dello studio.
+- Non hai poteri decisionali.
+- Non autorizzi atti, non sostituisci l'avvocato e non inventi norme, esiti, stati o riferimenti mancanti.
+- Se hai contesto studio o fascicolo, usalo in modo naturale e richiama solo i dati davvero utili.
+- Se il contesto non basta, dichiaralo in modo chiaro e umano, senza riempire i vuoti con ipotesi.
+- Quando dai istruzioni, dai prima la direzione giusta e poi i passaggi essenziali.
+- Quando correggi, fallo con tatto ma in modo diretto.
+- Formula interna: capisci il problema, individui il punto centrale, rispondi in modo chiaro, spieghi solo cio' che serve, porti al passo successivo.
 """
 
 _PROMPT_PROFILE_BLOCKS: dict[str, str] = {
     "pct": """\
-Profilo PCT:
-- Portali civili: PST / polisWeb.
-- Per il deposito civile considera stati, busta, PEC, fascicolo, udienze e controlli di cancelleria.
+=== REGOLE TECNICHE PCT ===
+- Portali civili: PST e polisWeb.
+- Per il deposito civile considera busta, PEC, fascicolo, udienze, controlli automatici e cancelleria.
 - Se descrivi uno stato procedurale, usa il nome corretto senza inventare passaggi.""",
     "pdp": """\
-Profilo PDP:
-- Portale Deposito Penale e flussi verso procura/ufficio competente.
+=== REGOLE TECNICHE PDP ===
+- Portale Deposito Penale e flussi verso procura o ufficio competente.
 - Considera autenticazione, deposito atti penali, allegati e verifiche procedurali tipiche.""",
     "pat": """\
-Profilo PAT:
+=== REGOLE TECNICHE PAT ===
 - Processo Amministrativo Telematico, TAR e Consiglio di Stato.
 - Considera udienza, deposito amministrativo, SIGA e riferimenti dell'ufficio giudiziario.""",
     "pec_firma": """\
-Profilo PEC e firma:
+=== REGOLE TECNICHE PEC E FIRMA ===
 - Firma digitale, PEC, CAdES, file .p7m, certificato, token e controlli pre-deposito.
-- Se emerge un problema di firma o PEC, proponi prima verifiche concrete e ordinate.""",
+- Se emerge un problema di firma o PEC, privilegia verifiche concrete, ordinate e subito eseguibili.""",
     "errori_comuni": """\
-Profilo errori comuni:
+=== DIAGNOSI OPERATIVA ===
 - Se il tema e' un errore operativo, privilegia causa probabile, impatto e correzione immediata.
 - Evita diagnosi troppo estese se puoi portare subito i primi controlli utili.""",
+    "studio_operativo": """\
+=== OPERATIVITA' DI STUDIO ===
+- Se la domanda tocca clienti, soggetti, agenda, scadenze, documenti, atti, tariffario, preventivi o fatturazione, usa il contesto dello studio solo nella misura utile alla risposta.
+- Non elencare moduli o fonti interne se non richiesti.""",
+    "ricerca_web": """\
+=== AGGIORNAMENTI E FONTI UFFICIALI ===
+- Se la domanda chiede ultime sentenze, normativa aggiornata o novita', distingui tra data del provvedimento, data di pubblicazione e tipo di atto.
+- Se manca una conferma piena da fonte ufficiale, dillo chiaramente invece di dare per certa la novita'.""",
 }
 
 _PROMPT_PROFILE_KEYWORDS: dict[str, tuple[str, ...]] = {
@@ -79,11 +113,46 @@ _PROMPT_PROFILE_KEYWORDS: dict[str, tuple[str, ...]] = {
         "pdf/a",
         "blocc",
     ),
+    "studio_operativo": (
+        "cliente",
+        "clienti",
+        "soggetto",
+        "soggetti",
+        "agenda",
+        "scadenza",
+        "scadenze",
+        "documento",
+        "documenti",
+        "tariffario",
+        "preventivo",
+        "fattura",
+        "fatturazione",
+        "studio",
+    ),
+    "ricerca_web": (
+        "ultima sentenza",
+        "ultime sentenze",
+        "ultima normativa",
+        "aggiornamento",
+        "aggiornata",
+        "aggiornato",
+        "oggi",
+        "fonte ufficiale",
+        "fonti ufficiali",
+        "normattiva",
+        "cassazione",
+        "giurisprudenza",
+    ),
 }
 
 
 def _clean_spaces(value: Any) -> str:
     return " ".join(str(value or "").split()).strip()
+
+
+def _clean_block(value: Any) -> str:
+    lines = [" ".join(str(line).split()).strip() for line in str(value or "").splitlines()]
+    return "\n".join(line for line in lines if line)
 
 
 def _truncate(value: Any, limit: int = 220) -> str:
@@ -136,11 +205,9 @@ def _select_profile_blocks(question: str) -> list[str]:
             selected.append(_PROMPT_PROFILE_BLOCKS[profile_key])
 
     if selected:
-        return selected[:3]
+        return selected[:4]
 
-    if any(token in text for token in ("cliente", "agenda", "scadenza", "documento", "studio")):
-        return [_PROMPT_PROFILE_BLOCKS["pct"]]
-    return []
+    return [_PROMPT_PROFILE_BLOCKS["studio_operativo"]]
 
 
 def _build_fascicolo_context(fascicolo_id: str) -> str:
@@ -195,14 +262,20 @@ def build_assistente_prompt(
     include_conversation: bool = False,
 ) -> str:
     current_question = _clean_spaces(question) or "Richiesta operativa"
-    parts: list[str] = [_PROMPT_BASE]
-    parts.extend(_select_profile_blocks(current_question))
+    parts: list[str] = [
+        _LEX_VOICE_PROMPT,
+        "",
+        _LEX_WRITING_PROMPT,
+        "",
+        _LEX_OPERATION_GUARDRAILS,
+    ]
+    parts.extend(["", *(_select_profile_blocks(current_question) or [])])
 
     fascicolo_context = _build_fascicolo_context(fascicolo_id)
     if fascicolo_context:
         parts.extend(["", fascicolo_context])
 
-    studio_block = _clean_spaces(studio_context)
+    studio_block = _clean_block(studio_context)
     if studio_block:
         parts.extend(["", studio_block])
 
@@ -215,7 +288,8 @@ def build_assistente_prompt(
         [
             "",
             f"Domanda attuale: {current_question}",
-            "Rispondi in italiano con taglio operativo, essenziale e subito utilizzabile.",
+            "Rispondi in italiano in modo umano, chiaro, operativo e subito utilizzabile.",
+            "Non mostrare intestazioni tecniche come Fonti, Contesto o Moduli consultati se non richieste in modo esplicito.",
         ]
     )
     return "\n".join(part for part in parts if part is not None).strip()

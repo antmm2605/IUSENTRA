@@ -8,6 +8,11 @@ from typing import Any
 
 from flask import current_app
 
+from web.services.assistente_competencies import (
+    build_competence_catalog_prompt,
+    build_competence_prompt_blocks,
+)
+
 
 _LEX_VOICE_PROMPT = """\
 === IDENTITA' E VOCE DI LEX ===
@@ -47,6 +52,8 @@ _LEX_OPERATION_GUARDRAILS = """\
 - Formula interna: capisci il problema, individui il punto centrale, rispondi in modo chiaro, spieghi solo cio' che serve, porti al passo successivo.
 """
 
+_LEX_COMPETENCE_COVERAGE_PROMPT = build_competence_catalog_prompt()
+
 _LEX_CONTEXT_ROUTING_PROMPT = """\
 === GESTIONE DEL CONTESTO E DEI FOLLOW-UP ===
 - Non dare una panoramica generale quando l'utente sta chiedendo un dettaglio specifico.
@@ -78,6 +85,18 @@ _LEX_WEB_EXECUTION_PROMPT = """\
 - Non usare mai testo-segnaposto o placeholder artificiali come "[inserisci...]", "[specificare...]", "[esempio...]" o "[ambito di ricerca...]". Se manca un dato, dillo in linguaggio naturale.
 """
 
+_LEX_OFFICIAL_SOURCES_PROMPT = """\
+=== AGGIORNAMENTI E FONTI UFFICIALI ===
+- Se la domanda chiede ultime sentenze, normativa aggiornata o novita', distingui tra data del provvedimento, data di pubblicazione e tipo di atto.
+- Se manca una conferma piena da fonte ufficiale, dillo chiaramente invece di dare per certa la novita'.
+"""
+
+_LEX_PEC_SIGNATURE_PROMPT = """\
+=== REGOLE TECNICHE PEC E FIRMA ===
+- Firma digitale, PEC, file .p7m, certificato, token e ricevute vanno trattati in modo operativo e concreto.
+- Se emerge un problema di firma o PEC, privilegia subito causa probabile, primo controllo utile e correzione immediata nel flusso di studio.
+"""
+
 _LEX_SOCIAL_PROMPT = """\
 === GESTIONE DELLA RELAZIONE QUOTIDIANA ===
 - Lex deve riconoscere saluti, ringraziamenti, conferme brevi, chiusure relazionali, scuse e feedback positivi.
@@ -95,107 +114,6 @@ _LEX_SOCIAL_PROMPT = """\
 - Evita formule da call center o troppo enfatiche come "Resto a disposizione", "Sono sempre qui per aiutarti", "E' stato un piacere aiutarti", "Che piacere sentirti".
 - Non usare emoji, non usare punti esclamativi in eccesso e non essere mai servile o artificiale.
 """
-
-_PROMPT_PROFILE_BLOCKS: dict[str, str] = {
-    "pct": """\
-=== REGOLE TECNICHE PCT ===
-- Portali civili: PST e polisWeb.
-- Per il deposito civile considera busta, PEC, fascicolo, udienze, controlli automatici e cancelleria.
-- Se descrivi uno stato procedurale, usa il nome corretto senza inventare passaggi.""",
-    "pdp": """\
-=== REGOLE TECNICHE PDP ===
-- Portale Deposito Penale e flussi verso procura o ufficio competente.
-- Considera autenticazione, deposito atti penali, allegati e verifiche procedurali tipiche.""",
-    "pat": """\
-=== REGOLE TECNICHE PAT ===
-- Processo Amministrativo Telematico, TAR e Consiglio di Stato.
-- Considera udienza, deposito amministrativo, SIGA e riferimenti dell'ufficio giudiziario.""",
-    "pec_firma": """\
-=== REGOLE TECNICHE PEC E FIRMA ===
-- Firma digitale, PEC, CAdES, file .p7m, certificato, token e controlli pre-deposito.
-- Se emerge un problema di firma o PEC, privilegia verifiche concrete, ordinate e subito eseguibili.""",
-    "errori_comuni": """\
-=== DIAGNOSI OPERATIVA ===
-- Se il tema e' un errore operativo, privilegia causa probabile, impatto e correzione immediata.
-- Evita diagnosi troppo estese se puoi portare subito i primi controlli utili.""",
-    "studio_operativo": """\
-=== OPERATIVITA' DI STUDIO ===
-- Se la domanda tocca clienti, soggetti, agenda, scadenze, documenti, atti, tariffario, preventivi o fatturazione, usa il contesto dello studio solo nella misura utile alla risposta.
-- Non elencare moduli o fonti interne se non richiesti.""",
-    "ricerca_web": """\
-=== AGGIORNAMENTI E FONTI UFFICIALI ===
-- Se la domanda chiede ultime sentenze, normativa aggiornata o novita', distingui tra data del provvedimento, data di pubblicazione e tipo di atto.
-- Se manca una conferma piena da fonte ufficiale, dillo chiaramente invece di dare per certa la novita'.""",
-}
-
-_PROMPT_PROFILE_KEYWORDS: dict[str, tuple[str, ...]] = {
-    "pct": (
-        "deposito",
-        "pct",
-        "polisweb",
-        "fascicolo",
-        "udienza",
-        "memoria",
-        "atto",
-        "cancelleria",
-        "rg",
-    ),
-    "pdp": ("pdp", "penale", "procura", "indagato", "appweb"),
-    "pat": ("pat", "tar", "consiglio di stato", "siga", "amministrativo"),
-    "pec_firma": (
-        "pec",
-        "firma",
-        "firmato",
-        "p7m",
-        "cades",
-        "certificato",
-        "aruba",
-        "token",
-        "smart card",
-    ),
-    "errori_comuni": (
-        "errore",
-        "problema",
-        "timeout",
-        "rifiutato",
-        "non va",
-        "non funziona",
-        "hash",
-        "pdf/a",
-        "blocc",
-    ),
-    "studio_operativo": (
-        "cliente",
-        "clienti",
-        "soggetto",
-        "soggetti",
-        "agenda",
-        "scadenza",
-        "scadenze",
-        "documento",
-        "documenti",
-        "tariffario",
-        "preventivo",
-        "fattura",
-        "fatturazione",
-        "studio",
-    ),
-    "ricerca_web": (
-        "ultima sentenza",
-        "ultime sentenze",
-        "ultima normativa",
-        "aggiornamento",
-        "aggiornata",
-        "aggiornato",
-        "oggi",
-        "fonte ufficiale",
-        "fonti ufficiali",
-        "normattiva",
-        "cassazione",
-        "giurisprudenza",
-    ),
-}
-
 
 def _clean_spaces(value: Any) -> str:
     return " ".join(str(value or "").split()).strip()
@@ -246,19 +164,6 @@ def _conversation_excerpt(
         rows.append(row)
         used += len(row)
     return "\n".join(rows)
-
-
-def _select_profile_blocks(question: str) -> list[str]:
-    text = _clean_spaces(question).lower()
-    selected: list[str] = []
-    for profile_key, keywords in _PROMPT_PROFILE_KEYWORDS.items():
-        if any(keyword in text for keyword in keywords):
-            selected.append(_PROMPT_PROFILE_BLOCKS[profile_key])
-
-    if selected:
-        return selected[:4]
-
-    return [_PROMPT_PROFILE_BLOCKS["studio_operativo"]]
 
 
 def _build_fascicolo_context(fascicolo_id: str) -> str:
@@ -323,13 +228,19 @@ def build_assistente_prompt(
         "",
         _LEX_OPERATION_GUARDRAILS,
         "",
+        _LEX_COMPETENCE_COVERAGE_PROMPT,
+        "",
         _LEX_CONTEXT_ROUTING_PROMPT,
         "",
         _LEX_WEB_EXECUTION_PROMPT,
         "",
+        _LEX_OFFICIAL_SOURCES_PROMPT,
+        "",
+        _LEX_PEC_SIGNATURE_PROMPT,
+        "",
         _LEX_SOCIAL_PROMPT,
     ]
-    parts.extend(["", *(_select_profile_blocks(current_question) or [])])
+    parts.extend(["", *(build_competence_prompt_blocks(current_question, limit=4) or [])])
 
     fascicolo_context = _build_fascicolo_context(fascicolo_id)
     if fascicolo_context:

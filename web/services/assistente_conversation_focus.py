@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 from typing import Any
 
+from web.services.assistente_competencies import primary_competence_profile
 from web.services.assistente_web_execution import resolve_web_execution_intent
 
 
@@ -29,6 +30,25 @@ _TOPIC_RULES: tuple[dict[str, Any], ...] = (
         "keywords": ("panoramica", "situazione studio", "quadro generale", "dashboard"),
         "sections": ("Impostazioni studio", "PEC e canali email", "Quadro operativo"),
         "focus_label": "quadro generale dello studio",
+        "include_live_web": False,
+    },
+    {
+        "topic": "telematico",
+        "keywords": (
+            "pst",
+            "polisweb",
+            "pdp",
+            "pat",
+            "siga",
+            "ptt",
+            "sigit",
+            "deposito telematico",
+            "portale servizi telematici",
+            "stato connessioni",
+            "import fascicoli",
+        ),
+        "sections": ("Fascicoli", "PEC e canali email", "Applicazioni", "Ricerca legale e fonti web"),
+        "focus_label": "portali telematici e depositi",
         "include_live_web": False,
     },
     {
@@ -78,6 +98,27 @@ _TOPIC_RULES: tuple[dict[str, Any], ...] = (
         "keywords": ("documento", "documenti", "allegato", "allegati", "verbale", "memoria", "bozza"),
         "sections": ("RAG documentale locale", "Fascicoli", "Template atti"),
         "focus_label": "documenti collegati",
+        "include_live_web": False,
+    },
+    {
+        "topic": "economico",
+        "keywords": (
+            "preventivi",
+            "preventivo",
+            "fatturazione",
+            "fattura",
+            "fatture",
+            "parcella",
+            "parcelle",
+            "pagamento",
+            "pagamenti",
+            "tariffario",
+            "onorario",
+            "compenso",
+            "saldo",
+        ),
+        "sections": ("Tariffario", "Preventivi", "Fatturazione", "Clienti"),
+        "focus_label": "economico di studio",
         "include_live_web": False,
     },
     {
@@ -197,7 +238,17 @@ def _find_topic_rule(question: str) -> dict[str, Any] | None:
     for rule in _TOPIC_RULES:
         if any(_contains_keyword(haystack, keyword) for keyword in rule["keywords"]):
             return rule
-    return None
+    profile = primary_competence_profile(haystack)
+    if not profile:
+        return None
+    return {
+        "topic": profile.topic,
+        "keywords": profile.keywords,
+        "sections": profile.section_titles,
+        "focus_label": profile.focus_label,
+        "include_live_web": profile.include_live_web,
+        "research_strategy": profile.research_strategy,
+    }
 
 
 def _looks_like_follow_up(question: str) -> bool:

@@ -36,6 +36,11 @@ from web.services.assistente_context_cache import (
     cached_compute,
     question_signature,
 )
+from web.services.assistente_competencies import (
+    build_competence_context_hints,
+    resolve_competence_labels,
+    resolve_competence_section_titles,
+)
 from web.services.assistente_conversation_focus import resolve_conversation_focus
 from web.services.assistente_live_web import build_live_official_web_context
 from web.services.assistente_web_execution import is_web_execution_request
@@ -1146,10 +1151,18 @@ def build_lex_studio_context(
     focus_label = _clean_spaces(focus.get("focus_label"))
     research_strategy = _clean_spaces(focus.get("research_strategy"))
     web_execution_requested = bool(focus.get("web_execution_requested"))
+    competence_labels = resolve_competence_labels(effective_question, limit=3)
+    competence_hints = build_competence_context_hints(effective_question, limit=2)
+    competence_section_titles = set(resolve_competence_section_titles(effective_question, limit=3, max_sections=6))
     if chat_mode and focus_label:
         sections.append(
             f"Per questa richiesta resta focalizzata su {focus_label} e non allargare la risposta alla panoramica generale dello studio salvo richiesta esplicita."
         )
+    if competence_labels:
+        sections.append(
+            "Competenze HACS coinvolte: " + ", ".join(competence_labels) + "."
+        )
+    sections.extend(competence_hints)
     if chat_mode and research_strategy == "auto_narrow_recent_civil_case_law":
         sections.append(
             "Ricerca ampia su sentenze civili: Lex deve partire dalle pronunce civili piu' recenti e rilevanti, con priorita' alla Cassazione e alle fonti ufficiali disponibili, senza chiedere subito di restringere la materia."
@@ -1166,6 +1179,7 @@ def build_lex_studio_context(
         if chat_mode and focus.get("section_titles")
         else (_select_detail_sections_for_chat(effective_question) if chat_mode else _select_detail_sections(effective_question))
     )
+    selected_detail_titles = set(selected_detail_titles) | competence_section_titles
     include_live_web = (
         bool(focus.get("include_live_web"))
         if chat_mode and focus.get("topic")
@@ -1264,6 +1278,7 @@ def build_lex_studio_context(
         "source_ids": list(dict.fromkeys([*fonti_per_query(effective_question), *live_source_ids])),
         "focus_label": focus_label,
         "focus_topic": _clean_spaces(focus.get("topic")),
+        "competence_labels": competence_labels,
         "research_strategy": research_strategy,
         "effective_question": effective_question,
         "web_fallback_used": bool(force_web_fallback),

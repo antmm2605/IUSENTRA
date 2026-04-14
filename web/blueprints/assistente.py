@@ -369,6 +369,7 @@ def assistente_context():
         "attachments": attachments,
         "focus_label": str(studio_context.get("focus_label") or "").strip(),
         "focus_topic": str(studio_context.get("focus_topic") or "").strip(),
+        "competence_labels": list(studio_context.get("competence_labels") or []),
         "web_fallback_used": web_fallback_used,
         "web_execution_requested": web_execution_requested,
         "social_kind": routing.social_kind,

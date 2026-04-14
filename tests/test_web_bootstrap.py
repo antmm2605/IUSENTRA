@@ -608,6 +608,7 @@ def test_contesto_lex_compatta_le_sezioni_e_limita_le_fonti():
     social_intent_service = (REPO_ROOT / "web/services/assistente_social_intent.py").read_text(encoding="utf-8")
     today_summary_service = (REPO_ROOT / "web/services/assistente_today_summary.py").read_text(encoding="utf-8")
     language_guidance_service = (REPO_ROOT / "web/services/assistente_language_guidance.py").read_text(encoding="utf-8")
+    competence_service = (REPO_ROOT / "web/services/assistente_competencies.py").read_text(encoding="utf-8")
     web_execution_service = (REPO_ROOT / "web/services/assistente_web_execution.py").read_text(encoding="utf-8")
     assistente_blueprint = (REPO_ROOT / "web/blueprints/assistente.py").read_text(encoding="utf-8")
     assistente_prompt = (REPO_ROOT / "web/services/assistente_prompt.py").read_text(encoding="utf-8")
@@ -632,6 +633,9 @@ def test_contesto_lex_compatta_le_sezioni_e_limita_le_fonti():
     assert 'Ricerca ampia su sentenze civili: Lex deve partire dalle pronunce civili piu\' recenti' in context_service
     assert '"web_fallback_used": bool(force_web_fallback)' in context_service
     assert "warm_lex_studio_context" in context_service
+    assert "resolve_competence_labels" in context_service
+    assert "resolve_competence_section_titles" in context_service
+    assert '"competence_labels": competence_labels' in context_service
     assert "cached_compute" in cache_service
     assert "build_file_fingerprint" in cache_service
     assert "question_signature" in cache_service
@@ -639,6 +643,7 @@ def test_contesto_lex_compatta_le_sezioni_e_limita_le_fonti():
     assert "def _is_civil_case_law_query" in focus_service
     assert "_TOPIC_RULES" in focus_service
     assert "_FOLLOW_UP_MARKERS" in focus_service
+    assert "primary_competence_profile" in focus_service
     assert '"topic": "sentenze_civili"' in focus_service
     assert '"research_strategy": "auto_narrow_recent_civil_case_law"' in focus_service
     assert "resolve_web_execution_intent" in focus_service
@@ -663,6 +668,10 @@ def test_contesto_lex_compatta_le_sezioni_e_limita_le_fonti():
     assert "class LanguageGuidance" in language_guidance_service
     assert "def build_language_guidance" in language_guidance_service
     assert "Controllo io sul web. Parto dalle sentenze civili piu' recenti e rilevanti" in language_guidance_service
+    assert "class LexCompetenceProfile" in competence_service
+    assert "def build_competence_catalog_prompt" in competence_service
+    assert "Centro Servizi Telematici" in competence_service
+    assert "Tariffario, preventivi, fatturazione e pagamenti" in competence_service
     assert "class WebExecutionIntent" in web_execution_service
     assert "is_web_execution_request" in web_execution_service
     assert "resolve_effective_query" in web_execution_service
@@ -685,6 +694,7 @@ def test_contesto_lex_compatta_le_sezioni_e_limita_le_fonti():
     assert '"opening_line": opening_line' in assistente_blueprint
     assert '"daily_overview_lead": opening_line' in assistente_blueprint
     assert '"language_mode": str(language_guidance.mode or "").strip()' in assistente_blueprint
+    assert '"competence_labels": list(studio_context.get("competence_labels") or [])' in assistente_blueprint
     assert '"social_prefix": str(social_prefix or "").strip()' in assistente_blueprint
     assert '"focus_label": str(studio_context.get("focus_label") or "").strip()' in assistente_blueprint
     assert "web_fallback_used = bool(studio_context.get(\"web_fallback_used\")) or bool(" in assistente_blueprint
@@ -695,14 +705,16 @@ def test_contesto_lex_compatta_le_sezioni_e_limita_le_fonti():
     assert "_LEX_VOICE_PROMPT" in assistente_prompt
     assert "_LEX_WRITING_PROMPT" in assistente_prompt
     assert "_LEX_OPERATION_GUARDRAILS" in assistente_prompt
+    assert "_LEX_COMPETENCE_COVERAGE_PROMPT" in assistente_prompt
     assert "_LEX_CONTEXT_ROUTING_PROMPT" in assistente_prompt
     assert "_LEX_WEB_EXECUTION_PROMPT" in assistente_prompt
     assert "_LEX_SOCIAL_PROMPT" in assistente_prompt
+    assert "build_competence_catalog_prompt" in assistente_prompt
+    assert "build_competence_prompt_blocks" in assistente_prompt
     assert "Se c'e' gia' una richiesta operativa o di ricerca, non aprire con saluti" in assistente_prompt
     assert "ricerca web sentenze civili" in assistente_prompt
     assert "Non usare mai testo-segnaposto o placeholder artificiali" in assistente_prompt
-    assert "_PROMPT_PROFILE_BLOCKS" in assistente_prompt
-    assert "_PROMPT_PROFILE_KEYWORDS" in assistente_prompt
+    assert "_LEX_COMPETENCE_COVERAGE_PROMPT = build_competence_catalog_prompt()" in assistente_prompt
     assert "Apertura iniziale da mantenere:" in assistente_prompt
 
 

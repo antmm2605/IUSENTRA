@@ -171,3 +171,21 @@ def test_assistente_context_guida_l_apertura_su_ricerca_web_sentenze_civili(tmp_
     assert payload["language_mode"] == "civil_case_law_web"
     assert payload["opening_line"].startswith("Controllo io sul web.")
     assert "Cassazione" in payload["opening_line"]
+
+
+def test_assistente_context_copre_l_area_economica_di_studio(tmp_path: Path):
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    app = create_app(_cfg_web(tmp_path))
+
+    with app.test_client() as client:
+        client.post("/login", data={"username": "admin", "password": "admin"}, follow_redirects=True)
+        response = client.post(
+            "/api/assistente/context",
+            json={"question": "mi controlli preventivi, fatturazione e pagamenti"},
+        )
+
+    payload = response.get_json()
+    assert response.status_code == 200
+    assert payload["ok"] is True
+    assert payload["focus_topic"] == "economico"
+    assert "Tariffario, preventivi, fatturazione e pagamenti" in payload["competence_labels"]

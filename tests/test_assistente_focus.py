@@ -69,6 +69,25 @@ def test_focus_conversazionale_dedica_un_intento_alle_sentenze_civili():
     assert "Ricerca legale e fonti web" in focus["section_titles"]
 
 
+def test_focus_conversazionale_copre_il_centro_servizi_telematici():
+    focus = resolve_conversation_focus("stato connessioni pst pdp pat e import fascicoli")
+
+    assert focus["topic"] == "telematico"
+    assert focus["focus_label"] == "portali telematici e depositi"
+    assert "Fascicoli" in focus["section_titles"]
+    assert "PEC e canali email" in focus["section_titles"]
+
+
+def test_focus_conversazionale_copre_l_area_economica_di_studio():
+    focus = resolve_conversation_focus("mi controlli preventivi, fatturazione e pagamenti")
+
+    assert focus["topic"] == "economico"
+    assert focus["focus_label"] == "economico di studio"
+    assert "Preventivi" in focus["section_titles"]
+    assert "Fatturazione" in focus["section_titles"]
+    assert "Tariffario" in focus["section_titles"]
+
+
 def test_focus_conversazionale_eredita_il_fascicolo_per_followup_operativo_generico():
     focus = resolve_conversation_focus(
         "Qual e' la prossima attivita' operativa?",

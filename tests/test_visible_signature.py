@@ -10,6 +10,8 @@ from visible_signature import (
     VISIBLE_SIGNATURE_METADATA_KEY,
     VISIBLE_SIGNATURE_MODE_BASSO_DESTRA,
     VISIBLE_SIGNATURE_MODE_LATERALE,
+    _draw_visible_signature_bottom_right_text,
+    _draw_visible_signature_seal,
     apply_visible_signature_stamp,
     format_visible_signature_datetime,
     has_visible_signature_stamp,
@@ -29,6 +31,13 @@ def _make_pdf_bytes() -> bytes:
 def test_format_visible_signature_datetime_italian_style():
     assert (
         format_visible_signature_datetime("2026-04-14T11:32:00+02:00")
+        == "14/04/2026 alle ore 11:32"
+    )
+
+
+def test_format_visible_signature_datetime_converte_in_fuso_italiano():
+    assert (
+        format_visible_signature_datetime("2026-04-14T09:32:00+00:00")
         == "14/04/2026 alle ore 11:32"
     )
 
@@ -106,3 +115,104 @@ def test_apply_visible_signature_stamp_is_idempotent():
     )
 
     assert second == first
+
+
+def test_bottom_right_signature_draws_colored_seal(monkeypatch):
+    seal_calls = []
+
+    class _FakeOverlay:
+        def __init__(self):
+            self.drawn = []
+
+        def saveState(self):
+            return None
+
+        def restoreState(self):
+            return None
+
+        def setFillColor(self, _value):
+            return None
+
+        def setFont(self, _name, _size):
+            return None
+
+        def drawRightString(self, x, y, text):
+            self.drawn.append((x, y, text))
+
+        def stringWidth(self, text, _font_name, _font_size):
+            return float(len(text) * 5)
+
+    def _fake_draw_seal(overlay, *, anchor_x, anchor_y, scale=1.0):
+        seal_calls.append({
+            "overlay": overlay,
+            "anchor_x": anchor_x,
+            "anchor_y": anchor_y,
+            "scale": scale,
+        })
+
+    monkeypatch.setattr("visible_signature._draw_visible_signature_seal", _fake_draw_seal)
+
+    overlay = _FakeOverlay()
+    _draw_visible_signature_bottom_right_text(
+        overlay,
+        width=595.0,
+        height=842.0,
+        color=None,
+        intestatario="Antonio Mammola",
+        data_firma="2026-04-14T09:32:00+00:00",
+        luogo="Reggio Calabria",
+    )
+
+    assert len(overlay.drawn) >= 2
+    assert seal_calls
+    assert seal_calls[0]["anchor_x"] < 595.0 - 28.35
+    assert seal_calls[0]["scale"] >= 1.0
+
+
+def test_visible_signature_seal_uses_non_grayscale_colors():
+    fill_colors = []
+
+    class _FakePath:
+        def moveTo(self, *_args):
+            return None
+
+        def lineTo(self, *_args):
+            return None
+
+        def close(self):
+            return None
+
+    class _FakeOverlay:
+        def saveState(self):
+            return None
+
+        def restoreState(self):
+            return None
+
+        def beginPath(self):
+            return _FakePath()
+
+        def setStrokeColor(self, _value):
+            return None
+
+        def setFillColor(self, value):
+            fill_colors.append(value)
+
+        def drawPath(self, *_args, **_kwargs):
+            return None
+
+        def circle(self, *_args, **_kwargs):
+            return None
+
+        def setLineWidth(self, *_args, **_kwargs):
+            return None
+
+    overlay = _FakeOverlay()
+    _draw_visible_signature_seal(overlay, anchor_x=32.0, anchor_y=32.0)
+
+    assert fill_colors
+    assert any(
+        round(getattr(color, "red", 0), 3) != round(getattr(color, "green", 0), 3)
+        or round(getattr(color, "green", 0), 3) != round(getattr(color, "blue", 0), 3)
+        for color in fill_colors
+    )

@@ -5,6 +5,11 @@ import re
 from datetime import datetime
 from typing import Any
 
+try:
+    from zoneinfo import ZoneInfo
+except Exception:  # pragma: no cover - fallback difensivo
+    ZoneInfo = None  # type: ignore[assignment]
+
 CM_TO_PT = 28.35
 VISIBLE_SIGNATURE_MODE_LATERALE = "laterale"
 VISIBLE_SIGNATURE_MODE_BASSO_DESTRA = "basso_destra"
@@ -15,6 +20,7 @@ VISIBLE_SIGNATURE_MODES = {
 VISIBLE_SIGNATURE_PREFIX = "Firmato digitalmente da"
 VISIBLE_SIGNATURE_DATE_LABEL = "Data e ora firma:"
 VISIBLE_SIGNATURE_METADATA_KEY = "/HACSSignatureStamp"
+ITALY_TIMEZONE = ZoneInfo("Europe/Rome") if ZoneInfo else None
 
 
 def normalize_visible_signature_mode(value: Any) -> str:
@@ -71,7 +77,10 @@ def format_visible_signature_datetime(value: Any) -> str:
 
     try:
         if getattr(dt, "tzinfo", None) is not None:
-            dt = dt.astimezone()
+            if ITALY_TIMEZONE is not None:
+                dt = dt.astimezone(ITALY_TIMEZONE)
+            else:
+                dt = dt.astimezone()
     except Exception:
         pass
 
@@ -384,12 +393,12 @@ def _build_visible_signature_side_text(
 
     if signer_name:
         segments.append(f"Firmato da: {signer_name}")
-    if issuer_value:
-        segments.append(f"Emesso da: {issuer_value.upper()}")
     if date_value:
         segments.append(f"Data e ora firma: {date_value}")
     if place_value:
         segments.append(f"Luogo firma: {place_value.upper()}")
+    if issuer_value:
+        segments.append(f"Emesso da: {issuer_value.upper()}")
     return "  ".join(segments)
 
 
@@ -465,6 +474,8 @@ def _draw_visible_signature_bottom_right_text(
     del height
     right_margin = CM_TO_PT
     bottom_margin = CM_TO_PT
+    font_name = "Helvetica"
+    font_size = 11
     line_one, line_two = _build_visible_signature_bottom_lines(
         intestatario=intestatario,
         data_firma=data_firma,
@@ -473,7 +484,7 @@ def _draw_visible_signature_bottom_right_text(
 
     overlay.saveState()
     overlay.setFillColor(color)
-    overlay.setFont("Helvetica", 11)
+    overlay.setFont(font_name, font_size)
     baseline_y = bottom_margin + 14
     if line_two:
         overlay.drawRightString(width - right_margin, baseline_y + 14, line_one)
@@ -482,12 +493,25 @@ def _draw_visible_signature_bottom_right_text(
         overlay.drawRightString(width - right_margin, baseline_y + 7, line_one)
     overlay.restoreState()
 
+    line_one_width = overlay.stringWidth(line_one, font_name, font_size)
+    line_two_width = overlay.stringWidth(line_two, font_name, font_size) if line_two else 0
+    text_width = max(line_one_width, line_two_width)
+    seal_anchor_x = max(width - right_margin - text_width - 18, right_margin + 10)
+    seal_anchor_y = bottom_margin + 8
+    _draw_visible_signature_seal(
+        overlay,
+        anchor_x=seal_anchor_x,
+        anchor_y=seal_anchor_y,
+        scale=1.05,
+    )
+
 
 def _draw_visible_signature_seal(
     overlay,
     *,
     anchor_x: float,
     anchor_y: float,
+    scale: float = 1.0,
 ) -> None:
     try:
         from reportlab.lib.colors import Color
@@ -496,18 +520,47 @@ def _draw_visible_signature_seal(
 
     center_x = anchor_x
     center_y = anchor_y
-    outline = Color(0.55, 0.55, 0.55)
-    fill = Color(0.92, 0.92, 0.92)
+    radius = 7.5 * scale
+    silver_dark = Color(0.56, 0.58, 0.63)
+    silver_light = Color(0.90, 0.91, 0.93)
+    ribbon_gray = Color(0.74, 0.75, 0.79)
+    green = Color(0.11, 0.57, 0.24)
+    white = Color(0.98, 0.98, 0.98)
+    red = Color(0.78, 0.16, 0.18)
+    gold = Color(0.84, 0.70, 0.29)
 
     overlay.saveState()
-    overlay.setStrokeColor(outline)
-    overlay.setFillColor(fill)
-    overlay.circle(center_x, center_y, 7.5, stroke=1, fill=1)
-    overlay.setFillColor(Color(0.97, 0.97, 0.97))
-    overlay.circle(center_x, center_y, 4.4, stroke=1, fill=1)
-    overlay.setFillColor(outline)
-    overlay.setLineWidth(0.8)
-    overlay.circle(center_x, center_y, 1.6, stroke=1, fill=0)
-    overlay.line(center_x - 4.5, center_y - 7.8, center_x - 1.6, center_y - 13)
-    overlay.line(center_x + 4.5, center_y - 7.8, center_x + 1.6, center_y - 13)
+
+    left_tail = overlay.beginPath()
+    left_tail.moveTo(center_x - 1.4 * scale, center_y - 4.6 * scale)
+    left_tail.lineTo(center_x - 5.7 * scale, center_y - 12.5 * scale)
+    left_tail.lineTo(center_x - 0.5 * scale, center_y - 9.7 * scale)
+    left_tail.close()
+    overlay.setFillColor(ribbon_gray)
+    overlay.setStrokeColor(ribbon_gray)
+    overlay.drawPath(left_tail, fill=1, stroke=0)
+
+    right_tail = overlay.beginPath()
+    right_tail.moveTo(center_x + 1.4 * scale, center_y - 4.6 * scale)
+    right_tail.lineTo(center_x + 5.7 * scale, center_y - 12.5 * scale)
+    right_tail.lineTo(center_x + 0.5 * scale, center_y - 9.7 * scale)
+    right_tail.close()
+    overlay.drawPath(right_tail, fill=1, stroke=0)
+
+    overlay.setStrokeColor(silver_dark)
+    overlay.setFillColor(silver_light)
+    overlay.circle(center_x, center_y, radius, stroke=1, fill=1)
+    overlay.setFillColor(green)
+    overlay.circle(center_x, center_y, radius * 0.68, stroke=0, fill=1)
+    overlay.setFillColor(white)
+    overlay.circle(center_x, center_y, radius * 0.45, stroke=0, fill=1)
+    overlay.setFillColor(red)
+    overlay.circle(center_x, center_y, radius * 0.26, stroke=0, fill=1)
+    overlay.setFillColor(gold)
+    overlay.circle(center_x, center_y, radius * 0.08, stroke=0, fill=1)
+
+    overlay.setStrokeColor(silver_dark)
+    overlay.setLineWidth(0.55 * scale)
+    overlay.circle(center_x, center_y, radius * 0.88, stroke=1, fill=0)
+    overlay.circle(center_x, center_y, radius * 0.56, stroke=1, fill=0)
     overlay.restoreState()

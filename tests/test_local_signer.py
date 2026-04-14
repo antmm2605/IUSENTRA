@@ -2205,6 +2205,71 @@ def test_firma_batch_riusa_sessione_pin_per_tutto_il_lotto():
     assert calls[1]["visible_signature_mode"] == "basso_destra"
 
 
+def test_firma_singola_propaga_modalita_visibile_al_signer():
+    module = _load_local_signer()
+
+    captured = {}
+    orig_trova = module._trova_libreria
+    orig_firma = module._firma_documento
+
+    class _FakeHandler:
+        def __init__(self, payload):
+            self.payload = payload
+
+        def _read_json(self):
+            return self.payload
+
+        def _send_json(self, payload, status=200):
+            captured["payload"] = payload
+            captured["status"] = status
+
+    try:
+        module._trova_libreria = lambda: "fake.dll"
+
+        def _fake_firma_documento(
+            lib_path,
+            documento,
+            pin,
+            slot_id,
+            pin_session_id=None,
+            visible_signature_mode="laterale",
+        ):
+            captured["call"] = {
+                "lib_path": lib_path,
+                "documento": documento,
+                "pin": pin,
+                "slot_id": slot_id,
+                "pin_session_id": pin_session_id,
+                "visible_signature_mode": visible_signature_mode,
+            }
+            return documento + b".p7m", {
+                "pin_session_id": "sess-1",
+                "pin_session_cached": False,
+                "intestatario": "Avv. Test",
+                "scadenza": "2029-02-23",
+            }
+
+        module._firma_documento = _fake_firma_documento
+
+        handler = _FakeHandler(
+            {
+                "documento": base64.b64encode(b"doc-1").decode(),
+                "pin": "123456",
+                "slot_id": 0,
+                "visible_signature_mode": "basso_destra",
+            }
+        )
+
+        module._Handler._firma(handler)
+    finally:
+        module._trova_libreria = orig_trova
+        module._firma_documento = orig_firma
+
+    assert captured["status"] == 200
+    assert captured["payload"]["ok"] is True
+    assert captured["call"]["visible_signature_mode"] == "basso_destra"
+
+
 def test_download_documenti_batch_esegue_preflight_una_sola_volta():
     module = _load_local_signer()
 

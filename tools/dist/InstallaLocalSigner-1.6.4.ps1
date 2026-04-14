@@ -1,3 +1,7 @@
+# HACS Local Signer Setup v1.6.4
+# Pacchetto generato il 2026-04-14 09:34:25
+# Punto ufficiale download: https://studio-legale-pct-production.up.railway.app/impostazioni?tab=firma
+
 # HACS Local Signer - Installazione locale Windows
 # Usa i file gia' presenti nella cartella tools e configura l'avvio automatico.
 # Se Python non e' installato, scarica automaticamente Python portatile.

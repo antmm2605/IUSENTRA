@@ -209,7 +209,7 @@ def test_template_principali_usano_copy_italiana_e_date_localizzate():
         ],
         "web/templates/workspace_intelligente.html": ["Assistente operativo locale", "Ultima sincronizzazione"],
         "web/templates/portale/base.html": ["Operazione completata", "Inizio"],
-        "web/templates/telematico_dashboard.html": ["Cabina Telematica", "Ultimo allineamento"],
+        "web/templates/telematico_dashboard.html": ["Centro Servizi Telematici", "Ultimo allineamento"],
     }
 
     for relative_path, expected_snippets in template_checks.items():

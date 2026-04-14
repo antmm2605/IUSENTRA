@@ -126,7 +126,7 @@ def test_dashboard_telematico_renderizza_canali_e_backfill(tmp_path: Path):
         html = page.get_data(as_text=True)
 
     assert page.status_code == 200
-    assert "Cabina Telematica" in html
+    assert "Centro Servizi Telematici" in html
     assert "PST / PolisWeb" in html
     assert "PAT / SIGA" in html
     assert "Acquisizione guidata" in html
@@ -209,7 +209,7 @@ def test_dashboard_telematico_resta_disponibile_se_sqlite_segnala_spazio_pieno(t
         html = page.get_data(as_text=True)
 
     assert page.status_code == 200
-    assert "Cabina Telematica" in html
+    assert "Centro Servizi Telematici" in html
     assert "Archivio telematico temporaneamente non disponibile" in html
 
 
@@ -235,5 +235,5 @@ def test_dashboard_telematico_resta_disponibile_se_backfill_fallisce(tmp_path: P
         html = page.get_data(as_text=True)
 
     assert page.status_code == 200
-    assert "Cabina Telematica" in html
+    assert "Centro Servizi Telematici" in html
     assert "Allineamento parziale" in html

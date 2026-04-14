@@ -241,7 +241,7 @@ def _quick_links() -> list:
             "accent": "info",
         },
         {
-            "title": "Cabina Telematica",
+            "title": "Centro Servizi Telematici",
             "text": "PST, PDP, PAT e PTT con workflow guidati, fascicoli interni e controlli.",
             "url": url_for("telematico_dashboard"),
             "icon": "bi-send-check",

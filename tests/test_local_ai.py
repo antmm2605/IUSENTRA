@@ -769,47 +769,65 @@ def test_resolved_ollama_runtime_cache_evita_health_snapshot_ripetuti(tmp_path: 
         clear_ollama_runtime_resolution_cache,
         resolved_ollama_api_base_url,
         resolved_ollama_chat_model,
+        resolved_ollama_keep_alive,
     )
+    from web.services.local_ai_runtime import get_local_ai_service
 
     _write_studio_config(tmp_path / "config" / "studio.json", enabled=True)
     app = create_app(_cfg_web(tmp_path))
-    calls = {"count": 0}
-
-    class FakeLocalAiService:
-        def health_snapshot(self):
-            calls["count"] += 1
-            return {
-                "runtime_base_url_live": "http://host.docker.internal:11434/api",
-                "resolved_models": {"chat": "gemma3:1b"},
-                "settings": {"base_url": "http://127.0.0.1:11434/api"},
-            }
-
-    monkeypatch.setattr("web.services.ollama_runtime.get_local_ai_service", lambda: FakeLocalAiService())
 
     with app.app_context():
+        service = get_local_ai_service()
+        with service._connect() as conn:
+            conn.execute(
+                """
+                UPDATE local_ai_runtime
+                SET api_base_url = ?, updated_at = ?, status = ?
+                WHERE id = 1
+                """,
+                ("http://host.docker.internal:11434/api", "2026-04-14T12:00:00Z", "ready"),
+            )
+            conn.execute("DELETE FROM local_ai_models")
+            conn.execute(
+                """
+                INSERT INTO local_ai_models (
+                    id, role, model_name, install_state, is_active, last_verified_at, notes
+                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    "chat-gemma3-1b",
+                    "chat",
+                    "gemma3:1b",
+                    "ready",
+                    1,
+                    "2026-04-14T12:00:00Z",
+                    "",
+                ),
+            )
+            conn.commit()
+
+        monkeypatch.setattr(
+            service,
+            "health_snapshot",
+            lambda: (_ for _ in ()).throw(AssertionError("health_snapshot non deve stare nel percorso chat")),
+        )
         clear_ollama_runtime_resolution_cache()
         assert resolved_ollama_api_base_url() == "http://host.docker.internal:11434/api"
         assert resolved_ollama_chat_model("mistral") == "gemma3:1b"
+        assert resolved_ollama_keep_alive("7m") == "10m"
+        monkeypatch.setattr(
+            service,
+            "_connect",
+            lambda: (_ for _ in ()).throw(AssertionError("la cache chat non deve rileggere il database a ogni messaggio")),
+        )
         assert resolved_ollama_api_base_url() == "http://host.docker.internal:11434/api"
         assert resolved_ollama_chat_model("mistral") == "gemma3:1b"
-
-    assert calls["count"] == 1
+        assert resolved_ollama_keep_alive("7m") == "10m"
 
 
 def test_assistente_chat_non_duplica_cronologia_nel_system_prompt_e_usa_keep_alive(tmp_path: Path, monkeypatch):
     _write_studio_config(tmp_path / "config" / "studio.json", enabled=True)
     app = create_app(_cfg_web(tmp_path))
-
-    class FakeLocalAiService:
-        def _load_settings(self):
-            return SimpleNamespace(keep_alive="12m")
-
-        def health_snapshot(self):
-            return {
-                "runtime_base_url_live": "http://host.docker.internal:11434/api",
-                "resolved_models": {"chat": "gemma3:1b"},
-                "settings": {"base_url": "http://127.0.0.1:11434/api"},
-            }
 
     class FakeStreamResponse:
         def iter_lines(self):
@@ -825,7 +843,15 @@ def test_assistente_chat_non_duplica_cronologia_nel_system_prompt_e_usa_keep_ali
         captured["timeout"] = timeout
         return FakeStreamResponse()
 
-    monkeypatch.setattr("web.services.ollama_runtime.get_local_ai_service", lambda: FakeLocalAiService())
+    monkeypatch.setattr(
+        "web.blueprints.assistente.resolved_ollama_runtime",
+        lambda: {
+            "api_base_url": "http://host.docker.internal:11434/api",
+            "base_url": "http://host.docker.internal:11434",
+            "chat_model": "gemma3:1b",
+            "keep_alive": "12m",
+        },
+    )
     monkeypatch.setattr("web.blueprints.assistente.requests.post", fake_post)
 
     messages = [
@@ -850,3 +876,30 @@ def test_assistente_chat_non_duplica_cronologia_nel_system_prompt_e_usa_keep_ali
     assert "Memoria di sessione:" not in system_prompt
     assert "CONVERSAZIONE RECENTE" not in system_prompt
     assert payload["messages"][1:] == messages
+
+
+def test_api_local_ai_bootstrap_aggiorna_cache_runtime_chat(tmp_path: Path, monkeypatch):
+    _write_studio_config(tmp_path / "config" / "studio.json", enabled=True)
+    app = create_app(_cfg_web(tmp_path))
+    calls = {"refresh": 0}
+
+    class FakeService:
+        def bootstrap_runtime(self, force=False):
+            return {"status": "ready", "force": force}
+
+        def health_snapshot(self):
+            return {"runtime": {"status": "ready"}}
+
+    monkeypatch.setattr("web.blueprints.impostazioni.get_local_ai_service", lambda: FakeService())
+    monkeypatch.setattr(
+        "web.blueprints.impostazioni.refresh_live_ollama_runtime",
+        lambda: calls.__setitem__("refresh", calls["refresh"] + 1) or {"chat_model": "gemma3:1b"},
+    )
+
+    with app.test_client() as client:
+        client.post("/login", data={"username": "admin", "password": "admin"}, follow_redirects=True)
+        response = client.post("/api/local-ai/bootstrap", json={"force": True})
+
+    assert response.status_code == 200
+    assert response.get_json()["result"]["status"] == "ready"
+    assert calls["refresh"] == 1

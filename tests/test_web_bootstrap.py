@@ -593,7 +593,9 @@ def test_contesto_lex_compatta_le_sezioni_e_limita_le_fonti():
     assert "question_signature" in cache_service
     assert '@assistente.route("/api/assistente/warmup", methods=["POST"])' in assistente_blueprint
     assert "warm_ollama_chat_runtime" in assistente_blueprint
-    assert "resolved_ollama_keep_alive" in assistente_blueprint
+    assert "resolved_ollama_runtime()" in assistente_blueprint
+    assert "chat_model = str(runtime.get(\"chat_model\") or \"mistral\").strip() or \"mistral\"" in assistente_blueprint
+    assert "keep_alive = str(runtime.get(\"keep_alive\") or \"10m\").strip() or \"10m\"" in assistente_blueprint
     assert "build_assistente_prompt" in assistente_prompt
     assert "_LEX_VOICE_PROMPT" in assistente_prompt
     assert "_LEX_WRITING_PROMPT" in assistente_prompt
@@ -725,14 +727,6 @@ def test_assistente_stato_usa_runtime_ollama_risolto(monkeypatch, tmp_path: Path
     _write_studio_config(tmp_path / "config" / "studio.json")
     app = create_app(_cfg_web(tmp_path))
 
-    class FakeLocalAiService:
-        def health_snapshot(self):
-            return {
-                "runtime_base_url_live": "http://host.docker.internal:11434/api",
-                "resolved_models": {"chat": "gemma3:1b"},
-                "settings": {"base_url": "http://127.0.0.1:11434/api"},
-            }
-
     class FakeResponse:
         def json(self):
             return {"models": [{"name": "gemma3:1b"}]}
@@ -744,7 +738,15 @@ def test_assistente_stato_usa_runtime_ollama_risolto(monkeypatch, tmp_path: Path
         called["timeout"] = timeout
         return FakeResponse()
 
-    monkeypatch.setattr("web.services.ollama_runtime.get_local_ai_service", lambda: FakeLocalAiService())
+    monkeypatch.setattr(
+        "web.blueprints.assistente.resolved_ollama_runtime",
+        lambda: {
+            "api_base_url": "http://host.docker.internal:11434/api",
+            "base_url": "http://host.docker.internal:11434",
+            "chat_model": "gemma3:1b",
+            "keep_alive": "10m",
+        },
+    )
     monkeypatch.setattr("web.blueprints.assistente.requests.get", fake_get)
 
     with app.test_client() as client:
@@ -766,14 +768,6 @@ def test_assistente_chat_usa_runtime_ollama_risolto(monkeypatch, tmp_path: Path)
     _write_studio_config(tmp_path / "config" / "studio.json")
     app = create_app(_cfg_web(tmp_path))
 
-    class FakeLocalAiService:
-        def health_snapshot(self):
-            return {
-                "runtime_base_url_live": "http://host.docker.internal:11434/api",
-                "resolved_models": {"chat": "gemma3:1b"},
-                "settings": {"base_url": "http://127.0.0.1:11434/api"},
-            }
-
     class FakeStreamResponse:
         def iter_lines(self):
             yield json.dumps({"message": {"content": "Ciao"}, "done": False}).encode("utf-8")
@@ -788,7 +782,15 @@ def test_assistente_chat_usa_runtime_ollama_risolto(monkeypatch, tmp_path: Path)
         called["timeout"] = timeout
         return FakeStreamResponse()
 
-    monkeypatch.setattr("web.services.ollama_runtime.get_local_ai_service", lambda: FakeLocalAiService())
+    monkeypatch.setattr(
+        "web.blueprints.assistente.resolved_ollama_runtime",
+        lambda: {
+            "api_base_url": "http://host.docker.internal:11434/api",
+            "base_url": "http://host.docker.internal:11434",
+            "chat_model": "gemma3:1b",
+            "keep_alive": "12m",
+        },
+    )
     monkeypatch.setattr("web.blueprints.assistente.requests.post", fake_post)
 
     with app.test_client() as client:
@@ -802,6 +804,7 @@ def test_assistente_chat_usa_runtime_ollama_risolto(monkeypatch, tmp_path: Path)
     assert response.status_code == 200
     assert called["url"] == "http://host.docker.internal:11434/api/chat"
     assert called["json"]["model"] == "gemma3:1b"
+    assert called["json"]["keep_alive"] == "12m"
     assert called["stream"] is True
     assert called["timeout"] == 180
     assert '"token": "Ciao"' in body

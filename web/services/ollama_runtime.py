@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from threading import Lock
-from time import monotonic
 from typing import Any
 
 from flask import current_app
@@ -9,9 +8,6 @@ from flask import current_app
 from pct.local_ai import OllamaHttpClient, strip_api_suffix
 from pct.runtime_env import is_managed_cloud_runtime
 from web.services.local_ai_runtime import get_local_ai_service
-
-
-_RUNTIME_CACHE_TTL_SECONDS = 20.0
 
 
 def normalize_ollama_api_base_url(value: str) -> str:
@@ -43,14 +39,6 @@ def _fallback_runtime_payload(default_model: str = "mistral") -> dict[str, str]:
     }
 
 
-def _cache_key(default_model: str) -> tuple[str, str, str]:
-    return (
-        str(current_app.config.get("LOCAL_AI_BASE_URL") or current_app.config.get("OLLAMA_URL") or "").strip(),
-        str(current_app.config.get("LOCAL_AI_CHAT_MODEL") or current_app.config.get("OLLAMA_MODEL") or "").strip(),
-        str(default_model or "mistral").strip(),
-    )
-
-
 def _cache_lock() -> Lock:
     app = current_app._get_current_object()
     lock = app.extensions.get("ollama_runtime_lock")
@@ -60,12 +48,48 @@ def _cache_lock() -> Lock:
     return lock
 
 
-def _cache_payload(default_model: str, payload: dict[str, str], max_age_seconds: float) -> dict[str, str]:
+def _chat_runtime_cache_key(default_model: str) -> tuple[str, str, str]:
+    return (
+        str(default_model or "mistral").strip() or "mistral",
+        str(current_app.config.get("STUDIO_CONFIG") or "").strip(),
+        str(current_app.config.get("LOCAL_AI_DB") or "").strip(),
+    )
+
+
+def _load_runtime_row(service) -> dict[str, Any]:
+    try:
+        with service._connect() as conn:
+            row = service._runtime_row(conn)
+            return dict(row or {})
+    except Exception:
+        return {}
+
+
+def _load_active_chat_model(service) -> str:
+    try:
+        with service._connect() as conn:
+            row = conn.execute(
+                """
+                SELECT model_name
+                FROM local_ai_models
+                WHERE role = ? AND is_active = 1
+                ORDER BY last_verified_at DESC
+                LIMIT 1
+                """,
+                ("chat",),
+            ).fetchone()
+            if row and row["model_name"]:
+                return str(row["model_name"]).strip()
+    except Exception:
+        return ""
+    return ""
+
+
+def _cache_payload(*, cache_name: str, fingerprint: tuple[Any, ...], payload: dict[str, str]) -> dict[str, str]:
     app = current_app._get_current_object()
     cached = dict(payload)
-    app.extensions["ollama_runtime_resolution"] = {
-        "key": _cache_key(default_model),
-        "expires_at": monotonic() + max(max_age_seconds, 1.0),
+    app.extensions[cache_name] = {
+        "fingerprint": fingerprint,
         "payload": cached,
     }
     return cached
@@ -74,68 +98,146 @@ def _cache_payload(default_model: str, payload: dict[str, str], max_age_seconds:
 def clear_ollama_runtime_resolution_cache() -> None:
     app = current_app._get_current_object()
     app.extensions.pop("ollama_runtime_resolution", None)
+    app.extensions.pop("ollama_live_runtime_resolution", None)
+
+
+def _compute_local_chat_runtime(default_model: str = "mistral") -> tuple[tuple[Any, ...], dict[str, str]]:
+    payload = _fallback_runtime_payload(default_model)
+    service = get_local_ai_service()
+    settings = service._load_settings()
+    runtime_row = _load_runtime_row(service)
+    active_chat_model = _load_active_chat_model(service)
+
+    configured_base_url = str(settings.base_url or "").strip()
+    if configured_base_url:
+        payload["api_base_url"] = normalize_ollama_api_base_url(configured_base_url)
+        payload["base_url"] = strip_api_suffix(payload["api_base_url"])
+
+    row_base_url = str(runtime_row.get("api_base_url") or "").strip()
+    if row_base_url:
+        payload["api_base_url"] = normalize_ollama_api_base_url(row_base_url)
+        payload["base_url"] = strip_api_suffix(payload["api_base_url"])
+
+    configured_keep_alive = str(settings.keep_alive or "").strip()
+    if configured_keep_alive:
+        payload["keep_alive"] = configured_keep_alive
+
+    configured_model = str(settings.chat_model or "").strip()
+    if configured_model:
+        payload["chat_model"] = configured_model
+        payload["source"] = "settings"
+    elif active_chat_model:
+        payload["chat_model"] = active_chat_model
+        payload["source"] = "db"
+    else:
+        try:
+            model_policy = service._resolve_model_policy(service._detect_hardware(), settings, service._load_policy())
+            resolved_model = str(model_policy.get("chat_model") or "").strip()
+            if resolved_model:
+                payload["chat_model"] = resolved_model
+                payload["source"] = "policy"
+        except Exception:
+            pass
+
+    return _chat_runtime_cache_key(default_model), payload
+
+
+def _live_chat_runtime(default_model: str = "mistral") -> tuple[tuple[Any, ...], dict[str, str]]:
+    service = get_local_ai_service()
+    settings = service._load_settings()
+    payload = _fallback_runtime_payload(default_model)
+    runtime_row = _load_runtime_row(service)
+    row_base_url = str(runtime_row.get("api_base_url") or settings.base_url or payload["api_base_url"]).strip()
+    payload["api_base_url"] = normalize_ollama_api_base_url(row_base_url)
+    payload["base_url"] = strip_api_suffix(payload["api_base_url"])
+    payload["keep_alive"] = str(settings.keep_alive or payload["keep_alive"]).strip() or payload["keep_alive"]
+
+    client = OllamaHttpClient(payload["api_base_url"])
+    version = client.get_version()
+    if not version:
+        return _chat_runtime_cache_key(default_model), payload
+
+    installed_models = client.list_models()
+    running_models = client.list_running_models()
+    try:
+        with service._connect() as conn:
+            db_models = [dict(row) for row in conn.execute("SELECT * FROM local_ai_models ORDER BY role, model_name").fetchall()]
+    except Exception:
+        db_models = []
+
+    resolved = service._resolve_effective_models(
+        settings=settings,
+        hardware=service._detect_hardware(),
+        policy=service._load_policy(),
+        installed_models=installed_models,
+        running_models=running_models,
+        db_models=db_models,
+    )
+    resolved_model = str(resolved.get("chat_model") or "").strip()
+    if resolved_model:
+        payload["chat_model"] = resolved_model
+    payload["source"] = "live"
+    payload["runtime_version"] = version
+    return _chat_runtime_cache_key(default_model), payload
 
 
 def resolved_ollama_runtime(
     default_model: str = "mistral",
     *,
     force_refresh: bool = False,
-    max_age_seconds: float = _RUNTIME_CACHE_TTL_SECONDS,
 ) -> dict[str, str]:
     app = current_app._get_current_object()
-    cache_entry = app.extensions.get("ollama_runtime_resolution") or {}
-    cache_key = _cache_key(default_model)
-    now = monotonic()
-
-    if (
-        not force_refresh
-        and cache_entry.get("key") == cache_key
-        and float(cache_entry.get("expires_at") or 0.0) > now
-    ):
+    cache_name = "ollama_runtime_resolution"
+    cache_entry = app.extensions.get(cache_name) or {}
+    cache_key = _chat_runtime_cache_key(default_model)
+    if not force_refresh and cache_entry.get("fingerprint") == cache_key:
         return dict(cache_entry.get("payload") or {})
 
+    try:
+        fingerprint, payload = _compute_local_chat_runtime(default_model)
+    except Exception:
+        fingerprint, payload = cache_key, _fallback_runtime_payload(default_model)
+
     with _cache_lock():
-        cache_entry = app.extensions.get("ollama_runtime_resolution") or {}
-        if (
-            not force_refresh
-            and cache_entry.get("key") == cache_key
-            and float(cache_entry.get("expires_at") or 0.0) > monotonic()
-        ):
+        cache_entry = app.extensions.get(cache_name) or {}
+        if not force_refresh and cache_entry.get("fingerprint") == cache_key:
             return dict(cache_entry.get("payload") or {})
-
-        payload = _fallback_runtime_payload(default_model)
-        service = None
-        try:
-            service = get_local_ai_service()
-            keep_alive = str(service._load_settings().keep_alive or "").strip()
-            if keep_alive:
-                payload["keep_alive"] = keep_alive
-        except Exception:
-            service = None
-        try:
-            if service is None:
-                service = get_local_ai_service()
-            snapshot = service.health_snapshot()
-            live_base_url = str(snapshot.get("runtime_base_url_live") or "").strip()
-            if live_base_url:
-                payload["api_base_url"] = normalize_ollama_api_base_url(live_base_url)
-                payload["base_url"] = strip_api_suffix(payload["api_base_url"])
-            configured_base_url = str((snapshot.get("settings") or {}).get("base_url") or "").strip()
-            if configured_base_url and not live_base_url:
-                payload["api_base_url"] = normalize_ollama_api_base_url(configured_base_url)
-                payload["base_url"] = strip_api_suffix(payload["api_base_url"])
-            resolved_model = str((snapshot.get("resolved_models") or {}).get("chat") or "").strip()
-            if resolved_model:
-                payload["chat_model"] = resolved_model
-            payload["source"] = "snapshot"
-        except Exception:
-            pass
-
-        return _cache_payload(default_model, payload, max_age_seconds)
+        return _cache_payload(
+            cache_name=cache_name,
+            fingerprint=fingerprint,
+            payload=payload,
+        )
 
 
 def refresh_ollama_runtime(default_model: str = "mistral") -> dict[str, str]:
-    return resolved_ollama_runtime(default_model, force_refresh=True)
+    try:
+        fingerprint, payload = _compute_local_chat_runtime(default_model)
+    except Exception:
+        fingerprint, payload = _chat_runtime_cache_key(default_model), _fallback_runtime_payload(default_model)
+    with _cache_lock():
+        return _cache_payload(
+            cache_name="ollama_runtime_resolution",
+            fingerprint=fingerprint,
+            payload=payload,
+        )
+
+
+def refresh_live_ollama_runtime(default_model: str = "mistral") -> dict[str, str]:
+    with _cache_lock():
+        try:
+            fingerprint, payload = _live_chat_runtime(default_model)
+        except Exception:
+            fingerprint, payload = _compute_local_chat_runtime(default_model)
+        _cache_payload(
+            cache_name="ollama_live_runtime_resolution",
+            fingerprint=fingerprint,
+            payload=payload,
+        )
+        return _cache_payload(
+            cache_name="ollama_runtime_resolution",
+            fingerprint=fingerprint,
+            payload=payload,
+        )
 
 
 def resolved_ollama_api_base_url() -> str:
@@ -151,33 +253,27 @@ def resolved_ollama_chat_model(default: str = "mistral") -> str:
 
 
 def resolved_ollama_keep_alive(default: str = "10m") -> str:
-    runtime = resolved_ollama_runtime()
+    runtime = resolved_ollama_runtime(default_model="mistral")
     keep_alive = str(runtime.get("keep_alive") or "").strip()
-    if keep_alive:
-        return keep_alive
-    try:
-        keep_alive = str(get_local_ai_service()._load_settings().keep_alive or "").strip()
-        if keep_alive:
-            return keep_alive
-    except Exception:
-        pass
-    return str(default or "10m").strip() or "10m"
+    return keep_alive or str(default or "10m").strip() or "10m"
 
 
 def warm_ollama_chat_runtime(force_refresh: bool = False) -> dict[str, Any]:
     if is_managed_cloud_runtime():
         return {"status": "skipped", "reason": "managed_cloud"}
 
-    runtime = resolved_ollama_runtime(force_refresh=force_refresh)
+    if force_refresh:
+        clear_ollama_runtime_resolution_cache()
+    runtime = refresh_live_ollama_runtime()
     model_name = str(runtime.get("chat_model") or "").strip()
     if not model_name:
         return {"status": "skipped", "reason": "missing_model"}
 
-    keep_alive = resolved_ollama_keep_alive()
+    keep_alive = str(runtime.get("keep_alive") or "10m").strip() or "10m"
     try:
         client = OllamaHttpClient(runtime.get("api_base_url") or resolved_ollama_api_base_url())
         payload = client.warmup_model(model_name, keep_alive=keep_alive)
-        refreshed = refresh_ollama_runtime()
+        refreshed = refresh_live_ollama_runtime()
         return {
             "status": "ready",
             "chat_model": refreshed.get("chat_model") or model_name,

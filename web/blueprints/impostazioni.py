@@ -21,6 +21,7 @@ from flask import (
 from werkzeug.utils import secure_filename
 
 from web.services.local_ai_runtime import get_local_ai_service
+from web.services.ollama_runtime import clear_ollama_runtime_resolution_cache, refresh_live_ollama_runtime
 
 impostazioni = Blueprint("impostazioni", __name__)
 
@@ -144,6 +145,7 @@ def _applica_ad_app(cfg):
     app.config["LOCAL_AI_AUTO_INDEX_DOCUMENTS"] = cfg.ai.auto_index_documents
     app.config["OLLAMA_URL"] = strip_api_suffix(cfg.ai.base_url)
     app.config["OLLAMA_MODEL"] = cfg.ai.chat_model or app.config.get("OLLAMA_MODEL", "mistral")
+    clear_ollama_runtime_resolution_cache()
     # Reschedule job se lo scheduler è attivo
     _reschedule_jobs(app, cfg)
 
@@ -419,6 +421,7 @@ def api_local_ai_bootstrap():
         data = request.get_json(silent=True) or {}
         service = get_local_ai_service()
         result = service.bootstrap_runtime(force=bool(data.get("force")))
+        refresh_live_ollama_runtime()
         return jsonify({"result": result, "status_payload": service.health_snapshot()})
     except Exception as e:
         current_app.logger.exception("Errore api_local_ai_bootstrap: %s", e)

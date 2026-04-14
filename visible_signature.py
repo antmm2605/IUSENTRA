@@ -161,8 +161,6 @@ def apply_visible_signature_stamp(
 ) -> bytes:
     if not pdf_data.startswith(b"%PDF"):
         return pdf_data
-    if has_visible_signature_stamp(pdf_data):
-        return pdf_data
 
     stamp_text = build_visible_signature_text(
         intestatario=intestatario,
@@ -205,6 +203,11 @@ def apply_visible_signature_stamp(
                 overlay = canvas.Canvas(overlay_buffer, pagesize=(width, height))
 
                 muted = Color(0.23, 0.23, 0.23)
+                _clear_visible_signature_zones(
+                    overlay,
+                    width=width,
+                    height=height,
+                )
                 if resolved_mode == VISIBLE_SIGNATURE_MODE_BASSO_DESTRA:
                     _draw_visible_signature_bottom_right_text(
                         overlay,
@@ -458,6 +461,52 @@ def _draw_visible_signature_side_mark(
         anchor_x=width - right_margin + 1.5,
         anchor_y=bottom_margin - 3,
     )
+
+
+def _clear_visible_signature_zones(
+    overlay,
+    *,
+    width: float,
+    height: float,
+) -> None:
+    try:
+        from reportlab.lib.colors import Color
+    except Exception:
+        return
+
+    white = Color(1, 1, 1)
+    right_margin = CM_TO_PT
+
+    side_strip_width = CM_TO_PT * 2.05
+    side_strip_x = max(width - side_strip_width, 0)
+    side_strip_y = max((CM_TO_PT * 0.45) - 4, 0)
+    side_strip_height = max(height - side_strip_y - (CM_TO_PT * 0.35), 0)
+
+    bottom_block_width = 360
+    bottom_block_height = 86
+    bottom_block_x = max(width - right_margin - bottom_block_width, CM_TO_PT * 1.2)
+    bottom_block_y = max((CM_TO_PT * 0.55) - 4, 0)
+
+    overlay.saveState()
+    overlay.setFillColor(white)
+    overlay.setStrokeColor(white)
+    overlay.rect(
+        side_strip_x,
+        side_strip_y,
+        side_strip_width,
+        side_strip_height,
+        stroke=0,
+        fill=1,
+    )
+    overlay.rect(
+        bottom_block_x,
+        bottom_block_y,
+        bottom_block_width,
+        bottom_block_height,
+        stroke=0,
+        fill=1,
+    )
+    overlay.restoreState()
 
 
 def _draw_visible_signature_bottom_right_text(

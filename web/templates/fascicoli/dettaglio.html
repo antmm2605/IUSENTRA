@@ -3957,7 +3957,10 @@ function _detFBase64ToUint8ArraySafe(b64) {
 
 function _detFFirmaVisibleMode() {
   return window.HacsFirmaVisibileMode
-    ? window.HacsFirmaVisibileMode.getSelectedMode('dettaglioFirma_firma_visibile_mode')
+    ? window.HacsFirmaVisibileMode.getSelectedMode(
+        'dettaglioFirma_firma_visibile_mode',
+        '#dettaglioFirmaVisibleSignatureRoot'
+      )
     : 'laterale';
 }
 

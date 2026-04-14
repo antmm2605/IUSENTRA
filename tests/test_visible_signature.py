@@ -116,7 +116,7 @@ def test_visible_signature_side_text_espone_tutto_su_unica_riga_verticale():
     )
 
 
-def test_apply_visible_signature_stamp_is_idempotent():
+def test_apply_visible_signature_stamp_refreshes_existing_stamp_when_mode_changes():
     first = apply_visible_signature_stamp(
         _make_pdf_bytes(),
         intestatario="Avv. Antonio Mammola",
@@ -132,7 +132,15 @@ def test_apply_visible_signature_stamp_is_idempotent():
         mode=VISIBLE_SIGNATURE_MODE_BASSO_DESTRA,
     )
 
-    assert second == first
+    assert second != first
+    reader = PdfReader(io.BytesIO(second))
+    metadata = reader.metadata or {}
+    text = "\n".join(page.extract_text() or "" for page in reader.pages)
+
+    assert "Per autentica e sottoscrizione" in text
+    assert "Firmato da: AVV. ANTONIO MAMMOLA in data 14/04/2026 ore 11:32" in text
+    assert "Luogo: Reggio Calabria" in text
+    assert "14/04/2026 alle ore 11:32" in str(metadata.get(VISIBLE_SIGNATURE_METADATA_KEY, ""))
 
 
 def test_bottom_right_signature_draws_colored_seal(monkeypatch):

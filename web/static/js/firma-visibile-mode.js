@@ -55,8 +55,19 @@
     document.querySelectorAll('[data-firma-visibile-root="true"]').forEach(bindRoot);
   }
 
-  function getSelectedMode(groupName) {
-    const selected = document.querySelector(`input[name="${groupName}"]:checked`);
+  function resolveRoot(rootOrSelector) {
+    if (!rootOrSelector) return null;
+    if (rootOrSelector instanceof Element) return rootOrSelector;
+    if (typeof rootOrSelector === "string") {
+      return document.querySelector(rootOrSelector);
+    }
+    return null;
+  }
+
+  function getSelectedMode(groupName, rootOrSelector) {
+    const root = resolveRoot(rootOrSelector);
+    const scope = root || document;
+    const selected = scope.querySelector(`input[name="${groupName}"]:checked`);
     if (selected) {
       return normalizeMode(selected.value);
     }

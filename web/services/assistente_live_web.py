@@ -22,6 +22,12 @@ _RSS_TITLE_RE = re.compile(r"<title>(.*?)</title>", re.IGNORECASE | re.DOTALL)
 _WHITESPACE_RE = re.compile(r"\s+")
 _LIVE_CACHE_TTL_SECONDS = 900
 _LIVE_CACHE: dict[str, tuple[float, dict[str, Any]]] = {}
+_FALLBACK_DEFAULT_SOURCE_IDS = (
+    "normattiva",
+    "cassazione",
+    "pst_giustizia",
+    "agenzia_entrate",
+)
 _LIVE_WEB_KEYWORDS = (
     "deposit",
     "pct",
@@ -86,6 +92,16 @@ def _extract_html_description(payload: str) -> str:
     return _truncate(stripped, 280)
 
 
+def _contains_live_keyword(text: str, keyword: str) -> bool:
+    haystack = _clean_spaces(text).lower()
+    needle = _clean_spaces(keyword).lower()
+    if not haystack or not needle:
+        return False
+    if len(needle) <= 4 and needle.isalpha():
+        return re.search(rf"(?<![a-z0-9]){re.escape(needle)}(?![a-z0-9])", haystack) is not None
+    return needle in haystack
+
+
 def _extract_rss_headline(payload: str) -> str:
     titles = [_strip_html(match.group(1)) for match in _RSS_TITLE_RE.finditer(payload or "")]
     titles = [title for title in titles if title]
@@ -108,19 +124,44 @@ def _should_fetch_live_web(question: str) -> bool:
     text = _clean_spaces(question).lower()
     if not text:
         return False
-    return any(keyword in text for keyword in _LIVE_WEB_KEYWORDS)
+    return any(_contains_live_keyword(text, keyword) for keyword in _LIVE_WEB_KEYWORDS)
 
 
-def _live_source_ids(question: str, limit: int = 2) -> list[str]:
-    if not _should_fetch_live_web(question):
-        return []
+def _select_live_source_ids(
+    question: str,
+    *,
+    force: bool = False,
+    explicit_source_ids: list[str] | None = None,
+    limit: int = 2,
+) -> list[str]:
     selected: list[str] = []
-    for source_id in fonti_per_query(question):
+
+    def _push(source_id: str) -> None:
         if source_id in FONTI_UFFICIALI and source_id not in selected:
             selected.append(source_id)
-        if len(selected) >= limit:
-            break
-    return selected
+
+    for source_id in list(explicit_source_ids or []):
+        _push(source_id)
+    if selected:
+        return selected[:limit]
+
+    if _should_fetch_live_web(question):
+        for source_id in fonti_per_query(question):
+            _push(source_id)
+            if len(selected) >= limit:
+                return selected[:limit]
+
+    if force:
+        for source_id in fonti_per_query(question):
+            _push(source_id)
+            if len(selected) >= limit:
+                return selected[:limit]
+        for source_id in _FALLBACK_DEFAULT_SOURCE_IDS:
+            _push(source_id)
+            if len(selected) >= limit:
+                return selected[:limit]
+
+    return selected[:limit]
 
 
 def _request_source_snapshot(
@@ -180,13 +221,20 @@ def build_live_official_web_context(
     question: str,
     *,
     request_get: Callable[..., Any] | None = None,
+    force: bool = False,
+    explicit_source_ids: list[str] | None = None,
 ) -> dict[str, Any]:
-    source_ids = _live_source_ids(question)
+    source_ids = _select_live_source_ids(
+        question,
+        force=force,
+        explicit_source_ids=explicit_source_ids,
+        limit=2,
+    )
     if not source_ids:
         return {"lines": [], "sources": [], "citations": [], "source_ids": []}
 
     lines = [
-        "Verifica live web: Lex puo' consultare automaticamente fonti ufficiali mirate per recuperare riferimenti aggiornati, ma resta sempre consultivo.",
+        "Verifica live web: Lex puo' integrare il contesto con fonti ufficiali aggiornate quando il contesto interno non basta.",
     ]
     sources: list[dict[str, Any]] = []
     citations: list[str] = []

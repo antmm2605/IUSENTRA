@@ -115,15 +115,17 @@ def assistente_context():
     attachments = _normalized_attachments(data.get("attachments"))
     fascicolo_id = str(data.get("fascicolo_id", "") or "").strip()
     question = str(data.get("question", "") or "").strip() or latest_user_message(messages)
+    history_messages = messages[:-1] if question and latest_user_message(messages) == question else messages
     if not question:
         return {"ok": False, "errore": "Domanda mancante.", "prompt": "", "sources": [], "citations": []}, 200
 
     runtime = resolved_ollama_runtime()
-    studio_context = build_lex_studio_context(question, mode="chat")
+    studio_context = build_lex_studio_context(question, mode="chat", messages=history_messages)
+    effective_question = str(studio_context.get("effective_question") or question).strip() or question
     prompt = build_assistente_prompt(
-        question=question,
+        question=effective_question,
         fascicolo_id=fascicolo_id,
-        messages=messages,
+        messages=history_messages,
         studio_context=studio_context.get("prompt_block", ""),
         include_conversation=True,
     )
@@ -134,8 +136,8 @@ def assistente_context():
         get_legal_intelligence().registra_trace_risposta(
             query=question,
             user=getattr(g.get("utente_corrente"), "username", ""),
-            engine_ids=studio_context.get("engine_ids") or motori_per_query(question),
-            source_ids=studio_context.get("source_ids") or fonti_per_query(question),
+            engine_ids=studio_context.get("engine_ids") or motori_per_query(effective_question),
+            source_ids=studio_context.get("source_ids") or fonti_per_query(effective_question),
             ai_model=runtime.get("chat_model") or "mistral",
             result_summary="Contesto assistente Lex preparato per il companion locale.",
             warning="La risposta finale viene generata sul dispositivo cliente tramite companion locale.",
@@ -151,6 +153,9 @@ def assistente_context():
         "sources": studio_context.get("sources") or [],
         "citations": studio_context.get("citations") or [],
         "attachments": attachments,
+        "focus_label": str(studio_context.get("focus_label") or "").strip(),
+        "focus_topic": str(studio_context.get("focus_topic") or "").strip(),
+        "web_fallback_used": bool(studio_context.get("web_fallback_used")),
     }, 200
 
 
@@ -228,18 +233,20 @@ def assistente_chat():
     attachments = _normalized_attachments(data.get("attachments"))
     fascicolo_id: str = data.get("fascicolo_id", "")
     last_user_message = latest_user_message(messages)
+    history_messages = messages[:-1] if last_user_message and latest_user_message(messages) == last_user_message else messages
     runtime = resolved_ollama_runtime()
     api_base_url = str(runtime.get("api_base_url") or "").rstrip("/")
     base_url = str(runtime.get("base_url") or "").rstrip("/")
     chat_model = str(runtime.get("chat_model") or "mistral").strip() or "mistral"
     keep_alive = str(runtime.get("keep_alive") or "10m").strip() or "10m"
-    studio_context = build_lex_studio_context(last_user_message, mode="chat")
+    studio_context = build_lex_studio_context(last_user_message, mode="chat", messages=history_messages)
+    effective_question = str(studio_context.get("effective_question") or last_user_message).strip() or "Richiesta operativa"
 
     # System prompt + eventuale contesto fascicolo
     system_content = build_assistente_prompt(
-        question=last_user_message or "Richiesta operativa",
+        question=effective_question,
         fascicolo_id=fascicolo_id,
-        messages=messages,
+        messages=history_messages,
         studio_context=studio_context.get("prompt_block", ""),
     )
     if attachments:
@@ -260,8 +267,8 @@ def assistente_chat():
         get_legal_intelligence().registra_trace_risposta(
             query=last_user_message or "Richiesta assistente PCT",
             user=getattr(g.get("utente_corrente"), "username", ""),
-            engine_ids=studio_context.get("engine_ids") or motori_per_query(last_user_message),
-            source_ids=studio_context.get("source_ids") or fonti_per_query(last_user_message),
+            engine_ids=studio_context.get("engine_ids") or motori_per_query(effective_question),
+            source_ids=studio_context.get("source_ids") or fonti_per_query(effective_question),
             ai_model=chat_model,
             result_summary="Richiesta inviata all'assistente Lex.",
             warning="Risposta generativa locale: verificare sempre le fonti ufficiali prima dell'uso professionale.",

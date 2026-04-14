@@ -1,0 +1,45 @@
+from web.services.assistente_conversation_focus import resolve_conversation_focus
+from web.services.assistente_live_web import build_live_official_web_context
+
+
+def test_focus_conversazionale_instrada_richiesta_tematizzata_breve():
+    focus = resolve_conversation_focus("udienze")
+
+    assert focus["topic"] == "udienze"
+    assert "Agenda" in focus["section_titles"]
+    assert "Fascicoli" in focus["section_titles"]
+    assert focus["focus_label"] == "udienze rilevanti"
+    assert focus["include_live_web"] is False
+
+
+def test_focus_conversazionale_recupera_follow_up_dalla_storia():
+    focus = resolve_conversation_focus(
+        "quelli attivi",
+        messages=[
+            {"role": "user", "content": "Mostrami le udienze imminenti"},
+            {"role": "assistant", "content": "Ti mostro le udienze piu' vicine."},
+        ],
+    )
+
+    assert focus["topic"] == "udienze"
+    assert focus["is_follow_up"] is True
+    assert focus["focus_label"] == "procedimenti attivi"
+    assert focus["effective_question"].startswith("udienze ")
+
+
+def test_live_web_context_supporta_force_fallback_senza_keyword_esplicita():
+    class FakeResponse:
+        status_code = 200
+        url = "https://www.normattiva.it/"
+        headers = {"content-type": "text/html; charset=utf-8"}
+        text = "<html><head><title>Normattiva</title><meta name='description' content='Portale ufficiale normativa'></head><body><h1>Normattiva</h1></body></html>"
+
+    payload = build_live_official_web_context(
+        "contesto interno debole",
+        force=True,
+        request_get=lambda *args, **kwargs: FakeResponse(),
+    )
+
+    assert payload["source_ids"]
+    assert payload["sources"]
+    assert payload["citations"]

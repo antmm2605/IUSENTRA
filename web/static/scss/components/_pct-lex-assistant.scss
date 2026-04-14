@@ -368,6 +368,19 @@
   overflow-x: auto;
 }
 
+.pct-ai-widget .pct-ai-reference {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-bottom: 0.55rem;
+  padding: 0.18rem 0.55rem;
+  border-radius: 999px;
+  background: rgba(18, 61, 114, 0.08);
+  color: #1f4977;
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
 .pct-ai-widget .pct-ai-generated-actions {
   display: grid;
   gap: 0.55rem;

@@ -134,6 +134,9 @@ def test_assistente_prompt_separa_voce_e_regole_tecniche():
     assert "=== STILE DI RISPOSTA ===" in prompt
     assert "=== COMPORTAMENTO OPERATIVO ===" in prompt
     assert "presenza operativa di studio" in prompt
+    assert "richiesta breve ma chiaramente tematizzata" in prompt
+    assert "Le domande brevi successive vanno interpretate in continuita' con il turno precedente." in prompt
+    assert "Non riaprire ogni risposta con \"Ciao, sono Lex.\"" in prompt
     assert "=== AGGIORNAMENTI E FONTI UFFICIALI ===" in prompt
     assert "=== REGOLE TECNICHE PEC E FIRMA ===" in prompt
 
@@ -448,25 +451,21 @@ def test_api_assistente_context_prepara_prompt_per_companion_locale(tmp_path: Pa
     assert payload["question"] == "Qual e' la prossima attivita' operativa?"
     assert "Fascicolo attivo:" in payload["prompt"]
     assert "Memoria di sessione:" in payload["prompt"]
-    assert "=== PROFILO STUDIO ===" in payload["prompt"]
-    assert "=== IMPOSTAZIONI STUDIO ===" in payload["prompt"]
-    assert "=== PEC E CANALI EMAIL ===" in payload["prompt"]
+    assert "=== PROFILO STUDIO ===" not in payload["prompt"]
+    assert "=== IMPOSTAZIONI STUDIO ===" not in payload["prompt"]
+    assert "=== PEC E CANALI EMAIL ===" not in payload["prompt"]
+    assert "=== FASCICOLI ===" in payload["prompt"]
     assert "=== AGENDA ===" in payload["prompt"] or "=== SCADENZIARIO ===" in payload["prompt"]
     assert "=== IDENTITA' E VOCE DI LEX ===" in payload["prompt"]
     assert "=== STILE DI RISPOSTA ===" in payload["prompt"]
     assert "=== COMPORTAMENTO OPERATIVO ===" in payload["prompt"]
+    assert "=== GESTIONE DEL CONTESTO E DEI FOLLOW-UP ===" in payload["prompt"]
     assert "presenza operativa di studio" in payload["prompt"]
-    assert "studio@pec.example.it" in payload["prompt"]
-    assert "smtp.pec.aruba.it" in payload["prompt"]
-    assert "assistente consultivo di HACS" in payload["prompt"]
+    assert "studio@pec.example.it" not in payload["prompt"]
+    assert "smtp.pec.aruba.it" not in payload["prompt"]
+    assert "assistente consultivo e operativo di HACS" in payload["prompt"]
     assert "CONVERSAZIONE RECENTE" not in payload["prompt"]
-    assert payload["sources"]
-    assert any(
-        citation in {"Impostazioni studio", "PEC e canali email"}
-        or citation.startswith("Agenda -")
-        or citation.startswith("Scadenza -")
-        for citation in payload["citations"]
-    )
+    assert payload["focus_label"] == "procedimenti attivi"
 
 
 def test_api_assistente_context_integra_fonti_ufficiali_web_live(tmp_path: Path, monkeypatch):
@@ -475,7 +474,7 @@ def test_api_assistente_context_integra_fonti_ufficiali_web_live(tmp_path: Path,
 
     monkeypatch.setattr(
         "web.services.assistente_studio_context.build_live_official_web_context",
-        lambda question: {
+        lambda question, **kwargs: {
             "lines": [
                 "Verifica live web: Lex ha consultato una fonte ufficiale per aggiornare il contesto.",
                 "Normattiva: risorsa live raggiunta, titolo 'Testo vigente del decreto', URL https://www.normattiva.it/.",
@@ -508,6 +507,7 @@ def test_api_assistente_context_integra_fonti_ufficiali_web_live(tmp_path: Path,
     assert payload["ok"] is True
     assert "=== VERIFICA LIVE FONTI UFFICIALI WEB ===" in payload["prompt"]
     assert "Normattiva: risorsa live raggiunta" in payload["prompt"]
+    assert payload["web_fallback_used"] is True
     assert any(citation == "Fonte ufficiale live - Normattiva" for citation in payload["citations"])
     assert any(source["id"] == "live-web:normattiva" for source in payload["sources"])
 

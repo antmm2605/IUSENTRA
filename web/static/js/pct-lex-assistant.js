@@ -24,6 +24,7 @@
     listening: false,
     voiceReplyEnabled: true,
     thinking: null,
+    pendingFocus: null,
   };
 
   var widget;
@@ -164,22 +165,6 @@
     return wrap.querySelector('.pct-ai-bubble');
   }
 
-  function appendMetaMessage(content) {
-    if (!messages) {
-      return null;
-    }
-
-    var wrap = document.createElement('div');
-    wrap.className = 'pct-ai-msg pct-ai-msg--meta';
-    wrap.innerHTML =
-      assistantAvatarMarkup() +
-      '<div class="pct-ai-bubble pct-ai-bubble--meta">' + renderMarkdown(content || '') + '</div>';
-
-    messages.appendChild(wrap);
-    scrollBottom();
-    return wrap.querySelector('.pct-ai-bubble');
-  }
-
   function setBubbleContent(element, content) {
     if (element) {
       element.innerHTML = content ? renderMarkdown(content) : '<span class="pct-ai-cursor">...</span>';
@@ -202,6 +187,142 @@
       liveWeb: /ultima|ultime|oggi|aggiornat|recente|sentenza|cassazione|tar|consiglio di stato|norma|normativa|decreto/.test(text),
       documents: /document|allegat|verbale|memoria|ricorso|atto|bozza/.test(text),
       deadlines: /scadenz|termine|udienza|agenda|calendario/.test(text),
+    };
+  }
+
+  var QUICK_FOCUS_RULES = [
+    { topic: 'dashboard', label: 'quadro generale dello studio', keywords: ['panoramica', 'situazione studio', 'quadro generale', 'dashboard'] },
+    { topic: 'udienze', label: 'udienze rilevanti', keywords: ['udienza', 'udienze'] },
+    { topic: 'agenda', label: 'agenda studio', keywords: ['agenda', 'calendario', 'appuntamento', 'appuntamenti'] },
+    { topic: 'scadenze', label: 'scadenze rilevanti', keywords: ['scadenza', 'scadenze', 'termine', 'termini'] },
+    { topic: 'fascicoli', label: 'fascicoli rilevanti', keywords: ['fascicolo', 'fascicoli', 'procedimento', 'procedimenti', 'rg'] },
+    { topic: 'clienti', label: 'clienti rilevanti', keywords: ['cliente', 'clienti', 'assistito', 'assistiti'] },
+    { topic: 'soggetti', label: 'parti e soggetti', keywords: ['soggetto', 'soggetti', 'parte', 'parti', 'difensore', 'codifensore'] },
+    { topic: 'documenti', label: 'documenti collegati', keywords: ['documento', 'documenti', 'allegato', 'allegati', 'verbale', 'memoria'] },
+    { topic: 'preventivi', label: 'preventivi', keywords: ['preventivo', 'preventivi'] },
+    { topic: 'fatture', label: 'fatture e pagamenti', keywords: ['fattura', 'fatture', 'fatturazione', 'parcella', 'parcelle'] },
+    { topic: 'pec_firma', label: 'PEC e firma digitale', keywords: ['pec', 'firma', 'firmato', 'p7m', 'token', 'certificato'] },
+    { topic: 'sentenze_web', label: 'ricerca legale aggiornata', keywords: ['sentenza', 'sentenze', 'giurisprudenza', 'cassazione', 'normativa', 'norma', 'legge', 'decreto'] }
+  ];
+
+  var FOLLOW_UP_MARKERS = [
+    'quelli', 'quelle', 'quello', 'quella', 'quei', 'questi', 'queste',
+    'quale dei due', 'quale delle due', 'quale dei tre', 'quale delle tre',
+    'di oggi', 'di domani', 'attivi', 'attive', 'le 2 fasi', 'le due fasi',
+    'quello prima', 'quella prima'
+  ];
+
+  function cleanIntentText(value) {
+    return String(value || '').replace(/\s+/g, ' ').trim().toLowerCase();
+  }
+
+  function containsFocusKeyword(text, keyword) {
+    var clean = cleanIntentText(text);
+    var needle = cleanIntentText(keyword);
+    if (!clean || !needle) {
+      return false;
+    }
+    if (needle.indexOf(' ') >= 0) {
+      return clean.indexOf(needle) >= 0;
+    }
+    return new RegExp('(^|[^a-z0-9])' + needle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '([^a-z0-9]|$)').test(clean);
+  }
+
+  function countIntentWords(value) {
+    var clean = cleanIntentText(value);
+    return clean ? clean.split(' ').filter(Boolean).length : 0;
+  }
+
+  function matchFocusRule(text) {
+    var clean = cleanIntentText(text);
+    if (!clean) {
+      return null;
+    }
+    for (var index = 0; index < QUICK_FOCUS_RULES.length; index += 1) {
+      var rule = QUICK_FOCUS_RULES[index];
+      for (var keywordIndex = 0; keywordIndex < rule.keywords.length; keywordIndex += 1) {
+        if (containsFocusKeyword(clean, rule.keywords[keywordIndex])) {
+          return rule;
+        }
+      }
+    }
+    return null;
+  }
+
+  function looksLikeFollowUp(text) {
+    var clean = cleanIntentText(text);
+    if (!clean) {
+      return false;
+    }
+    for (var index = 0; index < FOLLOW_UP_MARKERS.length; index += 1) {
+      if (clean.indexOf(FOLLOW_UP_MARKERS[index]) >= 0) {
+        return true;
+      }
+    }
+    return countIntentWords(clean) <= 4 && !matchFocusRule(clean);
+  }
+
+  function recentFocusRule(history, currentText) {
+    var currentClean = cleanIntentText(currentText);
+    for (var index = (history || []).length - 1; index >= 0; index -= 1) {
+      var entry = history[index] || {};
+      var metaTopic = entry.meta && entry.meta.topic ? String(entry.meta.topic) : '';
+      if (metaTopic) {
+        for (var ruleIndex = 0; ruleIndex < QUICK_FOCUS_RULES.length; ruleIndex += 1) {
+          if (QUICK_FOCUS_RULES[ruleIndex].topic === metaTopic) {
+            return QUICK_FOCUS_RULES[ruleIndex];
+          }
+        }
+      }
+      var content = cleanIntentText(entry.content || '');
+      if (!content || content === currentClean) {
+        continue;
+      }
+      var rule = matchFocusRule(content);
+      if (rule) {
+        return rule;
+      }
+    }
+    return null;
+  }
+
+  function buildFocusLabel(rule, question) {
+    var clean = cleanIntentText(question);
+    if (!rule) {
+      return '';
+    }
+    if ((rule.topic === 'udienze' || rule.topic === 'agenda') && clean.indexOf('oggi') >= 0) {
+      return 'udienze di oggi';
+    }
+    if ((rule.topic === 'udienze' || rule.topic === 'fascicoli') && clean.indexOf('attiv') >= 0) {
+      return 'procedimenti attivi';
+    }
+    if (rule.topic === 'scadenze' && clean.indexOf('oggi') >= 0) {
+      return 'scadenze di oggi';
+    }
+    return rule.label;
+  }
+
+  function resolveConversationFocus(question, history) {
+    var rule = matchFocusRule(question);
+    var previousRule = recentFocusRule(history, question);
+    var followUp = looksLikeFollowUp(question);
+    var resolved = rule;
+
+    if (!resolved && followUp) {
+      resolved = previousRule;
+    }
+    if (!resolved && previousRule && countIntentWords(question) <= 3) {
+      resolved = previousRule;
+      followUp = true;
+    }
+    if (!resolved) {
+      return { topic: '', focusLabel: '', isFollowUp: false };
+    }
+    return {
+      topic: resolved.topic,
+      focusLabel: buildFocusLabel(resolved, question),
+      isFollowUp: followUp
     };
   }
 
@@ -265,14 +386,11 @@
       return;
     }
     var text = buildThinkingNote(state.thinking.question, stage);
-    if (!text) {
+    if (!text || !state.currentBubble) {
       return;
     }
-    if (!state.thinking.noteBubble) {
-      state.thinking.noteBubble = appendMetaMessage(text);
-      return;
-    }
-    setBubbleContent(state.thinking.noteBubble, text);
+    setBubbleContent(state.currentBubble, text);
+    scrollBottom();
   }
 
   function stopThinkingTimers() {
@@ -300,7 +418,6 @@
       question: String(question || '').trim(),
       startedAt: Date.now(),
       receivedFirstToken: false,
-      noteBubble: null,
       statusTimer: window.setInterval(renderThinkingStatus, 250),
       stageOneTimer: null,
       stageTwoTimer: null,
@@ -319,14 +436,8 @@
       return;
     }
     state.thinking.receivedFirstToken = true;
-    if (state.thinking.noteBubble) {
-      setBubbleHtml(
-        state.thinking.noteBubble,
-        '<div class="pct-ai-thinking-complete">' +
-          '<i class="bi bi-stars"></i>' +
-          '<span>Risposta in arrivo.</span>' +
-        '</div>'
-      );
+    if (statusBar && statusBar.classList.contains('is-thinking')) {
+      setStatus('');
     }
   }
 
@@ -527,16 +638,30 @@
     );
   }
 
-  function setAnswerPayload(element, payload) {
+  function renderReferenceLabel(referenceLabel) {
+    var text = String(referenceLabel || '').trim();
+    if (!text) {
+      return '';
+    }
+    return '<div class="pct-ai-reference">Riferimento: ' + escapeHtml(text) + '</div>';
+  }
+
+  function buildAnswerHtml(payload, options) {
     var answer = payload && payload.answer ? renderMarkdown(payload.answer) : '<p>Nessuna risposta disponibile.</p>';
+    var includeExports = !(options && options.includeExports === false);
+    return (
+      renderReferenceLabel(payload && payload.referenceLabel) +
+      answer +
+      (includeExports ? renderGeneratedDocumentActions(payload || {}) : '')
+    );
+  }
+
+  function setAnswerPayload(element, payload) {
     var exportPayload = generatedDocumentPayload(payload || {});
     if (element) {
       element._generatedDocument = exportPayload;
     }
-    setBubbleHtml(
-      element,
-      answer + renderGeneratedDocumentActions(payload || {})
-    );
+    setBubbleHtml(element, buildAnswerHtml(payload || {}, { includeExports: true }));
   }
 
   function defaultIntroMarkup() {
@@ -639,7 +764,20 @@
       return;
     }
     state.history.forEach(function (entry) {
-      appendMessage(entry.role === 'user' ? 'user' : 'assistant', entry.content || '');
+      var role = entry.role === 'user' ? 'user' : 'assistant';
+      var bubble = appendMessage(role, entry.content || '');
+      if (role === 'assistant' && bubble) {
+        setBubbleHtml(
+          bubble,
+          buildAnswerHtml(
+            {
+              answer: entry.content || '',
+              referenceLabel: entry.meta && entry.meta.referenceLabel ? entry.meta.referenceLabel : '',
+            },
+            { includeExports: false }
+          )
+        );
+      }
     });
   }
 
@@ -648,6 +786,7 @@
     state.sessionId = generateSessionId();
     state.history = [];
     state.currentBubble = null;
+    state.pendingFocus = null;
     state.attachments = [];
     renderConversation();
     renderAttachments();
@@ -758,6 +897,7 @@
 
   function finalizeRequest(message) {
     state.streaming = false;
+    state.pendingFocus = null;
     if (sendButton) {
       sendButton.disabled = false;
     }
@@ -769,9 +909,15 @@
 
   function payloadBase() {
     trimHistory();
+    var chatMessages = state.history.slice(-HISTORY_LIMIT).map(function (entry) {
+      return {
+        role: entry.role,
+        content: entry.content,
+      };
+    });
     return {
       session_id: state.sessionId || generateSessionId(),
-      messages: state.history.slice(-HISTORY_LIMIT),
+      messages: chatMessages,
       fascicolo_id: state.fascId || '',
     };
   }
@@ -810,6 +956,7 @@
 
   function sendLocal(text) {
     var payload = payloadBase();
+    var referenceLabel = state.pendingFocus && state.pendingFocus.focusLabel ? String(state.pendingFocus.focusLabel) : '';
     fetch(widget.dataset.chatUrl || '/api/assistente/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -832,8 +979,8 @@
       function readChunk() {
         return reader.read().then(function (result) {
           if (result.done) {
-            setAnswerPayload(state.currentBubble, { answer: full, citations: [], question: text });
-            state.history.push({ role: 'assistant', content: full });
+            setAnswerPayload(state.currentBubble, { answer: full, citations: [], question: text, referenceLabel: referenceLabel });
+            state.history.push({ role: 'assistant', content: full, meta: { topic: state.pendingFocus && state.pendingFocus.topic || '', referenceLabel: referenceLabel } });
             saveConversationMemory();
             speakAnswer(full);
             finalizeThinkingFeedback(true);
@@ -852,8 +999,8 @@
 
             var raw = line.slice(6).trim();
               if (raw === '[DONE]') {
-                setAnswerPayload(state.currentBubble, { answer: full, citations: [], question: text });
-                state.history.push({ role: 'assistant', content: full });
+                setAnswerPayload(state.currentBubble, { answer: full, citations: [], question: text, referenceLabel: referenceLabel });
+                state.history.push({ role: 'assistant', content: full, meta: { topic: state.pendingFocus && state.pendingFocus.topic || '', referenceLabel: referenceLabel } });
                 saveConversationMemory();
                 speakAnswer(full);
                 finalizeThinkingFeedback(true);
@@ -865,7 +1012,7 @@
               var data = JSON.parse(raw);
               if (data.errore) {
                 setBubbleContent(state.currentBubble, 'Attenzione: ' + data.errore);
-                state.history.push({ role: 'assistant', content: data.errore });
+                state.history.push({ role: 'assistant', content: data.errore, meta: { topic: state.pendingFocus && state.pendingFocus.topic || '' } });
                 saveConversationMemory();
                 finalizeThinkingFeedback(false);
                 finalizeRequest();
@@ -908,14 +1055,21 @@
     }
 
     setStatus('Lex sta interrogando il companion locale del dispositivo...');
+    var preparedFocusLabel = state.pendingFocus && state.pendingFocus.focusLabel ? String(state.pendingFocus.focusLabel) : '';
     browserBridge()
       .fetchServerContext(bridgeConfig, {
         question: text,
-        messages: state.history.slice(-HISTORY_LIMIT),
+        messages: state.history.slice(-HISTORY_LIMIT).map(function (entry) {
+          return {
+            role: entry.role,
+            content: entry.content,
+          };
+        }),
         fascicolo_id: state.fascId || '',
         session_id: state.sessionId || generateSessionId(),
       })
       .then(function (prepared) {
+        preparedFocusLabel = String(prepared && prepared.focus_label || preparedFocusLabel || '').trim();
         var docs = documentsHelper();
         var docsBlock = docs ? docs.buildPromptBlock(state.attachments) : '';
         if (docsBlock) {
@@ -944,8 +1098,16 @@
           payload.answer = state.currentBubble.textContent || '';
         }
         payload.question = text;
+        payload.referenceLabel = String(payload.referenceLabel || preparedFocusLabel || '').trim();
         setAnswerPayload(state.currentBubble, payload);
-        state.history.push({ role: 'assistant', content: String(payload.answer || '').trim() });
+        state.history.push({
+          role: 'assistant',
+          content: String(payload.answer || '').trim(),
+          meta: {
+            topic: state.pendingFocus && state.pendingFocus.topic || '',
+            referenceLabel: payload.referenceLabel,
+          },
+        });
         saveConversationMemory();
         speakAnswer(payload.answer || '');
         finalizeThinkingFeedback(true);
@@ -989,7 +1151,14 @@
               '<div class="small text-warning mt-3">La risposta si e\' interrotta prima del completamento.</div>' +
               '<div class="small mt-2"><code>' + escapeHtml((error && error.message) || 'Errore operativo del modulo AI locale.') + '</code></div>'
           );
-          state.history.push({ role: 'assistant', content: String(error.__partialAnswer || '').trim() });
+          state.history.push({
+            role: 'assistant',
+            content: String(error.__partialAnswer || '').trim(),
+            meta: {
+              topic: state.pendingFocus && state.pendingFocus.topic || '',
+              referenceLabel: preparedFocusLabel,
+            },
+          });
           saveConversationMemory();
           finalizeRequest('Risposta interrotta dal companion locale.');
           return;
@@ -1016,7 +1185,15 @@
       voiceHelper().cancelSpeech();
     }
 
-    state.history.push({ role: 'user', content: text });
+    state.pendingFocus = resolveConversationFocus(text, state.history.slice(-HISTORY_LIMIT));
+    state.history.push({
+      role: 'user',
+      content: text,
+      meta: {
+        topic: state.pendingFocus.topic || '',
+        focusLabel: state.pendingFocus.focusLabel || '',
+      },
+    });
     saveConversationMemory();
     appendMessage('user', text);
 

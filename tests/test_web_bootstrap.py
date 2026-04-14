@@ -516,7 +516,9 @@ def test_lex_assistant_usa_componente_esterno_e_posizione_persistente():
     assert "Sto pensando" in widget_js
     assert "Riflessione" in widget_js
     assert "pct-ai-status-pill" in widget_js
-    assert "appendMetaMessage" in widget_js
+    assert "resolveConversationFocus" in widget_js
+    assert "renderReferenceLabel" in widget_js
+    assert "appendMetaMessage" not in widget_js
     assert "assistantAvatarMarkup" in widget_js
     assert "dataset.lexIconUrl" in widget_js
     assert "resetPosition" in widget_js
@@ -534,8 +536,9 @@ def test_lex_assistant_usa_componente_esterno_e_posizione_persistente():
     assert "fetchServerContext" in widget_js
     assert "streamCompanionRagQuery" in widget_js
     assert "Ciao, sono Lex." in widget_js
+    assert "Riferimento:" in widget_js
     assert "<div class=\"fw-semibold small mb-1\">Fonti</div>" not in widget_js
-    assert "answer + renderGeneratedDocumentActions(payload || {})" in widget_js
+    assert "buildAnswerHtml" in widget_js
     assert "companionHelp" in widget_js
     assert "renderCompanionRuntimeHelp" in widget_js
     assert "isCompanionTransportError" in widget_js
@@ -559,6 +562,7 @@ def test_lex_assistant_usa_componente_esterno_e_posizione_persistente():
     assert ".pct-ai-msg--meta" in widget_scss
     assert ".pct-ai-bubble--meta" in widget_scss
     assert ".pct-ai-status-pill" in widget_scss
+    assert ".pct-ai-reference" in widget_scss
     assert "@keyframes pct-lex-thinking-pulse" in widget_scss
     assert "@keyframes pct-lex-soft-blink" in widget_scss
     assert ".pct-ai-toolbar" in widget_scss
@@ -571,12 +575,17 @@ def test_lex_assistant_usa_componente_esterno_e_posizione_persistente():
 def test_contesto_lex_compatta_le_sezioni_e_limita_le_fonti():
     context_service = (REPO_ROOT / "web/services/assistente_studio_context.py").read_text(encoding="utf-8")
     cache_service = (REPO_ROOT / "web/services/assistente_context_cache.py").read_text(encoding="utf-8")
+    focus_service = (REPO_ROOT / "web/services/assistente_conversation_focus.py").read_text(encoding="utf-8")
+    live_web_service = (REPO_ROOT / "web/services/assistente_live_web.py").read_text(encoding="utf-8")
     assistente_blueprint = (REPO_ROOT / "web/blueprints/assistente.py").read_text(encoding="utf-8")
     assistente_prompt = (REPO_ROOT / "web/services/assistente_prompt.py").read_text(encoding="utf-8")
 
     assert "def _select_detail_sections" in context_service
     assert "def _select_detail_sections_for_chat" in context_service
     assert "def _should_include_live_web" in context_service
+    assert "def _should_force_web_fallback" in context_service
+    assert "def _has_specific_local_context" in context_service
+    assert "resolve_conversation_focus" in context_service
     assert "_DEFAULT_DETAIL_SECTION_TITLES" in context_service
     assert "_CHAT_DETAIL_SECTION_TITLES" in context_service
     assert "_SECTION_KEYWORDS" in context_service
@@ -584,22 +593,32 @@ def test_contesto_lex_compatta_le_sezioni_e_limita_le_fonti():
     assert "_SECTION_CACHE_TTLS" in context_service
     assert "_SECTION_DEPENDENCY_KEYS" in context_service
     assert 'chat_mode = str(mode or "").strip().lower() == "chat"' in context_service
-    assert "selected_detail_titles = _select_detail_sections_for_chat(q) if chat_mode else _select_detail_sections(q)" in context_service
-    assert "include_live_web = _should_include_live_web(q, chat_mode=chat_mode)" in context_service
+    assert "selected_detail_titles = (" in context_service
+    assert "force_web_fallback = _should_force_web_fallback(" in context_service
     assert '"sources": deduped_sources[:10 if chat_mode else 12]' in context_service
+    assert '"web_fallback_used": bool(force_web_fallback)' in context_service
     assert "warm_lex_studio_context" in context_service
     assert "cached_compute" in cache_service
     assert "build_file_fingerprint" in cache_service
     assert "question_signature" in cache_service
+    assert "resolve_conversation_focus" in focus_service
+    assert "_TOPIC_RULES" in focus_service
+    assert "_FOLLOW_UP_MARKERS" in focus_service
+    assert "_FALLBACK_DEFAULT_SOURCE_IDS" in live_web_service
+    assert "force: bool = False" in live_web_service
+    assert "explicit_source_ids" in live_web_service
     assert '@assistente.route("/api/assistente/warmup", methods=["POST"])' in assistente_blueprint
     assert "warm_ollama_chat_runtime" in assistente_blueprint
     assert "resolved_ollama_runtime()" in assistente_blueprint
     assert "chat_model = str(runtime.get(\"chat_model\") or \"mistral\").strip() or \"mistral\"" in assistente_blueprint
     assert "keep_alive = str(runtime.get(\"keep_alive\") or \"10m\").strip() or \"10m\"" in assistente_blueprint
+    assert '"focus_label": str(studio_context.get("focus_label") or "").strip()' in assistente_blueprint
+    assert '"web_fallback_used": bool(studio_context.get("web_fallback_used"))' in assistente_blueprint
     assert "build_assistente_prompt" in assistente_prompt
     assert "_LEX_VOICE_PROMPT" in assistente_prompt
     assert "_LEX_WRITING_PROMPT" in assistente_prompt
     assert "_LEX_OPERATION_GUARDRAILS" in assistente_prompt
+    assert "_LEX_CONTEXT_ROUTING_PROMPT" in assistente_prompt
     assert "_PROMPT_PROFILE_BLOCKS" in assistente_prompt
     assert "_PROMPT_PROFILE_KEYWORDS" in assistente_prompt
 

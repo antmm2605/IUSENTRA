@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import date, datetime, timedelta
+import re
 from typing import Any
 
 from flask import current_app, g
@@ -35,6 +36,7 @@ from web.services.assistente_context_cache import (
     cached_compute,
     question_signature,
 )
+from web.services.assistente_conversation_focus import resolve_conversation_focus
 from web.services.assistente_live_web import build_live_official_web_context
 from web.services.local_ai_runtime import get_local_ai_service
 
@@ -223,6 +225,16 @@ def _keyword_score(question: str, keywords: tuple[str, ...]) -> int:
     return sum(1 for keyword in keywords if keyword and keyword in haystack)
 
 
+def _contains_query_token(question: str, token: str) -> bool:
+    haystack = _clean_spaces(question).lower()
+    needle = _clean_spaces(token).lower()
+    if not haystack or not needle:
+        return False
+    if len(needle) <= 4 and needle.isalpha():
+        return re.search(rf"(?<![a-z0-9]){re.escape(needle)}(?![a-z0-9])", haystack) is not None
+    return needle in haystack
+
+
 def _select_detail_sections(question: str) -> set[str]:
     text = _clean_spaces(question).lower()
     if not text:
@@ -264,7 +276,7 @@ def _should_include_live_web(question: str, *, chat_mode: bool = False) -> bool:
         return False
     if chat_mode:
         if any(
-            phrase in text
+            _contains_query_token(text, phrase)
             for phrase in (
                 "cerca sul web",
                 "sul web",
@@ -284,13 +296,140 @@ def _should_include_live_web(question: str, *, chat_mode: bool = False) -> bool:
             )
         ):
             return True
-        has_recency = any(token in text for token in ("ultima", "ultime", "recente", "recenti", "oggi"))
+        has_recency = any(_contains_query_token(text, token) for token in ("ultima", "ultime", "recente", "recenti", "oggi"))
         has_legal_lookup = any(
-            token in text
+            _contains_query_token(text, token)
             for token in ("sentenza", "sentenze", "normativa", "legge", "decreto", "provvedimento", "massima")
         )
         return has_recency and has_legal_lookup
-    return any(keyword in text for keyword in _LIVE_WEB_KEYWORDS)
+    return any(_contains_query_token(text, keyword) for keyword in _LIVE_WEB_KEYWORDS)
+
+
+def _dedupe_sources(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    deduped: list[dict[str, Any]] = []
+    seen_ids: set[str] = set()
+    for row in rows:
+        identifier = str(row.get("id") or row.get("citation") or "").strip()
+        if not identifier or identifier in seen_ids:
+            continue
+        seen_ids.add(identifier)
+        deduped.append(row)
+    return deduped
+
+
+def _is_generic_local_source(source_id: str) -> bool:
+    source_id = str(source_id or "").strip().lower()
+    return source_id.startswith("studio:") or source_id in {
+        "agenda:prossimi",
+        "scadenziario:imminenti",
+        "tariffario:parametri",
+    }
+
+
+def _has_specific_local_context(rows: list[dict[str, Any]]) -> bool:
+    for row in rows:
+        source_id = str(row.get("id") or "").strip()
+        if not source_id:
+            continue
+        if source_id.startswith("live-web:"):
+            continue
+        if _is_generic_local_source(source_id):
+            continue
+        return True
+    return False
+
+
+def _is_operational_only_query(question: str) -> bool:
+    text = _clean_spaces(question).lower()
+    if not text:
+        return False
+    operational_keywords = (
+        "udienza",
+        "udienze",
+        "agenda",
+        "appuntamento",
+        "appuntamenti",
+        "scadenza",
+        "scadenze",
+        "fascicolo",
+        "fascicoli",
+        "cliente",
+        "clienti",
+        "preventivo",
+        "preventivi",
+        "fattura",
+        "fatture",
+        "parcella",
+        "parcelle",
+    )
+    legal_web_keywords = (
+        "norma",
+        "normativa",
+        "legge",
+        "decreto",
+        "sentenza",
+        "sentenze",
+        "cassazione",
+        "tar",
+        "consiglio di stato",
+        "eur-lex",
+        "curia",
+        "mediazione",
+        "pec",
+        "firma",
+        "pst",
+        "pdp",
+        "pat",
+        "reginde",
+    )
+    has_operational = any(_contains_query_token(text, token) for token in operational_keywords)
+    has_legal_web = any(_contains_query_token(text, token) for token in legal_web_keywords)
+    return has_operational and not has_legal_web
+
+
+def _should_force_web_fallback(
+    question: str,
+    *,
+    local_sources: list[dict[str, Any]],
+    chat_mode: bool,
+) -> bool:
+    text = _clean_spaces(question).lower()
+    if not text:
+        return False
+    if chat_mode and _is_operational_only_query(text):
+        return False
+    if _has_specific_local_context(local_sources):
+        return False
+
+    legal_triggers = (
+        "norma",
+        "normativa",
+        "legge",
+        "decreto",
+        "sentenza",
+        "sentenze",
+        "cassazione",
+        "tar",
+        "consiglio di stato",
+        "giurisprudenza",
+        "massima",
+        "pec",
+        "firma",
+        "pst",
+        "pdp",
+        "pat",
+        "reginde",
+        "mediazione",
+        "fatturapa",
+        "agenzia entrate",
+        "ultima",
+        "ultime",
+        "oggi",
+        "aggiornato",
+        "aggiornata",
+        "aggiornamento",
+    )
+    return any(_contains_query_token(text, token) for token in legal_triggers)
 
 
 def _load_studio_config() -> Any | None:
@@ -985,20 +1124,43 @@ def _document_rag_lines(question: str) -> tuple[list[str], list[dict[str, Any]]]
     return lines, rows[:4]
 
 
-def build_lex_studio_context(question: str, *, mode: str = "default") -> dict[str, Any]:
+def build_lex_studio_context(
+    question: str,
+    *,
+    mode: str = "default",
+    messages: list[dict[str, object]] | None = None,
+) -> dict[str, Any]:
     q = _clean_spaces(question)
     chat_mode = str(mode or "").strip().lower() == "chat"
+    focus = resolve_conversation_focus(q, messages=messages) if chat_mode else {}
+    effective_question = _clean_spaces(str(focus.get("effective_question") or q))
+    if not effective_question:
+        effective_question = q
     sections: list[str] = [
         "Lex deve restare sempre consultivo, non decisionale, e formulare solo suggerimenti, ipotesi operative, check-list, rischi e prossimi passi.",
         "Se manca il contesto o serve una verifica aggiornata sul web, Lex deve dirlo chiaramente e indicare le fonti ufficiali web piu' adatte senza inventare.",
     ]
+    focus_label = _clean_spaces(focus.get("focus_label"))
+    if chat_mode and focus_label:
+        sections.append(
+            f"Per questa richiesta resta focalizzata su {focus_label} e non allargare la risposta alla panoramica generale dello studio salvo richiesta esplicita."
+        )
     sources: list[dict[str, Any]] = []
     priority_sources: list[dict[str, Any]] = []
     live_source_ids: list[str] = []
-    selected_detail_titles = _select_detail_sections_for_chat(q) if chat_mode else _select_detail_sections(q)
-    include_live_web = _should_include_live_web(q, chat_mode=chat_mode)
+    selected_detail_titles = (
+        set(focus.get("section_titles") or ())
+        if chat_mode and focus.get("section_titles")
+        else (_select_detail_sections_for_chat(effective_question) if chat_mode else _select_detail_sections(effective_question))
+    )
+    include_live_web = (
+        bool(focus.get("include_live_web"))
+        if chat_mode and focus.get("topic")
+        else _should_include_live_web(effective_question, chat_mode=chat_mode)
+    )
 
-    _append_section(sections, "Profilo studio", _studio_profile_lines())
+    if not chat_mode or focus.get("has_explicit_overview") or any(title in _BASE_SECTION_TITLES for title in selected_detail_titles):
+        _append_section(sections, "Profilo studio", _studio_profile_lines())
 
     always_specs = [
         ("Impostazioni studio", _settings_studio_lines),
@@ -1006,69 +1168,70 @@ def build_lex_studio_context(question: str, *, mode: str = "default") -> dict[st
         ("Quadro operativo", _operational_lines),
     ]
     detail_specs = [
-        ("Fascicoli", lambda: _fascicoli_lines(q)),
-        ("Clienti", lambda: _clienti_lines(q)),
-        ("Agenda", lambda: _agenda_lines(q)),
-        ("Soggetti", lambda: _soggetti_lines(q)),
-        ("Scadenziario", lambda: _scadenziario_lines(q)),
-        ("Template atti", lambda: _template_atti_lines(q)),
-        ("Tariffario", lambda: _tariffario_lines(q)),
-        ("Preventivi", lambda: _preventivi_lines(q)),
-        ("Fatturazione", lambda: _fatturazione_lines(q)),
-        ("Archivio sentenze", lambda: _archivio_sentenze_lines(q)),
-        ("Strumenti legali", lambda: _strumenti_legali_lines(q)),
-        ("Applicazioni", lambda: _applicazioni_lines(q)),
-        ("RAG documentale locale", lambda: _document_rag_lines(q)),
+        ("Fascicoli", lambda: _fascicoli_lines(effective_question)),
+        ("Clienti", lambda: _clienti_lines(effective_question)),
+        ("Agenda", lambda: _agenda_lines(effective_question)),
+        ("Soggetti", lambda: _soggetti_lines(effective_question)),
+        ("Scadenziario", lambda: _scadenziario_lines(effective_question)),
+        ("Template atti", lambda: _template_atti_lines(effective_question)),
+        ("Tariffario", lambda: _tariffario_lines(effective_question)),
+        ("Preventivi", lambda: _preventivi_lines(effective_question)),
+        ("Fatturazione", lambda: _fatturazione_lines(effective_question)),
+        ("Archivio sentenze", lambda: _archivio_sentenze_lines(effective_question)),
+        ("Strumenti legali", lambda: _strumenti_legali_lines(effective_question)),
+        ("Applicazioni", lambda: _applicazioni_lines(effective_question)),
+        ("RAG documentale locale", lambda: _document_rag_lines(effective_question)),
     ]
-    web_specs = [
-        ("Ricerca legale e fonti web", lambda: _ricerca_legale_lines(q)),
-        ("Verifica live fonti ufficiali web", lambda: (
-            lambda payload: (
-                payload.get("lines") or [],
-                payload.get("sources") or [],
-            )
-        )(build_live_official_web_context(q))),
-    ]
-
-    section_plan = list(always_specs)
-    section_plan.extend(
-        (title, builder)
-        for title, builder in detail_specs
-        if title in selected_detail_titles
-    )
-    if include_live_web:
-        section_plan.extend(web_specs)
-
+    if chat_mode:
+        all_specs = [*always_specs, *detail_specs]
+        section_plan = [
+            (title, builder)
+            for title, builder in all_specs
+            if title in selected_detail_titles
+        ]
+    else:
+        section_plan = list(always_specs)
+        section_plan.extend(
+            (title, builder)
+            for title, builder in detail_specs
+            if title in selected_detail_titles
+        )
     for title, builder in section_plan:
         try:
-            lines, section_sources = _cached_section_payload(title, q, builder)
+            lines, section_sources = _cached_section_payload(title, effective_question, builder)
         except Exception as exc:
             current_app.logger.exception("Errore contesto Lex per sezione %s: %s", title, exc)
             lines, section_sources = ([f"{title}: contesto non disponibile in questo momento."], [])
         _append_section(sections, title, lines)
-        if title == "Verifica live fonti ufficiali web":
-            priority_sources.extend(section_sources or [])
-        else:
-            sources.extend(section_sources or [])
+        sources.extend(section_sources or [])
 
-        if title == "Verifica live fonti ufficiali web":
-            try:
-                live_source_ids = [
-                    str(item.get("id") or "").replace("live-web:", "").strip()
-                    for item in section_sources or []
-                    if str(item.get("id") or "").startswith("live-web:")
+    local_sources = _dedupe_sources(sources)
+    force_web_fallback = _should_force_web_fallback(
+        effective_question,
+        local_sources=local_sources,
+        chat_mode=chat_mode,
+    )
+
+    if include_live_web or force_web_fallback:
+        try:
+            payload = build_live_official_web_context(
+                effective_question,
+                force=force_web_fallback,
+            )
+            lines = list(payload.get("lines") or [])
+            web_sources = list(payload.get("sources") or [])
+            if force_web_fallback and lines:
+                lines = [
+                    "Il contesto interno non offre riferimenti sufficienti su questa richiesta. Lex integra con fonti ufficiali live mirate.",
+                    *lines,
                 ]
-            except Exception:
-                live_source_ids = []
+            _append_section(sections, "Verifica live fonti ufficiali web", lines)
+            priority_sources.extend(web_sources)
+            live_source_ids = list(payload.get("source_ids") or [])
+        except Exception as exc:
+            current_app.logger.exception("Errore fallback web Lex: %s", exc)
 
-    deduped_sources: list[dict[str, Any]] = []
-    seen_ids: set[str] = set()
-    for row in [*priority_sources, *sources]:
-        identifier = str(row.get("id") or row.get("citation") or "").strip()
-        if not identifier or identifier in seen_ids:
-            continue
-        seen_ids.add(identifier)
-        deduped_sources.append(row)
+    deduped_sources = _dedupe_sources([*priority_sources, *local_sources])
 
     return {
         "prompt_block": "\n".join(sections).strip(),
@@ -1078,8 +1241,12 @@ def build_lex_studio_context(question: str, *, mode: str = "default") -> dict[st
             for row in deduped_sources[:10 if chat_mode else 12]
             if row.get("citation")
         ],
-        "engine_ids": motori_per_query(q),
-        "source_ids": list(dict.fromkeys([*fonti_per_query(q), *live_source_ids])),
+        "engine_ids": motori_per_query(effective_question),
+        "source_ids": list(dict.fromkeys([*fonti_per_query(effective_question), *live_source_ids])),
+        "focus_label": focus_label,
+        "focus_topic": _clean_spaces(focus.get("topic")),
+        "effective_question": effective_question,
+        "web_fallback_used": bool(force_web_fallback),
     }
 
 

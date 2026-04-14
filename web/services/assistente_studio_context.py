@@ -75,6 +75,7 @@ _CHAT_DETAIL_SECTION_TITLES: tuple[str, ...] = (
 )
 
 _SECTION_KEYWORDS: dict[str, tuple[str, ...]] = {
+    "Centro Servizi Telematici": ("pst", "polisweb", "pdp", "pat", "ptt", "sigit", "telematico", "deposito", "busta", "pec", "wsdl", "xsd", "reginde"),
     "Fascicoli": ("fascicolo", "fascicoli", "rg", "pratica", "causa", "giudice", "udienza"),
     "Clienti": ("cliente", "clienti", "assistito", "anagrafica", "anagrafiche"),
     "Agenda": ("agenda", "appuntamento", "calendario", "riunione", "udienza", "promemoria"),
@@ -121,6 +122,7 @@ _SECTION_CACHE_TTLS: dict[str, int] = {
     "Impostazioni studio": 180,
     "PEC e canali email": 180,
     "Quadro operativo": 90,
+    "Centro Servizi Telematici": 180,
     "Fascicoli": 90,
     "Clienti": 90,
     "Agenda": 60,
@@ -141,6 +143,7 @@ _SECTION_DEPENDENCY_KEYS: dict[str, tuple[str, ...]] = {
     "Impostazioni studio": ("STUDIO_CONFIG",),
     "PEC e canali email": ("STUDIO_CONFIG",),
     "Quadro operativo": ("CLIENTI_DB", "FASCICOLI_DB", "AGENDA_DB", "SCADENZIARIO_DB"),
+    "Centro Servizi Telematici": ("LEGAL_INTELLIGENCE_DB",),
     "Fascicoli": ("FASCICOLI_DB",),
     "Clienti": ("CLIENTI_DB",),
     "Agenda": ("AGENDA_DB",),
@@ -1212,6 +1215,126 @@ def _fatturazione_lines(question: str) -> tuple[list[str], list[dict[str, Any]]]
     return lines, sources
 
 
+def _telematico_lines(question: str) -> tuple[list[str], list[dict[str, Any]]]:
+    intelligence = get_legal_intelligence()
+    route = intelligence.resolve_telematico_route(question)
+    stats = intelligence.statistiche_telematico_repository()
+    source_rows = list(route.get("source_rows") or [])
+    capability_rows = list(route.get("capability_rows") or [])
+    action_rows = list(route.get("action_rows") or [])
+    rule_rows = list(route.get("rule_rows") or [])
+    monitoring_rows = list(route.get("monitoring_rows") or [])
+    xsd_rows = list(route.get("xsd_rows") or [])
+    wsdl_rows = list(route.get("wsdl_rows") or [])
+    snapshot = dict(route.get("catalog_snapshot") or {})
+    lines = [
+        (
+            "Repository telematico strutturato: "
+            f"{stats.get('telematico_methods_repository', 0)} metodi ufficiali, "
+            f"{stats.get('telematico_wsdl_modules_repository', 0)} moduli WSDL, "
+            f"{stats.get('telematico_xsd_channels_repository', 0)} canali XSD, "
+            f"{stats.get('telematico_capabilities_repository', 0)} capability, "
+            f"{stats.get('telematico_actions_repository', 0)} azioni operative."
+        ),
+        "Centro Servizi Telematici: Lex usa catalogo tecnico, monitoraggio ufficiale e capability reali prima di spiegare il passo operativo.",
+        "Routing telematico: " + _truncate(route.get("reason") or "routing telematico repository", 180) + ".",
+    ]
+    if snapshot:
+        lines.append(
+            _truncate(
+                "Catalogo PST: "
+                f"versione {snapshot.get('catalog_version') or 'n.d.'}; "
+                f"schemi {snapshot.get('schema_version') or 'n.d.'}; "
+                f"documentazione servizi web {snapshot.get('pst_webservices_doc_version') or 'n.d.'}; "
+                f"busta massima {snapshot.get('busta_max_mb') or 'n.d.'} MB.",
+                220,
+            )
+        )
+    if capability_rows:
+        lines.append(
+            "Capability rilevanti: "
+            + "; ".join(
+                _truncate(
+                    f"{row.get('label')} ({row.get('channel') or 'canale n.d.'}; {row.get('support_level') or 'supporto n.d.'})",
+                    105,
+                )
+                for row in capability_rows[:4]
+            )
+            + "."
+        )
+    if action_rows:
+        lines.append(
+            "Azioni disponibili: "
+            + "; ".join(_truncate(row.get("label") or row.get("action_id"), 105) for row in action_rows[:4])
+            + "."
+        )
+    if monitoring_rows:
+        lines.append(
+            "Stato monitoraggio telematico: "
+            + "; ".join(
+                _truncate(
+                    f"{row.get('nome') or row.get('source_id')} ({row.get('status') or 'n.d.'}, {row.get('detected_version') or row.get('detected_status') or 'stato n.d.'})",
+                    110,
+                )
+                for row in monitoring_rows[:4]
+            )
+            + "."
+        )
+    elif xsd_rows or wsdl_rows:
+        labels = [row.get("label") for row in xsd_rows[:2] if row.get("label")] + [row.get("label") for row in wsdl_rows[:2] if row.get("label")]
+        if labels:
+            lines.append("Cataloghi tecnici pertinenti: " + "; ".join(_truncate(label, 100) for label in labels) + ".")
+    if rule_rows:
+        lines.append(
+            "Regole tecniche attive: "
+            + "; ".join(_truncate(row.get("rule_text") or row.get("rule_id"), 120) for row in rule_rows[:4])
+            + "."
+        )
+    sources = [
+        _source(
+            "Repository telematico",
+            (
+                f"Metodi: {stats.get('telematico_methods_repository', 0)}. "
+                f"Canali XSD: {stats.get('telematico_xsd_channels_repository', 0)}. "
+                f"Capability: {stats.get('telematico_capabilities_repository', 0)}. "
+                f"Azioni: {stats.get('telematico_actions_repository', 0)}."
+            ),
+            source_id="telematico:repository",
+            title="Repository telematico",
+        )
+    ]
+    for row in source_rows[:4]:
+        source = _source(
+            f"Fonte telematica - {row.get('nome') or row.get('source_id')}",
+            (
+                f"Area: {row.get('area') or 'n.d.'}. "
+                f"Motore: {row.get('motore') or 'n.d.'}. "
+                f"Connector: {row.get('connector_kind') or 'n.d.'}. "
+                f"Capacita: {row.get('capability') or 'n.d.'}."
+            ),
+            source_id=f"telematico-fonte:{row.get('source_id') or ''}",
+            title=row.get("nome") or row.get("source_id") or "Fonte telematica",
+        )
+        source["official_url"] = row.get("official_url") or ""
+        source["monitor_url"] = row.get("monitor_url") or ""
+        sources.append(source)
+    for row in action_rows[:3]:
+        action = _source(
+            f"Azione telematica - {row.get('label') or row.get('action_id')}",
+            (
+                f"Canale: {row.get('channel') or 'n.d.'}. "
+                f"Fonte di verita: {row.get('source_of_truth') or 'n.d.'}. "
+                f"Note: {row.get('notes') or 'Azione disponibile nel repository telematico.'}"
+            ),
+            source_id=f"telematico-azione:{row.get('action_id') or ''}",
+            title=row.get("label") or row.get("action_id") or "Azione telematica",
+        )
+        action["requires_certificate"] = bool(row.get("requires_certificate"))
+        action["handoff_required"] = bool(row.get("handoff_required"))
+        sources.append(action)
+    return lines, sources
+
+
 def _ricerca_legale_lines(question: str) -> tuple[list[str], list[dict[str, Any]]]:
     intelligence = get_legal_intelligence()
     route = intelligence.resolve_lex_legal_route(question)
@@ -1661,6 +1784,7 @@ def build_lex_studio_context(
         ("Quadro operativo", _operational_lines),
     ]
     detail_specs = [
+        ("Centro Servizi Telematici", lambda: _telematico_lines(effective_question)),
         ("Fascicoli", lambda: _fascicoli_lines(effective_question)),
         ("Clienti", lambda: _clienti_lines(effective_question)),
         ("Agenda", lambda: _agenda_lines(effective_question)),

@@ -36,6 +36,7 @@ from pct.legal_intelligence_repository import (
     derive_legal_operational_json_path,
     derive_legal_sources_json_path,
 )
+from pct.polisWeb import PST_SEZIONI_WIZARD
 from pct.normative_tables import FONTI_OPERATIVE, GestioneTabelleNormative
 from pct.pst_catalog import (
     PST_PDP_SPECIFICHE_DETAIL_URL,
@@ -50,7 +51,42 @@ from pct.pst_catalog import (
     PST_WEB_SERVICES_WSDL_CATALOG_PACKAGE_NAME,
     PST_WEB_SERVICES_WSDL_CATALOG_PACKAGE_VERSION,
     PST_XSD_DOWNLOAD_PAGE_URL,
+    PST_FORMAL_ERROR_CODES,
+    PST_MAX_BUSTA_BYTES,
+    PST_MAX_BUSTA_MB,
+    get_catalog_snapshot,
+    get_catalog_sources,
+    get_official_methods,
+    get_wsdl_catalog_modules,
     get_xsd_channel,
+    get_xsd_channels,
+)
+from pct.telematico_repository import (
+    GestioneTelematicoRepository,
+    build_telematico_action_rows,
+    build_telematico_capability_rows,
+    build_telematico_catalog_snapshot_row,
+    build_telematico_catalog_source_rows,
+    build_telematico_methods_rows,
+    build_telematico_monitoring_rows,
+    build_telematico_rule_rows,
+    build_telematico_sources_rows,
+    build_telematico_wizard_rows,
+    build_telematico_wsdl_rows,
+    build_telematico_xsd_rows,
+    derive_telematico_actions_json_path,
+    derive_telematico_capabilities_json_path,
+    derive_telematico_catalog_snapshot_json_path,
+    derive_telematico_catalog_sources_json_path,
+    derive_telematico_methods_json_path,
+    derive_telematico_monitoring_json_path,
+    derive_telematico_repository_db_path,
+    derive_telematico_repository_json_path,
+    derive_telematico_rules_json_path,
+    derive_telematico_sources_json_path,
+    derive_telematico_wizard_json_path,
+    derive_telematico_wsdl_modules_json_path,
+    derive_telematico_xsd_channels_json_path,
 )
 
 USER_AGENT = "HACS-Legal-Intelligence/1.0 (+https://pst.giustizia.it)"
@@ -1339,6 +1375,19 @@ class GestioneLegalIntelligence:
         self.repository_keyword_source_json_path = derive_legal_keyword_source_json_path(self.db_path)
         self.repository_engine_edges_json_path = derive_legal_engine_edges_json_path(self.db_path)
         self.repository_operational_json_path = derive_legal_operational_json_path(self.db_path)
+        self.telematico_repository_db_path = derive_telematico_repository_db_path(self.db_path)
+        self.telematico_repository_json_path = derive_telematico_repository_json_path(self.db_path)
+        self.telematico_catalog_snapshot_json_path = derive_telematico_catalog_snapshot_json_path(self.db_path)
+        self.telematico_methods_json_path = derive_telematico_methods_json_path(self.db_path)
+        self.telematico_wsdl_json_path = derive_telematico_wsdl_modules_json_path(self.db_path)
+        self.telematico_xsd_json_path = derive_telematico_xsd_channels_json_path(self.db_path)
+        self.telematico_catalog_sources_json_path = derive_telematico_catalog_sources_json_path(self.db_path)
+        self.telematico_sources_json_path = derive_telematico_sources_json_path(self.db_path)
+        self.telematico_capabilities_json_path = derive_telematico_capabilities_json_path(self.db_path)
+        self.telematico_rules_json_path = derive_telematico_rules_json_path(self.db_path)
+        self.telematico_actions_json_path = derive_telematico_actions_json_path(self.db_path)
+        self.telematico_wizard_json_path = derive_telematico_wizard_json_path(self.db_path)
+        self.telematico_monitoring_json_path = derive_telematico_monitoring_json_path(self.db_path)
         self._repository = GestioneLegalIntelligenceRepository(
             self.repository_db_path,
             json_path=self.repository_json_path,
@@ -1348,6 +1397,21 @@ class GestioneLegalIntelligence:
             keyword_source_json_path=self.repository_keyword_source_json_path,
             engine_edges_json_path=self.repository_engine_edges_json_path,
             operational_json_path=self.repository_operational_json_path,
+        )
+        self._telematico_repository = GestioneTelematicoRepository(
+            self.telematico_repository_db_path,
+            json_path=self.telematico_repository_json_path,
+            snapshot_json_path=self.telematico_catalog_snapshot_json_path,
+            methods_json_path=self.telematico_methods_json_path,
+            wsdl_json_path=self.telematico_wsdl_json_path,
+            xsd_json_path=self.telematico_xsd_json_path,
+            catalog_sources_json_path=self.telematico_catalog_sources_json_path,
+            sources_json_path=self.telematico_sources_json_path,
+            capabilities_json_path=self.telematico_capabilities_json_path,
+            rules_json_path=self.telematico_rules_json_path,
+            actions_json_path=self.telematico_actions_json_path,
+            wizard_json_path=self.telematico_wizard_json_path,
+            monitoring_json_path=self.telematico_monitoring_json_path,
         )
         self._load()
         self._sync_repository()
@@ -1401,6 +1465,27 @@ class GestioneLegalIntelligence:
             operational_rows=operational_rows,
             export_json=True,
         )
+        self._sync_telematico_repository()
+
+    def _sync_telematico_repository(self) -> None:
+        snapshot = get_catalog_snapshot()
+        catalog_sources = get_catalog_sources()
+        source_rows = build_telematico_sources_rows(FONTI_UFFICIALI)
+        self._telematico_repository.synchronize_runtime(
+            {
+                "catalog_snapshot": build_telematico_catalog_snapshot_row(snapshot, catalog_sources),
+                "methods": build_telematico_methods_rows(get_official_methods()),
+                "wsdl_modules": build_telematico_wsdl_rows(get_wsdl_catalog_modules()),
+                "xsd_channels": build_telematico_xsd_rows(get_xsd_channels()),
+                "catalog_sources": build_telematico_catalog_source_rows(catalog_sources),
+                "sources": source_rows,
+                "capabilities": build_telematico_capability_rows(),
+                "rules": build_telematico_rule_rows(PST_MAX_BUSTA_MB, PST_MAX_BUSTA_BYTES, PST_FORMAL_ERROR_CODES),
+                "actions": build_telematico_action_rows(),
+                "wizard_sections": build_telematico_wizard_rows(PST_SEZIONI_WIZARD),
+                "monitoring": build_telematico_monitoring_rows(source_rows, list(self._data.get("monitor_runs") or [])),
+            }
+        )
 
     def statistiche_repository(self) -> Dict[str, Any]:
         return self._repository.storage_stats()
@@ -1413,6 +1498,18 @@ class GestioneLegalIntelligence:
 
     def resolve_lex_legal_route(self, question: str) -> Dict[str, Any]:
         return self._repository.resolve_route(question)
+
+    def statistiche_telematico_repository(self) -> Dict[str, Any]:
+        return self._telematico_repository.storage_stats()
+
+    def telematico_repository_payload(self) -> Dict[str, Any]:
+        return self._telematico_repository.load_repository_payload()
+
+    def export_telematico_repositories(self, base_dir: str | None = None) -> Dict[str, str]:
+        return self._telematico_repository.export_split_jsons(base_dir)
+
+    def resolve_telematico_route(self, question: str) -> Dict[str, Any]:
+        return self._telematico_repository.resolve_route(question)
 
     def catalogo_fonti(self) -> List[Dict[str, Any]]:
         return [source.to_dict() for source in FONTI_UFFICIALI.values()]

@@ -71,6 +71,19 @@ data/
 /intelligence/legal_keyword_to_source.json
 /intelligence/legal_engine_source_edges.json
 /intelligence/legal_operational_repository.json
+/intelligence/telematico_repository.db
+/intelligence/telematico_repository.json
+/intelligence/telematico_catalog_snapshot.json
+/intelligence/telematico_methods_repository.json
+/intelligence/telematico_wsdl_modules_repository.json
+/intelligence/telematico_xsd_channels_repository.json
+/intelligence/telematico_catalog_sources_repository.json
+/intelligence/telematico_sources_repository.json
+/intelligence/telematico_capabilities_repository.json
+/intelligence/telematico_rules_repository.json
+/intelligence/telematico_actions_repository.json
+/intelligence/telematico_wizard_sections_repository.json
+/intelligence/telematico_monitoring_repository.json
 /intelligence/giurisprudenza_repository.db
 /intelligence/giurisprudenza_repository.json
 /intelligence/giurisprudenza_sources_repository.json
@@ -78,6 +91,7 @@ data/
 /intelligence/giurisprudenza_usage_policy.json
 /intelligence/giurisprudenza_sync_registry.json
 /legal_intelligence/
+/telematico/
 /giurisprudenza/
 
 # Root HTML mirrors not used by Flask.

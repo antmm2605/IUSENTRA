@@ -78,14 +78,16 @@ _COMPETENCE_PROFILES: tuple[LexCompetenceProfile, ...] = (
             "portale servizi telematici",
             "cabina telematica",
         ),
-        section_titles=("Fascicoli", "PEC e canali email", "Applicazioni", "Ricerca legale e fonti web"),
+        section_titles=("Centro Servizi Telematici", "Fascicoli", "PEC e canali email", "Applicazioni", "Ricerca legale e fonti web"),
         prompt_block=(
             "Competenza HACS: Centro Servizi Telematici. Se il tema riguarda PST, PDP, PAT/SIGA, PTT/SIGIT, import fascicoli, "
             "depositi o autenticazioni ai portali, Lex deve distinguere il canale corretto, chiarire prerequisiti tecnici e documentali "
-            "e indicare il prossimo passo pratico nel gestionale."
+            "e indicare il prossimo passo pratico nel gestionale. Deve usare il repository telematico strutturato: catalogo PST, "
+            "fonti ufficiali, capability reali, azioni disponibili, regole tecniche, canali XSD/WSDL e monitoraggio."
         ),
         context_hint=(
-            "Per i portali telematici resta concreta: canale corretto, prerequisiti, import disponibile, limiti di download e prossimo passo."
+            "Per i portali telematici resta concreta: canale corretto, prerequisiti, import disponibile, limiti busta, stato XSD/WSDL, "
+            "necessita' di certificato o handoff e prossimo passo."
         ),
     ),
     LexCompetenceProfile(

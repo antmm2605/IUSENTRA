@@ -475,7 +475,8 @@ def test_lex_assistant_usa_componente_esterno_e_posizione_persistente():
     assert "data-local-signer-setup-windows" in widget_template
     assert 'data-ai-mode="{{ \'local\' if request.host.split(\':\')[0] in [\'localhost\', \'127.0.0.1\'] else \'remote\' }}"' in widget_template
     assert 'data-pct-ai-drag-handle="true"' in widget_template
-    assert "posizione e dimensioni restano salvate su questo browser" in widget_template
+    assert '<p class="mb-0">Ciao, sono Lex.</p>' in widget_template
+    assert "Ti supporto su fascicoli" not in widget_template
     assert "Carica documenti" in widget_template
     assert "Scarica il riepilogo della conversazione" in widget_template
     assert "Detta la richiesta a Lex" in widget_template
@@ -484,7 +485,6 @@ def test_lex_assistant_usa_componente_esterno_e_posizione_persistente():
     assert "pct-ai-fab__label" not in widget_template
     assert "pct-ai-header__subtitle" not in widget_template
     assert "<script>" not in widget_template
-    assert "scaricare il singolo documento generato da Lex" in widget_template
     assert widget_icon.exists()
 
     assert "parseAttachments" in widget_docs_js
@@ -497,7 +497,14 @@ def test_lex_assistant_usa_componente_esterno_e_posizione_persistente():
     assert "data-generated-download" in widget_docs_js
     assert "SpeechRecognition" in widget_voice_js or "webkitSpeechRecognition" in widget_voice_js
     assert "speechSynthesis" in widget_voice_js
+    assert "DEFAULT_SILENCE_MS = 3000" in widget_voice_js
+    assert "recognition.continuous = true" in widget_voice_js
+    assert "preferFemale" in widget_voice_js
     assert "window.localStorage" in widget_js
+    assert "window.sessionStorage" in widget_js
+    assert "saveConversationMemory" in widget_js
+    assert "restoreConversationMemory" in widget_js
+    assert "HISTORY_LIMIT = 12" in widget_js
     assert "assistantAvatarMarkup" in widget_js
     assert "dataset.lexIconUrl" in widget_js
     assert "resetPosition" in widget_js
@@ -514,7 +521,9 @@ def test_lex_assistant_usa_componente_esterno_e_posizione_persistente():
     assert "voiceHelper" in widget_js
     assert "fetchServerContext" in widget_js
     assert "streamCompanionRagQuery" in widget_js
-    assert "fonti ufficiali web per aggiungere riferimenti aggiornati" in widget_js
+    assert "Ciao, sono Lex." in widget_js
+    assert "<div class=\"fw-semibold small mb-1\">Fonti</div>" not in widget_js
+    assert "answer + renderGeneratedDocumentActions(payload || {})" in widget_js
     assert "companionHelp" in widget_js
     assert "renderCompanionRuntimeHelp" in widget_js
     assert "isCompanionTransportError" in widget_js
@@ -540,7 +549,19 @@ def test_lex_assistant_usa_componente_esterno_e_posizione_persistente():
     assert ".pct-ai-resize-handle" in widget_scss
     assert ".pct-ai-generated-actions" in widget_scss
     assert ".pct-ai-generated-btn" in widget_scss
-    assert "fonti ufficiali web live" in widget_template
+
+
+def test_contesto_lex_compatta_le_sezioni_e_limita_le_fonti():
+    context_service = (REPO_ROOT / "web/services/assistente_studio_context.py").read_text(encoding="utf-8")
+
+    assert "def _select_detail_sections" in context_service
+    assert "def _should_include_live_web" in context_service
+    assert "_DEFAULT_DETAIL_SECTION_TITLES" in context_service
+    assert "_SECTION_KEYWORDS" in context_service
+    assert "selected_detail_titles = _select_detail_sections(q)" in context_service
+    assert "include_live_web = _should_include_live_web(q)" in context_service
+    assert '"sources": deduped_sources[:12]' in context_service
+    assert '"citations": [row.get("citation") for row in deduped_sources[:12] if row.get("citation")]' in context_service
 
 
 def test_preparazione_udienza_guidata_usa_componenti_modulari_e_js_esterno():

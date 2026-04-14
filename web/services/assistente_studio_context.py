@@ -41,6 +41,53 @@ _DEFAULT_WEB_SOURCE_IDS: tuple[str, ...] = (
     "agenzia_entrate",
 )
 
+_DEFAULT_DETAIL_SECTION_TITLES: tuple[str, ...] = (
+    "Fascicoli",
+    "Clienti",
+    "Agenda",
+    "Scadenziario",
+    "Template atti",
+)
+
+_SECTION_KEYWORDS: dict[str, tuple[str, ...]] = {
+    "Fascicoli": ("fascicolo", "fascicoli", "rg", "pratica", "causa", "giudice", "udienza"),
+    "Clienti": ("cliente", "clienti", "assistito", "anagrafica", "anagrafiche"),
+    "Agenda": ("agenda", "appuntamento", "calendario", "riunione", "udienza", "promemoria"),
+    "Soggetti": ("soggetto", "soggetti", "parte", "parti", "difensore", "codifensore", "domiciliatario"),
+    "Scadenziario": ("scadenza", "scadenze", "termine", "termini", "promemoria", "attivita"),
+    "Template atti": ("template", "atto", "atti", "ricorso", "comparsa", "citazione", "bozza"),
+    "Tariffario": ("tariffa", "tariffario", "compenso", "onorario", "parametri", "parcella"),
+    "Preventivi": ("preventivo", "preventivi", "offerta", "incarico"),
+    "Fatturazione": ("fattura", "fatturazione", "parcella", "saldo", "pagamento"),
+    "Ricerca legale e fonti web": ("norma", "normativa", "legge", "decreto", "articolo", "aggiornata", "fonte"),
+    "Archivio sentenze": ("sentenza", "sentenze", "massima", "giurisprudenza", "cassazione", "tar", "cds"),
+    "Strumenti legali": ("strumento", "strumenti", "interessi", "contributo", "pignoramento", "credito", "ctu"),
+    "Applicazioni": ("applicazione", "applicazioni", "modulo", "moduli", "workspace"),
+    "RAG documentale locale": ("documento", "documenti", "allegato", "allegati", "pdf", "verbale"),
+}
+
+_LIVE_WEB_KEYWORDS: tuple[str, ...] = (
+    "aggiorn",
+    "oggi",
+    "corrente",
+    "ultima",
+    "ultime",
+    "recent",
+    "norma",
+    "normativa",
+    "legge",
+    "decreto",
+    "ministero",
+    "pst",
+    "pdp",
+    "pat",
+    "pec",
+    "cassazione",
+    "tar",
+    "consiglio di stato",
+    "agenzia entrate",
+)
+
 
 def _cfg_data_path(key: str) -> str:
     paths = getattr(g, "data_paths", {}) or {}
@@ -113,6 +160,37 @@ def _append_section(
             *content,
         ]
     )
+
+
+def _keyword_score(question: str, keywords: tuple[str, ...]) -> int:
+    haystack = _clean_spaces(question).lower()
+    if not haystack:
+        return 0
+    return sum(1 for keyword in keywords if keyword and keyword in haystack)
+
+
+def _select_detail_sections(question: str) -> set[str]:
+    text = _clean_spaces(question).lower()
+    if not text:
+        return set(_DEFAULT_DETAIL_SECTION_TITLES)
+
+    scored = [
+        (title, _keyword_score(text, keywords))
+        for title, keywords in _SECTION_KEYWORDS.items()
+    ]
+    selected = [title for title, score in scored if score > 0]
+    if not selected:
+        return set(_DEFAULT_DETAIL_SECTION_TITLES)
+
+    selected.sort(key=lambda title: _keyword_score(text, _SECTION_KEYWORDS.get(title, ())), reverse=True)
+    return set(selected[:5])
+
+
+def _should_include_live_web(question: str) -> bool:
+    text = _clean_spaces(question).lower()
+    if not text:
+        return False
+    return any(keyword in text for keyword in _LIVE_WEB_KEYWORDS)
 
 
 def _load_studio_config() -> Any | None:
@@ -775,13 +853,17 @@ def build_lex_studio_context(question: str) -> dict[str, Any]:
     sources: list[dict[str, Any]] = []
     priority_sources: list[dict[str, Any]] = []
     live_source_ids: list[str] = []
+    selected_detail_titles = _select_detail_sections(q)
+    include_live_web = _should_include_live_web(q)
 
     _append_section(sections, "Profilo studio", _studio_profile_lines())
 
-    for title, builder in [
+    always_specs = [
         ("Impostazioni studio", _settings_studio_lines),
         ("PEC e canali email", _pec_lines),
         ("Quadro operativo", _operational_lines),
+    ]
+    detail_specs = [
         ("Fascicoli", lambda: _fascicoli_lines(q)),
         ("Clienti", lambda: _clienti_lines(q)),
         ("Agenda", lambda: _agenda_lines(q)),
@@ -791,6 +873,12 @@ def build_lex_studio_context(question: str) -> dict[str, Any]:
         ("Tariffario", lambda: _tariffario_lines(q)),
         ("Preventivi", lambda: _preventivi_lines(q)),
         ("Fatturazione", lambda: _fatturazione_lines(q)),
+        ("Archivio sentenze", lambda: _archivio_sentenze_lines(q)),
+        ("Strumenti legali", lambda: _strumenti_legali_lines(q)),
+        ("Applicazioni", lambda: _applicazioni_lines(q)),
+        ("RAG documentale locale", lambda: _document_rag_lines(q)),
+    ]
+    web_specs = [
         ("Ricerca legale e fonti web", lambda: _ricerca_legale_lines(q)),
         ("Verifica live fonti ufficiali web", lambda: (
             lambda payload: (
@@ -798,11 +886,18 @@ def build_lex_studio_context(question: str) -> dict[str, Any]:
                 payload.get("sources") or [],
             )
         )(build_live_official_web_context(q))),
-        ("Archivio sentenze", lambda: _archivio_sentenze_lines(q)),
-        ("Strumenti legali", lambda: _strumenti_legali_lines(q)),
-        ("Applicazioni", lambda: _applicazioni_lines(q)),
-        ("RAG documentale locale", lambda: _document_rag_lines(q)),
-    ]:
+    ]
+
+    section_plan = list(always_specs)
+    section_plan.extend(
+        (title, builder)
+        for title, builder in detail_specs
+        if title in selected_detail_titles
+    )
+    if include_live_web:
+        section_plan.extend(web_specs)
+
+    for title, builder in section_plan:
         try:
             lines, section_sources = builder()
         except Exception as exc:
@@ -835,8 +930,8 @@ def build_lex_studio_context(question: str) -> dict[str, Any]:
 
     return {
         "prompt_block": "\n".join(sections).strip(),
-        "sources": deduped_sources[:24],
-        "citations": [row.get("citation") for row in deduped_sources[:24] if row.get("citation")],
+        "sources": deduped_sources[:12],
+        "citations": [row.get("citation") for row in deduped_sources[:12] if row.get("citation")],
         "engine_ids": motori_per_query(q),
         "source_ids": list(dict.fromkeys([*fonti_per_query(q), *live_source_ids])),
     }

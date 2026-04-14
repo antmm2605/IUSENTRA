@@ -2,6 +2,8 @@
   'use strict';
 
   var STORAGE_FALLBACK = 'hacs-pct-ai-layout-v1';
+  var SESSION_STORAGE_SUFFIX = ':session';
+  var HISTORY_LIMIT = 12;
   var DESKTOP_MEDIA = '(min-width: 992px)';
   var DRAG_MARGIN = 12;
   var MIN_WIDGET_WIDTH = 368;
@@ -13,6 +15,7 @@
     streaming: false,
     history: [],
     attachments: [],
+    sessionId: null,
     fascId: null,
     currentBubble: null,
     drag: null,
@@ -162,18 +165,7 @@
   }
 
   function renderSources(payload) {
-    var citations = Array.isArray(payload && payload.citations) ? payload.citations.filter(Boolean) : [];
-    if (!citations.length) {
-      return '';
-    }
-    return (
-      '<div class="pct-ai-sources mt-3">' +
-        '<div class="fw-semibold small mb-1">Fonti</div>' +
-        '<ul class="small mb-0">' +
-          citations.map(function (item) { return '<li>' + escapeHtml(item) + '</li>'; }).join('') +
-        '</ul>' +
-      '</div>'
-    );
+    return '';
   }
 
   function generatedDocumentPayload(payload) {
@@ -293,7 +285,12 @@
     if (!clean) {
       return;
     }
-    voice.speak(clean, { lang: 'it-IT', rate: 1 });
+    voice.speak(clean, {
+      lang: 'it-IT',
+      rate: 0.96,
+      pitch: 1.05,
+      preferFemale: true,
+    });
   }
 
   function renderCompanionHelp(outdated) {
@@ -357,7 +354,7 @@
     }
     setBubbleHtml(
       element,
-      answer + renderSources(payload || {}) + renderGeneratedDocumentActions(payload || {})
+      answer + renderGeneratedDocumentActions(payload || {})
     );
   }
 
@@ -366,32 +363,114 @@
       '<div class="pct-ai-msg pct-ai-msg--assistant">' +
         assistantAvatarMarkup() +
         '<div class="pct-ai-bubble">' +
-          '<p>Ciao, sono <strong>Lex</strong>. Ti supporto su fascicoli, clienti, soggetti, dati studio, PEC, agenda, scadenziario, deposito telematico, firma digitale e moduli operativi dello studio.</p>' +
-          '<ul>' +
-            '<li>Suggerimenti su PCT, PDP, PAT, firma digitale, PEC e PDF/A</li>' +
-            '<li>Supporto consultivo su clienti, soggetti, dati studio, PEC, agenda, scadenziario e fascicoli</li>' +
-            '<li>Contesto operativo su template atti, tariffario, preventivi, fatturazione e applicazioni</li>' +
-            '<li>Piste di ricerca legale con archivio sentenze e fonti ufficiali web live</li>' +
-          '</ul>' +
-          '<p>Lex resta sempre consultivo: suggerisce controlli, rischi e prossimi passi, ma non prende decisioni al posto del professionista.</p>' +
-          '<p>Quando la domanda lo richiede, puo\' consultare automaticamente fonti ufficiali web per aggiungere riferimenti aggiornati alla risposta.</p>' +
-          '<p>Se HACS e\' online, Lex usa il companion locale di questo dispositivo per parlare con Ollama in modo sicuro e non bloccante.</p>' +
-          '<p>Puoi caricare documenti, dettare la richiesta con la voce e scaricare il singolo documento generato da Lex oppure il riepilogo completo della conversazione.</p>' +
-          '<p class="mb-0">Se il pannello ti intralcia, trascinalo o ridimensionalo: posizione e dimensioni restano salvate su questo browser.</p>' +
+          '<p class="mb-0">Ciao, sono Lex.</p>' +
         '</div>' +
       '</div>'
     );
   }
 
+  function generateSessionId() {
+    return 'lex-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8);
+  }
+
+  function sessionStorageKey() {
+    return storageKey + SESSION_STORAGE_SUFFIX;
+  }
+
+  function trimHistory() {
+    if (state.history.length > HISTORY_LIMIT) {
+      state.history = state.history.slice(-HISTORY_LIMIT);
+    }
+  }
+
+  function conversationContextLabel() {
+    return ctx && !ctx.hidden && ctxLabel ? String(ctxLabel.textContent || '').trim() : '';
+  }
+
+  function saveConversationMemory() {
+    try {
+      if (!window.sessionStorage) {
+        return;
+      }
+      trimHistory();
+      if (!state.history.length && !state.attachments.length) {
+        window.sessionStorage.removeItem(sessionStorageKey());
+        return;
+      }
+      if (!state.sessionId) {
+        state.sessionId = generateSessionId();
+      }
+      window.sessionStorage.setItem(
+        sessionStorageKey(),
+        JSON.stringify({
+          sessionId: state.sessionId,
+          fascId: state.fascId || '',
+          contextLabel: conversationContextLabel(),
+          history: state.history.slice(-HISTORY_LIMIT),
+          attachments: state.attachments.slice(0, 4),
+          savedAt: new Date().toISOString(),
+        })
+      );
+    } catch (error) {
+      return;
+    }
+  }
+
+  function restoreConversationMemory() {
+    try {
+      if (!window.sessionStorage) {
+        return false;
+      }
+      var raw = window.sessionStorage.getItem(sessionStorageKey());
+      if (!raw) {
+        return false;
+      }
+      var parsed = JSON.parse(raw);
+      state.sessionId = parsed && parsed.sessionId ? String(parsed.sessionId) : generateSessionId();
+      state.history = Array.isArray(parsed && parsed.history) ? parsed.history.slice(-HISTORY_LIMIT) : [];
+      state.attachments = Array.isArray(parsed && parsed.attachments) ? parsed.attachments.slice(0, 4) : [];
+      if (!state.fascId && parsed && parsed.fascId) {
+        state.fascId = String(parsed.fascId);
+      }
+      if (!state.fascId && parsed && parsed.contextLabel && ctx && ctxLabel) {
+        ctx.hidden = false;
+        ctxLabel.textContent = String(parsed.contextLabel);
+      }
+      return Boolean(state.history.length || state.attachments.length);
+    } catch (error) {
+      try {
+        window.sessionStorage.removeItem(sessionStorageKey());
+      } catch (_cleanupError) {
+        return false;
+      }
+      return false;
+    }
+  }
+
+  function renderConversation() {
+    if (!messages) {
+      return;
+    }
+    messages.innerHTML = '';
+    if (!state.history.length) {
+      messages.innerHTML = defaultIntroMarkup();
+      scrollBottom();
+      return;
+    }
+    state.history.forEach(function (entry) {
+      appendMessage(entry.role === 'user' ? 'user' : 'assistant', entry.content || '');
+    });
+  }
+
   function clearHistory() {
+    state.sessionId = generateSessionId();
     state.history = [];
     state.currentBubble = null;
     state.attachments = [];
-    if (messages) {
-      messages.innerHTML = defaultIntroMarkup();
-    }
+    renderConversation();
     renderAttachments();
-    setStatus('Conversazione pronta.');
+    saveConversationMemory();
+    setStatus('Nuova sessione pronta.');
   }
 
   function renderAttachments() {
@@ -407,6 +486,7 @@
       return String(item.id || '') !== String(attachmentId || '');
     });
     renderAttachments();
+    saveConversationMemory();
     setStatus(state.attachments.length ? 'Documento rimosso dal contesto di Lex.' : 'Nessun documento caricato al momento.');
   }
 
@@ -415,6 +495,7 @@
     var errors = Array.isArray(payload && payload.errors) ? payload.errors : [];
     state.attachments = state.attachments.concat(parsed).slice(0, 4);
     renderAttachments();
+    saveConversationMemory();
     if (errors.length && parsed.length) {
       setStatus(parsed.length + ' documenti pronti, con ' + errors.length + ' file da verificare.');
     } else if (errors.length) {
@@ -502,19 +583,23 @@
   }
 
   function payloadBase() {
+    trimHistory();
     return {
-      messages: state.history.slice(-20),
+      session_id: state.sessionId || generateSessionId(),
+      messages: state.history.slice(-HISTORY_LIMIT),
       fascicolo_id: state.fascId || '',
     };
   }
 
   function sendLocal(text) {
+    var payload = payloadBase();
     fetch(widget.dataset.chatUrl || '/api/assistente/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        messages: state.history.slice(-20),
-        fascicolo_id: state.fascId || '',
+        session_id: payload.session_id,
+        messages: payload.messages,
+        fascicolo_id: payload.fascicolo_id,
         attachments: state.attachments.slice(),
       }),
     }).then(function (response) {
@@ -532,6 +617,7 @@
           if (result.done) {
             setAnswerPayload(state.currentBubble, { answer: full, citations: [], question: text });
             state.history.push({ role: 'assistant', content: full });
+            saveConversationMemory();
             speakAnswer(full);
             finalizeRequest();
             return;
@@ -550,6 +636,7 @@
               if (raw === '[DONE]') {
                 setAnswerPayload(state.currentBubble, { answer: full, citations: [], question: text });
                 state.history.push({ role: 'assistant', content: full });
+                saveConversationMemory();
                 speakAnswer(full);
                 finalizeRequest();
                 return;
@@ -560,6 +647,7 @@
               if (data.errore) {
                 setBubbleContent(state.currentBubble, 'Attenzione: ' + data.errore);
                 state.history.push({ role: 'assistant', content: data.errore });
+                saveConversationMemory();
                 finalizeRequest();
                 return;
               }
@@ -600,8 +688,9 @@
     browserBridge()
       .fetchServerContext(bridgeConfig, {
         question: text,
-        messages: state.history.slice(-20),
+        messages: state.history.slice(-HISTORY_LIMIT),
         fascicolo_id: state.fascId || '',
+        session_id: state.sessionId || generateSessionId(),
       })
       .then(function (prepared) {
         var docs = documentsHelper();
@@ -633,6 +722,7 @@
         payload.question = text;
         setAnswerPayload(state.currentBubble, payload);
         state.history.push({ role: 'assistant', content: String(payload.answer || '').trim() });
+        saveConversationMemory();
         speakAnswer(payload.answer || '');
         checkStatus();
         finalizeRequest('Risposta generata sul dispositivo locale.');
@@ -671,6 +761,7 @@
               '<div class="small mt-2"><code>' + escapeHtml((error && error.message) || 'Errore operativo del modulo AI locale.') + '</code></div>'
           );
           state.history.push({ role: 'assistant', content: String(error.__partialAnswer || '').trim() });
+          saveConversationMemory();
           finalizeRequest('Risposta interrotta dal companion locale.');
           return;
         }
@@ -696,6 +787,7 @@
     }
 
     state.history.push({ role: 'user', content: text });
+    saveConversationMemory();
     appendMessage('user', text);
 
     state.streaming = true;
@@ -1084,6 +1176,7 @@
         setStatus('Lex sta ascoltando la tua richiesta...');
         voice.startListening({
           lang: 'it-IT',
+          silenceMs: 3000,
           onTranscript: function (transcript) {
             if (input) {
               input.value = transcript || '';
@@ -1138,6 +1231,7 @@
     if (state.fascId && ctx && ctxLabel) {
       ctx.hidden = false;
       ctxLabel.textContent = 'Contesto fascicolo attivo';
+      saveConversationMemory();
     }
   }
 
@@ -1173,9 +1267,19 @@
     }
 
     bindEvents();
-    initContext();
     restorePosition();
-    clearHistory();
+    restoreConversationMemory();
+    initContext();
+    renderConversation();
+    renderAttachments();
+    if (!state.sessionId) {
+      state.sessionId = generateSessionId();
+    }
+    if (!state.history.length && !state.attachments.length) {
+      setStatus('Assistente pronto.');
+    } else {
+      setStatus('Sessione ripristinata.');
+    }
     updateVoiceUi();
     checkStatus();
   }

@@ -1,0 +1,144 @@
+<section class="hearing-prep-panel hearing-prep-summary" id="riepilogo-fascicolo">
+  {% if dashboard.selected_case %}
+    {% set selected = dashboard.selected_case %}
+    <div class="hearing-prep-summary__hero">
+      <div>
+        <div class="hearing-prep-panel__eyebrow">Riepilogo fascicolo</div>
+        <h3 class="hearing-prep-summary__title">{{ selected.cliente }}</h3>
+        <p class="hearing-prep-summary__subtitle">
+          {{ selected.controparte }} · {{ selected.rg }}
+        </p>
+      </div>
+      {% if selected.status_badge %}
+        <span class="badge text-bg-{{ selected.status_badge.tone }}">{{ selected.status_badge.label }}</span>
+      {% endif %}
+    </div>
+
+    <div class="hearing-prep-summary__metrics">
+      <div class="hearing-prep-summary__metric">
+        <span class="hearing-prep-summary__metric-label">Documenti acquisiti</span>
+        <strong>{{ selected.documenti_acquisiti }}</strong>
+      </div>
+      <div class="hearing-prep-summary__metric">
+        <span class="hearing-prep-summary__metric-label">Documenti mancanti</span>
+        <strong>{{ selected.documenti_mancanti }}</strong>
+      </div>
+      <div class="hearing-prep-summary__metric">
+        <span class="hearing-prep-summary__metric-label">Note inserite</span>
+        <strong>{{ selected.note_inserite }}</strong>
+      </div>
+      <div class="hearing-prep-summary__metric">
+        <span class="hearing-prep-summary__metric-label">Attivita aperte</span>
+        <strong>{{ selected.attivita_aperte }}</strong>
+      </div>
+    </div>
+
+    <div class="hearing-prep-summary__section">
+      <div class="hearing-prep-summary__section-title">Dati udienza</div>
+      <dl class="hearing-prep-summary__detail-list">
+        <div><dt>Ufficio giudiziario</dt><dd>{{ selected.ufficio_giudiziario }}</dd></div>
+        <div><dt>Giudice</dt><dd>{{ selected.giudice }}</dd></div>
+        <div><dt>Sezione</dt><dd>{{ selected.sezione }}</dd></div>
+        <div><dt>Sede</dt><dd>{{ selected.sede }}</dd></div>
+        <div><dt>Data udienza</dt><dd>{{ selected.data_udienza_label }}</dd></div>
+        <div><dt>Tipo udienza</dt><dd>{{ selected.tipo_udienza }}</dd></div>
+        <div><dt>Modalita</dt><dd>{{ selected.modalita_udienza }}</dd></div>
+        <div><dt>Fase processuale</dt><dd>{{ selected.fase_processuale }}</dd></div>
+      </dl>
+    </div>
+
+    <div class="hearing-prep-summary__section">
+      <div class="hearing-prep-summary__section-title">Cliente e contatti</div>
+      <dl class="hearing-prep-summary__detail-list">
+        <div><dt>Cliente</dt><dd>{{ selected.cliente }}</dd></div>
+        <div><dt>Email</dt><dd>{{ selected.cliente_email or 'Da completare' }}</dd></div>
+        <div><dt>PEC</dt><dd>{{ selected.cliente_pec or 'Da completare' }}</dd></div>
+        <div><dt>Telefono</dt><dd>{{ selected.cliente_telefono or 'Da completare' }}</dd></div>
+      </dl>
+    </div>
+
+    <div class="hearing-prep-summary__section">
+      <div class="hearing-prep-summary__section-title">Parti del procedimento</div>
+      {% if selected.ha_parti %}
+        <div class="hearing-prep-summary__subjects">
+          {% for parte in selected.parti %}
+            <span class="hearing-prep-summary__subject">
+              <strong>{{ parte.ruolo }}</strong>
+              <span>{{ parte.nome }}</span>
+            </span>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="hearing-prep-summary__empty">Nessuna parte collegata al fascicolo.</div>
+      {% endif %}
+    </div>
+
+    <div class="hearing-prep-summary__section">
+      <div class="hearing-prep-summary__section-title">Checklist professionale</div>
+      <ul class="hearing-prep-summary__checklist">
+        <li class="{% if selected.ha_udienza %}is-done{% endif %}">
+          <i class="bi {% if selected.ha_udienza %}bi-check2-circle{% else %}bi-circle{% endif %}"></i>
+          <span>Dati udienza completi</span>
+        </li>
+        <li class="{% if selected.ha_parti %}is-done{% endif %}">
+          <i class="bi {% if selected.ha_parti %}bi-check2-circle{% else %}bi-circle{% endif %}"></i>
+          <span>Parti e difensori verificati</span>
+        </li>
+        <li class="{% if selected.documenti_acquisiti > 0 %}is-done{% endif %}">
+          <i class="bi {% if selected.documenti_acquisiti > 0 %}bi-check2-circle{% else %}bi-circle{% endif %}"></i>
+          <span>Documenti presenti</span>
+        </li>
+        <li class="{% if selected.note_inserite > 0 %}is-done{% endif %}">
+          <i class="bi {% if selected.note_inserite > 0 %}bi-check2-circle{% else %}bi-circle{% endif %}"></i>
+          <span>Note strategiche compilate</span>
+        </li>
+        <li class="{% if selected.sessione_attiva or selected.sessione_completata %}is-done{% endif %}">
+          <i class="bi {% if selected.sessione_attiva or selected.sessione_completata %}bi-check2-circle{% else %}bi-circle{% endif %}"></i>
+          <span>Controllo finale gia avviato</span>
+        </li>
+      </ul>
+    </div>
+
+    <div class="hearing-prep-summary__section">
+      <div class="hearing-prep-summary__section-title">Azioni rapide</div>
+      <div class="hearing-prep-summary__actions">
+        <a href="{{ url_for('dettaglio_fascicolo', id_fasc=selected.id) }}" class="btn btn-outline-secondary btn-sm">
+          <i class="bi bi-folder2-open me-1"></i>Apri fascicolo
+        </a>
+        <a href="{{ url_for('dettaglio_fascicolo', id_fasc=selected.id) }}" class="btn btn-outline-secondary btn-sm">
+          <i class="bi bi-files me-1"></i>Visualizza documenti
+        </a>
+        <a href="{{ url_for('scadenziario') }}" class="btn btn-outline-secondary btn-sm">
+          <i class="bi bi-alarm me-1"></i>Apri scadenziario
+        </a>
+        <a href="{{ url_for('workspace_intelligente') }}?id_fascicolo={{ selected.id }}"
+           class="btn btn-outline-secondary btn-sm">
+          <i class="bi bi-stars me-1"></i>Genera bozza note udienza
+        </a>
+        {% if selected.sessione_attiva %}
+          <a href="{{ url_for('wizard_pro.step', id_sessione=selected.sessione_attiva.id, n=selected.sessione_attiva.step_corrente) }}"
+             class="btn btn-primary btn-sm">
+            <i class="bi bi-play-circle me-1"></i>Riprendi preparazione
+          </a>
+        {% else %}
+          <form method="POST" action="{{ url_for('wizard_pro.nuovo') }}" class="hearing-prep-summary__action-form">
+            <input type="hidden" name="id_fascicolo" value="{{ selected.id }}">
+            <input type="hidden" name="id_appuntamento" value="{{ selected.id_appuntamento }}">
+            <button type="submit" class="btn btn-primary btn-sm">
+              <i class="bi bi-diagram-3 me-1"></i>Avvia preparazione
+            </button>
+          </form>
+        {% endif %}
+      </div>
+    </div>
+  {% else %}
+    <div class="hearing-prep-summary__empty-state">
+      <div class="hearing-prep-panel__eyebrow">Riepilogo fascicolo</div>
+      <h3 class="hearing-prep-summary__title">Seleziona un fascicolo</h3>
+      <p class="hearing-prep-summary__subtitle">
+        Il pannello contestuale mostra cliente, controparte, giudice, udienza, documenti,
+        attivita aperte e azioni rapide del fascicolo selezionato.
+      </p>
+    </div>
+  {% endif %}
+</section>

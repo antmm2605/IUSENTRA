@@ -1,0 +1,36 @@
+<section class="hearing-prep-panel hearing-prep-stepper" aria-label="Percorso guidato">
+  <div class="hearing-prep-stepper__header">
+    <div>
+      <div class="hearing-prep-panel__eyebrow">Percorso guidato</div>
+      <h2 class="hearing-prep-stepper__title">Passo 1 di 6 — Selezione Fascicolo</h2>
+    </div>
+    <span class="hearing-prep-stepper__progress-label">Percorso completo sempre visibile</span>
+  </div>
+  <div class="hearing-prep-stepper__rail" role="list">
+    {% for step in dashboard.steps %}
+      <div class="hearing-prep-stepper__item{% if loop.first %} is-current{% endif %}" role="listitem">
+        <span class="hearing-prep-stepper__dot">{{ loop.index }}</span>
+        <div class="hearing-prep-stepper__content">
+          <div class="hearing-prep-stepper__label">{{ step }}</div>
+          <div class="hearing-prep-stepper__hint">
+            {% if loop.first %}
+              Seleziona il fascicolo da cui avviare la preparazione.
+            {% else %}
+              {% if step == "Dati Udienza" %}
+                Ufficio giudiziario, giudice, modalita e note di cancelleria.
+              {% elif step == "Parti e Difensori" %}
+                Cliente assistito, controparti, codifensori e riferimenti.
+              {% elif step == "Documenti e Allegati" %}
+                Checklist documentale, verbali e allegati da presidiare.
+              {% elif step == "Note Strategiche" %}
+                Punti da sostenere, criticita e richieste al giudice.
+              {% else %}
+                Warning finali, esportazione e conferma della preparazione.
+              {% endif %}
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+</section>

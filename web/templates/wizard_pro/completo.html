@@ -1,12 +1,12 @@
 {% extends "base.html" %}
-{% block title %}Wizard Pro — Completato{% endblock %}
+{% block title %}Preparazione Udienza Guidata — Completata{% endblock %}
 
 {% block content %}
 
 {# ── Breadcrumb ── #}
 <nav aria-label="breadcrumb" class="mb-3">
   <ol class="breadcrumb small">
-    <li class="breadcrumb-item"><a href="{{ url_for('wizard_pro.index') }}">Wizard Pro</a></li>
+    <li class="breadcrumb-item"><a href="{{ url_for('wizard_pro.index') }}">Preparazione Udienza</a></li>
     <li class="breadcrumb-item active">Riepilogo</li>
   </ol>
 </nav>
@@ -17,7 +17,7 @@
        style="width:5rem;height:5rem;background:linear-gradient(135deg,#198754,#20c997)">
     <i class="bi bi-check-lg text-white" style="font-size:2.5rem"></i>
   </div>
-  <h4 class="fw-bold mb-1">Wizard Pro completato</h4>
+  <h4 class="fw-bold mb-1">Preparazione udienza completata</h4>
   <p class="text-muted">{{ sessione.titolo }}</p>
 
   {% if sessione.esito %}
@@ -140,10 +140,10 @@
       </a>
       {% endif %}
       <a href="{{ url_for('wizard_pro.index') }}" class="btn btn-outline-secondary">
-        <i class="bi bi-list-ul me-2"></i>Tutti i wizard
+        <i class="bi bi-list-ul me-2"></i>Tutte le preparazioni
       </a>
       <a href="{{ url_for('wizard_pro.nuovo') }}" class="btn btn-outline-primary">
-        <i class="bi bi-plus-circle me-2"></i>Nuovo Wizard Pro
+        <i class="bi bi-plus-circle me-2"></i>Nuova preparazione
       </a>
       <form method="POST" action="{{ url_for('wizard_pro.archivia', id_sessione=sessione.id) }}" class="ms-auto">
         <button type="submit" class="btn btn-outline-secondary btn-sm"

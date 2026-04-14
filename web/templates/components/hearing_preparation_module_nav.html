@@ -1,0 +1,18 @@
+<section class="hearing-prep-panel hearing-prep-panel--soft">
+  <div class="hearing-prep-panel__eyebrow">Navigazione modulo</div>
+  <nav class="hearing-prep-module-nav" aria-label="Navigazione Preparazione Udienza">
+    {% for item in dashboard.nav_items %}
+      {% set item_url = url_for(item.endpoint) %}
+      {% if item.query and item.query.get('vista') %}
+        {% set item_url = item_url ~ '?vista=' ~ item.query.get('vista') %}
+      {% endif %}
+      <a href="{{ item_url }}"
+         class="hearing-prep-module-nav__link{% if item.active %} is-active{% endif %}">
+        <span class="hearing-prep-module-nav__icon">
+          <i class="bi {{ item.icon }}"></i>
+        </span>
+        <span>{{ item.label }}</span>
+      </a>
+    {% endfor %}
+  </nav>
+</section>

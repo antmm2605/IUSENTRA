@@ -1,193 +1,226 @@
 {% extends "base.html" %}
-{% block title %}Wizard Pro — Udienze in Presenza{% endblock %}
+{% block title %}Preparazione Udienza Guidata{% endblock %}
+{% block pct_modulo %}preparazione-udienza-guidata{% endblock %}
 
 {% block content %}
+<div class="hearing-prep-page" data-hearing-preparation>
+  <nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb small">
+      <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Panoramica</a></li>
+      <li class="breadcrumb-item"><a href="{{ url_for('lista_fascicoli') }}">Fascicoli</a></li>
+      <li class="breadcrumb-item"><a href="{{ url_for('agenda_view') }}?vista=settimana">Udienze</a></li>
+      <li class="breadcrumb-item active">Preparazione Udienza</li>
+    </ol>
+  </nav>
 
-{# ── Breadcrumb ── #}
-<nav aria-label="breadcrumb" class="mb-3">
-  <ol class="breadcrumb small">
-    <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Panoramica</a></li>
-    <li class="breadcrumb-item active">Wizard Pro</li>
-  </ol>
-</nav>
+  <section class="hearing-prep-hero">
+    <div class="hearing-prep-hero__content">
+      <span class="hearing-prep-hero__kicker">Scadenze · Modulo guidato</span>
+      <h1 class="hearing-prep-hero__title">Preparazione Udienza Guidata</h1>
+      <p class="hearing-prep-hero__subtitle">
+        Seleziona il fascicolo da cui avviare la preparazione dell'udienza.
+      </p>
+    </div>
+    <div class="hearing-prep-hero__actions">
+      <button type="button" class="btn btn-primary" data-hearing-focus-search>
+        <i class="bi bi-plus-circle me-1"></i>Nuova preparazione
+      </button>
+      {% if dashboard.resume_session %}
+        <a href="{{ url_for('wizard_pro.step', id_sessione=dashboard.resume_session.id, n=dashboard.resume_session.step_corrente) }}"
+           class="btn btn-outline-secondary">
+          <i class="bi bi-arrow-clockwise me-1"></i>Riprendi bozza
+        </a>
+      {% else %}
+        <button type="button" class="btn btn-outline-secondary" disabled>
+          <i class="bi bi-journal-richtext me-1"></i>Riprendi bozza
+        </button>
+      {% endif %}
+      {% if dashboard.selected_case and dashboard.selected_case.status_badge %}
+        <span class="badge text-bg-{{ dashboard.selected_case.status_badge.tone }} hearing-prep-hero__badge">
+          {{ dashboard.selected_case.status_badge.label }}
+        </span>
+      {% endif %}
+    </div>
+  </section>
 
-{# ── Header ── #}
-<div class="d-flex align-items-center gap-3 mb-4">
-  <div class="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
-       style="width:3rem;height:3rem;background:linear-gradient(135deg,#1a3a5c,#2563eb)">
-    <i class="bi bi-stars text-white fs-5"></i>
-  </div>
-  <div>
-    <h4 class="mb-0 fw-bold">Wizard Pro</h4>
-    <p class="text-muted small mb-0">Guida passo-passo per l'udienza in presenza</p>
-  </div>
-  <a href="{{ url_for('wizard_pro.nuovo') }}" class="btn btn-primary ms-auto">
-    <i class="bi bi-plus-circle me-1"></i>Avvia Wizard
-  </a>
-</div>
+  <div class="hearing-prep-layout">
+    <aside class="hearing-prep-layout__aside">
+      {% include "components/hearing_preparation_module_nav.html" %}
 
-{# ── Sessioni attive ── #}
-{% if attive %}
-<h6 class="text-uppercase text-muted fw-semibold mb-2" style="letter-spacing:.5px;font-size:.72rem">
-  <i class="bi bi-play-circle me-1 text-success"></i>In corso — {{ attive|length }}
-</h6>
-<div class="row g-3 mb-4">
-  {% for item in attive %}
-  {% set s = item.sessione %}
-  {% set fasc = item.fascicolo %}
-  <div class="col-md-6 col-xl-4">
-    <div class="card border-0 shadow-sm h-100" style="border-left:4px solid #2563eb!important">
-      <div class="card-body">
-        <div class="d-flex align-items-start gap-2 mb-2">
-          <div class="flex-grow-1">
-            <div class="fw-bold small" style="line-height:1.3">{{ s.titolo }}</div>
-            {% if fasc %}
-            <div class="text-muted" style="font-size:.72rem">
-              <i class="bi bi-folder2 me-1"></i>{{ fasc.numero }}
-              {% if fasc.tribunale %} · {{ fasc.tribunale }}{% endif %}
+      <section class="hearing-prep-panel">
+        <div class="hearing-prep-panel__eyebrow">Stato modulo</div>
+        <div class="hearing-prep-metrics">
+          {% for metric in dashboard.metrics %}
+            <div class="hearing-prep-metric">
+              <span class="hearing-prep-metric__icon">
+                <i class="bi {{ metric.icon }}"></i>
+              </span>
+              <div>
+                <div class="hearing-prep-metric__value">{{ metric.value }}</div>
+                <div class="hearing-prep-metric__label">{{ metric.label }}</div>
+              </div>
             </div>
-            {% endif %}
-          </div>
-          <span class="badge bg-primary">Step {{ s.step_corrente }}/5</span>
-        </div>
-
-        {# Progress bar #}
-        <div class="progress mb-2" style="height:6px;border-radius:3px">
-          <div class="progress-bar bg-primary" style="width:{{ s.percentuale_completamento }}%"></div>
-        </div>
-        <div class="text-muted mb-3" style="font-size:.7rem">
-          {{ s.percentuale_completamento }}% completato
-          {% if s.avvocato %} · <i class="bi bi-person me-1"></i>{{ s.avvocato }}{% endif %}
-        </div>
-
-        {# Step stepper mini #}
-        <div class="d-flex gap-1 mb-3">
-          {% for st in [1,2,3,4,5] %}
-          {% set confermato = [s.step1_confermato, s.step2_confermato, s.step3_confermato, s.step4_confermato, s.step5_confermato][st-1] %}
-          <span class="rounded-circle d-flex align-items-center justify-content-center
-                        {% if confermato %}bg-success{% elif st == s.step_corrente %}bg-primary{% else %}bg-light border{% endif %}"
-                style="width:1.4rem;height:1.4rem;font-size:.62rem;font-weight:700;
-                       {% if not confermato and st != s.step_corrente %}color:#adb5bd{% else %}color:white{% endif %}">
-            {% if confermato %}<i class="bi bi-check" style="font-size:.65rem"></i>{% else %}{{ st }}{% endif %}
-          </span>
           {% endfor %}
         </div>
+      </section>
 
-        <div class="d-flex gap-2">
-          <a href="{{ url_for('wizard_pro.step', id_sessione=s.id, n=s.step_corrente) }}"
-             class="btn btn-sm btn-primary flex-grow-1">
-            <i class="bi bi-play-fill me-1"></i>Continua
-          </a>
-          <form method="POST" action="{{ url_for('wizard_pro.archivia', id_sessione=s.id) }}" class="d-inline">
-            <button type="submit" class="btn btn-sm btn-outline-secondary" title="Archivia"
-                    onclick="return confirm('Archiviare questa sessione?')">
-              <i class="bi bi-archive"></i>
-            </button>
-          </form>
-        </div>
-      </div>
-      <div class="card-footer bg-transparent border-top-0 pt-0 pb-2 px-3">
-        <span class="text-muted" style="font-size:.68rem">
-          <i class="bi bi-clock me-1"></i>
-          Modificato {{ s.modificato_il[:10] if s.modificato_il else 'n.d.' }}
-        </span>
-      </div>
-    </div>
-  </div>
-  {% endfor %}
-</div>
-{% endif %}
-
-{# ── Sessioni completate ── #}
-{% if completate %}
-<h6 class="text-uppercase text-muted fw-semibold mb-2" style="letter-spacing:.5px;font-size:.72rem">
-  <i class="bi bi-check-circle me-1 text-success"></i>Completate — {{ completate|length }}
-</h6>
-<div class="card border-0 shadow-sm mb-4">
-  <ul class="list-group list-group-flush">
-    {% for item in completate %}
-    {% set s = item.sessione %}
-    {% set fasc = item.fascicolo %}
-    <li class="list-group-item px-3 py-2">
-      <div class="d-flex align-items-center gap-3">
-        <div class="rounded-circle d-flex align-items-center justify-content-center bg-success flex-shrink-0"
-             style="width:2rem;height:2rem">
-          <i class="bi bi-check text-white" style="font-size:.85rem"></i>
-        </div>
-        <div class="flex-grow-1 min-width-0">
-          <div class="fw-semibold small text-truncate">{{ s.titolo }}</div>
-          <div class="text-muted" style="font-size:.7rem">
-            {% if fasc %}{{ fasc.numero }} · {% endif %}
-            Completato {{ s.completato_il[:10] if s.completato_il else 'n.d.' }}
-            {% if s.esito %}
-            · <span class="badge bg-{{ s.colore_esito }} bg-opacity-75">{{ s.label_esito }}</span>
-            {% endif %}
+      <section class="hearing-prep-panel">
+        <div class="hearing-prep-panel__eyebrow">Bozze e ripartenze</div>
+        {% if dashboard.recent_drafts %}
+          <div class="hearing-prep-session-list">
+            {% for item in dashboard.recent_drafts %}
+              <a href="{{ url_for('wizard_pro.step', id_sessione=item.sessione.id, n=item.sessione.step_corrente) }}"
+                 class="hearing-prep-session-list__item">
+                <div>
+                  <div class="hearing-prep-session-list__title">
+                    {{ item.fascicolo.cliente if item.fascicolo else item.sessione.titolo }}
+                  </div>
+                  <div class="hearing-prep-session-list__meta">
+                    {{ item.fascicolo.rg if item.fascicolo else item.sessione.titolo }}
+                    · Step {{ item.sessione.step_corrente }}/5
+                  </div>
+                </div>
+                <span class="badge text-bg-{{ item.status.tone }}">{{ item.status.label }}</span>
+              </a>
+            {% endfor %}
           </div>
-        </div>
-        <div class="d-flex gap-1 flex-shrink-0">
-          <a href="{{ url_for('wizard_pro.completo', id_sessione=s.id) }}"
-             class="btn btn-sm btn-outline-primary" title="Riepilogo">
-            <i class="bi bi-eye" style="font-size:.75rem"></i>
-          </a>
-          <form method="POST" action="{{ url_for('wizard_pro.elimina', id_sessione=s.id) }}" class="d-inline">
-            <button type="submit" class="btn btn-sm btn-outline-danger" title="Elimina"
-                    onclick="return confirm('Eliminare definitivamente?')">
-              <i class="bi bi-trash" style="font-size:.75rem"></i>
-            </button>
-          </form>
-        </div>
-      </div>
-    </li>
-    {% endfor %}
-  </ul>
-</div>
-{% endif %}
+        {% else %}
+          <div class="hearing-prep-empty-copy">Nessuna bozza attiva da riprendere.</div>
+        {% endif %}
+      </section>
 
-{# ── Empty state ── #}
-{% if not attive and not completate and not archiviate %}
-<div class="text-center py-5">
-  <div class="rounded-circle d-inline-flex align-items-center justify-content-center mb-3"
-       style="width:5rem;height:5rem;background:#f0f4ff">
-    <i class="bi bi-stars" style="font-size:2rem;color:#2563eb"></i>
-  </div>
-  <h5 class="fw-bold mb-1">Nessun Wizard Pro attivo</h5>
-  <p class="text-muted mb-4">Avvia il Wizard Pro per prepararti all'udienza in modo guidato.</p>
-  <a href="{{ url_for('wizard_pro.nuovo') }}" class="btn btn-primary px-4">
-    <i class="bi bi-plus-circle me-2"></i>Avvia il primo Wizard
-  </a>
-</div>
-{% endif %}
-
-{# ── Archivio (collassabile) ── #}
-{% if archiviate %}
-<div>
-  <button class="btn btn-sm btn-link text-muted p-0 mb-2"
-          data-bs-toggle="collapse" data-bs-target="#archivioWizard">
-    <i class="bi bi-archive me-1"></i>Archivio ({{ archiviate|length }})
-    <i class="bi bi-chevron-down ms-1" style="font-size:.7rem"></i>
-  </button>
-  <div class="collapse" id="archivioWizard">
-    <div class="card border-0 shadow-sm">
-      <ul class="list-group list-group-flush">
-        {% for item in archiviate %}
-        {% set s = item.sessione %}
-        <li class="list-group-item px-3 py-2 text-muted">
-          <div class="d-flex align-items-center gap-2">
-            <i class="bi bi-archive flex-shrink-0"></i>
-            <div class="flex-grow-1 small text-truncate">{{ s.titolo }}</div>
-            <form method="POST" action="{{ url_for('wizard_pro.elimina', id_sessione=s.id) }}" class="d-inline">
-              <button type="submit" class="btn btn-sm btn-link text-danger p-0"
-                      onclick="return confirm('Eliminare definitivamente?')">
-                <i class="bi bi-trash" style="font-size:.75rem"></i>
-              </button>
-            </form>
+      <section class="hearing-prep-panel">
+        <div class="hearing-prep-panel__eyebrow">Preparazioni recenti</div>
+        {% if dashboard.recent_completed %}
+          <div class="hearing-prep-session-list">
+            {% for item in dashboard.recent_completed %}
+              <a href="{{ url_for('wizard_pro.completo', id_sessione=item.sessione.id) }}"
+                 class="hearing-prep-session-list__item is-complete">
+                <div>
+                  <div class="hearing-prep-session-list__title">
+                    {{ item.fascicolo.cliente if item.fascicolo else item.sessione.titolo }}
+                  </div>
+                  <div class="hearing-prep-session-list__meta">
+                    {{ item.sessione.completato_il|fmt_data if item.sessione.completato_il else 'Completata di recente' }}
+                  </div>
+                </div>
+                <span class="badge text-bg-success">Completa</span>
+              </a>
+            {% endfor %}
           </div>
-        </li>
-        {% endfor %}
-      </ul>
-    </div>
-  </div>
-</div>
-{% endif %}
+        {% else %}
+          <div class="hearing-prep-empty-copy">Le preparazioni completate appariranno qui.</div>
+        {% endif %}
+      </section>
+    </aside>
 
+    <main class="hearing-prep-layout__main">
+      {% include "components/hearing_preparation_stepper.html" %}
+
+      <section class="hearing-prep-panel hearing-prep-filters" id="hearing-preparation-search">
+        <div class="hearing-prep-filters__header">
+          <div>
+            <div class="hearing-prep-panel__eyebrow">Ricerca fascicolo</div>
+            <h2 class="hearing-prep-filters__title">Filtra i fascicoli pronti per l'udienza</h2>
+          </div>
+          <button type="button" class="btn btn-outline-secondary btn-sm" data-hearing-reset-filters>
+            <i class="bi bi-arrow-counterclockwise me-1"></i>Ripristina filtri
+          </button>
+        </div>
+
+        <div class="hearing-prep-filters__grid">
+          <label class="hearing-prep-field hearing-prep-field--wide">
+            <span class="hearing-prep-field__label">Ricerca globale</span>
+            <input type="search"
+                   class="form-control"
+                   placeholder="Cerca fascicolo, cliente, controparte, RG o ufficio"
+                   data-hearing-filter="search">
+          </label>
+
+          <label class="hearing-prep-field">
+            <span class="hearing-prep-field__label">Materia</span>
+            <select class="form-select" data-hearing-filter="materia">
+              <option value="">Tutte</option>
+              {% for materia in dashboard.filter_options.materie %}
+                <option value="{{ materia|lower }}">{{ materia }}</option>
+              {% endfor %}
+            </select>
+          </label>
+
+          <label class="hearing-prep-field">
+            <span class="hearing-prep-field__label">Ufficio giudiziario</span>
+            <select class="form-select" data-hearing-filter="ufficio">
+              <option value="">Tutti</option>
+              {% for ufficio in dashboard.filter_options.uffici %}
+                <option value="{{ ufficio|lower }}">{{ ufficio }}</option>
+              {% endfor %}
+            </select>
+          </label>
+
+          <label class="hearing-prep-field">
+            <span class="hearing-prep-field__label">Cliente</span>
+            <select class="form-select" data-hearing-filter="cliente">
+              <option value="">Tutti</option>
+              {% for cliente in dashboard.filter_options.clienti %}
+                <option value="{{ cliente|lower }}">{{ cliente }}</option>
+              {% endfor %}
+            </select>
+          </label>
+
+          <label class="hearing-prep-field">
+            <span class="hearing-prep-field__label">Stato fascicolo</span>
+            <select class="form-select" data-hearing-filter="stato">
+              <option value="">Tutti</option>
+              {% for stato in dashboard.filter_options.stati %}
+                <option value="{{ stato|lower }}">{{ stato }}</option>
+              {% endfor %}
+            </select>
+          </label>
+
+          <label class="hearing-prep-field">
+            <span class="hearing-prep-field__label">Udienza imminente</span>
+            <select class="form-select" data-hearing-filter="udienza">
+              <option value="">Tutte</option>
+              <option value="true">Solo udienze imminenti</option>
+              <option value="false">Senza udienza imminente</option>
+            </select>
+          </label>
+        </div>
+      </section>
+
+      {% include "components/hearing_preparation_case_list.html" %}
+    </main>
+
+    <aside class="hearing-prep-layout__summary">
+      {% include "components/hearing_preparation_summary_panel.html" %}
+    </aside>
+  </div>
+
+  {% if dashboard.selected_case %}
+    <div class="hearing-prep-mobile-cta">
+      <a href="{{ url_for('dettaglio_fascicolo', id_fasc=dashboard.selected_case.id) }}"
+         class="btn btn-outline-secondary">
+        <i class="bi bi-eye me-1"></i>Dettagli
+      </a>
+      {% if dashboard.selected_case.sessione_attiva %}
+        <a href="{{ url_for('wizard_pro.step', id_sessione=dashboard.selected_case.sessione_attiva.id, n=dashboard.selected_case.sessione_attiva.step_corrente) }}"
+           class="btn btn-primary">
+          <i class="bi bi-play-circle me-1"></i>Continua
+        </a>
+      {% else %}
+        <form method="POST" action="{{ url_for('wizard_pro.nuovo') }}" class="hearing-prep-mobile-cta__form">
+          <input type="hidden" name="id_fascicolo" value="{{ dashboard.selected_case.id }}">
+          <input type="hidden" name="id_appuntamento" value="{{ dashboard.selected_case.id_appuntamento }}">
+          <button type="submit" class="btn btn-primary">
+            <i class="bi bi-diagram-3 me-1"></i>Avvia preparazione
+          </button>
+        </form>
+      {% endif %}
+    </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+  <script src="/static/js/hearing-preparation-dashboard.js?v={{ app_version }}"></script>
 {% endblock %}

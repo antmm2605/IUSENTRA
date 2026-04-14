@@ -1,0 +1,136 @@
+<section class="hearing-prep-panel hearing-prep-case-list">
+  <div class="hearing-prep-case-list__header">
+    <div>
+      <div class="hearing-prep-panel__eyebrow">Elenco fascicoli</div>
+      <h3 class="hearing-prep-case-list__title">Seleziona il fascicolo e prepara l'udienza</h3>
+    </div>
+    <div class="hearing-prep-case-list__counter" data-hearing-visible-count>
+      {{ dashboard.cases|length }} fascicoli visualizzati
+    </div>
+  </div>
+
+  <div class="hearing-prep-case-list__cards" data-hearing-case-list>
+    {% for case in dashboard.cases %}
+      <article class="hearing-case-card{% if dashboard.selected_case and dashboard.selected_case.id == case.id %} is-selected{% endif %}"
+               data-hearing-case-card
+               data-search="{{ (case.numero ~ ' ' ~ case.cliente ~ ' ' ~ case.controparte ~ ' ' ~ case.titolo ~ ' ' ~ case.rg ~ ' ' ~ case.ufficio_giudiziario)|lower }}"
+               data-materia="{{ case.materia|lower }}"
+               data-ufficio="{{ case.ufficio_giudiziario|lower }}"
+               data-cliente="{{ case.cliente|lower }}"
+               data-stato="{{ case.stato_pratica_label|lower }}"
+               data-udienza-imminente="{{ 'true' if case.udienza_imminente else 'false' }}">
+        <div class="hearing-case-card__top">
+          <div class="hearing-case-card__identity">
+            <span class="hearing-case-card__number">{{ case.numero }}</span>
+            <a href="{{ url_for('wizard_pro.index', id_fascicolo=case.id) }}#riepilogo-fascicolo"
+               class="hearing-case-card__title">
+              {{ case.cliente }}
+            </a>
+            <div class="hearing-case-card__subtitle">{{ case.controparte }}</div>
+          </div>
+          <div class="hearing-case-card__state">
+            <span class="badge text-bg-{{ case.stato_pratica_tone }}">{{ case.stato_pratica_label }}</span>
+            {% if case.status_badge %}
+              <span class="badge text-bg-{{ case.status_badge.tone }}">{{ case.status_badge.label }}</span>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="hearing-case-card__meta-grid">
+          <div class="hearing-case-card__meta-item">
+            <span class="hearing-case-card__meta-label">RG / pratica</span>
+            <strong>{{ case.rg }}</strong>
+          </div>
+          <div class="hearing-case-card__meta-item">
+            <span class="hearing-case-card__meta-label">Materia</span>
+            <strong>{{ case.materia }}</strong>
+          </div>
+          <div class="hearing-case-card__meta-item">
+            <span class="hearing-case-card__meta-label">Ufficio giudiziario</span>
+            <strong>{{ case.ufficio_giudiziario }}</strong>
+          </div>
+          <div class="hearing-case-card__meta-item">
+            <span class="hearing-case-card__meta-label">Prossima udienza</span>
+            <strong>{{ case.prossima_udienza_label }}</strong>
+          </div>
+        </div>
+
+        <div class="hearing-case-card__badges">
+          {% for badge in case.critical_badges %}
+            <span class="badge text-bg-{{ badge.tone }}">{{ badge.label }}</span>
+          {% endfor %}
+        </div>
+
+        <div class="hearing-case-card__progress">
+          <div class="hearing-case-card__progress-label">
+            <span>Avanzamento pratica</span>
+            <strong>{{ case.progress_value }}%</strong>
+          </div>
+          <div class="progress">
+            <div class="progress-bar bg-primary" style="width:{{ case.progress_value }}%"></div>
+          </div>
+          <div class="hearing-case-card__progress-caption">{{ case.progress_label }}</div>
+        </div>
+
+        <div class="hearing-case-card__actions">
+          <a href="{{ url_for('wizard_pro.index', id_fascicolo=case.id) }}#riepilogo-fascicolo"
+             class="btn btn-primary btn-sm">
+            <i class="bi bi-check2-circle me-1"></i>Seleziona
+          </a>
+          <a href="{{ url_for('dettaglio_fascicolo', id_fasc=case.id) }}"
+             class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-folder2-open me-1"></i>Apri fascicolo
+          </a>
+          <div class="dropdown">
+            <button class="btn btn-outline-secondary btn-sm dropdown-toggle"
+                    type="button"
+                    data-bs-toggle="dropdown"
+                    aria-expanded="false">
+              <i class="bi bi-three-dots"></i>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end">
+              <li>
+                <a class="dropdown-item"
+                   href="{{ url_for('wizard_pro.index', id_fascicolo=case.id) }}#riepilogo-fascicolo">
+                  <i class="bi bi-crosshair me-2"></i>Riepilogo fascicolo
+                </a>
+              </li>
+              <li>
+                <a class="dropdown-item"
+                   href="{{ url_for('dettaglio_fascicolo', id_fasc=case.id) }}">
+                  <i class="bi bi-folder2-open me-2"></i>Apri fascicolo
+                </a>
+              </li>
+              <li>
+                <a class="dropdown-item" href="{{ url_for('scadenziario') }}">
+                  <i class="bi bi-alarm me-2"></i>Apri scadenziario
+                </a>
+              </li>
+              <li><hr class="dropdown-divider"></li>
+              <li>
+                {% if case.sessione_attiva %}
+                  <a class="dropdown-item"
+                     href="{{ url_for('wizard_pro.step', id_sessione=case.sessione_attiva.id, n=case.sessione_attiva.step_corrente) }}">
+                    <i class="bi bi-play-circle me-2"></i>Riprendi bozza
+                  </a>
+                {% else %}
+                  <form method="POST" action="{{ url_for('wizard_pro.nuovo') }}" class="px-3 py-1">
+                    <input type="hidden" name="id_fascicolo" value="{{ case.id }}">
+                    <input type="hidden" name="id_appuntamento" value="{{ case.id_appuntamento }}">
+                    <button type="submit" class="dropdown-item hearing-case-card__menu-submit">
+                      <i class="bi bi-plus-circle me-2"></i>Avvia preparazione
+                    </button>
+                  </form>
+                {% endif %}
+              </li>
+            </ul>
+          </div>
+        </div>
+      </article>
+    {% endfor %}
+  </div>
+
+  <div class="hearing-prep-case-list__empty{% if dashboard.cases %} d-none{% endif %}" data-hearing-empty>
+    Nessun fascicolo disponibile con i filtri attuali.
+  </div>
+</section>

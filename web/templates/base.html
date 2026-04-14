@@ -190,7 +190,7 @@
     </div>
 
     {# ---- Sezione: Scadenze ---- #}
-    {% set _sc = request.endpoint in ('scadenziario','nuova_scadenza','dettaglio_scadenza','modifica_scadenza') %}
+    {% set _sc = request.endpoint in ('scadenziario','nuova_scadenza','dettaglio_scadenza','modifica_scadenza') or request.blueprint == 'wizard_pro' %}
     <button class="sb-toggle {% if _sc %}open{% endif %}"
             data-bs-toggle="collapse" data-bs-target="#sb-scadenze" aria-expanded="{{ 'true' if _sc else 'false' }}">
       <span><i class="bi bi-alarm"></i>Scadenze</span>
@@ -205,18 +205,16 @@
          class="nav-link sb-link {% if request.endpoint == 'nuova_scadenza' %}active{% endif %}">
         <i class="bi bi-calendar-plus"></i><span class="sb-txt">Nuova Scadenza</span>
       </a>
+      <a href="{{ url_for('wizard_pro.index') }}"
+         class="nav-link sb-link {% if request.blueprint == 'wizard_pro' %}active{% endif %}">
+        <i class="bi bi-diagram-3"></i><span class="sb-txt">Preparazione Udienza Guidata</span>
+      </a>
     </div>
 
     {# ---- Checklist Atti ---- #}
     <a href="{{ url_for('checklist_atti') }}"
        class="nav-link sb-link {% if request.endpoint in ('checklist_atti','checklist_dettaglio') %}active{% endif %}">
       <i class="bi bi-card-checklist"></i><span class="sb-txt">Checklist Atti</span>
-    </a>
-
-    {# ---- Wizard Pro ---- #}
-    <a href="{{ url_for('wizard_pro.index') }}"
-       class="nav-link sb-link {% if request.blueprint == 'wizard_pro' %}active{% endif %}">
-      <i class="bi bi-stars"></i><span class="sb-txt">Wizard Pro</span>
     </a>
 
     {# ---- Sezione: PCT / Telematico ---- #}

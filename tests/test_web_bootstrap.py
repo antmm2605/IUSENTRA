@@ -197,12 +197,16 @@ def test_pwa_routes_and_error_handlers_restano_registrati(tmp_path: Path):
 
 def test_template_principali_usano_copy_italiana_e_date_localizzate():
     template_checks = {
-        "web/templates/base.html": ["Panoramica", "Operazione completata"],
+        "web/templates/base.html": ["Panoramica", "Operazione completata", "Preparazione Udienza Guidata"],
         "web/templates/admin/base.html": ["Esci", "Piattaforma"],
         "web/templates/dashboard.html": ["Panoramica dello studio"],
         "web/templates/agenda.html": ["Sincronizzazione automatica", "Configura sincronizzazione calendario"],
         "web/templates/impostazioni/index.html": ["Companion locale sul dispositivo cliente", "Prepara runtime automatico"],
         "web/templates/notifiche/pannello.html": ["Invia messaggio", "Registro notifiche"],
+        "web/templates/wizard_pro/index.html": [
+            "Preparazione Udienza Guidata",
+            "Seleziona il fascicolo da cui avviare la preparazione dell'udienza",
+        ],
         "web/templates/workspace_intelligente.html": ["Assistente operativo locale", "Ultima sincronizzazione"],
         "web/templates/portale/base.html": ["Operazione completata", "Inizio"],
         "web/templates/telematico_dashboard.html": ["Cabina Telematica", "Ultimo allineamento"],
@@ -291,6 +295,7 @@ def test_scss_governance_usa_bundle_modulari_e_niente_style_inline():
     assert "@use 'components/local-ai-assistant';" in app_scss
     assert "@use 'components/pct-lex-assistant';" in app_scss
     assert "@use 'pages/dashboard';" in app_scss
+    assert "@use 'pages/hearing-preparation';" in app_scss
     assert "@use 'pages/notifiche-whatsapp';" in app_scss
     assert "@use 'pages/settings';" in app_scss
     assert "@use 'pages/telematico-dashboard';" in app_scss
@@ -536,6 +541,76 @@ def test_lex_assistant_usa_componente_esterno_e_posizione_persistente():
     assert ".pct-ai-generated-actions" in widget_scss
     assert ".pct-ai-generated-btn" in widget_scss
     assert "fonti ufficiali web live" in widget_template
+
+
+def test_preparazione_udienza_guidata_usa_componenti_modulari_e_js_esterno():
+    base_template = (REPO_ROOT / "web/templates/base.html").read_text(encoding="utf-8")
+    index_template = (REPO_ROOT / "web/templates/wizard_pro/index.html").read_text(encoding="utf-8")
+    nuovo_template = (REPO_ROOT / "web/templates/wizard_pro/nuovo.html").read_text(encoding="utf-8")
+    step_template = (REPO_ROOT / "web/templates/wizard_pro/step.html").read_text(encoding="utf-8")
+    completo_template = (REPO_ROOT / "web/templates/wizard_pro/completo.html").read_text(encoding="utf-8")
+    nav_component = (REPO_ROOT / "web/templates/components/hearing_preparation_module_nav.html").read_text(encoding="utf-8")
+    stepper_component = (REPO_ROOT / "web/templates/components/hearing_preparation_stepper.html").read_text(encoding="utf-8")
+    list_component = (REPO_ROOT / "web/templates/components/hearing_preparation_case_list.html").read_text(encoding="utf-8")
+    summary_component = (REPO_ROOT / "web/templates/components/hearing_preparation_summary_panel.html").read_text(encoding="utf-8")
+    service = (REPO_ROOT / "web/services/hearing_preparation_dashboard.py").read_text(encoding="utf-8")
+    script = (REPO_ROOT / "web/static/js/hearing-preparation-dashboard.js").read_text(encoding="utf-8")
+    scss = (REPO_ROOT / "web/static/scss/pages/_hearing-preparation.scss").read_text(encoding="utf-8")
+
+    assert "Preparazione Udienza Guidata" in base_template
+    assert "Wizard Pro</span>" not in base_template
+
+    assert '{% include "components/hearing_preparation_module_nav.html" %}' in index_template
+    assert '{% include "components/hearing_preparation_stepper.html" %}' in index_template
+    assert '{% include "components/hearing_preparation_case_list.html" %}' in index_template
+    assert '{% include "components/hearing_preparation_summary_panel.html" %}' in index_template
+    assert "/static/js/hearing-preparation-dashboard.js?v={{ app_version }}" in index_template
+    assert "Nuova preparazione" in index_template
+    assert "Riprendi bozza" in index_template
+    assert "data-hearing-filter=\"search\"" in index_template
+    assert "<script>" not in index_template
+    assert "Wizard Pro" not in nuovo_template
+    assert "Wizard Pro" not in step_template
+    assert "Wizard Pro" not in completo_template
+    assert "Preparazione udienza completata" in completo_template
+    assert "Avvia preparazione udienza" in nuovo_template
+    assert "Completa preparazione" in step_template
+
+    assert "Navigazione modulo" in nav_component
+    assert "Preparazione Udienza" in nav_component
+    assert "Passo 1 di 6" in stepper_component
+    assert "Selezione Fascicolo" in stepper_component
+    assert "Dati Udienza" in stepper_component
+    assert "Parti e Difensori" in stepper_component
+    assert "Documenti e Allegati" in stepper_component
+    assert "Note Strategiche" in stepper_component
+    assert "Controllo Finale" in service
+    assert "Avanzamento pratica" in list_component
+    assert "Apri fascicolo" in list_component
+    assert "Riepilogo fascicolo" in summary_component
+    assert "Azioni rapide" in summary_component
+
+    assert 'querySelector("[data-hearing-preparation]")' in script
+    assert "applyFilters" in script
+    assert "resetFilters" in script
+    assert "data-hearing-visible-count" in list_component
+
+    assert ".hearing-prep-layout" in scss
+    assert ".hearing-case-card" in scss
+    assert ".hearing-prep-summary" in scss
+    assert ".hearing-prep-mobile-cta" in scss
+
+
+def test_preparazione_udienza_guidata_reindirizza_la_vecchia_route_nuovo(tmp_path: Path):
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    app = create_app(_cfg_web(tmp_path))
+
+    with app.test_client() as client:
+        client.post("/login", data={"username": "admin", "password": "admin"}, follow_redirects=True)
+        response = client.get("/wizard-pro/nuovo?id_fascicolo=FASC001")
+
+    assert response.status_code == 302
+    assert response.headers["Location"].endswith("/wizard-pro/?id_fascicolo=FASC001")
 
 
 def test_modal_firma_deposito_prevede_riavvio_local_signer():

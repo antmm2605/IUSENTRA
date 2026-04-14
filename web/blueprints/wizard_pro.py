@@ -1,11 +1,11 @@
 """
-web/blueprints/wizard_pro.py — Wizard Pro: esperienza guidata per l'udienza in presenza.
+web/blueprints/wizard_pro.py — Preparazione Udienza Guidata.
 
 URL base: /wizard-pro/
 
 Route:
-    GET  /wizard-pro/                        → index (lista sessioni attive)
-    GET  /wizard-pro/nuovo                   → form di avvio (selezione fascicolo)
+    GET  /wizard-pro/                        → index (cruscotto selezione fascicolo)
+    GET  /wizard-pro/nuovo                   → redirect al cruscotto di selezione
     POST /wizard-pro/nuovo                   → crea nuova sessione
     GET  /wizard-pro/<id>/step/<n>           → mostra step n
     POST /wizard-pro/<id>/step/<n>           → salva step n
@@ -38,7 +38,8 @@ from pct.wizard_pro import (
     STEP_ICONS,
     ESITI,
 )
-from web.helpers import get_fascicoli, get_agenda, get_wizard_pro
+from web.helpers import get_agenda, get_fascicoli, get_wizard_pro
+from web.services.hearing_preparation_dashboard import build_hearing_preparation_dashboard
 
 wizard_pro_bp = Blueprint("wizard_pro", __name__, url_prefix="/wizard-pro")
 
@@ -60,7 +61,7 @@ def _get_or_404(id_sessione: str) -> SessioneWizardPro:
     wiz = get_wizard_pro()
     sessione = wiz.carica(id_sessione)
     if not sessione:
-        flash("Sessione Wizard Pro non trovata.", "danger")
+        flash("Preparazione udienza non trovata.", "danger")
     return sessione
 
 
@@ -106,31 +107,11 @@ def _checklist_da_fascicolo(fascicolo) -> list:
 @wizard_pro_bp.route("/", methods=["GET"])
 @_richiedi_login
 def index():
-    wiz = get_wizard_pro()
-    tutte = wiz.lista()
-    # Ordina: in_corso prima, poi completato, poi archiviato; per data decrescente
-    tutte.sort(key=lambda s: s.modificato_il or s.creato_il or "", reverse=True)
-    tutte.sort(key=lambda s: {"in_corso": 0, "completato": 1, "archiviato": 2}.get(s.stato, 9))
-    attive = [s for s in tutte if s.stato == "in_corso"]
-    completate = [s for s in tutte if s.stato == "completato"]
-    archiviate = [s for s in tutte if s.stato == "archiviato"]
-
-    # Arricchisci con dati fascicolo
-    gf = get_fascicoli()
-    def _arricchisci(sessioni):
-        result = []
-        for s in sessioni:
-            fasc = gf.get(s.id_fascicolo) if s.id_fascicolo else None
-            result.append({"sessione": s, "fascicolo": fasc})
-        return result
-
     return render_template(
         "wizard_pro/index.html",
-        attive=_arricchisci(attive),
-        completate=_arricchisci(completate),
-        archiviate=_arricchisci(archiviate),
-        step_labels=STEP_LABELS,
-        step_icons=STEP_ICONS,
+        dashboard=build_hearing_preparation_dashboard(
+            selected_fascicolo_id=request.args.get("id_fascicolo", "").strip()
+        ),
     )
 
 
@@ -181,7 +162,7 @@ def nuovo():
         wiz = get_wizard_pro()
         wiz.salva(sessione)
 
-        flash(f"Wizard Pro avviato: «{sessione.titolo}»", "success")
+        flash(f"Preparazione udienza avviata: «{sessione.titolo}»", "success")
         return redirect(url_for("wizard_pro.step", id_sessione=sessione.id, n=1))
 
     # GET — form selezione fascicolo
@@ -204,13 +185,10 @@ def nuovo():
     ]
     appuntamenti_udienza.sort(key=lambda a: a.data_ora or "")
 
-    return render_template(
-        "wizard_pro/nuovo.html",
-        fascicoli=fascicoli,
-        appuntamenti_udienza=appuntamenti_udienza,
-        id_fascicolo_pre=id_fascicolo_pre,
-        id_appuntamento_pre=id_appuntamento_pre,
-    )
+    redirect_args = {}
+    if id_fascicolo_pre:
+        redirect_args["id_fascicolo"] = id_fascicolo_pre
+    return redirect(url_for("wizard_pro.index", **redirect_args))
 
 
 # ─────────────────────────────────────────────────── ROUTE: STEP
@@ -304,7 +282,7 @@ def step(id_sessione: str, n: int):
                 _aggiorna_fascicolo_da_esito(sessione, fascicolo, gf)
 
             wiz.salva(sessione)
-            flash("Wizard Pro completato!", "success")
+            flash("Preparazione udienza completata.", "success")
             return redirect(url_for("wizard_pro.completo", id_sessione=id_sessione))
 
         wiz.salva(sessione)
@@ -370,7 +348,7 @@ def completo(id_sessione: str):
 def elimina(id_sessione: str):
     wiz = get_wizard_pro()
     if wiz.elimina(id_sessione):
-        flash("Sessione Wizard Pro eliminata.", "success")
+        flash("Sessione di preparazione eliminata.", "success")
     else:
         flash("Sessione non trovata.", "danger")
     return redirect(url_for("wizard_pro.index"))
@@ -406,7 +384,7 @@ def per_fascicolo(id_fasc: str):
         return redirect(url_for("wizard_pro.step", id_sessione=in_corso[0].id, n=in_corso[0].step_corrente))
     # Altrimenti vai al nuovo con fascicolo pre-selezionato
     if not sessioni:
-        return redirect(url_for("wizard_pro.nuovo", id_fascicolo=id_fasc))
+        return redirect(url_for("wizard_pro.index", id_fascicolo=id_fasc))
     # Più sessioni: vai all'index
     return redirect(url_for("wizard_pro.index"))
 
@@ -451,7 +429,7 @@ def _aggiorna_fascicolo_da_esito(
             titolo=sessione.titolo,
             descrizione=descrizione,
             esito=esito_att,
-            note=f"[Wizard Pro: {sessione.id}]",
+            note=f"[Preparazione Udienza: {sessione.id}]",
             id_appuntamento=sessione.id_appuntamento,
             avvocato=sessione.avvocato,
         )
@@ -461,4 +439,4 @@ def _aggiorna_fascicolo_da_esito(
             gf.aggiorna(fascicolo.id, data_prossima_udienza=sessione.esito_rinvio_data)
 
     except Exception as e:
-        current_app.logger.warning("Wizard Pro: impossibile aggiornare fascicolo: %s", e)
+        current_app.logger.warning("Preparazione Udienza: impossibile aggiornare fascicolo: %s", e)

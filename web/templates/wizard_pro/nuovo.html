@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Avvia Wizard Pro{% endblock %}
+{% block title %}Preparazione Udienza Guidata — Avvio{% endblock %}
 
 {% block content %}
 
@@ -7,7 +7,7 @@
 <nav aria-label="breadcrumb" class="mb-3">
   <ol class="breadcrumb small">
     <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Panoramica</a></li>
-    <li class="breadcrumb-item"><a href="{{ url_for('wizard_pro.index') }}">Wizard Pro</a></li>
+    <li class="breadcrumb-item"><a href="{{ url_for('wizard_pro.index') }}">Preparazione Udienza</a></li>
     <li class="breadcrumb-item active">Avvia</li>
   </ol>
 </nav>
@@ -19,9 +19,9 @@
   </a>
   <div>
     <h5 class="mb-0 fw-bold">
-      <i class="bi bi-stars me-2 text-primary"></i>Avvia Wizard Pro
+      <i class="bi bi-stars me-2 text-primary"></i>Avvia preparazione udienza
     </h5>
-    <p class="text-muted small mb-0">Seleziona il fascicolo per preparare l'udienza</p>
+    <p class="text-muted small mb-0">Seleziona il fascicolo per avviare la preparazione guidata dell'udienza</p>
   </div>
 </div>
 
@@ -97,7 +97,7 @@
 
           <div class="d-flex gap-2">
             <button type="submit" class="btn btn-primary px-4">
-              <i class="bi bi-stars me-2"></i>Avvia Wizard Pro
+              <i class="bi bi-stars me-2"></i>Avvia preparazione
             </button>
             <a href="{{ url_for('wizard_pro.index') }}" class="btn btn-outline-secondary">
               Annulla
@@ -115,7 +115,7 @@
          style="background:linear-gradient(135deg,#f0f4ff,#e8f0fe)">
       <div class="card-body p-4">
         <h6 class="fw-bold mb-3">
-          <i class="bi bi-info-circle me-1 text-primary"></i>Come funziona il Wizard Pro
+          <i class="bi bi-info-circle me-1 text-primary"></i>Come funziona la preparazione guidata
         </h6>
         <div class="d-flex flex-column gap-3">
           {% set steps_info = [

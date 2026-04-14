@@ -1,12 +1,12 @@
 {% extends "base.html" %}
-{% block title %}Wizard Pro — {{ step_labels[step_n] }} — Step {{ step_n }}/{{ n_step }}{% endblock %}
+{% block title %}Preparazione Udienza Guidata — {{ step_labels[step_n] }} — Step {{ step_n }}/{{ n_step }}{% endblock %}
 
 {% block content %}
 
 {# ── Breadcrumb ── #}
 <nav aria-label="breadcrumb" class="mb-3">
   <ol class="breadcrumb small">
-    <li class="breadcrumb-item"><a href="{{ url_for('wizard_pro.index') }}">Wizard Pro</a></li>
+    <li class="breadcrumb-item"><a href="{{ url_for('wizard_pro.index') }}">Preparazione Udienza</a></li>
     <li class="breadcrumb-item active text-truncate" style="max-width:18rem">{{ sessione.titolo }}</li>
   </ol>
 </nav>
@@ -412,7 +412,7 @@
           <div class="d-flex gap-2 flex-wrap mt-4 pt-3 border-top">
             {% if step_n == 5 %}
             <button type="submit" class="btn btn-success fw-semibold px-4">
-              <i class="bi bi-check-circle-fill me-2"></i>Completa Wizard Pro
+              <i class="bi bi-check-circle-fill me-2"></i>Completa preparazione
             </button>
             {% else %}
             <button type="submit" class="btn btn-primary fw-semibold px-4">

@@ -16,6 +16,26 @@ import requests
 from lxml import html as lxml_html
 from urllib3.exceptions import InsecureRequestWarning
 
+from pct.legal_intelligence_repository import (
+    GestioneLegalIntelligenceRepository,
+    build_legal_alert_rows,
+    build_legal_audit_rows,
+    build_legal_engine_edges_rows,
+    build_legal_engines_rows,
+    build_legal_keyword_engine_rows,
+    build_legal_keyword_source_rows,
+    build_legal_monitoring_rows,
+    build_legal_operational_rules,
+    build_legal_sources_rows,
+    derive_legal_engine_edges_json_path,
+    derive_legal_engines_json_path,
+    derive_legal_intelligence_repository_db_path,
+    derive_legal_intelligence_repository_json_path,
+    derive_legal_keyword_engine_json_path,
+    derive_legal_keyword_source_json_path,
+    derive_legal_operational_json_path,
+    derive_legal_sources_json_path,
+)
 from pct.normative_tables import FONTI_OPERATIVE, GestioneTabelleNormative
 from pct.pst_catalog import (
     PST_PDP_SPECIFICHE_DETAIL_URL,
@@ -1311,7 +1331,26 @@ class GestioneLegalIntelligence:
         self.normative_db_path = normative_db_path or str(Path(db_path).with_name("tabelle_normative.json"))
         self.normative_tables = GestioneTabelleNormative(self.normative_db_path)
         self._data: Dict[str, Any] = {"monitor_runs": [], "alerts": [], "audit_traces": []}
+        self.repository_db_path = derive_legal_intelligence_repository_db_path(self.db_path)
+        self.repository_json_path = derive_legal_intelligence_repository_json_path(self.db_path)
+        self.repository_sources_json_path = derive_legal_sources_json_path(self.db_path)
+        self.repository_engines_json_path = derive_legal_engines_json_path(self.db_path)
+        self.repository_keyword_engine_json_path = derive_legal_keyword_engine_json_path(self.db_path)
+        self.repository_keyword_source_json_path = derive_legal_keyword_source_json_path(self.db_path)
+        self.repository_engine_edges_json_path = derive_legal_engine_edges_json_path(self.db_path)
+        self.repository_operational_json_path = derive_legal_operational_json_path(self.db_path)
+        self._repository = GestioneLegalIntelligenceRepository(
+            self.repository_db_path,
+            json_path=self.repository_json_path,
+            sources_json_path=self.repository_sources_json_path,
+            engines_json_path=self.repository_engines_json_path,
+            keyword_engine_json_path=self.repository_keyword_engine_json_path,
+            keyword_source_json_path=self.repository_keyword_source_json_path,
+            engine_edges_json_path=self.repository_engine_edges_json_path,
+            operational_json_path=self.repository_operational_json_path,
+        )
         self._load()
+        self._sync_repository()
 
     def _load(self) -> None:
         from pct import cache as _cache
@@ -1333,11 +1372,47 @@ class GestioneLegalIntelligence:
         from pct import cache as _cache
         # indent=None: file fino a 2.9 MB, non serve leggibilità umana
         _cache.save(self.db_path, self._data, indent=None)
+        self._sync_repository()
 
     def _append_limited(self, key: str, payload: Dict[str, Any], limit: int) -> None:
         self._data.setdefault(key, []).append(payload)
         if len(self._data[key]) > limit:
             self._data[key] = self._data[key][-limit:]
+
+    def _sync_repository(self) -> None:
+        source_rows = build_legal_sources_rows(FONTI_UFFICIALI)
+        engine_rows = build_legal_engines_rows(MOTORI_LEGALI)
+        keyword_engine_rows = build_legal_keyword_engine_rows(KEYWORD_TO_ENGINE)
+        keyword_source_rows = build_legal_keyword_source_rows(KEYWORD_TO_SOURCE)
+        edge_rows = build_legal_engine_edges_rows(engine_rows, source_rows)
+        monitoring_rows = build_legal_monitoring_rows(self._source_status_rows())
+        alert_rows = build_legal_alert_rows(self.recent_alerts(limit=MAX_ALERTS))
+        audit_rows = build_legal_audit_rows(self.recent_audit_traces(limit=MAX_AUDIT_TRACES))
+        operational_rows = build_legal_operational_rules()
+        self._repository.synchronize_runtime(
+            source_rows=source_rows,
+            engine_rows=engine_rows,
+            keyword_engine_rows=keyword_engine_rows,
+            keyword_source_rows=keyword_source_rows,
+            edge_rows=edge_rows,
+            monitoring_rows=monitoring_rows,
+            alert_rows=alert_rows,
+            audit_rows=audit_rows,
+            operational_rows=operational_rows,
+            export_json=True,
+        )
+
+    def statistiche_repository(self) -> Dict[str, Any]:
+        return self._repository.storage_stats()
+
+    def repository_payload(self) -> Dict[str, Any]:
+        return self._repository.load_repository_payload()
+
+    def export_legal_repositories(self, base_dir: str | None = None) -> Dict[str, str]:
+        return self._repository.export_split_jsons(base_dir)
+
+    def resolve_lex_legal_route(self, question: str) -> Dict[str, Any]:
+        return self._repository.resolve_route(question)
 
     def catalogo_fonti(self) -> List[Dict[str, Any]]:
         return [source.to_dict() for source in FONTI_UFFICIALI.values()]

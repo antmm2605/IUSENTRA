@@ -1214,40 +1214,91 @@ def _fatturazione_lines(question: str) -> tuple[list[str], list[dict[str, Any]]]
 
 def _ricerca_legale_lines(question: str) -> tuple[list[str], list[dict[str, Any]]]:
     intelligence = get_legal_intelligence()
-    engine_ids = motori_per_query(question)
-    source_ids = fonti_per_query(question)
-    if not source_ids:
-        source_ids = list(_DEFAULT_WEB_SOURCE_IDS)
-    if not engine_ids:
-        engine_ids = ["fonti_ufficiali", "procedurale_telematico"]
-
-    motori = {row["id"]: row for row in intelligence.catalogo_motori()}
+    route = intelligence.resolve_lex_legal_route(question)
+    stats = intelligence.statistiche_repository()
+    engine_rows = list(route.get("engine_rows") or [])
+    source_rows = list(route.get("source_rows") or [])
+    monitoring_rows = list(route.get("monitoring_rows") or [])
+    alert_rows = list(route.get("alert_rows") or [])
+    monitoring_by_source = {row.get("source_id"): row for row in monitoring_rows}
     lines = [
-        "Ricerca legale: Lex puo' suggerire fonti ufficiali, motori interni e piste di verifica, ma non decide l'interpretazione finale.",
-        "Motori pertinenti: " + ", ".join(
-            motori.get(engine_id, {}).get("short_name") or engine_id for engine_id in engine_ids[:4]
-        ) + ".",
+        (
+            "Repository legale strutturato: "
+            f"{stats.get('legal_sources_repository', 0)} fonti ufficiali, "
+            f"{stats.get('legal_engines_repository', 0)} motori legali, "
+            f"{stats.get('legal_keyword_to_engine', 0)} regole keyword→motore, "
+            f"{stats.get('legal_keyword_to_source', 0)} regole keyword→fonte, "
+            f"{stats.get('legal_operational_repository', 0)} regole operative."
+        ),
+        "Ricerca legale: Lex usa motori, fonti ufficiali, monitoraggio e audit come base deterministica prima della sintesi del modello.",
+        "Routing deterministico: " + _truncate(route.get("reason") or "routing repository legale", 180) + ".",
     ]
-    selected_sources: list[dict[str, Any]] = []
-    for source_id in source_ids[:5]:
-        source = FONTI_UFFICIALI.get(source_id)
-        if not source:
-            continue
-        selected_sources.append(
-            _source(
-                f"Fonte ufficiale - {source.nome}",
-                f"Area: {source.area}. Capacita: {source.capability}. URL: {source.official_url}",
-                source_id=f"fonte:{source.id}",
-                title=source.nome,
-            )
-        )
-    if selected_sources:
+    if engine_rows:
         lines.append(
-            "Fonti ufficiali suggerite: "
-            + "; ".join(source["title"] for source in selected_sources)
+            "Motori pertinenti: "
+            + ", ".join(_truncate(row.get("short_name") or row.get("nome") or row.get("engine_id"), 80) for row in engine_rows[:4])
             + "."
         )
-    return lines, selected_sources
+    if source_rows:
+        lines.append(
+            "Fonti ufficiali prioritarie: "
+            + "; ".join(_truncate(row.get("nome") or row.get("source_id"), 90) for row in source_rows[:5])
+            + "."
+        )
+    if monitoring_rows:
+        lines.append(
+            "Stato monitoraggio: "
+            + "; ".join(
+                _truncate(
+                    f"{row.get('nome') or row.get('source_id')} ({row.get('freshness') or 'n.d.'}, {row.get('status') or 'n.d.'})",
+                    100,
+                )
+                for row in monitoring_rows[:4]
+            )
+            + "."
+        )
+    if alert_rows:
+        lines.append(
+            "Alert collegati: "
+            + "; ".join(_truncate(row.get("title") or row.get("alert_type"), 110) for row in alert_rows[:3])
+            + "."
+        )
+    sources = [
+        _source(
+            "Repository legale",
+            (
+                f"Motori: {stats.get('legal_engines_repository', 0)}. "
+                f"Fonti: {stats.get('legal_sources_repository', 0)}. "
+                f"Routing keyword: {stats.get('legal_keyword_to_engine', 0)} motori / "
+                f"{stats.get('legal_keyword_to_source', 0)} fonti."
+            ),
+            source_id="legal-intelligence:repository",
+            title="Repository legale",
+        )
+    ]
+    for row in source_rows[:5]:
+        source_id = row.get("source_id") or ""
+        monitoring = monitoring_by_source.get(source_id, {})
+        source = _source(
+            f"Fonte ufficiale - {row.get('nome')}",
+            (
+                f"Area: {row.get('area') or 'n.d.'}. "
+                f"Motore: {row.get('motore') or 'n.d.'}. "
+                f"Capacita: {row.get('capability') or 'n.d.'}. "
+                f"Stato: {monitoring.get('status') or 'n.d.'} / {monitoring.get('freshness') or 'n.d.'}."
+            ),
+            source_id=f"fonte:{source_id}",
+            title=row.get("nome") or source_id,
+        )
+        source["official_url"] = row.get("official_url") or ""
+        source["monitor_url"] = row.get("monitor_url") or ""
+        source["motore_id"] = row.get("motore") or ""
+        source["freshness"] = monitoring.get("freshness") or ""
+        source["status"] = monitoring.get("status") or ""
+        source["detected_version"] = monitoring.get("detected_version") or ""
+        source["warning"] = monitoring.get("warning") or ""
+        sources.append(source)
+    return lines, sources
 
 
 def _archivio_sentenze_lines(question: str) -> tuple[list[str], list[dict[str, Any]]]:
@@ -1610,6 +1661,8 @@ def build_lex_studio_context(
             legal_reference_guard_prompt.splitlines(),
         )
 
+    legal_route = get_legal_intelligence().resolve_lex_legal_route(effective_question)
+
     return {
         "prompt_block": "\n".join(sections).strip(),
         "sources": deduped_sources[:10 if chat_mode else 12],
@@ -1618,8 +1671,17 @@ def build_lex_studio_context(
             for row in deduped_sources[:10 if chat_mode else 12]
             if row.get("citation")
         ],
-        "engine_ids": motori_per_query(effective_question),
-        "source_ids": list(dict.fromkeys([*fonti_per_query(effective_question), *live_source_ids])),
+        "engine_ids": list(legal_route.get("engine_ids") or motori_per_query(effective_question)),
+        "source_ids": list(
+            dict.fromkeys(
+                [
+                    *(legal_route.get("source_ids") or fonti_per_query(effective_question)),
+                    *live_source_ids,
+                ]
+            )
+        ),
+        "legal_route_scope": _clean_spaces(legal_route.get("route_scope")),
+        "legal_route_reason": _clean_spaces(legal_route.get("reason")),
         "focus_label": focus_label,
         "focus_topic": _clean_spaces(focus.get("topic")),
         "competence_labels": competence_labels,

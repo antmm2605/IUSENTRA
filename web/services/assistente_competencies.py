@@ -311,10 +311,12 @@ _COMPETENCE_PROFILES: tuple[LexCompetenceProfile, ...] = (
         section_titles=("Ricerca legale e fonti web", "Archivio sentenze", "Strumenti legali"),
         prompt_block=(
             "Competenza HACS: Ricerca legale e fonti ufficiali. Se la domanda richiede verifica normativa o aggiornamento, "
-            "Lex deve distinguere dato certo, fonte ufficiale, ultimo aggiornamento disponibile e limiti del contesto interno."
+            "Lex deve distinguere dato certo, fonte ufficiale, ultimo aggiornamento disponibile e limiti del contesto interno. "
+            "Per le fonti legali deve usare prima il repository strutturato di motori, fonti, keyword routing, monitoraggio, alert e audit, "
+            "e solo dopo lasciare al modello la sintesi della risposta."
         ),
         context_hint=(
-            "Quando la richiesta e' normativa o di aggiornamento, passa dal contesto interno alle fonti ufficiali solo se serve davvero."
+            "Quando la richiesta e' normativa o di aggiornamento, passa dal repository legale a fonti ufficiali e web live solo se serve davvero."
         ),
         include_live_web=True,
     ),

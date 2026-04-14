@@ -534,7 +534,9 @@ class GestioneCorpusGiurisprudenza:
             sql = """
                 SELECT s.id, s.organo_giudicante, s.sezione, s.numero_sentenza, s.anno_sentenza,
                        s.data_deposito, s.titolo, s.massima_ufficiale, s.principio_sintetico,
-                       s.stato_verifica, s.url_pagina_ufficiale, s.url_pdf_ufficiale
+                       s.stato_verifica, s.url_pagina_ufficiale, s.url_pdf_ufficiale,
+                       s.pdf_ufficiale_presente, s.fonte_ufficiale_confermata, s.ecli,
+                       s.precedente_guida, s.sezioni_unite, s.nomofilattica, s.rilevanza
                 FROM sentenze s
                 JOIN sentenze_fts fts ON fts.rowid = s.id
                 WHERE sentenze_fts MATCH ?
@@ -544,7 +546,9 @@ class GestioneCorpusGiurisprudenza:
             sql = """
                 SELECT s.id, s.organo_giudicante, s.sezione, s.numero_sentenza, s.anno_sentenza,
                        s.data_deposito, s.titolo, s.massima_ufficiale, s.principio_sintetico,
-                       s.stato_verifica, s.url_pagina_ufficiale, s.url_pdf_ufficiale
+                       s.stato_verifica, s.url_pagina_ufficiale, s.url_pdf_ufficiale,
+                       s.pdf_ufficiale_presente, s.fonte_ufficiale_confermata, s.ecli,
+                       s.precedente_guida, s.sezioni_unite, s.nomofilattica, s.rilevanza
                 FROM sentenze s
                 WHERE 1 = 1
             """
@@ -559,7 +563,26 @@ class GestioneCorpusGiurisprudenza:
             params.append(_clean_spaces(stato_verifica))
         if solo_con_pdf:
             sql += " AND s.pdf_ufficiale_presente = 1"
-        sql += " ORDER BY COALESCE(s.data_deposito, ''), COALESCE(s.data_pubblicazione, '') DESC LIMIT ?"
+        sql += """
+            ORDER BY
+                CASE s.stato_verifica
+                    WHEN 'verificata' THEN 3
+                    WHEN 'parzialmente_verificata' THEN 2
+                    ELSE 0
+                END DESC,
+                s.pdf_ufficiale_presente DESC,
+                s.fonte_ufficiale_confermata DESC,
+                CASE WHEN COALESCE(s.ecli, '') <> '' THEN 1 ELSE 0 END DESC,
+                s.precedente_guida DESC,
+                s.sezioni_unite DESC,
+                s.nomofilattica DESC,
+                COALESCE(s.rilevanza, 0) DESC,
+                COALESCE(s.data_deposito, '') DESC,
+                COALESCE(s.data_pubblicazione, '') DESC,
+                COALESCE(s.anno_sentenza, 0) DESC,
+                s.id DESC
+            LIMIT ?
+        """
         params.append(max(1, int(limit)))
         with self._connect() as conn:
             return [dict(row) for row in conn.execute(sql, tuple(params)).fetchall()]

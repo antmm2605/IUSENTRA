@@ -1304,19 +1304,77 @@ def _ricerca_legale_lines(question: str) -> tuple[list[str], list[dict[str, Any]
 def _archivio_sentenze_lines(question: str) -> tuple[list[str], list[dict[str, Any]]]:
     gestore = get_giurisprudenza()
     stats = gestore.statistiche()
-    rows = gestore.cerca(q=question)[:4] if _clean_spaces(question) else gestore.cerca()[:4]
-    corpus_rows = (
-        gestore.cerca_corpus_professionale(q=question, limit=4)
-        if _clean_spaces(question)
-        else gestore.cerca_corpus_professionale(limit=4)
-    )
+    route = {}
+    if hasattr(gestore, "resolve_lex_giurisprudenza_route"):
+        try:
+            route = gestore.resolve_lex_giurisprudenza_route(question) or {}
+        except Exception:
+            route = {}
+    rows = list(route.get("archive_rows") or [])
+    if not rows:
+        rows = gestore.cerca(q=question)[:4] if _clean_spaces(question) else gestore.cerca()[:4]
+    corpus_rows = list(route.get("corpus_rows") or [])
+    if not corpus_rows:
+        corpus_rows = (
+            gestore.cerca_corpus_professionale(q=question, limit=4)
+            if _clean_spaces(question)
+            else gestore.cerca_corpus_professionale(limit=4)
+        )
+    repo_stats = {}
+    if hasattr(gestore, "statistiche_repository"):
+        try:
+            repo_stats = gestore.statistiche_repository() or {}
+        except Exception:
+            repo_stats = {}
     lines = [
         (
             f"Archivio sentenze: {stats.get('totale_sentenze', 0)} provvedimenti indicizzati, "
             f"{stats.get('fonti_attive', 0)} fonti attive. "
             f"Corpus professionale: {stats.get('corpus_sentenze', 0)} schede strutturate."
         ),
+        (
+            f"Repository giurisprudenza: {repo_stats.get('giurisprudenza_sources_repository', 0)} fonti, "
+            f"{repo_stats.get('giurisprudenza_taxonomy_repository', 0)} nodi tassonomici e "
+            f"{repo_stats.get('giurisprudenza_sync_registry', 0)} stati sync."
+            if repo_stats
+            else "Motore giurisprudenziale: prima corpus professionale verificabile, poi fonti e sync ufficiali."
+        ),
     ]
+    preferred_area = _clean_spaces(route.get("preferred_area_title"))
+    preferred_branch = _clean_spaces(route.get("preferred_branch_title"))
+    preferred_subbranch = _clean_spaces(route.get("preferred_subbranch_title"))
+    source_rows = list(route.get("source_rows") or [])
+    sync_rows = list(route.get("sync_rows") or [])
+    if preferred_area or source_rows:
+        route_bits = []
+        if preferred_area:
+            route_bits.append(f"area {preferred_area}")
+        if preferred_branch:
+            route_bits.append(f"branca {preferred_branch}")
+        if preferred_subbranch:
+            route_bits.append(f"sottobranca {preferred_subbranch}")
+        if source_rows:
+            route_bits.append(
+                "fonti preferite "
+                + ", ".join(_clean_spaces(row.get("nome")) for row in source_rows[:3] if _clean_spaces(row.get("nome")))
+            )
+        route_mode = _clean_spaces(route.get("route_mode"))
+        if route_mode:
+            route_bits.append(f"modalita {route_mode}")
+        if route_bits:
+            lines.append("Routing giurisprudenza: " + "; ".join(route_bits) + ".")
+    if sync_rows:
+        lines.append(
+            "Stato fonti giurisprudenziali: "
+            + "; ".join(
+                _truncate(
+                    f"{row.get('source_name') or row.get('source_id')}: {row.get('last_status') or 'n.d.'}",
+                    90,
+                )
+                for row in sync_rows[:3]
+            )
+            + "."
+        )
     if rows:
         lines.append(
             "Sentenze utili: "
@@ -1346,6 +1404,42 @@ def _archivio_sentenze_lines(question: str) -> tuple[list[str], list[dict[str, A
         )
     sources = []
     seen_source_ids: set[str] = set()
+    repository_source = _source(
+        "Repository giurisprudenza",
+        (
+            f"Corpus strutturato: {stats.get('corpus_sentenze', 0)} schede. "
+            f"Fonti repository: {repo_stats.get('giurisprudenza_sources_repository', 0) if repo_stats else len(source_rows)}. "
+            f"Routing: {route.get('reason') or 'corpus-first'}."
+        ),
+        source_id="giurisprudenza:repository",
+        title="Repository giurisprudenza",
+    )
+    repository_source["route_mode"] = route.get("route_mode") or "corpus_professionale"
+    sources.append(repository_source)
+    for idx, source_info in enumerate(source_rows):
+        source_row = _source(
+            f"Fonte giurisprudenza - {source_info.get('nome') or source_info.get('source_id') or 'Fonte'}",
+            (
+                f"Giurisdizione: {source_info.get('giurisdizione') or 'n.d.'}. "
+                f"Accesso: {source_info.get('access_mode') or 'n.d.'}. "
+                f"Sync: {source_info.get('sync_mode') or 'n.d.'}. "
+                f"Copertura: {source_info.get('coverage') or 'n.d.'}."
+            ),
+            source_id=f"giurisprudenza-fonte:{source_info.get('source_id') or idx}",
+            title=source_info.get("nome") or source_info.get("source_id") or "Fonte giurisprudenziale",
+        )
+        source_row["official_url"] = source_info.get("official_url") or ""
+        source_row["search_url"] = source_info.get("search_url") or ""
+        source_row["access_mode"] = source_info.get("access_mode") or ""
+        source_row["sync_mode"] = source_info.get("sync_mode") or ""
+        source_row["supports_auto_sync"] = bool(source_info.get("supports_auto_sync"))
+        source_row["judgment_count"] = int(source_info.get("judgment_count") or 0)
+        source_row["route_bias"] = source_info.get("route_bias") or ""
+        source_row_id = str(source_row.get("id") or "")
+        if source_row_id in seen_source_ids:
+            continue
+        seen_source_ids.add(source_row_id)
+        sources.append(source_row)
     for idx, row in enumerate(corpus_rows):
         full_record = gestore.scheda_corpus_professionale(row.get("id"))
         if not full_record:

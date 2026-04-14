@@ -27,6 +27,13 @@ class _DummyGiurisprudenza:
             }
         ]
 
+    def statistiche_repository(self):
+        return {
+            "giurisprudenza_sources_repository": 11,
+            "giurisprudenza_taxonomy_repository": 120,
+            "giurisprudenza_sync_registry": 11,
+        }
+
     def cerca_corpus_professionale(self, **kwargs):
         return [
             {
@@ -71,6 +78,39 @@ class _DummyGiurisprudenza:
     def pdf_professionale_disponibile(self, sentenza_id):
         return True
 
+    def resolve_lex_giurisprudenza_route(self, question):
+        return {
+            "preferred_area_title": "Civile",
+            "preferred_branch_title": "Responsabilita civile",
+            "preferred_subbranch_title": "Responsabilita medica",
+            "route_mode": "corpus_e_sync_pubblico",
+            "reason": "corpus professionale come primo livello; area: Civile",
+            "source_rows": [
+                {
+                    "source_id": "cassazione",
+                    "nome": "Corte di Cassazione",
+                    "giurisdizione": "Ordinaria",
+                    "coverage": "Legittimita, massimario e principi di diritto.",
+                    "official_url": "https://www.cortedicassazione.it/",
+                    "search_url": "https://www.cortedicassazione.it/it/massimario.page",
+                    "access_mode": "pubblico",
+                    "sync_mode": "automatico_leggero",
+                    "supports_auto_sync": True,
+                    "judgment_count": 3,
+                    "route_bias": "corpus_e_sync_pubblico",
+                }
+            ],
+            "sync_rows": [
+                {
+                    "source_id": "cassazione",
+                    "source_name": "Corte di Cassazione",
+                    "last_status": "ok",
+                }
+            ],
+            "corpus_rows": self.cerca_corpus_professionale(q=question),
+            "archive_rows": self.cerca(q=question),
+        }
+
 
 def test_archivio_sentenze_lines_integra_corpus_professionale(monkeypatch):
     monkeypatch.setattr(
@@ -81,7 +121,11 @@ def test_archivio_sentenze_lines_integra_corpus_professionale(monkeypatch):
     lines, sources = _archivio_sentenze_lines("consenso informato")
 
     assert any("Corpus professionale: 7 schede strutturate." in line for line in lines)
+    assert any("Repository giurisprudenza:" in line for line in lines)
+    assert any("Routing giurisprudenza:" in line for line in lines)
     assert any("Corpus giurisprudenziale verificabile:" in line for line in lines)
+    assert any(source["id"] == "giurisprudenza:repository" for source in sources)
+    assert any(source["id"] == "giurisprudenza-fonte:cassazione" for source in sources)
     assert any(source["id"] == "corpus-sentenza:101" for source in sources)
     assert any(source.get("verified_reference") is True for source in sources if source["id"] == "corpus-sentenza:101")
     assert any(source.get("downloadable_pdf") is True for source in sources if source["id"] == "corpus-sentenza:101")

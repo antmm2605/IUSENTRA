@@ -25,6 +25,19 @@ from pct.giurisprudenza_corpus import (
     GestioneCorpusGiurisprudenza,
     derive_corpus_db_path,
 )
+from pct.giurisprudenza_repository import (
+    GestioneRepositoryGiurisprudenza,
+    build_giurisprudenza_sources_rows,
+    build_giurisprudenza_sync_rows,
+    build_giurisprudenza_taxonomy_rows,
+    build_giurisprudenza_usage_rows,
+    derive_giurisprudenza_repository_db_path,
+    derive_giurisprudenza_repository_json_path,
+    derive_giurisprudenza_sources_json_path,
+    derive_giurisprudenza_sync_json_path,
+    derive_giurisprudenza_taxonomy_json_path,
+    derive_giurisprudenza_usage_json_path,
+)
 from pct.legal_intelligence import FONTI_UFFICIALI
 
 USER_AGENT_GIURISPRUDENZA = "HACS-Giurisprudenza/1.0"
@@ -608,10 +621,25 @@ class GestioneGiurisprudenza:
     def __init__(self, db_path: str = "./intelligence/giurisprudenza.json", timeout: int = 12):
         self.db_path = db_path
         self.corpus_db_path = derive_corpus_db_path(db_path)
+        self.repository_db_path = derive_giurisprudenza_repository_db_path(self.db_path)
+        self.repository_json_path = derive_giurisprudenza_repository_json_path(self.db_path)
+        self.repository_sources_json_path = derive_giurisprudenza_sources_json_path(self.db_path)
+        self.repository_taxonomy_json_path = derive_giurisprudenza_taxonomy_json_path(self.db_path)
+        self.repository_usage_json_path = derive_giurisprudenza_usage_json_path(self.db_path)
+        self.repository_sync_json_path = derive_giurisprudenza_sync_json_path(self.db_path)
         self.timeout = timeout
         self._data: Dict[str, Any] = self._empty_storage()
         self._corpus = GestioneCorpusGiurisprudenza(self.corpus_db_path)
+        self._repository = GestioneRepositoryGiurisprudenza(
+            self.repository_db_path,
+            json_path=self.repository_json_path,
+            sources_json_path=self.repository_sources_json_path,
+            taxonomy_json_path=self.repository_taxonomy_json_path,
+            usage_json_path=self.repository_usage_json_path,
+            sync_json_path=self.repository_sync_json_path,
+        )
         self._load()
+        self._sync_repository()
 
     def _empty_storage(self) -> Dict[str, Any]:
         return {
@@ -650,6 +678,7 @@ class GestioneGiurisprudenza:
         payload = dict(self._data)
         payload["sync_runs"] = list(payload.get("ingestion_runs") or [])
         _cache.save(self.db_path, payload, indent=2)
+        self._sync_repository()
 
     def _seed_sources_registry(self) -> bool:
         rows = {str(item.get("id") or ""): dict(item) for item in self._data.get("legal_sources", []) if item.get("id")}
@@ -837,6 +866,80 @@ class GestioneGiurisprudenza:
         stats["corpus_massime"] = int(corpus_stats.get("massime", 0))
         stats["corpus_principi"] = int(corpus_stats.get("principi_diritto", 0))
         return stats
+
+    def _sync_repository(self) -> None:
+        catalog_rows = self.catalogo_fonti()
+        source_rows = build_giurisprudenza_sources_rows(SOURCE_SPECS, catalog_rows)
+        taxonomy_rows = build_giurisprudenza_taxonomy_rows(TASSONOMIA_GIURISPRUDENZA)
+        usage_rows = build_giurisprudenza_usage_rows(
+            ORIENTAMENTI,
+            RILEVANZE_PRATICHE,
+            USI_NEL_SOFTWARE,
+            TIPI_PROVVEDIMENTO,
+        )
+        sync_rows = build_giurisprudenza_sync_rows(catalog_rows)
+        self._repository.synchronize_runtime(
+            source_rows=source_rows,
+            taxonomy_rows=taxonomy_rows,
+            usage_rows=usage_rows,
+            sync_rows=sync_rows,
+            export_json=True,
+        )
+
+    def statistiche_repository(self) -> Dict[str, Any]:
+        return self._repository.storage_stats()
+
+    def repository_payload(self) -> Dict[str, Any]:
+        return self._repository.load_repository_payload()
+
+    def export_giurisprudenza_repositories(self, base_dir: str | None = None) -> Dict[str, str]:
+        return self._repository.export_split_jsons(base_dir)
+
+    def resolve_lex_giurisprudenza_route(self, question: str) -> Dict[str, Any]:
+        route = self._repository.resolve_route(question)
+        prefer_pdf = bool(route.get("prefer_pdf"))
+        prefer_verified_only = bool(route.get("prefer_verified_only"))
+
+        candidate_queries: List[str] = []
+        for candidate in (
+            question,
+            route.get("preferred_subbranch_title"),
+            route.get("preferred_branch_title"),
+            route.get("preferred_area_title"),
+        ):
+            cleaned = _clean_spaces(candidate)
+            if cleaned and cleaned not in candidate_queries:
+                candidate_queries.append(cleaned)
+
+        corpus_rows: List[Dict[str, Any]] = []
+        for candidate_query in candidate_queries:
+            if prefer_verified_only:
+                corpus_rows = self.cerca_corpus_professionale(
+                    q=candidate_query,
+                    stato_verifica="verificata",
+                    solo_con_pdf=prefer_pdf,
+                    limit=6,
+                )
+                if not corpus_rows:
+                    corpus_rows = self.cerca_corpus_professionale(
+                        q=candidate_query,
+                        stato_verifica="parzialmente_verificata",
+                        solo_con_pdf=prefer_pdf,
+                        limit=6,
+                    )
+            if not corpus_rows:
+                corpus_rows = self.cerca_corpus_professionale(
+                    q=candidate_query,
+                    solo_con_pdf=prefer_pdf,
+                    limit=6,
+                )
+            if corpus_rows:
+                break
+
+        archive_rows = self.cerca(q=question)[:4] if _clean_spaces(question) else self.cerca()[:4]
+        route["corpus_rows"] = corpus_rows
+        route["archive_rows"] = archive_rows
+        return route
 
     def cerca_corpus_professionale(
         self,

@@ -339,11 +339,13 @@ _COMPETENCE_PROFILES: tuple[LexCompetenceProfile, ...] = (
         ),
         section_titles=("Archivio sentenze", "Ricerca legale e fonti web"),
         prompt_block=(
-            "Competenza HACS: Archivio sentenze e giurisprudenza. Su sentenze e pronunce Lex deve prendere in carico la ricerca, "
-            "partire dalle decisioni piu' recenti e rilevanti e chiarire sempre se sta parlando di sentenza, ordinanza o altro provvedimento."
+            "Competenza HACS: Archivio sentenze e giurisprudenza. Su sentenze e pronunce Lex deve partire prima dal corpus professionale "
+            "verificabile, poi dal repository strutturato di fonti, tassonomia, policy e sync, e solo dopo usare il modello per spiegare la risposta. "
+            "Lex puo' citare una pronuncia solo se il riferimento professionale e' verificato e puo' promettere il PDF solo se il corpus lo segnala disponibile. "
+            "Chiarisci sempre se stai parlando di sentenza, ordinanza o altro provvedimento."
         ),
         context_hint=(
-            "Per la giurisprudenza dai priorita' a provvedimento, data, organo giudicante e principio utile, non a spiegazioni scolastiche."
+            "Per la giurisprudenza dai priorita' a corpus verificabile, fonte giusta, organo giudicante, data, principio utile e stato reale del PDF."
         ),
         include_live_web=True,
     ),

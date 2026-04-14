@@ -172,3 +172,61 @@ def test_gestione_giurisprudenza_sincronizza_il_record_nel_corpus_professionale(
     assert corpus.can_offer_pdf(full) is True
     assert stats["corpus_sentenze"] >= 1
     assert stats["corpus_documenti"] >= 1
+
+
+def test_corpus_giurisprudenza_ordina_prima_le_pronunce_verificate_e_con_pdf(tmp_path: Path):
+    corpus = GestioneCorpusGiurisprudenza(str(tmp_path / "giurisprudenza_corpus.db"))
+
+    corpus.salva_sentenza(
+        {
+            "fonte": {
+                "codice": "cassazione",
+                "nome": "Corte di Cassazione",
+                "tipo_fonte": "ufficiale",
+            },
+            "titolo": "Cassazione su anatocismo bancario",
+            "organo_giudicante": "Corte di Cassazione",
+            "numero_sentenza": "100",
+            "anno_sentenza": 2026,
+            "data_deposito": "2026-04-10",
+            "tipo_provvedimento": "sentenza",
+            "massima_ufficiale": "Clausola anatocistica da verificare in concreto.",
+            "principio_sintetico": "Serve una verifica puntuale della clausola.",
+            "stato_verifica": "verificata",
+            "fonte_ufficiale_confermata": True,
+            "pdf_ufficiale_presente": True,
+            "url_pagina_ufficiale": "https://www.cortedicassazione.it/100-2026",
+            "url_pdf_ufficiale": "https://www.cortedicassazione.it/100-2026.pdf",
+            "documenti": [
+                {
+                    "tipo_documento": "pdf_ufficiale",
+                    "url_origine": "https://www.cortedicassazione.it/100-2026.pdf",
+                    "valido": True,
+                }
+            ],
+        }
+    )
+    corpus.salva_sentenza(
+        {
+            "fonte": {
+                "codice": "import_manuale",
+                "nome": "Import manuale",
+                "tipo_fonte": "import_manuale",
+            },
+            "titolo": "Pronuncia tematica su anatocismo",
+            "organo_giudicante": "Tribunale non confermato",
+            "numero_sentenza": "200",
+            "anno_sentenza": 2026,
+            "data_deposito": "2026-04-12",
+            "tipo_provvedimento": "sentenza",
+            "massima_ufficiale": "Riferimento non ancora verificato.",
+            "principio_sintetico": "Tema anatocismo ancora da verificare.",
+            "stato_verifica": "da_verificare",
+        }
+    )
+
+    rows = corpus.cerca_sentenze(q="anatocismo", limit=2)
+
+    assert len(rows) == 2
+    assert rows[0]["stato_verifica"] == "verificata"
+    assert rows[0]["pdf_ufficiale_presente"] == 1

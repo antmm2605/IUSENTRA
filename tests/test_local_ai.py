@@ -141,6 +141,9 @@ def test_assistente_prompt_separa_voce_e_regole_tecniche():
     assert "In questi casi esegui la ricerca e usa le fonti ufficiali pertinenti" in prompt
     assert "Se il tema e' gia' chiaro dal turno precedente, Lex deve unire i due elementi e agire su quel tema" in prompt
     assert "Se la richiesta riguarda solo dati interni di studio, non aprire una ricerca web." in prompt
+    assert "ricerca web sentenze civili" in prompt
+    assert "Controllo io. Parto dalle sentenze civili piu' recenti e rilevanti" in prompt
+    assert "Non usare mai testo-segnaposto o placeholder artificiali" in prompt
     assert "=== GESTIONE DELLA RELAZIONE QUOTIDIANA ===" in prompt
     assert "Se il messaggio e' solo sociale o relazionale" in prompt
     assert "Se il messaggio combina cortesia e richiesta operativa" in prompt

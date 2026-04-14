@@ -624,15 +624,21 @@ def test_contesto_lex_compatta_le_sezioni_e_limita_le_fonti():
     assert "selected_detail_titles = (" in context_service
     assert "force_web_fallback = web_execution_requested or _should_force_web_fallback(" in context_service
     assert '"sources": deduped_sources[:10 if chat_mode else 12]' in context_service
+    assert 'research_strategy = _clean_spaces(focus.get("research_strategy"))' in context_service
+    assert 'Ricerca ampia su sentenze civili: Lex deve partire dalle pronunce civili piu\' recenti' in context_service
     assert '"web_fallback_used": bool(force_web_fallback)' in context_service
     assert "warm_lex_studio_context" in context_service
     assert "cached_compute" in cache_service
     assert "build_file_fingerprint" in cache_service
     assert "question_signature" in cache_service
     assert "resolve_conversation_focus" in focus_service
+    assert "def _is_civil_case_law_query" in focus_service
     assert "_TOPIC_RULES" in focus_service
     assert "_FOLLOW_UP_MARKERS" in focus_service
+    assert '"topic": "sentenze_civili"' in focus_service
+    assert '"research_strategy": "auto_narrow_recent_civil_case_law"' in focus_service
     assert "resolve_web_execution_intent" in focus_service
+    assert '"research_strategy": str(resolved_rule.get("research_strategy") or "").strip()' in focus_service
     assert '"web_execution_requested": bool(web_intent.requested)' in focus_service
     assert '"inherited_previous_theme": bool(web_intent.inherited_previous_theme)' in focus_service
     assert "_FALLBACK_DEFAULT_SOURCE_IDS" in live_web_service
@@ -682,6 +688,9 @@ def test_contesto_lex_compatta_le_sezioni_e_limita_le_fonti():
     assert "_LEX_CONTEXT_ROUTING_PROMPT" in assistente_prompt
     assert "_LEX_WEB_EXECUTION_PROMPT" in assistente_prompt
     assert "_LEX_SOCIAL_PROMPT" in assistente_prompt
+    assert "Se c'e' gia' una richiesta operativa o di ricerca, non aprire con saluti" in assistente_prompt
+    assert "ricerca web sentenze civili" in assistente_prompt
+    assert "Non usare mai testo-segnaposto o placeholder artificiali" in assistente_prompt
     assert "_PROMPT_PROFILE_BLOCKS" in assistente_prompt
     assert "_PROMPT_PROFILE_KEYWORDS" in assistente_prompt
     assert "Apertura iniziale da mantenere:" in assistente_prompt

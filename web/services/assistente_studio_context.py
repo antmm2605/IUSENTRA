@@ -1144,10 +1144,15 @@ def build_lex_studio_context(
         "Se manca il contesto o serve una verifica aggiornata sul web, Lex deve dirlo chiaramente e indicare le fonti ufficiali web piu' adatte senza inventare.",
     ]
     focus_label = _clean_spaces(focus.get("focus_label"))
+    research_strategy = _clean_spaces(focus.get("research_strategy"))
     web_execution_requested = bool(focus.get("web_execution_requested"))
     if chat_mode and focus_label:
         sections.append(
             f"Per questa richiesta resta focalizzata su {focus_label} e non allargare la risposta alla panoramica generale dello studio salvo richiesta esplicita."
+        )
+    if chat_mode and research_strategy == "auto_narrow_recent_civil_case_law":
+        sections.append(
+            "Ricerca ampia su sentenze civili: Lex deve partire dalle pronunce civili piu' recenti e rilevanti, con priorita' alla Cassazione e alle fonti ufficiali disponibili, senza chiedere subito di restringere la materia."
         )
     if chat_mode and web_execution_requested:
         sections.append(
@@ -1259,6 +1264,7 @@ def build_lex_studio_context(
         "source_ids": list(dict.fromkeys([*fonti_per_query(effective_question), *live_source_ids])),
         "focus_label": focus_label,
         "focus_topic": _clean_spaces(focus.get("topic")),
+        "research_strategy": research_strategy,
         "effective_question": effective_question,
         "web_fallback_used": bool(force_web_fallback),
         "web_execution_requested": bool(web_execution_requested),

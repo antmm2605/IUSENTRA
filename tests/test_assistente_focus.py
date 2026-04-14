@@ -51,11 +51,22 @@ def test_focus_conversazionale_eredita_tema_precedente_per_richiesta_web_breve()
         ],
     )
 
-    assert focus["topic"] == "sentenze_web"
+    assert focus["topic"] == "sentenze_civili"
     assert focus["include_live_web"] is True
     assert focus["web_execution_requested"] is True
     assert focus["inherited_previous_theme"] is True
     assert focus["effective_question"] == "Ultime sentenze sul civile tutti gli ambienti"
+
+
+def test_focus_conversazionale_dedica_un_intento_alle_sentenze_civili():
+    focus = resolve_conversation_focus("ricerca web sentenze civili")
+
+    assert focus["topic"] == "sentenze_civili"
+    assert focus["focus_label"] == "sentenze civili recenti"
+    assert focus["include_live_web"] is True
+    assert focus["research_strategy"] == "auto_narrow_recent_civil_case_law"
+    assert "Archivio sentenze" in focus["section_titles"]
+    assert "Ricerca legale e fonti web" in focus["section_titles"]
 
 
 def test_focus_conversazionale_eredita_il_fascicolo_per_followup_operativo_generico():

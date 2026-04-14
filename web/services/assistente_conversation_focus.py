@@ -8,6 +8,21 @@ from typing import Any
 from web.services.assistente_web_execution import resolve_web_execution_intent
 
 
+def _is_civil_case_law_query(question: str) -> bool:
+    text = _clean_spaces(question).lower()
+    if not text:
+        return False
+    has_case_law = any(
+        _contains_keyword(text, keyword)
+        for keyword in ("sentenza", "sentenze", "giurisprudenza", "pronuncia", "pronunce", "massima", "provvedimento")
+    )
+    has_civil_scope = any(
+        _contains_keyword(text, keyword)
+        for keyword in ("sentenza civile", "sentenze civili", "diritto civile", "civile", "civili", "cassazione civile")
+    )
+    return has_case_law and has_civil_scope
+
+
 _TOPIC_RULES: tuple[dict[str, Any], ...] = (
     {
         "topic": "dashboard",
@@ -87,6 +102,21 @@ _TOPIC_RULES: tuple[dict[str, Any], ...] = (
         "include_live_web": False,
     },
     {
+        "topic": "sentenze_civili",
+        "keywords": (
+            "sentenza civile",
+            "sentenze civili",
+            "diritto civile",
+            "cassazione civile",
+            "pronunce civili",
+            "giurisprudenza civile",
+        ),
+        "sections": ("Archivio sentenze", "Ricerca legale e fonti web"),
+        "focus_label": "sentenze civili recenti",
+        "include_live_web": True,
+        "research_strategy": "auto_narrow_recent_civil_case_law",
+    },
+    {
         "topic": "sentenze_web",
         "keywords": (
             "sentenza",
@@ -162,6 +192,8 @@ def _find_topic_rule(question: str) -> dict[str, Any] | None:
     haystack = _clean_spaces(question).lower()
     if not haystack:
         return None
+    if _is_civil_case_law_query(haystack):
+        return next((rule for rule in _TOPIC_RULES if rule.get("topic") == "sentenze_civili"), None)
     for rule in _TOPIC_RULES:
         if any(_contains_keyword(haystack, keyword) for keyword in rule["keywords"]):
             return rule
@@ -204,6 +236,10 @@ def _recent_topic_rule(messages: list[dict[str, object]] | None, current_questio
 def _topic_label(rule: dict[str, Any], question: str) -> str:
     topic = str(rule.get("topic") or "").strip()
     text = _clean_spaces(question).lower()
+    if topic == "sentenze_civili":
+        if "cassazione" in text:
+            return "sentenze civili recenti di Cassazione"
+        return "sentenze civili recenti"
     if topic in {"udienze", "agenda"} and "oggi" in text:
         return "udienze di oggi"
     if topic in {"udienze", "fascicoli"} and "attiv" in text:
@@ -258,6 +294,7 @@ def resolve_conversation_focus(
             "effective_question": base_question or clean_question,
             "section_titles": list(_GENERIC_SECTION_FALLBACK),
             "include_live_web": bool(web_intent.requested),
+            "research_strategy": "",
             "is_follow_up": bool(is_follow_up),
             "has_explicit_overview": False,
             "web_execution_requested": bool(web_intent.requested),
@@ -277,6 +314,7 @@ def resolve_conversation_focus(
         "effective_question": effective_question,
         "section_titles": list(resolved_rule.get("sections") or _GENERIC_SECTION_FALLBACK),
         "include_live_web": bool(resolved_rule.get("include_live_web")) or bool(web_intent.requested),
+        "research_strategy": str(resolved_rule.get("research_strategy") or "").strip(),
         "is_follow_up": is_follow_up,
         "has_explicit_overview": str(resolved_rule.get("topic") or "").strip() == "dashboard",
         "web_execution_requested": bool(web_intent.requested),

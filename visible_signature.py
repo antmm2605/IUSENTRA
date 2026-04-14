@@ -373,15 +373,15 @@ def _build_visible_signature_location_line(*, luogo: str = "", data_firma: Any =
     return luogo_value or data_value
 
 
-def _build_visible_signature_side_text(
+def _build_visible_signature_side_lines(
     *,
     intestatario: str = "",
     data_firma: Any = None,
     luogo: str = "",
     issuer: str = "",
     serial: str = "",
-) -> str:
-    segments: list[str] = []
+) -> list[str]:
+    lines: list[str] = []
     signer_name = _normalize_visible_signature_name(
         intestatario,
         uppercase=True,
@@ -392,14 +392,14 @@ def _build_visible_signature_side_text(
     place_value = str(luogo or "").strip()
 
     if signer_name:
-        segments.append(f"Firmato da: {signer_name}")
+        lines.append(f"Firmato da: {signer_name}")
     if date_value:
-        segments.append(f"Data e ora firma: {date_value}")
+        lines.append(f"Data e ora firma: {date_value}")
     if place_value:
-        segments.append(f"Luogo firma: {place_value.upper()}")
+        lines.append(f"Luogo firma: {place_value.upper()}")
     if issuer_value:
-        segments.append(f"Emesso da: {issuer_value.upper()}")
-    return "  ".join(segments)
+        lines.append(f"Emesso da: {issuer_value.upper()}")
+    return lines
 
 
 def _build_visible_signature_bottom_lines(
@@ -408,20 +408,25 @@ def _build_visible_signature_bottom_lines(
     data_firma: Any = None,
     luogo: str = "",
 ) -> tuple[str, str]:
-    signer_name = str(intestatario or "").strip().upper()
+    signer_name = _normalize_visible_signature_name(
+        intestatario,
+        uppercase=True,
+        force_avv_prefix=True,
+    )
     place_value = str(luogo or "").strip()
     date_value = format_visible_signature_datetime(data_firma)
-
-    first_line = VISIBLE_SIGNATURE_PREFIX
-    if signer_name:
-        first_line = f"{first_line} {signer_name}"
-
-    second_parts = []
-    if place_value:
-        second_parts.append(place_value)
     if date_value:
-        second_parts.append(date_value)
-    second_line = " - ".join(part for part in second_parts if part).strip()
+        date_value = date_value.replace(" alle ore ", " ore ")
+
+    first_line = "Per autentica e sottoscrizione"
+
+    second_line = "Firmato da:"
+    if signer_name:
+        second_line = f"{second_line} {signer_name}"
+    if date_value:
+        second_line = f"{second_line} in data {date_value}"
+    if place_value:
+        second_line = f"{second_line} Luogo: {place_value}"
     return first_line, second_line
 
 
@@ -438,21 +443,24 @@ def _draw_visible_signature_side_mark(
 ) -> None:
     right_margin = CM_TO_PT
     bottom_margin = CM_TO_PT
+    line_step = 12.0
+    lines = _build_visible_signature_side_lines(
+        intestatario=intestatario,
+        data_firma=data_firma,
+        luogo=luogo,
+        issuer=issuer,
+    )
     overlay.setFillColor(color)
-    overlay.setFont("Helvetica", 10)
     overlay.saveState()
     overlay.translate(width - right_margin, bottom_margin)
     overlay.rotate(90)
-    overlay.drawString(
-        0,
-        0,
-        _build_visible_signature_side_text(
-            intestatario=intestatario,
-            data_firma=data_firma,
-            luogo=luogo,
-            issuer=issuer,
-        ),
-    )
+    text_object = overlay.beginText()
+    text_object.setTextOrigin(0, 0)
+    text_object.setFont("Helvetica", 10)
+    text_object.setLeading(line_step)
+    for line in lines:
+        text_object.textLine(line)
+    overlay.drawText(text_object)
     overlay.restoreState()
     _draw_visible_signature_seal(
         overlay,

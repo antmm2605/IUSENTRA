@@ -10,6 +10,7 @@ from visible_signature import (
     VISIBLE_SIGNATURE_METADATA_KEY,
     VISIBLE_SIGNATURE_MODE_BASSO_DESTRA,
     VISIBLE_SIGNATURE_MODE_LATERALE,
+    _build_visible_signature_side_lines,
     _draw_visible_signature_bottom_right_text,
     _draw_visible_signature_seal,
     apply_visible_signature_stamp,
@@ -79,8 +80,10 @@ def test_apply_visible_signature_stamp_supporta_modalita_basso_destra():
     reader = PdfReader(io.BytesIO(stamped))
     text = "\n".join(page.extract_text() or "" for page in reader.pages)
 
-    assert "Firmato digitalmente da AVV. ANTONIO MAMMOLA" in text
-    assert "Reggio Calabria - 14/04/2026 alle ore 11:32" in text
+    assert "Per autentica e sottoscrizione" in text
+    assert "Firmato da: AVV. ANTONIO MAMMOLA" in text
+    assert "in data 14/04/2026 ore 11:32" in text
+    assert "Luogo: Reggio Calabria" in text
 
 
 def test_apply_visible_signature_stamp_modalita_laterale_aggiunge_prefisso_avv():
@@ -96,6 +99,20 @@ def test_apply_visible_signature_stamp_modalita_laterale_aggiunge_prefisso_avv()
     text = "\n".join(page.extract_text() or "" for page in reader.pages)
 
     assert "Firmato da: AVV. ANTONIO MAMMOLA" in text
+
+
+def test_visible_signature_side_lines_espongono_data_e_orario_prima_dell_emittente():
+    lines = _build_visible_signature_side_lines(
+        intestatario="Antonio Mammola",
+        data_firma="2026-04-14T09:32:00+00:00",
+        luogo="Reggio Calabria",
+        issuer="ArubaPEC EU Authentication Certificates CA G1",
+    )
+
+    assert lines[0] == "Firmato da: AVV. ANTONIO MAMMOLA"
+    assert lines[1] == "Data e ora firma: 14/04/2026 alle ore 11:32"
+    assert lines[2] == "Luogo firma: REGGIO CALABRIA"
+    assert lines[3].startswith("Emesso da: ARUBAPEC")
 
 
 def test_apply_visible_signature_stamp_is_idempotent():
@@ -164,6 +181,9 @@ def test_bottom_right_signature_draws_colored_seal(monkeypatch):
     )
 
     assert len(overlay.drawn) >= 2
+    assert overlay.drawn[0][2] == "Per autentica e sottoscrizione"
+    assert "Firmato da: AVV. ANTONIO MAMMOLA" in overlay.drawn[1][2]
+    assert "in data 14/04/2026 ore 11:32" in overlay.drawn[1][2]
     assert seal_calls
     assert seal_calls[0]["anchor_x"] < 595.0 - 28.35
     assert seal_calls[0]["scale"] >= 1.0

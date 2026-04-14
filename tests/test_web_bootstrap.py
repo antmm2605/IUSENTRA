@@ -472,6 +472,7 @@ def test_lex_assistant_usa_componente_esterno_e_posizione_persistente():
     assert "voiceHelper" in widget_js
     assert "fetchServerContext" in widget_js
     assert "streamCompanionRagQuery" in widget_js
+    assert "fonti ufficiali web per aggiungere riferimenti aggiornati" in widget_js
     assert "companionHelp" in widget_js
     assert "renderCompanionRuntimeHelp" in widget_js
     assert "isCompanionTransportError" in widget_js
@@ -494,6 +495,7 @@ def test_lex_assistant_usa_componente_esterno_e_posizione_persistente():
     assert ".pct-ai-toolbar" in widget_scss
     assert ".pct-ai-attachments" in widget_scss
     assert ".pct-ai-resize-handle" in widget_scss
+    assert "fonti ufficiali web live" in widget_template
 
 
 def test_modal_firma_deposito_prevede_riavvio_local_signer():

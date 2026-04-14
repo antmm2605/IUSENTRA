@@ -424,6 +424,49 @@ def test_api_assistente_context_prepara_prompt_per_companion_locale(tmp_path: Pa
     )
 
 
+def test_api_assistente_context_integra_fonti_ufficiali_web_live(tmp_path: Path, monkeypatch):
+    _write_studio_config(tmp_path / "config" / "studio.json", enabled=True)
+    app = create_app(_cfg_web(tmp_path))
+
+    monkeypatch.setattr(
+        "web.services.assistente_studio_context.build_live_official_web_context",
+        lambda question: {
+            "lines": [
+                "Verifica live web: Lex ha consultato una fonte ufficiale per aggiornare il contesto.",
+                "Normattiva: risorsa live raggiunta, titolo 'Testo vigente del decreto', URL https://www.normattiva.it/.",
+            ],
+            "sources": [
+                {
+                    "id": "live-web:normattiva",
+                    "title": "Normattiva",
+                    "citation": "Fonte ufficiale live - Normattiva",
+                    "text": "Testo vigente del decreto. URL ufficiale: https://www.normattiva.it/.",
+                }
+            ],
+            "citations": ["Fonte ufficiale live - Normattiva"],
+            "source_ids": ["normattiva"],
+        },
+    )
+
+    with app.test_client() as client:
+        client.post("/login", data={"username": "admin", "password": "admin"}, follow_redirects=True)
+        response = client.post(
+            "/api/assistente/context",
+            json={
+                "question": "Verifica la normativa sulla fatturazione elettronica",
+                "messages": [{"role": "user", "content": "Verifica la normativa sulla fatturazione elettronica"}],
+            },
+        )
+
+    payload = response.get_json()
+    assert response.status_code == 200
+    assert payload["ok"] is True
+    assert "VERIFICA LIVE FONTI UFFICIALI WEB" in payload["prompt"]
+    assert "Normattiva: risorsa live raggiunta" in payload["prompt"]
+    assert any(citation == "Fonte ufficiale live - Normattiva" for citation in payload["citations"])
+    assert any(source["id"] == "live-web:normattiva" for source in payload["sources"])
+
+
 def test_api_assistente_attachments_parse_documenti_locali(tmp_path: Path):
     _write_studio_config(tmp_path / "config" / "studio.json", enabled=True)
     app = create_app(_cfg_web(tmp_path))

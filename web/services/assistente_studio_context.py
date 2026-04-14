@@ -30,6 +30,7 @@ from web.helpers import (
     get_scadenziario,
     get_soggetti,
 )
+from web.services.assistente_live_web import build_live_official_web_context
 from web.services.local_ai_runtime import get_local_ai_service
 
 
@@ -670,6 +671,8 @@ def build_lex_studio_context(question: str) -> dict[str, Any]:
         "Se manca il contesto o serve una verifica aggiornata sul web, Lex deve dirlo chiaramente e indicare le fonti ufficiali web piu' adatte senza inventare.",
     ]
     sources: list[dict[str, Any]] = []
+    priority_sources: list[dict[str, Any]] = []
+    live_source_ids: list[str] = []
 
     _append_section(sections, "Profilo studio", _studio_profile_lines())
 
@@ -685,6 +688,12 @@ def build_lex_studio_context(question: str) -> dict[str, Any]:
         ("Preventivi", lambda: _preventivi_lines(q)),
         ("Fatturazione", lambda: _fatturazione_lines(q)),
         ("Ricerca legale e fonti web", lambda: _ricerca_legale_lines(q)),
+        ("Verifica live fonti ufficiali web", lambda: (
+            lambda payload: (
+                payload.get("lines") or [],
+                payload.get("sources") or [],
+            )
+        )(build_live_official_web_context(q))),
         ("Archivio sentenze", lambda: _archivio_sentenze_lines(q)),
         ("Strumenti legali", lambda: _strumenti_legali_lines(q)),
         ("Applicazioni", lambda: _applicazioni_lines(q)),
@@ -696,11 +705,24 @@ def build_lex_studio_context(question: str) -> dict[str, Any]:
             current_app.logger.exception("Errore contesto Lex per sezione %s: %s", title, exc)
             lines, section_sources = ([f"{title}: contesto non disponibile in questo momento."], [])
         _append_section(sections, title, lines)
-        sources.extend(section_sources or [])
+        if title == "Verifica live fonti ufficiali web":
+            priority_sources.extend(section_sources or [])
+        else:
+            sources.extend(section_sources or [])
+
+        if title == "Verifica live fonti ufficiali web":
+            try:
+                live_source_ids = [
+                    str(item.get("id") or "").replace("live-web:", "").strip()
+                    for item in section_sources or []
+                    if str(item.get("id") or "").startswith("live-web:")
+                ]
+            except Exception:
+                live_source_ids = []
 
     deduped_sources: list[dict[str, Any]] = []
     seen_ids: set[str] = set()
-    for row in sources:
+    for row in [*priority_sources, *sources]:
         identifier = str(row.get("id") or row.get("citation") or "").strip()
         if not identifier or identifier in seen_ids:
             continue
@@ -712,5 +734,5 @@ def build_lex_studio_context(question: str) -> dict[str, Any]:
         "sources": deduped_sources[:24],
         "citations": [row.get("citation") for row in deduped_sources[:24] if row.get("citation")],
         "engine_ids": motori_per_query(q),
-        "source_ids": fonti_per_query(q),
+        "source_ids": list(dict.fromkeys([*fonti_per_query(q), *live_source_ids])),
     }

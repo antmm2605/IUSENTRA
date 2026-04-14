@@ -4,6 +4,11 @@ import re
 from dataclasses import dataclass
 from typing import Any
 
+from web.services.assistente_web_execution import (
+    is_web_execution_request as is_web_execution_command,
+    resolve_effective_query as resolve_web_effective_query,
+)
+
 
 @dataclass(slots=True)
 class FollowupResolution:
@@ -17,23 +22,6 @@ class FollowupResolution:
     reused_previous_topic: bool
     reason: str
 
-
-_WEB_REQUEST_PATTERNS = (
-    r"\bcerca(?:\s+tu)?\b",
-    r"\bcercalo(?:\s+tu)?\b",
-    r"\bcerca sul web\b",
-    r"\bcontrolla(?:\s+tu)?\b",
-    r"\bpuoi controllare(?:\s+tu)?\b",
-    r"\bverifica(?:\s+tu)?\b",
-    r"\bpuoi verificare(?:\s+tu)?\b",
-    r"\bguarda(?:\s+tu)?\b",
-    r"\bpuoi guardare(?:\s+tu)?\b",
-    r"\bfammi la ricerca\b",
-    r"\bfai una ricerca\b",
-    r"\bcontrolla sul web\b",
-    r"\bpuoi controllare sul web\b",
-    r"\bsul web\b",
-)
 
 _SHORT_FOLLOWUP_PATTERNS = (
     r"\be le ultime\b",
@@ -145,10 +133,7 @@ def latest_user_message(
 
 
 def is_web_execution_request(text: str) -> bool:
-    q = normalize_user_text(text)
-    if not q:
-        return False
-    return any(re.search(pattern, q) for pattern in _WEB_REQUEST_PATTERNS)
+    return bool(is_web_execution_command(text))
 
 
 def is_short_followup(text: str, *, max_words: int = 8) -> bool:
@@ -225,16 +210,18 @@ def resolve_followup_query(
     current_is_web_request = is_web_execution_request(current)
     current_is_short_followup = is_short_followup(current)
     current_has_reference = has_referential_language(current)
+    web_effective_query = _clean_spaces(resolve_web_effective_query(raw, previous))
+    web_reuses_previous_topic = bool(previous and web_effective_query == previous and web_effective_query != raw)
 
-    if previous_norm and current_is_web_request and current_is_short_followup:
+    if previous_norm and current_is_web_request and current_is_short_followup and web_reuses_previous_topic:
         return FollowupResolution(
             raw_text=raw,
             normalized_text=current,
             previous_user_text=previous,
-            effective_query=previous,
+            effective_query=web_effective_query,
             is_followup=True,
             is_web_request=True,
-            needs_web_search=should_trigger_web_search(previous),
+            needs_web_search=should_trigger_web_search(web_effective_query),
             reused_previous_topic=True,
             reason="web_request_reuses_previous_topic",
         )
@@ -253,15 +240,15 @@ def resolve_followup_query(
             reason="referential_followup_merged_with_previous",
         )
 
-    if previous_norm and current_is_web_request and not has_direct_web_topic(current):
+    if previous_norm and current_is_web_request and web_reuses_previous_topic and not has_direct_web_topic(current):
         return FollowupResolution(
             raw_text=raw,
             normalized_text=current,
             previous_user_text=previous,
-            effective_query=previous,
+            effective_query=web_effective_query,
             is_followup=True,
             is_web_request=True,
-            needs_web_search=should_trigger_web_search(previous),
+            needs_web_search=should_trigger_web_search(web_effective_query),
             reused_previous_topic=True,
             reason="generic_web_request_uses_previous_topic",
         )

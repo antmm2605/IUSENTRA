@@ -548,8 +548,10 @@ def test_lex_assistant_usa_componente_esterno_e_posizione_persistente():
     assert "fetchServerContext" in widget_js
     assert "streamCompanionRagQuery" in widget_js
     assert "prependSocialPrefix" in widget_js
-    assert "social_prefix" in widget_js
+    assert "social_prefix" not in widget_js
     assert "social_only" in widget_js
+    assert "overview_today" in widget_js
+    assert "GENERIC_OPERATIONAL_FOLLOW_UP_PATTERNS" in widget_js
     assert "Ciao, sono Lex." in widget_js
     assert "Riferimento:" in widget_js
     assert "<div class=\"fw-semibold small mb-1\">Fonti</div>" not in widget_js
@@ -568,6 +570,8 @@ def test_lex_assistant_usa_componente_esterno_e_posizione_persistente():
     assert "Risposta generata sul dispositivo locale." in widget_js
     assert "Companion locale non raggiungibile, attivo fallback sul runtime locale di HACS..." in widget_js
     assert "sendLocal(text);" in widget_js
+    assert "payload.answer = prependSocialPrefix(preparedSocialPrefix, payload.answer || '')" not in widget_js
+    assert "partial = prependSocialPrefix(preparedSocialPrefix, partial);" not in widget_js
     assert "pct-ai-thinking-copy" in widget_scss
     assert "pct-ai-status-pill--inline" in widget_scss
     assert "pct-ai-widget--fullscreen" in widget_scss
@@ -596,6 +600,7 @@ def test_contesto_lex_compatta_le_sezioni_e_limita_le_fonti():
     cache_service = (REPO_ROOT / "web/services/assistente_context_cache.py").read_text(encoding="utf-8")
     focus_service = (REPO_ROOT / "web/services/assistente_conversation_focus.py").read_text(encoding="utf-8")
     live_web_service = (REPO_ROOT / "web/services/assistente_live_web.py").read_text(encoding="utf-8")
+    followup_service = (REPO_ROOT / "web/services/assistente_followup.py").read_text(encoding="utf-8")
     social_service = (REPO_ROOT / "web/services/assistente_social.py").read_text(encoding="utf-8")
     social_intent_service = (REPO_ROOT / "web/services/assistente_social_intent.py").read_text(encoding="utf-8")
     today_summary_service = (REPO_ROOT / "web/services/assistente_today_summary.py").read_text(encoding="utf-8")
@@ -633,6 +638,8 @@ def test_contesto_lex_compatta_le_sezioni_e_limita_le_fonti():
     assert "_FALLBACK_DEFAULT_SOURCE_IDS" in live_web_service
     assert "force: bool = False" in live_web_service
     assert "explicit_source_ids" in live_web_service
+    assert "resolve_effective_query as resolve_web_effective_query" in followup_service
+    assert "is_web_execution_request as is_web_execution_command" in followup_service
     assert "classify_social_message" in social_service
     assert "build_social_reply" in social_service
     assert "prepend_social_prefix" in social_service

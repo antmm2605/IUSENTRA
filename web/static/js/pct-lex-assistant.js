@@ -208,6 +208,7 @@
   }
 
   var QUICK_FOCUS_RULES = [
+    { topic: 'overview_today', label: 'quadro operativo di oggi', keywords: ['oggi cosa dobbiamo fare', 'cosa dobbiamo fare oggi', 'da dove partiamo oggi', 'quadro di oggi', 'situazione di oggi', 'priorita di oggi', 'priorità di oggi'] },
     { topic: 'dashboard', label: 'quadro generale dello studio', keywords: ['panoramica', 'situazione studio', 'quadro generale', 'dashboard'] },
     { topic: 'udienze', label: 'udienze rilevanti', keywords: ['udienza', 'udienze'] },
     { topic: 'agenda', label: 'agenda studio', keywords: ['agenda', 'calendario', 'appuntamento', 'appuntamenti'] },
@@ -225,8 +226,18 @@
   var FOLLOW_UP_MARKERS = [
     'quelli', 'quelle', 'quello', 'quella', 'quei', 'questi', 'queste',
     'quale dei due', 'quale delle due', 'quale dei tre', 'quale delle tre',
-    'di oggi', 'di domani', 'attivi', 'attive', 'le 2 fasi', 'le due fasi',
+    'le 2 fasi', 'le due fasi',
     'quello prima', 'quella prima'
+  ];
+  var GENERIC_OPERATIONAL_FOLLOW_UP_PATTERNS = [
+    /\bprossim[a-z']*\b/,
+    /\battivit[a-z']*\b/,
+    /\bazione\b/,
+    /\bazioni\b/,
+    /\badempiment[a-z']*\b/,
+    /\bpasso successivo\b/,
+    /\bcosa facciamo\b/,
+    /\bda dove partiamo\b/
   ];
 
   function cleanIntentText(value) {
@@ -279,6 +290,16 @@
     return countIntentWords(clean) <= 4 && !matchFocusRule(clean);
   }
 
+  function looksLikeGenericOperationalFollowUp(text) {
+    var clean = cleanIntentText(text);
+    if (!clean) {
+      return false;
+    }
+    return GENERIC_OPERATIONAL_FOLLOW_UP_PATTERNS.some(function (pattern) {
+      return pattern.test(clean);
+    });
+  }
+
   function recentFocusRule(history, currentText) {
     var currentClean = cleanIntentText(currentText);
     for (var index = (history || []).length - 1; index >= 0; index -= 1) {
@@ -308,6 +329,9 @@
     if (!rule) {
       return '';
     }
+    if (rule.topic === 'overview_today') {
+      return 'quadro operativo di oggi';
+    }
     if ((rule.topic === 'udienze' || rule.topic === 'agenda') && clean.indexOf('oggi') >= 0) {
       return 'udienze di oggi';
     }
@@ -330,6 +354,10 @@
       resolved = previousRule;
     }
     if (!resolved && previousRule && countIntentWords(question) <= 3) {
+      resolved = previousRule;
+      followUp = true;
+    }
+    if (!resolved && previousRule && looksLikeGenericOperationalFollowUp(question)) {
       resolved = previousRule;
       followUp = true;
     }
@@ -1178,7 +1206,6 @@
     }
 
     var preparedFocusLabel = state.pendingFocus && state.pendingFocus.focusLabel ? String(state.pendingFocus.focusLabel) : '';
-    var preparedSocialPrefix = '';
     browserBridge()
       .fetchServerContext(bridgeConfig, {
         question: text,
@@ -1193,7 +1220,6 @@
       })
       .then(function (prepared) {
         preparedFocusLabel = String(prepared && prepared.focus_label || preparedFocusLabel || '').trim();
-        preparedSocialPrefix = String(prepared && prepared.social_prefix || '').trim();
         if (String(prepared && prepared.query_type || '').trim() === 'social_only' && prepared && prepared.answer) {
           return {
             answer: String(prepared.answer || '').trim(),
@@ -1213,9 +1239,6 @@
           .streamCompanionRagQuery(bridgeConfig, prepared, {
             onToken: function (token) {
               markThinkingTokenReceived();
-              if (preparedSocialPrefix && !partial.trim()) {
-                partial = prependSocialPrefix(preparedSocialPrefix, partial);
-              }
               partial += String(token || '');
               setBubbleContent(state.currentBubble, partial);
               scrollBottom();
@@ -1234,7 +1257,6 @@
         }
         payload.question = text;
         payload.referenceLabel = String(payload.referenceLabel || preparedFocusLabel || '').trim();
-        payload.answer = prependSocialPrefix(preparedSocialPrefix, payload.answer || '');
         setAnswerPayload(state.currentBubble, payload);
         state.history.push({
           role: 'assistant',

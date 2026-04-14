@@ -144,6 +144,10 @@ def test_assistente_prompt_separa_voce_e_regole_tecniche():
     assert "ricerca web sentenze civili" in prompt
     assert "Controllo io. Parto dalle sentenze civili piu' recenti e rilevanti" in prompt
     assert "Non usare mai testo-segnaposto o placeholder artificiali" in prompt
+    assert "=== AFFIDABILITA' DEI RIFERIMENTI LEGALI ===" in prompt
+    assert "Lex non deve mai inventare estremi specifici di sentenze" in prompt
+    assert "Non ho ancora una pronuncia verificata da citare con numero e PDF." in prompt
+    assert "I messaggi relazionali come \"come stai\", \"come va\", \"tutto bene\" e \"come stai oggi\"" in prompt
     assert "=== GESTIONE DELLA RELAZIONE QUOTIDIANA ===" in prompt
     assert "Se il messaggio e' solo sociale o relazionale" in prompt
     assert "Se il messaggio combina cortesia e richiesta operativa" in prompt

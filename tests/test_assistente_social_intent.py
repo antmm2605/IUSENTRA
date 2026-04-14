@@ -4,6 +4,7 @@ from pathlib import Path
 from web.app import create_app
 from web.services.assistente_social_intent import (
     build_daily_overview_lead,
+    build_relational_reply,
     build_social_only_reply,
     prepend_social_prefix,
     resolve_social_and_operational_intent,
@@ -124,6 +125,20 @@ def test_social_intent_riusa_il_tema_precedente_per_followup_breve():
     assert routing.reused_previous_topic is True
     assert routing.is_daily_overview is False
     assert routing.effective_query == "udienze imminenti e oggi?"
+
+
+def test_social_intent_tratta_come_stai_oggi_come_messaggio_relazionale():
+    routing = resolve_social_and_operational_intent(
+        "come stai oggi",
+        previous_user_text="ultime sentenze civili recenti",
+    )
+
+    assert routing.is_social_only is True
+    assert routing.social_kind == "smalltalk"
+    assert routing.is_followup is False
+    assert routing.reused_previous_topic is False
+    assert build_relational_reply("come stai oggi") == "Bene, grazie. Dimmi pure."
+    assert build_social_only_reply(routing.social_kind, routing.raw_text) == "Bene, grazie. Dimmi pure."
 
 
 def test_build_daily_overview_lead_e_prepend_social_prefix_restano_sobri():

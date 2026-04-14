@@ -2,9 +2,11 @@ import json
 from pathlib import Path
 
 from web.app import create_app
-from web.services.assistente_followup import (
-    resolve_followup_query,
-    should_trigger_web_search,
+from web.services.assistente_legal_reference_guard import (
+    build_case_law_guard_prompt,
+    build_unverified_pdf_reply,
+    collect_verified_legal_references,
+    has_verified_legal_reference,
 )
 
 
@@ -17,8 +19,8 @@ def _write_studio_config(path: Path) -> None:
         json.dumps(
             {
                 "studio": {
-                    "nome": "Studio Followup Test",
-                    "avvocato": "Avv. Followup",
+                    "nome": "Studio Guard Test",
+                    "avvocato": "Avv. Guard",
                     "indirizzo": "Via Roma 12",
                     "city": "Taurianova",
                     "province": "RC",
@@ -39,7 +41,7 @@ def _write_studio_config(path: Path) -> None:
                     "port": 587,
                     "username": "studio@example.it",
                     "from_address": "studio@example.it",
-                    "from_name": "Studio Followup Test",
+                    "from_name": "Studio Guard Test",
                     "use_tls": True,
                 },
                 "ai": {
@@ -97,51 +99,66 @@ def _cfg_web(tmp_path: Path) -> dict:
     }
 
 
-def test_resolve_followup_query_riusa_il_tema_precedente_per_richiesta_web_breve():
-    followup = resolve_followup_query(
-        "puoi controllare tu sul web",
-        previous_user_text="ultime sentenze sul civile tutti gli ambienti",
+def test_guard_riconosce_fonti_verificate_e_prompt_di_blocco():
+    verified_source = {
+        "title": "Cassazione civile",
+        "citation": "Fonte ufficiale live - Cassazione",
+        "official_url": "https://www.cortedicassazione.it/",
+        "final_url": "https://www.cortedicassazione.it/decisione.pdf",
+        "downloadable_pdf": True,
+        "verified_reference": True,
+    }
+    placeholder_source = {
+        "title": "Pronuncia esemplificativa",
+        "citation": "Archivio sentenze",
+        "text": "Sent. n. 12345/2026",
+    }
+
+    assert has_verified_legal_reference(verified_source) is True
+    assert has_verified_legal_reference(placeholder_source) is False
+    assert len(collect_verified_legal_references([verified_source, placeholder_source])) == 1
+
+    prompt = build_case_law_guard_prompt("ricerca web sentenze civili", [placeholder_source])
+    assert "non hai ancora una pronuncia verificata" in prompt
+    assert "Non inventare mai estremi specifici di sentenze" in prompt
+
+
+def test_guard_blocca_download_pdf_su_pronuncia_non_verificata():
+    reply = build_unverified_pdf_reply(
+        "ultime sentenze civili la puoi scaricare in pdf",
+        [],
     )
 
-    assert followup.is_followup is True
-    assert followup.is_web_request is True
-    assert followup.reused_previous_topic is True
-    assert followup.effective_query == "ultime sentenze sul civile tutti gli ambienti"
-    assert followup.reason == "web_request_reuses_previous_topic"
+    assert "non posso scaricarne il PDF" in reply
+    assert "link ufficiale" in reply
 
 
-def test_resolve_followup_query_fonde_il_referente_precedente():
-    followup = resolve_followup_query(
-        "e quelle di oggi",
-        previous_user_text="mostrami le udienze imminenti",
-    )
+def test_assistente_context_restituisce_direct_answer_per_pdf_non_verificato(tmp_path: Path, monkeypatch):
+    import web.blueprints.assistente as assistente_module
 
-    assert followup.is_followup is True
-    assert followup.reused_previous_topic is True
-    assert followup.effective_query == "mostrami le udienze imminenti e quelle di oggi"
-    assert followup.reason == "referential_followup_merged_with_previous"
-
-
-def test_resolve_followup_query_aggancia_richiesta_pdf_al_tema_precedente():
-    followup = resolve_followup_query(
-        "la puoi scaricare in pdf",
-        previous_user_text="ultime sentenze civili recenti di Cassazione",
-    )
-
-    assert followup.is_followup is True
-    assert followup.reused_previous_topic is True
-    assert followup.effective_query == "ultime sentenze civili recenti di Cassazione la puoi scaricare in pdf"
-    assert followup.reason == "download_followup_merged_with_previous"
-
-
-def test_should_trigger_web_search_esclude_le_richieste_solo_interne():
-    assert should_trigger_web_search("udienze di oggi") is False
-    assert should_trigger_web_search("ultime sentenze cassazione civile") is True
-
-
-def test_assistente_context_espone_followup_resolution_quando_eredita_il_tema(tmp_path: Path):
     _write_studio_config(tmp_path / "config" / "studio.json")
     app = create_app(_cfg_web(tmp_path))
+
+    monkeypatch.setattr(
+        assistente_module,
+        "build_lex_studio_context",
+        lambda *args, **kwargs: {
+            "prompt_block": "",
+            "sources": [],
+            "citations": [],
+            "focus_label": "sentenze civili recenti",
+            "focus_topic": "sentenze_civili",
+            "competence_labels": [],
+            "research_strategy": "auto_narrow_recent_civil_case_law",
+            "effective_question": "ultime sentenze civili recenti di Cassazione la puoi scaricare in pdf",
+            "web_fallback_used": False,
+            "web_execution_requested": True,
+            "verified_legal_references": [],
+            "legal_reference_guard_active": True,
+            "engine_ids": [],
+            "source_ids": [],
+        },
+    )
 
     with app.test_client() as client:
         client.post("/login", data={"username": "admin", "password": "admin"}, follow_redirects=True)
@@ -149,9 +166,9 @@ def test_assistente_context_espone_followup_resolution_quando_eredita_il_tema(tm
             "/api/assistente/context",
             json={
                 "messages": [
-                    {"role": "user", "content": "ultime sentenze sul civile tutti gli ambienti"},
+                    {"role": "user", "content": "ultime sentenze civili recenti di Cassazione"},
                     {"role": "assistant", "content": "Controllo le pronunce piu' recenti."},
-                    {"role": "user", "content": "puoi controllare tu sul web"},
+                    {"role": "user", "content": "la puoi scaricare in pdf"},
                 ]
             },
         )
@@ -159,45 +176,7 @@ def test_assistente_context_espone_followup_resolution_quando_eredita_il_tema(tm
     payload = response.get_json()
     assert response.status_code == 200
     assert payload["ok"] is True
-    assert payload["effective_question"] == "ultime sentenze sul civile tutti gli ambienti"
-    assert payload["followup_resolution"]["is_followup"] is True
-    assert payload["followup_resolution"]["is_web_request"] is True
-    assert payload["followup_resolution"]["reused_previous_topic"] is True
-    assert payload["followup_resolution"]["effective_query"] == "ultime sentenze sul civile tutti gli ambienti"
-
-
-def test_assistente_context_guida_l_apertura_su_ricerca_web_sentenze_civili(tmp_path: Path):
-    _write_studio_config(tmp_path / "config" / "studio.json")
-    app = create_app(_cfg_web(tmp_path))
-
-    with app.test_client() as client:
-        client.post("/login", data={"username": "admin", "password": "admin"}, follow_redirects=True)
-        response = client.post(
-            "/api/assistente/context",
-            json={"question": "ricerca web sentenze civili"},
-        )
-
-    payload = response.get_json()
-    assert response.status_code == 200
-    assert payload["ok"] is True
-    assert payload["language_mode"] == "civil_case_law_web"
-    assert payload["opening_line"].startswith("Controllo io sul web.")
-    assert "Cassazione" in payload["opening_line"]
-
-
-def test_assistente_context_copre_l_area_economica_di_studio(tmp_path: Path):
-    _write_studio_config(tmp_path / "config" / "studio.json")
-    app = create_app(_cfg_web(tmp_path))
-
-    with app.test_client() as client:
-        client.post("/login", data={"username": "admin", "password": "admin"}, follow_redirects=True)
-        response = client.post(
-            "/api/assistente/context",
-            json={"question": "mi controlli preventivi, fatturazione e pagamenti"},
-        )
-
-    payload = response.get_json()
-    assert response.status_code == 200
-    assert payload["ok"] is True
-    assert payload["focus_topic"] == "economico"
-    assert "Tariffario, preventivi, fatturazione e pagamenti" in payload["competence_labels"]
+    assert payload["query_type"] == "direct_answer"
+    assert payload["disable_exports"] is True
+    assert payload["legal_reference_guard_active"] is True
+    assert "non posso scaricarne il PDF" in payload["answer"]

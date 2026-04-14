@@ -103,6 +103,21 @@ def test_focus_conversazionale_eredita_il_fascicolo_per_followup_operativo_gener
     assert focus["effective_question"].startswith("fascicoli ")
 
 
+def test_focus_conversazionale_non_trascina_il_tema_legale_su_smalltalk():
+    focus = resolve_conversation_focus(
+        "come stai oggi",
+        messages=[
+            {"role": "user", "content": "Ricerca web sentenze civili"},
+            {"role": "assistant", "content": "Controllo le pronunce piu' recenti."},
+        ],
+    )
+
+    assert focus["topic"] == ""
+    assert focus["focus_label"] == ""
+    assert focus["is_follow_up"] is False
+    assert focus["include_live_web"] is False
+
+
 def test_live_web_context_supporta_force_fallback_senza_keyword_esplicita():
     class FakeResponse:
         status_code = 200

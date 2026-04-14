@@ -6,6 +6,7 @@ import re
 from typing import Any
 
 from web.services.assistente_competencies import primary_competence_profile
+from web.services.assistente_social_intent import is_small_talk_message
 from web.services.assistente_web_execution import resolve_web_execution_intent
 
 
@@ -196,6 +197,15 @@ _FOLLOW_UP_MARKERS: tuple[str, ...] = (
     "le due fasi",
     "quello prima",
     "quella prima",
+    "continua",
+    "vai avanti",
+    "scaricala",
+    "aprila",
+    "fammi vedere",
+    "mostramela",
+    "quella sentenza",
+    "quel pdf",
+    "e oggi",
 )
 
 _GENERIC_SECTION_FALLBACK: tuple[str, ...] = ("Fascicoli", "Clienti", "Agenda", "Scadenziario")
@@ -255,9 +265,11 @@ def _looks_like_follow_up(question: str) -> bool:
     haystack = _clean_spaces(question).lower()
     if not haystack:
         return False
+    if is_small_talk_message(haystack):
+        return False
     if any(marker in haystack for marker in _FOLLOW_UP_MARKERS):
         return True
-    return _word_count(haystack) <= 4 and _find_topic_rule(haystack) is None
+    return False
 
 
 def _looks_like_generic_operational_follow_up(question: str) -> bool:
@@ -320,6 +332,20 @@ def resolve_conversation_focus(
     """Determina il focus minimo utile per richieste brevi e follow-up."""
 
     clean_question = _clean_spaces(question)
+    if is_small_talk_message(clean_question):
+        return {
+            "topic": "",
+            "focus_label": "",
+            "effective_question": clean_question,
+            "section_titles": [],
+            "include_live_web": False,
+            "research_strategy": "",
+            "is_follow_up": False,
+            "has_explicit_overview": False,
+            "web_execution_requested": False,
+            "inherited_previous_theme": False,
+            "previous_user_text": "",
+        }
     web_intent = resolve_web_execution_intent(clean_question, messages=messages)
     base_question = _clean_spaces(web_intent.effective_query or clean_question)
     current_rule = _find_topic_rule(base_question)
@@ -329,10 +355,6 @@ def resolve_conversation_focus(
     resolved_rule = current_rule
     if resolved_rule is None and is_follow_up:
         resolved_rule = prior_rule
-
-    if resolved_rule is None and prior_rule is not None and _word_count(base_question) <= 3:
-        resolved_rule = prior_rule
-        is_follow_up = True
 
     if resolved_rule is None and prior_rule is not None and _looks_like_generic_operational_follow_up(base_question):
         resolved_rule = prior_rule

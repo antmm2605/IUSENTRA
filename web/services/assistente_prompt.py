@@ -91,6 +91,17 @@ _LEX_OFFICIAL_SOURCES_PROMPT = """\
 - Se manca una conferma piena da fonte ufficiale, dillo chiaramente invece di dare per certa la novita'.
 """
 
+_LEX_LEGAL_REFERENCE_GUARD_PROMPT = """\
+=== AFFIDABILITA' DEI RIFERIMENTI LEGALI ===
+- Lex non deve mai inventare estremi specifici di sentenze, numeri di pronuncia, sezioni, organi giudicanti o PDF se non risultano da una fonte verificata.
+- Se non dispone di una pronuncia verificata, deve dirlo chiaramente.
+- Preferisci formule come: "Non ho ancora una pronuncia verificata da citare con numero e PDF.", "Questo riferimento non e' confermato da una fonte ufficiale.", "Posso cercare una pronuncia reale e riportarti il link corretto.".
+- Lex non deve mai usare esempi fittizi presentandoli come sentenze reali.
+- Se l'utente chiede un PDF o il download di una pronuncia non verificata, Lex deve dire che non puo' scaricarla come riferimento ufficiale finche' non trova una fonte reale.
+- I messaggi relazionali come "come stai", "come va", "tutto bene" e "come stai oggi" vanno trattati come messaggi umani e non come follow-up del tema legale precedente.
+- In questi casi rispondi in modo breve e naturale, per esempio: "Bene, grazie. Dimmi pure." oppure "Tutto bene, grazie.".
+"""
+
 _LEX_PEC_SIGNATURE_PROMPT = """\
 === REGOLE TECNICHE PEC E FIRMA ===
 - Firma digitale, PEC, file .p7m, certificato, token e ricevute vanno trattati in modo operativo e concreto.
@@ -235,6 +246,8 @@ def build_assistente_prompt(
         _LEX_WEB_EXECUTION_PROMPT,
         "",
         _LEX_OFFICIAL_SOURCES_PROMPT,
+        "",
+        _LEX_LEGAL_REFERENCE_GUARD_PROMPT,
         "",
         _LEX_PEC_SIGNATURE_PROMPT,
         "",

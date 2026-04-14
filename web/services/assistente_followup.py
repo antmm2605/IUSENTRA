@@ -52,6 +52,16 @@ _REFERENTIAL_PATTERNS = (
     r"\bquello prima\b",
     r"\bquelli di prima\b",
     r"\bcome sopra\b",
+    r"\bquella sentenza\b",
+    r"\bquel pdf\b",
+)
+
+_DOWNLOAD_FOLLOWUP_PATTERNS = (
+    r"\bscaric[a-z]*\b",
+    r"\bapr[ia][a-z]*\b",
+    r"\bpdf\b",
+    r"\blink ufficiale\b",
+    r"\bprovvedimento\b",
 )
 
 _DIRECT_WEB_TOPICS = (
@@ -153,6 +163,13 @@ def has_referential_language(text: str) -> bool:
     return any(re.search(pattern, q) for pattern in _REFERENTIAL_PATTERNS)
 
 
+def has_download_followup_intent(text: str) -> bool:
+    q = normalize_user_text(text)
+    if not q:
+        return False
+    return any(re.search(pattern, q) for pattern in _DOWNLOAD_FOLLOWUP_PATTERNS)
+
+
 def has_direct_web_topic(text: str) -> bool:
     q = normalize_user_text(text)
     if not q:
@@ -238,6 +255,20 @@ def resolve_followup_query(
             needs_web_search=should_trigger_web_search(merged),
             reused_previous_topic=True,
             reason="referential_followup_merged_with_previous",
+        )
+
+    if previous_norm and current_is_short_followup and has_download_followup_intent(current):
+        merged = f"{previous} {raw}".strip()
+        return FollowupResolution(
+            raw_text=raw,
+            normalized_text=current,
+            previous_user_text=previous,
+            effective_query=merged,
+            is_followup=True,
+            is_web_request=current_is_web_request,
+            needs_web_search=should_trigger_web_search(merged),
+            reused_previous_topic=True,
+            reason="download_followup_merged_with_previous",
         )
 
     if previous_norm and current_is_web_request and web_reuses_previous_topic and not has_direct_web_topic(current):

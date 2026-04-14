@@ -25,6 +25,7 @@ from flask import (
 )
 
 from web.helpers import get_legal_intelligence
+from web.services.assistente_legal_reference_guard import build_unverified_pdf_reply
 from web.services.assistente_language_guidance import build_language_guidance
 from web.services.assistente_prompt import build_assistente_prompt
 from web.services.assistente_followup import resolve_followup_query
@@ -122,6 +123,7 @@ def _social_context_payload(question: str, reply: str) -> dict[str, object]:
         "social_kind": "social_only",
         "social_prefix": "",
         "effective_question": "",
+        "disable_exports": True,
         "routing": {
             "reason": "social_only",
             "is_social_only": True,
@@ -141,6 +143,58 @@ def _social_context_payload(question: str, reply: str) -> dict[str, object]:
             "needs_web_search": False,
             "reused_previous_topic": False,
             "reason": "social_only",
+        },
+    }
+
+
+def _direct_answer_payload(
+    question: str,
+    reply: str,
+    *,
+    query_type: str = "direct_answer",
+    sources: list[dict[str, object]] | None = None,
+    citations: list[str] | None = None,
+    legal_reference_guard_active: bool = False,
+) -> dict[str, object]:
+    return {
+        "ok": True,
+        "query_type": query_type,
+        "question": question,
+        "prompt": "",
+        "answer": reply,
+        "sources": list(sources or []),
+        "citations": list(citations or []),
+        "attachments": [],
+        "focus_label": "",
+        "focus_topic": "",
+        "web_fallback_used": False,
+        "social_kind": "",
+        "social_prefix": "",
+        "effective_question": "",
+        "opening_line": "",
+        "daily_overview_lead": "",
+        "language_mode": "",
+        "disable_exports": True,
+        "legal_reference_guard_active": bool(legal_reference_guard_active),
+        "routing": {
+            "reason": query_type,
+            "is_social_only": False,
+            "is_social_with_request": False,
+            "is_daily_overview": False,
+            "is_followup": False,
+            "reused_previous_topic": False,
+            "social_kind": "",
+            "social_prefix": "",
+            "request_text": "",
+            "effective_query": "",
+        },
+        "followup_resolution": {
+            "effective_query": "",
+            "is_followup": False,
+            "is_web_request": False,
+            "needs_web_search": False,
+            "reused_previous_topic": False,
+            "reason": query_type,
         },
     }
 
@@ -309,6 +363,22 @@ def assistente_context():
         routing=routing,
     )
     resolved_effective_question = str(studio_context.get("effective_question") or user_effective_question).strip() or user_effective_question
+    direct_guard_reply = build_unverified_pdf_reply(
+        resolved_effective_question,
+        studio_context.get("verified_legal_references") or studio_context.get("sources") or [],
+    )
+    if direct_guard_reply:
+        payload = _direct_answer_payload(
+            current_user_message,
+            direct_guard_reply,
+            sources=studio_context.get("sources") or [],
+            citations=studio_context.get("citations") or [],
+            legal_reference_guard_active=True,
+        )
+        payload["routing"] = _routing_payload(routing)
+        payload["followup_resolution"] = _followup_resolution_payload(followup)
+        payload["effective_question"] = resolved_effective_question
+        return payload, 200
     prompt_question = resolved_effective_question
     web_execution_requested = bool(studio_context.get("web_execution_requested")) or bool(followup.is_web_request)
     language_guidance = build_language_guidance(
@@ -377,6 +447,9 @@ def assistente_context():
         "opening_line": opening_line,
         "daily_overview_lead": opening_line,
         "language_mode": str(language_guidance.mode or "").strip(),
+        "legal_reference_guard_active": bool(studio_context.get("legal_reference_guard_active")),
+        "verified_legal_references": studio_context.get("verified_legal_references") or [],
+        "disable_exports": False,
         "routing": _routing_payload(routing),
         "followup_resolution": _followup_resolution_payload(followup),
     }, 200
@@ -498,6 +571,24 @@ def assistente_chat():
         routing=routing,
     )
     resolved_effective_question = str(studio_context.get("effective_question") or user_effective_question).strip() or "Richiesta operativa"
+    direct_guard_reply = build_unverified_pdf_reply(
+        resolved_effective_question,
+        studio_context.get("verified_legal_references") or studio_context.get("sources") or [],
+    )
+    if direct_guard_reply:
+        def generate_direct():
+            yield f"data: {json.dumps({'token': direct_guard_reply})}\n\n"
+            yield "data: [DONE]\n\n"
+
+        return Response(
+            stream_with_context(generate_direct()),
+            mimetype="text/event-stream",
+            headers={
+                "Cache-Control": "no-cache",
+                "X-Accel-Buffering": "no",
+                "Connection": "keep-alive",
+            },
+        )
     prompt_question = resolved_effective_question
     language_guidance = build_language_guidance(
         question=prompt_question,

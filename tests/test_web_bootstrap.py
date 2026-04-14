@@ -244,6 +244,15 @@ def test_template_principali_usano_copy_italiana_e_date_localizzate():
     assert "|fmt_dataora" in telematico_content
 
 
+def test_lex_frontend_allinea_smalltalk_e_guardie_legali():
+    js_content = (REPO_ROOT / "web/static/js/pct-lex-assistant.js").read_text(encoding="utf-8")
+
+    assert "function looksLikeSmallTalk(text)" in js_content
+    assert "legalReferenceGuardActive" in js_content
+    assert "Non ho ancora una pronuncia verificata da citare con numero e PDF." in js_content
+    assert "countIntentWords(clean) <= 4 && !matchFocusRule(clean)" not in js_content
+
+
 def test_docker_compose_prevede_runtime_ollama_sulla_stessa_macchina():
     compose = (REPO_ROOT / "docker-compose.yml").read_text(encoding="utf-8")
 

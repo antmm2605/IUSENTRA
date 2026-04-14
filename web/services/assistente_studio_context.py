@@ -42,6 +42,10 @@ from web.services.assistente_competencies import (
     resolve_competence_section_titles,
 )
 from web.services.assistente_conversation_focus import resolve_conversation_focus
+from web.services.assistente_legal_reference_guard import (
+    build_case_law_guard_prompt,
+    collect_verified_legal_references,
+)
 from web.services.assistente_live_web import build_live_official_web_context
 from web.services.assistente_web_execution import is_web_execution_request
 from web.services.local_ai_runtime import get_local_ai_service
@@ -1265,6 +1269,17 @@ def build_lex_studio_context(
             current_app.logger.exception("Errore fallback web Lex: %s", exc)
 
     deduped_sources = _dedupe_sources([*priority_sources, *local_sources])
+    verified_legal_references = collect_verified_legal_references(deduped_sources)
+    legal_reference_guard_prompt = build_case_law_guard_prompt(
+        effective_question,
+        deduped_sources,
+    )
+    if legal_reference_guard_prompt:
+        _append_section(
+            sections,
+            "Affidabilita' riferimenti legali",
+            legal_reference_guard_prompt.splitlines(),
+        )
 
     return {
         "prompt_block": "\n".join(sections).strip(),
@@ -1283,6 +1298,8 @@ def build_lex_studio_context(
         "effective_question": effective_question,
         "web_fallback_used": bool(force_web_fallback),
         "web_execution_requested": bool(web_execution_requested),
+        "verified_legal_references": verified_legal_references[:4],
+        "legal_reference_guard_active": bool(legal_reference_guard_prompt),
     }
 
 

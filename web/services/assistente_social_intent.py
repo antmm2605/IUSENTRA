@@ -89,6 +89,14 @@ _PRAISE = (
     "molto bene",
 )
 
+_SMALL_TALK_PATTERNS = (
+    r"^come stai(?: oggi)?$",
+    r"^come va(?: oggi)?$",
+    r"^come procede$",
+    r"^tutto bene$",
+    r"^ci sei$",
+)
+
 _DAILY_OVERVIEW_PATTERNS = (
     r"\boggi cosa dobbiamo fare\b",
     r"\bcosa dobbiamo fare oggi\b",
@@ -175,6 +183,8 @@ def _starts_with_phrase(text: str, values: tuple[str, ...]) -> tuple[str, str]:
 
 
 def _detect_social_kind(text: str) -> str:
+    if is_small_talk_message(text):
+        return "smalltalk"
     if _exact_match(text, _GREETINGS):
         return "greeting"
     if _exact_match(text, _THANKS):
@@ -188,6 +198,13 @@ def _detect_social_kind(text: str) -> str:
     if _exact_match(text, _PRAISE):
         return "praise"
     return "none"
+
+
+def is_small_talk_message(text: str) -> bool:
+    canonical = _canonical_text(text)
+    if not canonical:
+        return False
+    return any(re.search(pattern, canonical) for pattern in _SMALL_TALK_PATTERNS)
 
 
 def _is_substantive_request_tail(text: str) -> bool:
@@ -221,6 +238,8 @@ def split_social_and_request(text: str) -> tuple[str, str, str]:
     ):
         social, remaining = _starts_with_phrase(original, values)
         if social:
+            if remaining and is_small_talk_message(remaining):
+                return "smalltalk", original, ""
             if remaining and not _is_substantive_request_tail(remaining):
                 return kind, social, ""
             return kind, social, remaining
@@ -250,16 +269,29 @@ def is_referential_followup(text: str, *, max_words: int = 8) -> bool:
     q = _normalize_text(text)
     if not q:
         return False
-    if any(re.search(pattern, q) for pattern in _REFERENTIAL_FOLLOWUPS):
-        return True
-    tokens = q.split()
-    if len(tokens) > max_words:
+    if len(q.split()) > max_words:
         return False
-    return any(token in q for token in ("quello", "quelli", "quelle", "questo", "questi", "queste", "oggi", "adesso"))
+    return any(re.search(pattern, q) for pattern in _REFERENTIAL_FOLLOWUPS)
+
+
+def build_relational_reply(text: str) -> str:
+    canonical = _canonical_text(text)
+    if not canonical:
+        return "Dimmi pure."
+    if "come stai" in canonical or "come va" in canonical or "come procede" in canonical:
+        return "Bene, grazie. Dimmi pure."
+    if "tutto bene" in canonical:
+        return "Tutto bene, grazie."
+    if "ci sei" in canonical:
+        return "Si', dimmi pure."
+    return "Dimmi pure."
 
 
 def build_social_prefix(kind: str, social_text: str) -> str:
     social_text = _normalize_text(social_text)
+
+    if kind == "smalltalk":
+        return "Bene, grazie."
 
     if kind == "greeting":
         if social_text == "buongiorno":
@@ -319,6 +351,8 @@ def build_social_prefix(kind: str, social_text: str) -> str:
 
 
 def build_social_only_reply(kind: str, social_text: str) -> str:
+    if kind == "smalltalk":
+        return build_relational_reply(social_text)
     prefix = build_social_prefix(kind, social_text)
     if kind == "greeting" and prefix in {"Buongiorno.", "Buonasera.", "Buon pomeriggio.", "Ciao.", "Salve."}:
         return prefix + " Dimmi pure."
@@ -475,11 +509,13 @@ def resolve_social_and_operational_intent(
 __all__ = [
     "SocialRoutingResult",
     "build_daily_overview_lead",
+    "build_relational_reply",
     "build_social_only_reply",
     "build_social_prefix",
     "is_daily_overview_request",
     "is_operational_internal_topic",
     "is_referential_followup",
+    "is_small_talk_message",
     "latest_user_message",
     "prepend_social_prefix",
     "resolve_social_and_operational_intent",

@@ -227,7 +227,16 @@
     'quelli', 'quelle', 'quello', 'quella', 'quei', 'questi', 'queste',
     'quale dei due', 'quale delle due', 'quale dei tre', 'quale delle tre',
     'le 2 fasi', 'le due fasi',
-    'quello prima', 'quella prima'
+    'quello prima', 'quella prima',
+    'continua', 'vai avanti', 'scaricala', 'aprila', 'fammi vedere', 'mostramela',
+    'quella sentenza', 'quel pdf', 'e oggi'
+  ];
+  var SMALL_TALK_PATTERNS = [
+    /^come stai(?: oggi)?[?!.,]*$/,
+    /^come va(?: oggi)?[?!.,]*$/,
+    /^come procede[?!.,]*$/,
+    /^tutto bene[?!.,]*$/,
+    /^ci sei[?!.,]*$/
   ];
   var GENERIC_OPERATIONAL_FOLLOW_UP_PATTERNS = [
     /\bprossim[a-z']*\b/,
@@ -277,9 +286,22 @@
     return null;
   }
 
+  function looksLikeSmallTalk(text) {
+    var clean = cleanIntentText(text);
+    if (!clean) {
+      return false;
+    }
+    return SMALL_TALK_PATTERNS.some(function (pattern) {
+      return pattern.test(clean);
+    });
+  }
+
   function looksLikeFollowUp(text) {
     var clean = cleanIntentText(text);
     if (!clean) {
+      return false;
+    }
+    if (looksLikeSmallTalk(clean)) {
       return false;
     }
     for (var index = 0; index < FOLLOW_UP_MARKERS.length; index += 1) {
@@ -287,7 +309,7 @@
         return true;
       }
     }
-    return countIntentWords(clean) <= 4 && !matchFocusRule(clean);
+    return false;
   }
 
   function looksLikeGenericOperationalFollowUp(text) {
@@ -345,6 +367,9 @@
   }
 
   function resolveConversationFocus(question, history) {
+    if (looksLikeSmallTalk(question)) {
+      return { topic: '', focusLabel: '', isFollowUp: false };
+    }
     var rule = matchFocusRule(question);
     var previousRule = recentFocusRule(history, question);
     var followUp = looksLikeFollowUp(question);
@@ -352,10 +377,6 @@
 
     if (!resolved && followUp) {
       resolved = previousRule;
-    }
-    if (!resolved && previousRule && countIntentWords(question) <= 3) {
-      resolved = previousRule;
-      followUp = true;
     }
     if (!resolved && previousRule && looksLikeGenericOperationalFollowUp(question)) {
       resolved = previousRule;
@@ -819,6 +840,31 @@
     return clean.replace(/^([^.!?\n]{6,180}[.!?])\s+\1(\s+|$)/i, '$1 ').trim();
   }
 
+  function replaceUnverifiedCaseLawExamples(answer, options) {
+    var clean = String(answer || '').trim();
+    var question = cleanIntentText(options && options.question || '');
+    var isCaseLawQuestion = /sentenz|giurisprudenza|pronunc|cassazione|tribunale|corte d['’]appello/.test(question);
+    var looksSpecificReference = /(cassazione|tribunale|corte d['’]appello)[^.\n]{0,100}(sent\.?\s*n\.?\s*\d+\/\d{4}|n\.?\s*\d+\/\d{4})/i.test(clean);
+    var admitsExamples = /\besempi\b|\besemplificativ[oi]\b/i.test(clean);
+    if ((options && options.legalReferenceGuardActive) && looksSpecificReference) {
+      return 'Non ho ancora una pronuncia verificata da citare con numero e PDF. Posso cercare una pronuncia reale e riportarti il link corretto.';
+    }
+    if (isCaseLawQuestion && looksSpecificReference && admitsExamples) {
+      return 'Non ho ancora una pronuncia verificata da citare con numero e PDF. Posso cercare una pronuncia reale e riportarti il link corretto.';
+    }
+    return clean;
+  }
+
+  function isDirectGuardAnswer(answer) {
+    var clean = String(answer || '').trim().toLowerCase();
+    if (!clean) {
+      return false;
+    }
+    return clean.indexOf("quel riferimento non e' ancora verificato") === 0 ||
+      clean.indexOf("non vedo ancora un pdf ufficiale diretto") === 0 ||
+      clean.indexOf("non ho ancora una pronuncia verificata") === 0;
+  }
+
   function sanitizeLexAnswer(answer, options) {
     var original = String(answer || '').replace(/\r/g, '').trim();
     if (!original) {
@@ -827,19 +873,28 @@
     var clean = stripArtificialPlaceholders(original);
     clean = stripLexGreeting(clean, options && options.question || '');
     clean = collapseLeadingDuplicateSentence(clean, options && options.openingLine || '');
+    clean = replaceUnverifiedCaseLawExamples(clean, options || {});
     clean = clean.replace(/\n{3,}/g, '\n\n').trim();
     return clean || original;
   }
 
   function normalizeAssistantPayload(payload, options) {
     var normalized = Object.assign({}, payload || {});
+    normalized.disableExports = Boolean(normalized.disableExports || normalized.disable_exports);
+    if (Object.prototype.hasOwnProperty.call(normalized, 'reference_label') && !Object.prototype.hasOwnProperty.call(normalized, 'referenceLabel')) {
+      normalized.referenceLabel = normalized.reference_label;
+    }
     normalized.answer = sanitizeLexAnswer(normalized.answer || '', options || {});
+    if (isDirectGuardAnswer(normalized.answer)) {
+      normalized.referenceLabel = '';
+      normalized.disableExports = true;
+    }
     return normalized;
   }
 
   function buildAnswerHtml(payload, options) {
     var answer = payload && payload.answer ? renderMarkdown(payload.answer) : '<p>Nessuna risposta disponibile.</p>';
-    var includeExports = !(options && options.includeExports === false);
+    var includeExports = !(options && options.includeExports === false) && !(payload && payload.disableExports);
     return (
       renderReferenceLabel(payload && payload.referenceLabel) +
       answer +
@@ -1281,15 +1336,19 @@
         session_id: state.sessionId || generateSessionId(),
       })
       .then(function (prepared) {
-        preparedFocusLabel = String(prepared && prepared.focus_label || preparedFocusLabel || '').trim();
+        if (prepared && Object.prototype.hasOwnProperty.call(prepared, 'focus_label')) {
+          preparedFocusLabel = String(prepared.focus_label || '').trim();
+        }
         preparedOpeningLine = String(prepared && prepared.opening_line || '').trim();
-        if (String(prepared && prepared.query_type || '').trim() === 'social_only' && prepared && prepared.answer) {
+        if ((String(prepared && prepared.query_type || '').trim() === 'social_only' || String(prepared && prepared.query_type || '').trim() === 'direct_answer') && prepared && prepared.answer) {
           return {
             answer: String(prepared.answer || '').trim(),
             citations: prepared.citations || [],
             sources: prepared.sources || [],
             question: text,
             referenceLabel: '',
+            disableExports: Boolean(prepared.disable_exports),
+            legalReferenceGuardActive: Boolean(prepared.legal_reference_guard_active),
           };
         }
         var docs = documentsHelper();
@@ -1319,8 +1378,16 @@
           payload.answer = state.currentBubble.textContent || '';
         }
         payload.question = text;
-        payload.referenceLabel = String(payload.referenceLabel || preparedFocusLabel || '').trim();
-        payload = normalizeAssistantPayload(payload, { question: text, openingLine: preparedOpeningLine });
+        if (Object.prototype.hasOwnProperty.call(payload, 'referenceLabel')) {
+          payload.referenceLabel = String(payload.referenceLabel || '').trim();
+        } else {
+          payload.referenceLabel = String(preparedFocusLabel || '').trim();
+        }
+        payload = normalizeAssistantPayload(payload, {
+          question: text,
+          openingLine: preparedOpeningLine,
+          legalReferenceGuardActive: Boolean(payload.legalReferenceGuardActive || (prepared && prepared.legal_reference_guard_active))
+        });
         setAnswerPayload(state.currentBubble, payload);
         state.history.push({
           role: 'assistant',

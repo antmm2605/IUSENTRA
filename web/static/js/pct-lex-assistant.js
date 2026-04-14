@@ -16,6 +16,7 @@
     history: [],
     attachments: [],
     sessionId: null,
+    contextWarmStarted: false,
     fascId: null,
     currentBubble: null,
     drag: null,
@@ -559,6 +560,7 @@
     widget.classList.toggle('pct-ai-widget--open', state.open);
 
     if (state.open) {
+      primeAssistantContext();
       window.requestAnimationFrame(function () {
         if (input) {
           input.focus();
@@ -589,6 +591,38 @@
       messages: state.history.slice(-HISTORY_LIMIT),
       fascicolo_id: state.fascId || '',
     };
+  }
+
+  function primeAssistantContext() {
+    var warmupUrl = widget && widget.dataset ? widget.dataset.warmupUrl || '' : '';
+    var warmQuestion = '';
+    if (!warmupUrl || state.contextWarmStarted) {
+      return;
+    }
+
+    state.contextWarmStarted = true;
+    if (!state.sessionId) {
+      state.sessionId = generateSessionId();
+    }
+
+    for (var idx = state.history.length - 1; idx >= 0; idx -= 1) {
+      if (state.history[idx] && state.history[idx].role === 'user' && state.history[idx].content) {
+        warmQuestion = String(state.history[idx].content);
+        break;
+      }
+    }
+
+    fetch(warmupUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        session_id: state.sessionId,
+        question: warmQuestion,
+        context_label: conversationContextLabel(),
+      }),
+    }).catch(function () {
+      state.contextWarmStarted = false;
+    });
   }
 
   function sendLocal(text) {
@@ -1275,6 +1309,7 @@
     if (!state.sessionId) {
       state.sessionId = generateSessionId();
     }
+    primeAssistantContext();
     if (!state.history.length && !state.attachments.length) {
       setStatus('Assistente pronto.');
     } else {

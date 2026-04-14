@@ -30,6 +30,11 @@ from web.helpers import (
     get_scadenziario,
     get_soggetti,
 )
+from web.services.assistente_context_cache import (
+    build_file_fingerprint,
+    cached_compute,
+    question_signature,
+)
 from web.services.assistente_live_web import build_live_official_web_context
 from web.services.local_ai_runtime import get_local_ai_service
 
@@ -87,6 +92,48 @@ _LIVE_WEB_KEYWORDS: tuple[str, ...] = (
     "consiglio di stato",
     "agenzia entrate",
 )
+
+_CONTEXT_CACHE_VERSION = "lex-context-v1"
+_BASE_SECTION_TITLES: frozenset[str] = frozenset(
+    {"Impostazioni studio", "PEC e canali email", "Quadro operativo"}
+)
+_SECTION_CACHE_TTLS: dict[str, int] = {
+    "Impostazioni studio": 180,
+    "PEC e canali email": 180,
+    "Quadro operativo": 90,
+    "Fascicoli": 90,
+    "Clienti": 90,
+    "Agenda": 60,
+    "Soggetti": 90,
+    "Scadenziario": 60,
+    "Template atti": 180,
+    "Tariffario": 300,
+    "Preventivi": 90,
+    "Fatturazione": 90,
+    "Ricerca legale e fonti web": 180,
+    "Archivio sentenze": 120,
+    "Strumenti legali": 180,
+    "Applicazioni": 300,
+    "RAG documentale locale": 45,
+    "Verifica live fonti ufficiali web": 300,
+}
+_SECTION_DEPENDENCY_KEYS: dict[str, tuple[str, ...]] = {
+    "Impostazioni studio": ("STUDIO_CONFIG",),
+    "PEC e canali email": ("STUDIO_CONFIG",),
+    "Quadro operativo": ("CLIENTI_DB", "FASCICOLI_DB", "AGENDA_DB", "SCADENZIARIO_DB"),
+    "Fascicoli": ("FASCICOLI_DB",),
+    "Clienti": ("CLIENTI_DB",),
+    "Agenda": ("AGENDA_DB",),
+    "Soggetti": ("SOGGETTI_DB", "SOGGETTI_PARTI_DB"),
+    "Scadenziario": ("SCADENZIARIO_DB",),
+    "Template atti": ("TEMPLATE_ATTI_DB",),
+    "Preventivi": ("PREVENTIVI_DB",),
+    "Fatturazione": ("FATTURAZIONE_DB",),
+    "Ricerca legale e fonti web": ("LEGAL_INTELLIGENCE_DB", "NORMATIVE_TABLES_DB"),
+    "Archivio sentenze": ("GIURISPRUDENZA_DB",),
+    "Strumenti legali": ("NORMATIVE_TABLES_DB",),
+    "RAG documentale locale": ("LOCAL_AI_DB",),
+}
 
 
 def _cfg_data_path(key: str) -> str:
@@ -198,6 +245,47 @@ def _load_studio_config() -> Any | None:
         return GestioneConfigStudio(current_app.config["STUDIO_CONFIG"]).config
     except Exception:
         return None
+
+
+def _tenant_scope() -> str:
+    tenant = getattr(g, "tenant", None)
+    return _clean_spaces(getattr(tenant, "slug", "")) or "default"
+
+
+def _section_dependency_paths(title: str) -> list[str]:
+    return [
+        path
+        for key in _SECTION_DEPENDENCY_KEYS.get(title, ())
+        if (path := _cfg_data_path(key))
+    ]
+
+
+def _section_query_signature(title: str, question: str) -> str:
+    if title in _BASE_SECTION_TITLES:
+        return "__base__"
+    return question_signature(question, limit=10)
+
+
+def _cached_section_payload(title: str, question: str, builder) -> tuple[list[str], list[dict[str, Any]]]:
+    fingerprint = build_file_fingerprint(_section_dependency_paths(title))
+    payload = cached_compute(
+        "lex-section",
+        (
+            _CONTEXT_CACHE_VERSION,
+            _tenant_scope(),
+            title,
+            _section_query_signature(title, question),
+            fingerprint,
+        ),
+        _SECTION_CACHE_TTLS.get(title, 90),
+        lambda: (
+            lambda lines, section_sources: {
+                "lines": lines or [],
+                "sources": section_sources or [],
+            }
+        )(*builder()),
+    )
+    return list(payload.get("lines") or []), list(payload.get("sources") or [])
 
 
 def _format_date_italian(value: Any) -> str:
@@ -899,7 +987,7 @@ def build_lex_studio_context(question: str) -> dict[str, Any]:
 
     for title, builder in section_plan:
         try:
-            lines, section_sources = builder()
+            lines, section_sources = _cached_section_payload(title, q, builder)
         except Exception as exc:
             current_app.logger.exception("Errore contesto Lex per sezione %s: %s", title, exc)
             lines, section_sources = ([f"{title}: contesto non disponibile in questo momento."], [])
@@ -935,3 +1023,9 @@ def build_lex_studio_context(question: str) -> dict[str, Any]:
         "engine_ids": motori_per_query(q),
         "source_ids": list(dict.fromkeys([*fonti_per_query(q), *live_source_ids])),
     }
+
+
+def warm_lex_studio_context(*, question: str = "", context_label: str = "") -> dict[str, Any]:
+    """Pre-riscalda il contesto studio di Lex per accorciare il tempo alla prima risposta."""
+    seed = _clean_spaces(question) or _clean_spaces(context_label)
+    return build_lex_studio_context(seed)

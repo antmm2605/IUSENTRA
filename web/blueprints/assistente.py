@@ -26,7 +26,7 @@ from flask import (
 )
 
 from web.helpers import get_legal_intelligence
-from web.services.assistente_studio_context import build_lex_studio_context
+from web.services.assistente_studio_context import build_lex_studio_context, warm_lex_studio_context
 from web.services.assistente_document_export import (
     build_docx_bytes,
     build_export_filename,
@@ -387,6 +387,20 @@ def assistente_context():
         "sources": studio_context.get("sources") or [],
         "citations": studio_context.get("citations") or [],
         "attachments": attachments,
+    }, 200
+
+
+@assistente.route("/api/assistente/warmup", methods=["POST"])
+@_richiedi_login
+def assistente_warmup():
+    data = request.get_json(silent=True) or {}
+    question = str(data.get("question", "") or "").strip()
+    context_label = str(data.get("context_label", "") or "").strip()
+    warmed = warm_lex_studio_context(question=question, context_label=context_label)
+    return {
+        "ok": True,
+        "prewarmed": True,
+        "sources_ready": len(warmed.get("sources") or []),
     }, 200
 
 

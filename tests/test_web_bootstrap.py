@@ -468,6 +468,7 @@ def test_lex_assistant_usa_componente_esterno_e_posizione_persistente():
     assert 'data-chat-url="{{ url_for(\'assistente.assistente_chat\') }}"' in widget_template
     assert 'data-status-url="{{ url_for(\'assistente.assistente_stato\') }}"' in widget_template
     assert 'data-server-context-url="{{ url_for(\'assistente.assistente_context\') }}"' in widget_template
+    assert 'data-warmup-url="{{ url_for(\'assistente.assistente_warmup\') }}"' in widget_template
     assert 'data-server-attachments-url="{{ url_for(\'assistente.assistente_attachments\') }}"' in widget_template
     assert 'data-export-document-url="{{ url_for(\'assistente.assistente_documento\') }}"' in widget_template
     assert 'data-local-signer-url="http://127.0.0.1:27272"' in widget_template
@@ -505,6 +506,9 @@ def test_lex_assistant_usa_componente_esterno_e_posizione_persistente():
     assert "saveConversationMemory" in widget_js
     assert "restoreConversationMemory" in widget_js
     assert "HISTORY_LIMIT = 12" in widget_js
+    assert "primeAssistantContext" in widget_js
+    assert "widget.dataset.warmupUrl" in widget_js
+    assert "state.contextWarmStarted = true" in widget_js
     assert "assistantAvatarMarkup" in widget_js
     assert "dataset.lexIconUrl" in widget_js
     assert "resetPosition" in widget_js
@@ -553,15 +557,25 @@ def test_lex_assistant_usa_componente_esterno_e_posizione_persistente():
 
 def test_contesto_lex_compatta_le_sezioni_e_limita_le_fonti():
     context_service = (REPO_ROOT / "web/services/assistente_studio_context.py").read_text(encoding="utf-8")
+    cache_service = (REPO_ROOT / "web/services/assistente_context_cache.py").read_text(encoding="utf-8")
+    assistente_blueprint = (REPO_ROOT / "web/blueprints/assistente.py").read_text(encoding="utf-8")
 
     assert "def _select_detail_sections" in context_service
     assert "def _should_include_live_web" in context_service
     assert "_DEFAULT_DETAIL_SECTION_TITLES" in context_service
     assert "_SECTION_KEYWORDS" in context_service
+    assert "_cached_section_payload" in context_service
+    assert "_SECTION_CACHE_TTLS" in context_service
+    assert "_SECTION_DEPENDENCY_KEYS" in context_service
     assert "selected_detail_titles = _select_detail_sections(q)" in context_service
     assert "include_live_web = _should_include_live_web(q)" in context_service
     assert '"sources": deduped_sources[:12]' in context_service
     assert '"citations": [row.get("citation") for row in deduped_sources[:12] if row.get("citation")]' in context_service
+    assert "warm_lex_studio_context" in context_service
+    assert "cached_compute" in cache_service
+    assert "build_file_fingerprint" in cache_service
+    assert "question_signature" in cache_service
+    assert '@assistente.route("/api/assistente/warmup", methods=["POST"])' in assistente_blueprint
 
 
 def test_preparazione_udienza_guidata_usa_componenti_modulari_e_js_esterno():

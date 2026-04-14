@@ -218,10 +218,11 @@ _COMPETENCE_PROFILES: tuple[LexCompetenceProfile, ...] = (
         section_titles=("Template atti", "Fascicoli", "RAG documentale locale"),
         prompt_block=(
             "Competenza HACS: Atti, template e catalogo atti. Se la richiesta tocca bozze, modelli o struttura di un atto, "
-            "Lex deve suggerire il template piu' vicino, evidenziare i dati da completare e proporre il prossimo passo redazionale."
+            "Lex deve selezionare il template piu' vicino dal repository strutturato, evidenziare i dati da completare, "
+            "mostrare allegati obbligatori e controlli di conformita' e proporre il prossimo passo redazionale."
         ),
         context_hint=(
-            "Per gli atti parti dal modello piu' vicino e dai subito i campi o allegati che servono per completarlo bene."
+            "Per gli atti parti dal modello piu' vicino, poi mostra subito campi guidati, allegati, check e compilatore collegato."
         ),
     ),
     LexCompetenceProfile(

@@ -850,41 +850,147 @@ def _scadenziario_lines(question: str) -> tuple[list[str], list[dict[str, Any]]]
 def _template_atti_lines(question: str) -> tuple[list[str], list[dict[str, Any]]]:
     gestore = GestioneTemplateAtti(_cfg_data_path("TEMPLATE_ATTI_DB") or "./template_atti/templates.json")
     rows = gestore.tutti()
-    terms = _query_terms(question)
-    selected = _select_ranked(
-        rows,
-        lambda row: _score_parts(
-            terms,
-            getattr(row, "titolo", ""),
-            getattr(row, "categoria", ""),
-            getattr(row, "area", ""),
-            getattr(row, "descrizione", ""),
-            getattr(row, "note", ""),
+    repo_stats = gestore.statistiche_repository()
+    selection = gestore.select_best_templates(question or "atto", limit=3)
+    best = selection.get("best_template") or {}
+    alternatives = list(selection.get("alternatives") or [])
+    lines = [
+        (
+            f"Template atti: {len(rows)} modelli disponibili tra builtin e personalizzati. "
+            f"Repository strutturato: {repo_stats.get('template_repository', 0)} template, "
+            f"{repo_stats.get('template_fields', 0)} campi guidati, "
+            f"{repo_stats.get('template_checks', 0)} controlli."
         ),
-        limit=4,
-    )
-    lines = [f"Template atti: {len(rows)} modelli disponibili tra builtin e personalizzati."]
-    if selected:
+    ]
+    if best:
         lines.append(
-            "Template utili: "
-            + "; ".join(
-                _truncate(
-                    f"{row.titolo} ({row.area or row.categoria or 'area n.d.'})",
-                    100,
-                )
-                for row in selected
+            "Template consigliato: "
+            + _truncate(
+                f"{best.get('titolo')} ({best.get('area') or best.get('categoria') or 'area n.d.'}; "
+                f"{best.get('fase') or 'fase n.d.'}; {best.get('canale_telematico') or 'canale n.d.'})",
+                180,
             )
             + "."
         )
-    sources = [
-        _source(
-            f"Template atti - {row.titolo}",
-            f"Area: {row.area or 'n.d.'}. Categoria: {row.categoria or 'n.d.'}. Descrizione: {row.descrizione or row.note or 'Template operativo disponibile.'}",
-            source_id=f"template:{row.id}",
-            title=row.titolo,
+        fields = list(best.get("campi_guidati") or [])
+        if fields:
+            lines.append(
+                "Campi da completare: "
+                + ", ".join(
+                    _truncate(field.get("label") or field.get("name") or "campo", 42)
+                    for field in fields[:5]
+                )
+                + "."
+            )
+        attachments = list(best.get("allegati_obbligatori") or [])
+        if attachments:
+            lines.append(
+                "Allegati richiesti: "
+                + ", ".join(
+                    _truncate(item.get("nome") or "allegato", 44)
+                    for item in attachments[:4]
+                )
+                + "."
+            )
+        checks = list(best.get("controlli_conformita") or [])
+        if checks:
+            lines.append(
+                "Controlli di conformita: "
+                + "; ".join(
+                    _truncate(item.get("testo") or "controllo", 90)
+                    for item in checks[:3]
+                )
+                + "."
+            )
+        bindings = list(best.get("bindings") or [])
+        if bindings:
+            lines.append(
+                "Compilatore collegato: "
+                + ", ".join(
+                    _truncate(item.get("binding_value") or item.get("label") or "binding", 40)
+                    for item in bindings[:2]
+                )
+                + "."
+            )
+    if alternatives:
+        lines.append(
+            "Alternative vicine: "
+            + "; ".join(
+                _truncate(
+                    f"{row.get('titolo')} ({row.get('profilo_deposito') or row.get('fase') or 'variante'})",
+                    100,
+                )
+                for row in alternatives
+            )
+            + "."
         )
-        for row in selected
-    ]
+    source_rows = [best] if best else []
+    source_rows.extend(alternatives)
+    sources = []
+    for row in source_rows:
+        if not row:
+            continue
+        fields = list(row.get("campi_guidati") or [])
+        attachments = list(row.get("allegati_obbligatori") or [])
+        checks = list(row.get("controlli_conformita") or [])
+        bindings = list(row.get("bindings") or [])
+        text_parts = [
+            f"Area: {row.get('area') or 'n.d.'}.",
+            f"Categoria: {row.get('categoria') or 'n.d.'}.",
+            f"Fase: {row.get('fase') or 'n.d.'}.",
+            f"Canale: {row.get('canale_telematico') or 'n.d.'}.",
+            f"Profilo deposito: {row.get('profilo_deposito') or 'n.d.'}.",
+            f"Descrizione: {row.get('descrizione') or row.get('note') or 'Template operativo disponibile.'}",
+        ]
+        if fields:
+            text_parts.append(
+                "Campi guidati: "
+                + ", ".join(
+                    _truncate(field.get("label") or field.get("name") or "campo", 32)
+                    for field in fields[:5]
+                )
+                + "."
+            )
+        if attachments:
+            text_parts.append(
+                "Allegati: "
+                + ", ".join(
+                    _truncate(item.get("nome") or "allegato", 32)
+                    for item in attachments[:4]
+                )
+                + "."
+            )
+        if checks:
+            text_parts.append(
+                "Check: "
+                + "; ".join(
+                    _truncate(item.get("testo") or "controllo", 72)
+                    for item in checks[:3]
+                )
+                + "."
+            )
+        if bindings:
+            text_parts.append(
+                "Binding: "
+                + ", ".join(
+                    _truncate(item.get("binding_value") or item.get("label") or "binding", 30)
+                    for item in bindings[:2]
+                )
+                + "."
+            )
+        source_row = _source(
+            f"Template atti - {row.get('titolo')}",
+            " ".join(text_parts),
+            source_id=f"template:{row.get('template_id')}",
+            title=row.get("titolo") or "Template atto",
+        )
+        source_row["template_fields"] = fields
+        source_row["template_checks"] = checks
+        source_row["template_required_attachments"] = attachments
+        source_row["template_bindings"] = bindings
+        source_row["template_id"] = row.get("template_id") or ""
+        source_row["template_match_score"] = int(row.get("match_score") or 0)
+        sources.append(source_row)
     return lines, sources
 
 

@@ -56,6 +56,8 @@ data/
 /clienti/anagrafica.json
 /fascicoli/
 /scadenziario/
+/template_atti/template_repository.json
+/template_atti/template_repository.db
 
 # Root HTML mirrors not used by Flask.
 # The canonical templates live under web/templates/.

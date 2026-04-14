@@ -27,6 +27,11 @@ from datetime import date, datetime
 from typing import Any, Dict, List, Optional
 
 from pct.template_atti_catalogo import build_builtin_templates
+from pct.template_atti_repository import (
+    GestioneTemplateRepository,
+    derive_template_repository_db_path,
+    derive_template_repository_json_path,
+)
 
 
 # ================================================================ Categorie
@@ -214,9 +219,16 @@ class GestioneTemplateAtti:
 
     def __init__(self, db_path: str = "./template_atti/templates.json"):
         self.db_path = db_path
+        self.repository_db_path = derive_template_repository_db_path(db_path)
+        self.repository_json_path = derive_template_repository_json_path(db_path)
         self._templates: Dict[str, TemplateAtto] = {}
         self._carica()
         self._inserisci_builtin()
+        self._repository = GestioneTemplateRepository(
+            self.repository_db_path,
+            json_path=self.repository_json_path,
+        )
+        self._sync_repository()
 
     def _carica(self):
         if os.path.exists(self.db_path):
@@ -235,6 +247,9 @@ class GestioneTemplateAtti:
         for t in BUILTIN_TEMPLATES:
             if t["id"] not in self._templates:
                 self._templates[t["id"]] = TemplateAtto.from_dict(t)
+
+    def _sync_repository(self):
+        self._repository.synchronize_templates(self.tutti())
 
     # ---- CRUD
 
@@ -283,6 +298,7 @@ class GestioneTemplateAtti:
         )
         self._templates[t.id] = t
         self._salva()
+        self._sync_repository()
         return t
 
     def aggiorna(self, id_template: str, **kwargs) -> TemplateAtto:
@@ -294,6 +310,7 @@ class GestioneTemplateAtti:
                 setattr(t, k, v)
         t.modificato_il = datetime.now().isoformat()
         self._salva()
+        self._sync_repository()
         return t
 
     def elimina(self, id_template: str):
@@ -302,6 +319,38 @@ class GestioneTemplateAtti:
             raise ValueError("I template built-in non possono essere eliminati.")
         self._templates.pop(id_template, None)
         self._salva()
+        self._sync_repository()
+
+    def statistiche_repository(self) -> Dict[str, Any]:
+        return self._repository.storage_stats()
+
+    def repository_payload(self) -> Dict[str, Any]:
+        return self._repository.load_repository_payload()
+
+    def export_template_repository(self, path: Optional[str] = None) -> str:
+        return self._repository.export_repository_json(path or self.repository_json_path)
+
+    def import_template_repository(self, path: str) -> Dict[str, Any]:
+        return self._repository.import_repository_json(path)
+
+    def select_best_templates(
+        self,
+        question: str,
+        *,
+        area: str = "",
+        fase: str = "",
+        rito: str = "",
+        canale: str = "",
+        limit: int = 3,
+    ) -> Dict[str, Any]:
+        return self._repository.select_best_templates(
+            question,
+            area=area,
+            fase=fase,
+            rito=rito,
+            canale=canale,
+            limit=limit,
+        )
 
     # ---- Rendering
 

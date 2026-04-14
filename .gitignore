@@ -93,6 +93,7 @@ data/
 /legal_intelligence/
 /telematico/
 /giurisprudenza/
+/applicazioni/
 
 # Root HTML mirrors not used by Flask.
 # The canonical templates live under web/templates/.

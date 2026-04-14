@@ -8,7 +8,6 @@ from typing import Any
 
 from flask import current_app, g
 
-from pct.applicazioni_catalogo import cerca_applicazioni, catalogo_applicazioni
 from pct.config_studio import GestioneConfigStudio
 from pct.fatturazione import GestioneFatturazione
 from pct.legal_intelligence import FONTI_UFFICIALI, fonti_per_query, motori_per_query
@@ -24,6 +23,7 @@ from pct.tariffario import (
 from pct.template_atti import GestioneTemplateAtti
 from web.helpers import (
     get_agenda,
+    get_applicazioni_repository,
     get_clienti,
     get_fascicoli,
     get_giurisprudenza,
@@ -155,6 +155,7 @@ _SECTION_DEPENDENCY_KEYS: dict[str, tuple[str, ...]] = {
     "Ricerca legale e fonti web": ("LEGAL_INTELLIGENCE_DB", "NORMATIVE_TABLES_DB"),
     "Archivio sentenze": ("GIURISPRUDENZA_DB",),
     "Strumenti legali": ("NORMATIVE_TABLES_DB",),
+    "Applicazioni": ("STUDIO_CONFIG",),
     "RAG documentale locale": ("LOCAL_AI_DB",),
 }
 
@@ -1670,30 +1671,102 @@ def _strumenti_legali_lines(question: str) -> tuple[list[str], list[dict[str, An
 
 
 def _applicazioni_lines(question: str) -> tuple[list[str], list[dict[str, Any]]]:
-    rows = cerca_applicazioni(q=question) if _clean_spaces(question) else catalogo_applicazioni()
-    selected = rows[:5]
-    lines = [f"Applicazioni e moduli: {len(catalogo_applicazioni())} voci nel catalogo operativo HACS."]
-    if selected:
+    repository = get_applicazioni_repository()
+    route = repository.resolve_workspace_for_request(question, limit=5)
+    stats = repository.storage_stats()
+    best = dict(route.get("best_app") or {})
+    candidates = list(route.get("candidate_apps") or [])
+    related = list(route.get("related_apps") or [])
+    lines = [
+        (
+            "Workspace registry applicazioni: "
+            f"{stats.get('applicazioni_catalog_repository', 0)} moduli, "
+            f"{stats.get('applicazioni_sections_repository', 0)} sezioni, "
+            f"{stats.get('applicazioni_status_repository', 0)} stati, "
+            f"{stats.get('applicazioni_access_repository', 0)} modalita di accesso, "
+            f"{stats.get('applicazioni_featured_repository', 0)} voci di primo piano."
+        ),
+        "Applicazioni: Lex usa il registro workspace del gestionale per scegliere modulo, accesso diretto o guidato e alternative correlate prima di spiegare il percorso.",
+        "Routing workspace: " + _truncate(route.get("reason") or "registro applicazioni disponibile", 180) + ".",
+    ]
+    if best:
         lines.append(
-            "Applicazioni utili: "
+            "Modulo consigliato: "
+            + _truncate(
+                f"{best.get('title')} ({best.get('section_title') or 'modulo'}, {best.get('access_mode_label') or best.get('access_mode') or 'n.d.'}, stato {best.get('status_label') or best.get('status') or 'n.d.'})",
+                160,
+            )
+            + "."
+        )
+        if _clean_spaces(route.get("next_action")):
+            lines.append("Prossima azione: " + _truncate(route.get("next_action"), 180) + ".")
+    if candidates:
+        lines.append(
+            "Applicazioni candidate: "
             + "; ".join(
                 _truncate(
-                    f"{row.get('title')} ({row.get('section_title') or row.get('workspace_kind') or 'modulo'})",
+                    f"{row.get('title')} ({row.get('section_title') or row.get('workspace_kind_label') or 'modulo'})",
                     100,
                 )
-                for row in selected
+                for row in candidates[:4]
             )
+            + "."
+        )
+    if related:
+        lines.append(
+            "Alternative correlate: "
+            + "; ".join(_truncate(row.get("title") or row.get("app_id"), 95) for row in related[:4])
             + "."
         )
     sources = [
         _source(
-            f"Applicazione - {row.get('title')}",
-            f"Sezione: {row.get('section_title') or row.get('workspace_kind') or 'n.d.'}. Modalita: {row.get('access_mode') or 'n.d.'}. Stato: {row.get('status_label') or row.get('status') or 'n.d.'}.",
-            source_id=f"applicazione:{row.get('id')}",
-            title=str(row.get("title") or "Applicazione"),
+            "Repository applicazioni",
+            (
+                f"Catalogo: {stats.get('applicazioni_catalog_repository', 0)}. "
+                f"Sezioni: {stats.get('applicazioni_sections_repository', 0)}. "
+                f"Modalita: {stats.get('applicazioni_access_repository', 0)}. "
+                f"Primo piano: {stats.get('applicazioni_featured_repository', 0)}."
+            ),
+            source_id="applicazioni:repository",
+            title="Repository applicazioni",
         )
-        for row in selected
     ]
+    if best:
+        source = _source(
+            f"Applicazione - {best.get('title')}",
+            (
+                f"Sezione: {best.get('section_title') or 'n.d.'}. "
+                f"Modalita: {best.get('access_mode_label') or best.get('access_mode') or 'n.d.'}. "
+                f"Stato: {best.get('status_label') or best.get('status') or 'n.d.'}. "
+                f"Endpoint: {best.get('endpoint') or 'n.d.'}."
+            ),
+            source_id=f"applicazione:{best.get('app_id') or ''}",
+            title=str(best.get("title") or "Applicazione"),
+        )
+        source["endpoint"] = best.get("endpoint") or ""
+        source["params"] = dict(best.get("params") or {})
+        source["access_mode"] = best.get("access_mode") or ""
+        source["requires_guided_flow"] = bool(best.get("requires_guided_flow"))
+        source["requires_cliente"] = bool(best.get("requires_cliente"))
+        source["requires_fascicolo"] = bool(best.get("requires_fascicolo"))
+        source["requires_telematic_context"] = bool(best.get("requires_telematic_context"))
+        source["capabilities"] = list(best.get("capabilities") or [])
+        source["blocked_if"] = list(best.get("blocked_if") or [])
+        sources.append(source)
+    for row in related[:3]:
+        related_source = _source(
+            f"Applicazione correlata - {row.get('title')}",
+            (
+                f"Sezione: {row.get('section_title') or 'n.d.'}. "
+                f"Modalita: {row.get('access_mode_label') or row.get('access_mode') or 'n.d.'}. "
+                f"Endpoint: {row.get('endpoint') or 'n.d.'}."
+            ),
+            source_id=f"applicazione-correlata:{row.get('app_id') or ''}",
+            title=str(row.get("title") or "Applicazione correlata"),
+        )
+        related_source["endpoint"] = row.get("endpoint") or ""
+        related_source["params"] = dict(row.get("params") or {})
+        sources.append(related_source)
     return lines, sources
 
 

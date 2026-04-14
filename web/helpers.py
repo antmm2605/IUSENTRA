@@ -25,6 +25,7 @@ from pct.giurisprudenza import GestioneGiurisprudenza
 from pct.normative_tables import GestioneTabelleNormative
 from pct.calendar_sync import GestioneCalendarSync
 from pct.soggetti import GestioneSoggetti
+from pct.applicazioni_repository import get_runtime_applicazioni_repository
 
 
 # ---------------------------------------------------------------- helper percorsi tenant-aware
@@ -103,6 +104,10 @@ def get_soggetti() -> GestioneSoggetti:
         soggetti_path=_cfg("SOGGETTI_DB"),
         parti_path=_cfg("SOGGETTI_PARTI_DB"),
     )
+
+
+def get_applicazioni_repository():
+    return get_runtime_applicazioni_repository(anchor_path=_cfg("STUDIO_CONFIG"))
 
 
 # ---------------------------------------------------------------- tenant corrente

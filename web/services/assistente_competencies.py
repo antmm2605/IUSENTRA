@@ -396,10 +396,11 @@ _COMPETENCE_PROFILES: tuple[LexCompetenceProfile, ...] = (
         section_titles=("Applicazioni", "Impostazioni studio", "Quadro operativo"),
         prompt_block=(
             "Competenza HACS: Applicazioni e moduli del gestionale. Se l'utente chiede dove si trova una funzione o come raggiungerla, "
-            "Lex deve indicare percorso, modulo corretto e azione successiva, senza perdersi in spiegazioni teoriche."
+            "Lex deve usare il registro workspace del software per indicare modulo corretto, modalita di accesso, percorso e azione successiva, "
+            "senza perdersi in spiegazioni teoriche."
         ),
         context_hint=(
-            "Quando il tema e' il software stesso, indica il modulo giusto, il percorso e il passo operativo da fare li'."
+            "Quando il tema e' il software stesso, indica il modulo giusto, il percorso, se l'accesso e' diretto o guidato e il passo operativo da fare li'."
         ),
     ),
     LexCompetenceProfile(

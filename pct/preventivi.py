@@ -17,6 +17,15 @@ from datetime import date, datetime
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
+from pct.preventivi_repository import (
+    GestionePreventiviRepository,
+    derive_preventivi_field_map_json_path,
+    derive_preventivi_repository_db_path,
+    derive_preventivi_repository_json_path,
+    derive_preventivi_rules_json_path,
+    derive_preventivi_workflow_states_json_path,
+)
+
 
 # ================================================================ Enumerazioni
 
@@ -466,7 +475,21 @@ class GestionePreventivi:
         )
         self._preventivi:   Dict[str, Preventivo]          = {}
         self._conferimenti: Dict[str, ConferimentoIncarico] = {}
+        self._repository: GestionePreventiviRepository | None = None
         self._carica()
+        self.repository_db_path = derive_preventivi_repository_db_path(self.db_path)
+        self.repository_json_path = derive_preventivi_repository_json_path(self.db_path)
+        self.repository_workflow_states_json_path = derive_preventivi_workflow_states_json_path(self.db_path)
+        self.repository_field_map_json_path = derive_preventivi_field_map_json_path(self.db_path)
+        self.repository_rules_json_path = derive_preventivi_rules_json_path(self.db_path)
+        self._repository = GestionePreventiviRepository(
+            self.repository_db_path,
+            json_path=self.repository_json_path,
+            workflow_states_json_path=self.repository_workflow_states_json_path,
+            field_map_json_path=self.repository_field_map_json_path,
+            rules_json_path=self.repository_rules_json_path,
+        )
+        self._sync_repository()
 
     # ---------------------------------------------------------------- I/O
 
@@ -490,6 +513,7 @@ class GestionePreventivi:
                 {k: v.to_dict() for k, v in self._preventivi.items()},
                 f, ensure_ascii=False, indent=2,
             )
+        self._sync_repository()
 
     def _salva_conferimenti(self):
         os.makedirs(os.path.dirname(self._conf_path) or ".", exist_ok=True)
@@ -498,6 +522,48 @@ class GestionePreventivi:
                 {k: v.to_dict() for k, v in self._conferimenti.items()},
                 f, ensure_ascii=False, indent=2,
             )
+        self._sync_repository()
+
+    def _sync_repository(self) -> None:
+        if not self._repository:
+            return
+        self._repository.synchronize_runtime(
+            preventivi=self.tutti_preventivi(),
+            conferimenti=self.tutti_conferimenti(),
+            preventivo_model=Preventivo,
+            conferimento_model=ConferimentoIncarico,
+            export_json=True,
+        )
+
+    def statistiche_repository(self) -> Dict[str, Any]:
+        if not self._repository:
+            return {}
+        return self._repository.storage_stats()
+
+    def repository_payload(self) -> Dict[str, Any]:
+        if not self._repository:
+            return {}
+        return self._repository.load_repository_payload()
+
+    def export_preventivi_repository(self, path: str | None = None) -> str:
+        if not self._repository:
+            raise RuntimeError("Repository preventivi non inizializzato.")
+        return self._repository.export_repository_json(path)
+
+    def export_preventivi_repository_split(self, base_dir: str | None = None) -> Dict[str, str]:
+        if not self._repository:
+            raise RuntimeError("Repository preventivi non inizializzato.")
+        return self._repository.export_split_jsons(base_dir)
+
+    def select_best_preventivi_runtime(self, question: str, *, limit: int = 3) -> Dict[str, Any]:
+        if not self._repository:
+            return {"best_preventivo": None, "alternatives": [], "matches": []}
+        return self._repository.select_best_preventivi(question, limit=limit)
+
+    def select_best_pratiche_preventivo(self, question: str, *, limit: int = 3) -> Dict[str, Any]:
+        if not self._repository:
+            return {"best_practice": None, "alternatives": [], "matches": []}
+        return self._repository.select_best_practices(question, limit=limit)
 
     # ---------------------------------------------------------------- Numerazione
 

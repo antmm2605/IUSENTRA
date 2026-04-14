@@ -58,6 +58,11 @@ data/
 /scadenziario/
 /template_atti/template_repository.json
 /template_atti/template_repository.db
+/preventivi/preventivi_repository.json
+/preventivi/preventivi_repository.db
+/preventivi/preventivi_workflow_states.json
+/preventivi/preventivi_field_map.json
+/preventivi/preventivi_rules.json
 
 # Root HTML mirrors not used by Flask.
 # The canonical templates live under web/templates/.

@@ -1019,38 +1019,159 @@ def _tariffario_lines(question: str) -> tuple[list[str], list[dict[str, Any]]]:
 
 def _preventivi_lines(question: str) -> tuple[list[str], list[dict[str, Any]]]:
     gestore = GestionePreventivi(_cfg_data_path("PREVENTIVI_DB") or "./preventivi/preventivi.json")
-    preventivi = gestore.tutti_preventivi()
-    conferimenti = gestore.tutti_conferimenti()
-    terms = _query_terms(question)
-    selected = _select_ranked(
-        preventivi,
-        lambda row: _score_parts(terms, row.numero, row.oggetto, row.area_pratica, row.tipo_procedimento, row.note),
-        limit=4,
-    )
+    payload = gestore.repository_payload()
+    stats = gestore.statistiche_repository()
+    selection = gestore.select_best_preventivi_runtime(question, limit=3)
+    practice_selection = gestore.select_best_pratiche_preventivo(question, limit=3)
+    rules = list(payload.get("rules") or [])
+    formula_rules = [row for row in rules if _clean_spaces(row.get("category")) == "formula"]
+    workflow_rules = [row for row in rules if _clean_spaces(row.get("category")) == "workflow"]
+    field_labels = {
+        row.get("field_name"): row.get("label") or row.get("field_name")
+        for row in (payload.get("field_map") or {}).get("preventivo", [])
+    }
+    conferimenti_by_preventivo = {
+        _clean_spaces(row.get("id_preventivo")): row
+        for row in (payload.get("conferimenti") or [])
+        if _clean_spaces(row.get("id_preventivo"))
+    }
+    best = selection.get("best_preventivo")
+    practice = practice_selection.get("best_practice")
     lines = [
-        f"Preventivi: {len(preventivi)} preventivi e {len(conferimenti)} conferimenti di incarico archiviati.",
+        "Repository preventivi strutturato: "
+        f"{stats.get('preventivi_workflow_states', 0)} stati workflow, "
+        f"{stats.get('preventivi_field_map', 0)} campi mappati, "
+        f"{stats.get('preventivi_rules', 0)} regole deterministiche, "
+        f"{stats.get('preventivi_practice_catalog', 0)} pratiche wizard, "
+        f"{stats.get('preventivi_records', 0)} preventivi runtime e "
+        f"{stats.get('conferimenti_records', 0)} conferimenti runtime."
     ]
-    if selected:
+    if formula_rules:
         lines.append(
-            "Preventivi rilevanti: "
+            "Regola di calcolo: "
             + "; ".join(
                 _truncate(
-                    f"{row.numero} - {row.oggetto} ({getattr(getattr(row, 'stato', None), 'value', '') or 'stato n.d.'})",
-                    110,
+                    f"{row.get('title')}: {row.get('formula') or row.get('operational_text')}",
+                    120,
                 )
-                for row in selected
+                for row in formula_rules[:3]
             )
             + "."
         )
+    if workflow_rules:
+        preventivo_vs_conferimento = next(
+            (
+                row
+                for row in workflow_rules
+                if _clean_spaces(row.get("rule_code")) == "workflow_preventivo_conferimento"
+            ),
+            None,
+        )
+        if preventivo_vs_conferimento:
+            lines.append("Distinzione operativa: " + _truncate(preventivo_vs_conferimento.get("operational_text"), 180) + ".")
+    if best:
+        conferimento = conferimenti_by_preventivo.get(_clean_spaces(best.get("preventivo_id")))
+        lines.append(
+            "Preventivo rilevante: "
+            + _truncate(
+                f"{best.get('numero')} - {best.get('oggetto')} "
+                f"({best.get('stato') or 'n.d.'}, canale {best.get('workflow_channel_label') or 'Studio'})",
+                140,
+            )
+            + "."
+        )
+        if _clean_spaces(best.get("wizard_step_label")):
+            lines.append(f"Step wizard consigliato: {best.get('wizard_step_label')}.")
+        missing_labels = [
+            field_labels.get(item, item)
+            for item in (best.get("campi_mancanti") or [])
+            if _clean_spaces(field_labels.get(item, item))
+        ]
+        if missing_labels:
+            lines.append("Campi mancanti: " + "; ".join(_truncate(item, 90) for item in missing_labels[:5]) + ".")
+        warnings = [row for row in (best.get("warning") or []) if _clean_spaces(row)]
+        if warnings:
+            lines.append("Warning operativi: " + "; ".join(_truncate(item, 110) for item in warnings[:4]) + ".")
+        if _clean_spaces(best.get("next_action")):
+            lines.append(f"Prossima azione: {best.get('next_action')}.")
+        if conferimento:
+            lines.append(
+                "Conferimento collegato: "
+                + _truncate(
+                    f"{conferimento.get('numero')} "
+                    f"({conferimento.get('stato') or 'n.d.'}, canale {conferimento.get('workflow_channel_label') or 'Studio'})",
+                    140,
+                )
+                + "."
+            )
+    if practice:
+        lines.append(
+            "Pratica del wizard utile: "
+            + _truncate(
+                f"{practice.get('label')} ({practice.get('wizard_area') or practice.get('area')}, "
+                f"compenso default {practice.get('tipo_compenso_default') or 'n.d.'})",
+                150,
+            )
+            + "."
+        )
+        if _clean_spaces(practice.get("when_to_use")):
+            lines.append("Quando usarla: " + _truncate(practice.get("when_to_use"), 180) + ".")
     sources = [
         _source(
-            f"Preventivo - {row.numero}",
-            f"Oggetto: {row.oggetto}. Stato: {getattr(getattr(row, 'stato', None), 'value', '') or 'n.d.'}. Procedimento: {row.tipo_procedimento or 'n.d.'}.",
-            source_id=f"preventivo:{row.id}",
-            title=row.numero,
+            "Repository preventivi",
+            (
+                f"Stati workflow: {stats.get('preventivi_workflow_states', 0)}. "
+                f"Campi: {stats.get('preventivi_field_map', 0)}. "
+                f"Regole: {stats.get('preventivi_rules', 0)}. "
+                f"Pratiche wizard: {stats.get('preventivi_practice_catalog', 0)}."
+            ),
+            source_id="preventivi:repository",
+            title="Repository preventivi",
         )
-        for row in selected
     ]
+    if best:
+        row = _source(
+            f"Preventivo - {best.get('numero')}",
+            (
+                f"Oggetto: {best.get('oggetto')}. Stato: {best.get('stato') or 'n.d.'}. "
+                f"Procedimento: {best.get('tipo_procedimento') or 'n.d.'}. "
+                f"Step: {best.get('wizard_step_label') or 'n.d.'}. "
+                f"Prossima azione: {best.get('next_action') or 'n.d.'}."
+            ),
+            source_id=f"preventivo:{best.get('preventivo_id')}",
+            title=str(best.get("numero") or "Preventivo"),
+        )
+        row["preventivo_state"] = best.get("stato") or ""
+        row["workflow_channel"] = best.get("workflow_channel") or ""
+        row["wizard_step"] = best.get("wizard_step") or ""
+        row["wizard_step_label"] = best.get("wizard_step_label") or ""
+        row["campi_mancanti"] = list(best.get("campi_mancanti") or [])
+        row["warnings"] = list(best.get("warning") or [])
+        row["next_action"] = best.get("next_action") or ""
+        row["totale"] = float(best.get("totale") or 0.0)
+        row["imponibile"] = float(best.get("imponibile") or 0.0)
+        row["preventivi_rules"] = rules
+        row["preventivi_field_map"] = list((payload.get("field_map") or {}).get("preventivo", []))
+        row["preventivi_formula_rules"] = formula_rules
+        row["preventivi_workflow_rules"] = workflow_rules
+        row["conferimento_collegato"] = conferimenti_by_preventivo.get(_clean_spaces(best.get("preventivo_id"))) or {}
+        sources.append(row)
+    if practice:
+        row = _source(
+            f"Pratica preventivo - {practice.get('label')}",
+            (
+                f"Area: {practice.get('wizard_area') or practice.get('area')}. "
+                f"Base normativa: {practice.get('base_normativa') or 'n.d.'}. "
+                f"Uso tipico: {practice.get('when_to_use') or practice.get('summary') or 'n.d.'}."
+            ),
+            source_id=f"preventivo-practice:{practice.get('practice_id')}",
+            title=str(practice.get("label") or "Pratica preventivo"),
+        )
+        row["workflow_steps"] = list(payload.get("wizard_steps") or [])
+        row["normative_references"] = list(practice.get("normative_references") or [])
+        row["checklist"] = list(practice.get("checklist") or [])
+        row["regole_tariffarie"] = list(practice.get("regole_tariffarie") or [])
+        sources.append(row)
     return lines, sources
 
 

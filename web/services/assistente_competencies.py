@@ -251,11 +251,16 @@ _COMPETENCE_PROFILES: tuple[LexCompetenceProfile, ...] = (
         section_titles=("Tariffario", "Preventivi", "Fatturazione", "Clienti"),
         prompt_block=(
             "Competenza HACS: Tariffario, preventivi, fatturazione e pagamenti. Quando il tema e' economico, "
-            "Lex deve distinguere bene tra parametro, preventivo, parcella emessa, stato di pagamento e impatto sul cliente, "
-            "senza confondere le fasi del flusso."
+            "Lex deve distinguere bene tra parametro, preventivo, conferimento di incarico, parcella emessa, stato di pagamento "
+            "e impatto sul cliente, senza confondere le fasi del flusso. "
+            "Sui preventivi deve usare il repository strutturato del wizard: stato del workflow, passo corrente, campi mancanti, "
+            "warning operativi, prossima azione, pratica suggerita e canale Studio/Online. "
+            "Il calcolo economico resta deterministico nel codice: imponibile, CPA, base IVA, IVA, anticipazioni art. 15 e totale "
+            "non vanno mai ricalcolati liberamente dal modello."
         ),
         context_hint=(
-            "Per l'area economica chiarisci sempre se stiamo parlando di tariffario, preventivo, fattura o pagamento."
+            "Per l'area economica chiarisci sempre se stiamo parlando di tariffario, preventivo, conferimento, fattura o pagamento, "
+            "e usa sempre step wizard, warning e next action reali del repository preventivi."
         ),
     ),
     LexCompetenceProfile(

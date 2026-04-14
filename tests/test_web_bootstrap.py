@@ -650,8 +650,10 @@ def test_contesto_lex_compatta_le_sezioni_e_limita_le_fonti():
     assert '"query_type": "social_only"' in assistente_blueprint
     assert '"social_prefix": str(social_prefix or "").strip()' in assistente_blueprint
     assert '"focus_label": str(studio_context.get("focus_label") or "").strip()' in assistente_blueprint
-    assert '"web_fallback_used": bool(studio_context.get("web_fallback_used"))' in assistente_blueprint
-    assert '"web_execution_requested": bool(studio_context.get("web_execution_requested"))' in assistente_blueprint
+    assert "web_fallback_used = bool(studio_context.get(\"web_fallback_used\")) or bool(" in assistente_blueprint
+    assert "web_execution_requested = bool(studio_context.get(\"web_execution_requested\")) or bool(followup.is_web_request)" in assistente_blueprint
+    assert '"web_fallback_used": web_fallback_used' in assistente_blueprint
+    assert '"web_execution_requested": web_execution_requested' in assistente_blueprint
     assert "build_assistente_prompt" in assistente_prompt
     assert "_LEX_VOICE_PROMPT" in assistente_prompt
     assert "_LEX_WRITING_PROMPT" in assistente_prompt

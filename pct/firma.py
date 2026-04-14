@@ -237,9 +237,11 @@ class FirmaDigitale:
         documento: bytes,
         *,
         visible_signature_mode: str = "laterale",
+        visible_signature_place: str = "",
     ) -> bytes:
         luogo = resolve_visible_signature_place(
-            city=os.getenv("PCT_STUDIO_CITY", ""),
+            city=visible_signature_place or os.getenv("PCT_STUDIO_CITY", ""),
+            province=os.getenv("PCT_STUDIO_PROVINCIA", ""),
             address=os.getenv("PCT_STUDIO_INDIRIZZO", ""),
         )
         issuer_cn = ""
@@ -265,6 +267,7 @@ class FirmaDigitale:
         detached: bool = True,
         *,
         visible_signature_mode: str = "laterale",
+        visible_signature_place: str = "",
     ) -> bytes:
         """
         Firma un documento in formato CAdES (.p7m).
@@ -280,6 +283,7 @@ class FirmaDigitale:
             documento = self._prepare_pdf_for_visible_signature(
                 documento,
                 visible_signature_mode=visible_signature_mode,
+                visible_signature_place=visible_signature_place,
             )
         builder = pkcs7.PKCS7SignatureBuilder()
         builder = builder.set_data(documento)
@@ -301,6 +305,7 @@ class FirmaDigitale:
         output_path: str,
         *,
         visible_signature_mode: str = "laterale",
+        visible_signature_place: str = "",
     ) -> str:
         """
         Firma un PDF in formato PAdES (firma incorporata nel PDF).
@@ -323,6 +328,7 @@ class FirmaDigitale:
             prepared_pdf = self._prepare_pdf_for_visible_signature(
                 original_pdf,
                 visible_signature_mode=visible_signature_mode,
+                visible_signature_place=visible_signature_place,
             )
             if prepared_pdf != original_pdf:
                 with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_visible:
@@ -360,6 +366,7 @@ class FirmaDigitale:
         formato: str = "cades",
         *,
         visible_signature_mode: str = "laterale",
+        visible_signature_place: str = "",
     ) -> str:
         """
         Firma e salva un documento.
@@ -378,6 +385,7 @@ class FirmaDigitale:
                 documento,
                 detached=detached,
                 visible_signature_mode=visible_signature_mode,
+                visible_signature_place=visible_signature_place,
             )
             out = output_path if output_path.endswith(".p7m") else output_path + ".p7m"
             with open(out, "wb") as f:
@@ -393,6 +401,7 @@ class FirmaDigitale:
                     tmp_path,
                     output_path,
                     visible_signature_mode=visible_signature_mode,
+                    visible_signature_place=visible_signature_place,
                 )
             finally:
                 try:

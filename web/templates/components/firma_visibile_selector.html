@@ -1,9 +1,10 @@
-{% macro render_firma_visibile_selector(prefix='firmaVisibile') %}
+{% macro render_firma_visibile_selector(prefix='firmaVisibile', place='') %}
 <div
   class="alert alert-light border small mb-3"
   id="{{ prefix }}VisibleSignatureRoot"
   data-firma-visibile-root="true"
   data-signature-mode-name="{{ prefix }}_firma_visibile_mode"
+  data-signature-place="{{ place }}"
 >
   <div class="fw-semibold mb-1">Modalità firma visibile nel PDF</div>
   <div class="text-muted mb-2">

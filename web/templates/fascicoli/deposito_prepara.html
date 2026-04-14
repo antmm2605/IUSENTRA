@@ -483,7 +483,7 @@
           </div>
         </div>
 
-        {{ render_firma_visibile_selector('depositoFirma') }}
+        {{ render_firma_visibile_selector('depositoFirma', firma_visibile_place) }}
 
         {# ════════════ PATH L — Local Signer (Windows / Aruba Key in-device) ════════════ #}
         {# Usa http://localhost:27272 — avviare tools/avvia_local_signer.bat #}
@@ -768,6 +768,12 @@ function _depositoFirmaVisibleMode() {
     : 'laterale';
 }
 
+function _depositoFirmaVisiblePlace() {
+  return window.HacsFirmaVisibileMode
+    ? window.HacsFirmaVisibileMode.getSignaturePlace('#depositoFirmaVisibleSignatureRoot')
+    : '';
+}
+
 function _depositoUploadWarningText(payload) {
   if (!payload || !payload.warning) return '';
   const codes = Array.isArray(payload.warning_codes) ? payload.warning_codes : [];
@@ -1045,6 +1051,7 @@ function avviaFirmaPkcs11() {
       pin: pin,
       slot_id: _pkcs11TokenSlot,
       visible_signature_mode: _depositoFirmaVisibleMode(),
+      visible_signature_place: _depositoFirmaVisiblePlace(),
     }),
   })
   .then(r => r.json())
@@ -1174,6 +1181,7 @@ function avviaFirmaLocalSigner() {
           pin_session_id: _lsPinSessionId || '',
           slot_id: _lsTokenSlot,
           visible_signature_mode: _depositoFirmaVisibleMode(),
+          visible_signature_place: _depositoFirmaVisiblePlace(),
         }),
       });
     })

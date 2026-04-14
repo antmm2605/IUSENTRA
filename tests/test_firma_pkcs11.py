@@ -85,10 +85,16 @@ def test_salva_documento_firmato_pkcs11_pdf_usa_cades_contenente_pdf(tmp_path, m
     signer = object.__new__(firma_pkcs11.FirmaPKCS11)
     captured = {}
 
-    def _fake_firma_cades(documento, detached=True, visible_signature_mode="laterale"):
+    def _fake_firma_cades(
+        documento,
+        detached=True,
+        visible_signature_mode="laterale",
+        visible_signature_place="",
+    ):
         captured["documento"] = documento
         captured["detached"] = detached
         captured["visible_signature_mode"] = visible_signature_mode
+        captured["visible_signature_place"] = visible_signature_place
         return b"firmato"
 
     monkeypatch.setattr(signer, "firma_cades", _fake_firma_cades)
@@ -97,21 +103,29 @@ def test_salva_documento_firmato_pkcs11_pdf_usa_cades_contenente_pdf(tmp_path, m
         b"%PDF-1.4\nstub\n%%EOF",
         str(tmp_path / "atto.pdf"),
         visible_signature_mode="laterale",
+        visible_signature_place="Taurianova",
     )
 
     assert output.endswith(".p7m")
     assert captured["detached"] is False
     assert captured["visible_signature_mode"] == "laterale"
+    assert captured["visible_signature_place"] == "Taurianova"
 
 
 def test_salva_documento_firmato_standard_pdf_usa_cades_contenente_pdf(tmp_path, monkeypatch):
     signer = object.__new__(FirmaDigitale)
     captured = {}
 
-    def _fake_firma_cades(documento, detached=True, visible_signature_mode="laterale"):
+    def _fake_firma_cades(
+        documento,
+        detached=True,
+        visible_signature_mode="laterale",
+        visible_signature_place="",
+    ):
         captured["documento"] = documento
         captured["detached"] = detached
         captured["visible_signature_mode"] = visible_signature_mode
+        captured["visible_signature_place"] = visible_signature_place
         return b"firmato"
 
     monkeypatch.setattr(signer, "firma_cades", _fake_firma_cades)
@@ -120,8 +134,10 @@ def test_salva_documento_firmato_standard_pdf_usa_cades_contenente_pdf(tmp_path,
         b"%PDF-1.4\nstub\n%%EOF",
         str(tmp_path / "atto.pdf"),
         visible_signature_mode="basso_destra",
+        visible_signature_place="Taurianova",
     )
 
     assert output.endswith(".p7m")
     assert captured["detached"] is False
     assert captured["visible_signature_mode"] == "basso_destra"
+    assert captured["visible_signature_place"] == "Taurianova"

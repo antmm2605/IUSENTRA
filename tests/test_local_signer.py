@@ -2003,7 +2003,13 @@ def test_firma_documento_riusa_sessione_pin_in_ram():
             self.scadenza = __import__("datetime").datetime(2029, 2, 23, 12, 0, 0)
             self.visible_signature_modes = []
 
-        def firma_cades(self, documento, detached=False, visible_signature_mode="laterale"):
+        def firma_cades(
+            self,
+            documento,
+            detached=False,
+            visible_signature_mode="laterale",
+            visible_signature_place="",
+        ):
             self.calls += 1
             self.visible_signature_modes.append(visible_signature_mode)
             return documento + b".p7m"
@@ -2157,6 +2163,7 @@ def test_firma_batch_riusa_sessione_pin_per_tutto_il_lotto():
             slot_id,
             pin_session_id=None,
             visible_signature_mode="laterale",
+            visible_signature_place="",
         ):
             calls.append({
                 "lib_path": lib_path,
@@ -2165,6 +2172,7 @@ def test_firma_batch_riusa_sessione_pin_per_tutto_il_lotto():
                 "slot_id": slot_id,
                 "pin_session_id": pin_session_id,
                 "visible_signature_mode": visible_signature_mode,
+                "visible_signature_place": visible_signature_place,
             })
             session_id = pin_session_id or "sess-1"
             return documento + b".p7m", {
@@ -2185,6 +2193,7 @@ def test_firma_batch_riusa_sessione_pin_per_tutto_il_lotto():
                 "pin": "123456",
                 "slot_id": 0,
                 "visible_signature_mode": "basso_destra",
+                "visible_signature_place": "Taurianova",
             }
         )
 
@@ -2200,9 +2209,11 @@ def test_firma_batch_riusa_sessione_pin_per_tutto_il_lotto():
     assert calls[0]["pin"] == "123456"
     assert calls[0]["pin_session_id"] is None
     assert calls[0]["visible_signature_mode"] == "basso_destra"
+    assert calls[0]["visible_signature_place"] == "Taurianova"
     assert calls[1]["pin"] == ""
     assert calls[1]["pin_session_id"] == "sess-1"
     assert calls[1]["visible_signature_mode"] == "basso_destra"
+    assert calls[1]["visible_signature_place"] == "Taurianova"
 
 
 def test_firma_singola_propaga_modalita_visibile_al_signer():
@@ -2233,6 +2244,7 @@ def test_firma_singola_propaga_modalita_visibile_al_signer():
             slot_id,
             pin_session_id=None,
             visible_signature_mode="laterale",
+            visible_signature_place="",
         ):
             captured["call"] = {
                 "lib_path": lib_path,
@@ -2241,6 +2253,7 @@ def test_firma_singola_propaga_modalita_visibile_al_signer():
                 "slot_id": slot_id,
                 "pin_session_id": pin_session_id,
                 "visible_signature_mode": visible_signature_mode,
+                "visible_signature_place": visible_signature_place,
             }
             return documento + b".p7m", {
                 "pin_session_id": "sess-1",
@@ -2257,6 +2270,7 @@ def test_firma_singola_propaga_modalita_visibile_al_signer():
                 "pin": "123456",
                 "slot_id": 0,
                 "visible_signature_mode": "basso_destra",
+                "visible_signature_place": "Taurianova",
             }
         )
 
@@ -2268,6 +2282,7 @@ def test_firma_singola_propaga_modalita_visibile_al_signer():
     assert captured["status"] == 200
     assert captured["payload"]["ok"] is True
     assert captured["call"]["visible_signature_mode"] == "basso_destra"
+    assert captured["call"]["visible_signature_place"] == "Taurianova"
 
 
 def test_download_documenti_batch_esegue_preflight_una_sola_volta():

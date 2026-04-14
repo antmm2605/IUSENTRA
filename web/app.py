@@ -2245,6 +2245,7 @@ def create_app(config: dict | None = None) -> Flask:
             studio_cfg = None
         return resolve_visible_signature_place(
             city=getattr(studio_cfg, "city", "") if studio_cfg else "",
+            province=getattr(studio_cfg, "province", "") if studio_cfg else "",
             address=getattr(studio_cfg, "indirizzo", "") if studio_cfg else "",
         )
 
@@ -11425,6 +11426,7 @@ read -r -p "Premi Invio per chiudere..." _
             responsabile_conformita=responsabile_conformita,
             pdp_penale_summary=_pdp_penale_summary_for_fascicolo(fasc),
             cfg_firma=cfg_firma,
+            firma_visibile_place=_luogo_timbro_firma_visibile(),
             open_pst_nav=open_pst_nav,
             auto_pst_acquire=auto_pst_acquire,
             preserve_pst_tree=preserve_pst_tree,
@@ -12956,6 +12958,9 @@ read -r -p "Premi Invio per chiudere..." _
             visible_signature_mode = _normalizza_modalita_firma_visibile(
                 str(data.get("visible_signature_mode") or "laterale").strip()
             )
+            visible_signature_place = str(
+                data.get("visible_signature_place") or _luogo_timbro_firma_visibile()
+            ).strip()
             slot_raw      = data.get("slot_id")
 
             if not id_fasc or not id_doc:
@@ -13043,6 +13048,7 @@ read -r -p "Premi Invio per chiudere..." _
                     str(doc_path),
                     formato="cades",
                     visible_signature_mode=visible_signature_mode,
+                    visible_signature_place=visible_signature_place,
                 )
                 # salva_documento_firmato aggiunge .p7m se non presente
                 firmato_path = output_path if output_path.endswith(".p7m") else str(doc_path) + ".p7m"
@@ -13138,6 +13144,9 @@ read -r -p "Premi Invio per chiudere..." _
             visible_signature_mode = _normalizza_modalita_firma_visibile(
                 str(data.get("visible_signature_mode") or "laterale").strip()
             )
+            visible_signature_place = str(
+                data.get("visible_signature_place") or _luogo_timbro_firma_visibile()
+            ).strip()
             slot_raw = data.get("slot_id")
 
             if not id_fasc or not documento_ids:
@@ -13247,6 +13256,7 @@ read -r -p "Premi Invio per chiudere..." _
                         str(doc_path),
                         formato="cades",
                         visible_signature_mode=visible_signature_mode,
+                        visible_signature_place=visible_signature_place,
                     )
                     firmato_path = str(doc_path) + ".p7m"
                     nome_firmato = doc.nome if doc.nome.endswith(".p7m") else f"{doc.nome}.p7m"
@@ -14176,6 +14186,7 @@ read -r -p "Premi Invio per chiudere..." _
             pec_configurata=pec_configurata,
             pdfa_stato=pdfa_stato,
             correction_context=_deposito_correction_context(fasc),
+            firma_visibile_place=_luogo_timbro_firma_visibile(),
             oggi=date.today(),
         )
 

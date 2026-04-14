@@ -74,9 +74,15 @@
     return loadStoredMode();
   }
 
+  function getSignaturePlace(rootOrSelector) {
+    const root = resolveRoot(rootOrSelector);
+    return String(root?.dataset?.signaturePlace || "").trim();
+  }
+
   window.HacsFirmaVisibileMode = {
     initAll,
     getSelectedMode,
+    getSignaturePlace,
     loadStoredMode,
     saveMode,
     normalizeMode,

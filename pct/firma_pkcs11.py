@@ -518,9 +518,11 @@ class FirmaPKCS11:
         documento: bytes,
         *,
         visible_signature_mode: str = "laterale",
+        visible_signature_place: str = "",
     ) -> bytes:
         luogo = resolve_visible_signature_place(
-            city=os.getenv("PCT_STUDIO_CITY", ""),
+            city=visible_signature_place or os.getenv("PCT_STUDIO_CITY", ""),
+            province=os.getenv("PCT_STUDIO_PROVINCIA", ""),
             address=os.getenv("PCT_STUDIO_INDIRIZZO", ""),
         )
         issuer_cn = ""
@@ -548,6 +550,7 @@ class FirmaPKCS11:
         detached: bool = True,
         *,
         visible_signature_mode: str = "laterale",
+        visible_signature_place: str = "",
     ) -> bytes:
         """
         Firma un documento in formato CAdES-BES (.p7m) usando la chiave in-device.
@@ -568,6 +571,7 @@ class FirmaPKCS11:
             documento = self._prepare_pdf_for_visible_signature(
                 documento,
                 visible_signature_mode=visible_signature_mode,
+                visible_signature_place=visible_signature_place,
             )
 
         sess = self._get_session()
@@ -656,6 +660,7 @@ class FirmaPKCS11:
         formato: str = "cades",
         *,
         visible_signature_mode: str = "laterale",
+        visible_signature_place: str = "",
     ) -> str:
         """
         Firma e salva un documento (interfaccia compatibile con FirmaDigitale).
@@ -678,6 +683,7 @@ class FirmaPKCS11:
             documento,
             detached=detached,
             visible_signature_mode=visible_signature_mode,
+            visible_signature_place=visible_signature_place,
         )
         out = output_path if output_path.endswith(".p7m") else output_path + ".p7m"
         with open(out, "wb") as fh:

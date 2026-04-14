@@ -30,10 +30,27 @@ def normalize_visible_signature_mode(value: Any) -> str:
     return VISIBLE_SIGNATURE_MODE_LATERALE
 
 
-def resolve_visible_signature_place(*, city: str = "", address: str = "") -> str:
-    city_value = str(city or "").strip()
+def _normalize_visible_signature_place(value: str = "") -> str:
+    raw = str(value or "").strip()
+    if not raw:
+        return ""
+
+    normalized = re.sub(r"\([^)]*\)", "", raw)
+    normalized = re.sub(r"\b\d{5}\b", "", normalized)
+    normalized = re.sub(r"\s+", " ", normalized).strip(" ,;-")
+    if not normalized:
+        return ""
+
+    if normalized.upper() == normalized:
+        normalized = normalized.title()
+
+    return normalized[:48]
+
+
+def resolve_visible_signature_place(*, city: str = "", province: str = "", address: str = "") -> str:
+    city_value = _normalize_visible_signature_place(city)
     if city_value:
-        return city_value[:48]
+        return city_value
 
     address_value = str(address or "").strip()
     if not address_value:
@@ -44,9 +61,14 @@ def resolve_visible_signature_place(*, city: str = "", address: str = "") -> str
         return ""
 
     candidate = re.sub(r"^\d{5}\s+", "", parts[-1]).strip()
-    if not candidate:
-        return ""
-    return candidate[:48]
+    candidate = _normalize_visible_signature_place(candidate)
+    if candidate:
+        return candidate
+
+    province_value = _normalize_visible_signature_place(province)
+    if province_value:
+        return province_value
+    return ""
 
 
 def format_visible_signature_datetime(value: Any) -> str:
@@ -482,9 +504,9 @@ def _clear_visible_signature_zones(
     side_strip_y = max((CM_TO_PT * 0.45) - 4, 0)
     side_strip_height = max(height - side_strip_y - (CM_TO_PT * 0.35), 0)
 
-    bottom_block_width = 360
-    bottom_block_height = 86
-    bottom_block_x = max(width - right_margin - bottom_block_width, CM_TO_PT * 1.2)
+    bottom_block_width = 440
+    bottom_block_height = 102
+    bottom_block_x = max(width - right_margin - bottom_block_width - 8, CM_TO_PT)
     bottom_block_y = max((CM_TO_PT * 0.55) - 4, 0)
 
     overlay.saveState()

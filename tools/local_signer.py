@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-HACS Local Signer - v1.6.7
+HACS Local Signer - v1.6.8
 
 Servizio HTTP locale (localhost:27272) che firma documenti con smart card e token CNS/CIE
 (o qualsiasi token PKCS#11) e consente l'accesso autenticato al PST.
@@ -98,7 +98,7 @@ except Exception:
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.6.7"
+VERSION = "1.6.8"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
@@ -1986,14 +1986,22 @@ def _prepare_documento_firma_visibile(
     issuer: str = "",
     serial: str = "",
     visible_signature_mode: str = "laterale",
+    visible_signature_place: str = "",
 ) -> bytes:
     try:
-        from visible_signature import prepare_document_for_signature
+        from visible_signature import prepare_document_for_signature, resolve_visible_signature_place
+
+        luogo = resolve_visible_signature_place(
+            city=visible_signature_place or os.getenv("PCT_STUDIO_CITY", ""),
+            province=os.getenv("PCT_STUDIO_PROVINCIA", ""),
+            address=os.getenv("PCT_STUDIO_INDIRIZZO", ""),
+        )
 
         return prepare_document_for_signature(
             documento,
             intestatario=intestatario,
             data_firma=datetime.now(UTC),
+            luogo=luogo,
             issuer=issuer,
             serial=serial,
             mode=visible_signature_mode,
@@ -2008,6 +2016,7 @@ def _firma_documento_via_sessione(
     documento: bytes,
     *,
     visible_signature_mode: str = "laterale",
+    visible_signature_place: str = "",
 ) -> tuple[bytes, dict]:
     entry = _get_pin_session(pin_session_id)
     if not entry:
@@ -2021,6 +2030,7 @@ def _firma_documento_via_sessione(
             documento,
             detached=False,
             visible_signature_mode=visible_signature_mode,
+            visible_signature_place=visible_signature_place,
         )
         info = _firma_info_dict(
             getattr(signer, "intestatario", "") or "",
@@ -2037,7 +2047,8 @@ def _firma_documento_via_sessione(
 def _firma_documento(lib_path: str, documento: bytes, pin: str,
                      slot_id: Optional[int] = None,
                      pin_session_id: Optional[str] = None,
-                     visible_signature_mode: str = "laterale") -> tuple[bytes, dict]:
+                     visible_signature_mode: str = "laterale",
+                     visible_signature_place: str = "") -> tuple[bytes, dict]:
     """
     Firma CAdES-BES il documento usando il token PKCS#11.
 
@@ -2052,6 +2063,7 @@ def _firma_documento(lib_path: str, documento: bytes, pin: str,
             requested_session_id,
             documento,
             visible_signature_mode=visible_signature_mode,
+            visible_signature_place=visible_signature_place,
         )
 
     # Aggiungi la directory del progetto al path se possibile
@@ -2066,6 +2078,7 @@ def _firma_documento(lib_path: str, documento: bytes, pin: str,
                 documento,
                 detached=False,
                 visible_signature_mode=visible_signature_mode,
+                visible_signature_place=visible_signature_place,
             )
         except Exception:
             _drop_pin_session(session_id)
@@ -2087,12 +2100,14 @@ def _firma_documento(lib_path: str, documento: bytes, pin: str,
         pin,
         slot_id,
         visible_signature_mode=visible_signature_mode,
+        visible_signature_place=visible_signature_place,
     )
 
 
 def _firma_inline(lib_path: str, documento: bytes, pin: str,
                   slot_id: Optional[int] = None,
-                  visible_signature_mode: str = "laterale") -> tuple[bytes, dict]:
+                  visible_signature_mode: str = "laterale",
+                  visible_signature_place: str = "") -> tuple[bytes, dict]:
     """CAdES-BES minimale senza dipendere da pct.firma_pkcs11."""
     import pkcs11
     from pkcs11 import Attribute, Mechanism, ObjectClass
@@ -2137,6 +2152,7 @@ def _firma_inline(lib_path: str, documento: bytes, pin: str,
             issuer,
             serial,
             visible_signature_mode=visible_signature_mode,
+            visible_signature_place=visible_signature_place,
         )
         signed_attrs_der = _build_signed_attrs_der_inline(documento)
 
@@ -5828,7 +5844,7 @@ class _Handler(BaseHTTPRequestHandler):
     def _firma(self):
         """
         POST /firma
-        Body: {documento: <base64>, pin?: "...", pin_session_id?: "...", slot_id?: 0, visible_signature_mode?: "laterale"|"basso_destra"}
+        Body: {documento: <base64>, pin?: "...", pin_session_id?: "...", slot_id?: 0, visible_signature_mode?: "laterale"|"basso_destra", visible_signature_place?: "Taurianova"}
         Response: {ok, firmato_b64, intestatario, scadenza, dimensione}
         """
         lib = _trova_libreria()
@@ -5849,6 +5865,7 @@ class _Handler(BaseHTTPRequestHandler):
         pin_session_id = str(data.get("pin_session_id") or "").strip()
         slot_id = data.get("slot_id")
         visible_signature_mode = str(data.get("visible_signature_mode") or "laterale").strip()
+        visible_signature_place = str(data.get("visible_signature_place") or "").strip()
 
         if not doc_b64:
             self._send_json({"ok": False, "errore": "Campo 'documento' (base64) obbligatorio"}, 400)
@@ -5866,6 +5883,7 @@ class _Handler(BaseHTTPRequestHandler):
                 slot_id,
                 pin_session_id=pin_session_id or None,
                 visible_signature_mode=visible_signature_mode,
+                visible_signature_place=visible_signature_place,
             )
             self._send_json({
                 "ok": True,
@@ -5880,7 +5898,7 @@ class _Handler(BaseHTTPRequestHandler):
     def _firma_batch(self):
         """
         POST /firma-batch
-        Body: {documenti:[{documento:<base64>, nome?}], pin?: "...", pin_session_id?: "...", slot_id?: 0, visible_signature_mode?: "laterale"|"basso_destra"}
+        Body: {documenti:[{documento:<base64>, nome?}], pin?: "...", pin_session_id?: "...", slot_id?: 0, visible_signature_mode?: "laterale"|"basso_destra", visible_signature_place?: "Taurianova"}
         Response: {ok, firmati, falliti, risultati:[...], pin_session_id?}
         """
         lib = _trova_libreria()
@@ -5901,6 +5919,7 @@ class _Handler(BaseHTTPRequestHandler):
         slot_id = data.get("slot_id")
         current_session_id = str(data.get("pin_session_id") or "").strip()
         visible_signature_mode = str(data.get("visible_signature_mode") or "laterale").strip()
+        visible_signature_place = str(data.get("visible_signature_place") or "").strip()
 
         if not isinstance(docs, list) or not docs:
             self._send_json({"ok": False, "errore": "Il batch richiede almeno un documento."}, 400)
@@ -5936,6 +5955,7 @@ class _Handler(BaseHTTPRequestHandler):
                     slot_id,
                     pin_session_id=current_session_id or None,
                     visible_signature_mode=visible_signature_mode,
+                    visible_signature_place=visible_signature_place,
                 )
                 current_session_id = str(info.get("pin_session_id") or current_session_id or "")
                 risultati.append({

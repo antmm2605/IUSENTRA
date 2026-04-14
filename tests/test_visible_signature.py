@@ -16,6 +16,7 @@ from visible_signature import (
     apply_visible_signature_stamp,
     format_visible_signature_datetime,
     has_visible_signature_stamp,
+    resolve_visible_signature_place,
 )
 
 
@@ -244,4 +245,26 @@ def test_visible_signature_seal_uses_non_grayscale_colors():
         round(getattr(color, "red", 0), 3) != round(getattr(color, "green", 0), 3)
         or round(getattr(color, "green", 0), 3) != round(getattr(color, "blue", 0), 3)
         for color in fill_colors
+    )
+
+
+def test_resolve_visible_signature_place_prefers_city_from_impostazioni_studio():
+    assert (
+        resolve_visible_signature_place(
+            city="TAURIANOVA",
+            province="RC",
+            address="Via NINO BIXIO 4, 89029 - TAURIANOVA (RC)",
+        )
+        == "Taurianova"
+    )
+
+
+def test_resolve_visible_signature_place_fallback_to_address_when_city_missing():
+    assert (
+        resolve_visible_signature_place(
+            city="",
+            province="",
+            address="Via NINO BIXIO 4, 89029 - TAURIANOVA (RC)",
+        )
+        == "Taurianova"
     )

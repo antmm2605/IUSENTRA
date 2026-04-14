@@ -25,10 +25,10 @@ from flask import (
 )
 
 from web.helpers import get_legal_intelligence
+from web.services.assistente_language_guidance import build_language_guidance
 from web.services.assistente_prompt import build_assistente_prompt
 from web.services.assistente_followup import resolve_followup_query
 from web.services.assistente_social_intent import (
-    build_daily_overview_lead,
     build_social_only_reply,
     latest_user_message,
     resolve_social_and_operational_intent,
@@ -301,8 +301,6 @@ def assistente_context():
     )
     user_effective_question = str(followup.effective_query or base_question).strip() or base_question
     social_prefix = str(routing.social_prefix or "").strip() if routing.is_social_with_request else ""
-    opening_line = build_daily_overview_lead(social_prefix) if routing.is_daily_overview else ""
-    prompt_social_prefix = "" if opening_line else social_prefix
 
     runtime = resolved_ollama_runtime()
     studio_context = _build_context_payload(
@@ -312,15 +310,27 @@ def assistente_context():
     )
     resolved_effective_question = str(studio_context.get("effective_question") or user_effective_question).strip() or user_effective_question
     prompt_question = resolved_effective_question
+    web_execution_requested = bool(studio_context.get("web_execution_requested")) or bool(followup.is_web_request)
+    language_guidance = build_language_guidance(
+        question=prompt_question,
+        social_prefix=social_prefix,
+        research_strategy=str(studio_context.get("research_strategy") or "").strip(),
+        focus_topic=str(studio_context.get("focus_topic") or "").strip(),
+        web_execution_requested=web_execution_requested,
+        is_daily_overview=bool(routing.is_daily_overview),
+    )
+    opening_line = str(language_guidance.opening_line or "").strip()
+    prompt_social_prefix = "" if opening_line else social_prefix
     followup_block = _followup_prompt_block(followup)
     routing_block = _routing_prompt_block(routing, opening_line=opening_line)
-    web_execution_requested = bool(studio_context.get("web_execution_requested")) or bool(followup.is_web_request)
     web_fallback_used = bool(studio_context.get("web_fallback_used")) or bool(
         followup.is_web_request and followup.needs_web_search
     )
     studio_prompt_block = str(studio_context.get("prompt_block", "") or "").strip()
     studio_prompt_block = "\n\n".join(
-        block for block in [studio_prompt_block, routing_block, followup_block] if block
+        block
+        for block in [studio_prompt_block, routing_block, followup_block, str(language_guidance.prompt_block or "").strip()]
+        if block
     )
     prompt = build_assistente_prompt(
         question=prompt_question,
@@ -363,7 +373,9 @@ def assistente_context():
         "web_execution_requested": web_execution_requested,
         "social_kind": routing.social_kind,
         "social_prefix": str(social_prefix or "").strip(),
+        "opening_line": opening_line,
         "daily_overview_lead": opening_line,
+        "language_mode": str(language_guidance.mode or "").strip(),
         "routing": _routing_payload(routing),
         "followup_resolution": _followup_resolution_payload(followup),
     }, 200
@@ -474,7 +486,6 @@ def assistente_chat():
     )
     user_effective_question = str(followup.effective_query or base_question).strip() or "Richiesta operativa"
     social_prefix = str(routing.social_prefix or "").strip() if routing.is_social_with_request else ""
-    stream_opening_line = build_daily_overview_lead(social_prefix) if routing.is_daily_overview else social_prefix
     runtime = resolved_ollama_runtime()
     api_base_url = str(runtime.get("api_base_url") or "").rstrip("/")
     base_url = str(runtime.get("base_url") or "").rstrip("/")
@@ -487,6 +498,15 @@ def assistente_chat():
     )
     resolved_effective_question = str(studio_context.get("effective_question") or user_effective_question).strip() or "Richiesta operativa"
     prompt_question = resolved_effective_question
+    language_guidance = build_language_guidance(
+        question=prompt_question,
+        social_prefix=social_prefix,
+        research_strategy=str(studio_context.get("research_strategy") or "").strip(),
+        focus_topic=str(studio_context.get("focus_topic") or "").strip(),
+        web_execution_requested=bool(studio_context.get("web_execution_requested")) or bool(followup.is_web_request),
+        is_daily_overview=bool(routing.is_daily_overview),
+    )
+    stream_opening_line = str(language_guidance.opening_line or "").strip() or social_prefix
     rewrite_last_user_message = bool(followup.reused_previous_topic or routing.reused_previous_topic)
     llm_messages = (
         _messages_with_effective_question(
@@ -501,7 +521,9 @@ def assistente_chat():
     routing_block = _routing_prompt_block(routing, opening_line=stream_opening_line)
     studio_prompt_block = str(studio_context.get("prompt_block", "") or "").strip()
     studio_prompt_block = "\n\n".join(
-        block for block in [studio_prompt_block, routing_block, followup_block] if block
+        block
+        for block in [studio_prompt_block, routing_block, followup_block, str(language_guidance.prompt_block or "").strip()]
+        if block
     )
 
     # System prompt + eventuale contesto fascicolo

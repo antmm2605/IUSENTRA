@@ -785,6 +785,58 @@
     return '<div class="pct-ai-reference">Riferimento: ' + escapeHtml(text) + '</div>';
   }
 
+  function stripArtificialPlaceholders(answer) {
+    return String(answer || '')
+      .replace(/\[(?:inserisci|specifica(?:re)?|esempio|ambito di ricerca)[^\]]*\]/gi, ' ')
+      .replace(/\s+\n/g, '\n')
+      .replace(/\n\s+/g, '\n')
+      .replace(/[ \t]{2,}/g, ' ');
+  }
+
+  function shouldStripGreetingForQuestion(question) {
+    var clean = cleanIntentText(question);
+    if (!clean) {
+      return true;
+    }
+    return !/^(ciao|salve|buongiorno|buonasera|buon pomeriggio|grazie|grazie mille|ti ringrazio|ok|va bene|perfetto|ottimo|bene|a domani|a dopo|ci aggiorniamo|buona giornata|buona serata|buon lavoro|buona notte)\b/.test(clean);
+  }
+
+  function stripLexGreeting(answer, question) {
+    var clean = String(answer || '').trim();
+    if (!clean || !shouldStripGreetingForQuestion(question)) {
+      return clean;
+    }
+    return clean.replace(/^(?:(?:ciao,\s*sono lex\.?)|(?:ciao\.?)|(?:buongiorno\.?)|(?:buonasera\.?)|(?:buon pomeriggio\.?)|(?:salve\.?))\s+/i, '').trim();
+  }
+
+  function collapseLeadingDuplicateSentence(answer, openingLine) {
+    var clean = String(answer || '').trim();
+    var expected = String(openingLine || '').trim();
+    if (expected) {
+      var duplicatedOpening = new RegExp('^' + expected.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s+' + expected.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(\\s+|$)', 'i');
+      clean = clean.replace(duplicatedOpening, expected + ' ').trim();
+    }
+    return clean.replace(/^([^.!?\n]{6,180}[.!?])\s+\1(\s+|$)/i, '$1 ').trim();
+  }
+
+  function sanitizeLexAnswer(answer, options) {
+    var original = String(answer || '').replace(/\r/g, '').trim();
+    if (!original) {
+      return '';
+    }
+    var clean = stripArtificialPlaceholders(original);
+    clean = stripLexGreeting(clean, options && options.question || '');
+    clean = collapseLeadingDuplicateSentence(clean, options && options.openingLine || '');
+    clean = clean.replace(/\n{3,}/g, '\n\n').trim();
+    return clean || original;
+  }
+
+  function normalizeAssistantPayload(payload, options) {
+    var normalized = Object.assign({}, payload || {});
+    normalized.answer = sanitizeLexAnswer(normalized.answer || '', options || {});
+    return normalized;
+  }
+
   function buildAnswerHtml(payload, options) {
     var answer = payload && payload.answer ? renderMarkdown(payload.answer) : '<p>Nessuna risposta disponibile.</p>';
     var includeExports = !(options && options.includeExports === false);
@@ -796,11 +848,12 @@
   }
 
   function setAnswerPayload(element, payload) {
-    var exportPayload = generatedDocumentPayload(payload || {});
+    var safePayload = payload || {};
+    var exportPayload = generatedDocumentPayload(safePayload);
     if (element) {
       element._generatedDocument = exportPayload;
     }
-    setBubbleHtml(element, buildAnswerHtml(payload || {}, { includeExports: true }));
+    setBubbleHtml(element, buildAnswerHtml(safePayload, { includeExports: true }));
   }
 
   function defaultIntroMarkup() {
@@ -1130,10 +1183,14 @@
       function readChunk() {
         return reader.read().then(function (result) {
           if (result.done) {
-            setAnswerPayload(state.currentBubble, { answer: full, citations: [], question: text, referenceLabel: referenceLabel });
-            state.history.push({ role: 'assistant', content: full, meta: { topic: state.pendingFocus && state.pendingFocus.topic || '', referenceLabel: referenceLabel } });
+            var finalPayload = normalizeAssistantPayload(
+              { answer: full, citations: [], question: text, referenceLabel: referenceLabel },
+              { question: text }
+            );
+            setAnswerPayload(state.currentBubble, finalPayload);
+            state.history.push({ role: 'assistant', content: finalPayload.answer, meta: { topic: state.pendingFocus && state.pendingFocus.topic || '', referenceLabel: referenceLabel } });
             saveConversationMemory();
-            speakAnswer(full);
+            speakAnswer(finalPayload.answer);
             finalizeThinkingFeedback(true);
             finalizeRequest();
             return;
@@ -1150,10 +1207,14 @@
 
             var raw = line.slice(6).trim();
               if (raw === '[DONE]') {
-                setAnswerPayload(state.currentBubble, { answer: full, citations: [], question: text, referenceLabel: referenceLabel });
-                state.history.push({ role: 'assistant', content: full, meta: { topic: state.pendingFocus && state.pendingFocus.topic || '', referenceLabel: referenceLabel } });
+                var donePayload = normalizeAssistantPayload(
+                  { answer: full, citations: [], question: text, referenceLabel: referenceLabel },
+                  { question: text }
+                );
+                setAnswerPayload(state.currentBubble, donePayload);
+                state.history.push({ role: 'assistant', content: donePayload.answer, meta: { topic: state.pendingFocus && state.pendingFocus.topic || '', referenceLabel: referenceLabel } });
                 saveConversationMemory();
-                speakAnswer(full);
+                speakAnswer(donePayload.answer);
                 finalizeThinkingFeedback(true);
                 finalizeRequest();
                 return;
@@ -1206,6 +1267,7 @@
     }
 
     var preparedFocusLabel = state.pendingFocus && state.pendingFocus.focusLabel ? String(state.pendingFocus.focusLabel) : '';
+    var preparedOpeningLine = '';
     browserBridge()
       .fetchServerContext(bridgeConfig, {
         question: text,
@@ -1220,6 +1282,7 @@
       })
       .then(function (prepared) {
         preparedFocusLabel = String(prepared && prepared.focus_label || preparedFocusLabel || '').trim();
+        preparedOpeningLine = String(prepared && prepared.opening_line || '').trim();
         if (String(prepared && prepared.query_type || '').trim() === 'social_only' && prepared && prepared.answer) {
           return {
             answer: String(prepared.answer || '').trim(),
@@ -1257,6 +1320,7 @@
         }
         payload.question = text;
         payload.referenceLabel = String(payload.referenceLabel || preparedFocusLabel || '').trim();
+        payload = normalizeAssistantPayload(payload, { question: text, openingLine: preparedOpeningLine });
         setAnswerPayload(state.currentBubble, payload);
         state.history.push({
           role: 'assistant',

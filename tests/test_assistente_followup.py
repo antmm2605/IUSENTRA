@@ -152,3 +152,22 @@ def test_assistente_context_espone_followup_resolution_quando_eredita_il_tema(tm
     assert payload["followup_resolution"]["is_web_request"] is True
     assert payload["followup_resolution"]["reused_previous_topic"] is True
     assert payload["followup_resolution"]["effective_query"] == "ultime sentenze sul civile tutti gli ambienti"
+
+
+def test_assistente_context_guida_l_apertura_su_ricerca_web_sentenze_civili(tmp_path: Path):
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    app = create_app(_cfg_web(tmp_path))
+
+    with app.test_client() as client:
+        client.post("/login", data={"username": "admin", "password": "admin"}, follow_redirects=True)
+        response = client.post(
+            "/api/assistente/context",
+            json={"question": "ricerca web sentenze civili"},
+        )
+
+    payload = response.get_json()
+    assert response.status_code == 200
+    assert payload["ok"] is True
+    assert payload["language_mode"] == "civil_case_law_web"
+    assert payload["opening_line"].startswith("Controllo io sul web.")
+    assert "Cassazione" in payload["opening_line"]

@@ -388,6 +388,24 @@ class GestioneUtenti:
             pass
 
     def _carica(self):
+        def _load_json_utenti() -> Dict[str, Utente]:
+            from pct import cache as _cache
+
+            try:
+                raw = _cache.load(self.db_path)
+                return {k: Utente.from_dict(v) for k, v in raw.items()}
+            except Exception:
+                return {}
+
+        def _load_json_audit() -> List[EventoAudit]:
+            from pct import cache as _cache
+
+            try:
+                raw_audit = _cache.load(self.audit_path, default=[])
+                return [EventoAudit.from_dict(e) for e in raw_audit]
+            except Exception:
+                return []
+
         if self._studio_db is not None:
             import json as _json
             # Utenti
@@ -410,6 +428,11 @@ class GestioneUtenti:
                         pass
             except Exception:
                 self._utenti = {}
+            if not self._utenti:
+                legacy_utenti = _load_json_utenti()
+                if legacy_utenti:
+                    self._utenti = legacy_utenti
+                    self._salva_utenti()
             # Audit log
             try:
                 rows = self._studio_db.conn.execute(
@@ -424,18 +447,14 @@ class GestioneUtenti:
                         pass
             except Exception:
                 self._audit = []
+            if not self._audit:
+                legacy_audit = _load_json_audit()
+                if legacy_audit:
+                    self._audit = legacy_audit
+                    self._salva_audit()
             return
-        from pct import cache as _cache
-        try:
-            raw = _cache.load(self.db_path)
-            self._utenti = {k: Utente.from_dict(v) for k, v in raw.items()}
-        except Exception:
-            self._utenti = {}
-        try:
-            raw_audit = _cache.load(self.audit_path, default=[])
-            self._audit = [EventoAudit.from_dict(e) for e in raw_audit]
-        except Exception:
-            self._audit = []
+        self._utenti = _load_json_utenti()
+        self._audit = _load_json_audit()
 
     def _salva_utenti(self):
         if self._studio_db is not None:

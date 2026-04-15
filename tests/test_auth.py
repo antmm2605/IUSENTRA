@@ -7,6 +7,7 @@ from pct.auth import (
     RuoloUtente,
     PERMESSI,
 )
+from pct.storage import StudioDB
 
 
 @pytest.fixture
@@ -246,6 +247,37 @@ def test_persistenza_audit(tmp_path):
     gu1.registra_evento("test.evento")
     gu2 = GestioneUtenti(db_path=db, audit_path=audit, secret_key="s")
     assert len(gu2.audit_log()) >= 1
+
+
+def test_migra_utenti_legacy_json_in_sqlite_quando_backend_auth_e_vuoto(tmp_path):
+    db = str(tmp_path / "auth" / "utenti.json")
+    audit = str(tmp_path / "auth" / "audit.json")
+    legacy = GestioneUtenti(
+        db_path=db,
+        audit_path=audit,
+        secret_key="s",
+        crea_admin_se_vuoto=False,
+    )
+    legacy.crea(
+        "migrato",
+        "Password123!",
+        RuoloUtente.AVVOCATO,
+        must_change_password=False,
+    )
+    legacy.registra_evento("auth.login", username="migrato")
+
+    studio_db = StudioDB.get(str(tmp_path / "studio.db"))
+    migrato = GestioneUtenti(
+        db_path=db,
+        audit_path=audit,
+        secret_key="s",
+        crea_admin_se_vuoto=False,
+        studio_db=studio_db,
+    )
+
+    assert migrato.autentica("migrato", "Password123!") is not None
+    assert studio_db.conn.execute("SELECT COUNT(*) FROM utenti").fetchone()[0] == 1
+    assert studio_db.conn.execute("SELECT COUNT(*) FROM audit_log").fetchone()[0] >= 1
 
 
 # ------------------------------------------------------------------ Statistiche

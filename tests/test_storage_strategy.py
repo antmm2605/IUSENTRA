@@ -203,6 +203,34 @@ def test_request_storage_runtime_default_operational_prefers_sqlite(tmp_path: Pa
     assert studio_db is not None
 
 
+def test_login_route_migra_auth_legacy_json_verso_sqlite(tmp_path: Path):
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    app = create_app(_cfg(tmp_path))
+
+    legacy = GestioneUtenti(
+        db_path=app.config["AUTH_DB"],
+        audit_path=app.config["AUDIT_DB"],
+        secret_key=app.secret_key,
+        crea_admin_se_vuoto=False,
+    )
+    legacy.crea(
+        username="migrato",
+        password="PasswordSicura!123",
+        ruolo=RuoloUtente.AVVOCATO,
+        must_change_password=False,
+    )
+
+    client = app.test_client()
+    response = client.post(
+        "/login",
+        data={"username": "migrato", "password": "PasswordSicura!123"},
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 302
+    assert response.headers["Location"].endswith("/")
+
+
 def test_superadmin_can_create_studio_with_postgresql_strategy(tmp_path: Path):
     _write_studio_config(tmp_path / "config" / "studio.json")
     app = create_app(_cfg(tmp_path))

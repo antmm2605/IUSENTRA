@@ -256,6 +256,7 @@ def test_web_app_dimagrisce_e_registra_i_moduli_estratti_finali():
         "register_fascicoli_core_routes",
         "register_fascicoli_pdp_routes",
         "register_fascicoli_signature_routes",
+        "register_polisweb_routes",
         "register_reference_lookup_routes",
         "register_telematico_local_signer_routes",
         "register_telematico_portali_routes",
@@ -274,7 +275,6 @@ def test_i_moduli_bootstrap_restano_governabili():
         "deposito_routes.py": 1000,
         "scadenziario_routes.py": 700,
         "fascicoli_pdp_routes.py": 900,
-        "telematico_portali_routes.py": 800,
     }
 
     oversized: list[str] = []

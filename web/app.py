@@ -120,6 +120,7 @@ from web.bootstrap.messages_routes import register_messages_routes
 from web.bootstrap.privacy_routes import register_privacy_routes
 from web.bootstrap.pwa_routes import register_pwa_routes
 from web.bootstrap.register_blueprints import register_blueprints
+from web.bootstrap.polisweb_routes import register_polisweb_routes
 from web.bootstrap.portali_acquisizione_routes import register_portali_acquisizione_routes
 from web.bootstrap.scadenziario_routes import register_scadenziario_routes
 from web.bootstrap.search_routes import register_search_routes
@@ -5600,7 +5601,7 @@ read -r -p "Premi Invio per chiudere..." _
         get_base_url=lambda: _get_base_url(),
     )
 
-    register_telematico_portali_routes(
+    register_polisweb_routes(
         app,
         get_fascicoli=get_fascicoli,
         get_clienti=get_clienti,
@@ -5609,6 +5610,13 @@ read -r -p "Premi Invio per chiudere..." _
         polis_auth_mode=_polis_auth_mode,
         polis_demo_mode=_polis_demo_mode,
         polis_cert_preferences=_polis_cert_preferences,
+    )
+
+    register_telematico_portali_routes(
+        app,
+        get_fascicoli=get_fascicoli,
+        get_clienti=get_clienti,
+        polis_demo_mode=_polis_demo_mode,
         portale_local_channel_enabled=_portale_local_channel_enabled,
         portale_browser_guided_message=_portale_browser_guided_message,
         is_portale_dns_error=_is_portale_dns_error,

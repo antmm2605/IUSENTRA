@@ -214,6 +214,8 @@ def test_route_domini_estratti_restano_operativi(tmp_path: Path):
             "/workspace-intelligente",
             "/telematico",
             "/tariffario",
+            "/clienti",
+            "/cartelle-condivise",
             "/messaggi",
             "/backup",
             "/cerca",
@@ -233,19 +235,23 @@ def test_web_app_dimagrisce_e_registra_i_moduli_estratti_finali():
     web_app = (REPO_ROOT / "web/app.py").read_text(encoding="utf-8")
 
     for symbol in (
+        "register_clienti_routes",
+        "register_clienti_workspace_routes",
+        "register_condivisioni_routes",
         "register_messages_routes",
         "register_backup_routes",
         "register_health_routes",
         "register_export_routes",
         "register_search_routes",
         "register_sync_runtime_routes",
+        "register_fascicoli_management_routes",
         "register_tariffario_routes",
     ):
         assert f"from web.bootstrap.{symbol.replace('register_', '').replace('_routes', '_routes')} import {symbol}" in web_app
         assert f"{symbol}(" in web_app
 
-    assert web_app.count("@app.route") <= 120
-    assert len(web_app.splitlines()) < 11500
+    assert web_app.count("@app.route") <= 75
+    assert len(web_app.splitlines()) < 10000
 
 
 def test_template_principali_usano_copy_italiana_e_date_localizzate():

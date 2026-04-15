@@ -204,6 +204,7 @@ class Utente:
     ruolo: RuoloUtente = RuoloUtente.SEGRETERIA
     password_hash: str = ""
     attivo: bool = True
+    must_change_password: bool = False
     creato_il: str = field(default_factory=lambda: datetime.now().isoformat())
     ultimo_accesso: str = ""
     reset_token: str = ""
@@ -294,6 +295,7 @@ class Utente:
         d.setdefault("totp_secret", "")
         d.setdefault("totp_attivato", False)
         d.setdefault("tenant_slug", "")
+        d.setdefault("must_change_password", False)
         return Utente(**d)
 
 
@@ -352,11 +354,30 @@ class GestioneUtenti:
         self._retention_days = retention_days
         self._utenti: Dict[str, Utente] = {}
         self._audit: List[EventoAudit] = []
+        self._ensure_studio_db_schema()
         self._carica()
         if not self._utenti and self._crea_admin_se_vuoto:
             self._crea_admin_default()
 
     # ---- persistenza
+
+    def _ensure_studio_db_schema(self):
+        if self._studio_db is None:
+            return
+        try:
+            cols = {
+                row["name"]
+                for row in self._studio_db.conn.execute("PRAGMA table_info(utenti)").fetchall()
+            }
+            if "must_change_password" not in cols:
+                self._studio_db.conn.execute(
+                    "ALTER TABLE utenti ADD COLUMN must_change_password INTEGER DEFAULT 0"
+                )
+                self._studio_db.conn.commit()
+        except Exception:
+            # Best effort: in assenza di schema SQLite o migrazione non disponibile
+            # il backend JSON continua a funzionare senza interrompere l'avvio.
+            pass
 
     def _carica(self):
         if self._studio_db is not None:
@@ -366,7 +387,7 @@ class GestioneUtenti:
                 rows = self._studio_db.conn.execute(
                     "SELECT id, username, email, nome_completo, ruolo, "
                     "password_hash, attivo, permessi_extra, permessi_negati, "
-                    "creato_il, ultimo_accesso FROM utenti"
+                    "creato_il, ultimo_accesso, must_change_password FROM utenti"
                 ).fetchall()
                 self._utenti = {}
                 for row in rows:
@@ -417,8 +438,9 @@ class GestioneUtenti:
                     """
                     INSERT INTO utenti
                     (id, username, email, nome_completo, ruolo, password_hash,
-                     attivo, permessi_extra, permessi_negati, creato_il, ultimo_accesso)
-                    VALUES (?,?,?,?,?,?,?,?,?,?,?)
+                     attivo, permessi_extra, permessi_negati, creato_il, ultimo_accesso,
+                     must_change_password)
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
                     """,
                     (
                         u.id, u.username, u.email, u.nome_completo,
@@ -427,6 +449,7 @@ class GestioneUtenti:
                         _json.dumps(u.permessi_extra or [], ensure_ascii=False),
                         _json.dumps(u.permessi_negati or [], ensure_ascii=False),
                         u.creato_il, u.ultimo_accesso,
+                        1 if u.must_change_password else 0,
                     ),
                 )
 
@@ -508,6 +531,7 @@ class GestioneUtenti:
             nome_completo=nome,
             ruolo=ruolo,
             password_hash=self._hash_password("admin"),
+            must_change_password=True,
         )
         self._utenti[admin.id] = admin
         self._salva_utenti()
@@ -536,6 +560,7 @@ class GestioneUtenti:
         permessi_extra: Optional[List[str]] = None,
         permessi_negati: Optional[List[str]] = None,
         tenant_slug: str = "",
+        must_change_password: bool = True,
     ) -> Utente:
         username = username.strip().lower()
         if not username:
@@ -553,6 +578,7 @@ class GestioneUtenti:
             permessi_extra=permessi_extra or [],
             permessi_negati=permessi_negati or [],
             tenant_slug=tenant_slug,
+            must_change_password=must_change_password,
         )
         self._utenti[utente.id] = utente
         self._salva_utenti()
@@ -592,11 +618,18 @@ class GestioneUtenti:
         self._salva_utenti()
         return u
 
-    def cambia_password(self, id_utente: str, nuova_password: str) -> Utente:
+    def cambia_password(
+        self,
+        id_utente: str,
+        nuova_password: str,
+        *,
+        must_change_password: bool = False,
+    ) -> Utente:
         if len(nuova_password) < 8:
             raise ValueError("La password deve avere almeno 8 caratteri")
         u = self._get_or_raise(id_utente)
         u.password_hash = self._hash_password(nuova_password)
+        u.must_change_password = must_change_password
         self._salva_utenti()
         return u
 
@@ -670,6 +703,7 @@ class GestioneUtenti:
                     u.password_hash = self._hash_password(nuova_password)
                     u.reset_token = ""
                     u.reset_token_scade = ""
+                    u.must_change_password = False
                     self._salva_utenti()
                     return True
         return False

@@ -26,6 +26,7 @@ def test_admin_default_creato(gu):
     assert admin is not None
     assert admin.ruolo == RuoloUtente.AMMINISTRATORE
     assert admin.attivo is True
+    assert admin.must_change_password is True
 
 
 def test_admin_default_password(gu):
@@ -44,6 +45,7 @@ def test_crea_utente(gu):
     assert u.username == "avvocato1"
     assert u.ruolo == RuoloUtente.AVVOCATO
     assert u.attivo is True
+    assert u.must_change_password is True
 
 
 def test_username_duplicato_errore(gu):
@@ -89,6 +91,17 @@ def test_cambia_password(gu):
     gu.cambia_password(u.id, "nuova12345")
     assert gu.autentica("user1", "nuova12345") is not None
     assert gu.autentica("user1", "vecchia123") is None
+    assert gu.get(u.id).must_change_password is False
+
+
+def test_reimposta_password_temporanea_obbliga_cambio_al_prossimo_accesso(gu):
+    u = gu.crea("user_temp", "vecchia123", RuoloUtente.AVVOCATO)
+    gu.cambia_password(u.id, "NuovaTemp123", must_change_password=True)
+
+    aggiornato = gu.get(u.id)
+
+    assert aggiornato.must_change_password is True
+    assert gu.autentica("user_temp", "NuovaTemp123") is not None
 
 
 # ------------------------------------------------------------------ Autenticazione

@@ -147,6 +147,7 @@
   <i class="bi bi-person-badge-fill"></i>
   Stai operando come amministratore di uno studio.
   <form method="post" action="{{ url_for('admin.esci_impersonazione') }}" class="ms-auto d-inline">
+    <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
     <button class="btn btn-sm btn-light py-0 px-2" type="submit">
       <i class="bi bi-x-circle me-1"></i>Esci impersonazione
     </button>
@@ -187,9 +188,12 @@
       <strong>{{ g.utente_corrente.username if g.utente_corrente else '—' }}</strong>
       <span class="ms-1 badge bg-dark" style="font-size:.65rem">SUPERADMIN</span>
     </div>
-    <a href="{{ url_for('logout') }}" class="btn btn-sm btn-outline-secondary mt-2 w-100">
-      <i class="bi bi-box-arrow-right me-1"></i>Esci
-    </a>
+    <form method="post" action="{{ url_for('logout') }}" class="mt-2">
+      <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+      <button type="submit" class="btn btn-sm btn-outline-secondary w-100">
+        <i class="bi bi-box-arrow-right me-1"></i>Esci
+      </button>
+    </form>
   </div>
 </nav>
 

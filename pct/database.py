@@ -250,6 +250,7 @@ CREATE TABLE IF NOT EXISTS utenti (
     ruolo               TEXT NOT NULL DEFAULT 'SEGRETERIA',
     password_hash       TEXT NOT NULL,
     attivo              INTEGER DEFAULT 1,
+    must_change_password INTEGER DEFAULT 0,
     permessi_extra      TEXT DEFAULT '[]',
     permessi_negati     TEXT DEFAULT '[]',
     creato_il           TEXT,
@@ -1096,14 +1097,15 @@ class GestioneDatabase:
                         conn.execute("""
                             INSERT OR REPLACE INTO utenti
                             (id, username, email, nome_completo, ruolo,
-                             password_hash, attivo, permessi_extra, permessi_negati,
-                             creato_il, ultimo_accesso)
-                            VALUES (?,?,?,?,?,?,?,?,?,?,?)
+                             password_hash, attivo, must_change_password,
+                             permessi_extra, permessi_negati, creato_il, ultimo_accesso)
+                            VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
                         """, (
                             u.get("id"), u.get("username", ""),
                             u.get("email", ""), u.get("nome_completo", ""),
                             u.get("ruolo", "SEGRETERIA"), u.get("password_hash", ""),
                             1 if u.get("attivo", True) else 0,
+                            1 if u.get("must_change_password", False) else 0,
                             json.dumps(u.get("permessi_extra", []), ensure_ascii=False),
                             json.dumps(u.get("permessi_negati", []), ensure_ascii=False),
                             u.get("creato_il", ""), u.get("ultimo_accesso", ""),

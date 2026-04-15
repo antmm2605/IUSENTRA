@@ -388,6 +388,7 @@
         <i class="bi bi-person"></i>
       </a>
       <form method="post" action="{{ url_for('logout') }}">
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
         <button class="btn btn-sm btn-outline-light p-1" title="Esci" style="font-size:.8rem">
           <i class="bi bi-box-arrow-right"></i>
         </button>
@@ -507,6 +508,7 @@
         </a></li>
         <li>
           <form method="post" action="{{ url_for('logout') }}" class="m-0">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
             <button type="submit" class="dropdown-item py-2 text-danger">
               <i class="bi bi-box-arrow-right me-2"></i>Esci
             </button>

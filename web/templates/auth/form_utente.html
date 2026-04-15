@@ -8,6 +8,7 @@
 {# ── Colonna form ── #}
 <div class="col-lg-8">
 <form method="post">
+<input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
 <div class="card shadow-sm mb-3">
   <div class="card-header fw-semibold">
     <i class="bi bi-person me-2 text-primary"></i>Dati utente
@@ -55,7 +56,11 @@
         </label>
         <input type="password" name="password" class="form-control"
                {{ '' if utente else 'required' }} minlength="8"
+               autocomplete="{{ 'new-password' if not utente else 'off' }}"
                placeholder="min. 8 caratteri">
+        <div class="form-text">
+          Se imposti o reimposti una password da qui, l'utente dovrà cambiarla al primo accesso.
+        </div>
       </div>
       {% if utente %}
       <div class="col-md-6 d-flex align-items-end">

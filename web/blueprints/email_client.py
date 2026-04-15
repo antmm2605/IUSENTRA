@@ -23,7 +23,7 @@ from functools import wraps
 
 from flask import (
     Blueprint, abort, current_app, flash, g, jsonify,
-    redirect, render_template, request, send_file, url_for,
+    redirect, render_template, request, send_file, url_for, Response,
 )
 from pct.config_studio import _SMTPv4, _SMTP_SSLv4
 

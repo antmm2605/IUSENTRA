@@ -8,6 +8,18 @@
 {# ── Colonna principale ── #}
 <div class="col-lg-8">
 
+{% if password_obbligatoria %}
+<div class="alert alert-warning d-flex align-items-start gap-2">
+  <i class="bi bi-shield-exclamation fs-5 mt-1"></i>
+  <div>
+    <div class="fw-semibold">Cambio password obbligatorio</div>
+    <div class="small">
+      Stai usando una password temporanea o iniziale. Prima di continuare devi impostarne una nuova.
+    </div>
+  </div>
+</div>
+{% endif %}
+
 <div class="card shadow-sm mb-3">
   <div class="card-header fw-semibold">
     <i class="bi bi-person-circle me-2 text-primary"></i>Dati personali
@@ -17,6 +29,7 @@
   </div>
   <div class="card-body">
     <form method="post">
+      <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
       <input type="hidden" name="azione" value="aggiorna">
       <div class="row g-3">
         <div class="col-md-6">
@@ -53,6 +66,7 @@
   </div>
   <div class="card-body">
     <form method="post">
+      <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
       <input type="hidden" name="azione" value="password">
       <div class="row g-3">
         <div class="col-md-4">
@@ -93,6 +107,7 @@
         La verifica in due passaggi è attiva. Per disattivarla, conferma la tua password.
       </p>
       <form method="post">
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
         <input type="hidden" name="azione" value="2fa_disattiva">
         <div class="d-flex flex-column gap-2">
           <div>
@@ -123,6 +138,7 @@
         <strong>Passo 2</strong> — Inserisci il codice a 6 cifre dall'app per confermare
       </p>
       <form method="post">
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
         <input type="hidden" name="azione" value="2fa_conferma">
         <div class="d-flex flex-column gap-2">
           <div>
@@ -143,6 +159,7 @@
         Ti verrà chiesto un codice dall'app di autenticazione ad ogni accesso.
       </p>
       <form method="post">
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
         <input type="hidden" name="azione" value="2fa_genera">
         <button type="submit" class="btn btn-outline-success btn-sm w-100">
           <i class="bi bi-shield-plus me-1"></i>Attiva la verifica in due passaggi

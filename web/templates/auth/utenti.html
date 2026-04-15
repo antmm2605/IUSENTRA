@@ -86,6 +86,7 @@
                 <form method="post"
                       action="{{ url_for('elimina_utente', id_utente=u.id) }}"
                       onsubmit="return confirm('Eliminare l\'utente {{ u.username }}? Non potrà più accedere al sistema.')">
+                  <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
                   <button class="btn btn-outline-danger" title="Elimina"><i class="bi bi-trash"></i></button>
                 </form>
                 {% endif %}

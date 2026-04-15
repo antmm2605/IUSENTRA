@@ -32,7 +32,14 @@ def register_auth_management_routes(
         u = g.utente_corrente
         if request.method == "POST":
             azione = request.form.get("azione")
+            password_obbligatoria = bool(getattr(u, "must_change_password", False))
             gu = get_utenti()
+            if password_obbligatoria and azione != "password":
+                flash(
+                    "Per motivi di sicurezza devi prima impostare una nuova password.",
+                    "warning",
+                )
+                return redirect(url_for("profilo", password_obbligatoria=1))
             if azione == "aggiorna":
                 try:
                     gu.aggiorna(
@@ -52,8 +59,15 @@ def register_auth_management_routes(
                     flash("La nuova password deve avere almeno 8 caratteri.", "danger")
                 else:
                     gu.cambia_password(u.id, pwd_new)
+                    session["must_change_password"] = False
                     audit("auth.cambia_password")
-                    flash("Password aggiornata.", "success")
+                    if password_obbligatoria:
+                        flash(
+                            "Password aggiornata correttamente. Ora puoi continuare a usare il gestionale.",
+                            "success",
+                        )
+                    else:
+                        flash("Password aggiornata.", "success")
             elif azione == "2fa_genera":
                 segreto = genera_totp_secret()
                 session["totp_temp_secret"] = segreto
@@ -91,6 +105,10 @@ def register_auth_management_routes(
             utente=u,
             totp_temp_secret=totp_temp,
             totp_uri_qr=uri_qr,
+            password_obbligatoria=bool(
+                request.args.get("password_obbligatoria")
+                or getattr(u, "must_change_password", False)
+            ),
             oggi=date.today(),
         )
 
@@ -126,7 +144,10 @@ def register_auth_management_routes(
                     nome_completo=request.form.get("nome_completo", ""),
                 )
                 audit("utenti.crea", "utente", nuovo.id, f"username={nuovo.username}")
-                flash(f"Utente '{nuovo.username}' creato.", "success")
+                flash(
+                    f"Utente '{nuovo.username}' creato. Al primo accesso dovrà cambiare la password temporanea.",
+                    "success",
+                )
                 return redirect(url_for("lista_utenti"))
             except ValueError as e:
                 flash(str(e), "danger")
@@ -149,6 +170,7 @@ def register_auth_management_routes(
             return redirect(url_for("lista_utenti"))
         if request.method == "POST":
             try:
+                nuova_password = request.form.get("nuova_password") or request.form.get("password")
                 gu.aggiorna(
                     id_utente,
                     nome_completo=request.form.get("nome_completo", ""),
@@ -156,10 +178,20 @@ def register_auth_management_routes(
                     ruolo=request.form.get("ruolo", target.ruolo.value),
                     attivo=request.form.get("attivo") == "1",
                 )
-                if request.form.get("nuova_password"):
-                    gu.cambia_password(id_utente, request.form["nuova_password"])
+                if nuova_password:
+                    gu.cambia_password(
+                        id_utente,
+                        nuova_password,
+                        must_change_password=True,
+                    )
                 audit("utenti.modifica", "utente", id_utente)
-                flash("Utente aggiornato.", "success")
+                if nuova_password:
+                    flash(
+                        "Utente aggiornato. La nuova password temporanea dovrà essere cambiata al primo accesso.",
+                        "success",
+                    )
+                else:
+                    flash("Utente aggiornato.", "success")
                 return redirect(url_for("lista_utenti"))
             except ValueError as e:
                 flash(str(e), "danger")

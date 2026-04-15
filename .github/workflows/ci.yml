@@ -1,0 +1,123 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - "Codex/legal-electronic-filing-kIxcV"
+      - "claude/legal-electronic-filing-kIxcV"
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHONUTF8: "1"
+  PIP_DISABLE_PIP_VERSION_CHECK: "1"
+
+jobs:
+  lint-e-import:
+    name: Lint e import check
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Installa dipendenze
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt pytest ruff
+
+      - name: Ruff
+        run: ruff check pct web tests --select E9,F63,F7,F82
+
+      - name: Compileall
+        run: python -m compileall pct web tests
+
+  smoke-flask:
+    name: Smoke Flask
+    runs-on: ubuntu-latest
+    needs: lint-e-import
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Installa dipendenze
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt pytest
+
+      - name: Esegui smoke test Flask
+        run: |
+          pytest -q tests/test_web_bootstrap.py tests/test_web_security.py
+
+  pytest-linux:
+    name: Pytest core Linux
+    runs-on: ubuntu-latest
+    needs: lint-e-import
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Installa dipendenze
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt pytest
+
+      - name: Esegui suite core
+        run: python -m pytest tests/test_auth.py tests/test_database.py tests/test_local_ai.py tests/test_pst_catalog.py tests/test_giurisprudenza_repository.py tests/test_legal_intelligence_repository.py tests/test_telematico_repository.py tests/test_template_atti_repository.py tests/test_preventivi_repository.py tests/test_applicazioni_repository.py -q
+
+  signer-matrix:
+    name: Signer e PKCS#11 (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    needs: lint-e-import
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+          - macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Installa dipendenze
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt pytest
+
+      - name: Esegui test signer cross-platform
+        run: python -m pytest tests/test_local_signer.py tests/test_build_dist.py tests/test_visible_signature.py -q

@@ -34,6 +34,11 @@ def register_auth_runtime(
         "polis_local_signer_setup_macos",
         "polis_local_signer_setup_linux",
     }
+    password_change_routes = {
+        "profilo",
+        "logout",
+        "static",
+    }
 
     def _tenant_user_manager(tenant_slug: str) -> GestioneUtenti:
         from pct.tenant import GestioneTenant
@@ -108,6 +113,16 @@ def register_auth_runtime(
             return None
         if g.utente_corrente is None:
             return redirect(url_for("login", next=request.path))
+        if (
+            not app.testing
+            and getattr(g.utente_corrente, "must_change_password", False)
+            and request.endpoint not in password_change_routes
+        ):
+            flash(
+                "Per motivi di sicurezza devi impostare una nuova password prima di continuare.",
+                "warning",
+            )
+            return redirect(url_for("profilo", password_obbligatoria=1))
         return None
 
     @app.route("/login", methods=["GET", "POST"])
@@ -144,12 +159,18 @@ def register_auth_runtime(
                     session["totp_pending_next"] = request.args.get("next") or url_for(
                         "dashboard"
                     )
+                    session["totp_pending_force_password_change"] = bool(
+                        getattr(utente, "must_change_password", False)
+                    )
                     return redirect(url_for("login_2fa"))
 
                 session.clear()
                 session["user_id"] = utente.id
                 session["tenant_slug"] = utente.tenant_slug or ""
                 session["last_activity"] = datetime.now().isoformat()
+                session["must_change_password"] = bool(
+                    getattr(utente, "must_change_password", False)
+                )
                 session.permanent = True
                 manager.registra_evento(
                     "auth.login",
@@ -157,6 +178,12 @@ def register_auth_runtime(
                     username=utente.username,
                     ip=request.remote_addr or "",
                 )
+                if session.get("must_change_password") and not app.testing:
+                    flash(
+                        "Password iniziale temporanea rilevata. Prima di usare il gestionale devi sostituirla.",
+                        "warning",
+                    )
+                    return redirect(url_for("profilo", password_obbligatoria=1))
                 next_url = request.args.get("next") or url_for("dashboard")
                 return redirect(next_url)
 
@@ -206,10 +233,14 @@ def register_auth_runtime(
             codice = request.form.get("codice", "").strip()
             if verifica_totp(utente.totp_secret, codice):
                 next_url = session.pop("totp_pending_next", url_for("dashboard"))
+                force_password_change = bool(
+                    session.pop("totp_pending_force_password_change", False)
+                )
                 session.clear()
                 session["user_id"] = utente.id
                 session["tenant_slug"] = utente.tenant_slug or ""
                 session["last_activity"] = datetime.now().isoformat()
+                session["must_change_password"] = force_password_change
                 session.permanent = True
                 manager.registra_evento(
                     "auth.login",
@@ -217,6 +248,12 @@ def register_auth_runtime(
                     username=utente.username,
                     ip=request.remote_addr or "",
                 )
+                if force_password_change and not app.testing:
+                    flash(
+                        "Password iniziale temporanea rilevata. Prima di usare il gestionale devi sostituirla.",
+                        "warning",
+                    )
+                    return redirect(url_for("profilo", password_obbligatoria=1))
                 return redirect(next_url)
 
             errore = "Codice non valido. Riprova."

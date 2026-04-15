@@ -10,7 +10,8 @@
 #    http://localhost       → via Nginx (porta 80)  ← consigliato
 #    http://localhost:8080  → diretto a Gunicorn      (debug / bypass)
 #
-#  Credenziali default: admin / admin  (cambia subito dopo il primo accesso!)
+#  Bootstrap locale: admin / admin
+#  HACS impone il cambio password obbligatorio al primo accesso.
 #
 #  Dati persistenti: cartella ./data/  sul tuo PC
 #  Stop:   docker compose down

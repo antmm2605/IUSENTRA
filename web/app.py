@@ -165,6 +165,7 @@ from web.bootstrap.workspace_routes import register_workspace_routes
 from web.services.auth_runtime import register_auth_runtime
 from web.services.local_ai_runtime import get_local_ai_service
 from web.services.runtime_settings import apply_runtime_settings
+from web.services.security_runtime import apply_security_defaults, register_security_runtime
 
 # ------------------------------------------------------------------ cifratura documenti (AES-256-GCM)
 
@@ -265,6 +266,8 @@ def _accoda_ocr(percorso: str, hash_sha256: str, id_fasc: str, id_doc: str,
 
 def create_app(config: dict | None = None) -> Flask:
     app = Flask(__name__, template_folder="templates", static_folder="static")
+    cfg = config or {}
+    app.config["TESTING"] = bool(cfg.get("TESTING", False))
 
     # ProxyFix: necessario su Railway/Render/Heroku e qualsiasi reverse proxy.
     # Senza questo, request.scheme Ã¨ sempre "http" (schema interno) â†’
@@ -273,18 +276,20 @@ def create_app(config: dict | None = None) -> Flask:
     from werkzeug.middleware.proxy_fix import ProxyFix
     app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
 
-    app.secret_key = os.getenv("PCT_SECRET_KEY", "dev-secret-pct-2024")
-    app.config["SECRET_KEY"] = app.secret_key
-
-    # Sicurezza sessioni
-    app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(hours=8)
-    app.config["SESSION_COOKIE_HTTPONLY"] = True
-    app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
-    app.config["SESSION_COOKIE_SECURE"] = os.getenv("PCT_HTTPS", "").lower() in ("1", "true", "yes")
+    apply_security_defaults(
+        app,
+        {
+            **cfg,
+            "PCT_SECRET_KEY": os.getenv("PCT_SECRET_KEY", ""),
+            "PCT_HTTPS": cfg.get("PCT_HTTPS", os.getenv("PCT_HTTPS", "")),
+        },
+    )
+    if app.config.get("SECRET_KEY_EPHEMERAL"):
+        app.logger.warning(
+            "PCT_SECRET_KEY non configurata o insicura: uso una chiave effimera valida solo per questo avvio."
+        )
     # SQLite mode: PCT_SQLITE_MODE=1 sostituisce il backend JSON con SQLite per i 7 moduli core
     app.config["SQLITE_MODE"] = os.getenv("PCT_SQLITE_MODE", "").lower() in ("1", "true", "yes")
-
-    cfg = config or {}
     app.config["AGENDA_DB"] = cfg.get(
         "AGENDA_DB", os.getenv("PCT_AGENDA_DB", "./agenda/appuntamenti.json")
     )
@@ -2731,6 +2736,9 @@ def create_app(config: dict | None = None) -> Flask:
 
     # Singleton di sincronizzazione (uno per processo Flask)
     _sync = get_gestore()
+
+    # ---------------------------------------------------------------- hardening browser/session security
+    register_security_runtime(app)
 
     # ---------------------------------------------------------------- auth middleware
     register_auth_runtime(

@@ -33,6 +33,16 @@ Il bootstrap non usa più credenziali fisse.
 - La password temporanea viene salvata in `data/auth/bootstrap_admin.json`.
 - Al primo accesso il cambio password è obbligatorio.
 
+## Bootstrap studi e storage
+
+Negli ambienti multi-tenant il passo successivo corretto è entrare nel pannello `SUPERADMIN` e creare lo studio scegliendo la strategia storage:
+
+- `JSON` per tenant piccoli o installazioni molto leggere
+- `SQLite` per tenant locali robusti con `studio.db`
+- `PostgreSQL` per tenant cloud/distribuiti con configurazione esterna
+
+Se scegli `PostgreSQL`, dopo la creazione vai nel dettaglio storage dello studio e completa host, porta, database, credenziali e test connessione.
+
 ## Secret e sicurezza minima
 
 - `.env.example` contiene solo placeholder neutri.

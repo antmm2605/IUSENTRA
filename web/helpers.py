@@ -10,7 +10,6 @@ In assenza di tenant (SUPERADMIN o modalità single-tenant), si usano
 i percorsi di default da current_app.config.
 """
 from __future__ import annotations
-import os
 from flask import current_app, g
 
 from pct.agenda import Agenda
@@ -26,6 +25,7 @@ from pct.normative_tables import GestioneTabelleNormative
 from pct.calendar_sync import GestioneCalendarSync
 from pct.soggetti import GestioneSoggetti
 from pct.applicazioni_repository import get_runtime_applicazioni_repository
+from web.services.storage_runtime import get_request_storage_runtime, get_request_studio_db
 
 
 # ---------------------------------------------------------------- helper percorsi tenant-aware
@@ -42,14 +42,18 @@ def _cfg(key: str) -> str:
     return current_app.config[key]
 
 
+def _studio_db():
+    return get_request_studio_db(_cfg("CLIENTI_DB"))
+
+
 # ---------------------------------------------------------------- gestori dati
 
 def get_agenda() -> Agenda:
-    return Agenda(db_path=_cfg("AGENDA_DB"))
+    return Agenda(db_path=_cfg("AGENDA_DB"), studio_db=_studio_db())
 
 
 def get_clienti() -> GestioneClienti:
-    return GestioneClienti(db_path=_cfg("CLIENTI_DB"))
+    return GestioneClienti(db_path=_cfg("CLIENTI_DB"), studio_db=_studio_db())
 
 
 def get_fascicoli() -> GestioneFascicoli:
@@ -57,11 +61,12 @@ def get_fascicoli() -> GestioneFascicoli:
         db_path=_cfg("FASCICOLI_DB"),
         documents_dir=_cfg("FASCICOLI_DOCS"),
         archive_dir=_cfg("FASCICOLI_ARCH"),
+        studio_db=_studio_db(),
     )
 
 
 def get_scadenziario() -> GestioneScadenziario:
-    return GestioneScadenziario(db_path=_cfg("SCADENZIARIO_DB"))
+    return GestioneScadenziario(db_path=_cfg("SCADENZIARIO_DB"), studio_db=_studio_db())
 
 
 def get_utenti() -> GestioneUtenti:
@@ -69,6 +74,7 @@ def get_utenti() -> GestioneUtenti:
         db_path=_cfg("AUTH_DB"),
         audit_path=_cfg("AUDIT_DB"),
         secret_key=current_app.secret_key,
+        studio_db=_studio_db(),
         bootstrap_admin_password=current_app.config.get("BOOTSTRAP_ADMIN_PASSWORD", ""),
         bootstrap_admin_credentials_path=current_app.config.get(
             "BOOTSTRAP_ADMIN_CREDENTIALS_PATH", ""
@@ -112,6 +118,10 @@ def get_soggetti() -> GestioneSoggetti:
 
 def get_applicazioni_repository():
     return get_runtime_applicazioni_repository(anchor_path=_cfg("STUDIO_CONFIG"))
+
+
+def storage_runtime_corrente() -> dict:
+    return get_request_storage_runtime(_cfg("CLIENTI_DB")).to_dict()
 
 
 # ---------------------------------------------------------------- tenant corrente

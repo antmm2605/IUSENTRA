@@ -52,6 +52,24 @@ Quando il fix tocca deploy, storage, AI locale, Local Signer bridge, SMTP o port
 - verifica la route reale online coinvolta
 - conferma la versione effettiva del servizio remoto
 
+## Storage strategy e rollout ambienti
+
+Per ambienti seri la strategia storage va decisa dal `SUPERADMIN` a livello studio, non con flag globali opachi.
+
+- `JSON`
+  adatto a studio leggero, snapshot e aree non ancora migrate
+- `SQLite`
+  scelta raccomandata per single-tenant locale e installazioni on-prem governabili
+- `PostgreSQL`
+  scelta target per cloud e multi-tenant distribuito, con configurazione e test connessione dal pannello studio
+
+Prima di chiudere una release che tocca storage:
+
+- verifica la strategia selezionata sullo studio
+- controlla il manifest `data/tenants/<slug>/config/storage.json`
+- se il tenant è `SQLite`, verifica la presenza di `data/tenants/<slug>/studio.db`
+- se il tenant è `PostgreSQL`, verifica almeno il test connessione e la chiarezza tra strategia selezionata e backend effettivo
+
 ## Repo hygiene
 
 Prima di chiudere la release esegui:

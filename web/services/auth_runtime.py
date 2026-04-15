@@ -8,6 +8,7 @@ from datetime import datetime
 from flask import Flask, flash, g, redirect, render_template, request, session, url_for
 
 from pct.auth import GestioneUtenti, verifica_totp
+from web.services.storage_runtime import get_request_storage_runtime
 
 
 def register_auth_runtime(
@@ -87,6 +88,7 @@ def register_auth_runtime(
         """
         g.tenant = None
         g.data_paths = {}
+        g.storage_runtime = None
         if not app.config.get("MULTI_TENANT"):
             return None
 
@@ -102,6 +104,7 @@ def register_auth_runtime(
         if studio:
             g.tenant = studio
             g.data_paths = tenants.percorsi_dati(tenant_slug)
+            g.storage_runtime = get_request_storage_runtime(g.data_paths["CLIENTI_DB"]).to_dict()
             bootstrap_runtime_data_modules()
         return None
 

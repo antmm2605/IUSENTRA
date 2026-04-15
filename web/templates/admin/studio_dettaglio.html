@@ -16,12 +16,12 @@
       </span>
       {# Badge modalità DB #}
       {% set db = studio.database %}
-      {% set db_info = db_mode_info.get(db.mode, {}) %}
+      {% set db_info = db_mode_info.get(db.normalized_mode, {}) %}
       <a href="{{ url_for('admin.database_studio', slug=studio.slug) }}"
          class="badge bg-{{ db_info.colore or 'secondary' }} text-decoration-none"
          title="Configurazione database">
-        <i class="bi {{ db_info.icona or 'bi-database' }} me-1"></i>{{ db_info.nome or db.mode }}
-        {% if db.mode != 'LOCAL' %}
+        <i class="bi {{ db_info.icona or 'bi-database' }} me-1"></i>{{ db_info.nome or db.normalized_mode }}
+        {% if db.normalized_mode == 'POSTGRESQL' %}
           {% if db.connessione_ok %}
           <i class="bi bi-check-circle-fill ms-1 text-white"></i>
           {% elif db.ultimo_test %}
@@ -269,10 +269,10 @@
       </div>
     </div>
 
-    <!-- Database -->
+    <!-- Storage -->
     <div class="card mb-3">
       <div class="card-header fw-semibold d-flex align-items-center gap-2">
-        <i class="bi bi-database text-info"></i> Database
+        <i class="bi bi-database text-info"></i> Strategia Storage
         <a href="{{ url_for('admin.database_studio', slug=studio.slug) }}"
            class="btn btn-sm btn-outline-info ms-auto py-0 px-2">
           <i class="bi bi-gear me-1"></i>Configura
@@ -280,19 +280,27 @@
       </div>
       <div class="card-body">
         {% set db = studio.database %}
-        {% set db_info = db_mode_info.get(db.mode, {}) %}
+        {% set db_info = db_mode_info.get(db.normalized_mode, {}) %}
         <div class="d-flex align-items-center gap-2 mb-2">
           <i class="bi {{ db_info.icona or 'bi-database' }} text-{{ db_info.colore or 'secondary' }} fs-5"></i>
           <div>
-            <div class="fw-semibold small">{{ db_info.nome or db.mode }}</div>
-            {% if db.mode != 'LOCAL' %}
+            <div class="fw-semibold small">{{ db_info.nome or db.normalized_mode }}</div>
+            {% if db.normalized_mode == 'POSTGRESQL' %}
             <div class="text-muted" style="font-size:.72rem">{{ db.connection_url_safe }}</div>
+            {% elif db.normalized_mode == 'SQLITE' %}
+            <div class="text-muted" style="font-size:.72rem">{{ storage_paths.STUDIO_DB }}</div>
             {% else %}
             <div class="text-muted" style="font-size:.72rem">./data/tenants/{{ studio.slug }}/</div>
             {% endif %}
           </div>
         </div>
-        {% if db.mode != 'LOCAL' %}
+        {% if storage_manifest %}
+        <div class="small text-muted mb-2">
+          Backend effettivo moduli core: <strong>{{ storage_manifest.effective_runtime_kind }}</strong>
+          <span class="ms-2">· stato: <strong>{{ storage_manifest.activation_state }}</strong></span>
+        </div>
+        {% endif %}
+        {% if db.normalized_mode == 'POSTGRESQL' %}
         <div class="d-flex align-items-center gap-2 small">
           {% if db.connessione_ok %}
           <span class="badge bg-success"><i class="bi bi-check-lg me-1"></i>OK</span>

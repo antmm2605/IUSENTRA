@@ -15,7 +15,7 @@
 <div class="d-flex align-items-center gap-2 mb-4 small fw-semibold">
   <span class="badge bg-primary rounded-pill px-3 py-2">1 Dati studio</span>
   <i class="bi bi-chevron-right text-muted"></i>
-  <span class="badge bg-primary rounded-pill px-3 py-2">2 Database</span>
+  <span class="badge bg-primary rounded-pill px-3 py-2">2 Storage</span>
   <i class="bi bi-chevron-right text-muted"></i>
   <span class="badge bg-secondary rounded-pill px-3 py-2">3 Piano</span>
   <i class="bi bi-chevron-right text-muted"></i>
@@ -108,7 +108,7 @@
         <div class="row g-3">
           <div class="col-12 col-sm-4">
             <label class="form-label fw-semibold small">Username <span class="text-danger">*</span></label>
-            <input type="text" name="admin_username" class="form-control" value="{{ form.get('admin_username','admin') }}" required>
+            <input type="text" name="admin_username" class="form-control" value="{{ form.get('admin_username','amministratore') }}" required>
           </div>
           <div class="col-12 col-sm-4">
             <label class="form-label fw-semibold small">Password <span class="text-danger">*</span></label>
@@ -133,29 +133,35 @@
         </div>
       </div>
     </div>
-    <!-- Database -->
+    <!-- Storage -->
     <div class="card">
       <div class="card-header fw-semibold d-flex align-items-center gap-2">
-        <i class="bi bi-database-fill text-info"></i> Modalità Database
-        <span class="badge bg-info ms-auto">Configurabile dopo la creazione</span>
+        <i class="bi bi-database-fill text-info"></i> Strategia Storage
+        <span class="badge bg-info ms-auto">Definita dal Superadmin</span>
       </div>
       <div class="card-body">
         <p class="text-muted small mb-3">
-          Scegli dove saranno archiviati i dati dello studio.
-          Potrai modificare questa impostazione in qualsiasi momento dal pannello database.
+          Scegli dove saranno governati i dati dello studio.
+          Potrai modificare questa impostazione in qualsiasi momento dal pannello storage del tenant.
         </p>
+        <div class="alert alert-light border small mb-3">
+          La strategia viene definita dal Superadmin in fase di creazione studio:
+          <strong>JSON</strong> per installazioni leggere, <strong>SQLite</strong> per tenant locali robusti,
+          <strong>PostgreSQL</strong> per ambienti cloud e multi-tenant.
+        </div>
         <div class="row g-2">
-          {% for mode_key, mode_info in db_mode_info.items() %}
+          {% for mode_key in db_mode_choices %}
+          {% set mode_info = db_mode_info[mode_key] %}
           <div class="col-12">
             <label class="db-mode-card d-flex align-items-start gap-3 p-3 rounded-3 cursor-pointer
-                          {% if form.get('db_mode', 'LOCAL') == mode_key %}selected{% endif %}"
+                          {% if form.get('db_mode', 'JSON') == mode_key %}selected{% endif %}"
                    for="dbmode_{{ mode_key }}"
-                   style="border: 2px solid {% if form.get('db_mode','LOCAL') == mode_key %}var(--bs-primary){% else %}#e2e8f0{% endif %};
-                          background: {% if form.get('db_mode','LOCAL') == mode_key %}#eff6ff{% else %}transparent{% endif %};
+                   style="border: 2px solid {% if form.get('db_mode','JSON') == mode_key %}var(--bs-primary){% else %}#e2e8f0{% endif %};
+                          background: {% if form.get('db_mode','JSON') == mode_key %}#eff6ff{% else %}transparent{% endif %};
                           cursor: pointer; transition: all .15s;">
               <input class="form-check-input mt-0 flex-shrink-0" type="radio"
                      name="db_mode" id="dbmode_{{ mode_key }}" value="{{ mode_key }}"
-                     {% if form.get('db_mode', 'LOCAL') == mode_key %}checked{% endif %}>
+                     {% if form.get('db_mode', 'JSON') == mode_key %}checked{% endif %}>
               <div class="flex-grow-1">
                 <div class="d-flex align-items-center gap-2 mb-1">
                   <i class="bi {{ mode_info.icona }} text-{{ mode_info.colore }}"></i>
@@ -165,7 +171,19 @@
                   </span>
                 </div>
                 <p class="text-muted mb-0" style="font-size:.78rem">{{ mode_info.desc }}</p>
-                {% if mode_key != 'LOCAL' %}
+                {% if mode_key == 'SQLITE' %}
+                <div class="mt-2 p-2 rounded-2 bg-info bg-opacity-10" style="font-size:.72rem">
+                  <i class="bi bi-check2-square me-1 text-info"></i>
+                  Alla creazione viene predisposto automaticamente <strong>studio.db</strong> nel tenant.
+                </div>
+                {% endif %}
+                {% if mode_key == 'POSTGRESQL' %}
+                <div class="mt-2 p-2 rounded-2 bg-primary bg-opacity-10" style="font-size:.72rem">
+                  <i class="bi bi-diagram-3 me-1 text-primary"></i>
+                  La connessione esterna viene configurata e testata dal Superadmin; i moduli core restano su backend locale finché non viene completata la migrazione transazionale del tenant.
+                </div>
+                {% endif %}
+                {% if mode_key != 'JSON' and mode_key != 'SQLITE' %}
                 <div class="mt-2 p-2 rounded-2 bg-{{ mode_info.colore }} bg-opacity-10" style="font-size:.72rem">
                   <i class="bi bi-info-circle me-1 text-{{ mode_info.colore }}"></i>
                   Porta default: <strong>{{ mode_info.porta }}</strong> —

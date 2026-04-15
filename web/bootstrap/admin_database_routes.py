@@ -144,9 +144,9 @@ def register_admin_database_routes(
         """
         Crea studio.db nella root dei dati del tenant e importa tutti i dati JSON.
 
-        Dopo questa operazione impostare PCT_SQLITE_MODE=1 come variabile
-        d'ambiente per attivare il backend SQLite come storage primario.
-        Se PCT_SQLITE_MODE e' gia' attivo, la route ricarica la cache del DB.
+        In modalita' single-tenant legacy l'attivazione puo' ancora passare da
+        PCT_SQLITE_MODE=1. In multi-tenant la scelta corretta e' definire la
+        strategia storage dal SUPERADMIN sullo studio interessato.
         """
         utente = g.utente_corrente
         if not utente or not utente.ha_permesso("utenti.leggi"):
@@ -171,8 +171,8 @@ def register_admin_database_routes(
                     "errori": risultato.errori,
                     "avvisi": risultato.avvisi,
                     "istruzione": (
-                        "Imposta PCT_SQLITE_MODE=1 come variabile d'ambiente per attivare "
-                        "SQLite come storage primario."
+                        "Per ambienti multi-tenant imposta SQLite dal pannello SUPERADMIN dello studio. "
+                        "Per installazioni single-tenant legacy puoi ancora usare PCT_SQLITE_MODE=1."
                     ),
                 }
             )

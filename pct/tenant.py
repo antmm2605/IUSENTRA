@@ -18,7 +18,7 @@ import uuid
 import re
 import secrets
 from dataclasses import dataclass, field, asdict
-from datetime import date, datetime, timedelta
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -104,9 +104,35 @@ PIANI: Dict[str, Dict[str, Any]] = {
 # ============================================================== Modalità database
 
 class DbMode(str):
-    LOCAL      = "LOCAL"       # JSON su filesystem (default, zero dipendenze)
-    MYSQL      = "MYSQL"       # MySQL / MariaDB via SQLAlchemy
+    JSON       = "JSON"        # JSON su filesystem (default, zero dipendenze)
+    SQLITE     = "SQLITE"      # SQLite per studio (studio.db)
     POSTGRESQL = "POSTGRESQL"  # PostgreSQL via SQLAlchemy
+    MYSQL      = "MYSQL"       # Compatibilità legacy
+    LOCAL      = JSON          # Alias legacy
+
+
+def normalize_db_mode(value: Any) -> str:
+    raw = str(value or "").strip().upper()
+    aliases = {
+        "": DbMode.JSON,
+        "LOCAL": DbMode.JSON,
+        "FILESYSTEM": DbMode.JSON,
+        "JSON": DbMode.JSON,
+        "SQLITE": DbMode.SQLITE,
+        "SQLITE3": DbMode.SQLITE,
+        "POSTGRES": DbMode.POSTGRESQL,
+        "POSTGRESQL": DbMode.POSTGRESQL,
+        "MYSQL": DbMode.MYSQL,
+        "MARIADB": DbMode.MYSQL,
+    }
+    return aliases.get(raw, DbMode.JSON)
+
+
+SELECTABLE_DB_MODES: tuple[str, ...] = (
+    DbMode.JSON,
+    DbMode.SQLITE,
+    DbMode.POSTGRESQL,
+)
 
 
 DB_MODE_INFO: Dict[str, Dict[str, Any]] = {
@@ -142,8 +168,53 @@ DB_MODE_INFO: Dict[str, Dict[str, Any]] = {
     },
 }
 
+DB_MODE_INFO = {
+    DbMode.JSON: {
+        "nome": "JSON locale",
+        "icona": "bi-hdd-fill",
+        "colore": "secondary",
+        "porta": None,
+        "desc": "Dati core su filesystem JSON. Ideale per studi piccoli, cache locali e ambienti senza database dedicato.",
+        "badge": "Incluso in tutti i piani",
+        "piano_min": None,
+        "selectable": True,
+        "runtime": "json",
+    },
+    DbMode.SQLITE: {
+        "nome": "SQLite per studio",
+        "icona": "bi-database-fill",
+        "colore": "info",
+        "porta": None,
+        "desc": "Backend transazionale locale per tenant in studio.db. Consigliato per installazioni single-tenant robuste.",
+        "badge": "Consigliato in locale",
+        "piano_min": None,
+        "selectable": True,
+        "runtime": "sqlite",
+    },
+    DbMode.POSTGRESQL: {
+        "nome": "PostgreSQL",
+        "icona": "bi-database-fill-gear",
+        "colore": "primary",
+        "porta": 5432,
+        "desc": "PostgreSQL per distribuzione cloud e multi-tenant seria. Scelta raccomandata per ambienti professionali centralizzati.",
+        "badge": "Cloud / distribuzione",
+        "piano_min": "ENTERPRISE",
+        "selectable": True,
+        "runtime": "postgresql",
+    },
+    DbMode.MYSQL: {
+        "nome": "MySQL / MariaDB (legacy)",
+        "icona": "bi-database-fill",
+        "colore": "warning",
+        "porta": 3306,
+        "desc": "Compatibilità per installazioni pregresse. Non è il backend consigliato per i nuovi studi.",
+        "badge": "Compatibilità legacy",
+        "piano_min": "PROFESSIONAL",
+        "selectable": False,
+        "runtime": "mysql",
+    },
+}
 
-from dataclasses import dataclass, asdict
 
 @dataclass
 class DatabaseConfig:
@@ -151,7 +222,7 @@ class DatabaseConfig:
     Configurazione del database per un tenant.
     Per modalità LOCAL tutti i campi sono vuoti (non usati).
     """
-    mode: str = DbMode.LOCAL
+    mode: str = DbMode.JSON
 
     # Connessione (MySQL / PostgreSQL)
     host: str = "localhost"
@@ -176,14 +247,41 @@ class DatabaseConfig:
             DbMode.MYSQL: 3306,
             DbMode.POSTGRESQL: 5432,
         }
-        return defaults.get(self.mode, 0)
+        return defaults.get(self.normalized_mode, 0)
+
+    @property
+    def normalized_mode(self) -> str:
+        return normalize_db_mode(self.mode)
+
+    @property
+    def is_json(self) -> bool:
+        return self.normalized_mode == DbMode.JSON
+
+    @property
+    def is_sqlite(self) -> bool:
+        return self.normalized_mode == DbMode.SQLITE
+
+    @property
+    def is_external_sql(self) -> bool:
+        return self.normalized_mode in (DbMode.POSTGRESQL, DbMode.MYSQL)
+
+    @property
+    def runtime_kind(self) -> str:
+        return str(DB_MODE_INFO.get(self.normalized_mode, {}).get("runtime", "json"))
+
+    @property
+    def effective_runtime_kind(self) -> str:
+        """Backend realmente attivo oggi per i moduli core compatibili."""
+        if self.is_sqlite:
+            return "sqlite"
+        return "json"
 
     @property
     def connection_url(self) -> str:
-        if self.mode == DbMode.LOCAL:
+        if self.is_json or self.is_sqlite:
             return ""
 
-        if self.mode == DbMode.MYSQL:
+        if self.normalized_mode == DbMode.MYSQL:
             driver = "mysql+pymysql"
             ssl_suffix = "?ssl=true" if self.ssl else ""
             return (
@@ -191,7 +289,7 @@ class DatabaseConfig:
                 f"@{self.host}:{self.porta_effettiva}/{self.db_name}{ssl_suffix}"
             )
 
-        if self.mode == DbMode.POSTGRESQL:
+        if self.normalized_mode == DbMode.POSTGRESQL:
             driver = "postgresql+psycopg2"
             ssl_suffix = "?sslmode=require" if self.ssl else ""
             return (
@@ -204,18 +302,22 @@ class DatabaseConfig:
     @property
     def connection_url_safe(self) -> str:
         """URL senza password (per display)."""
-        if self.mode == DbMode.LOCAL:
-            return "filesystem://local"
+        if self.is_json:
+            return "filesystem://json"
+        if self.is_sqlite:
+            return "sqlite:///studio.db"
 
         driver = (
             "mysql+pymysql"
-            if self.mode == DbMode.MYSQL
+            if self.normalized_mode == DbMode.MYSQL
             else "postgresql+psycopg2"
         )
         return f"{driver}://{self.utente}:***@{self.host}:{self.porta_effettiva}/{self.db_name}"
 
     def to_dict(self) -> dict:
-        return asdict(self)
+        payload = asdict(self)
+        payload["mode"] = self.normalized_mode
+        return payload
 
     @staticmethod
     def from_dict(d: dict | str | None) -> "DatabaseConfig":
@@ -224,8 +326,7 @@ class DatabaseConfig:
         if d is None:
             d = {}
         elif isinstance(d, str):
-            mode = d.strip().upper()
-            d = {"mode": mode} if mode in (DbMode.LOCAL, DbMode.MYSQL, DbMode.POSTGRESQL) else {}
+            d = {"mode": normalize_db_mode(d)}
         elif not isinstance(d, dict):
             d = {}
         else:
@@ -234,12 +335,10 @@ class DatabaseConfig:
                 for legacy_key in ("db_mode", "database_mode", "tipo", "engine"):
                     legacy_mode = d.get(legacy_key)
                     if isinstance(legacy_mode, str):
-                        normalized = legacy_mode.strip().upper()
-                        if normalized in (DbMode.LOCAL, DbMode.MYSQL, DbMode.POSTGRESQL):
-                            d["mode"] = normalized
-                            break
+                        d["mode"] = normalize_db_mode(legacy_mode)
+                        break
 
-        d.setdefault("mode", DbMode.LOCAL)
+        d["mode"] = normalize_db_mode(d.get("mode"))
         d.setdefault("host", "localhost")
         d.setdefault("porta", 0)
         d.setdefault("db_name", "")
@@ -395,8 +494,7 @@ class StudioLegale:
         d = dict(d)
         legacy_db = d.get("db_config", d.get("database", {}))
         if isinstance(legacy_db, str):
-            normalized = legacy_db.strip().upper()
-            d["db_config"] = {"mode": normalized} if normalized in (DbMode.LOCAL, DbMode.MYSQL, DbMode.POSTGRESQL) else {}
+            d["db_config"] = {"mode": normalize_db_mode(legacy_db)}
         elif isinstance(legacy_db, dict):
             d["db_config"] = legacy_db
         else:
@@ -518,6 +616,7 @@ class GestioneTenant:
 
         studi[slug] = studio
         self._salva(studi)
+        self._scrivi_storage_manifest(slug, studio)
         return studio
 
     def aggiorna(self, slug: str, **kwargs) -> Optional[StudioLegale]:
@@ -576,7 +675,10 @@ class GestioneTenant:
 
     def aggiorna_db_config(self, slug: str, config: DatabaseConfig) -> Optional[StudioLegale]:
         """Salva la configurazione database del tenant."""
-        return self.aggiorna(slug, db_config=config.to_dict())
+        studio = self.aggiorna(slug, db_config=config.to_dict())
+        if studio:
+            self._scrivi_storage_manifest(slug, studio)
+        return studio
 
     def testa_connessione(self, slug: str) -> Dict[str, Any]:
         """
@@ -592,10 +694,21 @@ class GestioneTenant:
 
         db = studio.database
 
-        if db.mode == DbMode.LOCAL:
+        if db.is_json:
             data_dir = self._data_dir(slug)
             ok = data_dir.exists()
             msg = "Directory locale accessibile." if ok else f"Directory non trovata: {data_dir}"
+            db.connessione_ok = ok
+            db.ultimo_test = datetime.now().isoformat()
+            db.errore_connessione = "" if ok else msg
+            studio.db_config = db.to_dict()
+            self._salva(studi)
+            return {"ok": ok, "messaggio": msg, "latenza_ms": 0}
+
+        if db.is_sqlite:
+            studio_db_path = Path(self.percorsi_dati(slug)["STUDIO_DB"])
+            ok = studio_db_path.exists()
+            msg = "Database SQLite pronto." if ok else f"Database SQLite non trovato: {studio_db_path}"
             db.connessione_ok = ok
             db.ultimo_test = datetime.now().isoformat()
             db.errore_connessione = "" if ok else msg
@@ -715,6 +828,8 @@ class GestioneTenant:
             "VALIDATION_RUNS_DB": f"{base}/intelligence/validation_runs.json",
             "REDACTION_ASSISTANT_DB": f"{base}/intelligence/assistente_redazionale.json",
             "CONFIG_STUDIO_DB": f"{base}/config/studio.json",
+            "STORAGE_CONFIG": f"{base}/config/storage.json",
+            "STUDIO_DB": f"{base}/studio.db",
             # Percorsi aggiuntivi necessari per isolamento tenant completo
             "NOTE_FALDONE_DB":   f"{base}/clienti/note_faldone.json",
             "EMAIL_CASELLA_DB":  f"{base}/email/casella.json",
@@ -722,6 +837,95 @@ class GestioneTenant:
             "SOGGETTI_DB":       f"{base}/soggetti/anagrafica.json",
             "SOGGETTI_PARTI_DB": f"{base}/soggetti/parti.json",
         }
+
+    def storage_manifest(self, slug: str) -> Dict[str, Any]:
+        studio = self.get(slug)
+        if not studio:
+            return {}
+        db = studio.database
+        paths = self.percorsi_dati(slug)
+        info = DB_MODE_INFO.get(db.normalized_mode, {})
+        return {
+            "slug": slug,
+            "selected_mode": db.normalized_mode,
+            "runtime_kind": db.runtime_kind,
+            "effective_runtime_kind": db.effective_runtime_kind,
+            "external_sql_configured": db.is_external_sql,
+            "activation_state": (
+                "active"
+                if not db.is_external_sql
+                else "external-tested"
+                if db.connessione_ok
+                else "external-pending"
+            ),
+            "nome": info.get("nome", db.normalized_mode),
+            "data_dir": str(self._data_dir(slug)),
+            "json_root": str(self._data_dir(slug)),
+            "studio_db_path": paths["STUDIO_DB"],
+            "connection_url_safe": db.connection_url_safe,
+            "connessione_ok": bool(db.connessione_ok),
+            "ultimo_test": db.ultimo_test,
+            "errore_connessione": db.errore_connessione,
+        }
+
+    def _scrivi_storage_manifest(self, slug: str, studio: Optional[StudioLegale] = None) -> None:
+        studio = studio or self.get(slug)
+        if not studio:
+            return
+        manifest_path = Path(self.percorsi_dati(slug)["STORAGE_CONFIG"])
+        manifest_path.parent.mkdir(parents=True, exist_ok=True)
+        manifest_path.write_text(
+            json.dumps(self.storage_manifest(slug), ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+
+    def provision_storage_backend(self, slug: str, *, migrate_existing: bool = False) -> Dict[str, Any]:
+        studio = self.get(slug)
+        if not studio:
+            raise ValueError("Studio non trovato")
+
+        self._inizializza_directory(slug)
+        paths = self.percorsi_dati(slug)
+        db = studio.database
+        payload: Dict[str, Any] = {
+            "ok": True,
+            "mode": db.normalized_mode,
+            "migrated": False,
+            "studio_db_path": paths["STUDIO_DB"],
+        }
+
+        if db.is_sqlite:
+            if migrate_existing:
+                from pct.database import GestioneDatabase
+
+                migratore = GestioneDatabase(
+                    {
+                        "clienti": paths["CLIENTI_DB"],
+                        "fascicoli": paths["FASCICOLI_DB"],
+                        "appuntamenti": paths["AGENDA_DB"],
+                        "scadenze": paths["SCADENZIARIO_DB"],
+                        "messaggi": paths["MESSAGGI_DB"],
+                        "utenti": paths["AUTH_DB"],
+                        "audit": paths["AUDIT_DB"],
+                        "privacy": paths["PRIVACY_DB"],
+                        "notifiche": paths["NOTIFICHE_LOG"],
+                        "backup": str(Path(paths["BACKUP_DIR"]) / "registro.json"),
+                        "search_index": paths["SEARCH_INDEX"],
+                    }
+                )
+                risultato = migratore.migra_verso_sqlite(paths["STUDIO_DB"])
+                payload["migrated"] = bool(risultato.riuscita)
+                payload["migration_errors"] = list(risultato.errori)
+                payload["migration_warnings"] = list(risultato.avvisi)
+                payload["migration_records"] = dict(risultato.record_migrati)
+
+            from pct.storage import StudioDB
+
+            studio_db = StudioDB.get(paths["STUDIO_DB"])
+            payload["sqlite_ready"] = bool(studio_db.db_path.exists())
+
+        self._scrivi_storage_manifest(slug, studio)
+        return payload
 
     # ---- Helper
 

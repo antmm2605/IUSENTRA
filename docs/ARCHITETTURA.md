@@ -29,6 +29,8 @@ Qui vivono i modelli dati, i repository e le integrazioni verticali:
   motori legali e corpus professionale
 - `template_atti.py`, `preventivi.py`, `applicazioni_catalogo.py`
   domini applicativi verticali
+- `tenant.py`, `storage.py`, `database.py`
+  strategia storage multi-tenant, manifest, provisioning e backend SQLite per studio
 
 ### `web/bootstrap/` — wiring Flask
 
@@ -107,6 +109,30 @@ Il punto di ingresso resta `web/app.py`, ma il ruolo corretto è:
 5. esporre helper e servizi comuni
 
 Il file è ancora più grande di quanto vogliamo, ma il confine corretto ormai è chiaro: nuova logica in moduli dedicati, non nel file principale.
+
+## Strategia storage
+
+La governance storage è per-tenant e parte dal Superadmin.
+
+### Livelli supportati oggi
+
+- `JSON`
+  backend locale semplice, utile per snapshot, ambienti leggeri e aree che non richiedono ancora storage transazionale.
+- `SQLite`
+  backend tenant-aware già operativo tramite `pct/storage.py` e `studio.db`, usato dai moduli core compatibili.
+- `PostgreSQL`
+  strategia esterna configurabile dal Superadmin con test connessione e manifest di tenant; è la destinazione prevista per distribuzione cloud e multi-tenant seria.
+
+### Regola di verità
+
+Nel tenant distinguiamo sempre:
+
+- `selected_mode`
+  strategia scelta dal Superadmin
+- `effective_runtime_kind`
+  backend effettivamente in uso oggi dai moduli core compatibili
+
+Questo evita ambiguità: non dichiariamo attivo un backend esterno se il tenant sta ancora lavorando su JSON o SQLite.
 
 ## Flussi chiave
 

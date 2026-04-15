@@ -35,6 +35,22 @@ La struttura è organizzata per responsabilità:
 
 Per una mappa più completa vedi [docs/ARCHITETTURA.md](docs/ARCHITETTURA.md).
 
+## Strategia storage per studio
+
+La strategia storage non è più una scelta implicita o globale: viene definita dal `SUPERADMIN` quando crea lo studio e resta modificabile dal dettaglio tenant.
+
+- `JSON`
+  percorso più leggero per installazioni piccole o cache/snapshot locali.
+- `SQLite`
+  backend tenant-aware reale per studio, con file `studio.db` creato e agganciato ai moduli core compatibili.
+- `PostgreSQL`
+  strategia esterna per distribuzione cloud e multi-tenant seria, con configurazione e test connessione dal pannello Superadmin.
+
+Stato attuale del runtime:
+
+- `JSON` e `SQLite` sono backend effettivi già usati dai moduli compatibili.
+- `PostgreSQL` è già configurabile, verificabile e documentato come strategia target; il passaggio dei moduli core allo storage transazionale esterno procede in modo progressivo e governato per tenant.
+
 ## Avvio locale
 
 ### Docker consigliato
@@ -76,6 +92,18 @@ Le regole di base oggi sono:
 - Protezione CSRF sui flussi sensibili di autenticazione e gestione utenti.
 - Password bootstrap e password temporanee con cambio obbligatorio prima dell’uso normale del gestionale.
 - API v1 con CORS chiuso di default: gli origin esterni vanno esplicitamente autorizzati con `PCT_API_V1_ALLOWED_ORIGINS`.
+
+## Bootstrap multi-tenant
+
+Per ambienti multi-tenant il flusso corretto è:
+
+1. accesso come `SUPERADMIN`
+2. creazione studio
+3. scelta strategia storage
+4. creazione amministratore del tenant
+5. eventuale configurazione PostgreSQL dal dettaglio storage dello studio
+
+Questo evita configurazioni globali opache e rende ogni tenant governabile in modo indipendente.
 
 ## CI GitHub
 

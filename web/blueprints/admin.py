@@ -7,10 +7,7 @@ Prefix:  /admin/
 
 from __future__ import annotations
 
-import secrets
-from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Optional
 
 from flask import (
     Blueprint,
@@ -28,14 +25,15 @@ from flask import (
 
 from pct.tenant import (
     GestioneTenant,
-    StudioLegale,
     DatabaseConfig,
     DbMode,
     DB_MODE_INFO,
+    SELECTABLE_DB_MODES,
     MODULI_DISPONIBILI,
     PIANI,
     PianoTenant,
     StatoTenant,
+    normalize_db_mode,
 )
 from pct.auth import (
     GestioneUtenti,
@@ -71,6 +69,14 @@ def _utenti_tenant(slug: str) -> GestioneUtenti:
         secret_key=current_app.secret_key,
         crea_admin_se_vuoto=False,  # Non auto-creare admin — lo fa il pannello
     )
+
+
+def _db_mode_choices(current_mode: str = "") -> list[str]:
+    choices = list(SELECTABLE_DB_MODES)
+    normalized = normalize_db_mode(current_mode)
+    if normalized == DbMode.MYSQL and normalized not in choices:
+        choices.append(normalized)
+    return choices
 
 
 # ============================================================= Decoratore
@@ -157,20 +163,26 @@ def nuovo_studio():
         note_admin   = request.form.get("note_admin", "").strip()
 
         # Creazione admin dello studio
-        admin_username = request.form.get("admin_username", "admin").strip()
+        admin_username = request.form.get("admin_username", "amministratore").strip()
         admin_password = request.form.get("admin_password", "").strip()
         admin_nome     = request.form.get("admin_nome", nome).strip()
         admin_email    = request.form.get("admin_email", email).strip()
+        db_mode = normalize_db_mode(request.form.get("db_mode", DbMode.JSON))
 
         if not nome or not slug:
             flash("Nome e slug sono obbligatori.", "danger")
             return render_template("admin/studio_nuovo.html", piani=PIANI,
-                                   db_mode_info=DB_MODE_INFO, form=request.form)
+                                   db_mode_info=DB_MODE_INFO, db_mode_choices=_db_mode_choices(), form=request.form)
 
         if not admin_password:
             flash("Imposta una password per l'amministratore dello studio.", "danger")
             return render_template("admin/studio_nuovo.html", piani=PIANI,
-                                   db_mode_info=DB_MODE_INFO, form=request.form)
+                                   db_mode_info=DB_MODE_INFO, db_mode_choices=_db_mode_choices(), form=request.form)
+
+        if db_mode not in _db_mode_choices():
+            flash("Modalità storage non consentita per i nuovi studi.", "danger")
+            return render_template("admin/studio_nuovo.html", piani=PIANI,
+                                   db_mode_info=DB_MODE_INFO, db_mode_choices=_db_mode_choices(), form=request.form)
 
         tm = _tenant_manager()
         try:
@@ -190,13 +202,10 @@ def nuovo_studio():
         except ValueError as e:
             flash(str(e), "danger")
             return render_template("admin/studio_nuovo.html", piani=PIANI,
-                                   db_mode_info=DB_MODE_INFO, form=request.form)
+                                   db_mode_info=DB_MODE_INFO, db_mode_choices=_db_mode_choices(), form=request.form)
 
         # Salva la modalità DB scelta (per LOCAL basta il default, per gli altri serve config dettagliata)
-        db_mode = request.form.get("db_mode", DbMode.LOCAL)
-        if db_mode != DbMode.LOCAL:
-            cfg = DatabaseConfig(mode=db_mode)
-            tm.aggiorna_db_config(slug, cfg)
+        tm.aggiorna_db_config(slug, DatabaseConfig(mode=db_mode))
 
         # Crea utente amministratore dello studio
         gu = _utenti_tenant(slug)
@@ -213,15 +222,24 @@ def nuovo_studio():
             flash(f"Studio creato ma errore nella creazione utente admin: {e}", "warning")
             return redirect(url_for("admin.dettaglio_studio", slug=slug))
 
+        provisioning = tm.provision_storage_backend(
+            slug,
+            migrate_existing=db_mode == DbMode.SQLITE,
+        )
+
         flash(f"Studio '{nome}' creato con successo!", "success")
-        # Se scelto MySQL/PostgreSQL, rimanda direttamente alla config DB
-        if db_mode != DbMode.LOCAL:
-            flash("Configura ora i parametri di connessione al database.", "info")
+        if db_mode == DbMode.SQLITE:
+            if provisioning.get("migrated"):
+                flash("SQLite attivato e dati iniziali migrati in studio.db.", "info")
+            elif provisioning.get("sqlite_ready"):
+                flash("SQLite attivato: studio.db è pronto per questo tenant.", "info")
+        if db_mode == DbMode.POSTGRESQL:
+            flash("Configura ora i parametri di connessione PostgreSQL.", "info")
             return redirect(url_for("admin.database_studio", slug=slug))
         return redirect(url_for("admin.dettaglio_studio", slug=slug))
 
     return render_template("admin/studio_nuovo.html", piani=PIANI,
-                           db_mode_info=DB_MODE_INFO, form={})
+                           db_mode_info=DB_MODE_INFO, db_mode_choices=_db_mode_choices(), form={})
 
 
 @admin_bp.route("/studi/<slug>")
@@ -240,6 +258,7 @@ def dettaglio_studio(slug: str):
     # Uso storage
     data_dir = tm.data_dir(slug)
     storage_mb = _calc_storage_mb(data_dir)
+    storage_paths = tm.percorsi_dati(slug)
 
     return render_template(
         "admin/studio_dettaglio.html",
@@ -248,6 +267,9 @@ def dettaglio_studio(slug: str):
         moduli_disponibili=MODULI_DISPONIBILI,
         piani=PIANI,
         db_mode_info=DB_MODE_INFO,
+        db_mode_choices=_db_mode_choices(studio.database.mode),
+        storage_manifest=tm.storage_manifest(slug),
+        storage_paths=storage_paths,
         storage_mb=storage_mb,
     )
 
@@ -507,7 +529,19 @@ def database_studio(slug: str):
         abort(404)
 
     if request.method == "POST":
-        mode = request.form.get("db_mode", DbMode.LOCAL)
+        mode = normalize_db_mode(request.form.get("db_mode", studio.database.mode))
+        current_mode = studio.database.normalized_mode
+
+        if mode not in _db_mode_choices(studio.database.mode):
+            flash("Strategia storage non consentita per questo studio.", "danger")
+            return redirect(url_for("admin.database_studio", slug=slug))
+
+        if current_mode == DbMode.SQLITE and mode == DbMode.JSON:
+            flash(
+                "Il ritorno diretto da SQLite a JSON non è consentito senza una migrazione esplicita dei dati.",
+                "danger",
+            )
+            return redirect(url_for("admin.database_studio", slug=slug))
 
         cfg = DatabaseConfig(
             mode=mode,
@@ -552,7 +586,15 @@ def database_studio(slug: str):
         )
 
         tm.aggiorna_db_config(slug, cfg)
-        flash("Configurazione database salvata.", "success")
+        provisioning = tm.provision_storage_backend(
+            slug,
+            migrate_existing=current_mode != DbMode.SQLITE and mode == DbMode.SQLITE,
+        )
+        flash("Configurazione storage salvata.", "success")
+        if mode == DbMode.SQLITE and provisioning.get("migrated"):
+            flash("Dati JSON migrati in studio.db.", "info")
+        elif mode == DbMode.SQLITE and provisioning.get("sqlite_ready"):
+            flash("SQLite pronto: studio.db disponibile per i moduli core compatibili.", "info")
         return redirect(url_for("admin.database_studio", slug=slug))
 
     return render_template(
@@ -560,6 +602,9 @@ def database_studio(slug: str):
         studio=studio,
         db=studio.database,
         db_mode_info=DB_MODE_INFO,
+        db_mode_choices=_db_mode_choices(studio.database.mode),
+        storage_manifest=tm.storage_manifest(slug),
+        storage_paths=tm.percorsi_dati(slug),
         DbMode=DbMode,
     )
 

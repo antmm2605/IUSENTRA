@@ -1,20 +1,20 @@
 {% extends "admin/base.html" %}
-{% block title %}Database — {{ studio.nome }}{% endblock %}
+{% block title %}Storage — {{ studio.nome }}{% endblock %}
 {% block breadcrumb %}
 <li class="breadcrumb-item"><a href="{{ url_for('admin.lista_studi') }}" class="text-decoration-none">Studi</a></li>
 <li class="breadcrumb-item"><a href="{{ url_for('admin.dettaglio_studio', slug=studio.slug) }}" class="text-decoration-none">{{ studio.nome }}</a></li>
-<li class="breadcrumb-item active">Database</li>
+<li class="breadcrumb-item active">Storage</li>
 {% endblock %}
 
 {% block content %}
 <div class="d-flex align-items-center gap-3 mt-3 mb-4 flex-wrap">
   <div class="flex-grow-1">
-    <h4 class="mb-0 fw-bold">Configurazione Database</h4>
+    <h4 class="mb-0 fw-bold">Configurazione Storage</h4>
     <p class="text-muted small mb-0">
       Studio: <strong>{{ studio.nome }}</strong> —
       modalità corrente:
-      <span class="badge bg-{{ db_mode_info[db.mode].colore if db.mode in db_mode_info else 'secondary' }}">
-        {{ db_mode_info[db.mode].nome if db.mode in db_mode_info else db.mode }}
+      <span class="badge bg-{{ db_mode_info[db.normalized_mode].colore if db.normalized_mode in db_mode_info else 'secondary' }}">
+        {{ db_mode_info[db.normalized_mode].nome if db.normalized_mode in db_mode_info else db.normalized_mode }}
       </span>
     </p>
   </div>
@@ -30,8 +30,9 @@
         <i class="bi bi-database text-primary"></i> Modalità Storage
       </div>
       <div class="card-body">
-        {% for mode_key, mode_info in db_mode_info.items() %}
-        <div class="db-option-card mb-3 p-3 rounded-3 {{ 'border border-primary bg-primary bg-opacity-10' if db.mode == mode_key else 'border' }}"
+        {% for mode_key in db_mode_choices %}
+        {% set mode_info = db_mode_info[mode_key] %}
+        <div class="db-option-card mb-3 p-3 rounded-3 {{ 'border border-primary bg-primary bg-opacity-10' if db.normalized_mode == mode_key else 'border' }}"
              id="option_{{ mode_key }}"
              style="cursor:pointer;transition:all .15s;"
              onclick="selectMode('{{ mode_key }}')">
@@ -41,14 +42,14 @@
             <span class="badge bg-{{ mode_info.colore }} ms-auto" style="font-size:.65rem">
               {{ mode_info.badge }}
             </span>
-            {% if db.mode == mode_key %}
+            {% if db.normalized_mode == mode_key %}
             <i class="bi bi-check-circle-fill text-primary ms-1"></i>
             {% endif %}
           </div>
 
           <p class="text-muted small mb-0">{{ mode_info.desc }}</p>
 
-          {% if mode_key != 'LOCAL' and db.mode == mode_key %}
+          {% if mode_key == 'POSTGRESQL' and db.normalized_mode == mode_key %}
           <div class="mt-2">
             {% if db.connessione_ok %}
             <span class="badge bg-success"><i class="bi bi-check-lg me-1"></i>Connessione OK</span>
@@ -73,10 +74,10 @@
 
   <div class="col-12 col-lg-7">
     <form method="post" id="dbForm">
-      <input type="hidden" name="db_mode" id="dbModeField" value="{{ db.mode }}">
+      <input type="hidden" name="db_mode" id="dbModeField" value="{{ db.normalized_mode }}">
 
-      <div class="card mb-3 db-panel" id="panel_LOCAL"
-           style="{{ 'display:none' if db.mode != 'LOCAL' else '' }}">
+      <div class="card mb-3 db-panel" id="panel_JSON"
+           style="{{ 'display:none' if db.normalized_mode != 'JSON' else '' }}">
         <div class="card-header fw-semibold d-flex align-items-center gap-2 text-secondary">
           <i class="bi bi-hdd-fill"></i> Storage Locale (JSON)
         </div>
@@ -99,22 +100,43 @@
         </div>
       </div>
 
-      <div class="card mb-3 db-panel" id="panel_MYSQL"
-           style="{{ '' if db.mode == 'MYSQL' else 'display:none' }}">
-        <div class="card-header fw-semibold d-flex align-items-center gap-2 text-warning">
-          <i class="bi bi-database-fill"></i> Parametri MySQL / MariaDB
+      <div class="card mb-3 db-panel" id="panel_SQLITE"
+           style="{{ '' if db.normalized_mode == 'SQLITE' else 'display:none' }}">
+        <div class="card-header fw-semibold d-flex align-items-center gap-2 text-info">
+          <i class="bi bi-database-fill"></i> SQLite per studio
         </div>
         <div class="card-body">
-          {% include "admin/_db_form_sql.html" with context %}
+        <div class="alert alert-info d-flex gap-2 mb-3">
+          <i class="bi bi-info-circle-fill fs-5 flex-shrink-0"></i>
+          <div>
+              <strong>Backend tenant-aware pronto all'uso.</strong><br>
+              <span class="small">Il runtime usa <code>{{ storage_paths.STUDIO_DB }}</code> per i moduli core compatibili.</span>
+            </div>
+          </div>
+          <div class="small text-muted fw-semibold mb-1">File database:</div>
+          <code class="small">{{ storage_paths.STUDIO_DB }}</code>
+          {% if storage_manifest %}
+          <div class="mt-3 small text-muted">
+            Backend effettivo: <strong>{{ storage_manifest.effective_runtime_kind }}</strong>
+            <span class="ms-2">· stato: <strong>{{ storage_manifest.activation_state }}</strong></span>
+          </div>
+          {% endif %}
         </div>
       </div>
 
       <div class="card mb-3 db-panel" id="panel_POSTGRESQL"
-           style="{{ '' if db.mode == 'POSTGRESQL' else 'display:none' }}">
+           style="{{ '' if db.normalized_mode == 'POSTGRESQL' else 'display:none' }}">
         <div class="card-header fw-semibold d-flex align-items-center gap-2 text-primary">
           <i class="bi bi-database-fill-gear"></i> Parametri PostgreSQL
         </div>
         <div class="card-body">
+          <div class="alert alert-primary d-flex gap-2 small">
+            <i class="bi bi-info-circle-fill flex-shrink-0"></i>
+            <div>
+              La strategia esterna viene configurata e testata qui dal Superadmin.
+              Finché la migrazione tenant-aware dei moduli core non viene attivata, il backend effettivo dello studio resta <strong>{{ storage_manifest.effective_runtime_kind if storage_manifest else 'json' }}</strong>.
+            </div>
+          </div>
           {% include "admin/_db_form_sql.html" with context %}
         </div>
       </div>
@@ -123,7 +145,7 @@
         <button type="submit" class="btn btn-primary">
           <i class="bi bi-save me-1"></i>Salva configurazione
         </button>
-        {% if db.mode != 'LOCAL' %}
+        {% if db.normalized_mode == 'POSTGRESQL' %}
         <button type="button" class="btn btn-outline-info" id="btnTestConn">
           <i class="bi bi-broadcast me-1"></i>Testa connessione
         </button>
@@ -133,7 +155,7 @@
 
     <div id="testResult" class="mt-3" style="display:none"></div>
 
-    {% if db.errore_connessione and not db.connessione_ok and db.mode != 'LOCAL' %}
+    {% if db.errore_connessione and not db.connessione_ok and db.normalized_mode == 'POSTGRESQL' %}
     <div class="alert alert-danger mt-3 small d-flex gap-2">
       <i class="bi bi-exclamation-triangle-fill flex-shrink-0"></i>
       <div>
@@ -154,7 +176,7 @@
       <div class="col-12 col-md-4">
         <div class="d-flex align-items-center gap-2 mb-1">
           <i class="bi bi-hdd-fill text-secondary"></i>
-          <span class="fw-semibold small">LOCAL</span>
+          <span class="fw-semibold small">JSON</span>
           <span class="badge bg-success ms-auto">Già incluso</span>
         </div>
         <code class="small text-muted">Nessuna dipendenza aggiuntiva</code>
@@ -162,10 +184,10 @@
 
       <div class="col-12 col-md-4">
         <div class="d-flex align-items-center gap-2 mb-1">
-          <i class="bi bi-database-fill text-warning"></i>
-          <span class="fw-semibold small">MySQL</span>
+          <i class="bi bi-database-fill text-info"></i>
+          <span class="fw-semibold small">SQLite</span>
         </div>
-        <code class="small">pip install sqlalchemy pymysql</code>
+        <code class="small text-muted">Nessuna dipendenza aggiuntiva</code>
       </div>
 
       <div class="col-12 col-md-4">
@@ -201,8 +223,8 @@ function updatePanels(mode) {
     el.style.display = visible ? '' : 'none';
   });
 
-  setPanelInputsEnabled('panel_LOCAL', mode === 'LOCAL');
-  setPanelInputsEnabled('panel_MYSQL', mode === 'MYSQL');
+  setPanelInputsEnabled('panel_JSON', mode === 'JSON');
+  setPanelInputsEnabled('panel_SQLITE', mode === 'SQLITE');
   setPanelInputsEnabled('panel_POSTGRESQL', mode === 'POSTGRESQL');
 }
 
@@ -220,7 +242,7 @@ function selectMode(mode) {
 
   let testBtn = document.getElementById('btnTestConn');
 
-  if (mode === 'LOCAL') {
+  if (mode !== 'POSTGRESQL') {
     if (testBtn) testBtn.style.display = 'none';
   } else {
     if (testBtn) testBtn.style.display = '';

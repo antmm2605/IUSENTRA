@@ -137,6 +137,7 @@ from web.services.auth_runtime import register_auth_runtime
 from web.services.local_ai_runtime import get_local_ai_service
 from web.services.runtime_settings import apply_runtime_settings
 from web.services.security_runtime import apply_security_defaults, register_security_runtime
+from web.services.storage_runtime import get_request_studio_db
 
 # ------------------------------------------------------------------ cifratura documenti (AES-256-GCM)
 
@@ -260,7 +261,9 @@ def create_app(config: dict | None = None) -> Flask:
             "PCT_SECRET_KEY non configurata o insicura: uso una chiave effimera valida solo per questo avvio."
         )
     # SQLite mode: PCT_SQLITE_MODE=1 sostituisce il backend JSON con SQLite per i 7 moduli core
-    app.config["SQLITE_MODE"] = os.getenv("PCT_SQLITE_MODE", "").lower() in ("1", "true", "yes")
+    app.config["SQLITE_MODE"] = str(
+        cfg.get("SQLITE_MODE", os.getenv("PCT_SQLITE_MODE", ""))
+    ).lower() in ("1", "true", "yes")
     app.config["AGENDA_DB"] = cfg.get(
         "AGENDA_DB", os.getenv("PCT_AGENDA_DB", "./agenda/appuntamenti.json")
     )
@@ -545,13 +548,7 @@ def create_app(config: dict | None = None) -> Flask:
         Il percorso di studio.db Ã¨ derivato dalla root dei dati del tenant:
         es. /data/clienti/anagrafica.json â†’ /data/studio.db
         """
-        if not app.config.get("SQLITE_MODE"):
-            return None
-        if not hasattr(g, "_studio_db"):
-            from pct.storage import StudioDB
-            db_path = _cfg_data_path("CLIENTI_DB")
-            g._studio_db = StudioDB.from_data_path(db_path)
-        return g._studio_db
+        return get_request_studio_db(_cfg_data_path("CLIENTI_DB"))
 
     def get_agenda() -> Agenda:
         if not hasattr(g, "_agenda"):

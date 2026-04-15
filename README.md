@@ -61,6 +61,12 @@ docker compose build --no-cache
 docker compose up -d
 ```
 
+Il `docker compose` locale avvia:
+
+- `app` per il traffico web Flask/Gunicorn
+- `scheduler-worker` per i job periodici separati dal processo HTTP
+- `nginx` come reverse proxy locale
+
 Accessi:
 
 - [http://localhost](http://localhost)
@@ -113,6 +119,7 @@ La CI non si limita più alla sola sincronizzazione branch. La pipeline applicat
 - lint statico conservativo su errori bloccanti (`ruff` + `flake8`)
 - import/syntax check
 - smoke test Flask sul runtime reale e su `create_app()`
+- smoke del worker scheduler dedicato
 - suite `pytest` core su Linux
 - job matrix Linux / Windows / macOS per Local Signer e componenti correlati
 
@@ -169,4 +176,4 @@ Il codice oggi è più maturo di una semplice demo:
 - test coverage distribuita su molti domini reali
 - bootstrap di sicurezza più severo per uso professionale
 
-`web/app.py` oggi è una factory sottile: crea l'app Flask, applica i default di sicurezza, costruisce i runtime e delega il wiring a `web/bootstrap/app_wiring.py`. Il prossimo passo naturale resta spezzare ulteriormente i runtime più densi in `web/services/`, mantenendo documentazione e CI allo stesso livello del codice.
+`web/app.py` oggi è una factory sottile: crea l'app Flask, applica i default di sicurezza, costruisce i runtime e delega il wiring a `web/bootstrap/app_wiring.py`. Lo scheduler non parte più dal processo web: i job periodici vivono nel worker dedicato `pct.scheduler_worker`, eseguito in locale dal servizio `scheduler-worker` e predisposto per un servizio separato anche in produzione. Il prossimo passo naturale resta spezzare ulteriormente i runtime più densi in `web/services/`, mantenendo documentazione e CI allo stesso livello del codice.

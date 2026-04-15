@@ -55,6 +55,17 @@ Qui stanno i servizi trasversali che non appartengono a un singolo dominio:
   impostazioni runtime derivate da configurazione studio
 - servizi di contesto studio, sicurezza e compatibilitÃ  UI non proprietaria di Lex
 
+### `pct/scheduler.py` e `pct/scheduler_worker.py`
+
+I job periodici non devono vivere nel processo HTTP:
+
+- `pct/scheduler.py`
+  definisce e registra i job APScheduler
+- `pct/scheduler_worker.py`
+  costruisce una Flask app leggera in profilo `SCHEDULER_ONLY`, avvia lo scheduler e mantiene vivo il worker dedicato
+
+Regola architetturale: `web/app.py` non avvia mai direttamente lo scheduler.
+
 ### `lex/` — modulo assistente autonomo
 
 Lex ora ha una casa applicativa dedicata:
@@ -109,6 +120,8 @@ Il punto di ingresso resta `web/app.py`, ma il ruolo corretto è:
 3. registrare runtime condivisi
 4. registrare blueprint e route modulari
 5. esporre helper e servizi comuni
+
+Lo scheduler deve restare fuori dal processo web: `web/app.py` costruisce il runtime HTTP, mentre `pct.scheduler_worker` possiede l'avvio dei job periodici.
 
 Il file è ancora più grande di quanto vogliamo, ma il confine corretto ormai è chiaro: nuova logica in moduli dedicati, non nel file principale.
 

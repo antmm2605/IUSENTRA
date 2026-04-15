@@ -103,6 +103,37 @@ services:
     #     reservations:
     #       memory: 256M
 
+  # --------------------------------------------------------------------------
+  #  Scheduler worker dedicato
+  # --------------------------------------------------------------------------
+  scheduler-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: hacs-scheduler
+    restart: unless-stopped
+    command: ["python", "-m", "pct.scheduler_worker"]
+
+    depends_on:
+      app:
+        condition: service_healthy
+
+    volumes:
+      - ./data:/data
+
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+    env_file:
+      - .env
+
+    environment:
+      PCT_HTTPS: "false"
+      PCT_MULTI_TENANT: "1"
+      PCT_LOCAL_AI_BASE_URL: ${PCT_LOCAL_AI_BASE_URL:-http://host.docker.internal:11434/api}
+      PCT_HOST_PLATFORM: ${OS:-}
+      PCT_HOST_MACHINE: ${PROCESSOR_ARCHITECTURE:-}
+
   ollama:
     profiles: ["ollama-sidecar"]
     image: ollama/ollama:latest

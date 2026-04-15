@@ -7,13 +7,12 @@ Usa APScheduler (già in requirements.txt) per:
   - Aggiornamento scadenze SCADUTE (ogni notte)
   - Invio email di report settimanale (opzionale)
 
-Avviato una sola volta da create_app() tramite start_scheduler(app).
+Avviato da un worker dedicato tramite pct.scheduler_worker.
 """
 from __future__ import annotations
 
 import logging
 import os
-from datetime import datetime
 from pathlib import Path
 
 from pct.runtime_env import is_managed_cloud_runtime
@@ -21,12 +20,21 @@ from pct.runtime_env import is_managed_cloud_runtime
 logger = logging.getLogger("pct.scheduler")
 
 
+def _flag_enabled(value: object) -> bool:
+    return str(value or "").strip().lower() in {"1", "true", "yes", "on"}
+
+
 def start_scheduler(app):
     """
     Avvia lo scheduler APScheduler in background.
-    Chiamare una sola volta da create_app().
-    Sicuro in modalità multi-worker Gunicorn grazie al lock su file.
+    Chiamare una sola volta dal worker dedicato.
+    Sicuro in modalità multi-worker grazie al lock ambientale.
     """
+    if _flag_enabled(os.environ.get("PCT_DISABLE_SCHEDULER")) or _flag_enabled(
+        app.config.get("DISABLE_SCHEDULER")
+    ):
+        logger.info("[scheduler] Avvio disabilitato da configurazione.")
+        return None
     # Evita di avviare lo scheduler in Flask debug reloader (processo duplicato)
     if os.environ.get("WERKZEUG_RUN_MAIN") == "true" and app.debug:
         return

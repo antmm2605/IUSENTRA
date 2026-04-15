@@ -3,6 +3,7 @@ name: CI
 on:
   push:
     branches:
+      - "main"
       - "Codex/legal-electronic-filing-kIxcV"
       - "claude/legal-electronic-filing-kIxcV"
   pull_request:
@@ -170,8 +171,110 @@ jobs:
           assert home.status_code < 500, f"Unexpected home status: {home.status_code}"
           assert login.status_code == 200, f"Unexpected login status: {login.status_code}"
           assert direct_login.status_code == 200, f"Unexpected create_app login status: {direct_login.status_code}"
+          assert "PCT_SCHEDULER" not in direct_app.config, "create_app() non deve avviare lo scheduler web"
 
           print("Smoke OK:", home.status_code, login.status_code, direct_login.status_code)
+          PY
+
+  smoke-scheduler-worker:
+    name: Smoke scheduler worker
+    runs-on: ubuntu-latest
+    needs:
+      - quality
+      - governance
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install runtime deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Install dev deps
+        run: |
+          pip install -r requirements-dev.txt
+
+      - name: Start scheduler worker entry point
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          import tempfile
+          from pathlib import Path
+
+          from pct.scheduler_worker import start_scheduler_worker
+
+          tmp_root = Path(tempfile.mkdtemp(prefix="hacs-scheduler-smoke-"))
+          studio_cfg = tmp_root / "config" / "studio.json"
+          studio_cfg.parent.mkdir(parents=True, exist_ok=True)
+          studio_cfg.write_text(
+              json.dumps(
+                  {
+                      "studio": {"nome": "Studio Scheduler"},
+                      "scheduler": {"backup_ora": "03:30", "wa_reminder_ora": "17:15"},
+                  },
+                  ensure_ascii=False,
+              ),
+              encoding="utf-8",
+          )
+          cfg = {
+              "TESTING": True,
+              "SECRET_KEY": "test-secret-key-for-scheduler-worker",
+              "AUTH_DB": str(tmp_root / "auth" / "utenti.json"),
+              "AUDIT_DB": str(tmp_root / "auth" / "audit.json"),
+              "BOOTSTRAP_ADMIN_PASSWORD": "admin",
+              "BOOTSTRAP_ADMIN_CREDENTIALS_PATH": str(tmp_root / "auth" / "bootstrap_admin.json"),
+              "CLIENTI_DB": str(tmp_root / "clienti" / "anagrafica.json"),
+              "CONDIVISIONI_DB": str(tmp_root / "clienti" / "condivisioni.json"),
+              "FASCICOLI_DB": str(tmp_root / "fascicoli" / "fascicoli.json"),
+              "FASCICOLI_DOCS": str(tmp_root / "fascicoli" / "documenti"),
+              "FASCICOLI_ARCH": str(tmp_root / "fascicoli" / "archivio"),
+              "AGENDA_DB": str(tmp_root / "agenda" / "appuntamenti.json"),
+              "SCADENZIARIO_DB": str(tmp_root / "scadenziario" / "scadenze.json"),
+              "MESSAGGI_DB": str(tmp_root / "messaggi" / "storico.json"),
+              "EMAIL_CASELLA_DB": str(tmp_root / "email" / "casella.json"),
+              "SEARCH_INDEX": str(tmp_root / "search" / "index.db"),
+              "SOGGETTI_DB": str(tmp_root / "soggetti" / "anagrafica.json"),
+              "SOGGETTI_PARTI_DB": str(tmp_root / "soggetti" / "parti.json"),
+              "LEGAL_INTELLIGENCE_DB": str(tmp_root / "intelligence" / "motori.json"),
+              "NORMATIVE_TABLES_DB": str(tmp_root / "intelligence" / "tabelle_normative.json"),
+              "GIURISPRUDENZA_DB": str(tmp_root / "intelligence" / "giurisprudenza.json"),
+              "WORKSPACE_INTELLIGENCE_DB": str(tmp_root / "intelligence" / "workspace_intelligence.json"),
+              "VALIDATION_RUNS_DB": str(tmp_root / "intelligence" / "validation_runs.json"),
+              "LOCAL_AI_DB": str(tmp_root / "intelligence" / "local_ai.db"),
+              "LOCAL_AI_MODELS_DIR": str(tmp_root / "intelligence" / "models"),
+              "LOCAL_AI_POLICY": str(Path("config") / "ai-policy.json"),
+              "TEMPLATE_ATTI_DB": str(tmp_root / "template_atti" / "templates.json"),
+              "TEMPLATE_ATTI_PREFS_DB": str(tmp_root / "template_atti" / "editor_layout.json"),
+              "PREVENTIVI_DB": str(tmp_root / "preventivi" / "preventivi.json"),
+              "FATTURAZIONE_DB": str(tmp_root / "fatturazione" / "parcelle.json"),
+              "STUDIO_CONFIG": str(studio_cfg),
+              "PORTALE_DB": str(tmp_root / "portale" / "portali.json"),
+              "PORTALE_UPLOADS": str(tmp_root / "portale" / "uploads"),
+              "TENANTS_REGISTRY": str(tmp_root / "tenants.json"),
+              "PDP_PENALE_DB": str(tmp_root / "penale" / "pdp_penale.db"),
+              "TELEMATICO_DB": str(tmp_root / "telematico" / "workflow.db"),
+          }
+
+          os.environ.pop("PCT_DISABLE_SCHEDULER", None)
+          os.environ.pop("PCT_SCHEDULER_RUNNING", None)
+          app = start_scheduler_worker(cfg)
+          scheduler = app.config.get("PCT_SCHEDULER")
+          assert scheduler is not None, "Worker scheduler non avviato"
+          assert scheduler.get_job("backup_giornaliero") is not None
+          assert scheduler.get_job("local_ai_maintenance") is not None
+          scheduler.shutdown(wait=False)
+          os.environ.pop("PCT_SCHEDULER_RUNNING", None)
+          print("Scheduler worker OK")
           PY
 
   tests-core:
@@ -206,6 +309,8 @@ jobs:
           pytest -q \
             lex/tests \
             tests/test_auth.py \
+            tests/test_scheduler.py \
+            tests/test_scheduler_worker.py \
             tests/test_assistente_followup.py \
             tests/test_assistente_language_guidance.py \
             tests/test_assistente_social.py \

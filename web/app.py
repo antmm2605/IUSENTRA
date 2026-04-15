@@ -30,6 +30,8 @@ def create_app(config: dict | None = None) -> Flask:
     app = Flask(__name__, template_folder="templates", static_folder="static")
     cfg = config or {}
     app.config["TESTING"] = bool(cfg.get("TESTING", False))
+    scheduler_only = bool(cfg.get("SCHEDULER_ONLY"))
+    app.config["PCT_SCHEDULER_WORKER"] = scheduler_only
 
     from werkzeug.middleware.proxy_fix import ProxyFix
 
@@ -48,8 +50,10 @@ def create_app(config: dict | None = None) -> Flask:
             "PCT_SECRET_KEY non configurata o insicura: uso una chiave effimera valida solo per questo avvio."
         )
 
-    ocr_runtime = build_ocr_runtime(decrypt_doc=decrypt_doc)
     core = build_core_runtime(app, cfg)
+    if scheduler_only:
+        return app
+    ocr_runtime = build_ocr_runtime(decrypt_doc=decrypt_doc)
     fascicoli = build_fascicoli_runtime(
         app,
         get_deposito_guidato=core["get_deposito_guidato"],
@@ -114,8 +118,4 @@ def create_app(config: dict | None = None) -> Flask:
         ocr_runtime=ocr_runtime,
         get_local_ai_service=get_local_ai_service,
     )
-
-    from pct.scheduler import start_scheduler
-
-    start_scheduler(app)
     return app

@@ -18,6 +18,8 @@ docker compose build --no-cache
 docker compose up -d
 ```
 
+Il compose locale avvia sia l'app web sia il worker `scheduler-worker`, così i job periodici restano separati dal traffico HTTP.
+
 URL utili:
 
 - [http://localhost](http://localhost)
@@ -64,6 +66,12 @@ PY
 ```
 
 Valore atteso: `200`.
+
+Controlla anche che il worker schedulato sia partito correttamente:
+
+```bash
+docker compose logs --tail=20 scheduler-worker
+```
 
 ## Suite locale rapida
 

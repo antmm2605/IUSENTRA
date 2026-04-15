@@ -135,6 +135,19 @@ def test_create_app_applies_runtime_overrides_and_registers_blueprints(tmp_path:
         "wizard_pro",
     }
     assert expected_blueprints.issubset(set(app.blueprints))
+    assert app.config["PCT_SCHEDULER_WORKER"] is False
+    assert "PCT_SCHEDULER" not in app.config
+
+
+def test_create_app_scheduler_only_costruisce_worker_senza_blueprint(tmp_path: Path):
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    app = create_app({**_cfg_web(tmp_path), "SCHEDULER_ONLY": True})
+
+    assert app.config["PCT_SCHEDULER_WORKER"] is True
+    assert app.config["BACKUP_ORA"] == "03:30"
+    assert app.config["WA_REMINDER_ORA"] == "17:15"
+    assert app.blueprints == {}
+    assert "PCT_SCHEDULER" not in app.config
 
 
 def test_auth_guard_keeps_login_public_and_redirects_protected_routes(tmp_path: Path):
@@ -246,6 +259,7 @@ def test_web_app_dimagrisce_e_registra_i_moduli_estratti_finali():
     assert "from web.bootstrap.app_wiring import register_app_wiring" in web_app
     assert "from lex.providers.local_ai_service import get_local_ai_service" in web_app
     assert "from web.services.local_ai_runtime import get_local_ai_service" not in web_app
+    assert "from pct.scheduler import start_scheduler" not in web_app
     assert "register_app_wiring(" in web_app
 
     for symbol in (
@@ -279,6 +293,7 @@ def test_web_app_dimagrisce_e_registra_i_moduli_estratti_finali():
     assert web_app.count("@app.route") == 0
     assert len(web_app.splitlines()) <= 250
     assert "from web.bootstrap.app_wiring import register_app_wiring" in web_app
+    assert "start_scheduler(" not in web_app
     assert "from web.bootstrap." not in web_app.replace(
         "from web.bootstrap.app_wiring import register_app_wiring", ""
     )
@@ -384,6 +399,8 @@ def test_docker_compose_prevede_runtime_ollama_sulla_stessa_macchina():
     compose = (REPO_ROOT / "docker-compose.yml").read_text(encoding="utf-8")
 
     assert "ollama:" in compose
+    assert "scheduler-worker:" in compose
+    assert 'command: ["python", "-m", "pct.scheduler_worker"]' in compose
     assert 'profiles: ["ollama-sidecar"]' in compose
     assert "image: ollama/ollama:latest" in compose
     assert "PCT_LOCAL_AI_BASE_URL: ${PCT_LOCAL_AI_BASE_URL:-http://host.docker.internal:11434/api}" in compose
@@ -408,6 +425,17 @@ def test_bootstrap_pubblico_resta_allineato_a_password_temporanee_e_ci_reale():
     assert "name: CI" in ci_workflow
     assert "name: Governance repo" in ci_workflow
     assert "python tools/check_repo_governance.py" in ci_workflow
+    assert '      - "main"' in ci_workflow
+    assert "name: Smoke scheduler worker" in ci_workflow
+
+
+def test_scheduler_worker_entrypoint_resta_separato_dal_runtime_web():
+    scheduler_worker = (REPO_ROOT / "pct/scheduler_worker.py").read_text(encoding="utf-8")
+
+    assert "def create_scheduler_app(" in scheduler_worker
+    assert "def start_scheduler_worker(" in scheduler_worker
+    assert 'cfg["SCHEDULER_ONLY"] = True' in scheduler_worker
+    assert "from web.app import create_app" in scheduler_worker
 
 
 def test_governance_lex_possiede_runtime_ai_locale_e_i_facade_web_restano_sottili():

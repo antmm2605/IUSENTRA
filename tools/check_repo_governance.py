@@ -86,10 +86,37 @@ def main() -> int:
         failures,
     )
     _check(
+        "from pct.scheduler import start_scheduler" not in web_app,
+        "web/app.py non deve avviare direttamente lo scheduler.",
+        failures,
+    )
+    _check(
+        "start_scheduler(" not in web_app,
+        "web/app.py non deve avviare lo scheduler dentro la factory web.",
+        failures,
+    )
+    _check(
         "from web.bootstrap." not in web_app.replace(
             "from web.bootstrap.app_wiring import register_app_wiring", ""
         ),
         "web/app.py non deve importare direttamente i moduli route/bootstrap verticali.",
+        failures,
+    )
+
+    scheduler_worker = _read_text("pct/scheduler_worker.py")
+    _check(
+        "def create_scheduler_app(" in scheduler_worker,
+        "pct/scheduler_worker.py deve esporre create_scheduler_app().",
+        failures,
+    )
+    _check(
+        "def start_scheduler_worker(" in scheduler_worker,
+        "pct/scheduler_worker.py deve esporre start_scheduler_worker().",
+        failures,
+    )
+    _check(
+        'cfg["SCHEDULER_ONLY"] = True' in scheduler_worker,
+        "pct/scheduler_worker.py deve forzare il profilo SCHEDULER_ONLY.",
         failures,
     )
 
@@ -231,6 +258,14 @@ def main() -> int:
     ):
         _check((REPO_ROOT / relative_path).exists(), f"SCSS governabile mancante: {relative_path}.", failures)
 
+    compose = _read_text("docker-compose.yml")
+    for snippet in (
+        "scheduler-worker:",
+        'command: ["python", "-m", "pct.scheduler_worker"]',
+        "host.docker.internal:host-gateway",
+    ):
+        _check(snippet in compose, f"Docker Compose non allineato: manca '{snippet}'.", failures)
+
     base_template = _read_text("web/templates/base.html")
     for snippet in (
         "topbar-counter-badge",
@@ -285,7 +320,11 @@ def main() -> int:
         "python tools/check_repo_governance.py",
         "name: Lint + syntax",
         "name: Smoke test Flask",
+        '      - "main"',
         "from web.app import create_app",
+        'assert "PCT_SCHEDULER" not in direct_app.config',
+        "name: Smoke scheduler worker",
+        "from pct.scheduler_worker import start_scheduler_worker",
         "name: Pytest core",
         "name: Local Signer e PKCS#11 (${{ matrix.os }})",
     ):
@@ -296,6 +335,7 @@ def main() -> int:
     _check("docs/QUICKSTART.md" in readme, "README non collega il quickstart operativo.", failures)
     _check("docs/DEPLOY.md" in readme, "README non collega la guida deploy/release.", failures)
     _check("lex/registry.py" in readme, "README non documenta il registry del bounded context Lex.", failures)
+    _check("scheduler-worker" in readme, "README non documenta il worker dedicato dello scheduler.", failures)
     _check(
         "github.com/antmm2605/hacs/actions/workflows/ci.yml" in readme,
         "README non collega la vista live del workflow CI.",

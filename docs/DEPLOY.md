@@ -20,6 +20,7 @@ Il workflow applicativo è `.github/workflows/ci.yml` e include:
 - `Lint + syntax`
 - `Governance repo`
 - `Smoke test Flask`
+- `Smoke scheduler worker`
 - `Pytest core`
 - `Local Signer e PKCS#11` su Linux/Windows/macOS
 
@@ -38,14 +39,25 @@ docker compose build --no-cache
 docker compose up -d --force-recreate
 docker compose ps
 docker compose logs --tail=20 app
+docker compose logs --tail=20 scheduler-worker
 docker compose exec -T app python -c "import pct; print(pct.__version__)"
 ```
 
 Controlli minimi:
 
 - container `app` in stato `healthy`
+- worker `scheduler-worker` avviato senza errori di bootstrap
 - `/login` risponde `200`
 - versione runtime uguale alla versione nei file di release
+
+## Scheduler separato dal web
+
+Il processo web non deve più avviare i job periodici dentro `create_app()`.
+
+- web: `wsgi:app`
+- worker schedulato: `python -m pct.scheduler_worker`
+
+In Railway/produzione la configurazione corretta è avere un servizio dedicato scheduler che riusa la stessa codebase o immagine ma con comando di avvio `python -m pct.scheduler_worker`.
 
 ## Produzione Railway
 

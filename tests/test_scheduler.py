@@ -33,3 +33,21 @@ def test_local_ai_maintenance_salta_su_runtime_cloud_hosted(monkeypatch):
         scheduler.shutdown(wait=False)
         monkeypatch.delenv("PCT_SCHEDULER_RUNNING", raising=False)
         monkeypatch.delenv("RAILWAY_PROJECT_ID", raising=False)
+
+
+def test_start_scheduler_rispetta_flag_disable(monkeypatch):
+    monkeypatch.setenv("PCT_DISABLE_SCHEDULER", "1")
+    monkeypatch.delenv("PCT_SCHEDULER_RUNNING", raising=False)
+
+    app = Flask(__name__)
+    app.config.update(
+        SECRET_KEY="test",
+        BACKUP_ORA="02:00",
+        WA_REMINDER_ORA="18:00",
+    )
+
+    scheduler = start_scheduler(app)
+
+    assert scheduler is None
+    assert "PCT_SCHEDULER" not in app.config
+    monkeypatch.delenv("PCT_DISABLE_SCHEDULER", raising=False)

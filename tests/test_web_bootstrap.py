@@ -1,4 +1,5 @@
 import json
+import re
 from pathlib import Path
 
 from flask import g
@@ -283,6 +284,23 @@ def test_web_app_dimagrisce_e_registra_i_moduli_estratti_finali():
     )
 
 
+def _inline_style_totals() -> tuple[int, int, int]:
+    style_tag = re.compile(r"<style\b", re.IGNORECASE)
+    style_attr = re.compile(r"\sstyle=", re.IGNORECASE)
+    files = 0
+    tags = 0
+    attrs = 0
+    for path in (REPO_ROOT / "web/templates").rglob("*.html"):
+        content = path.read_text(encoding="utf-8")
+        file_tags = len(style_tag.findall(content))
+        file_attrs = len(style_attr.findall(content))
+        if file_tags or file_attrs:
+            files += 1
+            tags += file_tags
+            attrs += file_attrs
+    return files, tags, attrs
+
+
 def test_i_moduli_bootstrap_restano_governabili():
     bootstrap_dir = REPO_ROOT / "web/bootstrap"
     default_limit = 650
@@ -448,10 +466,12 @@ def test_runtime_cloud_hosted_ignora_percorsi_ai_del_tenant(monkeypatch, tmp_pat
 
 def test_scss_governance_usa_bundle_modulari_e_niente_style_inline():
     app_scss = (REPO_ROOT / "web/static/scss/app.scss").read_text(encoding="utf-8")
+    assert "@use 'components/app-shell';" in app_scss
     assert "@use 'components/feedback';" in app_scss
     assert "@use 'components/compact-panels';" in app_scss
     assert "@use 'components/local-ai-assistant';" in app_scss
     assert "@use 'components/pct-lex-assistant';" in app_scss
+    assert "@use 'pages/admin';" in app_scss
     assert "@use 'pages/dashboard';" in app_scss
     assert "@use 'pages/hearing-preparation';" in app_scss
     assert "@use 'pages/notifiche-whatsapp';" in app_scss
@@ -462,8 +482,21 @@ def test_scss_governance_usa_bundle_modulari_e_niente_style_inline():
     assert "@use 'components/portale-shell';" in portal_scss
     assert "@use 'pages/portale-home';" in portal_scss
 
+    app_shell_scss = (REPO_ROOT / "web/static/scss/components/_app-shell.scss").read_text(encoding="utf-8")
+    admin_scss = (REPO_ROOT / "web/static/scss/pages/_admin.scss").read_text(encoding="utf-8")
+    assert ".topbar-counter-badge" in app_shell_scss
+    assert ".notifiche-panel" in app_shell_scss
+    assert ".notif-item--unread" in app_shell_scss
+    assert ".admin-page-header" in admin_scss
+    assert ".admin-db-mode-card" in admin_scss
+    assert "@media (max-width: 767.98px)" in admin_scss
+    assert "@media (max-width: 575.98px)" in admin_scss
+
     for relative_path in (
         "web/templates/base.html",
+        "web/templates/admin/base.html",
+        "web/templates/admin/dashboard.html",
+        "web/templates/admin/studio_nuovo.html",
         "web/templates/dashboard.html",
         "web/templates/impostazioni/index.html",
         "web/templates/notifiche/pannello.html",
@@ -473,10 +506,40 @@ def test_scss_governance_usa_bundle_modulari_e_niente_style_inline():
         "web/templates/telematico_dashboard.html",
     ):
         content = (REPO_ROOT / relative_path).read_text(encoding="utf-8")
-        assert "<style>" not in content
+        assert "<style" not in content
+
+    base_template = (REPO_ROOT / "web/templates/base.html").read_text(encoding="utf-8")
+    admin_base = (REPO_ROOT / "web/templates/admin/base.html").read_text(encoding="utf-8")
+    admin_dashboard = (REPO_ROOT / "web/templates/admin/dashboard.html").read_text(encoding="utf-8")
+    admin_studio_nuovo = (REPO_ROOT / "web/templates/admin/studio_nuovo.html").read_text(encoding="utf-8")
+
+    assert "style=" not in base_template
+    assert "topbar-counter-badge" in base_template
+    assert "notifiche-panel is-hidden" in base_template
+    assert "notif-item__body" in base_template
+    assert "ss-chip-identificativo" in base_template
+
+    for css_link in (
+        "/static/css/app.css?v={{ app_version }}",
+        "/static/css/design-system.css?v={{ app_version }}",
+        "/static/css/mobile.css?v={{ app_version }}",
+        "/static/css/theme.css?v={{ app_version }}",
+    ):
+        assert css_link in admin_base
+    assert "style=" not in admin_base
+    assert "style=" not in admin_dashboard
+    assert "style=" not in admin_studio_nuovo
 
     portale_base = (REPO_ROOT / "web/templates/portale/base.html").read_text(encoding="utf-8")
     assert "/static/css/portal.css?v={{ app_version }}" in portale_base
+
+
+def test_template_html_restano_entra_il_budget_inline_style():
+    files, tags, attrs = _inline_style_totals()
+
+    assert files <= 165
+    assert tags <= 53
+    assert attrs <= 1464
 
 
 def test_impostazioni_js_e_esterno_e_senza_duplicazioni():

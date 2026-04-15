@@ -3,10 +3,10 @@
 {% block breadcrumb %}<li class="breadcrumb-item active">Panoramica</li>{% endblock %}
 
 {% block content %}
-<div class="d-flex align-items-center justify-content-between mt-3 mb-4">
+<div class="admin-page-header">
   <div>
-    <h4 class="mb-0 fw-bold">Panoramica piattaforma</h4>
-    <p class="text-muted small mb-0">Panoramica di tutti gli studi legali</p>
+    <h4 class="admin-page-title">Panoramica piattaforma</h4>
+    <p class="admin-page-subtitle">Panoramica di tutti gli studi legali</p>
   </div>
   <a href="{{ url_for('admin.nuovo_studio') }}" class="btn btn-primary">
     <i class="bi bi-plus-lg me-1"></i>Nuovo Studio
@@ -86,7 +86,7 @@
           <i class="bi bi-building text-muted"></i>
           <div class="flex-grow-1">
             <div class="fw-semibold small">{{ s.nome }}</div>
-            <div class="text-muted" style="font-size:.75rem">
+            <div class="admin-meta-text">
               Scade tra {{ s.giorni_alla_scadenza }} giorn{{ 'o' if s.giorni_alla_scadenza == 1 else 'i' }}
             </div>
           </div>
@@ -107,13 +107,13 @@
       <div class="card-body">
         {% for piano_key, piano_info in piani.items() %}
         {% set count = stats.per_piano.get(piano_key, 0) %}
+        {% set pct = (count / stats.totale * 100)|int if stats.totale else 0 %}
         <div class="d-flex align-items-center gap-2 mb-2">
-          <span class="badge bg-{{ piano_info.colore }}" style="min-width:90px">{{ piano_info.nome }}</span>
-          <div class="progress flex-grow-1" style="height:8px">
-            <div class="progress-bar bg-{{ piano_info.colore }}"
-                 style="width: {{ (count / stats.totale * 100)|int if stats.totale else 0 }}%"></div>
+          <span class="badge bg-{{ piano_info.colore }} admin-plan-badge">{{ piano_info.nome }}</span>
+          <div class="progress flex-grow-1 admin-progress">
+            <div class="progress-bar bg-{{ piano_info.colore }}" data-admin-progress-value="{{ pct }}"></div>
           </div>
-          <span class="text-muted small fw-semibold" style="min-width:24px;text-align:right">{{ count }}</span>
+          <span class="text-muted small fw-semibold admin-progress-count">{{ count }}</span>
         </div>
         {% endfor %}
       </div>
@@ -133,15 +133,14 @@
         {% for s in studi[:8] %}
         <a href="{{ url_for('admin.dettaglio_studio', slug=s.slug) }}"
            class="d-flex align-items-center gap-3 px-3 py-2 text-decoration-none text-body border-bottom studio-row">
-          <div class="rounded-circle d-flex align-items-center justify-content-center bg-primary bg-opacity-10 text-primary"
-               style="width:34px;height:34px;font-size:1rem;flex-shrink:0">
+          <div class="rounded-circle d-flex align-items-center justify-content-center bg-primary bg-opacity-10 text-primary admin-avatar-icon">
             <i class="bi bi-building"></i>
           </div>
           <div class="flex-grow-1 overflow-hidden">
             <div class="fw-semibold small text-truncate">{{ s.nome }}</div>
-            <div class="text-muted" style="font-size:.72rem">/{{ s.slug }}</div>
+            <div class="text-muted admin-slug">/{{ s.slug }}</div>
           </div>
-          <span class="badge badge-stato-{{ s.stato }} rounded-pill" style="font-size:.7rem">
+          <span class="badge badge-stato-{{ s.stato }} rounded-pill admin-status-badge">
             {{ s.stato }}
           </span>
         </a>
@@ -152,4 +151,15 @@
     </div>
   </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+  document.querySelectorAll('[data-admin-progress-value]').forEach((node) => {
+    const value = Number.parseInt(node.dataset.adminProgressValue || '0', 10);
+    const normalized = Number.isFinite(value) ? Math.max(0, Math.min(value, 100)) : 0;
+    node.style.width = normalized + '%';
+  });
+</script>
 {% endblock %}

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import sys
+import re
 from pathlib import Path
 
 
@@ -18,6 +19,24 @@ def _line_count(relative_path: str) -> int:
 def _check(condition: bool, message: str, failures: list[str]) -> None:
     if not condition:
         failures.append(message)
+
+
+def _inline_style_totals(root_relative_path: str) -> tuple[int, int, int]:
+    root = REPO_ROOT / root_relative_path
+    style_tag = re.compile(r"<style\b", re.IGNORECASE)
+    style_attr = re.compile(r"\sstyle=", re.IGNORECASE)
+    files = 0
+    tags = 0
+    attrs = 0
+    for path in root.rglob("*.html"):
+        text = path.read_text(encoding="utf-8")
+        file_tags = len(style_tag.findall(text))
+        file_attrs = len(style_attr.findall(text))
+        if file_tags or file_attrs:
+            files += 1
+            tags += file_tags
+            attrs += file_attrs
+    return files, tags, attrs
 
 
 def _tracked_files() -> list[str]:
@@ -193,6 +212,72 @@ def main() -> int:
         "lex/guards/orchestrator.py",
     ):
         _check((REPO_ROOT / relative_path).exists(), f"Struttura Lex incompleta: manca {relative_path}.", failures)
+
+    app_scss = _read_text("web/static/scss/app.scss")
+    for snippet in (
+        "@use 'components/app-shell';",
+        "@use 'components/feedback';",
+        "@use 'components/compact-panels';",
+        "@use 'pages/admin';",
+        "@use 'pages/dashboard';",
+        "@use 'pages/settings';",
+        "@use 'pages/telematico-dashboard';",
+    ):
+        _check(snippet in app_scss, f"SCSS principale incompleto: manca '{snippet}'.", failures)
+
+    for relative_path in (
+        "web/static/scss/components/_app-shell.scss",
+        "web/static/scss/pages/_admin.scss",
+    ):
+        _check((REPO_ROOT / relative_path).exists(), f"SCSS governabile mancante: {relative_path}.", failures)
+
+    base_template = _read_text("web/templates/base.html")
+    for snippet in (
+        "topbar-counter-badge",
+        "ocr-pill is-hidden",
+        "notifiche-panel is-hidden",
+        "notif-item__body",
+        "ss-chip-identificativo",
+    ):
+        _check(snippet in base_template, f"Base template non allineato al refactor SCSS: manca '{snippet}'.", failures)
+    _check("<style" not in base_template, "web/templates/base.html non deve contenere blocchi <style> inline.", failures)
+    _check("style=" not in base_template, "web/templates/base.html non deve contenere attributi style inline.", failures)
+
+    admin_base = _read_text("web/templates/admin/base.html")
+    for css_link in (
+        "/static/css/app.css?v={{ app_version }}",
+        "/static/css/design-system.css?v={{ app_version }}",
+        "/static/css/mobile.css?v={{ app_version }}",
+        "/static/css/theme.css?v={{ app_version }}",
+    ):
+        _check(css_link in admin_base, f"Admin base non carica il bundle CSS richiesto: {css_link}.", failures)
+    _check("<style" not in admin_base, "web/templates/admin/base.html non deve contenere blocchi <style> inline.", failures)
+    _check("style=" not in admin_base, "web/templates/admin/base.html non deve contenere attributi style inline.", failures)
+
+    for relative_path in (
+        "web/templates/admin/dashboard.html",
+        "web/templates/admin/studio_nuovo.html",
+    ):
+        content = _read_text(relative_path)
+        _check("<style" not in content, f"{relative_path} non deve contenere blocchi <style> inline.", failures)
+        _check("style=" not in content, f"{relative_path} non deve contenere attributi style inline.", failures)
+
+    inline_files, inline_tags, inline_attrs = _inline_style_totals("web/templates")
+    _check(
+        inline_files <= 165,
+        f"Template HTML fuori budget governance: {inline_files} file con inline style (limite 165).",
+        failures,
+    )
+    _check(
+        inline_tags <= 53,
+        f"Template HTML fuori budget governance: {inline_tags} tag <style> (limite 53).",
+        failures,
+    )
+    _check(
+        inline_attrs <= 1464,
+        f"Template HTML fuori budget governance: {inline_attrs} attributi style= (limite 1464).",
+        failures,
+    )
 
     ci_workflow = _read_text(".github/workflows/ci.yml")
     for snippet in (

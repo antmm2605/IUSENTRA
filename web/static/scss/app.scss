@@ -3,10 +3,12 @@
 //  Compila → web/static/css/app.css
 // ================================================================
 @use 'variables' as v;
+@use 'components/app-shell';
 @use 'components/compact-panels';
 @use 'components/feedback';
 @use 'components/local-ai-assistant';
 @use 'components/pct-lex-assistant';
+@use 'pages/admin';
 @use 'pages/dashboard';
 @use 'pages/fascicolo-smart-board';
 @use 'pages/hearing-preparation';

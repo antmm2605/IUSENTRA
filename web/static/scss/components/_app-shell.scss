@@ -1,0 +1,264 @@
+/* ================================================================
+   App shell condiviso
+   ================================================================ */
+
+.sb-brand-icon {
+  color: var(--accent);
+  font-size: .95rem;
+}
+
+.sb-brand-title {
+  font-size: .9rem;
+  letter-spacing: .2px;
+  line-height: 1.2;
+}
+
+.sb-brand-subtitle {
+  font-size: .64rem;
+  opacity: .5;
+  font-weight: 500;
+  letter-spacing: .6px;
+  text-transform: uppercase;
+}
+
+.sb-close-btn {
+  color: rgba(255,255,255,.5);
+  font-size: 1.1rem;
+}
+
+.sb-group-label--recent {
+  margin-top: .5rem;
+}
+
+.sb-link-icon--accent {
+  color: var(--accent);
+  width: 16px;
+}
+
+.sb-user-role {
+  opacity: .55;
+  font-size: .68rem;
+}
+
+.sb-user-icon-btn {
+  font-size: .8rem;
+}
+
+.sb-user--collapsed {
+  opacity: .4;
+  font-size: .72rem;
+  justify-content: center;
+}
+
+.topbar-menu-icon {
+  font-size: 1.1rem;
+}
+
+.is-hidden {
+  display: none !important;
+}
+
+.topbar-counter-badge {
+  font-size: .55rem;
+  min-width: 1.1em;
+  padding: .2em .35em;
+}
+
+.ocr-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  padding: .3rem .55rem;
+  border-radius: 999px;
+  font-size: .72rem;
+  font-weight: 600;
+  background: rgba(13, 110, 253, .08);
+  color: var(--bs-primary);
+  border: 1px solid rgba(13, 110, 253, .14);
+}
+
+.ocr-pill-spinner {
+  width: .85rem;
+  height: .85rem;
+  border-width: .12rem;
+}
+
+.ocr-pill-check {
+  font-size: .9rem;
+}
+
+.ocr-pill.ocr-done {
+  background: rgba(25, 135, 84, .1);
+  color: var(--bs-success);
+  border-color: rgba(25, 135, 84, .18);
+}
+
+.notifiche-center {
+  position: relative;
+}
+
+.user-info__name {
+  font-size: .85rem;
+}
+
+.user-info__role {
+  font-size: .73rem;
+}
+
+.notifiche-panel {
+  position: fixed;
+  z-index: 10050;
+  width: 360px;
+  max-width: calc(100vw - 1rem);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, .18), 0 2px 8px rgba(0, 0, 0, .1);
+  border: 1px solid rgba(0, 0, 0, .1);
+  background: var(--bs-body-bg, #fff);
+}
+
+.notifiche-panel__header {
+  background: var(--bs-primary);
+  color: #fff;
+}
+
+.notifiche-panel__mark-all {
+  font-size: .72rem;
+  background: none;
+  border: none;
+}
+
+.notifiche-panel__list {
+  max-height: 360px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.notifiche-panel__footer {
+  font-size: .75rem;
+}
+
+.notifiche-panel__enable-btn {
+  font-size: .75rem;
+}
+
+.notif-item {
+  display: block;
+  padding: .65rem 1rem;
+  text-decoration: none;
+  color: inherit;
+  border-bottom: 1px solid var(--bs-border-color-translucent);
+  transition: background .16s ease, transform .16s ease;
+}
+
+.notif-item:hover {
+  background: rgba(148, 163, 184, .08);
+}
+
+.notif-item--unread {
+  background: rgba(13, 110, 253, .04);
+}
+
+.notif-item__icon {
+  font-size: 1rem;
+}
+
+.notif-item__body {
+  font-size: .73rem;
+}
+
+.notif-item__dot {
+  width: 7px;
+  height: 7px;
+  padding: 0;
+  margin-top: .35rem;
+}
+
+.pct-swipe-underlay__icon {
+  font-size: 1.15rem;
+  transition: transform .15s;
+}
+
+.ss-chip-identificativo {
+  font-weight: 400;
+  opacity: .7;
+  font-size: .75rem;
+}
+
+.pct-ai-panel--hidden {
+  display: none;
+}
+
+.pct-ai-header-subtitle {
+  font-size: .75rem;
+  font-weight: 400;
+}
+
+.pct-ai-model-badge {
+  background: rgba(255, 255, 255, .15);
+  font-size: .6rem;
+  font-weight: 500;
+}
+
+.pct-ai-ctx--hidden {
+  display: none;
+}
+
+[data-bs-theme="dark"] {
+  .ocr-pill {
+    background: rgba(96, 165, 250, .14);
+    border-color: rgba(96, 165, 250, .2);
+    color: #bfdbfe;
+  }
+
+  .ocr-pill.ocr-done {
+    background: rgba(34, 197, 94, .16);
+    border-color: rgba(34, 197, 94, .24);
+    color: #86efac;
+  }
+
+  .notifiche-panel {
+    border-color: rgba(148, 163, 184, .18);
+    background: #0f172a;
+  }
+
+  .notif-item {
+    border-bottom-color: rgba(148, 163, 184, .12);
+  }
+
+  .notif-item:hover {
+    background: rgba(51, 65, 85, .42);
+  }
+
+  .notif-item--unread {
+    background: rgba(37, 99, 235, .16);
+  }
+}
+
+@media (max-width: 767.98px) {
+  .notifiche-panel {
+    max-width: calc(100vw - .85rem);
+  }
+
+  .ocr-pill {
+    padding: .28rem .5rem;
+    font-size: .68rem;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .user-info__name {
+    font-size: .8rem;
+  }
+
+  .user-info__role,
+  .notifiche-panel__footer,
+  .notifiche-panel__enable-btn,
+  .notif-item__body {
+    font-size: .72rem;
+  }
+
+  .notifiche-panel {
+    max-width: calc(100vw - .7rem);
+  }
+}

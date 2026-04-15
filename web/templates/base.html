@@ -36,11 +36,11 @@
   <div class="sb-logo">
     <div class="d-flex align-items-center gap-2">
       <div class="sb-logo-icon">
-        <i class="bi bi-briefcase-fill" style="color:var(--accent);font-size:.95rem"></i>
+        <i class="bi bi-briefcase-fill sb-brand-icon"></i>
       </div>
       <div>
-        <div class="fw-bold" style="font-size:.9rem;letter-spacing:.2px;line-height:1.2">Studio Legale</div>
-        <div style="font-size:.64rem;opacity:.5;font-weight:500;letter-spacing:.6px;text-transform:uppercase">Gestionale Studio</div>
+        <div class="fw-bold sb-brand-title">Studio Legale</div>
+        <div class="sb-brand-subtitle">Gestionale Studio</div>
       </div>
     </div>
     {# Bottone chiudi (mobile) + comprimi (desktop) #}
@@ -48,8 +48,7 @@
       <button id="sb-mini-toggle" title="Comprimi/espandi sidebar">
         <i class="bi bi-layout-sidebar-reverse"></i>
       </button>
-      <button id="sb-close" class="btn btn-sm p-0" title="Chiudi menu"
-              style="color:rgba(255,255,255,.5);font-size:1.1rem">
+      <button id="sb-close" class="btn btn-sm p-0 sb-close-btn" title="Chiudi menu">
         <i class="bi bi-x-lg"></i>
       </button>
     </div>
@@ -74,10 +73,10 @@
 
     {# Recenti (solo se presenti) #}
     {% if recenti %}
-    <div class="sb-group-label" style="margin-top:.5rem">Recenti</div>
+    <div class="sb-group-label sb-group-label--recent">Recenti</div>
     {% for r in recenti %}
     <a href="{{ r.url }}" class="nav-link sb-link sb-recent" title="{{ r.titolo }}">
-      <i class="bi {{ r.icona }}" style="color:var(--accent);width:16px"></i>
+      <i class="bi {{ r.icona }} sb-link-icon--accent"></i>
       <span class="sb-txt">{{ r.titolo }}</span>
     </a>
     {% endfor %}
@@ -381,22 +380,22 @@
     <div class="sb-avatar">{{ utente_corrente.username[0].upper() }}</div>
     <div class="sb-userinfo">
       <div class="fw-semibold">{{ utente_corrente.nome_completo or utente_corrente.username }}</div>
-      <div style="opacity:.55;font-size:.68rem">{{ utente_corrente.ruolo.value }}</div>
+      <div class="sb-user-role">{{ utente_corrente.ruolo.value }}</div>
     </div>
     <div class="d-flex gap-1 ms-auto">
-      <a href="{{ url_for('profilo') }}" class="btn btn-sm btn-outline-light p-1" title="Profilo" style="font-size:.8rem">
+      <a href="{{ url_for('profilo') }}" class="btn btn-sm btn-outline-light p-1 sb-user-icon-btn" title="Profilo">
         <i class="bi bi-person"></i>
       </a>
       <form method="post" action="{{ url_for('logout') }}">
         <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
-        <button class="btn btn-sm btn-outline-light p-1" title="Esci" style="font-size:.8rem">
+        <button class="btn btn-sm btn-outline-light p-1 sb-user-icon-btn" title="Esci">
           <i class="bi bi-box-arrow-right"></i>
         </button>
       </form>
     </div>
   </div>
   {% else %}
-  <div class="sb-user" style="opacity:.4;font-size:.72rem;justify-content:center">
+  <div class="sb-user sb-user--collapsed">
     PCT Studio v{{ app_version }}
   </div>
   {% endif %}
@@ -415,7 +414,7 @@
 <!-- Topbar: primo elemento del flex column — sempre visibile -->
 <div class="topbar">
   <button id="sb-open" class="btn btn-sm btn-outline-secondary me-2" title="Menu">
-    <i class="bi bi-list" style="font-size:1.1rem"></i>
+    <i class="bi bi-list topbar-menu-icon"></i>
   </button>
   <h1>{% block page_title %}{% endblock %}</h1>
   <div class="d-flex align-items-center gap-2 topbar-actions">
@@ -443,8 +442,7 @@
        title="Scadenziario - scadenze entro 7 giorni" id="btn-scadenziario-nav">
       <i class="bi bi-calendar-event"></i>
       <span id="badge-scadenze-nav"
-            class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
-            style="display:none;font-size:.55rem;min-width:1.1em;padding:.2em .35em">0</span>
+            class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger topbar-counter-badge is-hidden">0</span>
     </a>
     <a href="{{ url_for('nuovo_appuntamento') }}" class="btn btn-sm btn-primary"
        title="Nuovo appuntamento">
@@ -452,14 +450,14 @@
     </a>
     <div id="htmx-loader" title="Caricamento in corso"></div>
     {# ── Indicatore stato worker OCR ── #}
-    <span id="ocr-pill" title="Worker OCR — elaborazione documenti in corso" style="display:none">
+    <span id="ocr-pill" class="ocr-pill is-hidden" title="Worker OCR - elaborazione documenti in corso">
       <span class="spinner-border ocr-pill-spinner" role="status" aria-hidden="true"></span>
-      <i class="bi bi-check2-all ocr-pill-check" style="display:none"></i>
+      <i class="bi bi-check2-all ocr-pill-check is-hidden"></i>
       <span id="ocr-pill-txt">OCR</span>
     </span>
     {% if utente_corrente %}
     {# ── Centro notifiche in-app ─────────────────────────────────── #}
-    <span id="notifiche-center" class="d-inline-block" style="position:relative">
+    <span id="notifiche-center" class="d-inline-block notifiche-center">
       <button class="btn btn-sm btn-outline-secondary position-relative"
               id="btn-notifiche-inbox"
               type="button"
@@ -468,13 +466,12 @@
               aria-expanded="false"
               onclick="pctNotifPanel.toggle(this)">
         <i class="bi bi-bell" id="icon-bell-inbox"></i>
-        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
-              id="badge-notifiche"
-              style="display:none;font-size:.55rem;min-width:1.1em;padding:.2em .35em">0</span>
+        <span id="badge-notifiche"
+              class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger topbar-counter-badge is-hidden">0</span>
       </button>
     </span>
     {# Pulsante legacy nascosto — mantenuto per push.js #}
-    <button id="btn-notifiche" style="display:none"
+    <button id="btn-notifiche" class="is-hidden"
             onclick="PCT_NOTIFICHE.richiediPermesso()"></button>
     {% endif %}
     <button class="btn btn-sm btn-outline-secondary" id="btn-tema"
@@ -499,8 +496,8 @@
       <ul class="dropdown-menu dropdown-menu-end dropdown-menu-user-mobile">
         <li>
           <div class="user-info">
-            <div class="fw-semibold" style="font-size:.85rem">{{ utente_corrente.nome_completo or utente_corrente.username }}</div>
-            <div class="text-muted" style="font-size:.73rem">{{ utente_corrente.ruolo.value }}</div>
+            <div class="fw-semibold user-info__name">{{ utente_corrente.nome_completo or utente_corrente.username }}</div>
+            <div class="text-muted user-info__role">{{ utente_corrente.ruolo.value }}</div>
           </div>
         </li>
         <li><a class="dropdown-item py-2" href="{{ url_for('profilo') }}">
@@ -593,40 +590,33 @@
    forza overflow-y:auto che clippa i dropdown assolutamente posizionati) ── #}
 {% if utente_corrente %}
 <div id="notifiche-dropdown"
+     class="notifiche-panel is-hidden"
      role="dialog"
-     aria-label="Centro notifiche"
-     style="display:none;position:fixed;z-index:10050;width:360px;max-width:calc(100vw - 1rem);
-            border-radius:12px;overflow:hidden;
-            box-shadow:0 8px 32px rgba(0,0,0,.18),0 2px 8px rgba(0,0,0,.1);
-            border:1px solid rgba(0,0,0,.1);
-            background:var(--bs-body-bg,#fff)">
+     aria-label="Centro notifiche">
   {# Header #}
-  <div class="d-flex align-items-center justify-content-between px-3 py-2"
-       style="background:var(--bs-primary);color:#fff">
+  <div class="d-flex align-items-center justify-content-between px-3 py-2 notifiche-panel__header">
     <span class="fw-semibold small"><i class="bi bi-bell-fill me-1"></i>Notifiche</span>
     <button class="btn btn-sm p-0 text-white opacity-75"
             id="btn-tutte-lette"
-            style="font-size:.72rem;background:none;border:none"
+            class="notifiche-panel__mark-all"
             title="Segna tutte come lette">
       <i class="bi bi-check2-all me-1"></i>Tutte lette
     </button>
   </div>
   {# Lista notifiche (popolata da JS) #}
-  <div id="notifiche-lista" style="max-height:360px;overflow-y:auto;-webkit-overflow-scrolling:touch">
+  <div id="notifiche-lista" class="notifiche-panel__list">
     <div class="text-center text-muted py-4 small" id="notif-placeholder">
       <i class="bi bi-bell-slash d-block mb-2 opacity-25 fs-3"></i>
       Nessuna notifica
     </div>
   </div>
   {# Footer #}
-  <div class="d-flex align-items-center justify-content-between px-3 py-2 border-top"
-       style="font-size:.75rem">
+  <div class="d-flex align-items-center justify-content-between px-3 py-2 border-top notifiche-panel__footer">
     <a href="/scadenziario" class="text-decoration-none text-muted">
       <i class="bi bi-list-check me-1"></i>Scadenziario
     </a>
     <button id="btn-abilita-push"
-            class="btn btn-link p-0 text-muted"
-            style="font-size:.75rem;display:none"
+            class="btn btn-link p-0 text-muted notifiche-panel__enable-btn is-hidden"
             onclick="PCT_NOTIFICHE.richiediPermesso()">
       <i class="bi bi-bell-slash me-1"></i>Abilita notifiche desktop
     </button>
@@ -1103,9 +1093,9 @@ function initPagination(tableId, selectId) {
     if (!BADGE_EL) return;
     if (n > 0) {
       BADGE_EL.textContent = n > 9 ? '9+' : n;
-      BADGE_EL.style.display = '';
+      BADGE_EL.classList.remove('is-hidden');
     } else {
-      BADGE_EL.style.display = 'none';
+      BADGE_EL.classList.add('is-hidden');
     }
     aggiornaIconaBell(n);
   }
@@ -1122,18 +1112,17 @@ function initPagination(tableId, selectId) {
     const lette = getLette();
     LISTA_EL.innerHTML = alerts.map(a => {
       const non_letta = !lette.has(a.id);
-      return `<a href="${a.url}" class="d-block text-decoration-none border-bottom notif-item"
-                 data-id="${a.id}"
-                 style="padding:.65rem 1rem;background:${non_letta ? 'rgba(13,110,253,.04)' : ''}">
+      return `<a href="${a.url}" class="notif-item ${non_letta ? 'notif-item--unread' : ''}"
+                 data-id="${a.id}">
         <div class="d-flex align-items-start gap-2">
           <div class="flex-shrink-0 mt-1">
-            <i class="bi bi-${a.icona} ${ICONE_COLORE[a.tipo] || 'text-secondary'}" style="font-size:1rem"></i>
+            <i class="bi bi-${a.icona} ${ICONE_COLORE[a.tipo] || 'text-secondary'} notif-item__icon"></i>
           </div>
           <div class="flex-grow-1">
             <div class="fw-semibold small ${ICONE_COLORE[a.tipo] || ''}">${a.titolo}</div>
-            <div class="text-muted" style="font-size:.73rem">${a.corpo}</div>
+            <div class="text-muted notif-item__body">${a.corpo}</div>
           </div>
-          ${non_letta ? `<span class="flex-shrink-0 badge rounded-pill bg-${a.tipo}" style="width:7px;height:7px;padding:0;margin-top:.35rem" title="Non letta"></span>` : ''}
+          ${non_letta ? `<span class="flex-shrink-0 badge rounded-pill bg-${a.tipo} notif-item__dot" title="Non letta"></span>` : ''}
         </div>
       </a>`;
     }).join('');
@@ -1158,7 +1147,7 @@ function initPagination(tableId, selectId) {
       renderLista(_cache);
       // Mostra "Abilita notifiche desktop" se non ancora abilitato
       if (BTN_PUSH && 'Notification' in window && Notification.permission === 'default') {
-        BTN_PUSH.style.display = '';
+        BTN_PUSH.classList.remove('is-hidden');
       }
     } catch (_) {}
   }
@@ -1181,21 +1170,21 @@ function initPagination(tableId, selectId) {
   function _apriPanel() {
     if (!PANEL) return;
     _posizionaPanel();
-    PANEL.style.display = 'block';
+    PANEL.classList.remove('is-hidden');
     if (BTN_BELL) BTN_BELL.setAttribute('aria-expanded', 'true');
     carica();
   }
 
   function _chiudiPanel() {
     if (!PANEL) return;
-    PANEL.style.display = 'none';
+    PANEL.classList.add('is-hidden');
     if (BTN_BELL) BTN_BELL.setAttribute('aria-expanded', 'false');
   }
 
   // API pubblica usata dall'attributo onclick del button
   window.pctNotifPanel = {
     toggle: function (btn) {
-      if (PANEL && PANEL.style.display === 'block') {
+      if (PANEL && !PANEL.classList.contains('is-hidden')) {
         _chiudiPanel();
       } else {
         _apriPanel();
@@ -1205,7 +1194,7 @@ function initPagination(tableId, selectId) {
 
   // Chiudi al click fuori dal pannello
   document.addEventListener('click', function (e) {
-    if (!PANEL || PANEL.style.display !== 'block') return;
+    if (!PANEL || PANEL.classList.contains('is-hidden')) return;
     if (PANEL.contains(e.target)) return;
     if (BTN_BELL && BTN_BELL.contains(e.target)) return;
     _chiudiPanel();
@@ -1213,7 +1202,7 @@ function initPagination(tableId, selectId) {
 
   // Riposiziona se il viewport cambia (orientamento mobile)
   window.addEventListener('resize', function () {
-    if (PANEL && PANEL.style.display === 'block') _posizionaPanel();
+    if (PANEL && !PANEL.classList.contains('is-hidden')) _posizionaPanel();
   });
 
   // Segna tutte lette
@@ -1248,9 +1237,9 @@ function initPagination(tableId, selectId) {
         if (!d) return;
         if (d.n > 0) {
           badge.textContent = d.n > 9 ? '9+' : d.n;
-          badge.style.display = '';
+          badge.classList.remove('is-hidden');
         } else {
-          badge.style.display = 'none';
+          badge.classList.add('is-hidden');
         }
       }).catch(function() {});
   }
@@ -1395,7 +1384,7 @@ if ('serviceWorker' in navigator) {
     function mkUnderlay() {
       underlay = document.createElement('div');
       underlay.className = 'pct-swipe-underlay';
-      underlay.innerHTML = '<i class="bi bi-trash3-fill" style="font-size:1.15rem;transition:transform .15s"></i>';
+      underlay.innerHTML = '<i class="bi bi-trash3-fill pct-swipe-underlay__icon"></i>';
       document.body.appendChild(underlay);
     }
     function positionUnderlay() {
@@ -1570,21 +1559,21 @@ if ('serviceWorker' in navigator) {
           _wasActive = true;
           txt.textContent = 'OCR \u00b7 ' + d.in_coda;
           pill.classList.remove('ocr-done');
-          pill.style.display = 'inline-flex';
-          if (spinner) spinner.style.display = '';
-          if (check)   check.style.display   = 'none';
+          pill.classList.remove('is-hidden');
+          if (spinner) spinner.classList.remove('is-hidden');
+          if (check)   check.classList.add('is-hidden');
         } else if (_wasActive) {
           _wasActive = false;
           txt.textContent = 'OCR';
           pill.classList.add('ocr-done');
-          pill.style.display = 'inline-flex';
-          if (spinner) spinner.style.display = 'none';
-          if (check)   check.style.display   = '';
+          pill.classList.remove('is-hidden');
+          if (spinner) spinner.classList.add('is-hidden');
+          if (check)   check.classList.remove('is-hidden');
           _doneTimer = setTimeout(function () {
-            pill.style.display = 'none';
+            pill.classList.add('is-hidden');
             pill.classList.remove('ocr-done');
-            if (spinner) spinner.style.display = '';
-            if (check)   check.style.display   = 'none';
+            if (spinner) spinner.classList.remove('is-hidden');
+            if (check)   check.classList.add('is-hidden');
           }, 3000);
         }
       })
@@ -1755,7 +1744,7 @@ if ('serviceWorker' in navigator) {
       chip.innerHTML =
         '<div class="' + siglaClass + '">' + _esc(selected.sigla) + '</div>' +
         '<span class="ss-chip-name">' + _esc(selected.nome) + '</span>' +
-        (selected.identificativo ? '<span class="ss-chip-name" style="font-weight:400;opacity:.7;font-size:.75rem">&nbsp;· ' + _esc(selected.identificativo) + '</span>' : '') +
+        (selected.identificativo ? '<span class="ss-chip-identificativo">&nbsp;· ' + _esc(selected.identificativo) + '</span>' : '') +
         '<button type="button" class="ss-chip-clear" onclick="_ssClear_' + uid + '()" title="Deseleziona">×</button>';
     }
 
@@ -1801,16 +1790,15 @@ if ('serviceWorker' in navigator) {
 </button>
 
 <!-- Pannello chat -->
-<div id="pct-ai-panel" class="pct-ai-panel" style="display:none" role="dialog" aria-label="Assistente PCT">
+<div id="pct-ai-panel" class="pct-ai-panel pct-ai-panel--hidden" role="dialog" aria-label="Assistente PCT">
 
   <!-- Header -->
   <div class="pct-ai-header">
     <div class="d-flex align-items-center gap-2">
       <i class="bi bi-robot"></i>
       <strong>Lex</strong>
-      <span class="text-white-50" style="font-size:.75rem;font-weight:400">Assistente PCT</span>
-      <span id="pct-ai-model-badge" class="badge"
-            style="background:rgba(255,255,255,.15);font-size:.6rem;font-weight:500"></span>
+      <span class="text-white-50 pct-ai-header-subtitle">Assistente PCT</span>
+      <span id="pct-ai-model-badge" class="badge pct-ai-model-badge"></span>
     </div>
     <div class="d-flex gap-1">
       <button class="pct-ai-hbtn" onclick="pctAI.clearHistory()" title="Nuova conversazione">
@@ -1823,7 +1811,7 @@ if ('serviceWorker' in navigator) {
   </div>
 
   <!-- Contesto fascicolo attivo -->
-  <div id="pct-ai-ctx" class="pct-ai-ctx" style="display:none">
+  <div id="pct-ai-ctx" class="pct-ai-ctx pct-ai-ctx--hidden">
     <i class="bi bi-folder2-open"></i>
     <span id="pct-ai-ctx-label"></span>
   </div>
@@ -1885,7 +1873,7 @@ window.pctAI = {
       var lbl = document.getElementById('pct-ai-ctx-label');
       if (ctx && lbl) {
         lbl.textContent = 'Contesto fascicolo attivo';
-        ctx.style.display = 'flex';
+        ctx.classList.remove('pct-ai-ctx--hidden');
       }
     }
     _checkStatus();
@@ -1895,7 +1883,7 @@ window.pctAI = {
     _open = !_open;
     var panel = document.getElementById('pct-ai-panel');
     var fab   = document.getElementById('pct-ai-fab');
-    panel.style.display = _open ? 'flex' : 'none';
+    if (panel) panel.classList.toggle('pct-ai-panel--hidden', !_open);
     if (fab) fab.classList.toggle('pct-ai-fab--active', _open);
     if (_open) {
       setTimeout(function () {

@@ -6,25 +6,24 @@
 {% endblock %}
 
 {% block content %}
-<div class="mt-3 mb-4">
-  <h4 class="mb-0 fw-bold">Nuovo Studio Legale</h4>
-  <p class="text-muted small">Compila i dati per creare un nuovo tenant sulla piattaforma.</p>
+<div class="admin-page-header">
+  <div>
+    <h4 class="admin-page-title">Nuovo Studio Legale</h4>
+    <p class="admin-page-subtitle">Compila i dati per creare un nuovo tenant sulla piattaforma.</p>
+  </div>
 </div>
 
-<!-- Step indicator -->
-<div class="d-flex align-items-center gap-2 mb-4 small fw-semibold">
-  <span class="badge bg-primary rounded-pill px-3 py-2">1 Dati studio</span>
-  <i class="bi bi-chevron-right text-muted"></i>
-  <span class="badge bg-primary rounded-pill px-3 py-2">2 Storage</span>
-  <i class="bi bi-chevron-right text-muted"></i>
-  <span class="badge bg-secondary rounded-pill px-3 py-2">3 Piano</span>
-  <i class="bi bi-chevron-right text-muted"></i>
-  <span class="badge bg-secondary rounded-pill px-3 py-2">4 Admin</span>
+<div class="admin-step-indicator">
+  <span class="badge bg-primary admin-step-pill">1 Dati studio</span>
+  <i class="bi bi-chevron-right admin-step-chevron"></i>
+  <span class="badge bg-primary admin-step-pill">2 Storage</span>
+  <i class="bi bi-chevron-right admin-step-chevron"></i>
+  <span class="badge bg-secondary admin-step-pill">3 Piano</span>
+  <i class="bi bi-chevron-right admin-step-chevron"></i>
+  <span class="badge bg-secondary admin-step-pill">4 Admin</span>
 </div>
 
 <form method="post" class="row g-4">
-
-  <!-- Dati Studio -->
   <div class="col-12 col-lg-8">
     <div class="card mb-4">
       <div class="card-header fw-semibold d-flex align-items-center gap-2">
@@ -88,13 +87,12 @@
           <div class="col-12">
             <label class="form-label fw-semibold small">Note interne (admin)</label>
             <textarea name="note_admin" class="form-control" rows="2"
-                      placeholder="Note visibili solo dagli amministratori piattaforma…">{{ form.get('note_admin','') }}</textarea>
+                      placeholder="Note visibili solo dagli amministratori piattaforma...">{{ form.get('note_admin','') }}</textarea>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Utente amministratore -->
     <div class="card">
       <div class="card-header fw-semibold d-flex align-items-center gap-2">
         <i class="bi bi-person-fill-gear text-success"></i> Utente Amministratore dello Studio
@@ -102,8 +100,8 @@
       </div>
       <div class="card-body">
         <p class="text-muted small mb-3">
-          Questo account sarà l'amministratore principale dello studio.
-          Potrà creare ulteriori utenti e gestire tutte le impostazioni.
+          Questo account sara' l'amministratore principale dello studio.
+          Potra' creare ulteriori utenti e gestire tutte le impostazioni.
         </p>
         <div class="row g-3">
           <div class="col-12 col-sm-4">
@@ -133,8 +131,8 @@
         </div>
       </div>
     </div>
-    <!-- Storage -->
-    <div class="card">
+
+    <div class="card mt-4">
       <div class="card-header fw-semibold d-flex align-items-center gap-2">
         <i class="bi bi-database-fill text-info"></i> Strategia Storage
         <span class="badge bg-info ms-auto">Definita dal Superadmin</span>
@@ -153,12 +151,8 @@
           {% for mode_key in db_mode_choices %}
           {% set mode_info = db_mode_info[mode_key] %}
           <div class="col-12">
-            <label class="db-mode-card d-flex align-items-start gap-3 p-3 rounded-3 cursor-pointer
-                          {% if form.get('db_mode', 'JSON') == mode_key %}selected{% endif %}"
-                   for="dbmode_{{ mode_key }}"
-                   style="border: 2px solid {% if form.get('db_mode','JSON') == mode_key %}var(--bs-primary){% else %}#e2e8f0{% endif %};
-                          background: {% if form.get('db_mode','JSON') == mode_key %}#eff6ff{% else %}transparent{% endif %};
-                          cursor: pointer; transition: all .15s;">
+            <label class="admin-db-mode-card d-flex align-items-start gap-3 p-3 rounded-3 {% if form.get('db_mode', 'JSON') == mode_key %}selected{% endif %}"
+                   for="dbmode_{{ mode_key }}">
               <input class="form-check-input mt-0 flex-shrink-0" type="radio"
                      name="db_mode" id="dbmode_{{ mode_key }}" value="{{ mode_key }}"
                      {% if form.get('db_mode', 'JSON') == mode_key %}checked{% endif %}>
@@ -166,28 +160,25 @@
                 <div class="d-flex align-items-center gap-2 mb-1">
                   <i class="bi {{ mode_info.icona }} text-{{ mode_info.colore }}"></i>
                   <span class="fw-semibold small">{{ mode_info.nome }}</span>
-                  <span class="badge bg-{{ mode_info.colore }} ms-auto" style="font-size:.65rem">
-                    {{ mode_info.badge }}
-                  </span>
+                  <span class="badge bg-{{ mode_info.colore }} ms-auto admin-badge-xs">{{ mode_info.badge }}</span>
                 </div>
-                <p class="text-muted mb-0" style="font-size:.78rem">{{ mode_info.desc }}</p>
+                <p class="text-muted mb-0 small">{{ mode_info.desc }}</p>
                 {% if mode_key == 'SQLITE' %}
-                <div class="mt-2 p-2 rounded-2 bg-info bg-opacity-10" style="font-size:.72rem">
+                <div class="admin-note-card admin-note-card--info">
                   <i class="bi bi-check2-square me-1 text-info"></i>
                   Alla creazione viene predisposto automaticamente <strong>studio.db</strong> nel tenant.
                 </div>
                 {% endif %}
                 {% if mode_key == 'POSTGRESQL' %}
-                <div class="mt-2 p-2 rounded-2 bg-primary bg-opacity-10" style="font-size:.72rem">
+                <div class="admin-note-card admin-note-card--primary">
                   <i class="bi bi-diagram-3 me-1 text-primary"></i>
-                  La connessione esterna viene configurata e testata dal Superadmin; i moduli core restano su backend locale finché non viene completata la migrazione transazionale del tenant.
+                  La connessione esterna viene configurata e testata dal Superadmin; i moduli core restano su backend locale finche' non viene completata la migrazione transazionale del tenant.
                 </div>
                 {% endif %}
                 {% if mode_key != 'JSON' and mode_key != 'SQLITE' %}
-                <div class="mt-2 p-2 rounded-2 bg-{{ mode_info.colore }} bg-opacity-10" style="font-size:.72rem">
+                <div class="admin-note-card admin-note-card--accent">
                   <i class="bi bi-info-circle me-1 text-{{ mode_info.colore }}"></i>
-                  Porta default: <strong>{{ mode_info.porta }}</strong> —
-                  La connessione andrà configurata nel dettaglio studio dopo la creazione.
+                  Porta default: <strong>{{ mode_info.porta }}</strong> - La connessione andra' configurata nel dettaglio studio dopo la creazione.
                 </div>
                 {% endif %}
               </div>
@@ -199,7 +190,6 @@
     </div>
   </div>
 
-  <!-- Piano -->
   <div class="col-12 col-lg-4">
     <div class="card mb-4">
       <div class="card-header fw-semibold d-flex align-items-center gap-2">
@@ -213,11 +203,11 @@
           <label class="form-check-label" for="piano_{{ pk }}">
             <span class="badge bg-{{ pv.colore }} me-1">{{ pv.nome }}</span>
             <span class="small text-muted">
-              {% if pv.max_utenti == 0 %}Utenti illimitati{% else %}Max {{ pv.max_utenti }} utenti{% endif %} —
+              {% if pv.max_utenti == 0 %}Utenti illimitati{% else %}Max {{ pv.max_utenti }} utenti{% endif %} -
               {% if pv.max_storage_mb == 0 %}Storage illimitato{% else %}{{ (pv.max_storage_mb / 1000)|round(1) }} GB{% endif %}
             </span>
-            <div class="text-muted" style="font-size:.72rem;margin-left:0">
-              {{ pv.moduli|length }} moduli — durata {{ pv.durata_gg }} giorni
+            <div class="text-muted admin-help-inline">
+              {{ pv.moduli|length }} moduli - durata {{ pv.durata_gg }} giorni
             </div>
           </label>
         </div>
@@ -225,7 +215,6 @@
       </div>
     </div>
 
-    <!-- Riepilogo moduli per piano selezionato -->
     <div class="card">
       <div class="card-header fw-semibold d-flex align-items-center gap-2">
         <i class="bi bi-grid-3x3-gap-fill text-info"></i> Moduli inclusi nel piano
@@ -234,11 +223,9 @@
         <p class="text-muted small">I moduli sono automaticamente assegnati in base al piano.
            Potrai personalizzarli dopo la creazione.</p>
         {% for pk, pv in piani.items() %}
-        <div class="piano-moduli" id="moduli_{{ pk }}" style="display:none">
+        <div class="admin-module-stack" id="moduli_{{ pk }}">
           {% for m in pv.moduli %}
-          <span class="badge bg-light text-dark border me-1 mb-1" style="font-size:.72rem">
-            {{ m }}
-          </span>
+          <span class="badge bg-light text-dark border me-1 mb-1 admin-module-chip">{{ m }}</span>
           {% endfor %}
         </div>
         {% endfor %}
@@ -246,36 +233,35 @@
     </div>
   </div>
 
-  <!-- Bottoni -->
   <div class="col-12">
-    <div class="d-flex gap-2">
+    <div class="d-flex gap-2 flex-wrap">
       <button type="submit" class="btn btn-primary">
         <i class="bi bi-building-add me-1"></i>Crea Studio
       </button>
       <a href="{{ url_for('admin.lista_studi') }}" class="btn btn-outline-secondary">Annulla</a>
     </div>
   </div>
-
 </form>
 {% endblock %}
 
 {% block scripts %}
+{{ super() }}
 <script>
-// Auto-genera slug dal nome
 document.querySelector('[name="nome"]').addEventListener('input', function() {
   const slug = document.getElementById('slugInput');
   if (!slug.dataset.manual) {
-    slug.value = this.value.toLowerCase()
-      .replace(/[àáâã]/g,'a').replace(/[èéêë]/g,'e').replace(/[ìíîï]/g,'i')
-      .replace(/[òóôõ]/g,'o').replace(/[ùúûü]/g,'u').replace(/[ñ]/g,'n')
-      .replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'');
+    slug.value = this.value
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
   }
 });
 document.getElementById('slugInput').addEventListener('input', function() {
   this.dataset.manual = '1';
 });
 
-// Genera password casuale
 document.getElementById('genPassBtn').addEventListener('click', function() {
   const chars = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$%';
   let pwd = '';
@@ -283,13 +269,22 @@ document.getElementById('genPassBtn').addEventListener('click', function() {
   document.getElementById('adminPass').value = pwd;
 });
 
-// Mostra/nascondi moduli in base al piano
+function aggiornaStorageCards() {
+  document.querySelectorAll('.admin-db-mode-card').forEach(card => card.classList.remove('selected'));
+  const selected = document.querySelector('[name="db_mode"]:checked');
+  if (selected) {
+    selected.closest('.admin-db-mode-card')?.classList.add('selected');
+  }
+}
+document.querySelectorAll('[name="db_mode"]').forEach(r => r.addEventListener('change', aggiornaStorageCards));
+aggiornaStorageCards();
+
 function aggiornaPianoModuli() {
-  document.querySelectorAll('.piano-moduli').forEach(el => el.style.display = 'none');
+  document.querySelectorAll('.admin-module-stack').forEach(el => el.classList.remove('is-visible'));
   const sel = document.querySelector('[name="piano"]:checked');
   if (sel) {
     const el = document.getElementById('moduli_' + sel.value);
-    if (el) el.style.display = '';
+    if (el) el.classList.add('is-visible');
   }
 }
 document.querySelectorAll('[name="piano"]').forEach(r => r.addEventListener('change', aggiornaPianoModuli));

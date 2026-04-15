@@ -1,5 +1,5 @@
-"""
-Flask web application — Studio Legale PCT.
+﻿"""
+Flask web application â€” Studio Legale PCT.
 
 Avvio:
     python -m web
@@ -115,14 +115,14 @@ from pct.scadenziario import (
     PRESET_TERMINI,
     calcola_termine,
     calcola_scadenza_avanzata,
-    festività_italiane,
+    festività_italiane as festivita_italiane,
     profilo_da_preset,
     profili_termine_builtin,
     regola_patrono_studio,
     regola_patrono_ufficio,
     regole_calendario_nazionali,
     riepilogo_operativo_scadenza,
-    è_giorno_lavorativo,
+    è_giorno_lavorativo as e_giorno_lavorativo,
 )
 from pct.search_index import IndiceRicerca
 from pct.ocr import estrai_testo as ocr_estrai_testo, estensione_supportata as ocr_supportato
@@ -145,10 +145,18 @@ from pct.pdp_penale_workflow import (
 from pct.telematico_workflow import TelematicoWorkflowRepository
 from pct.workspace_intelligente import WorkspaceIntelligenteService
 from pct import __version__ as APP_VERSION
+from web.bootstrap.auth_management_routes import register_auth_management_routes
+from web.bootstrap.deposito_routes import register_deposito_routes
+from web.bootstrap.dashboard_routes import register_dashboard_routes
 from web.bootstrap.error_handlers import register_error_handlers
+from web.bootstrap.fascicoli_ai_routes import register_fascicoli_ai_routes
 from web.bootstrap.pwa_routes import register_pwa_routes
 from web.bootstrap.register_blueprints import register_blueprints
+from web.bootstrap.portali_acquisizione_routes import register_portali_acquisizione_routes
+from web.bootstrap.scadenziario_routes import register_scadenziario_routes
 from web.bootstrap.template_runtime import register_template_runtime
+from web.bootstrap.telematico_dashboard_routes import register_telematico_dashboard_routes
+from web.bootstrap.workspace_routes import register_workspace_routes
 from web.services.auth_runtime import register_auth_runtime
 from web.services.local_ai_runtime import get_local_ai_service
 from web.services.runtime_settings import apply_runtime_settings
@@ -179,7 +187,7 @@ def _encrypt_doc(data: bytes) -> bytes:
 
 
 def _decrypt_doc(data: bytes) -> bytes:
-    """Decifra i byte del documento. No-op se il file non è cifrato (magic header assente)."""
+    """Decifra i byte del documento. No-op se il file non Ã¨ cifrato (magic header assente)."""
     if not data.startswith(_ENC_MAGIC):
         return data
     key = _doc_key()
@@ -232,14 +240,14 @@ def _ocr_worker():
                 _ocr_stats["in_coda"] = _ocr_queue.qsize()
 
 
-# Avvia il worker all'import del modulo (daemon → termina con il processo)
+# Avvia il worker all'import del modulo (daemon â†’ termina con il processo)
 _ocr_thread = threading.Thread(target=_ocr_worker, daemon=True, name="ocr-worker")
 _ocr_thread.start()
 
 
 def _accoda_ocr(percorso: str, hash_sha256: str, id_fasc: str, id_doc: str,
                 nome_doc: str, tipo_doc: str, index_path: str):
-    """Accoda un job OCR se il file è di un tipo supportato."""
+    """Accoda un job OCR se il file Ã¨ di un tipo supportato."""
     if not ocr_supportato(nome_doc):
         return
     with _ocr_stats_lock:
@@ -254,7 +262,7 @@ def create_app(config: dict | None = None) -> Flask:
     app = Flask(__name__, template_folder="templates", static_folder="static")
 
     # ProxyFix: necessario su Railway/Render/Heroku e qualsiasi reverse proxy.
-    # Senza questo, request.scheme è sempre "http" (schema interno) →
+    # Senza questo, request.scheme Ã¨ sempre "http" (schema interno) â†’
     # url_for() e request.host_url generano link http:// invece di https://,
     # rompendo i feed iCal sottoscritti da Google Calendar (che richiede HTTPS).
     from werkzeug.middleware.proxy_fix import ProxyFix
@@ -536,10 +544,10 @@ def create_app(config: dict | None = None) -> Flask:
     def get_studio_db():
         """
         Restituisce l'istanza StudioDB per il tenant corrente,
-        oppure None se PCT_SQLITE_MODE non è attivo.
+        oppure None se PCT_SQLITE_MODE non Ã¨ attivo.
 
-        Il percorso di studio.db è derivato dalla root dei dati del tenant:
-        es. /data/clienti/anagrafica.json → /data/studio.db
+        Il percorso di studio.db Ã¨ derivato dalla root dei dati del tenant:
+        es. /data/clienti/anagrafica.json â†’ /data/studio.db
         """
         if not app.config.get("SQLITE_MODE"):
             return None
@@ -1224,7 +1232,7 @@ def create_app(config: dict | None = None) -> Flask:
                     open_modal="documento",
                     doc_kind="PROCURA",
                     correction_title="Carica procura alle liti",
-                    correction_help="Il controllo ha rilevato l'assenza della procura. Apri il modal già posizionato sul tipo documento corretto.",
+                    correction_help="Il controllo ha rilevato l'assenza della procura. Apri il modal giÃ  posizionato sul tipo documento corretto.",
                 ),
                 "action_label": "Carica procura",
             }
@@ -1268,7 +1276,7 @@ def create_app(config: dict | None = None) -> Flask:
                     open_modal="parte",
                     role_hint="ASSISTITO",
                     correction_title="Aggiungi assistito",
-                    correction_help="La conformità richiede almeno l'assistito strutturato nella sezione Parti del procedimento.",
+                    correction_help="La conformitÃ  richiede almeno l'assistito strutturato nella sezione Parti del procedimento.",
                 ),
                 "action_label": "Aggiungi assistito",
             }
@@ -1304,7 +1312,7 @@ def create_app(config: dict | None = None) -> Flask:
                     id_fasc,
                     intent="registro",
                     correction_title="Configura pre-deposito",
-                    correction_help="Il wizard pre-deposito si apre già con i dati tecnici da confermare o correggere.",
+                    correction_help="Il wizard pre-deposito si apre giÃ  con i dati tecnici da confermare o correggere.",
                     prefill_tipo_atto=_prefill_tipo_atto_from_summary(summary),
                     prefill_registro=registry_suggestion,
                 ),
@@ -1521,7 +1529,7 @@ def create_app(config: dict | None = None) -> Flask:
                 focus_field="recipient_or_court",
                 highlight_fields="case_id,recipient_or_court,subject",
                 correction_title="Completa DatiAtto.xml",
-                correction_help="Il redattore si apre già sui campi strutturati minimi utili alla generazione XML.",
+                correction_help="Il redattore si apre giÃ  sui campi strutturati minimi utili alla generazione XML.",
             )
             gates["generate_xml"]["url_label"] = "Completa DatiAtto.xml"
         if gates.get("prepare_deposit"):
@@ -1947,9 +1955,9 @@ def create_app(config: dict | None = None) -> Flask:
             firmato=firmato,
             caricato_da=caricato_da,
         )
-        # ── Conversione automatica PDF → PDF/A-2B (D.M. 44/2011 art. 12) ──
-        # Se il file è un PDF non firmato, lo converte in PDF/A tramite
-        # Ghostscript per garantire conformità al deposito telematico.
+        # â”€â”€ Conversione automatica PDF â†’ PDF/A-2B (D.M. 44/2011 art. 12) â”€â”€
+        # Se il file Ã¨ un PDF non firmato, lo converte in PDF/A tramite
+        # Ghostscript per garantire conformitÃ  al deposito telematico.
         percorso_doc = str(gf.percorso_documento(id_fasc, doc.id))
         if nome_file.lower().endswith(".pdf") and not firmato:
             try:
@@ -1959,7 +1967,7 @@ def create_app(config: dict | None = None) -> Flask:
                     conv = converti_pdfa(percorso_doc)
                     if conv.get("ok"):
                         app.logger.info(
-                            "PDF/A auto-conversione: %s → PDF/A-2B (%s)",
+                            "PDF/A auto-conversione: %s â†’ PDF/A-2B (%s)",
                             nome_file, conv.get("messaggio", ""),
                         )
                     else:
@@ -2422,7 +2430,7 @@ def create_app(config: dict | None = None) -> Flask:
         u = g.utente_corrente
         documenti_creati: list[dict] = []
 
-        # Indice dei nomi normalizzati già presenti nel fascicolo (dedup import ripetuto)
+        # Indice dei nomi normalizzati giÃ  presenti nel fascicolo (dedup import ripetuto)
         nomi_esistenti: dict[str, Documento] = {
             _normalizza_nome_match_portale(d.nome): d
             for d in fasc.documenti
@@ -2434,7 +2442,7 @@ def create_app(config: dict | None = None) -> Flask:
             payload = item.get("contenuto", b"")
             if not nome or not payload:
                 continue
-            # Deduplicazione: se il file (per nome normalizzato) è già nel fascicolo,
+            # Deduplicazione: se il file (per nome normalizzato) Ã¨ giÃ  nel fascicolo,
             # riutilizza il documento esistente senza crearne un duplicato.
             nome_norm = _normalizza_nome_match_portale(nome)
             doc_esistente = nomi_esistenti.get(nome_norm)
@@ -2548,7 +2556,7 @@ def create_app(config: dict | None = None) -> Flask:
             "fascicolo",
             fasc.id,
             dettagli=(
-                f"{fonte}: {len(documenti_creati)} file — "
+                f"{fonte}: {len(documenti_creati)} file â€” "
                 f"{len(depositi_agganciati)} depositi agganciati"
                 + (f", lotto {deposito_generico.id}" if deposito_generico else "")
             ),
@@ -2612,7 +2620,7 @@ def create_app(config: dict | None = None) -> Flask:
 
     def get_utenti() -> GestioneUtenti:
         if not hasattr(g, "_utenti"):
-            # In modalità multi-tenant, il primo utente globale deve essere SUPERADMIN
+            # In modalitÃ  multi-tenant, il primo utente globale deve essere SUPERADMIN
             # per poter accedere al pannello /admin/ e creare studi.
             ruolo_default = (
                 RuoloUtente.SUPERADMIN
@@ -2687,9 +2695,9 @@ def create_app(config: dict | None = None) -> Flask:
 
     def cliente_accessibile(id_cliente: str, richiesto: RuoloCondivisione = RuoloCondivisione.LETTURA) -> bool:
         """
-        Verifica se l'utente corrente può accedere alla cartella di un cliente.
-        - Utenti con permesso globale 'clienti.leggi' → sempre True
-        - Altri → solo se la cartella è stata condivisa con loro al livello richiesto
+        Verifica se l'utente corrente puÃ² accedere alla cartella di un cliente.
+        - Utenti con permesso globale 'clienti.leggi' â†’ sempre True
+        - Altri â†’ solo se la cartella Ã¨ stata condivisa con loro al livello richiesto
         """
         u = g.utente_corrente
         if not u:
@@ -2892,1606 +2900,55 @@ def create_app(config: dict | None = None) -> Flask:
     register_pwa_routes(app)
     register_error_handlers(app)
 
-    @app.route("/profilo", methods=["GET", "POST"])
-    def profilo():
-        u = g.utente_corrente
-        if request.method == "POST":
-            azione = request.form.get("azione")
-            gu = get_utenti()
-            if azione == "aggiorna":
-                try:
-                    gu.aggiorna(u.id,
-                                nome_completo=request.form.get("nome_completo", ""),
-                                email=request.form.get("email", ""))
-                    flash("Profilo aggiornato.", "success")
-                except ValueError as e:
-                    flash(str(e), "danger")
-            elif azione == "password":
-                pwd_old = request.form.get("password_old", "")
-                pwd_new = request.form.get("password_new", "")
-                if not gu.autentica(u.username, pwd_old):
-                    flash("Password attuale non corretta.", "danger")
-                elif len(pwd_new) < 8:
-                    flash("La nuova password deve avere almeno 8 caratteri.", "danger")
-                else:
-                    gu.cambia_password(u.id, pwd_new)
-                    audit("auth.cambia_password")
-                    flash("Password aggiornata.", "success")
-            elif azione == "2fa_genera":
-                segreto = genera_totp_secret()
-                session["totp_temp_secret"] = segreto
-                flash("Configurazione avviata. Scansiona il QR code con la tua app di autenticazione e inserisci il codice per confermare.", "info")
-            elif azione == "2fa_conferma":
-                segreto = session.get("totp_temp_secret", "")
-                codice = request.form.get("codice_2fa", "").strip()
-                if segreto and verifica_totp(segreto, codice):
-                    gu.aggiorna(u.id, totp_secret=segreto, totp_attivato=True)
-                    session.pop("totp_temp_secret", None)
-                    audit("auth.2fa_attivato")
-                    flash("Verifica in due passaggi attivata con successo.", "success")
-                else:
-                    flash("Codice non valido. Prova a scansionare di nuovo il QR code con l'app.", "danger")
-            elif azione == "2fa_disattiva":
-                pwd = request.form.get("pwd_disattiva", "")
-                if gu.autentica(u.username, pwd):
-                    gu.aggiorna(u.id, totp_secret="", totp_attivato=False)
-                    session.pop("totp_temp_secret", None)
-                    audit("auth.2fa_disattivato")
-                    flash("Verifica in due passaggi disattivata.", "success")
-                else:
-                    flash("Password non corretta.", "danger")
-            return redirect(url_for("profilo"))
-        totp_temp = session.get("totp_temp_secret", "")
-        uri_qr = totp_uri(totp_temp, u.username) if totp_temp else ""
-        return render_template("auth/profilo.html", utente=u,
-                               totp_temp_secret=totp_temp, totp_uri_qr=uri_qr,
-                               oggi=date.today())
-
-    # ---- Gestione utenti (solo AMMINISTRATORE)
-
-    @app.route("/utenti")
-    def lista_utenti():
-        u = g.utente_corrente
-        if not u or not u.ha_permesso("utenti.leggi"):
-            abort(403)
-        gu = get_utenti()
-        utenti = gu.tutti()
-        stats = gu.statistiche()
-        return render_template("auth/utenti.html",
-                               utenti=utenti, stats=stats, ruoli=list(RuoloUtente),
-                               oggi=date.today())
-
-    @app.route("/utenti/nuovo", methods=["GET", "POST"])
-    def nuovo_utente():
-        u = g.utente_corrente
-        if not u or not u.ha_permesso("utenti.scrivi"):
-            abort(403)
-        if request.method == "POST":
-            gu = get_utenti()
-            try:
-                nuovo = gu.crea(
-                    username=request.form["username"],
-                    password=request.form["password"],
-                    ruolo=RuoloUtente(request.form["ruolo"]),
-                    email=request.form.get("email", ""),
-                    nome_completo=request.form.get("nome_completo", ""),
-                )
-                audit("utenti.crea", "utente", nuovo.id, f"username={nuovo.username}")
-                flash(f"Utente '{nuovo.username}' creato.", "success")
-                return redirect(url_for("lista_utenti"))
-            except ValueError as e:
-                flash(str(e), "danger")
-        return render_template("auth/form_utente.html", ruoli=list(RuoloUtente), utente=None,
-                               oggi=date.today())
-
-    @app.route("/utenti/<id_utente>/modifica", methods=["GET", "POST"])
-    def modifica_utente(id_utente):
-        u = g.utente_corrente
-        if not u or not u.ha_permesso("utenti.scrivi"):
-            abort(403)
-        gu = get_utenti()
-        target = gu.get(id_utente)
-        if not target:
-            flash("Utente non trovato.", "warning")
-            return redirect(url_for("lista_utenti"))
-        if request.method == "POST":
-            try:
-                gu.aggiorna(id_utente,
-                            nome_completo=request.form.get("nome_completo", ""),
-                            email=request.form.get("email", ""),
-                            ruolo=request.form.get("ruolo", target.ruolo.value),
-                            attivo=request.form.get("attivo") == "1")
-                if request.form.get("nuova_password"):
-                    gu.cambia_password(id_utente, request.form["nuova_password"])
-                audit("utenti.modifica", "utente", id_utente)
-                flash("Utente aggiornato.", "success")
-                return redirect(url_for("lista_utenti"))
-            except ValueError as e:
-                flash(str(e), "danger")
-        return render_template("auth/form_utente.html",
-                               ruoli=list(RuoloUtente), utente=target, oggi=date.today())
-
-    @app.route("/utenti/<id_utente>/elimina", methods=["POST"])
-    def elimina_utente(id_utente):
-        u = g.utente_corrente
-        if not u or not u.ha_permesso("utenti.elimina"):
-            abort(403)
-        gu = get_utenti()
-        try:
-            gu.elimina(id_utente)
-            audit("utenti.elimina", "utente", id_utente)
-            flash("Utente eliminato.", "success")
-        except ValueError as e:
-            flash(str(e), "danger")
-        return redirect(url_for("lista_utenti"))
-
-    @app.route("/audit")
-    def audit_log():
-        u = g.utente_corrente
-        if not u or not u.ha_permesso("audit.leggi"):
-            abort(403)
-        gu = get_utenti()
-        id_utente = request.args.get("id_utente", "")
-        azione = request.args.get("azione", "")
-        eventi = gu.audit_log(id_utente=id_utente, azione=azione, limit=200)
-        utenti = gu.tutti()
-        return render_template("auth/audit.html",
-                               eventi=eventi, utenti=utenti,
-                               filtro_utente=id_utente, filtro_azione=azione,
-                               oggi=date.today())
-
-    @app.route("/api/utenti/statistiche")
-    def api_utenti_statistiche():
-        u = g.utente_corrente
-        if not u or not u.ha_permesso("utenti.leggi"):
-            abort(403)
-        try:
-            return jsonify(get_utenti().statistiche())
-        except Exception as e:
-            app.logger.exception("Errore api_utenti_statistiche: %s", e)
-            return jsonify({"errore": str(e)}), 200
-
-    # ---- Gestione profili / matrice permessi
-
-    @app.route("/profili")
-    def profili():
-        """Pagina matrice ruoli × permessi."""
-        u = g.utente_corrente
-        if not u or not u.ha_permesso("utenti.leggi"):
-            abort(403)
-        gu = get_utenti()
-        utenti_per_ruolo = {r: gu.per_ruolo(r) for r in RuoloUtente}
-        return render_template(
-            "auth/profili.html",
-            ruoli=list(RuoloUtente),
-            tutti_permessi=TUTTI_PERMESSI,
-            permessi=PERMESSI,
-            descrizioni=DESCRIZIONI_RUOLI,
-            utenti_per_ruolo=utenti_per_ruolo,
-            oggi=date.today(),
-        )
-
-    @app.route("/utenti/<id_utente>/permessi", methods=["GET", "POST"])
-    def permessi_utente(id_utente):
-        """Gestione override permessi per un singolo utente."""
-        u = g.utente_corrente
-        if not u or not u.ha_permesso("utenti.scrivi"):
-            abort(403)
-        gu = get_utenti()
-        target = gu.get(id_utente)
-        if not target:
-            flash("Utente non trovato.", "warning")
-            return redirect(url_for("lista_utenti"))
-        if request.method == "POST":
-            extra = request.form.getlist("permessi_extra")
-            negati = request.form.getlist("permessi_negati")
-            try:
-                gu.aggiorna_permessi(id_utente, extra, negati)
-                audit("utenti.aggiorna_permessi",
-                      risorsa_tipo="utente", risorsa_id=id_utente,
-                      dettagli=f"extra={extra} negati={negati}")
-                flash(f"Permessi di {target.username} aggiornati.", "success")
-            except ValueError as e:
-                flash(str(e), "danger")
-            return redirect(url_for("permessi_utente", id_utente=id_utente))
-        return render_template(
-            "auth/permessi_utente.html",
-            target=target,
-            tutti_permessi=TUTTI_PERMESSI,
-            permessi_ruolo=PERMESSI.get(target.ruolo, []),
-            descrizioni=DESCRIZIONI_RUOLI,
-            oggi=date.today(),
-        )
-
-    # ================================================================ SCADENZIARIO
-
-    @app.route("/scadenziario")
-    def scadenziario():
-        gs = get_scadenziario()
-        filtro_tipo = request.args.get("tipo", "")
-        filtro_priorita = request.args.get("priorita", "")
-        id_fascicolo = request.args.get("id_fascicolo", "")
-        q = request.args.get("q", "").strip()
-        filtro_dal = request.args.get("dal", "")
-        filtro_al = request.args.get("al", "")
-        filtro_perentorio = request.args.get("perentorio", "")
-        filtro_avanzate = request.args.get("avanzate", "")
-        filtro_operative = request.args.get("operative", "")
-        scadenze = gs.tutte(
-            tipo=TipoTermine(filtro_tipo) if filtro_tipo else None,
-            priorita=PrioritaTermine(filtro_priorita) if filtro_priorita else None,
-            id_fascicolo=id_fascicolo,
-        )
-        # Filtro testuale
-        if q:
-            ql = q.lower()
-            scadenze = [s for s in scadenze if ql in s.titolo.lower() or ql in (s.descrizione or "").lower()]
-        # Filtro date
-        if filtro_dal:
-            scadenze = [s for s in scadenze if s.data_scadenza >= filtro_dal]
-        if filtro_al:
-            scadenze = [s for s in scadenze if s.data_scadenza <= filtro_al]
-        # Filtro perentorio
-        if filtro_perentorio:
-            scadenze = [s for s in scadenze if s.perentorio]
-        if filtro_avanzate:
-            scadenze = [s for s in scadenze if s.ha_calcolo_avanzato]
-        if filtro_operative:
-            scadenze = [s for s in scadenze if bool(s.operational_due_at)]
-        scadute = gs.scadute()
-        scadenze_critiche = gs.imminenti(entro_giorni=3)
-        imminenti = gs.imminenti(entro_giorni=7)
-        stats = gs.statistiche()
-        return render_template(
-            "scadenziario/lista.html",
-            scadenze=scadenze,
-            scadute=scadute,
-            scadenze_critiche=scadenze_critiche,
-            imminenti=imminenti,
-            stats=stats,
-            tipi=list(TipoTermine),
-            priorita_list=list(PrioritaTermine),
-            filtro_tipo=filtro_tipo,
-            filtro_priorita=filtro_priorita,
-            id_fascicolo=id_fascicolo,
-            q=q,
-            filtro_dal=filtro_dal,
-            filtro_al=filtro_al,
-            filtro_perentorio=filtro_perentorio,
-            filtro_avanzate=filtro_avanzate,
-            filtro_operative=filtro_operative,
-        )
-
-    def _scadenziario_form_context(scadenza: Scadenza | None = None):
-        gf = get_fascicoli()
-        gu = get_utenti()
-        id_cliente_get = request.args.get("id_cliente", "")
-        from_cliente_get = request.args.get("from_cliente", "")
-        fascicoli = gf.tutti()
-        id_fascicolo_presel = ""
-        if id_cliente_get and not scadenza:
-            fascicoli_cliente = [f for f in fascicoli if f.id_cliente == id_cliente_get]
-            if fascicoli_cliente:
-                fascicoli = fascicoli_cliente
-                id_fascicolo_presel = fascicoli_cliente[0].id
-        return {
-            "tipi": list(TipoTermine),
-            "preset_list": PRESET_TERMINI,
-            "profili_termine": profili_termine_builtin(),
-            "fascicoli": fascicoli,
-            "utenti": gu.tutti(solo_attivi=True),
-            "scadenza": scadenza,
-            "id_cliente": id_cliente_get,
-            "from_cliente": from_cliente_get,
-            "id_fascicolo_presel": id_fascicolo_presel,
-            "studio_cfg": get_config_studio().config.studio,
-        }
-
-    def _parse_int(value, default=0):
-        try:
-            return int(value or default)
-        except (TypeError, ValueError):
-            return default
-
-    def _parse_bool(value) -> bool:
-        return str(value or "").strip().lower() in {"1", "true", "on", "yes"}
-
-    def _calcola_scadenza_form_payload(payload: dict) -> dict:
-        preset_key = str(payload.get("preset", "") or "").strip()
-        profile_code = str(payload.get("deadline_profile_code", "") or "").strip()
-        source_event_at = str(payload.get("source_event_at", "") or payload.get("data_inizio", "") or payload.get("data_decorrenza", "") or "").strip()
-        office_code = str(payload.get("judicial_office_id", "") or "").strip()
-        office_info = _resolve_judicial_office_by_code(office_code)
-        office_patron_name = str(payload.get("office_patron_name", "") or "").strip()
-        office_patron_day = _parse_int(payload.get("office_patron_day", 0))
-        office_patron_month = _parse_int(payload.get("office_patron_month", 0))
-        office_operating_mode = str(payload.get("office_operating_mode", "") or "open").strip() or "open"
-        operational_lead_business_days = _parse_int(payload.get("operational_lead_business_days", 0))
-        october_observance_blocks = _parse_bool(payload.get("october_observance_blocks"))
-
-        if preset_key:
-            profile = profilo_da_preset(preset_key)
-        elif profile_code:
-            profili = profili_termine_builtin()
-            if profile_code not in profili:
-                raise ValueError("Profilo termine non valido")
-            profile = ProfiloTermine.from_dict(profili[profile_code])
-        else:
-            raise ValueError("Seleziona un preset o un profilo termine")
-
-        if not source_event_at:
-            raise ValueError("Data/ora evento origine obbligatoria per il calcolo del termine")
-
-        office_rule = regola_patrono_ufficio(
-            office_code,
-            office_patron_name,
-            office_patron_day,
-            office_patron_month,
-            operating_mode=office_operating_mode,
-            source_url=str(payload.get("office_source_url", "") or "").strip(),
-            verified_at=str(payload.get("office_verified_at", "") or "").strip(),
-        )
-        studio_rule = _studio_patron_rule_from_config()
-        result = GestioneScadenziario.calcola_avanzata(
-            start_at=source_event_at,
-            profile=profile,
-            studio_rule=studio_rule,
-            office_rule=office_rule,
-            include_october_observance_blocking=october_observance_blocks,
-            operational_lead_business_days=operational_lead_business_days,
-        )
-        return {
-            "profile": profile,
-            "result": result,
-            "source_event_at": source_event_at,
-            "judicial_office_id": office_code,
-            "judicial_office_name": str(office_info.get("nome") or "").strip(),
-            "judicial_office_type": str(office_info.get("tipo") or "").strip(),
-            "judicial_office_city": str(office_info.get("citta") or office_info.get("city") or "").strip(),
-            "judicial_office_patron_name": office_patron_name,
-            "judicial_office_patron_day": office_patron_day,
-            "judicial_office_patron_month": office_patron_month,
-            "judicial_office_operating_mode": office_operating_mode,
-            "judicial_office_source_url": str(payload.get("office_source_url", "") or "").strip(),
-            "judicial_office_verified_at": str(payload.get("office_verified_at", "") or "").strip(),
-            "operational_lead_business_days": operational_lead_business_days,
-            "october_observance_blocks": october_observance_blocks,
-            "preset_key": preset_key,
-        }
-
-    @app.route("/scadenziario/nuova", methods=["GET", "POST"])
-    def nuova_scadenza():
-        if request.method == "POST":
-            gs = get_scadenziario()
-            f = request.form
-            from_cliente = f.get("from_cliente", "")
-            try:
-                preset = f.get("preset", "")
-                data_scadenza = f.get("data_scadenza", "").strip()
-                usa_calcolo = bool(preset or f.get("deadline_profile_code") or f.get("source_event_at"))
-                if usa_calcolo:
-                    calc = _calcola_scadenza_form_payload(dict(f))
-                    sc = gs.nuova(
-                        titolo=f["titolo"].strip(),
-                        tipo=TipoTermine(f["tipo"]),
-                        data_scadenza=calc["result"].legal_due_at[:10],
-                        id_fascicolo=f.get("id_fascicolo", ""),
-                        descrizione=f.get("descrizione", ""),
-                        data_decorrenza=calc["source_event_at"][:10],
-                        perentorio=f.get("perentorio") == "1",
-                        id_utente_responsabile=f.get("id_utente", ""),
-                        note=f.get("note", ""),
-                        source_event_type=(PRESET_TERMINI.get(calc["preset_key"], {}).get("source_event_type", "") if calc["preset_key"] else "evento"),
-                        source_event_at=calc["source_event_at"],
-                        deadline_profile_code=calc["profile"].code,
-                        judicial_office_id=calc["judicial_office_id"],
-                        judicial_office_name=calc["judicial_office_name"],
-                        judicial_office_type=calc["judicial_office_type"],
-                        judicial_office_city=calc["judicial_office_city"],
-                        judicial_office_patron_name=calc["judicial_office_patron_name"],
-                        judicial_office_patron_day=calc["judicial_office_patron_day"],
-                        judicial_office_patron_month=calc["judicial_office_patron_month"],
-                        judicial_office_operating_mode=calc["judicial_office_operating_mode"],
-                        judicial_office_source_url=calc["judicial_office_source_url"],
-                        judicial_office_verified_at=calc["judicial_office_verified_at"],
-                        raw_due_at=calc["result"].raw_due_at,
-                        legal_due_at=calc["result"].legal_due_at,
-                        operational_due_at=calc["result"].operational_due_at or "",
-                        office_mode_on_legal_due_date=calc["result"].office_mode_on_legal_due_date,
-                        trace_json=json.dumps(calc["result"].trace, ensure_ascii=False),
-                        operational_lead_business_days=calc["operational_lead_business_days"],
-                        october_observance_blocks=calc["october_observance_blocks"],
-                    )
-                else:
-                    if not data_scadenza:
-                        raise ValueError("Data scadenza obbligatoria")
-                    sc = gs.nuova(
-                        titolo=f["titolo"].strip(),
-                        tipo=TipoTermine(f["tipo"]),
-                        data_scadenza=data_scadenza,
-                        id_fascicolo=f.get("id_fascicolo", ""),
-                        descrizione=f.get("descrizione", ""),
-                        data_decorrenza=f.get("data_decorrenza", "").strip(),
-                        perentorio=f.get("perentorio") == "1",
-                        id_utente_responsabile=f.get("id_utente", ""),
-                        note=f.get("note", ""),
-                    )
-                audit("scadenziario.crea", "scadenza", sc.id, sc.titolo)
-                flash(f"Scadenza '{sc.titolo}' creata.", "success")
-                sync_pubblica("crea", "scadenze", sc.id)
-                if from_cliente:
-                    return redirect(url_for("cartella_cliente", id_cliente=from_cliente))
-                return redirect(url_for("scadenziario"))
-            except (ValueError, KeyError) as e:
-                flash(str(e), "danger")
-        return render_template("scadenziario/form.html", **_scadenziario_form_context())
-
-    @app.route("/scadenziario/<id_sc>")
-    def dettaglio_scadenza(id_sc):
-        gs = get_scadenziario()
-        sc = gs.get(id_sc)
-        if not sc:
-            flash("Scadenza non trovata.", "warning")
-            return redirect(url_for("scadenziario"))
-        return render_template(
-            "scadenziario/dettaglio.html",
-            sc=sc,
-            studio_cfg=get_config_studio().config.studio,
-            profili_termine=profili_termine_builtin(),
-        )
-
-    @app.route("/scadenziario/<id_sc>/modifica", methods=["GET", "POST"])
-    def modifica_scadenza(id_sc):
-        gs = get_scadenziario()
-        sc = gs.get(id_sc)
-        if not sc:
-            flash("Scadenza non trovata.", "warning")
-            return redirect(url_for("scadenziario"))
-        if request.method == "POST":
-            f = request.form
-            try:
-                calc_payload = None
-                if f.get("deadline_profile_code") or f.get("source_event_at"):
-                    calc_payload = _calcola_scadenza_form_payload(dict(f))
-                update_kwargs = dict(
-                    titolo=f.get("titolo", sc.titolo),
-                    tipo=f.get("tipo", sc.tipo.value),
-                    data_scadenza=(calc_payload["result"].legal_due_at[:10] if calc_payload else f.get("data_scadenza", sc.data_scadenza)),
-                    descrizione=f.get("descrizione", sc.descrizione),
-                    data_decorrenza=(calc_payload["source_event_at"][:10] if calc_payload else f.get("data_decorrenza", sc.data_decorrenza)),
-                    perentorio=f.get("perentorio") == "1",
-                    note=f.get("note", sc.note),
-                    id_fascicolo=f.get("id_fascicolo", sc.id_fascicolo),
-                    id_utente_responsabile=f.get("id_utente", sc.id_utente_responsabile),
-                )
-                if calc_payload:
-                    update_kwargs.update(
-                        source_event_type=(PRESET_TERMINI.get(calc_payload["preset_key"], {}).get("source_event_type", "") if calc_payload["preset_key"] else (sc.source_event_type or "evento")),
-                        source_event_at=calc_payload["source_event_at"],
-                        deadline_profile_code=calc_payload["profile"].code,
-                        judicial_office_id=calc_payload["judicial_office_id"],
-                        judicial_office_name=calc_payload["judicial_office_name"],
-                        judicial_office_type=calc_payload["judicial_office_type"],
-                        judicial_office_city=calc_payload["judicial_office_city"],
-                        judicial_office_patron_name=calc_payload["judicial_office_patron_name"],
-                        judicial_office_patron_day=calc_payload["judicial_office_patron_day"],
-                        judicial_office_patron_month=calc_payload["judicial_office_patron_month"],
-                        judicial_office_operating_mode=calc_payload["judicial_office_operating_mode"],
-                        judicial_office_source_url=calc_payload["judicial_office_source_url"],
-                        judicial_office_verified_at=calc_payload["judicial_office_verified_at"],
-                        raw_due_at=calc_payload["result"].raw_due_at,
-                        legal_due_at=calc_payload["result"].legal_due_at,
-                        operational_due_at=calc_payload["result"].operational_due_at or "",
-                        office_mode_on_legal_due_date=calc_payload["result"].office_mode_on_legal_due_date,
-                        trace_json=json.dumps(calc_payload["result"].trace, ensure_ascii=False),
-                        operational_lead_business_days=calc_payload["operational_lead_business_days"],
-                        october_observance_blocks=calc_payload["october_observance_blocks"],
-                    )
-                else:
-                    update_kwargs.update(
-                        source_event_type="",
-                        source_event_at="",
-                        deadline_profile_code="",
-                        judicial_office_id="",
-                        judicial_office_name="",
-                        judicial_office_type="",
-                        judicial_office_city="",
-                        judicial_office_patron_name="",
-                        judicial_office_patron_day=0,
-                        judicial_office_patron_month=0,
-                        judicial_office_operating_mode="open",
-                        judicial_office_source_url="",
-                        judicial_office_verified_at="",
-                        raw_due_at="",
-                        legal_due_at="",
-                        operational_due_at="",
-                        office_mode_on_legal_due_date="open",
-                        trace_json="[]",
-                        operational_lead_business_days=0,
-                        october_observance_blocks=False,
-                    )
-                gs.aggiorna(id_sc, **update_kwargs)
-                audit("scadenziario.modifica", "scadenza", id_sc)
-                flash("Scadenza aggiornata.", "success")
-                sync_pubblica("modifica", "scadenze", id_sc)
-                return redirect(url_for("scadenziario"))
-            except (ValueError, KeyError) as e:
-                flash(str(e), "danger")
-        return render_template("scadenziario/form.html", **_scadenziario_form_context(sc))
-
-    @app.route("/scadenziario/<id_sc>/completa", methods=["POST"])
-    def completa_scadenza(id_sc):
-        gs = get_scadenziario()
-        note = request.form.get("note", "")
-        try:
-            gs.completa(id_sc, note=note)
-            audit("scadenziario.completa", "scadenza", id_sc)
-            sync_pubblica("modifica", "scadenze", id_sc)
-        except ValueError as e:
-            if request.headers.get("HX-Request"):
-                return f'<tr id="sc-{id_sc}"><td colspan="7" class="text-danger small p-2">{e}</td></tr>', 422
-            flash(str(e), "danger")
-            return redirect(url_for("scadenziario"))
-        # htmx: rimuove la riga dalla tabella con animazione
-        if request.headers.get("HX-Request"):
-            return f'<tr id="sc-{id_sc}" class="sc-completed"><td colspan="7"></td></tr>', 200
-        flash("Scadenza segnata come completata.", "success")
-        return redirect(url_for("scadenziario"))
-
-    @app.route("/scadenziario/bulk-completa", methods=["POST"])
-    def bulk_completa_scadenze():
-        """Completa più scadenze in un colpo solo."""
-        u = g.utente_corrente
-        if not u or not u.ha_permesso("scadenziario.scrivi"):
-            flash("Permesso insufficiente.", "danger")
-            return redirect(url_for("scadenziario"))
-        ids = request.form.getlist("ids")
-        if not ids:
-            flash("Nessuna scadenza selezionata.", "warning")
-            return redirect(url_for("scadenziario"))
-        gs = get_scadenziario()
-        completate = 0
-        for id_sc in ids:
-            try:
-                gs.completa(id_sc)
-                audit("scadenziario.completa", "scadenza", id_sc, dettagli="bulk")
-                completate += 1
-            except ValueError:
-                pass
-        if completate:
-            sync_pubblica("modifica", "scadenze", "bulk")
-            flash(f"{'1 scadenza segnata' if completate == 1 else str(completate) + ' scadenze segnate'} come completate.", "success")
-        return redirect(url_for("scadenziario"))
-
-    @app.route("/api/notifiche/pending")
-    def notifiche_pending():
-        """Restituisce notifiche urgenti da mostrare via Browser Notification API."""
-        if not g.utente_corrente:
-            return jsonify([])
-        try:
-            gs = get_scadenziario()
-            alerts = []
-            oggi = date.today()
-            scadute = [s for s in gs.imminenti(entro_giorni=0) if s.giorni_alla_scadenza is not None and s.giorni_alla_scadenza < 0]
-            critiche_oggi = [s for s in gs.imminenti(entro_giorni=1) if s.giorni_alla_scadenza == 0]
-            imminenti = [s for s in gs.imminenti(entro_giorni=3) if s.perentorio and (s.giorni_alla_scadenza or 0) > 0]
-            if scadute:
-                alerts.append({
-                    "titolo": f"⚠️ {len(scadute)} scadenza/e SCADUTA/E",
-                    "corpo": " • ".join(s.titolo for s in scadute[:3]),
-                    "url": "/scadenziario",
-                    "delay": 2000,
-                })
-            if critiche_oggi:
-                alerts.append({
-                    "titolo": f"🔴 {len(critiche_oggi)} scadenza/e OGGI",
-                    "corpo": " • ".join(s.titolo for s in critiche_oggi[:3]),
-                    "url": "/scadenziario",
-                    "delay": 4000,
-                })
-            if imminenti:
-                alerts.append({
-                    "titolo": f"🔔 {len(imminenti)} termine/i perentorio/i imminente/i",
-                    "corpo": " • ".join(s.titolo for s in imminenti[:3]),
-                    "url": "/scadenziario",
-                    "delay": 6000,
-                })
-            return jsonify(alerts)
-        except Exception as e:
-            app.logger.exception("Errore notifiche_pending: %s", e)
-            return jsonify([])
-
-    @app.route("/api/notifiche/inbox")
-    def notifiche_inbox():
-        """Centro notifiche in-app: scadenze urgenti + appuntamenti imminenti."""
-        if not g.utente_corrente:
-            return jsonify([])
-        try:
-            from datetime import timedelta
-            gs = get_scadenziario()
-            ag = get_agenda()
-            alerts = []
-            oggi = date.today()
-            domani = oggi + timedelta(days=1)
-
-            # Scadenze scadute
-            scadute = [s for s in gs.imminenti(entro_giorni=0)
-                       if s.giorni_alla_scadenza is not None and s.giorni_alla_scadenza < 0]
-            if scadute:
-                alerts.append({
-                    "id": f"scad-scadute-{oggi.isoformat()}",
-                    "tipo": "danger",
-                    "icona": "alarm-fill",
-                    "titolo": f"{len(scadute)} scadenza/e SCADUTA/E",
-                    "corpo": " • ".join(s.titolo for s in scadute[:3]),
-                    "url": "/scadenziario",
-                    "ts": oggi.isoformat(),
-                    "priorita": 1,
-                })
-
-            # Scadenze oggi
-            sc_oggi = [s for s in gs.imminenti(entro_giorni=1) if s.giorni_alla_scadenza == 0]
-            if sc_oggi:
-                alerts.append({
-                    "id": f"scad-oggi-{oggi.isoformat()}",
-                    "tipo": "danger",
-                    "icona": "exclamation-circle-fill",
-                    "titolo": f"{len(sc_oggi)} scadenza/e OGGI",
-                    "corpo": " • ".join(s.titolo for s in sc_oggi[:3]),
-                    "url": "/scadenziario",
-                    "ts": oggi.isoformat(),
-                    "priorita": 2,
-                })
-
-            # Scadenze perentorie imminenti entro 3 giorni
-            imminenti = [s for s in gs.imminenti(entro_giorni=3)
-                         if s.perentorio and (s.giorni_alla_scadenza or 0) > 0]
-            if imminenti:
-                alerts.append({
-                    "id": f"scad-perent-{oggi.isoformat()}",
-                    "tipo": "warning",
-                    "icona": "clock-history",
-                    "titolo": f"{len(imminenti)} termine/i perentorio/i (entro 3 gg)",
-                    "corpo": " • ".join(
-                        f"{s.titolo} ({s.giorni_alla_scadenza}gg)" for s in imminenti[:3]
-                    ),
-                    "url": "/scadenziario",
-                    "ts": oggi.isoformat(),
-                    "priorita": 3,
-                })
-
-            # Appuntamenti oggi
-            app_oggi = sorted(
-                [a for a in ag.tutti() if a.data_ora_dt.date() == oggi],
-                key=lambda a: a.data_ora,
-            )
-            if app_oggi:
-                alerts.append({
-                    "id": f"app-oggi-{oggi.isoformat()}",
-                    "tipo": "primary",
-                    "icona": "calendar-check-fill",
-                    "titolo": f"{len(app_oggi)} appuntamento/i oggi",
-                    "corpo": " • ".join(
-                        f"{a.titolo} {a.data_ora_dt.strftime('%H:%M')}" for a in app_oggi[:3]
-                    ),
-                    "url": "/agenda",
-                    "ts": oggi.isoformat(),
-                    "priorita": 4,
-                })
-
-            # Appuntamenti domani
-            app_domani = sorted(
-                [a for a in ag.tutti() if a.data_ora_dt.date() == domani],
-                key=lambda a: a.data_ora,
-            )
-            if app_domani:
-                alerts.append({
-                    "id": f"app-domani-{domani.isoformat()}",
-                    "tipo": "info",
-                    "icona": "calendar-event",
-                    "titolo": f"{len(app_domani)} appuntamento/i domani",
-                    "corpo": " • ".join(
-                        f"{a.titolo} {a.data_ora_dt.strftime('%H:%M')}" for a in app_domani[:3]
-                    ),
-                    "url": "/agenda",
-                    "ts": domani.isoformat(),
-                    "priorita": 5,
-                })
-
-            alerts.sort(key=lambda x: x["priorita"])
-            return jsonify(alerts)
-        except Exception as e:
-            app.logger.exception("Errore notifiche_inbox: %s", e)
-            return jsonify([])
-
-    @app.route("/scadenziario/<id_sc>/elimina", methods=["POST"])
-    def elimina_scadenza(id_sc):
-        gs = get_scadenziario()
-        try:
-            gs.elimina(id_sc)
-            audit("scadenziario.elimina", "scadenza", id_sc)
-            flash("Scadenza eliminata.", "success")
-            sync_pubblica("elimina", "scadenze", id_sc)
-        except ValueError as e:
-            flash(str(e), "danger")
-        return redirect(url_for("scadenziario"))
-
-    @app.route("/scadenziario/calcola-termine", methods=["POST"])
-    def calcola_termine_route():
-        """API AJAX per il calcolo dinamico del termine, con motore avanzato."""
-        data = request.get_json() or {}
-        try:
-            if data.get("preset") or data.get("deadline_profile_code"):
-                calc = _calcola_scadenza_form_payload(data)
-                return jsonify({
-                    "data_scadenza": calc["result"].legal_due_at[:10],
-                    "raw_due_at": calc["result"].raw_due_at,
-                    "legal_due_at": calc["result"].legal_due_at,
-                    "operational_due_at": calc["result"].operational_due_at,
-                    "office_mode_on_legal_due_date": calc["result"].office_mode_on_legal_due_date,
-                    "trace": calc["result"].trace,
-                    "operational_notes": riepilogo_operativo_scadenza(
-                        trace=calc["result"].trace,
-                        operational_due_at=calc["result"].operational_due_at,
-                        operational_lead_business_days=calc["operational_lead_business_days"],
-                        october_observance_blocks=calc["october_observance_blocks"],
-                        office_patron_day=calc["judicial_office_patron_day"],
-                        office_patron_month=calc["judicial_office_patron_month"],
-                        office_operating_mode=calc["judicial_office_operating_mode"],
-                    ),
-                    "judicial_office_name": calc["judicial_office_name"],
-                    "profile_code": calc["profile"].code,
-                    "profile_label": calc["profile"].label,
-                })
-            d_inizio = date.fromisoformat(data["data_inizio"])
-            d_scadenza = calcola_termine(
-                d_inizio,
-                giorni=int(data.get("giorni", 0)),
-                tipo=data.get("tipo", "liberi"),
-                sospensione_feriale=data.get("sospensione_feriale", True),
-                mesi=int(data.get("mesi", 0)),
-                anni=int(data.get("anni", 0)),
-            )
-            return jsonify({"data_scadenza": d_scadenza.isoformat(), "lavorativo": è_giorno_lavorativo(d_scadenza)})
-        except (KeyError, ValueError) as e:
-            return jsonify({"errore": str(e)}), 400
-
-    @app.route("/api/scadenziario/imminenti")
-    def api_scadenze_imminenti():
-        try:
-            giorni = int(request.args.get("giorni", 7))
-            gs = get_scadenziario()
-            sc = gs.imminenti(entro_giorni=giorni)
-            return jsonify([s.to_dict() for s in sc])
-        except Exception as e:
-            app.logger.exception("Errore api_scadenze_imminenti: %s", e)
-            return jsonify([])
-
-    @app.route("/api/scadenziario/statistiche")
-    def api_scadenziario_statistiche():
-        try:
-            return jsonify(get_scadenziario().statistiche())
-        except Exception as e:
-            app.logger.exception("Errore api_scadenziario_statistiche: %s", e)
-            return jsonify({"errore": str(e)})
-
-    @app.route("/workspace-intelligente")
-    def workspace_intelligente():
-        try:
-            horizon_days = max(int(request.args.get("giorni", 14) or 14), 1)
-        except ValueError:
-            horizon_days = 14
-        focus = str(request.args.get("focus", "tutto") or "tutto").strip().lower()
-        overview = get_workspace_intelligente().panoramica(horizon_days=horizon_days)
-        return render_template(
-            "workspace_intelligente.html",
-            overview=overview,
-            horizon_days=horizon_days,
-            focus=focus,
-        )
-
-    @app.route("/api/workspace-intelligente")
-    def api_workspace_intelligente():
-        try:
-            horizon_days = max(int(request.args.get("giorni", 14) or 14), 1)
-            return jsonify(get_workspace_intelligente().panoramica(horizon_days=horizon_days))
-        except Exception as e:
-            app.logger.exception("Errore api_workspace_intelligente: %s", e)
-            return jsonify({"errore": str(e), "summary": {}, "actions": []}), 200
-
-    @app.route("/api/workspace-intelligente/ai", methods=["POST"])
-    def api_workspace_intelligente_ai():
-        try:
-            data = request.get_json(silent=True) or {}
-            question = str(data.get("question", "") or "").strip()
-            if not question:
-                return jsonify({"ok": False, "errore": "Domanda mancante."}), 200
-            horizon_days = max(int(data.get("giorni", 14) or 14), 1)
-            overview = get_workspace_intelligente().panoramica(horizon_days=horizon_days)
-            return jsonify(get_local_ai_service().ask_workspace(question=question, overview=overview))
-        except Exception as e:
-            app.logger.exception("Errore api_workspace_intelligente_ai: %s", e)
-            return jsonify({"ok": False, "errore": str(e), "answer": "", "sources": []}), 200
-
-    @app.route("/api/workspace-intelligente/ai/context", methods=["POST"])
-    def api_workspace_intelligente_ai_context():
-        try:
-            data = request.get_json(silent=True) or {}
-            question = str(data.get("question", "") or "").strip()
-            if not question:
-                return jsonify({"ok": False, "errore": "Domanda mancante."}), 200
-            horizon_days = max(int(data.get("giorni", 14) or 14), 1)
-            overview = get_workspace_intelligente().panoramica(horizon_days=horizon_days)
-            return jsonify(get_local_ai_service().prepare_workspace_query(question=question, overview=overview))
-        except Exception as e:
-            app.logger.exception("Errore api_workspace_intelligente_ai_context: %s", e)
-            return jsonify({"ok": False, "errore": str(e), "prompt": "", "sources": []}), 200
-
-    @app.route("/api/fascicoli/<id_fasc>/ai", methods=["POST"])
-    def api_fascicolo_ai(id_fasc):
-        try:
-            data = request.get_json(silent=True) or {}
-            question = str(data.get("question", "") or "").strip()
-            if not question:
-                return jsonify({"ok": False, "errore": "Domanda mancante."}), 200
-            fasc = get_fascicoli().get(id_fasc)
-            if not fasc:
-                return jsonify({"ok": False, "errore": "Fascicolo non trovato."}), 200
-            agenda = get_agenda()
-            scadenze_fascicolo = get_scadenziario().tutte(id_fascicolo=id_fasc, solo_aperte=False)
-            apps = agenda.cerca(testo=fasc.numero_rg) if getattr(fasc, "numero_rg", "") else []
-            workspace_fascicolo = _build_fascicolo_workspace(
-                fasc,
-                apps=apps,
-                scadenze=scadenze_fascicolo,
-            )
-            intelligenza_fascicolo = get_workspace_intelligente().per_fascicolo(
-                fasc,
-                apps=apps,
-                scadenze=scadenze_fascicolo,
-            )
-            result = get_local_ai_service().ask_fascicolo(
-                fascicolo=fasc,
-                documents_dir=_cfg_data_path("FASCICOLI_DOCS"),
-                question=question,
-                apps=apps,
-                scadenze=scadenze_fascicolo,
-                workspace=workspace_fascicolo,
-                intelligenza=intelligenza_fascicolo,
-                auto_index=data.get("auto_index"),
-            )
-            return jsonify(result)
-        except Exception as e:
-            app.logger.exception("Errore api_fascicolo_ai(%s): %s", id_fasc, e)
-            return jsonify({"ok": False, "errore": str(e), "answer": "", "sources": []}), 200
-
-    @app.route("/api/fascicoli/<id_fasc>/ai/context", methods=["POST"])
-    def api_fascicolo_ai_context(id_fasc):
-        try:
-            data = request.get_json(silent=True) or {}
-            question = str(data.get("question", "") or "").strip()
-            if not question:
-                return jsonify({"ok": False, "errore": "Domanda mancante."}), 200
-            fasc = get_fascicoli().get(id_fasc)
-            if not fasc:
-                return jsonify({"ok": False, "errore": "Fascicolo non trovato."}), 200
-            agenda = get_agenda()
-            scadenze_fascicolo = get_scadenziario().tutte(id_fascicolo=id_fasc, solo_aperte=False)
-            apps = agenda.cerca(testo=fasc.numero_rg) if getattr(fasc, "numero_rg", "") else []
-            workspace_fascicolo = _build_fascicolo_workspace(
-                fasc,
-                apps=apps,
-                scadenze=scadenze_fascicolo,
-            )
-            intelligenza_fascicolo = get_workspace_intelligente().per_fascicolo(
-                fasc,
-                apps=apps,
-                scadenze=scadenze_fascicolo,
-            )
-            result = get_local_ai_service().prepare_fascicolo_query(
-                fascicolo=fasc,
-                documents_dir=_cfg_data_path("FASCICOLI_DOCS"),
-                question=question,
-                apps=apps,
-                scadenze=scadenze_fascicolo,
-                workspace=workspace_fascicolo,
-                intelligenza=intelligenza_fascicolo,
-                auto_index=data.get("auto_index"),
-            )
-            return jsonify(result)
-        except Exception as e:
-            app.logger.exception("Errore api_fascicolo_ai_context(%s): %s", id_fasc, e)
-            return jsonify({"ok": False, "errore": str(e), "prompt": "", "sources": []}), 200
-
-    @app.route("/api/fascicoli/<id_fasc>/ai/reindex", methods=["POST"])
-    def api_fascicolo_ai_reindex(id_fasc):
-        try:
-            fasc = get_fascicoli().get(id_fasc)
-            if not fasc:
-                return jsonify({"ok": False, "errore": "Fascicolo non trovato."}), 200
-            result = get_local_ai_service().reindex_fascicolo(
-                fasc,
-                _cfg_data_path("FASCICOLI_DOCS"),
-                force=True,
-            )
-            return jsonify({"ok": True, "result": result, "status_payload": get_local_ai_service().health_snapshot()})
-        except Exception as e:
-            app.logger.exception("Errore api_fascicolo_ai_reindex(%s): %s", id_fasc, e)
-            return jsonify({"ok": False, "errore": str(e)}), 200
-
-    # ---------------------------------------------------------------- dashboard
-
-    @app.route("/")
-    def dashboard():
-        agenda = get_agenda()
-        oggi = date.today()
-        apps_oggi = agenda.per_giorno(oggi)
-        apps_settimana = agenda.per_settimana(oggi)
-        reminder = agenda.prossimi_reminder(entro_minuti=120)
-        stats = agenda.statistiche()
-        # Scadenze imminenti per dashboard
-        gs = get_scadenziario()
-        scadenze_critiche = gs.imminenti(entro_giorni=3)
-        scadenze_imminenti = gs.imminenti(entro_giorni=7)
-        stats_sc = gs.statistiche()
-        stats_fascicoli = get_fascicoli().statistiche()
-        stats_clienti = get_clienti().statistiche()
-        workspace_overview = get_workspace_intelligente().panoramica(horizon_days=14, hot_limit=6)
-        # #4 — Cartelle condivise per collaboratori
-        u_dash = g.utente_corrente
-        cartelle_mie = []
-        accessi_in_scadenza = []
-        if u_dash and not u_dash.ha_permesso("clienti.leggi"):
-            gcd = get_condivisioni()
-            gc = get_clienti()
-            cartelle_mie = [
-                (gc.get(id_c), ac)
-                for id_c, ac in gcd.cartelle_condivise_con(u_dash.id)
-                if gc.get(id_c) and not ac.is_scaduto
-            ][:5]
-            accessi_in_scadenza = gcd.accessi_in_scadenza(entro_giorni=7)
-        # Widget documenti d'identità scaduti (solo admin/avvocati con accesso globale)
-        clienti_doc_scaduti = []
-        if u_dash and u_dash.ha_permesso("clienti.leggi"):
-            try:
-                clienti_doc_scaduti = [
-                    c for c in get_clienti().tutti()
-                    if c.documento.scaduto and c.documento.numero
-                ][:10]
-            except Exception:
-                pass
-        return render_template(
-            "dashboard.html",
-            apps_oggi=apps_oggi,
-            apps_settimana=apps_settimana,
-            reminder=reminder,
-            stats=stats,
-            scadenze_critiche=scadenze_critiche,
-            scadenze_imminenti=scadenze_imminenti,
-            stats_sc=stats_sc,
-            stats_fascicoli=stats_fascicoli,
-            stats_clienti=stats_clienti,
-            cartelle_mie=cartelle_mie,
-            accessi_in_scadenza=accessi_in_scadenza,
-            clienti_doc_scaduti=clienti_doc_scaduti,
-            workspace_overview=workspace_overview,
-        )
-
-    # ---------------------------------------------------------------- agenda
-
-    @app.route("/agenda")
-    def agenda_view():
-        agenda = get_agenda()
-        vista = request.args.get("vista", "settimana")
-        oggi = date.today()
-
-        # navigazione settimana / mese
-        offset = int(request.args.get("offset", 0))
-
-        if vista == "giorno":
-            giorno = oggi + timedelta(days=offset)
-            apps = agenda.per_giorno(giorno)
-            return render_template(
-                "agenda.html",
-                vista=vista,
-                apps=apps,
-                giorno=giorno,
-                offset=offset,
-            )
-
-        if vista == "mese":
-            # offset in mesi
-            anno = oggi.year
-            mese = oggi.month + offset
-            while mese > 12:
-                mese -= 12
-                anno += 1
-            while mese < 1:
-                mese += 12
-                anno -= 1
-            apps = agenda.per_mese(anno, mese)
-            primo = date(anno, mese, 1)
-            # padding giorni iniziali per griglia
-            pad = primo.weekday()  # lunedì=0
-            import calendar
-            giorni_mese = calendar.monthrange(anno, mese)[1]
-            return render_template(
-                "agenda.html",
-                vista=vista,
-                apps=apps,
-                anno=anno,
-                mese=mese,
-                primo=primo,
-                pad=pad,
-                giorni_mese=giorni_mese,
-                offset=offset,
-                nomi_mesi=[
-                    "", "Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio",
-                    "Giugno", "Luglio", "Agosto", "Settembre", "Ottobre",
-                    "Novembre", "Dicembre",
-                ],
-            )
-
-        # default: settimana
-        inizio = oggi + timedelta(weeks=offset) - timedelta(days=oggi.weekday())
-        fine = inizio + timedelta(days=6)
-        apps = agenda.per_settimana(inizio)
-        giorni = [inizio + timedelta(days=i) for i in range(7)]
-        apps_per_giorno = {g: [a for a in apps if a.data_ora_dt.date() == g] for g in giorni}
-        return render_template(
-            "agenda.html",
-            vista=vista,
-            apps=apps,
-            apps_per_giorno=apps_per_giorno,
-            giorni=giorni,
-            inizio=inizio,
-            fine=fine,
-            offset=offset,
-        )
-
-    @app.route("/agenda/nuovo", methods=["GET", "POST"])
-    def nuovo_appuntamento():
-        if request.method == "POST":
-            agenda = get_agenda()
-            data = request.form.get("data", "")
-            ora = request.form.get("ora", "09:00")
-            data_ora = f"{data}T{ora}:00" if data else ""
-            id_cliente_post = request.form.get("id_cliente", "")
-            from_cliente = request.form.get("from_cliente", "")
-            try:
-                new_app = agenda.aggiungi(
-                    titolo=request.form["titolo"],
-                    tipo=TipoAppuntamento(request.form["tipo"]),
-                    data_ora=data_ora,
-                    durata_minuti=int(request.form.get("durata", 60)),
-                    luogo=request.form.get("luogo", ""),
-                    cliente=request.form.get("cliente", ""),
-                    cf_cliente=request.form.get("cf_cliente", ""),
-                    id_cliente=id_cliente_post,
-                    procedimento=request.form.get("procedimento", ""),
-                    tribunale=request.form.get("tribunale", ""),
-                    avvocato=request.form.get("avvocato", ""),
-                    note=request.form.get("note", ""),
-                    reminder_minuti=int(request.form.get("reminder", 60)),
-                )
-                flash(f"Appuntamento '{new_app.titolo}' aggiunto.", "success")
-                if from_cliente:
-                    return redirect(url_for("cartella_cliente", id_cliente=from_cliente))
-                return redirect(url_for("dettaglio_appuntamento", id_app=new_app.id))
-            except ValueError as e:
-                flash(str(e), "danger")
-
-        data_default = request.args.get("data", "")
-        id_cliente_get = request.args.get("id_cliente", "")
-        from_cliente_get = request.args.get("from_cliente", "")
-        cliente_presel = None
-        if id_cliente_get:
-            cliente_presel = get_clienti().get(id_cliente_get)
-        return render_template(
-            "form_appuntamento.html",
-            app=None,
-            tipi=list(TipoAppuntamento),
-            data_default=data_default,
-            id_cliente=id_cliente_get,
-            from_cliente=from_cliente_get,
-            cliente_presel=cliente_presel,
-        )
-
-    @app.route("/agenda/<id_app>")
-    def dettaglio_appuntamento(id_app):
-        agenda = get_agenda()
-        app = agenda.get(id_app)
-        if not app:
-            flash("Appuntamento non trovato.", "warning")
-            return redirect(url_for("agenda_view"))
-        track_recente("appuntamento", id_app, app.titolo,
-                      url_for("dettaglio_appuntamento", id_app=id_app), "bi-calendar-event")
-        return render_template("dettaglio_appuntamento.html", app=app)
-
-    @app.route("/agenda/<id_app>/modifica", methods=["GET", "POST"])
-    def modifica_appuntamento(id_app):
-        agenda = get_agenda()
-        app = agenda.get(id_app)
-        if not app:
-            flash("Appuntamento non trovato.", "warning")
-            return redirect(url_for("agenda_view"))
-
-        if request.method == "POST":
-            data = request.form.get("data", "")
-            ora = request.form.get("ora", "09:00")
-            campi = {
-                "titolo": request.form["titolo"],
-                "tipo": TipoAppuntamento(request.form["tipo"]),
-                "data_ora": f"{data}T{ora}:00" if data else app.data_ora,
-                "durata_minuti": int(request.form.get("durata", app.durata_minuti)),
-                "luogo": request.form.get("luogo", ""),
-                "cliente": request.form.get("cliente", ""),
-                "cf_cliente": request.form.get("cf_cliente", ""),
-                "id_cliente": request.form.get("id_cliente", app.id_cliente),
-                "procedimento": request.form.get("procedimento", ""),
-                "tribunale": request.form.get("tribunale", ""),
-                "avvocato": request.form.get("avvocato", ""),
-                "note": request.form.get("note", ""),
-                "reminder_minuti": int(request.form.get("reminder", app.reminder_minuti)),
-            }
-            try:
-                agenda.modifica(id_app, **campi)
-                flash("Appuntamento aggiornato.", "success")
-                sync_pubblica("modifica", "agenda", id_app)
-                return redirect(url_for("dettaglio_appuntamento", id_app=id_app))
-            except (ValueError, KeyError) as e:
-                flash(str(e), "danger")
-
-        return render_template(
-            "form_appuntamento.html",
-            app=app,
-            tipi=list(TipoAppuntamento),
-        )
-
-    @app.route("/agenda/<id_app>/stato", methods=["POST"])
-    def cambia_stato(id_app):
-        agenda = get_agenda()
-        nuovo = request.form.get("stato")
-        try:
-            agenda.cambia_stato(id_app, StatoAppuntamento(nuovo))
-            flash("Stato aggiornato.", "success")
-        except (KeyError, ValueError) as e:
-            flash(str(e), "danger")
-        return redirect(url_for("dettaglio_appuntamento", id_app=id_app))
-
-    @app.route("/agenda/<id_app>/elimina", methods=["POST"])
-    def elimina_appuntamento(id_app):
-        agenda = get_agenda()
-        try:
-            agenda.elimina(id_app)
-            flash("Appuntamento eliminato.", "success")
-            sync_pubblica("elimina", "agenda", id_app)
-        except KeyError as e:
-            flash(str(e), "danger")
-        return redirect(url_for("agenda_view"))
-
-    # ---------------------------------------------------------------- Importa calendario
-
-    @app.route("/agenda/importa", methods=["GET", "POST"])
-    def importa_calendario():
-        """
-        Importazione eventi da file .ics (Google Calendar, Outlook, Apple, ecc.).
-
-        Flusso in due fasi:
-          GET  /agenda/importa              → form selezione sorgente + upload
-          POST /agenda/importa fase=upload  → parse file, mostra preview
-          POST /agenda/importa fase=importa → importa eventi selezionati
-        """
-        import json as _json
-        from pct.ical_import import parse_ics, evento_to_dict, dict_to_evento
-        from pct.agenda import TipoAppuntamento, StatoAppuntamento
-
-        fase = request.form.get("fase", "")
-        calendar_sync = get_calendar_sync()
-
-        def _render_upload_form(**extra):
-            context = {
-                "fase": "upload_form",
-                "sorgente": "generico",
-                "profili_sync": calendar_sync.list_profiles(),
-                "oggi": date.today(),
-            }
-            context.update(extra)
-            return render_template("importa_calendario.html", **context)
-
-        def _render_preview(*, sorgente, eventi, import_metadata, source_url="", content_type=""):
-            return render_template(
-                "importa_calendario.html",
-                fase="preview",
-                sorgente=sorgente,
-                eventi=eventi,
-                eventi_json=_json.dumps([evento_to_dict(e) for e in eventi], ensure_ascii=False),
-                import_metadata_json=_json.dumps(import_metadata, ensure_ascii=False),
-                source_url=source_url,
-                content_type=content_type,
-                profili_sync=calendar_sync.list_profiles(),
-                oggi=date.today(),
-            )
-
-        if request.method == "GET":
-            return _render_upload_form()
-
-        # ── Fase 1: upload + parsing
-        if request.method == "POST" and fase == "upload":
-            import hashlib as _hashlib
-
-            modalita_import = request.form.get("modalita_import", "file")
-            sorgente = request.form.get("sorgente", "generico")
-            default_tipo = request.form.get("default_tipo", TipoAppuntamento.ALTRO.value)
-            reminder_raw = request.form.get("default_reminder_minuti", "60")
-            try:
-                default_reminder_minuti = max(int(reminder_raw or 60), 0)
-            except (TypeError, ValueError):
-                default_reminder_minuti = 60
-
-            if modalita_import == "url":
-                source_url = request.form.get("source_url", "").strip()
-                save_profile = request.form.get("salva_profilo") == "1"
-                profile_name = (request.form.get("profile_name", "") or "").strip()
-                if not source_url:
-                    flash("Inserisci l'URL del calendario remoto.", "warning")
-                    return _render_upload_form(
-                        sorgente=sorgente,
-                        modalita_import=modalita_import,
-                        source_url=source_url,
-                    )
-                try:
-                    preview = calendar_sync.preview_remote_calendar(source_url)
-                    eventi = preview["events"]
-                except Exception as e:
-                    app.logger.exception("Errore preview calendario remoto: %s", e)
-                    flash(f"Impossibile leggere il calendario remoto: {e}", "danger")
-                    return _render_upload_form(
-                        sorgente=sorgente,
-                        modalita_import=modalita_import,
-                        source_url=source_url,
-                    )
-                if not eventi:
-                    flash("Il calendario remoto non contiene eventi validi.", "warning")
-                    return _render_upload_form(
-                        sorgente=sorgente,
-                        modalita_import=modalita_import,
-                        source_url=source_url,
-                    )
-                import_metadata = {
-                    "modalita_import": "url",
-                    "provider": sorgente or "webcal",
-                    "source_url": preview["source_url"],
-                    "source_hash": preview["source_hash"],
-                    "save_profile": save_profile,
-                    "profile_name": profile_name or "Calendario esterno",
-                    "default_tipo": default_tipo,
-                    "default_reminder_minuti": default_reminder_minuti,
-                }
-                return _render_preview(
-                    sorgente=sorgente,
-                    eventi=eventi,
-                    import_metadata=import_metadata,
-                    source_url=preview["source_url"],
-                    content_type=preview.get("content_type", ""),
-                )
-            file = request.files.get("file_ics")
-            if not file or not file.filename:
-                flash("Nessun file selezionato.", "warning")
-                return _render_upload_form(sorgente=sorgente, modalita_import=modalita_import)
-            # Leggi contenuto
-            raw = file.read()
-            # Rileva encoding (UTF-16 usato da alcune versioni Outlook/Apple)
-            try:
-                testo = raw.decode("utf-8-sig")
-            except UnicodeDecodeError:
-                try:
-                    testo = raw.decode("utf-16")
-                except UnicodeDecodeError:
-                    testo = raw.decode("latin-1", errors="replace")
-
-            try:
-                eventi = parse_ics(testo)
-            except Exception as e:
-                app.logger.exception("Errore parsing ICS: %s", e)
-                flash(f"Errore nell'analisi del file: {e}", "danger")
-                return _render_upload_form(sorgente=sorgente, modalita_import=modalita_import)
-
-            if not eventi:
-                flash("Il file non contiene eventi validi.", "warning")
-                return _render_upload_form(sorgente=sorgente, modalita_import=modalita_import)
-
-            import_metadata = {
-                "modalita_import": "file",
-                "provider": f"manual_{sorgente}",
-                "source_url": "",
-                "source_hash": _hashlib.sha256(raw).hexdigest(),
-                "filename": file.filename,
-                "save_profile": False,
-                "profile_name": "",
-                "default_tipo": default_tipo,
-                "default_reminder_minuti": default_reminder_minuti,
-            }
-            return _render_preview(
-                sorgente=sorgente,
-                eventi=eventi,
-                import_metadata=import_metadata,
-            )
-
-        # ── Fase 2: importa eventi selezionati
-        if request.method == "POST" and fase == "importa":
-            sorgente = request.form.get("sorgente", "generico")
-            # Gli indici degli eventi selezionati
-            selezionati_str = request.form.getlist("sel")
-            eventi_json_str = request.form.get("eventi_json", "[]")
-            import_metadata_str = request.form.get("import_metadata_json", "{}")
-
-            try:
-                tutti_eventi_dict = _json.loads(eventi_json_str)
-                import_metadata = _json.loads(import_metadata_str or "{}")
-            except Exception:
-                flash("Errore nei dati del form. Riprova.", "danger")
-                return redirect(url_for("importa_calendario"))
-
-            selezionati_idx = set()
-            for s in selezionati_str:
-                try:
-                    selezionati_idx.add(int(s))
-                except ValueError:
-                    pass
-
-            eventi_da_importare = [
-                dict_to_evento(tutti_eventi_dict[i])
-                for i in sorted(selezionati_idx)
-                if 0 <= i < len(tutti_eventi_dict)
-            ]
-
-            if not eventi_da_importare:
-                flash("Nessun evento selezionato.", "warning")
-                return redirect(url_for("importa_calendario"))
-
-            agenda = get_agenda()
-            provider = import_metadata.get("provider") or f"manual_{sorgente}"
-            source_url = import_metadata.get("source_url", "")
-            default_tipo = import_metadata.get("default_tipo", TipoAppuntamento.ALTRO.value)
-            reminder_minuti = int(import_metadata.get("default_reminder_minuti", 60) or 60)
-            profile_id = ""
-            if import_metadata.get("save_profile") and source_url:
-                profile_name = (import_metadata.get("profile_name", "") or "").strip() or "Calendario esterno"
-                profilo_esistente = next(
-                    (
-                        profilo for profilo in calendar_sync.list_profiles()
-                        if (profilo.get("source_url") or "").strip() == source_url
-                        and (profilo.get("provider") or "").strip() == provider
-                    ),
-                    None,
-                )
-                if profilo_esistente:
-                    profilo = calendar_sync.update_profile(
-                        profilo_esistente["id"],
-                        nome=profile_name,
-                        enabled=True,
-                        default_tipo=default_tipo,
-                        default_reminder_minuti=reminder_minuti,
-                        source_url=source_url,
-                    )
-                else:
-                    profilo = calendar_sync.create_profile(
-                        nome=profile_name,
-                        provider=provider,
-                        source_url=source_url,
-                        default_tipo=default_tipo,
-                        default_reminder_minuti=reminder_minuti,
-                        enabled=True,
-                    )
-                profile_id = profilo["id"]
-
-            importati = 0
-            aggiornati = 0
-            saltati = 0
-            conflitti = 0
-            titoli_err: list = []
-
-            for ev in eventi_da_importare:
-                try:
-                    report = agenda.upsert_da_evento_importato(
-                        ev,
-                        provider=provider,
-                        source_url=source_url,
-                        profile_id=profile_id,
-                        default_tipo=default_tipo,
-                        reminder_minuti=reminder_minuti,
-                    )
-                    outcome = report.get("outcome")
-                    if outcome == "created":
-                        importati += 1
-                    elif outcome == "updated":
-                        aggiornati += 1
-                    elif outcome == "conflict":
-                        conflitti += 1
-                        titoli_err.append(f"{ev.titolo} ({report.get('message', 'conflitto')})")
-                    else:
-                        saltati += 1
-                except ValueError as e:
-                    conflitti += 1
-                    titoli_err.append(f"{ev.titolo} ({e})")
-                except Exception as e:
-                    saltati += 1
-                    app.logger.warning("Import evento '%s': %s", ev.titolo, e)
-
-            msg_parts = []
-            if importati:
-                msg_parts.append(f"{importati} eventi creati.")
-            if aggiornati:
-                msg_parts.append(f"{aggiornati} eventi aggiornati.")
-            if conflitti:
-                msg_parts.append(f"{conflitti} con conflitto di orario (saltati).")
-            if saltati:
-                msg_parts.append(f"{saltati} gia allineati o non importati.")
-            if not msg_parts:
-                msg_parts.append("Nessun cambiamento da importare.")
-            flash(" ".join(msg_parts), "success" if (importati or aggiornati) else "warning")
-
-            if titoli_err:
-                flash("Conflitti: " + "; ".join(titoli_err[:5]), "warning")
-
-            if profile_id and source_url:
-                calendar_sync.update_profile(
-                    profile_id,
-                    last_sync_at=datetime.now().replace(microsecond=0).isoformat(),
-                    last_status="ok",
-                    last_message="Import iniziale completato dal wizard agenda.",
-                    last_created=importati,
-                    last_updated=aggiornati,
-                    last_skipped=saltati,
-                    last_conflicts=conflitti,
-                    last_source_hash=import_metadata.get("source_hash", ""),
-                )
-                flash("Profilo sincronizzazione salvato nelle impostazioni calendario.", "success")
-
-            return redirect(url_for("agenda_view"))
-            importati   = 0
-            saltati     = 0
-            conflitti   = 0
-            titoli_err: list = []
-
-            for ev in eventi_da_importare:
-                # Gli eventi tutto-giorno diventano appuntamenti ALTRO alle 09:00
-                if ev.tutto_giorno:
-                    data_ora_str = f"{ev.data_ora}T09:00:00"
-                    durata = min(ev.durata_minuti, 1440)  # max 1 giorno
-                else:
-                    data_ora_str = ev.data_ora
-                    durata = ev.durata_minuti
-
-                # Mappa stato iCal → stato HACS
-                if ev.stato_ical == "CANCELLED":
-                    stato = StatoAppuntamento.ANNULLATO
-                elif ev.stato_ical == "TENTATIVE":
-                    stato = StatoAppuntamento.PROGRAMMATO
-                else:
-                    stato = StatoAppuntamento.PROGRAMMATO
-
-                # Note: aggiungi info sorgente
-                note_parts = []
-                if ev.descrizione:
-                    note_parts.append(ev.descrizione)
-                if ev.organizzatore:
-                    note_parts.append(f"Organizzatore: {ev.organizzatore}")
-                if ev.rrule:
-                    note_parts.append(f"[Evento ricorrente — importata solo la prima occorrenza]")
-                note_parts.append(f"Importato da: {sorgente.capitalize()}")
-                note = "\n".join(note_parts)
-
-                try:
-                    agenda.aggiungi(
-                        titolo=ev.titolo,
-                        tipo=TipoAppuntamento.ALTRO,
-                        data_ora=data_ora_str,
-                        durata_minuti=max(durata, 1),
-                        luogo=ev.luogo,
-                        stato=stato,
-                        note=note,
-                        reminder_minuti=60,
-                    )
-                    importati += 1
-                except ValueError as e:
-                    # Conflitto di orario
-                    conflitti += 1
-                    titoli_err.append(f"{ev.titolo} ({e})")
-                except Exception as e:
-                    saltati += 1
-                    app.logger.warning("Import evento '%s': %s", ev.titolo, e)
-
-            msg_parts = [f"{importati} eventi importati con successo."]
-            if conflitti:
-                msg_parts.append(f"{conflitti} con conflitto di orario (saltati).")
-            if saltati:
-                msg_parts.append(f"{saltati} non importati per errore.")
-            flash(" ".join(msg_parts), "success" if importati else "warning")
-
-            if titoli_err:
-                flash("Conflitti: " + "; ".join(titoli_err[:5]), "warning")
-
-            return redirect(url_for("agenda_view"))
-
-        # ── GET: mostra form iniziale
-        return render_template("importa_calendario.html",
-                               fase="upload_form",
-                               sorgente="generico",
-                               oggi=date.today())
-
-    # ---------------------------------------------------------------- API JSON
-
-    @app.route("/api/agenda/<id_app>/sposta", methods=["POST"])
-    def api_sposta_appuntamento(id_app):
-        """Sposta un appuntamento in una nuova data/ora (drag-and-drop)."""
-        if not g.utente_corrente or not g.utente_corrente.ha_permesso("agenda.scrivi"):
-            return jsonify({"errore": "Non autorizzato"}), 403
-        ag = get_agenda()
-        appt = ag.get(id_app)
-        if not appt:
-            return jsonify({"errore": "Appuntamento non trovato"}), 404
-        payload = request.get_json(silent=True) or {}
-        nuova_data = payload.get("data")          # "YYYY-MM-DD"
-        nuova_data_ora = payload.get("data_ora")  # "YYYY-MM-DDTHH:MM:SS"
-        if nuova_data and not nuova_data_ora:
-            ora_orig = appt.data_ora_dt.strftime("%H:%M:%S")
-            nuova_data_ora = f"{nuova_data}T{ora_orig}"
-        if not nuova_data_ora:
-            return jsonify({"errore": "Parametro 'data' o 'data_ora' richiesto"}), 400
-        try:
-            appt = ag.modifica(id_app, data_ora=nuova_data_ora)
-            audit("agenda.sposta", "appuntamento", id_app,
-                  dettagli=f"→ {nuova_data_ora}")
-            return jsonify({"ok": True, "data_ora": appt.data_ora})
-        except (ValueError, KeyError) as e:
-            return jsonify({"errore": str(e)}), 409
-
-    @app.route("/api/agenda")
-    def api_agenda():
-        try:
-            agenda = get_agenda()
-            da_str = request.args.get("da")
-            a_str = request.args.get("a")
-            da = date.fromisoformat(da_str) if da_str else None
-            a = date.fromisoformat(a_str) if a_str else None
-            apps = agenda.cerca(da=da, a=a)
-            return jsonify([a.to_dict() for a in apps])
-        except Exception as e:
-            app.logger.exception("Errore api_agenda: %s", e)
-            return jsonify([])
-
-    @app.route("/api/agenda/<id_app>")
-    def api_appuntamento(id_app):
-        try:
-            agenda = get_agenda()
-            appt = agenda.get(id_app)
-            if not appt:
-                return jsonify({"errore": "Non trovato"}), 404
-            return jsonify(appt.to_dict())
-        except Exception as e:
-            app.logger.exception("Errore api_appuntamento: %s", e)
-            return jsonify({"errore": str(e)})
-
-    @app.route("/api/reminder")
-    def api_reminder():
-        try:
-            agenda = get_agenda()
-            entro = int(request.args.get("entro", 60))
-            apps = agenda.prossimi_reminder(entro_minuti=entro)
-            return jsonify([a.to_dict() for a in apps])
-        except Exception as e:
-            app.logger.exception("Errore api_reminder: %s", e)
-            return jsonify([])
-
-    @app.route("/api/statistiche")
-    def api_statistiche():
-        try:
-            return jsonify(get_agenda().statistiche())
-        except Exception as e:
-            app.logger.exception("Errore api_statistiche: %s", e)
-            return jsonify({"errore": str(e)})
+    register_auth_management_routes(
+        app,
+        get_utenti=get_utenti,
+        audit=audit,
+    )
+
+    register_scadenziario_routes(
+        app,
+        get_agenda=get_agenda,
+        get_scadenziario=get_scadenziario,
+        get_fascicoli=get_fascicoli,
+        get_utenti=get_utenti,
+        get_config_studio=get_config_studio,
+        _studio_patron_rule_from_config=_studio_patron_rule_from_config,
+        _resolve_judicial_office_by_code=_resolve_judicial_office_by_code,
+        audit=audit,
+        sync_pubblica=sync_pubblica,
+    )
+
+    register_workspace_routes(
+        app,
+        get_workspace_intelligente=get_workspace_intelligente,
+        get_local_ai_service=get_local_ai_service,
+    )
+
+    register_dashboard_routes(
+        app,
+        get_agenda=get_agenda,
+        get_scadenziario=get_scadenziario,
+        get_fascicoli=get_fascicoli,
+        get_clienti=get_clienti,
+        get_condivisioni=get_condivisioni,
+        get_workspace_intelligente=get_workspace_intelligente,
+        get_calendar_sync=get_calendar_sync,
+        audit=audit,
+        sync_pubblica=sync_pubblica,
+        track_recente=track_recente,
+    )
+
+    register_fascicoli_ai_routes(
+        app,
+        get_fascicoli=get_fascicoli,
+        get_agenda=get_agenda,
+        get_scadenziario=get_scadenziario,
+        get_workspace_intelligente=get_workspace_intelligente,
+        get_local_ai_service=get_local_ai_service,
+        cfg_data_path=_cfg_data_path,
+        build_fascicolo_workspace=_build_fascicolo_workspace,
+    )
 
     # ---------------------------------------------------------------- tariffario DM 55/2014
 
@@ -5031,307 +3488,14 @@ def create_app(config: dict | None = None) -> Flask:
             oggi=date.today(),
         )
 
-    # ---------------------------------------------------------------- Portali — Acquisizione guidata fascicoli
-
-    @app.route("/portali/<portale>/acquisizione", methods=["GET"])
-    def portale_acquisizione_wizard(portale: str):
-        try:
-            spec = _spec_portale_acquisizione(portale)
-        except KeyError:
-            flash("Portale non supportato.", "warning")
-            return redirect(url_for("dashboard"))
-        id_fasc = str(request.args.get("id_fasc") or "").strip()
-        wizard_focus = str(request.args.get("focus") or "").strip().lower()
-        linked_fascicolo = get_fascicoli().get(id_fasc) if id_fasc else None
-        linked_fascicolo_url = (
-            url_for("dettaglio_fascicolo", id_fasc=linked_fascicolo.id)
-            if linked_fascicolo
-            else ""
-        )
-        linked_workflow_url = ""
-        if portale == "pdp" and linked_fascicolo:
-            linked_workflow_url = _pdp_penale_workspace_url_for_fascicolo(linked_fascicolo.id)
-        wizard_return_url = linked_fascicolo_url or url_for(spec["home_endpoint"])
-        wizard_return_label = "Torna al fascicolo" if linked_fascicolo else "Torna al portale"
-        wizard_initial_mapping = (
-            {
-                "mode": "update_existing",
-                "target_fascicolo_id": linked_fascicolo.id,
-            }
-            if linked_fascicolo
-            else {
-                "mode": "create_new",
-                "target_fascicolo_id": "",
-            }
-        )
-        return render_template(
-            "portale/acquisizione_wizard.html",
-            spec=spec,
-            wizard_status=_build_access_status_payload(portale),
-            wizard_portale=portale,
-            linked_fascicolo=linked_fascicolo,
-            linked_fascicolo_url=linked_fascicolo_url,
-            linked_workflow_url=linked_workflow_url,
-            wizard_return_url=wizard_return_url,
-            wizard_return_label=wizard_return_label,
-            wizard_initial_mapping=wizard_initial_mapping,
-            wizard_focus=wizard_focus,
-            oggi=date.today(),
-        )
-
-    @app.route("/polisWeb/acquisizione", methods=["GET"])
-    def polisweb_acquisizione_redirect():
-        return redirect(url_for("portale_acquisizione_wizard", portale="pst"))
-
-    @app.route("/pdp/acquisizione", methods=["GET"])
-    def pdp_acquisizione_redirect():
-        return redirect(url_for("portale_acquisizione_wizard", portale="pdp"))
-
-    @app.route("/pat/acquisizione", methods=["GET"])
-    def pat_acquisizione_redirect():
-        return redirect(url_for("portale_acquisizione_wizard", portale="pat"))
-
-    @app.route("/sigit/acquisizione", methods=["GET"])
-    def sigit_acquisizione_redirect():
-        return redirect(url_for("portale_acquisizione_wizard", portale="ptt"))
-
-    @app.route("/api/portali/<portale>/acquisizione/status", methods=["GET"])
-    def api_portale_acquisizione_status(portale: str):
-        try:
-            return jsonify({"ok": True, "status": _build_access_status_payload(portale)})
-        except Exception as e:
-            app.logger.exception("Errore api_portale_acquisizione_status(%s): %s", portale, e)
-            return jsonify({"ok": False, "errore": str(e), "status": {}}), 200
-
-    @app.route("/api/portali/<portale>/acquisizione/search", methods=["POST"])
-    def api_portale_acquisizione_search(portale: str):
-        try:
-            _spec_portale_acquisizione(portale)
-            data = request.get_json(silent=True) or {}
-            risultati = _search_fascicoli_portale_server(portale, data)
-            return jsonify({"ok": True, "results": risultati})
-        except Exception as e:
-            app.logger.exception("Errore api_portale_acquisizione_search(%s): %s", portale, e)
-            return jsonify({"ok": False, "errore": str(e), "results": []}), 200
-
-    @app.route("/api/portali/<portale>/acquisizione/preview", methods=["POST"])
-    def api_portale_acquisizione_preview(portale: str):
-        try:
-            _spec_portale_acquisizione(portale)
-            data = request.get_json(silent=True) or {}
-            selection = dict(data.get("selection") or {})
-            if not selection:
-                raise ValueError("Fascicolo non selezionato.")
-            documenti = data.get("documenti")
-            if not isinstance(documenti, list):
-                documenti = _preview_documenti_portale_server(portale, selection)
-            preview = _build_portale_preview(portale, selection, documenti)
-            return jsonify({"ok": True, "preview": preview})
-        except Exception as e:
-            app.logger.exception("Errore api_portale_acquisizione_preview(%s): %s", portale, e)
-            return jsonify({"ok": False, "errore": str(e), "preview": {}}), 200
-
-    @app.route("/api/portali/<portale>/acquisizione/analyze", methods=["POST"])
-    def api_portale_acquisizione_analyze(portale: str):
-        try:
-            _spec_portale_acquisizione(portale)
-            data = request.get_json(silent=True) or {}
-            selection = dict(data.get("selection") or {})
-            preview = dict(data.get("preview") or {})
-            if not selection or not preview:
-                raise ValueError("Selezione o anteprima mancanti.")
-            options = _coerce_import_options(dict(data.get("options") or {}))
-            mapping = _coerce_mapping(dict(data.get("mapping") or {}))
-            analysis = _analyze_portale_import(portale, selection, preview, options, mapping)
-            return jsonify({"ok": True, "analysis": analysis})
-        except Exception as e:
-            app.logger.exception("Errore api_portale_acquisizione_analyze(%s): %s", portale, e)
-            return jsonify({"ok": False, "errore": str(e), "analysis": {}}), 200
-
-    @app.route("/api/portali/<portale>/acquisizione/import", methods=["POST"])
-    def api_portale_acquisizione_import(portale: str):
-        try:
-            _spec_portale_acquisizione(portale)
-            data = request.get_json(silent=True) or {}
-            selection = dict(data.get("selection") or {})
-            preview = dict(data.get("preview") or {})
-            if not selection or not preview:
-                raise ValueError("Selezione o anteprima mancanti.")
-            options = _coerce_import_options(dict(data.get("options") or {}))
-            mapping = _coerce_mapping(dict(data.get("mapping") or {}))
-            downloaded_files_raw = data.get("downloaded_files")
-            downloaded_files = downloaded_files_raw if isinstance(downloaded_files_raw, list) else []
-            result = _importa_o_collega_fascicolo_portale(
-                portale,
-                selection,
-                preview,
-                options,
-                mapping,
-                downloaded_files=downloaded_files,
-            )
-            return jsonify({"ok": True, "result": result, **result})
-        except Exception as e:
-            app.logger.exception("Errore api_portale_acquisizione_import(%s): %s", portale, e)
-            return jsonify({"ok": False, "errore": str(e)}), 200
-
-    @app.route("/api/telematico/connection-status", methods=["GET"])
-    def api_telematico_connection_status():
-        try:
-            cards = []
-            for portale in ("pst", "pdp", "pat", "ptt"):
-                payload = _build_access_status_payload(portale)
-                spec = dict(payload.get("spec") or {})
-                cards.append(
-                    {
-                        "portale": portale,
-                        "label": spec.get("label"),
-                        "color": spec.get("color"),
-                        "status_text": payload.get("status_text"),
-                        "environment_label": payload.get("environment_label"),
-                        "demo_mode": bool(payload.get("demo_mode")),
-                        "pkcs11_mode": bool(payload.get("pkcs11_mode")),
-                        "browser_channel_required": bool(payload.get("browser_channel_required")),
-                        "last_sync_at": payload.get("last_sync_at"),
-                    }
-                )
-            return jsonify({"ok": True, "cards": cards})
-        except Exception as e:
-            app.logger.exception("Errore api_telematico_connection_status: %s", e)
-            return jsonify({"ok": False, "errore": str(e), "cards": []}), 200
-
-    @app.route("/telematico", methods=["GET"])
-    def telematico_dashboard():
-        try:
-            backfill_summary = {"processed": 0, "failed": 0}
-            dashboard_notices = []
-            try:
-                backfill_summary = _backfill_telematico_from_existing_fascicoli()
-            except Exception as e:
-                app.logger.exception("Errore backfill telematico_dashboard: %s", e)
-                backfill_summary = {"processed": 0, "failed": 1}
-
-            stats = {"totale": 0, "per_service": {}}
-            recent_cases = []
-            recent_events = []
-            read_warning = ""
-            try:
-                repo = get_telematico()
-                stats = repo.case_stats()
-                recent_cases = repo.list_cases(limit=18)
-                recent_events = repo.list_recent_events(limit=12)
-            except Exception as e:
-                app.logger.exception("Errore lettura telematico_dashboard: %s", e)
-                read_warning = _telematico_dashboard_warning_message(e)
-
-            service_map = {
-                "pst": "polisweb_consultazione",
-                "pdp": "pdp_penale",
-                "pat": "pat_siga",
-                "ptt": "ptt_sigit",
-            }
-            routes_map = {
-                "pst": ("polisWeb_home", "pst"),
-                "pdp": ("pdp_home", "pdp"),
-                "pat": ("pat_home", "pat"),
-                "ptt": ("sigit_home", "ptt"),
-            }
-            connection_cards = []
-            for portale in ("pst", "pdp", "pat", "ptt"):
-                payload = _build_access_status_payload(portale)
-                spec = dict(payload.get("spec") or {})
-                service_stats = dict((stats.get("per_service") or {}).get(service_map[portale]) or {})
-                home_endpoint, wizard_portale = routes_map[portale]
-                connection_cards.append(
-                    {
-                        "portale": portale,
-                        "spec": spec,
-                        "status_text": payload.get("status_text"),
-                        "environment_label": payload.get("environment_label"),
-                        "demo_mode": bool(payload.get("demo_mode")),
-                        "pkcs11_mode": bool(payload.get("pkcs11_mode")),
-                        "browser_channel_required": bool(payload.get("browser_channel_required")),
-                        "last_sync_at": payload.get("last_sync_at"),
-                        "last_import_log_id": payload.get("last_import_log_id"),
-                        "totale": int(service_stats.get("totale") or 0),
-                        "import_completed": int(service_stats.get("import_completed") or 0),
-                        "attention_needed": int(service_stats.get("attention_needed") or 0),
-                        "home_url": url_for(home_endpoint),
-                        "acquisizione_url": url_for("portale_acquisizione_wizard", portale=wizard_portale),
-                    }
-                )
-            fascicoli_index = {fasc.id: fasc for fasc in get_fascicoli().tutti()}
-            for row in recent_cases:
-                fasc = fascicoli_index.get(str(row.get("practice_id") or ""))
-                row["practice_url"] = url_for("dettaglio_fascicolo", id_fasc=row["practice_id"]) if fasc else ""
-                row["practice_title"] = getattr(fasc, "titolo", "") if fasc else ""
-                row["practice_number"] = getattr(fasc, "numero", "") if fasc else ""
-                row["service_label"] = {
-                    "polisweb_consultazione": "PST / PolisWeb",
-                    "pdp_penale": "PDP Penale",
-                    "pat_siga": "PAT / SIGA",
-                    "ptt_sigit": "PTT / SIGIT",
-                }.get(str(row.get("service_code") or ""), str(row.get("service_code") or ""))
-            for row in recent_events:
-                fasc = fascicoli_index.get(str(row.get("practice_id") or ""))
-                row["practice_url"] = url_for("dettaglio_fascicolo", id_fasc=row["practice_id"]) if fasc else ""
-                row["practice_title"] = getattr(fasc, "titolo", "") if fasc else ""
-            if backfill_summary.get("failed", 0):
-                dashboard_notices.append(
-                    {
-                        "tone": "warning",
-                        "title": "Allineamento parziale",
-                        "body": (
-                            "Allineamento telematico eseguito in modalita' protetta: alcuni fascicoli "
-                            "non sono stati aggiornati, ma la cabina resta operativa."
-                        ),
-                    }
-                )
-            if read_warning:
-                dashboard_notices.append(
-                    {
-                        "tone": "warning",
-                        "title": "Archivio telematico presidiato",
-                        "body": read_warning,
-                    }
-                )
-            return render_template(
-                "telematico_dashboard.html",
-                oggi=date.today(),
-                stats=stats,
-                connection_cards=connection_cards,
-                recent_cases=recent_cases,
-                recent_events=recent_events,
-                dashboard_notices=dashboard_notices,
-            )
-        except Exception as e:
-            app.logger.exception("Errore telematico_dashboard: %s", e)
-            return render_template(
-                "telematico_dashboard.html",
-                oggi=date.today(),
-                stats={"totale": 0, "per_service": {}},
-                connection_cards=[],
-                recent_cases=[],
-                recent_events=[],
-                dashboard_notices=[
-                    {
-                        "tone": "warning",
-                        "title": "Modalita' ridotta",
-                        "body": (
-                            "Cabina telematica temporaneamente disponibile in modalita' ridotta. "
-                            "Riprova tra poco o verifica il registro applicativo."
-                        ),
-                    }
-                ],
-            )
-
-    # ---------------------------------------------------------------- PolisWeb – Consultazione e importazione fascicoli
+    # ---------------------------------------------------------------- PolisWeb â€“ Consultazione e importazione fascicoli
 
     def _polis_auth_mode() -> str:
         """
-        Restituisce la modalità di autenticazione PST:
-          'reale'  — certificato P12/PEM configurato, SOAP mTLS disponibile
-          'pkcs11' — token PKCS#11 locale, autenticazione gestita dal dispositivo
-          'demo'   — nessun certificato, modalità demo offline
+        Restituisce la modalitÃ  di autenticazione PST:
+          'reale'  â€” certificato P12/PEM configurato, SOAP mTLS disponibile
+          'pkcs11' â€” token PKCS#11 locale, autenticazione gestita dal dispositivo
+          'demo'   â€” nessun certificato, modalitÃ  demo offline
         """
         # Controllo config studio (impostazioni UI)
         try:
@@ -5339,8 +3503,8 @@ def create_app(config: dict | None = None) -> Flask:
             preferito = getattr(cfg, "backend_preferito_normalizzato", "auto")
             fmt = getattr(cfg, "backend_firma_effettivo_safe", "nessuno")
             if fmt == "pkcs11":
-                # Token USB: la chiave privata non è esportabile e non è accessibile
-                # dal container Linux su Windows → autenticazione PST solo via browser
+                # Token USB: la chiave privata non Ã¨ esportabile e non Ã¨ accessibile
+                # dal container Linux su Windows â†’ autenticazione PST solo via browser
                 return "pkcs11"
             if fmt in ("p12", "pem"):
                 return "reale"
@@ -5356,8 +3520,22 @@ def create_app(config: dict | None = None) -> Flask:
         return "demo"
 
     def _polis_demo_mode() -> bool:
-        """True solo se non esiste alcun canale reale configurato (né P12/PEM né token PKCS#11)."""
+        """True solo se non esiste alcun canale reale configurato (nÃ© P12/PEM nÃ© token PKCS#11)."""
         return _polis_auth_mode() == "demo"
+
+    register_deposito_routes(
+        app,
+        get_fascicoli=get_fascicoli,
+        get_config_studio=get_config_studio,
+        audit=audit,
+        sync_pubblica=sync_pubblica,
+        run_deposito_validation=_run_deposito_validation,
+        infer_canale_deposito=_infer_canale_deposito,
+        resolve_ufficio_destinatario=_resolve_ufficio_destinatario,
+        deposito_correction_context=_deposito_correction_context,
+        luogo_timbro_firma_visibile=_luogo_timbro_firma_visibile,
+        polis_demo_mode=_polis_demo_mode,
+    )
 
     def _portale_usa_local_signer(portale: str) -> bool:
         return (portale or "").strip().lower() in {"pst", "pdp", "pat", "ptt"} and _polis_auth_mode() == "pkcs11"
@@ -5634,7 +3812,7 @@ def create_app(config: dict | None = None) -> Flask:
                 "documenti, ricevute, provvedimenti ed esiti."
             )
         return (
-            f"L'endpoint ufficiale di {label} non è raggiungibile dal backend server. "
+            f"L'endpoint ufficiale di {label} non Ã¨ raggiungibile dal backend server. "
             "Usa l'acquisizione guidata dal browser con Local Signer su questo PC."
         )
 
@@ -5707,7 +3885,7 @@ def create_app(config: dict | None = None) -> Flask:
             """Normalizza a YYYY-MM-DD (coerente con _chiave_deposito_polisweb).
 
             Gestisce formati multipli (ISO, italiano dd/mm/yyyy, dd-mm-yyyy)
-            esattamente come _parse_data in polisWeb.py — altrimenti le chiavi
+            esattamente come _parse_data in polisWeb.py â€” altrimenti le chiavi
             di raggruppamento differiscono e lo stesso deposito appare duplicato.
             """
             if not d:
@@ -6141,7 +4319,7 @@ def create_app(config: dict | None = None) -> Flask:
             if not target:
                 raise ValueError("Fascicolo locale selezionato non trovato.")
             if not _fascicolo_matches_selection(target, portale, selection, strict=False):
-                raise ValueError("Il fascicolo locale selezionato non è compatibile con il fascicolo del portale.")
+                raise ValueError("Il fascicolo locale selezionato non Ã¨ compatibile con il fascicolo del portale.")
             resolved_mode = "update_existing" if requested_mode == "update_existing" else "attach_existing"
             return resolved_mode, target, False
         exact = _find_exact_fascicolo_locale_portale(portale, selection)
@@ -6308,7 +4486,7 @@ def create_app(config: dict | None = None) -> Flask:
         if not selection.get("numero") or not selection.get("anno"):
             blockers.append({"label": "RG incompleto", "detail": "Numero e anno del fascicolo sono obbligatori per una pratica governabile.", "tone": "danger"})
         else:
-            oks.append({"label": "Identità fascicolo pronta", "detail": f"{selection.get('numero')}/{selection.get('anno')}", "tone": "success"})
+            oks.append({"label": "IdentitÃ  fascicolo pronta", "detail": f"{selection.get('numero')}/{selection.get('anno')}", "tone": "success"})
 
         if options.get("importa_parti") and counts.get("parti", 0) <= 0:
             if manual_mode and portale in {"pdp", "pat", "ptt"}:
@@ -6341,8 +4519,8 @@ def create_app(config: dict | None = None) -> Flask:
         if auto_integrated and auto_target is not None:
             warnings.append(
                 {
-                    "label": "Pratica locale già presente",
-                    "detail": f"L'importazione aggiornerà automaticamente {auto_target.titolo} invece di creare un duplicato.",
+                    "label": "Pratica locale giÃ  presente",
+                    "detail": f"L'importazione aggiornerÃ  automaticamente {auto_target.titolo} invece di creare un duplicato.",
                     "tone": "warning",
                 }
             )
@@ -7147,8 +5325,8 @@ def create_app(config: dict | None = None) -> Flask:
         browser_channel_required = _portale_browser_channel_required(portale)
         ultimo_log = _last_portale_import_log(portale)
         if demo_mode:
-            status_text = "Modalità demo / fallback"
-            environment_label = "Simulazione / compatibilità"
+            status_text = "ModalitÃ  demo / fallback"
+            environment_label = "Simulazione / compatibilitÃ "
         elif browser_channel_required:
             if portale == "pat":
                 status_text = "Consultazione via Portale dell'Avvocato"
@@ -7334,7 +5512,7 @@ def create_app(config: dict | None = None) -> Flask:
         return f"InstallaLocalSigner-{_local_signer_version()}.ps1"
 
     def _local_signer_windows_offline_ps1_name() -> str:
-        """PS1 offline self-contained (generato da build_dist.py) — alternativa all'EXE."""
+        """PS1 offline self-contained (generato da build_dist.py) â€” alternativa all'EXE."""
         return f"SetupLocalSigner-{_local_signer_version()}.ps1"
 
     def _local_signer_windows_offline_ps1_path() -> Path:
@@ -7361,7 +5539,7 @@ def create_app(config: dict | None = None) -> Flask:
     def _local_signer_windows_exe_path() -> Path:
         # Restituisce solo il path dell'exe versionato (es. SetupLocalSigner-1.5.10.exe).
         # NON cade in fallback sul generico SetupLocalSigner.exe (potrebbe essere
-        # una versione precedente) — se l'exe versionato non esiste il chiamante
+        # una versione precedente) â€” se l'exe versionato non esiste il chiamante
         # deve usare la PS1 offline.
         return _local_signer_dist_dir() / _local_signer_windows_exe_name()
 
@@ -7852,7 +6030,7 @@ read -r -p "Premi Invio per chiudere..." _
           4. .ps1 online (generato dinamicamente, scarica file dal server al momento)
         """
         base_url = _get_base_url()
-        # CMD auto-estraente (preferito — nessun problema Execution Policy)
+        # CMD auto-estraente (preferito â€” nessun problema Execution Policy)
         cmd_path = _local_signer_windows_cmd_path()
         if cmd_path.exists():
             return send_file(
@@ -7945,6 +6123,47 @@ read -r -p "Premi Invio per chiudere..." _
         except Exception as e:
             app.logger.exception("Errore generazione installer Linux: %s", e)
             return str(e), 500
+
+    def _pdp_penale_workspace_url_for_fascicolo_early(id_fasc: str) -> str:
+        id_fasc = str(id_fasc or "").strip()
+        if not id_fasc:
+            return ""
+        try:
+            cases = get_pdp_penale().list_cases_for_practice(id_fasc)
+        except Exception:
+            cases = []
+        active_case = next((row for row in cases if str(row.get("id") or "").strip()), None)
+        if active_case:
+            return url_for(
+                "pdp_penale_workspace",
+                id_fasc=id_fasc,
+                case_id=str(active_case["id"]),
+            )
+        return url_for("pdp_penale_workspace", id_fasc=id_fasc)
+
+    register_portali_acquisizione_routes(
+        app,
+        get_fascicoli=get_fascicoli,
+        _spec_portale_acquisizione=_spec_portale_acquisizione,
+        _pdp_penale_workspace_url_for_fascicolo=_pdp_penale_workspace_url_for_fascicolo_early,
+        _build_access_status_payload=_build_access_status_payload,
+        _search_fascicoli_portale_server=_search_fascicoli_portale_server,
+        _preview_documenti_portale_server=_preview_documenti_portale_server,
+        _build_portale_preview=_build_portale_preview,
+        _coerce_import_options=_coerce_import_options,
+        _coerce_mapping=_coerce_mapping,
+        _analyze_portale_import=_analyze_portale_import,
+        _importa_o_collega_fascicolo_portale=_importa_o_collega_fascicolo_portale,
+    )
+
+    register_telematico_dashboard_routes(
+        app,
+        get_fascicoli=get_fascicoli,
+        get_telematico=get_telematico,
+        _backfill_telematico_from_existing_fascicoli=_backfill_telematico_from_existing_fascicoli,
+        _build_access_status_payload=_build_access_status_payload,
+        _telematico_dashboard_warning_message=_telematico_dashboard_warning_message,
+    )
 
     @app.route("/polisWeb", methods=["GET"])
     def polisWeb_home():
@@ -8064,7 +6283,7 @@ read -r -p "Premi Invio per chiudere..." _
         except Exception:
             pass
 
-        # Raggruppa per id_deposito → lista ordinata per data (più recenti prima)
+        # Raggruppa per id_deposito â†’ lista ordinata per data (piÃ¹ recenti prima)
         from collections import OrderedDict
         _gruppi: dict = OrderedDict()
         for doc in sorted(documenti, key=lambda d: d.data_deposito or "", reverse=True):
@@ -8093,7 +6312,7 @@ read -r -p "Premi Invio per chiudere..." _
 
     @app.route("/polisWeb/fascicolo-wizard", methods=["GET"])
     def polisWeb_fascicolo_wizard():
-        """Wizard fascicolo PST — naviga le 5 sezioni del fascicolo telematico."""
+        """Wizard fascicolo PST â€” naviga le 5 sezioni del fascicolo telematico."""
         codice_ufficio = request.args.get("codice_ufficio", "")
         numero_rg      = request.args.get("numero_rg", "")
         auth_mode      = _polis_auth_mode()
@@ -8261,7 +6480,7 @@ read -r -p "Premi Invio per chiudere..." _
             acquisisci_portale = f.get("acquisisci_portale") == "1"
             mantieni_albero_originale = f.get("mantieni_albero_originale") == "1"
             # La checkbox controlla solo la copia tecnica separata dell'albero originale.
-            # I metadati dei documenti/depositi già ricevuti dal portale restano sempre
+            # I metadati dei documenti/depositi giÃ  ricevuti dal portale restano sempre
             # disponibili per l'importazione e per la vista a buste del fascicolo.
             if id_fasc_target:
                 fascicolo_target = gf.get(id_fasc_target)
@@ -8334,7 +6553,7 @@ read -r -p "Premi Invio per chiudere..." _
             flash(str(e), "danger")
         return redirect(url_for("polisWeb_home"))
 
-    # ---------------------------------------------------------------- PDP Penale — Portale Deposito Atti
+    # ---------------------------------------------------------------- PDP Penale â€” Portale Deposito Atti
 
     @app.route("/pdp", methods=["GET"])
     def pdp_home():
@@ -8348,7 +6567,7 @@ read -r -p "Premi Invio per chiudere..." _
     def pdp_ricerca():
         id_fasc = str(request.form.get("id_fasc") or "").strip()
         flash(
-            "Per PDP Penale la ricerca diretta è stata sostituita dall'acquisizione guidata, così evitiamo richieste inutili e agganciamo subito il workflow PDP.",
+            "Per PDP Penale la ricerca diretta Ã¨ stata sostituita dall'acquisizione guidata, cosÃ¬ evitiamo richieste inutili e agganciamo subito il workflow PDP.",
             "info",
         )
         if id_fasc:
@@ -8394,7 +6613,7 @@ read -r -p "Premi Invio per chiudere..." _
         except Exception:
             pass
 
-        # Raggruppa per id_deposito → lista ordinata per data (più recenti prima)
+        # Raggruppa per id_deposito â†’ lista ordinata per data (piÃ¹ recenti prima)
         from collections import OrderedDict
         _gruppi: dict = OrderedDict()
         for doc in sorted(documenti, key=lambda d: d.data_deposito or "", reverse=True):
@@ -8466,7 +6685,7 @@ read -r -p "Premi Invio per chiudere..." _
                     created=False,
                     user_name=avv,
                 )
-                flash("Pratica penale già presente: fascicolo locale integrato senza creare duplicati.", "success")
+                flash("Pratica penale giÃ  presente: fascicolo locale integrato senza creare duplicati.", "success")
                 return redirect(url_for("dettaglio_fascicolo", id_fasc=target.id))
             if _portale_local_channel_enabled("pdp"):
                 client = ClientPDP(
@@ -8494,7 +6713,7 @@ read -r -p "Premi Invio per chiudere..." _
             flash(str(e), "danger")
         return redirect(url_for("pdp_home"))
 
-    # ---------------------------------------------------------------- PAT Amministrativo — SIGA
+    # ---------------------------------------------------------------- PAT Amministrativo â€” SIGA
 
     @app.route("/pat", methods=["GET"])
     def pat_home():
@@ -8577,7 +6796,7 @@ read -r -p "Premi Invio per chiudere..." _
                     created=False,
                     user_name=avv,
                 )
-                flash("Pratica amministrativa già presente: fascicolo locale integrato senza creare duplicati.", "success")
+                flash("Pratica amministrativa giÃ  presente: fascicolo locale integrato senza creare duplicati.", "success")
                 return redirect(url_for("dettaglio_fascicolo", id_fasc=target.id))
             if _portale_local_channel_enabled("pat"):
                 client = ClientPAT(
@@ -8691,7 +6910,7 @@ read -r -p "Premi Invio per chiudere..." _
                     created=False,
                     user_name=avv,
                 )
-                flash("Pratica tributaria già presente: fascicolo locale integrato senza creare duplicati.", "success")
+                flash("Pratica tributaria giÃ  presente: fascicolo locale integrato senza creare duplicati.", "success")
                 return redirect(url_for("dettaglio_fascicolo", id_fasc=target.id))
             if _portale_local_channel_enabled("ptt"):
                 client = ClientSIGIT(
@@ -8719,23 +6938,11 @@ read -r -p "Premi Invio per chiudere..." _
             flash(str(e), "danger")
         return redirect(url_for("sigit_home"))
 
-    # ---------------------------------------------------------------- Checklist deposito telematico
-
-    @app.route("/deposito/checklist")
-    def deposito_checklist():
-        """Checklist operativa per il deposito telematico, per tipo di procedimento."""
-        return render_template("deposito_checklist.html")
-
-    @app.route("/guida/firma-digitale")
-    def guida_firma_digitale():
-        """Guida interattiva su come ottenere e configurare il certificato di firma digitale."""
-        return render_template("guida_firma_digitale.html")
-
     # ---------------------------------------------------------------- API autocomplete uffici giudiziari
 
     @app.route("/api/uffici")
     def api_uffici():
-        """Autocomplete uffici giudiziari — usa la cache aggiornata del GestoreUfficiGiudiziari."""
+        """Autocomplete uffici giudiziari â€” usa la cache aggiornata del GestoreUfficiGiudiziari."""
         try:
             from pct.uffici_giudiziari import get_gestore
             q    = request.args.get("q", "").strip()
@@ -8993,12 +7200,12 @@ read -r -p "Premi Invio per chiudere..." _
         n_collaboratori = gcd.n_collaboratori(id_cliente)
         u = g.utente_corrente
         ruolo_cond = gcd.ruolo_accesso(u.id, id_cliente) if u else None
-        # #3 — Audit: registra accesso a cartella condivisa
+        # #3 â€” Audit: registra accesso a cartella condivisa
         if u and not u.ha_permesso("clienti.leggi") and ruolo_cond:
             audit("condivisione.accesso", "cliente", id_cliente,
                   dettagli=f"accesso lettura [{ruolo_cond.value}]")
         link_attivi = gcd.link_attivi_per_cliente(id_cliente)
-        # Fascicoli del cliente — preview inline (max 5)
+        # Fascicoli del cliente â€” preview inline (max 5)
         fascicoli_cliente = [
             f for f in get_fascicoli().tutti()
             if f.id_cliente == id_cliente
@@ -9166,7 +7373,7 @@ read -r -p "Premi Invio per chiudere..." _
                 key=lambda x: x[1].data_scadenza,
             )
 
-            # Tutti i documenti aggregati (attivi + archiviati), più recenti prima
+            # Tutti i documenti aggregati (attivi + archiviati), piÃ¹ recenti prima
             tutti_documenti = sorted(
                 [(f, doc) for f in tutti for doc in f.documenti],
                 key=lambda x: x[1].data_caricamento,
@@ -9278,7 +7485,7 @@ read -r -p "Premi Invio per chiudere..." _
 
     @app.route("/clienti/<id_cliente>/faldone/pdf")
     def faldone_pdf_export(id_cliente):
-        """Genera e scarica il PDF «Indice Faldone Digitale»."""
+        """Genera e scarica il PDF Â«Indice Faldone DigitaleÂ»."""
         try:
             gc = get_clienti()
             c  = gc.get(id_cliente)
@@ -9525,7 +7732,7 @@ read -r -p "Premi Invio per chiudere..." _
         )
         session["portale_token_grezzo"] = token_grezzo
         session.pop("portale_link_cache", None)
-        flash("Portale attivato. Il link è pronto per essere inviato al cliente.", "success")
+        flash("Portale attivato. Il link Ã¨ pronto per essere inviato al cliente.", "success")
         return redirect(url_for("portale_config", id_cliente=id_cliente))
 
     @app.route("/clienti/<id_cliente>/portale/revoca", methods=["POST"])
@@ -9737,7 +7944,7 @@ read -r -p "Premi Invio per chiudere..." _
         """
         Gestione collaboratori di una cartella cliente.
         Accessibile a chi ha il permesso globale clienti.scrivi
-        oppure è GESTORE della specifica cartella.
+        oppure Ã¨ GESTORE della specifica cartella.
         """
         gc = get_clienti()
         c = gc.get(id_cliente)
@@ -9764,9 +7971,9 @@ read -r -p "Premi Invio per chiudere..." _
                 id_dest = request.form.get("id_utente", "").strip()
                 ruolo_str = request.form.get("ruolo", RuoloCondivisione.LETTURA.value)
                 note = request.form.get("note", "").strip()
-                # #2 — Scadenza accesso
+                # #2 â€” Scadenza accesso
                 data_scadenza = request.form.get("data_scadenza", "").strip()
-                # #9 — Tag
+                # #9 â€” Tag
                 tags_raw = request.form.get("tags", "").strip()
                 tags = [t.strip() for t in tags_raw.split(",") if t.strip()]
                 utente_dest = gu.get(id_dest)
@@ -9791,11 +7998,11 @@ read -r -p "Premi Invio per chiudere..." _
                             "success",
                         )
                         audit("condivisione.condividi", "cliente", id_cliente,
-                              dettagli=f"→ {utente_dest.username} [{ruolo_str}]"
+                              dettagli=f"â†’ {utente_dest.username} [{ruolo_str}]"
                                        + (f" scade {data_scadenza}" if data_scadenza else ""))
                         _sync.pubblica("info", "clienti", id_cliente, u.username,
                                        messaggio=f"Cartella condivisa con {utente_dest.username}")
-                        # #1 — Notifica email all'utente destinatario
+                        # #1 â€” Notifica email all'utente destinatario
                         if utente_dest.email:
                             try:
                                 get_messaggi().invia_email(
@@ -9824,10 +8031,10 @@ read -r -p "Premi Invio per chiudere..." _
                 if gcd.revoca(id_cliente, id_dest):
                     flash(f"Accesso revocato per {username_dest}.", "success")
                     audit("condivisione.revoca", "cliente", id_cliente,
-                          dettagli=f"→ {username_dest}")
+                          dettagli=f"â†’ {username_dest}")
                     _sync.pubblica("info", "clienti", id_cliente, u.username,
                                    messaggio=f"Accesso revocato per {username_dest}")
-                    # #1 — Notifica revoca
+                    # #1 â€” Notifica revoca
                     if utente_dest and utente_dest.email:
                         try:
                             get_messaggi().invia_email(
@@ -9836,7 +8043,7 @@ read -r -p "Premi Invio per chiudere..." _
                                 corpo_testo=(
                                     f"Ciao {utente_dest.nome_completo or utente_dest.username},\n\n"
                                     f"Il tuo accesso alla cartella cliente di {c.nome_completo} "
-                                    f"è stato revocato da {u.nome_completo or u.username}."
+                                    f"Ã¨ stato revocato da {u.nome_completo or u.username}."
                                 ),
                                 nome_destinatario=utente_dest.nome_completo or utente_dest.username,
                             )
@@ -9846,7 +8053,7 @@ read -r -p "Premi Invio per chiudere..." _
                     flash("Accesso non trovato.", "warning")
 
             elif azione == "crea_link":
-                # #6 — Crea link temporaneo
+                # #6 â€” Crea link temporaneo
                 ore = int(request.form.get("ore_validita", 72))
                 ruolo_str = request.form.get("ruolo", RuoloCondivisione.LETTURA.value)
                 monouso = request.form.get("monouso") == "1"
@@ -9894,7 +8101,7 @@ read -r -p "Premi Invio per chiudere..." _
 
             return redirect(url_for("gestione_collaboratori", id_cliente=id_cliente))
 
-        # GET — mostra pagina di gestione
+        # GET â€” mostra pagina di gestione
         collaboratori = gcd.collaboratori_di(id_cliente)
         ids_collaboratori = {a.id_utente for a in collaboratori}
         tutti_utenti = [
@@ -9987,7 +8194,7 @@ read -r -p "Premi Invio per chiudere..." _
                 "fascicoli": [{"id": f.id, "numero": f.numero, "titolo": f.titolo}
                                for f in fascicoli_cliente],
                 "esportato_il": datetime.now().isoformat(),
-                "esportato_da": g.utente_corrente.username if g.utente_corrente else "—",
+                "esportato_da": g.utente_corrente.username if g.utente_corrente else "â€”",
             }
             zf.writestr("indice.json", json.dumps(indice, ensure_ascii=False, indent=2))
 
@@ -10045,13 +8252,13 @@ read -r -p "Premi Invio per chiudere..." _
                 )
                 flash(f"Fascicolo condiviso con {utente_dest.username}.", "success")
                 audit("condivisione.fascicolo.condividi", "fascicolo", id_fasc,
-                      dettagli=f"→ {utente_dest.username} [{ruolo_str}]")
+                      dettagli=f"â†’ {utente_dest.username} [{ruolo_str}]")
             elif azione == "revoca":
                 username_dest = utente_dest.username if utente_dest else id_dest
                 if gcd.revoca_fascicolo(id_fasc, id_dest):
                     flash(f"Accesso fascicolo revocato per {username_dest}.", "success")
                     audit("condivisione.fascicolo.revoca", "fascicolo", id_fasc,
-                          dettagli=f"→ {username_dest}")
+                          dettagli=f"â†’ {username_dest}")
                 else:
                     flash("Accesso non trovato.", "warning")
             return redirect(url_for("gestione_collaboratori_fascicolo", id_fasc=id_fasc))
@@ -10093,7 +8300,7 @@ read -r -p "Premi Invio per chiudere..." _
             )
             flash(f"Documento '{doc.nome}' aggiornato (versione precedente archiviata).", "success")
             audit("fascicoli.documento.sostituisci", "fascicolo", id_fasc,
-                  dettagli=f"doc {id_doc} → {doc.nome}")
+                  dettagli=f"doc {id_doc} â†’ {doc.nome}")
         except (ValueError, KeyError) as e:
             flash(str(e), "danger")
         return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
@@ -10153,7 +8360,7 @@ read -r -p "Premi Invio per chiudere..." _
             tags=data.get("tags", []),
         )
         audit("condivisione.api.condividi", "cliente", id_cliente,
-              dettagli=f"→ {utente_dest.username} [{ruolo_str}]")
+              dettagli=f"â†’ {utente_dest.username} [{ruolo_str}]")
         return jsonify({"stato": "ok", "username": utente_dest.username, "ruolo": ruolo_str}), 201
 
     @app.route("/api/v1/clienti/<id_cliente>/condivisioni/<id_utente>", methods=["DELETE"])
@@ -10167,7 +8374,7 @@ read -r -p "Premi Invio per chiudere..." _
         try:
             rimosso = get_condivisioni().revoca(id_cliente, id_utente)
             if rimosso:
-                audit("condivisione.api.revoca", "cliente", id_cliente, dettagli=f"→ {id_utente}")
+                audit("condivisione.api.revoca", "cliente", id_cliente, dettagli=f"â†’ {id_utente}")
                 return jsonify({"stato": "ok"}), 200
             return jsonify({"errore": "Accesso non trovato"}), 404
         except Exception as e:
@@ -10231,7 +8438,7 @@ read -r -p "Premi Invio per chiudere..." _
 
     def _pdp_penale_status_label(value: Any) -> str:
         testo = str(value or "").strip()
-        return testo.replace("_", " ").title() if testo else "—"
+        return testo.replace("_", " ").title() if testo else "â€”"
 
     def _pdp_penale_guess_office_type(office_name: str) -> str:
         testo = str(office_name or "").strip().lower()
@@ -10256,7 +8463,7 @@ read -r -p "Premi Invio per chiudere..." _
         if not fasc:
             raise KeyError("Fascicolo non trovato.")
         if fasc.tipo != TipoFascicolo.PENALE:
-            raise ValueError("Il modulo PDP Penale è disponibile solo per i fascicoli penali.")
+            raise ValueError("Il modulo PDP Penale Ã¨ disponibile solo per i fascicoli penali.")
         return fasc
 
     def _require_pdp_penale_case(repo: PDPPenaleWorkflowRepository, case_id: str, practice_id: str) -> dict[str, Any]:
@@ -11050,13 +9257,13 @@ read -r -p "Premi Invio per chiudere..." _
                 "title": "Verifica titolo di accesso",
                 "variant": _step(str(active_case.get("nomination_status") or "") in {"deposited", "accepted"}, warning=bool(nomina_docs)),
                 "done": str(active_case.get("nomination_status") or "") in {"deposited", "accepted"},
-                "detail": "Nomina presente o già depositata/accettata.",
+                "detail": "Nomina presente o giÃ  depositata/accettata.",
             },
             {
                 "title": "Verifica allegati obbligatori",
                 "variant": _step(bool(nomina_docs), warning=bool(payment_docs or legal_aid_docs)),
                 "done": bool(nomina_docs),
-                "detail": f"Nomina: {len(nomina_docs)} · PagoPA: {len(payment_docs)} · Gratuito patrocinio: {len(legal_aid_docs)}",
+                "detail": f"Nomina: {len(nomina_docs)} Â· PagoPA: {len(payment_docs)} Â· Gratuito patrocinio: {len(legal_aid_docs)}",
             },
             {
                 "title": "Generazione richiesta accesso atti",
@@ -11077,7 +9284,7 @@ read -r -p "Premi Invio per chiudere..." _
                 "title": "PEC, password e finestra download",
                 "variant": _step(password_received, warning=bool(download_until)),
                 "done": password_received,
-                "detail": f"Password PEC: {'ricevuta' if password_received else 'assente'}{f' · Disponibile fino al {download_until}' if download_until else ''}",
+                "detail": f"Password PEC: {'ricevuta' if password_received else 'assente'}{f' Â· Disponibile fino al {download_until}' if download_until else ''}",
             },
             {
                 "title": "Import fascicolo nel gestionale",
@@ -11271,7 +9478,7 @@ read -r -p "Premi Invio per chiudere..." _
                     )
                 flash(f"Fascicolo {fasc.numero} creato.", "success")
                 sync_pubblica("crea", "fascicoli", fasc.id)
-                # Se arriva dalla cartella cliente, torna lì
+                # Se arriva dalla cartella cliente, torna lÃ¬
                 if source_preventivo or source_conferimento:
                     return redirect(url_for("dettaglio_fascicolo", id_fasc=fasc.id))
                 if id_cliente:
@@ -11338,7 +9545,7 @@ read -r -p "Premi Invio per chiudere..." _
         if fasc.numero_rg:
             apps = agenda.cerca(testo=fasc.numero_rg)
         scadenze_fascicolo = scadenziario.tutte(id_fascicolo=id_fasc, solo_aperte=False)
-        track_recente("fascicolo", id_fasc, f"{fasc.numero} — {fasc.titolo}",
+        track_recente("fascicolo", id_fasc, f"{fasc.numero} â€” {fasc.titolo}",
                       url_for("dettaglio_fascicolo", id_fasc=id_fasc), "bi-folder2-open")
         # PEC del tribunale dal registro ReGINde
         pec_tribunale = ""
@@ -11512,7 +9719,7 @@ read -r -p "Premi Invio per chiudere..." _
                 event_type=event_type,
                 event_source="user",
                 title=title,
-                description=f"{payload['office_name']} · {payload['register_type']} {payload['register_number']}/{payload['register_year']}",
+                description=f"{payload['office_name']} Â· {payload['register_type']} {payload['register_number']}/{payload['register_year']}",
                 payload_json={
                     "nomination_status": payload["nomination_status"],
                     "access_status": payload["access_status"],
@@ -11554,7 +9761,7 @@ read -r -p "Premi Invio per chiudere..." _
                 None,
             )
             if existing:
-                flash("Documento già collegato al modulo PDP Penale.", "info")
+                flash("Documento giÃ  collegato al modulo PDP Penale.", "info")
                 return redirect(url_for("pdp_penale_workspace", id_fasc=id_fasc, case_id=case_id))
 
             module_doc = repo.add_document(
@@ -11576,7 +9783,7 @@ read -r -p "Premi Invio per chiudere..." _
                 event_type="document_linked",
                 event_source="user",
                 title="Documento della pratica collegato al workflow PDP",
-                description=f"{local_doc.nome} → {document_role}",
+                description=f"{local_doc.nome} â†’ {document_role}",
                 payload_json={"document_id": module_doc["id"], "local_doc_id": local_doc_id},
                 created_by_user_id=getattr(g.utente_corrente, "id", ""),
             )
@@ -11642,7 +9849,7 @@ read -r -p "Premi Invio per chiudere..." _
                 event_type="access_request_registered",
                 event_source="user",
                 title="Richiesta accesso atti registrata",
-                description=f"{access_request['request_type']} · {_pdp_penale_status_label(request_status)}",
+                description=f"{access_request['request_type']} Â· {_pdp_penale_status_label(request_status)}",
                 payload_json={
                     "access_request_id": access_request["id"],
                     "request_status": request_status,
@@ -12151,7 +10358,7 @@ read -r -p "Premi Invio per chiudere..." _
 
     @app.route("/fascicoli/<id_fasc>/quadro")
     def quadro_fascicolo(id_fasc):
-        """Quadro unico della pratica — 5 assi: commerciale, operativo, conformità, economico, documentale."""
+        """Quadro unico della pratica â€” 5 assi: commerciale, operativo, conformitÃ , economico, documentale."""
         from pct.preventivi import GestionePreventivi
         from pct.fatturazione import GestioneFatturazione
 
@@ -12187,7 +10394,7 @@ read -r -p "Premi Invio per chiudere..." _
         if fasc.numero_rg:
             apps = agenda.cerca(testo=fasc.numero_rg)
 
-        # Conformità
+        # ConformitÃ 
         parti = get_soggetti().parti_fascicolo(id_fasc)
         responsabile_conformita = _build_responsabile_conformita_fascicolo(
             fascicolo=fasc,
@@ -12560,7 +10767,7 @@ read -r -p "Premi Invio per chiudere..." _
             doc = next(d for d in fasc.documenti if d.id == id_doc)
             data = _decrypt_doc(percorso.read_bytes())
             audit("fascicoli.documento.scarica", "fascicolo", id_fasc,
-                  dettagli=f"doc {id_doc} — {doc.nome}")
+                  dettagli=f"doc {id_doc} â€” {doc.nome}")
             return send_file(io.BytesIO(data), as_attachment=True, download_name=doc.nome)
         except Exception as e:
             app.logger.exception("Errore scarica_documento id_fasc=%s id_doc=%s: %s", id_fasc, id_doc, e)
@@ -12621,7 +10828,7 @@ read -r -p "Premi Invio per chiudere..." _
                     preview_name = _nome_preview_documento(doc.nome) or "documento.pdf"
                     preview = ("application/pdf", preview_name)
             if not preview:
-                # Nessuna anteprima disponibile — ritorna pagina HTML informativa
+                # Nessuna anteprima disponibile â€” ritorna pagina HTML informativa
                 # (mai as_attachment, altrimenti l'iframe del visualizzatore resta bloccato)
                 scarica_url = url_for("scarica_documento", id_fasc=id_fasc, id_doc=id_doc)
                 html = (
@@ -12648,7 +10855,7 @@ read -r -p "Premi Invio per chiudere..." _
                 preview_payload = _applica_timbro_firma_visibile(preview_payload, firme)
             mime, nome_download = preview
             audit("fascicoli.documento.visualizza", "fascicolo", id_fasc,
-                  dettagli=f"doc {id_doc} — {doc.nome}")
+                  dettagli=f"doc {id_doc} â€” {doc.nome}")
             return send_file(io.BytesIO(preview_payload), mimetype=mime, as_attachment=False,
                              download_name=nome_download)
         except Exception as e:
@@ -12665,7 +10872,7 @@ read -r -p "Premi Invio per chiudere..." _
                 '<div class="text-center p-4">'
                 '<i class="bi bi-exclamation-triangle text-warning" style="font-size:3rem"></i>'
                 '<h6 class="mt-3 mb-2">Impossibile visualizzare il documento</h6>'
-                '<p class="text-muted small mb-3">Si è verificato un errore durante il caricamento.<br>'
+                '<p class="text-muted small mb-3">Si Ã¨ verificato un errore durante il caricamento.<br>'
                 'Scarica il file per visualizzarlo con il programma appropriato.</p>'
                 f'<a href="{scarica_url}" class="btn btn-primary btn-sm">'
                 '<i class="bi bi-download me-1"></i>Scarica documento</a>'
@@ -12743,7 +10950,7 @@ read -r -p "Premi Invio per chiudere..." _
                 flash("Documento non trovato.", "warning")
                 return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
             if not doc.nome.lower().endswith(".pdf"):
-                flash(f"La conversione PDF/A è disponibile solo per file PDF (file: {doc.nome}).", "warning")
+                flash(f"La conversione PDF/A Ã¨ disponibile solo per file PDF (file: {doc.nome}).", "warning")
                 return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
             percorso = gf.percorso_documento(id_fasc, id_doc)
             esito = converti_pdfa(str(percorso))
@@ -12822,7 +11029,7 @@ read -r -p "Premi Invio per chiudere..." _
                 index_path=app.config["SEARCH_INDEX"],
             )
             audit("fascicoli.documento.editor_salva", "fascicolo", id_fasc,
-                  dettagli=f"doc {id_doc} — {nome}")
+                  dettagli=f"doc {id_doc} â€” {nome}")
             return jsonify({"ok": True, "auto": auto})
         except Exception as e:
             app.logger.exception("Errore api_editor_salva: %s", e)
@@ -12882,13 +11089,13 @@ read -r -p "Premi Invio per chiudere..." _
             app.logger.exception("Errore api_editor_docx: %s", e)
             return str(e), 500
 
-    # ── PKCS#11 — firma in-device (Aruba Key) ────────────────────────────────
+    # â”€â”€ PKCS#11 â€” firma in-device (Aruba Key) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     @app.route("/api/firma/pkcs11/status", methods=["GET"])
     def api_pkcs11_status():
         """
-        Controlla la disponibilità della libreria PKCS#11 e lista i token connessi.
-        Non richiede PIN — usa solo operazioni pubbliche sul token.
+        Controlla la disponibilitÃ  della libreria PKCS#11 e lista i token connessi.
+        Non richiede PIN â€” usa solo operazioni pubbliche sul token.
 
         Response JSON:
           { disponibile, libreria, token: [{slot_id, label, manufacturer, ha_cert}] }
@@ -12912,7 +11119,7 @@ read -r -p "Premi Invio per chiudere..." _
                     "messaggio": (
                         "Nessuna libreria PKCS#11 trovata. "
                         "Installare opensc (apt install opensc) e pcscd, oppure "
-                        "specificare il percorso in Impostazioni → Firma Digitale → Token PKCS#11."
+                        "specificare il percorso in Impostazioni â†’ Firma Digitale â†’ Token PKCS#11."
                     ),
                 })
 
@@ -12944,7 +11151,7 @@ read -r -p "Premi Invio per chiudere..." _
         Response JSON:
           { ok, nome_firmato, intestatario, scadenza, messaggio }
 
-        Il PIN non viene mai salvato — viene usato una volta per la sessione e scartato.
+        Il PIN non viene mai salvato â€” viene usato una volta per la sessione e scartato.
         """
         try:
             from dataclasses import replace as _dc_replace
@@ -12975,7 +11182,7 @@ read -r -p "Premi Invio per chiudere..." _
             if backend_firma != "pkcs11":
                 return jsonify({
                     "ok": False,
-                    "messaggio": "La firma in-device è disponibile solo quando il backend selezionato è Token PKCS#11.",
+                    "messaggio": "La firma in-device Ã¨ disponibile solo quando il backend selezionato Ã¨ Token PKCS#11.",
                 }), 400
             try:
                 formato = cfg_firma.valida_formato_firma(formato)
@@ -13001,7 +11208,7 @@ read -r -p "Premi Invio per chiudere..." _
                 return jsonify({
                     "ok": True,
                     "nome_firmato": doc.nome,
-                    "messaggio": "Documento già firmato digitalmente.",
+                    "messaggio": "Documento giÃ  firmato digitalmente.",
                 })
 
             # Percorso fisico del documento
@@ -13060,7 +11267,7 @@ read -r -p "Premi Invio per chiudere..." _
             if not nome_firmato.endswith(".p7m"):
                 nome_firmato = nome_firmato + ".p7m"
             if not os.path.exists(firmato_path):
-                return jsonify({"ok": False, "messaggio": "Il file firmato non è stato generato dal token PKCS#11."}), 500
+                return jsonify({"ok": False, "messaggio": "Il file firmato non Ã¨ stato generato dal token PKCS#11."}), 500
 
             contenuto_firmato = Path(firmato_path).read_bytes()
             if not busta_cades_valida(contenuto_firmato):
@@ -13090,7 +11297,7 @@ read -r -p "Premi Invio per chiudere..." _
                 audit_azione="firma.pkcs11",
                 audit_risorsa_tipo="documento",
                 audit_risorsa_id=id_doc,
-                audit_dettagli=f"Firmato via PKCS#11 da {intestatario} — {nome_firmato}",
+                audit_dettagli=f"Firmato via PKCS#11 da {intestatario} â€” {nome_firmato}",
                 sync_tipo="modifica",
                 sync_modulo="fascicoli",
                 sync_id_risorsa=id_fasc,
@@ -13168,7 +11375,7 @@ read -r -p "Premi Invio per chiudere..." _
             if backend_firma != "pkcs11":
                 return jsonify({
                     "ok": False,
-                    "messaggio": "La firma batch in-device è disponibile solo quando il backend selezionato è Token PKCS#11.",
+                    "messaggio": "La firma batch in-device Ã¨ disponibile solo quando il backend selezionato Ã¨ Token PKCS#11.",
                 }), 400
             try:
                 formato = cfg_firma.valida_formato_firma(formato)
@@ -13233,7 +11440,7 @@ read -r -p "Premi Invio per chiudere..." _
                             "documento_id": id_doc,
                             "nome_firmato": doc.nome,
                             "saltato": True,
-                            "messaggio": "Documento già firmato digitalmente.",
+                            "messaggio": "Documento giÃ  firmato digitalmente.",
                         })
                         saltati += 1
                         continue
@@ -13265,7 +11472,7 @@ read -r -p "Premi Invio per chiudere..." _
                         risultati.append({
                             "ok": False,
                             "documento_id": id_doc,
-                            "messaggio": "Il file .p7m firmato non è stato generato.",
+                            "messaggio": "Il file .p7m firmato non Ã¨ stato generato.",
                         })
                         errori += 1
                         continue
@@ -13340,14 +11547,14 @@ read -r -p "Premi Invio per chiudere..." _
                 "warning_codes": warning_codes,
                 "visible_signature_mode": visible_signature_mode,
                 "messaggio": (
-                    f"Firma batch completata: {firmati} firmati, {saltati} già firmati, {errori} errori."
+                    f"Firma batch completata: {firmati} firmati, {saltati} giÃ  firmati, {errori} errori."
                 ),
             })
         except Exception as e:
             app.logger.exception("Errore api_pkcs11_firma_documenti_batch: %s", e)
             return jsonify({"ok": False, "messaggio": _signature_storage_error_message(e)})
 
-    # ─────────────────────────────────────────────────────────────────────────
+    # â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     @app.route("/fascicoli/<id_fasc>/documenti/<id_doc>/firma", methods=["POST"])
     def firma_documento(id_fasc, id_doc):
@@ -13406,7 +11613,7 @@ read -r -p "Premi Invio per chiudere..." _
                 audit_azione="fascicoli.documento.firma",
                 audit_risorsa_tipo="fascicolo",
                 audit_risorsa_id=id_fasc,
-                audit_dettagli=f"doc {id_doc} — {doc.nome}",
+                audit_dettagli=f"doc {id_doc} â€” {doc.nome}",
                 sync_tipo="modifica",
                 sync_modulo="fascicoli",
                 sync_id_risorsa=id_fasc,
@@ -13441,7 +11648,7 @@ read -r -p "Premi Invio per chiudere..." _
             flash(str(e), "danger")
         return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
 
-    # ---- Attività processuali
+    # ---- AttivitÃ  processuali
 
     @app.route("/fascicoli/<id_fasc>/attivita/aggiungi", methods=["POST"])
     def aggiungi_attivita(id_fasc):
@@ -13460,7 +11667,7 @@ read -r -p "Premi Invio per chiudere..." _
                 avvocato=f.get("avvocato", ""),
                 id_appuntamento=f.get("id_appuntamento", ""),
             )
-            flash("Attività aggiunta.", "success")
+            flash("AttivitÃ  aggiunta.", "success")
         except (ValueError, KeyError) as e:
             flash(str(e), "danger")
         return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
@@ -13479,12 +11686,12 @@ read -r -p "Premi Invio per chiudere..." _
             flash(str(e), "danger")
         return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
 
-    # ---- Attestazione di conformità
+    # ---- Attestazione di conformitÃ 
 
     @app.route("/fascicoli/<id_fasc>/documenti/<id_doc>/attestazione", methods=["POST"])
     def attestazione_conformita(id_fasc, id_doc):
         """
-        Appone un'attestazione di conformità al documento PDF e lo restituisce.
+        Appone un'attestazione di conformitÃ  al documento PDF e lo restituisce.
         Utilizza pyhanko per aggiungere un'annotazione visibile al PDF.
         """
         gf = get_fascicoli()
@@ -13500,7 +11707,7 @@ read -r -p "Premi Invio per chiudere..." _
             testo = (
                 f"Copia conforme all'originale\n"
                 f"ai sensi dell'art. 22, co. 2, D.Lgs. 82/2005 (CAD)\n"
-                f"Avv. {nome_avvocato} — {data_oggi}"
+                f"Avv. {nome_avvocato} â€” {data_oggi}"
             )
 
             try:
@@ -13538,7 +11745,7 @@ read -r -p "Premi Invio per chiudere..." _
                 buf_att = io.BytesIO()
                 c = rlcanvas.Canvas(buf_att, pagesize=pagesizes.A4)
                 c.setFont("Helvetica-Bold", 11)
-                c.drawString(50, 780, "ATTESTAZIONE DI CONFORMITÀ")
+                c.drawString(50, 780, "ATTESTAZIONE DI CONFORMITÃ€")
                 c.setFont("Helvetica", 10)
                 for i, riga in enumerate(testo.split("\n")):
                     c.drawString(50, 760 - i * 18, riga)
@@ -13552,7 +11759,7 @@ read -r -p "Premi Invio per chiudere..." _
                     attested = data_raw
 
             audit("fascicoli.documento.attestazione", "fascicolo", id_fasc,
-                  dettagli=f"doc {id_doc} — {doc.nome}")
+                  dettagli=f"doc {id_doc} â€” {doc.nome}")
             nome_out = doc.nome.replace(".pdf", "_conf.pdf") if doc.nome.endswith(".pdf") else doc.nome + "_conf.pdf"
             return send_file(io.BytesIO(attested), mimetype="application/pdf",
                              as_attachment=True, download_name=nome_out)
@@ -13560,959 +11767,6 @@ read -r -p "Premi Invio per chiudere..." _
             flash(str(e), "danger")
             return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
 
-    # ---- Registra esito deposito PCT
-
-    @app.route("/fascicoli/<id_fasc>/depositi/aggiungi", methods=["POST"])
-    def aggiungi_esito_deposito(id_fasc):
-        """Registra manualmente un esito di deposito telematico nel fascicolo."""
-        gf = get_fascicoli()
-        u = g.utente_corrente
-        f = request.form
-        try:
-            gf.aggiungi_esito_deposito(
-                id_fasc=id_fasc,
-                tipo_atto=f.get("tipo_atto", "ATTO"),
-                pec_destinatario=f.get("pec_destinatario", ""),
-                stato=f.get("stato", "INVIATO"),
-                messaggio=f.get("messaggio", ""),
-                ricevuta_accettazione=f.get("ricevuta_accettazione", ""),
-                ricevuta_consegna=f.get("ricevuta_consegna", ""),
-                ricevuta_controlli_automatici=f.get("ricevuta_controlli_automatici", ""),
-                esito_controlli=f.get("esito_controlli", ""),
-                ricevuta_cancelleria=f.get("ricevuta_cancelleria", ""),
-                note=f.get("note", ""),
-                registrato_da=u.username if u else "",
-            )
-            flash("Esito deposito registrato nel fascicolo.", "success")
-            audit("fascicoli.deposito.aggiungi", "fascicolo", id_fasc)
-            _sync.pubblica("modifica", "fascicoli", id_fasc, utente=u.username if u else "")
-        except (ValueError, KeyError) as e:
-            flash(str(e), "danger")
-        return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
-
-    @app.route("/fascicoli/<id_fasc>/depositi/<id_dep>/modifica", methods=["POST"])
-    def modifica_esito_deposito(id_fasc, id_dep):
-        """Modifica manualmente un esito di deposito telematico nel fascicolo."""
-        gf = get_fascicoli()
-        u = g.utente_corrente
-        f = request.form
-        try:
-            gf.modifica_esito_deposito(
-                id_fasc=id_fasc,
-                id_dep=id_dep,
-                tipo_atto=f.get("tipo_atto", "ATTO"),
-                pec_destinatario=f.get("pec_destinatario", ""),
-                stato=f.get("stato", "INVIATO"),
-                messaggio=f.get("messaggio", ""),
-                ricevuta_accettazione=f.get("ricevuta_accettazione", ""),
-                ricevuta_consegna=f.get("ricevuta_consegna", ""),
-                ricevuta_controlli_automatici=f.get("ricevuta_controlli_automatici", ""),
-                esito_controlli=f.get("esito_controlli", ""),
-                ricevuta_cancelleria=f.get("ricevuta_cancelleria", ""),
-                note=f.get("note", ""),
-                modificato_da=u.username if u else "",
-            )
-            flash("Deposito aggiornato.", "success")
-            audit("fascicoli.deposito.modifica", "fascicolo", id_fasc)
-            _sync.pubblica("modifica", "fascicoli", id_fasc, utente=u.username if u else "")
-        except (ValueError, KeyError) as e:
-            flash(str(e), "danger")
-        return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
-
-    # ---- Wizard deposito telematico PCT
-
-    @app.route("/api/fascicoli/<id_fasc>/deposito/valida", methods=["POST"])
-    def api_deposito_valida(id_fasc):
-        try:
-            gf = get_fascicoli()
-            fasc = gf.get(id_fasc)
-            if not fasc:
-                return jsonify({"ok": False, "errore": "Fascicolo non trovato."}), 200
-            utente = getattr(g, "utente_corrente", None)
-            run = _run_deposito_validation(
-                fasc=fasc,
-                gf=gf,
-                form_like=request.form,
-                operatore=utente.username if utente else "",
-            )
-            return jsonify({"ok": True, "validation": run.to_dict()}), 200
-        except Exception as e:
-            app.logger.exception("Errore api_deposito_valida: %s", e)
-            return jsonify({"ok": False, "errore": str(e)}), 200
-
-    @app.route("/fascicoli/<id_fasc>/deposito/genera-busta", methods=["POST"])
-    def deposito_genera_busta(id_fasc):
-        """
-        Genera la busta telematica (.enc) reale da importare in Consolle dell'Avvocato.
-        Restituisce il file come download diretto.
-        """
-        import os as _os
-        import tempfile as _tmp
-        from flask import send_file as _send_file
-        from pct.busta import BustaTelematica, DatiBusta, Allegato as AllegatoBusta
-
-        gf   = get_fascicoli()
-        u    = g.utente_corrente
-        f    = request.form
-        fasc = gf.get(id_fasc)
-        if not fasc:
-            flash("Fascicolo non trovato.", "danger")
-            return redirect(url_for("lista_fascicoli"))
-
-        tipo_atto       = f.get("tipo_atto", "ATTO").strip()
-        codice_registro = f.get("codice_registro", "RG").strip()
-        oggetto         = f.get("oggetto", "").strip() or fasc.titolo
-        numero_rg       = f.get("numero_rg", "").strip() or (fasc.numero_rg or None)
-        anno_rg_raw     = f.get("anno_rg", "").strip()
-        anno_rg         = int(anno_rg_raw) if anno_rg_raw.isdigit() else (fasc.anno_rg or None)
-        atto_id         = f.get("atto_principale_id", "").strip()
-        allegati_ids    = request.form.getlist("allegati_ids")
-
-        validation = _run_deposito_validation(
-            fasc=fasc,
-            gf=gf,
-            form_like=request.form,
-            operatore=u.username if u else "",
-        )
-        blockers = [i for i in validation.issues if i.get("level") == "BLOCK"]
-        if blockers:
-            first = blockers[0]
-            flash(
-                f"Deposito bloccato: {first.get('title')}. {first.get('suggested_action', '')}".strip(),
-                "danger",
-            )
-            return redirect(url_for("deposito_prepara", id_fasc=id_fasc))
-
-        if not atto_id:
-            flash("Seleziona l'atto principale da includere nella busta.", "danger")
-            return redirect(url_for("deposito_prepara", id_fasc=id_fasc))
-
-        # Risolvi documento principale
-        try:
-            atto_path = str(gf.percorso_documento(id_fasc, atto_id))
-        except KeyError:
-            flash("Documento principale non trovato nel fascicolo.", "danger")
-            return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
-
-        # Risolvi allegati
-        allegati_busta = []
-        for all_id in allegati_ids:
-            if all_id == atto_id:
-                continue
-            try:
-                all_doc  = next((d for d in fasc.documenti if d.id == all_id), None)
-                all_path = str(gf.percorso_documento(id_fasc, all_id))
-                allegati_busta.append(
-                    AllegatoBusta(percorso=all_path,
-                                  descrizione=all_doc.nome if all_doc else all_id)
-                )
-            except (KeyError, Exception):
-                pass
-
-        # Risolvi codice ufficio dal nome tribunale (o usa il nome direttamente)
-        codice_ufficio = fasc.tribunale
-        try:
-            from pct.uffici_giudiziari import get_gestore as _get_uff
-            _cache = _os.getenv("PCT_UFFICI_DB", "/data/uffici/uffici_giudiziari.json")
-            _uff = next(
-                (x for x in _get_uff(_cache).carica()
-                 if x.get("nome", "").lower() == fasc.tribunale.lower()),
-                None,
-            )
-            if _uff:
-                codice_ufficio = _uff["codice"]
-        except Exception:
-            pass
-
-        dati = DatiBusta(
-            codice_ufficio=codice_ufficio or fasc.tribunale or "SCONOSCIUTO",
-            codice_registro=codice_registro,
-            oggetto=oggetto,
-            tipo_atto=tipo_atto,
-            atto_principale=atto_path,
-            allegati=allegati_busta,
-            numero_rg=numero_rg,
-            anno_rg=anno_rg,
-            operatore=u.username if u else "",
-            cf_mittente="",
-        )
-
-        # Genera busta in directory temporanea e invia come download
-        try:
-            out_dir = _os.getenv("PCT_DEPOSITI_DIR", _tmp.gettempdir())
-            busta   = BustaTelematica(dati)
-            enc_path = busta.crea_busta(out_dir)
-            nome_file = f"Busta_{fasc.numero.replace('/', '-')}_{tipo_atto}.enc"
-            audit("fascicoli.deposito.genera_busta", "fascicolo", id_fasc,
-                  dettagli=f"Busta {busta.id_busta[:8]} — {tipo_atto}")
-            return _send_file(
-                enc_path,
-                as_attachment=True,
-                download_name=nome_file,
-                mimetype="application/octet-stream",
-            )
-        except Exception as exc:
-            app.logger.exception("Errore genera_busta %s: %s", id_fasc, exc)
-            flash(f"Errore nella generazione della busta: {exc}", "danger")
-            return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
-
-    @app.route("/fascicoli/<id_fasc>/deposito/invia-pec", methods=["POST"])
-    def deposito_invia_pec(id_fasc):
-        """
-        Crea la busta telematica e la invia via PEC all'ufficio giudiziario.
-        Risponde sempre con JSON per essere chiamata via fetch() dal modal.
-        """
-        import uuid as _uuid
-        import os as _os
-        import tempfile as _tmp
-        from datetime import datetime as _dt
-        from pct.busta import BustaTelematica, DatiBusta, Allegato as AllegatoBusta
-        from pct.pec import ClientPEC, ConfigPEC as PecCfg
-        from pct.fascicoli import EsitoDepositoPCT
-
-        gf   = get_fascicoli()
-        u    = g.utente_corrente
-        f    = request.form
-        fasc = gf.get(id_fasc)
-        if not fasc:
-            return jsonify({"ok": False, "errore": "Fascicolo non trovato."}), 404
-
-        tipo_atto       = f.get("tipo_atto", "ATTO").strip()
-        codice_registro = f.get("codice_registro", "RG").strip()
-        oggetto         = f.get("oggetto", "").strip() or fasc.titolo
-        numero_rg       = f.get("numero_rg", "").strip() or (fasc.numero_rg or None)
-        anno_rg_raw     = f.get("anno_rg", "").strip()
-        anno_rg         = int(anno_rg_raw) if anno_rg_raw.isdigit() else (fasc.anno_rg or None)
-        atto_id         = f.get("atto_principale_id", "").strip()
-        allegati_ids    = request.form.getlist("allegati_ids")
-        note            = f.get("note", "").strip()
-        canale_deposito = _infer_canale_deposito(fasc, f.get("canale_deposito", ""))
-
-        validation = _run_deposito_validation(
-            fasc=fasc,
-            gf=gf,
-            form_like=request.form,
-            operatore=u.username if u else "",
-        )
-        blockers = [i for i in validation.issues if i.get("level") == "BLOCK"]
-        if blockers:
-            first = blockers[0]
-            return jsonify({
-                "ok": False,
-                "errore": f"{first.get('title')}. {first.get('suggested_action', '')}".strip(),
-                "validation": validation.to_dict(),
-            }), 400
-
-        if not atto_id:
-            return jsonify({"ok": False, "errore": "Seleziona l'atto principale."}), 400
-
-        # Documento principale
-        try:
-            atto_path = str(gf.percorso_documento(id_fasc, atto_id))
-        except KeyError:
-            return jsonify({"ok": False, "errore": "Documento principale non trovato."}), 400
-
-        if canale_deposito == "PTT_TRIBUTARIO":
-            import json as _json
-            from pct.fascicoli import AttivitaProcessuale, EsitoAttivita, EsitoDepositoPCT
-            from pct.fascicoli import TIPO_ATTO_LABEL, _tipo_attivita_da_tipo_atto
-            from pct.sigit import ClientSIGIT, ClientSIGITDemo
-
-            raw_ufficio = f.get("codice_ufficio", "").strip() or fasc.tribunale or ""
-            ufficio = _resolve_ufficio_destinatario(raw_ufficio)
-            codice_commissione = str((ufficio or {}).get("codice") or raw_ufficio or "SCONOSCIUTO")
-            nome_commissione = str((ufficio or {}).get("nome") or fasc.tribunale or raw_ufficio or "Commissione tributaria")
-
-            cfg_studio = None
-            firma_cfg = None
-            backend_firma = "nessuno"
-            try:
-                cfg_studio = get_config_studio().config
-                firma_cfg = cfg_studio.firma if cfg_studio and hasattr(cfg_studio, "firma") else None
-                backend_firma = getattr(firma_cfg, "backend_firma_effettivo_safe", "nessuno") or "nessuno"
-            except Exception:
-                cfg_studio = None
-                firma_cfg = None
-
-            modalita_demo = True
-            client_sigit = ClientSIGITDemo()
-            try:
-                if backend_firma == "p12" and firma_cfg and getattr(firma_cfg, "p12_path", ""):
-                    client_sigit = ClientSIGIT(
-                        p12_path=firma_cfg.p12_path,
-                        p12_password=(getattr(firma_cfg, "password", "") or "").encode(),
-                        codice_fiscale_avvocato=getattr(firma_cfg, "cf_avvocato", "") or os.getenv("PCT_CF_AVVOCATO", ""),
-                    )
-                    modalita_demo = False
-                elif backend_firma == "pem" and firma_cfg and getattr(firma_cfg, "cert_pem_path", "") and getattr(firma_cfg, "key_pem_path", ""):
-                    key_password = (getattr(firma_cfg, "key_pem_password", "") or "").encode() or None
-                    client_sigit = ClientSIGIT(
-                        cert_pem_path=firma_cfg.cert_pem_path,
-                        key_pem_path=firma_cfg.key_pem_path,
-                        key_pem_password=key_password,
-                        codice_fiscale_avvocato=getattr(firma_cfg, "cf_avvocato", "") or os.getenv("PCT_CF_AVVOCATO", ""),
-                    )
-                    modalita_demo = False
-            except Exception as exc:
-                app.logger.warning("Fallback demo SIGIT per %s: %s", id_fasc, exc)
-                modalita_demo = True
-                client_sigit = ClientSIGITDemo()
-
-            risposta = client_sigit.deposita_atto(
-                codice_commissione=codice_commissione,
-                tipo_atto=tipo_atto,
-                atto_path=atto_path,
-                numero_rgt=numero_rg or "",
-                anno_rgt=anno_rg or 0,
-                oggetto=oggetto,
-            )
-            if str(risposta.get("codiceEsito", "")).strip() not in {"0", "OK"}:
-                return jsonify({
-                    "ok": False,
-                    "errore": risposta.get("descrizioneEsito") or "Deposito SIGIT non riuscito.",
-                    "validation": validation.to_dict(),
-                }), 400
-
-            id_dep = str(risposta.get("idDeposito") or _uuid.uuid4().hex[:8].upper())
-            ts = str(risposta.get("dataDeposito") or _dt.now().isoformat())
-            ricevuta_accettazione = _json.dumps(risposta.get("ricevutaAccettazione") or {}, ensure_ascii=False)
-            esito_controlli = risposta.get("esitoControlli") or {}
-            ricevuta_controlli = _json.dumps(esito_controlli, ensure_ascii=False)
-            esito_segreteria = risposta.get("esitoCancelleria") or risposta.get("esitoSegreteria") or {}
-            ricevuta_cancelleria = _json.dumps(esito_segreteria, ensure_ascii=False)
-            tutti_ids = [atto_id] + [aid for aid in allegati_ids if aid != atto_id]
-            atto_doc = next((d for d in fasc.documenti if d.id == atto_id), None)
-            label_atto = TIPO_ATTO_LABEL.get(tipo_atto, tipo_atto)
-            messaggio = (
-                f"{'[DEMO] ' if modalita_demo else ''}Deposito SIGIT {id_dep} per {nome_commissione}. "
-                f"Tipo atto: {tipo_atto}. Procedimento: {numero_rg or 'nuovo'}/{anno_rg or date.today().year}."
-            )
-
-            esito = EsitoDepositoPCT(
-                id=id_dep,
-                timestamp=ts,
-                stato=str(risposta.get("stato") or "INVIATO"),
-                tipo_atto=tipo_atto,
-                pec_destinatario=nome_commissione,
-                messaggio=messaggio,
-                ricevuta_accettazione=ricevuta_accettazione,
-                ricevuta_controlli_automatici=ricevuta_controlli,
-                esito_controlli=str(esito_controlli.get("codice") or ""),
-                ricevuta_cancelleria=ricevuta_cancelleria,
-                note=("[SIMULAZIONE DEMO SIGIT] " + note).strip() if modalita_demo else note,
-                registrato_da=u.username if u else "",
-                documenti_ids=tutti_ids,
-                nome_atto_principale=atto_doc.nome if atto_doc else "",
-            )
-            fasc.depositi_pct.append(esito)
-            for doc in fasc.documenti:
-                if doc.id in tutti_ids:
-                    doc.id_deposito_pct = id_dep
-            fasc.attivita.append(
-                AttivitaProcessuale(
-                    id=_uuid.uuid4().hex[:8].upper(),
-                    tipo=_tipo_attivita_da_tipo_atto(tipo_atto),
-                    data=date.today().isoformat(),
-                    titolo=f"Deposito telematico — {label_atto}",
-                    descrizione=(
-                        f"Tipo atto: {label_atto}. Canale: SIGIT / PTT. "
-                        f"Commissione: {nome_commissione}. Deposito: {id_dep}."
-                    ),
-                    esito=EsitoAttivita.IN_ATTESA,
-                    id_deposito_pct=id_dep,
-                    avvocato=u.username if u else "",
-                )
-            )
-            fasc.modificato_il = _dt.now().isoformat()
-            gf._salva()
-            audit(
-                "fascicoli.deposito.invia_sigit",
-                "fascicolo",
-                id_fasc,
-                dettagli=f"Deposito {id_dep} — {tipo_atto} -> {nome_commissione}",
-            )
-            _sync.pubblica("modifica", "fascicoli", id_fasc, utente=u.username if u else "")
-            return jsonify(
-                {
-                    "ok": True,
-                    "demo": modalita_demo,
-                    "id_deposito": id_dep,
-                    "pec_dest": nome_commissione,
-                    "tipo_atto": tipo_atto,
-                    "timestamp": ts,
-                    "validation": validation.to_dict(),
-                }
-            )
-
-        # Allegati
-        allegati_busta = []
-        for all_id in allegati_ids:
-            if all_id == atto_id:
-                continue
-            try:
-                all_doc  = next((d for d in fasc.documenti if d.id == all_id), None)
-                all_path = str(gf.percorso_documento(id_fasc, all_id))
-                allegati_busta.append(
-                    AllegatoBusta(percorso=all_path,
-                                  descrizione=all_doc.nome if all_doc else all_id)
-                )
-            except Exception:
-                pass
-
-        # Codice ufficio e PEC tribunale
-        codice_ufficio = fasc.tribunale or "SCONOSCIUTO"
-        pec_dest       = ""
-        try:
-            from pct.uffici_giudiziari import get_gestore as _get_uff
-            _cache = _os.getenv("PCT_UFFICI_DB", "/data/uffici/uffici_giudiziari.json")
-            _uff = next(
-                (x for x in _get_uff(_cache).carica()
-                 if x.get("nome", "").lower() == fasc.tribunale.lower()),
-                None,
-            ) if fasc.tribunale else None
-            if _uff:
-                codice_ufficio = _uff.get("codice", codice_ufficio)
-                pec_dest       = _uff.get("pec", "")
-        except Exception:
-            pass
-
-        if not pec_dest:
-            return jsonify({
-                "ok": False,
-                "errore": f"Indirizzo PEC non trovato per '{fasc.tribunale}'. "
-                          "Verifica il tribunale nel fascicolo."
-            }), 400
-
-        # Config PEC studio
-        pec_cfg    = None
-        modalita_demo = False
-        try:
-            from pct.config_studio import GestioneConfigStudio as _GCS
-            _gcs    = _GCS(app.config.get("STUDIO_CONFIG", "./config/studio.json"))
-            _scfg   = _gcs.config
-            pec_cfg = _scfg.pec if _scfg else None
-            if not pec_cfg or not pec_cfg.indirizzo or not pec_cfg.password:
-                modalita_demo = True
-                pec_cfg = None
-        except Exception:
-            modalita_demo = True
-            pec_cfg = None
-
-        # Crea busta
-        try:
-            dati = DatiBusta(
-                codice_ufficio=codice_ufficio,
-                codice_registro=codice_registro,
-                oggetto=oggetto,
-                tipo_atto=tipo_atto,
-                atto_principale=atto_path,
-                allegati=allegati_busta,
-                numero_rg=numero_rg,
-                anno_rg=anno_rg,
-                operatore=u.username if u else "",
-                cf_mittente=getattr(pec_cfg, "cf_mittente", "") or "",
-            )
-            out_dir  = _os.getenv("PCT_DEPOSITI_DIR", _tmp.gettempdir())
-            busta    = BustaTelematica(dati)
-            enc_path = busta.crea_busta(out_dir)
-        except Exception as exc:
-            app.logger.exception("Errore creazione busta %s: %s", id_fasc, exc)
-            return jsonify({"ok": False, "errore": f"Errore creazione busta: {exc}"}), 500
-
-        # id_dep e ts definiti subito dopo la busta, usati da tutti i blocchi seguenti
-        id_dep = busta.id_busta[:8].upper()
-        ts     = _dt.now().isoformat()
-
-        # Invia via PEC (reale o simulata)
-        if modalita_demo:
-            # Modalità demo: simula risposta PEC senza connessione reale
-            import hashlib as _hl
-            fake_mid = _hl.md5(f"{id_dep}{ts}".encode()).hexdigest()[:16].upper()
-            ris = {
-                "inviato": True,
-                "message_id": f"DEMO-{fake_mid}@pst.giustizia.it",
-                "demo": True,
-            }
-            app.logger.info("Deposito DEMO %s — busta creata, invio PEC simulato", id_dep)
-        else:
-            try:
-                config_pec = PecCfg(
-                    indirizzo=pec_cfg.indirizzo,
-                    password=pec_cfg.password,
-                    smtp_host=getattr(pec_cfg, "smtp_host", "smtp.pec.aruba.it"),
-                    smtp_port=getattr(pec_cfg, "smtp_port", 465),
-                    imap_host=getattr(pec_cfg, "imap_host", ""),
-                    imap_port=getattr(pec_cfg, "imap_port", 993),
-                    use_ssl=getattr(pec_cfg, "use_ssl", True),
-                )
-                client_pec = ClientPEC(config_pec)
-                oggetto_pec = (
-                    f"DEPOSITO TELEMATICO - {tipo_atto} - RG {numero_rg}/{anno_rg}"
-                    if numero_rg and anno_rg else
-                    f"DEPOSITO TELEMATICO - {tipo_atto} - {fasc.tribunale}"
-                )
-                ris = client_pec.invia_busta(
-                    destinatario_pec=pec_dest,
-                    busta_path=enc_path,
-                    oggetto=oggetto_pec,
-                )
-                if not ris.get("inviato"):
-                    errore_pec = ris.get("errore") or "Invio PEC fallito senza dettagli."
-                    return jsonify({"ok": False, "errore": f"Errore PEC: {errore_pec}"}), 500
-            except Exception as exc:
-                app.logger.exception("Errore invio PEC %s: %s", id_fasc, exc)
-                return jsonify({"ok": False, "errore": f"Errore invio PEC: {exc}"}), 500
-
-        # Salva esito nel fascicolo
-        try:
-            from datetime import datetime as _dtnow
-            from pct.fascicoli import (AttivitaProcessuale, EsitoAttivita,
-                                       TIPO_ATTO_LABEL, _tipo_attivita_da_tipo_atto)
-            _msg_demo = "[DEMO] " if modalita_demo else ""
-            # Raccoglie ID e nome atto principale per il tracking
-            _atto_doc = next((d for d in fasc.documenti if d.id == atto_id), None)
-            _tutti_ids = [atto_id] + [aid for aid in allegati_ids if aid != atto_id]
-            esito = EsitoDepositoPCT(
-                id=id_dep,
-                timestamp=ts,
-                stato="INVIATO",
-                tipo_atto=tipo_atto,
-                pec_destinatario=pec_dest,
-                messaggio=f"{_msg_demo}Busta {id_dep} inviata via PEC a {pec_dest}. Message-ID: {ris.get('message_id','')}",
-                note=("[SIMULAZIONE DEMO — nessun atto realmente inviato] " + note).strip() if modalita_demo else note,
-                registrato_da=u.username if u else "",
-                documenti_ids=_tutti_ids,
-                nome_atto_principale=_atto_doc.nome if _atto_doc else "",
-            )
-            fasc.depositi_pct.append(esito)
-
-            # Marca i documenti inclusi con l'id del deposito
-            for _doc in fasc.documenti:
-                if _doc.id in _tutti_ids:
-                    _doc.id_deposito_pct = id_dep
-
-            # Auto-crea attività processuale collegata (PST: evento nel fascicolo informatico)
-            _label = TIPO_ATTO_LABEL.get(tipo_atto, tipo_atto)
-            fasc.attivita.append(AttivitaProcessuale(
-                id=__import__("uuid").uuid4().hex[:8].upper(),
-                tipo=_tipo_attivita_da_tipo_atto(tipo_atto),
-                data=date.today().isoformat(),
-                titolo=f"Deposito telematico — {_label}",
-                descrizione=f"Tipo atto: {_label}. PEC: {pec_dest}. Busta: {id_dep}.",
-                esito=EsitoAttivita.IN_ATTESA,
-                id_deposito_pct=id_dep,
-                avvocato=u.username if u else "",
-            ))
-            fasc.modificato_il = _dtnow.now().isoformat()
-            gf._salva()
-            audit("fascicoli.deposito.invia_pec", "fascicolo", id_fasc,
-                  dettagli=f"Deposito {id_dep} — {tipo_atto} → {pec_dest}")
-            _sync.pubblica("modifica", "fascicoli", id_fasc, utente=u.username if u else "")
-        except Exception as exc:
-            app.logger.exception("Errore salvataggio esito PEC %s: %s", id_fasc, exc)
-            # L'invio è andato a buon fine anche se il salvataggio fallisce
-            return jsonify({
-                "ok": True,
-                "demo": modalita_demo,
-                "avviso": f"Busta inviata ma errore nel salvataggio: {exc}",
-                "id_deposito": id_dep,
-                "pec_dest": pec_dest,
-                "tipo_atto": tipo_atto,
-            })
-
-        return jsonify({
-            "ok": True,
-            "demo": modalita_demo,
-            "id_deposito": id_dep,
-            "pec_dest": pec_dest,
-            "tipo_atto": tipo_atto,
-            "timestamp": ts,
-        })
-
-    @app.route("/fascicoli/<id_fasc>/deposito/prepara", methods=["GET"])
-    def deposito_prepara(id_fasc):
-        """Mostra il riepilogo documenti e la guida al deposito telematico."""
-        import os as _os
-        gf = get_fascicoli()
-        fasc = gf.get(id_fasc)
-        if not fasc:
-            flash("Fascicolo non trovato.", "danger")
-            return redirect(url_for("lista_fascicoli"))
-
-        # Cerca PEC del tribunale dal nome salvato nel fascicolo
-        pec_tribunale = ""
-        if fasc.tribunale:
-            try:
-                from pct.uffici_giudiziari import get_gestore as _get_uff
-                _cache = _os.getenv("PCT_UFFICI_DB", "/data/uffici/uffici_giudiziari.json")
-                _uff = next(
-                    (u for u in _get_uff(_cache).carica()
-                     if u.get("nome", "").lower() == fasc.tribunale.lower()),
-                    None,
-                )
-                pec_tribunale = _uff["pec"] if _uff else ""
-            except Exception:
-                pass
-
-        # Verifica conformità PDF/A per ogni documento del fascicolo
-        pdfa_stato: dict = {}
-        try:
-            from pct.validazione import verifica_pdfa, verifica_dimensione
-            for doc in fasc.documenti:
-                try:
-                    percorso = str(gf.percorso_documento(id_fasc, doc.id))
-                    pdfa = verifica_pdfa(percorso)
-                    dim  = verifica_dimensione(percorso)
-                    pdfa_stato[doc.id] = {**pdfa, "dimensione": dim}
-                except Exception:
-                    pass
-        except Exception:
-            pass
-
-        # Verifica PEC studio configurata (mittente)
-        pec_configurata = False
-        try:
-            _cfg = get_config_studio().config
-            pec_configurata = bool(
-                _cfg and _cfg.pec and _cfg.pec.indirizzo and _cfg.pec.password
-            )
-        except Exception:
-            pass
-
-        return render_template(
-            "fascicoli/deposito_prepara.html",
-            fascicolo=fasc,
-            pec_tribunale=pec_tribunale,
-            pec_configurata=pec_configurata,
-            pdfa_stato=pdfa_stato,
-            correction_context=_deposito_correction_context(fasc),
-            firma_visibile_place=_luogo_timbro_firma_visibile(),
-            oggi=date.today(),
-        )
-
-    @app.route("/fascicoli/<id_fasc>/deposito/invia", methods=["POST"])
-    def deposito_invia(id_fasc):
-        """
-        Crea la busta telematica e la invia via PEC all'ufficio giudiziario.
-        In demo mode simula l'invio senza connessioni reali.
-        """
-        import uuid as _uuid
-        from datetime import datetime as _dt
-        from pct.fascicoli import EsitoDepositoPCT
-
-        gf  = get_fascicoli()
-        u   = g.utente_corrente
-        f   = request.form
-        fasc = gf.get(id_fasc)
-        if not fasc:
-            flash("Fascicolo non trovato.", "danger")
-            return redirect(url_for("lista_fascicoli"))
-
-        demo_mode        = f.get("demo_mode") == "1" or _polis_demo_mode()
-        tipo_atto        = f.get("tipo_atto", "ATTO").strip()
-        codice_registro  = f.get("codice_registro", "RG").strip()
-        numero_rg        = f.get("numero_rg", "").strip()
-        anno_rg_str      = f.get("anno_rg", "").strip()
-        oggetto          = f.get("oggetto", "").strip() or fasc.titolo
-        note             = f.get("note", "").strip()
-        tribunale_nome   = f.get("tribunale_nome", "").strip()
-        tribunale_pec    = f.get("tribunale_pec", "").strip()
-        codice_ufficio   = f.get("codice_ufficio", "").strip()
-        atto_id          = f.get("atto_principale_id", "").strip()
-        allegati_ids     = request.form.getlist("allegati_ids")
-
-        validation = _run_deposito_validation(
-            fasc=fasc,
-            gf=gf,
-            form_like=request.form,
-            operatore=u.username if u else "",
-        )
-        blockers = [i for i in validation.issues if i.get("level") == "BLOCK"]
-        if blockers:
-            first = blockers[0]
-            return jsonify({
-                "ok": False,
-                "errore": f"{first.get('title')}. {first.get('suggested_action', '')}".strip(),
-                "validation": validation.to_dict(),
-            }), 400
-
-        if not tribunale_nome:
-            flash("Seleziona un ufficio giudiziario destinatario.", "danger")
-            return redirect(url_for("deposito_prepara", id_fasc=id_fasc))
-        if not atto_id:
-            flash("Seleziona l'atto principale da includere nella busta.", "danger")
-            return redirect(url_for("deposito_prepara", id_fasc=id_fasc))
-
-        anno_rg = int(anno_rg_str) if anno_rg_str.isdigit() else (fasc.anno_rg or 0)
-        id_dep  = _uuid.uuid4().hex[:8].upper()
-        ts      = _dt.now().isoformat()
-
-        if demo_mode:
-            # Simulazione: nessun file su disco, nessuna PEC reale
-            esito = EsitoDepositoPCT(
-                id=id_dep,
-                timestamp=ts,
-                stato="INVIATO",
-                tipo_atto=tipo_atto,
-                pec_destinatario=tribunale_pec or f"{tribunale_nome.lower().replace(' ','.')}@pec.demo",
-                messaggio=(
-                    f"[DEMO] Busta {id_dep} creata e PEC simulata per {tribunale_nome}. "
-                    f"Atto: {tipo_atto} — RG {numero_rg}/{anno_rg}."
-                ),
-                note=note,
-                registrato_da=u.username if u else "demo",
-            )
-        else:
-            # Deposito reale: crea busta + firma + invia PEC
-            try:
-                from pct.busta import BustaTelematica, DatiBusta, Allegato as AllegatoBusta
-                from pct.deposito import DepositoCivile
-                from pct.pec import ClientPEC, ConfigPEC
-                from pct.firma import crea_signer_da_config
-                import os as _os
-
-                # Risolvi percorsi documenti
-                atto_doc = next((d for d in fasc.documenti if d.id == atto_id), None)
-                if not atto_doc:
-                    flash("Documento selezionato come atto principale non trovato.", "danger")
-                    return redirect(url_for("deposito_prepara", id_fasc=id_fasc))
-
-                atto_path = str(gf.percorso_documento(id_fasc, atto_id))
-
-                allegati_busta = []
-                for all_id in allegati_ids:
-                    if all_id == atto_id:
-                        continue  # evita duplicati
-                    all_doc = next((d for d in fasc.documenti if d.id == all_id), None)
-                    if all_doc:
-                        all_path = str(gf.percorso_documento(id_fasc, all_id))
-                        allegati_busta.append(
-                            AllegatoBusta(percorso=all_path, descrizione=all_doc.nome)
-                        )
-
-                dati = DatiBusta(
-                    codice_ufficio=codice_ufficio or tribunale_nome,
-                    codice_registro=codice_registro,
-                    oggetto=oggetto,
-                    tipo_atto=tipo_atto,
-                    atto_principale=atto_path,
-                    allegati=allegati_busta,
-                    numero_rg=numero_rg or None,
-                    anno_rg=anno_rg or None,
-                    operatore=u.username if u else "",
-                    cf_mittente="",
-                )
-
-                # Config PEC e firma dalla config studio
-                cfg_studio = get_config_studio().config
-                pec_cfg    = cfg_studio.pec if cfg_studio and hasattr(cfg_studio, 'pec') else None
-                firma_cfg  = cfg_studio.firma if cfg_studio and hasattr(cfg_studio, 'firma') else None
-
-                if not pec_cfg or not pec_cfg.indirizzo:
-                    raise RuntimeError(
-                        "Configurazione PEC non trovata. Configura le credenziali PEC nelle impostazioni."
-                    )
-
-                config_pec = ConfigPEC(
-                    indirizzo=pec_cfg.indirizzo,
-                    password=pec_cfg.password,
-                    smtp_host=getattr(pec_cfg, 'smtp_host', 'smtp.pec.provider.it'),
-                    smtp_port=getattr(pec_cfg, 'smtp_port', 465),
-                    imap_host=getattr(pec_cfg, 'imap_host', ''),
-                    imap_port=getattr(pec_cfg, 'imap_port', 993),
-                )
-
-                firma = None
-                if firma_cfg:
-                    try:
-                        backend_firma = firma_cfg.backend_firma_effettivo
-                    except Exception as _fe:
-                        backend_firma = "nessuno"
-                        app.logger.warning("Backend firma non disponibile: %s", _fe)
-                    if backend_firma == "pkcs11":
-                        app.logger.info(
-                            "Firma PKCS#11 selezionata: il deposito web usa il flusso CAdES in-device dedicato."
-                        )
-                    elif backend_firma in ("p12", "pem"):
-                        try:
-                            firma = crea_signer_da_config(firma_cfg)
-                        except Exception as _fe:
-                            app.logger.warning("Signer non inizializzato: %s", _fe)
-
-                output_dir = _os.getenv("PCT_DEPOSITI_DIR", "/data/depositi")
-                dep = DepositoCivile(config_pec=config_pec, firma=firma, output_dir=output_dir)
-
-                # Risolvi PEC tribunale
-                pec_dest = tribunale_pec
-                if not pec_dest and codice_ufficio:
-                    try:
-                        from pct.uffici_giudiziari import get_gestore as _get_uff
-                        _cache = _os.getenv("PCT_UFFICI_DB", "/data/uffici/uffici_giudiziari.json")
-                        _uff = next(
-                            (x for x in _get_uff(_cache).carica() if x.get("codice") == codice_ufficio),
-                            None,
-                        )
-                        pec_dest = _uff["pec"] if _uff else ""
-                    except Exception:
-                        pass
-
-                if not pec_dest:
-                    raise RuntimeError(
-                        f"Indirizzo PEC non trovato per l'ufficio '{tribunale_nome}'. "
-                        "Verifica la selezione o imposta manualmente la PEC."
-                    )
-
-                # Invia senza attendere ricevute (polling successivo)
-                esito_dep = dep.deposita(
-                    dati=dati,
-                    tribunale=codice_ufficio or tribunale_nome,
-                    attendi_ricevute=False,
-                )
-                dep.salva_esito(esito_dep)
-
-                esito = EsitoDepositoPCT(
-                    id=esito_dep.id_deposito,
-                    timestamp=esito_dep.timestamp,
-                    stato=esito_dep.stato,
-                    tipo_atto=tipo_atto,
-                    pec_destinatario=esito_dep.pec_destinatario,
-                    messaggio=esito_dep.messaggio,
-                    ricevuta_accettazione=esito_dep.ricevuta_accettazione or "",
-                    ricevuta_consegna=esito_dep.ricevuta_consegna or "",
-                    note=note,
-                    registrato_da=u.username if u else "",
-                    busta_path=esito_dep.busta_path,
-                )
-
-            except Exception as _exc:
-                app.logger.exception("Errore deposito_invia %s: %s", id_fasc, _exc)
-                flash(f"Errore durante il deposito: {_exc}", "danger")
-                return redirect(url_for("deposito_prepara", id_fasc=id_fasc))
-
-        # Salva esito nel fascicolo
-        try:
-            from datetime import datetime as _dtnow
-            fasc.depositi_pct.append(esito)
-            fasc.modificato_il = _dtnow.now().isoformat()
-            gf._salva()
-            audit("fascicoli.deposito.invia", "fascicolo", id_fasc,
-                  dettagli=f"Deposito {esito.id} — {tipo_atto} verso {esito.pec_destinatario}")
-            _sync.pubblica("modifica", "fascicoli", id_fasc, utente=u.username if u else "")
-            if demo_mode:
-                flash(
-                    f"[DEMO] Deposito simulato con ID {esito.id}. "
-                    "In modalità reale la busta verrebbe firmata e inviata via PEC.",
-                    "warning",
-                )
-            else:
-                flash(
-                    f"Deposito {esito.id} inviato via PEC a {esito.pec_destinatario}. "
-                    "Ricevute di accettazione e consegna saranno disponibili a breve.",
-                    "success",
-                )
-        except Exception as _se:
-            app.logger.exception("Errore salvataggio esito deposito %s: %s", id_fasc, _se)
-            flash(f"Deposito inviato ma errore nel salvataggio: {_se}", "warning")
-
-        return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
-
-    @app.route("/api/fascicoli/<id_fasc>/depositi/<id_dep>/controlla", methods=["POST"])
-    def deposito_controlla_ricevute(id_fasc, id_dep):
-        """
-        Controlla via IMAP se sono arrivate nuove ricevute PEC per un deposito.
-        Aggiorna il fascicolo e restituisce lo stato aggiornato in JSON.
-        """
-        gf   = get_fascicoli()
-        u    = g.utente_corrente
-        fasc = gf.get(id_fasc)
-        if not fasc:
-            return jsonify({"errore": "Fascicolo non trovato"}), 200
-
-        dep = next((d for d in fasc.depositi_pct if d.id == id_dep), None)
-        if not dep:
-            return jsonify({"errore": "Deposito non trovato"}), 200
-
-        try:
-            cfg_studio = get_config_studio().config
-            pec_cfg    = cfg_studio.pec if cfg_studio and hasattr(cfg_studio, 'pec') else None
-
-            if not pec_cfg or not pec_cfg.imap_host:
-                return jsonify({
-                    "stato": dep.stato,
-                    "ricevuta_accettazione": bool(dep.ricevuta_accettazione),
-                    "ricevuta_consegna": bool(dep.ricevuta_consegna),
-                    "info": "IMAP non configurato — verifica manuale necessaria.",
-                })
-
-            from pct.pec import ClientPEC, ConfigPEC
-            config_pec = ConfigPEC(
-                indirizzo=pec_cfg.indirizzo,
-                password=pec_cfg.password,
-                smtp_host=getattr(pec_cfg, 'smtp_host', ''),
-                imap_host=pec_cfg.imap_host,
-                imap_port=getattr(pec_cfg, 'imap_port', 993),
-            )
-            client_pec = ClientPEC(config_pec)
-            ricevute   = client_pec.attendi_ricevute(timeout=15)  # check rapido
-
-            aggiornato = False
-
-            # Fase 4 — ricevuta accettazione PEC
-            if ricevute.get("accettazione") and not dep.ricevuta_accettazione:
-                dep.ricevuta_accettazione = ricevute["accettazione"]
-                if dep.stato in ("INVIATO",):
-                    dep.stato = "ACCETTATO_PEC"
-                aggiornato = True
-
-            # Fase 5 — ricevuta avvenuta consegna
-            if ricevute.get("consegna") and not dep.ricevuta_consegna:
-                dep.ricevuta_consegna = ricevute["consegna"]
-                if dep.stato not in ("WARN_CONTROLLI", "ERRORE_CONTROLLI",
-                                     "ACCETTATO_CANCELLERIA", "RIFIUTATO_CANCELLERIA"):
-                    dep.stato = "CONSEGNATO"
-                aggiornato = True
-
-            # Fase 6 — esito controlli automatici
-            if ricevute.get("controlli") and not dep.ricevuta_controlli_automatici:
-                dep.ricevuta_controlli_automatici = ricevute["controlli"]
-                ec = ricevute.get("esito_controlli", "OK").upper()
-                dep.esito_controlli = ec
-                if ec == "ERROR":
-                    dep.stato = "ERRORE_CONTROLLI"
-                elif ec == "WARN":
-                    dep.stato = "WARN_CONTROLLI"
-                # OK: stato resta CONSEGNATO, si attende cancelleria
-                aggiornato = True
-
-            # Fase 7 — esito cancelleria
-            if ricevute.get("cancelleria") and not dep.ricevuta_cancelleria:
-                dep.ricevuta_cancelleria = ricevute["cancelleria"]
-                if ricevute.get("cancelleria_accettato", True):
-                    dep.stato = "ACCETTATO_CANCELLERIA"
-                else:
-                    dep.stato = "RIFIUTATO_CANCELLERIA"
-                aggiornato = True
-
-            if aggiornato:
-                gf._salva()
-                audit("fascicoli.deposito.ricevute", "fascicolo", id_fasc,
-                      dettagli=f"Deposito {id_dep} aggiornato a {dep.stato}")
-
-            return jsonify({
-                "stato": dep.stato,
-                "ricevuta_accettazione": bool(dep.ricevuta_accettazione),
-                "ricevuta_consegna": bool(dep.ricevuta_consegna),
-                "ricevuta_controlli": bool(dep.ricevuta_controlli_automatici),
-                "esito_controlli": dep.esito_controlli,
-                "ricevuta_cancelleria": bool(dep.ricevuta_cancelleria),
-                "aggiornato": aggiornato,
-            })
-
-        except Exception as e:
-            app.logger.exception("deposito_controlla_ricevute %s/%s: %s", id_fasc, id_dep, e)
-            return jsonify({"errore": str(e), "stato": dep.stato})
-
-    # ---- Sfoglia e download da archivio ZIP
 
     @app.route("/fascicoli/<id_fasc>/archivio/contenuto")
     def archivio_contenuto(id_fasc):
@@ -14659,7 +11913,7 @@ read -r -p "Premi Invio per chiudere..." _
                         id_cliente=id_cliente,
                     )
                     if msg_wa.sid_esterno and msg_wa.sid_esterno.startswith("https://wa.me"):
-                        # Nessuna API — mostra link WhatsApp Web all'utente
+                        # Nessuna API â€” mostra link WhatsApp Web all'utente
                         return render_template(
                             "messaggi/form.html",
                             clienti=clienti,
@@ -14761,7 +12015,7 @@ read -r -p "Premi Invio per chiudere..." _
         try:
             ris = gb.verifica_integrita(id_bk)
             if ris["ok"]:
-                flash("Verifica completata: il backup è integro.", "success")
+                flash("Verifica completata: il backup Ã¨ integro.", "success")
             else:
                 flash("Attenzione: il file di backup potrebbe essere corrotto.", "danger")
         except Exception as e:
@@ -14833,7 +12087,7 @@ read -r -p "Premi Invio per chiudere..." _
 
     @app.route("/api/health")
     def api_health():
-        """Endpoint di salute per monitoring — non richiede autenticazione."""
+        """Endpoint di salute per monitoring â€” non richiede autenticazione."""
         stato = {"ok": True, "timestamp": datetime.now().isoformat(), "moduli": {}}
         try:
             gc = get_clienti()
@@ -14959,7 +12213,7 @@ read -r -p "Premi Invio per chiudere..." _
                         "Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"]
             _oggi = date.today()
             mese_label = f"{_mesi_it[_oggi.month - 1]} {_oggi.year}"
-            titolo = f"Elenco Fascicoli — {mese_label}"
+            titolo = f"Elenco Fascicoli â€” {mese_label}"
             import tempfile
             with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp:
                 out = tmp.name
@@ -14988,7 +12242,7 @@ read -r -p "Premi Invio per chiudere..." _
                         "Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"]
             _oggi = date.today()
             mese_label = f"{_mesi_it[_oggi.month - 1]} {_oggi.year}"
-            titolo = f"Elenco Clienti — {mese_label}"
+            titolo = f"Elenco Clienti â€” {mese_label}"
             import tempfile
             with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp:
                 out = tmp.name
@@ -15036,7 +12290,7 @@ read -r -p "Premi Invio per chiudere..." _
 
     @app.route("/api/cerca")
     def api_cerca():
-        """Ricerca globale full-text — usata dall'autocomplete topbar."""
+        """Ricerca globale full-text â€” usata dall'autocomplete topbar."""
         try:
             q = request.args.get("q", "").strip()
             tipi_raw = request.args.getlist("tipo")
@@ -15156,7 +12410,7 @@ read -r -p "Premi Invio per chiudere..." _
         lista = gs.tutte(solo_aperte=solo_aperte)
         studio_nome = os.getenv("PCT_STUDIO_NOME", "Studio Legale")
         mese_label = date.today().strftime("%B %Y").capitalize()
-        titolo_pdf = f"Scadenziario — {mese_label}"
+        titolo_pdf = f"Scadenziario â€” {mese_label}"
         dati = [
             {
                 "scadenza": s.data_scadenza,
@@ -15284,7 +12538,7 @@ read -r -p "Premi Invio per chiudere..." _
             if not config_pec:
                 return jsonify({
                     "ok": False,
-                    "errore": "PEC IMAP non configurata. Vai in Impostazioni → PEC per configurarla.",
+                    "errore": "PEC IMAP non configurata. Vai in Impostazioni â†’ PEC per configurarla.",
                 })
 
             gf = GestioneFascicoli(db_path=fascicoli_db)
@@ -15323,14 +12577,14 @@ read -r -p "Premi Invio per chiudere..." _
             elif report["duplicati"]:
                 msg = (
                     f"{report['duplicati']} comunicazion{'e' if report['duplicati'] == 1 else 'i'} "
-                    f"già present{'e' if report['duplicati'] == 1 else 'i'} nel fascicolo."
+                    f"giÃ  present{'e' if report['duplicati'] == 1 else 'i'} nel fascicolo."
                 )
             elif auto_log:
                 msg = f"Workflow PEC completato: {len(auto_log)} esiti deposito aggiornati."
             elif sync_result.get("nuove"):
                 msg = f"Sincronizzazione PEC completata: {sync_result.get('nuove', 0)} email nuove."
             elif report["trovati"]:
-                msg = "Nessuna comunicazione nuova trovata (già tutte caricate)."
+                msg = "Nessuna comunicazione nuova trovata (giÃ  tutte caricate)."
             else:
                 msg = "Nessuna email di cancelleria trovata nella casella PEC."
             if sync_errore:
@@ -15361,7 +12615,7 @@ read -r -p "Premi Invio per chiudere..." _
 
     @app.route("/admin/database")
     def admin_database():
-        """Dashboard gestione database — solo amministratori."""
+        """Dashboard gestione database â€” solo amministratori."""
         u = g.utente_corrente
         if not u or not u.ha_permesso("utenti.leggi"):
             flash("Accesso riservato agli amministratori.", "danger")
@@ -15381,7 +12635,7 @@ read -r -p "Premi Invio per chiudere..." _
 
     @app.route("/admin/database/verifica")
     def admin_database_verifica():
-        """Verifica integrità referenziale di tutti i moduli."""
+        """Verifica integritÃ  referenziale di tutti i moduli."""
         u = g.utente_corrente
         if not u or not u.ha_permesso("utenti.leggi"):
             return jsonify({"errore": "Non autorizzato"}), 403
@@ -15475,7 +12729,7 @@ read -r -p "Premi Invio per chiudere..." _
 
         Dopo questa operazione impostare PCT_SQLITE_MODE=1 come variabile
         d'ambiente per attivare il backend SQLite come storage primario.
-        Se PCT_SQLITE_MODE è già attivo, la route ricarica la cache del DB.
+        Se PCT_SQLITE_MODE Ã¨ giÃ  attivo, la route ricarica la cache del DB.
         """
         u = g.utente_corrente
         if not u or not u.ha_permesso("utenti.leggi"):
@@ -15614,20 +12868,20 @@ read -r -p "Premi Invio per chiudere..." _
             HRFlowable(width="100%", thickness=1, color=colors.HexColor("#1a3a5c")),
             Spacer(1, 0.4*cm),
             Paragraph("1. Titolare del trattamento", h2),
-            Paragraph(f"{studio} — i recapiti sono disponibili presso lo studio.", body),
-            Paragraph("2. Finalità e base giuridica del trattamento", h2),
+            Paragraph(f"{studio} â€” i recapiti sono disponibili presso lo studio.", body),
+            Paragraph("2. FinalitÃ  e base giuridica del trattamento", h2),
             Paragraph("I Suoi dati personali sono trattati per l'erogazione di servizi legali, "
                       "la gestione dei fascicoli e procedimenti giudiziari e stragiudiziali, "
-                      "nonché per adempiere ad obblighi legali e contabili. "
-                      "La base giuridica è l'esecuzione di un contratto (art. 6.1.b GDPR) "
+                      "nonchÃ© per adempiere ad obblighi legali e contabili. "
+                      "La base giuridica Ã¨ l'esecuzione di un contratto (art. 6.1.b GDPR) "
                       "e l'adempimento di obblighi legali (art. 6.1.c GDPR).", body),
             Paragraph("3. Categorie di dati trattati", h2),
             Paragraph("Dati anagrafici e di contatto, codice fiscale, dati relativi a procedimenti "
                       "giudiziari, dati economici e patrimoniali strettamente necessari "
-                      "all'esercizio dell'attività professionale.", body),
+                      "all'esercizio dell'attivitÃ  professionale.", body),
             Paragraph("4. Destinatari dei dati", h2),
-            Paragraph("I Suoi dati possono essere comunicati ad autorità giudiziarie e "
-                      "amministrative, alla controparte e ai suoi difensori, nonché "
+            Paragraph("I Suoi dati possono essere comunicati ad autoritÃ  giudiziarie e "
+                      "amministrative, alla controparte e ai suoi difensori, nonchÃ© "
                       "a consulenti tecnici e periti nell'ambito dei procedimenti. "
                       "Non vengono trasferiti a Paesi terzi.", body),
             Paragraph("5. Periodo di conservazione", h2),
@@ -15638,7 +12892,7 @@ read -r -p "Premi Invio per chiudere..." _
             Paragraph("Ha diritto di accedere ai Suoi dati (art. 15), rettificarli (art. 16), "
                       "cancellarli (art. 17), limitarne il trattamento (art. 18), "
                       "riceverne copia portabile (art. 20) e opporsi al trattamento (art. 21). "
-                      "Può esercitare tali diritti contattando direttamente lo studio.", body),
+                      "PuÃ² esercitare tali diritti contattando direttamente lo studio.", body),
             Paragraph("7. Diritto di reclamo", h2),
             Paragraph("Ha il diritto di proporre reclamo al Garante per la protezione dei "
                       "dati personali (www.garanteprivacy.it).", body),
@@ -15651,7 +12905,7 @@ read -r -p "Premi Invio per chiudere..." _
         doc.build(elementi)
         buf.seek(0)
         audit("clienti.informativa_pdf", "cliente", id_cliente,
-              dettagli=f"PDF Art.13 — {c.nome_completo}")
+              dettagli=f"PDF Art.13 â€” {c.nome_completo}")
         nome = f"informativa_{c.nome_completo.replace(' ', '_').lower()}.pdf"
         resp = send_file(buf, as_attachment=True, download_name=nome,
                          mimetype="application/pdf")
@@ -15671,7 +12925,7 @@ read -r -p "Premi Invio per chiudere..." _
         fascicoli_cliente = [f for f in gf.tutti() if f.id_cliente == id_cliente]
         export = {
             "metadati": {
-                "standard": "GDPR Art. 20 — Portabilità dei dati personali",
+                "standard": "GDPR Art. 20 â€” PortabilitÃ  dei dati personali",
                 "regolamento": "Reg. UE 2016/679",
                 "data_estrazione": datetime.now().isoformat(),
                 "estratto_da": u.username,
@@ -15736,7 +12990,7 @@ read -r -p "Premi Invio per chiudere..." _
             ],
         }
         audit("gdpr.portabilita", "cliente", id_cliente,
-              dettagli=f"Export Art.20 — {c.nome_completo}")
+              dettagli=f"Export Art.20 â€” {c.nome_completo}")
         nome = f"dati_{c.nome_completo.replace(' ', '_').lower()}_{date.today().isoformat()}.json"
         resp = Response(
             json.dumps(export, ensure_ascii=False, indent=2),
@@ -15784,7 +13038,7 @@ read -r -p "Premi Invio per chiudere..." _
     register_blueprints(app)
 
     # ----------------------------------------------------------------
-    # iCal — download diretto (retrocompatibilità)
+    # iCal â€” download diretto (retrocompatibilitÃ )
     # ----------------------------------------------------------------
 
     @app.route("/agenda/export.ics")
@@ -15826,9 +13080,9 @@ read -r -p "Premi Invio per chiudere..." _
         )
 
     # ----------------------------------------------------------------
-    # WebCal — feed live per subscription automatica
+    # WebCal â€” feed live per subscription automatica
     # URL: /cal/<token>/agenda.ics  (webcal:// o https://)
-    # Token segreto: pct/cal_token.py  →  ./agenda/cal_token.json
+    # Token segreto: pct/cal_token.py  â†’  ./agenda/cal_token.json
     # ----------------------------------------------------------------
 
     def _cal_token_dir() -> str:
@@ -15846,24 +13100,24 @@ read -r -p "Premi Invio per chiudere..." _
     def _get_base_url() -> str:
         """Restituisce la base URL pubblica (sempre HTTPS in produzione).
 
-        Priorità:
-        1. PCT_BASE_URL env var — impostare su Railway/Render per URL stabile
+        PrioritÃ :
+        1. PCT_BASE_URL env var â€” impostare su Railway/Render per URL stabile
            (es. https://mio-studio.up.railway.app)
-        2. request.host_url aggiornato da ProxyFix (funziona se X-Forwarded-Proto è impostato)
+        2. request.host_url aggiornato da ProxyFix (funziona se X-Forwarded-Proto Ã¨ impostato)
         3. Fallback: forza https:// su qualunque schema rilevato
 
         Imposta PCT_BASE_URL nelle variabili d'ambiente Railway per eliminare
-        qualsiasi ambiguità HTTP/HTTPS nei feed iCal.
+        qualsiasi ambiguitÃ  HTTP/HTTPS nei feed iCal.
         """
         # 1. URL esplicito configurato dall'amministratore
         configured = os.getenv("PCT_BASE_URL", "").rstrip("/")
         if configured:
             return configured
         # 2. Legge request.host_url (ProxyFix la aggiorna con X-Forwarded-Proto)
-        #    e come safety net forza sempre https:// se il deploy è in produzione
+        #    e come safety net forza sempre https:// se il deploy Ã¨ in produzione
         base = request.host_url.rstrip("/")
         if base.startswith("http://"):
-            # ProxyFix non ha ricevuto X-Forwarded-Proto → forza https manualmente
+            # ProxyFix non ha ricevuto X-Forwarded-Proto â†’ forza https manualmente
             base = "https://" + base[len("http://"):]
         return base
 
@@ -15906,7 +13160,7 @@ read -r -p "Premi Invio per chiudere..." _
                         headers={"Cache-Control": "no-cache, no-store"})
 
     # ----------------------------------------------------------------
-    # Impostazioni calendario — pannello subscription
+    # Impostazioni calendario â€” pannello subscription
     # ----------------------------------------------------------------
 
     @app.route("/impostazioni/calendario")
@@ -15922,7 +13176,7 @@ read -r -p "Premi Invio per chiudere..." _
             "scadenze": f"{base}/cal/{token}/scadenze.ics",
             "completo": f"{base}/cal/{token}/completo.ics",
         }
-        # Link Google Calendar — forza sempre https:// (requisito Google)
+        # Link Google Calendar â€” forza sempre https:// (requisito Google)
         from urllib.parse import quote
         gcal_completo = (
             "https://calendar.google.com/calendar/r/settings/addbyurl"
@@ -16025,12 +13279,12 @@ read -r -p "Premi Invio per chiudere..." _
         return redirect(url_for("impostazioni_calendario"))
 
     # ----------------------------------------------------------------
-    # API — badge scadenze urgenti (in-app, usato da base.html JS)
+    # API â€” badge scadenze urgenti (in-app, usato da base.html JS)
     # ----------------------------------------------------------------
 
     @app.route("/api/scadenze/urgenti")
     def api_scadenze_urgenti():
-        """Conta scadenze aperte entro 7 giorni — usato dal badge navbar."""
+        """Conta scadenze aperte entro 7 giorni â€” usato dal badge navbar."""
         try:
             from datetime import timedelta
             gs = get_scadenziario()
@@ -16100,7 +13354,7 @@ read -r -p "Premi Invio per chiudere..." _
         if not tmpl:
             flash("Template non trovato.", "warning")
             return redirect(url_for("checklist_atti"))
-        # Fascicolo opzionale — pre-compila i parametri se passato
+        # Fascicolo opzionale â€” pre-compila i parametri se passato
         id_fasc  = request.args.get("id_fasc", "")
         fascicolo_ctx = None
         if id_fasc:
@@ -16168,7 +13422,7 @@ read -r -p "Premi Invio per chiudere..." _
             if _wizard_step_stato(fasc, doc, id_template) == "pending" and doc.obbligatorio:
                 return redirect(url_for("wizard_atto_step", id_fasc=id_fasc,
                                         id_template=id_template, n=doc.numero))
-        # Tutti gli obbligatori completati → pagina di completamento
+        # Tutti gli obbligatori completati â†’ pagina di completamento
         return redirect(url_for("wizard_atto_completa", id_fasc=id_fasc,
                                 id_template=id_template))
 
@@ -16201,7 +13455,7 @@ read -r -p "Premi Invio per chiudere..." _
                 if n not in skipped:
                     skipped.append(n)
                 session[skip_key] = skipped
-                flash(f"«{doc_step.descrizione}» saltato.", "info")
+                flash(f"Â«{doc_step.descrizione}Â» saltato.", "info")
 
             elif azione == "carica":
                 if "file" not in request.files or not request.files["file"].filename:
@@ -16227,9 +13481,9 @@ read -r -p "Premi Invio per chiudere..." _
                         firmato=request.form.get("firmato") == "1",
                         caricato_da=u.username if u else "",
                     )
-                    flash(f"«{doc_step.descrizione}» caricato come {nome_wizard}.", "success")
+                    flash(f"Â«{doc_step.descrizione}Â» caricato come {nome_wizard}.", "success")
                     audit("fascicoli.wizard.carica", "fascicolo", id_fasc,
-                          dettagli=f"template:{id_template} step:{n} → {nome_wizard}")
+                          dettagli=f"template:{id_template} step:{n} â†’ {nome_wizard}")
                 except (ValueError, KeyError) as e:
                     flash(str(e), "danger")
                     return redirect(url_for("wizard_atto_step", id_fasc=id_fasc,
@@ -16243,7 +13497,7 @@ read -r -p "Premi Invio per chiudere..." _
             return redirect(url_for("wizard_atto_completa", id_fasc=id_fasc,
                                     id_template=id_template))
 
-        # GET — prepara stato di tutti gli step
+        # GET â€” prepara stato di tutti gli step
         skip_key = f"wiz_skip_{id_fasc}_{id_template}"
         skipped = session.get(skip_key, [])
         steps_stato = []
@@ -16322,7 +13576,7 @@ read -r -p "Premi Invio per chiudere..." _
             except Exception:
                 pass
 
-        # Verifica se PEC studio è configurata (per mostrare bottone invio diretto)
+        # Verifica se PEC studio Ã¨ configurata (per mostrare bottone invio diretto)
         pec_configurata = False
         firma_backend = "nessuno"
         canale_reale_configurato = False
@@ -16382,17 +13636,17 @@ read -r -p "Premi Invio per chiudere..." _
                     f"  {d.numero:02d}. {doc_fasc.nome}\n"
                     f"      {d.descrizione}"
                     f" | {doc_fasc.data_documento or 'data n.d.'}"
-                    f" | sha256: {doc_fasc.hash_sha256[:16]}…"
+                    f" | sha256: {doc_fasc.hash_sha256[:16]}â€¦"
                 )
             elif not d.obbligatorio and d.numero in skipped:
-                righe.append(f"  {d.numero:02d}. [non allegato] {d.nome_file}  ({d.descrizione} — facoltativo)")
+                righe.append(f"  {d.numero:02d}. [non allegato] {d.nome_file}  ({d.descrizione} â€” facoltativo)")
             else:
                 righe.append(f"  {d.numero:02d}. [MANCANTE] {d.nome_file}  ({d.descrizione})")
 
-        sep = "═" * 64
+        sep = "â•" * 64
         testo = "\n".join([
             sep,
-            f"  INDICE DOCUMENTI — {tmpl.nome.upper()}",
+            f"  INDICE DOCUMENTI â€” {tmpl.nome.upper()}",
             sep,
             f"  Fascicolo  : {fasc.titolo}",
             f"  RG         : {fasc.rg_completo or 'n.d.'}",
@@ -16419,7 +13673,7 @@ read -r -p "Premi Invio per chiudere..." _
                 note=f"[wizard:{id_template}:indice] Indice generato automaticamente",
                 caricato_da=u.username if u else "",
             )
-            flash(f"Indice «{nome_indice}» generato e aggiunto al fascicolo.", "success")
+            flash(f"Indice Â«{nome_indice}Â» generato e aggiunto al fascicolo.", "success")
             audit("fascicoli.wizard.indice", "fascicolo", id_fasc,
                   dettagli=f"template:{id_template}")
         except Exception as e:
@@ -16497,7 +13751,7 @@ read -r -p "Premi Invio per chiudere..." _
                 tag=tag,
             )
             audit("soggetti.crea", "soggetto", s.id, dettagli=s.nome_completo)
-            flash(f"Soggetto «{s.nome_completo}» creato.", "success")
+            flash(f"Soggetto Â«{s.nome_completo}Â» creato.", "success")
             return redirect(url_for("dettaglio_soggetto", id_soggetto=s.id))
         # Pre-popola da query string (es. proveniente da scheda cliente)
         prefill = {k: request.args.get(k, "") for k in (
@@ -16607,12 +13861,12 @@ read -r -p "Premi Invio per chiudere..." _
             nome = s.nome_completo
             gs.elimina(id_soggetto)
             audit("soggetti.elimina", "soggetto", id_soggetto, dettagli=nome)
-            flash(f"Soggetto «{nome}» eliminato.", "success")
+            flash(f"Soggetto Â«{nome}Â» eliminato.", "success")
         return redirect(url_for("lista_soggetti"))
 
     @app.route("/api/soggetti")
     def api_soggetti():
-        """Autocomplete JSON — restituisce soggetti che corrispondono a ?q=..."""
+        """Autocomplete JSON â€” restituisce soggetti che corrispondono a ?q=..."""
         try:
             q = request.args.get("q", "").strip()
             gs = get_soggetti()
@@ -16651,8 +13905,8 @@ read -r -p "Premi Invio per chiudere..." _
             return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
         gs.aggiungi_parte(id_fasc, id_soggetto, ruolo, note)
         audit("soggetti.aggiungi_parte", "fascicolo", id_fasc,
-              dettagli=f"{s.nome_completo} → {ruolo.label}")
-        flash(f"«{s.nome_completo}» aggiunto come {ruolo.label}.", "success")
+              dettagli=f"{s.nome_completo} â†’ {ruolo.label}")
+        flash(f"Â«{s.nome_completo}Â» aggiunto come {ruolo.label}.", "success")
         return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
 
     @app.route("/fascicoli/<id_fasc>/parti/<id_parte>/rimuovi", methods=["POST"])

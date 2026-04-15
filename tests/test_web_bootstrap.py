@@ -195,6 +195,32 @@ def test_pwa_routes_and_error_handlers_restano_registrati(tmp_path: Path):
     assert missing.status_code == 404
 
 
+def test_route_domini_estratti_restano_operativi(tmp_path: Path):
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    app = create_app(_cfg_web(tmp_path))
+
+    with app.test_client() as client:
+        login = client.post(
+            "/login",
+            data={"username": "admin", "password": "admin"},
+            follow_redirects=False,
+        )
+        assert login.status_code == 302
+
+        for path in (
+            "/profilo",
+            "/agenda",
+            "/scadenziario",
+            "/workspace-intelligente",
+            "/telematico",
+            "/portali/pst/acquisizione",
+            "/deposito/checklist",
+            "/guida/firma-digitale",
+        ):
+            response = client.get(path)
+            assert response.status_code == 200, path
+
+
 def test_template_principali_usano_copy_italiana_e_date_localizzate():
     template_checks = {
         "web/templates/base.html": ["Panoramica", "Operazione completata", "Preparazione Udienza Guidata"],

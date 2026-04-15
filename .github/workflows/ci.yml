@@ -16,87 +16,183 @@ concurrency:
   cancel-in-progress: true
 
 env:
+  PYTHONUNBUFFERED: "1"
   PYTHONUTF8: "1"
   PIP_DISABLE_PIP_VERSION_CHECK: "1"
 
 jobs:
-  lint-e-import:
-    name: Lint e import check
+  quality:
+    name: Lint + syntax
     runs-on: ubuntu-latest
     timeout-minutes: 15
+
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
-      - name: Setup Python
+      - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
           cache: "pip"
 
-      - name: Installa dipendenze
+      - name: Install runtime deps
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt pytest ruff
+          pip install -r requirements.txt
+
+      - name: Install dev deps
+        run: |
+          pip install -r requirements-dev.txt
+
+      - name: Build Python target list
+        shell: bash
+        run: |
+          shopt -s nullglob
+          targets=(
+            pct
+            web
+            lex
+            tests
+            tools/*.py
+            test_*.py
+            vercel_app.py
+            visible_signature.py
+            wsgi.py
+          )
+          printf "%s\n" "${targets[@]}" > .python-targets
+          cat .python-targets
 
       - name: Ruff
-        run: ruff check pct web tests --select E9,F63,F7,F82
+        shell: bash
+        run: |
+          python -m ruff check --output-format=github --select E9,F63,F7,F82 $(tr '\n' ' ' < .python-targets)
 
-      - name: Compileall
-        run: python -m compileall pct web tests
+      - name: Flake8
+        shell: bash
+        run: |
+          python -m flake8 $(tr '\n' ' ' < .python-targets)
+
+      - name: Compile package dirs
+        run: |
+          python - <<'PY'
+          import compileall
+          import sys
+          from pathlib import Path
+
+          directories = [Path("pct"), Path("web"), Path("lex"), Path("tests")]
+          ok = True
+          for directory in directories:
+            if directory.exists():
+              ok = compileall.compile_dir(str(directory), quiet=1) and ok
+          sys.exit(0 if ok else 1)
+          PY
+
+      - name: Compile standalone Python files
+        run: |
+          python - <<'PY'
+          import py_compile
+          from pathlib import Path
+
+          paths = []
+          paths.extend(sorted(Path("tools").glob("*.py")))
+          paths.extend(sorted(Path(".").glob("test_*.py")))
+          for filename in ("vercel_app.py", "visible_signature.py", "wsgi.py"):
+            path = Path(filename)
+            if path.exists():
+              paths.append(path)
+
+          for path in paths:
+            py_compile.compile(str(path), doraise=True)
+            print(f"Compiled {path}")
+          PY
 
   smoke-flask:
-    name: Smoke Flask
+    name: Smoke test Flask
     runs-on: ubuntu-latest
-    needs: lint-e-import
-    timeout-minutes: 20
+    needs: quality
+    timeout-minutes: 15
+
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
-      - name: Setup Python
+      - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
           cache: "pip"
 
-      - name: Installa dipendenze
+      - name: Install runtime deps
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt pytest
+          pip install -r requirements.txt
 
-      - name: Esegui smoke test Flask
+      - name: Install dev deps
         run: |
-          pytest -q tests/test_web_bootstrap.py tests/test_web_security.py
+          pip install -r requirements-dev.txt
 
-  pytest-linux:
-    name: Pytest core Linux
+      - name: Import production entry point
+        run: |
+          python - <<'PY'
+          import vercel_app
+
+          app = vercel_app.app
+          client = app.test_client()
+
+          response = client.get("/", follow_redirects=False)
+          assert response.status_code < 500, f"Unexpected status: {response.status_code}"
+
+          print("Smoke OK:", response.status_code)
+          PY
+
+  tests-core:
+    name: Pytest core
     runs-on: ubuntu-latest
-    needs: lint-e-import
-    timeout-minutes: 30
+    needs: quality
+    timeout-minutes: 35
+
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
-      - name: Setup Python
+      - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
           cache: "pip"
 
-      - name: Installa dipendenze
+      - name: Install runtime deps
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt pytest
+          pip install -r requirements.txt
 
-      - name: Esegui suite core
-        run: python -m pytest tests/test_auth.py tests/test_database.py tests/test_local_ai.py tests/test_pst_catalog.py tests/test_giurisprudenza_repository.py tests/test_legal_intelligence_repository.py tests/test_telematico_repository.py tests/test_template_atti_repository.py tests/test_preventivi_repository.py tests/test_applicazioni_repository.py -q
+      - name: Install dev deps
+        run: |
+          pip install -r requirements-dev.txt
+
+      - name: Run core suite
+        run: |
+          pytest -q \
+            tests/test_auth.py \
+            tests/test_web_bootstrap.py \
+            tests/test_web_security.py \
+            tests/test_database.py \
+            tests/test_local_ai.py \
+            tests/test_pst_catalog.py \
+            tests/test_giurisprudenza_repository.py \
+            tests/test_legal_intelligence_repository.py \
+            tests/test_telematico_repository.py \
+            tests/test_template_atti_repository.py \
+            tests/test_preventivi_repository.py \
+            tests/test_applicazioni_repository.py \
+            tests/test_lex_module.py
 
   signer-matrix:
-    name: Signer e PKCS#11 (${{ matrix.os }})
+    name: Local Signer e PKCS#11 (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
-    needs: lint-e-import
-    timeout-minutes: 30
+    needs: quality
+    timeout-minutes: 35
     strategy:
       fail-fast: false
       matrix:
@@ -104,20 +200,26 @@ jobs:
           - ubuntu-latest
           - windows-latest
           - macos-latest
+
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
-      - name: Setup Python
+      - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
           cache: "pip"
 
-      - name: Installa dipendenze
+      - name: Install runtime deps
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt pytest
+          pip install -r requirements.txt
 
-      - name: Esegui test signer cross-platform
-        run: python -m pytest tests/test_local_signer.py tests/test_build_dist.py tests/test_visible_signature.py -q
+      - name: Install dev deps
+        run: |
+          pip install -r requirements-dev.txt
+
+      - name: Run signer cross-platform suite
+        run: |
+          pytest -q tests/test_local_signer.py tests/test_build_dist.py tests/test_visible_signature.py

@@ -77,13 +77,15 @@ Le regole di base oggi sono:
 
 La CI non si limita più alla sola sincronizzazione branch. La pipeline applicativa esegue:
 
-- lint statico di base
+- lint statico conservativo su errori bloccanti (`ruff` + `flake8`)
 - import/syntax check
 - smoke test Flask
 - suite `pytest` core su Linux
 - job matrix Linux / Windows / macOS per Local Signer e componenti correlati
 
 I workflow vivono in `.github/workflows/`.
+Le dipendenze di sviluppo della pipeline sono raccolte in `requirements-dev.txt`.
+Il gate lint attuale è volutamente centrato su errori sintattici e import/fatal error, così la CI resta verde mentre il debito storico di stile viene ridotto in modo progressivo.
 
 ## Test utili
 

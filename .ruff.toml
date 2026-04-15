@@ -1,0 +1,11 @@
+line-length = 120
+exclude = [
+  ".git",
+  "__pycache__",
+  ".pytest_cache",
+  ".ruff_cache",
+  ".venv",
+  "venv",
+  "node_modules",
+  "tools/dist",
+]

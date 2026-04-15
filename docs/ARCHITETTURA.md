@@ -157,13 +157,14 @@ Le regole attuali da mantenere:
 
 La maturità della repo richiede una pipeline continua composta da:
 
-- lint statico di base
+- lint statico conservativo su errori bloccanti
 - import/syntax check
 - smoke Flask
 - `pytest` core su Linux
 - matrix Windows/macOS/Linux per Local Signer e parti cross-platform
 
 La CI deve restare coerente con questa architettura: testare per layer e per dominio, non solo con un job generico.
+Nel breve periodo il lint di CI deve essere severo sugli errori reali ma sostenibile sul debito esistente; per questo il gate attuale blocca errori sintattici e import/failure, mentre le regole di stile possono essere irrigidite in step successivi.
 
 ## Direzione tecnica
 

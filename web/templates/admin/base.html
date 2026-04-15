@@ -56,6 +56,10 @@
        class="nav-link {% if 'studi' in request.endpoint %}active{% endif %}">
       <i class="bi bi-building"></i> Studi Legali
     </a>
+    <a href="{{ url_for('admin.osservabilita') }}"
+       class="nav-link {% if request.endpoint == 'admin.osservabilita' %}active{% endif %}">
+      <i class="bi bi-activity"></i> Osservabilità
+    </a>
 
     <div class="nav-section mt-2">Azioni rapide</div>
     <a href="{{ url_for('admin.nuovo_studio') }}" class="nav-link">

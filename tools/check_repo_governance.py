@@ -146,6 +146,8 @@ def main() -> int:
         "scadenziario_routes.py": 700,
         "fascicoli_pdp_routes.py": 900,
         "runtime_bundle.py": 220,
+        "core_surface_wiring.py": 250,
+        "fascicoli_surface_wiring.py": 200,
     }
     for path in sorted((REPO_ROOT / "web/bootstrap").glob("*.py")):
         if path.name == "__init__.py":
@@ -163,6 +165,39 @@ def main() -> int:
         "web/bootstrap/flask_app_factory.py deve restare una factory base molto compatta (limite 80 righe).",
         failures,
     )
+    _check(
+        _line_count("web/bootstrap/app_wiring.py") <= 80,
+        "web/bootstrap/app_wiring.py deve restare un delegatore molto compatto (limite 80 righe).",
+        failures,
+    )
+
+    app_wiring = _read_text("web/bootstrap/app_wiring.py")
+    _check(
+        "from web.bootstrap.core_surface_wiring import register_core_surfaces" in app_wiring,
+        "web/bootstrap/app_wiring.py deve delegare a register_core_surfaces().",
+        failures,
+    )
+    _check(
+        "from web.bootstrap.fascicoli_surface_wiring import register_fascicoli_surfaces" in app_wiring,
+        "web/bootstrap/app_wiring.py deve delegare a register_fascicoli_surfaces().",
+        failures,
+    )
+    _check(
+        "from web.bootstrap.telematico_surface_wiring import register_telematico_surfaces" in app_wiring,
+        "web/bootstrap/app_wiring.py deve delegare a register_telematico_surfaces().",
+        failures,
+    )
+    for snippet in (
+        "register_core_surfaces(",
+        "register_fascicoli_surfaces(",
+        "register_telematico_surfaces(",
+        "register_blueprints(app)",
+    ):
+        _check(
+            snippet in app_wiring,
+            f"web/bootstrap/app_wiring.py incompleto: manca '{snippet}'.",
+            failures,
+        )
 
     focused_limits = {
         "web/blueprints/assistente.py": 40,
@@ -265,8 +300,48 @@ def main() -> int:
         "lex/providers/ollama_runtime.py",
         "lex/retrieval/orchestrator.py",
         "lex/guards/orchestrator.py",
+        "lex/orchestrator_http.py",
+        "lex/orchestrator_workflow.py",
     ):
         _check((REPO_ROOT / relative_path).exists(), f"Struttura Lex incompleta: manca {relative_path}.", failures)
+
+    ocr_worker = _read_text("pct/ocr_worker.py")
+    _check(
+        "def serve_ocr_worker(" in ocr_worker,
+        "pct/ocr_worker.py deve esporre serve_ocr_worker().",
+        failures,
+    )
+    _check(
+        "OCRJobStore" in ocr_worker,
+        "pct/ocr_worker.py deve usare la coda persistente OCRJobStore.",
+        failures,
+    )
+
+    observability_runtime = _read_text("web/services/observability_runtime.py")
+    _check(
+        'app.extensions["runtime_metrics"] = registry' in observability_runtime,
+        "web/services/observability_runtime.py deve registrare runtime_metrics nelle extensions Flask.",
+        failures,
+    )
+    _check(
+        "def build_observability_payload(" in observability_runtime,
+        "web/services/observability_runtime.py deve esporre build_observability_payload().",
+        failures,
+    )
+
+    health_routes = _read_text("web/bootstrap/health_routes.py")
+    _check(
+        '/api/metriche/runtime' in health_routes,
+        "web/bootstrap/health_routes.py deve esporre /api/metriche/runtime.",
+        failures,
+    )
+
+    admin_blueprint = _read_text("web/blueprints/admin.py")
+    _check(
+        '@admin_bp.route("/osservabilita")' in admin_blueprint,
+        "web/blueprints/admin.py deve esporre la pagina admin /osservabilita.",
+        failures,
+    )
 
     app_scss = _read_text("web/static/scss/app.scss")
     for snippet in (
@@ -290,6 +365,10 @@ def main() -> int:
     for snippet in (
         "scheduler-worker:",
         'command: ["python", "-m", "pct.scheduler_worker"]',
+        "ocr-worker:",
+        'command: ["python", "-m", "pct.ocr_worker"]',
+        "PCT_OCR_QUEUE_DB: /data/search/ocr_jobs.db",
+        'PCT_SQLITE_MODE: "1"',
         "host.docker.internal:host-gateway",
     ):
         _check(snippet in compose, f"Docker Compose non allineato: manca '{snippet}'.", failures)
@@ -354,9 +433,24 @@ def main() -> int:
         "name: Smoke scheduler worker",
         "from pct.scheduler_worker import start_scheduler_worker",
         "name: Pytest core",
+        "tests/test_storage_strategy.py",
+        "tests/test_observability_runtime.py",
+        "tests/test_ocr_worker.py",
         "name: Local Signer e PKCS#11 (${{ matrix.os }})",
     ):
         _check(snippet in ci_workflow, f"Workflow CI incompleto: manca '{snippet}'.", failures)
+
+    performance_workflow = _read_text(".github/workflows/performance-nightly.yml")
+    for snippet in (
+        "name: Performance Nightly",
+        "tools/performance_smoke.py --strict",
+        "performance-smoke.json",
+    ):
+        _check(
+            snippet in performance_workflow,
+            f"Workflow performance mancante o incompleto: '{snippet}'.",
+            failures,
+        )
 
     readme = _read_text("README.md")
     _check("Governance repo" in readme, "README non documenta il job di governance repo.", failures)
@@ -364,6 +458,8 @@ def main() -> int:
     _check("docs/DEPLOY.md" in readme, "README non collega la guida deploy/release.", failures)
     _check("lex/registry.py" in readme, "README non documenta il registry del bounded context Lex.", failures)
     _check("scheduler-worker" in readme, "README non documenta il worker dedicato dello scheduler.", failures)
+    _check("ocr-worker" in readme, "README non documenta il worker dedicato OCR.", failures)
+    _check("/admin/osservabilita" in readme, "README non documenta la pagina di osservabilita'.", failures)
     _check(
         "github.com/antmm2605/hacs/actions/workflows/ci.yml" in readme,
         "README non collega la vista live del workflow CI.",

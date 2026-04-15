@@ -11,6 +11,7 @@ from pct.fascicoli import GestioneFascicoli, TipoFascicolo
 from pct.local_ai import LocalAIService
 from pct.local_ai_runtime import OllamaRuntimeProvisioner
 from web.app import create_app
+from web.services.storage_runtime import get_request_studio_db
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -79,24 +80,25 @@ def _cfg_web(tmp_path: Path) -> dict:
     return {
         "TESTING": True,
         "SECRET_KEY": "test",
-        "AUTH_DB": str(tmp_path / "utenti.json"),
-        "AUDIT_DB": str(tmp_path / "audit.json"),
+        "AUTH_DB": str(tmp_path / "auth" / "utenti.json"),
+        "AUDIT_DB": str(tmp_path / "auth" / "audit.json"),
         "BOOTSTRAP_ADMIN_PASSWORD": "admin",
-        "BOOTSTRAP_ADMIN_CREDENTIALS_PATH": str(tmp_path / "bootstrap_admin.json"),
-        "CLIENTI_DB": str(tmp_path / "clienti.json"),
-        "CONDIVISIONI_DB": str(tmp_path / "condivisioni.json"),
-        "FASCICOLI_DB": str(tmp_path / "fascicoli.json"),
-        "FASCICOLI_DOCS": str(tmp_path / "docs"),
-        "FASCICOLI_ARCH": str(tmp_path / "arch"),
-        "AGENDA_DB": str(tmp_path / "agenda.json"),
-        "SCADENZIARIO_DB": str(tmp_path / "scadenze.json"),
-        "MESSAGGI_DB": str(tmp_path / "messaggi.json"),
+        "BOOTSTRAP_ADMIN_CREDENTIALS_PATH": str(tmp_path / "auth" / "bootstrap_admin.json"),
+        "CLIENTI_DB": str(tmp_path / "clienti" / "anagrafica.json"),
+        "CONDIVISIONI_DB": str(tmp_path / "clienti" / "condivisioni.json"),
+        "FASCICOLI_DB": str(tmp_path / "fascicoli" / "fascicoli.json"),
+        "FASCICOLI_DOCS": str(tmp_path / "fascicoli" / "documenti"),
+        "FASCICOLI_ARCH": str(tmp_path / "fascicoli" / "archivio"),
+        "AGENDA_DB": str(tmp_path / "agenda" / "appuntamenti.json"),
+        "SCADENZIARIO_DB": str(tmp_path / "scadenziario" / "scadenze.json"),
+        "MESSAGGI_DB": str(tmp_path / "messaggi" / "storico.json"),
         "EMAIL_CASELLA_DB": str(tmp_path / "email" / "casella.json"),
-        "SEARCH_INDEX": str(tmp_path / "search.db"),
-        "SOGGETTI_DB": str(tmp_path / "soggetti.json"),
-        "SOGGETTI_PARTI_DB": str(tmp_path / "parti.json"),
+        "SEARCH_INDEX": str(tmp_path / "search" / "index.db"),
+        "OCR_QUEUE_DB": str(tmp_path / "search" / "ocr_jobs.db"),
+        "SOGGETTI_DB": str(tmp_path / "soggetti" / "anagrafica.json"),
+        "SOGGETTI_PARTI_DB": str(tmp_path / "soggetti" / "parti.json"),
         "PST_IMPORT_DIR": str(tmp_path / "pst_import"),
-        "VALIDATION_RUNS_DB": str(tmp_path / "validation_runs.json"),
+        "VALIDATION_RUNS_DB": str(tmp_path / "intelligence" / "validation_runs.json"),
         "LEGAL_INTELLIGENCE_DB": str(tmp_path / "intelligence" / "motori.json"),
         "NORMATIVE_TABLES_DB": str(tmp_path / "intelligence" / "tabelle_normative.json"),
         "GIURISPRUDENZA_DB": str(tmp_path / "intelligence" / "giurisprudenza.json"),
@@ -114,6 +116,15 @@ def _cfg_web(tmp_path: Path) -> dict:
         "PORTALE_DB": str(tmp_path / "portale" / "portali.json"),
         "PORTALE_UPLOADS": str(tmp_path / "portale" / "uploads"),
     }
+
+
+def _gestione_fascicoli_runtime(cfg: dict[str, str]) -> GestioneFascicoli:
+    return GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+        studio_db=get_request_studio_db(cfg["CLIENTI_DB"]),
+    )
 
 
 def test_local_ai_bootstrap_disabled_is_non_blocking(tmp_path: Path):
@@ -375,13 +386,10 @@ def test_local_ai_ask_fascicolo_builds_context_and_returns_answer(tmp_path: Path
 
 def test_api_local_ai_status_and_fascicolo_ai(tmp_path: Path, monkeypatch):
     _write_studio_config(tmp_path / "config" / "studio.json", enabled=True)
-    app = create_app(_cfg_web(tmp_path))
+    cfg = _cfg_web(tmp_path)
+    app = create_app(cfg)
 
-    gf = GestioneFascicoli(
-        db_path=str(tmp_path / "fascicoli.json"),
-        documents_dir=str(tmp_path / "docs"),
-        archive_dir=str(tmp_path / "arch"),
-    )
+    gf = _gestione_fascicoli_runtime(cfg)
     fascicolo = gf.nuovo("Pratica opposizione", TipoFascicolo.CIVILE)
 
     monkeypatch.setattr(
@@ -408,13 +416,10 @@ def test_api_local_ai_status_and_fascicolo_ai(tmp_path: Path, monkeypatch):
 
 def test_api_local_ai_context_endpoints_prepare_payloads(tmp_path: Path, monkeypatch):
     _write_studio_config(tmp_path / "config" / "studio.json", enabled=True)
-    app = create_app(_cfg_web(tmp_path))
+    cfg = _cfg_web(tmp_path)
+    app = create_app(cfg)
 
-    gf = GestioneFascicoli(
-        db_path=str(tmp_path / "fascicoli.json"),
-        documents_dir=str(tmp_path / "docs"),
-        archive_dir=str(tmp_path / "arch"),
-    )
+    gf = _gestione_fascicoli_runtime(cfg)
     fascicolo = gf.nuovo("Pratica contesto AI", TipoFascicolo.CIVILE)
 
     monkeypatch.setattr(
@@ -466,13 +471,10 @@ def test_api_local_ai_context_endpoints_prepare_payloads(tmp_path: Path, monkeyp
 
 def test_api_assistente_context_prepara_prompt_per_companion_locale(tmp_path: Path):
     _write_studio_config(tmp_path / "config" / "studio.json", enabled=True)
-    app = create_app(_cfg_web(tmp_path))
+    cfg = _cfg_web(tmp_path)
+    app = create_app(cfg)
 
-    gf = GestioneFascicoli(
-        db_path=str(tmp_path / "fascicoli.json"),
-        documents_dir=str(tmp_path / "docs"),
-        archive_dir=str(tmp_path / "arch"),
-    )
+    gf = _gestione_fascicoli_runtime(cfg)
     fascicolo = gf.nuovo("Opposizione a decreto ingiuntivo", TipoFascicolo.CIVILE)
 
     with app.test_client() as client:

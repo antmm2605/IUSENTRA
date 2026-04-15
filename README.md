@@ -65,6 +65,7 @@ Il `docker compose` locale avvia:
 
 - `app` per il traffico web Flask/Gunicorn
 - `scheduler-worker` per i job periodici separati dal processo HTTP
+- `ocr-worker` per la pipeline OCR e indicizzazione documentale asincrona
 - `nginx` come reverse proxy locale
 
 Accessi:
@@ -120,6 +121,7 @@ La CI non si limita più alla sola sincronizzazione branch. La pipeline applicat
 - import/syntax check
 - smoke test Flask sul runtime reale e su `create_app()`
 - smoke del worker scheduler dedicato
+- test core su storage SQLite, osservabilità runtime e worker OCR persistente
 - suite `pytest` core su Linux
 - job matrix Linux / Windows / macOS per Local Signer e componenti correlati
 
@@ -129,6 +131,17 @@ La vista live del workflow è [Actions / CI](https://github.com/antmm2605/hacs/a
 Le dipendenze di sviluppo della pipeline sono raccolte in `requirements-dev.txt`.
 Il gate lint attuale è volutamente centrato su errori sintattici e import/fatal error, così la CI resta verde mentre il debito storico di stile viene ridotto in modo progressivo.
 Il job `Governance repo` esegue `tools/check_repo_governance.py` e blocca regressioni su modularizzazione, budget dei moduli e confini tra `web/` e `lex/`.
+La pipeline notturna `.github/workflows/performance-nightly.yml` esegue `tools/performance_smoke.py` per misurare startup, login, metriche runtime e tempi base di Lex.
+
+## Osservabilità tecnica
+
+Il pannello Superadmin include una vista tecnica dedicata in `/admin/osservabilita`.
+
+- metriche HTTP con media, P95 e max per endpoint
+- tempo medio del primo token Lex
+- stato del provider AI locale
+- queue depth e throughput OCR dell'ultima ora
+- stato operativo di storage e runtime applicativo
 
 Sul bounded context AI, il confine corretto adesso Ã¨:
 

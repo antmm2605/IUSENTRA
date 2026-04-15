@@ -49,11 +49,31 @@ def _cfg(tmp_path: Path) -> dict:
     }
 
 
+def _login_superadmin(client, *, username: str, password: str) -> None:
+    response = client.post(
+        "/login",
+        data={"username": username, "password": password},
+        follow_redirects=False,
+    )
+    assert response.status_code == 302
+
+
+def _root_utenti_manager(app):
+    return GestioneUtenti(
+        db_path=app.config["AUTH_DB"],
+        audit_path=app.config["AUDIT_DB"],
+        secret_key=app.secret_key,
+        crea_admin_se_vuoto=False,
+        studio_db=get_request_studio_db(app.config["CLIENTI_DB"]),
+    )
+
+
 def test_database_config_normalizes_storage_modes():
     assert DatabaseConfig.from_dict("LOCAL").normalized_mode == DbMode.JSON
     assert DatabaseConfig.from_dict("JSON").is_json is True
     assert DatabaseConfig.from_dict("SQLITE3").normalized_mode == DbMode.SQLITE
     assert DatabaseConfig.from_dict("POSTGRES").normalized_mode == DbMode.POSTGRESQL
+    assert DatabaseConfig().normalized_mode == DbMode.SQLITE
 
 
 def test_gestione_tenant_provision_storage_backend_creates_sqlite_and_manifest(tmp_path: Path):
@@ -78,23 +98,17 @@ def test_superadmin_can_create_studio_with_sqlite_strategy(tmp_path: Path):
     _write_studio_config(tmp_path / "config" / "studio.json")
     app = create_app(_cfg(tmp_path))
 
-    utenti = GestioneUtenti(
-        db_path=app.config["AUTH_DB"],
-        audit_path=app.config["AUDIT_DB"],
-        secret_key=app.secret_key,
-        crea_admin_se_vuoto=False,
-    )
+    utenti = _root_utenti_manager(app)
     superadmin = utenti.crea(
         username="superadmin",
         password="superpass123",
         ruolo=RuoloUtente.SUPERADMIN,
         tenant_slug="",
+        must_change_password=False,
     )
 
     client = app.test_client()
-    with client.session_transaction() as sess:
-        sess["user_id"] = superadmin.id
-        sess["tenant_slug"] = ""
+    _login_superadmin(client, username=superadmin.username, password="superpass123")
 
     response = client.post(
         "/admin/studi/nuovo",
@@ -171,27 +185,39 @@ def test_request_storage_runtime_external_sql_keeps_json_backend_until_migration
     assert studio_db is None
 
 
+def test_request_storage_runtime_default_operational_prefers_sqlite(tmp_path: Path):
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    app = create_app(_cfg(tmp_path))
+
+    clienti_path = tmp_path / "clienti" / "anagrafica.json"
+    clienti_path.parent.mkdir(parents=True, exist_ok=True)
+    clienti_path.write_text("{}", encoding="utf-8")
+
+    with app.test_request_context("/"):
+        profile = get_request_storage_runtime(str(clienti_path))
+        studio_db = get_request_studio_db(str(clienti_path))
+
+    assert profile.selected_mode == DbMode.SQLITE
+    assert profile.uses_sqlite is True
+    assert profile.effective_mode == DbMode.SQLITE
+    assert studio_db is not None
+
+
 def test_superadmin_can_create_studio_with_postgresql_strategy(tmp_path: Path):
     _write_studio_config(tmp_path / "config" / "studio.json")
     app = create_app(_cfg(tmp_path))
 
-    utenti = GestioneUtenti(
-        db_path=app.config["AUTH_DB"],
-        audit_path=app.config["AUDIT_DB"],
-        secret_key=app.secret_key,
-        crea_admin_se_vuoto=False,
-    )
+    utenti = _root_utenti_manager(app)
     superadmin = utenti.crea(
         username="superadmin",
         password="superpass123",
         ruolo=RuoloUtente.SUPERADMIN,
         tenant_slug="",
+        must_change_password=False,
     )
 
     client = app.test_client()
-    with client.session_transaction() as sess:
-        sess["user_id"] = superadmin.id
-        sess["tenant_slug"] = ""
+    _login_superadmin(client, username=superadmin.username, password="superpass123")
 
     response = client.post(
         "/admin/studi/nuovo",

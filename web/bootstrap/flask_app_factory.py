@@ -7,6 +7,7 @@ from typing import Any
 
 from flask import Flask
 
+from web.services.observability_runtime import register_observability_runtime
 from web.services.security_runtime import apply_security_defaults
 
 
@@ -30,6 +31,7 @@ def create_flask_app(config: dict[str, Any] | None = None) -> tuple[Flask, dict[
             "PCT_HTTPS": cfg.get("PCT_HTTPS", os.getenv("PCT_HTTPS", "")),
         },
     )
+    register_observability_runtime(app)
     if app.config.get("SECRET_KEY_EPHEMERAL"):
         app.logger.warning(
             "PCT_SECRET_KEY non configurata o insicura: uso una chiave effimera valida solo per questo avvio."

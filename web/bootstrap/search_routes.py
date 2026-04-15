@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import queue
-import threading
 from collections.abc import Callable
 from typing import Any
 
@@ -20,10 +18,7 @@ def register_search_routes(
     get_scadenziario: Callable[[], object],
     audit: Callable[..., None],
     ocr_supportato: Callable[[str], bool],
-    accoda_ocr: Callable[..., Any],
-    ocr_queue: queue.Queue,
-    ocr_stats: dict[str, Any],
-    ocr_stats_lock: threading.Lock,
+    ocr_runtime: Any,
 ) -> None:
     """Register search, index rebuild, and OCR worker state routes."""
 
@@ -90,7 +85,7 @@ def register_search_routes(
                     elif ocr_supportato(doc.get("nome", "")):
                         try:
                             percorso = str(gf.percorso_documento(d["id"], doc["id"]))
-                            accoda_ocr(
+                            ocr_runtime.enqueue(
                                 percorso=percorso,
                                 hash_sha256=doc.get("hash_sha256", ""),
                                 id_fasc=d["id"],
@@ -117,9 +112,6 @@ def register_search_routes(
     @app.route("/api/ocr/stato")
     def api_ocr_stato():
         try:
-            with ocr_stats_lock:
-                stats = dict(ocr_stats)
-            stats["in_coda"] = ocr_queue.qsize()
-            return jsonify(stats)
+            return jsonify(ocr_runtime.status_snapshot())
         except Exception as e:
             return jsonify({"errore": str(e)}), 200

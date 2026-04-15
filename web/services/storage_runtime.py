@@ -34,7 +34,7 @@ def _derive_studio_db_path(anchor_path: str) -> str:
 
 
 def resolve_storage_runtime(*, anchor_path: str, tenant: Any = None) -> StorageRuntimeProfile:
-    selected_mode = DbMode.JSON
+    selected_mode = DbMode.SQLITE
     source = "app"
     tenant_slug = ""
 
@@ -44,10 +44,12 @@ def resolve_storage_runtime(*, anchor_path: str, tenant: Any = None) -> StorageR
         try:
             selected_mode = normalize_db_mode(getattr(tenant, "database").mode)
         except Exception:
-            selected_mode = DbMode.JSON
+            selected_mode = DbMode.SQLITE
     elif has_app_context() and current_app.config.get("SQLITE_MODE"):
         selected_mode = DbMode.SQLITE
         source = "legacy-global"
+    else:
+        source = "default-operational"
 
     studio_db_path = _derive_studio_db_path(anchor_path)
     uses_sqlite = selected_mode == DbMode.SQLITE

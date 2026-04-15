@@ -3,6 +3,7 @@ import json
 from pct.auth import GestioneUtenti, RuoloUtente
 from pct.tenant import DbMode, GestioneTenant, StudioLegale
 from web.app import create_app
+from web.services.storage_runtime import get_request_studio_db
 
 
 def test_studio_legale_legacy_db_config_string_non_rompe_database():
@@ -46,6 +47,7 @@ def test_admin_dettaglio_studio_renderizza_anche_con_db_legacy(tmp_path):
             "TENANTS_REGISTRY": str(registry_path),
             "AUTH_DB": str(tmp_path / "auth" / "utenti.json"),
             "AUDIT_DB": str(tmp_path / "auth" / "audit.json"),
+            "CLIENTI_DB": str(tmp_path / "clienti" / "anagrafica.json"),
         }
     )
 
@@ -54,18 +56,22 @@ def test_admin_dettaglio_studio_renderizza_anche_con_db_legacy(tmp_path):
         audit_path=app.config["AUDIT_DB"],
         secret_key=app.secret_key,
         crea_admin_se_vuoto=False,
+        studio_db=get_request_studio_db(app.config["CLIENTI_DB"]),
     )
     superadmin = gu.crea(
-        username="superadmin",
+        username="legacy-superadmin",
         password="superpass123",
         ruolo=RuoloUtente.SUPERADMIN,
         tenant_slug="",
+        must_change_password=False,
     )
 
     client = app.test_client()
-    with client.session_transaction() as sess:
-        sess["user_id"] = superadmin.id
-        sess["tenant_slug"] = ""
+    client.post(
+        "/login",
+        data={"username": superadmin.username, "password": "superpass123"},
+        follow_redirects=False,
+    )
     resp = client.get("/admin/studi/antonella-mammola")
 
     assert resp.status_code == 200

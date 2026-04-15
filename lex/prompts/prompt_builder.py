@@ -2,16 +2,13 @@
 
 from __future__ import annotations
 
-import json
-import os
 from typing import Any
-
-from flask import current_app
 
 from web.services.assistente_competencies import (
     build_competence_catalog_prompt,
     build_competence_prompt_blocks,
 )
+from web.helpers import get_fascicoli
 
 
 _LEX_VOICE_PROMPT = """\
@@ -191,40 +188,34 @@ def _build_fascicolo_context(fascicolo_id: str) -> str:
     if not fascicolo_id:
         return ""
     try:
-        db_path = current_app.config.get("FASCICOLI_DB", "")
-        if not db_path or not os.path.exists(db_path):
-            return ""
-        with open(db_path, encoding="utf-8") as handle:
-            rows = json.load(handle)
-
-        if isinstance(rows, dict):
-            fascicolo = rows.get(fascicolo_id)
-        else:
-            fascicolo = next((row for row in rows if row.get("id") == fascicolo_id), None)
+        fascicolo = get_fascicoli().get(fascicolo_id)
         if not fascicolo:
             return ""
 
-        rg_number = _clean_spaces(fascicolo.get("numero_rg"))
-        rg_year = _clean_spaces(fascicolo.get("anno_rg"))
+        rg_number = _clean_spaces(getattr(fascicolo, "numero_rg", ""))
+        rg_year = _clean_spaces(getattr(fascicolo, "anno_rg", ""))
         rg_label = " / ".join(part for part in [rg_number, rg_year] if part)
 
         lines = ["Fascicolo attivo:"]
         if rg_label:
             lines.append(f"- RG: {rg_label}")
-        if fascicolo.get("titolo"):
-            lines.append(f"- Titolo: {_truncate(fascicolo.get('titolo'), 120)}")
-        if fascicolo.get("nome_cliente"):
-            lines.append(f"- Cliente: {_truncate(fascicolo.get('nome_cliente'), 100)}")
-        if fascicolo.get("controparte"):
-            lines.append(f"- Controparte: {_truncate(fascicolo.get('controparte'), 100)}")
-        if fascicolo.get("tribunale"):
-            lines.append(f"- Ufficio: {_truncate(fascicolo.get('tribunale'), 100)}")
-        if fascicolo.get("stato"):
-            lines.append(f"- Stato: {_truncate(fascicolo.get('stato'), 80)}")
-        if fascicolo.get("oggetto"):
-            lines.append(f"- Oggetto: {_truncate(fascicolo.get('oggetto'), 160)}")
-        if fascicolo.get("data_prossima_udienza"):
-            lines.append(f"- Prossima udienza: {_truncate(fascicolo.get('data_prossima_udienza'), 60)}")
+        if getattr(fascicolo, "titolo", ""):
+            lines.append(f"- Titolo: {_truncate(getattr(fascicolo, 'titolo', ''), 120)}")
+        if getattr(fascicolo, "nome_cliente", ""):
+            lines.append(f"- Cliente: {_truncate(getattr(fascicolo, 'nome_cliente', ''), 100)}")
+        if getattr(fascicolo, "controparte", ""):
+            lines.append(f"- Controparte: {_truncate(getattr(fascicolo, 'controparte', ''), 100)}")
+        if getattr(fascicolo, "tribunale", ""):
+            lines.append(f"- Ufficio: {_truncate(getattr(fascicolo, 'tribunale', ''), 100)}")
+        stato = getattr(getattr(fascicolo, "stato", ""), "value", getattr(fascicolo, "stato", ""))
+        if stato:
+            lines.append(f"- Stato: {_truncate(stato, 80)}")
+        if getattr(fascicolo, "oggetto", ""):
+            lines.append(f"- Oggetto: {_truncate(getattr(fascicolo, 'oggetto', ''), 160)}")
+        if getattr(fascicolo, "data_prossima_udienza", ""):
+            lines.append(
+                f"- Prossima udienza: {_truncate(getattr(fascicolo, 'data_prossima_udienza', ''), 60)}"
+            )
         return "\n".join(lines)
     except Exception:
         return ""

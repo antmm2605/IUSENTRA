@@ -151,11 +151,11 @@
           {% for mode_key in db_mode_choices %}
           {% set mode_info = db_mode_info[mode_key] %}
           <div class="col-12">
-            <label class="admin-db-mode-card d-flex align-items-start gap-3 p-3 rounded-3 {% if form.get('db_mode', 'JSON') == mode_key %}selected{% endif %}"
+            <label class="admin-db-mode-card d-flex align-items-start gap-3 p-3 rounded-3 {% if form.get('db_mode', 'SQLITE') == mode_key %}selected{% endif %}"
                    for="dbmode_{{ mode_key }}">
               <input class="form-check-input mt-0 flex-shrink-0" type="radio"
                      name="db_mode" id="dbmode_{{ mode_key }}" value="{{ mode_key }}"
-                     {% if form.get('db_mode', 'JSON') == mode_key %}checked{% endif %}>
+                     {% if form.get('db_mode', 'SQLITE') == mode_key %}checked{% endif %}>
               <div class="flex-grow-1">
                 <div class="d-flex align-items-center gap-2 mb-1">
                   <i class="bi {{ mode_info.icona }} text-{{ mode_info.colore }}"></i>

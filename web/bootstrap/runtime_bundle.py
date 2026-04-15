@@ -41,7 +41,11 @@ def build_application_runtime_bundle(
             core=core,
         )
 
-    ocr_runtime = build_ocr_runtime(decrypt_doc=decrypt_doc)
+    ocr_runtime = build_ocr_runtime(
+        queue_db_path=app.config.get("OCR_QUEUE_DB"),
+        search_index_path=str(app.config.get("SEARCH_INDEX", "")),
+    )
+    app.extensions["ocr_runtime"] = ocr_runtime
     fascicoli = build_fascicoli_runtime(
         app,
         get_deposito_guidato=core["get_deposito_guidato"],

@@ -33,7 +33,7 @@ from web.services.storage_runtime import get_request_studio_db
 
 def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
     app.config["SQLITE_MODE"] = str(
-        cfg.get("SQLITE_MODE", os.getenv("PCT_SQLITE_MODE", ""))
+        cfg.get("SQLITE_MODE", os.getenv("PCT_SQLITE_MODE", "1"))
     ).lower() in ("1", "true", "yes")
     app.config["AGENDA_DB"] = cfg.get(
         "AGENDA_DB", os.getenv("PCT_AGENDA_DB", "./agenda/appuntamenti.json")
@@ -108,6 +108,13 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
     )
     app.config["SEARCH_INDEX"] = cfg.get(
         "SEARCH_INDEX", os.getenv("PCT_SEARCH_INDEX", "./search/index.db")
+    )
+    app.config["OCR_QUEUE_DB"] = cfg.get(
+        "OCR_QUEUE_DB",
+        os.getenv(
+            "PCT_OCR_QUEUE_DB",
+            str(Path(app.config["SEARCH_INDEX"]).parent / "ocr_jobs.db"),
+        ),
     )
     app.config["PRIVACY_DB"] = cfg.get(
         "PRIVACY_DB", os.getenv("PCT_PRIVACY_DB", "./privacy/registro.json")

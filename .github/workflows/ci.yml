@@ -311,6 +311,9 @@ jobs:
             tests/test_auth.py \
             tests/test_scheduler.py \
             tests/test_scheduler_worker.py \
+            tests/test_storage_strategy.py \
+            tests/test_observability_runtime.py \
+            tests/test_ocr_worker.py \
             tests/test_assistente_followup.py \
             tests/test_assistente_language_guidance.py \
             tests/test_assistente_social.py \

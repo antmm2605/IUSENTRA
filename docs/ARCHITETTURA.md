@@ -42,6 +42,9 @@ Qui si registra ciò che viene estratto dal monolite di `web/app.py`:
 - handler errori
 - `flask_app_factory.py` per la factory base Flask e i default di sicurezza
 - `runtime_bundle.py` per assemblare i runtime del profilo web completo o del profilo scheduler
+- `app_wiring.py` come delegatore minimo verso registri verticali
+- `core_surface_wiring.py`, `fascicoli_surface_wiring.py`, `telematico_surface_wiring.py`
+  registri di wiring per superfici omogenee, così il bootstrap resta governabile
 
 Questa cartella deve contenere moduli piccoli e leggibili, non nuovi monoliti.
 
@@ -55,9 +58,11 @@ Qui stanno i servizi trasversali che non appartengono a un singolo dominio:
   secret bootstrap, cookie/session hardening, header browser, CSRF
 - `runtime_settings.py`
   impostazioni runtime derivate da configurazione studio
+- `observability_runtime.py`
+  metriche leggere HTTP/Lex e payload tecnico per pannello e API di osservabilita'
 - servizi di contesto studio, sicurezza e compatibilitÃ  UI non proprietaria di Lex
 
-### `pct/scheduler.py` e `pct/scheduler_worker.py`
+### `pct/scheduler.py`, `pct/scheduler_worker.py` e `pct/ocr_worker.py`
 
 I job periodici non devono vivere nel processo HTTP:
 
@@ -65,6 +70,8 @@ I job periodici non devono vivere nel processo HTTP:
   definisce e registra i job APScheduler
 - `pct/scheduler_worker.py`
   costruisce una Flask app leggera in profilo `SCHEDULER_ONLY`, avvia lo scheduler e mantiene vivo il worker dedicato
+- `pct/ocr_worker.py`
+  possiede la coda OCR persistente e il pool che elabora OCR e indicizzazione fuori dal processo HTTP
 
 Regola architetturale: `web/app.py` non avvia mai direttamente lo scheduler.
 
@@ -87,7 +94,11 @@ Lex ora ha una casa applicativa dedicata:
 - `service.py`
   superficie applicativa compatibile: HTTP storico e casi d'uso bounded-context
 - `orchestrator.py`
-  coordinamento tra contesto, retrieval, prompt, runtime e guard rail, sia per le route storiche sia per il nuovo flusso applicativo
+  coordinamento centrale molto sottile tra compatibilita' legacy e flusso bounded-context
+- `orchestrator_http.py`
+  compatibilita' HTTP legacy: status, warmup, context, chat, export documento e payload UI
+- `orchestrator_workflow.py`
+  pipeline bounded-context pura per request, retrieval, guardie, provider, formatter, telemetry e memory
 - `api/`, `application/`, `domain/`, `context/`, `retrieval/`, `guards/`, `formatting/`, `providers/`, `memory/`, `telemetry/`, `prompts/`, `tools/`, `workflows/`, `admin/`
   sottosistemi piccoli e separati, riusabili anche fuori dalla chat
 - i moduli storici `web/services/assistente_*.py` e i bridge `web/services/local_ai_runtime.py`, `web/services/ollama_runtime.py` restano solo facciate compatibili: follow-up, routing sociale, prompt, riepilogo giornaliero, export documentale, guardie legali, riconoscimento web execution e runtime AI locale vivono ora in `lex/`
@@ -126,6 +137,19 @@ Il punto di ingresso resta `web/app.py`, ma il ruolo corretto è:
 Lo scheduler deve restare fuori dal processo web: `web/app.py` costruisce il runtime HTTP, mentre `pct.scheduler_worker` possiede l'avvio dei job periodici.
 
 `web/app.py` deve restare una facciata minima: riceve la configurazione, delega la factory base, delega l'assemblaggio dei runtime e chiama solo il wiring finale.
+
+## Osservabilita' e prestazioni
+
+HACS espone una superficie tecnica esplicita per misurare il comportamento reale del runtime:
+
+- endpoint `/api/metriche/runtime`
+  snapshot di latenza HTTP, primo token Lex, stato OCR e provider locali
+- pannello `/admin/osservabilita`
+  vista Superadmin con queue depth OCR, throughput, bucket HTTP e stato provider
+- `tools/performance_smoke.py`
+  benchmark operativo rapido per startup, login, metriche runtime, build context Lex e retrieval base
+- `.github/workflows/performance-nightly.yml`
+  benchmark notturno per intercettare regressioni di performance in modo automatico
 
 ## Strategia storage
 

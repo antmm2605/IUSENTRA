@@ -1098,6 +1098,56 @@ class LocalAIService:
             "models_path": str(self.models_path),
         }
 
+    def monitoring_snapshot(self) -> dict[str, Any]:
+        settings = self._load_settings()
+        with self._connect() as conn:
+            runtime = self._runtime_row(conn)
+            counts = conn.execute(
+                """
+                SELECT
+                    (SELECT COUNT(*) FROM rag_documents) AS documents_total,
+                    (SELECT COUNT(*) FROM rag_chunks) AS chunks_total,
+                    (SELECT COUNT(*) FROM rag_chunks WHERE embedding_state = 'embedded') AS chunks_embedded,
+                    (SELECT COUNT(*) FROM rag_chunks WHERE embedding_state = 'pending') AS chunks_pending
+                """
+            ).fetchone()
+            active_models = {
+                str(row["role"] or "").strip(): str(row["model_name"] or "").strip()
+                for row in conn.execute(
+                    """
+                    SELECT role, model_name
+                    FROM local_ai_models
+                    WHERE is_active = 1
+                    ORDER BY last_verified_at DESC, model_name
+                    """
+                ).fetchall()
+                if str(row["role"] or "").strip()
+            }
+
+        runtime_status = str(runtime.get("status") or "").strip().lower()
+        return {
+            "settings": {
+                "enabled": settings.enabled,
+                "auto_bootstrap": settings.auto_bootstrap,
+                "keep_alive": settings.keep_alive,
+            },
+            "runtime": {
+                "status": str(runtime.get("status") or ""),
+                "api_base_url": str(runtime.get("api_base_url") or ""),
+                "chat_model": str(runtime.get("chat_model") or ""),
+                "embed_model": str(runtime.get("embed_model") or ""),
+                "last_error": str(runtime.get("last_error") or ""),
+                "updated_at": str(runtime.get("updated_at") or ""),
+            },
+            "runtime_online": runtime_status == "ready",
+            "resolved_models": {
+                "chat": active_models.get("chat") or settings.chat_model,
+                "embed": active_models.get("embed") or settings.embed_model,
+            },
+            "counts": dict(counts or {}),
+            "models_path": str(self.models_path),
+        }
+
     def _active_model(self, role: str) -> str | None:
         with self._connect() as conn:
             row = conn.execute(

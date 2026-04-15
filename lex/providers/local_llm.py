@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from time import monotonic
 from typing import Any, Callable
 
 
@@ -32,10 +33,16 @@ class LocalLLMProvider:
         payload: dict[str, Any],
         base_url: str,
         opening_line: str = "",
+        on_first_token: Callable[[float], None] | None = None,
+        started_at: float | None = None,
     ) -> Callable[[], Any]:
         def generate():
+            first_token_emitted = False
             try:
                 if opening_line:
+                    if not first_token_emitted and on_first_token is not None:
+                        on_first_token(((monotonic() - (started_at or monotonic())) * 1000))
+                        first_token_emitted = True
                     yield f"data: {json.dumps({'token': opening_line + ' '})}\n\n"
                 response = requests_module.post(
                     f"{api_base_url}/chat",
@@ -52,6 +59,9 @@ class LocalLLMProvider:
                         continue
                     token = chunk.get("message", {}).get("content", "")
                     if token:
+                        if not first_token_emitted and on_first_token is not None:
+                            on_first_token(((monotonic() - (started_at or monotonic())) * 1000))
+                            first_token_emitted = True
                         yield f"data: {json.dumps({'token': token})}\n\n"
                     if chunk.get("done"):
                         yield "data: [DONE]\n\n"

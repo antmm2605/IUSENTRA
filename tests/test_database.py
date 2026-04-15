@@ -20,6 +20,7 @@ from pct.database import (
     _fmt_bytes,
 )
 from pct.search_index import IndiceRicerca
+from web.services.storage_runtime import get_request_studio_db
 
 
 # ================================================================ Fixtures
@@ -803,7 +804,15 @@ def test_create_app_bootstrap_moduli_monitorati(tmp_path):
 
     auth_db = str(tmp_path / "auth" / "utenti.json")
     audit_db = str(tmp_path / "auth" / "audit.json")
-    gu = GestioneUtenti(db_path=auth_db, audit_path=audit_db, secret_key="test")
+    clienti_db = str(tmp_path / "clienti" / "anagrafica.json")
+    studio_db = get_request_studio_db(clienti_db)
+    gu = GestioneUtenti(
+        db_path=auth_db,
+        audit_path=audit_db,
+        secret_key="test",
+        crea_admin_se_vuoto=False,
+        studio_db=studio_db,
+    )
     gu.crea(username="bootstrap", password="Admin1234!", ruolo=RuoloUtente.AMMINISTRATORE, email="bootstrap@test.it")
 
     cfg = {
@@ -811,7 +820,7 @@ def test_create_app_bootstrap_moduli_monitorati(tmp_path):
         "SECRET_KEY": "test",
         "AUTH_DB": auth_db,
         "AUDIT_DB": audit_db,
-        "CLIENTI_DB": str(tmp_path / "clienti" / "anagrafica.json"),
+        "CLIENTI_DB": clienti_db,
         "FASCICOLI_DB": str(tmp_path / "fascicoli" / "fascicoli.json"),
         "AGENDA_DB": str(tmp_path / "agenda" / "appuntamenti.json"),
         "SCADENZIARIO_DB": str(tmp_path / "scadenziario" / "scadenze.json"),
@@ -865,32 +874,43 @@ def client_admin(tmp_path):
     from web.app import create_app
     from pct.auth import GestioneUtenti, RuoloUtente
 
-    auth_db = str(tmp_path / "utenti.json")
-    audit_db = str(tmp_path / "audit.json")
+    auth_db = str(tmp_path / "auth" / "utenti.json")
+    audit_db = str(tmp_path / "auth" / "audit.json")
     backup_dir = str(tmp_path / "backup")
+    clienti_db = str(tmp_path / "clienti" / "anagrafica.json")
     os.makedirs(backup_dir, exist_ok=True)
 
-    gu = GestioneUtenti(db_path=auth_db, audit_path=audit_db, secret_key="test")
-    # GestioneUtenti crea un admin di default; usiamo quello aggiornando la password
-    # oppure creiamo un secondo admin con username diverso
-    gu.crea(username="testadmin", password="Admin1234!", ruolo=RuoloUtente.AMMINISTRATORE, email="a@b.it")
+    gu = GestioneUtenti(
+        db_path=auth_db,
+        audit_path=audit_db,
+        secret_key="test",
+        crea_admin_se_vuoto=False,
+        studio_db=get_request_studio_db(clienti_db),
+    )
+    gu.crea(
+        username="testadmin",
+        password="Admin1234!",
+        ruolo=RuoloUtente.AMMINISTRATORE,
+        email="a@b.it",
+        must_change_password=False,
+    )
 
     cfg = {
         "TESTING": True,
         "SECRET_KEY": "test",
         "AUTH_DB": auth_db,
         "AUDIT_DB": audit_db,
-        "CLIENTI_DB": str(tmp_path / "clienti.json"),
-        "FASCICOLI_DB": str(tmp_path / "fascicoli.json"),
-        "AGENDA_DB": str(tmp_path / "agenda.json"),
-        "SCADENZIARIO_DB": str(tmp_path / "scadenze.json"),
-        "MESSAGGI_DB": str(tmp_path / "messaggi.json"),
-        "NOTIFICHE_LOG": str(tmp_path / "notifiche.json"),
-        "PRIVACY_DB": str(tmp_path / "privacy.json"),
+        "CLIENTI_DB": clienti_db,
+        "FASCICOLI_DB": str(tmp_path / "fascicoli" / "fascicoli.json"),
+        "AGENDA_DB": str(tmp_path / "agenda" / "appuntamenti.json"),
+        "SCADENZIARIO_DB": str(tmp_path / "scadenziario" / "scadenze.json"),
+        "MESSAGGI_DB": str(tmp_path / "messaggi" / "storico.json"),
+        "NOTIFICHE_LOG": str(tmp_path / "notifiche" / "log.json"),
+        "PRIVACY_DB": str(tmp_path / "privacy" / "registro.json"),
         "BACKUP_DIR": backup_dir,
-        "SEARCH_INDEX": str(tmp_path / "search.db"),
-        "FASCICOLI_DOCS": str(tmp_path / "docs"),
-        "FASCICOLI_ARCH": str(tmp_path / "arch"),
+        "SEARCH_INDEX": str(tmp_path / "search" / "index.db"),
+        "FASCICOLI_DOCS": str(tmp_path / "fascicoli" / "documenti"),
+        "FASCICOLI_ARCH": str(tmp_path / "fascicoli" / "archivio"),
     }
     app = create_app(cfg)
     with app.test_client() as c:

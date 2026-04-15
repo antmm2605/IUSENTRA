@@ -114,7 +114,7 @@ class DbMode(str):
 def normalize_db_mode(value: Any) -> str:
     raw = str(value or "").strip().upper()
     aliases = {
-        "": DbMode.JSON,
+        "": DbMode.SQLITE,
         "LOCAL": DbMode.JSON,
         "FILESYSTEM": DbMode.JSON,
         "JSON": DbMode.JSON,
@@ -125,7 +125,7 @@ def normalize_db_mode(value: Any) -> str:
         "MYSQL": DbMode.MYSQL,
         "MARIADB": DbMode.MYSQL,
     }
-    return aliases.get(raw, DbMode.JSON)
+    return aliases.get(raw, DbMode.SQLITE)
 
 
 SELECTABLE_DB_MODES: tuple[str, ...] = (
@@ -222,7 +222,7 @@ class DatabaseConfig:
     Configurazione del database per un tenant.
     Per modalità LOCAL tutti i campi sono vuoti (non usati).
     """
-    mode: str = DbMode.JSON
+    mode: str = DbMode.SQLITE
 
     # Connessione (MySQL / PostgreSQL)
     host: str = "localhost"

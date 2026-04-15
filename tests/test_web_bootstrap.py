@@ -280,6 +280,9 @@ def test_route_domini_estratti_restano_operativi(tmp_path: Path):
 def test_web_app_dimagrisce_e_registra_i_moduli_estratti_finali():
     web_app = (REPO_ROOT / "web/app.py").read_text(encoding="utf-8")
     app_wiring = (REPO_ROOT / "web/bootstrap/app_wiring.py").read_text(encoding="utf-8")
+    core_wiring = (REPO_ROOT / "web/bootstrap/core_surface_wiring.py").read_text(encoding="utf-8")
+    fascicoli_wiring = (REPO_ROOT / "web/bootstrap/fascicoli_surface_wiring.py").read_text(encoding="utf-8")
+    telematico_wiring = (REPO_ROOT / "web/bootstrap/telematico_surface_wiring.py").read_text(encoding="utf-8")
 
     assert "from web.bootstrap.app_wiring import register_app_wiring" in web_app
     assert "from web.bootstrap.flask_app_factory import create_flask_app" in web_app
@@ -289,6 +292,13 @@ def test_web_app_dimagrisce_e_registra_i_moduli_estratti_finali():
     assert "from web.services." not in web_app
     assert "from pct.scheduler import start_scheduler" not in web_app
     assert "register_app_wiring(" in web_app
+
+    assert "from web.bootstrap.core_surface_wiring import register_core_surfaces" in app_wiring
+    assert "from web.bootstrap.fascicoli_surface_wiring import register_fascicoli_surfaces" in app_wiring
+    assert "from web.bootstrap.telematico_surface_wiring import register_telematico_surfaces" in app_wiring
+    assert "register_core_surfaces(" in app_wiring
+    assert "register_fascicoli_surfaces(" in app_wiring
+    assert "register_telematico_surfaces(" in app_wiring
 
     for symbol in (
         "register_clienti_routes",
@@ -300,6 +310,12 @@ def test_web_app_dimagrisce_e_registra_i_moduli_estratti_finali():
         "register_export_routes",
         "register_search_routes",
         "register_sync_runtime_routes",
+        "register_scadenziario_routes",
+        "register_dashboard_routes",
+    ):
+        assert f"{symbol}(" in core_wiring
+
+    for symbol in (
         "register_fascicoli_management_routes",
         "register_tariffario_routes",
         "register_fascicoli_document_routes",
@@ -307,16 +323,19 @@ def test_web_app_dimagrisce_e_registra_i_moduli_estratti_finali():
         "register_fascicoli_core_routes",
         "register_fascicoli_pdp_routes",
         "register_fascicoli_signature_routes",
-        "register_polisweb_routes",
         "register_reference_lookup_routes",
+        "register_deposito_routes",
+    ):
+        assert f"{symbol}(" in fascicoli_wiring
+
+    for symbol in (
+        "register_polisweb_routes",
+        "register_portali_acquisizione_routes",
+        "register_telematico_dashboard_routes",
         "register_telematico_local_signer_routes",
         "register_telematico_portali_routes",
     ):
-        assert (
-            f"from web.bootstrap.{symbol.replace('register_', '').replace('_routes', '_routes')} import {symbol}"
-            in app_wiring
-        )
-        assert f"{symbol}(" in app_wiring
+        assert f"{symbol}(" in telematico_wiring
 
     assert web_app.count("@app.route") == 0
     assert len(web_app.splitlines()) <= 250
@@ -356,6 +375,8 @@ def test_i_moduli_bootstrap_restano_governabili():
         "deposito_routes.py": 1000,
         "scadenziario_routes.py": 700,
         "fascicoli_pdp_routes.py": 900,
+        "core_surface_wiring.py": 250,
+        "fascicoli_surface_wiring.py": 200,
     }
 
     oversized: list[str] = []
@@ -433,10 +454,14 @@ def test_docker_compose_prevede_runtime_ollama_sulla_stessa_macchina():
 
     assert "ollama:" in compose
     assert "scheduler-worker:" in compose
+    assert "ocr-worker:" in compose
     assert 'command: ["python", "-m", "pct.scheduler_worker"]' in compose
+    assert 'command: ["python", "-m", "pct.ocr_worker"]' in compose
     assert 'profiles: ["ollama-sidecar"]' in compose
     assert "image: ollama/ollama:latest" in compose
     assert "PCT_LOCAL_AI_BASE_URL: ${PCT_LOCAL_AI_BASE_URL:-http://host.docker.internal:11434/api}" in compose
+    assert "PCT_OCR_QUEUE_DB: /data/search/ocr_jobs.db" in compose
+    assert 'PCT_SQLITE_MODE: "1"' in compose
     assert 'host.docker.internal:host-gateway' in compose
 
 
@@ -445,6 +470,7 @@ def test_bootstrap_pubblico_resta_allineato_a_password_temporanee_e_ci_reale():
     env_example = (REPO_ROOT / ".env.example").read_text(encoding="utf-8")
     readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
     ci_workflow = (REPO_ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
+    perf_workflow = (REPO_ROOT / ".github/workflows/performance-nightly.yml").read_text(encoding="utf-8")
 
     assert "admin / admin" not in compose
     assert "admin / admin" not in readme
@@ -460,6 +486,11 @@ def test_bootstrap_pubblico_resta_allineato_a_password_temporanee_e_ci_reale():
     assert "python tools/check_repo_governance.py" in ci_workflow
     assert '      - "main"' in ci_workflow
     assert "name: Smoke scheduler worker" in ci_workflow
+    assert "tests/test_storage_strategy.py" in ci_workflow
+    assert "tests/test_observability_runtime.py" in ci_workflow
+    assert "tests/test_ocr_worker.py" in ci_workflow
+    assert "name: Performance Nightly" in perf_workflow
+    assert "tools/performance_smoke.py --strict" in perf_workflow
 
 
 def test_scheduler_worker_entrypoint_resta_separato_dal_runtime_web():
@@ -901,6 +932,7 @@ def test_contesto_lex_compatta_le_sezioni_e_limita_le_fonti():
     lex_routes = (REPO_ROOT / "lex/routes.py").read_text(encoding="utf-8")
     lex_service = (REPO_ROOT / "lex/service.py").read_text(encoding="utf-8")
     lex_orchestrator = (REPO_ROOT / "lex/orchestrator.py").read_text(encoding="utf-8")
+    lex_orchestrator_http = (REPO_ROOT / "lex/orchestrator_http.py").read_text(encoding="utf-8")
     assistente_prompt = (REPO_ROOT / "lex/prompts/prompt_builder.py").read_text(encoding="utf-8")
     prompt_wrapper = (REPO_ROOT / "web/services/assistente_prompt.py").read_text(encoding="utf-8")
 
@@ -998,18 +1030,18 @@ def test_contesto_lex_compatta_le_sezioni_e_limita_le_fonti():
     assert "build_context_response" in lex_orchestrator
     assert "chat_response" in lex_orchestrator
     assert "messages_with_effective_question" in lex_orchestrator
-    assert "social_context_payload" in lex_orchestrator
-    assert "direct_answer_payload" in lex_orchestrator
-    assert '"query_type": "assistente_chat"' in lex_orchestrator
-    assert '"daily_overview_lead": opening_line' in lex_orchestrator
-    assert '"language_mode": str(language_guidance.mode or "").strip()' in lex_orchestrator
-    assert '"competence_labels": list(studio_context.get("competence_labels") or [])' in lex_orchestrator
-    assert '"social_prefix": str(social_prefix or "").strip()' in lex_orchestrator
-    assert '"focus_label": str(studio_context.get("focus_label") or "").strip()' in lex_orchestrator
-    assert "web_fallback_used = bool(studio_context.get(\"web_fallback_used\")) or bool(" in lex_orchestrator
-    assert "web_execution_requested = bool(studio_context.get(\"web_execution_requested\")) or bool(followup.is_web_request)" in lex_orchestrator
-    assert '"web_fallback_used": web_fallback_used' in lex_orchestrator
-    assert '"web_execution_requested": web_execution_requested' in lex_orchestrator
+    assert "social_context_payload" in lex_orchestrator_http
+    assert "direct_answer_payload" in lex_orchestrator_http
+    assert '"query_type": "assistente_chat"' in lex_orchestrator_http
+    assert '"daily_overview_lead": opening_line' in lex_orchestrator_http
+    assert '"language_mode": str(language_guidance.mode or "").strip()' in lex_orchestrator_http
+    assert '"competence_labels": list(studio_context.get("competence_labels") or [])' in lex_orchestrator_http
+    assert '"social_prefix": str(social_prefix or "").strip()' in lex_orchestrator_http
+    assert '"focus_label": str(studio_context.get("focus_label") or "").strip()' in lex_orchestrator_http
+    assert "web_fallback_used = bool(studio_context.get(\"web_fallback_used\")) or bool(" in lex_orchestrator_http
+    assert "web_execution_requested = bool(studio_context.get(\"web_execution_requested\")) or bool(followup.is_web_request)" in lex_orchestrator_http
+    assert '"web_fallback_used": web_fallback_used' in lex_orchestrator_http
+    assert '"web_execution_requested": web_execution_requested' in lex_orchestrator_http
     assert "build_assistente_prompt" in assistente_prompt
     assert "_LEX_VOICE_PROMPT" in assistente_prompt
     assert "_LEX_WRITING_PROMPT" in assistente_prompt

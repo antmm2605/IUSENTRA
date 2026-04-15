@@ -1,60 +1,37 @@
-"""Runtime OCR asincrono per l'app Flask."""
+"""Runtime OCR persistente per l'app Flask."""
 
 from __future__ import annotations
 
-import queue
-import threading
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable
+from typing import Any
 
 from pct.ocr import estensione_supportata as ocr_supportato
-from pct.ocr import estrai_testo as ocr_estrai_testo
-from pct.search_index import IndiceRicerca
+from pct.ocr_jobs import OCRJobStore, default_ocr_queue_db
+
+
+@dataclass(slots=True)
+class OCRQueueProxy:
+    store: OCRJobStore
+
+    def qsize(self) -> int:
+        return self.store.pending_count()
 
 
 class OCRRuntime:
-    """Incapsula coda, statistiche e worker OCR."""
+    """Incapsula la coda OCR persistente condivisa con il worker dedicato."""
 
-    def __init__(self, *, decrypt_doc: Callable[[bytes], bytes]) -> None:
-        self._decrypt_doc = decrypt_doc
-        self.queue: queue.Queue = queue.Queue()
-        self.stats = {"totale": 0, "completati": 0, "errori": 0, "in_coda": 0}
-        self.stats_lock = threading.Lock()
-        self._thread = threading.Thread(target=self._ocr_worker, daemon=True, name="ocr-worker")
-        self._thread.start()
+    def __init__(self, *, queue_db_path: str) -> None:
+        self.store = OCRJobStore(queue_db_path)
+        self.queue = OCRQueueProxy(self.store)
 
-    def _ocr_worker(self) -> None:
-        """Thread daemon che processa i job OCR in background."""
-        import logging
+    @property
+    def stats(self) -> dict[str, Any]:
+        return self.status_snapshot()
 
-        log = logging.getLogger("ocr_worker")
-        while True:
-            job = self.queue.get()
-            if job is None:
-                break
-            percorso, hash_sha256, id_fasc, id_doc, nome_doc, tipo_doc, index_path = job
-            with self.stats_lock:
-                self.stats["in_coda"] = self.queue.qsize()
-            try:
-                idx = IndiceRicerca(index_path=index_path)
-                testo = idx.get_ocr_cache(hash_sha256)
-                if testo is None:
-                    raw = Path(percorso).read_bytes()
-                    decifrato = self._decrypt_doc(raw)
-                    testo = ocr_estrai_testo(decifrato, nome_doc)
-                    idx.set_ocr_cache(hash_sha256, testo)
-                if testo:
-                    idx.indicizza_documento(id_fasc, id_doc, nome_doc, testo, tipo_doc)
-                with self.stats_lock:
-                    self.stats["completati"] += 1
-            except Exception as exc:
-                log.warning("Errore OCR documento %s/%s: %s", id_fasc, id_doc, exc)
-                with self.stats_lock:
-                    self.stats["errori"] += 1
-            finally:
-                self.queue.task_done()
-                with self.stats_lock:
-                    self.stats["in_coda"] = self.queue.qsize()
+    @property
+    def stats_lock(self):
+        return _NullLock()
 
     def enqueue(
         self,
@@ -67,15 +44,33 @@ class OCRRuntime:
         tipo_doc: str,
         index_path: str,
     ) -> None:
-        """Accoda un job OCR se il file e' di un tipo supportato."""
+        """Accoda un job OCR persistente se il file e' di un tipo supportato."""
         if not ocr_supportato(nome_doc):
             return
-        with self.stats_lock:
-            self.stats["totale"] += 1
-            self.stats["in_coda"] = self.queue.qsize() + 1
-        self.queue.put((percorso, hash_sha256, id_fasc, id_doc, nome_doc, tipo_doc, index_path))
+        self.store.enqueue(
+            percorso=percorso,
+            hash_sha256=hash_sha256,
+            id_fasc=id_fasc,
+            id_doc=id_doc,
+            nome_doc=nome_doc,
+            tipo_doc=tipo_doc,
+            index_path=index_path,
+        )
+
+    def status_snapshot(self) -> dict[str, Any]:
+        return self.store.status_snapshot()
 
 
-def build_ocr_runtime(*, decrypt_doc: Callable[[bytes], bytes]) -> OCRRuntime:
-    """Factory esplicita per il runtime OCR."""
-    return OCRRuntime(decrypt_doc=decrypt_doc)
+class _NullLock:
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc, tb) -> bool:
+        return False
+
+
+def build_ocr_runtime(*, queue_db_path: str | None = None, search_index_path: str = "") -> OCRRuntime:
+    """Factory esplicita per il runtime OCR persistente."""
+    resolved_queue_path = queue_db_path or default_ocr_queue_db(search_index_path)
+    Path(resolved_queue_path).parent.mkdir(parents=True, exist_ok=True)
+    return OCRRuntime(queue_db_path=resolved_queue_path)

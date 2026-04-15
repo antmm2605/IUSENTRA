@@ -69,6 +69,8 @@ services:
       PCT_AUDIT_DB:         /data/auth/audit.json
       PCT_SCADENZIARIO_DB:  /data/scadenziario/scadenze.json
       PCT_SEARCH_INDEX:     /data/search/index.db
+      PCT_OCR_QUEUE_DB:     /data/search/ocr_jobs.db
+      PCT_SQLITE_MODE:      "1"
       PCT_PRIVACY_DB:       /data/privacy/registro.json
       PCT_PORTALE_DB:       /data/portale/portali.json
       PCT_PORTALE_UPLOADS:  /data/portale/uploads
@@ -130,9 +132,42 @@ services:
     environment:
       PCT_HTTPS: "false"
       PCT_MULTI_TENANT: "1"
+      PCT_SQLITE_MODE: "1"
       PCT_LOCAL_AI_BASE_URL: ${PCT_LOCAL_AI_BASE_URL:-http://host.docker.internal:11434/api}
       PCT_HOST_PLATFORM: ${OS:-}
       PCT_HOST_MACHINE: ${PROCESSOR_ARCHITECTURE:-}
+
+  # --------------------------------------------------------------------------
+  #  OCR worker dedicato
+  # --------------------------------------------------------------------------
+  ocr-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: hacs-ocr
+    restart: unless-stopped
+    command: ["python", "-m", "pct.ocr_worker"]
+
+    depends_on:
+      app:
+        condition: service_healthy
+
+    volumes:
+      - ./data:/data
+
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+    env_file:
+      - .env
+
+    environment:
+      PCT_HTTPS: "false"
+      PCT_MULTI_TENANT: "1"
+      PCT_SQLITE_MODE: "1"
+      PCT_SEARCH_INDEX: /data/search/index.db
+      PCT_OCR_QUEUE_DB: /data/search/ocr_jobs.db
+      PCT_OCR_WORKERS: ${PCT_OCR_WORKERS:-2}
 
   ollama:
     profiles: ["ollama-sidecar"]

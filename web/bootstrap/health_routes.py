@@ -5,7 +5,9 @@ from __future__ import annotations
 from collections.abc import Callable
 from datetime import datetime
 
-from flask import Flask, jsonify
+from flask import Flask, current_app, jsonify
+
+from web.services.observability_runtime import build_observability_payload
 
 
 def register_health_routes(
@@ -47,3 +49,12 @@ def register_health_routes(
             stato["ok"] = False
         codice = 200 if stato["ok"] else 503
         return jsonify(stato), codice
+
+    @app.route("/api/metriche/runtime")
+    def api_runtime_metrics():
+        try:
+            payload = build_observability_payload(current_app._get_current_object())
+            return jsonify(payload), 200
+        except Exception as exc:
+            current_app.logger.exception("Errore api_runtime_metrics: %s", exc)
+            return jsonify({"ok": False, "errore": str(exc)}), 200

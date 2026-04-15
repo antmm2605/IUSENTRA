@@ -1,0 +1,108 @@
+{% extends "admin/base.html" %}
+{% block title %}Osservabilità Runtime{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+  <div>
+    <h1 class="h3 mb-1">Osservabilità runtime</h1>
+    <p class="text-muted mb-0">Metriche vive del processo web, pipeline OCR e provider locali.</p>
+  </div>
+  <a class="btn btn-outline-primary btn-sm" href="{{ url_for('admin.dashboard') }}">
+    <i class="bi bi-arrow-left"></i> Torna alla dashboard
+  </a>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-12 col-md-6 col-xl-3">
+    <div class="card h-100 shadow-sm">
+      <div class="card-body">
+        <div class="text-muted small mb-1">Uptime processo web</div>
+        <div class="display-6 fw-semibold">{{ payload.runtime.uptime_seconds }}s</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-12 col-md-6 col-xl-3">
+    <div class="card h-100 shadow-sm">
+      <div class="card-body">
+        <div class="text-muted small mb-1">Queue OCR in coda</div>
+        <div class="display-6 fw-semibold">{{ payload.ocr.in_coda if payload.ocr else 0 }}</div>
+        <div class="small text-muted">In lavorazione: {{ payload.ocr.in_lavorazione if payload.ocr else 0 }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-12 col-md-6 col-xl-3">
+    <div class="card h-100 shadow-sm">
+      <div class="card-body">
+        <div class="text-muted small mb-1">Throughput OCR ultima ora</div>
+        <div class="display-6 fw-semibold">{{ payload.ocr.throughput_ultima_ora if payload.ocr else 0 }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-12 col-md-6 col-xl-3">
+    <div class="card h-100 shadow-sm">
+      <div class="card-body">
+        <div class="text-muted small mb-1">Primo token Lex</div>
+        <div class="display-6 fw-semibold">{{ payload.runtime.lex.first_token.avg_ms if payload.runtime.lex.first_token else 0 }} ms</div>
+        <div class="small text-muted">P95: {{ payload.runtime.lex.first_token.p95_ms if payload.runtime.lex.first_token else 0 }} ms</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-12 col-xl-7">
+    <div class="card shadow-sm h-100">
+      <div class="card-header bg-body-tertiary">
+        <strong>Latenza endpoint</strong>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-sm align-middle mb-0">
+          <thead>
+            <tr>
+              <th>Bucket</th>
+              <th class="text-end">Count</th>
+              <th class="text-end">Media</th>
+              <th class="text-end">P95</th>
+              <th class="text-end">Max</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for bucket in payload.runtime.http.buckets[:12] %}
+            <tr>
+              <td><code>{{ bucket.bucket }}</code></td>
+              <td class="text-end">{{ bucket.count }}</td>
+              <td class="text-end">{{ bucket.avg_ms }} ms</td>
+              <td class="text-end">{{ bucket.p95_ms }} ms</td>
+              <td class="text-end">{{ bucket.max_ms }} ms</td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="5" class="text-muted">Nessuna metrica HTTP disponibile.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-xl-5">
+    <div class="card shadow-sm mb-3">
+      <div class="card-header bg-body-tertiary">
+        <strong>Provider locali</strong>
+      </div>
+      <div class="card-body">
+        <pre class="small mb-0"><code>{{ payload.providers.local_ai | tojson(indent=2) }}</code></pre>
+      </div>
+    </div>
+    <div class="card shadow-sm">
+      <div class="card-header bg-body-tertiary">
+        <strong>Pipeline OCR</strong>
+      </div>
+      <div class="card-body">
+        <pre class="small mb-0"><code>{{ payload.ocr | tojson(indent=2) }}</code></pre>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

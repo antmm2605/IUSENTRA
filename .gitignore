@@ -104,11 +104,13 @@ data/
 /intelligence/local_ai.db
 /portale/import_log.json
 /tmp/
+/studio.db
 /pct.zip
 /backup/manual/
 /search/*.db
 /data/search/*.db
 /data/tenants/*/sql/*.db
+/performance-smoke.json
 
 # Root HTML mirrors not used by Flask.
 # The canonical templates live under web/templates/.

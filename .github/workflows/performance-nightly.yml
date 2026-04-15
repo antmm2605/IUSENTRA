@@ -1,0 +1,49 @@
+name: Performance Nightly
+
+on:
+  schedule:
+    - cron: "30 2 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  PYTHONUNBUFFERED: "1"
+  PYTHONUTF8: "1"
+  PIP_DISABLE_PIP_VERSION_CHECK: "1"
+
+jobs:
+  performance-smoke:
+    name: Benchmark runtime leggero
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install runtime deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Install dev deps
+        run: |
+          pip install -r requirements-dev.txt
+
+      - name: Run performance smoke
+        run: |
+          python tools/performance_smoke.py --strict --output performance-smoke.json
+
+      - name: Upload performance artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: performance-smoke
+          path: performance-smoke.json

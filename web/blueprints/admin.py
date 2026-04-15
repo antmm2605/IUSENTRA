@@ -40,6 +40,7 @@ from pct.auth import (
     RuoloUtente,
     DESCRIZIONI_RUOLI,
 )
+from web.services.observability_runtime import build_observability_payload
 
 admin_bp = Blueprint("admin", __name__, url_prefix="/admin")
 
@@ -117,6 +118,13 @@ def dashboard():
     )
 
 
+@admin_bp.route("/osservabilita")
+@superadmin_required
+def osservabilita():
+    payload = build_observability_payload(current_app._get_current_object())
+    return render_template("admin/osservabilita.html", payload=payload)
+
+
 # ============================================================= CRUD Studi
 
 @admin_bp.route("/studi")
@@ -167,7 +175,7 @@ def nuovo_studio():
         admin_password = request.form.get("admin_password", "").strip()
         admin_nome     = request.form.get("admin_nome", nome).strip()
         admin_email    = request.form.get("admin_email", email).strip()
-        db_mode = normalize_db_mode(request.form.get("db_mode", DbMode.JSON))
+        db_mode = normalize_db_mode(request.form.get("db_mode", DbMode.SQLITE))
 
         if not nome or not slug:
             flash("Nome e slug sono obbligatori.", "danger")

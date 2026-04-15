@@ -18,7 +18,11 @@ docker compose build --no-cache
 docker compose up -d
 ```
 
-Il compose locale avvia sia l'app web sia il worker `scheduler-worker`, così i job periodici restano separati dal traffico HTTP.
+Il compose locale avvia:
+
+- `app` per il traffico web
+- `scheduler-worker` per i job periodici
+- `ocr-worker` per OCR e indicizzazione asincrona
 
 URL utili:
 
@@ -28,16 +32,16 @@ URL utili:
 
 ## Bootstrap admin
 
-Il bootstrap non usa più credenziali fisse.
+Il bootstrap non usa piu' credenziali fisse.
 
 - Se imposti `PCT_BOOTSTRAP_ADMIN_PASSWORD`, HACS usa quella password temporanea.
 - Se non la imposti, HACS genera una password casuale al primo avvio.
 - La password temporanea viene salvata in `data/auth/bootstrap_admin.json`.
-- Al primo accesso il cambio password è obbligatorio.
+- Al primo accesso il cambio password e' obbligatorio.
 
 ## Bootstrap studi e storage
 
-Negli ambienti multi-tenant il passo successivo corretto è entrare nel pannello `SUPERADMIN` e creare lo studio scegliendo la strategia storage:
+Negli ambienti multi-tenant il passo successivo corretto e' entrare nel pannello `SUPERADMIN` e creare lo studio scegliendo la strategia storage:
 
 - `JSON` per tenant piccoli o installazioni molto leggere
 - `SQLite` per tenant locali robusti con `studio.db`
@@ -50,11 +54,11 @@ Se scegli `PostgreSQL`, dopo la creazione vai nel dettaglio storage dello studio
 - `.env.example` contiene solo placeholder neutri.
 - `PCT_SECRET_KEY` va impostata in `.env` per un ambiente stabile.
 - Se resta vuota o placeholder, HACS usa una chiave effimera e lo segnala.
-- `PCT_API_V1_ALLOWED_ORIGINS` va valorizzata solo se davvero esponi l’API verso frontend esterni.
+- `PCT_API_V1_ALLOWED_ORIGINS` va valorizzata solo se davvero esponi l'API verso frontend esterni.
 
 ## Smoke test minimo
 
-Dopo l’avvio verifica:
+Dopo l'avvio verifica:
 
 ```bash
 python - <<'PY'
@@ -67,11 +71,17 @@ PY
 
 Valore atteso: `200`.
 
-Controlla anche che il worker schedulato sia partito correttamente:
+Controlla anche che i worker siano partiti correttamente:
 
 ```bash
 docker compose logs --tail=20 scheduler-worker
+docker compose logs --tail=20 ocr-worker
 ```
+
+Per una verifica tecnica completa del runtime puoi usare anche:
+
+- [http://localhost/admin/osservabilita](http://localhost/admin/osservabilita)
+- [http://localhost/api/metriche/runtime](http://localhost/api/metriche/runtime)
 
 ## Suite locale rapida
 
@@ -81,7 +91,7 @@ python -m pytest tests/test_auth.py tests/test_web_bootstrap.py tests/test_web_s
 
 ## PKCS#11 su Windows
 
-Su Windows il probing PKCS#11 è passivo di default: HACS verifica la presenza della DLL senza interrogare il provider in modo aggressivo durante i controlli di sola disponibilità.
+Su Windows il probing PKCS#11 e' passivo di default: HACS verifica la presenza della DLL senza interrogare il provider in modo aggressivo durante i controlli di sola disponibilita'.
 
 Override opzionale:
 
@@ -89,4 +99,4 @@ Override opzionale:
 PCT_PKCS11_ACTIVE_PROBE=1
 ```
 
-Usalo solo se devi fare diagnostica mirata del token e sai che il middleware installato è stabile.
+Usalo solo se devi fare diagnostica mirata del token e sai che il middleware installato e' stabile.

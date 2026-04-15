@@ -21,6 +21,7 @@ Il workflow applicativo è `.github/workflows/ci.yml` e include:
 - `Governance repo`
 - `Smoke test Flask`
 - `Smoke scheduler worker`
+- test core su storage SQLite, osservabilita' runtime e worker OCR persistente
 - `Pytest core`
 - `Local Signer e PKCS#11` su Linux/Windows/macOS
 
@@ -29,6 +30,7 @@ Vista live del workflow:
 - [Actions / CI](https://github.com/antmm2605/hacs/actions/workflows/ci.yml)
 
 Il lint resta bloccante solo sugli errori reali di sintassi/import.
+Il benchmark notturno gira in `.github/workflows/performance-nightly.yml` e usa `tools/performance_smoke.py`.
 
 ## Verifica release locale
 
@@ -40,6 +42,7 @@ docker compose up -d --force-recreate
 docker compose ps
 docker compose logs --tail=20 app
 docker compose logs --tail=20 scheduler-worker
+docker compose logs --tail=20 ocr-worker
 docker compose exec -T app python -c "import pct; print(pct.__version__)"
 ```
 
@@ -47,6 +50,7 @@ Controlli minimi:
 
 - container `app` in stato `healthy`
 - worker `scheduler-worker` avviato senza errori di bootstrap
+- worker `ocr-worker` avviato e collegato alla coda persistente OCR
 - `/login` risponde `200`
 - versione runtime uguale alla versione nei file di release
 
@@ -58,6 +62,20 @@ Il processo web non deve più avviare i job periodici dentro `create_app()`.
 - worker schedulato: `python -m pct.scheduler_worker`
 
 In Railway/produzione la configurazione corretta è avere un servizio dedicato scheduler che riusa la stessa codebase o immagine ma con comando di avvio `python -m pct.scheduler_worker`.
+
+## OCR worker separato dal web
+
+La pipeline documentale pesante non deve vivere nel processo HTTP:
+
+- web: upload, enqueue del job e consultazione stato
+- worker OCR: `python -m pct.ocr_worker`
+
+Verifiche minime dopo release che toccano OCR o indicizzazione:
+
+- presenza di `PCT_OCR_QUEUE_DB`
+- presenza del file `ocr_jobs.db` nel volume `data/search`
+- stato della pagina `/admin/osservabilita`
+- job OCR completabili senza bloccare le richieste web
 
 ## Produzione Railway
 

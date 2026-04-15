@@ -24,6 +24,53 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 
+TENANT_FILE_SEED_PATHS: tuple[str, ...] = (
+    "agenda/appuntamenti.json",
+    "agenda/calendar_sync.json",
+    "auth/utenti.json",
+    "auth/audit.json",
+    "backup/config.json",
+    "backup/registro.json",
+    "clienti/anagrafica.json",
+    "clienti/condivisioni.json",
+    "clienti/note_faldone.json",
+    "config/studio.json",
+    "email/casella.json",
+    "fascicoli/fascicoli.json",
+    "fatturazione/parcelle.json",
+    "intelligence/assistente_redazionale.json",
+    "intelligence/giurisprudenza.json",
+    "intelligence/local_ai.db",
+    "intelligence/motori.json",
+    "intelligence/tabelle_normative.json",
+    "intelligence/validation_runs.json",
+    "intelligence/workspace_intelligence.json",
+    "messaggi/storico.json",
+    "notifiche/log.json",
+    "portale/portali.json",
+    "preventivi/conferimenti.json",
+    "preventivi/preventivi.json",
+    "privacy/registro.json",
+    "scadenziario/scadenze.json",
+    "search/index.db",
+    "soggetti/anagrafica.json",
+    "soggetti/parti.json",
+    "studio.db",
+    "template_atti/editor_layout.json",
+    "template_atti/templates.json",
+    "wizard_pro/sessioni.json",
+)
+
+TENANT_DIRECTORY_MERGE_PATHS: tuple[str, ...] = (
+    "backup",
+    "fascicoli/archivio",
+    "fascicoli/documenti",
+    "intelligence/downloads",
+    "intelligence/models",
+    "portale/uploads",
+)
+
+
 # ============================================================== Moduli disponibili
 
 MODULI_DISPONIBILI: Dict[str, Dict[str, str]] = {
@@ -575,6 +622,9 @@ class GestioneTenant:
     def _invalida_cache(self) -> None:
         self._cache = None
 
+    def _tenant_user_directory_path(self) -> Path:
+        return self.registry_path.parent / "tenant_user_directory.json"
+
     # ---- CRUD
 
     def lista(self) -> List[StudioLegale]:
@@ -596,6 +646,20 @@ class GestioneTenant:
             if s.id == id_studio:
                 return s
         return None
+
+    def _resolve_registry_key(self, slug_or_id: str) -> str:
+        slug_norm = self._normalizza_slug(slug_or_id or "")
+        studi = self._carica()
+        if slug_or_id in studi:
+            return str(slug_or_id)
+        if slug_norm in studi:
+            return slug_norm
+        for key, studio in studi.items():
+            if str(getattr(studio, "id", "") or "").strip() == str(slug_or_id or "").strip():
+                return key
+            if self._normalizza_slug(str(getattr(studio, "slug", "") or "")) == slug_norm:
+                return key
+        return ""
 
     def crea(
         self,
@@ -635,13 +699,16 @@ class GestioneTenant:
 
     def aggiorna(self, slug: str, **kwargs) -> Optional[StudioLegale]:
         studi = self._carica()
-        studio = studi.get(slug)
+        registry_key = self._resolve_registry_key(slug)
+        if not registry_key:
+            return None
+        studio = studi.get(registry_key)
         if not studio:
             return None
         for k, v in kwargs.items():
             if hasattr(studio, k):
                 setattr(studio, k, v)
-        studi[slug] = studio
+        studi[registry_key] = studio
         self._salva(studi)
         return studio
 
@@ -651,9 +718,10 @@ class GestioneTenant:
         Se elimina_dati=True cancella anche la directory dati (IRREVERSIBILE).
         """
         studi = self._carica()
-        if slug not in studi:
+        registry_key = self._resolve_registry_key(slug)
+        if not registry_key:
             return False
-        del studi[slug]
+        del studi[registry_key]
         self._salva(studi)
         if elimina_dati:
             import shutil
@@ -702,7 +770,10 @@ class GestioneTenant:
         """
         import time as _t
         studi = self._carica()
-        studio = studi.get(slug)
+        registry_key = self._resolve_registry_key(slug)
+        if not registry_key:
+            return {"ok": False, "messaggio": "Studio non trovato", "latenza_ms": 0}
+        studio = studi.get(registry_key)
         if not studio:
             return {"ok": False, "messaggio": "Studio non trovato", "latenza_ms": 0}
 
@@ -716,6 +787,7 @@ class GestioneTenant:
             db.ultimo_test = datetime.now().isoformat()
             db.errore_connessione = "" if ok else msg
             studio.db_config = db.to_dict()
+            studi[registry_key] = studio
             self._salva(studi)
             return {"ok": ok, "messaggio": msg, "latenza_ms": 0}
 
@@ -727,6 +799,7 @@ class GestioneTenant:
             db.ultimo_test = datetime.now().isoformat()
             db.errore_connessione = "" if ok else msg
             studio.db_config = db.to_dict()
+            studi[registry_key] = studio
             self._salva(studi)
             return {"ok": ok, "messaggio": msg, "latenza_ms": 0}
 
@@ -747,6 +820,7 @@ class GestioneTenant:
             db.ultimo_test = datetime.now().isoformat()
             db.errore_connessione = ""
             studio.db_config = db.to_dict()
+            studi[registry_key] = studio
             self._salva(studi)
             return {"ok": True, "messaggio": f"Connessione riuscita in {latenza} ms.", "latenza_ms": latenza}
         except ImportError:
@@ -758,6 +832,7 @@ class GestioneTenant:
         db.ultimo_test = datetime.now().isoformat()
         db.errore_connessione = msg
         studio.db_config = db.to_dict()
+        studi[registry_key] = studio
         self._salva(studi)
         return {"ok": False, "messaggio": msg, "latenza_ms": latenza}
 
@@ -806,7 +881,62 @@ class GestioneTenant:
                 return Path(legacy_directory)
         return self.registry_path.parent / "tenants" / slug
 
+    def _legacy_alias_data_dirs(self, slug: str) -> list[Path]:
+        studio = self.get(slug)
+        if not studio:
+            return []
+        candidates: list[Path] = []
+        canonical = self._data_dir(slug)
+        slug_dir = self.registry_path.parent / "tenants" / str(studio.slug or slug)
+        for candidate in (slug_dir,):
+            if candidate != canonical and candidate.exists():
+                candidates.append(candidate)
+        return candidates
+
+    def reconcile_storage_aliases(self, slug: str) -> Dict[str, Any]:
+        """
+        Consolida eventuali directory legacy del tenant nel percorso canonico.
+
+        In alcuni ambienti storici il registry punta ancora a `storage_key` opachi
+        mentre una parte dei dati applicativi e' stata bootstrapata nel percorso
+        basato su `slug`. Questa routine copia solo i file mancanti e unisce le
+        directory documentali, senza sovrascrivere dati gia' presenti nel percorso
+        canonico.
+        """
+        canonical = self._data_dir(slug)
+        aliases = self._legacy_alias_data_dirs(slug)
+        if not aliases:
+            return {"ok": True, "copied_files": {}, "merged_dirs": {}, "canonical": str(canonical)}
+
+        canonical.mkdir(parents=True, exist_ok=True)
+        copied_files: Dict[str, str] = {}
+        merged_dirs: Dict[str, str] = {}
+        for alias in aliases:
+            for relative in TENANT_FILE_SEED_PATHS:
+                source = alias / relative
+                destination = canonical / relative
+                if self._path_needs_seed(source, destination):
+                    copied_files[f"{alias.name}:{relative}"] = self._copy_seed_path(source, destination)
+            for relative in TENANT_DIRECTORY_MERGE_PATHS:
+                source_dir = alias / relative
+                destination_dir = canonical / relative
+                if not source_dir.exists() or not source_dir.is_dir():
+                    continue
+                if not any(source_dir.iterdir()):
+                    continue
+                destination_dir.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copytree(source_dir, destination_dir, dirs_exist_ok=True)
+                merged_dirs[f"{alias.name}:{relative}"] = str(destination_dir)
+
+        return {
+            "ok": True,
+            "canonical": str(canonical),
+            "copied_files": copied_files,
+            "merged_dirs": merged_dirs,
+        }
+
     def data_dir(self, slug: str) -> Path:
+        self.reconcile_storage_aliases(slug)
         return self._data_dir(slug)
 
     @staticmethod
@@ -1055,6 +1185,7 @@ class GestioneTenant:
 
     def percorsi_dati(self, slug: str) -> Dict[str, str]:
         """Restituisce il dizionario di configurazione data paths per questo tenant."""
+        self.reconcile_storage_aliases(slug)
         base = str(self._data_dir(slug))
         return {
             "AGENDA_DB":         f"{base}/agenda/appuntamenti.json",
@@ -1097,6 +1228,96 @@ class GestioneTenant:
             "SOGGETTI_DB":       f"{base}/soggetti/anagrafica.json",
             "SOGGETTI_PARTI_DB": f"{base}/soggetti/parti.json",
         }
+
+    def build_user_directory(self, *, secret_key: str = "") -> Dict[str, Any]:
+        from pct.auth import GestioneUtenti
+        from pct.storage import StudioDB
+        import sqlite3
+
+        users: Dict[str, Dict[str, Any]] = {}
+        emails: Dict[str, Dict[str, Any]] = {}
+        conflicts: list[dict[str, str]] = []
+
+        for studio in self.lista():
+            slug = str(studio.slug or "").strip().lower()
+            if not slug:
+                continue
+            self.reconcile_storage_aliases(slug)
+            paths = self.percorsi_dati(slug)
+            studio_db = None
+            if studio.database.is_sqlite:
+                try:
+                    studio_db = StudioDB.get(paths["STUDIO_DB"])
+                except (OSError, sqlite3.Error):
+                    studio_db = None
+            manager = GestioneUtenti(
+                db_path=paths["AUTH_DB"],
+                audit_path=paths["AUDIT_DB"],
+                secret_key=secret_key,
+                crea_admin_se_vuoto=False,
+                studio_db=studio_db,
+            )
+            for user in manager.lista():
+                tenant_slug = str(user.tenant_slug or slug).strip().lower()
+                entry = {
+                    "user_id": user.id,
+                    "username": user.username,
+                    "email": user.email,
+                    "tenant_id": studio.id,
+                    "tenant_slug": tenant_slug,
+                    "tenant_storage_key": str(getattr(studio, "storage_key", "") or "").strip(),
+                    "studio_nome": studio.nome,
+                    "auth_db": paths["AUTH_DB"],
+                    "audit_db": paths["AUDIT_DB"],
+                    "ruolo": str(getattr(user.ruolo, "value", user.ruolo)),
+                    "attivo": bool(user.attivo),
+                }
+                username_key = str(user.username or "").strip().lower()
+                if username_key:
+                    previous = users.get(username_key)
+                    if previous and previous.get("tenant_slug") != tenant_slug:
+                        conflicts.append(
+                            {
+                                "kind": "username",
+                                "key": username_key,
+                                "tenant_slug": tenant_slug,
+                                "existing_tenant_slug": str(previous.get("tenant_slug", "")),
+                            }
+                        )
+                    else:
+                        users[username_key] = entry
+
+                email_key = str(user.email or "").strip().lower()
+                if email_key:
+                    previous = emails.get(email_key)
+                    if previous and previous.get("tenant_slug") != tenant_slug:
+                        conflicts.append(
+                            {
+                                "kind": "email",
+                                "key": email_key,
+                                "tenant_slug": tenant_slug,
+                                "existing_tenant_slug": str(previous.get("tenant_slug", "")),
+                            }
+                        )
+                    else:
+                        emails[email_key] = entry
+
+        return {
+            "generated_at": datetime.now().isoformat(),
+            "users": users,
+            "emails": emails,
+            "conflicts": conflicts,
+        }
+
+    def sync_user_directory(self, *, secret_key: str = "") -> Dict[str, Any]:
+        payload = self.build_user_directory(secret_key=secret_key)
+        path = self._tenant_user_directory_path()
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(
+            json.dumps(payload, ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+        return payload
 
     def storage_manifest(self, slug: str) -> Dict[str, Any]:
         studio = self.get(slug)

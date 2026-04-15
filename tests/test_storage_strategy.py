@@ -414,6 +414,144 @@ def test_login_route_assigns_single_active_tenant_to_legacy_global_admin(tmp_pat
         assert session_data["auth_tenant_slug"] == ""
 
 
+def test_reconcile_storage_aliases_semina_dati_dal_percorso_slug_al_storage_key(tmp_path: Path):
+    registry = tmp_path / "tenants.json"
+    tm = GestioneTenant(str(registry))
+    studio = tm.crea("Studio Antonella", "antonella-mammola", db_config={"mode": "JSON"})
+    tm.aggiorna(studio.slug, storage_key="tenant-legacy")
+
+    slug_dir = tmp_path / "tenants" / "antonella-mammola"
+    storage_dir = tmp_path / "tenants" / "tenant-legacy"
+    (slug_dir / "clienti").mkdir(parents=True, exist_ok=True)
+    (slug_dir / "config").mkdir(parents=True, exist_ok=True)
+    (slug_dir / "fascicoli" / "documenti" / "CASE01").mkdir(parents=True, exist_ok=True)
+    (storage_dir / "auth").mkdir(parents=True, exist_ok=True)
+
+    (slug_dir / "clienti" / "anagrafica.json").write_text(
+        json.dumps({"c1": {"nome": "Cliente storico"}}, ensure_ascii=False),
+        encoding="utf-8",
+    )
+    (slug_dir / "config" / "studio.json").write_text(
+        json.dumps({"studio": {"nome": "Studio Legale Montagnese"}}, ensure_ascii=False),
+        encoding="utf-8",
+    )
+    (slug_dir / "fascicoli" / "documenti" / "CASE01" / "atto.pdf").write_text(
+        "PDF",
+        encoding="utf-8",
+    )
+    (storage_dir / "auth" / "utenti.json").write_text("{}", encoding="utf-8")
+
+    report = tm.reconcile_storage_aliases(studio.slug)
+
+    assert report["copied_files"]
+    assert (storage_dir / "clienti" / "anagrafica.json").exists()
+    assert (storage_dir / "config" / "studio.json").exists()
+    assert (storage_dir / "fascicoli" / "documenti" / "CASE01" / "atto.pdf").exists()
+
+
+def test_aggiorna_tenant_funziona_anche_con_registry_indicizzato_per_id(tmp_path: Path):
+    registry = tmp_path / "tenants.json"
+    legacy_id = "6b4fde33-a390-454c-b981-1492c1f15633"
+    registry.write_text(
+        json.dumps(
+            {
+                legacy_id: {
+                    "id": legacy_id,
+                    "slug": "antonella-mammola",
+                    "storage_key": "antonella-mammola",
+                    "nome": "Antonella Mammola",
+                    "piano": "ENTERPRISE",
+                    "stato": "ATTIVO",
+                    "db_config": {"mode": "JSON"},
+                }
+            },
+            ensure_ascii=False,
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+    tm = GestioneTenant(str(registry))
+
+    aggiornato = tm.aggiorna(
+        "antonella-mammola",
+        nome="Studio Legale Montagnese",
+        piva="01301790802",
+    )
+
+    payload = json.loads(registry.read_text(encoding="utf-8"))
+    assert aggiornato is not None
+    assert payload[legacy_id]["nome"] == "Studio Legale Montagnese"
+    assert payload[legacy_id]["piva"] == "01301790802"
+
+
+def test_sync_user_directory_indicizza_utenti_tenant_sqlite(tmp_path: Path):
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    app = create_app({**_cfg(tmp_path), "MULTI_TENANT": True})
+
+    tm = GestioneTenant(app.config["TENANTS_REGISTRY"])
+    studio = tm.crea("Studio Antonella", "antonella-mammola", db_config={"mode": "SQLITE"})
+    paths = tm.percorsi_dati(studio.slug)
+    tenant_users = GestioneUtenti(
+        db_path=paths["AUTH_DB"],
+        audit_path=paths["AUDIT_DB"],
+        secret_key=app.secret_key,
+        crea_admin_se_vuoto=False,
+        studio_db=StudioDB.get(paths["STUDIO_DB"]),
+    )
+    tenant_user = tenant_users.crea(
+        username="roberto.montagnese",
+        password="PasswordSicura!123",
+        ruolo=RuoloUtente.AMMINISTRATORE,
+        email="r.montagnese@tiscali.it",
+        tenant_slug=studio.slug,
+        must_change_password=False,
+    )
+
+    payload = tm.sync_user_directory(secret_key=app.secret_key)
+
+    assert payload["users"]["roberto.montagnese"]["tenant_slug"] == studio.slug
+    assert payload["emails"]["r.montagnese@tiscali.it"]["user_id"] == tenant_user.id
+
+
+def test_admin_utenti_studio_mostra_utenti_tenant_sqlite(tmp_path: Path):
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    app = create_app({**_cfg(tmp_path), "MULTI_TENANT": True})
+
+    tm = GestioneTenant(app.config["TENANTS_REGISTRY"])
+    studio = tm.crea("Studio Antonella", "antonella-mammola", db_config={"mode": "SQLITE"})
+    paths = tm.percorsi_dati(studio.slug)
+    tenant_users = GestioneUtenti(
+        db_path=paths["AUTH_DB"],
+        audit_path=paths["AUDIT_DB"],
+        secret_key=app.secret_key,
+        crea_admin_se_vuoto=False,
+        studio_db=StudioDB.get(paths["STUDIO_DB"]),
+    )
+    tenant_users.crea(
+        username="roberto.montagnese",
+        password="PasswordSicura!123",
+        ruolo=RuoloUtente.AMMINISTRATORE,
+        tenant_slug=studio.slug,
+        must_change_password=False,
+    )
+
+    superadmin = _root_utenti_manager(app).crea(
+        username="superadmin",
+        password="superpass123",
+        ruolo=RuoloUtente.SUPERADMIN,
+        tenant_slug="",
+        must_change_password=False,
+    )
+
+    client = app.test_client()
+    _login_superadmin(client, username=superadmin.username, password="superpass123")
+
+    response = client.get(f"/admin/studi/{studio.slug}/utenti")
+
+    assert response.status_code == 200
+    assert b"roberto.montagnese" in response.data
+
+
 def test_single_tenant_bootstrap_migra_dati_legacy_nello_studio_sqlite(tmp_path: Path):
     registry = tmp_path / "tenants.json"
     tm = GestioneTenant(str(registry))

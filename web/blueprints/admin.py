@@ -8,6 +8,7 @@ Prefix:  /admin/
 from __future__ import annotations
 
 from pathlib import Path
+import sqlite3
 
 from flask import (
     Blueprint,
@@ -40,6 +41,7 @@ from pct.auth import (
     RuoloUtente,
     DESCRIZIONI_RUOLI,
 )
+from pct.storage import StudioDB
 from web.services.observability_runtime import build_observability_payload
 
 admin_bp = Blueprint("admin", __name__, url_prefix="/admin")
@@ -64,12 +66,30 @@ def _utenti_tenant(slug: str) -> GestioneUtenti:
     if not studio:
         abort(404)
     percorsi = tm.percorsi_dati(slug)
+    studio_db = None
+    if getattr(studio.database, "is_sqlite", False):
+        try:
+            studio_db = StudioDB.get(percorsi["STUDIO_DB"])
+        except (OSError, sqlite3.Error):
+            studio_db = None
     return GestioneUtenti(
         db_path=percorsi["AUTH_DB"],
         audit_path=percorsi["AUDIT_DB"],
         secret_key=current_app.secret_key,
         crea_admin_se_vuoto=False,  # Non auto-creare admin — lo fa il pannello
+        studio_db=studio_db,
     )
+
+
+def _sync_tenant_user_directory() -> None:
+    try:
+        _tenant_manager().sync_user_directory(secret_key=current_app.secret_key)
+    except Exception as exc:
+        current_app.logger.exception("Errore sincronizzazione tenant_user_directory: %s", exc)
+
+
+def _utente_del_tenant(utente, slug: str) -> bool:
+    return str(getattr(utente, "tenant_slug", "") or slug).strip().lower() == slug
 
 
 def _db_mode_choices(current_mode: str = "") -> list[str]:
@@ -216,7 +236,13 @@ def nuovo_studio():
         tm.aggiorna_db_config(slug, DatabaseConfig(mode=db_mode))
 
         # Crea utente amministratore dello studio
-        gu = _utenti_tenant(slug)
+        percorsi = tm.percorsi_dati(slug)
+        gu = GestioneUtenti(
+            db_path=percorsi["AUTH_DB"],
+            audit_path=percorsi["AUDIT_DB"],
+            secret_key=current_app.secret_key,
+            crea_admin_se_vuoto=False,
+        )
         try:
             gu.crea(
                 username=admin_username,
@@ -234,6 +260,7 @@ def nuovo_studio():
             slug,
             migrate_existing=db_mode == DbMode.SQLITE,
         )
+        _sync_tenant_user_directory()
 
         flash(f"Studio '{nome}' creato con successo!", "success")
         if db_mode == DbMode.SQLITE:
@@ -261,7 +288,7 @@ def dettaglio_studio(slug: str):
     gu = _utenti_tenant(slug)
     utenti = gu.lista()
     # Conta solo utenti di questo tenant
-    utenti_studio = [u for u in utenti if u.tenant_slug == slug]
+    utenti_studio = [u for u in utenti if _utente_del_tenant(u, slug)]
 
     # Uso storage
     data_dir = tm.data_dir(slug)
@@ -374,7 +401,7 @@ def impersona_studio(slug: str):
     gu = _utenti_tenant(slug)
     # Trova il primo admin dello studio
     admin_studio = next(
-        (u for u in gu.lista() if u.ruolo == RuoloUtente.AMMINISTRATORE and u.tenant_slug == slug),
+        (u for u in gu.lista() if u.ruolo == RuoloUtente.AMMINISTRATORE and _utente_del_tenant(u, slug)),
         None,
     )
     if not admin_studio:
@@ -427,7 +454,7 @@ def utenti_studio(slug: str):
     if not studio:
         abort(404)
     gu = _utenti_tenant(slug)
-    utenti = [u for u in gu.lista() if u.tenant_slug == slug]
+    utenti = [u for u in gu.lista() if _utente_del_tenant(u, slug)]
     return render_template(
         "admin/studio_utenti.html",
         studio=studio,
@@ -448,7 +475,7 @@ def crea_utente(slug: str):
     gu = _utenti_tenant(slug)
 
     # Verifica limite utenti
-    utenti_esistenti = [u for u in gu.lista() if u.tenant_slug == slug]
+    utenti_esistenti = [u for u in gu.lista() if _utente_del_tenant(u, slug)]
     limite = studio.limite_utenti
     if limite > 0 and len(utenti_esistenti) >= limite:
         flash(f"Limite utenti raggiunto ({limite}) per il piano {studio.piano}.", "danger")
@@ -480,6 +507,7 @@ def crea_utente(slug: str):
             email=email,
             tenant_slug=slug,
         )
+        _sync_tenant_user_directory()
         flash(f"Utente '{username}' creato.", "success")
     except Exception as e:
         flash(f"Errore: {e}", "danger")
@@ -497,7 +525,7 @@ def reset_password_utente(slug: str, uid: str):
         return redirect(url_for("admin.utenti_studio", slug=slug))
 
     u = gu.get(uid)
-    if not u or u.tenant_slug != slug:
+    if not u or not _utente_del_tenant(u, slug):
         abort(404)
 
     gu.cambia_password(uid, nuova_password)
@@ -510,9 +538,10 @@ def reset_password_utente(slug: str, uid: str):
 def toggle_utente(slug: str, uid: str):
     gu = _utenti_tenant(slug)
     u = gu.get(uid)
-    if not u or u.tenant_slug != slug:
+    if not u or not _utente_del_tenant(u, slug):
         abort(404)
     gu.aggiorna(uid, attivo=not u.attivo)
+    _sync_tenant_user_directory()
     stato = "attivato" if not u.attivo else "disattivato"
     flash(f"Utente '{u.username}' {stato}.", "info")
     return redirect(url_for("admin.utenti_studio", slug=slug))
@@ -523,9 +552,10 @@ def toggle_utente(slug: str, uid: str):
 def elimina_utente(slug: str, uid: str):
     gu = _utenti_tenant(slug)
     u = gu.get(uid)
-    if not u or u.tenant_slug != slug:
+    if not u or not _utente_del_tenant(u, slug):
         abort(404)
     gu.elimina(uid)
+    _sync_tenant_user_directory()
     flash(f"Utente '{u.username}' eliminato.", "warning")
     return redirect(url_for("admin.utenti_studio", slug=slug))
 

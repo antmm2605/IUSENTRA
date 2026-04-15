@@ -7,6 +7,7 @@ from typing import Any
 
 from flask import Flask
 
+from pct.tenant import GestioneTenant
 from web.services.core_runtime import build_core_runtime
 from web.services.document_crypto import decrypt_doc, encrypt_doc
 from web.services.fascicoli_runtime import build_fascicoli_runtime
@@ -41,6 +42,14 @@ def build_application_runtime_bundle(
             scheduler_only=True,
             core=core,
         )
+
+    if app.config.get("MULTI_TENANT"):
+        try:
+            GestioneTenant(app.config["TENANTS_REGISTRY"]).sync_user_directory(
+                secret_key=app.secret_key,
+            )
+        except Exception as exc:
+            app.logger.exception("Errore sync tenant_user_directory in avvio: %s", exc)
 
     try:
         bootstrap_report = bootstrap_legacy_tenant_runtime_data(app)

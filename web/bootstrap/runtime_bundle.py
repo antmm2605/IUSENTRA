@@ -13,6 +13,7 @@ from web.services.fascicoli_runtime import build_fascicoli_runtime
 from web.services.ocr_runtime import build_ocr_runtime
 from web.services.pdp_penale_runtime import build_pdp_penale_runtime
 from web.services.telematico_runtime import build_telematico_runtime
+from web.services.tenant_legacy_bootstrap import bootstrap_legacy_tenant_runtime_data
 
 
 @dataclass(slots=True)
@@ -40,6 +41,18 @@ def build_application_runtime_bundle(
             scheduler_only=True,
             core=core,
         )
+
+    try:
+        bootstrap_report = bootstrap_legacy_tenant_runtime_data(app)
+        if bootstrap_report.get("copied") or bootstrap_report.get("sqlite_migrated"):
+            app.logger.info(
+                "Bootstrap legacy tenant in avvio per %s: copied=%s sqlite=%s",
+                bootstrap_report.get("target_slug", ""),
+                ",".join(sorted(bootstrap_report.get("copied", {}).keys())) or "-",
+                bootstrap_report.get("sqlite_migrated", False),
+            )
+    except Exception as exc:
+        app.logger.exception("Errore bootstrap legacy tenant in avvio: %s", exc)
 
     ocr_runtime = build_ocr_runtime(
         queue_db_path=app.config.get("OCR_QUEUE_DB"),

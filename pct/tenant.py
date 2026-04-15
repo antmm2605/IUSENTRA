@@ -863,6 +863,87 @@ class GestioneTenant:
             return False
         return bool(row and int(row[0] or 0) > 0)
 
+    def _legacy_directory_referenced_slugs(self) -> set[str]:
+        directory_path = self.registry_path.parent / "tenant_user_directory.json"
+        if not directory_path.exists():
+            return set()
+        try:
+            payload = json.loads(directory_path.read_text(encoding="utf-8"))
+        except Exception:
+            return set()
+
+        studios = self.lista()
+        by_slug = {str(studio.slug or "").strip().lower(): studio for studio in studios}
+        by_id = {str(studio.id or "").strip(): studio for studio in studios}
+        by_storage_key = {
+            str(getattr(studio, "storage_key", "") or "").strip(): studio
+            for studio in studios
+            if str(getattr(studio, "storage_key", "") or "").strip()
+        }
+
+        resolved: set[str] = set()
+        for section in ("users", "emails"):
+            block = payload.get(section, {})
+            if not isinstance(block, dict):
+                continue
+            for entry in block.values():
+                if not isinstance(entry, dict):
+                    continue
+
+                slug = str(entry.get("tenant_slug", "") or "").strip().lower()
+                if slug and slug in by_slug:
+                    resolved.add(slug)
+                    continue
+
+                tenant_id = str(entry.get("tenant_id", "") or "").strip()
+                if tenant_id and tenant_id in by_id:
+                    resolved.add(str(by_id[tenant_id].slug or "").strip().lower())
+                    continue
+
+                storage_key = str(entry.get("tenant_storage_key", "") or "").strip()
+                if storage_key and storage_key in by_storage_key:
+                    resolved.add(str(by_storage_key[storage_key].slug or "").strip().lower())
+        return {slug for slug in resolved if slug}
+
+    def resolve_legacy_bootstrap_target_slug(self, legacy_paths: Dict[str, str]) -> str:
+        """
+        Individua il tenant che deve ereditare i dati root legacy.
+
+        Ordine di priorita':
+        1. mapping esplicito in tenant_user_directory.json
+        2. fallback single-tenant legacy (un solo studio attivo)
+        """
+        probe_keys = (
+            "CLIENTI_DB",
+            "FASCICOLI_DB",
+            "AGENDA_DB",
+            "SCADENZIARIO_DB",
+            "EMAIL_CASELLA_DB",
+            "CONFIG_STUDIO_DB",
+            "PREVENTIVI_DB",
+            "SOGGETTI_DB",
+        )
+        if not any(
+            self._path_has_data(Path(str(legacy_paths.get(key, "") or "").strip()))
+            for key in probe_keys
+            if str(legacy_paths.get(key, "") or "").strip()
+        ):
+            return ""
+
+        referenced_slugs = self._legacy_directory_referenced_slugs()
+        if len(referenced_slugs) == 1:
+            return next(iter(referenced_slugs))
+
+        active_states = {"ATTIVO", "TRIAL"}
+        active_slugs = [
+            str(studio.slug or "").strip().lower()
+            for studio in self.lista()
+            if str(getattr(studio, "stato", "") or "").upper() in active_states
+        ]
+        if len(active_slugs) == 1:
+            return active_slugs[0]
+        return ""
+
     def _inizializza_directory(self, slug: str) -> None:
         base = self._data_dir(slug)
         for subdir in [

@@ -714,7 +714,8 @@ class GestioneUtenti:
     def autentica(self, username: str, password: str) -> Optional[Utente]:
         username = username.strip().lower()
         for u in self._utenti.values():
-            if u.username == username and u.attivo:
+            email = str(u.email or "").strip().lower()
+            if (u.username == username or (email and email == username)) and u.attivo:
                 if self._verifica_password(password, u.password_hash):
                     u.ultimo_accesso = datetime.now().isoformat()
                     self._salva_utenti()

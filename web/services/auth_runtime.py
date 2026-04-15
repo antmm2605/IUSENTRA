@@ -9,6 +9,7 @@ from flask import Flask, flash, g, redirect, render_template, request, session, 
 
 from pct.auth import GestioneUtenti, RuoloUtente, verifica_totp
 from web.services.storage_runtime import get_request_storage_runtime
+from web.services.tenant_legacy_bootstrap import bootstrap_legacy_tenant_runtime_data
 
 
 def register_auth_runtime(
@@ -125,36 +126,6 @@ def register_auth_runtime(
             return "ambiguous"
         return None
 
-    def _legacy_root_data_paths() -> dict[str, str]:
-        mapping = {
-            "CLIENTI_DB": "CLIENTI_DB",
-            "CONDIVISIONI_DB": "CONDIVISIONI_DB",
-            "NOTE_FALDONE_DB": "NOTE_FALDONE_DB",
-            "FASCICOLI_DB": "FASCICOLI_DB",
-            "FASCICOLI_DOCS": "FASCICOLI_DOCS",
-            "FASCICOLI_ARCH": "FASCICOLI_ARCH",
-            "AGENDA_DB": "AGENDA_DB",
-            "SCADENZIARIO_DB": "SCADENZIARIO_DB",
-            "MESSAGGI_DB": "MESSAGGI_DB",
-            "EMAIL_CASELLA_DB": "EMAIL_CASELLA_DB",
-            "PRIVACY_DB": "PRIVACY_DB",
-            "PORTALE_DB": "PORTALE_DB",
-            "FATTURAZIONE_DB": "FATTURAZIONE_DB",
-            "PREVENTIVI_DB": "PREVENTIVI_DB",
-            "SOGGETTI_DB": "SOGGETTI_DB",
-            "SOGGETTI_PARTI_DB": "SOGGETTI_PARTI_DB",
-            "TEMPLATE_ATTI_DB": "TEMPLATE_ATTI_DB",
-            "TEMPLATE_ATTI_PREFS_DB": "TEMPLATE_ATTI_PREFS_DB",
-            "WIZARD_PRO_DB": "WIZARD_PRO_DB",
-            "CONFIG_STUDIO_DB": "STUDIO_CONFIG",
-            "SEARCH_INDEX": "SEARCH_INDEX",
-        }
-        return {
-            target_key: str(app.config.get(source_key, "") or "")
-            for target_key, source_key in mapping.items()
-            if str(app.config.get(source_key, "") or "").strip()
-        }
-
     @app.before_request
     def carica_utente_corrente():
         """Inject g.utente_corrente for every request; logout after 8h inactivity."""
@@ -203,26 +174,24 @@ def register_auth_runtime(
         tenants = GestioneTenant(registry_path=app.config["TENANTS_REGISTRY"])
         studio = tenants.get(tenant_slug)
         if studio:
-            active_tenant_slug = _single_active_tenant_slug()
-            if active_tenant_slug == tenant_slug:
-                try:
-                    bootstrap_report = tenants.bootstrap_legacy_runtime_data(
+            try:
+                bootstrap_report = bootstrap_legacy_tenant_runtime_data(
+                    app,
+                    tenant_slug=tenant_slug,
+                )
+                if bootstrap_report.get("copied") or bootstrap_report.get("sqlite_migrated"):
+                    app.logger.info(
+                        "Bootstrap dati legacy per tenant %s: copied=%s sqlite=%s",
                         tenant_slug,
-                        _legacy_root_data_paths(),
+                        ",".join(sorted(bootstrap_report.get("copied", {}).keys())) or "-",
+                        bootstrap_report.get("sqlite_migrated", False),
                     )
-                    if bootstrap_report.get("copied") or bootstrap_report.get("sqlite_migrated"):
-                        app.logger.info(
-                            "Bootstrap dati legacy per tenant %s: copied=%s sqlite=%s",
-                            tenant_slug,
-                            ",".join(sorted(bootstrap_report.get("copied", {}).keys())) or "-",
-                            bootstrap_report.get("sqlite_migrated", False),
-                        )
-                except Exception as exc:
-                    app.logger.exception(
-                        "Errore bootstrap dati legacy per tenant %s: %s",
-                        tenant_slug,
-                        exc,
-                    )
+            except Exception as exc:
+                app.logger.exception(
+                    "Errore bootstrap dati legacy per tenant %s: %s",
+                    tenant_slug,
+                    exc,
+                )
             g.tenant = studio
             g.data_paths = tenants.percorsi_dati(tenant_slug)
             g.storage_runtime = get_request_storage_runtime(g.data_paths["CLIENTI_DB"]).to_dict()

@@ -6,8 +6,11 @@ from flask import g
 
 from pct.auth import GestioneUtenti, RuoloUtente
 from pct.tenant import DatabaseConfig, DbMode, GestioneTenant
+from web.bootstrap.flask_app_factory import create_flask_app
 from web.app import create_app
+from web.services.core_runtime import build_core_runtime
 from web.services.storage_runtime import get_request_storage_runtime, get_request_studio_db
+from web.services.tenant_legacy_bootstrap import bootstrap_legacy_tenant_runtime_data
 
 
 def _write_studio_config(path: Path) -> None:
@@ -511,6 +514,142 @@ def test_login_route_bootstraps_legacy_root_data_for_single_tenant_install(tmp_p
     assert response.status_code == 302
     assert clienti_count >= 1
     assert dashboard.status_code == 200
+
+
+def test_bootstrap_legacy_runtime_data_usa_mapping_directory_anche_con_due_tenant(
+    tmp_path: Path,
+):
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    app = create_app({**_cfg(tmp_path), "MULTI_TENANT": True})
+
+    root_clienti = Path(app.config["CLIENTI_DB"])
+    root_clienti.parent.mkdir(parents=True, exist_ok=True)
+    root_clienti.write_text(
+        json.dumps(
+            {
+                "CLI001": {
+                    "id": "CLI001",
+                    "tipo": "PERSONA_FISICA",
+                    "stato": "ATTIVO",
+                    "nome": "Antonella",
+                    "cognome": "Mammola",
+                    "codice_fiscale": "MMMNNL75E65F839X",
+                    "recapiti": {},
+                    "documento": {"tipo": "CARTA_IDENTITA"},
+                    "procedimenti": [],
+                    "tag": [],
+                }
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+
+    tm = GestioneTenant(app.config["TENANTS_REGISTRY"])
+    studio_target = tm.crea("Studio Antonella", "antonella-mammola", db_config={"mode": "SQLITE"})
+    tm.crea("Studio Secondario", "studio-secondario", db_config={"mode": "SQLITE"})
+
+    directory_path = tmp_path / "tenant_user_directory.json"
+    directory_path.write_text(
+        json.dumps(
+            {
+                "generated_at": "2026-04-15T00:00:00",
+                "users": {
+                    "antonella": {
+                        "tenant_slug": studio_target.slug,
+                        "tenant_id": studio_target.id,
+                        "tenant_storage_key": studio_target.storage_key,
+                    }
+                },
+                "emails": {},
+                "conflicts": [],
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+
+    report = bootstrap_legacy_tenant_runtime_data(app)
+    tenant_paths = tm.percorsi_dati(studio_target.slug)
+    conn = sqlite3.connect(tenant_paths["STUDIO_DB"])
+    clienti_count = conn.execute("SELECT COUNT(*) FROM clienti").fetchone()[0]
+    conn.close()
+    tenant_config = json.loads(Path(tenant_paths["CONFIG_STUDIO_DB"]).read_text(encoding="utf-8"))
+
+    assert report["ok"] is True
+    assert report["target_slug"] == studio_target.slug
+    assert clienti_count >= 1
+    assert "smtp" in tenant_config
+
+
+def test_core_runtime_risolve_config_studio_e_smtp_dal_tenant_attivo(tmp_path: Path):
+    root_config_path = tmp_path / "config" / "studio.json"
+    root_config_path.parent.mkdir(parents=True, exist_ok=True)
+    root_config_path.write_text(
+        json.dumps(
+            {
+                "studio": {"nome": "Root Studio"},
+                "smtp": {
+                    "host": "smtp.root.example",
+                    "port": 587,
+                    "username": "root",
+                    "password": "root-pass",
+                    "from_address": "root@example.com",
+                    "from_name": "Root Studio",
+                    "use_tls": True,
+                },
+                "whatsapp": {},
+                "scheduler": {},
+                "ai": {},
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+
+    cfg = {**_cfg(tmp_path), "MULTI_TENANT": True, "PCT_SECRET_KEY": "test-secret"}
+    app, flask_cfg = create_flask_app(cfg)
+    core = build_core_runtime(app, flask_cfg)
+
+    tm = GestioneTenant(app.config["TENANTS_REGISTRY"])
+    studio = tm.crea("Studio Tenant", "studio-tenant", db_config={"mode": "SQLITE"})
+    tenant_paths = tm.percorsi_dati(studio.slug)
+    Path(tenant_paths["CONFIG_STUDIO_DB"]).write_text(
+        json.dumps(
+            {
+                "studio": {"nome": "Studio Tenant"},
+                "smtp": {
+                    "host": "smtp.tenant.example",
+                    "port": 465,
+                    "username": "tenant-user",
+                    "password": "tenant-pass",
+                    "from_address": "tenant@example.com",
+                    "from_name": "Studio Tenant",
+                    "use_tls": False,
+                },
+                "whatsapp": {
+                    "twilio_sid": "tenant-sid",
+                    "twilio_token": "tenant-token",
+                    "twilio_numero": "+390000000000",
+                },
+                "scheduler": {},
+                "ai": {},
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+
+    with app.test_request_context("/"):
+        g.data_paths = tenant_paths
+        gs = core["get_config_studio"]()
+        gm = core["get_messaggi"]()
+
+    assert gs.config.smtp.host == "smtp.tenant.example"
+    assert gm.config.email.smtp_host == "smtp.tenant.example"
+    assert gm.config.email.username == "tenant-user"
+    assert gm.config.email.mittente_email == "tenant@example.com"
+    assert gm.config.twilio.account_sid == "tenant-sid"
 
 
 def test_superadmin_can_create_studio_with_postgresql_strategy(tmp_path: Path):

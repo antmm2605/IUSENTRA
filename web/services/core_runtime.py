@@ -407,35 +407,48 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
 
     def get_config_studio():
         from pct.config_studio import GestioneConfigStudio
-        gs = GestioneConfigStudio(config_path=app.config.get("STUDIO_CONFIG", "./config/studio.json"))
+
+        config_path = _cfg_data_path("CONFIG_STUDIO_DB")
+        cached_path = getattr(g, "_config_studio_path", "")
+        if not hasattr(g, "_config_studio") or cached_path != config_path:
+            g._config_studio = GestioneConfigStudio(config_path=config_path)
+            g._config_studio_path = config_path
+        gs = g._config_studio
         cfg = gs.config
-        gs.nome = (cfg.studio.nome if cfg and hasattr(cfg, "studio") and cfg.studio.nome
-                   else app.config.get("STUDIO_NOME", "Studio Legale"))
+        gs.nome = (
+            cfg.studio.nome
+            if cfg and hasattr(cfg, "studio") and cfg.studio.nome
+            else app.config.get("STUDIO_NOME", "Studio Legale")
+        )
         return gs
 
     def get_messaggi() -> GestioneMessaggi:
-        # Usa app.config (popolato da config_studio.json al boot, con fallback su env)
+        cfg_studio = get_config_studio().config
+        smtp_cfg = getattr(cfg_studio, "smtp", None)
+        whatsapp_cfg = getattr(cfg_studio, "whatsapp", None)
+        studio_cfg = getattr(cfg_studio, "studio", None)
         cfg = ConfigMessaggistica(
             email=ConfigEmail(
-                smtp_host=app.config.get("SMTP_HOST", ""),
-                smtp_port=app.config.get("SMTP_PORT", 587),
-                username=app.config.get("SMTP_USER", ""),
-                password=app.config.get("SMTP_PASS", ""),
-                mittente_email=app.config.get("SMTP_FROM", ""),
-                mittente_nome=app.config.get("SMTP_FROM_NAME",
-                              app.config.get("STUDIO_NOME", "Studio Legale")),
+                smtp_host=getattr(smtp_cfg, "host", "") or app.config.get("SMTP_HOST", ""),
+                smtp_port=getattr(smtp_cfg, "port", 0) or app.config.get("SMTP_PORT", 587),
+                username=getattr(smtp_cfg, "username", "") or app.config.get("SMTP_USER", ""),
+                password=getattr(smtp_cfg, "password", "") or app.config.get("SMTP_PASS", ""),
+                mittente_email=getattr(smtp_cfg, "from_address", "") or app.config.get("SMTP_FROM", ""),
+                mittente_nome=getattr(smtp_cfg, "from_name", "")
+                or getattr(studio_cfg, "nome", "")
+                or app.config.get("SMTP_FROM_NAME", app.config.get("STUDIO_NOME", "Studio Legale")),
             ),
             twilio=ConfigTwilio(
-                account_sid=app.config.get("TWILIO_SID", ""),
-                auth_token=app.config.get("TWILIO_TOKEN", ""),
-                numero_sms=app.config.get("TWILIO_NUMERO", ""),
-                numero_whatsapp=app.config.get("TWILIO_NUMERO", ""),
+                account_sid=getattr(whatsapp_cfg, "twilio_sid", "") or app.config.get("TWILIO_SID", ""),
+                auth_token=getattr(whatsapp_cfg, "twilio_token", "") or app.config.get("TWILIO_TOKEN", ""),
+                numero_sms=getattr(whatsapp_cfg, "twilio_numero", "") or app.config.get("TWILIO_NUMERO", ""),
+                numero_whatsapp=getattr(whatsapp_cfg, "twilio_numero", "") or app.config.get("TWILIO_NUMERO", ""),
             ),
-            studio_nome=app.config.get("STUDIO_NOME", "Studio Legale"),
+            studio_nome=getattr(studio_cfg, "nome", "") or app.config.get("STUDIO_NOME", "Studio Legale"),
         )
         return GestioneMessaggi(
             config=cfg,
-            db_path=app.config["MESSAGGI_DB"],
+            db_path=_cfg_data_path("MESSAGGI_DB"),
             studio_db=get_studio_db(),
         )
 

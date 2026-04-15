@@ -171,6 +171,15 @@ def test_autentica_case_insensitive(gu):
     assert gu.autentica("MARIO", "password123") is not None
 
 
+def test_autentica_tramite_email(gu):
+    gu.crea("antonella", "Password123!", RuoloUtente.AMMINISTRATORE, email="antonella@studio.it")
+
+    utente = gu.autentica("antonella@studio.it", "Password123!")
+
+    assert utente is not None
+    assert utente.username == "antonella"
+
+
 def test_utente_from_dict_ignora_campi_legacy_non_previsti():
     utente = Utente.from_dict(
         {

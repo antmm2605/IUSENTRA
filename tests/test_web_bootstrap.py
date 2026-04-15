@@ -5,6 +5,8 @@ from pathlib import Path
 from flask import g
 
 from pct import __version__ as APP_VERSION
+from web.bootstrap.flask_app_factory import create_flask_app
+from web.bootstrap.runtime_bundle import build_application_runtime_bundle
 from web.app import create_app
 
 
@@ -150,6 +152,29 @@ def test_create_app_scheduler_only_costruisce_worker_senza_blueprint(tmp_path: P
     assert "PCT_SCHEDULER" not in app.config
 
 
+def test_flask_app_factory_isola_bootstrap_base(tmp_path: Path):
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    app, cfg = create_flask_app({**_cfg_web(tmp_path), "SCHEDULER_ONLY": True})
+
+    assert cfg["SCHEDULER_ONLY"] is True
+    assert app.config["PCT_SCHEDULER_WORKER"] is True
+    assert app.config["TESTING"] is True
+    assert app.static_folder is not None
+
+
+def test_runtime_bundle_scheduler_only_costruisce_solo_core(tmp_path: Path):
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    app, cfg = create_flask_app({**_cfg_web(tmp_path), "SCHEDULER_ONLY": True})
+    runtime_bundle = build_application_runtime_bundle(app, cfg)
+
+    assert runtime_bundle.scheduler_only is True
+    assert runtime_bundle.ocr_runtime is None
+    assert runtime_bundle.fascicoli == {}
+    assert runtime_bundle.telematico == {}
+    assert runtime_bundle.pdp_penale == {}
+    assert runtime_bundle.core["get_agenda"] is not None
+
+
 def test_auth_guard_keeps_login_public_and_redirects_protected_routes(tmp_path: Path):
     _write_studio_config(tmp_path / "config" / "studio.json")
     app = create_app(_cfg_web(tmp_path))
@@ -257,8 +282,11 @@ def test_web_app_dimagrisce_e_registra_i_moduli_estratti_finali():
     app_wiring = (REPO_ROOT / "web/bootstrap/app_wiring.py").read_text(encoding="utf-8")
 
     assert "from web.bootstrap.app_wiring import register_app_wiring" in web_app
+    assert "from web.bootstrap.flask_app_factory import create_flask_app" in web_app
+    assert "from web.bootstrap.runtime_bundle import build_application_runtime_bundle" in web_app
     assert "from lex.providers.local_ai_service import get_local_ai_service" in web_app
     assert "from web.services.local_ai_runtime import get_local_ai_service" not in web_app
+    assert "from web.services." not in web_app
     assert "from pct.scheduler import start_scheduler" not in web_app
     assert "register_app_wiring(" in web_app
 
@@ -293,10 +321,15 @@ def test_web_app_dimagrisce_e_registra_i_moduli_estratti_finali():
     assert web_app.count("@app.route") == 0
     assert len(web_app.splitlines()) <= 250
     assert "from web.bootstrap.app_wiring import register_app_wiring" in web_app
+    assert "create_flask_app(" in web_app
+    assert "build_application_runtime_bundle(" in web_app
     assert "start_scheduler(" not in web_app
-    assert "from web.bootstrap." not in web_app.replace(
-        "from web.bootstrap.app_wiring import register_app_wiring", ""
-    )
+    assert "build_core_runtime(" not in web_app
+    assert "build_fascicoli_runtime(" not in web_app
+    assert "build_telematico_runtime(" not in web_app
+    assert "build_pdp_penale_runtime(" not in web_app
+    assert "build_ocr_runtime(" not in web_app
+    assert "apply_security_defaults(" not in web_app
 
 
 def _inline_style_totals() -> tuple[int, int, int]:

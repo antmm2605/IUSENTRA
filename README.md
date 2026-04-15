@@ -21,7 +21,7 @@ La struttura è organizzata per responsabilità:
 - `pct/`
   Logica di dominio, modelli dati, repository e integrazioni legali/PCT.
 - `web/bootstrap/`
-  Wiring Flask e registrazione route modulari.
+  Wiring Flask e registrazione route modulari, inclusi `flask_app_factory.py` e `runtime_bundle.py` per mantenere `web/app.py` minimale.
 - `web/services/`
   Servizi runtime, autenticazione, sicurezza e contesto UI non proprietario di Lex.
 - `lex/`
@@ -176,4 +176,4 @@ Il codice oggi è più maturo di una semplice demo:
 - test coverage distribuita su molti domini reali
 - bootstrap di sicurezza più severo per uso professionale
 
-`web/app.py` oggi è una factory sottile: crea l'app Flask, applica i default di sicurezza, costruisce i runtime e delega il wiring a `web/bootstrap/app_wiring.py`. Lo scheduler non parte più dal processo web: i job periodici vivono nel worker dedicato `pct.scheduler_worker`, eseguito in locale dal servizio `scheduler-worker` e predisposto per un servizio separato anche in produzione. Il prossimo passo naturale resta spezzare ulteriormente i runtime più densi in `web/services/`, mantenendo documentazione e CI allo stesso livello del codice.
+`web/app.py` oggi è una factory sottile: delega la costruzione base a `web/bootstrap/flask_app_factory.py`, l'assemblaggio dei runtime a `web/bootstrap/runtime_bundle.py` e il wiring finale a `web/bootstrap/app_wiring.py`. Lo scheduler non parte più dal processo web: i job periodici vivono nel worker dedicato `pct.scheduler_worker`, eseguito in locale dal servizio `scheduler-worker` e predisposto per un servizio separato anche in produzione. Il prossimo passo naturale resta spezzare ulteriormente i runtime più densi in `web/services/`, mantenendo documentazione e CI allo stesso livello del codice.

@@ -40,6 +40,8 @@ Qui si registra ciò che viene estratto dal monolite di `web/app.py`:
 - registrazione blueprint
 - runtime template condiviso
 - handler errori
+- `flask_app_factory.py` per la factory base Flask e i default di sicurezza
+- `runtime_bundle.py` per assemblare i runtime del profilo web completo o del profilo scheduler
 
 Questa cartella deve contenere moduli piccoli e leggibili, non nuovi monoliti.
 
@@ -123,7 +125,7 @@ Il punto di ingresso resta `web/app.py`, ma il ruolo corretto è:
 
 Lo scheduler deve restare fuori dal processo web: `web/app.py` costruisce il runtime HTTP, mentre `pct.scheduler_worker` possiede l'avvio dei job periodici.
 
-Il file è ancora più grande di quanto vogliamo, ma il confine corretto ormai è chiaro: nuova logica in moduli dedicati, non nel file principale.
+`web/app.py` deve restare una facciata minima: riceve la configurazione, delega la factory base, delega l'assemblaggio dei runtime e chiama solo il wiring finale.
 
 ## Strategia storage
 

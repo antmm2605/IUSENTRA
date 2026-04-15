@@ -71,6 +71,16 @@ def main() -> int:
         failures,
     )
     _check(
+        "from web.bootstrap.flask_app_factory import create_flask_app" in web_app,
+        "web/app.py deve delegare la factory base a web.bootstrap.flask_app_factory.",
+        failures,
+    )
+    _check(
+        "from web.bootstrap.runtime_bundle import build_application_runtime_bundle" in web_app,
+        "web/app.py deve delegare l'assemblaggio runtime a web.bootstrap.runtime_bundle.",
+        failures,
+    )
+    _check(
         "register_app_wiring(" in web_app,
         "web/app.py deve usare register_app_wiring().",
         failures,
@@ -86,6 +96,11 @@ def main() -> int:
         failures,
     )
     _check(
+        "from web.services." not in web_app,
+        "web/app.py non deve importare direttamente i runtime applicativi da web.services.",
+        failures,
+    )
+    _check(
         "from pct.scheduler import start_scheduler" not in web_app,
         "web/app.py non deve avviare direttamente lo scheduler.",
         failures,
@@ -95,13 +110,19 @@ def main() -> int:
         "web/app.py non deve avviare lo scheduler dentro la factory web.",
         failures,
     )
-    _check(
-        "from web.bootstrap." not in web_app.replace(
-            "from web.bootstrap.app_wiring import register_app_wiring", ""
-        ),
-        "web/app.py non deve importare direttamente i moduli route/bootstrap verticali.",
-        failures,
-    )
+    for snippet in (
+        "build_core_runtime(",
+        "build_fascicoli_runtime(",
+        "build_telematico_runtime(",
+        "build_pdp_penale_runtime(",
+        "build_ocr_runtime(",
+        "apply_security_defaults(",
+    ):
+        _check(
+            snippet not in web_app,
+            f"web/app.py non deve contenere bootstrap runtime diretto: trovato '{snippet}'.",
+            failures,
+        )
 
     scheduler_worker = _read_text("pct/scheduler_worker.py")
     _check(
@@ -124,6 +145,7 @@ def main() -> int:
         "deposito_routes.py": 1000,
         "scadenziario_routes.py": 700,
         "fascicoli_pdp_routes.py": 900,
+        "runtime_bundle.py": 220,
     }
     for path in sorted((REPO_ROOT / "web/bootstrap").glob("*.py")):
         if path.name == "__init__.py":
@@ -135,6 +157,12 @@ def main() -> int:
             f"Modulo bootstrap troppo grande: {path.name} ha {line_count} righe (limite {limit}).",
             failures,
         )
+
+    _check(
+        _line_count("web/bootstrap/flask_app_factory.py") <= 80,
+        "web/bootstrap/flask_app_factory.py deve restare una factory base molto compatta (limite 80 righe).",
+        failures,
+    )
 
     focused_limits = {
         "web/blueprints/assistente.py": 40,

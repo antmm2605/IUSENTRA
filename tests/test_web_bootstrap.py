@@ -216,6 +216,10 @@ def test_route_domini_estratti_restano_operativi(tmp_path: Path):
             "/portali/pst/acquisizione",
             "/deposito/checklist",
             "/guida/firma-digitale",
+            "/impostazioni/calendario",
+            "/privacy/registro",
+            "/soggetti",
+            "/admin/database",
         ):
             response = client.get(path)
             assert response.status_code == 200, path

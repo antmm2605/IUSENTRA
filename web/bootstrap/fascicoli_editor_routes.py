@@ -1,0 +1,201 @@
+"""Inline editor routes extracted from the fascicoli monolith."""
+
+from __future__ import annotations
+
+import io
+from collections.abc import Callable
+from datetime import date
+from typing import Any
+
+from flask import Flask, flash, g, jsonify, redirect, render_template, request, send_file, url_for
+
+
+def register_fascicoli_editor_routes(
+    app: Flask,
+    *,
+    get_fascicoli: Callable[[], Any],
+    audit: Callable[..., None],
+    decrypt_doc: Callable[[bytes], bytes],
+    encrypt_doc: Callable[[bytes], bytes],
+    accoda_ocr: Callable[..., None],
+) -> None:
+    """Register inline editor and conversion routes for fascicolo documents."""
+
+    @app.route("/fascicoli/<id_fasc>/documenti/<id_doc>/editor")
+    def editor_documento(id_fasc, id_doc):
+        from pct.editor import estensione_editabile
+
+        gestore_fascicoli = get_fascicoli()
+        try:
+            fascicolo = gestore_fascicoli.get(id_fasc)
+            if not fascicolo:
+                flash("Fascicolo non trovato.", "warning")
+                return redirect(url_for("lista_fascicoli"))
+            documento = next((doc for doc in fascicolo.documenti if doc.id == id_doc), None)
+            if not documento:
+                flash("Documento non trovato.", "warning")
+                return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
+            if documento.firmato_digitalmente or documento.nome.lower().endswith(".p7m"):
+                return redirect(url_for("visualizza_documento", id_fasc=id_fasc, id_doc=id_doc))
+            if not estensione_editabile(documento.nome):
+                flash(
+                    f"Formato '{documento.nome.split('.')[-1].upper()}' non supportato dall'editor.",
+                    "warning",
+                )
+                return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
+            return render_template(
+                "fascicoli/editor_documento.html",
+                id_fasc=id_fasc,
+                fasc=fascicolo,
+                doc=documento,
+                oggi=date.today(),
+            )
+        except Exception as exc:
+            app.logger.exception("Errore editor_documento: %s", exc)
+            flash(str(exc), "danger")
+            return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
+
+    @app.route("/fascicoli/<id_fasc>/documenti/<id_doc>/converti-pdfa", methods=["POST"])
+    def converti_documento_pdfa(id_fasc, id_doc):
+        from pct.validazione import converti_pdfa
+
+        gestore_fascicoli = get_fascicoli()
+        try:
+            fascicolo = gestore_fascicoli.get(id_fasc)
+            if not fascicolo:
+                flash("Fascicolo non trovato.", "warning")
+                return redirect(url_for("lista_fascicoli"))
+            documento = next((doc for doc in fascicolo.documenti if doc.id == id_doc), None)
+            if not documento:
+                flash("Documento non trovato.", "warning")
+                return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
+            if not documento.nome.lower().endswith(".pdf"):
+                flash(
+                    f"La conversione PDF/A è disponibile solo per file PDF (file: {documento.nome}).",
+                    "warning",
+                )
+                return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
+            percorso = gestore_fascicoli.percorso_documento(id_fasc, id_doc)
+            esito = converti_pdfa(str(percorso))
+            if esito["ok"]:
+                flash(f"Documento convertito in PDF/A-2B con successo. {esito['messaggio']}", "success")
+                audit("documento.converti_pdfa", id_fasc=id_fasc, id_doc=id_doc, nome=documento.nome)
+            else:
+                flash(f"Conversione PDF/A non riuscita: {esito['messaggio']}", "danger")
+        except Exception as exc:
+            app.logger.exception("Errore converti_documento_pdfa: %s", exc)
+            flash(f"Errore durante la conversione: {exc}", "danger")
+        return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
+
+    @app.route("/api/editor/<id_fasc>/<id_doc>/html")
+    def api_editor_carica_html(id_fasc, id_doc):
+        from pct.editor import documento_to_html
+
+        gestore_fascicoli = get_fascicoli()
+        try:
+            percorso = gestore_fascicoli.percorso_documento(id_fasc, id_doc)
+            fascicolo = gestore_fascicoli.get(id_fasc)
+            documento = next(doc for doc in fascicolo.documenti if doc.id == id_doc)
+            raw = decrypt_doc(percorso.read_bytes())
+            html, avvisi, meta = documento_to_html(raw, documento.nome)
+            return jsonify({"ok": True, "html": html, "avvisi": avvisi, "nome": documento.nome, "meta": meta})
+        except Exception as exc:
+            app.logger.exception("Errore api_editor_carica_html: %s", exc)
+            return jsonify({"ok": False, "html": f"<p>{exc}</p>", "avvisi": [str(exc)], "meta": {}})
+
+    @app.route("/api/editor/<id_fasc>/<id_doc>/salva", methods=["POST"])
+    def api_editor_salva(id_fasc, id_doc):
+        from pct.editor import html_to_docx, html_to_pdf
+
+        gestore_fascicoli = get_fascicoli()
+        utente = g.utente_corrente
+        try:
+            body = request.get_json(force=True) or {}
+            html = body.get("html", "")
+            auto = body.get("auto", False)
+
+            fascicolo = gestore_fascicoli.get(id_fasc)
+            documento = next(doc for doc in fascicolo.documenti if doc.id == id_doc)
+            nome = documento.nome
+            ext = nome.rsplit(".", 1)[-1].lower() if "." in nome else ""
+
+            if ext == "docx":
+                contenuto_raw = html_to_docx(html, titolo=nome.rsplit(".", 1)[0])
+                nome_salvato = nome
+            elif ext == "pdf":
+                contenuto_raw = html_to_pdf(html, titolo=nome.rsplit(".", 1)[0])
+                nome_salvato = nome
+            else:
+                contenuto_raw = html.encode("utf-8")
+                nome_salvato = nome.rsplit(".", 1)[0] + ".html" if "." in nome else nome + ".html"
+
+            doc_salvato = gestore_fascicoli.sostituisci_documento(
+                id_fasc,
+                id_doc,
+                nome_file=nome_salvato,
+                contenuto=encrypt_doc(contenuto_raw),
+                caricato_da=utente.username if utente else "editor",
+                note="Salvato dall'editor" + (" (auto)" if auto else ""),
+            )
+            accoda_ocr(
+                percorso=str(gestore_fascicoli.percorso_documento(id_fasc, doc_salvato.id)),
+                hash_sha256=doc_salvato.hash_sha256,
+                id_fasc=id_fasc,
+                id_doc=doc_salvato.id,
+                nome_doc=doc_salvato.nome,
+                tipo_doc=doc_salvato.tipo.value,
+                index_path=app.config["SEARCH_INDEX"],
+            )
+            audit("fascicoli.documento.editor_salva", "fascicolo", id_fasc, dettagli=f"doc {id_doc} — {nome}")
+            return jsonify({"ok": True, "auto": auto})
+        except Exception as exc:
+            app.logger.exception("Errore api_editor_salva: %s", exc)
+            return jsonify({"ok": False, "errore": str(exc)})
+
+    @app.route("/api/editor/<id_fasc>/<id_doc>/pdf", methods=["POST"])
+    def api_editor_pdf(id_fasc, id_doc):
+        from pct.editor import html_to_pdf
+
+        try:
+            body = request.get_json(force=True) or {}
+            html = body.get("html", "<p></p>")
+            fascicolo = get_fascicoli().get(id_fasc)
+            documento = next((doc for doc in fascicolo.documenti if doc.id == id_doc), None)
+            titolo = documento.nome.rsplit(".", 1)[0] if documento else "documento"
+            pdf_bytes = html_to_pdf(html, titolo=titolo)
+            audit("fascicoli.documento.editor_pdf", "fascicolo", id_fasc, dettagli=f"doc {id_doc}")
+            return send_file(
+                io.BytesIO(pdf_bytes),
+                mimetype="application/pdf",
+                as_attachment=True,
+                download_name=titolo + ".pdf",
+            )
+        except ImportError as exc:
+            return jsonify({"errore": str(exc)}), 503
+        except Exception as exc:
+            app.logger.exception("Errore api_editor_pdf: %s", exc)
+            return str(exc), 500
+
+    @app.route("/api/editor/<id_fasc>/<id_doc>/docx", methods=["POST"])
+    def api_editor_docx(id_fasc, id_doc):
+        from pct.editor import html_to_docx
+
+        try:
+            body = request.get_json(force=True) or {}
+            html = body.get("html", "<p></p>")
+            fascicolo = get_fascicoli().get(id_fasc)
+            documento = next((doc for doc in fascicolo.documenti if doc.id == id_doc), None)
+            titolo = documento.nome.rsplit(".", 1)[0] if documento else "documento"
+            docx_bytes = html_to_docx(html, titolo=titolo)
+            audit("fascicoli.documento.editor_docx", "fascicolo", id_fasc, dettagli=f"doc {id_doc}")
+            return send_file(
+                io.BytesIO(docx_bytes),
+                mimetype="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                as_attachment=True,
+                download_name=titolo + ".docx",
+            )
+        except ImportError as exc:
+            return jsonify({"errore": str(exc)}), 503
+        except Exception as exc:
+            app.logger.exception("Errore api_editor_docx: %s", exc)
+            return str(exc), 500

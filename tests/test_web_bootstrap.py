@@ -213,6 +213,11 @@ def test_route_domini_estratti_restano_operativi(tmp_path: Path):
             "/scadenziario",
             "/workspace-intelligente",
             "/telematico",
+            "/polisWeb",
+            "/pdp",
+            "/pat",
+            "/sigit",
+            "/tribunali",
             "/tariffario",
             "/clienti",
             "/cartelle-condivise",
@@ -246,12 +251,20 @@ def test_web_app_dimagrisce_e_registra_i_moduli_estratti_finali():
         "register_sync_runtime_routes",
         "register_fascicoli_management_routes",
         "register_tariffario_routes",
+        "register_fascicoli_document_routes",
+        "register_fascicoli_editor_routes",
+        "register_fascicoli_core_routes",
+        "register_fascicoli_pdp_routes",
+        "register_fascicoli_signature_routes",
+        "register_reference_lookup_routes",
+        "register_telematico_local_signer_routes",
+        "register_telematico_portali_routes",
     ):
         assert f"from web.bootstrap.{symbol.replace('register_', '').replace('_routes', '_routes')} import {symbol}" in web_app
         assert f"{symbol}(" in web_app
 
-    assert web_app.count("@app.route") <= 75
-    assert len(web_app.splitlines()) < 10000
+    assert web_app.count("@app.route") == 0
+    assert len(web_app.splitlines()) < 7000
 
 
 def test_template_principali_usano_copy_italiana_e_date_localizzate():

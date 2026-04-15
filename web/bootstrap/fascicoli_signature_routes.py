@@ -1,0 +1,554 @@
+"""Signature and compliance routes extracted from the fascicoli monolith."""
+
+from __future__ import annotations
+
+import io
+import os
+from collections.abc import Callable
+from pathlib import Path
+from typing import Any
+
+from flask import Flask, flash, g, jsonify, redirect, request, send_file, url_for
+
+
+def _resolve_pkcs11_runtime_config(cfg_firma: Any, slot_raw: Any) -> Any:
+    from dataclasses import replace as _dc_replace
+
+    slot = None
+    if slot_raw is not None:
+        try:
+            slot = int(slot_raw)
+        except (ValueError, TypeError):
+            slot = None
+    elif cfg_firma:
+        slot_cfg = getattr(cfg_firma, "pkcs11_slot", "")
+        if str(slot_cfg).strip().isdigit():
+            slot = int(slot_cfg)
+    label = getattr(cfg_firma, "pkcs11_label", "") if cfg_firma else None
+
+    cfg_runtime = _dc_replace(cfg_firma, pkcs11_slot=str(slot)) if slot is not None else cfg_firma
+    if label:
+        cfg_runtime = _dc_replace(cfg_runtime, pkcs11_label=label)
+    return cfg_runtime
+
+
+def _attestazione_conformita_pdf(data_raw: bytes, testo: str) -> bytes:
+    try:
+        from pyhanko.pdf_utils.incremental_writer import IncrementalPdfFileWriter
+        from pyhanko.pdf_utils.reader import PdfFileReader
+        from pyhanko.stamp import TextStamp, TextStampStyle
+
+        buf_in = io.BytesIO(data_raw)
+        PdfFileReader(buf_in)
+        writer = IncrementalPdfFileWriter(buf_in)
+        style = TextStampStyle(stamp_text=testo, background_opacity=0.85)
+        stamp = TextStamp(
+            writer=writer,
+            style=style,
+            dest_page=0,
+            x=20,
+            y=20,
+            width=350,
+            height=65,
+        )
+        stamp.apply()
+
+        buf_out = io.BytesIO()
+        writer.write(buf_out)
+        buf_out.seek(0)
+        return buf_out.read()
+    except Exception:
+        import reportlab.lib.pagesizes as pagesizes
+        from reportlab.pdfgen import canvas as rlcanvas
+
+        buf_att = io.BytesIO()
+        canvas = rlcanvas.Canvas(buf_att, pagesize=pagesizes.A4)
+        canvas.setFont("Helvetica-Bold", 11)
+        canvas.drawString(50, 780, "ATTESTAZIONE DI CONFORMITÀ")
+        canvas.setFont("Helvetica", 10)
+        for index, riga in enumerate(testo.split("\n")):
+            canvas.drawString(50, 760 - index * 18, riga)
+        canvas.save()
+        buf_att.seek(0)
+        try:
+            return data_raw + buf_att.read()
+        except Exception:
+            return data_raw
+
+
+def register_fascicoli_signature_routes(
+    app: Flask,
+    *,
+    get_fascicoli: Callable[[], Any],
+    get_config_studio: Callable[[], Any],
+    decrypt_doc: Callable[[bytes], bytes],
+    encrypt_doc: Callable[[bytes], bytes],
+    salva_documento_firmato_resiliente: Callable[..., list[str]],
+    audit_and_sync_best_effort: Callable[..., list[str]],
+    signature_storage_error_message: Callable[[Exception], str],
+    normalizza_modalita_firma_visibile: Callable[[str], str],
+    luogo_timbro_firma_visibile: Callable[[], str],
+    audit: Callable[..., None],
+) -> None:
+    """Register PKCS#11, uploaded-signature, and attestazione routes."""
+
+    @app.route("/api/firma/pkcs11/status", methods=["GET"])
+    def api_pkcs11_status():
+        try:
+            from pct.firma_pkcs11 import libreria_disponibile, lista_token
+
+            cfg_studio = get_config_studio().config
+            firma_cfg = cfg_studio.firma if cfg_studio else None
+            lib_path = (
+                getattr(firma_cfg, "pkcs11_library", "") or libreria_disponibile()
+                if firma_cfg
+                else libreria_disponibile()
+            )
+            if not lib_path:
+                return jsonify(
+                    {
+                        "disponibile": False,
+                        "libreria": None,
+                        "token": [],
+                        "messaggio": (
+                            "Nessuna libreria PKCS#11 trovata. Installare opensc e pcscd oppure "
+                            "specificare il percorso in Impostazioni → Firma Digitale → Token PKCS#11."
+                        ),
+                    }
+                )
+
+            token_list = lista_token(lib_path)
+            return jsonify(
+                {
+                    "disponibile": True,
+                    "libreria": lib_path,
+                    "token": [token.as_dict() for token in token_list],
+                    "messaggio": (
+                        f"{len(token_list)} token rilevato/i."
+                        if token_list
+                        else "Libreria PKCS#11 disponibile ma nessun token inserito. Inserire smart card/token o collegare il lettore."
+                    ),
+                }
+            )
+        except Exception as exc:
+            app.logger.exception("Errore api_pkcs11_status: %s", exc)
+            return jsonify({"disponibile": False, "libreria": None, "token": [], "messaggio": str(exc)})
+
+    @app.route("/api/firma/pkcs11/firma-documento", methods=["POST"])
+    def api_pkcs11_firma_documento():
+        try:
+            from pct.firma import busta_cades_valida, crea_signer_da_config
+
+            data = request.get_json(force=True) or {}
+            id_fasc = str(data.get("fascicolo_id") or "").strip()
+            id_doc = str(data.get("documento_id") or "").strip()
+            pin = data.get("pin", "")
+            formato = str(data.get("formato") or "cades").strip().lower()
+            visible_signature_mode = normalizza_modalita_firma_visibile(
+                str(data.get("visible_signature_mode") or "laterale").strip()
+            )
+            visible_signature_place = str(data.get("visible_signature_place") or luogo_timbro_firma_visibile()).strip()
+
+            if not id_fasc or not id_doc:
+                return jsonify({"ok": False, "messaggio": "fascicolo_id e documento_id obbligatori."}), 400
+            if not pin:
+                return jsonify({"ok": False, "messaggio": "PIN obbligatorio per la firma in-device."}), 400
+
+            cfg_firma = get_config_studio().config.firma
+            try:
+                backend_firma = cfg_firma.backend_firma_effettivo
+            except (FileNotFoundError, ValueError) as exc:
+                return jsonify({"ok": False, "messaggio": str(exc)}), 400
+            if backend_firma != "pkcs11":
+                return jsonify(
+                    {
+                        "ok": False,
+                        "messaggio": "La firma in-device è disponibile solo quando il backend selezionato è Token PKCS#11.",
+                    }
+                ), 400
+            try:
+                formato = cfg_firma.valida_formato_firma(formato)
+            except ValueError as exc:
+                return jsonify({"ok": False, "messaggio": str(exc)}), 400
+            if formato != "cades":
+                return jsonify(
+                    {
+                        "ok": False,
+                        "messaggio": "La firma PKCS#11 supporta solo CAdES (.p7m). Per PAdES usare P12/PEM.",
+                    }
+                ), 400
+
+            utente = g.utente_corrente
+            gestore_fascicoli = get_fascicoli()
+            fascicolo = gestore_fascicoli.get(id_fasc)
+            if not fascicolo:
+                return jsonify({"ok": False, "messaggio": "Fascicolo non trovato."}), 404
+            documento = next((doc for doc in fascicolo.documenti if doc.id == id_doc), None)
+            if not documento:
+                return jsonify({"ok": False, "messaggio": "Documento non trovato."}), 404
+            if documento.firmato_digitalmente:
+                return jsonify({"ok": True, "nome_firmato": documento.nome, "messaggio": "Documento già firmato digitalmente."})
+
+            doc_path = gestore_fascicoli.percorso_documento(id_fasc, id_doc)
+            if not doc_path or not doc_path.exists():
+                return jsonify({"ok": False, "messaggio": "File documento non trovato su disco."}), 404
+
+            with open(doc_path, "rb") as fh:
+                contenuto = fh.read()
+
+            cfg_firma_runtime = _resolve_pkcs11_runtime_config(cfg_firma, data.get("slot_id"))
+            with crea_signer_da_config(cfg_firma_runtime, pin=pin) as firma:
+                stato_cert = firma.verifica_scadenza()
+                if stato_cert["scaduto"]:
+                    return jsonify({"ok": False, "messaggio": stato_cert["messaggio"]})
+
+                output_path = str(doc_path) + ".p7m"
+                firma.salva_documento_firmato(
+                    contenuto,
+                    str(doc_path),
+                    formato="cades",
+                    visible_signature_mode=visible_signature_mode,
+                    visible_signature_place=visible_signature_place,
+                )
+                firmato_path = output_path if output_path.endswith(".p7m") else str(doc_path) + ".p7m"
+                intestatario = firma.intestatario
+                scadenza_str = stato_cert["scadenza"]
+
+            nome_firmato = documento.nome if documento.nome.endswith(".p7m") else f"{documento.nome}.p7m"
+            if not os.path.exists(firmato_path):
+                return jsonify({"ok": False, "messaggio": "Il file firmato non è stato generato dal token PKCS#11."}), 500
+
+            contenuto_firmato = Path(firmato_path).read_bytes()
+            if not busta_cades_valida(contenuto_firmato):
+                return jsonify(
+                    {
+                        "ok": False,
+                        "messaggio": "Il token ha restituito un file .p7m non valido. Aggiorna il Local Signer e ripeti la firma.",
+                    }
+                ), 500
+
+            avvisi_storage = salva_documento_firmato_resiliente(
+                gf=gestore_fascicoli,
+                id_fasc=id_fasc,
+                id_doc=id_doc,
+                nome_file=nome_firmato,
+                contenuto=encrypt_doc(contenuto_firmato),
+                caricato_da=utente.username if utente else "",
+                note="Versione firmata per deposito",
+            )
+            gestore_fascicoli.segna_firmato(id_fasc, id_doc)
+            try:
+                Path(firmato_path).unlink(missing_ok=True)
+            except Exception:
+                pass
+
+            avvisi_operativi = audit_and_sync_best_effort(
+                audit_azione="firma.pkcs11",
+                audit_risorsa_tipo="documento",
+                audit_risorsa_id=id_doc,
+                audit_dettagli=f"Firmato via PKCS#11 da {intestatario} — {nome_firmato}",
+                sync_tipo="modifica",
+                sync_modulo="fascicoli",
+                sync_id_risorsa=id_fasc,
+            )
+            warning_codes = avvisi_storage + avvisi_operativi
+
+            return jsonify(
+                {
+                    "ok": True,
+                    "nome_firmato": nome_firmato,
+                    "intestatario": intestatario,
+                    "scadenza": scadenza_str,
+                    "avviso_scadenza": stato_cert.get("avviso_imminente", False),
+                    "messaggio": f"Documento firmato con successo da {intestatario}. "
+                    + (stato_cert["messaggio"] if stato_cert.get("avviso_imminente") else ""),
+                    "warning": bool(warning_codes),
+                    "warning_codes": warning_codes,
+                    "visible_signature_mode": visible_signature_mode,
+                }
+            )
+        except Exception as exc:
+            app.logger.exception("Errore api_pkcs11_firma_documento: %s", exc)
+            return jsonify({"ok": False, "messaggio": signature_storage_error_message(exc)})
+
+    @app.route("/api/firma/pkcs11/firma-documenti-batch", methods=["POST"])
+    def api_pkcs11_firma_documenti_batch():
+        try:
+            from datetime import datetime
+
+            from pct.firma import busta_cades_valida, crea_signer_da_config
+
+            data = request.get_json(force=True) or {}
+            id_fasc = str(data.get("fascicolo_id") or "").strip()
+            documento_ids = [str(item).strip() for item in (data.get("documento_ids") or []) if str(item).strip()]
+            pin = data.get("pin", "")
+            formato = str(data.get("formato") or "cades").strip().lower()
+            visible_signature_mode = normalizza_modalita_firma_visibile(
+                str(data.get("visible_signature_mode") or "laterale").strip()
+            )
+            visible_signature_place = str(data.get("visible_signature_place") or luogo_timbro_firma_visibile()).strip()
+
+            if not id_fasc or not documento_ids:
+                return jsonify({"ok": False, "messaggio": "fascicolo_id e documento_ids obbligatori."}), 400
+            if not pin:
+                return jsonify({"ok": False, "messaggio": "PIN obbligatorio per la firma batch in-device."}), 400
+
+            cfg_firma = get_config_studio().config.firma
+            try:
+                backend_firma = cfg_firma.backend_firma_effettivo
+            except (FileNotFoundError, ValueError) as exc:
+                return jsonify({"ok": False, "messaggio": str(exc)}), 400
+            if backend_firma != "pkcs11":
+                return jsonify(
+                    {
+                        "ok": False,
+                        "messaggio": "La firma batch in-device è disponibile solo quando il backend selezionato è Token PKCS#11.",
+                    }
+                ), 400
+            try:
+                formato = cfg_firma.valida_formato_firma(formato)
+            except ValueError as exc:
+                return jsonify({"ok": False, "messaggio": str(exc)}), 400
+            if formato != "cades":
+                return jsonify(
+                    {
+                        "ok": False,
+                        "messaggio": "La firma PKCS#11 supporta solo CAdES (.p7m). Per PAdES usare P12/PEM.",
+                    }
+                ), 400
+
+            utente = g.utente_corrente
+            gestore_fascicoli = get_fascicoli()
+            fascicolo = gestore_fascicoli.get(id_fasc)
+            if not fascicolo:
+                return jsonify({"ok": False, "messaggio": "Fascicolo non trovato."}), 404
+
+            cfg_firma_runtime = _resolve_pkcs11_runtime_config(cfg_firma, data.get("slot_id"))
+            risultati = []
+            firmati = 0
+            saltati = 0
+            errori = 0
+            warning_codes_batch: set[str] = set()
+
+            with crea_signer_da_config(cfg_firma_runtime, pin=pin) as firma:
+                stato_cert = firma.verifica_scadenza()
+                if stato_cert["scaduto"]:
+                    return jsonify({"ok": False, "messaggio": stato_cert["messaggio"]}), 400
+
+                for id_doc in documento_ids:
+                    documento = next((doc for doc in fascicolo.documenti if doc.id == id_doc), None)
+                    if not documento:
+                        risultati.append({"ok": False, "documento_id": id_doc, "messaggio": "Documento non trovato."})
+                        errori += 1
+                        continue
+                    if documento.firmato_digitalmente:
+                        risultati.append(
+                            {
+                                "ok": True,
+                                "documento_id": id_doc,
+                                "nome_firmato": documento.nome,
+                                "saltato": True,
+                                "messaggio": "Documento già firmato digitalmente.",
+                            }
+                        )
+                        saltati += 1
+                        continue
+
+                    doc_path = gestore_fascicoli.percorso_documento(id_fasc, id_doc)
+                    if not doc_path or not doc_path.exists():
+                        risultati.append({"ok": False, "documento_id": id_doc, "messaggio": "File documento non trovato su disco."})
+                        errori += 1
+                        continue
+
+                    with open(doc_path, "rb") as fh:
+                        contenuto = fh.read()
+
+                    firma.salva_documento_firmato(
+                        contenuto,
+                        str(doc_path),
+                        formato="cades",
+                        visible_signature_mode=visible_signature_mode,
+                        visible_signature_place=visible_signature_place,
+                    )
+                    firmato_path = str(doc_path) + ".p7m"
+                    nome_firmato = documento.nome if documento.nome.endswith(".p7m") else f"{documento.nome}.p7m"
+
+                    if not os.path.exists(firmato_path):
+                        risultati.append({"ok": False, "documento_id": id_doc, "messaggio": "Il file .p7m firmato non è stato generato."})
+                        errori += 1
+                        continue
+
+                    contenuto_firmato = Path(firmato_path).read_bytes()
+                    if not busta_cades_valida(contenuto_firmato):
+                        risultati.append(
+                            {
+                                "ok": False,
+                                "documento_id": id_doc,
+                                "messaggio": "Il file .p7m generato non contiene una firma CAdES valida. Aggiorna il Local Signer e ripeti la firma.",
+                            }
+                        )
+                        errori += 1
+                        try:
+                            Path(firmato_path).unlink(missing_ok=True)
+                        except Exception:
+                            pass
+                        continue
+
+                    avvisi_storage = salva_documento_firmato_resiliente(
+                        gf=gestore_fascicoli,
+                        id_fasc=id_fasc,
+                        id_doc=id_doc,
+                        nome_file=nome_firmato,
+                        contenuto=encrypt_doc(contenuto_firmato),
+                        caricato_da=utente.username if utente else "",
+                        note="Versione firmata per deposito",
+                    )
+                    gestore_fascicoli.segna_firmato(id_fasc, id_doc)
+                    try:
+                        Path(firmato_path).unlink(missing_ok=True)
+                    except Exception:
+                        pass
+
+                    warning_codes_batch.update(avvisi_storage)
+                    risultati.append(
+                        {
+                            "ok": True,
+                            "documento_id": id_doc,
+                            "nome_firmato": nome_firmato,
+                            "warning": bool(avvisi_storage),
+                            "warning_codes": avvisi_storage,
+                            "messaggio": "Documento firmato con successo.",
+                        }
+                    )
+                    firmati += 1
+
+            fascicolo.modificato_il = datetime.now().isoformat()
+            gestore_fascicoli._salva()
+            avvisi_operativi = audit_and_sync_best_effort(
+                audit_azione="firma.pkcs11.batch",
+                audit_risorsa_tipo="fascicolo",
+                audit_risorsa_id=id_fasc,
+                audit_dettagli=f"Firmati {firmati} documenti via PKCS#11 nel fascicolo {id_fasc}",
+                sync_tipo="modifica",
+                sync_modulo="fascicoli",
+                sync_id_risorsa=id_fasc,
+            )
+            warning_codes = sorted(warning_codes_batch) + avvisi_operativi
+
+            return jsonify(
+                {
+                    "ok": errori == 0,
+                    "firmati": firmati,
+                    "saltati": saltati,
+                    "errori": errori,
+                    "intestatario": getattr(firma, "intestatario", ""),
+                    "scadenza": stato_cert.get("scadenza", ""),
+                    "avviso_scadenza": stato_cert.get("avviso_imminente", False),
+                    "risultati": risultati,
+                    "warning": bool(warning_codes),
+                    "warning_codes": warning_codes,
+                    "visible_signature_mode": visible_signature_mode,
+                    "messaggio": f"Firma batch completata: {firmati} firmati, {saltati} già firmati, {errori} errori.",
+                }
+            )
+        except Exception as exc:
+            app.logger.exception("Errore api_pkcs11_firma_documenti_batch: %s", exc)
+            return jsonify({"ok": False, "messaggio": signature_storage_error_message(exc)})
+
+    @app.route("/fascicoli/<id_fasc>/documenti/<id_doc>/firma", methods=["POST"])
+    def firma_documento(id_fasc, id_doc):
+        gestore_fascicoli = get_fascicoli()
+        utente = g.utente_corrente
+        richiesta_ajax = request.headers.get("X-Requested-With") == "XMLHttpRequest"
+
+        def _chiudi_risposta(ok: bool, messaggio: str, categoria: str, status: int = 200, **extra):
+            if richiesta_ajax:
+                payload = {"ok": ok, "messaggio": messaggio}
+                payload.update(extra)
+                return jsonify(payload), status
+            flash(messaggio, categoria)
+            return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
+
+        try:
+            if "file" in request.files and request.files["file"].filename:
+                from pct.firma import busta_cades_valida
+
+                file = request.files["file"]
+                cfg_firma = get_config_studio().config.firma
+                payload_firmato = file.read()
+                if getattr(cfg_firma, "configurato", False):
+                    est = Path(file.filename or "").suffix.lower()
+                    if est == ".pdf":
+                        formato_file = "pades"
+                    elif est in {".p7m", ".sig", ".pkcs7"}:
+                        formato_file = "cades"
+                    else:
+                        raise ValueError(
+                            "Formato file firmato non supportato. Usa un file .p7m (CAdES) oppure .pdf firmato (PAdES)."
+                        )
+                    cfg_firma.valida_formato_firma(formato_file)
+                    if formato_file == "cades" and not busta_cades_valida(payload_firmato):
+                        raise ValueError(
+                            "Il file .p7m caricato non contiene una firma CAdES valida. Non caricare PDF rinominati in .p7m: verifica prima il file in ArubaSign o Dike."
+                        )
+                note = request.form.get("note", "Versione firmata per deposito").strip()
+                avvisi_storage = salva_documento_firmato_resiliente(
+                    gf=gestore_fascicoli,
+                    id_fasc=id_fasc,
+                    id_doc=id_doc,
+                    nome_file=file.filename,
+                    contenuto=encrypt_doc(payload_firmato),
+                    caricato_da=utente.username if utente else "",
+                    note=note,
+                )
+            else:
+                avvisi_storage = []
+
+            documento = gestore_fascicoli.segna_firmato(id_fasc, id_doc)
+            avvisi_operativi = audit_and_sync_best_effort(
+                audit_azione="fascicoli.documento.firma",
+                audit_risorsa_tipo="fascicolo",
+                audit_risorsa_id=id_fasc,
+                audit_dettagli=f"doc {id_doc} — {documento.nome}",
+                sync_tipo="modifica",
+                sync_modulo="fascicoli",
+                sync_id_risorsa=id_fasc,
+            )
+            warning_codes = avvisi_storage + avvisi_operativi
+            return _chiudi_risposta(
+                True,
+                f"Documento '{documento.nome}' contrassegnato come firmato per deposito.",
+                "success",
+                nome_firmato=documento.nome,
+                warning=bool(warning_codes),
+                warning_codes=warning_codes,
+            )
+        except (ValueError, KeyError) as exc:
+            return _chiudi_risposta(False, str(exc), "danger", status=400)
+        except Exception as exc:
+            app.logger.exception("Errore firma_documento(%s, %s): %s", id_fasc, id_doc, exc)
+            return _chiudi_risposta(False, signature_storage_error_message(exc), "danger", status=500)
+
+    @app.route("/fascicoli/<id_fasc>/documenti/<id_doc>/attestazione", methods=["POST"])
+    def attestazione_conformita(id_fasc, id_doc):
+        gestore_fascicoli = get_fascicoli()
+        utente = g.utente_corrente
+        try:
+            percorso = gestore_fascicoli.percorso_documento(id_fasc, id_doc)
+            fascicolo = gestore_fascicoli.get(id_fasc)
+            documento = next(doc for doc in fascicolo.documenti if doc.id == id_doc)
+            data_raw = decrypt_doc(percorso.read_bytes())
+            nome_avvocato = (utente.nome_completo if hasattr(utente, "nome_completo") else utente.username) if utente else "Avvocato"
+            data_oggi = __import__("datetime").date.today().strftime("%d/%m/%Y")
+            testo = (
+                "Copia conforme all'originale\n"
+                "ai sensi dell'art. 22, co. 2, D.Lgs. 82/2005 (CAD)\n"
+                f"Avv. {nome_avvocato} — {data_oggi}"
+            )
+            attested = _attestazione_conformita_pdf(data_raw, testo)
+            audit("fascicoli.documento.attestazione", "fascicolo", id_fasc, dettagli=f"doc {id_doc} — {documento.nome}")
+            nome_out = documento.nome.replace(".pdf", "_conf.pdf") if documento.nome.endswith(".pdf") else documento.nome + "_conf.pdf"
+            return send_file(io.BytesIO(attested), mimetype="application/pdf", as_attachment=True, download_name=nome_out)
+        except (KeyError, StopIteration, ValueError) as exc:
+            flash(str(exc), "danger")
+            return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))

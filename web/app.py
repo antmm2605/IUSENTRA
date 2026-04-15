@@ -6,10 +6,8 @@ Avvio:
     oppure: flask --app web.app run --debug
 """
 
-import csv
 import base64
 import errno
-import io
 import os
 import json
 import queue
@@ -36,7 +34,6 @@ from flask import (
     has_request_context,
     session,
     g,
-    abort,
 )
 
 from pct.agenda import (
@@ -51,9 +48,6 @@ from pct.clienti import (
     TipoCliente,
     StatoCliente,
     TipoDocumento as TipoDocumentoCliente,
-    Indirizzo,
-    Recapiti,
-    DocumentoIdentita,
     RiferimentoProcedimento,
 )
 from pct.fascicoli import (
@@ -65,70 +59,37 @@ from pct.fascicoli import (
     TipoDocumento,
     TipoAttivita,
     EsitoAttivita,
-    AttivitaProcessuale,
     Documento,
-    DocumentoVersione,
 )
 from pct.messaggi import (
     GestioneMessaggi,
-    CanaleMsggio,
-    StatoMessaggio,
-    TipoAutomazione,
     ConfigEmail,
     ConfigTwilio,
     ConfigMessaggistica,
 )
 from pct.backup import (
     GestioneBackup,
-    TipoBackup,
-    StatoBackup,
-    FrequenzaBackup,
-    ConfigBackup,
 )
 from pct.auth import (
     GestioneUtenti,
-    Utente,
     RuoloUtente,
-    PERMESSI,
-    TUTTI_PERMESSI,
     DESCRIZIONI_RUOLI,
-    genera_totp_secret,
-    verifica_totp,
-    totp_uri,
 )
-from pct.privacy import GestioneTrattamenti, TrattamentoDati
+from pct.privacy import GestioneTrattamenti
 from pct.soggetti import (
     GestioneSoggetti,
-    Soggetto,
-    TipoSoggetto,
     RuoloSoggetto,
-    ParteProcessuale,
 )
 from pct.scadenziario import (
     GestioneScadenziario,
-    ProfiloTermine,
-    RegolaCalendario,
-    Scadenza,
     TipoTermine,
-    PrioritaTermine,
-    StatoTermine,
-    PRESET_TERMINI,
-    calcola_termine,
-    calcola_scadenza_avanzata,
-    festività_italiane as festivita_italiane,
-    profilo_da_preset,
-    profili_termine_builtin,
     regola_patrono_studio,
-    regola_patrono_ufficio,
-    regole_calendario_nazionali,
-    riepilogo_operativo_scadenza,
-    è_giorno_lavorativo as e_giorno_lavorativo,
 )
 from pct.search_index import IndiceRicerca
 from pct.ocr import estrai_testo as ocr_estrai_testo, estensione_supportata as ocr_supportato
-from pct.reports import fascicolo_pdf, scadenze_pdf, faldone_pdf, lista_fascicoli_pdf, lista_clienti_pdf
+from pct.reports import faldone_pdf
 from pct.database import GestioneDatabase, bootstrap_moduli_monitorati
-from pct.sync import GestoreSincronizzazione, get_gestore
+from pct.sync import get_gestore
 from pct.condivisione import GestioneCondivisioni, RuoloCondivisione
 from pct.pst_servizi_catalogo import (
     SEZIONE_COMUNICAZIONI_CANCELLERIA,
@@ -147,18 +108,24 @@ from pct.workspace_intelligente import WorkspaceIntelligenteService
 from pct import __version__ as APP_VERSION
 from web.bootstrap.admin_database_routes import register_admin_database_routes
 from web.bootstrap.auth_management_routes import register_auth_management_routes
+from web.bootstrap.backup_routes import register_backup_routes
 from web.bootstrap.calendar_routes import register_calendar_routes
 from web.bootstrap.checklist_routes import register_checklist_routes
 from web.bootstrap.deposito_routes import register_deposito_routes
 from web.bootstrap.dashboard_routes import register_dashboard_routes
 from web.bootstrap.error_handlers import register_error_handlers
 from web.bootstrap.fascicoli_ai_routes import register_fascicoli_ai_routes
+from web.bootstrap.export_routes import register_export_routes
+from web.bootstrap.health_routes import register_health_routes
+from web.bootstrap.messages_routes import register_messages_routes
 from web.bootstrap.privacy_routes import register_privacy_routes
 from web.bootstrap.pwa_routes import register_pwa_routes
 from web.bootstrap.register_blueprints import register_blueprints
 from web.bootstrap.portali_acquisizione_routes import register_portali_acquisizione_routes
 from web.bootstrap.scadenziario_routes import register_scadenziario_routes
+from web.bootstrap.search_routes import register_search_routes
 from web.bootstrap.soggetti_routes import register_soggetti_routes
+from web.bootstrap.sync_runtime_routes import register_sync_runtime_routes
 from web.bootstrap.template_runtime import register_template_runtime
 from web.bootstrap.telematico_dashboard_routes import register_telematico_dashboard_routes
 from web.bootstrap.workspace_routes import register_workspace_routes
@@ -3000,6 +2967,55 @@ def create_app(config: dict | None = None) -> Flask:
         app,
         get_soggetti=get_soggetti,
         get_clienti=get_clienti,
+        get_fascicoli=get_fascicoli,
+        audit=audit,
+    )
+
+    register_messages_routes(
+        app,
+        get_messaggi=get_messaggi,
+        get_clienti=get_clienti,
+    )
+
+    register_backup_routes(
+        app,
+        get_backup=get_backup,
+    )
+
+    register_health_routes(
+        app,
+        get_clienti=get_clienti,
+        get_fascicoli=get_fascicoli,
+        get_agenda=get_agenda,
+        get_scadenziario=get_scadenziario,
+    )
+
+    register_export_routes(
+        app,
+        get_clienti=get_clienti,
+        get_fascicoli=get_fascicoli,
+        get_scadenziario=get_scadenziario,
+        audit=audit,
+    )
+
+    register_search_routes(
+        app,
+        get_indice=get_indice,
+        get_clienti=get_clienti,
+        get_fascicoli=get_fascicoli,
+        get_agenda=get_agenda,
+        get_scadenziario=get_scadenziario,
+        audit=audit,
+        ocr_supportato=ocr_supportato,
+        accoda_ocr=_accoda_ocr,
+        ocr_queue=_ocr_queue,
+        ocr_stats=_ocr_stats,
+        ocr_stats_lock=_ocr_stats_lock,
+    )
+
+    register_sync_runtime_routes(
+        app,
+        sync_manager=_sync,
         get_fascicoli=get_fascicoli,
         audit=audit,
     )
@@ -5956,7 +5972,6 @@ read -r -p "Premi Invio per chiudere..." _
     @app.route("/polisWeb/local-signer/download")
     def polis_local_signer_download():
         """Serve il file local_signer.py per il download diretto dal browser."""
-        import traceback as _tb
         try:
             ls_path = Path(__file__).parent.parent / "tools" / "local_signer.py"
             if not ls_path.exists():
@@ -6123,7 +6138,6 @@ read -r -p "Premi Invio per chiudere..." _
         """
         Genera e serve lo script PowerShell legacy/compatibile per Windows.
         """
-        import traceback as _tb
         try:
             return Response(
                 _render_local_signer_windows_ps1(_get_base_url()),
@@ -11767,8 +11781,7 @@ read -r -p "Premi Invio per chiudere..." _
             try:
                 from pyhanko.pdf_utils.reader import PdfFileReader
                 from pyhanko.pdf_utils.incremental_writer import IncrementalPdfFileWriter
-                from pyhanko.stamp import TextStamp, TextStampStyle, TextStampBox
-                from pyhanko.pdf_utils import generic
+                from pyhanko.stamp import TextStamp, TextStampStyle
 
                 buf_in = io.BytesIO(data_raw)
                 reader = PdfFileReader(buf_in)
@@ -11807,7 +11820,6 @@ read -r -p "Premi Invio per chiudere..." _
                 buf_att.seek(0)
                 # Combina con reportlab
                 try:
-                    from reportlab.lib.pagesizes import A4
                     attested = data_raw + buf_att.read()
                 except Exception:
                     attested = data_raw
@@ -11899,772 +11911,6 @@ read -r -p "Premi Invio per chiudere..." _
             app.logger.exception("Errore api_fascicoli_statistiche: %s", e)
             return jsonify({"errore": str(e)})
 
-    # ================================================================ MESSAGGI
-
-    @app.route("/messaggi")
-    def lista_messaggi():
-        gm = get_messaggi()
-        canale = request.args.get("canale", "")
-        stato = request.args.get("stato", "")
-        q = request.args.get("q", "")
-        messaggi = gm.tutti(
-            canale=CanaleMsggio(canale) if canale else None,
-            stato=StatoMessaggio(stato) if stato else None,
-        )
-        if q:
-            ql = q.lower()
-            messaggi = [
-                m for m in messaggi
-                if ql in (m.email_destinatario or m.telefono_destinatario or "").lower()
-                or ql in m.nome_destinatario.lower()
-                or ql in m.oggetto.lower()
-                or ql in m.corpo.lower()
-            ]
-        return render_template(
-            "messaggi/lista.html",
-            messaggi=messaggi,
-            canali=list(CanaleMsggio),
-            stati=list(StatoMessaggio),
-            canale=canale,
-            stato=stato,
-            q=q,
-            stats=gm.statistiche(),
-        )
-
-    @app.route("/messaggi/nuovo", methods=["GET", "POST"])
-    def nuovo_messaggio():
-        gm = get_messaggi()
-        gc = get_clienti()
-        clienti = gc.tutti()
-        ha_wa_api = bool(app.config.get("TWILIO_SID") and app.config.get("TWILIO_TOKEN"))
-        if request.method == "POST":
-            f = request.form
-            canale_str = f["canale"]
-            canale = CanaleMsggio(canale_str)
-            destinatario = f["destinatario"].strip()
-            testo = f.get("testo", "").strip()
-            oggetto = f.get("oggetto", "").strip()
-            id_cliente = f.get("id_cliente", "") or ""
-            from_cliente = f.get("from_cliente", "")
-            try:
-                if canale == CanaleMsggio.EMAIL:
-                    gm.invia_email(
-                        destinatario=destinatario,
-                        oggetto=oggetto,
-                        corpo_testo=testo,
-                        id_cliente=id_cliente,
-                    )
-                elif canale == CanaleMsggio.SMS:
-                    gm.invia_sms(
-                        telefono=destinatario,
-                        testo=testo,
-                        id_cliente=id_cliente,
-                    )
-                else:
-                    msg_wa = gm.invia_whatsapp(
-                        telefono=destinatario,
-                        testo=testo,
-                        id_cliente=id_cliente,
-                    )
-                    if msg_wa.sid_esterno and msg_wa.sid_esterno.startswith("https://wa.me"):
-                        # Nessuna API â€” mostra link WhatsApp Web all'utente
-                        return render_template(
-                            "messaggi/form.html",
-                            clienti=clienti,
-                            canali=list(CanaleMsggio),
-                            tipi_automazione=list(TipoAutomazione),
-                            id_cliente=id_cliente,
-                            canale_default="WHATSAPP",
-                            from_cliente=from_cliente,
-                            cliente_presel=gc.get(id_cliente) if id_cliente else None,
-                            ha_wa_api=ha_wa_api,
-                            wa_link=msg_wa.sid_esterno,
-                        )
-                flash("Messaggio inviato.", "success")
-                if from_cliente:
-                    return redirect(url_for("cartella_cliente", id_cliente=from_cliente))
-                return redirect(url_for("lista_messaggi"))
-            except Exception as e:
-                flash(str(e), "danger")
-        id_cliente_get = request.args.get("id_cliente", "")
-        canale_get = request.args.get("canale", "EMAIL")
-        from_cliente_get = request.args.get("from_cliente", "")
-        cliente_presel = gc.get(id_cliente_get) if id_cliente_get else None
-        return render_template(
-            "messaggi/form.html",
-            clienti=clienti,
-            canali=list(CanaleMsggio),
-            tipi_automazione=list(TipoAutomazione),
-            id_cliente=id_cliente_get,
-            canale_default=canale_get,
-            from_cliente=from_cliente_get,
-            cliente_presel=cliente_presel,
-            ha_wa_api=ha_wa_api,
-        )
-
-    @app.route("/messaggi/<id_msg>")
-    def dettaglio_messaggio(id_msg):
-        gm = get_messaggi()
-        msg = gm.get(id_msg)
-        if not msg:
-            flash("Messaggio non trovato.", "warning")
-            return redirect(url_for("lista_messaggi"))
-        return render_template("messaggi/dettaglio.html", msg=msg)
-
-    @app.route("/messaggi/<id_msg>/elimina", methods=["POST"])
-    def elimina_messaggio(id_msg):
-        gm = get_messaggi()
-        try:
-            gm.elimina(id_msg)
-            flash("Messaggio eliminato.", "success")
-        except ValueError as e:
-            flash(str(e), "danger")
-        return redirect(url_for("lista_messaggi"))
-
-    @app.route("/api/messaggi/statistiche")
-    def api_messaggi_statistiche():
-        try:
-            return jsonify(get_messaggi().statistiche())
-        except Exception as e:
-            app.logger.exception("Errore api_messaggi_statistiche: %s", e)
-            return jsonify({"errore": str(e)})
-
-    # ================================================================ BACKUP
-
-    @app.route("/backup")
-    def lista_backup():
-        gb = get_backup()
-        backup_list = gb.tutti()
-        stats = gb.statistiche()
-        return render_template(
-            "backup/lista.html",
-            backup_list=backup_list,
-            stats=stats,
-            config=gb.config,
-            tipi=list(TipoBackup),
-            stati=list(StatoBackup),
-        )
-
-    @app.route("/backup/esegui", methods=["POST"])
-    def esegui_backup():
-        gb = get_backup()
-        tipo = TipoBackup(request.form.get("tipo", "COMPLETO"))
-        nota = request.form.get("nota", "")
-        componenti_raw = request.form.getlist("componenti")
-        componenti = componenti_raw if componenti_raw else None
-        try:
-            record = gb.esegui_backup(tipo=tipo, componenti=componenti, nota=nota)
-            if record.stato == StatoBackup.OK:
-                flash(f"Backup completato: {record.num_file} file, "
-                      f"{round(record.dimensione_bytes/1024/1024, 2)} MB.", "success")
-            else:
-                flash(f"Backup fallito: {record.errore}", "danger")
-        except Exception as e:
-            flash(str(e), "danger")
-        return redirect(url_for("lista_backup"))
-
-    @app.route("/backup/<id_bk>/verifica", methods=["POST"])
-    def verifica_backup(id_bk):
-        gb = get_backup()
-        try:
-            ris = gb.verifica_integrita(id_bk)
-            if ris["ok"]:
-                flash("Verifica completata: il backup Ã¨ integro.", "success")
-            else:
-                flash("Attenzione: il file di backup potrebbe essere corrotto.", "danger")
-        except Exception as e:
-            flash(str(e), "danger")
-        return redirect(url_for("lista_backup"))
-
-    @app.route("/backup/<id_bk>/elimina", methods=["POST"])
-    def elimina_backup(id_bk):
-        gb = get_backup()
-        try:
-            gb.elimina(id_bk)
-            flash("Backup eliminato.", "success")
-        except Exception as e:
-            flash(str(e), "danger")
-        return redirect(url_for("lista_backup"))
-
-    @app.route("/backup/<id_bk>/scarica")
-    def scarica_backup(id_bk):
-        gb = get_backup()
-        record = gb.get(id_bk)
-        if not record:
-            flash("Backup non trovato.", "warning")
-            return redirect(url_for("lista_backup"))
-        p = Path(record.percorso_file)
-        if not p.exists():
-            flash("File backup non trovato su disco.", "danger")
-            return redirect(url_for("lista_backup"))
-        return send_file(p, as_attachment=True, download_name=p.name)
-
-    @app.route("/backup/<id_bk>/ripristina", methods=["GET", "POST"])
-    def ripristina_backup(id_bk):
-        gb = get_backup()
-        record = gb.get(id_bk)
-        if not record:
-            flash("Backup non trovato.", "warning")
-            return redirect(url_for("lista_backup"))
-        if request.method == "POST":
-            dest = request.form.get("destinazione", "./ripristino").strip()
-            componenti_raw = request.form.getlist("componenti")
-            componenti = componenti_raw if componenti_raw else None
-            sovrascrivi = request.form.get("sovrascrivi") == "1"
-            password = request.form.get("password", "")
-            try:
-                ris = gb.ripristina(
-                    id_bk, dest,
-                    componenti=componenti,
-                    password=password,
-                    sovrascrivi=sovrascrivi,
-                )
-                flash(
-                    f"Ripristino completato: {ris['file_ripristinati']} file ripristinati, "
-                    f"{ris['file_saltati']} saltati.",
-                    "success",
-                )
-                return redirect(url_for("lista_backup"))
-            except Exception as e:
-                flash(str(e), "danger")
-        return render_template("backup/ripristina.html", record=record)
-
-    @app.route("/api/backup/statistiche")
-    def api_backup_statistiche():
-        try:
-            return jsonify(get_backup().statistiche())
-        except Exception as e:
-            app.logger.exception("Errore api_backup_statistiche: %s", e)
-            return jsonify({"errore": str(e)})
-
-    # ================================================================ HEALTH CHECK
-
-    @app.route("/api/health")
-    def api_health():
-        """Endpoint di salute per monitoring â€” non richiede autenticazione."""
-        stato = {"ok": True, "timestamp": datetime.now().isoformat(), "moduli": {}}
-        try:
-            gc = get_clienti()
-            stato["moduli"]["clienti"] = {"ok": True, "totale": gc.statistiche()["totale"]}
-        except Exception as e:
-            stato["moduli"]["clienti"] = {"ok": False, "errore": str(e)}
-            stato["ok"] = False
-        try:
-            gf = get_fascicoli()
-            stato["moduli"]["fascicoli"] = {"ok": True, "attivi": gf.statistiche()["attivi"]}
-        except Exception as e:
-            stato["moduli"]["fascicoli"] = {"ok": False, "errore": str(e)}
-            stato["ok"] = False
-        try:
-            ga = get_agenda()
-            stato["moduli"]["agenda"] = {"ok": True, "totale": ga.statistiche()["totale"]}
-        except Exception as e:
-            stato["moduli"]["agenda"] = {"ok": False, "errore": str(e)}
-            stato["ok"] = False
-        try:
-            gs = get_scadenziario()
-            stato["moduli"]["scadenziario"] = {"ok": True, "aperte": gs.statistiche()["aperte"]}
-        except Exception as e:
-            stato["moduli"]["scadenziario"] = {"ok": False, "errore": str(e)}
-            stato["ok"] = False
-        codice = 200 if stato["ok"] else 503
-        return jsonify(stato), codice
-
-    # ================================================================ CSV EXPORT
-
-    def _csv_response(righe: list[dict], nome_file: str) -> Response:
-        """Genera una risposta CSV da una lista di dizionari."""
-        if not righe:
-            output = io.StringIO()
-            output.write("# Nessun dato da esportare\n")
-            csv_data = output.getvalue()
-        else:
-            output = io.StringIO()
-            writer = csv.DictWriter(
-                output, fieldnames=righe[0].keys(),
-                extrasaction="ignore", lineterminator="\n"
-            )
-            writer.writeheader()
-            writer.writerows(righe)
-            csv_data = output.getvalue()
-        return Response(
-            csv_data,
-            mimetype="text/csv; charset=utf-8",
-            headers={"Content-Disposition": f'attachment; filename="{nome_file}"'},
-        )
-
-    @app.route("/clienti/export.csv")
-    def export_clienti_csv():
-        gc = get_clienti()
-        testo = request.args.get("q", "").strip()
-        tipo_f = request.args.get("tipo")
-        stato_f = request.args.get("stato", "")
-        tipo = TipoCliente(tipo_f) if tipo_f else None
-        stato = StatoCliente(stato_f) if stato_f else None
-        clienti = gc.cerca(testo=testo, tipo=tipo, stato=stato) if testo else gc.tutti(stato=stato, tipo=tipo)
-        righe = []
-        for c in clienti:
-            d = c.to_dict()
-            ind = d.get("indirizzo") or {}
-            righe.append({
-                "id": d["id"],
-                "cognome": d.get("cognome", ""),
-                "nome": d.get("nome", ""),
-                "ragione_sociale": d.get("ragione_sociale", ""),
-                "tipo": d.get("tipo", ""),
-                "stato": d.get("stato", ""),
-                "codice_fiscale": d.get("codice_fiscale", ""),
-                "partita_iva": d.get("partita_iva", ""),
-                "email": d.get("email", ""),
-                "telefono": d.get("telefono", ""),
-                "citta": ind.get("citta", "") if isinstance(ind, dict) else "",
-            })
-        audit("clienti.export_csv")
-        return _csv_response(righe, f"clienti_{date.today().isoformat()}.csv")
-
-    @app.route("/fascicoli/export.csv")
-    def export_fascicoli_csv():
-        gf = get_fascicoli()
-        testo = request.args.get("q", "").strip()
-        stato_f = request.args.get("stato", "")
-        tipo_f = request.args.get("tipo", "")
-        stato = StatoFascicolo(stato_f) if stato_f else None
-        tipo = TipoFascicolo(tipo_f) if tipo_f else None
-        fascicoli = gf.cerca(testo=testo, stato=stato, tipo=tipo) if testo else gf.tutti(stato=stato, tipo=tipo)
-        righe = []
-        for f in fascicoli:
-            d = f.to_dict()
-            righe.append({
-                "numero": d.get("numero", ""),
-                "titolo": d.get("titolo", ""),
-                "tipo": d.get("tipo", ""),
-                "stato": d.get("stato", ""),
-                "tribunale": d.get("tribunale", ""),
-                "numero_rg": d.get("numero_rg", ""),
-                "anno_rg": d.get("anno_rg", ""),
-                "nome_cliente": d.get("nome_cliente", ""),
-                "controparte": d.get("controparte", ""),
-                "avvocato_referente": d.get("avvocato_referente", ""),
-                "data_apertura": d.get("data_apertura", ""),
-                "data_chiusura": d.get("data_chiusura", ""),
-            })
-        audit("fascicoli.export_csv")
-        return _csv_response(righe, f"fascicoli_{date.today().isoformat()}.csv")
-
-    @app.route("/fascicoli/export.pdf")
-    def export_fascicoli_pdf():
-        """Export PDF lista fascicoli con filtri correnti."""
-        gf = get_fascicoli()
-        testo = request.args.get("q", "").strip()
-        stato_f = request.args.get("stato", "")
-        tipo_f = request.args.get("tipo", "")
-        try:
-            stato = StatoFascicolo(stato_f) if stato_f else None
-            tipo = TipoFascicolo(tipo_f) if tipo_f else None
-            fascicoli = gf.cerca(testo=testo, stato=stato, tipo=tipo) if testo else gf.tutti(stato=stato, tipo=tipo)
-            studio_nome = os.getenv("PCT_STUDIO_NOME", "Studio Legale")
-            _mesi_it = ["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno",
-                        "Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"]
-            _oggi = date.today()
-            mese_label = f"{_mesi_it[_oggi.month - 1]} {_oggi.year}"
-            titolo = f"Elenco Fascicoli â€” {mese_label}"
-            import tempfile
-            with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp:
-                out = tmp.name
-            lista_fascicoli_pdf([f.to_dict() for f in fascicoli], out, titolo=titolo, studio_nome=studio_nome)
-            audit("fascicoli.export_pdf")
-            nome_file = f"fascicoli_{date.today().isoformat()}.pdf"
-            return send_file(out, as_attachment=True, download_name=nome_file, mimetype="application/pdf")
-        except Exception as e:
-            app.logger.exception("Errore export_fascicoli_pdf: %s", e)
-            flash(f"Impossibile generare il PDF: {e}", "danger")
-            return redirect(url_for("lista_fascicoli"))
-
-    @app.route("/clienti/export.pdf")
-    def export_clienti_pdf():
-        """Export PDF lista clienti con filtri correnti."""
-        gc = get_clienti()
-        testo = request.args.get("q", "").strip()
-        tipo_f = request.args.get("tipo")
-        stato_f = request.args.get("stato", "ATTIVO")
-        try:
-            tipo = TipoCliente(tipo_f) if tipo_f else None
-            stato = StatoCliente(stato_f) if stato_f else None
-            clienti = gc.cerca(testo=testo, tipo=tipo, stato=stato) if testo else gc.tutti(stato=stato, tipo=tipo)
-            studio_nome = os.getenv("PCT_STUDIO_NOME", "Studio Legale")
-            _mesi_it = ["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno",
-                        "Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"]
-            _oggi = date.today()
-            mese_label = f"{_mesi_it[_oggi.month - 1]} {_oggi.year}"
-            titolo = f"Elenco Clienti â€” {mese_label}"
-            import tempfile
-            with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp:
-                out = tmp.name
-            lista_clienti_pdf([c.to_dict() for c in clienti], out, titolo=titolo, studio_nome=studio_nome)
-            audit("clienti.export_pdf")
-            nome_file = f"clienti_{date.today().isoformat()}.pdf"
-            return send_file(out, as_attachment=True, download_name=nome_file, mimetype="application/pdf")
-        except Exception as e:
-            app.logger.exception("Errore export_clienti_pdf: %s", e)
-            flash(f"Impossibile generare il PDF: {e}", "danger")
-            return redirect(url_for("lista_clienti"))
-
-    @app.route("/scadenziario/export.csv")
-    def export_scadenziario_csv():
-        gs = get_scadenziario()
-        filtro_tipo = request.args.get("tipo", "")
-        filtro_priorita = request.args.get("priorita", "")
-        id_fascicolo = request.args.get("id_fascicolo", "")
-        solo_aperte = request.args.get("stato", "aperte") != "tutte"
-        scadenze = gs.tutte(
-            tipo=TipoTermine(filtro_tipo) if filtro_tipo else None,
-            priorita=PrioritaTermine(filtro_priorita) if filtro_priorita else None,
-            id_fascicolo=id_fascicolo,
-            solo_aperte=solo_aperte,
-        )
-        righe = []
-        for s in scadenze:
-            d = s.to_dict() if hasattr(s, "to_dict") else vars(s)
-            righe.append({
-                "titolo": d.get("titolo", ""),
-                "tipo": d.get("tipo", ""),
-                "data_scadenza": d.get("data_scadenza", ""),
-                "priorita": d.get("priorita", ""),
-                "stato": d.get("stato", ""),
-                "perentorio": d.get("perentorio", ""),
-                "id_fascicolo": d.get("id_fascicolo", ""),
-                "giorni_preavviso": str(d.get("giorni_preavviso", "")),
-                "completata_il": d.get("completata_il", ""),
-                "note": d.get("note", ""),
-            })
-        audit("scadenziario.export_csv")
-        return _csv_response(righe, f"scadenziario_{date.today().isoformat()}.csv")
-
-    # ================================================================ SEARCH
-
-    @app.route("/api/cerca")
-    def api_cerca():
-        """Ricerca globale full-text â€” usata dall'autocomplete topbar."""
-        try:
-            q = request.args.get("q", "").strip()
-            tipi_raw = request.args.getlist("tipo")
-            limit = min(int(request.args.get("limit", 20)), 50)
-            if not q:
-                return jsonify([])
-            indice = get_indice()
-            risultati = indice.cerca(q, tipi=tipi_raw or None, limit=limit)
-            return jsonify([
-                {
-                    "tipo": r.tipo,
-                    "id": r.id,
-                    "titolo": r.titolo,
-                    "sottotitolo": r.sottotitolo,
-                    "url": r.url,
-                    "icona": r.icona,
-                    "snippet": r.snippet,
-                }
-                for r in risultati
-            ])
-        except Exception as e:
-            app.logger.exception("Errore api_cerca: %s", e)
-            return jsonify([])
-
-    @app.route("/cerca")
-    def cerca():
-        """Pagina di ricerca completa."""
-        q = request.args.get("q", "").strip()
-        risultati = {}
-        if q:
-            indice = get_indice()
-            risultati = indice.cerca_globale(q, limit=30)
-        return render_template("cerca.html", q=q, risultati=risultati)
-
-    @app.route("/api/ricerca/ricostruisci", methods=["POST"])
-    def api_ricerca_ricostruisci():
-        """Ricostruisce l'indice di ricerca (solo admin)."""
-        u = g.utente_corrente
-        if not u or not u.ha_permesso("utenti.leggi"):
-            return jsonify({"errore": "Non autorizzato"}), 403
-        try:
-            indice = get_indice()
-            gf = get_fascicoli()
-            # Raccoglie testo OCR dalla cache per tutti i documenti dei fascicoli
-            documenti_ocr = []
-            for fasc in gf.tutti():
-                d = fasc.to_dict() if hasattr(fasc, "to_dict") else fasc
-                for doc in d.get("documenti", []):
-                    testo = indice.get_ocr_cache(doc.get("hash_sha256", ""))
-                    if testo:
-                        documenti_ocr.append((
-                            d["id"], doc["id"], doc.get("nome", ""),
-                            testo, doc.get("tipo", ""),
-                        ))
-                    elif ocr_supportato(doc.get("nome", "")):
-                        # Accoda OCR per i file non ancora processati
-                        try:
-                            percorso = str(gf.percorso_documento(d["id"], doc["id"]))
-                            _accoda_ocr(
-                                percorso=percorso,
-                                hash_sha256=doc.get("hash_sha256", ""),
-                                id_fasc=d["id"],
-                                id_doc=doc["id"],
-                                nome_doc=doc.get("nome", ""),
-                                tipo_doc=doc.get("tipo", ""),
-                                index_path=app.config["SEARCH_INDEX"],
-                            )
-                        except Exception:
-                            pass
-            indice.ricostruisci(
-                clienti=get_clienti().tutti(),
-                fascicoli=gf.tutti(),
-                appuntamenti=get_agenda().tutti(),
-                scadenze=get_scadenziario().tutte(solo_aperte=False),
-                documenti_ocr=documenti_ocr,
-            )
-            audit("ricerca.ricostruisci_indice")
-            return jsonify({"ok": True, "statistiche": indice.statistiche()})
-        except Exception as e:
-            app.logger.exception("Errore api_ricerca_ricostruisci: %s", e)
-            return jsonify({"ok": False, "errore": str(e)})
-
-    @app.route("/api/ocr/stato")
-    def api_ocr_stato():
-        """Stato del worker OCR asincrono (coda, completati, errori)."""
-        try:
-            with _ocr_stats_lock:
-                stats = dict(_ocr_stats)
-            stats["in_coda"] = _ocr_queue.qsize()
-            return jsonify(stats)
-        except Exception as e:
-            return jsonify({"errore": str(e)}), 200
-
-    # ================================================================ PDF EXPORT
-
-    @app.route("/fascicoli/<id_fasc>/pdf")
-    def fascicolo_pdf_export(id_fasc):
-        gf = get_fascicoli()
-        fasc = gf.get(id_fasc)
-        if not fasc:
-            flash("Fascicolo non trovato.", "warning")
-            return redirect(url_for("lista_fascicoli"))
-        studio_nome = os.getenv("PCT_STUDIO_NOME", "Studio Legale")
-        import tempfile
-        with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp:
-            out = tmp.name
-        fascicolo_pdf(fasc.to_dict(), out, studio_nome=studio_nome)
-        nome_file = f"fascicolo_{fasc.numero or id_fasc}.pdf".replace("/", "-").replace(" ", "_")
-        audit("fascicoli.esporta_pdf", risorsa_tipo="fascicolo", risorsa_id=id_fasc)
-        return send_file(out, as_attachment=True, download_name=nome_file, mimetype="application/pdf")
-
-    @app.route("/scadenziario/pdf")
-    def scadenziario_pdf_export():
-        gs = get_scadenziario()
-        stato_raw = request.args.get("stato", "")
-        solo_aperte = stato_raw != "tutte"
-        lista = gs.tutte(solo_aperte=solo_aperte)
-        studio_nome = os.getenv("PCT_STUDIO_NOME", "Studio Legale")
-        mese_label = date.today().strftime("%B %Y").capitalize()
-        titolo_pdf = f"Scadenziario â€” {mese_label}"
-        dati = [
-            {
-                "scadenza": s.data_scadenza,
-                "titolo": s.titolo,
-                "tipo": s.tipo.value if hasattr(s.tipo, "value") else str(s.tipo),
-                "fascicolo": s.id_fascicolo or "",
-                "priorita": s.priorita.value if hasattr(s.priorita, "value") else str(s.priorita),
-                "perentorio": s.perentorio,
-            }
-            for s in lista
-        ]
-        import tempfile
-        with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp:
-            out = tmp.name
-        scadenze_pdf(dati, out, titolo=titolo_pdf, studio_nome=studio_nome)
-        nome_file = f"scadenziario_{date.today().isoformat()}.pdf"
-        audit("scadenziario.esporta_pdf")
-        return send_file(out, as_attachment=True, download_name=nome_file, mimetype="application/pdf")
-
-    # ================================================================ SINCRONIZZAZIONE REAL-TIME
-
-    @app.route("/api/eventi")
-    def api_eventi():
-        """
-        SSE endpoint per notifiche in tempo reale agli operatori connessi.
-        Ogni client connesso riceve gli aggiornamenti degli altri operatori.
-        """
-        if not g.utente_corrente:
-            return jsonify({"errore": "Non autenticato"}), 401
-
-        user_key = g.utente_corrente.username if g.utente_corrente else ""
-        client_id, q = _sync.subscribe(user_key=user_key)
-        # Notifica subito tutti gli altri client del nuovo conteggio
-        _sync.notifica_connessi()
-
-        def genera():
-            yield from _sync.sse_stream(client_id, q)
-
-        return Response(
-            genera(),
-            content_type="text/event-stream",
-            headers={
-                "Cache-Control": "no-cache, no-store",
-                "X-Accel-Buffering": "no",
-                "Connection": "keep-alive",
-            },
-        )
-
-    @app.route("/api/sync/stato")
-    def api_sync_stato():
-        """Stato sincronizzazione: operatori connessi e versioni file."""
-        try:
-            return jsonify({
-                "connessi": _sync.n_connessi,
-                "versioni": {
-                    "clienti": _sync.versione_file(app.config["CLIENTI_DB"]),
-                    "fascicoli": _sync.versione_file(app.config["FASCICOLI_DB"]),
-                    "scadenze": _sync.versione_file(app.config["SCADENZIARIO_DB"]),
-                    "agenda": _sync.versione_file(app.config["AGENDA_DB"]),
-                    "messaggi": _sync.versione_file(app.config["MESSAGGI_DB"]),
-                },
-            })
-        except Exception as e:
-            app.logger.exception("Errore api_sync_stato: %s", e)
-            return jsonify({"errore": str(e)})
-
-    @app.route("/api/sync/broadcast", methods=["POST"])
-    def api_sync_broadcast():
-        """Invia un messaggio informativo a tutti gli operatori (solo admin)."""
-        u = g.utente_corrente
-        if not u or not u.ha_permesso("utenti.leggi"):
-            return jsonify({"errore": "Non autorizzato"}), 403
-        try:
-            msg = request.json.get("messaggio", "") if request.is_json else request.form.get("messaggio", "")
-            if not msg:
-                return jsonify({"errore": "Messaggio obbligatorio"}), 400
-            n = _sync.pubblica_broadcast(msg, utente=u.username)
-            audit("sync.broadcast", dettagli=msg)
-            return jsonify({"ok": True, "raggiunti": n})
-        except Exception as e:
-            app.logger.exception("Errore api_sync_broadcast: %s", e)
-            return jsonify({"ok": False, "errore": str(e)})
-
-    # ================================================================ PEC CANCELLERIA POLLING
-
-    @app.route("/api/pec/poll-cancelleria", methods=["POST"])
-    def api_pec_poll_cancelleria():
-        """
-        Avvia manualmente il workflow PEC completo:
-        - sincronizzazione casella PEC
-        - auto-esiti depositi PCT nei fascicoli
-        - caricamento comunicazioni di cancelleria
-
-        Richiede permesso 'fascicoli.scrivi'.
-        """
-        try:
-            from pct.fascicoli import GestioneFascicoli
-            from pct.config_studio import GestioneConfigStudio
-            from pct.email_client import GestioneEmailRicevute, sincronizza_pec_e_fascicoli
-
-            u = g.utente_corrente
-            if not u or not u.ha_permesso("fascicoli.scrivi"):
-                return jsonify({"ok": False, "errore": "Non autorizzato"}), 403
-
-            fascicoli_db = app.config.get("FASCICOLI_DB", "./fascicoli/fascicoli.json")
-            if not os.path.exists(fascicoli_db):
-                return jsonify({"ok": False, "errore": "Database fascicoli non trovato"}), 404
-
-            config_pec = None
-            try:
-                config_studio_db = (
-                    app.config.get("STUDIO_CONFIG")
-                    or app.config.get("CONFIG_STUDIO_DB", "./config/studio.json")
-                )
-                cfg_studio = GestioneConfigStudio(config_path=config_studio_db)
-                config_pec = getattr(cfg_studio.config, "pec", None)
-                if config_pec and (
-                    not getattr(config_pec, "imap_host", "")
-                    or not getattr(config_pec, "indirizzo", "")
-                ):
-                    config_pec = None
-            except Exception as e:
-                app.logger.debug("Config PEC non disponibile: %s", e)
-
-            if not config_pec:
-                return jsonify({
-                    "ok": False,
-                    "errore": "PEC IMAP non configurata. Vai in Impostazioni â†’ PEC per configurarla.",
-                })
-
-            gf = GestioneFascicoli(db_path=fascicoli_db)
-            ge = GestioneEmailRicevute(
-                db_path=app.config.get(
-                    "EMAIL_CASELLA_DB",
-                    os.environ.get("PCT_EMAIL_DB", "./email/casella.json"),
-                )
-            )
-            state_path = os.path.join(
-                os.path.dirname(os.path.abspath(fascicoli_db)),
-                "pec_cancelleria_state.json",
-            )
-            workflow = sincronizza_pec_e_fascicoli(
-                gestione_email=ge,
-                gestione_fascicoli=gf,
-                config_pec=config_pec,
-                state_path=state_path,
-                limite=100,
-            )
-            sync_result = workflow.get("sync", {}) or {}
-            auto_log = workflow.get("auto_esiti", []) or []
-            report = workflow.get("poll", {}) or {
-                "trovati": 0,
-                "associati": 0,
-                "duplicati": 0,
-                "errori": 0,
-            }
-            sync_errore = str(sync_result.get("errore") or "").strip()
-
-            if report["associati"]:
-                msg = (
-                    f"{report['associati']} comunicazion{'e' if report['associati'] == 1 else 'i'} "
-                    f"caricata{'.' if report['associati'] == 1 else '.'}"
-                )
-            elif report["duplicati"]:
-                msg = (
-                    f"{report['duplicati']} comunicazion{'e' if report['duplicati'] == 1 else 'i'} "
-                    f"giÃ  present{'e' if report['duplicati'] == 1 else 'i'} nel fascicolo."
-                )
-            elif auto_log:
-                msg = f"Workflow PEC completato: {len(auto_log)} esiti deposito aggiornati."
-            elif sync_result.get("nuove"):
-                msg = f"Sincronizzazione PEC completata: {sync_result.get('nuove', 0)} email nuove."
-            elif report["trovati"]:
-                msg = "Nessuna comunicazione nuova trovata (giÃ  tutte caricate)."
-            else:
-                msg = "Nessuna email di cancelleria trovata nella casella PEC."
-            if sync_errore:
-                msg = f"{msg} Sincronizzazione IMAP non completata."
-
-            audit("pec.poll_cancelleria", dettagli=str(report))
-            app.logger.info(
-                "Workflow PEC manuale: %d nuove email, %d esiti, %d comunicazioni, %d errori",
-                sync_result.get("nuove", 0), len(auto_log), report["associati"], report["errori"],
-            )
-            return jsonify({
-                "ok": True,
-                "messaggio": msg,
-                "report": report,
-                "nuove": sync_result.get("nuove", 0),
-                "pst_trovate": sync_result.get("pst_trovate", 0),
-                "esiti_aggiornati": len(auto_log),
-                "log": auto_log,
-                "sync_errore": sync_errore,
-                "warning": bool(sync_errore),
-            })
-
-        except Exception as e:
-            app.logger.exception("Errore api_pec_poll_cancelleria: %s", e)
-            return jsonify({"ok": False, "errore": str(e)})
-
     # ================================================================ BLUEPRINTS
     register_blueprints(app)
 
@@ -12691,37 +11937,6 @@ read -r -p "Premi Invio per chiudere..." _
             # ProxyFix non ha ricevuto X-Forwarded-Proto â†’ forza https manualmente
             base = "https://" + base[len("http://"):]
         return base
-
-    # ---- OCR route (su documento di un fascicolo)
-    @app.route("/fascicoli/<id_fasc>/documenti/<id_doc>/ocr", methods=["POST"])
-    def ocr_documento(id_fasc, id_doc):
-        gf = get_fascicoli()
-        f = gf.get(id_fasc)
-        if not f:
-            abort(404)
-        doc = next((d for d in getattr(f, "documenti", []) if d.id == id_doc), None)
-        if not doc:
-            abort(404)
-        from pct.ocr import estrai_testo
-        percorso = gf.percorso_documento(id_fasc, id_doc)
-        testo = estrai_testo(percorso) if percorso else ""
-        if testo:
-            try:
-                from web.helpers import get_indice
-                indice = get_indice()
-                indice.indicizza(
-                    tipo="documento",
-                    id=f"{id_fasc}_{id_doc}",
-                    titolo=doc.nome_file,
-                    testo=testo,
-                    meta={"id_fascicolo": id_fasc},
-                )
-            except Exception:
-                pass
-            flash(f"Testo estratto dal documento ({len(testo)} caratteri) e reso ricercabile.", "success")
-        else:
-            flash("Nessun testo estraibile da questo documento.", "warning")
-        return redirect(url_for("dettaglio_fascicolo", id_fascicolo=id_fasc))
 
     # ---- Avvio scheduler background
     from pct.scheduler import start_scheduler

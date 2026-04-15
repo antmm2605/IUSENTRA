@@ -6,7 +6,7 @@ import os
 from collections.abc import Callable
 from typing import Any
 
-from flask import Flask, Response, abort, flash, g, jsonify, redirect, request, url_for
+from flask import Flask, Response, abort, flash, g, jsonify, redirect, request, session, url_for
 
 
 def register_sync_runtime_routes(
@@ -14,16 +14,30 @@ def register_sync_runtime_routes(
     *,
     sync_manager: Any,
     get_fascicoli: Callable[[], object],
+    get_utenti: Callable[[], object],
     audit: Callable[..., None],
 ) -> None:
     """Register realtime sync and operational background routes."""
 
+    def _current_user():
+        utente = getattr(g, "utente_corrente", None)
+        if utente is not None:
+            return utente
+        user_id = session.get("user_id") or session.get("utente_id")
+        if not user_id:
+            return None
+        try:
+            return get_utenti().get(str(user_id))
+        except Exception:
+            return None
+
     @app.route("/api/eventi")
     def api_eventi():
-        if not g.utente_corrente:
+        utente = _current_user()
+        if not utente:
             return jsonify({"errore": "Non autenticato"}), 401
 
-        user_key = g.utente_corrente.username if g.utente_corrente else ""
+        user_key = utente.username if utente else ""
         client_id, event_queue = sync_manager.subscribe(user_key=user_key)
         sync_manager.notifica_connessi()
 
@@ -61,7 +75,7 @@ def register_sync_runtime_routes(
 
     @app.route("/api/sync/broadcast", methods=["POST"])
     def api_sync_broadcast():
-        utente = g.utente_corrente
+        utente = _current_user()
         if not utente or not utente.ha_permesso("utenti.leggi"):
             return jsonify({"errore": "Non autorizzato"}), 403
         try:
@@ -82,7 +96,7 @@ def register_sync_runtime_routes(
             from pct.email_client import GestioneEmailRicevute, sincronizza_pec_e_fascicoli
             from pct.fascicoli import GestioneFascicoli
 
-            utente = g.utente_corrente
+            utente = _current_user()
             if not utente or not utente.ha_permesso("fascicoli.scrivi"):
                 return jsonify({"ok": False, "errore": "Non autorizzato"}), 403
 

@@ -160,4 +160,4 @@ Il codice oggi è più maturo di una semplice demo:
 - test coverage distribuita su molti domini reali
 - bootstrap di sicurezza più severo per uso professionale
 
-Il prossimo passo naturale resta continuare a ridurre il monolite residuo di `web/app.py` e mantenere tutta la documentazione allo stesso livello del codice.
+`web/app.py` oggi è una factory sottile: crea l'app Flask, applica i default di sicurezza, costruisce i runtime e delega il wiring a `web/bootstrap/app_wiring.py`. Il prossimo passo naturale resta spezzare ulteriormente i runtime più densi in `web/services/`, mantenendo documentazione e CI allo stesso livello del codice.

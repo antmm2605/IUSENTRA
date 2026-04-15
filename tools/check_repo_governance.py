@@ -42,8 +42,25 @@ def main() -> int:
     web_app = _read_text("web/app.py")
     _check("@app.route" not in web_app, "web/app.py non deve contenere route inline.", failures)
     _check(
-        _line_count("web/app.py") < 7000,
+        _line_count("web/app.py") <= 250,
         f"web/app.py supera il budget: {_line_count('web/app.py')} righe.",
+        failures,
+    )
+    _check(
+        "from web.bootstrap.app_wiring import register_app_wiring" in web_app,
+        "web/app.py deve delegare il wiring a web.bootstrap.app_wiring.",
+        failures,
+    )
+    _check(
+        "register_app_wiring(" in web_app,
+        "web/app.py deve usare register_app_wiring().",
+        failures,
+    )
+    _check(
+        "from web.bootstrap." not in web_app.replace(
+            "from web.bootstrap.app_wiring import register_app_wiring", ""
+        ),
+        "web/app.py non deve importare direttamente i moduli route/bootstrap verticali.",
         failures,
     )
 

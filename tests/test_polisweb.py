@@ -2546,6 +2546,7 @@ def test_visualizza_documento_p7m_mostra_timbro_firma_visibile(tmp_path, monkeyp
     from pct.auth import GestioneUtenti, RuoloUtente
     from reportlab.lib.pagesizes import A4
     from reportlab.pdfgen import canvas
+    from visible_signature import has_visible_signature_stamp
     from web.app import create_app
 
     cfg = _cfg_web(tmp_path)
@@ -2628,7 +2629,7 @@ def test_visualizza_documento_p7m_mostra_timbro_firma_visibile(tmp_path, monkeyp
     assert response.status_code == 200
     assert response.mimetype == "application/pdf"
     assert response.data.startswith(b"%PDF-")
-    assert b"Per autentica e sottoscrizione" in response.data
+    assert has_visible_signature_stamp(response.data) is True
     assert b"ROBERTO MONTAGNESE" in response.data
 
 
@@ -4490,11 +4491,24 @@ def test_api_portale_acquisizione_import_pst_filtra_i_file_secondo_step4(tmp_pat
 
 
 def test_api_pec_poll_cancelleria_legge_la_config_pec_da_studio_config(tmp_path, monkeypatch):
+    from pct.auth import GestioneUtenti, RuoloUtente
     from web.app import create_app
 
     cfg = _cfg_web(tmp_path)
     studio_cfg = tmp_path / "config" / "studio.json"
     cfg["STUDIO_CONFIG"] = str(studio_cfg)
+    gu = GestioneUtenti(
+        db_path=cfg["AUTH_DB"],
+        audit_path=cfg["AUDIT_DB"],
+        secret_key="test",
+    )
+    gu.crea(
+        username="adminpec",
+        password="Admin1234!",
+        ruolo=RuoloUtente.AMMINISTRATORE,
+        email="adminpec@example.com",
+        must_change_password=False,
+    )
 
     gf = GestioneFascicoli(
         db_path=cfg["FASCICOLI_DB"],
@@ -4525,19 +4539,31 @@ def test_api_pec_poll_cancelleria_legge_la_config_pec_da_studio_config(tmp_path,
 
     osservato = {}
 
-    def _fake_poll_cancelleria_pec(gf, config_pec, state_path):
+    def _fake_sincronizza_pec_e_fascicoli(
+        *,
+        gestione_email,
+        gestione_fascicoli,
+        config_pec,
+        state_path,
+        limite=100,
+    ):
         osservato["indirizzo"] = config_pec.indirizzo
         osservato["imap_host"] = config_pec.imap_host
         osservato["state_path"] = state_path
-        return {"trovati": 0, "associati": 0, "duplicati": 0, "errori": 0}
+        osservato["limite"] = limite
+        return {
+            "sync": {"errore": ""},
+            "auto_esiti": [],
+            "poll": {"trovati": 0, "associati": 0, "duplicati": 0, "errori": 0},
+        }
 
-    monkeypatch.setattr("pct.polling_depositi.poll_cancelleria_pec", _fake_poll_cancelleria_pec)
+    monkeypatch.setattr("pct.email_client.sincronizza_pec_e_fascicoli", _fake_sincronizza_pec_e_fascicoli)
 
     app = create_app(cfg)
     with app.test_client() as client:
         login = client.post(
             "/login",
-            data={"username": "admin", "password": "admin"},
+            data={"username": "adminpec", "password": "Admin1234!"},
             follow_redirects=True,
         )
         assert login.status_code == 200
@@ -4554,3 +4580,4 @@ def test_api_pec_poll_cancelleria_legge_la_config_pec_da_studio_config(tmp_path,
     assert osservato["indirizzo"] == "studio@example.pec.it"
     assert osservato["imap_host"] == "imaps.pec.aruba.it"
     assert osservato["state_path"].endswith("pec_cancelleria_state.json")
+    assert osservato["limite"] == 100

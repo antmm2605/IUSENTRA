@@ -240,6 +240,10 @@ def test_route_domini_estratti_restano_operativi(tmp_path: Path):
 
 def test_web_app_dimagrisce_e_registra_i_moduli_estratti_finali():
     web_app = (REPO_ROOT / "web/app.py").read_text(encoding="utf-8")
+    app_wiring = (REPO_ROOT / "web/bootstrap/app_wiring.py").read_text(encoding="utf-8")
+
+    assert "from web.bootstrap.app_wiring import register_app_wiring" in web_app
+    assert "register_app_wiring(" in web_app
 
     for symbol in (
         "register_clienti_routes",
@@ -263,11 +267,18 @@ def test_web_app_dimagrisce_e_registra_i_moduli_estratti_finali():
         "register_telematico_local_signer_routes",
         "register_telematico_portali_routes",
     ):
-        assert f"from web.bootstrap.{symbol.replace('register_', '').replace('_routes', '_routes')} import {symbol}" in web_app
-        assert f"{symbol}(" in web_app
+        assert (
+            f"from web.bootstrap.{symbol.replace('register_', '').replace('_routes', '_routes')} import {symbol}"
+            in app_wiring
+        )
+        assert f"{symbol}(" in app_wiring
 
     assert web_app.count("@app.route") == 0
-    assert len(web_app.splitlines()) < 7000
+    assert len(web_app.splitlines()) <= 250
+    assert "from web.bootstrap.app_wiring import register_app_wiring" in web_app
+    assert "from web.bootstrap." not in web_app.replace(
+        "from web.bootstrap.app_wiring import register_app_wiring", ""
+    )
 
 
 def test_i_moduli_bootstrap_restano_governabili():
@@ -496,7 +507,7 @@ def test_local_signer_distribution_include_bridge_ai(tmp_path: Path):
     build_dist = (REPO_ROOT / "tools/build_dist.py").read_text(encoding="utf-8")
     build_windows = (REPO_ROOT / "tools/build_local_signer_windows_exe.ps1").read_text(encoding="utf-8")
     installer = (REPO_ROOT / "tools/installa_local_signer_locale.ps1").read_text(encoding="utf-8")
-    web_app = (REPO_ROOT / "web/app.py").read_text(encoding="utf-8")
+    signer_routes = (REPO_ROOT / "web/bootstrap/telematico_local_signer_routes.py").read_text(encoding="utf-8")
 
     assert "local_ai_host_bridge.py" in build_dist
     assert "lex_document_context.py" in build_dist
@@ -506,9 +517,9 @@ def test_local_signer_distribution_include_bridge_ai(tmp_path: Path):
     assert "local_ai_host_bridge.py" in installer
     assert "lex_document_context.py" in installer
     assert "visible_signature.py" in installer
-    assert "/polisWeb/local-signer/download/local-ai-bridge" in web_app
-    assert "/polisWeb/local-signer/download/lex-document-context" in web_app
-    assert "/polisWeb/local-signer/download/visible-signature" in web_app
+    assert "/polisWeb/local-signer/download/local-ai-bridge" in signer_routes
+    assert "/polisWeb/local-signer/download/lex-document-context" in signer_routes
+    assert "/polisWeb/local-signer/download/visible-signature" in signer_routes
 
 
 def test_notifiche_whatsapp_usa_js_esterno_e_date_localizzate():

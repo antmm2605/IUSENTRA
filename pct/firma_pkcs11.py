@@ -80,6 +80,7 @@ _LIBRERIE_DEFAULT: List[str] = [
 _ENV_LIBRARY = "PCT_PKCS11_LIBRARY"
 _ENV_SLOT    = "PCT_PKCS11_SLOT"
 _ENV_LABEL   = "PCT_PKCS11_LABEL"
+_ENV_ACTIVE_PROBE = "PCT_PKCS11_ACTIVE_PROBE"
 
 
 def _build_cades_bes(
@@ -153,10 +154,19 @@ def _build_cades_bes(
 
 
 def _score_library(lib_path: str) -> int:
+    library = Path(lib_path)
+    if not library.exists():
+        return 0
+
+    if not _pkcs11_active_probe_enabled():
+        # Passive probe: su Windows alcuni middleware PKCS#11 possono
+        # terminare il processo quando vengono interrogati in sola ricognizione.
+        return 2
+
     try:
         import pkcs11
     except Exception:
-        return 1 if Path(lib_path).exists() else 0
+        return 1
 
     try:
         lib = pkcs11.lib(lib_path)
@@ -165,9 +175,18 @@ def _score_library(lib_path: str) -> int:
 
     try:
         slots = list(lib.get_slots(token_present=True))
-        return 3 if slots else 1
+        return 3 if slots else 2
     except Exception:
         return 1
+
+
+def _pkcs11_active_probe_enabled() -> bool:
+    raw = os.environ.get(_ENV_ACTIVE_PROBE, "").strip().lower()
+    if raw in {"1", "true", "yes", "on"}:
+        return True
+    if raw in {"0", "false", "no", "off"}:
+        return False
+    return os.name != "nt"
 
 
 def _candidate_libraries() -> List[str]:
@@ -191,6 +210,9 @@ def libreria_disponibile() -> Optional[str]:
 
     Controlla prima la variabile d'ambiente PCT_PKCS11_LIBRARY, poi le
     posizioni di default comuni (OpenSC, Aruba, Namirial).
+
+    La ricognizione e' passiva di default su Windows per evitare crash dei
+    provider PKCS#11 durante i controlli di semplice disponibilita' in UI/test.
     """
     env_lib = os.environ.get(_ENV_LIBRARY, "")
     if env_lib and Path(env_lib).exists():
@@ -376,8 +398,6 @@ class FirmaPKCS11:
 
     def _apri_sessione(self):
         """Apre una sessione autenticata con il PIN."""
-        import pkcs11
-
         lib = self._get_lib()
         slots = lib.get_slots(token_present=True)
         if not slots:

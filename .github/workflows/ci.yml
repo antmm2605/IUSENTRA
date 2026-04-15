@@ -157,16 +157,21 @@ jobs:
         run: |
           python - <<'PY'
           import vercel_app
+          from web.app import create_app
 
           app = vercel_app.app
+          direct_app = create_app({"TESTING": True})
           client = app.test_client()
+          direct_client = direct_app.test_client()
 
           home = client.get("/", follow_redirects=False)
           login = client.get("/login", follow_redirects=False)
+          direct_login = direct_client.get("/login", follow_redirects=False)
           assert home.status_code < 500, f"Unexpected home status: {home.status_code}"
           assert login.status_code == 200, f"Unexpected login status: {login.status_code}"
+          assert direct_login.status_code == 200, f"Unexpected create_app login status: {direct_login.status_code}"
 
-          print("Smoke OK:", home.status_code, login.status_code)
+          print("Smoke OK:", home.status_code, login.status_code, direct_login.status_code)
           PY
 
   tests-core:

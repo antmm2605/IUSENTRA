@@ -70,6 +70,7 @@ Le regole di base oggi sono:
 - `.env.example` contiene solo placeholder neutri, mai secret reali.
 - Se `PCT_SECRET_KEY` manca o resta un placeholder, l’app usa una chiave effimera e segnala il problema.
 - La password bootstrap admin non usa più credenziali fisse: va fornita via `PCT_BOOTSTRAP_ADMIN_PASSWORD` oppure viene generata in modo casuale al primo avvio.
+- Il probing PKCS#11 è passivo di default su Windows per evitare crash dei middleware durante smoke test, dashboard e controlli di sola disponibilità.
 - Sessioni Flask con cookie `HttpOnly`, `SameSite=Lax`, refresh controllato e timeout.
 - Header browser di hardening (`X-Frame-Options`, `nosniff`, `Referrer-Policy`, `Permissions-Policy`, `Cross-Origin-Opener-Policy`, HSTS quando HTTPS è attivo).
 - Protezione CSRF sui flussi sensibili di autenticazione e gestione utenti.
@@ -83,7 +84,7 @@ La CI non si limita più alla sola sincronizzazione branch. La pipeline applicat
 - governance repo e modularizzazione (`Governance repo`)
 - lint statico conservativo su errori bloccanti (`ruff` + `flake8`)
 - import/syntax check
-- smoke test Flask
+- smoke test Flask sul runtime reale e su `create_app()`
 - suite `pytest` core su Linux
 - job matrix Linux / Windows / macOS per Local Signer e componenti correlati
 
@@ -117,6 +118,8 @@ python -m pytest tests/test_pdp_penale_web.py -q
 
 ## Documentazione operativa
 
+- [docs/QUICKSTART.md](docs/QUICKSTART.md) — avvio rapido locale, bootstrap admin e verifiche iniziali.
+- [docs/DEPLOY.md](docs/DEPLOY.md) — release, Docker locale, Railway, CI e controlli finali.
 - [docs/ARCHITETTURA.md](docs/ARCHITETTURA.md) — struttura moduli, flussi e confini applicativi.
 - [AGENTS.md](AGENTS.md) — regole operative del repository, release, sicurezza e PCT.
 

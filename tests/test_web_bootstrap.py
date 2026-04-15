@@ -810,7 +810,8 @@ def test_contesto_lex_compatta_le_sezioni_e_limita_le_fonti():
     assert "def build_competence_catalog_prompt" in competence_service
     assert "Centro Servizi Telematici" in competence_service
     assert "Tariffario, preventivi, fatturazione e pagamenti" in competence_service
-    assert "class WebExecutionIntent" in web_execution_service
+    assert "from lex.memory.web_execution import (" in web_execution_service
+    assert "WebExecutionIntent" in web_execution_service
     assert "is_web_execution_request" in web_execution_service
     assert "resolve_effective_query" in web_execution_service
     assert "resolve_web_execution_intent" in web_execution_service

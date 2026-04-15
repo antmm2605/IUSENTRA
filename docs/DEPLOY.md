@@ -1,0 +1,79 @@
+# Deploy e Release HACS
+
+## Obiettivo
+
+Questa guida allinea codice, CI, Docker locale e produzione Railway in un flusso di release verificabile.
+
+## Versioning obbligatorio
+
+Ogni modifica al codice richiede bump coerente in:
+
+- `pct/__init__.py`
+- `setup.py`
+- `Dockerfile`
+- `railway.toml`
+
+## Pipeline CI
+
+Il workflow applicativo è `.github/workflows/ci.yml` e include:
+
+- `Lint + syntax`
+- `Governance repo`
+- `Smoke test Flask`
+- `Pytest core`
+- `Local Signer e PKCS#11` su Linux/Windows/macOS
+
+Il lint resta bloccante solo sugli errori reali di sintassi/import.
+
+## Verifica release locale
+
+Dopo ogni bump versione:
+
+```bash
+docker compose build --no-cache
+docker compose up -d --force-recreate
+docker compose ps
+docker compose logs --tail=20 app
+docker compose exec -T app python -c "import pct; print(pct.__version__)"
+```
+
+Controlli minimi:
+
+- container `app` in stato `healthy`
+- `/login` risponde `200`
+- versione runtime uguale alla versione nei file di release
+
+## Produzione Railway
+
+Quando il fix tocca deploy, storage, AI locale, Local Signer bridge, SMTP o portali:
+
+- verifica il branch remoto davvero usato da Railway
+- controlla log applicativi e volume `/data`
+- verifica la route reale online coinvolta
+- conferma la versione effettiva del servizio remoto
+
+## Repo hygiene
+
+Prima di chiudere la release esegui:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/repo_hygiene.ps1
+```
+
+Lo script riallinea:
+
+- worktree
+- branch ammessi
+- branch remoti sincronizzati
+- cache Python locali
+- `.pytest_cache`, `.ruff_cache`, `tmp/`
+- artefatti runtime locali transitori come `intelligence/downloads/` e `portale/import_log.json`
+
+## Artefatti che non devono tornare in repo
+
+- copie tipo `* - Copia.*`
+- `pct.zip`
+- `__pycache__/`
+- `.pyc`
+- database runtime e indici locali
+- log/import cache generati dal runtime

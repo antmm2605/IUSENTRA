@@ -92,6 +92,32 @@ def register_fascicoli_signature_routes(
 ) -> None:
     """Register PKCS#11, uploaded-signature, and attestazione routes."""
 
+    def _salva_documento_firmato_compat(
+        firma,
+        contenuto: bytes,
+        output_path: str,
+        *,
+        formato: str,
+        visible_signature_mode: str,
+        visible_signature_place: str,
+    ):
+        try:
+            return firma.salva_documento_firmato(
+                contenuto,
+                output_path,
+                formato=formato,
+                visible_signature_mode=visible_signature_mode,
+                visible_signature_place=visible_signature_place,
+            )
+        except TypeError as exc:
+            if "visible_signature_mode" not in str(exc) and "visible_signature_place" not in str(exc):
+                raise
+            return firma.salva_documento_firmato(
+                contenuto,
+                output_path,
+                formato=formato,
+            )
+
     @app.route("/api/firma/pkcs11/status", methods=["GET"])
     def api_pkcs11_status():
         try:
@@ -203,7 +229,8 @@ def register_fascicoli_signature_routes(
                     return jsonify({"ok": False, "messaggio": stato_cert["messaggio"]})
 
                 output_path = str(doc_path) + ".p7m"
-                firma.salva_documento_firmato(
+                _salva_documento_firmato_compat(
+                    firma,
                     contenuto,
                     str(doc_path),
                     formato="cades",
@@ -363,7 +390,8 @@ def register_fascicoli_signature_routes(
                     with open(doc_path, "rb") as fh:
                         contenuto = fh.read()
 
-                    firma.salva_documento_firmato(
+                    _salva_documento_firmato_compat(
+                        firma,
                         contenuto,
                         str(doc_path),
                         formato="cades",

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sys
 from datetime import UTC, datetime, timedelta
 
 import pct.firma_pkcs11 as firma_pkcs11
@@ -32,6 +33,22 @@ def test_libreria_disponibile_accetta_override_env_esistente(monkeypatch, tmp_pa
 
 def test_windows_candidates_include_bit4xpki():
     assert any("bit4xpki.dll" in lib.lower() for lib in firma_pkcs11._LIBRERIE_DEFAULT)
+
+
+def test_pkcs11_active_probe_disabled_by_default_on_windows(monkeypatch):
+    monkeypatch.delenv(firma_pkcs11._ENV_ACTIVE_PROBE, raising=False)
+    monkeypatch.setattr(firma_pkcs11.os, "name", "nt")
+
+    assert firma_pkcs11._pkcs11_active_probe_enabled() is False
+
+
+def test_score_library_uses_passive_probe_when_disabled(tmp_path, monkeypatch):
+    dll_path = tmp_path / "bit4xpki.dll"
+    dll_path.write_text("stub", encoding="utf-8")
+    monkeypatch.setattr(firma_pkcs11, "_pkcs11_active_probe_enabled", lambda: False)
+    monkeypatch.setitem(sys.modules, "pkcs11", object())
+
+    assert firma_pkcs11._score_library(str(dll_path)) == 2
 
 
 def test_build_cades_bes_embeds_content_and_certificate():

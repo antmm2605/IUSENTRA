@@ -7,7 +7,7 @@ from typing import Any
 
 from lex.memory.social_intent import is_small_talk_message
 from web.services.assistente_competencies import primary_competence_profile
-from web.services.assistente_web_execution import resolve_web_execution_intent
+from lex.memory.web_execution import resolve_web_execution_intent
 
 
 def _is_civil_case_law_query(question: str) -> bool:

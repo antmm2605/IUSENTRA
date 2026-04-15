@@ -16,7 +16,6 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional
 from cryptography.hazmat.primitives import hashes, serialization
-from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.hazmat.backends import default_backend
 from cryptography import x509
 from cryptography.x509.oid import NameOID
@@ -397,12 +396,17 @@ class FirmaDigitale:
                 tmp.write(documento)
                 tmp_path = tmp.name
             try:
-                return self.firma_pades(
-                    tmp_path,
-                    output_path,
-                    visible_signature_mode=visible_signature_mode,
-                    visible_signature_place=visible_signature_place,
-                )
+                try:
+                    return self.firma_pades(
+                        tmp_path,
+                        output_path,
+                        visible_signature_mode=visible_signature_mode,
+                        visible_signature_place=visible_signature_place,
+                    )
+                except TypeError as exc:
+                    if "visible_signature_mode" not in str(exc) and "visible_signature_place" not in str(exc):
+                        raise
+                    return self.firma_pades(tmp_path, output_path)
             finally:
                 try:
                     os.unlink(tmp_path)

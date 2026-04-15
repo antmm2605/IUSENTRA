@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import date, datetime, timedelta
+from datetime import datetime, timedelta
 import re
 from typing import Any
 
@@ -10,7 +10,7 @@ from flask import current_app, g
 
 from pct.config_studio import GestioneConfigStudio
 from pct.fatturazione import GestioneFatturazione
-from pct.legal_intelligence import FONTI_UFFICIALI, fonti_per_query, motori_per_query
+from pct.legal_intelligence import fonti_per_query, motori_per_query
 from pct.preventivi import GestionePreventivi
 from pct.runtime_env import is_managed_cloud_runtime
 from pct.strumenti_legali import GestioneStrumentiLegali
@@ -43,12 +43,12 @@ from web.services.assistente_competencies import (
 )
 from web.services.assistente_conversation_focus import resolve_conversation_focus
 from web.services.assistente_execution_policy import build_execution_policy
-from web.services.assistente_legal_reference_guard import (
+from lex.guards.legal_reference_guard import (
     build_case_law_guard_prompt,
     collect_verified_legal_references,
 )
 from web.services.assistente_live_web import build_live_official_web_context
-from web.services.assistente_web_execution import is_web_execution_request
+from lex.memory.web_execution import is_web_execution_request
 from web.services.local_ai_runtime import get_local_ai_service
 
 

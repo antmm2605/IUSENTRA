@@ -4,7 +4,7 @@ import re
 from dataclasses import dataclass
 from typing import Any
 
-from web.services.assistente_web_execution import (
+from .web_execution import (
     is_web_execution_request as is_web_execution_command,
     resolve_effective_query as resolve_web_effective_query,
 )

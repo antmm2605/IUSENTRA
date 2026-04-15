@@ -26,6 +26,7 @@ venv/
 node_modules/
 .mypy_cache/
 .pytest_cache/
+.ruff_cache/
 .gradle/
 
 # Logs and temp files
@@ -33,6 +34,10 @@ node_modules/
 *.tmp
 *.swp
 *.swo
+*.bak
+*.orig
+*.rej
+* - Copia.*
 
 # Environment
 .env
@@ -94,6 +99,16 @@ data/
 /telematico/
 /giurisprudenza/
 /applicazioni/
+/intelligence/downloads/
+/intelligence/giurisprudenza.json
+/intelligence/local_ai.db
+/portale/import_log.json
+/tmp/
+/pct.zip
+/backup/manual/
+/search/*.db
+/data/search/*.db
+/data/tenants/*/sql/*.db
 
 # Root HTML mirrors not used by Flask.
 # The canonical templates live under web/templates/.

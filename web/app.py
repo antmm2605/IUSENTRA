@@ -2757,14 +2757,14 @@ def create_app(config: dict | None = None) -> Flask:
         recenti.insert(0, {"tipo": tipo, "id": id_, "titolo": titolo[:48], "url": url_, "icona": icona})
         session["recenti"] = recenti[:5]
 
-    def sync_pubblica(tipo: str, modulo: str, id_risorsa: str = ""):
+    def sync_pubblica(tipo: str, modulo: str, id_risorsa: str = "", utente: str = ""):
         """Pubblica un evento di sincronizzazione a tutti gli operatori connessi."""
         u = g.utente_corrente
         _sync.pubblica(
             tipo=tipo,
             modulo=modulo,
             id_risorsa=id_risorsa,
-            utente=u.username if u else "sistema",
+            utente=utente or (u.username if u else "sistema"),
         )
 
     def _audit_and_sync_best_effort(

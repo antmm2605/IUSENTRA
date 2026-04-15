@@ -1555,6 +1555,7 @@ def _cfg_web(tmp_path):
     return {
         "TESTING": True,
         "SECRET_KEY": "test",
+        "BOOTSTRAP_ADMIN_PASSWORD": "Admin1234!",
         "AUTH_DB": str(base / "utenti.json"),
         "AUDIT_DB": str(base / "audit.json"),
         "CLIENTI_DB": str(base / "clienti.json"),
@@ -1800,7 +1801,7 @@ def test_tab_firma_mostra_download_local_signer_per_tutte_le_piattaforme(tmp_pat
     with app.test_client() as c:
         login = c.post(
             "/login",
-            data={"username": "admin", "password": "admin"},
+        data={"username": "admin", "password": "Admin1234!"},
             follow_redirects=False,
         )
         assert login.status_code in (302, 303)
@@ -1830,7 +1831,7 @@ def test_impostazioni_firma_carica_p12_nel_volume_configurato(tmp_path):
     with app.test_client() as c:
         login = c.post(
             "/login",
-            data={"username": "admin", "password": "admin"},
+        data={"username": "admin", "password": "Admin1234!"},
             follow_redirects=False,
         )
         assert login.status_code in (302, 303)
@@ -1875,7 +1876,7 @@ def test_polisweb_non_mostra_demo_se_pkcs11_e_configurato(tmp_path):
     with app.test_client() as c:
         login = c.post(
             "/login",
-            data={"username": "admin", "password": "admin"},
+        data={"username": "admin", "password": "Admin1234!"},
             follow_redirects=False,
         )
         assert login.status_code in (302, 303)
@@ -1908,7 +1909,7 @@ def test_polisweb_passa_il_cf_configurato_alle_preferenze_certificato(tmp_path):
     with app.test_client() as c:
         login = c.post(
             "/login",
-            data={"username": "admin", "password": "admin"},
+        data={"username": "admin", "password": "Admin1234!"},
             follow_redirects=False,
         )
         assert login.status_code in (302, 303)
@@ -1997,7 +1998,7 @@ def test_polisweb_ricerca_non_torna_in_demo_se_pkcs11_e_configurato(tmp_path, mo
     with app.test_client() as c:
         login = c.post(
             "/login",
-            data={"username": "admin", "password": "admin"},
+        data={"username": "admin", "password": "Admin1234!"},
             follow_redirects=False,
         )
         assert login.status_code in (302, 303)

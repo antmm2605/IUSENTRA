@@ -29,6 +29,60 @@ if (-not $repoRoot) {
 
 Set-Location $repoRoot
 
+function Remove-GeneratedArtifacts {
+    param(
+        [string]$RootPath
+    )
+
+    Write-Host "`n== Cleanup artefatti locali ==" -ForegroundColor Cyan
+
+    $transientDirs = @(
+        ".pytest_cache",
+        ".ruff_cache",
+        "tmp",
+        "intelligence/downloads"
+    )
+    foreach ($relative in $transientDirs) {
+        $target = Join-Path $RootPath $relative
+        if (Test-Path $target) {
+            Write-Host "Rimuovo directory temporanea: $relative"
+            Remove-Item -LiteralPath $target -Recurse -Force -ErrorAction SilentlyContinue
+        }
+    }
+
+    $transientFiles = @(
+        "intelligence/local_ai.db",
+        "intelligence/giurisprudenza.json",
+        "portale/import_log.json",
+        "pct.zip"
+    )
+    foreach ($relative in $transientFiles) {
+        $target = Join-Path $RootPath $relative
+        if (Test-Path $target) {
+            Write-Host "Rimuovo file transitorio: $relative"
+            Remove-Item -LiteralPath $target -Force -ErrorAction SilentlyContinue
+        }
+    }
+
+    Get-ChildItem -Path $RootPath -Recurse -Directory -Force -ErrorAction SilentlyContinue |
+        Where-Object {
+            $_.Name -eq "__pycache__" -and $_.FullName -notlike "*\.venv\*"
+        } |
+        ForEach-Object {
+            Write-Host "Rimuovo cache Python: $($_.FullName)"
+            Remove-Item -LiteralPath $_.FullName -Recurse -Force -ErrorAction SilentlyContinue
+        }
+
+    Get-ChildItem -Path $RootPath -Recurse -File -Force -ErrorAction SilentlyContinue |
+        Where-Object {
+            ($_.Extension -in ".pyc", ".pyo") -and $_.FullName -notlike "*\.venv\*"
+        } |
+        ForEach-Object {
+            Write-Host "Rimuovo bytecode: $($_.FullName)"
+            Remove-Item -LiteralPath $_.FullName -Force -ErrorAction SilentlyContinue
+        }
+}
+
 $currentBranch = (git branch --show-current).Trim()
 if (-not $currentBranch) {
     throw "HEAD detached non supportato: esegui lo script da uno dei branch ammessi."
@@ -73,6 +127,7 @@ foreach ($path in $worktreePaths) {
     }
 }
 Invoke-Git worktree prune
+Remove-GeneratedArtifacts -RootPath $repoRoot
 
 Write-Host "`n== Rimuove branch locali extra ==" -ForegroundColor Cyan
 $localBranches = git for-each-ref --format="%(refname:short)" refs/heads

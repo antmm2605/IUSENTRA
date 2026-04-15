@@ -63,6 +63,8 @@ Lex ora ha una casa applicativa dedicata:
   factory del blueprint Flask compatibile con gli endpoint storici
 - `runtime_dependencies.py`
   wiring runtime del modulo: login Flask, runtime Ollama, export documento e contesto studio entrano in Lex da qui
+- `formatting/document_export.py`, `guards/legal_reference_guard.py`, `memory/web_execution.py`
+  proprietari del bridge operativo prima disperso in `web/services/assistente_*`
 - `routes.py`
   superficie HTTP dell'assistente
 - `service.py`
@@ -71,7 +73,7 @@ Lex ora ha una casa applicativa dedicata:
   coordinamento tra contesto, retrieval, prompt, runtime e guard rail
 - `context/`, `retrieval/`, `guards/`, `formatting/`, `providers/`, `memory/`, `telemetry/`, `prompts/`
   sottosistemi piccoli e separati, riusabili anche fuori dalla chat
-- i moduli storici `web/services/assistente_*.py` restano solo facciate compatibili: follow-up, routing sociale, prompt, riepilogo giornaliero e wiring runtime vivono ora in `lex/`
+- i moduli storici `web/services/assistente_*.py` restano solo facciate compatibili: follow-up, routing sociale, prompt, riepilogo giornaliero, export documentale, guardie legali e riconoscimento web execution vivono ora in `lex/`
 
 ### `web/blueprints/` — moduli web verticali
 

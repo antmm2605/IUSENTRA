@@ -16,12 +16,6 @@ from tools.lex_document_context import (
     build_attachment_prompt_block,
     parse_attachment_payloads,
 )
-from web.services.assistente_document_export import (
-    build_docx_bytes,
-    build_export_filename,
-    infer_export_title,
-)
-from web.services.assistente_legal_reference_guard import build_unverified_pdf_reply
 from web.services.assistente_studio_context import (
     build_lex_studio_context,
     warm_lex_studio_context,
@@ -33,6 +27,12 @@ from web.services.ollama_runtime import (
 
 from .dependencies import LexDependencies
 from .context.today_summary import build_today_operational_summary
+from .formatting.document_export import (
+    build_docx_bytes,
+    build_export_filename,
+    infer_export_title,
+)
+from .guards.legal_reference_guard import build_unverified_pdf_reply
 from .memory.followup import resolve_followup_query
 from .memory.social_intent import (
     build_social_only_reply,

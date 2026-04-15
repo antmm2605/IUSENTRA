@@ -20,6 +20,22 @@ def _check(condition: bool, message: str, failures: list[str]) -> None:
         failures.append(message)
 
 
+def _tracked_files() -> list[str]:
+    git_dir = REPO_ROOT / ".git"
+    if not git_dir.exists():
+        return []
+    import subprocess
+
+    result = subprocess.run(
+        ["git", "ls-files"],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    return [line.strip() for line in result.stdout.splitlines() if line.strip()]
+
+
 def main() -> int:
     failures: list[str] = []
 
@@ -49,11 +65,14 @@ def main() -> int:
 
     focused_limits = {
         "web/blueprints/assistente.py": 40,
+        "web/services/assistente_document_export.py": 40,
         "web/services/assistente_followup.py": 40,
         "web/services/assistente_social_intent.py": 40,
         "web/services/assistente_language_guidance.py": 40,
+        "web/services/assistente_legal_reference_guard.py": 40,
         "web/services/assistente_prompt.py": 40,
         "web/services/assistente_today_summary.py": 40,
+        "web/services/assistente_web_execution.py": 40,
     }
     for relative_path, limit in focused_limits.items():
         line_count = _line_count(relative_path)
@@ -81,6 +100,7 @@ def main() -> int:
         "python tools/check_repo_governance.py",
         "name: Lint + syntax",
         "name: Smoke test Flask",
+        "from web.app import create_app",
         "name: Pytest core",
         "name: Local Signer e PKCS#11 (${{ matrix.os }})",
     ):
@@ -88,6 +108,40 @@ def main() -> int:
 
     readme = _read_text("README.md")
     _check("Governance repo" in readme, "README non documenta il job di governance repo.", failures)
+    _check("docs/QUICKSTART.md" in readme, "README non collega il quickstart operativo.", failures)
+    _check("docs/DEPLOY.md" in readme, "README non collega la guida deploy/release.", failures)
+
+    for relative_path in ("docs/QUICKSTART.md", "docs/DEPLOY.md"):
+        _check((REPO_ROOT / relative_path).exists(), f"Documentazione mancante: {relative_path}.", failures)
+
+    tracked_files = _tracked_files()
+    forbidden_exact = {
+        "pct.zip",
+        "web/polisWeb - Copia.html",
+    }
+    forbidden_suffixes = (".pyc", ".pyo", ".rej", ".orig", ".bak")
+    for tracked in tracked_files:
+        normalized = tracked.replace("\\", "/")
+        _check(
+            "__pycache__/" not in normalized,
+            f"Artefatto Python tracciato: {normalized}.",
+            failures,
+        )
+        _check(
+            normalized not in forbidden_exact,
+            f"Zavorra di sviluppo tracciata: {normalized}.",
+            failures,
+        )
+        _check(
+            " - Copia." not in normalized,
+            f"File copia tracciato: {normalized}.",
+            failures,
+        )
+        _check(
+            not normalized.endswith(forbidden_suffixes),
+            f"Artefatto non governabile tracciato: {normalized}.",
+            failures,
+        )
 
     if failures:
         print("Governance check FAILED")

@@ -27,13 +27,16 @@ def register_auth_management_routes(
 ) -> None:
     """Register profile, users, roles, and audit routes."""
 
+    def _auth_manager() -> GestioneUtenti:
+        return getattr(g, "utente_auth_manager", None) or get_utenti()
+
     @app.route("/profilo", methods=["GET", "POST"])
     def profilo():
         u = g.utente_corrente
         if request.method == "POST":
             azione = request.form.get("azione")
             password_obbligatoria = bool(getattr(u, "must_change_password", False))
-            gu = get_utenti()
+            gu = _auth_manager()
             if password_obbligatoria and azione != "password":
                 flash(
                     "Per motivi di sicurezza devi prima impostare una nuova password.",
@@ -117,7 +120,7 @@ def register_auth_management_routes(
         u = g.utente_corrente
         if not u or not u.ha_permesso("utenti.leggi"):
             abort(403)
-        gu = get_utenti()
+        gu = _auth_manager()
         utenti = gu.tutti()
         stats = gu.statistiche()
         return render_template(
@@ -134,7 +137,7 @@ def register_auth_management_routes(
         if not u or not u.ha_permesso("utenti.scrivi"):
             abort(403)
         if request.method == "POST":
-            gu = get_utenti()
+            gu = _auth_manager()
             try:
                 nuovo = gu.crea(
                     username=request.form["username"],
@@ -163,7 +166,7 @@ def register_auth_management_routes(
         u = g.utente_corrente
         if not u or not u.ha_permesso("utenti.scrivi"):
             abort(403)
-        gu = get_utenti()
+        gu = _auth_manager()
         target = gu.get(id_utente)
         if not target:
             flash("Utente non trovato.", "warning")
@@ -207,7 +210,7 @@ def register_auth_management_routes(
         u = g.utente_corrente
         if not u or not u.ha_permesso("utenti.elimina"):
             abort(403)
-        gu = get_utenti()
+        gu = _auth_manager()
         try:
             gu.elimina(id_utente)
             audit("utenti.elimina", "utente", id_utente)
@@ -221,7 +224,7 @@ def register_auth_management_routes(
         u = g.utente_corrente
         if not u or not u.ha_permesso("audit.leggi"):
             abort(403)
-        gu = get_utenti()
+        gu = _auth_manager()
         id_utente = request.args.get("id_utente", "")
         azione = request.args.get("azione", "")
         eventi = gu.audit_log(id_utente=id_utente, azione=azione, limit=200)
@@ -241,7 +244,7 @@ def register_auth_management_routes(
         if not u or not u.ha_permesso("utenti.leggi"):
             abort(403)
         try:
-            return jsonify(get_utenti().statistiche())
+            return jsonify(_auth_manager().statistiche())
         except Exception as e:
             app.logger.exception("Errore api_utenti_statistiche: %s", e)
             return jsonify({"errore": str(e)}), 200
@@ -252,7 +255,7 @@ def register_auth_management_routes(
         u = g.utente_corrente
         if not u or not u.ha_permesso("utenti.leggi"):
             abort(403)
-        gu = get_utenti()
+        gu = _auth_manager()
         utenti_per_ruolo = {r: gu.per_ruolo(r) for r in RuoloUtente}
         return render_template(
             "auth/profili.html",
@@ -270,7 +273,7 @@ def register_auth_management_routes(
         u = g.utente_corrente
         if not u or not u.ha_permesso("utenti.scrivi"):
             abort(403)
-        gu = get_utenti()
+        gu = _auth_manager()
         target = gu.get(id_utente)
         if not target:
             flash("Utente non trovato.", "warning")

@@ -377,6 +377,83 @@ def test_login_route_con_studio_slug_legge_utenti_dal_sqlite_del_tenant(tmp_path
         assert session_data["user_id"] == tenant_user.id
 
 
+def test_profilo_tenant_cambia_password_anche_se_sqlite_auth_non_e_disponibile(
+    tmp_path: Path, monkeypatch
+):
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    app = create_app({**_cfg(tmp_path), "MULTI_TENANT": True})
+
+    tm = GestioneTenant(app.config["TENANTS_REGISTRY"])
+    studio = tm.crea("Studio Antonella", "antonella-mammola", db_config={"mode": "SQLITE"})
+    paths = tm.percorsi_dati(studio.slug)
+    tenant_users = GestioneUtenti(
+        db_path=paths["AUTH_DB"],
+        audit_path=paths["AUDIT_DB"],
+        secret_key=app.secret_key,
+        crea_admin_se_vuoto=False,
+        studio_db=None,
+    )
+    tenant_users.crea(
+        username="roberto.montagnese",
+        password="R0berto!Pct2026",
+        ruolo=RuoloUtente.AMMINISTRATORE,
+        tenant_slug=studio.slug,
+        must_change_password=True,
+    )
+
+    def _raise_sqlite_unavailable(_path: str):
+        raise sqlite3.OperationalError("sqlite unavailable")
+
+    client = app.test_client()
+    with monkeypatch.context() as login_patch:
+        login_patch.setattr("web.services.auth_runtime.StudioDB.get", _raise_sqlite_unavailable)
+        login = client.post(
+            "/login",
+            data={
+                "username": "roberto.montagnese",
+                "password": "R0berto!Pct2026",
+                "studio_slug": studio.slug,
+            },
+            follow_redirects=False,
+        )
+
+    assert login.status_code == 302
+    assert login.headers["Location"].endswith("/")
+    with client.session_transaction() as session_data:
+        assert session_data["tenant_slug"] == studio.slug
+        assert session_data["auth_scope"] == "tenant"
+        assert session_data["auth_tenant_slug"] == studio.slug
+        assert session_data["must_change_password"] is True
+
+    with monkeypatch.context() as profile_patch:
+        profile_patch.setattr("web.services.auth_runtime.StudioDB.get", _raise_sqlite_unavailable)
+        profile_patch.setattr("web.services.storage_runtime.StudioDB.get", _raise_sqlite_unavailable)
+        changed = client.post(
+            "/profilo",
+            data={
+                "azione": "password",
+                "password_old": "R0berto!Pct2026",
+                "password_new": "NuovaPwd!2026",
+            },
+            follow_redirects=True,
+        )
+
+    body = changed.get_data(as_text=True)
+
+    assert changed.status_code == 200
+    assert "Password attuale non corretta." not in body
+    assert "Password aggiornata correttamente." in body
+
+    tenant_users_after = GestioneUtenti(
+        db_path=paths["AUTH_DB"],
+        audit_path=paths["AUDIT_DB"],
+        secret_key=app.secret_key,
+        crea_admin_se_vuoto=False,
+        studio_db=None,
+    )
+    assert tenant_users_after.autentica("roberto.montagnese", "NuovaPwd!2026") is not None
+
+
 def test_login_route_assigns_single_active_tenant_to_legacy_global_admin(tmp_path: Path):
     _write_studio_config(tmp_path / "config" / "studio.json")
     app = create_app({**_cfg(tmp_path), "MULTI_TENANT": True})

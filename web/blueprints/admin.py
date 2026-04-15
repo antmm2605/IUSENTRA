@@ -528,8 +528,12 @@ def reset_password_utente(slug: str, uid: str):
     if not u or not _utente_del_tenant(u, slug):
         abort(404)
 
-    gu.cambia_password(uid, nuova_password)
-    flash(f"Password di '{u.username}' aggiornata.", "success")
+    gu.cambia_password(uid, nuova_password, must_change_password=True)
+    _sync_tenant_user_directory()
+    flash(
+        f"Password temporanea di '{u.username}' aggiornata. Al prossimo accesso dovra cambiarla.",
+        "success",
+    )
     return redirect(url_for("admin.utenti_studio", slug=slug))
 
 

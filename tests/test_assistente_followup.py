@@ -1,11 +1,11 @@
 import json
 from pathlib import Path
 
-from web.app import create_app
-from web.services.assistente_followup import (
+from lex.memory.followup import (
     resolve_followup_query,
     should_trigger_web_search,
 )
+from web.app import create_app
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -64,6 +64,8 @@ def _cfg_web(tmp_path: Path) -> dict:
         "SECRET_KEY": "test",
         "AUTH_DB": str(tmp_path / "utenti.json"),
         "AUDIT_DB": str(tmp_path / "audit.json"),
+        "BOOTSTRAP_ADMIN_PASSWORD": "admin",
+        "BOOTSTRAP_ADMIN_CREDENTIALS_PATH": str(tmp_path / "bootstrap_admin.json"),
         "CLIENTI_DB": str(tmp_path / "clienti.json"),
         "CONDIVISIONI_DB": str(tmp_path / "condivisioni.json"),
         "FASCICOLI_DB": str(tmp_path / "fascicoli.json"),

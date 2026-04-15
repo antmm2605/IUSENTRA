@@ -5,8 +5,8 @@ from __future__ import annotations
 import re
 from typing import Any
 
+from lex.memory.social_intent import is_small_talk_message
 from web.services.assistente_competencies import primary_competence_profile
-from web.services.assistente_social_intent import is_small_talk_message
 from web.services.assistente_web_execution import resolve_web_execution_intent
 
 

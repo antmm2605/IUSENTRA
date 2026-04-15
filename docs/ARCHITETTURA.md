@@ -53,7 +53,7 @@ Qui stanno i servizi trasversali che non appartengono a un singolo dominio:
   impostazioni runtime derivate da configurazione studio
 - `local_ai_runtime.py`
   integrazione AI locale e disponibilità runtime
-- servizi di contesto Lex e orchestrazione risposta
+- servizi di contesto studio, runtime locale e compatibilitÃ  UI
 
 ### `lex/` — modulo assistente autonomo
 
@@ -67,8 +67,9 @@ Lex ora ha una casa applicativa dedicata:
   casi d'uso applicativi
 - `orchestrator.py`
   coordinamento tra contesto, retrieval, prompt, runtime e guard rail
-- `context/`, `retrieval/`, `guards/`, `formatting/`, `providers/`, `memory/`, `telemetry/`
+- `context/`, `retrieval/`, `guards/`, `formatting/`, `providers/`, `memory/`, `telemetry/`, `prompts/`
   sottosistemi piccoli e separati, riusabili anche fuori dalla chat
+- i moduli storici `web/services/assistente_*.py` restano solo facciate compatibili: follow-up, routing sociale, prompt e regia linguistica vivono ora in `lex/`
 
 ### `web/blueprints/` — moduli web verticali
 

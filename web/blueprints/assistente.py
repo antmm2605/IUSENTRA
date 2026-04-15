@@ -14,26 +14,26 @@ import requests
 from flask import g
 
 from lex.blueprint import create_lex_blueprint
+from lex.context.today_summary import build_today_operational_summary
 from lex.dependencies import LexDependencies
+from lex.memory.followup import resolve_followup_query
+from lex.memory.social_intent import (
+    build_social_only_reply,
+    latest_user_message,
+    resolve_social_and_operational_intent,
+)
+from lex.prompts.language_guidance import build_language_guidance
+from lex.prompts.prompt_builder import build_assistente_prompt
 from web.services.assistente_document_export import (
     build_docx_bytes,
     build_export_filename,
     infer_export_title,
 )
-from web.services.assistente_followup import resolve_followup_query
-from web.services.assistente_language_guidance import build_language_guidance
 from web.services.assistente_legal_reference_guard import build_unverified_pdf_reply
-from web.services.assistente_prompt import build_assistente_prompt
-from web.services.assistente_social_intent import (
-    build_social_only_reply,
-    latest_user_message,
-    resolve_social_and_operational_intent,
-)
 from web.services.assistente_studio_context import (
     build_lex_studio_context,
     warm_lex_studio_context,
 )
-from web.services.assistente_today_summary import build_today_operational_summary
 from web.services.ollama_runtime import (
     resolved_ollama_runtime,
     warm_ollama_chat_runtime,

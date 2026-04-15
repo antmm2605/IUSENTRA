@@ -725,11 +725,15 @@ def test_contesto_lex_compatta_le_sezioni_e_limita_le_fonti():
     cache_service = (REPO_ROOT / "web/services/assistente_context_cache.py").read_text(encoding="utf-8")
     focus_service = (REPO_ROOT / "web/services/assistente_conversation_focus.py").read_text(encoding="utf-8")
     live_web_service = (REPO_ROOT / "web/services/assistente_live_web.py").read_text(encoding="utf-8")
-    followup_service = (REPO_ROOT / "web/services/assistente_followup.py").read_text(encoding="utf-8")
+    followup_service = (REPO_ROOT / "lex/memory/followup.py").read_text(encoding="utf-8")
+    followup_wrapper = (REPO_ROOT / "web/services/assistente_followup.py").read_text(encoding="utf-8")
     social_service = (REPO_ROOT / "web/services/assistente_social.py").read_text(encoding="utf-8")
-    social_intent_service = (REPO_ROOT / "web/services/assistente_social_intent.py").read_text(encoding="utf-8")
-    today_summary_service = (REPO_ROOT / "web/services/assistente_today_summary.py").read_text(encoding="utf-8")
-    language_guidance_service = (REPO_ROOT / "web/services/assistente_language_guidance.py").read_text(encoding="utf-8")
+    social_intent_service = (REPO_ROOT / "lex/memory/social_intent.py").read_text(encoding="utf-8")
+    social_intent_wrapper = (REPO_ROOT / "web/services/assistente_social_intent.py").read_text(encoding="utf-8")
+    today_summary_service = (REPO_ROOT / "lex/context/today_summary.py").read_text(encoding="utf-8")
+    today_summary_wrapper = (REPO_ROOT / "web/services/assistente_today_summary.py").read_text(encoding="utf-8")
+    language_guidance_service = (REPO_ROOT / "lex/prompts/language_guidance.py").read_text(encoding="utf-8")
+    language_guidance_wrapper = (REPO_ROOT / "web/services/assistente_language_guidance.py").read_text(encoding="utf-8")
     competence_service = (REPO_ROOT / "web/services/assistente_competencies.py").read_text(encoding="utf-8")
     web_execution_service = (REPO_ROOT / "web/services/assistente_web_execution.py").read_text(encoding="utf-8")
     assistente_blueprint = (REPO_ROOT / "web/blueprints/assistente.py").read_text(encoding="utf-8")
@@ -737,7 +741,8 @@ def test_contesto_lex_compatta_le_sezioni_e_limita_le_fonti():
     lex_routes = (REPO_ROOT / "lex/routes.py").read_text(encoding="utf-8")
     lex_service = (REPO_ROOT / "lex/service.py").read_text(encoding="utf-8")
     lex_orchestrator = (REPO_ROOT / "lex/orchestrator.py").read_text(encoding="utf-8")
-    assistente_prompt = (REPO_ROOT / "web/services/assistente_prompt.py").read_text(encoding="utf-8")
+    assistente_prompt = (REPO_ROOT / "lex/prompts/prompt_builder.py").read_text(encoding="utf-8")
+    prompt_wrapper = (REPO_ROOT / "web/services/assistente_prompt.py").read_text(encoding="utf-8")
 
     assert "def _select_detail_sections" in context_service
     assert "def _select_detail_sections_for_chat" in context_service
@@ -776,11 +781,13 @@ def test_contesto_lex_compatta_le_sezioni_e_limita_le_fonti():
     assert '"research_strategy": str(resolved_rule.get("research_strategy") or "").strip()' in focus_service
     assert '"web_execution_requested": bool(web_intent.requested)' in focus_service
     assert '"inherited_previous_theme": bool(web_intent.inherited_previous_theme)' in focus_service
+    assert "from lex.memory.social_intent import is_small_talk_message" in focus_service
     assert "_FALLBACK_DEFAULT_SOURCE_IDS" in live_web_service
     assert "force: bool = False" in live_web_service
     assert "explicit_source_ids" in live_web_service
     assert "resolve_effective_query as resolve_web_effective_query" in followup_service
     assert "is_web_execution_request as is_web_execution_command" in followup_service
+    assert "from lex.memory.followup import (" in followup_wrapper
     assert "classify_social_message" in social_service
     assert "build_social_reply" in social_service
     assert "prepend_social_prefix" in social_service
@@ -789,11 +796,14 @@ def test_contesto_lex_compatta_le_sezioni_e_limita_le_fonti():
     assert "resolve_social_and_operational_intent" in social_intent_service
     assert "build_daily_overview_lead" in social_intent_service
     assert "build_social_only_reply" in social_intent_service
+    assert "from lex.memory.social_intent import (" in social_intent_wrapper
     assert "build_today_operational_summary" in today_summary_service
     assert "_TODAY_SECTION_FACTORIES" in today_summary_service
+    assert "from lex.context.today_summary import build_today_operational_summary" in today_summary_wrapper
     assert "class LanguageGuidance" in language_guidance_service
     assert "def build_language_guidance" in language_guidance_service
     assert "Controllo io sul web. Parto dalle sentenze civili piu' recenti e rilevanti" in language_guidance_service
+    assert "from lex.prompts.language_guidance import LanguageGuidance, build_language_guidance" in language_guidance_wrapper
     assert "class LexCompetenceProfile" in competence_service
     assert "def build_competence_catalog_prompt" in competence_service
     assert "Centro Servizi Telematici" in competence_service
@@ -807,6 +817,11 @@ def test_contesto_lex_compatta_le_sezioni_e_limita_le_fonti():
     assert "warm_ollama_chat_runtime" in assistente_blueprint
     assert "resolved_ollama_runtime" in assistente_blueprint
     assert "_build_lex_dependencies" in assistente_blueprint
+    assert "from lex.context.today_summary import build_today_operational_summary" in assistente_blueprint
+    assert "from lex.memory.followup import resolve_followup_query" in assistente_blueprint
+    assert "from lex.memory.social_intent import (" in assistente_blueprint
+    assert "from lex.prompts.language_guidance import build_language_guidance" in assistente_blueprint
+    assert "from lex.prompts.prompt_builder import build_assistente_prompt" in assistente_blueprint
     assert "resolve_social_and_operational_intent" in assistente_blueprint
     assert "build_today_operational_summary" in assistente_blueprint
     assert "build_language_guidance" in assistente_blueprint
@@ -846,6 +861,7 @@ def test_contesto_lex_compatta_le_sezioni_e_limita_le_fonti():
     assert "Non usare mai testo-segnaposto o placeholder artificiali" in assistente_prompt
     assert "_LEX_COMPETENCE_COVERAGE_PROMPT = build_competence_catalog_prompt()" in assistente_prompt
     assert "Apertura iniziale da mantenere:" in assistente_prompt
+    assert "from lex.prompts.prompt_builder import build_assistente_prompt, latest_user_message" in prompt_wrapper
 
 
 def test_preparazione_udienza_guidata_usa_componenti_modulari_e_js_esterno():

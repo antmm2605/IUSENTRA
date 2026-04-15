@@ -1,4 +1,4 @@
-from web.services.assistente_language_guidance import build_language_guidance
+from lex.prompts.language_guidance import build_language_guidance
 
 
 def test_language_guidance_prende_in_carico_ricerca_sentenze_civili():

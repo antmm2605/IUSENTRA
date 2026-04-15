@@ -1,15 +1,15 @@
 import json
 from pathlib import Path
 
-from web.app import create_app
-from web.services.assistente_social_intent import (
+from lex.context.today_summary import build_today_operational_summary
+from lex.memory.social_intent import (
     build_daily_overview_lead,
     build_relational_reply,
     build_social_only_reply,
     prepend_social_prefix,
     resolve_social_and_operational_intent,
 )
-from web.services.assistente_today_summary import build_today_operational_summary
+from web.app import create_app
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -68,6 +68,8 @@ def _cfg_web(tmp_path: Path) -> dict:
         "SECRET_KEY": "test",
         "AUTH_DB": str(tmp_path / "utenti.json"),
         "AUDIT_DB": str(tmp_path / "audit.json"),
+        "BOOTSTRAP_ADMIN_PASSWORD": "admin",
+        "BOOTSTRAP_ADMIN_CREDENTIALS_PATH": str(tmp_path / "bootstrap_admin.json"),
         "CLIENTI_DB": str(tmp_path / "clienti.json"),
         "CONDIVISIONI_DB": str(tmp_path / "condivisioni.json"),
         "FASCICOLI_DB": str(tmp_path / "fascicoli.json"),

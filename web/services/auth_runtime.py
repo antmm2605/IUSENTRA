@@ -7,7 +7,7 @@ from datetime import datetime
 
 from flask import Flask, flash, g, redirect, render_template, request, session, url_for
 
-from pct.auth import GestioneUtenti, verifica_totp
+from pct.auth import GestioneUtenti, RuoloUtente, verifica_totp
 from web.services.storage_runtime import get_request_storage_runtime
 
 
@@ -53,6 +53,108 @@ def register_auth_runtime(
             crea_admin_se_vuoto=False,
         )
 
+    def _session_auth_scope() -> str:
+        return str(session.get("auth_scope", "") or "").strip().lower()
+
+    def _session_auth_tenant_slug() -> str:
+        return str(session.get("auth_tenant_slug", "") or "").strip().lower()
+
+    def _session_user_manager(uid: str | None = None):
+        auth_scope = _session_auth_scope()
+        auth_tenant_slug = _session_auth_tenant_slug()
+
+        if auth_scope == "tenant" and auth_tenant_slug and app.config.get("MULTI_TENANT"):
+            manager = _tenant_user_manager(auth_tenant_slug)
+            user = manager.get(uid) if uid else None
+            return manager, user, "tenant", auth_tenant_slug
+
+        if auth_scope == "global" or not app.config.get("MULTI_TENANT"):
+            manager = get_utenti()
+            user = manager.get(uid) if uid else None
+            return manager, user, "global", ""
+
+        tenant_slug = str(session.get("tenant_slug", "") or "").strip().lower()
+        if tenant_slug and app.config.get("MULTI_TENANT"):
+            manager = _tenant_user_manager(tenant_slug)
+            user = manager.get(uid) if uid else None
+            if user:
+                return manager, user, "tenant", tenant_slug
+
+        manager = get_utenti()
+        user = manager.get(uid) if uid else None
+        if user:
+            return manager, user, "global", ""
+
+        if tenant_slug and app.config.get("MULTI_TENANT"):
+            manager = _tenant_user_manager(tenant_slug)
+            user = manager.get(uid) if uid else None
+            return manager, user, "tenant", tenant_slug
+
+        return manager, user, "global", ""
+
+    def _active_tenants() -> list:
+        from pct.tenant import GestioneTenant
+
+        tenants = GestioneTenant(registry_path=app.config["TENANTS_REGISTRY"])
+        active_states = {"ATTIVO", "TRIAL"}
+        return [
+            studio
+            for studio in tenants.lista()
+            if str(getattr(studio, "stato", "") or "").upper() in active_states
+        ]
+
+    def _single_active_tenant_slug() -> str:
+        active = _active_tenants()
+        if len(active) == 1:
+            return str(getattr(active[0], "slug", "") or "")
+        return ""
+
+    def _resolve_tenant_login(username: str, password: str):
+        matches = []
+        for studio in _active_tenants():
+            slug = str(getattr(studio, "slug", "") or "").strip().lower()
+            if not slug:
+                continue
+            manager = _tenant_user_manager(slug)
+            utente = manager.autentica(username, password)
+            if utente:
+                matches.append((slug, manager, utente))
+        if len(matches) == 1:
+            return matches[0]
+        if len(matches) > 1:
+            return "ambiguous"
+        return None
+
+    def _legacy_root_data_paths() -> dict[str, str]:
+        mapping = {
+            "CLIENTI_DB": "CLIENTI_DB",
+            "CONDIVISIONI_DB": "CONDIVISIONI_DB",
+            "NOTE_FALDONE_DB": "NOTE_FALDONE_DB",
+            "FASCICOLI_DB": "FASCICOLI_DB",
+            "FASCICOLI_DOCS": "FASCICOLI_DOCS",
+            "FASCICOLI_ARCH": "FASCICOLI_ARCH",
+            "AGENDA_DB": "AGENDA_DB",
+            "SCADENZIARIO_DB": "SCADENZIARIO_DB",
+            "MESSAGGI_DB": "MESSAGGI_DB",
+            "EMAIL_CASELLA_DB": "EMAIL_CASELLA_DB",
+            "PRIVACY_DB": "PRIVACY_DB",
+            "PORTALE_DB": "PORTALE_DB",
+            "FATTURAZIONE_DB": "FATTURAZIONE_DB",
+            "PREVENTIVI_DB": "PREVENTIVI_DB",
+            "SOGGETTI_DB": "SOGGETTI_DB",
+            "SOGGETTI_PARTI_DB": "SOGGETTI_PARTI_DB",
+            "TEMPLATE_ATTI_DB": "TEMPLATE_ATTI_DB",
+            "TEMPLATE_ATTI_PREFS_DB": "TEMPLATE_ATTI_PREFS_DB",
+            "WIZARD_PRO_DB": "WIZARD_PRO_DB",
+            "CONFIG_STUDIO_DB": "STUDIO_CONFIG",
+            "SEARCH_INDEX": "SEARCH_INDEX",
+        }
+        return {
+            target_key: str(app.config.get(source_key, "") or "")
+            for target_key, source_key in mapping.items()
+            if str(app.config.get(source_key, "") or "").strip()
+        }
+
     @app.before_request
     def carica_utente_corrente():
         """Inject g.utente_corrente for every request; logout after 8h inactivity."""
@@ -72,12 +174,11 @@ def register_auth_runtime(
                 pass
 
         session["last_activity"] = datetime.now().isoformat()
-        tenant_slug = session.get("tenant_slug", "")
-        if tenant_slug and app.config.get("MULTI_TENANT"):
-            manager = _tenant_user_manager(tenant_slug)
-        else:
-            manager = get_utenti()
-        g.utente_corrente = manager.get(uid)
+        manager, user, auth_scope, auth_tenant_slug = _session_user_manager(uid)
+        g.utente_corrente = user
+        g.utente_auth_manager = manager
+        g.utente_auth_scope = auth_scope
+        g.utente_auth_tenant_slug = auth_tenant_slug
         return None
 
     @app.before_request
@@ -102,6 +203,26 @@ def register_auth_runtime(
         tenants = GestioneTenant(registry_path=app.config["TENANTS_REGISTRY"])
         studio = tenants.get(tenant_slug)
         if studio:
+            active_tenant_slug = _single_active_tenant_slug()
+            if active_tenant_slug == tenant_slug:
+                try:
+                    bootstrap_report = tenants.bootstrap_legacy_runtime_data(
+                        tenant_slug,
+                        _legacy_root_data_paths(),
+                    )
+                    if bootstrap_report.get("copied") or bootstrap_report.get("sqlite_migrated"):
+                        app.logger.info(
+                            "Bootstrap dati legacy per tenant %s: copied=%s sqlite=%s",
+                            tenant_slug,
+                            ",".join(sorted(bootstrap_report.get("copied", {}).keys())) or "-",
+                            bootstrap_report.get("sqlite_migrated", False),
+                        )
+                except Exception as exc:
+                    app.logger.exception(
+                        "Errore bootstrap dati legacy per tenant %s: %s",
+                        tenant_slug,
+                        exc,
+                    )
             g.tenant = studio
             g.data_paths = tenants.percorsi_dati(tenant_slug)
             g.storage_runtime = get_request_storage_runtime(g.data_paths["CLIENTI_DB"]).to_dict()
@@ -135,7 +256,15 @@ def register_auth_runtime(
 
         errore = None
         if request.method == "POST":
+            username = request.form.get("username", "")
+            password = request.form.get("password", "")
             studio_slug = request.form.get("studio_slug", "").strip().lower()
+            selected_tenant_slug = ""
+            manager = None
+            utente = None
+            auth_scope = "global"
+            auth_tenant_slug = ""
+
             if studio_slug and app.config.get("MULTI_TENANT"):
                 from pct.tenant import GestioneTenant
 
@@ -148,17 +277,38 @@ def register_auth_runtime(
                         multi_tenant=True,
                     )
                 manager = _tenant_user_manager(studio_slug)
+                utente = manager.autentica(username, password)
+                selected_tenant_slug = studio_slug
+                auth_scope = "tenant"
+                auth_tenant_slug = studio_slug
             else:
                 manager = get_utenti()
-
-            utente = manager.autentica(
-                request.form.get("username", ""),
-                request.form.get("password", ""),
-            )
+                utente = manager.autentica(username, password)
+                if utente and app.config.get("MULTI_TENANT"):
+                    selected_tenant_slug = str(getattr(utente, "tenant_slug", "") or "")
+                    ruolo = str(getattr(utente, "ruolo", "") or "")
+                    if not selected_tenant_slug and ruolo != str(RuoloUtente.SUPERADMIN):
+                        selected_tenant_slug = _single_active_tenant_slug()
+                if not utente and app.config.get("MULTI_TENANT"):
+                    tenant_match = _resolve_tenant_login(username, password)
+                    if tenant_match == "ambiguous":
+                        errore = (
+                            "Sono stati trovati più studi per queste credenziali. "
+                            "Indica lo studio nel campo dedicato."
+                        )
+                    elif tenant_match:
+                        selected_tenant_slug, manager, utente = tenant_match
+                        auth_scope = "tenant"
+                        auth_tenant_slug = selected_tenant_slug
             if utente:
                 if utente.totp_attivato:
                     session.clear()
                     session["totp_pending_uid"] = utente.id
+                    session["totp_pending_tenant_slug"] = (
+                        selected_tenant_slug or utente.tenant_slug or ""
+                    )
+                    session["totp_pending_auth_scope"] = auth_scope
+                    session["totp_pending_auth_tenant_slug"] = auth_tenant_slug or ""
                     session["totp_pending_next"] = request.args.get("next") or url_for(
                         "dashboard"
                     )
@@ -169,7 +319,9 @@ def register_auth_runtime(
 
                 session.clear()
                 session["user_id"] = utente.id
-                session["tenant_slug"] = utente.tenant_slug or ""
+                session["tenant_slug"] = selected_tenant_slug or utente.tenant_slug or ""
+                session["auth_scope"] = auth_scope
+                session["auth_tenant_slug"] = auth_tenant_slug or ""
                 session["last_activity"] = datetime.now().isoformat()
                 session["must_change_password"] = bool(
                     getattr(utente, "must_change_password", False)
@@ -190,10 +342,11 @@ def register_auth_runtime(
                 next_url = request.args.get("next") or url_for("dashboard")
                 return redirect(next_url)
 
-            errore = "Credenziali non valide o utente disabilitato."
+            if not errore:
+                errore = "Credenziali non valide o utente disabilitato."
             manager.registra_evento(
                 "auth.login_fallito",
-                username=request.form.get("username", ""),
+                username=username,
                 ip=request.remote_addr or "",
                 esito="ERRORE",
             )
@@ -208,7 +361,8 @@ def register_auth_runtime(
     def logout():
         utente = g.utente_corrente
         if utente:
-            get_utenti().registra_evento(
+            auth_manager = getattr(g, "utente_auth_manager", None) or get_utenti()
+            auth_manager.registra_evento(
                 "auth.logout",
                 id_utente=utente.id,
                 username=utente.username,
@@ -225,10 +379,27 @@ def register_auth_runtime(
         if not uid:
             return redirect(url_for("login"))
 
-        manager = get_utenti()
+        pending_tenant_slug = session.get("totp_pending_tenant_slug", "")
+        pending_auth_scope = str(session.get("totp_pending_auth_scope", "") or "").strip().lower()
+        pending_auth_tenant_slug = str(
+            session.get("totp_pending_auth_tenant_slug", "") or ""
+        ).strip().lower()
+        if (
+            pending_auth_scope == "tenant"
+            and pending_auth_tenant_slug
+            and app.config.get("MULTI_TENANT")
+        ):
+            manager = _tenant_user_manager(pending_auth_tenant_slug)
+        elif pending_tenant_slug and app.config.get("MULTI_TENANT"):
+            manager = _tenant_user_manager(pending_tenant_slug)
+        else:
+            manager = get_utenti()
         utente = manager.get(uid)
         if not utente or not utente.totp_attivato:
             session.pop("totp_pending_uid", None)
+            session.pop("totp_pending_tenant_slug", None)
+            session.pop("totp_pending_auth_scope", None)
+            session.pop("totp_pending_auth_tenant_slug", None)
             return redirect(url_for("login"))
 
         errore = None
@@ -239,9 +410,20 @@ def register_auth_runtime(
                 force_password_change = bool(
                     session.pop("totp_pending_force_password_change", False)
                 )
+                tenant_slug = session.pop("totp_pending_tenant_slug", "")
+                auth_scope = str(session.pop("totp_pending_auth_scope", "") or "").strip().lower()
+                auth_tenant_slug = str(
+                    session.pop("totp_pending_auth_tenant_slug", "") or ""
+                ).strip().lower()
                 session.clear()
                 session["user_id"] = utente.id
-                session["tenant_slug"] = utente.tenant_slug or ""
+                session["tenant_slug"] = tenant_slug or utente.tenant_slug or ""
+                session["auth_scope"] = auth_scope or (
+                    "tenant" if auth_tenant_slug or utente.tenant_slug else "global"
+                )
+                session["auth_tenant_slug"] = (
+                    auth_tenant_slug or (utente.tenant_slug if session["auth_scope"] == "tenant" else "")
+                )
                 session["last_activity"] = datetime.now().isoformat()
                 session["must_change_password"] = force_password_change
                 session.permanent = True

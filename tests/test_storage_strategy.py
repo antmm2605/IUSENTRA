@@ -295,6 +295,224 @@ def test_login_route_falls_back_to_json_when_sqlite_runtime_is_unavailable(
     assert response.headers["Location"].endswith("/")
 
 
+def test_login_route_resolves_unique_tenant_user_without_studio_slug(tmp_path: Path):
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    app = create_app({**_cfg(tmp_path), "MULTI_TENANT": True})
+
+    tm = GestioneTenant(app.config["TENANTS_REGISTRY"])
+    studio = tm.crea("Studio Antonella", "antonella-mammola", db_config={"mode": "SQLITE"})
+    paths = tm.percorsi_dati(studio.slug)
+    tenant_users = GestioneUtenti(
+        db_path=paths["AUTH_DB"],
+        audit_path=paths["AUDIT_DB"],
+        secret_key=app.secret_key,
+        crea_admin_se_vuoto=False,
+    )
+    tenant_user = tenant_users.crea(
+        username="antonella",
+        password="PasswordSicura!123",
+        ruolo=RuoloUtente.AMMINISTRATORE,
+        tenant_slug=studio.slug,
+        must_change_password=False,
+    )
+
+    client = app.test_client()
+    response = client.post(
+        "/login",
+        data={"username": tenant_user.username, "password": "PasswordSicura!123"},
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 302
+    assert response.headers["Location"].endswith("/")
+    with client.session_transaction() as session_data:
+        assert session_data["tenant_slug"] == studio.slug
+        assert session_data["user_id"] == tenant_user.id
+
+
+def test_login_route_assigns_single_active_tenant_to_legacy_global_admin(tmp_path: Path):
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    app = create_app({**_cfg(tmp_path), "MULTI_TENANT": True})
+
+    tm = GestioneTenant(app.config["TENANTS_REGISTRY"])
+    studio = tm.crea("Studio Antonella", "antonella-mammola", db_config={"mode": "SQLITE"})
+
+    root_users = GestioneUtenti(
+        db_path=app.config["AUTH_DB"],
+        audit_path=app.config["AUDIT_DB"],
+        secret_key=app.secret_key,
+        crea_admin_se_vuoto=False,
+    )
+    legacy_admin = root_users.crea(
+        username="admin",
+        password="adminadmin",
+        ruolo=RuoloUtente.AMMINISTRATORE,
+        tenant_slug="",
+        must_change_password=False,
+    )
+
+    client = app.test_client()
+    response = client.post(
+        "/login",
+        data={"username": legacy_admin.username, "password": "adminadmin"},
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 302
+    assert response.headers["Location"].endswith("/")
+    with client.session_transaction() as session_data:
+        assert session_data["tenant_slug"] == studio.slug
+        assert session_data["user_id"] == legacy_admin.id
+        assert session_data["auth_scope"] == "global"
+        assert session_data["auth_tenant_slug"] == ""
+
+
+def test_single_tenant_bootstrap_migra_dati_legacy_nello_studio_sqlite(tmp_path: Path):
+    registry = tmp_path / "tenants.json"
+    tm = GestioneTenant(str(registry))
+    studio = tm.crea("Studio Antonella", "antonella-mammola", db_config={"mode": "SQLITE"})
+
+    root_clienti = tmp_path / "clienti" / "anagrafica.json"
+    root_clienti.parent.mkdir(parents=True, exist_ok=True)
+    root_clienti.write_text(
+        json.dumps(
+            {
+                "CLI001": {
+                    "id": "CLI001",
+                    "tipo": "PERSONA_FISICA",
+                    "stato": "ATTIVO",
+                    "nome": "Antonella",
+                    "cognome": "Mammola",
+                    "codice_fiscale": "MMMNNL75E65F839X",
+                    "recapiti": {},
+                    "documento": {"tipo": "CARTA_IDENTITA"},
+                    "procedimenti": [],
+                    "tag": [],
+                }
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+
+    root_fascicoli = tmp_path / "fascicoli" / "fascicoli.json"
+    root_fascicoli.parent.mkdir(parents=True, exist_ok=True)
+    root_fascicoli.write_text(
+        json.dumps(
+            {
+                "FASC001": {
+                    "id": "FASC001",
+                    "numero": "1/2026",
+                    "titolo": "Ricorso di prova",
+                    "tipo": "CIVILE",
+                    "stato": "APERTO",
+                    "id_cliente": "CLI001",
+                    "nome_cliente": "Mammola Antonella",
+                    "attivita": [],
+                    "documenti": [],
+                    "scadenze_interne": [],
+                    "depositi_pct": [],
+                    "avanzamento": [],
+                }
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+
+    root_docs = tmp_path / "fascicoli" / "documenti" / "FASC001"
+    root_docs.mkdir(parents=True, exist_ok=True)
+    (root_docs / "atto.pdf").write_bytes(b"%PDF-1.4 legacy")
+
+    root_config = tmp_path / "config" / "studio.json"
+    _write_studio_config(root_config)
+
+    result = tm.bootstrap_legacy_runtime_data(
+        studio.slug,
+        {
+            "CLIENTI_DB": str(root_clienti),
+            "FASCICOLI_DB": str(root_fascicoli),
+            "FASCICOLI_DOCS": str(tmp_path / "fascicoli" / "documenti"),
+            "CONFIG_STUDIO_DB": str(root_config),
+        },
+    )
+    tenant_paths = tm.percorsi_dati(studio.slug)
+    conn = sqlite3.connect(tenant_paths["STUDIO_DB"])
+    clienti_count = conn.execute("SELECT COUNT(*) FROM clienti").fetchone()[0]
+    fascicoli_count = conn.execute("SELECT COUNT(*) FROM fascicoli").fetchone()[0]
+    conn.close()
+
+    assert result["ok"] is True
+    assert result["sqlite_migrated"] is True
+    assert result["sqlite_records"]["clienti"] >= 1
+    assert clienti_count >= 1
+    assert fascicoli_count >= 1
+    assert Path(tenant_paths["FASCICOLI_DOCS"], "FASC001", "atto.pdf").exists()
+    assert Path(tenant_paths["CONFIG_STUDIO_DB"]).exists()
+
+
+def test_login_route_bootstraps_legacy_root_data_for_single_tenant_install(tmp_path: Path):
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    app = create_app({**_cfg(tmp_path), "MULTI_TENANT": True})
+
+    root_clienti = Path(app.config["CLIENTI_DB"])
+    root_clienti.parent.mkdir(parents=True, exist_ok=True)
+    root_clienti.write_text(
+        json.dumps(
+            {
+                "CLI001": {
+                    "id": "CLI001",
+                    "tipo": "PERSONA_FISICA",
+                    "stato": "ATTIVO",
+                    "nome": "Antonella",
+                    "cognome": "Mammola",
+                    "codice_fiscale": "MMMNNL75E65F839X",
+                    "recapiti": {},
+                    "documento": {"tipo": "CARTA_IDENTITA"},
+                    "procedimenti": [],
+                    "tag": [],
+                }
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+
+    tm = GestioneTenant(app.config["TENANTS_REGISTRY"])
+    studio = tm.crea("Studio Antonella", "antonella-mammola", db_config={"mode": "SQLITE"})
+
+    root_users = GestioneUtenti(
+        db_path=app.config["AUTH_DB"],
+        audit_path=app.config["AUDIT_DB"],
+        secret_key=app.secret_key,
+        crea_admin_se_vuoto=False,
+    )
+    legacy_admin = root_users.crea(
+        username="admin",
+        password="adminadmin",
+        ruolo=RuoloUtente.AMMINISTRATORE,
+        tenant_slug="",
+        must_change_password=False,
+    )
+
+    client = app.test_client()
+    response = client.post(
+        "/login",
+        data={"username": legacy_admin.username, "password": "adminadmin"},
+        follow_redirects=False,
+    )
+
+    dashboard = client.get("/", follow_redirects=False)
+    tenant_paths = tm.percorsi_dati(studio.slug)
+    conn = sqlite3.connect(tenant_paths["STUDIO_DB"])
+    clienti_count = conn.execute("SELECT COUNT(*) FROM clienti").fetchone()[0]
+    conn.close()
+
+    assert response.status_code == 302
+    assert clienti_count >= 1
+    assert dashboard.status_code == 200
+
+
 def test_superadmin_can_create_studio_with_postgresql_strategy(tmp_path: Path):
     _write_studio_config(tmp_path / "config" / "studio.json")
     app = create_app(_cfg(tmp_path))

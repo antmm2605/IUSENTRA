@@ -102,3 +102,33 @@ def test_gestione_tenant_get_supporta_registry_con_chiave_diversa_dallo_slug(tmp
 
     assert studio is not None
     assert studio.slug == "antonella-mammola"
+
+
+def test_percorsi_dati_usano_storage_key_legacy_quando_presente(tmp_path):
+    registry_path = tmp_path / "tenants.json"
+    registry_path.write_text(
+        json.dumps(
+            {
+                "studio-001": {
+                    "slug": "antonella-mammola",
+                    "storage_key": "tenant-8bf98719c459",
+                    "nome": "Studio Antonella Mammola",
+                    "piano": "PROFESSIONAL",
+                    "stato": "ATTIVO",
+                    "db_config": {
+                        "mode": "LOCAL",
+                        "directory_dati": str(tmp_path / "tenants" / "tenant-8bf98719c459"),
+                    },
+                }
+            },
+            ensure_ascii=False,
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+
+    tm = GestioneTenant(str(registry_path))
+    paths = tm.percorsi_dati("antonella-mammola")
+
+    assert "tenant-8bf98719c459" in paths["CLIENTI_DB"]
+    assert "tenant-8bf98719c459" in paths["AUTH_DB"]

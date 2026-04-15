@@ -5,7 +5,6 @@ from pct.auth import (
     GestioneUtenti,
     Utente,
     RuoloUtente,
-    PERMESSI,
 )
 from pct.storage import StudioDB
 
@@ -170,6 +169,23 @@ def test_autentica_utente_disabilitato(gu):
 def test_autentica_case_insensitive(gu):
     gu.crea("mario", "password123", RuoloUtente.AVVOCATO)
     assert gu.autentica("MARIO", "password123") is not None
+
+
+def test_utente_from_dict_ignora_campi_legacy_non_previsti():
+    utente = Utente.from_dict(
+        {
+            "id": "u1",
+            "username": "antonella",
+            "ruolo": "AMMINISTRATORE",
+            "password_hash": "hash",
+            "tenant_slug": "antonella-mammola",
+            "tenant_id": "legacy-tenant-id",
+        }
+    )
+
+    assert utente.id == "u1"
+    assert utente.username == "antonella"
+    assert utente.tenant_slug == "antonella-mammola"
 
 
 # ------------------------------------------------------------------ Permessi

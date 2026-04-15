@@ -390,6 +390,8 @@ def impersona_studio(slug: str):
     percorsi = tm.percorsi_dati(slug)
     session["user_id"]      = admin_studio.id
     session["tenant_slug"]  = slug
+    session["auth_scope"]   = "tenant"
+    session["auth_tenant_slug"] = slug
     session["_fresh"]       = True
 
     flash(f"Stai operando come studio '{studio.nome}'. Clicca 'Esci impersonazione' per tornare.", "warning")
@@ -407,6 +409,8 @@ def esci_impersonazione():
 
     session["user_id"]     = orig_user_id
     session["tenant_slug"] = ""
+    session["auth_scope"] = "global"
+    session["auth_tenant_slug"] = ""
     session.pop("tenant_slug", None)
 
     flash("Sei tornato al pannello SUPERADMIN.", "info")

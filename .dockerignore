@@ -1,17 +1,17 @@
 # Dati runtime (non vanno nell'immagine Docker)
-auth/
-agenda/
-backup/
-clienti/
-fascicoli/
-messaggi/
-notifiche/
-depositi/
-search/
-privacy/
-scadenziario/
-sync/
-data/
+/auth/
+/agenda/
+/backup/
+/clienti/
+/fascicoli/
+/messaggi/
+/notifiche/
+/depositi/
+/search/
+/privacy/
+/scadenziario/
+/sync/
+/data/
 
 # Python
 __pycache__/

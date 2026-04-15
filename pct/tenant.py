@@ -17,6 +17,7 @@ import json
 import uuid
 import re
 import secrets
+import shutil
 from dataclasses import dataclass, field, asdict
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -390,6 +391,7 @@ class StudioLegale:
     Tenant rappresentante uno studio legale sulla piattaforma HACS.
     """
     id:               str  = field(default_factory=lambda: str(uuid.uuid4()))
+    storage_key:      str  = ""
     slug:             str  = ""           # URL-safe, unico (es. "studio-rossi")
     nome:             str  = ""           # Nome visualizzato
     piva:             str  = ""
@@ -518,6 +520,16 @@ class StudioLegale:
         d.setdefault("max_utenti", 0)
         d.setdefault("max_storage_mb", 0)
         d.setdefault("data_attivazione", "")
+        if not str(d.get("storage_key", "") or "").strip():
+            legacy_directory = ""
+            try:
+                legacy_directory = str((d.get("db_config") or {}).get("directory_dati", "") or "")
+            except Exception:
+                legacy_directory = ""
+            if legacy_directory:
+                d["storage_key"] = Path(legacy_directory).name
+            else:
+                d["storage_key"] = str(d.get("slug", "") or "")
         return StudioLegale(**{k: v for k, v in d.items() if k in StudioLegale.__dataclass_fields__})
 
 
@@ -601,6 +613,8 @@ class GestioneTenant:
             raise ValueError(f"Slug '{slug}' non valido (solo lettere, cifre, trattini)")
 
         studio = StudioLegale(nome=nome, slug=slug, piano=piano, **kwargs)
+        if not studio.storage_key:
+            studio.storage_key = slug
 
         # Calcola data scadenza in base al piano
         durata = PIANI.get(piano, {}).get("durata_gg", 30)
@@ -775,10 +789,79 @@ class GestioneTenant:
     # ---- Directory dati
 
     def _data_dir(self, slug: str) -> Path:
+        studio = self.get(slug)
+        if studio:
+            storage_key = str(getattr(studio, "storage_key", "") or "").strip()
+            if storage_key:
+                candidate = Path(storage_key)
+                if candidate.is_absolute():
+                    return candidate
+                return self.registry_path.parent / "tenants" / storage_key
+
+            try:
+                legacy_directory = str((studio.db_config or {}).get("directory_dati", "") or "").strip()
+            except Exception:
+                legacy_directory = ""
+            if legacy_directory:
+                return Path(legacy_directory)
         return self.registry_path.parent / "tenants" / slug
 
     def data_dir(self, slug: str) -> Path:
         return self._data_dir(slug)
+
+    @staticmethod
+    def _json_has_records(path: Path) -> bool:
+        if not path.exists() or not path.is_file():
+            return False
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+        except Exception:
+            return path.stat().st_size > 2
+        if isinstance(payload, dict):
+            return len(payload) > 0
+        if isinstance(payload, list):
+            return len(payload) > 0
+        return bool(payload)
+
+    @classmethod
+    def _path_has_data(cls, path: Path) -> bool:
+        if not path.exists():
+            return False
+        if path.is_dir():
+            return any(path.iterdir())
+        if path.suffix.lower() == ".json":
+            return cls._json_has_records(path)
+        return path.stat().st_size > 0
+
+    @classmethod
+    def _path_needs_seed(cls, source: Path, destination: Path) -> bool:
+        if not cls._path_has_data(source):
+            return False
+        if source.resolve() == destination.resolve():
+            return False
+        return not cls._path_has_data(destination)
+
+    @staticmethod
+    def _copy_seed_path(source: Path, destination: Path) -> str:
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        if source.is_dir():
+            shutil.copytree(source, destination, dirs_exist_ok=True)
+        else:
+            shutil.copy2(source, destination)
+        return str(destination)
+
+    @staticmethod
+    def _sqlite_table_has_records(db_path: Path, table_name: str) -> bool:
+        import sqlite3
+
+        if not db_path.exists():
+            return False
+        try:
+            with sqlite3.connect(db_path) as conn:
+                row = conn.execute(f"SELECT COUNT(*) FROM {table_name}").fetchone()
+        except sqlite3.Error:
+            return False
+        return bool(row and int(row[0] or 0) > 0)
 
     def _inizializza_directory(self, slug: str) -> None:
         base = self._data_dir(slug)
@@ -792,6 +875,102 @@ class GestioneTenant:
             "preventivi", "email", "soggetti",
         ]:
             (base / subdir).mkdir(parents=True, exist_ok=True)
+
+    def bootstrap_legacy_runtime_data(
+        self,
+        slug: str,
+        legacy_paths: Dict[str, str],
+    ) -> Dict[str, Any]:
+        """
+        Importa dati legacy single-tenant nella root del tenant.
+
+        Viene usato come ponte di compatibilità per installazioni storiche dove:
+        - auth multi-tenant è già attivo
+        - i dati di lavoro reali stanno ancora nella root ./data/
+        - esiste un solo studio attivo e deve "ereditare" i dati legacy
+        """
+        studio = self.get(slug)
+        if not studio:
+            return {"ok": False, "copied": {}, "sqlite_migrated": False}
+
+        self._inizializza_directory(slug)
+        tenant_paths = self.percorsi_dati(slug)
+        copied: Dict[str, str] = {}
+        sqlite_migrated = False
+        sqlite_records: Dict[str, int] = {}
+
+        copy_keys = (
+            "CLIENTI_DB",
+            "CONDIVISIONI_DB",
+            "NOTE_FALDONE_DB",
+            "FASCICOLI_DB",
+            "FASCICOLI_DOCS",
+            "FASCICOLI_ARCH",
+            "AGENDA_DB",
+            "SCADENZIARIO_DB",
+            "MESSAGGI_DB",
+            "EMAIL_CASELLA_DB",
+            "PRIVACY_DB",
+            "PORTALE_DB",
+            "FATTURAZIONE_DB",
+            "PREVENTIVI_DB",
+            "SOGGETTI_DB",
+            "SOGGETTI_PARTI_DB",
+            "TEMPLATE_ATTI_DB",
+            "TEMPLATE_ATTI_PREFS_DB",
+            "WIZARD_PRO_DB",
+            "CONFIG_STUDIO_DB",
+        )
+
+        for key in copy_keys:
+            source_raw = str(legacy_paths.get(key, "") or "").strip()
+            destination_raw = str(tenant_paths.get(key, "") or "").strip()
+            if not source_raw or not destination_raw:
+                continue
+            source = Path(source_raw)
+            destination = Path(destination_raw)
+            if self._path_needs_seed(source, destination):
+                copied[key] = self._copy_seed_path(source, destination)
+
+        if studio.database.is_sqlite:
+            studio_db_path = Path(tenant_paths["STUDIO_DB"])
+            sqlite_empty = not any(
+                self._sqlite_table_has_records(studio_db_path, table)
+                for table in ("clienti", "fascicoli", "appuntamenti", "scadenze", "messaggi")
+            )
+            if sqlite_empty:
+                from pct.database import GestioneDatabase
+
+                migrate_sources = {
+                    "clienti": legacy_paths.get("CLIENTI_DB", ""),
+                    "fascicoli": legacy_paths.get("FASCICOLI_DB", ""),
+                    "appuntamenti": legacy_paths.get("AGENDA_DB", ""),
+                    "scadenze": legacy_paths.get("SCADENZIARIO_DB", ""),
+                    "messaggi": legacy_paths.get("MESSAGGI_DB", ""),
+                    "privacy": legacy_paths.get("PRIVACY_DB", ""),
+                    "search_index": legacy_paths.get("SEARCH_INDEX", ""),
+                }
+                if any(
+                    self._path_has_data(Path(str(path)))
+                    for path in migrate_sources.values()
+                    if str(path).strip()
+                ):
+                    migratore = GestioneDatabase(migrate_sources)
+                    risultato = migratore.migra_verso_sqlite(str(studio_db_path))
+                    sqlite_records = dict(risultato.record_migrati)
+                    sqlite_migrated = bool(
+                        risultato.riuscita and any(int(v or 0) > 0 for v in sqlite_records.values())
+                    )
+
+        if copied or sqlite_migrated:
+            self._scrivi_storage_manifest(slug, studio)
+
+        return {
+            "ok": True,
+            "copied": copied,
+            "sqlite_migrated": sqlite_migrated,
+            "sqlite_records": sqlite_records,
+        }
 
     def percorsi_dati(self, slug: str) -> Dict[str, str]:
         """Restituisce il dizionario di configurazione data paths per questo tenant."""

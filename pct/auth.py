@@ -296,7 +296,8 @@ class Utente:
         d.setdefault("totp_attivato", False)
         d.setdefault("tenant_slug", "")
         d.setdefault("must_change_password", False)
-        return Utente(**d)
+        allowed = Utente.__dataclass_fields__.keys()
+        return Utente(**{k: v for k, v in d.items() if k in allowed})
 
 
 # ------------------------------------------------------------------ Audit log
@@ -487,7 +488,6 @@ class GestioneUtenti:
 
     def _salva_audit(self):
         if self._studio_db is not None:
-            import json as _json
             cutoff = (datetime.now() - timedelta(days=self._retention_days)).isoformat()
             recenti = [e for e in self._audit if e.timestamp >= cutoff]
             recenti = recenti[-10000:]

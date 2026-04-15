@@ -5,6 +5,7 @@ from pathlib import Path
 from flask import g
 
 from pct.auth import GestioneUtenti, RuoloUtente
+from pct.storage import StudioDB
 from pct.tenant import DatabaseConfig, DbMode, GestioneTenant
 from web.bootstrap.flask_app_factory import create_flask_app
 from web.app import create_app
@@ -310,6 +311,7 @@ def test_login_route_resolves_unique_tenant_user_without_studio_slug(tmp_path: P
         audit_path=paths["AUDIT_DB"],
         secret_key=app.secret_key,
         crea_admin_se_vuoto=False,
+        studio_db=StudioDB.get(paths["STUDIO_DB"]),
     )
     tenant_user = tenant_users.crea(
         username="antonella",
@@ -330,6 +332,48 @@ def test_login_route_resolves_unique_tenant_user_without_studio_slug(tmp_path: P
     assert response.headers["Location"].endswith("/")
     with client.session_transaction() as session_data:
         assert session_data["tenant_slug"] == studio.slug
+        assert session_data["user_id"] == tenant_user.id
+
+
+def test_login_route_con_studio_slug_legge_utenti_dal_sqlite_del_tenant(tmp_path: Path):
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    app = create_app({**_cfg(tmp_path), "MULTI_TENANT": True})
+
+    tm = GestioneTenant(app.config["TENANTS_REGISTRY"])
+    studio = tm.crea("Studio Antonella", "antonella-mammola", db_config={"mode": "SQLITE"})
+    paths = tm.percorsi_dati(studio.slug)
+    tenant_users = GestioneUtenti(
+        db_path=paths["AUTH_DB"],
+        audit_path=paths["AUDIT_DB"],
+        secret_key=app.secret_key,
+        crea_admin_se_vuoto=False,
+        studio_db=StudioDB.get(paths["STUDIO_DB"]),
+    )
+    tenant_user = tenant_users.crea(
+        username="antonella-explicit",
+        password="PasswordSicura!123",
+        ruolo=RuoloUtente.AMMINISTRATORE,
+        tenant_slug=studio.slug,
+        must_change_password=False,
+    )
+
+    client = app.test_client()
+    response = client.post(
+        "/login",
+        data={
+            "username": tenant_user.username,
+            "password": "PasswordSicura!123",
+            "studio_slug": studio.slug,
+        },
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 302
+    assert response.headers["Location"].endswith("/")
+    with client.session_transaction() as session_data:
+        assert session_data["tenant_slug"] == studio.slug
+        assert session_data["auth_scope"] == "tenant"
+        assert session_data["auth_tenant_slug"] == studio.slug
         assert session_data["user_id"] == tenant_user.id
 
 

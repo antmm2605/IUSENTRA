@@ -4,10 +4,12 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from datetime import datetime
+import sqlite3
 
 from flask import Flask, flash, g, redirect, render_template, request, session, url_for
 
 from pct.auth import GestioneUtenti, RuoloUtente, verifica_totp
+from pct.storage import StudioDB
 from web.services.storage_runtime import get_request_storage_runtime
 from web.services.tenant_legacy_bootstrap import bootstrap_legacy_tenant_runtime_data
 
@@ -46,12 +48,20 @@ def register_auth_runtime(
         from pct.tenant import GestioneTenant
 
         tenants = GestioneTenant(registry_path=app.config["TENANTS_REGISTRY"])
+        studio = tenants.get(tenant_slug)
         paths = tenants.percorsi_dati(tenant_slug)
+        studio_db = None
+        if studio and getattr(studio.database, "is_sqlite", False):
+            try:
+                studio_db = StudioDB.get(paths["STUDIO_DB"])
+            except (OSError, sqlite3.Error):
+                studio_db = None
         return GestioneUtenti(
             db_path=paths["AUTH_DB"],
             audit_path=paths["AUDIT_DB"],
             secret_key=app.secret_key,
             crea_admin_se_vuoto=False,
+            studio_db=studio_db,
         )
 
     def _session_auth_scope() -> str:

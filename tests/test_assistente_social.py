@@ -65,6 +65,8 @@ def _cfg_web(tmp_path: Path) -> dict:
         "SECRET_KEY": "test",
         "AUTH_DB": str(tmp_path / "utenti.json"),
         "AUDIT_DB": str(tmp_path / "audit.json"),
+        "BOOTSTRAP_ADMIN_PASSWORD": "admin",
+        "BOOTSTRAP_ADMIN_CREDENTIALS_PATH": str(tmp_path / "bootstrap_admin.json"),
         "CLIENTI_DB": str(tmp_path / "clienti.json"),
         "CONDIVISIONI_DB": str(tmp_path / "condivisioni.json"),
         "FASCICOLI_DB": str(tmp_path / "fascicoli.json"),
@@ -141,7 +143,7 @@ def test_assistente_chat_bypassa_ollama_per_messaggio_sociale(monkeypatch, tmp_p
     def _unexpected_post(*args, **kwargs):
         raise AssertionError("Ollama non dovrebbe essere chiamato per un messaggio solo sociale.")
 
-    monkeypatch.setattr("web.blueprints.assistente.requests.post", _unexpected_post)
+    monkeypatch.setattr("lex.runtime_dependencies.requests.post", _unexpected_post)
 
     with app.test_client() as client:
         client.post("/login", data={"username": "admin", "password": "admin"}, follow_redirects=True)

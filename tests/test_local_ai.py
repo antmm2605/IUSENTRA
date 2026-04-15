@@ -935,7 +935,7 @@ def test_assistente_chat_non_duplica_cronologia_nel_system_prompt_e_usa_keep_ali
         return FakeStreamResponse()
 
     monkeypatch.setattr(
-        "web.blueprints.assistente.resolved_ollama_runtime",
+        "lex.runtime_dependencies.resolved_ollama_runtime",
         lambda: {
             "api_base_url": "http://host.docker.internal:11434/api",
             "base_url": "http://host.docker.internal:11434",
@@ -943,7 +943,7 @@ def test_assistente_chat_non_duplica_cronologia_nel_system_prompt_e_usa_keep_ali
             "keep_alive": "12m",
         },
     )
-    monkeypatch.setattr("web.blueprints.assistente.requests.post", fake_post)
+    monkeypatch.setattr("lex.runtime_dependencies.requests.post", fake_post)
 
     messages = [
         {"role": "user", "content": "Apri il fascicolo Rossi."},

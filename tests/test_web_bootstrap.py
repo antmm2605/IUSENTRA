@@ -374,6 +374,8 @@ def test_bootstrap_pubblico_resta_allineato_a_password_temporanee_e_ci_reale():
     assert "INSERISCI_UNA_CHIAVE_CASUALE" not in env_example
     assert "workflow principale applicativo è `.github/workflows/ci.yml`" in readme
     assert "name: CI" in ci_workflow
+    assert "name: Governance repo" in ci_workflow
+    assert "python tools/check_repo_governance.py" in ci_workflow
 
 
 def test_runtime_cloud_hosted_sposta_ai_locale_su_storage_effimero(monkeypatch, tmp_path: Path):
@@ -813,19 +815,20 @@ def test_contesto_lex_compatta_le_sezioni_e_limita_le_fonti():
     assert "resolve_effective_query" in web_execution_service
     assert "resolve_web_execution_intent" in web_execution_service
     assert "create_lex_blueprint" in assistente_blueprint
-    assert "LexDependencies" in assistente_blueprint
-    assert "warm_ollama_chat_runtime" in assistente_blueprint
-    assert "resolved_ollama_runtime" in assistente_blueprint
     assert "_build_lex_dependencies" in assistente_blueprint
-    assert "from lex.context.today_summary import build_today_operational_summary" in assistente_blueprint
-    assert "from lex.memory.followup import resolve_followup_query" in assistente_blueprint
-    assert "from lex.memory.social_intent import (" in assistente_blueprint
-    assert "from lex.prompts.language_guidance import build_language_guidance" in assistente_blueprint
-    assert "from lex.prompts.prompt_builder import build_assistente_prompt" in assistente_blueprint
-    assert "resolve_social_and_operational_intent" in assistente_blueprint
-    assert "build_today_operational_summary" in assistente_blueprint
-    assert "build_language_guidance" in assistente_blueprint
+    assert "from lex.runtime_dependencies import (" in assistente_blueprint
+    assert "build_runtime_lex_dependencies" in assistente_blueprint
+    assert "require_authenticated_flask_user" in assistente_blueprint
     assert 'assistente = create_lex_blueprint(' in assistente_blueprint
+    runtime_dependencies = (REPO_ROOT / "lex/runtime_dependencies.py").read_text(encoding="utf-8")
+    assert "def build_runtime_lex_dependencies() -> LexDependencies:" in runtime_dependencies
+    assert "def require_authenticated_flask_user(fn):" in runtime_dependencies
+    assert "from web.services.assistente_studio_context import (" in runtime_dependencies
+    assert "from web.services.ollama_runtime import (" in runtime_dependencies
+    assert "from .memory.followup import resolve_followup_query" in runtime_dependencies
+    assert "from .memory.social_intent import (" in runtime_dependencies
+    assert "from .prompts.language_guidance import build_language_guidance" in runtime_dependencies
+    assert "from .prompts.prompt_builder import build_assistente_prompt" in runtime_dependencies
     assert "register_routes(bp, service=service, login_required=login_required)" in lex_blueprint
     assert 'Blueprint("assistente", __name__)' in lex_blueprint
     assert 'bp.add_url_rule("/api/assistente/warmup"' in lex_routes
@@ -999,7 +1002,7 @@ def test_assistente_stato_usa_runtime_ollama_risolto(monkeypatch, tmp_path: Path
         return FakeResponse()
 
     monkeypatch.setattr(
-        "web.blueprints.assistente.resolved_ollama_runtime",
+        "lex.runtime_dependencies.resolved_ollama_runtime",
         lambda: {
             "api_base_url": "http://host.docker.internal:11434/api",
             "base_url": "http://host.docker.internal:11434",
@@ -1007,7 +1010,7 @@ def test_assistente_stato_usa_runtime_ollama_risolto(monkeypatch, tmp_path: Path
             "keep_alive": "10m",
         },
     )
-    monkeypatch.setattr("web.blueprints.assistente.requests.get", fake_get)
+    monkeypatch.setattr("lex.runtime_dependencies.requests.get", fake_get)
 
     with app.test_client() as client:
         client.post("/login", data={"username": "admin", "password": "admin"}, follow_redirects=True)
@@ -1043,7 +1046,7 @@ def test_assistente_chat_usa_runtime_ollama_risolto(monkeypatch, tmp_path: Path)
         return FakeStreamResponse()
 
     monkeypatch.setattr(
-        "web.blueprints.assistente.resolved_ollama_runtime",
+        "lex.runtime_dependencies.resolved_ollama_runtime",
         lambda: {
             "api_base_url": "http://host.docker.internal:11434/api",
             "base_url": "http://host.docker.internal:11434",
@@ -1051,7 +1054,7 @@ def test_assistente_chat_usa_runtime_ollama_risolto(monkeypatch, tmp_path: Path)
             "keep_alive": "12m",
         },
     )
-    monkeypatch.setattr("web.blueprints.assistente.requests.post", fake_post)
+    monkeypatch.setattr("lex.runtime_dependencies.requests.post", fake_post)
 
     with app.test_client() as client:
         client.post("/login", data={"username": "admin", "password": "admin"}, follow_redirects=True)

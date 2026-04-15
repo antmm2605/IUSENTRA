@@ -61,6 +61,8 @@ Lex ora ha una casa applicativa dedicata:
 
 - `blueprint.py`
   factory del blueprint Flask compatibile con gli endpoint storici
+- `runtime_dependencies.py`
+  wiring runtime del modulo: login Flask, runtime Ollama, export documento e contesto studio entrano in Lex da qui
 - `routes.py`
   superficie HTTP dell'assistente
 - `service.py`
@@ -69,7 +71,7 @@ Lex ora ha una casa applicativa dedicata:
   coordinamento tra contesto, retrieval, prompt, runtime e guard rail
 - `context/`, `retrieval/`, `guards/`, `formatting/`, `providers/`, `memory/`, `telemetry/`, `prompts/`
   sottosistemi piccoli e separati, riusabili anche fuori dalla chat
-- i moduli storici `web/services/assistente_*.py` restano solo facciate compatibili: follow-up, routing sociale, prompt e regia linguistica vivono ora in `lex/`
+- i moduli storici `web/services/assistente_*.py` restano solo facciate compatibili: follow-up, routing sociale, prompt, riepilogo giornaliero e wiring runtime vivono ora in `lex/`
 
 ### `web/blueprints/` — moduli web verticali
 
@@ -166,6 +168,7 @@ La maturità della repo richiede una pipeline continua composta da:
 
 La CI deve restare coerente con questa architettura: testare per layer e per dominio, non solo con un job generico.
 Nel breve periodo il lint di CI deve essere severo sugli errori reali ma sostenibile sul debito esistente; per questo il gate attuale blocca errori sintattici e import/failure, mentre le regole di stile possono essere irrigidite in step successivi.
+Accanto a quality, smoke e pytest esiste anche un controllo `Governance repo` che impedisce regressioni su budget moduli, presenza di route inline nel monolite e sottigliezza delle facciate compatibili.
 
 ## Direzione tecnica
 

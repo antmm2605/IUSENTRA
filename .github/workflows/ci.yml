@@ -107,10 +107,31 @@ jobs:
             print(f"Compiled {path}")
           PY
 
+  governance:
+    name: Governance repo
+    runs-on: ubuntu-latest
+    needs: quality
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Check modularizzazione e guardrail repo
+        run: |
+          python tools/check_repo_governance.py
+
   smoke-flask:
     name: Smoke test Flask
     runs-on: ubuntu-latest
-    needs: quality
+    needs:
+      - quality
+      - governance
     timeout-minutes: 15
 
     steps:
@@ -140,16 +161,20 @@ jobs:
           app = vercel_app.app
           client = app.test_client()
 
-          response = client.get("/", follow_redirects=False)
-          assert response.status_code < 500, f"Unexpected status: {response.status_code}"
+          home = client.get("/", follow_redirects=False)
+          login = client.get("/login", follow_redirects=False)
+          assert home.status_code < 500, f"Unexpected home status: {home.status_code}"
+          assert login.status_code == 200, f"Unexpected login status: {login.status_code}"
 
-          print("Smoke OK:", response.status_code)
+          print("Smoke OK:", home.status_code, login.status_code)
           PY
 
   tests-core:
     name: Pytest core
     runs-on: ubuntu-latest
-    needs: quality
+    needs:
+      - quality
+      - governance
     timeout-minutes: 35
 
     steps:
@@ -174,7 +199,13 @@ jobs:
       - name: Run core suite
         run: |
           pytest -q \
+            lex/tests \
             tests/test_auth.py \
+            tests/test_assistente_followup.py \
+            tests/test_assistente_language_guidance.py \
+            tests/test_assistente_social.py \
+            tests/test_assistente_social_intent.py \
+            tests/test_assistente_legal_reference_guard.py \
             tests/test_web_bootstrap.py \
             tests/test_web_security.py \
             tests/test_database.py \
@@ -191,7 +222,9 @@ jobs:
   signer-matrix:
     name: Local Signer e PKCS#11 (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
-    needs: quality
+    needs:
+      - quality
+      - governance
     timeout-minutes: 35
     strategy:
       fail-fast: false

@@ -66,6 +66,8 @@ def _cfg_web(tmp_path: Path) -> dict:
         "SECRET_KEY": "test",
         "AUTH_DB": str(tmp_path / "utenti.json"),
         "AUDIT_DB": str(tmp_path / "audit.json"),
+        "BOOTSTRAP_ADMIN_PASSWORD": "admin",
+        "BOOTSTRAP_ADMIN_CREDENTIALS_PATH": str(tmp_path / "bootstrap_admin.json"),
         "CLIENTI_DB": str(tmp_path / "clienti.json"),
         "CONDIVISIONI_DB": str(tmp_path / "condivisioni.json"),
         "FASCICOLI_DB": str(tmp_path / "fascicoli.json"),
@@ -134,13 +136,13 @@ def test_guard_blocca_download_pdf_su_pronuncia_non_verificata():
 
 
 def test_assistente_context_restituisce_direct_answer_per_pdf_non_verificato(tmp_path: Path, monkeypatch):
-    import web.blueprints.assistente as assistente_module
+    import lex.runtime_dependencies as assistente_runtime_module
 
     _write_studio_config(tmp_path / "config" / "studio.json")
     app = create_app(_cfg_web(tmp_path))
 
     monkeypatch.setattr(
-        assistente_module,
+        assistente_runtime_module,
         "build_lex_studio_context",
         lambda *args, **kwargs: {
             "prompt_block": "",

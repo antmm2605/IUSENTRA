@@ -25,7 +25,7 @@ La struttura è organizzata per responsabilità:
 - `web/services/`
   Servizi runtime, autenticazione, sicurezza, contesto UI, AI locale.
 - `lex/`
-  Modulo autonomo di Lex con blueprint, orchestrator, context, retrieval, guard rail, provider, prompt builder e memoria conversazionale.
+  Modulo autonomo di Lex con blueprint, orchestrator, context, retrieval, guard rail, provider, prompt builder, memoria conversazionale e wiring runtime dedicato.
 - `web/blueprints/`
   Blueprint verticali per moduli autonomi.
 - `web/templates/` e `web/static/`
@@ -80,6 +80,7 @@ Le regole di base oggi sono:
 
 La CI non si limita più alla sola sincronizzazione branch. La pipeline applicativa esegue:
 
+- governance repo e modularizzazione (`Governance repo`)
 - lint statico conservativo su errori bloccanti (`ruff` + `flake8`)
 - import/syntax check
 - smoke test Flask
@@ -90,6 +91,7 @@ I workflow vivono in `.github/workflows/`.
 Il workflow principale applicativo è `.github/workflows/ci.yml`.
 Le dipendenze di sviluppo della pipeline sono raccolte in `requirements-dev.txt`.
 Il gate lint attuale è volutamente centrato su errori sintattici e import/fatal error, così la CI resta verde mentre il debito storico di stile viene ridotto in modo progressivo.
+Il job `Governance repo` esegue `tools/check_repo_governance.py` e blocca regressioni su modularizzazione, budget dei moduli e confini tra `web/` e `lex/`.
 
 ## Test utili
 

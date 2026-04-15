@@ -16,6 +16,7 @@ Lex vive fuori da `web/app.py` e fuori dal vecchio blueprint monolitico:
 - `lex/guards/` applica perimetro, grounding e pulizia output
 - `lex/memory/` gestisce follow-up, routing sociale e continuita' conversazionale
 - `lex/prompts/` contiene prompt builder e regia linguistica
+- `lex/runtime_dependencies.py` contiene il wiring runtime di produzione, cosi' `web/` resta solo facciata
 - `lex/providers/` isola il runtime LLM
 
 ## Compatibilita'

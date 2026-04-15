@@ -231,6 +231,70 @@ def test_login_route_migra_auth_legacy_json_verso_sqlite(tmp_path: Path):
     assert response.headers["Location"].endswith("/")
 
 
+def test_request_storage_runtime_fallbacks_to_json_when_sqlite_unavailable(
+    tmp_path: Path, monkeypatch
+):
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    app = create_app(_cfg(tmp_path))
+
+    clienti_path = tmp_path / "clienti" / "anagrafica.json"
+    clienti_path.parent.mkdir(parents=True, exist_ok=True)
+    clienti_path.write_text("{}", encoding="utf-8")
+
+    def _raise_sqlite_error(_path: str):
+        raise sqlite3.OperationalError("sqlite unavailable")
+
+    monkeypatch.setattr("web.services.storage_runtime.StudioDB.get", _raise_sqlite_error)
+
+    with app.test_request_context("/"):
+        profile_before = get_request_storage_runtime(str(clienti_path))
+        studio_db = get_request_studio_db(str(clienti_path))
+        profile_after = get_request_storage_runtime(str(clienti_path))
+
+    assert profile_before.selected_mode == DbMode.SQLITE
+    assert profile_before.uses_sqlite is True
+    assert studio_db is None
+    assert profile_after.selected_mode == DbMode.SQLITE
+    assert profile_after.effective_mode == DbMode.JSON
+    assert profile_after.uses_sqlite is False
+    assert profile_after.source.endswith("sqlite-unavailable")
+
+
+def test_login_route_falls_back_to_json_when_sqlite_runtime_is_unavailable(
+    tmp_path: Path, monkeypatch
+):
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    app = create_app(_cfg(tmp_path))
+
+    legacy = GestioneUtenti(
+        db_path=app.config["AUTH_DB"],
+        audit_path=app.config["AUDIT_DB"],
+        secret_key=app.secret_key,
+        crea_admin_se_vuoto=False,
+    )
+    legacy.crea(
+        username="locale-json",
+        password="PasswordSicura!123",
+        ruolo=RuoloUtente.AVVOCATO,
+        must_change_password=False,
+    )
+
+    def _raise_sqlite_error(_path: str):
+        raise sqlite3.OperationalError("sqlite unavailable")
+
+    monkeypatch.setattr("web.services.storage_runtime.StudioDB.get", _raise_sqlite_error)
+
+    client = app.test_client()
+    response = client.post(
+        "/login",
+        data={"username": "locale-json", "password": "PasswordSicura!123"},
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 302
+    assert response.headers["Location"].endswith("/")
+
+
 def test_superadmin_can_create_studio_with_postgresql_strategy(tmp_path: Path):
     _write_studio_config(tmp_path / "config" / "studio.json")
     app = create_app(_cfg(tmp_path))

@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, asdict
+import sqlite3
+from dataclasses import dataclass, asdict, replace
 from pathlib import Path
 from typing import Any
 
@@ -91,7 +92,25 @@ def get_request_studio_db(anchor_path: str):
     if cached is not None and str(cached.db_path) == profile.studio_db_path:
         return cached
 
-    studio_db = StudioDB.get(profile.studio_db_path)
+    try:
+        studio_db = StudioDB.get(profile.studio_db_path)
+    except (OSError, sqlite3.Error) as exc:
+        fallback_profile = replace(
+            profile,
+            effective_mode=DbMode.JSON,
+            uses_sqlite=False,
+            source=f"{profile.source}-sqlite-unavailable",
+        )
+        if has_request_context():
+            g._storage_runtime_profile = fallback_profile
+        if has_app_context():
+            current_app.logger.warning(
+                "SQLite non disponibile per %s: fallback JSON attivato (%s)",
+                profile.studio_db_path,
+                exc,
+            )
+        return None
+
     if has_request_context():
         g._runtime_studio_db = studio_db
     return studio_db

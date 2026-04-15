@@ -24,6 +24,8 @@ La struttura è organizzata per responsabilità:
   Wiring Flask e registrazione route modulari.
 - `web/services/`
   Servizi runtime, autenticazione, sicurezza, contesto UI, AI locale.
+- `lex/`
+  Modulo autonomo di Lex con blueprint, orchestrator, context, retrieval, guard rail e provider.
 - `web/blueprints/`
   Blueprint verticali per moduli autonomi.
 - `web/templates/` e `web/static/`

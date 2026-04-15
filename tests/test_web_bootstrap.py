@@ -650,6 +650,10 @@ def test_contesto_lex_compatta_le_sezioni_e_limita_le_fonti():
     competence_service = (REPO_ROOT / "web/services/assistente_competencies.py").read_text(encoding="utf-8")
     web_execution_service = (REPO_ROOT / "web/services/assistente_web_execution.py").read_text(encoding="utf-8")
     assistente_blueprint = (REPO_ROOT / "web/blueprints/assistente.py").read_text(encoding="utf-8")
+    lex_blueprint = (REPO_ROOT / "lex/blueprint.py").read_text(encoding="utf-8")
+    lex_routes = (REPO_ROOT / "lex/routes.py").read_text(encoding="utf-8")
+    lex_service = (REPO_ROOT / "lex/service.py").read_text(encoding="utf-8")
+    lex_orchestrator = (REPO_ROOT / "lex/orchestrator.py").read_text(encoding="utf-8")
     assistente_prompt = (REPO_ROOT / "web/services/assistente_prompt.py").read_text(encoding="utf-8")
 
     assert "def _select_detail_sections" in context_service
@@ -715,31 +719,35 @@ def test_contesto_lex_compatta_le_sezioni_e_limita_le_fonti():
     assert "is_web_execution_request" in web_execution_service
     assert "resolve_effective_query" in web_execution_service
     assert "resolve_web_execution_intent" in web_execution_service
-    assert '@assistente.route("/api/assistente/warmup", methods=["POST"])' in assistente_blueprint
+    assert "create_lex_blueprint" in assistente_blueprint
+    assert "LexDependencies" in assistente_blueprint
     assert "warm_ollama_chat_runtime" in assistente_blueprint
-    assert "resolved_ollama_runtime()" in assistente_blueprint
-    assert "chat_model = str(runtime.get(\"chat_model\") or \"mistral\").strip() or \"mistral\"" in assistente_blueprint
-    assert "keep_alive = str(runtime.get(\"keep_alive\") or \"10m\").strip() or \"10m\"" in assistente_blueprint
-    assert "_social_context_payload" in assistente_blueprint
-    assert "_messages_with_effective_question" in assistente_blueprint
-    assert "_routing_payload" in assistente_blueprint
-    assert "_routing_prompt_block" in assistente_blueprint
-    assert "_build_context_payload" in assistente_blueprint
+    assert "resolved_ollama_runtime" in assistente_blueprint
+    assert "_build_lex_dependencies" in assistente_blueprint
     assert "resolve_social_and_operational_intent" in assistente_blueprint
     assert "build_today_operational_summary" in assistente_blueprint
     assert "build_language_guidance" in assistente_blueprint
-    assert '"query_type": "social_only"' in assistente_blueprint
-    assert '"routing": _routing_payload(routing)' in assistente_blueprint
-    assert '"opening_line": opening_line' in assistente_blueprint
-    assert '"daily_overview_lead": opening_line' in assistente_blueprint
-    assert '"language_mode": str(language_guidance.mode or "").strip()' in assistente_blueprint
-    assert '"competence_labels": list(studio_context.get("competence_labels") or [])' in assistente_blueprint
-    assert '"social_prefix": str(social_prefix or "").strip()' in assistente_blueprint
-    assert '"focus_label": str(studio_context.get("focus_label") or "").strip()' in assistente_blueprint
-    assert "web_fallback_used = bool(studio_context.get(\"web_fallback_used\")) or bool(" in assistente_blueprint
-    assert "web_execution_requested = bool(studio_context.get(\"web_execution_requested\")) or bool(followup.is_web_request)" in assistente_blueprint
-    assert '"web_fallback_used": web_fallback_used' in assistente_blueprint
-    assert '"web_execution_requested": web_execution_requested' in assistente_blueprint
+    assert 'assistente = create_lex_blueprint(' in assistente_blueprint
+    assert "register_routes(bp, service=service, login_required=login_required)" in lex_blueprint
+    assert 'Blueprint("assistente", __name__)' in lex_blueprint
+    assert 'bp.add_url_rule("/api/assistente/warmup"' in lex_routes
+    assert "def assistente_chat()" in lex_routes
+    assert "LexOrchestrator" in lex_service
+    assert "build_context_response" in lex_orchestrator
+    assert "chat_response" in lex_orchestrator
+    assert "messages_with_effective_question" in lex_orchestrator
+    assert "social_context_payload" in lex_orchestrator
+    assert "direct_answer_payload" in lex_orchestrator
+    assert '"query_type": "assistente_chat"' in lex_orchestrator
+    assert '"daily_overview_lead": opening_line' in lex_orchestrator
+    assert '"language_mode": str(language_guidance.mode or "").strip()' in lex_orchestrator
+    assert '"competence_labels": list(studio_context.get("competence_labels") or [])' in lex_orchestrator
+    assert '"social_prefix": str(social_prefix or "").strip()' in lex_orchestrator
+    assert '"focus_label": str(studio_context.get("focus_label") or "").strip()' in lex_orchestrator
+    assert "web_fallback_used = bool(studio_context.get(\"web_fallback_used\")) or bool(" in lex_orchestrator
+    assert "web_execution_requested = bool(studio_context.get(\"web_execution_requested\")) or bool(followup.is_web_request)" in lex_orchestrator
+    assert '"web_fallback_used": web_fallback_used' in lex_orchestrator
+    assert '"web_execution_requested": web_execution_requested' in lex_orchestrator
     assert "build_assistente_prompt" in assistente_prompt
     assert "_LEX_VOICE_PROMPT" in assistente_prompt
     assert "_LEX_WRITING_PROMPT" in assistente_prompt

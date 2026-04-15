@@ -55,12 +55,27 @@ Qui stanno i servizi trasversali che non appartengono a un singolo dominio:
   integrazione AI locale e disponibilità runtime
 - servizi di contesto Lex e orchestrazione risposta
 
+### `lex/` — modulo assistente autonomo
+
+Lex ora ha una casa applicativa dedicata:
+
+- `blueprint.py`
+  factory del blueprint Flask compatibile con gli endpoint storici
+- `routes.py`
+  superficie HTTP dell'assistente
+- `service.py`
+  casi d'uso applicativi
+- `orchestrator.py`
+  coordinamento tra contesto, retrieval, prompt, runtime e guard rail
+- `context/`, `retrieval/`, `guards/`, `formatting/`, `providers/`, `memory/`, `telemetry/`
+  sottosistemi piccoli e separati, riusabili anche fuori dalla chat
+
 ### `web/blueprints/` — moduli web verticali
 
 I blueprint raccolgono superfici applicative più autonome, ad esempio:
 
 - API v1
-- assistente
+- assistente come facciata compatibile del modulo `lex/`
 - email client
 - impostazioni
 - notifiche

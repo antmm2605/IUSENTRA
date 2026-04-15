@@ -1323,6 +1323,7 @@
 
     var preparedFocusLabel = state.pendingFocus && state.pendingFocus.focusLabel ? String(state.pendingFocus.focusLabel) : '';
     var preparedOpeningLine = '';
+    var preparedLegalReferenceGuardActive = false;
     browserBridge()
       .fetchServerContext(bridgeConfig, {
         question: text,
@@ -1340,6 +1341,7 @@
           preparedFocusLabel = String(prepared.focus_label || '').trim();
         }
         preparedOpeningLine = String(prepared && prepared.opening_line || '').trim();
+        preparedLegalReferenceGuardActive = Boolean(prepared && prepared.legal_reference_guard_active);
         if ((String(prepared && prepared.query_type || '').trim() === 'social_only' || String(prepared && prepared.query_type || '').trim() === 'direct_answer') && prepared && prepared.answer) {
           return {
             answer: String(prepared.answer || '').trim(),
@@ -1348,7 +1350,7 @@
             question: text,
             referenceLabel: '',
             disableExports: Boolean(prepared.disable_exports),
-            legalReferenceGuardActive: Boolean(prepared.legal_reference_guard_active),
+            legalReferenceGuardActive: preparedLegalReferenceGuardActive,
           };
         }
         var docs = documentsHelper();
@@ -1386,7 +1388,7 @@
         payload = normalizeAssistantPayload(payload, {
           question: text,
           openingLine: preparedOpeningLine,
-          legalReferenceGuardActive: Boolean(payload.legalReferenceGuardActive || (prepared && prepared.legal_reference_guard_active))
+          legalReferenceGuardActive: Boolean(payload.legalReferenceGuardActive || preparedLegalReferenceGuardActive)
         });
         setAnswerPayload(state.currentBubble, payload);
         state.history.push({

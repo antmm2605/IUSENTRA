@@ -886,6 +886,10 @@ def test_lex_assistant_usa_componente_esterno_e_posizione_persistente():
     assert "Risposta generata sul dispositivo locale." in widget_js
     assert "Companion locale non raggiungibile, attivo fallback sul runtime locale di HACS..." in widget_js
     assert "sendLocal(text);" in widget_js
+    assert "var preparedLegalReferenceGuardActive = false;" in widget_js
+    assert "preparedLegalReferenceGuardActive = Boolean(prepared && prepared.legal_reference_guard_active);" in widget_js
+    assert "legalReferenceGuardActive: Boolean(payload.legalReferenceGuardActive || preparedLegalReferenceGuardActive)" in widget_js
+    assert "legalReferenceGuardActive: Boolean(payload.legalReferenceGuardActive || (prepared && prepared.legal_reference_guard_active))" not in widget_js
     assert "payload.answer = prependSocialPrefix(preparedSocialPrefix, payload.answer || '')" not in widget_js
     assert "partial = prependSocialPrefix(preparedSocialPrefix, partial);" not in widget_js
     assert "pct-ai-thinking-copy" in widget_scss

@@ -1,4 +1,4 @@
-#  version: 2.155.76
+#  version: 2.155.79
 #  Studio Legale PCT — Dockerfile produzione (versione integrale)
 #
 #  Build multi-stage:
@@ -68,7 +68,7 @@ RUN mkdir -p /out && /tmp/dart-sass/sass --no-source-map --style=compressed \
 FROM python:3.12-slim
 
 LABEL org.opencontainers.image.title="HACS - Studio Legale PCT" \
-      org.opencontainers.image.version="2.155.76" \
+      org.opencontainers.image.version="2.155.79" \
       org.opencontainers.image.description="Gestionale PCT per studi legali italiani" \
       org.opencontainers.image.created="2026-03-18"
 
@@ -98,6 +98,12 @@ WORKDIR /app
 
 # Copia tutto il sorgente (templates, static, blueprints, ecc.)
 COPY . .
+# Overlay esplicito dei moduli applicativi caldi: su Windows evita che
+# rebuild apparentemente riusciti restino ancorati a sorgenti stale nel layer finale.
+COPY pct /app/pct
+COPY pct/__init__.py /app/pct/__init__.py
+COPY web /app/web
+COPY lex /app/lex
 RUN find /app -type d -name '__pycache__' -prune -exec rm -rf {} + \
     && find /app -type f \( -name '*.pyc' -o -name '*.pyo' \) -delete
 

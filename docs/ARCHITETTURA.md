@@ -53,9 +53,7 @@ Qui stanno i servizi trasversali che non appartengono a un singolo dominio:
   secret bootstrap, cookie/session hardening, header browser, CSRF
 - `runtime_settings.py`
   impostazioni runtime derivate da configurazione studio
-- `local_ai_runtime.py`
-  integrazione AI locale e disponibilità runtime
-- servizi di contesto studio, runtime locale e compatibilitÃ  UI
+- servizi di contesto studio, sicurezza e compatibilitÃ  UI non proprietaria di Lex
 
 ### `lex/` — modulo assistente autonomo
 
@@ -67,6 +65,8 @@ Lex ora ha una casa applicativa dedicata:
   ingresso applicativo del bounded context: tipi condivisi, contratti e costruzione del servizio riusabile
 - `runtime_dependencies.py`
   wiring runtime del modulo: login Flask, runtime Ollama, export documento e contesto studio entrano in Lex da qui senza dipendere direttamente dal lato `web/`
+- `providers/local_ai_service.py`, `providers/ollama_runtime.py`, `providers/health.py`
+  owner del servizio AI locale, della risoluzione runtime Ollama e della salute provider; i wrapper in `web/services/` restano solo facciate legacy
 - `formatting/document_export.py`, `guards/legal_reference_guard.py`, `memory/web_execution.py`
   proprietari del bridge operativo prima disperso in `web/services/assistente_*`
 - `routes.py`
@@ -77,7 +77,7 @@ Lex ora ha una casa applicativa dedicata:
   coordinamento tra contesto, retrieval, prompt, runtime e guard rail, sia per le route storiche sia per il nuovo flusso applicativo
 - `api/`, `application/`, `domain/`, `context/`, `retrieval/`, `guards/`, `formatting/`, `providers/`, `memory/`, `telemetry/`, `prompts/`, `tools/`, `workflows/`, `admin/`
   sottosistemi piccoli e separati, riusabili anche fuori dalla chat
-- i moduli storici `web/services/assistente_*.py` restano solo facciate compatibili: follow-up, routing sociale, prompt, riepilogo giornaliero, export documentale, guardie legali e riconoscimento web execution vivono ora in `lex/`
+- i moduli storici `web/services/assistente_*.py` e i bridge `web/services/local_ai_runtime.py`, `web/services/ollama_runtime.py` restano solo facciate compatibili: follow-up, routing sociale, prompt, riepilogo giornaliero, export documentale, guardie legali, riconoscimento web execution e runtime AI locale vivono ora in `lex/`
 
 ### `web/blueprints/` — moduli web verticali
 

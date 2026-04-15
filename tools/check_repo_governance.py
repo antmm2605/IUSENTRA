@@ -57,6 +57,16 @@ def main() -> int:
         failures,
     )
     _check(
+        "from lex.providers.local_ai_service import get_local_ai_service" in web_app,
+        "web/app.py deve importare il servizio AI locale da lex.providers.local_ai_service.",
+        failures,
+    )
+    _check(
+        "from web.services.local_ai_runtime import get_local_ai_service" not in web_app,
+        "web/app.py non deve dipendere direttamente da web.services.local_ai_runtime.",
+        failures,
+    )
+    _check(
         "from web.bootstrap." not in web_app.replace(
             "from web.bootstrap.app_wiring import register_app_wiring", ""
         ),
@@ -90,6 +100,9 @@ def main() -> int:
         "web/services/assistente_prompt.py": 40,
         "web/services/assistente_today_summary.py": 40,
         "web/services/assistente_web_execution.py": 40,
+        "web/services/local_ai_runtime.py": 40,
+        "web/services/ollama_runtime.py": 40,
+        "web/assistente.py": 40,
     }
     for relative_path, limit in focused_limits.items():
         line_count = _line_count(relative_path)
@@ -121,10 +134,50 @@ def main() -> int:
         failures,
     )
 
+    local_ai_service = _read_text("lex/providers/local_ai_service.py")
+    _check(
+        "def get_local_ai_service() -> LocalAIService:" in local_ai_service,
+        "lex/providers/local_ai_service.py deve possedere get_local_ai_service().",
+        failures,
+    )
+
+    ollama_runtime = _read_text("lex/providers/ollama_runtime.py")
+    _check(
+        "def resolved_ollama_runtime(" in ollama_runtime,
+        "lex/providers/ollama_runtime.py deve possedere la risoluzione runtime Ollama.",
+        failures,
+    )
+    _check(
+        "from .local_ai_service import get_local_ai_service" in ollama_runtime,
+        "lex/providers/ollama_runtime.py deve dipendere dal servizio locale posseduto da Lex.",
+        failures,
+    )
+
     lex_blueprint = _read_text("web/blueprints/assistente.py")
     _check(
         "build_runtime_lex_blueprint" in lex_blueprint,
         "web/blueprints/assistente.py deve delegare al blueprint runtime di lex.",
+        failures,
+    )
+
+    local_ai_facade = _read_text("web/services/local_ai_runtime.py")
+    _check(
+        "from lex.providers.local_ai_service import get_local_ai_service" in local_ai_facade,
+        "web/services/local_ai_runtime.py deve essere solo una facciata verso lex.providers.local_ai_service.",
+        failures,
+    )
+
+    ollama_facade = _read_text("web/services/ollama_runtime.py")
+    _check(
+        "from lex.providers.ollama_runtime import (" in ollama_facade,
+        "web/services/ollama_runtime.py deve essere solo una facciata verso lex.providers.ollama_runtime.",
+        failures,
+    )
+
+    legacy_assistente = _read_text("web/assistente.py")
+    _check(
+        "from web.blueprints.admin import admin_bp, superadmin_required" in legacy_assistente,
+        "web/assistente.py deve restare solo un shim legacy verso web.blueprints.admin.",
         failures,
     )
 
@@ -134,6 +187,8 @@ def main() -> int:
         "lex/registry.py",
         "lex/context/studio_context.py",
         "lex/providers/health.py",
+        "lex/providers/local_ai_service.py",
+        "lex/providers/ollama_runtime.py",
         "lex/retrieval/orchestrator.py",
         "lex/guards/orchestrator.py",
     ):
@@ -156,6 +211,11 @@ def main() -> int:
     _check("docs/QUICKSTART.md" in readme, "README non collega il quickstart operativo.", failures)
     _check("docs/DEPLOY.md" in readme, "README non collega la guida deploy/release.", failures)
     _check("lex/registry.py" in readme, "README non documenta il registry del bounded context Lex.", failures)
+    _check(
+        "github.com/antmm2605/hacs/actions/workflows/ci.yml" in readme,
+        "README non collega la vista live del workflow CI.",
+        failures,
+    )
 
     for relative_path in ("docs/QUICKSTART.md", "docs/DEPLOY.md"):
         _check((REPO_ROOT / relative_path).exists(), f"Documentazione mancante: {relative_path}.", failures)

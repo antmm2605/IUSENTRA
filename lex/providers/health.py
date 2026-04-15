@@ -1,13 +1,10 @@
-"""Bridge di salute e runtime provider posseduti dal package Lex."""
+"""Salute e runtime provider posseduti dal package Lex."""
 
 from __future__ import annotations
 
 from typing import Any
 
-from web.services.ollama_runtime import (
-    resolved_ollama_runtime,
-    warm_ollama_chat_runtime,
-)
+from .ollama_runtime import resolved_ollama_runtime, warm_ollama_chat_runtime
 
 
 def resolved_runtime() -> dict[str, Any]:

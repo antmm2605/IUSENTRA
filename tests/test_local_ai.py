@@ -840,7 +840,7 @@ def test_local_ai_connect_fallback_su_journal_delete_quando_wal_non_disponibile(
 
 
 def test_get_local_ai_service_riusa_singleton_applicativo_su_richieste_multiple(tmp_path: Path):
-    from web.services.local_ai_runtime import get_local_ai_service
+    from lex.providers.local_ai_service import get_local_ai_service
 
     _write_studio_config(tmp_path / "config" / "studio.json", enabled=True)
     app = create_app(_cfg_web(tmp_path))
@@ -856,13 +856,13 @@ def test_get_local_ai_service_riusa_singleton_applicativo_su_richieste_multiple(
 
 
 def test_resolved_ollama_runtime_cache_evita_health_snapshot_ripetuti(tmp_path: Path, monkeypatch):
-    from web.services.ollama_runtime import (
+    from lex.providers.ollama_runtime import (
         clear_ollama_runtime_resolution_cache,
         resolved_ollama_api_base_url,
         resolved_ollama_chat_model,
         resolved_ollama_keep_alive,
     )
-    from web.services.local_ai_runtime import get_local_ai_service
+    from lex.providers.local_ai_service import get_local_ai_service
 
     _write_studio_config(tmp_path / "config" / "studio.json", enabled=True)
     app = create_app(_cfg_web(tmp_path))

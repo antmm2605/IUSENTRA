@@ -23,7 +23,7 @@ from flask import (
     stream_with_context,
 )
 
-from web.services.ollama_runtime import (
+from lex.providers.ollama_runtime import (
     resolved_ollama_api_base_url,
     resolved_ollama_base_url,
     resolved_ollama_chat_model,

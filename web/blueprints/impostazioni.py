@@ -20,8 +20,11 @@ from flask import (
 )
 from werkzeug.utils import secure_filename
 
-from web.services.local_ai_runtime import get_local_ai_service
-from web.services.ollama_runtime import clear_ollama_runtime_resolution_cache, refresh_live_ollama_runtime
+from lex.providers.local_ai_service import get_local_ai_service
+from lex.providers.ollama_runtime import (
+    clear_ollama_runtime_resolution_cache,
+    refresh_live_ollama_runtime,
+)
 
 impostazioni = Blueprint("impostazioni", __name__)
 

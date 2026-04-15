@@ -243,6 +243,8 @@ def test_web_app_dimagrisce_e_registra_i_moduli_estratti_finali():
     app_wiring = (REPO_ROOT / "web/bootstrap/app_wiring.py").read_text(encoding="utf-8")
 
     assert "from web.bootstrap.app_wiring import register_app_wiring" in web_app
+    assert "from lex.providers.local_ai_service import get_local_ai_service" in web_app
+    assert "from web.services.local_ai_runtime import get_local_ai_service" not in web_app
     assert "register_app_wiring(" in web_app
 
     for symbol in (
@@ -384,9 +386,30 @@ def test_bootstrap_pubblico_resta_allineato_a_password_temporanee_e_ci_reale():
     assert "PCT_SECRET_KEY=" in env_example
     assert "INSERISCI_UNA_CHIAVE_CASUALE" not in env_example
     assert "workflow principale applicativo è `.github/workflows/ci.yml`" in readme
+    assert "github.com/antmm2605/hacs/actions/workflows/ci.yml" in readme
     assert "name: CI" in ci_workflow
     assert "name: Governance repo" in ci_workflow
     assert "python tools/check_repo_governance.py" in ci_workflow
+
+
+def test_governance_lex_possiede_runtime_ai_locale_e_i_facade_web_restano_sottili():
+    app_text = (REPO_ROOT / "web/app.py").read_text(encoding="utf-8")
+    local_ai_facade = (REPO_ROOT / "web/services/local_ai_runtime.py").read_text(encoding="utf-8")
+    ollama_facade = (REPO_ROOT / "web/services/ollama_runtime.py").read_text(encoding="utf-8")
+    legacy_assistente = (REPO_ROOT / "web/assistente.py").read_text(encoding="utf-8")
+    lex_local_ai = (REPO_ROOT / "lex/providers/local_ai_service.py").read_text(encoding="utf-8")
+    lex_ollama_runtime = (REPO_ROOT / "lex/providers/ollama_runtime.py").read_text(encoding="utf-8")
+
+    assert "from lex.providers.local_ai_service import get_local_ai_service" in app_text
+    assert "from web.services.local_ai_runtime import get_local_ai_service" not in app_text
+    assert "from lex.providers.local_ai_service import get_local_ai_service" in local_ai_facade
+    assert "from lex.providers.ollama_runtime import (" in ollama_facade
+    assert "from web.blueprints.admin import admin_bp, superadmin_required" in legacy_assistente
+    assert "def get_local_ai_service() -> LocalAIService:" in lex_local_ai
+    assert "def resolved_ollama_runtime(" in lex_ollama_runtime
+    assert len(local_ai_facade.splitlines()) <= 40
+    assert len(ollama_facade.splitlines()) <= 40
+    assert len(legacy_assistente.splitlines()) <= 40
 
 
 def test_runtime_cloud_hosted_sposta_ai_locale_su_storage_effimero(monkeypatch, tmp_path: Path):

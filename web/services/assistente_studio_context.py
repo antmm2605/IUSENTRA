@@ -49,7 +49,7 @@ from lex.guards.legal_reference_guard import (
 )
 from web.services.assistente_live_web import build_live_official_web_context
 from lex.memory.web_execution import is_web_execution_request
-from web.services.local_ai_runtime import get_local_ai_service
+from lex.providers.local_ai_service import get_local_ai_service
 
 
 _DEFAULT_WEB_SOURCE_IDS: tuple[str, ...] = (

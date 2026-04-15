@@ -23,6 +23,10 @@ Il workflow applicativo è `.github/workflows/ci.yml` e include:
 - `Pytest core`
 - `Local Signer e PKCS#11` su Linux/Windows/macOS
 
+Vista live del workflow:
+
+- [Actions / CI](https://github.com/antmm2605/hacs/actions/workflows/ci.yml)
+
 Il lint resta bloccante solo sugli errori reali di sintassi/import.
 
 ## Verifica release locale

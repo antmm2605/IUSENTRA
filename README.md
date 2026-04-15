@@ -23,9 +23,9 @@ La struttura è organizzata per responsabilità:
 - `web/bootstrap/`
   Wiring Flask e registrazione route modulari.
 - `web/services/`
-  Servizi runtime, autenticazione, sicurezza, contesto UI, AI locale.
+  Servizi runtime, autenticazione, sicurezza e contesto UI non proprietario di Lex.
 - `lex/`
-  Modulo autonomo di Lex con blueprint, router, registry, orchestrator, context, retrieval, guard rail, provider, prompt builder, memoria conversazionale e wiring runtime dedicato.
+  Modulo autonomo di Lex con blueprint, router, registry, orchestrator, context, retrieval, guard rail, provider, prompt builder, memoria conversazionale e wiring runtime dedicato, incluso il bridge del servizio AI locale e della risoluzione runtime Ollama.
 - `web/blueprints/`
   Blueprint verticali per moduli autonomi.
 - `web/templates/` e `web/static/`
@@ -118,6 +118,7 @@ La CI non si limita più alla sola sincronizzazione branch. La pipeline applicat
 
 I workflow vivono in `.github/workflows/`.
 Il workflow principale applicativo è `.github/workflows/ci.yml`.
+La vista live del workflow è [Actions / CI](https://github.com/antmm2605/hacs/actions/workflows/ci.yml).
 Le dipendenze di sviluppo della pipeline sono raccolte in `requirements-dev.txt`.
 Il gate lint attuale è volutamente centrato su errori sintattici e import/fatal error, così la CI resta verde mentre il debito storico di stile viene ridotto in modo progressivo.
 Il job `Governance repo` esegue `tools/check_repo_governance.py` e blocca regressioni su modularizzazione, budget dei moduli e confini tra `web/` e `lex/`.
@@ -126,6 +127,7 @@ Sul bounded context AI, il confine corretto adesso Ã¨:
 
 - `web/blueprints/assistente.py` come facciata HTTP sottilissima
 - `lex/runtime_dependencies.py` come wiring runtime del modulo
+- `lex/providers/local_ai_service.py` e `lex/providers/ollama_runtime.py` come owner del runtime AI locale e della risoluzione Ollama
 - `lex/router.py` e `lex/registry.py` come ingresso applicativo riusabile
 - `lex/context/`, `lex/retrieval/`, `lex/guards/`, `lex/providers/`, `lex/tools/`, `lex/workflows/` come sottosistemi del pacchetto
 

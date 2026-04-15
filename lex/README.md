@@ -23,7 +23,9 @@ Lex vive fuori da `web/app.py` e fuori dal vecchio blueprint monolitico:
 - `lex/guards/legal_reference_guard.py` applica i guard rail sui riferimenti legali
 - `lex/memory/web_execution.py` decide quando una richiesta implica controllo web operativo
 - `lex/runtime_dependencies.py` contiene il wiring runtime di produzione, cosi' `web/` resta solo facciata
-- `lex/providers/` isola il runtime LLM
+- `lex/providers/local_ai_service.py` possiede il servizio AI locale applicativo
+- `lex/providers/ollama_runtime.py` possiede la risoluzione runtime Ollama e il warmup del modello
+- `lex/providers/` isola il runtime LLM e i bridge provider
 
 ## Compatibilita'
 

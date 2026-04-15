@@ -12,12 +12,12 @@ import os
 
 from flask import Flask
 
+from lex.providers.local_ai_service import get_local_ai_service
 from pct import __version__ as APP_VERSION
 from web.bootstrap.app_wiring import register_app_wiring
 from web.services.core_runtime import build_core_runtime
 from web.services.document_crypto import decrypt_doc, encrypt_doc
 from web.services.fascicoli_runtime import build_fascicoli_runtime
-from web.services.local_ai_runtime import get_local_ai_service
 from web.services.ocr_runtime import build_ocr_runtime
 from web.services.pdp_penale_runtime import build_pdp_penale_runtime
 from web.services.security_runtime import apply_security_defaults

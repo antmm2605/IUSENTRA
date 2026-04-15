@@ -318,6 +318,17 @@ def create_app(config: dict | None = None) -> Flask:
     app.config["AUDIT_DB"] = cfg.get(
         "AUDIT_DB", os.getenv("PCT_AUDIT_DB", "./auth/audit.json")
     )
+    app.config["BOOTSTRAP_ADMIN_PASSWORD"] = cfg.get(
+        "BOOTSTRAP_ADMIN_PASSWORD",
+        os.getenv("PCT_BOOTSTRAP_ADMIN_PASSWORD", ""),
+    )
+    app.config["BOOTSTRAP_ADMIN_CREDENTIALS_PATH"] = cfg.get(
+        "BOOTSTRAP_ADMIN_CREDENTIALS_PATH",
+        os.getenv(
+            "PCT_BOOTSTRAP_ADMIN_CREDENTIALS_PATH",
+            str(Path(app.config["AUTH_DB"]).parent / "bootstrap_admin.json"),
+        ),
+    )
     app.config["SCADENZIARIO_DB"] = cfg.get(
         "SCADENZIARIO_DB", os.getenv("PCT_SCADENZIARIO_DB", "./scadenziario/scadenze.json")
     )
@@ -328,6 +339,10 @@ def create_app(config: dict | None = None) -> Flask:
         "PRIVACY_DB", os.getenv("PCT_PRIVACY_DB", "./privacy/registro.json")
     )
     app.config["API_KEY"] = os.getenv("PCT_API_KEY", "")
+    app.config["API_V1_ALLOWED_ORIGINS"] = cfg.get(
+        "API_V1_ALLOWED_ORIGINS",
+        os.getenv("PCT_API_V1_ALLOWED_ORIGINS", ""),
+    )
     app.config["STUDIO_NOME"] = os.getenv("PCT_STUDIO_NOME", "Studio Legale PCT")
     app.config["PORTALE_DB"] = cfg.get(
         "PORTALE_DB", os.getenv("PCT_PORTALE_DB", "./portale/portali.json")
@@ -2614,6 +2629,10 @@ def create_app(config: dict | None = None) -> Flask:
                 secret_key=app.secret_key,
                 ruolo_default=ruolo_default,
                 studio_db=get_studio_db(),
+                bootstrap_admin_password=app.config.get("BOOTSTRAP_ADMIN_PASSWORD", ""),
+                bootstrap_admin_credentials_path=app.config.get(
+                    "BOOTSTRAP_ADMIN_CREDENTIALS_PATH", ""
+                ),
             )
         return g._utenti
 

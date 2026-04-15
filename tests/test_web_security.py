@@ -97,3 +97,32 @@ def test_password_temporanea_blocca_navigazione_finche_non_viene_cambiata(tmp_pa
 
         home = client.get("/", follow_redirects=False)
         assert home.status_code == 200
+
+
+def test_api_v1_cors_resta_chiuso_di_default(tmp_path: Path):
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    cfg = _cfg_web(tmp_path)
+    app = create_app(cfg)
+
+    with app.test_client() as client:
+        response = client.get("/api/v1/", headers={"Origin": "https://evil.example"})
+
+    assert response.status_code == 200
+    assert "Access-Control-Allow-Origin" not in response.headers
+
+
+def test_api_v1_cors_consente_solo_origin_configurati(tmp_path: Path):
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    cfg = _cfg_web(tmp_path)
+    cfg["API_V1_ALLOWED_ORIGINS"] = "https://mobile.example.it,https://app.example.it"
+    app = create_app(cfg)
+
+    with app.test_client() as client:
+        allowed = client.get("/api/v1/", headers={"Origin": "https://mobile.example.it"})
+        blocked = client.get("/api/v1/", headers={"Origin": "https://evil.example"})
+
+    assert allowed.status_code == 200
+    assert allowed.headers["Access-Control-Allow-Origin"] == "https://mobile.example.it"
+    assert "Origin" in allowed.headers.get("Vary", "")
+    assert blocked.status_code == 200
+    assert "Access-Control-Allow-Origin" not in blocked.headers

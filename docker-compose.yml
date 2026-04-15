@@ -10,8 +10,10 @@
 #    http://localhost       → via Nginx (porta 80)  ← consigliato
 #    http://localhost:8080  → diretto a Gunicorn      (debug / bypass)
 #
-#  Bootstrap locale: admin / admin
-#  HACS impone il cambio password obbligatorio al primo accesso.
+#  Bootstrap locale: HACS crea l'utente admin con password temporanea.
+#  Se PCT_BOOTSTRAP_ADMIN_PASSWORD non è impostata, la password viene generata
+#  al primo avvio e salvata in ./data/auth/bootstrap_admin.json.
+#  HACS impone sempre il cambio password obbligatorio al primo accesso.
 #
 #  Dati persistenti: cartella ./data/  sul tuo PC
 #  Stop:   docker compose down

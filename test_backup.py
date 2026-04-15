@@ -15,6 +15,7 @@ def gu(tmp_path):
         db_path=str(tmp_path / "utenti.json"),
         audit_path=str(tmp_path / "audit.json"),
         secret_key="test-secret",
+        bootstrap_admin_credentials_path=str(tmp_path / "bootstrap_admin.json"),
     )
 
 
@@ -28,9 +29,14 @@ def test_admin_default_creato(gu):
     assert admin.attivo is True
 
 
-def test_admin_default_password(gu):
-    """L'admin di default ha password 'admin'."""
-    u = gu.autentica("admin", "admin")
+def test_admin_default_password_temporanea_viene_generata_e_salvata(gu):
+    """L'admin di default usa una password temporanea non fissa."""
+    creds = gu.bootstrap_admin_credentials()
+
+    assert creds is not None
+    assert creds["password"] != "admin"
+
+    u = gu.autentica("admin", creds["password"])
     assert u is not None
     assert u.username == "admin"
 

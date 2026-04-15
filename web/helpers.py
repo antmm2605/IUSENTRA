@@ -69,6 +69,10 @@ def get_utenti() -> GestioneUtenti:
         db_path=_cfg("AUTH_DB"),
         audit_path=_cfg("AUDIT_DB"),
         secret_key=current_app.secret_key,
+        bootstrap_admin_password=current_app.config.get("BOOTSTRAP_ADMIN_PASSWORD", ""),
+        bootstrap_admin_credentials_path=current_app.config.get(
+            "BOOTSTRAP_ADMIN_CREDENTIALS_PATH", ""
+        ),
     )
 
 

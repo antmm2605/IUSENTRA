@@ -12,7 +12,7 @@ Formato risposte:
   Errore:      {"errore": "...", "codice": NNN}      HTTP 4xx/5xx
   Lista:       {"data": [...], "meta": {"total": N, "page": P, "per_page": PP, "pages": T}}
 
-CORS: abilitato per tutti gli origin (per app mobile future).
+CORS: abilitato solo per gli origin esplicitamente configurati.
 """
 from __future__ import annotations
 
@@ -71,11 +71,24 @@ def _err(messaggio: str, status: int = 400):
 
 # ================================================================ CORS
 
+def _cors_allowed_origins() -> set[str]:
+    raw = str(current_app.config.get("API_V1_ALLOWED_ORIGINS", "") or "").strip()
+    if not raw:
+        return set()
+    return {origin.strip() for origin in raw.split(",") if origin.strip()}
+
+
 @api_v1.after_request
 def _cors(response):
-    response.headers["Access-Control-Allow-Origin"]  = "*"
     response.headers["Access-Control-Allow-Headers"] = "Content-Type, X-API-Key"
     response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
+    allowed_origins = _cors_allowed_origins()
+    request_origin = request.headers.get("Origin", "").strip()
+    if "*" in allowed_origins:
+        response.headers["Access-Control-Allow-Origin"] = "*"
+    elif request_origin and request_origin in allowed_origins:
+        response.headers["Access-Control-Allow-Origin"] = request_origin
+        response.headers.setdefault("Vary", "Origin")
     return response
 
 @api_v1.route("/<path:_>", methods=["OPTIONS"])

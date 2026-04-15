@@ -15,6 +15,7 @@ def gu(tmp_path):
         db_path=str(tmp_path / "utenti.json"),
         audit_path=str(tmp_path / "audit.json"),
         secret_key="test-secret",
+        bootstrap_admin_credentials_path=str(tmp_path / "bootstrap_admin.json"),
     )
 
 
@@ -29,11 +30,34 @@ def test_admin_default_creato(gu):
     assert admin.must_change_password is True
 
 
-def test_admin_default_password(gu):
-    """L'admin di default ha password 'admin'."""
-    u = gu.autentica("admin", "admin")
+def test_admin_default_password_temporanea_viene_generata_e_salvata(gu):
+    """L'admin di default usa una password temporanea non fissa."""
+    creds = gu.bootstrap_admin_credentials()
+
+    assert creds is not None
+    assert creds["username"] == "admin"
+    assert creds["must_change_password"] is True
+    assert creds["password"] != "admin"
+
+    u = gu.autentica("admin", creds["password"])
     assert u is not None
     assert u.username == "admin"
+
+
+def test_admin_default_usa_password_bootstrap_configurata(tmp_path):
+    gu = GestioneUtenti(
+        db_path=str(tmp_path / "utenti.json"),
+        audit_path=str(tmp_path / "audit.json"),
+        secret_key="test-secret",
+        bootstrap_admin_password="TempPass123!",
+        bootstrap_admin_credentials_path=str(tmp_path / "bootstrap_admin.json"),
+    )
+
+    u = gu.autentica("admin", "TempPass123!")
+
+    assert u is not None
+    assert u.username == "admin"
+    assert gu.bootstrap_admin_credentials()["password"] == "TempPass123!"
 
 
 # ------------------------------------------------------------------ CRUD utenti
@@ -102,6 +126,24 @@ def test_reimposta_password_temporanea_obbliga_cambio_al_prossimo_accesso(gu):
 
     assert aggiornato.must_change_password is True
     assert gu.autentica("user_temp", "NuovaTemp123") is not None
+
+
+def test_cambio_password_admin_rimuove_file_bootstrap(tmp_path):
+    creds_path = tmp_path / "bootstrap_admin.json"
+    gu = GestioneUtenti(
+        db_path=str(tmp_path / "utenti.json"),
+        audit_path=str(tmp_path / "audit.json"),
+        secret_key="test-secret",
+        bootstrap_admin_password="TempPass123!",
+        bootstrap_admin_credentials_path=str(creds_path),
+    )
+    admin = gu.get_by_username("admin")
+
+    assert creds_path.exists()
+
+    gu.cambia_password(admin.id, "NuovaPassword123!")
+
+    assert not creds_path.exists()
 
 
 # ------------------------------------------------------------------ Autenticazione

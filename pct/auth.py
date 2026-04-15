@@ -343,6 +343,8 @@ class GestioneUtenti:
         crea_admin_se_vuoto: bool = True,
         ruolo_default: "RuoloUtente | None" = None,
         studio_db=None,
+        bootstrap_admin_password: str = "",
+        bootstrap_admin_credentials_path: str = "",
     ):
         self.db_path = Path(db_path)
         self.audit_path = Path(audit_path)
@@ -350,6 +352,12 @@ class GestioneUtenti:
         self._studio_db = studio_db
         self._crea_admin_se_vuoto = crea_admin_se_vuoto
         self._ruolo_default = ruolo_default
+        self._bootstrap_admin_password = (bootstrap_admin_password or "").strip()
+        self._bootstrap_admin_credentials_path = (
+            Path(bootstrap_admin_credentials_path)
+            if bootstrap_admin_credentials_path
+            else self.db_path.parent / "bootstrap_admin.json"
+        )
         self._secret = secret_key or secrets.token_hex(32)
         self._retention_days = retention_days
         self._utenti: Dict[str, Utente] = {}
@@ -525,16 +533,48 @@ class GestioneUtenti:
     def _crea_admin_default(self):
         ruolo = self._ruolo_default or RuoloUtente.AMMINISTRATORE
         nome = "Super Amministratore" if ruolo == RuoloUtente.SUPERADMIN else "Amministratore"
+        bootstrap_password = self._bootstrap_admin_password or secrets.token_urlsafe(18)
         admin = Utente(
             username="admin",
             email="admin@studio.local",
             nome_completo=nome,
             ruolo=ruolo,
-            password_hash=self._hash_password("admin"),
+            password_hash=self._hash_password(bootstrap_password),
             must_change_password=True,
         )
         self._utenti[admin.id] = admin
         self._salva_utenti()
+        self._salva_bootstrap_admin_credentials(bootstrap_password)
+
+    def _salva_bootstrap_admin_credentials(self, password: str) -> None:
+        payload = {
+            "username": "admin",
+            "password": password,
+            "must_change_password": True,
+            "creato_il": datetime.now().isoformat(),
+        }
+        self._bootstrap_admin_credentials_path.parent.mkdir(parents=True, exist_ok=True)
+        self._bootstrap_admin_credentials_path.write_text(
+            json.dumps(payload, ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+
+    def bootstrap_admin_credentials(self) -> Optional[Dict[str, Any]]:
+        path = self._bootstrap_admin_credentials_path
+        if not path.exists():
+            return None
+        try:
+            return json.loads(path.read_text(encoding="utf-8"))
+        except Exception:
+            return None
+
+    def clear_bootstrap_admin_credentials(self) -> None:
+        path = self._bootstrap_admin_credentials_path
+        try:
+            path.unlink(missing_ok=True)
+        except TypeError:
+            if path.exists():
+                path.unlink()
 
     # ---- password
 
@@ -631,6 +671,11 @@ class GestioneUtenti:
         u.password_hash = self._hash_password(nuova_password)
         u.must_change_password = must_change_password
         self._salva_utenti()
+        if u.username == "admin":
+            if must_change_password:
+                self._salva_bootstrap_admin_credentials(nuova_password)
+            else:
+                self.clear_bootstrap_admin_credentials()
         return u
 
     def elimina(self, id_utente: str):
@@ -705,6 +750,8 @@ class GestioneUtenti:
                     u.reset_token_scade = ""
                     u.must_change_password = False
                     self._salva_utenti()
+                    if u.username == "admin":
+                        self.clear_bootstrap_admin_credentials()
                     return True
         return False
 

@@ -52,7 +52,8 @@ Accessi:
 
 Bootstrap locale:
 
-- primo accesso con `admin / admin`
+- HACS crea un utente `admin` con password temporanea
+- se `PCT_BOOTSTRAP_ADMIN_PASSWORD` non è impostata, la password viene generata al primo avvio e salvata in `./data/auth/bootstrap_admin.json`
 - cambio password obbligatorio immediato al primo login
 
 ### Avvio Python diretto
@@ -68,10 +69,12 @@ Le regole di base oggi sono:
 
 - `.env.example` contiene solo placeholder neutri, mai secret reali.
 - Se `PCT_SECRET_KEY` manca o resta un placeholder, l’app usa una chiave effimera e segnala il problema.
+- La password bootstrap admin non usa più credenziali fisse: va fornita via `PCT_BOOTSTRAP_ADMIN_PASSWORD` oppure viene generata in modo casuale al primo avvio.
 - Sessioni Flask con cookie `HttpOnly`, `SameSite=Lax`, refresh controllato e timeout.
 - Header browser di hardening (`X-Frame-Options`, `nosniff`, `Referrer-Policy`, `Permissions-Policy`, `Cross-Origin-Opener-Policy`, HSTS quando HTTPS è attivo).
 - Protezione CSRF sui flussi sensibili di autenticazione e gestione utenti.
 - Password bootstrap e password temporanee con cambio obbligatorio prima dell’uso normale del gestionale.
+- API v1 con CORS chiuso di default: gli origin esterni vanno esplicitamente autorizzati con `PCT_API_V1_ALLOWED_ORIGINS`.
 
 ## CI GitHub
 
@@ -84,6 +87,7 @@ La CI non si limita più alla sola sincronizzazione branch. La pipeline applicat
 - job matrix Linux / Windows / macOS per Local Signer e componenti correlati
 
 I workflow vivono in `.github/workflows/`.
+Il workflow principale applicativo è `.github/workflows/ci.yml`.
 Le dipendenze di sviluppo della pipeline sono raccolte in `requirements-dev.txt`.
 Il gate lint attuale è volutamente centrato su errori sintattici e import/fatal error, così la CI resta verde mentre il debito storico di stile viene ridotto in modo progressivo.
 

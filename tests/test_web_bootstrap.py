@@ -67,6 +67,8 @@ def _cfg_web(tmp_path: Path) -> dict:
         "SECRET_KEY": "test",
         "AUTH_DB": str(tmp_path / "auth" / "utenti.json"),
         "AUDIT_DB": str(tmp_path / "auth" / "audit.json"),
+        "BOOTSTRAP_ADMIN_PASSWORD": "admin",
+        "BOOTSTRAP_ADMIN_CREDENTIALS_PATH": str(tmp_path / "auth" / "bootstrap_admin.json"),
         "CLIENTI_DB": str(tmp_path / "clienti" / "anagrafica.json"),
         "CONDIVISIONI_DB": str(tmp_path / "clienti" / "condivisioni.json"),
         "FASCICOLI_DB": str(tmp_path / "fascicoli" / "fascicoli.json"),
@@ -355,6 +357,23 @@ def test_docker_compose_prevede_runtime_ollama_sulla_stessa_macchina():
     assert "image: ollama/ollama:latest" in compose
     assert "PCT_LOCAL_AI_BASE_URL: ${PCT_LOCAL_AI_BASE_URL:-http://host.docker.internal:11434/api}" in compose
     assert 'host.docker.internal:host-gateway' in compose
+
+
+def test_bootstrap_pubblico_resta_allineato_a_password_temporanee_e_ci_reale():
+    compose = (REPO_ROOT / "docker-compose.yml").read_text(encoding="utf-8")
+    env_example = (REPO_ROOT / ".env.example").read_text(encoding="utf-8")
+    readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
+    ci_workflow = (REPO_ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
+
+    assert "admin / admin" not in compose
+    assert "admin / admin" not in readme
+    assert "bootstrap_admin.json" in compose
+    assert "bootstrap_admin.json" in readme
+    assert "PCT_BOOTSTRAP_ADMIN_PASSWORD" in env_example
+    assert "PCT_SECRET_KEY=" in env_example
+    assert "INSERISCI_UNA_CHIAVE_CASUALE" not in env_example
+    assert "workflow principale applicativo è `.github/workflows/ci.yml`" in readme
+    assert "name: CI" in ci_workflow
 
 
 def test_runtime_cloud_hosted_sposta_ai_locale_su_storage_effimero(monkeypatch, tmp_path: Path):

@@ -1,0 +1,4 @@
+Domanda utente:
+{{query}}
+
+Supporta la bozza dell'atto senza presentarla come automaticamente conforme.

@@ -16,16 +16,9 @@ from tools.lex_document_context import (
     build_attachment_prompt_block,
     parse_attachment_payloads,
 )
-from web.services.assistente_studio_context import (
-    build_lex_studio_context,
-    warm_lex_studio_context,
-)
-from web.services.ollama_runtime import (
-    resolved_ollama_runtime,
-    warm_ollama_chat_runtime,
-)
 
 from .dependencies import LexDependencies
+from .context.studio_context import build_lex_studio_context, warm_lex_studio_context
 from .context.today_summary import build_today_operational_summary
 from .formatting.document_export import (
     build_docx_bytes,
@@ -39,8 +32,14 @@ from .memory.social_intent import (
     latest_user_message,
     resolve_social_and_operational_intent,
 )
+from .providers.health import resolved_runtime, warm_runtime
 from .prompts.language_guidance import build_language_guidance
 from .prompts.prompt_builder import build_assistente_prompt
+
+
+# Alias di compatibilita' per test e moduli legacy.
+resolved_ollama_runtime = resolved_runtime
+warm_ollama_chat_runtime = warm_runtime
 
 
 def require_authenticated_flask_user(fn):
@@ -97,8 +96,10 @@ __all__ = [
     "requests",
     "require_authenticated_flask_user",
     "resolved_ollama_runtime",
+    "resolved_runtime",
     "resolve_followup_query",
     "resolve_social_and_operational_intent",
     "warm_lex_studio_context",
     "warm_ollama_chat_runtime",
+    "warm_runtime",
 ]

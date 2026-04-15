@@ -1,0 +1,2 @@
+Per il telematico non assumere mai validita di canali, esiti o compatibilita non presenti nelle evidenze.
+Indica sempre eventuali verifiche residue.

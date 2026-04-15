@@ -62,18 +62,20 @@ Qui stanno i servizi trasversali che non appartengono a un singolo dominio:
 Lex ora ha una casa applicativa dedicata:
 
 - `blueprint.py`
-  factory del blueprint Flask compatibile con gli endpoint storici
+  factory del blueprint Flask compatibile con gli endpoint storici e costruttore runtime del blueprint stesso
+- `router.py`, `contracts.py`, `registry.py`
+  ingresso applicativo del bounded context: tipi condivisi, contratti e costruzione del servizio riusabile
 - `runtime_dependencies.py`
-  wiring runtime del modulo: login Flask, runtime Ollama, export documento e contesto studio entrano in Lex da qui
+  wiring runtime del modulo: login Flask, runtime Ollama, export documento e contesto studio entrano in Lex da qui senza dipendere direttamente dal lato `web/`
 - `formatting/document_export.py`, `guards/legal_reference_guard.py`, `memory/web_execution.py`
   proprietari del bridge operativo prima disperso in `web/services/assistente_*`
 - `routes.py`
   superficie HTTP dell'assistente
 - `service.py`
-  casi d'uso applicativi
+  superficie applicativa compatibile: HTTP storico e casi d'uso bounded-context
 - `orchestrator.py`
-  coordinamento tra contesto, retrieval, prompt, runtime e guard rail
-- `context/`, `retrieval/`, `guards/`, `formatting/`, `providers/`, `memory/`, `telemetry/`, `prompts/`
+  coordinamento tra contesto, retrieval, prompt, runtime e guard rail, sia per le route storiche sia per il nuovo flusso applicativo
+- `api/`, `application/`, `domain/`, `context/`, `retrieval/`, `guards/`, `formatting/`, `providers/`, `memory/`, `telemetry/`, `prompts/`, `tools/`, `workflows/`, `admin/`
   sottosistemi piccoli e separati, riusabili anche fuori dalla chat
 - i moduli storici `web/services/assistente_*.py` restano solo facciate compatibili: follow-up, routing sociale, prompt, riepilogo giornaliero, export documentale, guardie legali e riconoscimento web execution vivono ora in `lex/`
 

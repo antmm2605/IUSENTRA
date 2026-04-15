@@ -5,6 +5,8 @@ from __future__ import annotations
 import re
 from typing import Any
 
+from lex.contracts import GuardVerdict
+
 
 _CASE_LAW_PATTERNS: tuple[str, ...] = (
     r"\bsentenza\b",
@@ -141,7 +143,21 @@ def build_unverified_pdf_reply(question: str, sources: list[dict[str, Any]] | No
     )
 
 
+class LegalReferenceGuard:
+    def check(self, **kwargs):
+        evidence = kwargs.get("evidence") or {}
+        items = list(evidence.get("items") or [])
+        if not items:
+            return GuardVerdict(
+                allowed=True,
+                warnings=["Base legale non verificata: evita riferimenti puntuali non supportati"],
+                risk_level="medium",
+            )
+        return GuardVerdict(allowed=True)
+
+
 __all__ = [
+    "LegalReferenceGuard",
     "build_case_law_guard_prompt",
     "build_unverified_pdf_reply",
     "collect_verified_legal_references",

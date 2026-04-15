@@ -9,7 +9,13 @@ from .agenda_context import load_agenda_context
 from .anagrafica_context import load_anagrafica_context
 from .document_context import load_document_context
 from .fascicolo_context import load_fascicolo_context
+from .permissions_context import build_permissions_context
+from .runtime_context import build_runtime_context
 from .scadenze_context import load_scadenze_context
+from .session_context import build_session_context
+from .studio_context import build_studio_context
+from .telematico_context import build_telematico_context
+from .user_context import build_user_context
 
 
 class LexContextBuilder:
@@ -21,6 +27,43 @@ class LexContextBuilder:
             return loader(**kwargs)
         except Exception:
             return fallback
+
+    def build_request_context(self, request, workflow: str) -> dict[str, Any]:
+        pratica_id = str(request.fascicolo_id or "").strip()
+        sanitized = self._privacy_guard.sanitize_sections(
+            {
+                "workflow": workflow,
+                "studio": build_studio_context(request),
+                "utente": build_user_context(request),
+                "permessi": build_permissions_context(request),
+                "sessione": build_session_context(request),
+                "runtime": build_runtime_context(request),
+                "agenda": self._safe_section(load_agenda_context, fallback=[], pratica_id=pratica_id),
+                "scadenziario": self._safe_section(load_scadenze_context, fallback=[], pratica_id=pratica_id),
+                "telematico": build_telematico_context(request),
+            }
+        )
+        if request.fascicolo_id:
+            sanitized["fascicolo"] = self._safe_section(
+                load_fascicolo_context,
+                fallback={},
+                pratica_id=pratica_id,
+                fascicolo_id=str(request.fascicolo_id or "").strip(),
+            )
+            sanitized["documenti"] = self._safe_section(
+                load_document_context,
+                fallback=[],
+                pratica_id=pratica_id,
+                fascicolo_id=str(request.fascicolo_id or "").strip(),
+            )
+            sanitized["anagrafica"] = self._safe_section(
+                load_anagrafica_context,
+                fallback={"clienti": [], "soggetti": []},
+                pratica_id=pratica_id,
+            )
+        if request.document_id:
+            sanitized["documento"] = {"document_id": str(request.document_id)}
+        return sanitized
 
     def build(
         self,

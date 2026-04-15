@@ -1,0 +1,7 @@
+Domanda utente:
+{{query}}
+
+Workflow:
+{{workflow}}
+
+Rispondi in modo verificabile, strutturato e prudente.

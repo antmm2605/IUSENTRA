@@ -6,6 +6,7 @@ from .conversation_state import (
     resolve_current_and_previous_user_messages,
 )
 from .followup import FollowupResolution, resolve_followup_query
+from .service import LexMemoryService
 from .social_intent import (
     SocialRoutingResult,
     build_daily_overview_lead,
@@ -17,6 +18,7 @@ from .social_intent import (
 
 __all__ = [
     "FollowupResolution",
+    "LexMemoryService",
     "SocialRoutingResult",
     "build_daily_overview_lead",
     "build_social_only_reply",

@@ -8,6 +8,8 @@ from typing import Any
 
 from flask import Response, current_app, send_file, stream_with_context
 
+from .contracts import LexRequest as WorkflowLexRequest
+from .exceptions import LexGuardError
 from .context import LexContextBuilder
 from .dependencies import LexDependencies
 from .formatting.answer_builder import AnswerBuilder
@@ -32,7 +34,19 @@ def _clean_spaces(value: Any) -> str:
 
 
 class LexOrchestrator:
-    def __init__(self, dependencies: LexDependencies) -> None:
+    def __init__(
+        self,
+        dependencies: LexDependencies | None = None,
+        *,
+        router=None,
+        workflow_context_builder=None,
+        retrieval_orchestrator=None,
+        guard_orchestrator=None,
+        provider_registry=None,
+        formatter=None,
+        telemetry=None,
+        memory=None,
+    ) -> None:
         self.dependencies = dependencies
         self.auth_guard = AuthorizationGuard()
         self.scope_guard = ScopeGuard()
@@ -42,6 +56,49 @@ class LexOrchestrator:
         self.output_guard = OutputGuard()
         self.answer_builder = AnswerBuilder()
         self.llm_provider = LocalLLMProvider()
+        self.workflow_router = router
+        self.workflow_context_builder = workflow_context_builder or self.context_builder
+        self.retrieval_orchestrator = retrieval_orchestrator
+        self.guard_orchestrator = guard_orchestrator
+        self.provider_registry = provider_registry
+        self.response_formatter = formatter or self.answer_builder
+        self.telemetry = telemetry
+        self.memory = memory
+
+    def run(self, request: WorkflowLexRequest):
+        if self.workflow_router is None or self.retrieval_orchestrator is None or self.guard_orchestrator is None or self.provider_registry is None:
+            raise RuntimeError("LexOrchestrator.run richiede i componenti applicativi del bounded context.")
+
+        workflow = self.workflow_router.resolve_workflow(request)
+        context = self.workflow_context_builder.build_request_context(request, workflow)
+
+        pre = self.guard_orchestrator.run_pre(request, context, workflow)
+        if not pre.allowed:
+            raise LexGuardError("; ".join(pre.reasons or ["Request blocked by guards"]))
+
+        evidence = self.retrieval_orchestrator.collect(request, context, workflow)
+        provider = self.provider_registry.pick(request, context, workflow, evidence)
+        draft = provider.generate(request=request, context=context, evidence=evidence, workflow=workflow)
+
+        post = self.guard_orchestrator.run_post(request, context, workflow, evidence, draft)
+        if not post.allowed:
+            raise LexGuardError("; ".join(post.reasons or ["Response blocked by guards"]))
+
+        response = self.response_formatter.build_response(
+            request=request,
+            context=context,
+            workflow=workflow,
+            evidence=evidence,
+            draft=draft,
+            verdict=post,
+        )
+
+        if self.telemetry is not None:
+            self.telemetry.record(request, workflow, context, evidence, response)
+        if self.memory is not None:
+            self.memory.persist(request, workflow, context, response)
+
+        return response
 
     def _build_context_payload(
         self,

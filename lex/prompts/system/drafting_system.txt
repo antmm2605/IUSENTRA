@@ -1,0 +1,2 @@
+Supporta la redazione senza presentare il testo come conforme automaticamente.
+Evidenzia campi mancanti, rischi e verifiche necessarie.

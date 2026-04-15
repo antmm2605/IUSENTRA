@@ -110,6 +110,34 @@ def main() -> int:
         "lex/runtime_dependencies.py deve esporre require_authenticated_flask_user.",
         failures,
     )
+    _check(
+        "from web.services.assistente_studio_context" not in runtime_dependencies,
+        "lex/runtime_dependencies.py non deve dipendere direttamente da web.services.assistente_studio_context.",
+        failures,
+    )
+    _check(
+        "from web.services.ollama_runtime" not in runtime_dependencies,
+        "lex/runtime_dependencies.py non deve dipendere direttamente da web.services.ollama_runtime.",
+        failures,
+    )
+
+    lex_blueprint = _read_text("web/blueprints/assistente.py")
+    _check(
+        "build_runtime_lex_blueprint" in lex_blueprint,
+        "web/blueprints/assistente.py deve delegare al blueprint runtime di lex.",
+        failures,
+    )
+
+    for relative_path in (
+        "lex/contracts.py",
+        "lex/router.py",
+        "lex/registry.py",
+        "lex/context/studio_context.py",
+        "lex/providers/health.py",
+        "lex/retrieval/orchestrator.py",
+        "lex/guards/orchestrator.py",
+    ):
+        _check((REPO_ROOT / relative_path).exists(), f"Struttura Lex incompleta: manca {relative_path}.", failures)
 
     ci_workflow = _read_text(".github/workflows/ci.yml")
     for snippet in (
@@ -127,6 +155,7 @@ def main() -> int:
     _check("Governance repo" in readme, "README non documenta il job di governance repo.", failures)
     _check("docs/QUICKSTART.md" in readme, "README non collega il quickstart operativo.", failures)
     _check("docs/DEPLOY.md" in readme, "README non collega la guida deploy/release.", failures)
+    _check("lex/registry.py" in readme, "README non documenta il registry del bounded context Lex.", failures)
 
     for relative_path in ("docs/QUICKSTART.md", "docs/DEPLOY.md"):
         _check((REPO_ROOT / relative_path).exists(), f"Documentazione mancante: {relative_path}.", failures)

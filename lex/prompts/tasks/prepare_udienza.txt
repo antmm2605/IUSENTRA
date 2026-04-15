@@ -1,0 +1,4 @@
+Domanda utente:
+{{query}}
+
+Prepara il quadro udienza con documenti chiave, scadenze e punti da verificare.

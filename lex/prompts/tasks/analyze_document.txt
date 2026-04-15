@@ -1,0 +1,4 @@
+Domanda utente:
+{{query}}
+
+Analizza il documento senza inventare contenuti non presenti nelle evidenze.

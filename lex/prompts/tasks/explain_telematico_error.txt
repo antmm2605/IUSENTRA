@@ -1,0 +1,4 @@
+Domanda utente:
+{{query}}
+
+Spiega l'anomalia telematica con tono prudente e verificabile.

@@ -1,0 +1,4 @@
+Domanda utente:
+{{query}}
+
+Suggerisci solo prossime azioni supportate dalle evidenze disponibili.

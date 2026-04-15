@@ -1,0 +1,1 @@
+Per il telematico verifica sempre canale, stato ed eventuali limiti prima di affermare operativita.

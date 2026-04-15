@@ -1,0 +1,4 @@
+Domanda utente:
+{{query}}
+
+Prepara una sintesi del fascicolo separando fatti, criticita e prossime azioni.

@@ -835,8 +835,10 @@ def test_contesto_lex_compatta_le_sezioni_e_limita_le_fonti():
     runtime_dependencies = (REPO_ROOT / "lex/runtime_dependencies.py").read_text(encoding="utf-8")
     assert "def build_runtime_lex_dependencies() -> LexDependencies:" in runtime_dependencies
     assert "def require_authenticated_flask_user(fn):" in runtime_dependencies
-    assert "from web.services.assistente_studio_context import (" in runtime_dependencies
-    assert "from web.services.ollama_runtime import (" in runtime_dependencies
+    assert "from .context.studio_context import build_lex_studio_context, warm_lex_studio_context" in runtime_dependencies
+    assert "from .providers.health import resolved_runtime, warm_runtime" in runtime_dependencies
+    assert "from web.services.assistente_studio_context import (" not in runtime_dependencies
+    assert "from web.services.ollama_runtime import (" not in runtime_dependencies
     assert "from .memory.followup import resolve_followup_query" in runtime_dependencies
     assert "from .memory.social_intent import (" in runtime_dependencies
     assert "from .prompts.language_guidance import build_language_guidance" in runtime_dependencies

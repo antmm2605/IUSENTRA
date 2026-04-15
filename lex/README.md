@@ -7,15 +7,18 @@ Modulo applicativo dedicato all'assistente Lex.
 Lex vive fuori da `web/app.py` e fuori dal vecchio blueprint monolitico:
 
 - `lex/blueprint.py` costruisce il blueprint Flask
+- `lex/router.py`, `lex/contracts.py` e `lex/registry.py` definiscono l'ingresso applicativo riusabile
 - `lex/routes.py` espone le route HTTP
-- `lex/service.py` orchestra i casi d'uso
+- `lex/service.py` espone sia i metodi HTTP storici sia i casi d'uso bounded-context
 - `lex/orchestrator.py` coordina contesto, retrieval, guardie, provider e output
+- `lex/api/`, `lex/application/`, `lex/domain/`, `lex/workflows/`, `lex/tools/`, `lex/admin/` completano il bounded context
 - `lex/context/` raccoglie il contesto pratica riusabile
 - `lex/context/today_summary.py` costruisce il quadro operativo giornaliero
 - `lex/retrieval/` centralizza il recupero delle fonti
 - `lex/guards/` applica perimetro, grounding e pulizia output
 - `lex/memory/` gestisce follow-up, routing sociale e continuita' conversazionale
 - `lex/prompts/` contiene prompt builder e regia linguistica
+- `lex/prompts/system/`, `lex/prompts/tasks/`, `lex/prompts/guards/` tengono i template testuali fuori dalle route
 - `lex/formatting/document_export.py` gestisce l'export governabile dei contenuti
 - `lex/guards/legal_reference_guard.py` applica i guard rail sui riferimenti legali
 - `lex/memory/web_execution.py` decide quando una richiesta implica controllo web operativo

@@ -47,17 +47,17 @@ node_modules/
 *.enc
 
 # Runtime data
-depositi/
-agenda/
-notifiche/
+/depositi/
+/agenda/
+/notifiche/
 !web/templates/notifiche/
-auth/
-privacy/
-search/
-backup/
-messaggi/
+/auth/
+/privacy/
+/search/
+/backup/
+/messaggi/
 !web/templates/messaggi/
-data/
+/data/
 /clienti/anagrafica.json
 /fascicoli/
 /scadenziario/

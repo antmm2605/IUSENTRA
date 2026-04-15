@@ -41,6 +41,28 @@
 - Ogni estrazione deve preferire moduli focalizzati e testabili, invece di helper generici pieni di funzioni eterogenee.
 - Se un modulo cresce troppo o mescola routing, configurazione, template context e logica business, va ulteriormente spezzato prima di considerare il lavoro concluso.
 
+## Budget di governabilità per `web/app.py` e moduli — REGOLA FONDAMENTALE
+
+- `web/app.py` deve rimanere un file di **bootstrap governabile**: crea l'app, applica configurazione, inizializza hook/filtri e registra moduli. Non deve tornare a contenere route inline o logica business.
+- **Limiti hard di `web/app.py`:**
+  - massimo **7000 righe**
+  - **0** occorrenze di `@app.route`
+  - ogni nuova area va registrata tramite moduli dedicati in `web/bootstrap/`
+- **Limiti hard per i nuovi moduli `web/bootstrap/`:**
+  - target consigliato: **<= 400 righe**
+  - soglia massima ordinaria: **<= 650 righe**
+  - se una feature supera questa soglia, va spezzata **prima del merge** in sottosezioni omogenee (`core`, `documenti`, `editor`, `signature`, `pdp`, `lookup`, ecc.)
+- **Limiti hard per i nuovi moduli `web/services/`:**
+  - target consigliato: **<= 500 righe**
+  - soglia massima ordinaria: **<= 800 righe**
+  - se un servizio mescola orchestrazione, I/O, template context e policy, va diviso subito in componenti più piccoli
+- Le eccezioni legacy esistenti sono **debito tecnico da ridurre**, non nuovo standard da imitare.
+- Ogni refactor ampio va consegnato in **tranche sicure e reviewabili**, non in patch uniche gigantesche:
+  - un gruppo omogeneo di route o responsabilità per volta
+  - evitare patch monolitiche che su Windows rischiano limiti pratici di shell, diff o applicazione patch
+- Ogni nuovo modulo deve avere una responsabilità leggibile già dal nome del file. Se nel nome o nel contenuto convivono più domini distinti, il modulo va spezzato.
+- Ogni estrazione o nuovo modulo deve aggiornare anche i **guardrail automatici** in `tests/test_web_bootstrap.py`, così i limiti restano vivi e verificabili nel tempo.
+
 ## Regola obbligatoria — Portale Servizi Telematici
 
 **Qualsiasi implementazione che coinvolga i portali telematici (PST/polisWeb, PDP, PAT) deve sempre rispettare le regole impartite dal Portale Servizi Telematici del Ministero della Giustizia.**

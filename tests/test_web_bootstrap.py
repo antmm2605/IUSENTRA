@@ -267,6 +267,28 @@ def test_web_app_dimagrisce_e_registra_i_moduli_estratti_finali():
     assert len(web_app.splitlines()) < 7000
 
 
+def test_i_moduli_bootstrap_restano_governabili():
+    bootstrap_dir = REPO_ROOT / "web/bootstrap"
+    default_limit = 650
+    per_file_limits = {
+        "deposito_routes.py": 1000,
+        "scadenziario_routes.py": 700,
+        "fascicoli_pdp_routes.py": 900,
+        "telematico_portali_routes.py": 800,
+    }
+
+    oversized: list[str] = []
+    for path in sorted(bootstrap_dir.glob("*.py")):
+        if path.name == "__init__.py":
+            continue
+        lines = len(path.read_text(encoding="utf-8").splitlines())
+        limit = per_file_limits.get(path.name, default_limit)
+        if lines > limit:
+            oversized.append(f"{path.name}: {lines} righe (limite {limit})")
+
+    assert not oversized, "Moduli bootstrap troppo grandi:\n" + "\n".join(oversized)
+
+
 def test_template_principali_usano_copy_italiana_e_date_localizzate():
     template_checks = {
         "web/templates/base.html": ["Panoramica", "Operazione completata", "Preparazione Udienza Guidata"],

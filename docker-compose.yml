@@ -54,6 +54,7 @@ services:
     environment:
       # In locale non serve HTTPS forzato (nginx gestisce i redirect)
       PCT_HTTPS: "false"
+      PCT_STORAGE_MODE: "SQLITE"
       # Percorsi dati (ridondanti rispetto al Dockerfile, ma espliciti qui)
       PCT_AGENDA_DB:        /data/agenda/appuntamenti.json
       PCT_CLIENTI_DB:       /data/clienti/anagrafica.json
@@ -132,6 +133,7 @@ services:
     environment:
       PCT_HTTPS: "false"
       PCT_MULTI_TENANT: "1"
+      PCT_STORAGE_MODE: "SQLITE"
       PCT_SQLITE_MODE: "1"
       PCT_LOCAL_AI_BASE_URL: ${PCT_LOCAL_AI_BASE_URL:-http://host.docker.internal:11434/api}
       PCT_HOST_PLATFORM: ${OS:-}
@@ -164,6 +166,7 @@ services:
     environment:
       PCT_HTTPS: "false"
       PCT_MULTI_TENANT: "1"
+      PCT_STORAGE_MODE: "SQLITE"
       PCT_SQLITE_MODE: "1"
       PCT_SEARCH_INDEX: /data/search/index.db
       PCT_OCR_QUEUE_DB: /data/search/ocr_jobs.db

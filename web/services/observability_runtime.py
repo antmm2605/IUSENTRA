@@ -49,6 +49,7 @@ def build_observability_payload(app: Flask | None = None) -> dict[str, Any]:
         "ok": True,
         "runtime": registry.snapshot() if registry is not None else {"http": {"buckets": []}, "lex": {}},
         "storage": {
+            "default_mode": str(runtime_app.config.get("STORAGE_MODE_DEFAULT") or ("SQLITE" if runtime_app.config.get("SQLITE_MODE") else "JSON")),
             "sqlite_mode_default": bool(runtime_app.config.get("SQLITE_MODE")),
             "search_index": str(runtime_app.config.get("SEARCH_INDEX", "")),
         },

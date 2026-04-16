@@ -145,7 +145,7 @@ def register_admin_database_routes(
         Crea studio.db nella root dei dati del tenant e importa tutti i dati JSON.
 
         In modalita' single-tenant legacy l'attivazione puo' ancora passare da
-        PCT_SQLITE_MODE=1. In multi-tenant la scelta corretta e' definire la
+        PCT_STORAGE_MODE=SQLITE (con PCT_SQLITE_MODE=1 come alias legacy). In multi-tenant la scelta corretta e' definire la
         strategia storage dal SUPERADMIN sullo studio interessato.
         """
         utente = g.utente_corrente
@@ -172,7 +172,8 @@ def register_admin_database_routes(
                     "avvisi": risultato.avvisi,
                     "istruzione": (
                         "Per ambienti multi-tenant imposta SQLite dal pannello SUPERADMIN dello studio. "
-                        "Per installazioni single-tenant legacy puoi ancora usare PCT_SQLITE_MODE=1."
+                        "Per installazioni single-tenant legacy puoi usare PCT_STORAGE_MODE=SQLITE; "
+                        "PCT_SQLITE_MODE=1 resta supportato come compatibilita'."
                     ),
                 }
             )

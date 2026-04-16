@@ -207,6 +207,25 @@ def test_request_storage_runtime_default_operational_prefers_sqlite(tmp_path: Pa
     assert studio_db is not None
 
 
+def test_request_storage_runtime_honors_default_storage_mode_json(tmp_path: Path):
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    app = create_app({**_cfg(tmp_path), "STORAGE_MODE_DEFAULT": "JSON"})
+
+    clienti_path = tmp_path / "clienti" / "anagrafica.json"
+    clienti_path.parent.mkdir(parents=True, exist_ok=True)
+    clienti_path.write_text("{}", encoding="utf-8")
+
+    with app.test_request_context("/"):
+        profile = get_request_storage_runtime(str(clienti_path))
+        studio_db = get_request_studio_db(str(clienti_path))
+
+    assert profile.selected_mode == DbMode.JSON
+    assert profile.uses_sqlite is False
+    assert profile.effective_mode == DbMode.JSON
+    assert profile.source == "app-default"
+    assert studio_db is None
+
+
 def test_login_route_migra_auth_legacy_json_verso_sqlite(tmp_path: Path):
     _write_studio_config(tmp_path / "config" / "studio.json")
     app = create_app(_cfg(tmp_path))

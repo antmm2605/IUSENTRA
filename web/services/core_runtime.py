@@ -24,6 +24,7 @@ from pct.search_index import IndiceRicerca
 from pct.soggetti import GestioneSoggetti
 from pct.sync import get_gestore
 from pct.telematico_workflow import TelematicoWorkflowRepository
+from pct.tenant import DbMode, normalize_db_mode
 from pct.workspace_intelligente import WorkspaceIntelligenteService
 from web.services.auth_runtime import register_auth_runtime
 from web.services.runtime_settings import apply_runtime_settings
@@ -32,9 +33,20 @@ from web.services.storage_runtime import get_request_studio_db
 
 
 def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
-    app.config["SQLITE_MODE"] = str(
-        cfg.get("SQLITE_MODE", os.getenv("PCT_SQLITE_MODE", "1"))
-    ).lower() in ("1", "true", "yes")
+    configured_storage_mode = normalize_db_mode(
+        cfg.get("STORAGE_MODE_DEFAULT", os.getenv("PCT_STORAGE_MODE", DbMode.SQLITE))
+    )
+    legacy_sqlite_raw = cfg.get("SQLITE_MODE")
+    if legacy_sqlite_raw is None:
+        legacy_sqlite_raw = os.getenv("PCT_SQLITE_MODE", "")
+    legacy_sqlite_text = str(legacy_sqlite_raw or "").strip().lower()
+
+    app.config["STORAGE_MODE_DEFAULT"] = configured_storage_mode
+    app.config["SQLITE_MODE"] = (
+        configured_storage_mode == DbMode.SQLITE
+        if not legacy_sqlite_text
+        else legacy_sqlite_text in ("1", "true", "yes")
+    )
     app.config["AGENDA_DB"] = cfg.get(
         "AGENDA_DB", os.getenv("PCT_AGENDA_DB", "./agenda/appuntamenti.json")
     )

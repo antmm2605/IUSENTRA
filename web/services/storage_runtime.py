@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import sqlite3
 from dataclasses import dataclass, asdict, replace
 from pathlib import Path
@@ -49,6 +50,27 @@ class StorageRuntimeProfile:
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
+
+
+def resolve_default_storage_mode() -> str:
+    if has_app_context():
+        configured = str(current_app.config.get("STORAGE_MODE_DEFAULT") or "").strip()
+        if configured:
+            return normalize_db_mode(configured)
+        if current_app.config.get("SQLITE_MODE"):
+            return DbMode.SQLITE
+        return DbMode.JSON
+
+    env_mode = str(os.getenv("PCT_STORAGE_MODE", "") or "").strip()
+    if env_mode:
+        return normalize_db_mode(env_mode)
+
+    sqlite_flag = str(os.getenv("PCT_SQLITE_MODE", "") or "").strip().lower()
+    if sqlite_flag in {"1", "true", "yes"}:
+        return DbMode.SQLITE
+    if sqlite_flag in {"0", "false", "no"}:
+        return DbMode.JSON
+    return DbMode.SQLITE
 
 
 def _derive_studio_db_path(anchor_path: str) -> str:
@@ -98,7 +120,7 @@ def _sqlite_runtime_is_unseeded(studio_db_path: Path) -> bool:
 
 
 def resolve_storage_runtime(*, anchor_path: str, tenant: Any = None) -> StorageRuntimeProfile:
-    selected_mode = DbMode.SQLITE
+    selected_mode = resolve_default_storage_mode()
     source = "app"
     tenant_slug = ""
 
@@ -109,6 +131,8 @@ def resolve_storage_runtime(*, anchor_path: str, tenant: Any = None) -> StorageR
             selected_mode = normalize_db_mode(getattr(tenant, "database").mode)
         except Exception:
             selected_mode = DbMode.SQLITE
+    elif has_app_context() and current_app.config.get("STORAGE_MODE_DEFAULT"):
+        source = "app-default"
     elif has_app_context() and current_app.config.get("SQLITE_MODE"):
         selected_mode = DbMode.SQLITE
         source = "legacy-global"

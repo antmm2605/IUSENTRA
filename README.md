@@ -50,6 +50,7 @@ Stato attuale del runtime:
 
 - `JSON` e `SQLite` sono backend effettivi già usati dai moduli compatibili.
 - `PostgreSQL` è già configurabile, verificabile e documentato come strategia target; il passaggio dei moduli core allo storage transazionale esterno procede in modo progressivo e governato per tenant.
+- Il profilo runtime locale e containerizzato dichiara esplicitamente `PCT_STORAGE_MODE=SQLITE`; il vecchio `PCT_SQLITE_MODE=1` resta supportato come compatibilità legacy.
 
 ## Avvio locale
 
@@ -67,6 +68,11 @@ Il `docker compose` locale avvia:
 - `scheduler-worker` per i job periodici separati dal processo HTTP
 - `ocr-worker` per la pipeline OCR e indicizzazione documentale asincrona
 - `nginx` come reverse proxy locale
+
+Nel profilo container locale il default operativo è esplicito:
+
+- `PCT_STORAGE_MODE=SQLITE`
+- `PCT_SQLITE_MODE=1` come compatibilità con i moduli legacy
 
 Accessi:
 

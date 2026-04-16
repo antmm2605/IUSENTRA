@@ -18,6 +18,7 @@ def test_runtime_metrics_endpoint_restituisce_payload_strutturato(tmp_path):
     assert payload["runtime"]["http"]["buckets"]
     assert "ocr" in payload
     assert "providers" in payload
+    assert payload["storage"]["default_mode"] == "SQLITE"
 
 
 def test_admin_osservabilita_page_e_accessibile_al_superadmin(tmp_path):

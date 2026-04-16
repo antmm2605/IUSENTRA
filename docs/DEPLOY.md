@@ -97,6 +97,11 @@ Per ambienti seri la strategia storage va decisa dal `SUPERADMIN` a livello stud
 - `PostgreSQL`
   scelta target per cloud e multi-tenant distribuito, con configurazione e test connessione dal pannello studio
 
+Nel profilo container standard HACS dichiara anche un default operativo esplicito:
+
+- `PCT_STORAGE_MODE=SQLITE`
+- `PCT_SQLITE_MODE=1` come fallback legacy per moduli non ancora aggiornati
+
 Prima di chiudere una release che tocca storage:
 
 - verifica la strategia selezionata sullo studio

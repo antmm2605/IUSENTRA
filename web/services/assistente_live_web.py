@@ -10,6 +10,7 @@ from typing import Any, Callable
 import requests
 
 from pct.legal_intelligence import FONTI_UFFICIALI, USER_AGENT, fonti_per_query
+from web.services.assistente_official_web_search import search_recognized_official_web
 
 _HTML_TAG_RE = re.compile(r"<[^>]+>")
 _TITLE_RE = re.compile(r"<title[^>]*>(.*?)</title>", re.IGNORECASE | re.DOTALL)
@@ -288,6 +289,45 @@ def build_live_official_web_context(
                 }
             )
             citations.append(f"Fonte ufficiale live - {source.nome}")
+
+    search_results = search_recognized_official_web(
+        question,
+        source_ids=source_ids,
+        request_get=request_get,
+        limit_results=4 if force else 3,
+    )
+    if search_results:
+        lines.append(
+            "Ricerca web su fonti ufficiali riconosciute: Lex amplia il contesto con risultati mirati trovati sui domini ufficiali pertinenti."
+        )
+        for row in search_results:
+            source_name = _clean_spaces(row.get("source_name") or row.get("domain") or "fonte ufficiale")
+            title = _truncate(row.get("title") or source_name, 160)
+            final_url = _clean_spaces(row.get("url") or row.get("official_url"))
+            excerpt = _truncate(row.get("excerpt") or f"Risorsa ufficiale {source_name}.", 220)
+            lines.append(
+                f"{source_name}: risultato web '{title}' disponibile su {final_url}."
+            )
+            citation = f"Ricerca web ufficiale - {title}"
+            sources.append(
+                {
+                    "id": row.get("id") or f"live-web-search:{source_name.lower().replace(' ', '-')}",
+                    "title": title,
+                    "citation": citation,
+                    "official_url": row.get("official_url") or final_url,
+                    "final_url": final_url,
+                    "url": final_url,
+                    "kind": row.get("kind") or "",
+                    "verified_reference": True,
+                    "stato_verifica_fonte": "verificata",
+                    "downloadable_pdf": str(final_url).lower().endswith(".pdf"),
+                    "text": _truncate(
+                        f"{title}. {excerpt} URL ufficiale: {final_url}.",
+                        420,
+                    ),
+                }
+            )
+            citations.append(citation)
 
     return {
         "lines": lines,

@@ -1,4 +1,4 @@
-#  version: 2.155.81
+#  version: 2.155.82
 #  Studio Legale PCT — Dockerfile produzione (versione integrale)
 #
 #  Build multi-stage:
@@ -68,7 +68,7 @@ RUN mkdir -p /out && /tmp/dart-sass/sass --no-source-map --style=compressed \
 FROM python:3.12-slim
 
 LABEL org.opencontainers.image.title="HACS - Studio Legale PCT" \
-      org.opencontainers.image.version="2.155.81" \
+      org.opencontainers.image.version="2.155.82" \
       org.opencontainers.image.description="Gestionale PCT per studi legali italiani" \
       org.opencontainers.image.created="2026-03-18"
 
@@ -118,6 +118,8 @@ ENV PYTHONPATH=/app
 # Su Railway/Render monta un volume su /data
 # In locale:  docker run -v $(pwd)/data:/data ... oppure usa docker-compose
 ENV PCT_AGENDA_DB=/data/agenda/appuntamenti.json \
+    PCT_STORAGE_MODE=SQLITE \
+    PCT_SQLITE_MODE=1 \
     PCT_CALENDAR_SYNC_DB=/data/agenda/calendar_sync.json \
     PCT_CLIENTI_DB=/data/clienti/anagrafica.json \
     PCT_CONDIVISIONI_DB=/data/clienti/condivisioni.json \

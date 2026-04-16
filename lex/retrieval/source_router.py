@@ -10,6 +10,7 @@ from .sources.fascicoli import FascicoliSource
 from .sources.giurisprudenza import GiurisprudenzaSource
 from .sources.legal_intelligence import LegalIntelligenceSource
 from .sources.normative import NormativeSource
+from .sources.official_web import OfficialWebSource
 from .sources.preventivi import PreventiviSource
 from .sources.scadenziario import ScadenziarioSource
 from .sources.telematico import TelematicoSource
@@ -39,5 +40,8 @@ class SourceRouter:
         if workflow == "chat":
             sources.append(PreventiviSource())
             sources.append(ApplicazioniSource())
+
+        if OfficialWebSource.should_include(request, workflow):
+            sources.append(OfficialWebSource())
 
         return sources

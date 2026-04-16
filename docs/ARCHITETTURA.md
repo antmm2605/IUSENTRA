@@ -175,6 +175,15 @@ Nel tenant distinguiamo sempre:
 
 Questo evita ambiguità: non dichiariamo attivo un backend esterno se il tenant sta ancora lavorando su JSON o SQLite.
 
+### Default runtime dichiarato
+
+Quando il tenant non forza una strategia diversa, il runtime operativo dichiarato usa:
+
+- `PCT_STORAGE_MODE=SQLITE`
+- `PCT_SQLITE_MODE=1` solo come compatibilità legacy
+
+Questo mantiene coerenti compose locale, container web e logica di risoluzione runtime senza lasciare il default implicito.
+
 ## Flussi chiave
 
 ### Autenticazione

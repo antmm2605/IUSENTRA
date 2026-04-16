@@ -44,4 +44,5 @@ SourceType = Literal[
     "telematico",
     "normativa",
     "compliance",
+    "web_ufficiale",
 ]

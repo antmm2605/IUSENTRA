@@ -1,3 +1,9 @@
+@use 'variables' as v;
+
+// Final visual unification layer.
+// Loaded after app.css, design-system.css and mobile.css to give the
+// application one professional, compact and consistent visual grammar.
+
 :root {
   --hc-primary: #0e7490;
   --hc-primary-dk: #0a5966;
@@ -24,8 +30,24 @@
   --hc-main-pad-y: clamp(0.95rem, 1.8vw, 1.55rem);
 }
 
+@mixin hc-panel($radius: var(--hc-radius), $background: var(--hc-surface), $shadow: var(--hc-shadow)) {
+  border: 1px solid var(--hc-border);
+  border-radius: $radius;
+  background: $background;
+  box-shadow: $shadow;
+}
+
+@mixin hc-soft-block {
+  border: 1px solid var(--hc-border);
+  border-radius: var(--hc-radius-sm);
+  background: linear-gradient(180deg, #ffffff, #f8fbfe);
+  box-shadow: var(--hc-shadow-soft);
+}
+
 body {
-  background: radial-gradient(circle at top right, rgba(14, 116, 144, 0.06), transparent 28%), linear-gradient(180deg, var(--hc-bg-top), var(--hc-bg-bottom));
+  background:
+    radial-gradient(circle at top right, rgba(14, 116, 144, 0.06), transparent 28%),
+    linear-gradient(180deg, var(--hc-bg-top), var(--hc-bg-bottom));
   color: var(--hc-text);
 }
 
@@ -126,7 +148,7 @@ body {
   background: var(--hc-primary-dk);
   border-color: var(--hc-primary-dk);
   color: #ffffff;
-  box-shadow: 0 14px 24px rgba(14, 116, 144, 0.2);
+  box-shadow: 0 14px 24px rgba(14, 116, 144, 0.20);
 }
 
 .btn-outline-primary,
@@ -146,7 +168,7 @@ body {
   color: var(--hc-primary-dk);
   border-color: rgba(14, 116, 144, 0.34);
   background: #ffffff;
-  box-shadow: 0 10px 18px rgba(14, 116, 144, 0.1);
+  box-shadow: 0 10px 18px rgba(14, 116, 144, 0.10);
 }
 
 .btn-outline-secondary,
@@ -200,10 +222,7 @@ body {
 .ds-ph,
 .wi-hero,
 .lexop-hero {
-  border: 1px solid var(--hc-border);
-  border-radius: var(--hc-radius-lg);
-  background: linear-gradient(180deg, #ffffff, #f7fbfe);
-  box-shadow: var(--hc-shadow);
+  @include hc-panel(var(--hc-radius-lg), linear-gradient(180deg, #ffffff, #f7fbfe), var(--hc-shadow));
   position: relative;
   overflow: hidden;
   color: var(--hc-text);
@@ -212,7 +231,7 @@ body {
 .ds-ph::before,
 .wi-hero::before,
 .lexop-hero::before {
-  content: "";
+  content: '';
   position: absolute;
   inset: 0 0 auto;
   height: 3px;
@@ -243,7 +262,7 @@ body {
 .li-icon-chip,
 .wi-score {
   flex-shrink: 0;
-  background: rgba(14, 116, 144, 0.1);
+  background: rgba(14, 116, 144, 0.10);
   color: var(--hc-primary);
 }
 
@@ -330,10 +349,7 @@ body {
 .wi-kpi,
 .li-kpi-card,
 .lexop-kpi {
-  border: 1px solid var(--hc-border);
-  border-radius: var(--hc-radius);
-  background: linear-gradient(180deg, #ffffff, #f9fcfe);
-  box-shadow: var(--hc-shadow-soft);
+  @include hc-panel(var(--hc-radius), linear-gradient(180deg, #ffffff, #f9fcfe), var(--hc-shadow-soft));
 }
 
 .ds-stat-pill {
@@ -369,10 +385,7 @@ body {
 .lexop-metric,
 .ui-panel-compact,
 .ds-entity-card {
-  border: 1px solid var(--hc-border);
-  border-radius: var(--hc-radius);
-  background: var(--hc-surface);
-  box-shadow: var(--hc-shadow);
+  @include hc-panel();
 }
 
 .card-header,
@@ -410,10 +423,7 @@ body {
 .ui-empty-state,
 .lexop-empty,
 .ds-empty {
-  border: 1px solid var(--hc-border);
-  border-radius: var(--hc-radius-sm);
-  background: linear-gradient(180deg, #ffffff, #f8fbfe);
-  box-shadow: var(--hc-shadow-soft);
+  @include hc-soft-block;
 }
 
 .dashboard-operational-item,
@@ -438,10 +448,7 @@ a:hover > .wi-fascicolo {
 
 .ds-search-bar,
 .wi-toolbar {
-  border: 1px solid var(--hc-border);
-  border-radius: var(--hc-radius);
-  background: rgba(255, 255, 255, 0.88);
-  box-shadow: var(--hc-shadow-soft);
+  @include hc-panel(var(--hc-radius), rgba(255, 255, 255, 0.88), var(--hc-shadow-soft));
   padding: 0.8rem 0.95rem;
 }
 
@@ -530,35 +537,41 @@ a:hover > .wi-fascicolo {
   min-width: 180px;
 }
 
-@media (max-width: 991.98px) {
+@media (max-width: #{v.$bp-lg - 0.02px}) {
   #main {
     padding: 1rem;
   }
+
   .ds-ph-actions,
   .li-header-actions,
   .wi-hero-actions {
     width: 100%;
   }
+
   .ds-ph-actions > *,
   .li-header-actions > *,
   .wi-hero-actions > * {
     flex: 1 1 calc(50% - 0.35rem);
     justify-content: center;
   }
+
   .wi-toolbar__controls,
   .soggetti-filter-select {
     width: 100%;
     max-width: none;
   }
 }
-@media (max-width: 767.98px) {
+
+@media (max-width: #{v.$bp-md - 0.02px}) {
   #main {
     padding: 0.85rem;
   }
+
   .topbar {
     padding-left: 1rem;
     padding-right: 1rem;
   }
+
   .ds-ph,
   .wi-hero,
   .lexop-hero {
@@ -568,6 +581,7 @@ a:hover > .wi-fascicolo {
     align-items: start;
     padding: 1rem;
   }
+
   .ds-ph-icon {
     grid-column: 1;
     grid-row: 1;
@@ -575,14 +589,17 @@ a:hover > .wi-fascicolo {
     height: 44px;
     font-size: 1.15rem;
   }
+
   .ds-ph-body {
     grid-column: 2;
     min-width: 0;
   }
+
   .ds-ph-actions,
   .wi-hero-actions {
-    grid-column: 1/-1;
+    grid-column: 1 / -1;
   }
+
   .wi-kpi-grid,
   .li-kpi-grid,
   .lexop-kpi-grid,
@@ -595,6 +612,7 @@ a:hover > .wi-fascicolo {
   .lexop-metrics {
     grid-template-columns: minmax(0, 1fr) !important;
   }
+
   .card-header,
   .card-body,
   .card-footer,
@@ -604,32 +622,38 @@ a:hover > .wi-fascicolo {
     padding-left: 0.95rem;
     padding-right: 0.95rem;
   }
+
   .table > thead > tr > th,
   .table > tbody > tr > td {
     padding-left: 0.74rem;
     padding-right: 0.74rem;
   }
 }
-@media (max-width: 575.98px) {
+
+@media (max-width: #{v.$bp-sm - 0.02px}) {
   .ds-ph-actions > *,
   .li-header-actions > *,
   .wi-hero-actions > * {
     flex-basis: 100%;
     width: 100%;
   }
+
   .wi-toolbar__filters {
     width: 100%;
     flex-wrap: nowrap;
     overflow-x: auto;
     padding-bottom: 0.1rem;
   }
+
   .wi-filter-pill {
     white-space: nowrap;
   }
+
   .ds-stat-pill {
     width: 100%;
     justify-content: flex-start;
   }
+
   .dashboard-grid-tight,
   .soggetti-grid {
     --bs-gutter-x: 0.8rem;

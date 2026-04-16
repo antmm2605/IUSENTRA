@@ -48,6 +48,7 @@ SASS_PAIRS=(
     "$SCSS_DIR/design-system.scss:$CSS_DIR/design-system.css"
     "$SCSS_DIR/editor-word.scss:$CSS_DIR/editor-word.css"
     "$SCSS_DIR/mobile.scss:$CSS_DIR/mobile.css"
+    "$SCSS_DIR/theme.scss:$CSS_DIR/theme.css"
 )
 
 if $ONCE; then

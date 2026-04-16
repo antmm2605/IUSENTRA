@@ -1,4 +1,4 @@
-#  version: 2.157.1
+#  version: 2.157.2
 #  IUSENTRA | Dockerfile produzione
 
 #  Build multi-stage:
@@ -60,6 +60,7 @@ RUN mkdir -p /out && /tmp/dart-sass/sass --no-source-map --style=compressed \
       design-system.scss:/out/design-system.css \
       editor-word.scss:/out/editor-word.css \
       mobile.scss:/out/mobile.css \
+      theme.scss:/out/theme.css \
       portal.scss:/out/portal.css
 
 
@@ -69,7 +70,7 @@ RUN mkdir -p /out && /tmp/dart-sass/sass --no-source-map --style=compressed \
 FROM python:3.12-slim
 
 LABEL org.opencontainers.image.title="IUSENTRA" \
-      org.opencontainers.image.version="2.157.1" \
+      org.opencontainers.image.version="2.157.2" \
       org.opencontainers.image.description="Gestionale PCT per studi legali italiani" \
       org.opencontainers.image.created="2026-03-18"
 

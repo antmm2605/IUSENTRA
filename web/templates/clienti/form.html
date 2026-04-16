@@ -401,13 +401,11 @@
   </div>
 </div>
 
-{% endblock %}
-
-{% block modals %}
 {# ════════════════════════════════════════════════════════
    MODAL SCANNER DOCUMENTO
    ════════════════════════════════════════════════════════ #}
-<div class="modal fade" id="modalScanner" tabindex="-1"
+<!--
+<div class="modal fade" id="modalScannerLegacyComment" tabindex="-1"
      aria-labelledby="scannerLabel" aria-hidden="true"
      data-bs-backdrop="static">
   <div class="modal-dialog modal-lg modal-fullscreen-sm-down modal-dialog-centered">
@@ -551,6 +549,7 @@
   </div>
 </div>
 
+-->
 {# ---- Info studio ---- #}
 <div class="card shadow-sm mb-3">
   <div class="card-header fw-semibold">
@@ -827,6 +826,142 @@
 </div>{# /tab-pane tab-soggetto #}
 </div>{# /tab-content #}
 {% endif %}
+
+{% endblock %}
+
+{% block modals %}
+<div class="modal fade" id="modalScanner" tabindex="-1"
+     aria-labelledby="scannerLabel" aria-hidden="true"
+     data-bs-backdrop="static">
+  <div class="modal-dialog modal-lg modal-fullscreen-sm-down modal-dialog-centered">
+    <div class="modal-content">
+
+      <div class="modal-header">
+        <div>
+          <h5 class="modal-title mb-0" id="scannerLabel">
+            <i class="bi bi-camera me-2 text-primary"></i>Scansiona documento
+          </h5>
+          <small class="text-muted" id="scanner-subtitle">Inquadra il documento per estrarre i dati automaticamente</small>
+        </div>
+        <button type="button" class="btn-close" id="btn-chiudi-scanner"></button>
+      </div>
+
+      <div class="modal-body p-0">
+        <div id="scan-step-source" class="p-3">
+          <div id="scan-guide" class="scan-guide-box mb-3">
+            <i class="bi bi-credit-card-2-back scan-guide-icon"></i>
+            <div id="scan-guide-text" class="scan-guide-desc"></div>
+          </div>
+
+          <div class="d-grid gap-2">
+            <label class="btn btn-outline-primary scan-method-btn" id="btn-camera-mobile">
+              <i class="bi bi-camera-fill me-2"></i>
+              <span>Usa fotocamera</span>
+              <small class="d-block text-muted mt-1">Apre la fotocamera del dispositivo</small>
+              <input type="file" id="input-camera"
+                     accept="image/*" capture="environment"
+                     data-legacy-style="display:none">
+            </label>
+
+            <button type="button" class="btn btn-outline-secondary scan-method-btn"
+                    id="btn-webcam" onclick="apriWebcam()">
+              <i class="bi bi-webcam-fill me-2"></i>
+              <span>Usa webcam</span>
+              <small class="d-block text-muted mt-1">Acquisisce da webcam in tempo reale</small>
+            </button>
+
+            <label class="btn btn-outline-secondary scan-method-btn">
+              <i class="bi bi-image me-2"></i>
+              <span>Carica immagine</span>
+              <small class="d-block text-muted mt-1">Seleziona una foto già scattata</small>
+              <input type="file" id="input-file"
+                     accept="image/*"
+                     data-legacy-style="display:none">
+            </label>
+          </div>
+        </div>
+
+        <div id="scan-step-webcam" data-legacy-style="display:none" class="p-3">
+          <div class="scan-video-wrap mb-3">
+            <video id="scan-video" autoplay playsinline muted
+                   data-legacy-style="width:100%;border-radius:.5rem;background:#000;max-height:380px;object-fit:cover"></video>
+            <div class="scan-overlay">
+              <div class="scan-frame">
+                <div class="scan-corner tl"></div>
+                <div class="scan-corner tr"></div>
+                <div class="scan-corner bl"></div>
+                <div class="scan-corner br"></div>
+              </div>
+              <p class="scan-overlay-tip">Posiziona il documento all'interno del riquadro</p>
+            </div>
+          </div>
+          <div class="d-flex gap-2">
+            <button type="button" class="btn btn-primary flex-grow-1" onclick="scattaWebcam()">
+              <i class="bi bi-camera me-1"></i>Scatta
+            </button>
+            <button type="button" class="btn btn-outline-secondary" onclick="tornaSource()">
+              <i class="bi bi-arrow-left me-1"></i>Indietro
+            </button>
+          </div>
+          <canvas id="webcam-canvas" data-legacy-style="display:none"></canvas>
+        </div>
+
+        <div id="scan-step-processing" data-legacy-style="display:none" class="p-4 text-center">
+          <div class="scan-process-anim mb-3">
+            <i class="bi bi-cpu scan-cpu-icon"></i>
+          </div>
+          <div class="fw-semibold mb-1" id="scan-process-msg">Analisi in corso…</div>
+          <div class="progress mt-2" data-legacy-style="height:6px">
+            <div class="progress-bar progress-bar-striped progress-bar-animated bg-primary"
+                 id="scan-progress" data-legacy-style="width:15%"></div>
+          </div>
+          <small class="text-muted mt-2 d-block">Elaborazione client-side — nessun dato inviato a server esterni</small>
+        </div>
+
+        <div id="scan-step-result" data-legacy-style="display:none" class="p-3">
+          <div class="row g-3">
+            <div class="col-md-5">
+              <div class="scan-preview-wrap">
+                <img id="scan-result-img" class="img-fluid rounded shadow-sm" src="" alt="">
+                <div class="scan-preview-badge" id="scan-mrz-badge" data-legacy-style="display:none">
+                  <i class="bi bi-shield-check text-success me-1"></i>MRZ letto
+                </div>
+              </div>
+            </div>
+
+            <div class="col-md-7">
+              <div class="d-flex align-items-center justify-content-between mb-2">
+                <span class="fw-semibold small">Dati estratti</span>
+                <span class="badge bg-success" id="scan-confidence-badge" data-legacy-style="display:none"></span>
+              </div>
+              <div id="scan-fields-list" class="scan-fields-grid"></div>
+              <div id="scan-no-mrz-msg" data-legacy-style="display:none"
+                   class="alert alert-warning border-0 small mt-2">
+                <i class="bi bi-exclamation-triangle me-1"></i>
+                Documento senza MRZ standard. L'immagine è visibile a lato —
+                compila i campi manualmente.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" id="btn-scanner-annulla">
+          <i class="bi bi-x me-1"></i>Annulla
+        </button>
+        <button type="button" class="btn btn-success d-none" id="btn-scanner-applica"
+                onclick="applicaDatiScan()">
+          <i class="bi bi-check2 me-1"></i>Applica dati al form
+        </button>
+        <button type="button" class="btn btn-primary d-none" id="btn-scanner-ripeti"
+                onclick="tornaSource()">
+          <i class="bi bi-arrow-counterclockwise me-1"></i>Riprova
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
 
 {# ════════════════════════════════════════════════════════
    STILI SCANNER

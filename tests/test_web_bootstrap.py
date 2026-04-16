@@ -277,6 +277,27 @@ def test_route_domini_estratti_restano_operativi(tmp_path: Path):
             assert response.status_code == 200, path
 
 
+def test_nuovo_cliente_renderizza_il_form_prima_del_modal_scanner(tmp_path: Path):
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    app = create_app(_cfg_web(tmp_path))
+
+    with app.test_client() as client:
+        login = client.post(
+            "/login",
+            data={"username": "admin", "password": "admin"},
+            follow_redirects=False,
+        )
+        assert login.status_code == 302
+
+        response = client.get("/clienti/nuovo")
+
+    assert response.status_code == 200
+    html = response.get_data(as_text=True)
+    assert "Dati studio" in html
+    assert 'id="modalScanner"' in html
+    assert html.index("Dati studio") < html.index('id="modalScanner"')
+
+
 def test_web_app_dimagrisce_e_registra_i_moduli_estratti_finali():
     web_app = (REPO_ROOT / "web/app.py").read_text(encoding="utf-8")
     app_wiring = (REPO_ROOT / "web/bootstrap/app_wiring.py").read_text(encoding="utf-8")

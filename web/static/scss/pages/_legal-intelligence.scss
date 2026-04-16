@@ -1,0 +1,153 @@
+.legal-intelligence-page {
+  display: grid;
+  gap: var(--ui-compact-gap);
+}
+
+.li-header-actions {
+  gap: 0.55rem;
+}
+
+.li-kpi-grid {
+  display: grid;
+  gap: 0.85rem;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+}
+
+.li-kpi-card,
+.li-card {
+  border-radius: var(--ui-compact-radius);
+  border: 1px solid var(--ui-compact-border);
+  background: #fff;
+  box-shadow: var(--ui-compact-shadow);
+}
+
+.li-kpi-card {
+  padding: var(--ui-compact-pad);
+  min-height: 108px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 0.2rem;
+  background: var(--ui-compact-bg-soft);
+}
+
+.li-kpi-label {
+  color: #64748b;
+  font-size: 0.82rem;
+}
+
+.li-kpi-value {
+  font-size: clamp(1.6rem, 1.25rem + 1vw, 2rem);
+  line-height: 1;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.li-card__body {
+  padding: var(--ui-compact-pad-lg);
+}
+
+.li-card__body--tight {
+  padding: var(--ui-compact-pad);
+}
+
+.li-section-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.9rem;
+  margin-bottom: 0.85rem;
+}
+
+.li-section-title {
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.li-soft-stack,
+.li-card-grid,
+.li-alert-stack {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.li-card-grid {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.li-soft-card {
+  border-radius: var(--ui-compact-radius-sm);
+  border: 1px solid var(--ui-compact-border);
+  background: linear-gradient(180deg, #fff, #fbfdff);
+  padding: 0.88rem 0.95rem;
+}
+
+.li-soft-card--row {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.li-icon-chip {
+  width: 2.4rem;
+  height: 2.4rem;
+  border-radius: 0.9rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: rgba(26, 58, 92, 0.08);
+  color: #1a3a5c;
+}
+
+.li-mediazione-meta {
+  color: #64748b;
+  font-size: 0.84rem;
+}
+
+.li-table {
+  margin-bottom: 0;
+}
+
+.li-table > :not(caption) > * > * {
+  padding: 0.72rem 0.78rem;
+  vertical-align: middle;
+}
+
+.li-table thead th {
+  font-size: 0.73rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #64748b;
+}
+
+.li-explainer {
+  border-radius: 14px;
+  font-size: 0.92rem;
+}
+
+.li-muted {
+  color: #64748b;
+}
+
+@media (max-width: 991.98px) {
+  .li-card__body {
+    padding: 1rem;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .li-kpi-grid,
+  .li-card-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .li-section-head {
+    flex-direction: column;
+    gap: 0.7rem;
+  }
+
+  .li-soft-card--row {
+    align-items: flex-start;
+  }
+}

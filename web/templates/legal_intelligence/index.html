@@ -12,128 +12,100 @@ document.addEventListener('DOMContentLoaded', function() {
 {% endblock %}
 
 {% block content %}
-<div class="ds-ph mb-4">
-  <div class="ds-ph-icon"><i class="bi bi-diagram-3"></i></div>
-  <div class="ds-ph-body">
-    <h1 class="ds-ph-title">Motori Legali</h1>
-    <p class="ds-ph-sub">Fonti ufficiali, monitoraggio, audit e vantaggio competitivo integrati nel gestionale.</p>
-  </div>
-  <div class="ms-auto d-flex flex-wrap gap-2 justify-content-end">
-    <a href="{{ url_for('giurisprudenza.index') }}" class="btn btn-outline-dark">
-      <i class="bi bi-bank2 me-2"></i>Archivio sentenze
-    </a>
-    <a href="{{ url_for('legal_intelligence.registro_mediazione') }}" class="btn btn-outline-secondary">
-      <i class="bi bi-building-check me-2"></i>Registro mediazione
-    </a>
-    <form method="post" action="{{ url_for('legal_intelligence.esegui_sync_normativo') }}">
-      <button class="btn btn-outline-primary">
-        <i class="bi bi-database-gear me-2"></i>Sincronizza tabelle
-      </button>
-    </form>
-    <form method="post" action="{{ url_for('legal_intelligence.esegui_monitor') }}">
-      <button class="btn btn-primary">
-        <i class="bi bi-arrow-repeat me-2"></i>Esegui controllo fonti
-      </button>
-    </form>
-  </div>
-</div>
-
-<div class="row g-3 mb-4">
-  <div class="col-6 col-lg-3">
-    <div class="card border-0 shadow-sm h-100" style="border-radius:16px;">
-      <div class="card-body">
-        <div class="text-muted small mb-1">Motori attivi</div>
-        <div class="fw-bold fs-3">{{ snapshot.headline.motori_attivi }}</div>
-      </div>
+<div class="legal-intelligence-page">
+  <div class="ds-ph">
+    <div class="ds-ph-icon"><i class="bi bi-diagram-3"></i></div>
+    <div class="ds-ph-body">
+      <h1 class="ds-ph-title">Motori Legali</h1>
+      <p class="ds-ph-sub">Fonti ufficiali, monitoraggio, audit e vantaggio competitivo integrati nel gestionale.</p>
     </div>
-  </div>
-  <div class="col-6 col-lg-3">
-    <div class="card border-0 shadow-sm h-100" style="border-radius:16px;">
-      <div class="card-body">
-        <div class="text-muted small mb-1">Fonti aggiornate</div>
-        <div class="fw-bold fs-3 text-success">{{ snapshot.headline.fonti_aggiornate }}</div>
-      </div>
-    </div>
-  </div>
-  <div class="col-6 col-lg-3">
-    <div class="card border-0 shadow-sm h-100" style="border-radius:16px;">
-      <div class="card-body">
-        <div class="text-muted small mb-1">Alert aperti</div>
-        <div class="fw-bold fs-3 text-warning">{{ snapshot.headline.alert_totali }}</div>
-      </div>
-    </div>
-  </div>
-  <div class="col-6 col-lg-3">
-    <div class="card border-0 shadow-sm h-100" style="border-radius:16px;">
-      <div class="card-body">
-        <div class="text-muted small mb-1">Audit recenti</div>
-        <div class="fw-bold fs-3 text-primary">{{ snapshot.headline.audit_recenti }}</div>
-      </div>
-    </div>
-  </div>
-  <div class="col-6 col-lg-3">
-    <div class="card border-0 shadow-sm h-100" style="border-radius:16px;">
-      <div class="card-body">
-        <div class="text-muted small mb-1">Tabelle normative</div>
-        <div class="fw-bold fs-3">{{ snapshot.headline.tabelle_normative }}</div>
-      </div>
-    </div>
-  </div>
-  <div class="col-6 col-lg-3">
-    <div class="card border-0 shadow-sm h-100" style="border-radius:16px;">
-      <div class="card-body">
-        <div class="text-muted small mb-1">Da verificare</div>
-        <div class="fw-bold fs-3 {% if snapshot.headline.tabelle_da_validare %}text-warning{% else %}text-success{% endif %}">
-          {{ snapshot.headline.tabelle_da_validare }}
-        </div>
-      </div>
-    </div>
-  </div>
-  <div class="col-6 col-lg-3">
-    <div class="card border-0 shadow-sm h-100" style="border-radius:16px;">
-      <div class="card-body">
-        <div class="text-muted small mb-1">Riferimenti ufficiali</div>
-        <div class="fw-bold fs-3 text-primary">{{ snapshot.headline.riferimenti_normativi }}</div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<div class="card border-0 shadow-sm mb-4" style="border-radius:18px;">
-  <div class="card-body d-flex flex-column flex-lg-row align-items-start align-items-lg-center justify-content-between gap-3">
-    <div>
-      <div class="fw-semibold mb-1"><i class="bi bi-building-check me-2 text-primary"></i>Elenco organismi di mediazione italiani</div>
-      <div class="small text-muted">
-        Registro interno consultabile con fonte ministeriale ufficiale, cache persistente e filtri per organismo, sede e numero iscrizione.
-      </div>
-      <div class="small text-muted mt-2">
-        {% if snapshot.mediazione_registry.table.sync_status == 'sincronizzata' %}
-        {{ snapshot.mediazione_registry.total_rows }} organismi in cache | {{ snapshot.mediazione_registry.data_origin_label or 'cache interna' }} | ultima sincronizzazione {{ snapshot.mediazione_registry.table.last_synced_at[:16]|replace('T', ' ') if snapshot.mediazione_registry.table.last_synced_at else 'n/d' }}
-        {% else %}
-        Stato attuale: {{ snapshot.mediazione_registry.table.sync_status|replace('_', ' ') }}{% if snapshot.mediazione_registry.table.last_warning %} | {{ snapshot.mediazione_registry.table.last_warning }}{% endif %}
-        {% endif %}
-      </div>
-    </div>
-    <div class="d-flex gap-2">
-      <a href="{{ url_for('legal_intelligence.registro_mediazione') }}" class="btn btn-primary">
-        <i class="bi bi-search me-2"></i>Apri elenco
+    <div class="ds-ph-actions li-header-actions">
+      <a href="{{ url_for('giurisprudenza.index') }}" class="btn btn-outline-dark">
+        <i class="bi bi-bank2 me-2"></i>Archivio sentenze
       </a>
+      <a href="{{ url_for('legal_intelligence.registro_mediazione') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-building-check me-2"></i>Registro mediazione
+      </a>
+      <form method="post" action="{{ url_for('legal_intelligence.esegui_sync_normativo') }}">
+        <button class="btn btn-outline-primary">
+          <i class="bi bi-database-gear me-2"></i>Sincronizza tabelle
+        </button>
+      </form>
+      <form method="post" action="{{ url_for('legal_intelligence.esegui_monitor') }}">
+        <button class="btn btn-primary">
+          <i class="bi bi-arrow-repeat me-2"></i>Esegui controllo fonti
+        </button>
+      </form>
     </div>
   </div>
-</div>
 
-<div class="row g-4 mb-4">
-  <div class="col-xl-8">
-    <div class="card border-0 shadow-sm" style="border-radius:18px;">
-      <div class="card-body">
-        <div class="d-flex align-items-center justify-content-between mb-3">
-          <div class="fw-semibold"><i class="bi bi-cpu me-2 text-primary"></i>Architettura dei motori</div>
-          <span class="badge text-bg-light">{{ snapshot.engine_cards|length }} moduli</span>
+  <div class="li-kpi-grid">
+    <div class="li-kpi-card">
+      <div class="li-kpi-label">Motori attivi</div>
+      <div class="li-kpi-value">{{ snapshot.headline.motori_attivi }}</div>
+    </div>
+    <div class="li-kpi-card">
+      <div class="li-kpi-label">Fonti aggiornate</div>
+      <div class="li-kpi-value text-success">{{ snapshot.headline.fonti_aggiornate }}</div>
+    </div>
+    <div class="li-kpi-card">
+      <div class="li-kpi-label">Alert aperti</div>
+      <div class="li-kpi-value text-warning">{{ snapshot.headline.alert_totali }}</div>
+    </div>
+    <div class="li-kpi-card">
+      <div class="li-kpi-label">Audit recenti</div>
+      <div class="li-kpi-value text-primary">{{ snapshot.headline.audit_recenti }}</div>
+    </div>
+    <div class="li-kpi-card">
+      <div class="li-kpi-label">Tabelle normative</div>
+      <div class="li-kpi-value">{{ snapshot.headline.tabelle_normative }}</div>
+    </div>
+    <div class="li-kpi-card">
+      <div class="li-kpi-label">Da verificare</div>
+      <div class="li-kpi-value {% if snapshot.headline.tabelle_da_validare %}text-warning{% else %}text-success{% endif %}">
+        {{ snapshot.headline.tabelle_da_validare }}
+      </div>
+    </div>
+    <div class="li-kpi-card">
+      <div class="li-kpi-label">Riferimenti ufficiali</div>
+      <div class="li-kpi-value text-primary">{{ snapshot.headline.riferimenti_normativi }}</div>
+    </div>
+  </div>
+
+  <div class="li-card">
+    <div class="li-card__body d-flex flex-column flex-lg-row align-items-start align-items-lg-center justify-content-between gap-3">
+      <div>
+        <div class="li-section-title mb-1"><i class="bi bi-building-check me-2 text-primary"></i>Elenco organismi di mediazione italiani</div>
+        <div class="small li-muted">
+          Registro interno consultabile con fonte ministeriale ufficiale, cache persistente e filtri per organismo, sede e numero iscrizione.
         </div>
-        <div class="row g-3">
-          {% for engine in snapshot.engine_cards %}
-          <div class="col-md-6">
-            <div class="border rounded-4 p-3 h-100">
+        <div class="small li-mediazione-meta mt-2">
+          {% if snapshot.mediazione_registry.table.sync_status == 'sincronizzata' %}
+          {{ snapshot.mediazione_registry.total_rows }} organismi in cache | {{ snapshot.mediazione_registry.data_origin_label or 'cache interna' }} | ultima sincronizzazione {{ snapshot.mediazione_registry.table.last_synced_at|fmt_dataora if snapshot.mediazione_registry.table.last_synced_at else 'n/d' }}
+          {% else %}
+          Stato attuale: {{ snapshot.mediazione_registry.table.sync_status|replace('_', ' ') }}{% if snapshot.mediazione_registry.table.last_warning %} | {{ snapshot.mediazione_registry.table.last_warning }}{% endif %}
+          {% endif %}
+        </div>
+      </div>
+      <div class="d-flex gap-2">
+        <a href="{{ url_for('legal_intelligence.registro_mediazione') }}" class="btn btn-primary">
+          <i class="bi bi-search me-2"></i>Apri elenco
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3">
+    <div class="col-xl-8">
+      <div class="li-card h-100">
+        <div class="li-card__body">
+          <div class="li-section-head">
+            <div class="li-section-title"><i class="bi bi-cpu me-2 text-primary"></i>Architettura dei motori</div>
+            <span class="badge text-bg-light">{{ snapshot.engine_cards|length }} moduli</span>
+          </div>
+          <div class="li-card-grid">
+            {% for engine in snapshot.engine_cards %}
+            <div class="li-soft-card">
               <div class="d-flex align-items-center justify-content-between mb-2">
                 <div class="fw-semibold">{{ engine.short_name }}</div>
                 <span class="badge {% if engine.badge == 'operativo' %}text-bg-success{% elif engine.badge == 'parziale' %}text-bg-warning{% else %}text-bg-secondary{% endif %}">
@@ -143,24 +115,22 @@ document.addEventListener('DOMContentLoaded', function() {
               <div class="small text-muted mb-2">{{ engine.descrizione }}</div>
               <div class="small"><strong>Output:</strong> {{ engine.output }}</div>
               <div class="small mt-1"><strong>Valore:</strong> {{ engine.value }}</div>
-              <div class="small mt-2 text-muted">Fonti coperte: {{ engine.coverage }}/{{ engine.total_sources }}</div>
+              <div class="small li-muted mt-2">Fonti coperte: {{ engine.coverage }}/{{ engine.total_sources }}</div>
             </div>
+            {% endfor %}
           </div>
-          {% endfor %}
         </div>
       </div>
     </div>
-  </div>
-  <div class="col-xl-4">
-    <div class="card border-0 shadow-sm h-100" style="border-radius:18px;">
-      <div class="card-body">
-        <div class="fw-semibold mb-3"><i class="bi bi-stars me-2 text-primary"></i>Vantaggio competitivo</div>
-        <div class="d-flex flex-column gap-3">
-          {% for item in snapshot.competitive_advantages %}
-          <div class="border rounded-4 p-3">
-            <div class="d-flex align-items-center gap-3">
-              <div class="rounded-circle d-flex align-items-center justify-content-center" style="width:42px;height:42px;background:rgba(26,58,92,.08);">
-                <i class="bi {{ item.icon }} text-primary"></i>
+    <div class="col-xl-4">
+      <div class="li-card h-100">
+        <div class="li-card__body">
+          <div class="li-section-title mb-3"><i class="bi bi-stars me-2 text-primary"></i>Vantaggio competitivo</div>
+          <div class="li-soft-stack">
+            {% for item in snapshot.competitive_advantages %}
+            <div class="li-soft-card li-soft-card--row">
+              <div class="li-icon-chip">
+                <i class="bi {{ item.icon }}"></i>
               </div>
               <div class="flex-grow-1">
                 <div class="fw-semibold">{{ item.title }}</div>
@@ -168,283 +138,283 @@ document.addEventListener('DOMContentLoaded', function() {
               </div>
               <div class="fw-bold fs-4">{{ item.value }}</div>
             </div>
+            {% endfor %}
           </div>
-          {% endfor %}
         </div>
       </div>
     </div>
   </div>
-</div>
 
-<div class="row g-4 mb-4">
-  <div class="col-lg-6">
-    <div class="card border-0 shadow-sm h-100" style="border-radius:18px;">
-      <div class="card-body">
-        <div class="fw-semibold mb-3"><i class="bi bi-exclamation-diamond me-2 text-primary"></i>Alert operativi</div>
-        <div class="d-flex flex-column gap-2">
-          {% for alert in snapshot.derived_alerts %}
-          <div class="border rounded-4 p-3">
-            <div class="d-flex align-items-center justify-content-between mb-1">
-              <div class="fw-semibold">{{ alert.title }}</div>
-              <span class="badge {% if alert.severity == 'critica' %}text-bg-danger{% elif alert.severity == 'alta' %}text-bg-warning{% else %}text-bg-secondary{% endif %}">
-                {{ alert.severity }}
-              </span>
-            </div>
-            <div class="small text-muted">{{ alert.details }}</div>
-          </div>
-          {% else %}
-          <div class="text-muted small">Nessun alert operativo derivato al momento.</div>
-          {% endfor %}
-        </div>
-      </div>
-    </div>
-  </div>
-  <div class="col-lg-6">
-    <div class="card border-0 shadow-sm h-100" style="border-radius:18px;">
-      <div class="card-body">
-        <div class="fw-semibold mb-3"><i class="bi bi-broadcast me-2 text-primary"></i>Alert da monitoraggio</div>
-        <div class="d-flex flex-column gap-2">
-          {% for alert in snapshot.stored_alerts %}
-          <div class="border rounded-4 p-3">
-            <div class="d-flex align-items-center justify-content-between mb-1">
-              <div class="fw-semibold">{{ alert.title }}</div>
-              <span class="badge {% if alert.severity == 'critica' %}text-bg-danger{% elif alert.severity == 'alta' %}text-bg-warning{% elif alert.severity == 'media' %}text-bg-primary{% else %}text-bg-secondary{% endif %}">
-                {{ alert.severity }}
-              </span>
-            </div>
-            <div class="small text-muted mb-2">{{ alert.details }}</div>
-            {% if alert.official_url %}
-            <a href="{{ alert.official_url }}" class="small text-decoration-none" target="_blank" rel="noopener">Apri fonte ufficiale</a>
-            {% endif %}
-          </div>
-          {% else %}
-          <div class="text-muted small">Nessun alert storico registrato.</div>
-          {% endfor %}
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<div class="card border-0 shadow-sm mb-4" style="border-radius:18px;">
-  <div class="card-body">
-    <div class="fw-semibold mb-3"><i class="bi bi-journal-check me-2 text-primary"></i>Fonti ufficiali monitorate</div>
-    <div class="table-responsive">
-      <table class="table align-middle">
-        <thead>
-          <tr>
-            <th>Fonte</th>
-            <th>Motore</th>
-            <th>Frequenza</th>
-            <th>Stato</th>
-            <th>Ultimo check</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for row in snapshot.source_rows %}
-          <tr>
-            <td>
-              <div class="fw-semibold">{{ row.nome }}</div>
-              <div class="small text-muted">{{ row.area }}</div>
-              {% if row.detected_version or row.detected_reference or row.detected_package or row.detected_status %}
-              <div class="small text-muted mt-1">
-                {% if row.detected_version %}Versione rilevata: {{ row.detected_version }}{% endif %}
-                {% if row.detected_reference %}{% if row.detected_version %} | {% endif %}Catalogo WSDL: {{ row.detected_reference }}{% endif %}
-                {% if row.detected_package %}{% if row.detected_version or row.detected_reference %} | {% endif %}Pacchetto: {{ row.detected_package }}{% endif %}
-                {% if row.detected_status %}{% if row.detected_version or row.detected_reference or row.detected_package %} | {% endif %}Stato: {{ row.detected_status }}{% endif %}
-                {% if row.detected_news_date %}{% if row.detected_version or row.detected_reference or row.detected_package or row.detected_status %} | {% endif %}News: {{ row.detected_news_date }}{% endif %}
+  <div class="row g-3">
+    <div class="col-lg-6">
+      <div class="li-card h-100">
+        <div class="li-card__body">
+          <div class="li-section-title mb-3"><i class="bi bi-exclamation-diamond me-2 text-primary"></i>Alert operativi</div>
+          <div class="li-alert-stack">
+            {% for alert in snapshot.derived_alerts %}
+            <div class="li-soft-card">
+              <div class="d-flex align-items-center justify-content-between mb-1">
+                <div class="fw-semibold">{{ alert.title }}</div>
+                <span class="badge {% if alert.severity == 'critica' %}text-bg-danger{% elif alert.severity == 'alta' %}text-bg-warning{% else %}text-bg-secondary{% endif %}">
+                  {{ alert.severity }}
+                </span>
               </div>
+              <div class="small text-muted">{{ alert.details }}</div>
+            </div>
+            {% else %}
+            <div class="small li-muted">Nessun alert operativo derivato al momento.</div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-6">
+      <div class="li-card h-100">
+        <div class="li-card__body">
+          <div class="li-section-title mb-3"><i class="bi bi-broadcast me-2 text-primary"></i>Alert da monitoraggio</div>
+          <div class="li-alert-stack">
+            {% for alert in snapshot.stored_alerts %}
+            <div class="li-soft-card">
+              <div class="d-flex align-items-center justify-content-between mb-1">
+                <div class="fw-semibold">{{ alert.title }}</div>
+                <span class="badge {% if alert.severity == 'critica' %}text-bg-danger{% elif alert.severity == 'alta' %}text-bg-warning{% elif alert.severity == 'media' %}text-bg-primary{% else %}text-bg-secondary{% endif %}">
+                  {{ alert.severity }}
+                </span>
+              </div>
+              <div class="small text-muted mb-2">{{ alert.details }}</div>
+              {% if alert.official_url %}
+              <a href="{{ alert.official_url }}" class="small text-decoration-none" target="_blank" rel="noopener">Apri fonte ufficiale</a>
               {% endif %}
-            </td>
-            <td><span class="small text-muted">{{ row.connector_kind }}</span></td>
-            <td>{{ row.cadence }}</td>
-            <td>
-              <span class="badge {% if row.freshness == 'aggiornata' %}text-bg-success{% elif row.freshness == 'errore' %}text-bg-danger{% else %}text-bg-warning{% endif %}">
-                {{ row.freshness }}
-              </span>
-              {% if row.warning %}
-              <div class="small text-muted mt-1">{{ row.warning }}</div>
-              {% endif %}
-            </td>
-            <td>
-              {% if row.last_check %}
-              <span class="small">{{ row.last_check[:16]|replace('T', ' ') }}</span>
-              <div class="small text-muted">{{ row.summary }}</div>
-              {% else %}
-              <span class="small text-muted">mai</span>
-              {% endif %}
-            </td>
-            <td class="text-end">
-              <div class="d-flex flex-column flex-sm-row gap-2 justify-content-end">
-                {% if row.detected_document_url %}
-                <a href="{{ row.detected_document_url }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary">Documento</a>
+            </div>
+            {% else %}
+            <div class="small li-muted">Nessun alert storico registrato.</div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="li-card">
+    <div class="li-card__body">
+      <div class="li-section-title mb-3"><i class="bi bi-journal-check me-2 text-primary"></i>Fonti ufficiali monitorate</div>
+      <div class="table-responsive">
+        <table class="table align-middle li-table">
+          <thead>
+            <tr>
+              <th>Fonte</th>
+              <th>Motore</th>
+              <th>Frequenza</th>
+              <th>Stato</th>
+              <th>Ultimo check</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in snapshot.source_rows %}
+            <tr>
+              <td>
+                <div class="fw-semibold">{{ row.nome }}</div>
+                <div class="small text-muted">{{ row.area }}</div>
+                {% if row.detected_version or row.detected_reference or row.detected_package or row.detected_status %}
+                <div class="small text-muted mt-1">
+                  {% if row.detected_version %}Versione rilevata: {{ row.detected_version }}{% endif %}
+                  {% if row.detected_reference %}{% if row.detected_version %} | {% endif %}Catalogo WSDL: {{ row.detected_reference }}{% endif %}
+                  {% if row.detected_package %}{% if row.detected_version or row.detected_reference %} | {% endif %}Pacchetto: {{ row.detected_package }}{% endif %}
+                  {% if row.detected_status %}{% if row.detected_version or row.detected_reference or row.detected_package %} | {% endif %}Stato: {{ row.detected_status }}{% endif %}
+                  {% if row.detected_news_date %}{% if row.detected_version or row.detected_reference or row.detected_package or row.detected_status %} | {% endif %}News: {{ row.detected_news_date|fmt_data }}{% endif %}
+                </div>
                 {% endif %}
-                <a href="{{ row.official_url }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary">Fonte</a>
-              </div>
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-  </div>
-</div>
-
-<div class="card border-0 shadow-sm mb-4" style="border-radius:18px;">
-  <div class="card-body">
-    <div class="d-flex align-items-center justify-content-between mb-3">
-      <div class="fw-semibold"><i class="bi bi-database-gear me-2 text-primary"></i>Tabelle normative sincronizzate</div>
-      <span class="badge text-bg-light">{{ snapshot.normative_tables.totali }} tabelle | {{ snapshot.normative_tables.riferimenti_normativi_totali }} riferimenti</span>
-    </div>
-    {% set n_verifica = snapshot.normative_tables.tabelle | selectattr('sync_status', 'equalto', 'verifica_richiesta') | list | length %}
-    {% if n_verifica > 0 %}
-    <div class="alert alert-warning d-flex align-items-start gap-2 py-2 mb-3" style="border-radius:10px;font-size:.93em;">
-      <i class="bi bi-exclamation-triangle-fill flex-shrink-0 mt-1"></i>
-      <div>
-        <strong>{{ n_verifica }} tabella{% if n_verifica > 1 %}e{% endif %} in stato "verifica richiesta"</strong> —
-        il sistema ha rilevato una modifica nella fonte ufficiale corrispondente rispetto all'ultima acquisizione.
-        I dati in uso sono quelli dell'ultimo seed valido (nessuna interruzione operativa).
-        <strong>Cosa fare:</strong> verifica il contenuto aggiornato sulla fonte ufficiale indicata, poi clicca
-        <em>"Esegui sincronizzazione"</em> per aggiornare e azzerare l'alert.
-        La sincronizzazione automatica giornaliera (ore 04:30) rieseguirà il controllo ogni notte.
+              </td>
+              <td><span class="small text-muted">{{ row.connector_kind }}</span></td>
+              <td>{{ row.cadence }}</td>
+              <td>
+                <span class="badge {% if row.freshness == 'aggiornata' %}text-bg-success{% elif row.freshness == 'errore' %}text-bg-danger{% else %}text-bg-warning{% endif %}">
+                  {{ row.freshness }}
+                </span>
+                {% if row.warning %}
+                <div class="small text-muted mt-1">{{ row.warning }}</div>
+                {% endif %}
+              </td>
+              <td>
+                {% if row.last_check %}
+                <span class="small">{{ row.last_check|fmt_dataora }}</span>
+                <div class="small text-muted">{{ row.summary }}</div>
+                {% else %}
+                <span class="small text-muted">mai</span>
+                {% endif %}
+              </td>
+              <td class="text-end">
+                <div class="d-flex flex-column flex-sm-row gap-2 justify-content-end">
+                  {% if row.detected_document_url %}
+                  <a href="{{ row.detected_document_url }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary">Documento</a>
+                  {% endif %}
+                  <a href="{{ row.official_url }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary">Fonte</a>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
       </div>
     </div>
-    {% endif %}
-    <div class="table-responsive">
-      <table class="table align-middle">
-        <thead>
-          <tr>
-            <th>Tabella</th>
-            <th>Categoria</th>
-            <th>
-              Stato
-              <i class="bi bi-question-circle text-muted ms-1" data-bs-toggle="tooltip"
-                  title="sincronizzata = OK aggiornata · verifica richiesta = fonte cambiata, dati seed ancora validi, eseguire sincronizzazione per confermare · errore = fonte non raggiungibile"></i>
-            </th>
+  </div>
+
+  <div class="li-card">
+    <div class="li-card__body">
+      <div class="li-section-head">
+        <div class="li-section-title"><i class="bi bi-database-gear me-2 text-primary"></i>Tabelle normative sincronizzate</div>
+        <span class="badge text-bg-light">{{ snapshot.normative_tables.totali }} tabelle | {{ snapshot.normative_tables.riferimenti_normativi_totali }} riferimenti</span>
+      </div>
+      {% set n_verifica = snapshot.normative_tables.tabelle | selectattr('sync_status', 'equalto', 'verifica_richiesta') | list | length %}
+      {% if n_verifica > 0 %}
+      <div class="alert alert-warning d-flex align-items-start gap-2 py-2 mb-3 li-explainer">
+        <i class="bi bi-exclamation-triangle-fill flex-shrink-0 mt-1"></i>
+        <div>
+          <strong>{{ n_verifica }} tabella{% if n_verifica > 1 %}e{% endif %} in stato "verifica richiesta"</strong> —
+          il sistema ha rilevato una modifica nella fonte ufficiale corrispondente rispetto all'ultima acquisizione.
+          I dati in uso sono quelli dell'ultimo seed valido, senza interruzione operativa.
+          <strong>Cosa fare:</strong> verifica il contenuto aggiornato sulla fonte ufficiale indicata, poi clicca
+          <em>"Esegui sincronizzazione"</em> per aggiornare e azzerare l'alert.
+          La sincronizzazione automatica giornaliera delle 04:30 rieseguirà il controllo ogni notte.
+        </div>
+      </div>
+      {% endif %}
+      <div class="table-responsive">
+        <table class="table align-middle li-table">
+          <thead>
+            <tr>
+              <th>Tabella</th>
+              <th>Categoria</th>
+              <th>
+                Stato
+                <i class="bi bi-question-circle text-muted ms-1" data-bs-toggle="tooltip"
+                   title="sincronizzata = aggiornata; verifica richiesta = fonte cambiata, dati seed ancora validi, eseguire sincronizzazione per confermare; errore = fonte non raggiungibile"></i>
+              </th>
               <th>Ultima sincronizzazione</th>
-            <th>Note / Warning</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for row in snapshot.normative_tables.tabelle %}
-          <tr>
-            <td>
-              <div class="fw-semibold">{{ row.title }}</div>
-              <div class="small text-muted">{{ row.id }}</div>
-            </td>
-            <td class="small">{{ row.category|replace('_', ' ') }}</td>
-            <td>
-              {% if row.sync_status == 'sincronizzata' %}
-              <span class="badge text-bg-success">
-                <i class="bi bi-check-circle me-1"></i>sincronizzata
-              </span>
-              {% elif row.sync_status == 'verifica_richiesta' %}
-              <span class="badge text-bg-warning"
-                    data-bs-toggle="tooltip"
-                     title="La fonte ufficiale è cambiata dall'ultima acquisizione. I dati seed sono ancora validi. Esegui 'Sincronizzazione normativa' per verificare e aggiornare.">
-                <i class="bi bi-exclamation-triangle me-1"></i>verifica richiesta
-              </span>
-              {% else %}
-              <span class="badge text-bg-danger"
-                    data-bs-toggle="tooltip"
-                    title="{{ row.sync_status|replace('_', ' ') }}: {{ row.last_warning or 'fonte non raggiungibile' }}">
-                <i class="bi bi-x-circle me-1"></i>{{ row.sync_status|replace('_', ' ') }}
-              </span>
-              {% endif %}
-            </td>
-            <td class="small">
-              {% if row.last_synced_at %}
-              {{ row.last_synced_at[:16]|replace('T', ' ') }}
-              {% else %}
-              <span class="text-muted">mai</span>
-              {% endif %}
-            </td>
-            <td class="small text-muted">{{ row.last_warning or '-' }}</td>
-          </tr>
-          {% else %}
-          <tr>
-            <td colspan="5" class="small text-muted">Nessuna tabella normativa caricata.</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+              <th>Note / warning</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in snapshot.normative_tables.tabelle %}
+            <tr>
+              <td>
+                <div class="fw-semibold">{{ row.title }}</div>
+                <div class="small text-muted">{{ row.id }}</div>
+              </td>
+              <td class="small">{{ row.category|replace('_', ' ') }}</td>
+              <td>
+                {% if row.sync_status == 'sincronizzata' %}
+                <span class="badge text-bg-success">
+                  <i class="bi bi-check-circle me-1"></i>sincronizzata
+                </span>
+                {% elif row.sync_status == 'verifica_richiesta' %}
+                <span class="badge text-bg-warning"
+                      data-bs-toggle="tooltip"
+                      title="La fonte ufficiale è cambiata dall'ultima acquisizione. I dati seed sono ancora validi. Esegui 'Sincronizzazione normativa' per verificare e aggiornare.">
+                  <i class="bi bi-exclamation-triangle me-1"></i>verifica richiesta
+                </span>
+                {% else %}
+                <span class="badge text-bg-danger"
+                      data-bs-toggle="tooltip"
+                      title="{{ row.sync_status|replace('_', ' ') }}: {{ row.last_warning or 'fonte non raggiungibile' }}">
+                  <i class="bi bi-x-circle me-1"></i>{{ row.sync_status|replace('_', ' ') }}
+                </span>
+                {% endif %}
+              </td>
+              <td class="small">
+                {% if row.last_synced_at %}
+                {{ row.last_synced_at|fmt_dataora }}
+                {% else %}
+                <span class="text-muted">mai</span>
+                {% endif %}
+              </td>
+              <td class="small text-muted">{{ row.last_warning or '-' }}</td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="5" class="small text-muted">Nessuna tabella normativa caricata.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
-</div>
 
-<div class="card border-0 shadow-sm mb-4" style="border-radius:18px;">
-  <div class="card-body">
-    <div class="d-flex align-items-center justify-content-between mb-3">
-      <div class="fw-semibold"><i class="bi bi-bookmark-check me-2 text-primary"></i>Catalogo normativo ufficiale</div>
-      <span class="badge text-bg-light">{{ snapshot.normative_tables.riferimenti_normativi_totali }} voci</span>
-    </div>
-    <div class="table-responsive">
-      <table class="table align-middle">
-        <thead>
-          <tr>
-            <th>Riferimento</th>
-            <th>Aree</th>
-            <th>Tipologie</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for row in snapshot.normative_tables.riferimenti_normativi %}
-          <tr>
-            <td>
-              <div class="fw-semibold">{{ row.title }}</div>
-              <div class="small text-muted">{{ row.article or row.reference_code }}</div>
-            </td>
-            <td class="small">{{ row.areas|join(', ') or '-' }}</td>
-            <td class="small">{{ row.tipologie_labels|length }}</td>
-            <td class="text-end">
-              {% if row.url %}
-              <a href="{{ row.url }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary">Fonte</a>
-              {% endif %}
-            </td>
-          </tr>
-          {% else %}
-          <tr>
-            <td colspan="4" class="small text-muted">Nessun riferimento normativo catalogato.</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+  <div class="li-card">
+    <div class="li-card__body">
+      <div class="li-section-head">
+        <div class="li-section-title"><i class="bi bi-bookmark-check me-2 text-primary"></i>Catalogo normativo ufficiale</div>
+        <span class="badge text-bg-light">{{ snapshot.normative_tables.riferimenti_normativi_totali }} voci</span>
+      </div>
+      <div class="table-responsive">
+        <table class="table align-middle li-table">
+          <thead>
+            <tr>
+              <th>Riferimento</th>
+              <th>Aree</th>
+              <th>Tipologie</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in snapshot.normative_tables.riferimenti_normativi %}
+            <tr>
+              <td>
+                <div class="fw-semibold">{{ row.title }}</div>
+                <div class="small text-muted">{{ row.article or row.reference_code }}</div>
+              </td>
+              <td class="small">{{ row.areas|join(', ') or '-' }}</td>
+              <td class="small">{{ row.tipologie_labels|length }}</td>
+              <td class="text-end">
+                {% if row.url %}
+                <a href="{{ row.url }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary">Fonte</a>
+                {% endif %}
+              </td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="4" class="small text-muted">Nessun riferimento normativo catalogato.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
-</div>
 
-<div class="card border-0 shadow-sm" style="border-radius:18px;">
-  <div class="card-body">
-    <div class="fw-semibold mb-3"><i class="bi bi-shield-check me-2 text-primary"></i>Audit delle risposte</div>
-    <div class="table-responsive">
-      <table class="table align-middle">
-        <thead>
-          <tr>
-            <th>Quando</th>
-            <th>Query</th>
-            <th>Motori</th>
-            <th>Modello</th>
-            <th>Warning</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for trace in snapshot.recent_audits %}
-          <tr>
-            <td class="small">{{ trace.created_at[:16]|replace('T', ' ') }}</td>
-            <td class="small">{{ trace.query }}</td>
-            <td class="small">{{ trace.engine_ids|join(', ') }}</td>
-            <td class="small">{{ trace.ai_model or 'n/d' }}</td>
-            <td class="small text-muted">{{ trace.warning or '-' }}</td>
-          </tr>
-          {% else %}
-          <tr>
-            <td colspan="5" class="text-muted small">Nessuna traccia audit registrata.</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+  <div class="li-card">
+    <div class="li-card__body">
+      <div class="li-section-title mb-3"><i class="bi bi-shield-check me-2 text-primary"></i>Audit delle risposte</div>
+      <div class="table-responsive">
+        <table class="table align-middle li-table">
+          <thead>
+            <tr>
+              <th>Quando</th>
+              <th>Query</th>
+              <th>Motori</th>
+              <th>Modello</th>
+              <th>Warning</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for trace in snapshot.recent_audits %}
+            <tr>
+              <td class="small">{{ trace.created_at|fmt_dataora }}</td>
+              <td class="small">{{ trace.query }}</td>
+              <td class="small">{{ trace.engine_ids|join(', ') }}</td>
+              <td class="small">{{ trace.ai_model or 'n/d' }}</td>
+              <td class="small text-muted">{{ trace.warning or '-' }}</td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="5" class="text-muted small">Nessuna traccia audit registrata.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
 </div>

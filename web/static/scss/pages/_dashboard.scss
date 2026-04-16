@@ -1,28 +1,28 @@
 .dashboard-page {
   display: grid;
-  gap: 1rem;
+  gap: var(--ui-compact-gap);
 }
 
 .dashboard-grid-tight {
-  --bs-gutter-x: 1rem;
-  --bs-gutter-y: 1rem;
+  --bs-gutter-x: 0.9rem;
+  --bs-gutter-y: 0.9rem;
 }
 
 .dashboard-card {
-  border: 1px solid rgba(15, 23, 42, 0.08);
-  border-radius: 20px;
-  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.06);
+  border: 1px solid var(--ui-compact-border);
+  border-radius: var(--ui-compact-radius);
+  box-shadow: var(--ui-compact-shadow);
   overflow: hidden;
 }
 
 .dashboard-card .card-header {
-  padding: 0.95rem 1rem;
-  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+  padding: var(--ui-compact-pad) var(--ui-compact-pad-lg);
+  border-bottom: 1px solid var(--ui-compact-border);
   background: linear-gradient(180deg, rgba(248, 250, 252, 0.98), rgba(255, 255, 255, 0.98));
 }
 
 .dashboard-card .card-body {
-  padding: 1rem;
+  padding: var(--ui-compact-pad) var(--ui-compact-pad-lg);
 }
 
 .dashboard-card .card-body.p-0 {
@@ -30,8 +30,8 @@
 }
 
 .dashboard-list-item {
-  padding: 0.85rem 1rem;
-  border-color: rgba(15, 23, 42, 0.08);
+  padding: 0.78rem 0.92rem;
+  border-color: var(--ui-compact-border);
 }
 
 .dashboard-list-item a {
@@ -39,12 +39,12 @@
 }
 
 .dashboard-table > :not(caption) > * > * {
-  padding: 0.8rem 0.85rem;
+  padding: 0.72rem 0.78rem;
   vertical-align: middle;
 }
 
 .dashboard-chart-card .card-body {
-  min-height: 270px;
+  min-height: 248px;
 }
 
 .dashboard-inline-metric {
@@ -58,7 +58,7 @@
 .dashboard-operational-list {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 0.65rem;
 }
 
 .dashboard-operational-item {
@@ -66,9 +66,9 @@
   justify-content: space-between;
   align-items: flex-start;
   gap: 0.75rem;
-  padding: 0.85rem 0.9rem;
-  border-radius: 1rem;
-  border: 1px solid rgba(15, 23, 42, 0.08);
+  padding: 0.8rem 0.88rem;
+  border-radius: var(--ui-compact-radius-sm);
+  border: 1px solid var(--ui-compact-border);
   background: #f8fafc;
 }
 
@@ -80,14 +80,14 @@
 
 @media (max-width: 991px) {
   .dashboard-card .card-header {
-    padding: 0.85rem 0.9rem;
+    padding: 0.85rem 0.95rem;
   }
 
   .dashboard-card .card-body {
-    padding: 0.9rem;
+    padding: 0.9rem 0.95rem;
   }
 
   .dashboard-table > :not(caption) > * > * {
-    padding: 0.72rem 0.75rem;
+    padding: 0.68rem 0.72rem;
   }
 }

@@ -4,401 +4,401 @@
 
 {% block content %}
 <div class="workspace-page">
-<div class="wi-hero p-4">
-  <div class="d-flex flex-column flex-xl-row gap-4 justify-content-between align-items-xl-center">
-    <div class="pe-xl-4">
-      <div class="d-flex flex-wrap gap-2 align-items-center mb-3">
-        <span class="wi-chip"><i class="bi bi-stars"></i>Centro operativo dello studio</span>
-        <span class="wi-chip"><i class="bi bi-arrow-repeat"></i>Aggiornamento del {{ overview.generated_at|fmt_data }} alle {{ overview.generated_at|fmt_ora }}</span>
+  <div class="wi-hero p-4">
+    <div class="d-flex flex-column flex-xl-row gap-4 justify-content-between align-items-xl-center">
+      <div class="pe-xl-4">
+        <div class="d-flex flex-wrap gap-2 align-items-center mb-3">
+          <span class="wi-chip"><i class="bi bi-stars"></i>Centro operativo dello studio</span>
+          <span class="wi-chip"><i class="bi bi-arrow-repeat"></i>Aggiornamento del {{ overview.generated_at|fmt_data }} alle {{ overview.generated_at|fmt_ora }}</span>
+        </div>
+        <h1 class="h2 mb-2">Tutte le attività essenziali dello studio in un solo pannello.</h1>
+        <p class="mb-0 wi-hero-copy">
+          Scadenze, appuntamenti, sincronizzazioni, fascicoli e giurisprudenza vengono raccolti in un'unica vista
+          per aiutarti a individuare subito ciò che richiede attenzione e la prossima attività da svolgere.
+        </p>
       </div>
-      <h1 class="h2 mb-2">Tutte le attivita essenziali dello studio in un solo pannello.</h1>
-      <p class="mb-0 wi-hero-copy">
-        Scadenze, appuntamenti, sincronizzazioni, fascicoli e giurisprudenza vengono raccolti in un'unica vista
-        per aiutarti a individuare subito cio che richiede attenzione e la prossima attivita da svolgere.
-      </p>
+      <div class="d-grid gap-2 wi-hero-actions">
+        <a href="{{ url_for('nuova_scadenza') }}" class="btn btn-light">
+          <i class="bi bi-calendar-plus me-2"></i>Nuova scadenza
+        </a>
+        <a href="{{ url_for('nuovo_appuntamento') }}" class="btn btn-outline-light">
+          <i class="bi bi-calendar2-plus me-2"></i>Nuovo appuntamento
+        </a>
+        <a href="{{ url_for('impostazioni_calendario') }}" class="btn btn-outline-light">
+          <i class="bi bi-arrow-repeat me-2"></i>Sincronizzazione calendari
+        </a>
+      </div>
     </div>
-    <div class="d-grid gap-2 wi-hero-actions">
-      <a href="{{ url_for('nuova_scadenza') }}" class="btn btn-light">
-        <i class="bi bi-calendar-plus me-2"></i>Nuova scadenza
+  </div>
+
+  <div class="wi-toolbar">
+    <div class="wi-toolbar__filters">
+      {% for item in [('tutto', 'Tutto', 'grid-1x2'), ('scadenze', 'Scadenze', 'alarm'), ('agenda', 'Agenda', 'calendar3'), ('fascicoli', 'Fascicoli', 'folder2-open'), ('giurisprudenza', 'Sentenze', 'bank2')] %}
+      <a href="{{ url_for('workspace_intelligente', giorni=horizon_days, focus=item[0]) }}"
+         class="wi-filter-pill {% if focus == item[0] %}active{% endif %}">
+        <i class="bi bi-{{ item[2] }}"></i>{{ item[1] }}
       </a>
-      <a href="{{ url_for('nuovo_appuntamento') }}" class="btn btn-outline-light">
-        <i class="bi bi-calendar2-plus me-2"></i>Nuovo appuntamento
+      {% endfor %}
+    </div>
+    <div class="wi-toolbar__controls">
+      <form method="get" class="d-flex gap-2 align-items-center">
+        <input type="hidden" name="focus" value="{{ focus }}">
+        <label class="small text-muted fw-semibold" for="giorni">Orizzonte</label>
+        <select id="giorni" name="giorni" class="form-select form-select-sm" onchange="this.form.submit()">
+          {% for option in [7, 14, 30] %}
+          <option value="{{ option }}" {% if horizon_days == option %}selected{% endif %}>{{ option }} giorni</option>
+          {% endfor %}
+        </select>
+      </form>
+    </div>
+  </div>
+
+  <div class="wi-kpi-grid mb-4">
+    <div class="wi-kpi">
+      <div class="small text-muted mb-1">Scadenze urgenti</div>
+      <div class="fs-3 fw-bold text-danger">{{ overview.summary.scadenze_urgenti }}</div>
+      <div class="small wi-muted">entro 3 giorni</div>
+    </div>
+    <div class="wi-kpi">
+      <div class="small text-muted mb-1">Scadenze presidiate</div>
+      <div class="fs-3 fw-bold">{{ overview.summary.scadenze_orizzonte }}</div>
+      <div class="small wi-muted">nei prossimi {{ horizon_days }} giorni</div>
+    </div>
+    <div class="wi-kpi">
+      <div class="small text-muted mb-1">Agenda sincronizzata</div>
+      <div class="fs-3 fw-bold">{{ overview.summary.appuntamenti_orizzonte }}</div>
+      <div class="small wi-muted">{{ overview.summary.profili_sync_attivi }} profili di sincronizzazione attivi</div>
+    </div>
+    <div class="wi-kpi">
+      <div class="small text-muted mb-1">Promemoria e notifiche</div>
+      <div class="fs-3 fw-bold">{{ overview.summary.promemoria_imminenti + overview.summary.notifiche_scadenze }}</div>
+      <div class="small wi-muted">reminder agenda + avvisi scadenze</div>
+    </div>
+    <div class="wi-kpi">
+      <div class="small text-muted mb-1">Fascicoli attenzionati</div>
+      <div class="fs-3 fw-bold">{{ overview.summary.fascicoli_attenzionati }}</div>
+      <div class="small wi-muted">{{ overview.summary.profili_sync_da_verificare }} sincronizzazioni da verificare</div>
+    </div>
+  </div>
+
+  <div
+    id="workspace-ai-root"
+    class="wi-panel p-4 mb-4 hacs-local-ai-panel"
+    data-ai-mode="{{ 'local' if request.host.split(':')[0] in ['localhost', '127.0.0.1'] else 'remote' }}"
+    data-local-signer-url="http://127.0.0.1:27272"
+    data-local-signer-download-page="{{ url_for('impostazioni.index', tab='firma', _external=True) }}"
+    data-local-signer-setup-windows="{{ url_for('polis_local_signer_setup_windows') }}"
+    data-local-signer-setup-macos="{{ url_for('polis_local_signer_setup_macos') }}"
+    data-local-signer-setup-linux="{{ url_for('polis_local_signer_setup_linux') }}"
+    data-runtime-status-url="/api/local-ai/status"
+    data-server-ask-url="{{ url_for('api_workspace_intelligente_ai') }}"
+    data-server-context-url="{{ url_for('api_workspace_intelligente_ai_context') }}"
+    data-horizon-days="{{ horizon_days }}">
+    <div class="d-flex justify-content-between align-items-center gap-3 flex-wrap mb-3 hacs-local-ai-toolbar">
+      <div>
+        <h2 class="h5 mb-1">Assistente operativo locale</h2>
+        <div class="small text-muted">Domande contestuali su agenda, scadenze, fascicoli e documenti già presenti nel gestionale.</div>
+      </div>
+      <div id="workspace-ai-status" class="small text-muted hacs-local-ai-runtime">Assistente locale in attesa di verifica</div>
+    </div>
+    <div class="row g-3 hacs-local-ai-grid">
+      <div class="col-lg-8">
+        <textarea id="workspace-ai-question" class="form-control" rows="3" placeholder="Esempio: quali sono le priorità operative dei prossimi 7 giorni e quali fascicoli devo presidiare per primi?"></textarea>
+      </div>
+      <div class="col-lg-4 d-grid gap-2">
+        <button type="button" class="btn btn-primary" id="workspace-ai-ask-btn" onclick="askWorkspaceAi()">
+          <i class="bi bi-stars me-2"></i>Analizza cabina
+        </button>
+        <button type="button" class="btn btn-outline-secondary hacs-local-ai-secondary-btn" onclick="refreshWorkspaceAiRuntime()">
+          <i class="bi bi-arrow-repeat me-2"></i>Aggiorna stato runtime
+        </button>
+      </div>
+    </div>
+    <div id="workspace-ai-answer" class="wi-answer-card mt-3 hacs-local-ai-answer">
+      <div class="wi-answer-muted">Le risposte compariranno qui con le fonti documentali usate.</div>
+    </div>
+  </div>
+
+  {% if overview.actions %}
+  <div class="wi-panel p-4 mb-4">
+    <div class="d-flex justify-content-between align-items-center gap-3 flex-wrap mb-3">
+      <div>
+        <h2 class="h5 mb-1">Regia automatica</h2>
+        <div class="small text-muted">Le prossime azioni utili vengono proposte direttamente a partire dai dati già presenti nel gestionale.</div>
+      </div>
+    </div>
+    <div class="wi-action-grid">
+      {% set tone_labels = {
+        'danger': 'Critica',
+        'warning': 'Da presidiare',
+        'success': 'In ordine',
+        'primary': 'Prioritaria',
+        'secondary': 'Informativa',
+        'info': 'Informativa',
+      } %}
+      {% for action in overview.actions %}
+      <a href="{{ action.href }}" class="text-decoration-none">
+        <div class="wi-card p-3 h-100 border-{{ action.tone }}-subtle">
+          <div class="d-flex justify-content-between align-items-start gap-3">
+            <div>
+              <div class="fw-semibold text-dark">{{ action.title }}</div>
+              <div class="small wi-muted mt-1">{{ action.description }}</div>
+            </div>
+            <span class="badge text-bg-{{ action.tone }}">{{ tone_labels.get(action.tone, 'Operativa') }}</span>
+          </div>
+        </div>
       </a>
-      <a href="{{ url_for('impostazioni_calendario') }}" class="btn btn-outline-light">
-        <i class="bi bi-arrow-repeat me-2"></i>Sincronizzazione calendari
-      </a>
+      {% endfor %}
     </div>
   </div>
-</div>
+  {% endif %}
 
-<div class="wi-toolbar">
-  <div class="wi-toolbar__filters">
-    {% for item in [('tutto', 'Tutto', 'grid-1x2'), ('scadenze', 'Scadenze', 'alarm'), ('agenda', 'Agenda', 'calendar3'), ('fascicoli', 'Fascicoli', 'folder2-open'), ('giurisprudenza', 'Sentenze', 'bank2')] %}
-    <a href="{{ url_for('workspace_intelligente', giorni=horizon_days, focus=item[0]) }}"
-       class="wi-filter-pill {% if focus == item[0] %}active{% endif %}">
-      <i class="bi bi-{{ item[2] }}"></i>{{ item[1] }}
-    </a>
-    {% endfor %}
+  {% if focus in ('tutto', 'scadenze', 'agenda') %}
+  <div class="row g-4 mb-4">
+    <div class="col-xl-6">
+      <div class="wi-panel p-4 h-100">
+        <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap mb-3">
+          <div>
+            <h2 class="h5 mb-1">Scadenze da presidiare</h2>
+            <div class="small text-muted">Termini legali e operativi che richiedono attenzione immediata.</div>
+          </div>
+          <a href="{{ url_for('scadenziario') }}" class="btn btn-sm btn-outline-primary">Apri scadenziario</a>
+        </div>
+        <div class="wi-list">
+          {% for sc in overview.urgent_deadlines %}
+          <div class="wi-list-item">
+            <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
+              <div>
+                <a href="{{ url_for('dettaglio_scadenza', id_sc=sc.id) }}" class="fw-semibold text-decoration-none">{{ sc.titolo }}</a>
+                <div class="small wi-muted mt-1">
+                  {{ sc.data_scadenza|fmt_data }}
+                  {% if sc.judicial_office_name %} · {{ sc.judicial_office_name }}{% endif %}
+                  {% if sc.operational_due_at %} · operativa {{ sc.operational_due_at|fmt_dataora }}{% endif %}
+                </div>
+              </div>
+              <div class="text-end">
+                <span class="badge text-bg-danger">{{ sc.priorita.value }}</span>
+                {% if sc.perentorio %}<div class="small text-danger fw-semibold mt-1">Perentorio</div>{% endif %}
+              </div>
+            </div>
+          </div>
+          {% else %}
+          <div class="wi-list-item">
+            <div class="small wi-muted">Nessuna scadenza urgente: il presidio del termine è sotto controllo.</div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+    <div class="col-xl-6">
+      <div class="wi-panel p-4 h-100">
+        <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap mb-3">
+          <div>
+            <h2 class="h5 mb-1">Agenda e promemoria</h2>
+            <div class="small text-muted">Appuntamenti, udienze e reminder sincronizzati dalle principali sorgenti esterne.</div>
+          </div>
+          <a href="{{ url_for('agenda_view') }}" class="btn btn-sm btn-outline-primary">Apri agenda</a>
+        </div>
+        <div class="wi-list">
+          {% for app in overview.upcoming_appointments %}
+          <div class="wi-list-item">
+            <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
+              <div>
+                <a href="{{ url_for('dettaglio_appuntamento', id_app=app.id) }}" class="fw-semibold text-decoration-none">{{ app.titolo }}</a>
+                <div class="small wi-muted mt-1">
+                  {{ app.data_ora|fmt_dataora }}
+                  {% if app.cliente %} · {{ app.cliente }}{% endif %}
+                  {% if app.external_provider %} · {{ app.external_provider|replace('_', ' ')|title }}{% endif %}
+                </div>
+              </div>
+              <span class="badge bg-light text-dark border">{{ app.tipo.value|replace('_', ' ')|title }}</span>
+            </div>
+          </div>
+          {% else %}
+          <div class="wi-list-item">
+            <div class="small wi-muted">Nessun appuntamento in agenda nell'orizzonte selezionato.</div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
   </div>
-  <div class="wi-toolbar__controls">
-    <form method="get" class="d-flex gap-2 align-items-center">
-      <input type="hidden" name="focus" value="{{ focus }}">
-      <label class="small text-muted fw-semibold" for="giorni">Orizzonte</label>
-      <select id="giorni" name="giorni" class="form-select form-select-sm" onchange="this.form.submit()">
-        {% for option in [7, 14, 30] %}
-        <option value="{{ option }}" {% if horizon_days == option %}selected{% endif %}>{{ option }} giorni</option>
-        {% endfor %}
-      </select>
-    </form>
-  </div>
-</div>
+  {% endif %}
 
-<div class="wi-kpi-grid mb-4">
-  <div class="wi-kpi">
-    <div class="small text-muted mb-1">Scadenze urgenti</div>
-    <div class="fs-3 fw-bold text-danger">{{ overview.summary.scadenze_urgenti }}</div>
-    <div class="small wi-muted">entro 3 giorni</div>
-  </div>
-  <div class="wi-kpi">
-    <div class="small text-muted mb-1">Scadenze presidiate</div>
-    <div class="fs-3 fw-bold">{{ overview.summary.scadenze_orizzonte }}</div>
-    <div class="small wi-muted">nei prossimi {{ horizon_days }} giorni</div>
-  </div>
-  <div class="wi-kpi">
-    <div class="small text-muted mb-1">Agenda sincronizzata</div>
-    <div class="fs-3 fw-bold">{{ overview.summary.appuntamenti_orizzonte }}</div>
-    <div class="small wi-muted">{{ overview.summary.profili_sync_attivi }} profili di sincronizzazione attivi</div>
-  </div>
-  <div class="wi-kpi">
-    <div class="small text-muted mb-1">Promemoria e notifiche</div>
-    <div class="fs-3 fw-bold">{{ overview.summary.promemoria_imminenti + overview.summary.notifiche_scadenze }}</div>
-    <div class="small wi-muted">reminder agenda + avvisi scadenze</div>
-  </div>
-  <div class="wi-kpi">
-    <div class="small text-muted mb-1">Fascicoli attenzionati</div>
-    <div class="fs-3 fw-bold">{{ overview.summary.fascicoli_attenzionati }}</div>
-    <div class="small wi-muted">{{ overview.summary.profili_sync_da_verificare }} sincronizzazioni da verificare</div>
-  </div>
-</div>
-
-<div
-  id="workspace-ai-root"
-  class="wi-panel p-4 mb-4 hacs-local-ai-panel"
-  data-ai-mode="{{ 'local' if request.host.split(':')[0] in ['localhost', '127.0.0.1'] else 'remote' }}"
-  data-local-signer-url="http://127.0.0.1:27272"
-  data-local-signer-download-page="{{ url_for('impostazioni.index', tab='firma', _external=True) }}"
-  data-local-signer-setup-windows="{{ url_for('polis_local_signer_setup_windows') }}"
-  data-local-signer-setup-macos="{{ url_for('polis_local_signer_setup_macos') }}"
-  data-local-signer-setup-linux="{{ url_for('polis_local_signer_setup_linux') }}"
-  data-runtime-status-url="/api/local-ai/status"
-  data-server-ask-url="{{ url_for('api_workspace_intelligente_ai') }}"
-  data-server-context-url="{{ url_for('api_workspace_intelligente_ai_context') }}"
-  data-horizon-days="{{ horizon_days }}">
-  <div class="d-flex justify-content-between align-items-center gap-3 flex-wrap mb-3 hacs-local-ai-toolbar">
-    <div>
-      <h2 class="h5 mb-1">Assistente operativo locale</h2>
-      <div class="small text-muted">Domande contestuali su agenda, scadenze, fascicoli e documenti già presenti nel gestionale.</div>
+  {% if focus in ('tutto', 'agenda') %}
+  <div class="wi-panel p-4 mb-4">
+    <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap mb-3">
+      <div>
+        <h2 class="h5 mb-1">Sincronizzazione calendari</h2>
+        <div class="small text-muted">Profili Google Calendar, Outlook, Apple o WebCal gestiti dal server e verificati automaticamente.</div>
+      </div>
+      <a href="{{ url_for('impostazioni_calendario') }}" class="btn btn-sm btn-outline-primary">Gestisci sincronizzazioni</a>
     </div>
-    <div id="workspace-ai-status" class="small text-muted hacs-local-ai-runtime">Assistente locale in attesa di verifica</div>
-  </div>
-  <div class="row g-3 hacs-local-ai-grid">
-    <div class="col-lg-8">
-      <textarea id="workspace-ai-question" class="form-control" rows="3" placeholder="Esempio: quali sono le priorità operative dei prossimi 7 giorni e quali fascicoli devo presidiare per primi?"></textarea>
-    </div>
-    <div class="col-lg-4 d-grid gap-2">
-      <button type="button" class="btn btn-primary" id="workspace-ai-ask-btn" onclick="askWorkspaceAi()">
-        <i class="bi bi-stars me-2"></i>Analizza cabina
-      </button>
-      <button type="button" class="btn btn-outline-secondary hacs-local-ai-secondary-btn" onclick="refreshWorkspaceAiRuntime()">
-        <i class="bi bi-arrow-repeat me-2"></i>Aggiorna stato runtime
-      </button>
-    </div>
-  </div>
-  <div id="workspace-ai-answer" class="wi-answer-card mt-3 hacs-local-ai-answer">
-    <div class="wi-answer-muted">Le risposte compariranno qui con le fonti documentali usate.</div>
-  </div>
-</div>
-
-{% if overview.actions %}
-<div class="wi-panel p-4 mb-4">
-  <div class="d-flex justify-content-between align-items-center gap-3 flex-wrap mb-3">
-    <div>
-      <h2 class="h5 mb-1">Regia automatica</h2>
-      <div class="small text-muted">Le prossime azioni utili vengono proposte direttamente a partire dai dati già presenti nel gestionale.</div>
-    </div>
-  </div>
-  <div class="wi-action-grid">
-    {% set tone_labels = {
-      'danger': 'Critica',
-      'warning': 'Da presidiare',
-      'success': 'In ordine',
-      'primary': 'Prioritaria',
-      'secondary': 'Informativa',
-      'info': 'Informativa',
-    } %}
-    {% for action in overview.actions %}
-    <a href="{{ action.href }}" class="text-decoration-none">
-      <div class="wi-card p-3 h-100 border-{{ action.tone }}-subtle">
+    <div class="wi-sync-grid">
+      {% for sync in overview.sync_profiles %}
+      <div class="wi-card p-3 h-100">
         <div class="d-flex justify-content-between align-items-start gap-3">
           <div>
-            <div class="fw-semibold text-dark">{{ action.title }}</div>
-            <div class="small wi-muted mt-1">{{ action.description }}</div>
+            <div class="fw-semibold">{{ sync.nome }}</div>
+            <div class="small wi-muted">{{ sync.provider_label }}</div>
           </div>
-          <span class="badge text-bg-{{ action.tone }}">{{ tone_labels.get(action.tone, 'Operativa') }}</span>
+          <span class="badge text-bg-{{ sync.status_tone }}">{{ sync.status_label }}</span>
         </div>
-      </div>
-    </a>
-    {% endfor %}
-  </div>
-</div>
-{% endif %}
-
-{% if focus in ('tutto', 'scadenze', 'agenda') %}
-<div class="row g-4 mb-4">
-  <div class="col-xl-6">
-    <div class="wi-panel p-4 h-100">
-      <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap mb-3">
-        <div>
-          <h2 class="h5 mb-1">Scadenze da presidiare</h2>
-          <div class="small text-muted">Termini legali e operativi che richiedono attenzione immediata.</div>
-        </div>
-        <a href="{{ url_for('scadenziario') }}" class="btn btn-sm btn-outline-primary">Apri scadenziario</a>
-      </div>
-      <div class="wi-list">
-        {% for sc in overview.urgent_deadlines %}
-        <div class="wi-list-item">
-          <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
-            <div>
-              <a href="{{ url_for('dettaglio_scadenza', id_sc=sc.id) }}" class="fw-semibold text-decoration-none">{{ sc.titolo }}</a>
-              <div class="small wi-muted mt-1">
-                {{ sc.data_scadenza|fmt_data }}
-                {% if sc.judicial_office_name %} · {{ sc.judicial_office_name }}{% endif %}
-                {% if sc.operational_due_at %} · operativa {{ sc.operational_due_at|fmt_dataora }}{% endif %}
-              </div>
-            </div>
-            <div class="text-end">
-              <span class="badge text-bg-danger">{{ sc.priorita.value }}</span>
-              {% if sc.perentorio %}<div class="small text-danger fw-semibold mt-1">Perentorio</div>{% endif %}
-            </div>
-          </div>
-        </div>
-        {% else %}
-        <div class="wi-list-item">
-          <div class="small wi-muted">Nessuna scadenza urgente: il presidio del termine e sotto controllo.</div>
-        </div>
-        {% endfor %}
-      </div>
-    </div>
-  </div>
-  <div class="col-xl-6">
-    <div class="wi-panel p-4 h-100">
-      <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap mb-3">
-        <div>
-          <h2 class="h5 mb-1">Agenda e promemoria</h2>
-          <div class="small text-muted">Appuntamenti, udienze e reminder sincronizzati dalle principali sorgenti esterne.</div>
-        </div>
-        <a href="{{ url_for('agenda_view') }}" class="btn btn-sm btn-outline-primary">Apri agenda</a>
-      </div>
-      <div class="wi-list">
-        {% for app in overview.upcoming_appointments %}
-        <div class="wi-list-item">
-          <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
-            <div>
-              <a href="{{ url_for('dettaglio_appuntamento', id_app=app.id) }}" class="fw-semibold text-decoration-none">{{ app.titolo }}</a>
-              <div class="small wi-muted mt-1">
-                {{ app.data_ora|fmt_dataora }}
-                {% if app.cliente %} · {{ app.cliente }}{% endif %}
-                {% if app.external_provider %} · {{ app.external_provider|replace('_', ' ')|title }}{% endif %}
-              </div>
-            </div>
-            <span class="badge bg-light text-dark border">{{ app.tipo.value|replace('_', ' ')|title }}</span>
-          </div>
-        </div>
-        {% else %}
-        <div class="wi-list-item">
-          <div class="small wi-muted">Nessun appuntamento in agenda nell'orizzonte selezionato.</div>
-        </div>
-        {% endfor %}
-      </div>
-    </div>
-  </div>
-</div>
-{% endif %}
-
-{% if focus in ('tutto', 'agenda') %}
-<div class="wi-panel p-4 mb-4">
-  <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap mb-3">
-    <div>
-      <h2 class="h5 mb-1">Sincronizzazione calendari</h2>
-      <div class="small text-muted">Profili Google Calendar, Outlook, Apple o WebCal gestiti dal server e verificati automaticamente.</div>
-    </div>
-    <a href="{{ url_for('impostazioni_calendario') }}" class="btn btn-sm btn-outline-primary">Gestisci sincronizzazioni</a>
-  </div>
-  <div class="wi-sync-grid">
-    {% for sync in overview.sync_profiles %}
-    <div class="wi-card p-3 h-100">
-      <div class="d-flex justify-content-between align-items-start gap-3">
-        <div>
-          <div class="fw-semibold">{{ sync.nome }}</div>
-          <div class="small wi-muted">{{ sync.provider_label }}</div>
-        </div>
-        <span class="badge text-bg-{{ sync.status_tone }}">{{ sync.status_label }}</span>
-      </div>
-      <div class="small wi-muted mt-3">
-        {% if sync.last_sync_at %}
-          Ultima sincronizzazione {{ sync.last_sync_at|fmt_dataora }}
-          {% if sync.hours_since is not none %} · {{ sync.hours_since }} h fa{% endif %}
-        {% else %}
-          Nessuna sincronizzazione eseguita finora.
-        {% endif %}
-      </div>
-      {% if sync.last_message %}
-      <div class="small mt-2">{{ sync.last_message }}</div>
-      {% endif %}
-    </div>
-    {% else %}
-    <div class="wi-card p-3">
-      <div class="small wi-muted">Nessun profilo configurato: puoi agganciare Google Calendar, Outlook o altri calendari tramite URL ICS / WebCal.</div>
-    </div>
-    {% endfor %}
-  </div>
-</div>
-{% endif %}
-
-{% if focus in ('tutto', 'fascicoli', 'giurisprudenza') %}
-<div class="wi-panel p-4 mb-4">
-  <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap mb-3">
-    <div>
-      <h2 class="h5 mb-1">Fascicoli attenzionati</h2>
-      <div class="small text-muted">Le pratiche vengono ordinate per pressione operativa: scadenze, udienze, agenda e giurisprudenza utile.</div>
-    </div>
-    <a href="{{ url_for('lista_fascicoli') }}" class="btn btn-sm btn-outline-primary">Apri fascicoli</a>
-  </div>
-  <div class="wi-fascicoli-grid">
-    {% for fasc in overview.fascicoli_hot %}
-    <div class="wi-fascicolo p-3 h-100">
-      <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
-        <div>
-          <div class="small text-muted text-uppercase fw-semibold">{{ fasc.tipo }}</div>
-          <a href="{{ url_for('dettaglio_fascicolo', id_fasc=fasc.id) }}" class="fw-semibold text-decoration-none d-block">{{ fasc.titolo }}</a>
-          <div class="small wi-muted">
-            {{ fasc.rg_completo or fasc.numero }}
-            {% if fasc.tribunale %} · {{ fasc.tribunale }}{% endif %}
-          </div>
-        </div>
-        <div class="wi-score">{{ fasc.score }}</div>
-      </div>
-
-      {% if fasc.scadenze %}
-      <div class="small fw-semibold mb-1">Scadenze</div>
-      <div class="small wi-muted mb-3">
-        {% for sc in fasc.scadenze[:2] %}
-        <div>{{ sc.data_scadenza|fmt_data }} · {{ sc.titolo }}</div>
-        {% endfor %}
-      </div>
-      {% endif %}
-
-      {% if fasc.appuntamenti %}
-      <div class="small fw-semibold mb-1">Agenda</div>
-      <div class="small wi-muted mb-3">
-        {% for app in fasc.appuntamenti[:2] %}
-        <div>{{ app.data_ora|fmt_dataora }} · {{ app.titolo }}</div>
-        {% endfor %}
-      </div>
-      {% endif %}
-
-      {% if fasc.giurisprudenza %}
-      <div class="small fw-semibold mb-1">Sentenze utili</div>
-      <div class="small wi-muted mb-3">
-        {% for sent in fasc.giurisprudenza[:2] %}
-        <div>{{ sent.titolo }}</div>
-        {% endfor %}
-      </div>
-      {% endif %}
-
-      <div class="small fw-semibold mb-1">Prossime mosse</div>
-      <div class="small wi-muted mb-3">
-        {% for action in fasc.azioni %}
-        <div>• {{ action }}</div>
-        {% endfor %}
-      </div>
-
-      <div class="d-flex flex-wrap gap-2">
-        <a href="{{ url_for('dettaglio_fascicolo', id_fasc=fasc.id) }}" class="btn btn-sm btn-primary">Apri fascicolo</a>
-        <a href="{{ url_for('giurisprudenza.index') }}?q={{ fasc.titolo|urlencode }}" class="btn btn-sm btn-outline-secondary">Ricerca sentenze</a>
-      </div>
-    </div>
-    {% else %}
-    <div class="wi-card p-3">
-      <div class="small wi-muted">Nessun fascicolo richiede un presidio particolare nell'orizzonte selezionato.</div>
-    </div>
-    {% endfor %}
-  </div>
-</div>
-{% endif %}
-
-<div class="row g-4">
-  <div class="col-xl-7">
-    <div class="wi-panel p-4 h-100">
-      <h2 class="h5 mb-1">Fonti presidiate per i termini</h2>
-      <div class="small text-muted mb-3">Le regole processuali restano tracciate e distinguono calendario nazionale, sospensione feriale e operatività locale di studio o ufficio.</div>
-      <div class="wi-source-grid">
-        {% for source in overview.fonti_calcolo %}
-        <div class="wi-source p-3 h-100">
-          <div class="fw-semibold">{{ source.label }}</div>
-          <div class="small wi-source-note mt-2">{{ source.note }}</div>
-          <a href="{{ source.url }}" target="_blank" rel="noopener" class="small text-decoration-none d-inline-flex align-items-center gap-1 mt-3">
-            <i class="bi bi-box-arrow-up-right"></i>Fonte ufficiale
-          </a>
-        </div>
-        {% endfor %}
-      </div>
-    </div>
-  </div>
-  <div class="col-xl-5">
-    <div class="wi-panel p-4 h-100">
-      <h2 class="h5 mb-1">Patroni e sedi presidiate</h2>
-      <div class="small text-muted mb-3">La scadenza legale si ancora all'ufficio giudiziario competente; la scadenza operativa anticipa anche il calendario dello studio.</div>
-      <div class="wi-list">
-        {% if overview.studio_patron %}
-        <div class="wi-list-item">
-          <div class="fw-semibold">Studio</div>
-          <div class="small wi-muted mt-1">
-            {{ overview.studio_patron.label }}
-            {% if overview.studio_patron.day and overview.studio_patron.month %}
-             · {{ "%02d"|format(overview.studio_patron.day) }}/{{ "%02d"|format(overview.studio_patron.month) }}
-            {% endif %}
-          </div>
-        </div>
-        {% endif %}
-        {% for office in overview.uffici_monitorati %}
-        <div class="wi-list-item">
-          <div class="fw-semibold">{{ office.office_name }}</div>
-          <div class="small wi-muted mt-1">
-            {% if office.patron_name and office.patron_day and office.patron_month %}
-              Patrono {{ office.patron_name }} · {{ "%02d"|format(office.patron_day) }}/{{ "%02d"|format(office.patron_month) }}
-            {% else %}
-              Nessun patrono configurato
-            {% endif %}
-            {% if office.operating_mode and office.operating_mode != 'open' %}
-             · modalità {{ office.operating_mode|replace('_', ' ') }}
-            {% endif %}
-          </div>
-          {% if office.source_url %}
-          <a href="{{ office.source_url }}" target="_blank" rel="noopener" class="small text-decoration-none d-inline-flex align-items-center gap-1 mt-2">
-            <i class="bi bi-box-arrow-up-right"></i>Fonte ufficio
-          </a>
+        <div class="small wi-muted mt-3">
+          {% if sync.last_sync_at %}
+            Ultima sincronizzazione {{ sync.last_sync_at|fmt_dataora }}
+            {% if sync.hours_since is not none %} · {{ sync.hours_since }} h fa{% endif %}
+          {% else %}
+            Nessuna sincronizzazione eseguita finora.
           {% endif %}
         </div>
-        {% else %}
-        <div class="wi-list-item">
-          <div class="small wi-muted">Le sedi giudiziarie verranno mostrate qui appena le scadenze avanzate avranno ufficio, fonte e data di verifica configurati.</div>
+        {% if sync.last_message %}
+        <div class="small mt-2">{{ sync.last_message }}</div>
+        {% endif %}
+      </div>
+      {% else %}
+      <div class="wi-card p-3">
+        <div class="small wi-muted">Nessun profilo configurato: puoi agganciare Google Calendar, Outlook o altri calendari tramite URL ICS / WebCal.</div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  {% if focus in ('tutto', 'fascicoli', 'giurisprudenza') %}
+  <div class="wi-panel p-4 mb-4">
+    <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap mb-3">
+      <div>
+        <h2 class="h5 mb-1">Fascicoli attenzionati</h2>
+        <div class="small text-muted">Le pratiche vengono ordinate per pressione operativa: scadenze, udienze, agenda e giurisprudenza utile.</div>
+      </div>
+      <a href="{{ url_for('lista_fascicoli') }}" class="btn btn-sm btn-outline-primary">Apri fascicoli</a>
+    </div>
+    <div class="wi-fascicoli-grid">
+      {% for fasc in overview.fascicoli_hot %}
+      <div class="wi-fascicolo p-3 h-100">
+        <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
+          <div>
+            <div class="small text-muted text-uppercase fw-semibold">{{ fasc.tipo }}</div>
+            <a href="{{ url_for('dettaglio_fascicolo', id_fasc=fasc.id) }}" class="fw-semibold text-decoration-none d-block">{{ fasc.titolo }}</a>
+            <div class="small wi-muted">
+              {{ fasc.rg_completo or fasc.numero }}
+              {% if fasc.tribunale %} · {{ fasc.tribunale }}{% endif %}
+            </div>
+          </div>
+          <div class="wi-score">{{ fasc.score }}</div>
         </div>
-        {% endfor %}
+
+        {% if fasc.scadenze %}
+        <div class="small fw-semibold mb-1">Scadenze</div>
+        <div class="small wi-muted mb-3">
+          {% for sc in fasc.scadenze[:2] %}
+          <div>{{ sc.data_scadenza|fmt_data }} · {{ sc.titolo }}</div>
+          {% endfor %}
+        </div>
+        {% endif %}
+
+        {% if fasc.appuntamenti %}
+        <div class="small fw-semibold mb-1">Agenda</div>
+        <div class="small wi-muted mb-3">
+          {% for app in fasc.appuntamenti[:2] %}
+          <div>{{ app.data_ora|fmt_dataora }} · {{ app.titolo }}</div>
+          {% endfor %}
+        </div>
+        {% endif %}
+
+        {% if fasc.giurisprudenza %}
+        <div class="small fw-semibold mb-1">Sentenze utili</div>
+        <div class="small wi-muted mb-3">
+          {% for sent in fasc.giurisprudenza[:2] %}
+          <div>{{ sent.titolo }}</div>
+          {% endfor %}
+        </div>
+        {% endif %}
+
+        <div class="small fw-semibold mb-1">Prossime mosse</div>
+        <div class="small wi-muted mb-3">
+          {% for action in fasc.azioni %}
+          <div>• {{ action }}</div>
+          {% endfor %}
+        </div>
+
+        <div class="d-flex flex-wrap gap-2">
+          <a href="{{ url_for('dettaglio_fascicolo', id_fasc=fasc.id) }}" class="btn btn-sm btn-primary">Apri fascicolo</a>
+          <a href="{{ url_for('giurisprudenza.index') }}?q={{ fasc.titolo|urlencode }}" class="btn btn-sm btn-outline-secondary">Ricerca sentenze</a>
+        </div>
+      </div>
+      {% else %}
+      <div class="wi-card p-3">
+        <div class="small wi-muted">Nessun fascicolo richiede un presidio particolare nell'orizzonte selezionato.</div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="row g-4">
+    <div class="col-xl-7">
+      <div class="wi-panel p-4 h-100">
+        <h2 class="h5 mb-1">Fonti presidiate per i termini</h2>
+        <div class="small text-muted mb-3">Le regole processuali restano tracciate e distinguono calendario nazionale, sospensione feriale e operatività locale di studio o ufficio.</div>
+        <div class="wi-source-grid">
+          {% for source in overview.fonti_calcolo %}
+          <div class="wi-source p-3 h-100">
+            <div class="fw-semibold">{{ source.label }}</div>
+            <div class="small wi-source-note mt-2">{{ source.note }}</div>
+            <a href="{{ source.url }}" target="_blank" rel="noopener" class="small text-decoration-none d-inline-flex align-items-center gap-1 mt-3">
+              <i class="bi bi-box-arrow-up-right"></i>Fonte ufficiale
+            </a>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+    <div class="col-xl-5">
+      <div class="wi-panel p-4 h-100">
+        <h2 class="h5 mb-1">Patroni e sedi presidiate</h2>
+        <div class="small text-muted mb-3">La scadenza legale si ancora all'ufficio giudiziario competente; la scadenza operativa anticipa anche il calendario dello studio.</div>
+        <div class="wi-list">
+          {% if overview.studio_patron %}
+          <div class="wi-list-item">
+            <div class="fw-semibold">Studio</div>
+            <div class="small wi-muted mt-1">
+              {{ overview.studio_patron.label }}
+              {% if overview.studio_patron.day and overview.studio_patron.month %}
+               · {{ "%02d"|format(overview.studio_patron.day) }}/{{ "%02d"|format(overview.studio_patron.month) }}
+              {% endif %}
+            </div>
+          </div>
+          {% endif %}
+          {% for office in overview.uffici_monitorati %}
+          <div class="wi-list-item">
+            <div class="fw-semibold">{{ office.office_name }}</div>
+            <div class="small wi-muted mt-1">
+              {% if office.patron_name and office.patron_day and office.patron_month %}
+                Patrono {{ office.patron_name }} · {{ "%02d"|format(office.patron_day) }}/{{ "%02d"|format(office.patron_month) }}
+              {% else %}
+                Nessun patrono configurato
+              {% endif %}
+              {% if office.operating_mode and office.operating_mode != 'open' %}
+               · modalità {{ office.operating_mode|replace('_', ' ') }}
+              {% endif %}
+            </div>
+            {% if office.source_url %}
+            <a href="{{ office.source_url }}" target="_blank" rel="noopener" class="small text-decoration-none d-inline-flex align-items-center gap-1 mt-2">
+              <i class="bi bi-box-arrow-up-right"></i>Fonte ufficio
+            </a>
+            {% endif %}
+          </div>
+          {% else %}
+          <div class="wi-list-item">
+            <div class="small wi-muted">Le sedi giudiziarie verranno mostrate qui appena le scadenze avanzate avranno ufficio, fonte e data di verifica configurati.</div>
+          </div>
+          {% endfor %}
+        </div>
       </div>
     </div>
   </div>
-</div>
 </div>
 {% endblock %}
 

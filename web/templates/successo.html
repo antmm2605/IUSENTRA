@@ -144,7 +144,7 @@
             <div class="flex-grow-1">
               <div class="fw-semibold">{{ a.titolo }}</div>
               <div class="text-muted" style="font-size:.75rem;">
-                {{ a.data_ora.strftime('%H:%M') }}
+                {{ a.data_ora|fmt_ora }}
                 {% if a.luogo %} · {{ a.luogo }}{% endif %}
               </div>
             </div>

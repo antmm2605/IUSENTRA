@@ -312,7 +312,7 @@
         </div>
         <div class="date-block">
           Stampato il<br>
-          <strong>{{ oggi.strftime('%d/%m/%Y') }}</strong>
+          <strong>{{ oggi|fmt_data }}</strong>
         </div>
       </div>
 
@@ -337,7 +337,7 @@
           <div class="info-label">Prima acquisizione</div>
           <div class="info-value {% if not cliente.data_prima_acquisizione %}empty{% endif %}">
             {% if cliente.data_prima_acquisizione %}
-              {{ cliente.data_prima_acquisizione[8:10] }}/{{ cliente.data_prima_acquisizione[5:7] }}/{{ cliente.data_prima_acquisizione[:4] }}
+              {{ cliente.data_prima_acquisizione|fmt_data }}
             {% else %}—{% endif %}
           </div>
         </div>
@@ -412,7 +412,7 @@
             <td style="font-size:.74rem">{{ f.numero_rg or '—' }}{% if f.anno_rg %}/{{ f.anno_rg }}{% endif %}</td>
             <td style="font-size:.74rem">
               {% if f.data_apertura %}
-                {{ f.data_apertura[8:10] }}/{{ f.data_apertura[5:7] }}/{{ f.data_apertura[:4] }}
+                {{ f.data_apertura|fmt_data }}
               {% else %}—{% endif %}
             </td>
           </tr>
@@ -452,7 +452,7 @@
     <div class="cover-footer">
       <span>{{ studio_nome }}</span>
       <span>{{ cliente.nome_completo }} — Faldone Digitale</span>
-      <span>{{ oggi.strftime('%d/%m/%Y') }}</span>
+      <span>{{ oggi|fmt_data }}</span>
     </div>
     <div class="bottom-band"></div>
 

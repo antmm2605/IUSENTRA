@@ -754,7 +754,7 @@
               <div class="mt-1">
                 <span class="badge {{ _dep_cls }}"
                       style="font-size:.7rem"
-                      title="Deposito {{ doc.id_deposito_pct }}{% if _dep_obj %} — {{ _dep_obj.stato }} del {{ _dep_obj.timestamp[:10] }}{% endif %}">
+                      title="Deposito {{ doc.id_deposito_pct }}{% if _dep_obj %} — {{ _dep_obj.stato }} del {{ _dep_obj.timestamp|fmt_data }}{% endif %}">
                   <i class="bi {{ _dep_icon }} me-1"></i>{{ _dep_lbl }}
                   <span class="opacity-75 ms-1 font-monospace" style="font-size:.65rem">{{ doc.id_deposito_pct }}</span>
                 </span>
@@ -1177,7 +1177,7 @@
               <div>
                 <a href="{{ url_for('dettaglio_appuntamento', id_app=a.id) }}"
                    class="text-decoration-none fw-semibold text-dark">{{ a.titolo }}</a>
-                <div class="text-muted">{{ a.data_ora_dt.strftime('%d/%m/%Y %H:%M') }}</div>
+                <div class="text-muted">{{ a.data_ora_dt|fmt_dataora }}</div>
               </div>
               <span class="badge badge-{{ a.tipo.value }}">{{ a.tipo.value }}</span>
             </div>
@@ -1493,7 +1493,7 @@
                     {% else %}{{ dep.stato }}{% endif %}
                   </span>
                   <span class="text-muted small font-monospace">{{ dep.id }}</span>
-                  <span class="text-muted small">{{ dep.timestamp[:10] }}</span>
+                  <span class="text-muted small">{{ dep.timestamp|fmt_data }}</span>
                 </div>
 
                 <div class="text-muted small mb-2">
@@ -2690,7 +2690,7 @@
             <div class="d-flex justify-content-between align-items-start">
               <div class="small fw-semibold">{{ av.descrizione }}</div>
               <span class="text-muted" style="font-size:.7rem;white-space:nowrap;margin-left:.5rem">
-                {{ av.data[:10] }}
+                {{ av.data|fmt_data }}
               </span>
             </div>
             {% if av.note %}<div class="text-muted" style="font-size:.72rem">{{ av.note }}</div>{% endif %}

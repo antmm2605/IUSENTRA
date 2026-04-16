@@ -203,7 +203,7 @@
             <div>
               <a href="{{ url_for('dettaglio_appuntamento', id_app=a.id) }}"
                  class="text-decoration-none fw-semibold text-dark">{{ a.titolo }}</a>
-              <div class="small text-muted">{{ a.data_ora_dt.strftime('%d/%m/%Y %H:%M') }}</div>
+              <div class="small text-muted">{{ a.data_ora_dt|fmt_dataora }}</div>
             </div>
             <span class="badge badge-{{ a.tipo.value }} rounded-pill">{{ a.tipo.value }}</span>
           </li>
@@ -263,9 +263,9 @@
           <dt class="col-6 text-muted">Provenienza</dt>
           <dd class="col-6">{{ cliente.provenienza or '—' }}</dd>
           <dt class="col-6 text-muted">Creato</dt>
-          <dd class="col-6">{{ cliente.creato_il[:10] }}</dd>
+          <dd class="col-6">{{ cliente.creato_il|fmt_data }}</dd>
           <dt class="col-6 text-muted">Modificato</dt>
-          <dd class="col-6">{{ cliente.modificato_il[:10] }}</dd>
+          <dd class="col-6">{{ cliente.modificato_il|fmt_data }}</dd>
         </dl>
       </div>
     </div>

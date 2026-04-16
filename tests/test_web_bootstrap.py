@@ -450,6 +450,13 @@ def test_template_principali_usano_copy_italiana_e_date_localizzate():
         "web/templates/form_preventivo.html",
         "web/templates/clienti/cartella.html",
         "web/templates/cartelle_condivise.html",
+        "web/templates/clienti/dettaglio.html",
+        "web/templates/faldone.html",
+        "web/templates/editor_documento.html",
+        "web/templates/fascicoli/dettaglio.html",
+        "web/templates/successo.html",
+        "web/templates/clienti/copertina_faldone.html",
+        "web/templates/fascicoli/copertina.html",
     ]
     for relative_path in locale_sensitive_templates:
         content = (REPO_ROOT / relative_path).read_text(encoding="utf-8")

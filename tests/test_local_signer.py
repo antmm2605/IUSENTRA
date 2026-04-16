@@ -1552,9 +1552,11 @@ def _cfg_web(tmp_path):
     base = tmp_path
     backup_dir = str(base / "backup")
     os.makedirs(backup_dir, exist_ok=True)
+    studio_cfg = str(base / "config" / "studio.json")
     return {
         "TESTING": True,
         "SECRET_KEY": "test",
+        "MULTI_TENANT": False,
         "BOOTSTRAP_ADMIN_PASSWORD": "Admin1234!",
         "AUTH_DB": str(base / "utenti.json"),
         "AUDIT_DB": str(base / "audit.json"),
@@ -1568,6 +1570,9 @@ def _cfg_web(tmp_path):
         "SEARCH_INDEX": str(base / "search.db"),
         "FASCICOLI_DOCS": str(base / "docs"),
         "FASCICOLI_ARCH": str(base / "arch"),
+        "STUDIO_CONFIG": studio_cfg,
+        "CONFIG_STUDIO_DB": studio_cfg,
+        "TENANTS_REGISTRY": str(base / "tenants.json"),
     }
 
 

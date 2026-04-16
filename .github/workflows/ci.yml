@@ -2,10 +2,6 @@ name: CI
 
 on:
   push:
-    branches:
-      - "main"
-      - "Codex/legal-electronic-filing-kIxcV"
-      - "claude/legal-electronic-filing-kIxcV"
   pull_request:
   workflow_dispatch:
 
@@ -56,7 +52,6 @@ jobs:
             lex
             tests
             tools/*.py
-            test_*.py
             vercel_app.py
             visible_signature.py
             wsgi.py
@@ -97,7 +92,6 @@ jobs:
 
           paths = []
           paths.extend(sorted(Path("tools").glob("*.py")))
-          paths.extend(sorted(Path(".").glob("test_*.py")))
           for filename in ("vercel_app.py", "visible_signature.py", "wsgi.py"):
             path = Path(filename)
             if path.exists():

@@ -21,15 +21,21 @@ Il workflow applicativo è `.github/workflows/ci.yml` e include:
 - `Governance repo`
 - `Smoke test Flask`
 - `Smoke scheduler worker`
-- test core su storage SQLite, osservabilita' runtime e worker OCR persistente
+- test core su storage SQLite, osservabilità runtime e worker OCR persistente
 - `Pytest core`
-- `Local Signer e PKCS#11` su Linux/Windows/macOS
+- `Local Signer e PKCS#11` su Linux, Windows e macOS
 
-Vista live del workflow:
+Workflow complementari di sicurezza:
+
+- `.github/workflows/codeql.yml`
+- `.github/workflows/dependency-review.yml`
+- `.github/workflows/security-supply-chain.yml`
+
+Vista live del workflow applicativo:
 
 - [Actions / CI](https://github.com/antmm2605/hacs/actions/workflows/ci.yml)
 
-Il lint resta bloccante solo sugli errori reali di sintassi/import.
+Il lint resta bloccante solo sugli errori reali di sintassi e import.
 Il benchmark notturno gira in `.github/workflows/performance-nightly.yml` e usa `tools/performance_smoke.py`.
 
 ## Verifica release locale
@@ -56,12 +62,12 @@ Controlli minimi:
 
 ## Scheduler separato dal web
 
-Il processo web non deve più avviare i job periodici dentro `create_app()`.
+Il processo web non deve avviare i job periodici dentro `create_app()`.
 
 - web: `wsgi:app`
 - worker schedulato: `python -m pct.scheduler_worker`
 
-In Railway/produzione la configurazione corretta è avere un servizio dedicato scheduler che riusa la stessa codebase o immagine ma con comando di avvio `python -m pct.scheduler_worker`.
+In produzione la configurazione corretta è avere un servizio dedicato scheduler che riusa la stessa codebase o immagine, ma con comando di avvio `python -m pct.scheduler_worker`.
 
 ## OCR worker separato dal web
 
@@ -97,17 +103,13 @@ Per ambienti seri la strategia storage va decisa dal `SUPERADMIN` a livello stud
 - `PostgreSQL`
   scelta target per cloud e multi-tenant distribuito, con configurazione e test connessione dal pannello studio
 
-Nel profilo container standard IUSENTRA dichiara anche un default operativo esplicito:
-
-- `PCT_STORAGE_MODE=SQLITE`
-- `PCT_SQLITE_MODE=1` come fallback legacy per moduli non ancora aggiornati
-
 Prima di chiudere una release che tocca storage:
 
 - verifica la strategia selezionata sullo studio
 - controlla il manifest `data/tenants/<slug>/config/storage.json`
 - se il tenant è `SQLite`, verifica la presenza di `data/tenants/<slug>/studio.db`
 - se il tenant è `PostgreSQL`, verifica almeno il test connessione e la chiarezza tra strategia selezionata e backend effettivo
+- aggiorna la matrice in [docs/STORAGE_MATRIX.md](docs/STORAGE_MATRIX.md) se cambia la maturità di un modulo
 
 ## Repo hygiene
 
@@ -133,4 +135,5 @@ Lo script riallinea:
 - `__pycache__/`
 - `.pyc`
 - database runtime e indici locali
-- log/import cache generati dal runtime
+- log e dump temporanei del Local Signer
+- asset ministeriali lasciati in root invece che sotto `docs/specs/ministero/`

@@ -1,0 +1,4 @@
+-r core.txt
+-r pdf.txt
+-r integrations.txt
+-r db.txt

@@ -70,17 +70,33 @@ def test_ricerca_legale_lines_uses_repository_and_monitoring(tmp_path):
     app = Flask(__name__)
     app.config["LEGAL_INTELLIGENCE_DB"] = gestore.db_path
     app.config["NORMATIVE_TABLES_DB"] = gestore.normative_db_path
+    app.config["FASCICOLI_DB"] = str(tmp_path / "fascicoli.json")
+    app.config["FASCICOLI_DOCS"] = str(tmp_path / "docs")
+    app.config["FASCICOLI_ARCH"] = str(tmp_path / "arch")
+    app.config["CLIENTI_DB"] = str(tmp_path / "clienti.json")
+    app.config["AGENDA_DB"] = str(tmp_path / "agenda.json")
+    app.config["SCADENZIARIO_DB"] = str(tmp_path / "scadenze.json")
+    app.config["PORTALE_DB"] = str(tmp_path / "portali.json")
+    app.config["PORTALE_UPLOADS"] = str(tmp_path / "uploads")
 
     with app.app_context():
         lines, sources = _ricerca_legale_lines("normattiva aggiornata")
 
     assert any("Repository legale strutturato" in line for line in lines)
+    assert any("Cockpit Motori Legali:" in line for line in lines)
     assert any("Routing deterministico:" in line for line in lines)
     assert any("Fonti ufficiali prioritarie:" in line for line in lines)
     assert any("Stato monitoraggio:" in line for line in lines)
 
     repository_source = next(row for row in sources if row.get("id") == "legal-intelligence:repository")
     assert repository_source["title"] == "Repository legale"
+
+    dashboard_source = next(
+        row for row in sources if row.get("id") == "legal-intelligence:dashboard-headline"
+    )
+    assert dashboard_source["title"] == "Dashboard Motori Legali"
+    assert dashboard_source["headline"]["motori_attivi"] >= 1
+    assert dashboard_source["headline"]["riferimenti_normativi"] >= 8
 
     normattiva_source = next(row for row in sources if row.get("id") == "fonte:normattiva")
     assert normattiva_source["official_url"] == "https://www.normattiva.it/"

@@ -5,6 +5,7 @@ from pathlib import Path
 from flask import g
 
 from pct import __version__ as APP_VERSION
+from web.bootstrap.blueprint_registry import BLUEPRINT_REGISTRY
 from web.bootstrap.flask_app_factory import create_flask_app
 from web.bootstrap.runtime_bundle import build_application_runtime_bundle
 from web.app import create_app
@@ -120,24 +121,7 @@ def test_create_app_applies_runtime_overrides_and_registers_blueprints(tmp_path:
     assert app.config["WA_REMINDER_ORA"] == "17:15"
 
     expected_blueprints = {
-        "api_v1",
-        "portale",
-        "fatturazione",
-        "notifiche",
-        "template_atti",
-        "statistiche",
-        "legal_intelligence",
-        "giurisprudenza",
-        "export_csv",
-        "pagamenti",
-        "admin",
-        "impostazioni",
-        "email_client",
-        "assistente",
-        "preventivi",
-        "strumenti_legali",
-        "applicazioni",
-        "wizard_pro",
+        entry.name for entry in BLUEPRINT_REGISTRY if entry.is_enabled(app.config)
     }
     assert expected_blueprints.issubset(set(app.blueprints))
     assert app.config["PCT_SCHEDULER_WORKER"] is False
@@ -176,6 +160,18 @@ def test_runtime_bundle_scheduler_only_costruisce_solo_core(tmp_path: Path):
     assert runtime_bundle.telematico == {}
     assert runtime_bundle.pdp_penale == {}
     assert runtime_bundle.core["get_agenda"] is not None
+
+
+def test_root_repo_resta_pulita_e_spec_tecniche_stanno_fuori_dalla_root():
+    root_test_files = sorted(path.name for path in REPO_ROOT.glob("test_*.py"))
+    root_temp_logs = sorted(path.name for path in REPO_ROOT.glob("tmp_local_signer_*.log"))
+    ministero_specs_dir = REPO_ROOT / "docs/specs/ministero"
+
+    assert root_test_files == []
+    assert root_temp_logs == []
+    assert ministero_specs_dir.exists()
+    assert (ministero_specs_dir / "Documentazione_servizi_web_v1.69.pdf").exists()
+    assert (ministero_specs_dir / "A1_WSDL_CATALOG_v1.52").exists()
 
 
 def test_auth_guard_keeps_login_public_and_redirects_protected_routes(tmp_path: Path):
@@ -515,6 +511,9 @@ def test_bootstrap_pubblico_resta_allineato_a_password_temporanee_e_ci_reale():
     readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
     ci_workflow = (REPO_ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
     perf_workflow = (REPO_ROOT / ".github/workflows/performance-nightly.yml").read_text(encoding="utf-8")
+    codeql_workflow = (REPO_ROOT / ".github/workflows/codeql.yml").read_text(encoding="utf-8")
+    dependency_review = (REPO_ROOT / ".github/workflows/dependency-review.yml").read_text(encoding="utf-8")
+    security_workflow = (REPO_ROOT / ".github/workflows/security-supply-chain.yml").read_text(encoding="utf-8")
 
     assert "admin / admin" not in compose
     assert "admin / admin" not in readme
@@ -528,13 +527,22 @@ def test_bootstrap_pubblico_resta_allineato_a_password_temporanee_e_ci_reale():
     assert "name: CI" in ci_workflow
     assert "name: Governance repo" in ci_workflow
     assert "python tools/check_repo_governance.py" in ci_workflow
-    assert '      - "main"' in ci_workflow
+    assert "\n  push:\n" in ci_workflow
+    assert '      - "Codex/legal-electronic-filing-kIxcV"' not in ci_workflow
+    assert '      - "claude/legal-electronic-filing-kIxcV"' not in ci_workflow
     assert "name: Smoke scheduler worker" in ci_workflow
     assert "tests/test_storage_strategy.py" in ci_workflow
     assert "tests/test_observability_runtime.py" in ci_workflow
     assert "tests/test_ocr_worker.py" in ci_workflow
     assert "name: Performance Nightly" in perf_workflow
     assert "tools/performance_smoke.py --strict" in perf_workflow
+    assert "name: CodeQL" in codeql_workflow
+    assert "github/codeql-action/analyze" in codeql_workflow
+    assert "name: Dependency Review" in dependency_review
+    assert "dependency-review-action" in dependency_review
+    assert "name: Security Supply Chain" in security_workflow
+    assert "pip-audit" in security_workflow
+    assert "sbom" in security_workflow
 
 
 def test_scheduler_worker_entrypoint_resta_separato_dal_runtime_web():
@@ -1026,6 +1034,7 @@ def test_contesto_lex_compatta_le_sezioni_e_limita_le_fonti():
     assert "_cached_section_payload" in context_service
     assert "_SECTION_CACHE_TTLS" in context_service
     assert "_SECTION_DEPENDENCY_KEYS" in context_service
+    assert "_legal_dashboard_headline" in context_service
     assert 'chat_mode = str(mode or "").strip().lower() == "chat"' in context_service
     assert "selected_detail_titles = (" in context_service
     assert "force_web_fallback = web_execution_requested or _should_force_web_fallback(" in context_service
@@ -1033,6 +1042,7 @@ def test_contesto_lex_compatta_le_sezioni_e_limita_le_fonti():
     assert 'research_strategy = _clean_spaces(focus.get("research_strategy"))' in context_service
     assert 'Ricerca ampia su sentenze civili: Lex deve partire dalle pronunce civili piu\' recenti' in context_service
     assert '"web_fallback_used": bool(force_web_fallback)' in context_service
+    assert '"legal_dashboard_headline": legal_dashboard_headline' in context_service
     assert "warm_lex_studio_context" in context_service
     assert "resolve_competence_labels" in context_service
     assert "resolve_competence_section_titles" in context_service
@@ -1348,20 +1358,29 @@ def test_assistente_chat_usa_runtime_ollama_risolto(monkeypatch, tmp_path: Path)
 
 def test_file_critici_non_contengono_marker_di_mojibake():
     critical_files = [
+        REPO_ROOT / ".editorconfig",
         REPO_ROOT / ".env.example",
         REPO_ROOT / "Dockerfile",
         REPO_ROOT / "README.md",
         REPO_ROOT / "railway.toml",
         REPO_ROOT / "pct/auth.py",
+        REPO_ROOT / "pct/scheduler.py",
         REPO_ROOT / "web/services/core_runtime.py",
         REPO_ROOT / "web/templates/base.html",
         REPO_ROOT / "web/templates/auth/login.html",
         REPO_ROOT / "web/templates/auth/login_2fa.html",
         REPO_ROOT / "web/templates/polisWeb.html",
         REPO_ROOT / "web/templates/portale/acquisizione_wizard.html",
+        REPO_ROOT / "docs/STORAGE_MATRIX.md",
+        REPO_ROOT / "docs/RELEASE_PROCESS.md",
     ]
 
     for path in critical_files:
         text = path.read_text(encoding="utf-8")
         assert MOJIBAKE_PATTERN.search(text) is None, path.name
+
+    governance = (REPO_ROOT / "tools/check_repo_governance.py").read_text(encoding="utf-8")
+    assert "MOJIBAKE_PATTERN" in governance
+    assert "_find_mojibake_or_non_utf8_files" in governance
+    assert "non UTF-8" in governance
 

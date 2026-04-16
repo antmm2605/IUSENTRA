@@ -6,6 +6,52 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+MOJIBAKE_PATTERN = re.compile(
+    r"\u00c3.|\u00c2.|\u00e2[\u20ac\u201a\u0192\u201e\u2026\u2020\u2021\u02c6\u2030\u0160\u2039\u0152\u017d\u2018\u2019\u201c\u201d\u2022\u2013\u2014\u02dc\u2122\u0161\u203a\u0153\u017e\u0178]|\u00e2\u0153.|\u00e2\u0161."
+)
+_GOVERNED_TEXT_SUFFIXES = {
+    ".bat",
+    ".cfg",
+    ".css",
+    ".dtd",
+    ".env",
+    ".html",
+    ".ini",
+    ".js",
+    ".json",
+    ".md",
+    ".ps1",
+    ".py",
+    ".scss",
+    ".sh",
+    ".sql",
+    ".toml",
+    ".ts",
+    ".tsx",
+    ".txt",
+    ".wsdl",
+    ".xml",
+    ".xsd",
+    ".yaml",
+    ".yml",
+}
+_GOVERNED_TEXT_NAMES = {
+    ".editorconfig",
+    ".flake8",
+    ".gitattributes",
+    ".gitignore",
+    "Dockerfile",
+    "Makefile",
+    "railway.toml",
+}
+_TEXT_PREFIX_EXCLUSIONS = (
+    "docs/specs/ministero/",
+    "tools/dist/",
+)
+_TEXT_PART_EXCLUSIONS = {
+    "__pycache__",
+    ".pytest_cache",
+}
 
 
 def _read_text(relative_path: str) -> str:
@@ -52,7 +98,41 @@ def _tracked_files() -> list[str]:
         text=True,
         check=True,
     )
-    return [line.strip() for line in result.stdout.splitlines() if line.strip()]
+    tracked: list[str] = []
+    for line in result.stdout.splitlines():
+        normalized = line.strip()
+        if not normalized:
+            continue
+        if not (REPO_ROOT / normalized).exists():
+            continue
+        tracked.append(normalized)
+    return tracked
+
+
+def _iter_governed_text_files():
+    for relative_path in _tracked_files():
+        normalized = relative_path.replace("\\", "/")
+        if any(normalized.startswith(prefix) for prefix in _TEXT_PREFIX_EXCLUSIONS):
+            continue
+        if any(part in _TEXT_PART_EXCLUSIONS for part in normalized.split("/")):
+            continue
+        path = REPO_ROOT / relative_path
+        if path.suffix.lower() not in _GOVERNED_TEXT_SUFFIXES and path.name not in _GOVERNED_TEXT_NAMES:
+            continue
+        yield normalized, path
+
+
+def _find_mojibake_or_non_utf8_files() -> list[str]:
+    offenders: list[str] = []
+    for relative_path, path in _iter_governed_text_files():
+        try:
+            text = path.read_text(encoding="utf-8")
+        except UnicodeDecodeError:
+            offenders.append(f"{relative_path} (non UTF-8)")
+            continue
+        if MOJIBAKE_PATTERN.search(text):
+            offenders.append(f"{relative_path} (mojibake)")
+    return offenders
 
 
 def main() -> int:
@@ -125,6 +205,7 @@ def main() -> int:
         )
 
     scheduler_worker = _read_text("pct/scheduler_worker.py")
+    scheduler_module = _read_text("pct/scheduler.py")
     _check(
         "def create_scheduler_app(" in scheduler_worker,
         "pct/scheduler_worker.py deve esporre create_scheduler_app().",
@@ -138,6 +219,16 @@ def main() -> int:
     _check(
         'cfg["SCHEDULER_ONLY"] = True' in scheduler_worker,
         "pct/scheduler_worker.py deve forzare il profilo SCHEDULER_ONLY.",
+        failures,
+    )
+    _check(
+        "_scheduler_bootstrap_allowed" in scheduler_module,
+        "pct/scheduler.py deve avere una guardia esplicita per l'avvio solo sul worker dedicato.",
+        failures,
+    )
+    _check(
+        "PCT_SCHEDULER_WORKER" in scheduler_module,
+        "pct/scheduler.py deve controllare il profilo worker prima di avviare APScheduler.",
         failures,
     )
 
@@ -198,6 +289,29 @@ def main() -> int:
             f"web/bootstrap/app_wiring.py incompleto: manca '{snippet}'.",
             failures,
         )
+
+    blueprint_registry = _read_text("web/bootstrap/blueprint_registry.py")
+    register_blueprints = _read_text("web/bootstrap/register_blueprints.py")
+    _check(
+        "class BlueprintRegistration" in blueprint_registry,
+        "web/bootstrap/blueprint_registry.py deve esporre BlueprintRegistration.",
+        failures,
+    )
+    _check(
+        "BLUEPRINT_REGISTRY" in blueprint_registry,
+        "web/bootstrap/blueprint_registry.py deve esporre BLUEPRINT_REGISTRY.",
+        failures,
+    )
+    _check(
+        "from web.bootstrap.blueprint_registry import BLUEPRINT_REGISTRY" in register_blueprints,
+        "web/bootstrap/register_blueprints.py deve usare il registro dichiarativo dei blueprint.",
+        failures,
+    )
+    _check(
+        "entry.load_blueprint()" in register_blueprints,
+        "web/bootstrap/register_blueprints.py deve registrare i blueprint iterando il registry.",
+        failures,
+    )
 
     focused_limits = {
         "web/blueprints/assistente.py": 40,
@@ -427,7 +541,6 @@ def main() -> int:
         "python tools/check_repo_governance.py",
         "name: Lint + syntax",
         "name: Smoke test Flask",
-        '      - "main"',
         "from web.app import create_app",
         'assert "PCT_SCHEDULER" not in direct_app.config',
         "name: Smoke scheduler worker",
@@ -439,6 +552,17 @@ def main() -> int:
         "name: Local Signer e PKCS#11 (${{ matrix.os }})",
     ):
         _check(snippet in ci_workflow, f"Workflow CI incompleto: manca '{snippet}'.", failures)
+    _check("\n  push:\n" in ci_workflow, "Workflow CI deve coprire i push in modo generico.", failures)
+    _check(
+        '      - "Codex/legal-electronic-filing-kIxcV"' not in ci_workflow,
+        "Workflow CI non deve dipendere dal branch Codex specifico.",
+        failures,
+    )
+    _check(
+        '      - "claude/legal-electronic-filing-kIxcV"' not in ci_workflow,
+        "Workflow CI non deve dipendere dal branch Claude specifico.",
+        failures,
+    )
 
     performance_workflow = _read_text(".github/workflows/performance-nightly.yml")
     for snippet in (
@@ -452,27 +576,83 @@ def main() -> int:
             failures,
         )
 
+    codeql_workflow = _read_text(".github/workflows/codeql.yml")
+    dependency_review = _read_text(".github/workflows/dependency-review.yml")
+    security_supply_chain = _read_text(".github/workflows/security-supply-chain.yml")
+    for snippet in (
+        "name: CodeQL",
+        "github/codeql-action/analyze",
+    ):
+        _check(snippet in codeql_workflow, f"Workflow CodeQL incompleto: '{snippet}'.", failures)
+    for snippet in (
+        "name: Dependency Review",
+        "dependency-review-action",
+    ):
+        _check(snippet in dependency_review, f"Workflow dependency review incompleto: '{snippet}'.", failures)
+    for snippet in (
+        "name: Security Supply Chain",
+        "pip-audit",
+        "sbom",
+    ):
+        _check(snippet in security_supply_chain, f"Workflow security supply chain incompleto: '{snippet}'.", failures)
+
     readme = _read_text("README.md")
     _check("Governance repo" in readme, "README non documenta il job di governance repo.", failures)
     _check("docs/QUICKSTART.md" in readme, "README non collega il quickstart operativo.", failures)
     _check("docs/DEPLOY.md" in readme, "README non collega la guida deploy/release.", failures)
+    _check("docs/STORAGE_MATRIX.md" in readme, "README non collega la matrice storage.", failures)
+    _check("docs/RELEASE_PROCESS.md" in readme, "README non collega la disciplina di release.", failures)
     _check("lex/registry.py" in readme, "README non documenta il registry del bounded context Lex.", failures)
     _check("scheduler-worker" in readme, "README non documenta il worker dedicato dello scheduler.", failures)
     _check("ocr-worker" in readme, "README non documenta il worker dedicato OCR.", failures)
     _check("/admin/osservabilita" in readme, "README non documenta la pagina di osservabilita'.", failures)
+    _check("CodeQL" in readme, "README non documenta i workflow DevSecOps.", failures)
     _check(
         "github.com/antmm2605/hacs/actions/workflows/ci.yml" in readme,
         "README non collega la vista live del workflow CI.",
         failures,
     )
+    mojibake_offenders = _find_mojibake_or_non_utf8_files()
+    _check(
+        not mojibake_offenders,
+        "Rilevati file testuali non UTF-8 o con possibile mojibake: "
+        + ", ".join(mojibake_offenders[:8])
+        + (" ..." if len(mojibake_offenders) > 8 else ""),
+        failures,
+    )
 
-    for relative_path in ("docs/QUICKSTART.md", "docs/DEPLOY.md"):
+    for relative_path in (
+        "docs/QUICKSTART.md",
+        "docs/DEPLOY.md",
+        "docs/STORAGE_MATRIX.md",
+        "docs/RELEASE_PROCESS.md",
+        "CHANGELOG.md",
+        ".editorconfig",
+    ):
         _check((REPO_ROOT / relative_path).exists(), f"Documentazione mancante: {relative_path}.", failures)
 
     tracked_files = _tracked_files()
     forbidden_exact = {
         "pct.zip",
         "web/polisWeb - Copia.html",
+    }
+    forbidden_root_directories = {
+        "A1_WSDL_CATALOG_v1.52",
+        "certificato autenticazione proxy",
+        "DTD_20180328",
+        "parte",
+        "schema",
+        "XSD PLO118 FASE2 per SW House",
+        "XSD_REGINDE_20251010",
+    }
+    forbidden_root_files = {
+        "Documentazione_servizi_web_v1.63.pdf",
+        "Documentazione_servizi_web_v1.69.pdf",
+        "PagamentiTelematiciGiustizia-6.0.1.xsd",
+        "PagamentiTelematiciGiustizia.xsd",
+        "Processo_Telematico_di_legittimit__Schemi_XSD_v.21.pdf",
+        "Specifiche_Tecniche_PPT_11.07.2023_post_DM_2023_signed.pdf",
+        "vademecum-deposito-atti-penali-sul-portale-telematico.pdf",
     }
     forbidden_suffixes = (".pyc", ".pyo", ".rej", ".orig", ".bak")
     for tracked in tracked_files:
@@ -495,6 +675,26 @@ def main() -> int:
         _check(
             not normalized.endswith(forbidden_suffixes),
             f"Artefatto non governabile tracciato: {normalized}.",
+            failures,
+        )
+        _check(
+            not (normalized.startswith("test_") and normalized.endswith(".py")),
+            f"Test top-level da spostare sotto tests/: {normalized}.",
+            failures,
+        )
+        _check(
+            not normalized.startswith("tmp_local_signer_"),
+            f"Log temporaneo Local Signer tracciato in root: {normalized}.",
+            failures,
+        )
+        _check(
+            normalized not in forbidden_root_directories,
+            f"Asset ministeriale non deve stare in root: {normalized}.",
+            failures,
+        )
+        _check(
+            normalized not in forbidden_root_files,
+            f"Specifica ministeriale non deve stare in root: {normalized}.",
             failures,
         )
 

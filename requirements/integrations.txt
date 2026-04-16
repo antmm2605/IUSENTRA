@@ -1,0 +1,5 @@
+pyhanko>=0.20.0
+pyhanko-certvalidator>=0.26.0
+stripe>=7.0.0
+twilio>=8.0.0
+zeep>=4.2.1

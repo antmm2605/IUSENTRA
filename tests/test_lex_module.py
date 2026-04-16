@@ -3,6 +3,7 @@ from pathlib import Path
 
 from lex.context.builder import LexContextBuilder
 from lex.context.document_context import load_document_context
+from lex.context.studio_context import build_lex_studio_context
 from lex.memory.conversation_state import (
     messages_with_effective_question,
     resolve_current_and_previous_user_messages,
@@ -195,3 +196,18 @@ def test_lex_document_context_marca_p7m_detached_come_ai_readable_se_esiste_orig
     assert rows
     assert rows[0]["signed_status"]["detached_signature"] is True
     assert rows[0]["ai_readable"] is True
+
+
+def test_lex_studio_context_espone_dashboard_motori_legali(tmp_path: Path):
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    app = create_app(_cfg_web(tmp_path))
+
+    with app.app_context():
+        payload = build_lex_studio_context("normattiva aggiornata", mode="chat")
+
+    assert any(
+        source.get("id") == "legal-intelligence:dashboard-headline"
+        for source in payload["sources"]
+    )
+    assert payload["legal_dashboard_headline"]["motori_attivi"] >= 1
+    assert payload["legal_dashboard_headline"]["riferimenti_normativi"] >= 8

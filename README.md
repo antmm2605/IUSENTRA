@@ -46,11 +46,12 @@ La strategia storage non è più una scelta implicita o globale: viene definita 
 - `PostgreSQL`
   strategia esterna per distribuzione cloud e multi-tenant seria, con configurazione e test connessione dal pannello Superadmin.
 
-Stato attuale del runtime:
+La parte importante, adesso, è che lo stato non viene più raccontato in modo generico:
 
-- `JSON` e `SQLite` sono backend effettivi già usati dai moduli compatibili.
-- `PostgreSQL` è già configurabile, verificabile e documentato come strategia target; il passaggio dei moduli core allo storage transazionale esterno procede in modo progressivo e governato per tenant.
-- Il profilo runtime locale e containerizzato dichiara esplicitamente `PCT_STORAGE_MODE=SQLITE`; il vecchio `PCT_SQLITE_MODE=1` resta supportato come compatibilità legacy.
+- la matrice modulo-per-modulo vive in [docs/STORAGE_MATRIX.md](docs/STORAGE_MATRIX.md)
+- `selected_mode` e `effective_runtime_kind` restano distinti per evitare promesse ambigue
+- il profilo runtime locale e containerizzato dichiara esplicitamente `PCT_STORAGE_MODE=SQLITE`
+- `PCT_SQLITE_MODE=1` resta supportato come compatibilità legacy, ma non è più l’unico punto di verità
 
 ## Avvio locale
 
@@ -120,7 +121,9 @@ Questo evita configurazioni globali opache e rende ogni tenant governabile in mo
 
 ## CI GitHub
 
-La CI non si limita più alla sola sincronizzazione branch. La pipeline applicativa esegue:
+La CI non si limita più alla sola sincronizzazione branch. Il workflow principale applicativo è `.github/workflows/ci.yml` e copre i push in modo generico, senza dipendere da due branch hardcoded.
+
+La pipeline applicativa esegue:
 
 - governance repo e modularizzazione (`Governance repo`)
 - lint statico conservativo su errori bloccanti (`ruff` + `flake8`)
@@ -131,10 +134,17 @@ La CI non si limita più alla sola sincronizzazione branch. La pipeline applicat
 - suite `pytest` core su Linux
 - job matrix Linux / Windows / macOS per Local Signer e componenti correlati
 
+Ai workflow applicativi si affiancano ora controlli DevSecOps dedicati:
+
+- `CodeQL` per code scanning statico
+- `Dependency Review` sulle pull request
+- `Security Supply Chain` con `pip-audit` e generazione SBOM
+- `Performance Nightly` per benchmark leggero e regressioni di runtime
+
 I workflow vivono in `.github/workflows/`.
-Il workflow principale applicativo è `.github/workflows/ci.yml`.
 La vista live del workflow è [Actions / CI](https://github.com/antmm2605/hacs/actions/workflows/ci.yml).
 Le dipendenze di sviluppo della pipeline sono raccolte in `requirements-dev.txt`.
+Le dipendenze oggi sono organizzate anche sotto `requirements/` con separazione tra runtime base e sviluppo.
 Il gate lint attuale è volutamente centrato su errori sintattici e import/fatal error, così la CI resta verde mentre il debito storico di stile viene ridotto in modo progressivo.
 Il job `Governance repo` esegue `tools/check_repo_governance.py` e blocca regressioni su modularizzazione, budget dei moduli e confini tra `web/` e `lex/`.
 La pipeline notturna `.github/workflows/performance-nightly.yml` esegue `tools/performance_smoke.py` per misurare startup, login, metriche runtime e tempi base di Lex.
@@ -183,7 +193,10 @@ python -m pytest tests/test_pdp_penale_web.py -q
 
 - [docs/QUICKSTART.md](docs/QUICKSTART.md) — avvio rapido locale, bootstrap admin e verifiche iniziali.
 - [docs/DEPLOY.md](docs/DEPLOY.md) — release, Docker locale, Railway, CI e controlli finali.
+- [docs/STORAGE_MATRIX.md](docs/STORAGE_MATRIX.md) — matrice esplicita dei backend storage per modulo e stato di maturità.
+- [docs/RELEASE_PROCESS.md](docs/RELEASE_PROCESS.md) — checklist di release, tagging, changelog e sincronizzazione ambienti.
 - [docs/ARCHITETTURA.md](docs/ARCHITETTURA.md) — struttura moduli, flussi e confini applicativi.
+- [CHANGELOG.md](CHANGELOG.md) — traccia delle release e delle modifiche rilevanti.
 - [AGENTS.md](AGENTS.md) — regole operative del repository, release, sicurezza e PCT.
 
 ## Stato del progetto
@@ -195,5 +208,5 @@ Il codice oggi è più maturo di una semplice demo:
 - test coverage distribuita su molti domini reali
 - bootstrap di sicurezza più severo per uso professionale
 
-`web/app.py` oggi è una factory sottile: delega la costruzione base a `web/bootstrap/flask_app_factory.py`, l'assemblaggio dei runtime a `web/bootstrap/runtime_bundle.py` e il wiring finale a `web/bootstrap/app_wiring.py`. Lo scheduler non parte più dal processo web: i job periodici vivono nel worker dedicato `pct.scheduler_worker`, eseguito in locale dal servizio `scheduler-worker` e predisposto per un servizio separato anche in produzione. Il prossimo passo naturale resta spezzare ulteriormente i runtime più densi in `web/services/`, mantenendo documentazione e CI allo stesso livello del codice.
+`web/app.py` oggi è una factory sottile: delega la costruzione base a `web/bootstrap/flask_app_factory.py`, l'assemblaggio dei runtime a `web/bootstrap/runtime_bundle.py` e il wiring finale a `web/bootstrap/app_wiring.py`. Il registro blueprint è dichiarativo in `web/bootstrap/blueprint_registry.py`, così il wiring non dipende più da una lista manuale fragile. Lo scheduler non parte più dal processo web: i job periodici vivono nel worker dedicato `pct.scheduler_worker`, eseguito in locale dal servizio `scheduler-worker` e predisposto per un servizio separato anche in produzione. Sul lato Lex, il contesto studio include ora anche l’headline del cockpit `Motori Legali`, così il bounded context AI ragiona sullo stesso stato operativo mostrato dalla dashboard.
 

@@ -1,7 +1,7 @@
-"""
-pct/scheduler.py — Scheduler background per task automatici.
+﻿"""
+pct/scheduler.py - Scheduler background per task automatici.
 
-Usa APScheduler (già in requirements.txt) per:
+Usa APScheduler (gia' in requirements.txt) per:
   - Backup automatico giornaliero (ora configurabile)
   - Promemoria WhatsApp appuntamenti di domani (ogni giorno alle 18:00)
   - Aggiornamento scadenze SCADUTE (ogni notte)
@@ -24,16 +24,27 @@ def _flag_enabled(value: object) -> bool:
     return str(value or "").strip().lower() in {"1", "true", "yes", "on"}
 
 
+def _scheduler_bootstrap_allowed(app) -> bool:
+    return bool(app.config.get("PCT_SCHEDULER_WORKER")) or _flag_enabled(
+        app.config.get("ALLOW_INLINE_SCHEDULER")
+    ) or _flag_enabled(os.environ.get("PCT_ALLOW_INLINE_SCHEDULER"))
+
+
 def start_scheduler(app):
     """
     Avvia lo scheduler APScheduler in background.
     Chiamare una sola volta dal worker dedicato.
-    Sicuro in modalità multi-worker grazie al lock ambientale.
+    Sicuro in modalita' multi-worker grazie al lock ambientale.
     """
     if _flag_enabled(os.environ.get("PCT_DISABLE_SCHEDULER")) or _flag_enabled(
         app.config.get("DISABLE_SCHEDULER")
     ):
         logger.info("[scheduler] Avvio disabilitato da configurazione.")
+        return None
+    if not _scheduler_bootstrap_allowed(app):
+        logger.info(
+            "[scheduler] Avvio ignorato: consentito solo su worker dedicato o con override esplicito."
+        )
         return None
     # Evita di avviare lo scheduler in Flask debug reloader (processo duplicato)
     if os.environ.get("WERKZEUG_RUN_MAIN") == "true" and app.debug:
@@ -47,7 +58,7 @@ def start_scheduler(app):
         from apscheduler.schedulers.background import BackgroundScheduler
         from apscheduler.triggers.cron import CronTrigger
     except ImportError:
-        logger.warning("APScheduler non disponibile — task automatici disabilitati.")
+        logger.warning("APScheduler non disponibile - task automatici disabilitati.")
         return
 
     scheduler = BackgroundScheduler(timezone="Europe/Rome")
@@ -105,7 +116,7 @@ def start_scheduler(app):
                     twilio_numero=app.config.get("TWILIO_NUMERO", ""),
                     callmebot_key=app.config.get("CALLMEBOT_KEY", ""),
                 )
-                # Solo se c'è un canale configurato
+                # Solo se c'e' un canale configurato
                 if not cfg.ha_twilio and not cfg.ha_callmebot:
                     return
                 ag = Agenda(db_path=app.config["AGENDA_DB"])
@@ -245,7 +256,7 @@ def start_scheduler(app):
                 if review:
                     logger.warning(
                         "[scheduler] %d tabelle normative richiedono verifica manuale "
-                        "(la fonte e cambiata — accedere a /legal-intelligence per dettagli)",
+                        "(la fonte e cambiata - accedere a /legal-intelligence per dettagli)",
                         review,
                     )
             except Exception as e:
@@ -459,7 +470,7 @@ def start_scheduler(app):
                 logger.error("[scheduler] Local AI maintenance fallita: %s", e)
 
     # ---- Polling automatico esiti depositi telematici (ogni 15 minuti) ----
-    # Aggiorna EsitoDepositoPCT in stati pendenti (INVIATO → ACCETTATO_PEC → CONSEGNATO)
+    # Aggiorna EsitoDepositoPCT in stati pendenti (INVIATO -> ACCETTATO_PEC -> CONSEGNATO)
     # interrogando PEC IMAP e PDP REST senza bloccare il thread principale.
     @scheduler.scheduled_job(CronTrigger(minute="*/15"), id="polling_esiti_deposito")
     def _polling_esiti_deposito():
@@ -515,7 +526,7 @@ def start_scheduler(app):
             except Exception as e:
                 logger.error("[scheduler] Polling esiti deposito fallito: %s", e)
 
-    # ---- Polling PEC → Comunicazioni di cancelleria (ogni 30 minuti) ----
+    # ---- Polling PEC -> Comunicazioni di cancelleria (ogni 30 minuti) ----
     # Scansiona la casella PEC alla ricerca di email di cancelleria (ACCETTAZIONE,
     # RIFIUTO, ecc.) che contengono un numero RG e le associa automaticamente
     # ai fascicoli corrispondenti nella sezione "Comunicazioni di cancelleria".
@@ -576,6 +587,6 @@ def start_scheduler(app):
     scheduler.start()
     # Salva il riferimento nell'app per consentire il reschedule dinamico
     app.config["PCT_SCHEDULER"] = scheduler
-    logger.info(f"[scheduler] Avviato — backup alle {ora_backup}, WA reminder alle {wa_ora}.")
+    logger.info(f"[scheduler] Avviato - backup alle {ora_backup}, WA reminder alle {wa_ora}.")
     return scheduler
 

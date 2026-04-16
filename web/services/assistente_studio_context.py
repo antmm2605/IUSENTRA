@@ -11,6 +11,7 @@ from flask import current_app, g
 from pct.config_studio import GestioneConfigStudio
 from pct.fatturazione import GestioneFatturazione
 from pct.legal_intelligence import fonti_per_query, motori_per_query
+from pct.portale import GestionePortale
 from pct.preventivi import GestionePreventivi
 from pct.runtime_env import is_managed_cloud_runtime
 from pct.strumenti_legali import GestioneStrumentiLegali
@@ -1336,10 +1337,36 @@ def _telematico_lines(question: str) -> tuple[list[str], list[dict[str, Any]]]:
     return lines, sources
 
 
+def _load_legal_portali() -> list[Any]:
+    try:
+        gestore = GestionePortale(
+            db_path=current_app.config.get("PORTALE_DB", "./portale/portali.json"),
+            uploads_dir=current_app.config.get("PORTALE_UPLOADS", "./portale/uploads"),
+        )
+        return list(gestore.tutti(includi_inattivi=False) or [])
+    except Exception:
+        return []
+
+
+def _legal_dashboard_headline(intelligence) -> dict[str, Any]:
+    try:
+        snapshot = intelligence.build_dashboard_snapshot(
+            fascicoli=get_fascicoli().tutti(archiviati=True),
+            clienti=get_clienti().tutti(),
+            appuntamenti=get_agenda().tutti(),
+            scadenze=get_scadenziario().tutte(),
+            portali=_load_legal_portali(),
+        )
+    except Exception:
+        return {}
+    return dict(snapshot.get("headline") or {})
+
+
 def _ricerca_legale_lines(question: str) -> tuple[list[str], list[dict[str, Any]]]:
     intelligence = get_legal_intelligence()
     route = intelligence.resolve_lex_legal_route(question)
     stats = intelligence.statistiche_repository()
+    headline = _legal_dashboard_headline(intelligence)
     engine_rows = list(route.get("engine_rows") or [])
     source_rows = list(route.get("source_rows") or [])
     monitoring_rows = list(route.get("monitoring_rows") or [])
@@ -1357,6 +1384,20 @@ def _ricerca_legale_lines(question: str) -> tuple[list[str], list[dict[str, Any]
         "Ricerca legale: Lex usa motori, fonti ufficiali, monitoraggio e audit come base deterministica prima della sintesi del modello.",
         "Routing deterministico: " + _truncate(route.get("reason") or "routing repository legale", 180) + ".",
     ]
+    if headline:
+        lines.insert(
+            1,
+            (
+                "Cockpit Motori Legali: "
+                f"{headline.get('motori_attivi', 0)} motori attivi, "
+                f"{headline.get('fonti_aggiornate', 0)} fonti aggiornate su {headline.get('fonti_monitorate', 0)}, "
+                f"{headline.get('alert_totali', 0)} alert aperti, "
+                f"{headline.get('audit_recenti', 0)} audit recenti, "
+                f"{headline.get('tabelle_normative', 0)} tabelle normative, "
+                f"{headline.get('tabelle_da_validare', 0)} da verificare, "
+                f"{headline.get('riferimenti_normativi', 0)} riferimenti ufficiali."
+            ),
+        )
     if engine_rows:
         lines.append(
             "Motori pertinenti: "
@@ -1400,6 +1441,23 @@ def _ricerca_legale_lines(question: str) -> tuple[list[str], list[dict[str, Any]
             title="Repository legale",
         )
     ]
+    if headline:
+        dashboard_source = _source(
+            "Dashboard Motori Legali",
+            (
+                f"Motori attivi: {headline.get('motori_attivi', 0)}. "
+                f"Fonti aggiornate: {headline.get('fonti_aggiornate', 0)} su {headline.get('fonti_monitorate', 0)}. "
+                f"Alert aperti: {headline.get('alert_totali', 0)}. "
+                f"Audit recenti: {headline.get('audit_recenti', 0)}. "
+                f"Tabelle normative: {headline.get('tabelle_normative', 0)}. "
+                f"Da verificare: {headline.get('tabelle_da_validare', 0)}. "
+                f"Riferimenti ufficiali: {headline.get('riferimenti_normativi', 0)}."
+            ),
+            source_id="legal-intelligence:dashboard-headline",
+            title="Dashboard Motori Legali",
+        )
+        dashboard_source["headline"] = headline
+        sources.append(dashboard_source)
     for row in source_rows[:5]:
         source_id = row.get("source_id") or ""
         monitoring = monitoring_by_source.get(source_id, {})
@@ -1928,6 +1986,11 @@ def build_lex_studio_context(
             current_app.logger.exception("Errore fallback web Lex: %s", exc)
 
     deduped_sources = _dedupe_sources([*priority_sources, *local_sources])
+    legal_dashboard_headline = {}
+    for row in deduped_sources:
+        if row.get("id") == "legal-intelligence:dashboard-headline":
+            legal_dashboard_headline = dict(row.get("headline") or {})
+            break
     verified_legal_references = collect_verified_legal_references(deduped_sources)
     execution_policy = build_execution_policy(
         question=effective_question,
@@ -1983,6 +2046,7 @@ def build_lex_studio_context(
         "verified_legal_references": verified_legal_references[:4],
         "legal_reference_guard_active": bool(legal_reference_guard_prompt),
         "execution_policy": execution_policy.to_dict(),
+        "legal_dashboard_headline": legal_dashboard_headline,
     }
 
 

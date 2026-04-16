@@ -22,6 +22,7 @@ tools/.iexpress-build/
 
 # Dependencies
 .venv/
+.venv-*/
 venv/
 node_modules/
 .mypy_cache/
@@ -31,6 +32,8 @@ node_modules/
 
 # Logs and temp files
 *.log
+tmp_local_signer_*.err.log
+tmp_local_signer_*.out.log
 *.tmp
 *.swp
 *.swo

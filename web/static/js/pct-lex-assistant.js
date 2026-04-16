@@ -1,4 +1,4 @@
-(function () {
+﻿(function () {
   'use strict';
 
   var STORAGE_FALLBACK = 'hacs-pct-ai-layout-v1';
@@ -323,7 +323,7 @@
   }
 
   var QUICK_FOCUS_RULES = [
-    { topic: 'overview_today', label: 'quadro operativo di oggi', keywords: ['oggi cosa dobbiamo fare', 'cosa dobbiamo fare oggi', 'da dove partiamo oggi', 'quadro di oggi', 'situazione di oggi', 'priorita di oggi', 'priorità di oggi'] },
+    { topic: 'overview_today', label: 'quadro operativo di oggi', keywords: ['oggi cosa dobbiamo fare', 'cosa dobbiamo fare oggi', 'da dove partiamo oggi', 'quadro di oggi', 'situazione di oggi', 'priorita di oggi', 'prioritÃ  di oggi'] },
     { topic: 'dashboard', label: 'quadro generale dello studio', keywords: ['panoramica', 'situazione studio', 'quadro generale', 'dashboard'] },
     { topic: 'udienze', label: 'udienze rilevanti', keywords: ['udienza', 'udienze'] },
     { topic: 'agenda', label: 'agenda studio', keywords: ['agenda', 'calendario', 'appuntamento', 'appuntamenti'] },
@@ -529,7 +529,7 @@
     }
     if (stage === 1) {
       if (profile.liveWeb) {
-        return 'Cerco l’aggiornamento più recente su fonti ufficiali e ti porto una risposta concreta con data, giudice e principio.';
+        return 'Cerco lâ€™aggiornamento piÃ¹ recente su fonti ufficiali e ti porto una risposta concreta con data, giudice e principio.';
       }
       if (profile.documents) {
         return 'Sto leggendo il contesto utile tra fascicolo, documenti e moduli intelligenti per risponderti in modo concreto.';
@@ -541,16 +541,16 @@
     }
 
     if (profile.liveWeb) {
-      return 'Sto verificando i riferimenti più recenti e li sto trasformando in una sintesi utile, con i dettagli che contano davvero.';
+      return 'Sto verificando i riferimenti piÃ¹ recenti e li sto trasformando in una sintesi utile, con i dettagli che contano davvero.';
     }
     if (profile.documents) {
       return 'Sto selezionando solo i passaggi davvero rilevanti e li sto ordinando in una risposta chiara e pronta da usare.';
     }
-    return 'Sto rifinendo la risposta per dartela già ordinata, leggibile e subito spendibile.';
+    return 'Sto rifinendo la risposta per dartela giÃ  ordinata, leggibile e subito spendibile.';
   }
 
   function buildThinkingBubbleHtmlLegacy(question, stage, elapsed) {
-    var suffix = elapsed >= 1400 ? ' Â· ' + formatReflectionDuration(elapsed) : '';
+    var suffix = elapsed >= 1400 ? ' Ã‚Â· ' + formatReflectionDuration(elapsed) : '';
     var note = buildThinkingNote(question, stage);
     return (
       '<div class="pct-ai-thinking-box">' +
@@ -567,7 +567,7 @@
     setStatusHtml(
       '<span class="pct-ai-status-reflection">' +
         '<i class="bi bi-hourglass-split"></i>' +
-        '<span>Riflessione Â· ' + formatReflectionDuration(durationMs) + '</span>' +
+        '<span>Riflessione Ã‚Â· ' + formatReflectionDuration(durationMs) + '</span>' +
       '</span>',
       'reflection'
     );
@@ -603,7 +603,7 @@
     }
 
     var elapsed = Number(state.thinking.reflectionDurationMs || thinkingElapsedMs() || 0);
-    var suffix = elapsed >= 1400 ? ' · ' + formatReflectionDuration(elapsed) : '';
+    var suffix = elapsed >= 1400 ? ' Â· ' + formatReflectionDuration(elapsed) : '';
     setStatusHtml(
       '<span class="pct-ai-status-pill">' +
         '<span class="pct-ai-status-pill__dot"></span>' +
@@ -712,7 +712,7 @@
       setStatusHtml(
         '<span class="pct-ai-status-reflection">' +
           '<i class="bi bi-hourglass-split"></i>' +
-          '<span>Riflessione · ' + formatReflectionDuration(elapsed) + '</span>' +
+          '<span>Riflessione Â· ' + formatReflectionDuration(elapsed) + '</span>' +
         '</span>',
         'reflection'
       );
@@ -812,7 +812,7 @@
       micButton.classList.toggle('is-active', state.listening);
       micButton.innerHTML =
         '<i class="bi bi-' + (state.listening ? 'mic-mute-fill' : 'mic-fill') + '"></i>' +
-        '<span>' + (state.listening ? 'Ascolto…' : 'Detta') + '</span>';
+        '<span>' + (state.listening ? 'Ascoltoâ€¦' : 'Detta') + '</span>';
     }
 
     if (voiceBadge) {
@@ -901,13 +901,13 @@
 
   function renderServerPreparationHelp(error) {
     var authProblem = Number(error && error.httpStatus || 0) === 401 || Number(error && error.httpStatus || 0) === 403;
-    var message = escapeHtml((error && error.message) || 'Il server HACS non e\' riuscito a preparare il contesto della richiesta.');
+    var message = escapeHtml((error && error.message) || 'Il server IUSENTRA non e\' riuscito a preparare il contesto della richiesta.');
     return (
       '<div class="text-danger fw-semibold mb-2">' + (authProblem ? 'Sessione scaduta o non autorizzata' : 'Preparazione richiesta non riuscita') + '</div>' +
       '<div class="small text-muted">' + (
         authProblem
-          ? 'Ricarica la pagina ed effettua nuovamente l\'accesso a HACS prima di chiedere una risposta a Lex.'
-          : 'Lex non e\' riuscito a preparare il contesto sul server HACS prima di interrogare il companion locale.'
+          ? 'Ricarica la pagina ed effettua nuovamente l\'accesso a IUSENTRA prima di chiedere una risposta a Lex.'
+          : 'Lex non e\' riuscito a preparare il contesto sul server IUSENTRA prima di interrogare il companion locale.'
       ) + '</div>' +
       '<div class="small mt-2"><code>' + message + '</code></div>'
     );
@@ -958,8 +958,8 @@
   function replaceUnverifiedCaseLawExamples(answer, options) {
     var clean = String(answer || '').trim();
     var question = cleanIntentText(options && options.question || '');
-    var isCaseLawQuestion = /sentenz|giurisprudenza|pronunc|cassazione|tribunale|corte d['’]appello/.test(question);
-    var looksSpecificReference = /(cassazione|tribunale|corte d['’]appello)[^.\n]{0,100}(sent\.?\s*n\.?\s*\d+\/\d{4}|n\.?\s*\d+\/\d{4})/i.test(clean);
+    var isCaseLawQuestion = /sentenz|giurisprudenza|pronunc|cassazione|tribunale|corte d['â€™]appello/.test(question);
+    var looksSpecificReference = /(cassazione|tribunale|corte d['â€™]appello)[^.\n]{0,100}(sent\.?\s*n\.?\s*\d+\/\d{4}|n\.?\s*\d+\/\d{4})/i.test(clean);
     var admitsExamples = /\besempi\b|\besemplificativ[oi]\b/i.test(clean);
     if ((options && options.legalReferenceGuardActive) && looksSpecificReference) {
       return 'Non ho ancora una pronuncia verificata da citare con numero e PDF. Posso cercare una pronuncia reale e riportarti il link corretto.';
@@ -1560,7 +1560,7 @@
           setBubbleHtml(state.currentBubble, renderServerPreparationHelp(error));
           finalizeRequest(
             Number(error && error.httpStatus || 0) === 401 || Number(error && error.httpStatus || 0) === 403
-              ? 'Sessione HACS da rinnovare.'
+              ? 'Sessione IUSENTRA da rinnovare.'
               : 'Preparazione della richiesta non riuscita.'
           );
           return;
@@ -1574,7 +1574,7 @@
         }
         if (isCompanionTransportError(error)) {
           if (!bridgeConfig.remoteHosted) {
-            setStatus('Companion locale non raggiungibile, attivo fallback sul runtime locale di HACS...');
+            setStatus('Companion locale non raggiungibile, attivo fallback sul runtime locale di IUSENTRA...');
             sendLocal(text);
             return;
           }
@@ -1708,7 +1708,7 @@
       .then(function (data) {
         if (data.ok) {
           updateBadge(true, data.modello_attivo || 'Operativo');
-          setStatus('Lex e\' pronto sul runtime locale di HACS.');
+          setStatus('Lex e\' pronto sul runtime locale di IUSENTRA.');
         } else {
           updateBadge(false, 'Offline');
           setStatus('Runtime locale non disponibile su questa installazione.');
@@ -2234,3 +2234,4 @@
 
   document.addEventListener('DOMContentLoaded', init);
 })();
+

@@ -67,7 +67,7 @@ def _get(url: str, params: Optional[dict] = None, **kw) -> Any:
             url,
             params=params,
             timeout=_TIMEOUT,
-            headers={"User-Agent": "HACS-StudioLegale/2.41 (uffici-sync; +https://github.com/hacs)"},
+            headers={"User-Agent": "IUSENTRA-StudioLegale/2.41 (uffici-sync; +https://github.com/hacs)"},
             **kw,
         )
         resp.raise_for_status()

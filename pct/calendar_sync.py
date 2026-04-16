@@ -27,7 +27,7 @@ import requests
 from pct.agenda import Agenda, TipoAppuntamento
 from pct.ical_import import EventoImportato, parse_ics
 
-USER_AGENT = "HACS-Calendar-Sync/1.0 (+https://pst.giustizia.it)"
+USER_AGENT = "IUSENTRA-Calendar-Sync/1.0 (+https://pst.giustizia.it)"
 MAX_ICS_BYTES = 5 * 1024 * 1024
 
 

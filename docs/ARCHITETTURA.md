@@ -1,8 +1,8 @@
-# Architettura HACS
+# Architettura IUSENTRA
 
 ## Obiettivo
 
-HACS è un gestionale web per studi legali con specializzazioni verticali su:
+IUSENTRA è un gestionale web per studi legali con specializzazioni verticali su:
 
 - fascicoli e documenti
 - agenda e scadenziario
@@ -140,7 +140,7 @@ Lo scheduler deve restare fuori dal processo web: `web/app.py` costruisce il run
 
 ## Osservabilita' e prestazioni
 
-HACS espone una superficie tecnica esplicita per misurare il comportamento reale del runtime:
+IUSENTRA espone una superficie tecnica esplicita per misurare il comportamento reale del runtime:
 
 - endpoint `/api/metriche/runtime`
   snapshot di latenza HTTP, primo token Lex, stato OCR e provider locali

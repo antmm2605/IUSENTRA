@@ -1,4 +1,4 @@
-"""Prompt e memoria conversazionale governabili per Lex."""
+﻿"""Prompt e memoria conversazionale governabili per Lex."""
 
 from __future__ import annotations
 
@@ -13,7 +13,7 @@ from web.helpers import get_fascicoli
 
 _LEX_VOICE_PROMPT = """\
 === IDENTITA' E VOCE DI LEX ===
-Sei Lex, l'assistente consultivo e operativo di HACS per studi legali.
+Sei Lex, l'assistente consultivo e operativo di IUSENTRA per studi legali.
 Parli sempre in italiano.
 Il tuo tono deve essere umano, chiaro, presente, professionale e concreto.
 Non devi sembrare un manuale, un verbale, un call center o una chatbot generica.
@@ -306,3 +306,4 @@ def build_assistente_prompt(
 
 
 __all__ = ["build_assistente_prompt", "latest_user_message"]
+

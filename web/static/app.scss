@@ -1,5 +1,5 @@
 /**
- * PCT Studio — Browser Notification API
+ * IUSENTRA — Browser Notification API
  *
  * Funzionalità:
  *  1. Chiede il permesso notifiche la prima volta (pulsante nella topbar)
@@ -37,7 +37,7 @@ const PCT_NOTIFICHE = {
     const btn = document.getElementById('btn-notifiche');
     if (perm === 'granted') {
       if (btn) btn.remove();
-      this._mostra('PCT Studio', 'Notifiche abilitate — riceverai avvisi per le scadenze urgenti.', '/scadenziario');
+      this._mostra('IUSENTRA', 'Notifiche abilitate — riceverai avvisi per le scadenze urgenti.', '/scadenziario');
       this.controllaPendenti();
     } else {
       if (btn) btn.remove(); // nasconde comunque se rifiutato
@@ -84,7 +84,7 @@ const PCT_NOTIFICHE = {
     const etichette = { crea: 'Nuovo', modifica: 'Aggiornato', elimina: 'Eliminato' };
     const moduli   = { scadenze: 'Scadenza', fascicoli: 'Fascicolo', clienti: 'Cliente', agenda: 'Appuntamento' };
 
-    const titolo = `PCT Studio — ${moduli[ev.modulo] || 'Record'} ${etichette[ev.tipo] || ''}`;
+    const titolo = `IUSENTRA — ${moduli[ev.modulo] || 'Record'} ${etichette[ev.tipo] || ''}`;
     const corpo  = ev.messaggio || 'Dati aggiornati da un altro operatore.';
     const url    = { scadenze: '/scadenziario', fascicoli: '/fascicoli', clienti: '/clienti', agenda: '/agenda' }[ev.modulo] || '/';
 

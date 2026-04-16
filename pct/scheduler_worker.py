@@ -1,4 +1,4 @@
-"""Worker dedicato per i job periodici HACS.
+"""Worker dedicato per i job periodici IUSENTRA.
 
 Uso:
     python -m pct.scheduler_worker

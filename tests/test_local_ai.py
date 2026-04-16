@@ -1,4 +1,4 @@
-import base64
+﻿import base64
 import io
 import json
 import sqlite3
@@ -278,9 +278,9 @@ def test_local_ai_health_snapshot_exposes_installer_and_resolved_models(tmp_path
     class DummyProvisioner:
         def installer_snapshot(self, *, live_version=None):
             return {
-                "strategy_label": "Runtime locale gestito sullo stesso host di HACS",
+                "strategy_label": "Runtime locale gestito sullo stesso host di IUSENTRA",
                 "summary_title": "Provisioning automatico disponibile",
-                "summary_body": "Runtime installato e avviato sulla stessa macchina di HACS.",
+                "summary_body": "Runtime installato e avviato sulla stessa macchina di IUSENTRA.",
                 "managed_runtime_dir": str(tmp_path / "bin" / "ollama"),
             }
 
@@ -288,7 +288,7 @@ def test_local_ai_health_snapshot_exposes_installer_and_resolved_models(tmp_path
 
     snapshot = service.health_snapshot()
 
-    assert snapshot["installer"]["strategy_label"] == "Runtime locale gestito sullo stesso host di HACS"
+    assert snapshot["installer"]["strategy_label"] == "Runtime locale gestito sullo stesso host di IUSENTRA"
     assert snapshot["resolved_models"]["chat"]
     assert snapshot["resolved_models"]["embed"]
 
@@ -388,7 +388,7 @@ def test_local_ai_ask_fascicolo_builds_context_and_returns_answer(tmp_path: Path
                 "page_from": 1,
                 "page_to": 1,
                 "text": "Opposizione a decreto ingiuntivo fondata su contestazione degli estratti conto.",
-                "citation": "Atto di opposizione, p. 1 · diritto · chunk chunk-1",
+                "citation": "Atto di opposizione, p. 1 Â· diritto Â· chunk chunk-1",
             }
         ],
     )
@@ -550,7 +550,7 @@ def test_api_assistente_context_prepara_prompt_per_companion_locale(tmp_path: Pa
     assert "presenza operativa di studio" in payload["prompt"]
     assert "studio@pec.example.it" not in payload["prompt"]
     assert "smtp.pec.aruba.it" not in payload["prompt"]
-    assert "assistente consultivo e operativo di HACS" in payload["prompt"]
+    assert "assistente consultivo e operativo di IUSENTRA" in payload["prompt"]
     assert "CONVERSAZIONE RECENTE" not in payload["prompt"]
     assert payload["focus_label"] == "procedimenti attivi"
 
@@ -1036,3 +1036,4 @@ def test_api_local_ai_bootstrap_aggiorna_cache_runtime_chat(tmp_path: Path, monk
     assert response.status_code == 200
     assert response.get_json()["result"]["status"] == "ready"
     assert calls["refresh"] == 1
+

@@ -507,7 +507,7 @@ def dettaglio_preventivo(id_preventivo: str):
         workflow_summary=workflow_summary,
         calc_summary=riepilogo_contesto_economico(p.log_calcolo),
         clausola_modello_label=label_modello_clausola_controversie(p.clausola_controversie_modello),
-        studio_nome=current_app.config.get("STUDIO_NOME", "Studio Legale PCT"),
+        studio_nome=current_app.config.get("STUDIO_NOME", "IUSENTRA"),
         oggi=date.today(),
     )
 
@@ -814,7 +814,7 @@ def dettaglio_conferimento(id_conferimento: str):
         campi_cliente_mancanti=campi_cliente_mancanti,
         workflow_summary=workflow_summary,
         clausola_modello_label=label_modello_clausola_controversie(c.clausola_controversie_modello),
-        studio_nome=current_app.config.get("STUDIO_NOME", "Studio Legale PCT"),
+        studio_nome=current_app.config.get("STUDIO_NOME", "IUSENTRA"),
         oggi=date.today(),
     )
 
@@ -1549,7 +1549,7 @@ def _genera_pdf_preventivo(p, cliente, fascicolo, config) -> io.BytesIO:
     style_h2    = ParagraphStyle("h2",    parent=styles["Normal"], fontSize=11, leading=14, textColor=PRIMARY, fontName="Helvetica-Bold")
     style_bold  = ParagraphStyle("bold",  parent=style_body, fontName="Helvetica-Bold")
 
-    studio_nome = config.get("STUDIO_NOME", "Studio Legale PCT")
+    studio_nome = config.get("STUDIO_NOME", "IUSENTRA")
     studio_piva = p.studio_piva or config.get("STUDIO_PIVA", "")
     studio_cf   = p.studio_cf   or config.get("STUDIO_CF", "")
     studio_ind  = p.studio_indirizzo or config.get("STUDIO_INDIRIZZO", "")
@@ -1825,7 +1825,7 @@ def _genera_pdf_conferimento(c, cliente, fascicolo, preventivo, config) -> io.By
     style_h2    = ParagraphStyle("h2",    parent=styles["Normal"], fontSize=11, leading=14, textColor=PRIMARY, fontName="Helvetica-Bold")
     style_bold  = ParagraphStyle("bold",  parent=style_body, fontName="Helvetica-Bold")
 
-    studio_nome = config.get("STUDIO_NOME", "Studio Legale PCT")
+    studio_nome = config.get("STUDIO_NOME", "IUSENTRA")
     studio_piva = c.studio_piva or config.get("STUDIO_PIVA", "")
     studio_cf   = c.studio_cf   or config.get("STUDIO_CF", "")
     studio_ind  = c.studio_indirizzo or config.get("STUDIO_INDIRIZZO", "")

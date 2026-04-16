@@ -37,7 +37,7 @@ def test_build_windows_ps1_include_versione_e_script_originale():
 
     contenuto = build_dist.build_windows_ps1(versione)
 
-    assert f"HACS Local Signer Setup v{versione}" in contenuto
+    assert f"IUSENTRA Local Signer Setup v{versione}" in contenuto
     assert "param(" in contenuto
     assert "Find-PythonCommand" in contenuto
     assert "FORCE_RESTART" in contenuto

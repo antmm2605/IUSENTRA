@@ -1,5 +1,5 @@
 # =============================================================================
-#  HACS — Studio Legale PCT  |  Docker Compose (versione web integrale)
+#  IUSENTRA | Docker Compose (versione web integrale)
 #
 #  Avvio rapido:
 #    1. cp .env.example .env          (solo la prima volta)
@@ -10,10 +10,10 @@
 #    http://localhost       → via Nginx (porta 80)  ← consigliato
 #    http://localhost:8080  → diretto a Gunicorn      (debug / bypass)
 #
-#  Bootstrap locale: HACS crea l'utente admin con password temporanea.
+#  Bootstrap locale: IUSENTRA crea l'utente admin con password temporanea.
 #  Se PCT_BOOTSTRAP_ADMIN_PASSWORD non è impostata, la password viene generata
 #  al primo avvio e salvata in ./data/auth/bootstrap_admin.json.
-#  HACS impone sempre il cambio password obbligatorio al primo accesso.
+#  IUSENTRA impone sempre il cambio password obbligatorio al primo accesso.
 #
 #  Dati persistenti: cartella ./data/  sul tuo PC
 #  Stop:   docker compose down
@@ -29,7 +29,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: hacs-app
+    container_name: iusentra-app
     restart: unless-stopped
 
     # Porta diretta (utile per debug o ambienti senza nginx)
@@ -113,7 +113,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: hacs-scheduler
+    container_name: iusentra-scheduler
     restart: unless-stopped
     command: ["python", "-m", "pct.scheduler_worker"]
 
@@ -146,7 +146,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: hacs-ocr
+    container_name: iusentra-ocr
     restart: unless-stopped
     command: ["python", "-m", "pct.ocr_worker"]
 
@@ -175,7 +175,7 @@ services:
   ollama:
     profiles: ["ollama-sidecar"]
     image: ollama/ollama:latest
-    container_name: hacs-ollama
+    container_name: iusentra-ollama
     restart: unless-stopped
     command: ["serve"]
     ports:
@@ -190,7 +190,7 @@ services:
   # --------------------------------------------------------------------------
   nginx:
     image: nginx:stable-alpine
-    container_name: hacs-nginx
+    container_name: iusentra-nginx
     restart: unless-stopped
 
     ports:
@@ -213,9 +213,9 @@ services:
 
 # =============================================================================
 # Volume nominato (alternativa al bind-mount ./data — usa uno o l'altro)
-# Per usarlo: cambia  ./data:/data  in  hacs-data:/data  nel servizio app
+# Per usarlo: cambia  ./data:/data  in  iusentra-data:/data  nel servizio app
 # e decommenta il blocco qui sotto.
 # =============================================================================
 # volumes:
-#   hacs-data:
+#   iusentra-data:
 #     driver: local

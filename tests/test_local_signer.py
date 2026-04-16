@@ -1590,7 +1590,7 @@ def test_installer_local_signer_e_scaricabile_senza_login(tmp_path):
         in r.headers.get("Content-Disposition", "")
     )
     body = r.data.decode("utf-8")
-    assert f"HACS Local Signer v{version}" in body
+    assert f"IUSENTRA Local Signer v{version}" in body
     assert "Invoke-WebRequest" in body
     assert "/polisWeb/local-signer/download" in body
     assert "hacs-local-signer" in body
@@ -1688,7 +1688,7 @@ def test_download_local_signer_python_e_pubblico(tmp_path):
     assert "attachment" in r.headers.get("Content-Disposition", "")
     assert f"local_signer-{version}.py" in r.headers.get("Content-Disposition", "")
     body = r.data.decode("utf-8")
-    assert "HACS Local Signer" in body
+    assert "IUSENTRA Local Signer" in body
     assert "def main()" in body
 
 

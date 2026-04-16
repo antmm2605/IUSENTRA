@@ -1,5 +1,5 @@
 """
-Sincronizzazione multi-operatore per lo studio legale PCT.
+Sincronizzazione multi-operatore per IUSENTRA.
 
 Componenti:
   - FileLock       — lock esclusivo su file JSON (fcntl cross-process + threading)

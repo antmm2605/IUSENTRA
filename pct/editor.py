@@ -1,20 +1,20 @@
-"""
-pct/editor.py — Conversione documenti per l'editor web.
+﻿"""
+pct/editor.py â€” Conversione documenti per l'editor web.
 
-Funzionalità:
-  - docx_to_html()  : .docx → HTML con mammoth (fedele ai formati Word)
-  - pdf_to_html()   : .pdf → HTML con pdfplumber (testo + struttura)
-  - html_to_docx()  : HTML → .docx con python-docx + lxml
-  - html_to_pdf()   : HTML → PDF con reportlab
-  - txt_to_html()   : .txt → HTML semplice
+FunzionalitÃ :
+  - docx_to_html()  : .docx â†’ HTML con mammoth (fedele ai formati Word)
+  - pdf_to_html()   : .pdf â†’ HTML con pdfplumber (testo + struttura)
+  - html_to_docx()  : HTML â†’ .docx con python-docx + lxml
+  - html_to_pdf()   : HTML â†’ PDF con reportlab
+  - txt_to_html()   : .txt â†’ HTML semplice
 
-Tutte le funzioni lavorano su bytes già decifrati.
+Tutte le funzioni lavorano su bytes giÃ  decifrati.
 Le dipendenze (mammoth, python-docx, reportlab) sono opzionali:
 se non presenti, si solleva ImportError con messaggio chiaro.
 
 Nota sul supporto PDF:
-  Il PDF è un formato di presentazione, non di editing. La conversione
-  PDF → HTML preserva testo e struttura di base (titoli, paragrafi,
+  Il PDF Ã¨ un formato di presentazione, non di editing. La conversione
+  PDF â†’ HTML preserva testo e struttura di base (titoli, paragrafi,
   grassetto) ma non layout complessi, immagini o tabelle grafiche.
   Per PDF scansionati viene usato Tesseract OCR (lingua italiana).
 """
@@ -34,14 +34,14 @@ def estensione_editabile(nome_file: str) -> bool:
     return Path(nome_file).suffix.lower() in ESTENSIONI_EDITABILI
 
 
-# ─────────────────────────────────────────────── docx → HTML
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ docx â†’ HTML
 
 def docx_to_html(data: bytes) -> tuple[str, list[str]]:
     """
     Converte un file .docx in HTML tramite mammoth.
 
     Returns:
-        (html, avvisi) — html pronto per TipTap, lista di avvisi di conversione
+        (html, avvisi) â€” html pronto per TipTap, lista di avvisi di conversione
     """
     try:
         import mammoth
@@ -60,9 +60,9 @@ def docx_to_html(data: bytes) -> tuple[str, list[str]]:
         return f"<p><em>Errore conversione .docx: {e}</em></p>", [str(e)]
 
 
-# ─────────────────────────────────────────────── pdf → HTML
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ pdf â†’ HTML
 
-# ─────────────────────────────────────────────── pdf → HTML
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ pdf â†’ HTML
 
 def pdf_to_html(data: bytes) -> tuple[str, list[str], bool, int]:
     """
@@ -70,7 +70,7 @@ def pdf_to_html(data: bytes) -> tuple[str, list[str], bool, int]:
 
     Strategia:
       1. Prova estrazione testo nativo con pdfplumber (PDF digitali)
-      2. Se una pagina è vuota (PDF scansionato), usa Tesseract OCR
+      2. Se una pagina Ã¨ vuota (PDF scansionato), usa Tesseract OCR
       3. Usa la dimensione del font per rilevare titoli (H1/H2/H3)
       4. Preserva grassetto/corsivo dai font names
       5. Estrae tabelle con formattazione HTML
@@ -80,7 +80,7 @@ def pdf_to_html(data: bytes) -> tuple[str, list[str], bool, int]:
         (html, avvisi, is_scanned, n_pagine)
         - html       : contenuto HTML pronto per TipTap
         - avvisi     : lista di messaggi informativi
-        - is_scanned : True se almeno una pagina è stata processata via OCR
+        - is_scanned : True se almeno una pagina Ã¨ stata processata via OCR
         - n_pagine   : numero totale di pagine nel PDF
     """
     try:
@@ -103,7 +103,7 @@ def pdf_to_html(data: bytes) -> tuple[str, list[str], bool, int]:
             n_pagine = len(pdf.pages)
             
             for i, pagina in enumerate(pdf.pages):
-                # ── Estrae tabelle con formattazione ──────────────
+                # â”€â”€ Estrae tabelle con formattazione â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                 tabelle = pagina.extract_tables()
                 if tabelle:
                     for tabella in tabelle:
@@ -111,12 +111,12 @@ def pdf_to_html(data: bytes) -> tuple[str, list[str], bool, int]:
                         if html_tabella:
                             html_parti.append(html_tabella)
 
-                # ── Raccoglie caratteri con font info ──────────────
+                # â”€â”€ Raccoglie caratteri con font info â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                 chars = pagina.chars
                 testo_plain = pagina.extract_text() or ""
 
                 if not testo_plain.strip():
-                    # Pagina scansionata → OCR
+                    # Pagina scansionata â†’ OCR
                     testo_ocr = _ocr_pagina(pagina)
                     if testo_ocr:
                         is_scanned = True
@@ -128,7 +128,7 @@ def pdf_to_html(data: bytes) -> tuple[str, list[str], bool, int]:
                         html_parti.append('<hr class="page-break">')
                     continue
 
-                # ── Estrae righe con dimensione font media ─────────
+                # â”€â”€ Estrae righe con dimensione font media â”€â”€â”€â”€â”€â”€â”€â”€â”€
                 righe = _estrai_righe_con_font(chars, pagina.extract_text_lines() or [])
 
                 if not righe:
@@ -221,10 +221,10 @@ def _righe_to_html(righe: list[dict]) -> list[str]:
     """
     Converte righe con font info in tag HTML.
     Usa dimensione relativa per classificare titoli:
-      size > 1.4x media → H1
-      size > 1.2x media → H2
-      size > 1.05x media → H3
-      altrimenti → <p>
+      size > 1.4x media â†’ H1
+      size > 1.2x media â†’ H2
+      size > 1.05x media â†’ H3
+      altrimenti â†’ <p>
     Preserva grassetto e corsivo.
     """
     if not righe:
@@ -298,7 +298,7 @@ def _escape_html(s: str) -> str:
              .replace('"', "&quot;"))
 
 
-# ─────────────────────────────────────────────── txt → HTML
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ txt â†’ HTML
 
 def txt_to_html(data: bytes) -> tuple[str, list[str]]:
     """Converte testo plain in HTML con paragrafi."""
@@ -322,7 +322,7 @@ def txt_to_html(data: bytes) -> tuple[str, list[str]]:
     return html, []
 
 
-# ─────────────────────────────────────────────── bytes → HTML (dispatcher)
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ bytes â†’ HTML (dispatcher)
 
 def documento_to_html(data: bytes, nome_file: str) -> tuple[str, list[str], dict]:
     """
@@ -376,13 +376,13 @@ def documento_to_html(data: bytes, nome_file: str) -> tuple[str, list[str], dict
     )
 
 
-# ─────────────────────────────────────────────── HTML → .docx
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ HTML â†’ .docx
 
 def html_to_docx(html: str, titolo: str = "Documento") -> bytes:
     """
     Converte HTML in formato .docx tramite python-docx.
 
-    Supporta: paragrafi, H1–H4, grassetto, corsivo, sottolineato,
+    Supporta: paragrafi, H1â€“H4, grassetto, corsivo, sottolineato,
               liste puntate/numerate, tabelle (struttura di base).
 
     Returns:
@@ -540,12 +540,12 @@ def html_to_docx(html: str, titolo: str = "Documento") -> bytes:
     return buf.getvalue()
 
 
-# ─────────────────────────────────────────────── HTML → PDF
-# Usa reportlab (già in requirements) — nessuna dipendenza di sistema aggiuntiva
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ HTML â†’ PDF
+# Usa reportlab (giÃ  in requirements) â€” nessuna dipendenza di sistema aggiuntiva
 
 def html_to_pdf(html: str, titolo: str = "Documento", layout: Optional[dict] = None) -> bytes:
     """
-    Converte HTML in PDF tramite reportlab (già installato).
+    Converte HTML in PDF tramite reportlab (giÃ  installato).
 
     Gestisce: paragrafi, H1-H4, grassetto, corsivo, liste,
     tabelle di base, linee orizzontali e immagini base64.
@@ -556,7 +556,7 @@ def html_to_pdf(html: str, titolo: str = "Documento", layout: Optional[dict] = N
     Returns:
         bytes del file PDF
     Raises:
-        ImportError se reportlab non è installato
+        ImportError se reportlab non Ã¨ installato
     """
     try:
         from reportlab.platypus import (
@@ -630,7 +630,7 @@ def html_to_pdf(html: str, titolo: str = "Documento", layout: Optional[dict] = N
         "right": TA_RIGHT,
     }.get(layout_cfg["text_align"], TA_JUSTIFY)
 
-    # ── Stili ────────────────────────────────────────────────
+    # â”€â”€ Stili â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     base = getSampleStyleSheet()
     st_normal = ParagraphStyle(
         "LegalNormal", parent=base["Normal"],
@@ -674,10 +674,10 @@ def html_to_pdf(html: str, titolo: str = "Documento", layout: Optional[dict] = N
         alignment=TA_CENTER, textColor=colors.HexColor("#64748b"), spaceAfter=6,
     )
 
-    # Mappa tag → stile
+    # Mappa tag â†’ stile
     HEADING_STYLES = {"h1": st_h1, "h2": st_h2, "h3": st_h3, "h4": st_h4}
 
-    # ── Parse HTML ───────────────────────────────────────────
+    # â”€â”€ Parse HTML â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     html_clean = f"<div>{html}</div>"
     try:
         root = etree.fromstring(
@@ -690,7 +690,7 @@ def html_to_pdf(html: str, titolo: str = "Documento", layout: Optional[dict] = N
     except Exception:
         body = None
 
-    # ── Conversione nodo → testo reportlab rich text ─────────
+    # â”€â”€ Conversione nodo â†’ testo reportlab rich text â”€â”€â”€â”€â”€â”€â”€â”€â”€
     def _node_to_rich(el) -> str:
         """Converte un elemento HTML in markup reportlab (para XML)."""
         tag = (el.tag or "").lower().split("}")[-1]
@@ -732,7 +732,7 @@ def html_to_pdf(html: str, titolo: str = "Documento", layout: Optional[dict] = N
         except Exception:
             return None
 
-    # ── Costruisce flowables ──────────────────────────────────
+    # â”€â”€ Costruisce flowables â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     story = []
 
     def _process(el):
@@ -841,7 +841,7 @@ def html_to_pdf(html: str, titolo: str = "Documento", layout: Optional[dict] = N
     if not story:
         story.append(Paragraph(titolo, st_normal))
 
-    # ── Genera PDF ───────────────────────────────────────────
+    # â”€â”€ Genera PDF â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     buf = io.BytesIO()
     doc = SimpleDocTemplate(
         buf,
@@ -851,14 +851,15 @@ def html_to_pdf(html: str, titolo: str = "Documento", layout: Optional[dict] = N
         topMargin=(layout_cfg["margin_top_mm"] / 10.0) * cm,
         bottomMargin=(layout_cfg["margin_bottom_mm"] / 10.0) * cm,
         title=titolo,
-        author="HACS - Studio Legale PCT",
+        author="IUSENTRA",
     )
     doc.build(story)
     return buf.getvalue()
 
 
-# ─────────────────────────────────────────────── utility
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ utility
 
 def _strip_tags(html: str) -> str:
     """Rimuove tutti i tag HTML restituendo solo il testo."""
     return re.sub(r"<[^>]+>", "", html or "")
+

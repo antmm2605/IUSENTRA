@@ -213,7 +213,7 @@ def _is_substantive_request_tail(text: str) -> bool:
     if not canonical:
         return False
 
-    if canonical in {"lex", "lex ai", "ai lex", "ai", "hacs", "hacs lex"}:
+    if canonical in {"lex", "lex ai", "ai lex", "ai", "hacs", "hacs lex", "iusentra", "iusentra lex"}:
         return False
 
     tokens = [token for token in canonical.split() if token]

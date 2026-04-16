@@ -1,5 +1,5 @@
 """
-Client email completo per HACS — ricezione IMAP, gestione casella, auto-esito PCT.
+Client email completo per IUSENTRA — ricezione IMAP, gestione casella, auto-esito PCT.
 
 Funzionalità:
   - Ricezione email via IMAP (ordinaria + PEC)
@@ -145,9 +145,9 @@ class EmailRicevuta:
 
 class GestioneEmailRicevute:
     """
-    Gestisce la casella email in HACS: ricezione, storage, ricerca.
+    Gestisce la casella email in IUSENTRA: ricezione, storage, ricerca.
 
-    Storage: JSON flat file (stessa strategia del resto di HACS).
+    Storage: JSON flat file (stessa strategia del resto di IUSENTRA).
     """
 
     def __init__(self, db_path: str = "./email/casella.json"):

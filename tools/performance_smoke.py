@@ -65,7 +65,7 @@ def _measure(callable_):
 
 
 def run_performance_smoke() -> dict[str, object]:
-    tmp_root = Path(tempfile.mkdtemp(prefix="hacs-performance-smoke-"))
+    tmp_root = Path(tempfile.mkdtemp(prefix="iusentra-performance-smoke-"))
     _write_studio_config(tmp_root / "config" / "studio.json")
 
     app, startup_ms = _measure(lambda: create_app(_cfg(tmp_root)))
@@ -107,7 +107,7 @@ def run_performance_smoke() -> dict[str, object]:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Smoke benchmark leggero di HACS.")
+    parser = argparse.ArgumentParser(description="Smoke benchmark leggero di IUSENTRA.")
     parser.add_argument("--output", default="", help="Percorso JSON di output.")
     parser.add_argument("--strict", action="store_true", help="Fallisce se supera le soglie base.")
     args = parser.parse_args()

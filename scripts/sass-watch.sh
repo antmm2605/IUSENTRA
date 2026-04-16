@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ================================================================
-#  HACS — Compilazione / watch SCSS con dart-sass standalone
+#  IUSENTRA — Compilazione / watch SCSS con dart-sass standalone
 #  Uso:
 #    ./scripts/sass-watch.sh          # watch (ricompila al salvataggio)
 #    ./scripts/sass-watch.sh --once   # compila una volta sola
@@ -12,7 +12,7 @@ set -euo pipefail
 DART_SASS_VERSION="1.83.0"
 SCSS_DIR="web/static/scss"
 CSS_DIR="web/static/css"
-SASS_CACHE="$HOME/.cache/hacs-dart-sass"
+SASS_CACHE="$HOME/.cache/iusentra-dart-sass"
 SASS_BIN="$SASS_CACHE/dart-sass/sass"
 
 # ---- Download dart-sass se non presente ----

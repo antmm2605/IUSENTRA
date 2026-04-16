@@ -1,5 +1,5 @@
 """
-Flask web application - Studio Legale PCT.
+Flask web application - IUSENTRA.
 
 Avvio:
     python -m web

@@ -1,4 +1,4 @@
-(function () {
+﻿(function () {
   function escapeHtml(value) {
     return String(value ?? '')
       .replace(/&/g, '&amp;')
@@ -250,7 +250,7 @@
     }
     modelMeta.push(
       preferredEmbedValue && preferredEmbedValue !== embedModelValue
-        ? 'Embeddings ' + escapeHtml(embedModelValue) + ' · policy ' + escapeHtml(preferredEmbedValue)
+        ? 'Embeddings ' + escapeHtml(embedModelValue) + ' Â· policy ' + escapeHtml(preferredEmbedValue)
         : 'Embeddings ' + escapeHtml(embedModelValue)
     );
 
@@ -270,7 +270,7 @@
       '<article class="settings-ai-stat">' +
       '<div class="settings-ai-stat__label">Profilo hardware</div>' +
       '<div class="settings-ai-stat__value">' + escapeHtml(runtime.hardware_profile || 'n.d.') + '</div>' +
-      '<div class="settings-ai-stat__meta">RAM ' + formatNumberIt(runtime.ram_gb, { maximumFractionDigits: 1 }) + ' GB · Disco libero ' + formatNumberIt(runtime.disk_free_gb, { maximumFractionDigits: 1 }) + ' GB</div>' +
+      '<div class="settings-ai-stat__meta">RAM ' + formatNumberIt(runtime.ram_gb, { maximumFractionDigits: 1 }) + ' GB Â· Disco libero ' + formatNumberIt(runtime.disk_free_gb, { maximumFractionDigits: 1 }) + ' GB</div>' +
       '</article>' +
       '<article class="settings-ai-stat">' +
       '<div class="settings-ai-stat__label">Documenti indicizzati</div>' +
@@ -285,12 +285,12 @@
       '<article class="settings-ai-stat">' +
       '<div class="settings-ai-stat__label">Modello operativo</div>' +
       '<div class="settings-ai-stat__value">' + escapeHtml(chatModelValue) + '</div>' +
-      '<div class="settings-ai-stat__meta">' + modelMeta.join(' · ') + '</div>' +
+      '<div class="settings-ai-stat__meta">' + modelMeta.join(' Â· ') + '</div>' +
       '</article>' +
       '<article class="settings-ai-stat">' +
       '<div class="settings-ai-stat__label">Runtime collegato</div>' +
       '<div class="settings-ai-stat__value settings-ai-installer__value--mono">' + escapeHtml(effectiveBaseUrl) + '</div>' +
-      '<div class="settings-ai-stat__meta">Host reale ' + escapeHtml(hostPlatform) + ' · Ambiente HACS ' + escapeHtml(executionLabel) + '</div>' +
+      '<div class="settings-ai-stat__meta">Host reale ' + escapeHtml(hostPlatform) + ' Â· Ambiente IUSENTRA ' + escapeHtml(executionLabel) + '</div>' +
       '</article>' +
       (runtime.last_error
         ? '<article class="settings-ai-stat settings-ai-stat--danger settings-ai-stat--full">' +
@@ -310,7 +310,7 @@
       '<div class="settings-ai-installer__item"><div class="settings-ai-installer__label">' + escapeHtml(installerData.asset_label || 'Pacchetto consigliato') + '</div><div class="settings-ai-installer__value">' + escapeHtml(installerData.asset_name || 'n.d.') + '</div><div class="settings-ai-installer__meta">' + formatBytes(installerData.asset_size_bytes) + '</div></div>' +
       '<div class="settings-ai-installer__item"><div class="settings-ai-installer__label">Percorso gestito</div><div class="settings-ai-installer__value settings-ai-installer__value--mono">' + escapeHtml(installerData.managed_runtime_dir || 'n.d.') + '</div></div>' +
       '<div class="settings-ai-installer__item"><div class="settings-ai-installer__label">Host reale</div><div class="settings-ai-installer__value">' + escapeHtml(hostPlatform) + '</div><div class="settings-ai-installer__meta">Architettura ' + escapeHtml(installerData.host_machine || installerData.machine || 'n.d.') + '</div></div>' +
-      '<div class="settings-ai-installer__item"><div class="settings-ai-installer__label">Ambiente HACS</div><div class="settings-ai-installer__value">' + escapeHtml(executionLabel) + '</div><div class="settings-ai-installer__meta">' + (installerData.containerized ? 'Runtime applicativo in container' : 'Runtime applicativo nativo') + '</div></div>' +
+      '<div class="settings-ai-installer__item"><div class="settings-ai-installer__label">Ambiente IUSENTRA</div><div class="settings-ai-installer__value">' + escapeHtml(executionLabel) + '</div><div class="settings-ai-installer__meta">' + (installerData.containerized ? 'Runtime applicativo in container' : 'Runtime applicativo nativo') + '</div></div>' +
       '<div class="settings-ai-installer__item settings-ai-installer__item--full"><div class="settings-ai-installer__label">Eseguibile rilevato</div><div class="settings-ai-installer__value settings-ai-installer__value--mono">' + escapeHtml(detectedExecutable) + '</div></div>' +
       '<div class="settings-ai-installer__item settings-ai-installer__item--full"><div class="settings-ai-installer__label">Ambito di distribuzione</div><div class="settings-ai-installer__body">' + escapeHtml(installerData.distribution_scope || '') + '</div></div>' +
       (installerData.post_install_note
@@ -325,7 +325,7 @@
     const rows = (payload?.models || []).map(function (row) {
       return '<article class="settings-ai-model">' +
         '<div class="settings-ai-model__title">' + escapeHtml(row.model_name) + '</div>' +
-        '<div class="settings-ai-model__meta">' + aiRoleLabel(row.role) + ' · ' + aiInstallStateLabel(row.install_state) + (row.is_active ? ' · attivo' : '') + '</div>' +
+        '<div class="settings-ai-model__meta">' + aiRoleLabel(row.role) + ' Â· ' + aiInstallStateLabel(row.install_state) + (row.is_active ? ' Â· attivo' : '') + '</div>' +
         (row.last_verified_at ? '<div class="settings-ai-model__foot">Ultima verifica ' + formatDateTimeIt(row.last_verified_at) + '</div>' : '') +
         '</article>';
     });
@@ -373,7 +373,7 @@
         summary_title: outdated ? 'Aggiornamento Local Signer richiesto' : 'Companion locale non rilevato',
         summary_body: outdated
           ? 'La web app online ha trovato un Local Signer raggiungibile, ma la versione installata non espone ancora il bridge AI locale. Aggiornalo dal pacchetto ufficiale e poi ripeti il controllo.'
-          : 'Quando HACS e\' online, il browser deve parlare con il Local Signer sul dispositivo cliente. Installa o avvia il companion locale su questa macchina e poi ripeti il controllo.',
+          : 'Quando IUSENTRA e\' online, il browser deve parlare con il Local Signer sul dispositivo cliente. Installa o avvia il companion locale su questa macchina e poi ripeti il controllo.',
         distribution_scope: reason || 'Il runtime AI resta sul dispositivo cliente e non viene eseguito dal browser.',
         host_platform: platformKey,
         host_machine: 'n.d.',
@@ -460,7 +460,7 @@
       showAiFeedback(
         'danger',
         'Controllo non riuscito',
-        'Non sono riuscito a leggere lo stato del runtime locale. Verifica il servizio Ollama sulla stessa macchina di HACS oppure riprova tra pochi istanti.'
+        'Non sono riuscito a leggere lo stato del runtime locale. Verifica il servizio Ollama sulla stessa macchina di IUSENTRA oppure riprova tra pochi istanti.'
       );
     }
   }
@@ -524,7 +524,7 @@
         showAiFeedback(
           'warning',
           'Companion locale necessario',
-          'Per la versione online di HACS il bootstrap AI deve passare dal Local Signer sul dispositivo cliente. Installa o aggiorna il companion locale e poi ripeti la procedura.'
+          'Per la versione online di IUSENTRA il bootstrap AI deve passare dal Local Signer sul dispositivo cliente. Installa o aggiorna il companion locale e poi ripeti la procedura.'
         );
       } else {
         setAiBadge('Preparazione fallita', 'danger');
@@ -551,3 +551,4 @@
   window.refreshLocalAiStatus = refreshLocalAiStatus;
   window.runLocalAiBootstrap = runLocalAiBootstrap;
 })();
+

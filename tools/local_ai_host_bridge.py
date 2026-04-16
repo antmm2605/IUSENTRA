@@ -475,7 +475,7 @@ class LocalAiHostBridge:
             self._LATEST_RELEASE_URL,
             headers={
                 "Accept": "application/vnd.github+json",
-                "User-Agent": "HACS-Local-AI-Bridge/1.0",
+                "User-Agent": "IUSENTRA-Local-AI-Bridge/1.0",
             },
         )
         try:
@@ -615,7 +615,7 @@ class LocalAiHostBridge:
             "detected_executable": str(executable) if executable else "",
             "candidate_paths": [str(path) for path in self.candidate_executables(hardware)],
             "distribution_scope": (
-                "Quando HACS e' online, il browser parla con il Local Signer sul dispositivo cliente. "
+                "Quando IUSENTRA e' online, il browser parla con il Local Signer sul dispositivo cliente. "
                 "Il companion locale avvia Ollama sulla stessa macchina e non distribuisce alcun runtime al browser."
             ),
             "asset_name": "",
@@ -655,20 +655,20 @@ class LocalAiHostBridge:
             snapshot["summary_title"] = "Runtime locale operativo"
             snapshot["summary_body"] = (
                 "Il companion locale ha raggiunto Ollama sul dispositivo cliente. "
-                "HACS online continua a usare il browser come ponte verso il servizio locale."
+                "IUSENTRA online continua a usare il browser come ponte verso il servizio locale."
             )
         elif hardware["host_platform"] == "windows":
             snapshot["summary_title"] = "Provisioning automatico sul dispositivo Windows"
             snapshot["summary_body"] = (
                 "Sul PC Windows del cliente il percorso consigliato e' installare Ollama con l'installer ufficiale. "
-                "Dopo l'installazione HACS rileva automaticamente il runtime locale, scarica il modello operativo giusto "
+                "Dopo l'installazione IUSENTRA rileva automaticamente il runtime locale, scarica il modello operativo giusto "
                 "per il profilo hardware e collega la web app ai modelli tramite localhost."
             )
         else:
             snapshot["summary_title"] = "Installazione guidata sul dispositivo locale"
             snapshot["summary_body"] = (
                 "Su questo sistema il companion locale verifica Ollama sul dispositivo cliente. "
-                "Se il runtime non e' gia' presente, HACS mostra la procedura corretta senza bloccare il gestionale."
+                "Se il runtime non e' gia' presente, IUSENTRA mostra la procedura corretta senza bloccare il gestionale."
             )
         return snapshot
 
@@ -685,7 +685,7 @@ class LocalAiHostBridge:
 
         request = urllib.request.Request(
             download_url,
-            headers={"User-Agent": "HACS-Local-AI-Bridge/1.0"},
+            headers={"User-Agent": "IUSENTRA-Local-AI-Bridge/1.0"},
         )
         with urllib.request.urlopen(request, timeout=60) as response, target.open("wb") as stream:
             while True:
@@ -1009,7 +1009,7 @@ class LocalAiHostBridge:
         ) or "Nessuna fonte documentale disponibile."
         return "\n".join(
             [
-                "Sei l'assistente operativo locale di HACS.",
+                "Sei l'assistente operativo locale di IUSENTRA.",
                 "Rispondi usando solo il contesto fornito.",
                 "Se il contesto e' insufficiente, dichiaralo in modo esplicito.",
                 "",

@@ -90,7 +90,7 @@ def _preflight(_=""):
 def info():
     """Informazioni generali sull'API."""
     return _ok({
-        "app": current_app.config.get("STUDIO_NOME", "Studio Legale PCT"),
+        "app": current_app.config.get("STUDIO_NOME", "IUSENTRA"),
         "version": APP_VERSION,
         "autenticazione": ["session", "X-API-Key"],
         "endpoints": {

@@ -1,4 +1,4 @@
-"""Assemblaggio dei runtime applicativi per i profili web HACS."""
+"""Assemblaggio dei runtime applicativi per i profili web IUSENTRA."""
 
 from __future__ import annotations
 

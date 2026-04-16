@@ -1,5 +1,5 @@
 """
-Gestione database centralizzata per lo studio legale PCT.
+Gestione database centralizzata per IUSENTRA.
 
 Funzionalità:
   - Statistiche e analisi di tutti i moduli dati (JSON + SQLite)

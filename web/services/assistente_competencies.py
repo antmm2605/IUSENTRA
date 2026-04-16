@@ -50,7 +50,7 @@ _COMPETENCE_PROFILES: tuple[LexCompetenceProfile, ...] = (
         ),
         section_titles=("Impostazioni studio", "Quadro operativo", "Agenda", "Scadenziario"),
         prompt_block=(
-            "Competenza HACS: Centro operativo dello studio. Quando l'utente chiede una panoramica o un quadro generale, "
+            "Competenza IUSENTRA: Centro operativo dello studio. Quando l'utente chiede una panoramica o un quadro generale, "
             "Lex deve ordinare la risposta per priorita', distinguere cosa richiede attenzione oggi e indicare la prossima attivita' utile."
         ),
         context_hint=(
@@ -80,7 +80,7 @@ _COMPETENCE_PROFILES: tuple[LexCompetenceProfile, ...] = (
         ),
         section_titles=("Centro Servizi Telematici", "Fascicoli", "PEC e canali email", "Applicazioni", "Ricerca legale e fonti web"),
         prompt_block=(
-            "Competenza HACS: Centro Servizi Telematici. Se il tema riguarda PST, PDP, PAT/SIGA, PTT/SIGIT, import fascicoli, "
+            "Competenza IUSENTRA: Centro Servizi Telematici. Se il tema riguarda PST, PDP, PAT/SIGA, PTT/SIGIT, import fascicoli, "
             "depositi o autenticazioni ai portali, Lex deve distinguere il canale corretto, chiarire prerequisiti tecnici e documentali "
             "e indicare il prossimo passo pratico nel gestionale. Deve usare il repository telematico strutturato: catalogo PST, "
             "fonti ufficiali, capability reali, azioni disponibili, regole tecniche, canali XSD/WSDL e monitoraggio."
@@ -108,7 +108,7 @@ _COMPETENCE_PROFILES: tuple[LexCompetenceProfile, ...] = (
         ),
         section_titles=("Fascicoli", "Agenda", "Scadenziario"),
         prompt_block=(
-            "Competenza HACS: Fascicoli e procedimenti. Quando la richiesta tocca stato pratica, RG, controparte, giudice o fase, "
+            "Competenza IUSENTRA: Fascicoli e procedimenti. Quando la richiesta tocca stato pratica, RG, controparte, giudice o fase, "
             "Lex deve collegare la risposta ai fascicoli concreti e segnalare subito prossima udienza, attivita' aperte o elementi mancanti."
         ),
         context_hint=(
@@ -136,7 +136,7 @@ _COMPETENCE_PROFILES: tuple[LexCompetenceProfile, ...] = (
         ),
         section_titles=("Agenda", "Scadenziario", "Fascicoli"),
         prompt_block=(
-            "Competenza HACS: Udienze, agenda e scadenze. Ordina sempre prima gli eventi piu' vicini nel tempo, chiarisci il criterio usato "
+            "Competenza IUSENTRA: Udienze, agenda e scadenze. Ordina sempre prima gli eventi piu' vicini nel tempo, chiarisci il criterio usato "
             "e proponi una selezione breve come oggi, prossime, urgenti o collegate ai fascicoli attivi."
         ),
         context_hint=(
@@ -165,7 +165,7 @@ _COMPETENCE_PROFILES: tuple[LexCompetenceProfile, ...] = (
         ),
         section_titles=("Clienti", "Soggetti", "Fascicoli"),
         prompt_block=(
-            "Competenza HACS: Clienti, soggetti e anagrafiche. Richiama solo i dati utili, chiarisci ruolo processuale e riferimenti essenziali "
+            "Competenza IUSENTRA: Clienti, soggetti e anagrafiche. Richiama solo i dati utili, chiarisci ruolo processuale e riferimenti essenziali "
             "e segnala subito se mancano recapiti, collegamenti a fascicolo o dati identificativi importanti."
         ),
         context_hint=(
@@ -191,7 +191,7 @@ _COMPETENCE_PROFILES: tuple[LexCompetenceProfile, ...] = (
         ),
         section_titles=("RAG documentale locale", "Fascicoli", "Template atti"),
         prompt_block=(
-            "Competenza HACS: Documenti e retrieval locale. Se l'utente cerca un documento o un contenuto nei documenti, "
+            "Competenza IUSENTRA: Documenti e retrieval locale. Se l'utente cerca un documento o un contenuto nei documenti, "
             "Lex deve partire dagli allegati e dal retrieval locale disponibili, citare il documento pertinente e dire cosa emerge davvero."
         ),
         context_hint=(
@@ -219,7 +219,7 @@ _COMPETENCE_PROFILES: tuple[LexCompetenceProfile, ...] = (
         ),
         section_titles=("Template atti", "Fascicoli", "RAG documentale locale"),
         prompt_block=(
-            "Competenza HACS: Atti, template e catalogo atti. Se la richiesta tocca bozze, modelli o struttura di un atto, "
+            "Competenza IUSENTRA: Atti, template e catalogo atti. Se la richiesta tocca bozze, modelli o struttura di un atto, "
             "Lex deve selezionare il template piu' vicino dal repository strutturato, evidenziare i dati da completare, "
             "mostrare allegati obbligatori e controlli di conformita' e proporre il prossimo passo redazionale."
         ),
@@ -252,7 +252,7 @@ _COMPETENCE_PROFILES: tuple[LexCompetenceProfile, ...] = (
         ),
         section_titles=("Tariffario", "Preventivi", "Fatturazione", "Clienti"),
         prompt_block=(
-            "Competenza HACS: Tariffario, preventivi, fatturazione e pagamenti. Quando il tema e' economico, "
+            "Competenza IUSENTRA: Tariffario, preventivi, fatturazione e pagamenti. Quando il tema e' economico, "
             "Lex deve distinguere bene tra parametro, preventivo, conferimento di incarico, parcella emessa, stato di pagamento "
             "e impatto sul cliente, senza confondere le fasi del flusso. "
             "Sui preventivi deve usare il repository strutturato del wizard: stato del workflow, passo corrente, campi mancanti, "
@@ -286,7 +286,7 @@ _COMPETENCE_PROFILES: tuple[LexCompetenceProfile, ...] = (
         ),
         section_titles=("PEC e canali email", "Impostazioni studio", "Fascicoli"),
         prompt_block=(
-            "Competenza HACS: PEC, firma e comunicazioni. Se c'e' un problema tecnico o operativo su PEC, firma digitale o ricevute, "
+            "Competenza IUSENTRA: PEC, firma e comunicazioni. Se c'e' un problema tecnico o operativo su PEC, firma digitale o ricevute, "
             "Lex deve indicare prima la causa probabile, poi il primo controllo utile e infine la correzione immediata nel flusso di studio."
         ),
         context_hint=(
@@ -312,7 +312,7 @@ _COMPETENCE_PROFILES: tuple[LexCompetenceProfile, ...] = (
         ),
         section_titles=("Ricerca legale e fonti web", "Archivio sentenze", "Strumenti legali"),
         prompt_block=(
-            "Competenza HACS: Ricerca legale e fonti ufficiali. Se la domanda richiede verifica normativa o aggiornamento, "
+            "Competenza IUSENTRA: Ricerca legale e fonti ufficiali. Se la domanda richiede verifica normativa o aggiornamento, "
             "Lex deve distinguere dato certo, fonte ufficiale, ultimo aggiornamento disponibile e limiti del contesto interno. "
             "Per le fonti legali deve usare prima il repository strutturato di motori, fonti, keyword routing, monitoraggio, alert e audit, "
             "e solo dopo lasciare al modello la sintesi della risposta."
@@ -341,7 +341,7 @@ _COMPETENCE_PROFILES: tuple[LexCompetenceProfile, ...] = (
         ),
         section_titles=("Archivio sentenze", "Ricerca legale e fonti web"),
         prompt_block=(
-            "Competenza HACS: Archivio sentenze e giurisprudenza. Su sentenze e pronunce Lex deve partire prima dal corpus professionale "
+            "Competenza IUSENTRA: Archivio sentenze e giurisprudenza. Su sentenze e pronunce Lex deve partire prima dal corpus professionale "
             "verificabile, poi dal repository strutturato di fonti, tassonomia, policy e sync, e solo dopo usare il modello per spiegare la risposta. "
             "Lex puo' citare una pronuncia solo se il riferimento professionale e' verificato e puo' promettere il PDF solo se il corpus lo segnala disponibile. "
             "Chiarisci sempre se stai parlando di sentenza, ordinanza o altro provvedimento."
@@ -371,7 +371,7 @@ _COMPETENCE_PROFILES: tuple[LexCompetenceProfile, ...] = (
         ),
         section_titles=("Strumenti legali", "Tariffario", "Ricerca legale e fonti web"),
         prompt_block=(
-            "Competenza HACS: Strumenti legali e calcoli. Quando la domanda riguarda un calcolo o uno strumento, "
+            "Competenza IUSENTRA: Strumenti legali e calcoli. Quando la domanda riguarda un calcolo o uno strumento, "
             "Lex deve indicare subito quale modulo usare, quali dati servono e quali verifiche giuridiche o documentali vanno fatte prima del risultato finale."
         ),
         context_hint=(
@@ -395,7 +395,7 @@ _COMPETENCE_PROFILES: tuple[LexCompetenceProfile, ...] = (
         ),
         section_titles=("Applicazioni", "Impostazioni studio", "Quadro operativo"),
         prompt_block=(
-            "Competenza HACS: Applicazioni e moduli del gestionale. Se l'utente chiede dove si trova una funzione o come raggiungerla, "
+            "Competenza IUSENTRA: Applicazioni e moduli del gestionale. Se l'utente chiede dove si trova una funzione o come raggiungerla, "
             "Lex deve usare il registro workspace del software per indicare modulo corretto, modalita di accesso, percorso e azione successiva, "
             "senza perdersi in spiegazioni teoriche."
         ),
@@ -424,7 +424,7 @@ _COMPETENCE_PROFILES: tuple[LexCompetenceProfile, ...] = (
         ),
         section_titles=("Impostazioni studio", "PEC e canali email", "Agenda", "Applicazioni"),
         prompt_block=(
-            "Competenza HACS: Impostazioni, sincronizzazioni e configurazione studio. Se l'utente chiede setup, sync o configurazioni, "
+            "Competenza IUSENTRA: Impostazioni, sincronizzazioni e configurazione studio. Se l'utente chiede setup, sync o configurazioni, "
             "Lex deve distinguere impostazioni di studio, canali email/PEC, calendario e integrazioni, indicando prima cosa verificare e poi cosa salvare o sincronizzare."
         ),
         context_hint=(
@@ -491,7 +491,7 @@ def resolve_competence_labels(question: str, *, limit: int = 3) -> list[str]:
 def build_competence_catalog_prompt() -> str:
     labels = ", ".join(profile.label for profile in _COMPETENCE_PROFILES)
     return (
-        "=== COMPETENZE HACS ===\n"
+        "=== COMPETENZE IUSENTRA ===\n"
         "Lex copre in modo operativo queste aree del software: "
         f"{labels}.\n"
         "Per ogni richiesta deve scegliere prima la competenza giusta, usare i moduli pertinenti e non allargarsi ad aree non richieste."

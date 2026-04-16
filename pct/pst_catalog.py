@@ -123,7 +123,7 @@ def get_official_methods() -> list[PSTOfficialMethod]:
             page=43,
             current_support="parziale",
             notes=(
-                "HACS dispone ora di un adapter WSDL/cache per questo metodo; "
+                "IUSENTRA dispone ora di un adapter WSDL/cache per questo metodo; "
                 "la sincronizzazione live si attiva quando e configurato l'endpoint SOAP ufficiale."
             ),
         ),

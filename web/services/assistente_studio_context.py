@@ -556,7 +556,7 @@ def _settings_studio_lines() -> tuple[list[str], list[dict[str, Any]]]:
     tax_code = _clean_spaces(getattr(studio, "cf", ""))
 
     lines = [
-        f"Denominazione studio: {_clean_spaces(getattr(studio, 'nome', 'Studio Legale PCT')) or 'Studio Legale PCT'}.",
+        f"Denominazione studio: {_clean_spaces(getattr(studio, 'nome', 'IUSENTRA')) or 'IUSENTRA'}.",
     ]
     if full_address:
         lines.append(f"Sede operativa: {full_address}.")
@@ -1782,7 +1782,7 @@ def _document_rag_lines(question: str) -> tuple[list[str], list[dict[str, Any]]]
         rows = get_local_ai_service().hybrid_search(question, top_k=4)
     except Exception:
         rows = []
-    lines = ["RAG documentale locale: supporto disponibile sui documenti gia' indicizzati quando HACS gira sullo stesso host dei dati."]
+    lines = ["RAG documentale locale: supporto disponibile sui documenti gia' indicizzati quando IUSENTRA gira sullo stesso host dei dati."]
     if rows:
         lines.append(
             "Documenti indicizzati pertinenti: "
@@ -1822,7 +1822,7 @@ def build_lex_studio_context(
         )
     if competence_labels:
         sections.append(
-            "Competenze HACS coinvolte: " + ", ".join(competence_labels) + "."
+            "Competenze IUSENTRA coinvolte: " + ", ".join(competence_labels) + "."
         )
     sections.extend(competence_hints)
     if chat_mode and research_strategy == "auto_narrow_recent_civil_case_law":

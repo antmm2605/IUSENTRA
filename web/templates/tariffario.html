@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 {% block title %}Tariffario Forense{% endblock %}
 {% block pct_modulo %}tariffario{% endblock %}
 
@@ -370,7 +370,7 @@
               <label class="form-label fw-semibold">Valore controversia (EUR)</label>
               <input type="text" id="inpValore" name="valore" class="form-control"
                      inputmode="decimal" autocomplete="off" value="{{ valore_str }}" placeholder="0,00">
-              <div class="form-text">Usa 0 se il valore non e ancora determinato: HACS applichera per default il primo scaglione tabellare disponibile.</div>
+              <div class="form-text">Usa 0 se il valore non e ancora determinato: IUSENTRA applichera per default il primo scaglione tabellare disponibile.</div>
             </div>
 
             <div class="col-12">
@@ -414,7 +414,7 @@
                                   <option value="{{ row.value }}" {{ 'selected' if complessita_sel == row.value else '' }}>{{ row.label }}</option>
                                   {% endfor %}
                                 </select>
-                                <div class="form-text">Bassa usa la forbice minima, media il valore base, alta la forbice massima; se il valore non e determinato, HACS usa il primo scaglione reale disponibile.</div>
+                                <div class="form-text">Bassa usa la forbice minima, media il valore base, alta la forbice massima; se il valore non e determinato, IUSENTRA usa il primo scaglione reale disponibile.</div>
                               </div>
                               <div class="col-md-6">
                                 <div class="form-check form-switch mb-2">
@@ -938,7 +938,7 @@ function parseLocaleNumber(value) {
   if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
   let cleaned = String(value)
     .trim()
-    .replaceAll('€', '')
+    .replaceAll('â‚¬', '')
     .replaceAll('EUR', '')
     .replaceAll('eur', '')
     .replace(/\s+/g, '')
@@ -1400,3 +1400,4 @@ function addManualRow(descrizione = '', tipo = 'Onorario', importo = '') {
 });
 </script>
 {% endblock %}
+

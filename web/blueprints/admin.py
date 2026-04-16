@@ -1,5 +1,5 @@
 """
-Blueprint pannello amministrazione HACS — gestione multi-tenant studi legali.
+Blueprint pannello amministrazione IUSENTRA — gestione multi-tenant studi legali.
 
 Accesso: solo utenti con ruolo SUPERADMIN.
 Prefix:  /admin/

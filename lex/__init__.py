@@ -1,4 +1,4 @@
-"""Modulo Lex: bounded context AI del gestionale HACS."""
+﻿"""Modulo Lex: bounded context AI del gestionale IUSENTRA."""
 
 from __future__ import annotations
 
@@ -22,3 +22,4 @@ def __getattr__(name: str):
     module_name, attribute_name = target
     module = import_module(module_name)
     return getattr(module, attribute_name)
+

@@ -89,7 +89,7 @@ from pct.telematico_repository import (
     derive_telematico_xsd_channels_json_path,
 )
 
-USER_AGENT = "HACS-Legal-Intelligence/1.0 (+https://pst.giustizia.it)"
+USER_AGENT = "IUSENTRA-Legal-Intelligence/1.0 (+https://pst.giustizia.it)"
 MAX_MONITOR_BYTES = 512_000
 MAX_MONITOR_RUNS = 600
 MAX_ALERTS = 400

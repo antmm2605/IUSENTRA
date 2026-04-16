@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 {% block title %}Preventivo guidato{% endblock %}
 {% block pct_modulo %}preventivi{% endblock %}
 
@@ -679,11 +679,11 @@
       <div class="prev-hero-copy">
         <div class="prev-kicker">Console guidata</div>
         <h1 class="prev-title">Preventivo guidato</h1>
-        <p class="prev-sub">Nuovo cliente, tipologia pratica, motore normativo e bozza iniziale in un unico flusso, con meno rumore visivo e più spazio al lavoro reale.</p>
+        <p class="prev-sub">Nuovo cliente, tipologia pratica, motore normativo e bozza iniziale in un unico flusso, con meno rumore visivo e piÃ¹ spazio al lavoro reale.</p>
       </div>
     </div>
     <div class="prev-hero-actions">
-      <div class="prev-mode-switch" aria-label="Modalità di compilazione">
+      <div class="prev-mode-switch" aria-label="ModalitÃ  di compilazione">
         <span class="mode-pill active">Guidato</span>
         <a href="{{ url_for('preventivi.nuovo_preventivo', id_cliente=id_cliente_pre) if id_cliente_pre else url_for('preventivi.nuovo_preventivo') }}" class="mode-pill">
           <i class="bi bi-sliders me-1"></i>Avanzato
@@ -965,7 +965,7 @@
                   <option value="media" selected>Media</option>
                   <option value="alta">Alta</option>
                 </select>
-                <div class="form-text">Bassa usa la forbice minima, media il valore base, alta la forbice massima; se il valore non e determinato, HACS usa il primo scaglione reale disponibile.</div>
+                <div class="form-text">Bassa usa la forbice minima, media il valore base, alta la forbice massima; se il valore non e determinato, IUSENTRA usa il primo scaglione reale disponibile.</div>
               </div>
               <div class="col-md-3">
                 <label class="form-label fw-semibold">Tariffa oraria</label>
@@ -1087,11 +1087,11 @@
                 <tr id="emptyVociState"><td colspan="4" class="text-center text-muted py-4">Seleziona una tipologia e calcola il compenso per creare la prima bozza del preventivo.</td></tr>
               </tbody>
               <tfoot>
-                <tr><td colspan="2" class="text-end small text-muted">Imponibile voci</td><td class="text-end fw-semibold" id="lblImponibile">€ 0,00</td><td></td></tr>
-                <tr><td colspan="2" class="text-end small text-muted">CPA</td><td class="text-end small" id="lblCassa">€ 0,00</td><td></td></tr>
-                <tr><td colspan="2" class="text-end small text-muted">IVA</td><td class="text-end small" id="lblIva">€ 0,00</td><td></td></tr>
-                <tr><td colspan="2" class="text-end small text-muted">Anticipazioni art. 15</td><td class="text-end small" id="lblAnticipazioni">€ 0,00</td><td></td></tr>
-                <tr class="table-primary"><td colspan="2" class="text-end fw-bold">Totale</td><td class="text-end fw-bold" id="lblTotale">€ 0,00</td><td></td></tr>
+                <tr><td colspan="2" class="text-end small text-muted">Imponibile voci</td><td class="text-end fw-semibold" id="lblImponibile">â‚¬ 0,00</td><td></td></tr>
+                <tr><td colspan="2" class="text-end small text-muted">CPA</td><td class="text-end small" id="lblCassa">â‚¬ 0,00</td><td></td></tr>
+                <tr><td colspan="2" class="text-end small text-muted">IVA</td><td class="text-end small" id="lblIva">â‚¬ 0,00</td><td></td></tr>
+                <tr><td colspan="2" class="text-end small text-muted">Anticipazioni art. 15</td><td class="text-end small" id="lblAnticipazioni">â‚¬ 0,00</td><td></td></tr>
+                <tr class="table-primary"><td colspan="2" class="text-end fw-bold">Totale</td><td class="text-end fw-bold" id="lblTotale">â‚¬ 0,00</td><td></td></tr>
               </tfoot>
             </table>
           </div>
@@ -1126,7 +1126,7 @@
         <div class="prev-action-bar">
           <div class="prev-action-total">
             <div class="label">Totale preventivo</div>
-            <div class="value" id="stickyTotale">â‚¬ 0,00</div>
+            <div class="value" id="stickyTotale">Ã¢â€šÂ¬ 0,00</div>
           </div>
           <div class="prev-action-buttons">
             <a href="{{ url_for('preventivi.lista') }}" class="btn btn-outline-secondary">Annulla</a>
@@ -1147,15 +1147,15 @@
           <span class="badge text-bg-light prev-summary-layout-badge">desktop sticky</span>
         </div>
         <div class="prev-summary-body">
-          <div id="schedaTipologia" class="prev-summary-intro">Seleziona una tipologia per vedere quando usarla, quali riferimenti applica il motore e come verrà costruito il preventivo.</div>
+          <div id="schedaTipologia" class="prev-summary-intro">Seleziona una tipologia per vedere quando usarla, quali riferimenti applica il motore e come verrÃ  costruito il preventivo.</div>
           <div class="prev-kpi-grid">
             <div class="prev-kpi">
               <div class="small text-muted">Compenso base</div>
-              <div class="value" id="kpiCompenso">€ 0,00</div>
+              <div class="value" id="kpiCompenso">â‚¬ 0,00</div>
             </div>
             <div class="prev-kpi">
               <div class="small text-muted">Totale</div>
-              <div class="value" id="kpiTotale">€ 0,00</div>
+              <div class="value" id="kpiTotale">â‚¬ 0,00</div>
             </div>
           </div>
           <div class="accordion prev-summary-accordion" id="summaryAccordion">
@@ -1409,7 +1409,7 @@ function applyTaxonomyFromPractice(item) {
 
 function money(value) {
   const num = parseLocaleNumber(value);
-  return `€ ${num.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  return `â‚¬ ${num.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 function parseLocaleNumber(value) {
@@ -1417,7 +1417,7 @@ function parseLocaleNumber(value) {
   if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
   let cleaned = String(value)
     .trim()
-    .replaceAll('€', '')
+    .replaceAll('â‚¬', '')
     .replaceAll('EUR', '')
     .replaceAll('eur', '')
     .replace(/\s+/g, '')
@@ -1948,7 +1948,7 @@ function esborsiSuggeritiAttivi() {
     (tipologiaAccessorio?.esborsi_tipici || []).forEach((item, index) => {
       righe.push({
         key: `${accessorio.id}_${index}`,
-        descrizione: `${accessorio.label} — ${item.descrizione}`,
+        descrizione: `${accessorio.label} â€” ${item.descrizione}`,
         importo: item.importo,
       });
     });
@@ -2229,7 +2229,7 @@ function applicaSuggerimenti() {
   let oggettoSuggerito = tipologiaCorrente.oggetto_template || '';
   if (fascicoloCorrente && fascicoloCorrente.context_label) {
     oggettoSuggerito = oggettoSuggerito
-      ? `${oggettoSuggerito} — ${fascicoloCorrente.context_label}`
+      ? `${oggettoSuggerito} â€” ${fascicoloCorrente.context_label}`
       : fascicoloCorrente.context_label;
   }
   if (!oggettoToccato || !oggetto.value.trim()) oggetto.value = oggettoSuggerito;
@@ -2262,8 +2262,8 @@ function syncTipoProcedimentoHidden() {
   gradoInput.value = grado;
   regolaInput.value = ruleCompatible ? (regola.rule_code || '') : '';
   input.value = ruleCompatible
-    ? `${regola.label}${grado ? ` — ${grado}` : ''}`
-    : `${tipologiaCorrente.label}${grado ? ` — ${grado}` : ''}`;
+    ? `${regola.label}${grado ? ` â€” ${grado}` : ''}`
+    : `${tipologiaCorrente.label}${grado ? ` â€” ${grado}` : ''}`;
 }
 
 function aggiornaGradoDefault() {
@@ -2581,8 +2581,8 @@ function buildEconomicLogPayload() {
       ...(tipologiaCorrente?.tassonomia_sources || []),
       ...(tipologiaCorrente?.normative_references || []),
       ...accessori.flatMap((row) => getTipologiaById(row.tipo_pratica_id)?.normative_references || []),
-    ]).map((row) => `${row.title || ''}${row.article ? ' — ' + row.article : ''}`.trim()),
-    riferimenti_tassonomia: dedupeNormativeReferences(tipologiaCorrente?.tassonomia_sources || []).map((row) => `${row.title || ''}${row.article ? ' â€” ' + row.article : ''}`.trim()),
+    ]).map((row) => `${row.title || ''}${row.article ? ' â€” ' + row.article : ''}`.trim()),
+    riferimenti_tassonomia: dedupeNormativeReferences(tipologiaCorrente?.tassonomia_sources || []).map((row) => `${row.title || ''}${row.article ? ' Ã¢â‚¬â€ ' + row.article : ''}`.trim()),
     risultato: ultimoCalcolo || {},
   };
 }
@@ -2925,3 +2925,4 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 </script>
 {% endblock %}
+

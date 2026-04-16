@@ -1,12 +1,12 @@
-"""
-pct/config_studio.py — Configurazione persistente dello studio legale.
+﻿"""
+pct/config_studio.py â€” Configurazione persistente dello studio legale.
 
 Salva tutte le impostazioni in un singolo file JSON:
   /data/config/studio.json  (o percorso configurabile)
 
 Le password sono cifrate con Fernet (AES-128-CBC) derivando la chiave da
-PCT_SECRET_KEY. Se la variabile non è impostata i valori vengono salvati
-in chiaro (solo in ambienti di sviluppo — in produzione impostare sempre
+PCT_SECRET_KEY. Se la variabile non Ã¨ impostata i valori vengono salvati
+in chiaro (solo in ambienti di sviluppo â€” in produzione impostare sempre
 PCT_SECRET_KEY).
 
 Include:
@@ -28,7 +28,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 
-# ──────────────────────────────────────────────────────────── cifratura
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ cifratura
 
 _ENC_PREFIX = "ENC:"
 _CAMPI_CIFRATI: List[tuple[str, str]] = [
@@ -44,7 +44,7 @@ def _fernet_instance(secret: str | None = None):
     """Restituisce un'istanza Fernet o None se la libreria manca / chiave assente."""
     if secret is None:
         secret = os.getenv("PCT_SECRET_KEY", "")
-    # In modalità dev non cifriamo (chiave default debole)
+    # In modalitÃ  dev non cifriamo (chiave default debole)
     if not secret or secret.startswith("dev-secret"):
         return None
     try:
@@ -67,11 +67,11 @@ def _decifra(valore: str, f) -> str:
     if not valore or f is None:
         return valore
     if not valore.startswith(_ENC_PREFIX):
-        return valore  # valore legacy in chiaro — restituisce così com'è
+        return valore  # valore legacy in chiaro â€” restituisce cosÃ¬ com'Ã¨
     try:
         return f.decrypt(valore[len(_ENC_PREFIX):].encode()).decode()
     except Exception:
-        return valore  # chiave cambiata o dato corrotto — meglio "" che crash
+        return valore  # chiave cambiata o dato corrotto â€” meglio "" che crash
 
 
 def _applica_cifratura(d: Dict[str, Any], f, cifra: bool) -> Dict[str, Any]:
@@ -83,11 +83,11 @@ def _applica_cifratura(d: Dict[str, Any], f, cifra: bool) -> Dict[str, Any]:
     return d
 
 
-# ──────────────────────────────────────────────────────────── dataclasses
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ dataclasses
 
 @dataclass
 class ConfigDatiStudio:
-    nome: str = "Studio Legale PCT"
+    nome: str = "IUSENTRA"
     avvocato: str = ""
     piva: str = ""
     cf: str = ""
@@ -118,28 +118,28 @@ class ConfigPEC:
 
 @dataclass
 class ConfigFirma:
-    # ── Formato P12/PFX (PKCS#12 — bundle cert+chiave in un unico file) ──────
+    # â”€â”€ Formato P12/PFX (PKCS#12 â€” bundle cert+chiave in un unico file) â”€â”€â”€â”€â”€â”€
     p12_path: str = ""
     password: str = ""          # password del P12 (cifrata a riposo)
 
-    # ── Formato PEM (cert e chiave in file separati) ─────────────────────────
+    # â”€â”€ Formato PEM (cert e chiave in file separati) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     # Usare quando il provider non rilascia il formato P12 (es. alcuni token
     # Namirial / Aruba / InfoCert forniscono .crt + .key o .pem separati).
     cert_pem_path: str = ""     # percorso al file .crt / .pem (solo certificato)
     key_pem_path:  str = ""     # percorso al file .key / .pem (chiave privata)
     key_pem_password: str = ""  # password chiave privata cifrata (lasciare vuoto se non cifrata)
 
-    # ── Formato PKCS#11 (token USB — Aruba Key, Namirial, ecc.) ─────────────
+    # â”€â”€ Formato PKCS#11 (token USB â€” Aruba Key, Namirial, ecc.) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     # La chiave privata non lascia mai il dispositivo (in-device signing).
     # Richiede: apt install pcscd opensc   +   pip install python-pkcs11 asn1crypto
     # Docker: montare /run/pcscd/pcscd.comm:/run/pcscd/pcscd.comm
     pkcs11_library: str = ""    # percorso alla .so/.dll (es. /usr/lib/.../opensc-pkcs11.so)
     pkcs11_slot:    str = ""    # slot ID (lasciare vuoto = primo slot disponibile)
     pkcs11_label:   str = ""    # etichetta certificato nel token (opzionale)
-    # NOTA: il PIN NON viene salvato qui per sicurezza — viene chiesto all'utente
+    # NOTA: il PIN NON viene salvato qui per sicurezza â€” viene chiesto all'utente
     # ogni volta nella UI di deposito (modal "Firma con Aruba Key").
 
-    # ── Comune a tutti i formati ─────────────────────────────────────────────
+    # â”€â”€ Comune a tutti i formati â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     cf_avvocato: str = ""
     backend_preferito: str = "auto"  # auto | pkcs11 | p12 | pem
 
@@ -160,7 +160,7 @@ class ConfigFirma:
             return "pkcs11"
         if not self.pkcs11_library and _lib_disp():
             # Libreria auto-rilevata e almeno uno degli altri campi pkcs11 impostati
-            # (anche solo library auto-detected è sufficiente per offrire il formato)
+            # (anche solo library auto-detected Ã¨ sufficiente per offrire il formato)
             pass  # non attivare pkcs11 automaticamente senza configurazione esplicita
         if self.p12_path and _os.path.exists(self.p12_path):
             return "p12"
@@ -172,11 +172,11 @@ class ConfigFirma:
     @property
     def pkcs11_configurato(self) -> bool:
         """
-        True se il backend PKCS#11 è stato scelto/configurato in modo esplicito.
+        True se il backend PKCS#11 Ã¨ stato scelto/configurato in modo esplicito.
 
         Non basta che sul sistema esista una DLL rilevabile automaticamente:
         per evitare fallback silenziosi su Aruba Key / token USB, consideriamo
-        il backend attivo solo quando c'è almeno un indizio di configurazione
+        il backend attivo solo quando c'Ã¨ almeno un indizio di configurazione
         esplicita (libreria salvata, slot/label salvati, oppure override env).
         """
         import os as _os
@@ -257,7 +257,7 @@ class ConfigFirma:
         if valore not in consentiti:
             if backend == "pkcs11":
                 raise ValueError(
-                    "Con Aruba Key / PKCS#11 è consentito solo CAdES (.p7m). "
+                    "Con Aruba Key / PKCS#11 Ã¨ consentito solo CAdES (.p7m). "
                     "Per PAdES usare una firma P12 o PEM."
                 )
             raise ValueError(
@@ -334,7 +334,7 @@ class ConfigStudio:
         )
 
 
-# ──────────────────────────────────────────────────────────── gestore
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ gestore
 
 class GestioneConfigStudio:
     """
@@ -350,7 +350,7 @@ class GestioneConfigStudio:
         self._path = Path(db_path or config_path)
         self._cfg: Optional[ConfigStudio] = None
 
-    # ── I/O ──────────────────────────────────────────────────────────
+    # â”€â”€ I/O â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     def _carica(self) -> ConfigStudio:
         if self._path.exists():
@@ -361,7 +361,7 @@ class GestioneConfigStudio:
                 return ConfigStudio.from_dict(raw)
             except Exception:
                 pass
-        # Prima volta: pre-popola dai valori env (compatibilità backward)
+        # Prima volta: pre-popola dai valori env (compatibilitÃ  backward)
         return self._da_env()
 
     def _salva(self, cfg: ConfigStudio) -> None:
@@ -379,7 +379,7 @@ class GestioneConfigStudio:
         """Costruisce ConfigStudio leggendo le variabili d'ambiente esistenti."""
         return ConfigStudio(
             studio=ConfigDatiStudio(
-                nome=os.getenv("PCT_STUDIO_NOME", "Studio Legale PCT"),
+                nome=os.getenv("PCT_STUDIO_NOME", "IUSENTRA"),
                 avvocato=os.getenv("PCT_STUDIO_AVVOCATO", ""),
                 piva=os.getenv("PCT_STUDIO_PIVA", ""),
                 cf=os.getenv("PCT_STUDIO_CF", ""),
@@ -441,7 +441,7 @@ class GestioneConfigStudio:
             ),
         )
 
-    # ── API pubblica ──────────────────────────────────────────────────
+    # â”€â”€ API pubblica â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     @property
     def config(self) -> ConfigStudio:
@@ -473,7 +473,7 @@ def percorso_config_studio_corrente(config_path: str | None = None) -> str:
     """
     Restituisce il percorso canonico della configurazione studio.
 
-    Priorità:
+    PrioritÃ :
       1. parametro esplicito
       2. PCT_CONFIG_STUDIO_DB
       3. PCT_STUDIO_CONFIG
@@ -530,7 +530,7 @@ def risolvi_config_firma_corrente(config_path: str | None = None) -> Dict[str, s
     }
 
 
-# ──────────────────────────────────────────────────────────── test connessioni
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ test connessioni
 
 import smtplib as _smtplib
 import socket as _socket_mod
@@ -540,12 +540,12 @@ def _resolve_ipv4(hostname: str, port: int) -> str | None:
     """Risolve hostname in IPv4 usando il resolver DNS di sistema.
 
     Usa direttamente socket.getaddrinfo() con il resolver DNS di Railway/sistema.
-    Il tentativo DoH via IP diretto (1.1.1.1, 8.8.8.8) è stato rimosso perché
+    Il tentativo DoH via IP diretto (1.1.1.1, 8.8.8.8) Ã¨ stato rimosso perchÃ©
     Railway blocca le connessioni HTTPS verso quegli IP e restituiva IP errati
     (es. IP Google invece di server Brevo), causando timeout di rete.
 
     Se necessario, impostare PCT_DNS_SERVERS=8.8.8.8,1.1.1.1 per DNS custom
-    (riservato a uso futuro — per ora il resolver di sistema è sufficiente).
+    (riservato a uso futuro â€” per ora il resolver di sistema Ã¨ sufficiente).
     """
     try:
         infos = _socket_mod.getaddrinfo(hostname, port, _socket_mod.AF_INET, _socket_mod.SOCK_STREAM)
@@ -607,7 +607,7 @@ def _msg_errore_rete(e: Exception, prefisso: str) -> str:
         if len(args) >= 2:
             host_info = f" ({args[1]})"
         return (
-            f"{prefisso}: hostname non trovato{host_info} — "
+            f"{prefisso}: hostname non trovato{host_info} â€” "
             "verificare che l'indirizzo del server sia corretto (es. smtp.gmail.com, "
             "smtp.office365.com). Se il problema persiste in Docker, "
             "aggiungere 'dns: [8.8.8.8, 8.8.4.4]' al servizio nel docker-compose.yml."
@@ -616,16 +616,16 @@ def _msg_errore_rete(e: Exception, prefisso: str) -> str:
         return (
             f"{prefisso}: server SMTP non raggiungibile via IPv4. "
             "Cause comuni su Railway/cloud: (1) il provider SMTP blocca IP di hosting "
-            "per anti-spam — richiedere whitelist o usare relay cloud-friendly "
+            "per anti-spam â€” richiedere whitelist o usare relay cloud-friendly "
             "(Brevo, SendGrid, Mailgun, Amazon SES); "
-            "(2) porta chiusa — verificare 587 STARTTLS o 465 SSL."
+            "(2) porta chiusa â€” verificare 587 STARTTLS o 465 SSL."
         )
     if codice == _errno.ECONNREFUSED:
-        return f"{prefisso}: connessione rifiutata — host o porta errati, o il server non è in ascolto."
+        return f"{prefisso}: connessione rifiutata â€” host o porta errati, o il server non Ã¨ in ascolto."
     if codice == _errno.ETIMEDOUT or isinstance(e, TimeoutError):
         return (
-            f"{prefisso}: timeout di rete — il server non risponde entro il tempo limite. "
-            "Su Railway/cloud il problema più comune NON è la porta 25 (se stai già usando 587/465), "
+            f"{prefisso}: timeout di rete â€” il server non risponde entro il tempo limite. "
+            "Su Railway/cloud il problema piÃ¹ comune NON Ã¨ la porta 25 (se stai giÃ  usando 587/465), "
             "ma un blocco anti-spam dell'IP di hosting lato provider SMTP. "
             "Verificare host/porta, provare 587 (STARTTLS) o 465 (SSL), "
             "ed eventualmente usare un relay cloud-friendly (Brevo/SendGrid/Mailgun/SES) "
@@ -671,8 +671,8 @@ def test_smtp_email(cfg: ConfigSMTP) -> Dict[str, Any]:
     import smtplib
     import ssl as _ssl
     if not cfg.host:
-        return {"ok": False, "messaggio": "Host SMTP non configurato. Vai in Impostazioni → Email SMTP e inserisci l'indirizzo del server (es. smtp.gmail.com)."}
-    # Porta 25 è bloccata da GCP/Railway/AWS outbound (anti-spam) → timeout garantito
+        return {"ok": False, "messaggio": "Host SMTP non configurato. Vai in Impostazioni â†’ Email SMTP e inserisci l'indirizzo del server (es. smtp.gmail.com)."}
+    # Porta 25 Ã¨ bloccata da GCP/Railway/AWS outbound (anti-spam) â†’ timeout garantito
     if cfg.port == 25:
         return {"ok": False, "messaggio": (
             "Porta 25 bloccata: Railway/GCP blocca outbound porta 25 per prevenire spam. "
@@ -684,13 +684,13 @@ def test_smtp_email(cfg: ConfigSMTP) -> Dict[str, Any]:
     try:
         ctx = _ssl.create_default_context()
         if cfg.use_tls:
-            # STARTTLS (porta 587 — Gmail, Outlook, IONOS…)
+            # STARTTLS (porta 587 â€” Gmail, Outlook, IONOSâ€¦)
             with _SMTPv4(cfg.host, cfg.port, timeout=15) as s:
                 s.starttls(context=ctx)
                 if cfg.username:
                     s.login(cfg.username, cfg.password)
         else:
-            # SSL diretto (porta 465 — Aruba, altri provider con SSL nativo)
+            # SSL diretto (porta 465 â€” Aruba, altri provider con SSL nativo)
             with _SMTP_SSLv4(cfg.host, cfg.port, context=ctx, timeout=15) as s:
                 if cfg.username:
                     s.login(cfg.username, cfg.password)
@@ -710,7 +710,7 @@ def test_whatsapp(cfg: ConfigWhatsApp) -> Dict[str, Any]:
                 twilio_numero=cfg.twilio_numero,
                 callmebot_key="",
             )
-            risultato = invia_messaggio(cfg.twilio_numero, "Test PCT Studio — connessione OK.", wa_cfg)
+            risultato = invia_messaggio(cfg.twilio_numero, "Test IUSENTRA â€” connessione OK.", wa_cfg)
             return {"ok": True, "messaggio": f"Twilio OK: {risultato.get('status', risultato)}"}
         except Exception as e:
             return {"ok": False, "messaggio": f"Errore Twilio: {e}"}
@@ -721,8 +721,9 @@ def test_whatsapp(cfg: ConfigWhatsApp) -> Dict[str, Any]:
                 twilio_sid="", twilio_token="", twilio_numero="",
                 callmebot_key=cfg.callmebot_key,
             )
-            risultato = invia_messaggio("", "Test PCT Studio — connessione OK.", wa_cfg)
+            risultato = invia_messaggio("", "Test IUSENTRA â€” connessione OK.", wa_cfg)
             return {"ok": True, "messaggio": f"CallMeBot OK: {risultato}"}
         except Exception as e:
             return {"ok": False, "messaggio": f"Errore CallMeBot: {e}"}
     return {"ok": False, "messaggio": "Nessun provider WhatsApp configurato."}
+

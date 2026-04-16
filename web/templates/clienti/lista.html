@@ -1,11 +1,11 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 {% block pct_modulo %}clienti{% endblock %}
-{% block title %}Clienti — Studio Legale PCT{% endblock %}
+{% block title %}Clienti â€” IUSENTRA{% endblock %}
 {% block page_title %}Anagrafica Clienti{% endblock %}
 
 {% block content %}
 
-{# ── Page Header ── #}
+{# â”€â”€ Page Header â”€â”€ #}
 <div class="ds-ph">
   <div class="ds-ph-icon"><i class="bi bi-people-fill"></i></div>
   <div class="ds-ph-body">
@@ -36,7 +36,7 @@
   </div>
 </div>
 
-{# ── Stats ── #}
+{# â”€â”€ Stats â”€â”€ #}
 <div class="ds-stats">
   <span class="ds-stat-pill">
     <span class="num">{{ stats.totale }}</span> totali
@@ -57,10 +57,10 @@
   {% endif %}
 </div>
 
-{# ── Barra ricerca + filtri ── #}
+{# â”€â”€ Barra ricerca + filtri â”€â”€ #}
 <form method="get" class="ds-search-bar mb-3">
   <input type="search" name="q" class="ds-search-input"
-         placeholder="Cerca per nome, CF, P.IVA, email, telefono…"
+         placeholder="Cerca per nome, CF, P.IVA, email, telefonoâ€¦"
          value="{{ q }}" autocomplete="off">
   <select name="tipo" class="form-select form-select-sm" style="max-width:160px">
     <option value="">Tutti i tipi</option>
@@ -88,7 +88,7 @@
   {% endif %}
 </form>
 
-{# ── Tabella clienti ── #}
+{# â”€â”€ Tabella clienti â”€â”€ #}
 {% if clienti %}
 <div class="card border-0 shadow-sm" style="border-radius:var(--ds-r-lg, 14px); overflow:hidden;">
   <div class="card-header d-flex justify-content-between align-items-center">
@@ -147,7 +147,7 @@
               {% endif %}
             </td>
             <td data-label="CF / P.IVA" class="font-monospace small d-none d-lg-table-cell">
-              {{ c.codice_fiscale or c.partita_iva or '—' }}
+              {{ c.codice_fiscale or c.partita_iva or 'â€”' }}
             </td>
             <td data-label="Contatti" class="small d-none d-md-table-cell">
               {% if c.recapiti.cellulare %}
@@ -161,13 +161,13 @@
                 </div>
               {% endif %}
             </td>
-            <td data-label="Avv." class="small d-none d-lg-table-cell">{{ c.avvocato_referente or '—' }}</td>
+            <td data-label="Avv." class="small d-none d-lg-table-cell">{{ c.avvocato_referente or 'â€”' }}</td>
             <td data-label="Pratiche" class="text-center">
               {% set n_proc = c.procedimenti_attivi|length %}
               {% if n_proc %}
                 <span class="badge bg-primary rounded-pill">{{ n_proc }}</span>
               {% else %}
-                <span class="text-muted">—</span>
+                <span class="text-muted">â€”</span>
               {% endif %}
             </td>
             <td data-label="Stato">
@@ -224,3 +224,4 @@
 initPagination('tbl-clienti', 'page-size-clienti');
 </script>
 {% endblock %}
+

@@ -1,4 +1,4 @@
-import json
+﻿import json
 import re
 from pathlib import Path
 
@@ -503,7 +503,7 @@ def test_bootstrap_pubblico_resta_allineato_a_password_temporanee_e_ci_reale():
     assert "PCT_BOOTSTRAP_ADMIN_PASSWORD" in env_example
     assert "PCT_SECRET_KEY=" in env_example
     assert "INSERISCI_UNA_CHIAVE_CASUALE" not in env_example
-    assert "workflow principale applicativo è `.github/workflows/ci.yml`" in readme
+    assert "workflow principale applicativo Ã¨ `.github/workflows/ci.yml`" in readme
     assert "github.com/antmm2605/hacs/actions/workflows/ci.yml" in readme
     assert "name: CI" in ci_workflow
     assert "name: Governance repo" in ci_workflow
@@ -634,6 +634,8 @@ def test_scss_governance_usa_bundle_modulari_e_niente_style_inline():
     assert "notifiche-panel is-hidden" in base_template
     assert "notif-item__body" in base_template
     assert "ss-chip-identificativo" in base_template
+    assert "logo-iusentra.png" in base_template
+    assert "logo-iusentra.png" in admin_base
 
     for css_link in (
         "/static/css/app.css?v={{ app_version }}",
@@ -656,6 +658,18 @@ def test_template_html_restano_entra_il_budget_inline_style():
     assert files <= 165
     assert tags <= 53
     assert attrs <= 1464
+
+
+def test_brand_asset_iusentra_restano_coerenti():
+    manifest = json.loads((REPO_ROOT / "web/static/manifest.json").read_text(encoding="utf-8"))
+    static_icon = (REPO_ROOT / "web/static/icons/icon.svg").read_text(encoding="utf-8")
+    legacy_icon = (REPO_ROOT / "web/icon.svg").read_text(encoding="utf-8")
+
+    assert manifest["name"] == "IUSENTRA"
+    assert manifest["short_name"] == "IUSENTRA"
+    assert manifest["icons"][0]["src"] == "/static/icons/icon.svg"
+    assert "IUSENTRA" in static_icon
+    assert "IUSENTRA" in legacy_icon
 
 
 def test_impostazioni_js_e_esterno_e_senza_duplicazioni():
@@ -685,7 +699,7 @@ def test_impostazioni_js_e_esterno_e_senza_duplicazioni():
     assert "fetch(config.localSignerUrl + '/ai/bootstrap', {\n          method: 'POST'," in ai_js
     assert 'data-local-signer-url="http://127.0.0.1:27272"' in template
     assert "data-local-signer-setup-windows" in template
-    assert "Quando HACS e' online" in template
+    assert "Quando IUSENTRA e' online" in template
 
 
 def test_local_signer_distribution_include_bridge_ai(tmp_path: Path):
@@ -916,7 +930,7 @@ def test_lex_assistant_usa_componente_esterno_e_posizione_persistente():
     assert "remoteHosted" in widget_js
     assert "Lex sta scrivendo dal dispositivo locale" not in widget_js
     assert "Risposta generata sul dispositivo locale." in widget_js
-    assert "Companion locale non raggiungibile, attivo fallback sul runtime locale di HACS..." in widget_js
+    assert "Companion locale non raggiungibile, attivo fallback sul runtime locale di IUSENTRA..." in widget_js
     assert "sendLocal(text);" in widget_js
     assert "var preparedLegalReferenceGuardActive = false;" in widget_js
     assert "preparedLegalReferenceGuardActive = Boolean(prepared && prepared.legal_reference_guard_active);" in widget_js
@@ -1184,9 +1198,9 @@ def test_modal_firma_deposito_prevede_riavvio_local_signer():
     assert "hacs-local-signer://restart" in dettaglio
     assert "riavvio_signer_consigliato" in dettaglio
     assert "sincronizzazione in tempo reale" in dettaglio
-    assert "spazio limitato HACS ha sostituito la copia precedente" in dettaglio
+    assert "spazio limitato IUSENTRA ha sostituito la copia precedente" in dettaglio
     assert "sincronizzazione in tempo reale" in deposito
-    assert "spazio limitato HACS ha sostituito la copia precedente" in deposito
+    assert "spazio limitato IUSENTRA ha sostituito la copia precedente" in deposito
     assert '{% from "components/firma_visibile_selector.html" import render_firma_visibile_selector %}' in dettaglio
     assert '{% from "components/firma_visibile_selector.html" import render_firma_visibile_selector %}' in deposito
     assert "{{ render_firma_visibile_selector('dettaglioFirma', firma_visibile_place) }}" in dettaglio
@@ -1310,3 +1324,4 @@ def test_assistente_chat_usa_runtime_ollama_risolto(monkeypatch, tmp_path: Path)
     assert called["timeout"] == 180
     assert '"token": "Ciao"' in body
     assert "[DONE]" in body
+

@@ -127,7 +127,7 @@ def invia():
         flash("Il cliente non ha un numero di cellulare registrato.", "warning")
         return redirect(url_for("notifiche.pannello"))
     config = _config_wa()
-    studio_nome = current_app.config.get("STUDIO_NOME", "Studio Legale PCT")
+    studio_nome = current_app.config.get("STUDIO_NOME", "IUSENTRA")
     messaggio = msg_libero(cliente.nome_completo, testo, studio_nome)
     esito = invia_messaggio(numero, messaggio, config)
     _scrivi_log({
@@ -160,7 +160,7 @@ def invia():
 def promemoria_domani():
     from pct.notifiche_wa import promemoria_appuntamenti_di_domani
     config = _config_wa()
-    studio_nome = current_app.config.get("STUDIO_NOME", "Studio Legale PCT")
+    studio_nome = current_app.config.get("STUDIO_NOME", "IUSENTRA")
     gc = get_clienti()
     ag = get_agenda()
     risultati = promemoria_appuntamenti_di_domani(

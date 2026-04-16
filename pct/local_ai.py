@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import hashlib
 import html as html_lib
@@ -310,7 +310,7 @@ def _looks_like_heading(text: str) -> tuple[str, str | None]:
     for section_type, regex in _HEADING_PATTERNS:
         if regex.search(raw):
             return section_type, raw
-    if len(raw) <= 90 and raw.upper() == raw and re.search(r"[A-ZÀ-ÖØ-Þ]", raw):
+    if len(raw) <= 90 and raw.upper() == raw and re.search(r"[A-ZÃ€-Ã–Ã˜-Ãž]", raw):
         return "sezione", raw
     return "corpo", None
 
@@ -644,15 +644,15 @@ class LocalAIService:
             strategy_code = str(strategy_resolver() or "")
         if strategy_code in {"host_bridge_windows", "host_bridge_darwin"}:
             return (
-                "Runtime Ollama non raggiungibile sull'host reale della macchina che esegue HACS. "
-                "Se HACS gira in Docker su Windows o macOS, la strategia corretta e' usare Ollama "
+                "Runtime Ollama non raggiungibile sull'host reale della macchina che esegue IUSENTRA. "
+                "Se IUSENTRA gira in Docker su Windows o macOS, la strategia corretta e' usare Ollama "
                 "sull'host e collegarlo dal container tramite host.docker.internal. "
                 f"URL verificati: {tried}"
             )
         if strategy_code == "docker_service":
             return (
-                "Servizio Ollama non raggiungibile sulla stessa macchina di HACS. "
-                "Se HACS gira in Docker, la strategia corretta e' il servizio Docker 'ollama' "
+                "Servizio Ollama non raggiungibile sulla stessa macchina di IUSENTRA. "
+                "Se IUSENTRA gira in Docker, la strategia corretta e' il servizio Docker 'ollama' "
                 f"oppure un runtime esposto all'URL host raggiungibile dal container. URL verificati: {tried}"
             )
         return f"Ollama non raggiungibile. URL verificati: {tried}"
@@ -1944,7 +1944,7 @@ class LocalAIService:
         else:
             page_label = "pagina n.d."
         section_type = str(row.get("section_type") or "sezione").strip()
-        return f"{title}, {page_label} · {section_type} · chunk {str(row.get('id', ''))[:8]}"
+        return f"{title}, {page_label} Â· {section_type} Â· chunk {str(row.get('id', ''))[:8]}"
 
     def _authority_weight(self, row: dict[str, Any]) -> float:
         title = str(row.get("title") or "").lower()
@@ -2069,7 +2069,7 @@ class LocalAIService:
             titolo = _clean_spaces(getattr(item, "titolo", "") or getattr(item, "descrizione", ""))
             data = getattr(item, "data_scadenza", "") or getattr(item, "data", "")
             stato = getattr(item, "stato", "")
-            rows.append(f"- {titolo or 'Scadenza'} · {data} · {getattr(stato, 'value', stato) or 'n.d.'}")
+            rows.append(f"- {titolo or 'Scadenza'} Â· {data} Â· {getattr(stato, 'value', stato) or 'n.d.'}")
         return rows
 
     def _summarize_apps(self, apps: Iterable[Any]) -> list[str]:
@@ -2078,9 +2078,9 @@ class LocalAIService:
             titolo = _clean_spaces(getattr(item, "titolo", "") or getattr(item, "descrizione", ""))
             data = getattr(item, "data_ora", "") or getattr(item, "data", "")
             luogo = _clean_spaces(getattr(item, "luogo", ""))
-            label = f"- {titolo or 'Appuntamento'} · {data}"
+            label = f"- {titolo or 'Appuntamento'} Â· {data}"
             if luogo:
-                label += f" · {luogo}"
+                label += f" Â· {luogo}"
             rows.append(label)
         return rows
 
@@ -2226,8 +2226,8 @@ class LocalAIService:
                 fascicolo_lines.append("Giurisprudenza suggerita:")
                 for row in giuri[:5]:
                     fascicolo_lines.append(
-                        f"- {row.get('autorita') or row.get('authority') or 'Giurisprudenza'} · "
-                        f"{row.get('numero') or row.get('decision_number') or ''} · "
+                        f"- {row.get('autorita') or row.get('authority') or 'Giurisprudenza'} Â· "
+                        f"{row.get('numero') or row.get('decision_number') or ''} Â· "
                         f"{row.get('titolo') or row.get('title') or row.get('massima') or ''}"
                     )
         app_lines = self._summarize_apps(apps)
@@ -2258,7 +2258,7 @@ class LocalAIService:
         ) or "Nessun documento indicizzato rilevante."
         return "\n".join(
             [
-                "Sei l'assistente locale operativo di HACS per studi legali italiani.",
+                "Sei l'assistente locale operativo di IUSENTRA per studi legali italiani.",
                 "Rispondi in italiano, con taglio pratico e professionale.",
                 "Usa solo il contesto fornito. Se il contesto non basta, dichiaralo chiaramente.",
                 "Non inventare norme, date, esiti o documenti mancanti.",
@@ -2339,7 +2339,7 @@ class LocalAIService:
         patron = overview.get("patrono_studio") or {}
         if patron:
             focus_lines.append(
-                f"Patrono studio: {patron.get('label') or patron.get('patron_name') or ''} · "
+                f"Patrono studio: {patron.get('label') or patron.get('patron_name') or ''} Â· "
                 f"{patron.get('status_label') or patron.get('status') or ''}"
             )
         sync_profiles = overview.get("calendar_sync") or overview.get("sincronizzazioni") or []
@@ -2361,7 +2361,7 @@ class LocalAIService:
         ) or "Nessun documento indicizzato rilevante."
         return "\n".join(
             [
-                "Sei l'assistente operativo locale di HACS.",
+                "Sei l'assistente operativo locale di IUSENTRA.",
                 "Aiuti lo studio a coordinare agenda, scadenziario, fascicoli e documenti.",
                 "Usa solo il contesto disponibile. Se serve altro, dillo.",
                 "",
@@ -2373,7 +2373,7 @@ class LocalAIService:
                 "Contesto documentale RAG:",
                 rag_context,
                 "",
-                "Rispondi con priorità pratiche, rischi e prossimi passi.",
+                "Rispondi con prioritÃ  pratiche, rischi e prossimi passi.",
                 "Chiudi con una sezione 'Fonti'.",
             ]
         )
@@ -2532,3 +2532,4 @@ __all__ = [
     "OllamaHttpClient",
     "strip_api_suffix",
 ]
+

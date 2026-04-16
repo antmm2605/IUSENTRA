@@ -1,8 +1,8 @@
-# HACS — Gestionale per Studi Legali
+﻿# IUSENTRA â€” Gestionale per Studi Legali
 
-HACS è una web app Flask per studi legali italiani, con focus su gestione operativa di studio, fascicoli, PCT/portali telematici, documenti, scadenze, intelligence legale e assistenza AI locale.
+IUSENTRA Ã¨ una web app Flask per studi legali italiani, con focus su gestione operativa di studio, fascicoli, PCT/portali telematici, documenti, scadenze, intelligence legale e assistenza AI locale.
 
-La repo oggi non è più solo un tool CLI per il Processo Civile Telematico: contiene un gestionale web ampio, modulare e multi-dominio, con layer separati per bootstrap Flask, servizi UI/runtime e logica di dominio.
+La repo oggi non Ã¨ piÃ¹ solo un tool CLI per il Processo Civile Telematico: contiene un gestionale web ampio, modulare e multi-dominio, con layer separati per bootstrap Flask, servizi UI/runtime e logica di dominio.
 
 ## Cosa fa oggi
 
@@ -16,7 +16,7 @@ La repo oggi non è più solo un tool CLI per il Processo Civile Telematico: con
 
 ## Architettura
 
-La struttura è organizzata per responsabilità:
+La struttura Ã¨ organizzata per responsabilitÃ :
 
 - `pct/`
   Logica di dominio, modelli dati, repository e integrazioni legali/PCT.
@@ -33,14 +33,14 @@ La struttura è organizzata per responsabilità:
 - `tests/`
   Test di dominio, smoke test Flask, flussi telematici, signer e sicurezza.
 
-Per una mappa più completa vedi [docs/ARCHITETTURA.md](docs/ARCHITETTURA.md).
+Per una mappa piÃ¹ completa vedi [docs/ARCHITETTURA.md](docs/ARCHITETTURA.md).
 
 ## Strategia storage per studio
 
-La strategia storage non è più una scelta implicita o globale: viene definita dal `SUPERADMIN` quando crea lo studio e resta modificabile dal dettaglio tenant.
+La strategia storage non Ã¨ piÃ¹ una scelta implicita o globale: viene definita dal `SUPERADMIN` quando crea lo studio e resta modificabile dal dettaglio tenant.
 
 - `JSON`
-  percorso più leggero per installazioni piccole o cache/snapshot locali.
+  percorso piÃ¹ leggero per installazioni piccole o cache/snapshot locali.
 - `SQLite`
   backend tenant-aware reale per studio, con file `studio.db` creato e agganciato ai moduli core compatibili.
 - `PostgreSQL`
@@ -48,9 +48,9 @@ La strategia storage non è più una scelta implicita o globale: viene definita 
 
 Stato attuale del runtime:
 
-- `JSON` e `SQLite` sono backend effettivi già usati dai moduli compatibili.
-- `PostgreSQL` è già configurabile, verificabile e documentato come strategia target; il passaggio dei moduli core allo storage transazionale esterno procede in modo progressivo e governato per tenant.
-- Il profilo runtime locale e containerizzato dichiara esplicitamente `PCT_STORAGE_MODE=SQLITE`; il vecchio `PCT_SQLITE_MODE=1` resta supportato come compatibilità legacy.
+- `JSON` e `SQLite` sono backend effettivi giÃ  usati dai moduli compatibili.
+- `PostgreSQL` Ã¨ giÃ  configurabile, verificabile e documentato come strategia target; il passaggio dei moduli core allo storage transazionale esterno procede in modo progressivo e governato per tenant.
+- Il profilo runtime locale e containerizzato dichiara esplicitamente `PCT_STORAGE_MODE=SQLITE`; il vecchio `PCT_SQLITE_MODE=1` resta supportato come compatibilitÃ  legacy.
 
 ## Avvio locale
 
@@ -69,10 +69,10 @@ Il `docker compose` locale avvia:
 - `ocr-worker` per la pipeline OCR e indicizzazione documentale asincrona
 - `nginx` come reverse proxy locale
 
-Nel profilo container locale il default operativo è esplicito:
+Nel profilo container locale il default operativo Ã¨ esplicito:
 
 - `PCT_STORAGE_MODE=SQLITE`
-- `PCT_SQLITE_MODE=1` come compatibilità con i moduli legacy
+- `PCT_SQLITE_MODE=1` come compatibilitÃ  con i moduli legacy
 
 Accessi:
 
@@ -81,8 +81,8 @@ Accessi:
 
 Bootstrap locale:
 
-- HACS crea un utente `admin` con password temporanea
-- se `PCT_BOOTSTRAP_ADMIN_PASSWORD` non è impostata, la password viene generata al primo avvio e salvata in `./data/auth/bootstrap_admin.json`
+- IUSENTRA crea un utente `admin` con password temporanea
+- se `PCT_BOOTSTRAP_ADMIN_PASSWORD` non Ã¨ impostata, la password viene generata al primo avvio e salvata in `./data/auth/bootstrap_admin.json`
 - cambio password obbligatorio immediato al primo login
 
 ### Avvio Python diretto
@@ -97,18 +97,18 @@ python -m web
 Le regole di base oggi sono:
 
 - `.env.example` contiene solo placeholder neutri, mai secret reali.
-- Se `PCT_SECRET_KEY` manca o resta un placeholder, l’app usa una chiave effimera e segnala il problema.
-- La password bootstrap admin non usa più credenziali fisse: va fornita via `PCT_BOOTSTRAP_ADMIN_PASSWORD` oppure viene generata in modo casuale al primo avvio.
-- Il probing PKCS#11 è passivo di default su Windows per evitare crash dei middleware durante smoke test, dashboard e controlli di sola disponibilità.
+- Se `PCT_SECRET_KEY` manca o resta un placeholder, lâ€™app usa una chiave effimera e segnala il problema.
+- La password bootstrap admin non usa piÃ¹ credenziali fisse: va fornita via `PCT_BOOTSTRAP_ADMIN_PASSWORD` oppure viene generata in modo casuale al primo avvio.
+- Il probing PKCS#11 Ã¨ passivo di default su Windows per evitare crash dei middleware durante smoke test, dashboard e controlli di sola disponibilitÃ .
 - Sessioni Flask con cookie `HttpOnly`, `SameSite=Lax`, refresh controllato e timeout.
-- Header browser di hardening (`X-Frame-Options`, `nosniff`, `Referrer-Policy`, `Permissions-Policy`, `Cross-Origin-Opener-Policy`, HSTS quando HTTPS è attivo).
+- Header browser di hardening (`X-Frame-Options`, `nosniff`, `Referrer-Policy`, `Permissions-Policy`, `Cross-Origin-Opener-Policy`, HSTS quando HTTPS Ã¨ attivo).
 - Protezione CSRF sui flussi sensibili di autenticazione e gestione utenti.
-- Password bootstrap e password temporanee con cambio obbligatorio prima dell’uso normale del gestionale.
+- Password bootstrap e password temporanee con cambio obbligatorio prima dellâ€™uso normale del gestionale.
 - API v1 con CORS chiuso di default: gli origin esterni vanno esplicitamente autorizzati con `PCT_API_V1_ALLOWED_ORIGINS`.
 
 ## Bootstrap multi-tenant
 
-Per ambienti multi-tenant il flusso corretto è:
+Per ambienti multi-tenant il flusso corretto Ã¨:
 
 1. accesso come `SUPERADMIN`
 2. creazione studio
@@ -120,26 +120,26 @@ Questo evita configurazioni globali opache e rende ogni tenant governabile in mo
 
 ## CI GitHub
 
-La CI non si limita più alla sola sincronizzazione branch. La pipeline applicativa esegue:
+La CI non si limita piÃ¹ alla sola sincronizzazione branch. La pipeline applicativa esegue:
 
 - governance repo e modularizzazione (`Governance repo`)
 - lint statico conservativo su errori bloccanti (`ruff` + `flake8`)
 - import/syntax check
 - smoke test Flask sul runtime reale e su `create_app()`
 - smoke del worker scheduler dedicato
-- test core su storage SQLite, osservabilità runtime e worker OCR persistente
+- test core su storage SQLite, osservabilitÃ  runtime e worker OCR persistente
 - suite `pytest` core su Linux
 - job matrix Linux / Windows / macOS per Local Signer e componenti correlati
 
 I workflow vivono in `.github/workflows/`.
-Il workflow principale applicativo è `.github/workflows/ci.yml`.
-La vista live del workflow è [Actions / CI](https://github.com/antmm2605/hacs/actions/workflows/ci.yml).
+Il workflow principale applicativo Ã¨ `.github/workflows/ci.yml`.
+La vista live del workflow Ã¨ [Actions / CI](https://github.com/antmm2605/hacs/actions/workflows/ci.yml).
 Le dipendenze di sviluppo della pipeline sono raccolte in `requirements-dev.txt`.
-Il gate lint attuale è volutamente centrato su errori sintattici e import/fatal error, così la CI resta verde mentre il debito storico di stile viene ridotto in modo progressivo.
+Il gate lint attuale Ã¨ volutamente centrato su errori sintattici e import/fatal error, cosÃ¬ la CI resta verde mentre il debito storico di stile viene ridotto in modo progressivo.
 Il job `Governance repo` esegue `tools/check_repo_governance.py` e blocca regressioni su modularizzazione, budget dei moduli e confini tra `web/` e `lex/`.
 La pipeline notturna `.github/workflows/performance-nightly.yml` esegue `tools/performance_smoke.py` per misurare startup, login, metriche runtime e tempi base di Lex.
 
-## Osservabilità tecnica
+## OsservabilitÃ  tecnica
 
 Il pannello Superadmin include una vista tecnica dedicata in `/admin/osservabilita`.
 
@@ -149,7 +149,7 @@ Il pannello Superadmin include una vista tecnica dedicata in `/admin/osservabili
 - queue depth e throughput OCR dell'ultima ora
 - stato operativo di storage e runtime applicativo
 
-Sul bounded context AI, il confine corretto adesso Ã¨:
+Sul bounded context AI, il confine corretto adesso ÃƒÂ¨:
 
 - `web/blueprints/assistente.py` come facciata HTTP sottilissima
 - `lex/runtime_dependencies.py` come wiring runtime del modulo
@@ -165,7 +165,7 @@ Esecuzione rapida locale:
 python -m pytest tests/test_auth.py tests/test_web_bootstrap.py tests/test_web_security.py -q
 ```
 
-Suite più ampia:
+Suite piÃ¹ ampia:
 
 ```bash
 python -m pytest tests -q
@@ -181,18 +181,19 @@ python -m pytest tests/test_pdp_penale_web.py -q
 
 ## Documentazione operativa
 
-- [docs/QUICKSTART.md](docs/QUICKSTART.md) — avvio rapido locale, bootstrap admin e verifiche iniziali.
-- [docs/DEPLOY.md](docs/DEPLOY.md) — release, Docker locale, Railway, CI e controlli finali.
-- [docs/ARCHITETTURA.md](docs/ARCHITETTURA.md) — struttura moduli, flussi e confini applicativi.
-- [AGENTS.md](AGENTS.md) — regole operative del repository, release, sicurezza e PCT.
+- [docs/QUICKSTART.md](docs/QUICKSTART.md) â€” avvio rapido locale, bootstrap admin e verifiche iniziali.
+- [docs/DEPLOY.md](docs/DEPLOY.md) â€” release, Docker locale, Railway, CI e controlli finali.
+- [docs/ARCHITETTURA.md](docs/ARCHITETTURA.md) â€” struttura moduli, flussi e confini applicativi.
+- [AGENTS.md](AGENTS.md) â€” regole operative del repository, release, sicurezza e PCT.
 
 ## Stato del progetto
 
-Il codice oggi è più maturo di una semplice demo:
+Il codice oggi Ã¨ piÃ¹ maturo di una semplice demo:
 
-- routing web già in fase avanzata di modularizzazione
+- routing web giÃ  in fase avanzata di modularizzazione
 - repository strutturati per Lex su giurisprudenza, intelligence, telematico, template, preventivi e applicazioni
 - test coverage distribuita su molti domini reali
-- bootstrap di sicurezza più severo per uso professionale
+- bootstrap di sicurezza piÃ¹ severo per uso professionale
 
-`web/app.py` oggi è una factory sottile: delega la costruzione base a `web/bootstrap/flask_app_factory.py`, l'assemblaggio dei runtime a `web/bootstrap/runtime_bundle.py` e il wiring finale a `web/bootstrap/app_wiring.py`. Lo scheduler non parte più dal processo web: i job periodici vivono nel worker dedicato `pct.scheduler_worker`, eseguito in locale dal servizio `scheduler-worker` e predisposto per un servizio separato anche in produzione. Il prossimo passo naturale resta spezzare ulteriormente i runtime più densi in `web/services/`, mantenendo documentazione e CI allo stesso livello del codice.
+`web/app.py` oggi Ã¨ una factory sottile: delega la costruzione base a `web/bootstrap/flask_app_factory.py`, l'assemblaggio dei runtime a `web/bootstrap/runtime_bundle.py` e il wiring finale a `web/bootstrap/app_wiring.py`. Lo scheduler non parte piÃ¹ dal processo web: i job periodici vivono nel worker dedicato `pct.scheduler_worker`, eseguito in locale dal servizio `scheduler-worker` e predisposto per un servizio separato anche in produzione. Il prossimo passo naturale resta spezzare ulteriormente i runtime piÃ¹ densi in `web/services/`, mantenendo documentazione e CI allo stesso livello del codice.
+

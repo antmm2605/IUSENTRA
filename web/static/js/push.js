@@ -1,11 +1,11 @@
-/**
- * PCT Studio — Browser Notification API
+﻿/**
+ * IUSENTRA â€” Browser Notification API
  *
- * Funzionalità:
+ * FunzionalitÃ :
  *  1. Chiede il permesso notifiche la prima volta (pulsante nella topbar)
  *  2. Al caricamento: recupera scadenze urgenti e mostra notifiche OS
  *  3. Ascolta gli eventi SSE sync e notifica gli aggiornamenti degli altri
- *     operatori quando la tab è in background (document.hidden)
+ *     operatori quando la tab Ã¨ in background (document.hidden)
  */
 
 const PCT_NOTIFICHE = {
@@ -16,14 +16,14 @@ const PCT_NOTIFICHE = {
     const btn = document.getElementById('btn-notifiche');
 
     if (Notification.permission === 'granted') {
-      // Già autorizzato — controlla subito le scadenze urgenti
+      // GiÃ  autorizzato â€” controlla subito le scadenze urgenti
       if (btn) btn.remove();
       this.controllaPendenti();
     } else if (Notification.permission === 'default') {
-      // Non ancora chiesto — mostra il pulsante
+      // Non ancora chiesto â€” mostra il pulsante
       if (btn) btn.style.display = '';
     } else {
-      // 'denied' — niente da fare, rispettiamo la scelta
+      // 'denied' â€” niente da fare, rispettiamo la scelta
       if (btn) btn.remove();
     }
 
@@ -37,7 +37,7 @@ const PCT_NOTIFICHE = {
     const btn = document.getElementById('btn-notifiche');
     if (perm === 'granted') {
       if (btn) btn.remove();
-      this._mostra('PCT Studio', 'Notifiche abilitate — riceverai avvisi per le scadenze urgenti.', '/scadenziario');
+      this._mostra('IUSENTRA', 'Notifiche abilitate â€” riceverai avvisi per le scadenze urgenti.', '/scadenziario');
       this.controllaPendenti();
     } else {
       if (btn) btn.remove(); // nasconde comunque se rifiutato
@@ -76,7 +76,7 @@ const PCT_NOTIFICHE = {
     } catch (_) {}
   },
 
-  /** Gestisce eventi SSE sync — notifica solo se la tab è in background */
+  /** Gestisce eventi SSE sync â€” notifica solo se la tab Ã¨ in background */
   _suSyncEvent(ev) {
     if (!document.hidden) return;
     if (!ev || ev.tipo === 'info') return;
@@ -84,7 +84,7 @@ const PCT_NOTIFICHE = {
     const etichette = { crea: 'Nuovo', modifica: 'Aggiornato', elimina: 'Eliminato' };
     const moduli   = { scadenze: 'Scadenza', fascicoli: 'Fascicolo', clienti: 'Cliente', agenda: 'Appuntamento' };
 
-    const titolo = `PCT Studio — ${moduli[ev.modulo] || 'Record'} ${etichette[ev.tipo] || ''}`;
+    const titolo = `IUSENTRA â€” ${moduli[ev.modulo] || 'Record'} ${etichette[ev.tipo] || ''}`;
     const corpo  = ev.messaggio || 'Dati aggiornati da un altro operatore.';
     const url    = { scadenze: '/scadenziario', fascicoli: '/fascicoli', clienti: '/clienti', agenda: '/agenda' }[ev.modulo] || '/';
 
@@ -93,3 +93,4 @@ const PCT_NOTIFICHE = {
 };
 
 document.addEventListener('DOMContentLoaded', () => PCT_NOTIFICHE.init());
+

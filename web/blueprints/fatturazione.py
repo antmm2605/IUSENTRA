@@ -375,7 +375,7 @@ def dettaglio(id_parcella: str):
         fascicolo=fascicolo,
         preventivo=preventivo,
         calc_summary=riepilogo_contesto_economico(p.log_calcolo),
-        studio_nome=current_app.config.get("STUDIO_NOME", "Studio Legale PCT"),
+        studio_nome=current_app.config.get("STUDIO_NOME", "IUSENTRA"),
     )
 
 
@@ -526,7 +526,7 @@ def _genera_pdf(p, cliente, fascicolo, config) -> io.BytesIO:
     style_right = ParagraphStyle("right", parent=style_body, alignment=TA_RIGHT)
     style_bold  = ParagraphStyle("bold", parent=style_body, fontName="Helvetica-Bold")
 
-    studio_nome = config.get("STUDIO_NOME", "Studio Legale PCT")
+    studio_nome = config.get("STUDIO_NOME", "IUSENTRA")
     studio_piva = p.studio_piva or config.get("STUDIO_PIVA", "")
     studio_cf   = p.studio_cf   or config.get("STUDIO_CF", "")
     studio_ind  = p.studio_indirizzo or config.get("STUDIO_INDIRIZZO", "")

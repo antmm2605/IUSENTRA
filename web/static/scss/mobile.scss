@@ -1,5 +1,5 @@
 /* ================================================================
-   HACS — Mobile Enhancements & Figma-Quality Design
+   IUSENTRA — Mobile Enhancements & Figma-Quality Design
    Fixes strutturali + design premium per schermi < 768 px
    Versione: 1.0.0
    ================================================================ */

@@ -47,7 +47,7 @@ def register_calendar_routes(
     def agenda_ical():
         from pct.ical import agenda_to_ical
 
-        studio_nome = app.config.get("STUDIO_NOME", "Studio Legale PCT")
+        studio_nome = app.config.get("STUDIO_NOME", "IUSENTRA")
         base_url = request.host_url.rstrip("/").replace("http://", "https://", 1)
         ical_str = agenda_to_ical(get_agenda().tutti(), studio_nome=studio_nome, base_url=base_url)
         return Response(
@@ -60,7 +60,7 @@ def register_calendar_routes(
     def scadenziario_ical():
         from pct.ical import scadenze_to_ical
 
-        studio_nome = app.config.get("STUDIO_NOME", "Studio Legale PCT")
+        studio_nome = app.config.get("STUDIO_NOME", "IUSENTRA")
         ical_str = scadenze_to_ical(get_scadenziario().tutte(), studio_nome=studio_nome)
         return Response(
             ical_str,
@@ -72,7 +72,7 @@ def register_calendar_routes(
     def calendario_completo_ical():
         from pct.ical import agenda_scadenze_to_ical
 
-        studio_nome = app.config.get("STUDIO_NOME", "Studio Legale PCT")
+        studio_nome = app.config.get("STUDIO_NOME", "IUSENTRA")
         ical_str = agenda_scadenze_to_ical(
             get_agenda().tutti(),
             get_scadenziario().tutte(),
@@ -91,7 +91,7 @@ def register_calendar_routes(
             return Response("Token non valido.", status=403, mimetype="text/plain")
         from pct.ical import agenda_to_ical
 
-        studio_nome = app.config.get("STUDIO_NOME", "Studio Legale PCT")
+        studio_nome = app.config.get("STUDIO_NOME", "IUSENTRA")
         ical_str = agenda_to_ical(
             get_agenda().tutti(),
             studio_nome=studio_nome,
@@ -109,7 +109,7 @@ def register_calendar_routes(
             return Response("Token non valido.", status=403, mimetype="text/plain")
         from pct.ical import scadenze_to_ical
 
-        studio_nome = app.config.get("STUDIO_NOME", "Studio Legale PCT")
+        studio_nome = app.config.get("STUDIO_NOME", "IUSENTRA")
         ical_str = scadenze_to_ical(get_scadenziario().tutte(), studio_nome=studio_nome)
         return Response(
             ical_str,
@@ -123,7 +123,7 @@ def register_calendar_routes(
             return Response("Token non valido.", status=403, mimetype="text/plain")
         from pct.ical import agenda_scadenze_to_ical
 
-        studio_nome = app.config.get("STUDIO_NOME", "Studio Legale PCT")
+        studio_nome = app.config.get("STUDIO_NOME", "IUSENTRA")
         ical_str = agenda_scadenze_to_ical(
             get_agenda().tutti(),
             get_scadenziario().tutte(),

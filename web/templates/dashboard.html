@@ -1,16 +1,16 @@
-{% extends "base.html" %}
-{% block title %}Panoramica — Studio Legale PCT{% endblock %}
+﻿{% extends "base.html" %}
+{% block title %}Panoramica â€” IUSENTRA{% endblock %}
 {% block page_title %}Panoramica{% endblock %}
 
 {% block content %}
 <div class="dashboard-page">
 
-{# ── Page Header ── #}
+{# â”€â”€ Page Header â”€â”€ #}
 <div class="ds-ph">
   <div class="ds-ph-icon"><i class="bi bi-speedometer2"></i></div>
   <div class="ds-ph-body">
     <h1 class="ds-ph-title">Panoramica</h1>
-    <p class="ds-ph-sub">Panoramica dello studio — {{ oggi|fmt_data_estesa }}</p>
+    <p class="ds-ph-sub">Panoramica dello studio â€” {{ oggi|fmt_data_estesa }}</p>
   </div>
   <div class="ds-ph-actions">
     <a href="{{ url_for('workspace_intelligente') }}" class="ds-btn ds-btn-ghost">
@@ -25,7 +25,7 @@
   </div>
 </div>
 
-{# ── Stats agenda ── #}
+{# â”€â”€ Stats agenda â”€â”€ #}
 <div class="ds-stats">
   <span class="ds-stat-pill">
     <i class="bi bi-calendar-check text-primary"></i>
@@ -81,7 +81,7 @@
           <a href="{{ url_for('dettaglio_fascicolo', id_fasc=fascicolo.id) }}" class="dashboard-operational-item text-decoration-none">
             <div>
               <div class="fw-semibold text-dark">{{ fascicolo.titolo }}</div>
-              <div class="small text-muted mt-1">{{ fascicolo.numero }}{% if fascicolo.tribunale %} · {{ fascicolo.tribunale }}{% endif %}</div>
+              <div class="small text-muted mt-1">{{ fascicolo.numero }}{% if fascicolo.tribunale %} Â· {{ fascicolo.tribunale }}{% endif %}</div>
             </div>
             <span class="badge text-bg-light border">score {{ fascicolo.score }}</span>
           </a>
@@ -161,7 +161,7 @@
                 <div class="fw-semibold text-dark">{{ a.titolo }}</div>
                 <div class="ui-meta-line mt-1">
                   <span><i class="bi bi-clock me-1"></i>{{ a.data_ora_dt|fmt_ora }}</span>
-                  {% if a.luogo %} · {{ a.luogo }}{% endif %}
+                  {% if a.luogo %} Â· {{ a.luogo }}{% endif %}
                 </div>
               </a>
             </li>
@@ -178,7 +178,7 @@
   <div class="col-12 col-md-6 col-lg-8">
     <div class="card dashboard-card h-100">
       <div class="card-header ui-panel-compact__header fw-semibold d-flex justify-content-between align-items-center">
-        <span><i class="bi bi-calendar-day me-2 text-primary"></i>Oggi — {{ oggi|fmt_data_estesa }}</span>
+        <span><i class="bi bi-calendar-day me-2 text-primary"></i>Oggi â€” {{ oggi|fmt_data_estesa }}</span>
         <a href="{{ url_for('agenda_view') }}?vista=giorno" class="btn btn-sm btn-outline-primary">
           Apri agenda
         </a>
@@ -209,7 +209,7 @@
                   <td data-label="Tipo" data-mob-hide>
                     <span class="badge badge-{{ a.tipo.value }} rounded-pill">{{ a.tipo.value|replace('_', ' ')|title }}</span>
                   </td>
-                  <td data-label="Cliente" class="small" data-mob-hide>{{ a.cliente or '—' }}</td>
+                  <td data-label="Cliente" class="small" data-mob-hide>{{ a.cliente or 'â€”' }}</td>
                   <td data-label="Stato">
                     <span class="badge bg-{{ sc[a.stato.value] }}">{{ sl.get(a.stato.value, a.stato.value) }}</span>
                   </td>
@@ -289,7 +289,7 @@
                     <span class="text-muted">{{ ac.data_scadenza }}</span>
                   {% endif %}
                 {% else %}
-                  <span class="text-muted">—</span>
+                  <span class="text-muted">â€”</span>
                 {% endif %}
               </td>
               <td>
@@ -308,14 +308,14 @@
 </div>
 {% endif %}
 
-{# ---- Widget documenti identità scaduti ---- #}
+{# ---- Widget documenti identitÃ  scaduti ---- #}
 {% if clienti_doc_scaduti %}
 <div class="row g-3 mt-1 dashboard-grid-tight">
   <div class="col-12">
     <div class="card dashboard-card border-warning">
       <div class="card-header ui-panel-compact__header ui-panel-compact__header--warning d-flex justify-content-between align-items-center">
         <h6 class="mb-0 fw-semibold text-warning">
-          <i class="bi bi-credit-card me-2"></i>Documenti d'identità scaduti
+          <i class="bi bi-credit-card me-2"></i>Documenti d'identitÃ  scaduti
           <span class="badge bg-warning text-dark ms-1">{{ clienti_doc_scaduti|length }}</span>
         </h6>
         <a href="{{ url_for('lista_clienti') }}" class="btn btn-sm btn-outline-warning">
@@ -381,11 +381,11 @@
     </div>
   </div>
 
-  {# Scadenze per priorità (donut) #}
+  {# Scadenze per prioritÃ  (donut) #}
   <div class="col-lg-4 col-md-12">
     <div class="card dashboard-card dashboard-chart-card h-100">
       <div class="card-header ui-panel-compact__header fw-semibold">
-        <i class="bi bi-alarm me-2 text-danger"></i>Scadenze per priorità
+        <i class="bi bi-alarm me-2 text-danger"></i>Scadenze per prioritÃ 
       </div>
       <div class="card-body d-flex align-items-center justify-content-center">
         <canvas id="chart-scadenze" height="220"></canvas>
@@ -451,7 +451,7 @@ Chart.defaults.font.size = 12;
   });
 })();
 
-// --- Scadenze per priorità (doughnut)
+// --- Scadenze per prioritÃ  (doughnut)
 (function() {
   const data = {{ stats_sc.per_priorita | default({}) | tojson }};
   const labels = Object.keys(data);
@@ -477,3 +477,4 @@ Chart.defaults.font.size = 12;
 })();
 </script>
 {% endblock %}
+

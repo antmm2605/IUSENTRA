@@ -75,7 +75,7 @@ def _richiedi_login(f):
 def _variabili_base(config):
     return {
         "data_oggi":         date.today().strftime("%d/%m/%Y"),
-        "studio_nome":       config.get("STUDIO_NOME", "Studio Legale PCT"),
+        "studio_nome":       config.get("STUDIO_NOME", "IUSENTRA"),
         "studio_indirizzo":  config.get("STUDIO_INDIRIZZO", ""),
         "studio_iban":       config.get("STUDIO_IBAN", ""),
         "avvocato_nome":     config.get("STUDIO_AVVOCATO", config.get("STUDIO_NOME", "Avvocato")),
@@ -1067,7 +1067,7 @@ def _fallback_pdf_from_text(titolo: str, testo: str, config: dict) -> io.BytesIO
                                        style_body))
             else:
                 story.append(Spacer(1, 4*mm))
-        studio_nome = config.get("STUDIO_NOME", "Studio Legale PCT")
+        studio_nome = config.get("STUDIO_NOME", "IUSENTRA")
         story.append(Spacer(1, 8*mm))
         story.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor("#94a3b8")))
         story.append(Spacer(1, 2*mm))

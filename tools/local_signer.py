@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-HACS Local Signer - v1.6.9
+IUSENTRA Local Signer - v1.6.9
 
 Servizio HTTP locale (localhost:27272) che firma documenti con smart card e token CNS/CIE
 (o qualsiasi token PKCS#11) e consente l'accesso autenticato al PST.
@@ -23,8 +23,8 @@ API:
     POST /ai/bootstrap           → provisioning runtime Ollama e modelli locali
     POST /ai/chat                → prompt locale inoltrato a Ollama
     POST /ai/chat/stream         → risposta streaming locale da Ollama
-    POST /ai/rag/query           → risposta locale su contesto RAG preparato da HACS
-    POST /ai/rag/query/stream    → risposta streaming locale su contesto RAG preparato da HACS
+    POST /ai/rag/query           → risposta locale su contesto RAG preparato da IUSENTRA
+    POST /ai/rag/query/stream    → risposta streaming locale su contesto RAG preparato da IUSENTRA
     POST /ai/embed               → embeddings locali inoltrati a Ollama
     POST /firma                  → firma documento CAdES-BES
     POST /firma-batch            → firma più documenti con una sola sessione PIN
@@ -43,7 +43,7 @@ API:
 Note sicurezza:
     - Ascolta SOLO su 127.0.0.1 (non accessibile da rete)
     - CORS abilitato per origini localhost/127.0.0.1 e per il dominio
-      ufficiale HACS https://studio-legale-pct-production.up.railway.app
+      ufficiale IUSENTRA https://studio-legale-pct-production.up.railway.app
     - Il PIN viene usato solo per la firma, mai salvato né loggato
     - La selezione certificato usa la dialog nativa Windows: il PIN
       è gestito dal sistema operativo durante la sessione TLS
@@ -311,7 +311,7 @@ def _get_local_ai_bridge():
         if LocalAiHostBridge is None:
             raise RuntimeError(
                 "Bridge AI locale non disponibile in questo pacchetto del Local Signer. "
-                "Aggiorna il Local Signer dall'area impostazioni di HACS."
+                "Aggiorna il Local Signer dall'area impostazioni di IUSENTRA."
             )
         _local_ai_bridge_instance = LocalAiHostBridge(root_dir=_THIS_DIR)
     return _local_ai_bridge_instance
@@ -1404,7 +1404,7 @@ def _windows_seleziona_cert() -> Optional[dict]:
         cert_ctx = cryptui.CryptUIDlgSelectCertificateFromStore(
             h_store,
             None,
-            "HACS - Seleziona certificato PST",
+            "IUSENTRA - Seleziona certificato PST",
             "Seleziona il certificato di autenticazione web per il PST "
             "(smart card o token CNS/CIE).",
             0,
@@ -2289,12 +2289,12 @@ def _pst_endpoint_configurato_e_legacy(url: Optional[str] = None) -> bool:
 
 def _messaggio_endpoint_pst_legacy() -> str:
     return (
-        "L'endpoint PST predefinito di HACS punta ancora a wspa.giustizia.it, "
+        "L'endpoint PST predefinito di IUSENTRA punta ancora a wspa.giustizia.it, "
         "ma questo host al 29 marzo 2026 non risulta più pubblicato nel DNS pubblico.\n"
         "I proxy PST oggi documentati dal Ministero sono:\n"
         f"  - {_PST_PROXY_PDA_URL}\n"
         f"  - {_PST_PROXY_SH_URL}\n"
-        "Con il registro uffici aggiornato HACS prova a comporre automaticamente "
+        "Con il registro uffici aggiornato IUSENTRA prova a comporre automaticamente "
         "il proxy corretto; se l'ufficio non ha metadati PST configurare "
         "PCT_PST_BASE_URL con l'URL completo del proxy fornito dal proprio PdA/software house.\n"
         "Verifica rapida:\n"
@@ -2470,7 +2470,7 @@ def _messaggio_dns_endpoint_portale(url: str) -> str:
         )
     if "www.ptt.mef.gov.it" in host:
         return (
-            "Il PC sta ancora puntando al vecchio host PTT www.ptt.mef.gov.it, non piu' usato da HACS.\n"
+            "Il PC sta ancora puntando al vecchio host PTT www.ptt.mef.gov.it, non piu' usato da IUSENTRA.\n"
             "Aggiornare o reinstallare il Local Signer piu' recente: il default corretto e' https://sigit.finanze.it/ptt.\n"
             "In alternativa impostare esplicitamente PCT_SIGIT_BASE_URL."
         )
@@ -2520,19 +2520,19 @@ def _portale_browser_assist_payload(portale: str, phase: str) -> dict[str, Any]:
         errore = (
             "Consultazione via browser ufficiale: per PDP la "
             f"{phase_label} viene completata dal PST nel browser. "
-            "HACS puo' proseguire con l'acquisizione assistita."
+            "IUSENTRA puo' proseguire con l'acquisizione assistita."
         )
     elif portale_norm == "pat":
         errore = (
             "Consultazione via browser ufficiale: per PAT la "
             f"{phase_label} viene completata dal Portale Avvocato nel browser. "
-            "HACS puo' proseguire con l'acquisizione assistita."
+            "IUSENTRA puo' proseguire con l'acquisizione assistita."
         )
     else:
         errore = (
             "Consultazione via browser ufficiale: per PTT/SIGIT il "
             f"{phase_label} viene completato nel browser ufficiale. "
-            "HACS puo' proseguire con l'acquisizione assistita."
+            "IUSENTRA puo' proseguire con l'acquisizione assistita."
         )
     return {
         "ok": False,
@@ -2553,16 +2553,16 @@ def _messaggio_endpoint_browser_guidato(portale: str, error: Exception | str) ->
     portale_norm = str(portale or "").strip().lower()
     if portale_norm == "pdp":
         return (
-            "Consultazione via browser ufficiale: apri il Portale Deposito atti Penali dall'area servizi del PST e usa l'inserimento manuale assistito di HACS.\n"
+            "Consultazione via browser ufficiale: apri il Portale Deposito atti Penali dall'area servizi del PST e usa l'inserimento manuale assistito di IUSENTRA.\n"
             f"Dettaglio tecnico: {text}"
         )
     if portale_norm == "pat":
         return (
-            "Consultazione via browser ufficiale: apri la pagina ufficiale del Processo Amministrativo Telematico e accedi al Portale Avvocato, poi usa l'inserimento manuale assistito di HACS.\n"
+            "Consultazione via browser ufficiale: apri la pagina ufficiale del Processo Amministrativo Telematico e accedi al Portale Avvocato, poi usa l'inserimento manuale assistito di IUSENTRA.\n"
             f"Dettaglio tecnico: {text}"
         )
     return (
-        "Consultazione via browser ufficiale: apri la pagina ufficiale del Processo Tributario Telematico (PTT/SIGIT) e prosegui con l'inserimento manuale assistito di HACS.\n"
+        "Consultazione via browser ufficiale: apri la pagina ufficiale del Processo Tributario Telematico (PTT/SIGIT) e prosegui con l'inserimento manuale assistito di IUSENTRA.\n"
         f"Dettaglio tecnico: {text}"
     )
 
@@ -2582,7 +2582,7 @@ def _portale_manual_required_payload(portale: str, error: Exception | str, phase
         "manual_title": "Consultazione via browser ufficiale",
         "manual_reason": (
             "Il canale WSDL diretto non e' disponibile su questo PC. "
-            "HACS puo' comunque proseguire con l'acquisizione assistita manuale."
+            "IUSENTRA puo' comunque proseguire con l'acquisizione assistita manuale."
         ),
         "portale_url": _portale_browser_url(portale),
     }
@@ -5150,7 +5150,7 @@ class _Handler(BaseHTTPRequestHandler):
         log.debug("[%s] %s", self.address_string(), fmt % args)
 
     def _cors_ok(self) -> bool:
-        """Verifica che l'origine sia localhost o una origin HACS esplicitamente fidata."""
+        """Verifica che l'origine sia localhost o una origin IUSENTRA esplicitamente fidata."""
         origin = self.headers.get("Origin", "")
         return _origin_cors_consentita(origin)
 
@@ -5561,7 +5561,7 @@ class _Handler(BaseHTTPRequestHandler):
                         resp["nota_riavvio_signer"] = (
                             "Il token Aruba e' stato rilevato da un controllo fresco, "
                             "ma il processo Local Signer attivo non e' piu' allineato. "
-                            "Riavvia il Local Signer da HACS e riprova."
+                            "Riavvia il Local Signer da IUSENTRA e riprova."
                         )
             except Exception as e:
                 resp["errore_token"] = f"Errore inatteso: {e}"
@@ -5792,7 +5792,7 @@ class _Handler(BaseHTTPRequestHandler):
     def _pst_status(self):
         """
         Verifica raggiungibilità PST.
-        Controlla il portale PST, i proxy documentati e l'endpoint configurato in HACS.
+        Controlla il portale PST, i proxy documentati e l'endpoint configurato in IUSENTRA.
         """
         null_dev = "NUL" if sys.platform == "win32" else "/dev/null"
         risultati = {}
@@ -6801,7 +6801,7 @@ def main():
     import argparse
 
     parser = argparse.ArgumentParser(
-        description="HACS Local Signer — firma documenti con smart card e token CNS/CIE",
+        description="IUSENTRA Local Signer — firma documenti con smart card e token CNS/CIE",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Esempi:
@@ -6825,7 +6825,7 @@ Esempi:
     server = _ThreadingLocalSignerServer(("127.0.0.1", args.port), _Handler)
 
     print("=" * 60)
-    print(f"  HACS Local Signer v{VERSION}")
+    print(f"  IUSENTRA Local Signer v{VERSION}")
     print(f"  In ascolto su  http://127.0.0.1:{args.port}")
     print(f"  Piattaforma:   {sys.platform}")
     print("=" * 60)

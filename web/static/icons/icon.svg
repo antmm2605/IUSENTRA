@@ -1,6 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
   <rect width="512" height="512" rx="80" fill="#1a3a5c"/>
-  <!-- Valigetta legale - Bootstrap Icons bi-briefcase-fill scalata -->
   <g transform="translate(96,112)">
     <path fill="#c8972b" d="
       M130 0 C95.8 0 68 27.8 68 62
@@ -27,12 +26,12 @@
       Z
     "/>
   </g>
-  <!-- Iniziali SL -->
   <text x="256" y="400"
-        font-family="Georgia, 'Times New Roman', serif"
-        font-weight="bold"
-        font-size="90"
+        font-family="Inter, Arial, sans-serif"
+        font-weight="800"
+        font-size="62"
+        letter-spacing="3"
         text-anchor="middle"
         fill="#ffffff"
-        opacity="0.9">Studio Legale</text>
+        opacity="0.92">IUSENTRA</text>
 </svg>

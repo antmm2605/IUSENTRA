@@ -1,11 +1,11 @@
 /* ================================================================
-   HACS — Design System + Editor Word
+   IUSENTRA — Design System + Editor Word
    Regole grafiche condivise per tutta l'applicazione.
    ================================================================ */
 
 /* ── Token Design System ──────────────────────────────────────────── */
 :root {
-  /* Colori HACS */
+  /* Colori IUSENTRA */
   --ds-primary:      #1a3a5c;
   --ds-primary-lt:   #1565c0;
   --ds-primary-dk:   #0f2744;

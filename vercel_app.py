@@ -3,7 +3,7 @@ import os
 import json
 from pathlib import Path
 
-BASE_TMP = Path("/tmp/hacs_data")
+BASE_TMP = Path("/tmp/iusentra_data")
 BASE_TMP.mkdir(parents=True, exist_ok=True)
 
 def ensure_parent(path_str: str):

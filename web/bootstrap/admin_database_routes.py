@@ -190,7 +190,7 @@ def register_admin_database_routes(
             return redirect(url_for("dashboard"))
         import tempfile
 
-        output_dir = tempfile.mkdtemp(prefix="hacs_export_")
+        output_dir = tempfile.mkdtemp(prefix="iusentra_export_")
         zip_path = get_database().esporta_tutto(output_dir)
         nome_file = f"export_{date.today().isoformat()}.zip"
         audit("database.esporta_zip")

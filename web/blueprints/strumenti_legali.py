@@ -46,7 +46,7 @@ def _richiedi_login(fn):
 
 def _studio_context() -> dict:
     return {
-        "nome": current_app.config.get("STUDIO_NOME", "Studio Legale PCT"),
+        "nome": current_app.config.get("STUDIO_NOME", "IUSENTRA"),
         "avvocato": current_app.config.get("STUDIO_AVVOCATO", ""),
         "cf": current_app.config.get("STUDIO_CF", ""),
         "piva": current_app.config.get("STUDIO_PIVA", ""),

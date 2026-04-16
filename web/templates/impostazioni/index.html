@@ -1,9 +1,9 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 {% block title %}Impostazioni Studio{% endblock %}
 
 {% block content %}
 
-{# ── Page Header ── #}
+{# â”€â”€ Page Header â”€â”€ #}
 <div class="ds-ph">
   <div class="ds-ph-icon"><i class="bi bi-gear-fill"></i></div>
   <div class="ds-ph-body">
@@ -17,7 +17,7 @@
   </div>
 </div>
 
-{# ── Flash messages ── #}
+{# â”€â”€ Flash messages â”€â”€ #}
 {% with messages = get_flashed_messages(with_categories=true) %}
   {% for cat, msg in messages %}
   <div class="alert alert-{{ 'success' if cat == 'success' else 'danger' }} alert-dismissible fade show d-flex align-items-center gap-2" role="alert">
@@ -28,7 +28,7 @@
   {% endfor %}
 {% endwith %}
 
-{# ── Tab navigation ── #}
+{# â”€â”€ Tab navigation â”€â”€ #}
 <ul class="nav nav-pills mb-4 gap-1 flex-wrap settings-tabs" id="settings-tabs" role="tablist">
   {% set tabs = [
     ('studio',    'bi-building',         'Dati Studio'),
@@ -49,7 +49,7 @@
   {% endfor %}
 </ul>
 
-{# ════════════════════════════════════════ TAB: DATI STUDIO #}
+{# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• TAB: DATI STUDIO #}
 {% if tab_attivo == 'studio' %}
 <div class="card border-0 shadow-sm" style="border-radius:18px;">
   <div class="card-body p-4">
@@ -169,7 +169,7 @@
 </div>
 {% endif %}
 
-{# ════════════════════════════════════════ TAB: PEC #}
+{# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• TAB: PEC #}
 {% if tab_attivo == 'pec' %}
 <div class="card border-0 shadow-sm" style="border-radius:18px;">
   <div class="card-body p-4">
@@ -228,14 +228,14 @@
           <label class="form-label fw-semibold">Password PEC</label>
           <div class="input-group">
             <input type="password" name="pec_password" id="pec_password" class="form-control font-monospace"
-                   placeholder="{{ '••••••••' if cfg.pec.password else 'Nessuna password salvata' }}"
+                   placeholder="{{ 'â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢' if cfg.pec.password else 'Nessuna password salvata' }}"
                    autocomplete="new-password">
             <button type="button" class="btn btn-outline-secondary" onclick="togglePwd('pec_password',this)">
               <i class="bi bi-eye"></i>
             </button>
           </div>
           {% if cfg.pec.password %}
-          <div class="form-text text-success"><i class="bi bi-lock-fill me-1"></i>Password salvata · lascia vuoto per non cambiare</div>
+          <div class="form-text text-success"><i class="bi bi-lock-fill me-1"></i>Password salvata Â· lascia vuoto per non cambiare</div>
           {% endif %}
         </div>
 
@@ -243,8 +243,8 @@
           <span class="fw-semibold" style="font-size:.82rem;"><i class="bi bi-send me-1 text-primary"></i>SMTP (invio)</span>
           <button type="button" class="btn-help ms-1"
                   data-bs-toggle="popover"
-                  data-bs-title="SMTP — protocollo di invio"
-                  data-bs-content="SMTP è il protocollo usato per <strong>inviare</strong> messaggi PEC. Serve per i depositi telematici e le notifiche. La porta standard per PEC con SSL è <code>465</code>.">?</button>
+                  data-bs-title="SMTP â€” protocollo di invio"
+                  data-bs-content="SMTP Ã¨ il protocollo usato per <strong>inviare</strong> messaggi PEC. Serve per i depositi telematici e le notifiche. La porta standard per PEC con SSL Ã¨ <code>465</code>.">?</button>
         </div>
         <div class="col-md-6">
           <label class="form-label fw-semibold">Host SMTP</label>
@@ -266,7 +266,7 @@
               <button type="button" class="btn-help"
                       data-bs-toggle="popover"
                       data-bs-title="SSL/TLS vs STARTTLS"
-                      data-bs-content="<ul><li><strong>SSL/TLS</strong> (porta 465): connessione cifrata fin dall'inizio. Usato dalla maggior parte dei provider PEC italiani.</li><li><strong>STARTTLS</strong> (porta 587): avvia in chiaro poi cifra. Meno comune per PEC, più usato per email ordinaria.</li></ul>Lascia attivo per Aruba, Legalmail, Namirial e Poste.">?</button>
+                      data-bs-content="<ul><li><strong>SSL/TLS</strong> (porta 465): connessione cifrata fin dall'inizio. Usato dalla maggior parte dei provider PEC italiani.</li><li><strong>STARTTLS</strong> (porta 587): avvia in chiaro poi cifra. Meno comune per PEC, piÃ¹ usato per email ordinaria.</li></ul>Lascia attivo per Aruba, Legalmail, Namirial e Poste.">?</button>
             </label>
           </div>
         </div>
@@ -275,8 +275,8 @@
           <span class="fw-semibold" style="font-size:.82rem;"><i class="bi bi-inbox me-1 text-primary"></i>IMAP (ricezione / lettura ricevute)</span>
           <button type="button" class="btn-help ms-1"
                   data-bs-toggle="popover"
-                  data-bs-title="IMAP — lettura ricevute PEC"
-                  data-bs-content="IMAP è il protocollo usato per <strong>leggere</strong> la posta in arrivo. Serve per recuperare le ricevute di accettazione e consegna dei depositi telematici. La porta standard è <code>993</code> con SSL.">?</button>
+                  data-bs-title="IMAP â€” lettura ricevute PEC"
+                  data-bs-content="IMAP Ã¨ il protocollo usato per <strong>leggere</strong> la posta in arrivo. Serve per recuperare le ricevute di accettazione e consegna dei depositi telematici. La porta standard Ã¨ <code>993</code> con SSL.">?</button>
         </div>
         <div class="col-md-6">
           <label class="form-label fw-semibold">Host IMAP</label>
@@ -321,7 +321,7 @@
     <div class="d-flex gap-3 align-items-start">
       <i class="bi bi-shield-lock-fill text-info fs-5 mt-1"></i>
       <div style="font-size:.8rem;">
-        <strong>Sicurezza password:</strong> La password PEC è salvata cifrata nel file
+        <strong>Sicurezza password:</strong> La password PEC Ã¨ salvata cifrata nel file
         <code>config/studio.json</code> sul tuo server privato. Non viene mai trasmessa a terzi.
         Usa sempre una password dedicata per la casella PEC dello studio.
       </div>
@@ -331,7 +331,7 @@
 {% endif %}
 
 
-{# ════════════════════════════════════════ TAB: FIRMA DIGITALE #}
+{# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• TAB: FIRMA DIGITALE #}
 {% if tab_attivo == 'firma' %}
 {% set backend_scelto = cfg.firma.backend_preferito_normalizzato %}
 {% set backend_effettivo = cfg.firma.backend_firma_effettivo_safe %}
@@ -341,7 +341,7 @@
 <div class="card border-0 shadow-sm" style="border-radius:18px;">
   <div class="card-body p-4">
 
-    {# ── Header con stato ── #}
+    {# â”€â”€ Header con stato â”€â”€ #}
     <div class="d-flex align-items-start justify-content-between mb-3 flex-wrap gap-2">
       <div>
         <h6 class="fw-bold mb-1"><i class="bi bi-pen-fill text-primary me-2"></i>Firma Digitale</h6>
@@ -368,7 +368,7 @@
     <form method="post" enctype="multipart/form-data">
       <input type="hidden" name="_tab" value="firma">
 
-      {# ── Scegli modalita ── #}
+      {# â”€â”€ Scegli modalita â”€â”€ #}
       <label class="form-label fw-semibold mb-2">Come vuoi firmare?</label>
       <div class="row g-3 mb-4">
         {# Card: Token USB #}
@@ -412,7 +412,7 @@
         </div>
       </div>
 
-      {# ── Sezione Token USB ── #}
+      {# â”€â”€ Sezione Token USB â”€â”€ #}
       <div id="sezione_pkcs11" class="{{ '' if fmt == 'pkcs11' else 'd-none' }}">
         <div class="card border-0 mb-3" style="border-radius:14px; background:rgba(var(--bs-primary-rgb),.04);">
           <div class="card-body p-3">
@@ -420,7 +420,7 @@
               <i class="bi bi-download text-primary me-2"></i>Scarica Local Signer
             </div>
             <p class="text-muted small mb-3">
-              Scarica e installa con un doppio clic. Connette il tuo dispositivo USB ad HACS.
+              Scarica e installa con un doppio clic. Connette il tuo dispositivo USB ad IUSENTRA.
             </p>
             <div class="row g-2">
               <div class="col-md-4">
@@ -446,7 +446,7 @@
               </div>
             </div>
             <div class="text-muted mt-2" style="font-size:.75rem;">
-              v{{ local_signer.version }} · Doppio clic per installare
+              v{{ local_signer.version }} Â· Doppio clic per installare
             </div>
             <div class="small text-muted mt-3">
               Versione corrente pubblicata: v{{ local_signer.version }}
@@ -462,7 +462,7 @@
         </div>
       </div>
 
-      {# ── Sezione P12 ── #}
+      {# â”€â”€ Sezione P12 â”€â”€ #}
       <div id="sezione_p12" class="{{ '' if fmt == 'p12' else 'd-none' }}">
         <div class="row g-3 mb-3">
           <div class="col-md-7">
@@ -483,14 +483,14 @@
             <label class="form-label fw-semibold">Password certificato</label>
             <div class="input-group">
               <input type="password" name="firma_password" id="firma_password" class="form-control font-monospace"
-                     placeholder="{{ '••••••••' if cfg.firma.password else 'Password del certificato' }}"
+                     placeholder="{{ 'â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢' if cfg.firma.password else 'Password del certificato' }}"
                      autocomplete="new-password">
               <button type="button" class="btn btn-outline-secondary" onclick="togglePwd('firma_password',this)">
                 <i class="bi bi-eye"></i>
               </button>
             </div>
             {% if cfg.firma.password %}
-            <div class="form-text text-success"><i class="bi bi-lock-fill me-1"></i>Salvata · lascia vuoto per non cambiare</div>
+            <div class="form-text text-success"><i class="bi bi-lock-fill me-1"></i>Salvata Â· lascia vuoto per non cambiare</div>
             {% endif %}
           </div>
         </div>
@@ -501,7 +501,7 @@
       <input type="hidden" name="firma_cert_pem_path" value="{{ cfg.firma.cert_pem_path }}">
       <input type="hidden" name="firma_key_pem_path" value="{{ cfg.firma.key_pem_path }}">
 
-      {# ── Codice Fiscale ── #}
+      {# â”€â”€ Codice Fiscale â”€â”€ #}
       <div class="row g-3 mb-3">
         <div class="col-md-6">
           <label class="form-label fw-semibold">Codice Fiscale Avvocato</label>
@@ -511,7 +511,7 @@
         </div>
       </div>
 
-      {# ── Pulsanti ── #}
+      {# â”€â”€ Pulsanti â”€â”€ #}
       <div class="d-flex gap-2 mt-3 mb-2">
         <button type="submit" class="btn btn-primary">
           <i class="bi bi-floppy me-2"></i>Salva configurazione firma
@@ -521,7 +521,7 @@
         </a>
       </div>
 
-      {# ── Impostazioni avanzate (PEM, parametri PKCS#11) ── #}
+      {# â”€â”€ Impostazioni avanzate (PEM, parametri PKCS#11) â”€â”€ #}
       <div class="mt-4 pt-3 border-top">
         <a class="text-muted small text-decoration-none" data-bs-toggle="collapse"
            href="#avanzate-firma" role="button"
@@ -565,7 +565,7 @@
                       <div class="input-group input-group-sm">
                         <input type="password" name="firma_key_pem_password" id="firma_key_pem_password"
                                class="form-control font-monospace"
-                               placeholder="{{ '••••••••' if cfg.firma.key_pem_password else 'Vuoto se non cifrata' }}"
+                               placeholder="{{ 'â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢' if cfg.firma.key_pem_password else 'Vuoto se non cifrata' }}"
                                autocomplete="new-password">
                         <button type="button" class="btn btn-outline-secondary" onclick="togglePwd('firma_key_pem_password',this)">
                           <i class="bi bi-eye"></i>
@@ -620,14 +620,14 @@
 
 {% endif %}
 
-{# ════════════════════════════════════════ TAB: EMAIL SMTP #}
+{# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• TAB: EMAIL SMTP #}
 {% if tab_attivo == 'smtp' %}
 <div class="card border-0 shadow-sm" style="border-radius:18px;">
   <div class="card-body p-4">
     <h6 class="fw-bold mb-1"><i class="bi bi-at text-primary me-2"></i>Email SMTP (email ordinaria)</h6>
     <p class="text-muted mb-4" style="font-size:.82rem;">
       Usata per promemoria, avvisi ai clienti, invio parcelle. <strong>Diversa dalla PEC</strong>
-      (che è certificata). Puoi usare Gmail, Outlook, Aruba, o qualsiasi provider SMTP.
+      (che Ã¨ certificata). Puoi usare Gmail, Outlook, Aruba, o qualsiasi provider SMTP.
       Su Railway/cloud usa <strong>Brevo</strong> (piano gratuito, funziona sempre da hosting).
     </p>
 
@@ -699,18 +699,18 @@
             <button type="button" class="btn-help"
                     data-bs-toggle="popover"
                     data-bs-title="App Password per Gmail e Outlook"
-                    data-bs-content="<strong>Gmail:</strong> non usare la password principale. Vai su <em>myaccount.google.com → Sicurezza → Password per le app</em> e genera una password dedicata per questa app (16 caratteri senza spazi).<br><br><strong>Outlook / Microsoft 365:</strong> se hai la 2FA attiva, genera un'App Password da <em>account.microsoft.com → Sicurezza</em>.">?</button>
+                    data-bs-content="<strong>Gmail:</strong> non usare la password principale. Vai su <em>myaccount.google.com â†’ Sicurezza â†’ Password per le app</em> e genera una password dedicata per questa app (16 caratteri senza spazi).<br><br><strong>Outlook / Microsoft 365:</strong> se hai la 2FA attiva, genera un'App Password da <em>account.microsoft.com â†’ Sicurezza</em>.">?</button>
           </label>
           <div class="input-group">
             <input type="password" name="smtp_password" id="smtp_password" class="form-control font-monospace"
-                   placeholder="{{ '••••••••' if cfg.smtp.password else 'Nessuna password' }}"
+                   placeholder="{{ 'â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢' if cfg.smtp.password else 'Nessuna password' }}"
                    autocomplete="new-password">
             <button type="button" class="btn btn-outline-secondary" onclick="togglePwd('smtp_password',this)">
               <i class="bi bi-eye"></i>
             </button>
           </div>
           {% if cfg.smtp.password %}
-          <div class="form-text text-success"><i class="bi bi-lock-fill me-1"></i>Salvata · lascia vuoto per non cambiare</div>
+          <div class="form-text text-success"><i class="bi bi-lock-fill me-1"></i>Salvata Â· lascia vuoto per non cambiare</div>
           {% endif %}
         </div>
         <div class="col-md-6">
@@ -724,14 +724,14 @@
                  value="{{ cfg.smtp.from_name }}" placeholder="Studio Legale Rossi">
         </div>
 
-        {# Guida Brevo — visibile solo quando l'host è smtp-relay.brevo.com #}
+        {# Guida Brevo â€” visibile solo quando l'host Ã¨ smtp-relay.brevo.com #}
         <div class="col-12" id="brevo-guide" style="display:none;">
           <div class="alert alert-success py-2 mb-0" style="font-size:.82rem;">
-            <strong><i class="bi bi-cloud-check me-1"></i>Brevo (ex Sendinblue) — istruzioni rapide:</strong>
+            <strong><i class="bi bi-cloud-check me-1"></i>Brevo (ex Sendinblue) â€” istruzioni rapide:</strong>
             <ol class="mb-1 mt-1 ps-3">
               <li>Registrati su <strong>brevo.com</strong> (piano Free: 300 email/giorno gratuito)</li>
-              <li><strong>Verifica l'email</strong> di conferma — l'SMTP non funziona finché l'account non è attivato</li>
-              <li>Vai su <em>SMTP &amp; API → SMTP</em> e copia le credenziali</li>
+              <li><strong>Verifica l'email</strong> di conferma â€” l'SMTP non funziona finchÃ© l'account non Ã¨ attivato</li>
+              <li>Vai su <em>SMTP &amp; API â†’ SMTP</em> e copia le credenziali</li>
               <li><strong>Username</strong>: il tuo indirizzo email Brevo</li>
               <li><strong>Password</strong>: la <em>Master password SMTP</em> (non la password dell'account)</li>
             </ol>
@@ -772,7 +772,7 @@
 </div>
 {% endif %}
 
-{# ════════════════════════════════════════ TAB: WHATSAPP #}
+{# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• TAB: WHATSAPP #}
 {% if tab_attivo == 'whatsapp' %}
 <div class="card border-0 shadow-sm" style="border-radius:18px;">
   <div class="card-body p-4">
@@ -790,7 +790,7 @@
             <div class="d-flex align-items-center gap-2 mb-2">
               <span class="badge bg-primary">PRO</span>
               <strong>Twilio</strong>
-              <span class="text-muted" style="font-size:.75rem;">~€0.05/msg</span>
+              <span class="text-muted" style="font-size:.75rem;">~â‚¬0.05/msg</span>
             </div>
             <ul class="mb-2 ps-3" style="font-size:.8rem;">
               <li>Numero WhatsApp Business dedicato</li>
@@ -841,14 +841,14 @@
           <label class="form-label fw-semibold">Auth Token</label>
           <div class="input-group">
             <input type="password" name="twilio_token" id="twilio_token" class="form-control font-monospace"
-                   placeholder="{{ '••••••••' if cfg.whatsapp.twilio_token else 'Token non impostato' }}"
+                   placeholder="{{ 'â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢' if cfg.whatsapp.twilio_token else 'Token non impostato' }}"
                    autocomplete="new-password">
             <button type="button" class="btn btn-outline-secondary" onclick="togglePwd('twilio_token',this)">
               <i class="bi bi-eye"></i>
             </button>
           </div>
           {% if cfg.whatsapp.twilio_token %}
-          <div class="form-text text-success"><i class="bi bi-lock-fill me-1"></i>Token salvato · lascia vuoto per non cambiare</div>
+          <div class="form-text text-success"><i class="bi bi-lock-fill me-1"></i>Token salvato Â· lascia vuoto per non cambiare</div>
           {% endif %}
         </div>
         <div class="col-md-4">
@@ -857,7 +857,7 @@
             <button type="button" class="btn-help"
                     data-bs-toggle="popover"
                     data-bs-title="Formato numero Twilio WhatsApp"
-                    data-bs-content="<p class='mb-1'>Il numero deve iniziare con il prefisso <code>whatsapp:</code> seguito dal numero internazionale.</p><p class='mb-1'><strong>Sandbox (test):</strong> <code>whatsapp:+14155238886</code></p><p class='mb-0'><strong>Numero Business:</strong> <code>whatsapp:+39XXXXXXXXXX</code><br>Lo trovi nel pannello Twilio → Messaging → Sender overview.</p>">?</button>
+                    data-bs-content="<p class='mb-1'>Il numero deve iniziare con il prefisso <code>whatsapp:</code> seguito dal numero internazionale.</p><p class='mb-1'><strong>Sandbox (test):</strong> <code>whatsapp:+14155238886</code></p><p class='mb-0'><strong>Numero Business:</strong> <code>whatsapp:+39XXXXXXXXXX</code><br>Lo trovi nel pannello Twilio â†’ Messaging â†’ Sender overview.</p>">?</button>
           </label>
           <input type="text" name="twilio_numero" id="twilio_numero" class="form-control font-monospace"
                  value="{{ cfg.whatsapp.twilio_numero }}" placeholder="whatsapp:+14155238886">
@@ -893,11 +893,11 @@
 </div>
 {% endif %}
 
-{# ════════════════════════════════════════ TAB: SCHEDULER #}
+{# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• TAB: SCHEDULER #}
 {% if tab_attivo == 'scheduler' %}
 <div class="card border-0 shadow-sm" style="border-radius:18px;">
   <div class="card-body p-4">
-    <h6 class="fw-bold mb-1"><i class="bi bi-clock-history text-primary me-2"></i>Scheduler — Job automatici</h6>
+    <h6 class="fw-bold mb-1"><i class="bi bi-clock-history text-primary me-2"></i>Scheduler â€” Job automatici</h6>
     <p class="text-muted mb-4" style="font-size:.82rem;">
       Configura i job automatici in background: backup notturno e promemoria WhatsApp.
       Gli orari sono nel fuso orario del server.
@@ -956,7 +956,7 @@
         <i class="bi bi-info-circle-fill mt-1 flex-shrink-0"></i>
         <div>
           Le modifiche agli orari hanno effetto al prossimo riavvio del server.
-          Il processo scheduler è avviato automaticamente all'avvio dell'app Flask.
+          Il processo scheduler Ã¨ avviato automaticamente all'avvio dell'app Flask.
         </div>
       </div>
 
@@ -989,7 +989,7 @@
             <h6 class="fw-bold mb-1"><i class="bi bi-cpu-fill text-primary me-2"></i>AI locale con Ollama</h6>
             <p class="text-muted mb-0 settings-ai-hero__text">
               Runtime locale non bloccante per fascicoli, documenti, agenda, scadenziario e workspace intelligente.
-              Quando HACS e' online, il browser usa un companion locale sul dispositivo cliente per parlare con Ollama.
+              Quando IUSENTRA e' online, il browser usa un companion locale sul dispositivo cliente per parlare con Ollama.
             </p>
           </div>
           <div class="settings-ai-hero__meta">
@@ -1006,7 +1006,7 @@
             <div class="ui-feedback__title">Distribuzione consigliata</div>
             <div class="ui-feedback__body">
               La web app online non puo' raggiungere direttamente <span class="font-monospace">localhost:11434</span>
-              del cliente. Per questo HACS usa il Local Signer come companion locale: il browser parla con
+              del cliente. Per questo IUSENTRA usa il Local Signer come companion locale: il browser parla con
               <span class="font-monospace">127.0.0.1:27272</span> sul dispositivo cliente, e il companion gestisce Ollama.
             </div>
           </div>
@@ -1022,14 +1022,14 @@
                 <input class="form-check-input" type="checkbox" role="switch" name="ai_enabled" id="ai_enabled" value="1" {{ 'checked' if cfg.ai.enabled }}>
                 <label class="form-check-label fw-semibold" for="ai_enabled">Modulo AI locale attivo</label>
               </div>
-              <div class="form-text">Se disattivato, HACS continua a funzionare normalmente senza AI.</div>
+              <div class="form-text">Se disattivato, IUSENTRA continua a funzionare normalmente senza AI.</div>
             </div>
             <div class="col-md-6">
               <div class="form-check form-switch">
                 <input class="form-check-input" type="checkbox" role="switch" name="ai_auto_bootstrap" id="ai_auto_bootstrap" value="1" {{ 'checked' if cfg.ai.auto_bootstrap }}>
                 <label class="form-check-label fw-semibold" for="ai_auto_bootstrap">Provisioning e avvio automatici</label>
               </div>
-              <div class="form-text">Quando HACS e' online, il bootstrap passa dal companion locale del cliente. In locale o self-hosted resta disponibile anche il controllo lato server.</div>
+              <div class="form-text">Quando IUSENTRA e' online, il bootstrap passa dal companion locale del cliente. In locale o self-hosted resta disponibile anche il controllo lato server.</div>
             </div>
             <div class="col-12">
               <label class="form-label fw-semibold">Base URL del runtime</label>
@@ -1041,7 +1041,7 @@
               <label class="form-label fw-semibold">Modello conversazionale preferito</label>
               <input type="text" name="ai_chat_model" id="ai_chat_model" class="form-control font-monospace"
                      value="{{ cfg.ai.chat_model }}" placeholder="Lascia vuoto per la policy hardware">
-              <div class="form-text">Weak: qwen2.5:0.5b · Medium: gemma3:1b · Strong: gemma3:4b</div>
+              <div class="form-text">Weak: qwen2.5:0.5b Â· Medium: gemma3:1b Â· Strong: gemma3:4b</div>
             </div>
             <div class="col-md-6">
               <label class="form-label fw-semibold">Modello embeddings preferito</label>
@@ -1060,7 +1060,7 @@
                 <input class="form-check-input" type="checkbox" role="switch" name="ai_auto_index_documents" id="ai_auto_index_documents" value="1" {{ 'checked' if cfg.ai.auto_index_documents }}>
                 <label class="form-check-label fw-semibold" for="ai_auto_index_documents">Indicizza i documenti del fascicolo in automatico</label>
               </div>
-              <div class="form-text">Il retrieval locale resta separato dal gestionale e non blocca l'operatività ordinaria.</div>
+              <div class="form-text">Il retrieval locale resta separato dal gestionale e non blocca l'operativitÃ  ordinaria.</div>
             </div>
           </div>
 
@@ -1086,7 +1086,7 @@
         <h6 class="fw-bold mb-3"><i class="bi bi-speedometer2 text-primary me-2"></i>Stato operativo</h6>
         <div class="small text-muted mb-3">Questo pannello legge lo stato reale del runtime locale e dell'indice documentale dal companion del dispositivo cliente oppure dal server locale, in base all'ambiente.</div>
         <div id="ai-runtime-summary" class="settings-ai-summary-grid">
-          <div class="text-muted">In attesa di stato…</div>
+          <div class="text-muted">In attesa di statoâ€¦</div>
         </div>
         <div>
           <div class="settings-ai-section-head mt-1">
@@ -1121,3 +1121,4 @@
 <script src="/static/js/impostazioni-ai.js?v={{ app_version }}"></script>
 
 {% endblock %}
+

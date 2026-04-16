@@ -111,7 +111,7 @@
         </div>
         <div id="ls-status-missing" style="display:none">
           <strong class="text-secondary"><i class="bi bi-pc-display-horizontal me-1"></i>Local Signer non attivo.</strong>
-          Se lo hai già installato non devi reinstallarlo: puoi avviarlo direttamente da qui e HACS proseguirà con riconoscimento certificato e ricerca PST.
+          Se lo hai già installato non devi reinstallarlo: puoi avviarlo direttamente da qui e IUSENTRA proseguirà con riconoscimento certificato e ricerca PST.
           <div class="mt-1 small text-muted" id="ls-install-summary">
             Installer desktop consigliato per Windows, macOS e Linux.
           </div>
@@ -142,7 +142,7 @@
     <strong>Configura uno solo dei canali reali supportati.</strong>
     Se usi <strong>Aruba Key / token PKCS#11</strong>, basta questo canale:
     non serve avere anche un file <code>P12</code>/<code>PEM</code> nel container,
-    perché per la consultazione reale HACS usa il <strong>Local Signer</strong> sul PC locale.
+    perché per la consultazione reale IUSENTRA usa il <strong>Local Signer</strong> sul PC locale.
     Puoi configurarlo in
     <a href="{{ url_for('impostazioni.index', tab='firma') }}" class="alert-link">Impostazioni → Firma Digitale</a>
     oppure installare il
@@ -758,7 +758,7 @@
             <div class="flex-grow-1">
               <h6 class="fw-bold mb-1">Seleziona il certificato e conferma il PIN</h6>
               <p class="small text-muted mb-3">
-                HACS guida adesso tutti i passaggi necessari prima della ricerca PST:
+                IUSENTRA guida adesso tutti i passaggi necessari prima della ricerca PST:
                 selezione del certificato, richiesta del PIN da parte di Windows e
                 verifica dell'autenticazione verso il servizio ministeriale.
                 Il PIN verrà richiesto da Windows durante la connessione al PST.
@@ -774,7 +774,7 @@
               <div class="alert alert-warning small py-2 mb-3">
                 <i class="bi bi-info-circle me-1"></i>
                 <strong>Il PIN non si inserisce in questa schermata.</strong>
-                Dopo la selezione del certificato HACS apre la richiesta PIN di Windows.
+                Dopo la selezione del certificato IUSENTRA apre la richiesta PIN di Windows.
                 Se non la vedi subito, controlla la barra delle applicazioni o una finestra del middleware aperta dietro al browser.
               </div>
 
@@ -788,7 +788,7 @@
                   <i class="bi bi-windows me-1"></i>Selettore nativo Windows
                 </span>
                 <div class="small text-muted mt-2">
-                  Se HACS trova un solo certificato Aruba compatibile con il codice fiscale configurato nelle impostazioni lo seleziona automaticamente; altrimenti apre il selettore nativo Windows in primo piano.
+                  Se IUSENTRA trova un solo certificato Aruba compatibile con il codice fiscale configurato nelle impostazioni lo seleziona automaticamente; altrimenti apre il selettore nativo Windows in primo piano.
                 </div>
                 {% if cert_preferences.prefer_cf %}
                 <div class="small text-primary mt-1">
@@ -837,7 +837,7 @@
                       Scadenza: <span id="wiz-cert-scadenza" class="font-monospace">—</span>
                     </div>
                     <div class="text-success mt-1" id="wiz-cert-auto-note" style="display:none">
-                      <i class="bi bi-magic me-1"></i>Certificato Aruba selezionato automaticamente da HACS.
+                      <i class="bi bi-magic me-1"></i>Certificato Aruba selezionato automaticamente da IUSENTRA.
                     </div>
                   </div>
                   <button type="button" class="btn btn-sm btn-outline-secondary flex-shrink-0"
@@ -1593,10 +1593,10 @@ function _lsInstallerMeta() {
       href: '',
       summary: 'Il Local Signer completo richiede Windows, macOS o Linux.',
       title: 'Installazione desktop richiesta',
-      desc: 'Per usare smart card e token CNS/CIE devi aprire HACS da un computer desktop o portatile.',
+      desc: 'Per usare smart card e token CNS/CIE devi aprire IUSENTRA da un computer desktop o portatile.',
       note: 'Da mobile puoi consultare il gestionale, ma il Local Signer richiede un sistema desktop.',
       steps: [
-        'Apri HACS da un PC Windows, macOS o Linux',
+        'Apri IUSENTRA da un PC Windows, macOS o Linux',
         'Scarica l installer del sistema operativo corretto',
         'Completa la configurazione del middleware della smart card o del token',
         'Torna nel wizard e clicca Riverifica'
@@ -1647,7 +1647,7 @@ function _lsInstallerMeta() {
   }
   return {
     href: _LS_INSTALLER_CFG.windows,
-    summary: 'Installer rilevato per Windows: basta installarlo una sola volta, poi HACS puo avviare il signer da solo.',
+    summary: 'Installer rilevato per Windows: basta installarlo una sola volta, poi IUSENTRA puo avviare il signer da solo.',
     title: 'Installazione consigliata per Windows',
     desc: 'Scarica l installer Windows: configura il Local Signer, le dipendenze e l avvio automatico senza dover aprire manualmente il batch.',
     note: 'Compatibile con Aruba, Bit4id, Namirial, InfoCert e altri middleware CNS/CIE presenti nel PC.',
@@ -1722,7 +1722,7 @@ function _lsAppOrigineLocale() {
 function _lsNotaOrigineRemota() {
   if (_lsAppOrigineLocale()) return '';
   const host = window.location.hostname || 'istanza remota';
-  return `Stai usando HACS da ${host}: il Local Signer deve essere attivo sul tuo PC locale, non sul server remoto.`;
+  return `Stai usando IUSENTRA da ${host}: il Local Signer deve essere attivo sul tuo PC locale, non sul server remoto.`;
 }
 
 function _aggiornaVisibilitaDemo(mostraDemo) {
@@ -2113,7 +2113,7 @@ function _erroreConGuida(msg) {
     return msg + '\n\nConfigurazione consigliata:\n'
       + '  nslookup pda.processotelematico.giustizia.it 8.8.8.8\n'
       + '  nslookup ext.processotelematico.giustizia.it 8.8.8.8\n'
-      + 'Se questi host rispondono, il problema non e il dispositivo di firma ma l\'endpoint PST legacy configurato in HACS.';
+      + 'Se questi host rispondono, il problema non e il dispositivo di firma ma l\'endpoint PST legacy configurato in IUSENTRA.';
   }
   if (msg.includes('resolve host') || msg.includes('errore DNS') || msg.includes('wspa.giustizia')) {
     return msg + '\n\n⚠️ wspa.giustizia.it non risponde dalla tua rete.\n'
@@ -2459,7 +2459,7 @@ function _wizMostraStep(step) {
   }
   if (ftrInfo) {
     ftrInfo.textContent = step === 1 ? 'Selezionare ufficio e almeno un criterio di ricerca' :
-                           step === 2 ? 'Il PIN si inserisce nella finestra di Windows, non in HACS' : '';
+                           step === 2 ? 'Il PIN si inserisce nella finestra di Windows, non in IUSENTRA' : '';
   }
 
   // Step 2: reset UI selezione cert
@@ -3016,7 +3016,7 @@ function wizTestConnessionePst() {
         const pdaOk = pda.raggiungibile ? `Proxy PdA OK (HTTP ${pda.http_code || 'n/d'})` : 'Proxy PdA non raggiungibile';
         const shOk = sh.raggiungibile ? `Proxy SH OK (HTTP ${sh.http_code || 'n/d'})` : 'Proxy SH non raggiungibile';
         html = '<span class="text-warning"><i class="bi bi-exclamation-triangle me-1"></i>'
-          + `Endpoint legacy configurato in HACS.<br>${pdaOk}<br>${shOk}</span>`;
+          + `Endpoint legacy configurato in IUSENTRA.<br>${pdaOk}<br>${shOk}</span>`;
       } else if (s.raggiungibile) {
         html = '<span class="text-success"><i class="bi bi-check-circle me-1"></i>'
           + `Endpoint PST configurato raggiungibile (HTTP ${s.http_code})</span>`;

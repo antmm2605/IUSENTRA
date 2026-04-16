@@ -1477,7 +1477,7 @@ def risolvi_ufficio(
     cache_path: str = _CACHE_PATH,
 ) -> dict | None:
     """
-    Risolve un ufficio dal codice HACS, dal codice ministeriale o dal nome.
+    Risolve un ufficio dal codice IUSENTRA, dal codice ministeriale o dal nome.
     """
     chiave = (codice_o_nome or "").strip()
     if not chiave:

@@ -128,7 +128,7 @@ def crea_link_pagamento(id_parcella: str):
         id_parcella=id_parcella,
         id_cliente=p.id_cliente,
         importo=p.totale,
-        descrizione=f"Parcella {p.numero} — {current_app.config.get('STUDIO_NOME', 'Studio Legale PCT')}",
+        descrizione=f"Parcella {p.numero} — {current_app.config.get('STUDIO_NOME', 'IUSENTRA')}",
         giorni_validita=giorni,
     )
     link = request.host_url.rstrip("/") + url_for("pagamenti.checkout", token=lp.token)
@@ -147,18 +147,18 @@ def checkout(token: str):
     lp = gp.get_by_token(token)
     if not lp:
         return render_template("pagamenti/scaduto.html",
-                               studio_nome=current_app.config.get("STUDIO_NOME", "Studio Legale PCT")), 410
+                               studio_nome=current_app.config.get("STUDIO_NOME", "IUSENTRA")), 410
     if not lp.is_valido:
         if lp.stato == "PAGATO":
             return render_template("pagamenti/gia_pagato.html", lp=lp,
-                                   studio_nome=current_app.config.get("STUDIO_NOME", "Studio Legale PCT"))
+                                   studio_nome=current_app.config.get("STUDIO_NOME", "IUSENTRA"))
         return render_template("pagamenti/scaduto.html",
-                               studio_nome=current_app.config.get("STUDIO_NOME", "Studio Legale PCT")), 410
+                               studio_nome=current_app.config.get("STUDIO_NOME", "IUSENTRA")), 410
 
     cfg = gp.config
     from web.helpers import get_clienti
     cliente = get_clienti().get(lp.id_cliente)
-    studio_nome = current_app.config.get("STUDIO_NOME", "Studio Legale PCT")
+    studio_nome = current_app.config.get("STUDIO_NOME", "IUSENTRA")
 
     return render_template(
         "pagamenti/checkout.html",
@@ -213,7 +213,7 @@ def avvia_pagamento(token: str):
                 checkout_id=checkout["checkout_id"],
                 sumup_api_key=gp.config.sumup.api_key,
                 success_url=success_url,
-                studio_nome=current_app.config.get("STUDIO_NOME", "Studio Legale PCT"),
+                studio_nome=current_app.config.get("STUDIO_NOME", "IUSENTRA"),
             )
         flash("Errore SumUp.", "danger")
         return redirect(url_for("pagamenti.checkout", token=token))
@@ -242,7 +242,7 @@ def successo(token: str):
         abort(404)
 
     provider = request.args.get("provider", "")
-    studio_nome = current_app.config.get("STUDIO_NOME", "Studio Legale PCT")
+    studio_nome = current_app.config.get("STUDIO_NOME", "IUSENTRA")
 
     # PayPal: cattura ordine al ritorno
     if provider == "paypal" and lp.stato == "ATTESO":

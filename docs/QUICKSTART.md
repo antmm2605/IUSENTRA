@@ -1,4 +1,4 @@
-# Quickstart HACS
+# Quickstart IUSENTRA
 
 ## Obiettivo
 
@@ -34,8 +34,8 @@ URL utili:
 
 Il bootstrap non usa piu' credenziali fisse.
 
-- Se imposti `PCT_BOOTSTRAP_ADMIN_PASSWORD`, HACS usa quella password temporanea.
-- Se non la imposti, HACS genera una password casuale al primo avvio.
+- Se imposti `PCT_BOOTSTRAP_ADMIN_PASSWORD`, IUSENTRA usa quella password temporanea.
+- Se non la imposti, IUSENTRA genera una password casuale al primo avvio.
 - La password temporanea viene salvata in `data/auth/bootstrap_admin.json`.
 - Al primo accesso il cambio password e' obbligatorio.
 
@@ -53,7 +53,7 @@ Se scegli `PostgreSQL`, dopo la creazione vai nel dettaglio storage dello studio
 
 - `.env.example` contiene solo placeholder neutri.
 - `PCT_SECRET_KEY` va impostata in `.env` per un ambiente stabile.
-- Se resta vuota o placeholder, HACS usa una chiave effimera e lo segnala.
+- Se resta vuota o placeholder, IUSENTRA usa una chiave effimera e lo segnala.
 - `PCT_API_V1_ALLOWED_ORIGINS` va valorizzata solo se davvero esponi l'API verso frontend esterni.
 
 ## Smoke test minimo
@@ -91,7 +91,7 @@ python -m pytest tests/test_auth.py tests/test_web_bootstrap.py tests/test_web_s
 
 ## PKCS#11 su Windows
 
-Su Windows il probing PKCS#11 e' passivo di default: HACS verifica la presenza della DLL senza interrogare il provider in modo aggressivo durante i controlli di sola disponibilita'.
+Su Windows il probing PKCS#11 e' passivo di default: IUSENTRA verifica la presenza della DLL senza interrogare il provider in modo aggressivo durante i controlli di sola disponibilita'.
 
 Override opzionale:
 

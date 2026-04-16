@@ -1,5 +1,5 @@
 """
-web/blueprints/email_client.py — Client email completo per HACS.
+web/blueprints/email_client.py — Client email completo per IUSENTRA.
 
 Routes:
   GET       /email/                    → casella (inbox / inviati / cestino)

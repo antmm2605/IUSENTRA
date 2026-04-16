@@ -323,7 +323,7 @@ def home(token: str):
         economici=economici,
         azioni_richieste=azioni_richieste,
         oggi=date.today(),
-        studio_nome=current_app.config.get("STUDIO_NOME", "Studio Legale PCT"),
+        studio_nome=current_app.config.get("STUDIO_NOME", "IUSENTRA"),
     )
 
 
@@ -343,7 +343,7 @@ def privacy(token: str):
                 "portale/privacy.html",
                 token=token, p=p, cliente=cliente,
                 errore="Devi spuntare la casella per procedere.",
-                studio_nome=current_app.config.get("STUDIO_NOME", "Studio Legale PCT"),
+                studio_nome=current_app.config.get("STUDIO_NOME", "IUSENTRA"),
             )
 
         # Aggiorna il cliente
@@ -364,14 +364,14 @@ def privacy(token: str):
         return render_template(
             "portale/privacy_ok.html",
             token=token, p=p, cliente=cliente,
-            studio_nome=current_app.config.get("STUDIO_NOME", "Studio Legale PCT"),
+            studio_nome=current_app.config.get("STUDIO_NOME", "IUSENTRA"),
         )
 
     return render_template(
         "portale/privacy.html",
         token=token, p=p, cliente=cliente,
         errore=None,
-        studio_nome=current_app.config.get("STUDIO_NOME", "Studio Legale PCT"),
+        studio_nome=current_app.config.get("STUDIO_NOME", "IUSENTRA"),
     )
 
 
@@ -393,7 +393,7 @@ def documenti(token: str):
         token=token, p=p, cliente=cliente,
         fascicoli=fascicoli,
         max_mb=p.permessi.max_upload_mb,
-        studio_nome=current_app.config.get("STUDIO_NOME", "Studio Legale PCT"),
+        studio_nome=current_app.config.get("STUDIO_NOME", "IUSENTRA"),
     )
 
 
@@ -414,7 +414,7 @@ def carica_documento(token: str):
             token=token, p=p, cliente=cliente,
             fascicoli=_fascicoli_cliente(cliente.id),
             max_mb=p.permessi.max_upload_mb,
-            studio_nome=current_app.config.get("STUDIO_NOME", "Studio Legale PCT"),
+            studio_nome=current_app.config.get("STUDIO_NOME", "IUSENTRA"),
             errore="Nessun file selezionato.",
         )
 
@@ -466,7 +466,7 @@ def carica_documento(token: str):
         "portale/documenti_ok.html",
         token=token, p=p, cliente=cliente,
         caricati=caricati, errori=errori,
-        studio_nome=current_app.config.get("STUDIO_NOME", "Studio Legale PCT"),
+        studio_nome=current_app.config.get("STUDIO_NOME", "IUSENTRA"),
     )
 
 
@@ -492,7 +492,7 @@ def economici(token: str):
         stats=dati["stats"],
         azioni_richieste=azioni_richieste,
         oggi=date.today(),
-        studio_nome=current_app.config.get("STUDIO_NOME", "Studio Legale PCT"),
+        studio_nome=current_app.config.get("STUDIO_NOME", "IUSENTRA"),
     )
 
 
@@ -656,7 +656,7 @@ def anagrafica(token: str):
         "portale/anagrafica.html",
         token=token, p=p, cliente=cliente,
         errore=errore, successo=successo,
-        studio_nome=current_app.config.get("STUDIO_NOME", "Studio Legale PCT"),
+        studio_nome=current_app.config.get("STUDIO_NOME", "IUSENTRA"),
     )
 
 
@@ -666,7 +666,7 @@ def anagrafica(token: str):
 def link_scaduto(e):
     return render_template(
         "portale/scaduto.html",
-        studio_nome=current_app.config.get("STUDIO_NOME", "Studio Legale PCT"),
+        studio_nome=current_app.config.get("STUDIO_NOME", "IUSENTRA"),
     ), 410
 
 

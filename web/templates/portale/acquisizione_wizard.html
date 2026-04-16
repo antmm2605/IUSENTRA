@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 {% block title %}{{ spec.title }}{% endblock %}
 {% block pct_modulo %}{{ spec.id }}{% endblock %}
 
@@ -85,7 +85,7 @@
       <div class="fw-semibold mb-1"><i class="bi bi-signpost-2 me-1 text-success"></i>Fascicolo PAT interno, consultazione ufficiale sul portale</div>
       <div class="small">
         Il wizard PAT prepara il fascicolo interno di studio e non promette una lettura live diretta da SIGA.
-        Deposito e consultazione restano nel <strong>Portale dell'Avvocato ufficiale</strong>; HACS importa poi
+        Deposito e consultazione restano nel <strong>Portale dell'Avvocato ufficiale</strong>; IUSENTRA importa poi
         file, ricevute, provvedimenti ed esiti gia scaricati dal browser.
       </div>
     </div>
@@ -110,7 +110,7 @@
     <div>
       <div class="fw-semibold mb-1"><i class="bi bi-signpost-2 me-1 text-warning"></i>Fascicolo tributario interno, consultazione nel portale ufficiale</div>
       <div class="small">
-        Il wizard PTT non promette una lettura live diretta da SIGIT. HACS prepara la pratica interna,
+        Il wizard PTT non promette una lettura live diretta da SIGIT. IUSENTRA prepara la pratica interna,
         poi ti accompagna su <strong>PTT / SIGIT</strong> e <strong>Telecontenzioso</strong> per consultare,
         scaricare e importare nel gestionale fascicolo, ricevute, provvedimenti ed esiti.
       </div>
@@ -138,7 +138,7 @@
   <div class="d-flex flex-column gap-3">
     <section class="aw-pane active" data-step="1"><div class="card shadow-sm border-0"><div class="card-body p-4">
       <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-3">
-        <div><h2 class="h5 mb-1">Step 1 — Accesso e sorgente</h2><p class="text-muted mb-0">Verifica canale di accesso, certificato attivo e stato connessione.</p></div>
+        <div><h2 class="h5 mb-1">Step 1 â€” Accesso e sorgente</h2><p class="text-muted mb-0">Verifica canale di accesso, certificato attivo e stato connessione.</p></div>
         <div class="d-flex gap-2"><button class="btn btn-outline-{{ spec.color }}" type="button" id="awTest">Test connessione</button><button class="btn btn-{{ spec.color }}" type="button" id="awGoSearch">Continua</button></div>
       </div>
       <div class="row g-3" id="awAccessGrid"></div>
@@ -147,11 +147,11 @@
 
     <section class="aw-pane" data-step="2"><div class="card shadow-sm border-0"><div class="card-body p-4">
       <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-3">
-        <div><h2 class="h5 mb-1">Step 2 — Ricerca fascicolo</h2><p class="text-muted mb-0">Trova il fascicolo giusto con ufficio, RG, parti e filtri rapidi.</p></div>
+        <div><h2 class="h5 mb-1">Step 2 â€” Ricerca fascicolo</h2><p class="text-muted mb-0">Trova il fascicolo giusto con ufficio, RG, parti e filtri rapidi.</p></div>
         <button class="btn btn-{{ spec.color }}" type="button" id="awSearch">Cerca</button>
       </div>
       <div class="row g-3">
-        <div class="col-xl-4"><label class="form-label fw-semibold">Ufficio giudiziario</label><div class="position-relative"><input class="form-control" id="awOfficeInput" placeholder="Cerca ufficio, città o sezione..."><input type="hidden" id="awOfficeValue"><div class="list-group position-absolute start-0 end-0 mt-1 shadow-sm" style="display:none;z-index:20" id="awOfficeDropdown"></div></div><div class="form-text" id="awOfficeHelp"></div></div>
+        <div class="col-xl-4"><label class="form-label fw-semibold">Ufficio giudiziario</label><div class="position-relative"><input class="form-control" id="awOfficeInput" placeholder="Cerca ufficio, cittÃ  o sezione..."><input type="hidden" id="awOfficeValue"><div class="list-group position-absolute start-0 end-0 mt-1 shadow-sm" style="display:none;z-index:20" id="awOfficeDropdown"></div></div><div class="form-text" id="awOfficeHelp"></div></div>
         <div class="col-md-3 col-xl-2"><label class="form-label fw-semibold">Numero</label><input class="form-control" id="awNumero" placeholder="es. 1234"></div>
         <div class="col-md-3 col-xl-2"><label class="form-label fw-semibold">Anno</label><input class="form-control" id="awAnno" type="number" min="1990" max="{{ oggi.year }}" placeholder="{{ oggi.year }}"></div>
         <div class="col-md-6 col-xl-4"><label class="form-label fw-semibold">{{ search_assistito_label }}</label><input class="form-control" id="awAssistito" placeholder="{{ search_assistito_placeholder }}"></div>
@@ -165,18 +165,18 @@
     </div></div></section>
 
     <section class="aw-pane" data-step="3"><div class="card shadow-sm border-0"><div class="card-body p-4">
-      <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-3"><div><h2 class="h5 mb-1">Step 3 — Anteprima dati trovati</h2><p class="text-muted mb-0">Controlla dati fascicolo, parti, eventi e documenti disponibili.</p></div><button class="btn btn-{{ spec.color }}" type="button" id="awGoSelection">Continua</button></div>
+      <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-3"><div><h2 class="h5 mb-1">Step 3 â€” Anteprima dati trovati</h2><p class="text-muted mb-0">Controlla dati fascicolo, parti, eventi e documenti disponibili.</p></div><button class="btn btn-{{ spec.color }}" type="button" id="awGoSelection">Continua</button></div>
       <ul class="nav nav-pills gap-2 mb-3" id="awPreviewTabs"></ul>
       <div id="awPreview"></div>
     </div></div></section>
 
     <section class="aw-pane" data-step="4"><div class="card shadow-sm border-0"><div class="card-body p-4">
-      <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-3"><div><h2 class="h5 mb-1">Step 4 — Scelta contenuti da importare</h2><p class="text-muted mb-0">Seleziona cosa importare e con quali regole di sicurezza.</p></div><button class="btn btn-{{ spec.color }}" type="button" id="awGoMapping">Continua</button></div>
+      <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-3"><div><h2 class="h5 mb-1">Step 4 â€” Scelta contenuti da importare</h2><p class="text-muted mb-0">Seleziona cosa importare e con quali regole di sicurezza.</p></div><button class="btn btn-{{ spec.color }}" type="button" id="awGoMapping">Continua</button></div>
       <div class="row g-3" id="awSelectionGrid"></div>
     </div></div></section>
 
     <section class="aw-pane" data-step="5"><div class="card shadow-sm border-0"><div class="card-body p-4">
-      <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-3"><div><h2 class="h5 mb-1">Step 5 — Mappatura nel gestionale</h2><p class="text-muted mb-0">Decidi se creare, collegare o aggiornare una pratica esistente.</p></div><button class="btn btn-{{ spec.color }}" type="button" id="awAnalyze">Analizza conflitti</button></div>
+      <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-3"><div><h2 class="h5 mb-1">Step 5 â€” Mappatura nel gestionale</h2><p class="text-muted mb-0">Decidi se creare, collegare o aggiornare una pratica esistente.</p></div><button class="btn btn-{{ spec.color }}" type="button" id="awAnalyze">Analizza conflitti</button></div>
       <div class="row g-3">
         <div class="col-lg-4"><label class="aw-box h-100 d-block"><div class="form-check mb-2"><input class="form-check-input" type="radio" name="awMapMode" value="create_new" {{ 'checked' if linked_mode == 'create_new' else '' }}><span class="form-check-label fw-semibold">Crea nuova pratica</span></div><div class="small text-muted">Precompila area, procedimento, RG e parti dal portale.</div></label></div>
         <div class="col-lg-4"><label class="aw-box h-100 d-block"><div class="form-check mb-2"><input class="form-check-input" type="radio" name="awMapMode" value="attach_existing" {{ 'checked' if linked_mode == 'attach_existing' else '' }}><span class="form-check-label fw-semibold">Collega a pratica esistente</span></div><div class="small text-muted">Mantieni il fascicolo locale come primario e collega l'origine telematica.</div></label></div>
@@ -189,14 +189,14 @@
     </div></div></section>
 
     <section class="aw-pane" data-step="6"><div class="card shadow-sm border-0"><div class="card-body p-4">
-      <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-3"><div><h2 class="h5 mb-1">Step 6 — Controllo e conflitti</h2><p class="text-muted mb-0">Semafori chiari, duplicati, campi mancanti e decisione finale.</p></div><button class="btn btn-{{ spec.color }}" type="button" id="awGoImport">Vai all’importazione</button></div>
-      <div class="row g-3 mb-3"><div class="col-md-4"><div class="aw-box"><div class="small text-muted">Punteggio</div><div class="h2 mb-0" id="awScore">—</div></div></div><div class="col-md-4"><div class="aw-box"><div class="small text-muted">Blocchi</div><div class="h2 mb-0 text-danger" id="awBlockers">—</div></div></div><div class="col-md-4"><div class="aw-box"><div class="small text-muted">Avvisi</div><div class="h2 mb-0 text-warning" id="awWarnings">—</div></div></div></div>
+      <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-3"><div><h2 class="h5 mb-1">Step 6 â€” Controllo e conflitti</h2><p class="text-muted mb-0">Semafori chiari, duplicati, campi mancanti e decisione finale.</p></div><button class="btn btn-{{ spec.color }}" type="button" id="awGoImport">Vai allâ€™importazione</button></div>
+      <div class="row g-3 mb-3"><div class="col-md-4"><div class="aw-box"><div class="small text-muted">Punteggio</div><div class="h2 mb-0" id="awScore">â€”</div></div></div><div class="col-md-4"><div class="aw-box"><div class="small text-muted">Blocchi</div><div class="h2 mb-0 text-danger" id="awBlockers">â€”</div></div></div><div class="col-md-4"><div class="aw-box"><div class="small text-muted">Avvisi</div><div class="h2 mb-0 text-warning" id="awWarnings">â€”</div></div></div></div>
       <div class="alert alert-light border rounded-4" id="awAnalysisSummary">Nessuna analisi eseguita.</div>
       <div class="row g-3"><div class="col-lg-6"><div class="d-flex flex-column gap-2" id="awIssues"></div></div><div class="col-lg-6"><div class="d-flex flex-column gap-2 mb-3" id="awOk"></div><div class="aw-box bg-light-subtle" id="awMatches"></div></div></div>
     </div></div></section>
 
     <section class="aw-pane" data-step="7"><div class="card shadow-sm border-0"><div class="card-body p-4">
-      <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-3"><div><h2 class="h5 mb-1">Step 7 — Importazione finale</h2><p class="text-muted mb-0">Conferma l’acquisizione, importa i file reali e apri subito il quadro della pratica importata.</p></div><button class="btn btn-{{ spec.color }}" type="button" id="awImport">Importa</button></div>
+      <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-3"><div><h2 class="h5 mb-1">Step 7 â€” Importazione finale</h2><p class="text-muted mb-0">Conferma lâ€™acquisizione, importa i file reali e apri subito il quadro della pratica importata.</p></div><button class="btn btn-{{ spec.color }}" type="button" id="awImport">Importa</button></div>
       <div class="aw-box bg-light-subtle mb-3">
         <div class="form-check form-switch mb-3">
           <input class="form-check-input" type="checkbox" id="scarica_originale_portale" checked>
@@ -210,7 +210,7 @@
         </div>
         <div class="small text-muted mb-3">
           {% if wizard_portale == 'pat' %}
-          Se attivo, HACS verifica nei download locali del browser i file gia consultati o scaricati dal Portale dell'Avvocato e li aggancia al fascicolo interno. Se disattivo, il gestionale importa solo dati, ricevute e catalogo del fascicolo senza cercare i file locali.
+          Se attivo, IUSENTRA verifica nei download locali del browser i file gia consultati o scaricati dal Portale dell'Avvocato e li aggancia al fascicolo interno. Se disattivo, il gestionale importa solo dati, ricevute e catalogo del fascicolo senza cercare i file locali.
           {% else %}
           Se attivo, per CAdES il PST restituisce il file firmato <code>.p7m</code> e per PAdES il documento firmato cosi com'e nel repository. Se disattivo, il portale restituisce la copia di consultazione con coccardina o informazioni blu secondo le regole ministeriali.
           {% endif %}
@@ -228,9 +228,9 @@
         </div>
           <div class="small text-muted mt-2">
             {% if wizard_portale == 'pat' %}
-            Il catalogo ufficiale dei documenti PAT resta sempre collegato al fascicolo interno. Se attivo, HACS archivia in piu anche la struttura tecnica dei file importati dal browser per controlli e riconciliazioni future.
+            Il catalogo ufficiale dei documenti PAT resta sempre collegato al fascicolo interno. Se attivo, IUSENTRA archivia in piu anche la struttura tecnica dei file importati dal browser per controlli e riconciliazioni future.
             {% else %}
-            Il catalogo ufficiale dei documenti del portale resta sempre collegato al fascicolo. Se attivo, HACS archivia in piu anche una copia tecnica separata dell'albero originale scaricato dal portale.
+            Il catalogo ufficiale dei documenti del portale resta sempre collegato al fascicolo. Se attivo, IUSENTRA archivia in piu anche una copia tecnica separata dell'albero originale scaricato dal portale.
             {% endif %}
           </div>
       </div>
@@ -242,7 +242,7 @@
             </div>
             <div class="small text-muted">
               Se hai gia scaricato il fascicolo dal portale ufficiale, puoi selezionare qui i file reali.
-              HACS usera questi file come fonte prioritaria per l'importazione e per il collegamento alle buste del fascicolo interno.
+              IUSENTRA usera questi file come fonte prioritaria per l'importazione e per il collegamento alle buste del fascicolo interno.
             </div>
           </div>
           <button class="btn btn-sm btn-outline-secondary" type="button" id="awManualUploadClear">
@@ -262,10 +262,10 @@
           </div>
         </div>
         <div class="alert alert-light border rounded-4 mt-3 mb-0 small" id="awManualUploadSummary">
-          Nessun file manuale selezionato. In assenza di upload, HACS prova a recuperare i file gia scaricati dal browser ufficiale o dal Local Signer.
+          Nessun file manuale selezionato. In assenza di upload, IUSENTRA prova a recuperare i file gia scaricati dal browser ufficiale o dal Local Signer.
         </div>
       </div>
-      <div class="alert alert-light border rounded-4" id="awImportState">Pronto per l’importazione finale.</div>
+      <div class="alert alert-light border rounded-4" id="awImportState">Pronto per lâ€™importazione finale.</div>
       <div id="awDownloadProgress" style="display:none" class="mb-3">
         <div class="d-flex justify-content-between align-items-center mb-1">
           <small class="fw-semibold text-muted" id="awDownloadProgressLabel">Scaricamento allegati in corso...</small>
@@ -400,7 +400,7 @@ function awPostProcessPreviewDom() {
     const boxes = root.querySelectorAll('.aw-box');
     const procedimentoMeta = boxes[1]?.querySelector('.small.text-muted.mt-1');
     if (procedimentoMeta) {
-      procedimentoMeta.textContent = `Stato: ${awFormatStatus(identity.stato)}${identity.sub_procedimento ? ` · Sub-procedimento ${identity.sub_procedimento}` : ''}`;
+      procedimentoMeta.textContent = `Stato: ${awFormatStatus(identity.stato)}${identity.sub_procedimento ? ` Â· Sub-procedimento ${identity.sub_procedimento}` : ''}`;
     }
     const timelineBox = boxes[3]?.querySelector('.small');
     if (timelineBox) {
@@ -514,7 +514,7 @@ function awIsPstSessionExpiredError(err) {
 }
 async function awEnsurePstPortalSession(tribunale, { force = false } = {}) {
   const ufficio = String(tribunale || '').trim();
-  if (!ufficio) throw new Error('Seleziona prima l’ufficio giudiziario del fascicolo.');
+  if (!ufficio) throw new Error('Seleziona prima lâ€™ufficio giudiziario del fascicolo.');
   if (!AW_PST_CERT) await awEnsurePstCertReady();
   if (!force && awHasActivePstSession(ufficio)) return AW_PST_SESSION;
   if (!force && AW_PST_SESSION_PROMISE) return AW_PST_SESSION_PROMISE;
@@ -579,8 +579,8 @@ function awOfficialPortalUrl() {
 function awGuidedBrowserAssistInfo(query = null) {
   const ufficio = document.getElementById('awOfficeInput')?.value.trim() || String(query?.ufficio_codice || '').trim();
   const commonSuffix = ufficio
-    ? ` HACS continua con i dati gia' indicati per ${ufficio}.`
-    : " HACS continua con i dati gia' indicati nel wizard.";
+    ? ` IUSENTRA continua con i dati gia' indicati per ${ufficio}.`
+    : " IUSENTRA continua con i dati gia' indicati nel wizard.";
   const info = {
     title: 'Consultazione via browser ufficiale',
     reason: 'Questo portale completa la consultazione pratica tramite area riservata ufficiale nel browser.' + commonSuffix,
@@ -591,11 +591,11 @@ function awGuidedBrowserAssistInfo(query = null) {
   if (AW_BOOT.portale === 'pdp') {
     info.reason = "Il Portale Deposito atti Penali usa l'area riservata PST nel browser ufficiale." + commonSuffix;
   } else if (AW_BOOT.portale === 'pat') {
-    info.reason = "Il Processo Amministrativo Telematico usa il Portale dell'Avvocato ufficiale: HACS prepara il fascicolo interno e rinvia consultazione e deposito Form Web al browser autenticato." + commonSuffix;
+    info.reason = "Il Processo Amministrativo Telematico usa il Portale dell'Avvocato ufficiale: IUSENTRA prepara il fascicolo interno e rinvia consultazione e deposito Form Web al browser autenticato." + commonSuffix;
     info.metaReady = "Portale dell'Avvocato pronto: puoi proseguire con fascicolo PAT interno e import guidato.";
     info.metaMissing = "Compila ufficio, numero e anno per continuare con fascicolo PAT interno assistito.";
   } else if (AW_BOOT.portale === 'ptt') {
-    info.reason = "Il Processo Tributario Telematico usa PTT / SIGIT e i servizi collegati, come Telecontenzioso, nel browser ufficiale. HACS prepara il fascicolo tributario interno e importa poi i file gia scaricati." + commonSuffix;
+    info.reason = "Il Processo Tributario Telematico usa PTT / SIGIT e i servizi collegati, come Telecontenzioso, nel browser ufficiale. IUSENTRA prepara il fascicolo tributario interno e importa poi i file gia scaricati." + commonSuffix;
     info.metaReady = "Portale PTT pronto: puoi proseguire con fascicolo tributario interno e import guidato.";
     info.metaMissing = "Compila ufficio, numero e anno per continuare con fascicolo tributario interno assistito.";
   }
@@ -755,10 +755,10 @@ function awManualNoticeHtml() {
   const portaleUrl = selection.manual_portale_url || awOfficialPortalUrl();
   const reason = String(selection.manual_reason || '').trim();
   const body = AW_BOOT.portale === 'pat'
-    ? "HACS continua con i dati di RG, ufficio e parti gia' inseriti. Documenti, ricevute, provvedimenti ed esiti PAT si completano importando i file gia scaricati dal Portale dell'Avvocato."
+    ? "IUSENTRA continua con i dati di RG, ufficio e parti gia' inseriti. Documenti, ricevute, provvedimenti ed esiti PAT si completano importando i file gia scaricati dal Portale dell'Avvocato."
     : (AW_BOOT.portale === 'ptt'
-      ? "HACS continua con i dati di RG, ufficio e parti gia' inseriti. Consultazione del fascicolo, Telecontenzioso, accesso temporaneo e download del fascicolo processuale si completano nel portale ufficiale PTT / SIGIT; poi importi nel gestionale file, ricevute, provvedimenti ed esiti."
-      : "HACS continua con i dati di RG, ufficio e parti gia' inseriti. Documenti, eventi e catalogo di deposito possono essere completati dal portale ufficiale dopo l'importazione.");
+      ? "IUSENTRA continua con i dati di RG, ufficio e parti gia' inseriti. Consultazione del fascicolo, Telecontenzioso, accesso temporaneo e download del fascicolo processuale si completano nel portale ufficiale PTT / SIGIT; poi importi nel gestionale file, ricevute, provvedimenti ed esiti."
+      : "IUSENTRA continua con i dati di RG, ufficio e parti gia' inseriti. Documenti, eventi e catalogo di deposito possono essere completati dal portale ufficiale dopo l'importazione.");
   return `
     <div class="alert alert-warning rounded-4 mb-3">
       <div class="fw-semibold">Acquisizione assistita via browser ufficiale</div>
@@ -785,7 +785,7 @@ function awRenderManualSearchFallback(query, err) {
     </div>
     <div class="aw-box">
       <div class="fw-semibold mb-2">Continua senza interrompere l'acquisizione</div>
-      <div class="small text-muted mb-3">HACS puo' creare una pratica assistita usando i dati gia' indicati e lasciare al browser ufficiale il completamento di documenti ed eventi.</div>
+      <div class="small text-muted mb-3">IUSENTRA puo' creare una pratica assistita usando i dati gia' indicati e lasciare al browser ufficiale il completamento di documenti ed eventi.</div>
       <div class="d-flex flex-wrap gap-2">
         ${canManual ? `<button type="button" class="btn btn-${AW_BOOT.spec.color}" id="awManualContinue">Prosegui con inserimento manuale</button>` : `<span class="badge text-bg-light border">Servono ufficio, numero e anno</span>`}
         ${portaleUrl ? `<a class="btn btn-outline-${AW_BOOT.spec.color}" href="${awEscape(portaleUrl)}" target="_blank" rel="noopener">Apri portale ufficiale</a>` : ''}
@@ -1198,7 +1198,7 @@ function awDocumentPortalIdLine(doc) {
   if (idDocumento || idCat) {
     rows.push(
       idDocumento && idCat && idDocumento !== idCat
-        ? `ID documento: ${idDocumento} · idCat: ${idCat}`
+        ? `ID documento: ${idDocumento} Â· idCat: ${idCat}`
         : `ID documento / idCat: ${idCat || idDocumento || 'n.d.'}`
     );
   }
@@ -1361,7 +1361,7 @@ async function awEnsurePstDownloadedFiles({ force = false } = {}) {
     );
   }
   // Download parziale: alcuni file non disponibili (es. timeout PST). Prosegui con i file ricevuti
-  // e mostra un avviso — non bloccare l'import per errori di rete su singoli file.
+  // e mostra un avviso â€” non bloccare l'import per errori di rete su singoli file.
   if (failures.length) {
     AW_STATE.downloadWarning = `Download parziale: ${files.length}/${summary.documenti_richiesti || files.length} file ricevuti dal portale. ${awFormatDownloadFailures(failures)}`;
   } else {
@@ -1485,10 +1485,10 @@ function awRenderManualUploadSummary() {
   if (!summary) return;
   const files = Array.isArray(AW_STATE.manualUploadedFiles) ? AW_STATE.manualUploadedFiles : [];
   if (!files.length) {
-    summary.innerHTML = 'Nessun file manuale selezionato. In assenza di upload, HACS prova a recuperare i file gia scaricati dal browser ufficiale o dal Local Signer.';
+    summary.innerHTML = 'Nessun file manuale selezionato. In assenza di upload, IUSENTRA prova a recuperare i file gia scaricati dal browser ufficiale o dal Local Signer.';
     return;
   }
-  const preview = files.slice(0, 4).map(file => awEscape(file.nome || file.nome_file_originale || 'documento')).join(' · ');
+  const preview = files.slice(0, 4).map(file => awEscape(file.nome || file.nome_file_originale || 'documento')).join(' Â· ');
   const extra = files.length > 4 ? ` <span class="text-muted">(+${files.length - 4} altri)</span>` : '';
   summary.innerHTML = `<span class="text-success"><i class="bi bi-check-circle me-1"></i>${files.length} file pronti per l'importazione manuale.</span><br><span>${preview}${extra}</span>`;
 }
@@ -1568,22 +1568,22 @@ function awRenderAccess() {
   const note = [];
   if (browserAssistMode) {
     note.push(AW_BOOT.portale === 'pat'
-      ? "Step 1 guidato: HACS non interroga SIGA in tempo reale. Prepara il fascicolo PAT interno in modalita assistita e rinvia consultazione e deposito al Portale dell'Avvocato."
+      ? "Step 1 guidato: IUSENTRA non interroga SIGA in tempo reale. Prepara il fascicolo PAT interno in modalita assistita e rinvia consultazione e deposito al Portale dell'Avvocato."
       : (AW_BOOT.portale === 'ptt'
-        ? "Step 1 guidato: HACS non interroga SIGIT in tempo reale. Prepara il fascicolo tributario interno in modalita assistita e rimanda consultazione, Telecontenzioso e download del fascicolo al portale ufficiale."
-        : 'Step 1 guidato: HACS non interroga un endpoint tecnico del portale. Prepara la pratica in modalita assistita e rimanda la consultazione al browser ufficiale.'));
+        ? "Step 1 guidato: IUSENTRA non interroga SIGIT in tempo reale. Prepara il fascicolo tributario interno in modalita assistita e rimanda consultazione, Telecontenzioso e download del fascicolo al portale ufficiale."
+        : 'Step 1 guidato: IUSENTRA non interroga un endpoint tecnico del portale. Prepara la pratica in modalita assistita e rimanda la consultazione al browser ufficiale.'));
   } else if (signerPreferred) {
     note.push(AW_BOOT.portale === 'pst'
       ? 'Step 1 leggero: il wizard non apre ancora la sessione PST. Il primo accesso reale viene eseguito alla ricerca del fascicolo.'
       : `Step 1 leggero: il wizard non apre ancora il canale ${awEscape(awLocalSignerPortaleLabel())}. Il primo accesso reale viene eseguito alla ricerca del fascicolo.`);
   }
   if (browserAssistMode && awLocalSignerReachable()) {
-    note.push('Local Signer rilevato: HACS puo\' riusare il browser locale per aprire il portale ufficiale, ma l\'acquisizione resta assistita.');
+    note.push('Local Signer rilevato: IUSENTRA puo\' riusare il browser locale per aprire il portale ufficiale, ma l\'acquisizione resta assistita.');
   } else if (awLocalSignerReachable() && !status.pkcs11_mode) {
     note.push('Local Signer rilevato: il wizard usera il canale browser-side locale come percorso preferito per ricerca e anteprima.');
   }
   if (status.browser_channel_required && !awLocalSignerReachable()) {
-    note.push(`Per ${awEscape(awLocalSignerPortaleLabel())} HACS puo' comunque proseguire in modalita assistita. Avvia il Local Signer solo se vuoi riusare il browser locale autenticato.`);
+    note.push(`Per ${awEscape(awLocalSignerPortaleLabel())} IUSENTRA puo' comunque proseguire in modalita assistita. Avvia il Local Signer solo se vuoi riusare il browser locale autenticato.`);
   }
   if (status.local_signer_error) note.push(`Local Signer: ${awEscape(status.local_signer_error)}`);
   if (AW_PST_CERT?.soggetto) note.push(`Certificato selezionato: ${awEscape(AW_PST_CERT.soggetto)} (${awEscape(AW_PST_CERT.emittente || '')})`);
@@ -1723,7 +1723,7 @@ async function awSelectResult(index, jumpPreview, options = {}) {
   AW_STATE.downloadSummary = null;
   AW_STATE.downloadCacheKey = '';
   awClearManualUploadFiles();
-  document.getElementById('awPreview').innerHTML = '<div class="aw-box text-muted">Sto preparando l’anteprima del fascicolo e dei documenti disponibili...</div>';
+  document.getElementById('awPreview').innerHTML = '<div class="aw-box text-muted">Sto preparando lâ€™anteprima del fascicolo e dei documenti disponibili...</div>';
   awRenderSidebar();
   try {
     if (!AW_STATE.status.demo_mode) await awRefreshStatus({ force: true, probeSigner: true, light: true });
@@ -1799,7 +1799,7 @@ function awRenderPreview() {
     root.innerHTML = `${manualNotice}
       <div class="row g-3">
         <div class="col-md-6"><div class="aw-box h-100"><div class="small text-muted">Identita pratica</div><div class="fw-semibold">RG ${awEscape(identity.numero)}/${awEscape(identity.anno)}</div><div class="small text-muted mt-1">${awEscape(identity.ufficio_nome || identity.ufficio_codice || 'Ufficio non disponibile')}</div>${identity.id_fascicolo ? `<div class="small text-muted mt-1">ID fascicolo PST: ${awEscape(identity.id_fascicolo)}</div>` : ''}</div></div>
-        <div class="col-md-6"><div class="aw-box h-100"><div class="small text-muted">Procedimento</div><div class="fw-semibold">${awEscape(identity.procedimento || 'Non indicato')}</div><div class="small text-muted mt-1">${awEscape(identity.stato || 'Stato non disponibile')}${identity.sub_procedimento ? ` · Sub-procedimento ${awEscape(identity.sub_procedimento)}` : ''}</div></div></div>
+        <div class="col-md-6"><div class="aw-box h-100"><div class="small text-muted">Procedimento</div><div class="fw-semibold">${awEscape(identity.procedimento || 'Non indicato')}</div><div class="small text-muted mt-1">${awEscape(identity.stato || 'Stato non disponibile')}${identity.sub_procedimento ? ` Â· Sub-procedimento ${awEscape(identity.sub_procedimento)}` : ''}</div></div></div>
         <div class="col-md-6"><div class="aw-box h-100"><div class="small text-muted">Oggetto</div><div class="fw-semibold">${awEscape(identity.oggetto || 'Oggetto non disponibile')}</div></div></div>
         <div class="col-md-6"><div class="aw-box h-100"><div class="small text-muted">Timeline minima</div><div class="small">Iscrizione: ${awEscape(identity.data_iscrizione || 'n.d.')}<br>Ultima attivita: ${awEscape(identity.ultima_attivita || 'n.d.')}<br>Prossima udienza: ${awEscape(identity.data_udienza || 'n.d.')}</div></div></div>
       </div>`;
@@ -1844,7 +1844,7 @@ function awSelectionValue(id, fallback) {
 function awRenderSelectionOptions() {
   const root = document.getElementById('awSelectionGrid');
   if (!AW_STATE.preview) {
-    root.innerHTML = '<div class="col-12"><div class="aw-box text-muted">L’anteprima attiva sblocca la selezione modulare di dati, eventi, documenti e sincronizzazioni successive.</div></div>';
+    root.innerHTML = '<div class="col-12"><div class="aw-box text-muted">Lâ€™anteprima attiva sblocca la selezione modulare di dati, eventi, documenti e sincronizzazioni successive.</div></div>';
     return;
   }
   const counts = AW_STATE.preview.counts || {};
@@ -1857,7 +1857,7 @@ function awRenderSelectionOptions() {
     ['importa_scadenze', 'Scadenze', counts.udienze || 0, 'Trasforma le date strutturate in scadenziario interno.'],
     ['importa_documenti', 'Documenti e allegati', counts.documenti || 0, 'Popola archivio documentale e vista a buste.'],
     ['importa_provvedimenti', 'Provvedimenti', counts.provvedimenti || 0, 'Evidenzia sentenze, ordinanze e decreti.'],
-    ['importa_cronologia_depositi', 'Cronologia depositi', counts.depositi || 0, 'Mantiene tracciata l’origine telematica.'],
+    ['importa_cronologia_depositi', 'Cronologia depositi', counts.depositi || 0, 'Mantiene tracciata lâ€™origine telematica.'],
     ['importa_esiti_telematici', 'Esiti telematici', counts.esiti || 0, 'Utile per monitorare stato e ricevute.'],
   ];
   root.innerHTML = `
@@ -1961,7 +1961,7 @@ function awRenderMappingMatches() {
   const box = document.getElementById('awMatches');
   box.innerHTML = matches.length
     ? `${linked ? '<div class="small text-muted mb-2">Il fascicolo del workflow corrente e gia precollegato come target preferito.</div>' : ''}<div class="fw-semibold mb-2">Pratiche locali compatibili</div>${matches.map(match => `<div class="small border-top pt-2 mt-2"><strong>${awEscape(match.numero)}</strong> - ${awEscape(match.titolo)}<br><span class="text-muted">${awEscape(match.rg_completo || '')} ${match.source ? `- Origine ${awEscape(match.source)}` : ''}</span></div>`).join('')}`
-    : '<div class="small text-muted">Nessun fascicolo locale compatibile rilevato: creare una nuova pratica e il flusso più pulito.</div>';
+    : '<div class="small text-muted">Nessun fascicolo locale compatibile rilevato: creare una nuova pratica e il flusso piÃ¹ pulito.</div>';
 }
 async function awWarmAnalysis() {
   if (!AW_STATE.selection || !AW_STATE.preview) return;
@@ -1985,7 +1985,7 @@ async function awWarmAnalysis() {
 }
 async function awRunAnalysis(advance) {
   if (!AW_STATE.selection || !AW_STATE.preview) {
-    alert('Seleziona prima un fascicolo e completa l’anteprima.');
+    alert('Seleziona prima un fascicolo e completa lâ€™anteprima.');
     return;
   }
   document.getElementById('awAnalysisSummary').textContent = 'Analisi conflitti in corso...';
@@ -2021,16 +2021,16 @@ function awRenderAnalysis() {
   const importBtn = document.getElementById('awImport');
   if (!analysis) {
     summary.textContent = 'Nessuna analisi eseguita.';
-    issues.innerHTML = '<div class="aw-box text-muted">La verifica evidenziera blocchi, warning e possibili duplicati prima dell’importazione.</div>';
+    issues.innerHTML = '<div class="aw-box text-muted">La verifica evidenziera blocchi, warning e possibili duplicati prima dellâ€™importazione.</div>';
     ok.innerHTML = '';
-    score.textContent = '—';
-    blockers.textContent = '—';
-    warnings.textContent = '—';
+    score.textContent = 'â€”';
+    blockers.textContent = 'â€”';
+    warnings.textContent = 'â€”';
     goImport.disabled = true;
     importBtn.disabled = true;
     return;
   }
-  score.textContent = analysis.score ?? '—';
+  score.textContent = analysis.score ?? 'â€”';
   blockers.textContent = (analysis.blockers || []).length;
   warnings.textContent = (analysis.warnings || []).length;
   summary.innerHTML = `<strong>${awEscape(analysis.summary_text || '')}</strong><br><span class="small text-muted">Prossimo passo: ${awEscape(analysis.next_step?.label || 'Nessuno')}</span>`;
@@ -2043,11 +2043,11 @@ function awRenderAnalysis() {
 }
 async function awStartImport() {
   if (!AW_STATE.selection || !AW_STATE.preview) {
-    alert('Completa ricerca, anteprima e verifica prima dell’importazione.');
+    alert('Completa ricerca, anteprima e verifica prima dellâ€™importazione.');
     return;
   }
   if ((AW_STATE.analysis?.blockers || []).length) {
-    alert('Sono presenti blocchi da risolvere prima dell’importazione.');
+    alert('Sono presenti blocchi da risolvere prima dellâ€™importazione.');
     return;
   }
   const state = document.getElementById('awImportState');
@@ -2075,7 +2075,7 @@ async function awStartImport() {
       };
       state.innerHTML = `<i class="bi bi-check-circle text-success me-1"></i>Upload manuale pronto: ${manualUploadedFiles.length} file selezionati. Importazione in corso...`;
     } else if (AW_BOOT.portale === 'pst' && awShouldImportPortalFiles(options) && selectedDocsCount > 0) {
-      state.innerHTML = 'Apertura sessione PST e scaricamento allegati in corso — inserire il PIN una sola volta se richiesto...';
+      state.innerHTML = 'Apertura sessione PST e scaricamento allegati in corso â€” inserire il PIN una sola volta se richiesto...';
       downloadSummary = await awEnsurePstDownloadedFiles();
       downloadedFiles = Array.isArray(downloadSummary.files) ? downloadSummary.files : [];
       if (AW_STATE.downloadWarning) {
@@ -2133,14 +2133,14 @@ async function awStartImport() {
           : (AW_STATE.importResult?.created ? 'Nuova pratica creata' : 'Pratica aggiornata / collegata')
       }</div>
       <div class="small">
-        Documenti importati: ${awEscape(summary.documenti || 0)} ·
-        Depositi censiti: ${awEscape(summary.depositi || 0)} ·
-        Eventi generati: ${awEscape(summary.eventi_generati || 0)} ·
-        Scadenze generate: ${awEscape(summary.scadenze_generate || 0)} ·
+        Documenti importati: ${awEscape(summary.documenti || 0)} Â·
+        Depositi censiti: ${awEscape(summary.depositi || 0)} Â·
+        Eventi generati: ${awEscape(summary.eventi_generati || 0)} Â·
+        Scadenze generate: ${awEscape(summary.scadenze_generate || 0)} Â·
         Conflitti risolti: ${awEscape(summary.conflitti_risolti || 0)}
       </div>
       ${downloadSummary && !usedBrowserDownloads ? `<div class="small mt-1">Modalita documenti PST: ${awEscape(summary.modalita_documento_portale === 'copia' ? 'copia portale con annotazioni ministeriali' : 'originale firmato del repository')}</div>` : ''}
-      ${downloadSummary ? `<div class="small mt-1">${awEscape(downloadSummary.documenti_scaricati || 0)} ${usedManualUploads ? 'file caricati manualmente dal tuo computer' : (usedBrowserDownloads ? 'file locali raccolti dai download del browser ufficiale' : 'allegati scaricati dal portale e ripartiti nelle sezioni del fascicolo')}${failureCount ? ` · <span class="text-warning">${awEscape(failureCount)} download da verificare</span>` : ''}.</div>` : ''}
+      ${downloadSummary ? `<div class="small mt-1">${awEscape(downloadSummary.documenti_scaricati || 0)} ${usedManualUploads ? 'file caricati manualmente dal tuo computer' : (usedBrowserDownloads ? 'file locali raccolti dai download del browser ufficiale' : 'allegati scaricati dal portale e ripartiti nelle sezioni del fascicolo')}${failureCount ? ` Â· <span class="text-warning">${awEscape(failureCount)} download da verificare</span>` : ''}.</div>` : ''}
       ${downloadSummary ? `<div class="small mt-1 text-muted">${usedManualUploads ? 'Nel fascicolo trovi i file che hai selezionato manualmente, piu il catalogo ufficiale dei documenti del portale per i collegamenti a buste e controlli.' : (usedBrowserDownloads ? (AW_BOOT.portale === 'pat' ? "Nel fascicolo PAT interno trovi catalogo ufficiale, ricevute e file gia scaricati dal Portale dell'Avvocato, senza lettura live diretta da SIGA." : 'Nel fascicolo trovi il catalogo ufficiale del portale e i file gia scaricati nel browser, senza nuovi download automatici dal gestionale.') : "Nel fascicolo vedrai sempre il catalogo ufficiale dei documenti del portale. L'opzione dell'albero tecnico salva solo una copia tecnica separata, non cambia questa vista.")}</div>` : ''}
       ${summary.albero_originale_salvato ? `<div class="small mt-1">${AW_BOOT.portale === 'pat' ? "Archivio tecnico dell'import PAT archiviato." : 'Albero tecnico originale del portale archiviato.'}</div>` : ''}
       <div class="small mt-1 text-muted">Import log ${awEscape(AW_STATE.importResult?.import_log_id || '')}</div>
@@ -2228,7 +2228,7 @@ function awRenderInitFallback(err) {
     note.innerHTML = `
       <div class="text-warning-emphasis fw-semibold mb-1"><i class="bi bi-exclamation-triangle me-1"></i>Inizializzazione parziale del wizard</div>
       <div class="small">Il browser ha intercettato un errore lato interfaccia: ${message}</div>
-      <div class="small mt-1">Puoi comunque usare <strong>Continua</strong>, <strong>Cerca</strong> e i passaggi successivi; HACS ha attivato il fallback operativo.</div>`;
+      <div class="small mt-1">Puoi comunque usare <strong>Continua</strong>, <strong>Cerca</strong> e i passaggi successivi; IUSENTRA ha attivato il fallback operativo.</div>`;
   }
   console.error('Errore inizializzazione acquisizione guidata', err);
 }
@@ -2254,7 +2254,7 @@ function awInitOfficeAutocomplete() {
   const allowed = allowedMap[AW_BOOT.portale];
   help.textContent = AW_BOOT.portale === 'ptt'
     ? 'Sono ammessi solo uffici tributari CPT e CGT.'
-    : (AW_BOOT.portale === 'pat' ? 'Sono ammessi TAR, Consiglio di Stato e CGARS.' : 'Seleziona l’ufficio corretto per limitare i risultati.');
+    : (AW_BOOT.portale === 'pat' ? 'Sono ammessi TAR, Consiglio di Stato e CGARS.' : 'Seleziona lâ€™ufficio corretto per limitare i risultati.');
   let timer = null;
   function closeDrop() {
     dropdown.style.display = 'none';
@@ -2300,7 +2300,7 @@ document.getElementById('awTest').addEventListener('click', async () => {
     if (AW_ACCESS_BUSY) return;
     awSetAccessBusy(true);
     try {
-      // Avvio silenzioso: ping leggero per verificare la raggiungibilità del Local Signer
+      // Avvio silenzioso: ping leggero per verificare la raggiungibilitÃ  del Local Signer
       // senza interrogare token/smart card (evita prompt PIN prematuri).
       await awRefreshStatus({ force: true, probeSigner: true, light: true });
     } finally {
@@ -2327,11 +2327,11 @@ document.getElementById('awTest').addEventListener('click', async () => {
     });
   });
   document.getElementById('awGoSelection').addEventListener('click', () => {
-    if (!AW_STATE.preview) return alert('Apri prima l’anteprima del fascicolo corretto.');
+    if (!AW_STATE.preview) return alert('Apri prima lâ€™anteprima del fascicolo corretto.');
     awGoStep(4);
   });
   document.getElementById('awGoMapping').addEventListener('click', async () => {
-    if (!AW_STATE.preview) return alert('Apri prima l’anteprima del fascicolo corretto.');
+    if (!AW_STATE.preview) return alert('Apri prima lâ€™anteprima del fascicolo corretto.');
     awGoStep(5);
     await awWarmAnalysis();
   });
@@ -2387,3 +2387,4 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 </script>
 {% endblock %}
+

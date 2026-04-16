@@ -1,4 +1,4 @@
-﻿"""Runtime telematico e portali estratto da web.app."""
+"""Runtime telematico e portali estratto da web.app."""
 
 from __future__ import annotations
 
@@ -351,7 +351,7 @@ def build_telematico_runtime(
             )
         if (portale or "").strip().lower() == "ptt":
             return (
-                "Per PTT / SIGIT HACS non promette una sincronizzazione live del fascicolo ministeriale. "
+                "Per PTT / SIGIT IUSENTRA non promette una sincronizzazione live del fascicolo ministeriale. "
                 "Usa l'acquisizione guidata, apri il portale ufficiale o Telecontenzioso nel browser, "
                 "consulta o scarica il fascicolo processuale e poi importa nel fascicolo tributario interno "
                 "documenti, ricevute, provvedimenti ed esiti."
@@ -1520,7 +1520,7 @@ def build_telematico_runtime(
         message = str(error).strip().lower()
         if "archivio telematico temporaneamente non disponibile" in message or "database or disk is full" in message:
             return (
-                "Archivio telematico temporaneamente non disponibile. HACS ha messo in pausa "
+                "Archivio telematico temporaneamente non disponibile. IUSENTRA ha messo in pausa "
                 "l'aggiornamento SQLite e continuera' a riprovare automaticamente."
             )
         if "temporaneamente occupato" in message or "database is locked" in message:
@@ -1950,14 +1950,14 @@ def build_telematico_runtime(
             elif portale == "pat":
                 raise ValueError(
                     "Per PAT l'acquisizione guidata non promette una ricerca live diretta da SIGA. "
-                    "Apri il Portale dell'Avvocato ufficiale dal browser e usa HACS per il fascicolo interno, "
+                    "Apri il Portale dell'Avvocato ufficiale dal browser e usa IUSENTRA per il fascicolo interno, "
                     "le ricevute e l'import guidato dei file gia scaricati."
                 )
             else:
                 raise ValueError(
                     "Per PTT / SIGIT l'acquisizione guidata non promette una ricerca live diretta del fascicolo. "
                     "Apri il portale ufficiale o Telecontenzioso nel browser, consulta il fascicolo processuale e "
-                    "poi usa HACS per il fascicolo tributario interno e per l'import guidato dei file gia scaricati."
+                    "poi usa IUSENTRA per il fascicolo tributario interno e per l'import guidato dei file gia scaricati."
                 )
         except Exception as e:
             if _is_portale_dns_error(e):
@@ -2004,13 +2004,13 @@ def build_telematico_runtime(
             elif portale == "pat":
                 raise ValueError(
                     "Per PAT la consultazione del fascicolo si completa nel Portale dell'Avvocato ufficiale. "
-                    "In HACS puoi continuare con il fascicolo PAT interno e con l'import guidato di documenti, "
+                    "In IUSENTRA puoi continuare con il fascicolo PAT interno e con l'import guidato di documenti, "
                     "provvedimenti e ricevute gia scaricati dal portale."
                 )
             else:
                 raise ValueError(
                     "Per PTT / SIGIT la consultazione del fascicolo si completa nel portale ufficiale e nei servizi "
-                    "collegati, come Telecontenzioso. In HACS prosegui con il fascicolo tributario interno e con "
+                    "collegati, come Telecontenzioso. In IUSENTRA prosegui con il fascicolo tributario interno e con "
                     "l'import guidato di documenti, ricevute, provvedimenti ed esiti gia scaricati."
                 )
         except Exception as e:
@@ -2119,12 +2119,12 @@ def build_telematico_runtime(
     def _render_local_signer_windows_ps1(base_url: str) -> str:
         allowed_origins = _local_signer_allowed_origins(base_url)
         version = _local_signer_version()
-        return f"""# HACS Local Signer v{version} - Installazione automatica Windows
+        return f"""# IUSENTRA Local Signer v{version} - Installazione automatica Windows
 # Eseguire in PowerShell come utente normale (non richiede amministratore)
 # Punto ufficiale download: https://studio-legale-pct-production.up.railway.app/impostazioni?tab=firma
 
 $ErrorActionPreference = 'Stop'
-$dir    = "$env:APPDATA\\HACS\\LocalSigner"
+$dir    = "$env:APPDATA\\IUSENTRA\\LocalSigner"
 $venv   = "$dir\\.venv"
 $py     = "$dir\\local_signer.py"
 $aiBridge = "$dir\\local_ai_host_bridge.py"
@@ -2139,7 +2139,7 @@ $pywExe = "$venv\\\\Scripts\\\\pythonw.exe"
 $allowedOrigins = "{allowed_origins}"
 $version = "{version}"
 
-Write-Host "HACS Local Signer v$version - Installazione..." -ForegroundColor Cyan
+Write-Host "IUSENTRA Local Signer v$version - Installazione..." -ForegroundColor Cyan
 
 New-Item -ItemType Directory -Force -Path $dir | Out-Null
 New-Item -ItemType Directory -Force -Path $dataDir | Out-Null
@@ -2197,7 +2197,7 @@ function Stop-LocalSignerProcesses {{
         }}
 }}
 
-Write-Host "  Preparo l'avvio contestuale da HACS..."
+Write-Host "  Preparo l'avvio contestuale da IUSENTRA..."
 $cmd = @'
 @echo off
 setlocal
@@ -2255,12 +2255,12 @@ $commandKey = Join-Path $protocolRoot "shell\\open\\command"
 $wscriptExe = Join-Path $env:SystemRoot "System32\\wscript.exe"
 $command = "`"$wscriptExe`" `"$starterVbs`" `"%1`""
 New-Item -Path $commandKey -Force | Out-Null
-Set-Item -Path $protocolRoot -Value "URL:HACS Local Signer Protocol"
+Set-Item -Path $protocolRoot -Value "URL:IUSENTRA Local Signer Protocol"
 New-ItemProperty -Path $protocolRoot -Name "URL Protocol" -Value "" -PropertyType String -Force | Out-Null
 Set-Item -Path $commandKey -Value $command
 
 Write-Host "  Registro il servizio nel Task Scheduler..."
-$taskName = "HACS Local Signer"
+$taskName = "IUSENTRA Local Signer"
 $cmdExe   = Join-Path $env:SystemRoot "System32\\cmd.exe"
 $action   = New-ScheduledTaskAction -Execute $cmdExe -Argument "/c `"$starterCmd`" --background"
 $trigger  = New-ScheduledTaskTrigger -AtLogOn -User "$env:USERNAME"
@@ -2271,7 +2271,7 @@ Register-ScheduledTask `
     -Action $action `
     -Trigger $trigger `
     -Settings $settings `
-    -Description "HACS Local Signer - firma documenti con smart card e token CNS/CIE" `
+    -Description "IUSENTRA Local Signer - firma documenti con smart card e token CNS/CIE" `
     -Force | Out-Null
 
 Write-Host "  Avvio Local Signer..."
@@ -2298,11 +2298,11 @@ if ($online) {{
     Write-Host "Installazione completata! Local Signer v$version pronto." -ForegroundColor Green
     Write-Host "  Il Local Signer e' attivo su http://127.0.0.1:27272"
     Write-Host "  Si avviera' automaticamente ad ogni accesso Windows."
-    Write-Host "  Da ora HACS puo' avviarlo automaticamente quando clicchi Cerca."
+    Write-Host "  Da ora IUSENTRA puo' avviarlo automaticamente quando clicchi Cerca."
 }} else {{
     Write-Host "Installazione completata con avviso." -ForegroundColor Yellow
     Write-Host "  Il servizio non ha ancora risposto su http://127.0.0.1:27272"
-    Write-Host "  Tornare su HACS e usare 'Avvia Local Signer' oppure rieseguire l installer."
+    Write-Host "  Tornare su IUSENTRA e usare 'Avvia Local Signer' oppure rieseguire l installer."
 }}
 Write-Host ""
 Write-Host "Diagnostica locale: http://127.0.0.1:27272/diagnosi" -ForegroundColor Cyan
@@ -2318,13 +2318,13 @@ set -euo pipefail
 BASE_URL="{base_url}"
 ALLOWED_ORIGINS="{allowed_origins}"
 VERSION="{version}"
-DIR="$HOME/Library/Application Support/HACS/LocalSigner"
+DIR="$HOME/Library/Application Support/IUSENTRA/LocalSigner"
 DATA_DIR="$DIR/data"
 VENV="$DIR/.venv"
 PY="$VENV/bin/python3"
 PLIST="$HOME/Library/LaunchAgents/it.hacs.local-signer.plist"
 
-echo "HACS Local Signer v$VERSION - Installazione macOS"
+echo "IUSENTRA Local Signer v$VERSION - Installazione macOS"
 
 mkdir -p "$DIR" "$DATA_DIR" "$(dirname "$PLIST")"
 
@@ -2378,7 +2378,7 @@ echo
 echo "Installazione completata. Local Signer v$VERSION pronto."
 echo "Local Signer attivo su http://127.0.0.1:27272"
 echo "Pacchetto ufficiale sempre disponibile su: https://studio-legale-pct-production.up.railway.app/impostazioni?tab=firma"
-echo "Tornare su HACS e cliccare Riverifica."
+echo "Tornare su IUSENTRA e cliccare Riverifica."
 read -r -p "Premi Invio per chiudere..." _
 """
 
@@ -2398,7 +2398,7 @@ PY="$VENV/bin/python"
 SERVICE_DIR="${{XDG_CONFIG_HOME:-$HOME/.config}}/systemd/user"
 SERVICE="$SERVICE_DIR/hacs-local-signer.service"
 
-echo "HACS Local Signer v$VERSION - Installazione Linux"
+echo "IUSENTRA Local Signer v$VERSION - Installazione Linux"
 
 mkdir -p "$DIR" "$DATA_DIR" "$SERVICE_DIR"
 
@@ -2419,7 +2419,7 @@ python3 -m venv "$VENV"
 
 cat > "$SERVICE" <<EOF
 [Unit]
-Description=HACS Local Signer
+Description=IUSENTRA Local Signer
 After=network.target
 
 [Service]
@@ -2440,7 +2440,7 @@ echo
 echo "Installazione completata. Local Signer v$VERSION pronto."
 echo "Local Signer attivo su http://127.0.0.1:27272"
 echo "Pacchetto ufficiale sempre disponibile su: https://studio-legale-pct-production.up.railway.app/impostazioni?tab=firma"
-echo "Tornare su HACS e cliccare Riverifica."
+echo "Tornare su IUSENTRA e cliccare Riverifica."
 read -r -p "Premi Invio per chiudere..." _
 """
 

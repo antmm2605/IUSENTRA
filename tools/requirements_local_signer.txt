@@ -1,4 +1,4 @@
-# HACS Local Signer — Dipendenze
+# IUSENTRA Local Signer — Dipendenze
 # Installa con:  pip install -r requirements_local_signer.txt
 
 python-pkcs11>=0.7.0

@@ -1,4 +1,4 @@
-﻿"""Bootstrap e service wiring estratti da web.app."""
+"""Bootstrap e service wiring estratti da web.app."""
 
 from __future__ import annotations
 
@@ -136,7 +136,7 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
         "API_V1_ALLOWED_ORIGINS",
         os.getenv("PCT_API_V1_ALLOWED_ORIGINS", ""),
     )
-    app.config["STUDIO_NOME"] = os.getenv("PCT_STUDIO_NOME", "Studio Legale PCT")
+    app.config["STUDIO_NOME"] = os.getenv("PCT_STUDIO_NOME", "IUSENTRA")
     app.config["PORTALE_DB"] = cfg.get(
         "PORTALE_DB", os.getenv("PCT_PORTALE_DB", "./portale/portali.json")
     )
@@ -699,7 +699,7 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
     def _signature_storage_error_message(error: Exception) -> str:
         if _is_no_space_error(error):
             return (
-                "Spazio di archiviazione insufficiente sul server HACS. "
+                "Spazio di archiviazione insufficiente sul server IUSENTRA. "
                 "La firma e' stata prodotta ma il server non riesce a salvare una nuova copia del documento."
             )
         return f"Errore tecnico durante il salvataggio del documento firmato: {error}"

@@ -1,9 +1,9 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="it" data-bs-theme="light">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>{% block title %}HACS Admin{% endblock %} - Pannello Amministrazione</title>
+  <title>{% block title %}IUSENTRA Admin{% endblock %} - Pannello Amministrazione</title>
   <script>(function(){var t=localStorage.getItem('pct-theme');if(t)document.documentElement.setAttribute('data-bs-theme',t);})();</script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -39,10 +39,14 @@
 
 <nav id="admin-sidebar">
   <div class="brand">
-    <div class="logo-icon"><i class="bi bi-building-gear"></i></div>
+    <div class="logo-icon" aria-hidden="true">I</div>
     <div class="brand-text">
-      <strong>HACS Admin</strong>
-      <small>Pannello Piattaforma</small>
+      <img
+        src="{{ url_for('static', filename='img/logo-iusentra.png') }}?v={{ app_version }}"
+        alt="IUSENTRA"
+        class="brand-logo"
+      >
+      <small>Cabina amministrativa piattaforma</small>
     </div>
   </div>
 
@@ -58,7 +62,7 @@
     </a>
     <a href="{{ url_for('admin.osservabilita') }}"
        class="nav-link {% if request.endpoint == 'admin.osservabilita' %}active{% endif %}">
-      <i class="bi bi-activity"></i> Osservabilità
+      <i class="bi bi-activity"></i> OsservabilitÃ 
     </a>
 
     <a href="{{ url_for('admin.salute_sistema') }}"
@@ -181,3 +185,4 @@
 {% block scripts %}{% endblock %}
 </body>
 </html>
+

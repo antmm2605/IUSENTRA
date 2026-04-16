@@ -136,7 +136,7 @@ def studio_nome() -> str:
     t = tenant_corrente()
     if t:
         return t.nome
-    return current_app.config.get("STUDIO_NOME", "Studio Legale PCT")
+    return current_app.config.get("STUDIO_NOME", "IUSENTRA")
 
 
 # ---------------------------------------------------------------- auth API

@@ -1,13 +1,13 @@
-"""
-pct/ical.py — Generazione feed iCalendar (RFC 5545).
+﻿"""
+pct/ical.py â€” Generazione feed iCalendar (RFC 5545).
 
-Nessuna dipendenza esterna — implementazione pura Python.
+Nessuna dipendenza esterna â€” implementazione pura Python.
 Compatibile con Google Calendar, Apple Calendar, Outlook.
 
 Feed disponibili:
-  agenda_to_ical()           — appuntamenti (VEVENT con ora)
-  scadenze_to_ical()         — scadenze (VEVENT tutto il giorno + multi-VALARM)
-  agenda_scadenze_to_ical()  — feed combinato (agenda + scadenze)
+  agenda_to_ical()           â€” appuntamenti (VEVENT con ora)
+  scadenze_to_ical()         â€” scadenze (VEVENT tutto il giorno + multi-VALARM)
+  agenda_scadenze_to_ical()  â€” feed combinato (agenda + scadenze)
 """
 from __future__ import annotations
 
@@ -18,7 +18,7 @@ from zoneinfo import ZoneInfo
 _ROME = ZoneInfo("Europe/Rome")
 
 
-# ──────────────────────────────────────────── helpers RFC 5545
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ helpers RFC 5545
 
 def _escape(s: str) -> str:
     """Escape caratteri speciali per valori iCal."""
@@ -33,9 +33,9 @@ def _escape(s: str) -> str:
 def _sequence(last_modified: Optional[datetime]) -> int:
     """Restituisce il SEQUENCE come Unix timestamp di last_modified (o 0).
 
-    SEQUENCE è obbligatorio per la sincronizzazione con Google Calendar:
-    ad ogni modifica il valore cresce → il client rileva l'aggiornamento.
-    Usare il timestamp Unix di last_modified è conforme a RFC 5545 e
+    SEQUENCE Ã¨ obbligatorio per la sincronizzazione con Google Calendar:
+    ad ogni modifica il valore cresce â†’ il client rileva l'aggiornamento.
+    Usare il timestamp Unix di last_modified Ã¨ conforme a RFC 5545 e
     compatibile con Google Calendar, Apple Calendar, Outlook.
     """
     if last_modified is None:
@@ -48,7 +48,7 @@ def _sequence(last_modified: Optional[datetime]) -> int:
 
 
 def _dt(dt: datetime) -> str:
-    """Datetime → stringa UTC iCal (YYYYMMDDTHHMMSSZ).
+    """Datetime â†’ stringa UTC iCal (YYYYMMDDTHHMMSSZ).
 
     I datetime senza fuso orario (naive) vengono trattati come Europe/Rome
     e convertiti in UTC prima dell'emissione. Questo evita che Google Calendar
@@ -61,7 +61,7 @@ def _dt(dt: datetime) -> str:
 
 
 def _date_val(d: date) -> str:
-    """Date → stringa iCal per eventi tutto il giorno (YYYYMMDD)."""
+    """Date â†’ stringa iCal per eventi tutto il giorno (YYYYMMDD)."""
     return d.strftime("%Y%m%d")
 
 
@@ -78,12 +78,12 @@ def _fold(line: str) -> str:
     return "\r\n".join(result)
 
 
-# ──────────────────────────────────────────── ICalBuilder
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ ICalBuilder
 
 class ICalBuilder:
     """Costruisce un file .ics RFC 5545."""
 
-    def __init__(self, cal_name: str = "Agenda", prod_id: str = "-//Studio Legale PCT//IT"):
+    def __init__(self, cal_name: str = "Agenda", prod_id: str = "-//IUSENTRA//IT"):
         self._cal_name = cal_name
         self._prod_id  = prod_id
         self._events: List[str] = []
@@ -97,7 +97,7 @@ class ICalBuilder:
         description:   str = "",
         location:      str = "",
         url:           str = "",
-        allarme_min:   Optional[int] = 60,      # singolo allarme (retrocompatibilità)
+        allarme_min:   Optional[int] = 60,      # singolo allarme (retrocompatibilitÃ )
         allarmi_min:   Optional[List[int]] = None,  # lista allarmi, sovrascrive allarme_min
         last_modified: Optional[datetime] = None,
     ) -> "ICalBuilder":
@@ -126,14 +126,14 @@ class ICalBuilder:
         if url:
             lines.append(f"URL:{url}")
 
-        # VALARM — notifiche native del calendario
+        # VALARM â€” notifiche native del calendario
         allarmi = allarmi_min if allarmi_min is not None else (
             [allarme_min] if allarme_min is not None else []
         )
         for am in allarmi:
-            if am >= 1440:  # ≥ 1 giorno → usa giorni
+            if am >= 1440:  # â‰¥ 1 giorno â†’ usa giorni
                 trigger = f"-P{am // 1440}D"
-            elif am >= 60:  # ≥ 1 ora
+            elif am >= 60:  # â‰¥ 1 ora
                 trigger = f"-PT{am}M"
             else:
                 trigger = f"-PT{am}M"
@@ -214,15 +214,15 @@ class ICalBuilder:
         return header + "\r\nEND:VCALENDAR\r\n"
 
 
-# ──────────────────────────────────────────── funzioni pubbliche
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ funzioni pubbliche
 
-def agenda_to_ical(appuntamenti, studio_nome: str = "Studio Legale PCT",
+def agenda_to_ical(appuntamenti, studio_nome: str = "IUSENTRA",
                    base_url: str = "") -> str:
     """
     Converte la lista di Appuntamento in un feed iCal.
     Usa data_ora_dt (property datetime) e reminder_minuti per l'allarme.
     """
-    cal = ICalBuilder(cal_name=f"Agenda — {studio_nome}")
+    cal = ICalBuilder(cal_name=f"Agenda â€” {studio_nome}")
     for a in appuntamenti:
         # Costruzione descrizione
         desc_parts = []
@@ -247,7 +247,7 @@ def agenda_to_ical(appuntamenti, studio_nome: str = "Studio Legale PCT",
         durata = getattr(a, "durata_minuti", 60) or 60
         dt_end = dt_start + timedelta(minutes=durata)
 
-        # Allarme — usa reminder_minuti del singolo appuntamento
+        # Allarme â€” usa reminder_minuti del singolo appuntamento
         reminder = getattr(a, "reminder_minuti", 60)
 
         # last_modified
@@ -273,14 +273,14 @@ def agenda_to_ical(appuntamenti, studio_nome: str = "Studio Legale PCT",
     return cal.build()
 
 
-def scadenze_to_ical(scadenze, studio_nome: str = "Studio Legale PCT") -> str:
+def scadenze_to_ical(scadenze, studio_nome: str = "IUSENTRA") -> str:
     """
     Converte le scadenze in un feed iCal (eventi tutto il giorno).
     Le scadenze perentorie ricevono allarmi multipli (7gg, 3gg, 1gg, 60min).
     """
-    cal = ICalBuilder(cal_name=f"Scadenze — {studio_nome}")
+    cal = ICalBuilder(cal_name=f"Scadenze â€” {studio_nome}")
     for s in scadenze:
-        # data_scadenza_obj è property che restituisce date
+        # data_scadenza_obj Ã¨ property che restituisce date
         d = getattr(s, "data_scadenza_obj", None)
         if d is None:
             # fallback: prova parsing diretto
@@ -295,9 +295,9 @@ def scadenze_to_ical(scadenze, studio_nome: str = "Studio Legale PCT") -> str:
         desc_parts = [getattr(s, "descrizione", "") or ""]
         perentorio = getattr(s, "perentorio", False)
         if perentorio:
-            desc_parts.append("⚠️ SCADENZA PERENTORIA — termine non prorogabile")
+            desc_parts.append("âš ï¸ SCADENZA PERENTORIA â€” termine non prorogabile")
 
-        # Allarmi: perentoria → 7gg + 3gg + 1gg + 60min; normale → 1gg + 60min
+        # Allarmi: perentoria â†’ 7gg + 3gg + 1gg + 60min; normale â†’ 1gg + 60min
         if perentorio:
             allarmi = [7 * 1440, 3 * 1440, 1440, 60]
         else:
@@ -313,7 +313,7 @@ def scadenze_to_ical(scadenze, studio_nome: str = "Studio Legale PCT") -> str:
             except Exception:
                 pass
 
-        summary = ("⚠️ " if perentorio else "") + (getattr(s, "titolo", "") or "Scadenza")
+        summary = ("âš ï¸ " if perentorio else "") + (getattr(s, "titolo", "") or "Scadenza")
 
         cal.aggiungi_evento_giornata(
             uid=f"{s.id}@pct-scadenze",
@@ -327,13 +327,13 @@ def scadenze_to_ical(scadenze, studio_nome: str = "Studio Legale PCT") -> str:
 
 
 def agenda_scadenze_to_ical(appuntamenti, scadenze,
-                             studio_nome: str = "Studio Legale PCT",
+                             studio_nome: str = "IUSENTRA",
                              base_url: str = "") -> str:
     """
     Feed combinato: agenda + scadenze in un unico calendario.
     Utile per una sola sottoscrizione che copre tutto.
     """
-    cal = ICalBuilder(cal_name=f"Studio — {studio_nome}")
+    cal = ICalBuilder(cal_name=f"Studio â€” {studio_nome}")
 
     # ---- Appuntamenti ----
     for a in appuntamenti:
@@ -392,7 +392,7 @@ def agenda_scadenze_to_ical(appuntamenti, scadenze,
         desc_parts = [getattr(s, "descrizione", "") or ""]
         perentorio = getattr(s, "perentorio", False)
         if perentorio:
-            desc_parts.append("⚠️ SCADENZA PERENTORIA")
+            desc_parts.append("âš ï¸ SCADENZA PERENTORIA")
 
         if perentorio:
             allarmi = [7 * 1440, 3 * 1440, 1440, 60]
@@ -408,7 +408,7 @@ def agenda_scadenze_to_ical(appuntamenti, scadenze,
             except Exception:
                 pass
 
-        summary = ("⚠️ " if perentorio else "") + (getattr(s, "titolo", "") or "Scadenza")
+        summary = ("âš ï¸ " if perentorio else "") + (getattr(s, "titolo", "") or "Scadenza")
 
         cal.aggiungi_evento_giornata(
             uid=f"{s.id}@pct-scadenze",
@@ -420,3 +420,4 @@ def agenda_scadenze_to_ical(appuntamenti, scadenze,
         )
 
     return cal.build()
+

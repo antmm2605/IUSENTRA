@@ -1,4 +1,4 @@
-# HACS Local Signer - Build pacchetti multipiattaforma versionati
+# IUSENTRA Local Signer - Build pacchetti multipiattaforma versionati
 # Genera contestualmente:
 #   - Windows  : SetupLocalSigner-<versione>.exe
 #   - macOS    : InstallaLocalSigner-<versione>.command
@@ -65,7 +65,7 @@ New-Item -ItemType Directory -Force -Path $buildDir | Out-Null
 
 $installScriptSource = [System.IO.File]::ReadAllText((Join-Path $toolsDir "installa_local_signer_locale.ps1"))
 $installHeader = @"
-# HACS Local Signer Setup v$version
+# IUSENTRA Local Signer Setup v$version
 # Pacchetto generato il $(Get-Date -Format "yyyy-MM-dd HH:mm:ss")
 # Punto ufficiale download: $downloadPage
 
@@ -80,7 +80,7 @@ Copy-Item (Join-Path $toolsDir "requirements_local_signer.txt") $buildDir -Force
 Copy-Item $ufficiJson $buildDir -Force
 
 $releaseText = @"
-HACS Local Signer
+IUSENTRA Local Signer
 Versione: $version
 Pacchetto generato: $(Get-Date -Format "yyyy-MM-dd HH:mm:ss")
 Piattaforme generate contestualmente: Windows, macOS, Linux
@@ -91,8 +91,8 @@ Write-Utf8TextFile -Path $releaseNote -Content $releaseText
 
 $escapedSource = $buildDir.Replace("\", "\\")
 $escapedTarget = $outputExeVersioned.Replace("\", "\\")
-$finishMessage = "Installazione completata. HACS Local Signer v$version pronto."
-$friendlyName = "HACS Local Signer Setup v$version"
+$finishMessage = "Installazione completata. IUSENTRA Local Signer v$version pronto."
+$friendlyName = "IUSENTRA Local Signer Setup v$version"
 
 $sed = @"
 [Version]
@@ -152,7 +152,7 @@ Copy-Item $outputExeVersioned $outputExeAlias -Force
 
 $macTemplate = @'
 #!/bin/bash
-# HACS Local Signer Setup v__VERSION__
+# IUSENTRA Local Signer Setup v__VERSION__
 set -euo pipefail
 
 BASE_URL="__BASE_URL__"
@@ -164,7 +164,7 @@ VENV="$DIR/.venv"
 PY="$VENV/bin/python3"
 PLIST="$HOME/Library/LaunchAgents/it.hacs.local-signer.plist"
 
-echo "HACS Local Signer v$VERSION - Installazione macOS"
+echo "IUSENTRA Local Signer v$VERSION - Installazione macOS"
 echo "Punto ufficiale download: __DOWNLOAD_PAGE__"
 
 mkdir -p "$DIR" "$DATA_DIR" "$(dirname "$PLIST")"
@@ -218,7 +218,7 @@ launchctl kickstart -k "gui/$(id -u)/it.hacs.local-signer"
 echo
 echo "Installazione completata. Local Signer v$VERSION pronto."
 echo "Local Signer attivo su http://127.0.0.1:27272"
-echo "Tornare su HACS e cliccare Riverifica."
+echo "Tornare su IUSENTRA e cliccare Riverifica."
 read -r -p "Premi Invio per chiudere..." _
 '@
 
@@ -231,7 +231,7 @@ Write-Utf8TextFile -Path $outputMac -Content $macContent
 
 $linuxTemplate = @'
 #!/usr/bin/env bash
-# HACS Local Signer Setup v__VERSION__
+# IUSENTRA Local Signer Setup v__VERSION__
 set -euo pipefail
 
 BASE_URL="__BASE_URL__"
@@ -244,7 +244,7 @@ PY="$VENV/bin/python"
 SERVICE_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user"
 SERVICE="$SERVICE_DIR/hacs-local-signer.service"
 
-echo "HACS Local Signer v$VERSION - Installazione Linux"
+echo "IUSENTRA Local Signer v$VERSION - Installazione Linux"
 echo "Punto ufficiale download: __DOWNLOAD_PAGE__"
 
 mkdir -p "$DIR" "$DATA_DIR" "$SERVICE_DIR"
@@ -266,7 +266,7 @@ python3 -m venv "$VENV"
 
 cat > "$SERVICE" <<EOF
 [Unit]
-Description=HACS Local Signer
+Description=IUSENTRA Local Signer
 After=network.target
 
 [Service]
@@ -286,7 +286,7 @@ systemctl --user enable --now hacs-local-signer.service
 echo
 echo "Installazione completata. Local Signer v$VERSION pronto."
 echo "Local Signer attivo su http://127.0.0.1:27272"
-echo "Tornare su HACS e cliccare Riverifica."
+echo "Tornare su IUSENTRA e cliccare Riverifica."
 read -r -p "Premi Invio per chiudere..." _
 '@
 

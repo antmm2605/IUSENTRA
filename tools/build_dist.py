@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-HACS Local Signer — Build cross-platform da Linux/macOS/Windows.
+IUSENTRA Local Signer — Build cross-platform da Linux/macOS/Windows.
 
 Genera in tools/dist/:
   - SetupLocalSigner-<versione>.exe        Windows offline (IExpress stub + CAB MSZIP)
@@ -205,7 +205,7 @@ def build_windows_exe(version: str) -> bytes:
     # Release note embedded nel CAB
     now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
     release_txt = (
-        f"HACS Local Signer\r\n"
+        f"IUSENTRA Local Signer\r\n"
         f"Versione: {version}\r\n"
         f"Generato: {now}\r\n"
         f"Punto ufficiale download: {DOWNLOAD_PAGE}\r\n"
@@ -265,7 +265,7 @@ def build_macos_command(version: str, base_url: str) -> str:
     }))
     return textwrap.dedent(f"""\
         #!/bin/bash
-        # HACS Local Signer v{version} - Installer macOS
+        # IUSENTRA Local Signer v{version} - Installer macOS
         # Punto ufficiale: {DOWNLOAD_PAGE}
         set -euo pipefail
 
@@ -278,7 +278,7 @@ def build_macos_command(version: str, base_url: str) -> str:
         PY="$VENV/bin/python3"
         PLIST="$HOME/Library/LaunchAgents/it.hacs.local-signer.plist"
 
-        echo "HACS Local Signer v$VERSION - Installazione macOS"
+        echo "IUSENTRA Local Signer v$VERSION - Installazione macOS"
         echo "Scarico da: $BASE_URL"
 
         mkdir -p "$DIR" "$DATA_DIR" "$(dirname "$PLIST")"
@@ -322,7 +322,7 @@ curl -fsSL "$BASE_URL/polisWeb/local-signer/download/uffici" -o "$DATA_DIR/uffic
 
         echo
         echo "Installazione completata. Local Signer v$VERSION pronto su http://127.0.0.1:27272"
-        echo "Tornare su HACS e cliccare Riverifica."
+        echo "Tornare su IUSENTRA e cliccare Riverifica."
         read -r -p "Premi Invio per chiudere..." _
     """)
 
@@ -334,7 +334,7 @@ def build_linux_run(version: str, base_url: str) -> str:
     }))
     return textwrap.dedent(f"""\
         #!/usr/bin/env bash
-        # HACS Local Signer v{version} - Installer Linux
+        # IUSENTRA Local Signer v{version} - Installer Linux
         # Punto ufficiale: {DOWNLOAD_PAGE}
         set -euo pipefail
 
@@ -348,7 +348,7 @@ def build_linux_run(version: str, base_url: str) -> str:
         SERVICE_DIR="${{XDG_CONFIG_HOME:-$HOME/.config}}/systemd/user"
         SERVICE="$SERVICE_DIR/hacs-local-signer.service"
 
-        echo "HACS Local Signer v$VERSION - Installazione Linux"
+        echo "IUSENTRA Local Signer v$VERSION - Installazione Linux"
         echo "Scarico da: $BASE_URL"
 
         mkdir -p "$DIR" "$DATA_DIR" "$SERVICE_DIR"
@@ -369,7 +369,7 @@ curl -fsSL "$BASE_URL/polisWeb/local-signer/download/uffici" -o "$DATA_DIR/uffic
 
         cat > "$SERVICE" <<EOF
         [Unit]
-        Description=HACS Local Signer
+        Description=IUSENTRA Local Signer
         After=network.target
 
         [Service]
@@ -388,7 +388,7 @@ curl -fsSL "$BASE_URL/polisWeb/local-signer/download/uffici" -o "$DATA_DIR/uffic
 
         echo
         echo "Installazione completata. Local Signer v$VERSION pronto su http://127.0.0.1:27272"
-        echo "Tornare su HACS e cliccare Riverifica."
+        echo "Tornare su IUSENTRA e cliccare Riverifica."
         read -r -p "Premi Invio per chiudere..." _
     """)
 
@@ -396,7 +396,7 @@ curl -fsSL "$BASE_URL/polisWeb/local-signer/download/uffici" -o "$DATA_DIR/uffic
 def build_release_note(version: str) -> str:
     now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
     return (
-        f"HACS Local Signer\n"
+        f"IUSENTRA Local Signer\n"
         f"Versione: {version}\n"
         f"Generato: {now}\n"
         f"Piattaforme: Windows (EXE offline), macOS (.command), Linux (.run)\n"
@@ -409,7 +409,7 @@ def build_release_note(version: str) -> str:
 
 def build_windows_ps1(version: str) -> str:
     header = (
-        f"# HACS Local Signer Setup v{version}\n"
+        f"# IUSENTRA Local Signer Setup v{version}\n"
         f"# Pacchetto generato il {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
         f"# Punto ufficiale download: {DOWNLOAD_PAGE}\n\n"
     )
@@ -439,7 +439,7 @@ def main() -> None:
     parser.add_argument(
         "--base-url",
         default=BASE_URL_DEFAULT,
-        help=f"URL base del server HACS (default: {BASE_URL_DEFAULT})",
+        help=f"URL base del server IUSENTRA (default: {BASE_URL_DEFAULT})",
     )
     parser.add_argument(
         "--no-windows",
@@ -461,7 +461,7 @@ def main() -> None:
     base_url = args.base_url.rstrip("/")
     DIST_DIR.mkdir(exist_ok=True)
 
-    print(f"Build HACS Local Signer v{version}")
+    print(f"Build IUSENTRA Local Signer v{version}")
     print(f"  Base URL: {base_url}")
     print(f"  Output:   {DIST_DIR}")
     print()

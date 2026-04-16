@@ -1,5 +1,5 @@
 /**
- * PCT Studio — Mobile Gesture Enhancements
+ * IUSENTRA — Mobile Gesture Enhancements
  *
  * Funzionalità aggiunte:
  *  1. Edge-swipe destra → apre sidebar (dall'area ≤30px dal bordo sx)

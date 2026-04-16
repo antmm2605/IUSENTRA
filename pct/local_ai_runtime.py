@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import json
 import os
@@ -15,7 +15,7 @@ import requests
 
 
 class OllamaRuntimeProvisioner:
-    """Gestisce il runtime Ollama sulla stessa macchina che esegue HACS."""
+    """Gestisce il runtime Ollama sulla stessa macchina che esegue IUSENTRA."""
 
     _LATEST_RELEASE_URL = "https://api.github.com/repos/ollama/ollama/releases/latest"
     _DOCKER_IMAGE_NAME = "ollama/ollama:latest"
@@ -84,7 +84,7 @@ class OllamaRuntimeProvisioner:
 
         headers = {
             "Accept": "application/vnd.github+json",
-            "User-Agent": "HACS-Local-AI/1.0",
+            "User-Agent": "IUSENTRA-Local-AI/1.0",
         }
         try:
             response = requests.get(self._LATEST_RELEASE_URL, headers=headers, timeout=20)
@@ -181,7 +181,7 @@ class OllamaRuntimeProvisioner:
             "download_cache_dir": str(self.cache_root),
             "detected_executable": str(executable) if executable else "",
             "candidate_paths": [str(path) for path in self.candidate_executables()],
-            "distribution_scope": "Il runtime AI viene gestito sulla stessa macchina che esegue HACS e non viene distribuito al browser del cliente.",
+            "distribution_scope": "Il runtime AI viene gestito sulla stessa macchina che esegue IUSENTRA e non viene distribuito al browser del cliente.",
             "strategy_code": strategy,
             "post_install_note": "",
         }
@@ -189,7 +189,7 @@ class OllamaRuntimeProvisioner:
         if strategy == "docker_service":
             snapshot.update(
                 {
-                    "strategy_label": "Servizio Ollama Docker sulla stessa macchina di HACS",
+                    "strategy_label": "Servizio Ollama Docker sulla stessa macchina di IUSENTRA",
                     "asset_name": self._DOCKER_IMAGE_NAME,
                     "asset_download_url": self._DOCKER_IMAGE_URL,
                     "asset_size_bytes": None,
@@ -198,15 +198,15 @@ class OllamaRuntimeProvisioner:
                 }
             )
         elif strategy == "host_bridge_windows":
-            snapshot["strategy_label"] = "Runtime Ollama Windows sull'host collegato al container HACS"
+            snapshot["strategy_label"] = "Runtime Ollama Windows sull'host collegato al container IUSENTRA"
         elif strategy == "host_bridge_darwin":
-            snapshot["strategy_label"] = "Runtime Ollama macOS sull'host collegato al container HACS"
+            snapshot["strategy_label"] = "Runtime Ollama macOS sull'host collegato al container IUSENTRA"
         elif strategy == "host_managed_windows":
-            snapshot["strategy_label"] = "Runtime locale gestito sullo stesso host Windows di HACS"
+            snapshot["strategy_label"] = "Runtime locale gestito sullo stesso host Windows di IUSENTRA"
         elif strategy == "host_managed_linux":
-            snapshot["strategy_label"] = "Runtime locale gestito sullo stesso host Linux di HACS"
+            snapshot["strategy_label"] = "Runtime locale gestito sullo stesso host Linux di IUSENTRA"
         else:
-            snapshot["strategy_label"] = "Runtime locale guidato sullo stesso host di HACS"
+            snapshot["strategy_label"] = "Runtime locale guidato sullo stesso host di IUSENTRA"
 
         try:
             release = self.fetch_latest_release()
@@ -234,7 +234,7 @@ class OllamaRuntimeProvisioner:
                         "asset_label": "Installer Windows consigliato",
                         "asset_cta_label": "Scarica installer Windows ufficiale",
                         "post_install_note": (
-                            "Dopo l'installazione HACS rileva il runtime locale e prepara automaticamente "
+                            "Dopo l'installazione IUSENTRA rileva il runtime locale e prepara automaticamente "
                             "il modello operativo piu' adatto al profilo hardware del PC, insieme al modello embeddings consigliato."
                         ),
                     }
@@ -251,7 +251,7 @@ class OllamaRuntimeProvisioner:
                         "asset_label": "Pacchetto consigliato",
                         "asset_cta_label": "Apri il download ufficiale",
                         "post_install_note": (
-                            "Dopo l'installazione HACS prepara automaticamente il modello operativo coerente con il profilo hardware "
+                            "Dopo l'installazione IUSENTRA prepara automaticamente il modello operativo coerente con il profilo hardware "
                             "e il modello embeddings consigliato."
                         ),
                     }
@@ -270,56 +270,56 @@ class OllamaRuntimeProvisioner:
         if live_version:
             snapshot["summary_title"] = "Runtime locale operativo"
             snapshot["summary_body"] = (
-                "Ollama e' gia' raggiungibile sulla stessa macchina che esegue HACS. "
+                "Ollama e' gia' raggiungibile sulla stessa macchina che esegue IUSENTRA. "
                 "Il browser del cliente finale non esegue alcun runtime AI."
             )
         elif executable:
             snapshot["summary_title"] = "Runtime locale rilevato"
             snapshot["summary_body"] = (
-                "HACS ha trovato un eseguibile Ollama sulla macchina corrente e puo' usarlo "
+                "IUSENTRA ha trovato un eseguibile Ollama sulla macchina corrente e puo' usarlo "
                 "nel bootstrap del pannello AI."
             )
         elif strategy == "docker_service":
             snapshot["summary_title"] = "Provisioning automatico via Docker"
             snapshot["summary_body"] = (
-                "HACS sta girando in un container Linux su host Linux. La strategia corretta non e' installare "
+                "IUSENTRA sta girando in un container Linux su host Linux. La strategia corretta non e' installare "
                 "un binario nel browser, ma usare il servizio Docker "
-                "ufficiale Ollama sulla stessa macchina che ospita HACS."
+                "ufficiale Ollama sulla stessa macchina che ospita IUSENTRA."
             )
         elif strategy == "host_bridge_windows":
             snapshot["summary_title"] = "Host Windows rilevato"
             snapshot["summary_body"] = (
-                "HACS gira in un container, ma l'host reale e' Windows. Per l'utente finale la strada corretta "
-                "e' installare Ollama con l'installer ufficiale Windows e poi lasciare che HACS si colleghi "
+                "IUSENTRA gira in un container, ma l'host reale e' Windows. Per l'utente finale la strada corretta "
+                "e' installare Ollama con l'installer ufficiale Windows e poi lasciare che IUSENTRA si colleghi "
                 "automaticamente a quell'istanza tramite host.docker.internal. Una volta disponibile il runtime, "
-                "HACS prepara anche il modello operativo corretto in base al profilo hardware."
+                "IUSENTRA prepara anche il modello operativo corretto in base al profilo hardware."
             )
         elif strategy == "host_bridge_darwin":
             snapshot["summary_title"] = "Host macOS rilevato"
             snapshot["summary_body"] = (
-                "HACS gira in un container, ma l'host reale e' macOS. La strategia corretta e' usare "
+                "IUSENTRA gira in un container, ma l'host reale e' macOS. La strategia corretta e' usare "
                 "Ollama sull'host e collegare il container a quell'istanza tramite host.docker.internal."
             )
         elif strategy == "host_managed_windows":
             snapshot["summary_title"] = "Provisioning automatico su Windows"
             snapshot["summary_body"] = (
-                "La strategia corretta e' installare Ollama sulla stessa macchina Windows che esegue HACS. "
+                "La strategia corretta e' installare Ollama sulla stessa macchina Windows che esegue IUSENTRA. "
                 "Per l'utente finale il flusso consigliato e' usare l'installer ufficiale Windows; il bootstrap "
-                "automatico resta disponibile solo come supporto tecnico. Dopo l'installazione, HACS scarica e prepara "
+                "automatico resta disponibile solo come supporto tecnico. Dopo l'installazione, IUSENTRA scarica e prepara "
                 "il modello operativo in base al profilo hardware."
             )
         elif strategy == "host_managed_linux":
             snapshot["summary_title"] = "Provisioning automatico su Linux"
             snapshot["summary_body"] = (
-                "La strategia corretta e' installare Ollama sulla stessa macchina Linux che esegue HACS. "
+                "La strategia corretta e' installare Ollama sulla stessa macchina Linux che esegue IUSENTRA. "
                 "Se il runtime non e' presente, il bootstrap puo' scaricare il pacchetto ufficiale e "
                 "prepararlo in automatico."
             )
         else:
             snapshot["summary_title"] = "Installazione guidata sullo stesso host"
             snapshot["summary_body"] = (
-                "Su questo host HACS continua a funzionare anche senza AI locale. "
-                "Quando possibile va comunque usato un runtime Ollama sulla stessa macchina di HACS."
+                "Su questo host IUSENTRA continua a funzionare anche senza AI locale. "
+                "Quando possibile va comunque usato un runtime Ollama sulla stessa macchina di IUSENTRA."
             )
         return snapshot
 
@@ -331,7 +331,7 @@ class OllamaRuntimeProvisioner:
             return self.ensure_linux_runtime(force_download=force_download)
         raise RuntimeError(
             "In ambiente containerizzato la strategia corretta e' usare il servizio Docker 'ollama' "
-            "sulla stessa macchina di HACS."
+            "sulla stessa macchina di IUSENTRA."
         )
 
     def ensure_windows_runtime(self, *, force_download: bool = False) -> Path:
@@ -383,7 +383,7 @@ class OllamaRuntimeProvisioner:
             if expected_size <= 0 or target.stat().st_size == expected_size:
                 return target
 
-        headers = {"User-Agent": "HACS-Local-AI/1.0"}
+        headers = {"User-Agent": "IUSENTRA-Local-AI/1.0"}
         with requests.get(download_url, headers=headers, timeout=60, stream=True) as response:
             response.raise_for_status()
             with target.open("wb") as stream:
@@ -508,3 +508,4 @@ class OllamaRuntimeProvisioner:
         if raw in {"arm64", "aarch64"}:
             return "arm64"
         return raw or "unknown"
+

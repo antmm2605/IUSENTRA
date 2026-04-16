@@ -1,9 +1,9 @@
-"""
+﻿"""
 pct/tariffario.py - Calcolo compensi forensi DM 55/2014 aggiornato al DM 147/2022.
 
 I valori tabellari ufficiali vengono letti dallo snapshot interno
 `pct/data/tariffario_dm147_2022.json`, generato dal riferimento QuickOrganizer
-`DM_147_2022.mdb`. Dove l'attuale UI di HACS non distingue ancora tutte le
+`DM_147_2022.mdb`. Dove l'attuale UI di IUSENTRA non distingue ancora tutte le
 tabelle ministeriali, il modulo mantiene un fallback esplicito e lo segnala
 nelle note del risultato.
 """
@@ -121,7 +121,7 @@ class RisultatoCalcolo:
     valore_controversia: float
     scaglione: str
     fasi_selezionate: List[str]
-    # dettaglio: fase → (minimo, base, massimo)
+    # dettaglio: fase â†’ (minimo, base, massimo)
     dettaglio: Dict[str, Tuple[float, float, float]]
     totale_minimo: float
     totale_base: float
@@ -281,7 +281,7 @@ def parse_numero_locale(value: object, default: float = 0.0) -> float:
       - "5.201"
       - "5.201,00"
       - "5,201.00"
-      - "€ 5 201,00"
+      - "â‚¬ 5 201,00"
     """
     if value is None:
         return default
@@ -295,7 +295,7 @@ def parse_numero_locale(value: object, default: float = 0.0) -> float:
     cleaned = (
         raw.replace("EUR", "")
         .replace("eur", "")
-        .replace("€", "")
+        .replace("â‚¬", "")
         .replace("\u00a0", "")
         .replace(" ", "")
         .replace("'", "")
@@ -433,14 +433,14 @@ def _snapshot_table(
         if fasi:
             scaglioni.append(Scaglione(valore_da, valore_a, label, fasi))
 
-    # Il DM 55/2014 (e DM 147/2022) pubblica in alcune tabelle un 7° valore che
-    # rappresenta il compenso per controversie a «valore indeterminabile» (art. 5
-    # co. 1), non il compenso progressivo del 7° scaglione. Questo valore è
-    # tipicamente inferiore al 6° (260k-520k) perché calcolato su un valore medio
+    # Il DM 55/2014 (e DM 147/2022) pubblica in alcune tabelle un 7Â° valore che
+    # rappresenta il compenso per controversie a Â«valore indeterminabileÂ» (art. 5
+    # co. 1), non il compenso progressivo del 7Â° scaglione. Questo valore Ã¨
+    # tipicamente inferiore al 6Â° (260k-520k) perchÃ© calcolato su un valore medio
     # stimato. Se il compenso medio dell'ultimo scaglione risulta inferiore a quello
-    # del penultimo, il dato non è un genuino 7° scaglione progressivo: si elimina
+    # del penultimo, il dato non Ã¨ un genuino 7Â° scaglione progressivo: si elimina
     # l'ultimo e si estende il penultimo fino a float("inf"), garantendo che cause
-    # con valore > 520.000 EUR ricevano il compenso del 6° scaglione (corretto) e
+    # con valore > 520.000 EUR ricevano il compenso del 6Â° scaglione (corretto) e
     # non un importo anomalmente ridotto.
     if len(scaglioni) >= 2:
         _media_sc = lambda sc: (
@@ -645,7 +645,7 @@ def _mediazione_scaglioni_snapshot() -> list[float]:
 
 
 def _fallback_mediazione() -> list[Scaglione]:
-    """Tabella mediazione (D.Lgs. 28/2010) — 3 fasi da A27 DM 147/2022.
+    """Tabella mediazione (D.Lgs. 28/2010) â€” 3 fasi da A27 DM 147/2022.
 
     Ripartizione percentuale fasi (orientamento CNF):
       Fase di attivazione:      40 %
@@ -666,10 +666,10 @@ def _fallback_mediazione() -> list[Scaglione]:
 
 
 def _fallback_negoziazione_assistita() -> list[Scaglione]:
-    """Tabella negoziazione assistita (D.L. 132/2014) — 3 fasi da A27 DM 147/2022.
+    """Tabella negoziazione assistita (D.L. 132/2014) â€” 3 fasi da A27 DM 147/2022.
 
     Stesse percentuali della mediazione ma fase intermedia denominata
-    'Fase di negoziazione' anziché 'Fase di rivitalizzazione'.
+    'Fase di negoziazione' anzichÃ© 'Fase di rivitalizzazione'.
     """
     vals = _mediazione_scaglioni_snapshot()
     labels = _LABELS_7
@@ -1094,8 +1094,8 @@ def calcola_compenso(
     """Calcola il compenso forense secondo DM 147/2022.
 
     Args:
-        variazioni_fasi: dict fase_label → moltiplicatore (es. 1.20 = +20%).
-            Consentito nell'intervallo [0.50, 1.50] per DM 147/2022 (±50%).
+        variazioni_fasi: dict fase_label â†’ moltiplicatore (es. 1.20 = +20%).
+            Consentito nell'intervallo [0.50, 1.50] per DM 147/2022 (Â±50%).
         perc_spese_generali: percentuale spese generali art. 2 DM 55/2014 (default 0.15 = 15%).
     """
     tabella, coeff, tabella_codice, esatto, note_parts = _tabella_per_calcolo(materia, grado, profile_code=profile_code)
@@ -1118,7 +1118,7 @@ def calcola_compenso(
     if valore_calcolo <= 0 and tabella:
         valore_calcolo = tabella[0].valore_da
         note_parts.append(
-            "Valore non determinato o pari a zero: per default HACS applica il primo scaglione tabellare disponibile. "
+            "Valore non determinato o pari a zero: per default IUSENTRA applica il primo scaglione tabellare disponibile. "
             "La complessita stimata continua a incidere sulla forbice minimo / base / massimo del compenso."
         )
 
@@ -1137,7 +1137,7 @@ def calcola_compenso(
         if not fase_data:
             fasi_mancanti.append(fase)
             continue
-        # Applica variazione per fase (clamp ±50%)
+        # Applica variazione per fase (clamp Â±50%)
         var = float(_variazioni.get(fase, 1.0))
         var = max(0.50, min(1.50, var))
         mag = float(_maggiorazioni.get(fase, 1.0))
@@ -1168,14 +1168,14 @@ def calcola_compenso(
         note_parts.append("Valore di controversia non applicato al penale.")
     if valore_calcolo > 520000 and materia != Materia.PENALE:
         note_parts.append(
-            "Valore superiore a EUR 520.000: applicati i valori del 6° scaglione tabellare "
-            "(DM 147/2022). Per controversie di valore molto elevato il compenso è liberamente "
+            "Valore superiore a EUR 520.000: applicati i valori del 6Â° scaglione tabellare "
+            "(DM 147/2022). Per controversie di valore molto elevato il compenso Ã¨ liberamente "
             "determinabile tra le parti nei limiti dell'equo compenso (L. 49/2023)."
         )
     if materia in {Materia.STRAGIUD, Materia.ARBITRATO} or force_compenso_unico:
         note_parts.append("Compenso unico tabellare: le fasi selezionate in UI sono accorpate automaticamente.")
     if _variazioni:
-        note_parts.append("Variazioni per fase applicate (DM 147/2022 ±50%).")
+        note_parts.append("Variazioni per fase applicate (DM 147/2022 Â±50%).")
     if _maggiorazioni:
         fasi_maggiorate = ", ".join(sorted(_maggiorazioni.keys()))
         maggiorazioni_pct = sorted(
@@ -1199,7 +1199,7 @@ def calcola_compenso(
             f"Valori tabellari ufficiali letti dal riferimento DM 147/2022 (snapshot QuickOrganizer, tabella {tabella_codice[1:] if tabella_codice.startswith('A') else tabella_codice})."
         )
     else:
-        note_parts.append("Valori non completamente distinguibili con l'attuale UI HACS: applicata ricostruzione esplicita e tracciata nelle note.")
+        note_parts.append("Valori non completamente distinguibili con l'attuale UI IUSENTRA: applicata ricostruzione esplicita e tracciata nelle note.")
     note_parts.append("DM 147/2022: variazione +/-50% tassativa.")
 
     return RisultatoCalcolo(
@@ -1257,3 +1257,4 @@ def fasi_mediazione() -> List[Fase]:
 def fasi_negoziazione_assistita() -> List[Fase]:
     """Fasi per negoziazione assistita (D.L. 132/2014)."""
     return [Fase.ATTIVAZIONE, Fase.NEGOZIAZIONE_TRATTAZIONE, Fase.CONCILIAZIONE]
+

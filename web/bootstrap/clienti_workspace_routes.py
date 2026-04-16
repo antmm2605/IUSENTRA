@@ -340,7 +340,7 @@ def register_clienti_workspace_routes(
             }
             note = carica_note_faldone(app.config["NOTE_FALDONE_DB"], id_cliente)
             cfg_studio = get_config_studio()
-            studio_nome = cfg_studio.nome or app.config.get("PCT_STUDIO_NOME", "Studio Legale PCT")
+            studio_nome = cfg_studio.nome or app.config.get("PCT_STUDIO_NOME", "IUSENTRA")
 
             with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp:
                 tmp_path = tmp.name
@@ -429,7 +429,7 @@ def register_clienti_workspace_routes(
                 portale_obj=portale_obj,
                 link_portale=link_portale,
                 oggi=date.today(),
-                studio_nome=app.config.get("STUDIO_NOME", "Studio Legale PCT"),
+                studio_nome=app.config.get("STUDIO_NOME", "IUSENTRA"),
             )
         except Exception as exc:
             app.logger.exception("Errore portale_config [%s]: %s", id_cliente, exc)

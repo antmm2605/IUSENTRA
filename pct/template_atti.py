@@ -406,7 +406,7 @@ def acquisisci_da_scanner_windows(timeout: int = 120) -> Dict[str, Any]:
     if os.name != "nt":
         raise RuntimeError("Scanner desktop diretto disponibile solo su installazioni Windows locali.")
 
-    temp_dir = Path(tempfile.mkdtemp(prefix="hacs-scan-"))
+    temp_dir = Path(tempfile.mkdtemp(prefix="iusentra-scan-"))
     bmp_path = temp_dir / "scan.bmp"
     jpg_path = temp_dir / "scan.jpg"
     ps_script = f"""

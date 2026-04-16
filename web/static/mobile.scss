@@ -1,11 +1,11 @@
 // ================================================================
-//  HACS — Foglio di stile principale
+//  IUSENTRA — Foglio di stile principale
 //  Compila → web/static/css/app.css
 // ================================================================
 @use 'variables' as v;
 
 /* ================================================================
-   Studio Legale PCT — Foglio di stile principale
+   IUSENTRA — Foglio di stile principale
    Font: Inter (Google Fonts)
    Temi: light (default) / dark (data-bs-theme="dark")
    ================================================================ */

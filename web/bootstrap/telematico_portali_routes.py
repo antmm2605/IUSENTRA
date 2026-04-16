@@ -197,7 +197,7 @@ def register_telematico_portali_routes(
         id_fasc = str(request.args.get("id_fasc") or "").strip()
         flash(
             "Nel PAT la consultazione dei documenti si completa sul Portale dell'Avvocato ufficiale. "
-            "In HACS trovi il fascicolo PAT interno e importi i file gia scaricati dal portale.",
+            "In IUSENTRA trovi il fascicolo PAT interno e importi i file gia scaricati dal portale.",
             "info",
         )
         return redirect(url_for("portale_acquisizione_wizard", portale="pat", id_fasc=id_fasc or None))

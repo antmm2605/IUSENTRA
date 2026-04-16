@@ -92,29 +92,39 @@ body.admin-layout {
   .brand .logo-icon {
     width: 36px;
     height: 36px;
-    border-radius: 8px;
-    background: var(--admin-accent);
+    border-radius: 12px;
+    background: linear-gradient(145deg, #ffd255, #f4b000);
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #fff;
-    font-size: 1.1rem;
+    color: #0f2443;
+    font-size: 1.05rem;
+    font-weight: 800;
     flex-shrink: 0;
   }
 
   .brand .brand-text {
     line-height: 1.2;
+    min-width: 0;
   }
 
-  .brand .brand-text strong {
-    color: #fff;
-    font-size: .95rem;
+  .brand .brand-logo {
+    display: block;
+    width: min(100%, 150px);
+    height: auto;
+    border-radius: 12px;
+    background: rgba(255,255,255,.08);
+    border: 1px solid rgba(255,255,255,.08);
+    box-shadow: 0 12px 24px rgba(2, 6, 23, .18);
   }
 
   .brand .brand-text small {
-    font-size: .72rem;
+    font-size: .68rem;
     color: #94a3b8;
     display: block;
+    margin-top: .35rem;
+    text-transform: uppercase;
+    letter-spacing: .08em;
   }
 
   .nav-section {

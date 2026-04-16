@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 {% block title %}Notifiche WhatsApp{% endblock %}
 
 {% block content %}
@@ -128,7 +128,7 @@
             <div class="ui-feedback__icon"><i class="bi bi-exclamation-triangle-fill"></i></div>
             <div class="ui-feedback__content">
               <div class="ui-feedback__title">Invio automatico non configurato</div>
-              <div class="ui-feedback__body">HACS resta operativo: prepara il link WhatsApp e ti accompagna nell'invio manuale senza perdere il tracciamento.</div>
+              <div class="ui-feedback__body">IUSENTRA resta operativo: prepara il link WhatsApp e ti accompagna nell'invio manuale senza perdere il tracciamento.</div>
             </div>
           </div>
           <div class="wa-config-note">
@@ -162,7 +162,7 @@
                   {% for c in clienti %}
                   {% set numero = c.recapiti.cellulare if c.recapiti else '' %}
                   <option value="{{ c.id }}" data-numero="{{ numero }}" {% if not numero %}disabled{% endif %}>
-                    {{ c.nome_completo }}{% if numero %} · {{ numero }}{% else %} · senza numero WhatsApp{% endif %}
+                    {{ c.nome_completo }}{% if numero %} Â· {{ numero }}{% else %} Â· senza numero WhatsApp{% endif %}
                   </option>
                   {% endfor %}
                 </select>
@@ -186,7 +186,7 @@
                   <span class="wa-template-row__label">Template rapidi</span>
                   {% set templates = [
                     ('Appuntamento', 'La informiamo che ha un appuntamento in studio. La preghiamo di confermare la sua presenza.'),
-                    ('Documenti', 'La informiamo che sono necessari ulteriori documenti per la sua pratica. Può portarli in studio oppure caricarli dal portale cliente.'),
+                    ('Documenti', 'La informiamo che sono necessari ulteriori documenti per la sua pratica. PuÃ² portarli in studio oppure caricarli dal portale cliente.'),
                     ('Aggiornamento pratica', 'La sua pratica e\' in avanzamento. La contatteremo presto per aggiornarla sugli sviluppi.'),
                     ('Pagamento', 'La informiamo che e\' disponibile una nuova parcella relativa ai servizi resi. La preghiamo di effettuare il pagamento entro i termini indicati.')
                   ] %}
@@ -235,7 +235,7 @@
           <div class="wa-card__header">
             <div>
               <h2 class="wa-card__title"><i class="bi bi-calendar-event me-2"></i>Appuntamenti di domani</h2>
-              <p class="wa-card__subtitle">Elenco operativo degli appuntamenti già pronti per il promemoria.</p>
+              <p class="wa-card__subtitle">Elenco operativo degli appuntamenti giÃ  pronti per il promemoria.</p>
             </div>
             <span class="badge text-bg-light wa-badge">{{ app_domani|length }} in agenda</span>
           </div>
@@ -251,7 +251,7 @@
               <div class="wa-appointment-item__body">
                 <div class="wa-appointment-item__title">{{ a.titolo }}</div>
                 <div class="wa-appointment-item__meta">
-                  {{ a.data_ora|fmt_ora }}{% if a.luogo %} · {{ a.luogo }}{% endif %}
+                  {{ a.data_ora|fmt_ora }}{% if a.luogo %} Â· {{ a.luogo }}{% endif %}
                 </div>
               </div>
               <span class="badge {% if ha_cellulare %}bg-success-subtle text-success-emphasis{% else %}bg-secondary-subtle text-secondary-emphasis{% endif %} wa-appointment-item__badge">
@@ -290,7 +290,7 @@
                   {% else %}
                   Messaggio manuale
                   {% endif %}
-                  · {{ entry.ts|fmt_dataora }}
+                  Â· {{ entry.ts|fmt_dataora }}
                 </div>
                 {% if entry.esito.get('errore') %}
                 <div class="wa-log-item__error">{{ entry.esito.errore }}</div>
@@ -320,3 +320,4 @@
 {% block extra_scripts %}
 <script src="/static/js/notifiche-whatsapp.js?v={{ app_version }}"></script>
 {% endblock %}
+

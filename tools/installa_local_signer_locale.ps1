@@ -1,4 +1,4 @@
-# HACS Local Signer - Installazione locale Windows
+# IUSENTRA Local Signer - Installazione locale Windows
 # Usa i file gia' presenti nella cartella tools e configura l'avvio automatico.
 # Se Python non e' installato, scarica automaticamente Python portatile.
 
@@ -8,7 +8,7 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-$taskName = "HACS Local Signer"
+$taskName = "IUSENTRA Local Signer"
 $toolsDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $repoRoot = Split-Path -Parent $toolsDir
 $targetDir = Join-Path $env:APPDATA "HACS\LocalSigner"
@@ -134,7 +134,7 @@ function Find-PythonCommand {
 function Install-EmbeddedPython {
     <#
     .SYNOPSIS
-    Scarica e configura Python portatile (embeddable) nella cartella HACS.
+    Scarica e configura Python portatile (embeddable) nella cartella IUSENTRA.
     Non modifica il sistema, non richiede permessi admin, non richiede
     installazione manuale da parte dell'utente.
     #>
@@ -325,7 +325,7 @@ function Register-LocalSignerProtocol {
     $command = "`"$wscriptExe`" `"$starterVbs`" `"%1`""
 
     New-Item -Path $commandKey -Force | Out-Null
-    Set-Item -Path $protocolRoot -Value "URL:HACS Local Signer Protocol"
+    Set-Item -Path $protocolRoot -Value "URL:IUSENTRA Local Signer Protocol"
     New-ItemProperty -Path $protocolRoot -Name "URL Protocol" -Value "" -PropertyType String -Force | Out-Null
     Set-Item -Path $commandKey -Value $command
 }
@@ -336,7 +336,7 @@ function Register-LocalSignerProtocol {
 # ═══════════════════════════════════════════════════════════════════
 
 Write-Host ""
-Write-Host "HACS Local Signer - Installazione Windows" -ForegroundColor Green
+Write-Host "IUSENTRA Local Signer - Installazione Windows" -ForegroundColor Green
 Write-Host ""
 Write-InstallerLog "Avvio installazione Local Signer"
 
@@ -443,7 +443,7 @@ if ($LASTEXITCODE -eq 0) {
 }
 
 # ── Launcher, protocollo e avvio automatico ───────────────────────
-Write-Step "Preparo l'avvio contestuale da HACS..."
+Write-Step "Preparo l'avvio contestuale da IUSENTRA..."
 Write-LocalSignerLaunchers
 
 Write-Step "Registro il protocollo locale hacs-local-signer://..."
@@ -460,7 +460,7 @@ Register-ScheduledTask `
     -Action $action `
     -Trigger $trigger `
     -Settings $settings `
-    -Description "HACS Local Signer - avvio automatico al login" `
+    -Description "IUSENTRA Local Signer - avvio automatico al login" `
     -Force | Out-Null
 
 Write-Step "Avvio subito il servizio in background..."
@@ -491,12 +491,12 @@ if ($online) {
     Write-InstallerLog "Installazione completata con servizio attivo"
     Write-Host "Installazione completata." -ForegroundColor Green
     Write-Host "Il Local Signer e' attivo e raggiungibile." -ForegroundColor Green
-    Write-Host "Da ora in poi HACS puo' avviarlo automaticamente quando clicchi Cerca." -ForegroundColor Cyan
+    Write-Host "Da ora in poi IUSENTRA puo' avviarlo automaticamente quando clicchi Cerca." -ForegroundColor Cyan
     Write-Host "Diagnostica locale: http://127.0.0.1:27272/diagnosi" -ForegroundColor Cyan
 } else {
     Write-Host "Installazione completata con avviso." -ForegroundColor Yellow
     Write-Host "Il servizio non ha ancora risposto su http://127.0.0.1:27272." -ForegroundColor Yellow
-    Write-Host "Apri HACS e usa 'Avvia Local Signer', oppure esegui di nuovo questo installer." -ForegroundColor Yellow
+    Write-Host "Apri IUSENTRA e usa 'Avvia Local Signer', oppure esegui di nuovo questo installer." -ForegroundColor Yellow
     if (Test-Path $runtimeStderrLog) {
         Write-Host "Dettagli errore: $runtimeStderrLog" -ForegroundColor Yellow
         Write-InstallerLog "Avvio non riuscito. Consultare $runtimeStderrLog"

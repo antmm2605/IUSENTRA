@@ -1,6 +1,6 @@
 """Catalogo dei servizi PST rilevanti per il fascicolo telematico.
 
-Questo modulo tiene allineata la classificazione interna di HACS con la
+Questo modulo tiene allineata la classificazione interna di IUSENTRA con la
 documentazione ufficiale del Portale dei Servizi Telematici, senza
 hardcodare la logica direttamente nelle viste.
 """
@@ -79,7 +79,7 @@ def info_servizio_pst(nome_servizio: str) -> dict:
 
 
 def sezione_fascicolo_da_servizio_pst(nome_servizio: str) -> str:
-    """Mappa il nome del servizio PST alla sezione fascicolo HACS."""
+    """Mappa il nome del servizio PST alla sezione fascicolo IUSENTRA."""
     info = info_servizio_pst(nome_servizio)
     return str(info.get("sezione") or "")
 

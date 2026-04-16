@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════════
    EDITOR DOCUMENTI — STILE MICROSOFT WORD
-   HACS - Studio Legale PCT
+   IUSENTRA - IUSENTRA
    ═══════════════════════════════════════════════════════════════ */
 
 :root {

@@ -1,12 +1,12 @@
 @echo off
 setlocal
-:: HACS Local Signer - bootstrap locale intelligente
+:: IUSENTRA Local Signer - bootstrap locale intelligente
 :: - Se il servizio automatico e' gia' installato, lo riavvia.
 :: - Se manca, lancia l'installer locale Windows.
 
-title HACS Local Signer
+title IUSENTRA Local Signer
 
-set "TASK_NAME=HACS Local Signer"
+set "TASK_NAME=IUSENTRA Local Signer"
 set "INSTALLER_PS1=%~dp0installa_local_signer_locale.ps1"
 set "BACKGROUND_MODE=0"
 set "SILENT_MODE=0"
@@ -17,7 +17,7 @@ if /I "%~1"=="--silent" set "SILENT_MODE=1"
 if /I "%~1"=="--force" set "FORCE_RESTART=1"
 
 echo.
-echo HACS Local Signer - bootstrap locale
+echo IUSENTRA Local Signer - bootstrap locale
 echo.
 
 schtasks /Query /TN "%TASK_NAME%" >nul 2>&1

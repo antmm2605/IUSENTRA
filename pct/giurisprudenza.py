@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import copy
 import hashlib
@@ -40,7 +40,7 @@ from pct.giurisprudenza_repository import (
 )
 from pct.legal_intelligence import FONTI_UFFICIALI
 
-USER_AGENT_GIURISPRUDENZA = "HACS-Giurisprudenza/1.0"
+USER_AGENT_GIURISPRUDENZA = "IUSENTRA-Giurisprudenza/1.0"
 MAX_SYNC_ITEMS = 12
 MAX_SYNC_RUNS = 300
 GIURISPRUDENZA_STORAGE_VERSION = 2
@@ -201,7 +201,7 @@ def _truncate(text: str, limit: int = 280) -> str:
     cleaned = _clean_spaces(text)
     if len(cleaned) <= limit:
         return cleaned
-    return cleaned[: limit - 1].rstrip() + "…"
+    return cleaned[: limit - 1].rstrip() + "â€¦"
 
 
 def _source_url(existing_id: str, fallback: str) -> str:
@@ -281,12 +281,12 @@ SOURCE_SPECS: List[FonteGiurisprudenziale] = [
         id="cassazione",
         nome="Corte di Cassazione",
         giurisdizione="Ordinaria",
-        coverage="Legittimità, sentenze, ordinanze, massimario e principi di diritto.",
+        coverage="LegittimitÃ , sentenze, ordinanze, massimario e principi di diritto.",
         official_url=_source_url("cassazione", "https://www.cortedicassazione.it/"),
         search_url="https://www.cortedicassazione.it/it/massimario.page",
         access_mode="pubblico",
         sync_mode="automatico_leggero",
-        note="Fonte primaria per legittimità civile e penale; utile per principi di diritto e orientamenti consolidati.",
+        note="Fonte primaria per legittimitÃ  civile e penale; utile per principi di diritto e orientamenti consolidati.",
         badge="Fonte primaria",
         icon="bi-building-check",
         search_label="Apri Cassazione",
@@ -379,7 +379,7 @@ SOURCE_SPECS: List[FonteGiurisprudenziale] = [
         search_url="https://curia.europa.eu/site/",
         access_mode="pubblico",
         sync_mode="automatico_leggero",
-        note="Motore ufficiale UE; utile per ECLI, giurisprudenza su appalti, concorrenza, consumatori e fiscalità.",
+        note="Motore ufficiale UE; utile per ECLI, giurisprudenza su appalti, concorrenza, consumatori e fiscalitÃ .",
         badge="Fonte europea",
         icon="bi-globe-europe-africa",
         search_label="Apri CURIA",
@@ -397,7 +397,7 @@ SOURCE_SPECS: List[FonteGiurisprudenziale] = [
         search_url=_hudoc_rss_url(),
         access_mode="pubblico",
         sync_mode="automatico_leggero",
-        note="Fonte ufficiale CEDU; utile per equo processo, proprietà, vita privata e familiare.",
+        note="Fonte ufficiale CEDU; utile per equo processo, proprietÃ , vita privata e familiare.",
         badge="Fonte europea",
         icon="bi-globe2",
         search_label="Apri HUDOC",
@@ -410,18 +410,18 @@ SOURCE_SPECS: List[FonteGiurisprudenziale] = [
         id="corte_conti",
         nome="Corte dei Conti",
         giurisdizione="Contabile",
-        coverage="Giurisprudenza contabile, responsabilità erariale e sezioni regionali.",
+        coverage="Giurisprudenza contabile, responsabilitÃ  erariale e sezioni regionali.",
         official_url=_source_url("corte_conti", "https://www.corteconti.it/"),
         search_url="https://www.corteconti.it/",
         access_mode="pubblico",
         sync_mode="recupero_assistito",
-        note="Fonte specialistica per responsabilità amministrativa e contabile.",
+        note="Fonte specialistica per responsabilitÃ  amministrativa e contabile.",
         badge="Fonte specialistica",
         icon="bi-safe2",
         supports_auto_sync=False,
         default_area="Contabile",
         license_note="Consultazione pubblica istituzionale",
-        link_keywords=["sentenza", "decisione", "responsabilità", "erariale"],
+        link_keywords=["sentenza", "decisione", "responsabilitÃ ", "erariale"],
     ),
     FonteGiurisprudenziale(
         id="simpliciter_cliente",
@@ -433,8 +433,8 @@ SOURCE_SPECS: List[FonteGiurisprudenziale] = [
         access_mode="materiale_cliente",
         sync_mode="import_assistito",
         note=(
-            "HACS non esegue scraping della banca dati Simpliciter. "
-            "Importa solo materiali, output o file che il cliente ha già ottenuto legittimamente nel proprio account."
+            "IUSENTRA non esegue scraping della banca dati Simpliciter. "
+            "Importa solo materiali, output o file che il cliente ha giÃ  ottenuto legittimamente nel proprio account."
         ),
         badge="Import assistito",
         icon="bi-inbox",
@@ -473,24 +473,24 @@ TASSONOMIA_GIURISPRUDENZA: List[Dict[str, Any]] = [
         "id": "civile",
         "title": "Civile",
         "icon": "bi-house-door",
-        "description": "Contenzioso civile, merito e legittimità.",
+        "description": "Contenzioso civile, merito e legittimitÃ .",
         "branches": [
-            {"title": "Obbligazioni e contratti", "subbranches": ["Compravendita", "Appalto", "Locazione", "Mandato", "Leasing", "Mediazione", "Mutuo", "Fideiussione", "Clausole vessatorie", "Nullità / annullabilità / risoluzione / rescissione", "Inadempimento", "Prescrizione", "Prova del contratto"]},
-            {"title": "Responsabilità civile", "subbranches": ["RC auto", "Responsabilità medica", "Responsabilità professionale", "Danno da cose in custodia", "Danno da insidia", "Diffamazione", "Danno non patrimoniale", "Perdita di chance", "Danno parentale"]},
-            {"title": "Diritti reali", "subbranches": ["Usucapione", "Servitù", "Comunione", "Possesso", "Azione di rivendica"]},
+            {"title": "Obbligazioni e contratti", "subbranches": ["Compravendita", "Appalto", "Locazione", "Mandato", "Leasing", "Mediazione", "Mutuo", "Fideiussione", "Clausole vessatorie", "NullitÃ  / annullabilitÃ  / risoluzione / rescissione", "Inadempimento", "Prescrizione", "Prova del contratto"]},
+            {"title": "ResponsabilitÃ  civile", "subbranches": ["RC auto", "ResponsabilitÃ  medica", "ResponsabilitÃ  professionale", "Danno da cose in custodia", "Danno da insidia", "Diffamazione", "Danno non patrimoniale", "Perdita di chance", "Danno parentale"]},
+            {"title": "Diritti reali", "subbranches": ["Usucapione", "ServitÃ¹", "Comunione", "Possesso", "Azione di rivendica"]},
             {"title": "Condominio", "subbranches": ["Ripartizione spese", "Delibere assembleari", "Impugnazioni", "Innovazioni"]},
-            {"title": "Locazioni", "subbranches": ["Morosità", "Rinnovo", "Canone", "Recesso", "Sfratto"]},
+            {"title": "Locazioni", "subbranches": ["MorositÃ ", "Rinnovo", "Canone", "Recesso", "Sfratto"]},
             {"title": "Successioni", "subbranches": ["Legittima", "Testamento", "Collazione", "Riduzione", "Divisione ereditaria"]},
             {"title": "Famiglia e persone", "subbranches": ["Separazione", "Divorzio", "Affidamento", "Assegno di mantenimento", "Stato della persona"]},
             {"title": "Lavoro", "subbranches": ["Licenziamento", "Demansionamento", "Mobbing", "Differenze retributive", "Appalto e somministrazione"]},
-            {"title": "Previdenza e assistenza", "subbranches": ["Pensione", "Invalidità", "Contributi", "Prestazioni assistenziali"]},
+            {"title": "Previdenza e assistenza", "subbranches": ["Pensione", "InvaliditÃ ", "Contributi", "Prestazioni assistenziali"]},
             {"title": "Societario e commerciale", "subbranches": ["Impugnazione delibere", "Amministratori", "Soci", "Recesso", "Bilancio"]},
             {"title": "Bancario e finanziario", "subbranches": ["Anatocismo", "Usura", "Mutui", "Derivati", "Segnalazioni a sofferenza"]},
             {"title": "Assicurazioni", "subbranches": ["Polizza", "Sinistro", "Manleva", "RCA", "Azione diretta"]},
             {"title": "Esecuzioni", "subbranches": ["Pignoramento", "Opposizioni", "Vendita forzata", "Assegnazione", "Terzo pignorato"]},
             {"title": "Procedure concorsuali / crisi d'impresa", "subbranches": ["Fallimento", "Liquidazione giudiziale", "Concordato", "Composizione negoziata", "Revocatorie"]},
             {"title": "Volontaria giurisdizione", "subbranches": ["Amministrazione di sostegno", "Tutele", "Autorizzazioni", "Nomine"]},
-            {"title": "Proprietà industriale e intellettuale", "subbranches": ["Marchi", "Brevetti", "Concorrenza sleale", "Diritto d'autore"]},
+            {"title": "ProprietÃ  industriale e intellettuale", "subbranches": ["Marchi", "Brevetti", "Concorrenza sleale", "Diritto d'autore"]},
             {"title": "Consumatori", "subbranches": ["Clausole abusive", "Pratiche commerciali scorrette", "Credito al consumo", "Garanzia beni"]},
             {"title": "Agrario", "subbranches": ["Affitto fondo rustico", "Prelazione", "Migliorie"]},
             {"title": "Internazionale privato e giurisdizione", "subbranches": ["Competenza", "Legge applicabile", "Riconoscimento sentenze", "Arbitrato internazionale"]},
@@ -509,13 +509,13 @@ TASSONOMIA_GIURISPRUDENZA: List[Dict[str, Any]] = [
             {"title": "Delitti economici / societari / tributari", "subbranches": ["False comunicazioni sociali", "Bancarotta", "Dichiarazione fraudolenta", "Omesso versamento"]},
             {"title": "Reati edilizi e ambientali", "subbranches": ["Abusi edilizi", "Rifiuti", "Inquinamento", "Lottizzazione abusiva"]},
             {"title": "Reati stradali", "subbranches": ["Guida in stato di ebbrezza", "Omicidio stradale", "Lesioni stradali"]},
-            {"title": "Stupefacenti", "subbranches": ["Detenzione", "Spaccio", "Associazione", "Lieve entità"]},
+            {"title": "Stupefacenti", "subbranches": ["Detenzione", "Spaccio", "Associazione", "Lieve entitÃ "]},
             {"title": "Misure cautelari", "subbranches": ["Custodia cautelare", "Arresti domiciliari", "Divieti e obblighi", "Esigenze cautelari"]},
             {"title": "Esecuzione penale", "subbranches": ["Ordine di esecuzione", "Sospensione", "Misure alternative"]},
             {"title": "Ordinamento penitenziario", "subbranches": ["Permessi", "Liberazione anticipata", "Affidamento", "Detenzione domiciliare"]},
-            {"title": "Procedura penale", "subbranches": ["Notificazioni", "Nullità", "Prova", "Impugnazioni", "Abbreviato"]},
+            {"title": "Procedura penale", "subbranches": ["Notificazioni", "NullitÃ ", "Prova", "Impugnazioni", "Abbreviato"]},
             {"title": "Misure di prevenzione", "subbranches": ["Personali", "Patrimoniali", "Confisca", "Sequestro"]},
-            {"title": "Responsabilità da reato degli enti ex d.lgs. 231/2001", "subbranches": ["Modelli organizzativi", "Interesse o vantaggio", "Reati presupposto", "Sanzioni"]},
+            {"title": "ResponsabilitÃ  da reato degli enti ex d.lgs. 231/2001", "subbranches": ["Modelli organizzativi", "Interesse o vantaggio", "Reati presupposto", "Sanzioni"]},
         ],
     },
     {
@@ -526,12 +526,12 @@ TASSONOMIA_GIURISPRUDENZA: List[Dict[str, Any]] = [
         "branches": [
             {"title": "Appalti pubblici", "subbranches": ["Requisiti di partecipazione", "Avvalimento", "Soccorso istruttorio", "Anomalia dell'offerta", "Esclusione", "Subappalto", "Accesso agli atti", "Revisione prezzi", "Esecuzione contratto"]},
             {"title": "Edilizia e urbanistica", "subbranches": ["Permesso di costruire", "SCIA", "Abusi", "Pianificazione", "Sanatoria"]},
-            {"title": "Pubblico impiego", "subbranches": ["Sanzioni disciplinari", "Progressioni", "Mobilità", "Mansioni"]},
+            {"title": "Pubblico impiego", "subbranches": ["Sanzioni disciplinari", "Progressioni", "MobilitÃ ", "Mansioni"]},
             {"title": "Concorsi", "subbranches": ["Bando", "Valutazione titoli", "Prove", "Scorrimento graduatorie"]},
             {"title": "Ambiente", "subbranches": ["VIA", "AIA", "Bonifiche", "Rifiuti"]},
-            {"title": "Espropriazione", "subbranches": ["Indennità", "Occupazione", "Dichiarazione di pubblica utilità"]},
-            {"title": "Sanità", "subbranches": ["Accreditamenti", "Responsabilità sanitaria pubblica", "Farmacie"]},
-            {"title": "Università e scuola", "subbranches": ["Graduatorie", "Abilitazioni", "Trasferimenti", "Tasse universitarie"]},
+            {"title": "Espropriazione", "subbranches": ["IndennitÃ ", "Occupazione", "Dichiarazione di pubblica utilitÃ "]},
+            {"title": "SanitÃ ", "subbranches": ["Accreditamenti", "ResponsabilitÃ  sanitaria pubblica", "Farmacie"]},
+            {"title": "UniversitÃ  e scuola", "subbranches": ["Graduatorie", "Abilitazioni", "Trasferimenti", "Tasse universitarie"]},
             {"title": "Immigrazione", "subbranches": ["Permesso di soggiorno", "Cittadinanza", "Espulsione", "Asilo"]},
             {"title": "Elettorale", "subbranches": ["Ammissione liste", "Operazioni elettorali", "Proclamazione eletti"]},
             {"title": "Antimafia / interdittive", "subbranches": ["Informative", "White list", "Appalti", "Prevenzione"]},
@@ -550,9 +550,9 @@ TASSONOMIA_GIURISPRUDENZA: List[Dict[str, Any]] = [
             {"title": "Tributi locali", "subbranches": ["IMU", "TARI", "TOSAP / COSAP", "Imposta di soggiorno"]},
             {"title": "Riscossione ed esecuzione", "subbranches": ["Cartella", "Intimazione", "Fermo", "Ipoteca", "Prescrizione", "Notifica", "Estratto di ruolo", "Rateazione"]},
             {"title": "Sanzioni tributarie", "subbranches": ["Elemento soggettivo", "Cumulo", "Ravvedimento", "Obiettiva incertezza"]},
-            {"title": "Processo tributario", "subbranches": ["Ammissibilità ricorso", "Termini", "Notifiche", "Sospensione", "Appello"]},
+            {"title": "Processo tributario", "subbranches": ["AmmissibilitÃ  ricorso", "Termini", "Notifiche", "Sospensione", "Appello"]},
             {"title": "Abuso del diritto / elusione", "subbranches": ["Operazioni elusive", "Riqualificazione", "Onere della prova"]},
-            {"title": "Transfer pricing / fiscalità d'impresa", "subbranches": ["Prezzi di trasferimento", "Stabile organizzazione", "Documentazione"]},
+            {"title": "Transfer pricing / fiscalitÃ  d'impresa", "subbranches": ["Prezzi di trasferimento", "Stabile organizzazione", "Documentazione"]},
             {"title": "Agevolazioni e crediti d'imposta", "subbranches": ["Bonus edilizi", "Ricerca e sviluppo", "Industria 4.0"]},
         ],
     },
@@ -562,13 +562,13 @@ TASSONOMIA_GIURISPRUDENZA: List[Dict[str, Any]] = [
         "icon": "bi-columns-gap",
         "description": "Pronunce e questioni costituzionali.",
         "branches": [
-            {"title": "Diritti fondamentali", "subbranches": ["Uguaglianza", "Salute", "Difesa", "Libertà personale"]},
+            {"title": "Diritti fondamentali", "subbranches": ["Uguaglianza", "Salute", "Difesa", "LibertÃ  personale"]},
             {"title": "Riparto Stato-Regioni", "subbranches": ["Competenze legislative", "Leale collaborazione", "Finanza regionale"]},
-            {"title": "Processo costituzionale", "subbranches": ["Incidente di costituzionalità", "Conflitti", "Referendum"]},
+            {"title": "Processo costituzionale", "subbranches": ["Incidente di costituzionalitÃ ", "Conflitti", "Referendum"]},
             {"title": "Ordinamento giudiziario", "subbranches": ["Status magistrati", "CSM", "Organizzazione"]},
-            {"title": "Materia penale", "subbranches": ["Riserva di legge", "Irretroattività", "Proporzionalità pena"]},
+            {"title": "Materia penale", "subbranches": ["Riserva di legge", "IrretroattivitÃ ", "ProporzionalitÃ  pena"]},
             {"title": "Materia civile", "subbranches": ["Tutela giurisdizionale", "Famiglia", "Patrimonio"]},
-            {"title": "Materia tributaria", "subbranches": ["Capacità contributiva", "Ragionevolezza", "Sanzioni"]},
+            {"title": "Materia tributaria", "subbranches": ["CapacitÃ  contributiva", "Ragionevolezza", "Sanzioni"]},
             {"title": "Materia amministrativa", "subbranches": ["Accesso", "Pubblico impiego", "Procedimento"]},
         ],
     },
@@ -582,12 +582,12 @@ TASSONOMIA_GIURISPRUDENZA: List[Dict[str, Any]] = [
             {"title": "Concorrenza", "subbranches": ["Intese", "Abuso di posizione dominante", "Aiuti di Stato"]},
             {"title": "Appalti", "subbranches": ["Affidamenti", "Concorrenza", "Trasparenza", "Rimedi"]},
             {"title": "Consumatori", "subbranches": ["Clausole abusive", "Pratiche scorrette", "Garanzie"]},
-            {"title": "Lavoro", "subbranches": ["Parità di trattamento", "Orario", "Trasferimenti"]},
+            {"title": "Lavoro", "subbranches": ["ParitÃ  di trattamento", "Orario", "Trasferimenti"]},
             {"title": "Privacy / dati personali", "subbranches": ["GDPR", "Sorveglianza", "Trattamenti illeciti"]},
             {"title": "Asilo e immigrazione", "subbranches": ["Protezione internazionale", "Ricongiungimento", "Espulsioni"]},
-            {"title": "Fiscalità", "subbranches": ["IVA", "Aiuti fiscali", "Doppia imposizione"]},
-            {"title": "Equo processo", "subbranches": ["Ragionevole durata", "Contraddittorio", "Imparzialità"]},
-            {"title": "Proprietà", "subbranches": ["Espropriazione", "Vincoli", "Prot. 1 art. 1"]},
+            {"title": "FiscalitÃ ", "subbranches": ["IVA", "Aiuti fiscali", "Doppia imposizione"]},
+            {"title": "Equo processo", "subbranches": ["Ragionevole durata", "Contraddittorio", "ImparzialitÃ "]},
+            {"title": "ProprietÃ ", "subbranches": ["Espropriazione", "Vincoli", "Prot. 1 art. 1"]},
             {"title": "Vita privata e familiare", "subbranches": ["Art. 8 CEDU", "Minori", "Protezione dati"]},
         ],
     },
@@ -595,10 +595,10 @@ TASSONOMIA_GIURISPRUDENZA: List[Dict[str, Any]] = [
         "id": "contabile",
         "title": "Contabile",
         "icon": "bi-safe2",
-        "description": "Giurisprudenza della Corte dei Conti e responsabilità erariale.",
+        "description": "Giurisprudenza della Corte dei Conti e responsabilitÃ  erariale.",
         "branches": [
-            {"title": "Responsabilità amministrativa", "subbranches": ["Danno erariale", "Colpa grave", "Prescrizione", "Quantificazione"]},
-            {"title": "Contabilità pubblica", "subbranches": ["Enti locali", "Società partecipate", "Controlli", "Pareri"]},
+            {"title": "ResponsabilitÃ  amministrativa", "subbranches": ["Danno erariale", "Colpa grave", "Prescrizione", "Quantificazione"]},
+            {"title": "ContabilitÃ  pubblica", "subbranches": ["Enti locali", "SocietÃ  partecipate", "Controlli", "Pareri"]},
         ],
     },
 ]
@@ -2162,7 +2162,7 @@ class GestioneGiurisprudenza:
             "appalti": ["appalti", "subappalto", "soccorso istruttorio"],
             "accesso agli atti": ["accesso agli atti", "accesso difensivo"],
             "cartella": ["cartella", "riscossione", "estratto di ruolo"],
-            "responsabilità medica": ["responsabilità medica", "sanitaria"],
+            "responsabilitÃ  medica": ["responsabilitÃ  medica", "sanitaria"],
             "licenziamento": ["licenziamento"],
             "stupefacenti": ["stupefacenti"],
         }
@@ -2180,7 +2180,7 @@ class GestioneGiurisprudenza:
         suffix = f" ({', '.join(details)})" if details else ""
         return (
             "Scheda creata da import assistito su materiale fornito dal cliente"
-            f"{suffix}. Verificare classificazione, completezza dei metadati e utilizzabilità redazionale."
+            f"{suffix}. Verificare classificazione, completezza dei metadati e utilizzabilitÃ  redazionale."
         )
 
     def _upsert_import_payload(self, payload: Dict[str, Any]) -> Dict[str, Any]:
@@ -2489,3 +2489,4 @@ __all__ = [
     "TIPI_PROVVEDIMENTO",
     "tassonomia_flat",
 ]
+

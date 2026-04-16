@@ -1,4 +1,4 @@
-﻿"""Runtime PDP Penale estratto da web.app."""
+"""Runtime PDP Penale estratto da web.app."""
 
 from __future__ import annotations
 
@@ -511,7 +511,7 @@ def build_pdp_penale_runtime(
             story.append(Paragraph(str(case_row.get("notes") or ""), styles["PDPBody"]))
         story.append(Spacer(1, 14))
         story.append(Paragraph(
-            f"Documento generato il {date.today().strftime('%d/%m/%Y')} dal workflow PDP Penale HACS.",
+            f"Documento generato il {date.today().strftime('%d/%m/%Y')} dal workflow PDP Penale IUSENTRA.",
             styles["PDPBody"],
         ))
         doc.build(story)

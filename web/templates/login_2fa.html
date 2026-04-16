@@ -1,15 +1,15 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="it">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Accesso — Studio Legale PCT</title>
+  <title>Accesso â€” IUSENTRA</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
   <style>
     body { background: #f0f4f8; }
     .login-card {
-      max-width: 420px;
+      max-width: 460px;
       margin: 8vh auto 0;
       border: none;
       border-radius: 16px;
@@ -19,27 +19,40 @@
       background: #1a3a5c;
       color: #fff;
       border-radius: 16px 16px 0 0;
-      padding: 2rem;
+      padding: 1.75rem 2rem;
       text-align: center;
     }
-    .login-header .icon { font-size: 2.5rem; color: #c8972b; }
-    .login-header h1 { font-size: 1.3rem; margin: .5rem 0 .1rem; }
-    .login-header p { font-size: .8rem; opacity: .7; margin: 0; }
+    .login-header .logo-wrap {
+      display: flex;
+      justify-content: center;
+      margin-bottom: .9rem;
+    }
+    .login-header .brand-logo {
+      width: min(100%, 248px);
+      height: auto;
+      display: block;
+      border-radius: 14px;
+      box-shadow: 0 18px 34px rgba(0,0,0,.18);
+    }
+    .login-header h1 { font-size: 1.12rem; margin: 0 0 .2rem; font-weight: 700; }
+    .login-header p { font-size: .82rem; opacity: .8; margin: 0; }
   </style>
 </head>
 <body>
 
 <div class="login-card card">
   <div class="login-header">
-    <div class="icon"><i class="bi bi-briefcase-fill"></i></div>
-    <h1>Studio Legale PCT</h1>
-    <p>Portale di gestione professionale</p>
+    <div class="logo-wrap">
+      <img src="{{ url_for('static', filename='img/logo-iusentra.png') }}" alt="IUSENTRA" class="brand-logo">
+    </div>
+    <h1>Accesso sicuro a IUSENTRA</h1>
+    <p>La piattaforma unica per lo studio legale</p>
   </div>
   <div class="card-body p-4">
     {% if request.args.get('timeout') %}
     <div class="alert alert-warning d-flex align-items-center gap-2 py-2">
       <i class="bi bi-clock-history"></i>
-      <span>Sessione scaduta per inattività. Accedi di nuovo.</span>
+      <span>Sessione scaduta per inattivitÃ . Accedi di nuovo.</span>
     </div>
     {% endif %}
     {% if errore %}
@@ -78,7 +91,7 @@
         <div class="input-group">
           <span class="input-group-text"><i class="bi bi-lock"></i></span>
           <input type="password" name="password" id="pwd" class="form-control" required
-                 autocomplete="current-password" placeholder="••••••••">
+                 autocomplete="current-password" placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢">
           <button class="btn btn-outline-secondary" type="button"
                   onclick="togglePwd()" title="Mostra/nascondi">
             <i class="bi bi-eye" id="eye-icon"></i>
@@ -110,3 +123,4 @@ function togglePwd() {
 </script>
 </body>
 </html>
+

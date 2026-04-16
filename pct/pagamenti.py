@@ -1,20 +1,20 @@
-"""
-pct/pagamenti.py — Gestione pagamenti digitali multi-provider.
+﻿"""
+pct/pagamenti.py â€” Gestione pagamenti digitali multi-provider.
 
 Provider supportati:
-  ★ Stripe       — carte, SEPA, Apple Pay, Google Pay, Bancomat Pay
-  ★ PayPal       — conto PayPal + carte
-  ★ Satispay     — mobile payment italiano (consigliato per clienti IT)
-  ★ SumUp        — carte online + POS fisico
-  ★ Bonifico     — manuale SEPA (nessuna commissione)
+  â˜… Stripe       â€” carte, SEPA, Apple Pay, Google Pay, Bancomat Pay
+  â˜… PayPal       â€” conto PayPal + carte
+  â˜… Satispay     â€” mobile payment italiano (consigliato per clienti IT)
+  â˜… SumUp        â€” carte online + POS fisico
+  â˜… Bonifico     â€” manuale SEPA (nessuna commissione)
 
 Provider non inclusi per policy (retail B2C, non adatti studi legali):
   - Klarna, Scalapay, Afterpay (BNPL retail)
 
 Commissioni indicative (2025):
-  Stripe:   1.5 % + 0,25 € (carte EU)
-  PayPal:   3.4 % + 0,35 €
-  Satispay: 0 % < 10 €;  1 % > 10 € (max 1,50 €) — CONSIGLIATO
+  Stripe:   1.5 % + 0,25 â‚¬ (carte EU)
+  PayPal:   3.4 % + 0,35 â‚¬
+  Satispay: 0 % < 10 â‚¬;  1 % > 10 â‚¬ (max 1,50 â‚¬) â€” CONSIGLIATO
   SumUp:    1.69 % (carte)
   Bonifico: 0 % (manuale)
 """
@@ -369,7 +369,7 @@ class GestionePagamenti:
                     "application_context": {
                         "return_url": return_url,
                         "cancel_url": cancel_url,
-                        "brand_name": "Studio Legale PCT",
+                        "brand_name": "IUSENTRA",
                         "user_action": "PAY_NOW",
                     },
                 },
@@ -482,3 +482,4 @@ class GestionePagamenti:
                     "code_identifier": data.get("code_identifier")}
         except Exception as e:
             return {"errore": str(e)}
+

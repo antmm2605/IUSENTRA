@@ -29,7 +29,7 @@
       <h1 class="h2 mb-2">Sentenze, massime e orientamenti con fonti ufficiali separate</h1>
       <p class="jud-summary mb-0">
         L'archivio distingue fonte, giurisdizione, grado, tassonomia giuridica e metadati processuali.
-        Dove la fonte Ã¨ pubblica il recupero Ã¨ leggero e assistito; dove serve autenticazione il gestionale
+        Dove la fonte è pubblica il recupero è leggero e assistito; dove serve autenticazione il gestionale
         governa handoff e classificazione interna senza promettere letture live non ufficiali.
       </p>
     </div>
@@ -66,7 +66,7 @@
   </div>
   <div class="col-6 col-md-3">
     <div class="jud-stat p-3 h-100">
-      <div class="small text-muted mb-1">Fonti giÃ  usate</div>
+      <div class="small text-muted mb-1">Fonti già usate</div>
       <div class="fs-3 fw-bold">{{ statistiche.fonti_usate }}</div>
     </div>
   </div>
@@ -153,7 +153,7 @@
       <h2 class="h5 mb-1">Import assistito da materiale cliente</h2>
       <div class="text-muted small">
         Usa questa area per Simpliciter o altre fonti non sincronizzabili direttamente: IUSENTRA importa solo URL,
-        testo, PDF o HTML che hai giÃ  ottenuto legittimamente, poi crea o aggiorna automaticamente le schede sentenza.
+        testo, PDF o HTML che hai già ottenuto legittimamente, poi crea o aggiorna automaticamente le schede sentenza.
       </div>
     </div>
     <span class="jud-chip"><i class="bi bi-shield-check"></i>Nessuno scraping del portale</span>
@@ -179,7 +179,7 @@
     </div>
     <div class="col-12">
       <label class="form-label">Testo o output da importare</label>
-      <textarea name="materiale_text" class="form-control" rows="6" placeholder="Incolla qui la sentenza, la massima, l'output di Simpliciter oppure l'estratto della ricerca. Se il testo contiene piÃ¹ decisioni, IUSENTRA prova a separarle e creare piÃ¹ schede."></textarea>
+      <textarea name="materiale_text" class="form-control" rows="6" placeholder="Incolla qui la sentenza, la massima, l'output di Simpliciter oppure l'estratto della ricerca. Se il testo contiene più decisioni, IUSENTRA prova a separarle e creare più schede."></textarea>
     </div>
     <div class="col-xl-3 col-md-6">
       <label class="form-label">Area suggerita</label>
@@ -228,7 +228,7 @@
     </div>
     <div class="col-xl-9 col-md-6 d-flex align-items-end">
       <div class="small text-muted">
-        Se il materiale contiene piÃ¹ sentenze, il sistema tenta una separazione automatica per ECLI, numero provvedimento e blocchi redazionali.
+        Se il materiale contiene più sentenze, il sistema tenta una separazione automatica per ECLI, numero provvedimento e blocchi redazionali.
         I duplicati vengono aggiornati invece di creare doppioni.
       </div>
     </div>
@@ -362,7 +362,7 @@
             <div class="d-flex align-items-start justify-content-between gap-3 mb-2">
               <div>
                 <div class="fw-semibold">{{ fonte.nome }}</div>
-                <div class="small text-muted">{{ fonte.giurisdizione }} Â· {{ fonte.coverage }}</div>
+                <div class="small text-muted">{{ fonte.giurisdizione }} · {{ fonte.coverage }}</div>
               </div>
               <span class="badge text-bg-light">{{ fonte.badge }}</span>
             </div>
@@ -419,9 +419,9 @@
               <div class="fw-semibold mb-1">{{ item.titolo }}</div>
               <div class="small text-muted mb-2">
                 {{ item.organo_giudicante or 'Organo da completare' }}
-                {% if item.grado %} Â· {{ item.grado }}{% endif %}
-                {% if item.numero_provvedimento %} Â· n. {{ item.numero_provvedimento }}{% endif %}
-                {% if item.data_deposito_fmt %} Â· deposito {{ item.data_deposito_fmt }}{% endif %}
+                {% if item.grado %} · {{ item.grado }}{% endif %}
+                {% if item.numero_provvedimento %} · n. {{ item.numero_provvedimento }}{% endif %}
+                {% if item.data_deposito_fmt %} · deposito {{ item.data_deposito_fmt }}{% endif %}
               </div>
               {% if item.massima %}
               <div class="small">{{ item.massima }}</div>
@@ -462,7 +462,7 @@
             </div>
             <div class="text-end small">
               <div class="fw-semibold">{{ run.checked_at_fmt }}</div>
-              <div class="text-muted">{{ run.status|replace('_', ' ') }} Â· {{ run.imported }} importati</div>
+              <div class="text-muted">{{ run.status|replace('_', ' ') }} · {{ run.imported }} importati</div>
             </div>
           </div>
         </div>

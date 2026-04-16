@@ -11,6 +11,9 @@ from web.app import create_app
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+MOJIBAKE_PATTERN = re.compile(
+    r"\u00c3.|\u00c2.|\u00e2[\u20ac\u201a\u0192\u201e\u2026\u2020\u2021\u02c6\u2030\u0160\u2039\u0152\u017d\u2018\u2019\u201c\u201d\u2022\u2013\u2014\u02dc\u2122\u0161\u203a\u0153\u017e\u0178]|\u00e2\u0153.|\u00e2\u0161."
+)
 
 
 def _write_studio_config(path: Path) -> None:
@@ -503,7 +506,7 @@ def test_bootstrap_pubblico_resta_allineato_a_password_temporanee_e_ci_reale():
     assert "PCT_BOOTSTRAP_ADMIN_PASSWORD" in env_example
     assert "PCT_SECRET_KEY=" in env_example
     assert "INSERISCI_UNA_CHIAVE_CASUALE" not in env_example
-    assert "workflow principale applicativo Ã¨ `.github/workflows/ci.yml`" in readme
+    assert "workflow principale applicativo è `.github/workflows/ci.yml`" in readme
     assert "github.com/antmm2605/hacs/actions/workflows/ci.yml" in readme
     assert "name: CI" in ci_workflow
     assert "name: Governance repo" in ci_workflow
@@ -1324,4 +1327,24 @@ def test_assistente_chat_usa_runtime_ollama_risolto(monkeypatch, tmp_path: Path)
     assert called["timeout"] == 180
     assert '"token": "Ciao"' in body
     assert "[DONE]" in body
+
+
+def test_file_critici_non_contengono_marker_di_mojibake():
+    critical_files = [
+        REPO_ROOT / ".env.example",
+        REPO_ROOT / "Dockerfile",
+        REPO_ROOT / "README.md",
+        REPO_ROOT / "railway.toml",
+        REPO_ROOT / "pct/auth.py",
+        REPO_ROOT / "web/services/core_runtime.py",
+        REPO_ROOT / "web/templates/base.html",
+        REPO_ROOT / "web/templates/auth/login.html",
+        REPO_ROOT / "web/templates/auth/login_2fa.html",
+        REPO_ROOT / "web/templates/polisWeb.html",
+        REPO_ROOT / "web/templates/portale/acquisizione_wizard.html",
+    ]
+
+    for path in critical_files:
+        text = path.read_text(encoding="utf-8")
+        assert MOJIBAKE_PATTERN.search(text) is None, path.name
 

@@ -2,7 +2,7 @@
 {% from "components/firma_visibile_selector.html" import render_firma_visibile_selector %}
 {% set fascicolo_ref_principale = fascicolo.rg_completo or fascicolo.numero %}
 {% set fascicolo_ref_interno = fascicolo.numero if fascicolo.rg_completo else "" %}
-{% block title %}Deposito â€” {{ fascicolo_ref_principale }}{% endblock %}
+{% block title %}Deposito — {{ fascicolo_ref_principale }}{% endblock %}
 
 {% block extra_head %}
 <style>
@@ -32,7 +32,7 @@
 {% block content %}
 {% set correction = correction_context or {} %}
 
-{# â”€â”€ Header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ #}
+{# ── Header ─────────────────────────────────────────────────────────── #}
 <div class="d-flex align-items-center gap-2 mb-3 flex-wrap">
   <a href="{{ url_for('dettaglio_fascicolo', id_fasc=fascicolo.id) }}"
      class="btn btn-sm btn-outline-secondary">
@@ -64,12 +64,12 @@
 
 <div class="row g-4">
 
-{# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-   COLONNA SINISTRA â€” Step 1 (documenti) + Step 2 (metadati)
-â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• #}
+{# ═══════════════════════════════════════════════════════════════
+   COLONNA SINISTRA — Step 1 (documenti) + Step 2 (metadati)
+═══════════════════════════════════════════════════════════════ #}
 <div class="col-lg-7">
 
-  {# â”€â”€ Step 1: Scegli documenti â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ #}
+  {# ── Step 1: Scegli documenti ─────────────────────────────────── #}
   <div class="card shadow-sm mb-4">
     <div class="card-header fw-semibold d-flex align-items-center gap-2">
       <span class="step-badge bg-primary text-white">1</span>
@@ -156,12 +156,12 @@
           {% if ps and ps.conforme == false %}
           <div class="mt-2 small text-danger">
             <i class="bi bi-exclamation-triangle me-1"></i>
-            Non PDF/A â€” riconverti con LibreOffice o Word prima di depositare.
+            Non PDF/A — riconverti con LibreOffice o Word prima di depositare.
           </div>
           {% endif %}
           {% if ps and ps.cifrato %}
           <div class="mt-2 small text-danger">
-            <i class="bi bi-lock me-1"></i>PDF cifrato â€” non ammesso dal PST.
+            <i class="bi bi-lock me-1"></i>PDF cifrato — non ammesso dal PST.
           </div>
           {% endif %}
         </div>
@@ -172,7 +172,7 @@
       <div id="hAllegatiList"></div>
 
       <div id="selRiepilogo" class="mt-3 p-2 bg-light rounded small" style="display:none">
-        <strong>Atto:</strong> <span id="lblMainDoc" class="text-primary fw-semibold">â€”</span><br>
+        <strong>Atto:</strong> <span id="lblMainDoc" class="text-primary fw-semibold">—</span><br>
         <span id="lblAllegati" class="text-muted"></span>
       </div>
 
@@ -189,7 +189,7 @@
     </div>
   </div>
 
-  {# â”€â”€ Step 2: Metadati busta â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ #}
+  {# ── Step 2: Metadati busta ────────────────────────────────────── #}
   <div class="card shadow-sm mb-4">
     <div class="card-header fw-semibold d-flex align-items-center gap-2">
       <span class="step-badge bg-primary text-white">2</span>
@@ -200,7 +200,7 @@
         <div class="col-sm-6">
           <label class="form-label small fw-semibold">Tipo atto <span class="text-danger">*</span></label>
           <select class="form-select form-select-sm" id="fTipoAtto">
-            <option value="">â€” scegli â€”</option>
+            <option value="">— scegli —</option>
             <option value="ATTO_DI_CITAZIONE">Atto di citazione</option>
             <option value="RICORSO">Ricorso</option>
             <option value="MEMORIA">Memoria</option>
@@ -217,10 +217,10 @@
         <div class="col-sm-6">
           <label class="form-label small fw-semibold">Registro</label>
           <select class="form-select form-select-sm" id="fRegistro">
-            <option value="RG">RG â€” Ruolo Generale Contenzioso</option>
-            <option value="RGE">RGE â€” Esecuzioni</option>
-            <option value="RGL">RGL â€” Lavoro</option>
-            <option value="VG">VG â€” Volontaria Giurisdizione</option>
+            <option value="RG">RG — Ruolo Generale Contenzioso</option>
+            <option value="RGE">RGE — Esecuzioni</option>
+            <option value="RGL">RGL — Lavoro</option>
+            <option value="VG">VG — Volontaria Giurisdizione</option>
           </select>
         </div>
         <div class="col-12">
@@ -243,7 +243,7 @@
         <div class="col-12">
           <label class="form-label small fw-semibold">Note interne</label>
           <textarea id="fNote" class="form-control form-control-sm" rows="2"
-                    placeholder="Annotazioniâ€¦"></textarea>
+                    placeholder="Annotazioni…"></textarea>
         </div>
       </div>
     </div>
@@ -251,9 +251,9 @@
 
 </div>{# /col-lg-7 #}
 
-{# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-   COLONNA DESTRA â€” Destinatario + Step 3 (azioni) + Step 4 (manuale)
-â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• #}
+{# ═══════════════════════════════════════════════════════════════
+   COLONNA DESTRA — Destinatario + Step 3 (azioni) + Step 4 (manuale)
+═══════════════════════════════════════════════════════════════ #}
 <div class="col-lg-5">
 
   {# Info tribunale #}
@@ -267,7 +267,7 @@
       {% if pec_tribunale %}
       <div class="font-monospace small text-muted mb-2">{{ pec_tribunale }}</div>
       <span class="badge bg-success bg-opacity-10 text-success border small">
-        <i class="bi bi-check-circle me-1"></i>PEC trovata â€” invio diretto disponibile
+        <i class="bi bi-check-circle me-1"></i>PEC trovata — invio diretto disponibile
       </span>
       {% else %}
       <span class="badge bg-warning text-dark small">
@@ -278,13 +278,13 @@
       <div class="text-muted small">
         <i class="bi bi-exclamation-circle me-1"></i>
         Nessun tribunale associato.
-        <a href="{{ url_for('modifica_fascicolo', id_fasc=fascicolo.id) }}">Modifica fascicolo â†’</a>
+        <a href="{{ url_for('modifica_fascicolo', id_fasc=fascicolo.id) }}">Modifica fascicolo →</a>
       </div>
       {% endif %}
     </div>
   </div>
 
-  {# â”€â”€ Step 3: Azioni â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ #}
+  {# ── Step 3: Azioni ─────────────────────────────────────────────── #}
   <div class="card shadow-sm mb-4">
     <div class="card-header fw-semibold d-flex align-items-center justify-content-between">
       <span><i class="bi bi-shield-check me-2 text-primary"></i>Verificatore pre-deposito</span>
@@ -313,7 +313,7 @@
     </div>
     <div class="card-body d-grid gap-3">
 
-      {# â€” Invio via PEC â€” sempre visibile; demo=true finchÃ© PEC non configurata â€” #}
+      {# — Invio via PEC — sempre visibile; demo=true finché PEC non configurata — #}
       {# TODO: sostituire avviaInvioPec(true) con avviaInvioPec(false) quando PEC studio attiva #}
       <div>
         <button type="button" class="btn btn-success fw-semibold w-100" id="btnInviaPecDiretto"
@@ -324,21 +324,21 @@
           {% if pec_tribunale %}
           Firma + busta + PEC a <strong>{{ pec_tribunale }}</strong>
           {% else %}
-          Busta + PEC â€” destinatario da configurare
+          Busta + PEC — destinatario da configurare
           {% endif %}
         </div>
       </div>
-      <div class="text-center text-muted small">â€” oppure â€”</div>
+      <div class="text-center text-muted small">— oppure —</div>
 
       {% if pec_tribunale and not pec_configurata %}
       {# PEC tribunale OK ma PEC studio non configurata #}
       <div class="alert alert-warning small d-flex gap-2 align-items-start mb-0 py-2">
         <i class="bi bi-exclamation-triangle-fill flex-shrink-0 mt-1"></i>
         <div>
-          PEC mittente non configurata â€” l'invio diretto non Ã¨ disponibile.<br>
+          PEC mittente non configurata — l'invio diretto non è disponibile.<br>
           <a href="{{ url_for('impostazioni.index') }}" class="fw-semibold">
-            Vai in Impostazioni â†’ PEC
-          </a> per inserire le credenziali, oppure usa la modalitÃ  Demo qui sotto.
+            Vai in Impostazioni → PEC
+          </a> per inserire le credenziali, oppure usa la modalità Demo qui sotto.
         </div>
       </div>
       {% elif not pec_tribunale %}
@@ -352,17 +352,17 @@
       </div>
       {% endif %}
 
-      {# â€” ModalitÃ  Demo â€” sempre visibile â€” #}
+      {# — Modalità Demo — sempre visibile — #}
       <div>
         <button type="button" class="btn btn-warning fw-semibold w-100" id="btnInviaPecDemo" onclick="avviaInvioPec(true)">
-          <i class="bi bi-play-circle me-2"></i>Testa in ModalitÃ  Demo
+          <i class="bi bi-play-circle me-2"></i>Testa in Modalità Demo
         </button>
         <div class="form-text text-center mt-1">
-          Simula busta + invio PEC â€” nessuna connessione reale, nessun documento inviato
+          Simula busta + invio PEC — nessuna connessione reale, nessun documento inviato
         </div>
       </div>
 
-      <div class="text-center text-muted small">â€” oppure â€”</div>
+      <div class="text-center text-muted small">— oppure —</div>
 
       <div>
         <button type="button" class="btn btn-outline-primary w-100" id="btnScaricaBustaEnc" onclick="avviaGeneraBusta()">
@@ -381,25 +381,25 @@
     </div>
   </div>
 
-  {# ConformitÃ  #}
+  {# Conformità #}
   <div class="card shadow-sm border-0 bg-light mb-4">
     <div class="card-body py-3 small">
-      <p class="fw-semibold mb-2"><i class="bi bi-shield-check text-success me-1"></i>ConformitÃ  PST</p>
+      <p class="fw-semibold mb-2"><i class="bi bi-shield-check text-success me-1"></i>Conformità PST</p>
       <ul class="list-unstyled mb-0 text-muted">
         <li class="mb-1"><i class="bi bi-check2 text-success me-1"></i>
-          <strong>PDF/A</strong> â€” verifica automatica (Step 1)
+          <strong>PDF/A</strong> — verifica automatica (Step 1)
         </li>
         <li class="mb-1"><i class="bi bi-check2 text-success me-1"></i>
-          <strong>Firma CAdES .p7m</strong> â€” obbligatoria sull'atto principale
+          <strong>Firma CAdES .p7m</strong> — obbligatoria sull'atto principale
         </li>
         <li class="mb-1"><i class="bi bi-check2 text-success me-1"></i>
-          <strong>Ricevuta PEC</strong> â€” valore legale equivalente al timestamp (D.M. 44/2011)
+          <strong>Ricevuta PEC</strong> — valore legale equivalente al timestamp (D.M. 44/2011)
         </li>
       </ul>
     </div>
   </div>
 
-  {# â”€â”€ Step 4: Registra esito manuale â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ #}
+  {# ── Step 4: Registra esito manuale ─────────────────────────────── #}
   <div class="card shadow-sm">
     <div class="card-header fw-semibold d-flex align-items-center gap-2">
       <span class="step-badge bg-secondary text-white">4</span>
@@ -407,7 +407,7 @@
     </div>
     <div class="card-body">
       <p class="small text-muted mb-3">
-        Hai giÃ  inviato da software esterno? Registra qui l'esito.
+        Hai già inviato da software esterno? Registra qui l'esito.
       </p>
       <form method="POST" action="{{ url_for('aggiungi_esito_deposito', id_fasc=fascicolo.id) }}">
         <div class="mb-2">
@@ -440,7 +440,7 @@
         </div>
         <div class="mb-2">
           <textarea name="note" class="form-control form-control-sm" rows="2"
-                    placeholder="Noteâ€¦"></textarea>
+                    placeholder="Note…"></textarea>
         </div>
         <button type="submit" class="btn btn-outline-secondary btn-sm w-100">
           <i class="bi bi-save me-1"></i>Salva esito manuale
@@ -456,7 +456,7 @@
 
 {% block modals %}
 
-{# â”€â”€ Modal firma documento (auto-detect: PKCS#11 in-device / firma esterna) â”€â”€ #}
+{# ── Modal firma documento (auto-detect: PKCS#11 in-device / firma esterna) ── #}
 <div class="modal fade" id="modalFirmaPkcs11" tabindex="-1">
   <div class="modal-dialog modal-fullscreen-sm-down">
     <div class="modal-content">
@@ -468,25 +468,25 @@
       </div>
       <div class="modal-body">
 
-        {# â”€â”€ Rilevamento automatico (spinner iniziale) â”€â”€ #}
+        {# ── Rilevamento automatico (spinner iniziale) ── #}
         <div id="pkcs11Detecting" class="text-center py-4">
           <div class="spinner-border spinner-border-sm text-secondary mb-2"></div>
-          <div class="small text-muted" id="pkcs11DetectingTxt">Ricerca Local Signerâ€¦</div>
+          <div class="small text-muted" id="pkcs11DetectingTxt">Ricerca Local Signer…</div>
         </div>
 
-        {# â”€â”€ Avviso: documento non firmato â”€â”€ #}
+        {# ── Avviso: documento non firmato ── #}
         <div id="pkcs11Banner" class="alert alert-warning d-flex gap-2 small mb-3" style="display:none!important">
           <i class="bi bi-exclamation-triangle-fill flex-shrink-0 mt-1"></i>
           <div>
-            <strong id="pkcs11DocNome">â€”</strong> non Ã¨ firmato digitalmente.
+            <strong id="pkcs11DocNome">—</strong> non è firmato digitalmente.
             Il PST rifiuta la busta se l'atto principale non ha firma CAdES (.p7m).
           </div>
         </div>
 
         {{ render_firma_visibile_selector('depositoFirma', firma_visibile_place) }}
 
-        {# â•â•â•â•â•â•â•â•â•â•â•â• PATH L â€” Local Signer (Windows / Aruba Key in-device) â•â•â•â•â•â•â•â•â•â•â•â• #}
-        {# Usa http://localhost:27272 â€” avviare tools/avvia_local_signer.bat #}
+        {# ════════════ PATH L — Local Signer (Windows / Aruba Key in-device) ════════════ #}
+        {# Usa http://localhost:27272 — avviare tools/avvia_local_signer.bat #}
         <div id="pathLocalSigner" style="display:none">
 
           <div id="lsTokenInfo" class="alert alert-success small d-flex gap-2 mb-3">
@@ -506,13 +506,13 @@
           </div>
           <div class="form-text mb-3">
             <i class="bi bi-shield-lock me-1 text-success"></i>
-            Il PIN non viene trasmesso al server â€” usato solo nel Local Signer sul tuo PC.
+            Il PIN non viene trasmesso al server — usato solo nel Local Signer sul tuo PC.
           </div>
 
           <div id="lsStep3" style="display:none">
             <div id="lsProgress" class="text-center py-3">
               <div class="spinner-border text-warning mb-2"></div>
-              <div class="small text-muted">Firma in corso nel token â€” attendereâ€¦</div>
+              <div class="small text-muted">Firma in corso nel token — attendere…</div>
               <div class="small text-muted mt-1">La chiave privata non lascia il dispositivo.</div>
             </div>
             <div id="lsSuccess" class="alert alert-success small d-flex gap-2" style="display:none">
@@ -531,10 +531,10 @@
 
         </div>{# /pathLocalSigner #}
 
-        {# â•â•â•â•â•â•â•â•â•â•â•â• PATH A â€” PKCS#11 server-side (Linux + pcscd) â•â•â•â•â•â•â•â•â•â•â•â• #}
+        {# ════════════ PATH A — PKCS#11 server-side (Linux + pcscd) ════════════ #}
         <div id="pathPkcs11" style="display:none">
 
-          {# Step 1 â€” Token rilevato, inserisci PIN #}
+          {# Step 1 — Token rilevato, inserisci PIN #}
           <div id="pkcs11Step2">
             <div id="pkcs11TokenInfo" class="alert alert-success small d-flex gap-2 mb-3">
               <i class="bi bi-usb-symbol flex-shrink-0 mt-1"></i>
@@ -552,15 +552,15 @@
             </div>
             <div class="form-text mb-3">
               <i class="bi bi-shield-lock me-1 text-success"></i>
-              Il PIN non viene salvato â€” usato solo per questa firma, poi scartato.
+              Il PIN non viene salvato — usato solo per questa firma, poi scartato.
             </div>
           </div>
 
-          {# Step 2 â€” Firma in corso / esito #}
+          {# Step 2 — Firma in corso / esito #}
           <div id="pkcs11Step3" style="display:none">
             <div id="pkcs11Progress" class="text-center py-3">
               <div class="spinner-border text-warning mb-2"></div>
-              <div class="small text-muted">Firma in corso nel token â€” attendereâ€¦</div>
+              <div class="small text-muted">Firma in corso nel token — attendere…</div>
               <div class="small text-muted mt-1">La chiave privata non lascia il dispositivo.</div>
             </div>
             <div id="pkcs11Success" class="alert alert-success small d-flex gap-2" style="display:none">
@@ -579,13 +579,13 @@
 
         </div>{# /pathPkcs11 #}
 
-        {# â•â•â•â•â•â•â•â•â•â•â•â• PATH B â€” Firma esterna (Windows / nessun token) â•â•â•â•â•â•â•â•â•â•â•â• #}
+        {# ════════════ PATH B — Firma esterna (Windows / nessun token) ════════════ #}
         <div id="pathEsterna" style="display:none">
 
           <div class="alert alert-info small d-flex gap-2 mb-3">
             <i class="bi bi-windows flex-shrink-0 mt-1"></i>
             <div>
-              <strong>Windows / token non rilevato</strong> â€” firma il documento con
+              <strong>Windows / token non rilevato</strong> — firma il documento con
               <strong>ArubaSign</strong>, <strong>Dike</strong> o altro software, poi carica il
               <code>.p7m</code> qui sotto.
             </div>
@@ -609,7 +609,7 @@
               Firma con ArubaSign / Dike / altro software
             </p>
             <div class="small text-muted ps-3">
-              Apri il software di firma â†’ seleziona il file scaricato â†’ firma CAdES (.p7m) â†’
+              Apri il software di firma → seleziona il file scaricato → firma CAdES (.p7m) →
               salva il risultato (es. <code>nomefile.pdf.p7m</code>).
             </div>
           </div>
@@ -628,7 +628,7 @@
 
         </div>{# /pathEsterna #}
 
-        {# â”€â”€ Link per passare all'altro metodo â”€â”€ #}
+        {# ── Link per passare all'altro metodo ── #}
         <div id="switchPath" class="mt-3" style="display:none">
           <hr class="my-2">
           <button type="button" class="btn btn-link btn-sm p-0 text-muted"
@@ -658,7 +658,7 @@
   </div>
 </div>
 
-{# â”€â”€ Modal conferma invio PEC (reale e demo) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ #}
+{# ── Modal conferma invio PEC (reale e demo) ─────────────────────────── #}
 <div class="modal fade" id="modalConfermaPec" tabindex="-1">
   <div class="modal-dialog modal-fullscreen-sm-down">
     <div class="modal-content">
@@ -669,18 +669,18 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
-        {# Banner demo â€” visibile solo in demo mode #}
+        {# Banner demo — visibile solo in demo mode #}
         <div id="bannerDemo" class="alert alert-warning d-flex gap-2 align-items-start small mb-3" style="display:none!important">
           <i class="bi bi-play-circle-fill flex-shrink-0 mt-1"></i>
           <div>
-            <strong>ModalitÃ  Demo attiva</strong> â€” Nessun file verrÃ  inviato. La busta Ã¨ simulata
-            e l'invio PEC Ã¨ fittizio. L'esito viene comunque salvato nel fascicolo con etichetta
+            <strong>Modalità Demo attiva</strong> — Nessun file verrà inviato. La busta è simulata
+            e l'invio PEC è fittizio. L'esito viene comunque salvato nel fascicolo con etichetta
             <code>[DEMO]</code>.
           </div>
         </div>
         <p class="mb-1 small text-muted">Destinatario PEC:</p>
         <p class="mb-3">
-          <span class="font-monospace fw-bold text-primary" id="pecDestinatario">{{ pec_tribunale or "â€”" }}</span>
+          <span class="font-monospace fw-bold text-primary" id="pecDestinatario">{{ pec_tribunale or "—" }}</span>
         </p>
         <div id="riepilogoBusta" class="alert alert-light border small mb-3"></div>
         <div id="warningFirma" class="alert alert-warning small d-flex gap-2 align-items-start">
@@ -698,14 +698,14 @@
           <div class="progress mb-2" style="height:6px">
             <div class="progress-bar progress-bar-striped progress-bar-animated w-100" id="invioProgressBar"></div>
           </div>
-          <div class="text-center small text-muted" id="invioProgressTxt">Invio in corso â€” attendereâ€¦</div>
+          <div class="text-center small text-muted" id="invioProgressTxt">Invio in corso — attendere…</div>
         </div>
       </div>
     </div>
   </div>
 </div>
 
-{# â”€â”€ Form nascosto per genera busta â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ #}
+{# ── Form nascosto per genera busta ─────────────────────────────────── #}
 <form id="formGeneraBusta" method="post"
       action="{{ url_for('deposito_genera_busta', id_fasc=fascicolo.id) }}" style="display:none">
   <input type="hidden" name="tipo_atto" id="gb_tipo">
@@ -726,9 +726,9 @@
 <script>
 let mainDocId = null;
 const allegatiSet = new Set();
-let _invioDemo = false;  // true = modalitÃ  demo, false = invio reale
+let _invioDemo = false;  // true = modalità demo, false = invio reale
 
-// â”€â”€ Configurazione Local Signer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Configurazione Local Signer ───────────────────────────────────────────────
 const _LS_PORT = 27272;
 const _LS_BASE = `http://127.0.0.1:${_LS_PORT}`;
 
@@ -789,8 +789,8 @@ function _depositoUploadWarningText(payload) {
   return 'Documento salvato correttamente con un avviso operativo non bloccante.';
 }
 
-// â”€â”€ Stato PKCS#11 / Local Signer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-let _pkcs11PendingAction = null;  // 'pec' | 'demo' | 'busta' â€” azione da eseguire dopo firma
+// ── Stato PKCS#11 / Local Signer ─────────────────────────────────────────────
+let _pkcs11PendingAction = null;  // 'pec' | 'demo' | 'busta' — azione da eseguire dopo firma
 let _pkcs11TokenSlot = null;       // slot_id del token rilevato (server-side)
 let _lsTokenSlot = null;           // slot_id del token nel Local Signer
 let _lsPinSessionId = null;        // sessione PIN temporanea in RAM nel Local Signer
@@ -818,7 +818,7 @@ function _lsSavePinSession(id) {
   } catch (_) {}
 }
 
-// Mappa doc_id â†’ firmato (aggiornata dinamicamente dopo firma PKCS#11)
+// Mappa doc_id → firmato (aggiornata dinamicamente dopo firma PKCS#11)
 const _docFirmato = {};
 {% for doc in fascicolo.documenti %}
 _docFirmato['{{ doc.id }}'] = {{ 'true' if doc.firmato_digitalmente else 'false' }};
@@ -973,7 +973,7 @@ function _docMainFirmato() {
   return mainDocId && _docFirmato[mainDocId] === true;
 }
 
-// â”€â”€ Firma singolo documento (pulsante Firma nella card) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Firma singolo documento (pulsante Firma nella card) ────────────────────
 let _firmaDocSavedMainId = null;  // salva mainDocId originale durante firma singola
 
 function firmaDocumento(docId) {
@@ -995,11 +995,11 @@ function _dopoFirmaSingola() {
   _scheduleValidation(40);
 }
 
-// â”€â”€ Funzioni PKCS#11 â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Funzioni PKCS#11 ─────────────────────────────────────────────────────────
 
 function rilevaPkcs11Token() {
   const statusEl = document.getElementById('pkcs11TokenStatus');
-  statusEl.innerHTML = '<i class="bi bi-hourglass-split me-1"></i>Ricerca token in corsoâ€¦';
+  statusEl.innerHTML = '<i class="bi bi-hourglass-split me-1"></i>Ricerca token in corso…';
   fetch('/api/firma/pkcs11/status')
     .then(r => r.json())
     .then(d => {
@@ -1012,7 +1012,7 @@ function rilevaPkcs11Token() {
         // Passa a step 2
         document.getElementById('pkcs11Step1').style.display = 'none';
         const infoEl = document.querySelector('#pkcs11TokenInfo span');
-        if (infoEl) infoEl.textContent = `Token: ${tok.label || tok.manufacturer || 'Token'} â€” slot ${tok.slot_id}`;
+        if (infoEl) infoEl.textContent = `Token: ${tok.label || tok.manufacturer || 'Token'} — slot ${tok.slot_id}`;
         document.getElementById('pkcs11Step2').style.display = 'block';
         document.getElementById('btnAvviaFirmaPkcs11').classList.remove('d-none');
         document.getElementById('pkcs11PinInput').focus();
@@ -1064,8 +1064,8 @@ function avviaFirmaPkcs11() {
       _aggiornaBadgeFirmato(mainDocId, d.nome_firmato);
 
       const msgParts = [`Firmato da <strong>${d.intestatario || 'token'}</strong>`];
-      if (d.scadenza) msgParts.push(`Â· certificato valido fino al ${d.scadenza}`);
-      if (d.avviso_scadenza) msgParts.push('Â· <span class="text-warning">certificato in scadenza!</span>');
+      if (d.scadenza) msgParts.push(`· certificato valido fino al ${d.scadenza}`);
+      if (d.avviso_scadenza) msgParts.push('· <span class="text-warning">certificato in scadenza!</span>');
       const uploadWarning = _depositoUploadWarningText(d);
       if (uploadWarning) msgParts.push(`<span class="text-warning">${uploadWarning}</span>`);
       document.getElementById('pkcs11SuccessMsg').innerHTML = msgParts.join(' ');
@@ -1093,7 +1093,7 @@ function continuaDopoFirma() {
   } else if (_pkcs11PendingAction === 'pec') {
     _eseguiInvioPec();
   } else if (_pkcs11PendingAction === 'demo') {
-    _eseguiInvioPec();  // con _invioDemo=true giÃ  impostato
+    _eseguiInvioPec();  // con _invioDemo=true già impostato
   } else if (_pkcs11PendingAction === 'busta') {
     _eseguiGeneraBusta();
   }
@@ -1101,7 +1101,7 @@ function continuaDopoFirma() {
 }
 
 function _aggiornaBadgeFirmato(docId, nomeFirmato) {
-  // Aggiorna l'icona e il badge "non firmato" â†’ ".p7m" nella card del documento
+  // Aggiorna l'icona e il badge "non firmato" → ".p7m" nella card del documento
   const card = document.getElementById('dc_' + docId);
   if (!card) return;
   const iconEl = card.querySelector('i.bi-file-earmark-pdf, i.bi-patch-check-fill');
@@ -1124,7 +1124,7 @@ function _aggiornaBadgeFirmato(docId, nomeFirmato) {
   }
 }
 
-// â”€â”€ Local Signer path â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Local Signer path ────────────────────────────────────────────────────────
 
 function _mostraPathLocalSigner(tok) {
   _firmaPathAttivo = 'local';
@@ -1142,7 +1142,7 @@ function _mostraPathLocalSigner(tok) {
   const lbl = tok.label || tok.manufacturer || 'Token';
   const infoEl = document.querySelector('#lsTokenInfo span');
   if (infoEl) infoEl.textContent =
-    `Local Signer: ${lbl} (slot ${tok.slot_id}) â€” firma in-device`;
+    `Local Signer: ${lbl} (slot ${tok.slot_id}) — firma in-device`;
   // Reset form PIN
   document.getElementById('lsPinInput').value = '';
   document.getElementById('lsStep3').style.display = 'none';
@@ -1191,7 +1191,7 @@ function avviaFirmaLocalSigner() {
       _lsSavePinSession(d.pin_session_id || _lsPinSessionId);
       // 4. Carica il .p7m firmato sul server
       const firmataBytes = _base64ToUint8ArraySafe(d.firmato_b64);
-      // Determina il nome: aggiungi .p7m se non c'Ã¨ giÃ 
+      // Determina il nome: aggiungi .p7m se non c'è già
       const nomeEl = document.querySelector('#dc_' + mainDocId + ' .text-truncate');
       const nomeOrig = nomeEl ? nomeEl.textContent.trim() : 'documento.pdf';
       const nomeP7m = nomeOrig.endsWith('.p7m') ? nomeOrig : nomeOrig + '.p7m';
@@ -1217,7 +1217,7 @@ function avviaFirmaLocalSigner() {
       _aggiornaBadgeFirmato(mainDocId, nomeP7m);
       const msg = [];
       if (d.intestatario) msg.push(`Firmato da <strong>${d.intestatario}</strong>`);
-      if (d.scadenza) msg.push(`Â· cert. valido fino al ${d.scadenza}`);
+      if (d.scadenza) msg.push(`· cert. valido fino al ${d.scadenza}`);
       const uploadWarning = _depositoUploadWarningText(d.upload_payload);
       if (uploadWarning) msg.push(`<span class="text-warning">${uploadWarning}</span>`);
       document.getElementById('lsSuccessMsg').innerHTML = msg.join(' ') || 'Firma completata.';
@@ -1240,7 +1240,7 @@ function resetLsStep() {
   document.getElementById('lsPinInput').focus();
 }
 
-// â”€â”€ Stato per il path attivo â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Stato per il path attivo ─────────────────────────────────────────────────
 let _firmaPathAttivo = 'detecting';  // 'detecting' | 'local' | 'pkcs11' | 'esterna'
 
 function resetPkcs11Step() {
@@ -1261,7 +1261,7 @@ function switchFirmaPath() {
     } else if (_pkcs11TokenSlot !== null) {
       _mostraPathPkcs11(_pkcs11TokenSlot);
     } else {
-      // Nessun token precedentemente rilevato â€” ri-avvia detection
+      // Nessun token precedentemente rilevato — ri-avvia detection
       _apriFirmaPkcs11(_pkcs11PendingAction);
     }
   }
@@ -1309,7 +1309,7 @@ function caricaP7mFirmato(input) {
   if (!file) return;
   const statusEl = document.getElementById('p7mUploadStatus');
   statusEl.style.display = 'block';
-  statusEl.innerHTML = '<span class="text-muted"><i class="bi bi-hourglass-split me-1"></i>Caricamento in corsoâ€¦</span>';
+  statusEl.innerHTML = '<span class="text-muted"><i class="bi bi-hourglass-split me-1"></i>Caricamento in corso…</span>';
 
   const fd = new FormData();
   fd.append('file', file);
@@ -1344,7 +1344,7 @@ function _apriFirmaPkcs11(pendingAction) {
 
   // Reset tutto
   document.getElementById('pkcs11Detecting').style.display = 'block';
-  document.getElementById('pkcs11DetectingTxt').textContent = 'Ricerca Local Signerâ€¦';
+  document.getElementById('pkcs11DetectingTxt').textContent = 'Ricerca Local Signer…';
   document.getElementById('pkcs11Banner').style.display = 'none';
   document.getElementById('pathLocalSigner').style.display = 'none';
   document.getElementById('pathPkcs11').style.display = 'none';
@@ -1366,29 +1366,29 @@ function _apriFirmaPkcs11(pendingAction) {
     .then(r => r.json())
     .then(d => {
       if (d.ok && d.token && d.token.length > 0) {
-        // Local Signer trovato + token presente â†’ PATH L
+        // Local Signer trovato + token presente → PATH L
         const tok = d.token[0];
         _lsTokenSlot = tok.slot_id;
         _firmaViaLS = true;
         _mostraPathLocalSigner(tok);
       } else if (d.ok) {
-        // Local Signer trovato ma nessun token â†’ avvisa e fallback
+        // Local Signer trovato ma nessun token → avvisa e fallback
         _mostraAvvisoLocalSignerNoToken();
         _mostraPathEsterna();
       } else {
-        // Local Signer non disponibile â†’ fallback server PKCS#11
+        // Local Signer non disponibile → fallback server PKCS#11
         _cercaTokenServerSide();
       }
     })
     .catch(() => {
-      // Local Signer non avviato â†’ fallback server PKCS#11
+      // Local Signer non avviato → fallback server PKCS#11
       _cercaTokenServerSide();
     });
 }
 
 function _cercaTokenServerSide() {
   // Fallback: cerca token lato server (richiede pcscd su Linux)
-  document.getElementById('pkcs11DetectingTxt').textContent = 'Ricerca token PKCS#11 serverâ€¦';
+  document.getElementById('pkcs11DetectingTxt').textContent = 'Ricerca token PKCS#11 server…';
   fetch('/api/firma/pkcs11/status', { signal: AbortSignal.timeout(3000) })
     .then(r => r.json())
     .then(d => {
@@ -1396,7 +1396,7 @@ function _cercaTokenServerSide() {
         const tok = d.token[0];
         const infoEl = document.querySelector('#pkcs11TokenInfo span');
         if (infoEl) infoEl.textContent =
-          `Token: ${tok.label || tok.manufacturer || 'Token'} â€” slot ${tok.slot_id}`;
+          `Token: ${tok.label || tok.manufacturer || 'Token'} — slot ${tok.slot_id}`;
         _mostraPathPkcs11(tok.slot_id);
       } else {
         _mostraPathEsterna();
@@ -1418,7 +1418,7 @@ function _mostraAvvisoLocalSignerNoToken() {
   }
 }
 
-// â”€â”€ Wrappers per avviaInvioPec e avviaGeneraBusta con controllo firma â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Wrappers per avviaInvioPec e avviaGeneraBusta con controllo firma ────────
 
 function _eseguiInvioPec() {
   // Esecuzione effettiva dell'invio PEC (senza controllo firma)
@@ -1442,14 +1442,14 @@ function _eseguiInvioPec() {
 
   if (_invioDemo) {
     bannerDemo.style.removeProperty('display');
-    titleEl.innerHTML = '<i class="bi bi-play-circle me-2 text-warning"></i>Demo â€” Invio simulato';
+    titleEl.innerHTML = '<i class="bi bi-play-circle me-2 text-warning"></i>Demo — Invio simulato';
     headerEl.classList.add('bg-warning-subtle');
     pecEl.textContent = pecReale || '{{ fascicolo.tribunale or "tribunale" }}'.toLowerCase().replace(/ /g,'.') + '@pec.demo';
     pecEl.classList.replace('text-primary', 'text-warning');
     btnLbl.textContent = 'Avvia simulazione Demo';
     btnConf.className  = 'btn btn-warning fw-semibold';
     progBar.className  = 'progress-bar progress-bar-striped progress-bar-animated w-100 bg-warning';
-    progTxt.textContent = 'Simulazione in corso â€” attendereâ€¦';
+    progTxt.textContent = 'Simulazione in corso — attendere…';
     warningEl.style.display = 'none';
   } else {
     bannerDemo.style.display = 'none';
@@ -1460,7 +1460,7 @@ function _eseguiInvioPec() {
     btnLbl.textContent = 'Conferma e invia';
     btnConf.className  = 'btn btn-success fw-semibold';
     progBar.className  = 'progress-bar progress-bar-striped progress-bar-animated w-100 bg-success';
-    progTxt.textContent = 'Invio in corso â€” attendereâ€¦';
+    progTxt.textContent = 'Invio in corso — attendere…';
     warningEl.style.display = '';
   }
   new bootstrap.Modal(document.getElementById('modalConfermaPec')).show();
@@ -1512,7 +1512,7 @@ function toggleAllegato(id) {
     allegatiSet.add(id);
     document.getElementById('dc_' + id)?.classList.add('selected-allegato');
     const btn = document.getElementById('btn_all_' + id);
-    if (btn) { btn.textContent = 'âœ“ Allegato'; btn.classList.remove('btn-outline-success'); btn.classList.add('btn-success'); }
+    if (btn) { btn.textContent = '✓ Allegato'; btn.classList.remove('btn-outline-success'); btn.classList.add('btn-success'); }
   }
   _aggiornaRiepilogo();
   _scheduleValidation(40);
@@ -1568,8 +1568,8 @@ function _raccogliDati() {
 function avviaInvioPec(demo) {
   if (!_validaForm()) return;
   _invioDemo = !!demo;
-  // Controlla se l'atto principale Ã¨ firmato
-  // (in demo mode si bypassa il controllo firma â€” l'invio Ã¨ simulato)
+  // Controlla se l'atto principale è firmato
+  // (in demo mode si bypassa il controllo firma — l'invio è simulato)
   if (!_invioDemo && !_docMainFirmato()) {
     _apriFirmaPkcs11('pec');
     return;

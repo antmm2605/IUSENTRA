@@ -1,5 +1,5 @@
 ﻿"""
-pct/polisWeb.py â€” Integrazione con il Portale Servizi Telematici (PST)
+pct/polisWeb.py — Integrazione con il Portale Servizi Telematici (PST)
                    del Ministero della Giustizia.
 
 Offre due blocchi funzionali:
@@ -7,16 +7,16 @@ Offre due blocchi funzionali:
 A) CONSULTAZIONE (lettura):
    - RicercaFascicoliRegistro: cerca pratiche nel registro civile/penale
    - ConsultazioneAvanzataDocumenti: recupera documenti dal fascicolo telematico
-   â†’ Usa i web service SOAP ufficiali PST (autenticazione con certificato P12)
+   → Usa i web service SOAP ufficiali PST (autenticazione con certificato P12)
 
 B) DEPOSITO (scrittura):
-   - Il deposito civile avviene giÃ  via PEC + busta .enc (pct/deposito.py)
-   - PolisWeb NON Ã¨ il canale di deposito: Ã¨ un portale di consultazione
-   â†’ Per il deposito usare DepositoCivile in pct/deposito.py
+   - Il deposito civile avviene già via PEC + busta .enc (pct/deposito.py)
+   - PolisWeb NON è il canale di deposito: è un portale di consultazione
+   → Per il deposito usare DepositoCivile in pct/deposito.py
 
 Requisiti:
   - pip install zeep  (SOAP client)
-  - Certificato P12 del professionista (giÃ  configurato come PCT_FIRMA_P12)
+  - Certificato P12 del professionista (già configurato come PCT_FIRMA_P12)
 
 Riferimenti:
   - Specifiche PST/PCT: https://pst.giustizia.it/PST/it/page_1_0.wp
@@ -63,7 +63,7 @@ def _pst_endpoint_legacy(base_url: str) -> bool:
 def _pst_endpoint_legacy_message() -> str:
     return (
         "L'endpoint PST configurato in IUSENTRA punta ancora a wspa.giustizia.it, "
-        "host legacy non piÃ¹ pubblicato nel DNS pubblico. "
+        "host legacy non più pubblicato nel DNS pubblico. "
         "Con il nuovo registro uffici IUSENTRA prova a comporre automaticamente il proxy corretto; "
         "se l'ufficio non ha metadati PST configurare PCT_PST_BASE_URL completo o almeno il root proxy."
     )
@@ -411,7 +411,7 @@ class FascicoloPolisWeb:
     """
     numero_rg: str
     anno_rg: int
-    ruolo: str                  # CIVILE_COGNIZIONE | ESECUZIONI | FALLIMENTI | â€¦
+    ruolo: str                  # CIVILE_COGNIZIONE | ESECUZIONI | FALLIMENTI | …
     stato: str                  # PENDENTE | DEFINITO | SOSPESO
     oggetto: str                # oggetto della causa
     sezione: str = ""
@@ -430,7 +430,7 @@ class DocumentoPolisWeb:
     """Documento presente nel fascicolo telematico del tribunale."""
     id_documento: str
     nome: str
-    tipo: str                   # ATTO | ALLEGATO | INDICE | PROVVEDIMENTO | â€¦
+    tipo: str                   # ATTO | ALLEGATO | INDICE | PROVVEDIMENTO | …
     data_deposito: str          # YYYY-MM-DD
     mittente: str
     dimensione_bytes: int = 0
@@ -592,7 +592,7 @@ def _is_persona_giuridica(nome: str) -> bool:
     """Euristica: il nome contiene indicatori di forma giuridica o ente."""
     indicatori = (
         "SRL", "S.R.L", "SPA", "S.P.A", "SAS", "S.A.S", "SNC", "S.N.C",
-        "SRLS", "S.R.L.S", "SAP", "SOCIETA", "SOCIETÃ€", "ASSOCIAZIONE",
+        "SRLS", "S.R.L.S", "SAP", "SOCIETA", "SOCIETÀ", "ASSOCIAZIONE",
         "FONDAZIONE", "COOPERATIVA", "CONDOMINIO", "COMUNE DI", "MINISTERO",
         "AGENZIA", "ISTITUTO", "ENTE ", "STUDIO LEGALE",
     )
@@ -608,10 +608,10 @@ def _split_nome_cognome(
     """
     Divide un nominativo PST in (cognome, nome).
 
-    Se il portale espone giÃ  i campi strutturati li usa come fonte primaria.
+    Se il portale espone già i campi strutturati li usa come fonte primaria.
     In fallback applica due euristiche:
     - tutto maiuscolo -> formato PST classico "COGNOME NOME"
-    - testo misto     -> formato piÃ¹ naturale "Nome Cognome"
+    - testo misto     -> formato più naturale "Nome Cognome"
     """
     def _normalize(value: str) -> str:
         return re.sub(r"\s+", " ", (value or "").strip()).title()
@@ -720,7 +720,7 @@ def _crea_cliente_pst(
 ):
     from pct.clienti import StatoCliente, TipoCliente
 
-    nota_auto = f"Inserito automaticamente da {portale} â€” {riferimento}"
+    nota_auto = f"Inserito automaticamente da {portale} — {riferimento}"
     nome = re.sub(r"\s+", " ", (nome or "").strip())
     codice_fiscale = (codice_fiscale or "").strip().upper()
 
@@ -934,18 +934,18 @@ def riconcilia_soggetti_pst(
     l'anagrafica clienti del gestionale.
 
     Per ogni nominativo:
-      - Se esiste un cliente con nome corrispondente â†’ riutilizza
-      - Se non esiste â†’ crea automaticamente un nuovo cliente POTENZIALE
+      - Se esiste un cliente con nome corrispondente → riutilizza
+      - Se non esiste → crea automaticamente un nuovo cliente POTENZIALE
 
     Args:
         nomi:             Lista di nominativi (stringhe) restituiti dal portale.
         gestione_clienti: Istanza di GestioneClienti.
-        riferimento:      Stringa usata nelle note (es. "RG 123/2024 â€” Tribunale di Milano").
+        riferimento:      Stringa usata nelle note (es. "RG 123/2024 — Tribunale di Milano").
         portale:          Nome del portale sorgente (PolisWeb/PDP/PAT).
 
     Returns:
         (id_cliente_principale, nome_cliente_principale, avvisi)
-        dove id_cliente_principale Ã¨ il cliente corrispondente alla prima parte valida.
+        dove id_cliente_principale è il cliente corrispondente alla prima parte valida.
     """
     from pct.clienti import TipoCliente, StatoCliente
 
@@ -972,7 +972,7 @@ def riconcilia_soggetti_pst(
         if trovato is None:
             try:
                 nota_auto = (
-                    f"Inserito automaticamente da {portale} â€” {riferimento}"
+                    f"Inserito automaticamente da {portale} — {riferimento}"
                 )
                 if _is_persona_giuridica(nome_raw):
                     trovato = gestione_clienti.nuovo(
@@ -994,14 +994,14 @@ def riconcilia_soggetti_pst(
                 clienti_cache = gestione_clienti.tutti()
                 avvisi.append(
                     f"Nuovo soggetto creato in anagrafica: "
-                    f"Â«{trovato.nome_completo}Â» (stato: Potenziale)."
+                    f"«{trovato.nome_completo}» (stato: Potenziale)."
                 )
             except Exception as e_crea:
                 avvisi.append(
-                    f"Impossibile creare il soggetto Â«{nome_raw}Â»: {e_crea}"
+                    f"Impossibile creare il soggetto «{nome_raw}»: {e_crea}"
                 )
 
-        # Il primo soggetto elaborato con successo â†’ cliente principale del fascicolo
+        # Il primo soggetto elaborato con successo → cliente principale del fascicolo
         if i == 0 and trovato:
             id_principale   = trovato.id
             nome_principale = trovato.nome_completo
@@ -1034,7 +1034,7 @@ def _riconcilia_parti_dettaglio_polisweb(
             )
             if aggiornato:
                 avvisi.append(
-                    f"Anagrafica cliente riallineata ai dati PST: Â«{trovato.nome_completo}Â»."
+                    f"Anagrafica cliente riallineata ai dati PST: «{trovato.nome_completo}»."
                 )
 
         if trovato is None:
@@ -1050,11 +1050,11 @@ def _riconcilia_parti_dettaglio_polisweb(
                 )
                 avvisi.append(
                     f"Nuovo soggetto creato in anagrafica: "
-                    f"Â«{trovato.nome_completo}Â» (stato: Potenziale)."
+                    f"«{trovato.nome_completo}» (stato: Potenziale)."
                 )
             except Exception as e_crea:
                 avvisi.append(
-                    f"Impossibile creare il soggetto Â«{nome_raw}Â»: {e_crea}"
+                    f"Impossibile creare il soggetto «{nome_raw}»: {e_crea}"
                 )
 
         if idx == 0 and trovato:
@@ -1097,7 +1097,7 @@ def _sincronizza_parti_pst_su_fascicolo(
             )
             if aggiornato_cliente:
                 avvisi.append(
-                    f"Anagrafica cliente riallineata ai dati PST: Â«{cliente.nome_completo}Â»."
+                    f"Anagrafica cliente riallineata ai dati PST: «{cliente.nome_completo}»."
                 )
         id_cliente_assoc = cliente.id if cliente else (id_cliente_principale if idx == 0 else "")
         soggetto = _cerca_soggetto_pst(
@@ -1118,12 +1118,12 @@ def _sincronizza_parti_pst_su_fascicolo(
             )
             if aggiornato_soggetto:
                 avvisi.append(
-                    f"Anagrafica soggetto riallineata ai dati PST: Â«{soggetto.nome_completo}Â»."
+                    f"Anagrafica soggetto riallineata ai dati PST: «{soggetto.nome_completo}»."
                 )
 
         if soggetto is None:
             tipo_parte = (parte.get("tipo") or "").strip()
-            nota = f"Importato automaticamente da {portale} â€” {riferimento}"
+            nota = f"Importato automaticamente da {portale} — {riferimento}"
             if tipo_parte:
                 nota = f"{nota} (parte PST: {tipo_parte})"
             soggetto = _crea_soggetto_pst(
@@ -1135,12 +1135,12 @@ def _sincronizza_parti_pst_su_fascicolo(
                 cognome_hint=parte.get("cognome", ""),
                 nome_hint=parte.get("nome_proprio", ""),
             )
-            avvisi.append(f"Nuova parte creata nel database soggetti: Â«{soggetto.nome_completo}Â».")
+            avvisi.append(f"Nuova parte creata nel database soggetti: «{soggetto.nome_completo}».")
 
         ruolo = _ruolo_parte_pst(idx, parte, id_cliente_principale, soggetto)
         note_parte = "Importato da PolisWeb"
         if parte.get("tipo"):
-            note_parte = f"{note_parte} â€” tipo PST: {parte['tipo']}"
+            note_parte = f"{note_parte} — tipo PST: {parte['tipo']}"
         gestione_soggetti.aggiungi_parte(
             fascicolo_locale.id,
             soggetto.id,
@@ -1178,18 +1178,18 @@ def _sincronizza_parti_pst_su_fascicolo(
 def _titolo_fascicolo_polisweb(fascicolo_pw: FascicoloPolisWeb) -> str:
     base = f"RG {fascicolo_pw.numero_rg}/{fascicolo_pw.anno_rg}"
     oggetto = (fascicolo_pw.oggetto or "").strip()
-    return f"{base} â€” {oggetto[:80]}" if oggetto else base
+    return f"{base} — {oggetto[:80]}" if oggetto else base
 
 
 def _titolo_generico_fascicolo_polisweb(titolo: str, fascicolo_pw: FascicoloPolisWeb) -> bool:
     titolo = (titolo or "").strip()
     base = f"RG {fascicolo_pw.numero_rg}/{fascicolo_pw.anno_rg}"
-    if titolo in {"", base, f"{base} â€”", f"{base} â€“", f"{base} -", f"{base} ?"}:
+    if titolo in {"", base, f"{base} —", f"{base} –", f"{base} -", f"{base} ?"}:
         return True
     if not titolo.startswith(base):
         return False
     suffisso = titolo[len(base):].strip()
-    return not suffisso.strip("â€”â€“-? ")
+    return not suffisso.strip("—–-? ")
 
 
 def _data_apertura_generica_polisweb(fascicolo_locale) -> bool:
@@ -1226,7 +1226,7 @@ def _sincronizza_metadati_fascicolo_polisweb(
 ) -> RisultatoImportazione:
     from pct.fascicoli import TipoAttivita, stato_fascicolo_da_descrizione_portale
 
-    riferimento = f"RG {fascicolo_pw.numero_rg}/{fascicolo_pw.anno_rg} â€” {fascicolo_pw.nome_ufficio}"
+    riferimento = f"RG {fascicolo_pw.numero_rg}/{fascicolo_pw.anno_rg} — {fascicolo_pw.nome_ufficio}"
     avvisi: List[str] = []
     oggi_iso = date.today().isoformat()
     data_iscrizione = _parse_data(fascicolo_pw.data_iscrizione)
@@ -1318,7 +1318,7 @@ def _sincronizza_metadati_fascicolo_polisweb(
             tipo=TipoAttivita.UDIENZA,
             data=data_udienza,
             titolo="Udienza (importata da PolisWeb)",
-            descrizione=f"Udienza automaticamente sincronizzata da PolisWeb â€” RG {fascicolo_pw.numero_rg}/{fascicolo_pw.anno_rg}",
+            descrizione=f"Udienza automaticamente sincronizzata da PolisWeb — RG {fascicolo_pw.numero_rg}/{fascicolo_pw.anno_rg}",
             avvocato=avvocato_referente,
         )
         fascicolo_locale = gestione_fascicoli.get(fascicolo_locale.id) or fascicolo_locale
@@ -1406,7 +1406,7 @@ class ClientPolisWeb:
         p12_password: bytes = b"",
         codice_fiscale_avvocato: str = "",
         timeout: int = 30,
-        # â”€â”€ Formato PEM alternativo al P12 â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        # ── Formato PEM alternativo al P12 ───────────────────────────────────
         cert_pem_path: str = "",
         key_pem_path: str = "",
         key_pem_password: Optional[bytes] = None,
@@ -1459,9 +1459,9 @@ class ClientPolisWeb:
             Lista di FascicoloPolisWeb.
 
         Raises:
-            ImportError: se zeep non Ã¨ installato.
-            ConnectionError: se il PST non Ã¨ raggiungibile.
-            PermissionError: se il certificato non Ã¨ valido / scaduto.
+            ImportError: se zeep non è installato.
+            ConnectionError: se il PST non è raggiungibile.
+            PermissionError: se il certificato non è valido / scaduto.
         """
         base_pst = self._risolvi_base_pst(tribunale)
         codice_pst = self._risolvi_codice_ufficio(tribunale)
@@ -1597,7 +1597,7 @@ class ClientPolisWeb:
         1. Cerca il cliente tra le parti (per CF o nome)
         2. Crea o riutilizza il Cliente
         3. Crea il Fascicolo con tutti i dati disponibili
-        4. Aggiunge le attivitÃ  processuali note (udienza prossima)
+        4. Aggiunge le attività processuali note (udienza prossima)
 
         Args:
             fascicolo_pw:       Pratica PolisWeb da importare.
@@ -1620,7 +1620,7 @@ class ClientPolisWeb:
             data_udienza = _parse_data(fascicolo_pw.data_udienza)
             data_prossima_udienza = data_udienza if data_udienza and data_udienza >= date.today().isoformat() else ""
 
-            # 1. Mappa il tipo ruolo â†’ TipoFascicolo
+            # 1. Mappa il tipo ruolo → TipoFascicolo
             tipo_map = {
                 "CIVILE_COGNIZIONE":   TipoFascicolo.CIVILE,
                 "ESECUZIONI":          TipoFascicolo.CIVILE,
@@ -1641,7 +1641,7 @@ class ClientPolisWeb:
 
             # 2. Riconcilia tutte le parti con l'anagrafica clienti.
             #    Cerca ogni soggetto; se non esiste lo crea come POTENZIALE.
-            rif = f"RG {fascicolo_pw.numero_rg}/{fascicolo_pw.anno_rg} â€” {fascicolo_pw.nome_ufficio}"
+            rif = f"RG {fascicolo_pw.numero_rg}/{fascicolo_pw.anno_rg} — {fascicolo_pw.nome_ufficio}"
             id_cliente, nome_cliente, avvisi = _riconcilia_parti_dettaglio_polisweb(
                 fascicolo_pw=fascicolo_pw,
                 gestione_clienti=gestione_clienti,
@@ -1675,7 +1675,7 @@ class ClientPolisWeb:
                 note=fascicolo_pw.note or f"Importato da PolisWeb il {date.today()}",
             )
 
-            # 4. Aggiungi prossima udienza come attivitÃ 
+            # 4. Aggiungi prossima udienza come attività
             try:
                 gestione_fascicoli.aggiungi_attivita(
                     fasc.id,
@@ -1695,7 +1695,7 @@ class ClientPolisWeb:
                         tipo=TipoAttivita.UDIENZA,
                         data=data_udienza,
                         titolo="Udienza (importata da PolisWeb)",
-                        descrizione=f"Udienza automaticamente importata da PolisWeb â€” RG {fascicolo_pw.numero_rg}/{fascicolo_pw.anno_rg}",
+                        descrizione=f"Udienza automaticamente importata da PolisWeb — RG {fascicolo_pw.numero_rg}/{fascicolo_pw.anno_rg}",
                         avvocato=avvocato_referente,
                     )
                 except Exception as e:
@@ -1775,7 +1775,7 @@ class ClientPolisWeb:
         gestione_soggetti=None,
         documenti_pw: Optional[List[DocumentoPolisWeb]] = None,
     ) -> RisultatoImportazione:
-        """Completa un fascicolo giÃ  presente con i dati piÃ¹ ricchi provenienti da PolisWeb."""
+        """Completa un fascicolo già presente con i dati più ricchi provenienti da PolisWeb."""
         try:
             documenti_pw_effettivi, avvisi_documenti = self._precarica_documenti_importazione(
                 fascicolo_pw,
@@ -2170,13 +2170,13 @@ class ClientPolisWebDemo(ClientPolisWeb):
                 anno_rg=anno,
                 ruolo="CIVILE_COGNIZIONE",
                 stato="PENDENTE",
-                oggetto="Causa di risarcimento danni â€” Demo",
+                oggetto="Causa di risarcimento danni — Demo",
                 sezione="Prima sezione civile",
                 giudice="Dr. Mario Rossi",
                 data_iscrizione=f"{anno}-01-15",
                 data_udienza=f"{date.today().year + (1 if date.today().month >= 10 else 0)}-03-20",
                 parti=["Mario Bianchi", "Alfa S.p.A."],
-                note="Dato demo â€” collegare al PST con certificato reale",
+                note="Dato demo — collegare al PST con certificato reale",
                 codice_ufficio=tribunale if tribunale.isdigit() else "0000000",
                 nome_ufficio=self._nome_ufficio_demo(tribunale),
             )
@@ -2188,7 +2188,7 @@ class ClientPolisWebDemo(ClientPolisWeb):
         (Decreto Ingiuntivo, Comparsa di risposta, Memoria, Provvedimento cancelleria).
         """
         anno = str(anno_rg)
-        # Busta 1 â€” Ricorso per Decreto Ingiuntivo (depositato dall'avvocato ricorrente)
+        # Busta 1 — Ricorso per Decreto Ingiuntivo (depositato dall'avvocato ricorrente)
         busta1 = [
             DocumentoPolisWeb(
                 id_documento="DEMO-B1-001", nome=f"DI_ricorso_{numero_rg}_{anno}.pdf.p7m",
@@ -2221,17 +2221,17 @@ class ClientPolisWebDemo(ClientPolisWeb):
                 id_deposito="BUSTA-DI-001", tipo_atto="Decreto Ingiuntivo",
             ),
         ]
-        # Busta 2 â€” Decreto Ingiuntivo emesso dalla cancelleria
+        # Busta 2 — Decreto Ingiuntivo emesso dalla cancelleria
         busta2 = [
             DocumentoPolisWeb(
                 id_documento="DEMO-B2-001", nome=f"decreto_ingiuntivo_{numero_rg}_{anno}.pdf",
                 tipo="PROVVEDIMENTO", data_deposito=f"{anno}-01-28",
                 mittente="cancelleria@tribunale.giustiziapec.it", dimensione_bytes=87040,
-                id_deposito="BUSTA-DI-PROV-002", tipo_atto="Provvedimento â€” Decreto Ingiuntivo",
+                id_deposito="BUSTA-DI-PROV-002", tipo_atto="Provvedimento — Decreto Ingiuntivo",
                 disponibile=True,
             ),
         ]
-        # Busta 3 â€” Opposizione al Decreto Ingiuntivo (controparte)
+        # Busta 3 — Opposizione al Decreto Ingiuntivo (controparte)
         busta3 = [
             DocumentoPolisWeb(
                 id_documento="DEMO-B3-001", nome="opposizione_DI.pdf.p7m",
@@ -2252,7 +2252,7 @@ class ClientPolisWebDemo(ClientPolisWeb):
                 id_deposito="BUSTA-OPP-003", tipo_atto="Opposizione a Decreto Ingiuntivo",
             ),
         ]
-        # Busta 4 â€” Memoria difensiva (avvocato ricorrente in sede di opposizione)
+        # Busta 4 — Memoria difensiva (avvocato ricorrente in sede di opposizione)
         busta4 = [
             DocumentoPolisWeb(
                 id_documento="DEMO-B4-001", nome="memoria_difensiva.pdf.p7m",
@@ -2272,10 +2272,10 @@ class ClientPolisWebDemo(ClientPolisWeb):
 
 class ClientPolisWebImportOnly(ClientPolisWebDemo):
     """
-    Client logico per importazioni PST giÃ  autenticate dal browser / Local Signer.
+    Client logico per importazioni PST già autenticate dal browser / Local Signer.
 
     Non richiede certificati lato server e non effettua consultazioni remote:
-    importa soltanto i metadati del fascicolo e gli eventuali documenti giÃ 
+    importa soltanto i metadati del fascicolo e gli eventuali documenti già
     prelevati dal canale locale.
     """
 
@@ -2296,7 +2296,7 @@ class ClientPolisWebImportOnly(ClientPolisWebDemo):
 PST_SEZIONI_WIZARD: List[Dict[str, Any]] = [
     {
         "id": "attivita_processuali",
-        "label": "AttivitÃ  processuali",
+        "label": "Attività processuali",
         "icon": "bi-file-earmark-arrow-up-fill",
         "colore": "primary",
         "descrizione": "Atti depositati dalle parti: ricorsi, citazioni, memorie, opposizioni, comparse.",
@@ -2340,7 +2340,7 @@ def classifica_sezione_pst(doc: "DocumentoPolisWeb") -> str:
     Ritorna uno degli id: attivita_processuali | documenti_fascicolo |
                           udienze_scadenze | comunicazioni_cancelleria | istanze
 
-    La logica Ã¨ allineata con sezionePstDaCatalogoItem() in dettaglio.html.
+    La logica è allineata con sezionePstDaCatalogoItem() in dettaglio.html.
     """
     tipo_atto = (doc.tipo_atto or doc.tipo or "").lower()
     nome = (doc.nome or "").lower()
@@ -2445,9 +2445,9 @@ def crea_client(
     """
     Factory: crea il client PolisWeb appropriato.
 
-    Supporta due formati di certificato (in ordine di prioritÃ ):
-      1. P12/PFX â€” PCT_FIRMA_P12 + PCT_FIRMA_PASSWORD
-      2. PEM     â€” PCT_FIRMA_CERT + PCT_FIRMA_KEY [+ PCT_FIRMA_KEY_PASSWORD]
+    Supporta due formati di certificato (in ordine di priorità):
+      1. P12/PFX — PCT_FIRMA_P12 + PCT_FIRMA_PASSWORD
+      2. PEM     — PCT_FIRMA_CERT + PCT_FIRMA_KEY [+ PCT_FIRMA_KEY_PASSWORD]
 
     Args:
         p12_path:         Percorso al P12 (None = usa PCT_FIRMA_P12 da env).
@@ -2462,14 +2462,14 @@ def crea_client(
         ClientPolisWeb o ClientPolisWebDemo.
 
     Raises:
-        FileNotFoundError: se nessun certificato Ã¨ configurato o trovato su disco.
+        FileNotFoundError: se nessun certificato è configurato o trovato su disco.
     """
     if demo:
         return ClientPolisWebDemo()
 
     cf = cf_avvocato or os.getenv("PCT_CF_AVVOCATO", "")
 
-    # â”€â”€ Formato P12 â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # ── Formato P12 ──────────────────────────────────────────────────────────
     p12 = p12_path or os.getenv("PCT_FIRMA_P12", "")
     pwd = p12_password or os.getenv("PCT_FIRMA_PASSWORD", "").encode()
     if p12 and os.path.exists(p12):
@@ -2479,7 +2479,7 @@ def crea_client(
             codice_fiscale_avvocato=cf,
         )
 
-    # â”€â”€ Formato PEM â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # ── Formato PEM ──────────────────────────────────────────────────────────
     cert = cert_pem_path or os.getenv("PCT_FIRMA_CERT", "")
     key  = key_pem_path  or os.getenv("PCT_FIRMA_KEY", "")
     key_pwd_str = os.getenv("PCT_FIRMA_KEY_PASSWORD", "")
@@ -2493,11 +2493,11 @@ def crea_client(
             codice_fiscale_avvocato=cf,
         )
 
-    # â”€â”€ Nessun certificato disponibile â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # ── Nessun certificato disponibile ───────────────────────────────────────
     raise FileNotFoundError(
         "Nessun certificato configurato per l'accesso al PST.\n"
-        "Opzione A â€” P12/PFX: impostare PCT_FIRMA_P12 e PCT_FIRMA_PASSWORD nel file .env\n"
-        "Opzione B â€” PEM:     impostare PCT_FIRMA_CERT e PCT_FIRMA_KEY nel file .env\n"
-        "In alternativa configurare i percorsi in Impostazioni â†’ Firma Digitale."
+        "Opzione A — P12/PFX: impostare PCT_FIRMA_P12 e PCT_FIRMA_PASSWORD nel file .env\n"
+        "Opzione B — PEM:     impostare PCT_FIRMA_CERT e PCT_FIRMA_KEY nel file .env\n"
+        "In alternativa configurare i percorsi in Impostazioni → Firma Digitale."
     )
 

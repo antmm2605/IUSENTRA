@@ -1,6 +1,6 @@
 ﻿{% extends "base.html" %}
 {% block pct_modulo %}fatturazione{% endblock %}
-{% block title %}Fatturazione â€” IUSENTRA{% endblock %}
+{% block title %}Fatturazione — IUSENTRA{% endblock %}
 {% block page_title %}Fatturazione{% endblock %}
 
 {% set flabel = {'BOZZA':'Bozza','EMESSA':'Emessa','PAGATA':'Pagata','SCADUTA':'Scaduta','ANNULLATA':'Annullata'} %}
@@ -8,12 +8,12 @@
 
 {% block content %}
 
-{# â”€â”€ Page Header â”€â”€ #}
+{# ── Page Header ── #}
 <div class="ds-ph">
   <div class="ds-ph-icon"><i class="bi bi-receipt"></i></div>
   <div class="ds-ph-body">
     <h1 class="ds-ph-title">Fatturazione</h1>
-    <p class="ds-ph-sub">Parcelle e note spese â€” {{ stats.anno }}</p>
+    <p class="ds-ph-sub">Parcelle e note spese — {{ stats.anno }}</p>
   </div>
   <div class="ds-ph-actions">
     <div class="dropdown">
@@ -42,32 +42,32 @@
   {% endfor %}
 {% endwith %}
 
-{# â”€â”€ Stats â”€â”€ #}
+{# ── Stats ── #}
 <div class="ds-stats">
   <span class="ds-stat-pill">
     <i class="bi bi-graph-up text-primary"></i>
-    <span class="num">â‚¬ {{ "%.0f"|format(stats.fatturato_lordo) }}</span> fatturato
+    <span class="num">€ {{ "%.0f"|format(stats.fatturato_lordo) }}</span> fatturato
   </span>
   <span class="ds-stat-pill">
     <i class="bi bi-check-circle text-success"></i>
-    <span class="num">â‚¬ {{ "%.0f"|format(stats.incassato) }}</span> incassato
+    <span class="num">€ {{ "%.0f"|format(stats.incassato) }}</span> incassato
   </span>
   <span class="ds-stat-pill">
     <i class="bi bi-hourglass-split text-warning"></i>
-    <span class="num">â‚¬ {{ "%.0f"|format(stats.da_incassare) }}</span> da incassare
+    <span class="num">€ {{ "%.0f"|format(stats.da_incassare) }}</span> da incassare
   </span>
   {% if stats.scaduto > 0 %}
   <span class="ds-stat-pill">
     <i class="bi bi-exclamation-circle text-danger"></i>
-    <span class="num">â‚¬ {{ "%.0f"|format(stats.scaduto) }}</span> scaduto
+    <span class="num">€ {{ "%.0f"|format(stats.scaduto) }}</span> scaduto
   </span>
   {% endif %}
 </div>
 
-{# â”€â”€ Barra ricerca + filtri â”€â”€ #}
+{# ── Barra ricerca + filtri ── #}
 <form method="get" class="ds-search-bar mb-3">
   <input type="search" name="q" class="ds-search-input"
-         placeholder="Cerca per numero, clienteâ€¦"
+         placeholder="Cerca per numero, cliente…"
          value="{{ q|default('') }}" autocomplete="off">
   <select name="anno" class="form-select form-select-sm" style="max-width:100px" onchange="this.form.submit()">
     {% for a in anni_disponibili %}
@@ -90,7 +90,7 @@
   {% endif %}
 </form>
 
-{# â”€â”€ Tabella parcelle â”€â”€ #}
+{# ── Tabella parcelle ── #}
 {% if parcelle %}
 <div class="card border-0 shadow-sm" style="border-radius:var(--ds-r-lg, 14px); overflow:hidden;">
   <div class="card-header d-flex justify-content-between align-items-center">
@@ -127,9 +127,9 @@
                 {{ p.numero }}
               </a>
             </td>
-            <td data-label="Cliente">{{ c.nome_completo if c else 'â€”' }}</td>
+            <td data-label="Cliente">{{ c.nome_completo if c else '—' }}</td>
             <td data-label="Data" class="d-none d-md-table-cell small text-muted">{{ p.data_emissione }}</td>
-            <td data-label="Totale" class="text-end fw-semibold">â‚¬ {{ "%.2f"|format(p.totale) }}</td>
+            <td data-label="Totale" class="text-end fw-semibold">€ {{ "%.2f"|format(p.totale) }}</td>
             <td data-label="Stato" class="text-center">
               <span class="badge rounded-pill bg-{{ fcolor.get(p.stato.value, 'secondary') }}"
                     style="font-size:.68rem;">

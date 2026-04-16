@@ -1,5 +1,5 @@
 ﻿{% extends "base.html" %}
-{% block title %}Agenda â€” IUSENTRA{% endblock %}
+{% block title %}Agenda — IUSENTRA{% endblock %}
 {% block page_title %}Agenda{% endblock %}
 
 {% macro badge_tipo(a) %}
@@ -8,7 +8,7 @@
 
 {% block content %}
 
-{# â”€â”€ Page Header â”€â”€ #}
+{# ── Page Header ── #}
 <div class="ds-ph">
   <div class="ds-ph-icon"><i class="bi bi-calendar3"></i></div>
   <div class="ds-ph-body">
@@ -30,7 +30,7 @@
               style="background:rgba(26,115,232,.12);color:#1a73e8;font-size:.6rem;padding:.2em .5em">SINC.</span>
       </button>
       <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 py-2" style="min-width:270px">
-        {# â”€â”€ Sincronizzazione automatica â”€â”€ #}
+        {# ── Sincronizzazione automatica ── #}
         <li>
           <div class="px-3 py-2 d-flex align-items-center gap-2 border-bottom mb-1">
             <span class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
@@ -46,11 +46,11 @@
         <li>
           <a class="dropdown-item py-2" href="{{ url_for('impostazioni_calendario') }}">
             <i class="bi bi-gear me-2 text-primary"></i>
-            <span>Configura sincronizzazione calendarioâ€¦</span>
+            <span>Configura sincronizzazione calendario…</span>
           </a>
         </li>
         <li><hr class="dropdown-divider my-1"></li>
-        {# â”€â”€ Download manuale â”€â”€ #}
+        {# ── Download manuale ── #}
         <li><h6 class="dropdown-header text-uppercase" style="font-size:.67rem;letter-spacing:.05em">
           <i class="bi bi-download me-1"></i>Download manuale
         </h6></li>
@@ -70,14 +70,14 @@
           </a>
         </li>
         <li><hr class="dropdown-divider my-1"></li>
-        {# â”€â”€ Importa da calendario esterno â”€â”€ #}
+        {# ── Importa da calendario esterno ── #}
         <li><h6 class="dropdown-header text-uppercase" style="font-size:.67rem;letter-spacing:.05em">
           <i class="bi bi-calendar-arrow-down me-1"></i>Importa
         </h6></li>
         <li>
           <a class="dropdown-item py-2" href="{{ url_for('importa_calendario') }}">
             <i class="bi bi-calendar-arrow-down me-2 text-success"></i>
-            <span>Importa da file o URL WebCalâ€¦</span>
+            <span>Importa da file o URL WebCal…</span>
           </a>
         </li>
         <li><hr class="dropdown-divider my-1"></li>
@@ -85,7 +85,7 @@
           <div class="px-3 py-1">
             <span class="small text-muted d-flex align-items-start gap-1">
               <i class="bi bi-info-circle flex-shrink-0 mt-1" style="font-size:.75rem"></i>
-              <span style="font-size:.75rem">Il download Ã¨ un'importazione una tantum. Per la <strong>sincronizzazione automatica</strong> usa "Configura sincronizzazione".</span>
+              <span style="font-size:.75rem">Il download è un'importazione una tantum. Per la <strong>sincronizzazione automatica</strong> usa "Configura sincronizzazione".</span>
             </span>
           </div>
         </li>
@@ -97,7 +97,7 @@
   </div>
 </div>
 
-{# â”€â”€ Switcher vista + navigazione â”€â”€ #}
+{# ── Switcher vista + navigazione ── #}
 <div class="card shadow-sm mb-3">
   <div class="card-body py-2">
     {# Riga 1: switcher vista + navigazione #}
@@ -133,7 +133,7 @@
         {% if vista == 'giorno' %}
           {{ giorno|fmt_data_breve_con_giorno }}
         {% elif vista == 'settimana' %}
-          {{ inizio|fmt_giorno_mese }} â€“ {{ fine|fmt_giorno_mese_anno }}
+          {{ inizio|fmt_giorno_mese }} – {{ fine|fmt_giorno_mese_anno }}
         {% else %}
           {{ nomi_mesi[mese] }} {{ anno }}
         {% endif %}
@@ -192,8 +192,8 @@
                 </span>
               </td>
               <td data-label="Tipo">{{ badge_tipo(a) }}</td>
-              <td data-label="Cliente" class="small" data-mob-hide>{{ a.cliente or 'â€”' }}</td>
-              <td data-label="Luogo" class="small" data-mob-hide>{{ a.luogo or 'â€”' }}</td>
+              <td data-label="Cliente" class="small" data-mob-hide>{{ a.cliente or '—' }}</td>
+              <td data-label="Luogo" class="small" data-mob-hide>{{ a.luogo or '—' }}</td>
               <td data-label="Stato">
                 {% set sc = {'PROGRAMMATO':'secondary','CONFERMATO':'primary','COMPLETATO':'success','ANNULLATO':'danger','RINVIATO':'warning'} %}
                 <span class="badge bg-{{ sc[a.stato.value] }}">{{ a.stato.value }}</span>
@@ -406,7 +406,7 @@
       });
     });
 
-    /* ogni riga Ã¨ sia drag source sia drop target */
+    /* ogni riga è sia drag source sia drop target */
     rows.forEach(targetRow => {
       targetRow.addEventListener('dragover', e => {
         if (!_dragId || _dragEl === targetRow) return;
@@ -478,7 +478,7 @@
     _spinnerEl.className = 'dnd-spinner';
     _spinnerEl.innerHTML =
       '<div class="spinner-border text-primary" role="status">' +
-      '<span class="visually-hidden">Salvataggioâ€¦</span></div>';
+      '<span class="visually-hidden">Salvataggio…</span></div>';
     document.body.appendChild(_spinnerEl);
   }
   function hideSpinner() {
@@ -497,12 +497,12 @@
     setTimeout(() => { t.style.display = 'none'; }, 4000);
   }
 
-  /* ------------------------------------------------------------------ click giorno â†’ nuovo appuntamento */
+  /* ------------------------------------------------------------------ click giorno → nuovo appuntamento */
   function initClickGiorno() {
     document.querySelectorAll('.dnd-drop-zone[data-date]').forEach(zona => {
       zona.style.cursor = 'pointer';
       zona.addEventListener('click', function (e) {
-        // ignora se Ã¨ stato appena trascinato
+        // ignora se è stato appena trascinato
         if (window._wasDragging) return;
         // ignora click su pill esistente (link appuntamento)
         if (e.target.closest('.app-pill, .dnd-pill, a')) return;

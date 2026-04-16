@@ -1,10 +1,10 @@
 ﻿"""
 Sistema di autenticazione, profili e gestione permessi per lo studio legale.
 
-FunzionalitÃ :
+Funzionalità:
   - Ruoli: AMMINISTRATORE, AVVOCATO, COLLABORATORE, PRATICANTE,
            SEGRETERIA, CONTABILE
-  - Permessi granulari per categoria (fascicoli, clienti, agenda, â€¦)
+  - Permessi granulari per categoria (fascicoli, clienti, agenda, …)
   - Override per-utente: permessi_extra e permessi_negati
   - Hash password PBKDF2 (werkzeug)
   - Audit log completo (chi, cosa, quando, IP, esito)
@@ -28,7 +28,7 @@ from enum import Enum
 from functools import wraps
 
 
-# ------------------------------------------------------------------ TOTP (RFC 6238) â€” implementazione nativa
+# ------------------------------------------------------------------ TOTP (RFC 6238) — implementazione nativa
 
 def _hotp(key_bytes: bytes, counter: int) -> int:
     """HMAC-based OTP (RFC 4226)."""
@@ -45,7 +45,7 @@ def genera_totp_secret() -> str:
 
 
 def verifica_totp(secret_b32: str, codice: str, finestra: int = 1) -> bool:
-    """Verifica un codice TOTP con tolleranza Â±finestra periodi (30s)."""
+    """Verifica un codice TOTP con tolleranza ±finestra periodi (30s)."""
     try:
         key = _base64.b32decode(secret_b32.upper().replace(" ", ""))
     except Exception:
@@ -82,7 +82,7 @@ class RuoloUtente(str, Enum):
 
 DESCRIZIONI_RUOLI: Dict[RuoloUtente, Dict[str, str]] = {
     RuoloUtente.SUPERADMIN: {
-        "descrizione": "Amministratore piattaforma IUSENTRA â€” gestione studi e tenant.",
+        "descrizione": "Amministratore piattaforma IUSENTRA — gestione studi e tenant.",
         "colore": "dark",
         "icona": "bi-building-gear",
     },
@@ -97,12 +97,12 @@ DESCRIZIONI_RUOLI: Dict[RuoloUtente, Dict[str, str]] = {
         "icona": "bi-briefcase-fill",
     },
     RuoloUtente.COLLABORATORE: {
-        "descrizione": "Avvocato collaboratore â€” operativitÃ  completa senza poter eliminare fascicoli/clienti.",
+        "descrizione": "Avvocato collaboratore — operatività completa senza poter eliminare fascicoli/clienti.",
         "colore": "info",
         "icona": "bi-person-workspace",
     },
     RuoloUtente.PRATICANTE: {
-        "descrizione": "Accesso in sola lettura con possibilitÃ  di gestire l'agenda.",
+        "descrizione": "Accesso in sola lettura con possibilità di gestire l'agenda.",
         "colore": "success",
         "icona": "bi-mortarboard-fill",
     },
@@ -112,7 +112,7 @@ DESCRIZIONI_RUOLI: Dict[RuoloUtente, Dict[str, str]] = {
         "icona": "bi-telephone-fill",
     },
     RuoloUtente.CONTABILE: {
-        "descrizione": "Visualizzazione fascicoli e scadenziario per attivitÃ  contabili/fatturazione.",
+        "descrizione": "Visualizzazione fascicoli e scadenziario per attività contabili/fatturazione.",
         "colore": "secondary",
         "icona": "bi-calculator-fill",
     },
@@ -289,7 +289,7 @@ class Utente:
     def from_dict(d: Dict) -> "Utente":
         d = dict(d)
         d["ruolo"] = RuoloUtente(d.get("ruolo", "SEGRETERIA"))
-        # CompatibilitÃ  backward: campi aggiunti dopo la versione iniziale
+        # Compatibilità backward: campi aggiunti dopo la versione iniziale
         d.setdefault("permessi_extra", [])
         d.setdefault("permessi_negati", [])
         d.setdefault("totp_secret", "")
@@ -331,8 +331,8 @@ class GestioneUtenti:
     Gestisce utenti, profili, permessi e audit log.
 
     Struttura file:
-        <db_path>    â† JSON utenti
-        <audit_path> â† JSON audit log
+        <db_path>    ← JSON utenti
+        <audit_path> ← JSON audit log
     """
 
     def __init__(
@@ -529,7 +529,7 @@ class GestioneUtenti:
         import io as _io
         eventi = self.audit_log(id_utente=id_utente, azione=azione, da=da, a=a, limit=10000)
         out = _io.StringIO()
-        out.write("\ufeff")  # BOM per compatibilitÃ  Excel
+        out.write("\ufeff")  # BOM per compatibilità Excel
         w = _csv.DictWriter(
             out,
             fieldnames=["timestamp", "username", "azione", "risorsa_tipo",
@@ -627,7 +627,7 @@ class GestioneUtenti:
         if len(password) < 8:
             raise ValueError("La password deve avere almeno 8 caratteri")
         if any(u.username == username for u in self._utenti.values()):
-            raise ValueError(f"Username '{username}' giÃ  in uso")
+            raise ValueError(f"Username '{username}' già in uso")
         utente = Utente(
             username=username,
             email=email.strip(),
@@ -668,7 +668,7 @@ class GestioneUtenti:
         for p in permessi_extra + permessi_negati:
             if p not in chiavi_valide:
                 raise ValueError(f"Permesso non riconosciuto: {p!r}")
-        # Un permesso non puÃ² essere sia extra che negato
+        # Un permesso non può essere sia extra che negato
         conflitti = set(permessi_extra) & set(permessi_negati)
         if conflitti:
             raise ValueError(f"Permessi in conflitto: {conflitti}")

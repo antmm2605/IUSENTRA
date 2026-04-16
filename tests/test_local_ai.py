@@ -388,7 +388,7 @@ def test_local_ai_ask_fascicolo_builds_context_and_returns_answer(tmp_path: Path
                 "page_from": 1,
                 "page_to": 1,
                 "text": "Opposizione a decreto ingiuntivo fondata su contestazione degli estratti conto.",
-                "citation": "Atto di opposizione, p. 1 Â· diritto Â· chunk chunk-1",
+                "citation": "Atto di opposizione, p. 1 · diritto · chunk chunk-1",
             }
         ],
     )

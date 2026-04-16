@@ -938,7 +938,7 @@ function parseLocaleNumber(value) {
   if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
   let cleaned = String(value)
     .trim()
-    .replaceAll('â‚¬', '')
+    .replaceAll('€', '')
     .replaceAll('EUR', '')
     .replaceAll('eur', '')
     .replace(/\s+/g, '')

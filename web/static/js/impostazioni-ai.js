@@ -250,7 +250,7 @@
     }
     modelMeta.push(
       preferredEmbedValue && preferredEmbedValue !== embedModelValue
-        ? 'Embeddings ' + escapeHtml(embedModelValue) + ' Â· policy ' + escapeHtml(preferredEmbedValue)
+        ? 'Embeddings ' + escapeHtml(embedModelValue) + ' · policy ' + escapeHtml(preferredEmbedValue)
         : 'Embeddings ' + escapeHtml(embedModelValue)
     );
 
@@ -270,7 +270,7 @@
       '<article class="settings-ai-stat">' +
       '<div class="settings-ai-stat__label">Profilo hardware</div>' +
       '<div class="settings-ai-stat__value">' + escapeHtml(runtime.hardware_profile || 'n.d.') + '</div>' +
-      '<div class="settings-ai-stat__meta">RAM ' + formatNumberIt(runtime.ram_gb, { maximumFractionDigits: 1 }) + ' GB Â· Disco libero ' + formatNumberIt(runtime.disk_free_gb, { maximumFractionDigits: 1 }) + ' GB</div>' +
+      '<div class="settings-ai-stat__meta">RAM ' + formatNumberIt(runtime.ram_gb, { maximumFractionDigits: 1 }) + ' GB · Disco libero ' + formatNumberIt(runtime.disk_free_gb, { maximumFractionDigits: 1 }) + ' GB</div>' +
       '</article>' +
       '<article class="settings-ai-stat">' +
       '<div class="settings-ai-stat__label">Documenti indicizzati</div>' +
@@ -285,12 +285,12 @@
       '<article class="settings-ai-stat">' +
       '<div class="settings-ai-stat__label">Modello operativo</div>' +
       '<div class="settings-ai-stat__value">' + escapeHtml(chatModelValue) + '</div>' +
-      '<div class="settings-ai-stat__meta">' + modelMeta.join(' Â· ') + '</div>' +
+      '<div class="settings-ai-stat__meta">' + modelMeta.join(' · ') + '</div>' +
       '</article>' +
       '<article class="settings-ai-stat">' +
       '<div class="settings-ai-stat__label">Runtime collegato</div>' +
       '<div class="settings-ai-stat__value settings-ai-installer__value--mono">' + escapeHtml(effectiveBaseUrl) + '</div>' +
-      '<div class="settings-ai-stat__meta">Host reale ' + escapeHtml(hostPlatform) + ' Â· Ambiente IUSENTRA ' + escapeHtml(executionLabel) + '</div>' +
+      '<div class="settings-ai-stat__meta">Host reale ' + escapeHtml(hostPlatform) + ' · Ambiente IUSENTRA ' + escapeHtml(executionLabel) + '</div>' +
       '</article>' +
       (runtime.last_error
         ? '<article class="settings-ai-stat settings-ai-stat--danger settings-ai-stat--full">' +
@@ -325,7 +325,7 @@
     const rows = (payload?.models || []).map(function (row) {
       return '<article class="settings-ai-model">' +
         '<div class="settings-ai-model__title">' + escapeHtml(row.model_name) + '</div>' +
-        '<div class="settings-ai-model__meta">' + aiRoleLabel(row.role) + ' Â· ' + aiInstallStateLabel(row.install_state) + (row.is_active ? ' Â· attivo' : '') + '</div>' +
+        '<div class="settings-ai-model__meta">' + aiRoleLabel(row.role) + ' · ' + aiInstallStateLabel(row.install_state) + (row.is_active ? ' · attivo' : '') + '</div>' +
         (row.last_verified_at ? '<div class="settings-ai-model__foot">Ultima verifica ' + formatDateTimeIt(row.last_verified_at) + '</div>' : '') +
         '</article>';
     });

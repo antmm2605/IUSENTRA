@@ -603,7 +603,7 @@ class TestPATDeposito:
         )
 
 
-# ================================================================== PTT â€” Simulazione deposito tributario
+# ================================================================== PTT — Simulazione deposito tributario
 
 class TestPTTDeposito:
     """Simulazione completa deposito atti tributari via PTT / SIGIT."""

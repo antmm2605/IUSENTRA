@@ -33,8 +33,8 @@ class PermessiPortale:
     modifica_anagrafica:  bool = False   # cliente può aggiornare i recapiti
     vedi_fascicoli:       bool = True
     vedi_economici:       bool = True    # preventivi, incarichi e parcelle
-    accetta_preventivi:   bool = True    # puÃ² accettare il preventivo dal portale
-    firma_conferimenti:   bool = True    # puÃ² confermare il conferimento dal portale
+    accetta_preventivi:   bool = True    # può accettare il preventivo dal portale
+    firma_conferimenti:   bool = True    # può confermare il conferimento dal portale
     vedi_attivita:        bool = False   # timeline attività processuali
     vedi_appuntamenti:    bool = False   # prossimi appuntamenti
     vedi_scadenze:        bool = False   # scadenze del fascicolo

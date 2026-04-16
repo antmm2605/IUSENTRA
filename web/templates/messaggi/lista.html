@@ -1,11 +1,11 @@
 ﻿{% extends "base.html" %}
 {% block pct_modulo %}messaggi{% endblock %}
-{% block title %}Messaggi â€” IUSENTRA{% endblock %}
+{% block title %}Messaggi — IUSENTRA{% endblock %}
 {% block page_title %}Messaggi{% endblock %}
 
 {% block content %}
 
-{# â”€â”€ Page Header â”€â”€ #}
+{# ── Page Header ── #}
 <div class="ds-ph">
   <div class="ds-ph-icon"><i class="bi bi-chat-dots-fill"></i></div>
   <div class="ds-ph-body">
@@ -19,7 +19,7 @@
   </div>
 </div>
 
-{# â”€â”€ Stats â”€â”€ #}
+{# ── Stats ── #}
 {% set s = stats %}
 <div class="ds-stats">
   <span class="ds-stat-pill">
@@ -41,10 +41,10 @@
   {% endif %}
 </div>
 
-{# â”€â”€ Filtri â”€â”€ #}
+{# ── Filtri ── #}
 <form method="get" class="ds-search-bar mb-3">
   <input type="search" name="q" class="ds-search-input"
-         placeholder="Destinatario, oggettoâ€¦"
+         placeholder="Destinatario, oggetto…"
          value="{{ q }}" autocomplete="off">
   <select name="canale" class="form-select form-select-sm">
     <option value="">Tutti i canali</option>
@@ -69,7 +69,7 @@
   {% endif %}
 </form>
 
-{# â”€â”€ Tabella messaggi â”€â”€ #}
+{# ── Tabella messaggi ── #}
 {% if messaggi %}
 <div class="card border-0 shadow-sm" style="border-radius:var(--ds-r-lg, 14px); overflow:hidden;">
   <div class="card-header d-flex justify-content-between align-items-center">
@@ -107,7 +107,7 @@
               {% endif %}
             </td>
             <td data-label="A" class="small">
-              {{ m.nome_destinatario or m.email_destinatario or m.telefono_destinatario or 'â€”' }}
+              {{ m.nome_destinatario or m.email_destinatario or m.telefono_destinatario or '—' }}
             </td>
             <td data-label="Testo" class="small">
               {% if m.oggetto %}<div class="fw-semibold">{{ m.oggetto }}</div>{% endif %}

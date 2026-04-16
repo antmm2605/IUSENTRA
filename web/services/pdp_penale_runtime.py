@@ -71,7 +71,7 @@ def build_pdp_penale_runtime(
 
     def _pdp_penale_status_label(value: Any) -> str:
         testo = str(value or "").strip()
-        return testo.replace("_", " ").title() if testo else "â€”"
+        return testo.replace("_", " ").title() if testo else "—"
 
     def _pdp_penale_guess_office_type(office_name: str) -> str:
         testo = str(office_name or "").strip().lower()
@@ -96,7 +96,7 @@ def build_pdp_penale_runtime(
         if not fasc:
             raise KeyError("Fascicolo non trovato.")
         if fasc.tipo != TipoFascicolo.PENALE:
-            raise ValueError("Il modulo PDP Penale Ã¨ disponibile solo per i fascicoli penali.")
+            raise ValueError("Il modulo PDP Penale è disponibile solo per i fascicoli penali.")
         return fasc
 
     def _require_pdp_penale_case(repo: PDPPenaleWorkflowRepository, case_id: str, practice_id: str) -> dict[str, Any]:
@@ -890,13 +890,13 @@ def build_pdp_penale_runtime(
                 "title": "Verifica titolo di accesso",
                 "variant": _step(str(active_case.get("nomination_status") or "") in {"deposited", "accepted"}, warning=bool(nomina_docs)),
                 "done": str(active_case.get("nomination_status") or "") in {"deposited", "accepted"},
-                "detail": "Nomina presente o giÃ  depositata/accettata.",
+                "detail": "Nomina presente o già depositata/accettata.",
             },
             {
                 "title": "Verifica allegati obbligatori",
                 "variant": _step(bool(nomina_docs), warning=bool(payment_docs or legal_aid_docs)),
                 "done": bool(nomina_docs),
-                "detail": f"Nomina: {len(nomina_docs)} Â· PagoPA: {len(payment_docs)} Â· Gratuito patrocinio: {len(legal_aid_docs)}",
+                "detail": f"Nomina: {len(nomina_docs)} · PagoPA: {len(payment_docs)} · Gratuito patrocinio: {len(legal_aid_docs)}",
             },
             {
                 "title": "Generazione richiesta accesso atti",
@@ -917,7 +917,7 @@ def build_pdp_penale_runtime(
                 "title": "PEC, password e finestra download",
                 "variant": _step(password_received, warning=bool(download_until)),
                 "done": password_received,
-                "detail": f"Password PEC: {'ricevuta' if password_received else 'assente'}{f' Â· Disponibile fino al {download_until}' if download_until else ''}",
+                "detail": f"Password PEC: {'ricevuta' if password_received else 'assente'}{f' · Disponibile fino al {download_until}' if download_until else ''}",
             },
             {
                 "title": "Import fascicolo nel gestionale",

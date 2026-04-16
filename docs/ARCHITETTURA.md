@@ -60,7 +60,7 @@ Qui stanno i servizi trasversali che non appartengono a un singolo dominio:
   impostazioni runtime derivate da configurazione studio
 - `observability_runtime.py`
   metriche leggere HTTP/Lex e payload tecnico per pannello e API di osservabilita'
-- servizi di contesto studio, sicurezza e compatibilitÃ  UI non proprietaria di Lex
+- servizi di contesto studio, sicurezza e compatibilità UI non proprietaria di Lex
 
 ### `pct/scheduler.py`, `pct/scheduler_worker.py` e `pct/ocr_worker.py`
 

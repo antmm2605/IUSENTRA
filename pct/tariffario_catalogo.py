@@ -367,7 +367,7 @@ PROFILE_ROWS: List[Dict[str, Any]] = [
         "phase_keys": ["studio", "introduttiva", "istruttoria", "decisionale"],
         "suggested_practice_id": "appello_civile",
         "summary": "Appello civile contro sentenza del Giudice di Pace, devoluto al Tribunale.",
-        "base_note": "Applicazione della tabella 2 quando, ai sensi dell'art. 341 c.p.c., il giudice dell'appello Ã¨ il Tribunale.",
+        "base_note": "Applicazione della tabella 2 quando, ai sensi dell'art. 341 c.p.c., il giudice dell'appello è il Tribunale.",
     },
     {
         "profile_code": "civile_appello",
@@ -384,7 +384,7 @@ PROFILE_ROWS: List[Dict[str, Any]] = [
         "phase_keys": ["studio", "introduttiva", "istruttoria", "decisionale"],
         "suggested_practice_id": "appello_civile",
         "summary": "Appello civile contro sentenza del Tribunale, devoluto alla Corte d'Appello.",
-        "base_note": "Applicazione della tabella 12 quando, ai sensi dell'art. 341 c.p.c., il giudice dell'appello Ã¨ la Corte d'Appello.",
+        "base_note": "Applicazione della tabella 12 quando, ai sensi dell'art. 341 c.p.c., il giudice dell'appello è la Corte d'Appello.",
     },
     {
         "profile_code": "civile_cassazione",
@@ -1217,7 +1217,7 @@ _upsert_rows(
             "phase_keys": ["studio", "introduttiva", "istruttoria", "decisionale"],
             "suggested_practice_id": "appello_civile",
             "summary": "Appello civile contro sentenza del Giudice di Pace, deciso dal Tribunale.",
-            "base_note": "Calcolo diretto sulla tabella 2 quando, ai sensi dell'art. 341 c.p.c., il giudice dell'appello Ã¨ il Tribunale.",
+            "base_note": "Calcolo diretto sulla tabella 2 quando, ai sensi dell'art. 341 c.p.c., il giudice dell'appello è il Tribunale.",
         },
         {
             "profile_code": "civile_appello",
@@ -1234,7 +1234,7 @@ _upsert_rows(
             "phase_keys": ["studio", "introduttiva", "istruttoria", "decisionale"],
             "suggested_practice_id": "appello_civile",
             "summary": "Appello civile contro sentenza del Tribunale, deciso dalla Corte d'Appello.",
-            "base_note": "Calcolo diretto sulla tabella 12 quando, ai sensi dell'art. 341 c.p.c., il giudice dell'appello Ã¨ la Corte d'Appello.",
+            "base_note": "Calcolo diretto sulla tabella 12 quando, ai sensi dell'art. 341 c.p.c., il giudice dell'appello è la Corte d'Appello.",
         },
         {
             "profile_code": "civile_cassazione",
@@ -2942,10 +2942,10 @@ def _labels_for_table(raw_table: Mapping[str, Iterable[Optional[float]]]) -> Lis
     if max_count <= 3:
         return list(_LABELS_3)
     labels = list(_LABELS_7)
-    # Verifica regresso al 7Â° scaglione: se il compenso medio dell'indice 6 Ã¨
-    # inferiore a quello dell'indice 5, il 7Â° valore Ã¨ il "valore indeterminabile"
+    # Verifica regresso al 7° scaglione: se il compenso medio dell'indice 6 è
+    # inferiore a quello dell'indice 5, il 7° valore è il "valore indeterminabile"
     # (DM 55/2014 art. 5) e non un genuino scaglione progressivo.
-    # Si rimuove il 7Â° e si apre il 6Â° a infinito (coerente con _snapshot_table).
+    # Si rimuove il 7° e si apre il 6° a infinito (coerente con _snapshot_table).
     all_vals = [list(v) for v in raw_table.values()]
     valori_sc6 = [float(v[5]) for v in all_vals if len(v) > 5 and v[5] is not None]
     valori_sc7 = [float(v[6]) for v in all_vals if len(v) > 6 and v[6] is not None]

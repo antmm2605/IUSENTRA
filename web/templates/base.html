@@ -25,7 +25,7 @@
   <link href="/static/css/design-system.css?v={{ app_version }}" rel="stylesheet">
   <link href="/static/css/mobile.css?v={{ app_version }}" rel="stylesheet">
   <link href="/static/css/theme.css?v={{ app_version }}" rel="stylesheet">
-  <!-- htmx â€” aggiornamenti inline senza reload di pagina -->
+  <!-- htmx — aggiornamenti inline senza reload di pagina -->
   <script src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.3/dist/htmx.min.js" defer></script>
 </head>
 <body>
@@ -177,7 +177,7 @@
       <a href="{{ url_for('email_client.casella') }}"
          class="nav-link sb-link {% if request.endpoint and request.endpoint.startswith('email_client.') %}active{% endif %}">
         <i class="bi bi-envelope"></i><span class="sb-txt">Email</span>
-        {# Badge non lette â€” caricato via JS per evitare query ad ogni render #}
+        {# Badge non lette — caricato via JS per evitare query ad ogni render #}
         <span class="badge bg-primary rounded-pill ms-auto d-none" id="badgeEmailNonLette"></span>
       </a>
       <a href="{{ url_for('lista_messaggi') }}"
@@ -361,7 +361,7 @@
       </a>
       <a href="{{ url_for('audit_log') }}"
          class="nav-link sb-link {% if request.endpoint == 'audit_log' %}active{% endif %}">
-        <i class="bi bi-journal-text"></i><span class="sb-txt">Registro AttivitÃ </span>
+        <i class="bi bi-journal-text"></i><span class="sb-txt">Registro Attività</span>
       </a>
       <a href="{{ url_for('admin_database') }}"
          class="nav-link sb-link {% if request.endpoint in ('admin_database','admin_database_verifica','admin_database_ottimizza','admin_database_migra','admin_database_export') %}active{% endif %}">
@@ -376,7 +376,7 @@
 
   </div>{# /sb-scroll #}
 
-  {# Utente corrente + logout â€” fisso in fondo #}
+  {# Utente corrente + logout — fisso in fondo #}
   {% if utente_corrente %}
   <div class="sb-user">
     <div class="sb-avatar">{{ utente_corrente.username[0].upper() }}</div>
@@ -413,7 +413,7 @@
      ============================================================ -->
 <div id="app-body">
 
-<!-- Topbar: primo elemento del flex column â€” sempre visibile -->
+<!-- Topbar: primo elemento del flex column — sempre visibile -->
 <div class="topbar">
   <button id="sb-open" class="btn btn-sm btn-outline-secondary me-2" title="Menu">
     <i class="bi bi-list topbar-menu-icon"></i>
@@ -451,14 +451,14 @@
       <i class="bi bi-plus-lg"></i><span class="d-none d-md-inline ms-1">Nuovo</span>
     </a>
     <div id="htmx-loader" title="Caricamento in corso"></div>
-    {# â”€â”€ Indicatore stato worker OCR â”€â”€ #}
+    {# ── Indicatore stato worker OCR ── #}
     <span id="ocr-pill" class="ocr-pill is-hidden" title="Worker OCR - elaborazione documenti in corso">
       <span class="spinner-border ocr-pill-spinner" role="status" aria-hidden="true"></span>
       <i class="bi bi-check2-all ocr-pill-check is-hidden"></i>
       <span id="ocr-pill-txt">OCR</span>
     </span>
     {% if utente_corrente %}
-    {# â”€â”€ Centro notifiche in-app â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ #}
+    {# ── Centro notifiche in-app ─────────────────────────────────── #}
     <span id="notifiche-center" class="d-inline-block notifiche-center">
       <button class="btn btn-sm btn-outline-secondary position-relative"
               id="btn-notifiche-inbox"
@@ -472,7 +472,7 @@
               class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger topbar-counter-badge is-hidden">0</span>
       </button>
     </span>
-    {# Pulsante legacy nascosto â€” mantenuto per push.js #}
+    {# Pulsante legacy nascosto — mantenuto per push.js #}
     <button id="btn-notifiche" class="is-hidden"
             onclick="PCT_NOTIFICHE.richiediPermesso()"></button>
     {% endif %}
@@ -581,15 +581,15 @@
 </div>{# /app-body #}
 
 {# ---- Modals: fuori da #main per evitare conflitto z-index con backdrop Bootstrap ---- #}
-{# Su mobile #main Ã¨ position:fixed (stacking context z-index:auto) â†’ tutto al suo interno
-   Ã¨ sotto il backdrop Bootstrap (z-index:1040 nel root context). Mettere i modal qui
+{# Su mobile #main è position:fixed (stacking context z-index:auto) → tutto al suo interno
+   è sotto il backdrop Bootstrap (z-index:1040 nel root context). Mettere i modal qui
    garantisce che partecipino al root stacking context e i loro z-index:1055 battano il backdrop. #}
 {% block modals %}{% endblock %}
 
-{# â”€â”€ Pannello notifiche in-app â€” figlio diretto del body per sfuggire
+{# ── Pannello notifiche in-app — figlio diretto del body per sfuggire
    agli overflow/stacking context del topbar (backdrop-filter crea
    containing block per position:fixed; overflow-x:auto su topbar-actions
-   forza overflow-y:auto che clippa i dropdown assolutamente posizionati) â”€â”€ #}
+   forza overflow-y:auto che clippa i dropdown assolutamente posizionati) ── #}
 {% if utente_corrente %}
 <div id="notifiche-dropdown"
      class="notifiche-panel is-hidden"
@@ -666,7 +666,7 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <script>
-/* ---- Sistema aiuto contestuale â€” inizializza tutti i .btn-help / popover ---- */
+/* ---- Sistema aiuto contestuale — inizializza tutti i .btn-help / popover ---- */
 document.addEventListener('DOMContentLoaded', function () {
   document.querySelectorAll('[data-bs-toggle="popover"]').forEach(function (el) {
     new bootstrap.Popover(el, {
@@ -853,13 +853,13 @@ function initPagination(tableId, selectId) {
           <tbody>
             <tr><td><kbd>/</kbd></td><td>Cerca</td></tr>
             <tr><td><kbd>?</kbd></td><td>Questa guida</td></tr>
-            <tr class="table-light"><td colspan="2" class="fw-semibold small px-3 py-1 text-muted">Naviga â€” <kbd>g</kbd> poi:</td></tr>
+            <tr class="table-light"><td colspan="2" class="fw-semibold small px-3 py-1 text-muted">Naviga — <kbd>g</kbd> poi:</td></tr>
             <tr><td><kbd>g</kbd> <kbd>d</kbd></td><td>Panoramica</td></tr>
             <tr><td><kbd>g</kbd> <kbd>c</kbd></td><td>Clienti</td></tr>
             <tr><td><kbd>g</kbd> <kbd>f</kbd></td><td>Fascicoli</td></tr>
             <tr><td><kbd>g</kbd> <kbd>a</kbd></td><td>Agenda</td></tr>
             <tr><td><kbd>g</kbd> <kbd>s</kbd></td><td>Scadenze</td></tr>
-            <tr class="table-light"><td colspan="2" class="fw-semibold small px-3 py-1 text-muted">Crea â€” <kbd>n</kbd> poi:</td></tr>
+            <tr class="table-light"><td colspan="2" class="fw-semibold small px-3 py-1 text-muted">Crea — <kbd>n</kbd> poi:</td></tr>
             <tr><td><kbd>n</kbd> <kbd>c</kbd></td><td>Nuovo cliente</td></tr>
             <tr><td><kbd>n</kbd> <kbd>f</kbd></td><td>Nuovo fascicolo</td></tr>
             <tr><td><kbd>n</kbd> <kbd>a</kbd></td><td>Nuovo appuntamento</td></tr>
@@ -958,7 +958,7 @@ function initPagination(tableId, selectId) {
     t.className = `sync-toast ${tipo}`;
     t.innerHTML = `<i class="bi bi-arrow-repeat"></i>
       <span class="sync-tipo">${labelTipo}</span>
-      <span>${modulo}${utente ? ' â€” ' + utente : ''}${messaggio ? ': ' + messaggio : ''}</span>`;
+      <span>${modulo}${utente ? ' — ' + utente : ''}${messaggio ? ': ' + messaggio : ''}</span>`;
     toastContainer.appendChild(t);
     requestAnimationFrame(() => t.classList.add('visible'));
     setTimeout(() => {
@@ -972,7 +972,7 @@ function initPagination(tableId, selectId) {
   const staleMsg = document.getElementById('sync-stale-msg');
   function mostraBanner(ev) {
     const modulo = LABEL_MODULO[ev.modulo] || ev.modulo;
-    staleMsg.textContent = `"${modulo}" Ã¨ stato aggiornato da ${ev.utente || 'un altro operatore'}. Ricarica per vedere le ultime modifiche.`;
+    staleMsg.textContent = `"${modulo}" è stato aggiornato da ${ev.utente || 'un altro operatore'}. Ricarica per vedere le ultime modifiche.`;
     staleBanner.classList.add('show');
   }
 
@@ -1129,7 +1129,7 @@ function initPagination(tableId, selectId) {
       </a>`;
     }).join('');
 
-    // Click â†’ segna letta + naviga
+    // Click → segna letta + naviga
     LISTA_EL.querySelectorAll('.notif-item').forEach(el => {
       el.addEventListener('click', function (e) {
         const id = this.dataset.id;
@@ -1154,7 +1154,7 @@ function initPagination(tableId, selectId) {
     } catch (_) {}
   }
 
-  // â”€â”€ Pannello notifiche custom (fuori dal topbar, position:fixed su body) â”€â”€â”€â”€â”€
+  // ── Pannello notifiche custom (fuori dal topbar, position:fixed su body) ─────
   const PANEL    = document.getElementById('notifiche-dropdown');
   const BTN_BELL = document.getElementById('btn-notifiche-inbox');
 
@@ -1270,7 +1270,7 @@ function toggleTema() {
 })();
 </script>
 
-{# ---- Service Worker â€” PWA ---- #}
+{# ---- Service Worker — PWA ---- #}
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
@@ -1317,7 +1317,7 @@ if ('serviceWorker' in navigator) {
 
   function isMobile() { return window.innerWidth <= MOBILE_BP; }
 
-  /* â”€â”€ Mobile overlay â”€â”€ */
+  /* ── Mobile overlay ── */
   var bn = document.getElementById('bottom-nav');
   var bnh = document.getElementById('bn-handle');
   function openDrawer() {
@@ -1331,7 +1331,7 @@ if ('serviceWorker' in navigator) {
     if (isMobile() && bnh && localStorage.getItem('pct-bn-hidden') !== '1') { bnh.classList.remove('bn-hidden'); }
   }
 
-  /* â”€â”€ Desktop mini â”€â”€ */
+  /* ── Desktop mini ── */
   function setMini(mini) {
     sb.classList.toggle('sb-mini', mini);
     ab.classList.toggle('sb-mini', mini);
@@ -1366,7 +1366,7 @@ if ('serviceWorker' in navigator) {
 })();
 
 /* ================================================================
-   PCT SWIPE â€” Swipe-to-dismiss per righe tabella (mobile)
+   PCT SWIPE — Swipe-to-dismiss per righe tabella (mobile)
    Attiva su: tr[data-swipe-delete]
    Se data-swipe-delete ha un URL, chiama DELETE; altrimenti solo UI.
    ================================================================ */
@@ -1504,7 +1504,7 @@ if ('serviceWorker' in navigator) {
 (function() {
   'use strict';
   function initMobileEnhancements() {
-    // 1. Rileva tabelle che traboccano â†’ aggiunge classe .scrollable per fade-out
+    // 1. Rileva tabelle che traboccano → aggiunge classe .scrollable per fade-out
     document.querySelectorAll('.ds-table-wrap').forEach(function(wrap) {
       function checkScroll() {
         wrap.classList.toggle('scrollable', wrap.scrollWidth > wrap.clientWidth + 4);
@@ -1519,7 +1519,7 @@ if ('serviceWorker' in navigator) {
       }, { passive: true });
     });
 
-    // 2. Bottomsheet: modale con classe .modal-bottom â†’ animazione slide-up
+    // 2. Bottomsheet: modale con classe .modal-bottom → animazione slide-up
     document.querySelectorAll('.modal.modal-bottom').forEach(function(modal) {
       modal.addEventListener('show.bs.modal', function() {
         var dialog = modal.querySelector('.modal-dialog');
@@ -1529,7 +1529,7 @@ if ('serviceWorker' in navigator) {
 
     // 3. Bottoni form footer sticky: aggiusta z-index per safe area
     document.querySelectorAll('.form-footer-actions').forEach(function(el) {
-      // giÃ  gestito da CSS; nessuna azione JS necessaria
+      // già gestito da CSS; nessuna azione JS necessaria
     });
   }
 
@@ -1543,7 +1543,7 @@ if ('serviceWorker' in navigator) {
 })();
 </script>
 <script>
-/* ---- OCR status pill â€” polling /api/ocr/stato ogni 15s ---- */
+/* ---- OCR status pill — polling /api/ocr/stato ogni 15s ---- */
 (function () {
   var pill    = document.getElementById('ocr-pill');
   var txt     = document.getElementById('ocr-pill-txt');
@@ -1585,14 +1585,14 @@ if ('serviceWorker' in navigator) {
   setInterval(aggiorna, 15000);
 })();
 
-/* Fix dropdown clippati da overflow:hidden su mobile (#main Ã¨ position:fixed overflow-x:hidden).
+/* Fix dropdown clippati da overflow:hidden su mobile (#main è position:fixed overflow-x:hidden).
    I dropdown all'interno di #main usano position:fixed via Popper strategy per non essere tagliati. */
 (function() {
   function initFixedDropdowns(root) {
     var main = document.getElementById('main');
     if (!main) return;
     (root || main).querySelectorAll('[data-bs-toggle="dropdown"]').forEach(function(el) {
-      // Inizializza solo se non giÃ  inizializzato
+      // Inizializza solo se non già inizializzato
       if (bootstrap.Dropdown.getInstance(el)) return;
       new bootstrap.Dropdown(el, {
         popperConfig: { strategy: 'fixed' }
@@ -1609,13 +1609,13 @@ if ('serviceWorker' in navigator) {
 </script>
 
 {# ================================================================
-   SOGGETTO SEARCH WIDGET â€” funzione globale riutilizzabile
+   SOGGETTO SEARCH WIDGET — funzione globale riutilizzabile
    Chiama: initSoggettoSearch({ uid, inputId, allow_free_text })
    Dove:
      uid           = prefisso univoco per ID elementi DOM
      inputId       = ID dell'<input type="text" name="controparte">
-     allowFreeText = true â†’ l'utente puÃ² lasciare testo libero
-                     false â†’ richiede selezione da lista (default)
+     allowFreeText = true → l'utente può lasciare testo libero
+                     false → richiede selezione da lista (default)
    ================================================================ #}
 <script>
 (function() {
@@ -1638,7 +1638,7 @@ if ('serviceWorker' in navigator) {
    *     <div class="ss-dropdown" id="ss-{uid}-dropdown"></div>
    *   </div>
    *
-   * Il campo form effettivo Ã¨ l'<input type="text"> stesso (se allowFreeText)
+   * Il campo form effettivo è l'<input type="text"> stesso (se allowFreeText)
    * oppure un hidden affiancato (se !allowFreeText).
    */
   window.initSoggettoSearch = function(opts) {
@@ -1659,7 +1659,7 @@ if ('serviceWorker' in navigator) {
     var selected = null;   // oggetto soggetto selezionato
     var results  = [];
 
-    // â”€â”€ Renderizza i risultati
+    // ── Renderizza i risultati
     function renderResults(items) {
       results = items;
       if (!items.length) {
@@ -1681,7 +1681,7 @@ if ('serviceWorker' in navigator) {
           '<div class="' + siglaClass + '">' + _esc(s.sigla) + '</div>' +
           '<div class="ss-item-body">' +
             '<div class="ss-item-name">' + _esc(s.nome) + '</div>' +
-            (sub.length ? '<div class="ss-item-sub">' + _esc(sub.join(' Â· ')) + '</div>' : '') +
+            (sub.length ? '<div class="ss-item-sub">' + _esc(sub.join(' · ')) + '</div>' : '') +
           '</div>' +
           qualBadge +
         '</div>';
@@ -1695,7 +1695,7 @@ if ('serviceWorker' in navigator) {
       drop.classList.add('is-open');
     }
 
-    // â”€â”€ Ricerca API
+    // ── Ricerca API
     var doSearch = debounce(function(q) {
       if (q.length < minChars) { drop.classList.remove('is-open'); return; }
       fetch(apiUrl + '?q=' + encodeURIComponent(q))
@@ -1704,7 +1704,7 @@ if ('serviceWorker' in navigator) {
         .catch(function(){ drop.classList.remove('is-open'); });
     }, 280);
 
-    // â”€â”€ Event listeners input
+    // ── Event listeners input
     input.addEventListener('input', function() {
       if (selected && allowFree) { selected = null; _updateChip(); }
       doSearch(this.value.trim());
@@ -1721,12 +1721,12 @@ if ('serviceWorker' in navigator) {
       if (!wrap.contains(e.target)) drop.classList.remove('is-open');
     }, true);
 
-    // â”€â”€ Selezione soggetto
+    // ── Selezione soggetto
     window.soggettoSearchSelect = window.soggettoSearchSelect || {};
     window['_ssSelect_' + uid] = function(idx, url) {
       drop.classList.remove('is-open');
       if (url) {
-        // "Crea nuovo" â†’ apre in nuova scheda
+        // "Crea nuovo" → apre in nuova scheda
         window.open(decodeURIComponent(url), '_blank');
         return;
       }
@@ -1746,8 +1746,8 @@ if ('serviceWorker' in navigator) {
       chip.innerHTML =
         '<div class="' + siglaClass + '">' + _esc(selected.sigla) + '</div>' +
         '<span class="ss-chip-name">' + _esc(selected.nome) + '</span>' +
-        (selected.identificativo ? '<span class="ss-chip-identificativo">&nbsp;Â· ' + _esc(selected.identificativo) + '</span>' : '') +
-        '<button type="button" class="ss-chip-clear" onclick="_ssClear_' + uid + '()" title="Deseleziona">Ã—</button>';
+        (selected.identificativo ? '<span class="ss-chip-identificativo">&nbsp;· ' + _esc(selected.identificativo) + '</span>' : '') +
+        '<button type="button" class="ss-chip-clear" onclick="_ssClear_' + uid + '()" title="Deseleziona">×</button>';
     }
 
     window['_ssClear_' + uid] = function() {
@@ -1757,7 +1757,7 @@ if ('serviceWorker' in navigator) {
       input.focus();
     };
 
-    // â”€â”€ Espone la funzione di selezione globale (onclick="soggettoSearchSelect(uid, idx, url)")
+    // ── Espone la funzione di selezione globale (onclick="soggettoSearchSelect(uid, idx, url)")
     if (!window.soggettoSearchSelect || typeof window.soggettoSearchSelect !== 'function') {
       window.soggettoSearchSelect = function(uid, idx, url) {
         var fn = window['_ssSelect_' + uid];
@@ -1780,13 +1780,13 @@ if ('serviceWorker' in navigator) {
 })();
 </script>
 
-{# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-   Assistente virtuale PCT â€” Lex
+{# ═══════════════════════════════════════════════════════════════
+   Assistente virtuale PCT — Lex
    Floating chat widget (visibile solo agli utenti autenticati)
-   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• #}
+   ═══════════════════════════════════════════════════════════════ #}
 {% if false and g.utente_corrente %}
 <!-- Pulsante FAB -->
-<button id="pct-ai-fab" class="pct-ai-fab" title="Assistente PCT â€” Lex"
+<button id="pct-ai-fab" class="pct-ai-fab" title="Assistente PCT — Lex"
         onclick="pctAI.toggle()" aria-label="Apri assistente virtuale">
   <i class="bi bi-robot fs-5"></i>
 </button>
@@ -1840,7 +1840,7 @@ if ('serviceWorker' in navigator) {
   <div class="pct-ai-footer">
     <div class="pct-ai-input-wrap">
       <textarea id="pct-ai-input" class="pct-ai-input"
-                placeholder="Scrivi una domandaâ€¦"
+                placeholder="Scrivi una domanda…"
                 rows="1"
                 onkeydown="pctAI.onKeydown(event)"
                 oninput="pctAI.autoResize(this)"></textarea>
@@ -1856,14 +1856,14 @@ if ('serviceWorker' in navigator) {
 (function () {
 'use strict';
 
-// â”€â”€ Stato interno â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Stato interno ────────────────────────────────────────────────────────────
 var _open      = false;
 var _streaming = false;
-var _history   = [];          // [{role, content}] â€” ultimi 20 messaggi
+var _history   = [];          // [{role, content}] — ultimi 20 messaggi
 var _fascId    = null;        // ID fascicolo attivo (dall'URL o da window.pctAiFascicoloId)
 var _currentBubble = null;    // elemento bubble corrente durante lo streaming
 
-// â”€â”€ Esposto globalmente â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Esposto globalmente ──────────────────────────────────────────────────────
 window.pctAI = {
 
   init: function () {
@@ -1921,7 +1921,7 @@ window.pctAI = {
     _appendMsg('user', text);
 
     _streaming = true;
-    _setStatus('Lex sta scrivendoâ€¦');
+    _setStatus('Lex sta scrivendo…');
     document.getElementById('pct-ai-send').disabled = true;
 
     _currentBubble = _appendMsg('assistant', '');
@@ -1963,7 +1963,7 @@ window.pctAI = {
             try {
               var d = JSON.parse(raw);
               if (d.errore) {
-                _setBubble(_currentBubble, 'âš ï¸ ' + d.errore);
+                _setBubble(_currentBubble, '⚠️ ' + d.errore);
                 _history.push({ role: 'assistant', content: d.errore });
                 _finalize();
                 return;
@@ -1980,7 +1980,7 @@ window.pctAI = {
       }
       return pump();
     }).catch(function (err) {
-      if (_currentBubble) _setBubble(_currentBubble, 'âš ï¸ Errore di connessione: ' + err.message);
+      if (_currentBubble) _setBubble(_currentBubble, '⚠️ Errore di connessione: ' + err.message);
       _finalize();
     });
   },
@@ -1998,14 +1998,14 @@ window.pctAI = {
   }
 };
 
-// â”€â”€ Funzioni interne â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Funzioni interne ─────────────────────────────────────────────────────────
 
 function _checkStatus() {
   fetch('/api/assistente/stato')
     .then(function (r) { return r.json(); })
     .then(function (data) {
       var badge = document.getElementById('pct-ai-model-badge');
-      if (badge) badge.textContent = data.ok ? data.modello_attivo : 'âš  offline';
+      if (badge) badge.textContent = data.ok ? data.modello_attivo : '⚠ offline';
     })
     .catch(function () {});
 }
@@ -2019,7 +2019,7 @@ function _appendMsg(role, content) {
   var avatarCls  = role === 'user' ? 'pct-ai-avatar--user' : 'pct-ai-avatar--ai';
   wrap.innerHTML =
     '<div class="pct-ai-avatar ' + avatarCls + '"><i class="bi bi-' + avatarIcon + '"></i></div>' +
-    '<div class="pct-ai-bubble">' + (content ? _renderMd(content) : '<span class="pct-ai-cursor">â–‹</span>') + '</div>';
+    '<div class="pct-ai-bubble">' + (content ? _renderMd(content) : '<span class="pct-ai-cursor">▋</span>') + '</div>';
 
   container.appendChild(wrap);
   _scrollBottom();
@@ -2027,7 +2027,7 @@ function _appendMsg(role, content) {
 }
 
 function _setBubble(el, content) {
-  if (el) el.innerHTML = content ? _renderMd(content) : '<span class="pct-ai-cursor">â–‹</span>';
+  if (el) el.innerHTML = content ? _renderMd(content) : '<span class="pct-ai-cursor">▋</span>';
 }
 
 function _renderMd(text) {
@@ -2043,8 +2043,8 @@ function _renderMd(text) {
   html = html.replace(/`([^`\n]+)`/g, '<code>$1</code>');
   // 4. Bold
   html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-  // 5. Bullet lists (â€¢, -, â˜, â˜‘)
-  html = html.replace(/^([â€¢\-â˜â˜‘âœ“âœ—]\s.+)$/gm, '<li>$1</li>');
+  // 5. Bullet lists (•, -, ☐, ☑)
+  html = html.replace(/^([•\-☐☑✓✗]\s.+)$/gm, '<li>$1</li>');
   html = html.replace(/^(\d+\.\s.+)$/gm, '<li>$1</li>');
   // Wrap consecutive <li> in <ul>
   html = html.replace(/(<li>[\s\S]*?<\/li>)(\s*<li>[\s\S]*?<\/li>)*/g, '<ul>$&</ul>');
@@ -2077,7 +2077,7 @@ function _finalize() {
   _scrollBottom();
 }
 
-// â”€â”€ Avvio â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Avvio ────────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', function () { window.pctAI.init(); });
 
 })();

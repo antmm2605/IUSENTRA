@@ -2,7 +2,7 @@
 {% from "components/firma_visibile_selector.html" import render_firma_visibile_selector %}
 {% set fascicolo_ref_principale = fascicolo.rg_completo or fascicolo.numero %}
 {% set fascicolo_ref_interno = fascicolo.numero if fascicolo.rg_completo else "" %}
-{% block title %}{{ fascicolo_ref_principale }} â€” {{ fascicolo.titolo }}{% endblock %}
+{% block title %}{{ fascicolo_ref_principale }} — {{ fascicolo.titolo }}{% endblock %}
 {% block page_title %}Fascicolo {{ fascicolo_ref_principale }}{% endblock %}
 
 {% set SC = {'APERTO':'primary','IN_CORSO':'success','SOSPESO':'warning','DEFINITO':'info','ARCHIVIATO':'secondary'} %}
@@ -19,7 +19,7 @@
 
 {% block content %}
 
-{# â”€â”€ Page Header â”€â”€ #}
+{# ── Page Header ── #}
 <div class="ds-ph">
   <div class="ds-ph-icon"><i class="bi bi-folder2-open"></i></div>
   <div class="ds-ph-body">
@@ -36,7 +36,7 @@
       {% if fascicolo.archivio_pronto %}
         <span class="badge bg-warning text-dark"><i class="bi bi-inbox me-1"></i>Pronto per archivio</span>
       {% endif %}
-      {% if fascicolo.oggetto %}<span class="ms-1">Â· {{ fascicolo.oggetto }}</span>{% endif %}
+      {% if fascicolo.oggetto %}<span class="ms-1">· {{ fascicolo.oggetto }}</span>{% endif %}
     </p>
   </div>
   <div class="ds-ph-actions">
@@ -128,8 +128,8 @@
       <div class="small text-muted">
         {% if pdp_penale_summary.has_case %}
           {{ pdp_penale_summary.case_count }} fascicol{{ 'o' if pdp_penale_summary.case_count == 1 else 'i' }} ministerial{{ 'e' if pdp_penale_summary.case_count == 1 else 'i' }}
-          collegat{{ 'o' if pdp_penale_summary.case_count == 1 else 'i' }} Â·
-          {{ pdp_penale_summary.documents_count }} documenti Â·
+          collegat{{ 'o' if pdp_penale_summary.case_count == 1 else 'i' }} ·
+          {{ pdp_penale_summary.documents_count }} documenti ·
           {{ pdp_penale_summary.open_tasks }} task aperti
         {% else %}
           Nessun case PDP registrato: apri il workspace penale per censire il fascicolo ministeriale, la richiesta accesso atti e la PEC.
@@ -211,7 +211,7 @@
           {% if fascicolo.valore_causa %}
           <div class="col-sm-4">
             <div class="text-muted mb-1">Valore causa</div>
-            <div class="fw-semibold">â‚¬ {{ "%.2f"|format(fascicolo.valore_causa) }}</div>
+            <div class="fw-semibold">€ {{ "%.2f"|format(fascicolo.valore_causa) }}</div>
           </div>
           {% endif %}
           {{ dc("Apertura", fascicolo.data_apertura|fmt_data) }}
@@ -238,7 +238,7 @@
               <i class="bi bi-chevron-down small"></i>
             </button>
             <span class="badge bg-light text-dark border">
-              {{ ns_portale.documenti }} document{% if ns_portale.documenti == 1 %}o{% else %}i{% endif %} Â·
+              {{ ns_portale.documenti }} document{% if ns_portale.documenti == 1 %}o{% else %}i{% endif %} ·
               {{ (portale_documenti_catalogo | selectattr('gia_importato') | list | length) }}/{{ ns_portale.documenti }} acquisiti
             </span>
           </div>
@@ -282,9 +282,9 @@
                           </div>
                           <div class="text-muted mt-1" style="font-size:.74rem">
                             {{ pdoc.data_deposito|fmt_data if pdoc.data_deposito else 'Data non indicata' }}
-                            {% if pdoc.mittente %} Â· {{ pdoc.mittente }}{% endif %}
+                            {% if pdoc.mittente %} · {{ pdoc.mittente }}{% endif %}
                             {% if pdoc.dimensione_bytes %}
-                              Â·
+                              ·
                               {% if pdoc.dimensione_bytes < 1024 %}{{ pdoc.dimensione_bytes }} B
                               {% elif pdoc.dimensione_bytes < 1048576 %}{{ (pdoc.dimensione_bytes/1024)|int }} KB
                               {% else %}{{ "%.1f"|format(pdoc.dimensione_bytes/1048576) }} MB{% endif %}
@@ -383,9 +383,9 @@
         <i class="bi bi-arrow-repeat me-1"></i>Import PolisWeb da completare
       </div>
       <div class="small">
-        Questo fascicolo Ã¨ stato importato quando il flusso PST non portava ancora dentro tutti i dati.
+        Questo fascicolo è stato importato quando il flusso PST non portava ancora dentro tutti i dati.
         Apri PolisWeb, riesegui la ricerca della pratica e premi di nuovo <strong>Importa</strong>:
-        IUSENTRA completerÃ  cliente, soggetti e attivitÃ  sul fascicolo giÃ  esistente senza duplicarlo.
+        IUSENTRA completerà cliente, soggetti e attività sul fascicolo già esistente senza duplicarlo.
       </div>
       <div class="mt-2">
         <a href="{{ url_for('polisWeb_home', id_fasc=fascicolo.id) }}" class="btn btn-sm btn-outline-warning">
@@ -395,7 +395,7 @@
     </div>
     {% endif %}
 
-    {# ---- AttivitÃ  processuali ---- #}
+    {# ---- Attività processuali ---- #}
     <div class="card shadow-sm mb-3" id="sezione-attivita-processuali" style="scroll-margin-top:1rem">
       <div class="card-header fw-semibold d-flex justify-content-between align-items-center gap-2 flex-wrap">
         <button class="btn btn-link p-0 text-decoration-none text-dark fw-semibold d-inline-flex align-items-center gap-2 section-collapse-trigger"
@@ -406,7 +406,7 @@
                 aria-controls="collapse-sezione-attivita-processuali">
         <span class="text-nowrap">
           <i class="bi bi-list-check me-2 text-primary"></i>
-          AttivitÃ  processuali
+          Attività processuali
           <span class="badge bg-primary rounded-pill ms-1">{{ WFS.attivita_processuali|length }}</span>
         </span>
         <i class="bi bi-chevron-down small"></i>
@@ -429,7 +429,7 @@
         {% if WFS.attivita_processuali %}
         <div class="list-group list-group-flush">
           {% for att in WFS.attivita_processuali %}
-          {# Cerca documenti collegati a questa attivitÃ  #}
+          {# Cerca documenti collegati a questa attività #}
           {%- set att_docs = fascicolo.documenti | selectattr('id_deposito_pct','equalto', att.id_deposito_pct) | list if att.id_deposito_pct else [] %}
           {%- set att_single_doc = (fascicolo.documenti | selectattr('id','equalto', att.id_documento) | first) if att.id_documento else None %}
           {%- set att_esito_tone = EC.get(att.esito.value,'secondary') %}
@@ -552,13 +552,13 @@
           {% endfor %}
         </div>
         {% else %}
-        <div class="text-muted text-center py-4 small">Nessuna attivitÃ  processuale</div>
+        <div class="text-muted text-center py-4 small">Nessuna attività processuale</div>
         {% endif %}
       </div>
       </div>
     </div>
 
-    {# ---- Depositi telematici â€” adattivo per tipo fascicolo ---- #}
+    {# ---- Depositi telematici — adattivo per tipo fascicolo ---- #}
     {% set ftipo = fascicolo.tipo.value if fascicolo.tipo else 'CIVILE' %}
     {% set fsource = (fascicolo.source or '')|upper %}
     {% if ftipo == 'PENALE' %}
@@ -568,7 +568,7 @@
       {% set dep_portale_label = 'Workflow PDP' %}
       {% set dep_portale_url   = url_for('pdp_penale_workspace', id_fasc=fascicolo.id) %}
       {% set dep_canali    = ['PDP_PENALE', 'CARTACEO'] %}
-      {% set dep_hint      = 'Usa <strong>Prepara atto</strong> per la checklist del deposito penale (firma CAdES .p7m via PDP), oppure <strong>Registra manuale</strong> per annotare un deposito giÃ  effettuato.' %}
+      {% set dep_hint      = 'Usa <strong>Prepara atto</strong> per la checklist del deposito penale (firma CAdES .p7m via PDP), oppure <strong>Registra manuale</strong> per annotare un deposito già effettuato.' %}
     {% elif ftipo == 'AMMINISTRATIVO' %}
       {% set dep_icon      = 'bi-building' %}
       {% set dep_col       = 'info' %}
@@ -592,7 +592,7 @@
       {% set dep_portale_label = 'Consulta su PolisWeb' %}
       {% set dep_portale_url   = url_for('polisWeb_home', id_fasc=fascicolo.id) %}
       {% set dep_canali    = ['PCT_TELEMATICO', 'PEC', 'CARTACEO'] %}
-      {% set dep_hint      = 'Usa <strong>Prepara atto</strong> per la checklist del redattore atti (Consolle Avvocato / FileSafe / Lextel), oppure <strong>Registra manuale</strong> per annotare un deposito giÃ  effettuato.' %}
+      {% set dep_hint      = 'Usa <strong>Prepara atto</strong> per la checklist del redattore atti (Consolle Avvocato / FileSafe / Lextel), oppure <strong>Registra manuale</strong> per annotare un deposito già effettuato.' %}
     {% endif %}
     {% set show_pst_navigation = ftipo == 'CIVILE' %}
     {% set ns_prep = namespace(wizard_tmpls=[]) %}
@@ -635,7 +635,7 @@
                 <i class="bi bi-magic me-1"></i><span class="d-none d-sm-inline">Prepara atto</span><span class="d-sm-none">Prepara</span>
               </button>
               <ul class="dropdown-menu dropdown-menu-end shadow" style="min-width:min(310px,calc(100vw - 1.5rem));max-height:380px;overflow-y:auto">
-                <li><h6 class="dropdown-header small">Wizard guidato â€” carica e rinomina documenti</h6></li>
+                <li><h6 class="dropdown-header small">Wizard guidato — carica e rinomina documenti</h6></li>
                 {% for tmpl in ns_prep.wizard_tmpls %}
                 <li>
                   <a class="dropdown-item small py-2"
@@ -689,7 +689,7 @@
       <div class="card-body p-0">
         {% if fascicolo.documenti %}
 
-        {# â”€â”€ Macro riga documento (riusata nelle viste flat e accordion) â”€â”€ #}
+        {# ── Macro riga documento (riusata nelle viste flat e accordion) ── #}
         {% macro _riga(doc) %}
         {% set nome_preview = doc.nome[:-4] if doc.nome.lower().endswith('.p7m') else doc.nome %}
         {% set ext = nome_preview.rsplit('.',1)[-1].lower() if '.' in nome_preview else '' %}
@@ -754,7 +754,7 @@
               <div class="mt-1">
                 <span class="badge {{ _dep_cls }}"
                       style="font-size:.7rem"
-                      title="Deposito {{ doc.id_deposito_pct }}{% if _dep_obj %} â€” {{ _dep_obj.stato }} del {{ _dep_obj.timestamp[:10] }}{% endif %}">
+                      title="Deposito {{ doc.id_deposito_pct }}{% if _dep_obj %} — {{ _dep_obj.stato }} del {{ _dep_obj.timestamp[:10] }}{% endif %}">
                   <i class="bi {{ _dep_icon }} me-1"></i>{{ _dep_lbl }}
                   <span class="opacity-75 ms-1 font-monospace" style="font-size:.65rem">{{ doc.id_deposito_pct }}</span>
                 </span>
@@ -786,12 +786,12 @@
           <td data-label="Firma">
             {% if doc.firmato_digitalmente %}
               <i class="bi bi-patch-check-fill text-success" title="Firmato digitalmente"></i>
-            {% else %}â€”{% endif %}
+            {% else %}—{% endif %}
           </td>
           <td data-label="">
             {# TUTTI I BOTTONI INLINE #}
             <div class="d-flex gap-1 flex-wrap align-items-center">
-              {# Editor: primo bottone â€” testo sempre visibile #}
+              {# Editor: primo bottone — testo sempre visibile #}
               {% if editorabile %}
               <a href="{{ url_for('editor_documento', id_fasc=fascicolo.id, id_doc=doc.id) }}"
                 class="btn btn-sm btn-primary" title="Apri nell'editor">
@@ -829,12 +829,12 @@
               </button>
               {% endif %}
               
-              {# Converti PDF/A â€” D.M. 44/2011 art. 12 (solo PDF non firmati) #}
+              {# Converti PDF/A — D.M. 44/2011 art. 12 (solo PDF non firmati) #}
               {% if ext == 'pdf' and not doc.firmato_digitalmente %}
               {%- set _pdfa_esito = doc.note and 'pdfa:ok' in doc.note %}
               <form method="post"
                     action="{{ url_for('converti_documento_pdfa', id_fasc=fascicolo.id, id_doc=doc.id) }}"
-                    onsubmit="return confirm('Convertire il documento in PDF/A-2B?\nIl file originale verrÃ  sostituito.')">
+                    onsubmit="return confirm('Convertire il documento in PDF/A-2B?\nIl file originale verrà sostituito.')">
                 <button class="btn btn-outline-warning btn-sm"
                         title="Converti in PDF/A-2B (D.M. 44/2011 art. 12)">
                   <i class="bi bi-file-earmark-check"></i>
@@ -842,7 +842,7 @@
               </form>
               {% endif %}
 
-              {# Attestazione conformitÃ  (solo PDF) #}
+              {# Attestazione conformità (solo PDF) #}
               {% if ext == 'pdf' %}
               <form method="post"
                     action="{{ url_for('attestazione_conformita', id_fasc=fascicolo.id, id_doc=doc.id) }}">
@@ -865,7 +865,7 @@
         </tr>
         {% endmacro %}
 
-        {# â”€â”€ Raccoglie ID wizard presenti nei documenti â”€â”€ #}
+        {# ── Raccoglie ID wizard presenti nei documenti ── #}
         {% set ns = namespace(wizard_ids=[]) %}
         {% for doc in fascicolo.documenti %}
           {% if doc.note and '[wizard:' in doc.note %}
@@ -877,7 +877,7 @@
         {% endfor %}
 
         {% if ns.wizard_ids %}
-        {# â”€â”€ Vista accordion: un gruppo per ogni deposito/wizard â”€â”€ #}
+        {# ── Vista accordion: un gruppo per ogni deposito/wizard ── #}
         <div class="accordion accordion-flush" id="accDocumenti">
           {% for wid in ns.wizard_ids %}
           {% set ns2 = namespace(tmpl_nome=wid, wdocs=[]) %}
@@ -913,7 +913,7 @@
           </div>
           {% endfor %}
 
-          {# â”€â”€ Altri documenti senza tag wizard â”€â”€ #}
+          {# ── Altri documenti senza tag wizard ── #}
           {% set ns3 = namespace(altri=[]) %}
           {% for doc in fascicolo.documenti %}
             {% if not (doc.note and '[wizard:' in doc.note) %}
@@ -948,7 +948,7 @@
         </div>
 
         {% else %}
-        {# â”€â”€ Vista flat (nessun documento wizard) â”€â”€ #}
+        {# ── Vista flat (nessun documento wizard) ── #}
         <div class="table-responsive">
           <table class="table table-hover align-middle mb-0 small mob-cards">
             <thead class="table-light">
@@ -1149,7 +1149,7 @@
                 {% endif %}
                 <div class="text-end ms-1">
                   <span class="badge bg-light text-dark border">{{ dep.stato }}</span>
-                  <div class="text-muted mt-1" style="font-size:.75rem">{{ dep.timestamp[:10]|fmt_data if dep.timestamp else 'â€”' }}</div>
+                  <div class="text-muted mt-1" style="font-size:.75rem">{{ dep.timestamp[:10]|fmt_data if dep.timestamp else '—' }}</div>
                 </div>
               </div>
             </div>
@@ -1191,7 +1191,7 @@
       </div>
     </div>
 
-    {# ---- Depositi telematici â€” adattivo per tipo fascicolo ---- #}
+    {# ---- Depositi telematici — adattivo per tipo fascicolo ---- #}
     {% set ftipo = fascicolo.tipo.value if fascicolo.tipo else 'CIVILE' %}
     {% if ftipo == 'PENALE' %}
       {% set dep_icon      = 'bi-shield-fill' %}
@@ -1200,7 +1200,7 @@
       {% set dep_portale_label = 'Workflow PDP' %}
       {% set dep_portale_url   = url_for('pdp_penale_workspace', id_fasc=fascicolo.id) %}
       {% set dep_canali    = ['PDP_PENALE', 'CARTACEO'] %}
-      {% set dep_hint      = 'Usa <strong>Prepara atto</strong> per la checklist del deposito penale (firma CAdES .p7m via PDP), oppure <strong>Registra manuale</strong> per annotare un deposito giÃ  effettuato.' %}
+      {% set dep_hint      = 'Usa <strong>Prepara atto</strong> per la checklist del deposito penale (firma CAdES .p7m via PDP), oppure <strong>Registra manuale</strong> per annotare un deposito già effettuato.' %}
       {% elif ftipo == 'AMMINISTRATIVO' %}
         {% set dep_icon      = 'bi-building' %}
         {% set dep_col       = 'info' %}
@@ -1224,7 +1224,7 @@
       {% set dep_portale_label = 'Consulta su PolisWeb' %}
       {% set dep_portale_url   = url_for('polisWeb_home', id_fasc=fascicolo.id) %}
       {% set dep_canali    = ['PCT_TELEMATICO', 'PEC', 'CARTACEO'] %}
-      {% set dep_hint      = 'Usa <strong>Prepara atto</strong> per la checklist del redattore atti (Consolle Avvocato / FileSafe / Lextel), oppure <strong>Registra manuale</strong> per annotare un deposito giÃ  effettuato.' %}
+      {% set dep_hint      = 'Usa <strong>Prepara atto</strong> per la checklist del redattore atti (Consolle Avvocato / FileSafe / Lextel), oppure <strong>Registra manuale</strong> per annotare un deposito già effettuato.' %}
     {% endif %}
 
     <div class="card shadow-sm mb-3" id="sezione-comunicazioni-cancelleria" style="scroll-margin-top:1rem">
@@ -1267,7 +1267,7 @@
               <i class="bi bi-magic me-1"></i><span class="d-none d-sm-inline">Prepara atto</span><span class="d-sm-none">Prepara</span>
             </button>
             <ul class="dropdown-menu dropdown-menu-end shadow" style="min-width:min(310px,calc(100vw - 1.5rem));max-height:380px;overflow-y:auto">
-              <li><h6 class="dropdown-header small">Wizard guidato â€” carica e rinomina documenti</h6></li>
+              <li><h6 class="dropdown-header small">Wizard guidato — carica e rinomina documenti</h6></li>
               {% for tmpl in checklist_templates %}{% if tmpl.canale in dep_canali %}
               <li>
                 <a class="dropdown-item small py-2"
@@ -1436,7 +1436,7 @@
         {% if WFS.comunicazioni_depositi %}
         <div class="list-group list-group-flush">
           {% for dep in WFS.comunicazioni_depositi|sort(attribute='timestamp', reverse=True) %}
-          {# â”€â”€ Calcolo fasi per il tracker â”€â”€ #}
+          {# ── Calcolo fasi per il tracker ── #}
           {% set f4_ok = dep.ricevuta_accettazione | length > 0 %}
           {% set f5_ok = dep.ricevuta_consegna | length > 0 %}
           {% set f6_ok = dep.ricevuta_controlli_automatici | default('') | length > 0 %}
@@ -1469,7 +1469,7 @@
                 {% elif f6_warn %}
                   <i class="bi bi-exclamation-circle-fill text-warning fs-4" title="Anomalia controlli (WARN)"></i>
                 {% elif f5_ok %}
-                  <i class="bi bi-hourglass-split text-primary fs-4" title="Consegnato â€” in attesa cancelleria"></i>
+                  <i class="bi bi-hourglass-split text-primary fs-4" title="Consegnato — in attesa cancelleria"></i>
                 {% else %}
                   <i class="bi bi-send text-secondary fs-4" title="In elaborazione"></i>
                 {% endif %}
@@ -1507,7 +1507,7 @@
                   {% endif %}
                 </div>
 
-                {# â”€â”€ Tracker 4 fasi â”€â”€ #}
+                {# ── Tracker 4 fasi ── #}
                 {% if is_importazione %}
                 <div class="d-flex align-items-center gap-1 flex-wrap dep-tracker-{{ dep.id }}">
                   <span class="badge px-2 py-1 bg-light text-dark border" style="font-size:.72rem">
@@ -1537,8 +1537,8 @@
                     style="font-size:.72rem"
                     title="Ricevuta di accettazione PEC (fase 4)">
                     {% if f4_ok %}<i class="bi bi-check-lg me-1"></i>{% else %}<i class="bi bi-circle me-1"></i>{% endif %}
-                    <span class="d-none d-sm-inline">â‘  Accett. PEC</span>
-                    <span class="d-sm-none">â‘  PEC</span>
+                    <span class="d-none d-sm-inline">① Accett. PEC</span>
+                    <span class="d-sm-none">① PEC</span>
                   </span>
                   <i class="bi bi-chevron-right text-muted" style="font-size:.65rem"></i>
 
@@ -1549,7 +1549,7 @@
                     style="font-size:.72rem"
                     title="Ricevuta di avvenuta consegna (fase 5)">
                     {% if f5_ok %}<i class="bi bi-check-lg me-1"></i>{% else %}<i class="bi bi-circle me-1"></i>{% endif %}
-                    â‘¡ Cons.
+                    ② Cons.
                   </span>
                   <i class="bi bi-chevron-right text-muted" style="font-size:.65rem"></i>
 
@@ -1565,7 +1565,7 @@
                     {% elif f6_warn %}<i class="bi bi-exclamation me-1"></i>
                     {% elif f6_ok %}<i class="bi bi-check-lg me-1"></i>
                     {% else %}<i class="bi bi-circle me-1"></i>{% endif %}
-                    â‘¢ Ctrl{% if f6_warn %} WARN{% elif is_errore %} ERR{% endif %}
+                    ③ Ctrl{% if f6_warn %} WARN{% elif is_errore %} ERR{% endif %}
                   </span>
                   <i class="bi bi-chevron-right text-muted" style="font-size:.65rem"></i>
 
@@ -1580,7 +1580,7 @@
                     {% if is_accettato %}<i class="bi bi-check-lg me-1"></i>
                     {% elif is_rifiutato %}<i class="bi bi-x-lg me-1"></i>
                     {% else %}<i class="bi bi-circle me-1"></i>{% endif %}
-                    â‘£ Canc.
+                    ④ Canc.
                   </span>
                 </div>
                 {% endif %}
@@ -1589,7 +1589,7 @@
                 <div class="text-muted mt-1" style="font-size:.75rem">{{ dep.note or dep.messaggio }}</div>
                 {% endif %}
 
-                {# â”€â”€ Documenti inclusi nella busta â”€â”€ #}
+                {# ── Documenti inclusi nella busta ── #}
                 {% set has_ricevute = f4_ok or f5_ok or f6_ok or f7_ok %}
                 {% if has_ricevute %}
                 <div class="mt-2">
@@ -1618,7 +1618,7 @@
                       {% if dep.ricevuta_controlli_automatici %}
                       <div class="list-group-item py-2">
                         <div class="fw-semibold small {% if dep.esito_controlli == 'ERROR' %}text-danger{% elif dep.esito_controlli == 'WARN' %}text-warning{% else %}text-success{% endif %} mb-1">
-                          <i class="bi bi-3-circle me-1"></i>Esito controlli automatici{% if dep.esito_controlli %} Â· {{ dep.esito_controlli }}{% endif %}
+                          <i class="bi bi-3-circle me-1"></i>Esito controlli automatici{% if dep.esito_controlli %} · {{ dep.esito_controlli }}{% endif %}
                         </div>
                         <pre class="small mb-0 text-wrap" style="white-space:pre-wrap">{{ dep.ricevuta_controlli_automatici }}</pre>
                       </div>
@@ -1795,7 +1795,7 @@
                             </div>
                             <div class="text-muted mt-1" style="font-size:.74rem">
                               {{ pdoc.data_deposito|fmt_data if pdoc.data_deposito else 'Data non indicata' }}
-                              {% if pdoc.mittente %} Â· {{ pdoc.mittente }}{% endif %}
+                              {% if pdoc.mittente %} · {{ pdoc.mittente }}{% endif %}
                             </div>
                             {% if pdoc.local_doc_id %}
                             {%- set _mn = pdoc.local_doc_nome or pdoc.nome or '' %}
@@ -1945,7 +1945,7 @@
           <div class="text-muted" style="font-size:.78rem">{{ dep_hint }}</div>
           {% if 'Importato da PolisWeb' in (fascicolo.note or '') and ftipo == 'CIVILE' %}
           <div class="text-muted mt-2" style="font-size:.78rem">
-            L'importazione da PolisWeb popola anagrafica e attivitÃ  iniziali, ma non scarica automaticamente gli atti dal PST.
+            L'importazione da PolisWeb popola anagrafica e attività iniziali, ma non scarica automaticamente gli atti dal PST.
           </div>
           <div class="mt-3">
               <button type="button" class="btn btn-sm btn-outline-info" data-bs-toggle="modal"
@@ -2077,7 +2077,7 @@
                 {% endif %}
                 <div class="text-end ms-1">
                   <span class="badge bg-light text-dark border">{{ dep.stato }}</span>
-                  <div class="text-muted mt-1" style="font-size:.75rem">{{ dep.timestamp[:10]|fmt_data if dep.timestamp else 'â€”' }}</div>
+                  <div class="text-muted mt-1" style="font-size:.75rem">{{ dep.timestamp[:10]|fmt_data if dep.timestamp else '—' }}</div>
                 </div>
               </div>
             </div>
@@ -2189,9 +2189,9 @@
             {% if rc_controls_enabled %}
             Ultimo controllo:
             <strong>{{ rc.last_check_at or 'non eseguito' }}</strong>
-            Â· Canale:
+            · Canale:
             <strong>{{ rc.canale_label or 'PCT civile / lavoro / famiglia' }}</strong>
-            Â· Modello:
+            · Modello:
             <strong>{{ rc.modello_label or 'Atto' }}</strong>
             {% else %}
             Controlli automatici sospesi su questo fascicolo.
@@ -2416,7 +2416,7 @@
                 </div>
                 {% else %}
                 <div class="list-group-item text-muted">
-                  <i class="bi bi-check-circle-fill text-success me-2"></i>Tutti i controlli superati â€” nessuna azione richiesta.
+                  <i class="bi bi-check-circle-fill text-success me-2"></i>Tutti i controlli superati — nessuna azione richiesta.
                 </div>
                 {% endfor %}
               </div>
@@ -2767,7 +2767,7 @@
 
       {% if parti %}
 
-      {# â”€â”€ Assistiti / clienti della pratica â”€â”€ #}
+      {# ── Assistiti / clienti della pratica ── #}
       {% if assistiti %}
       <div class="px-3 pt-2 pb-1">
         <small class="text-success fw-semibold text-uppercase" style="font-size:.68rem;letter-spacing:.04em">
@@ -2799,7 +2799,7 @@
       </div>
       {% endif %}
 
-      {# â”€â”€ Controparti â”€â”€ #}
+      {# ── Controparti ── #}
       {% if controparti %}
       {% if assistiti %}<hr class="my-0">{% endif %}
       <div class="px-3 pt-2 pb-1">
@@ -2832,7 +2832,7 @@
       </div>
       {% endif %}
 
-      {# â”€â”€ Altri soggetti â”€â”€ #}
+      {# ── Altri soggetti ── #}
       {% if altri %}
       {% if assistiti or controparti %}<hr class="my-0">{% endif %}
       <div class="px-3 pt-2 pb-1">
@@ -2888,16 +2888,16 @@
 {% block modals %}
 {# ================================================================ MODALS
    Tutti i modal devono stare QUI (fuori da #main) per partecipare al root
-   stacking context â€” su mobile #main Ã¨ position:fixed (bottom:62px) e i
+   stacking context — su mobile #main è position:fixed (bottom:62px) e i
    modal al suo interno verrebbero tagliati dal bottom-nav. #}
 
-{# Modal: aggiungi attivitÃ  #}
+{# Modal: aggiungi attività #}
 <div class="modal fade" id="modalAttivita" tabindex="-1">
   <div class="modal-dialog modal-lg modal-fullscreen-sm-down">
     <div class="modal-content">
       <form method="post" action="{{ url_for('aggiungi_attivita', id_fasc=fascicolo.id) }}">
         <div class="modal-header">
-          <h5 class="modal-title"><i class="bi bi-list-check me-2"></i>Aggiungi attivitÃ  processuale</h5>
+          <h5 class="modal-title"><i class="bi bi-list-check me-2"></i>Aggiungi attività processuale</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
         <div class="modal-body">
@@ -3011,7 +3011,7 @@
             <div class="col-12">
               <label class="form-label fw-semibold">Note</label>
               <input type="text" name="note" class="form-control"
-                     placeholder="Breve descrizioneâ€¦">
+                     placeholder="Breve descrizione…">
             </div>
           </div>
         </div>
@@ -3043,7 +3043,7 @@
         <div class="modal-body" style="flex:1 1 auto;overflow:hidden;min-height:0;display:flex;flex-direction:column;gap:1rem">
           <div class="alert alert-info small mb-0 flex-shrink-0">
             IUSENTRA naviga il catalogo ufficiale dei documenti del canale <strong>{{ pst_portale_label }}</strong>,
-            mantiene separati <strong>AttivitÃ  processuali</strong>, <strong>Documenti fascicolo</strong>,
+            mantiene separati <strong>Attività processuali</strong>, <strong>Documenti fascicolo</strong>,
             <strong>Udienze e scadenze</strong>, <strong>Comunicazioni di cancelleria</strong> e <strong>Istanze</strong>,
             e usa il <strong>Local Signer</strong> per il download assistito dei file ufficiali.
           </div>
@@ -3070,7 +3070,7 @@
               <select class="form-select" id="pstNavImportState">
                 <option value="">Tutti</option>
                 <option value="pending">Solo non acquisiti</option>
-                <option value="done">Solo giÃ  acquisiti</option>
+                <option value="done">Solo già acquisiti</option>
               </select>
             </div>
             <div class="col-md-2 d-flex align-items-end">
@@ -3112,11 +3112,11 @@
                 <div class="accordion-body">
                   <div class="row g-3">
                     <div class="col-12">
-                      <label class="form-label fw-semibold">File o cartella giÃ  scaricati</label>
+                      <label class="form-label fw-semibold">File o cartella già scaricati</label>
                       <input type="file" name="files" id="pstImportInput" class="form-control"
                              multiple webkitdirectory directory>
                       <div class="form-text" id="pstImportHint">
-                        Puoi selezionare piÃ¹ file insieme oppure un'intera cartella del fascicolo giÃ  scaricata dal portale.
+                        Puoi selezionare più file insieme oppure un'intera cartella del fascicolo già scaricata dal portale.
                       </div>
                     </div>
                     <div class="col-12">
@@ -3135,12 +3135,12 @@
                     <div class="col-12">
                       {% if pst_import_pending %}
                       <div class="alert alert-light border small mb-0">
-                        Nell'inbox tecnica del fascicolo ci sono giÃ  <strong>{{ pst_import_pending }}</strong> file pronti.
-                        Se lasci vuoto il campo sopra, IUSENTRA importerÃ  quelli.
+                        Nell'inbox tecnica del fascicolo ci sono già <strong>{{ pst_import_pending }}</strong> file pronti.
+                        Se lasci vuoto il campo sopra, IUSENTRA importerà quelli.
                       </div>
                       {% else %}
                       <div class="alert alert-light border small mb-0">
-                        Se lasci il campo vuoto, IUSENTRA proverÃ  a leggere l'inbox tecnica del fascicolo giÃ  predisposta in locale.
+                        Se lasci il campo vuoto, IUSENTRA proverà a leggere l'inbox tecnica del fascicolo già predisposta in locale.
                       </div>
                       {% endif %}
                     </div>
@@ -3205,14 +3205,14 @@
             <div class="col-md-6">
               <label class="form-label fw-semibold">Stato</label>
               <select name="stato" class="form-select">
-                <option value="INVIATO">INVIATO â€” busta inviata</option>
-                <option value="ACCETTATO_PEC">ACCETTATO_PEC â€” fase 4: accettazione PEC</option>
-                <option value="CONSEGNATO" selected>CONSEGNATO â€” fase 5: consegnato al sistema</option>
-                <option value="WARN_CONTROLLI">WARN_CONTROLLI â€” fase 6: anomalia non bloccante</option>
-                <option value="ERRORE_CONTROLLI">ERRORE_CONTROLLI â€” fase 6: errore bloccante</option>
-                <option value="ACCETTATO_CANCELLERIA">ACCETTATO_CANCELLERIA â€” fase 7: accettato âœ“</option>
-                <option value="RIFIUTATO_CANCELLERIA">RIFIUTATO_CANCELLERIA â€” fase 7: rifiutato</option>
-                <option value="ERRORE">ERRORE â€” errore tecnico / invio fallito</option>
+                <option value="INVIATO">INVIATO — busta inviata</option>
+                <option value="ACCETTATO_PEC">ACCETTATO_PEC — fase 4: accettazione PEC</option>
+                <option value="CONSEGNATO" selected>CONSEGNATO — fase 5: consegnato al sistema</option>
+                <option value="WARN_CONTROLLI">WARN_CONTROLLI — fase 6: anomalia non bloccante</option>
+                <option value="ERRORE_CONTROLLI">ERRORE_CONTROLLI — fase 6: errore bloccante</option>
+                <option value="ACCETTATO_CANCELLERIA">ACCETTATO_CANCELLERIA — fase 7: accettato ✓</option>
+                <option value="RIFIUTATO_CANCELLERIA">RIFIUTATO_CANCELLERIA — fase 7: rifiutato</option>
+                <option value="ERRORE">ERRORE — errore tecnico / invio fallito</option>
               </select>
             </div>
             <div class="col-12">
@@ -3227,31 +3227,31 @@
                      placeholder="Numero protocollo o messaggio dell'esito">
             </div>
             <div class="col-md-6">
-              <label class="form-label fw-semibold">â‘  Ricevuta accettazione PEC</label>
+              <label class="form-label fw-semibold">① Ricevuta accettazione PEC</label>
               <input type="text" name="ricevuta_accettazione" class="form-control"
                      placeholder="ID ricevuta fase 4">
             </div>
             <div class="col-md-6">
-              <label class="form-label fw-semibold">â‘¡ Ricevuta consegna</label>
+              <label class="form-label fw-semibold">② Ricevuta consegna</label>
               <input type="text" name="ricevuta_consegna" class="form-control"
                      placeholder="ID ricevuta fase 5">
             </div>
             <div class="col-md-6">
-              <label class="form-label fw-semibold">â‘¢ Ricevuta controlli automatici</label>
+              <label class="form-label fw-semibold">③ Ricevuta controlli automatici</label>
               <input type="text" name="ricevuta_controlli_automatici" class="form-control"
                      placeholder="ID ricevuta fase 6">
             </div>
             <div class="col-md-6">
-              <label class="form-label fw-semibold">â‘¢ Esito controlli</label>
+              <label class="form-label fw-semibold">③ Esito controlli</label>
               <select name="esito_controlli" class="form-select">
-                <option value="">â€” non ricevuto â€”</option>
+                <option value="">— non ricevuto —</option>
                 <option value="OK">OK</option>
                 <option value="WARN">WARN (anomalia non bloccante)</option>
                 <option value="ERROR">ERROR (errore bloccante)</option>
               </select>
             </div>
             <div class="col-12">
-              <label class="form-label fw-semibold">â‘£ Ricevuta cancelleria</label>
+              <label class="form-label fw-semibold">④ Ricevuta cancelleria</label>
               <input type="text" name="ricevuta_cancelleria" class="form-control"
                      placeholder="ID ricevuta fase 7">
             </div>
@@ -3278,7 +3278,7 @@
   <div class="modal-dialog modal-xl modal-fullscreen-sm-down" style="max-width:95vw;height:92vh;margin:.5rem auto">
     <div class="modal-content" style="height:100%;display:flex;flex-direction:column">
 
-      {# â”€â”€ Header â”€â”€ #}
+      {# ── Header ── #}
       <div class="modal-header py-2">
         <h6 class="modal-title mb-0 d-flex align-items-center gap-2 min-w-0">
           <i id="vis-file-icon" class="bi bi-file-earmark-pdf text-danger flex-shrink-0"></i>
@@ -3292,7 +3292,7 @@
         </div>
       </div>
 
-      {# â”€â”€ Barra firma digitale (visibile solo se il documento ha firme) â”€â”€ #}
+      {# ── Barra firma digitale (visibile solo se il documento ha firme) ── #}
       <div id="vis-firma-bar" style="display:none"
            class="border-bottom bg-body-secondary px-3 py-1 d-flex align-items-center flex-wrap gap-2">
         <span class="text-muted small fw-semibold">
@@ -3306,18 +3306,18 @@
         </button>
       </div>
 
-      {# â”€â”€ Pannello dettagli certificati (collassabile) â”€â”€ #}
+      {# ── Pannello dettagli certificati (collassabile) ── #}
       <div id="vis-firma-details" style="display:none"
            class="border-bottom bg-white px-3 py-2">
         <div id="vis-firma-details-content" class="row g-2"></div>
       </div>
 
-      {# â”€â”€ Corpo: iframe viewer â”€â”€ #}
+      {# ── Corpo: iframe viewer ── #}
       <div class="modal-body p-0" style="flex:1 1 auto;overflow:hidden;display:flex;flex-direction:column">
         <div id="vis-loading" class="d-flex align-items-center justify-content-center" style="flex:1">
           <div class="text-center text-muted">
             <div class="spinner-border spinner-border-sm mb-2"></div>
-            <div class="small">Caricamento documentoâ€¦</div>
+            <div class="small">Caricamento documento…</div>
           </div>
         </div>
         <iframe id="visualizzatore-iframe" src="" style="width:100%;flex:1;border:0;min-height:0;display:none"
@@ -3328,7 +3328,7 @@
   </div>
 </div>
 
-{# Modal: firma per deposito PCT â€” auto-rilevamento Local Signer / PKCS#11 / esterna #}
+{# Modal: firma per deposito PCT — auto-rilevamento Local Signer / PKCS#11 / esterna #}
 {% set firma_formati = cfg_firma.formati_firma_consentiti if cfg_firma and cfg_firma.configurato else ['cades', 'pades'] %}
 <div class="modal fade" id="modalFirma" tabindex="-1">
   <div class="modal-dialog modal-fullscreen-sm-down">
@@ -3341,13 +3341,13 @@
       </div>
       <div class="modal-body">
 
-        {# â”€â”€ Rilevamento automatico (spinner) â”€â”€ #}
+        {# ── Rilevamento automatico (spinner) ── #}
         <div id="fDetecting" class="text-center py-4">
           <div class="spinner-border spinner-border-sm text-secondary mb-2"></div>
-          <div class="small text-muted" id="fDetectingTxt">Ricerca Local Signerâ€¦</div>
+          <div class="small text-muted" id="fDetectingTxt">Ricerca Local Signer…</div>
         </div>
 
-        {# â•â•â•â• PATH L â€” Local Signer (Windows / Aruba Key) â•â•â•â• #}
+        {# ════ PATH L — Local Signer (Windows / Aruba Key) ════ #}
         {{ render_firma_visibile_selector('dettaglioFirma', firma_visibile_place) }}
         <div id="fPathLS" style="display:none">
           <div id="fLsInfo" class="alert alert-success small d-flex gap-2 mb-3">
@@ -3364,12 +3364,12 @@
             </button>
           </div>
           <div class="form-text mb-3">
-            <i class="bi bi-shield-lock me-1 text-success"></i>Il PIN non viene trasmesso al server â€” usato solo nel Local Signer sul tuo PC.
+            <i class="bi bi-shield-lock me-1 text-success"></i>Il PIN non viene trasmesso al server — usato solo nel Local Signer sul tuo PC.
           </div>
           <div id="fLsStep3" style="display:none">
             <div id="fLsProgress" class="text-center py-3">
               <div class="spinner-border text-warning mb-2"></div>
-              <div class="small text-muted">Firma in corso nel token â€” attendereâ€¦</div>
+              <div class="small text-muted">Firma in corso nel token — attendere…</div>
             </div>
             <div id="fLsSuccess" class="alert alert-success small d-flex gap-2" style="display:none">
               <i class="bi bi-patch-check-fill flex-shrink-0 mt-1"></i>
@@ -3382,7 +3382,7 @@
           </div>
         </div>
 
-        {# â•â•â•â• PATH A â€” PKCS#11 server-side (Linux + pcscd) â•â•â•â• #}
+        {# ════ PATH A — PKCS#11 server-side (Linux + pcscd) ════ #}
         <div id="fPathPkcs11" style="display:none">
           <div id="fPkcs11Info" class="alert alert-success small d-flex gap-2 mb-3">
             <i class="bi bi-usb-symbol flex-shrink-0 mt-1"></i><span></span>
@@ -3398,12 +3398,12 @@
             </button>
           </div>
           <div class="form-text mb-3">
-            <i class="bi bi-shield-lock me-1 text-success"></i>Il PIN non viene salvato â€” usato solo per questa firma, poi scartato.
+            <i class="bi bi-shield-lock me-1 text-success"></i>Il PIN non viene salvato — usato solo per questa firma, poi scartato.
           </div>
           <div id="fPkcs11Step3" style="display:none">
             <div id="fPkcs11Progress" class="text-center py-3">
               <div class="spinner-border text-warning mb-2"></div>
-              <div class="small text-muted">Firma in corso nel token â€” attendereâ€¦</div>
+              <div class="small text-muted">Firma in corso nel token — attendere…</div>
             </div>
             <div id="fPkcs11Success" class="alert alert-success small d-flex gap-2" style="display:none">
               <i class="bi bi-patch-check-fill flex-shrink-0 mt-1"></i>
@@ -3416,7 +3416,7 @@
           </div>
         </div>
 
-        {# â•â•â•â• PATH B â€” Firma esterna (Windows / nessun token) â•â•â•â• #}
+        {# ════ PATH B — Firma esterna (Windows / nessun token) ════ #}
         <div id="fPathEsterna" style="display:none">
           <div class="alert alert-info small d-flex gap-2 mb-3">
             <i class="bi bi-pc-display flex-shrink-0 mt-1"></i>
@@ -3445,7 +3445,7 @@
           <div class="mb-3">
             <p class="small fw-semibold mb-1"><span class="badge bg-primary rounded-pill me-1">2</span>Firma con ArubaSign / Dike / altro</p>
             <div class="small text-muted ps-3">
-              Apri il software â†’ seleziona il file â†’ firma CAdES (.p7m) â†’ salva il risultato (es. <code>nomefile.pdf.p7m</code>).
+              Apri il software → seleziona il file → firma CAdES (.p7m) → salva il risultato (es. <code>nomefile.pdf.p7m</code>).
             </div>
           </div>
           <div class="mb-2">
@@ -3462,7 +3462,7 @@
           </div>
         </div>
 
-        {# â”€â”€ Link cambio percorso â”€â”€ #}
+        {# ── Link cambio percorso ── #}
         <div id="fSwitchPath" class="mt-3" style="display:none">
           <hr class="my-2">
           <button type="button" class="btn btn-link btn-sm p-0 text-muted" onclick="_detFSwitchPath()">
@@ -3479,7 +3479,7 @@
           <i class="bi bi-pen-fill me-2"></i>Firma con Aruba Key (in-device)
         </button>
         <button type="button" class="btn btn-success fw-semibold d-none" id="fBtnDone" onclick="location.reload()">
-          <i class="bi bi-check2-circle me-2"></i>Fatto â€” Ricarica pagina
+          <i class="bi bi-check2-circle me-2"></i>Fatto — Ricarica pagina
         </button>
         <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annulla</button>
       </div>
@@ -3498,13 +3498,13 @@
         </div>
         <div class="modal-body">
           <p class="text-muted small">
-            Marca la pratica come <strong>DEFINITA</strong>. SarÃ  poi possibile archiviarla.
+            Marca la pratica come <strong>DEFINITA</strong>. Sarà poi possibile archiviarla.
           </p>
           <div class="row g-3">
             <div class="col-md-6">
               <label class="form-label fw-semibold">Esito finale</label>
               <select name="esito_finale" class="form-select">
-                <option value="">â€” Seleziona â€”</option>
+                <option value="">— Seleziona —</option>
                 <option value="FAVOREVOLE">Favorevole</option>
                 <option value="PARZIALMENTE_FAVOREVOLE">Parzialmente favorevole</option>
                 <option value="SFAVOREVOLE">Sfavorevole</option>
@@ -3516,7 +3516,7 @@
             <div class="col-md-6">
               <label class="form-label fw-semibold">Motivo chiusura</label>
               <input type="text" name="motivo" class="form-control"
-                     placeholder="Sentenza, accordo, rinunciaâ€¦">
+                     placeholder="Sentenza, accordo, rinuncia…">
             </div>
             <div class="col-12">
               <label class="form-label fw-semibold">Note</label>
@@ -3546,8 +3546,8 @@
         </div>
         <div class="modal-body">
           <p class="text-muted small">
-            Il fascicolo verrÃ  archiviato definitivamente.
-            VerrÃ  creato un archivio ZIP con tutti i documenti.
+            Il fascicolo verrà archiviato definitivamente.
+            Verrà creato un archivio ZIP con tutti i documenti.
           </p>
           <div class="form-check mb-3">
             <input type="checkbox" name="crea_zip" value="1" class="form-check-input"
@@ -3571,7 +3571,7 @@
   </div>
 </div>
 
-{# Modals esito per ogni attivitÃ  #}
+{# Modals esito per ogni attività #}
 {% for att in fascicolo.attivita %}
 <div class="modal fade" id="modalEsito{{ att.id }}" tabindex="-1">
   <div class="modal-dialog">
@@ -3579,7 +3579,7 @@
       <form method="post"
             action="{{ url_for('aggiorna_esito_attivita', id_fasc=fascicolo.id, id_att=att.id) }}">
         <div class="modal-header">
-          <h5 class="modal-title">Aggiorna esito â€” {{ att.titolo|truncate(30) }}</h5>
+          <h5 class="modal-title">Aggiorna esito — {{ att.titolo|truncate(30) }}</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
         <div class="modal-body">
@@ -3591,7 +3591,7 @@
             {% endfor %}
           </select>
           <textarea name="note" class="form-control" rows="2"
-                    placeholder="Note sull'esitoâ€¦">{{ att.note }}</textarea>
+                    placeholder="Note sull'esito…">{{ att.note }}</textarea>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annulla</button>
@@ -3616,7 +3616,7 @@
           <div class="mb-3">
             <label class="form-label fw-semibold">Soggetto <span class="text-danger">*</span></label>
             <input type="text" id="parti-search" class="form-control mb-1"
-                   placeholder="Cerca per nome, C.F., emailâ€¦" autocomplete="off">
+                   placeholder="Cerca per nome, C.F., email…" autocomplete="off">
             <input type="hidden" name="id_soggetto" id="parti-id" required>
             <div id="parti-suggestions" class="list-group" style="max-height:200px;overflow-y:auto;display:none"></div>
             <div id="parti-selected" class="alert alert-info py-1 px-2 small mt-1" style="display:none"></div>
@@ -3636,7 +3636,7 @@
           <div class="mb-3">
             <label class="form-label fw-semibold">Note (opzionale)</label>
             <input type="text" name="note" class="form-control"
-                   placeholder="es. Avv. Mario Rossi - domiciliato in â€¦">
+                   placeholder="es. Avv. Mario Rossi - domiciliato in …">
           </div>
         </div>
         <div class="modal-footer">
@@ -3660,7 +3660,7 @@
 var _visDettaglioAperto = false;
 
 var _visLoadTimer = null;
-var _visReady = false;  // true dopo che il src reale Ã¨ stato impostato
+var _visReady = false;  // true dopo che il src reale è stato impostato
 var _visBlobUrl = null;
 var _visOpenSeq = 0;
 
@@ -3733,7 +3733,7 @@ function apriVisualizzatore(btn) {
   document.getElementById('visualizzatore-titolo').textContent = nome;
   document.getElementById('visualizzatore-scarica').href = btn.dataset.scaricaUrl || '#';
 
-  // Spinner + iframe reset: usa about:blank (piÃ¹ prevedibile di removeAttribute)
+  // Spinner + iframe reset: usa about:blank (più prevedibile di removeAttribute)
   const iframe = document.getElementById('visualizzatore-iframe');
   iframe.style.display = 'none';
   iframe.removeAttribute('srcdoc');
@@ -3865,8 +3865,8 @@ function _visMostraFirme(firme) {
     badges.appendChild(badge);
 
     // Scheda dettaglio
-    const scadenzaStr = f.valido_al ? new Date(f.valido_al).toLocaleDateString('it-IT') : 'â€”';
-    const dal = f.valido_dal ? new Date(f.valido_dal).toLocaleDateString('it-IT') : 'â€”';
+    const scadenzaStr = f.valido_al ? new Date(f.valido_al).toLocaleDateString('it-IT') : '—';
+    const dal = f.valido_dal ? new Date(f.valido_dal).toLocaleDateString('it-IT') : '—';
 
     let statoHtml;
     if (f.scaduto)
@@ -3892,9 +3892,9 @@ function _visMostraFirme(firme) {
           <tr><th class="py-0 pe-2 text-muted fw-normal">Valido dal</th>
               <td class="py-0">${dal}</td></tr>
           <tr><th class="py-0 pe-2 text-muted fw-normal">Formato</th>
-              <td class="py-0">${_escHtml(f.formato || 'â€”')}</td></tr>
+              <td class="py-0">${_escHtml(f.formato || '—')}</td></tr>
           <tr><th class="py-0 pe-2 text-muted fw-normal">Algoritmo</th>
-              <td class="py-0">${_escHtml(f.algoritmo || 'â€”')}</td></tr>
+              <td class="py-0">${_escHtml(f.algoritmo || '—')}</td></tr>
           <tr><th class="py-0 pe-2 text-muted fw-normal">Numero seriale</th>
               <td class="py-0 text-truncate font-monospace" style="max-width:0;font-size:.72rem" title="${_escHtml(f.seriale)}">${_escHtml(f.seriale)}</td></tr>
         </table>
@@ -4024,7 +4024,7 @@ function apriFirma(btn) {
   _detFPath = 'detecting';
   _detFLastLocalSignerStatus = null;
 
-  _detFShowDetecting('Ricerca Local Signerâ€¦');
+  _detFShowDetecting('Ricerca Local Signer…');
 
   new bootstrap.Modal(document.getElementById('modalFirma')).show();
 
@@ -4032,7 +4032,7 @@ function apriFirma(btn) {
 }
 
 function _detFCercaServerPkcs11(localSignerStatus) {
-  document.getElementById('fDetectingTxt').textContent = 'Ricerca token PKCS#11â€¦';
+  document.getElementById('fDetectingTxt').textContent = 'Ricerca token PKCS#11…';
   fetch('/api/firma/pkcs11/status', { signal: AbortSignal.timeout(3000) })
     .then(r => r.json())
     .then(d => {
@@ -4058,7 +4058,7 @@ function _detFMostraLS(tok) {
   document.getElementById('fSwitchPath').style.display = 'block';
   document.getElementById('fSwitchLabel').textContent = 'Firma esterna (ArubaSign / Dike)';
   const infoEl = document.querySelector('#fLsInfo span');
-  if (infoEl) infoEl.textContent = `Local Signer: ${tok.label || tok.manufacturer || 'Token'} (slot ${tok.slot_id}) â€” firma in-device`;
+  if (infoEl) infoEl.textContent = `Local Signer: ${tok.label || tok.manufacturer || 'Token'} (slot ${tok.slot_id}) — firma in-device`;
   document.getElementById('fLsPin').value = '';
   document.getElementById('fLsStep3').style.display = 'none';
   setTimeout(() => document.getElementById('fLsPin').focus(), 300);
@@ -4076,7 +4076,7 @@ function _detFMostraPkcs11(tok) {
   document.getElementById('fSwitchPath').style.display = 'block';
   document.getElementById('fSwitchLabel').textContent = 'Passa alla firma esterna (ArubaSign / Dike)';
   const infoEl = document.querySelector('#fPkcs11Info span');
-  if (infoEl) infoEl.textContent = `Token: ${tok.label || tok.manufacturer || 'Token'} â€” slot ${tok.slot_id}`;
+  if (infoEl) infoEl.textContent = `Token: ${tok.label || tok.manufacturer || 'Token'} — slot ${tok.slot_id}`;
   document.getElementById('fPkcs11Pin').value = '';
   document.getElementById('fPkcs11Step3').style.display = 'none';
   setTimeout(() => document.getElementById('fPkcs11Pin').focus(), 300);
@@ -4115,12 +4115,12 @@ function _detFMostraEsterna(options) {
 }
 
 function _detFRiverificaLocalSigner() {
-  _detFShowDetecting('Riverifica Local Signerâ€¦');
+  _detFShowDetecting('Riverifica Local Signer…');
   _detFVerificaLocalSigner();
 }
 
 function _detFRiavviaLocalSigner() {
-  _detFShowDetecting('Riavvio Local Signer in corsoâ€¦');
+  _detFShowDetecting('Riavvio Local Signer in corso…');
   try {
     _detFAttivaProtocolloSigner(true);
   } catch (err) {
@@ -4216,7 +4216,7 @@ function _detFAvviaLS() {
       document.getElementById('fLsProgress').style.display = 'none';
       const msg = [];
       if (d.intestatario) msg.push(`Firmato da <strong>${d.intestatario}</strong>`);
-      if (d.scadenza) msg.push(`Â· cert. valido fino al ${d.scadenza}`);
+      if (d.scadenza) msg.push(`· cert. valido fino al ${d.scadenza}`);
       const uploadWarning = _detFUploadWarningText(d.upload_payload);
       if (uploadWarning) msg.push(`<span class="text-warning">${uploadWarning}</span>`);
       document.getElementById('fLsSuccessMsg').innerHTML = msg.join(' ') || 'Firma completata.';
@@ -4267,8 +4267,8 @@ function _detFAvviaPkcs11() {
     if (d.ok) {
       const msg = [];
       if (d.intestatario) msg.push(`Firmato da <strong>${d.intestatario}</strong>`);
-      if (d.scadenza) msg.push(`Â· cert. valido fino al ${d.scadenza}`);
-      if (d.avviso_scadenza) msg.push('Â· <span class="text-warning">certificato in scadenza!</span>');
+      if (d.scadenza) msg.push(`· cert. valido fino al ${d.scadenza}`);
+      if (d.avviso_scadenza) msg.push('· <span class="text-warning">certificato in scadenza!</span>');
       const uploadWarning = _detFUploadWarningText(d);
       if (uploadWarning) msg.push(`<span class="text-warning">${uploadWarning}</span>`);
       document.getElementById('fPkcs11SuccessMsg').innerHTML = msg.join(' ');
@@ -4300,7 +4300,7 @@ function _detFCaricaP7m(input) {
   if (!file) return;
   const statusEl = document.getElementById('fEsternaStatus');
   statusEl.style.display = 'block';
-  statusEl.innerHTML = '<span class="text-muted"><i class="bi bi-hourglass-split me-1"></i>Caricamento in corsoâ€¦</span>';
+  statusEl.innerHTML = '<span class="text-muted"><i class="bi bi-hourglass-split me-1"></i>Caricamento in corso…</span>';
 
   const fd = new FormData();
   fd.append('file', file);
@@ -4380,14 +4380,14 @@ function controllaRicevute(idFasc, idDep, btn) {
       }
       const sep = '<i class="bi bi-chevron-right text-muted" style="font-size:.65rem"></i>';
       const ec = (data.esito_controlli || '').toUpperCase();
-      const ctrl_label = 'â‘¢ Controlli' + (ec==='WARN'?' WARN' : ec==='ERROR'?' ERR' : '');
+      const ctrl_label = '③ Controlli' + (ec==='WARN'?' WARN' : ec==='ERROR'?' ERR' : '');
       tracker.innerHTML =
-        faseBadge('â‘ ','Accett. PEC', data.ricevuta_accettazione, false, false) + sep +
-        faseBadge('â‘¡','Consegna',    data.ricevuta_consegna, false, false) + sep +
+        faseBadge('①','Accett. PEC', data.ricevuta_accettazione, false, false) + sep +
+        faseBadge('②','Consegna',    data.ricevuta_consegna, false, false) + sep +
         faseBadge(ctrl_label, '',    data.ricevuta_controlli && ec==='OK',
                                      data.ricevuta_controlli && ec==='WARN',
                                      data.ricevuta_controlli && ec==='ERROR') + sep +
-        faseBadge('â‘£','Cancelleria', stato==='ACCETTATO_CANCELLERIA',
+        faseBadge('④','Cancelleria', stato==='ACCETTATO_CANCELLERIA',
                                      false,
                                      stato==='RIFIUTATO_CANCELLERIA');
     }
@@ -4435,7 +4435,7 @@ function apriModificaDeposito(dep) {
   new bootstrap.Modal(document.getElementById('modalDeposito')).show();
 }
 
-// Ripristina il modal in modalitÃ  "aggiungi" quando si apre dal pulsante +Registra
+// Ripristina il modal in modalità "aggiungi" quando si apre dal pulsante +Registra
 document.getElementById('modalDeposito').addEventListener('show.bs.modal', function (e) {
   // Se l'evento non proviene da apriModificaDeposito (nessun relatedTarget = pulsante standard)
   if (e.relatedTarget) {
@@ -4495,7 +4495,7 @@ document.getElementById('modalDeposito').addEventListener('show.bs.modal', funct
   input.addEventListener('change', function () {
     const count = input.files ? input.files.length : 0;
     if (!count) {
-      hint.textContent = "Puoi selezionare piÃ¹ file insieme oppure un'intera cartella del fascicolo giÃ  scaricata dal portale.";
+      hint.textContent = "Puoi selezionare più file insieme oppure un'intera cartella del fascicolo già scaricata dal portale.";
       return;
     }
     if (count === 1) {
@@ -4772,7 +4772,7 @@ window._PST_PRESERVE_TREE = {{ 'true' if preserve_pst_tree else 'false' }};
         html += '<div>';
         html += '<div><strong>' + escapeHtml(titolo) + '</strong> <span class="text-muted">(' + rows.length + ')</span></div>';
         if (meta.length) {
-          html += '<div class="small text-muted">' + escapeHtml(meta.join(' Â· ')) + '</div>';
+          html += '<div class="small text-muted">' + escapeHtml(meta.join(' · ')) + '</div>';
         }
         html += '</div>';
         html += '<div class="form-check m-0">';
@@ -4782,7 +4782,7 @@ window._PST_PRESERVE_TREE = {{ 'true' if preserve_pst_tree else 'false' }};
 
         rows.forEach(function (item) {
           const badge = item.gia_importato
-            ? '<span class="badge text-bg-success">GiÃ  acquisito</span>'
+            ? '<span class="badge text-bg-success">Già acquisito</span>'
             : (isStaged(item)
                 ? '<span class="badge text-bg-primary">Scaricato in sessione</span>'
                 : '<span class="badge text-bg-secondary">Da acquisire</span>');
@@ -4797,16 +4797,16 @@ window._PST_PRESERVE_TREE = {{ 'true' if preserve_pst_tree else 'false' }};
           html += '</div>';
           html += '<div class="small text-muted ms-4">';
           html += 'Tipo: ' + escapeHtml(item.tipo_atto || item.tipo || 'n.d.');
-          html += ' Â· Data: ' + escapeHtml(item.data_documento || 'n.d.');
+          html += ' · Data: ' + escapeHtml(item.data_documento || 'n.d.');
           if (item.mittente) {
-            html += ' Â· Mittente: ' + escapeHtml(item.mittente);
+            html += ' · Mittente: ' + escapeHtml(item.mittente);
           }
           html += '</div>';
           const metaRows = [];
           if (item.id_documento_portale || item.id_cat) {
             metaRows.push(
               item.id_documento_portale && item.id_cat && item.id_documento_portale !== item.id_cat
-                ? 'ID documento: ' + escapeHtml(item.id_documento_portale) + ' Â· idCat: ' + escapeHtml(item.id_cat)
+                ? 'ID documento: ' + escapeHtml(item.id_documento_portale) + ' · idCat: ' + escapeHtml(item.id_cat)
                 : 'ID documento / idCat: ' + escapeHtml(item.id_cat || item.id_documento_portale || 'n.d.')
             );
           }
@@ -4958,7 +4958,7 @@ window._PST_PRESERVE_TREE = {{ 'true' if preserve_pst_tree else 'false' }};
   async function scaricaDocumenti(items, options) {
     const queue = pendingItems(items);
     if (!queue.length) {
-      setStatus('I documenti selezionati risultano giÃ  acquisiti nel fascicolo.', 'success');
+      setStatus('I documenti selezionati risultano già acquisiti nel fascicolo.', 'success');
       return [];
     }
 
@@ -4978,7 +4978,7 @@ window._PST_PRESERVE_TREE = {{ 'true' if preserve_pst_tree else 'false' }};
     }
 
     if (options && options.importAfter) {
-      setStatus(message + ' Importo nel fascicoloâ€¦', 'info');
+      setStatus(message + ' Importo nel fascicolo…', 'info');
       await importaFilesNelFascicolo(
         files,
         options.noteDefault || 'download ufficiale via Local Signer / PST',
@@ -4987,7 +4987,7 @@ window._PST_PRESERVE_TREE = {{ 'true' if preserve_pst_tree else 'false' }};
       return files;
     }
 
-    setStatus(message + ' I file sono pronti per lâ€™importazione selettiva nel fascicolo.', 'info');
+    setStatus(message + ' I file sono pronti per l’importazione selettiva nel fascicolo.', 'info');
     return files;
   }
 
@@ -5006,7 +5006,7 @@ window._PST_PRESERVE_TREE = {{ 'true' if preserve_pst_tree else 'false' }};
     });
 
     if (mancanti.length) {
-      setStatus('Raccolgo i download recenti per i documenti selezionatiâ€¦', 'info');
+      setStatus('Raccolgo i download recenti per i documenti selezionati…', 'info');
       const raccolti = await raccogliDownloadRecenti(mancanti);
       const nuoviFiles = Array.isArray(raccolti.files) ? raccolti.files : [];
       stageFiles(nuoviFiles);
@@ -5015,7 +5015,7 @@ window._PST_PRESERVE_TREE = {{ 'true' if preserve_pst_tree else 'false' }};
     }
 
     if (!files.length) {
-      throw new Error('Nessun file disponibile per lâ€™importazione dei documenti selezionati.');
+      throw new Error('Nessun file disponibile per l’importazione dei documenti selezionati.');
     }
 
     await importaFilesNelFascicolo(
@@ -5036,7 +5036,7 @@ window._PST_PRESERVE_TREE = {{ 'true' if preserve_pst_tree else 'false' }};
     }
 
     if (!pendingItems(window._PST_NAV_ITEMS).length) {
-      setStatus('Tutti i documenti ufficiali censiti dal portale risultano giÃ  acquisiti nel fascicolo.', 'success');
+      setStatus('Tutti i documenti ufficiali censiti dal portale risultano già acquisiti nel fascicolo.', 'success');
     } else {
       setStatus('Seleziona i documenti che vuoi scaricare o importare. Il Local Signer esegue il lotto usando il canale autenticato ufficiale.', 'muted');
     }
@@ -5096,7 +5096,7 @@ window._PST_PRESERVE_TREE = {{ 'true' if preserve_pst_tree else 'false' }};
 
   if (btnDownloadAll) {
     btnDownloadAll.addEventListener('click', async function () {
-      setButtonsBusy(true, btnDownloadAll, 'Scaricoâ€¦');
+      setButtonsBusy(true, btnDownloadAll, 'Scarico…');
       try {
         await scaricaDocumenti(pendingItems(window._PST_NAV_ITEMS || []), { importAfter: false });
       } catch (err) {
@@ -5114,7 +5114,7 @@ window._PST_PRESERVE_TREE = {{ 'true' if preserve_pst_tree else 'false' }};
         setStatus('Seleziona almeno un documento da scaricare.', 'danger');
         return;
       }
-      setButtonsBusy(true, btnDownloadSelected, 'Scaricoâ€¦');
+      setButtonsBusy(true, btnDownloadSelected, 'Scarico…');
       try {
         await scaricaDocumenti(items, { importAfter: false });
       } catch (err) {
@@ -5128,7 +5128,7 @@ window._PST_PRESERVE_TREE = {{ 'true' if preserve_pst_tree else 'false' }};
   if (btnImportSelected) {
     btnImportSelected.addEventListener('click', async function () {
       const items = selectedPstItems(window._PST_NAV_ITEMS || []);
-      setButtonsBusy(true, btnImportSelected, 'Importoâ€¦');
+      setButtonsBusy(true, btnImportSelected, 'Importo…');
       try {
         await importaDocumentiSelezionati(items);
       } catch (err) {
@@ -5146,7 +5146,7 @@ window._PST_PRESERVE_TREE = {{ 'true' if preserve_pst_tree else 'false' }};
         setStatus('Seleziona almeno un documento da scaricare e importare.', 'danger');
         return;
       }
-      setButtonsBusy(true, btnDownloadImportSelected, 'Scaricoâ€¦');
+      setButtonsBusy(true, btnDownloadImportSelected, 'Scarico…');
       try {
         await scaricaDocumenti(items, {
           importAfter: true,
@@ -5163,7 +5163,7 @@ window._PST_PRESERVE_TREE = {{ 'true' if preserve_pst_tree else 'false' }};
 
   if (btnAcquireAll) {
     btnAcquireAll.addEventListener('click', async function () {
-      setButtonsBusy(true, btnAcquireAll, 'Acquisiscoâ€¦');
+      setButtonsBusy(true, btnAcquireAll, 'Acquisisco…');
       try {
         await scaricaDocumenti(window._PST_NAV_ITEMS || [], {
           importAfter: true,
@@ -5364,13 +5364,13 @@ window._PST_PRESERVE_TREE = {{ 'true' if preserve_pst_tree else 'false' }};
             a.href = '#';
             a.className = 'list-group-item list-group-item-action py-2 small';
             a.innerHTML = '<strong>' + s.nome + '</strong>'
-              + (s.qualifica ? ' <span class="text-muted">Â· ' + s.qualifica + '</span>' : '')
+              + (s.qualifica ? ' <span class="text-muted">· ' + s.qualifica + '</span>' : '')
               + ' <span class="badge bg-secondary ms-1" style="font-size:.65rem">' + s.sigla + '</span>';
             a.addEventListener('click', function(e) {
               e.preventDefault();
               hiddenId.value = s.id;
               searchInput.value = s.nome;
-              selected.textContent = 'âœ“ ' + s.nome + (s.qualifica ? ' (' + s.qualifica + ')' : '');
+              selected.textContent = '✓ ' + s.nome + (s.qualifica ? ' (' + s.qualifica + ')' : '');
               selected.style.display = 'block';
               suggestions.style.display = 'none';
             });
@@ -5392,11 +5392,11 @@ window._PST_PRESERVE_TREE = {{ 'true' if preserve_pst_tree else 'false' }};
   });
 })();
 
-// â”€â”€ Sync PEC â†’ Comunicazioni di cancelleria â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Sync PEC → Comunicazioni di cancelleria ──────────────────────────────────
 function _syncPecCancelleria(btn) {
   const orig = btn.innerHTML;
   btn.disabled = true;
-  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>In corsoâ€¦';
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>In corso…';
 
   fetch('/api/pec/poll-cancelleria', {
     method: 'POST',
@@ -5410,7 +5410,7 @@ function _syncPecCancelleria(btn) {
       const r = d.report || {};
       const msg = d.messaggio || 'Operazione completata.';
       const syncErr = d.sync_errore ? `<br><small class="text-warning-emphasis">${_escapeToastHtml(d.sync_errore)}</small>` : '';
-      const detail = `<br><small class="text-muted">${d.nuove||0} email nuove Â· ${d.esiti_aggiornati||0} esiti aggiornati Â· ${r.associati||0} comunicazioni nuove Â· ${r.duplicati||0} giÃ  presenti</small>${syncErr}`;
+      const detail = `<br><small class="text-muted">${d.nuove||0} email nuove · ${d.esiti_aggiornati||0} esiti aggiornati · ${r.associati||0} comunicazioni nuove · ${r.duplicati||0} già presenti</small>${syncErr}`;
       _mostraToast(d.warning ? 'warning' : 'success', msg + detail);
       if ((d.nuove||0) || (d.esiti_aggiornati||0) || (r.associati||0)) setTimeout(() => location.reload(), 1800);
     } else {

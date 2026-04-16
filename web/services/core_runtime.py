@@ -333,10 +333,10 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
     def get_studio_db():
         """
         Restituisce l'istanza StudioDB per il tenant corrente,
-        oppure None se PCT_SQLITE_MODE non ÃƒÂ¨ attivo.
+        oppure None se PCT_SQLITE_MODE non è attivo.
 
-        Il percorso di studio.db ÃƒÂ¨ derivato dalla root dei dati del tenant:
-        es. /data/clienti/anagrafica.json Ã¢â€ â€™ /data/studio.db
+        Il percorso di studio.db è derivato dalla root dei dati del tenant:
+        es. /data/clienti/anagrafica.json -> /data/studio.db
         """
         return get_request_studio_db(_cfg_data_path("CLIENTI_DB"))
 
@@ -479,7 +479,7 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
 
     def get_utenti() -> GestioneUtenti:
         if not hasattr(g, "_utenti"):
-            # In modalitÃƒÂ  multi-tenant, il primo utente globale deve essere SUPERADMIN
+            # In modalità multi-tenant, il primo utente globale deve essere SUPERADMIN
             # per poter accedere al pannello /admin/ e creare studi.
             ruolo_default = (
                 RuoloUtente.SUPERADMIN
@@ -561,9 +561,9 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
 
     def cliente_accessibile(id_cliente: str, richiesto: RuoloCondivisione = RuoloCondivisione.LETTURA) -> bool:
         """
-        Verifica se l'utente corrente puÃƒÂ² accedere alla cartella di un cliente.
-        - Utenti con permesso globale 'clienti.leggi' Ã¢â€ â€™ sempre True
-        - Altri Ã¢â€ â€™ solo se la cartella ÃƒÂ¨ stata condivisa con loro al livello richiesto
+        Verifica se l'utente corrente può accedere alla cartella di un cliente.
+        - Utenti con permesso globale 'clienti.leggi' -> sempre True
+        - Altri -> solo se la cartella è stata condivisa con loro al livello richiesto
         """
         u = g.utente_corrente
         if not u:

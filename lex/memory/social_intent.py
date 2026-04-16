@@ -105,7 +105,7 @@ _DAILY_OVERVIEW_PATTERNS = (
     r"\bquadro di oggi\b",
     r"\bsituazione di oggi\b",
     r"\bpriorita di oggi\b",
-    r"\bprioritÃ  di oggi\b",
+    r"\bpriorità di oggi\b",
     r"\bcosa dobbiamo fare\b",
 )
 
@@ -115,7 +115,7 @@ _REFERENTIAL_FOLLOWUPS = (
     r"\bcosa dobbiamo fare\b",
     r"\bda dove partiamo\b",
     r"\bquali sono le priorita\b",
-    r"\bquali sono le prioritÃ \b",
+    r"\bquali sono le priorità\b",
     r"\bche facciamo\b",
     r"\bpassiamo a\b",
     r"\bvediamo\b",
@@ -151,7 +151,7 @@ _INTERNAL_OPERATIONAL_TOPICS = (
     "documento",
     "documenti",
     "attivita",
-    "attivitÃ ",
+    "attività",
 )
 
 

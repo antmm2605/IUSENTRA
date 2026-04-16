@@ -1,5 +1,5 @@
 ﻿{% extends "base.html" %}
-{% block title %}PolisWeb â€” Consultazione PST{% endblock %}
+{% block title %}PolisWeb — Consultazione PST{% endblock %}
 {% block pct_modulo %}polisWeb{% endblock %}
 
 {% from 'includes/_fascicolo_banner.html' import banner_fascicolo %}
@@ -23,14 +23,14 @@
       <i class="bi bi-grid-1x2 me-1"></i>Centro Servizi Telematici
     </a>
     <span class="badge bg-light text-dark border ms-1" style="font-size:.72rem">
-      Portale Servizi Telematici â€” MinGiust
+      Portale Servizi Telematici — MinGiust
     </span>
     {% if demo_mode %}
     <span class="badge bg-warning text-dark ms-2" id="badge-demo-mode">
-      <i class="bi bi-cone me-1"></i>MODALITÃ€ DEMO
+      <i class="bi bi-cone me-1"></i>MODALITÀ DEMO
     </span>
     {% endif %}
-    {# Badge stato registro uffici â€” visibile solo agli admin #}
+    {# Badge stato registro uffici — visibile solo agli admin #}
     {% if utente_corrente and utente_corrente.ha_permesso('utenti.leggi') %}
     <span id="badge-uffici-stato" class="badge bg-secondary ms-auto small"
           style="cursor:pointer" title="Clicca per aggiornare il registro"
@@ -50,14 +50,14 @@
         <button class="btn-close ms-auto btn-sm" onclick="document.getElementById('panel-uffici-admin').classList.add('d-none')"></button>
       </div>
       <div class="card-body py-2 px-3 small" id="uffici-info-body">
-        <div class="text-muted"><i class="bi bi-hourglass-split me-1"></i>Caricamentoâ€¦</div>
+        <div class="text-muted"><i class="bi bi-hourglass-split me-1"></i>Caricamento…</div>
       </div>
       {# Sezione verifica variazioni #}
       <div class="card-body border-top py-2 px-3 small" id="uffici-variazioni-body">
         <div class="d-flex align-items-center gap-2 mb-1">
           <i class="bi bi-shield-check text-info"></i>
           <strong>Verifica variazioni PST</strong>
-          <span id="variazioni-badge" class="badge bg-secondary ms-1">â€”</span>
+          <span id="variazioni-badge" class="badge bg-secondary ms-1">—</span>
           <button class="btn btn-sm btn-outline-info ms-auto" id="btn-verifica-variazioni" onclick="eseguiVerificaVariazioni()">
             <i class="bi bi-search me-1"></i>Controlla ora
           </button>
@@ -84,23 +84,23 @@
   </div>
   {% endif %}
 
-  {# â”€â”€ Banner Local Signer (JS lo mostra/nasconde in base a localhost:27272) â”€â”€ #}
-  {# Sempre presente nell'HTML, inizialmente nascosto. JS gestisce la visibilitÃ . #}
+  {# ── Banner Local Signer (JS lo mostra/nasconde in base a localhost:27272) ── #}
+  {# Sempre presente nell'HTML, inizialmente nascosto. JS gestisce la visibilità. #}
   <div class="alert alert-info alert-dismissible fade show small mb-3 d-none" id="banner-local-signer">
     <div class="d-flex align-items-start gap-2">
       <i class="bi bi-usb-symbol fs-5 flex-shrink-0 mt-1"></i>
       <div class="flex-grow-1">
         <div id="ls-status-detecting" style="display:none">
           <div class="spinner-border spinner-border-sm text-info me-2"></div>
-          <span>Verifica Local Signerâ€¦</span>
+          <span>Verifica Local Signer…</span>
         </div>
         <div id="ls-status-ok" style="display:none">
           <strong class="text-success"><i class="bi bi-check-circle me-1"></i>Local Signer attivo</strong>
-          â€” Token o smart card CNS/CIE rilevati. La ricerca sarÃ  eseguita dal tuo PC con autenticazione mTLS.
+          — Token o smart card CNS/CIE rilevati. La ricerca sarà eseguita dal tuo PC con autenticazione mTLS.
           <div class="mt-1 small" id="ls-token-label"></div>
         </div>
         <div id="ls-status-notoken" style="display:none">
-          <strong class="text-warning"><i class="bi bi-exclamation-triangle me-1"></i>Local Signer attivo â€” problema token.</strong>
+          <strong class="text-warning"><i class="bi bi-exclamation-triangle me-1"></i>Local Signer attivo — problema token.</strong>
           <span id="ls-errore-msg" class="ms-1"></span>
           <div class="mt-1 d-flex gap-2 flex-wrap">
             <button type="button" class="btn btn-sm btn-outline-warning" onclick="verificaLocalSigner()">
@@ -114,7 +114,7 @@
         </div>
         <div id="ls-status-missing" style="display:none">
           <strong class="text-secondary"><i class="bi bi-pc-display-horizontal me-1"></i>Local Signer non attivo.</strong>
-          Se lo hai giÃ  installato non devi reinstallarlo: puoi avviarlo direttamente da qui e IUSENTRA proseguirÃ  con riconoscimento certificato e ricerca PST.
+          Se lo hai già installato non devi reinstallarlo: puoi avviarlo direttamente da qui e IUSENTRA proseguirà con riconoscimento certificato e ricerca PST.
           <div class="mt-1 small text-muted" id="ls-install-summary">
             Installer desktop consigliato per Windows, macOS e Linux.
           </div>
@@ -136,25 +136,25 @@
     </div>
   </div>
 
-  {# â”€â”€ Banner demo (nascosto se Local Signer disponibile) â”€â”€ #}
+  {# ── Banner demo (nascosto se Local Signer disponibile) ── #}
   {% if demo_mode %}
   <div class="alert alert-warning alert-dismissible fade show small mb-3" id="banner-demo">
     <i class="bi bi-cone me-2"></i>
-    <strong>ModalitÃ  demo solo come fallback offline.</strong>
+    <strong>Modalità demo solo come fallback offline.</strong>
     I risultati mostrati qui sono dati di esempio e non sostituiscono la ricerca reale sul PST.
     <strong>Configura uno solo dei canali reali supportati.</strong>
     Se usi <strong>Aruba Key / token PKCS#11</strong>, basta questo canale:
     non serve avere anche un file <code>P12</code>/<code>PEM</code> nel container,
-    perchÃ© per la consultazione reale IUSENTRA usa il <strong>Local Signer</strong> sul PC locale.
+    perché per la consultazione reale IUSENTRA usa il <strong>Local Signer</strong> sul PC locale.
     Puoi configurarlo in
-    <a href="{{ url_for('impostazioni.index', tab='firma') }}" class="alert-link">Impostazioni â†’ Firma Digitale</a>
+    <a href="{{ url_for('impostazioni.index', tab='firma') }}" class="alert-link">Impostazioni → Firma Digitale</a>
     oppure installare il
     <a href="{{ url_for('polis_local_signer_setup_windows') }}" class="alert-link" download id="ls-demo-install-link"><strong>Local Signer</strong></a>
     come servizio locale in avvio automatico.
     <ul class="mb-0 mt-1">
       <li><strong>Aruba Key / token CNS</strong>: <span id="ls-demo-install-note">Local Signer desktop, senza copiare la chiave privata nel container</span></li>
-      <li><strong>P12/PFX</strong>: file esportabile montato o caricato nel container, con <code>PCT_FIRMA_P12</code> oppure da <code>Impostazioni â†’ Firma</code></li>
-      <li><strong>PEM</strong>: certificato + chiave esportabili lato server, con <code>PCT_FIRMA_CERT</code> + <code>PCT_FIRMA_KEY</code> oppure da <code>Impostazioni â†’ Firma</code></li>
+      <li><strong>P12/PFX</strong>: file esportabile montato o caricato nel container, con <code>PCT_FIRMA_P12</code> oppure da <code>Impostazioni → Firma</code></li>
+      <li><strong>PEM</strong>: certificato + chiave esportabili lato server, con <code>PCT_FIRMA_CERT</code> + <code>PCT_FIRMA_KEY</code> oppure da <code>Impostazioni → Firma</code></li>
     </ul>
     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
   </div>
@@ -185,7 +185,7 @@
     <div>
       <strong><i class="bi bi-stars me-1"></i>Percorso consigliato</strong>
       Usa <strong>Importa pratiche dal PST</strong> per ricerca, selezione certificato e importazione guidata.
-      La ricerca manuale resta disponibile come fallback avanzato / compatibilitÃ .
+      La ricerca manuale resta disponibile come fallback avanzato / compatibilità.
     </div>
     <button type="button" class="btn btn-sm btn-outline-primary"
             data-bs-toggle="collapse" data-bs-target="#manual-pst-search-body"
@@ -203,7 +203,7 @@
       <button type="button" class="btn-help ms-1"
               data-bs-toggle="popover"
               data-bs-title="Come funziona la ricerca"
-              data-bs-content="<p class='mb-1'>Cerca pratiche nel <strong>Portale Servizi Telematici (PST)</strong> tramite il servizio <em>RicercaFascicoliRegistro</em>.</p><ul><li>Seleziona l'ufficio e inserisci almeno N. RG oppure il nome di una parte.</li><li><strong>ModalitÃ  demo</strong>: dati di esempio, nessuna connessione reale.</li><li>Per il PST reale configura la firma in <em>Impostazioni â†’ Firma Digitale</em>.</li></ul>">?</button>
+              data-bs-content="<p class='mb-1'>Cerca pratiche nel <strong>Portale Servizi Telematici (PST)</strong> tramite il servizio <em>RicercaFascicoliRegistro</em>.</p><ul><li>Seleziona l'ufficio e inserisci almeno N. RG oppure il nome di una parte.</li><li><strong>Modalità demo</strong>: dati di esempio, nessuna connessione reale.</li><li>Per il PST reale configura la firma in <em>Impostazioni → Firma Digitale</em>.</li></ul>">?</button>
     </div>
     <div id="manual-pst-search-body" class="collapse {{ 'show' if fascicoli is defined or demo_mode or not pkcs11_mode else '' }}">
     <div class="card-body">
@@ -217,7 +217,7 @@
               Ufficio giudiziario <span class="text-danger">*</span>
             </label>
 
-            {# â€” Tab selezione tipo â€” #}
+            {# — Tab selezione tipo — #}
             <div class="uff-tabs mb-1" id="ufficio-tabs" role="tablist">
               <button type="button" class="uff-tab active" data-tipo="">Tutti</button>
               <button type="button" class="uff-tab" data-tipo="TRIBUNALE"><i class="bi bi-building me-1"></i>Tribunale</button>
@@ -236,14 +236,14 @@
               <button type="button" class="uff-tab" data-tipo="CPT"><i class="bi bi-receipt me-1"></i>CPT</button>
             </div>
 
-            {# â€” Campo ricerca testo â€” #}
+            {# — Campo ricerca testo — #}
             <div class="position-relative" id="ufficio-wrap">
               <div class="input-group">
                 <span class="input-group-text bg-white" id="ufficio-tipo-icon">
                   <i class="bi bi-search text-muted"></i>
                 </span>
                 <input type="text" id="ufficio-input" class="form-control border-start-0 ps-0"
-                       placeholder="Cerca per cittÃ  o nomeâ€¦"
+                       placeholder="Cerca per città o nome…"
                        autocomplete="off"
                        value="{{ tribunale_sel_nome or '' }}"
                        required>
@@ -280,7 +280,7 @@
               <button type="button" class="btn-help"
                       data-bs-toggle="popover"
                       data-bs-title="Anno di iscrizione a ruolo"
-                      data-bs-content="Anno in cui la pratica Ã¨ stata iscritta a ruolo. Per pratiche pluriennali la ricerca funziona specificando l'anno di apertura, non l'anno corrente.">?</button>
+                      data-bs-content="Anno in cui la pratica è stata iscritta a ruolo. Per pratiche pluriennali la ricerca funziona specificando l'anno di apertura, non l'anno corrente.">?</button>
             </label>
             <input type="number" name="anno_rg" class="form-control"
                    placeholder="{{ oggi.year }}"
@@ -311,7 +311,7 @@
             </label>
             <div class="position-relative" id="nome-parte-wrap">
               <input type="text" name="nome_parte" id="nome-parte-input" class="form-control"
-                     placeholder="es. Rossi Mario â€” cerca nei tuoi clienti"
+                     placeholder="es. Rossi Mario — cerca nei tuoi clienti"
                      autocomplete="off"
                      value="{{ nome_parte or '' }}">
               <div id="nome-parte-dropdown"
@@ -349,7 +349,7 @@
     <div class="card-header fw-semibold d-flex justify-content-between align-items-center">
       <span>
         <i class="bi bi-list-ul me-2 text-primary"></i>
-        Risultati â€” {{ fascicoli|length }} pratica/e trovate
+        Risultati — {{ fascicoli|length }} pratica/e trovate
       </span>
     </div>
     {% if fascicoli %}
@@ -374,19 +374,19 @@
               {% if f.sezione %}<br><small class="text-muted">{{ f.sezione }}</small>{% endif %}
             </td>
             <td data-label="Oggetto">
-              {{ f.oggetto or 'â€”' }}
+              {{ f.oggetto or '—' }}
               {% if f.giudice %}<br><small class="text-muted">Dr. {{ f.giudice }}</small>{% endif %}
             </td>
             <td data-label="Ruolo" data-mob-hide>{{ f.ruolo|replace('_',' ')|title }}</td>
             <td data-label="Parti" class="small text-muted" data-mob-hide>
               {% for p in f.parti[:2] %}{{ p }}<br>{% endfor %}
               {% if f.parti|length > 2 %}<em>+{{ f.parti|length - 2 }} altre</em>{% endif %}
-              {% if not f.parti %}â€”{% endif %}
+              {% if not f.parti %}—{% endif %}
             </td>
             <td data-label="Udienza" class="text-nowrap">
               {% if f.data_udienza %}
                 <span class="badge bg-info text-dark">{{ f.data_udienza }}</span>
-              {% else %}â€”{% endif %}
+              {% else %}—{% endif %}
             </td>
             <td data-label="Stato">
               <span class="badge rounded-pill
@@ -492,7 +492,7 @@
           </div>
           La funzione "Importa" crea automaticamente un nuovo fascicolo nel gestionale
           con i dati RG, oggetto, giudice, sezione, cliente, parti e prossima udienza.
-          Se il fascicolo esiste giÃ , un nuovo "Importa" completa i dati mancanti invece di duplicarlo.
+          Se il fascicolo esiste già, un nuovo "Importa" completa i dati mancanti invece di duplicarlo.
         </div>
         <div class="col-md-4">
           <div class="fw-semibold text-dark mb-1">
@@ -501,22 +501,22 @@
           Il deposito degli atti avviene tramite <strong>PEC + busta .enc</strong>
           (PCT civile, art. 11 DM 44/2011) dalla sezione
           <a href="{{ url_for('lista_fascicoli') }}">Fascicoli</a> del gestionale.
-          PolisWeb Ã¨ un portale di consultazione, non di deposito.
+          PolisWeb è un portale di consultazione, non di deposito.
         </div>
       </div>
     </div>
   </div>
 
-{# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-   MODAL WIZARD PST â€” "Importa pratiche dal PST"
-   4 step: Setup Â· Parametri Â· Certificato Â· Risultati
-â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• #}
+{# ════════════════════════════════════════════════════════
+   MODAL WIZARD PST — "Importa pratiche dal PST"
+   4 step: Setup · Parametri · Certificato · Risultati
+════════════════════════════════════════════════════════ #}
 <div class="modal fade" id="modalWizardPst" tabindex="-1">
   <div class="modal-dialog modal-xl modal-dialog-scrollable modal-fullscreen-sm-down" id="modalWizardPstDialog"
        style="max-width:min(1240px,96vw);height:min(92vh,940px);margin:.75rem auto">
     <div class="modal-content" style="height:100%;display:flex;flex-direction:column">
 
-      {# â”€â”€ Header con step indicator â”€â”€ #}
+      {# ── Header con step indicator ── #}
       <div class="modal-header py-3" id="wiz-drag-handle"
            style="background:linear-gradient(135deg,#1a3a6b 0%,#2563eb 100%)">
         <div class="d-flex align-items-center gap-3 w-100">
@@ -550,14 +550,14 @@
 
       <div class="modal-body p-0" style="flex:1 1 auto;overflow:auto">
 
-        {# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ STEP 0: Setup Local Signer (solo se non attivo) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ #}
+        {# ──────────────── STEP 0: Setup Local Signer (solo se non attivo) ──────────────── #}
         <div id="wiz-step-setup" class="p-4" style="display:none">
           <div class="text-center mb-4">
             <i class="bi bi-usb-symbol text-primary" style="font-size:3rem"></i>
             <h5 class="mt-2 fw-bold">Configura il Local Signer</h5>
             <p class="text-muted small">
               Per accedere al PST con la tua <strong>smart card o token CNS/CIE</strong> devi installare il
-              <em>Local Signer</em> â€” un piccolo programma che gira in background sul tuo PC
+              <em>Local Signer</em> — un piccolo programma che gira in background sul tuo PC
               e usa il certificato pubblicato dal middleware locale per autenticarsi.
             </p>
           </div>
@@ -621,10 +621,10 @@
           </div>
         </div>
 
-        {# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ STEP 1: Parametri ricerca â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ #}
+        {# ──────────────── STEP 1: Parametri ricerca ──────────────── #}
         <div id="wiz-step-1" class="p-4">
           <div class="row g-3">
-            {# A â€” Ufficio giudiziario #}
+            {# A — Ufficio giudiziario #}
             <div class="col-12">
               <label class="form-label fw-semibold small mb-1">
                 <span class="badge bg-primary rounded-pill me-1 fw-normal">A</span>
@@ -651,7 +651,7 @@
                 <div class="input-group">
                   <span class="input-group-text"><i class="bi bi-search text-muted"></i></span>
                   <input type="text" id="wiz-ufficio-input" class="form-control"
-                         placeholder="Cerca per cittÃ  o nomeâ€¦" autocomplete="off">
+                         placeholder="Cerca per città o nome…" autocomplete="off">
                   <button type="button" class="btn btn-outline-secondary" id="wiz-ufficio-clear"
                           style="display:none" onclick="wizClearUfficio()">
                     <i class="bi bi-x-lg"></i>
@@ -671,7 +671,7 @@
               </div>
             </div>
 
-            {# B â€” Qualifica + Anno #}
+            {# B — Qualifica + Anno #}
             <div class="col-md-6">
               <label class="form-label fw-semibold small mb-1">
                 <span class="badge bg-primary rounded-pill me-1 fw-normal">B</span>
@@ -698,7 +698,7 @@
               </select>
             </div>
 
-            {# C â€” Registri #}
+            {# C — Registri #}
             <div class="col-12">
               <label class="form-label fw-semibold small mb-1">
                 <span class="badge bg-primary rounded-pill me-1 fw-normal">C</span>
@@ -725,7 +725,7 @@
               </div>
             </div>
 
-            {# D â€” Filtri aggiuntivi #}
+            {# D — Filtri aggiuntivi #}
             <div class="col-md-4">
               <label class="form-label fw-semibold small mb-1">
                 <span class="badge bg-primary rounded-pill me-1 fw-normal">D</span>
@@ -747,7 +747,7 @@
           </div>
         </div>
 
-        {# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ STEP 2: Selezione certificato â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ #}
+        {# ──────────────── STEP 2: Selezione certificato ──────────────── #}
         <div id="wiz-step-2" class="p-4" style="display:none">
           <div class="d-flex gap-4 align-items-start">
             {# Icona smart card #}
@@ -767,10 +767,10 @@
                 IUSENTRA guida adesso tutti i passaggi necessari prima della ricerca PST:
                 selezione del certificato, richiesta del PIN da parte di Windows e
                 verifica dell'autenticazione verso il servizio ministeriale.
-                Il PIN verrÃ  richiesto da Windows durante la connessione al PST.
+                Il PIN verrà richiesto da Windows durante la connessione al PST.
               </p>
 
-              {# Pulsante seleziona â€” principale #}
+              {# Pulsante seleziona — principale #}
               <ol class="small text-muted ps-3 mb-3">
                 <li>Clicca <strong>Seleziona certificato</strong>.</li>
                 <li>Scegli il certificato di autenticazione web della tua CNS/CIE.</li>
@@ -788,7 +788,7 @@
                 <button type="button" class="btn btn-primary px-4 py-2"
                         id="btn-wiz-seleziona"
                         onclick="wizApriPicker()">
-                  <i class="bi bi-credit-card-2-front me-2"></i>Seleziona certificatoâ€¦
+                  <i class="bi bi-credit-card-2-front me-2"></i>Seleziona certificato…
                 </button>
                 <span class="text-muted small ms-2">
                   <i class="bi bi-windows me-1"></i>Selettore nativo Windows
@@ -806,10 +806,10 @@
               {# Spinner durante l'apertura dialog #}
               <div id="wiz-cert-loading" class="mb-3" style="display:none">
                 <div class="spinner-border spinner-border-sm text-primary me-2"></div>
-                <span class="small text-muted">In attesa della selezioneâ€¦</span>
+                <span class="small text-muted">In attesa della selezione…</span>
               </div>
 
-              {# Certificato selezionato â€” card verde #}
+              {# Certificato selezionato — card verde #}
               <div id="wiz-pin-loading" class="alert alert-primary small mb-3" style="display:none">
                 <div class="d-flex align-items-start gap-2">
                   <div class="spinner-border spinner-border-sm mt-1 flex-shrink-0"></div>
@@ -837,10 +837,10 @@
                 <div class="card-body py-2 px-3 d-flex align-items-center gap-3">
                   <i class="bi bi-patch-check-fill text-success fs-4 flex-shrink-0"></i>
                   <div class="flex-grow-1 small">
-                    <div class="fw-semibold" id="wiz-cert-soggetto">â€”</div>
-                    <div class="text-muted" id="wiz-cert-emittente">â€”</div>
+                    <div class="fw-semibold" id="wiz-cert-soggetto">—</div>
+                    <div class="text-muted" id="wiz-cert-emittente">—</div>
                     <div class="text-muted">
-                      Scadenza: <span id="wiz-cert-scadenza" class="font-monospace">â€”</span>
+                      Scadenza: <span id="wiz-cert-scadenza" class="font-monospace">—</span>
                     </div>
                     <div class="text-success mt-1" id="wiz-cert-auto-note" style="display:none">
                       <i class="bi bi-magic me-1"></i>Certificato Aruba selezionato automaticamente da IUSENTRA.
@@ -860,21 +860,21 @@
                 Inserire smart card/token o collegare il lettore, quindi cliccare di nuovo <strong>Seleziona</strong>.
               </div>
 
-              {# Info: il PIN Ã¨ gestito da Windows #}
+              {# Info: il PIN è gestito da Windows #}
               <div class="alert alert-light border small py-2 mt-2">
                 <i class="bi bi-shield-lock text-success me-1"></i>
-                Il PIN non viene mai inviato al server. Windows chiederÃ  il PIN
+                Il PIN non viene mai inviato al server. Windows chiederà il PIN
                 direttamente quando si connette al PST con il certificato selezionato.
               </div>
             </div>
           </div>
         </div>
 
-        {# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ STEP 3: Risultati â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ #}
+        {# ──────────────── STEP 3: Risultati ──────────────── #}
         <div id="wiz-step-3" style="display:none">
           <div id="wiz-ricerca-progress" class="text-center py-5">
             <div class="spinner-border text-primary mb-3"></div>
-            <div class="fw-semibold">Ricerca in corso nel registro del tribunaleâ€¦</div>
+            <div class="fw-semibold">Ricerca in corso nel registro del tribunale…</div>
             <div class="text-muted small mt-1">Connessione al PST con certificato qualificato</div>
           </div>
           <div id="wiz-risultati-content" style="display:none">
@@ -928,17 +928,17 @@
           </div>
         </div>
 
-        {# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ STEP 4: Acquisizione documenti â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ #}
+        {# ──────────────── STEP 4: Acquisizione documenti ──────────────── #}
         <div id="wiz-step-4" class="p-4" style="display:none">
           <div class="text-center mb-4">
             <i class="bi bi-cloud-arrow-down text-primary" style="font-size:2.8rem"></i>
-            <h6 class="fw-bold mt-2 mb-0">Acquisizione fascicolo in corsoâ€¦</h6>
+            <h6 class="fw-bold mt-2 mb-0">Acquisizione fascicolo in corso…</h6>
             <p class="small text-muted mt-1">Recupero degli allegati dal Portale Servizi Telematici.</p>
           </div>
 
           <div class="mb-3">
             <div class="d-flex justify-content-between small text-muted mb-1">
-              <span id="wiz-acq-label" class="text-truncate me-2">Connessione al PSTâ€¦</span>
+              <span id="wiz-acq-label" class="text-truncate me-2">Connessione al PST…</span>
               <span id="wiz-acq-pct" class="flex-shrink-0 fw-semibold">0%</span>
             </div>
             <div class="progress" style="height:14px;border-radius:8px">
@@ -955,7 +955,7 @@
           <div id="wiz-acq-completo" class="alert alert-success small mt-3 mb-0" style="display:none">
             <i class="bi bi-check-circle-fill me-1"></i>
             <span id="wiz-acq-completo-msg">Fascicolo acquisito con successo.</span>
-            <span class="ms-1 text-muted">Reindirizzamento in corsoâ€¦</span>
+            <span class="ms-1 text-muted">Reindirizzamento in corso…</span>
           </div>
 
           <div id="wiz-acq-errore" class="alert alert-danger small mt-3 mb-0" style="display:none">
@@ -1000,7 +1000,7 @@ document.querySelectorAll('input[name="cf_parte"]').forEach(el => {
   el.addEventListener('input', () => { el.value = el.value.toUpperCase(); });
 });
 
-// â”€â”€ Autocomplete "Nome parte" â€” cerca nei clienti in anagrafica â”€â”€â”€â”€â”€â”€
+// ── Autocomplete "Nome parte" — cerca nei clienti in anagrafica ──────
 (function () {
   const inp  = document.getElementById('nome-parte-input');
   const drop = document.getElementById('nome-parte-dropdown');
@@ -1018,7 +1018,7 @@ document.querySelectorAll('input[name="cf_parte"]').forEach(el => {
     if (!clienti.length) { drop.style.display = 'none'; return; }
     drop.innerHTML = clienti.map(c => {
       const cf = c.codice_fiscale || c.cf || '';
-      const sub = [c.tipo, cf].filter(Boolean).join(' Â· ');
+      const sub = [c.tipo, cf].filter(Boolean).join(' · ');
       return `<div class="uff-item" data-nome="${escH(c.nome_completo || c.nome || '')}" data-cf="${escH(cf)}" style="cursor:pointer">
         <i class="bi bi-person text-primary uff-icon"></i>
         <div class="uff-body">
@@ -1083,11 +1083,11 @@ function caricaStatoUffici() {
       const body = document.getElementById('uffici-info-body');
       const scad = d.scaduta;
       badge.className = `badge ${scad ? 'bg-warning text-dark' : 'bg-success'} ms-auto small`;
-      if (txt) txt.textContent = `${d.n_uffici} uffici Â· ${scad ? 'da aggiornare' : 'aggiornati'}`;
+      if (txt) txt.textContent = `${d.n_uffici} uffici · ${scad ? 'da aggiornare' : 'aggiornati'}`;
       if (body) {
-        const dt = d.aggiornato_il && d.aggiornato_il !== 'â€”'
+        const dt = d.aggiornato_il && d.aggiornato_il !== '—'
           ? new Date(d.aggiornato_il).toLocaleString('it-IT')
-          : 'â€”';
+          : '—';
         const perTipo = d.per_tipo || {};
         const tipoRows = Object.entries(perTipo).map(([tipo, n]) => {
           const label = _TIPO_LABEL[tipo] || tipo;
@@ -1101,8 +1101,8 @@ function caricaStatoUffici() {
             <div class="col-6 col-md-3"><div class="text-muted small">Aggiornato il</div><div class="fw-semibold">${dt}</div></div>
             <div class="col-6 col-md-3"><div class="text-muted small">TTL</div><div class="fw-semibold">${d.ttl_giorni} giorni</div></div>
           </div>
-          <div class="border-top pt-2">${tipoRows || '<span class="text-muted">â€”</span>'}</div>
-          ${scad ? '<div class="alert alert-warning mt-2 py-1 small mb-0"><i class="bi bi-exclamation-triangle me-1"></i>Cache scaduta â€” clicca "Ricarica bundle" o "Aggiorna da remoto"</div>' : ''}`;
+          <div class="border-top pt-2">${tipoRows || '<span class="text-muted">—</span>'}</div>
+          ${scad ? '<div class="alert alert-warning mt-2 py-1 small mb-0"><i class="bi bi-exclamation-triangle me-1"></i>Cache scaduta — clicca "Ricarica bundle" o "Aggiorna da remoto"</div>' : ''}`;
       }
     })
     .catch(() => {});
@@ -1111,7 +1111,7 @@ function caricaStatoUffici() {
 function _inviaAggiorna(url, btnEl, labelOk) {
   const esito = document.getElementById('uffici-aggiorna-esito');
   btnEl.disabled = true;
-  btnEl.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>â€¦';
+  btnEl.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>…';
   if (esito) esito.textContent = '';
   fetch('/api/uffici/aggiorna', {
     method: 'POST',
@@ -1145,7 +1145,7 @@ function aggiornaUffici() {
 
 // Carica lo stato al click sul pannello
 document.getElementById('badge-uffici-stato')?.addEventListener('click', caricaStatoUffici);
-// Carica subito se il pannello Ã¨ visibile
+// Carica subito se il pannello è visibile
 document.addEventListener('DOMContentLoaded', () => {
   caricaStatoUffici();
   caricaVariazioni();
@@ -1171,12 +1171,12 @@ function _renderVariazioni(d) {
     return;
   }
 
-  const ts = d.verificato_il ? new Date(d.verificato_il).toLocaleString('it-IT') : 'â€”';
+  const ts = d.verificato_il ? new Date(d.verificato_il).toLocaleString('it-IT') : '—';
 
   if (!d.ok) {
     badge.className = 'badge bg-warning text-dark ms-1';
     badge.textContent = 'errore';
-    dettaglio.innerHTML = `<i class="bi bi-exclamation-triangle text-warning me-1"></i>Ultimo tentativo: ${ts} â€” <span class="text-danger">${d.errore || 'sorgente non raggiungibile'}</span>`;
+    dettaglio.innerHTML = `<i class="bi bi-exclamation-triangle text-warning me-1"></i>Ultimo tentativo: ${ts} — <span class="text-danger">${d.errore || 'sorgente non raggiungibile'}</span>`;
     return;
   }
 
@@ -1196,11 +1196,11 @@ function _renderVariazioni(d) {
     badge.textContent = `${nTot} variazioni`;
   }
 
-  let html = `<div class="text-muted mb-1"><i class="bi bi-clock-history me-1"></i>Ultimo controllo: <strong>${ts}</strong> â€” sorgente: ${d.sorgente} (bundle: ${d.bundle_n}, remoto: ${d.remoto_n})</div>`;
+  let html = `<div class="text-muted mb-1"><i class="bi bi-clock-history me-1"></i>Ultimo controllo: <strong>${ts}</strong> — sorgente: ${d.sorgente} (bundle: ${d.bundle_n}, remoto: ${d.remoto_n})</div>`;
 
   if (nPec > 0) {
     html += `<div class="alert alert-danger py-1 px-2 mb-1 small">
-      <i class="bi bi-envelope-exclamation me-1"></i><strong>${nPec} PEC modificate</strong> â€” rischio recapito depositi!
+      <i class="bi bi-envelope-exclamation me-1"></i><strong>${nPec} PEC modificate</strong> — rischio recapito depositi!
       <ul class="mb-0 mt-1">`;
     (d.pec_modificate || []).forEach(p => {
       html += `<li><strong>${p.nome}</strong> (${p.codice})<br>
@@ -1217,7 +1217,7 @@ function _renderVariazioni(d) {
     (d.aggiunti || []).slice(0, 5).forEach(u => {
       html += `<li>${u.nome} <span class="text-muted">(${u.codice})</span></li>`;
     });
-    if (nAdd > 5) html += `<li class="text-muted">â€¦e altri ${nAdd - 5}</li>`;
+    if (nAdd > 5) html += `<li class="text-muted">…e altri ${nAdd - 5}</li>`;
     html += `</ul></div>`;
   }
 
@@ -1228,7 +1228,7 @@ function _renderVariazioni(d) {
     (d.rimossi || []).slice(0, 5).forEach(u => {
       html += `<li>${u.nome} <span class="text-muted">(${u.codice})</span></li>`;
     });
-    if (nRim > 5) html += `<li class="text-muted">â€¦e altri ${nRim - 5}</li>`;
+    if (nRim > 5) html += `<li class="text-muted">…e altri ${nRim - 5}</li>`;
     html += `</ul></div>`;
   }
 
@@ -1243,9 +1243,9 @@ function eseguiVerificaVariazioni() {
   const btn = document.getElementById('btn-verifica-variazioni');
   const badge = document.getElementById('variazioni-badge');
   btn.disabled = true;
-  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Controlloâ€¦';
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Controllo…';
   badge.className = 'badge bg-secondary ms-1';
-  badge.textContent = 'in corsoâ€¦';
+  badge.textContent = 'in corso…';
   fetch('/api/uffici/variazioni/esegui', { method: 'POST' })
     .then(r => r.json())
     .then(d => {
@@ -1328,10 +1328,10 @@ function eseguiVerificaVariazioni() {
   let focusIdx    = -1;
   let timer       = null;
 
-  // â”€â”€ Posiziona il dropdown fixed sotto il campo input â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Posiziona il dropdown fixed sotto il campo input ────────
   function posizionaDropdown() {
     const rect = input.getBoundingClientRect();
-    // position:fixed â†’ coordinate relative al viewport, NON aggiungere scrollY
+    // position:fixed → coordinate relative al viewport, NON aggiungere scrollY
     dropdown.style.top   = (rect.bottom + 4) + 'px';
     dropdown.style.left  = rect.left + 'px';
     dropdown.style.width = rect.width + 'px';
@@ -1339,7 +1339,7 @@ function eseguiVerificaVariazioni() {
     dropdown.style.maxHeight = Math.min(340, spazioGiu) + 'px';
   }
 
-  // â”€â”€ Tab: cambio tipo â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Tab: cambio tipo ─────────────────────────────────────────
   tabs?.querySelectorAll('.uff-tab').forEach(tab => {
     tab.addEventListener('click', (e) => {
       e.stopPropagation();  // impedisce che document.click intercetti prima
@@ -1351,16 +1351,16 @@ function eseguiVerificaVariazioni() {
       tipoIcon.innerHTML = `<i class="bi ${icon} text-muted"></i>`;
       // Placeholder dinamico
       input.placeholder = tipoFiltro
-        ? `Cerca ${TIPO_PLACEHOLDER[tipoFiltro] || tipoFiltro.toLowerCase() + 'â€¦'}`
-        : 'Cerca per cittÃ  o nomeâ€¦';
-      // Riapri dropdown se c'Ã¨ giÃ  testo
+        ? `Cerca ${TIPO_PLACEHOLDER[tipoFiltro] || tipoFiltro.toLowerCase() + '…'}`
+        : 'Cerca per città o nome…';
+      // Riapri dropdown se c'è già testo
       if (input.value.trim().length >= 2) cerca(input.value.trim());
       else chiudi();
       input.focus();
     });
   });
 
-  // â”€â”€ Rendering dropdown con raggruppamento â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Rendering dropdown con raggruppamento ───────────────────
   function renderDropdown(data) {
     focusIdx = -1;
     items = [];
@@ -1368,7 +1368,7 @@ function eseguiVerificaVariazioni() {
     if (!data.length) {
       dropdown.innerHTML = `<div class="uff-empty">
         <i class="bi bi-search me-1"></i>Nessun ufficio trovato
-        <div class="mt-1 small">Prova con un nome di cittÃ  diverso</div>
+        <div class="mt-1 small">Prova con un nome di città diverso</div>
       </div>`;
       dropdown.classList.add('show');
       return;
@@ -1386,7 +1386,7 @@ function eseguiVerificaVariazioni() {
     // Tipi extra non in GRUPPI_ORDER
     Object.keys(gruppi).forEach(t => { if (!tipiPresenti.includes(t)) tipiPresenti.push(t); });
 
-    // Mostra intestazione gruppo solo se ci sono piÃ¹ tipi
+    // Mostra intestazione gruppo solo se ci sono più tipi
     const multiGruppo = tipiPresenti.length > 1;
 
     let html = '';
@@ -1403,7 +1403,7 @@ function eseguiVerificaVariazioni() {
           <i class="bi ${TIPO_ICONS[u.tipo] || 'bi-building'} uff-icon"></i>
           <div class="uff-body">
             <div class="uff-nome">${u.nome}</div>
-            <div class="uff-sub">${u.distretto}${u.pec ? ' Â· <span class="font-monospace small">' + u.pec + '</span>' : ''}</div>
+            <div class="uff-sub">${u.distretto}${u.pec ? ' · <span class="font-monospace small">' + u.pec + '</span>' : ''}</div>
           </div>
           ${multiGruppo ? '' : `<span class="uff-tipo-badge uff-tipo-${u.tipo}">${TIPO_LABEL[u.tipo] || u.tipo}</span>`}
         </div>`;
@@ -1512,8 +1512,8 @@ function eseguiVerificaVariazioni() {
   }
 })();
 
-// â”€â”€ Local Signer: verifica disponibilitÃ  e gestione PST â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// Gira SEMPRE (non condizionale lato server) â€” il server non sa della Aruba Key Windows
+// ── Local Signer: verifica disponibilità e gestione PST ────────────────────
+// Gira SEMPRE (non condizionale lato server) — il server non sa della Aruba Key Windows
 const _LS_BASE_PW = 'http://127.0.0.1:27272';
 const _LS_PROTOCOL_URI = 'hacs-local-signer://start';
 const _PW_PKCS11_MODE = {{ 'true' if pkcs11_mode else 'false' }};
@@ -1719,7 +1719,7 @@ function _aggiornaPulsantiCerca(lsAttivo) {
     btnPst.classList.remove('btn-success');
     btnPst.classList.add('btn-primary');
     btnPst.innerHTML = '<i class="bi bi-usb-symbol me-1"></i>Attiva Local Signer e cerca';
-    btnPst.title = 'Avvia il Local Signer giÃ  installato e cerca nel PST reale';
+    btnPst.title = 'Avvia il Local Signer già installato e cerca nel PST reale';
   }
   btnPst.classList.remove('d-none');
   if (btnDemo) btnDemo.classList.toggle('d-none', !demoVisibile || lsAttivo);
@@ -1776,10 +1776,10 @@ function _lsAggiornaUiDaPing(d) {
     _mostraLsStatus('ok');
     const tok = _lsTokenInfo;
     const lbl = document.getElementById('ls-token-label');
-    if (lbl) lbl.textContent = `Token: ${tok.label || tok.manufacturer || 'Token'} â€” slot ${tok.slot_id}`;
+    if (lbl) lbl.textContent = `Token: ${tok.label || tok.manufacturer || 'Token'} — slot ${tok.slot_id}`;
     _aggiornaPulsantiCerca(true);
     if (badge) badge.style.display = '';
-    if (lblTok) lblTok.textContent = `${tok.label || tok.manufacturer || 'Token'} â€” slot ${tok.slot_id}`;
+    if (lblTok) lblTok.textContent = `${tok.label || tok.manufacturer || 'Token'} — slot ${tok.slot_id}`;
   } else if (lsAttivo) {
     _lsDisponibile = false;
     _lsTokenInfo = null;
@@ -1871,7 +1871,7 @@ async function _lsAssicuraAttivo() {
   let stato = await verificaLocalSigner({ testo: 'Verifica Local Signer...' });
   if (stato.running) return stato;
   if (!_lsTentaAvvioProtocollo()) return stato;
-  _lsSetDetectingText('Avvio il Local Signer giÃ  installato...');
+  _lsSetDetectingText('Avvio il Local Signer già installato...');
   _mostraLsStatus('detecting');
   stato = await _lsAttendiAvvio(15000);
   return stato || { running: false, tokenOk: false };
@@ -1881,7 +1881,7 @@ async function avviaLocalSigner() {
   const stato = await _lsAssicuraAttivo();
   if (stato.running) return;
   _mostraErroreLocalSigner(
-    'Local Signer non raggiungibile. Se lo hai giÃ  installato, verifica il protocollo locale e riprova; altrimenti usa "Installa o aggiorna".'
+    'Local Signer non raggiungibile. Se lo hai già installato, verifica il protocollo locale e riprova; altrimenti usa "Installa o aggiorna".'
   );
 }
 
@@ -1936,7 +1936,7 @@ async function cercaSuPst() {
   const stato = await _lsAssicuraAttivo();
   if (!stato.running) {
     _mostraErroreLocalSigner(
-      'Local Signer non attivo. Se Ã¨ giÃ  installato, consenti l avvio locale dal browser e riprova; altrimenti installalo una sola volta.'
+      'Local Signer non attivo. Se è già installato, consenti l avvio locale dal browser e riprova; altrimenti installalo una sola volta.'
     );
     return;
   }
@@ -2027,16 +2027,16 @@ function _mostraRisultatiLocalSigner(fascicoli) {
   }
   const rows = fascicoli.map(f => `
     <tr>
-      <td class="font-monospace">${f.numero_rg || 'â€”'}/${f.anno_rg || 'â€”'}</td>
-      <td>${f.oggetto || 'â€”'}</td>
-      <td><span class="badge bg-secondary">${f.ruolo || 'â€”'}</span></td>
-      <td>${(f.parti || []).join(', ') || 'â€”'}</td>
-      <td>${f.stato || 'â€”'}</td>
+      <td class="font-monospace">${f.numero_rg || '—'}/${f.anno_rg || '—'}</td>
+      <td>${f.oggetto || '—'}</td>
+      <td><span class="badge bg-secondary">${f.ruolo || '—'}</span></td>
+      <td>${(f.parti || []).join(', ') || '—'}</td>
+      <td>${f.stato || '—'}</td>
     </tr>`).join('');
   panel.innerHTML = `
     <div class="card-header fw-semibold d-flex align-items-center gap-2 small">
       <i class="bi bi-list-ul text-success me-1"></i>
-      Risultati PST (via Local Signer) â€” ${fascicoli.length} pratica/e
+      Risultati PST (via Local Signer) — ${fascicoli.length} pratica/e
       <span class="badge bg-success ms-auto">REALE</span>
     </div>
     <div class="table-responsive">
@@ -2059,13 +2059,13 @@ function _erroreConGuida(msg) {
       + 'Se questi host rispondono, il problema non e il dispositivo di firma ma l\'endpoint PST legacy configurato in IUSENTRA.';
   }
   if (msg.includes('resolve host') || msg.includes('errore DNS') || msg.includes('wspa.giustizia')) {
-    return msg + '\n\nâš ï¸ wspa.giustizia.it non risponde dalla tua rete.\n'
+    return msg + '\n\n⚠️ wspa.giustizia.it non risponde dalla tua rete.\n'
       + 'Apri il prompt dei comandi e digita:  nslookup wspa.giustizia.it\n'
       + 'Se non risolve, il servizio PST potrebbe richiedere la rete del Ministero\n'
       + 'della Giustizia o una VPN dedicata (non accessibile da reti domestiche/aziendali).';
   }
   if (msg.includes('exit 7') || msg.includes('rifiuta la connessione')) {
-    return msg + '\n\nIl server PST Ã¨ irraggiungibile. Riprovare tra qualche minuto.';
+    return msg + '\n\nIl server PST è irraggiungibile. Riprovare tra qualche minuto.';
   }
   if (msg.includes('exit 28') || msg.includes('Timeout')) {
     return msg + '\n\nIl PST sta impiegando troppo. Verificare la connessione e riprovare.';
@@ -2101,7 +2101,7 @@ function _mostraErroreLocalSigner(msg) {
   </div>`;
 }
 
-// â”€â”€ Local Signer: verifica disponibilitÃ  (unica funzione) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Local Signer: verifica disponibilità (unica funzione) ──────────────────────
 
 function verificaLocalSignerLegacy() {
   const bannerLS = document.getElementById('banner-local-signer');
@@ -2116,14 +2116,14 @@ function verificaLocalSignerLegacy() {
       const erroreToken = d.errore_token || d.errore_libreria || null;
 
       if (tokenOk) {
-        // âœ… Local Signer attivo + token PKCS#11 rilevato
+        // ✅ Local Signer attivo + token PKCS#11 rilevato
         _lsDisponibile = true;
         _lsTokenInfo = d.token[0];
         _mostraLsStatus('ok');
         const tok = _lsTokenInfo;
         const lbl = document.getElementById('ls-token-label');
         if (lbl) lbl.textContent =
-          `Token: ${tok.label || tok.manufacturer || 'Token'} â€” slot ${tok.slot_id}`;
+          `Token: ${tok.label || tok.manufacturer || 'Token'} — slot ${tok.slot_id}`;
         const bannerDemo = document.getElementById('banner-demo');
         if (bannerDemo) bannerDemo.classList.add('d-none');
         _aggiornaPulsantiCerca(true);
@@ -2133,9 +2133,9 @@ function verificaLocalSignerLegacy() {
         if (badge) badge.style.display = '';
         const lblTok = document.getElementById('lbl-ls-token');
         if (lblTok) lblTok.textContent =
-          `${tok.label || tok.manufacturer || 'Token'} â€” slot ${tok.slot_id}`;
+          `${tok.label || tok.manufacturer || 'Token'} — slot ${tok.slot_id}`;
       } else if (lsAttivo) {
-        // âš ï¸ Local Signer attivo ma token/libreria con problema
+        // ⚠️ Local Signer attivo ma token/libreria con problema
         _lsDisponibile = false;
         _mostraLsStatus('notoken');
         // Mostra messaggio errore specifico
@@ -2147,7 +2147,7 @@ function verificaLocalSignerLegacy() {
         const bar = document.getElementById('pst-wizard-bar');
         if (bar) bar.style.removeProperty('display');
       } else {
-        // LS risponde ma non Ã¨ utilizzabile â†’ mostra installazione/azioni
+        // LS risponde ma non è utilizzabile → mostra installazione/azioni
         _lsDisponibile = false;
         _mostraLsStatus('missing');
         _aggiornaPulsantiCerca(false);
@@ -2164,7 +2164,7 @@ function verificaLocalSignerLegacy() {
     });
 }
 
-// â”€â”€ Wizard PST â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Wizard PST ───────────────────────────────────────────────────────────────
 let _wizStep = 1;     // step corrente: 0=setup, 1=params, 2=cert, 3=risultati, 4=acquisizione
 let _wizCertSel = null;  // certificato selezionato
 let _wizPinConfermato = false;
@@ -2172,13 +2172,13 @@ let _wizPstSessionId = '';  // session id PST restituito dal preflight, riusato 
 let _wizUltimiFascicoli = [];
 // Session id PST usata nel path legacy (cerca diretta, senza wizard) per evitare
 // PIN ripetuti: dopo il primo preflight-auth il session_id viene riusato nelle
-// chiamate successive, cosÃ¬ Windows non chiede il PIN una seconda volta.
+// chiamate successive, così Windows non chiede il PIN una seconda volta.
 let _lsPstSessionId = '';
 
-// â”€â”€ PIN / cert session persistence â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── PIN / cert session persistence ─────────────────────────────────────────
 // Il PIN viene chiesto da Windows (Local Signer) e non transita mai per IUSENTRA.
-// Salviamo solo il fatto che l'autenticazione Ã¨ riuscita + i metadati del cert,
-// cosÃ¬ l'utente non deve reinserire il PIN per ogni importazione nella stessa sessione.
+// Salviamo solo il fatto che l'autenticazione è riuscita + i metadati del cert,
+// così l'utente non deve reinserire il PIN per ogni importazione nella stessa sessione.
 const _WIZ_SESSION_KEY = 'hacs_pst_cert_auth';
 const _WIZ_SESSION_TTL = 2 * 3600 * 1000; // 2 ore
 
@@ -2505,7 +2505,7 @@ async function wizAvanti() {
       return;
     }
     _wizStep = 2;
-    // Mantieni cert/PIN dalla sessione se giÃ  autenticati, altrimenti reset
+    // Mantieni cert/PIN dalla sessione se già autenticati, altrimenti reset
     if (!_wizPinConfermato) {
       const saved = _wizLoadSavedAuth();
       if (saved) {
@@ -2526,7 +2526,7 @@ async function wizAvanti() {
     }
   } else if (_wizStep === 2) {
     if (!_wizCertSel) {
-      // Nessun certificato selezionato â€” apri il picker
+      // Nessun certificato selezionato — apri il picker
       const selezionato = await wizApriPicker();
       if (!selezionato) return;
     }
@@ -2559,8 +2559,8 @@ function _wizSetPinStatus(stato, msg = '') {
 }
 
 async function _lsPreflightAuthPst(tribunale, cert) {
-  // Passa il session_id giÃ  noto (se presente) cosÃ¬ il Local Signer puÃ²
-  // restituire la sessione cached senza fare un nuovo handshake TLS â†’
+  // Passa il session_id già noto (se presente) così il Local Signer può
+  // restituire la sessione cached senza fare un nuovo handshake TLS →
   // Windows non chiede il PIN una seconda volta.
   const resp = await fetch(_LS_BASE_PW + '/pst/preflight-auth', {
     method: 'POST',
@@ -2729,7 +2729,7 @@ function wizClearUfficio() {
       item.style.cssText = 'border-bottom:1px solid #eef2f7;transition:background .15s ease';
       item.innerHTML = `
         <div class="fw-semibold small">${u.nome || 'Ufficio giudiziario'}</div>
-        <div class="text-muted small">${u.tipo || 'n.d.'}${u.distretto ? ` Â· ${u.distretto}` : ''}</div>
+        <div class="text-muted small">${u.tipo || 'n.d.'}${u.distretto ? ` · ${u.distretto}` : ''}</div>
       `;
       item.addEventListener('mouseenter', () => { item.style.background = '#f6f9ff'; });
       item.addEventListener('mouseleave', () => { item.style.background = '#fff'; });
@@ -2775,7 +2775,7 @@ function wizClearUfficio() {
 })();
 
 function _wizResetCertUI() {
-  // Mantieni il cert giÃ  selezionato se presente, altrimenti mostra solo il pulsante
+  // Mantieni il cert già selezionato se presente, altrimenti mostra solo il pulsante
   const loading = document.getElementById('wiz-cert-loading');
   const notoken = document.getElementById('wiz-cert-notoken');
   if (loading) loading.style.display = 'none';
@@ -2789,9 +2789,9 @@ function _wizMostraCertCard(cert) {
   const btnAv = document.getElementById('wiz-btn-avanti');
   const autoNote = document.getElementById('wiz-cert-auto-note');
   if (cert && cert.soggetto) {
-    document.getElementById('wiz-cert-soggetto').textContent  = cert.soggetto || 'â€”';
-    document.getElementById('wiz-cert-emittente').textContent = cert.emittente || 'â€”';
-    document.getElementById('wiz-cert-scadenza').textContent  = cert.scadenza  || 'â€”';
+    document.getElementById('wiz-cert-soggetto').textContent  = cert.soggetto || '—';
+    document.getElementById('wiz-cert-emittente').textContent = cert.emittente || '—';
+    document.getElementById('wiz-cert-scadenza').textContent  = cert.scadenza  || '—';
     if (autoNote) autoNote.style.display = cert.auto_selezionato ? 'block' : 'none';
     if (card) card.style.display = 'block';
     if (btnAv) {
@@ -2800,7 +2800,7 @@ function _wizMostraCertCard(cert) {
         ? 'Avanti <i class="bi bi-arrow-right ms-1"></i>'
         : 'Apri PIN Windows <i class="bi bi-box-arrow-up-right ms-1"></i>';
     }
-    // Elimina modalitÃ  demo: il certificato Ã¨ presente
+    // Elimina modalità demo: il certificato è presente
     const bannerDemo = document.getElementById('banner-demo');
     if (bannerDemo) bannerDemo.style.display = 'none';
   } else {
@@ -2824,7 +2824,7 @@ function wizApriPickerLegacy() {
   if (card)    card.style.display    = 'none';
   if (btnSel)  btnSel.disabled = true;
 
-  // Chiama il Local Signer â€” apre la dialog nativa Windows (bloccante lato server)
+  // Chiama il Local Signer — apre la dialog nativa Windows (bloccante lato server)
   fetch(_LS_BASE_PW + '/seleziona-certificato', { signal: AbortSignal.timeout(120000) })
     .then(r => r.json())
     .then(d => {
@@ -2833,7 +2833,7 @@ function wizApriPickerLegacy() {
 
       if (!d.ok) {
         if (d.annullato) {
-          // Utente ha premuto Annulla nel dialog Windows â€” non Ã¨ un errore
+          // Utente ha premuto Annulla nel dialog Windows — non è un errore
           if (notoken) notoken.style.display = 'none';
           return;
         }
@@ -2956,11 +2956,11 @@ async function wizEseguiRicerca() {
     const tbody = document.getElementById('wiz-risultati-tbody');
     tbody.innerHTML = fascicoli.map((f, idx) => `
       <tr>
-        <td class="fw-semibold font-monospace text-nowrap">${f.numero_rg || 'â€”'}/${f.anno_rg || 'â€”'}</td>
-        <td class="small">${f.oggetto || 'â€”'}</td>
-        <td><span class="badge bg-secondary small">${f.ruolo || 'â€”'}</span></td>
-        <td class="small">${(f.parti || []).join(', ') || 'â€”'}</td>
-        <td><span class="badge ${f.stato==='PENDENTE'?'bg-success':'bg-secondary'} small">${f.stato || 'â€”'}</span></td>
+        <td class="fw-semibold font-monospace text-nowrap">${f.numero_rg || '—'}/${f.anno_rg || '—'}</td>
+        <td class="small">${f.oggetto || '—'}</td>
+        <td><span class="badge bg-secondary small">${f.ruolo || '—'}</span></td>
+        <td class="small">${(f.parti || []).join(', ') || '—'}</td>
+        <td><span class="badge ${f.stato==='PENDENTE'?'bg-success':'bg-secondary'} small">${f.stato || '—'}</span></td>
         <td>
           <div class="d-flex flex-wrap gap-2 justify-content-end">
             <button type="button" class="btn btn-xs btn-outline-primary btn-sm"
@@ -2995,7 +2995,7 @@ function wizTestConnessionePst() {
   const out = document.getElementById('wiz-pst-test-risultato');
   if (!out) return;
   out.style.display = 'block';
-  out.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Test in corsoâ€¦';
+  out.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Test in corso…';
 
   fetch(_LS_BASE_PW + '/pst/status', { signal: AbortSignal.timeout(20000) })
     .then(r => r.json())
@@ -3218,32 +3218,32 @@ async function _wizAcquisisciConProgress(form, fascicolo) {
   }
 
   try {
-    setProgress(0, 10, 'Connessione al PSTâ€¦');
+    setProgress(0, 10, 'Connessione al PST…');
     const cert = _wizCertSel || _lsCertSel || null;
 
     // Aggiungi flag canale al form
     _appendHiddenToForm(form, 'canale_accesso_pst', 'local_signer');
 
     // Recupero lista documenti dal Local Signer
-    // Barra avanza lentamente durante l'attesa (il PST puÃ² richiedere 30-90s)
+    // Barra avanza lentamente durante l'attesa (il PST può richiedere 30-90s)
     let _heartbeatPct = 5;
     const _heartbeatInterval = setInterval(() => {
       // Avanza max fino al 65% in attesa della risposta
       if (_heartbeatPct < 65) {
         _heartbeatPct += (_heartbeatPct < 30 ? 3 : _heartbeatPct < 50 ? 1.5 : 0.5);
-        setProgress(_heartbeatPct, 100, label?.textContent || 'Connessione al PSTâ€¦');
+        setProgress(_heartbeatPct, 100, label?.textContent || 'Connessione al PST…');
       }
     }, 800);
 
-    setProgress(5, 100, 'Autenticazione e connessione al PST in corsoâ€¦');
-    addListaItem('Connessione al Portale Servizi Telematiciâ€¦', 'loading');
+    setProgress(5, 100, 'Autenticazione e connessione al PST in corso…');
+    addListaItem('Connessione al Portale Servizi Telematici…', 'loading');
 
     let documenti = [];
     let _pstSessionIdFromDocumenti = '';
     try {
       // Prima preflight-auth per creare la sessione PST (un solo PIN).
-      // Riusa la sessione giÃ  presente (_lsPstSessionId / _wizPstSessionId) se valida,
-      // cosÃ¬ Windows non chiede il PIN una seconda volta.
+      // Riusa la sessione già presente (_lsPstSessionId / _wizPstSessionId) se valida,
+      // così Windows non chiede il PIN una seconda volta.
       let pstSessionId = '';
       const tribunale = fascicolo.codice_ufficio || '';
       try {
@@ -3279,7 +3279,7 @@ async function _wizAcquisisciConProgress(form, fascicolo) {
         }
       } catch(_pfErr) { /* preflight non bloccante */ }
 
-      setProgress(20, 100, 'Recupero lista documenti dal PSTâ€¦');
+      setProgress(20, 100, 'Recupero lista documenti dal PST…');
       const payload = {
         codice_ufficio: fascicolo.codice_ufficio || '',
         numero_rg:      fascicolo.numero_rg || '',
@@ -3316,7 +3316,7 @@ async function _wizAcquisisciConProgress(form, fascicolo) {
         throw new Error(data.errore || 'Errore recupero documenti PST');
       }
     } catch(fetchErr) {
-      // Continua anche senza documenti â€” il server gestirÃ  il caso vuoto
+      // Continua anche senza documenti — il server gestirà il caso vuoto
       if (lista) lista.innerHTML = '';
       addListaItem(`Avviso: ${String(fetchErr)}`, 'errore');
       await new Promise(r => setTimeout(r, 600));
@@ -3334,7 +3334,7 @@ async function _wizAcquisisciConProgress(form, fascicolo) {
       const doc  = documenti[i];
       const nome = doc.nome || doc.id_documento || `Allegato ${i + 1}`;
       const tipo = doc.tipo_atto || doc.tipo || '';
-      const data = doc.data_deposito ? ` â€” ${doc.data_deposito}` : '';
+      const data = doc.data_deposito ? ` — ${doc.data_deposito}` : '';
       // 70%-98% per la lista documenti
       setProgress(70 + Math.round((i / totale) * 28), 100, nome);
       addListaItem(`${nome}${tipo ? ' (' + tipo + ')' : ''}${data}`, 'ok');

@@ -1,5 +1,5 @@
 ﻿"""
-Gestione multi-tenant IUSENTRA â€” Studi Legali.
+Gestione multi-tenant IUSENTRA — Studi Legali.
 
 Ogni tenant (studio legale) ha:
   - Dati isolati in  ./data/tenants/{slug}/
@@ -149,13 +149,13 @@ PIANI: Dict[str, Dict[str, Any]] = {
 }
 
 
-# ============================================================== ModalitÃ  database
+# ============================================================== Modalità database
 
 class DbMode(str):
     JSON       = "JSON"        # JSON su filesystem (default, zero dipendenze)
     SQLITE     = "SQLITE"      # SQLite per studio (studio.db)
     POSTGRESQL = "POSTGRESQL"  # PostgreSQL via SQLAlchemy
-    MYSQL      = "MYSQL"       # CompatibilitÃ  legacy
+    MYSQL      = "MYSQL"       # Compatibilità legacy
     LOCAL      = JSON          # Alias legacy
 
 
@@ -209,7 +209,7 @@ DB_MODE_INFO: Dict[str, Dict[str, Any]] = {
         "icona":   "bi-database-fill-gear",
         "colore":  "primary",
         "porta":   5432,
-        "desc":    "PostgreSQL â€” massima affidabilitÃ , ACID compliant, supporto JSON nativo. "
+        "desc":    "PostgreSQL — massima affidabilità, ACID compliant, supporto JSON nativo. "
                    "Consigliato per studi enterprise e deployment su cloud.",
         "badge":   "Enterprise (raccomandato)",
         "piano_min": "ENTERPRISE",
@@ -255,8 +255,8 @@ DB_MODE_INFO = {
         "icona": "bi-database-fill",
         "colore": "warning",
         "porta": 3306,
-        "desc": "CompatibilitÃ  per installazioni pregresse. Non Ã¨ il backend consigliato per i nuovi studi.",
-        "badge": "CompatibilitÃ  legacy",
+        "desc": "Compatibilità per installazioni pregresse. Non è il backend consigliato per i nuovi studi.",
+        "badge": "Compatibilità legacy",
         "piano_min": "PROFESSIONAL",
         "selectable": False,
         "runtime": "mysql",
@@ -268,7 +268,7 @@ DB_MODE_INFO = {
 class DatabaseConfig:
     """
     Configurazione del database per un tenant.
-    Per modalitÃ  LOCAL tutti i campi sono vuoti (non usati).
+    Per modalità LOCAL tutti i campi sono vuoti (non usati).
     """
     mode: str = DbMode.SQLITE
 
@@ -457,7 +457,7 @@ class StudioLegale:
     data_scadenza:    str  = ""
     note_admin:       str  = ""
 
-    # Moduli autorizzati (se vuota â†’ usa quelli del piano)
+    # Moduli autorizzati (se vuota → usa quelli del piano)
     moduli_override:  List[str] = field(default_factory=list)
 
     # Limiti (0 = usa quelli del piano)
@@ -672,7 +672,7 @@ class GestioneTenant:
         slug = self._normalizza_slug(slug)
         studi = self._carica()
         if slug in studi:
-            raise ValueError(f"Slug '{slug}' giÃ  in uso")
+            raise ValueError(f"Slug '{slug}' già in uso")
         if not self._slug_valido(slug):
             raise ValueError(f"Slug '{slug}' non valido (solo lettere, cifre, trattini)")
 
@@ -850,7 +850,7 @@ class GestioneTenant:
         }
 
     def verifica_scadenze(self) -> List[StudioLegale]:
-        """Aggiorna a SCADUTO gli studi la cui data_scadenza Ã¨ passata."""
+        """Aggiorna a SCADUTO gli studi la cui data_scadenza è passata."""
         studi = self._carica()
         aggiornati = []
         for slug, studio in studi.items():
@@ -1095,8 +1095,8 @@ class GestioneTenant:
         """
         Importa dati legacy single-tenant nella root del tenant.
 
-        Viene usato come ponte di compatibilitÃ  per installazioni storiche dove:
-        - auth multi-tenant Ã¨ giÃ  attivo
+        Viene usato come ponte di compatibilità per installazioni storiche dove:
+        - auth multi-tenant è già attivo
         - i dati di lavoro reali stanno ancora nella root ./data/
         - esiste un solo studio attivo e deve "ereditare" i dati legacy
         """

@@ -1,12 +1,12 @@
 ﻿{% extends "base.html" %}
 
-{% block title %}Gestione Database â€” IUSENTRA{% endblock %}
+{% block title %}Gestione Database — IUSENTRA{% endblock %}
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
   <div>
     <h2 class="mb-1"><i class="bi bi-database-gear me-2"></i>Gestione Database</h2>
-    <p class="text-muted mb-0">Statistiche, integritÃ , ottimizzazione ed export di tutti i moduli dati</p>
+    <p class="text-muted mb-0">Statistiche, integrità, ottimizzazione ed export di tutti i moduli dati</p>
   </div>
   <div class="btn-group">
     <button class="btn btn-outline-primary btn-sm" onclick="aggiornaStatistiche()">
@@ -18,7 +18,7 @@
   </div>
 </div>
 
-<!-- â”€â”€ Riepilogo globale â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+<!-- ── Riepilogo globale ───────────────────────────────────────────── -->
 <div class="row g-3 mb-4">
   <div class="col-6 col-md-3">
     <div class="card text-center h-100 border-0 shadow-sm">
@@ -51,7 +51,7 @@
           {% if sqlite_info and sqlite_info.esiste %}
             {{ sqlite_info.frammentazione_pct }}%
           {% else %}
-            â€”
+            —
           {% endif %}
         </div>
         <div class="small text-muted">Framm. SQLite</div>
@@ -60,7 +60,7 @@
   </div>
 </div>
 
-<!-- â”€â”€ Moduli dati â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+<!-- ── Moduli dati ───────────────────────────────────────────────────── -->
 <div class="card shadow-sm mb-4">
   <div class="card-header d-flex justify-content-between align-items-center">
     <h5 class="mb-0"><i class="bi bi-folder2-open me-2"></i>Moduli Dati</h5>
@@ -89,7 +89,7 @@
               <span class="badge text-bg-secondary-subtle text-secondary-emphasis border border-secondary-subtle ms-1">SQLite</span>
             {% elif m.migrabile_sqlite %}
               <span class="badge text-bg-primary-subtle text-primary-emphasis border border-primary-subtle ms-1"
-                    title="Modulo core â€” archiviato in JSON, migrabile a SQLite">JSON core</span>
+                    title="Modulo core — archiviato in JSON, migrabile a SQLite">JSON core</span>
             {% else %}
               <span class="badge text-bg-light text-muted border ms-1">JSON</span>
             {% endif %}
@@ -116,12 +116,12 @@
   </div>
 </div>
 
-<!-- â”€â”€ Verifica integritÃ  + Migrazione SQLite â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+<!-- ── Verifica integrità + Migrazione SQLite ─────────────────────── -->
 <div class="row g-3 mb-4">
   <div class="col-md-7">
     <div class="card shadow-sm h-100">
       <div class="card-header d-flex justify-content-between align-items-center">
-        <h5 class="mb-0"><i class="bi bi-shield-check me-2"></i>IntegritÃ  Referenziale</h5>
+        <h5 class="mb-0"><i class="bi bi-shield-check me-2"></i>Integrità Referenziale</h5>
         <button class="btn btn-sm btn-outline-primary" onclick="verificaIntegrita()" id="btn-verifica">
           <i class="bi bi-search me-1"></i>Verifica ora
         </button>
@@ -129,14 +129,14 @@
       <div class="card-body">
         <div id="verifica-spinner" class="text-center py-3 d-none">
           <div class="spinner-border text-primary" role="status"></div>
-          <p class="mt-2 text-muted">Analisi in corsoâ€¦</p>
+          <p class="mt-2 text-muted">Analisi in corso…</p>
         </div>
         <div id="verifica-risultati" class="d-none">
           <div id="verifica-riepilogo" class="mb-3"></div>
           <div id="verifica-lista" style="max-height:320px; overflow-y:auto;"></div>
         </div>
         <p class="text-muted small mb-0" id="verifica-placeholder">
-          Clicca <em>Verifica ora</em> per controllare l'integritÃ  referenziale di tutti i moduli.
+          Clicca <em>Verifica ora</em> per controllare l'integrità referenziale di tutti i moduli.
         </p>
       </div>
     </div>
@@ -150,7 +150,7 @@
       <div class="card-body">
         {% if sqlite_info and sqlite_info.esiste %}
           <div class="alert alert-success py-2 mb-3">
-            <i class="bi bi-check-circle me-1"></i> Database SQLite giÃ  presente
+            <i class="bi bi-check-circle me-1"></i> Database SQLite già presente
           </div>
           <table class="table table-sm small mb-3">
             <tbody>
@@ -169,7 +169,7 @@
           </div>
           <p class="small text-muted">
             La migrazione consolida tutti i file JSON in un unico database SQLite con
-            vincoli di integritÃ  referenziale, indici ottimizzati e modalitÃ  WAL.
+            vincoli di integrità referenziale, indici ottimizzati e modalità WAL.
           </p>
         {% endif %}
         <div class="small text-muted mb-3">
@@ -188,7 +188,7 @@
   </div>
 </div>
 
-<!-- â”€â”€ Analisi utilizzo â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+<!-- ── Analisi utilizzo ───────────────────────────────────────────── -->
 {% if uso %}
 <div class="card shadow-sm mb-4">
   <div class="card-header">
@@ -197,7 +197,7 @@
   <div class="card-body">
     <div class="row g-3">
       <div class="col-md-4">
-        <h6 class="text-muted mb-2">Azioni piÃ¹ frequenti</h6>
+        <h6 class="text-muted mb-2">Azioni più frequenti</h6>
         <ul class="list-unstyled mb-0">
           {% for azione, cnt in (uso.azioni_frequenti or []) %}
           <li class="d-flex justify-content-between border-bottom py-1">
@@ -210,7 +210,7 @@
         </ul>
       </div>
       <div class="col-md-4">
-        <h6 class="text-muted mb-2">Utenti piÃ¹ attivi</h6>
+        <h6 class="text-muted mb-2">Utenti più attivi</h6>
         <ul class="list-unstyled mb-0">
           {% for utente, cnt in (uso.utenti_attivi or []) %}
           <li class="d-flex justify-content-between border-bottom py-1">
@@ -232,7 +232,7 @@
             </tr>
             <tr>
               <td>Ora di punta</td>
-              <td>{% if uso.ora_punta is not none %}{{ uso.ora_punta }}:00{% else %}â€”{% endif %}</td>
+              <td>{% if uso.ora_punta is not none %}{{ uso.ora_punta }}:00{% else %}—{% endif %}</td>
             </tr>
             <tr>
               <td>Tasso errori</td>
@@ -251,7 +251,7 @@
 </div>
 {% endif %}
 
-<!-- â”€â”€ Area risultati ottimizzazione â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+<!-- ── Area risultati ottimizzazione ────────────────────────────────── -->
 <div id="ottimizza-area" class="d-none mb-4">
   <div class="card shadow-sm border-warning">
     <div class="card-header bg-warning bg-opacity-10">
@@ -277,7 +277,7 @@
 {% block scripts %}
 <script>
 function fmtBytes(n) {
-  if (typeof n !== 'number' || Number.isNaN(n) || !Number.isFinite(n)) return 'â€”';
+  if (typeof n !== 'number' || Number.isNaN(n) || !Number.isFinite(n)) return '—';
   if (n < 1024) return n + ' B';
   if (n < 1048576) return (n/1024).toFixed(1) + ' KB';
   return (n/1048576).toFixed(1) + ' MB';
@@ -304,7 +304,7 @@ async function verificaIntegrita() {
     const lista = document.getElementById('verifica-lista');
 
     if (data.n_problemi === 0) {
-      riepilogo.innerHTML = '<div class="alert alert-success py-2 mb-0"><i class="bi bi-check-circle me-1"></i> Nessun problema trovato â€” integritÃ  verificata.</div>';
+      riepilogo.innerHTML = '<div class="alert alert-success py-2 mb-0"><i class="bi bi-check-circle me-1"></i> Nessun problema trovato — integrità verificata.</div>';
       lista.innerHTML = '';
     } else {
       const critici = data.problemi.filter(p => p.livello === 'CRITICO').length;
@@ -319,7 +319,7 @@ async function verificaIntegrita() {
       lista.innerHTML = data.problemi.map(p => {
         const cl = p.livello === 'CRITICO' ? 'danger' : p.livello === 'AVVISO' ? 'warning' : 'info';
         return `<div class="alert alert-${cl} py-2 mb-2 small">
-          <strong>${p.modulo}</strong> â€” ${p.descrizione}
+          <strong>${p.modulo}</strong> — ${p.descrizione}
           ${p.dettagli ? `<br><span class="text-muted">${p.dettagli}</span>` : ''}
         </div>`;
       }).join('');
@@ -336,7 +336,7 @@ async function verificaIntegrita() {
 async function ottimizza() {
   const btn = document.getElementById('btn-ottimizza');
   btn.disabled = true;
-  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Ottimizzazioneâ€¦';
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Ottimizzazione…';
 
   try {
     const r = await fetch('{{ url_for("admin_database_ottimizza") }}', {method: 'POST'});
@@ -353,7 +353,7 @@ async function ottimizza() {
       const messaggio = res.messaggio || res.dettagli || 'Errore non specificato';
       const risparmio = risparmioBytes > 0
         ? `<span class="text-success">-${fmtBytes(risparmioBytes)} (${risparmioPct}%)</span>`
-        : '<span class="text-muted">â€”</span>';
+        : '<span class="text-muted">—</span>';
       const esito = ok
         ? '<span class="badge bg-success">OK</span>'
         : `<span class="badge bg-danger" title="${messaggio}">Errore</span>`;
@@ -379,7 +379,7 @@ async function migraSQL() {
   const btn = document.getElementById('btn-migra');
   const out = document.getElementById('migra-risultato');
   btn.disabled = true;
-  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Migrazioneâ€¦';
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Migrazione…';
   out.innerHTML = '';
 
   try {

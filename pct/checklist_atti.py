@@ -105,16 +105,16 @@ DECRETO_INGIUNTIVO = TemplateAtto(
         _doc(7,  "Doc_04_Sollecito",                "Sollecito di pagamento", obbl=False),
         _doc(8,  "Doc_05_Diffida",                  "Diffida formale", obbl=False),
         _doc(9,  "Ricevuta_contributo_unificato",   "Ricevuta pagamento contributo unificato",
-             note="Pagabile via PagoPA su portale Giustizia â€” verificare importo in base al valore della causa"),
+             note="Pagabile via PagoPA su portale Giustizia — verificare importo in base al valore della causa"),
         _doc(10, "Nota_calcolo_interessi",          "Nota di calcolo interessi moratori/anatocistici (D.Lgs. 231/2002)",
              obbl=False,
-             note="Obbligatoria se si chiedono interessi moratori â€” includere tasso, base di calcolo, periodo"),
-        _doc(11, "Certificato_CCIAA",              "Visura / Certificato CCIAA del debitore (se societÃ )",
+             note="Obbligatoria se si chiedono interessi moratori — includere tasso, base di calcolo, periodo"),
+        _doc(11, "Certificato_CCIAA",              "Visura / Certificato CCIAA del debitore (se società)",
              obbl=False,
-             note="Richiesto quando il debitore Ã¨ una persona giuridica â€” verifica poteri di rappresentanza"),
+             note="Richiesto quando il debitore è una persona giuridica — verifica poteri di rappresentanza"),
         _doc(12, "Estratto_notarile_autentico",    "Estratto notarile autentico del titolo (art. 634 c.p.c.)",
              obbl=False,
-             note="Necessario se il titolo del credito Ã¨ un atto notarile (es. mutuo, compravendita)"),
+             note="Necessario se il titolo del credito è un atto notarile (es. mutuo, compravendita)"),
         _doc(13, "Eventuali_altri_allegati",        "Altri documenti utili", obbl=False),
     ],
     checklist=[
@@ -123,22 +123,22 @@ DECRETO_INGIUNTIVO = TemplateAtto(
         _chk("Firma digitale valida e non scaduta (CNS o token USB)", critico=True),
         _chk("Tutti i PDF nel formato PDF/A-1b (non protetti da password, testo selezionabile)", critico=True),
         _chk("Procura alle liti firmata e scansionata correttamente", critico=True),
-        _chk("Contributo unificato pagato via PagoPA o F23 â€” ricevuta allegata", critico=True),
-        _chk("Se debitore Ã¨ societÃ : visura CCIAA allegata (verifica poteri firma)", critico=True,
-             note="Senza visura il DI puÃ² essere opposto per difetto di legittimazione"),
+        _chk("Contributo unificato pagato via PagoPA o F23 — ricevuta allegata", critico=True),
+        _chk("Se debitore è società: visura CCIAA allegata (verifica poteri firma)", critico=True,
+             note="Senza visura il DI può essere opposto per difetto di legittimazione"),
         _chk("Se richiesti interessi moratori: Nota calcolo interessi allegata (D.Lgs. 231/2002)",
              note="Indicare tasso BCE + 8 pp per crediti commerciali, tasso contrattuale per altri"),
         _chk("Nomi file senza caratteri speciali (no spazi, #, %, &, ', \", accenti)", critico=True),
         _chk("Peso totale della busta .enc < 30 MB", critico=True,
-             note="Se supera, dividere in piÃ¹ depositi o comprimere i PDF"),
+             note="Se supera, dividere in più depositi o comprimere i PDF"),
         _chk("Busta telematica .enc generata correttamente dal redattore atti", critico=True),
         _chk("Busta inviata dal redattore atti e ricevuta di accettazione PEC salvata", critico=True),
-        _chk("Ricevuta PagoPA: allegare file .xml (o PDF con codice IUV/hash) â€” NON screenshot del bonifico",
+        _chk("Ricevuta PagoPA: allegare file .xml (o PDF con codice IUV/hash) — NON screenshot del bonifico",
              critico=True,
-             note="Il sistema PCT verifica l'hash del pagamento â€” lo screenshot non ha valore probatorio"),
+             note="Il sistema PCT verifica l'hash del pagamento — lo screenshot non ha valore probatorio"),
         _chk("Se procura su foglio separato: atto principale riporta impronta hash della procura o riferimento esplicito",
              note="Art. 83 c.p.c. e D.M. 44/2011: l'atto deve fare espresso riferimento alla procura separata"),
-        _chk("Privacy/GDPR: estratti conto o documenti con dati di terzi non coinvolti â†’ oscurare (omissis)",
+        _chk("Privacy/GDPR: estratti conto o documenti con dati di terzi non coinvolti → oscurare (omissis)",
              note="Oscurare nomi/codici fiscali di persone estranee alla causa prima della scansione"),
         _chk("Valore della causa indicato correttamente nel ricorso"),
         _chk("Documenti allegati nel redattore con tipo corretto (principale / allegato)"),
@@ -148,7 +148,7 @@ DECRETO_INGIUNTIVO = TemplateAtto(
 
 ISCRIZIONE_A_RUOLO = TemplateAtto(
     id="iscrizione_a_ruolo",
-    nome="Iscrizione a Ruolo â€” Atto di Citazione",
+    nome="Iscrizione a Ruolo — Atto di Citazione",
     categoria="CIVILE",
     descrizione="Iscrizione a ruolo dopo notifica dell'atto di citazione.",
     nome_cartella="Iscrizione_ruolo_{parte}_{data}",
@@ -181,23 +181,23 @@ ISCRIZIONE_A_RUOLO = TemplateAtto(
         _chk("Firma digitale valida e non scaduta", critico=True),
         _chk("Atto introduttivo notificato entro i termini", critico=True),
         _chk("Tutti i PDF nel formato PDF/A-1b (non protetti, testo selezionabile)", critico=True),
-        _chk("Attestazione di conformitÃ  per atti originariamente cartacei (art. 16-undecies D.L. 179/2012)",
+        _chk("Attestazione di conformità per atti originariamente cartacei (art. 16-undecies D.L. 179/2012)",
              critico=True,
              note="Obbligatoria per: sentenze cartacee scansionate, atti autenticati su carta, procure notarili"),
         _chk("Nota di iscrizione a ruolo compilata correttamente nel redattore", critico=True),
         _chk("Prova notifica completa (relata + ricevute PEC) allegata alla busta", critico=True),
-        _chk("Contributo unificato pagato via PagoPA e ricevuta allegata â€” file .xml o PDF con hash (non screenshot)",
+        _chk("Contributo unificato pagato via PagoPA e ricevuta allegata — file .xml o PDF con hash (non screenshot)",
              critico=True),
         _chk("REGINDE/INIPEC: PEC della controparte estratta SOLO da registro ufficiale (L. 53/94)",
              critico=True,
-             note="REGINDE per avvocati (pst.giustizia.it), INIPEC per imprese (inipec.gov.it) â€” notifica a PEC da sito web = NULLA"),
+             note="REGINDE per avvocati (pst.giustizia.it), INIPEC per imprese (inipec.gov.it) — notifica a PEC da sito web = NULLA"),
         _chk("Allegare certificato di ricerca PEC (screenshot REGINDE/INIPEC con data e ora della ricerca)",
-             note="Ãˆ la prova che l'indirizzo PEC Ã¨ tratto da registro pubblico â€” conservarlo nel fascicolo"),
+             note="È la prova che l'indirizzo PEC è tratto da registro pubblico — conservarlo nel fascicolo"),
         _chk("File .eml o .msg delle ricevute PEC allegati (non solo i PDF delle ricevute)",
-             note="Il .eml Ã¨ la prova originale firmata dal gestore PEC â€” il PDF Ã¨ solo una conversione"),
+             note="Il .eml è la prova originale firmata dal gestore PEC — il PDF è solo una conversione"),
         _chk("Se procura su foglio separato: atto introduce l'impronta hash della procura",
              note="Art. 83 c.p.c.: collegare formalmente l'atto alla procura separata"),
-        _chk("Privacy/GDPR: documenti con dati di terzi non coinvolti â†’ oscurare (omissis) prima del deposito"),
+        _chk("Privacy/GDPR: documenti con dati di terzi non coinvolti → oscurare (omissis) prima del deposito"),
         _chk("Nomi file senza caratteri speciali (no spazi, #, %, &, ', \", accenti)", critico=True),
         _chk("Peso totale della busta .enc < 30 MB", critico=True),
         _chk("Busta telematica .enc generata e inviata dal redattore atti", critico=True),
@@ -239,8 +239,8 @@ COMPARSA_RISPOSTA = TemplateAtto(
         _chk("Procura alle liti del convenuto allegata nella busta", critico=True),
         _chk("Eccezioni processuali proposte a pena di decadenza", critico=True),
         _chk("Domande riconvenzionali dichiarate esplicitamente"),
-        _chk("SinteticitÃ  D.M. 110/2023 (cause < â‚¬500.000): comparsa entro 80.000 caratteri â‰ˆ 40 pp (esclusi spazi). Se supera: Indice Ipertestuale + nota motivazione",
-             note="D.M. 110/2023 art. 3 lett. a) â€” stessa soglia di citazione e memoria difensiva. Il mancato rispetto puÃ² comportare sanzioni sulle spese di lite (art. 46 disp. att. c.p.c.)"),
+        _chk("Sinteticità D.M. 110/2023 (cause < €500.000): comparsa entro 80.000 caratteri ≈ 40 pp (esclusi spazi). Se supera: Indice Ipertestuale + nota motivazione",
+             note="D.M. 110/2023 art. 3 lett. a) — stessa soglia di citazione e memoria difensiva. Il mancato rispetto può comportare sanzioni sulle spese di lite (art. 46 disp. att. c.p.c.)"),
         _chk("Tutti i PDF nel formato PDF/A-1b", critico=True),
         _chk("Busta telematica .enc generata e inviata dal redattore atti", critico=True),
         _chk("Ricevuta di accettazione PEC salvata nel fascicolo"),
@@ -276,9 +276,9 @@ MEMORIA_DIFENSIVA = TemplateAtto(
         _chk("Firma digitale valida e non scaduta", critico=True),
         _chk("Termine perentorio rispettato", critico=True),
         _chk("Tipo di memoria corretto (art. 171-ter n.1 / n.2 / n.3)", critico=True),
-        _chk("SinteticitÃ  D.M. 110/2023 (cause < â‚¬500.000): memorie ex art. 171-ter n.1/2 e difensive â†’ 80.000 caratteri â‰ˆ 40 pp; repliche e altri atti â†’ 50.000 caratteri â‰ˆ 26 pp (esclusi spazi)",
+        _chk("Sinteticità D.M. 110/2023 (cause < €500.000): memorie ex art. 171-ter n.1/2 e difensive → 80.000 caratteri ≈ 40 pp; repliche e altri atti → 50.000 caratteri ≈ 26 pp (esclusi spazi)",
              critico=True,
-             note="D.M. 110/2023 artt. 3 e 5 â€” se si supera: Indice Ipertestuale + nota sintetica di giustificazione nell'intestazione dell'atto. Senza, rischio sanzione spese"),
+             note="D.M. 110/2023 artt. 3 e 5 — se si supera: Indice Ipertestuale + nota sintetica di giustificazione nell'intestazione dell'atto. Senza, rischio sanzione spese"),
         _chk("Se memoria supera il limite: Indice Ipertestuale in apertura con link ai paragrafi + breve nota giustificativa",
              note="Art. 5 D.M. 110/2023: la nota di giustificazione va inserita dopo l'intestazione, prima del testo"),
         _chk("Tutti i PDF nel formato PDF/A-1b", critico=True),
@@ -307,13 +307,13 @@ RICORSO_APPELLO = TemplateAtto(
         _doc(1,  "Ricorso_in_appello",              "Atto di appello"),
         _doc(2,  "Procura_alle_liti",               "Procura alle liti per il grado di appello"),
         _doc(3,  "Sentenza_impugnata_copia_autentica", "Copia autentica della sentenza impugnata (art. 348 c.p.c.)",
-             note="Deve essere copia autentica rilasciata dalla cancelleria â€” non basta la copia informale"),
+             note="Deve essere copia autentica rilasciata dalla cancelleria — non basta la copia informale"),
         _doc(4,  "Indice_documenti",                "Indice allegati"),
         _doc(5,  "Relata_notifica_sentenza",        "Relata di notifica della sentenza (dies a quo)",
              obbl=False,
-             note="Allegare se la sentenza Ã¨ stata notificata â€” determina il termine breve di 30 gg"),
+             note="Allegare se la sentenza è stata notificata — determina il termine breve di 30 gg"),
         _doc(6,  "Ricevuta_contributo_unificato",   "Contributo unificato appello",
-             note="Pagabile via PagoPA â€” importo aumentato rispetto al primo grado"),
+             note="Pagabile via PagoPA — importo aumentato rispetto al primo grado"),
         _doc(7,  "Doc_01_nuovi",                    "Documenti nuovi ex art. 345 c.p.c.", obbl=False),
         _doc(8,  "Eventuali_altri_allegati",        "Altri allegati", obbl=False),
     ],
@@ -321,21 +321,21 @@ RICORSO_APPELLO = TemplateAtto(
         _chk("Ufficio (Corte d'Appello) abilitato al deposito telematico PCT verificato", critico=True),
         _chk("Firma digitale valida e non scaduta", critico=True),
         _chk("Termine rispettato: 30 gg da notifica sentenza oppure 6 mesi dal deposito", critico=True,
-             note="Verificare se la sentenza Ã¨ stata notificata â€” in tal caso vale il termine breve"),
+             note="Verificare se la sentenza è stata notificata — in tal caso vale il termine breve"),
         _chk("Corte d'Appello competente indicata correttamente", critico=True),
-        _chk("Sentenza impugnata allegata in COPIA AUTENTICA (art. 348 c.p.c.) â€” non copia informale",
+        _chk("Sentenza impugnata allegata in COPIA AUTENTICA (art. 348 c.p.c.) — non copia informale",
              critico=True,
              note="Richiedere copia autentica alla cancelleria del tribunale di primo grado"),
         _chk("Relata di notifica sentenza allegata (per verificare dies a quo del termine breve)",
-             note="Se la sentenza Ã¨ stata notificata, la relata Ã¨ fondamentale per la verifica dei termini"),
+             note="Se la sentenza è stata notificata, la relata è fondamentale per la verifica dei termini"),
         _chk("Tutti i PDF nel formato PDF/A-1b", critico=True),
         _chk("Motivi di appello specifici ex art. 342 c.p.c.", critico=True),
-        _chk("SinteticitÃ  D.M. 110/2023 (cause < â‚¬500.000): appello civile â†’ 80.000 caratteri â‰ˆ 40 pp. Se supera: Indice Ipertestuale + nota giustificazione nell'intestazione",
-             note="D.M. 110/2023 art. 3 lett. a) â€” gli 'atti introduttivi dei giudizi di impugnazione' sono nella stessa soglia di citazione e comparsa. Alcune Corti d'Appello hanno protocolli locali piÃ¹ restrittivi"),
+        _chk("Sinteticità D.M. 110/2023 (cause < €500.000): appello civile → 80.000 caratteri ≈ 40 pp. Se supera: Indice Ipertestuale + nota giustificazione nell'intestazione",
+             note="D.M. 110/2023 art. 3 lett. a) — gli 'atti introduttivi dei giudizi di impugnazione' sono nella stessa soglia di citazione e comparsa. Alcune Corti d'Appello hanno protocolli locali più restrittivi"),
         _chk("REGINDE/INIPEC: se si notifica l'appello in proprio (L. 53/94), PEC controparte da registro ufficiale",
              critico=True,
-             note="Per avvocati: REGINDE â€” per imprese: INIPEC â€” mai indirizzi PEC da siti web (notifica nulla)"),
-        _chk("Ricevuta PagoPA: file .xml o PDF con hash â€” non screenshot", critico=True),
+             note="Per avvocati: REGINDE — per imprese: INIPEC — mai indirizzi PEC da siti web (notifica nulla)"),
+        _chk("Ricevuta PagoPA: file .xml o PDF con hash — non screenshot", critico=True),
         _chk("Contributo unificato per appello pagato via PagoPA e allegato", critico=True),
         _chk("Procura alle liti specifica per il grado di appello"),
         _chk("Peso totale della busta .enc < 30 MB", critico=True),
@@ -373,7 +373,7 @@ OPPOSIZIONE_DI = TemplateAtto(
         _chk("Firma digitale valida e non scaduta", critico=True),
         _chk("Opposizione proposta entro 40 gg dalla notifica del DI", critico=True),
         _chk("Decreto ingiuntivo integralmente allegato nella busta", critico=True),
-        _chk("Istanza di sospensiva dell'esecutorietÃ  se necessaria", critico=True),
+        _chk("Istanza di sospensiva dell'esecutorietà se necessaria", critico=True),
         _chk("Tribunale competente verificato (art. 645 c.p.c.)"),
         _chk("Procura alle liti presente"),
         _chk("Busta telematica .enc generata e inviata dal redattore atti", critico=True),
@@ -391,7 +391,7 @@ ATTO_PRECETTO = TemplateAtto(
     nota_canale=(
         "Il precetto non si deposita in tribunale: va notificato al debitore "
         "tramite ufficiale giudiziario (UNEP) o, se consentito, a mezzo PEC. "
-        "Non Ã¨ richiesto redattore atti nÃ© deposito telematico PCT."
+        "Non è richiesto redattore atti né deposito telematico PCT."
     ),
     documenti=[
         _doc(1,  "Atto_di_precetto",                "Precetto con intimazione di pagamento"),
@@ -459,7 +459,7 @@ RICORSO_CAUTELARE = TemplateAtto(
     nota_canale=(
         "Il ricorso cautelare si deposita tramite redattore atti (PCT): "
         "il redattore crea e invia la busta telematica direttamente al tribunale. "
-        "Se urgente (inaudita altera parte), verificare con la cancelleria le modalitÃ  "
+        "Se urgente (inaudita altera parte), verificare con la cancelleria le modalità "
         "per il deposito urgente fuori orario. PolisWeb serve solo per consultare il fascicolo."
     ),
     documenti=[
@@ -480,7 +480,7 @@ RICORSO_CAUTELARE = TemplateAtto(
         _chk("Busta telematica .enc generata e inviata dal redattore atti", critico=True),
         _chk("Ricevuta di accettazione PEC salvata nel fascicolo"),
         _chk("Competenza del giudice verificata"),
-        _chk("Istanza inaudita altera parte se urgente (verifica modalitÃ  ufficio)"),
+        _chk("Istanza inaudita altera parte se urgente (verifica modalità ufficio)"),
         _chk("Cauzione eventuale valutata"),
     ],
 )
@@ -495,11 +495,11 @@ RICORSO_TAR = TemplateAtto(
     endpoint_deposito="pat_home",
     tipo_atto_default="RICORSO",
     nota_canale=(
-        "âš ï¸ DAL 1Â° FEBBRAIO 2026: deposito ESCLUSIVAMENTE tramite Formweb (nuovo portale PAT) "
-        "con firma PAdES sul 'RiepilogoDepositoFormweb' generato dal sistema â€” NON si usa CAdES .p7m. "
-        "La PEC Ã¨ rimasta solo modalitÃ  d'emergenza (sistemi down). "
+        "⚠️ DAL 1° FEBBRAIO 2026: deposito ESCLUSIVAMENTE tramite Formweb (nuovo portale PAT) "
+        "con firma PAdES sul 'RiepilogoDepositoFormweb' generato dal sistema — NON si usa CAdES .p7m. "
+        "La PEC è rimasta solo modalità d'emergenza (sistemi down). "
         "Accesso: SPID / CIE / CNS su portale-avvocato.giustizia-amministrativa.it. "
-        "Normativa: D.P.C.S. 9 maggio 2025 (GU n. 111/2025). Non si usa PCT nÃ© PolisWeb."
+        "Normativa: D.P.C.S. 9 maggio 2025 (GU n. 111/2025). Non si usa PCT né PolisWeb."
     ),
     documenti=[
         _doc(1,  "Ricorso_TAR",                     "Atto introduttivo del giudizio"),
@@ -509,40 +509,40 @@ RICORSO_TAR = TemplateAtto(
         _doc(5,  "Doc_01_Prova_interesse",          "Prova dell'interesse a ricorrere"),
         _doc(6,  "Doc_02",                          "Secondo documento", obbl=False),
         _doc(7,  "Ricevuta_contributo_unificato",   "Contributo unificato TAR",
-             note="Importo diverso dal civile â€” verificare tabella aggiornata"),
+             note="Importo diverso dal civile — verificare tabella aggiornata"),
         _doc(8,  "Ricevuta_CPA",                    "Contributo PAT / CPA", obbl=False),
         _doc(9,  "IFU_Istanza_Fissazione_Udienza",  "Istanza di Fissazione dell'Udienza (IFU)",
              obbl=False,
-             note="ATTENZIONE: va depositata entro 1 anno dal ricorso (art. 71-bis c.p.a.) â€” senza IFU il ricorso viene dichiarato perento"),
+             note="ATTENZIONE: va depositata entro 1 anno dal ricorso (art. 71-bis c.p.a.) — senza IFU il ricorso viene dichiarato perento"),
         _doc(10, "Eventuali_altri_allegati",        "Altri allegati", obbl=False),
     ],
     checklist=[
-        _chk("DAL 1/2/2026 â€” Deposito tramite FORMWEB (non piÃ¹ PEC): accedere a portale-avvocato.giustizia-amministrativa.it",
+        _chk("DAL 1/2/2026 — Deposito tramite FORMWEB (non più PEC): accedere a portale-avvocato.giustizia-amministrativa.it",
              critico=True,
-             note="La modalitÃ  PEC Ã¨ rimasta solo per emergenza (sistemi down); l'upload diretto Ã¨ stato abolito"),
+             note="La modalità PEC è rimasta solo per emergenza (sistemi down); l'upload diretto è stato abolito"),
         _chk("Firma PAdES (non CAdES) sul 'RiepilogoDepositoFormweb' generato dal sistema",
              critico=True,
-             note="Formweb genera un PDF riepilogativo da firmare PAdES â€” il formato .p7m (CAdES) NON Ã¨ ammesso su Formweb (D.P.C.S. 9/5/2025 art. 6-bis Allegato 2)"),
+             note="Formweb genera un PDF riepilogativo da firmare PAdES — il formato .p7m (CAdES) NON è ammesso su Formweb (D.P.C.S. 9/5/2025 art. 6-bis Allegato 2)"),
         _chk("Accesso SPID / CIE / CNS verificato prima della scadenza", critico=True),
         _chk("Termine di 60 gg dalla notifica/pubblicazione rispettato", critico=True),
         _chk("TAR territorialmente competente verificato", critico=True),
         _chk("Atto impugnato allegato integralmente", critico=True),
         _chk("Tutti i PDF nel formato PDF/A-1b (non protetti, testo selezionabile)", critico=True),
-        _chk("Attestazione di conformitÃ  per atti originariamente cartacei (art. 16-undecies D.L. 179/2012)",
+        _chk("Attestazione di conformità per atti originariamente cartacei (art. 16-undecies D.L. 179/2012)",
              critico=True,
              note="Obbligatoria per atti amministrativi cartacei scansionati"),
         _chk("Contributo unificato TAR pagato (importo diverso dal civile)", critico=True),
         _chk("Contributo PAT / CPA pagato se dovuto"),
-        _chk("CRITICO â€” Istanza di Fissazione Udienza (IFU): depositarla entro 1 anno dal ricorso",
+        _chk("CRITICO — Istanza di Fissazione Udienza (IFU): depositarla entro 1 anno dal ricorso",
              critico=True,
-             note="Art. 71-bis c.p.a.: senza IFU il ricorso Ã¨ dichiarato perento â€” inserire subito scadenza in agenda"),
+             note="Art. 71-bis c.p.a.: senza IFU il ricorso è dichiarato perento — inserire subito scadenza in agenda"),
         _chk("Interesse a ricorrere chiaramente esposto"),
-        _chk("Vizi di legittimitÃ  indicati (incompetenza, eccesso di potere, violazione di legge)"),
+        _chk("Vizi di legittimità indicati (incompetenza, eccesso di potere, violazione di legge)"),
         _chk("Nomi file senza caratteri speciali", critico=True),
         _chk("Peso totale del deposito < 30 MB", critico=True),
         _chk("Deposito effettuato sul portale PAT e ricevuta salvata", critico=True),
-        _chk("SinteticitÃ  (C.P.A. art. 26 co. 1): ricorso TAR entro i limiti del protocollo del TAR adito. Se supera: Indice Ipertestuale",
-             note="Diversi TAR hanno adottato protocolli propri â€” verificare sul sito del TAR competente. Conseguenza: condanna alle spese aggravata"),
+        _chk("Sinteticità (C.P.A. art. 26 co. 1): ricorso TAR entro i limiti del protocollo del TAR adito. Se supera: Indice Ipertestuale",
+             note="Diversi TAR hanno adottato protocolli propri — verificare sul sito del TAR competente. Conseguenza: condanna alle spese aggravata"),
         _chk("Scadenza IFU inserita immediatamente in agenda (1 anno dal deposito ricorso)", critico=True),
         _chk("Istanza sospensiva se urgente"),
     ],
@@ -558,7 +558,7 @@ MEDIAZIONE = TemplateAtto(
     nota_canale=(
         "L'istanza di mediazione si deposita direttamente presso l'organismo di mediazione "
         "(di persona, via email o PEC secondo le regole dell'organismo). "
-        "Non si usa PCT, PDP nÃ© PAT."
+        "Non si usa PCT, PDP né PAT."
     ),
     documenti=[
         _doc(1,  "Istanza_mediazione",              "Istanza di mediazione all'organismo"),
@@ -568,7 +568,7 @@ MEDIAZIONE = TemplateAtto(
         _doc(5,  "Ricevuta_pagamento_spese",        "Ricevuta pagamento spese di avvio", obbl=False),
         _doc(6,  "Accordo_mediazione_firmato",      "Accordo di mediazione firmato digitalmente da tutte le parti",
              obbl=False,
-             note="Al termine della mediazione positiva: firme CAdES/PAdES di tutte le parti e dei rispettivi avvocati â€” vale come titolo esecutivo (art. 12 D.Lgs. 28/2010)"),
+             note="Al termine della mediazione positiva: firme CAdES/PAdES di tutte le parti e dei rispettivi avvocati — vale come titolo esecutivo (art. 12 D.Lgs. 28/2010)"),
         _doc(7,  "Eventuali_altri_allegati",        "Altri allegati", obbl=False),
     ],
     checklist=[
@@ -579,11 +579,11 @@ MEDIAZIONE = TemplateAtto(
         _chk("Termine sospeso per mediazione annotato in agenda"),
         _chk("Se accordo raggiunto: firme digitali di TUTTE le parti e di TUTTI gli avvocati sull'accordo",
              critico=True,
-             note="Art. 12 D.Lgs. 28/2010: l'accordo deve essere firmato dalle parti e dai loro avvocati â€” senza le firme degli avvocati non Ã¨ titolo esecutivo"),
+             note="Art. 12 D.Lgs. 28/2010: l'accordo deve essere firmato dalle parti e dai loro avvocati — senza le firme degli avvocati non è titolo esecutivo"),
         _chk("Accordo di mediazione conforme a norme imperative, ordine pubblico e buon costume",
              critico=True,
-             note="Il mediatore deve verificare la conformitÃ  â€” l'accordo nullo non vale come titolo esecutivo"),
-        _chk("Accordo omologato dal tribunale se necessario per l'esecutivitÃ "),
+             note="Il mediatore deve verificare la conformità — l'accordo nullo non vale come titolo esecutivo"),
+        _chk("Accordo omologato dal tribunale se necessario per l'esecutività"),
         _chk("Tutti i PDF leggibili"),
     ],
 )
@@ -600,15 +600,15 @@ APPELLO_PENALE = TemplateAtto(
     nota_canale=(
         "DAL 1/1/2025: deposito obbligatorio tramite PDP per Procure e Tribunali (art. 111-bis c.p.p.). "
         "DAL 1/1/2026: obbligatorio anche per GdP, Trib. Minorenni, Trib. Sorveglianza, esecuzione. "
-        "Proroga al 31/3/2026 per modalitÃ  alternative in alcune sedi (D.M. 30/12/2025 n. 206). "
-        "Firma digitale: CAdES (.p7m). Non si usa il redattore atti civile nÃ© PolisWeb. "
-        "Prerequisito: nomina difensore giÃ  accettata nel PDP (procedimento visibile nell'elenco)."
+        "Proroga al 31/3/2026 per modalità alternative in alcune sedi (D.M. 30/12/2025 n. 206). "
+        "Firma digitale: CAdES (.p7m). Non si usa il redattore atti civile né PolisWeb. "
+        "Prerequisito: nomina difensore già accettata nel PDP (procedimento visibile nell'elenco)."
     ),
     documenti=[
         _doc(1,  "Atto_di_appello",                 "Motivi di appello firmati digitalmente (CAdES .p7m)"),
         _doc(2,  "Nomina_difensore",               "Nomina difensore / sostituzione difensore",
              obbl=False,
-             note="Obbligatoria se difensore diverso da quello del primo grado o se non giÃ  nominato"),
+             note="Obbligatoria se difensore diverso da quello del primo grado o se non già nominato"),
         _doc(3,  "Procura_speciale",                "Procura speciale autenticata", obbl=False),
         _doc(4,  "Sentenza_impugnata",              "Sentenza di primo grado"),
         _doc(5,  "Indice_documenti",                "Indice allegati", obbl=False),
@@ -616,12 +616,12 @@ APPELLO_PENALE = TemplateAtto(
         _doc(7,  "Eventuali_altri_allegati",        "Altri allegati", obbl=False),
     ],
     checklist=[
-        _chk("Firma digitale CAdES (.p7m) valida e non scaduta â€” PDP accetta solo CAdES, non PAdES",
+        _chk("Firma digitale CAdES (.p7m) valida e non scaduta — PDP accetta solo CAdES, non PAdES",
              critico=True,
-             note="Il Portale PDP Penale richiede CAdES (.p7m) â€” verificare che il redattore non produca PAdES"),
+             note="Il Portale PDP Penale richiede CAdES (.p7m) — verificare che il redattore non produca PAdES"),
         _chk("Accesso al Portale PDP Penale funzionante (pdp_home in IUSENTRA)", critico=True),
         _chk("Termine di 15 gg dal deposito della motivazione rispettato", critico=True,
-             note="Termine perentorio â€” verificare data deposito motivazione (non data lettura dispositivo)"),
+             note="Termine perentorio — verificare data deposito motivazione (non data lettura dispositivo)"),
         _chk("Corte d'Appello penale competente verificata", critico=True),
         _chk("Nomina difensore allegata se diverso da primo grado", critico=True),
         _chk("Motivi specifici ex art. 581 c.p.p. indicati", critico=True),
@@ -646,47 +646,47 @@ RICORSO_TRIBUTARIO = TemplateAtto(
     tipo_atto_default="RICORSO",
     nota_canale=(
         "Il ricorso tributario si deposita tramite il Portale di Trasmissione Telematica (PTT) "
-        "del MEF â€” sistema SIGIT â€” con firma digitale CAdES (.p7m). "
+        "del MEF — sistema SIGIT — con firma digitale CAdES (.p7m). "
         "Normativa: D.Lgs. 546/1992, D.M. 163/2013 (processo tributario telematico). "
-        "Non si usa PCT, PDP nÃ© PAT."
+        "Non si usa PCT, PDP né PAT."
     ),
     documenti=[
         _doc(1,  "Ricorso_tributario",              "Ricorso introduttivo firmato CAdES (.p7m)"),
         _doc(2,  "Procura_alle_liti",               "Procura alle liti (se difensore abilitato)"),
         _doc(3,  "Atto_impugnato",                  "Avviso di accertamento / cartella / atto impugnato",
-             note="Allegare copia integrale â€” il ricorso deve identificare il provvedimento con precisione"),
+             note="Allegare copia integrale — il ricorso deve identificare il provvedimento con precisione"),
         _doc(4,  "Indice_documenti",                "Indice allegati"),
         _doc(5,  "Doc_01_Prova_pagamento",          "Prova pagamento tributo (se controversia su rimborso)", obbl=False),
         _doc(6,  "Doc_02_Perizia",                  "Perizia o relazione tecnica", obbl=False),
         _doc(7,  "Contributo_unificato",            "Ricevuta contributo unificato tributario",
-             note="Verificare importo in base al valore della lite â€” tabella specifica per tributario"),
+             note="Verificare importo in base al valore della lite — tabella specifica per tributario"),
         _doc(8,  "NIR_Nota_iscrizione_a_ruolo_FIRMATA", "NIR firmata digitalmente (scaricata da portale MEF, poi firmata CAdES e ri-caricata)",
-             note="WORKFLOW PTT: 1) carica dati ricorso sul PTT â†’ 2) scarica NIR generata dal portale MEF â†’ 3) firma NIR con CAdES (.p7m) â†’ 4) ri-carica NIR firmata come ultimo documento â€” senza questo step il deposito non si chiude"),
+             note="WORKFLOW PTT: 1) carica dati ricorso sul PTT → 2) scarica NIR generata dal portale MEF → 3) firma NIR con CAdES (.p7m) → 4) ri-carica NIR firmata come ultimo documento — senza questo step il deposito non si chiude"),
         _doc(9,  "Eventuali_altri_allegati",        "Altri allegati", obbl=False),
     ],
     checklist=[
         _chk("Registrazione/accesso al portale SIGIT/PTT (ptt.mef.gov.it) verificata", critico=True),
         _chk("Firma digitale CAdES (.p7m) valida e non scaduta", critico=True,
-             note="Il PTT accetta solo CAdES â€” verificare che il file abbia estensione .p7m"),
+             note="Il PTT accetta solo CAdES — verificare che il file abbia estensione .p7m"),
         _chk("Termine di 60 gg dalla notifica dell'atto impugnato rispettato", critico=True,
-             note="Art. 21 D.Lgs. 546/1992 â€” termine perentorio, non prorogabile"),
+             note="Art. 21 D.Lgs. 546/1992 — termine perentorio, non prorogabile"),
         _chk("CGT primo grado territorialmente competente verificata", critico=True,
              note="Competenza legata alla sede dell'ente impositore, non al domicilio del contribuente"),
         _chk("Atto impugnato allegato integralmente (con tutti i fogli)", critico=True),
         _chk("Tutti i PDF nel formato PDF/A-1b (non protetti, testo selezionabile)", critico=True),
         _chk("Nomi file senza caratteri speciali (no spazi, #, %, &, accenti)", critico=True),
-        _chk("Contributo unificato tributario pagato â€” importo specifico per tributario", critico=True),
-        _chk("NIR: carica dati â†’ scarica NIR dal portale MEF â†’ firma CAdES (.p7m) â†’ ri-carica NIR firmata",
+        _chk("Contributo unificato tributario pagato — importo specifico per tributario", critico=True),
+        _chk("NIR: carica dati → scarica NIR dal portale MEF → firma CAdES (.p7m) → ri-carica NIR firmata",
              critico=True,
-             note="Senza la NIR firmata e ri-caricata il deposito telematico tributario non si chiude â€” Ã¨ un passaggio unico del PTT rispetto al civile"),
+             note="Senza la NIR firmata e ri-caricata il deposito telematico tributario non si chiude — è un passaggio unico del PTT rispetto al civile"),
         _chk("Peso totale deposito < 30 MB", critico=True),
         _chk("Ricorso depositato sul PTT/SIGIT entro termine e ricevuta salvata", critico=True),
         _chk("Copia del ricorso notificata all'ente impositore (notifica preventiva o contestuale)",
              critico=True,
-             note="Art. 16-bis D.Lgs. 546/1992 â€” la notifica all'ente impositore Ã¨ condizione di procedibilitÃ "),
-        _chk("Istanza di sospensiva se accertamento Ã¨ in scadenza di riscossione"),
-        _chk("Eventuale istanza di reclamo/mediazione obbligatoria per liti < 50.000 â‚¬",
-             note="Art. 17-bis D.Lgs. 546/1992: per liti fino a 50.000 â‚¬ Ã¨ obbligatorio il tentativo di mediazione preventiva"),
+             note="Art. 16-bis D.Lgs. 546/1992 — la notifica all'ente impositore è condizione di procedibilità"),
+        _chk("Istanza di sospensiva se accertamento è in scadenza di riscossione"),
+        _chk("Eventuale istanza di reclamo/mediazione obbligatoria per liti < 50.000 €",
+             note="Art. 17-bis D.Lgs. 546/1992: per liti fino a 50.000 € è obbligatorio il tentativo di mediazione preventiva"),
     ],
 )
 
@@ -702,20 +702,20 @@ APPELLO_TRIBUTARIO = TemplateAtto(
     nota_canale=(
         "L'appello tributario si deposita tramite PTT/SIGIT (ptt.mef.gov.it) con firma CAdES (.p7m). "
         "Normativa: artt. 51-63 D.Lgs. 546/1992. "
-        "Non si usa PCT, PDP nÃ© PAT."
+        "Non si usa PCT, PDP né PAT."
     ),
     documenti=[
         _doc(1,  "Atto_di_appello_tributario",     "Appello firmato CAdES (.p7m)"),
         _doc(2,  "Procura_alle_liti",               "Procura alle liti per il grado di appello"),
         _doc(3,  "Sentenza_CGT_primo_grado",        "Sentenza CGT primo grado impugnata",
-             note="Deve essere copia autentica â€” richiedere alla cancelleria della CGT"),
+             note="Deve essere copia autentica — richiedere alla cancelleria della CGT"),
         _doc(4,  "Indice_documenti",                "Indice allegati"),
         _doc(5,  "Relata_notifica_sentenza",        "Relata di notifica sentenza (dies a quo)", obbl=False,
-             note="Allegare se la sentenza Ã¨ stata notificata â€” determina il termine breve di 60 gg"),
+             note="Allegare se la sentenza è stata notificata — determina il termine breve di 60 gg"),
         _doc(6,  "Contributo_unificato_appello",   "Ricevuta contributo unificato per appello",
              note="Importo aumentato rispetto al primo grado"),
         _doc(7,  "NIR_appello_FIRMATA",            "NIR appello firmata digitalmente (scaricata da MEF, firmata CAdES, ri-caricata)",
-             note="Come per il ricorso: 1) carica dati â†’ 2) scarica NIR da portale MEF â†’ 3) firma CAdES (.p7m) â†’ 4) ri-carica NIR firmata"),
+             note="Come per il ricorso: 1) carica dati → 2) scarica NIR da portale MEF → 3) firma CAdES (.p7m) → 4) ri-carica NIR firmata"),
         _doc(8,  "Doc_01_nuovi",                   "Nuovi documenti (se ammissibili)", obbl=False),
         _doc(9,  "Eventuali_altri_allegati",        "Altri allegati", obbl=False),
     ],
@@ -723,20 +723,20 @@ APPELLO_TRIBUTARIO = TemplateAtto(
         _chk("Accesso al portale SIGIT/PTT (ptt.mef.gov.it) verificato", critico=True),
         _chk("Firma digitale CAdES (.p7m) valida e non scaduta", critico=True),
         _chk("Termine di 60 gg da notifica sentenza (o 6 mesi da deposito) rispettato", critico=True,
-             note="Art. 51 D.Lgs. 546/1992 â€” verificare se la sentenza Ã¨ stata notificata"),
+             note="Art. 51 D.Lgs. 546/1992 — verificare se la sentenza è stata notificata"),
         _chk("CGT secondo grado (ex CTR) competente verificata", critico=True),
         _chk("Sentenza impugnata in copia autentica allegata", critico=True),
         _chk("Relata di notifica sentenza allegata per dies a quo"),
         _chk("Tutti i PDF nel formato PDF/A-1b", critico=True),
         _chk("Contributo unificato appello tributario pagato", critico=True),
-        _chk("NIR appello: carica dati â†’ scarica NIR dal portale MEF â†’ firma CAdES (.p7m) â†’ ri-carica NIR firmata",
+        _chk("NIR appello: carica dati → scarica NIR dal portale MEF → firma CAdES (.p7m) → ri-carica NIR firmata",
              critico=True,
-             note="Identico al ricorso di primo grado â€” senza NIR firmata il deposito non si chiude"),
+             note="Identico al ricorso di primo grado — senza NIR firmata il deposito non si chiude"),
         _chk("Nomi file senza caratteri speciali", critico=True),
         _chk("Peso totale deposito < 30 MB", critico=True),
         _chk("Appello depositato sul PTT/SIGIT entro termine e ricevuta salvata", critico=True),
         _chk("Copia dell'appello notificata all'ente impositore / controparte", critico=True),
-        _chk("Motivi di appello specifici (non Ã¨ ammissibile un richiamo generico al ricorso)",
+        _chk("Motivi di appello specifici (non è ammissibile un richiamo generico al ricorso)",
              critico=True),
         _chk("Istanza di sospensiva provvisoria se necessaria"),
     ],
@@ -746,23 +746,23 @@ NOMINA_DIFENSORE = TemplateAtto(
     id="nomina_difensore",
     nome="Nomina Difensore (PDP Penale)",
     categoria="PENALE",
-    descrizione="Nomina del difensore di fiducia ex art. 107 c.p.p. tramite PDP â€” primo deposito da fare per accedere al fascicolo.",
+    descrizione="Nomina del difensore di fiducia ex art. 107 c.p.p. tramite PDP — primo deposito da fare per accedere al fascicolo.",
     nome_cartella="Nomina_difensore_{rg}_{parte}_{data}",
     canale="PDP_PENALE",
     endpoint_deposito="pdp_home",
     tipo_atto_default="NOMINA",
     nota_canale=(
         "DAL 14/1/2024: deposito obbligatorio tramite PDP (art. 3 co. 8 D.M. 217/2023). "
-        "ATTENZIONE: la nomina Ã¨ l'ATTO ABILITANTE â€” senza la sua accettazione non Ã¨ possibile "
-        "depositare alcun altro atto nel procedimento. In fase di indagini preliminari Ã¨ obbligatorio "
+        "ATTENZIONE: la nomina è l'ATTO ABILITANTE — senza la sua accettazione non è possibile "
+        "depositare alcun altro atto nel procedimento. In fase di indagini preliminari è obbligatorio "
         "allegare l'atto abilitante (certificato ex art. 335 c.p.p., avviso UNEP, decreto perquisizione, ecc.). "
-        "Dopo l'avviso ex art. 408/411/415-bis c.p.p. l'atto abilitante non Ã¨ piÃ¹ necessario."
+        "Dopo l'avviso ex art. 408/411/415-bis c.p.p. l'atto abilitante non è più necessario."
     ),
     documenti=[
         _doc(1, "Nomina_difensore",        "Nomina del difensore di fiducia firmata CAdES (.p7m)"),
         _doc(2, "Atto_abilitante",         "Atto abilitante (certificato art. 335 / avviso UNEP / decreto perquisizione / verbale identificazione)",
              obbl=False,
-             note="Obbligatorio SOLO se il procedimento Ã¨ in fase di indagini preliminari prima di avviso ex artt. 408/411/415-bis c.p.p. â€” senza, il sistema non accetta la nomina"),
+             note="Obbligatorio SOLO se il procedimento è in fase di indagini preliminari prima di avviso ex artt. 408/411/415-bis c.p.p. — senza, il sistema non accetta la nomina"),
         _doc(3, "Procura_speciale",        "Procura speciale autenticata", obbl=False),
     ],
     checklist=[
@@ -772,8 +772,8 @@ NOMINA_DIFENSORE = TemplateAtto(
         _chk("Numero procedimento (RGNR o RG) correttamente indicato", critico=True),
         _chk("Atto abilitante allegato se procedimento in fase di indagini preliminari (pre art. 415-bis)",
              critico=True,
-             note="Senza atto abilitante il sistema rifiuta la nomina â€” richiedere certificato ex art. 335 c.p.p."),
-        _chk("Dopo accettazione nomina: procedimento visibile nell'elenco PDP â€” solo allora si possono depositare altri atti",
+             note="Senza atto abilitante il sistema rifiuta la nomina — richiedere certificato ex art. 335 c.p.p."),
+        _chk("Dopo accettazione nomina: procedimento visibile nell'elenco PDP — solo allora si possono depositare altri atti",
              critico=True),
         _chk("Ricevuta di accettazione PDP salvata nel fascicolo", critico=True),
         _chk("Nomina depositata entro termini (es. prima di udienza, prima di notifiche)", critico=True),
@@ -791,8 +791,8 @@ RINUNCIA_REVOCA_MANDATO = TemplateAtto(
     tipo_atto_default="ALTRO",
     nota_canale=(
         "DAL 14/1/2024: deposito obbligatorio tramite PDP (art. 3 co. 8 D.M. 217/2023). "
-        "Prerequisito: nomina giÃ  accettata dal sistema (procedimento visibile nel PDP). "
-        "La rinuncia non ha effetto immediato â€” il difensore rimane in carica fino alla "
+        "Prerequisito: nomina già accettata dal sistema (procedimento visibile nel PDP). "
+        "La rinuncia non ha effetto immediato — il difensore rimane in carica fino alla "
         "nomina del sostituto o all'assegnazione del difensore d'ufficio."
     ),
     documenti=[
@@ -802,7 +802,7 @@ RINUNCIA_REVOCA_MANDATO = TemplateAtto(
     checklist=[
         _chk("Accesso al PDP tramite PST verificato", critico=True),
         _chk("Firma digitale CAdES (.p7m) valida e non scaduta", critico=True),
-        _chk("Nomina precedente giÃ  accettata (procedimento visibile nel PDP)", critico=True),
+        _chk("Nomina precedente già accettata (procedimento visibile nel PDP)", critico=True),
         _chk("Numero procedimento correttamente indicato", critico=True),
         _chk("Comunicazione della rinuncia all'assistito prima del deposito"),
         _chk("Ricevuta di accettazione PDP salvata nel fascicolo", critico=True),
@@ -821,12 +821,12 @@ OPPOSIZIONE_ARCHIVIAZIONE = TemplateAtto(
     tipo_atto_default="OPPOSIZIONE",
     nota_canale=(
         "DAL 14/1/2024: deposito obbligatorio tramite PDP. "
-        "Prerequisito: nomina giÃ  accettata e avviso di archiviazione ex art. 408 c.p.p. ricevuto. "
-        "Termine: 20 giorni dalla notifica dell'avviso ex art. 408 c.p.p. â€” termine perentorio."
+        "Prerequisito: nomina già accettata e avviso di archiviazione ex art. 408 c.p.p. ricevuto. "
+        "Termine: 20 giorni dalla notifica dell'avviso ex art. 408 c.p.p. — termine perentorio."
     ),
     documenti=[
         _doc(1, "Opposizione_archiviazione",   "Atto di opposizione firmato CAdES (.p7m)",
-             note="Deve contenere l'indicazione delle indagini richieste (art. 410 co. 1 c.p.p.) â€” senza, l'opposizione Ã¨ inammissibile"),
+             note="Deve contenere l'indicazione delle indagini richieste (art. 410 co. 1 c.p.p.) — senza, l'opposizione è inammissibile"),
         _doc(2, "Avviso_archiviazione",        "Copia avviso di archiviazione ex art. 408 c.p.p."),
         _doc(3, "Procura_speciale",            "Procura speciale della persona offesa", obbl=False),
         _doc(4, "Doc_01_Prove_nuove",          "Documenti/prove a supporto dell'opposizione", obbl=False),
@@ -834,9 +834,9 @@ OPPOSIZIONE_ARCHIVIAZIONE = TemplateAtto(
     checklist=[
         _chk("Accesso al PDP tramite PST verificato", critico=True),
         _chk("Firma digitale CAdES (.p7m) valida e non scaduta", critico=True),
-        _chk("Nomina precedente giÃ  accettata nel PDP", critico=True),
+        _chk("Nomina precedente già accettata nel PDP", critico=True),
         _chk("Termine di 20 gg dalla notifica dell'avviso ex art. 408 c.p.p. rispettato", critico=True,
-             note="Termine perentorio â€” verificare data notifica avviso"),
+             note="Termine perentorio — verificare data notifica avviso"),
         _chk("Opposizione indica specificamente le indagini richieste (art. 410 co. 1 c.p.p.)",
              critico=True,
              note="Senza indicazione delle indagini, il GIP dichiara l'opposizione inammissibile"),
@@ -858,13 +858,13 @@ DENUNCIA_QUERELA = TemplateAtto(
     nota_canale=(
         "DAL 14/1/2024: deposito telematico obbligatorio tramite PDP per i difensori. "
         "L'accoglimento equivale al ricevimento e iscrizione nel ReGeWEB da parte della Procura. "
-        "Nota: la querela Ã¨ un diritto della persona offesa â€” il difensore la deposita in rappresentanza. "
+        "Nota: la querela è un diritto della persona offesa — il difensore la deposita in rappresentanza. "
         "Termine querela: 3 mesi dalla conoscenza del fatto per reati perseguibili a querela (art. 124 c.p.)."
     ),
     documenti=[
         _doc(1, "Denuncia_o_querela",          "Atto di denuncia/querela firmato CAdES (.p7m)"),
         _doc(2, "Procura_speciale",            "Procura speciale del denunciante/querelante",
-             note="Obbligatoria se il difensore deposita per conto del cliente â€” deve contenere espresso potere"),
+             note="Obbligatoria se il difensore deposita per conto del cliente — deve contenere espresso potere"),
         _doc(3, "Doc_01_Prove",                "Documenti a supporto (contratti, screenshot, referti, ecc.)"),
         _doc(4, "Doc_02",                      "Ulteriori prove", obbl=False),
         _doc(5, "Eventuali_altri_allegati",    "Altri allegati", obbl=False),
@@ -874,11 +874,11 @@ DENUNCIA_QUERELA = TemplateAtto(
         _chk("Firma digitale CAdES (.p7m) valida e non scaduta", critico=True),
         _chk("Per querela: termine di 3 mesi dalla conoscenza del fatto rispettato (art. 124 c.p.)",
              critico=True,
-             note="Termine perentorio per reati perseguibili a querela â€” la querela tardiva Ã¨ inefficace"),
+             note="Termine perentorio per reati perseguibili a querela — la querela tardiva è inefficace"),
         _chk("Procura speciale del querelante/denunciante allegata", critico=True,
              note="Obbligatoria se il difensore deposita in nome e per conto del cliente"),
         _chk("Ufficio di Procura competente per territorio verificato"),
-        _chk("Fatto descritto con precisione (data, luogo, modalitÃ , autore se noto)"),
+        _chk("Fatto descritto con precisione (data, luogo, modalità, autore se noto)"),
         _chk("Prove documentali allegate nella busta"),
         _chk("Ricevuta di accettazione PDP salvata nel fascicolo", critico=True),
         _chk("Per querela: riserva di rimessione valutata"),

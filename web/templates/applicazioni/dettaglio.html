@@ -174,7 +174,7 @@
       <div class="app-panel-head">
         <div>
           <h2 class="h4 mb-1">Azioni workspace</h2>
-          <div class="text-muted">Azioni compatte per lavorare sul modulo, tornare allâ€™area o filtrare moduli simili.</div>
+          <div class="text-muted">Azioni compatte per lavorare sul modulo, tornare all’area o filtrare moduli simili.</div>
         </div>
       </div>
       <div class="app-action-grid">
@@ -196,7 +196,7 @@
         <div class="app-panel-head">
           <div>
             <h2 class="h4 mb-1">Profilo operativo</h2>
-            <div class="text-muted">Come usare questa voce dentro IUSENTRA e qual Ã¨ il suo ruolo nel workspace.</div>
+            <div class="text-muted">Come usare questa voce dentro IUSENTRA e qual è il suo ruolo nel workspace.</div>
           </div>
         </div>
         <div class="app-info-grid">
@@ -213,7 +213,7 @@
             <div class="app-info-value">{{ entry.status_label }}</div>
           </div>
           <div class="app-info-box">
-            <div class="app-info-label">ModalitÃ  di accesso</div>
+            <div class="app-info-label">Modalità di accesso</div>
             <div class="app-info-value">{{ entry.access_mode_label }}</div>
           </div>
         </div>
@@ -221,9 +221,9 @@
         <div class="mt-4">
           <div class="fw-semibold mb-2">Uso nel gestionale</div>
           <p class="text-muted mb-0">
-            Questa voce Ã¨ stata organizzata come modulo di lavoro del workspace applicazioni: non resta isolata
-            in un catalogo piatto, ma mantiene collegamenti rapidi allâ€™area, ai moduli simili e al percorso
-            operativo piÃ¹ utile oggi disponibile nel gestionale.
+            Questa voce è stata organizzata come modulo di lavoro del workspace applicazioni: non resta isolata
+            in un catalogo piatto, ma mantiene collegamenti rapidi all’area, ai moduli simili e al percorso
+            operativo più utile oggi disponibile nel gestionale.
           </p>
         </div>
       </div>
@@ -239,7 +239,7 @@
         </div>
         <div class="d-grid gap-2">
           <a href="{{ entry.href }}" class="btn btn-primary">{{ entry.cta_label }}</a>
-          <a href="{{ url_for('applicazioni.index', sezione=entry.section_id) }}" class="btn btn-outline-secondary">Apri tutta lâ€™area</a>
+          <a href="{{ url_for('applicazioni.index', sezione=entry.section_id) }}" class="btn btn-outline-secondary">Apri tutta l’area</a>
           <a href="{{ url_for('applicazioni.index', q=entry.title) }}" class="btn btn-outline-dark">Ricerca stessa voce</a>
           <a href="{{ url_for('applicazioni.index', tipo=entry.workspace_kind) }}" class="btn btn-outline-primary">Filtra stessa tipologia</a>
         </div>
@@ -260,7 +260,7 @@
       <div class="app-related-grid">
         {% for item in correlati %}
         <article class="app-related-card">
-          <div class="small text-muted">{{ item.workspace_kind_label }} Â· {{ item.access_mode_label }}</div>
+          <div class="small text-muted">{{ item.workspace_kind_label }} · {{ item.access_mode_label }}</div>
           <div class="fw-semibold">{{ item.title }}</div>
           <div class="small text-muted">{{ item.summary }}</div>
           <div class="d-grid gap-2 mt-auto">

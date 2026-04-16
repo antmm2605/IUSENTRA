@@ -1,6 +1,6 @@
-﻿{# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-   Email detail panel â€” usato in dettaglio.html
-   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• #}
+﻿{# ════════════════════════════════════════════════════════════
+   Email detail panel — usato in dettaglio.html
+   ════════════════════════════════════════════════════════════ #}
 {% set em = em or email_sel %}
 {% if em %}
 
@@ -8,7 +8,7 @@
 {% set _palette = ['#2563eb','#7c3aed','#db2777','#d97706','#059669','#0891b2','#dc2626','#65a30d'] %}
 {% set _ci      = (_sname|lower|first)|int(default=0) % 8 %}
 
-{# â”€â”€ Mittente â”€â”€ #}
+{# ── Mittente ── #}
 <div class="card shadow-sm mb-3">
   <div class="card-body">
     <div class="d-flex align-items-start gap-3">
@@ -49,13 +49,13 @@
   </div>
 </div>
 
-{# â”€â”€ PST bar â”€â”€ #}
+{# ── PST bar ── #}
 {% if em.e_pst %}
 <div class="alert alert-primary border d-flex align-items-start gap-2 py-2 mb-3" style="background:#eff6ff;border-color:#bfdbfe!important">
   <i class="bi bi-shield-check-fill text-primary mt-1 flex-shrink-0"></i>
   <div class="small">
     <strong>Portale Servizi Telematici</strong>
-    {% if em.stato_pct %} â€” stato:
+    {% if em.stato_pct %} — stato:
       <code class="px-1 py-0 rounded" style="background:rgba(37,99,235,.1);font-size:.85em">{{ em.stato_pct }}</code>
     {% endif %}
     {% if not em.auto_registrata %}
@@ -67,7 +67,7 @@
 </div>
 {% endif %}
 
-{# â”€â”€ Corpo â”€â”€ #}
+{# ── Corpo ── #}
 <div class="card shadow-sm mb-3">
   <div class="card-header fw-semibold small text-muted text-uppercase" style="letter-spacing:.05em">
     <i class="bi bi-file-text me-2"></i>Contenuto
@@ -87,7 +87,7 @@
   </div>
 </div>
 
-{# â”€â”€ Allegati â”€â”€ #}
+{# ── Allegati ── #}
 {% if em.allegati %}
 <div class="card shadow-sm mb-3">
   <div class="card-header fw-semibold small text-muted text-uppercase" style="letter-spacing:.05em">
@@ -149,12 +149,12 @@
 </div>
 {% endif %}
 
-{# â”€â”€ Rispondi â”€â”€ #}
+{# ── Rispondi ── #}
 <a class="d-flex align-items-center gap-2 px-3 py-2 border rounded text-muted text-decoration-none mb-3"
    style="background:#fff;font-size:.88rem;transition:border-color .15s"
    href="{{ url_for('email_client.scrivi', a=em.mittente, oggetto='Re: ' ~ em.oggetto) }}">
   <i class="bi bi-reply text-primary fs-5"></i>
-  Rispondi a <strong class="ms-1 text-dark">{{ em.mittente_nome or em.mittente }}</strong>â€¦
+  Rispondi a <strong class="ms-1 text-dark">{{ em.mittente_nome or em.mittente }}</strong>…
 </a>
 
 {% endif %}

@@ -1,12 +1,12 @@
 ﻿{% extends "base.html" %}
-{% block title %}Tribunali & PEC â€” IUSENTRA{% endblock %}
+{% block title %}Tribunali & PEC — IUSENTRA{% endblock %}
 {% block page_title %}Tribunali & Indirizzi PEC{% endblock %}
 
 {% block content %}
 <div class="card shadow-sm">
   <div class="card-header fw-semibold d-flex align-items-center gap-2">
     <i class="bi bi-bank text-primary"></i>
-    Registro Uffici Giudiziari â€” indirizzi PEC (ReGINde)
+    Registro Uffici Giudiziari — indirizzi PEC (ReGINde)
     <span class="badge bg-primary ms-auto" id="badge-count">{{ uffici|length }}</span>
   </div>
 
@@ -37,7 +37,7 @@
         <i class="bi bi-search text-muted"></i>
       </span>
       <input type="text" id="trib-search" class="form-control border-start-0 ps-0"
-             placeholder="Cerca per cittÃ , nome, distretto o PECâ€¦"
+             placeholder="Cerca per città, nome, distretto o PEC…"
              autocomplete="off">
       <button type="button" class="btn btn-outline-secondary" id="trib-clear"
               style="display:none" title="Cancella">
@@ -89,7 +89,7 @@
       </table>
       <div id="trib-empty" class="uff-empty py-4" style="display:none">
         <i class="bi bi-search me-1"></i>Nessun ufficio trovato
-        <div class="mt-1 small">Prova con un nome di cittÃ  diverso</div>
+        <div class="mt-1 small">Prova con un nome di città diverso</div>
       </div>
     </div>
   </div>

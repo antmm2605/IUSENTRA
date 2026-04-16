@@ -52,10 +52,10 @@ def build_telematico_runtime(
     _cfg_data_path = cfg_data_path
     def _polis_auth_mode() -> str:
         """
-        Restituisce la modalitÃ  di autenticazione PST:
-          'reale'  â€” certificato P12/PEM configurato, SOAP mTLS disponibile
-          'pkcs11' â€” token PKCS#11 locale, autenticazione gestita dal dispositivo
-          'demo'   â€” nessun certificato, modalitÃ  demo offline
+        Restituisce la modalità di autenticazione PST:
+          'reale'  — certificato P12/PEM configurato, SOAP mTLS disponibile
+          'pkcs11' — token PKCS#11 locale, autenticazione gestita dal dispositivo
+          'demo'   — nessun certificato, modalità demo offline
         """
         # Controllo config studio (impostazioni UI)
         try:
@@ -63,8 +63,8 @@ def build_telematico_runtime(
             preferito = getattr(cfg, "backend_preferito_normalizzato", "auto")
             fmt = getattr(cfg, "backend_firma_effettivo_safe", "nessuno")
             if fmt == "pkcs11":
-                # Token USB: la chiave privata non Ã¨ esportabile e non Ã¨ accessibile
-                # dal container Linux su Windows â†’ autenticazione PST solo via browser
+                # Token USB: la chiave privata non è esportabile e non è accessibile
+                # dal container Linux su Windows → autenticazione PST solo via browser
                 return "pkcs11"
             if fmt in ("p12", "pem"):
                 return "reale"
@@ -80,7 +80,7 @@ def build_telematico_runtime(
         return "demo"
 
     def _polis_demo_mode() -> bool:
-        """True solo se non esiste alcun canale reale configurato (nÃ© P12/PEM nÃ© token PKCS#11)."""
+        """True solo se non esiste alcun canale reale configurato (né P12/PEM né token PKCS#11)."""
         return _polis_auth_mode() == "demo"
     def _portale_usa_local_signer(portale: str) -> bool:
         return (portale or "").strip().lower() in {"pst", "pdp", "pat", "ptt"} and _polis_auth_mode() == "pkcs11"
@@ -357,7 +357,7 @@ def build_telematico_runtime(
                 "documenti, ricevute, provvedimenti ed esiti."
             )
         return (
-            f"L'endpoint ufficiale di {label} non Ã¨ raggiungibile dal backend server. "
+            f"L'endpoint ufficiale di {label} non è raggiungibile dal backend server. "
             "Usa l'acquisizione guidata dal browser con Local Signer su questo PC."
         )
 
@@ -430,7 +430,7 @@ def build_telematico_runtime(
             """Normalizza a YYYY-MM-DD (coerente con _chiave_deposito_polisweb).
 
             Gestisce formati multipli (ISO, italiano dd/mm/yyyy, dd-mm-yyyy)
-            esattamente come _parse_data in polisWeb.py â€” altrimenti le chiavi
+            esattamente come _parse_data in polisWeb.py — altrimenti le chiavi
             di raggruppamento differiscono e lo stesso deposito appare duplicato.
             """
             if not d:
@@ -864,7 +864,7 @@ def build_telematico_runtime(
             if not target:
                 raise ValueError("Fascicolo locale selezionato non trovato.")
             if not _fascicolo_matches_selection(target, portale, selection, strict=False):
-                raise ValueError("Il fascicolo locale selezionato non Ã¨ compatibile con il fascicolo del portale.")
+                raise ValueError("Il fascicolo locale selezionato non è compatibile con il fascicolo del portale.")
             resolved_mode = "update_existing" if requested_mode == "update_existing" else "attach_existing"
             return resolved_mode, target, False
         exact = _find_exact_fascicolo_locale_portale(portale, selection)
@@ -1031,7 +1031,7 @@ def build_telematico_runtime(
         if not selection.get("numero") or not selection.get("anno"):
             blockers.append({"label": "RG incompleto", "detail": "Numero e anno del fascicolo sono obbligatori per una pratica governabile.", "tone": "danger"})
         else:
-            oks.append({"label": "IdentitÃ  fascicolo pronta", "detail": f"{selection.get('numero')}/{selection.get('anno')}", "tone": "success"})
+            oks.append({"label": "Identità fascicolo pronta", "detail": f"{selection.get('numero')}/{selection.get('anno')}", "tone": "success"})
 
         if options.get("importa_parti") and counts.get("parti", 0) <= 0:
             if manual_mode and portale in {"pdp", "pat", "ptt"}:
@@ -1064,8 +1064,8 @@ def build_telematico_runtime(
         if auto_integrated and auto_target is not None:
             warnings.append(
                 {
-                    "label": "Pratica locale giÃ  presente",
-                    "detail": f"L'importazione aggiornerÃ  automaticamente {auto_target.titolo} invece di creare un duplicato.",
+                    "label": "Pratica locale già presente",
+                    "detail": f"L'importazione aggiornerà automaticamente {auto_target.titolo} invece di creare un duplicato.",
                     "tone": "warning",
                 }
             )
@@ -1870,8 +1870,8 @@ def build_telematico_runtime(
         browser_channel_required = _portale_browser_channel_required(portale)
         ultimo_log = _last_portale_import_log(portale)
         if demo_mode:
-            status_text = "ModalitÃ  demo / fallback"
-            environment_label = "Simulazione / compatibilitÃ "
+            status_text = "Modalità demo / fallback"
+            environment_label = "Simulazione / compatibilità"
         elif browser_channel_required:
             if portale == "pat":
                 status_text = "Consultazione via Portale dell'Avvocato"
@@ -2057,7 +2057,7 @@ def build_telematico_runtime(
         return f"InstallaLocalSigner-{_local_signer_version()}.ps1"
 
     def _local_signer_windows_offline_ps1_name() -> str:
-        """PS1 offline self-contained (generato da build_dist.py) â€” alternativa all'EXE."""
+        """PS1 offline self-contained (generato da build_dist.py) — alternativa all'EXE."""
         return f"SetupLocalSigner-{_local_signer_version()}.ps1"
 
     def _local_signer_windows_offline_ps1_path() -> Path:
@@ -2084,7 +2084,7 @@ def build_telematico_runtime(
     def _local_signer_windows_exe_path() -> Path:
         # Restituisce solo il path dell'exe versionato (es. SetupLocalSigner-1.5.10.exe).
         # NON cade in fallback sul generico SetupLocalSigner.exe (potrebbe essere
-        # una versione precedente) â€” se l'exe versionato non esiste il chiamante
+        # una versione precedente) — se l'exe versionato non esiste il chiamante
         # deve usare la PS1 offline.
         return _local_signer_dist_dir() / _local_signer_windows_exe_name()
 

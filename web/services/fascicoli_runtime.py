@@ -641,7 +641,7 @@ def build_fascicoli_runtime(
                     open_modal="documento",
                     doc_kind="PROCURA",
                     correction_title="Carica procura alle liti",
-                    correction_help="Il controllo ha rilevato l'assenza della procura. Apri il modal giÃ  posizionato sul tipo documento corretto.",
+                    correction_help="Il controllo ha rilevato l'assenza della procura. Apri il modal già posizionato sul tipo documento corretto.",
                 ),
                 "action_label": "Carica procura",
             }
@@ -685,7 +685,7 @@ def build_fascicoli_runtime(
                     open_modal="parte",
                     role_hint="ASSISTITO",
                     correction_title="Aggiungi assistito",
-                    correction_help="La conformitÃ  richiede almeno l'assistito strutturato nella sezione Parti del procedimento.",
+                    correction_help="La conformità richiede almeno l'assistito strutturato nella sezione Parti del procedimento.",
                 ),
                 "action_label": "Aggiungi assistito",
             }
@@ -721,7 +721,7 @@ def build_fascicoli_runtime(
                     id_fasc,
                     intent="registro",
                     correction_title="Configura pre-deposito",
-                    correction_help="Il wizard pre-deposito si apre giÃ  con i dati tecnici da confermare o correggere.",
+                    correction_help="Il wizard pre-deposito si apre già con i dati tecnici da confermare o correggere.",
                     prefill_tipo_atto=_prefill_tipo_atto_from_summary(summary),
                     prefill_registro=registry_suggestion,
                 ),
@@ -938,7 +938,7 @@ def build_fascicoli_runtime(
                 focus_field="recipient_or_court",
                 highlight_fields="case_id,recipient_or_court,subject",
                 correction_title="Completa DatiAtto.xml",
-                correction_help="Il redattore si apre giÃ  sui campi strutturati minimi utili alla generazione XML.",
+                correction_help="Il redattore si apre già sui campi strutturati minimi utili alla generazione XML.",
             )
             gates["generate_xml"]["url_label"] = "Completa DatiAtto.xml"
         if gates.get("prepare_deposit"):
@@ -1364,9 +1364,9 @@ def build_fascicoli_runtime(
             firmato=firmato,
             caricato_da=caricato_da,
         )
-        # â”€â”€ Conversione automatica PDF â†’ PDF/A-2B (D.M. 44/2011 art. 12) â”€â”€
-        # Se il file Ã¨ un PDF non firmato, lo converte in PDF/A tramite
-        # Ghostscript per garantire conformitÃ  al deposito telematico.
+        # ── Conversione automatica PDF → PDF/A-2B (D.M. 44/2011 art. 12) ──
+        # Se il file è un PDF non firmato, lo converte in PDF/A tramite
+        # Ghostscript per garantire conformità al deposito telematico.
         percorso_doc = str(gf.percorso_documento(id_fasc, doc.id))
         if nome_file.lower().endswith(".pdf") and not firmato:
             try:
@@ -1376,7 +1376,7 @@ def build_fascicoli_runtime(
                     conv = converti_pdfa(percorso_doc)
                     if conv.get("ok"):
                         app.logger.info(
-                            "PDF/A auto-conversione: %s â†’ PDF/A-2B (%s)",
+                            "PDF/A auto-conversione: %s → PDF/A-2B (%s)",
                             nome_file, conv.get("messaggio", ""),
                         )
                     else:
@@ -1839,7 +1839,7 @@ def build_fascicoli_runtime(
         u = g.utente_corrente
         documenti_creati: list[dict] = []
 
-        # Indice dei nomi normalizzati giÃ  presenti nel fascicolo (dedup import ripetuto)
+        # Indice dei nomi normalizzati già presenti nel fascicolo (dedup import ripetuto)
         nomi_esistenti: dict[str, Documento] = {
             _normalizza_nome_match_portale(d.nome): d
             for d in fasc.documenti
@@ -1851,7 +1851,7 @@ def build_fascicoli_runtime(
             payload = item.get("contenuto", b"")
             if not nome or not payload:
                 continue
-            # Deduplicazione: se il file (per nome normalizzato) Ã¨ giÃ  nel fascicolo,
+            # Deduplicazione: se il file (per nome normalizzato) è già nel fascicolo,
             # riutilizza il documento esistente senza crearne un duplicato.
             nome_norm = _normalizza_nome_match_portale(nome)
             doc_esistente = nomi_esistenti.get(nome_norm)
@@ -1965,7 +1965,7 @@ def build_fascicoli_runtime(
             "fascicolo",
             fasc.id,
             dettagli=(
-                f"{fonte}: {len(documenti_creati)} file â€” "
+                f"{fonte}: {len(documenti_creati)} file — "
                 f"{len(depositi_agganciati)} depositi agganciati"
                 + (f", lotto {deposito_generico.id}" if deposito_generico else "")
             ),

@@ -1,5 +1,5 @@
 ﻿{% extends "base.html" %}
-{% block title %}Cartelle Condivise â€” IUSENTRA{% endblock %}
+{% block title %}Cartelle Condivise — IUSENTRA{% endblock %}
 {% block page_title %}Cartelle Condivise{% endblock %}
 
 {% block content %}
@@ -104,7 +104,7 @@
     {% else %}
     <div class="text-center py-4 text-muted">
       <i class="bi bi-folder-x display-6 d-block mb-2"></i>
-      Nessuna cartella Ã¨ stata condivisa con collaboratori.
+      Nessuna cartella è stata condivisa con collaboratori.
       <br>
       <a href="{{ url_for('lista_clienti') }}" class="btn btn-sm btn-outline-primary mt-2">
         <i class="bi bi-people me-1"></i>Vai ai clienti
@@ -191,7 +191,7 @@
           </td>
           <td class="small text-muted">{{ accesso.condiviso_da }}</td>
           <td class="small text-muted">{{ accesso.data_condivisione[:10] }}</td>
-          <td class="small text-muted">{{ accesso.note or 'â€”' }}</td>
+          <td class="small text-muted">{{ accesso.note or '—' }}</td>
           <td>
             <div class="btn-group btn-group-sm">
               <a href="{{ url_for('dettaglio_cliente', id_cliente=cliente.id) }}"

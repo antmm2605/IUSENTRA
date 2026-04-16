@@ -404,7 +404,7 @@
 
         {% if fascicolo.note %}
         <div class="data-label">Annotazioni</div>
-        <div class="data-val">{{ fascicolo.note }}</div>
+        <div class="data-val">{{ fascicolo.note|fmt_nota_import }}</div>
         {% endif %}
       </div>
     </div>

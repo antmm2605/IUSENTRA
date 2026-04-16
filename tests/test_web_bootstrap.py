@@ -215,6 +215,16 @@ def test_template_runtime_registers_filters_and_globals(tmp_path: Path):
     assert app.jinja_env.filters["fmt_giorno_mese_anno"]("2026-04-13") == "13 apr 2026"
     assert app.jinja_env.filters["fmt_mese_breve"]("2026-04-13") == "apr"
     assert app.jinja_env.filters["fmt_ora"]("2026-04-13T09:45:00") == "09:45"
+    assert (
+        app.jinja_env.filters["fmt_nota_import"]("Importato da PolisWeb il 2026-04-09")
+        == "Importato da PolisWeb il 09/04/2026"
+    )
+    assert (
+        app.jinja_env.filters["fmt_nota_import"](
+            "Importato da SIGIT/PTT il 2026-04-09 — materia: tributario"
+        )
+        == "Importato da SIGIT/PTT il 09/04/2026 — materia: tributario"
+    )
     assert globals_map["app_version"] == APP_VERSION
     assert globals_map["TipoAppuntamento"] is not None
     assert globals_map["recenti"] == []

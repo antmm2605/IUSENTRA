@@ -19,6 +19,7 @@ from web.services.ui_localization import (
     format_day_month,
     format_day_month_year,
     format_month_short,
+    format_portal_import_note,
     format_short_weekday_date,
     format_time_only,
 )
@@ -68,6 +69,10 @@ def register_template_runtime(
     @app.template_filter("fmt_mese_breve")
     def fmt_mese_breve(val: Any) -> str:
         return format_month_short(val)
+
+    @app.template_filter("fmt_nota_import")
+    def fmt_nota_import(val: Any) -> str:
+        return format_portal_import_note(val)
 
     @app.context_processor
     def inject_globals():

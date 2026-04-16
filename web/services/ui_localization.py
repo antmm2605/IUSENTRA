@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from datetime import date, datetime, time
 from typing import Any
@@ -33,6 +34,7 @@ MONTHS_IT = [
     "dicembre",
 ]
 MONTHS_SHORT_IT = ["gen", "feb", "mar", "apr", "mag", "giu", "lug", "ago", "set", "ott", "nov", "dic"]
+PORTAL_IMPORT_NOTE_DATE_RE = re.compile(r"^(?P<prefix>Importato da .+? il )(?P<value>\d{4}-\d{2}-\d{2})(?P<suffix>\b.*)$")
 
 
 @dataclass(frozen=True)
@@ -155,3 +157,13 @@ def format_month_short(value: Any) -> str:
     if not parsed:
         return EMPTY_UI_VALUE if value in (None, "") else str(value)
     return MONTHS_SHORT_IT[parsed.date_value.month - 1]
+
+
+def format_portal_import_note(value: Any) -> str:
+    text = "" if value is None else str(value)
+    if not text.strip():
+        return EMPTY_UI_VALUE if value in (None, "") else text
+    match = PORTAL_IMPORT_NOTE_DATE_RE.match(text.strip())
+    if not match:
+        return text
+    return f"{match.group('prefix')}{format_date(match.group('value'))}{match.group('suffix')}"

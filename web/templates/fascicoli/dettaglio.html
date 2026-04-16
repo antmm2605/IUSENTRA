@@ -222,7 +222,7 @@
         {% if fascicolo.note %}
         <hr class="my-2">
         <div class="text-muted small mb-1">Note</div>
-        <div>{{ fascicolo.note }}</div>
+        <div>{{ fascicolo.note|fmt_nota_import }}</div>
         {% endif %}
 
         {% if portale_documenti_per_deposito %}

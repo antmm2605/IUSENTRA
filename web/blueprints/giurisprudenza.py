@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import date, datetime
 from functools import wraps
 
-from flask import Blueprint, current_app, flash, g, redirect, render_template, request, url_for
+from flask import Blueprint, current_app, flash, g, jsonify, redirect, render_template, request, url_for
 
 from pct.giurisprudenza import (
     ORIENTAMENTI,
@@ -12,6 +12,10 @@ from pct.giurisprudenza import (
     USI_NEL_SOFTWARE,
 )
 from web.helpers import get_giurisprudenza
+from web.services.giurisprudenza_sync_runtime import (
+    resolve_giurisprudenza_db_path,
+    start_giurisprudenza_sync_job,
+)
 
 giurisprudenza = Blueprint("giurisprudenza", __name__, url_prefix="/giurisprudenza")
 
@@ -213,19 +217,62 @@ def sync():
     source_id = request.form.get("source_id", "").strip()
     gestore = get_giurisprudenza()
     try:
-        report = gestore.sync_sources(source_ids=[source_id] if source_id else None)
-        flash(
-            (
-                "Recupero sentenze completato: "
-                f"{report.get('changed_total', 0)} schede toccate "
-                f"({report.get('imported_total', 0)} nuove, {report.get('updated_total', 0)} aggiornate)."
+        selected_source_ids = [source_id] if source_id else [
+            row["id"] for row in gestore.catalogo_fonti() if row.get("supports_auto_sync")
+        ]
+        sync_job = start_giurisprudenza_sync_job(
+            current_app._get_current_object(),
+            giurisprudenza_db_path=resolve_giurisprudenza_db_path(
+                current_app.config,
+                dict(getattr(g, "data_paths", {}) or {}),
             ),
-            "success",
+            source_ids=selected_source_ids,
         )
+        if sync_job.get("started"):
+            if source_id:
+                source_label = next(
+                    (row["nome"] for row in gestore.catalogo_fonti() if row.get("id") == source_id),
+                    source_id,
+                )
+                flash(
+                    f"Recupero automatico da fonte ufficiale avviato in background per {source_label}. Aggiorna la pagina tra qualche istante.",
+                    "success",
+                )
+            else:
+                flash(
+                    "Recupero automatico da fonti ufficiali avviato in background. Le fonti non ufficiali restano in handoff prudente o import assistito.",
+                    "success",
+                )
+        else:
+            flash(
+                "Una sincronizzazione giurisprudenziale e gia in corso per questo archivio. Attendi il completamento e aggiorna la pagina.",
+                "info",
+            )
     except Exception as exc:
         current_app.logger.exception("Errore sync giurisprudenza: %s", exc)
         flash(f"Recupero sentenze non riuscito: {exc}", "warning")
     return redirect(url_for("giurisprudenza.index", source_system=source_id) if source_id else url_for("giurisprudenza.index"))
+
+
+@giurisprudenza.route("/api/classificazione-suggerita", methods=["POST"])
+@_richiedi_login
+def classificazione_suggerita():
+    try:
+        gestore = get_giurisprudenza()
+        uploaded = request.files.get("materiale_file")
+        file_name = getattr(uploaded, "filename", "") or ""
+        file_bytes = uploaded.read() if uploaded and file_name else b""
+        suggestion = gestore.suggerisci_classificazione_materiale(
+            source_id=request.form.get("source_system", "").strip(),
+            source_url=request.form.get("source_url", "").strip(),
+            pasted_text=request.form.get("materiale_text", ""),
+            file_name=file_name,
+            file_bytes=file_bytes,
+        )
+        return jsonify({"ok": True, "suggestion": suggestion})
+    except Exception as exc:
+        current_app.logger.exception("Errore suggerimento classificazione giurisprudenza: %s", exc)
+        return jsonify({"ok": False, "error": str(exc)}), 200
 
 
 @giurisprudenza.route("/importa-url", methods=["POST"])

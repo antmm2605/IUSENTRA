@@ -25,6 +25,10 @@ from pct.giurisprudenza_corpus import (
     GestioneCorpusGiurisprudenza,
     derive_corpus_db_path,
 )
+from pct.giurisprudenza_classification import (
+    apply_suggested_classification,
+    suggest_giurisprudenza_classification,
+)
 from pct.giurisprudenza_repository import (
     GestioneRepositoryGiurisprudenza,
     build_giurisprudenza_sources_rows,
@@ -680,6 +684,41 @@ class GestioneGiurisprudenza:
         _cache.save(self.db_path, payload, indent=2)
         self._sync_repository()
 
+    def _classification_source_for_payload(
+        self,
+        source_id: str,
+        payload: Dict[str, Any],
+    ) -> Optional[FonteGiurisprudenziale]:
+        source = self._source(source_id)
+        if source:
+            return source
+        guessed_source = self._detect_source_from_url(str(payload.get("url_origine") or ""))
+        return self._source(guessed_source)
+
+    def _auto_classify_payload(
+        self,
+        payload: Dict[str, Any],
+        *,
+        source: Optional[FonteGiurisprudenziale] = None,
+    ) -> Dict[str, Any]:
+        source_row = source or self._classification_source_for_payload(str(payload.get("source_system") or ""), payload)
+        suggestion = suggest_giurisprudenza_classification(
+            source_id=source_row.id if source_row else str(payload.get("source_system") or ""),
+            source_area=source_row.default_area if source_row else "",
+            source_giurisdizione=source_row.giurisdizione if source_row else "",
+            source_name=source_row.nome if source_row else str(payload.get("source_label") or ""),
+            title=str(payload.get("titolo") or payload.get("title") or ""),
+            abstract=str(payload.get("abstract") or ""),
+            massima=str(payload.get("massima") or ""),
+            principio_diritto=str(payload.get("principio_diritto") or ""),
+            text_original=str(payload.get("text_original") or payload.get("raw_text") or ""),
+            materia=str(payload.get("materia") or ""),
+            rito=str(payload.get("rito") or ""),
+            organo_giudicante=str(payload.get("organo_giudicante") or payload.get("ufficio") or ""),
+            keywords=_split_multi(payload.get("parole_chiave") or payload.get("keywords") or []),
+        )
+        return apply_suggested_classification(payload, suggestion, prefer_existing=True)
+
     def _seed_sources_registry(self) -> bool:
         rows = {str(item.get("id") or ""): dict(item) for item in self._data.get("legal_sources", []) if item.get("id")}
         changed = False
@@ -723,6 +762,14 @@ class GestioneGiurisprudenza:
 
     def _migrate_existing_judgments(self) -> bool:
         changed = False
+        judgments = list(self._data.get("judgments", []))
+        for idx, row in enumerate(judgments):
+            enriched = self._auto_classify_payload(dict(row))
+            if enriched != row:
+                judgments[idx] = enriched
+                changed = True
+        if changed:
+            self._data["judgments"] = judgments
         if not self._data.get("judgment_texts"):
             versions: List[Dict[str, Any]] = []
             for row in self._data.get("judgments", []):
@@ -1145,7 +1192,7 @@ class GestioneGiurisprudenza:
         return [dict(item[1]) for item in scored[:limit]]
 
     def salva(self, payload: Dict[str, Any]) -> Dict[str, Any]:
-        record = self._normalize_record(payload)
+        record = self._normalize_record(self._auto_classify_payload(dict(payload or {})))
         judgments = list(self._data.get("judgments", []))
         replaced = False
         for idx, row in enumerate(judgments):
@@ -1232,8 +1279,9 @@ class GestioneGiurisprudenza:
             payload["raw_json"] = {"source_url": url, "file_name": uploaded_name} if (url or uploaded_name) else {}
             payload["mime_type"] = "text/plain" if material_text else "application/octet-stream"
             payload["note_redazionali"] = payload.get("note_redazionali") or self._import_note(source, uploaded_name)
+            payload = self._auto_classify_payload(payload, source=source)
             for key, value in (hints or {}).items():
-                if value and key in payload and not payload.get(key):
+                if value and key in payload:
                     payload[key] = value
             result = self._upsert_import_payload(payload)
             saved_records.append(result["record"])
@@ -1256,6 +1304,48 @@ class GestioneGiurisprudenza:
         self._append_sync_run(run)
         self._save()
         return {"ok": True, "imported": imported, "updated": updated, "records": saved_records, "run": run}
+
+    def suggerisci_classificazione_materiale(
+        self,
+        *,
+        source_id: str = "",
+        source_url: str = "",
+        pasted_text: str = "",
+        file_name: str = "",
+        file_bytes: bytes | None = None,
+    ) -> Dict[str, Any]:
+        url = str(source_url or "").strip()
+        raw_text = str(pasted_text or "")
+        uploaded_name = str(file_name or "").strip()
+        uploaded_bytes = bytes(file_bytes or b"")
+        extracted_text = self._extract_material_text(uploaded_name, uploaded_bytes) if uploaded_bytes else ""
+        material_text = (raw_text.strip() + "\n\n" + extracted_text.strip()).strip()
+
+        detected_source = source_id or self._detect_source_from_url(url) or ""
+        if not detected_source or detected_source == "manuale_interno":
+            lowered = f"{url}\n{material_text}".lower()
+            detected_source = "simpliciter_cliente" if "simpliciter" in lowered else "manuale_interno"
+        source = self._source(detected_source) or self._source("manuale_interno")
+
+        candidate_blocks = self._extract_material_candidates(material_text, source, source_url=url) if material_text else []
+        payload = self.empty_record(detected_source)
+        if candidate_blocks:
+            payload.update(candidate_blocks[0])
+        payload["source_system"] = detected_source
+        payload["url_origine"] = payload.get("url_origine") or url
+        payload["text_original"] = payload.get("text_original") or material_text
+        payload["raw_text"] = material_text
+        payload["raw_json"] = {"source_url": url, "file_name": uploaded_name} if (url or uploaded_name) else {}
+        suggested = self._auto_classify_payload(payload, source=source)
+        return {
+            "source_system": detected_source,
+            "source_label": source.nome if source else detected_source,
+            "area": str(suggested.get("area") or ""),
+            "branca": str(suggested.get("branca") or ""),
+            "sottobranca": str(suggested.get("sottobranca") or ""),
+            "microtema": str(suggested.get("microtema") or ""),
+            "giurisdizione": str(suggested.get("giurisdizione") or ""),
+        }
 
     def importa_da_url(
         self,
@@ -1310,10 +1400,15 @@ class GestioneGiurisprudenza:
                 "mime_type": mime_type,
                 "note_redazionali": (
                     "Scheda creata da recupero URL ufficiale. "
-                    + ("Completare classificazione e metadati processuali." if not source or source.access_mode != "pubblico" else "")
+                    + (
+                        "La classificazione automatica e stata proposta dal motore; verifica solo gli affinamenti redazionali."
+                        if source and source.access_mode in {"pubblico", "open_data"}
+                        else "Completare classificazione e metadati processuali."
+                    )
                 ).strip(),
             }
         )
+        payload = self._auto_classify_payload(payload, source=source)
         result = self._upsert_import_payload(payload)
         self._save()
         return result["record"]
@@ -1324,7 +1419,8 @@ class GestioneGiurisprudenza:
         source_ids: Optional[List[str]] = None,
         request_get: Optional[Callable[..., Any]] = None,
     ) -> Dict[str, Any]:
-        selected = [self._source(source_id) for source_id in (source_ids or [source.id for source in SOURCE_SPECS])]
+        default_sources = [source.id for source in SOURCE_SPECS if source.supports_auto_sync]
+        selected = [self._source(source_id) for source_id in (source_ids or default_sources)]
         selected = [source for source in selected if source]
         runs: List[Dict[str, Any]] = []
         imported_total = 0
@@ -1366,7 +1462,7 @@ class GestioneGiurisprudenza:
                 "imported": 0,
                 "updated": 0,
                 "candidates": 0,
-                "message": "La fonte richiede recupero assistito o consultazione dal portale ufficiale.",
+                "message": "La fonte non espone un recupero automatico affidabile: usare handoff al portale ufficiale o import assistito prudente.",
             }
             self._append_sync_run(run)
             return run
@@ -1477,11 +1573,12 @@ class GestioneGiurisprudenza:
                 "pdf_ufficiale_presente": bool(candidate.get("pdf_url")) or str(candidate.get("url", "")).lower().endswith(".pdf"),
                 "note_redazionali": candidate.get(
                     "note_redazionali",
-                    "Scheda generata da recupero automatico leggero. Verificare classificazione giuridica e massima.",
+                    "Scheda generata da fonte ufficiale con classificazione automatica. Verificare solo eventuali affinamenti giuridici e redazionali.",
                 ),
                 "ultimo_sync_at": checked_at,
             }
         )
+        payload = self._auto_classify_payload(payload, source=source)
         if existing_idx is not None:
             current = dict(judgments[existing_idx])
             current.update({k: v for k, v in payload.items() if v not in ("", [], {})})
@@ -1705,7 +1802,7 @@ class GestioneGiurisprudenza:
                             "raw_text": oggetto,
                             "mime_type": "application/json",
                             "identificatore_stabile": f"openga:{external_id}",
-                            "note_redazionali": "Scheda generata da dataset ufficiale OpenGA. Verificare classificazione interna, tema e sottobranca.",
+                            "note_redazionali": "Scheda generata da dataset ufficiale OpenGA con classificazione automatica. Verificare solo eventuali affinamenti interni.",
                         }
                     )
         return candidates
@@ -1768,7 +1865,7 @@ class GestioneGiurisprudenza:
                     "text_original": testo,
                     "mime_type": "application/json",
                     "identificatore_stabile": ecli or f"corte_costituzionale:{anno}:{numero}",
-                    "note_redazionali": "Scheda generata da dataset open data della Corte costituzionale. Verificare classificazione e collegamenti normativi.",
+                    "note_redazionali": "Scheda generata da dataset open data della Corte costituzionale con classificazione automatica. Verificare solo eventuali collegamenti normativi.",
                 }
             )
         return candidates
@@ -2180,7 +2277,7 @@ class GestioneGiurisprudenza:
         suffix = f" ({', '.join(details)})" if details else ""
         return (
             "Scheda creata da import assistito su materiale fornito dal cliente"
-            f"{suffix}. Verificare classificazione, completezza dei metadati e utilizzabilità redazionale."
+            f"{suffix}. La classificazione automatica viene proposta dal motore; verificare completezza dei metadati e utilizzabilità redazionale."
         )
 
     def _upsert_import_payload(self, payload: Dict[str, Any]) -> Dict[str, Any]:

@@ -224,6 +224,9 @@ def test_sync_openga_importa_e_aggiorna_dataset_ufficiale(tmp_path: Path):
     assert len(rows) == 1
     assert rows[0]["grado"] == "TAR"
     assert rows[0]["organo_giudicante"] == "TAR Lazio - Roma"
+    assert rows[0]["area"] == "Amministrativo"
+    assert rows[0]["branca"] == "Appalti pubblici"
+    assert rows[0]["sottobranca"] == "Revisione prezzi"
     assert rows[0]["materia"] == "Appalti pubblici"
     assert record["raw_documents_count"] == 1
     assert record["text_versions_count"] == 1
@@ -465,6 +468,25 @@ def test_importa_da_materiale_simpliciter_crea_e_aggiorna_schede(tmp_path: Path)
     assert any(row["source_label"] == "Simpliciter (materiale cliente)" for row in rows)
 
 
+def test_importa_da_materiale_autoclassifica_tassonomia(tmp_path: Path):
+    gestore = GestioneGiurisprudenza(str(tmp_path / "giurisprudenza.json"))
+
+    report = gestore.importa_da_materiale(
+        source_id="simpliciter_cliente",
+        source_url="https://simpliciter.ai/ricerca/",
+        pasted_text=(
+            "Ordinanza n. 77/2026 TAR Lazio\n"
+            "Accesso agli atti negli appalti pubblici e accesso difensivo del concorrente escluso."
+        ),
+    )
+
+    record = report["records"][0]
+
+    assert record["area"] == "Amministrativo"
+    assert record["branca"] == "Appalti pubblici"
+    assert record["sottobranca"] == "Accesso agli atti"
+
+
 def test_importa_da_materiale_html_file(tmp_path: Path):
     gestore = GestioneGiurisprudenza(str(tmp_path / "giurisprudenza.json"))
     html = b"""
@@ -569,6 +591,64 @@ def test_blueprint_importa_materiale_cliente(tmp_path: Path):
     assert "Simpliciter (materiale cliente)" in html
 
 
+def test_blueprint_classificazione_suggerita_api_compila_tassonomia(tmp_path: Path):
+    cfg = _cfg_web(tmp_path)
+    _login_admin(cfg)
+    app = create_app(cfg)
+
+    with app.test_client() as client:
+        client.post(
+            "/login",
+            data={"username": "admin-giurisprudenza", "password": "Admin1234!"},
+            follow_redirects=True,
+        )
+        response = client.post(
+            "/giurisprudenza/api/classificazione-suggerita",
+            data={
+                "source_system": "simpliciter_cliente",
+                "source_url": "https://simpliciter.ai/ricerca/",
+                "materiale_text": "Sentenza TAR Lazio su accesso agli atti negli appalti pubblici.",
+            },
+        )
+        payload = response.get_json()
+
+    assert response.status_code == 200
+    assert payload["ok"] is True
+    assert payload["suggestion"]["area"] == "Amministrativo"
+    assert payload["suggestion"]["branca"] == "Appalti pubblici"
+    assert payload["suggestion"]["sottobranca"] == "Accesso agli atti"
+
+
+def test_blueprint_sync_avvia_job_in_background(tmp_path: Path, monkeypatch):
+    cfg = _cfg_web(tmp_path)
+    _login_admin(cfg)
+    app = create_app(cfg)
+    captured = {}
+
+    def fake_start(app_obj, *, giurisprudenza_db_path: str, source_ids=None):
+        captured["db_path"] = giurisprudenza_db_path
+        captured["source_ids"] = list(source_ids or [])
+        return {"started": True, "already_running": False, "source_ids": captured["source_ids"]}
+
+    monkeypatch.setattr("web.blueprints.giurisprudenza.start_giurisprudenza_sync_job", fake_start)
+
+    with app.test_client() as client:
+        client.post(
+            "/login",
+            data={"username": "admin-giurisprudenza", "password": "Admin1234!"},
+            follow_redirects=True,
+        )
+        response = client.post("/giurisprudenza/sync", follow_redirects=True)
+        html = response.get_data(as_text=True)
+
+    assert response.status_code == 200
+    assert "Recupero automatico da fonti ufficiali avviato in background" in html
+    assert captured["db_path"].endswith("giurisprudenza.json")
+    assert "openga" in captured["source_ids"]
+    assert "cassazione" in captured["source_ids"]
+    assert "simpliciter_cliente" not in captured["source_ids"]
+
+
 def test_sidebar_studio_espone_archivio_sentente(tmp_path: Path):
     cfg = _cfg_web(tmp_path)
     _login_admin(cfg)
@@ -595,6 +675,8 @@ def test_template_giurisprudenza_usa_layout_responsive():
     assert ".jud-actions .btn { width:100%; }" in index_html
     assert "Import assistito da materiale cliente" in index_html
     assert "Importa materiale cliente" in index_html
+    assert "Recupero automatico da fonti ufficiali" in index_html
+    assert "Suggerimenti tassonomici automatici" in index_html
     assert "Documenti raw" in index_html
     assert "Licenza / note" in index_html
     assert ".jf-layout { display: grid;" in form_html

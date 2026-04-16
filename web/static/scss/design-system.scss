@@ -5,13 +5,13 @@
 
 /* ── Token Design System ──────────────────────────────────────────── */
 :root {
-  /* Colori IUSENTRA */
-  --ds-primary:      #1a3a5c;
+  /* Colori IUSENTRA — palette legale professionale */
+  --ds-primary:      #1a2744;   /* Navy profondo */
   --ds-primary-lt:   #1565c0;
-  --ds-primary-dk:   #0f2744;
-  --ds-accent:       #c8972b;
-  --ds-accent-lt:    #e8d5a3;
-  --ds-accent-dk:    #a07520;
+  --ds-primary-dk:   #0f1e36;
+  --ds-accent:       #b8860b;   /* Oro caldo — era #c8972b */
+  --ds-accent-lt:    rgba(184,134,11,.14);
+  --ds-accent-dk:    #8a6008;
 
   /* Grigi */
   --ds-gray-50:  #f8fafc;
@@ -30,17 +30,17 @@
   --ds-surface-raised: #f8fafc;
   --ds-border:         #e2e8f0;
 
-  /* Ombre */
-  --ds-shadow-xs: 0 1px 2px rgba(0,0,0,.05);
-  --ds-shadow-sm: 0 1px 4px rgba(0,0,0,.07);
-  --ds-shadow-md: 0 4px 8px rgba(0,0,0,.07);
-  --ds-shadow-lg: 0 10px 20px rgba(0,0,0,.07);
+  /* Ombre — sobrie per look professionale */
+  --ds-shadow-xs: 0 1px 2px rgba(0,0,0,.04);
+  --ds-shadow-sm: 0 1px 3px rgba(0,0,0,.06);
+  --ds-shadow-md: 0 2px 6px rgba(0,0,0,.06);
+  --ds-shadow-lg: 0 6px 16px rgba(0,0,0,.06);
 
-  /* Border radius */
-  --ds-r-sm:  6px;
-  --ds-r-md:  10px;
-  --ds-r-lg:  14px;
-  --ds-r-xl:  20px;
+  /* Border radius — professionale, non eccessivamente arrotondato */
+  --ds-r-sm:  4px;    /* era 6px */
+  --ds-r-md:  6px;    /* era 10px */
+  --ds-r-lg:  8px;    /* era 14px */
+  --ds-r-xl:  12px;   /* era 20px */
 
   /* Transizioni */
   --ds-transition: .15s ease;
@@ -60,59 +60,9 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   LAYOUT GENERALE (tutte le pagine)
+   LAYOUT GENERALE
+   Nota: dimensioni sidebar/topbar gestite da app.scss (:root)
    ═══════════════════════════════════════════════════════════════ */
-
-/* Sidebar */
-#sidebar {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 260px;
-    height: 100vh;
-    background: var(--ds-primary);
-    color: white;
-    z-index: 1000;
-    overflow-y: auto;
-    overflow-x: hidden;
-    transition: width 0.28s cubic-bezier(.4,0,.2,1);
-}
-
-#sidebar.sb-mini {
-    width: 70px;
-}
-
-#sidebar .sb-txt,
-#sidebar .sb-chev {
-    transition: opacity 0.2s;
-}
-
-#sidebar.sb-mini .sb-txt,
-#sidebar.sb-mini .sb-chev {
-    opacity: 0;
-    pointer-events: none;
-}
-
-/* Main content */
-#main {
-    flex: 1;
-    padding: 1.5rem;
-    overflow-y: auto;
-    background: var(--ds-gray-100);
-}
-
-/* App body layout */
-#app-body {
-    margin-left: 260px;
-    display: flex;
-    flex-direction: column;
-    min-height: 100vh;
-    transition: margin-left 0.28s cubic-bezier(.4,0,.2,1);
-}
-
-#app-body.sb-mini {
-    margin-left: 70px;
-}
 
 /* ═══════════════════════════════════════════════════════════════
    EDITOR DOCUMENTI (solo pagine editor)

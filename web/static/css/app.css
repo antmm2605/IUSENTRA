@@ -10,19 +10,19 @@
 }
 
 .sb-logo-badge {
-  width: 2.4rem;
-  height: 2.4rem;
-  border-radius: 0.8rem;
+  width: 2.2rem;
+  height: 2.2rem;
+  border-radius: 0.65rem;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  font-size: 0.98rem;
+  font-size: 0.9rem;
   font-weight: 800;
   letter-spacing: 0.04em;
   color: #0f2443;
-  background: linear-gradient(145deg, #ffd255, #f4b000);
-  box-shadow: 0 12px 28px rgba(255, 194, 51, 0.24);
+  background: linear-gradient(145deg, #d4a017, #b8860b); /* oro caldo professionale */
+  box-shadow: 0 8px 18px rgba(184, 134, 11, 0.22);
 }
 
 .sb-brand-copy {
@@ -302,18 +302,19 @@
   }
 }
 :root {
-  --ui-compact-radius-sm: 14px;
-  --ui-compact-radius: 18px;
-  --ui-compact-radius-lg: 22px;
-  --ui-compact-border: rgba(15, 23, 42, 0.08);
-  --ui-compact-shadow-soft: 0 10px 24px rgba(15, 23, 42, 0.05);
-  --ui-compact-shadow: 0 14px 32px rgba(15, 23, 42, 0.06);
-  --ui-compact-shadow-strong: 0 18px 38px rgba(15, 23, 42, 0.1);
+  /* Raggi ridotti — look professionale studio legale */
+  --ui-compact-radius-sm: 4px; /* era 14px */
+  --ui-compact-radius: 6px; /* era 18px */
+  --ui-compact-radius-lg: 8px; /* era 22px */
+  --ui-compact-border: rgba(15, 23, 42, 0.07);
+  --ui-compact-shadow-soft: 0 1px 4px rgba(15, 23, 42, 0.05);
+  --ui-compact-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
+  --ui-compact-shadow-strong: 0 4px 12px rgba(15, 23, 42, 0.09);
   --ui-compact-bg: #fff;
-  --ui-compact-bg-soft: linear-gradient(180deg, #ffffff, #f8fbff);
-  --ui-compact-gap: clamp(0.8rem, 0.6vw + 0.65rem, 1rem);
-  --ui-compact-pad: clamp(0.88rem, 0.7vw + 0.72rem, 1.05rem);
-  --ui-compact-pad-lg: clamp(0.98rem, 0.9vw + 0.78rem, 1.2rem);
+  --ui-compact-bg-soft: linear-gradient(180deg, #ffffff, #f9fbff);
+  --ui-compact-gap: 0.75rem;
+  --ui-compact-pad: 0.65rem;
+  --ui-compact-pad-lg: 0.85rem;
 }
 
 .ui-panel-compact {
@@ -371,13 +372,13 @@
 
 @media (max-width: 768px) {
   .ui-panel-compact {
-    border-radius: 16px;
+    border-radius: var(--ui-compact-radius);
   }
   .ui-panel-compact__header {
-    padding: 0.85rem 0.95rem;
+    padding: 0.6rem 0.75rem;
   }
   .ui-panel-compact__body {
-    padding: 0.9rem 0.95rem;
+    padding: 0.7rem 0.75rem;
   }
 }
 .ui-feedback-stack {
@@ -1561,7 +1562,7 @@
    ================================================================ */
 :root {
   --admin-sidebar-bg: #0f1b2d;
-  --admin-sidebar-width: 260px;
+  --admin-sidebar-width: 210px; /* allineato alla sidebar principale — era 260px */
   --admin-accent: #f97316;
   --admin-accent-soft: rgba(249,115,22,.15);
 }
@@ -1572,8 +1573,8 @@ body.admin-layout {
 
 .admin-layout .card {
   border: 1px solid #e2e8f0;
-  border-radius: 14px;
-  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.05);
+  border-radius: 6px; /* professionale — era 14px */
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
   overflow: hidden;
 }
 .admin-layout .card-header {
@@ -1776,21 +1777,21 @@ body.admin-layout {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 1rem;
-  margin: 1rem 0 1.5rem;
+  gap: 0.75rem;
+  margin: 0.75rem 0 1rem; /* compatto */
 }
 
 .admin-page-title {
-  font-size: 1.15rem;
+  font-size: 0.95rem; /* ridotto da 1.15rem */
   font-weight: 700;
   margin: 0;
   color: #0f172a;
 }
 
 .admin-page-subtitle {
-  margin: 0.2rem 0 0;
+  margin: 0.1rem 0 0;
   color: #64748b;
-  font-size: 0.84rem;
+  font-size: 0.78rem;
 }
 
 [data-bs-theme=dark] .admin-page-title {
@@ -2123,12 +2124,12 @@ body.admin-layout {
 }
 .dashboard-page {
   display: grid;
-  gap: var(--ui-compact-gap);
+  gap: 0.75rem; /* compatto */
 }
 
 .dashboard-grid-tight {
-  --bs-gutter-x: 0.9rem;
-  --bs-gutter-y: 0.9rem;
+  --bs-gutter-x: 0.75rem;
+  --bs-gutter-y: 0.75rem;
 }
 
 .dashboard-card {
@@ -2153,7 +2154,7 @@ body.admin-layout {
 }
 
 .dashboard-list-item {
-  padding: 0.78rem 0.92rem;
+  padding: 0.55rem 0.75rem;
   border-color: var(--ui-compact-border);
 }
 
@@ -2162,7 +2163,7 @@ body.admin-layout {
 }
 
 .dashboard-table > :not(caption) > * > * {
-  padding: 0.72rem 0.78rem;
+  padding: 0.5rem 0.65rem;
   vertical-align: middle;
 }
 
@@ -2188,8 +2189,8 @@ body.admin-layout {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  gap: 0.75rem;
-  padding: 0.8rem 0.88rem;
+  gap: 0.65rem;
+  padding: 0.6rem 0.75rem; /* compatto */
   border-radius: var(--ui-compact-radius-sm);
   border: 1px solid var(--ui-compact-border);
   background: #f8fafc;
@@ -4513,17 +4514,18 @@ body.admin-layout {
    ================================================================ */
 /* ---- Variabili & Font ---- */
 :root {
-  --sidebar-w: 240px;
-  --topbar-h: 58px;
-  --bottomnav-h: 62px;
-  --primary: #1a3a5c;
-  --accent: #c8972b;
-  --accent-light: rgba(200,151,43,.18);
+  --sidebar-w: 210px; /* Ridotto da 240px — pannello laterale contenuto */
+  --sidebar-mini: 52px; /* Modalità icone (tablet e mini-toggle desktop) */
+  --topbar-h: 50px; /* Ridotto da 58px */
+  --bottomnav-h: 60px; /* Ridotto da 62px */
+  --primary: #1a2744; /* Navy profondo — identità studio legale */
+  --accent: #b8860b; /* Oro caldo — era teal/oro chiaro */
+  --accent-light: rgba(184,134,11,.16);
   --font: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --glass-bg: rgba(255,255,255,.92);
   --glass-border: rgba(226,232,240,.65);
-  --sb-gradient-top: #1e3f66;
-  --sb-gradient-bot: #0d2240;
+  --sb-gradient-top: #1a2f52;
+  --sb-gradient-bot: #0d1e35;
 }
 
 /* Utility: min-width:0 permette ai flex children di restringersi sotto il loro contenuto */
@@ -4538,7 +4540,7 @@ html, body {
 
 body {
   background: #f4f6f9;
-  font-size: 0.92rem;
+  font-size: 13.5px; /* compatto e leggibile per gestionale professionale */
   font-family: var(--font);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -4718,7 +4720,7 @@ body {
   transform: translateY(-50%);
   width: 0;
   height: 70%;
-  background: linear-gradient(90deg, rgba(200, 151, 43, 0.15), transparent);
+  background: linear-gradient(90deg, rgba(184, 134, 11, 0.15), transparent);
   border-radius: 0 3px 3px 0;
   transition: width 0.2s ease;
   opacity: 0;
@@ -4755,11 +4757,11 @@ body {
 }
 
 #sidebar .sb-link.active {
-  background: linear-gradient(90deg, rgba(200, 151, 43, 0.3) 0%, rgba(200, 151, 43, 0.08) 100%);
+  background: linear-gradient(90deg, rgba(184, 134, 11, 0.3) 0%, rgba(184, 134, 11, 0.08) 100%);
   color: #fff;
   font-weight: 600;
   border-left-color: var(--accent);
-  box-shadow: 0 2px 8px rgba(200, 151, 43, 0.15);
+  box-shadow: 0 2px 8px rgba(184, 134, 11, 0.15);
 }
 
 #sidebar .sb-link.active::before {
@@ -4822,7 +4824,7 @@ body {
   font-weight: 700;
   font-size: 0.85rem;
   color: #fff;
-  box-shadow: 0 2px 8px rgba(200, 151, 43, 0.35);
+  box-shadow: 0 2px 8px rgba(184, 134, 11, 0.35);
   border: 2px solid rgba(255, 255, 255, 0.15);
 }
 
@@ -4878,13 +4880,13 @@ body {
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
   border-bottom: 1px solid rgba(210, 218, 232, 0.75);
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.9), 0 4px 32px rgba(26, 58, 92, 0.055);
-  padding: 0.8rem 2rem;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.9), 0 4px 32px rgba(26, 58, 92, 0.04);
+  padding: 0.5rem 1.5rem; /* ridotto da .8rem 2rem — topbar compatta */
   display: flex;
   align-items: center;
   justify-content: space-between;
   z-index: 150;
-  gap: 1rem;
+  gap: 0.75rem;
 }
 
 /* Linea accent in cima — gradiente primary → accent → trasparente */
@@ -4903,14 +4905,14 @@ body {
 /* ---- Main ---- */
 /* Secondo elemento del flex column: cresce e scorre */
 #main {
-  flex: 1 1 0; /* occupa tutto lo spazio rimanente */
+  flex: 1 1 0;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 1.5rem 2rem;
+  padding: 1rem 1.5rem; /* ridotto da 1.5rem 2rem */
 }
 
 .topbar h1 {
-  font-size: 1.05rem;
+  font-size: 0.92rem;
   font-weight: 700;
   margin: 0;
   color: var(--primary);
@@ -4919,7 +4921,7 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  letter-spacing: -0.3px;
+  letter-spacing: -0.2px;
 }
 
 .topbar-actions {
@@ -5258,7 +5260,7 @@ body {
 }
 
 .dnd-over {
-  background: rgba(200, 151, 43, 0.15) !important;
+  background: rgba(184, 134, 11, 0.15) !important;
   outline: 2px dashed var(--accent) !important;
   outline-offset: -2px;
   border-radius: 6px;
@@ -5269,7 +5271,7 @@ body {
 }
 
 .dnd-row-over td {
-  background: rgba(200, 151, 43, 0.12);
+  background: rgba(184, 134, 11, 0.12);
 }
 
 .dnd-row-over td:first-child {
@@ -5615,7 +5617,7 @@ body {
     height: 3px;
     background: linear-gradient(90deg, var(--accent), #e8b346);
     border-radius: 0 0 4px 4px;
-    box-shadow: 0 0 8px rgba(200, 151, 43, 0.5);
+    box-shadow: 0 0 8px rgba(184, 134, 11, 0.5);
   }
   /* Dot indicator sotto (rimosso) */
   .bn-item.active::after {
@@ -6237,12 +6239,12 @@ tr.htmx-request {
 }
 
 /* ================================================================
-   SIDEBAR MINI/COLLASSATA — solo desktop (≥ 769 px)
-   Larghezza ridotta a 58 px, icone centrate, testo nascosto.
+   SIDEBAR MINI/COLLASSATA — solo desktop (≥ 1025 px)
+   Larghezza ridotta a 52 px, icone centrate, testo nascosto.
    ================================================================ */
-@media (min-width: 769px) {
+@media (min-width: 1025px) {
   #sidebar.sb-mini {
-    width: 58px;
+    width: 52px;
     overflow: visible;
   }
   #sidebar.sb-mini .sb-txt,
@@ -6256,19 +6258,19 @@ tr.htmx-request {
   }
   #sidebar.sb-mini .sb-logo {
     justify-content: center;
-    padding: 0.75rem 0.25rem;
+    padding: 0.6rem 0.2rem;
   }
-  /* Nav link: centra l'icona, aggiungi tooltip nativo */
+  /* Nav link: centra l'icona */
   #sidebar.sb-mini .sb-link {
     justify-content: center;
-    padding: 0.55rem 0;
-    border-radius: 8px;
-    margin: 0 6px;
+    padding: 0.5rem 0;
+    border-radius: 6px;
+    margin: 0 5px;
     border-left: none;
   }
   #sidebar.sb-mini .sb-link.active {
     border-left: none;
-    background: rgba(200, 151, 43, 0.2);
+    background: rgba(184, 134, 11, 0.2);
   }
   #sidebar.sb-mini .sb-link:hover {
     transform: none;
@@ -6297,11 +6299,68 @@ tr.htmx-request {
   }
   /* App body si restringe di conseguenza */
   #app-body.sb-mini {
-    margin-left: 58px;
+    margin-left: 52px;
   }
   /* Icona del bottone toggle cambia verso */
   #sidebar.sb-mini #sb-mini-toggle i.bi-layout-sidebar-reverse {
     transform: scaleX(-1);
+  }
+}
+/* ================================================================
+   TABLET AUTO-MINI SIDEBAR (768–1024 px)
+   La sidebar si collassa automaticamente in modalità icone.
+   ================================================================ */
+@media (min-width: 769px) and (max-width: 1024px) {
+  #sidebar {
+    width: 52px;
+    overflow: visible;
+  }
+  #sidebar .sb-txt,
+  #sidebar .sb-chev,
+  #sidebar .sb-group-label,
+  #sidebar .sb-brand-copy {
+    display: none !important;
+  }
+  #sidebar .sb-logo {
+    justify-content: center;
+    padding: 0.6rem 0.2rem;
+  }
+  #sidebar .sb-link {
+    justify-content: center;
+    padding: 0.5rem 0;
+    border-radius: 6px;
+    margin: 0 5px;
+    border-left: none;
+  }
+  #sidebar .sb-link.active {
+    border-left: none;
+    background: rgba(184, 134, 11, 0.2);
+  }
+  #sidebar .sb-link:hover {
+    transform: none;
+    border-left: none;
+  }
+  #sidebar .sb-toggle {
+    display: none !important;
+  }
+  #sidebar .collapse {
+    display: block !important;
+  }
+  #sidebar .sb-admin {
+    display: none !important;
+  }
+  #sidebar .sb-userinfo,
+  #sidebar .sb-user .d-flex.gap-1 {
+    display: none !important;
+  }
+  #sidebar .sb-user {
+    justify-content: center;
+  }
+  #sidebar #sb-mini-toggle {
+    display: none;
+  }
+  #app-body {
+    margin-left: 52px;
   }
 }
 /* Bottone collapse sidebar — visibile solo su desktop */
@@ -7097,30 +7156,30 @@ tr[data-swipe-delete] {
   --ds-radius: .5rem;
 }
 
-/* ---- Page Header (ds-ph) ---- */
+/* ---- Page Header (ds-ph) — compatto stile studio legale ---- */
 .ds-ph {
   display: flex;
   align-items: center;
   flex-wrap: nowrap;
-  gap: 1rem;
+  gap: 0.75rem;
   background: var(--ds-surface);
   border: 1px solid var(--ds-border);
-  border-radius: var(--ds-radius);
-  padding: 1rem 1.25rem;
-  margin-bottom: 1rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  border-radius: 6px;
+  padding: 0.7rem 1rem; /* ridotto da 1rem 1.25rem */
+  margin-bottom: 0.85rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .ds-ph-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
-  background: var(--ds-primary-bg);
-  color: #1d4ed8;
+  width: 36px;
+  height: 36px; /* ridotto da 48px */
+  border-radius: 8px; /* ridotto da 12px */
+  background: rgba(26, 39, 68, 0.08);
+  color: var(--primary);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.4rem;
+  font-size: 1.1rem; /* ridotto da 1.4rem */
   flex-shrink: 0;
 }
 
@@ -7131,20 +7190,20 @@ tr[data-swipe-delete] {
 }
 
 .ds-ph-title {
-  font-size: 1.15rem;
+  font-size: 0.98rem;
   font-weight: 700;
   margin: 0;
   color: var(--ds-text);
-  line-height: 1.3;
+  line-height: 1.25;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .ds-ph-sub {
-  font-size: 0.8rem;
+  font-size: 0.76rem;
   color: var(--ds-muted);
-  margin: 0.15rem 0 0;
+  margin: 0.1rem 0 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -7152,7 +7211,7 @@ tr[data-swipe-delete] {
 
 .ds-ph-actions {
   display: flex;
-  gap: 0.5rem;
+  gap: 0.4rem;
   flex-shrink: 0;
   flex-wrap: nowrap;
   align-items: center;
@@ -8565,10 +8624,10 @@ tr[data-swipe-delete] {
   align-items: center;
   gap: 0.4rem;
   padding: 0.3rem 0.8rem;
-  background: rgba(200, 151, 43, 0.1);
+  background: rgba(184, 134, 11, 0.1);
   font-size: 0.73rem;
   color: #7d6008;
-  border-bottom: 1px solid rgba(200, 151, 43, 0.2);
+  border-bottom: 1px solid rgba(184, 134, 11, 0.2);
   flex-shrink: 0;
 }
 
@@ -8609,7 +8668,7 @@ tr[data-swipe-delete] {
   flex-shrink: 0;
 }
 .pct-ai-avatar--ai {
-  background: rgba(200, 151, 43, 0.15);
+  background: rgba(184, 134, 11, 0.15);
   color: var(--accent);
 }
 .pct-ai-avatar--user {
@@ -8762,7 +8821,7 @@ tr[data-swipe-delete] {
   background: rgba(255, 255, 255, 0.1);
 }
 [data-bs-theme=dark] .pct-ai-ctx {
-  background: rgba(200, 151, 43, 0.15);
+  background: rgba(184, 134, 11, 0.15);
   color: #e9c84a;
 }
 [data-bs-theme=dark] .pct-ai-input {

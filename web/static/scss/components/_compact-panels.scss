@@ -1,16 +1,17 @@
 :root {
-  --ui-compact-radius-sm: 14px;
-  --ui-compact-radius: 18px;
-  --ui-compact-radius-lg: 22px;
-  --ui-compact-border: rgba(15, 23, 42, 0.08);
-  --ui-compact-shadow-soft: 0 10px 24px rgba(15, 23, 42, 0.05);
-  --ui-compact-shadow: 0 14px 32px rgba(15, 23, 42, 0.06);
-  --ui-compact-shadow-strong: 0 18px 38px rgba(15, 23, 42, 0.1);
+  /* Raggi ridotti — look professionale studio legale */
+  --ui-compact-radius-sm: 4px;     /* era 14px */
+  --ui-compact-radius:    6px;     /* era 18px */
+  --ui-compact-radius-lg: 8px;     /* era 22px */
+  --ui-compact-border: rgba(15, 23, 42, 0.07);
+  --ui-compact-shadow-soft: 0 1px 4px rgba(15, 23, 42, 0.05);
+  --ui-compact-shadow:      0 2px 8px rgba(15, 23, 42, 0.06);
+  --ui-compact-shadow-strong: 0 4px 12px rgba(15, 23, 42, 0.09);
   --ui-compact-bg: #fff;
-  --ui-compact-bg-soft: linear-gradient(180deg, #ffffff, #f8fbff);
-  --ui-compact-gap: clamp(0.8rem, 0.6vw + 0.65rem, 1rem);
-  --ui-compact-pad: clamp(0.88rem, 0.7vw + 0.72rem, 1.05rem);
-  --ui-compact-pad-lg: clamp(0.98rem, 0.9vw + 0.78rem, 1.2rem);
+  --ui-compact-bg-soft: linear-gradient(180deg, #ffffff, #f9fbff);
+  --ui-compact-gap:    0.75rem;
+  --ui-compact-pad:    0.65rem;
+  --ui-compact-pad-lg: 0.85rem;
 }
 
 .ui-panel-compact {
@@ -68,14 +69,14 @@
 
 @media (max-width: 768px) {
   .ui-panel-compact {
-    border-radius: 16px;
+    border-radius: var(--ui-compact-radius);
   }
 
   .ui-panel-compact__header {
-    padding: 0.85rem 0.95rem;
+    padding: 0.6rem 0.75rem;
   }
 
   .ui-panel-compact__body {
-    padding: 0.9rem 0.95rem;
+    padding: 0.7rem 0.75rem;
   }
 }

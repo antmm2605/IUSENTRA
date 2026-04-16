@@ -1,12 +1,13 @@
 :root {
-  --ptl-primary: #1a3a5c;
-  --ptl-primary-dark: #15304f;
-  --ptl-accent: #c8972b;
-  --ptl-surface: #ffffff;
+  --ptl-primary:      #1a2744;   /* Navy profondo — allineato al gestionale */
+  --ptl-primary-dark: #0f1e36;
+  --ptl-accent:       #b8860b;   /* Oro caldo — era #c8972b */
+  --ptl-surface:      #ffffff;
   --ptl-surface-soft: #f8fafc;
-  --ptl-border: rgba(15, 23, 42, 0.08);
-  --ptl-text-muted: #64748b;
-  --ptl-shadow: 0 14px 32px rgba(15, 23, 42, 0.08);
+  --ptl-border:       rgba(15, 23, 42, 0.07);
+  --ptl-text-muted:   #64748b;
+  --ptl-shadow:       0 2px 12px rgba(15, 23, 42, 0.07);
+  --ptl-radius:       6px;       /* consistente con il design system */
 }
 
 body.portale-layout {

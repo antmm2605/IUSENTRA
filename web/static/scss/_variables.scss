@@ -12,27 +12,33 @@
 //    $spec    — area specialistica / smart
 // ================================================================
 
-// ---- Palette principale ----
-$primary:        #1e3a5c;   // Navy scuro — testo titoli
-$teal:           #0e7490;   // Blu petrolio — accent principale
+// ---- Palette principale — studio legale professionale ----
+$primary:        #1a2744;   // Navy profondo — identità professionale
+$teal:           #0e7490;   // Blu petrolio — mantenuto per compat.
 $teal-dk:        #0a5966;
 $teal-lt:        #ecfeff;
+
+// ---- Accento oro caldo (autorevole, legale) ----
+$gold:           #b8860b;
+$gold-lt:        rgba(184,134,11,.14);
+$gold-dk:        #8a6008;
 
 // ---- Colori semantici ----
 $info:           #2563eb;
 $ok:             #16a34a;
-$warn:           #1b2a4a;
+$warn:           #b45309;
 $err:            #dc2626;
 $spec:           #7c3aed;
 
-// ---- Alias legacy (mantenuti per compatibilità) ----
-$accent:         $teal;
-$accent-light:   $teal-lt;
+// ---- Alias (retrocompatibilità) ----
+$accent:         $gold;
+$accent-light:   $gold-lt;
 
-// ---- Layout shell ----
-$sidebar-w:      240px;
-$topbar-h:       58px;
-$bottomnav-h:    62px;
+// ---- Layout shell — dimensioni professionali studio legale ----
+$sidebar-w:      210px;    // Ridotto da 240px
+$sidebar-mini-w: 52px;     // Sidebar icone-only (tablet)
+$topbar-h:       50px;     // Ridotto da 58px
+$bottomnav-h:    60px;     // Ridotto da 62px
 
 // ---- Sidebar ----
 $sb-bg:          #0f172a;   // Dark navy

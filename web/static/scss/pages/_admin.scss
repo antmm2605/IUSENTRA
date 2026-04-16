@@ -3,10 +3,10 @@
    ================================================================ */
 
 :root {
-  --admin-sidebar-bg: #0f1b2d;
-  --admin-sidebar-width: 260px;
-  --admin-accent: #f97316;
-  --admin-accent-soft: rgba(249,115,22,.15);
+  --admin-sidebar-bg:    #0f1b2d;
+  --admin-sidebar-width: 210px;   /* allineato alla sidebar principale — era 260px */
+  --admin-accent:        #f97316;
+  --admin-accent-soft:   rgba(249,115,22,.15);
 }
 
 body.admin-layout {
@@ -16,8 +16,8 @@ body.admin-layout {
 .admin-layout {
   .card {
     border: 1px solid #e2e8f0;
-    border-radius: 14px;
-    box-shadow: 0 10px 30px rgba(15, 23, 42, .05);
+    border-radius: 6px;   /* professionale — era 14px */
+    box-shadow: 0 2px 8px rgba(15, 23, 42, .06);
     overflow: hidden;
   }
 
@@ -243,21 +243,21 @@ body.admin-layout {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 1rem;
-  margin: 1rem 0 1.5rem;
+  gap: .75rem;
+  margin: .75rem 0 1rem;   /* compatto */
 }
 
 .admin-page-title {
-  font-size: 1.15rem;
+  font-size: .95rem;   /* ridotto da 1.15rem */
   font-weight: 700;
   margin: 0;
   color: #0f172a;
 }
 
 .admin-page-subtitle {
-  margin: .2rem 0 0;
+  margin: .1rem 0 0;
   color: #64748b;
-  font-size: .84rem;
+  font-size: .78rem;
 }
 
 [data-bs-theme="dark"] .admin-page-title {

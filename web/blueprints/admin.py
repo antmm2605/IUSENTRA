@@ -42,7 +42,11 @@ from pct.auth import (
     DESCRIZIONI_RUOLI,
 )
 from pct.storage import StudioDB
+from web.services.lex_eval_scorecard import build_lex_eval_scorecard
+from web.services.migration_assistant import build_migration_assistant
 from web.services.observability_runtime import build_observability_payload
+from web.services.studio_installation_status import build_studio_installation_status
+from web.services.system_health_surface import build_system_health_surface
 
 admin_bp = Blueprint("admin", __name__, url_prefix="/admin")
 
@@ -143,6 +147,34 @@ def dashboard():
 def osservabilita():
     payload = build_observability_payload(current_app._get_current_object())
     return render_template("admin/osservabilita.html", payload=payload)
+
+
+@admin_bp.route("/stato-installazione")
+@superadmin_required
+def stato_installazione():
+    payload = build_studio_installation_status()
+    return render_template("admin/stato_installazione.html", payload=payload)
+
+
+@admin_bp.route("/assistente-migrazione")
+@superadmin_required
+def assistente_migrazione():
+    payload = build_migration_assistant()
+    return render_template("admin/assistente_migrazione.html", payload=payload)
+
+
+@admin_bp.route("/salute-sistema")
+@superadmin_required
+def salute_sistema():
+    payload = build_system_health_surface()
+    return render_template("admin/salute_sistema.html", payload=payload)
+
+
+@admin_bp.route("/lex-scorecard")
+@superadmin_required
+def lex_scorecard():
+    payload = build_lex_eval_scorecard()
+    return render_template("admin/lex_scorecard.html", payload=payload)
 
 
 # ============================================================= CRUD Studi

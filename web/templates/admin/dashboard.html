@@ -69,6 +69,41 @@
   </div>
 </div>
 
+<div class="row g-3 mb-4">
+  <div class="col-12 col-lg-3">
+    <a href="{{ url_for('admin.stato_installazione') }}" class="card admin-stat-card h-100 text-decoration-none text-body">
+      <div class="card-body">
+        <div class="fw-semibold">Stato installazione</div>
+        <div class="small text-muted mt-1">Onboarding studio, warning e blocchi in una schermata.</div>
+      </div>
+    </a>
+  </div>
+  <div class="col-12 col-lg-3">
+    <a href="{{ url_for('admin.assistente_migrazione') }}" class="card admin-stat-card h-100 text-decoration-none text-body">
+      <div class="card-body">
+        <div class="fw-semibold">Assistente migrazione</div>
+        <div class="small text-muted mt-1">Clienti, fascicoli, agenda, scadenze e documenti da importare.</div>
+      </div>
+    </a>
+  </div>
+  <div class="col-12 col-lg-3">
+    <a href="{{ url_for('admin.salute_sistema') }}" class="card admin-stat-card h-100 text-decoration-none text-body">
+      <div class="card-body">
+        <div class="fw-semibold">Salute sistema</div>
+        <div class="small text-muted mt-1">Latenze, OCR, AI locale, scheduler e backup.</div>
+      </div>
+    </a>
+  </div>
+  <div class="col-12 col-lg-3">
+    <a href="{{ url_for('admin.lex_scorecard') }}" class="card admin-stat-card h-100 text-decoration-none text-body">
+      <div class="card-body">
+        <div class="fw-semibold">Scorecard Lex</div>
+        <div class="small text-muted mt-1">Eval suite, rubriche e KPI di qualita operativa.</div>
+      </div>
+    </a>
+  </div>
+</div>
+
 <div class="row g-4">
   <!-- Studi in scadenza -->
   {% if in_scadenza %}

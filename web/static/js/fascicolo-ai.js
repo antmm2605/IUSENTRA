@@ -43,6 +43,26 @@
       : '';
   }
 
+  function renderUnsupportedItems(items) {
+    const rows = (items || []).slice(0, 6).map(function (item) {
+      return (
+        '<li>' +
+          '<span class="fw-semibold">' + escapeHtml(item.nome || item.file_path || 'Documento') + '</span>' +
+          '<div class="small text-muted">' + escapeHtml(item.reason || 'Formato non supportato') + '</div>' +
+        '</li>'
+      );
+    }).join('');
+    if (!rows) {
+      return '';
+    }
+    return (
+      '<div class="mt-3">' +
+        '<div class="fw-semibold mb-1">Documenti da presidiare</div>' +
+        '<ul class="small mb-0 ps-3">' + rows + '</ul>' +
+      '</div>'
+    );
+  }
+
   function renderCompanionHelp(config, outdated) {
     const help = bridge().companionHelp(config, { outdated: outdated });
     return (
@@ -161,20 +181,14 @@
         '<div class="small mt-2">Documenti indicizzati: ' + escapeHtml(String(docs.indexed || 0)) +
         ' · documenti invariati: ' + escapeHtml(String(docs.skipped || 0)) +
         ' · non supportati: ' + escapeHtml(String(docs.unsupported || 0)) + '</div>' +
-        '<div class="small mt-2 text-muted">' + embedLabel + '</div>'
+        '<div class="small mt-2 text-muted">' + embedLabel + '</div>' +
+        renderUnsupportedItems(docs.unsupported_items || [])
       );
       refreshFascicoloAiRuntime();
     } catch (error) {
       showAnswerHtml('<span class="text-danger">Errore durante la reindicizzazione del fascicolo.</span>');
     }
   }
-
-  document.addEventListener('DOMContentLoaded', function () {
-    if (!root() || !bridge()) {
-      return;
-    }
-    refreshFascicoloAiRuntime();
-  });
 
   window.askFascicoloAi = askFascicoloAi;
   window.reindexFascicoloAi = reindexFascicoloAi;

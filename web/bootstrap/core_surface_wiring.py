@@ -26,6 +26,7 @@ from web.bootstrap.error_handlers import register_error_handlers
 from web.bootstrap.export_routes import register_export_routes
 from web.bootstrap.fascicoli_ai_routes import register_fascicoli_ai_routes
 from web.bootstrap.health_routes import register_health_routes
+from web.bootstrap.lex_operational_routes import register_lex_operational_routes
 from web.bootstrap.messages_routes import register_messages_routes
 from web.bootstrap.privacy_routes import register_privacy_routes
 from web.bootstrap.pwa_routes import register_pwa_routes
@@ -83,6 +84,12 @@ def register_core_surfaces(
         app,
         get_workspace_intelligente=core["get_workspace_intelligente"],
         get_local_ai_service=get_local_ai_service,
+    )
+    register_lex_operational_routes(
+        app,
+        get_workspace_intelligente=core["get_workspace_intelligente"],
+        get_fascicoli=core["get_fascicoli"],
+        get_telematico=core["get_telematico"],
     )
     register_dashboard_routes(
         app,

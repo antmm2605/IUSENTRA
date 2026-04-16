@@ -1,0 +1,156 @@
+.lexop-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.lexop-hero {
+  border-radius: 1.4rem;
+  padding: 1.2rem 1.25rem;
+  background: linear-gradient(135deg, #0f172a 0%, #17345d 55%, #2563eb 100%);
+  color: #fff;
+  box-shadow: 0 18px 44px rgba(15, 23, 42, 0.18);
+}
+
+.lexop-eyebrow,
+.lexop-panel__eyebrow {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.lexop-copy {
+  max-width: 72ch;
+  opacity: 0.92;
+}
+
+.lexop-range-form {
+  min-width: 180px;
+}
+
+.lexop-kpi-grid,
+.lexop-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+.lexop-kpi-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.lexop-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.lexop-kpi,
+.lexop-panel {
+  border-radius: 1.2rem;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  background: #fff;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.05);
+}
+
+.lexop-kpi {
+  padding: 1rem;
+}
+
+.lexop-kpi__value {
+  font-size: 2rem;
+  line-height: 1;
+  font-weight: 700;
+}
+
+.lexop-panel {
+  padding: 1rem;
+}
+
+.lexop-panel__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 0.9rem;
+}
+
+.lexop-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.lexop-list__item,
+.lexop-subpanel,
+.lexop-metric {
+  border-radius: 1rem;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  background: #f8fafc;
+}
+
+.lexop-list__item,
+.lexop-subpanel {
+  padding: 0.88rem 0.95rem;
+}
+
+.lexop-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.7rem;
+  margin-bottom: 0.9rem;
+}
+
+.lexop-metric {
+  padding: 0.8rem 0.9rem;
+}
+
+.lexop-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.lexop-mini-list {
+  margin: 0;
+  padding-left: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.28rem;
+  font-size: 0.84rem;
+}
+
+.lexop-empty {
+  padding: 1rem;
+  border-radius: 1rem;
+  background: #f8fafc;
+  color: #64748b;
+  font-size: 0.9rem;
+}
+
+@media (max-width: 1199.98px) {
+  .lexop-kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 991.98px) {
+  .lexop-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .lexop-hero,
+  .lexop-panel,
+  .lexop-kpi {
+    padding: 0.95rem;
+  }
+
+  .lexop-kpi-grid,
+  .lexop-metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .lexop-panel__head {
+    flex-direction: column;
+  }
+}

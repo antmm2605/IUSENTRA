@@ -57,6 +57,89 @@
     </div>
   </section>
 
+  <section class="tm-card">
+    <div class="tm-card-body">
+      <div class="d-flex justify-content-between align-items-center gap-2 mb-3 flex-wrap">
+        <div>
+          <div class="small text-uppercase tm-muted fw-semibold">Control Tower</div>
+          <h2 class="h5 mb-0">Regia telematica operativa</h2>
+        </div>
+        <span class="badge text-bg-light border">warning {{ control_tower.summary.warnings }} · bloccati {{ control_tower.summary.blocked }}</span>
+      </div>
+      <div class="tm-control-grid">
+        <div class="tm-control-card">
+          <div class="fw-semibold mb-2">Stato canali</div>
+          <div class="tm-list">
+            {% for card in control_tower.channel_cards %}
+            <div class="tm-list-item">
+              <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
+                <div>
+                  <div class="fw-semibold">{{ card.label }}</div>
+                  <div class="small tm-muted mt-1">Totale {{ card.totale }} · in attesa {{ card.pending }}</div>
+                </div>
+                <div class="text-end small">
+                  <div class="fw-semibold">{{ card.attention_needed }} warning</div>
+                  <div class="tm-muted">{{ card.blocked }} bloccati</div>
+                </div>
+              </div>
+            </div>
+            {% else %}
+            <div class="tm-list-item">
+              <div class="small tm-muted">Nessun canale ancora popolato nel core telematico.</div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+
+        <div class="tm-control-card">
+          <div class="fw-semibold mb-2">Esiti in attesa e import incompleti</div>
+          <div class="tm-list">
+            {% for row in control_tower.pending_outcomes[:4] %}
+            <div class="tm-list-item">
+              <div class="fw-semibold">{{ row.service_label }}</div>
+              <div class="small tm-muted mt-1">{{ row.office_name }}{% if row.practice_title %} · {{ row.practice_title }}{% endif %}</div>
+              <div class="small mt-2">Stato {{ row.internal_status|replace('_', ' ')|title }}</div>
+            </div>
+            {% endfor %}
+            {% for row in control_tower.incomplete_imports[:4] %}
+            <div class="tm-list-item">
+              <div class="fw-semibold">{{ row.service_label }}</div>
+              <div class="small tm-muted mt-1">{{ row.office_name }}{% if row.practice_title %} · {{ row.practice_title }}{% endif %}</div>
+              <div class="small mt-2">Import da completare: {{ row.internal_status|replace('_', ' ')|title }}</div>
+            </div>
+            {% endfor %}
+            {% if not control_tower.pending_outcomes and not control_tower.incomplete_imports %}
+            <div class="tm-list-item">
+              <div class="small tm-muted">Nessun esito in attesa o import incompleto.</div>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="tm-control-card">
+          <div class="fw-semibold mb-2">Controlli predeposito</div>
+          <div class="tm-list">
+            {% for item in control_tower.predeposito[:6] %}
+            <div class="tm-list-item">
+              <div class="fw-semibold">{{ item.case.service_label }}</div>
+              <div class="small tm-muted mt-1">{{ item.case.office_name }}{% if item.case.practice_title %} · {{ item.case.practice_title }}{% endif %}</div>
+              <ul class="small mt-2 mb-0 ps-3">
+                {% for check in item.checks %}
+                <li>{{ check }}</li>
+                {% endfor %}
+              </ul>
+            </div>
+            {% else %}
+            <div class="tm-list-item">
+              <div class="small tm-muted">Nessun presidio predeposito urgente da mostrare.</div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <section class="tm-grid">
     <div class="tm-card">
       <div class="tm-card-body">

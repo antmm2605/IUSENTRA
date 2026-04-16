@@ -1,0 +1,218 @@
+{% extends "base.html" %}
+{% block title %}Lex Operativo{% endblock %}
+{% block page_title %}Lex Operativo{% endblock %}
+
+{% block content %}
+<div class="lexop-shell">
+  <section class="lexop-hero">
+    <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
+      <div>
+        <div class="lexop-eyebrow">Motore operativo del fascicolo</div>
+        <h1 class="h3 mb-2">Lex Fascicolo, Udienza, Telematico e Operativo</h1>
+        <p class="mb-0 lexop-copy">
+          Un'unica regia per capire subito cosa manca, quali rischi sono aperti, quali warning telematici vanno chiusi
+          e qual e' la prossima azione giusta della giornata.
+        </p>
+      </div>
+      <form method="get" class="d-flex align-items-center gap-2 lexop-range-form">
+        <label class="small fw-semibold text-white-50" for="lex-operativo-giorni">Orizzonte</label>
+        <select id="lex-operativo-giorni" name="giorni" class="form-select form-select-sm" onchange="this.form.submit()">
+          {% for option in [7, 14, 30] %}
+          <option value="{{ option }}" {% if horizon_days == option %}selected{% endif %}>{{ option }} giorni</option>
+          {% endfor %}
+        </select>
+      </form>
+    </div>
+  </section>
+
+  <section class="lexop-kpi-grid">
+    <article class="lexop-kpi">
+      <div class="small text-muted mb-1">Fascicoli in presidio</div>
+      <div class="lexop-kpi__value">{{ payload.fascicolo.cards|length }}</div>
+      <div class="small text-muted">documenti chiave, rischi aperti e lacune residue</div>
+    </article>
+    <article class="lexop-kpi">
+      <div class="small text-muted mb-1">Udienze da preparare</div>
+      <div class="lexop-kpi__value">{{ payload.udienza.cases|length }}</div>
+      <div class="small text-muted">timeline, allegati e punti critici</div>
+    </article>
+    <article class="lexop-kpi">
+      <div class="small text-muted mb-1">Warning telematici</div>
+      <div class="lexop-kpi__value">{{ payload.telematico.summary_counts.warnings }}</div>
+      <div class="small text-muted">errori, depositi e import da verificare</div>
+    </article>
+    <article class="lexop-kpi">
+      <div class="small text-muted mb-1">Azioni prioritarie</div>
+      <div class="lexop-kpi__value">{{ payload.operativo.actions|length }}</div>
+      <div class="small text-muted">scadenze, backlog e prossimi passi</div>
+    </article>
+  </section>
+
+  <section class="lexop-grid">
+    <article class="lexop-panel">
+      <div class="lexop-panel__head">
+        <div>
+          <div class="lexop-panel__eyebrow">{{ payload.fascicolo.label }}</div>
+          <h2 class="h5 mb-1">Quadro fascicoli</h2>
+          <div class="small text-muted">{{ payload.fascicolo.summary }}</div>
+        </div>
+        <a href="{{ url_for('workspace_intelligente') }}" class="btn btn-sm btn-outline-primary">Cabina studio</a>
+      </div>
+      <div class="lexop-list">
+        {% for item in payload.fascicolo.cards %}
+        <div class="lexop-list__item">
+          <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
+            <div>
+              <a href="{{ url_for('dettaglio_fascicolo', id_fasc=item.id) }}" class="fw-semibold text-decoration-none">{{ item.title }}</a>
+              <div class="small text-muted mt-1">
+                {{ item.numero or "Senza numero" }}
+                {% if item.tribunale %} · {{ item.tribunale }}{% endif %}
+              </div>
+              <div class="small mt-2">{{ item.missing }}</div>
+              {% if item.next_actions %}
+              <ul class="lexop-mini-list mt-2">
+                {% for action in item.next_actions %}
+                <li>{{ action }}</li>
+                {% endfor %}
+              </ul>
+              {% endif %}
+            </div>
+            <div class="lexop-tags">
+              {% for warning in item.warnings %}
+              <span class="badge text-bg-light border">{{ warning }}</span>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+        {% else %}
+        <div class="lexop-empty">Nessun fascicolo operativo da evidenziare nell'orizzonte selezionato.</div>
+        {% endfor %}
+      </div>
+    </article>
+
+    <article class="lexop-panel">
+      <div class="lexop-panel__head">
+        <div>
+          <div class="lexop-panel__eyebrow">{{ payload.udienza.label }}</div>
+          <h2 class="h5 mb-1">Preparazione udienza</h2>
+          <div class="small text-muted">{{ payload.udienza.summary }}</div>
+        </div>
+        <a href="{{ url_for('wizard_pro.index') }}" class="btn btn-sm btn-outline-primary">Preparazione guidata</a>
+      </div>
+      <div class="lexop-metrics">
+        {% for metric in payload.udienza.metrics %}
+        <div class="lexop-metric">
+          <div class="small text-muted">{{ metric.label }}</div>
+          <div class="fw-semibold">{{ metric.value }}</div>
+        </div>
+        {% endfor %}
+      </div>
+      <div class="lexop-list">
+        {% for item in payload.udienza.cases %}
+        <div class="lexop-list__item">
+          <div class="fw-semibold">{{ item.title }}</div>
+          <div class="small text-muted mt-1">
+            {{ item.cliente or "Cliente da verificare" }}
+            {% if item.udienza %} · {{ item.udienza }}{% endif %}
+          </div>
+          <div class="small mt-2">
+            Timeline: {{ item.timeline or "Da costruire" }} · documenti acquisiti {{ item.documenti.acquisiti or 0 }} · mancanti {{ item.documenti.mancanti or 0 }}
+          </div>
+          {% if item.critical_points %}
+          <div class="lexop-tags mt-2">
+            {% for point in item.critical_points %}
+            <span class="badge text-bg-light border">{{ point }}</span>
+            {% endfor %}
+          </div>
+          {% endif %}
+        </div>
+        {% else %}
+        <div class="lexop-empty">Nessuna udienza critica da presidiare adesso.</div>
+        {% endfor %}
+      </div>
+    </article>
+  </section>
+
+  <section class="lexop-grid">
+    <article class="lexop-panel">
+      <div class="lexop-panel__head">
+        <div>
+          <div class="lexop-panel__eyebrow">{{ payload.telematico.label }}</div>
+          <h2 class="h5 mb-1">Control Tower telematica</h2>
+          <div class="small text-muted">{{ payload.telematico.summary }}</div>
+        </div>
+        <a href="{{ url_for('telematico_dashboard') }}" class="btn btn-sm btn-outline-primary">Apri control tower</a>
+      </div>
+      <div class="lexop-metrics">
+        <div class="lexop-metric">
+          <div class="small text-muted">Esiti in attesa</div>
+          <div class="fw-semibold">{{ payload.control_tower.summary.pending_outcomes }}</div>
+        </div>
+        <div class="lexop-metric">
+          <div class="small text-muted">Import incompleti</div>
+          <div class="fw-semibold">{{ payload.control_tower.summary.imports_incomplete }}</div>
+        </div>
+        <div class="lexop-metric">
+          <div class="small text-muted">Fascicoli bloccati</div>
+          <div class="fw-semibold">{{ payload.control_tower.summary.blocked }}</div>
+        </div>
+      </div>
+      <div class="lexop-list">
+        {% for item in payload.telematico.warning_cases %}
+        <div class="lexop-list__item">
+          <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
+            <div>
+              <div class="fw-semibold">{{ item.service_label }}</div>
+              <div class="small text-muted mt-1">
+                {{ item.office_name or "Ufficio da verificare" }}
+                {% if item.practice_title %} · {{ item.practice_title }}{% endif %}
+              </div>
+              <div class="small mt-2">Stato: {{ item.internal_status|replace('_', ' ')|title }} · task aperti {{ item.open_tasks_count or 0 }}</div>
+            </div>
+            <span class="badge text-bg-warning">Warning</span>
+          </div>
+        </div>
+        {% else %}
+        <div class="lexop-empty">Nessun warning telematico attivo nel core condiviso.</div>
+        {% endfor %}
+      </div>
+    </article>
+
+    <article class="lexop-panel">
+      <div class="lexop-panel__head">
+        <div>
+          <div class="lexop-panel__eyebrow">{{ payload.operativo.label }}</div>
+          <h2 class="h5 mb-1">Prossima azione giusta</h2>
+          <div class="small text-muted">{{ payload.operativo.summary }}</div>
+        </div>
+        <a href="{{ url_for('dashboard') }}" class="btn btn-sm btn-outline-primary">Torna alla home</a>
+      </div>
+      <div class="lexop-list">
+        {% for action in payload.operativo.actions %}
+        <div class="lexop-list__item">
+          <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
+            <div>
+              <div class="fw-semibold">{{ action.title }}</div>
+              <div class="small mt-1">{{ action.description }}</div>
+            </div>
+            <span class="badge text-bg-{{ action.tone }}">{{ action.tone|title }}</span>
+          </div>
+        </div>
+        {% else %}
+        <div class="lexop-empty">Nessuna azione automatica da mostrare.</div>
+        {% endfor %}
+      </div>
+      {% if payload.operativo.urgent_deadlines %}
+      <div class="lexop-subpanel">
+        <div class="fw-semibold mb-2">Scadenze che stanno diventando problemi</div>
+        <ul class="lexop-mini-list">
+          {% for scadenza in payload.operativo.urgent_deadlines %}
+          <li>{{ scadenza.titolo }} · {{ scadenza.data_scadenza|fmt_data }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+      {% endif %}
+    </article>
+  </section>
+</div>
+{% endblock %}

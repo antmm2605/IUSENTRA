@@ -61,6 +61,25 @@
       <i class="bi bi-activity"></i> Osservabilità
     </a>
 
+    <a href="{{ url_for('admin.salute_sistema') }}"
+       class="nav-link {% if request.endpoint == 'admin.salute_sistema' %}active{% endif %}">
+      <i class="bi bi-heart-pulse"></i> Salute sistema
+    </a>
+
+    <div class="nav-section mt-2">Attivazione e Lex</div>
+    <a href="{{ url_for('admin.stato_installazione') }}"
+       class="nav-link {% if request.endpoint == 'admin.stato_installazione' %}active{% endif %}">
+      <i class="bi bi-clipboard2-check"></i> Stato installazione
+    </a>
+    <a href="{{ url_for('admin.assistente_migrazione') }}"
+       class="nav-link {% if request.endpoint == 'admin.assistente_migrazione' %}active{% endif %}">
+      <i class="bi bi-arrow-left-right"></i> Assistente migrazione
+    </a>
+    <a href="{{ url_for('admin.lex_scorecard') }}"
+       class="nav-link {% if request.endpoint == 'admin.lex_scorecard' %}active{% endif %}">
+      <i class="bi bi-graph-up-arrow"></i> Scorecard Lex
+    </a>
+
     <div class="nav-section mt-2">Azioni rapide</div>
     <a href="{{ url_for('admin.nuovo_studio') }}" class="nav-link">
       <i class="bi bi-plus-circle-fill"></i> Nuovo Studio

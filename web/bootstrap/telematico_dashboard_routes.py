@@ -7,6 +7,8 @@ from datetime import date
 
 from flask import Flask, jsonify, render_template, url_for
 
+from web.services.telematico_control_tower import build_telematico_control_tower
+
 
 def register_telematico_dashboard_routes(
     app: Flask,
@@ -120,6 +122,31 @@ def register_telematico_dashboard_routes(
                 fasc = fascicoli_index.get(str(row.get("practice_id") or ""))
                 row["practice_url"] = url_for("dettaglio_fascicolo", id_fasc=row["practice_id"]) if fasc else ""
                 row["practice_title"] = getattr(fasc, "titolo", "") if fasc else ""
+            control_tower = {
+                "summary": {
+                    "totale": 0,
+                    "pending_outcomes": 0,
+                    "imports_incomplete": 0,
+                    "warnings": 0,
+                    "blocked": 0,
+                },
+                "channel_cards": [],
+                "pending_outcomes": [],
+                "incomplete_imports": [],
+                "warning_cases": [],
+                "predeposito": [],
+                "blocked_cases": [],
+                "recent_events": [],
+            }
+            try:
+                control_tower = build_telematico_control_tower(
+                    get_telematico=get_telematico,
+                    get_fascicoli=get_fascicoli,
+                )
+            except Exception as e:
+                app.logger.exception("Errore control tower telematico_dashboard: %s", e)
+                if not read_warning:
+                    read_warning = _telematico_dashboard_warning_message(e)
             if backfill_summary.get("failed", 0):
                 dashboard_notices.append(
                     {
@@ -146,6 +173,7 @@ def register_telematico_dashboard_routes(
                 connection_cards=connection_cards,
                 recent_cases=recent_cases,
                 recent_events=recent_events,
+                control_tower=control_tower,
                 dashboard_notices=dashboard_notices,
             )
         except Exception as e:
@@ -157,6 +185,22 @@ def register_telematico_dashboard_routes(
                 connection_cards=[],
                 recent_cases=[],
                 recent_events=[],
+                control_tower={
+                    "summary": {
+                        "totale": 0,
+                        "pending_outcomes": 0,
+                        "imports_incomplete": 0,
+                        "warnings": 0,
+                        "blocked": 0,
+                    },
+                    "channel_cards": [],
+                    "pending_outcomes": [],
+                    "incomplete_imports": [],
+                    "warning_cases": [],
+                    "predeposito": [],
+                    "blocked_cases": [],
+                    "recent_events": [],
+                },
                 dashboard_notices=[
                     {
                         "tone": "warning",

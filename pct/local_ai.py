@@ -17,9 +17,11 @@ import time
 import uuid
 import xml.etree.ElementTree as ET
 import zipfile
+from copy import deepcopy
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
+from threading import Lock
 from typing import Any, Iterable
 
 import pdfplumber
@@ -30,6 +32,8 @@ from pct.local_ai_runtime import OllamaRuntimeProvisioner
 logger = logging.getLogger("pct.local_ai")
 
 _ENC_MAGIC = b"PCTENC\x01"
+_RETRIEVAL_CACHE_TTL_SECONDS = 300
+_SNAPSHOT_CACHE_TTL_SECONDS = 300
 
 _HEADING_PATTERNS: list[tuple[str, re.Pattern[str]]] = [
     ("intestazione", re.compile(r"^(TRIBUNALE|CORTE D'APPELLO|CORTE DI CASSAZIONE|GIUDICE DI PACE|TAR|CONSIGLIO DI STATO)\b", re.I)),
@@ -111,6 +115,27 @@ def _extract_text_tokens(text: str) -> list[str]:
     return tokens
 
 
+def _unique_strings(items: Iterable[Any]) -> list[str]:
+    unique: list[str] = []
+    seen: set[str] = set()
+    for item in items:
+        value = _clean_spaces(item)
+        if not value:
+            continue
+        key = value.casefold()
+        if key in seen:
+            continue
+        seen.add(key)
+        unique.append(value)
+    return unique
+
+
+def _fallback_binary_text(data: bytes) -> str:
+    text = _normalize_text(data.decode("utf-8", errors="replace"))
+    text = re.sub(r"[\x00-\x08\x0b-\x1f]+", " ", text)
+    return _clean_spaces(text)
+
+
 def _read_json_file(path: Path, fallback: Any) -> Any:
     try:
         return json.loads(path.read_text(encoding="utf-8"))
@@ -174,6 +199,56 @@ def _detect_language(text: str) -> str | None:
     return "it" if sum(1 for token in hits if token in sample) >= 3 else None
 
 
+def _extract_signed_payload(data: bytes) -> bytes | None:
+    try:
+        from asn1crypto import cms
+    except Exception:
+        return None
+
+    try:
+        content_info = cms.ContentInfo.load(data)
+        if content_info["content_type"].native != "signed_data":
+            return None
+        signed_data = content_info["content"]
+        encap = signed_data["encap_content_info"]
+        content = encap["content"]
+        if content is None:
+            return None
+        native = getattr(content, "native", None)
+        if isinstance(native, bytes):
+            return native
+        if isinstance(content, bytes):
+            return content
+        if native is not None:
+            try:
+                return bytes(native)
+            except Exception:
+                return None
+    except Exception:
+        return None
+    return None
+
+
+def _payload_mime_from_bytes(data: bytes) -> str:
+    sample = bytes(data[:32] if data else b"")
+    if sample.startswith(b"%PDF"):
+        return "application/pdf"
+    if sample.startswith(b"PK\x03\x04"):
+        return "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    if sample.lstrip().startswith(b"{") or sample.lstrip().startswith(b"["):
+        return "application/json"
+    if sample.lstrip().startswith(b"<"):
+        return "text/html"
+    return "text/plain"
+
+
+def _inner_signed_path(file_path: Path) -> Path:
+    lower_name = file_path.name.lower()
+    if lower_name.endswith(".p7m"):
+        return file_path.with_suffix("")
+    return file_path
+
+
 def _is_supported_mime(mime_type: str) -> bool:
     return mime_type in {
         "text/plain",
@@ -182,6 +257,7 @@ def _is_supported_mime(mime_type: str) -> bool:
         "application/xhtml+xml",
         "application/json",
         "application/pdf",
+        "application/pkcs7-mime",
         "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     }
 
@@ -339,6 +415,9 @@ class LocalAIService:
         self.schema_path = self.app_root / "pct" / "sql" / "20260413_local_ai.sql"
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self.models_path.mkdir(parents=True, exist_ok=True)
+        self._cache_lock = Lock()
+        self._retrieval_cache: dict[tuple[str, str, str, int], dict[str, Any]] = {}
+        self._snapshot_cache: dict[str, dict[str, Any]] = {}
         self._ensure_schema()
 
     def _connect(self) -> sqlite3.Connection:
@@ -383,6 +462,47 @@ class LocalAIService:
             if "embedding_dimensions" not in chunk_columns:
                 conn.execute("ALTER TABLE rag_chunks ADD COLUMN embedding_dimensions INTEGER")
             conn.commit()
+
+    def _cache_get(
+        self,
+        store: dict[Any, dict[str, Any]],
+        key: Any,
+        *,
+        ttl_seconds: int,
+    ) -> Any | None:
+        now = time.time()
+        with self._cache_lock:
+            payload = store.get(key)
+            if not payload:
+                return None
+            if now - float(payload.get("stored_at") or 0) > ttl_seconds:
+                store.pop(key, None)
+                return None
+            return deepcopy(payload.get("value"))
+
+    def _cache_set(self, store: dict[Any, dict[str, Any]], key: Any, value: Any) -> Any:
+        cached = deepcopy(value)
+        with self._cache_lock:
+            store[key] = {
+                "stored_at": time.time(),
+                "value": cached,
+            }
+        return deepcopy(cached)
+
+    def _invalidate_runtime_caches(self, *, practice_id: str | None = None) -> None:
+        practice_key = str(practice_id or "").strip()
+        with self._cache_lock:
+            self._retrieval_cache.clear()
+            if not practice_key:
+                self._snapshot_cache.clear()
+                return
+            to_remove = [
+                key
+                for key in self._snapshot_cache
+                if key.startswith(f"{practice_key}:")
+            ]
+            for key in to_remove:
+                self._snapshot_cache.pop(key, None)
 
     def _load_policy(self) -> dict[str, Any]:
         return _read_json_file(
@@ -1187,6 +1307,24 @@ class LocalAIService:
         except Exception:
             return data
 
+    def _resolve_document_payload(
+        self,
+        *,
+        file_path: Path,
+        mime_type: str,
+        data: bytes,
+    ) -> tuple[Path, str, bytes, str | None]:
+        if mime_type != "application/pkcs7-mime":
+            return file_path, mime_type, data, None
+        payload = _extract_signed_payload(data)
+        if not payload:
+            raise ValueError("Contenuto firmato .p7m non leggibile o non incapsulato.")
+        inner_path = _inner_signed_path(file_path)
+        inner_mime = self._detect_mime(inner_path)
+        if inner_mime == "application/octet-stream":
+            inner_mime = _payload_mime_from_bytes(payload)
+        return inner_path, inner_mime, payload, "application/pkcs7-mime"
+
     def _extract_pdf_pages(self, data: bytes) -> list[dict[str, Any]]:
         pages: list[dict[str, Any]] = []
         with pdfplumber.open(io.BytesIO(data)) as pdf:
@@ -1220,7 +1358,13 @@ class LocalAIService:
             text = _strip_html(data.decode("utf-8", errors="replace"))
             return [{"page_number": 1, "text": _normalize_text(text).strip()}]
         if mime_type == "application/pdf":
-            return self._extract_pdf_pages(data)
+            try:
+                return self._extract_pdf_pages(data)
+            except Exception:
+                fallback_text = _fallback_binary_text(data)
+                if fallback_text:
+                    return [{"page_number": 1, "text": fallback_text}]
+                raise
         if mime_type == "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
             return self._extract_docx_pages(data)
         raise ValueError(f"Formato non supportato per parsing locale: {mime_type}")
@@ -1233,6 +1377,8 @@ class LocalAIService:
             return mime_type
         if file_path.suffix.lower() == ".md":
             return "text/markdown"
+        if file_path.suffix.lower() == ".p7m":
+            return "application/pkcs7-mime"
         if file_path.suffix.lower() == ".docx":
             return "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
         return mime_type or "application/octet-stream"
@@ -1493,8 +1639,41 @@ class LocalAIService:
             raise FileNotFoundError(f"Documento non trovato: {resolved}")
         detected_mime = self._detect_mime(resolved, mime_type)
         if not _is_supported_mime(detected_mime):
-            return {"status": "unsupported", "file_path": str(resolved), "mime_type": detected_mime}
-        data = self._read_document_file(resolved)
+            return {
+                "status": "unsupported",
+                "file_path": str(resolved),
+                "mime_type": detected_mime,
+                "reason": "Formato non gestito dal parser locale.",
+            }
+        raw_data = self._read_document_file(resolved)
+        normalized_path = resolved
+        normalized_mime = detected_mime
+        data = raw_data
+        outer_mime: str | None = None
+        try:
+            normalized_path, normalized_mime, data, outer_mime = self._resolve_document_payload(
+                file_path=resolved,
+                mime_type=detected_mime,
+                data=raw_data,
+            )
+        except ValueError as exc:
+            return {
+                "status": "unsupported",
+                "file_path": str(resolved),
+                "mime_type": detected_mime,
+                "reason": str(exc),
+            }
+        if not _is_supported_mime(normalized_mime):
+            return {
+                "status": "unsupported",
+                "file_path": str(resolved),
+                "mime_type": normalized_mime,
+                "outer_mime_type": outer_mime or detected_mime,
+                "reason": "Il contenuto firmato usa un formato non ancora supportato.",
+            }
+        normalized_title = str(title or normalized_path.name or resolved.name)
+        if outer_mime == "application/pkcs7-mime" and normalized_title.lower().endswith(".p7m"):
+            normalized_title = normalized_title[:-4]
         sha256 = _sha256_bytes(data)
         with self._connect() as conn:
             existing = self._document_by_source(conn, source_type, source_id)
@@ -1503,7 +1682,8 @@ class LocalAIService:
                     "status": "skipped",
                     "document_id": existing["id"],
                     "chunk_count": int(existing.get("chunk_count") or 0),
-                    "mime_type": detected_mime,
+                    "mime_type": normalized_mime,
+                    "outer_mime_type": outer_mime,
                 }
             document_id = self._upsert_document(
                 conn,
@@ -1511,17 +1691,17 @@ class LocalAIService:
                 source_type=source_type,
                 source_id=source_id,
                 practice_id=practice_id,
-                title=title or resolved.name,
+                title=normalized_title,
                 file_path=str(resolved),
-                mime_type=detected_mime,
+                mime_type=normalized_mime,
                 sha256=sha256,
             )
             try:
                 parsed = self._parse_document_bytes(
                     data=data,
-                    file_path=resolved,
-                    mime_type=detected_mime,
-                    title=title or resolved.name,
+                    file_path=normalized_path,
+                    mime_type=normalized_mime,
+                    title=normalized_title,
                 )
                 chunk_rows = self._build_chunk_rows(document_id=document_id, practice_id=practice_id, parsed=parsed)
                 self._replace_document_chunks(conn, document_id, chunk_rows)
@@ -1541,11 +1721,13 @@ class LocalAIService:
                     ),
                 )
                 conn.commit()
+                self._invalidate_runtime_caches(practice_id=practice_id)
                 return {
                     "status": "indexed",
                     "document_id": document_id,
                     "chunk_count": len(chunk_rows),
-                    "mime_type": detected_mime,
+                    "mime_type": normalized_mime,
+                    "outer_mime_type": outer_mime,
                     "language": parsed.get("language"),
                 }
             except Exception:
@@ -1557,7 +1739,14 @@ class LocalAIService:
                 raise
 
     def index_fascicolo_documents(self, fascicolo: Any, documents_dir: str, *, force: bool = False, limit: int | None = None) -> dict[str, Any]:
-        results = {"indexed": 0, "skipped": 0, "unsupported": 0, "errors": []}
+        results = {
+            "indexed": 0,
+            "skipped": 0,
+            "unsupported": 0,
+            "errors": [],
+            "indexed_items": [],
+            "unsupported_items": [],
+        }
         docs = list(getattr(fascicolo, "documenti", []) or [])
         if limit:
             docs = docs[:limit]
@@ -1575,6 +1764,25 @@ class LocalAIService:
                     force=force,
                 )
                 results[outcome["status"]] = results.get(outcome["status"], 0) + 1
+                if outcome["status"] == "indexed":
+                    results["indexed_items"].append(
+                        {
+                            "document_id": str(getattr(doc, "id", "")),
+                            "nome": str(getattr(doc, "nome", "") or full_path.name),
+                            "mime_type": str(outcome.get("mime_type") or ""),
+                            "chunk_count": int(outcome.get("chunk_count") or 0),
+                        }
+                    )
+                if outcome["status"] == "unsupported":
+                    results["unsupported_items"].append(
+                        {
+                            "document_id": str(getattr(doc, "id", "")),
+                            "nome": str(getattr(doc, "nome", "") or full_path.name),
+                            "mime_type": str(outcome.get("mime_type") or ""),
+                            "reason": str(outcome.get("reason") or "Formato non supportato."),
+                            "file_path": str(outcome.get("file_path") or full_path),
+                        }
+                    )
             except Exception as exc:
                 results["errors"].append(
                     {
@@ -1738,6 +1946,44 @@ class LocalAIService:
         section_type = str(row.get("section_type") or "sezione").strip()
         return f"{title}, {page_label} · {section_type} · chunk {str(row.get('id', ''))[:8]}"
 
+    def _authority_weight(self, row: dict[str, Any]) -> float:
+        title = str(row.get("title") or "").lower()
+        section_type = str(row.get("section_type") or "").lower()
+        weight = 1.0
+        if any(token in title for token in ("sentenza", "ordinanza", "decreto", "verbale", "provvedimento")):
+            weight += 0.18
+        if section_type in {"dispositivo", "conclusioni", "motivazione", "diritto"}:
+            weight += 0.14
+        if section_type == "allegati":
+            weight -= 0.08
+        return max(0.75, weight)
+
+    def _keyword_overlap_score(self, query_text: str, row: dict[str, Any]) -> float:
+        query_tokens = set(_extract_text_tokens(query_text)[:12])
+        if not query_tokens:
+            return 0.0
+        haystack = " ".join(
+            [
+                str(row.get("title") or ""),
+                str(row.get("text") or ""),
+                str(row.get("metadata_json") or ""),
+            ]
+        )
+        text_tokens = set(_extract_text_tokens(haystack))
+        if not text_tokens:
+            return 0.0
+        return min(len(query_tokens & text_tokens) * 0.05, 0.25)
+
+    def _rank_hybrid_rows(self, query_text: str, rows: list[dict[str, Any]], top_k: int) -> list[dict[str, Any]]:
+        for row in rows:
+            overlap_bonus = self._keyword_overlap_score(query_text, row)
+            authority_multiplier = self._authority_weight(row)
+            base_score = float(row.get("hybrid_score") or 0.0) + overlap_bonus
+            row["hybrid_score"] = round(base_score * authority_multiplier, 6)
+            row["keyword_overlap"] = round(overlap_bonus, 4)
+            row["authority_weight"] = round(authority_multiplier, 4)
+        return sorted(rows, key=lambda item: float(item.get("hybrid_score") or 0.0), reverse=True)[:top_k]
+
     def hybrid_search(
         self,
         query_text: str,
@@ -1746,8 +1992,22 @@ class LocalAIService:
         document_id: str | None = None,
         top_k: int = 8,
     ) -> list[dict[str, Any]]:
-        if not str(query_text or "").strip():
+        normalized_query = str(query_text or "").strip()
+        if not normalized_query:
             return []
+        cache_key = (
+            normalized_query.lower(),
+            str(practice_id or "").strip(),
+            str(document_id or "").strip(),
+            int(top_k or 8),
+        )
+        cached = self._cache_get(
+            self._retrieval_cache,
+            cache_key,
+            ttl_seconds=_RETRIEVAL_CACHE_TTL_SECONDS,
+        )
+        if cached is not None:
+            return cached
         settings = self._load_settings()
         client = self._ollama_client(settings)
         embed_model = self._active_model("embed")
@@ -1756,14 +2016,14 @@ class LocalAIService:
         prompt_eval_count = None
         if embed_model:
             try:
-                embed_result = client.embed_texts(embed_model, [query_text])
+                embed_result = client.embed_texts(embed_model, [normalized_query])
                 query_vector = list(embed_result.get("embeddings") or [[]])[0]
                 load_duration = embed_result.get("load_duration")
                 prompt_eval_count = embed_result.get("prompt_eval_count")
             except Exception:
                 query_vector = []
         with self._connect() as conn:
-            text_rows = self._fts_rows(conn, query_text, practice_id, document_id, top_k)
+            text_rows = self._fts_rows(conn, normalized_query, practice_id, document_id, top_k)
             vector_rows = self._vector_rows(conn, query_vector, practice_id, document_id, top_k) if query_vector else []
             by_id: dict[str, dict[str, Any]] = {}
             for index, row in enumerate(vector_rows):
@@ -1775,11 +2035,11 @@ class LocalAIService:
                 item["hybrid_score"] = float(item.get("hybrid_score") or 0.0) + (1.0 / (61 + index))
                 item["text_score"] = row.get("bm25_score")
             document_titles = self._document_titles(conn, [row.get("document_id") for row in by_id.values()])
-            ordered = sorted(by_id.values(), key=lambda item: float(item.get("hybrid_score") or 0.0), reverse=True)[:top_k]
+            for row in by_id.values():
+                row["title"] = document_titles.get(str(row.get("document_id")), "Documento")
+            ordered = self._rank_hybrid_rows(normalized_query, list(by_id.values()), top_k)
             for row in ordered:
-                title = document_titles.get(str(row.get("document_id")), "Documento")
-                row["citation"] = self._citation_for_row(row, title)
-                row["title"] = title
+                row["citation"] = self._citation_for_row(row, str(row.get("title") or "Documento"))
             conn.execute(
                 """
                 INSERT INTO rag_query_logs (
@@ -1789,7 +2049,7 @@ class LocalAIService:
                 """,
                 (
                     uuid.uuid4().hex,
-                    query_text,
+                    normalized_query,
                     "hybrid",
                     top_k,
                     None,
@@ -1801,7 +2061,7 @@ class LocalAIService:
                 ),
             )
             conn.commit()
-            return ordered
+            return self._cache_set(self._retrieval_cache, cache_key, ordered)
 
     def _summarize_scadenze(self, scadenze: Iterable[Any]) -> list[str]:
         rows: list[str] = []
@@ -1824,6 +2084,110 @@ class LocalAIService:
             rows.append(label)
         return rows
 
+    def _structured_response_requirements(self) -> list[str]:
+        return [
+            "Struttura sempre la risposta con queste sezioni e con titoli espliciti:",
+            "1. Fatti rilevanti",
+            "2. Fonti",
+            "3. Warning",
+            "4. Prossimi passi",
+            "Nella sezione 'Fonti' elenca solo fonti davvero usate.",
+            "Nella sezione 'Warning' segnala dati mancanti, verifiche residue e rischi operativi.",
+            "Nella sezione 'Prossimi passi' proponi azioni concrete e ordinate per priorita.",
+        ]
+
+    def _fascicolo_snapshot(
+        self,
+        *,
+        fascicolo: Any,
+        workspace: dict[str, Any] | None,
+        intelligenza: dict[str, Any] | None,
+        apps: Iterable[Any],
+        scadenze: Iterable[Any],
+    ) -> dict[str, Any]:
+        snapshot_key = f"{str(getattr(fascicolo, 'id', '') or '')}:fascicolo"
+        cached = self._cache_get(
+            self._snapshot_cache,
+            snapshot_key,
+            ttl_seconds=_SNAPSHOT_CACHE_TTL_SECONDS,
+        )
+        if cached is not None:
+            return cached
+        documenti = list(getattr(fascicolo, "documenti", []) or [])
+        risks: list[str] = []
+        missing: list[str] = []
+        if not documenti:
+            missing.append("Mancano documenti indicizzati o allegati leggibili nel fascicolo.")
+        if not list(scadenze or []):
+            missing.append("Non risultano scadenze presidiate nel fascicolo.")
+        if not list(apps or []):
+            missing.append("Non risultano appuntamenti o udienze collegati.")
+        if not list((intelligenza or {}).get("giurisprudenza") or []):
+            risks.append("Manca ancora una giurisprudenza mirata da collegare alla strategia difensiva.")
+        for item in list(scadenze or [])[:3]:
+            titolo = _clean_spaces(getattr(item, "titolo", ""))
+            giorni = getattr(item, "giorni_alla_scadenza", None)
+            if giorni is not None and giorni <= 3:
+                risks.append(f"Scadenza ravvicinata: {titolo or 'adempimento'} entro {giorni} giorni.")
+        snapshot = {
+            "generated_at": _now_iso(),
+            "documenti_chiave": [
+                _clean_spaces(getattr(doc, "nome", "") or getattr(doc, "titolo", ""))
+                for doc in documenti[:4]
+                if _clean_spaces(getattr(doc, "nome", "") or getattr(doc, "titolo", ""))
+            ],
+            "rischi_aperti": _unique_strings(risks),
+            "cosa_manca": _unique_strings(missing),
+            "prossime_azioni": _unique_strings(
+                list((intelligenza or {}).get("next_actions") or [])
+                + list((workspace or {}).get("prossime_azioni") or [])
+                + list((workspace or {}).get("azioni") or [])
+            )[:4],
+        }
+        return self._cache_set(self._snapshot_cache, snapshot_key, snapshot)
+
+    def _workspace_snapshot(self, overview: dict[str, Any]) -> dict[str, Any]:
+        summary = dict(overview.get("summary") or {})
+        actions = list(overview.get("actions") or [])
+        fascicoli_hot = list(overview.get("fascicoli_hot") or [])
+        snapshot_key = "workspace:overview"
+        cached = self._cache_get(
+            self._snapshot_cache,
+            snapshot_key,
+            ttl_seconds=_SNAPSHOT_CACHE_TTL_SECONDS,
+        )
+        if (
+            cached is not None
+            and cached.get("summary") == summary
+            and cached.get("actions") == actions
+            and cached.get("fascicoli_hot") == fascicoli_hot
+        ):
+            return cached
+        urgent_deadlines = list(overview.get("urgent_deadlines") or [])[:4]
+        upcoming_appointments = list(overview.get("upcoming_appointments") or [])[:4]
+        snapshot = {
+            "generated_at": _now_iso(),
+            "summary": summary,
+            "actions": actions,
+            "fascicoli_hot": fascicoli_hot,
+            "priorita_giornata": [
+                str(item.get("title") or "").strip()
+                for item in actions[:4]
+                if str(item.get("title") or "").strip()
+            ],
+            "scadenze_critiche": [
+                str(getattr(item, "titolo", "") or item.get("titolo") or "").strip()
+                for item in urgent_deadlines
+                if str(getattr(item, "titolo", "") or item.get("titolo") or "").strip()
+            ],
+            "appuntamenti_chiave": [
+                str(getattr(item, "titolo", "") or item.get("titolo") or "").strip()
+                for item in upcoming_appointments
+                if str(getattr(item, "titolo", "") or item.get("titolo") or "").strip()
+            ],
+        }
+        return self._cache_set(self._snapshot_cache, snapshot_key, snapshot)
+
     def _prompt_for_fascicolo(
         self,
         *,
@@ -1834,6 +2198,7 @@ class LocalAIService:
         apps: Iterable[Any],
         scadenze: Iterable[Any],
         rag_rows: list[dict[str, Any]],
+        snapshot: dict[str, Any] | None = None,
     ) -> str:
         fascicolo_lines = [
             f"ID fascicolo: {getattr(fascicolo, 'id', '')}",
@@ -1856,7 +2221,7 @@ class LocalAIService:
             if evidenze:
                 fascicolo_lines.append("Alert intelligenti:")
                 fascicolo_lines.extend(f"- {str(item)}" for item in evidenze[:6])
-            giuri = intelligenza.get("giurisprudenza_suggerita") or []
+            giuri = intelligenza.get("giurisprudenza_suggerita") or intelligenza.get("giurisprudenza") or []
             if giuri:
                 fascicolo_lines.append("Giurisprudenza suggerita:")
                 for row in giuri[:5]:
@@ -1873,6 +2238,19 @@ class LocalAIService:
         if scadenza_lines:
             fascicolo_lines.append("Scadenziario collegato:")
             fascicolo_lines.extend(scadenza_lines)
+        if snapshot:
+            if snapshot.get("documenti_chiave"):
+                fascicolo_lines.append("Documenti chiave snapshot:")
+                fascicolo_lines.extend(f"- {item}" for item in snapshot.get("documenti_chiave") or [])
+            if snapshot.get("rischi_aperti"):
+                fascicolo_lines.append("Rischi aperti snapshot:")
+                fascicolo_lines.extend(f"- {item}" for item in snapshot.get("rischi_aperti") or [])
+            if snapshot.get("cosa_manca"):
+                fascicolo_lines.append("Cosa manca snapshot:")
+                fascicolo_lines.extend(f"- {item}" for item in snapshot.get("cosa_manca") or [])
+            if snapshot.get("prossime_azioni"):
+                fascicolo_lines.append("Prossime azioni snapshot:")
+                fascicolo_lines.extend(f"- {item}" for item in snapshot.get("prossime_azioni") or [])
         context = "\n".join(line for line in fascicolo_lines if _clean_spaces(line))
         rag_context = "\n\n---\n\n".join(
             f"[Fonte {idx + 1}] {row.get('citation')}\n{row.get('text')}"
@@ -1895,8 +2273,7 @@ class LocalAIService:
                 "Contesto documentale RAG:",
                 rag_context,
                 "",
-                "Struttura la risposta in modo operativo.",
-                "Chiudi sempre con una sezione 'Fonti' che elenchi solo le fonti effettivamente usate.",
+                *self._structured_response_requirements(),
             ]
         )
 
@@ -1917,6 +2294,13 @@ class LocalAIService:
         indexing = None
         if should_index:
             indexing = self.index_fascicolo_documents(fascicolo, documents_dir)
+        snapshot = self._fascicolo_snapshot(
+            fascicolo=fascicolo,
+            workspace=workspace,
+            intelligenza=intelligenza,
+            apps=apps or [],
+            scadenze=scadenze or [],
+        )
         rag_rows = self.hybrid_search(question, practice_id=str(getattr(fascicolo, "id", "")), top_k=8)
         prompt = self._prompt_for_fascicolo(
             fascicolo=fascicolo,
@@ -1926,6 +2310,7 @@ class LocalAIService:
             apps=apps or [],
             scadenze=scadenze or [],
             rag_rows=rag_rows,
+            snapshot=snapshot,
         )
         return {
             "ok": True,
@@ -1935,9 +2320,17 @@ class LocalAIService:
             "sources": rag_rows,
             "citations": [row.get("citation") for row in rag_rows if row.get("citation")],
             "indexing": indexing,
+            "snapshot": snapshot,
         }
 
-    def _prompt_for_workspace(self, *, question: str, overview: dict[str, Any], rag_rows: list[dict[str, Any]]) -> str:
+    def _prompt_for_workspace(
+        self,
+        *,
+        question: str,
+        overview: dict[str, Any],
+        rag_rows: list[dict[str, Any]],
+        snapshot: dict[str, Any] | None = None,
+    ) -> str:
         focus_lines = [
             f"Scadenze urgenti: {len(overview.get('scadenze_urgenti') or [])}",
             f"Appuntamenti imminenti: {len(overview.get('appuntamenti_imminenti') or [])}",
@@ -1952,6 +2345,16 @@ class LocalAIService:
         sync_profiles = overview.get("calendar_sync") or overview.get("sincronizzazioni") or []
         if sync_profiles:
             focus_lines.append(f"Profili agenda sincronizzati: {len(sync_profiles)}")
+        if snapshot:
+            if snapshot.get("priorita_giornata"):
+                focus_lines.append("Priorita di giornata:")
+                focus_lines.extend(f"- {item}" for item in snapshot.get("priorita_giornata") or [])
+            if snapshot.get("scadenze_critiche"):
+                focus_lines.append("Scadenze critiche snapshot:")
+                focus_lines.extend(f"- {item}" for item in snapshot.get("scadenze_critiche") or [])
+            if snapshot.get("appuntamenti_chiave"):
+                focus_lines.append("Appuntamenti chiave snapshot:")
+                focus_lines.extend(f"- {item}" for item in snapshot.get("appuntamenti_chiave") or [])
         rag_context = "\n\n---\n\n".join(
             f"[Fonte {idx + 1}] {row.get('citation')}\n{row.get('text')}"
             for idx, row in enumerate(rag_rows)
@@ -1982,7 +2385,13 @@ class LocalAIService:
         overview: dict[str, Any],
     ) -> dict[str, Any]:
         rag_rows = self.hybrid_search(question, top_k=8)
-        prompt = self._prompt_for_workspace(question=question, overview=overview, rag_rows=rag_rows)
+        snapshot = self._workspace_snapshot(overview)
+        prompt = self._prompt_for_workspace(
+            question=question,
+            overview=overview,
+            rag_rows=rag_rows,
+            snapshot=snapshot,
+        )
         return {
             "ok": True,
             "query_type": "workspace_ai",
@@ -1990,6 +2399,7 @@ class LocalAIService:
             "prompt": prompt,
             "sources": rag_rows,
             "citations": [row.get("citation") for row in rag_rows if row.get("citation")],
+            "snapshot": snapshot,
         }
 
     def _complete_prepared_query(

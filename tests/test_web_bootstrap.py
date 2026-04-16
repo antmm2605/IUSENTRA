@@ -301,6 +301,7 @@ def test_web_app_dimagrisce_e_registra_i_moduli_estratti_finali():
     assert "register_telematico_surfaces(" in app_wiring
 
     for symbol in (
+        "register_lex_operational_routes",
         "register_clienti_routes",
         "register_clienti_workspace_routes",
         "register_condivisioni_routes",
@@ -404,6 +405,7 @@ def test_template_principali_usano_copy_italiana_e_date_localizzate():
             "Seleziona il fascicolo da cui avviare la preparazione dell'udienza",
         ],
         "web/templates/workspace_intelligente.html": ["Assistente operativo locale", "Ultima sincronizzazione"],
+        "web/templates/lex_operational.html": ["Lex Fascicolo", "Control Tower telematica"],
         "web/templates/portale/base.html": ["Operazione completata", "Inizio"],
         "web/templates/telematico_dashboard.html": ["Centro Servizi Telematici", "Ultimo allineamento"],
     }
@@ -797,6 +799,7 @@ def test_lex_assistant_usa_componente_esterno_e_posizione_persistente():
     assert "Detta la richiesta a Lex" in widget_template
     assert "Ridimensiona la finestra di Lex" in widget_template
     assert "pct-ai-brand-mark" in widget_template
+    assert 'id="pct-ai-presets"' in widget_template
     assert "pct-ai-fab__label" not in widget_template
     assert "pct-ai-header__subtitle" not in widget_template
     assert "<script>" not in widget_template
@@ -820,6 +823,13 @@ def test_lex_assistant_usa_componente_esterno_e_posizione_persistente():
     assert "window.setTimeout(speakNext, 80)" in widget_voice_js
     assert "window.localStorage" in widget_js
     assert "window.sessionStorage" in widget_js
+    assert "renderPresetPills" in widget_js
+    assert "runPreset" in widget_js
+    assert "SURFACE_PRESETS" in widget_js
+    assert "Lex Fascicolo" in widget_js
+    assert "Lex Udienza" in widget_js
+    assert "Lex Telematico" in widget_js
+    assert "Lex Operativo" in widget_js
     assert "saveConversationMemory" in widget_js
     assert "restoreConversationMemory" in widget_js
     assert "HISTORY_LIMIT = 12" in widget_js
@@ -896,6 +906,10 @@ def test_lex_assistant_usa_componente_esterno_e_posizione_persistente():
     assert "pct-ai-status-pill--inline" in widget_scss
     assert "pct-ai-widget--fullscreen" in widget_scss
     assert ".pct-ai-widget--fullscreen.pct-ai-widget--open .pct-ai-fab" in widget_scss
+    assert ".pct-ai-presets" in widget_scss
+    assert ".pct-ai-preset-pill" in widget_scss
+    assert ".pct-ai-callout" in widget_scss
+    assert ".pct-ai-action-pill" in widget_scss
 
     assert ".pct-ai-widget" in widget_scss
     assert ".pct-ai-brand-mark" in widget_scss
@@ -908,6 +922,10 @@ def test_lex_assistant_usa_componente_esterno_e_posizione_persistente():
     assert ".pct-ai-reference" in widget_scss
     assert "@keyframes pct-lex-thinking-pulse" in widget_scss
     assert "@keyframes pct-lex-soft-blink" in widget_scss
+
+    init_block = widget_js.split("function init()", 1)[1].split("window.pctAI", 1)[0]
+    assert "primeAssistantContext();" not in init_block
+    assert "checkStatus();" not in init_block
     assert ".pct-ai-toolbar" in widget_scss
     assert ".pct-ai-attachments" in widget_scss
     assert ".pct-ai-resize-handle" in widget_scss
@@ -1177,6 +1195,7 @@ def test_quadro_intelligente_fascicolo_e_collassabile_con_collegamenti_rapidi():
     assert "Parti del procedimento" in smart_board
     assert "Collegamenti rapidi" in smart_board
     assert "@use 'pages/fascicolo-smart-board';" in app_scss
+    assert "@use 'pages/lex-operational';" in app_scss
     assert ".fascicolo-smart-board__quick-link" in smart_board_scss
     assert ".fascicolo-smart-board__hero" in smart_board_scss
 

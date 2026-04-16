@@ -1,0 +1,51 @@
+{% extends "admin/base.html" %}
+{% block title %}Assistente migrazione{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item active">Assistente migrazione</li>{% endblock %}
+
+{% block content %}
+<div class="admin-page-header">
+  <div>
+    <h4 class="admin-page-title">Assistente migrazione dati</h4>
+    <p class="admin-page-subtitle">Riduce attrito nella prima settimana: clienti, fascicoli, agenda, scadenze, documenti e template.</p>
+  </div>
+</div>
+
+<div class="card mb-4">
+  <div class="card-header fw-semibold">Workflow consigliato</div>
+  <div class="card-body">
+    <ol class="mb-0">
+      {% for step in payload.workflow %}
+      <li class="mb-2">{{ step }}</li>
+      {% endfor %}
+    </ol>
+  </div>
+</div>
+
+<div class="row g-3">
+  {% for module in payload.modules %}
+  <div class="col-12 col-md-6 col-xl-4">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
+          <div>
+            <div class="fw-semibold">{{ module.title }}</div>
+            <div class="small text-muted">Elementi attualmente disponibili</div>
+          </div>
+          <span class="badge text-bg-{{ 'success' if module.status == 'ok' else 'warning' }}">{{ module.status|upper }}</span>
+        </div>
+        <div class="fs-2 fw-bold mb-2">{{ module.count }}</div>
+        <div class="small">{{ module.next_step }}</div>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="card mt-4">
+  <div class="card-header fw-semibold">Template base disponibili</div>
+  <div class="card-body">
+    <div class="small text-muted mb-2">Modelli built-in pronti da usare come base per l'import e la standardizzazione.</div>
+    <div class="fs-4 fw-bold">{{ payload.built_in_templates }}</div>
+  </div>
+</div>
+{% endblock %}

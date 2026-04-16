@@ -1,0 +1,52 @@
+{
+  "cases": [
+    {
+      "id": "fascicolo-001",
+      "area": "fascicolo",
+      "title": "Sintesi fascicolo civile con scadenze e documenti mancanti",
+      "rubric": ["correttezza", "grounding", "prudenza", "completezza", "utilita_operativa"]
+    },
+    {
+      "id": "fascicolo-002",
+      "area": "fascicolo",
+      "title": "Documento firmato .p7m con verifica atti chiave",
+      "rubric": ["grounding", "prudenza", "utilita_operativa"]
+    },
+    {
+      "id": "udienza-001",
+      "area": "udienza",
+      "title": "Preparazione udienza con timeline e allegati da presidiare",
+      "rubric": ["correttezza", "completezza", "utilita_operativa"]
+    },
+    {
+      "id": "telematico-001",
+      "area": "telematico",
+      "title": "Esito deposito in review con warning e controlli predeposito",
+      "rubric": ["grounding", "prudenza", "utilita_operativa"]
+    },
+    {
+      "id": "telematico-002",
+      "area": "telematico",
+      "title": "Import incompleto dal portale con prossima azione suggerita",
+      "rubric": ["correttezza", "prudenza", "utilita_operativa"]
+    },
+    {
+      "id": "giurisprudenza-001",
+      "area": "giurisprudenza",
+      "title": "Ricerca sentenze civili recenti con fonti verificabili",
+      "rubric": ["grounding", "prudenza", "completezza"]
+    },
+    {
+      "id": "atti-001",
+      "area": "atti",
+      "title": "Supporto bozza atto con warning su campi mancanti",
+      "rubric": ["prudenza", "completezza", "utilita_operativa"]
+    },
+    {
+      "id": "operativo-001",
+      "area": "operativo",
+      "title": "Prossima azione giusta della giornata con priorita",
+      "rubric": ["correttezza", "utilita_operativa", "completezza"]
+    }
+  ]
+}

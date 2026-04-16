@@ -1,0 +1,82 @@
+{% extends "admin/base.html" %}
+{% block title %}Salute sistema{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item active">Salute sistema</li>{% endblock %}
+
+{% block content %}
+<div class="admin-page-header">
+  <div>
+    <h4 class="admin-page-title">Salute sistema</h4>
+    <p class="admin-page-subtitle">Latenze, scheduler, OCR, provider AI, backup e spazio dati in una vista sola.</p>
+  </div>
+</div>
+
+<div class="row g-3 mb-4">
+  {% for card in payload.cards %}
+  <div class="col-12 col-md-6 col-xl-4">
+    <div class="card admin-stat-card h-100">
+      <div class="card-body">
+        <div class="small text-muted mb-1">{{ card.label }}</div>
+        <div class="fs-4 fw-bold">{{ card.value }}</div>
+        <div class="small mt-2">{{ card.detail }}</div>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="row g-4">
+  <div class="col-12 col-xl-7">
+    <div class="card h-100">
+      <div class="card-header fw-semibold">Endpoint piu lenti</div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-sm align-middle mb-0">
+            <thead class="table-light">
+              <tr><th>Bucket</th><th>Media</th><th>P95</th><th>Max</th><th>Campioni</th></tr>
+            </thead>
+            <tbody>
+              {% for row in payload.http_buckets %}
+              <tr>
+                <td>{{ row.bucket }}</td>
+                <td>{{ row.avg_ms }} ms</td>
+                <td>{{ row.p95_ms }} ms</td>
+                <td>{{ row.max_ms }} ms</td>
+                <td>{{ row.count }}</td>
+              </tr>
+              {% else %}
+              <tr><td colspan="5" class="text-muted">Nessun campione HTTP ancora raccolto.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-xl-5">
+    <div class="card h-100">
+      <div class="card-header fw-semibold">Runtime AI e OCR</div>
+      <div class="card-body">
+        <div class="admin-surface-list">
+          <div class="admin-surface-item">
+            <div class="fw-semibold">Primo token Lex</div>
+            <div class="small mt-1">{{ payload.lex_first_token.avg_ms or 0 }} ms · campioni {{ payload.lex_first_token.count or 0 }}</div>
+          </div>
+          <div class="admin-surface-item">
+            <div class="fw-semibold">Coda OCR</div>
+            <div class="small mt-1">Depth {{ payload.ocr.queue_depth or 0 }} · completati {{ payload.ocr.completed or 0 }}</div>
+          </div>
+          <div class="admin-surface-item">
+            <div class="fw-semibold">Provider locale</div>
+            <div class="small mt-1">{{ (payload.local_ai.runtime.status_text or payload.local_ai.runtime.status or 'n.d.') if payload.local_ai.runtime else 'n.d.' }}</div>
+          </div>
+          <div class="admin-surface-item">
+            <div class="fw-semibold">Scheduler separato</div>
+            <div class="small mt-1">{{ 'Attivo su worker dedicato' if payload.scheduler_worker_mode else 'Modalita web' }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

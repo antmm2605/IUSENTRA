@@ -79,6 +79,7 @@ def _service(tmp_path: Path, *, enabled: bool = True) -> LocalAIService:
 def _cfg_web(tmp_path: Path) -> dict:
     return {
         "TESTING": True,
+        "MULTI_TENANT": False,
         "SECRET_KEY": "test",
         "AUTH_DB": str(tmp_path / "auth" / "utenti.json"),
         "AUDIT_DB": str(tmp_path / "auth" / "audit.json"),
@@ -230,6 +231,45 @@ def test_local_ai_index_and_hybrid_search(tmp_path: Path, monkeypatch):
     assert results
     assert results[0]["document_id"]
     assert "Atto di opposizione" in results[0]["citation"]
+
+
+def test_local_ai_index_file_supporta_p7m_con_payload_estratto(tmp_path: Path, monkeypatch):
+    import pct.local_ai as local_ai_module
+
+    service = _service(tmp_path)
+    document_path = tmp_path / "memoria.pdf.p7m"
+    document_path.write_bytes(b"fake-p7m")
+
+    monkeypatch.setattr(local_ai_module, "_extract_signed_payload", lambda data: b"%PDF-1.4 test")
+
+    indexed = service.index_file(
+        source_type="fascicolo_documento",
+        source_id="DOC-P7M",
+        practice_id="P1",
+        file_path=str(document_path),
+        title="Memoria firmata",
+    )
+
+    assert indexed["status"] == "indexed"
+    assert indexed["mime_type"] == "application/pdf"
+    assert indexed["outer_mime_type"] == "application/pkcs7-mime"
+
+
+def test_prepare_workspace_query_restituisce_snapshot(tmp_path: Path):
+    service = _service(tmp_path)
+
+    prepared = service.prepare_workspace_query(
+        question="Qual e la prossima azione giusta di oggi?",
+        overview={
+            "actions": [{"title": "Presidiare scadenza urgente", "description": "Termine entro 48 ore"}],
+            "summary": {"scadenze_urgenti": 1, "fascicoli_attenzionati": 2},
+            "fascicoli_hot": [{"titolo": "Opposizione banca", "azioni": ["Preparare deposito memoria"]}],
+        },
+    )
+
+    assert prepared["ok"] is True
+    assert prepared["snapshot"]["summary"]["scadenze_urgenti"] == 1
+    assert prepared["snapshot"]["actions"][0]["title"] == "Presidiare scadenza urgente"
 
 
 def test_local_ai_health_snapshot_exposes_installer_and_resolved_models(tmp_path: Path, monkeypatch):

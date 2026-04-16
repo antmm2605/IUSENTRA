@@ -128,13 +128,6 @@
     }
   }
 
-  document.addEventListener('DOMContentLoaded', function () {
-    if (!root() || !bridge()) {
-      return;
-    }
-    refreshWorkspaceAiRuntime();
-  });
-
   window.askWorkspaceAi = askWorkspaceAi;
   window.refreshWorkspaceAiRuntime = refreshWorkspaceAiRuntime;
 })();

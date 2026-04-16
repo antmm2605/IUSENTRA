@@ -70,11 +70,14 @@ def apply_runtime_settings(
     app.config["TENANTS_REGISTRY"] = cfg.get(
         "TENANTS_REGISTRY", os.getenv("PCT_TENANTS_REGISTRY", "./data/tenants.json")
     )
-    app.config["MULTI_TENANT"] = os.getenv("PCT_MULTI_TENANT", "1").lower() not in (
-        "0",
-        "false",
-        "no",
-    )
+    if "MULTI_TENANT" in cfg:
+        app.config["MULTI_TENANT"] = bool(cfg.get("MULTI_TENANT"))
+    else:
+        app.config["MULTI_TENANT"] = os.getenv("PCT_MULTI_TENANT", "1").lower() not in (
+            "0",
+            "false",
+            "no",
+        )
     app.config["STUDIO_CONFIG"] = cfg.get(
         "STUDIO_CONFIG", os.getenv("PCT_STUDIO_CONFIG", "./config/studio.json")
     )

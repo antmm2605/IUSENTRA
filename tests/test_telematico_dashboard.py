@@ -11,6 +11,7 @@ from web.app import create_app
 def _cfg_web(tmp_path: Path) -> dict:
     return {
         "TESTING": True,
+        "MULTI_TENANT": False,
         "SECRET_KEY": "test",
         "AUTH_DB": str(tmp_path / "utenti.json"),
         "AUDIT_DB": str(tmp_path / "audit.json"),

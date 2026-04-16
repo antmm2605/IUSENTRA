@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import sqlite3
 from dataclasses import dataclass, asdict, replace
 from pathlib import Path
@@ -11,6 +12,28 @@ from flask import current_app, g, has_app_context, has_request_context
 
 from pct.storage import StudioDB
 from pct.tenant import DbMode, normalize_db_mode
+
+_ROOT_LEVEL_JSON_ANCHORS = {
+    "agenda",
+    "auth",
+    "calendar",
+    "clienti",
+    "config",
+    "email",
+    "fascicoli",
+    "fatturazione",
+    "intelligence",
+    "messaggi",
+    "penale",
+    "portale",
+    "preventivi",
+    "privacy",
+    "scadenziario",
+    "search",
+    "soggetti",
+    "telematico",
+    "template_atti",
+}
 
 
 @dataclass(frozen=True)
@@ -29,9 +52,49 @@ class StorageRuntimeProfile:
 
 
 def _derive_studio_db_path(anchor_path: str) -> str:
-    anchor = Path(anchor_path)
-    root = anchor.parent.parent if anchor.suffix.lower() == ".json" else anchor.parent
+    anchor = Path(anchor_path).resolve()
+    if anchor.suffix.lower() != ".json":
+        root = anchor.parent
+    elif anchor.parent.name.lower() in _ROOT_LEVEL_JSON_ANCHORS:
+        root = anchor.parent.parent
+    else:
+        root = anchor.parent
     return str((root / "studio.db").resolve())
+
+
+def _json_anchor_has_legacy_data(anchor_path: Path) -> bool:
+    if anchor_path.suffix.lower() != ".json" or not anchor_path.exists():
+        return False
+    try:
+        payload = json.loads(anchor_path.read_text(encoding="utf-8"))
+    except Exception:
+        return False
+    if isinstance(payload, list):
+        return len(payload) > 0
+    if isinstance(payload, dict):
+        return len(payload) > 0
+    return bool(payload)
+
+
+def _sqlite_runtime_is_unseeded(studio_db_path: Path) -> bool:
+    if not studio_db_path.exists():
+        return True
+    try:
+        conn = sqlite3.connect(str(studio_db_path))
+        try:
+            tables = ("clienti", "fascicoli", "appuntamenti", "scadenze", "utenti")
+            total = 0
+            for table in tables:
+                try:
+                    row = conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()
+                except sqlite3.Error:
+                    continue
+                total += int((row or [0])[0] or 0)
+            return total == 0
+        finally:
+            conn.close()
+    except sqlite3.Error:
+        return False
 
 
 def resolve_storage_runtime(*, anchor_path: str, tenant: Any = None) -> StorageRuntimeProfile:
@@ -86,6 +149,24 @@ def get_request_storage_runtime(anchor_path: str) -> StorageRuntimeProfile:
 def get_request_studio_db(anchor_path: str):
     profile = get_request_storage_runtime(anchor_path)
     if not profile.uses_sqlite:
+        return None
+
+    anchor = Path(profile.data_anchor_path)
+    studio_db_path = Path(profile.studio_db_path)
+    if _json_anchor_has_legacy_data(anchor) and _sqlite_runtime_is_unseeded(studio_db_path):
+        fallback_profile = replace(
+            profile,
+            effective_mode=DbMode.JSON,
+            uses_sqlite=False,
+            source=f"{profile.source}-json-legacy",
+        )
+        if has_request_context():
+            g._storage_runtime_profile = fallback_profile
+        if has_app_context():
+            current_app.logger.info(
+                "SQLite operativo non ancora popolato per %s: mantengo i dati legacy JSON come sorgente attiva.",
+                profile.data_anchor_path,
+            )
         return None
 
     cached = getattr(g, "_runtime_studio_db", None) if has_request_context() else None

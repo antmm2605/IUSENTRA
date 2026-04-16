@@ -26,6 +26,9 @@
     voiceReplyEnabled: true,
     thinking: null,
     pendingFocus: null,
+    runtimeStatusChecked: false,
+    runtimeStatusPromise: null,
+    contextPrimed: false,
   };
 
   var widget;
@@ -41,6 +44,7 @@
   var voiceBadge;
   var uploadInput;
   var attachmentsShelf;
+  var presetsShelf;
   var exportButton;
   var fullscreenButton;
   var micButton;
@@ -194,8 +198,119 @@
     }
   }
 
+  var ACTION_PROMPTS = {
+    summary: 'Fammi una sintesi operativa del fascicolo o del tema attivo, con fatti rilevanti, warning e prossimi passi.',
+    criticita: 'Trova criticita, rischi aperti, punti mancanti e verifiche residue sul tema attivo.',
+    bozza: 'Preparami una bozza operativa iniziale con struttura chiara, warning e dati ancora da completare.',
+    fonti: 'Mostrami soltanto le fonti e spiegami quali sono davvero utilizzabili.',
+  };
+
+  var SURFACE_PRESETS = {
+    fascicolo: {
+      label: 'Lex Fascicolo',
+      prompt: 'Fammi una sintesi del fascicolo attivo: documenti chiave, rischi aperti, cosa manca e prossimi passi.',
+    },
+    udienza: {
+      label: 'Lex Udienza',
+      prompt: 'Preparami la prossima udienza con timeline, allegati da vedere, punti critici e verifiche residue.',
+    },
+    telematico: {
+      label: 'Lex Telematico',
+      prompt: 'Spiegami errori, warning e stato di import o deposito telematico, con cosa verificare prima del prossimo passo.',
+    },
+    operativo: {
+      label: 'Lex Operativo',
+      prompt: 'Dammi la prossima azione giusta della giornata con priorita, scadenze che stanno diventando problemi e fascicoli da presidiare.',
+    },
+  };
+
+  function renderWarnings(payload) {
+    var warnings = Array.isArray(payload && payload.warnings) ? payload.warnings.filter(Boolean) : [];
+    if (!warnings.length) {
+      return '';
+    }
+    return (
+      '<div class="pct-ai-callout pct-ai-callout--warning">' +
+        '<div class="pct-ai-callout__title"><i class="bi bi-exclamation-triangle me-1"></i>Warning</div>' +
+        '<ul class="pct-ai-callout__list">' +
+          warnings.map(function (item) { return '<li>' + escapeHtml(item) + '</li>'; }).join('') +
+        '</ul>' +
+      '</div>'
+    );
+  }
+
   function renderSources(payload) {
-    return '';
+    var citations = Array.isArray(payload && payload.citations) ? payload.citations.filter(Boolean) : [];
+    var sources = Array.isArray(payload && payload.sources) ? payload.sources.slice(0, 5) : [];
+    var items = citations.map(function (item) {
+      return '<li>' + escapeHtml(item) + '</li>';
+    });
+    sources.forEach(function (item) {
+      var title = String(item && (item.title || item.citation || item.id || '') || '').trim();
+      var excerpt = String(item && (item.excerpt || item.text || '') || '').trim();
+      if (!title && !excerpt) {
+        return;
+      }
+      items.push(
+        '<li>' +
+          '<span class="fw-semibold">' + escapeHtml(title || 'Fonte') + '</span>' +
+          (excerpt ? '<div class="small text-muted">' + escapeHtml(excerpt.slice(0, 220)) + '</div>' : '') +
+        '</li>'
+      );
+    });
+    if (!items.length) {
+      return '';
+    }
+    return (
+      '<div class="pct-ai-callout pct-ai-callout--sources">' +
+        '<div class="pct-ai-callout__title"><i class="bi bi-journal-text me-1"></i>Fonti</div>' +
+        '<ul class="pct-ai-callout__list">' + items.join('') + '</ul>' +
+      '</div>'
+    );
+  }
+
+  function renderActionPills(payload) {
+    var actions = Array.isArray(payload && payload.actions) ? payload.actions.filter(Boolean) : [];
+    if (!actions.length) {
+      return '';
+    }
+    return (
+      '<div class="pct-ai-action-pills">' +
+        actions.map(function (action) {
+          var key = String(action.key || '').trim();
+          var label = String(action.label || key || '').trim();
+          var prompt = ACTION_PROMPTS[key] || label;
+          return '<button type="button" class="pct-ai-action-pill" data-lex-action="' + escapeHtml(prompt) + '">' + escapeHtml(label) + '</button>';
+        }).join('') +
+      '</div>'
+    );
+  }
+
+  function renderPresetPills() {
+    if (!presetsShelf) {
+      return;
+    }
+    presetsShelf.innerHTML = Object.keys(SURFACE_PRESETS).map(function (key) {
+      var preset = SURFACE_PRESETS[key];
+      return (
+        '<button type="button" class="pct-ai-preset-pill" data-lex-preset="' + escapeHtml(key) + '">' +
+          '<span class="pct-ai-preset-pill__label">' + escapeHtml(preset.label) + '</span>' +
+        '</button>'
+      );
+    }).join('');
+  }
+
+  function runPreset(key) {
+    var preset = SURFACE_PRESETS[String(key || '').trim()];
+    if (!preset || !input) {
+      return;
+    }
+    input.value = preset.prompt;
+    autoResize();
+    if (!state.open) {
+      setOpen(true);
+    }
+    send();
   }
 
   function queryProfile(question) {
@@ -898,6 +1013,9 @@
     return (
       renderReferenceLabel(payload && payload.referenceLabel) +
       answer +
+      renderWarnings(payload) +
+      renderSources(payload) +
+      renderActionPills(payload) +
       (includeExports ? renderGeneratedDocumentActions(payload || {}) : '')
     );
   }
@@ -1035,6 +1153,8 @@
     state.currentBubble = null;
     state.pendingFocus = null;
     state.attachments = [];
+    state.contextWarmStarted = false;
+    state.contextPrimed = false;
     renderConversation();
     renderAttachments();
     saveConversationMemory();
@@ -1132,7 +1252,7 @@
     widget.classList.toggle('pct-ai-widget--open', state.open);
 
     if (state.open) {
-      primeAssistantContext();
+      ensureAssistantReady();
       window.requestAnimationFrame(function () {
         if (input) {
           input.focus();
@@ -1181,6 +1301,18 @@
     };
   }
 
+  function ensureAssistantReady(forceStatusRefresh) {
+    if (forceStatusRefresh) {
+      state.runtimeStatusChecked = false;
+      state.runtimeStatusPromise = null;
+    }
+    if (!state.contextPrimed) {
+      state.contextPrimed = true;
+      primeAssistantContext();
+    }
+    return ensureStatusCheck(forceStatusRefresh);
+  }
+
   function primeAssistantContext() {
     var warmupUrl = widget && widget.dataset ? widget.dataset.warmupUrl || '' : '';
     var warmQuestion = '';
@@ -1208,9 +1340,27 @@
         question: warmQuestion,
         context_label: conversationContextLabel(),
       }),
-    }).catch(function () {
+      }).catch(function () {
       state.contextWarmStarted = false;
     });
+  }
+
+  function ensureStatusCheck(forceRefresh) {
+    if (forceRefresh) {
+      state.runtimeStatusChecked = false;
+      state.runtimeStatusPromise = null;
+    }
+    if (state.runtimeStatusChecked && !state.runtimeStatusPromise) {
+      return Promise.resolve();
+    }
+    if (state.runtimeStatusPromise) {
+      return state.runtimeStatusPromise;
+    }
+    state.runtimeStatusPromise = Promise.resolve(checkStatus()).finally(function () {
+      state.runtimeStatusChecked = true;
+      state.runtimeStatusPromise = null;
+    });
+    return state.runtimeStatusPromise;
   }
 
   function sendLocal(text) {
@@ -1882,8 +2032,24 @@
     if (attachmentsShelf && documentsHelper()) {
       documentsHelper().bindShelfRemoval(attachmentsShelf, removeAttachment);
     }
+    if (presetsShelf) {
+      presetsShelf.addEventListener('click', function (event) {
+        var presetButton = event.target.closest('[data-lex-preset]');
+        if (!presetButton) {
+          return;
+        }
+        runPreset(presetButton.getAttribute('data-lex-preset'));
+      });
+    }
     if (messages) {
       messages.addEventListener('click', function (event) {
+        var actionButton = event.target.closest('[data-lex-action]');
+        if (actionButton && input) {
+          input.value = String(actionButton.getAttribute('data-lex-action') || '').trim();
+          autoResize();
+          send();
+          return;
+        }
         var button = event.target.closest('[data-generated-download]');
         var docs = documentsHelper();
         if (!button || !docs) {
@@ -2020,6 +2186,7 @@
     voiceBadge = query('pct-ai-voice-badge');
     uploadInput = query('pct-ai-upload');
     attachmentsShelf = query('pct-ai-attachments');
+    presetsShelf = query('pct-ai-presets');
     exportButton = query('pct-ai-export');
     fullscreenButton = query('pct-ai-fullscreen');
     micButton = query('pct-ai-mic');
@@ -2044,17 +2211,16 @@
     initContext();
     renderConversation();
     renderAttachments();
+    renderPresetPills();
     if (!state.sessionId) {
       state.sessionId = generateSessionId();
     }
-    primeAssistantContext();
     if (!state.history.length && !state.attachments.length) {
       setStatus('Assistente pronto.');
     } else {
       setStatus('Sessione ripristinata.');
     }
     updateVoiceUi();
-    checkStatus();
   }
 
   window.pctAI = {

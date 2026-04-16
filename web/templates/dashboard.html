@@ -45,6 +45,74 @@
   </span>
 </div>
 
+{% if workspace_overview %}
+<div class="row g-3 dashboard-grid-tight">
+  <div class="col-12 col-lg-5">
+    <div class="card dashboard-card h-100">
+      <div class="card-header ui-panel-compact__header fw-semibold d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-stars me-2 text-primary"></i>Prossime azioni</span>
+        <a href="{{ url_for('lex_operativo') }}" class="btn btn-sm btn-outline-primary">Lex operativo</a>
+      </div>
+      <div class="card-body">
+        <div class="dashboard-operational-list">
+          {% for action in workspace_overview.actions %}
+          <a href="{{ action.href }}" class="dashboard-operational-item text-decoration-none">
+            <div>
+              <div class="fw-semibold text-dark">{{ action.title }}</div>
+              <div class="small text-muted mt-1">{{ action.description }}</div>
+            </div>
+            <span class="badge text-bg-{{ action.tone }}">{{ action.tone|title }}</span>
+          </a>
+          {% else %}
+          <div class="ui-empty-state">Nessuna azione operativa da evidenziare.</div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-12 col-lg-4">
+    <div class="card dashboard-card h-100">
+      <div class="card-header ui-panel-compact__header fw-semibold">
+        <i class="bi bi-folder2-open me-2 text-warning"></i>Fascicoli attenzionati
+      </div>
+      <div class="card-body">
+        <div class="dashboard-operational-list">
+          {% for fascicolo in workspace_overview.fascicoli_hot[:4] %}
+          <a href="{{ url_for('dettaglio_fascicolo', id_fasc=fascicolo.id) }}" class="dashboard-operational-item text-decoration-none">
+            <div>
+              <div class="fw-semibold text-dark">{{ fascicolo.titolo }}</div>
+              <div class="small text-muted mt-1">{{ fascicolo.numero }}{% if fascicolo.tribunale %} · {{ fascicolo.tribunale }}{% endif %}</div>
+            </div>
+            <span class="badge text-bg-light border">score {{ fascicolo.score }}</span>
+          </a>
+          {% else %}
+          <div class="ui-empty-state">Nessun fascicolo richiede presidio immediato.</div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-12 col-lg-3">
+    <div class="card dashboard-card h-100">
+      <div class="card-header ui-panel-compact__header fw-semibold">
+        <i class="bi bi-activity me-2 text-danger"></i>Anomalie e warning
+      </div>
+      <div class="card-body">
+        <div class="dashboard-operational-pills">
+          <span class="badge text-bg-danger">{{ workspace_overview.summary.scadenze_urgenti }} scadenze urgenti</span>
+          <span class="badge text-bg-warning">{{ workspace_overview.summary.profili_sync_da_verificare }} sync da verificare</span>
+          <span class="badge text-bg-secondary">{{ workspace_overview.summary.notifiche_scadenze }} notifiche scadenze</span>
+          <span class="badge text-bg-info">{{ workspace_overview.summary.fascicoli_attenzionati }} fascicoli attenzionati</span>
+        </div>
+        <div class="small text-muted mt-3">
+          La home resta una regia operativa: meno archivio, piu' decisioni immediate.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
 {# ---- Scadenze critiche alert ---- #}
 {% if scadenze_critiche %}
 <div class="ui-feedback ui-feedback--danger mb-3">

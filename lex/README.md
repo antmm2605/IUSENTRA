@@ -35,3 +35,14 @@ Il blueprint continua a chiamarsi `assistente`, quindi:
 - `url_for('assistente.assistente_chat')` continua a funzionare
 - il widget esistente non richiede modifiche lato template o JavaScript
 - i moduli legacy in `web/services/assistente_*.py` restano solo come facciate compatibili
+
+## Architettura operativa aggiornata
+
+Dal 16 aprile 2026 il bounded context `lex/` espone anche:
+
+- `lex/adapters/` per facts, eventi e result pack modulo-per-modulo
+- `lex/research/` per evidence pack, fonti ufficiali e trusted sources
+- `lex/insights/` per segnali operativi, economici, compliance e udienza
+- `lex/memory/service.py` per working memory strutturata
+
+Matrice completa: [docs/LEX_AI_MODULE_MATRIX.md](../docs/LEX_AI_MODULE_MATRIX.md)

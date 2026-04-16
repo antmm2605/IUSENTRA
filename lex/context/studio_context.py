@@ -23,7 +23,30 @@ def warm_lex_studio_context(*args, **kwargs) -> dict[str, Any]:
 
 
 def build_studio_context(request) -> dict[str, Any]:
-    return {
-        "tenant_id": request.tenant_id,
-        "workflow_hint": request.workflow_hint or "",
+    """Costruisce un contesto studio ricco per il workflow applicativo puro.
+
+    Fuori da Flask o in ambienti di test il builder storico puo' non essere
+    disponibile: in quel caso Lex degrada su un payload minimo ma coerente.
+    """
+
+    metadata = dict(getattr(request, "metadata", {}) or {})
+    payload = {
+        "tenant_id": getattr(request, "tenant_id", ""),
+        "workflow_hint": getattr(request, "workflow_hint", "") or "",
+        "request_metadata": metadata,
     }
+    question = str(getattr(request, "query", "") or "").strip()
+    if not question:
+        return payload
+
+    mode = str(metadata.get("mode") or "chat").strip() or "chat"
+    messages = list(metadata.get("messages") or [])
+    try:
+        rich_payload = dict(_build_lex_studio_context(question, mode=mode, messages=messages) or {})
+    except Exception:
+        rich_payload = {}
+
+    rich_payload.setdefault("tenant_id", payload["tenant_id"])
+    rich_payload.setdefault("workflow_hint", payload["workflow_hint"])
+    rich_payload.setdefault("request_metadata", metadata)
+    return rich_payload

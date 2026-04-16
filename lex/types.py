@@ -35,14 +35,45 @@ ProviderType = Literal["ollama", "openai", "mock"]
 SourceType = Literal[
     "fascicolo",
     "documento",
+    "anagrafica",
     "agenda",
     "scadenziario",
     "giurisprudenza",
     "legal_intelligence",
     "template_atto",
     "preventivo",
+    "tariffario",
+    "fattura",
+    "strumento",
     "telematico",
     "normativa",
     "compliance",
     "web_ufficiale",
 ]
+
+ModuleType = Literal[
+    "cabina",
+    "fascicoli",
+    "documenti",
+    "agenda",
+    "scadenziario",
+    "telematico",
+    "preventivi",
+    "tariffario",
+    "fatture",
+    "anagrafiche",
+    "strumenti",
+    "ricerca_legale",
+]
+
+FactKind = Literal[
+    "fatto_certo",
+    "fatto_derivato",
+    "ipotesi",
+    "suggerimento",
+    "alert",
+]
+
+PackStatus = Literal["ok", "empty", "warning"]
+
+InsightType = Literal["operational", "economic", "compliance", "hearing"]

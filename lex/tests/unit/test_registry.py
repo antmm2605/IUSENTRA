@@ -19,3 +19,6 @@ def test_registry_builds_application_service_that_can_answer():
     assert response.answer
     assert response.metadata["workflow"] == "chat"
     assert "provider" in response.metadata
+    assert "module_packs" in response.metadata
+    assert "working_memory" in response.metadata
+    assert "evidence_pack" in response.metadata

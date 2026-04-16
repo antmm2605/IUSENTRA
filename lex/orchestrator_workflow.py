@@ -38,9 +38,9 @@ def run_workflow(orchestrator, request):
         verdict=post,
     )
 
+    if orchestrator.memory is not None:
+        orchestrator.memory.persist(request, workflow, context, evidence, response)
     if orchestrator.telemetry is not None:
         orchestrator.telemetry.record(request, workflow, context, evidence, response)
-    if orchestrator.memory is not None:
-        orchestrator.memory.persist(request, workflow, context, response)
 
     return response

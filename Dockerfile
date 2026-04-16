@@ -1,4 +1,4 @@
-﻿#  version: 2.155.86
+﻿#  version: 2.155.87
 #  IUSENTRA | Dockerfile produzione
 
 #  Build multi-stage:
@@ -10,9 +10,9 @@
 
 
 
-# ─────────────────────────────────────────────────────────────
+# -------------------------------------------------------------
 #  Stage 1 — builder: compila tutte le dipendenze Python
-# ─────────────────────────────────────────────────────────────
+# -------------------------------------------------------------
 FROM python:3.12-slim AS builder
 
 # Dipendenze di build (rimangono solo in questo stage)
@@ -36,10 +36,10 @@ COPY pct/__init__.py pct/__init__.py
 RUN pip install --no-cache-dir ".[pdf,pades,pkcs11]" "gunicorn>=23.0.0,<24" "gevent>=24.2.0,<25"
 
 
-# ─────────────────────────────────────────────────────────────
+# -------------------------------------------------------------
 #  Stage 2 — sass: scarica dart-sass e compila gli SCSS -> CSS
 #  (nessun Node.js richiesto: dart-sass è un eseguibile standalone)
-# ─────────────────────────────────────────────────────────────
+# -------------------------------------------------------------
 FROM debian:bookworm-slim AS sass-builder
 
 ARG DART_SASS_VERSION=1.83.0
@@ -63,13 +63,13 @@ RUN mkdir -p /out && /tmp/dart-sass/sass --no-source-map --style=compressed \
       portal.scss:/out/portal.css
 
 
-# ─────────────────────────────────────────────────────────────
+# -------------------------------------------------------------
 #  Stage 3 — runtime: immagine finale senza gcc né librerie -dev
-# ─────────────────────────────────────────────────────────────
+# -------------------------------------------------------------
 FROM python:3.12-slim
 
 LABEL org.opencontainers.image.title="IUSENTRA" \
-      org.opencontainers.image.version="2.155.86" \
+      org.opencontainers.image.version="2.155.87" \
       org.opencontainers.image.description="Gestionale PCT per studi legali italiani" \
       org.opencontainers.image.created="2026-03-18"
 
@@ -179,6 +179,8 @@ CMD gunicorn \
     --access-logfile - \
     --error-logfile - \
     wsgi:app
+
+
 
 
 

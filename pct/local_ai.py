@@ -27,6 +27,11 @@ from typing import Any, Iterable
 import pdfplumber
 import requests
 
+from pct.firme_cades import (
+    inner_signed_path as cades_inner_signed_path,
+    inspect_signed_document_bytes,
+    payload_mime_from_bytes as cades_payload_mime_from_bytes,
+)
 from pct.local_ai_runtime import OllamaRuntimeProvisioner
 
 logger = logging.getLogger("pct.local_ai")
@@ -200,53 +205,17 @@ def _detect_language(text: str) -> str | None:
 
 
 def _extract_signed_payload(data: bytes) -> bytes | None:
-    try:
-        from asn1crypto import cms
-    except Exception:
-        return None
+    from pct.firme_cades import extract_signed_payload
 
-    try:
-        content_info = cms.ContentInfo.load(data)
-        if content_info["content_type"].native != "signed_data":
-            return None
-        signed_data = content_info["content"]
-        encap = signed_data["encap_content_info"]
-        content = encap["content"]
-        if content is None:
-            return None
-        native = getattr(content, "native", None)
-        if isinstance(native, bytes):
-            return native
-        if isinstance(content, bytes):
-            return content
-        if native is not None:
-            try:
-                return bytes(native)
-            except Exception:
-                return None
-    except Exception:
-        return None
-    return None
+    return extract_signed_payload(data)
 
 
 def _payload_mime_from_bytes(data: bytes) -> str:
-    sample = bytes(data[:32] if data else b"")
-    if sample.startswith(b"%PDF"):
-        return "application/pdf"
-    if sample.startswith(b"PK\x03\x04"):
-        return "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-    if sample.lstrip().startswith(b"{") or sample.lstrip().startswith(b"["):
-        return "application/json"
-    if sample.lstrip().startswith(b"<"):
-        return "text/html"
-    return "text/plain"
+    return cades_payload_mime_from_bytes(data)
 
 
 def _inner_signed_path(file_path: Path) -> Path:
-    lower_name = file_path.name.lower()
-    if lower_name.endswith(".p7m"):
-        return file_path.with_suffix("")
-    return file_path
+    return cades_inner_signed_path(file_path)
 
 
 def _is_supported_mime(mime_type: str) -> bool:
@@ -255,6 +224,8 @@ def _is_supported_mime(mime_type: str) -> bool:
         "text/markdown",
         "text/html",
         "application/xhtml+xml",
+        "application/xml",
+        "text/xml",
         "application/json",
         "application/pdf",
         "application/pkcs7-mime",
@@ -1307,23 +1278,49 @@ class LocalAIService:
         except Exception:
             return data
 
+    def _detached_original_candidate_path(self, doc: Any, documents_dir: str) -> Path | None:
+        docs_dir = Path(documents_dir)
+        for versione in reversed(list(getattr(doc, "versioni", []) or [])):
+            percorso_rel = str(getattr(versione, "percorso", "") or "").strip()
+            if not percorso_rel:
+                continue
+            candidate = docs_dir / percorso_rel
+            if not candidate.exists():
+                continue
+            if candidate.name.lower().endswith(".p7m"):
+                continue
+            return candidate
+        return None
+
     def _resolve_document_payload(
         self,
         *,
         file_path: Path,
         mime_type: str,
         data: bytes,
-    ) -> tuple[Path, str, bytes, str | None]:
+        original_detached_path: Path | None = None,
+    ) -> tuple[Path, str, bytes, str | None, dict[str, Any] | None]:
         if mime_type != "application/pkcs7-mime":
-            return file_path, mime_type, data, None
-        payload = _extract_signed_payload(data)
-        if not payload:
-            raise ValueError("Contenuto firmato .p7m non leggibile o non incapsulato.")
-        inner_path = _inner_signed_path(file_path)
-        inner_mime = self._detect_mime(inner_path)
+            return file_path, mime_type, data, None, None
+        original_bytes = None
+        original_name = None
+        if original_detached_path and original_detached_path.exists():
+            original_bytes = self._read_document_file(original_detached_path)
+            original_name = original_detached_path.name
+        prepared = inspect_signed_document_bytes(
+            source_name=file_path.name,
+            source_path=str(file_path),
+            data=data,
+            original_detached_bytes=original_bytes,
+            original_detached_name=original_name,
+        )
+        if not prepared.status.payload_available or prepared.payload_bytes is None:
+            raise ValueError(prepared.status.message)
+        inner_path = original_detached_path if prepared.status.detached_signature and original_detached_path else _inner_signed_path(file_path)
+        inner_mime = str(prepared.status.payload_mime or "").strip() or self._detect_mime(inner_path)
         if inner_mime == "application/octet-stream":
-            inner_mime = _payload_mime_from_bytes(payload)
-        return inner_path, inner_mime, payload, "application/pkcs7-mime"
+            inner_mime = _payload_mime_from_bytes(prepared.payload_bytes)
+        return inner_path, inner_mime, prepared.payload_bytes, "application/pkcs7-mime", prepared.status.to_dict()
 
     def _extract_pdf_pages(self, data: bytes) -> list[dict[str, Any]]:
         pages: list[dict[str, Any]] = []
@@ -1357,6 +1354,8 @@ class LocalAIService:
         if mime_type in {"text/html", "application/xhtml+xml"}:
             text = _strip_html(data.decode("utf-8", errors="replace"))
             return [{"page_number": 1, "text": _normalize_text(text).strip()}]
+        if mime_type in {"application/xml", "text/xml"}:
+            return [{"page_number": 1, "text": _normalize_text(data.decode("utf-8", errors="replace")).strip()}]
         if mime_type == "application/pdf":
             try:
                 return self._extract_pdf_pages(data)
@@ -1633,6 +1632,7 @@ class LocalAIService:
         title: str | None = None,
         mime_type: str | None = None,
         force: bool = False,
+        original_detached_path: str | None = None,
     ) -> dict[str, Any]:
         resolved = Path(file_path)
         if not resolved.exists():
@@ -1650,11 +1650,14 @@ class LocalAIService:
         normalized_mime = detected_mime
         data = raw_data
         outer_mime: str | None = None
+        signed_status: dict[str, Any] | None = None
+        detached_candidate = Path(original_detached_path) if original_detached_path else None
         try:
-            normalized_path, normalized_mime, data, outer_mime = self._resolve_document_payload(
+            normalized_path, normalized_mime, data, outer_mime, signed_status = self._resolve_document_payload(
                 file_path=resolved,
                 mime_type=detected_mime,
                 data=raw_data,
+                original_detached_path=detached_candidate,
             )
         except ValueError as exc:
             return {
@@ -1662,6 +1665,7 @@ class LocalAIService:
                 "file_path": str(resolved),
                 "mime_type": detected_mime,
                 "reason": str(exc),
+                "signed_status": signed_status,
             }
         if not _is_supported_mime(normalized_mime):
             return {
@@ -1670,6 +1674,7 @@ class LocalAIService:
                 "mime_type": normalized_mime,
                 "outer_mime_type": outer_mime or detected_mime,
                 "reason": "Il contenuto firmato usa un formato non ancora supportato.",
+                "signed_status": signed_status,
             }
         normalized_title = str(title or normalized_path.name or resolved.name)
         if outer_mime == "application/pkcs7-mime" and normalized_title.lower().endswith(".p7m"):
@@ -1684,6 +1689,7 @@ class LocalAIService:
                     "chunk_count": int(existing.get("chunk_count") or 0),
                     "mime_type": normalized_mime,
                     "outer_mime_type": outer_mime,
+                    "signed_status": signed_status,
                 }
             document_id = self._upsert_document(
                 conn,
@@ -1729,6 +1735,7 @@ class LocalAIService:
                     "mime_type": normalized_mime,
                     "outer_mime_type": outer_mime,
                     "language": parsed.get("language"),
+                    "signed_status": signed_status,
                 }
             except Exception:
                 conn.execute(
@@ -1755,6 +1762,7 @@ class LocalAIService:
                 raw_path = getattr(doc, "percorso", "")
                 path = Path(raw_path)
                 full_path = path if path.is_absolute() else Path(documents_dir) / raw_path
+                detached_candidate = self._detached_original_candidate_path(doc, documents_dir)
                 outcome = self.index_file(
                     source_type="fascicolo_documento",
                     source_id=str(getattr(doc, "id", "")),
@@ -1762,6 +1770,7 @@ class LocalAIService:
                     file_path=str(full_path),
                     title=str(getattr(doc, "nome", "") or full_path.name),
                     force=force,
+                    original_detached_path=str(detached_candidate) if detached_candidate else None,
                 )
                 results[outcome["status"]] = results.get(outcome["status"], 0) + 1
                 if outcome["status"] == "indexed":
@@ -1771,6 +1780,7 @@ class LocalAIService:
                             "nome": str(getattr(doc, "nome", "") or full_path.name),
                             "mime_type": str(outcome.get("mime_type") or ""),
                             "chunk_count": int(outcome.get("chunk_count") or 0),
+                            "signed_status": outcome.get("signed_status"),
                         }
                     )
                 if outcome["status"] == "unsupported":
@@ -1781,6 +1791,7 @@ class LocalAIService:
                             "mime_type": str(outcome.get("mime_type") or ""),
                             "reason": str(outcome.get("reason") or "Formato non supportato."),
                             "file_path": str(outcome.get("file_path") or full_path),
+                            "signed_status": outcome.get("signed_status"),
                         }
                     )
             except Exception as exc:

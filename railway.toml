@@ -1,6 +1,6 @@
-#  Railway — Configurazione deploy
+﻿#  Railway - Configurazione deploy
 #  Docs: https://docs.railway.app
-#  version: 2.155.86
+#  version: 2.155.87
 #  redeploy: 2026-04-16T07:10:00
 
 [build]
@@ -13,20 +13,20 @@ healthcheckTimeout = 60
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 5
 
-#  VARIABILI D'AMBIENTE — da impostare nel pannello Railway:
-#  Settings → Variables
+#  VARIABILI D'AMBIENTE - da impostare nel pannello Railway:
+#  Settings -> Variables
 #
 #  OBBLIGATORIE:
-#  PCT_SECRET_KEY     = <stringa casuale 32+ caratteri — cifra le password nel config JSON>
+#  PCT_SECRET_KEY     = <stringa casuale 32+ caratteri - cifra le password nel config JSON>
 #
 #  OPZIONALI:
 #  PCT_STUDIO_NOME    = "Studio Legale Rossi & Associati"
 #  PCT_DOC_KEY        = <chiave per cifrare i documenti su disco>
-#  PCT_STUDIO_CONFIG  = /data/config/studio.json    ← config PEC/SMTP/firma (UI /impostazioni)
+#  PCT_STUDIO_CONFIG  = /data/config/studio.json    <- config PEC/SMTP/firma (UI /impostazioni)
 #
-#  NB: PEC, SMTP, WhatsApp si configurano dalla UI → /impostazioni
+#  NB: PEC, SMTP, WhatsApp si configurano dalla UI -> /impostazioni
 #  Non serve impostare PCT_PEC_*, PCT_SMTP_*, PCT_TWILIO_* se usi la UI.
 #
 #  VOLUME (persistenza dati):
-#  Vai su: progetto → Service → Volumes → Add Volume
+#  Vai su: progetto -> Service -> Volumes -> Add Volume
 #  Mount path: /data

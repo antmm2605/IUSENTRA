@@ -3298,6 +3298,7 @@
         <span class="text-muted small fw-semibold">
           <i class="bi bi-shield-lock me-1"></i>Firma digitale
         </span>
+        <div id="vis-firma-doc-badges" class="d-flex flex-wrap gap-1"></div>
         <div id="vis-firma-badges" class="d-flex flex-wrap gap-1"></div>
         <button type="button" class="btn btn-link btn-sm p-0 ms-auto text-decoration-none"
                 onclick="visToggleFirmaDetails()" id="vis-firma-toggle-btn">
@@ -3309,6 +3310,7 @@
       {# ── Pannello dettagli certificati (collassabile) ── #}
       <div id="vis-firma-details" style="display:none"
            class="border-bottom bg-white px-3 py-2">
+        <div id="vis-firma-doc-status" class="row g-2 mb-2"></div>
         <div id="vis-firma-details-content" class="row g-2"></div>
       </div>
 
@@ -3819,6 +3821,7 @@ function apriVisualizzatore(btn) {
       .then(r => r.json())
       .then(data => {
         if (openSeq !== _visOpenSeq) return;
+        if (data.signed_ui) _visMostraStatoFirmaDocumento(data.signed_ui);
         if (data.firme && data.firme.length > 0) _visMostraFirme(data.firme);
       })
       .catch(() => {});
@@ -3843,10 +3846,14 @@ function visToggleFirmaDetails() {
 
 function _visMostraFirme(firme) {
   const bar     = document.getElementById('vis-firma-bar');
+  const docBadges = document.getElementById('vis-firma-doc-badges');
   const badges  = document.getElementById('vis-firma-badges');
+  const docStatus = document.getElementById('vis-firma-doc-status');
   const details = document.getElementById('vis-firma-details-content');
 
-  badges.innerHTML  = '';
+  if (!docBadges.innerHTML) docBadges.innerHTML = '';
+  if (!docStatus.innerHTML) docStatus.innerHTML = '';
+  badges.innerHTML = '';
   details.innerHTML = '';
 
   firme.forEach((f, i) => {
@@ -3905,6 +3912,51 @@ function _visMostraFirme(firme) {
   bar.style.display = 'flex';
 }
 
+function _visMostraStatoFirmaDocumento(status) {
+  const bar = document.getElementById('vis-firma-bar');
+  const docBadges = document.getElementById('vis-firma-doc-badges');
+  const docStatus = document.getElementById('vis-firma-doc-status');
+
+  if (!status) return;
+
+  docBadges.innerHTML = '';
+  docStatus.innerHTML = '';
+
+  const tone = _escHtml(status.tone || 'secondary');
+  const contentBadge = document.createElement('span');
+  contentBadge.className = `badge rounded-pill bg-${tone}`;
+  contentBadge.innerHTML = `<i class="bi bi-file-earmark-lock me-1"></i>${_escHtml(status.content_label || 'Documento firmato')}`;
+  docBadges.appendChild(contentBadge);
+
+  const signatureBadge = document.createElement('span');
+  signatureBadge.className = `badge rounded-pill ${status.content_available ? 'bg-light text-dark border' : 'bg-warning text-dark'}`;
+  signatureBadge.textContent = String(status.signature_label || 'Firma da verificare');
+  docBadges.appendChild(signatureBadge);
+
+  const actions = Array.isArray(status.actions) ? status.actions : [];
+  const actionHtml = actions.length
+    ? `<div class="small text-muted mt-2"><strong>Azioni:</strong> ${actions.map(item => _escHtml(item)).join(' · ')}</div>`
+    : '';
+  const embeddedLabel = status.embedded_payload
+    ? 'Contenuto embedded nel file firmato'
+    : (status.detached_signature ? 'Firma detached con originale associato' : 'Contenuto interno non disponibile');
+
+  const card = document.createElement('div');
+  card.className = 'col-12';
+  card.innerHTML = `
+    <div class="card card-body p-2 border-${tone} border-opacity-50 bg-light-subtle">
+      <div class="d-flex flex-wrap gap-2 align-items-center mb-1">
+        <span class="fw-semibold">${_escHtml(status.content_label || 'Documento firmato')}</span>
+        <span class="badge bg-secondary-subtle text-secondary-emphasis border">${_escHtml(status.internal_content_label || 'Sconosciuto')}</span>
+      </div>
+      <div class="small">${_escHtml(status.message || '')}</div>
+      <div class="small text-muted mt-1">${_escHtml(embeddedLabel)}</div>
+      ${actionHtml}
+    </div>`;
+  docStatus.appendChild(card);
+  bar.style.display = 'flex';
+}
+
 function _escHtml(s) {
   return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
@@ -3917,6 +3969,12 @@ document.getElementById('modalVisualizzatore').addEventListener('hidden.bs.modal
   document.getElementById('visualizzatore-iframe').removeAttribute('srcdoc');
   document.getElementById('visualizzatore-iframe').src = 'about:blank';
   document.getElementById('vis-loading').style.display = 'none';
+  document.getElementById('vis-firma-doc-badges').innerHTML = '';
+  document.getElementById('vis-firma-badges').innerHTML = '';
+  document.getElementById('vis-firma-doc-status').innerHTML = '';
+  document.getElementById('vis-firma-details-content').innerHTML = '';
+  document.getElementById('vis-firma-bar').style.display = 'none';
+  document.getElementById('vis-firma-details').style.display = 'none';
 });
 
 // ---- Firma per deposito (auto-detection: Local Signer / PKCS#11 / esterna) ----

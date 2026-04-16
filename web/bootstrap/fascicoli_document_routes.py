@@ -10,6 +10,10 @@ from typing import Any
 from flask import Flask, flash, g, jsonify, redirect, request, send_file, url_for
 
 from pct.fascicoli import TipoDocumento
+from web.services.signed_document_runtime import (
+    build_document_signed_snapshot_from_bytes,
+    build_document_version_candidates,
+)
 
 
 def _estrai_pdf_da_raw(data: bytes) -> bytes | None:
@@ -339,7 +343,24 @@ def register_fascicoli_document_routes(
             from pct.firma import analizza_firma_documento
 
             firme = analizza_firma_documento(data, documento.nome)
-            return jsonify({"firme": firme, "nome": documento.nome})
+            signed_snapshot = build_document_signed_snapshot_from_bytes(
+                source_name=documento.nome,
+                source_path=str(percorso),
+                data=data,
+                version_candidates=build_document_version_candidates(
+                    gestore_fascicoli,
+                    documento,
+                    decrypt_doc=decrypt_doc,
+                ),
+            )
+            return jsonify(
+                {
+                    "firme": firme,
+                    "nome": documento.nome,
+                    "signed_status": (signed_snapshot or {}).get("signed_status"),
+                    "signed_ui": (signed_snapshot or {}).get("ui_status"),
+                }
+            )
         except Exception as exc:
             app.logger.exception("Errore api_info_firma_documento: %s", exc)
             return jsonify({"firme": [], "errore": str(exc)})

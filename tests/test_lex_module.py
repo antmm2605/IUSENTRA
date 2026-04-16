@@ -2,10 +2,12 @@ import json
 from pathlib import Path
 
 from lex.context.builder import LexContextBuilder
+from lex.context.document_context import load_document_context
 from lex.memory.conversation_state import (
     messages_with_effective_question,
     resolve_current_and_previous_user_messages,
 )
+from pct.fascicoli import GestioneFascicoli, TipoDocumento, TipoFascicolo
 from web.app import create_app
 
 
@@ -62,6 +64,8 @@ def _write_studio_config(path: Path) -> None:
 def _cfg_web(tmp_path: Path) -> dict:
     return {
         "TESTING": True,
+        "MULTI_TENANT": False,
+        "STORAGE_MODE_DEFAULT": "json",
         "SECRET_KEY": "test",
         "AUTH_DB": str(tmp_path / "utenti.json"),
         "AUDIT_DB": str(tmp_path / "audit.json"),
@@ -147,3 +151,47 @@ def test_lex_context_builder_adds_structured_sections():
 
     assert "structured_context" in payload
     assert set(payload["structured_context"].keys()) >= {"fascicolo", "documenti", "agenda", "scadenze", "anagrafica", "mode"}
+
+
+def test_lex_document_context_marca_p7m_detached_come_ai_readable_se_esiste_originale(tmp_path: Path):
+    from asn1crypto import algos, cms
+
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    app = create_app(_cfg_web(tmp_path))
+    gestione_fascicoli = GestioneFascicoli(
+        db_path=str(tmp_path / "fascicoli.json"),
+        documents_dir=str(tmp_path / "docs"),
+        archive_dir=str(tmp_path / "arch"),
+    )
+    fascicolo = gestione_fascicoli.nuovo("RG 188/2026", TipoFascicolo.CIVILE)
+    pdf_bytes = b"%PDF-1.4\n% lex\n1 0 obj\n<<>>\nendobj\ntrailer\n<<>>\n%%EOF"
+    documento = gestione_fascicoli.aggiungi_documento(
+        fascicolo.id,
+        "comparsa.pdf",
+        TipoDocumento.ATTO_GIUDIZIARIO,
+        pdf_bytes,
+        caricato_da="admin",
+    )
+    signed = cms.SignedData(
+        {
+            "version": "v1",
+            "digest_algorithms": [algos.DigestAlgorithm({"algorithm": "sha256"})],
+            "encap_content_info": {"content_type": "data"},
+            "signer_infos": [],
+        }
+    )
+    gestione_fascicoli.sostituisci_documento(
+        fascicolo.id,
+        documento.id,
+        nome_file="comparsa.pdf.p7m",
+        contenuto=cms.ContentInfo({"content_type": "signed_data", "content": signed}).dump(),
+        caricato_da="admin",
+    )
+    gestione_fascicoli.segna_firmato(fascicolo.id, documento.id)
+
+    with app.app_context():
+        rows = load_document_context(pratica_id=fascicolo.id, fascicolo_id=fascicolo.id)
+
+    assert rows
+    assert rows[0]["signed_status"]["detached_signature"] is True
+    assert rows[0]["ai_readable"] is True

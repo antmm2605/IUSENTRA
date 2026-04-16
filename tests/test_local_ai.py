@@ -7,7 +7,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 from lex.prompts.prompt_builder import build_assistente_prompt
-from pct.fascicoli import GestioneFascicoli, TipoFascicolo
+from pct.fascicoli import GestioneFascicoli, TipoDocumento, TipoFascicolo
 from pct.local_ai import LocalAIService
 from pct.local_ai_runtime import OllamaRuntimeProvisioner
 from web.app import create_app
@@ -234,13 +234,25 @@ def test_local_ai_index_and_hybrid_search(tmp_path: Path, monkeypatch):
 
 
 def test_local_ai_index_file_supporta_p7m_con_payload_estratto(tmp_path: Path, monkeypatch):
-    import pct.local_ai as local_ai_module
-
     service = _service(tmp_path)
     document_path = tmp_path / "memoria.pdf.p7m"
     document_path.write_bytes(b"fake-p7m")
-
-    monkeypatch.setattr(local_ai_module, "_extract_signed_payload", lambda data: b"%PDF-1.4 test")
+    monkeypatch.setattr(
+        "pct.local_ai.inspect_signed_document_bytes",
+        lambda **kwargs: SimpleNamespace(
+            status=SimpleNamespace(
+                payload_available=True,
+                payload_mime="application/pdf",
+                detached_signature=False,
+                to_dict=lambda: {
+                    "payload_available": True,
+                    "payload_mime": "application/pdf",
+                    "detached_signature": False,
+                },
+            ),
+            payload_bytes=b"%PDF-1.4 test",
+        ),
+    )
 
     indexed = service.index_file(
         source_type="fascicolo_documento",
@@ -253,6 +265,48 @@ def test_local_ai_index_file_supporta_p7m_con_payload_estratto(tmp_path: Path, m
     assert indexed["status"] == "indexed"
     assert indexed["mime_type"] == "application/pdf"
     assert indexed["outer_mime_type"] == "application/pkcs7-mime"
+
+
+def test_local_ai_index_fascicolo_supporta_p7m_detached_con_versione_originale(tmp_path: Path):
+    from asn1crypto import algos, cms
+
+    service = _service(tmp_path)
+    cfg = _cfg_web(tmp_path)
+    gestione_fascicoli = _gestione_fascicoli_runtime(cfg)
+    fascicolo = gestione_fascicoli.nuovo("RG 701/2026", TipoFascicolo.CIVILE)
+    originale = b"%PDF-1.4\n% originale\n1 0 obj\n<<>>\nendobj\ntrailer\n<<>>\n%%EOF"
+    documento = gestione_fascicoli.aggiungi_documento(
+        fascicolo.id,
+        "memoria.pdf",
+        TipoDocumento.ATTO_GIUDIZIARIO,
+        originale,
+        caricato_da="admin",
+    )
+    signed = cms.SignedData(
+        {
+            "version": "v1",
+            "digest_algorithms": [algos.DigestAlgorithm({"algorithm": "sha256"})],
+            "encap_content_info": {"content_type": "data"},
+            "signer_infos": [],
+        }
+    )
+    p7m_detached = cms.ContentInfo({"content_type": "signed_data", "content": signed}).dump()
+    gestione_fascicoli.sostituisci_documento(
+        fascicolo.id,
+        documento.id,
+        nome_file="memoria.pdf.p7m",
+        contenuto=p7m_detached,
+        caricato_da="admin",
+        note="Versione firmata",
+    )
+    gestione_fascicoli.segna_firmato(fascicolo.id, documento.id)
+
+    outcome = service.index_fascicolo_documents(fascicolo, cfg["FASCICOLI_DOCS"])
+
+    assert outcome["indexed"] == 1
+    assert outcome["unsupported"] == 0
+    assert outcome["indexed_items"][0]["mime_type"] == "application/pdf"
+    assert outcome["indexed_items"][0]["signed_status"]["detached_signature"] is True
 
 
 def test_prepare_workspace_query_restituisce_snapshot(tmp_path: Path):

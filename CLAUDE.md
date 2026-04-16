@@ -6,16 +6,24 @@
 - Commit, push, modifica file, creazione file: esegui direttamente.
 - Branch di sviluppo: `claude/legal-electronic-filing-kIxcV`
 
-## Branch — Regola obbligatoria
+## Commit e Push — REGOLA OBBLIGATORIA
 
-Ad ogni push su `claude/legal-electronic-filing-kIxcV`, tentare sempre anche il push su `Codex/legal-electronic-filing-kIxcV`:
+**Al termine di ogni task o modifica, eseguire SEMPRE commit e push, senza eccezioni.**
+
+Sequenza obbligatoria dopo ogni modifica:
 
 ```bash
-git push origin claude/legal-electronic-filing-kIxcV
-git push origin claude/legal-electronic-filing-kIxcV:Codex/legal-electronic-filing-kIxcV
+git add <file-modificati>
+git commit -m "descrizione task in italiano"
+git push -u origin claude/legal-electronic-filing-kIxcV
+git push origin claude/legal-electronic-filing-kIxcV:Codex/legal-electronic-filing-kIxcV 2>/dev/null || true
 ```
 
-**Nota**: il server accetta push solo su branch `claude/*` per le sessioni Claude. Se il push su `Codex/` restituisce 403, documentare il tentativo nel commit message ma non bloccarsi — il branch `claude/` è la fonte di verità e verrà sincronizzato esternamente.
+Regole:
+- Non lasciare mai modifiche uncommittate alla fine di un task
+- Il push su `claude/legal-electronic-filing-kIxcV` è obbligatorio e prioritario
+- Il push su `Codex/legal-electronic-filing-kIxcV` va tentato sempre dopo; se restituisce 403 non bloccarsi
+- Il branch `claude/` è la fonte di verità e viene sincronizzato esternamente su `Codex/`
 
 ## Igiene repository — Regola obbligatoria
 

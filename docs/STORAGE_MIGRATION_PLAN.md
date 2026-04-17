@@ -2,59 +2,50 @@
 
 ## Obiettivo
 
-Rendere esplicito il percorso `JSON / SQLite -> PostgreSQL` senza perdere fallback, audit e verifiche di consistenza.
+Rendere ufficiale il percorso `JSON -> SQLite -> PostgreSQL` per i domini core, con report di consistenza e senza fallback invisibili.
 
-## Fasi
+## Flusso ufficiale
 
-### 1. Inventario e precheck
+1. inventario del tenant e dei backend selezionati
+2. precheck JSON e seed SQLite
+3. migrazione su SQLite tenant-aware
+4. replica su PostgreSQL
+5. confronto conteggi JSON / SQLite / PostgreSQL
+6. generazione report sotto `backup/`
+7. attivazione esplicita del backend PostgreSQL per i domini core
 
-- censimento storage manifest per tenant
-- verifica integrita' JSON
-- freeze dei conteggi per dominio e dei timestamp di riferimento
+## Domini coperti dal cutover ufficiale
 
-Blocco:
+- utenti
+- audit
+- clienti
+- fascicoli
+- agenda
+- scadenziario
 
-- nessun cutover se `studio.db` e' vuoto ma i JSON legacy contengono dati
-- nessun cutover se restano errori critici di integrita'
+## Regole di attivazione
 
-### 2. Mirror repository e read parity
+- PostgreSQL non diventa backend effettivo solo perche' e' configurato.
+- Serve una connessione testata (`connessione_ok = true`).
+- Serve una migrazione con report di consistenza positivo.
+- Serve attivazione esplicita del tenant (`core_runtime_enabled = true`).
 
-- attivazione repository SQL per singolo dominio
-- parita' in lettura su liste, dettaglio e statistiche
-- nessuna scrittura canonica sul backend nuovo finche' la lettura non coincide
+## Regole di sicurezza operativa
 
-### 3. Shadow write e report di consistenza
+- se PostgreSQL attivo non e' disponibile, i domini core non ricadono in modo invisibile su JSON
+- SQLite resta backend locale o fallback dichiarato per tenant non ancora cutoverizzati
+- JSON resta compatibilita' legacy o ponte per domini non ancora migrati
+- filesystem tenant resta sorgente primaria per documenti, buste, upload e modelli AI locali
 
-- scritture parallele su backend corrente e backend nuovo
-- conteggi per operazione
-- checksum o signature dei payload serializzati
+## Comando CLI ufficiale
 
-Rollback:
+```bash
+iusentra migrate --to=postgres --tenant=<slug-tenant>
+```
 
-- al primo mismatch bloccante la scrittura resta canonica sul backend corrente
+Varianti utili:
 
-### 4. Cutover tenant per tenant
-
-- passaggio del tenant solo dopo finestra stabile di osservazione
-- smoke test applicativo completo subito dopo il cutover
-- confronto headline governance prima/dopo
-
-Rollback:
-
-- ritorno immediato alla sorgente precedente se falliscono healthcheck o controlli di consistenza
-
-## Check di consistenza minimi
-
-- utenti attivi e per ruolo
-- clienti e codici fiscali univoci
-- fascicoli, `id_cliente` e documenti allegati
-- appuntamenti, scadenze e riferimenti forti
-- id deposito, gruppi per `id_deposito` e warning telematici
-- preventivato, fatturato, incassato e residui
-- motori legali, fonti, alert e audit trace
-
-## Fallback ufficiali
-
-- JSON tenant-aware resta fallback dei domini non ancora portati su repository SQL
-- SQLite resta fallback locale dei domini core gia' chiusi su `StudioDB`
-- filesystem tenant resta sorgente primaria per documenti, buste, upload e modelli locali AI
+```bash
+iusentra migrate --to=sqlite --tenant=<slug-tenant>
+iusentra migrate --to=postgres --tenant=<slug-tenant> --host=<db-host> --db-name=<nome-db> --user=<utente>
+```

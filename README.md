@@ -109,15 +109,34 @@ Le regole di base oggi sono:
 
 ## Bootstrap multi-tenant
 
-Per ambienti multi-tenant il flusso corretto è:
+Per ambienti multi-tenant il flusso corretto e' questo:
 
 1. accesso come `SUPERADMIN`
 2. creazione studio
 3. scelta strategia storage
 4. creazione amministratore del tenant
-5. eventuale configurazione PostgreSQL dal dettaglio storage dello studio
+5. configurazione PostgreSQL dal dettaglio storage dello studio
+6. test connessione
+7. attivazione esplicita del backend core con migrazione e report di consistenza
 
-Questo evita configurazioni globali opache e rende ogni tenant governabile in modo indipendente.
+Questo evita configurazioni globali opache, rende ogni tenant governabile in modo indipendente e impedisce cutover invisibili.
+
+## Stato storage professionale
+
+Oggi i domini core `utenti`, `clienti`, `fascicoli`, `agenda` e `scadenziario` possono lavorare in lettura e scrittura anche su PostgreSQL tenant-aware.
+
+Regole operative:
+
+- `JSON` resta backend legacy o ponte di bootstrap per i domini non ancora migrati.
+- `SQLite` resta backend locale o fallback controllato per tenant non ancora cutoverizzati.
+- `PostgreSQL` diventa backend effettivo solo dopo test connessione, migrazione ufficiale e attivazione esplicita.
+- se PostgreSQL e' attivo ma non disponibile, i domini core non degradano in modo invisibile su JSON.
+
+Comando ufficiale di migrazione:
+
+```bash
+iusentra migrate --to=postgres --tenant=<slug-tenant>
+```
 
 ## CI GitHub
 

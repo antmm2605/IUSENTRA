@@ -5,12 +5,13 @@ from __future__ import annotations
 import json
 import os
 import sqlite3
-from dataclasses import dataclass, asdict, replace
+from dataclasses import asdict, dataclass, replace
 from pathlib import Path
 from typing import Any
 
 from flask import current_app, g, has_app_context, has_request_context
 
+from pct.core_storage_backend import build_core_storage_backend, is_postgres_core_active
 from pct.storage import StudioDB
 from pct.tenant import DbMode, normalize_db_mode
 
@@ -119,30 +120,55 @@ def _sqlite_runtime_is_unseeded(studio_db_path: Path) -> bool:
         return False
 
 
+def _resolve_tenant_mode_profile(selected_mode: str, tenant: Any, studio_db_path: str) -> tuple[str, bool, str]:
+    database = getattr(tenant, "database", None)
+    if selected_mode == DbMode.SQLITE:
+        return DbMode.SQLITE, True, "tenant-sqlite"
+    if selected_mode == DbMode.POSTGRESQL and database is not None and is_postgres_core_active(database):
+        return DbMode.POSTGRESQL, False, "tenant-postgresql"
+    if selected_mode == DbMode.POSTGRESQL:
+        return DbMode.JSON, False, "tenant-postgresql-not-activated"
+    if selected_mode == DbMode.MYSQL:
+        return DbMode.JSON, False, "tenant-mysql-not-supported"
+    return DbMode.JSON, False, "tenant-json"
+
+
 def resolve_storage_runtime(*, anchor_path: str, tenant: Any = None) -> StorageRuntimeProfile:
     selected_mode = resolve_default_storage_mode()
     source = "app"
     tenant_slug = ""
+    studio_db_path = _derive_studio_db_path(anchor_path)
+    effective_mode = DbMode.JSON
+    uses_sqlite = False
 
     if tenant is not None:
         tenant_slug = str(getattr(tenant, "slug", "") or "")
-        source = "tenant"
         try:
             selected_mode = normalize_db_mode(getattr(tenant, "database").mode)
         except Exception:
             selected_mode = DbMode.SQLITE
+        effective_mode, uses_sqlite, source = _resolve_tenant_mode_profile(
+            selected_mode,
+            tenant,
+            studio_db_path,
+        )
     elif has_app_context() and current_app.config.get("STORAGE_MODE_DEFAULT"):
         source = "app-default"
+        if selected_mode == DbMode.SQLITE:
+            effective_mode = DbMode.SQLITE
+            uses_sqlite = True
     elif has_app_context() and current_app.config.get("SQLITE_MODE"):
         selected_mode = DbMode.SQLITE
+        effective_mode = DbMode.SQLITE
+        uses_sqlite = True
         source = "legacy-global"
     else:
         source = "default-operational"
+        if selected_mode == DbMode.SQLITE:
+            effective_mode = DbMode.SQLITE
+            uses_sqlite = True
 
-    studio_db_path = _derive_studio_db_path(anchor_path)
-    uses_sqlite = selected_mode == DbMode.SQLITE
     external_sql_configured = selected_mode in (DbMode.POSTGRESQL, DbMode.MYSQL)
-    effective_mode = DbMode.SQLITE if uses_sqlite else DbMode.JSON
 
     return StorageRuntimeProfile(
         selected_mode=selected_mode,
@@ -170,8 +196,40 @@ def get_request_storage_runtime(anchor_path: str) -> StorageRuntimeProfile:
     return profile
 
 
+def _postgres_runtime_backend(anchor_path: str, profile: StorageRuntimeProfile):
+    tenant = getattr(g, "tenant", None) if has_request_context() else None
+    database = getattr(tenant, "database", None)
+    backend = None
+    if database is not None:
+        backend = build_core_storage_backend(database, studio_db_path=profile.studio_db_path)
+    if backend is None:
+        message = (
+            "Backend PostgreSQL attivo per i domini core ma non disponibile. "
+            "Il sistema blocca l'operazione per evitare fallback invisibili a JSON."
+        )
+        if has_app_context():
+            current_app.logger.error(
+                "%s tenant=%s anchor=%s",
+                message,
+                profile.tenant_slug or "-",
+                anchor_path,
+            )
+        raise RuntimeError(message)
+    return backend
+
+
 def get_request_studio_db(anchor_path: str):
     profile = get_request_storage_runtime(anchor_path)
+
+    if profile.effective_mode == DbMode.POSTGRESQL:
+        cached = getattr(g, "_runtime_studio_db", None) if has_request_context() else None
+        if cached is not None and getattr(cached, "backend_kind", "") == "postgresql":
+            return cached
+        studio_db = _postgres_runtime_backend(anchor_path, profile)
+        if has_request_context():
+            g._runtime_studio_db = studio_db
+        return studio_db
+
     if not profile.uses_sqlite:
         return None
 
@@ -194,7 +252,7 @@ def get_request_studio_db(anchor_path: str):
         return None
 
     cached = getattr(g, "_runtime_studio_db", None) if has_request_context() else None
-    if cached is not None and str(cached.db_path) == profile.studio_db_path:
+    if cached is not None and str(getattr(cached, "db_path", "")) == profile.studio_db_path:
         return cached
 
     try:

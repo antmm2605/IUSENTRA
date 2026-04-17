@@ -287,6 +287,11 @@ class DatabaseConfig:
     ultimo_test: str = ""  # ISO timestamp
     errore_connessione: str = ""
 
+    # Cutover backend core (tenant-aware)
+    core_runtime_enabled: bool = False
+    last_migration_report: str = ""
+    last_migration_at: str = ""
+
     @property
     def porta_effettiva(self) -> int:
         if self.porta:
@@ -322,6 +327,8 @@ class DatabaseConfig:
         """Backend realmente attivo oggi per i moduli core compatibili."""
         if self.is_sqlite:
             return "sqlite"
+        if self.normalized_mode == DbMode.POSTGRESQL and self.connessione_ok and self.core_runtime_enabled:
+            return "postgresql"
         return "json"
 
     @property
@@ -398,6 +405,9 @@ class DatabaseConfig:
         d.setdefault("connessione_ok", False)
         d.setdefault("ultimo_test", "")
         d.setdefault("errore_connessione", "")
+        d.setdefault("core_runtime_enabled", False)
+        d.setdefault("last_migration_report", "")
+        d.setdefault("last_migration_at", "")
 
         return DatabaseConfig(
             **{k: v for k, v in d.items() if k in DatabaseConfig.__dataclass_fields__}
@@ -1234,6 +1244,8 @@ class GestioneTenant:
         from pct.storage import StudioDB
         import sqlite3
 
+        from pct.core_storage_backend import build_core_storage_backend
+
         users: Dict[str, Dict[str, Any]] = {}
         emails: Dict[str, Dict[str, Any]] = {}
         conflicts: list[dict[str, str]] = []
@@ -1245,11 +1257,10 @@ class GestioneTenant:
             self.reconcile_storage_aliases(slug)
             paths = self.percorsi_dati(slug)
             studio_db = None
-            if studio.database.is_sqlite:
-                try:
-                    studio_db = StudioDB.get(paths["STUDIO_DB"])
-                except (OSError, sqlite3.Error):
-                    studio_db = None
+            try:
+                studio_db = build_core_storage_backend(studio.database, studio_db_path=paths["STUDIO_DB"])
+            except (OSError, sqlite3.Error):
+                studio_db = None
             manager = GestioneUtenti(
                 db_path=paths["AUTH_DB"],
                 audit_path=paths["AUDIT_DB"],
@@ -1326,27 +1337,35 @@ class GestioneTenant:
         db = studio.database
         paths = self.percorsi_dati(slug)
         info = DB_MODE_INFO.get(db.normalized_mode, {})
+        activation_state = "active"
+        if db.normalized_mode == DbMode.POSTGRESQL:
+            if db.effective_runtime_kind == "postgresql":
+                activation_state = "active"
+            elif db.connessione_ok:
+                activation_state = "external-ready"
+            else:
+                activation_state = "external-pending"
+        elif db.normalized_mode == DbMode.MYSQL:
+            activation_state = "external-tested" if db.connessione_ok else "external-pending"
+
         return {
             "slug": slug,
             "selected_mode": db.normalized_mode,
             "runtime_kind": db.runtime_kind,
             "effective_runtime_kind": db.effective_runtime_kind,
             "external_sql_configured": db.is_external_sql,
-            "activation_state": (
-                "active"
-                if not db.is_external_sql
-                else "external-tested"
-                if db.connessione_ok
-                else "external-pending"
-            ),
+            "activation_state": activation_state,
             "nome": info.get("nome", db.normalized_mode),
             "data_dir": str(self._data_dir(slug)),
             "json_root": str(self._data_dir(slug)),
             "studio_db_path": paths["STUDIO_DB"],
             "connection_url_safe": db.connection_url_safe,
             "connessione_ok": bool(db.connessione_ok),
+            "core_runtime_enabled": bool(db.core_runtime_enabled),
             "ultimo_test": db.ultimo_test,
             "errore_connessione": db.errore_connessione,
+            "last_migration_report": db.last_migration_report,
+            "last_migration_at": db.last_migration_at,
         }
 
     def _scrivi_storage_manifest(self, slug: str, studio: Optional[StudioLegale] = None) -> None:
@@ -1360,7 +1379,14 @@ class GestioneTenant:
             encoding="utf-8",
         )
 
-    def provision_storage_backend(self, slug: str, *, migrate_existing: bool = False) -> Dict[str, Any]:
+    def provision_storage_backend(
+        self,
+        slug: str,
+        *,
+        migrate_existing: bool = False,
+        activate_external: bool = False,
+        secret_key: str = "",
+    ) -> Dict[str, Any]:
         studio = self.get(slug)
         if not studio:
             raise ValueError("Studio non trovato")
@@ -1373,6 +1399,7 @@ class GestioneTenant:
             "mode": db.normalized_mode,
             "migrated": False,
             "studio_db_path": paths["STUDIO_DB"],
+            "effective_runtime_kind": db.effective_runtime_kind,
         }
 
         if db.is_sqlite:
@@ -1404,6 +1431,50 @@ class GestioneTenant:
 
             studio_db = StudioDB.get(paths["STUDIO_DB"])
             payload["sqlite_ready"] = bool(studio_db.db_path.exists())
+            self._scrivi_storage_manifest(slug, studio)
+            return payload
+
+        if db.normalized_mode == DbMode.POSTGRESQL:
+            if not db.connessione_ok:
+                test_result = self.testa_connessione(slug)
+                studio = self.get(slug)
+                db = studio.database if studio else db
+                payload["connection_test"] = test_result
+                if not test_result.get("ok"):
+                    payload["ok"] = False
+                    payload["error"] = test_result.get("messaggio") or "Connessione PostgreSQL non disponibile"
+                    self._scrivi_storage_manifest(slug, studio)
+                    return payload
+
+            from pct.storage_migration import migrate_core_storage_to_postgres
+
+            if migrate_existing:
+                report = migrate_core_storage_to_postgres(
+                    paths=paths,
+                    database_config=db,
+                    secret_key=secret_key,
+                    tenant_slug=slug,
+                )
+                payload["migrated"] = bool(report.get("success"))
+                payload["migration_report"] = report
+                payload["migration_report_path"] = report.get("report_path", "")
+                payload["consistency"] = report.get("consistency", {})
+                if not report.get("success"):
+                    payload["ok"] = False
+
+            if activate_external and payload.get("ok", True):
+                db.core_runtime_enabled = True
+                db.last_migration_at = datetime.now().isoformat()
+                if payload.get("migration_report_path"):
+                    db.last_migration_report = payload["migration_report_path"]
+                studio = self.aggiorna_db_config(slug, db) or studio
+                payload["effective_runtime_kind"] = "postgresql"
+                payload["activated"] = True
+            else:
+                payload["activated"] = False
+
+            self._scrivi_storage_manifest(slug, studio)
+            return payload
 
         self._scrivi_storage_manifest(slug, studio)
         return payload

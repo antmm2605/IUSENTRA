@@ -23,6 +23,7 @@ def test_storage_parity_payload_mostra_domini_e_stato_postgres():
 
     assert payload["summary"]["domains_total"] >= 10
     assert payload["summary"]["sqlite_rw_ready"] >= 5
+    assert payload["summary"]["postgres_rw_ready"] >= 5
     assert payload["summary"]["fallback_ready"] >= 5
     assert any(row["module_id"] == "auth_audit" for row in payload["rows"])
     assert any(row["module_id"] == "telematico" for row in payload["rows"])

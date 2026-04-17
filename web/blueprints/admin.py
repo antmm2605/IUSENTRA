@@ -41,7 +41,7 @@ from pct.auth import (
     RuoloUtente,
     DESCRIZIONI_RUOLI,
 )
-from pct.storage import StudioDB
+from pct.core_storage_backend import build_core_storage_backend
 from web.services.lex_eval_scorecard import build_lex_eval_scorecard
 from web.services.migration_assistant import build_migration_assistant
 from web.services.observability_runtime import build_observability_payload
@@ -72,11 +72,13 @@ def _utenti_tenant(slug: str) -> GestioneUtenti:
         abort(404)
     percorsi = tm.percorsi_dati(slug)
     studio_db = None
-    if getattr(studio.database, "is_sqlite", False):
-        try:
-            studio_db = StudioDB.get(percorsi["STUDIO_DB"])
-        except (OSError, sqlite3.Error):
-            studio_db = None
+    try:
+        studio_db = build_core_storage_backend(
+            studio.database,
+            studio_db_path=percorsi["STUDIO_DB"],
+        )
+    except (OSError, sqlite3.Error):
+        studio_db = None
     return GestioneUtenti(
         db_path=percorsi["AUTH_DB"],
         audit_path=percorsi["AUDIT_DB"],
@@ -614,7 +616,14 @@ def database_studio(slug: str):
     if not studio:
         abort(404)
 
+    def _to_int(value, default: int) -> int:
+        try:
+            return int(value or default)
+        except (TypeError, ValueError):
+            return default
+
     if request.method == "POST":
+        action = str(request.form.get("storage_action", "save") or "save").strip().lower()
         mode = normalize_db_mode(request.form.get("db_mode", studio.database.mode))
         current_mode = studio.database.normalized_mode
 
@@ -624,7 +633,7 @@ def database_studio(slug: str):
 
         if current_mode == DbMode.SQLITE and mode == DbMode.JSON:
             flash(
-                "Il ritorno diretto da SQLite a JSON non è consentito senza una migrazione esplicita dei dati.",
+                "Il ritorno diretto da SQLite a JSON non e' consentito senza una migrazione esplicita dei dati.",
                 "danger",
             )
             return redirect(url_for("admin.database_studio", slug=slug))
@@ -637,11 +646,11 @@ def database_studio(slug: str):
                 or studio.database.host
                 or "localhost"
             ).strip(),
-            porta=int(
+            porta=_to_int(
                 request.form.get("porta")
                 or request.form.get("db_porta")
-                or studio.database.porta
-                or 0
+                or studio.database.porta,
+                0,
             ),
             db_name=(
                 request.form.get("db_name")
@@ -664,23 +673,63 @@ def database_studio(slug: str):
                 or ""
             ).strip(),
             ssl=request.form.get("ssl") == "on",
-            pool_size=int(request.form.get("pool_size", 5) or 5),
-            pool_timeout=int(request.form.get("pool_timeout", 30) or 30),
+            pool_size=_to_int(request.form.get("pool_size", 5), 5),
+            pool_timeout=_to_int(request.form.get("pool_timeout", 30), 30),
             connessione_ok=studio.database.connessione_ok,
             ultimo_test=studio.database.ultimo_test,
             errore_connessione=studio.database.errore_connessione,
+            core_runtime_enabled=(
+                studio.database.core_runtime_enabled if mode == DbMode.POSTGRESQL else False
+            ),
+            last_migration_report=(
+                studio.database.last_migration_report if mode == DbMode.POSTGRESQL else ""
+            ),
+            last_migration_at=(
+                studio.database.last_migration_at if mode == DbMode.POSTGRESQL else ""
+            ),
         )
 
-        tm.aggiorna_db_config(slug, cfg)
-        provisioning = tm.provision_storage_backend(
-            slug,
-            migrate_existing=current_mode != DbMode.SQLITE and mode == DbMode.SQLITE,
+        studio = tm.aggiorna_db_config(slug, cfg) or studio
+
+        if mode == DbMode.SQLITE:
+            provisioning = tm.provision_storage_backend(
+                slug,
+                migrate_existing=current_mode != DbMode.SQLITE,
+            )
+            flash("Configurazione storage salvata.", "success")
+            if provisioning.get("migrated"):
+                flash("Dati JSON migrati in studio.db.", "info")
+            elif provisioning.get("sqlite_ready"):
+                flash("SQLite pronto: studio.db disponibile per i moduli core compatibili.", "info")
+            return redirect(url_for("admin.database_studio", slug=slug))
+
+        if mode == DbMode.POSTGRESQL and action == "activate_postgres":
+            provisioning = tm.provision_storage_backend(
+                slug,
+                migrate_existing=True,
+                activate_external=True,
+                secret_key=current_app.secret_key,
+            )
+            if provisioning.get("ok") and provisioning.get("activated"):
+                flash(
+                    "PostgreSQL attivato come backend R/W per utenti, clienti, fascicoli, agenda e scadenziario.",
+                    "success",
+                )
+                report_path = str(provisioning.get("migration_report_path") or "").strip()
+                if report_path:
+                    flash(f"Report di consistenza generato: {report_path}", "info")
+            else:
+                flash(
+                    provisioning.get("error")
+                    or "Attivazione PostgreSQL non completata: verifica connessione e report di migrazione.",
+                    "danger",
+                )
+            return redirect(url_for("admin.database_studio", slug=slug))
+
+        flash(
+            "Configurazione PostgreSQL salvata. Esegui il test connessione e poi l'attivazione esplicita del backend core.",
+            "success",
         )
-        flash("Configurazione storage salvata.", "success")
-        if mode == DbMode.SQLITE and provisioning.get("migrated"):
-            flash("Dati JSON migrati in studio.db.", "info")
-        elif mode == DbMode.SQLITE and provisioning.get("sqlite_ready"):
-            flash("SQLite pronto: studio.db disponibile per i moduli core compatibili.", "info")
         return redirect(url_for("admin.database_studio", slug=slug))
 
     return render_template(
@@ -696,6 +745,7 @@ def database_studio(slug: str):
 
 
 @admin_bp.route("/studi/<slug>/database/test", methods=["POST"])
+
 @superadmin_required
 def testa_connessione_db(slug: str):
     try:

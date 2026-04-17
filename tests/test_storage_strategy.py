@@ -1,4 +1,5 @@
 import json
+import pytest
 import sqlite3
 from pathlib import Path
 
@@ -425,7 +426,7 @@ def test_profilo_tenant_cambia_password_anche_se_sqlite_auth_non_e_disponibile(
 
     client = app.test_client()
     with monkeypatch.context() as login_patch:
-        login_patch.setattr("web.services.auth_runtime.StudioDB.get", _raise_sqlite_unavailable)
+        login_patch.setattr("web.services.auth_runtime.build_core_storage_backend", lambda *args, **kwargs: (_raise_sqlite_unavailable("studio.db")))
         login = client.post(
             "/login",
             data={
@@ -445,7 +446,7 @@ def test_profilo_tenant_cambia_password_anche_se_sqlite_auth_non_e_disponibile(
         assert session_data["must_change_password"] is True
 
     with monkeypatch.context() as profile_patch:
-        profile_patch.setattr("web.services.auth_runtime.StudioDB.get", _raise_sqlite_unavailable)
+        profile_patch.setattr("web.services.auth_runtime.build_core_storage_backend", lambda *args, **kwargs: (_raise_sqlite_unavailable("studio.db")))
         profile_patch.setattr("web.services.storage_runtime.StudioDB.get", _raise_sqlite_unavailable)
         changed = client.post(
             "/profilo",
@@ -970,3 +971,109 @@ def test_superadmin_can_create_studio_with_postgresql_strategy(tmp_path: Path):
     assert manifest["selected_mode"] == DbMode.POSTGRESQL
     assert manifest["effective_runtime_kind"] == "json"
     assert manifest["activation_state"] == "external-pending"
+
+
+def test_request_storage_runtime_uses_active_postgresql_backend(tmp_path: Path, monkeypatch):
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    app = create_app(_cfg(tmp_path))
+
+    clienti_path = tmp_path / "tenants" / "pg-live" / "clienti" / "anagrafica.json"
+    clienti_path.parent.mkdir(parents=True, exist_ok=True)
+    clienti_path.write_text("{}", encoding="utf-8")
+
+    tm = GestioneTenant(str(tmp_path / "tenants.json"))
+    studio = tm.crea("Studio PostgreSQL Live", "pg-live", db_config={"mode": "POSTGRESQL"})
+    tm.aggiorna_db_config(
+        studio.slug,
+        DatabaseConfig(
+            mode=DbMode.POSTGRESQL,
+            host="db.example.local",
+            porta=5432,
+            db_name="iusentra",
+            utente="iusentra",
+            password="secret",
+            connessione_ok=True,
+            core_runtime_enabled=True,
+        ),
+    )
+    fake_backend = object()
+    monkeypatch.setattr(
+        "web.services.storage_runtime.build_core_storage_backend",
+        lambda config, studio_db_path: fake_backend,
+    )
+
+    with app.test_request_context("/"):
+        g.tenant = tm.get(studio.slug)
+        profile = get_request_storage_runtime(str(clienti_path))
+        studio_db = get_request_studio_db(str(clienti_path))
+
+    assert profile.selected_mode == DbMode.POSTGRESQL
+    assert profile.effective_mode == DbMode.POSTGRESQL
+    assert profile.uses_sqlite is False
+    assert profile.source == "tenant-postgresql"
+    assert studio_db is fake_backend
+
+
+def test_request_storage_runtime_blocca_fallback_invisibile_se_postgresql_attivo_non_e_disponibile(
+    tmp_path: Path,
+    monkeypatch,
+):
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    app = create_app(_cfg(tmp_path))
+
+    clienti_path = tmp_path / "tenants" / "pg-fail" / "clienti" / "anagrafica.json"
+    clienti_path.parent.mkdir(parents=True, exist_ok=True)
+    clienti_path.write_text("{}", encoding="utf-8")
+
+    tm = GestioneTenant(str(tmp_path / "tenants.json"))
+    studio = tm.crea("Studio PostgreSQL Fail", "pg-fail", db_config={"mode": "POSTGRESQL"})
+    tm.aggiorna_db_config(
+        studio.slug,
+        DatabaseConfig(
+            mode=DbMode.POSTGRESQL,
+            host="db.example.local",
+            porta=5432,
+            db_name="iusentra",
+            utente="iusentra",
+            password="secret",
+            connessione_ok=True,
+            core_runtime_enabled=True,
+        ),
+    )
+    monkeypatch.setattr(
+        "web.services.storage_runtime.build_core_storage_backend",
+        lambda config, studio_db_path: None,
+    )
+
+    with app.test_request_context("/"):
+        g.tenant = tm.get(studio.slug)
+        profile = get_request_storage_runtime(str(clienti_path))
+        with pytest.raises(RuntimeError):
+            get_request_studio_db(str(clienti_path))
+
+    assert profile.effective_mode == DbMode.POSTGRESQL
+
+
+def test_storage_manifest_mostra_postgresql_attivo_per_domini_core(tmp_path: Path):
+    registry = tmp_path / "tenants.json"
+    tm = GestioneTenant(str(registry))
+    studio = tm.crea("Studio PG", "studio-pg", db_config={"mode": "POSTGRESQL"})
+    tm.aggiorna_db_config(
+        studio.slug,
+        DatabaseConfig(
+            mode=DbMode.POSTGRESQL,
+            host="db.example.local",
+            porta=5432,
+            db_name="iusentra",
+            utente="iusentra",
+            password="secret",
+            connessione_ok=True,
+            core_runtime_enabled=True,
+        ),
+    )
+
+    manifest = tm.storage_manifest(studio.slug)
+
+    assert manifest["effective_runtime_kind"] == "postgresql"
+    assert manifest["activation_state"] == "active"
+    assert manifest["core_runtime_enabled"] is True

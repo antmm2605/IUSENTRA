@@ -9,7 +9,7 @@ import sqlite3
 from flask import Flask, flash, g, redirect, render_template, request, session, url_for
 
 from pct.auth import GestioneUtenti, RuoloUtente, verifica_totp
-from pct.storage import StudioDB
+from pct.core_storage_backend import build_core_storage_backend
 from web.services.storage_runtime import get_request_storage_runtime
 from web.services.tenant_legacy_bootstrap import bootstrap_legacy_tenant_runtime_data
 
@@ -51,9 +51,12 @@ def register_auth_runtime(
         studio = tenants.get(tenant_slug)
         paths = tenants.percorsi_dati(tenant_slug)
         studio_db = None
-        if studio and getattr(studio.database, "is_sqlite", False):
+        if studio:
             try:
-                studio_db = StudioDB.get(paths["STUDIO_DB"])
+                studio_db = build_core_storage_backend(
+                    studio.database,
+                    studio_db_path=paths["STUDIO_DB"],
+                )
             except (OSError, sqlite3.Error):
                 studio_db = None
         return GestioneUtenti(

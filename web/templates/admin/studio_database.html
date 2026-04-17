@@ -1,5 +1,5 @@
 {% extends "admin/base.html" %}
-{% block title %}Storage — {{ studio.nome }}{% endblock %}
+{% block title %}Storage - {{ studio.nome }}{% endblock %}
 {% block breadcrumb %}
 <li class="breadcrumb-item"><a href="{{ url_for('admin.lista_studi') }}" class="text-decoration-none">Studi</a></li>
 <li class="breadcrumb-item"><a href="{{ url_for('admin.dettaglio_studio', slug=studio.slug) }}" class="text-decoration-none">{{ studio.nome }}</a></li>
@@ -9,13 +9,15 @@
 {% block content %}
 <div class="d-flex align-items-center gap-3 mt-3 mb-4 flex-wrap">
   <div class="flex-grow-1">
-    <h4 class="mb-0 fw-bold">Configurazione Storage</h4>
+    <h4 class="mb-0 fw-bold">Configurazione storage</h4>
     <p class="text-muted small mb-0">
-      Studio: <strong>{{ studio.nome }}</strong> —
-      modalità corrente:
+      Studio: <strong>{{ studio.nome }}</strong> - modalita' selezionata:
       <span class="badge bg-{{ db_mode_info[db.normalized_mode].colore if db.normalized_mode in db_mode_info else 'secondary' }}">
         {{ db_mode_info[db.normalized_mode].nome if db.normalized_mode in db_mode_info else db.normalized_mode }}
       </span>
+      {% if storage_manifest %}
+      <span class="ms-2">- backend effettivo moduli core: <strong>{{ storage_manifest.effective_runtime_kind }}</strong></span>
+      {% endif %}
     </p>
   </div>
   <a href="{{ url_for('admin.dettaglio_studio', slug=studio.slug) }}" class="btn btn-outline-secondary btn-sm">
@@ -27,7 +29,7 @@
   <div class="col-12 col-lg-5">
     <div class="card h-100">
       <div class="card-header fw-semibold d-flex align-items-center gap-2">
-        <i class="bi bi-database text-primary"></i> Modalità Storage
+        <i class="bi bi-database text-primary"></i> Strategia storage
       </div>
       <div class="card-body">
         {% for mode_key in db_mode_choices %}
@@ -39,33 +41,12 @@
           <div class="d-flex align-items-center gap-2 mb-1">
             <i class="bi {{ mode_info.icona }} text-{{ mode_info.colore }} fs-5"></i>
             <span class="fw-semibold">{{ mode_info.nome }}</span>
-            <span class="badge bg-{{ mode_info.colore }} ms-auto" style="font-size:.65rem">
-              {{ mode_info.badge }}
-            </span>
+            <span class="badge bg-{{ mode_info.colore }} ms-auto" style="font-size:.65rem">{{ mode_info.badge }}</span>
             {% if db.normalized_mode == mode_key %}
             <i class="bi bi-check-circle-fill text-primary ms-1"></i>
             {% endif %}
           </div>
-
           <p class="text-muted small mb-0">{{ mode_info.desc }}</p>
-
-          {% if mode_key == 'POSTGRESQL' and db.normalized_mode == mode_key %}
-          <div class="mt-2">
-            {% if db.connessione_ok %}
-            <span class="badge bg-success"><i class="bi bi-check-lg me-1"></i>Connessione OK</span>
-            {% elif db.ultimo_test %}
-            <span class="badge bg-danger"><i class="bi bi-x-lg me-1"></i>Connessione fallita</span>
-            {% else %}
-            <span class="badge bg-secondary">Non testata</span>
-            {% endif %}
-
-            {% if db.ultimo_test %}
-            <span class="text-muted ms-1" style="font-size:.72rem">
-              Ultimo test: {{ db.ultimo_test[:16].replace('T',' ') }}
-            </span>
-            {% endif %}
-          </div>
-          {% endif %}
         </div>
         {% endfor %}
       </div>
@@ -76,41 +57,31 @@
     <form method="post" id="dbForm">
       <input type="hidden" name="db_mode" id="dbModeField" value="{{ db.normalized_mode }}">
 
-      <div class="card mb-3 db-panel" id="panel_JSON"
-           style="{{ 'display:none' if db.normalized_mode != 'JSON' else '' }}">
+      <div class="card mb-3 db-panel" id="panel_JSON" style="{{ 'display:none' if db.normalized_mode != 'JSON' else '' }}">
         <div class="card-header fw-semibold d-flex align-items-center gap-2 text-secondary">
-          <i class="bi bi-hdd-fill"></i> Storage Locale (JSON)
+          <i class="bi bi-hdd-fill"></i> JSON locale
         </div>
         <div class="card-body">
-          <div class="alert alert-success d-flex gap-2 mb-0">
-            <i class="bi bi-check-circle-fill fs-5 flex-shrink-0"></i>
+          <div class="alert alert-warning d-flex gap-2 mb-0">
+            <i class="bi bi-exclamation-triangle-fill fs-5 flex-shrink-0"></i>
             <div>
-              <strong>Nessuna configurazione richiesta.</strong><br>
-              <span class="small">
-                I dati sono salvati in
-                <code>./data/tenants/{{ studio.slug }}/</code>
-                sul filesystem del server.
-              </span>
+              <strong>Compatibilita' legacy.</strong><br>
+              <span class="small">Usa file JSON nel tenant. E' adatto a installazioni storiche o ambienti di transizione, non al cutover professionale dei domini core.</span>
             </div>
-          </div>
-          <div class="mt-3">
-            <div class="small text-muted fw-semibold mb-1">Directory dati:</div>
-            <code class="small">./data/tenants/{{ studio.slug }}/</code>
           </div>
         </div>
       </div>
 
-      <div class="card mb-3 db-panel" id="panel_SQLITE"
-           style="{{ '' if db.normalized_mode == 'SQLITE' else 'display:none' }}">
+      <div class="card mb-3 db-panel" id="panel_SQLITE" style="{{ '' if db.normalized_mode == 'SQLITE' else 'display:none' }}">
         <div class="card-header fw-semibold d-flex align-items-center gap-2 text-info">
-          <i class="bi bi-database-fill"></i> SQLite per studio
+          <i class="bi bi-database-fill"></i> SQLite tenant-aware
         </div>
         <div class="card-body">
-        <div class="alert alert-info d-flex gap-2 mb-3">
-          <i class="bi bi-info-circle-fill fs-5 flex-shrink-0"></i>
-          <div>
-              <strong>Backend tenant-aware pronto all'uso.</strong><br>
-              <span class="small">Il runtime usa <code>{{ storage_paths.STUDIO_DB }}</code> per i moduli core compatibili.</span>
+          <div class="alert alert-info d-flex gap-2 mb-3">
+            <i class="bi bi-info-circle-fill fs-5 flex-shrink-0"></i>
+            <div>
+              <strong>Backend controllato per locale e fallback esplicito.</strong><br>
+              <span class="small">I domini core usano <code>{{ storage_paths.STUDIO_DB }}</code>. Se il database non e' ancora seedato, il sistema resta su JSON in modo dichiarato e tracciato.</span>
             </div>
           </div>
           <div class="small text-muted fw-semibold mb-1">File database:</div>
@@ -118,36 +89,67 @@
           {% if storage_manifest %}
           <div class="mt-3 small text-muted">
             Backend effettivo: <strong>{{ storage_manifest.effective_runtime_kind }}</strong>
-            <span class="ms-2">· stato: <strong>{{ storage_manifest.activation_state }}</strong></span>
+            <span class="ms-2">- stato: <strong>{{ storage_manifest.activation_state }}</strong></span>
           </div>
           {% endif %}
         </div>
       </div>
 
-      <div class="card mb-3 db-panel" id="panel_POSTGRESQL"
-           style="{{ '' if db.normalized_mode == 'POSTGRESQL' else 'display:none' }}">
+      <div class="card mb-3 db-panel" id="panel_POSTGRESQL" style="{{ '' if db.normalized_mode == 'POSTGRESQL' else 'display:none' }}">
         <div class="card-header fw-semibold d-flex align-items-center gap-2 text-primary">
-          <i class="bi bi-database-fill-gear"></i> Parametri PostgreSQL
+          <i class="bi bi-database-fill-gear"></i> PostgreSQL tenant-aware
         </div>
         <div class="card-body">
+          {% if storage_manifest and storage_manifest.core_runtime_enabled %}
+          <div class="alert alert-success d-flex gap-2 small">
+            <i class="bi bi-check-circle-fill flex-shrink-0"></i>
+            <div>
+              <strong>Backend core attivo in lettura e scrittura.</strong><br>
+              Utenti, clienti, fascicoli, agenda e scadenziario stanno usando davvero PostgreSQL per questo tenant.
+            </div>
+          </div>
+          {% elif db.connessione_ok %}
+          <div class="alert alert-warning d-flex gap-2 small">
+            <i class="bi bi-exclamation-triangle-fill flex-shrink-0"></i>
+            <div>
+              <strong>Connessione pronta, cutover non ancora eseguito.</strong><br>
+              Salva i parametri, poi usa il pulsante di attivazione per migrare i domini core e generare il report di consistenza.
+            </div>
+          </div>
+          {% else %}
           <div class="alert alert-primary d-flex gap-2 small">
             <i class="bi bi-info-circle-fill flex-shrink-0"></i>
             <div>
-              La strategia esterna viene configurata e testata qui dal Superadmin.
-              Finché la migrazione tenant-aware dei moduli core non viene attivata, il backend effettivo dello studio resta <strong>{{ storage_manifest.effective_runtime_kind if storage_manifest else 'json' }}</strong>.
+              <strong>Attivazione esplicita richiesta.</strong><br>
+              PostgreSQL non diventa mai backend core in modo invisibile: prima salvi, poi testi la connessione, poi attivi la migrazione con report.
             </div>
           </div>
+          {% endif %}
+
           {% include "admin/_db_form_sql.html" with context %}
+
+          {% if storage_manifest and storage_manifest.last_migration_at %}
+          <div class="border rounded-3 p-3 bg-light mt-3">
+            <div class="small fw-semibold text-muted mb-1">Ultima migrazione registrata</div>
+            <div class="small mb-1">Eseguita il <strong>{{ storage_manifest.last_migration_at }}</strong></div>
+            {% if storage_manifest.last_migration_report %}
+            <div class="small">Report: <code>{{ storage_manifest.last_migration_report }}</code></div>
+            {% endif %}
+          </div>
+          {% endif %}
         </div>
       </div>
 
       <div class="d-flex gap-2 align-items-center flex-wrap">
-        <button type="submit" class="btn btn-primary">
+        <button type="submit" class="btn btn-primary" name="storage_action" value="save">
           <i class="bi bi-save me-1"></i>Salva configurazione
         </button>
         {% if db.normalized_mode == 'POSTGRESQL' %}
         <button type="button" class="btn btn-outline-info" id="btnTestConn">
           <i class="bi bi-broadcast me-1"></i>Testa connessione
+        </button>
+        <button type="submit" class="btn btn-outline-primary" name="storage_action" value="activate_postgres">
+          <i class="bi bi-arrow-repeat me-1"></i>Attiva PostgreSQL e migra domini core
         </button>
         {% endif %}
       </div>
@@ -159,7 +161,7 @@
     <div class="alert alert-danger mt-3 small d-flex gap-2">
       <i class="bi bi-exclamation-triangle-fill flex-shrink-0"></i>
       <div>
-        <strong>Ultimo errore connessione:</strong><br>
+        <strong>Ultimo errore di connessione:</strong><br>
         <code>{{ db.errore_connessione }}</code>
       </div>
     </div>
@@ -169,35 +171,15 @@
 
 <div class="card mt-4">
   <div class="card-header fw-semibold d-flex align-items-center gap-2">
-    <i class="bi bi-terminal text-muted"></i> Requisiti di installazione
+    <i class="bi bi-clipboard-data text-muted"></i> Regole operative
   </div>
   <div class="card-body">
-    <div class="row g-3">
-      <div class="col-12 col-md-4">
-        <div class="d-flex align-items-center gap-2 mb-1">
-          <i class="bi bi-hdd-fill text-secondary"></i>
-          <span class="fw-semibold small">JSON</span>
-          <span class="badge bg-success ms-auto">Già incluso</span>
-        </div>
-        <code class="small text-muted">Nessuna dipendenza aggiuntiva</code>
-      </div>
-
-      <div class="col-12 col-md-4">
-        <div class="d-flex align-items-center gap-2 mb-1">
-          <i class="bi bi-database-fill text-info"></i>
-          <span class="fw-semibold small">SQLite</span>
-        </div>
-        <code class="small text-muted">Nessuna dipendenza aggiuntiva</code>
-      </div>
-
-      <div class="col-12 col-md-4">
-        <div class="d-flex align-items-center gap-2 mb-1">
-          <i class="bi bi-database-fill-gear text-primary"></i>
-          <span class="fw-semibold small">PostgreSQL</span>
-        </div>
-        <code class="small">pip install sqlalchemy psycopg2-binary</code>
-      </div>
-    </div>
+    <ul class="small mb-0 ps-3">
+      <li>PostgreSQL diventa backend effettivo solo dopo test connessione, migrazione e attivazione esplicita.</li>
+      <li>Se PostgreSQL e' attivo e non raggiungibile, i domini core non degradano in modo invisibile su JSON.</li>
+      <li>SQLite resta backend locale o fallback controllato per i tenant non ancora cutoverizzati.</li>
+      <li>I documenti restano sul filesystem tenant anche quando i metadati core passano su database SQL.</li>
+    </ul>
   </div>
 </div>
 {% endblock %}
@@ -209,8 +191,7 @@ const TEST_URL = '{{ url_for("admin.testa_connessione_db", slug=studio.slug) }}'
 function setPanelInputsEnabled(panelId, enabled) {
   const panel = document.getElementById(panelId);
   if (!panel) return;
-
-  panel.querySelectorAll('input, select, textarea, button').forEach(el => {
+  panel.querySelectorAll('input, select, textarea').forEach(el => {
     if (el.name && el.name !== 'db_mode') {
       el.disabled = !enabled;
     }
@@ -226,6 +207,11 @@ function updatePanels(mode) {
   setPanelInputsEnabled('panel_JSON', mode === 'JSON');
   setPanelInputsEnabled('panel_SQLITE', mode === 'SQLITE');
   setPanelInputsEnabled('panel_POSTGRESQL', mode === 'POSTGRESQL');
+
+  const testBtn = document.getElementById('btnTestConn');
+  if (testBtn) {
+    testBtn.style.display = mode === 'POSTGRESQL' ? '' : 'none';
+  }
 }
 
 function selectMode(mode) {
@@ -239,14 +225,6 @@ function selectMode(mode) {
   });
 
   updatePanels(mode);
-
-  let testBtn = document.getElementById('btnTestConn');
-
-  if (mode !== 'POSTGRESQL') {
-    if (testBtn) testBtn.style.display = 'none';
-  } else {
-    if (testBtn) testBtn.style.display = '';
-  }
 }
 
 async function doTestConnection() {
@@ -266,7 +244,6 @@ async function doTestConnection() {
 
     const raw = await resp.text();
     let data;
-
     try {
       data = JSON.parse(raw);
     } catch (e) {
@@ -275,22 +252,20 @@ async function doTestConnection() {
         <div class="alert alert-danger d-flex gap-2">
           <i class="bi bi-x-circle-fill fs-5 flex-shrink-0"></i>
           <div>
-            <strong>Errore nella richiesta</strong><br>
-            <code>Il server non ha restituito JSON valido.</code><br>
-            <small>${raw.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</small>
+            <strong>Risposta non valida</strong><br>
+            <small>Il server non ha restituito JSON valido.</small>
           </div>
         </div>`;
       return;
     }
 
     result.style.display = '';
-
     if (data.ok) {
       result.innerHTML = `
         <div class="alert alert-success d-flex gap-2">
           <i class="bi bi-check-circle-fill fs-5 flex-shrink-0"></i>
           <div>
-            <strong>Connessione riuscita!</strong><br>
+            <strong>Connessione riuscita.</strong><br>
             <span>${data.messaggio || 'Test completato con successo.'}</span>
           </div>
         </div>`;
@@ -299,7 +274,7 @@ async function doTestConnection() {
         <div class="alert alert-danger d-flex gap-2">
           <i class="bi bi-x-circle-fill fs-5 flex-shrink-0"></i>
           <div>
-            <strong>Connessione fallita</strong><br>
+            <strong>Connessione fallita.</strong><br>
             <code>${data.errore || data.messaggio || 'Errore sconosciuto'}</code>
           </div>
         </div>`;
@@ -310,7 +285,7 @@ async function doTestConnection() {
       <div class="alert alert-danger d-flex gap-2">
         <i class="bi bi-x-circle-fill fs-5 flex-shrink-0"></i>
         <div>
-          <strong>Errore nella richiesta</strong><br>
+          <strong>Errore nella richiesta.</strong><br>
           <code>${e}</code>
         </div>
       </div>`;

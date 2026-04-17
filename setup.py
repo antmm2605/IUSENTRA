@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="pct-studio-legale",
-    version="2.164.1",
+    version="2.165.0",
     description="IUSENTRA: gestionale web modulare per studi legali con PCT, Lex locale e servizi telematici",
     packages=find_packages(),
     include_package_data=True,
@@ -38,6 +38,7 @@ setup(
     entry_points={
         "console_scripts": [
             "pct=pct.cli:main",
+            "iusentra=pct.cli:main",
             "pct-web=web.__main__:app.run",
         ],
     },

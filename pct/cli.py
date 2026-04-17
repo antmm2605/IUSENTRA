@@ -48,6 +48,7 @@ from .auth import (
     GestioneUtenti,
     RuoloUtente,
 )
+from .tenant import DatabaseConfig, DbMode, GestioneTenant
 from .scadenziario import (
     GestioneScadenziario,
     TipoTermine,
@@ -2404,6 +2405,83 @@ def cmd_crea_superadmin(username, password, email, nome, auth_db, forza):
     click.echo(f"  Email   : {email}")
     click.echo(f"  Ruolo   : SUPERADMIN")
     click.echo("Accedi su /login e poi visita /admin/ per gestire gli studi.")
+
+
+@cli.command("migrate")
+@click.option("--to", "target", required=True, type=click.Choice(["postgres", "sqlite"], case_sensitive=False), help="Backend target della migrazione ufficiale")
+@click.option("--tenant", "tenant_slug", default="", help="Slug tenant. Se omesso e c'e' un solo tenant, viene risolto automaticamente")
+@click.option("--registry", default=lambda: os.getenv("PCT_TENANTS_REGISTRY", "./data/tenants.json"), show_default="PCT_TENANTS_REGISTRY o ./data/tenants.json", help="Registry tenant")
+@click.option("--host", default="", help="Host PostgreSQL")
+@click.option("--port", default=5432, show_default=True, type=int, help="Porta PostgreSQL")
+@click.option("--db-name", default="", help="Nome database PostgreSQL")
+@click.option("--user", default="", help="Utente PostgreSQL")
+@click.option("--password", default="", help="Password PostgreSQL")
+@click.option("--ssl/--no-ssl", default=False, help="Connessione SSL verso PostgreSQL")
+@click.option("--activate/--no-activate", default=True, help="Attiva il backend target dopo la migrazione")
+@click.option("--secret-key", default=lambda: os.getenv("PCT_SECRET_KEY", ""), help="Secret key per utenti e audit")
+def cmd_migrate_storage(target, tenant_slug, registry, host, port, db_name, user, password, ssl, activate, secret_key):
+    """Esegue la migrazione ufficiale JSON -> SQLite -> PostgreSQL o JSON -> SQLite per un tenant."""
+    tm = GestioneTenant(registry_path=registry)
+    tenants = tm.lista()
+
+    resolved_slug = (tenant_slug or "").strip().lower()
+    if not resolved_slug:
+        if len(tenants) == 1:
+            resolved_slug = str(tenants[0].slug or "").strip().lower()
+        else:
+            click.echo("Errore: specifica --tenant oppure lascia un solo tenant nel registry.", err=True)
+            sys.exit(1)
+
+    studio = tm.get(resolved_slug)
+    if not studio:
+        click.echo(f"Errore: tenant '{resolved_slug}' non trovato.", err=True)
+        sys.exit(1)
+
+    if target.lower() == "sqlite":
+        cfg = DatabaseConfig(mode=DbMode.SQLITE)
+        tm.aggiorna_db_config(resolved_slug, cfg)
+        payload = tm.provision_storage_backend(resolved_slug, migrate_existing=True)
+        if not payload.get("ok"):
+            click.echo("Migrazione verso SQLite non riuscita.", err=True)
+            click.echo(json.dumps(payload, ensure_ascii=False, indent=2), err=True)
+            sys.exit(1)
+        click.echo(f"SQLite pronto per il tenant {resolved_slug}.")
+        click.echo(json.dumps(payload, ensure_ascii=False, indent=2))
+        return
+
+    current = studio.database
+    cfg = DatabaseConfig(
+        mode=DbMode.POSTGRESQL,
+        host=(host or current.host or "localhost").strip(),
+        porta=int(port or current.porta or 5432),
+        db_name=(db_name or current.db_name or "").strip(),
+        utente=(user or current.utente or "").strip(),
+        password=(password or current.password or "").strip(),
+        ssl=bool(ssl or current.ssl),
+        pool_size=current.pool_size,
+        pool_timeout=current.pool_timeout,
+        connessione_ok=current.connessione_ok,
+        ultimo_test=current.ultimo_test,
+        errore_connessione=current.errore_connessione,
+        core_runtime_enabled=current.core_runtime_enabled,
+        last_migration_report=current.last_migration_report,
+        last_migration_at=current.last_migration_at,
+    )
+
+    tm.aggiorna_db_config(resolved_slug, cfg)
+    payload = tm.provision_storage_backend(
+        resolved_slug,
+        migrate_existing=True,
+        activate_external=bool(activate),
+        secret_key=secret_key,
+    )
+    if not payload.get("ok"):
+        click.echo("Cutover PostgreSQL non riuscito.", err=True)
+        click.echo(json.dumps(payload, ensure_ascii=False, indent=2), err=True)
+        sys.exit(1)
+
+    click.echo(f"Cutover storage completato per il tenant {resolved_slug}.")
+    click.echo(json.dumps(payload, ensure_ascii=False, indent=2))
 
 
 def main():

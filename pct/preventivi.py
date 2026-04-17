@@ -25,6 +25,7 @@ from pct.preventivi_repository import (
     derive_preventivi_rules_json_path,
     derive_preventivi_workflow_states_json_path,
 )
+from pct.legal_platform_catalog import build_operational_fields
 
 
 # ================================================================ Enumerazioni
@@ -272,6 +273,13 @@ class Preventivo:
     sottobranca_tassonomica: str = ""
     tassonomia_codice:     str   = ""
     fonti_tassonomia:      List[Dict[str, Any]] = field(default_factory=list)
+    procedura_operativa_codice: str = ""
+    procedura_operativa_nome: str = ""
+    subbranch_operativa_codice: str = ""
+    workflow_operativo_codice: str = ""
+    copertura_operativa: str = ""
+    canale_operativo: str = ""
+    registro_operativo: str = ""
     tipo_compenso:        str   = ""    # es. "Compenso fisso", "Per fasi processuali (D.M. 55/2014)"
     tipo_procedimento:    str   = ""    # es. "Civile — fase di cognizione"
     valore_controversia:  float = 0.0  # €, 0 = indeterminabile
@@ -414,6 +422,13 @@ class ConferimentoIncarico:
     sottobranca_tassonomica:  str   = ""
     tassonomia_codice:        str   = ""
     fonti_tassonomia:         List[Dict[str, Any]] = field(default_factory=list)
+    procedura_operativa_codice: str = ""
+    procedura_operativa_nome: str = ""
+    subbranch_operativa_codice: str = ""
+    workflow_operativo_codice: str = ""
+    copertura_operativa: str = ""
+    canale_operativo: str = ""
+    registro_operativo: str = ""
     numero_iscrizione_albo: str   = ""
     ordine_avvocati:        str   = ""
     tipo_compenso:          str   = ""
@@ -610,6 +625,7 @@ class GestionePreventivi:
                         sottobranca_tassonomica: str = "",
                         tassonomia_codice:    str   = "",
                         fonti_tassonomia: Optional[List[Dict[str, Any]]] = None,
+                        procedura_operativa_codice: str = "",
                         tipo_compenso:       str   = "",
                         tipo_procedimento:   str   = "",
                         valore_controversia: float = 0.0,
@@ -626,6 +642,13 @@ class GestionePreventivi:
                          clausola_controversie_testo: str = "",
                          clausola_controversie_trattativa_individuale: bool = False,
                          clausola_controversie_fonte: str = "") -> Preventivo:
+        operational_fields = build_operational_fields(
+            procedure_code=procedura_operativa_codice,
+            practice_id=id_pratica,
+            area_pratica=area_pratica,
+            tipo_procedimento=tipo_procedimento,
+            oggetto=oggetto,
+        )
         clausola_payload = prepara_clausola_controversie(
             attiva=clausola_controversie_attiva,
             modello=clausola_controversie_modello,
@@ -654,6 +677,13 @@ class GestionePreventivi:
             sottobranca_tassonomica=sottobranca_tassonomica,
             tassonomia_codice=tassonomia_codice,
             fonti_tassonomia=list(fonti_tassonomia or []),
+            procedura_operativa_codice=operational_fields.get("procedura_operativa_codice", ""),
+            procedura_operativa_nome=operational_fields.get("procedura_operativa_nome", ""),
+            subbranch_operativa_codice=operational_fields.get("subbranch_operativa_codice", ""),
+            workflow_operativo_codice=operational_fields.get("workflow_operativo_codice", ""),
+            copertura_operativa=operational_fields.get("copertura_operativa", ""),
+            canale_operativo=operational_fields.get("canale_operativo", ""),
+            registro_operativo=operational_fields.get("registro_operativo", ""),
             tipo_compenso=tipo_compenso,
             tipo_procedimento=tipo_procedimento,
             valore_controversia=valore_controversia,
@@ -782,6 +812,7 @@ class GestionePreventivi:
                           sottobranca_tassonomica: str  = "",
                           tassonomia_codice:      str   = "",
                           fonti_tassonomia: Optional[List[Dict[str, Any]]] = None,
+                          procedura_operativa_codice: str = "",
                           numero_iscrizione_albo: str   = "",
                           ordine_avvocati:        str   = "",
                           tipo_compenso:          str   = "",
@@ -818,6 +849,8 @@ class GestionePreventivi:
                     tassonomia_codice = preventivo.tassonomia_codice
                 if not fonti_tassonomia:
                     fonti_tassonomia = list(preventivo.fonti_tassonomia or [])
+                if not procedura_operativa_codice:
+                    procedura_operativa_codice = preventivo.procedura_operativa_codice
                 if not tipo_compenso:
                     tipo_compenso = preventivo.tipo_compenso
                 if not tipo_procedimento:
@@ -839,6 +872,13 @@ class GestionePreventivi:
                 if not clausola_controversie_fonte:
                     clausola_controversie_fonte = preventivo.clausola_controversie_fonte
                 workflow_channel = workflow_channel or preventivo.workflow_channel
+        operational_fields = build_operational_fields(
+            procedure_code=procedura_operativa_codice,
+            practice_id=id_pratica,
+            area_pratica=area_pratica,
+            tipo_procedimento=tipo_procedimento,
+            oggetto=oggetto,
+        )
         clausola_payload = prepara_clausola_controversie(
             attiva=clausola_controversie_attiva,
             modello=clausola_controversie_modello,
@@ -866,6 +906,13 @@ class GestionePreventivi:
             sottobranca_tassonomica=sottobranca_tassonomica,
             tassonomia_codice=tassonomia_codice,
             fonti_tassonomia=list(fonti_tassonomia or []),
+            procedura_operativa_codice=operational_fields.get("procedura_operativa_codice", ""),
+            procedura_operativa_nome=operational_fields.get("procedura_operativa_nome", ""),
+            subbranch_operativa_codice=operational_fields.get("subbranch_operativa_codice", ""),
+            workflow_operativo_codice=operational_fields.get("workflow_operativo_codice", ""),
+            copertura_operativa=operational_fields.get("copertura_operativa", ""),
+            canale_operativo=operational_fields.get("canale_operativo", ""),
+            registro_operativo=operational_fields.get("registro_operativo", ""),
             numero_iscrizione_albo=numero_iscrizione_albo,
             ordine_avvocati=ordine_avvocati,
             tipo_compenso=tipo_compenso,

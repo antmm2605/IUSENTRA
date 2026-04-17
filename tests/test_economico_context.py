@@ -80,3 +80,23 @@ def test_sincronizza_contesto_economico_arricchisce_regola_e_audit_tariffario():
     assert summary["regola_tariffaria_label"] == "Negoziazione assistita"
     assert summary["audit_tariffario"]["table_code"] == "A27"
     assert summary["audit_tariffario"]["compliance_label"] == "Ricostruttiva"
+
+
+def test_contesto_economico_arricchisce_procedura_operativa():
+    raw = dump_log_calcolo(
+        costruisci_contesto_economico(
+            source="preventivo_guidato",
+            source_label="Preventivo guidato",
+            id_pratica="ricorso_tributario",
+            pratica_label="Ricorso tributario",
+            area_pratica="Tributario",
+            tipo_compenso="Per fasi processuali (D.M. 55/2014)",
+            tipo_procedimento="Ricorso tributario di primo grado",
+        )
+    )
+
+    summary = riepilogo_contesto_economico(raw)
+
+    assert summary["procedura_operativa_codice"] == "PROC_TRIB_RIC_002"
+    assert summary["procedura_operativa_nome"] == "Ricorso tributario di primo grado"
+    assert summary["canale_operativo"] == "PTT_TRIBUTARIO"

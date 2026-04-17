@@ -462,6 +462,13 @@ class Fascicolo:
     tipo_procedimento: str = ""
     id_pratica: str = ""
     area_pratica: str = ""
+    procedura_operativa_codice: str = ""
+    procedura_operativa_nome: str = ""
+    subbranch_operativa_codice: str = ""
+    workflow_operativo_codice: str = ""
+    copertura_operativa: str = ""
+    canale_operativo: str = ""
+    registro_operativo: str = ""
     compenso_pattuito: float = 0.0  # importo totale dal conferimento incarico
 
     # --- Date

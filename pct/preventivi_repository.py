@@ -31,6 +31,13 @@ _PREVENTIVO_SECTION_MAP: dict[str, str] = {
     "fonti_tassonomia": "Pratica e tassonomia",
     "tipo_compenso": "Tipo compenso",
     "tipo_procedimento": "Pratica e tassonomia",
+    "procedura_operativa_codice": "Piattaforma operativa",
+    "procedura_operativa_nome": "Piattaforma operativa",
+    "subbranch_operativa_codice": "Piattaforma operativa",
+    "workflow_operativo_codice": "Piattaforma operativa",
+    "copertura_operativa": "Piattaforma operativa",
+    "canale_operativo": "Piattaforma operativa",
+    "registro_operativo": "Piattaforma operativa",
     "valore_controversia": "Voci economiche",
     "tariffa_oraria": "Voci economiche",
     "ore_stimate": "Voci economiche",
@@ -72,6 +79,13 @@ _CONFERIMENTO_SECTION_MAP: dict[str, str] = {
     "fonti_tassonomia": "Pratica e tassonomia",
     "tipo_compenso": "Tipo compenso",
     "tipo_procedimento": "Pratica e tassonomia",
+    "procedura_operativa_codice": "Piattaforma operativa",
+    "procedura_operativa_nome": "Piattaforma operativa",
+    "subbranch_operativa_codice": "Piattaforma operativa",
+    "workflow_operativo_codice": "Piattaforma operativa",
+    "copertura_operativa": "Piattaforma operativa",
+    "canale_operativo": "Piattaforma operativa",
+    "registro_operativo": "Piattaforma operativa",
     "tariffa_oraria": "Voci economiche",
     "compenso_pattuito": "Voci economiche",
     "patto_palmario": "Voci economiche",
@@ -136,6 +150,48 @@ _FIELD_OVERRIDES: dict[str, dict[str, Any]] = {
         "label": "Tipo procedimento",
         "help_text": "Descrizione del procedimento o del rito usato nel preventivo.",
         "required_runtime": True,
+        "step_key": "pratica_tassonomia",
+    },
+    "procedura_operativa_codice": {
+        "label": "Codice procedura operativa",
+        "help_text": "Codice univoco della procedura della piattaforma legale operativa associata al caso.",
+        "required_runtime": True,
+        "step_key": "pratica_tassonomia",
+    },
+    "procedura_operativa_nome": {
+        "label": "Procedura operativa",
+        "help_text": "Nome della procedura operativa condivisa tra preventivo, conferimento, fascicolo e fatturazione.",
+        "required_runtime": True,
+        "step_key": "pratica_tassonomia",
+    },
+    "subbranch_operativa_codice": {
+        "label": "Sottobranca operativa",
+        "help_text": "Codice della sottobranca specialistica collegata alla procedura operativa.",
+        "required_runtime": False,
+        "step_key": "pratica_tassonomia",
+    },
+    "workflow_operativo_codice": {
+        "label": "Workflow operativo",
+        "help_text": "Workflow di piattaforma da seguire per la pratica selezionata.",
+        "required_runtime": False,
+        "step_key": "pratica_tassonomia",
+    },
+    "copertura_operativa": {
+        "label": "Copertura operativa",
+        "help_text": "Livello di copertura della procedura nella piattaforma legale operativa.",
+        "required_runtime": False,
+        "step_key": "pratica_tassonomia",
+    },
+    "canale_operativo": {
+        "label": "Canale operativo",
+        "help_text": "Canale di lavoro previsto: telematico, portale ministeriale o presidio di studio.",
+        "required_runtime": False,
+        "step_key": "pratica_tassonomia",
+    },
+    "registro_operativo": {
+        "label": "Registro operativo",
+        "help_text": "Registro o superficie procedurale da presidiare nella gestione del caso.",
+        "required_runtime": False,
         "step_key": "pratica_tassonomia",
     },
     "valore_controversia": {
@@ -840,6 +896,10 @@ def _preventivo_missing_fields(preventivo: Any, practice_row: dict[str, Any] | N
         missing.append("tipo_compenso")
     if not _clean_spaces(getattr(preventivo, "tipo_procedimento", "")):
         missing.append("tipo_procedimento")
+    if _clean_spaces(getattr(preventivo, "id_pratica", "")) and not _clean_spaces(getattr(preventivo, "procedura_operativa_codice", "")):
+        missing.append("procedura_operativa_codice")
+    if _clean_spaces(getattr(preventivo, "id_pratica", "")) and not _clean_spaces(getattr(preventivo, "procedura_operativa_nome", "")):
+        missing.append("procedura_operativa_nome")
     tipo_compenso = _clean_spaces(getattr(preventivo, "tipo_compenso", "")).lower()
     if "orari" in tipo_compenso or "orario" in tipo_compenso:
         if float(getattr(preventivo, "tariffa_oraria", 0.0) or 0.0) <= 0:
@@ -869,6 +929,10 @@ def _preventivo_warnings(preventivo: Any, conferimento: Any | None) -> list[str]
         warnings.append("Preventivo accettato ma conferimento non ancora creato.")
     if stato == "CONVERTITO" and not _clean_spaces(getattr(preventivo, "id_fascicolo", "")):
         warnings.append("Preventivo convertito senza fascicolo collegato.")
+    if _clean_spaces(getattr(preventivo, "id_pratica", "")) and not _clean_spaces(getattr(preventivo, "canale_operativo", "")):
+        warnings.append("Procedura operativa senza canale operativo associato.")
+    if _clean_spaces(getattr(preventivo, "id_pratica", "")) and not _clean_spaces(getattr(preventivo, "registro_operativo", "")):
+        warnings.append("Procedura operativa senza registro operativo associato.")
     return warnings
 
 
@@ -905,6 +969,8 @@ def _conferimento_warnings(conferimento: Any) -> list[str]:
         warnings.append("Informativa art. 13 non ancora marcata come resa.")
     if not bool(getattr(conferimento, "clausola_adr_resa", False)):
         warnings.append("Informativa ADR non ancora marcata come resa.")
+    if _clean_spaces(getattr(conferimento, "id_pratica", "")) and not _clean_spaces(getattr(conferimento, "procedura_operativa_nome", "")):
+        warnings.append("Conferimento senza procedura operativa associata.")
     return warnings
 
 
@@ -939,6 +1005,13 @@ def _build_preventivo_record(
         getattr(preventivo, "tipo_compenso", ""),
         getattr(preventivo, "area_pratica", ""),
         getattr(preventivo, "id_pratica", ""),
+        getattr(preventivo, "procedura_operativa_codice", ""),
+        getattr(preventivo, "procedura_operativa_nome", ""),
+        getattr(preventivo, "subbranch_operativa_codice", ""),
+        getattr(preventivo, "workflow_operativo_codice", ""),
+        getattr(preventivo, "copertura_operativa", ""),
+        getattr(preventivo, "canale_operativo", ""),
+        getattr(preventivo, "registro_operativo", ""),
         stato,
         workflow_channel,
         wizard_step,
@@ -966,6 +1039,13 @@ def _build_preventivo_record(
         "tipo_procedimento": _clean_spaces(getattr(preventivo, "tipo_procedimento", "")),
         "area_pratica": _clean_spaces(getattr(preventivo, "area_pratica", "")),
         "id_pratica": _clean_spaces(getattr(preventivo, "id_pratica", "")),
+        "procedura_operativa_codice": _clean_spaces(getattr(preventivo, "procedura_operativa_codice", "")),
+        "procedura_operativa_nome": _clean_spaces(getattr(preventivo, "procedura_operativa_nome", "")),
+        "subbranch_operativa_codice": _clean_spaces(getattr(preventivo, "subbranch_operativa_codice", "")),
+        "workflow_operativo_codice": _clean_spaces(getattr(preventivo, "workflow_operativo_codice", "")),
+        "copertura_operativa": _clean_spaces(getattr(preventivo, "copertura_operativa", "")),
+        "canale_operativo": _clean_spaces(getattr(preventivo, "canale_operativo", "")),
+        "registro_operativo": _clean_spaces(getattr(preventivo, "registro_operativo", "")),
         "valore_controversia": float(getattr(preventivo, "valore_controversia", 0.0) or 0.0),
         "tariffa_oraria": float(getattr(preventivo, "tariffa_oraria", 0.0) or 0.0),
         "ore_stimate": float(getattr(preventivo, "ore_stimate", 0.0) or 0.0),
@@ -1005,6 +1085,13 @@ def _build_conferimento_record(conferimento: Any) -> dict[str, Any]:
         getattr(conferimento, "tipo_compenso", ""),
         getattr(conferimento, "area_pratica", ""),
         getattr(conferimento, "id_pratica", ""),
+        getattr(conferimento, "procedura_operativa_codice", ""),
+        getattr(conferimento, "procedura_operativa_nome", ""),
+        getattr(conferimento, "subbranch_operativa_codice", ""),
+        getattr(conferimento, "workflow_operativo_codice", ""),
+        getattr(conferimento, "copertura_operativa", ""),
+        getattr(conferimento, "canale_operativo", ""),
+        getattr(conferimento, "registro_operativo", ""),
         stato,
         workflow_channel,
     ]
@@ -1023,6 +1110,13 @@ def _build_conferimento_record(conferimento: Any) -> dict[str, Any]:
         "tipo_procedimento": _clean_spaces(getattr(conferimento, "tipo_procedimento", "")),
         "area_pratica": _clean_spaces(getattr(conferimento, "area_pratica", "")),
         "id_pratica": _clean_spaces(getattr(conferimento, "id_pratica", "")),
+        "procedura_operativa_codice": _clean_spaces(getattr(conferimento, "procedura_operativa_codice", "")),
+        "procedura_operativa_nome": _clean_spaces(getattr(conferimento, "procedura_operativa_nome", "")),
+        "subbranch_operativa_codice": _clean_spaces(getattr(conferimento, "subbranch_operativa_codice", "")),
+        "workflow_operativo_codice": _clean_spaces(getattr(conferimento, "workflow_operativo_codice", "")),
+        "copertura_operativa": _clean_spaces(getattr(conferimento, "copertura_operativa", "")),
+        "canale_operativo": _clean_spaces(getattr(conferimento, "canale_operativo", "")),
+        "registro_operativo": _clean_spaces(getattr(conferimento, "registro_operativo", "")),
         "compenso_pattuito": float(getattr(conferimento, "compenso_pattuito", 0.0) or 0.0),
         "informativa_art13_resa": bool(getattr(conferimento, "informativa_art13_resa", False)),
         "clausola_adr_resa": bool(getattr(conferimento, "clausola_adr_resa", False)),
@@ -1074,10 +1168,43 @@ class GestionePreventiviRepository:
         conn.execute("PRAGMA synchronous = NORMAL")
         return conn
 
+    def _ensure_table_columns(self, conn: sqlite3.Connection, table_name: str, columns: dict[str, str]) -> None:
+        existing = {row["name"] for row in conn.execute(f"PRAGMA table_info({table_name})").fetchall()}
+        for column_name, ddl in columns.items():
+            if column_name in existing:
+                continue
+            conn.execute(f"ALTER TABLE {table_name} ADD COLUMN {column_name} {ddl}")
+
     def _ensure_schema(self) -> None:
         schema_sql = self.schema_path.read_text(encoding="utf-8")
         with self._connect() as conn:
             conn.executescript(schema_sql)
+            self._ensure_table_columns(
+                conn,
+                "preventivi_records",
+                {
+                    "procedura_operativa_codice": "TEXT NOT NULL DEFAULT ''",
+                    "procedura_operativa_nome": "TEXT NOT NULL DEFAULT ''",
+                    "subbranch_operativa_codice": "TEXT NOT NULL DEFAULT ''",
+                    "workflow_operativo_codice": "TEXT NOT NULL DEFAULT ''",
+                    "copertura_operativa": "TEXT NOT NULL DEFAULT ''",
+                    "canale_operativo": "TEXT NOT NULL DEFAULT ''",
+                    "registro_operativo": "TEXT NOT NULL DEFAULT ''",
+                },
+            )
+            self._ensure_table_columns(
+                conn,
+                "conferimenti_records",
+                {
+                    "procedura_operativa_codice": "TEXT NOT NULL DEFAULT ''",
+                    "procedura_operativa_nome": "TEXT NOT NULL DEFAULT ''",
+                    "subbranch_operativa_codice": "TEXT NOT NULL DEFAULT ''",
+                    "workflow_operativo_codice": "TEXT NOT NULL DEFAULT ''",
+                    "copertura_operativa": "TEXT NOT NULL DEFAULT ''",
+                    "canale_operativo": "TEXT NOT NULL DEFAULT ''",
+                    "registro_operativo": "TEXT NOT NULL DEFAULT ''",
+                },
+            )
             conn.commit()
 
     def _get_meta(self, key: str) -> str:
@@ -1317,108 +1444,71 @@ class GestionePreventiviRepository:
                 )
 
             for row in payload.get("preventivi") or []:
+                columns = [
+                    "preventivo_id", "numero", "data_emissione", "data_scadenza", "id_cliente",
+                    "id_fascicolo", "oggetto", "stato", "workflow_channel", "workflow_channel_label",
+                    "tipo_compenso", "tipo_procedimento", "area_pratica", "id_pratica",
+                    "procedura_operativa_codice", "procedura_operativa_nome", "subbranch_operativa_codice",
+                    "workflow_operativo_codice", "copertura_operativa", "canale_operativo", "registro_operativo",
+                    "valore_controversia", "tariffa_oraria", "ore_stimate", "complessita",
+                    "applica_cassa", "applica_iva", "anticipazioni_art15", "imponibile", "cassa_forense",
+                    "base_iva", "iva", "totale", "piano_pagamenti_count", "clausola_controversie_attiva",
+                    "clausola_controversie_modello", "token_portale_present", "inviato_cliente_il", "accettato_il",
+                    "versione", "id_preventivo_precedente", "wizard_step", "wizard_step_label",
+                    "campi_mancanti_json", "warning_json", "next_action", "search_text",
+                ]
                 conn.execute(
-                    """
-                    INSERT INTO preventivi_records (
-                        preventivo_id, numero, data_emissione, data_scadenza, id_cliente,
-                        id_fascicolo, oggetto, stato, workflow_channel,
-                        workflow_channel_label, tipo_compenso, tipo_procedimento,
-                        area_pratica, id_pratica, valore_controversia, tariffa_oraria,
-                        ore_stimate, complessita, applica_cassa, applica_iva,
-                        anticipazioni_art15, imponibile, cassa_forense, base_iva, iva,
-                        totale, piano_pagamenti_count, clausola_controversie_attiva,
-                        clausola_controversie_modello, token_portale_present,
-                        inviato_cliente_il, accettato_il, versione,
-                        id_preventivo_precedente, wizard_step, wizard_step_label,
-                        campi_mancanti_json, warning_json, next_action, search_text
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    """,
+                    f"INSERT INTO preventivi_records ({', '.join(columns)}) VALUES ({', '.join('?' for _ in columns)})",
                     (
-                        row.get("preventivo_id"),
-                        row.get("numero"),
-                        row.get("data_emissione"),
-                        row.get("data_scadenza"),
-                        row.get("id_cliente"),
-                        row.get("id_fascicolo"),
-                        row.get("oggetto"),
-                        row.get("stato"),
-                        row.get("workflow_channel"),
-                        row.get("workflow_channel_label"),
-                        row.get("tipo_compenso"),
-                        row.get("tipo_procedimento"),
-                        row.get("area_pratica"),
-                        row.get("id_pratica"),
-                        float(row.get("valore_controversia") or 0.0),
-                        float(row.get("tariffa_oraria") or 0.0),
-                        float(row.get("ore_stimate") or 0.0),
-                        row.get("complessita") or "",
-                        1 if row.get("applica_cassa") else 0,
-                        1 if row.get("applica_iva") else 0,
-                        float(row.get("anticipazioni_art15") or 0.0),
-                        float(row.get("imponibile") or 0.0),
-                        float(row.get("cassa_forense") or 0.0),
-                        float(row.get("base_iva") or 0.0),
-                        float(row.get("iva") or 0.0),
-                        float(row.get("totale") or 0.0),
-                        int(row.get("piano_pagamenti_count") or 0),
-                        1 if row.get("clausola_controversie_attiva") else 0,
-                        row.get("clausola_controversie_modello") or "",
-                        1 if row.get("token_portale_present") else 0,
-                        row.get("inviato_cliente_il") or "",
-                        row.get("accettato_il") or "",
-                        int(row.get("versione") or 1),
-                        row.get("id_preventivo_precedente") or "",
-                        row.get("wizard_step") or "",
-                        row.get("wizard_step_label") or "",
-                        _to_json(row.get("campi_mancanti") or []),
-                        _to_json(row.get("warning") or []),
-                        row.get("next_action") or "",
-                        row.get("search_text") or "",
+                        row.get("preventivo_id"), row.get("numero"), row.get("data_emissione"), row.get("data_scadenza"),
+                        row.get("id_cliente"), row.get("id_fascicolo"), row.get("oggetto"), row.get("stato"),
+                        row.get("workflow_channel"), row.get("workflow_channel_label"), row.get("tipo_compenso"),
+                        row.get("tipo_procedimento"), row.get("area_pratica"), row.get("id_pratica"),
+                        row.get("procedura_operativa_codice") or "", row.get("procedura_operativa_nome") or "",
+                        row.get("subbranch_operativa_codice") or "", row.get("workflow_operativo_codice") or "",
+                        row.get("copertura_operativa") or "", row.get("canale_operativo") or "",
+                        row.get("registro_operativo") or "", float(row.get("valore_controversia") or 0.0),
+                        float(row.get("tariffa_oraria") or 0.0), float(row.get("ore_stimate") or 0.0),
+                        row.get("complessita") or "", 1 if row.get("applica_cassa") else 0,
+                        1 if row.get("applica_iva") else 0, float(row.get("anticipazioni_art15") or 0.0),
+                        float(row.get("imponibile") or 0.0), float(row.get("cassa_forense") or 0.0),
+                        float(row.get("base_iva") or 0.0), float(row.get("iva") or 0.0), float(row.get("totale") or 0.0),
+                        int(row.get("piano_pagamenti_count") or 0), 1 if row.get("clausola_controversie_attiva") else 0,
+                        row.get("clausola_controversie_modello") or "", 1 if row.get("token_portale_present") else 0,
+                        row.get("inviato_cliente_il") or "", row.get("accettato_il") or "", int(row.get("versione") or 1),
+                        row.get("id_preventivo_precedente") or "", row.get("wizard_step") or "", row.get("wizard_step_label") or "",
+                        _to_json(row.get("campi_mancanti") or []), _to_json(row.get("warning") or []),
+                        row.get("next_action") or "", row.get("search_text") or "",
                     ),
                 )
 
             for row in payload.get("conferimenti") or []:
+                columns = [
+                    "conferimento_id", "numero", "data_incarico", "id_preventivo", "id_cliente",
+                    "id_fascicolo", "oggetto", "stato", "workflow_channel", "workflow_channel_label",
+                    "tipo_compenso", "tipo_procedimento", "area_pratica", "id_pratica",
+                    "procedura_operativa_codice", "procedura_operativa_nome", "subbranch_operativa_codice",
+                    "workflow_operativo_codice", "copertura_operativa", "canale_operativo", "registro_operativo",
+                    "compenso_pattuito", "informativa_art13_resa", "clausola_adr_resa",
+                    "firma_cliente_richiesta", "firma_cliente_eseguita", "firma_cliente_il", "fascicolo_aperto_il",
+                    "clausola_controversie_attiva", "clausola_controversie_modello", "warning_json", "next_action", "search_text",
+                ]
                 conn.execute(
-                    """
-                    INSERT INTO conferimenti_records (
-                        conferimento_id, numero, data_incarico, id_preventivo, id_cliente,
-                        id_fascicolo, oggetto, stato, workflow_channel,
-                        workflow_channel_label, tipo_compenso, tipo_procedimento,
-                        area_pratica, id_pratica, compenso_pattuito,
-                        informativa_art13_resa, clausola_adr_resa,
-                        firma_cliente_richiesta, firma_cliente_eseguita,
-                        firma_cliente_il, fascicolo_aperto_il,
-                        clausola_controversie_attiva, clausola_controversie_modello,
-                        warning_json, next_action, search_text
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    """,
+                    f"INSERT INTO conferimenti_records ({', '.join(columns)}) VALUES ({', '.join('?' for _ in columns)})",
                     (
-                        row.get("conferimento_id"),
-                        row.get("numero"),
-                        row.get("data_incarico"),
-                        row.get("id_preventivo"),
-                        row.get("id_cliente"),
-                        row.get("id_fascicolo"),
-                        row.get("oggetto"),
-                        row.get("stato"),
-                        row.get("workflow_channel"),
-                        row.get("workflow_channel_label"),
-                        row.get("tipo_compenso"),
-                        row.get("tipo_procedimento"),
-                        row.get("area_pratica"),
-                        row.get("id_pratica"),
-                        float(row.get("compenso_pattuito") or 0.0),
-                        1 if row.get("informativa_art13_resa") else 0,
-                        1 if row.get("clausola_adr_resa") else 0,
-                        1 if row.get("firma_cliente_richiesta") else 0,
-                        1 if row.get("firma_cliente_eseguita") else 0,
-                        row.get("firma_cliente_il") or "",
-                        row.get("fascicolo_aperto_il") or "",
-                        1 if row.get("clausola_controversie_attiva") else 0,
-                        row.get("clausola_controversie_modello") or "",
-                        _to_json(row.get("warning") or []),
-                        row.get("next_action") or "",
-                        row.get("search_text") or "",
+                        row.get("conferimento_id"), row.get("numero"), row.get("data_incarico"), row.get("id_preventivo"),
+                        row.get("id_cliente"), row.get("id_fascicolo"), row.get("oggetto"), row.get("stato"),
+                        row.get("workflow_channel"), row.get("workflow_channel_label"), row.get("tipo_compenso"),
+                        row.get("tipo_procedimento"), row.get("area_pratica"), row.get("id_pratica"),
+                        row.get("procedura_operativa_codice") or "", row.get("procedura_operativa_nome") or "",
+                        row.get("subbranch_operativa_codice") or "", row.get("workflow_operativo_codice") or "",
+                        row.get("copertura_operativa") or "", row.get("canale_operativo") or "",
+                        row.get("registro_operativo") or "", float(row.get("compenso_pattuito") or 0.0),
+                        1 if row.get("informativa_art13_resa") else 0, 1 if row.get("clausola_adr_resa") else 0,
+                        1 if row.get("firma_cliente_richiesta") else 0, 1 if row.get("firma_cliente_eseguita") else 0,
+                        row.get("firma_cliente_il") or "", row.get("fascicolo_aperto_il") or "",
+                        1 if row.get("clausola_controversie_attiva") else 0, row.get("clausola_controversie_modello") or "",
+                        _to_json(row.get("warning") or []), row.get("next_action") or "", row.get("search_text") or "",
                     ),
                 )
 

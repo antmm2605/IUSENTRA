@@ -110,3 +110,24 @@ def test_preventivi_lines_expose_repository_context_for_lex(tmp_path):
     assert preventivo_source["next_action"]
     assert preventivo_source["preventivi_formula_rules"]
     assert "conferimento_collegato" in preventivo_source
+
+
+def test_preventivi_repository_esporta_procedura_operativa(tmp_path):
+    gestore = _build_gestore(tmp_path)
+    preventivo = gestore.crea_preventivo(
+        id_cliente="cli-002",
+        oggetto="Impugnazione avviso di accertamento",
+        voci=[VocePreventivo(descrizione="Compenso", importo=1300.0, tipo=TipoVoce.ONORARIO)],
+        creato_da="avv.rossi",
+        id_pratica="ricorso_tributario",
+        area_pratica="Tributario",
+        tipo_compenso="Per fasi processuali (D.M. 55/2014)",
+        tipo_procedimento="Ricorso tributario di primo grado",
+    )
+
+    payload = gestore.repository_payload()
+    record = next(row for row in payload["preventivi"] if row["preventivo_id"] == preventivo.id)
+
+    assert record["procedura_operativa_codice"] == "PROC_TRIB_RIC_002"
+    assert record["registro_operativo"] == "PTT_TRIBUTARIO"
+    assert any(row["field_name"] == "procedura_operativa_nome" for row in payload["field_map"]["preventivo"])

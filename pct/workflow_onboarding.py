@@ -13,6 +13,7 @@ from pct.fascicoli import TipoFascicolo
 from pct.motore_preventivo import get_tipo_pratica
 from pct.preventivi import label_modello_clausola_controversie
 from pct.practice_profiles import get_practice_profile
+from pct.legal_platform_catalog import build_operational_fields
 
 
 _MAP_AREE_TO_TIPO = {
@@ -293,6 +294,17 @@ def build_fascicolo_onboarding(
         getattr(sorgente, "oggetto", "") or "",
         getattr(scheda, "label", "") if scheda else "",
     ) or (scheda.label if scheda else "")
+    operational_fields = build_operational_fields(
+        procedure_code=(
+            getattr(conferimento, "procedura_operativa_codice", "")
+            or getattr(preventivo, "procedura_operativa_codice", "")
+        ),
+        practice_id=id_pratica,
+        area_pratica=area_pratica,
+        tipo_procedimento=tipo_procedimento,
+        oggetto=oggetto,
+    )
+    operational_profile = operational_fields.get("procedura_operativa", {}) or {}
     avvocato_referente = (
         getattr(conferimento, "avvocato_referente", "")
         or getattr(cliente, "avvocato_referente", "")
@@ -311,8 +323,11 @@ def build_fascicolo_onboarding(
 
     template = _template_for_practice(id_pratica)
     smart_profile = _SMART_WORKFLOW_PROFILES.get(id_pratica or "", {})
+    documenti_operativi = list(operational_profile.get("required_documents", []) or [])
     checklist = _merge_unique_rows(
         list(smart_profile.get("checklist", []) or []),
+        list(operational_profile.get("checklist", []) or []),
+        ([f"raccogliere i documenti operativi essenziali: {', '.join(documenti_operativi[:3])}"] if documenti_operativi else []),
         _template_checklist_rows(template),
         list(getattr(scheda, "checklist_iniziale", []) or []),
     )
@@ -329,6 +344,8 @@ def build_fascicolo_onboarding(
         f"Apertura guidata da {source_label.lower()} {source_number}.".strip(),
         f"Tipologia collegata: {scheda.label}." if scheda else "",
         f"Motore preventivo: {scheda.motore_label}." if scheda and scheda.motore_label else "",
+        f"Procedura operativa: {operational_fields.get('procedura_operativa_nome', '')}." if operational_fields.get('procedura_operativa_nome') else "",
+        f"Canale operativo atteso: {operational_fields.get('canale_operativo', '')}." if operational_fields.get('canale_operativo') else "",
         (
             "Clausola controversie attiva: "
             + label_modello_clausola_controversie(
@@ -375,10 +392,18 @@ def build_fascicolo_onboarding(
         "tipo_procedimento": tipo_procedimento,
         "id_pratica": id_pratica,
         "area_pratica": area_pratica,
+        "procedura_operativa_codice": operational_fields.get("procedura_operativa_codice", ""),
+        "procedura_operativa_nome": operational_fields.get("procedura_operativa_nome", ""),
+        "subbranch_operativa_codice": operational_fields.get("subbranch_operativa_codice", ""),
+        "workflow_operativo_codice": operational_fields.get("workflow_operativo_codice", ""),
+        "copertura_operativa": operational_fields.get("copertura_operativa", ""),
+        "canale_operativo": operational_fields.get("canale_operativo", "") or canale_operativo,
+        "registro_operativo": operational_fields.get("registro_operativo", ""),
+        "procedura_operativa": operational_profile,
+        "documenti_operativi": documenti_operativi,
         "attivita_iniziali": attivita_iniziali,
         "scadenze_iniziali": scadenze_iniziali,
         "template_checklist_id": getattr(template, "id", ""),
-        "canale_operativo": canale_operativo,
         # campi arricchiti dal PracticeProfile
         "practice_channel": profile.channel if profile else "",
         "practice_registry": profile.registry if profile else "",

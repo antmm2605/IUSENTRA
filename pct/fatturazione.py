@@ -19,6 +19,8 @@ from datetime import date, datetime
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
+from pct.legal_platform_catalog import build_operational_fields
+
 
 # ================================================================ Enumerazioni
 
@@ -99,6 +101,13 @@ class Parcella:
     id_preventivo:     Optional[str] = None
     id_pratica:        str   = ""
     area_pratica:      str   = ""
+    procedura_operativa_codice: str = ""
+    procedura_operativa_nome: str = ""
+    subbranch_operativa_codice: str = ""
+    workflow_operativo_codice: str = ""
+    copertura_operativa: str = ""
+    canale_operativo: str = ""
+    registro_operativo: str = ""
     tipo_compenso:     str   = ""
     tipo_procedimento: str   = ""
     valore_controversia: float = 0.0
@@ -237,6 +246,7 @@ class GestioneFatturazione:
              id_preventivo:   Optional[str] = None,
              id_pratica:      str = "",
              area_pratica:    str = "",
+             procedura_operativa_codice: str = "",
              tipo_compenso:   str = "",
              tipo_procedimento: str = "",
              valore_controversia: float = 0.0,
@@ -247,6 +257,13 @@ class GestioneFatturazione:
              studio_indirizzo: str = "",
              studio_iban:     str = "") -> Parcella:
         oggi = date.today().isoformat()
+        operational_fields = build_operational_fields(
+            procedure_code=procedura_operativa_codice,
+            practice_id=id_pratica,
+            area_pratica=area_pratica,
+            tipo_procedimento=tipo_procedimento,
+            oggetto=note or origine,
+        )
         p = Parcella(
             id=str(uuid.uuid4()),
             numero=self._prossimo_numero(),
@@ -265,6 +282,13 @@ class GestioneFatturazione:
             id_preventivo=id_preventivo,
             id_pratica=id_pratica,
             area_pratica=area_pratica,
+            procedura_operativa_codice=operational_fields.get("procedura_operativa_codice", ""),
+            procedura_operativa_nome=operational_fields.get("procedura_operativa_nome", ""),
+            subbranch_operativa_codice=operational_fields.get("subbranch_operativa_codice", ""),
+            workflow_operativo_codice=operational_fields.get("workflow_operativo_codice", ""),
+            copertura_operativa=operational_fields.get("copertura_operativa", ""),
+            canale_operativo=operational_fields.get("canale_operativo", ""),
+            registro_operativo=operational_fields.get("registro_operativo", ""),
             tipo_compenso=tipo_compenso,
             tipo_procedimento=tipo_procedimento,
             valore_controversia=valore_controversia,

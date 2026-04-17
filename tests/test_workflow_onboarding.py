@@ -120,3 +120,27 @@ def test_collega_fascicolo_aggiorna_preventivo_e_conferimento(tmp_path):
     assert preventivo_reload.id_fascicolo == "fasc-001"
     assert preventivo_reload.stato == StatoPreventivo.CONVERTITO
     assert conferimento_reload.id_fascicolo == "fasc-001"
+
+
+def test_build_fascicolo_onboarding_arricchisce_la_procedura_operativa_tributaria():
+    cliente = SimpleNamespace(
+        nome_completo="Studio Beta S.r.l.",
+        avvocato_referente="Avv. Giulia Neri",
+    )
+    preventivo = SimpleNamespace(
+        numero="2026/021",
+        id_pratica="ricorso_tributario",
+        area_pratica="Tributario",
+        tipo_procedimento="Ricorso tributario di primo grado",
+        valore_controversia=42000.0,
+        oggetto="Impugnazione avviso di accertamento",
+        creato_da="",
+    )
+
+    onboarding = build_fascicolo_onboarding(cliente=cliente, preventivo=preventivo, conferimento=None)
+
+    assert onboarding["procedura_operativa_codice"] == "PROC_TRIB_RIC_002"
+    assert onboarding["procedura_operativa_nome"] == "Ricorso tributario di primo grado"
+    assert onboarding["canale_operativo"] == "PTT_TRIBUTARIO"
+    assert onboarding["registro_operativo"] == "PTT_TRIBUTARIO"
+    assert onboarding["documenti_operativi"]

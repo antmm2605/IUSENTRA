@@ -225,3 +225,49 @@ def test_apri_fascicolo_automatico_comparsa_risposta_genera_attivita_specifiche(
     assert any("166-167" in text or "termine di costituzione" in text for text in texts)
     assert any("citazione" in text and "procura" in text for text in texts)
     assert any("eccezioni" in text or "mezzi istruttori" in text for text in texts)
+
+
+def test_apri_fascicolo_automatico_propaga_procedura_operativa_tributaria(tmp_path):
+    gp = GestionePreventivi(str(tmp_path / "preventivi.json"))
+    gf = GestioneFascicoli(
+        db_path=str(tmp_path / "fascicoli.json"),
+        documents_dir=str(tmp_path / "documenti"),
+        archive_dir=str(tmp_path / "archivio"),
+    )
+    gs = GestioneScadenziario(str(tmp_path / "scadenze.json"))
+    cliente = _cliente_stub()
+
+    preventivo = gp.crea_preventivo(
+        id_cliente=cliente.id,
+        oggetto="Impugnazione avviso di accertamento",
+        voci=[VocePreventivo(descrizione="Compenso", importo=1500.0, tipo=TipoVoce.ONORARIO)],
+        creato_da="avv.rossi",
+        id_pratica="ricorso_tributario",
+        area_pratica="Tributario",
+        tipo_compenso="Per fasi processuali (D.M. 55/2014)",
+        tipo_procedimento="Ricorso tributario di primo grado",
+    )
+    _, conferimento = gp.registra_accettazione_preventivo(
+        preventivo.id,
+        workflow_channel="ONLINE",
+        via="PORTALE_CLIENTE",
+        auto_crea_conferimento=True,
+        avvocato_referente="Avv. Rossi",
+    )
+    gp.registra_firma_conferimento(conferimento.id, via="PORTALE_CLIENTE", workflow_channel="ONLINE")
+
+    result = apri_fascicolo_automatico(
+        gp=gp,
+        gf=gf,
+        gs=gs,
+        cliente=cliente,
+        preventivo=gp.get_preventivo(preventivo.id),
+        conferimento=gp.get_conferimento(conferimento.id),
+        avvocato="Avv. Rossi",
+    )
+
+    fascicolo = result["fascicolo"]
+    assert fascicolo.id_pratica == "ricorso_tributario"
+    assert fascicolo.procedura_operativa_codice == "PROC_TRIB_RIC_002"
+    assert fascicolo.registro_operativo == "PTT_TRIBUTARIO"
+    assert result["workflow_summary"]["procedura_operativa_codice"] == "PROC_TRIB_RIC_002"

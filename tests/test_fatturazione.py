@@ -51,3 +51,27 @@ def test_parcella_salva_provenienza_e_log_calcolo(tmp_path: Path):
     assert loaded.id_pratica == "negoziazione_assistita"
     assert loaded.log_calcolo
     assert '"accordo":true' in loaded.log_calcolo
+
+
+def test_parcella_associa_la_procedura_operativa(tmp_path: Path):
+    db_path = tmp_path / "parcelle.json"
+    gf = GestioneFatturazione(db_path=str(db_path))
+
+    parcella = gf.crea(
+        id_cliente="cliente-1",
+        id_preventivo="prev-ric-001",
+        origine="preventivo",
+        id_pratica="ricorso_tributario",
+        area_pratica="Tributario",
+        tipo_compenso="Per fasi processuali (D.M. 55/2014)",
+        tipo_procedimento="Ricorso tributario di primo grado",
+        voci=[VoceParcella(descrizione="Compenso", quantita=1, prezzo_unitario=1200.0)],
+    )
+
+    gf_reload = GestioneFatturazione(db_path=str(db_path))
+    loaded = gf_reload.get(parcella.id)
+
+    assert loaded is not None
+    assert loaded.procedura_operativa_codice == "PROC_TRIB_RIC_002"
+    assert loaded.canale_operativo == "PTT_TRIBUTARIO"
+    assert loaded.registro_operativo == "PTT_TRIBUTARIO"

@@ -7,6 +7,8 @@ import json
 from datetime import datetime
 from typing import Any, Dict, Iterable, List, Optional
 
+from pct.legal_platform_catalog import build_operational_fields
+
 
 def carica_log_calcolo(raw: Any) -> Dict[str, Any]:
     """Carica in modo robusto un contesto di calcolo serializzato."""
@@ -166,6 +168,13 @@ def costruisci_contesto_economico(
     macro_area_tassonomica: str = "",
     sottobranca_tassonomica: str = "",
     tassonomia_codice: str = "",
+    procedura_operativa_codice: str = "",
+    procedura_operativa_nome: str = "",
+    subbranch_operativa_codice: str = "",
+    workflow_operativo_codice: str = "",
+    copertura_operativa: str = "",
+    canale_operativo: str = "",
+    registro_operativo: str = "",
     tipo_compenso: str = "",
     tipo_procedimento: str = "",
     grado_sede: str = "",
@@ -206,6 +215,15 @@ def costruisci_contesto_economico(
         for part in (pratica_label, tipo_procedimento, regola_display)
         if str(part or "").strip()
     )
+    operational_fields = build_operational_fields(
+        procedure_code=procedura_operativa_codice,
+        practice_id=id_pratica,
+        area_pratica=area_pratica,
+        tipo_procedimento=tipo_procedimento,
+        oggetto=oggetto or pratica_label,
+    )
+    if procedura_operativa_nome and not operational_fields.get("procedura_operativa_nome"):
+        operational_fields["procedura_operativa_nome"] = procedura_operativa_nome
     return {
         "source": source,
         "source_label": source_label,
@@ -219,6 +237,14 @@ def costruisci_contesto_economico(
         "macro_area_tassonomica": macro_area_tassonomica,
         "sottobranca_tassonomica": sottobranca_tassonomica,
         "tassonomia_codice": tassonomia_codice,
+        "procedura_operativa_codice": operational_fields.get("procedura_operativa_codice", procedura_operativa_codice),
+        "procedura_operativa_nome": operational_fields.get("procedura_operativa_nome", procedura_operativa_nome),
+        "subbranch_operativa_codice": operational_fields.get("subbranch_operativa_codice", subbranch_operativa_codice),
+        "workflow_operativo_codice": operational_fields.get("workflow_operativo_codice", workflow_operativo_codice),
+        "copertura_operativa": operational_fields.get("copertura_operativa", copertura_operativa),
+        "canale_operativo": operational_fields.get("canale_operativo", canale_operativo),
+        "registro_operativo": operational_fields.get("registro_operativo", registro_operativo),
+        "procedura_operativa": operational_fields.get("procedura_operativa", {}),
         "tipo_compenso": tipo_compenso,
         "tipo_procedimento": tipo_procedimento,
         "grado_sede": grado_sede,
@@ -274,6 +300,14 @@ def riepilogo_contesto_economico(raw: Any) -> Dict[str, Any]:
         "macro_area_tassonomica": str(data.get("macro_area_tassonomica") or "").strip(),
         "sottobranca_tassonomica": str(data.get("sottobranca_tassonomica") or "").strip(),
         "tassonomia_codice": str(data.get("tassonomia_codice") or "").strip(),
+        "procedura_operativa_codice": str(data.get("procedura_operativa_codice") or "").strip(),
+        "procedura_operativa_nome": str(data.get("procedura_operativa_nome") or "").strip(),
+        "subbranch_operativa_codice": str(data.get("subbranch_operativa_codice") or "").strip(),
+        "workflow_operativo_codice": str(data.get("workflow_operativo_codice") or "").strip(),
+        "copertura_operativa": str(data.get("copertura_operativa") or "").strip(),
+        "canale_operativo": str(data.get("canale_operativo") or "").strip(),
+        "registro_operativo": str(data.get("registro_operativo") or "").strip(),
+        "procedura_operativa": data.get("procedura_operativa") or {},
         "tipo_compenso": str(data.get("tipo_compenso") or "").strip(),
         "tipo_procedimento": str(data.get("tipo_procedimento") or "").strip(),
         "grado_sede": str(data.get("grado_sede") or "").strip(),
@@ -308,7 +342,7 @@ def causale_documento_economico(note: str = "", raw_context: Any = None, max_len
     summary = riepilogo_contesto_economico(raw_context)
 
     tags: List[str] = []
-    pratica = summary.get("pratica_label") or summary.get("tipo_procedimento")
+    pratica = summary.get("pratica_label") or summary.get("tipo_procedimento") or summary.get("procedura_operativa_nome")
     if pratica:
         tags.append(str(pratica))
     regola = summary.get("regola_tariffaria_label") or summary.get("regola_tariffaria")

@@ -147,3 +147,15 @@ def test_template_wizard_espone_classificazione_operativa_visibile():
     assert "Inquadramento operativo" in template
     assert "Agganci di prodotto" in template
     assert "workflow_operativo_codice" in template
+
+
+def test_template_wizard_allinea_clausola_controversie_al_form_classico():
+    template = Path("web/templates/preventivi/wizard.html").read_text(encoding="utf-8")
+
+    assert "Clausola per la risoluzione delle controversie" in template
+    assert "Proponi una clausola contrattuale da riportare poi nel conferimento" in template
+    assert "Tutela cliente / consumatore" in template
+    assert "Testo da adattare" in template
+    assert "Ripristina testo standard" in template
+    assert "Fonte modello: nessuna fonte impostata" in template
+    assert "ripristinaClausolaControversie" in template

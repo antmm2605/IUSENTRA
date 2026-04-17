@@ -45,9 +45,11 @@ done
 # ---- Sorgenti → output ----
 SASS_PAIRS=(
     "$SCSS_DIR/app.scss:$CSS_DIR/app.css"
+    "$SCSS_DIR/auth.scss:$CSS_DIR/auth.css"
     "$SCSS_DIR/design-system.scss:$CSS_DIR/design-system.css"
     "$SCSS_DIR/editor-word.scss:$CSS_DIR/editor-word.css"
     "$SCSS_DIR/mobile.scss:$CSS_DIR/mobile.css"
+    "$SCSS_DIR/portal.scss:$CSS_DIR/portal.css"
     "$SCSS_DIR/theme.scss:$CSS_DIR/theme.css"
 )
 

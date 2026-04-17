@@ -378,12 +378,12 @@
    ================================================================ */
 @media (max-width: 768px) {
   .badge {
-    font-size: .7rem;
+    font-size: 11px;      /* era .7rem ≈ 9.8px — troppo piccolo */
     padding: .3em .6em;
     border-radius: 100px;
   }
   .ds-role {
-    font-size: .65rem;
+    font-size: 10px;      /* era .65rem ≈ 9.1px */
     padding: 2px 7px;
   }
 }
@@ -415,7 +415,7 @@
     padding-bottom: .35rem;
   }
   .ds-section-hd-title {
-    font-size: .72rem;
+    font-size: 11px;    /* era .72rem ≈ 10.1px — portato a leggibile */
   }
 }
 
@@ -979,6 +979,112 @@
   -ms-overflow-style: none;
 }
 .scrollbar-none::-webkit-scrollbar { display: none; }
+
+/* ================================================================
+   DESIGN 23 — CORREZIONI LEGGIBILITÀ MOBILE
+   Garantisce dimensioni minime leggibili su schermi piccoli.
+   Base: 14 px (var(--text-base)) — soglia minima di testo: 11 px.
+   ================================================================ */
+
+@media (max-width: 768px) {
+  /* Corpo testo principale: 14 px su mobile */
+  body {
+    font-size: var(--text-base, 14px);
+    line-height: var(--lh-base, 1.55);
+  }
+
+  /* Bottom-nav labels: era .61 rem (8.5 px) — portato a 10 px leggibili */
+  .bn-item {
+    font-size: 10px;
+  }
+  .bn-item span {
+    font-size: 10px;
+  }
+
+  /* Badge su mobile: da .7rem (9.8px) a 11px */
+  .badge {
+    font-size: 11px !important;
+  }
+
+  /* Section header labels (UPPERCASE): da .72rem a 11px */
+  .ds-section-hd-title {
+    font-size: 11px;
+  }
+
+  /* Breadcrumb compatto */
+  .breadcrumb-item,
+  .breadcrumb-item a {
+    font-size: var(--text-sm, 12px);
+  }
+
+  /* Info label nei dettagli (era .73rem = 10.2px) */
+  .ds-info-label {
+    font-size: var(--text-sm, 12px);
+  }
+
+  /* Evita testo illeggibile: floor globale per elementi UI secondari */
+  .small,
+  .text-muted.small,
+  figcaption,
+  .form-text {
+    font-size: var(--text-sm, 12px);
+  }
+
+  /* Pulsanti: padding e dimensioni ottimali per touch */
+  .btn-sm {
+    font-size: var(--text-sm, 12px);
+    padding: .35rem .7rem;
+    min-height: 34px;
+  }
+  .btn:not(.btn-sm):not(.btn-lg) {
+    font-size: var(--text-base, 14px);
+  }
+
+  /* Dropdown item: minimo leggibile */
+  .dropdown-item {
+    font-size: var(--text-base, 14px) !important;
+  }
+
+  /* Accordion: testo leggibile */
+  .accordion-button {
+    font-size: var(--text-base, 14px);
+  }
+  .accordion-body {
+    font-size: var(--text-base, 14px);
+  }
+
+  /* Tabelle: riduzione controllata ma mai sotto 12px */
+  .table > tbody > tr > td,
+  .table > thead > tr > th {
+    font-size: var(--text-sm, 12px);
+  }
+
+  /* Alert */
+  .alert {
+    font-size: var(--text-base, 14px) !important;
+  }
+}
+
+@media (max-width: 575px) {
+  /* Schermi piccoli (< 576px): testo leggermente più grande per accessibilità */
+  body {
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  /* Chip/tag: minimo leggibile */
+  .mob-chip {
+    font-size: var(--text-sm, 12px);
+  }
+
+  /* Empty state */
+  .ds-empty-title {
+    font-size: var(--text-md, 15px);
+  }
+  .ds-empty-sub {
+    font-size: var(--text-base, 14px);
+  }
+}
 
 /* ================================================================
    SCRIPT HELPER — tabelle scrollabili (rilevamento)

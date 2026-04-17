@@ -54,6 +54,22 @@ $border-dk:      #cbd5e1;
 $glass-bg:       rgba(255, 255, 255, .92);
 $glass-border:   rgba(226, 232, 240, .65);
 
+// ---- Tipografia — scala professionale ----
+// Base 14 px: compatto ma leggibile su display retina e monitor standard.
+// Le classi utilitarie .text-* in app.scss riflettono questi valori.
+$text-2xs:   10px;    // etichette micro, ordinali
+$text-xs:    11px;    // badge, caps label
+$text-sm:    12px;    // meta, secondario
+$text-base:  14px;    // corpo testo — era 13.5 px
+$text-md:    15px;    // testo leggermente enfatizzato
+$text-lg:    16px;    // voci lista importanti
+$text-xl:    18px;    // sottotitoli sezione
+$text-2xl:   22px;    // titoli pagina
+$text-3xl:   28px;    // numeri dashboard
+$lh-tight:   1.3;     // titoli compatti
+$lh-base:    1.55;    // corpo testo
+$lh-loose:   1.75;    // paragrafi lunghi
+
 // ---- Font stack ----
 $font:           'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 

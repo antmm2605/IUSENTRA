@@ -866,30 +866,68 @@
             <div class="prev-toolbar-placeholder" id="tipologiaToolbarPlaceholder" aria-hidden="true"></div>
             <div class="prev-toolbar" id="tipologiaToolbar">
             <div class="prev-toolbar-taxonomy">
-              <div class="prev-section-label mb-2">Classificazione tassonomica</div>
+              <div class="prev-section-label mb-2">Classificazione operativa</div>
               <div class="row g-2">
-                <div class="col-lg-4">
-                  <label class="form-label fw-semibold" for="selAreaTassonomica">Area tassonomica</label>
-                  <select id="selAreaTassonomica" class="form-select form-select-sm">
-                    <option value="">Tutte le aree</option>
+                <div class="col-lg-5">
+                  <label class="form-label fw-semibold" for="selProceduraOperativa">Procedura / servizio</label>
+                  <select id="selProceduraOperativa" class="form-select form-select-sm">
+                    <option value="">Tutte le procedure</option>
                   </select>
                 </div>
                 <div class="col-lg-4">
-                  <label class="form-label fw-semibold" for="selMacroAreaTassonomica">Macro-area</label>
-                  <select id="selMacroAreaTassonomica" class="form-select form-select-sm">
-                    <option value="">Tutte le macro-aree</option>
+                  <label class="form-label fw-semibold" for="selWorkflowOperativo">Workflow</label>
+                  <select id="selWorkflowOperativo" class="form-select form-select-sm">
+                    <option value="">Tutti i workflow</option>
                   </select>
                 </div>
-                <div class="col-lg-4">
-                  <label class="form-label fw-semibold" for="selSottobrancaTassonomica">Sottobranca</label>
-                  <select id="selSottobrancaTassonomica" class="form-select form-select-sm">
-                    <option value="">Tutte le sottobranche</option>
+                <div class="col-lg-3">
+                  <label class="form-label fw-semibold" for="selCanaleOperativo">Canale</label>
+                  <select id="selCanaleOperativo" class="form-select form-select-sm">
+                    <option value="">Tutti i canali</option>
                   </select>
                 </div>
               </div>
-              <div class="prev-taxonomy-hint" id="taxonomySelectionHint">La tassonomia filtra il catalogo senza bloccare il libero scorrimento delle tipologie. La pratica selezionata conserva anche le fonti ufficiali aggregate.</div>
-              <div id="taxonomySelectionPreview" class="alert alert-light border mt-2 mb-0 small">
-                La classificazione selezionata verrà mostrata qui con tassonomia, procedura operativa, workflow, canale, registro e fonti aggregate.
+              <div class="prev-taxonomy-hint" id="operationalSelectionHint">La classificazione operativa guida davvero il catalogo: procedura, workflow e canale filtrano il profilo professionale prima della tassonomia tecnica di supporto.</div>
+              <div id="operationalSelectionPreview" class="alert alert-light border mt-2 mb-0 small">
+                La classificazione operativa selezionata verra mostrata qui con procedura, workflow, canale, registro, copertura e agganci di prodotto.
+              </div>
+            </div>
+            <div class="accordion prev-compact-accordion mt-2" id="taxonomySupportAccordion">
+              <div class="accordion-item">
+                <h2 class="accordion-header">
+                  <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#taxonomySupportCollapse" aria-expanded="false" aria-controls="taxonomySupportCollapse">
+                    Tassonomia tecnica di supporto
+                  </button>
+                </h2>
+                <div id="taxonomySupportCollapse" class="accordion-collapse collapse">
+                  <div class="accordion-body">
+                    <div class="prev-section-label mb-2">Classificazione tassonomica</div>
+                    <div class="row g-2">
+                      <div class="col-lg-4">
+                        <label class="form-label fw-semibold" for="selAreaTassonomica">Area tassonomica</label>
+                        <select id="selAreaTassonomica" class="form-select form-select-sm">
+                          <option value="">Tutte le aree</option>
+                        </select>
+                      </div>
+                      <div class="col-lg-4">
+                        <label class="form-label fw-semibold" for="selMacroAreaTassonomica">Macro-area</label>
+                        <select id="selMacroAreaTassonomica" class="form-select form-select-sm">
+                          <option value="">Tutte le macro-aree</option>
+                        </select>
+                      </div>
+                      <div class="col-lg-4">
+                        <label class="form-label fw-semibold" for="selSottobrancaTassonomica">Sottobranca</label>
+                        <select id="selSottobrancaTassonomica" class="form-select form-select-sm">
+                          <option value="">Tutte le sottobranche</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div class="prev-taxonomy-hint" id="taxonomySelectionHint">La tassonomia tecnica affina il catalogo operativo e conserva area, macro-area, sottobranca e fonti ufficiali aggregate nel tracciato del preventivo.</div>
+                    <div id="taxonomySelectionPreview" class="alert alert-light border mt-2 mb-0 small">
+                      La classificazione tassonomica selezionata verra mostrata qui con area, macro-area, sottobranca e fonti ufficiali aggregate.
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
             <div class="prev-toolbar-top">
@@ -1282,6 +1320,7 @@ let showOnlyFavorites = false;
 let compactMode = window.localStorage.getItem(STORAGE_KEY_COMPACT) === '1';
 let favoriteTipologie = new Set(JSON.parse(window.localStorage.getItem(STORAGE_KEY_PREFERITE) || '[]'));
 let tassonomiaSelezione = { area: '', macro: '', sub: '' };
+let selezioneOperativa = { procedure: '', workflow: '', channel: '' };
 
 function taxonomyMeta(item) {
   return {
@@ -1309,6 +1348,29 @@ function operationalMeta(item) {
     procedure: item?.procedura_operativa || {},
     bindings: item?.procedura_operativa?.module_bindings || {},
   };
+}
+
+function humanizeOperationalCode(value) {
+  return String(value || '')
+    .trim()
+    .replaceAll('_', ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function collectOperationalOptions(items, valueGetter, labelGetter) {
+  const rows = new Map();
+  items.forEach((item) => {
+    const meta = operationalMeta(item);
+    const code = String(valueGetter(meta) || '').trim();
+    if (!code) return;
+    const label = String(labelGetter(meta) || code).trim();
+    if (!rows.has(code)) {
+      rows.set(code, { code, label, count: 0 });
+    }
+    rows.get(code).count += 1;
+  });
+  return Array.from(rows.values()).sort((a, b) => a.label.localeCompare(b.label, 'it'));
 }
 
 function buildTaxonomyCatalog() {
@@ -1387,30 +1449,45 @@ function currentTaxonomyNode() {
   };
 }
 
+function currentOperationalNode() {
+  if (tipologiaCorrente) return operationalMeta(tipologiaCorrente);
+  return {
+    code: selezioneOperativa.procedure || '',
+    name: '',
+    subbranch: '',
+    workflow: selezioneOperativa.workflow || '',
+    coverage: '',
+    channel: selezioneOperativa.channel || '',
+    registry: '',
+    procedure: {},
+    bindings: {},
+  };
+}
+
 function renderTaxonomyPreview() {
   const target = document.getElementById('taxonomySelectionPreview');
   if (!target) return;
   const meta = currentTaxonomyNode();
-  const operational = operationalMeta(tipologiaCorrente);
+  const operational = currentOperationalNode();
   const parts = [meta.areaLabel, meta.macroLabel, meta.subLabel].filter(Boolean);
-  const selectedItems = catalogoFlat.filter((item) => matchesTaxonomySelection(item));
+  const selectedItems = catalogoFlat.filter((item) => matchesCatalogFilters(item));
   const sources = Array.isArray(meta.sources) ? meta.sources : [];
   const hasOperational = !!(operational.code || operational.name || operational.workflow || operational.channel || operational.registry || operational.coverage);
   if (!parts.length && !hasOperational) {
-    target.innerHTML = '<div class="fw-semibold text-dark mb-1">Classificazione non ancora selezionata</div><div class="text-muted">Scegli una tipologia o usa i filtri tassonomici per visualizzare area, macro-area, sottobranca, procedura operativa e fonti aggregate.</div>';
+    target.innerHTML = '<div class="fw-semibold text-dark mb-1">Tassonomia tecnica non ancora selezionata</div><div class="text-muted">La tassonomia resta disponibile come supporto tecnico per area, macro-area, sottobranca e fonti ufficiali aggregate.</div>';
     return;
   }
   const operationalChips = [
     operational.name ? `<span class="badge bg-success-subtle text-success-emphasis">${escapeHtml(operational.name)}</span>` : '',
-    operational.workflow ? `<span class="badge bg-info-subtle text-info-emphasis">${escapeHtml(operational.workflow)}</span>` : '',
+    operational.workflow ? `<span class="badge bg-info-subtle text-info-emphasis">${escapeHtml(humanizeOperationalCode(operational.workflow))}</span>` : '',
     operational.coverage ? `<span class="badge bg-warning-subtle text-warning-emphasis">Copertura ${escapeHtml(operational.coverage)}</span>` : '',
-    operational.channel ? `<span class="badge text-bg-light">Canale ${escapeHtml(operational.channel)}</span>` : '',
-    operational.registry ? `<span class="badge text-bg-light">Registro ${escapeHtml(operational.registry)}</span>` : '',
+    operational.channel ? `<span class="badge text-bg-light">Canale ${escapeHtml(humanizeOperationalCode(operational.channel))}</span>` : '',
+    operational.registry ? `<span class="badge text-bg-light">Registro ${escapeHtml(humanizeOperationalCode(operational.registry))}</span>` : '',
   ].filter(Boolean).join('');
   const operationalSummary = [
     operational.code ? `Procedura ${operational.code}` : '',
     operational.subbranch ? `Sottobranca ${operational.subbranch}` : '',
-  ].filter(Boolean).join(' · ');
+  ].filter(Boolean).join(' / ');
   target.innerHTML = `
     <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
       ${parts.length ? `<span class="badge bg-primary-subtle text-primary-emphasis">${escapeHtml(meta.areaLabel || '')}</span>` : ''}
@@ -1419,10 +1496,63 @@ function renderTaxonomyPreview() {
       <span class="badge bg-secondary-subtle text-secondary-emphasis">${selectedItems.length} tipologie compatibili</span>
       ${operationalChips}
     </div>
-    ${parts.length ? `<div class="small text-muted">Classificazione attiva: ${escapeHtml(parts.join(' / '))}</div>` : ''}
-    ${hasOperational ? `<div class="small text-muted mt-1">Inquadramento operativo: ${escapeHtml([operational.name, operational.workflow, operational.channel, operational.registry].filter(Boolean).join(' · '))}</div>` : ''}
+    ${parts.length ? `<div class="small text-muted">Tassonomia tecnica attiva: ${escapeHtml(parts.join(' / '))}</div>` : ''}
+    ${hasOperational ? `<div class="small text-muted mt-1">Inquadramento operativo collegato: ${escapeHtml([operational.name || operational.code, humanizeOperationalCode(operational.workflow), humanizeOperationalCode(operational.channel), humanizeOperationalCode(operational.registry)].filter(Boolean).join(' / '))}</div>` : ''}
     ${operationalSummary ? `<div class="small text-muted">${escapeHtml(operationalSummary)}</div>` : ''}
     <div class="small text-muted">${sources.length ? `${sources.length} fonti ufficiali aggregate pronte per il tracciato del preventivo.` : 'Le fonti ufficiali aggregate saranno salvate insieme al preventivo.'}</div>
+  `;
+}
+
+function matchesOperationalSelection(item) {
+  const meta = operationalMeta(item);
+  if (selezioneOperativa.procedure && meta.code !== selezioneOperativa.procedure) return false;
+  if (selezioneOperativa.workflow && meta.workflow !== selezioneOperativa.workflow) return false;
+  if (selezioneOperativa.channel && meta.channel !== selezioneOperativa.channel) return false;
+  return true;
+}
+
+function matchesCatalogFilters(item) {
+  return matchesTaxonomySelection(item) && matchesOperationalSelection(item);
+}
+
+function renderOperationalPreview() {
+  const target = document.getElementById('operationalSelectionPreview');
+  const hint = document.getElementById('operationalSelectionHint');
+  if (!target || !hint) return;
+  const meta = currentOperationalNode();
+  const selectedItems = catalogoFlat.filter((item) => matchesCatalogFilters(item));
+  const taxonomy = currentTaxonomyNode();
+  const hasOperational = !!(meta.code || meta.name || meta.workflow || meta.channel || meta.registry || meta.coverage);
+  const summaryLine = [
+    meta.name || meta.code,
+    meta.workflow ? humanizeOperationalCode(meta.workflow) : '',
+    meta.channel ? humanizeOperationalCode(meta.channel) : '',
+    meta.registry ? humanizeOperationalCode(meta.registry) : '',
+  ].filter(Boolean).join(' / ');
+  const taxonomyLine = [taxonomy.areaLabel, taxonomy.macroLabel, taxonomy.subLabel].filter(Boolean).join(' / ');
+  hint.textContent = hasOperational
+    ? `${selectedItems.length} tipologie compatibili con la classificazione operativa attiva.`
+    : 'La classificazione operativa guida davvero il catalogo: procedura, workflow e canale selezionano il profilo professionale prima della tassonomia di supporto.';
+  if (!hasOperational) {
+    target.innerHTML = `
+      <div class="fw-semibold text-dark mb-1">Classificazione operativa non ancora selezionata</div>
+      <div class="text-muted">Scegli una procedura, un workflow o una tipologia: qui vedrai subito il profilo operativo reale che alimenta preventivo, conferimento, fascicolo, parcella e fattura.</div>
+    `;
+    return;
+  }
+  target.innerHTML = `
+    <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
+      ${meta.name ? `<span class="badge bg-success-subtle text-success-emphasis">${escapeHtml(meta.name)}</span>` : ''}
+      ${meta.workflow ? `<span class="badge bg-info-subtle text-info-emphasis">${escapeHtml(humanizeOperationalCode(meta.workflow))}</span>` : ''}
+      ${meta.channel ? `<span class="badge text-bg-light">${escapeHtml(humanizeOperationalCode(meta.channel))}</span>` : ''}
+      ${meta.registry ? `<span class="badge text-bg-light">${escapeHtml(humanizeOperationalCode(meta.registry))}</span>` : ''}
+      ${meta.coverage ? `<span class="badge bg-warning-subtle text-warning-emphasis">Copertura ${escapeHtml(meta.coverage)}</span>` : ''}
+      <span class="badge bg-secondary-subtle text-secondary-emphasis">${selectedItems.length} tipologie compatibili</span>
+    </div>
+    <div class="small text-muted">Profilo operativo attivo: ${escapeHtml(summaryLine || meta.code || '')}</div>
+    ${meta.code ? `<div class="small text-muted">Codice procedura: ${escapeHtml(meta.code)}</div>` : ''}
+    ${meta.subbranch ? `<div class="small text-muted">Sottobranca operativa: ${escapeHtml(meta.subbranch)}</div>` : ''}
+    ${taxonomyLine ? `<div class="small text-muted mt-1">Supporto tassonomico collegato: ${escapeHtml(taxonomyLine)}</div>` : ''}
   `;
 }
 
@@ -1457,19 +1587,67 @@ function matchesTaxonomySelection(item) {
 function matchingOperationalAreas() {
   return Array.from(new Set(
     catalogoFlat
-      .filter((item) => matchesTaxonomySelection(item))
+      .filter((item) => matchesCatalogFilters(item))
       .map((item) => item.area)
       .filter(Boolean)
   ));
 }
 
-function ensureOperationalAreaForTaxonomy() {
+function ensureAreaForCurrentFilters() {
   const matches = matchingOperationalAreas();
   if (!matches.length) return;
   if (!matches.includes(areaCorrente)) {
     areaCorrente = matches[0];
     document.getElementById('inpAreaPratica').value = areaCorrente;
   }
+}
+
+function renderOperationalFilters() {
+  const selProcedure = document.getElementById('selProceduraOperativa');
+  const selWorkflow = document.getElementById('selWorkflowOperativo');
+  const selChannel = document.getElementById('selCanaleOperativo');
+  if (!selProcedure || !selWorkflow || !selChannel) return;
+
+  const baseItems = catalogoFlat.filter((item) => matchesTaxonomySelection(item));
+  const procedureRows = collectOperationalOptions(
+    baseItems,
+    (meta) => meta.code,
+    (meta) => meta.name || meta.code,
+  );
+  const itemsByProcedure = baseItems.filter((item) => {
+    const meta = operationalMeta(item);
+    return !selezioneOperativa.procedure || meta.code === selezioneOperativa.procedure;
+  });
+  const workflowRows = collectOperationalOptions(
+    itemsByProcedure,
+    (meta) => meta.workflow,
+    (meta) => humanizeOperationalCode(meta.workflow),
+  );
+  const itemsByWorkflow = itemsByProcedure.filter((item) => {
+    const meta = operationalMeta(item);
+    return !selezioneOperativa.workflow || meta.workflow === selezioneOperativa.workflow;
+  });
+  const channelRows = collectOperationalOptions(
+    itemsByWorkflow,
+    (meta) => meta.channel,
+    (meta) => humanizeOperationalCode(meta.channel),
+  );
+
+  populateTaxonomySelect(selProcedure, procedureRows, selezioneOperativa.procedure, 'Tutte le procedure');
+  populateTaxonomySelect(selWorkflow, workflowRows, selezioneOperativa.workflow, 'Tutti i workflow');
+  populateTaxonomySelect(selChannel, channelRows, selezioneOperativa.channel, 'Tutti i canali');
+
+  if (!procedureRows.some((row) => row.code === selezioneOperativa.procedure)) {
+    selezioneOperativa.procedure = '';
+  }
+  if (!workflowRows.some((row) => row.code === selezioneOperativa.workflow)) {
+    selezioneOperativa.workflow = '';
+  }
+  if (!channelRows.some((row) => row.code === selezioneOperativa.channel)) {
+    selezioneOperativa.channel = '';
+  }
+
+  renderOperationalPreview();
 }
 
 function populateTaxonomySelect(select, rows, selectedValue, emptyLabel) {
@@ -1497,7 +1675,7 @@ function renderTaxonomyFilters() {
   if (!macros.some((row) => row.code === tassonomiaSelezione.macro)) tassonomiaSelezione.macro = '';
   if (!subs.some((row) => row.code === tassonomiaSelezione.sub)) tassonomiaSelezione.sub = '';
 
-  const selectedItems = catalogoFlat.filter((item) => matchesTaxonomySelection(item));
+  const selectedItems = catalogoFlat.filter((item) => matchesCatalogFilters(item));
   const parts = [];
   if (area?.label) parts.push(area.label);
   if (macro?.label) parts.push(macro.label);
@@ -1508,7 +1686,7 @@ function renderTaxonomyFilters() {
   }
   hint.textContent = parts.length
     ? `${parts.join(' / ')} - ${selectedItems.length} tipologie compatibili nel catalogo operativo.`
-    : 'La tassonomia filtra il catalogo senza bloccare il libero scorrimento delle tipologie. La pratica selezionata conserva anche le fonti ufficiali aggregate.';
+    : 'La tassonomia tecnica resta disponibile per affinare il catalogo operativo e salvare le fonti ufficiali aggregate.';
   renderTaxonomyPreview();
 }
 
@@ -1579,12 +1757,19 @@ function syncClausolaControversieUi(options = {}) {
 
 function applyTaxonomyFromPractice(item) {
   const meta = taxonomyMeta(item);
+  const operational = operationalMeta(item);
   tassonomiaSelezione = {
     area: meta.areaCode || '',
     macro: meta.macroCode || '',
     sub: meta.subCode || '',
   };
+  selezioneOperativa = {
+    procedure: operational.code || '',
+    workflow: operational.workflow || '',
+    channel: operational.channel || '',
+  };
   renderTaxonomyFilters();
+  renderOperationalFilters();
   syncTaxonomyHiddenFields();
   syncOperationalHiddenFields();
 }
@@ -1910,7 +2095,7 @@ function fascicoloOptionLabel(meta) {
 }
 
 function tipologiaValidaPerArea(area) {
-  return !!tipologiaCorrente && tipologiaCorrente.area === area;
+  return !!tipologiaCorrente && tipologiaCorrente.area === area && matchesCatalogFilters(tipologiaCorrente);
 }
 
 function resetTipologiaSelection() {
@@ -1975,9 +2160,10 @@ function impostaAreaPratica(area, { preferFirst = true } = {}) {
   document.getElementById('inpAreaPratica').value = areaCorrente;
   renderAreaButtons();
   renderTaxonomyFilters();
+  renderOperationalFilters();
   renderTipologie();
   if (!tipologiaValidaPerArea(areaCorrente)) {
-    const primaTipologia = (CATALOGO[areaCorrente] || []).find((item) => matchesTaxonomySelection(item)) || null;
+    const primaTipologia = (CATALOGO[areaCorrente] || []).find((item) => matchesCatalogFilters(item)) || null;
     if (preferFirst && primaTipologia) {
       selezionaTipologia(primaTipologia.id, { autoAdvance: false });
     } else {
@@ -2149,7 +2335,7 @@ function renderAreaButtons() {
   const wrap = document.getElementById('areaButtons');
   wrap.innerHTML = '';
   AREE.forEach((area) => {
-    const total = (CATALOGO[area] || []).filter((item) => matchesTaxonomySelection(item)).length;
+    const total = (CATALOGO[area] || []).filter((item) => matchesCatalogFilters(item)).length;
     if (!total) return;
     const btn = document.createElement('button');
     btn.type = 'button';
@@ -2166,7 +2352,7 @@ function renderTipologie() {
   const grid = document.getElementById('tipologiaGrid');
   const filtro = (document.getElementById('inpFiltroTipologie').value || '').trim().toLowerCase();
   let items = (CATALOGO[areaCorrente] || []).filter((item) => {
-    if (!matchesTaxonomySelection(item)) return false;
+    if (!matchesCatalogFilters(item)) return false;
     if (!matchesCompensoFilter(item)) return false;
     if (showOnlyFavorites && !isFavoriteTipologia(item.id)) return false;
     if (!filtro) return true;
@@ -2193,6 +2379,11 @@ function renderTipologie() {
         <div class="prev-tipo-meta">
           <span class="prev-tipo-badge">${escapeHtml(item.tipo_compenso_default)}</span>
           <span class="prev-tipo-badge">${escapeHtml(item.motore_label || 'Motore tariffario')}</span>
+          ${item.procedura_operativa_nome ? `<span class="prev-tipo-badge">${escapeHtml(item.procedura_operativa_nome)}</span>` : ''}
+          ${item.workflow_operativo_codice ? `<span class="prev-tipo-badge">${escapeHtml(humanizeOperationalCode(item.workflow_operativo_codice))}</span>` : ''}
+        </div>
+        <div class="small text-muted mt-2">
+          ${escapeHtml([item.canale_operativo ? humanizeOperationalCode(item.canale_operativo) : '', item.registro_operativo ? humanizeOperationalCode(item.registro_operativo) : ''].filter(Boolean).join(' / '))}
         </div>
       </article>
     </div>`).join('');
@@ -2280,6 +2471,11 @@ function renderSchedaTipologia() {
   target.innerHTML = `
       <div class="prev-summary-chips">
         <span class="badge bg-primary-subtle text-primary-emphasis">${escapeHtml(tipologiaCorrente.area)}</span>
+        ${operational.name ? `<span class="badge bg-success-subtle text-success-emphasis">${escapeHtml(operational.name)}</span>` : ''}
+        ${operational.workflow ? `<span class="badge bg-info-subtle text-info-emphasis">${escapeHtml(humanizeOperationalCode(operational.workflow))}</span>` : ''}
+        ${operational.channel ? `<span class="badge text-bg-light">${escapeHtml(humanizeOperationalCode(operational.channel))}</span>` : ''}
+        ${operational.registry ? `<span class="badge text-bg-light">${escapeHtml(humanizeOperationalCode(operational.registry))}</span>` : ''}
+        ${operational.coverage ? `<span class="badge bg-warning-subtle text-warning-emphasis">Copertura ${escapeHtml(operational.coverage)}</span>` : ''}
         <span class="badge bg-secondary-subtle text-secondary-emphasis">${escapeHtml(taxonomy.areaLabel)}</span>
         <span class="badge text-bg-light">${escapeHtml(taxonomy.macroLabel)}</span>
         <span class="badge text-bg-light">${escapeHtml(taxonomy.subLabel)}</span>
@@ -2290,16 +2486,17 @@ function renderSchedaTipologia() {
       </div>
       <div class="prev-summary-title">${escapeHtml(tipologiaCorrente.label)}</div>
       <div class="prev-summary-desc">${escapeHtml(tipologiaCorrente.summary)}</div>
-      <div class="small text-muted mt-2">Classificazione tassonomica: ${escapeHtml([taxonomy.areaLabel, taxonomy.macroLabel, taxonomy.subLabel].filter(Boolean).join(' / '))}</div>
+      ${hasOperational ? `<div class="small text-muted mt-2">Classificazione operativa: ${escapeHtml([operational.name || operational.code, humanizeOperationalCode(operational.workflow), humanizeOperationalCode(operational.channel), humanizeOperationalCode(operational.registry)].filter(Boolean).join(' / '))}</div>` : ''}
+      <div class="small text-muted mt-1">Tassonomia tecnica di supporto: ${escapeHtml([taxonomy.areaLabel, taxonomy.macroLabel, taxonomy.subLabel].filter(Boolean).join(' / '))}</div>
       ${hasOperational ? `
       <div class="border rounded-3 p-2 mt-3 bg-light">
         <div class="small fw-semibold text-dark mb-2">Inquadramento operativo</div>
         <div class="d-flex flex-wrap gap-2 mb-2">
           ${operational.name ? `<span class="badge bg-success-subtle text-success-emphasis">${escapeHtml(operational.name)}</span>` : ''}
-          ${operational.workflow ? `<span class="badge bg-info-subtle text-info-emphasis">${escapeHtml(operational.workflow)}</span>` : ''}
+          ${operational.workflow ? `<span class="badge bg-info-subtle text-info-emphasis">${escapeHtml(humanizeOperationalCode(operational.workflow))}</span>` : ''}
           ${operational.coverage ? `<span class="badge bg-warning-subtle text-warning-emphasis">Copertura ${escapeHtml(operational.coverage)}</span>` : ''}
-          ${operational.channel ? `<span class="badge text-bg-light">Canale ${escapeHtml(operational.channel)}</span>` : ''}
-          ${operational.registry ? `<span class="badge text-bg-light">Registro ${escapeHtml(operational.registry)}</span>` : ''}
+          ${operational.channel ? `<span class="badge text-bg-light">Canale ${escapeHtml(humanizeOperationalCode(operational.channel))}</span>` : ''}
+          ${operational.registry ? `<span class="badge text-bg-light">Registro ${escapeHtml(humanizeOperationalCode(operational.registry))}</span>` : ''}
         </div>
         <div class="small text-muted">${escapeHtml([operational.code ? `Procedura ${operational.code}` : '', operational.subbranch ? `Sottobranca ${operational.subbranch}` : ''].filter(Boolean).join(' · '))}</div>
         ${bindingRows.length ? `<div class="small text-muted mt-2">Agganci di prodotto: ${escapeHtml(bindingRows.join(' | '))}</div>` : ''}
@@ -3084,6 +3281,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   const selAreaTassonomica = document.getElementById('selAreaTassonomica');
   const selMacroAreaTassonomica = document.getElementById('selMacroAreaTassonomica');
   const selSottobrancaTassonomica = document.getElementById('selSottobrancaTassonomica');
+  const selProceduraOperativa = document.getElementById('selProceduraOperativa');
+  const selWorkflowOperativo = document.getElementById('selWorkflowOperativo');
+  const selCanaleOperativo = document.getElementById('selCanaleOperativo');
   const applyTaxonomyFilterChange = (level) => {
     if (level === 'area') {
       tassonomiaSelezione.area = selAreaTassonomica.value || '';
@@ -3095,10 +3295,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     } else {
       tassonomiaSelezione.sub = selSottobrancaTassonomica.value || '';
     }
-    ensureOperationalAreaForTaxonomy();
+    ensureAreaForCurrentFilters();
     renderTaxonomyFilters();
+    renderOperationalFilters();
     renderAreaButtons();
-    if (tipologiaCorrente && !matchesTaxonomySelection(tipologiaCorrente)) {
+    if (tipologiaCorrente && !matchesCatalogFilters(tipologiaCorrente)) {
       resetTipologiaSelection();
     } else {
       renderTipologie();
@@ -3109,9 +3310,39 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
     }
   };
+  const applyOperationalFilterChange = (level) => {
+    if (level === 'procedure') {
+      selezioneOperativa.procedure = selProceduraOperativa.value || '';
+      selezioneOperativa.workflow = '';
+      selezioneOperativa.channel = '';
+    } else if (level === 'workflow') {
+      selezioneOperativa.workflow = selWorkflowOperativo.value || '';
+      selezioneOperativa.channel = '';
+    } else {
+      selezioneOperativa.channel = selCanaleOperativo.value || '';
+    }
+    ensureAreaForCurrentFilters();
+    renderOperationalFilters();
+    renderTaxonomyFilters();
+    renderAreaButtons();
+    if (tipologiaCorrente && !matchesCatalogFilters(tipologiaCorrente)) {
+      resetTipologiaSelection();
+    } else {
+      renderTipologie();
+      if (tipologiaCorrente) {
+        renderSchedaTipologia();
+      } else {
+        syncOperationalHiddenFields();
+        syncTaxonomyHiddenFields();
+      }
+    }
+  };
   selAreaTassonomica.addEventListener('change', () => applyTaxonomyFilterChange('area'));
   selMacroAreaTassonomica.addEventListener('change', () => applyTaxonomyFilterChange('macro'));
   selSottobrancaTassonomica.addEventListener('change', () => applyTaxonomyFilterChange('sub'));
+  selProceduraOperativa.addEventListener('change', () => applyOperationalFilterChange('procedure'));
+  selWorkflowOperativo.addEventListener('change', () => applyOperationalFilterChange('workflow'));
+  selCanaleOperativo.addEventListener('change', () => applyOperationalFilterChange('channel'));
   document.getElementById('chkGeneraConferimento').addEventListener('change', syncWorkflowChecks);
   document.getElementById('selectFascicolo').addEventListener('change', (event) => {
     applicaContestoFascicolo(fascicoloById(event.target.value));
@@ -3120,6 +3351,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('inpOggetto').addEventListener('input', () => { oggettoToccato = true; });
   document.getElementById('inpNote').addEventListener('input', () => { noteToccate = true; });
   renderTaxonomyFilters();
+  renderOperationalFilters();
   const areaIniziale = (FASCICOLO_PRE && FASCICOLO_PRE.area_pratica) || areaCorrente;
   if (areaIniziale && (CATALOGO[areaIniziale] || []).length) {
     impostaAreaPratica(areaIniziale, { preferFirst: true });

@@ -141,6 +141,9 @@ def test_template_wizard_espone_classificazione_operativa_visibile():
     template = Path("web/templates/preventivi/wizard.html").read_text(encoding="utf-8")
 
     assert "procedura_operativa_codice" in template
+    assert "Classificazione operativa" in template
+    assert "Procedura / servizio" in template
+    assert "Tassonomia tecnica di supporto" in template
     assert "Inquadramento operativo" in template
     assert "Agganci di prodotto" in template
     assert "workflow_operativo_codice" in template

@@ -9,8 +9,13 @@ import os
 from pathlib import Path
 from typing import Any, Iterator, Mapping
 
-import psycopg2
-import psycopg2.extras
+try:
+    import psycopg2
+    import psycopg2.extras
+    _HAS_PSYCOPG2 = True
+except ImportError:
+    psycopg2 = None  # type: ignore[assignment]
+    _HAS_PSYCOPG2 = False
 
 from pct.legal_platform_seed import LEGAL_PLATFORM_SEED
 
@@ -108,6 +113,10 @@ class PostgresCoverageRepository:
 
     @contextmanager
     def connect(self) -> Iterator[Any]:
+        if not _HAS_PSYCOPG2:
+            raise RuntimeError(
+                "psycopg2 non disponibile: installa psycopg2-binary per usare la funzionalità PostgreSQL."
+            )
         kwargs: dict[str, Any] = {"cursor_factory": psycopg2.extras.RealDictCursor}
         if self.config.dsn:
             conn = psycopg2.connect(self.config.dsn, **kwargs)

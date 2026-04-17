@@ -289,20 +289,18 @@ def _extract_with_openssl_pkcs7(p7m_path: Path, output_path: Path) -> tuple[bool
             "-out", str(output_path),
         ]
     )
+
+
+def _verify_detached_with_openssl_smime(p7m_path: Path, content_path: Path, output_path: Path) -> tuple[bool, str]:
+    """Verifica firma SMIME detached: il documento originale è in content_path."""
     return _run_command(
         [
-            "openssl",
-            "smime",
-            "-verify",
-            "-inform",
-            "DER",
-            "-in",
-            str(p7m_path),
-            "-content",
-            str(content_path),
+            "openssl", "smime", "-verify",
+            "-inform", "DER",
+            "-in", str(p7m_path),
+            "-content", str(content_path),
             "-noverify",
-            "-out",
-            str(output_path),
+            "-out", str(output_path),
         ]
     )
 

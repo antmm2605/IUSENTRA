@@ -1,4 +1,4 @@
-#  version: 2.164.4
+#  version: 2.163.3
 #  IUSENTRA | Dockerfile produzione
 
 #  Build multi-stage:
@@ -71,9 +71,9 @@ RUN mkdir -p /out && /tmp/dart-sass/sass --no-source-map --style=compressed \
 FROM python:3.12-slim
 
 LABEL org.opencontainers.image.title="IUSENTRA" \
-      org.opencontainers.image.version="2.164.4" \
+      org.opencontainers.image.version="2.164.0" \
       org.opencontainers.image.description="Gestionale PCT per studi legali italiani" \
-      org.opencontainers.image.created="2026-04-17"
+      org.opencontainers.image.created="2026-03-18"
 
 # Solo le librerie runtime strettamente necessarie
 # libpcsclite1 + opensc: firma PKCS#11 in-device (Aruba Key) — il demone pcscd

@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="pct-studio-legale",
-    version="2.164.4",
+    version="2.164.0",
     description="IUSENTRA: gestionale web modulare per studi legali con PCT, Lex locale e servizi telematici",
     packages=find_packages(),
     include_package_data=True,
@@ -28,7 +28,6 @@ setup(
         "twilio>=8.0.0",
         "stripe>=7.0.0",
         "zeep>=4.2.1",
-        "psycopg2-binary>=2.9.10",
     ],
     extras_require={
         "pades": ["pyhanko>=0.20.0", "pyhanko-certvalidator>=0.26.0"],

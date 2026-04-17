@@ -738,6 +738,10 @@
   <input type="hidden" name="adr_accordo" id="inpAdrAccordo" value="0">
   <input type="hidden" name="log_calcolo" id="inpLogCalcolo">
   <input type="hidden" name="compenso_pattuito" id="inpCompensoPattuito" value="0">
+  <input type="hidden" name="clausola_controversie_attiva" id="inpClausolaContAtt" value="">
+  <input type="hidden" name="clausola_controversie_modello" id="inpClausolaContModello" value="NESSUNA">
+  <input type="hidden" name="clausola_controversie_testo" id="inpClausolaContTesto" value="">
+  <input type="hidden" name="clausola_controversie_trattativa_individuale" id="inpClausolaContTrattativa" value="">
 
   <div class="row g-3 prev-wizard-grid">
     <div class="col-12 col-xxl-8 order-2 order-xxl-1 prev-main-flow">
@@ -1212,6 +1216,51 @@
                     <div class="col-md-4"><div class="form-check"><input class="form-check-input" type="checkbox" id="chkApriFascicoloGuidato" name="apri_fascicolo_guidato" value="1"><label class="form-check-label" for="chkApriFascicoloGuidato">Poi apri il fascicolo guidato</label></div></div>
                     <div class="col-md-4"><div class="form-check"><input class="form-check-input" type="checkbox" id="chkInformativaArt13" name="informativa_art13_resa" value="1" checked><label class="form-check-label" for="chkInformativaArt13">Informativa art. 13 resa</label></div></div>
                     <div class="col-md-4"><div class="form-check"><input class="form-check-input" type="checkbox" id="chkClausolaAdr" name="clausola_adr_resa" value="1"><label class="form-check-label" for="chkClausolaAdr">Verifica ADR / clausola resa</label></div></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="accordion-item">
+              <h2 class="accordion-header">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#step4ClausolaCollapse" aria-expanded="false" aria-controls="step4ClausolaCollapse">
+                  Clausola per la risoluzione delle controversie
+                  <span class="badge text-bg-secondary ms-2 d-none" id="badgeClausolaAttiva">Attiva</span>
+                </button>
+              </h2>
+              <div id="step4ClausolaCollapse" class="accordion-collapse collapse">
+                <div class="accordion-body">
+                  <div class="row g-3">
+                    <div class="col-12">
+                      <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="chkClausolaContAttiva">
+                        <label class="form-check-label fw-semibold" for="chkClausolaContAttiva">
+                          Includi clausola per la risoluzione delle controversie
+                        </label>
+                      </div>
+                      <div class="small text-muted mt-1">La clausola viene inclusa nel preventivo e trasferita automaticamente al conferimento di incarico.</div>
+                    </div>
+                    <div class="col-12 d-none" id="clausolaContOptions">
+                      <label class="form-label fw-semibold">Modello clausola</label>
+                      <select id="selClausolaContModello" class="form-select">
+                        <option value="NESSUNA">Nessuna clausola specifica</option>
+                        <option value="MULTISTEP_MEDIAZIONE_ARBITRATO">Clausola multistep (mediazione + arbitrato)</option>
+                      </select>
+                      <div class="small text-muted mt-1" id="clausolaContFonte"></div>
+                    </div>
+                    <div class="col-12 d-none" id="clausolaContTestoBox">
+                      <label class="form-label fw-semibold">Testo clausola</label>
+                      <textarea id="txaClausolaContTesto" class="form-control" rows="8" placeholder="Il testo verrà proposto automaticamente in base al modello selezionato."></textarea>
+                      <div class="small text-muted mt-1">Puoi personalizzare il testo prima di generare il preventivo.</div>
+                    </div>
+                    <div class="col-12 d-none" id="clausolaContTrattativaBox">
+                      <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="chkClausolaContTrattativa">
+                        <label class="form-check-label" for="chkClausolaContTrattativa">
+                          Trattativa individuale documentata
+                        </label>
+                      </div>
+                      <div class="small text-muted mt-1">Seleziona se è stata condotta trattativa individuale con il consumatore (requisito art. 34 Cod. Consumo per clausole vessatorie).</div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -2873,6 +2922,61 @@ function syncWorkflowChecks() {
   chkFasc.disabled = !canOpen;
   if (!canOpen) chkFasc.checked = false;
 }
+
+const CLAUSOLA_TESTI_DEFAULT = {
+  'NESSUNA': '',
+  'MULTISTEP_MEDIAZIONE_ARBITRATO': `Le parti concordano espressamente che, in caso di controversia nascente dall'interpretazione ed esecuzione del presente contratto, le stesse daranno corso a un tentativo di mediazione secondo le disposizioni contenute nel d.lgs. 4 marzo 2010 n. 28 e D.M. 24 ottobre 2023 n. 150 e, in caso di esito negativo della mediazione, convengono che tale controversia sara risolta mediante arbitrato rituale di diritto ai sensi degli artt. 806 e seguenti del c.p.c. e secondo il Regolamento Arbitrale di Primavera Forense, reperibile sul sito dell'organismo, che le parti dichiarano di conoscere e accettare interamente.\n\nIl Collegio Arbitrale sara composto da un arbitro unico nominato in conformita a tale Regolamento. All'uopo le parti dichiarano di conoscere gli effetti della presente clausola e, sin d'ora di comune accordo, designano quale soggetto incaricato di espletare la procedura di mediazione e/o la procedura di arbitrato "Primavera Forense", organismo iscritto al n. 322 del Registro tenuto dal Ministero della Giustizia, eleggendo domicilio per la ricezione delle convocazioni di rito presso gli indirizzi riportati nell'epigrafe del presente contratto. L'Arbitro Unico, su domanda di parte, potra concedere tutte le misure cautelari che non siano vietate da norme inderogabili applicabili al procedimento. Sia la procedura di mediazione civile che il giudizio arbitrale si svolgeranno a Roma, in presenza o in modalita telematica.`,
+};
+const CLAUSOLA_FONTI = {
+  'NESSUNA': '',
+  'MULTISTEP_MEDIAZIONE_ARBITRATO': 'Fac-simile conferimento incarico + Studio Cataldi / Primavera Forense (2026)',
+};
+
+function syncClausolaUI() {
+  const chk = document.getElementById('chkClausolaContAttiva');
+  const optsBox = document.getElementById('clausolaContOptions');
+  const testoBox = document.getElementById('clausolaContTestoBox');
+  const trattativaBox = document.getElementById('clausolaContTrattativaBox');
+  const badge = document.getElementById('badgeClausolaAttiva');
+  const sel = document.getElementById('selClausolaContModello');
+  const txa = document.getElementById('txaClausolaContTesto');
+  const fonte = document.getElementById('clausolaContFonte');
+  if (!chk) return;
+  const attiva = chk.checked;
+  optsBox.classList.toggle('d-none', !attiva);
+  testoBox.classList.toggle('d-none', !attiva);
+  trattativaBox.classList.toggle('d-none', !attiva);
+  badge.classList.toggle('d-none', !attiva);
+  if (attiva && sel && !txa.value.trim()) {
+    const modello = sel.value || 'NESSUNA';
+    txa.value = CLAUSOLA_TESTI_DEFAULT[modello] || '';
+    if (fonte) fonte.textContent = CLAUSOLA_FONTI[modello] || '';
+  }
+  syncClausolaHiddenFields();
+}
+
+function onClausolaModelloChange() {
+  const sel = document.getElementById('selClausolaContModello');
+  const txa = document.getElementById('txaClausolaContTesto');
+  const fonte = document.getElementById('clausolaContFonte');
+  if (!sel) return;
+  const modello = sel.value || 'NESSUNA';
+  txa.value = CLAUSOLA_TESTI_DEFAULT[modello] || '';
+  if (fonte) fonte.textContent = CLAUSOLA_FONTI[modello] || '';
+  syncClausolaHiddenFields();
+}
+
+function syncClausolaHiddenFields() {
+  const chk = document.getElementById('chkClausolaContAttiva');
+  const sel = document.getElementById('selClausolaContModello');
+  const txa = document.getElementById('txaClausolaContTesto');
+  const chkTrat = document.getElementById('chkClausolaContTrattativa');
+  const attiva = chk?.checked || false;
+  document.getElementById('inpClausolaContAtt').value = attiva ? '1' : '';
+  document.getElementById('inpClausolaContModello').value = attiva ? (sel?.value || 'NESSUNA') : 'NESSUNA';
+  document.getElementById('inpClausolaContTesto').value = attiva ? (txa?.value || '') : '';
+  document.getElementById('inpClausolaContTrattativa').value = (attiva && chkTrat?.checked) ? '1' : '';
+}
 </script>
 <script>
 function rowMarkup(desc = '', importo = '', tipo = 'Onorario', attrs = '') {
@@ -3369,6 +3473,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   selWorkflowOperativo.addEventListener('change', () => applyOperationalFilterChange('workflow'));
   selCanaleOperativo.addEventListener('change', () => applyOperationalFilterChange('channel'));
   document.getElementById('chkGeneraConferimento').addEventListener('change', syncWorkflowChecks);
+  document.getElementById('chkClausolaContAttiva').addEventListener('change', syncClausolaUI);
+  document.getElementById('selClausolaContModello').addEventListener('change', onClausolaModelloChange);
+  document.getElementById('txaClausolaContTesto').addEventListener('input', syncClausolaHiddenFields);
+  document.getElementById('chkClausolaContTrattativa').addEventListener('change', syncClausolaHiddenFields);
   document.getElementById('selectFascicolo').addEventListener('change', (event) => {
     applicaContestoFascicolo(fascicoloById(event.target.value));
     syncWorkflowChecks();
@@ -3425,6 +3533,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       return;
     }
     syncCalcoloHiddenFields();
+    syncClausolaHiddenFields();
   });
 });
 </script>

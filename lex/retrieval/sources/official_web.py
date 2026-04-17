@@ -9,7 +9,10 @@ from lex.retrieval.official_web import (
     search_recognized_official_web,
 )
 
-_RECENCY_TOKENS: tuple[str, ...] = ("ultima", "ultime", "ultimo", "recent", "aggiornat", "oggi")
+_RECENCY_TOKENS: tuple[str, ...] = (
+    "ultima", "ultime", "ultimo", "ultimi",
+    "recent", "aggiornat", "oggi", "corrente", "vigente", "attuale",
+)
 _LEGAL_LOOKUP_TOKENS: tuple[str, ...] = (
     "web",
     "fonte ufficiale",
@@ -20,8 +23,11 @@ _LEGAL_LOOKUP_TOKENS: tuple[str, ...] = (
     "decreto",
     "sentenza",
     "sentenze",
+    "giurisprudenza",
     "cassazione",
     "corte costituzionale",
+    "corte d'appello",
+    "tribunale",
     "gazzetta",
     "agenzia entrate",
     "telematico",
@@ -31,6 +37,21 @@ _LEGAL_LOOKUP_TOKENS: tuple[str, ...] = (
     "pec",
     "firma",
     "reginde",
+    "circolari",
+    "circolare",
+    "codice civile",
+    "codice penale",
+    "codice procedura",
+    "regio decreto",
+    "d.lgs",
+    "d.l.",
+    "l. n.",
+    "art.",
+    "articolo",
+    "massima",
+    "principio di diritto",
+    "orientamento",
+    "motivazione",
 )
 
 
@@ -67,8 +88,10 @@ def _should_search_official_web(request, workflow: str) -> bool:
     if has_legal_lookup and has_recency:
         return True
 
-    if workflow == "telematico" and has_legal_lookup:
+    # Workflow che beneficiano della ricerca web con semplici token normativi
+    if workflow in {"telematico", "intelligence", "atto"} and has_legal_lookup:
         return True
+
     return False
 
 

@@ -110,12 +110,31 @@ def payload_name_from_source(source_name: str, payload_ext: str | None = None) -
     return base
 
 
-def extract_signed_payload(data: bytes) -> bytes | None:
+def _unwrap_octet_string(raw: bytes) -> bytes | None:
+    """Rimuove un eventuale layer OctetString wrapper (double-wrap comune nei p7m italiani)."""
+    if not raw or raw[0] != 0x04:
+        return None
     try:
-        from asn1crypto import cms
+        # Calcola la lunghezza del tag+len header per trovare il payload puro
+        idx = 1
+        if raw[idx] & 0x80:
+            n = raw[idx] & 0x7F
+            idx += 1 + n
+        else:
+            idx += 1
+        if idx < len(raw):
+            return raw[idx:]
+    except Exception:
+        pass
+    return None
+
+
+def _extract_via_asn1crypto(data: bytes) -> bytes | None:
+    """Estrazione payload via asn1crypto con gestione double-wrap."""
+    try:
+        from asn1crypto import cms  # type: ignore
     except Exception:
         return None
-
     try:
         content_info = cms.ContentInfo.load(data)
         if content_info["content_type"].native != "signed_data":
@@ -125,19 +144,66 @@ def extract_signed_payload(data: bytes) -> bytes | None:
         content = encap["content"]
         if content is None:
             return None
+
+        # Tentativo 1: .native standard
         native = getattr(content, "native", None)
-        if isinstance(native, bytes):
+        if isinstance(native, bytes) and native:
+            # Controlla double-wrap (OctetString che wrappa un altro OctetString)
+            if native[0] == 0x04:
+                inner = _unwrap_octet_string(native)
+                if inner and len(inner) > 4:
+                    return inner
             return native
-        if isinstance(content, bytes):
+
+        # Tentativo 2: accesso diretto ai contenuti grezzi
+        raw = getattr(content, "contents", None)
+        if isinstance(raw, bytes) and raw:
+            if raw[0] == 0x04:
+                inner = _unwrap_octet_string(raw)
+                if inner and len(inner) > 4:
+                    return inner
+            return raw
+
+        if isinstance(content, bytes) and content:
             return content
-        if native is not None:
-            try:
-                return bytes(native)
-            except Exception:
-                return None
+
     except Exception:
-        return None
+        pass
     return None
+
+
+def _extract_via_magic_bytes(data: bytes) -> bytes | None:
+    """Cerca magic bytes di formati noti nel blob CAdES (ultima risorsa)."""
+    # PDF
+    idx = data.find(b"%PDF")
+    if idx >= 0:
+        snippet = data[idx:]
+        if len(snippet) > 64 and (b"%%EOF" in snippet or b"endobj" in snippet or b"stream" in snippet):
+            return snippet
+    # ZIP / DOCX
+    idx = data.find(b"PK\x03\x04")
+    if idx >= 0 and len(data) - idx > 512:
+        return data[idx:]
+    # XML (DatiAtto.xml e simili del PST)
+    for marker in (b"<?xml", b"<DatiAtto", b"<Deposito", b"<atto", b"<Atto"):
+        idx = data.find(marker)
+        if idx >= 0 and len(data) - idx > 32:
+            return data[idx:]
+    return None
+
+
+def extract_signed_payload(data: bytes) -> bytes | None:
+    """Estrae il payload firmato da una busta CAdES (.p7m).
+
+    Strategia multi-livello per la massima compatibilità con i p7m
+    generati dai sistemi giudiziari italiani (PST, PDP, PAT):
+    1. asn1crypto (con gestione double-wrap)
+    2. ricerca diretta magic bytes nel blob ASN.1
+    """
+    result = _extract_via_asn1crypto(data)
+    if result:
+        return result
+    return _extract_via_magic_bytes(data)
 
 
 def _run_command(cmd: list[str]) -> tuple[bool, str]:
@@ -192,7 +258,37 @@ def _extract_with_openssl_cms(p7m_path: Path, output_path: Path) -> tuple[bool, 
     )
 
 
-def _verify_detached_with_openssl_smime(p7m_path: Path, content_path: Path, output_path: Path) -> tuple[bool, str]:
+def _extract_with_openssl_cms_auto(p7m_path: Path, output_path: Path) -> tuple[bool, str]:
+    """CMS senza -inform DER (auto-detect BER/DER/PEM)."""
+    return _run_command(
+        [
+            "openssl", "cms", "-verify", "-binary",
+            "-in", str(p7m_path), "-noverify",
+            "-out", str(output_path),
+        ]
+    )
+
+
+def _extract_with_openssl_smime_auto(p7m_path: Path, output_path: Path) -> tuple[bool, str]:
+    """SMIME senza -inform DER (auto-detect)."""
+    return _run_command(
+        [
+            "openssl", "smime", "-verify",
+            "-in", str(p7m_path), "-noverify",
+            "-out", str(output_path),
+        ]
+    )
+
+
+def _extract_with_openssl_pkcs7(p7m_path: Path, output_path: Path) -> tuple[bool, str]:
+    """Usa il subcomando pkcs7 per estrarre il contenuto embedded."""
+    return _run_command(
+        [
+            "openssl", "pkcs7", "-inform", "DER",
+            "-in", str(p7m_path), "-print",
+            "-out", str(output_path),
+        ]
+    )
     return _run_command(
         [
             "openssl",
@@ -277,9 +373,17 @@ def inspect_signed_document_bytes(
                 p7m_path.write_bytes(data)
 
                 extracted_path = tmp_dir / "payload.bin"
+                # Strategia A: smime DER (standard PKCS7)
                 ok, details = _extract_with_openssl_smime(p7m_path, extracted_path)
-                if not ok:
+                # Strategia B: cms DER -binary (CAdES-BES binario)
+                if not ok or not (extracted_path.exists() and extracted_path.stat().st_size > 0):
                     ok, details = _extract_with_openssl_cms(p7m_path, extracted_path)
+                # Strategia C: cms senza -inform (auto BER/DER/PEM)
+                if not ok or not (extracted_path.exists() and extracted_path.stat().st_size > 0):
+                    ok, details = _extract_with_openssl_cms_auto(p7m_path, extracted_path)
+                # Strategia D: smime senza -inform (auto-detect)
+                if not ok or not (extracted_path.exists() and extracted_path.stat().st_size > 0):
+                    ok, details = _extract_with_openssl_smime_auto(p7m_path, extracted_path)
                 if ok and extracted_path.exists() and extracted_path.stat().st_size > 0:
                     payload_bytes = extracted_path.read_bytes()
                     embedded_payload = True

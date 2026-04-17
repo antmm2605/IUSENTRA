@@ -2,6 +2,7 @@ from pathlib import Path
 
 from flask import Flask
 
+from pct.compilatore_atti import MODELS
 from pct.template_atti import GestioneTemplateAtti
 from web.services.assistente_studio_context import _template_atti_lines
 
@@ -19,7 +20,7 @@ def test_template_repository_sincronizza_builtin_e_seleziona_il_template_miglior
 
     assert Path(gestore.repository_db_path).exists()
     assert Path(gestore.repository_json_path).exists()
-    assert stats["template_repository"] >= 100
+    assert stats["template_repository"] >= len(MODELS)
     assert stats["template_fields"] > 0
     best = selection["best_template"]
     assert best is not None

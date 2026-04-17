@@ -4,6 +4,7 @@ from __future__ import annotations
 from copy import deepcopy
 from typing import Any, Iterable
 
+from pct.compilatore_atti import AREA_LABELS, MODELS, get_essential_docs
 from pct.template_atti_compiler_bindings import compiler_binding_map_by_title
 
 
@@ -981,6 +982,334 @@ def _group(common: dict[str, Any], entries: list[tuple[str, dict[str, Any] | Non
     return items
 
 
+_COMPILER_AREA_DEFAULTS: dict[str, dict[str, str]] = {
+    "STRAGIUDIZIALE": {
+        "categoria": "Stragiudiziale collegato",
+        "collezione": "Stragiudiziale collegato",
+        "area": "Stragiudiziale",
+        "branca": "Stragiudiziale",
+        "sottobranca": "Comunicazioni, accordi e pareri",
+        "fase": "Stragiudiziale",
+        "rito": "Trasversale",
+        "grado": "N/A",
+        "canale_telematico": "Misto",
+        "profilo_deposito": "uso_studio",
+        "family": "stragiudiziale",
+    },
+    "PENALE": {
+        "categoria": "Penale",
+        "collezione": "Penale",
+        "area": "Penale",
+        "branca": "Penale",
+        "sottobranca": "Difesa, istanze e impugnazioni",
+        "fase": "Indagini / giudizio / impugnazione",
+        "rito": "Penale",
+        "grado": "Tutti",
+        "canale_telematico": "PDP",
+        "profilo_deposito": "atto_introduttivo",
+        "family": "penale",
+    },
+    "AMMINISTRATIVO": {
+        "categoria": "Amministrativo",
+        "collezione": "Amministrativo",
+        "area": "Amministrativo",
+        "branca": "Amministrativo",
+        "sottobranca": "Ricorsi, memorie e cautelare",
+        "fase": "Introduttiva / successiva / impugnazione",
+        "rito": "PAT / SIGA",
+        "grado": "TAR / Consiglio di Stato",
+        "canale_telematico": "PAT / SIGA",
+        "profilo_deposito": "atto_introduttivo",
+        "family": "amministrativo",
+    },
+    "TRIBUTARIO": {
+        "categoria": "Tributario",
+        "collezione": "Tributario",
+        "area": "Tributario",
+        "branca": "Tributario",
+        "sottobranca": "Ricorsi, controdeduzioni e appelli",
+        "fase": "Introduttiva / successiva / impugnazione",
+        "rito": "PTT / SIGIT",
+        "grado": "Primo grado / appello",
+        "canale_telematico": "PTT / SIGIT",
+        "profilo_deposito": "atto_introduttivo",
+        "family": "tributario",
+    },
+    "FAMIGLIA": {
+        "categoria": "Famiglia e volontaria giurisdizione",
+        "collezione": "Famiglia e volontaria giurisdizione",
+        "area": "Famiglia e Persone",
+        "branca": "Famiglia e persone",
+        "sottobranca": "Separazione, divorzio e volontaria giurisdizione",
+        "fase": "Introduttiva / volontaria giurisdizione / impugnazione",
+        "rito": "Famiglia e minori",
+        "grado": "Tutti",
+        "canale_telematico": "PCT",
+        "profilo_deposito": "atto_introduttivo",
+        "family": "famiglia",
+    },
+    "LAVORO": {
+        "categoria": "Lavoro e previdenza",
+        "collezione": "Lavoro e previdenza",
+        "area": "Lavoro e Previdenza",
+        "branca": "Lavoro e previdenza",
+        "sottobranca": "Ricorsi, memorie e previdenza",
+        "fase": "Introduttiva / successiva / impugnazione",
+        "rito": "Rito lavoro",
+        "grado": "Primo grado / appello",
+        "canale_telematico": "PCT",
+        "profilo_deposito": "atto_introduttivo",
+        "family": "lavoro",
+    },
+    "SOCIETARIO": {
+        "categoria": "Societario",
+        "collezione": "Societario",
+        "area": "Societario",
+        "branca": "Societario",
+        "sottobranca": "Pareri, contratti e contenzioso",
+        "fase": "Consulenza / contenzioso",
+        "rito": "Trasversale",
+        "grado": "Tutti",
+        "canale_telematico": "Misto",
+        "profilo_deposito": "uso_studio",
+        "family": "stragiudiziale",
+    },
+    "IMMIGRAZIONE": {
+        "categoria": "Immigrazione e cittadinanza",
+        "collezione": "Immigrazione e cittadinanza",
+        "area": "Immigrazione",
+        "branca": "Immigrazione e cittadinanza",
+        "sottobranca": "Ricorsi, permessi e protezione",
+        "fase": "Amministrativa / giudiziale",
+        "rito": "Speciale",
+        "grado": "Tutti",
+        "canale_telematico": "Misto",
+        "profilo_deposito": "atto_introduttivo",
+        "family": "amministrativo",
+    },
+}
+
+
+def _compiler_profile_for_model(model: dict[str, Any]) -> str:
+    code = str(model.get("code", "") or "")
+    title = str(model.get("name", "") or "").lower()
+    if "procura" in title or "mandato" in title:
+        return "procura"
+    if any(token in title for token in ("memoria", "note", "controdeduzioni", "deposito", "lista testi", "richiesta copie")):
+        return "atto_successivo"
+    if "cautel" in title or "sospensione" in title:
+        return "atto_cautelare"
+    if any(token in title for token in ("appello", "impugnazione", "reclamo", "cassazione", "opposizione")):
+        return "impugnazione"
+    if code.startswith("STR_") or model.get("area") in {"STRAGIUDIZIALE", "SOCIETARIO"}:
+        return "uso_studio"
+    return "atto_introduttivo"
+
+
+def _compiler_family_for_model(model: dict[str, Any]) -> str:
+    area = str(model.get("area", "") or "")
+    code = str(model.get("code", "") or "")
+    title = str(model.get("name", "") or "").lower()
+    if code == "CIV_PROCBASE_001":
+        return "procura"
+    if code == "CIV_NOTIFBASE_001":
+        return "notifica"
+    if code in {"CIV_PREC_001", "CIV_PPT_001", "CIV_OPESE_001", "CIV_OPATTESE_001", "CIV_PIGBASE_001"} or code.startswith("CIV_ESE_"):
+        return "esecuzione"
+    if code in {"CIV_RDI_001", "CIV_OPPDI_001", "CIV_RCAUT_001", "CIV_ICAUT_001", "CIV_SFRINT_001", "CIV_CONVSFR_001"} or code.startswith("CIV_INT_"):
+        return "monitorio_cautelare"
+    if code in {"CIV_APP_001"} or code.startswith("CIV_IMP_"):
+        return "impugnazione_civile"
+    if code in {"CIV_MEM_001", "CIV_IST_001", "CIV_DEPDOC_001"}:
+        return "civile_processuale"
+    if code in {"CIV_CIT_001", "CIV_COM_001", "CIV_LAVRIC_001", "CIV_LAVMEM_001"}:
+        return "civile_intro"
+    if area == "STRAGIUDIZIALE":
+        return "stragiudiziale"
+    if area == "PENALE":
+        return "penale"
+    if area == "AMMINISTRATIVO":
+        return "amministrativo"
+    if area == "TRIBUTARIO":
+        return "tributario"
+    if area == "FAMIGLIA":
+        return "famiglia"
+    if area == "LAVORO":
+        return "lavoro"
+    if area == "IMMIGRAZIONE":
+        return "amministrativo"
+    if area == "SOCIETARIO":
+        if any(token in title for token in ("ricorso", "memoria", "responsabilita")):
+            return "civile_intro"
+        return "stragiudiziale"
+    return "civile_processuale"
+
+
+def _compiler_civile_meta(model: dict[str, Any], meta: dict[str, Any]) -> dict[str, Any]:
+    code = str(model.get("code", "") or "")
+    title = str(model.get("name", "") or "").lower()
+    if code == "CIV_PROCBASE_001":
+        meta.update(
+            {
+                "categoria": "Procure, nomine e deleghe",
+                "collezione": "Procure e deleghe",
+                "branca": "Procure e deleghe",
+                "sottobranca": "Mandati e domiciliazioni",
+                "fase": "Mandato difensivo",
+                "rito": "Trasversale",
+                "grado": "Tutti",
+            }
+        )
+        return meta
+    if code in {"CIV_NOTIFBASE_001", "CIV_DEPDOC_001"}:
+        meta.update(
+            {
+                "categoria": "UNEP e notificazioni",
+                "collezione": "UNEP e notificazioni",
+                "branca": "UNEP e notificazioni",
+                "sottobranca": "Notifiche, depositi e fascicolo telematico",
+                "fase": "Supporto al deposito",
+                "rito": "PCT",
+                "grado": "Tutti",
+            }
+        )
+        return meta
+    if code in {"CIV_PREC_001", "CIV_PPT_001", "CIV_OPESE_001", "CIV_OPATTESE_001", "CIV_PIGBASE_001"} or code.startswith("CIV_ESE_"):
+        meta.update(
+            {
+                "categoria": "Esecuzioni",
+                "collezione": "Esecuzioni",
+                "branca": "Esecuzioni",
+                "sottobranca": "Precetti, pignoramenti e opposizioni",
+                "fase": "Esecuzione forzata",
+                "rito": "Esecuzioni",
+                "grado": "Primo grado",
+                "profilo_deposito": "atto_introduttivo",
+            }
+        )
+        return meta
+    if code in {"CIV_RDI_001", "CIV_OPPDI_001", "CIV_RCAUT_001", "CIV_ICAUT_001", "CIV_SFRINT_001", "CIV_CONVSFR_001"} or code.startswith("CIV_INT_"):
+        meta.update(
+            {
+                "categoria": "Monitorio e cautelare",
+                "collezione": "Monitorio e cautelare",
+                "branca": "Monitorio e cautelare",
+                "sottobranca": "Ricorsi d'urgenza, monitori e sfratti",
+                "fase": "Introduttiva / cautelare",
+                "rito": "Monitorio / cautelare / locatizio",
+                "grado": "Primo grado",
+                "profilo_deposito": "atto_cautelare" if "cautel" in title or "sospensione" in title else "atto_introduttivo",
+            }
+        )
+        return meta
+    if code in {"CIV_APP_001"} or code.startswith("CIV_IMP_"):
+        meta.update(
+            {
+                "categoria": "Impugnazioni civili",
+                "collezione": "Impugnazioni civili",
+                "branca": "Impugnazioni civili",
+                "sottobranca": "Appelli, reclami e rimedi impugnatori",
+                "fase": "Impugnazione",
+                "rito": "Appello / cassazione / reclamo",
+                "grado": "Impugnazione",
+                "profilo_deposito": "impugnazione",
+            }
+        )
+        return meta
+    meta.update(
+        {
+            "categoria": "Civile ordinario",
+            "collezione": "Civile ordinario",
+            "branca": "Civile ordinario",
+            "sottobranca": "Introduttivi, difensivi e istanze",
+            "fase": "Introduzione e trattazione",
+            "rito": "Ordinario / semplificato",
+            "grado": "Primo grado",
+            "profilo_deposito": "atto_successivo" if any(token in title for token in ("memoria", "istanza", "deposito")) else "atto_introduttivo",
+        }
+    )
+    return meta
+
+
+def _compiler_meta_for_model(model: dict[str, Any]) -> dict[str, Any]:
+    area = str(model.get("area", "") or "")
+    meta = dict(
+        _COMPILER_AREA_DEFAULTS.get(
+            area,
+            {
+                "categoria": AREA_LABELS.get(area, area.title()),
+                "collezione": AREA_LABELS.get(area, area.title()),
+                "area": AREA_LABELS.get(area, area.title()),
+                "branca": AREA_LABELS.get(area, area.title()),
+                "sottobranca": "Atti e modelli",
+                "fase": "Operativa",
+                "rito": "Trasversale",
+                "grado": "Tutti",
+                "canale_telematico": "Misto",
+                "profilo_deposito": "atto_introduttivo",
+                "family": "civile_processuale",
+            },
+        )
+    )
+    meta["family"] = _compiler_family_for_model(model)
+    meta["profilo_deposito"] = _compiler_profile_for_model(model)
+    if area == "CIVILE":
+        meta = _compiler_civile_meta(model, meta)
+        meta["family"] = _compiler_family_for_model(model)
+        return meta
+    title = str(model.get("name", "") or "").lower()
+    if area == "PENALE" and any(token in title for token in ("memoria", "note", "richiesta copie", "deposito", "lista testi")):
+        meta["profilo_deposito"] = "atto_successivo"
+    if area == "AMMINISTRATIVO" and any(token in title for token in ("memoria", "note", "deposito", "istanza di segreteria", "motivi aggiunti")):
+        meta["profilo_deposito"] = "atto_successivo"
+    if area == "TRIBUTARIO" and any(token in title for token in ("controdeduzioni", "memoria", "deposito")):
+        meta["profilo_deposito"] = "atto_successivo"
+    if area == "FAMIGLIA" and any(token in title for token in ("memoria", "reclamo", "appello")):
+        meta["profilo_deposito"] = "atto_successivo" if "memoria" in title else "impugnazione"
+    if area == "LAVORO" and "appello" in title:
+        meta["profilo_deposito"] = "impugnazione"
+    return meta
+
+
+def _build_compiler_coverage_templates(existing_templates: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    covered_codes = {
+        str(item.get("link_compilatore_code", "") or "").strip()
+        for item in existing_templates
+        if str(item.get("link_compilatore_code", "") or "").strip()
+    }
+    generated: list[dict[str, Any]] = []
+    for model in MODELS:
+        code = str(model.get("code", "") or "").strip()
+        if not code or code in covered_codes:
+            continue
+        meta = _compiler_meta_for_model(model)
+        generated.append(
+            _spec(
+                codice=code,
+                titolo=str(model.get("name", "") or code),
+                categoria=meta["categoria"],
+                collezione=meta["collezione"],
+                area=meta["area"],
+                branca=meta["branca"],
+                sottobranca=meta["sottobranca"],
+                fase=meta["fase"],
+                rito=meta["rito"],
+                grado=meta["grado"],
+                canale_telematico=meta["canale_telematico"],
+                profilo_deposito=meta["profilo_deposito"],
+                family=meta["family"],
+                varianti=[AREA_LABELS.get(str(model.get("area", "") or ""), str(model.get("area", "") or "").title())],
+                link_compilatore_code=code,
+                descrizione=(
+                    f"Template built-in derivato dal compilatore guidato per {str(model.get('name', '') or code).lower()}, "
+                    f"collocato automaticamente nella collezione {meta['collezione'].lower()}."
+                ),
+                allegati_obbligatori=get_essential_docs(code),
+            )
+        )
+    return generated
+
+
 BUILTIN_TEMPLATE_SPECS: list[dict[str, Any]] = []
 
 BUILTIN_TEMPLATE_SPECS.extend(
@@ -1077,7 +1406,9 @@ BUILTIN_TEMPLATE_SPECS.extend(
 def build_builtin_templates() -> list[dict[str, Any]]:
     compiler_links = compiler_binding_map_by_title()
     templates: list[dict[str, Any]] = []
-    for order, spec in enumerate(BUILTIN_TEMPLATE_SPECS, start=1):
+    all_specs = list(BUILTIN_TEMPLATE_SPECS)
+    all_specs.extend(_build_compiler_coverage_templates(all_specs))
+    for order, spec in enumerate(all_specs, start=1):
         item = deepcopy(spec)
         family = item.pop("family")
         field_names = item.pop("field_names")

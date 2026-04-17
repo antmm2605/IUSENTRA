@@ -47,6 +47,8 @@ CATEGORIE = [
     "Penale",
     "Amministrativo",
     "Tributario",
+    "Societario",
+    "Immigrazione e cittadinanza",
     "UNEP e notificazioni",
     "Stragiudiziale collegato",
     "Altro",

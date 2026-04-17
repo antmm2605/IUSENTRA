@@ -59,10 +59,16 @@ def test_catalogo_builtin_supera_cento_modelli_e_contiene_atti_richiesti(tmp_pat
     cfg, _ = _bootstrap_app(tmp_path)
     gt = GestioneTemplateAtti(db_path=cfg["TEMPLATE_ATTI_DB"])
     builtins = [t for t in gt.tutti() if t.builtin]
+    compiler_codes = {code for code in MODEL_INDEX}
+    covered_codes = {t.link_compilatore_code for t in builtins if t.link_compilatore_code}
+    collections = {t.collezione for t in builtins if t.collezione}
 
-    assert len(builtins) >= 100
+    assert len(builtins) >= len(compiler_codes)
     assert all(t.link_compilatore_code for t in builtins)
     assert all(t.link_compilatore_code in MODEL_INDEX for t in builtins)
+    assert covered_codes == compiler_codes
+    assert "Societario" in collections
+    assert "Immigrazione e cittadinanza" in collections
 
     by_title = {t.titolo: t for t in builtins}
     assert "Procura speciale per ricorso monitorio" in by_title
@@ -74,6 +80,8 @@ def test_catalogo_builtin_supera_cento_modelli_e_contiene_atti_richiesti(tmp_pat
     assert "Ricorso ex legge Pinto" in by_title
     assert "Diffida stragiudiziale collegata al fascicolo" in by_title
     assert "Nomina del difensore di fiducia" in by_title
+    assert "Parere Societario" in by_title
+    assert "Ricorso Protezione Internazionale" in by_title
     assert by_title["Atto di citazione"].link_compilatore_code == "CIV_CIT_001"
     assert by_title["Atto di citazione"].campi_guidati
     assert by_title["Atto di citazione"].branca == "Civile ordinario"
@@ -93,6 +101,10 @@ def test_workspace_template_atti_renderizza_filtri_e_card_principali(tmp_path):
     assert "Atto di citazione" in html
     assert "Ricorso per decreto ingiuntivo" in html
     assert "Nomina del difensore di fiducia" in html
+    assert "Societario" in html
+    assert "Immigrazione e cittadinanza" in html
+    assert "Parere Societario" in html
+    assert "Ricorso Protezione Internazionale" in html
 
 
 def test_scheda_modello_builtin_espone_metadati_e_campi_guidati(tmp_path):

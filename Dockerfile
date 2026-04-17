@@ -71,9 +71,9 @@ RUN mkdir -p /out && /tmp/dart-sass/sass --no-source-map --style=compressed \
 FROM python:3.12-slim
 
 LABEL org.opencontainers.image.title="IUSENTRA" \
-      org.opencontainers.image.version="2.164.1" \
+      org.opencontainers.image.version="2.164.2" \
       org.opencontainers.image.description="Gestionale PCT per studi legali italiani" \
-      org.opencontainers.image.created="2026-03-18"
+      org.opencontainers.image.created="2026-04-17"
 
 # Solo le librerie runtime strettamente necessarie
 # libpcsclite1 + opensc: firma PKCS#11 in-device (Aruba Key) — il demone pcscd

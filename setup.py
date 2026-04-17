@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="pct-studio-legale",
-    version="2.164.1",
+    version="2.164.2",
     description="IUSENTRA: gestionale web modulare per studi legali con PCT, Lex locale e servizi telematici",
     packages=find_packages(),
     include_package_data=True,

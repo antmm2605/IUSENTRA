@@ -1,4 +1,4 @@
-﻿{% extends "base.html" %}
+{% extends "base.html" %}
 {% block title %}Preventivo guidato{% endblock %}
 {% block pct_modulo %}preventivi{% endblock %}
 
@@ -721,6 +721,13 @@
   <input type="hidden" name="sottobranca_tassonomica" id="inpSottobrancaTassonomica">
   <input type="hidden" name="tassonomia_codice" id="inpTassonomiaCodice">
   <input type="hidden" name="fonti_tassonomia_json" id="inpFontiTassonomiaJson">
+  <input type="hidden" name="procedura_operativa_codice" id="inpProceduraOperativaCodice">
+  <input type="hidden" name="procedura_operativa_nome" id="inpProceduraOperativaNome">
+  <input type="hidden" name="subbranch_operativa_codice" id="inpSubbranchOperativaCodice">
+  <input type="hidden" name="workflow_operativo_codice" id="inpWorkflowOperativoCodice">
+  <input type="hidden" name="copertura_operativa" id="inpCoperturaOperativa">
+  <input type="hidden" name="canale_operativo" id="inpCanaleOperativo">
+  <input type="hidden" name="registro_operativo" id="inpRegistroOperativo">
   <input type="hidden" name="tipo_compenso" id="inpTipoCompenso">
   <input type="hidden" name="tipo_procedimento" id="inpTipoProcedimento">
   <input type="hidden" name="grado_sede" id="inpGradoSede">
@@ -882,7 +889,7 @@
               </div>
               <div class="prev-taxonomy-hint" id="taxonomySelectionHint">La tassonomia filtra il catalogo senza bloccare il libero scorrimento delle tipologie. La pratica selezionata conserva anche le fonti ufficiali aggregate.</div>
               <div id="taxonomySelectionPreview" class="alert alert-light border mt-2 mb-0 small">
-                La classificazione selezionata verra mostrata qui con area, macro-area, sottobranca e fonti aggregate.
+                La classificazione selezionata verrà mostrata qui con tassonomia, procedura operativa, workflow, canale, registro e fonti aggregate.
               </div>
             </div>
             <div class="prev-toolbar-top">
@@ -1290,6 +1297,20 @@ function taxonomyMeta(item) {
   };
 }
 
+function operationalMeta(item) {
+  return {
+    code: String(item?.procedura_operativa_codice || '').trim(),
+    name: String(item?.procedura_operativa_nome || '').trim(),
+    subbranch: String(item?.subbranch_operativa_codice || '').trim(),
+    workflow: String(item?.workflow_operativo_codice || '').trim(),
+    coverage: String(item?.copertura_operativa || '').trim(),
+    channel: String(item?.canale_operativo || '').trim(),
+    registry: String(item?.registro_operativo || '').trim(),
+    procedure: item?.procedura_operativa || {},
+    bindings: item?.procedura_operativa?.module_bindings || {},
+  };
+}
+
 function buildTaxonomyCatalog() {
   const areaMap = new Map();
   catalogoFlat.forEach((item) => {
@@ -1370,21 +1391,37 @@ function renderTaxonomyPreview() {
   const target = document.getElementById('taxonomySelectionPreview');
   if (!target) return;
   const meta = currentTaxonomyNode();
+  const operational = operationalMeta(tipologiaCorrente);
   const parts = [meta.areaLabel, meta.macroLabel, meta.subLabel].filter(Boolean);
   const selectedItems = catalogoFlat.filter((item) => matchesTaxonomySelection(item));
   const sources = Array.isArray(meta.sources) ? meta.sources : [];
-  if (!parts.length) {
-    target.innerHTML = '<div class="fw-semibold text-dark mb-1">Classificazione non ancora selezionata</div><div class="text-muted">Scegli una tipologia o usa i filtri tassonomici per visualizzare area, macro-area, sottobranca e fonti aggregate.</div>';
+  const hasOperational = !!(operational.code || operational.name || operational.workflow || operational.channel || operational.registry || operational.coverage);
+  if (!parts.length && !hasOperational) {
+    target.innerHTML = '<div class="fw-semibold text-dark mb-1">Classificazione non ancora selezionata</div><div class="text-muted">Scegli una tipologia o usa i filtri tassonomici per visualizzare area, macro-area, sottobranca, procedura operativa e fonti aggregate.</div>';
     return;
   }
+  const operationalChips = [
+    operational.name ? `<span class="badge bg-success-subtle text-success-emphasis">${escapeHtml(operational.name)}</span>` : '',
+    operational.workflow ? `<span class="badge bg-info-subtle text-info-emphasis">${escapeHtml(operational.workflow)}</span>` : '',
+    operational.coverage ? `<span class="badge bg-warning-subtle text-warning-emphasis">Copertura ${escapeHtml(operational.coverage)}</span>` : '',
+    operational.channel ? `<span class="badge text-bg-light">Canale ${escapeHtml(operational.channel)}</span>` : '',
+    operational.registry ? `<span class="badge text-bg-light">Registro ${escapeHtml(operational.registry)}</span>` : '',
+  ].filter(Boolean).join('');
+  const operationalSummary = [
+    operational.code ? `Procedura ${operational.code}` : '',
+    operational.subbranch ? `Sottobranca ${operational.subbranch}` : '',
+  ].filter(Boolean).join(' · ');
   target.innerHTML = `
     <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
-      <span class="badge bg-primary-subtle text-primary-emphasis">${escapeHtml(meta.areaLabel || '')}</span>
-      <span class="badge text-bg-light">${escapeHtml(meta.macroLabel || '')}</span>
-      <span class="badge text-bg-light">${escapeHtml(meta.subLabel || '')}</span>
+      ${parts.length ? `<span class="badge bg-primary-subtle text-primary-emphasis">${escapeHtml(meta.areaLabel || '')}</span>` : ''}
+      ${meta.macroLabel ? `<span class="badge text-bg-light">${escapeHtml(meta.macroLabel)}</span>` : ''}
+      ${meta.subLabel ? `<span class="badge text-bg-light">${escapeHtml(meta.subLabel)}</span>` : ''}
       <span class="badge bg-secondary-subtle text-secondary-emphasis">${selectedItems.length} tipologie compatibili</span>
+      ${operationalChips}
     </div>
-    <div class="small text-muted">Classificazione attiva: ${escapeHtml(parts.join(' / '))}</div>
+    ${parts.length ? `<div class="small text-muted">Classificazione attiva: ${escapeHtml(parts.join(' / '))}</div>` : ''}
+    ${hasOperational ? `<div class="small text-muted mt-1">Inquadramento operativo: ${escapeHtml([operational.name, operational.workflow, operational.channel, operational.registry].filter(Boolean).join(' · '))}</div>` : ''}
+    ${operationalSummary ? `<div class="small text-muted">${escapeHtml(operationalSummary)}</div>` : ''}
     <div class="small text-muted">${sources.length ? `${sources.length} fonti ufficiali aggregate pronte per il tracciato del preventivo.` : 'Le fonti ufficiali aggregate saranno salvate insieme al preventivo.'}</div>
   `;
 }
@@ -1396,6 +1433,17 @@ function syncTaxonomyHiddenFields() {
   document.getElementById('inpSottobrancaTassonomica').value = meta.subLabel || '';
   document.getElementById('inpTassonomiaCodice').value = meta.nodeCode || '';
   document.getElementById('inpFontiTassonomiaJson').value = JSON.stringify(meta.sources || []);
+}
+
+function syncOperationalHiddenFields() {
+  const meta = operationalMeta(tipologiaCorrente);
+  document.getElementById('inpProceduraOperativaCodice').value = meta.code || '';
+  document.getElementById('inpProceduraOperativaNome').value = meta.name || '';
+  document.getElementById('inpSubbranchOperativaCodice').value = meta.subbranch || '';
+  document.getElementById('inpWorkflowOperativoCodice').value = meta.workflow || '';
+  document.getElementById('inpCoperturaOperativa').value = meta.coverage || '';
+  document.getElementById('inpCanaleOperativo').value = meta.channel || '';
+  document.getElementById('inpRegistroOperativo').value = meta.registry || '';
 }
 
 function matchesTaxonomySelection(item) {
@@ -1538,6 +1586,7 @@ function applyTaxonomyFromPractice(item) {
   };
   renderTaxonomyFilters();
   syncTaxonomyHiddenFields();
+  syncOperationalHiddenFields();
 }
 
 function money(value) {
@@ -1875,6 +1924,13 @@ function resetTipologiaSelection() {
   document.getElementById('inpSottobrancaTassonomica').value = '';
   document.getElementById('inpTassonomiaCodice').value = '';
   document.getElementById('inpFontiTassonomiaJson').value = '[]';
+  document.getElementById('inpProceduraOperativaCodice').value = '';
+  document.getElementById('inpProceduraOperativaNome').value = '';
+  document.getElementById('inpSubbranchOperativaCodice').value = '';
+  document.getElementById('inpWorkflowOperativoCodice').value = '';
+  document.getElementById('inpCoperturaOperativa').value = '';
+  document.getElementById('inpCanaleOperativo').value = '';
+  document.getElementById('inpRegistroOperativo').value = '';
   document.getElementById('inpTipoCompenso').value = '';
   document.getElementById('inpTipoProcedimento').value = '';
   renderTipologie();
@@ -2203,6 +2259,14 @@ function renderSchedaTipologia() {
   const checklistBadge = document.getElementById('checklistBadgeCount');
   const regola = currentRegolaTariffaria();
   const taxonomy = taxonomyMeta(tipologiaCorrente);
+  const operational = operationalMeta(tipologiaCorrente);
+  const bindings = operational.bindings || {};
+  const bindingRows = [];
+  if (bindings.preventivo?.tipo_compenso) bindingRows.push(`Preventivo ${bindings.preventivo.tipo_compenso}`);
+  if (bindings.conferimento?.workflow_channel) bindingRows.push(`Conferimento ${bindings.conferimento.workflow_channel}`);
+  if (bindings.fascicolo?.workflow_code) bindingRows.push(`Fascicolo ${bindings.fascicolo.workflow_code}`);
+  if (bindings.fattura?.causale) bindingRows.push(`Fattura ${bindings.fattura.causale}`);
+  const hasOperational = !!(operational.code || operational.name || operational.workflow || operational.channel || operational.registry || operational.coverage);
   const grado = document.getElementById('selGrado').value || '';
   const ruleCompatible = regola?.rule_code && (!regola.allowed_grade_input_values || regola.allowed_grade_input_values.includes(grado));
   if (!tipologiaCorrente) {
@@ -2226,7 +2290,20 @@ function renderSchedaTipologia() {
       </div>
       <div class="prev-summary-title">${escapeHtml(tipologiaCorrente.label)}</div>
       <div class="prev-summary-desc">${escapeHtml(tipologiaCorrente.summary)}</div>
-      <div class="small text-muted mt-2">Classificazione: ${escapeHtml([taxonomy.areaLabel, taxonomy.macroLabel, taxonomy.subLabel].filter(Boolean).join(' / '))}</div>
+      <div class="small text-muted mt-2">Classificazione tassonomica: ${escapeHtml([taxonomy.areaLabel, taxonomy.macroLabel, taxonomy.subLabel].filter(Boolean).join(' / '))}</div>
+      ${hasOperational ? `
+      <div class="border rounded-3 p-2 mt-3 bg-light">
+        <div class="small fw-semibold text-dark mb-2">Inquadramento operativo</div>
+        <div class="d-flex flex-wrap gap-2 mb-2">
+          ${operational.name ? `<span class="badge bg-success-subtle text-success-emphasis">${escapeHtml(operational.name)}</span>` : ''}
+          ${operational.workflow ? `<span class="badge bg-info-subtle text-info-emphasis">${escapeHtml(operational.workflow)}</span>` : ''}
+          ${operational.coverage ? `<span class="badge bg-warning-subtle text-warning-emphasis">Copertura ${escapeHtml(operational.coverage)}</span>` : ''}
+          ${operational.channel ? `<span class="badge text-bg-light">Canale ${escapeHtml(operational.channel)}</span>` : ''}
+          ${operational.registry ? `<span class="badge text-bg-light">Registro ${escapeHtml(operational.registry)}</span>` : ''}
+        </div>
+        <div class="small text-muted">${escapeHtml([operational.code ? `Procedura ${operational.code}` : '', operational.subbranch ? `Sottobranca ${operational.subbranch}` : ''].filter(Boolean).join(' · '))}</div>
+        ${bindingRows.length ? `<div class="small text-muted mt-2">Agganci di prodotto: ${escapeHtml(bindingRows.join(' | '))}</div>` : ''}
+      </div>` : ''}
       ${ruleCompatible && regola?.summary ? `<div class="small text-muted mt-2">${escapeHtml(regola.summary)}</div>` : ''}
       ${ruleCompatible && regola?.compliance_note ? `<div class="small text-muted mt-2"><i class="bi bi-shield-check me-1"></i>${escapeHtml(regola.compliance_note)}</div>` : ''}
       <div class="prev-note-box small mt-2">${escapeHtml(tipologiaCorrente.when_to_use)}</div>`;
@@ -2690,6 +2767,14 @@ function buildEconomicLogPayload() {
     macro_area_tassonomica: document.getElementById('inpMacroAreaTassonomica').value || '',
     sottobranca_tassonomica: document.getElementById('inpSottobrancaTassonomica').value || '',
     tassonomia_codice: document.getElementById('inpTassonomiaCodice').value || '',
+    procedura_operativa_codice: document.getElementById('inpProceduraOperativaCodice').value || '',
+    procedura_operativa_nome: document.getElementById('inpProceduraOperativaNome').value || '',
+    subbranch_operativa_codice: document.getElementById('inpSubbranchOperativaCodice').value || '',
+    workflow_operativo_codice: document.getElementById('inpWorkflowOperativoCodice').value || '',
+    copertura_operativa: document.getElementById('inpCoperturaOperativa').value || '',
+    canale_operativo: document.getElementById('inpCanaleOperativo').value || '',
+    registro_operativo: document.getElementById('inpRegistroOperativo').value || '',
+    procedura_operativa: tipologiaCorrente?.procedura_operativa || {},
     tipo_compenso: document.getElementById('inpTipoCompenso').value || '',
     tipo_procedimento: document.getElementById('inpTipoProcedimento').value || '',
     grado_sede: grado,
@@ -2722,6 +2807,7 @@ function buildEconomicLogPayload() {
 
 function syncCalcoloHiddenFields() {
   syncTaxonomyHiddenFields();
+  syncOperationalHiddenFields();
   document.getElementById('inpBonusTelematico').value = document.getElementById('chkBonusTelematico').checked ? '1' : '0';
   document.getElementById('inpSpeseGenerali').value = document.getElementById('chkSpeseGenerali').checked ? '1' : '0';
   document.getElementById('inpPercSpeseGenerali').value = document.getElementById('inpPercSpese').value || '15';

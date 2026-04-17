@@ -4,6 +4,7 @@ from werkzeug.datastructures import MultiDict
 
 from pct.economico_context import carica_log_calcolo
 from pct.fascicoli import Fascicolo, TipoFascicolo
+from pct.motore_preventivo import catalogo_wizard
 from web.blueprints.preventivi import (
     _area_pratica_da_fascicolo,
     _contesto_fascicolo_wizard,
@@ -67,6 +68,13 @@ def test_contesto_log_wizard_da_form_conserva_tassonomia_e_fonti():
             "macro_area_tassonomica": "Diritto del Lavoro",
             "sottobranca_tassonomica": "Lavoro subordinato, licenziamenti e differenze retributive",
             "tassonomia_codice": "GIU_LAV_LAVORO",
+            "procedura_operativa_codice": "PROC_LIC_IMP_001",
+            "procedura_operativa_nome": "Impugnazione licenziamento individuale",
+            "subbranch_operativa_codice": "SB_LAVORO_LICENZIAMENTI",
+            "workflow_operativo_codice": "WF_CONTENZIOSO_LAVORO",
+            "copertura_operativa": "FULL",
+            "canale_operativo": "TRIBUNALE",
+            "registro_operativo": "LAVORO",
             "tipo_compenso": "Per fasi processuali (D.M. 55/2014)",
             "tipo_procedimento": "Rito lavoro",
             "grado_sede": "Tribunale",
@@ -88,17 +96,51 @@ def test_contesto_log_wizard_da_form_conserva_tassonomia_e_fonti():
     assert payload["macro_area_tassonomica"] == "Diritto del Lavoro"
     assert payload["sottobranca_tassonomica"] == "Lavoro subordinato, licenziamenti e differenze retributive"
     assert payload["tassonomia_codice"] == "GIU_LAV_LAVORO"
+    assert payload["procedura_operativa_codice"] == "PROC_LIC_IMP_001"
+    assert payload["procedura_operativa_nome"] == "Impugnazione del licenziamento individuale"
+    assert payload["workflow_operativo_codice"].startswith("WF_")
+    assert payload["copertura_operativa"]
+    assert payload["canale_operativo"]
+    assert payload["registro_operativo"]
     assert payload["riferimenti_tassonomia"] == [
         "Codice di procedura civile — rito lavoro",
         "Ministero del Lavoro — licenziamenti",
     ]
 
 
+def test_catalogo_wizard_espone_inquadramento_operativo_per_le_tipologie_mappate():
+    rows = [
+        item
+        for items in catalogo_wizard().values()
+        for item in items
+        if item.get("procedura_operativa_codice")
+    ]
+
+    assert rows, "Il catalogo del wizard deve esporre almeno una procedura operativa mappata"
+    sample = rows[0]
+    assert sample["procedura_operativa_nome"]
+    assert sample["workflow_operativo_codice"]
+    assert sample["canale_operativo"]
+    assert sample["registro_operativo"]
+
+
 def test_template_dettaglio_preventivo_espone_classificazione_tassonomica_e_fonti():
     template = Path("web/templates/preventivi/dettaglio_preventivo.html").read_text(encoding="utf-8")
 
     assert "Classificazione tassonomica" in template
+    assert "Inquadramento operativo" in template
+    assert "Procedura operativa" in template
+    assert "Agganci di prodotto" in template
     assert "p.area_tassonomica" in template
     assert "p.macro_area_tassonomica" in template
     assert "p.sottobranca_tassonomica" in template
     assert "p.fonti_tassonomia" in template
+
+
+def test_template_wizard_espone_classificazione_operativa_visibile():
+    template = Path("web/templates/preventivi/wizard.html").read_text(encoding="utf-8")
+
+    assert "procedura_operativa_codice" in template
+    assert "Inquadramento operativo" in template
+    assert "Agganci di prodotto" in template
+    assert "workflow_operativo_codice" in template

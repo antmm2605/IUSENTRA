@@ -25,6 +25,7 @@ from pct.tariffario import (
     calcola_compenso,
     livello_compenso_da_complessita,
 )
+from pct.legal_platform_catalog import build_operational_fields
 from pct.tariffario_catalogo import default_rule_for_practice, rule_lookup, rules_for_practice
 from pct.tassonomia_preventivi import (
     catalogo_fonti_tassonomia as _catalogo_fonti_tassonomia,
@@ -112,6 +113,12 @@ class TipoPratica:
         regole = rules_for_practice(self.id)
         regola_default = default_rule_for_practice(self.id)
         tassonomia = taxonomy_for_practice(self.id, self.normative_references)
+        operational = build_operational_fields(
+            practice_id=self.id,
+            area_pratica=self.area,
+            tipo_procedimento=self.label,
+            oggetto=self.oggetto_template or self.label,
+        )
         gradi_consentiti = []
         for regola in regole:
             for grado in regola.get("allowed_grade_input_values", []) or []:
@@ -150,6 +157,14 @@ class TipoPratica:
             "tassonomia_codice": tassonomia["node_code"],
             "tassonomia_descrizione": tassonomia["description"],
             "tassonomia_sources": tassonomia["sources"],
+            "procedura_operativa_codice": operational.get("procedura_operativa_codice", ""),
+            "procedura_operativa_nome": operational.get("procedura_operativa_nome", ""),
+            "subbranch_operativa_codice": operational.get("subbranch_operativa_codice", ""),
+            "workflow_operativo_codice": operational.get("workflow_operativo_codice", ""),
+            "copertura_operativa": operational.get("copertura_operativa", ""),
+            "canale_operativo": operational.get("canale_operativo", ""),
+            "registro_operativo": operational.get("registro_operativo", ""),
+            "procedura_operativa": operational.get("procedura_operativa", {}),
             "fasi_default_keys": [_fase_key(f) for f in self.fasi_default],
             "gradi_consentiti": gradi_consentiti,
             "regola_tariffaria_default": regola_default.get("rule_code", "") if regola_default else "",

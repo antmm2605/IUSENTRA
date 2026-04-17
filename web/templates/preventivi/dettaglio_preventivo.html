@@ -301,6 +301,80 @@
     </div>
   </div>
 
+  {% set procedura_operativa_nome = p.procedura_operativa_nome or (calc_summary.procedura_operativa_nome if calc_summary else '') %}
+  {% set procedura_operativa_codice = p.procedura_operativa_codice or (calc_summary.procedura_operativa_codice if calc_summary else '') %}
+  {% set subbranch_operativa_codice = p.subbranch_operativa_codice or (calc_summary.subbranch_operativa_codice if calc_summary else '') %}
+  {% set workflow_operativo_codice = p.workflow_operativo_codice or (calc_summary.workflow_operativo_codice if calc_summary else '') %}
+  {% set copertura_operativa = p.copertura_operativa or (calc_summary.copertura_operativa if calc_summary else '') %}
+  {% set canale_operativo = p.canale_operativo or (calc_summary.canale_operativo if calc_summary else '') %}
+  {% set registro_operativo = p.registro_operativo or (calc_summary.registro_operativo if calc_summary else '') %}
+  {% set procedura_operativa = calc_summary.procedura_operativa if calc_summary and calc_summary.procedura_operativa else {} %}
+  {% set procedura_operativa_bindings = procedura_operativa.get('module_bindings', {}) if procedura_operativa else {} %}
+  {% if procedura_operativa_nome or procedura_operativa_codice or workflow_operativo_codice or copertura_operativa or canale_operativo or registro_operativo %}
+  <div class="col-12">
+    <div class="card border-success-subtle">
+      <div class="card-header fw-semibold"><i class="bi bi-diagram-2 me-2"></i>Inquadramento operativo</div>
+      <div class="card-body">
+        <div class="d-flex flex-wrap gap-2 mb-3">
+          {% if procedura_operativa_nome %}
+          <span class="badge bg-success-subtle text-success-emphasis">{{ procedura_operativa_nome }}</span>
+          {% endif %}
+          {% if workflow_operativo_codice %}
+          <span class="badge bg-info-subtle text-info-emphasis">{{ workflow_operativo_codice }}</span>
+          {% endif %}
+          {% if copertura_operativa %}
+          <span class="badge bg-warning-subtle text-warning-emphasis">Copertura {{ copertura_operativa }}</span>
+          {% endif %}
+          {% if canale_operativo %}
+          <span class="badge text-bg-light">Canale {{ canale_operativo }}</span>
+          {% endif %}
+          {% if registro_operativo %}
+          <span class="badge text-bg-light">Registro {{ registro_operativo }}</span>
+          {% endif %}
+        </div>
+        <div class="row g-2 small">
+          {% if procedura_operativa_codice %}
+          <div class="col-md-4"><span class="text-muted">Procedura operativa:</span> <span class="fw-semibold">{{ procedura_operativa_codice }}</span></div>
+          {% endif %}
+          {% if subbranch_operativa_codice %}
+          <div class="col-md-4"><span class="text-muted">Sottobranca operativa:</span> <span class="fw-semibold">{{ subbranch_operativa_codice }}</span></div>
+          {% endif %}
+          {% if workflow_operativo_codice %}
+          <div class="col-md-4"><span class="text-muted">Workflow:</span> <span class="fw-semibold">{{ workflow_operativo_codice }}</span></div>
+          {% endif %}
+          {% if canale_operativo %}
+          <div class="col-md-4"><span class="text-muted">Canale:</span> <span class="fw-semibold">{{ canale_operativo }}</span></div>
+          {% endif %}
+          {% if registro_operativo %}
+          <div class="col-md-4"><span class="text-muted">Registro:</span> <span class="fw-semibold">{{ registro_operativo }}</span></div>
+          {% endif %}
+          {% if copertura_operativa %}
+          <div class="col-md-4"><span class="text-muted">Copertura:</span> <span class="fw-semibold">{{ copertura_operativa }}</span></div>
+          {% endif %}
+        </div>
+        {% if procedura_operativa_bindings %}
+        <hr class="my-3">
+        <div class="small fw-semibold mb-2">Agganci di prodotto</div>
+        <div class="row g-2 small">
+          {% if procedura_operativa_bindings.get('preventivo') %}
+          <div class="col-md-6"><span class="text-muted">Preventivo:</span> <span class="fw-semibold">{{ procedura_operativa_bindings['preventivo'].get('tipo_compenso', '') }}</span></div>
+          {% endif %}
+          {% if procedura_operativa_bindings.get('conferimento') %}
+          <div class="col-md-6"><span class="text-muted">Conferimento:</span> <span class="fw-semibold">{{ procedura_operativa_bindings['conferimento'].get('workflow_channel', '') }}</span></div>
+          {% endif %}
+          {% if procedura_operativa_bindings.get('fascicolo') %}
+          <div class="col-md-6"><span class="text-muted">Fascicolo:</span> <span class="fw-semibold">{{ procedura_operativa_bindings['fascicolo'].get('workflow_code', '') }}</span></div>
+          {% endif %}
+          {% if procedura_operativa_bindings.get('fattura') %}
+          <div class="col-md-6"><span class="text-muted">Fattura:</span> <span class="fw-semibold">{{ procedura_operativa_bindings['fattura'].get('causale', '') }}</span></div>
+          {% endif %}
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
   <div class="col-12">
     <div class="card border-info-subtle">
       <div class="card-header fw-semibold"><i class="bi bi-journal-text me-2"></i>Clausola per il successivo conferimento</div>

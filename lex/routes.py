@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+from datetime import date
 from typing import Callable
 
-from flask import Blueprint, g, request
+from flask import Blueprint, g, redirect, render_template, request, url_for
 
 from .service import LexService
 
@@ -16,6 +17,16 @@ def register_routes(
     login_required: Callable | None = None,
 ) -> None:
     guard = login_required or (lambda fn: fn)
+
+    @guard
+    def lex_chat_page():
+        user = g.get("utente_corrente")
+        if not user:
+            return redirect(url_for("auth.login"))
+        return render_template(
+            "lex_chat.html",
+            oggi=date.today(),
+        )
 
     @guard
     def assistente_stato():
@@ -58,6 +69,7 @@ def register_routes(
             data=request.get_json(silent=True) or {},
         )
 
+    bp.add_url_rule("/lex", view_func=lex_chat_page, methods=["GET"])
     bp.add_url_rule("/api/assistente/stato", view_func=assistente_stato, methods=["GET"])
     bp.add_url_rule("/api/assistente/context", view_func=assistente_context, methods=["POST"])
     bp.add_url_rule("/api/assistente/warmup", view_func=assistente_warmup, methods=["POST"])

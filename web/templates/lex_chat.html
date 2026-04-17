@@ -1,0 +1,748 @@
+{% extends "base.html" %}
+{% block title %}Lex — Assistente AI Legale{% endblock %}
+{% block page_title %}Lex AI{% endblock %}
+
+{% block content %}
+<style>
+  .lex-page {
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - var(--topbar-h, 50px));
+    background: #f0f4f8;
+    padding: 0;
+    overflow: hidden;
+  }
+
+  /* ── Intestazione ── */
+  .lex-topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: .65rem 1.25rem;
+    background: #fff;
+    border-bottom: 1px solid #e2e8f0;
+    gap: 1rem;
+    flex-shrink: 0;
+  }
+  .lex-topbar-brand {
+    display: flex;
+    align-items: center;
+    gap: .55rem;
+    font-weight: 700;
+    font-size: 1rem;
+    color: #0f172a;
+  }
+  .lex-topbar-brand img { width: 26px; height: 26px; border-radius: 6px; }
+  .lex-topbar-status {
+    font-size: .75rem;
+    color: #64748b;
+    display: flex;
+    align-items: center;
+    gap: .35rem;
+  }
+  .lex-status-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #94a3b8;
+    flex-shrink: 0;
+  }
+  .lex-status-dot.active { background: #22c55e; }
+  .lex-topbar-actions { display: flex; gap: .5rem; }
+
+  /* ── Area messaggi ── */
+  .lex-messages-wrap {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    padding: 2rem 1.25rem 1rem;
+    scroll-behavior: smooth;
+  }
+  .lex-messages {
+    max-width: 720px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+  }
+
+  /* ── Empty state & prompt cards ── */
+  .lex-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.5rem;
+    padding: 2rem 0 1rem;
+  }
+  .lex-empty-hero {
+    text-align: center;
+  }
+  .lex-empty-hero img {
+    width: 52px;
+    height: 52px;
+    border-radius: 12px;
+    margin-bottom: .85rem;
+  }
+  .lex-empty-hero h1 {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 0 0 .3rem;
+  }
+  .lex-empty-hero p {
+    font-size: .88rem;
+    color: #64748b;
+    margin: 0;
+  }
+  .lex-prompts-grid {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: .65rem;
+    width: 100%;
+    max-width: 480px;
+  }
+  .lex-prompt-btn {
+    background: #fff;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 14px;
+    padding: .9rem 1.4rem;
+    font-size: .97rem;
+    font-weight: 500;
+    color: #1e293b;
+    cursor: pointer;
+    text-align: center;
+    width: 100%;
+    transition: border-color .15s, box-shadow .15s, background .15s;
+    line-height: 1.35;
+  }
+  .lex-prompt-btn:hover {
+    border-color: #94a3b8;
+    box-shadow: 0 2px 8px rgba(0,0,0,.07);
+    background: #f8fafc;
+  }
+  .lex-prompt-btn:active { background: #f1f5f9; }
+
+  /* ── Messaggi ── */
+  .lex-msg {
+    display: flex;
+    gap: .8rem;
+    align-items: flex-start;
+  }
+  .lex-msg--user { flex-direction: row-reverse; }
+  .lex-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: .75rem;
+    font-weight: 700;
+  }
+  .lex-avatar--ai { background: #0f172a; }
+  .lex-avatar--ai img { width: 20px; height: 20px; border-radius: 4px; }
+  .lex-avatar--user { background: #3b82f6; color: #fff; font-size: .8rem; }
+  .lex-bubble {
+    max-width: 82%;
+    padding: .85rem 1.1rem;
+    border-radius: 16px;
+    font-size: .93rem;
+    line-height: 1.6;
+    word-break: break-word;
+  }
+  .lex-msg--assistant .lex-bubble {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 4px 16px 16px 16px;
+    color: #1e293b;
+  }
+  .lex-msg--user .lex-bubble {
+    background: #0f172a;
+    color: #f8fafc;
+    border-radius: 16px 4px 16px 16px;
+  }
+  .lex-bubble p { margin: 0 0 .6rem; }
+  .lex-bubble p:last-child { margin: 0; }
+  .lex-bubble ul, .lex-bubble ol { padding-left: 1.2rem; margin: .4rem 0; }
+  .lex-bubble li { margin-bottom: .25rem; }
+  .lex-bubble strong { font-weight: 600; }
+  .lex-bubble h2, .lex-bubble h3 { font-size: 1rem; font-weight: 700; margin: .8rem 0 .3rem; }
+  .lex-bubble pre {
+    background: #f1f5f9;
+    border-radius: 8px;
+    padding: .75rem 1rem;
+    font-size: .8rem;
+    overflow-x: auto;
+    margin: .5rem 0;
+  }
+  .lex-bubble code { font-family: monospace; font-size: .85em; background: #f1f5f9; padding: .1em .35em; border-radius: 4px; }
+  .lex-bubble pre code { background: none; padding: 0; }
+
+  /* Typing indicator */
+  .lex-typing { display: flex; gap: .25rem; align-items: center; padding: .55rem .75rem; }
+  .lex-dot { width: 7px; height: 7px; border-radius: 50%; background: #94a3b8; animation: lexDot 1.2s infinite; }
+  .lex-dot:nth-child(2) { animation-delay: .2s; }
+  .lex-dot:nth-child(3) { animation-delay: .4s; }
+  @keyframes lexDot { 0%,80%,100% { transform: scale(1); opacity: .5; } 40% { transform: scale(1.3); opacity: 1; } }
+
+  /* Action pills below assistant message */
+  .lex-msg-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .4rem;
+    margin-top: .55rem;
+  }
+  .lex-msg-action {
+    font-size: .76rem;
+    padding: .25rem .65rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 99px;
+    background: #fff;
+    cursor: pointer;
+    color: #475569;
+    transition: background .12s;
+  }
+  .lex-msg-action:hover { background: #f1f5f9; }
+
+  /* ── Input ── */
+  .lex-input-area {
+    flex-shrink: 0;
+    padding: .85rem 1.25rem 1.1rem;
+    background: #f0f4f8;
+  }
+  .lex-input-shell {
+    max-width: 720px;
+    margin: 0 auto;
+    display: flex;
+    align-items: flex-end;
+    gap: .65rem;
+    background: #fff;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 18px;
+    padding: .65rem .65rem .65rem 1.1rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,.05);
+    transition: border-color .15s;
+  }
+  .lex-input-shell:focus-within { border-color: #94a3b8; }
+  .lex-input-shell textarea {
+    flex: 1 1 auto;
+    border: none;
+    outline: none;
+    resize: none;
+    font-size: .95rem;
+    line-height: 1.5;
+    background: transparent;
+    color: #1e293b;
+    min-height: 24px;
+    max-height: 160px;
+    overflow-y: auto;
+    padding: 0;
+    font-family: inherit;
+  }
+  .lex-input-shell textarea::placeholder { color: #94a3b8; }
+  .lex-send-btn {
+    width: 38px;
+    height: 38px;
+    border-radius: 12px;
+    background: #0f172a;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background .15s, opacity .15s;
+  }
+  .lex-send-btn:disabled { opacity: .35; cursor: default; }
+  .lex-send-btn:not(:disabled):hover { background: #1e293b; }
+  .lex-send-btn svg { width: 17px; height: 17px; }
+  .lex-upload-btn {
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    padding: .2rem .4rem;
+    cursor: pointer;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    font-size: 1.1rem;
+    transition: color .12s;
+  }
+  .lex-upload-btn:hover { color: #475569; }
+  .lex-input-hint {
+    text-align: center;
+    font-size: .72rem;
+    color: #94a3b8;
+    margin-top: .45rem;
+  }
+
+  /* Attachments preview */
+  .lex-attachments { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .5rem; max-width: 720px; margin-left: auto; margin-right: auto; }
+  .lex-attach-chip {
+    display: flex;
+    align-items: center;
+    gap: .35rem;
+    background: #e2e8f0;
+    border-radius: 8px;
+    padding: .25rem .65rem;
+    font-size: .78rem;
+    color: #334155;
+  }
+  .lex-attach-chip button {
+    background: none;
+    border: none;
+    padding: 0;
+    color: #94a3b8;
+    cursor: pointer;
+    line-height: 1;
+    font-size: .85rem;
+  }
+
+  /* Upload input hidden */
+  #lexUploadInput { display: none; }
+
+  /* Document export button */
+  .lex-export-btn {
+    font-size: .8rem;
+    padding: .35rem .85rem;
+    border-radius: 99px;
+    border: 1px solid #e2e8f0;
+    background: #fff;
+    color: #475569;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: .4rem;
+    transition: background .12s;
+  }
+  .lex-export-btn:hover { background: #f1f5f9; }
+
+  @media (max-width: 767px) {
+    .lex-messages-wrap { padding: 1.25rem .85rem .75rem; }
+    .lex-input-area { padding: .65rem .85rem .9rem; }
+    .lex-topbar { padding: .55rem .85rem; }
+    .lex-prompt-btn { font-size: .9rem; padding: .8rem 1.1rem; }
+    .lex-empty { padding: 1rem 0; }
+    .lex-empty-hero h1 { font-size: 1.1rem; }
+  }
+</style>
+
+<div class="lex-page">
+
+  <!-- Topbar -->
+  <div class="lex-topbar">
+    <div class="lex-topbar-brand">
+      <img src="{{ url_for('static', filename='img/lex-mark.png') }}" alt="Lex">
+      Lex
+    </div>
+    <div class="lex-topbar-status">
+      <span class="lex-status-dot" id="lexStatusDot"></span>
+      <span id="lexStatusLabel">Verifica modello…</span>
+    </div>
+    <div class="lex-topbar-actions">
+      <button class="lex-export-btn d-none" id="lexExportBtn" title="Esporta conversazione in Word">
+        <i class="bi bi-file-earmark-word"></i> Esporta .docx
+      </button>
+      <button class="btn btn-sm btn-outline-secondary" id="lexNewBtn" title="Nuova conversazione">
+        <i class="bi bi-arrow-counterclockwise me-1"></i>Nuova
+      </button>
+    </div>
+  </div>
+
+  <!-- Messages area -->
+  <div class="lex-messages-wrap" id="lexMessagesWrap">
+    <div class="lex-messages" id="lexMessages">
+
+      <!-- Empty state -->
+      <div class="lex-empty" id="lexEmpty">
+        <div class="lex-empty-hero">
+          <img src="{{ url_for('static', filename='img/lex-mark.png') }}" alt="Lex">
+          <h1>Come posso aiutarti?</h1>
+          <p>Sono Lex, il tuo assistente AI legale. Puoi chiedermi di redigere atti, analizzare documenti, rispondere a quesiti normativi e molto altro.</p>
+        </div>
+        <div class="lex-prompts-grid">
+          <button class="lex-prompt-btn" data-prompt="Scrivi una diffida formale. Guidami su: destinatario, oggetto della contestazione, termine per adempiere e conseguenze in caso di inadempimento.">
+            Scrivi una diffida
+          </button>
+          <button class="lex-prompt-btn" data-prompt="Aiutami a scrivere un'email professionale per conto dello studio legale. Dimmi a chi è rivolta e l'oggetto, poi redigo il testo.">
+            Scrivi un email
+          </button>
+          <button class="lex-prompt-btn" data-prompt="Crea una bozza di contratto di locazione ad uso abitativo. Indicami: locatore, conduttore, immobile, canone mensile, durata e clausole particolari richieste.">
+            Crea contratto di locazione
+          </button>
+          <button class="lex-prompt-btn" data-prompt="Carica o descrivi il contratto di vendita che vuoi che riveda. Analizzerò clausole, rischi, obblighi delle parti e suggerirò eventuali modifiche.">
+            Rivedi contratto di vendita
+          </button>
+          <button class="lex-prompt-btn" data-prompt="Ho un caso di licenziamento. Illustra le tipologie di licenziamento ammesse dalla legge italiana, le tutele reintegratorie e risarcitorie (L. 300/1970 e Jobs Act), i termini procedurali e gli adempimenti richiesti.">
+            Licenziamento e legge sul lavoro
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Input area -->
+  <div class="lex-input-area">
+    <div id="lexAttachments" class="lex-attachments"></div>
+    <div class="lex-input-shell">
+      <label for="lexUploadInput" class="lex-upload-btn" title="Allega un documento">
+        <i class="bi bi-paperclip"></i>
+      </label>
+      <input type="file" id="lexUploadInput" multiple accept=".pdf,.docx,.txt,.md,.html,.csv">
+      <textarea
+        id="lexInput"
+        placeholder="Scrivi un messaggio…"
+        rows="1"
+        aria-label="Messaggio per Lex"
+      ></textarea>
+      <button class="lex-send-btn" id="lexSendBtn" disabled title="Invia">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="22" y1="2" x2="11" y2="13"></line>
+          <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+        </svg>
+      </button>
+    </div>
+    <div class="lex-input-hint">Lex può commettere errori. Verifica sempre le informazioni legali con le fonti ufficiali.</div>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  var CHAT_URL = '{{ url_for("assistente.assistente_chat") }}';
+  var STATUS_URL = '{{ url_for("assistente.assistente_stato") }}';
+  var DOC_URL = '{{ url_for("assistente.assistente_documento") }}';
+  var ATTACHMENTS_URL = '{{ url_for("assistente.assistente_attachments") }}';
+
+  var history = [];
+  var streaming = false;
+  var attachments = [];
+  var sessionId = 'lex-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8);
+
+  var wrap = document.getElementById('lexMessagesWrap');
+  var msgList = document.getElementById('lexMessages');
+  var emptyState = document.getElementById('lexEmpty');
+  var input = document.getElementById('lexInput');
+  var sendBtn = document.getElementById('lexSendBtn');
+  var uploadInput = document.getElementById('lexUploadInput');
+  var attachmentsEl = document.getElementById('lexAttachments');
+  var exportBtn = document.getElementById('lexExportBtn');
+  var newBtn = document.getElementById('lexNewBtn');
+  var statusDot = document.getElementById('lexStatusDot');
+  var statusLabel = document.getElementById('lexStatusLabel');
+
+  /* ── Utilities ── */
+  function esc(str) {
+    return String(str || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function mdToHtml(text) {
+    var t = esc(text);
+    /* Bold */
+    t = t.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    /* Italic */
+    t = t.replace(/\*(.+?)\*/g, '<em>$1</em>');
+    /* Inline code */
+    t = t.replace(/`([^`]+)`/g, '<code>$1</code>');
+    /* Headers */
+    t = t.replace(/^###\s+(.+)$/gm, '<h3>$1</h3>');
+    t = t.replace(/^##\s+(.+)$/gm, '<h2>$1</h2>');
+    /* Bullet list */
+    t = t.replace(/^\s*[-*]\s+(.+)$/gm, '<li>$1</li>');
+    t = t.replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>');
+    /* Numbered list */
+    t = t.replace(/^\s*\d+\.\s+(.+)$/gm, '<li>$1</li>');
+    /* Paragraphs */
+    var paras = t.split(/\n{2,}/);
+    t = paras.map(function (p) {
+      p = p.replace(/\n/g, '<br>');
+      if (!p.startsWith('<h') && !p.startsWith('<ul') && !p.startsWith('<ol') && !p.startsWith('<li') && p.trim()) {
+        return '<p>' + p + '</p>';
+      }
+      return p;
+    }).join('');
+    return t;
+  }
+
+  function scrollBottom() {
+    wrap.scrollTop = wrap.scrollHeight;
+  }
+
+  /* ── Status check ── */
+  function checkStatus() {
+    fetch(STATUS_URL).then(function (r) { return r.json(); }).then(function (data) {
+      var ok = data.status === 'ok' || data.ok === true || data.ready === true;
+      statusDot.classList.toggle('active', ok);
+      statusLabel.textContent = ok ? ('Lex pronto · ' + (data.model || '')) : 'Modello non disponibile';
+    }).catch(function () {
+      statusLabel.textContent = 'Modello non raggiungibile';
+    });
+  }
+
+  /* ── Append message ── */
+  function appendMessage(role, content, streaming) {
+    emptyState.style.display = 'none';
+    var div = document.createElement('div');
+    div.className = 'lex-msg lex-msg--' + role;
+
+    var avatarDiv = document.createElement('div');
+    avatarDiv.className = 'lex-avatar lex-avatar--' + (role === 'assistant' ? 'ai' : 'user');
+    if (role === 'assistant') {
+      avatarDiv.innerHTML = '<img src="{{ url_for("static", filename="img/lex-mark.png") }}" alt="Lex">';
+    } else {
+      avatarDiv.textContent = 'Tu';
+    }
+
+    var bubble = document.createElement('div');
+    bubble.className = 'lex-bubble';
+
+    if (streaming) {
+      bubble.innerHTML = '<div class="lex-typing"><span class="lex-dot"></span><span class="lex-dot"></span><span class="lex-dot"></span></div>';
+    } else {
+      bubble.innerHTML = role === 'assistant' ? mdToHtml(content) : '<p>' + esc(content) + '</p>';
+    }
+
+    var msgContent = document.createElement('div');
+    msgContent.style.maxWidth = '82%';
+
+    msgContent.appendChild(bubble);
+
+    if (role === 'assistant' && !streaming) {
+      var actions = document.createElement('div');
+      actions.className = 'lex-msg-actions';
+      actions.innerHTML = '<button class="lex-msg-action" data-action="copy"><i class="bi bi-clipboard me-1"></i>Copia</button>'
+        + '<button class="lex-msg-action" data-action="export"><i class="bi bi-file-earmark-word me-1"></i>Esporta .docx</button>';
+      actions.querySelector('[data-action="copy"]').addEventListener('click', function () {
+        navigator.clipboard.writeText(content).then(function () {
+          var btn = actions.querySelector('[data-action="copy"]');
+          btn.innerHTML = '<i class="bi bi-check me-1"></i>Copiato';
+          setTimeout(function () { btn.innerHTML = '<i class="bi bi-clipboard me-1"></i>Copia'; }, 2000);
+        });
+      });
+      actions.querySelector('[data-action="export"]').addEventListener('click', function () {
+        exportDocument(content);
+      });
+      msgContent.appendChild(actions);
+    }
+
+    div.appendChild(avatarDiv);
+    div.appendChild(msgContent);
+    msgList.appendChild(div);
+    scrollBottom();
+    return bubble;
+  }
+
+  function setBubbleContent(bubble, text) {
+    bubble.innerHTML = mdToHtml(text);
+  }
+
+  /* ── Export ── */
+  function exportDocument(text) {
+    var last = history.filter(function (m) { return m.role === 'user'; }).slice(-1)[0];
+    var title = last ? last.content.slice(0, 60) : 'Documento Lex';
+    fetch(DOC_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title: title, content: text, format: 'docx' }),
+    }).then(function (r) {
+      if (!r.ok) throw new Error('Esportazione non riuscita');
+      return r.blob();
+    }).then(function (blob) {
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = 'lex-documento.docx';
+      a.click();
+      URL.revokeObjectURL(url);
+    }).catch(function (err) {
+      alert('Esportazione: ' + err.message);
+    });
+  }
+
+  /* ── Send ── */
+  function send(text) {
+    if (streaming || !text.trim()) return;
+    streaming = true;
+    sendBtn.disabled = true;
+    input.value = '';
+    input.style.height = 'auto';
+    sendBtn.disabled = true;
+
+    appendMessage('user', text);
+    var bubble = appendMessage('assistant', '', true);
+    history.push({ role: 'user', content: text });
+    exportBtn.classList.remove('d-none');
+
+    var payload = {
+      session_id: sessionId,
+      messages: history.slice(-12),
+      attachments: attachments.slice(),
+    };
+    attachments = [];
+    renderAttachments();
+
+    var full = '';
+    fetch(CHAT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    }).then(function (r) {
+      if (!r.body) throw new Error('Streaming non supportato dal browser.');
+      var reader = r.body.getReader();
+      var decoder = new TextDecoder();
+      var buffer = '';
+
+      function readChunk() {
+        return reader.read().then(function (result) {
+          if (result.done) {
+            finalize(full, bubble);
+            return;
+          }
+          buffer += decoder.decode(result.value, { stream: true });
+          var lines = buffer.split('\n');
+          buffer = lines.pop();
+
+          lines.forEach(function (line) {
+            if (!line.startsWith('data: ')) return;
+            var raw = line.slice(6).trim();
+            if (raw === '[DONE]') { finalize(full, bubble); return; }
+            try {
+              var data = JSON.parse(raw);
+              if (data.errore) { setBubbleContent(bubble, 'Attenzione: ' + data.errore); finalize(data.errore, bubble, true); return; }
+              if (data.token) { full += data.token; setBubbleContent(bubble, full); scrollBottom(); }
+              if (data.answer) { full = data.answer; setBubbleContent(bubble, full); scrollBottom(); }
+            } catch (_) {}
+          });
+
+          if (streaming) return readChunk();
+        });
+      }
+      return readChunk();
+    }).catch(function (err) {
+      setBubbleContent(bubble, 'Errore di connessione: ' + esc(err.message));
+      finalize('', bubble, true);
+    });
+  }
+
+  function finalize(answer, bubble, isError) {
+    streaming = false;
+    sendBtn.disabled = !input.value.trim();
+    if (!isError && answer) {
+      history.push({ role: 'assistant', content: answer });
+      /* Aggiungi azioni sotto la bolla */
+      var container = bubble.parentElement;
+      if (container && !container.querySelector('.lex-msg-actions')) {
+        var actions = document.createElement('div');
+        actions.className = 'lex-msg-actions';
+        actions.innerHTML = '<button class="lex-msg-action" data-action="copy"><i class="bi bi-clipboard me-1"></i>Copia</button>'
+          + '<button class="lex-msg-action" data-action="export"><i class="bi bi-file-earmark-word me-1"></i>Esporta .docx</button>';
+        actions.querySelector('[data-action="copy"]').addEventListener('click', function () {
+          navigator.clipboard.writeText(answer).then(function () {
+            var btn = actions.querySelector('[data-action="copy"]');
+            btn.innerHTML = '<i class="bi bi-check me-1"></i>Copiato';
+            setTimeout(function () { btn.innerHTML = '<i class="bi bi-clipboard me-1"></i>Copia'; }, 2000);
+          });
+        });
+        actions.querySelector('[data-action="export"]').addEventListener('click', function () {
+          exportDocument(answer);
+        });
+        container.appendChild(actions);
+      }
+    }
+    scrollBottom();
+  }
+
+  /* ── Attachments ── */
+  function renderAttachments() {
+    attachmentsEl.innerHTML = '';
+    attachments.forEach(function (att, idx) {
+      var chip = document.createElement('div');
+      chip.className = 'lex-attach-chip';
+      chip.innerHTML = '<i class="bi bi-paperclip me-1"></i>' + esc(att.name)
+        + '<button type="button" aria-label="Rimuovi allegato" data-idx="' + idx + '">&times;</button>';
+      chip.querySelector('button').addEventListener('click', function () {
+        attachments.splice(Number(this.dataset.idx), 1);
+        renderAttachments();
+      });
+      attachmentsEl.appendChild(chip);
+    });
+  }
+
+  /* ── Events ── */
+  input.addEventListener('input', function () {
+    this.style.height = 'auto';
+    this.style.height = Math.min(this.scrollHeight, 160) + 'px';
+    sendBtn.disabled = streaming || !this.value.trim();
+  });
+
+  input.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      send(this.value);
+    }
+  });
+
+  sendBtn.addEventListener('click', function () {
+    send(input.value);
+  });
+
+  /* Starter prompts */
+  document.querySelectorAll('.lex-prompt-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      send(this.dataset.prompt);
+    });
+  });
+
+  /* Upload */
+  uploadInput.addEventListener('change', function () {
+    var files = Array.from(this.files);
+    if (!files.length) return;
+    var formData = new FormData();
+    files.forEach(function (f) { formData.append('files[]', f); });
+    /* Store locally for display, send to server for extraction */
+    files.forEach(function (f) {
+      var reader = new FileReader();
+      reader.onload = function (e) {
+        attachments.push({ name: f.name, content: btoa(e.target.result.split(',')[1] || ''), type: f.type });
+        renderAttachments();
+      };
+      reader.readAsDataURL(f);
+    });
+    this.value = '';
+  });
+
+  newBtn.addEventListener('click', function () {
+    if (history.length && !confirm('Inizia una nuova conversazione? La cronologia corrente verrà cancellata.')) return;
+    history = [];
+    attachments = [];
+    streaming = false;
+    sendBtn.disabled = true;
+    input.value = '';
+    sessionId = 'lex-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8);
+    /* Remove all messages except empty state */
+    Array.from(msgList.children).forEach(function (el) {
+      if (el.id !== 'lexEmpty') el.remove();
+    });
+    emptyState.style.display = '';
+    exportBtn.classList.add('d-none');
+    renderAttachments();
+  });
+
+  exportBtn.addEventListener('click', function () {
+    var lastAI = history.filter(function (m) { return m.role === 'assistant'; }).slice(-1)[0];
+    if (lastAI) exportDocument(lastAI.content);
+  });
+
+  /* ── Init ── */
+  checkStatus();
+})();
+</script>
+{% endblock %}

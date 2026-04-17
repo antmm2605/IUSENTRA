@@ -45,6 +45,7 @@ from pct.storage import StudioDB
 from web.services.lex_eval_scorecard import build_lex_eval_scorecard
 from web.services.migration_assistant import build_migration_assistant
 from web.services.observability_runtime import build_observability_payload
+from web.services.product_governance_surface import build_product_governance_surface
 from web.services.studio_installation_status import build_studio_installation_status
 from web.services.system_health_surface import build_system_health_surface
 
@@ -147,6 +148,13 @@ def dashboard():
 def osservabilita():
     payload = build_observability_payload(current_app._get_current_object())
     return render_template("admin/osservabilita.html", payload=payload)
+
+
+@admin_bp.route("/governance")
+@superadmin_required
+def governance():
+    payload = build_product_governance_surface()
+    return render_template("admin/governance.html", payload=payload)
 
 
 @admin_bp.route("/stato-installazione")
@@ -720,6 +728,12 @@ def api_storage_studio(slug: str):
     data_dir = tm.data_dir(slug)
     mb = _calc_storage_mb(data_dir)
     return jsonify({"slug": slug, "storage_mb": mb, "limite_mb": studio.limite_storage_mb})
+
+
+@admin_bp.route("/api/governance")
+@superadmin_required
+def api_governance():
+    return jsonify(build_product_governance_surface())
 
 
 # ============================================================= Utility

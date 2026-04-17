@@ -18,6 +18,9 @@ def test_runtime_metrics_endpoint_restituisce_payload_strutturato(tmp_path):
     assert payload["runtime"]["http"]["buckets"]
     assert "ocr" in payload
     assert "providers" in payload
+    assert "product" in payload
+    assert payload["product"]["authorization_surfaces"] >= 1
+    assert payload["product"]["capabilities"]
     assert payload["storage"]["default_mode"] == "SQLITE"
 
 
@@ -34,3 +37,4 @@ def test_admin_osservabilita_page_e_accessibile_al_superadmin(tmp_path):
     html = response.get_data(as_text=True)
     assert "Osservabilit" in html
     assert "Pipeline OCR" in html
+    assert "Capability di prodotto" in html

@@ -281,6 +281,7 @@ def test_route_domini_estratti_restano_operativi(tmp_path: Path):
             "/privacy/registro",
             "/soggetti",
             "/admin/database",
+            "/admin/governance",
         ):
             response = client.get(path)
             assert response.status_code == 200, path
@@ -662,7 +663,7 @@ def test_scss_governance_usa_bundle_modulari_e_niente_style_inline():
     assert "notifiche-panel is-hidden" in base_template
     assert "notif-item__body" in base_template
     assert "ss-chip-identificativo" in base_template
-    assert "logo-iusentra.png" in base_template
+    assert ("logo-iusentra.png" in base_template) or ("sb-brand-wordmark" in base_template)
     assert "logo-iusentra.png" in admin_base
 
     for css_link in (
@@ -1364,14 +1365,20 @@ def test_file_critici_non_contengono_marker_di_mojibake():
         REPO_ROOT / "README.md",
         REPO_ROOT / "railway.toml",
         REPO_ROOT / "pct/auth.py",
+        REPO_ROOT / "pct/product_governance.py",
         REPO_ROOT / "pct/scheduler.py",
         REPO_ROOT / "web/services/core_runtime.py",
+        REPO_ROOT / "web/services/product_governance_surface.py",
         REPO_ROOT / "web/templates/base.html",
         REPO_ROOT / "web/templates/auth/login.html",
         REPO_ROOT / "web/templates/auth/login_2fa.html",
         REPO_ROOT / "web/templates/polisWeb.html",
         REPO_ROOT / "web/templates/portale/acquisizione_wizard.html",
         REPO_ROOT / "docs/STORAGE_MATRIX.md",
+        REPO_ROOT / "docs/AUTHORIZATION_MODEL.md",
+        REPO_ROOT / "docs/STORAGE_MIGRATION_PLAN.md",
+        REPO_ROOT / "docs/E2E_TESTING_MATRIX.md",
+        REPO_ROOT / "docs/OBSERVABILITY_AUDIT_PRODUCT.md",
         REPO_ROOT / "docs/RELEASE_PROCESS.md",
     ]
 

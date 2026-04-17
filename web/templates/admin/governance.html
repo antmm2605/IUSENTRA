@@ -1,0 +1,276 @@
+{% extends "admin/base.html" %}
+{% block title %}Governance prodotto{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item active">Governance prodotto</li>{% endblock %}
+
+{% block content %}
+<div class="admin-page-header mb-4">
+  <div>
+    <h4 class="admin-page-title">Governance prodotto</h4>
+    <p class="admin-page-subtitle">Storage parity, modello autorizzativo, programma di migrazione, copertura end-to-end e capability di osservabilita' e audit.</p>
+  </div>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-12 col-md-6 col-xl-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="small text-muted mb-1">Domini storage censiti</div>
+        <div class="fs-2 fw-bold">{{ payload.headline.storage_domains }}</div>
+        <div class="small text-muted">Matrice tecnica modulo per modulo.</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-12 col-md-6 col-xl-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="small text-muted mb-1">PostgreSQL con parity R/W</div>
+        <div class="fs-2 fw-bold">{{ payload.headline.postgres_rw_ready }}</div>
+        <div class="small text-muted">Solo domini con lettura e scrittura effettive.</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-12 col-md-6 col-xl-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="small text-muted mb-1">Superfici autorizzative</div>
+        <div class="fs-2 fw-bold">{{ payload.headline.authorization_surfaces }}</div>
+        <div class="small text-muted">Ruoli, tenant, admin, telematico e AI.</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-12 col-md-6 col-xl-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="small text-muted mb-1">Eventi audit disponibili</div>
+        <div class="fs-2 fw-bold">{{ payload.headline.audit_events }}</div>
+        <div class="small text-muted">Ultimo runtime storage: {{ payload.runtime.storage_default_mode or 'n.d.' }}</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card mb-4">
+  <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+    <strong>Matrice storage e read/write parity</strong>
+    <span class="badge text-bg-light border">SQLite R/W pronti: {{ payload.storage.summary.sqlite_rw_ready }}</span>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-sm align-middle mb-0">
+      <thead>
+        <tr>
+          <th>Dominio</th>
+          <th>Modulo</th>
+          <th>JSON</th>
+          <th>SQLite</th>
+          <th>PostgreSQL</th>
+          <th>Parita' PostgreSQL</th>
+          <th>Wave</th>
+          <th>Fallback</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in payload.storage.rows %}
+        <tr>
+          <td>{{ row.domain }}</td>
+          <td>
+            <div class="fw-semibold">{{ row.label }}</div>
+            <div class="small text-muted">{{ row.source_of_truth }}</div>
+          </td>
+          <td><code>{{ row.json_mode }}</code></td>
+          <td><code>{{ row.sqlite_mode }}</code></td>
+          <td><code>{{ row.postgres_mode }}</code></td>
+          <td>
+            <span class="badge text-bg-{{ 'success' if row.postgres_parity == "parita' completa" else 'warning' if row.postgres_parity == "parita' parziale" else 'secondary' }}">
+              {{ row.postgres_parity }}
+            </span>
+          </td>
+          <td>{{ row.migration_wave }}</td>
+          <td class="small">{{ row.fallback_mode }}</td>
+        </tr>
+        <tr class="table-light">
+          <td colspan="8" class="small">
+            <div class="mb-1">{{ row.parity_note }}</div>
+            <div><strong>Check consistenza:</strong> {{ row.consistency_checks | join(' | ') }}</div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-12 col-xl-6">
+    <div class="card h-100">
+      <div class="card-header">
+        <strong>Superfici autorizzative</strong>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-sm align-middle mb-0">
+          <thead>
+            <tr>
+              <th>Superficie</th>
+              <th>Scope</th>
+              <th>Rischio</th>
+              <th>Ruoli ammessi</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for surface in payload.authorization.surfaces %}
+            <tr>
+              <td>
+                <div class="fw-semibold">{{ surface.label }}</div>
+                <div class="small text-muted">{{ surface.note }}</div>
+              </td>
+              <td>{{ surface.scope }}</td>
+              <td>
+                <span class="badge text-bg-{{ 'danger' if surface.risk == 'critico' else 'warning' if surface.risk == 'alto' else 'secondary' }}">
+                  {{ surface.risk }}
+                </span>
+              </td>
+              <td class="small">{{ surface.allowed_roles | join(', ') }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-xl-6">
+    <div class="card h-100">
+      <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <strong>Catalogo permessi</strong>
+        <span class="badge text-bg-light border">Famiglie: {{ payload.authorization.summary.permission_families }}</span>
+      </div>
+      <div class="card-body">
+        {% for category, items in payload.authorization.permission_catalog.items() %}
+        <div class="mb-3">
+          <div class="fw-semibold mb-1">{{ category }}</div>
+          <div class="small text-muted">{{ items | map(attribute='key') | join(', ') }}</div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card mb-4">
+  <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+    <strong>Percorso di migrazione JSON / SQLite -> PostgreSQL</strong>
+    <span class="badge text-bg-light border">Fasi: {{ payload.migration.summary.phases_total }}</span>
+  </div>
+  <div class="card-body">
+    <div class="row g-3">
+      {% for phase in payload.migration.phases %}
+      <div class="col-12 col-lg-6">
+        <div class="border rounded-3 p-3 h-100">
+          <div class="d-flex align-items-center justify-content-between gap-2 mb-2">
+            <div class="fw-semibold">{{ phase.title }}</div>
+            <span class="badge text-bg-primary">{{ phase.phase_id }}</span>
+          </div>
+          <div class="small mb-3">{{ phase.objective }}</div>
+          <div class="small text-muted fw-semibold mb-1">Entry criteria</div>
+          <div class="small mb-2">{{ phase.entry_criteria | join(' | ') }}</div>
+          <div class="small text-muted fw-semibold mb-1">Check consistenza</div>
+          <div class="small mb-2">{{ phase.consistency_checks | join(' | ') }}</div>
+          <div class="small text-muted fw-semibold mb-1">Fallback</div>
+          <div class="small">{{ phase.fallback_rules | join(' | ') }}</div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-12 col-xl-7">
+    <div class="card h-100">
+      <div class="card-header">
+        <strong>Flussi end-to-end presidiati</strong>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-sm align-middle mb-0">
+          <thead>
+            <tr>
+              <th>Flusso</th>
+              <th>Copertura</th>
+              <th>Sistemi</th>
+              <th>Test</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in payload.e2e.rows %}
+            <tr>
+              <td>{{ row.label }}</td>
+              <td>
+                <span class="badge text-bg-{{ 'success' if row.coverage == 'integrato' else 'primary' }}">
+                  {{ row.coverage }}
+                </span>
+              </td>
+              <td class="small">{{ row.systems | join(', ') }}</td>
+              <td class="small"><code>{{ row.test_refs | join(', ') }}</code></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-xl-5">
+    <div class="card h-100">
+      <div class="card-header">
+        <strong>Ultimi eventi audit disponibili</strong>
+      </div>
+      <div class="card-body">
+        {% for event in payload.recent_audit %}
+        <div class="border rounded-3 p-2 mb-2">
+          <div class="d-flex justify-content-between gap-2 mb-1">
+            <div class="fw-semibold">{{ event.azione }}</div>
+            <span class="badge text-bg-light border">{{ event.esito }}</span>
+          </div>
+          <div class="small text-muted">{{ event.timestamp|fmt_dataora if event.timestamp else 'n.d.' }}</div>
+          <div class="small">{{ event.username or 'sistema' }}{% if event.risorsa_tipo %} · {{ event.risorsa_tipo }}{% endif %}{% if event.risorsa_id %} · {{ event.risorsa_id }}{% endif %}</div>
+        </div>
+        {% else %}
+        <div class="small text-muted">Nessun evento audit disponibile.</div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+    <strong>Observability + audit come capability di prodotto</strong>
+    <span class="badge text-bg-light border">Capability: {{ payload.observability.summary.capabilities_total }}</span>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-sm align-middle mb-0">
+      <thead>
+        <tr>
+          <th>Capability</th>
+          <th>Superficie</th>
+          <th>Sorgenti</th>
+          <th>Output</th>
+          <th>Audit depth</th>
+          <th>Stato</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in payload.observability.rows %}
+        <tr>
+          <td>{{ row.label }}</td>
+          <td>{{ row.surface }}</td>
+          <td class="small">{{ row.sources | join(', ') }}</td>
+          <td class="small">{{ row.outcome }}</td>
+          <td>{{ row.audit_depth }}</td>
+          <td><span class="badge text-bg-success">{{ row.status }}</span></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

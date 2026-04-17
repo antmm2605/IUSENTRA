@@ -56,6 +56,11 @@ def build_observability_payload(app: Flask | None = None) -> dict[str, Any]:
         "scheduler_worker_mode": bool(runtime_app.config.get("PCT_SCHEDULER_WORKER")),
         "ocr": ocr_runtime.status_snapshot() if ocr_runtime is not None else {"enabled": False},
         "providers": {},
+        "product": {
+            "audit_events": 0,
+            "authorization_surfaces": 0,
+            "capabilities": [],
+        },
     }
 
     try:
@@ -67,6 +72,32 @@ def build_observability_payload(app: Flask | None = None) -> dict[str, Any]:
         payload["providers"]["local_ai"] = {
             "runtime": {"status": "error"},
             "errore": str(exc),
+        }
+
+    try:
+        from pct.product_governance import (
+            build_authorization_model_payload,
+            build_observability_capabilities_payload,
+        )
+        from web.services.admin_surfaces_shared import get_auth_manager
+
+        auth_stats = get_auth_manager().statistiche()
+        auth_model = build_authorization_model_payload()
+        capabilities = build_observability_capabilities_payload(
+            audit_events=int(auth_stats.get("totale_eventi_audit", 0) or 0),
+            runtime_ok=bool(payload.get("ok")),
+        )
+        payload["product"] = {
+            "audit_events": int(auth_stats.get("totale_eventi_audit", 0) or 0),
+            "authorization_surfaces": int(auth_model["summary"]["surfaces_total"]),
+            "capabilities": capabilities["rows"],
+        }
+    except Exception:
+        # Best effort: la diagnostica runtime deve restare disponibile anche senza la superficie prodotto.
+        payload["product"] = payload.get("product") or {
+            "audit_events": 0,
+            "authorization_surfaces": 0,
+            "capabilities": [],
         }
 
     return payload

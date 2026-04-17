@@ -221,6 +221,31 @@ def test_permessi_segreteria():
     assert not u.ha_permesso("utenti.leggi")
 
 
+def test_permessi_superfici_admin_e_tenant():
+    amministratore = Utente(ruolo=RuoloUtente.AMMINISTRATORE)
+    superadmin = Utente(ruolo=RuoloUtente.SUPERADMIN)
+
+    assert amministratore.ha_permesso("admin.leggi")
+    assert amministratore.ha_permesso("autorizzazioni.scrivi")
+    assert not amministratore.ha_permesso("tenant.impersona")
+
+    assert superadmin.ha_permesso("tenant.impersona")
+    assert superadmin.ha_permesso("tenant.configura")
+
+
+def test_permessi_telematico_e_ai_per_ruoli_operativi():
+    avvocato = Utente(ruolo=RuoloUtente.AVVOCATO)
+    praticante = Utente(ruolo=RuoloUtente.PRATICANTE)
+    contabile = Utente(ruolo=RuoloUtente.CONTABILE)
+
+    assert avvocato.ha_permesso("telematico.deposita")
+    assert avvocato.ha_permesso("ai.usa")
+    assert praticante.ha_permesso("telematico.leggi")
+    assert praticante.ha_permesso("ai.usa")
+    assert not praticante.ha_permesso("telematico.deposita")
+    assert not contabile.ha_permesso("ai.usa")
+
+
 def test_ha_ruolo(gu):
     u = gu.crea("av2", "password123", RuoloUtente.AVVOCATO)
     assert u.ha_ruolo(RuoloUtente.AVVOCATO)

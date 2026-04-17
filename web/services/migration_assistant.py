@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from pct.checklist_atti import TUTTI_I_TEMPLATE
+from pct.product_governance import build_migration_program_payload, build_storage_parity_payload
 from web.services.admin_surfaces_shared import (
     count_documents,
     get_agenda_manager,
@@ -76,9 +77,13 @@ def build_migration_assistant() -> dict[str, Any]:
         "5. Attivare Lex sui fascicoli prioritari e sulla regia giornaliera.",
     ]
 
+    migration_program = build_migration_program_payload()
+    storage_parity = build_storage_parity_payload()
+
     return {
         "modules": modules,
         "workflow": workflow,
         "built_in_templates": len(TUTTI_I_TEMPLATE),
+        "migration_program": migration_program,
+        "storage_parity": storage_parity["summary"],
     }
-

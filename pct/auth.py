@@ -124,6 +124,9 @@ DESCRIZIONI_RUOLI: Dict[RuoloUtente, Dict[str, str]] = {
 # Tutti i permessi disponibili nel sistema, raggruppati per categoria.
 # Ogni voce: (categoria, chiave_permesso, etichetta_breve)
 TUTTI_PERMESSI: List[Tuple[str, str, str]] = [
+    ("Tenant",       "tenant.leggi",         "Visibilita tenant"),
+    ("Tenant",       "tenant.configura",     "Configura tenant"),
+    ("Tenant",       "tenant.impersona",     "Impersona tenant"),
     ("Fascicoli",    "fascicoli.leggi",      "Visualizza"),
     ("Fascicoli",    "fascicoli.scrivi",     "Crea / Modifica"),
     ("Fascicoli",    "fascicoli.archivia",   "Archivia"),
@@ -138,18 +141,31 @@ TUTTI_PERMESSI: List[Tuple[str, str, str]] = [
     ("Messaggi",     "messaggi.scrivi",      "Invia"),
     ("Scadenziario", "scadenziario.leggi",   "Visualizza"),
     ("Scadenziario", "scadenziario.scrivi",  "Crea / Modifica"),
+    ("Telematico",   "telematico.leggi",     "Consultazione"),
+    ("Telematico",   "telematico.importa",   "Importa / Sincronizza"),
+    ("Telematico",   "telematico.valida",    "Predeposito"),
+    ("Telematico",   "telematico.deposita",  "Deposita"),
+    ("Telematico",   "telematico.configura", "Configura canali"),
+    ("AI",           "ai.usa",               "Usa assistenti"),
+    ("AI",           "ai.configura",         "Configura runtime"),
+    ("AI",           "ai.audit",             "Audit AI"),
     ("Backup",       "backup.leggi",         "Visualizza"),
     ("Backup",       "backup.esegui",        "Esegui"),
+    ("Admin",        "admin.leggi",          "Accedi pannelli"),
+    ("Admin",        "admin.configura",      "Configura studio"),
+    ("Autorizzazioni", "autorizzazioni.leggi",  "Leggi policy"),
+    ("Autorizzazioni", "autorizzazioni.scrivi", "Gestisci policy"),
     ("Utenti",       "utenti.leggi",         "Visualizza"),
     ("Utenti",       "utenti.scrivi",        "Crea / Modifica"),
     ("Utenti",       "utenti.elimina",       "Elimina"),
     ("Audit",        "audit.leggi",          "Visualizza log"),
+    ("Audit",        "audit.esporta",        "Esporta log"),
 ]
 
 # Set di permessi di default per ogni ruolo
 PERMESSI: Dict[RuoloUtente, List[str]] = {
     RuoloUtente.SUPERADMIN:     [p for _, p, _ in TUTTI_PERMESSI],  # tutti + accesso admin
-    RuoloUtente.AMMINISTRATORE: [p for _, p, _ in TUTTI_PERMESSI],  # tutti
+    RuoloUtente.AMMINISTRATORE: [p for _, p, _ in TUTTI_PERMESSI if not p.startswith("tenant.")],
 
     RuoloUtente.AVVOCATO: [
         "fascicoli.leggi", "fascicoli.scrivi", "fascicoli.archivia",
@@ -157,6 +173,8 @@ PERMESSI: Dict[RuoloUtente, List[str]] = {
         "agenda.leggi", "agenda.scrivi", "agenda.elimina",
         "messaggi.leggi", "messaggi.scrivi",
         "scadenziario.leggi", "scadenziario.scrivi",
+        "telematico.leggi", "telematico.importa", "telematico.valida", "telematico.deposita",
+        "ai.usa",
         "backup.leggi",
     ],
 
@@ -166,6 +184,8 @@ PERMESSI: Dict[RuoloUtente, List[str]] = {
         "agenda.leggi", "agenda.scrivi",
         "messaggi.leggi", "messaggi.scrivi",
         "scadenziario.leggi", "scadenziario.scrivi",
+        "telematico.leggi", "telematico.importa", "telematico.valida",
+        "ai.usa",
     ],
 
     RuoloUtente.PRATICANTE: [
@@ -174,6 +194,8 @@ PERMESSI: Dict[RuoloUtente, List[str]] = {
         "agenda.leggi", "agenda.scrivi",
         "messaggi.leggi",
         "scadenziario.leggi",
+        "telematico.leggi",
+        "ai.usa",
     ],
 
     RuoloUtente.SEGRETERIA: [
@@ -182,6 +204,7 @@ PERMESSI: Dict[RuoloUtente, List[str]] = {
         "agenda.leggi", "agenda.scrivi",
         "messaggi.leggi", "messaggi.scrivi",
         "scadenziario.leggi",
+        "telematico.leggi",
     ],
 
     RuoloUtente.CONTABILE: [

@@ -64,6 +64,10 @@
        class="nav-link {% if request.endpoint == 'admin.osservabilita' %}active{% endif %}">
       <i class="bi bi-activity"></i> Osservabilità
     </a>
+    <a href="{{ url_for('admin.governance') }}"
+       class="nav-link {% if request.endpoint == 'admin.governance' %}active{% endif %}">
+      <i class="bi bi-diagram-3"></i> Governance prodotto
+    </a>
 
     <a href="{{ url_for('admin.salute_sistema') }}"
        class="nav-link {% if request.endpoint == 'admin.salute_sistema' %}active{% endif %}">

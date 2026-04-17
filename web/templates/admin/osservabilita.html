@@ -105,4 +105,37 @@
     </div>
   </div>
 </div>
+
+<div class="card shadow-sm mt-4">
+  <div class="card-header bg-body-tertiary d-flex flex-wrap justify-content-between align-items-center gap-2">
+    <strong>Capability di prodotto</strong>
+    <span class="badge text-bg-light border">Eventi audit: {{ payload.product.audit_events }}</span>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-sm align-middle mb-0">
+      <thead>
+        <tr>
+          <th>Capability</th>
+          <th>Superficie</th>
+          <th>Audit depth</th>
+          <th>Stato</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in payload.product.capabilities %}
+        <tr>
+          <td>{{ row.label }}</td>
+          <td>{{ row.surface }}</td>
+          <td>{{ row.audit_depth }}</td>
+          <td><span class="badge text-bg-success">{{ row.status }}</span></td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="4" class="text-muted">Nessuna capability prodotto disponibile.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
 {% endblock %}

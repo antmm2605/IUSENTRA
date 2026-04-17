@@ -881,6 +881,9 @@
                 </div>
               </div>
               <div class="prev-taxonomy-hint" id="taxonomySelectionHint">La tassonomia filtra il catalogo senza bloccare il libero scorrimento delle tipologie. La pratica selezionata conserva anche le fonti ufficiali aggregate.</div>
+              <div id="taxonomySelectionPreview" class="alert alert-light border mt-2 mb-0 small">
+                La classificazione selezionata verra mostrata qui con area, macro-area, sottobranca e fonti aggregate.
+              </div>
             </div>
             <div class="prev-toolbar-top">
               <div>
@@ -1109,6 +1112,45 @@
                       <label class="form-label fw-semibold">Note professionali e condizioni</label>
                       <textarea name="note" id="inpNote" class="form-control" rows="7" placeholder="Il redattore propone una bozza che puoi adattare al cliente e alla pratica."></textarea>
                     </div>
+                    <div class="col-12">
+                      <div class="border rounded-4 p-3 bg-light d-flex flex-column gap-3">
+                        <div>
+                          <div class="fw-semibold text-dark">Clausola per la risoluzione delle controversie</div>
+                          <div class="small text-muted">Proponi una clausola contrattuale da riportare poi nel conferimento. La clausola nasce qui nel preventivo, resta modificabile e viene trasferita nel conferimento di incarico.</div>
+                        </div>
+                        <div class="form-check">
+                          <input class="form-check-input" type="checkbox" id="chkClausolaControversie" name="clausola_controversie_attiva" value="1">
+                          <label class="form-check-label fw-semibold" for="chkClausolaControversie">Inserisci la clausola nel preventivo guidato e trasferiscila nel conferimento</label>
+                        </div>
+                        <div id="clausolaControversiePanel" class="row g-3">
+                          <div class="col-lg-4">
+                            <label class="form-label fw-semibold" for="selClausolaControversie">Modello clausola</label>
+                            <select name="clausola_controversie_modello" id="selClausolaControversie" class="form-select"></select>
+                          </div>
+                          <div class="col-lg-8">
+                            <div id="clausolaControversieGuard" class="alert alert-warning small py-2 mb-0">
+                              <div class="fw-semibold">Trattativa individuale documentabile sulla clausola gia svolta</div>
+                              <div>Da usare con particolare attenzione se il cliente opera come consumatore: la fonte richiede una trattativa seria, effettiva e individuale.</div>
+                            </div>
+                          </div>
+                          <div class="col-12">
+                            <div class="form-check">
+                              <input class="form-check-input" type="checkbox" id="chkClausolaTrattativa" name="clausola_controversie_trattativa_individuale" value="1">
+                              <label class="form-check-label" for="chkClausolaTrattativa">Trattativa individuale documentabile sulla clausola gia svolta</label>
+                            </div>
+                          </div>
+                          <div class="col-12">
+                            <label class="form-label fw-semibold" for="inpClausolaControversieTesto">Testo clausola</label>
+                            <textarea name="clausola_controversie_testo" id="inpClausolaControversieTesto" class="form-control" rows="6" placeholder="La clausola resta modificabile e viene riportata anche nel conferimento di incarico."></textarea>
+                          </div>
+                          <div class="col-12">
+                            <label class="form-label fw-semibold" for="inpClausolaControversieFonte">Fonte / presidio</label>
+                            <input type="text" name="clausola_controversie_fonte" id="inpClausolaControversieFonte" class="form-control" placeholder="Fonte del modello o presidio interno di studio">
+                            <div id="clausolaControversieFonteHint" class="form-text">La fonte del modello viene proposta automaticamente ma puoi adattarla al caso concreto.</div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                     <div class="col-md-4"><div class="form-check"><input class="form-check-input" type="checkbox" id="chkGeneraConferimento" name="genera_conferimento" value="1"><label class="form-check-label" for="chkGeneraConferimento">Genera anche il conferimento incarico</label></div></div>
                     <div class="col-md-4"><div class="form-check"><input class="form-check-input" type="checkbox" id="chkApriFascicoloGuidato" name="apri_fascicolo_guidato" value="1"><label class="form-check-label" for="chkApriFascicoloGuidato">Poi apri il fascicolo guidato</label></div></div>
                     <div class="col-md-4"><div class="form-check"><input class="form-check-input" type="checkbox" id="chkInformativaArt13" name="informativa_art13_resa" value="1" checked><label class="form-check-label" for="chkInformativaArt13">Informativa art. 13 resa</label></div></div>
@@ -1212,6 +1254,8 @@ const AREE = {{ aree|tojson }};
 const ID_FASCICOLO_PRE = {{ id_fascicolo_pre|tojson }};
 const FASCICOLO_PRE = {% if fascicolo_pre_context %}{{ fascicolo_pre_context|tojson }}{% else %}null{% endif %};
 const WIZARD_PREFILL = {{ wizard_prefill|tojson }};
+const CLAUSOLA_CATALOGO = {{ clausola_catalogo|tojson }};
+const CLAUSOLA_STATE = {{ clausola_state|tojson }};
 
 const TIPI_VOCE = ['Onorario', 'Spesa forfettaria', 'Spesa viva'];
 const catalogoFlat = Object.values(CATALOGO).flat();
@@ -1322,6 +1366,29 @@ function currentTaxonomyNode() {
   };
 }
 
+function renderTaxonomyPreview() {
+  const target = document.getElementById('taxonomySelectionPreview');
+  if (!target) return;
+  const meta = currentTaxonomyNode();
+  const parts = [meta.areaLabel, meta.macroLabel, meta.subLabel].filter(Boolean);
+  const selectedItems = catalogoFlat.filter((item) => matchesTaxonomySelection(item));
+  const sources = Array.isArray(meta.sources) ? meta.sources : [];
+  if (!parts.length) {
+    target.innerHTML = '<div class="fw-semibold text-dark mb-1">Classificazione non ancora selezionata</div><div class="text-muted">Scegli una tipologia o usa i filtri tassonomici per visualizzare area, macro-area, sottobranca e fonti aggregate.</div>';
+    return;
+  }
+  target.innerHTML = `
+    <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
+      <span class="badge bg-primary-subtle text-primary-emphasis">${escapeHtml(meta.areaLabel || '')}</span>
+      <span class="badge text-bg-light">${escapeHtml(meta.macroLabel || '')}</span>
+      <span class="badge text-bg-light">${escapeHtml(meta.subLabel || '')}</span>
+      <span class="badge bg-secondary-subtle text-secondary-emphasis">${selectedItems.length} tipologie compatibili</span>
+    </div>
+    <div class="small text-muted">Classificazione attiva: ${escapeHtml(parts.join(' / '))}</div>
+    <div class="small text-muted">${sources.length ? `${sources.length} fonti ufficiali aggregate pronte per il tracciato del preventivo.` : 'Le fonti ufficiali aggregate saranno salvate insieme al preventivo.'}</div>
+  `;
+}
+
 function syncTaxonomyHiddenFields() {
   const meta = currentTaxonomyNode();
   document.getElementById('inpAreaTassonomica').value = meta.areaLabel || '';
@@ -1394,6 +1461,72 @@ function renderTaxonomyFilters() {
   hint.textContent = parts.length
     ? `${parts.join(' / ')} - ${selectedItems.length} tipologie compatibili nel catalogo operativo.`
     : 'La tassonomia filtra il catalogo senza bloccare il libero scorrimento delle tipologie. La pratica selezionata conserva anche le fonti ufficiali aggregate.';
+  renderTaxonomyPreview();
+}
+
+const CLAUSOLA_CATALOGO_BY_ID = Object.fromEntries((CLAUSOLA_CATALOGO || []).map((item) => [item.id, item]));
+
+function preferredClausolaModel() {
+  if (CLAUSOLA_STATE?.modello && CLAUSOLA_CATALOGO_BY_ID[CLAUSOLA_STATE.modello]) {
+    return CLAUSOLA_STATE.modello;
+  }
+  const firstOperational = (CLAUSOLA_CATALOGO || []).find((item) => item.id !== 'NESSUNA');
+  return firstOperational?.id || 'NESSUNA';
+}
+
+function renderClausolaOptions() {
+  const select = document.getElementById('selClausolaControversie');
+  if (!select) return;
+  const rows = (CLAUSOLA_CATALOGO || []).filter((item) => item.id !== 'NESSUNA');
+  const selected = preferredClausolaModel();
+  select.innerHTML = rows.map((item) => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.label || item.id)}</option>`).join('');
+  if (rows.some((item) => item.id === selected)) {
+    select.value = selected;
+  }
+}
+
+function syncClausolaControversieUi(options = {}) {
+  const forceText = !!options.forceText;
+  const forceFonte = !!options.forceFonte;
+  const chk = document.getElementById('chkClausolaControversie');
+  const panel = document.getElementById('clausolaControversiePanel');
+  const select = document.getElementById('selClausolaControversie');
+  const chkTrattativa = document.getElementById('chkClausolaTrattativa');
+  const testo = document.getElementById('inpClausolaControversieTesto');
+  const fonte = document.getElementById('inpClausolaControversieFonte');
+  const fonteHint = document.getElementById('clausolaControversieFonteHint');
+  const guard = document.getElementById('clausolaControversieGuard');
+  if (!chk || !panel || !select || !chkTrattativa || !testo || !fonte || !fonteHint || !guard) return;
+
+  const active = chk.checked;
+  const modelId = select.value || preferredClausolaModel();
+  const meta = CLAUSOLA_CATALOGO_BY_ID[modelId] || { default_text: '', source: '', label: modelId };
+  const currentDefaultText = testo.dataset.defaultText || '';
+  const currentDefaultFonte = fonte.dataset.defaultFonte || '';
+  const shouldReplaceText = forceText || !testo.value.trim() || testo.value.trim() === currentDefaultText.trim();
+  const shouldReplaceFonte = forceFonte || !fonte.value.trim() || fonte.value.trim() === currentDefaultFonte.trim();
+
+  select.disabled = !active;
+  chkTrattativa.disabled = !active;
+  testo.disabled = !active;
+  fonte.disabled = !active;
+  panel.classList.toggle('opacity-50', !active);
+  guard.classList.toggle('d-none', !active || modelId !== 'TUTELA_CLIENTE_CONSUMATORE');
+
+  testo.dataset.defaultText = meta.default_text || '';
+  fonte.dataset.defaultFonte = meta.source || '';
+  if (active && shouldReplaceText) {
+    testo.value = meta.default_text || '';
+  }
+  if (active && shouldReplaceFonte) {
+    fonte.value = meta.source || '';
+  }
+  if (!active) {
+    chkTrattativa.checked = false;
+  }
+  fonteHint.textContent = meta.source
+    ? `Fonte modello: ${meta.source}`
+    : 'La fonte del modello viene proposta automaticamente ma puoi adattarla al caso concreto.';
 }
 
 function applyTaxonomyFromPractice(item) {
@@ -2761,10 +2894,31 @@ document.addEventListener('DOMContentLoaded', async () => {
   const selClienteRapidoTipo = document.getElementById('selClienteRapidoTipo');
   const selRegolaTariffaria = document.getElementById('selRegolaTariffaria');
   const selGrado = document.getElementById('selGrado');
+  const chkClausolaControversie = document.getElementById('chkClausolaControversie');
+  const selClausolaControversie = document.getElementById('selClausolaControversie');
+  const chkClausolaTrattativa = document.getElementById('chkClausolaTrattativa');
+  const inpClausolaControversieTesto = document.getElementById('inpClausolaControversieTesto');
+  const inpClausolaControversieFonte = document.getElementById('inpClausolaControversieFonte');
   const btnToggleFavorites = document.getElementById('btnToggleFavorites');
   const btnToggleCompact = document.getElementById('btnToggleCompact');
   const btnToggleAdvancedFilters = document.getElementById('btnToggleAdvancedFilters');
   const advancedFiltersCollapse = document.getElementById('advancedFiltersCollapse');
+  renderClausolaOptions();
+  chkClausolaControversie.checked = !!CLAUSOLA_STATE?.attiva;
+  if (CLAUSOLA_STATE?.modello && CLAUSOLA_CATALOGO_BY_ID[CLAUSOLA_STATE.modello]) {
+    selClausolaControversie.value = CLAUSOLA_STATE.modello;
+  }
+  chkClausolaTrattativa.checked = !!CLAUSOLA_STATE?.trattativa_individuale;
+  if (CLAUSOLA_STATE?.testo) {
+    inpClausolaControversieTesto.value = CLAUSOLA_STATE.testo;
+  }
+  if (CLAUSOLA_STATE?.fonte) {
+    inpClausolaControversieFonte.value = CLAUSOLA_STATE.fonte;
+  }
+  syncClausolaControversieUi({
+    forceText: !!CLAUSOLA_STATE?.attiva && !inpClausolaControversieTesto.value.trim(),
+    forceFonte: !inpClausolaControversieFonte.value.trim(),
+  });
   renderAreaButtons();
   renderTipologie();
   renderContestoFascicolo();
@@ -2782,6 +2936,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   chkClienteRapido.addEventListener('change', syncClienteRapidoUi);
   selClienteRapidoTipo.addEventListener('change', syncClienteRapidoUi);
   document.getElementById('inpFiltroTipologie').addEventListener('input', renderTipologie);
+  chkClausolaControversie.addEventListener('change', () => {
+    syncClausolaControversieUi({
+      forceText: chkClausolaControversie.checked && !inpClausolaControversieTesto.value.trim(),
+      forceFonte: !inpClausolaControversieFonte.value.trim(),
+    });
+  });
+  selClausolaControversie.addEventListener('change', () => syncClausolaControversieUi());
   btnToggleFavorites.addEventListener('click', () => {
     showOnlyFavorites = !showOnlyFavorites;
     renderTipologie();

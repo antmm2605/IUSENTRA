@@ -3,6 +3,7 @@ from types import SimpleNamespace
 from pct.fascicoli import GestioneFascicoli
 from pct.preventivi import (
     CLAUSOLA_CONTROVERSIE_MULTISTEP,
+    CLAUSOLA_CONTROVERSIE_TUTELA_CLIENTE,
     GestionePreventivi,
     StatoPreventivo,
     TipoVoce,
@@ -91,6 +92,21 @@ def test_prepara_clausola_controversie_genera_testo_standard_e_pulisce_quando_di
         "trattativa_individuale": False,
         "fonte": "",
     }
+
+
+def test_prepara_clausola_tutela_cliente_presidia_il_consumatore():
+    payload = prepara_clausola_controversie(
+        attiva=True,
+        modello=CLAUSOLA_CONTROVERSIE_TUTELA_CLIENTE,
+        testo="",
+        trattativa_individuale=True,
+        fonte="",
+    )
+
+    assert payload["attiva"] is True
+    assert payload["modello"] == CLAUSOLA_CONTROVERSIE_TUTELA_CLIENTE
+    assert "consumatore" in payload["testo"].lower()
+    assert "trattativa" in payload["fonte"].lower()
 
 
 def test_build_workflow_summary_identifica_step_firma(tmp_path):

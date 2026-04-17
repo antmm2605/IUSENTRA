@@ -1,0 +1,150 @@
+{% extends "admin/base.html" %}
+{% block title %}Review coverage AI{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('legal_coverage_admin.dashboard') }}" class="text-decoration-none">Copertura AI</a></li>
+<li class="breadcrumb-item active">Review</li>
+{% endblock %}
+
+{% block content %}
+<div class="review-shell admin-page-shell admin-coverage-review-page">
+  <div class="review-page-header mb-3">
+    <div>
+      <div class="review-kicker">Coverage AI</div>
+      <h1 class="review-title mb-1">Review queue draft v2</h1>
+      <p class="review-subtitle mb-0">
+        Revisione, correzione, approvazione e pubblicazione dei draft generati automaticamente.
+      </p>
+    </div>
+    <div class="review-header-actions">
+      <a href="{{ url_for('legal_coverage_admin.dashboard') }}" class="btn btn-outline-secondary">Torna alla dashboard</a>
+      <button class="btn btn-outline-primary" id="btn-refresh" type="button">Aggiorna</button>
+      <button class="btn btn-primary" id="btn-open-sql" type="button">Preview SQL</button>
+      <button class="btn btn-success" id="btn-approve" type="button">Approva</button>
+      <button class="btn btn-outline-danger" id="btn-reject" type="button">Rifiuta</button>
+      <button class="btn btn-dark" id="btn-publish" type="button">Pubblica</button>
+    </div>
+  </div>
+
+  <div class="row g-3">
+    <div class="col-12 col-xl-3">
+      <div class="card review-card h-100">
+        <div class="card-header review-card-header">
+          <div>
+            <h2 class="review-card-title">Coda draft</h2>
+            <small class="text-muted">Priorità, rischio e stato</small>
+          </div>
+          <span class="badge text-bg-light border" id="draft-count">0</span>
+        </div>
+        <div class="card-body review-list-body">
+          <div class="review-filters mb-3">
+            <input class="form-control form-control-sm" id="filter-text" placeholder="Filtra subbranch o procedura">
+          </div>
+          <div id="draft-list" class="review-draft-list"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12 col-xl-9">
+      <div class="row g-3">
+        <div class="col-12">
+          <div class="card review-card">
+            <div class="card-header review-card-header">
+              <div>
+                <h2 class="review-card-title">Panoramica draft</h2>
+                <small class="text-muted">Metadati, qualità e decisione</small>
+              </div>
+            </div>
+            <div class="card-body">
+              <div id="draft-empty" class="review-empty-state">
+                Seleziona un draft dalla coda per iniziare la revisione.
+              </div>
+              <div id="draft-meta" class="d-none">
+                <div class="row g-3">
+                  <div class="col-md-8">
+                    <div class="review-meta-grid">
+                      <div><span>Subbranch</span><strong id="meta-subbranch">-</strong></div>
+                      <div><span>Procedura</span><strong id="meta-procedure">-</strong></div>
+                      <div><span>Stato</span><strong id="meta-status">-</strong></div>
+                      <div><span>Rischio</span><strong id="meta-risk">-</strong></div>
+                    </div>
+                  </div>
+                  <div class="col-md-4">
+                    <div class="review-score-card">
+                      <div class="review-score-label">Score validazione</div>
+                      <div class="review-score-value" id="meta-score">0</div>
+                      <div class="review-score-caption" id="meta-warnings-count">0 warning</div>
+                    </div>
+                  </div>
+                </div>
+                <div class="review-chip-row mt-3">
+                  <span class="review-chip" id="chip-auto-publish">Auto publish: no</span>
+                  <span class="review-chip" id="chip-created-at">Creato: -</span>
+                  <span class="review-chip" id="chip-reviewed-at">Review: -</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-12 col-xxl-7">
+          <div class="card review-card">
+            <div class="card-header review-card-header">
+              <div>
+                <h2 class="review-card-title">Spec JSON</h2>
+                <small class="text-muted">Modifica inline del draft</small>
+              </div>
+              <button class="btn btn-primary btn-sm" id="btn-save" type="button">Salva modifiche</button>
+            </div>
+            <div class="card-body p-0">
+              <textarea id="spec-editor" class="review-editor" spellcheck="false"></textarea>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-12 col-xxl-5">
+          <div class="card review-card mb-3">
+            <div class="card-header review-card-header">
+              <div>
+                <h2 class="review-card-title">Validation report</h2>
+                <small class="text-muted">Errori, warning e completezza</small>
+              </div>
+            </div>
+            <div class="card-body">
+              <pre id="validation-view" class="review-code-block"></pre>
+            </div>
+          </div>
+
+          <div class="card review-card">
+            <div class="card-header review-card-header">
+              <div>
+                <h2 class="review-card-title">SQL preview</h2>
+                <small class="text-muted">Output del publisher reale</small>
+              </div>
+            </div>
+            <div class="card-body">
+              <pre id="sql-view" class="review-code-block review-sql-block"></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast-container position-fixed bottom-0 end-0 p-3">
+    <div id="review-toast" class="toast align-items-center text-bg-dark border-0" role="alert" aria-live="assertive" aria-atomic="true">
+      <div class="d-flex">
+        <div class="toast-body" id="review-toast-body">Operazione completata.</div>
+        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Chiudi"></button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+  window.REVIEW_API_BASE = "{{ review_api_base }}";
+</script>
+<script src="{{ url_for('static', filename='js/admin_coverage_review.js') }}?v={{ app_version }}"></script>
+{% endblock %}

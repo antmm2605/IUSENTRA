@@ -23,8 +23,7 @@ from pct.economico_context import (
     sincronizza_contesto_economico,
 )
 from pct.preventivi import (
-    CLAUSOLA_CONTROVERSIE_MULTISTEP,
-    CLAUSOLA_CONTROVERSIE_NESSUNA,
+    CLAUSOLA_CONTROVERSIE_TUTELA_CLIENTE,
     catalogo_clausola_controversie,
     fonte_modello_clausola_controversie,
     label_modello_clausola_controversie,
@@ -155,8 +154,9 @@ def _clausola_controversie_catalogo_context() -> list[dict]:
 def _clausola_controversie_form_state(source=None) -> dict:
     attiva = bool(getattr(source, "clausola_controversie_attiva", False))
     modello_raw = getattr(source, "clausola_controversie_modello", "") if source else ""
+    default_model = CLAUSOLA_CONTROVERSIE_TUTELA_CLIENTE
     modello = normalizza_modello_clausola_controversie(
-        modello_raw or (CLAUSOLA_CONTROVERSIE_MULTISTEP if attiva else CLAUSOLA_CONTROVERSIE_NESSUNA)
+        modello_raw or (default_model if attiva else default_model)
     )
     testo = (getattr(source, "clausola_controversie_testo", "") or "").strip()
     if attiva and not testo:
@@ -1170,6 +1170,22 @@ def wizard():
         "has_manual_voci_prefill": False,
         "auto_calcola": request.args.get("auto_calcola", "").strip() == "1",
     }
+    clausola_state = {
+        "attiva": request.args.get("clausola_controversie_attiva", "0") == "1",
+        "modello": normalizza_modello_clausola_controversie(
+            request.args.get("clausola_controversie_modello", "").strip() or CLAUSOLA_CONTROVERSIE_TUTELA_CLIENTE
+        ),
+        "testo": request.args.get("clausola_controversie_testo", "").strip(),
+        "trattativa_individuale": request.args.get(
+            "clausola_controversie_trattativa_individuale", "0"
+        )
+        == "1",
+        "fonte": request.args.get("clausola_controversie_fonte", "").strip(),
+    }
+    if not clausola_state["fonte"]:
+        clausola_state["fonte"] = fonte_modello_clausola_controversie(clausola_state["modello"])
+    if clausola_state["attiva"] and not clausola_state["testo"]:
+        clausola_state["testo"] = testo_predefinito_clausola_controversie(clausola_state["modello"])
     for key, field_name in (
         ("accessori_json", "accessori"),
         ("esborsi_json", "esborsi"),
@@ -1195,6 +1211,8 @@ def wizard():
         id_fascicolo_pre=id_fascicolo_pre,
         fascicolo_pre_context=_contesto_fascicolo_wizard(fascicolo_pre) if fascicolo_pre else None,
         wizard_prefill=wizard_prefill,
+        clausola_state=clausola_state,
+        clausola_catalogo=_clausola_controversie_catalogo_context(),
         from_page=request.args.get("from_page", "").strip(),
         entry_mode=request.args.get("entry", "").strip(),
         oggi=date.today(),
@@ -1459,6 +1477,13 @@ def wizard_genera():
         studio_piva=cfg.get("STUDIO_PIVA", ""),
         studio_cf=cfg.get("STUDIO_CF", ""),
         studio_indirizzo=cfg.get("STUDIO_INDIRIZZO", ""),
+        clausola_controversie_attiva=bool(f.get("clausola_controversie_attiva")),
+        clausola_controversie_modello=f.get("clausola_controversie_modello", "").strip(),
+        clausola_controversie_testo=f.get("clausola_controversie_testo", "").strip(),
+        clausola_controversie_trattativa_individuale=bool(
+            f.get("clausola_controversie_trattativa_individuale")
+        ),
+        clausola_controversie_fonte=f.get("clausola_controversie_fonte", "").strip(),
     )
 
     # Conferimento immediato?

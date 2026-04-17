@@ -282,6 +282,8 @@ def test_route_domini_estratti_restano_operativi(tmp_path: Path):
             "/soggetti",
             "/admin/database",
             "/admin/governance",
+            "/admin/copertura-ai",
+            "/admin/copertura-ai/review",
         ):
             response = client.get(path)
             assert response.status_code == 200, path

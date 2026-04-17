@@ -84,6 +84,7 @@ def _normalize_workflow_channel(value: str | None) -> str:
 
 
 CLAUSOLA_CONTROVERSIE_NESSUNA = "NESSUNA"
+CLAUSOLA_CONTROVERSIE_TUTELA_CLIENTE = "TUTELA_CLIENTE_CONSUMATORE"
 CLAUSOLA_CONTROVERSIE_MULTISTEP = "MULTISTEP_MEDIAZIONE_ARBITRATO"
 
 _CLAUSOLA_CONTROVERSIE_MODELLI: Dict[str, Dict[str, str]] = {
@@ -91,6 +92,25 @@ _CLAUSOLA_CONTROVERSIE_MODELLI: Dict[str, Dict[str, str]] = {
         "label": "Nessuna clausola specifica",
         "source": "",
         "default_text": "",
+    },
+    CLAUSOLA_CONTROVERSIE_TUTELA_CLIENTE: {
+        "label": "Tutela cliente / consumatore",
+        "source": (
+            "Presidio IUSENTRA per conferimento di incarico: usare con particolare "
+            "attenzione se il cliente opera come consumatore e documentare sempre una "
+            "trattativa seria, effettiva e individuale sulla clausola."
+        ),
+        "default_text": (
+            "Le parti convengono che, in caso di controversie relative al presente "
+            "incarico, prima di adire l'autorita giudiziaria sara valutato un tentativo "
+            "di composizione stragiudiziale o di mediazione, ove compatibile con la "
+            "materia trattata e con l'interesse concreto del cliente.\n\n"
+            "Resta fermo che, qualora il cliente rivesta la qualita di consumatore, "
+            "la presente clausola puo essere inserita nel conferimento solo a seguito "
+            "di trattativa individuale seria, effettiva e documentabile, con piena "
+            "informazione sugli effetti della clausola stessa e salva ogni tutela "
+            "inderogabile prevista dalla legge."
+        ),
     },
     CLAUSOLA_CONTROVERSIE_MULTISTEP: {
         "label": "Clausola multistep (mediazione + arbitrato)",

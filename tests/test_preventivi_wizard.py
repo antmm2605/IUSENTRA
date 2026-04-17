@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from werkzeug.datastructures import MultiDict
 
 from pct.economico_context import carica_log_calcolo
@@ -90,3 +92,13 @@ def test_contesto_log_wizard_da_form_conserva_tassonomia_e_fonti():
         "Codice di procedura civile — rito lavoro",
         "Ministero del Lavoro — licenziamenti",
     ]
+
+
+def test_template_dettaglio_preventivo_espone_classificazione_tassonomica_e_fonti():
+    template = Path("web/templates/preventivi/dettaglio_preventivo.html").read_text(encoding="utf-8")
+
+    assert "Classificazione tassonomica" in template
+    assert "p.area_tassonomica" in template
+    assert "p.macro_area_tassonomica" in template
+    assert "p.sottobranca_tassonomica" in template
+    assert "p.fonti_tassonomia" in template

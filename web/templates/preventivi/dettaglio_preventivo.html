@@ -11,8 +11,8 @@
     <h1 class="ds-ph-title">Preventivo {{ p.numero }}</h1>
     <p class="ds-ph-sub">
       <span class="badge bg-{{ badge.get(p.stato.value, 'secondary') }}">{{ p.stato.value }}</span>
-      - {{ p.data_emissione }}
-      {% if p.data_scadenza %} - valido fino al {{ p.data_scadenza }}{% endif %}
+      - {{ p.data_emissione|fmt_data }}
+      {% if p.data_scadenza %} - valido fino al {{ p.data_scadenza|fmt_data }}{% endif %}
     </p>
   </div>
   <div class="ds-ph-actions d-flex gap-2 d-print-none">
@@ -99,8 +99,8 @@
         {% if fascicolo %}
         <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
           <div>
-            <div class="fw-semibold">Preventivo gia trasformato in pratica operativa</div>
-            <div class="text-muted small">Cliente, preventivo e fascicolo sono gia collegati. Da qui puoi proseguire con atti, scadenze e depositi.</div>
+            <div class="fw-semibold">Preventivo già trasformato in pratica operativa</div>
+            <div class="text-muted small">Cliente, preventivo e fascicolo sono già collegati. Da qui puoi proseguire con atti, scadenze e depositi.</div>
           </div>
           <a href="{{ url_for('dettaglio_fascicolo', id_fasc=fascicolo.id) }}" class="btn btn-primary">
             <i class="bi bi-folder2-open me-1"></i>Vai al fascicolo
@@ -161,7 +161,7 @@
         <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
           <div>
             <div class="fw-semibold">Prossimo passo: apertura fascicolo guidata</div>
-            <div class="text-muted small">Hai gia tutti i dati utili. Il fascicolo verra precompilato e collegato automaticamente a questo workflow.</div>
+            <div class="text-muted small">Hai già tutti i dati utili. Il fascicolo verrà precompilato e collegato automaticamente a questo workflow.</div>
           </div>
           <a href="{{ url_apri_fascicolo }}" class="btn btn-primary">
             <i class="bi bi-folder-plus me-1"></i>Apri fascicolo guidato
@@ -169,7 +169,7 @@
         </div>
         {% else %}
         <div class="text-muted small">
-          Quando il cliente accetta il preventivo, aggiorna lo stato e il sistema ti proporra automaticamente conferimento e apertura fascicolo.
+          Quando il cliente accetta il preventivo, aggiorna lo stato e il sistema ti proporrà automaticamente conferimento e apertura fascicolo.
         </div>
         {% endif %}
         {% if workflow_summary %}
@@ -231,11 +231,72 @@
           {% endif %}
           {% if p.complessita %}
           <div class="col-12">
-            <span class="text-muted small">Complessita:</span>
+            <span class="text-muted small">Complessità:</span>
             <span class="small ms-1">{{ p.complessita }}</span>
           </div>
           {% endif %}
         </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12">
+    <div class="card border-primary-subtle">
+      <div class="card-header fw-semibold"><i class="bi bi-diagram-3 me-2"></i>Classificazione tassonomica</div>
+      <div class="card-body">
+        {% set tassonomia_attiva = p.area_tassonomica or p.macro_area_tassonomica or p.sottobranca_tassonomica or p.tassonomia_codice %}
+        {% if tassonomia_attiva %}
+        <div class="d-flex flex-wrap gap-2 mb-3">
+          {% if p.area_tassonomica %}
+          <span class="badge bg-primary-subtle text-primary-emphasis">{{ p.area_tassonomica }}</span>
+          {% endif %}
+          {% if p.macro_area_tassonomica %}
+          <span class="badge text-bg-light">{{ p.macro_area_tassonomica }}</span>
+          {% endif %}
+          {% if p.sottobranca_tassonomica %}
+          <span class="badge text-bg-light">{{ p.sottobranca_tassonomica }}</span>
+          {% endif %}
+          {% if p.tassonomia_codice %}
+          <span class="badge bg-secondary-subtle text-secondary-emphasis">{{ p.tassonomia_codice }}</span>
+          {% endif %}
+        </div>
+        <div class="row g-2 small">
+          {% if p.area_tassonomica %}
+          <div class="col-md-4"><span class="text-muted">Area tassonomica:</span> <span class="fw-semibold">{{ p.area_tassonomica }}</span></div>
+          {% endif %}
+          {% if p.macro_area_tassonomica %}
+          <div class="col-md-4"><span class="text-muted">Macro-area:</span> <span class="fw-semibold">{{ p.macro_area_tassonomica }}</span></div>
+          {% endif %}
+          {% if p.sottobranca_tassonomica %}
+          <div class="col-md-4"><span class="text-muted">Sottobranca:</span> <span class="fw-semibold">{{ p.sottobranca_tassonomica }}</span></div>
+          {% endif %}
+        </div>
+        {% if p.fonti_tassonomia %}
+        <hr class="my-3">
+        <div class="small fw-semibold mb-2">Fonti ufficiali aggregate</div>
+        <ul class="list-group list-group-flush small">
+          {% for fonte in p.fonti_tassonomia %}
+          <li class="list-group-item px-0 py-2">
+            <div class="fw-semibold">{{ fonte.title or fonte.label or fonte.nome or 'Fonte ufficiale' }}</div>
+            {% if fonte.article or fonte.articolo %}
+            <div class="text-muted">{{ fonte.article or fonte.articolo }}</div>
+            {% endif %}
+            {% if fonte.url %}
+            <a href="{{ fonte.url }}" target="_blank" rel="noopener" class="small">Apri fonte</a>
+            {% endif %}
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <div class="alert alert-light border mt-3 mb-0 py-2 small">
+          La classificazione è già salvata nel preventivo; le fonti ufficiali aggregate non erano valorizzate in questo tracciato.
+        </div>
+        {% endif %}
+        {% else %}
+        <div class="text-muted">
+          Questo preventivo non ha ancora una classificazione tassonomica valorizzata.
+        </div>
+        {% endif %}
       </div>
     </div>
   </div>
@@ -271,10 +332,10 @@
     </div>
   </div>
 
-  {% if calc_summary %}
+{% if calc_summary %}
   <div class="col-12">
     <div class="card border-primary-subtle">
-      <div class="card-header fw-semibold"><i class="bi bi-diagram-3 me-2"></i>Tracciabilita del calcolo</div>
+      <div class="card-header fw-semibold"><i class="bi bi-diagram-3 me-2"></i>Tracciabilità del calcolo</div>
       <div class="card-body">
         <div class="row g-2 small">
           {% if calc_summary.source_label %}<div class="col-md-4"><span class="text-muted">Origine:</span> <span class="fw-semibold">{{ calc_summary.source_label }}</span></div>{% endif %}
@@ -282,11 +343,11 @@
           {% if calc_summary.regola_tariffaria_label or calc_summary.regola_tariffaria %}<div class="col-md-4"><span class="text-muted">Regola:</span> <span class="fw-semibold">{{ calc_summary.regola_tariffaria_label or calc_summary.regola_tariffaria }}</span></div>{% endif %}
           {% if calc_summary.grado_sede %}<div class="col-md-4"><span class="text-muted">Grado / sede:</span> <span class="fw-semibold">{{ calc_summary.grado_sede }}</span></div>{% endif %}
           {% if calc_summary.scaglione %}<div class="col-md-4"><span class="text-muted">Scaglione:</span> <span class="fw-semibold">{{ calc_summary.scaglione }}</span></div>{% endif %}
-          {% if calc_summary.complessita %}<div class="col-md-4"><span class="text-muted">Complessita:</span> <span class="fw-semibold text-capitalize">{{ calc_summary.complessita }}</span></div>{% endif %}
+          {% if calc_summary.complessita %}<div class="col-md-4"><span class="text-muted">Complessità:</span> <span class="fw-semibold text-capitalize">{{ calc_summary.complessita }}</span></div>{% endif %}
         </div>
         {% if calc_summary.audit_tariffario and calc_summary.audit_tariffario.compliance_label %}
         <div class="alert alert-{{ calc_summary.audit_tariffario.compliance_badge or 'secondary' }} py-2 mt-3 mb-2 small">
-          <div class="fw-semibold mb-1">Conformita tariffaria: {{ calc_summary.audit_tariffario.compliance_label }}</div>
+          <div class="fw-semibold mb-1">Conformità tariffaria: {{ calc_summary.audit_tariffario.compliance_label }}</div>
           <div>
             {% if calc_summary.audit_tariffario.table_code %}
               Tabella {{ calc_summary.audit_tariffario.table_code }}
@@ -321,7 +382,7 @@
       </div>
     </div>
   </div>
-  {% endif %}
+{% endif %}
 
   <div class="col-12">
     <div class="card">

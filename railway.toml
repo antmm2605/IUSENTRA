@@ -1,7 +1,7 @@
 #  Railway - Configurazione deploy
 #  Docs: https://docs.railway.app
-#  version: 2.163.3
-#  redeploy: 2026-04-17T20:30:00
+#  version: 2.164.0
+#  redeploy: 2026-04-17T20:42:00
 
 [build]
 builder = "DOCKERFILE"

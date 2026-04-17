@@ -8,9 +8,10 @@ from pct.legal_platform_catalog import (
 def test_catalogo_piattaforma_legale_copre_le_procedure_wave1_e_wave2():
     catalogo = catalogo_piattaforma_legale()
 
-    assert catalogo["stats"]["procedure_totali"] == 22
+    assert catalogo["stats"]["procedure_totali"] == 29
     assert catalogo["stats"]["procedure_telematiche"] >= 5
     assert catalogo["by_area"]["Tributario"] >= 2
+    assert catalogo["by_area"]["Successioni"] == 1
     assert catalogo["by_channel"]["PTT_TRIBUTARIO"] >= 1
 
 

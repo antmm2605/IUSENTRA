@@ -1,0 +1,73 @@
+{
+  "presets": {
+    "stragiudiziale_standard": {
+      "subbranch_profile": {
+        "coverage_mode": "OPERATIONAL_READY",
+        "operational_priority": 75,
+        "is_telematic": false,
+        "requires_human_review": false
+      },
+      "procedure": {
+        "channel_code": "STRAGIUDIZIALE",
+        "act_type_code": "LETTERA",
+        "complexity_level": "LOW",
+        "mandatory_human_review": false,
+        "requires_hearing": false,
+        "requires_registry_enrollment": false,
+        "allows_settlement": true
+      },
+      "phase_map": [
+        {
+          "phase_code": "PREPARAZIONE",
+          "sort_order": 10,
+          "is_required": true
+        },
+        {
+          "phase_code": "NOTIFICA",
+          "sort_order": 20,
+          "is_required": true
+        },
+        {
+          "phase_code": "CHIUSURA",
+          "sort_order": 30,
+          "is_required": true
+        }
+      ]
+    },
+    "telematico_standard": {
+      "subbranch_profile": {
+        "coverage_mode": "OPERATIONAL_READY",
+        "operational_priority": 88,
+        "is_telematic": true,
+        "requires_human_review": true
+      },
+      "procedure": {
+        "channel_code": "PCT_CIVILE",
+        "complexity_level": "MEDIUM",
+        "mandatory_human_review": true,
+        "requires_registry_enrollment": true
+      },
+      "phase_map": [
+        {
+          "phase_code": "PREPARAZIONE",
+          "sort_order": 10,
+          "is_required": true
+        },
+        {
+          "phase_code": "DEPOSITO",
+          "sort_order": 20,
+          "is_required": true
+        },
+        {
+          "phase_code": "CHIUSURA",
+          "sort_order": 30,
+          "is_required": true
+        }
+      ]
+    }
+  },
+  "subbranch_defaults": {
+    "CONSUMATORI_GARANZIE_E_RECESSO": "stragiudiziale_standard",
+    "SUCCESSIONI_DICHIARAZIONE_DI_SUCCESSIONE": "telematico_standard"
+  }
+}

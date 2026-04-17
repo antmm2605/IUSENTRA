@@ -31,12 +31,12 @@ def slugify(value: str) -> str:
         "ì": "i",
         "ò": "o",
         "ù": "u",
-        "Ã ": "a",
-        "Ã¨": "e",
-        "Ã©": "e",
-        "Ã¬": "i",
-        "Ã²": "o",
-        "Ã¹": "u",
+        "\u00c3\u00a0": "a",
+        "\u00c3\u00a8": "e",
+        "\u00c3\u00a9": "e",
+        "\u00c3\u00ac": "i",
+        "\u00c3\u00b2": "o",
+        "\u00c3\u00b9": "u",
     }
     for source, target in replacements.items():
         text = text.replace(source, target)

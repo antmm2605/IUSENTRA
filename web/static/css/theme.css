@@ -911,6 +911,61 @@
   gap: 1rem;
 }
 
+.tm-hero {
+  padding: 0.9rem 1rem;
+}
+
+.tm-stats {
+  gap: 0.65rem;
+}
+
+.tm-stat {
+  padding: 0.75rem;
+}
+
+.tm-control-grid {
+  gap: 0.75rem;
+}
+
+.tm-card-body {
+  padding: 0.85rem 0.9rem;
+}
+
+.tm-list {
+  gap: 0.6rem;
+}
+
+.tm-list-item,
+.tm-control-card {
+  padding: 0.75rem 0.8rem;
+}
+
+.tm-kpi {
+  gap: 0.45rem;
+}
+
+.portale-workspace-shell {
+  display: grid;
+  gap: 0;
+}
+
+.portale-workspace-head {
+  margin-bottom: 0.9rem;
+}
+
+.portale-workspace-badge {
+  font-size: 0.72rem;
+}
+
+.portale-workspace-intro {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.85rem;
+  box-shadow: var(--hc-shadow-soft);
+}
+
 .apps-hero {
   padding: 1rem 1.05rem;
 }
@@ -1077,12 +1132,14 @@
   .apps-panel-body,
   .tm-card-body,
   .tm-list-item,
+  .tm-control-card,
   .tm-stat,
   .tf-stat,
   .acts-stat,
   .apps-kpi,
   .jud-stat,
-  .portal-hub-pane {
+  .portal-hub-pane,
+  .portale-workspace-intro {
     padding: 0.85rem;
   }
   .tm-stats,

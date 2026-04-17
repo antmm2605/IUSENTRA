@@ -84,6 +84,7 @@ def register_telematico_surfaces(
         get_fascicoli=core["get_fascicoli"],
         get_clienti=core["get_clienti"],
         portale_demo_mode=telematico["portale_demo_mode"],
+        portale_browser_channel_required=telematico["portale_browser_channel_required"],
         portale_local_channel_enabled=telematico["portale_local_channel_enabled"],
         portale_browser_guided_message=telematico["portale_browser_guided_message"],
         is_portale_dns_error=telematico["is_portale_dns_error"],

@@ -87,17 +87,19 @@ def build_telematico_runtime(
         return (portale or "").strip().lower() in {"pst", "pdp", "pat", "ptt"} and _polis_auth_mode() == "pkcs11"
 
     def _portale_browser_channel_required(portale: str) -> bool:
-        """PAT e PTT usano sempre il canale browser ufficiale; PDP resta opt-in via env."""
+        """PAT/PTT sono sempre browser-guided; PDP lo diventa quando manca un backend server reale."""
         portale_norm = (portale or "").strip().lower()
         if portale_norm not in {"pdp", "pat", "ptt"}:
             return False
         if portale_norm in {"pat", "ptt"}:
             return True
         truthy = {"1", "true", "yes", "on"}
-        return (
+        if (
             str(os.getenv("PCT_PORTALI_BROWSER_ONLY", "") or "").strip().lower() in truthy
             or str(os.getenv(f"PCT_{portale_norm.upper()}_BROWSER_ONLY", "") or "").strip().lower() in truthy
-        )
+        ):
+            return True
+        return _polis_auth_mode() == "demo"
 
     def _portale_demo_mode(portale: str) -> bool:
         """I portali browser-guided non devono ricadere nel banner demo del PST."""
@@ -362,6 +364,12 @@ def build_telematico_runtime(
                 "Usa l'acquisizione guidata, apri il portale ufficiale o Telecontenzioso nel browser, "
                 "consulta o scarica il fascicolo processuale e poi importa nel fascicolo tributario interno "
                 "documenti, ricevute, provvedimenti ed esiti."
+            )
+        if (portale or "").strip().lower() == "pdp":
+            return (
+                "Per PDP Penale il fascicolo si consulta dal canale ufficiale MinGiust con le stesse credenziali "
+                "CNS del PCT civile. Usa l'acquisizione guidata, completa il download nel browser e poi importa in "
+                "IUSENTRA i file gia scaricati nel workflow PDP."
             )
         return (
             f"L'endpoint ufficiale di {label} non è raggiungibile dal backend server. "
@@ -1879,6 +1887,8 @@ def build_telematico_runtime(
         if browser_channel_required:
             if portale == "pat":
                 status_text = "Consultazione via Portale dell'Avvocato"
+            elif portale == "pdp":
+                status_text = "Consultazione via PDP Penale ufficiale"
             elif portale == "ptt":
                 status_text = "Consultazione via PTT / SIGIT"
             else:
@@ -1940,7 +1950,9 @@ def build_telematico_runtime(
                     codice_fiscale_parte=cf,
                 )
             elif portale == "pdp":
-                if _portale_local_channel_enabled(portale):
+                if _portale_browser_channel_required(portale):
+                    raise ValueError(_portale_browser_guided_message(portale))
+                if _portale_usa_local_signer(portale):
                     raise ValueError("Per PDP Penale la ricerca guidata usa il Local Signer dal browser.")
                 from pct.pdp import crea_client_pdp
 
@@ -1999,7 +2011,9 @@ def build_telematico_runtime(
                     int(selection.get("anno") or 0),
                 )
             elif portale == "pdp":
-                if _portale_local_channel_enabled(portale):
+                if _portale_browser_channel_required(portale):
+                    raise ValueError(_portale_browser_guided_message(portale))
+                if _portale_usa_local_signer(portale):
                     raise ValueError("Anteprima documenti PDP via browser locale richiesta.")
                 from pct.pdp import crea_client_pdp
 
@@ -2472,6 +2486,7 @@ read -r -p "Premi Invio per chiudere..." _
         "polis_auth_mode": _polis_auth_mode,
         "polis_demo_mode": _polis_demo_mode,
         "portale_demo_mode": _portale_demo_mode,
+        "portale_browser_channel_required": _portale_browser_channel_required,
         "polis_cert_preferences": _polis_cert_preferences,
         "portale_local_channel_enabled": _portale_local_channel_enabled,
         "portale_browser_guided_message": _portale_browser_guided_message,

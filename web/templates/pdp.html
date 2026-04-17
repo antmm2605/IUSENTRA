@@ -1,117 +1,165 @@
-﻿{% extends "base.html" %}
+{% extends "base.html" %}
 {% block title %}PDP Penale - Portale Deposito Atti{% endblock %}
 {% block pct_modulo %}pdp{% endblock %}
 
 {% from 'includes/_fascicolo_banner.html' import banner_fascicolo %}
-{% block content %}
+{% from 'includes/_portale_workspace.html' import render_portale_workspace %}
 
+{% block content %}
 {{ banner_fascicolo(portale_col='danger', portale_label='PDP Penale') }}
 
-<div class="d-flex align-items-center gap-2 mb-3 flex-wrap">
-  <i class="bi bi-shield-exclamation fs-4 text-danger"></i>
-  <h4 class="mb-0 fw-bold">PDP Penale</h4>
-  <span class="badge bg-light text-dark border ms-1" style="font-size:.72rem">
-    Portale Deposito Atti Penale - MinGiust
-  </span>
-  <a href="{{ url_for('telematico_dashboard') }}" class="btn btn-sm btn-outline-secondary ms-auto">
-    <i class="bi bi-grid-1x2 me-1"></i>Centro Servizi Telematici
-  </a>
-  {% if demo_mode %}
-  <span class="badge bg-warning text-dark ms-2">
-    <i class="bi bi-cone me-1"></i>MODALITA DEMO
-  </span>
-  {% endif %}
-</div>
+{% set intro_actions = [
+  {
+    'href': url_for('portale_acquisizione_wizard', portale='pdp', id_fasc=fascicolo.id if fascicolo else None),
+    'class': 'btn-danger',
+    'icon': 'bi-diagram-3',
+    'label': 'Acquisizione guidata'
+  },
+  {
+    'href': url_for('portale_acquisizione_wizard', portale='pdp', id_fasc=fascicolo.id if fascicolo else None, focus='manual-upload'),
+    'class': 'btn-outline-secondary',
+    'icon': 'bi-upload',
+    'label': 'Importa file già scaricati'
+  },
+  {
+    'href': official_portal_url,
+    'class': 'btn-outline-danger',
+    'icon': 'bi-box-arrow-up-right',
+    'label': 'Apri PDP Penale',
+    'target_blank': True
+  }
+] %}
 
-{% if demo_mode %}
-<div class="alert alert-warning alert-dismissible fade show small mb-3">
-  <i class="bi bi-cone me-2"></i>
-  <strong>Certificato non configurato - modalita demo (offline).</strong>
-  Per il PDP reale usa le stesse credenziali CNS del PCT civile in
-  <a href="{{ url_for('impostazioni.index', tab='firma') }}" class="alert-link">Impostazioni -> Firma Digitale</a>.
-  <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-</div>
-{% endif %}
-
-{% with messages = get_flashed_messages(with_categories=true) %}
-  {% for cat, msg in messages %}
-  <div class="alert alert-{{ 'success' if cat == 'success' else ('warning' if cat == 'warning' else 'info') }} alert-dismissible fade show">
-    {{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-  </div>
-  {% endfor %}
-{% endwith %}
-
-<div class="alert alert-danger-subtle border border-danger-subtle rounded-4 mb-3 d-flex flex-wrap justify-content-between align-items-center gap-3">
-  <div>
-    <strong><i class="bi bi-stars me-1"></i>Percorso consigliato</strong>
-    Nel penale non chiediamo una ricerca piena dal gestionale: la via corretta e' <strong>Acquisizione guidata</strong>,
-    che cerca il fascicolo dal canale ufficiale, evita duplicati locali e apre subito il <strong>workflow PDP</strong>.
-  </div>
-  <div class="d-flex gap-2 flex-wrap">
-    <a class="btn btn-danger" href="{{ url_for('portale_acquisizione_wizard', portale='pdp', id_fasc=fascicolo.id if fascicolo else None) }}">
-      <i class="bi bi-diagram-3 me-1"></i>Acquisizione guidata
-    </a>
-    <a class="btn btn-outline-secondary" href="{{ url_for('portale_acquisizione_wizard', portale='pdp', id_fasc=fascicolo.id if fascicolo else None, focus='manual-upload') }}">
-      <i class="bi bi-upload me-1"></i>Importa file gia scaricati
-    </a>
-  </div>
-</div>
+{% set official_actions = [
+  {
+    'href': official_portal_url,
+    'class': 'btn-danger',
+    'icon': 'bi-box-arrow-up-right',
+    'label': 'Apri PDP Penale',
+    'target_blank': True
+  },
+  {
+    'href': official_portal_url,
+    'class': 'btn-outline-danger',
+    'icon': 'bi-search',
+    'label': 'Cerca fascicolo sul portale',
+    'target_blank': True
+  },
+  {
+    'href': official_portal_url,
+    'class': 'btn-outline-secondary',
+    'icon': 'bi-journal-check',
+    'label': 'Accedi ai servizi ufficiali',
+    'target_blank': True
+  }
+] %}
 
 {% if fascicolo %}
-<div class="card shadow-sm mb-4 border-danger-subtle">
-  <div class="card-body d-flex justify-content-between align-items-start gap-3 flex-wrap">
-    <div>
-      <div class="small text-uppercase text-muted fw-semibold mb-1">Pratica collegata</div>
-      <div class="fw-semibold">{{ fascicolo.titolo }}</div>
-      <div class="small text-muted">
-        {{ fascicolo.tribunale or 'Ufficio da completare' }}
-        {% if fascicolo.rg_completo %} - {{ fascicolo.rg_completo }}{% endif %}
-      </div>
-    </div>
-    <div class="d-flex gap-2 flex-wrap">
-      <a class="btn btn-outline-danger btn-sm" href="{{ url_for('pdp_penale_workspace', id_fasc=fascicolo.id) }}">
-        <i class="bi bi-shield-lock me-1"></i>Workflow PDP
-      </a>
-      <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('dettaglio_fascicolo', id_fasc=fascicolo.id) }}">
-        <i class="bi bi-folder2-open me-1"></i>Apri fascicolo
-      </a>
-    </div>
-  </div>
-</div>
+  {% set fascicolo_actions = [
+    {
+      'href': url_for('pdp_penale_workspace', id_fasc=fascicolo.id),
+      'class': 'btn-outline-danger',
+      'icon': 'bi-shield-lock',
+      'label': 'Workflow PDP'
+    },
+    {
+      'href': url_for('dettaglio_fascicolo', id_fasc=fascicolo.id),
+      'class': 'btn-outline-secondary',
+      'icon': 'bi-folder2-open',
+      'label': 'Apri fascicolo interno'
+    }
+  ] %}
+  {% set managed_actions = [
+    {
+      'href': url_for('portale_acquisizione_wizard', portale='pdp', id_fasc=fascicolo.id),
+      'class': 'btn-outline-danger',
+      'icon': 'bi-diagram-3',
+      'label': 'Acquisizione guidata e import file'
+    },
+    {
+      'href': url_for('portale_acquisizione_wizard', portale='pdp', id_fasc=fascicolo.id, focus='manual-upload'),
+      'class': 'btn-outline-secondary',
+      'icon': 'bi-upload',
+      'label': 'Importa file già scaricati'
+    },
+    {
+      'href': url_for('pdp_penale_workspace', id_fasc=fascicolo.id),
+      'class': 'btn-outline-secondary',
+      'icon': 'bi-shield-lock',
+      'label': 'Apri workflow PDP'
+    },
+    {
+      'href': url_for('dettaglio_fascicolo', id_fasc=fascicolo.id) ~ '#sezione-documenti-fascicolo',
+      'class': 'btn-outline-secondary',
+      'icon': 'bi-paperclip',
+      'label': 'Importa atti e allegati'
+    }
+  ] %}
+  {% set managed_note = '' %}
+{% else %}
+  {% set fascicolo_actions = [] %}
+  {% set managed_actions = [
+    {
+      'href': url_for('portale_acquisizione_wizard', portale='pdp'),
+      'class': 'btn-outline-danger',
+      'icon': 'bi-diagram-3',
+      'label': 'Acquisizione guidata e import file'
+    },
+    {
+      'href': url_for('portale_acquisizione_wizard', portale='pdp', focus='manual-upload'),
+      'class': 'btn-outline-secondary',
+      'icon': 'bi-upload',
+      'label': 'Importa file già scaricati'
+    }
+  ] %}
+  {% set managed_note = 'Collega o crea prima una pratica interna per archiviare atti, esiti e documenti scaricati dal canale ufficiale.' %}
 {% endif %}
 
-<div class="card shadow-sm">
-  <div class="card-header fw-semibold small">
-    <i class="bi bi-info-circle me-2 text-danger"></i>Come funziona adesso il modulo PDP
-  </div>
-  <div class="card-body small text-muted">
-    <div class="row g-3">
-      <div class="col-md-4">
-        <div class="fw-semibold text-dark mb-1">
-          <i class="bi bi-signpost-2 text-danger me-1"></i>Ricerca guidata
-        </div>
-        La ricerca libera con molti campi e' stata rimossa: il gestionale usa il percorso guidato per
-        cercare, verificare e importare il fascicolo corretto senza creare doppioni.
-      </div>
-      <div class="col-md-4">
-      <div class="fw-semibold text-dark mb-1">
-        <i class="bi bi-arrow-repeat text-danger me-1"></i>Importazione intelligente
-      </div>
-      Se la pratica esiste gia', IUSENTRA la integra. Se manca, la crea. Nel penale aggancia anche il
-      workflow PDP per accesso atti, PEC, password e import fascicolo. Dopo il download dal portale,
-      l'import dei file reali avviene nello Step 7 dell'acquisizione guidata oppure dal workspace PDP.
-      Il pulsante <strong>Importa file gia scaricati</strong> apre direttamente il wizard con questo focus.
-    </div>
-      <div class="col-md-4">
-        <div class="fw-semibold text-dark mb-1">
-          <i class="bi bi-key text-danger me-1"></i>Credenziali
-        </div>
-        Il PDP usa le stesse credenziali CNS del PCT civile. Configurale in
-        <a href="{{ url_for('impostazioni.index', tab='firma') }}">Impostazioni -> Firma Digitale</a>.
-      </div>
-    </div>
-  </div>
-</div>
-
+{{ render_portale_workspace(
+  'danger',
+  'bi-shield-exclamation',
+  'PDP Penale',
+  'Portale Deposito Atti Penale - MinGiust',
+  url_for('telematico_dashboard'),
+  'Modello corretto del PDP',
+  "In IUSENTRA il fascicolo penale è interno: consultazione, accesso atti e ricerca pratica passano dal canale ufficiale MinGiust, mentre il gestionale governa controlli, workflow PDP, esiti, PEC, password operative e import dei file già scaricati dal portale.",
+  intro_actions,
+  fascicolo,
+  fascicolo_actions,
+  'Canale ufficiale MinGiust',
+  'La ricerca del fascicolo, la consultazione e i passaggi autenticati del penale si completano nel canale ufficiale PDP con le stesse credenziali CNS del PCT civile.',
+  official_actions,
+  'Gestione in IUSENTRA',
+  'IUSENTRA evita duplicati, costruisce il fascicolo penale interno, collega il workflow PDP e integra atti, PEC, password operative, ricevute ed esiti dopo il download dal portale ufficiale.',
+  managed_actions,
+  managed_note,
+  'Fascicolo Penale Interno',
+  'La vista interna non sostituisce il portale penale: ricostruisce un fascicolo operativo di studio con storia completa, cartelle coerenti e collegamento diretto al workflow PDP.',
+  [
+    'Atti principali',
+    'Accesso atti',
+    'PEC e notifiche',
+    'Password operative',
+    'Ricevute',
+    'Documenti importati',
+    'Timeline',
+    'Workflow PDP'
+  ],
+  'Il gestionale è forte prima dell’acquisizione e dopo il download: controlli, handoff al portale, import dei file reali e governo della pratica penale.',
+  'Come funziona il modulo PDP',
+  [
+    {
+      'title': 'Ricerca guidata',
+      'body': "La ricerca libera è stata sostituita da un percorso guidato che evita doppioni, aggancia il fascicolo corretto e prepara subito il workflow operativo penale."
+    },
+    {
+      'title': 'Portale ufficiale al centro',
+      'body': "Per consultazione, accesso atti e passaggi autenticati si lavora nel canale ufficiale MinGiust con credenziali CNS. IUSENTRA non lo simula più in modalità offline."
+    },
+    {
+      'title': 'Rientro nel gestionale',
+      'body': "Dopo il download dal portale, importi i file reali in IUSENTRA, che aggiorna fascicolo interno, documenti, workflow PDP e collegamenti rapidi alla pratica."
+    }
+  ]
+) }}
 {% endblock %}
-

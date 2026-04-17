@@ -1,212 +1,165 @@
-﻿{% extends "base.html" %}
+{% extends "base.html" %}
 {% block title %}PAT - Portale Avvocato{% endblock %}
 {% block pct_modulo %}pat{% endblock %}
 
 {% from 'includes/_fascicolo_banner.html' import banner_fascicolo %}
+{% from 'includes/_portale_workspace.html' import render_portale_workspace %}
+
 {% block content %}
 {{ banner_fascicolo(portale_col='success', portale_label='PAT Amministrativo') }}
 
-<div class="d-flex align-items-center gap-2 mb-3 flex-wrap">
-  <i class="bi bi-building-check fs-4 text-success"></i>
-  <h4 class="mb-0 fw-bold">PAT Amministrativo</h4>
-  <span class="badge bg-light text-dark border ms-1" style="font-size:.72rem">
-    Nuovo Portale dell'Avvocato - SIGA
-  </span>
-  <a href="{{ url_for('telematico_dashboard') }}" class="btn btn-sm btn-outline-secondary ms-auto">
-    <i class="bi bi-grid-1x2 me-1"></i>Centro Servizi Telematici
-  </a>
-  {% if demo_mode %}
-  <span class="badge bg-warning text-dark ms-2">
-    <i class="bi bi-cone me-1"></i>MODALITA DEMO
-  </span>
-  {% endif %}
-</div>
+{% set intro_actions = [
+  {
+    'href': url_for('portale_acquisizione_wizard', portale='pat', id_fasc=fascicolo.id if fascicolo else None),
+    'class': 'btn-success',
+    'icon': 'bi-diagram-3',
+    'label': 'Acquisizione guidata'
+  },
+  {
+    'href': url_for('portale_acquisizione_wizard', portale='pat', id_fasc=fascicolo.id if fascicolo else None, focus='manual-upload'),
+    'class': 'btn-outline-secondary',
+    'icon': 'bi-upload',
+    'label': 'Importa file già scaricati'
+  },
+  {
+    'href': official_portal_url,
+    'class': 'btn-outline-success',
+    'icon': 'bi-box-arrow-up-right',
+    'label': 'Apri Portale Avvocato',
+    'target_blank': True
+  }
+] %}
 
-{% if demo_mode %}
-<div class="alert alert-warning alert-dismissible fade show small mb-3">
-  <i class="bi bi-cone me-2"></i>
-  <strong>Certificato non configurato - modalita demo (offline).</strong>
-  Il PAT reale richiede accesso tramite il Portale dell'Avvocato con identita digitale. Configura CNS/CIE in
-  <a href="{{ url_for('impostazioni.index', tab='firma') }}" class="alert-link">Impostazioni -> Firma Digitale</a>
-  per le funzioni assistite del gestionale.
-  <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-</div>
-{% endif %}
-
-{% with messages = get_flashed_messages(with_categories=true) %}
-  {% for cat, msg in messages %}
-  <div class="alert alert-{{ 'success' if cat == 'success' else ('warning' if cat == 'warning' else ('info' if cat == 'info' else 'danger')) }} alert-dismissible fade show">
-    {{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-  </div>
-  {% endfor %}
-{% endwith %}
-
-<div class="alert alert-success-subtle border border-success-subtle rounded-4 mb-4 d-flex flex-column flex-lg-row justify-content-between align-items-start gap-3">
-  <div>
-    <div class="fw-semibold mb-1"><i class="bi bi-signpost-2 me-1"></i>Modello corretto del PAT</div>
-    <div class="small">
-      In IUSENTRA il <strong>fascicolo PAT e interno</strong>: deposito e consultazione restano sul
-      <strong>Portale dell'Avvocato ufficiale</strong>, mentre il gestionale governa controlli,
-      timeline, esiti, ricevute, provvedimenti e import dei file gia scaricati dal portale.
-    </div>
-  </div>
-  <div class="d-flex gap-2 flex-wrap">
-    <a class="btn btn-success" href="{{ url_for('portale_acquisizione_wizard', portale='pat', id_fasc=fascicolo.id if fascicolo else None) }}">
-      <i class="bi bi-diagram-3 me-1"></i>Acquisizione guidata
-    </a>
-    <a class="btn btn-outline-secondary" href="{{ url_for('portale_acquisizione_wizard', portale='pat', id_fasc=fascicolo.id if fascicolo else None, focus='manual-upload') }}">
-      <i class="bi bi-upload me-1"></i>Importa file gia scaricati
-    </a>
-    <a class="btn btn-outline-success" href="{{ official_portal_url }}" target="_blank" rel="noopener">
-      <i class="bi bi-box-arrow-up-right me-1"></i>Apri Portale Avvocato
-    </a>
-  </div>
-</div>
+{% set official_actions = [
+  {
+    'href': official_portal_url,
+    'class': 'btn-success',
+    'icon': 'bi-box-arrow-up-right',
+    'label': 'Apri Portale Avvocato',
+    'target_blank': True
+  },
+  {
+    'href': official_portal_url,
+    'class': 'btn-outline-success',
+    'icon': 'bi-send-check',
+    'label': 'Nuovo deposito Form Web',
+    'target_blank': True
+  },
+  {
+    'href': official_portal_url,
+    'class': 'btn-outline-secondary',
+    'icon': 'bi-search',
+    'label': 'Consulta fascicolo sul portale',
+    'target_blank': True
+  }
+] %}
 
 {% if fascicolo %}
-<div class="card shadow-sm mb-4 border-success-subtle">
-  <div class="card-body d-flex justify-content-between align-items-start gap-3 flex-wrap">
-    <div>
-      <div class="small text-uppercase text-muted fw-semibold mb-1">Pratica collegata</div>
-      <div class="fw-semibold">{{ fascicolo.titolo }}</div>
-      <div class="small text-muted">
-        {{ fascicolo.tribunale or 'Ufficio da completare' }}
-        {% if fascicolo.rg_completo %} - {{ fascicolo.rg_completo }}{% endif %}
-      </div>
-    </div>
-    <div class="d-flex gap-2 flex-wrap">
-      <a class="btn btn-outline-success btn-sm" href="{{ url_for('dettaglio_fascicolo', id_fasc=fascicolo.id) }}">
-        <i class="bi bi-folder2-open me-1"></i>Apri fascicolo interno
-      </a>
-      <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('portale_acquisizione_wizard', portale='pat', id_fasc=fascicolo.id) }}">
-        <i class="bi bi-arrow-repeat me-1"></i>Riprendi acquisizione
-      </a>
-    </div>
-  </div>
-</div>
+  {% set fascicolo_actions = [
+    {
+      'href': url_for('dettaglio_fascicolo', id_fasc=fascicolo.id),
+      'class': 'btn-outline-success',
+      'icon': 'bi-folder2-open',
+      'label': 'Apri fascicolo interno'
+    },
+    {
+      'href': url_for('portale_acquisizione_wizard', portale='pat', id_fasc=fascicolo.id),
+      'class': 'btn-outline-secondary',
+      'icon': 'bi-arrow-repeat',
+      'label': 'Riprendi acquisizione'
+    }
+  ] %}
+  {% set managed_actions = [
+    {
+      'href': url_for('portale_acquisizione_wizard', portale='pat', id_fasc=fascicolo.id),
+      'class': 'btn-outline-success',
+      'icon': 'bi-diagram-3',
+      'label': 'Acquisizione guidata e import file'
+    },
+    {
+      'href': url_for('portale_acquisizione_wizard', portale='pat', id_fasc=fascicolo.id, focus='manual-upload'),
+      'class': 'btn-outline-secondary',
+      'icon': 'bi-upload',
+      'label': 'Importa file già scaricati'
+    },
+    {
+      'href': url_for('dettaglio_fascicolo', id_fasc=fascicolo.id) ~ '#sezione-documenti-fascicolo',
+      'class': 'btn-outline-secondary',
+      'icon': 'bi-paperclip',
+      'label': 'Importa documenti e ricevute PAT'
+    },
+    {
+      'href': url_for('dettaglio_fascicolo', id_fasc=fascicolo.id),
+      'class': 'btn-outline-secondary',
+      'icon': 'bi-clock-history',
+      'label': 'Apri timeline pratica'
+    }
+  ] %}
+  {% set managed_note = '' %}
+{% else %}
+  {% set fascicolo_actions = [] %}
+  {% set managed_actions = [
+    {
+      'href': url_for('portale_acquisizione_wizard', portale='pat'),
+      'class': 'btn-outline-success',
+      'icon': 'bi-diagram-3',
+      'label': 'Acquisizione guidata e import file'
+    },
+    {
+      'href': url_for('portale_acquisizione_wizard', portale='pat', focus='manual-upload'),
+      'class': 'btn-outline-secondary',
+      'icon': 'bi-upload',
+      'label': 'Importa file già scaricati'
+    }
+  ] %}
+  {% set managed_note = 'Collega o crea prima una pratica interna per archiviare fascicolo, ricevute e provvedimenti.' %}
 {% endif %}
 
-<div class="row g-3 mb-4">
-  <div class="col-12 col-xl-7">
-    <div class="card shadow-sm h-100">
-      <div class="card-header fw-semibold small">
-        <i class="bi bi-compass me-2 text-success"></i>Azioni ufficiali e assistite
-      </div>
-      <div class="card-body">
-        <div class="row g-3">
-          <div class="col-12 col-md-6">
-            <div class="border rounded-4 p-3 portal-hub-pane">
-              <div class="fw-semibold mb-2">Portale ufficiale</div>
-              <div class="small text-muted mb-3 portal-hub-copy">
-                Il deposito Form Web e la consultazione del fascicolo PAT si eseguono nel Nuovo Portale dell'Avvocato con accesso autenticato.
-              </div>
-              <div class="portal-hub-actions">
-                <a class="btn btn-success" href="{{ official_portal_url }}" target="_blank" rel="noopener">
-                  <i class="bi bi-box-arrow-up-right me-1"></i>Apri Portale Avvocato
-                </a>
-                <a class="btn btn-outline-success" href="{{ official_portal_url }}" target="_blank" rel="noopener">
-                  <i class="bi bi-send-check me-1"></i>Nuovo deposito Form Web
-                </a>
-                <a class="btn btn-outline-secondary" href="{{ official_portal_url }}" target="_blank" rel="noopener">
-                  <i class="bi bi-search me-1"></i>Consulta fascicolo sul portale
-                </a>
-              </div>
-            </div>
-          </div>
-          <div class="col-12 col-md-6">
-            <div class="border rounded-4 p-3 portal-hub-pane">
-              <div class="fw-semibold mb-2">Gestione in IUSENTRA</div>
-              <div class="small text-muted mb-3 portal-hub-copy">
-                IUSENTRA prepara il fascicolo PAT interno, evita duplicati e integra i file gia scaricati dal portale ufficiale.
-                Lo step finale del wizard mostra anche l'upload manuale di ZIP, file e cartelle gia scaricati.
-              </div>
-              <div class="portal-hub-actions">
-                <a class="btn btn-outline-success" href="{{ url_for('portale_acquisizione_wizard', portale='pat', id_fasc=fascicolo.id if fascicolo else None) }}">
-                  <i class="bi bi-diagram-3 me-1"></i>Acquisizione guidata e import file
-                </a>
-                <a class="btn btn-outline-secondary" href="{{ url_for('portale_acquisizione_wizard', portale='pat', id_fasc=fascicolo.id if fascicolo else None, focus='manual-upload') }}">
-                  <i class="bi bi-upload me-1"></i>Importa file gia scaricati
-                </a>
-                {% if fascicolo %}
-                <a class="btn btn-outline-secondary" href="{{ url_for('dettaglio_fascicolo', id_fasc=fascicolo.id) }}#sezione-documenti-fascicolo">
-                  <i class="bi bi-paperclip me-1"></i>Importa documenti / ricevute PAT
-                </a>
-                <a class="btn btn-outline-secondary" href="{{ url_for('dettaglio_fascicolo', id_fasc=fascicolo.id) }}">
-                  <i class="bi bi-clock-history me-1"></i>Apri timeline pratica
-                </a>
-                {% else %}
-                <div class="portal-hub-note small text-muted">
-                  Collega o crea prima una pratica interna per archiviare fascicolo, ricevute e provvedimenti.
-                </div>
-                {% endif %}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="col-12 col-xl-5">
-    <div class="card shadow-sm h-100">
-      <div class="card-header fw-semibold small">
-        <i class="bi bi-folder-symlink me-2 text-success"></i>Fascicolo PAT interno
-      </div>
-      <div class="card-body">
-        <div class="small text-muted mb-3">
-          La vista interna non sostituisce SIGA: ricostruisce un fascicolo operativo di studio con cartelle coerenti e cronologia completa.
-        </div>
-        <div class="row g-2 small">
-          {% for voce in [
-            'Atti introduttivi',
-            'Depositi successivi',
-            'Ricevute',
-            'Provvedimenti',
-            'Allegati',
-            'Fascicolo importato',
-            'Timeline'
-          ] %}
-          <div class="col-6">
-            <div class="border rounded-3 px-3 py-2 h-100 bg-light-subtle">{{ voce }}</div>
-          </div>
-          {% endfor %}
-        </div>
-        <div class="alert alert-light border rounded-4 small mt-3 mb-0">
-          <i class="bi bi-shield-check me-1 text-success"></i>
-          Il gestionale e forte <strong>prima</strong> del deposito e <strong>dopo</strong> il deposito: controlli, handoff al portale, esiti, import e governo della pratica.
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<div class="card shadow-sm">
-  <div class="card-header fw-semibold small">
-    <i class="bi bi-info-circle me-2 text-success"></i>Come funziona il modulo PAT
-  </div>
-  <div class="card-body small text-muted">
-    <div class="row g-3">
-      <div class="col-12 col-md-4">
-        <div class="fw-semibold text-dark mb-1">
-          <i class="bi bi-1-circle text-success me-1"></i>Preparazione guidata
-        </div>
-        IUSENTRA controlla dati, allegati, coerenza della pratica, mappa il fascicolo locale e prepara l'acquisizione senza promettere una lettura live diretta da SIGA.
-      </div>
-      <div class="col-12 col-md-4">
-        <div class="fw-semibold text-dark mb-1">
-          <i class="bi bi-2-circle text-success me-1"></i>Portale ufficiale al centro
-        </div>
-        Per deposito Form Web e consultazione fascicolo l'utente lavora nel Portale dell'Avvocato ufficiale con autenticazione istituzionale.
-      </div>
-      <div class="col-12 col-md-4">
-        <div class="fw-semibold text-dark mb-1">
-          <i class="bi bi-3-circle text-success me-1"></i>Rientro nel gestionale
-        </div>
-        Appena rientri in IUSENTRA, importi documenti, ricevute ed esiti nel Fascicolo PAT interno, con timeline e collegamenti rapidi alla pratica.
-      </div>
-    </div>
-  </div>
-</div>
-
+{{ render_portale_workspace(
+  'success',
+  'bi-building-check',
+  'PAT Amministrativo',
+  "Nuovo Portale dell'Avvocato - SIGA",
+  url_for('telematico_dashboard'),
+  'Modello corretto del PAT',
+  "In IUSENTRA il fascicolo PAT è interno: deposito e consultazione restano sul Portale dell'Avvocato ufficiale, mentre il gestionale governa controlli, timeline, esiti, ricevute, provvedimenti e import dei file già scaricati dal portale.",
+  intro_actions,
+  fascicolo,
+  fascicolo_actions,
+  'Portale ufficiale',
+  "Il deposito Form Web e la consultazione del fascicolo PAT si eseguono nel Nuovo Portale dell'Avvocato con accesso autenticato.",
+  official_actions,
+  'Gestione in IUSENTRA',
+  "IUSENTRA prepara il fascicolo PAT interno, evita duplicati e integra i file già scaricati dal portale ufficiale. Lo step finale del wizard mostra anche l'upload manuale di ZIP, file e cartelle già scaricati.",
+  managed_actions,
+  managed_note,
+  'Fascicolo PAT interno',
+  'La vista interna non sostituisce SIGA: ricostruisce un fascicolo operativo di studio con cartelle coerenti e cronologia completa.',
+  [
+    'Atti introduttivi',
+    'Depositi successivi',
+    'Ricevute',
+    'Provvedimenti',
+    'Allegati',
+    'Fascicolo importato',
+    'Timeline',
+    'Task operativi'
+  ],
+  "Il gestionale è forte prima del deposito e dopo il deposito: controlli, handoff al portale, esiti, import e governo della pratica.",
+  'Come funziona il modulo PAT',
+  [
+    {
+      'title': 'Preparazione guidata',
+      'body': "IUSENTRA controlla dati, allegati, coerenza della pratica, mappa il fascicolo locale e prepara l'acquisizione senza promettere una lettura live diretta da SIGA."
+    },
+    {
+      'title': 'Portale ufficiale al centro',
+      'body': "Per deposito Form Web e consultazione fascicolo si lavora nel Portale dell'Avvocato ufficiale con autenticazione istituzionale."
+    },
+    {
+      'title': 'Rientro nel gestionale',
+      'body': "Appena rientri in IUSENTRA, importi documenti, ricevute ed esiti nel fascicolo PAT interno, con timeline e collegamenti rapidi alla pratica."
+    }
+  ]
+) }}
 {% endblock %}
-

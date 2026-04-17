@@ -1,217 +1,172 @@
-﻿{% extends "base.html" %}
+{% extends "base.html" %}
 {% block title %}PTT - SIGIT{% endblock %}
 {% block pct_modulo %}sigit{% endblock %}
 
 {% from 'includes/_fascicolo_banner.html' import banner_fascicolo %}
+{% from 'includes/_portale_workspace.html' import render_portale_workspace %}
+
 {% block content %}
 {{ banner_fascicolo(portale_col='warning', portale_label='PTT Tributario') }}
 
-<div class="d-flex align-items-center gap-2 mb-3 flex-wrap">
-  <i class="bi bi-receipt-cutoff fs-4 text-warning"></i>
-  <h4 class="mb-0 fw-bold">PTT Tributario</h4>
-  <span class="badge bg-light text-dark border ms-1" style="font-size:.72rem">
-    Portale ufficiale PTT / SIGIT - Telecontenzioso
-  </span>
-  <a href="{{ url_for('telematico_dashboard') }}" class="btn btn-sm btn-outline-secondary ms-auto">
-    <i class="bi bi-grid-1x2 me-1"></i>Centro Servizi Telematici
-  </a>
-  {% if demo_mode %}
-  <span class="badge bg-warning text-dark ms-2">
-    <i class="bi bi-cone me-1"></i>MODALITA DEMO
-  </span>
-  {% endif %}
-</div>
+{% set intro_actions = [
+  {
+    'href': url_for('portale_acquisizione_wizard', portale='ptt', id_fasc=fascicolo.id if fascicolo else None),
+    'class': 'btn-warning',
+    'icon': 'bi-diagram-3',
+    'label': 'Acquisizione guidata'
+  },
+  {
+    'href': url_for('portale_acquisizione_wizard', portale='ptt', id_fasc=fascicolo.id if fascicolo else None, focus='manual-upload'),
+    'class': 'btn-outline-secondary',
+    'icon': 'bi-upload',
+    'label': 'Importa file già scaricati'
+  },
+  {
+    'href': official_portal_url,
+    'class': 'btn-outline-warning',
+    'icon': 'bi-box-arrow-up-right',
+    'label': 'Apri PTT / SIGIT',
+    'target_blank': True
+  }
+] %}
 
-{% if demo_mode %}
-<div class="alert alert-warning alert-dismissible fade show small mb-3">
-  <i class="bi bi-cone me-2"></i>
-  <strong>Certificato non configurato - modalita demo (offline).</strong>
-  Il PTT reale richiede accesso al portale ufficiale con SPID, CIE o CNS. Configura la firma digitale in
-  <a href="{{ url_for('impostazioni.index', tab='firma') }}" class="alert-link">Impostazioni -> Firma Digitale</a>
-  per le funzioni assistite del gestionale e per l'import dei file scaricati dal portale.
-  <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-</div>
-{% endif %}
-
-{% with messages = get_flashed_messages(with_categories=true) %}
-  {% for cat, msg in messages %}
-  <div class="alert alert-{{ 'success' if cat == 'success' else ('warning' if cat == 'warning' else ('info' if cat == 'info' else 'danger')) }} alert-dismissible fade show">
-    {{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-  </div>
-  {% endfor %}
-{% endwith %}
-
-<div class="alert alert-warning-subtle border border-warning-subtle rounded-4 mb-4 d-flex flex-column flex-lg-row justify-content-between align-items-start gap-3">
-  <div>
-    <div class="fw-semibold mb-1"><i class="bi bi-signpost-2 me-1"></i>Modello corretto del PTT</div>
-    <div class="small">
-      In IUSENTRA il <strong>fascicolo tributario e interno</strong>: il portale ufficiale PTT / SIGIT,
-      Telecontenzioso e gli altri servizi riservati restano il punto di consultazione e download.
-      Il gestionale governa controlli, timeline, esiti, ricevute, provvedimenti e import del fascicolo scaricato.
-    </div>
-  </div>
-  <div class="d-flex gap-2 flex-wrap">
-    <a class="btn btn-warning" href="{{ url_for('portale_acquisizione_wizard', portale='ptt', id_fasc=fascicolo.id if fascicolo else None) }}">
-      <i class="bi bi-diagram-3 me-1"></i>Acquisizione guidata
-    </a>
-    <a class="btn btn-outline-secondary" href="{{ url_for('portale_acquisizione_wizard', portale='ptt', id_fasc=fascicolo.id if fascicolo else None, focus='manual-upload') }}">
-      <i class="bi bi-upload me-1"></i>Importa file gia scaricati
-    </a>
-    <a class="btn btn-outline-warning" href="{{ official_portal_url }}" target="_blank" rel="noopener">
-      <i class="bi bi-box-arrow-up-right me-1"></i>Apri PTT / SIGIT
-    </a>
-  </div>
-</div>
+{% set official_actions = [
+  {
+    'href': official_portal_url,
+    'class': 'btn-warning',
+    'icon': 'bi-box-arrow-up-right',
+    'label': 'Apri PTT / SIGIT',
+    'target_blank': True
+  },
+  {
+    'href': telecontenzioso_url,
+    'class': 'btn-outline-warning',
+    'icon': 'bi-search',
+    'label': 'Apri Telecontenzioso',
+    'target_blank': True
+  },
+  {
+    'href': temporary_access_url,
+    'class': 'btn-outline-secondary',
+    'icon': 'bi-hourglass-split',
+    'label': 'Accesso temporaneo al fascicolo',
+    'target_blank': True
+  },
+  {
+    'href': temporary_access_url,
+    'class': 'btn-outline-secondary',
+    'icon': 'bi-folder-symlink',
+    'label': 'Consulta fascicolo sul portale',
+    'target_blank': True
+  }
+] %}
 
 {% if fascicolo %}
-<div class="card shadow-sm mb-4 border-warning-subtle">
-  <div class="card-body d-flex justify-content-between align-items-start gap-3 flex-wrap">
-    <div>
-      <div class="small text-uppercase text-muted fw-semibold mb-1">Pratica collegata</div>
-      <div class="fw-semibold">{{ fascicolo.titolo }}</div>
-      <div class="small text-muted">
-        {{ fascicolo.tribunale or 'Ufficio da completare' }}
-        {% if fascicolo.rg_completo %} - {{ fascicolo.rg_completo }}{% endif %}
-      </div>
-    </div>
-    <div class="d-flex gap-2 flex-wrap">
-      <a class="btn btn-outline-warning btn-sm" href="{{ url_for('dettaglio_fascicolo', id_fasc=fascicolo.id) }}">
-        <i class="bi bi-folder2-open me-1"></i>Apri fascicolo interno
-      </a>
-      <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('portale_acquisizione_wizard', portale='ptt', id_fasc=fascicolo.id) }}">
-        <i class="bi bi-arrow-repeat me-1"></i>Riprendi acquisizione
-      </a>
-    </div>
-  </div>
-</div>
+  {% set fascicolo_actions = [
+    {
+      'href': url_for('dettaglio_fascicolo', id_fasc=fascicolo.id),
+      'class': 'btn-outline-warning',
+      'icon': 'bi-folder2-open',
+      'label': 'Apri fascicolo interno'
+    },
+    {
+      'href': url_for('portale_acquisizione_wizard', portale='ptt', id_fasc=fascicolo.id),
+      'class': 'btn-outline-secondary',
+      'icon': 'bi-arrow-repeat',
+      'label': 'Riprendi acquisizione'
+    }
+  ] %}
+  {% set managed_actions = [
+    {
+      'href': url_for('portale_acquisizione_wizard', portale='ptt', id_fasc=fascicolo.id),
+      'class': 'btn-outline-warning',
+      'icon': 'bi-diagram-3',
+      'label': 'Acquisizione guidata e import file'
+    },
+    {
+      'href': url_for('portale_acquisizione_wizard', portale='ptt', id_fasc=fascicolo.id, focus='manual-upload'),
+      'class': 'btn-outline-secondary',
+      'icon': 'bi-upload',
+      'label': 'Importa file già scaricati'
+    },
+    {
+      'href': url_for('dettaglio_fascicolo', id_fasc=fascicolo.id) ~ '#sezione-documenti-fascicolo',
+      'class': 'btn-outline-secondary',
+      'icon': 'bi-paperclip',
+      'label': 'Importa fascicolo e documenti scaricati'
+    },
+    {
+      'href': url_for('dettaglio_fascicolo', id_fasc=fascicolo.id) ~ '#avanzamento-pratica',
+      'class': 'btn-outline-secondary',
+      'icon': 'bi-clock-history',
+      'label': 'Apri avanzamento pratica'
+    }
+  ] %}
+  {% set managed_note = '' %}
+{% else %}
+  {% set fascicolo_actions = [] %}
+  {% set managed_actions = [
+    {
+      'href': url_for('portale_acquisizione_wizard', portale='ptt'),
+      'class': 'btn-outline-warning',
+      'icon': 'bi-diagram-3',
+      'label': 'Acquisizione guidata e import file'
+    },
+    {
+      'href': url_for('portale_acquisizione_wizard', portale='ptt', focus='manual-upload'),
+      'class': 'btn-outline-secondary',
+      'icon': 'bi-upload',
+      'label': 'Importa file già scaricati'
+    }
+  ] %}
+  {% set managed_note = 'Collega o crea prima una pratica interna per archiviare fascicolo, ricevute, provvedimenti ed esiti tributari.' %}
 {% endif %}
 
-<div class="row g-3 mb-4">
-  <div class="col-12 col-xl-7">
-    <div class="card shadow-sm h-100">
-      <div class="card-header fw-semibold small">
-        <i class="bi bi-compass me-2 text-warning"></i>Azioni ufficiali e assistite
-      </div>
-      <div class="card-body">
-        <div class="row g-3">
-          <div class="col-12 col-md-6">
-            <div class="border rounded-4 p-3 portal-hub-pane">
-              <div class="fw-semibold mb-2">Portale ufficiale</div>
-              <div class="small text-muted mb-3 portal-hub-copy">
-                Consultazione fascicolo, Telecontenzioso, servizi riservati e download del fascicolo processuale si completano nel portale istituzionale autenticato.
-              </div>
-              <div class="portal-hub-actions">
-                <a class="btn btn-warning" href="{{ official_portal_url }}" target="_blank" rel="noopener">
-                  <i class="bi bi-box-arrow-up-right me-1"></i>Apri PTT / SIGIT
-                </a>
-                <a class="btn btn-outline-warning" href="{{ telecontenzioso_url }}" target="_blank" rel="noopener">
-                  <i class="bi bi-search me-1"></i>Apri Telecontenzioso
-                </a>
-                <a class="btn btn-outline-secondary" href="{{ temporary_access_url }}" target="_blank" rel="noopener">
-                  <i class="bi bi-hourglass-split me-1"></i>Accesso temporaneo al fascicolo
-                </a>
-                <a class="btn btn-outline-secondary" href="{{ temporary_access_url }}" target="_blank" rel="noopener">
-                  <i class="bi bi-folder-symlink me-1"></i>Consulta fascicolo sul portale
-                </a>
-              </div>
-            </div>
-          </div>
-          <div class="col-12 col-md-6">
-            <div class="border rounded-4 p-3 portal-hub-pane">
-              <div class="fw-semibold mb-2">Gestione in IUSENTRA</div>
-              <div class="small text-muted mb-3 portal-hub-copy">
-                IUSENTRA prepara il fascicolo tributario interno, evita duplicati e integra atti, ricevute, provvedimenti ed esiti gia scaricati dal portale ufficiale.
-                Nello step finale del wizard puoi anche caricare manualmente ZIP, file o cartelle gia scaricati.
-              </div>
-              <div class="portal-hub-actions">
-                <a class="btn btn-outline-warning" href="{{ url_for('portale_acquisizione_wizard', portale='ptt', id_fasc=fascicolo.id if fascicolo else None) }}">
-                  <i class="bi bi-diagram-3 me-1"></i>Acquisizione guidata e import file
-                </a>
-                <a class="btn btn-outline-secondary" href="{{ url_for('portale_acquisizione_wizard', portale='ptt', id_fasc=fascicolo.id if fascicolo else None, focus='manual-upload') }}">
-                  <i class="bi bi-upload me-1"></i>Importa file gia scaricati
-                </a>
-                {% if fascicolo %}
-                <a class="btn btn-outline-secondary" href="{{ url_for('dettaglio_fascicolo', id_fasc=fascicolo.id) }}#sezione-documenti-fascicolo">
-                  <i class="bi bi-paperclip me-1"></i>Importa fascicolo / documenti scaricati
-                </a>
-                <a class="btn btn-outline-secondary" href="{{ url_for('dettaglio_fascicolo', id_fasc=fascicolo.id) }}#avanzamento-pratica">
-                  <i class="bi bi-clock-history me-1"></i>Apri avanzamento pratica
-                </a>
-                {% else %}
-                <div class="portal-hub-note small text-muted">
-                  Collega o crea prima una pratica interna per archiviare fascicolo, ricevute, provvedimenti ed esiti tributari.
-                </div>
-                {% endif %}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="col-12 col-xl-5">
-    <div class="card shadow-sm h-100">
-      <div class="card-header fw-semibold small">
-        <i class="bi bi-folder-symlink me-2 text-warning"></i>Fascicolo Tributario Interno
-      </div>
-      <div class="card-body">
-        <div class="small text-muted mb-3">
-          La vista interna non sostituisce PTT / SIGIT: ricostruisce un fascicolo operativo di studio con cronologia completa e cartelle coerenti.
-        </div>
-        <div class="row g-2 small">
-          {% for voce in [
-            'Dati controversia',
-            'Timeline',
-            'Depositi telematici',
-            'Documenti',
-            'Ricevute',
-            'Provvedimenti',
-            'Esiti',
-            'Note operative'
-          ] %}
-          <div class="col-6">
-            <div class="border rounded-3 px-3 py-2 h-100 bg-light-subtle">{{ voce }}</div>
-          </div>
-          {% endfor %}
-        </div>
-        <div class="alert alert-light border rounded-4 small mt-3 mb-0">
-          <i class="bi bi-shield-check me-1 text-warning"></i>
-          Il gestionale e forte <strong>prima</strong> del deposito e <strong>dopo</strong> il deposito:
-          controlli, handoff al portale, import del fascicolo scaricato e governo della pratica tributaria.
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<div class="card shadow-sm">
-  <div class="card-header fw-semibold small">
-    <i class="bi bi-info-circle me-2 text-warning"></i>Come funziona il modulo PTT
-  </div>
-  <div class="card-body small text-muted">
-    <div class="row g-3">
-      <div class="col-12 col-md-4">
-        <div class="fw-semibold text-dark mb-1">
-          <i class="bi bi-1-circle text-warning me-1"></i>Acquisizione guidata
-        </div>
-        IUSENTRA controlla dati, allegati, coerenza della pratica e mappa il fascicolo locale senza promettere una sincronizzazione live diretta dal fascicolo ministeriale.
-      </div>
-      <div class="col-12 col-md-4">
-        <div class="fw-semibold text-dark mb-1">
-          <i class="bi bi-2-circle text-warning me-1"></i>Portale ufficiale al centro
-        </div>
-        Per consultazione fascicolo, Telecontenzioso, accesso temporaneo e download del fascicolo processuale l'utente lavora nel portale ufficiale autenticato.
-      </div>
-      <div class="col-12 col-md-4">
-        <div class="fw-semibold text-dark mb-1">
-          <i class="bi bi-3-circle text-warning me-1"></i>Rientro nel gestionale
-        </div>
-        Appena rientri in IUSENTRA, importi nel Fascicolo Tributario Interno documenti, ricevute, provvedimenti ed esiti, con timeline e collegamenti rapidi alla pratica.
-      </div>
-    </div>
-  </div>
-</div>
-
+{{ render_portale_workspace(
+  'warning',
+  'bi-receipt-cutoff',
+  'PTT Tributario',
+  'Portale ufficiale PTT / SIGIT - Telecontenzioso',
+  url_for('telematico_dashboard'),
+  'Modello corretto del PTT',
+  'In IUSENTRA il fascicolo tributario è interno: il portale ufficiale PTT / SIGIT, Telecontenzioso e gli altri servizi riservati restano il punto di consultazione e download. Il gestionale governa controlli, timeline, esiti, ricevute, provvedimenti e import del fascicolo scaricato.',
+  intro_actions,
+  fascicolo,
+  fascicolo_actions,
+  'Portale ufficiale',
+  'Consultazione fascicolo, Telecontenzioso, servizi riservati e download del fascicolo processuale si completano nel portale istituzionale autenticato.',
+  official_actions,
+  'Gestione in IUSENTRA',
+  'IUSENTRA prepara il fascicolo tributario interno, evita duplicati e integra atti, ricevute, provvedimenti ed esiti già scaricati dal portale ufficiale. Nello step finale del wizard puoi anche caricare manualmente ZIP, file o cartelle già scaricati.',
+  managed_actions,
+  managed_note,
+  'Fascicolo Tributario Interno',
+  'La vista interna non sostituisce PTT / SIGIT: ricostruisce un fascicolo operativo di studio con cronologia completa e cartelle coerenti.',
+  [
+    'Dati controversia',
+    'Timeline',
+    'Depositi telematici',
+    'Documenti',
+    'Ricevute',
+    'Provvedimenti',
+    'Esiti',
+    'Note operative'
+  ],
+  'Il gestionale è forte prima del deposito e dopo il deposito: controlli, handoff al portale, import del fascicolo scaricato e governo della pratica tributaria.',
+  'Come funziona il modulo PTT',
+  [
+    {
+      'title': 'Acquisizione guidata',
+      'body': "IUSENTRA controlla dati, allegati, coerenza della pratica e mappa il fascicolo locale senza promettere una sincronizzazione live diretta dal fascicolo ministeriale."
+    },
+    {
+      'title': 'Portale ufficiale al centro',
+      'body': "Per consultazione fascicolo, Telecontenzioso, accesso temporaneo e download del fascicolo processuale l'utente lavora nel portale ufficiale autenticato."
+    },
+    {
+      'title': 'Rientro nel gestionale',
+      'body': "Appena rientri in IUSENTRA, importi nel fascicolo tributario interno documenti, ricevute, provvedimenti ed esiti, con timeline e collegamenti rapidi alla pratica."
+    }
+  ]
+) }}
 {% endblock %}
-

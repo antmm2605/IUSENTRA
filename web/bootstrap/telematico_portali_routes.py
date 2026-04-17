@@ -21,6 +21,7 @@ def register_telematico_portali_routes(
     get_fascicoli: Callable[[], Any],
     get_clienti: Callable[[], Any],
     portale_demo_mode: Callable[[str], bool],
+    portale_browser_channel_required: Callable[[str], bool],
     portale_local_channel_enabled: Callable[[str], bool],
     portale_browser_guided_message: Callable[[str], str],
     is_portale_dns_error: Callable[[Exception], bool],
@@ -44,6 +45,7 @@ def register_telematico_portali_routes(
             oggi=date.today(),
             fascicolo=fascicolo_ctx,
             id_fasc=id_fasc,
+            official_portal_url="https://appweb.giustizia.it/snt",
         )
 
     @app.route("/pdp/ricerca", methods=["POST"])
@@ -65,12 +67,6 @@ def register_telematico_portali_routes(
         anno_rg_str = request.args.get("anno_rg", "0")
         anno_rg = int(anno_rg_str) if anno_rg_str.isdigit() else 0
         demo_mode = portale_demo_mode("pdp")
-        if portale_local_channel_enabled("pdp"):
-            flash(
-                "Per PDP Penale l'anteprima documenti usa il wizard browser-side con Local Signer.",
-                "info",
-            )
-            return redirect(url_for("portale_acquisizione_wizard", portale="pdp"))
         try:
             from pct.pdp import crea_client_pdp
 
@@ -145,6 +141,9 @@ def register_telematico_portali_routes(
                     "success",
                 )
                 return redirect(url_for("dettaglio_fascicolo", id_fasc=target.id))
+            if portale_browser_channel_required("pdp"):
+                flash(portale_browser_guided_message("pdp"), "info")
+                return redirect(url_for("portale_acquisizione_wizard", portale="pdp"))
             if portale_local_channel_enabled("pdp"):
                 client = ClientPDP(codice_fiscale_avvocato=codice_fiscale_avvocato_portale())
             else:

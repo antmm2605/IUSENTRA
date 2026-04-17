@@ -38,7 +38,7 @@
     <div class="tm-stat">
       <div class="small tm-muted mb-2">Casi telematici censiti</div>
       <div class="tm-stat-value">{{ stats.totale or 0 }}</div>
-      <div class="small tm-muted mt-2">Core unificato alimentato dai fascicoli gia sincronizzati.</div>
+      <div class="small tm-muted mt-2">Core unificato alimentato dai fascicoli già sincronizzati.</div>
     </div>
     <div class="tm-stat">
       <div class="small tm-muted mb-2">PST / PDP</div>
@@ -205,7 +205,7 @@
         <div class="d-flex justify-content-between align-items-center gap-2 mb-3">
           <div>
             <div class="small text-uppercase tm-muted fw-semibold">Timeline</div>
-            <h2 class="h5 mb-0">Attivita telematiche recenti</h2>
+            <h2 class="h5 mb-0">Attività telematiche recenti</h2>
           </div>
           <span class="badge text-bg-light border">{{ recent_events|length }} eventi</span>
         </div>
@@ -215,7 +215,7 @@
             <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
               <div>
                 <div class="fw-semibold">{{ row.title }}</div>
-                <div class="small tm-muted">{{ row.service_code|replace('_', ' ')|title }} - {{ row.created_at|fmt_dataora }}</div>
+                <div class="small tm-muted">{{ row.service_code|replace('_', ' ')|title }} · {{ row.created_at|fmt_dataora }}</div>
                 {% if row.description %}
                 <div class="small mt-2">{{ row.description }}</div>
                 {% endif %}

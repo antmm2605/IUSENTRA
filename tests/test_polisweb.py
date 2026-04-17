@@ -2993,7 +2993,7 @@ def test_api_acquisizione_status_ptt_forza_browser_ufficiale(tmp_path):
     assert data["status"]["environment_label"] == "Produzione guidata assistita"
 
 
-def test_api_acquisizione_status_pat_e_ptt_restano_fuori_demo_senza_certificato(tmp_path):
+def test_api_acquisizione_status_portali_browser_guided_restano_fuori_demo_senza_certificato(tmp_path):
     from pct.auth import GestioneUtenti, RuoloUtente
     from web.app import create_app
 
@@ -3018,6 +3018,7 @@ def test_api_acquisizione_status_pat_e_ptt_restano_fuori_demo_senza_certificato(
             follow_redirects=True,
         )
         for portale, expected_status in (
+            ("pdp", "Consultazione via PDP Penale ufficiale"),
             ("pat", "Consultazione via Portale dell'Avvocato"),
             ("ptt", "Consultazione via PTT / SIGIT"),
         ):
@@ -3075,7 +3076,7 @@ def test_route_home_portali_mostra_link_acquisizione_guidata(tmp_path):
     assert "Nuovo deposito Form Web" in pat_body
     assert "Consulta fascicolo sul portale" in pat_body
     assert "Acquisizione guidata e import file" in pat_body
-    assert "Importa file gia scaricati" in pat_body
+    assert "Importa file già scaricati" in pat_body
     assert "focus=manual-upload" in pat_body
     assert "Fascicolo PAT interno" in pat_body
     assert "Cerca nel SIGA" not in pat_body
@@ -3087,7 +3088,7 @@ def test_route_home_portali_mostra_link_acquisizione_guidata(tmp_path):
     assert "Apri Telecontenzioso" in ptt_body
     assert "Accesso temporaneo al fascicolo" in ptt_body
     assert "Acquisizione guidata e import file" in ptt_body
-    assert "Importa file gia scaricati" in ptt_body
+    assert "Importa file già scaricati" in ptt_body
     assert "focus=manual-upload" in ptt_body
     assert "Fascicolo Tributario Interno" in ptt_body
     assert "Cerca nel SIGIT" not in ptt_body
@@ -3097,7 +3098,15 @@ def test_route_home_portali_mostra_link_acquisizione_guidata(tmp_path):
     assert "modalita demo (offline)" not in ptt_body
     assert 'href="https://sigit.giustiziatributaria.gov.it/Sigit/index.do"' in ptt_body
     pdp_body = pdp_response.data.decode("utf-8")
-    assert "Importa file gia scaricati" in pdp_body
+    assert "Apri PDP Penale" in pdp_body
+    assert "Acquisizione guidata e import file" in pdp_body
+    assert "Fascicolo Penale Interno" in pdp_body
+    assert "workflow PDP" in pdp_body
+    assert "portal-hub-pane" in pdp_body
+    assert "portal-hub-note" in pdp_body
+    assert "MODALITA DEMO" not in pdp_body
+    assert "modalita demo (offline)" not in pdp_body
+    assert "Importa file già scaricati" in pdp_body
     assert "focus=manual-upload" in pdp_body
     assert 'href="https://sigit.giustiziatributaria.gov.it/FascicoloProcessuale/login.jsp"' in ptt_body
     assert 'href="https://sigit.giustiziatributaria.gov.it/Sigit/"' not in ptt_body

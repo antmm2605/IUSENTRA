@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-04-03T19:17:37.221544",
+  "generated_at": "2026-04-17T05:54:46.571400",
   "users": {
     "antmm26051975": {
       "user_id": "9dd376f8-3ffd-44ce-801a-a8508222c320",
@@ -9,8 +9,8 @@
       "tenant_slug": "antonella-mammola",
       "tenant_storage_key": "tenant-8bf98719c459",
       "studio_nome": "Antonella Mammola",
-      "auth_db": "data\\tenants\\tenant-8bf98719c459/auth/utenti.json",
-      "audit_db": "data\\tenants\\tenant-8bf98719c459/auth/audit.json",
+      "auth_db": "/data/tenants/tenant-8bf98719c459/auth/utenti.json",
+      "audit_db": "/data/tenants/tenant-8bf98719c459/auth/audit.json",
       "ruolo": "AMMINISTRATORE",
       "attivo": true
     }
@@ -24,8 +24,8 @@
       "tenant_slug": "antonella-mammola",
       "tenant_storage_key": "tenant-8bf98719c459",
       "studio_nome": "Antonella Mammola",
-      "auth_db": "data\\tenants\\tenant-8bf98719c459/auth/utenti.json",
-      "audit_db": "data\\tenants\\tenant-8bf98719c459/auth/audit.json",
+      "auth_db": "/data/tenants/tenant-8bf98719c459/auth/utenti.json",
+      "audit_db": "/data/tenants/tenant-8bf98719c459/auth/audit.json",
       "ruolo": "AMMINISTRATORE",
       "attivo": true
     }

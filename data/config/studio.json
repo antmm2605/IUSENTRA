@@ -5,6 +5,11 @@
     "piva": "01301790802",
     "cf": "MNTRRT64L01L063H",
     "indirizzo": "Via NINO BIXIO 4, 89029 - TAURIANOVA (RC)",
+    "city": "",
+    "province": "",
+    "patron_name": "",
+    "patron_day": 0,
+    "patron_month": 0,
     "telefono": "+393384626697",
     "email": "r.montagnese@tiscali.it",
     "sito_web": "",
@@ -14,7 +19,7 @@
   },
   "pec": {
     "indirizzo": "seidonnesas@legalmail.it",
-    "password": "ENC:gAAAAABp0WQRrwwEb8tc1XSTEKNP0ITnalnPESDMajDbMWFe1WZnLT7px_e4gAEcBQ6Q4K2a7gVItQ1L4Moa6yk0WUAQn2Syag==",
+    "password": "ENC:gAAAAABp3lw8w2pQ-5EJVg8tFEerDtxHhnG1xgBZfv9Q2YKjT7V1fYPIQ8mNVstDxH81xxlcXwviPnXc_65LZHaiPT0STUkG7A==",
     "smtp_host": "sendm.cert.legalmail.it",
     "smtp_port": 465,
     "imap_host": "mbox.cert.legalmail.it",
@@ -37,7 +42,7 @@
     "host": "smtp.gmail.com",
     "port": 587,
     "username": "antmm2605@gmail.com",
-    "password": "ENC:gAAAAABp0WQRYcz17bQ7Ab-AelQcQmzCFzr2IcN6sVqZF-36u6J5Gme6elIlZDRbNE2R79MPZB43nGMf473_cl_AI_u5OXXv_4VMQUJsRQBwhOgpZj6jCnU=",
+    "password": "ENC:gAAAAABp3lw8gyIVyTH-aSvk24vNRT5rTopDwj_TaOoHj-imE1pC65QXknhRZD046RVLx2gkKHUjzHbx8AdaQIrwhrlhNAgV_w01-I_0HDqd6CDi7Y1xTnQ=",
     "from_address": "antmm2605@gmail.com",
     "from_name": "HACS - Studio Legale PCT",
     "use_tls": true
@@ -53,5 +58,14 @@
     "wa_reminder_ora": "18:00",
     "backup_abilitato": true,
     "wa_reminder_abilitato": false
+  },
+  "ai": {
+    "enabled": true,
+    "base_url": "http://host.docker.internal:11434/api",
+    "auto_bootstrap": true,
+    "chat_model": "",
+    "embed_model": "",
+    "keep_alive": "10m",
+    "auto_index_documents": true
   }
 }

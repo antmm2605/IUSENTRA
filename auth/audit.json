@@ -442,5 +442,29 @@
     "dettagli": "",
     "ip": "127.0.0.1",
     "esito": "ERRORE"
+  },
+  {
+    "id": "77f98017-c842-4559-aab6-75697f028781",
+    "timestamp": "2026-04-14T20:39:04.347997",
+    "id_utente": "",
+    "username": "admin",
+    "azione": "auth.login_fallito",
+    "risorsa_tipo": "",
+    "risorsa_id": "",
+    "dettagli": "",
+    "ip": "127.0.0.1",
+    "esito": "ERRORE"
+  },
+  {
+    "id": "2586dba9-bb63-48e3-8330-1bd8c72f16fc",
+    "timestamp": "2026-04-14T20:39:22.494662",
+    "id_utente": "",
+    "username": "admin",
+    "azione": "auth.login_fallito",
+    "risorsa_tipo": "",
+    "risorsa_id": "",
+    "dettagli": "",
+    "ip": "127.0.0.1",
+    "esito": "ERRORE"
   }
 ]

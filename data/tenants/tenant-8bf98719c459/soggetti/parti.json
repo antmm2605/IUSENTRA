@@ -1,1 +1,25 @@
-{}
+{
+  "DD242366": [
+    {
+      "id": "8e35c22f",
+      "id_soggetto": "87e790ec-957",
+      "ruolo": "ASSISTITO",
+      "note": "Importato da PolisWeb — tipo PST: AP",
+      "data_aggiunta": "2026-04-04"
+    },
+    {
+      "id": "e8cab591",
+      "id_soggetto": "101fd2b2-111",
+      "ruolo": "CONTROPARTE",
+      "note": "Importato da PolisWeb — tipo PST: AS",
+      "data_aggiunta": "2026-04-04"
+    },
+    {
+      "id": "1ba82f8e",
+      "id_soggetto": "013093e6-747",
+      "ruolo": "CONTROPARTE",
+      "note": "Importato da PolisWeb — tipo PST: CP",
+      "data_aggiunta": "2026-04-04"
+    }
+  ]
+}

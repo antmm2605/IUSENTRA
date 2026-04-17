@@ -1,1 +1,23 @@
-{}
+{
+  "INVIATA:FF8BF84E": {
+    "id": "INVIATA:FF8BF84E",
+    "cartella": "INVIATI",
+    "stato": "LETTA",
+    "mittente": "",
+    "mittente_nome": "Studio legale",
+    "destinatari": "sanleoresidence@gmail.com",
+    "oggetto": "dd",
+    "data": "2026-03-25T17:08:33.960219",
+    "corpo_testo": "x",
+    "corpo_html": "",
+    "allegati": [],
+    "message_id": "",
+    "uid_imap": "",
+    "origine": "INVIATA",
+    "id_deposito_pct": "",
+    "stato_pct": "",
+    "auto_registrata": false,
+    "ricevuta_il": "2026-03-25T17:08:33.960219",
+    "letta_il": ""
+  }
+}

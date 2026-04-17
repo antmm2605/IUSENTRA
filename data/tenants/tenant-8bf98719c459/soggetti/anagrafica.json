@@ -1,1 +1,116 @@
-[]
+[
+  {
+    "id": "87e790ec-957",
+    "tipo": "PERSONA_FISICA",
+    "nome": "Elisabetta",
+    "cognome": "Montagnese",
+    "codice_fiscale": "MNTLBT49E47H558L",
+    "data_nascita": "",
+    "luogo_nascita": "",
+    "sesso": "",
+    "ragione_sociale": "",
+    "partita_iva": "",
+    "forma_giuridica": "",
+    "rappresentante_legale": "",
+    "qualifica": "",
+    "ordine": "",
+    "numero_iscrizione": "",
+    "indirizzo": {
+      "via": "",
+      "civico": "",
+      "cap": "",
+      "comune": "",
+      "provincia": "",
+      "nazione": "Italia"
+    },
+    "recapiti": {
+      "telefono": "",
+      "cellulare": "",
+      "email": "",
+      "pec": "",
+      "fax": "",
+      "sito_web": ""
+    },
+    "id_cliente": "B1C6257D",
+    "note": "Importato automaticamente da PolisWeb — RG 1025/2024 — Tribunale di Palmi (parte PST: AP)",
+    "tag": [],
+    "creato_il": "2026-04-04T02:19:08.232258",
+    "modificato_il": "2026-04-04T02:19:08.232264"
+  },
+  {
+    "id": "101fd2b2-111",
+    "tipo": "PERSONA_FISICA",
+    "nome": "Francesco",
+    "cognome": "Stillitano",
+    "codice_fiscale": "STLFNC45E26L063X",
+    "data_nascita": "",
+    "luogo_nascita": "",
+    "sesso": "",
+    "ragione_sociale": "",
+    "partita_iva": "",
+    "forma_giuridica": "",
+    "rappresentante_legale": "",
+    "qualifica": "",
+    "ordine": "",
+    "numero_iscrizione": "",
+    "indirizzo": {
+      "via": "",
+      "civico": "",
+      "cap": "",
+      "comune": "",
+      "provincia": "",
+      "nazione": "Italia"
+    },
+    "recapiti": {
+      "telefono": "",
+      "cellulare": "",
+      "email": "",
+      "pec": "",
+      "fax": "",
+      "sito_web": ""
+    },
+    "id_cliente": "7C4248A4",
+    "note": "Importato automaticamente da PolisWeb — RG 1025/2024 — Tribunale di Palmi (parte PST: AS)",
+    "tag": [],
+    "creato_il": "2026-04-04T02:19:08.233597",
+    "modificato_il": "2026-04-04T02:19:08.233603"
+  },
+  {
+    "id": "013093e6-747",
+    "tipo": "PERSONA_FISICA",
+    "nome": "Antonella",
+    "cognome": "Stillitano",
+    "codice_fiscale": "STLNNL89M62L063F",
+    "data_nascita": "",
+    "luogo_nascita": "",
+    "sesso": "",
+    "ragione_sociale": "",
+    "partita_iva": "",
+    "forma_giuridica": "",
+    "rappresentante_legale": "",
+    "qualifica": "",
+    "ordine": "",
+    "numero_iscrizione": "",
+    "indirizzo": {
+      "via": "",
+      "civico": "",
+      "cap": "",
+      "comune": "",
+      "provincia": "",
+      "nazione": "Italia"
+    },
+    "recapiti": {
+      "telefono": "",
+      "cellulare": "",
+      "email": "",
+      "pec": "",
+      "fax": "",
+      "sito_web": ""
+    },
+    "id_cliente": "814CD754",
+    "note": "Importato automaticamente da PolisWeb — RG 1025/2024 — Tribunale di Palmi (parte PST: CP)",
+    "tag": [],
+    "creato_il": "2026-04-04T02:19:08.234646",
+    "modificato_il": "2026-04-04T02:19:08.234650"
+  }
+]

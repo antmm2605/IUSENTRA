@@ -20,7 +20,7 @@ def register_telematico_portali_routes(
     *,
     get_fascicoli: Callable[[], Any],
     get_clienti: Callable[[], Any],
-    polis_demo_mode: Callable[[], bool],
+    portale_demo_mode: Callable[[str], bool],
     portale_local_channel_enabled: Callable[[str], bool],
     portale_browser_guided_message: Callable[[str], str],
     is_portale_dns_error: Callable[[Exception], bool],
@@ -35,7 +35,7 @@ def register_telematico_portali_routes(
 
     @app.route("/pdp", methods=["GET"])
     def pdp_home():
-        demo_mode = polis_demo_mode()
+        demo_mode = portale_demo_mode("pdp")
         id_fasc = request.args.get("id_fasc", "")
         fascicolo_ctx = get_fascicoli().get(id_fasc) if id_fasc else None
         return render_template(
@@ -64,7 +64,7 @@ def register_telematico_portali_routes(
         numero_rg = request.args.get("numero_rg", "")
         anno_rg_str = request.args.get("anno_rg", "0")
         anno_rg = int(anno_rg_str) if anno_rg_str.isdigit() else 0
-        demo_mode = polis_demo_mode()
+        demo_mode = portale_demo_mode("pdp")
         if portale_local_channel_enabled("pdp"):
             flash(
                 "Per PDP Penale l'anteprima documenti usa il wizard browser-side con Local Signer.",
@@ -98,7 +98,7 @@ def register_telematico_portali_routes(
     @app.route("/pdp/importa", methods=["POST"])
     def pdp_importa():
         form_data = request.form
-        demo_mode = form_data.get("demo_mode") == "1" or polis_demo_mode()
+        demo_mode = form_data.get("demo_mode") == "1" or portale_demo_mode("pdp")
         try:
             from pct.pdp import ClientPDP, FascicoloPDP, crea_client_pdp
 
@@ -170,7 +170,7 @@ def register_telematico_portali_routes(
 
     @app.route("/pat", methods=["GET"])
     def pat_home():
-        demo_mode = polis_demo_mode()
+        demo_mode = portale_demo_mode("pat")
         id_fasc = request.args.get("id_fasc", "")
         fascicolo_ctx = get_fascicoli().get(id_fasc) if id_fasc else None
         return render_template(
@@ -205,7 +205,7 @@ def register_telematico_portali_routes(
     @app.route("/pat/importa", methods=["POST"])
     def pat_importa():
         form_data = request.form
-        demo_mode = form_data.get("demo_mode") == "1" or polis_demo_mode()
+        demo_mode = form_data.get("demo_mode") == "1" or portale_demo_mode("pat")
         try:
             from pct.pat import ClientPAT, FascicoloPAT, crea_client_pat
 
@@ -277,7 +277,7 @@ def register_telematico_portali_routes(
 
     @app.route("/sigit", methods=["GET"])
     def sigit_home():
-        demo_mode = polis_demo_mode()
+        demo_mode = portale_demo_mode("ptt")
         id_fasc = request.args.get("id_fasc", "")
         fascicolo = get_fascicoli().get(id_fasc) if id_fasc else None
         return render_template(
@@ -318,7 +318,7 @@ def register_telematico_portali_routes(
     @app.route("/sigit/importa", methods=["POST"])
     def sigit_importa():
         form_data = request.form
-        demo_mode = form_data.get("demo_mode") == "1" or polis_demo_mode()
+        demo_mode = form_data.get("demo_mode") == "1" or portale_demo_mode("ptt")
         try:
             from pct.sigit import ClientSIGIT, FascicoloSIGIT, crea_client_sigit
 

@@ -3,22 +3,7 @@
 {% block page_title %}Archivio Sentenze{% endblock %}
 
 {% block content %}
-<style>
-  .jud-hero, .jud-card, .jud-side, .jud-source, .jud-run { border-radius: 20px; }
-  .jud-hero { background: linear-gradient(135deg, rgba(26,58,92,.08), rgba(15,145,156,.08)); border: 1px solid rgba(26,58,92,.12); }
-  .jud-card, .jud-side, .jud-source, .jud-run { border: 1px solid rgba(15,23,42,.08); box-shadow: 0 14px 32px rgba(15,23,42,.05); background: #fff; }
-  .jud-stat { border-radius: 18px; border: 1px solid rgba(15,23,42,.08); background: linear-gradient(180deg, #fff, #f8fbff); }
-  .jud-chip { display:inline-flex; align-items:center; gap:.4rem; border-radius:999px; padding:.35rem .75rem; font-size:.82rem; font-weight:600; background:#f3f6fb; color:#17324f; border:1px solid rgba(23,50,79,.08); }
-  .jud-list { display:grid; gap:1rem; }
-  .jud-links { display:flex; flex-wrap:wrap; gap:.5rem; }
-  .jud-taxonomy-item { border-top:1px solid rgba(15,23,42,.08); padding-top:.8rem; margin-top:.8rem; }
-  .jud-summary { color:#516070; font-size:.95rem; }
-  @media (max-width: 991.98px) {
-    .jud-actions { width:100%; }
-    .jud-actions .btn { width:100%; }
-  }
-</style>
-
+<div class="jud-workspace">
 <div class="jud-hero p-4 mb-4">
   <div class="d-flex flex-column flex-xl-row gap-4 align-items-xl-center justify-content-between">
     <div class="pe-xl-4">
@@ -486,6 +471,7 @@
       </div>
     </div>
   </div>
+</div>
 </div>
 <script>
 (() => {

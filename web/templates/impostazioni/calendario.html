@@ -3,6 +3,24 @@
 {% block page_title %}Sincronizzazione Calendario{% endblock %}
 
 {% block content %}
+<div class="ds-ph">
+  <div class="ds-ph-icon">
+    <i class="bi bi-calendar2-week"></i>
+  </div>
+  <div class="ds-ph-body">
+    <h1 class="ds-ph-title">Sincronizzazione calendario</h1>
+    <p class="ds-ph-sub">Feed WebCal, profili agenda e sincronizzazione automatica in un'unica vista.</p>
+  </div>
+  <div class="ds-ph-actions">
+    <a href="{{ url_for('agenda_view') }}" class="ds-btn ds-btn-ghost">
+      <i class="bi bi-arrow-left"></i><span class="d-none d-sm-inline">Agenda</span>
+    </a>
+    <a href="{{ url_for('scadenziario') }}" class="ds-btn ds-btn-outline">
+      <i class="bi bi-alarm"></i><span class="d-none d-sm-inline">Scadenziario</span>
+    </a>
+  </div>
+</div>
+
 <div class="row g-4">
 
 {# ── Colonna principale ── #}

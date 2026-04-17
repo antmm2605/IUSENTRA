@@ -82,13 +82,14 @@ def build_telematico_runtime(
     def _polis_demo_mode() -> bool:
         """True solo se non esiste alcun canale reale configurato (né P12/PEM né token PKCS#11)."""
         return _polis_auth_mode() == "demo"
+
     def _portale_usa_local_signer(portale: str) -> bool:
         return (portale or "").strip().lower() in {"pst", "pdp", "pat", "ptt"} and _polis_auth_mode() == "pkcs11"
 
     def _portale_browser_channel_required(portale: str) -> bool:
         """PAT e PTT usano sempre il canale browser ufficiale; PDP resta opt-in via env."""
         portale_norm = (portale or "").strip().lower()
-        if _polis_demo_mode() or portale_norm not in {"pdp", "pat", "ptt"}:
+        if portale_norm not in {"pdp", "pat", "ptt"}:
             return False
         if portale_norm in {"pat", "ptt"}:
             return True
@@ -97,6 +98,12 @@ def build_telematico_runtime(
             str(os.getenv("PCT_PORTALI_BROWSER_ONLY", "") or "").strip().lower() in truthy
             or str(os.getenv(f"PCT_{portale_norm.upper()}_BROWSER_ONLY", "") or "").strip().lower() in truthy
         )
+
+    def _portale_demo_mode(portale: str) -> bool:
+        """I portali browser-guided non devono ricadere nel banner demo del PST."""
+        if _portale_browser_channel_required(portale):
+            return False
+        return _polis_demo_mode()
 
     def _portale_local_channel_enabled(portale: str) -> bool:
         return _portale_usa_local_signer(portale) or _portale_browser_channel_required(portale)
@@ -1600,7 +1607,7 @@ def build_telematico_runtime(
                 if _portale_local_channel_enabled(portale):
                     client = ClientPolisWebImportOnly()
                 else:
-                    client = crea_client(demo=_polis_demo_mode())
+                    client = crea_client(demo=_portale_demo_mode(portale))
                 documenti_pw = _documents_to_portale_dataclasses(portale, preview_for_files.get("documenti") or []) if importa_file_portale else None
                 risultato = client.importa_fascicolo(
                     fascicolo_pw=selection_dc,
@@ -1622,7 +1629,7 @@ def build_telematico_runtime(
                 else:
                     from pct.pdp import crea_client_pdp
 
-                    client = crea_client_pdp(demo=_polis_demo_mode())
+                    client = crea_client_pdp(demo=_portale_demo_mode(portale))
                 risultato = client.importa_fascicolo(selection_dc, gf, gc, user_name)
             elif portale == "pat":
                 if _portale_local_channel_enabled(portale):
@@ -1636,7 +1643,7 @@ def build_telematico_runtime(
                 else:
                     from pct.pat import crea_client_pat
 
-                    client = crea_client_pat(demo=_polis_demo_mode())
+                    client = crea_client_pat(demo=_portale_demo_mode(portale))
                 risultato = client.importa_fascicolo(selection_dc, gf, gc, user_name)
             else:
                 if _portale_local_channel_enabled(portale):
@@ -1650,7 +1657,7 @@ def build_telematico_runtime(
                 else:
                     from pct.sigit import crea_client_sigit
 
-                    client = crea_client_sigit(demo=_polis_demo_mode())
+                    client = crea_client_sigit(demo=_portale_demo_mode(portale))
                 risultato = client.importa_fascicolo(selection_dc, gf, gc, user_name)
             if not risultato.successo or not risultato.id_fascicolo_locale:
                 raise ValueError(risultato.messaggio or "Importazione non riuscita.")
@@ -1666,7 +1673,7 @@ def build_telematico_runtime(
                 if _portale_local_channel_enabled(portale):
                     client = ClientPolisWebImportOnly()
                 else:
-                    client = crea_client(demo=_polis_demo_mode())
+                    client = crea_client(demo=_portale_demo_mode(portale))
                 documenti_pw = _documents_to_portale_dataclasses(portale, preview_for_files.get("documenti") or []) if importa_file_portale else None
                 risultato = client.sincronizza_fascicolo_esistente(
                     fascicolo_pw=selection_dc,
@@ -1865,14 +1872,11 @@ def build_telematico_runtime(
         cfg = get_config_studio().config
         firma_cfg = cfg.firma
         auth_mode = _polis_auth_mode()
-        demo_mode = auth_mode == "demo"
-        pkcs11_mode = _portale_usa_local_signer(portale) and not demo_mode
         browser_channel_required = _portale_browser_channel_required(portale)
+        demo_mode = _portale_demo_mode(portale)
+        pkcs11_mode = _portale_usa_local_signer(portale) and not demo_mode
         ultimo_log = _last_portale_import_log(portale)
-        if demo_mode:
-            status_text = "Modalità demo / fallback"
-            environment_label = "Simulazione / compatibilità"
-        elif browser_channel_required:
+        if browser_channel_required:
             if portale == "pat":
                 status_text = "Consultazione via Portale dell'Avvocato"
             elif portale == "ptt":
@@ -1880,6 +1884,9 @@ def build_telematico_runtime(
             else:
                 status_text = "Consultazione via browser ufficiale"
             environment_label = "Produzione guidata assistita"
+        elif demo_mode:
+            status_text = "Modalita demo / fallback"
+            environment_label = "Simulazione / compatibilita"
         elif pkcs11_mode:
             status_text = "Accesso via Local Signer / Aruba Key"
             environment_label = "Produzione guidata via browser locale"
@@ -1925,7 +1932,7 @@ def build_telematico_runtime(
                 ufficio = str(query.get("ufficio_codice") or "").strip()
                 if not ufficio:
                     raise ValueError("Seleziona un ufficio giudiziario.")
-                fascicoli = crea_client(demo=_polis_demo_mode()).ricerca_fascicoli(
+                fascicoli = crea_client(demo=_portale_demo_mode(portale)).ricerca_fascicoli(
                     tribunale=ufficio,
                     numero_rg=numero,
                     anno_rg=anno,
@@ -1940,7 +1947,7 @@ def build_telematico_runtime(
                 ufficio = str(query.get("ufficio_codice") or "").strip()
                 if not ufficio:
                     raise ValueError("Seleziona un ufficio giudiziario.")
-                fascicoli = crea_client_pdp(demo=_polis_demo_mode()).ricerca_fascicoli(
+                fascicoli = crea_client_pdp(demo=_portale_demo_mode(portale)).ricerca_fascicoli(
                     ufficio=ufficio,
                     numero_rg=numero,
                     anno_rg=anno,
@@ -1986,7 +1993,7 @@ def build_telematico_runtime(
                     raise ValueError("Anteprima documenti PST via browser locale richiesta.")
                 from pct.polisWeb import crea_client
 
-                docs = crea_client(demo=_polis_demo_mode()).consulta_documenti(
+                docs = crea_client(demo=_portale_demo_mode(portale)).consulta_documenti(
                     str(selection.get("ufficio_codice") or "").strip(),
                     str(selection.get("numero") or "").strip(),
                     int(selection.get("anno") or 0),
@@ -1996,7 +2003,7 @@ def build_telematico_runtime(
                     raise ValueError("Anteprima documenti PDP via browser locale richiesta.")
                 from pct.pdp import crea_client_pdp
 
-                docs = crea_client_pdp(demo=_polis_demo_mode()).consulta_documenti(
+                docs = crea_client_pdp(demo=_portale_demo_mode(portale)).consulta_documenti(
                     str(selection.get("ufficio_codice") or "").strip(),
                     str(selection.get("numero") or "").strip(),
                     int(selection.get("anno") or 0),
@@ -2464,6 +2471,7 @@ read -r -p "Premi Invio per chiudere..." _
     return {
         "polis_auth_mode": _polis_auth_mode,
         "polis_demo_mode": _polis_demo_mode,
+        "portale_demo_mode": _portale_demo_mode,
         "polis_cert_preferences": _polis_cert_preferences,
         "portale_local_channel_enabled": _portale_local_channel_enabled,
         "portale_browser_guided_message": _portale_browser_guided_message,

@@ -3,6 +3,27 @@
 {% block page_title %}Nuovo Messaggio{% endblock %}
 
 {% block content %}
+<div class="ds-ph">
+  <div class="ds-ph-icon">
+    <i class="bi bi-chat-dots"></i>
+  </div>
+  <div class="ds-ph-body">
+    <h1 class="ds-ph-title">Nuovo messaggio</h1>
+    <p class="ds-ph-sub">Email, SMS e WhatsApp con contesto cliente e invio guidato.</p>
+  </div>
+  <div class="ds-ph-actions">
+    {% if from_cliente %}
+    <a href="{{ url_for('cartella_cliente', id_cliente=from_cliente) }}" class="ds-btn ds-btn-ghost">
+      <i class="bi bi-arrow-left"></i><span class="d-none d-sm-inline">Cartella cliente</span>
+    </a>
+    {% else %}
+    <a href="{{ url_for('lista_messaggi') }}" class="ds-btn ds-btn-ghost">
+      <i class="bi bi-arrow-left"></i><span class="d-none d-sm-inline">Messaggi</span>
+    </a>
+    {% endif %}
+  </div>
+</div>
+
 <div class="row g-4">
 
 {# ── Colonna form ── #}

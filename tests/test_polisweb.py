@@ -2993,6 +2993,43 @@ def test_api_acquisizione_status_ptt_forza_browser_ufficiale(tmp_path):
     assert data["status"]["environment_label"] == "Produzione guidata assistita"
 
 
+def test_api_acquisizione_status_pat_e_ptt_restano_fuori_demo_senza_certificato(tmp_path):
+    from pct.auth import GestioneUtenti, RuoloUtente
+    from web.app import create_app
+
+    cfg = _cfg_web(tmp_path)
+    gu = GestioneUtenti(
+        db_path=cfg["AUTH_DB"],
+        audit_path=cfg["AUDIT_DB"],
+        secret_key="test",
+    )
+    gu.crea(
+        username="avvocato",
+        password="Avv12345!",
+        ruolo=RuoloUtente.AVVOCATO,
+        email="avvocato@example.com",
+    )
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        client.post(
+            "/login",
+            data={"username": "avvocato", "password": "Avv12345!"},
+            follow_redirects=True,
+        )
+        for portale, expected_status in (
+            ("pat", "Consultazione via Portale dell'Avvocato"),
+            ("ptt", "Consultazione via PTT / SIGIT"),
+        ):
+            response = client.get(f"/api/portali/{portale}/acquisizione/status", follow_redirects=True)
+            data = response.get_json()
+            assert response.status_code == 200
+            assert data["ok"] is True
+            assert data["status"]["demo_mode"] is False
+            assert data["status"]["browser_channel_required"] is True
+            assert data["status"]["status_text"] == expected_status
+
+
 def test_route_home_portali_mostra_link_acquisizione_guidata(tmp_path):
     from pct.auth import GestioneUtenti, RuoloUtente
     from web.app import create_app
@@ -3044,6 +3081,8 @@ def test_route_home_portali_mostra_link_acquisizione_guidata(tmp_path):
     assert "Cerca nel SIGA" not in pat_body
     assert "portal-hub-pane" in pat_body
     assert "portal-hub-note" in pat_body
+    assert "MODALITA DEMO" not in pat_body
+    assert "modalita demo (offline)" not in pat_body
     assert "Apri PTT / SIGIT" in ptt_body
     assert "Apri Telecontenzioso" in ptt_body
     assert "Accesso temporaneo al fascicolo" in ptt_body
@@ -3054,6 +3093,8 @@ def test_route_home_portali_mostra_link_acquisizione_guidata(tmp_path):
     assert "Cerca nel SIGIT" not in ptt_body
     assert "portal-hub-pane" in ptt_body
     assert "portal-hub-note" in ptt_body
+    assert "MODALITA DEMO" not in ptt_body
+    assert "modalita demo (offline)" not in ptt_body
     assert 'href="https://sigit.giustiziatributaria.gov.it/Sigit/index.do"' in ptt_body
     pdp_body = pdp_response.data.decode("utf-8")
     assert "Importa file gia scaricati" in pdp_body

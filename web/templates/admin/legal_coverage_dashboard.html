@@ -12,7 +12,7 @@
   </div>
   <div class="admin-coverage-actions">
     <a href="{{ url_for('legal_coverage_admin.review_page', tenant_slug=tenant_slug) }}" class="btn btn-primary">
-      <i class="bi bi-ui-checks-grid me-1"></i>Apri review queue
+      <i class="bi bi-ui-checks-grid me-1"></i>Apri coda revisioni
     </a>
   </div>
 </div>
@@ -42,7 +42,7 @@
           {% if payload.runtime.tenant_name %}
             Studio attivo: <strong>{{ payload.runtime.tenant_name }}</strong>
           {% else %}
-            Seleziona lo studio da usare per audit, review e publish.
+            Seleziona lo studio da usare per audit, revisione e publish.
           {% endif %}
         </div>
       </div>
@@ -60,14 +60,19 @@
       </div>
       <div class="small">
         {% if runtime_ok %}
-          Studio: {{ payload.runtime.tenant_name or payload.runtime.tenant_slug or 'n.d.' }} - Ollama: {{ payload.runtime.ollama_model or 'modello non configurato' }} - endpoint {{ payload.runtime.ollama_url or 'n.d.' }}
+          Studio: {{ payload.runtime.tenant_name or payload.runtime.tenant_slug or 'n.d.' }} -
+          backend: {{ payload.runtime.db_backend_label or 'n.d.' }} -
+          Ollama: {{ payload.runtime.ollama_model or 'modello non configurato' }} -
+          endpoint {{ payload.runtime.ollama_url or 'n.d.' }}
+        {% elif payload.runtime.db_configured %}
+          Il backend coverage e' configurato ma al momento non risponde. Verifica la connessione PostgreSQL tenant-aware dello studio selezionato e riprova.
         {% else %}
           Attiva un PostgreSQL tenant-aware oppure configura `LEGAL_COVERAGE_DB_*` / `PCT_LEGAL_COVERAGE_DB_*` per usare pipeline, review e publish reali senza fallback fittizi.
         {% endif %}
       </div>
     </div>
     <div class="small text-muted">
-      DB configurato: {{ 'sì' if payload.runtime.db_configured else 'no' }}
+      DB configurato: {{ 'si' if payload.runtime.db_configured else 'no' }}
     </div>
   </div>
 </div>
@@ -76,7 +81,7 @@
   <div class="col-6 col-xl-2">
     <div class="card h-100 admin-stat-card">
       <div class="card-body">
-        <div class="small text-muted mb-1">Coverage media</div>
+        <div class="small text-muted mb-1">Copertura media</div>
         <div class="fs-2 fw-bold">{{ payload.headline.coverage_medio }}</div>
       </div>
     </div>
@@ -84,7 +89,7 @@
   <div class="col-6 col-xl-2">
     <div class="card h-100 admin-stat-card">
       <div class="card-body">
-        <div class="small text-muted mb-1">Subbranch ready</div>
+        <div class="small text-muted mb-1">Sottobranche pronte</div>
         <div class="fs-2 fw-bold">{{ payload.headline.subbranch_ready }}</div>
       </div>
     </div>
@@ -92,7 +97,7 @@
   <div class="col-6 col-xl-2">
     <div class="card h-100 admin-stat-card">
       <div class="card-body">
-        <div class="small text-muted mb-1">Subbranch parziali</div>
+        <div class="small text-muted mb-1">Sottobranche parziali</div>
         <div class="fs-2 fw-bold">{{ payload.headline.subbranch_parziali }}</div>
       </div>
     </div>
@@ -108,7 +113,7 @@
   <div class="col-6 col-xl-2">
     <div class="card h-100 admin-stat-card">
       <div class="card-body">
-        <div class="small text-muted mb-1">Draft in review</div>
+        <div class="small text-muted mb-1">Bozze in revisione</div>
         <div class="fs-2 fw-bold">{{ payload.headline.draft_review }}</div>
       </div>
     </div>
@@ -126,7 +131,7 @@
 <div class="card mb-4">
   <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
     <strong>Regia pipeline</strong>
-    <span class="badge text-bg-light border">Esegui i passaggi in sequenza oppure a blocchi</span>
+    <span class="badge text-bg-light border">Esegui i passaggi in sequenza oppure per singolo blocco</span>
   </div>
   <div class="card-body">
     <div class="row g-3">
@@ -150,7 +155,7 @@
         <form method="post" action="{{ url_for('legal_coverage_admin.execute_action', action='drafts') }}" class="d-grid">
           <input type="hidden" name="tenant_slug" value="{{ tenant_slug }}">
           <button class="btn btn-outline-primary" type="submit">
-            <i class="bi bi-magic me-1"></i>Genera draft AI
+            <i class="bi bi-magic me-1"></i>Genera bozze AI
           </button>
         </form>
       </div>
@@ -179,7 +184,7 @@
             <tr>
               <th>Subbranch</th>
               <th>Gap</th>
-              <th>Priorità</th>
+              <th>Priorita</th>
               <th>Score</th>
             </tr>
           </thead>
@@ -203,7 +208,7 @@
     <div class="card h-100">
       <div class="card-header d-flex justify-content-between align-items-center gap-2">
         <strong>Draft queue</strong>
-        <a href="{{ url_for('legal_coverage_admin.review_page', tenant_slug=tenant_slug) }}" class="btn btn-sm btn-outline-secondary">Apri review</a>
+        <a href="{{ url_for('legal_coverage_admin.review_page', tenant_slug=tenant_slug) }}" class="btn btn-sm btn-outline-secondary">Apri revisione</a>
       </div>
       <div class="table-responsive">
         <table class="table table-sm align-middle mb-0">

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+from pathlib import Path
 from typing import Any
 
 from flask import current_app, g, has_request_context, request
@@ -46,13 +48,19 @@ def _resolve_requested_tenant_slug(explicit_tenant_slug: str = "") -> str:
     return ""
 
 
-def _active_tenants(cfg_source: dict[str, Any]) -> list[Any]:
+def _tenant_manager(cfg_source: dict[str, Any]) -> GestioneTenant | None:
     registry_path = str(cfg_source.get("TENANTS_REGISTRY") or "").strip()
     if not registry_path:
-        return []
+        return None
     try:
-        tenants = GestioneTenant(registry_path=registry_path)
+        return GestioneTenant(registry_path=registry_path)
     except Exception:
+        return None
+
+
+def _active_tenants(cfg_source: dict[str, Any], manager: GestioneTenant | None = None) -> list[Any]:
+    tenants = manager or _tenant_manager(cfg_source)
+    if tenants is None:
         return []
     active_states = {"ATTIVO", "TRIAL"}
     return [
@@ -60,6 +68,84 @@ def _active_tenants(cfg_source: dict[str, Any]) -> list[Any]:
         for studio in tenants.lista()
         if str(getattr(studio, "stato", "") or "").upper() in active_states
     ]
+
+
+def _load_tenant_studio_payload(manager: GestioneTenant | None, studio: Any = None) -> dict[str, Any]:
+    if manager is None or studio is None:
+        return {}
+    slug = str(getattr(studio, "slug", "") or "").strip().lower()
+    if not slug:
+        return {}
+    try:
+        config_path = Path(manager.percorsi_dati(slug).get("CONFIG_STUDIO_DB") or "")
+    except Exception:
+        return {}
+    if not config_path.is_file():
+        return {}
+    try:
+        payload = json.loads(config_path.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+    return payload if isinstance(payload, dict) else {}
+
+
+def _display_tenant_name(manager: GestioneTenant | None, studio: Any = None) -> str:
+    payload = _load_tenant_studio_payload(manager, studio)
+    configured_name = str(((payload.get("studio") or {}).get("nome")) or "").strip()
+    if configured_name:
+        return configured_name
+    return str(getattr(studio, "nome", "") or "").strip()
+
+
+def _coverage_backend_code(cfg_source: dict[str, Any], studio: Any = None) -> str:
+    tenant_database = getattr(studio, "database", None)
+    runtime_dsn = resolve_runtime_postgres_dsn(
+        "",
+        database=tenant_database or cfg_source.get("TENANT_DATABASE_CONFIG"),
+        config=cfg_source,
+        env_url_keys=("LEGAL_COVERAGE_DB_URL", "PCT_LEGAL_COVERAGE_DB_URL"),
+    )
+    if not runtime_dsn:
+        runtime_dsn = _legacy_tenant_postgres_dsn(tenant_database)
+    if runtime_dsn:
+        return "POSTGRESQL"
+    normalized_mode = str(
+        getattr(tenant_database, "normalized_mode", "") or normalize_db_mode(getattr(tenant_database, "mode", ""))
+    ).strip()
+    return normalized_mode or "JSON"
+
+
+def _coverage_backend_label(cfg_source: dict[str, Any], studio: Any = None) -> str:
+    code = _coverage_backend_code(cfg_source, studio)
+    labels = {
+        "POSTGRESQL": "PostgreSQL tenant-aware",
+        "SQLITE": "SQLite locale",
+        "JSON": "JSON locale",
+        "MYSQL": "MySQL esterno",
+    }
+    return labels.get(code, code.title() if code else "Non configurato")
+
+
+def _db_status(repository: PostgresCoverageRepository) -> str:
+    if repository.ping():
+        return "online"
+    if repository.config.configured:
+        return "offline"
+    return "missing"
+
+
+def _tenant_choices_payload(cfg_source: dict[str, Any]) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    manager = _tenant_manager(cfg_source)
+    for studio in _active_tenants(cfg_source, manager=manager):
+        rows.append(
+            {
+                "slug": str(getattr(studio, "slug", "") or ""),
+                "nome": _display_tenant_name(manager, studio),
+                "db_mode": _coverage_backend_label(cfg_source, studio),
+            }
+        )
+    return rows
 
 
 def _resolve_runtime_tenant(
@@ -71,7 +157,8 @@ def _resolve_runtime_tenant(
     if tenant is not None:
         return tenant
 
-    active_tenants = _active_tenants(cfg_source)
+    manager = _tenant_manager(cfg_source)
+    active_tenants = _active_tenants(cfg_source, manager=manager)
     requested_slug = _resolve_requested_tenant_slug(explicit_tenant_slug)
     if requested_slug:
         for studio in active_tenants:
@@ -82,20 +169,6 @@ def _resolve_runtime_tenant(
     if len(active_tenants) == 1:
         return active_tenants[0]
     return None
-
-
-def _tenant_choices_payload(cfg_source: dict[str, Any]) -> list[dict[str, Any]]:
-    rows: list[dict[str, Any]] = []
-    for studio in _active_tenants(cfg_source):
-        database = getattr(studio, "database", None)
-        rows.append(
-            {
-                "slug": str(getattr(studio, "slug", "") or ""),
-                "nome": str(getattr(studio, "nome", "") or ""),
-                "db_mode": str(getattr(database, "normalized_mode", "") or normalize_db_mode(getattr(database, "mode", ""))),
-            }
-        )
-    return rows
 
 
 def _legacy_tenant_postgres_dsn(database: Any = None) -> str:
@@ -183,13 +256,18 @@ def build_legal_coverage_surface(
     runtime_app, cfg_source = _runtime_app_and_config(app)
     resolved_tenant = _resolve_runtime_tenant(cfg_source, explicit_tenant_slug=tenant_slug)
     repository = build_repository(app, tenant_slug=tenant_slug)
+    manager = _tenant_manager(cfg_source)
+    runtime_status = _db_status(repository)
+    tenant_name = _display_tenant_name(manager, resolved_tenant)
     runtime = {
         "db_configured": repository.config.configured,
-        "db_online": repository.ping(),
+        "db_online": runtime_status == "online",
+        "db_status": runtime_status,
+        "db_backend_label": _coverage_backend_label(cfg_source, resolved_tenant),
         "ollama_url": str(cfg_source.get("LOCAL_AI_BASE_URL") or ""),
         "ollama_model": str(cfg_source.get("LOCAL_AI_CHAT_MODEL") or cfg_source.get("OLLAMA_MODEL") or ""),
         "tenant_slug": str(getattr(resolved_tenant, "slug", "") or ""),
-        "tenant_name": str(getattr(resolved_tenant, "nome", "") or ""),
+        "tenant_name": tenant_name,
         "tenant_choices": _tenant_choices_payload(cfg_source),
     }
     if not runtime["db_online"]:

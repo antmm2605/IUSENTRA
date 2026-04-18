@@ -78,6 +78,11 @@ Moduli principali:
 - [pct/legal_update_repository.py](/D:/legale/hacs/pct/legal_update_repository.py)
 - [pct/legal_update_ai.py](/D:/legale/hacs/pct/legal_update_ai.py)
 - [pct/legal_update_pipeline.py](/D:/legale/hacs/pct/legal_update_pipeline.py)
+
+## Note operative importanti
+
+- Le fonti HTML non vengono piu' limitate artificialmente a 40 risultati: il fetch segue anche la paginazione dei portali che espongono piu' pagine tramite query string o script lato pagina.
+- La deduplica resta basata su `external_id`, quindi piu' pagine della stessa fonte possono essere acquisite senza duplicare gli stessi provvedimenti.
 - [web/blueprints/legal_updates_admin.py](/D:/legale/hacs/web/blueprints/legal_updates_admin.py)
 - [web/blueprints/legal_intelligence.py](/D:/legale/hacs/web/blueprints/legal_intelligence.py)
 

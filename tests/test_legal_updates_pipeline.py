@@ -107,6 +107,25 @@ def _normativa_html() -> str:
     """
 
 
+def _cassazione_page(page: int, total_pages: int = 4, items_per_page: int = 15) -> str:
+    links = []
+    start = (page - 1) * items_per_page + 1
+    for number in range(start, start + items_per_page):
+        links.append(
+            f"""
+            <article>
+              <a href="/doc/{number}">Sentenza civile n. {number} del 2026 - Sezione prima</a>
+              <p>Pubblicata il {number:02d}/04/2026 con massima e sintesi operativa.</p>
+            </article>
+            """
+        )
+    pager = "\n".join(
+        f'<script>parametriUrl("pager_link_{page_no}", "{page_no}")</script>'
+        for page_no in range(2, total_pages + 1)
+    )
+    return f"<html><body>{''.join(links)}{pager}</body></html>"
+
+
 def test_legal_update_cycle_crea_review_normativa(tmp_path: Path):
     pipeline = build_legal_update_pipeline(str(tmp_path / "intelligence" / "motori.json"))
 
@@ -159,6 +178,31 @@ def test_legal_update_duplicate_non_moltiplica_queue(tmp_path: Path):
     queue = pipeline.repository.list_review_queue(limit=20)
 
     assert len(queue) == 1
+
+
+def test_fetch_html_paginato_acquisisce_tutti_i_documenti_della_fonte(tmp_path: Path):
+    pipeline = build_legal_update_pipeline(str(tmp_path / "intelligence" / "motori.json"))
+    source = {
+        "id": 999,
+        "code": "cassazione_prima_sezione_test",
+        "name": "Cassazione - Prima sezione civile",
+        "base_url": "https://www.cortedicassazione.it/it/prima_sezione_civile.page",
+    }
+
+    pages = {
+        source["base_url"]: DummyResponse(_cassazione_page(1), url=source["base_url"]),
+        f'{source["base_url"]}?frame3_item=2': DummyResponse(_cassazione_page(2), url=f'{source["base_url"]}?frame3_item=2'),
+        f'{source["base_url"]}?frame3_item=3': DummyResponse(_cassazione_page(3), url=f'{source["base_url"]}?frame3_item=3'),
+        f'{source["base_url"]}?frame3_item=4': DummyResponse(_cassazione_page(4), url=f'{source["base_url"]}?frame3_item=4'),
+    }
+
+    def _fake_get(url, *args, **kwargs):
+        return pages[str(url)]
+
+    documents = pipeline._fetch_source(source, request_get=_fake_get)
+
+    assert len(documents) == 60
+    assert len({row["external_id"] for row in documents}) == 60
 
 
 def test_news_page_renderizza_contenuto_pubblicato(tmp_path: Path):

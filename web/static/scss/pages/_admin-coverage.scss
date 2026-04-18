@@ -31,6 +31,11 @@
   color: #0f172a;
 }
 
+.review-help {
+  border: 1px solid rgba(37, 99, 235, 0.14);
+  background: linear-gradient(180deg, rgba(239, 246, 255, 0.92), rgba(248, 250, 252, 0.98));
+}
+
 .review-page-header {
   display: flex;
   align-items: flex-start;
@@ -99,6 +104,15 @@
   max-height: 70vh;
   overflow: auto;
   padding-right: 0.2rem;
+}
+
+.review-list-empty {
+  border: 1px dashed rgba(15, 23, 42, 0.12);
+  border-radius: 6px;
+  padding: 0.95rem;
+  background: #fff;
+  color: #64748b;
+  font-size: 0.84rem;
 }
 
 .review-draft-item {
@@ -274,6 +288,32 @@
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 0.8rem;
   line-height: 1.45;
+}
+
+.review-retrieval-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.review-retrieval-item {
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 8px;
+  background: #f8fafc;
+  padding: 0.8rem 0.85rem;
+}
+
+.review-retrieval-title {
+  font-weight: 700;
+  font-size: 0.88rem;
+  color: #0f172a;
+  margin-bottom: 0.4rem;
+}
+
+.review-retrieval-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
 }
 
 .review-sql-block {

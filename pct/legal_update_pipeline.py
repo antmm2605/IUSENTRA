@@ -5,7 +5,7 @@ import hashlib
 import json
 import re
 from typing import Any, Callable
-from urllib.parse import urljoin
+from urllib.parse import parse_qsl, urlencode, urljoin, urlsplit, urlunsplit
 import xml.etree.ElementTree as ET
 
 import requests
@@ -139,6 +139,7 @@ DEFAULT_SOURCE_ROWS: tuple[dict[str, Any], ...] = (
 )
 
 HTML_DATE_RE = re.compile(r"\b([0-3]?\d/[01]?\d/[12]\d{3})\b")
+PAGER_FRAME_RE = re.compile(r'parametriUrl\("(?P<element>[^"]+)",\s*"(?P<page>[^"]+)"\)')
 
 
 def _clean_spaces(value: Any) -> str:
@@ -239,7 +240,7 @@ def _extract_html_items(source: dict[str, Any], base_url: str, content: str) -> 
         unique: dict[str, dict[str, Any]] = {}
         for row in docs:
             unique[row["external_id"]] = row
-        return list(unique.values())[:40]
+        return list(unique.values())
     plain = _clean_spaces(" ".join(tree.xpath("//body//text()")))
     return [
         {
@@ -252,6 +253,35 @@ def _extract_html_items(source: dict[str, Any], base_url: str, content: str) -> 
             "body_short": _truncate(plain),
         }
     ]
+
+
+def _extract_pager_frames(content: str) -> list[str]:
+    pages: list[str] = []
+    for match in PAGER_FRAME_RE.finditer(str(content or "")):
+        page = _clean_spaces(match.group("page"))
+        if page and page not in pages and page != "1":
+            pages.append(page)
+    return pages
+
+
+def _set_query_param(url: str, key: str, value: str) -> str:
+    split = urlsplit(str(url or ""))
+    query = dict(parse_qsl(split.query, keep_blank_values=True))
+    query[str(key)] = str(value)
+    return urlunsplit((split.scheme, split.netloc, split.path, urlencode(query), split.fragment))
+
+
+def _merge_unique_documents(documents: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    ordered: dict[str, dict[str, Any]] = {}
+    for row in documents:
+        external_id = str(row.get("external_id") or "")
+        if not external_id:
+            external_id = _sha256(
+                f"{row.get('source_url')}|{row.get('title')}|{row.get('published_at')}"
+            )
+            row["external_id"] = external_id
+        ordered.setdefault(external_id, row)
+    return list(ordered.values())
 
 
 class LegalUpdatePipeline:
@@ -293,6 +323,24 @@ class LegalUpdatePipeline:
             docs = _extract_feed_items(source, source["base_url"], text)
         else:
             docs = _extract_html_items(source, source["base_url"], text)
+            extra_pages = _extract_pager_frames(text)
+            for page in extra_pages:
+                page_url = _set_query_param(source["base_url"], "frame3_item", page)
+                try:
+                    page_response = request_get(
+                        page_url,
+                        timeout=25,
+                        headers={"User-Agent": "IUSENTRA-Legal-Updates/1.0"},
+                    )
+                except Exception:
+                    continue
+                page_text = ""
+                if hasattr(page_response, "text"):
+                    page_text = str(page_response.text or "")
+                elif hasattr(page_response, "content"):
+                    page_text = bytes(page_response.content or b"").decode("utf-8", errors="ignore")
+                docs.extend(_extract_html_items(source, page_url, page_text))
+            docs = _merge_unique_documents(docs)
         if not docs:
             docs = [
                 {

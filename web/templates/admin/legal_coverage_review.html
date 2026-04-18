@@ -12,7 +12,7 @@
       <div class="review-kicker">Copertura AI</div>
       <h1 class="review-title mb-1">Coda revisione draft v2</h1>
       <p class="review-subtitle mb-0">
-        Revisione, correzione, approvazione e pubblicazione dei draft generati automaticamente.
+        Qui controlli le bozze generate automaticamente prima che vengano trasformate in SQL e pubblicate nel catalogo.
       </p>
       {% if tenant_slug %}
       <div class="small text-muted mt-1">Studio selezionato: <strong>{{ tenant_slug }}</strong></div>
@@ -28,13 +28,21 @@
     </div>
   </div>
 
+  <div class="alert alert-info review-help mb-3" role="alert">
+    <div class="fw-semibold mb-1">Come si usa questa schermata</div>
+    <div class="small">
+      1. Seleziona una bozza dalla coda a sinistra. 2. Controlla metadati, report di validazione e contesto di retrieval.
+      3. Correggi lo spec JSON solo se serve. 4. Approva o rifiuta la bozza. 5. Pubblica solo dopo l'approvazione per generare lo SQL reale.
+    </div>
+  </div>
+
   <div class="row g-3">
     <div class="col-12 col-xl-3">
       <div class="card review-card h-100">
         <div class="card-header review-card-header">
           <div>
             <h2 class="review-card-title">Coda draft</h2>
-            <small class="text-muted">Priorità, rischio e stato</small>
+            <small class="text-muted">Priorita, rischio e stato</small>
           </div>
           <span class="badge text-bg-light border" id="draft-count">0</span>
         </div>
@@ -53,13 +61,13 @@
           <div class="card review-card">
             <div class="card-header review-card-header">
               <div>
-                <h2 class="review-card-title">Panoramica draft</h2>
-                <small class="text-muted">Metadati, qualità e decisione</small>
+                <h2 class="review-card-title">Panoramica bozza</h2>
+                <small class="text-muted">Metadati, qualita e decisione</small>
               </div>
             </div>
             <div class="card-body">
               <div id="draft-empty" class="review-empty-state">
-                Seleziona un draft dalla coda per iniziare la revisione.
+                Nessuna bozza selezionata. Se la coda e' vuota, torna alla dashboard e lancia auditor, gap queue e generazione AI.
               </div>
               <div id="draft-meta" class="d-none">
                 <div class="row g-3">
@@ -94,12 +102,12 @@
             <div class="card-header review-card-header">
               <div>
                 <h2 class="review-card-title">Spec JSON</h2>
-                <small class="text-muted">Modifica inline del draft</small>
+                <small class="text-muted">Modifica inline della bozza</small>
               </div>
               <button class="btn btn-primary btn-sm" id="btn-save" type="button">Salva modifiche</button>
             </div>
             <div class="card-body p-0">
-              <textarea id="spec-editor" class="review-editor" spellcheck="false"></textarea>
+              <textarea id="spec-editor" class="review-editor" spellcheck="false" placeholder="{ }"></textarea>
             </div>
           </div>
         </div>
@@ -114,6 +122,21 @@
             </div>
             <div class="card-body">
               <pre id="validation-view" class="review-code-block"></pre>
+            </div>
+          </div>
+
+          <div class="card review-card mb-3">
+            <div class="card-header review-card-header">
+              <div>
+                <h2 class="review-card-title">Contesto di retrieval</h2>
+                <small class="text-muted">Esempi usati per costruire la bozza</small>
+              </div>
+            </div>
+            <div class="card-body">
+              <div id="retrieval-empty" class="small text-muted">
+                Nessun esempio di retrieval disponibile per questa bozza.
+              </div>
+              <div id="retrieval-list" class="review-retrieval-list"></div>
             </div>
           </div>
 

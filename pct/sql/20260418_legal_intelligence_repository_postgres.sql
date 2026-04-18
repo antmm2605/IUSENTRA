@@ -1,17 +1,13 @@
-PRAGMA foreign_keys = ON;
-
-BEGIN TRANSACTION;
-
 CREATE TABLE IF NOT EXISTS legal_repository_meta (
     meta_key TEXT PRIMARY KEY,
     meta_value TEXT NOT NULL,
-    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS legal_runtime_state (
     state_id TEXT PRIMARY KEY,
     state_json TEXT NOT NULL DEFAULT '{}',
-    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS legal_sources_repository (
@@ -149,5 +145,3 @@ ON legal_audit_repository(created_at);
 
 CREATE INDEX IF NOT EXISTS idx_legal_operational_repository_scope
 ON legal_operational_repository(scope, sort_order);
-
-COMMIT;

@@ -14,6 +14,7 @@ La repo oggi non è più solo un tool CLI per il Processo Civile Telematico: con
 - Template atti, strumenti legali e workspace professionali.
 - Giurisprudenza, legal intelligence, repository strutturati per Lex.
 - Motore `Update Intelligence` per monitoraggio normativo, giurisprudenziale e di prassi con area di acquisizione, coda revisioni e pagina news giuridiche strutturate.
+- Pipeline `Coverage AI` per audit tassonomico, gap queue, draft v2, review e publish SQL con retrieval interno e appoggio al PostgreSQL tenant-aware.
 - Workspace/applicazioni, portali di acquisizione, privacy e audit.
 - Runtime AI locale con Lex come strato linguistico sopra motori deterministici.
 - Multi-tenant amministrabile dalla piattaforma.
@@ -57,6 +58,7 @@ La parte importante, adesso, è che lo stato non viene più raccontato in modo g
 - il profilo runtime locale e containerizzato dichiara esplicitamente `PCT_STORAGE_MODE=SQLITE`
 - `PCT_SQLITE_MODE=1` resta supportato come compatibilità legacy, ma non è più l’unico punto di verità
 - i moduli economici (`preventivi`, `conferimenti`, `timesheet`, `fatturazione`, `pagamenti`) usano ora lo stesso percorso ufficiale di storage tenant-aware, con parita' reale su SQLite e PostgreSQL
+- anche `template atti`, `legal intelligence`, `giurisprudenza`, `repository telematico` e `workspace intelligence` hanno ora repository SQL/PostgreSQL dedicati, con JSON mantenuto come export o bootstrap controllato
 
 ## Avvio locale
 

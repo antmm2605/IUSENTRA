@@ -6,8 +6,10 @@ import sqlite3
 from pathlib import Path
 from typing import Any
 
+from pct.postgres_runtime_support import PostgresRepositoryBackend
 
 SCHEMA_TELEMATICO_REPOSITORY = Path(__file__).with_name("sql") / "20260414_telematico_repository.sql"
+POSTGRES_SCHEMA_TELEMATICO_REPOSITORY = Path(__file__).with_name("sql") / "20260418_telematico_repository_postgres.sql"
 
 _RECENCY_MARKERS = ("oggi", "ultima", "ultime", "ultimo", "ultimi", "aggiorn", "corrente", "versione")
 _MONITORING_MARKERS = ("xsd", "wsdl", "schema", "schemi", "specifiche", "servizi web", "reginde", "news", "versione", "errore t")
@@ -840,6 +842,8 @@ class GestioneTelematicoRepository:
         actions_json_path: str,
         wizard_json_path: str,
         monitoring_json_path: str,
+        postgres_dsn: str = "",
+        postgres_schema_path: Path | None = None,
     ) -> None:
         self.db_path = str(Path(db_path))
         self.json_path = str(Path(json_path))
@@ -854,9 +858,19 @@ class GestioneTelematicoRepository:
         self.actions_json_path = str(Path(actions_json_path))
         self.wizard_json_path = str(Path(wizard_json_path))
         self.monitoring_json_path = str(Path(monitoring_json_path))
+        self.postgres_dsn = str(postgres_dsn or "").strip()
+        self.postgres_schema_path = Path(postgres_schema_path or POSTGRES_SCHEMA_TELEMATICO_REPOSITORY)
+        self.backend_kind = "postgresql" if self.postgres_dsn else "sqlite"
+        self._postgres_backend = (
+            PostgresRepositoryBackend(self.postgres_dsn, self.postgres_schema_path)
+            if self.postgres_dsn
+            else None
+        )
         self._ensure_schema()
 
-    def _connect(self) -> sqlite3.Connection:
+    def _connect(self):
+        if self._postgres_backend is not None:
+            return self._postgres_backend.connection()
         Path(self.db_path).parent.mkdir(parents=True, exist_ok=True)
         conn = sqlite3.connect(self.db_path)
         conn.row_factory = sqlite3.Row
@@ -865,7 +879,12 @@ class GestioneTelematicoRepository:
 
     def _ensure_schema(self) -> None:
         with self._connect() as conn:
-            conn.executescript(SCHEMA_TELEMATICO_REPOSITORY.read_text(encoding="utf-8"))
+            schema = (
+                self.postgres_schema_path.read_text(encoding="utf-8")
+                if self._postgres_backend is not None
+                else SCHEMA_TELEMATICO_REPOSITORY.read_text(encoding="utf-8")
+            )
+            conn.executescript(schema)
 
     def _set_meta(self, key: str, value: Any) -> None:
         with self._connect() as conn:
@@ -1117,7 +1136,7 @@ class GestioneTelematicoRepository:
             "telematico_wizard_sections_repository": "telematico_wizard_sections_repository",
             "telematico_monitoring_repository": "telematico_monitoring_repository",
         }
-        stats: dict[str, Any] = {}
+        stats: dict[str, Any] = {"backend_kind": self.backend_kind}
         with self._connect() as conn:
             for key, table in table_names.items():
                 stats[key] = int(conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0])

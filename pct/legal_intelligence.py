@@ -16,6 +16,7 @@ import requests
 from lxml import html as lxml_html
 from urllib3.exceptions import InsecureRequestWarning
 
+from pct.postgres_runtime_support import resolve_runtime_postgres_dsn
 from pct.legal_intelligence_repository import (
     GestioneLegalIntelligenceRepository,
     build_legal_alert_rows,
@@ -1361,9 +1362,12 @@ class GestioneLegalIntelligence:
         db_path: str = "./intelligence/legal_intelligence.json",
         timeout: int = 15,
         normative_db_path: Optional[str] = None,
+        *,
+        postgres_dsn: str = "",
     ):
         self.db_path = db_path
         self.timeout = timeout
+        self.postgres_dsn = resolve_runtime_postgres_dsn(postgres_dsn)
         self.normative_db_path = normative_db_path or str(Path(db_path).with_name("tabelle_normative.json"))
         self.normative_tables = GestioneTabelleNormative(self.normative_db_path)
         self._data: Dict[str, Any] = {"monitor_runs": [], "alerts": [], "audit_traces": []}
@@ -1397,6 +1401,7 @@ class GestioneLegalIntelligence:
             keyword_source_json_path=self.repository_keyword_source_json_path,
             engine_edges_json_path=self.repository_engine_edges_json_path,
             operational_json_path=self.repository_operational_json_path,
+            postgres_dsn=self.postgres_dsn,
         )
         self._telematico_repository = GestioneTelematicoRepository(
             self.telematico_repository_db_path,
@@ -1412,6 +1417,7 @@ class GestioneLegalIntelligence:
             actions_json_path=self.telematico_actions_json_path,
             wizard_json_path=self.telematico_wizard_json_path,
             monitoring_json_path=self.telematico_monitoring_json_path,
+            postgres_dsn=self.postgres_dsn,
         )
         self._load()
         self._sync_repository()
@@ -1419,7 +1425,7 @@ class GestioneLegalIntelligence:
     def _load(self) -> None:
         from pct import cache as _cache
         try:
-            raw = _cache.load(self.db_path, default={})
+            raw = self._repository.load_runtime_state() if self.postgres_dsn else _cache.load(self.db_path, default={})
             self._data["monitor_runs"] = [
                 MonitorRun.from_dict(item).to_dict() for item in (raw.get("monitor_runs") or [])
             ]
@@ -1434,8 +1440,11 @@ class GestioneLegalIntelligence:
 
     def _save(self) -> None:
         from pct import cache as _cache
-        # indent=None: file fino a 2.9 MB, non serve leggibilità umana
-        _cache.save(self.db_path, self._data, indent=None)
+        if self.postgres_dsn:
+            self._repository.save_runtime_state(self._data)
+        else:
+            # indent=None: file fino a 2.9 MB, non serve leggibilità umana
+            _cache.save(self.db_path, self._data, indent=None)
         self._sync_repository()
 
     def _append_limited(self, key: str, payload: Dict[str, Any], limit: int) -> None:

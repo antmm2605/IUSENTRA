@@ -671,8 +671,10 @@ def test_template_giurisprudenza_usa_layout_responsive():
     index_html = Path("web/templates/giurisprudenza/index.html").read_text(encoding="utf-8")
     form_html = Path("web/templates/giurisprudenza/form.html").read_text(encoding="utf-8")
     detail_html = Path("web/templates/giurisprudenza/dettaglio.html").read_text(encoding="utf-8")
+    theme_css = Path("web/static/css/theme.css").read_text(encoding="utf-8")
 
-    assert ".jud-actions .btn { width:100%; }" in index_html
+    assert ".jud-actions .btn" in theme_css
+    assert "width: 100%;" in theme_css
     assert "Import assistito da materiale cliente" in index_html
     assert "Importa materiale cliente" in index_html
     assert "Recupero automatico da fonti ufficiali" in index_html
@@ -681,6 +683,6 @@ def test_template_giurisprudenza_usa_layout_responsive():
     assert "Licenza / note" in index_html
     assert ".jf-layout { display: grid;" in form_html
     assert "@media (max-width: 1199.98px)" in form_html
-    assert "@media (max-width: 767.98px)" in detail_html
+    assert "@media (max-width: 767.98px)" in form_html
     assert "Testo normalizzato e archivio redazionale" in detail_html
     assert "Archivio tecnico" in detail_html

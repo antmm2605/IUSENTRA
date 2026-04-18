@@ -21,6 +21,7 @@ from lxml import html as lxml_html
 import pdfplumber
 
 from pct import cache as _cache
+from pct.postgres_runtime_support import resolve_runtime_postgres_dsn
 from pct.giurisprudenza_corpus import (
     GestioneCorpusGiurisprudenza,
     derive_corpus_db_path,
@@ -622,8 +623,9 @@ def tassonomia_flat() -> Dict[str, List[str]]:
 
 
 class GestioneGiurisprudenza:
-    def __init__(self, db_path: str = "./intelligence/giurisprudenza.json", timeout: int = 12):
+    def __init__(self, db_path: str = "./intelligence/giurisprudenza.json", timeout: int = 12, *, postgres_dsn: str = ""):
         self.db_path = db_path
+        self.postgres_dsn = resolve_runtime_postgres_dsn(postgres_dsn)
         self.corpus_db_path = derive_corpus_db_path(db_path)
         self.repository_db_path = derive_giurisprudenza_repository_db_path(self.db_path)
         self.repository_json_path = derive_giurisprudenza_repository_json_path(self.db_path)
@@ -641,6 +643,7 @@ class GestioneGiurisprudenza:
             taxonomy_json_path=self.repository_taxonomy_json_path,
             usage_json_path=self.repository_usage_json_path,
             sync_json_path=self.repository_sync_json_path,
+            postgres_dsn=self.postgres_dsn,
         )
         self._load()
         self._sync_repository()
@@ -659,7 +662,7 @@ class GestioneGiurisprudenza:
 
     def _load(self) -> None:
         try:
-            raw = _cache.load(self.db_path, default={}) or {}
+            raw = self._repository.load_runtime_state() if self.postgres_dsn else (_cache.load(self.db_path, default={}) or {})
             base = self._empty_storage()
             base["judgments"] = list(raw.get("judgments") or [])
             base["ingestion_runs"] = list(raw.get("ingestion_runs") or raw.get("sync_runs") or [])
@@ -681,7 +684,10 @@ class GestioneGiurisprudenza:
     def _save(self) -> None:
         payload = dict(self._data)
         payload["sync_runs"] = list(payload.get("ingestion_runs") or [])
-        _cache.save(self.db_path, payload, indent=2)
+        if self.postgres_dsn:
+            self._repository.save_runtime_state(payload)
+        else:
+            _cache.save(self.db_path, payload, indent=2)
         self._sync_repository()
 
     def _classification_source_for_payload(

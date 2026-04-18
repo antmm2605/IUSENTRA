@@ -63,6 +63,11 @@ Alias con prefisso `PCT_` equivalenti:
 - `PCT_LEGAL_COVERAGE_DB_USER`
 - `PCT_LEGAL_COVERAGE_DB_PASSWORD`
 
+Per attivare la pipeline reale puoi usare due strade:
+
+- configurazione esplicita con `LEGAL_COVERAGE_DB_*` o `PCT_LEGAL_COVERAGE_DB_*`
+- riuso automatico del PostgreSQL tenant-aware gia' attivo per lo studio, senza dover duplicare la configurazione coverage
+
 L'AI usa il runtime locale gia' configurato nel gestionale:
 
 - `LOCAL_AI_BASE_URL`
@@ -72,6 +77,8 @@ L'AI usa il runtime locale gia' configurato nel gestionale:
 
 - Dashboard: `/admin/copertura-ai`
 - Review queue: `/admin/copertura-ai/review`
+
+Se il tenant ha gia' PostgreSQL attivo, la dashboard non resta piu' bloccata su "Database coverage non raggiungibile" solo per mancanza delle variabili dedicate: usa il backend studio gia' disponibile e mostra la pipeline reale.
 
 ## CLI
 

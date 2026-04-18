@@ -26,6 +26,7 @@ from dataclasses import asdict, dataclass, field
 from datetime import date, datetime
 from typing import Any, Dict, List, Optional
 
+from pct.postgres_runtime_support import resolve_runtime_postgres_dsn
 from pct.template_atti_catalogo import build_builtin_templates
 from pct.template_atti_repository import (
     GestioneTemplateRepository,
@@ -219,29 +220,42 @@ BUILTIN_TEMPLATES: List[Dict[str, Any]] = build_builtin_templates()
 
 class GestioneTemplateAtti:
 
-    def __init__(self, db_path: str = "./template_atti/templates.json"):
+    def __init__(self, db_path: str = "./template_atti/templates.json", *, postgres_dsn: str = ""):
         self.db_path = db_path
         self.repository_db_path = derive_template_repository_db_path(db_path)
         self.repository_json_path = derive_template_repository_json_path(db_path)
-        self._templates: Dict[str, TemplateAtto] = {}
-        self._carica()
-        self._inserisci_builtin()
+        self.postgres_dsn = resolve_runtime_postgres_dsn(postgres_dsn)
         self._repository = GestioneTemplateRepository(
             self.repository_db_path,
             json_path=self.repository_json_path,
+            postgres_dsn=self.postgres_dsn,
         )
+        self._templates: Dict[str, TemplateAtto] = {}
+        self._carica()
+        self._inserisci_builtin()
         self._sync_repository()
 
     def _carica(self):
+        if self.postgres_dsn:
+            raw = self._repository.load_runtime_state()
+            self._templates = {
+                str(item.get("id") or ""): TemplateAtto.from_dict(item)
+                for item in raw
+                if item.get("id")
+            }
+            return
         if os.path.exists(self.db_path):
             with open(self.db_path, encoding="utf-8") as f:
                 raw = json.load(f)
             self._templates = {k: TemplateAtto.from_dict(v) for k, v in raw.items()}
 
     def _salva(self):
+        da_salvare = {k: v.to_dict() for k, v in self._templates.items() if not v.builtin}
+        if self.postgres_dsn:
+            self._repository.save_runtime_state(list(da_salvare.values()))
+            return
         os.makedirs(os.path.dirname(self.db_path) or ".", exist_ok=True)
         # Salva solo i template custom (non builtin) — i builtin si ricaricano sempre fresh
-        da_salvare = {k: v.to_dict() for k, v in self._templates.items() if not v.builtin}
         with open(self.db_path, "w", encoding="utf-8") as f:
             json.dump(da_salvare, f, ensure_ascii=False, indent=2)
 
@@ -369,10 +383,18 @@ class GestioneTemplateAtti:
 
 class GestionePreferenzeTemplateAtti:
 
-    def __init__(self, prefs_path: str = "./template_atti/editor_layout.json"):
+    def __init__(self, prefs_path: str = "./template_atti/editor_layout.json", *, postgres_dsn: str = ""):
         self.prefs_path = prefs_path
+        self.postgres_dsn = resolve_runtime_postgres_dsn(postgres_dsn)
+        self.repository = GestioneTemplateRepository(
+            db_path=str(Path(self.prefs_path).resolve().with_name("template_repository.db")),
+            postgres_dsn=self.postgres_dsn,
+        )
 
     def carica(self) -> Dict[str, Any]:
+        repo_layout = self.repository.load_editor_preferences()
+        if repo_layout:
+            return normalizza_editor_layout(repo_layout)
         if os.path.exists(self.prefs_path):
             try:
                 with open(self.prefs_path, encoding="utf-8") as f:
@@ -386,6 +408,9 @@ class GestionePreferenzeTemplateAtti:
 
     def salva(self, layout: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         normalizzato = normalizza_editor_layout(layout)
+        self.repository.save_editor_preferences(normalizzato)
+        if self.postgres_dsn:
+            return normalizzato
         os.makedirs(os.path.dirname(self.prefs_path) or ".", exist_ok=True)
         payload = {
             "editor_layout": normalizzato,

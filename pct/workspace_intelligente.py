@@ -11,7 +11,12 @@ from pct.agenda import Agenda, StatoAppuntamento
 from pct.calendar_sync import GestioneCalendarSync
 from pct.fascicoli import Fascicolo, GestioneFascicoli, StatoFascicolo, TipoFascicolo
 from pct.giurisprudenza import GestioneGiurisprudenza
+from pct.postgres_runtime_support import resolve_runtime_postgres_dsn
 from pct.scadenziario import GestioneScadenziario, RegolaCalendario, Scadenza
+from pct.workspace_intelligence_repository import (
+    WorkspaceIntelligenceRepository,
+    derive_workspace_intelligence_repository_db_path,
+)
 
 
 FONTI_CALCOLO_PROCESSUALE: List[Dict[str, str]] = [
@@ -160,6 +165,8 @@ class WorkspaceIntelligenteService:
         calendar_sync: Optional[GestioneCalendarSync] = None,
         giurisprudenza: Optional[GestioneGiurisprudenza] = None,
         studio_patron_rule: Optional[RegolaCalendario] = None,
+        snapshot_path: str = "",
+        postgres_dsn: str = "",
     ) -> None:
         self.agenda = agenda
         self.scadenziario = scadenziario
@@ -167,6 +174,16 @@ class WorkspaceIntelligenteService:
         self.calendar_sync = calendar_sync
         self.giurisprudenza = giurisprudenza
         self.studio_patron_rule = studio_patron_rule
+        self.snapshot_path = str(snapshot_path or "").strip()
+        self.postgres_dsn = resolve_runtime_postgres_dsn(postgres_dsn)
+        self._snapshot_repository = (
+            WorkspaceIntelligenceRepository(
+                derive_workspace_intelligence_repository_db_path(self.snapshot_path),
+                postgres_dsn=self.postgres_dsn,
+            )
+            if self.snapshot_path
+            else None
+        )
 
     def _appointments_upcoming(self, horizon_days: int = 7, limit: int = 10) -> List[Any]:
         now = datetime.now()
@@ -520,11 +537,22 @@ class WorkspaceIntelligenteService:
             "generated_at": datetime.now().replace(microsecond=0).isoformat(),
             "overview": overview or self.panoramica(),
         }
+        if self._snapshot_repository is not None:
+            self._snapshot_repository.save_snapshot(payload)
         _cache.save(path, payload, indent=2)
         return payload
 
     @staticmethod
-    def load_snapshot(path: str) -> Dict[str, Any]:
+    def load_snapshot(path: str, *, postgres_dsn: str = "") -> Dict[str, Any]:
+        resolved_dsn = resolve_runtime_postgres_dsn(postgres_dsn)
+        if resolved_dsn:
+            repository = WorkspaceIntelligenceRepository(
+                derive_workspace_intelligence_repository_db_path(path),
+                postgres_dsn=resolved_dsn,
+            )
+            snapshot = repository.load_snapshot()
+            if snapshot.get("generated_at") or snapshot.get("overview"):
+                return snapshot
         return _cache.load(path, default={"generated_at": "", "overview": {}}) or {
             "generated_at": "",
             "overview": {},

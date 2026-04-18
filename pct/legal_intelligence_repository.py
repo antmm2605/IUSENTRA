@@ -6,8 +6,9 @@ import sqlite3
 from pathlib import Path
 from typing import Any
 
-
+from pct.postgres_runtime_support import PostgresRepositoryBackend
 SCHEMA_LEGAL_INTELLIGENCE_REPOSITORY = Path(__file__).with_name("sql") / "20260414_legal_intelligence_repository.sql"
+POSTGRES_SCHEMA_LEGAL_INTELLIGENCE_REPOSITORY = Path(__file__).with_name("sql") / "20260418_legal_intelligence_repository_postgres.sql"
 
 _DEFAULT_ENGINE_IDS = ["fonti_ufficiali", "audit_affidabilita"]
 _DEFAULT_SOURCE_IDS = ["normattiva", "pst_giustizia"]
@@ -452,6 +453,8 @@ class GestioneLegalIntelligenceRepository:
         keyword_source_json_path: str = "",
         engine_edges_json_path: str = "",
         operational_json_path: str = "",
+        postgres_dsn: str = "",
+        postgres_schema_path: Path | None = None,
     ) -> None:
         self.db_path = str(db_path or "").strip()
         self.json_path = str(json_path or "").strip()
@@ -461,9 +464,19 @@ class GestioneLegalIntelligenceRepository:
         self.keyword_source_json_path = str(keyword_source_json_path or "").strip()
         self.engine_edges_json_path = str(engine_edges_json_path or "").strip()
         self.operational_json_path = str(operational_json_path or "").strip()
+        self.postgres_dsn = str(postgres_dsn or "").strip()
+        self.postgres_schema_path = Path(postgres_schema_path or POSTGRES_SCHEMA_LEGAL_INTELLIGENCE_REPOSITORY)
+        self.backend_kind = "postgresql" if self.postgres_dsn else "sqlite"
+        self._postgres_backend = (
+            PostgresRepositoryBackend(self.postgres_dsn, self.postgres_schema_path)
+            if self.postgres_dsn
+            else None
+        )
         self._ensure_schema()
 
-    def _connect(self) -> sqlite3.Connection:
+    def _connect(self):
+        if self._postgres_backend is not None:
+            return self._postgres_backend.connection()
         target = Path(self.db_path)
         target.parent.mkdir(parents=True, exist_ok=True)
         conn = sqlite3.connect(str(target))
@@ -472,7 +485,11 @@ class GestioneLegalIntelligenceRepository:
         return conn
 
     def _ensure_schema(self) -> None:
-        schema = SCHEMA_LEGAL_INTELLIGENCE_REPOSITORY.read_text(encoding="utf-8")
+        schema = (
+            self.postgres_schema_path.read_text(encoding="utf-8")
+            if self._postgres_backend is not None
+            else SCHEMA_LEGAL_INTELLIGENCE_REPOSITORY.read_text(encoding="utf-8")
+        )
         with self._connect() as conn:
             conn.executescript(schema)
             conn.commit()
@@ -518,12 +535,43 @@ class GestioneLegalIntelligenceRepository:
             "keyword_source_json_path": self.keyword_source_json_path,
             "engine_edges_json_path": self.engine_edges_json_path,
             "operational_json_path": self.operational_json_path,
+            "backend_kind": self.backend_kind,
         }
         with self._connect() as conn:
             for table_name in tables:
                 stats[table_name] = int(conn.execute(f"SELECT COUNT(*) FROM {table_name}").fetchone()[0])
+            runtime_row = conn.execute("SELECT COUNT(*) FROM legal_runtime_state").fetchone()
+        stats["legal_runtime_state"] = int((runtime_row or [0])[0] or 0)
         stats["source_signature"] = self._get_meta("source_signature")
         return stats
+
+    def load_runtime_state(self) -> dict[str, Any]:
+        with self._connect() as conn:
+            row = conn.execute(
+                "SELECT state_json FROM legal_runtime_state WHERE state_id = ?",
+                ("runtime",),
+            ).fetchone()
+        if not row:
+            return {}
+        try:
+            return dict(json.loads(row["state_json"] or "{}"))
+        except Exception:
+            return {}
+
+    def save_runtime_state(self, payload: dict[str, Any]) -> None:
+        encoded = json.dumps(dict(payload or {}), ensure_ascii=False)
+        with self._connect() as conn:
+            conn.execute(
+                """
+                INSERT INTO legal_runtime_state (state_id, state_json, updated_at)
+                VALUES (?, ?, CURRENT_TIMESTAMP)
+                ON CONFLICT(state_id) DO UPDATE SET
+                    state_json = excluded.state_json,
+                    updated_at = CURRENT_TIMESTAMP
+                """,
+                ("runtime", encoded),
+            )
+            conn.commit()
 
     def synchronize_runtime(
         self,

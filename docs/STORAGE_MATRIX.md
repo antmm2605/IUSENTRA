@@ -19,14 +19,14 @@ Legenda:
 | Core operativo | Fascicoli e documenti | R/W | R/W | R/W | parita' completa | Wave 2 - core operativo | documenti sempre su filesystem tenant |
 | Programmazione | Agenda e sincronizzazione calendario | R/W | R/W | R/W | parita' completa | Wave 2 - core operativo | SQLite resta fallback dichiarato solo prima del cutover |
 | Programmazione | Scadenziario | R/W | R/W | R/W | parita' completa | Wave 2 - core operativo | JSON solo in bootstrap o fallback locale dichiarato |
-| Produzione atti | Template atti e preferenze editor | R/W | R/W | - | non attiva | Wave 3 - workspace professionali | JSON per continuita' dei layout editor |
+| Produzione atti | Template atti e preferenze editor | R/W | R/W | R/W | parita' completa | Wave 3 - workspace professionali | JSON come export/bootstrap controllato dei layout editor |
 | Operativita' | Timesheet e valorizzazione attivita' | R/W | R/W | R/W | parita' completa | Wave 4 - economico | JSON solo come bootstrap o import storico |
 | Commerciale | Preventivi e workflow commerciale | R/W | R/W | R/W | parita' completa | Wave 4 - economico | SQLite/PostgreSQL tenant-aware; JSON solo come ponte di migrazione |
 | Economico | Fatturazione, pagamenti e saldo cliente | R/W | R/W | R/W | parita' completa | Wave 4 - economico | cutover ufficiale con report di consistenza e nessun fallback invisibile |
-| Motori legali | Legal intelligence, monitoraggio e audit fonti | R/W | - | - | non attiva | Wave 5 - intelligence | JSON tenant-aware con snapshot e audit trace locali |
-| Motori legali | Giurisprudenza e corpus interno | R/W | - | - | non attiva | Wave 5 - intelligence | JSON tenant-aware come corpus canonico corrente |
-| Telematico | PST, PDP, PAT e PTT/SIGIT | R/W | R/W | - | non attiva | Wave 3 - workspace professionali | metadati su JSON/SQLite, file e buste sempre su filesystem tenant |
-| Cabina intelligente | Workspace intelligence e cockpit | R/W | - | - | non attiva | Wave 5 - intelligence | snapshot derivato su JSON fino a consolidamento dei domini sorgente |
+| Motori legali | Legal intelligence, monitoraggio e audit fonti | R/W | R/W | R/W | parita' completa | Wave 5 - intelligence | JSON tenant-aware come export/recovery, senza fallback invisibili |
+| Motori legali | Giurisprudenza e corpus interno | R/W | R/W | R/W | parita' completa | Wave 5 - intelligence | JSON tenant-aware come export/import storico controllato |
+| Telematico | PST, PDP, PAT e PTT/SIGIT | R/W | R/W | R/W | parita' completa | Wave 3 - workspace professionali | metadati e repository su SQL/PostgreSQL, file e buste sempre su filesystem tenant |
+| Cabina intelligente | Workspace intelligence e cockpit | R/W | R/W | R/W | parita' completa | Wave 5 - intelligence | snapshot SQL/PostgreSQL con JSON come export derivato |
 | AI locale | Runtime locale, modelli e RAG | - | R/W | - | non attiva | Fuori scope come backend primario | SQLite locale e filesystem sullo stesso host del runtime |
 
 ## Verita' operativa oggi

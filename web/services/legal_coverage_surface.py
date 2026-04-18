@@ -7,6 +7,7 @@ from typing import Any
 from flask import current_app
 
 from pct.legal_coverage_ai import CoverageAutofillEngine, load_presets
+from pct.postgres_runtime_support import resolve_runtime_postgres_dsn
 from pct.legal_coverage_pipeline import (
     build_dashboard_payload,
     build_gap_queue,
@@ -18,12 +19,37 @@ from pct.legal_coverage_repository import CoverageDbConfig, PostgresCoverageRepo
 
 
 def build_repository(app: Any | None = None) -> PostgresCoverageRepository:
-    cfg_source = (app or current_app)._get_current_object().config if app or current_app else {}
-    return PostgresCoverageRepository(CoverageDbConfig.from_mapping(cfg_source))
+    runtime_app = app
+    if runtime_app is None and current_app:
+        runtime_app = current_app._get_current_object()
+    cfg_source = getattr(runtime_app, "config", {}) if runtime_app is not None else {}
+    base_config = CoverageDbConfig.from_mapping(cfg_source)
+    runtime_dsn = resolve_runtime_postgres_dsn(
+        base_config.dsn,
+        database=cfg_source.get("TENANT_DATABASE_CONFIG"),
+        config=cfg_source,
+        env_url_keys=("LEGAL_COVERAGE_DB_URL", "PCT_LEGAL_COVERAGE_DB_URL"),
+    )
+    if runtime_dsn:
+        return PostgresCoverageRepository(
+            CoverageDbConfig(
+                dsn=runtime_dsn,
+                host=base_config.host,
+                port=base_config.port,
+                dbname=base_config.dbname,
+                user=base_config.user,
+                password=base_config.password,
+                explicit=True,
+            )
+        )
+    return PostgresCoverageRepository(base_config)
 
 
 def build_generator(app: Any | None = None) -> CoverageAutofillEngine:
-    source = (app or current_app)._get_current_object().config if app or current_app else {}
+    runtime_app = app
+    if runtime_app is None and current_app:
+        runtime_app = current_app._get_current_object()
+    source = getattr(runtime_app, "config", {}) if runtime_app is not None else {}
     return CoverageAutofillEngine(
         ollama_url=str(source.get("LOCAL_AI_BASE_URL") or source.get("PCT_LOCAL_AI_BASE_URL") or "").strip(),
         ollama_model=str(source.get("LOCAL_AI_CHAT_MODEL") or source.get("OLLAMA_MODEL") or "mistral").strip(),
@@ -32,12 +58,15 @@ def build_generator(app: Any | None = None) -> CoverageAutofillEngine:
 
 
 def build_legal_coverage_surface(app: Any | None = None) -> dict[str, Any]:
+    runtime_app = app
+    if runtime_app is None and current_app:
+        runtime_app = current_app._get_current_object()
     repository = build_repository(app)
     runtime = {
         "db_configured": repository.config.configured,
         "db_online": repository.ping(),
-        "ollama_url": str((app or current_app).config.get("LOCAL_AI_BASE_URL") or ""),
-        "ollama_model": str((app or current_app).config.get("LOCAL_AI_CHAT_MODEL") or (app or current_app).config.get("OLLAMA_MODEL") or ""),
+        "ollama_url": str(getattr(runtime_app, "config", {}).get("LOCAL_AI_BASE_URL") or ""),
+        "ollama_model": str(getattr(runtime_app, "config", {}).get("LOCAL_AI_CHAT_MODEL") or getattr(runtime_app, "config", {}).get("OLLAMA_MODEL") or ""),
     }
     if not runtime["db_online"]:
         return {

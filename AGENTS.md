@@ -30,6 +30,57 @@
 - Persistenza: file JSON per clienti, fascicoli, agenda, ecc.
 - Stack: Python 3, Flask, Bootstrap 5, Bootstrap Icons
 
+## Regola obbligatoria - completamento end-to-end di ogni nuova funzione
+
+Ogni nuova funzione, refactor o correzione deve essere considerata **completata solo quando copre tutta la filiera applicativa interessata**, non solo un singolo file, una singola route o una sola vista.
+
+Checklist minima obbligatoria per dichiarare conclusa una feature:
+
+- **Dominio e persistenza**
+  - aggiornare modelli, repository, servizi, seed, migrazioni e logica di business coinvolti;
+  - completare la persistenza su `JSON`, `SQLite`, `SQL` e `PostgreSQL` quando il dominio lo richiede;
+  - evitare source of truth parziali o fallback silenziosi non governati;
+  - aggiungere o aggiornare report di consistenza e parita' read/write dove previsti.
+- **Superfici applicative complete**
+  - completare route Flask, blueprint, servizi, template, API, menu e punti di accesso UI;
+  - una funzione nuova non puo' restare nascosta dietro URL non navigabili o accessibile solo da percorso manuale se deve essere usata in prodotto;
+  - se la funzione e' amministrativa, deve risultare chiaramente raggiungibile nella superficie admin corretta.
+- **UX e grafica professionale**
+  - completare layout, stati vuoti, feedback, messaggi, pulsanti, badge, filtri e navigazione;
+  - garantire grafica responsive coerente per **desktop, tablet e mobile**;
+  - usare SCSS governabile nei bundle ufficiali, senza lasciare stili sparsi o patch visive isolate;
+  - evitare regressioni di coerenza grafica tra pagine correlate.
+- **Lingua e localizzazione**
+  - tutto il testo visibile deve essere in **italiano**;
+  - tutte le date e ore esposte in UI devono usare **formati italiani** tramite i filtri condivisi;
+  - nessuna etichetta tecnica, placeholder demo o messaggio misto it/en deve restare in UI finale.
+- **Permessi, audit, eventi e tenant**
+  - verificare impatti su ruoli, RBAC, tenant, audit log, eventi applicativi, notifiche e automazioni;
+  - ogni nuova azione sensibile deve essere tracciabile e coerente con i permessi esistenti;
+  - considerare isolamento dati, backup per tenant, policy di studio, import/export e configurazioni collegate.
+- **AI e contenuti assistiti**
+  - se una funzione usa AI, deve essere completata anche su retrieval, guardrail, fonti, confidence, revisione umana e output verificato;
+  - vietato consegnare funzioni AI che generano testo non verificato o che mescolano fatti certi, inferenze e demo placeholder senza distinzione.
+- **Testing obbligatorio**
+  - eseguire test unitari, di integrazione, di route, di UI e di regressione pertinenti alla feature;
+  - aggiungere nuovi test quando la feature introduce nuovo comportamento o nuova UI visibile;
+  - verificare che non esistano regressioni su percorsi correlati;
+  - per release UI o route, verificare anche risposta HTTP reale e, quando serve, flusso autenticato.
+- **Versioning e verifica reale della release**
+  - eseguire sempre bump versione su `pct/__init__.py`, `setup.py`, `Dockerfile`, `railway.toml`;
+  - verificare che la versione dichiarata sia davvero quella servita da app, container, asset compilati e build finale;
+  - non basta aggiornare i file: la versione deve risultare coerente anche nei controlli runtime.
+- **Documentazione obbligatoria**
+  - aggiornare `README`, `docs/`, `CHANGELOG` e documentazione tecnica/prodotto su GitHub quando la feature lo richiede;
+  - documentare sempre comandi, URL, superfici, limiti, policy, dipendenze operative e flusso d'uso;
+  - se cambia il comportamento reale del prodotto, la documentazione deve rifletterlo nella stessa tranche.
+- **Deploy e verifica finale**
+  - ricostruire Docker locale con `--no-cache`, riavviare i servizi e verificare stato `healthy`;
+  - controllare log applicativi, route principali, pagine toccate, asset compilati e scheduler/worker correlati;
+  - se il caso riguarda differenze tra locale e produzione, includere anche controllo Railway.
+
+Regola finale: **non dichiarare mai conclusa una funzione se e' stata completata solo nel backend, solo nel database, solo nel template o solo nel prompt AI**. Una feature e' chiusa solo quando dominio, storage, route, UI, permessi, test, versione, documentazione e deploy risultano coerenti tra loro.
+
 ## Modularizzazione governabile — Regola obbligatoria
 
 - Ogni nuovo modulo o refactor deve produrre **codice governabile**, quindi con responsabilità piccole e confini chiari.

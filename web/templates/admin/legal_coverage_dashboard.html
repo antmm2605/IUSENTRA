@@ -28,7 +28,7 @@
         {% if runtime_ok %}
           Ollama: {{ payload.runtime.ollama_model or 'modello non configurato' }} · endpoint {{ payload.runtime.ollama_url or 'n.d.' }}
         {% else %}
-          Configura `LEGAL_COVERAGE_DB_*` oppure `PCT_LEGAL_COVERAGE_DB_*` per attivare pipeline, review e publish reali.
+          Attiva un PostgreSQL tenant-aware oppure configura `LEGAL_COVERAGE_DB_*` / `PCT_LEGAL_COVERAGE_DB_*` per usare pipeline, review e publish reali senza fallback fittizi.
         {% endif %}
       </div>
     </div>

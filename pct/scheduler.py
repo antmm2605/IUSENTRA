@@ -337,6 +337,7 @@ def start_scheduler(app):
                     found = True
                     yield {
                         "label": studio.slug,
+                        "database": studio.database,
                         "agenda_db": paths["AGENDA_DB"],
                         "calendar_sync_db": paths["CALENDAR_SYNC_DB"],
                         "fascicoli_db": paths["FASCICOLI_DB"],
@@ -419,6 +420,7 @@ def start_scheduler(app):
                 from pct.fascicoli import GestioneFascicoli
                 from pct.giurisprudenza import GestioneGiurisprudenza
                 from pct.scadenziario import GestioneScadenziario, regola_patrono_studio
+                from pct.postgres_runtime_support import resolve_runtime_postgres_dsn
                 from pct.workspace_intelligente import WorkspaceIntelligenteService
                 from pct.config_studio import GestioneConfigStudio
 
@@ -436,6 +438,8 @@ def start_scheduler(app):
                         ),
                         calendar_sync=GestioneCalendarSync(db_path=target["calendar_sync_db"]),
                         giurisprudenza=GestioneGiurisprudenza(db_path=target["giurisprudenza_db"]),
+                        snapshot_path=target["snapshot_db"],
+                        postgres_dsn=resolve_runtime_postgres_dsn(database=target.get("database")),
                     )
 
                     try:
@@ -631,4 +635,3 @@ def start_scheduler(app):
     app.config["PCT_SCHEDULER"] = scheduler
     logger.info(f"[scheduler] Avviato - backup alle {ora_backup}, WA reminder alle {wa_ora}.")
     return scheduler
-

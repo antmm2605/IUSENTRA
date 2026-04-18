@@ -6,8 +6,11 @@ import sqlite3
 from pathlib import Path
 from typing import Any, Iterable
 
+from pct.postgres_runtime_support import PostgresRepositoryBackend
+
 
 SCHEMA_TEMPLATE_REPOSITORY = Path(__file__).with_name("sql") / "20260414_template_repository.sql"
+POSTGRES_SCHEMA_TEMPLATE_REPOSITORY = Path(__file__).with_name("sql") / "20260418_template_repository_postgres.sql"
 
 
 def _clean_spaces(value: Any) -> str:
@@ -211,16 +214,28 @@ class GestioneTemplateRepository:
         *,
         json_path: str | None = None,
         schema_path: Path | None = None,
+        postgres_dsn: str = "",
+        postgres_schema_path: Path | None = None,
     ):
         self.db_path = str(db_path)
         self.json_path = str(json_path) if json_path else ""
         self.schema_path = Path(schema_path or SCHEMA_TEMPLATE_REPOSITORY)
+        self.postgres_dsn = str(postgres_dsn or "").strip()
+        self.postgres_schema_path = Path(postgres_schema_path or POSTGRES_SCHEMA_TEMPLATE_REPOSITORY)
+        self.backend_kind = "postgresql" if self.postgres_dsn else "sqlite"
+        self._postgres_backend = (
+            PostgresRepositoryBackend(self.postgres_dsn, self.postgres_schema_path)
+            if self.postgres_dsn
+            else None
+        )
         Path(self.db_path).parent.mkdir(parents=True, exist_ok=True)
         if self.json_path:
             Path(self.json_path).parent.mkdir(parents=True, exist_ok=True)
         self._ensure_schema()
 
-    def _connect(self) -> sqlite3.Connection:
+    def _connect(self):
+        if self._postgres_backend is not None:
+            return self._postgres_backend.connection()
         conn = sqlite3.connect(self.db_path)
         conn.row_factory = sqlite3.Row
         conn.execute("PRAGMA foreign_keys = ON")
@@ -229,9 +244,16 @@ class GestioneTemplateRepository:
         return conn
 
     def _ensure_schema(self) -> None:
-        schema_sql = self.schema_path.read_text(encoding="utf-8")
+        schema_sql = (
+            self.postgres_schema_path.read_text(encoding="utf-8")
+            if self._postgres_backend is not None
+            else self.schema_path.read_text(encoding="utf-8")
+        )
         with self._connect() as conn:
-            conn.executescript(schema_sql)
+            if hasattr(conn, "executescript"):
+                conn.executescript(schema_sql)
+            else:  # pragma: no cover - compat difensiva
+                conn.execute(schema_sql)
             conn.commit()
 
     def _get_meta(self, key: str) -> str:
@@ -266,13 +288,74 @@ class GestioneTemplateRepository:
             "template_variants",
         )
         counts: dict[str, Any] = {"db_path": self.db_path, "json_path": self.json_path}
+        counts["backend_kind"] = self.backend_kind
         with self._connect() as conn:
             for table_name in tables:
                 counts[table_name] = int(
                     conn.execute(f"SELECT COUNT(*) FROM {table_name}").fetchone()[0]
                 )
+            state_row = conn.execute("SELECT COUNT(*) FROM template_runtime_state").fetchone()
+            prefs_row = conn.execute("SELECT COUNT(*) FROM template_editor_preferences").fetchone()
+        counts["template_runtime_state"] = int((state_row or [0])[0] or 0)
+        counts["template_editor_preferences"] = int((prefs_row or [0])[0] or 0)
         counts["source_signature"] = self._get_meta("source_signature")
         return counts
+
+    def load_runtime_state(self) -> list[dict[str, Any]]:
+        with self._connect() as conn:
+            row = conn.execute(
+                "SELECT templates_json FROM template_runtime_state WHERE state_id = ?",
+                ("templates",),
+            ).fetchone()
+        if not row:
+            return []
+        try:
+            return list(json.loads(row["templates_json"] or "[]"))
+        except Exception:
+            return []
+
+    def save_runtime_state(self, templates: list[dict[str, Any]]) -> None:
+        payload = json.dumps(list(templates or []), ensure_ascii=False)
+        with self._connect() as conn:
+            conn.execute(
+                """
+                INSERT INTO template_runtime_state (state_id, templates_json, updated_at)
+                VALUES (?, ?, CURRENT_TIMESTAMP)
+                ON CONFLICT(state_id) DO UPDATE SET
+                    templates_json = excluded.templates_json,
+                    updated_at = CURRENT_TIMESTAMP
+                """,
+                ("templates", payload),
+            )
+            conn.commit()
+
+    def load_editor_preferences(self) -> dict[str, Any] | None:
+        with self._connect() as conn:
+            row = conn.execute(
+                "SELECT layout_json FROM template_editor_preferences WHERE prefs_id = ?",
+                ("default",),
+            ).fetchone()
+        if not row:
+            return None
+        try:
+            return dict(json.loads(row["layout_json"] or "{}"))
+        except Exception:
+            return None
+
+    def save_editor_preferences(self, layout: dict[str, Any]) -> None:
+        payload = json.dumps(dict(layout or {}), ensure_ascii=False)
+        with self._connect() as conn:
+            conn.execute(
+                """
+                INSERT INTO template_editor_preferences (prefs_id, layout_json, updated_at)
+                VALUES (?, ?, CURRENT_TIMESTAMP)
+                ON CONFLICT(prefs_id) DO UPDATE SET
+                    layout_json = excluded.layout_json,
+                    updated_at = CURRENT_TIMESTAMP
+                """,
+                ("default", payload),
+            )
+            conn.commit()
 
     def synchronize_templates(self, templates: Iterable[Any], *, export_json: bool = True) -> dict[str, Any]:
         normalized = [normalize_template_repository_item(template) for template in templates]

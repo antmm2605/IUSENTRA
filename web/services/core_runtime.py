@@ -423,6 +423,7 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
                 calendar_sync=get_calendar_sync(),
                 giurisprudenza=get_giurisprudenza(),
                 studio_patron_rule=_studio_patron_rule_from_config(),
+                snapshot_path=_cfg_data_path("WORKSPACE_INTELLIGENCE_DB"),
             )
         return g._workspace_intelligente
 

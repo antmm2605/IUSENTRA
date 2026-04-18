@@ -1,4 +1,4 @@
-# IUSENTRA Update Intelligence
+﻿# IUSENTRA Update Intelligence
 
 ## Obiettivo
 
@@ -7,11 +7,11 @@ Il motore di aggiornamento giuridico di IUSENTRA monitora fonti ufficiali e isti
 Il flusso operativo reale e':
 
 1. `fonti -> fetch`
-2. `staging raw`
+2. `acquisizione raw`
 3. `normalizzazione`
 4. `analisi AI + classificazione`
 5. `matching con archivio interno`
-6. `review queue`
+6. `coda revisioni`
 7. `pubblicazione news / archivio strutturato`
 8. `audit e storico`
 
@@ -111,11 +111,23 @@ Job pianificati:
 La UI amministrativa dedicata e' in:
 
 - `/admin/aggiornamenti-legali`
+- `/admin/aggiornamenti-legali/fonti`
+- `/admin/aggiornamenti-legali/staging`
+- `/admin/aggiornamenti-legali/analisi`
+- `/admin/aggiornamenti-legali/archivio`
 - `/admin/aggiornamenti-legali/review`
 
 La UI utente dedicata e' in:
 
 - `/legal-intelligence/news`
+
+La UI admin rende visibili tutti i blocchi della pipeline:
+
+- `fonti` -> gestore fonti, frequenze, parser, acquisizione mirata
+- `acquisizione` -> documenti grezzi e normalizzati con stato revisione
+- `analisi` -> classificazione AI, materia, confidenza e azione proposta
+- `archivio` -> normative, giurisprudenza, prassi, news e audit
+- `review` -> approvazione, rifiuto, modifica e pubblicazione
 
 ## Sicurezza e qualita'
 
@@ -124,3 +136,8 @@ La UI utente dedicata e' in:
 - ogni pubblicazione produce audit
 - le relazioni strutturate non sovrascrivono lo storico
 - la tassonomia materie e' chiusa e governata
+
+
+
+
+

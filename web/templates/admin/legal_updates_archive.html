@@ -1,0 +1,77 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Archivio aggiornamenti legali{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('legal_updates_admin.dashboard') }}" class="text-decoration-none">Aggiornamenti legali</a></li>
+<li class="breadcrumb-item active" aria-current="page">Archivio</li>
+{% endblock %}
+
+{% block content %}
+<div class="legal-updates-admin-page">
+  <div class="d-flex flex-column flex-lg-row align-items-start align-items-lg-center justify-content-between gap-3 mb-3">
+    <div>
+      <h1 class="h3 mb-1">Archivio strutturato</h1>
+      <p class="text-muted mb-0">Normative, giurisprudenza, prassi, news e audit del motore di aggiornamento.</p>
+    </div>
+    <a href="{{ url_for('legal_updates_admin.dashboard') }}" class="btn btn-outline-secondary">Torna alla dashboard</a>
+  </div>
+
+  <div class="li-tabstrip">
+    {% for tab, label in {'normative':'Normative','jurisprudence':'Giurisprudenza','prassi':'Prassi','news':'News','audit':'Audit'}.items() %}
+    <a href="{{ url_for('legal_updates_admin.archive_page', tab=tab) }}" class="btn btn-sm {% if selected_tab == tab %}btn-primary{% else %}btn-outline-secondary{% endif %}">{{ label }}</a>
+    {% endfor %}
+  </div>
+
+  {% if selected_tab == 'normative' %}
+  <div class="li-soft-stack">
+    {% for item in normative %}
+    <div class="li-card"><div class="li-card__body">
+      <div class="fw-semibold">{{ item.title }}</div>
+      <div class="small text-muted">{{ item.norm_type }} n. {{ item.norm_number }}/{{ item.norm_year }} · {{ item.issuer }}</div>
+      <div class="small mt-2">{{ item.summary }}</div>
+    </div></div>
+    {% else %}<div class="li-card"><div class="li-card__body"><div class="small text-muted">Nessuna normativa pubblicata.</div></div></div>{% endfor %}
+  </div>
+  {% elif selected_tab == 'jurisprudence' %}
+  <div class="li-soft-stack">
+    {% for item in jurisprudence %}
+    <div class="li-card"><div class="li-card__body">
+      <div class="fw-semibold">{{ item.title }}</div>
+      <div class="small text-muted">{{ item.court_name }} · {{ item.decision_number }}/{{ item.decision_year }}</div>
+      <div class="small mt-2">{{ item.summary }}</div>
+    </div></div>
+    {% else %}<div class="li-card"><div class="li-card__body"><div class="small text-muted">Nessuna sentenza pubblicata.</div></div></div>{% endfor %}
+  </div>
+  {% elif selected_tab == 'prassi' %}
+  <div class="li-soft-stack">
+    {% for item in prassi %}
+    <div class="li-card"><div class="li-card__body">
+      <div class="fw-semibold">{{ item.title }}</div>
+      <div class="small text-muted">{{ item.issuing_body }} · {{ item.act_type }} {{ item.act_number }}/{{ item.act_year }}</div>
+      <div class="small mt-2">{{ item.summary }}</div>
+    </div></div>
+    {% else %}<div class="li-card"><div class="li-card__body"><div class="small text-muted">Nessuna prassi pubblicata.</div></div></div>{% endfor %}
+  </div>
+  {% elif selected_tab == 'news' %}
+  <div class="li-soft-stack">
+    {% for item in news %}
+    <div class="li-card"><div class="li-card__body">
+      <div class="fw-semibold">{{ item.title }}</div>
+      <div class="small text-muted">{{ item.news_type }} · {{ item.matter_name or 'materia da verificare' }} · {{ item.publication_status }}</div>
+      <div class="small mt-2">{{ item.short_summary }}</div>
+    </div></div>
+    {% else %}<div class="li-card"><div class="li-card__body"><div class="small text-muted">Nessuna news disponibile.</div></div></div>{% endfor %}
+  </div>
+  {% else %}
+  <div class="li-soft-stack">
+    {% for item in audit_rows %}
+    <div class="li-card"><div class="li-card__body">
+      <div class="fw-semibold">{{ item.entity_type }} · {{ item.action }}</div>
+      <div class="small text-muted">{{ item.performed_by or 'system' }} · {{ item.created_at|fmt_dataora }}</div>
+    </div></div>
+    {% else %}<div class="li-card"><div class="li-card__body"><div class="small text-muted">Nessun evento audit registrato.</div></div></div>{% endfor %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -13,7 +13,7 @@ La repo oggi non è più solo un tool CLI per il Processo Civile Telematico: con
 - Fatturazione, pagamenti, saldo cliente e KPI economici per studio, cliente e fascicolo.
 - Template atti, strumenti legali e workspace professionali.
 - Giurisprudenza, legal intelligence, repository strutturati per Lex.
-- Motore `Update Intelligence` per monitoraggio normativo, giurisprudenziale e di prassi con staging, review queue e pagina news giuridiche strutturate.
+- Motore `Update Intelligence` per monitoraggio normativo, giurisprudenziale e di prassi con area di acquisizione, coda revisioni e pagina news giuridiche strutturate.
 - Workspace/applicazioni, portali di acquisizione, privacy e audit.
 - Runtime AI locale con Lex come strato linguistico sopra motori deterministici.
 - Multi-tenant amministrabile dalla piattaforma.
@@ -197,16 +197,20 @@ La pipeline notturna `.github/workflows/performance-nightly.yml` esegue `tools/p
 IUSENTRA include ora un motore dedicato di aggiornamento normativo e giurisprudenziale:
 
 - monitora fonti ufficiali e istituzionali
-- salva staging raw e documenti normalizzati
+- salva area di acquisizione raw e documenti normalizzati
 - classifica con AI il contenuto tra normativa, giurisprudenza, prassi, news e casi incerti
 - confronta il risultato con l'archivio interno
-- apre una review queue amministrativa per i contenuti strutturati
+- apre una coda revisioni amministrativa per i contenuti strutturati
 - pubblica news giuridiche tracciabili nella UI dedicata
 
 Superfici principali:
 
 - `/legal-intelligence/news`
 - `/admin/aggiornamenti-legali`
+- `/admin/aggiornamenti-legali/fonti`
+- `/admin/aggiornamenti-legali/staging`
+- `/admin/aggiornamenti-legali/analisi`
+- `/admin/aggiornamenti-legali/archivio`
 - `/admin/aggiornamenti-legali/review`
 
 Comando CLI:
@@ -278,4 +282,7 @@ Il codice oggi è più maturo di una semplice demo:
 - bootstrap di sicurezza più severo per uso professionale
 
 `web/app.py` oggi è una factory sottile: delega la costruzione base a `web/bootstrap/flask_app_factory.py`, l'assemblaggio dei runtime a `web/bootstrap/runtime_bundle.py` e il wiring finale a `web/bootstrap/app_wiring.py`. Il registro blueprint è dichiarativo in `web/bootstrap/blueprint_registry.py`, così il wiring non dipende più da una lista manuale fragile. Lo scheduler non parte più dal processo web: i job periodici vivono nel worker dedicato `pct.scheduler_worker`, eseguito in locale dal servizio `scheduler-worker` e predisposto per un servizio separato anche in produzione. Sul lato Lex, il contesto studio include ora anche l’headline del cockpit `Motori Legali`, così il bounded context AI ragiona sullo stesso stato operativo mostrato dalla dashboard.
+
+
+
 

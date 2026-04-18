@@ -287,6 +287,10 @@ def test_route_domini_estratti_restano_operativi(tmp_path: Path):
             "/admin/copertura-ai",
             "/admin/copertura-ai/review",
             "/admin/aggiornamenti-legali",
+            "/admin/aggiornamenti-legali/fonti",
+            "/admin/aggiornamenti-legali/staging",
+            "/admin/aggiornamenti-legali/analisi",
+            "/admin/aggiornamenti-legali/archivio",
             "/admin/aggiornamenti-legali/review",
             "/legal-intelligence/news",
         ):

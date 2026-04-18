@@ -50,6 +50,28 @@
   min-width: 0;
 }
 
+.lu-inline-actions {
+  width: min(100%, 28rem);
+}
+
+.lu-preformatted {
+  max-height: 34rem;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 0.9rem;
+  border-radius: 1rem;
+  border: 1px solid var(--ui-compact-border);
+  background: #f8fafc;
+  padding: 1rem;
+}
+
+.li-tabstrip {
+  display: flex;
+  gap: 0.55rem;
+  flex-wrap: wrap;
+}
+
 @media (max-width: 767.98px) {
   .lu-news-grid,
   .lu-kpi-grid {

@@ -1,4 +1,4 @@
-#  version: 2.169.1
+#  version: 2.170.0
 #  IUSENTRA | Dockerfile produzione
 
 #  Build multi-stage:
@@ -11,7 +11,7 @@
 
 
 # -------------------------------------------------------------
-#  Stage 1 — builder: compila tutte le dipendenze Python
+#  Stage 1 - builder: compila tutte le dipendenze Python
 # -------------------------------------------------------------
 FROM python:3.12-slim AS builder
 
@@ -37,8 +37,8 @@ RUN pip install --no-cache-dir ".[pdf,pades,pkcs11]" "gunicorn>=23.0.0,<24" "gev
 
 
 # -------------------------------------------------------------
-#  Stage 2 — sass: scarica dart-sass e compila gli SCSS -> CSS
-#  (nessun Node.js richiesto: dart-sass è un eseguibile standalone)
+#  Stage 2 - sass: scarica dart-sass e compila gli SCSS -> CSS
+#  (nessun Node.js richiesto: dart-sass e un eseguibile standalone)
 # -------------------------------------------------------------
 FROM debian:bookworm-slim AS sass-builder
 
@@ -66,17 +66,17 @@ RUN mkdir -p /out && /tmp/dart-sass/sass --no-source-map --style=compressed \
 
 
 # -------------------------------------------------------------
-#  Stage 3 — runtime: immagine finale senza gcc né librerie -dev
+#  Stage 3 - runtime: immagine finale senza gcc ne librerie -dev
 # -------------------------------------------------------------
 FROM python:3.12-slim
 
 LABEL org.opencontainers.image.title="IUSENTRA" \
-      org.opencontainers.image.version="2.169.1" \
+      org.opencontainers.image.version="2.170.0" \
       org.opencontainers.image.description="Gestionale PCT per studi legali italiani" \
       org.opencontainers.image.created="2026-03-18"
 
 # Solo le librerie runtime strettamente necessarie
-# libpcsclite1 + opensc: firma PKCS#11 in-device (Aruba Key) — il demone pcscd
+# libpcsclite1 + opensc: firma PKCS#11 in-device (Aruba Key) - il demone pcscd
 # gira sul HOST; il container lo raggiunge via socket montato in docker-compose
 RUN apt-get update && apt-get install -y --no-install-recommends \
         libffi8 \
@@ -165,7 +165,7 @@ ENV PCT_AGENDA_DB=/data/agenda/appuntamenti.json \
     PCT_STUDIO_NOME="IUSENTRA"
 
 # PCT_SECRET_KEY e PCT_DOC_KEY vanno impostati come variabili d'ambiente
-# nel pannello Railway/Render — NON metterle nel Dockerfile!
+# nel pannello Railway/Render - NON metterle nel Dockerfile!
 
 RUN mkdir -p /data
 

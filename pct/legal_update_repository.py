@@ -272,6 +272,16 @@ class LegalUpdateRepository:
         payload["enabled"] = bool(payload.get("enabled"))
         return payload
 
+    def get_source_by_id(self, source_id: int) -> dict[str, Any] | None:
+        with self._connect() as conn:
+            row = conn.execute("SELECT * FROM sources WHERE id = ?", (int(source_id),)).fetchone()
+        if not row:
+            return None
+        payload = dict(row)
+        payload["is_official"] = bool(payload.get("is_official"))
+        payload["enabled"] = bool(payload.get("enabled"))
+        return payload
+
     def save_raw_document(self, payload: dict[str, Any]) -> dict[str, Any]:
         external_id = _clean_spaces(payload.get("external_id")) or _sha1(
             f"{payload.get('source_id')}|{payload.get('source_url')}|{payload.get('title')}"
@@ -355,6 +365,84 @@ class LegalUpdateRepository:
                 (int(source_id), _clean_spaces(external_id)),
             ).fetchone()
         return dict(row) if row else None
+
+    def list_raw_documents(
+        self,
+        *,
+        source_code: str = "",
+        classification_type: str = "",
+        status: str = "",
+        limit: int = 100,
+    ) -> list[dict[str, Any]]:
+        clauses = []
+        params: list[Any] = []
+        if source_code:
+            clauses.append("s.code = ?")
+            params.append(_normalize_token(source_code))
+        if classification_type:
+            clauses.append("a.classification_type = ?")
+            params.append(_normalize_token(classification_type).upper())
+        if status:
+            clauses.append("q.status = ?")
+            params.append(_normalize_token(status))
+        where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
+        params.append(int(limit))
+        with self._connect() as conn:
+            rows = conn.execute(
+                f"""
+                SELECT r.id, r.source_id, r.external_id, r.source_url, r.title, r.published_at,
+                       r.fetch_status, r.http_status, r.content_hash, r.created_at, r.updated_at,
+                       s.code AS source_code, s.name AS source_name, s.category AS source_category,
+                       n.id AS normalized_document_id, n.body_short, n.document_date,
+                       a.id AS analysis_id, a.classification_type, a.confidence_score, a.proposed_action,
+                       q.id AS review_id, q.status AS review_status, q.priority AS review_priority
+                FROM source_documents_raw r
+                JOIN sources s ON s.id = r.source_id
+                LEFT JOIN source_documents_normalized n ON n.raw_document_id = r.id
+                LEFT JOIN ai_documents_analysis a ON a.normalized_document_id = n.id
+                LEFT JOIN review_queue q ON q.analysis_id = a.id
+                {where}
+                ORDER BY COALESCE(NULLIF(r.published_at, ''), r.created_at) DESC, r.id DESC
+                LIMIT ?
+                """,
+                tuple(params),
+            ).fetchall()
+        return [dict(row) for row in rows]
+
+    def get_staging_document(self, raw_document_id: int) -> dict[str, Any] | None:
+        with self._connect() as conn:
+            row = conn.execute(
+                """
+                SELECT r.id, r.source_id, r.external_id, r.source_url, r.title, r.published_at,
+                       r.raw_html, r.raw_text, r.raw_pdf_path, r.content_hash, r.fetch_status,
+                       r.http_status, r.created_at, r.updated_at,
+                       s.code AS source_code, s.name AS source_name, s.category AS source_category,
+                       s.trust_class, s.is_official,
+                       n.id AS normalized_document_id, n.title AS normalized_title, n.body_text, n.body_short,
+                       n.language, n.issuer, n.document_date, n.document_type_guess, n.attachments_json,
+                       a.id AS analysis_id, a.classification_type, a.confidence_score, a.impact_level,
+                       a.norm_type, a.norm_number, a.norm_year, a.decision_number, a.decision_year,
+                       a.court_name, a.effective_date, a.summary_short, a.summary_long, a.what_changes,
+                       a.extracted_entities_json, a.proposed_action, a.target_entity_type, a.target_entity_id,
+                       m.slug AS matter_slug, m.name AS matter_name,
+                       sm.slug AS submatter_slug, sm.name AS submatter_name,
+                       q.id AS review_id, q.status AS review_status, q.priority AS review_priority,
+                       q.review_notes, q.reviewed_by, q.reviewed_at, q.proposal_payload_json
+                FROM source_documents_raw r
+                JOIN sources s ON s.id = r.source_id
+                LEFT JOIN source_documents_normalized n ON n.raw_document_id = r.id
+                LEFT JOIN ai_documents_analysis a ON a.normalized_document_id = n.id
+                LEFT JOIN matters m ON m.id = a.matter_id
+                LEFT JOIN matters sm ON sm.id = a.submatter_id
+                LEFT JOIN review_queue q ON q.analysis_id = a.id
+                WHERE r.id = ?
+                """,
+                (int(raw_document_id),),
+            ).fetchone()
+        return self._decode_row(
+            row,
+            json_fields=("attachments_json", "extracted_entities_json", "proposal_payload_json"),
+        )
 
     def save_normalized_document(self, raw_document_id: int, payload: dict[str, Any]) -> dict[str, Any]:
         with self._connect() as conn:
@@ -490,6 +578,72 @@ class LegalUpdateRepository:
                 WHERE a.normalized_document_id = ?
                 """,
                 (int(normalized_document_id),),
+            ).fetchone()
+        return self._decode_row(row, json_fields=("extracted_entities_json",))
+
+    def list_analyses(
+        self,
+        *,
+        classification_type: str = "",
+        matter_slug: str = "",
+        limit: int = 100,
+    ) -> list[dict[str, Any]]:
+        clauses = []
+        params: list[Any] = []
+        if classification_type:
+            clauses.append("a.classification_type = ?")
+            params.append(_normalize_token(classification_type).upper())
+        if matter_slug:
+            clauses.append("m.slug = ?")
+            params.append(_normalize_token(matter_slug))
+        where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
+        params.append(int(limit))
+        with self._connect() as conn:
+            rows = conn.execute(
+                f"""
+                SELECT a.*,
+                       n.title, n.document_date, n.issuer, n.body_short,
+                       r.id AS raw_document_id, r.source_url, r.published_at,
+                       s.code AS source_code, s.name AS source_name,
+                       m.slug AS matter_slug, m.name AS matter_name,
+                       sm.slug AS submatter_slug, sm.name AS submatter_name,
+                       q.id AS review_id, q.status AS review_status
+                FROM ai_documents_analysis a
+                JOIN source_documents_normalized n ON n.id = a.normalized_document_id
+                JOIN source_documents_raw r ON r.id = n.raw_document_id
+                JOIN sources s ON s.id = r.source_id
+                LEFT JOIN matters m ON m.id = a.matter_id
+                LEFT JOIN matters sm ON sm.id = a.submatter_id
+                LEFT JOIN review_queue q ON q.analysis_id = a.id
+                {where}
+                ORDER BY a.updated_at DESC, a.id DESC
+                LIMIT ?
+                """,
+                tuple(params),
+            ).fetchall()
+        return [self._decode_row(row, json_fields=("extracted_entities_json",)) or {} for row in rows]
+
+    def get_analysis(self, analysis_id: int) -> dict[str, Any] | None:
+        with self._connect() as conn:
+            row = conn.execute(
+                """
+                SELECT a.*,
+                       n.id AS normalized_document_id, n.title, n.document_date, n.issuer, n.body_text, n.body_short,
+                       r.id AS raw_document_id, r.source_url, r.published_at,
+                       s.code AS source_code, s.name AS source_name, s.category AS source_category,
+                       m.slug AS matter_slug, m.name AS matter_name,
+                       sm.slug AS submatter_slug, sm.name AS submatter_name,
+                       q.id AS review_id, q.status AS review_status, q.priority AS review_priority
+                FROM ai_documents_analysis a
+                JOIN source_documents_normalized n ON n.id = a.normalized_document_id
+                JOIN source_documents_raw r ON r.id = n.raw_document_id
+                JOIN sources s ON s.id = r.source_id
+                LEFT JOIN matters m ON m.id = a.matter_id
+                LEFT JOIN matters sm ON sm.id = a.submatter_id
+                LEFT JOIN review_queue q ON q.analysis_id = a.id
+                WHERE a.id = ?
+                """,
+                (int(analysis_id),),
             ).fetchone()
         return self._decode_row(row, json_fields=("extracted_entities_json",))
 
@@ -673,6 +827,19 @@ class LegalUpdateRepository:
                     _clean_spaces(assigned_to),
                     int(review_id),
                 ),
+            )
+            conn.commit()
+        return self.get_review_item(review_id)
+
+    def assign_review(self, review_id: int, *, assigned_to: str) -> dict[str, Any] | None:
+        with self._connect() as conn:
+            conn.execute(
+                """
+                UPDATE review_queue
+                SET assigned_to = ?, updated_at = CURRENT_TIMESTAMP
+                WHERE id = ?
+                """,
+                (_clean_spaces(assigned_to), int(review_id)),
             )
             conn.commit()
         return self.get_review_item(review_id)
@@ -1051,6 +1218,21 @@ class LegalUpdateRepository:
             ).fetchone()
         return dict(row) if row else None
 
+    def get_news_detail(self, entity_id: int) -> dict[str, Any] | None:
+        with self._connect() as conn:
+            row = conn.execute(
+                """
+                SELECT n.*, m.slug AS matter_slug, m.name AS matter_name,
+                       sm.slug AS submatter_slug, sm.name AS submatter_name
+                FROM news n
+                LEFT JOIN matters m ON m.id = n.matter_id
+                LEFT JOIN matters sm ON sm.id = n.submatter_id
+                WHERE n.id = ?
+                """,
+                (int(entity_id),),
+            ).fetchone()
+        return dict(row) if row else None
+
     def list_news(
         self,
         *,
@@ -1102,6 +1284,19 @@ class LegalUpdateRepository:
             ).fetchall()
         return [dict(row) for row in rows]
 
+    def list_normative_versions(self, normative_id: int) -> list[dict[str, Any]]:
+        with self._connect() as conn:
+            rows = conn.execute(
+                """
+                SELECT *
+                FROM normative_versions
+                WHERE normative_id = ?
+                ORDER BY COALESCE(NULLIF(valid_from, ''), created_at) DESC, id DESC
+                """,
+                (int(normative_id),),
+            ).fetchall()
+        return [dict(row) for row in rows]
+
     def list_published_jurisprudence(self, *, limit: int = 50) -> list[dict[str, Any]]:
         with self._connect() as conn:
             rows = conn.execute(
@@ -1131,6 +1326,27 @@ class LegalUpdateRepository:
                 (int(limit),),
             ).fetchall()
         return [dict(row) for row in rows]
+
+    def list_audit(self, *, entity_type: str = "", limit: int = 100) -> list[dict[str, Any]]:
+        clauses = []
+        params: list[Any] = []
+        if entity_type:
+            clauses.append("entity_type = ?")
+            params.append(_normalize_token(entity_type))
+        where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
+        params.append(int(limit))
+        with self._connect() as conn:
+            rows = conn.execute(
+                f"""
+                SELECT *
+                FROM audit_log
+                {where}
+                ORDER BY id DESC
+                LIMIT ?
+                """,
+                tuple(params),
+            ).fetchall()
+        return [self._decode_row(row, json_fields=("old_data_json", "new_data_json")) or {} for row in rows]
 
     def dashboard_snapshot(self) -> dict[str, Any]:
         with self._connect() as conn:

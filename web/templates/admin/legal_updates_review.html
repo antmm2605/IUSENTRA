@@ -1,17 +1,17 @@
-{% extends "admin/base.html" %}
+﻿{% extends "admin/base.html" %}
 
 {% block title %}Review Aggiornamenti{% endblock %}
 
 {% block breadcrumb %}
 <li class="breadcrumb-item"><a href="{{ url_for('legal_updates_admin.dashboard') }}" class="text-decoration-none">Aggiornamenti legali</a></li>
-<li class="breadcrumb-item active" aria-current="page">Review queue</li>
+<li class="breadcrumb-item active" aria-current="page">Coda revisioni</li>
 {% endblock %}
 
 {% block content %}
 <div class="legal-updates-review-page">
   <div class="d-flex flex-column flex-lg-row align-items-start align-items-lg-center justify-content-between gap-3 mb-3">
     <div>
-      <h1 class="h3 mb-1">Review queue aggiornamenti</h1>
+      <h1 class="h3 mb-1">Coda revisioni aggiornamenti</h1>
       <p class="text-muted mb-0">Approva, rifiuta o pubblica le proposte strutturate prima che entrino negli archivi operativi.</p>
     </div>
     <a href="{{ url_for('legal_updates_admin.dashboard') }}" class="btn btn-outline-secondary">
@@ -45,6 +45,15 @@
           </div>
 
           <div class="lu-review-actions">
+            <form method="post" action="{{ url_for('legal_updates_admin.edit_and_approve', review_id=item.id) }}" class="d-grid gap-2">
+              <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+              <input type="text" name="summary_short" class="form-control form-control-sm" value="{{ item.summary_short or '' }}" placeholder="Sintesi breve">
+              <textarea name="what_changes" class="form-control form-control-sm" rows="3" placeholder="Cosa cambia"></textarea>
+              <input type="text" name="review_notes" class="form-control form-control-sm" placeholder="Note revisore">
+              <button class="btn btn-sm btn-primary">
+                <i class="bi bi-pencil-square me-1"></i>Modifica e approva
+              </button>
+            </form>
             <form method="post" action="{{ url_for('legal_updates_admin.approve', review_id=item.id) }}" class="d-flex gap-2 flex-wrap">
               <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
               <input type="text" name="review_notes" class="form-control form-control-sm" placeholder="Note approvazione">
@@ -79,3 +88,4 @@
   </div>
 </div>
 {% endblock %}
+

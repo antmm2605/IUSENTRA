@@ -274,6 +274,9 @@ class LegalUpdatePipeline:
     def list_sources(self, *, enabled_only: bool = True) -> list[dict[str, Any]]:
         return self.repository.list_sources(enabled_only=enabled_only)
 
+    def get_source(self, source_id: int) -> dict[str, Any] | None:
+        return self.repository.get_source_by_id(source_id)
+
     def _fetch_source(self, source: dict[str, Any], *, request_get: RequestGet) -> list[dict[str, Any]]:
         response = request_get(
             source["base_url"],
@@ -497,6 +500,27 @@ class LegalUpdatePipeline:
             "review": review,
         }
 
+    def analyze_raw_document(self, raw_document_id: int) -> dict[str, Any]:
+        raw_saved = self.repository.get_raw_document(raw_document_id)
+        if not raw_saved:
+            raise ValueError("Documento raw non trovato.")
+        source = self.repository.get_source_by_id(int(raw_saved["source_id"]))
+        if not source:
+            raise ValueError("Fonte associata non trovata.")
+        raw_payload = {
+            "external_id": raw_saved.get("external_id"),
+            "source_url": raw_saved.get("source_url"),
+            "title": raw_saved.get("title"),
+            "published_at": raw_saved.get("published_at"),
+            "raw_html": raw_saved.get("raw_html"),
+            "raw_text": raw_saved.get("raw_text"),
+            "raw_pdf_path": raw_saved.get("raw_pdf_path"),
+            "content_hash": raw_saved.get("content_hash"),
+            "fetch_status": raw_saved.get("fetch_status"),
+            "http_status": raw_saved.get("http_status"),
+        }
+        return self.process_document(source, raw_payload)
+
     def scan_source(self, source_code: str, *, request_get: RequestGet = requests.get, auto_publish: bool = True) -> dict[str, Any]:
         source = self.repository.get_source_by_code(source_code)
         if not source:
@@ -515,6 +539,12 @@ class LegalUpdatePipeline:
             "processed": len(processed),
             "autopublished": autopublished,
         }
+
+    def fetch_source_by_id(self, source_id: int, *, auto_publish: bool = True, request_get: RequestGet = requests.get) -> dict[str, Any]:
+        source = self.repository.get_source_by_id(source_id)
+        if not source:
+            raise ValueError("Fonte non trovata.")
+        return self.scan_source(str(source["code"]), request_get=request_get, auto_publish=auto_publish)
 
     def run_cycle(
         self,

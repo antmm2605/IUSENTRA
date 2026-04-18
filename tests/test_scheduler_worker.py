@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from pathlib import Path
 
@@ -29,7 +29,10 @@ def test_start_scheduler_worker_registra_job_core(monkeypatch, tmp_path: Path):
         assert scheduler is not None
         assert scheduler.get_job("backup_giornaliero") is not None
         assert scheduler.get_job("local_ai_maintenance") is not None
+        assert scheduler.get_job("legal_updates_gazzetta") is not None
+        assert scheduler.get_job("legal_updates_batch") is not None
     finally:
         if scheduler is not None:
             scheduler.shutdown(wait=False)
         monkeypatch.delenv("PCT_SCHEDULER_RUNNING", raising=False)
+

@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from pathlib import Path
 
@@ -189,3 +189,157 @@ def test_news_page_renderizza_contenuto_pubblicato(tmp_path: Path):
     assert response.status_code == 200
     assert "News giuridiche strutturate" in html
     assert "Credito d&#39;imposta per investimenti" in html
+
+
+def test_admin_surfaces_renderizzano_fonti_staging_analisi_e_archivio(tmp_path: Path):
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    app = create_app(_cfg_web(tmp_path))
+
+    with app.app_context():
+        pipeline = build_legal_update_pipeline(
+            app.config["LEGAL_INTELLIGENCE_DB"],
+            giurisprudenza_db_path=app.config["GIURISPRUDENZA_DB"],
+        )
+        pipeline.run_cycle(
+            source_codes=["gazzetta_ufficiale"],
+            request_get=lambda *args, **kwargs: DummyResponse(_normativa_html(), url="https://www.gazzettaufficiale.it/"),
+            auto_publish=False,
+        )
+        review = pipeline.repository.list_review_queue(limit=10)[0]
+        pipeline.approve_review(int(review["id"]), reviewer="superadmin")
+        pipeline.publish_review(int(review["id"]), reviewer="superadmin")
+
+    with app.test_client() as client:
+        login = client.post("/login", data={"username": "admin", "password": "admin"}, follow_redirects=False)
+        assert login.status_code == 302
+
+        routes = {
+            "/admin/aggiornamenti-legali": "Motore di aggiornamento normativo e giurisprudenziale",
+            "/admin/aggiornamenti-legali/fonti": "Gestore fonti",
+            "/admin/aggiornamenti-legali/staging": "Area di acquisizione documenti",
+            "/admin/aggiornamenti-legali/analisi": "Analisi AI",
+            "/admin/aggiornamenti-legali/archivio": "Archivio strutturato",
+        }
+
+        for path, needle in routes.items():
+            response = client.get(path)
+            assert response.status_code == 200, path
+            assert needle in response.get_data(as_text=True)
+
+
+def test_admin_api_espone_staging_analisi_archivi_e_audit(tmp_path: Path):
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    app = create_app(_cfg_web(tmp_path))
+
+    with app.app_context():
+        pipeline = build_legal_update_pipeline(
+            app.config["LEGAL_INTELLIGENCE_DB"],
+            giurisprudenza_db_path=app.config["GIURISPRUDENZA_DB"],
+        )
+        pipeline.run_cycle(
+            source_codes=["gazzetta_ufficiale"],
+            request_get=lambda *args, **kwargs: DummyResponse(_normativa_html(), url="https://www.gazzettaufficiale.it/"),
+            auto_publish=False,
+        )
+        review = pipeline.repository.list_review_queue(limit=10)[0]
+        pipeline.approve_review(int(review["id"]), reviewer="superadmin")
+        pipeline.publish_review(int(review["id"]), reviewer="superadmin")
+        raw_id = int(pipeline.repository.list_raw_documents(limit=1)[0]["id"])
+        analysis_id = int(pipeline.repository.list_analyses(limit=1)[0]["id"])
+        normative_id = int(pipeline.repository.list_published_normative(limit=1)[0]["id"])
+
+    with app.test_client() as client:
+        login = client.post("/login", data={"username": "admin", "password": "admin"}, follow_redirects=False)
+        assert login.status_code == 302
+
+        checks = [
+            "/admin/aggiornamenti-legali/api/sources",
+            "/admin/aggiornamenti-legali/api/raw-documents",
+            f"/admin/aggiornamenti-legali/api/raw-documents/{raw_id}",
+            f"/admin/aggiornamenti-legali/api/analysis/{analysis_id}",
+            "/admin/aggiornamenti-legali/api/normative",
+            f"/admin/aggiornamenti-legali/api/normative/{normative_id}/versions",
+            "/admin/aggiornamenti-legali/api/news",
+            "/admin/aggiornamenti-legali/api/audit",
+        ]
+
+        for path in checks:
+            response = client.get(path)
+            assert response.status_code == 200, path
+            payload = response.get_json()
+            assert payload["ok"] is True
+
+
+def test_form_fetch_e_rianalisi_attivano_il_popolamento(tmp_path: Path, monkeypatch):
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    app = create_app(_cfg_web(tmp_path))
+
+    with app.app_context():
+        pipeline = build_legal_update_pipeline(
+            app.config["LEGAL_INTELLIGENCE_DB"],
+            giurisprudenza_db_path=app.config["GIURISPRUDENZA_DB"],
+        )
+        calls: dict[str, list[int]] = {"fetch": [], "analyze": []}
+
+        def _fake_runtime():
+            return pipeline
+
+        def _fake_fetch(source_id: int, *, auto_publish: bool = True):
+            calls["fetch"].append(source_id)
+            return {"documents_found": 1, "processed": 1, "autopublished": {"count": 0}}
+
+        def _fake_analyze(raw_document_id: int):
+            calls["analyze"].append(raw_document_id)
+            return {"raw": {"id": raw_document_id}}
+
+        pipeline.repository.upsert_sources(
+            [
+                {
+                    "name": "Fonte test",
+                    "code": "fonte_test",
+                    "category": "news",
+                    "base_url": "https://example.test",
+                    "source_type": "web",
+                    "trust_class": "C",
+                    "is_official": False,
+                    "enabled": True,
+                    "polling_minutes": 120,
+                    "parser_type": "html",
+                    "notes": "",
+                }
+            ]
+        )
+        source_id = int(pipeline.repository.get_source_by_code("fonte_test")["id"])
+        staging = pipeline.process_document(
+            pipeline.repository.get_source_by_id(source_id),
+            {
+                "external_id": "test-1",
+                "source_url": "https://example.test/doc",
+                "title": "Documento test",
+                "published_at": "2026-04-18",
+                "raw_html": "",
+                "raw_text": "Documento di test per rianalisi",
+                "content_hash": "hash-test",
+                "fetch_status": "fetched",
+                "http_status": 200,
+            },
+        )
+        raw_id = int(staging["raw"]["id"])
+
+    monkeypatch.setattr("web.blueprints.legal_updates_admin.build_legal_update_pipeline_runtime", _fake_runtime)
+    monkeypatch.setattr(pipeline, "fetch_source_by_id", _fake_fetch)
+    monkeypatch.setattr(pipeline, "analyze_raw_document", _fake_analyze)
+
+    with app.test_client() as client:
+        login = client.post("/login", data={"username": "admin", "password": "admin"}, follow_redirects=False)
+        assert login.status_code == 302
+
+        response_fetch = client.post(f"/admin/aggiornamenti-legali/fonti/{source_id}/fetch", data={"_csrf_token": "test"})
+        response_analyze = client.post(f"/admin/aggiornamenti-legali/staging/{raw_id}/analizza", data={"_csrf_token": "test"})
+
+    assert response_fetch.status_code == 302
+    assert response_analyze.status_code == 302
+    assert calls["fetch"] == [source_id]
+    assert calls["analyze"] == [raw_id]
+
+

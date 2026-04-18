@@ -1,0 +1,73 @@
+﻿{% extends "admin/base.html" %}
+
+{% block title %}Acquisizione aggiornamenti legali{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('legal_updates_admin.dashboard') }}" class="text-decoration-none">Aggiornamenti legali</a></li>
+<li class="breadcrumb-item active" aria-current="page">Acquisizione</li>
+{% endblock %}
+
+{% block content %}
+<div class="legal-updates-admin-page">
+  <div class="d-flex flex-column flex-lg-row align-items-start align-items-lg-center justify-content-between gap-3 mb-3">
+    <div>
+      <h1 class="h3 mb-1">Area di acquisizione documenti</h1>
+      <p class="text-muted mb-0">Vedi i contenuti acquisiti, lo stato di analisi e il passaggio in coda revisioni.</p>
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+      <a href="{{ url_for('legal_updates_admin.sources_page') }}" class="btn btn-outline-secondary">Fonti</a>
+      <a href="{{ url_for('legal_updates_admin.analysis_page') }}" class="btn btn-outline-primary">Analisi</a>
+    </div>
+  </div>
+
+  <div class="li-card">
+    <div class="li-card__body">
+      <form method="get" class="row g-2">
+        <div class="col-md-3"><input class="form-control" name="source" value="{{ source_filter }}" placeholder="Codice fonte"></div>
+        <div class="col-md-3"><input class="form-control" name="classification" value="{{ classification_filter }}" placeholder="Classificazione"></div>
+        <div class="col-md-3"><input class="form-control" name="status" value="{{ status_filter }}" placeholder="Stato review"></div>
+        <div class="col-md-3 d-flex gap-2">
+          <button class="btn btn-primary">Filtra</button>
+          <a href="{{ url_for('legal_updates_admin.staging_page') }}" class="btn btn-outline-secondary">Azzera</a>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="li-soft-stack">
+    {% for item in documents %}
+    <div class="li-card">
+      <div class="li-card__body">
+        <div class="d-flex flex-column flex-xl-row justify-content-between gap-3">
+          <div class="flex-grow-1">
+            <div class="d-flex align-items-center gap-2 flex-wrap mb-2">
+              <div class="fw-semibold">{{ item.title }}</div>
+              <span class="badge text-bg-light">{{ item.source_name }}</span>
+              {% if item.classification_type %}<span class="badge text-bg-secondary">{{ item.classification_type }}</span>{% endif %}
+              {% if item.review_status %}<span class="badge text-bg-{% if item.review_status == 'pending' %}warning{% elif item.review_status == 'approved' %}primary{% elif item.review_status == 'published' %}success{% else %}secondary{% endif %}">{{ item.review_status }}</span>{% endif %}
+            </div>
+            <div class="small text-muted">{{ item.published_at|fmt_data if item.published_at else 'data non disponibile' }} · {{ item.source_url }}</div>
+            {% if item.body_short %}<div class="small mt-2">{{ item.body_short }}</div>{% endif %}
+          </div>
+          <div class="d-flex flex-wrap gap-2 align-items-start">
+            <a href="{{ url_for('legal_updates_admin.staging_detail_page', raw_document_id=item.id) }}" class="btn btn-sm btn-outline-primary">Dettaglio</a>
+            <form method="post" action="{{ url_for('legal_updates_admin.analyze_staging_document', raw_document_id=item.id) }}">
+              <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+              <button class="btn btn-sm btn-outline-dark" type="submit">Rianalizza</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% else %}
+    <div class="li-card"><div class="li-card__body"><div class="small text-muted">Nessun documento in acquisizione con i filtri correnti.</div></div></div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}
+
+
+
+
+
+

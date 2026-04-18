@@ -334,7 +334,7 @@
 
     {# ---- Piattaforma (superadmin) ---- #}
     {% if utente_corrente and utente_corrente.is_superadmin %}
-    {% set _adm = request.blueprint == 'admin' %}
+    {% set _adm = request.blueprint in ('admin', 'legal_coverage_admin', 'legal_updates_admin') %}
     <button class="sb-toggle sb-admin {% if _adm %}open{% endif %}"
             data-bs-toggle="collapse" data-bs-target="#sb-piattaforma" aria-expanded="{{ 'true' if _adm else 'false' }}">
       <span><i class="bi bi-building-gear"></i>Piattaforma</span>
@@ -344,6 +344,14 @@
       <a href="{{ url_for('admin.dashboard') }}"
          class="nav-link sb-link {% if request.blueprint == 'admin' %}active{% endif %}">
         <i class="bi bi-building-gear"></i><span class="sb-txt">Pannello Admin</span>
+      </a>
+      <a href="{{ url_for('legal_updates_admin.dashboard') }}"
+         class="nav-link sb-link {% if request.blueprint == 'legal_updates_admin' %}active{% endif %}">
+        <i class="bi bi-newspaper"></i><span class="sb-txt">Update Intelligence</span>
+      </a>
+      <a href="{{ url_for('legal_coverage_admin.dashboard') }}"
+         class="nav-link sb-link {% if request.blueprint == 'legal_coverage_admin' %}active{% endif %}">
+        <i class="bi bi-diagram-3"></i><span class="sb-txt">Copertura AI</span>
       </a>
     </div>
     {% endif %}
@@ -2098,4 +2106,3 @@ document.addEventListener('DOMContentLoaded', function () { window.pctAI.init();
 {% endif %}
 </body>
 </html>
-

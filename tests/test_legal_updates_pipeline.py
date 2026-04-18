@@ -191,6 +191,38 @@ def test_news_page_renderizza_contenuto_pubblicato(tmp_path: Path):
     assert "Credito d&#39;imposta per investimenti" in html
 
 
+def test_superadmin_vede_i_link_del_motore_in_sidebar_e_motori_legali(tmp_path: Path):
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    app = create_app(_cfg_web(tmp_path))
+
+    with app.test_client() as client:
+        login = client.post("/login", data={"username": "admin", "password": "admin"}, follow_redirects=False)
+        assert login.status_code == 302
+
+        dashboard = client.get("/")
+        motori = client.get("/legal-intelligence/")
+        news = client.get("/legal-intelligence/news")
+
+    dashboard_html = dashboard.get_data(as_text=True)
+    motori_html = motori.get_data(as_text=True)
+    news_html = news.get_data(as_text=True)
+
+    assert dashboard.status_code == 200
+    assert motori.status_code == 200
+    assert news.status_code == 200
+    assert "Update Intelligence" in dashboard_html
+    assert "Apri console aggiornamenti" in motori_html
+    assert "Console operativa aggiornamenti" in motori_html
+    assert "Fonti ufficiali" in motori_html
+    assert "Acquisizione" in motori_html
+    assert "Analisi AI" in motori_html
+    assert "Coda revisioni" in motori_html
+    assert "Archivio strutturato" in motori_html
+    assert "Ingressi rapidi del motore" in news_html
+    assert "Fonti ufficiali" in news_html
+    assert "Acquisizione" in news_html
+
+
 def test_admin_surfaces_renderizzano_fonti_staging_analisi_e_archivio(tmp_path: Path):
     _write_studio_config(tmp_path / "config" / "studio.json")
     app = create_app(_cfg_web(tmp_path))
@@ -341,5 +373,3 @@ def test_form_fetch_e_rianalisi_attivano_il_popolamento(tmp_path: Path, monkeypa
     assert response_analyze.status_code == 302
     assert calls["fetch"] == [source_id]
     assert calls["analyze"] == [raw_id]
-
-

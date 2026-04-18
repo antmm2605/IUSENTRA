@@ -23,23 +23,152 @@
   <div class="li-card">
     <div class="li-card__body">
       <div class="li-section-head">
+        <div class="li-section-title"><i class="bi bi-journal-check me-2 text-primary"></i>Come compilare correttamente una fonte</div>
+      </div>
+      <div class="lu-source-guide">
+        <div class="lu-source-guide__alert">
+          <strong>Regola base:</strong> nome fonte e URL devono riferirsi allo stesso ente o canale. Se l'URL punta alla Cassazione, non va salvato come Corte Costituzionale.
+        </div>
+        <div class="lu-source-guide__grid">
+          <article class="lu-source-guide__item">
+            <h3>Nome fonte</h3>
+            <p>Etichetta leggibile in interfaccia. Usa il nome reale del portale o della sezione.</p>
+            <code>Cassazione - Terza Sezione Civile</code>
+          </article>
+          <article class="lu-source-guide__item">
+            <h3>Codice</h3>
+            <p>Identificatore tecnico stabile per scheduler, API e matching interno. Solo minuscolo, senza spazi, con underscore.</p>
+            <code>cassazione_terza_sezione_civile</code>
+          </article>
+          <article class="lu-source-guide__item">
+            <h3>Categoria</h3>
+            <p>Tipo prevalente del contenuto monitorato.</p>
+            <div class="lu-source-guide__chips">
+              <span class="badge text-bg-light">normativa</span>
+              <span class="badge text-bg-light">giurisprudenza</span>
+              <span class="badge text-bg-light">prassi</span>
+              <span class="badge text-bg-light">ue</span>
+              <span class="badge text-bg-light">news</span>
+            </div>
+          </article>
+          <article class="lu-source-guide__item">
+            <h3>Base URL</h3>
+            <p>Pagina iniziale o canale ufficiale da cui parte l'acquisizione.</p>
+            <code>https://www.cortedicassazione.it/it/terza_sezione_civile.page</code>
+          </article>
+          <article class="lu-source-guide__item">
+            <h3>Polling minuti</h3>
+            <p>Frequenza di scansione. Più basso per fonti molto dinamiche, più alto per archivi lenti.</p>
+            <div class="lu-source-guide__chips">
+              <span class="badge text-bg-light">60 Gazzetta</span>
+              <span class="badge text-bg-light">120 Corte costituzionale</span>
+              <span class="badge text-bg-light">180 Cassazione</span>
+              <span class="badge text-bg-light">240 Prassi</span>
+            </div>
+          </article>
+          <article class="lu-source-guide__item">
+            <h3>Parser</h3>
+            <p>Nel motore attuale usa quasi sempre <code>html</code>. Mantienilo diverso solo se il canale e' stato progettato apposta.</p>
+          </article>
+          <article class="lu-source-guide__item">
+            <h3>Classe e tipo</h3>
+            <p><code>A</code> per fonte ufficiale primaria, <code>B</code> per fonte istituzionale di prassi, <code>C</code> per supporto editoriale. Il tipo standard e' <code>web</code>.</p>
+          </article>
+          <article class="lu-source-guide__item">
+            <h3>Ufficiale</h3>
+            <p>Attivalo solo per fonti istituzionali o primarie. Le fonti editoriali non devono aggiornare direttamente l'archivio strutturato.</p>
+          </article>
+          <article class="lu-source-guide__item">
+            <h3>Attiva</h3>
+            <p>Se spuntata entra nel ciclo scheduler e nelle acquisizioni batch. Se la togli, la fonte resta salvata ma non viene scandita.</p>
+          </article>
+        </div>
+
+        <div class="lu-source-examples">
+          <article class="lu-source-example">
+            <h3>Corte Costituzionale</h3>
+            <dl>
+              <div><dt>Codice</dt><dd><code>corte_costituzionale</code></dd></div>
+              <div><dt>Categoria</dt><dd>giurisprudenza</dd></div>
+              <div><dt>URL</dt><dd><code>https://www.cortecostituzionale.it/</code></dd></div>
+            </dl>
+          </article>
+          <article class="lu-source-example">
+            <h3>Cassazione Massimario</h3>
+            <dl>
+              <div><dt>Codice</dt><dd><code>cassazione_massimario</code></dd></div>
+              <div><dt>Categoria</dt><dd>giurisprudenza</dd></div>
+              <div><dt>URL</dt><dd><code>https://www.cortedicassazione.it/</code></dd></div>
+            </dl>
+          </article>
+          <article class="lu-source-example">
+            <h3>Cassazione - Terza Sezione Civile</h3>
+            <dl>
+              <div><dt>Codice</dt><dd><code>cassazione_terza_sezione_civile</code></dd></div>
+              <div><dt>Categoria</dt><dd>giurisprudenza</dd></div>
+              <div><dt>URL</dt><dd><code>https://www.cortedicassazione.it/it/terza_sezione_civile.page</code></dd></div>
+            </dl>
+          </article>
+          <article class="lu-source-example">
+            <h3>Giustizia Amministrativa</h3>
+            <dl>
+              <div><dt>Codice</dt><dd><code>giustizia_amministrativa</code></dd></div>
+              <div><dt>Categoria</dt><dd>giurisprudenza</dd></div>
+              <div><dt>URL</dt><dd><code>https://www.giustizia-amministrativa.it/</code></dd></div>
+            </dl>
+          </article>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="li-card">
+    <div class="li-card__body">
+      <div class="li-section-head">
         <div class="li-section-title"><i class="bi bi-plus-circle me-2 text-primary"></i>Nuova fonte</div>
       </div>
       <form method="post" action="{{ url_for('legal_updates_admin.create_source') }}" class="row g-2">
         <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
-        <div class="col-md-3"><input class="form-control" name="name" placeholder="Nome fonte" required></div>
-        <div class="col-md-2"><input class="form-control" name="code" placeholder="Codice" required></div>
-        <div class="col-md-2"><input class="form-control" name="category" placeholder="Categoria" value="news"></div>
-        <div class="col-md-3"><input class="form-control" name="base_url" placeholder="https://..." required></div>
-        <div class="col-md-2"><input class="form-control" name="polling_minutes" type="number" min="5" value="240"></div>
-        <div class="col-md-2"><input class="form-control" name="parser_type" placeholder="parser" value="html"></div>
-        <div class="col-md-2"><input class="form-control" name="trust_class" placeholder="Classe" value="C"></div>
-        <div class="col-md-2"><input class="form-control" name="source_type" placeholder="Tipo" value="web"></div>
+        <div class="col-md-3">
+          <input class="form-control" name="name" placeholder="Cassazione - Terza Sezione Civile" required>
+          <div class="form-text">Nome leggibile del canale o della sezione.</div>
+        </div>
+        <div class="col-md-2">
+          <input class="form-control" name="code" placeholder="cassazione_terza_sezione_civile" required>
+          <div class="form-text">Solo minuscolo, senza spazi, con underscore.</div>
+        </div>
+        <div class="col-md-2">
+          <input class="form-control" name="category" placeholder="giurisprudenza" value="news">
+          <div class="form-text">Esempi: normativa, giurisprudenza, prassi, ue.</div>
+        </div>
+        <div class="col-md-3">
+          <input class="form-control" name="base_url" placeholder="https://www.cortedicassazione.it/it/terza_sezione_civile.page" required>
+          <div class="form-text">La pagina deve appartenere davvero all'ente indicato nel nome.</div>
+        </div>
+        <div class="col-md-2">
+          <input class="form-control" name="polling_minutes" type="number" min="5" value="240">
+          <div class="form-text">Frequenza di scansione in minuti.</div>
+        </div>
+        <div class="col-md-2">
+          <input class="form-control" name="parser_type" placeholder="html" value="html">
+          <div class="form-text">Nel dubbio lascia <code>html</code>.</div>
+        </div>
+        <div class="col-md-2">
+          <input class="form-control" name="trust_class" placeholder="A" value="C">
+          <div class="form-text">A primaria, B istituzionale, C editoriale.</div>
+        </div>
+        <div class="col-md-2">
+          <input class="form-control" name="source_type" placeholder="web" value="web">
+          <div class="form-text">Per ora quasi sempre <code>web</code>.</div>
+        </div>
         <div class="col-md-2 d-flex align-items-center gap-3">
           <div class="form-check"><input class="form-check-input" type="checkbox" name="is_official" id="srcOfficial"><label class="form-check-label" for="srcOfficial">Ufficiale</label></div>
           <div class="form-check"><input class="form-check-input" type="checkbox" name="enabled" id="srcEnabled" checked><label class="form-check-label" for="srcEnabled">Attiva</label></div>
         </div>
-        <div class="col-md-4"><input class="form-control" name="notes" placeholder="Note"></div>
+        <div class="col-md-4">
+          <input class="form-control" name="notes" placeholder="Esempio: sezione civile ufficiale della Cassazione">
+          <div class="form-text">Annota scopo, limiti o taglio del canale.</div>
+        </div>
         <div class="col-12">
           <button class="btn btn-primary" type="submit"><i class="bi bi-save me-2"></i>Salva fonte</button>
         </div>
@@ -92,7 +221,6 @@
   </div>
 </div>
 {% endblock %}
-
 
 
 

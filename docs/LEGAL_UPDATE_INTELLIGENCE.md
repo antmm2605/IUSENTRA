@@ -129,6 +129,29 @@ La UI admin rende visibili tutti i blocchi della pipeline:
 - `archivio` -> normative, giurisprudenza, prassi, news e audit
 - `review` -> approvazione, rifiuto, modifica e pubblicazione
 
+## Compilazione corretta delle fonti
+
+Nella pagina `/admin/aggiornamenti-legali/fonti` e' presente una guida fissa ai campi del form. Le regole operative sono:
+
+- `name`: nome leggibile del canale o della sezione
+- `code`: identificatore tecnico stabile, solo minuscolo, senza spazi, con underscore
+- `category`: usare preferibilmente `normativa`, `giurisprudenza`, `prassi`, `ue`, `news`
+- `base_url`: deve appartenere davvero all'ente indicato nel nome
+- `polling_minutes`: frequenza di scansione in minuti
+- `parser_type`: nel dubbio lasciare `html`
+- `trust_class`: `A` primaria, `B` istituzionale, `C` editoriale
+- `source_type`: attualmente quasi sempre `web`
+- `is_official`: da attivare solo per fonti ufficiali o istituzionali
+
+Esempi corretti:
+
+- Corte Costituzionale -> `corte_costituzionale` -> `https://www.cortecostituzionale.it/`
+- Cassazione Massimario -> `cassazione_massimario` -> `https://www.cortedicassazione.it/`
+- Cassazione - Terza Sezione Civile -> `cassazione_terza_sezione_civile` -> `https://www.cortedicassazione.it/it/terza_sezione_civile.page`
+- Giustizia Amministrativa -> `giustizia_amministrativa` -> `https://www.giustizia-amministrativa.it/`
+
+Regola di coerenza obbligatoria: nome fonte e URL devono riferirsi allo stesso ente. Un URL Cassazione non va salvato con il nome `Corte Costituzionale`.
+
 ## Sicurezza e qualita'
 
 - la fonte originale resta sempre salvata

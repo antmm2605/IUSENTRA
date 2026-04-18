@@ -54,6 +54,93 @@
   width: min(100%, 28rem);
 }
 
+.lu-source-guide {
+  display: grid;
+  gap: 1rem;
+}
+
+.lu-source-guide__alert {
+  border: 1px solid rgba(245, 158, 11, 0.28);
+  background: linear-gradient(180deg, rgba(255, 251, 235, 0.98), rgba(255, 247, 213, 0.98));
+  color: #78350f;
+  border-radius: 1rem;
+  padding: 0.9rem 1rem;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+.lu-source-guide__grid,
+.lu-source-examples {
+  display: grid;
+  gap: 0.85rem;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.lu-source-guide__item,
+.lu-source-example {
+  border-radius: 1rem;
+  border: 1px solid var(--ui-compact-border);
+  background: linear-gradient(180deg, #ffffff, #f8fbff);
+  box-shadow: var(--ui-compact-shadow);
+  padding: 0.95rem 1rem;
+  min-width: 0;
+}
+
+.lu-source-guide__item h3,
+.lu-source-example h3 {
+  margin: 0 0 0.45rem;
+  font-size: 0.98rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.lu-source-guide__item p,
+.lu-source-example dd,
+.lu-source-example dt {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.lu-source-guide__item p,
+.lu-source-example dd {
+  color: #475569;
+}
+
+.lu-source-guide__item code,
+.lu-source-example code {
+  display: inline-flex;
+  margin-top: 0.55rem;
+  max-width: 100%;
+  white-space: normal;
+  word-break: break-word;
+  border-radius: 0.75rem;
+  background: #e2e8f0;
+  color: #0f172a;
+  padding: 0.22rem 0.48rem;
+}
+
+.lu-source-guide__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.55rem;
+}
+
+.lu-source-example dl {
+  display: grid;
+  gap: 0.55rem;
+  margin: 0;
+}
+
+.lu-source-example dl > div {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.lu-source-example dt {
+  font-weight: 700;
+  color: #0f172a;
+}
+
 .lu-preformatted {
   max-height: 34rem;
   overflow: auto;
@@ -74,7 +161,14 @@
 
 @media (max-width: 767.98px) {
   .lu-news-grid,
-  .lu-kpi-grid {
+  .lu-kpi-grid,
+  .lu-source-guide__grid,
+  .lu-source-examples {
     grid-template-columns: 1fr;
+  }
+
+  .lu-source-guide__item,
+  .lu-source-example {
+    padding: 0.9rem;
   }
 }

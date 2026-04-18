@@ -259,6 +259,25 @@ def test_admin_surfaces_renderizzano_fonti_staging_analisi_e_archivio(tmp_path: 
             assert needle in response.get_data(as_text=True)
 
 
+def test_pagina_fonti_mostra_guida_campi_ed_esempi_pronti(tmp_path: Path):
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    app = create_app(_cfg_web(tmp_path))
+
+    with app.test_client() as client:
+        login = client.post("/login", data={"username": "admin", "password": "admin"}, follow_redirects=False)
+        assert login.status_code == 302
+
+        response = client.get("/admin/aggiornamenti-legali/fonti")
+
+    html = response.get_data(as_text=True)
+    assert response.status_code == 200
+    assert "Come compilare correttamente una fonte" in html
+    assert "devono riferirsi allo stesso ente" in html
+    assert "cassazione_terza_sezione_civile" in html
+    assert "https://www.cortecostituzionale.it/" in html
+    assert "A primaria, B istituzionale, C editoriale" in html
+
+
 def test_admin_api_espone_staging_analisi_archivi_e_audit(tmp_path: Path):
     _write_studio_config(tmp_path / "config" / "studio.json")
     app = create_app(_cfg_web(tmp_path))

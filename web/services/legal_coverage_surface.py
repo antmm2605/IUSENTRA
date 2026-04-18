@@ -19,6 +19,7 @@ from pct.legal_coverage_pipeline import (
     run_coverage_audit,
 )
 from pct.legal_coverage_repository import CoverageDbConfig, PostgresCoverageRepository
+from pct.legal_coverage_sqlite_repository import CoverageSqliteConfig, SQLiteCoverageRepository
 from pct.tenant import GestioneTenant, normalize_db_mode
 
 
@@ -153,10 +154,6 @@ def _resolve_runtime_tenant(
     *,
     explicit_tenant_slug: str = "",
 ) -> Any | None:
-    tenant = getattr(g, "tenant", None) if has_request_context() else None
-    if tenant is not None:
-        return tenant
-
     manager = _tenant_manager(cfg_source)
     active_tenants = _active_tenants(cfg_source, manager=manager)
     requested_slug = _resolve_requested_tenant_slug(explicit_tenant_slug)
@@ -165,6 +162,10 @@ def _resolve_runtime_tenant(
             if str(getattr(studio, "slug", "") or "").strip().lower() == requested_slug:
                 return studio
         return None
+
+    tenant = getattr(g, "tenant", None) if has_request_context() else None
+    if tenant is not None:
+        return tenant
 
     if len(active_tenants) == 1:
         return active_tenants[0]
@@ -211,11 +212,19 @@ def build_repository(
     app: Any | None = None,
     *,
     tenant_slug: str = "",
-) -> PostgresCoverageRepository:
+) -> Any:
     runtime_app, cfg_source = _runtime_app_and_config(app)
     base_config = CoverageDbConfig.from_mapping(cfg_source)
     resolved_tenant = _resolve_runtime_tenant(cfg_source, explicit_tenant_slug=tenant_slug)
     tenant_database = getattr(resolved_tenant, "database", None)
+    tenant_slug_resolved = str(getattr(resolved_tenant, "slug", "") or "").strip().lower()
+    manager = _tenant_manager(cfg_source)
+    tenant_paths = manager.percorsi_dati(tenant_slug_resolved) if manager and tenant_slug_resolved else {}
+
+    if getattr(tenant_database, "is_sqlite", False):
+        sqlite_path = str(tenant_paths.get("STUDIO_DB") or "").strip()
+        return SQLiteCoverageRepository(CoverageSqliteConfig(sqlite_path))
+
     runtime_dsn = resolve_runtime_postgres_dsn(
         base_config.dsn,
         database=tenant_database or cfg_source.get("TENANT_DATABASE_CONFIG"),

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from copy import deepcopy
+import sqlite3
+from pathlib import Path
 
 from pct.legal_coverage_pipeline import (
     approve_draft,
@@ -12,6 +14,7 @@ from pct.legal_coverage_pipeline import (
     run_coverage_audit,
     save_draft,
 )
+from pct.legal_coverage_sqlite_repository import CoverageSqliteConfig, SQLiteCoverageRepository
 
 
 class _FakeCoverageRepository:
@@ -336,3 +339,40 @@ def test_publish_single_draft_pubblica_il_draft_richiesto():
     assert result["published_total"] == 1
     assert repository.drafts[0]["status"] == "published"
     assert repository.history[0]["draft_id"] == repository.drafts[0]["id"]
+
+
+def test_sqlite_coverage_repository_supporta_pipeline_end_to_end(tmp_path: Path):
+    db_path = tmp_path / "studio.db"
+    repository = SQLiteCoverageRepository(CoverageSqliteConfig(str(db_path)))
+
+    assert repository.ping() is True
+
+    audit = run_coverage_audit(repository)
+    assert audit["subbranches_total"] >= 20
+
+    gaps = build_gap_queue(repository)
+    assert gaps["gap_total"] >= 1
+
+    generated = generate_drafts(repository, _StubGenerator(), limit=1)
+    assert generated["draft_total"] == 1
+
+    draft = repository.list_drafts()[0]
+    approve_draft(repository, int(draft["id"]), "tester")
+
+    result = publish_single_draft(repository, int(draft["id"]), apply_to_db=True)
+    assert result["published_total"] == 1
+
+    conn = sqlite3.connect(str(db_path))
+    try:
+        legal_tables = {
+            row[0]
+            for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()
+        }
+        assert "coverage_snapshots" in legal_tables
+        assert "generated_procedure_drafts" in legal_tables
+        assert "legal_procedures" in legal_tables
+        assert conn.execute("SELECT COUNT(*) FROM legal_procedures").fetchone()[0] >= 1
+        assert conn.execute("SELECT COUNT(*) FROM published_procedure_history").fetchone()[0] == 1
+        assert conn.execute("SELECT COUNT(*) FROM coverage_learning_events").fetchone()[0] == 1
+    finally:
+        conn.close()

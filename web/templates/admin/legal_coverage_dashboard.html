@@ -65,7 +65,11 @@
           Ollama: {{ payload.runtime.ollama_model or 'modello non configurato' }} -
           endpoint {{ payload.runtime.ollama_url or 'n.d.' }}
         {% elif payload.runtime.db_configured %}
-          Il backend coverage e' configurato ma al momento non risponde. Verifica la connessione PostgreSQL tenant-aware dello studio selezionato e riprova.
+          {% if payload.runtime.db_backend_label == 'SQLite locale' %}
+            Il backend coverage SQL locale e' configurato ma al momento non risponde. Verifica il file `studio.db` del tenant selezionato e riprova.
+          {% else %}
+            Il backend coverage e' configurato ma al momento non risponde. Verifica la connessione PostgreSQL tenant-aware dello studio selezionato e riprova.
+          {% endif %}
         {% else %}
           Attiva un PostgreSQL tenant-aware oppure configura `LEGAL_COVERAGE_DB_*` / `PCT_LEGAL_COVERAGE_DB_*` per usare pipeline, review e publish reali senza fallback fittizi.
         {% endif %}

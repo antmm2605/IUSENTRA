@@ -10,6 +10,8 @@ Trasformare la tassonomia procedure da catalogo statico a capability continua:
 
 - `pct/legal_coverage_repository.py`
   Gestisce schema PostgreSQL, snapshot, gap queue, draft, publish history e learning events.
+- `pct/legal_coverage_sqlite_repository.py`
+  Gestisce lo stesso flusso su `studio.db` del tenant, con schema SQL locale, review e publish reali anche senza PostgreSQL.
 - `pct/legal_coverage_pipeline.py`
   Orchestration pura del flusso audit -> gap -> draft -> review -> publish.
 - `pct/legal_coverage_ai.py`
@@ -68,6 +70,7 @@ Per attivare la pipeline reale puoi usare due strade:
 - configurazione esplicita con `LEGAL_COVERAGE_DB_*` o `PCT_LEGAL_COVERAGE_DB_*`
 - riuso automatico del PostgreSQL tenant-aware gia' attivo per lo studio, senza dover duplicare la configurazione coverage
 - riuso automatico anche di configurazioni tenant legacy gia' valorizzate con host/database/utente PostgreSQL, quando il registry storico non ha ancora riallineato formalmente il `db_config.mode`
+- riuso automatico del backend `SQLite locale` del tenant quando lo studio usa `studio.db` come storage SQL operativo
 
 L'AI usa il runtime locale gia' configurato nel gestionale:
 
@@ -79,6 +82,7 @@ L'AI usa il runtime locale gia' configurato nel gestionale:
 - Dashboard: `/admin/copertura-ai`
 - Review queue: `/admin/copertura-ai/review`
 
+Se il tenant usa `SQLite locale`, la dashboard lavora direttamente su `studio.db` e non chiede piu' forzatamente un PostgreSQL esterno solo per audit, review e publish.
 Se il tenant ha gia' PostgreSQL attivo, la dashboard non resta piu' bloccata su "Database coverage non raggiungibile" solo per mancanza delle variabili dedicate: usa il backend studio gia' disponibile e mostra la pipeline reale.
 Se il superadmin opera fuori impersonazione, la dashboard seleziona automaticamente il tenant unico attivo oppure permette di scegliere esplicitamente lo studio dalla UI, propagando lo stesso contesto a review, action forms e API.
 La UI mostra anche il nome studio configurato nel `config/studio.json` del tenant e il backend coverage effettivo (`PostgreSQL tenant-aware`, `SQLite locale`, `JSON locale`), cosi' il contesto operativo non resta ambiguo.

@@ -1048,16 +1048,6 @@
   .dashboard-page {
     gap: 0.85rem;
   }
-  .dashboard-grid-tight {
-    --bs-gutter-x: .75rem;
-    --bs-gutter-y: .85rem;
-    margin-left: 0;
-    margin-right: 0;
-  }
-  .dashboard-grid-tight > [class*=col-] {
-    padding-left: calc(var(--bs-gutter-x) * 0.5);
-    padding-right: calc(var(--bs-gutter-x) * 0.5);
-  }
   .dashboard-card {
     border-radius: var(--mob-r) !important;
     box-shadow: var(--mob-shadow) !important;
@@ -1103,9 +1093,6 @@
     font-size: 0.85rem;
     line-height: 1.5;
   }
-  .wi-hero .d-flex.flex-column.flex-xl-row {
-    gap: 1rem !important;
-  }
   .wi-chip {
     font-size: 0.72rem;
     padding: 0.3rem 0.6rem;
@@ -1130,8 +1117,7 @@
     flex-wrap: nowrap;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
-    margin: 0 -0.3rem;
-    padding: 0 0.3rem 0.25rem;
+    padding-bottom: 0.25rem;
   }
   .wi-toolbar__filters::-webkit-scrollbar {
     display: none;
@@ -1191,16 +1177,6 @@
   .anagrafica-soggetti-page {
     gap: 0.85rem;
   }
-  .soggetti-grid {
-    --bs-gutter-x: .6rem;
-    --bs-gutter-y: .6rem;
-    margin-left: 0;
-    margin-right: 0;
-  }
-  .soggetti-grid > [class*=col-] {
-    padding-left: calc(var(--bs-gutter-x) * 0.5);
-    padding-right: calc(var(--bs-gutter-x) * 0.5);
-  }
   .anagrafica-soggetti-page .ds-search-bar {
     flex-wrap: wrap;
     gap: 0.5rem;
@@ -1227,24 +1203,19 @@
     gap: 0.25rem 0.5rem;
     font-size: 0.75rem;
   }
-  .anagrafica-soggetti-page .ds-entity-meta span {
-    white-space: nowrap;
-  }
   .ds-entity-type-badge {
     font-size: 0.62rem;
     padding: 0.3rem 0.5rem;
   }
 }
-/* ---- DS-STATS scroll orizzontale su mobile (panoramica/soggetti) ---- */
+/* ---- DS-STATS: scroll orizzontale su XS ---- */
 @media (max-width: 575px) {
   .ds-stats {
     flex-wrap: nowrap;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
-    margin-left: -0.5rem;
-    margin-right: -0.5rem;
-    padding: 0 0.5rem 0.25rem;
+    padding-bottom: 0.25rem;
   }
   .ds-stats::-webkit-scrollbar {
     display: none;

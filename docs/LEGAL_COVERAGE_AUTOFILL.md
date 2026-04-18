@@ -67,6 +67,7 @@ Per attivare la pipeline reale puoi usare due strade:
 
 - configurazione esplicita con `LEGAL_COVERAGE_DB_*` o `PCT_LEGAL_COVERAGE_DB_*`
 - riuso automatico del PostgreSQL tenant-aware gia' attivo per lo studio, senza dover duplicare la configurazione coverage
+- riuso automatico anche di configurazioni tenant legacy gia' valorizzate con host/database/utente PostgreSQL, quando il registry storico non ha ancora riallineato formalmente il `db_config.mode`
 
 L'AI usa il runtime locale gia' configurato nel gestionale:
 
@@ -79,6 +80,7 @@ L'AI usa il runtime locale gia' configurato nel gestionale:
 - Review queue: `/admin/copertura-ai/review`
 
 Se il tenant ha gia' PostgreSQL attivo, la dashboard non resta piu' bloccata su "Database coverage non raggiungibile" solo per mancanza delle variabili dedicate: usa il backend studio gia' disponibile e mostra la pipeline reale.
+Se il superadmin opera fuori impersonazione, la dashboard seleziona automaticamente il tenant unico attivo oppure permette di scegliere esplicitamente lo studio dalla UI, propagando lo stesso contesto a review, action forms e API.
 
 ## CLI
 

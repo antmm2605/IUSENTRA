@@ -1,7 +1,7 @@
 {% extends "admin/base.html" %}
-{% block title %}Review coverage AI{% endblock %}
+{% block title %}Review copertura AI{% endblock %}
 {% block breadcrumb %}
-<li class="breadcrumb-item"><a href="{{ url_for('legal_coverage_admin.dashboard') }}" class="text-decoration-none">Copertura AI</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('legal_coverage_admin.dashboard', tenant_slug=tenant_slug) }}" class="text-decoration-none">Copertura AI</a></li>
 <li class="breadcrumb-item active">Review</li>
 {% endblock %}
 
@@ -9,16 +9,19 @@
 <div class="review-shell admin-page-shell admin-coverage-review-page">
   <div class="review-page-header mb-3">
     <div>
-      <div class="review-kicker">Coverage AI</div>
-      <h1 class="review-title mb-1">Review queue draft v2</h1>
+      <div class="review-kicker">Copertura AI</div>
+      <h1 class="review-title mb-1">Coda revisione draft v2</h1>
       <p class="review-subtitle mb-0">
         Revisione, correzione, approvazione e pubblicazione dei draft generati automaticamente.
       </p>
+      {% if tenant_slug %}
+      <div class="small text-muted mt-1">Studio selezionato: <strong>{{ tenant_slug }}</strong></div>
+      {% endif %}
     </div>
     <div class="review-header-actions">
-      <a href="{{ url_for('legal_coverage_admin.dashboard') }}" class="btn btn-outline-secondary">Torna alla dashboard</a>
+      <a href="{{ url_for('legal_coverage_admin.dashboard', tenant_slug=tenant_slug) }}" class="btn btn-outline-secondary">Torna alla dashboard</a>
       <button class="btn btn-outline-primary" id="btn-refresh" type="button">Aggiorna</button>
-      <button class="btn btn-primary" id="btn-open-sql" type="button">Preview SQL</button>
+      <button class="btn btn-primary" id="btn-open-sql" type="button">Anteprima SQL</button>
       <button class="btn btn-success" id="btn-approve" type="button">Approva</button>
       <button class="btn btn-outline-danger" id="btn-reject" type="button">Rifiuta</button>
       <button class="btn btn-dark" id="btn-publish" type="button">Pubblica</button>
@@ -105,7 +108,7 @@
           <div class="card review-card mb-3">
             <div class="card-header review-card-header">
               <div>
-                <h2 class="review-card-title">Validation report</h2>
+                <h2 class="review-card-title">Report di validazione</h2>
                 <small class="text-muted">Errori, warning e completezza</small>
               </div>
             </div>
@@ -117,7 +120,7 @@
           <div class="card review-card">
             <div class="card-header review-card-header">
               <div>
-                <h2 class="review-card-title">SQL preview</h2>
+                <h2 class="review-card-title">Anteprima SQL</h2>
                 <small class="text-muted">Output del publisher reale</small>
               </div>
             </div>
@@ -144,7 +147,8 @@
 {% block scripts %}
 {{ super() }}
 <script>
-  window.REVIEW_API_BASE = "{{ review_api_base }}";
+  window.REVIEW_API_BASE = "/admin/copertura-ai/api";
+  window.REVIEW_TENANT_SLUG = "{{ tenant_slug }}";
 </script>
 <script src="{{ url_for('static', filename='js/admin_coverage_review.js') }}?v={{ app_version }}"></script>
 {% endblock %}

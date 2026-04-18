@@ -30,6 +30,21 @@
 - Persistenza: file JSON per clienti, fascicoli, agenda, ecc.
 - Stack: Python 3, Flask, Bootstrap 5, Bootstrap Icons
 
+## Storage SQL obbligatorio — REGOLA OBBLIGATORIA
+
+- Ogni nuova funzionalita', refactor strutturale o nuovo dominio persistente deve avere una **struttura SQL esplicita**, non solo supporto PostgreSQL runtime.
+- La consegna minima corretta e':
+  - schema SQL/migrazione per SQLite o SQL applicativo locale
+  - schema SQL/migrazione per PostgreSQL
+  - repository e percorso `read/write` coerenti su entrambi, salvo fuori-scope dichiarato e documentato
+  - documentazione aggiornata sulla matrice storage con stato di parita' `JSON / SQLite / PostgreSQL`
+- Non e' ammesso dichiarare una feature "chiusa" se esiste solo il path PostgreSQL ma manca la base SQL governata o la migrazione corrispondente.
+- Se un dominio resta temporaneamente `JSON-first`, va dichiarato in modo esplicito con:
+  - motivazione
+  - wave di migrazione
+  - check di consistenza
+  - assenza di fallback invisibili quando un backend SQL/PostgreSQL e' attivo
+
 ## Regola obbligatoria - completamento end-to-end di ogni nuova funzione
 
 Ogni nuova funzione, refactor o correzione deve essere considerata **completata solo quando copre tutta la filiera applicativa interessata**, non solo un singolo file, una singola route o una sola vista.

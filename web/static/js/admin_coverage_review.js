@@ -1,6 +1,7 @@
 let currentDraftId = null;
 let cachedDrafts = [];
 let reviewToast = null;
+const reviewTenantSlug = String(window.REVIEW_TENANT_SLUG || '').trim();
 
 const dateFormatter = new Intl.DateTimeFormat('it-IT', {
   dateStyle: 'short',
@@ -34,8 +35,16 @@ function showToast(message) {
   reviewToast.show();
 }
 
+function reviewUrl(path) {
+  const url = new URL(`${window.location.origin}${window.REVIEW_API_BASE}${path}`);
+  if (reviewTenantSlug) {
+    url.searchParams.set('tenant_slug', reviewTenantSlug);
+  }
+  return `${url.pathname}${url.search}`;
+}
+
 async function fetchDrafts() {
-  const res = await fetch(`${window.REVIEW_API_BASE}/drafts`);
+  const res = await fetch(reviewUrl('/drafts'));
   const data = await res.json();
   cachedDrafts = Array.isArray(data) ? data : [];
   renderDraftList(cachedDrafts);
@@ -72,7 +81,7 @@ function renderDraftList(data) {
 async function loadDraft(id) {
   currentDraftId = id;
   renderDraftList(cachedDrafts);
-  const res = await fetch(`${window.REVIEW_API_BASE}/drafts/${id}`);
+  const res = await fetch(reviewUrl(`/drafts/${id}`));
   const data = await res.json();
 
   document.getElementById('draft-empty').classList.add('d-none');
@@ -103,10 +112,10 @@ async function saveDraft() {
     return;
   }
 
-  const res = await fetch(`${window.REVIEW_API_BASE}/drafts/${currentDraftId}/save`, {
+  const res = await fetch(reviewUrl(`/drafts/${currentDraftId}/save`), {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({spec_json: spec})
+    body: JSON.stringify({spec_json: spec, tenant_slug: reviewTenantSlug})
   });
   const data = await res.json();
   if (!res.ok || data.ok === false) {
@@ -121,10 +130,10 @@ async function saveDraft() {
 
 async function approveDraft() {
   if (!currentDraftId) return;
-  await fetch(`${window.REVIEW_API_BASE}/drafts/${currentDraftId}/approve`, {
+  await fetch(reviewUrl(`/drafts/${currentDraftId}/approve`), {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({reviewer: 'review-ui'})
+    body: JSON.stringify({reviewer: 'review-ui', tenant_slug: reviewTenantSlug})
   });
   showToast('Draft approvato.');
   await fetchDrafts();
@@ -133,10 +142,10 @@ async function approveDraft() {
 
 async function rejectDraft() {
   if (!currentDraftId) return;
-  await fetch(`${window.REVIEW_API_BASE}/drafts/${currentDraftId}/reject`, {
+  await fetch(reviewUrl(`/drafts/${currentDraftId}/reject`), {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({reviewer: 'review-ui'})
+    body: JSON.stringify({reviewer: 'review-ui', tenant_slug: reviewTenantSlug})
   });
   showToast('Draft rifiutato.');
   await fetchDrafts();
@@ -145,7 +154,7 @@ async function rejectDraft() {
 
 async function previewSql() {
   if (!currentDraftId) return;
-  const res = await fetch(`${window.REVIEW_API_BASE}/drafts/${currentDraftId}/sql`);
+  const res = await fetch(reviewUrl(`/drafts/${currentDraftId}/sql`));
   const data = await res.json();
   document.getElementById('sql-view').textContent = data.sql || '';
   showToast('SQL aggiornato.');
@@ -153,10 +162,10 @@ async function previewSql() {
 
 async function publishDraft() {
   if (!currentDraftId) return;
-  const res = await fetch(`${window.REVIEW_API_BASE}/drafts/${currentDraftId}/publish`, {
+  const res = await fetch(reviewUrl(`/drafts/${currentDraftId}/publish`), {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({})
+    body: JSON.stringify({tenant_slug: reviewTenantSlug})
   });
   const data = await res.json();
   if (!res.ok || data.ok === false) {

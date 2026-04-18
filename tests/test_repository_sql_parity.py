@@ -7,7 +7,7 @@ from flask import Flask
 from pct.giurisprudenza_repository import GestioneRepositoryGiurisprudenza
 from pct.legal_intelligence_repository import GestioneLegalIntelligenceRepository
 from pct.template_atti_repository import GestioneTemplateRepository
-from pct.tenant import DatabaseConfig, DbMode
+from pct.tenant import DatabaseConfig, DbMode, GestioneTenant
 from pct.workspace_intelligence_repository import WorkspaceIntelligenceRepository
 from web.services.legal_coverage_surface import build_repository
 
@@ -94,3 +94,35 @@ def test_coverage_surface_usa_database_tenant_postgresql_come_fallback():
     assert repository.config.configured is True
     assert repository.config.dsn.startswith("postgresql://")
     assert "db.example.test" in repository.config.dsn
+
+
+def test_coverage_surface_usa_tenant_unico_con_configurazione_postgres_legacy(tmp_path: Path):
+    app = Flask(__name__)
+    registry_path = tmp_path / "tenants-coverage.json"
+    app.config["TENANTS_REGISTRY"] = str(registry_path)
+    tenant_manager = GestioneTenant(str(registry_path))
+    studio = tenant_manager.crea(
+        "Studio Coverage",
+        "studio-coverage",
+        piano="ENTERPRISE",
+        db_config={"mode": "LOCAL"},
+    )
+    tenant_manager.aggiorna_db_config(
+        studio.slug,
+        DatabaseConfig(
+            mode="LOCAL",
+            host="db.example.legacy",
+            porta=5432,
+            db_name="iusentra",
+            utente="postgres",
+            password="segreta",
+            ssl=True,
+            connessione_ok=True,
+        ),
+    )
+
+    repository = build_repository(app)
+
+    assert repository.config.configured is True
+    assert repository.config.dsn.startswith("postgresql://")
+    assert "db.example.legacy" in repository.config.dsn

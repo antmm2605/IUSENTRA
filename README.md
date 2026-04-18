@@ -15,6 +15,7 @@ La repo oggi non è più solo un tool CLI per il Processo Civile Telematico: con
 - Giurisprudenza, legal intelligence, repository strutturati per Lex.
 - Motore `Update Intelligence` per monitoraggio normativo, giurisprudenziale e di prassi con area di acquisizione, coda revisioni e pagina news giuridiche strutturate.
 - Pipeline `Coverage AI` per audit tassonomico, gap queue, draft v2, review e publish SQL con retrieval interno e appoggio al PostgreSQL tenant-aware.
+- La console `Copertura AI` aggancia automaticamente il PostgreSQL del tenant selezionato o dell'unico studio attivo, mantenendo il flusso reale anche per registry legacy con credenziali studio gia' presenti.
 - Workspace/applicazioni, portali di acquisizione, privacy e audit.
 - Runtime AI locale con Lex come strato linguistico sopra motori deterministici.
 - Multi-tenant amministrabile dalla piattaforma.

@@ -1,0 +1,249 @@
+PRAGMA foreign_keys = ON;
+
+BEGIN TRANSACTION;
+
+CREATE TABLE IF NOT EXISTS legal_update_meta (
+    meta_key TEXT PRIMARY KEY,
+    meta_value TEXT NOT NULL,
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS sources (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    code TEXT NOT NULL UNIQUE,
+    category TEXT NOT NULL,
+    base_url TEXT NOT NULL,
+    source_type TEXT NOT NULL DEFAULT 'web',
+    trust_class TEXT NOT NULL DEFAULT 'A',
+    is_official INTEGER NOT NULL DEFAULT 1 CHECK (is_official IN (0,1)),
+    enabled INTEGER NOT NULL DEFAULT 1 CHECK (enabled IN (0,1)),
+    polling_minutes INTEGER NOT NULL DEFAULT 240,
+    parser_type TEXT NOT NULL DEFAULT 'html',
+    notes TEXT NOT NULL DEFAULT '',
+    last_check_at TEXT NOT NULL DEFAULT '',
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS source_documents_raw (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    source_id INTEGER NOT NULL REFERENCES sources(id) ON DELETE CASCADE,
+    external_id TEXT NOT NULL,
+    source_url TEXT NOT NULL,
+    title TEXT NOT NULL DEFAULT '',
+    published_at TEXT NOT NULL DEFAULT '',
+    raw_html TEXT NOT NULL DEFAULT '',
+    raw_text TEXT NOT NULL DEFAULT '',
+    raw_pdf_path TEXT NOT NULL DEFAULT '',
+    content_hash TEXT NOT NULL DEFAULT '',
+    fetch_status TEXT NOT NULL DEFAULT 'fetched',
+    http_status INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (source_id, external_id)
+);
+
+CREATE TABLE IF NOT EXISTS source_documents_normalized (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    raw_document_id INTEGER NOT NULL UNIQUE REFERENCES source_documents_raw(id) ON DELETE CASCADE,
+    title TEXT NOT NULL,
+    body_text TEXT NOT NULL DEFAULT '',
+    body_short TEXT NOT NULL DEFAULT '',
+    language TEXT NOT NULL DEFAULT 'it',
+    issuer TEXT NOT NULL DEFAULT '',
+    document_date TEXT NOT NULL DEFAULT '',
+    document_type_guess TEXT NOT NULL DEFAULT '',
+    attachments_json TEXT NOT NULL DEFAULT '[]',
+    normalized_hash TEXT NOT NULL DEFAULT '',
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS matters (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    slug TEXT NOT NULL UNIQUE,
+    parent_id INTEGER REFERENCES matters(id) ON DELETE SET NULL,
+    level INTEGER NOT NULL DEFAULT 1,
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    enabled INTEGER NOT NULL DEFAULT 1 CHECK (enabled IN (0,1))
+);
+
+CREATE TABLE IF NOT EXISTS ai_documents_analysis (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    normalized_document_id INTEGER NOT NULL UNIQUE REFERENCES source_documents_normalized(id) ON DELETE CASCADE,
+    classification_type TEXT NOT NULL DEFAULT 'INCERTO',
+    confidence_score REAL NOT NULL DEFAULT 0,
+    impact_level TEXT NOT NULL DEFAULT 'medio',
+    matter_id INTEGER REFERENCES matters(id) ON DELETE SET NULL,
+    submatter_id INTEGER REFERENCES matters(id) ON DELETE SET NULL,
+    issuer TEXT NOT NULL DEFAULT '',
+    norm_number TEXT NOT NULL DEFAULT '',
+    norm_year TEXT NOT NULL DEFAULT '',
+    norm_type TEXT NOT NULL DEFAULT '',
+    decision_number TEXT NOT NULL DEFAULT '',
+    decision_year TEXT NOT NULL DEFAULT '',
+    court_name TEXT NOT NULL DEFAULT '',
+    effective_date TEXT NOT NULL DEFAULT '',
+    summary_short TEXT NOT NULL DEFAULT '',
+    summary_long TEXT NOT NULL DEFAULT '',
+    what_changes TEXT NOT NULL DEFAULT '',
+    extracted_entities_json TEXT NOT NULL DEFAULT '{}',
+    proposed_action TEXT NOT NULL DEFAULT 'NEEDS_REVIEW',
+    target_entity_type TEXT NOT NULL DEFAULT '',
+    target_entity_id INTEGER,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS normative (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    title TEXT NOT NULL,
+    slug TEXT NOT NULL UNIQUE,
+    norm_type TEXT NOT NULL DEFAULT '',
+    norm_number TEXT NOT NULL DEFAULT '',
+    norm_year TEXT NOT NULL DEFAULT '',
+    issuer TEXT NOT NULL DEFAULT '',
+    publication_date TEXT NOT NULL DEFAULT '',
+    effective_date TEXT NOT NULL DEFAULT '',
+    status TEXT NOT NULL DEFAULT 'vigente',
+    matter_id INTEGER REFERENCES matters(id) ON DELETE SET NULL,
+    submatter_id INTEGER REFERENCES matters(id) ON DELETE SET NULL,
+    source_url TEXT NOT NULL DEFAULT '',
+    source_document_id INTEGER REFERENCES source_documents_normalized(id) ON DELETE SET NULL,
+    text_official TEXT NOT NULL DEFAULT '',
+    text_current TEXT NOT NULL DEFAULT '',
+    summary TEXT NOT NULL DEFAULT '',
+    notes TEXT NOT NULL DEFAULT '',
+    version_group_id TEXT NOT NULL DEFAULT '',
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (norm_type, norm_number, norm_year, issuer)
+);
+
+CREATE TABLE IF NOT EXISTS normative_versions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    normative_id INTEGER NOT NULL REFERENCES normative(id) ON DELETE CASCADE,
+    version_label TEXT NOT NULL DEFAULT '',
+    valid_from TEXT NOT NULL DEFAULT '',
+    valid_to TEXT NOT NULL DEFAULT '',
+    text_version TEXT NOT NULL DEFAULT '',
+    source_url TEXT NOT NULL DEFAULT '',
+    source_document_id INTEGER REFERENCES source_documents_normalized(id) ON DELETE SET NULL,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS normative_relations (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    normative_id INTEGER NOT NULL REFERENCES normative(id) ON DELETE CASCADE,
+    related_normative_id INTEGER NOT NULL REFERENCES normative(id) ON DELETE CASCADE,
+    relation_type TEXT NOT NULL DEFAULT 'references',
+    notes TEXT NOT NULL DEFAULT ''
+);
+
+CREATE TABLE IF NOT EXISTS jurisprudence (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    title TEXT NOT NULL,
+    slug TEXT NOT NULL UNIQUE,
+    court_name TEXT NOT NULL DEFAULT '',
+    section_name TEXT NOT NULL DEFAULT '',
+    decision_number TEXT NOT NULL DEFAULT '',
+    decision_year TEXT NOT NULL DEFAULT '',
+    decision_date TEXT NOT NULL DEFAULT '',
+    publication_date TEXT NOT NULL DEFAULT '',
+    matter_id INTEGER REFERENCES matters(id) ON DELETE SET NULL,
+    submatter_id INTEGER REFERENCES matters(id) ON DELETE SET NULL,
+    principle_of_law TEXT NOT NULL DEFAULT '',
+    summary TEXT NOT NULL DEFAULT '',
+    full_text TEXT NOT NULL DEFAULT '',
+    source_url TEXT NOT NULL DEFAULT '',
+    source_document_id INTEGER REFERENCES source_documents_normalized(id) ON DELETE SET NULL,
+    related_normative_id INTEGER REFERENCES normative(id) ON DELETE SET NULL,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (court_name, decision_number, decision_year)
+);
+
+CREATE TABLE IF NOT EXISTS prassi (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    title TEXT NOT NULL,
+    slug TEXT NOT NULL UNIQUE,
+    issuing_body TEXT NOT NULL DEFAULT '',
+    act_type TEXT NOT NULL DEFAULT '',
+    act_number TEXT NOT NULL DEFAULT '',
+    act_year TEXT NOT NULL DEFAULT '',
+    act_date TEXT NOT NULL DEFAULT '',
+    matter_id INTEGER REFERENCES matters(id) ON DELETE SET NULL,
+    submatter_id INTEGER REFERENCES matters(id) ON DELETE SET NULL,
+    summary TEXT NOT NULL DEFAULT '',
+    full_text TEXT NOT NULL DEFAULT '',
+    source_url TEXT NOT NULL DEFAULT '',
+    source_document_id INTEGER REFERENCES source_documents_normalized(id) ON DELETE SET NULL,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (issuing_body, act_type, act_number, act_year)
+);
+
+CREATE TABLE IF NOT EXISTS news (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    title TEXT NOT NULL,
+    slug TEXT NOT NULL UNIQUE,
+    short_summary TEXT NOT NULL DEFAULT '',
+    content TEXT NOT NULL DEFAULT '',
+    news_type TEXT NOT NULL DEFAULT 'focus',
+    matter_id INTEGER REFERENCES matters(id) ON DELETE SET NULL,
+    submatter_id INTEGER REFERENCES matters(id) ON DELETE SET NULL,
+    related_normative_id INTEGER REFERENCES normative(id) ON DELETE SET NULL,
+    related_jurisprudence_id INTEGER REFERENCES jurisprudence(id) ON DELETE SET NULL,
+    related_prassi_id INTEGER REFERENCES prassi(id) ON DELETE SET NULL,
+    source_url TEXT NOT NULL DEFAULT '',
+    source_document_id INTEGER REFERENCES source_documents_normalized(id) ON DELETE SET NULL,
+    is_auto_generated INTEGER NOT NULL DEFAULT 1 CHECK (is_auto_generated IN (0,1)),
+    publication_status TEXT NOT NULL DEFAULT 'draft',
+    published_at TEXT NOT NULL DEFAULT '',
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS review_queue (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    normalized_document_id INTEGER NOT NULL REFERENCES source_documents_normalized(id) ON DELETE CASCADE,
+    analysis_id INTEGER NOT NULL UNIQUE REFERENCES ai_documents_analysis(id) ON DELETE CASCADE,
+    proposal_type TEXT NOT NULL DEFAULT '',
+    proposed_action TEXT NOT NULL DEFAULT '',
+    target_entity_type TEXT NOT NULL DEFAULT '',
+    target_entity_id INTEGER,
+    proposal_payload_json TEXT NOT NULL DEFAULT '{}',
+    status TEXT NOT NULL DEFAULT 'pending',
+    priority INTEGER NOT NULL DEFAULT 50,
+    assigned_to TEXT NOT NULL DEFAULT '',
+    review_notes TEXT NOT NULL DEFAULT '',
+    reviewed_by TEXT NOT NULL DEFAULT '',
+    reviewed_at TEXT NOT NULL DEFAULT '',
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS audit_log (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    entity_type TEXT NOT NULL,
+    entity_id INTEGER,
+    action TEXT NOT NULL,
+    old_data_json TEXT NOT NULL DEFAULT '{}',
+    new_data_json TEXT NOT NULL DEFAULT '{}',
+    performed_by TEXT NOT NULL DEFAULT '',
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_sources_enabled ON sources(enabled, category, code);
+CREATE INDEX IF NOT EXISTS idx_raw_source ON source_documents_raw(source_id, published_at, content_hash);
+CREATE INDEX IF NOT EXISTS idx_normalized_hash ON source_documents_normalized(normalized_hash);
+CREATE INDEX IF NOT EXISTS idx_analysis_classification ON ai_documents_analysis(classification_type, confidence_score);
+CREATE INDEX IF NOT EXISTS idx_review_status ON review_queue(status, priority, created_at);
+CREATE INDEX IF NOT EXISTS idx_news_publication ON news(publication_status, published_at);
+CREATE INDEX IF NOT EXISTS idx_normative_lookup ON normative(norm_type, norm_number, norm_year, issuer);
+CREATE INDEX IF NOT EXISTS idx_jurisprudence_lookup ON jurisprudence(court_name, decision_number, decision_year);
+CREATE INDEX IF NOT EXISTS idx_prassi_lookup ON prassi(issuing_body, act_type, act_number, act_year);
+
+COMMIT;

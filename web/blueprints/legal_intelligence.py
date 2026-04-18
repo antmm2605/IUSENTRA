@@ -11,6 +11,7 @@ from web.helpers import (
     get_clienti,
     get_fascicoli,
     get_legal_intelligence,
+    get_legal_update_pipeline,
     get_normative_tables,
     get_scadenziario,
 )
@@ -55,6 +56,41 @@ def index():
     return render_template(
         "legal_intelligence/index.html",
         snapshot=_snapshot(),
+        updates_snapshot=get_legal_update_pipeline().dashboard_snapshot(),
+        oggi=date.today(),
+    )
+
+
+@legal_intelligence.route("/news", methods=["GET"])
+@_richiedi_login
+def news():
+    pipeline = get_legal_update_pipeline()
+    return render_template(
+        "legal_intelligence/news.html",
+        news_items=pipeline.repository.list_news(
+            matter_slug=request.args.get("materia", ""),
+            news_type=request.args.get("tipo", ""),
+            limit=80,
+        ),
+        matters=pipeline.repository.list_matters(),
+        selected_matter=request.args.get("materia", ""),
+        selected_type=request.args.get("tipo", ""),
+        snapshot=pipeline.dashboard_snapshot(),
+        oggi=date.today(),
+    )
+
+
+@legal_intelligence.route("/news/<string:slug>", methods=["GET"])
+@_richiedi_login
+def dettaglio_news(slug: str):
+    pipeline = get_legal_update_pipeline()
+    news_item = pipeline.repository.get_news_by_slug(slug)
+    if not news_item:
+        flash("News non trovata o non ancora pubblicata.", "warning")
+        return redirect(url_for("legal_intelligence.news"))
+    return render_template(
+        "legal_intelligence/news_detail.html",
+        news_item=news_item,
         oggi=date.today(),
     )
 
@@ -184,4 +220,24 @@ def api_tabelle_normative():
         return jsonify({"ok": True, "snapshot": get_normative_tables().snapshot()})
     except Exception as exc:
         current_app.logger.exception("Errore legal_intelligence.api_tabelle_normative: %s", exc)
+        return jsonify({"ok": False, "errore": str(exc)}), 200
+
+
+@legal_intelligence.route("/api/news", methods=["GET"])
+@_richiedi_login
+def api_news():
+    try:
+        pipeline = get_legal_update_pipeline()
+        return jsonify(
+            {
+                "ok": True,
+                "items": pipeline.repository.list_news(
+                    matter_slug=request.args.get("materia", ""),
+                    news_type=request.args.get("tipo", ""),
+                    limit=int(request.args.get("limit") or 50),
+                ),
+            }
+        )
+    except Exception as exc:
+        current_app.logger.exception("Errore legal_intelligence.api_news: %s", exc)
         return jsonify({"ok": False, "errore": str(exc)}), 200

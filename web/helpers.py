@@ -29,6 +29,7 @@ from pct.applicazioni_repository import get_runtime_applicazioni_repository
 from pct.fatturazione import GestioneFatturazione
 from pct.pagamenti import GestionePagamenti
 from pct.preventivi import GestionePreventivi
+from pct.legal_update_pipeline import LegalUpdatePipeline, build_legal_update_pipeline
 from web.services.storage_runtime import get_request_storage_runtime, get_request_studio_db
 
 
@@ -122,6 +123,23 @@ def get_legal_intelligence() -> GestioneLegalIntelligence:
     return GestioneLegalIntelligence(
         db_path=_cfg("LEGAL_INTELLIGENCE_DB"),
         normative_db_path=_cfg("NORMATIVE_TABLES_DB"),
+    )
+
+
+def get_legal_update_pipeline() -> LegalUpdatePipeline:
+    return build_legal_update_pipeline(
+        _cfg("LEGAL_INTELLIGENCE_DB"),
+        giurisprudenza_db_path=_cfg("GIURISPRUDENZA_DB"),
+        ai_base_url=str(
+            current_app.config.get("LOCAL_AI_BASE_URL")
+            or current_app.config.get("PCT_LOCAL_AI_BASE_URL")
+            or ""
+        ),
+        ai_model=str(
+            current_app.config.get("LOCAL_AI_CHAT_MODEL")
+            or current_app.config.get("OLLAMA_MODEL")
+            or "mistral"
+        ),
     )
 
 

@@ -51,6 +51,7 @@ from .auth import (
 from .fatturazione import GestioneFatturazione
 from .pagamenti import GestionePagamenti
 from .preventivi import GestionePreventivi
+from .legal_update_pipeline import build_legal_update_pipeline
 from .studio_demo import build_studio_demo_snapshot
 from .tenant import DatabaseConfig, DbMode, GestioneTenant
 from .scadenziario import (
@@ -2560,6 +2561,48 @@ def cmd_demo_check(tenant_slug, registry):
     click.echo(f"Copertura workflow: {snapshot['ready_steps']}/{snapshot['steps_total']}")
     click.echo(f"Prossima azione: {snapshot['next_action']}")
     click.echo(json.dumps(snapshot, ensure_ascii=False, indent=2))
+
+
+@cli.command("aggiornamenti-legali")
+@click.option("--intelligence-db", default=lambda: os.getenv("PCT_LEGAL_INTELLIGENCE_DB", "./intelligence/motori.json"), show_default="PCT_LEGAL_INTELLIGENCE_DB o ./intelligence/motori.json", help="Anchor del motore legale")
+@click.option("--giurisprudenza-db", default=lambda: os.getenv("PCT_GIURISPRUDENZA_DB", "./intelligence/giurisprudenza.json"), show_default="PCT_GIURISPRUDENZA_DB o ./intelligence/giurisprudenza.json", help="Archivio giurisprudenza per mirror pubblicazioni")
+@click.option("--source", "source_codes", multiple=True, help="Codice fonte da scansionare. Ripetibile")
+@click.option("--no-auto-publish", is_flag=True, default=False, help="Disattiva l'autopubblicazione delle sole news a basso rischio")
+@click.option("--publish-approved", is_flag=True, default=False, help="Dopo la scansione pubblica tutte le review gia approvate")
+@click.option("--local-ai-url", default=lambda: os.getenv("LOCAL_AI_BASE_URL", ""), help="Endpoint Ollama locale")
+@click.option("--local-ai-model", default=lambda: os.getenv("LOCAL_AI_CHAT_MODEL", os.getenv("OLLAMA_MODEL", "mistral")), show_default="LOCAL_AI_CHAT_MODEL o OLLAMA_MODEL o mistral", help="Modello locale per arricchimento AI")
+def cmd_aggiornamenti_legali(intelligence_db, giurisprudenza_db, source_codes, no_auto_publish, publish_approved, local_ai_url, local_ai_model):
+    """Esegue la pipeline del motore di aggiornamento normativo, giurisprudenziale e di prassi."""
+    pipeline = build_legal_update_pipeline(
+        intelligence_db,
+        giurisprudenza_db_path=giurisprudenza_db,
+        ai_base_url=local_ai_url,
+        ai_model=local_ai_model,
+    )
+    report = pipeline.run_cycle(
+        source_codes=list(source_codes) or None,
+        auto_publish=not no_auto_publish,
+    )
+
+    published_after_review = []
+    if publish_approved:
+        for row in pipeline.repository.list_review_queue(statuses=("approved",), limit=100):
+            published_after_review.append(
+                {
+                    "review_id": row["id"],
+                    "result": pipeline.publish_review(int(row["id"]), reviewer="cli"),
+                }
+            )
+
+    click.echo(json.dumps(
+        {
+            "report": report,
+            "published_after_review": published_after_review,
+            "dashboard": pipeline.dashboard_snapshot(),
+        },
+        ensure_ascii=False,
+        indent=2,
+    ))
 
 
 def main():

@@ -1,0 +1,58 @@
+.legal-updates-admin-page,
+.legal-updates-review-page {
+  display: grid;
+  gap: var(--ui-compact-gap);
+}
+
+.lu-kpi-grid {
+  display: grid;
+  gap: 0.85rem;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+}
+
+.lu-kpi-card {
+  border-radius: var(--ui-compact-radius);
+  border: 1px solid var(--ui-compact-border);
+  background: linear-gradient(180deg, #fff, #f8fbff);
+  box-shadow: var(--ui-compact-shadow);
+  padding: var(--ui-compact-pad);
+  min-height: 104px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.lu-kpi-label {
+  color: #64748b;
+  font-size: 0.82rem;
+}
+
+.lu-kpi-value {
+  font-size: clamp(1.55rem, 1.2rem + 1vw, 1.95rem);
+  line-height: 1;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.lu-news-grid {
+  display: grid;
+  gap: 0.85rem;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+.lu-review-actions {
+  min-width: min(100%, 21rem);
+  display: grid;
+  gap: 0.55rem;
+}
+
+.lu-review-actions .form-control {
+  min-width: 0;
+}
+
+@media (max-width: 767.98px) {
+  .lu-news-grid,
+  .lu-kpi-grid {
+    grid-template-columns: 1fr;
+  }
+}

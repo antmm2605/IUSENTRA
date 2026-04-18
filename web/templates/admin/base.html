@@ -91,6 +91,10 @@
        class="nav-link {% if request.blueprint == 'legal_coverage_admin' %}active{% endif %}">
       <i class="bi bi-diagram-2"></i> Copertura AI
     </a>
+    <a href="{{ url_for('legal_updates_admin.dashboard') }}"
+       class="nav-link {% if request.blueprint == 'legal_updates_admin' %}active{% endif %}">
+      <i class="bi bi-newspaper"></i> Aggiornamenti legali
+    </a>
 
     <div class="nav-section mt-2">Azioni rapide</div>
     <a href="{{ url_for('admin.nuovo_studio') }}" class="nav-link">
@@ -193,4 +197,3 @@
 {% block scripts %}{% endblock %}
 </body>
 </html>
-

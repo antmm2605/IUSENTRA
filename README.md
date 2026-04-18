@@ -13,6 +13,7 @@ La repo oggi non è più solo un tool CLI per il Processo Civile Telematico: con
 - Fatturazione, pagamenti, saldo cliente e KPI economici per studio, cliente e fascicolo.
 - Template atti, strumenti legali e workspace professionali.
 - Giurisprudenza, legal intelligence, repository strutturati per Lex.
+- Motore `Update Intelligence` per monitoraggio normativo, giurisprudenziale e di prassi con staging, review queue e pagina news giuridiche strutturate.
 - Workspace/applicazioni, portali di acquisizione, privacy e audit.
 - Runtime AI locale con Lex come strato linguistico sopra motori deterministici.
 - Multi-tenant amministrabile dalla piattaforma.
@@ -190,6 +191,31 @@ Le dipendenze oggi sono organizzate anche sotto `requirements/` con separazione 
 Il gate lint attuale è volutamente centrato su errori sintattici e import/fatal error, così la CI resta verde mentre il debito storico di stile viene ridotto in modo progressivo.
 Il job `Governance repo` esegue `tools/check_repo_governance.py` e blocca regressioni su modularizzazione, budget dei moduli e confini tra `web/` e `lex/`.
 La pipeline notturna `.github/workflows/performance-nightly.yml` esegue `tools/performance_smoke.py` per misurare startup, login, metriche runtime e tempi base di Lex.
+
+## Update Intelligence
+
+IUSENTRA include ora un motore dedicato di aggiornamento normativo e giurisprudenziale:
+
+- monitora fonti ufficiali e istituzionali
+- salva staging raw e documenti normalizzati
+- classifica con AI il contenuto tra normativa, giurisprudenza, prassi, news e casi incerti
+- confronta il risultato con l'archivio interno
+- apre una review queue amministrativa per i contenuti strutturati
+- pubblica news giuridiche tracciabili nella UI dedicata
+
+Superfici principali:
+
+- `/legal-intelligence/news`
+- `/admin/aggiornamenti-legali`
+- `/admin/aggiornamenti-legali/review`
+
+Comando CLI:
+
+```bash
+iusentra aggiornamenti-legali
+```
+
+Dettagli architetturali e regole operative in [docs/LEGAL_UPDATE_INTELLIGENCE.md](docs/LEGAL_UPDATE_INTELLIGENCE.md).
 
 ## Osservabilità tecnica
 

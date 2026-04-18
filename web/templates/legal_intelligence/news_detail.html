@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}{{ news_item.title }}{% endblock %}
+
+{% block content %}
+<div class="legal-intelligence-page">
+  <div class="ds-ph">
+    <div class="ds-ph-icon"><i class="bi bi-file-earmark-richtext"></i></div>
+    <div class="ds-ph-body">
+      <h1 class="ds-ph-title">{{ news_item.title }}</h1>
+      <p class="ds-ph-sub">
+        {{ news_item.news_type|replace('_', ' ')|capitalize }}
+        {% if news_item.matter_name %} · {{ news_item.matter_name }}{% endif %}
+        {% if news_item.submatter_name %} / {{ news_item.submatter_name }}{% endif %}
+      </p>
+    </div>
+    <div class="ds-ph-actions li-header-actions">
+      <a href="{{ url_for('legal_intelligence.news') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-2"></i>Torna alle news
+      </a>
+      {% if news_item.source_url %}
+      <a href="{{ news_item.source_url }}" target="_blank" rel="noopener" class="btn btn-primary">
+        <i class="bi bi-box-arrow-up-right me-2"></i>Apri fonte ufficiale
+      </a>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="row g-3">
+    <div class="col-lg-8">
+      <div class="li-card">
+        <div class="li-card__body">
+          <div class="li-section-title mb-2">Sintesi</div>
+          <p class="mb-3">{{ news_item.short_summary }}</p>
+          <div class="li-section-title mb-2">Cosa cambia</div>
+          <div class="lh-base">{{ news_item.content }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-4">
+      <div class="li-card">
+        <div class="li-card__body">
+          <div class="li-section-title mb-3">Metadati</div>
+          <dl class="row mb-0 small">
+            <dt class="col-5 text-muted">Pubblicazione</dt>
+            <dd class="col-7">{{ news_item.published_at|fmt_dataora if news_item.published_at else news_item.created_at|fmt_dataora }}</dd>
+            <dt class="col-5 text-muted">Tipologia</dt>
+            <dd class="col-7">{{ news_item.news_type|replace('_', ' ') }}</dd>
+            <dt class="col-5 text-muted">Materia</dt>
+            <dd class="col-7">{{ news_item.matter_name or 'Da verificare' }}</dd>
+            <dt class="col-5 text-muted">Sottomateria</dt>
+            <dd class="col-7">{{ news_item.submatter_name or 'Non assegnata' }}</dd>
+            <dt class="col-5 text-muted">Origine</dt>
+            <dd class="col-7">{% if news_item.is_auto_generated %}Generata dal motore AI{% else %}Inserimento manuale{% endif %}</dd>
+          </dl>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

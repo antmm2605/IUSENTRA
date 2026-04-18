@@ -1,0 +1,81 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Review Aggiornamenti{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('legal_updates_admin.dashboard') }}" class="text-decoration-none">Aggiornamenti legali</a></li>
+<li class="breadcrumb-item active" aria-current="page">Review queue</li>
+{% endblock %}
+
+{% block content %}
+<div class="legal-updates-review-page">
+  <div class="d-flex flex-column flex-lg-row align-items-start align-items-lg-center justify-content-between gap-3 mb-3">
+    <div>
+      <h1 class="h3 mb-1">Review queue aggiornamenti</h1>
+      <p class="text-muted mb-0">Approva, rifiuta o pubblica le proposte strutturate prima che entrino negli archivi operativi.</p>
+    </div>
+    <a href="{{ url_for('legal_updates_admin.dashboard') }}" class="btn btn-outline-secondary">
+      <i class="bi bi-arrow-left me-2"></i>Torna alla dashboard
+    </a>
+  </div>
+
+  <div class="li-soft-stack">
+    {% for item in review_items %}
+    <div class="li-card">
+      <div class="li-card__body">
+        <div class="d-flex flex-column flex-xl-row justify-content-between gap-3">
+          <div class="flex-grow-1">
+            <div class="d-flex align-items-center gap-2 flex-wrap mb-2">
+              <h2 class="h5 mb-0">{{ item.title }}</h2>
+              <span class="badge text-bg-{% if item.status == 'pending' %}warning{% elif item.status == 'approved' %}primary{% elif item.status == 'published' %}success{% elif item.status == 'rejected' %}danger{% else %}secondary{% endif %}">
+                {{ item.status }}
+              </span>
+              <span class="badge text-bg-light">{{ item.classification_type }}</span>
+              <span class="badge text-bg-light">Priorita {{ item.priority }}</span>
+            </div>
+            <div class="small text-muted mb-2">
+              {{ item.source_name }} · {{ item.document_date|fmt_data if item.document_date else 'data non disponibile' }} ·
+              confidenza {{ '%.2f'|format(item.confidence_score or 0) }}
+            </div>
+            <div class="small mb-2">{{ item.summary_short or 'Sintesi non disponibile.' }}</div>
+            <div class="small text-muted">Azione proposta: {{ item.proposed_action|replace('_', ' ') }}</div>
+            {% if item.matter_name %}
+            <div class="small text-muted">Materia: {{ item.matter_name }}{% if item.submatter_name %} / {{ item.submatter_name }}{% endif %}</div>
+            {% endif %}
+          </div>
+
+          <div class="lu-review-actions">
+            <form method="post" action="{{ url_for('legal_updates_admin.approve', review_id=item.id) }}" class="d-flex gap-2 flex-wrap">
+              <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+              <input type="text" name="review_notes" class="form-control form-control-sm" placeholder="Note approvazione">
+              <button class="btn btn-sm btn-outline-primary">
+                <i class="bi bi-check2-circle me-1"></i>Approva
+              </button>
+            </form>
+            <form method="post" action="{{ url_for('legal_updates_admin.reject', review_id=item.id) }}" class="d-flex gap-2 flex-wrap">
+              <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+              <input type="text" name="review_notes" class="form-control form-control-sm" placeholder="Motivo rifiuto">
+              <button class="btn btn-sm btn-outline-danger">
+                <i class="bi bi-x-circle me-1"></i>Rifiuta
+              </button>
+            </form>
+            <form method="post" action="{{ url_for('legal_updates_admin.publish', review_id=item.id) }}">
+              <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+              <button class="btn btn-sm btn-primary">
+                <i class="bi bi-upload me-1"></i>Pubblica
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% else %}
+    <div class="li-card">
+      <div class="li-card__body">
+        <div class="small text-muted">Nessuna proposta in revisione.</div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

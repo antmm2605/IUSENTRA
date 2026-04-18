@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.169.0 - 2026-04-18
+
+- Introdotto `IUSENTRA Update Intelligence`, il motore di monitoraggio normativo, giurisprudenziale e di prassi con pipeline `fonte -> staging -> analisi AI -> matching -> review -> pubblicazione`.
+- Aggiunto l'archivio strutturato dedicato `legal_updates.db` con tabelle per fonti, raw documents, documenti normalizzati, analisi AI, normative versionate, giurisprudenza, prassi, news, review queue e audit.
+- Le fonti ufficiali iniziali includono Gazzetta Ufficiale, Normattiva, dati.normattiva.it, Corte costituzionale, Cassazione Massimario, Giustizia Amministrativa, EUR-Lex, Agenzia delle Entrate e Ministero del Lavoro.
+- Disponibili la dashboard admin `/admin/aggiornamenti-legali`, la review queue `/admin/aggiornamenti-legali/review` e la pagina utente `/legal-intelligence/news`.
+- Aggiunto il comando CLI `iusentra aggiornamenti-legali` e i job scheduler dedicati per eseguire la scansione periodica delle fonti.
+
 ## 2.168.0 - 2026-04-18
 
 - Estesa la parita' storage reale su SQLite e PostgreSQL anche ai moduli economici: `preventivi`, `conferimenti`, `timesheet`, `fatturazione` e `pagamenti`.

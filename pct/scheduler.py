@@ -205,6 +205,28 @@ def start_scheduler(app):
             except Exception as e:
                 logger.error("[scheduler] Legal intelligence %s fallito: %s", label, e)
 
+    def _run_legal_updates(source_ids, label, *, auto_publish=True):
+        with app.app_context():
+            try:
+                from pct.legal_update_pipeline import build_legal_update_pipeline
+
+                pipeline = build_legal_update_pipeline(
+                    app.config.get("LEGAL_INTELLIGENCE_DB", "./intelligence/legal_intelligence.json"),
+                    giurisprudenza_db_path=app.config.get("GIURISPRUDENZA_DB", "./intelligence/giurisprudenza.json"),
+                    ai_base_url=app.config.get("LOCAL_AI_BASE_URL", "") or app.config.get("PCT_LOCAL_AI_BASE_URL", ""),
+                    ai_model=app.config.get("LOCAL_AI_CHAT_MODEL", "") or app.config.get("OLLAMA_MODEL", "mistral"),
+                )
+                report = pipeline.run_cycle(source_codes=source_ids, auto_publish=auto_publish)
+                logger.info(
+                    "[scheduler] Legal updates %s: %d fonti, %d news autopubblicate, %d review pendenti",
+                    label,
+                    len(report.get("reports") or []),
+                    int((report.get("autopublished") or {}).get("count") or 0),
+                    int(((report.get("dashboard") or {}).get("headline") or {}).get("review_pending") or 0),
+                )
+            except Exception as e:
+                logger.error("[scheduler] Legal updates %s fallito: %s", label, e)
+
     @scheduler.scheduled_job(CronTrigger(hour=5, minute=45), id="legal_monitor_daily")
     def _legal_monitor_daily():
         _run_legal_monitor(
@@ -230,6 +252,26 @@ def start_scheduler(app):
     @scheduler.scheduled_job(CronTrigger(hour="6,12,18", minute=15), id="legal_monitor_pst")
     def _legal_monitor_pst():
         _run_legal_monitor(["pst_giustizia"], "pst")
+
+    @scheduler.scheduled_job(CronTrigger(minute=20), id="legal_updates_gazzetta")
+    def _legal_updates_gazzetta():
+        _run_legal_updates(["gazzetta_ufficiale"], "gazzetta")
+
+    @scheduler.scheduled_job(CronTrigger(hour="6,12,18", minute=35), id="legal_updates_batch")
+    def _legal_updates_batch():
+        _run_legal_updates(
+            [
+                "normattiva",
+                "dati_normattiva",
+                "corte_costituzionale",
+                "cassazione_massimario",
+                "giustizia_amministrativa",
+                "eur_lex",
+                "agenzia_entrate",
+                "ministero_lavoro",
+            ],
+            "batch",
+        )
 
     # ---- Sync tabelle normative giornaliero (ogni giorno alle 04:30) ----
     # Sincronizza tutte le tabelle (tassi, indici ISTAT, Cassa Forense, soglie appalti, ecc.)

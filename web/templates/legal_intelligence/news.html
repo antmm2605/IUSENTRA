@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block title %}News Giuridiche{% endblock %}
+
+{% block content %}
+<div class="legal-intelligence-page">
+  <div class="ds-ph">
+    <div class="ds-ph-icon"><i class="bi bi-newspaper"></i></div>
+    <div class="ds-ph-body">
+      <h1 class="ds-ph-title">News giuridiche strutturate</h1>
+      <p class="ds-ph-sub">
+        Output del motore di aggiornamento: normativa, giurisprudenza e prassi monitorate da fonti ufficiali con review amministrativa e storico verificabile.
+      </p>
+    </div>
+    <div class="ds-ph-actions li-header-actions">
+      <a href="{{ url_for('legal_intelligence.index') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-2"></i>Motori Legali
+      </a>
+      {% if g.utente_corrente and g.utente_corrente.is_superadmin %}
+      <a href="{{ url_for('legal_updates_admin.dashboard') }}" class="btn btn-primary">
+        <i class="bi bi-shield-check me-2"></i>Apri review admin
+      </a>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="lu-kpi-grid">
+    <div class="lu-kpi-card">
+      <div class="lu-kpi-label">News pubblicate</div>
+      <div class="lu-kpi-value">{{ snapshot.headline.published_news }}</div>
+    </div>
+    <div class="lu-kpi-card">
+      <div class="lu-kpi-label">Normative archiviate</div>
+      <div class="lu-kpi-value">{{ snapshot.headline.published_normative }}</div>
+    </div>
+    <div class="lu-kpi-card">
+      <div class="lu-kpi-label">Sentenze archiviate</div>
+      <div class="lu-kpi-value">{{ snapshot.headline.published_jurisprudence }}</div>
+    </div>
+    <div class="lu-kpi-card">
+      <div class="lu-kpi-label">Prassi archiviate</div>
+      <div class="lu-kpi-value">{{ snapshot.headline.published_prassi }}</div>
+    </div>
+  </div>
+
+  <div class="li-card">
+    <div class="li-card__body">
+      <form method="get" class="row g-2 align-items-end">
+        <div class="col-md-4">
+          <label class="form-label small text-muted">Materia</label>
+          <select class="form-select" name="materia">
+            <option value="">Tutte le materie</option>
+            {% for matter in matters if matter.level == 1 %}
+            <option value="{{ matter.slug }}" {% if selected_matter == matter.slug %}selected{% endif %}>{{ matter.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label small text-muted">Tipologia</label>
+          <select class="form-select" name="tipo">
+            <option value="">Tutte le tipologie</option>
+            {% for option in ('normativa','giurisprudenza','prassi','aggiornamento','focus','commento') %}
+            <option value="{{ option }}" {% if selected_type == option %}selected{% endif %}>{{ option|capitalize }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-5 d-flex gap-2">
+          <button class="btn btn-primary">
+            <i class="bi bi-funnel me-2"></i>Applica filtri
+          </button>
+          <a href="{{ url_for('legal_intelligence.news') }}" class="btn btn-outline-secondary">Reset</a>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="lu-news-grid">
+    {% for item in news_items %}
+    <article class="li-card">
+      <div class="li-card__body">
+        <div class="d-flex align-items-center gap-2 flex-wrap mb-2">
+          <span class="badge text-bg-light">{{ item.news_type|replace('_', ' ') }}</span>
+          {% if item.matter_name %}
+          <span class="badge text-bg-secondary">{{ item.matter_name }}</span>
+          {% endif %}
+          <span class="small text-muted">{{ item.published_at|fmt_dataora if item.published_at else item.created_at|fmt_dataora }}</span>
+        </div>
+        <h2 class="h5 mb-2">
+          <a href="{{ url_for('legal_intelligence.dettaglio_news', slug=item.slug) }}" class="text-decoration-none">{{ item.title }}</a>
+        </h2>
+        <p class="text-muted mb-3">{{ item.short_summary }}</p>
+        <div class="d-flex align-items-center justify-content-between gap-2">
+          <a href="{{ url_for('legal_intelligence.dettaglio_news', slug=item.slug) }}" class="btn btn-sm btn-outline-primary">
+            Apri dettaglio
+          </a>
+          {% if item.source_url %}
+          <a href="{{ item.source_url }}" target="_blank" rel="noopener" class="small text-decoration-none">Fonte ufficiale</a>
+          {% endif %}
+        </div>
+      </div>
+    </article>
+    {% else %}
+    <div class="li-card">
+      <div class="li-card__body">
+        <div class="small text-muted">Nessuna news disponibile con i filtri correnti.</div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

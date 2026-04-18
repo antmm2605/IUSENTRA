@@ -286,6 +286,9 @@ def test_route_domini_estratti_restano_operativi(tmp_path: Path):
             "/admin/governance",
             "/admin/copertura-ai",
             "/admin/copertura-ai/review",
+            "/admin/aggiornamenti-legali",
+            "/admin/aggiornamenti-legali/review",
+            "/legal-intelligence/news",
         ):
             response = client.get(path)
             assert response.status_code == 200, path
@@ -431,7 +434,7 @@ def test_i_moduli_bootstrap_restano_governabili():
 def test_template_principali_usano_copy_italiana_e_date_localizzate():
     template_checks = {
         "web/templates/base.html": ["Panoramica", "Operazione completata", "Preparazione Udienza Guidata"],
-        "web/templates/admin/base.html": ["Esci", "Piattaforma"],
+        "web/templates/admin/base.html": ["Esci", "Piattaforma", "Aggiornamenti legali"],
         "web/templates/dashboard.html": ["Panoramica dello studio"],
         "web/templates/agenda.html": ["Sincronizzazione automatica", "Configura sincronizzazione calendario"],
         "web/templates/impostazioni/index.html": ["Companion locale sul dispositivo cliente", "Prepara runtime automatico"],
@@ -442,6 +445,7 @@ def test_template_principali_usano_copy_italiana_e_date_localizzate():
         ],
         "web/templates/workspace_intelligente.html": ["Assistente operativo locale", "Ultima sincronizzazione"],
         "web/templates/lex_operational.html": ["Lex Fascicolo", "Control Tower telematica"],
+        "web/templates/legal_intelligence/news.html": ["News giuridiche strutturate", "Fonte ufficiale"],
         "web/templates/portale/base.html": ["Operazione completata", "Inizio"],
         "web/templates/telematico_dashboard.html": ["Centro Servizi Telematici", "Ultimo allineamento"],
         "web/templates/timesheet/lista.html": ["Timesheet operativo", "Cosa fare adesso"],

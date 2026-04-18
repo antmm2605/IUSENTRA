@@ -1,0 +1,188 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Aggiornamenti Legali{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item active" aria-current="page">Aggiornamenti legali</li>
+{% endblock %}
+
+{% block content %}
+<div class="legal-updates-admin-page">
+  <div class="d-flex flex-column flex-lg-row align-items-start align-items-lg-center justify-content-between gap-3 mb-3">
+    <div>
+      <h1 class="h3 mb-1">Motore di aggiornamento normativo e giurisprudenziale</h1>
+      <p class="text-muted mb-0">
+        Pipeline completa: fonti ufficiali, staging, analisi AI, matching, review amministrativa e pubblicazione strutturata.
+      </p>
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+      <form method="post" action="{{ url_for('legal_updates_admin.execute_action', action='scan') }}">
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+        <button class="btn btn-primary">
+          <i class="bi bi-arrow-repeat me-2"></i>Esegui scansione
+        </button>
+      </form>
+      <form method="post" action="{{ url_for('legal_updates_admin.execute_action', action='autopublish') }}">
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+        <button class="btn btn-outline-primary">
+          <i class="bi bi-megaphone me-2"></i>Autopubblica news a basso rischio
+        </button>
+      </form>
+      <a href="{{ url_for('legal_updates_admin.review_page') }}" class="btn btn-outline-dark">
+        <i class="bi bi-ui-checks-grid me-2"></i>Apri review queue
+      </a>
+    </div>
+  </div>
+
+  <div class="lu-kpi-grid mb-3">
+    <div class="lu-kpi-card">
+      <div class="lu-kpi-label">Fonti attive</div>
+      <div class="lu-kpi-value">{{ payload.headline.sources }}</div>
+    </div>
+    <div class="lu-kpi-card">
+      <div class="lu-kpi-label">Documenti grezzi</div>
+      <div class="lu-kpi-value">{{ payload.headline.raw_documents }}</div>
+    </div>
+    <div class="lu-kpi-card">
+      <div class="lu-kpi-label">Analisi AI</div>
+      <div class="lu-kpi-value">{{ payload.headline.analyses }}</div>
+    </div>
+    <div class="lu-kpi-card">
+      <div class="lu-kpi-label">Review pendenti</div>
+      <div class="lu-kpi-value {% if payload.headline.review_pending %}text-warning{% else %}text-success{% endif %}">
+        {{ payload.headline.review_pending }}
+      </div>
+    </div>
+    <div class="lu-kpi-card">
+      <div class="lu-kpi-label">News pubblicate</div>
+      <div class="lu-kpi-value text-primary">{{ payload.headline.published_news }}</div>
+    </div>
+    <div class="lu-kpi-card">
+      <div class="lu-kpi-label">Archivio strutturato</div>
+      <div class="lu-kpi-value">
+        {{ payload.headline.published_normative + payload.headline.published_jurisprudence + payload.headline.published_prassi }}
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3">
+    <div class="col-xl-7">
+      <div class="li-card h-100">
+        <div class="li-card__body">
+          <div class="li-section-head">
+            <div class="li-section-title"><i class="bi bi-broadcast me-2 text-primary"></i>Fonti monitorate</div>
+            <span class="badge text-bg-light">{{ payload.sources|length }} fonti</span>
+          </div>
+          <div class="table-responsive">
+            <table class="table li-table align-middle">
+              <thead>
+                <tr>
+                  <th>Fonte</th>
+                  <th>Classe</th>
+                  <th>Categoria</th>
+                  <th>Frequenza</th>
+                  <th>Ultimo check</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for source in payload.sources %}
+                <tr>
+                  <td>
+                    <div class="fw-semibold">{{ source.name }}</div>
+                    <div class="small text-muted">{{ source.base_url }}</div>
+                  </td>
+                  <td><span class="badge text-bg-{% if source.trust_class == 'A' %}success{% elif source.trust_class == 'B' %}primary{% else %}secondary{% endif %}">{{ source.trust_class }}</span></td>
+                  <td>{{ source.category|replace('_', ' ') }}</td>
+                  <td>{{ source.polling_minutes }} min</td>
+                  <td>{% if source.last_check_at %}{{ source.last_check_at|fmt_dataora }}{% else %}<span class="text-muted">mai</span>{% endif %}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-5">
+      <div class="li-card h-100">
+        <div class="li-card__body">
+          <div class="li-section-head">
+            <div class="li-section-title"><i class="bi bi-shield-check me-2 text-primary"></i>Runtime</div>
+            <span class="badge text-bg-light">AI + archivio</span>
+          </div>
+          <div class="li-soft-stack">
+            <div class="li-soft-card">
+              <div class="small text-muted">Database aggiornamenti</div>
+              <div class="fw-semibold text-break">{{ payload.runtime.db_path }}</div>
+            </div>
+            <div class="li-soft-card">
+              <div class="small text-muted">Export JSON</div>
+              <div class="fw-semibold text-break">{{ payload.runtime.json_path or 'non configurato' }}</div>
+            </div>
+            <div class="li-soft-card">
+              <div class="small text-muted">Runtime AI locale</div>
+              <div class="fw-semibold">{{ payload.runtime.ollama_model or 'non configurato' }}</div>
+              <div class="small text-muted text-break">{{ payload.runtime.ollama_url or 'Nessun endpoint Ollama configurato' }}</div>
+            </div>
+            <div class="li-soft-card">
+              <div class="small text-muted">Mirror giurisprudenza</div>
+              <div class="fw-semibold text-break">{{ payload.runtime.giurisprudenza_db_path or 'disattivato' }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mt-1">
+    <div class="col-xl-6">
+      <div class="li-card h-100">
+        <div class="li-card__body">
+          <div class="li-section-head">
+            <div class="li-section-title"><i class="bi bi-hourglass-split me-2 text-primary"></i>Review queue</div>
+            <a href="{{ url_for('legal_updates_admin.review_page') }}" class="btn btn-sm btn-outline-primary">Gestisci</a>
+          </div>
+          <div class="li-alert-stack">
+            {% for item in payload.review_queue[:6] %}
+            <div class="li-soft-card">
+              <div class="d-flex align-items-center justify-content-between gap-2 mb-1">
+                <div class="fw-semibold">{{ item.title }}</div>
+                <span class="badge text-bg-{% if item.status == 'pending' %}warning{% elif item.status == 'published' %}success{% elif item.status == 'approved' %}primary{% else %}secondary{% endif %}">
+                  {{ item.status }}
+                </span>
+              </div>
+              <div class="small text-muted">{{ item.classification_type }} · {{ item.source_name }} · confidenza {{ '%.2f'|format(item.confidence_score or 0) }}</div>
+            </div>
+            {% else %}
+            <div class="small text-muted">Nessuna proposta in coda al momento.</div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-6">
+      <div class="li-card h-100">
+        <div class="li-card__body">
+          <div class="li-section-head">
+            <div class="li-section-title"><i class="bi bi-newspaper me-2 text-primary"></i>Ultime news pubblicate</div>
+            <a href="{{ url_for('legal_intelligence.news') }}" class="btn btn-sm btn-outline-primary">Apri pagina news</a>
+          </div>
+          <div class="li-alert-stack">
+            {% for item in payload.news[:6] %}
+            <div class="li-soft-card">
+              <div class="fw-semibold">{{ item.title }}</div>
+              <div class="small text-muted">{{ item.news_type|replace('_', ' ') }} · {{ item.matter_name or 'materia da verificare' }}</div>
+              <div class="small mt-2">{{ item.short_summary }}</div>
+            </div>
+            {% else %}
+            <div class="small text-muted">Nessuna news pubblicata.</div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

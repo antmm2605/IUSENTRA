@@ -26,6 +26,14 @@ document.addEventListener('DOMContentLoaded', function() {
       <a href="{{ url_for('legal_intelligence.registro_mediazione') }}" class="btn btn-outline-secondary">
         <i class="bi bi-building-check me-2"></i>Registro mediazione
       </a>
+      <a href="{{ url_for('legal_intelligence.news') }}" class="btn btn-outline-dark">
+        <i class="bi bi-newspaper me-2"></i>News giuridiche
+      </a>
+      {% if g.utente_corrente and g.utente_corrente.is_superadmin %}
+      <a href="{{ url_for('legal_updates_admin.dashboard') }}" class="btn btn-outline-primary">
+        <i class="bi bi-shield-check me-2"></i>Review aggiornamenti
+      </a>
+      {% endif %}
       <form method="post" action="{{ url_for('legal_intelligence.esegui_sync_normativo') }}">
         <button class="btn btn-outline-primary">
           <i class="bi bi-database-gear me-2"></i>Sincronizza tabelle
@@ -69,6 +77,34 @@ document.addEventListener('DOMContentLoaded', function() {
     <div class="li-kpi-card">
       <div class="li-kpi-label">Riferimenti ufficiali</div>
       <div class="li-kpi-value text-primary">{{ snapshot.headline.riferimenti_normativi }}</div>
+    </div>
+  </div>
+
+  <div class="li-card">
+    <div class="li-card__body d-flex flex-column flex-lg-row align-items-start align-items-lg-center justify-content-between gap-3">
+      <div>
+        <div class="li-section-title mb-1"><i class="bi bi-lightning-charge me-2 text-primary"></i>Iusentra Update Intelligence</div>
+        <div class="small li-muted">
+          Pipeline continua per acquisire fonti ufficiali, classificare normativa, giurisprudenza e prassi, proporre aggiornamenti strutturati e pubblicare news giuridiche verificabili.
+        </div>
+        <div class="small mt-2">
+          News pubblicate: <strong>{{ updates_snapshot.headline.published_news }}</strong> ·
+          review pendenti: <strong>{{ updates_snapshot.headline.review_pending }}</strong> ·
+          normative archiviate: <strong>{{ updates_snapshot.headline.published_normative }}</strong> ·
+          sentenze archiviate: <strong>{{ updates_snapshot.headline.published_jurisprudence }}</strong> ·
+          prassi archiviate: <strong>{{ updates_snapshot.headline.published_prassi }}</strong>
+        </div>
+      </div>
+      <div class="d-flex flex-wrap gap-2">
+        <a href="{{ url_for('legal_intelligence.news') }}" class="btn btn-primary">
+          <i class="bi bi-newspaper me-2"></i>Apri pagina news
+        </a>
+        {% if g.utente_corrente and g.utente_corrente.is_superadmin %}
+        <a href="{{ url_for('legal_updates_admin.review_page') }}" class="btn btn-outline-secondary">
+          <i class="bi bi-ui-checks-grid me-2"></i>Apri review queue
+        </a>
+        {% endif %}
+      </div>
     </div>
   </div>
 

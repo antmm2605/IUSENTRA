@@ -402,12 +402,13 @@ def chat_response(
             },
         )
 
+    allow_web_search = bool(data.get("allow_web_search")) or bool(data.get("web_search"))
     language_guidance = orchestrator.dependencies.build_language_guidance(
         question=resolved_effective_question,
         social_prefix=social_prefix,
         research_strategy=str(studio_context.get("research_strategy") or "").strip(),
         focus_topic=str(studio_context.get("focus_topic") or "").strip(),
-        web_execution_requested=bool(studio_context.get("web_execution_requested")) or bool(followup.is_web_request),
+        web_execution_requested=bool(studio_context.get("web_execution_requested")) or bool(followup.is_web_request) or allow_web_search,
         is_daily_overview=bool(routing.is_daily_overview),
     )
     stream_opening_line = str(language_guidance.opening_line or "").strip() or social_prefix

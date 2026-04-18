@@ -199,10 +199,11 @@ class GestionePagamenti:
 
     CONFIG_FILE = "config.json"
 
-    def __init__(self, db_dir: str = "./pagamenti"):
+    def __init__(self, db_dir: str = "./pagamenti", studio_db=None):
         self.db_dir    = db_dir
         self._cfg_path = os.path.join(db_dir, "config.json")
         self._tx_path  = os.path.join(db_dir, "transazioni.json")
+        self._studio_db = studio_db
         self._config: ConfigPagamenti = ConfigPagamenti()
         self._link: Dict[str, LinkPagamento] = {}
         self._carica()
@@ -210,6 +211,23 @@ class GestionePagamenti:
     # ---- I/O
 
     def _carica(self):
+        if self._studio_db is not None:
+            config_rows = self._studio_db.carica_tabella("payment_config")
+            if config_rows:
+                try:
+                    payload = config_rows[0]
+                    self._config = ConfigPagamenti.from_dict(payload if isinstance(payload, dict) else {})
+                except Exception:
+                    self._config = ConfigPagamenti()
+            link_rows = self._studio_db.carica_tabella("payment_links")
+            self._link = {}
+            for row in link_rows:
+                try:
+                    link = LinkPagamento.from_dict(row)
+                except Exception:
+                    continue
+                self._link[link.id] = link
+            return
         os.makedirs(self.db_dir, exist_ok=True)
         if os.path.exists(self._cfg_path):
             with open(self._cfg_path, encoding="utf-8") as f:
@@ -217,14 +235,75 @@ class GestionePagamenti:
         if os.path.exists(self._tx_path):
             with open(self._tx_path, encoding="utf-8") as f:
                 raw = json.load(f)
-            self._link = {k: LinkPagamento.from_dict(v) for k, v in raw.items()}
+            if isinstance(raw, dict):
+                payloads = raw.values()
+            elif isinstance(raw, list):
+                payloads = raw
+            else:
+                payloads = []
+            self._link = {}
+            for payload in payloads:
+                try:
+                    link = LinkPagamento.from_dict(payload)
+                except Exception:
+                    continue
+                self._link[link.id] = link
 
     def _salva_config(self):
+        if self._studio_db is not None:
+            payload = self._config.to_dict()
+
+            def _insert(conn, row):
+                conn.execute(
+                    """
+                    INSERT INTO payment_config
+                    (config_id, provider_count, updated_at, dati_json)
+                    VALUES (?,?,?,?)
+                    """,
+                    (
+                        "default",
+                        len(self._config.provider_attivi()),
+                        datetime.now().isoformat(),
+                        json.dumps(payload, ensure_ascii=False),
+                    ),
+                )
+
+            self._studio_db.salva_tabella("payment_config", [payload], _insert)
+            return
         os.makedirs(self.db_dir, exist_ok=True)
         with open(self._cfg_path, "w", encoding="utf-8") as f:
             json.dump(self._config.to_dict(), f, ensure_ascii=False, indent=2)
 
     def _salva_link(self):
+        if self._studio_db is not None:
+            def _insert(conn, link: LinkPagamento):
+                payload = link.to_dict()
+                conn.execute(
+                    """
+                    INSERT INTO payment_links
+                    (id, token, id_parcella, id_cliente, importo, valuta, stato,
+                     provider_usato, provider_tx_id, creato_il, scade_il, pagato_il, dati_json)
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
+                    """,
+                    (
+                        link.id,
+                        link.token,
+                        link.id_parcella,
+                        link.id_cliente,
+                        float(link.importo or 0.0),
+                        link.valuta,
+                        link.stato,
+                        link.provider_usato or "",
+                        link.provider_tx_id or "",
+                        link.creato_il,
+                        link.scade_il or "",
+                        link.pagato_il or "",
+                        json.dumps(payload, ensure_ascii=False),
+                    ),
+                )
+
+            self._studio_db.salva_tabella("payment_links", list(self._link.values()), _insert)
+            return
         with open(self._tx_path, "w", encoding="utf-8") as f:
             json.dump({k: v.to_dict() for k, v in self._link.items()},
                       f, ensure_ascii=False, indent=2)
@@ -292,6 +371,24 @@ class GestionePagamenti:
 
     def tutti_link(self) -> List[LinkPagamento]:
         return sorted(self._link.values(), key=lambda l: l.creato_il, reverse=True)
+
+    def link_per_cliente(self, id_cliente: str) -> List[LinkPagamento]:
+        return [item for item in self.tutti_link() if item.id_cliente == id_cliente]
+
+    def link_per_parcella(self, id_parcella: str) -> List[LinkPagamento]:
+        return [item for item in self.tutti_link() if item.id_parcella == id_parcella]
+
+    def statistiche(self) -> Dict[str, Any]:
+        links = self.tutti_link()
+        return {
+            "totale_link": len(links),
+            "attesi": sum(1 for row in links if row.stato == StatoPagamento.ATTESO),
+            "pagati": sum(1 for row in links if row.stato == StatoPagamento.PAGATO),
+            "falliti": sum(1 for row in links if row.stato == StatoPagamento.FALLITO),
+            "scaduti": sum(1 for row in links if row.stato == StatoPagamento.SCADUTO),
+            "importo_atteso": round(sum(row.importo for row in links if row.stato == StatoPagamento.ATTESO), 2),
+            "importo_pagato": round(sum(row.importo for row in links if row.stato == StatoPagamento.PAGATO), 2),
+        }
 
     # ---- Stripe helpers
 

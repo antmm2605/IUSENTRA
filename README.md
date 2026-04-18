@@ -8,7 +8,10 @@ La repo oggi non è più solo un tool CLI per il Processo Civile Telematico: con
 
 - Gestione fascicoli, clienti, soggetti, agenda e scadenziario.
 - Deposito telematico civile, penale e dashboard servizi telematici.
-- Template atti, preventivi, fatturazione e strumenti legali.
+- Workflow completo `cliente -> preventivo -> conferimento -> fascicolo -> attivita' -> parcella -> incasso`.
+- Timesheet operativo con valorizzazione del tempo e generazione parcella dalle attivita' validate.
+- Fatturazione, pagamenti, saldo cliente e KPI economici per studio, cliente e fascicolo.
+- Template atti, strumenti legali e workspace professionali.
 - Giurisprudenza, legal intelligence, repository strutturati per Lex.
 - Workspace/applicazioni, portali di acquisizione, privacy e audit.
 - Runtime AI locale con Lex come strato linguistico sopra motori deterministici.
@@ -52,6 +55,7 @@ La parte importante, adesso, è che lo stato non viene più raccontato in modo g
 - `selected_mode` e `effective_runtime_kind` restano distinti per evitare promesse ambigue
 - il profilo runtime locale e containerizzato dichiara esplicitamente `PCT_STORAGE_MODE=SQLITE`
 - `PCT_SQLITE_MODE=1` resta supportato come compatibilità legacy, ma non è più l’unico punto di verità
+- i moduli economici (`preventivi`, `conferimenti`, `timesheet`, `fatturazione`, `pagamenti`) usano ora lo stesso percorso ufficiale di storage tenant-aware, con parita' reale su SQLite e PostgreSQL
 
 ## Avvio locale
 
@@ -123,20 +127,39 @@ Questo evita configurazioni globali opache, rende ogni tenant governabile in mod
 
 ## Stato storage professionale
 
-Oggi i domini core `utenti`, `clienti`, `fascicoli`, `agenda` e `scadenziario` possono lavorare in lettura e scrittura anche su PostgreSQL tenant-aware.
+Oggi i domini `utenti`, `clienti`, `fascicoli`, `agenda`, `scadenziario`, `timesheet`, `preventivi`, `conferimenti`, `fatturazione` e `pagamenti` possono lavorare in lettura e scrittura anche su PostgreSQL tenant-aware.
 
 Regole operative:
 
-- `JSON` resta backend legacy o ponte di bootstrap per i domini non ancora migrati.
+- `JSON` resta backend legacy o ponte di bootstrap, non piu' source of truth professionale per i moduli economici e core gia' migrati.
 - `SQLite` resta backend locale o fallback controllato per tenant non ancora cutoverizzati.
 - `PostgreSQL` diventa backend effettivo solo dopo test connessione, migrazione ufficiale e attivazione esplicita.
-- se PostgreSQL e' attivo ma non disponibile, i domini core non degradano in modo invisibile su JSON.
+- se PostgreSQL e' attivo ma non disponibile, i domini migrati non degradano in modo invisibile su JSON.
 
 Comando ufficiale di migrazione:
 
 ```bash
 iusentra migrate --to=postgres --tenant=<slug-tenant>
 ```
+
+Check rapido di operativita' end-to-end:
+
+```bash
+iusentra demo-check --tenant=<slug-tenant>
+```
+
+Il comando verifica se lo studio e' pronto per un uso reale e racconta il prossimo passo del ciclo `cliente -> incasso`.
+
+## Demo studio reale
+
+La demo mentale finale non e' piu' un racconto separato dal prodotto: e' una capability verificabile.
+
+- La dashboard mostra il riquadro `Studio reale in 5 minuti` con lo stato dei sette passaggi chiave.
+- Il timesheet espone il riepilogo di valorizzazione e puo' generare la parcella dalle voci validate.
+- Il portale cliente, la cartella cliente, il fascicolo e la dashboard economica usano lo stesso flusso condiviso.
+- La CLI `iusentra demo-check` riassume lo stato dello studio e la prossima azione utile.
+
+Per il percorso completo vedi [docs/DEMO_STUDIO_REALE.md](docs/DEMO_STUDIO_REALE.md).
 
 ## CI GitHub
 
@@ -161,7 +184,7 @@ Ai workflow applicativi si affiancano ora controlli DevSecOps dedicati:
 - `Performance Nightly` per benchmark leggero e regressioni di runtime
 
 I workflow vivono in `.github/workflows/`.
-La vista live del workflow è [Actions / CI](https://github.com/antmm2605/hacs/actions/workflows/ci.yml).
+La vista live del workflow e' [Actions / CI](https://github.com/antmm2605/IUSENTRA/actions/workflows/ci.yml).
 Le dipendenze di sviluppo della pipeline sono raccolte in `requirements-dev.txt`.
 Le dipendenze oggi sono organizzate anche sotto `requirements/` con separazione tra runtime base e sviluppo.
 Il gate lint attuale è volutamente centrato su errori sintattici e import/fatal error, così la CI resta verde mentre il debito storico di stile viene ridotto in modo progressivo.
@@ -213,6 +236,7 @@ python -m pytest tests/test_pdp_penale_web.py -q
 - [docs/QUICKSTART.md](docs/QUICKSTART.md) — avvio rapido locale, bootstrap admin e verifiche iniziali.
 - [docs/DEPLOY.md](docs/DEPLOY.md) — release, Docker locale, Railway, CI e controlli finali.
 - [docs/STORAGE_MATRIX.md](docs/STORAGE_MATRIX.md) — matrice esplicita dei backend storage per modulo e stato di maturità.
+- [docs/DEMO_STUDIO_REALE.md](docs/DEMO_STUDIO_REALE.md) — percorso ufficiale `cliente -> incasso`, check operativo e demo mentale in meno di 5 minuti.
 - [docs/RELEASE_PROCESS.md](docs/RELEASE_PROCESS.md) — checklist di release, tagging, changelog e sincronizzazione ambienti.
 - [docs/ARCHITETTURA.md](docs/ARCHITETTURA.md) — struttura moduli, flussi e confini applicativi.
 - [CHANGELOG.md](CHANGELOG.md) — traccia delle release e delle modifiche rilevanti.

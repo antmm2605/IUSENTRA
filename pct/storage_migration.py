@@ -13,7 +13,10 @@ from typing import Any
 
 from pct.auth import GestioneUtenti
 from pct.database import GestioneDatabase
+from pct.fatturazione import GestioneFatturazione
 from pct.fascicoli import GestioneFascicoli
+from pct.pagamenti import GestionePagamenti
+from pct.preventivi import GestionePreventivi
 from pct.scadenziario import GestioneScadenziario
 from pct.storage import StudioDB
 from pct.core_storage_backend import build_postgres_backend
@@ -25,6 +28,11 @@ _CORE_TABLES = {
     "appuntamenti": "appuntamenti",
     "scadenze": "scadenze",
     "timesheet": "timesheet_entries",
+    "preventivi": "preventivi_records",
+    "conferimenti": "conferimenti_records",
+    "fatturazione": "parcelle",
+    "pagamenti_links": "payment_links",
+    "pagamenti_config": "payment_config",
     "utenti": "utenti",
     "audit": "audit_log",
 }
@@ -192,12 +200,24 @@ class _TimespanEncoder(json.JSONEncoder):
 
 
 def _build_json_to_sqlite_sources(paths: dict[str, str]) -> dict[str, str]:
+    preventivi_path = str(paths.get("PREVENTIVI_DB", "") or "").strip()
+    conferimenti_path = (
+        str(Path(preventivi_path).with_name("conferimenti.json"))
+        if preventivi_path
+        else ""
+    )
+    pagamenti_dir = str(paths.get("PAGAMENTI_DIR", "") or "").strip()
     return {
         "clienti": paths.get("CLIENTI_DB", ""),
         "fascicoli": paths.get("FASCICOLI_DB", ""),
         "appuntamenti": paths.get("AGENDA_DB", ""),
         "scadenze": paths.get("SCADENZIARIO_DB", ""),
         "timesheet": paths.get("TIMESHEET_DB", ""),
+        "preventivi": preventivi_path,
+        "conferimenti": conferimenti_path,
+        "fatturazione": paths.get("FATTURAZIONE_DB", ""),
+        "pagamenti_config": str(Path(pagamenti_dir) / "config.json") if pagamenti_dir else "",
+        "pagamenti_links": str(Path(pagamenti_dir) / "transazioni.json") if pagamenti_dir else "",
         "messaggi": paths.get("MESSAGGI_DB", ""),
         "utenti": paths.get("AUTH_DB", ""),
         "audit": paths.get("AUDIT_DB", ""),
@@ -252,6 +272,37 @@ def _copy_core_state_to_target(
         timesheet_dst._entries = {row.id: row for row in timesheet_src.tutte()}
         timesheet_dst._salva()
 
+    preventivi_path = paths.get("PREVENTIVI_DB", "")
+    if preventivi_path:
+        preventivi_src = GestionePreventivi(db_path=preventivi_path, studio_db=sqlite_backend)
+        preventivi_dst = GestionePreventivi(db_path=preventivi_path, studio_db=target_backend)
+        preventivi_dst._preventivi = {
+            row.id: row for row in preventivi_src.tutti_preventivi()
+        }
+        preventivi_dst._conferimenti = {
+            row.id: row for row in preventivi_src.tutti_conferimenti()
+        }
+        preventivi_dst._salva_preventivi()
+        preventivi_dst._salva_conferimenti()
+
+    fatturazione_path = paths.get("FATTURAZIONE_DB", "")
+    if fatturazione_path:
+        fatturazione_src = GestioneFatturazione(db_path=fatturazione_path, studio_db=sqlite_backend)
+        fatturazione_dst = GestioneFatturazione(db_path=fatturazione_path, studio_db=target_backend)
+        fatturazione_dst._parcelle = {
+            row.id: row for row in fatturazione_src.tutte()
+        }
+        fatturazione_dst._salva()
+
+    pagamenti_dir = paths.get("PAGAMENTI_DIR", "")
+    if pagamenti_dir:
+        pagamenti_src = GestionePagamenti(db_dir=pagamenti_dir, studio_db=sqlite_backend)
+        pagamenti_dst = GestionePagamenti(db_dir=pagamenti_dir, studio_db=target_backend)
+        pagamenti_dst._config = pagamenti_src.config
+        pagamenti_dst._link = {row.id: row for row in pagamenti_src.tutti_link()}
+        pagamenti_dst._salva_config()
+        pagamenti_dst._salva_link()
+
     auth_src = GestioneUtenti(
         db_path=paths["AUTH_DB"],
         audit_path=paths["AUDIT_DB"],
@@ -291,6 +342,21 @@ def migrate_core_storage_to_postgres(
         "appuntamenti": _json_record_count(paths.get("AGENDA_DB", "")),
         "scadenze": _json_record_count(paths.get("SCADENZIARIO_DB", "")),
         "timesheet": _json_record_count(paths.get("TIMESHEET_DB", "")),
+        "preventivi": _json_record_count(paths.get("PREVENTIVI_DB", "")),
+        "conferimenti": _json_record_count(
+            str(Path(paths.get("PREVENTIVI_DB", "")).with_name("conferimenti.json"))
+            if paths.get("PREVENTIVI_DB")
+            else ""
+        ),
+        "fatturazione": _json_record_count(paths.get("FATTURAZIONE_DB", "")),
+        "pagamenti_links": _json_record_count(
+            str(Path(paths.get("PAGAMENTI_DIR", "")) / "transazioni.json")
+            if paths.get("PAGAMENTI_DIR")
+            else ""
+        ),
+        "pagamenti_config": 1
+        if Path(str(Path(paths.get("PAGAMENTI_DIR", "")) / "config.json")).exists()
+        else 0,
         "utenti": _json_record_count(paths.get("AUTH_DB", "")),
         "audit": _json_record_count(paths.get("AUDIT_DB", "")),
     }

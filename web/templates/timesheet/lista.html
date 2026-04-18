@@ -51,6 +51,38 @@
   </div>
 </div>
 
+<div class="card shadow-sm mb-3">
+  <div class="card-body">
+    <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
+      <div>
+        <div class="small text-uppercase text-muted fw-semibold mb-1">Parcella da timesheet</div>
+        <div class="fw-semibold">{{ billing_summary.next_action }}</div>
+        <div class="small text-muted mt-2">
+          {{ billing_summary.count }} voci validate · {{ '%.1f'|format(billing_summary.ore_totali or 0) }} h ·
+          &euro; {{ '%.2f'|format(billing_summary.valore_totale or 0) }}
+        </div>
+        {% if billing_summary.issues %}
+        <div class="small text-danger mt-2">{{ billing_summary.issues[0] }}</div>
+        {% endif %}
+      </div>
+      {% if billing_summary.ready %}
+      <form method="post" action="{{ url_for('timesheet_genera_parcella') }}" class="d-grid gap-2">
+        <input type="hidden" name="id_cliente" value="{{ id_cliente }}">
+        <input type="hidden" name="id_fascicolo" value="{{ id_fascicolo }}">
+        {% for entry_id in billing_summary.entry_ids %}
+        <input type="hidden" name="entry_ids" value="{{ entry_id }}">
+        {% endfor %}
+        <button class="btn btn-primary">
+          <i class="bi bi-receipt me-1"></i>Genera parcella dalle voci validate
+        </button>
+      </form>
+      {% else %}
+      <div class="small text-muted">Prima valida le voci fatturabili che vuoi valorizzare.</div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
 <div class="row g-3">
   <div class="col-12 col-xl-4">
     <div class="card shadow-sm h-100">

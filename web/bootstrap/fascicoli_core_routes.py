@@ -25,6 +25,8 @@ def register_fascicoli_core_routes(
     get_scadenziario: Callable[[], Any],
     get_soggetti: Callable[[], Any],
     get_timesheet: Callable[[], Any],
+    get_preventivi: Callable[[], Any],
+    get_fatturazione: Callable[[], Any],
     get_indice: Callable[[], Any],
     get_workspace_intelligente: Callable[[], Any],
     get_config_studio: Callable[[], Any],
@@ -90,14 +92,11 @@ def register_fascicoli_core_routes(
 
     @app.route("/fascicoli/nuovo", methods=["GET", "POST"])
     def nuovo_fascicolo():
-        from pct.preventivi import GestionePreventivi
         from pct.workflow_onboarding import build_fascicolo_onboarding
 
         gestore_clienti = get_clienti()
         gestore_fascicoli = get_fascicoli()
-        gestore_preventivi = GestionePreventivi(
-            app.config.get("PREVENTIVI_DB", "./preventivi/preventivi.json")
-        )
+        gestore_preventivi = get_preventivi()
         if request.method == "POST":
             form = request.form
             id_cliente = form.get("id_cliente", "")
@@ -212,7 +211,6 @@ def register_fascicoli_core_routes(
     @app.route("/fascicoli/<id_fasc>")
     def dettaglio_fascicolo(id_fasc: str):
         from pct.checklist_atti import TUTTI_I_TEMPLATE
-        from pct.preventivi import GestionePreventivi
 
         gestore_fascicoli = get_fascicoli()
         fascicolo = gestore_fascicoli.get(id_fasc)
@@ -221,9 +219,7 @@ def register_fascicoli_core_routes(
             return redirect(url_for("lista_fascicoli"))
 
         cliente = get_clienti().get(fascicolo.id_cliente) if fascicolo.id_cliente else None
-        gestore_preventivi = GestionePreventivi(
-            app.config.get("PREVENTIVI_DB", "./preventivi/preventivi.json")
-        )
+        gestore_preventivi = get_preventivi()
         preventivi_fascicolo = gestore_preventivi.preventivi_per_fascicolo(id_fasc)
         conferimenti_fascicolo = gestore_preventivi.conferimenti_per_fascicolo(id_fasc)
         preventivo = preventivi_fascicolo[0] if preventivi_fascicolo else None
@@ -295,11 +291,7 @@ def register_fascicoli_core_routes(
             apps=appuntamenti,
             scadenze=scadenze_fascicolo,
         )
-        from pct.fatturazione import GestioneFatturazione
-
-        parcelle_fascicolo = GestioneFatturazione(
-            app.config.get("FATTURAZIONE_DB", "./fatturazione/parcelle.json")
-        ).per_fascicolo(id_fasc)
+        parcelle_fascicolo = get_fatturazione().per_fascicolo(id_fasc)
         fascicolo_pipeline = build_fascicolo_workflow_pipeline(
             fascicolo=fascicolo,
             cliente=cliente,

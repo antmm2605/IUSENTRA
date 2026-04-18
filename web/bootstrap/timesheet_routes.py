@@ -8,6 +8,7 @@ from typing import Any
 
 from flask import Flask, flash, g, redirect, render_template, request, url_for
 
+from pct.economic_pipeline import build_timesheet_billing_summary, genera_parcella_da_timesheet
 from pct.timesheet import StatoTimesheet
 
 
@@ -17,6 +18,7 @@ def register_timesheet_routes(
     get_timesheet: Callable[[], Any],
     get_clienti: Callable[[], Any],
     get_fascicoli: Callable[[], Any],
+    get_fatturazione: Callable[[], Any],
     audit: Callable[..., None],
 ) -> None:
     """Registra la superficie timesheet in modo indipendente dal resto del core."""
@@ -44,6 +46,7 @@ def register_timesheet_routes(
         cliente_corrente = clienti.get(id_cliente) if id_cliente else None
         fascicolo_corrente = fascicoli.get(id_fascicolo) if id_fascicolo else None
         utenti_disponibili = sorted({entry.username or entry.id_utente for entry in gestore.tutte() if entry.username or entry.id_utente})
+        billing_summary = build_timesheet_billing_summary(entries)
 
         return render_template(
             "timesheet/lista.html",
@@ -60,6 +63,7 @@ def register_timesheet_routes(
             utenti_disponibili=utenti_disponibili,
             cliente_corrente=cliente_corrente,
             fascicolo_corrente=fascicolo_corrente,
+            billing_summary=billing_summary,
             oggi=date.today(),
         )
 
@@ -124,3 +128,33 @@ def register_timesheet_routes(
         if from_page == "fascicolo" and id_fascicolo:
             return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fascicolo, focus="workflow"))
         return redirect(url_for("timesheet_lista", id_cliente=id_cliente, id_fascicolo=id_fascicolo))
+
+    @app.route("/timesheet/genera-parcella", methods=["POST"])
+    def timesheet_genera_parcella():
+        gestore = get_timesheet()
+        gestore_fatturazione = get_fatturazione()
+        id_cliente = str(request.form.get("id_cliente", "") or "").strip()
+        id_fascicolo = str(request.form.get("id_fascicolo", "") or "").strip()
+        try:
+            payload = genera_parcella_da_timesheet(
+                timesheet=gestore,
+                fatturazione=gestore_fatturazione,
+                creato_da=getattr(g.get("utente_corrente"), "username", ""),
+                entry_ids=request.form.getlist("entry_ids"),
+                data_scadenza=str(request.form.get("data_scadenza", "") or "").strip() or None,
+            )
+            parcella = payload["parcella"]
+            audit(
+                "timesheet.parcella",
+                "parcella",
+                parcella.id,
+                dettagli=f"origine=timesheet voci={len(payload['entries'])}",
+            )
+            flash(
+                f"Parcella {parcella.numero} generata da {len(payload['entries'])} voci timesheet validate.",
+                "success",
+            )
+            return redirect(url_for("fatturazione.dettaglio", id_parcella=parcella.id))
+        except Exception as exc:
+            flash(str(exc), "danger")
+            return redirect(url_for("timesheet_lista", id_cliente=id_cliente, id_fascicolo=id_fascicolo))

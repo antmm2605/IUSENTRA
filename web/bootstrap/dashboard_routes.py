@@ -9,7 +9,7 @@ from flask import Flask, flash, jsonify, redirect, render_template, request, url
 
 from pct.agenda import Agenda, StatoAppuntamento, TipoAppuntamento
 from pct.economic_dashboard import build_studio_economic_dashboard
-from pct.fatturazione import GestioneFatturazione
+from pct.studio_demo import build_studio_demo_snapshot
 
 
 def register_dashboard_routes(
@@ -20,6 +20,9 @@ def register_dashboard_routes(
     get_fascicoli: Callable[[], object],
     get_clienti: Callable[[], object],
     get_timesheet: Callable[[], object],
+    get_preventivi: Callable[[], object],
+    get_fatturazione: Callable[[], object],
+    get_pagamenti: Callable[[], object],
     get_condivisioni: Callable[[], object],
     get_workspace_intelligente: Callable[[], object],
     get_calendar_sync: Callable[[], object],
@@ -41,17 +44,28 @@ def register_dashboard_routes(
         scadenze_critiche = gs.imminenti(entro_giorni=3)
         scadenze_imminenti = gs.imminenti(entro_giorni=7)
         stats_sc = gs.statistiche()
-        stats_fascicoli = get_fascicoli().statistiche()
-        stats_clienti = get_clienti().statistiche()
         gestore_fascicoli = get_fascicoli()
-        gestore_fatturazione = GestioneFatturazione(
-            app.config.get("FATTURAZIONE_DB", "./fatturazione/parcelle.json")
-        )
+        gestore_clienti = get_clienti()
+        gestore_timesheet = get_timesheet()
+        gestore_preventivi = get_preventivi()
+        gestore_fatturazione = get_fatturazione()
+        gestore_pagamenti = get_pagamenti()
+        stats_fascicoli = gestore_fascicoli.statistiche()
+        stats_clienti = gestore_clienti.statistiche()
         economic_overview = build_studio_economic_dashboard(
             fascicoli=gestore_fascicoli.tutti(stato=None),
             parcelle=gestore_fatturazione.tutte(),
-            timesheet_entries=get_timesheet().tutte(),
+            timesheet_entries=gestore_timesheet.tutte(),
             scadenze_imminenti=scadenze_imminenti,
+        )
+        studio_demo_snapshot = build_studio_demo_snapshot(
+            clienti=gestore_clienti.tutti(stato=None),
+            fascicoli=gestore_fascicoli.tutti(stato=None),
+            preventivi=gestore_preventivi.tutti_preventivi(),
+            conferimenti=gestore_preventivi.tutti_conferimenti(),
+            parcelle=gestore_fatturazione.tutte(),
+            timesheet_entries=gestore_timesheet.tutte(),
+            payment_links=gestore_pagamenti.tutti_link(),
         )
         workspace_overview = get_workspace_intelligente().panoramica(
             horizon_days=14,
@@ -95,6 +109,7 @@ def register_dashboard_routes(
             clienti_doc_scaduti=clienti_doc_scaduti,
             workspace_overview=workspace_overview,
             economic_overview=economic_overview,
+            studio_demo_snapshot=studio_demo_snapshot,
         )
 
     @app.route("/agenda")
@@ -140,21 +155,7 @@ def register_dashboard_routes(
                 pad=pad,
                 giorni_mese=giorni_mese,
                 offset=offset,
-                nomi_mesi=[
-                    "",
-                    "Gennaio",
-                    "Febbraio",
-                    "Marzo",
-                    "Aprile",
-                    "Maggio",
-                    "Giugno",
-                    "Luglio",
-                    "Agosto",
-                    "Settembre",
-                    "Ottobre",
-                    "Novembre",
-                    "Dicembre",
-                ],
+                nomi_mesi=["", "Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno", "Luglio", "Agosto", "Settembre", "Ottobre", "Novembre", "Dicembre"],
             )
 
         inizio = oggi + timedelta(weeks=offset) - timedelta(days=oggi.weekday())

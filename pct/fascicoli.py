@@ -649,9 +649,21 @@ class GestioneFascicoli:
         from pct import cache as _cache
         raw = _cache.load(self.db_path)
         migrato = False
-        for payload in raw.values():
+        if isinstance(raw, dict):
+            payloads = list(raw.values())
+        elif isinstance(raw, list):
+            payloads = list(raw)
+        else:
+            payloads = []
+        for payload in payloads:
             migrato = _migra_payload_depositi_pct(payload) or migrato
-        self._fascicoli = {k: Fascicolo.from_dict(v) for k, v in raw.items()}
+        self._fascicoli = {}
+        for payload in payloads:
+            try:
+                fascicolo = Fascicolo.from_dict(payload)
+            except Exception:
+                continue
+            self._fascicoli[fascicolo.id] = fascicolo
         if migrato:
             self._salva()
 

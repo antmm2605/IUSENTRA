@@ -12,7 +12,14 @@ from datetime import date
 from flask import (Blueprint, abort, flash, redirect, render_template,
                    request, send_file, url_for, current_app)
 
-from web.helpers import get_clienti, get_fascicoli, get_agenda, get_scadenziario
+from web.helpers import (
+    get_agenda,
+    get_clienti,
+    get_fascicoli,
+    get_fatturazione as _shared_get_fatturazione,
+    get_preventivi as _shared_get_preventivi,
+    get_scadenziario,
+)
 from pct.economico_context import riepilogo_contesto_economico
 from pct.legal_intelligence import costruisci_tracker_fascicoli
 from pct.workflow_commerciale import apri_fascicolo_automatico, build_workflow_summary
@@ -31,17 +38,11 @@ def _get_portale():
 
 
 def _get_preventivi():
-    from pct.preventivi import GestionePreventivi
-    return GestionePreventivi(
-        db_path=current_app.config.get("PREVENTIVI_DB", "./preventivi/preventivi.json")
-    )
+    return _shared_get_preventivi()
 
 
 def _get_fatturazione():
-    from pct.fatturazione import GestioneFatturazione
-    return GestioneFatturazione(
-        db_path=current_app.config.get("FATTURAZIONE_DB", "./fatturazione/parcelle.json")
-    )
+    return _shared_get_fatturazione()
 
 
 def _avvocato_referente_workflow(cliente=None, preventivo=None, conferimento=None) -> str:

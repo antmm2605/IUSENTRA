@@ -26,6 +26,9 @@ from pct.calendar_sync import GestioneCalendarSync
 from pct.soggetti import GestioneSoggetti
 from pct.timesheet import GestioneTimesheet
 from pct.applicazioni_repository import get_runtime_applicazioni_repository
+from pct.fatturazione import GestioneFatturazione
+from pct.pagamenti import GestionePagamenti
+from pct.preventivi import GestionePreventivi
 from web.services.storage_runtime import get_request_storage_runtime, get_request_studio_db
 
 
@@ -44,7 +47,15 @@ def _cfg(key: str) -> str:
 
 
 def _studio_db():
-    return get_request_studio_db(_cfg("CLIENTI_DB"))
+    anchor = None
+    paths = getattr(g, "data_paths", {})
+    if paths and "CLIENTI_DB" in paths:
+        anchor = paths["CLIENTI_DB"]
+    else:
+        anchor = current_app.config.get("CLIENTI_DB")
+    if not anchor:
+        return None
+    return get_request_studio_db(anchor)
 
 
 # ---------------------------------------------------------------- gestori dati
@@ -72,6 +83,18 @@ def get_scadenziario() -> GestioneScadenziario:
 
 def get_timesheet() -> GestioneTimesheet:
     return GestioneTimesheet(db_path=_cfg("TIMESHEET_DB"), studio_db=_studio_db())
+
+
+def get_preventivi() -> GestionePreventivi:
+    return GestionePreventivi(db_path=_cfg("PREVENTIVI_DB"), studio_db=_studio_db())
+
+
+def get_fatturazione() -> GestioneFatturazione:
+    return GestioneFatturazione(db_path=_cfg("FATTURAZIONE_DB"), studio_db=_studio_db())
+
+
+def get_pagamenti() -> GestionePagamenti:
+    return GestionePagamenti(db_dir=_cfg("PAGAMENTI_DIR"), studio_db=_studio_db())
 
 
 def get_utenti() -> GestioneUtenti:

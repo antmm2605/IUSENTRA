@@ -38,6 +38,8 @@ def register_clienti_workspace_routes(
     get_messaggi: Callable[[], Any],
     get_scadenziario: Callable[[], Any],
     get_timesheet: Callable[[], Any],
+    get_preventivi: Callable[[], Any],
+    get_fatturazione: Callable[[], Any],
     get_config_studio: Callable[[], Any],
     cliente_accessibile: Callable[..., bool],
     track_recente: Callable[..., None],
@@ -84,14 +86,9 @@ def register_clienti_workspace_routes(
             agenda_obj = get_agenda()
             appuntamenti_cliente = agenda_obj.per_cliente(id_cliente) or agenda_obj.cerca(cliente=cliente.nome_completo)
             messaggi_cliente = get_messaggi().per_cliente(id_cliente)
-
-            from pct.fatturazione import GestioneFatturazione
-            from pct.preventivi import GestionePreventivi
-
-            gfatt = GestioneFatturazione(app.config.get("FATTURAZIONE_DB", "./fatturazione/parcelle.json"))
+            gfatt = get_fatturazione()
             parcelle_cliente = gfatt.per_cliente(id_cliente)
-
-            gp = GestionePreventivi(app.config.get("PREVENTIVI_DB", "./preventivi/preventivi.json"))
+            gp = get_preventivi()
             preventivi_cliente = gp.preventivi_per_cliente(id_cliente)
             conferimenti_cliente = gp.conferimenti_per_cliente(id_cliente)
             timesheet_summary = get_timesheet().riepilogo_cliente(id_cliente)

@@ -11,10 +11,8 @@ from flask import current_app, g
 from lex.research import build_request_profile_prompt, classify_request
 from lex.research.source_policy import evaluate_source_row, summarize_evaluated_sources
 from pct.config_studio import GestioneConfigStudio
-from pct.fatturazione import GestioneFatturazione
 from pct.legal_intelligence import fonti_per_query, motori_per_query
 from pct.portale import GestionePortale
-from pct.preventivi import GestionePreventivi
 from pct.runtime_env import is_managed_cloud_runtime
 from pct.strumenti_legali import GestioneStrumentiLegali
 from pct.tariffario import (
@@ -28,9 +26,11 @@ from web.helpers import (
     get_agenda,
     get_applicazioni_repository,
     get_clienti,
+    get_fatturazione,
     get_fascicoli,
     get_giurisprudenza,
     get_legal_intelligence,
+    get_preventivi,
     get_scadenziario,
     get_soggetti,
 )
@@ -1025,7 +1025,7 @@ def _tariffario_lines(question: str) -> tuple[list[str], list[dict[str, Any]]]:
 
 
 def _preventivi_lines(question: str) -> tuple[list[str], list[dict[str, Any]]]:
-    gestore = GestionePreventivi(_cfg_data_path("PREVENTIVI_DB") or "./preventivi/preventivi.json")
+    gestore = get_preventivi()
     payload = gestore.repository_payload()
     stats = gestore.statistiche_repository()
     selection = gestore.select_best_preventivi_runtime(question, limit=3)
@@ -1183,7 +1183,7 @@ def _preventivi_lines(question: str) -> tuple[list[str], list[dict[str, Any]]]:
 
 
 def _fatturazione_lines(question: str) -> tuple[list[str], list[dict[str, Any]]]:
-    gestore = GestioneFatturazione(_cfg_data_path("FATTURAZIONE_DB") or "./fatturazione/parcelle.json")
+    gestore = get_fatturazione()
     rows = gestore.tutte()
     stats = gestore.statistiche()
     terms = _query_terms(question)

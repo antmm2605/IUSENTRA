@@ -302,7 +302,19 @@ class GestioneClienti:
             return
         from pct import cache as _cache
         raw = _cache.load(self.db_path)
-        self._clienti = {k: Cliente.from_dict(v) for k, v in raw.items()}
+        if isinstance(raw, dict):
+            payloads = raw.values()
+        elif isinstance(raw, list):
+            payloads = raw
+        else:
+            payloads = []
+        self._clienti = {}
+        for payload in payloads:
+            try:
+                cliente = Cliente.from_dict(payload)
+            except Exception:
+                continue
+            self._clienti[cliente.id] = cliente
 
     def _salva(self) -> None:
         if self._studio_db is not None:

@@ -251,10 +251,17 @@ class VocePreventivo:
 
     @staticmethod
     def from_dict(d: Dict[str, Any]) -> "VocePreventivo":
+        raw_tipo = d.get("tipo", TipoVoce.ONORARIO.value)
+        try:
+            tipo = TipoVoce(raw_tipo)
+        except Exception:
+            normalized = str(raw_tipo or "").strip().upper()
+            fallback_map = {item.name: item for item in TipoVoce}
+            tipo = fallback_map.get(normalized, TipoVoce.ONORARIO)
         return VocePreventivo(
             descrizione=d.get("descrizione", ""),
             importo=float(d.get("importo", 0.0)),
-            tipo=TipoVoce(d.get("tipo", TipoVoce.ONORARIO.value)),
+            tipo=tipo,
         )
 
 
@@ -503,8 +510,9 @@ class ConferimentoIncarico:
 class GestionePreventivi:
     """Gestisce preventivi e conferimenti di incarico."""
 
-    def __init__(self, db_path: str = "./preventivi/preventivi.json"):
+    def __init__(self, db_path: str = "./preventivi/preventivi.json", studio_db=None):
         self.db_path = db_path
+        self._studio_db = studio_db
         self._conf_path = os.path.join(
             os.path.dirname(db_path), "conferimenti.json"
         )
@@ -529,19 +537,104 @@ class GestionePreventivi:
     # ---------------------------------------------------------------- I/O
 
     def _carica(self):
+        if self._studio_db is not None:
+            self._preventivi = {}
+            for row in self._studio_db.carica_tabella("preventivi_records"):
+                try:
+                    preventivo = Preventivo.from_dict(row)
+                except Exception:
+                    continue
+                self._preventivi[preventivo.id] = preventivo
+            self._conferimenti = {}
+            for row in self._studio_db.carica_tabella("conferimenti_records"):
+                try:
+                    conferimento = ConferimentoIncarico.from_dict(row)
+                except Exception:
+                    continue
+                self._conferimenti[conferimento.id] = conferimento
+            return
         if os.path.exists(self.db_path):
             with open(self.db_path, encoding="utf-8") as f:
                 raw = json.load(f)
-            self._preventivi = {k: Preventivo.from_dict(v) for k, v in raw.items()}
+            if isinstance(raw, dict):
+                payloads = raw.values()
+            elif isinstance(raw, list):
+                payloads = raw
+            else:
+                payloads = []
+            self._preventivi = {}
+            for payload in payloads:
+                try:
+                    preventivo = Preventivo.from_dict(payload)
+                except Exception:
+                    continue
+                self._preventivi[preventivo.id] = preventivo
 
         if os.path.exists(self._conf_path):
             with open(self._conf_path, encoding="utf-8") as f:
                 raw = json.load(f)
-            self._conferimenti = {
-                k: ConferimentoIncarico.from_dict(v) for k, v in raw.items()
-            }
+            if isinstance(raw, dict):
+                payloads = raw.values()
+            elif isinstance(raw, list):
+                payloads = raw
+            else:
+                payloads = []
+            self._conferimenti = {}
+            for payload in payloads:
+                try:
+                    conferimento = ConferimentoIncarico.from_dict(payload)
+                except Exception:
+                    continue
+                self._conferimenti[conferimento.id] = conferimento
 
     def _salva_preventivi(self):
+        if self._studio_db is not None:
+            def _insert(conn, preventivo: Preventivo):
+                payload = preventivo.to_dict()
+                conn.execute(
+                    """
+                    INSERT INTO preventivi_records
+                    (preventivo_id, numero, id_cliente, id_fascicolo, data_emissione, data_scadenza,
+                     oggetto, stato, workflow_channel, tipo_compenso, tipo_procedimento,
+                     area_pratica, id_pratica, procedura_operativa_codice, procedura_operativa_nome,
+                     canale_operativo, registro_operativo, totale, accettato_il,
+                     id_preventivo_precedente, token_portale, creato_il, dati_json)
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                    """,
+                    (
+                        preventivo.id,
+                        preventivo.numero,
+                        preventivo.id_cliente,
+                        preventivo.id_fascicolo or None,
+                        preventivo.data_emissione,
+                        preventivo.data_scadenza or "",
+                        preventivo.oggetto,
+                        preventivo.stato.value,
+                        preventivo.workflow_channel,
+                        preventivo.tipo_compenso,
+                        preventivo.tipo_procedimento,
+                        preventivo.area_pratica,
+                        preventivo.id_pratica,
+                        preventivo.procedura_operativa_codice,
+                        preventivo.procedura_operativa_nome,
+                        preventivo.canale_operativo,
+                        preventivo.registro_operativo,
+                        float(preventivo.totale or 0.0),
+                        preventivo.accettato_il or "",
+                        preventivo.id_preventivo_precedente or "",
+                        preventivo.token_portale or "",
+                        preventivo.creato_il,
+                        json.dumps(payload, ensure_ascii=False),
+                    ),
+                )
+
+            self._studio_db.salva_tabella(
+                "preventivi_records",
+                list(self._preventivi.values()),
+                _insert,
+            )
+            self._sync_repository()
+            return
         os.makedirs(os.path.dirname(self.db_path) or ".", exist_ok=True)
         with open(self.db_path, "w", encoding="utf-8") as f:
             json.dump(
@@ -551,6 +644,51 @@ class GestionePreventivi:
         self._sync_repository()
 
     def _salva_conferimenti(self):
+        if self._studio_db is not None:
+            def _insert(conn, conferimento: ConferimentoIncarico):
+                payload = conferimento.to_dict()
+                conn.execute(
+                    """
+                    INSERT INTO conferimenti_records
+                    (conferimento_id, numero, id_preventivo, id_cliente, id_fascicolo,
+                     data_incarico, oggetto, stato, workflow_channel, tipo_compenso,
+                     tipo_procedimento, area_pratica, id_pratica, procedura_operativa_codice,
+                     procedura_operativa_nome, canale_operativo, registro_operativo,
+                     compenso_pattuito, firma_cliente_eseguita, fascicolo_aperto_il, dati_json)
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                    """,
+                    (
+                        conferimento.id,
+                        conferimento.numero,
+                        conferimento.id_preventivo or "",
+                        conferimento.id_cliente,
+                        conferimento.id_fascicolo or None,
+                        conferimento.data_incarico,
+                        conferimento.oggetto,
+                        conferimento.stato.value,
+                        conferimento.workflow_channel,
+                        conferimento.tipo_compenso,
+                        conferimento.tipo_procedimento,
+                        conferimento.area_pratica,
+                        conferimento.id_pratica,
+                        conferimento.procedura_operativa_codice,
+                        conferimento.procedura_operativa_nome,
+                        conferimento.canale_operativo,
+                        conferimento.registro_operativo,
+                        float(conferimento.compenso_pattuito or 0.0),
+                        1 if conferimento.firma_cliente_eseguita else 0,
+                        conferimento.fascicolo_aperto_il or "",
+                        json.dumps(payload, ensure_ascii=False),
+                    ),
+                )
+
+            self._studio_db.salva_tabella(
+                "conferimenti_records",
+                list(self._conferimenti.values()),
+                _insert,
+            )
+            self._sync_repository()
+            return
         os.makedirs(os.path.dirname(self._conf_path) or ".", exist_ok=True)
         with open(self._conf_path, "w", encoding="utf-8") as f:
             json.dump(

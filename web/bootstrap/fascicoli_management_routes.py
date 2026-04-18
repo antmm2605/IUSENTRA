@@ -20,6 +20,8 @@ def register_fascicoli_management_routes(
     *,
     get_fascicoli: Callable[[], Any],
     get_clienti: Callable[[], Any],
+    get_preventivi: Callable[[], Any],
+    get_fatturazione: Callable[[], Any],
     get_scadenziario: Callable[[], Any],
     get_agenda: Callable[[], Any],
     get_soggetti: Callable[[], Any],
@@ -69,10 +71,11 @@ def register_fascicoli_management_routes(
 
         cliente = gc.get(fascicolo.id_cliente) if fascicolo.id_cliente else None
         context = build_quadro_fascicolo_context(
-            app_config=app.config,
             id_fasc=id_fasc,
             fascicolo=fascicolo,
             cliente=cliente,
+            get_preventivi=get_preventivi,
+            get_fatturazione=get_fatturazione,
             get_scadenziario=get_scadenziario,
             get_agenda=get_agenda,
             get_soggetti=get_soggetti,

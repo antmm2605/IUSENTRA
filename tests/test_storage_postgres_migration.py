@@ -32,6 +32,10 @@ def _tenant_paths(tmp_path: Path) -> dict[str, str]:
         "NOTIFICHE_LOG": str(root / "notifiche" / "log.json"),
         "SEARCH_INDEX": str(root / "search" / "index.db"),
         "BACKUP_DIR": str(root / "backup"),
+        "TIMESHEET_DB": str(root / "timesheet" / "entries.json"),
+        "PREVENTIVI_DB": str(root / "preventivi" / "preventivi.json"),
+        "FATTURAZIONE_DB": str(root / "fatturazione" / "parcelle.json"),
+        "PAGAMENTI_DIR": str(root / "pagamenti"),
         "STUDIO_DB": str(root / "studio.db"),
     }
 
@@ -118,6 +122,98 @@ def _seed_core_json(paths: dict[str, str]) -> None:
             }
         ],
     )
+    _write_json(
+        Path(paths["TIMESHEET_DB"]),
+        [
+            {
+                "id": "ts-1",
+                "id_fascicolo": "fas-1",
+                "id_cliente": "cli-1",
+                "username": "amministratore",
+                "data_attivita": "2026-04-17",
+                "descrizione": "Studio fascicolo",
+                "minuti": 60,
+                "valore_unitario": 100.0,
+                "fatturabile": True,
+                "stato": "VALIDATO",
+                "origine": "seed",
+                "note": "",
+                "dati_json": {},
+            }
+        ],
+    )
+    _write_json(
+        Path(paths["PREVENTIVI_DB"]),
+        [
+            {
+                "id": "prev-1",
+                "numero": "2026/001",
+                "id_cliente": "cli-1",
+                "id_fascicolo": "fas-1",
+                "data_emissione": "2026-04-17",
+                "data_scadenza": "2026-04-30",
+                "oggetto": "Assistenza monitoria",
+                "voci": [{"descrizione": "Fase iniziale", "importo": 500.0, "tipo": "ONORARIO"}],
+                "stato": "ACCETTATO",
+            }
+        ],
+    )
+    _write_json(
+        Path(paths["PREVENTIVI_DB"]).with_name("conferimenti.json"),
+        [
+            {
+                "id": "conf-1",
+                "numero": "CONF-2026-001",
+                "id_cliente": "cli-1",
+                "id_preventivo": "prev-1",
+                "id_fascicolo": "fas-1",
+                "data_incarico": "2026-04-18",
+                "oggetto": "Assistenza monitoria",
+                "avvocato_referente": "Avv. Demo",
+                "stato": "ATTIVO",
+                "onorario_pattuito": 500.0,
+            }
+        ],
+    )
+    _write_json(
+        Path(paths["FATTURAZIONE_DB"]),
+        [
+            {
+                "id": "parc-1",
+                "numero": "2026/001",
+                "id_cliente": "cli-1",
+                "id_fascicolo": "fas-1",
+                "data_emissione": "2026-04-18",
+                "data_scadenza": "2026-05-18",
+                "voci": [{"descrizione": "Parcella iniziale", "quantita": 1.0, "prezzo_unitario": 300.0}],
+                "stato": "EMESSA",
+            }
+        ],
+    )
+    _write_json(
+        Path(paths["PAGAMENTI_DIR"]) / "config.json",
+        {
+            "stripe": {"abilitato": False},
+            "paypal": {"abilitato": False},
+            "satispay": {"abilitato": False},
+            "sumup": {"abilitato": False},
+            "bonifico": {"abilitato": True, "iban": "IT60X0542811101000000123456"},
+        },
+    )
+    _write_json(
+        Path(paths["PAGAMENTI_DIR"]) / "transazioni.json",
+        [
+            {
+                "id": "pay-1",
+                "token": "tok-1",
+                "id_parcella": "parc-1",
+                "id_cliente": "cli-1",
+                "importo": 300.0,
+                "descrizione": "Saldo parcella",
+                "stato": "ATTESO",
+            }
+        ],
+    )
     _write_json(Path(paths["MESSAGGI_DB"]), [])
     _write_json(Path(paths["PRIVACY_DB"]), [])
     _write_json(Path(paths["NOTIFICHE_LOG"]), [])
@@ -152,6 +248,10 @@ def test_migrate_core_storage_to_postgres_produce_report_consistente(tmp_path: P
     assert report["counts"]["sqlite"]["clienti"] == 1
     assert report["counts"]["postgres"]["clienti"] == 1
     assert report["counts"]["postgres"]["fascicoli"] == 1
+    assert report["counts"]["postgres"]["preventivi"] == 1
+    assert report["counts"]["postgres"]["conferimenti"] == 1
+    assert report["counts"]["postgres"]["fatturazione"] == 1
+    assert report["counts"]["postgres"]["pagamenti_links"] == 1
     assert Path(report["report_path"]).exists()
 
 
@@ -188,3 +288,26 @@ def test_cli_migrate_to_postgres_attiva_cutover(monkeypatch, tmp_path: Path):
 
     assert result.exit_code == 0
     assert "Cutover storage completato" in result.output
+
+
+def test_cli_demo_check_racconta_il_prossimo_passo(tmp_path: Path):
+    registry = tmp_path / "tenants.json"
+    tm = GestioneTenant(str(registry))
+    studio = tm.crea("Studio Demo", "studio-demo", db_config={"mode": "JSON"})
+    paths = tm.percorsi_dati(studio.slug)
+    _seed_core_json(paths)
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "demo-check",
+            f"--tenant={studio.slug}",
+            f"--registry={registry}",
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert "Studio: Studio Demo (studio-demo)" in result.output
+    assert "Copertura workflow" in result.output
+    assert '"ready_steps":' in result.output

@@ -1,5 +1,7 @@
 from pathlib import Path
 
+from pct.economic_pipeline import build_timesheet_billing_summary, genera_parcella_da_timesheet
+from pct.fatturazione import GestioneFatturazione
 from pct.timesheet import GestioneTimesheet, StatoTimesheet
 
 
@@ -46,3 +48,38 @@ def test_timesheet_cambia_stato(tmp_path: Path):
 
     assert updated.stato == StatoTimesheet.FATTURATO
     assert repo.get(entry.id).stato == StatoTimesheet.FATTURATO
+
+
+def test_timesheet_genera_parcella_dalle_voci_validate(tmp_path: Path):
+    timesheet = GestioneTimesheet(db_path=str(tmp_path / "timesheet.json"))
+    fatturazione = GestioneFatturazione(db_path=str(tmp_path / "parcelle.json"))
+
+    voce = timesheet.crea(
+        descrizione="Redazione memoria conclusionale",
+        minuti=120,
+        id_cliente="cli-1",
+        id_fascicolo="fas-1",
+        username="mrossi",
+        valore_unitario=120.0,
+        fatturabile=True,
+        stato=StatoTimesheet.VALIDATO,
+    )
+
+    summary = build_timesheet_billing_summary(timesheet.tutte())
+    payload = genera_parcella_da_timesheet(
+        timesheet=timesheet,
+        fatturazione=fatturazione,
+        creato_da="mrossi",
+        entry_ids=[voce.id],
+    )
+
+    parcella = payload["parcella"]
+
+    assert summary["ready"] is True
+    assert summary["count"] == 1
+    assert parcella.origine == "timesheet"
+    assert parcella.id_cliente == "cli-1"
+    assert parcella.id_fascicolo == "fas-1"
+    assert len(parcella.voci) == 1
+    assert "Redazione memoria conclusionale" in parcella.voci[0].descrizione
+    assert timesheet.get(voce.id).stato == StatoTimesheet.FATTURATO

@@ -1,0 +1,70 @@
+# Demo Studio Reale
+
+## Obiettivo
+
+Dimostrare in meno di 5 minuti che IUSENTRA puo' gestire uno studio reale senza hack, senza passaggi fuori flusso e senza aree economiche scollegate dal fascicolo.
+
+Il percorso ufficiale e':
+
+`cliente -> preventivo -> conferimento -> fascicolo -> attivita' -> parcella -> incasso`
+
+## Dove si vede in prodotto
+
+- Dashboard principale: card `Studio reale in 5 minuti`
+- Timesheet: riepilogo valorizzazione e azione `Genera parcella dalle voci validate`
+- Cartella cliente: workflow economico e stato dei documenti commerciali
+- Fascicolo: quadro operativo, documentale ed economico sullo stesso centro di lavoro
+- Portale cliente: timeline coerente di preventivi, conferimenti e parcelle
+
+## Comando CLI ufficiale
+
+```bash
+iusentra demo-check --tenant=<slug-tenant>
+```
+
+Il comando restituisce:
+
+- backend effettivo dello studio
+- copertura dei sette passaggi chiave
+- prossima azione utile
+- snapshot JSON riusabile per audit o supporto operativo
+
+## Sette passaggi da chiudere
+
+1. Primo cliente
+2. Primo preventivo
+3. Primo conferimento
+4. Primo fascicolo
+5. Prima attivita' / tempo
+6. Prima parcella
+7. Primo incasso
+
+## Regole di qualita'
+
+- Il fascicolo resta il centro del lavoro operativo.
+- Le attivita' validate possono diventare parcella senza ricopiare dati.
+- Il saldo cliente deriva da parcelle e pagamenti, non da contatori manuali.
+- La dashboard deve sempre dire `cosa fare adesso`.
+- L'AI aiuta con riepiloghi e suggerimenti, ma non prende decisioni legali non verificate.
+
+## Evidenze minime da verificare
+
+- esiste almeno un cliente attivo
+- esiste almeno un preventivo
+- esiste almeno un conferimento
+- esiste almeno un fascicolo collegato
+- esiste almeno una voce timesheet valorizzabile
+- esiste almeno una parcella emessa
+- esiste almeno un incasso registrato oppure un link di pagamento attivo
+
+## Uso consigliato per demo e onboarding
+
+1. Crea il cliente.
+2. Apri il preventivo guidato.
+3. Genera o conferma il conferimento.
+4. Apri il fascicolo.
+5. Registra la prima attivita' nel timesheet.
+6. Genera la parcella dal timesheet validato.
+7. Registra o avvia l'incasso.
+
+Se tutti i passaggi sono chiusi, IUSENTRA non e' piu' solo un gestionale avanzato: e' una piattaforma legale operativa completa.

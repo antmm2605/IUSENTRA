@@ -225,7 +225,7 @@ def test_statistiche_include_modulo_extra_monitorato(tmp_path):
     modulo = next((m for m in stats["moduli"] if m["nome"] == "preventivi"), None)
     assert modulo is not None
     assert modulo["record_totali"] == 1
-    assert modulo["migrabile_sqlite"] is False
+    assert modulo["migrabile_sqlite"] is True
 
 
 def test_bootstrap_moduli_monitorati_crea_file_mancanti(tmp_path):

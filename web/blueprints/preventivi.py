@@ -14,7 +14,7 @@ from datetime import date, timedelta
 from flask import (Blueprint, abort, flash, g, redirect,
                    render_template, request, send_file, url_for, current_app)
 
-from web.helpers import get_clienti, get_fascicoli, get_scadenziario
+from web.helpers import get_clienti, get_fascicoli, get_scadenziario, get_preventivi as _shared_get_preventivi
 from pct.economico_context import (
     carica_log_calcolo,
     costruisci_contesto_economico,
@@ -44,10 +44,7 @@ def _parse_numero(value, default: float = 0.0) -> float:
 
 
 def _get_gp():
-    from pct.preventivi import GestionePreventivi
-    return GestionePreventivi(
-        db_path=current_app.config.get("PREVENTIVI_DB", "./preventivi/preventivi.json")
-    )
+    return _shared_get_preventivi()
 
 
 def _get_portale_mgr():

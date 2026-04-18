@@ -113,7 +113,20 @@
 </div>
 {% endif %}
 
-{% if economic_overview %}
+{% if studio_demo_snapshot %}
+<div class="row g-3 dashboard-grid-tight mt-1">
+  <div class="col-12 col-xl-6">
+    {% include "components/studio_demo_card.html" %}
+  </div>
+  {% if economic_overview %}
+  <div class="col-12 col-xl-6">
+    {% with dashboard=economic_overview, title="Controllo economico studio", anchor_id="sezione-economico-studio" %}
+      {% include "components/economic_overview.html" %}
+    {% endwith %}
+  </div>
+  {% endif %}
+</div>
+{% elif economic_overview %}
 <div class="mt-3">
   {% with dashboard=economic_overview, title="Controllo economico studio", anchor_id="sezione-economico-studio" %}
     {% include "components/economic_overview.html" %}
@@ -485,4 +498,3 @@ Chart.defaults.font.size = 12;
 })();
 </script>
 {% endblock %}
-

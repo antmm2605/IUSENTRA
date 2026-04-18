@@ -244,6 +244,121 @@ CREATE INDEX IF NOT EXISTS idx_timesheet_cliente   ON timesheet_entries(id_clien
 CREATE INDEX IF NOT EXISTS idx_timesheet_utente    ON timesheet_entries(id_utente);
 CREATE INDEX IF NOT EXISTS idx_timesheet_data      ON timesheet_entries(data_attivita);
 
+-- ---- Preventivi e conferimenti
+CREATE TABLE IF NOT EXISTS preventivi_records (
+    preventivo_id                 TEXT PRIMARY KEY,
+    numero                        TEXT NOT NULL,
+    id_cliente                    TEXT REFERENCES clienti(id) ON DELETE SET NULL,
+    id_fascicolo                  TEXT REFERENCES fascicoli(id) ON DELETE SET NULL,
+    data_emissione                TEXT NOT NULL,
+    data_scadenza                 TEXT,
+    oggetto                       TEXT NOT NULL DEFAULT '',
+    stato                         TEXT NOT NULL DEFAULT 'BOZZA',
+    workflow_channel              TEXT NOT NULL DEFAULT 'STUDIO',
+    tipo_compenso                 TEXT NOT NULL DEFAULT '',
+    tipo_procedimento             TEXT NOT NULL DEFAULT '',
+    area_pratica                  TEXT NOT NULL DEFAULT '',
+    id_pratica                    TEXT NOT NULL DEFAULT '',
+    procedura_operativa_codice    TEXT NOT NULL DEFAULT '',
+    procedura_operativa_nome      TEXT NOT NULL DEFAULT '',
+    canale_operativo              TEXT NOT NULL DEFAULT '',
+    registro_operativo            TEXT NOT NULL DEFAULT '',
+    totale                        REAL NOT NULL DEFAULT 0,
+    accettato_il                  TEXT,
+    id_preventivo_precedente      TEXT NOT NULL DEFAULT '',
+    token_portale                 TEXT NOT NULL DEFAULT '',
+    creato_il                     TEXT,
+    dati_json                     TEXT DEFAULT '{}'
+);
+CREATE INDEX IF NOT EXISTS idx_preventivi_records_cliente ON preventivi_records(id_cliente);
+CREATE INDEX IF NOT EXISTS idx_preventivi_records_stato   ON preventivi_records(stato, data_emissione);
+CREATE INDEX IF NOT EXISTS idx_preventivi_records_pratica ON preventivi_records(id_pratica, area_pratica);
+
+CREATE TABLE IF NOT EXISTS conferimenti_records (
+    conferimento_id               TEXT PRIMARY KEY,
+    numero                        TEXT NOT NULL,
+    id_preventivo                 TEXT NOT NULL DEFAULT '',
+    id_cliente                    TEXT REFERENCES clienti(id) ON DELETE SET NULL,
+    id_fascicolo                  TEXT REFERENCES fascicoli(id) ON DELETE SET NULL,
+    data_incarico                 TEXT NOT NULL,
+    oggetto                       TEXT NOT NULL DEFAULT '',
+    stato                         TEXT NOT NULL DEFAULT 'ATTIVO',
+    workflow_channel              TEXT NOT NULL DEFAULT 'STUDIO',
+    tipo_compenso                 TEXT NOT NULL DEFAULT '',
+    tipo_procedimento             TEXT NOT NULL DEFAULT '',
+    area_pratica                  TEXT NOT NULL DEFAULT '',
+    id_pratica                    TEXT NOT NULL DEFAULT '',
+    procedura_operativa_codice    TEXT NOT NULL DEFAULT '',
+    procedura_operativa_nome      TEXT NOT NULL DEFAULT '',
+    canale_operativo              TEXT NOT NULL DEFAULT '',
+    registro_operativo            TEXT NOT NULL DEFAULT '',
+    compenso_pattuito             REAL NOT NULL DEFAULT 0,
+    firma_cliente_eseguita        INTEGER NOT NULL DEFAULT 0,
+    fascicolo_aperto_il           TEXT,
+    dati_json                     TEXT DEFAULT '{}'
+);
+CREATE INDEX IF NOT EXISTS idx_conferimenti_records_cliente ON conferimenti_records(id_cliente);
+CREATE INDEX IF NOT EXISTS idx_conferimenti_records_stato   ON conferimenti_records(stato, data_incarico);
+
+-- ---- Parcelle e pagamenti
+CREATE TABLE IF NOT EXISTS parcelle (
+    id                            TEXT PRIMARY KEY,
+    numero                        TEXT NOT NULL,
+    id_cliente                    TEXT REFERENCES clienti(id) ON DELETE SET NULL,
+    id_fascicolo                  TEXT REFERENCES fascicoli(id) ON DELETE SET NULL,
+    data_emissione                TEXT NOT NULL,
+    data_scadenza                 TEXT,
+    stato                         TEXT NOT NULL DEFAULT 'BOZZA',
+    totale                        REAL NOT NULL DEFAULT 0,
+    imponibile                    REAL NOT NULL DEFAULT 0,
+    origine                       TEXT NOT NULL DEFAULT '',
+    id_preventivo                 TEXT NOT NULL DEFAULT '',
+    id_pratica                    TEXT NOT NULL DEFAULT '',
+    area_pratica                  TEXT NOT NULL DEFAULT '',
+    procedura_operativa_codice    TEXT NOT NULL DEFAULT '',
+    procedura_operativa_nome      TEXT NOT NULL DEFAULT '',
+    canale_operativo              TEXT NOT NULL DEFAULT '',
+    registro_operativo            TEXT NOT NULL DEFAULT '',
+    tipo_compenso                 TEXT NOT NULL DEFAULT '',
+    tipo_procedimento             TEXT NOT NULL DEFAULT '',
+    valore_controversia           REAL NOT NULL DEFAULT 0,
+    complessita                   TEXT NOT NULL DEFAULT '',
+    data_pagamento                TEXT,
+    metodo_pagamento              TEXT,
+    creato_da                     TEXT NOT NULL DEFAULT '',
+    creato_il                     TEXT,
+    dati_json                     TEXT DEFAULT '{}'
+);
+CREATE INDEX IF NOT EXISTS idx_parcelle_cliente ON parcelle(id_cliente);
+CREATE INDEX IF NOT EXISTS idx_parcelle_fascicolo ON parcelle(id_fascicolo);
+CREATE INDEX IF NOT EXISTS idx_parcelle_stato ON parcelle(stato, data_emissione);
+
+CREATE TABLE IF NOT EXISTS payment_links (
+    id                            TEXT PRIMARY KEY,
+    token                         TEXT NOT NULL UNIQUE,
+    id_parcella                   TEXT NOT NULL DEFAULT '',
+    id_cliente                    TEXT REFERENCES clienti(id) ON DELETE SET NULL,
+    importo                       REAL NOT NULL DEFAULT 0,
+    valuta                        TEXT NOT NULL DEFAULT 'EUR',
+    stato                         TEXT NOT NULL DEFAULT 'ATTESO',
+    provider_usato                TEXT NOT NULL DEFAULT '',
+    provider_tx_id                TEXT NOT NULL DEFAULT '',
+    creato_il                     TEXT,
+    scade_il                      TEXT,
+    pagato_il                     TEXT,
+    dati_json                     TEXT DEFAULT '{}'
+);
+CREATE INDEX IF NOT EXISTS idx_payment_links_cliente ON payment_links(id_cliente);
+CREATE INDEX IF NOT EXISTS idx_payment_links_parcella ON payment_links(id_parcella);
+CREATE INDEX IF NOT EXISTS idx_payment_links_stato ON payment_links(stato, creato_il);
+
+CREATE TABLE IF NOT EXISTS payment_config (
+    config_id                     TEXT PRIMARY KEY,
+    provider_count                INTEGER NOT NULL DEFAULT 0,
+    updated_at                    TEXT,
+    dati_json                     TEXT DEFAULT '{}'
+);
+
 -- ---- Messaggi
 CREATE TABLE IF NOT EXISTS messaggi (
     id                    TEXT PRIMARY KEY,
@@ -418,7 +533,9 @@ class GestioneDatabase:
 
     MODULI_SQLITE = [
         "clienti", "fascicoli", "appuntamenti",
-        "scadenze", "timesheet", "messaggi", "utenti", "audit",
+        "scadenze", "timesheet", "preventivi", "conferimenti",
+        "fatturazione", "pagamenti_links", "pagamenti_config",
+        "messaggi", "utenti", "audit",
         "privacy", "notifiche", "backup",
     ]
 
@@ -1119,6 +1236,262 @@ class GestioneDatabase:
                         errori.append(f"timesheet/{voce.get('id','?')}: {ex}")
                 migrati["timesheet"] = t_count
 
+            # ---- Preventivi
+            preventivi_raw, err = self._leggi_json("preventivi")
+            if err:
+                errori.append(f"preventivi: {err}")
+            else:
+                pr_count = 0
+                for preventivo in preventivi_raw:
+                    try:
+                        id_cliente = preventivo.get("id_cliente") or None
+                        if id_cliente and id_cliente not in id_clienti_migrati:
+                            avvisi.append(
+                                f"preventivi/{preventivo.get('id','?')}: cliente {id_cliente!r} non trovato, riferimento scollegato in migrazione"
+                            )
+                            id_cliente = None
+                        id_fascicolo = preventivo.get("id_fascicolo") or None
+                        if id_fascicolo and id_fascicolo not in id_fascicoli_migrati:
+                            avvisi.append(
+                                f"preventivi/{preventivo.get('id','?')}: fascicolo {id_fascicolo!r} non trovato, riferimento scollegato in migrazione"
+                            )
+                            id_fascicolo = None
+                        totale = float(preventivo.get("totale", 0.0) or 0.0)
+                        if not totale:
+                            totale = round(float(preventivo.get("base_iva", 0.0) or 0.0) + float(preventivo.get("iva", 0.0) or 0.0) + float(preventivo.get("anticipazioni_art15", 0.0) or 0.0), 2)
+                        conn.execute(
+                            """
+                            INSERT OR REPLACE INTO preventivi_records
+                            (preventivo_id, numero, id_cliente, id_fascicolo, data_emissione, data_scadenza,
+                             oggetto, stato, workflow_channel, tipo_compenso, tipo_procedimento,
+                             area_pratica, id_pratica, procedura_operativa_codice, procedura_operativa_nome,
+                             canale_operativo, registro_operativo, totale, accettato_il,
+                             id_preventivo_precedente, token_portale, creato_il, dati_json)
+                            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                            """,
+                            (
+                                preventivo.get("id"),
+                                preventivo.get("numero", ""),
+                                id_cliente,
+                                id_fascicolo,
+                                preventivo.get("data_emissione", ""),
+                                preventivo.get("data_scadenza", ""),
+                                preventivo.get("oggetto", ""),
+                                preventivo.get("stato", "BOZZA"),
+                                preventivo.get("workflow_channel", "STUDIO"),
+                                preventivo.get("tipo_compenso", ""),
+                                preventivo.get("tipo_procedimento", ""),
+                                preventivo.get("area_pratica", ""),
+                                preventivo.get("id_pratica", ""),
+                                preventivo.get("procedura_operativa_codice", ""),
+                                preventivo.get("procedura_operativa_nome", ""),
+                                preventivo.get("canale_operativo", ""),
+                                preventivo.get("registro_operativo", ""),
+                                totale,
+                                preventivo.get("accettato_il", ""),
+                                preventivo.get("id_preventivo_precedente", ""),
+                                preventivo.get("token_portale", ""),
+                                preventivo.get("creato_il", ""),
+                                json.dumps(preventivo, ensure_ascii=False),
+                            ),
+                        )
+                        pr_count += 1
+                    except Exception as ex:
+                        errori.append(f"preventivi/{preventivo.get('id','?')}: {ex}")
+                migrati["preventivi"] = pr_count
+
+            conferimenti_raw, err = self._leggi_json("conferimenti")
+            if err:
+                errori.append(f"conferimenti: {err}")
+            else:
+                conf_count = 0
+                for conferimento in conferimenti_raw:
+                    try:
+                        id_cliente = conferimento.get("id_cliente") or None
+                        if id_cliente and id_cliente not in id_clienti_migrati:
+                            avvisi.append(
+                                f"conferimenti/{conferimento.get('id','?')}: cliente {id_cliente!r} non trovato, riferimento scollegato in migrazione"
+                            )
+                            id_cliente = None
+                        id_fascicolo = conferimento.get("id_fascicolo") or None
+                        if id_fascicolo and id_fascicolo not in id_fascicoli_migrati:
+                            avvisi.append(
+                                f"conferimenti/{conferimento.get('id','?')}: fascicolo {id_fascicolo!r} non trovato, riferimento scollegato in migrazione"
+                            )
+                            id_fascicolo = None
+                        conn.execute(
+                            """
+                            INSERT OR REPLACE INTO conferimenti_records
+                            (conferimento_id, numero, id_preventivo, id_cliente, id_fascicolo,
+                             data_incarico, oggetto, stato, workflow_channel, tipo_compenso,
+                             tipo_procedimento, area_pratica, id_pratica, procedura_operativa_codice,
+                             procedura_operativa_nome, canale_operativo, registro_operativo,
+                             compenso_pattuito, firma_cliente_eseguita, fascicolo_aperto_il, dati_json)
+                            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                            """,
+                            (
+                                conferimento.get("id"),
+                                conferimento.get("numero", ""),
+                                conferimento.get("id_preventivo", ""),
+                                id_cliente,
+                                id_fascicolo,
+                                conferimento.get("data_incarico", ""),
+                                conferimento.get("oggetto", ""),
+                                conferimento.get("stato", "ATTIVO"),
+                                conferimento.get("workflow_channel", "STUDIO"),
+                                conferimento.get("tipo_compenso", ""),
+                                conferimento.get("tipo_procedimento", ""),
+                                conferimento.get("area_pratica", ""),
+                                conferimento.get("id_pratica", ""),
+                                conferimento.get("procedura_operativa_codice", ""),
+                                conferimento.get("procedura_operativa_nome", ""),
+                                conferimento.get("canale_operativo", ""),
+                                conferimento.get("registro_operativo", ""),
+                                float(conferimento.get("compenso_pattuito", 0.0) or 0.0),
+                                1 if conferimento.get("firma_cliente_eseguita") else 0,
+                                conferimento.get("fascicolo_aperto_il", ""),
+                                json.dumps(conferimento, ensure_ascii=False),
+                            ),
+                        )
+                        conf_count += 1
+                    except Exception as ex:
+                        errori.append(f"conferimenti/{conferimento.get('id','?')}: {ex}")
+                migrati["conferimenti"] = conf_count
+
+            # ---- Parcelle
+            parcelle_raw, err = self._leggi_json("fatturazione")
+            if err:
+                errori.append(f"fatturazione: {err}")
+            else:
+                parcelle_count = 0
+                for parcella in parcelle_raw:
+                    try:
+                        id_cliente = parcella.get("id_cliente") or None
+                        if id_cliente and id_cliente not in id_clienti_migrati:
+                            avvisi.append(
+                                f"fatturazione/{parcella.get('id','?')}: cliente {id_cliente!r} non trovato, riferimento scollegato in migrazione"
+                            )
+                            id_cliente = None
+                        id_fascicolo = parcella.get("id_fascicolo") or None
+                        if id_fascicolo and id_fascicolo not in id_fascicoli_migrati:
+                            avvisi.append(
+                                f"fatturazione/{parcella.get('id','?')}: fascicolo {id_fascicolo!r} non trovato, riferimento scollegato in migrazione"
+                            )
+                            id_fascicolo = None
+                        conn.execute(
+                            """
+                            INSERT OR REPLACE INTO parcelle
+                            (id, numero, id_cliente, id_fascicolo, data_emissione, data_scadenza,
+                             stato, totale, imponibile, origine, id_preventivo, id_pratica,
+                             area_pratica, procedura_operativa_codice, procedura_operativa_nome,
+                             canale_operativo, registro_operativo, tipo_compenso, tipo_procedimento,
+                             valore_controversia, complessita, data_pagamento, metodo_pagamento,
+                             creato_da, creato_il, dati_json)
+                            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                            """,
+                            (
+                                parcella.get("id"),
+                                parcella.get("numero", ""),
+                                id_cliente,
+                                id_fascicolo,
+                                parcella.get("data_emissione", ""),
+                                parcella.get("data_scadenza", ""),
+                                parcella.get("stato", "BOZZA"),
+                                float(parcella.get("totale", 0.0) or 0.0),
+                                float(parcella.get("imponibile", 0.0) or 0.0),
+                                parcella.get("origine", ""),
+                                parcella.get("id_preventivo", ""),
+                                parcella.get("id_pratica", ""),
+                                parcella.get("area_pratica", ""),
+                                parcella.get("procedura_operativa_codice", ""),
+                                parcella.get("procedura_operativa_nome", ""),
+                                parcella.get("canale_operativo", ""),
+                                parcella.get("registro_operativo", ""),
+                                parcella.get("tipo_compenso", ""),
+                                parcella.get("tipo_procedimento", ""),
+                                float(parcella.get("valore_controversia", 0.0) or 0.0),
+                                parcella.get("complessita", ""),
+                                parcella.get("data_pagamento", ""),
+                                parcella.get("metodo_pagamento", ""),
+                                parcella.get("creato_da", ""),
+                                parcella.get("creato_il", ""),
+                                json.dumps(parcella, ensure_ascii=False),
+                            ),
+                        )
+                        parcelle_count += 1
+                    except Exception as ex:
+                        errori.append(f"fatturazione/{parcella.get('id','?')}: {ex}")
+                migrati["fatturazione"] = parcelle_count
+
+            # ---- Pagamenti
+            pagamenti_cfg_raw, err = self._leggi_json_grezzo("pagamenti_config")
+            if err:
+                errori.append(f"pagamenti_config: {err}")
+            elif pagamenti_cfg_raw:
+                try:
+                    conn.execute(
+                        """
+                        INSERT OR REPLACE INTO payment_config
+                        (config_id, provider_count, updated_at, dati_json)
+                        VALUES (?,?,?,?)
+                        """,
+                        (
+                            "default",
+                            len(
+                                [
+                                    key for key, value in (pagamenti_cfg_raw or {}).items()
+                                    if isinstance(value, dict) and value.get("abilitato")
+                                ]
+                            ),
+                            datetime.now().isoformat(),
+                            json.dumps(pagamenti_cfg_raw, ensure_ascii=False),
+                        ),
+                    )
+                    migrati["pagamenti_config"] = 1
+                except Exception as ex:
+                    errori.append(f"pagamenti_config/default: {ex}")
+
+            pagamenti_link_raw, err = self._leggi_json("pagamenti_links")
+            if err:
+                errori.append(f"pagamenti_links: {err}")
+            else:
+                pay_count = 0
+                for link in pagamenti_link_raw:
+                    try:
+                        id_cliente = link.get("id_cliente") or None
+                        if id_cliente and id_cliente not in id_clienti_migrati:
+                            avvisi.append(
+                                f"pagamenti_links/{link.get('id','?')}: cliente {id_cliente!r} non trovato, riferimento scollegato in migrazione"
+                            )
+                            id_cliente = None
+                        conn.execute(
+                            """
+                            INSERT OR REPLACE INTO payment_links
+                            (id, token, id_parcella, id_cliente, importo, valuta, stato,
+                             provider_usato, provider_tx_id, creato_il, scade_il, pagato_il, dati_json)
+                            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
+                            """,
+                            (
+                                link.get("id"),
+                                link.get("token", ""),
+                                link.get("id_parcella", ""),
+                                id_cliente,
+                                float(link.get("importo", 0.0) or 0.0),
+                                link.get("valuta", "EUR"),
+                                link.get("stato", "ATTESO"),
+                                link.get("provider_usato", ""),
+                                link.get("provider_tx_id", ""),
+                                link.get("creato_il", ""),
+                                link.get("scade_il", ""),
+                                link.get("pagato_il", ""),
+                                json.dumps(link, ensure_ascii=False),
+                            ),
+                        )
+                        pay_count += 1
+                    except Exception as ex:
+                        errori.append(f"pagamenti_links/{link.get('id','?')}: {ex}")
+                migrati["pagamenti_links"] = pay_count
+
             # ---- Messaggi
             msg_raw, err = self._leggi_json("messaggi")
             if err:
@@ -1614,11 +1987,14 @@ def bootstrap_moduli_monitorati(moduli: Dict[str, Optional[str]]) -> Dict[str, s
         "clienti": {},          # anagrafica.json — mancava dal bootstrap
         "condivisioni": {"cartelle": {}, "fascicoli": {}, "link": {}},
         "fascicoli": {},
+        "conferimenti": {},
         "messaggi": {},
         "note_faldone": {},
         "notifiche": [],
         "email_casella": {},
         "fatturazione": {},
+        "pagamenti_config": {},
+        "pagamenti_links": {},
         "portale": {},
         "preventivi": {},
         "scadenze": {},          # scadenze.json — mancava dal bootstrap

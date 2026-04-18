@@ -20,8 +20,9 @@ Legenda:
 | Programmazione | Agenda e sincronizzazione calendario | R/W | R/W | R/W | parita' completa | Wave 2 - core operativo | SQLite resta fallback dichiarato solo prima del cutover |
 | Programmazione | Scadenziario | R/W | R/W | R/W | parita' completa | Wave 2 - core operativo | JSON solo in bootstrap o fallback locale dichiarato |
 | Produzione atti | Template atti e preferenze editor | R/W | R/W | - | non attiva | Wave 3 - workspace professionali | JSON per continuita' dei layout editor |
-| Commerciale | Preventivi e workflow commerciale | R/W | - | - | non attiva | Wave 4 - economico | JSON tenant-aware come backend canonico corrente |
-| Economico | Fatturazione e pagamenti | R/W | - | - | non attiva | Wave 4 - economico | JSON tenant-aware con report di consistenza pre-cutover |
+| Operativita' | Timesheet e valorizzazione attivita' | R/W | R/W | R/W | parita' completa | Wave 4 - economico | JSON solo come bootstrap o import storico |
+| Commerciale | Preventivi e workflow commerciale | R/W | R/W | R/W | parita' completa | Wave 4 - economico | SQLite/PostgreSQL tenant-aware; JSON solo come ponte di migrazione |
+| Economico | Fatturazione, pagamenti e saldo cliente | R/W | R/W | R/W | parita' completa | Wave 4 - economico | cutover ufficiale con report di consistenza e nessun fallback invisibile |
 | Motori legali | Legal intelligence, monitoraggio e audit fonti | R/W | - | - | non attiva | Wave 5 - intelligence | JSON tenant-aware con snapshot e audit trace locali |
 | Motori legali | Giurisprudenza e corpus interno | R/W | - | - | non attiva | Wave 5 - intelligence | JSON tenant-aware come corpus canonico corrente |
 | Telematico | PST, PDP, PAT e PTT/SIGIT | R/W | R/W | - | non attiva | Wave 3 - workspace professionali | metadati su JSON/SQLite, file e buste sempre su filesystem tenant |
@@ -31,9 +32,10 @@ Legenda:
 ## Verita' operativa oggi
 
 - `selected_mode = POSTGRESQL` senza attivazione non basta: il backend effettivo resta quello dichiarato nel manifest tenant.
-- `effective_runtime_kind = postgresql` significa che i domini core stanno usando davvero PostgreSQL in produzione per quel tenant.
+- `effective_runtime_kind = postgresql` significa che i domini migrati stanno usando davvero PostgreSQL in produzione per quel tenant.
 - non esiste fallback silenzioso da PostgreSQL attivo a JSON: il runtime blocca l'operazione e lascia traccia nel log applicativo.
 - documenti, buste telematiche e modelli locali AI restano filesystem-first anche dopo il cutover SQL.
+- i moduli economici condividono lo stesso percorso ufficiale di migrazione `JSON -> SQLite -> PostgreSQL` con report di consistenza.
 
 ## Check di consistenza minimi
 
@@ -41,4 +43,5 @@ Legenda:
 - clienti, codici fiscali ed email univoci invariati
 - fascicoli, riferimenti cliente e metadati documentali coerenti
 - appuntamenti, scadenze e riferimenti forti invariati
+- timesheet, preventivi, conferimenti, parcelle e link pagamento coerenti tra cliente e fascicolo
 - report di migrazione persistito sotto `backup/` del tenant

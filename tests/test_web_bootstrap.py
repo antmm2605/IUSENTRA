@@ -530,7 +530,7 @@ def test_bootstrap_pubblico_resta_allineato_a_password_temporanee_e_ci_reale():
     assert "PCT_SECRET_KEY=" in env_example
     assert "INSERISCI_UNA_CHIAVE_CASUALE" not in env_example
     assert "workflow principale applicativo è `.github/workflows/ci.yml`" in readme
-    assert "github.com/antmm2605/hacs/actions/workflows/ci.yml" in readme
+    assert "github.com/antmm2605/IUSENTRA/actions/workflows/ci.yml" in readme
     assert "name: CI" in ci_workflow
     assert "name: Governance repo" in ci_workflow
     assert "python tools/check_repo_governance.py" in ci_workflow

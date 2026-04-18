@@ -170,6 +170,108 @@ CREATE TABLE IF NOT EXISTS timesheet_entries (
     dati_json TEXT DEFAULT '{}'
 );
 
+CREATE TABLE IF NOT EXISTS preventivi_records (
+    preventivo_id TEXT PRIMARY KEY,
+    numero TEXT NOT NULL,
+    id_cliente TEXT REFERENCES clienti(id) ON DELETE SET NULL,
+    id_fascicolo TEXT REFERENCES fascicoli(id) ON DELETE SET NULL,
+    data_emissione TEXT NOT NULL,
+    data_scadenza TEXT,
+    oggetto TEXT NOT NULL DEFAULT '',
+    stato TEXT NOT NULL DEFAULT 'BOZZA',
+    workflow_channel TEXT NOT NULL DEFAULT 'STUDIO',
+    tipo_compenso TEXT NOT NULL DEFAULT '',
+    tipo_procedimento TEXT NOT NULL DEFAULT '',
+    area_pratica TEXT NOT NULL DEFAULT '',
+    id_pratica TEXT NOT NULL DEFAULT '',
+    procedura_operativa_codice TEXT NOT NULL DEFAULT '',
+    procedura_operativa_nome TEXT NOT NULL DEFAULT '',
+    canale_operativo TEXT NOT NULL DEFAULT '',
+    registro_operativo TEXT NOT NULL DEFAULT '',
+    totale DOUBLE PRECISION NOT NULL DEFAULT 0,
+    accettato_il TEXT,
+    id_preventivo_precedente TEXT NOT NULL DEFAULT '',
+    token_portale TEXT NOT NULL DEFAULT '',
+    creato_il TEXT,
+    dati_json TEXT DEFAULT '{}'
+);
+
+CREATE TABLE IF NOT EXISTS conferimenti_records (
+    conferimento_id TEXT PRIMARY KEY,
+    numero TEXT NOT NULL,
+    id_preventivo TEXT NOT NULL DEFAULT '',
+    id_cliente TEXT REFERENCES clienti(id) ON DELETE SET NULL,
+    id_fascicolo TEXT REFERENCES fascicoli(id) ON DELETE SET NULL,
+    data_incarico TEXT NOT NULL,
+    oggetto TEXT NOT NULL DEFAULT '',
+    stato TEXT NOT NULL DEFAULT 'ATTIVO',
+    workflow_channel TEXT NOT NULL DEFAULT 'STUDIO',
+    tipo_compenso TEXT NOT NULL DEFAULT '',
+    tipo_procedimento TEXT NOT NULL DEFAULT '',
+    area_pratica TEXT NOT NULL DEFAULT '',
+    id_pratica TEXT NOT NULL DEFAULT '',
+    procedura_operativa_codice TEXT NOT NULL DEFAULT '',
+    procedura_operativa_nome TEXT NOT NULL DEFAULT '',
+    canale_operativo TEXT NOT NULL DEFAULT '',
+    registro_operativo TEXT NOT NULL DEFAULT '',
+    compenso_pattuito DOUBLE PRECISION NOT NULL DEFAULT 0,
+    firma_cliente_eseguita INTEGER NOT NULL DEFAULT 0,
+    fascicolo_aperto_il TEXT,
+    dati_json TEXT DEFAULT '{}'
+);
+
+CREATE TABLE IF NOT EXISTS parcelle (
+    id TEXT PRIMARY KEY,
+    numero TEXT NOT NULL,
+    id_cliente TEXT REFERENCES clienti(id) ON DELETE SET NULL,
+    id_fascicolo TEXT REFERENCES fascicoli(id) ON DELETE SET NULL,
+    data_emissione TEXT NOT NULL,
+    data_scadenza TEXT,
+    stato TEXT NOT NULL DEFAULT 'BOZZA',
+    totale DOUBLE PRECISION NOT NULL DEFAULT 0,
+    imponibile DOUBLE PRECISION NOT NULL DEFAULT 0,
+    origine TEXT NOT NULL DEFAULT '',
+    id_preventivo TEXT NOT NULL DEFAULT '',
+    id_pratica TEXT NOT NULL DEFAULT '',
+    area_pratica TEXT NOT NULL DEFAULT '',
+    procedura_operativa_codice TEXT NOT NULL DEFAULT '',
+    procedura_operativa_nome TEXT NOT NULL DEFAULT '',
+    canale_operativo TEXT NOT NULL DEFAULT '',
+    registro_operativo TEXT NOT NULL DEFAULT '',
+    tipo_compenso TEXT NOT NULL DEFAULT '',
+    tipo_procedimento TEXT NOT NULL DEFAULT '',
+    valore_controversia DOUBLE PRECISION NOT NULL DEFAULT 0,
+    complessita TEXT NOT NULL DEFAULT '',
+    data_pagamento TEXT,
+    metodo_pagamento TEXT,
+    creato_da TEXT NOT NULL DEFAULT '',
+    creato_il TEXT,
+    dati_json TEXT DEFAULT '{}'
+);
+
+CREATE TABLE IF NOT EXISTS payment_links (
+    id TEXT PRIMARY KEY,
+    token TEXT NOT NULL UNIQUE,
+    id_parcella TEXT NOT NULL DEFAULT '',
+    id_cliente TEXT REFERENCES clienti(id) ON DELETE SET NULL,
+    importo DOUBLE PRECISION NOT NULL DEFAULT 0,
+    valuta TEXT NOT NULL DEFAULT 'EUR',
+    stato TEXT NOT NULL DEFAULT 'ATTESO',
+    provider_usato TEXT NOT NULL DEFAULT '',
+    provider_tx_id TEXT NOT NULL DEFAULT '',
+    creato_il TEXT,
+    scade_il TEXT,
+    pagato_il TEXT,
+    dati_json TEXT DEFAULT '{}'
+);
+
+CREATE TABLE IF NOT EXISTS payment_config (
+    config_id TEXT PRIMARY KEY,
+    provider_count INTEGER NOT NULL DEFAULT 0,
+    updated_at TEXT,
+    dati_json TEXT DEFAULT '{}'
+);
+
 CREATE INDEX IF NOT EXISTS idx_clienti_cf ON clienti(codice_fiscale);
 CREATE INDEX IF NOT EXISTS idx_fascicoli_cliente ON fascicoli(id_cliente);
 CREATE INDEX IF NOT EXISTS idx_fascicoli_stato ON fascicoli(stato);
@@ -181,6 +283,16 @@ CREATE INDEX IF NOT EXISTS idx_audit_timestamp ON audit_log(timestamp);
 CREATE INDEX IF NOT EXISTS idx_timesheet_fascicolo ON timesheet_entries(id_fascicolo);
 CREATE INDEX IF NOT EXISTS idx_timesheet_utente ON timesheet_entries(id_utente);
 CREATE INDEX IF NOT EXISTS idx_timesheet_data ON timesheet_entries(data_attivita);
+CREATE INDEX IF NOT EXISTS idx_preventivi_records_cliente ON preventivi_records(id_cliente);
+CREATE INDEX IF NOT EXISTS idx_preventivi_records_stato ON preventivi_records(stato, data_emissione);
+CREATE INDEX IF NOT EXISTS idx_conferimenti_records_cliente ON conferimenti_records(id_cliente);
+CREATE INDEX IF NOT EXISTS idx_conferimenti_records_stato ON conferimenti_records(stato, data_incarico);
+CREATE INDEX IF NOT EXISTS idx_parcelle_cliente ON parcelle(id_cliente);
+CREATE INDEX IF NOT EXISTS idx_parcelle_fascicolo ON parcelle(id_fascicolo);
+CREATE INDEX IF NOT EXISTS idx_parcelle_stato ON parcelle(stato, data_emissione);
+CREATE INDEX IF NOT EXISTS idx_payment_links_cliente ON payment_links(id_cliente);
+CREATE INDEX IF NOT EXISTS idx_payment_links_parcella ON payment_links(id_parcella);
+CREATE INDEX IF NOT EXISTS idx_payment_links_stato ON payment_links(stato, creato_il);
 """
 
 
@@ -307,6 +419,103 @@ CORE_TABLE_COLUMNS: dict[str, tuple[str, ...]] = {
         "origine",
         "creato_il",
         "modificato_il",
+        "dati_json",
+    ),
+    "preventivi_records": (
+        "preventivo_id",
+        "numero",
+        "id_cliente",
+        "id_fascicolo",
+        "data_emissione",
+        "data_scadenza",
+        "oggetto",
+        "stato",
+        "workflow_channel",
+        "tipo_compenso",
+        "tipo_procedimento",
+        "area_pratica",
+        "id_pratica",
+        "procedura_operativa_codice",
+        "procedura_operativa_nome",
+        "canale_operativo",
+        "registro_operativo",
+        "totale",
+        "accettato_il",
+        "id_preventivo_precedente",
+        "token_portale",
+        "creato_il",
+        "dati_json",
+    ),
+    "conferimenti_records": (
+        "conferimento_id",
+        "numero",
+        "id_preventivo",
+        "id_cliente",
+        "id_fascicolo",
+        "data_incarico",
+        "oggetto",
+        "stato",
+        "workflow_channel",
+        "tipo_compenso",
+        "tipo_procedimento",
+        "area_pratica",
+        "id_pratica",
+        "procedura_operativa_codice",
+        "procedura_operativa_nome",
+        "canale_operativo",
+        "registro_operativo",
+        "compenso_pattuito",
+        "firma_cliente_eseguita",
+        "fascicolo_aperto_il",
+        "dati_json",
+    ),
+    "parcelle": (
+        "id",
+        "numero",
+        "id_cliente",
+        "id_fascicolo",
+        "data_emissione",
+        "data_scadenza",
+        "stato",
+        "totale",
+        "imponibile",
+        "origine",
+        "id_preventivo",
+        "id_pratica",
+        "area_pratica",
+        "procedura_operativa_codice",
+        "procedura_operativa_nome",
+        "canale_operativo",
+        "registro_operativo",
+        "tipo_compenso",
+        "tipo_procedimento",
+        "valore_controversia",
+        "complessita",
+        "data_pagamento",
+        "metodo_pagamento",
+        "creato_da",
+        "creato_il",
+        "dati_json",
+    ),
+    "payment_links": (
+        "id",
+        "token",
+        "id_parcella",
+        "id_cliente",
+        "importo",
+        "valuta",
+        "stato",
+        "provider_usato",
+        "provider_tx_id",
+        "creato_il",
+        "scade_il",
+        "pagato_il",
+        "dati_json",
+    ),
+    "payment_config": (
+        "config_id",
+        "provider_count",
+        "updated_at",
         "dati_json",
     ),
 }

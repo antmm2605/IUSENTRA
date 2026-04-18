@@ -99,6 +99,9 @@ def register_core_surfaces(
         get_fascicoli=core["get_fascicoli"],
         get_clienti=core["get_clienti"],
         get_timesheet=core["get_timesheet"],
+        get_preventivi=core["get_preventivi"],
+        get_fatturazione=core["get_fatturazione"],
+        get_pagamenti=core["get_pagamenti"],
         get_condivisioni=core["get_condivisioni"],
         get_workspace_intelligente=core["get_workspace_intelligente"],
         get_calendar_sync=core["get_calendar_sync"],
@@ -176,6 +179,8 @@ def register_core_surfaces(
         get_messaggi=core["get_messaggi"],
         get_scadenziario=core["get_scadenziario"],
         get_timesheet=core["get_timesheet"],
+        get_preventivi=core["get_preventivi"],
+        get_fatturazione=core["get_fatturazione"],
         get_config_studio=core["get_config_studio"],
         cliente_accessibile=core["cliente_accessibile"],
         track_recente=core["track_recente"],
@@ -186,6 +191,7 @@ def register_core_surfaces(
         get_timesheet=core["get_timesheet"],
         get_clienti=core["get_clienti"],
         get_fascicoli=core["get_fascicoli"],
+        get_fatturazione=core["get_fatturazione"],
         audit=core["audit"],
     )
     register_condivisioni_routes(

@@ -48,6 +48,10 @@ from .auth import (
     GestioneUtenti,
     RuoloUtente,
 )
+from .fatturazione import GestioneFatturazione
+from .pagamenti import GestionePagamenti
+from .preventivi import GestionePreventivi
+from .studio_demo import build_studio_demo_snapshot
 from .tenant import DatabaseConfig, DbMode, GestioneTenant
 from .scadenziario import (
     GestioneScadenziario,
@@ -56,6 +60,7 @@ from .scadenziario import (
     PRESET_TERMINI,
     calcola_termine,
 )
+from .timesheet import GestioneTimesheet
 
 
 def carica_config(config_path: str | None = None) -> dict:
@@ -2482,6 +2487,79 @@ def cmd_migrate_storage(target, tenant_slug, registry, host, port, db_name, user
 
     click.echo(f"Cutover storage completato per il tenant {resolved_slug}.")
     click.echo(json.dumps(payload, ensure_ascii=False, indent=2))
+
+
+@cli.command("demo-check")
+@click.option("--tenant", "tenant_slug", default="", help="Slug tenant. Se omesso e c'e' un solo tenant, viene risolto automaticamente")
+@click.option("--registry", default=lambda: os.getenv("PCT_TENANTS_REGISTRY", "./data/tenants.json"), show_default="PCT_TENANTS_REGISTRY o ./data/tenants.json", help="Registry tenant")
+def cmd_demo_check(tenant_slug, registry):
+    """Verifica se uno studio e' pronto per un uso reale end-to-end."""
+    import sqlite3
+
+    from pct.core_storage_backend import build_core_storage_backend
+
+    tm = GestioneTenant(registry_path=registry)
+    tenants = tm.lista()
+
+    resolved_slug = (tenant_slug or "").strip().lower()
+    if not resolved_slug:
+        if len(tenants) == 1:
+            resolved_slug = str(tenants[0].slug or "").strip().lower()
+        else:
+            click.echo("Errore: specifica --tenant oppure lascia un solo tenant nel registry.", err=True)
+            sys.exit(1)
+
+    studio = tm.get(resolved_slug)
+    if not studio:
+        click.echo(f"Errore: tenant '{resolved_slug}' non trovato.", err=True)
+        sys.exit(1)
+
+    paths = tm.percorsi_dati(resolved_slug)
+    studio_db = None
+    try:
+        studio_db = build_core_storage_backend(studio.database, studio_db_path=paths["STUDIO_DB"])
+    except (OSError, sqlite3.Error):
+        studio_db = None
+    if studio_db is not None and getattr(studio_db, "backend_kind", "") == "sqlite":
+        try:
+            clienti_count = int((studio_db.conn.execute("SELECT COUNT(*) FROM clienti").fetchone() or [0])[0] or 0)
+            fascicoli_count = int((studio_db.conn.execute("SELECT COUNT(*) FROM fascicoli").fetchone() or [0])[0] or 0)
+        except Exception:
+            clienti_count = 0
+            fascicoli_count = 0
+        if clienti_count == 0 and fascicoli_count == 0:
+            json_legacy_present = Path(paths["CLIENTI_DB"]).exists() or Path(paths["FASCICOLI_DB"]).exists()
+            if json_legacy_present:
+                studio_db = None
+
+    clienti = GestioneClienti(db_path=paths["CLIENTI_DB"], studio_db=studio_db)
+    fascicoli = GestioneFascicoli(
+        db_path=paths["FASCICOLI_DB"],
+        documents_dir=paths["FASCICOLI_DOCS"],
+        archive_dir=paths["FASCICOLI_ARCH"],
+        studio_db=studio_db,
+    )
+    preventivi = GestionePreventivi(db_path=paths["PREVENTIVI_DB"], studio_db=studio_db)
+    fatturazione = GestioneFatturazione(db_path=paths["FATTURAZIONE_DB"], studio_db=studio_db)
+    pagamenti = GestionePagamenti(db_dir=paths["PAGAMENTI_DIR"], studio_db=studio_db)
+    timesheet = GestioneTimesheet(db_path=paths["TIMESHEET_DB"], studio_db=studio_db)
+
+    snapshot = build_studio_demo_snapshot(
+        clienti=clienti.tutti(stato=None),
+        fascicoli=fascicoli.tutti(stato=None),
+        preventivi=preventivi.tutti_preventivi(),
+        conferimenti=preventivi.tutti_conferimenti(),
+        parcelle=fatturazione.tutte(),
+        timesheet_entries=timesheet.tutte(),
+        payment_links=pagamenti.tutti_link(),
+    )
+
+    click.echo(f"Studio: {studio.nome} ({resolved_slug})")
+    click.echo(f"Backend effettivo: {getattr(studio.database, 'effective_runtime_kind', 'json')}")
+    click.echo(f"Pronto: {'SI' if snapshot['ready'] else 'NO'}")
+    click.echo(f"Copertura workflow: {snapshot['ready_steps']}/{snapshot['steps_total']}")
+    click.echo(f"Prossima azione: {snapshot['next_action']}")
+    click.echo(json.dumps(snapshot, ensure_ascii=False, indent=2))
 
 
 def main():

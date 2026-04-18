@@ -8,9 +8,11 @@ from pct.calendar_sync import GestioneCalendarSync
 from pct.clienti import GestioneClienti, TipoCliente
 from pct.fascicoli import GestioneFascicoli, TipoFascicolo
 from pct.fatturazione import GestioneFatturazione, VoceParcella
+from pct.pagamenti import GestionePagamenti
+from pct.preventivi import GestionePreventivi, VocePreventivo
 from pct.scadenziario import GestioneScadenziario, TipoTermine
 from pct.telematico_workflow import TelematicoWorkflowRepository
-from pct.timesheet import GestioneTimesheet
+from pct.timesheet import GestioneTimesheet, StatoTimesheet
 from web.app import create_app
 
 
@@ -73,8 +75,10 @@ def _cfg_web(tmp_path: Path) -> dict:
         "TEMPLATE_ATTI_DB": str(tmp_path / "template_atti" / "templates.json"),
         "PREVENTIVI_DB": str(tmp_path / "preventivi" / "preventivi.json"),
         "FATTURAZIONE_DB": str(tmp_path / "fatturazione" / "parcelle.json"),
+        "PAGAMENTI_DIR": str(tmp_path / "pagamenti"),
         "TIMESHEET_DB": str(tmp_path / "timesheet" / "entries.json"),
         "TENANTS_REGISTRY": str(tmp_path / "tenants.json"),
+        "STUDIO_DB": str(tmp_path / "studio.db"),
     }
 
 
@@ -151,7 +155,26 @@ def _seed_runtime(cfg: dict) -> str:
         username="admin-operativo",
         valore_unitario=120.0,
         fatturabile=True,
+        stato=StatoTimesheet.VALIDATO,
         note="Prima lavorazione operativa",
+    )
+
+    preventivi = GestionePreventivi(db_path=cfg["PREVENTIVI_DB"])
+    preventivo = preventivi.crea_preventivo(
+        id_cliente=cliente.id,
+        id_fascicolo=fascicolo.id,
+        oggetto="Preventivo opposizione a decreto ingiuntivo",
+        voci=[VocePreventivo(descrizione="Fase introduttiva", importo=650.0)],
+        creato_da="admin-operativo",
+    )
+    preventivi.crea_conferimento(
+        id_cliente=cliente.id,
+        id_preventivo=preventivo.id,
+        id_fascicolo=fascicolo.id,
+        oggetto=preventivo.oggetto,
+        avvocato_referente="Avv. Operativo",
+        compenso_pattuito=preventivo.totale,
+        creato_da="admin-operativo",
     )
 
     GestioneFatturazione(db_path=cfg["FATTURAZIONE_DB"]).crea(
@@ -160,6 +183,12 @@ def _seed_runtime(cfg: dict) -> str:
         creato_da="admin-operativo",
         voci=[VoceParcella(descrizione="Attivita' iniziale", quantita=1, prezzo_unitario=480.0)],
         note="Parcella iniziale cliente operativo",
+    )
+    GestionePagamenti(db_dir=cfg["PAGAMENTI_DIR"]).crea_link(
+        id_parcella="demo-parcella",
+        id_cliente=cliente.id,
+        importo=480.0,
+        descrizione="Saldo parcella demo",
     )
 
     sync = GestioneCalendarSync(db_path=cfg["CALENDAR_SYNC_DB"])
@@ -280,6 +309,7 @@ def test_superfici_cliente_fascicolo_e_timesheet_renderizzano_blocchi_operativi(
         cartella = client.get(f"/clienti/{cliente.id}/cartella", follow_redirects=True)
         dettaglio = client.get(f"/fascicoli/{fascicolo_id}", follow_redirects=True)
         timesheet = client.get("/timesheet", follow_redirects=True)
+        dashboard = client.get("/", follow_redirects=True)
 
     assert cartella.status_code == 200
     html_cartella = cartella.get_data(as_text=True)
@@ -298,3 +328,8 @@ def test_superfici_cliente_fascicolo_e_timesheet_renderizzano_blocchi_operativi(
     assert "Timesheet operativo" in html_timesheet
     assert "Nuova voce timesheet" in html_timesheet
     assert "Registro lavorazioni" in html_timesheet
+    assert "Genera parcella dalle voci validate" in html_timesheet
+
+    assert dashboard.status_code == 200
+    html_dashboard = dashboard.get_data(as_text=True)
+    assert "Studio reale in 5 minuti" in html_dashboard

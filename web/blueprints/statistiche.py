@@ -12,7 +12,7 @@ from collections import defaultdict
 
 from flask import Blueprint, g, jsonify, redirect, render_template, url_for, current_app
 
-from web.helpers import get_clienti, get_fascicoli, get_agenda, get_scadenziario
+from web.helpers import get_agenda, get_clienti, get_fascicoli, get_fatturazione as _shared_get_fatturazione, get_scadenziario
 
 statistiche = Blueprint("statistiche", __name__, url_prefix="/statistiche")
 
@@ -28,10 +28,7 @@ def _richiedi_login(f):
 
 
 def _get_fatturazione():
-    from pct.fatturazione import GestioneFatturazione
-    return GestioneFatturazione(
-        db_path=current_app.config.get("FATTURAZIONE_DB", "./fatturazione/parcelle.json")
-    )
+    return _shared_get_fatturazione()
 
 
 # ================================================================ PAGINA PRINCIPALE

@@ -8,20 +8,18 @@ from typing import Any
 
 def build_quadro_fascicolo_context(
     *,
-    app_config: dict[str, Any],
     id_fasc: str,
     fascicolo: Any,
     cliente: Any,
+    get_preventivi: Any,
+    get_fatturazione: Any,
     get_scadenziario: Any,
     get_agenda: Any,
     get_soggetti: Any,
     build_responsabile_conformita_fascicolo: Any,
 ) -> dict[str, Any]:
     """Build the dashboard payload for the quadro fascicolo view."""
-    from pct.fatturazione import GestioneFatturazione
-    from pct.preventivi import GestionePreventivi
-
-    gp = GestionePreventivi(app_config.get("PREVENTIVI_DB", "./preventivi/preventivi.json"))
+    gp = get_preventivi()
     preventivi_fascicolo = gp.preventivi_per_fascicolo(id_fasc)
     conferimenti_fascicolo = gp.conferimenti_per_fascicolo(id_fasc)
     preventivo = preventivi_fascicolo[0] if preventivi_fascicolo else None
@@ -29,10 +27,7 @@ def build_quadro_fascicolo_context(
 
     parcelle: list[Any] = []
     try:
-        gfatt = GestioneFatturazione(
-            db_path=app_config.get("FATTURAZIONE_DB", "./fatturazione/parcelle.json")
-        )
-        parcelle = gfatt.per_fascicolo(id_fasc)
+        parcelle = get_fatturazione().per_fascicolo(id_fasc)
     except Exception:
         parcelle = []
 

@@ -16,8 +16,11 @@ from pct.clienti import GestioneClienti
 from pct.condivisione import GestioneCondivisioni, RuoloCondivisione
 from pct.database import GestioneDatabase, bootstrap_moduli_monitorati
 from pct.fascicoli import GestioneFascicoli
+from pct.fatturazione import GestioneFatturazione
 from pct.messaggi import ConfigEmail, ConfigMessaggistica, ConfigTwilio, GestioneMessaggi
+from pct.pagamenti import GestionePagamenti
 from pct.pdp_penale_workflow import PDPPenaleWorkflowRepository
+from pct.preventivi import GestionePreventivi
 from pct.privacy import GestioneTrattamenti
 from pct.scadenziario import GestioneScadenziario, regola_patrono_studio
 from pct.search_index import IndiceRicerca
@@ -524,6 +527,30 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
             )
         return g._timesheet
 
+    def get_preventivi() -> GestionePreventivi:
+        if not hasattr(g, "_preventivi"):
+            g._preventivi = GestionePreventivi(
+                db_path=_cfg_data_path("PREVENTIVI_DB"),
+                studio_db=get_studio_db(),
+            )
+        return g._preventivi
+
+    def get_fatturazione() -> GestioneFatturazione:
+        if not hasattr(g, "_fatturazione"):
+            g._fatturazione = GestioneFatturazione(
+                db_path=_cfg_data_path("FATTURAZIONE_DB"),
+                studio_db=get_studio_db(),
+            )
+        return g._fatturazione
+
+    def get_pagamenti() -> GestionePagamenti:
+        if not hasattr(g, "_pagamenti"):
+            g._pagamenti = GestionePagamenti(
+                db_dir=_cfg_data_path("PAGAMENTI_DIR"),
+                studio_db=get_studio_db(),
+            )
+        return g._pagamenti
+
     def _resolve_judicial_office_by_code(codice: str) -> dict:
         if not codice:
             return {}
@@ -788,6 +815,9 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
         "get_utenti": get_utenti,
         "get_scadenziario": get_scadenziario,
         "get_timesheet": get_timesheet,
+        "get_preventivi": get_preventivi,
+        "get_fatturazione": get_fatturazione,
+        "get_pagamenti": get_pagamenti,
         "resolve_judicial_office_by_code": _resolve_judicial_office_by_code,
         "studio_patron_rule_from_config": _studio_patron_rule_from_config,
         "get_soggetti": get_soggetti,

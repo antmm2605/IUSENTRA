@@ -1,0 +1,29 @@
+<div class="card dashboard-card h-100" id="sezione-demo-studio">
+  <div class="card-header ui-panel-compact__header fw-semibold d-flex justify-content-between align-items-center">
+    <span><i class="bi bi-rocket-takeoff me-2 text-primary"></i>Studio reale in 5 minuti</span>
+    <span class="badge {{ 'text-bg-success' if studio_demo_snapshot.ready else 'text-bg-warning' }}">
+      {{ studio_demo_snapshot.ready_steps }}/{{ studio_demo_snapshot.steps_total }}
+    </span>
+  </div>
+  <div class="card-body">
+    <div class="fw-semibold">{{ studio_demo_snapshot.headline }}</div>
+    <div class="small text-muted mt-2">{{ studio_demo_snapshot.next_action }}</div>
+    <div class="dashboard-operational-list mt-3">
+      {% for step in studio_demo_snapshot.steps %}
+      <div class="dashboard-operational-item">
+        <div>
+          <div class="fw-semibold text-dark">{{ step.label }}</div>
+          <div class="small text-muted mt-1">{{ step.hint }}</div>
+        </div>
+        <span class="badge {{ 'text-bg-success' if step.complete else 'text-bg-light border text-dark' }}">
+          {{ 'Pronto' if step.complete else 'Da fare' }}
+        </span>
+      </div>
+      {% endfor %}
+    </div>
+    <div class="small text-muted mt-3">
+      Tempo valorizzabile: &euro; {{ '%.2f'|format(studio_demo_snapshot.tempo_valorizzabile or 0) }}
+      · Saldo aperto: &euro; {{ '%.2f'|format(studio_demo_snapshot.saldo_aperto or 0) }}
+    </div>
+  </div>
+</div>

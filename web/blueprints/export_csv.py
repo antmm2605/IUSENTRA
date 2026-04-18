@@ -12,7 +12,7 @@ from datetime import date
 
 from flask import Blueprint, Response, g, redirect, url_for, current_app
 
-from web.helpers import get_clienti, get_fascicoli, get_agenda, get_scadenziario
+from web.helpers import get_agenda, get_clienti, get_fascicoli, get_fatturazione as _shared_get_fatturazione, get_scadenziario
 
 export_csv = Blueprint("export_csv", __name__, url_prefix="/export")
 
@@ -144,10 +144,7 @@ def scadenze_csv():
 @export_csv.route("/fatturazione.csv")
 @_richiedi_login
 def fatturazione_csv():
-    from pct.fatturazione import GestioneFatturazione
-    gf = GestioneFatturazione(
-        db_path=current_app.config.get("FATTURAZIONE_DB", "./fatturazione/parcelle.json")
-    )
+    gf = _shared_get_fatturazione()
     gc = get_clienti()
     rows = []
     for p in gf.tutte():

@@ -608,7 +608,7 @@ def main() -> int:
     _check("/admin/osservabilita" in readme, "README non documenta la pagina di osservabilita'.", failures)
     _check("CodeQL" in readme, "README non documenta i workflow DevSecOps.", failures)
     _check(
-        "github.com/antmm2605/hacs/actions/workflows/ci.yml" in readme,
+        "github.com/antmm2605/IUSENTRA/actions/workflows/ci.yml" in readme,
         "README non collega la vista live del workflow CI.",
         failures,
     )

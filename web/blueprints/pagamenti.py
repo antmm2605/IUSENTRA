@@ -12,6 +12,7 @@ from __future__ import annotations
 
 from flask import (Blueprint, abort, flash, g, jsonify, redirect,
                    render_template, request, url_for, current_app)
+from web.helpers import get_fatturazione as _shared_get_fatturazione, get_pagamenti as _shared_get_pagamenti
 
 pagamenti = Blueprint("pagamenti", __name__)
 
@@ -19,10 +20,7 @@ pagamenti = Blueprint("pagamenti", __name__)
 # ---------------------------------------------------------------- helpers
 
 def _get_gp():
-    from pct.pagamenti import GestionePagamenti
-    return GestionePagamenti(
-        db_dir=current_app.config.get("PAGAMENTI_DIR", "./pagamenti")
-    )
+    return _shared_get_pagamenti()
 
 
 def _richiedi_login(f):
@@ -38,9 +36,8 @@ def _richiedi_login(f):
 def _update_parcella_pagata(id_parcella: str, metodo: str):
     """Segna la parcella come PAGATA nel modulo fatturazione."""
     try:
-        from pct.fatturazione import GestioneFatturazione, StatoParcella
-        db_path = current_app.config.get("FATTURAZIONE_DB", "./fatturazione/parcelle.json")
-        gf = GestioneFatturazione(db_path=db_path)
+        from pct.fatturazione import StatoParcella
+        gf = _shared_get_fatturazione()
         gf.cambia_stato(id_parcella, StatoParcella.PAGATA, metodo_pagamento=metodo)
     except Exception:
         pass
@@ -111,11 +108,8 @@ def impostazioni_pagamenti():
 @pagamenti.route("/fatturazione/<id_parcella>/link-pagamento", methods=["POST"])
 @_richiedi_login
 def crea_link_pagamento(id_parcella: str):
-    from pct.fatturazione import GestioneFatturazione
     gp = _get_gp()
-    gf = GestioneFatturazione(
-        db_path=current_app.config.get("FATTURAZIONE_DB", "./fatturazione/parcelle.json")
-    )
+    gf = _shared_get_fatturazione()
     p = gf.get(id_parcella)
     if not p:
         abort(404)

@@ -15,13 +15,13 @@ Ogni modifica al codice richiede bump coerente in:
 
 ## Pipeline CI
 
-Il workflow applicativo è `.github/workflows/ci.yml` e include:
+Il workflow applicativo e' `.github/workflows/ci.yml` e include:
 
 - `Lint + syntax`
 - `Governance repo`
 - `Smoke test Flask`
 - `Smoke scheduler worker`
-- test core su storage SQLite, osservabilità runtime e worker OCR persistente
+- test core su storage SQLite, osservabilita' runtime e worker OCR persistente
 - `Pytest core`
 - `Local Signer e PKCS#11` su Linux, Windows e macOS
 
@@ -33,7 +33,7 @@ Workflow complementari di sicurezza:
 
 Vista live del workflow applicativo:
 
-- [Actions / CI](https://github.com/antmm2605/hacs/actions/workflows/ci.yml)
+- [Actions / CI](https://github.com/antmm2605/IUSENTRA/actions/workflows/ci.yml)
 
 Il lint resta bloccante solo sugli errori reali di sintassi e import.
 Il benchmark notturno gira in `.github/workflows/performance-nightly.yml` e usa `tools/performance_smoke.py`.
@@ -67,7 +67,7 @@ Il processo web non deve avviare i job periodici dentro `create_app()`.
 - web: `wsgi:app`
 - worker schedulato: `python -m pct.scheduler_worker`
 
-In produzione la configurazione corretta è avere un servizio dedicato scheduler che riusa la stessa codebase o immagine, ma con comando di avvio `python -m pct.scheduler_worker`.
+In produzione la configurazione corretta e' avere un servizio dedicato scheduler che riusa la stessa codebase o immagine, ma con comando di avvio `python -m pct.scheduler_worker`.
 
 ## OCR worker separato dal web
 
@@ -107,9 +107,10 @@ Prima di chiudere una release che tocca storage:
 
 - verifica la strategia selezionata sullo studio
 - controlla il manifest `data/tenants/<slug>/config/storage.json`
-- se il tenant è `SQLite`, verifica la presenza di `data/tenants/<slug>/studio.db`
-- se il tenant è `PostgreSQL`, verifica almeno il test connessione e la chiarezza tra strategia selezionata e backend effettivo
-- aggiorna la matrice in [docs/STORAGE_MATRIX.md](docs/STORAGE_MATRIX.md) se cambia la maturità di un modulo
+- se il tenant e' `SQLite`, verifica la presenza di `data/tenants/<slug>/studio.db`
+- se il tenant e' `PostgreSQL`, verifica almeno il test connessione e la chiarezza tra strategia selezionata e backend effettivo
+- aggiorna la matrice in [docs/STORAGE_MATRIX.md](docs/STORAGE_MATRIX.md) se cambia la maturita' di un modulo
+- se il flusso operativo cambia, esegui anche `iusentra demo-check --tenant=<slug-tenant>` oppure il relativo test automatico
 
 ## Repo hygiene
 

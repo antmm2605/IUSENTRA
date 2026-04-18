@@ -194,20 +194,89 @@ class Parcella:
 class GestioneFatturazione:
     """Gestisce creazione, aggiornamento e ricerca delle parcelle."""
 
-    def __init__(self, db_path: str = "./fatturazione/parcelle.json"):
+    def __init__(self, db_path: str = "./fatturazione/parcelle.json", studio_db=None):
         self.db_path = db_path
+        self._studio_db = studio_db
         self._parcelle: Dict[str, Parcella] = {}
         self._carica()
 
     # ---------------------------------------------------------------- I/O
 
     def _carica(self):
+        if self._studio_db is not None:
+            rows = self._studio_db.carica_tabella("parcelle")
+            self._parcelle = {}
+            for row in rows:
+                try:
+                    parcella = Parcella.from_dict(row)
+                except Exception:
+                    continue
+                self._parcelle[parcella.id] = parcella
+            return
         if os.path.exists(self.db_path):
             with open(self.db_path, encoding="utf-8") as f:
                 raw = json.load(f)
-            self._parcelle = {k: Parcella.from_dict(v) for k, v in raw.items()}
+            if isinstance(raw, dict):
+                payloads = raw.values()
+            elif isinstance(raw, list):
+                payloads = raw
+            else:
+                payloads = []
+            self._parcelle = {}
+            for payload in payloads:
+                try:
+                    parcella = Parcella.from_dict(payload)
+                except Exception:
+                    continue
+                self._parcelle[parcella.id] = parcella
 
     def _salva(self):
+        if self._studio_db is not None:
+            def _insert(conn, parcella: Parcella):
+                payload = parcella.to_dict()
+                conn.execute(
+                    """
+                    INSERT INTO parcelle
+                    (id, numero, id_cliente, id_fascicolo, data_emissione, data_scadenza,
+                     stato, totale, imponibile, origine, id_preventivo, id_pratica,
+                     area_pratica, procedura_operativa_codice, procedura_operativa_nome,
+                     canale_operativo, registro_operativo, tipo_compenso,
+                     tipo_procedimento, valore_controversia, complessita,
+                     data_pagamento, metodo_pagamento, creato_da, creato_il, dati_json)
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                    """,
+                    (
+                        parcella.id,
+                        parcella.numero,
+                        parcella.id_cliente,
+                        parcella.id_fascicolo or None,
+                        parcella.data_emissione,
+                        parcella.data_scadenza or "",
+                        parcella.stato.value,
+                        float(parcella.totale or 0.0),
+                        float(parcella.imponibile or 0.0),
+                        parcella.origine,
+                        parcella.id_preventivo or "",
+                        parcella.id_pratica,
+                        parcella.area_pratica,
+                        parcella.procedura_operativa_codice,
+                        parcella.procedura_operativa_nome,
+                        parcella.canale_operativo,
+                        parcella.registro_operativo,
+                        parcella.tipo_compenso,
+                        parcella.tipo_procedimento,
+                        float(parcella.valore_controversia or 0.0),
+                        parcella.complessita,
+                        parcella.data_pagamento or "",
+                        parcella.metodo_pagamento or "",
+                        parcella.creato_da,
+                        parcella.creato_il,
+                        json.dumps(payload, ensure_ascii=False),
+                    ),
+                )
+
+            self._studio_db.salva_tabella("parcelle", list(self._parcelle.values()), _insert)
+            return
         os.makedirs(os.path.dirname(self.db_path) or ".", exist_ok=True)
         with open(self.db_path, "w", encoding="utf-8") as f:
             json.dump(
@@ -339,6 +408,35 @@ class GestioneFatturazione:
         if id_parcella in self._parcelle:
             del self._parcelle[id_parcella]
             self._salva()
+
+    def saldo_cliente(self, id_cliente: str) -> Dict[str, float]:
+        parcelle = self.per_cliente(id_cliente)
+        fatturato = round(
+            sum(
+                parcella.totale
+                for parcella in parcelle
+                if parcella.stato not in {StatoParcella.BOZZA, StatoParcella.ANNULLATA}
+            ),
+            2,
+        )
+        incassato = round(
+            sum(parcella.totale for parcella in parcelle if parcella.stato == StatoParcella.PAGATA),
+            2,
+        )
+        insoluto = round(
+            sum(
+                parcella.totale
+                for parcella in parcelle
+                if parcella.stato in {StatoParcella.EMESSA, StatoParcella.SCADUTA}
+            ),
+            2,
+        )
+        return {
+            "fatturato": fatturato,
+            "incassato": incassato,
+            "insoluto": insoluto,
+            "saldo_aperto": round(fatturato - incassato, 2),
+        }
 
     # ---------------------------------------------------------------- Statistiche
 

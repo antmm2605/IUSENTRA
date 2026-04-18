@@ -1,0 +1,38 @@
+{% if timesheet_summary %}
+<div class="card shadow-sm timesheet-card" id="{{ anchor_id|default('sezione-timesheet') }}" style="scroll-margin-top:1rem">
+  <div class="card-header d-flex justify-content-between align-items-center gap-2 flex-wrap">
+    <div class="fw-semibold">
+      <i class="bi bi-stopwatch me-2 text-warning"></i>{{ title|default('Timesheet operativo') }}
+    </div>
+    <a href="{{ link_href }}" class="btn btn-sm btn-outline-primary">
+      <i class="bi bi-arrow-right-circle me-1"></i>Apri timesheet
+    </a>
+  </div>
+  <div class="card-body">
+    <div class="d-flex flex-wrap gap-2 mb-3">
+      <span class="badge bg-light text-dark border">Ore {{ '%.1f'|format(timesheet_summary.stats.totale_ore or 0) }}</span>
+      <span class="badge bg-light text-dark border">Fatturabili {{ timesheet_summary.stats.fatturabili or 0 }}</span>
+      <span class="badge bg-light text-dark border">Aperte {{ timesheet_summary.stats.aperte or 0 }}</span>
+      <span class="badge bg-light text-dark border">Valore &euro; {{ '%.2f'|format(timesheet_summary.stats.valore_totale or 0) }}</span>
+    </div>
+    {% if timesheet_summary.ultimi %}
+    <div class="economic-list">
+      {% for row in timesheet_summary.ultimi %}
+      <div class="economic-list__item">
+        <div>
+          <div class="fw-semibold">{{ row.descrizione }}</div>
+          <div class="small text-muted">{{ row.data_attivita|fmt_data }}{% if row.username %} · {{ row.username }}{% endif %}</div>
+        </div>
+        <div class="text-end">
+          <div class="fw-semibold">{{ '%.1f'|format(row.ore) }} h</div>
+          <div class="small text-muted">{{ row.stato.value|replace('_', ' ')|lower }}</div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="ui-empty-state">Nessuna voce timesheet registrata.</div>
+    {% endif %}
+  </div>
+</div>
+{% endif %}

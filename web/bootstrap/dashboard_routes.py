@@ -8,6 +8,8 @@ from datetime import date, datetime, timedelta
 from flask import Flask, flash, jsonify, redirect, render_template, request, url_for, g
 
 from pct.agenda import Agenda, StatoAppuntamento, TipoAppuntamento
+from pct.economic_dashboard import build_studio_economic_dashboard
+from pct.fatturazione import GestioneFatturazione
 
 
 def register_dashboard_routes(
@@ -17,6 +19,7 @@ def register_dashboard_routes(
     get_scadenziario: Callable[[], object],
     get_fascicoli: Callable[[], object],
     get_clienti: Callable[[], object],
+    get_timesheet: Callable[[], object],
     get_condivisioni: Callable[[], object],
     get_workspace_intelligente: Callable[[], object],
     get_calendar_sync: Callable[[], object],
@@ -40,6 +43,16 @@ def register_dashboard_routes(
         stats_sc = gs.statistiche()
         stats_fascicoli = get_fascicoli().statistiche()
         stats_clienti = get_clienti().statistiche()
+        gestore_fascicoli = get_fascicoli()
+        gestore_fatturazione = GestioneFatturazione(
+            app.config.get("FATTURAZIONE_DB", "./fatturazione/parcelle.json")
+        )
+        economic_overview = build_studio_economic_dashboard(
+            fascicoli=gestore_fascicoli.tutti(stato=None),
+            parcelle=gestore_fatturazione.tutte(),
+            timesheet_entries=get_timesheet().tutte(),
+            scadenze_imminenti=scadenze_imminenti,
+        )
         workspace_overview = get_workspace_intelligente().panoramica(
             horizon_days=14,
             hot_limit=6,
@@ -81,6 +94,7 @@ def register_dashboard_routes(
             accessi_in_scadenza=accessi_in_scadenza,
             clienti_doc_scaduti=clienti_doc_scaduti,
             workspace_overview=workspace_overview,
+            economic_overview=economic_overview,
         )
 
     @app.route("/agenda")

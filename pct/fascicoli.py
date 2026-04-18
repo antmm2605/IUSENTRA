@@ -189,6 +189,7 @@ class Documento:
     data_caricamento: str = field(default_factory=lambda: datetime.now().isoformat())
     data_documento: str = ""       # data del documento (es. data atto)
     note: str = ""
+    tags: List[str] = field(default_factory=list)
     id_deposito_pct: str = ""      # collegamento a deposito PCT
     caricato_da: str = ""
     ocr_estratto: bool = False     # True dopo OCR completato e testo indicizzato
@@ -215,6 +216,7 @@ class Documento:
         d["tipo"] = TipoDocumento(d["tipo"])
         d["versioni"] = [DocumentoVersione.from_dict(v) for v in d.get("versioni", [])]
         d.setdefault("ocr_estratto", False)
+        d.setdefault("tags", [])
         return cls(**d)
 
 
@@ -820,6 +822,7 @@ class GestioneFascicoli:
         tipo: TipoDocumento,
         contenuto: bytes,
         note: str = "",
+        tags: Optional[List[str]] = None,
         data_documento: str = "",
         firmato: bool = False,
         caricato_da: str = "",
@@ -856,6 +859,7 @@ class GestioneFascicoli:
             hash_sha256=sha256,
             firmato_digitalmente=firmato,
             note=note,
+            tags=list(tags or []),
             data_documento=data_documento or date.today().isoformat(),
             caricato_da=caricato_da,
             id_deposito_pct=id_deposito_pct,
@@ -933,6 +937,40 @@ class GestioneFascicoli:
         f.documenti = [d for d in f.documenti if d.id != id_doc]
         f.modificato_il = datetime.now().isoformat()
         self._salva()
+
+    def aggiorna_documento_metadati(
+        self,
+        id_fasc: str,
+        id_doc: str,
+        *,
+        note: str | None = None,
+        data_documento: str | None = None,
+        tags: Optional[List[str]] = None,
+    ) -> Documento:
+        f = self._get_o_errore(id_fasc)
+        doc = next((d for d in f.documenti if d.id == id_doc), None)
+        if not doc:
+            raise KeyError(f"Documento '{id_doc}' non trovato nel fascicolo.")
+        if note is not None:
+            doc.note = str(note or "").strip()
+        if data_documento is not None:
+            doc.data_documento = str(data_documento or "").strip()
+        if tags is not None:
+            normalized: list[str] = []
+            seen: set[str] = set()
+            for tag in tags:
+                value = str(tag or "").strip()
+                if not value:
+                    continue
+                key = value.casefold()
+                if key in seen:
+                    continue
+                seen.add(key)
+                normalized.append(value)
+            doc.tags = normalized
+        f.modificato_il = datetime.now().isoformat()
+        self._salva()
+        return doc
 
     def aggiungi_esito_deposito(
         self,

@@ -9,6 +9,7 @@ from typing import Any
 
 from flask import Flask, flash, g, jsonify, redirect, request, send_file, url_for
 
+from pct.document_management import normalize_document_tags
 from pct.fascicoli import TipoDocumento
 from web.services.signed_document_runtime import (
     build_document_signed_snapshot_from_bytes,
@@ -63,10 +64,31 @@ def _preview_error_html(scarica_url: str) -> tuple[str, int, dict[str, str]]:
     return html, 200, {"Content-Type": "text/html; charset=utf-8"}
 
 
+# Ridefinizione esplicita per garantire testo UTF-8 corretto anche se una copia legacy
+# del file contiene stringhe salvate con encoding errato.
+def _preview_error_html(scarica_url: str) -> tuple[str, int, dict[str, str]]:
+    html = (
+        '<!DOCTYPE html><html><head><meta charset="utf-8">'
+        '<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">'
+        '<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">'
+        '</head><body class="bg-light d-flex align-items-center justify-content-center" style="min-height:100vh">'
+        '<div class="text-center p-4">'
+        '<i class="bi bi-exclamation-triangle text-warning" style="font-size:3rem"></i>'
+        '<h6 class="mt-3 mb-2">Impossibile visualizzare il documento</h6>'
+        '<p class="text-muted small mb-3">Si è verificato un errore durante il caricamento.<br>'
+        "Scarica il file per visualizzarlo con il programma appropriato.</p>"
+        f'<a href="{scarica_url}" class="btn btn-primary btn-sm">'
+        '<i class="bi bi-download me-1"></i>Scarica documento</a>'
+        "</div></body></html>"
+    )
+    return html, 200, {"Content-Type": "text/html; charset=utf-8"}
+
+
 def register_fascicoli_document_routes(
     app: Flask,
     *,
     get_fascicoli: Callable[[], Any],
+    get_indice: Callable[[], Any],
     audit: Callable[..., None],
     salva_documento_fascicolo: Callable[..., Any],
     portale_ufficiale_label: Callable[[Any], str],
@@ -108,6 +130,7 @@ def register_fascicoli_document_routes(
                 raw=raw,
                 tipo_doc=tipo_doc,
                 note=form.get("note", ""),
+                tags=normalize_document_tags(form.get("tags", "")),
                 data_documento=form.get("data_documento", ""),
                 firmato=form.get("firmato") == "1",
                 caricato_da=utente.username if utente else "",
@@ -117,6 +140,34 @@ def register_fascicoli_document_routes(
         except (ValueError, KeyError) as exc:
             flash(str(exc), "danger")
         return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
+
+    @app.route("/fascicoli/<id_fasc>/documenti/<id_doc>/metadati", methods=["POST"])
+    def aggiorna_metadati_documento(id_fasc, id_doc):
+        gestore_fascicoli = get_fascicoli()
+        try:
+            gestore_fascicoli.aggiorna_documento_metadati(
+                id_fasc,
+                id_doc,
+                note=request.form.get("note"),
+                data_documento=request.form.get("data_documento"),
+                tags=normalize_document_tags(request.form.get("tags", "")),
+            )
+            audit(
+                "fascicoli.documento.metadati",
+                "fascicolo",
+                id_fasc,
+                dettagli=f"doc {id_doc}",
+            )
+            flash("Metadati documento aggiornati.", "success")
+        except Exception as exc:
+            app.logger.exception(
+                "Errore aggiorna_metadati_documento id_fasc=%s id_doc=%s: %s",
+                id_fasc,
+                id_doc,
+                exc,
+            )
+            flash(f"Impossibile aggiornare i metadati del documento: {exc}", "danger")
+        return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc, focus="documenti"))
 
     @app.route("/fascicoli/<id_fasc>/documenti/importa-portale", methods=["POST"])
     def importa_documenti_portale(id_fasc):

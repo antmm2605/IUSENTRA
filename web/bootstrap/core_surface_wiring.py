@@ -35,6 +35,7 @@ from web.bootstrap.search_routes import register_search_routes
 from web.bootstrap.soggetti_routes import register_soggetti_routes
 from web.bootstrap.sync_runtime_routes import register_sync_runtime_routes
 from web.bootstrap.template_runtime import register_template_runtime
+from web.bootstrap.timesheet_routes import register_timesheet_routes
 from web.bootstrap.workspace_routes import register_workspace_routes
 
 
@@ -97,6 +98,7 @@ def register_core_surfaces(
         get_scadenziario=core["get_scadenziario"],
         get_fascicoli=core["get_fascicoli"],
         get_clienti=core["get_clienti"],
+        get_timesheet=core["get_timesheet"],
         get_condivisioni=core["get_condivisioni"],
         get_workspace_intelligente=core["get_workspace_intelligente"],
         get_calendar_sync=core["get_calendar_sync"],
@@ -173,9 +175,17 @@ def register_core_surfaces(
         get_agenda=core["get_agenda"],
         get_messaggi=core["get_messaggi"],
         get_scadenziario=core["get_scadenziario"],
+        get_timesheet=core["get_timesheet"],
         get_config_studio=core["get_config_studio"],
         cliente_accessibile=core["cliente_accessibile"],
         track_recente=core["track_recente"],
+        audit=core["audit"],
+    )
+    register_timesheet_routes(
+        app,
+        get_timesheet=core["get_timesheet"],
+        get_clienti=core["get_clienti"],
+        get_fascicoli=core["get_fascicoli"],
         audit=core["audit"],
     )
     register_condivisioni_routes(

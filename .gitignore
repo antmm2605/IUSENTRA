@@ -60,6 +60,7 @@ tmp_local_signer_*.out.log
 /backup/
 /messaggi/
 !web/templates/messaggi/
+/timesheet/
 /data/
 /clienti/anagrafica.json
 /fascicoli/

@@ -24,6 +24,7 @@ from pct.giurisprudenza import GestioneGiurisprudenza
 from pct.normative_tables import GestioneTabelleNormative
 from pct.calendar_sync import GestioneCalendarSync
 from pct.soggetti import GestioneSoggetti
+from pct.timesheet import GestioneTimesheet
 from pct.applicazioni_repository import get_runtime_applicazioni_repository
 from web.services.storage_runtime import get_request_storage_runtime, get_request_studio_db
 
@@ -67,6 +68,10 @@ def get_fascicoli() -> GestioneFascicoli:
 
 def get_scadenziario() -> GestioneScadenziario:
     return GestioneScadenziario(db_path=_cfg("SCADENZIARIO_DB"), studio_db=_studio_db())
+
+
+def get_timesheet() -> GestioneTimesheet:
+    return GestioneTimesheet(db_path=_cfg("TIMESHEET_DB"), studio_db=_studio_db())
 
 
 def get_utenti() -> GestioneUtenti:

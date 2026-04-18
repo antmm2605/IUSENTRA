@@ -13,8 +13,10 @@ from typing import Any
 
 from flask import Flask, flash, g, jsonify, redirect, render_template, request, send_file, session, url_for
 
+from pct.economic_dashboard import build_cliente_economic_dashboard
 from pct.fascicoli import StatoFascicolo, TipoFascicolo
 from pct.reports import faldone_pdf
+from pct.workflow_pipeline import build_cliente_workflow_pipeline
 from web.services.clienti_faldone_runtime import carica_note_faldone, salva_note_faldone
 
 
@@ -35,6 +37,7 @@ def register_clienti_workspace_routes(
     get_agenda: Callable[[], Any],
     get_messaggi: Callable[[], Any],
     get_scadenziario: Callable[[], Any],
+    get_timesheet: Callable[[], Any],
     get_config_studio: Callable[[], Any],
     cliente_accessibile: Callable[..., bool],
     track_recente: Callable[..., None],
@@ -91,6 +94,23 @@ def register_clienti_workspace_routes(
             gp = GestionePreventivi(app.config.get("PREVENTIVI_DB", "./preventivi/preventivi.json"))
             preventivi_cliente = gp.preventivi_per_cliente(id_cliente)
             conferimenti_cliente = gp.conferimenti_per_cliente(id_cliente)
+            timesheet_summary = get_timesheet().riepilogo_cliente(id_cliente)
+            workflow_pipeline = build_cliente_workflow_pipeline(
+                cliente=cliente,
+                fascicoli=tutti,
+                preventivi=preventivi_cliente,
+                conferimenti=conferimenti_cliente,
+                parcelle=parcelle_cliente,
+                timesheet_entries=get_timesheet().per_cliente(id_cliente),
+            )
+            economic_dashboard = build_cliente_economic_dashboard(
+                cliente=cliente,
+                fascicoli=tutti,
+                parcelle=parcelle_cliente,
+                timesheet_entries=get_timesheet().per_cliente(id_cliente),
+                preventivi=preventivi_cliente,
+                conferimenti=conferimenti_cliente,
+            )
             preventivi_con_conferimento = {
                 conferimento.id_preventivo
                 for conferimento in conferimenti_cliente
@@ -119,6 +139,9 @@ def register_clienti_workspace_routes(
                 preventivi_cliente=preventivi_cliente,
                 conferimenti_cliente=conferimenti_cliente,
                 preventivi_con_conferimento=preventivi_con_conferimento,
+                workflow_pipeline=workflow_pipeline,
+                economic_dashboard=economic_dashboard,
+                timesheet_summary=timesheet_summary,
                 tipi_fascicolo=list(TipoFascicolo),
             )
         except Exception as exc:

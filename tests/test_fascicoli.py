@@ -175,6 +175,41 @@ def test_documento_salvato_su_disco(gf, fascicolo_base):
     assert percorso.read_bytes() == b"contenuto memoria"
 
 
+def test_aggiungi_documento_con_tag(gf, fascicolo_base):
+    doc = gf.aggiungi_documento(
+        fascicolo_base.id,
+        nome_file="comparsa.pdf",
+        tipo=TipoDocumento.COMPARSA,
+        contenuto=b"comparsa di risposta",
+        tags=["comparsa", "udienza", "comparsa"],
+    )
+
+    assert doc.tags == ["comparsa", "udienza", "comparsa"]
+    fascicolo = gf.get(fascicolo_base.id)
+    assert fascicolo.documenti[0].tags == ["comparsa", "udienza", "comparsa"]
+
+
+def test_aggiorna_metadati_documento_normalizza_i_tag(gf, fascicolo_base):
+    doc = gf.aggiungi_documento(
+        fascicolo_base.id,
+        nome_file="istanza.pdf",
+        tipo=TipoDocumento.ATTO_GIUDIZIARIO,
+        contenuto=b"istanza",
+    )
+
+    aggiornato = gf.aggiorna_documento_metadati(
+        fascicolo_base.id,
+        doc.id,
+        note="Istanza aggiornata",
+        data_documento="2026-04-18",
+        tags=["istanza", "udienza", "Istanza", "", "udienza"],
+    )
+
+    assert aggiornato.note == "Istanza aggiornata"
+    assert aggiornato.data_documento == "2026-04-18"
+    assert aggiornato.tags == ["istanza", "udienza"]
+
+
 def test_rimuovi_documento(gf, fascicolo_base):
     doc = gf.aggiungi_documento(
         fascicolo_base.id, "da_eliminare.pdf",

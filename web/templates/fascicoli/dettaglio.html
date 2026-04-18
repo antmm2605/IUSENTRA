@@ -164,6 +164,19 @@
 {% include "components/fascicolo_smart_board.html" %}
 {% endif %}
 
+<div class="row g-3 mb-1">
+  <div class="col-12 col-xl-6">
+    {% with pipeline=fascicolo_pipeline, title="Workflow fascicolo -> incasso", anchor_id="sezione-workflow-fascicolo" %}
+      {% include "components/workflow_pipeline.html" %}
+    {% endwith %}
+  </div>
+  <div class="col-12 col-xl-6">
+    {% with dashboard=economic_dashboard, title="Controllo economico fascicolo", anchor_id="sezione-economico-fascicolo" %}
+      {% include "components/economic_overview.html" %}
+    {% endwith %}
+  </div>
+</div>
+
 <div class="row g-3">
 
   {# ---- Colonna principale ---- #}
@@ -686,6 +699,7 @@
           <span class="badge bg-light text-dark border">Provvedimenti del giudice {{ WFS.documenti_buckets.provvedimenti or 0 }}</span>
         </div>
       </div>
+      {% include "components/document_management_summary.html" %}
       <div class="card-body p-0">
         {% if fascicolo.documenti %}
 
@@ -770,6 +784,58 @@
                   <div class="text-muted" style="font-size:.72rem">{{ doc.note }}</div>
                 {% endif %}
               {% endif %}
+              <div class="d-flex flex-wrap gap-1 mt-2">
+                {% if doc.versioni %}
+                <span class="badge bg-light text-dark border">{{ doc.versioni|length }} versioni</span>
+                {% endif %}
+                {% for tag in doc.tags or [] %}
+                <span class="badge rounded-pill text-bg-secondary">{{ tag }}</span>
+                {% endfor %}
+              </div>
+              <div class="mt-2">
+                <button class="btn btn-sm btn-outline-secondary"
+                        type="button"
+                        data-bs-toggle="collapse"
+                        data-bs-target="#meta-doc-{{ doc.id }}"
+                        aria-expanded="false"
+                        aria-controls="meta-doc-{{ doc.id }}">
+                  <i class="bi bi-tags me-1"></i>Metadati
+                </button>
+              </div>
+              <div class="collapse mt-2" id="meta-doc-{{ doc.id }}">
+                <form method="post"
+                      action="{{ url_for('aggiorna_metadati_documento', id_fasc=fascicolo.id, id_doc=doc.id) }}"
+                      class="row g-2 align-items-end p-2 rounded border bg-light-subtle">
+                  <div class="col-12 col-xl-4">
+                    <label class="form-label small fw-semibold mb-1">Note</label>
+                    <input type="text"
+                           name="note"
+                           class="form-control form-control-sm"
+                           value="{{ doc.note or '' }}"
+                           placeholder="Descrizione sintetica">
+                  </div>
+                  <div class="col-6 col-xl-3">
+                    <label class="form-label small fw-semibold mb-1">Data</label>
+                    <input type="date"
+                           name="data_documento"
+                           class="form-control form-control-sm"
+                           value="{{ doc.data_documento or '' }}">
+                  </div>
+                  <div class="col-12 col-xl-4">
+                    <label class="form-label small fw-semibold mb-1">Tag</label>
+                    <input type="text"
+                           name="tags"
+                           class="form-control form-control-sm"
+                           value="{{ (doc.tags or [])|join(', ') }}"
+                           placeholder="comparsa, udienza, prova">
+                  </div>
+                  <div class="col-12 col-xl-1">
+                    <button class="btn btn-sm btn-primary w-100">
+                      <i class="bi bi-check-lg"></i>
+                    </button>
+                  </div>
+                </form>
+              </div>
             </div>
           </td>
           <td data-label="Tipo" data-mob-hide>
@@ -3012,6 +3078,12 @@
               <label class="form-label fw-semibold">Note</label>
               <input type="text" name="note" class="form-control"
                      placeholder="Breve descrizione…">
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-semibold">Tag</label>
+              <input type="text" name="tags" class="form-control"
+                     placeholder="comparsa, udienza, prova, mediazione">
+              <div class="form-text">Separare i tag con virgole per migliorare ricerca e raggruppamento.</div>
             </div>
           </div>
         </div>

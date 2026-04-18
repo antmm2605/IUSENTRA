@@ -1,0 +1,63 @@
+{% if pipeline %}
+<div class="card shadow-sm workflow-card" id="{{ anchor_id|default('sezione-workflow') }}" style="scroll-margin-top:1rem">
+  <div class="card-header d-flex justify-content-between align-items-center gap-2 flex-wrap">
+    <div class="fw-semibold">
+      <i class="bi bi-diagram-3 me-2 text-primary"></i>{{ title|default('Workflow operativo') }}
+    </div>
+    <span class="badge text-bg-{{ pipeline.tone or 'secondary' }}">{{ (pipeline.current_key or pipeline.next_action or 'Presidio')|replace('_', ' ')|title }}</span>
+  </div>
+  <div class="card-body">
+    <div class="workflow-stage-grid mb-3">
+      {% for stage in pipeline.stages %}
+      <div class="workflow-stage workflow-stage--{{ stage.tone }}">
+        <div class="workflow-stage__label">{{ stage.label }}</div>
+        <div class="workflow-stage__meta">
+          <span class="workflow-stage__count">{{ stage.count }}</span>
+          <span class="workflow-stage__status">{% if stage.complete %}coperto{% else %}da avviare{% endif %}</span>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    <div class="workflow-next-action">
+      <div class="small text-uppercase text-muted fw-semibold mb-1">Cosa fare adesso</div>
+      <div class="fw-semibold">{{ pipeline.current_label or pipeline.next_action }}</div>
+    </div>
+    {% if pipeline.issues %}
+    <div class="workflow-issues mt-3">
+      {% for issue in pipeline.issues %}
+      <div class="workflow-issue">
+        <i class="bi bi-exclamation-circle text-warning"></i>
+        <span>{{ issue }}</span>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+    <div class="workflow-kpi-row mt-3">
+      {% if pipeline.ore_lavorate is defined %}
+      <div class="workflow-kpi">
+        <span class="workflow-kpi__label">Ore registrate</span>
+        <strong>{{ '%.1f'|format(pipeline.ore_lavorate) }} h</strong>
+      </div>
+      {% endif %}
+      {% if pipeline.saldo_aperto is defined %}
+      <div class="workflow-kpi">
+        <span class="workflow-kpi__label">Saldo aperto</span>
+        <strong>&euro; {{ '%.2f'|format(pipeline.saldo_aperto) }}</strong>
+      </div>
+      {% endif %}
+      {% if pipeline.totale_voci_timesheet is defined %}
+      <div class="workflow-kpi">
+        <span class="workflow-kpi__label">Voci timesheet</span>
+        <strong>{{ pipeline.totale_voci_timesheet }}</strong>
+      </div>
+      {% endif %}
+      {% if pipeline.totale_fatture_emesse is defined %}
+      <div class="workflow-kpi">
+        <span class="workflow-kpi__label">Fatture emesse</span>
+        <strong>{{ pipeline.totale_fatture_emesse }}</strong>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endif %}

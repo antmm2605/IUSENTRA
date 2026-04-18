@@ -8,9 +8,12 @@ from typing import Any
 
 from flask import Flask, flash, redirect, render_template, request, url_for
 
+from pct.document_management import build_document_management_summary
+from pct.economic_dashboard import build_fascicolo_economic_dashboard
 from pct.fascicoli import EsitoAttivita, StatoFascicolo, TipoAttivita, TipoDocumento, TipoFascicolo
 from pct.reginde import ClientReGINde
 from pct.soggetti import RuoloSoggetto
+from pct.workflow_pipeline import build_fascicolo_workflow_pipeline
 
 
 def register_fascicoli_core_routes(
@@ -21,6 +24,8 @@ def register_fascicoli_core_routes(
     get_agenda: Callable[[], Any],
     get_scadenziario: Callable[[], Any],
     get_soggetti: Callable[[], Any],
+    get_timesheet: Callable[[], Any],
+    get_indice: Callable[[], Any],
     get_workspace_intelligente: Callable[[], Any],
     get_config_studio: Callable[[], Any],
     sync_pubblica: Callable[..., None],
@@ -225,8 +230,10 @@ def register_fascicoli_core_routes(
         conferimento = conferimenti_fascicolo[0] if conferimenti_fascicolo else None
         agenda = get_agenda()
         scadenziario = get_scadenziario()
+        timesheet = get_timesheet()
         appuntamenti = agenda.cerca(testo=fascicolo.numero_rg) if fascicolo.numero_rg else []
         scadenze_fascicolo = scadenziario.tutte(id_fascicolo=id_fasc, solo_aperte=False)
+        timesheet_entries = timesheet.per_fascicolo(id_fasc)
         track_recente(
             "fascicolo",
             id_fasc,
@@ -288,6 +295,31 @@ def register_fascicoli_core_routes(
             apps=appuntamenti,
             scadenze=scadenze_fascicolo,
         )
+        from pct.fatturazione import GestioneFatturazione
+
+        parcelle_fascicolo = GestioneFatturazione(
+            app.config.get("FATTURAZIONE_DB", "./fatturazione/parcelle.json")
+        ).per_fascicolo(id_fasc)
+        fascicolo_pipeline = build_fascicolo_workflow_pipeline(
+            fascicolo=fascicolo,
+            cliente=cliente,
+            preventivo=preventivo,
+            conferimento=conferimento,
+            parcelle=parcelle_fascicolo,
+            timesheet_entries=timesheet_entries,
+        )
+        economic_dashboard = build_fascicolo_economic_dashboard(
+            fascicolo=fascicolo,
+            parcelle=parcelle_fascicolo,
+            timesheet_entries=timesheet_entries,
+            preventivo=preventivo,
+            conferimento=conferimento,
+        )
+        document_management = build_document_management_summary(
+            fascicolo,
+            indice=get_indice(),
+            query=request.args.get("q_doc", ""),
+        )
         return render_template(
             "fascicoli/dettaglio.html",
             fascicolo=fascicolo,
@@ -298,6 +330,10 @@ def register_fascicoli_core_routes(
             scadenze_fascicolo=scadenze_fascicolo,
             workspace_fascicolo=workspace_fascicolo,
             intelligenza_fascicolo=intelligenza_fascicolo,
+            fascicolo_pipeline=fascicolo_pipeline,
+            economic_dashboard=economic_dashboard,
+            document_management=document_management,
+            timesheet_entries=timesheet_entries,
             tipi_doc=list(TipoDocumento),
             tipi_att=list(TipoAttivita),
             esiti=list(EsitoAttivita),

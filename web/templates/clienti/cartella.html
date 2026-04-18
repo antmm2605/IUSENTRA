@@ -224,6 +224,24 @@
 {# ═══════════════════════════════════════════════
    TABS NAVIGAZIONE
    ═══════════════════════════════════════════════ #}
+<div class="row g-3 mb-3">
+  <div class="col-12 col-xl-6">
+    {% with pipeline=workflow_pipeline, title="Workflow cliente -> incasso", anchor_id="sezione-workflow-cliente" %}
+      {% include "components/workflow_pipeline.html" %}
+    {% endwith %}
+  </div>
+  <div class="col-12 col-xl-6">
+    {% with dashboard=economic_dashboard, title="Controllo economico cliente", anchor_id="sezione-economico-cliente" %}
+      {% include "components/economic_overview.html" %}
+    {% endwith %}
+  </div>
+  <div class="col-12">
+    {% with title="Tempo lavorato sul cliente", anchor_id="sezione-timesheet-cliente", link_href=url_for('timesheet_lista', id_cliente=cliente.id) %}
+      {% include "components/timesheet_summary.html" %}
+    {% endwith %}
+  </div>
+</div>
+
 <ul class="nav nav-tabs mb-0 cd-tabs" id="cartellaTabs" role="tablist">
   <li class="nav-item" role="presentation">
     <button class="nav-link active" id="tab-attivi-btn"

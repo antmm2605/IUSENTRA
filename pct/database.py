@@ -221,6 +221,29 @@ CREATE INDEX IF NOT EXISTS idx_scad_data       ON scadenze(data_scadenza);
 CREATE INDEX IF NOT EXISTS idx_scad_priorita   ON scadenze(priorita);
 CREATE INDEX IF NOT EXISTS idx_scad_fascicolo  ON scadenze(id_fascicolo);
 
+-- ---- Timesheet
+CREATE TABLE IF NOT EXISTS timesheet_entries (
+    id              TEXT PRIMARY KEY,
+    id_fascicolo    TEXT REFERENCES fascicoli(id) ON DELETE SET NULL,
+    id_cliente      TEXT REFERENCES clienti(id) ON DELETE SET NULL,
+    id_utente       TEXT,
+    username        TEXT,
+    data_attivita   TEXT NOT NULL,
+    descrizione     TEXT NOT NULL,
+    minuti          INTEGER NOT NULL DEFAULT 0,
+    valore_unitario REAL NOT NULL DEFAULT 0,
+    fatturabile     INTEGER DEFAULT 1,
+    stato           TEXT NOT NULL DEFAULT 'APERTO',
+    origine         TEXT DEFAULT '',
+    creato_il       TEXT,
+    modificato_il   TEXT,
+    dati_json       TEXT DEFAULT '{}'
+);
+CREATE INDEX IF NOT EXISTS idx_timesheet_fascicolo ON timesheet_entries(id_fascicolo);
+CREATE INDEX IF NOT EXISTS idx_timesheet_cliente   ON timesheet_entries(id_cliente);
+CREATE INDEX IF NOT EXISTS idx_timesheet_utente    ON timesheet_entries(id_utente);
+CREATE INDEX IF NOT EXISTS idx_timesheet_data      ON timesheet_entries(data_attivita);
+
 -- ---- Messaggi
 CREATE TABLE IF NOT EXISTS messaggi (
     id                    TEXT PRIMARY KEY,
@@ -395,7 +418,7 @@ class GestioneDatabase:
 
     MODULI_SQLITE = [
         "clienti", "fascicoli", "appuntamenti",
-        "scadenze", "messaggi", "utenti", "audit",
+        "scadenze", "timesheet", "messaggi", "utenti", "audit",
         "privacy", "notifiche", "backup",
     ]
 
@@ -406,7 +429,7 @@ class GestioneDatabase:
         percorsi:
             Dizionario {nome_modulo: percorso_file_json}.
             Chiavi riconosciute: clienti, fascicoli, appuntamenti,
-            scadenze, messaggi, utenti, audit, privacy, notifiche,
+            scadenze, timesheet, messaggi, utenti, audit, privacy, notifiche,
             backup, search_index.
         """
         self.percorsi = {k: Path(v) for k, v in percorsi.items() if v}
@@ -1045,6 +1068,57 @@ class GestioneDatabase:
                         errori.append(f"scadenze/{s.get('id','?')}: {e}")
                 migrati["scadenze"] = s_count
 
+            # ---- Timesheet
+            timesheet_raw, err = self._leggi_json("timesheet")
+            if err:
+                errori.append(f"timesheet: {err}")
+            else:
+                t_count = 0
+                for voce in timesheet_raw:
+                    try:
+                        id_cliente = voce.get("id_cliente") or None
+                        if id_cliente and id_cliente not in id_clienti_migrati:
+                            avvisi.append(
+                                f"timesheet/{voce.get('id','?')}: cliente {id_cliente!r} non trovato, riferimento scollegato in migrazione"
+                            )
+                            id_cliente = None
+                        id_fascicolo = voce.get("id_fascicolo") or None
+                        if id_fascicolo and id_fascicolo not in id_fascicoli_migrati:
+                            avvisi.append(
+                                f"timesheet/{voce.get('id','?')}: fascicolo {id_fascicolo!r} non trovato, riferimento scollegato in migrazione"
+                            )
+                            id_fascicolo = None
+                        conn.execute(
+                            """
+                            INSERT OR REPLACE INTO timesheet_entries
+                            (id, id_fascicolo, id_cliente, id_utente, username, data_attivita,
+                             descrizione, minuti, valore_unitario, fatturabile, stato, origine,
+                             creato_il, modificato_il, dati_json)
+                            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                            """,
+                            (
+                                voce.get("id"),
+                                id_fascicolo,
+                                id_cliente,
+                                voce.get("id_utente") or None,
+                                voce.get("username", ""),
+                                voce.get("data_attivita", ""),
+                                voce.get("descrizione", ""),
+                                int(voce.get("minuti", 0) or 0),
+                                float(voce.get("valore_unitario", 0.0) or 0.0),
+                                1 if voce.get("fatturabile", True) else 0,
+                                voce.get("stato", "APERTO"),
+                                voce.get("origine", ""),
+                                voce.get("creato_il", ""),
+                                voce.get("modificato_il", ""),
+                                json.dumps(voce, ensure_ascii=False),
+                            ),
+                        )
+                        t_count += 1
+                    except Exception as ex:
+                        errori.append(f"timesheet/{voce.get('id','?')}: {ex}")
+                migrati["timesheet"] = t_count
+
             # ---- Messaggi
             msg_raw, err = self._leggi_json("messaggi")
             if err:
@@ -1551,6 +1625,7 @@ def bootstrap_moduli_monitorati(moduli: Dict[str, Optional[str]]) -> Dict[str, s
         "soggetti": [],
         "soggetti_parti": {},
         "template_atti": {},
+        "timesheet": {},
         "utenti": {},
         "validation_runs": {"runs": []},
         "redaction_assistant": [],

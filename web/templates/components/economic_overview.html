@@ -1,0 +1,87 @@
+{% if dashboard %}
+<div class="card shadow-sm economic-card" id="{{ anchor_id|default('sezione-economico') }}" style="scroll-margin-top:1rem">
+  <div class="card-header d-flex justify-content-between align-items-center gap-2 flex-wrap">
+    <div class="fw-semibold">
+      <i class="bi bi-cash-coin me-2 text-success"></i>{{ title|default(dashboard.headline or 'Controllo economico') }}
+    </div>
+    <span class="badge text-bg-light border">{{ dashboard.scope|title }}</span>
+  </div>
+  <div class="card-body">
+    <div class="economic-kpi-grid mb-3">
+      {% for kpi in dashboard.kpis %}
+      <div class="economic-kpi economic-kpi--{{ kpi.tone }}">
+        <span class="economic-kpi__label">{{ kpi.label }}</span>
+        <strong class="economic-kpi__value">{{ kpi.value }}</strong>
+      </div>
+      {% endfor %}
+    </div>
+    <div class="workflow-next-action mb-3">
+      <div class="small text-uppercase text-muted fw-semibold mb-1">Cosa fare adesso</div>
+      <div class="fw-semibold">{{ dashboard.next_action }}</div>
+    </div>
+    {% if dashboard.worklist %}
+    <div class="economic-worklist mb-3">
+      {% for row in dashboard.worklist %}
+      <div class="economic-worklist__item">
+        <div>
+          <div class="fw-semibold">{{ row.label }}</div>
+          <div class="small text-muted">{{ row.hint }}</div>
+        </div>
+        <span class="badge text-bg-{{ row.tone }}">{{ row.value }}</span>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+    <div class="row g-3">
+      {% if dashboard.top_fascicoli %}
+      <div class="col-12 col-lg-7">
+        <div class="small text-uppercase text-muted fw-semibold mb-2">Fascicoli con maggior presidio economico</div>
+        <div class="economic-list">
+          {% for row in dashboard.top_fascicoli %}
+          <div class="economic-list__item">
+            <div>
+              <div class="fw-semibold">{{ row.numero if row.numero is defined else row.titolo }}</div>
+              {% if row.titolo is defined %}
+              <div class="small text-muted">{{ row.titolo }}</div>
+              {% endif %}
+              {% if row.next_action %}
+              <div class="small text-muted mt-1">{{ row.next_action }}</div>
+              {% endif %}
+            </div>
+            <div class="text-end">
+              {% if row.insoluto is defined %}
+              <div class="fw-semibold">&euro; {{ '%.2f'|format(row.insoluto) }}</div>
+              <div class="small text-muted">insoluto</div>
+              {% elif row.valore is defined %}
+              <div class="fw-semibold">&euro; {{ '%.2f'|format(row.valore) }}</div>
+              <div class="small text-muted">valore</div>
+              {% endif %}
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+      {% if dashboard.produttivita_utenti %}
+      <div class="col-12 col-lg-5">
+        <div class="small text-uppercase text-muted fw-semibold mb-2">Produttivita' utenti</div>
+        <div class="economic-list">
+          {% for row in dashboard.produttivita_utenti %}
+          <div class="economic-list__item">
+            <div>
+              <div class="fw-semibold">{{ row.username }}</div>
+              <div class="small text-muted">{{ row.voci }} voci · {{ row.fascicoli }} fascicoli</div>
+            </div>
+            <div class="text-end">
+              <div class="fw-semibold">{{ '%.1f'|format(row.ore) }} h</div>
+              <div class="small text-muted">&euro; {{ '%.2f'|format(row.valore) }}</div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endif %}

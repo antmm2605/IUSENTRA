@@ -58,6 +58,7 @@ TENANT_FILE_SEED_PATHS: tuple[str, ...] = (
     "studio.db",
     "template_atti/editor_layout.json",
     "template_atti/templates.json",
+    "timesheet/entries.json",
     "wizard_pro/sessioni.json",
 )
 
@@ -1088,7 +1089,7 @@ class GestioneTenant:
         base = self._data_dir(slug)
         for subdir in [
             "auth", "clienti", "fascicoli", "fascicoli/documenti", "fascicoli/archivio",
-            "agenda", "scadenziario", "fatturazione", "messaggi", "backup",
+            "agenda", "scadenziario", "timesheet", "fatturazione", "messaggi", "backup",
             "notifiche", "pagamenti", "portale", "portale/uploads",
             "privacy", "condivisioni", "template_atti", "wizard_pro",
             "intelligence", "search", "config",
@@ -1129,6 +1130,7 @@ class GestioneTenant:
             "FASCICOLI_ARCH",
             "AGENDA_DB",
             "SCADENZIARIO_DB",
+            "TIMESHEET_DB",
             "MESSAGGI_DB",
             "EMAIL_CASELLA_DB",
             "PRIVACY_DB",
@@ -1167,6 +1169,7 @@ class GestioneTenant:
                     "fascicoli": legacy_paths.get("FASCICOLI_DB", ""),
                     "appuntamenti": legacy_paths.get("AGENDA_DB", ""),
                     "scadenze": legacy_paths.get("SCADENZIARIO_DB", ""),
+                    "timesheet": legacy_paths.get("TIMESHEET_DB", ""),
                     "messaggi": legacy_paths.get("MESSAGGI_DB", ""),
                     "privacy": legacy_paths.get("PRIVACY_DB", ""),
                     "search_index": legacy_paths.get("SEARCH_INDEX", ""),
@@ -1210,6 +1213,7 @@ class GestioneTenant:
             "AUTH_DB":           f"{base}/auth/utenti.json",
             "AUDIT_DB":          f"{base}/auth/audit.json",
             "SCADENZIARIO_DB":   f"{base}/scadenziario/scadenze.json",
+            "TIMESHEET_DB":      f"{base}/timesheet/entries.json",
             "SEARCH_INDEX":      f"{base}/search/index.db",
             "PRIVACY_DB":        f"{base}/privacy/registro.json",
             "PORTALE_DB":        f"{base}/portale/portali.json",
@@ -1412,6 +1416,7 @@ class GestioneTenant:
                         "fascicoli": paths["FASCICOLI_DB"],
                         "appuntamenti": paths["AGENDA_DB"],
                         "scadenze": paths["SCADENZIARIO_DB"],
+                        "timesheet": paths["TIMESHEET_DB"],
                         "messaggi": paths["MESSAGGI_DB"],
                         "utenti": paths["AUTH_DB"],
                         "audit": paths["AUDIT_DB"],
@@ -1488,4 +1493,3 @@ class GestioneTenant:
     @staticmethod
     def _slug_valido(slug: str) -> bool:
         return bool(re.match(r'^[a-z0-9][a-z0-9\-]{1,48}[a-z0-9]$', slug))
-

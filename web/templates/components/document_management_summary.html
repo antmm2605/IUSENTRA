@@ -1,0 +1,62 @@
+{% if document_management %}
+<div class="card border-0 border-bottom rounded-0 document-management-strip">
+  <div class="card-body">
+    <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
+      <div>
+        <div class="small text-uppercase text-muted fw-semibold mb-1">Governo documentale</div>
+        <div class="fw-semibold">{{ document_management.next_action }}</div>
+      </div>
+      <form method="get" action="{{ url_for('dettaglio_fascicolo', id_fasc=fascicolo.id) }}" class="document-search-form">
+        <input type="hidden" name="focus" value="documenti">
+        <div class="input-group input-group-sm">
+          <span class="input-group-text"><i class="bi bi-search"></i></span>
+          <input type="search"
+                 class="form-control"
+                 name="q_doc"
+                 value="{{ document_management.query }}"
+                 placeholder="Ricerca full-text nel fascicolo">
+          <button class="btn btn-outline-secondary" type="submit">Cerca</button>
+        </div>
+      </form>
+    </div>
+    <div class="d-flex flex-wrap gap-2 mt-3">
+      <span class="badge bg-light text-dark border">Documenti {{ document_management.stats.totale }}</span>
+      <span class="badge bg-light text-dark border">Taggati {{ document_management.stats.taggati }}</span>
+      <span class="badge bg-light text-dark border">OCR {{ document_management.stats.ocr_ready }}</span>
+      <span class="badge bg-light text-dark border">Versioni {{ document_management.stats.versioni }}</span>
+      <span class="badge bg-light text-dark border">Da portale {{ document_management.stats.dal_portale }}</span>
+    </div>
+    {% if document_management.tag_cloud %}
+    <div class="d-flex flex-wrap gap-2 mt-3">
+      {% for tag in document_management.tag_cloud %}
+      <span class="badge rounded-pill text-bg-secondary">{{ tag.label }} · {{ tag.count }}</span>
+      {% endfor %}
+    </div>
+    {% endif %}
+    {% if document_management.search_results %}
+    <div class="document-search-results mt-3">
+      {% for result in document_management.search_results %}
+      <div class="document-search-results__item">
+        <div>
+          <div class="fw-semibold">{{ result.titolo }}</div>
+          {% if result.snippet %}
+          <div class="small text-muted">{{ result.snippet|safe }}</div>
+          {% endif %}
+        </div>
+        <div class="d-flex gap-2 align-items-center flex-wrap">
+          {% for tag in result.tags %}
+          <span class="badge bg-light text-dark border">{{ tag }}</span>
+          {% endfor %}
+          {% if result.id_doc %}
+          <a href="{{ url_for('scarica_documento', id_fasc=fascicolo.id, id_doc=result.id_doc) }}" class="btn btn-sm btn-outline-secondary">
+            <i class="bi bi-download"></i>
+          </a>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endif %}

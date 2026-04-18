@@ -98,6 +98,7 @@ def _cfg_web(tmp_path: Path) -> dict:
         "TEMPLATE_ATTI_PREFS_DB": str(tmp_path / "template_atti" / "editor_layout.json"),
         "PREVENTIVI_DB": str(tmp_path / "preventivi" / "preventivi.json"),
         "FATTURAZIONE_DB": str(tmp_path / "fatturazione" / "parcelle.json"),
+        "TIMESHEET_DB": str(tmp_path / "timesheet" / "entries.json"),
         "LOCAL_AI_DB": str(tmp_path / "intelligence" / "local_ai.db"),
         "LOCAL_AI_POLICY": str(REPO_ROOT / "config" / "ai-policy.json"),
         "LOCAL_AI_MODELS_DIR": str(tmp_path / "intelligence" / "models"),
@@ -269,6 +270,7 @@ def test_route_domini_estratti_restano_operativi(tmp_path: Path):
             "/sigit",
             "/tribunali",
             "/tariffario",
+            "/timesheet",
             "/clienti",
             "/cartelle-condivise",
             "/messaggi",
@@ -346,6 +348,7 @@ def test_web_app_dimagrisce_e_registra_i_moduli_estratti_finali():
         "register_sync_runtime_routes",
         "register_scadenziario_routes",
         "register_dashboard_routes",
+        "register_timesheet_routes",
     ):
         assert f"{symbol}(" in core_wiring
 
@@ -441,6 +444,7 @@ def test_template_principali_usano_copy_italiana_e_date_localizzate():
         "web/templates/lex_operational.html": ["Lex Fascicolo", "Control Tower telematica"],
         "web/templates/portale/base.html": ["Operazione completata", "Inizio"],
         "web/templates/telematico_dashboard.html": ["Centro Servizi Telematici", "Ultimo allineamento"],
+        "web/templates/timesheet/lista.html": ["Timesheet operativo", "Cosa fare adesso"],
     }
 
     for relative_path, expected_snippets in template_checks.items():
@@ -1392,4 +1396,3 @@ def test_file_critici_non_contengono_marker_di_mojibake():
     assert "MOJIBAKE_PATTERN" in governance
     assert "_find_mojibake_or_non_utf8_files" in governance
     assert "non UTF-8" in governance
-

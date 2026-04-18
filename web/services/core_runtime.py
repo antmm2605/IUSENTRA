@@ -25,6 +25,7 @@ from pct.soggetti import GestioneSoggetti
 from pct.sync import get_gestore
 from pct.telematico_workflow import TelematicoWorkflowRepository
 from pct.tenant import DbMode, normalize_db_mode
+from pct.timesheet import GestioneTimesheet
 from pct.workspace_intelligente import WorkspaceIntelligenteService
 from web.services.auth_runtime import register_auth_runtime
 from web.services.runtime_settings import apply_runtime_settings
@@ -117,6 +118,10 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
     )
     app.config["SCADENZIARIO_DB"] = cfg.get(
         "SCADENZIARIO_DB", os.getenv("PCT_SCADENZIARIO_DB", "./scadenziario/scadenze.json")
+    )
+    app.config["TIMESHEET_DB"] = cfg.get(
+        "TIMESHEET_DB",
+        os.getenv("PCT_TIMESHEET_DB", "./timesheet/entries.json"),
     )
     app.config["SEARCH_INDEX"] = cfg.get(
         "SEARCH_INDEX", os.getenv("PCT_SEARCH_INDEX", "./search/index.db")
@@ -295,6 +300,7 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
             "fascicoli": _cfg_data_path("FASCICOLI_DB"),
             "appuntamenti": _cfg_data_path("AGENDA_DB"),
             "scadenze": _cfg_data_path("SCADENZIARIO_DB"),
+            "timesheet": _cfg_data_path("TIMESHEET_DB"),
             "messaggi": _cfg_data_path("MESSAGGI_DB"),
             "notifiche": _cfg_data_path("NOTIFICHE_LOG"),
             "email_casella": _cfg_data_path("EMAIL_CASELLA_DB"),
@@ -509,6 +515,14 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
                 studio_db=get_studio_db(),
             )
         return g._scadenziario
+
+    def get_timesheet() -> GestioneTimesheet:
+        if not hasattr(g, "_timesheet"):
+            g._timesheet = GestioneTimesheet(
+                db_path=_cfg_data_path("TIMESHEET_DB"),
+                studio_db=get_studio_db(),
+            )
+        return g._timesheet
 
     def _resolve_judicial_office_by_code(codice: str) -> dict:
         if not codice:
@@ -773,6 +787,7 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
         "get_backup": get_backup,
         "get_utenti": get_utenti,
         "get_scadenziario": get_scadenziario,
+        "get_timesheet": get_timesheet,
         "resolve_judicial_office_by_code": _resolve_judicial_office_by_code,
         "studio_patron_rule_from_config": _studio_patron_rule_from_config,
         "get_soggetti": get_soggetti,

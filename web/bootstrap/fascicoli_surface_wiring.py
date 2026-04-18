@@ -43,6 +43,7 @@ def register_fascicoli_surfaces(
     register_fascicoli_document_routes(
         app,
         get_fascicoli=core["get_fascicoli"],
+        get_indice=core["get_indice"],
         audit=core["audit"],
         salva_documento_fascicolo=fascicoli["salva_documento_fascicolo"],
         portale_ufficiale_label=fascicoli["portale_ufficiale_label"],
@@ -103,6 +104,8 @@ def register_fascicoli_surfaces(
         get_agenda=core["get_agenda"],
         get_scadenziario=core["get_scadenziario"],
         get_soggetti=core["get_soggetti"],
+        get_timesheet=core["get_timesheet"],
+        get_indice=core["get_indice"],
         get_workspace_intelligente=core["get_workspace_intelligente"],
         get_config_studio=core["get_config_studio"],
         sync_pubblica=core["sync_pubblica"],

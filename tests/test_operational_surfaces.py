@@ -7,8 +7,10 @@ from pct.auth import GestioneUtenti, RuoloUtente
 from pct.calendar_sync import GestioneCalendarSync
 from pct.clienti import GestioneClienti, TipoCliente
 from pct.fascicoli import GestioneFascicoli, TipoFascicolo
+from pct.fatturazione import GestioneFatturazione, VoceParcella
 from pct.scadenziario import GestioneScadenziario, TipoTermine
 from pct.telematico_workflow import TelematicoWorkflowRepository
+from pct.timesheet import GestioneTimesheet
 from web.app import create_app
 
 
@@ -69,6 +71,9 @@ def _cfg_web(tmp_path: Path) -> dict:
         "GIURISPRUDENZA_DB": str(tmp_path / "giurisprudenza.json"),
         "WORKSPACE_INTELLIGENCE_DB": str(tmp_path / "workspace_intelligence.json"),
         "TEMPLATE_ATTI_DB": str(tmp_path / "template_atti" / "templates.json"),
+        "PREVENTIVI_DB": str(tmp_path / "preventivi" / "preventivi.json"),
+        "FATTURAZIONE_DB": str(tmp_path / "fatturazione" / "parcelle.json"),
+        "TIMESHEET_DB": str(tmp_path / "timesheet" / "entries.json"),
         "TENANTS_REGISTRY": str(tmp_path / "tenants.json"),
     }
 
@@ -136,6 +141,25 @@ def _seed_runtime(cfg: dict) -> str:
         data_scadenza=(date.today() + timedelta(days=1)).isoformat(),
         id_fascicolo=fascicolo.id,
         perentorio=True,
+    )
+
+    GestioneTimesheet(db_path=cfg["TIMESHEET_DB"]).crea(
+        descrizione="Analisi fascicolo e preparazione memoria",
+        minuti=90,
+        id_cliente=cliente.id,
+        id_fascicolo=fascicolo.id,
+        username="admin-operativo",
+        valore_unitario=120.0,
+        fatturabile=True,
+        note="Prima lavorazione operativa",
+    )
+
+    GestioneFatturazione(db_path=cfg["FATTURAZIONE_DB"]).crea(
+        id_cliente=cliente.id,
+        id_fascicolo=fascicolo.id,
+        creato_da="admin-operativo",
+        voci=[VoceParcella(descrizione="Attivita' iniziale", quantita=1, prezzo_unitario=480.0)],
+        note="Parcella iniziale cliente operativo",
     )
 
     sync = GestioneCalendarSync(db_path=cfg["CALENDAR_SYNC_DB"])
@@ -234,3 +258,43 @@ def test_superadmin_product_surfaces_renderizzano(tmp_path: Path):
     assert "Salute sistema" in salute.get_data(as_text=True)
     assert scorecard.status_code == 200
     assert "Eval suite e scorecard Lex" in scorecard.get_data(as_text=True)
+
+
+def test_superfici_cliente_fascicolo_e_timesheet_renderizzano_blocchi_operativi(tmp_path: Path):
+    cfg = _cfg_web(tmp_path)
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    fascicolo_id = _seed_runtime(cfg)
+    app = create_app(cfg)
+
+    clienti = GestioneClienti(db_path=cfg["CLIENTI_DB"])
+    cliente = clienti.tutti()[0]
+
+    with app.test_client() as client:
+        login = client.post(
+            "/login",
+            data={"username": "admin-operativo", "password": "Admin1234!"},
+            follow_redirects=True,
+        )
+        assert login.status_code == 200
+
+        cartella = client.get(f"/clienti/{cliente.id}/cartella", follow_redirects=True)
+        dettaglio = client.get(f"/fascicoli/{fascicolo_id}", follow_redirects=True)
+        timesheet = client.get("/timesheet", follow_redirects=True)
+
+    assert cartella.status_code == 200
+    html_cartella = cartella.get_data(as_text=True)
+    assert 'id="sezione-workflow-cliente"' in html_cartella
+    assert "Controllo economico cliente" in html_cartella
+    assert "Tempo lavorato sul cliente" in html_cartella
+
+    assert dettaglio.status_code == 200
+    html_fascicolo = dettaglio.get_data(as_text=True)
+    assert 'id="sezione-workflow-fascicolo"' in html_fascicolo
+    assert "Controllo economico fascicolo" in html_fascicolo
+    assert "Governo documentale" in html_fascicolo
+
+    assert timesheet.status_code == 200
+    html_timesheet = timesheet.get_data(as_text=True)
+    assert "Timesheet operativo" in html_timesheet
+    assert "Nuova voce timesheet" in html_timesheet
+    assert "Registro lavorazioni" in html_timesheet

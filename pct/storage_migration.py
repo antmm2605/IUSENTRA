@@ -17,12 +17,14 @@ from pct.fascicoli import GestioneFascicoli
 from pct.scadenziario import GestioneScadenziario
 from pct.storage import StudioDB
 from pct.core_storage_backend import build_postgres_backend
+from pct.timesheet import GestioneTimesheet
 
 _CORE_TABLES = {
     "clienti": "clienti",
     "fascicoli": "fascicoli",
     "appuntamenti": "appuntamenti",
     "scadenze": "scadenze",
+    "timesheet": "timesheet_entries",
     "utenti": "utenti",
     "audit": "audit_log",
 }
@@ -195,6 +197,7 @@ def _build_json_to_sqlite_sources(paths: dict[str, str]) -> dict[str, str]:
         "fascicoli": paths.get("FASCICOLI_DB", ""),
         "appuntamenti": paths.get("AGENDA_DB", ""),
         "scadenze": paths.get("SCADENZIARIO_DB", ""),
+        "timesheet": paths.get("TIMESHEET_DB", ""),
         "messaggi": paths.get("MESSAGGI_DB", ""),
         "utenti": paths.get("AUTH_DB", ""),
         "audit": paths.get("AUDIT_DB", ""),
@@ -242,6 +245,13 @@ def _copy_core_state_to_target(
     scadenziario_dst._scadenze = {row.id: row for row in scadenziario_src.tutte()}
     scadenziario_dst._salva()
 
+    timesheet_path = paths.get("TIMESHEET_DB")
+    if timesheet_path:
+        timesheet_src = GestioneTimesheet(db_path=timesheet_path, studio_db=sqlite_backend)
+        timesheet_dst = GestioneTimesheet(db_path=timesheet_path, studio_db=target_backend)
+        timesheet_dst._entries = {row.id: row for row in timesheet_src.tutte()}
+        timesheet_dst._salva()
+
     auth_src = GestioneUtenti(
         db_path=paths["AUTH_DB"],
         audit_path=paths["AUDIT_DB"],
@@ -280,6 +290,7 @@ def migrate_core_storage_to_postgres(
         "fascicoli": _json_record_count(paths.get("FASCICOLI_DB", "")),
         "appuntamenti": _json_record_count(paths.get("AGENDA_DB", "")),
         "scadenze": _json_record_count(paths.get("SCADENZIARIO_DB", "")),
+        "timesheet": _json_record_count(paths.get("TIMESHEET_DB", "")),
         "utenti": _json_record_count(paths.get("AUTH_DB", "")),
         "audit": _json_record_count(paths.get("AUDIT_DB", "")),
     }

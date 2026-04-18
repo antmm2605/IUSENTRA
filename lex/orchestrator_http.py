@@ -161,7 +161,19 @@ def build_context_response(
         resolved_effective_question,
         studio_context.get("verified_legal_references") or studio_context.get("sources") or [],
     )
+    if not direct_guard_reply:
+        direct_guard_reply = clean_spaces(studio_context.get("answer_guardrail_message"))
     if direct_guard_reply:
+        guard_prompt = orchestrator.dependencies.build_prompt(
+            question=resolved_effective_question,
+            fascicolo_id=fascicolo_id,
+            messages=history_messages,
+            studio_context=str(studio_context.get("prompt_block") or "").strip(),
+            include_conversation=True,
+            social_prefix="",
+            social_kind=routing.social_kind,
+            opening_line="",
+        )
         payload = direct_answer_payload(
             current_user_message,
             direct_guard_reply,
@@ -172,6 +184,15 @@ def build_context_response(
         payload["routing"] = routing_payload(routing)
         payload["followup_resolution"] = followup_resolution_payload(followup)
         payload["effective_question"] = resolved_effective_question
+        payload["prompt"] = guard_prompt
+        payload["request_profile"] = studio_context.get("request_profile") or {}
+        payload["source_policy_summary"] = studio_context.get("source_policy_summary") or {}
+        payload["source_mode"] = str(studio_context.get("source_mode") or "").strip()
+        payload["confidence_label"] = "bassa"
+        payload["confidence_reason"] = clean_spaces(
+            (studio_context.get("source_policy_summary") or {}).get("reasoning")
+            or "Lex si e' fermato per prudenza: le fonti disponibili non bastano a una risposta forte."
+        )
         return payload, 200
 
     prompt_question = resolved_effective_question
@@ -267,6 +288,11 @@ def build_context_response(
             "followup_resolution": followup_resolution_payload(followup),
             "structured_context": studio_context.get("structured_context") or {},
             "retrieval_sources": retrieval_sources,
+            "request_profile": studio_context.get("request_profile") or {},
+            "source_policy_summary": studio_context.get("source_policy_summary") or {},
+            "source_mode": str(studio_context.get("source_mode") or "").strip(),
+            "confidence_label": grounding.confidence_label,
+            "confidence_reason": grounding.reasoning,
         }
     )
     return built, 200
@@ -387,6 +413,8 @@ def chat_response(
         resolved_effective_question,
         studio_context.get("verified_legal_references") or studio_context.get("sources") or [],
     )
+    if not direct_guard_reply:
+        direct_guard_reply = clean_spaces(studio_context.get("answer_guardrail_message"))
     if direct_guard_reply:
         def generate_direct():
             yield f"data: {json.dumps({'token': direct_guard_reply})}\n\n"

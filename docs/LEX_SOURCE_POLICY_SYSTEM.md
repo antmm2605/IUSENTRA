@@ -1,0 +1,73 @@
+# Lex Source Policy System
+
+## Obiettivo
+
+Rendere Lex utile davvero per l'avvocato:
+
+- capisce il tipo di richiesta;
+- cerca prima nel contesto interno;
+- usa il web solo quando serve;
+- classifica le fonti per affidabilita';
+- espone sempre livello di fiducia e limiti.
+
+## Entry point pubblico
+
+Per integrazioni semplici resta disponibile il modulo compatibile:
+
+```python
+from ai_lex_sources import (
+    infer_area,
+    evaluate_source,
+    SourceMode,
+    batch_evaluate_sources,
+)
+```
+
+La logica governabile vera vive in:
+
+- `lex/research/source_policy/models.py`
+- `lex/research/source_policy/catalog.py`
+- `lex/research/source_policy/inference.py`
+- `lex/research/source_policy/evaluation.py`
+- `lex/research/request_profile.py`
+
+## Flusso applicativo
+
+1. `classify_request(...)` profila intento, rischio, modalita' fonti e schema risposta.
+2. `build_lex_studio_context(...)` raccoglie contesto interno e, se utile, fonti ufficiali.
+3. `evaluate_source_row(...)` assegna tier, score e affidabilita' alle fonti.
+4. `summarize_evaluated_sources(...)` decide warning e blocchi prudenziali.
+5. `GroundingGuard` produce `confidence`, `confidence_label` e motivazione.
+6. `AnswerBuilder` e il widget UI mostrano risposta, fonti e affidabilita'.
+
+## Modalita'
+
+- `strict`: priorita' a fonti primarie o interne forti; se mancano, Lex si ferma.
+- `balanced`: combina fonti interne e secondarie affidabili con prudenza.
+- `broad`: utile per drafting e ricerca larga, ma con warning espliciti.
+
+## Regole di prodotto
+
+- Lex non inventa norme, sentenze o PDF ufficiali.
+- I fatti sensibili devono derivare da contesto interno verificato o fonti forti.
+- Le richieste ad alto rischio alzano automaticamente la prudenza.
+- Se la base documentale non basta, Lex lo dichiara e non finge certezza.
+
+## Punti di integrazione gia' attivi
+
+- `web/services/assistente_studio_context.py`
+- `web/services/assistente_live_web.py`
+- `lex/retrieval/search_ranker.py`
+- `lex/guards/grounding.py`
+- `lex/orchestrator_http.py`
+- `web/static/js/pct-lex-assistant.js`
+
+## Test
+
+Copertura minima dedicata:
+
+- `lex/tests/unit/test_source_policy.py`
+- `tests/test_local_ai.py`
+- `tests/test_web_bootstrap.py`
+- `tests/test_assistente_*.py`
+- `tests/test_lex_*.py`

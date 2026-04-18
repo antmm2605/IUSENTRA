@@ -8,6 +8,8 @@ from typing import Any
 
 from flask import current_app, g
 
+from lex.research import build_request_profile_prompt, classify_request
+from lex.research.source_policy import evaluate_source_row, summarize_evaluated_sources
 from pct.config_studio import GestioneConfigStudio
 from pct.fatturazione import GestioneFatturazione
 from pct.legal_intelligence import fonti_per_query, motori_per_query
@@ -1864,9 +1866,11 @@ def build_lex_studio_context(
     effective_question = _clean_spaces(str(focus.get("effective_question") or q))
     if not effective_question:
         effective_question = q
+    request_profile = classify_request(effective_question, requested_mode=mode)
     sections: list[str] = [
         "Lex deve restare sempre consultivo, non decisionale, e formulare solo suggerimenti, ipotesi operative, check-list, rischi e prossimi passi.",
         "Se manca il contesto o serve una verifica aggiornata sul web, Lex deve dirlo chiaramente e indicare le fonti ufficiali web piu' adatte senza inventare.",
+        build_request_profile_prompt(request_profile),
     ]
     focus_label = _clean_spaces(focus.get("focus_label"))
     research_strategy = _clean_spaces(focus.get("research_strategy"))
@@ -1900,6 +1904,12 @@ def build_lex_studio_context(
         else (_select_detail_sections_for_chat(effective_question) if chat_mode else _select_detail_sections(effective_question))
     )
     selected_detail_titles = set(selected_detail_titles) | competence_section_titles
+    if request_profile.intent == "normativa":
+        selected_detail_titles.add("Ricerca legale e fonti web")
+    if request_profile.intent == "giurisprudenza":
+        selected_detail_titles.add("Archivio sentenze")
+    if request_profile.intent in {"bozza_atto", "bozza_lettera"}:
+        selected_detail_titles.add("Template atti")
     include_live_web = (
         bool(focus.get("include_live_web"))
         if chat_mode and focus.get("topic")
@@ -1986,12 +1996,44 @@ def build_lex_studio_context(
             current_app.logger.exception("Errore fallback web Lex: %s", exc)
 
     deduped_sources = _dedupe_sources([*priority_sources, *local_sources])
+    evaluated_sources = [
+        evaluate_source_row(
+            row,
+            area=request_profile.area,
+            mode=request_profile.source_mode,
+        )
+        for row in deduped_sources
+    ]
+    evaluated_sources.sort(
+        key=lambda row: (
+            float(row.get("source_policy_score") or 0.0),
+            float(row.get("score") or 0.0),
+            1 if row.get("verified_reference") else 0,
+        ),
+        reverse=True,
+    )
+    deduped_sources = evaluated_sources
+    source_policy_summary = summarize_evaluated_sources(
+        evaluated_sources,
+        area=request_profile.area,
+        area_confidence=request_profile.area_confidence,
+        mode=request_profile.source_mode,
+        require_primary=request_profile.source_mode == "strict",
+    )
+    policy_lines = [
+        f"Intento: {request_profile.intent_label}.",
+        f"Area: {request_profile.area} (confidenza {request_profile.area_confidence:.2f}).",
+        f"Modalita fonti: {request_profile.source_mode}.",
+        source_policy_summary.reasoning,
+        *list(source_policy_summary.warnings),
+    ]
+    _append_section(sections, "Policy fonti e affidabilita", policy_lines)
     legal_dashboard_headline = {}
-    for row in deduped_sources:
+    for row in evaluated_sources:
         if row.get("id") == "legal-intelligence:dashboard-headline":
             legal_dashboard_headline = dict(row.get("headline") or {})
             break
-    verified_legal_references = collect_verified_legal_references(deduped_sources)
+    verified_legal_references = collect_verified_legal_references(evaluated_sources)
     execution_policy = build_execution_policy(
         question=effective_question,
         focus_topic=_clean_spaces(focus.get("topic")),
@@ -2006,7 +2048,7 @@ def build_lex_studio_context(
         )
     legal_reference_guard_prompt = build_case_law_guard_prompt(
         effective_question,
-        deduped_sources,
+        evaluated_sources,
     )
     if legal_reference_guard_prompt:
         _append_section(
@@ -2014,6 +2056,24 @@ def build_lex_studio_context(
             "Affidabilita' riferimenti legali",
             legal_reference_guard_prompt.splitlines(),
         )
+
+    answer_guardrail_message = ""
+    if source_policy_summary.block_unverified_answer:
+        if request_profile.intent == "normativa":
+            answer_guardrail_message = (
+                "Non ho ancora una base primaria sufficiente per darti una risposta normativa forte. "
+                "Posso aiutarti a circoscrivere il punto o cercare una fonte ufficiale piu' mirata."
+            )
+        elif request_profile.intent == "giurisprudenza":
+            answer_guardrail_message = (
+                "Non ho ancora una pronuncia o una base giurisprudenziale verificata abbastanza forte per risponderti in modo affidabile. "
+                "Meglio fermarsi qui e cercare una fonte ufficiale piu' precisa."
+            )
+        else:
+            answer_guardrail_message = (
+                "La base documentale disponibile non e' ancora sufficiente per una risposta affidabile. "
+                "Meglio chiarire il perimetro o integrare con fonti piu' forti."
+            )
 
     legal_route = get_legal_intelligence().resolve_lex_legal_route(effective_question)
 
@@ -2047,6 +2107,10 @@ def build_lex_studio_context(
         "legal_reference_guard_active": bool(legal_reference_guard_prompt),
         "execution_policy": execution_policy.to_dict(),
         "legal_dashboard_headline": legal_dashboard_headline,
+        "request_profile": request_profile.to_dict(),
+        "source_policy_summary": source_policy_summary.to_dict(),
+        "source_mode": request_profile.source_mode,
+        "answer_guardrail_message": answer_guardrail_message,
     }
 
 

@@ -44,6 +44,8 @@ class LexGroundingResult:
     enough_sources: bool
     confidence: float
     warnings: list[str] = field(default_factory=list)
+    confidence_label: str = ""
+    reasoning: str = ""
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -51,4 +53,6 @@ class LexGroundingResult:
             "enough_sources": bool(self.enough_sources),
             "confidence": float(self.confidence),
             "warnings": list(self.warnings),
+            "confidence_label": str(self.confidence_label),
+            "reasoning": str(self.reasoning),
         }

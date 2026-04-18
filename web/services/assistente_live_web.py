@@ -9,6 +9,7 @@ from typing import Any, Callable
 
 import requests
 
+from lex.research.source_policy import evaluate_source_row, infer_area
 from pct.legal_intelligence import FONTI_UFFICIALI, USER_AGENT, fonti_per_query
 from web.services.assistente_official_web_search import search_recognized_official_web
 
@@ -225,6 +226,7 @@ def build_live_official_web_context(
     force: bool = False,
     explicit_source_ids: list[str] | None = None,
 ) -> dict[str, Any]:
+    inferred_area = infer_area(question)
     source_ids = _select_live_source_ids(
         question,
         force=force,
@@ -250,7 +252,8 @@ def build_live_official_web_context(
             )
             citation = f"Fonte ufficiale live - {source.nome}"
             sources.append(
-                {
+                evaluate_source_row(
+                    {
                     "id": f"live-web:{source.id}",
                     "title": source.nome,
                     "citation": citation,
@@ -264,7 +267,10 @@ def build_live_official_web_context(
                         f"{snapshot.get('title')}. {snapshot.get('summary')} URL ufficiale: {snapshot.get('final_url')}.",
                         420,
                     ),
-                }
+                    },
+                    area=inferred_area,
+                    mode="strict" if force else "balanced",
+                )
             )
             citations.append(citation)
         except Exception as exc:
@@ -272,7 +278,8 @@ def build_live_official_web_context(
                 f"{source.nome}: verifica live non disponibile in questo momento ({_truncate(str(exc), 140)})."
             )
             sources.append(
-                {
+                evaluate_source_row(
+                    {
                     "id": f"live-web:{source.id}",
                     "title": source.nome,
                     "citation": f"Fonte ufficiale live - {source.nome}",
@@ -286,7 +293,10 @@ def build_live_official_web_context(
                         f"Verifica live temporaneamente non disponibile. URL ufficiale: {source.official_url}. Nota: {source.capability or source.notes}",
                         420,
                     ),
-                }
+                    },
+                    area=inferred_area,
+                    mode="strict" if force else "balanced",
+                )
             )
             citations.append(f"Fonte ufficiale live - {source.nome}")
 
@@ -310,7 +320,8 @@ def build_live_official_web_context(
             )
             citation = f"Ricerca web ufficiale - {title}"
             sources.append(
-                {
+                evaluate_source_row(
+                    {
                     "id": row.get("id") or f"live-web-search:{source_name.lower().replace(' ', '-')}",
                     "title": title,
                     "citation": citation,
@@ -325,7 +336,10 @@ def build_live_official_web_context(
                         f"{title}. {excerpt} URL ufficiale: {final_url}.",
                         420,
                     ),
-                }
+                    },
+                    area=inferred_area,
+                    mode="strict" if force else "balanced",
+                )
             )
             citations.append(citation)
 

@@ -924,11 +924,14 @@ def test_lex_assistant_usa_componente_esterno_e_posizione_persistente():
     assert "state.fullscreen = Boolean(saved.fullscreen && state.open);" in widget_js
     assert "resolveConversationFocus" in widget_js
     assert "renderReferenceLabel" in widget_js
+    assert "renderConfidence" in widget_js
+    assert "Affidabilita" in widget_js
     assert "appendMetaMessage" not in widget_js
     assert "assistantAvatarMarkup" in widget_js
     assert "dataset.lexIconUrl" in widget_js
     assert "resetPosition" in widget_js
     assert "startResize" in widget_js
+    assert ".pct-ai-callout--confidence" in widget_scss
     assert "handleUpload" in widget_js
     assert "speakAnswer" in widget_js
     assert "pct-ai-widget--custom" in widget_js

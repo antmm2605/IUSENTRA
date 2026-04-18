@@ -239,6 +239,33 @@
     );
   }
 
+  function renderConfidence(payload) {
+    var label = String(payload && (payload.confidenceLabel || payload.confidence_label || '') || '').trim();
+    var confidence = Number(payload && payload.confidence || 0);
+    var reason = String(payload && (payload.confidenceReason || payload.confidence_reason || '') || '').trim();
+    if (!label && !reason && !confidence) {
+      return '';
+    }
+    var badgeClass = 'bg-secondary-subtle text-secondary-emphasis';
+    if (label === 'alta') {
+      badgeClass = 'bg-success-subtle text-success-emphasis';
+    } else if (label === 'media') {
+      badgeClass = 'bg-warning-subtle text-warning-emphasis';
+    } else if (label === 'bassa') {
+      badgeClass = 'bg-danger-subtle text-danger-emphasis';
+    }
+    return (
+      '<div class="pct-ai-callout pct-ai-callout--confidence">' +
+        '<div class="pct-ai-callout__title"><i class="bi bi-shield-check me-1"></i>Affidabilita</div>' +
+        '<div class="d-flex align-items-center gap-2 flex-wrap">' +
+          (label ? '<span class="badge rounded-pill ' + badgeClass + '">' + escapeHtml(label.toUpperCase()) + '</span>' : '') +
+          (confidence ? '<span class="small text-muted">score ' + escapeHtml(confidence.toFixed(2)) + '</span>' : '') +
+        '</div>' +
+        (reason ? '<div class="small text-muted mt-2">' + escapeHtml(reason) + '</div>' : '') +
+      '</div>'
+    );
+  }
+
   function renderSources(payload) {
     var citations = Array.isArray(payload && payload.citations) ? payload.citations.filter(Boolean) : [];
     var sources = Array.isArray(payload && payload.sources) ? payload.sources.slice(0, 5) : [];
@@ -999,6 +1026,12 @@
     if (Object.prototype.hasOwnProperty.call(normalized, 'reference_label') && !Object.prototype.hasOwnProperty.call(normalized, 'referenceLabel')) {
       normalized.referenceLabel = normalized.reference_label;
     }
+    if (Object.prototype.hasOwnProperty.call(normalized, 'confidence_label') && !Object.prototype.hasOwnProperty.call(normalized, 'confidenceLabel')) {
+      normalized.confidenceLabel = normalized.confidence_label;
+    }
+    if (Object.prototype.hasOwnProperty.call(normalized, 'confidence_reason') && !Object.prototype.hasOwnProperty.call(normalized, 'confidenceReason')) {
+      normalized.confidenceReason = normalized.confidence_reason;
+    }
     normalized.answer = sanitizeLexAnswer(normalized.answer || '', options || {});
     if (isDirectGuardAnswer(normalized.answer)) {
       normalized.referenceLabel = '';
@@ -1013,6 +1046,7 @@
     return (
       renderReferenceLabel(payload && payload.referenceLabel) +
       answer +
+      renderConfidence(payload) +
       renderWarnings(payload) +
       renderSources(payload) +
       renderActionPills(payload) +
@@ -1474,6 +1508,11 @@
     var preparedFocusLabel = state.pendingFocus && state.pendingFocus.focusLabel ? String(state.pendingFocus.focusLabel) : '';
     var preparedOpeningLine = '';
     var preparedLegalReferenceGuardActive = false;
+    var preparedConfidenceLabel = '';
+    var preparedConfidenceReason = '';
+    var preparedConfidenceValue = 0;
+    var preparedSources = [];
+    var preparedCitations = [];
     browserBridge()
       .fetchServerContext(bridgeConfig, {
         question: text,
@@ -1492,11 +1531,19 @@
         }
         preparedOpeningLine = String(prepared && prepared.opening_line || '').trim();
         preparedLegalReferenceGuardActive = Boolean(prepared && prepared.legal_reference_guard_active);
+        preparedConfidenceLabel = String(prepared && (prepared.confidence_label || prepared.confidenceLabel || '') || '').trim();
+        preparedConfidenceReason = String(prepared && (prepared.confidence_reason || prepared.confidenceReason || '') || '').trim();
+        preparedConfidenceValue = Number(prepared && prepared.confidence || 0);
+        preparedSources = Array.isArray(prepared && prepared.sources) ? prepared.sources.slice() : [];
+        preparedCitations = Array.isArray(prepared && prepared.citations) ? prepared.citations.slice() : [];
         if ((String(prepared && prepared.query_type || '').trim() === 'social_only' || String(prepared && prepared.query_type || '').trim() === 'direct_answer') && prepared && prepared.answer) {
           return {
             answer: String(prepared.answer || '').trim(),
-            citations: prepared.citations || [],
-            sources: prepared.sources || [],
+            citations: preparedCitations,
+            sources: preparedSources,
+            confidence: prepared.confidence || preparedConfidenceValue,
+            confidenceLabel: prepared.confidence_label || preparedConfidenceLabel,
+            confidenceReason: prepared.confidence_reason || preparedConfidenceReason,
             question: text,
             referenceLabel: '',
             disableExports: Boolean(prepared.disable_exports),
@@ -1528,6 +1575,27 @@
       .then(function (payload) {
         if (!payload.answer && state.currentBubble) {
           payload.answer = state.currentBubble.textContent || '';
+        }
+        if (!Array.isArray(payload.sources) || !payload.sources.length) {
+          payload.sources = Array.isArray(payload.sources) && payload.sources.length ? payload.sources : [];
+          if (preparedSources.length) {
+            payload.sources = preparedSources.slice();
+          }
+        }
+        if (!Array.isArray(payload.citations) || !payload.citations.length) {
+          payload.citations = Array.isArray(payload.citations) && payload.citations.length ? payload.citations : [];
+          if (preparedCitations.length) {
+            payload.citations = preparedCitations.slice();
+          }
+        }
+        if (!Object.prototype.hasOwnProperty.call(payload, 'confidence') && preparedConfidenceValue) {
+          payload.confidence = preparedConfidenceValue;
+        }
+        if (!payload.confidenceLabel && preparedConfidenceLabel) {
+          payload.confidenceLabel = preparedConfidenceLabel;
+        }
+        if (!payload.confidenceReason && preparedConfidenceReason) {
+          payload.confidenceReason = preparedConfidenceReason;
         }
         payload.question = text;
         if (Object.prototype.hasOwnProperty.call(payload, 'referenceLabel')) {

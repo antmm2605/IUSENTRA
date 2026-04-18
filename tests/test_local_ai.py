@@ -653,6 +653,31 @@ def test_api_assistente_context_integra_fonti_ufficiali_web_live(tmp_path: Path,
     assert any(source["id"] == "live-web:normattiva" for source in payload["sources"])
 
 
+def test_api_assistente_context_espone_profilo_richiesta_e_policy_fonti(tmp_path: Path):
+    _write_studio_config(tmp_path / "config" / "studio.json", enabled=True)
+    app = create_app(_cfg_web(tmp_path))
+
+    with app.test_client() as client:
+        client.post("/login", data={"username": "admin", "password": "admin"}, follow_redirects=True)
+        response = client.post(
+            "/api/assistente/context",
+            json={
+                "question": "Verifica la normativa vigente sul consenso privacy",
+                "messages": [{"role": "user", "content": "Verifica la normativa vigente sul consenso privacy"}],
+            },
+        )
+
+    payload = response.get_json()
+    assert response.status_code == 200
+    assert payload["ok"] is True
+    assert payload["request_profile"]["intent"] == "normativa"
+    assert payload["request_profile"]["source_mode"] == "strict"
+    assert payload["source_policy_summary"]["mode_used"] == "strict"
+    assert "=== POLICY FONTI E AFFIDABILITA ===" in payload["prompt"]
+    assert "Profilo richiesta: verifica normativa." in payload["prompt"]
+    assert all("source_policy_tier" in source for source in payload["sources"])
+
+
 def test_api_assistente_context_eredita_tema_precedente_per_verifica_web(tmp_path: Path, monkeypatch):
     _write_studio_config(tmp_path / "config" / "studio.json", enabled=True)
     app = create_app(_cfg_web(tmp_path))

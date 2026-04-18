@@ -55,6 +55,8 @@ class AnswerBuilder:
             "answer": sections["answer"],
             "grounded": grounding.grounded,
             "confidence": grounding.confidence,
+            "confidence_label": grounding.confidence_label,
+            "confidence_reason": grounding.reasoning,
             "warnings": sections["warnings"],
             "sources": list(sources or []),
             "citations": build_citations(sources),

@@ -1087,5 +1087,263 @@
 }
 
 /* ================================================================
+   DESIGN 24 — PAGINE COMPLESSE: Panoramica, Cabina, Soggetti
+   Fix specifici per layout responsive su mobile
+   ================================================================ */
+
+/* ---- PANORAMICA (dashboard) ---- */
+@media (max-width: 768px) {
+  .dashboard-page {
+    gap: .85rem;
+  }
+
+  .dashboard-grid-tight {
+    --bs-gutter-x: .75rem;
+    --bs-gutter-y: .85rem;
+    margin-left: 0;
+    margin-right: 0;
+  }
+
+  .dashboard-grid-tight > [class*="col-"] {
+    padding-left: calc(var(--bs-gutter-x) * .5);
+    padding-right: calc(var(--bs-gutter-x) * .5);
+  }
+
+  .dashboard-card {
+    border-radius: var(--mob-r) !important;
+    box-shadow: var(--mob-shadow) !important;
+  }
+
+  .dashboard-card .card-header {
+    padding: .7rem .85rem !important;
+    font-size: .85rem;
+  }
+
+  .dashboard-card .card-body {
+    padding: .8rem .85rem !important;
+  }
+
+  .dashboard-operational-list {
+    gap: .55rem;
+  }
+
+  .dashboard-operational-item {
+    flex-wrap: wrap;
+    gap: .4rem;
+    padding: .65rem .75rem;
+  }
+
+  .dashboard-operational-item .badge {
+    flex-shrink: 0;
+  }
+
+  .dashboard-chart-card .card-body {
+    min-height: 200px;
+  }
+}
+
+/* ---- CABINA INTELLIGENTE (workspace) ---- */
+@media (max-width: 768px) {
+  .workspace-page {
+    gap: .85rem;
+  }
+
+  .wi-hero.p-4 {
+    padding: 1rem !important;
+    border-radius: var(--mob-r) !important;
+  }
+
+  .wi-hero h1,
+  .wi-hero .h2 {
+    font-size: 1.15rem !important;
+    line-height: 1.3;
+    margin-bottom: .5rem !important;
+  }
+
+  .wi-hero-copy {
+    font-size: .85rem;
+    line-height: 1.5;
+  }
+
+  .wi-hero .d-flex.flex-column.flex-xl-row {
+    gap: 1rem !important;
+  }
+
+  .wi-chip {
+    font-size: .72rem;
+    padding: .3rem .6rem;
+  }
+
+  .wi-hero-actions {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .wi-hero-actions .btn {
+    font-size: .85rem;
+    padding: .55rem .85rem;
+    min-height: var(--mob-tap-size);
+  }
+
+  .wi-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    padding: .7rem .8rem;
+    gap: .6rem;
+  }
+
+  .wi-toolbar__filters {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    margin: 0 -.3rem;
+    padding: 0 .3rem .25rem;
+  }
+
+  .wi-toolbar__filters::-webkit-scrollbar { display: none; }
+
+  .wi-filter-pill {
+    flex-shrink: 0;
+    white-space: nowrap;
+    font-size: .8rem;
+    padding: .4rem .7rem;
+  }
+
+  .wi-toolbar__controls {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .wi-toolbar__controls form {
+    width: 100%;
+  }
+
+  .wi-toolbar__controls select {
+    flex: 1;
+  }
+
+  .wi-kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: .6rem;
+  }
+
+  .wi-action-grid,
+  .wi-sync-grid,
+  .wi-source-grid,
+  .wi-fascicoli-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: .6rem;
+  }
+
+  .wi-kpi {
+    min-height: 92px;
+    padding: .75rem .8rem;
+    border-radius: var(--mob-r-sm);
+  }
+
+  .wi-kpi .fs-3 {
+    font-size: 1.4rem !important;
+  }
+
+  .wi-card,
+  .wi-panel,
+  .wi-fascicolo,
+  .wi-source {
+    border-radius: var(--mob-r) !important;
+  }
+
+  .wi-panel.p-4 {
+    padding: 1rem !important;
+  }
+}
+
+@media (max-width: 575px) {
+  .wi-kpi-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ---- SOGGETTI ---- */
+@media (max-width: 768px) {
+  .anagrafica-soggetti-page {
+    gap: .85rem;
+  }
+
+  .soggetti-grid {
+    --bs-gutter-x: .6rem;
+    --bs-gutter-y: .6rem;
+    margin-left: 0;
+    margin-right: 0;
+  }
+
+  .soggetti-grid > [class*="col-"] {
+    padding-left: calc(var(--bs-gutter-x) * .5);
+    padding-right: calc(var(--bs-gutter-x) * .5);
+  }
+
+  .anagrafica-soggetti-page .ds-search-bar {
+    flex-wrap: wrap;
+    gap: .5rem;
+    padding: .55rem .65rem;
+  }
+
+  .soggetti-filter-select {
+    max-width: none !important;
+    flex: 1 1 100%;
+  }
+
+  .anagrafica-soggetti-page .ds-entity-card > div {
+    padding: .75rem .8rem !important;
+    gap: .7rem !important;
+  }
+
+  .anagrafica-soggetti-page .ds-entity-avatar {
+    width: 38px;
+    height: 38px;
+    font-size: .85rem;
+  }
+
+  .anagrafica-soggetti-page .ds-entity-name {
+    font-size: .88rem;
+  }
+
+  .anagrafica-soggetti-page .ds-entity-meta {
+    margin-top: .35rem;
+    gap: .25rem .5rem;
+    font-size: .75rem;
+  }
+
+  .anagrafica-soggetti-page .ds-entity-meta span {
+    white-space: nowrap;
+  }
+
+  .ds-entity-type-badge {
+    font-size: .62rem;
+    padding: .3rem .5rem;
+  }
+}
+
+/* ---- DS-STATS scroll orizzontale su mobile (panoramica/soggetti) ---- */
+@media (max-width: 575px) {
+  .ds-stats {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    margin-left: -.5rem;
+    margin-right: -.5rem;
+    padding: 0 .5rem .25rem;
+  }
+
+  .ds-stats::-webkit-scrollbar { display: none; }
+
+  .ds-stat-pill {
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+}
+
+/* ================================================================
    SCRIPT HELPER — tabelle scrollabili (rilevamento)
    ================================================================ */

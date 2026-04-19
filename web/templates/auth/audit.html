@@ -1,14 +1,12 @@
 {% extends "base.html" %}
-{% block title %}Registro Attività{% endblock %}
-{% block page_title %}Registro Attività{% endblock %}
+{% block title %}Registro Attivita'{% endblock %}
+{% block page_title %}Registro Attivita'{% endblock %}
 
 {% block content %}
-
-{# ── Page Header ── #}
 <div class="ds-ph">
   <div class="ds-ph-icon"><i class="bi bi-journal-text"></i></div>
   <div class="ds-ph-body">
-    <h1 class="ds-ph-title">Registro Attività</h1>
+    <h1 class="ds-ph-title">Registro Attivita'</h1>
     <p class="ds-ph-sub">Storico degli accessi e delle operazioni degli utenti</p>
   </div>
   <div class="ds-ph-actions">
@@ -19,12 +17,27 @@
   </div>
 </div>
 
+<div class="alert alert-info border-0 shadow-sm">
+  <div class="fw-semibold mb-1">Come leggere i riferimenti ai fascicoli</div>
+  <div class="small">
+    Il registro audit e' storico e immutabile. Se un fascicolo viene migrato, ricreato o rimosso,
+    l'evento mantiene l'ID originario; quando il sistema riesce a riconciliare il contenuto con il
+    fascicolo corrente, lo segnala esplicitamente in questa tabella.
+  </div>
+  {% if audit_summary %}
+  <div class="mt-2 d-flex flex-wrap gap-2 small">
+    <span class="badge bg-success-subtle text-success-emphasis">Attivi: {{ audit_summary.attivi or 0 }}</span>
+    <span class="badge bg-info-subtle text-info-emphasis">Riconciliati: {{ audit_summary.riconciliati or 0 }}</span>
+    <span class="badge bg-secondary-subtle text-secondary-emphasis">Storici: {{ audit_summary.storici or 0 }}</span>
+  </div>
+  {% endif %}
+</div>
+
 <div class="card shadow-sm">
   <div class="card-header">
     <span class="fw-semibold text-muted small">{{ eventi|length }} eventi</span>
   </div>
 
-  {# Filtri #}
   <div class="card-body border-bottom py-2">
     <form method="get" class="row g-2 align-items-end">
       <div class="col-md-4">
@@ -39,7 +52,7 @@
       </div>
       <div class="col-md-4">
         <input type="text" name="azione" class="form-control form-control-sm"
-               placeholder="Filtra per azione (es. login, fascicoli…)"
+               placeholder="Filtra per azione (es. login, fascicoli...)"
                value="{{ filtro_azione }}">
       </div>
       <div class="col-auto">
@@ -57,27 +70,56 @@
       <table class="table table-sm table-hover align-middle mb-0 font-monospace" style="font-size:.82rem">
         <thead class="table-light">
           <tr>
-            <th>Data/Ora</th><th>Utente</th><th>Azione</th>
-            <th>Risorsa</th><th>Dettagli</th><th>IP</th>
+            <th>Data/Ora</th>
+            <th>Utente</th>
+            <th>Azione</th>
+            <th>Risorsa</th>
+            <th>Contesto</th>
+            <th>Dettagli</th>
+            <th>IP</th>
             <th>Esito</th>
           </tr>
         </thead>
         <tbody>
           {% for e in eventi %}
           <tr>
-            <td class="text-nowrap">{{ e.timestamp[:19].replace('T',' ') }}</td>
-            <td>{{ e.username or '—' }}</td>
+            <td class="text-nowrap">{{ e.timestamp|fmt_dataora }}</td>
+            <td>{{ e.username or '-' }}</td>
             <td>{{ e.azione }}</td>
             <td class="small">
-              {{ e.risorsa_tipo }}
+              {{ e.risorsa_tipo or '-' }}
               {% if e.risorsa_id %}
-              <span class="text-muted small">{{ e.risorsa_id[:8] }}…</span>
+              <span class="text-muted small">{{ e.risorsa_id[:8] }}...</span>
               {% endif %}
             </td>
-            <td class="small text-muted" style="max-width:200px;overflow:hidden;text-overflow:ellipsis">
-              {{ e.dettagli or '—' }}
+            <td class="small" style="max-width:260px">
+              {% if e.resource_label %}
+              <div class="d-flex flex-column gap-1">
+                <div>
+                  <span class="badge {{ e.resource_badge_class }}">{{ e.resource_badge_label }}</span>
+                </div>
+                {% if e.resource_url %}
+                <a href="{{ e.resource_url }}" class="fw-semibold text-decoration-none">{{ e.resource_label }}</a>
+                {% else %}
+                <span class="fw-semibold">{{ e.resource_label }}</span>
+                {% endif %}
+                <div class="text-muted">{{ e.resource_note }}</div>
+              </div>
+              {% elif e.resource_note %}
+              <div class="d-flex flex-column gap-1">
+                <div>
+                  <span class="badge {{ e.resource_badge_class }}">{{ e.resource_badge_label }}</span>
+                </div>
+                <div class="text-muted">{{ e.resource_note }}</div>
+              </div>
+              {% else %}
+              <span class="text-muted">-</span>
+              {% endif %}
             </td>
-            <td class="small text-muted">{{ e.ip or '—' }}</td>
+            <td class="small text-muted" style="max-width:220px;overflow:hidden;text-overflow:ellipsis">
+              {{ e.dettagli or '-' }}
+            </td>
+            <td class="small text-muted">{{ e.ip or '-' }}</td>
             <td>
               {% if e.esito == 'OK' %}
                 <span class="badge bg-success">OK</span>

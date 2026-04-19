@@ -19,6 +19,7 @@ La repo oggi non è più solo un tool CLI per il Processo Civile Telematico: con
 - Review `Coverage AI` con audit forte: motivo decisione, firma reviewer, diff tra spec originale e corrente, storico revisioni e publish SQL tracciato.
 - La console `Copertura AI` aggancia automaticamente il backend SQL reale del tenant selezionato: `studio.db` per gli studi `SQLite` oppure PostgreSQL tenant-aware per gli studi cloud o legacy gia' configurati.
 - Workspace/applicazioni, portali di acquisizione, privacy e audit.
+- Registro audit storico spiegabile: se un fascicolo e' stato migrato, ricreato o rimosso, la UI segnala se l'evento e' attivo, riconciliato verso il fascicolo corrente oppure solo storico.
 - Runtime AI locale con Lex come strato linguistico sopra motori deterministici.
 - Multi-tenant amministrabile dalla piattaforma.
 

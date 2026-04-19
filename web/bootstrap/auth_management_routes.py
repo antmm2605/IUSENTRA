@@ -17,6 +17,7 @@ from pct.auth import (
     totp_uri,
     verifica_totp,
 )
+from web.services.audit_surface import build_audit_view
 
 
 def register_auth_management_routes(
@@ -274,10 +275,12 @@ def register_auth_management_routes(
         id_utente = request.args.get("id_utente", "")
         azione = request.args.get("azione", "")
         eventi = gu.audit_log(id_utente=id_utente, azione=azione, limit=200)
+        audit_view = build_audit_view(eventi)
         utenti = gu.tutti()
         return render_template(
             "auth/audit.html",
-            eventi=eventi,
+            eventi=audit_view["eventi"],
+            audit_summary=audit_view["summary"],
             utenti=utenti,
             filtro_utente=id_utente,
             filtro_azione=azione,

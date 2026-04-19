@@ -5,6 +5,8 @@ from pathlib import Path
 from flask import g
 
 from pct import __version__ as APP_VERSION
+from pct.auth import GestioneUtenti
+from pct.fascicoli import GestioneFascicoli, TipoDocumento, TipoFascicolo
 from web.bootstrap.blueprint_registry import BLUEPRINT_REGISTRY
 from web.bootstrap.flask_app_factory import create_flask_app
 from web.bootstrap.runtime_bundle import build_application_runtime_bundle
@@ -1424,6 +1426,66 @@ def test_assistente_chat_usa_runtime_ollama_risolto(monkeypatch, tmp_path: Path)
     assert "[DONE]" in body
 
 
+def test_audit_log_riconcilia_eventi_storici_con_fascicolo_corrente(tmp_path: Path):
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    app = create_app(_cfg_web(tmp_path))
+
+    fascicoli = GestioneFascicoli(
+        db_path=app.config["FASCICOLI_DB"],
+        documents_dir=app.config["FASCICOLI_DOCS"],
+        archive_dir=app.config["FASCICOLI_ARCH"],
+    )
+    fascicolo = fascicoli.nuovo(
+        "Vendita immobili",
+        TipoFascicolo.CIVILE,
+        nome_cliente="Cliente Test",
+    )
+    fascicoli.aggiungi_documento(
+        fascicolo.id,
+        "Ordinanza_32473463.pdf",
+        TipoDocumento.ORDINANZA,
+        b"pdf-demo",
+        caricato_da="admin",
+    )
+
+    utenti = GestioneUtenti(
+        db_path=app.config["AUTH_DB"],
+        audit_path=app.config["AUDIT_DB"],
+        secret_key=app.secret_key,
+        crea_admin_se_vuoto=False,
+        bootstrap_admin_password="admin",
+    )
+    admin = utenti.autentica("admin", "admin")
+    assert admin is not None
+    utenti.registra_evento(
+        "fascicoli.documento.visualizza",
+        id_utente=admin.id,
+        username=admin.username,
+        risorsa_tipo="fascicolo",
+        risorsa_id="8962DDEB",
+        dettagli="doc BB94330C - Ordinanza_32473463.pdf",
+        ip="127.0.0.1",
+        esito="OK",
+    )
+
+    with app.test_client() as client:
+        login = client.post(
+            "/login",
+            data={"username": "admin", "password": "admin"},
+            follow_redirects=False,
+        )
+        assert login.status_code == 302
+        response = client.get("/audit")
+
+    html = response.get_data(as_text=True)
+
+    assert response.status_code == 200
+    assert "Riconciliato" in html
+    assert "Evento storico registrato con ID 8962DDEB" in html
+    assert fascicolo.id in html
+    assert "Vendita immobili" in html
+
+
 def test_file_critici_non_contengono_marker_di_mojibake():
     critical_files = [
         REPO_ROOT / ".editorconfig",
@@ -1438,6 +1500,7 @@ def test_file_critici_non_contengono_marker_di_mojibake():
         REPO_ROOT / "web/services/observability_runtime.py",
         REPO_ROOT / "web/services/product_governance_surface.py",
         REPO_ROOT / "web/templates/base.html",
+        REPO_ROOT / "web/templates/auth/audit.html",
         REPO_ROOT / "web/templates/auth/login.html",
         REPO_ROOT / "web/templates/auth/login_2fa.html",
         REPO_ROOT / "web/templates/admin/assistente_migrazione.html",

@@ -103,15 +103,21 @@ def _latest_report_payload(backup_dir: str) -> dict[str, Any] | None:
     root = Path(str(backup_dir or "").strip())
     if not root.exists():
         return None
-    report_files = sorted(root.glob("storage_migration_full_*.json"), key=lambda path: path.stat().st_mtime, reverse=True)
-    if not report_files:
+    best_payload: dict[str, Any] | None = None
+    best_path: Path | None = None
+    for candidate in root.glob("storage_migration_full_*.json"):
+        try:
+            payload = json.loads(candidate.read_text(encoding="utf-8"))
+        except Exception:
+            continue
+        payload["_path"] = str(candidate)
+        if best_payload is None or _report_sort_key(payload) >= _report_sort_key(best_payload):
+            best_payload = payload
+            best_path = candidate
+    if best_payload is None or best_path is None:
         return None
-    try:
-        payload = json.loads(report_files[0].read_text(encoding="utf-8"))
-    except Exception:
-        return None
-    payload["_path"] = str(report_files[0])
-    return payload
+    best_payload["_path"] = str(best_path)
+    return best_payload
 
 
 def _load_report_payload(report_path: str) -> dict[str, Any] | None:
@@ -124,6 +130,13 @@ def _load_report_payload(report_path: str) -> dict[str, Any] | None:
         return None
     payload["_path"] = str(target)
     return payload
+
+
+def _report_sort_key(payload: dict[str, Any] | None) -> tuple[str, str]:
+    item = dict(payload or {})
+    generated_at = str(item.get("generated_at") or "").strip()
+    report_path = str(item.get("_path") or item.get("report_path") or "").strip()
+    return generated_at, report_path
 
 
 def _compact_counts(values: dict[str, Any] | None) -> str:
@@ -506,21 +519,23 @@ def _build_execution_payload(
     selected_slug: str,
 ) -> dict[str, Any] | None:
     current_state = dict(execution_state or {})
+    chosen_report = latest_report
     if current_state and str(current_state.get("slug") or "").strip().lower() == str(selected_slug or "").strip().lower():
         report_path = str(current_state.get("report_path") or "").strip()
         if report_path:
             report = _load_report_payload(report_path)
             if report:
-                return _build_postgres_execution(report) if str(report.get("target") or "").strip().lower() == "postgresql" else _build_sqlite_execution(report)
+                if chosen_report is None or _report_sort_key(report) >= _report_sort_key(chosen_report):
+                    chosen_report = report
         if current_state.get("error_message"):
             return _build_failed_execution(
                 target=str(current_state.get("target") or "").strip().lower(),
                 error_message=str(current_state.get("error_message") or "").strip(),
                 generated_at=str(current_state.get("generated_at") or ""),
             )
-    if latest_report is None:
+    if chosen_report is None:
         return None
-    return _build_postgres_execution(latest_report) if str(latest_report.get("target") or "").strip().lower() == "postgresql" else _build_sqlite_execution(latest_report)
+    return _build_postgres_execution(chosen_report) if str(chosen_report.get("target") or "").strip().lower() == "postgresql" else _build_sqlite_execution(chosen_report)
 
 
 def _effective_count(domain: dict[str, Any], effective_runtime_kind: str) -> int:

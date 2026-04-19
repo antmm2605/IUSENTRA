@@ -277,3 +277,63 @@ def test_build_migration_assistant_tollera_report_postgres_con_metadata_stringhe
     template_row = next(row for row in repository_rows if row["label"] == "Template atti")
     assert template_row["status"] == "success"
     assert "18" in template_row["detail"]
+
+
+def test_build_migration_assistant_prefersce_il_report_piu_recente_rispetto_alla_sessione(tmp_path):
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    registry = tmp_path / "tenants.json"
+    tm = GestioneTenant(str(registry))
+    studio = tm.crea("Studio Recente", "antonella-mammola", db_config={"mode": "SQLITE"})
+    paths = tm.percorsi_dati(studio.slug)
+    backup_dir = Path(paths["BACKUP_DIR"])
+    backup_dir.mkdir(parents=True, exist_ok=True)
+
+    old_report = backup_dir / "storage_migration_full_sqlite_antonella-mammola_20260419_090000.json"
+    latest_report = backup_dir / "storage_migration_full_sqlite_antonella-mammola_20260419_120000.json"
+
+    old_report.write_text(
+        json.dumps(
+            {
+                "generated_at": "2026-04-19T09:00:00",
+                "target": "sqlite",
+                "success": True,
+                "report_path": str(old_report),
+                "core": {"record_migrati": {"clienti": 1}, "errori": [], "avvisi": ["warning vecchio"]},
+                "repositories": {"coverage_ai": {"ok": True, "sqlite_stats": {"drafts": 0}}},
+                "documents": {"count": 1},
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+    latest_report.write_text(
+        json.dumps(
+            {
+                "generated_at": "2026-04-19T12:00:00",
+                "target": "sqlite",
+                "success": True,
+                "report_path": str(latest_report),
+                "core": {"record_migrati": {"clienti": 5}, "errori": [], "avvisi": []},
+                "repositories": {"coverage_ai": {"ok": True, "sqlite_stats": {"drafts": 2}}},
+                "documents": {"count": 7},
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+
+    app = create_app({**_cfg_web(tmp_path), "TENANTS_REGISTRY": str(registry)})
+    with app.app_context():
+        payload = build_migration_assistant(
+            selected_slug=studio.slug,
+            execution_state={
+                "slug": studio.slug,
+                "target": "sqlite",
+                "report_path": str(old_report),
+                "generated_at": "2026-04-19T09:00:00",
+            },
+        )
+
+    assert payload["last_execution"] is not None
+    assert payload["last_execution"]["report_path"] == str(latest_report)
+    assert payload["last_execution"]["summary_cards"][0]["value"] == 5

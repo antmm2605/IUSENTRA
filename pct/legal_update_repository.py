@@ -9,8 +9,12 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Iterable
 
+from pct.postgres_runtime_support import PostgresRepositoryBackend
 
 SCHEMA_LEGAL_UPDATE_PIPELINE = Path(__file__).with_name("sql") / "20260418_legal_update_pipeline.sql"
+POSTGRES_SCHEMA_LEGAL_UPDATE_PIPELINE = (
+    Path(__file__).with_name("sql") / "20260419_legal_update_pipeline_postgres.sql"
+)
 
 DEFAULT_MATTERS: tuple[dict[str, Any], ...] = (
     {"name": "Diritto civile", "slug": "diritto_civile", "parent_slug": "", "level": 1, "sort_order": 10},
@@ -111,13 +115,33 @@ class LegalUpdateDbConfig:
 
 
 class LegalUpdateRepository:
-    def __init__(self, db_path: str, *, json_path: str = "") -> None:
+    def __init__(
+        self,
+        db_path: str,
+        *,
+        json_path: str = "",
+        postgres_dsn: str = "",
+        postgres_schema_path: Path | None = None,
+    ) -> None:
         self.db_path = str(db_path or "").strip()
         self.json_path = str(json_path or "").strip()
+        self.postgres_dsn = str(postgres_dsn or "").strip()
+        self.postgres_schema_path = Path(
+            postgres_schema_path or POSTGRES_SCHEMA_LEGAL_UPDATE_PIPELINE
+        )
+        self.backend_kind = "postgresql" if self.postgres_dsn else "sqlite"
+        self.audit_table = "legal_update_audit_log" if self.postgres_dsn else "audit_log"
+        self._postgres_backend = (
+            PostgresRepositoryBackend(self.postgres_dsn, self.postgres_schema_path)
+            if self.postgres_dsn
+            else None
+        )
         self._ensure_schema()
         self.seed_matters()
 
-    def _connect(self) -> sqlite3.Connection:
+    def _connect(self):
+        if self._postgres_backend is not None:
+            return self._postgres_backend.connection()
         target = Path(self.db_path)
         target.parent.mkdir(parents=True, exist_ok=True)
         conn = sqlite3.connect(str(target))
@@ -126,7 +150,11 @@ class LegalUpdateRepository:
         return conn
 
     def _ensure_schema(self) -> None:
-        schema = SCHEMA_LEGAL_UPDATE_PIPELINE.read_text(encoding="utf-8")
+        schema = (
+            self.postgres_schema_path.read_text(encoding="utf-8")
+            if self._postgres_backend is not None
+            else SCHEMA_LEGAL_UPDATE_PIPELINE.read_text(encoding="utf-8")
+        )
         with self._connect() as conn:
             conn.executescript(schema)
             conn.commit()
@@ -136,10 +164,10 @@ class LegalUpdateRepository:
             with self._connect() as conn:
                 conn.execute("SELECT 1").fetchone()
             return True
-        except sqlite3.Error:
+        except Exception:
             return False
 
-    def _set_meta(self, conn: sqlite3.Connection, key: str, value: Any) -> None:
+    def _set_meta(self, conn: Any, key: str, value: Any) -> None:
         conn.execute(
             """
             INSERT INTO legal_update_meta (meta_key, meta_value, updated_at)
@@ -151,6 +179,18 @@ class LegalUpdateRepository:
             (_clean_spaces(key), _clean_spaces(value)),
         )
 
+    def _insert_and_get_id(self, conn: Any, sql: str, params: tuple[Any, ...]) -> int:
+        statement = str(sql or "").strip().rstrip(";")
+        if self._postgres_backend is not None:
+            row = conn.execute(f"{statement} RETURNING id", params).fetchone()
+            if row is None:
+                raise RuntimeError("Inserimento PostgreSQL senza id restituito.")
+            if isinstance(row, dict):
+                return int(row.get("id") or next(iter(row.values()), 0) or 0)
+            return int((row or [0])[0] or 0)
+        cursor = conn.execute(statement, params)
+        return int(cursor.lastrowid)
+
     def _decode_row(self, row: sqlite3.Row | None, *, json_fields: Iterable[str] = ()) -> dict[str, Any] | None:
         if row is None:
             return None
@@ -159,7 +199,7 @@ class LegalUpdateRepository:
             payload[field] = _json_load(payload.get(field), [] if field.endswith("_json") and "entities" not in field and "payload" not in field else {})
         return payload
 
-    def _matter_id(self, conn: sqlite3.Connection, slug: str) -> int | None:
+    def _matter_id(self, conn: Any, slug: str) -> int | None:
         if not slug:
             return None
         row = conn.execute("SELECT id FROM matters WHERE slug = ?", (_normalize_token(slug),)).fetchone()
@@ -315,7 +355,8 @@ class LegalUpdateRepository:
                 )
                 raw_id = int(existing["id"])
             else:
-                cursor = conn.execute(
+                raw_id = self._insert_and_get_id(
+                    conn,
                     """
                     INSERT INTO source_documents_raw (
                         source_id, external_id, source_url, title, published_at, raw_html, raw_text,
@@ -337,7 +378,6 @@ class LegalUpdateRepository:
                         int(payload.get("http_status") or 0),
                     ),
                 )
-                raw_id = int(cursor.lastrowid)
             conn.execute(
                 "UPDATE sources SET last_check_at = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
                 (_now_iso(), int(payload["source_id"])),
@@ -728,7 +768,8 @@ class LegalUpdateRepository:
                 )
                 review_id = int(existing["id"])
             else:
-                cursor = conn.execute(
+                review_id = self._insert_and_get_id(
+                    conn,
                     """
                     INSERT INTO review_queue (
                         normalized_document_id, analysis_id, proposal_type, proposed_action,
@@ -740,7 +781,6 @@ class LegalUpdateRepository:
                     """,
                     params,
                 )
-                review_id = int(cursor.lastrowid)
             conn.commit()
         return self.get_review_item(review_id) or {}
 
@@ -847,8 +887,8 @@ class LegalUpdateRepository:
     def record_audit(self, entity_type: str, entity_id: int | None, action: str, old_data: Any, new_data: Any, performed_by: str) -> None:
         with self._connect() as conn:
             conn.execute(
-                """
-                INSERT INTO audit_log (
+                f"""
+                INSERT INTO {self.audit_table} (
                     entity_type, entity_id, action, old_data_json, new_data_json, performed_by, created_at
                 )
                 VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
@@ -915,7 +955,8 @@ class LegalUpdateRepository:
                 normative_id = int(existing["id"])
                 action = "update"
             else:
-                cursor = conn.execute(
+                normative_id = self._insert_and_get_id(
+                    conn,
                     """
                     INSERT INTO normative (
                         title, slug, norm_type, norm_number, norm_year, issuer, publication_date,
@@ -945,7 +986,6 @@ class LegalUpdateRepository:
                         version_group_id,
                     ),
                 )
-                normative_id = int(cursor.lastrowid)
                 old_payload = {}
                 action = "create"
             conn.execute(
@@ -1024,7 +1064,8 @@ class LegalUpdateRepository:
                 entity_id = int(existing["id"])
                 action = "update"
             else:
-                cursor = conn.execute(
+                entity_id = self._insert_and_get_id(
+                    conn,
                     """
                     INSERT INTO jurisprudence (
                         title, slug, court_name, section_name, decision_number, decision_year,
@@ -1036,7 +1077,6 @@ class LegalUpdateRepository:
                     """,
                     params,
                 )
-                entity_id = int(cursor.lastrowid)
                 old_payload = {}
                 action = "create"
             conn.commit()
@@ -1095,7 +1135,8 @@ class LegalUpdateRepository:
                 entity_id = int(existing["id"])
                 action = "update"
             else:
-                cursor = conn.execute(
+                entity_id = self._insert_and_get_id(
+                    conn,
                     """
                     INSERT INTO prassi (
                         title, slug, issuing_body, act_type, act_number, act_year, act_date,
@@ -1106,7 +1147,6 @@ class LegalUpdateRepository:
                     """,
                     params,
                 )
-                entity_id = int(cursor.lastrowid)
                 old_payload = {}
                 action = "create"
             conn.commit()
@@ -1168,7 +1208,8 @@ class LegalUpdateRepository:
                 entity_id = int(existing["id"])
                 action = "update"
             else:
-                cursor = conn.execute(
+                entity_id = self._insert_and_get_id(
+                    conn,
                     """
                     INSERT INTO news (
                         title, slug, short_summary, content, news_type, matter_id, submatter_id,
@@ -1180,7 +1221,6 @@ class LegalUpdateRepository:
                     """,
                     params,
                 )
-                entity_id = int(cursor.lastrowid)
                 old_payload = {}
                 action = "create"
             conn.commit()
@@ -1339,7 +1379,7 @@ class LegalUpdateRepository:
             rows = conn.execute(
                 f"""
                 SELECT *
-                FROM audit_log
+                FROM {self.audit_table}
                 {where}
                 ORDER BY id DESC
                 LIMIT ?
@@ -1363,7 +1403,7 @@ class LegalUpdateRepository:
                 "published_prassi": int(conn.execute("SELECT COUNT(*) FROM prassi").fetchone()[0]),
             }
             latest_audit = conn.execute(
-                "SELECT created_at, action, entity_type, entity_id, performed_by FROM audit_log ORDER BY id DESC LIMIT 12"
+                f"SELECT created_at, action, entity_type, entity_id, performed_by FROM {self.audit_table} ORDER BY id DESC LIMIT 12"
             ).fetchall()
         return {
             "headline": counts,

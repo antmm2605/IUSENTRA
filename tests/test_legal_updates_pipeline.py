@@ -126,6 +126,35 @@ def _cassazione_page(page: int, total_pages: int = 4, items_per_page: int = 15) 
     return f"<html><body>{''.join(links)}{pager}</body></html>"
 
 
+def _cassazione_page_with_navigation_noise(
+    page: int,
+    *,
+    total_pages: int = 3,
+    items_per_page: int = 20,
+) -> str:
+    nav_links = "".join(
+        f'<a href="/nav/{idx}">Navigazione servizio {idx}</a>'
+        for idx in range(1, 25)
+    )
+    cards = []
+    start = (page - 1) * items_per_page + 1
+    for number in range(start, start + items_per_page):
+        cards.append(
+            f"""
+            <article>
+              <a href="/doc/{number}">Sentenza civile n. {number} del 2026 - Prima Sezione</a>
+              <p>Pubblicata il {((number - 1) % 28) + 1:02d}/04/2026 con abstract operativo.</p>
+              <a href="/doc/{number}#full">Vai al documento {number}</a>
+            </article>
+            """
+        )
+    pager = "\n".join(
+        f'<script>parametriUrl("pager_link_{page_no}", "{page_no}")</script>'
+        for page_no in range(2, total_pages + 1)
+    )
+    return f"<html><body>{nav_links}{''.join(cards)}{pager}</body></html>"
+
+
 def test_legal_update_cycle_crea_review_normativa(tmp_path: Path):
     pipeline = build_legal_update_pipeline(str(tmp_path / "intelligence" / "motori.json"))
 
@@ -194,6 +223,36 @@ def test_fetch_html_paginato_acquisisce_tutti_i_documenti_della_fonte(tmp_path: 
         f'{source["base_url"]}?frame3_item=2': DummyResponse(_cassazione_page(2), url=f'{source["base_url"]}?frame3_item=2'),
         f'{source["base_url"]}?frame3_item=3': DummyResponse(_cassazione_page(3), url=f'{source["base_url"]}?frame3_item=3'),
         f'{source["base_url"]}?frame3_item=4': DummyResponse(_cassazione_page(4), url=f'{source["base_url"]}?frame3_item=4'),
+    }
+
+    def _fake_get(url, *args, **kwargs):
+        return pages[str(url)]
+
+    documents = pipeline._fetch_source(source, request_get=_fake_get)
+
+    assert len(documents) == 60
+    assert len({row["external_id"] for row in documents}) == 60
+
+
+def test_fetch_html_non_si_ferma_ai_primi_anchor_e_acquisisce_tutti_i_documenti(tmp_path: Path):
+    pipeline = build_legal_update_pipeline(str(tmp_path / "intelligence" / "motori.json"))
+    source = {
+        "id": 1000,
+        "code": "cassazione_prima_sezione_rumore",
+        "name": "Cassazione - Prima sezione civile",
+        "base_url": "https://www.cortedicassazione.it/it/prima_sezione_civile.page",
+    }
+
+    pages = {
+        source["base_url"]: DummyResponse(_cassazione_page_with_navigation_noise(1), url=source["base_url"]),
+        f'{source["base_url"]}?frame3_item=2': DummyResponse(
+            _cassazione_page_with_navigation_noise(2),
+            url=f'{source["base_url"]}?frame3_item=2',
+        ),
+        f'{source["base_url"]}?frame3_item=3': DummyResponse(
+            _cassazione_page_with_navigation_noise(3),
+            url=f'{source["base_url"]}?frame3_item=3',
+        ),
     }
 
     def _fake_get(url, *args, **kwargs):

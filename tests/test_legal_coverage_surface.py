@@ -201,3 +201,96 @@ def test_build_repository_rispetta_il_tenant_slug_esplicito_anche_in_request_con
         repository = build_repository(tenant_slug=studio_sqlite.slug)
 
     assert isinstance(repository, SQLiteCoverageRepository)
+
+
+def test_build_repository_usa_studio_db_single_studio_quando_non_esiste_un_tenant_attivo(tmp_path: Path):
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    app = create_app(
+        {
+            **_cfg_web(tmp_path),
+            "STUDIO_DB": str(tmp_path / "studio.db"),
+        }
+    )
+
+    repository = build_repository(app)
+
+    assert isinstance(repository, SQLiteCoverageRepository)
+    assert repository.ping() is True
+    assert str(repository.db_path).endswith("studio.db")
+
+
+def test_admin_copertura_ai_single_studio_sqlite_mostra_runtime_connesso(tmp_path: Path):
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    app = create_app(
+        {
+            **_cfg_web(tmp_path),
+            "STUDIO_DB": str(tmp_path / "studio.db"),
+        }
+    )
+
+    username, password = _seed_superadmin(app)
+
+    with app.test_client() as client:
+        login = client.post(
+            "/login",
+            data={"username": username, "password": password},
+            follow_redirects=False,
+        )
+        assert login.status_code == 302
+
+        page = client.get("/admin/copertura-ai")
+
+    assert page.status_code == 200
+    html = page.get_data(as_text=True)
+    assert "Database coverage connesso" in html
+    assert "SQLite locale" in html
+    assert "Studio Refactor" in html
+
+
+def test_copertura_ai_single_studio_sqlite_esegue_pipeline_e_publish(tmp_path: Path):
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    app = create_app(
+        {
+            **_cfg_web(tmp_path),
+            "STUDIO_DB": str(tmp_path / "studio.db"),
+        }
+    )
+
+    username, password = _seed_superadmin(app)
+
+    with app.test_client() as client:
+        login = client.post(
+            "/login",
+            data={"username": username, "password": password},
+            follow_redirects=False,
+        )
+        assert login.status_code == 302
+
+        for action in ("audit", "gaps", "drafts"):
+            response = client.post(
+                f"/admin/copertura-ai/esegui/{action}",
+                data={},
+                follow_redirects=True,
+            )
+            assert response.status_code == 200
+            assert "Errore durante l'azione" not in response.get_data(as_text=True)
+
+        drafts_response = client.get("/admin/copertura-ai/api/drafts")
+        assert drafts_response.status_code == 200
+        drafts = drafts_response.get_json()
+        assert drafts
+        draft_id = int(drafts[0]["id"])
+
+        approve_response = client.post(
+            f"/admin/copertura-ai/api/drafts/{draft_id}/approve",
+            json={"reviewer": "test-ui"},
+        )
+        assert approve_response.status_code == 200
+        assert approve_response.get_json()["ok"] is True
+
+        publish_response = client.post(
+            f"/admin/copertura-ai/api/drafts/{draft_id}/publish",
+            json={},
+        )
+        assert publish_response.status_code == 200
+        assert publish_response.get_json()["ok"] is True

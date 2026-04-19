@@ -90,6 +90,17 @@ def _load_tenant_studio_payload(manager: GestioneTenant | None, studio: Any = No
     return payload if isinstance(payload, dict) else {}
 
 
+def _load_single_studio_payload(cfg_source: dict[str, Any]) -> dict[str, Any]:
+    config_path = Path(str(cfg_source.get("STUDIO_CONFIG") or "").strip())
+    if not config_path.is_file():
+        return {}
+    try:
+        payload = json.loads(config_path.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+    return payload if isinstance(payload, dict) else {}
+
+
 def _display_tenant_name(manager: GestioneTenant | None, studio: Any = None) -> str:
     payload = _load_tenant_studio_payload(manager, studio)
     configured_name = str(((payload.get("studio") or {}).get("nome")) or "").strip()
@@ -98,8 +109,26 @@ def _display_tenant_name(manager: GestioneTenant | None, studio: Any = None) -> 
     return str(getattr(studio, "nome", "") or "").strip()
 
 
+def _display_single_studio_name(cfg_source: dict[str, Any]) -> str:
+    payload = _load_single_studio_payload(cfg_source)
+    return str(((payload.get("studio") or {}).get("nome")) or "").strip()
+
+
+def _single_studio_sqlite_path(cfg_source: dict[str, Any]) -> str:
+    configured = str(cfg_source.get("STUDIO_DB") or "").strip()
+    if configured:
+        return configured
+    studio_config = str(cfg_source.get("STUDIO_CONFIG") or "").strip()
+    if not studio_config:
+        return ""
+    candidate = Path(studio_config).resolve().parent.parent / "studio.db"
+    return str(candidate)
+
+
 def _coverage_backend_code(cfg_source: dict[str, Any], studio: Any = None) -> str:
     tenant_database = getattr(studio, "database", None)
+    if getattr(tenant_database, "is_sqlite", False):
+        return "SQLITE"
     runtime_dsn = resolve_runtime_postgres_dsn(
         "",
         database=tenant_database or cfg_source.get("TENANT_DATABASE_CONFIG"),
@@ -110,6 +139,8 @@ def _coverage_backend_code(cfg_source: dict[str, Any], studio: Any = None) -> st
         runtime_dsn = _legacy_tenant_postgres_dsn(tenant_database)
     if runtime_dsn:
         return "POSTGRESQL"
+    if not studio and _single_studio_sqlite_path(cfg_source):
+        return "SQLITE"
     normalized_mode = str(
         getattr(tenant_database, "normalized_mode", "") or normalize_db_mode(getattr(tenant_database, "mode", ""))
     ).strip()
@@ -160,6 +191,10 @@ def _resolve_runtime_tenant(
     if requested_slug:
         for studio in active_tenants:
             if str(getattr(studio, "slug", "") or "").strip().lower() == requested_slug:
+                return studio
+        if manager is not None:
+            studio = manager.get(requested_slug)
+            if studio is not None:
                 return studio
         return None
 
@@ -216,13 +251,23 @@ def build_repository(
     runtime_app, cfg_source = _runtime_app_and_config(app)
     base_config = CoverageDbConfig.from_mapping(cfg_source)
     resolved_tenant = _resolve_runtime_tenant(cfg_source, explicit_tenant_slug=tenant_slug)
+    requested_tenant_slug = _resolve_requested_tenant_slug(tenant_slug)
     tenant_database = getattr(resolved_tenant, "database", None)
-    tenant_slug_resolved = str(getattr(resolved_tenant, "slug", "") or "").strip().lower()
+    tenant_slug_resolved = str(getattr(resolved_tenant, "slug", "") or requested_tenant_slug).strip().lower()
     manager = _tenant_manager(cfg_source)
     tenant_paths = manager.percorsi_dati(tenant_slug_resolved) if manager and tenant_slug_resolved else {}
+    sqlite_path = str(tenant_paths.get("STUDIO_DB") or "").strip()
+
+    if not tenant_database and manager is not None and tenant_slug_resolved:
+        fallback_tenant = manager.get(tenant_slug_resolved)
+        if fallback_tenant is not None:
+            resolved_tenant = resolved_tenant or fallback_tenant
+            tenant_database = getattr(fallback_tenant, "database", None)
+            if not sqlite_path:
+                tenant_paths = manager.percorsi_dati(tenant_slug_resolved)
+                sqlite_path = str(tenant_paths.get("STUDIO_DB") or "").strip()
 
     if getattr(tenant_database, "is_sqlite", False):
-        sqlite_path = str(tenant_paths.get("STUDIO_DB") or "").strip()
         return SQLiteCoverageRepository(CoverageSqliteConfig(sqlite_path))
 
     runtime_dsn = resolve_runtime_postgres_dsn(
@@ -245,6 +290,11 @@ def build_repository(
                 explicit=True,
             ),
         )
+    if sqlite_path:
+        return SQLiteCoverageRepository(CoverageSqliteConfig(sqlite_path))
+    single_studio_sqlite = _single_studio_sqlite_path(cfg_source)
+    if single_studio_sqlite:
+        return SQLiteCoverageRepository(CoverageSqliteConfig(single_studio_sqlite))
     return PostgresCoverageRepository(base_config)
 
 
@@ -267,7 +317,8 @@ def build_legal_coverage_surface(
     repository = build_repository(app, tenant_slug=tenant_slug)
     manager = _tenant_manager(cfg_source)
     runtime_status = _db_status(repository)
-    tenant_name = _display_tenant_name(manager, resolved_tenant)
+    tenant_name = _display_tenant_name(manager, resolved_tenant) or _display_single_studio_name(cfg_source)
+    selected_tenant_slug = str(getattr(resolved_tenant, "slug", "") or _resolve_requested_tenant_slug(tenant_slug)).strip().lower()
     runtime = {
         "db_configured": repository.config.configured,
         "db_online": runtime_status == "online",
@@ -275,7 +326,7 @@ def build_legal_coverage_surface(
         "db_backend_label": _coverage_backend_label(cfg_source, resolved_tenant),
         "ollama_url": str(cfg_source.get("LOCAL_AI_BASE_URL") or ""),
         "ollama_model": str(cfg_source.get("LOCAL_AI_CHAT_MODEL") or cfg_source.get("OLLAMA_MODEL") or ""),
-        "tenant_slug": str(getattr(resolved_tenant, "slug", "") or ""),
+        "tenant_slug": selected_tenant_slug,
         "tenant_name": tenant_name,
         "tenant_choices": _tenant_choices_payload(cfg_source),
     }

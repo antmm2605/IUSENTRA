@@ -14,6 +14,7 @@ from lxml import html as lxml_html
 from pct.giurisprudenza import GestioneGiurisprudenza
 from pct.legal_update_ai import analyze_document
 from pct.legal_update_repository import LegalUpdateDbConfig, LegalUpdateRepository
+from pct.postgres_runtime_support import resolve_runtime_postgres_dsn
 
 
 RequestGet = Callable[..., Any]
@@ -155,6 +156,11 @@ def _sha256(value: str) -> str:
     return hashlib.sha256((value or "").encode("utf-8")).hexdigest()
 
 
+def _normalize_document_url(url: str) -> str:
+    split = urlsplit(str(url or ""))
+    return urlunsplit((split.scheme, split.netloc, split.path, split.query, ""))
+
+
 def _parse_pub_date(value: Any) -> str:
     text = _clean_spaces(value)
     if not text:
@@ -212,22 +218,26 @@ def _extract_html_items(source: dict[str, Any], base_url: str, content: str) -> 
     except (ValueError, TypeError):
         return []
     docs: list[dict[str, Any]] = []
-    for anchor in tree.xpath("//a[@href]")[:120]:
+    for anchor in tree.xpath("//a[@href]"):
         title = _clean_spaces(anchor.text_content())
         href = _clean_spaces(anchor.attrib.get("href"))
         if not href or href.startswith("#") or href.lower().startswith("javascript:"):
             continue
         if len(title) < 12:
             continue
-        absolute_url = urljoin(base_url, href)
+        absolute_url = _normalize_document_url(urljoin(base_url, href))
         context = _clean_spaces(" ".join(anchor.xpath(".//text()"))) or title
         row_text = _clean_spaces(
             " ".join(anchor.xpath("./ancestor::*[self::li or self::article or self::div][1]//text()"))
         ) or context
-        published_at = _parse_pub_date(row_text)
+        published_at = _parse_pub_date(f"{title} {row_text}")
+        if row_text == title and not published_at:
+            continue
         docs.append(
             {
-                "external_id": _sha256(f"{source.get('code')}|{absolute_url}|{title}"),
+                "external_id": _sha256(
+                    f"{source.get('code')}|{absolute_url}|{published_at or title.lower()}"
+                ),
                 "source_url": absolute_url,
                 "title": title,
                 "published_at": published_at,
@@ -292,13 +302,19 @@ class LegalUpdatePipeline:
         giurisprudenza_db_path: str = "",
         ai_base_url: str = "",
         ai_model: str = "",
+        postgres_dsn: str = "",
     ) -> None:
         self.intelligence_db_path = str(intelligence_db_path or "").strip()
         self.giurisprudenza_db_path = str(giurisprudenza_db_path or "").strip()
         self.ai_base_url = str(ai_base_url or "").strip()
         self.ai_model = str(ai_model or "").strip() or "mistral"
+        self.postgres_dsn = resolve_runtime_postgres_dsn(postgres_dsn)
         cfg = LegalUpdateDbConfig.from_anchor(self.intelligence_db_path)
-        self.repository = LegalUpdateRepository(cfg.db_path, json_path=cfg.json_path)
+        self.repository = LegalUpdateRepository(
+            cfg.db_path,
+            json_path=cfg.json_path,
+            postgres_dsn=self.postgres_dsn,
+        )
         self.repository.upsert_sources(list(DEFAULT_SOURCE_ROWS))
 
     def list_sources(self, *, enabled_only: bool = True) -> list[dict[str, Any]]:
@@ -864,10 +880,12 @@ def build_legal_update_pipeline(
     giurisprudenza_db_path: str = "",
     ai_base_url: str = "",
     ai_model: str = "",
+    postgres_dsn: str = "",
 ) -> LegalUpdatePipeline:
     return LegalUpdatePipeline(
         intelligence_db_path,
         giurisprudenza_db_path=giurisprudenza_db_path,
         ai_base_url=ai_base_url,
         ai_model=ai_model,
+        postgres_dsn=postgres_dsn,
     )

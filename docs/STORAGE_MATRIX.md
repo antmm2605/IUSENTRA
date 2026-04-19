@@ -33,8 +33,12 @@ Legenda:
 
 ## Verita' operativa oggi
 
+- La pagina `admin/governance` separa sempre due livelli:
+  - `capability tecnica della piattaforma`, cioe' quali domini hanno parity R/W disponibile su SQLite o PostgreSQL;
+  - `backend strutturato effettivo dello studio`, cioe' quale database governa davvero tutti i dati strutturati tenant-aware del tenant selezionato.
 - `selected_mode = POSTGRESQL` senza attivazione non basta: il backend effettivo resta quello dichiarato nel manifest tenant.
 - `effective_runtime_kind = postgresql` significa che i domini migrati stanno usando davvero PostgreSQL in produzione per quel tenant.
+- `effective_runtime_kind = sqlite` significa che i dati strutturati tenant-aware dello studio stanno lavorando davvero su SQL locale tenant-aware.
 - non esiste fallback silenzioso da PostgreSQL attivo a JSON: il runtime blocca l'operazione e lascia traccia nel log applicativo.
 - documenti, buste telematiche e modelli locali AI restano filesystem-first anche dopo il cutover SQL.
 - i moduli economici condividono lo stesso percorso ufficiale di migrazione `JSON -> SQLite -> PostgreSQL` con report di consistenza.

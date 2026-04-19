@@ -159,7 +159,7 @@ def osservabilita():
 @admin_bp.route("/governance")
 @superadmin_required
 def governance():
-    payload = build_product_governance_surface()
+    payload = build_product_governance_surface(selected_slug=request.args.get("slug", ""))
     return render_template("admin/governance.html", payload=payload)
 
 
@@ -824,7 +824,7 @@ def api_storage_studio(slug: str):
 @admin_bp.route("/api/governance")
 @superadmin_required
 def api_governance():
-    return jsonify(build_product_governance_surface())
+    return jsonify(build_product_governance_surface(selected_slug=request.args.get("slug", "")))
 
 
 # ============================================================= Utility

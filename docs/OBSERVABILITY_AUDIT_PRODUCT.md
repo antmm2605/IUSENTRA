@@ -24,6 +24,7 @@ Osservabilita' non significa solo metriche runtime. Nel prodotto devono esistere
 - ogni superficie sensibile deve avere una lettura prodotto, non solo log tecnici
 - i dati di audit devono essere esportabili in modo governato
 - il pannello admin deve mostrare sia `runtime` sia `product capability`
+- la vista `admin/governance` deve distinguere in modo esplicito tra `capability della piattaforma` e `backend strutturato effettivo dello studio`
 - il deploy non e' chiuso se metriche, audit e storage manifest raccontano storie diverse
 
 ## Failure handling richiesto

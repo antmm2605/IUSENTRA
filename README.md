@@ -236,6 +236,7 @@ Il pannello Superadmin include una vista tecnica dedicata in `/admin/osservabili
 - stato del provider AI locale
 - queue depth e throughput OCR dell'ultima ora
 - stato operativo di storage e runtime applicativo
+- segnali di degrado con rimedi operativi per errori 5xx, OCR, AI locale e storage
 
 Sul bounded context AI, il confine corretto adesso è:
 
@@ -257,6 +258,12 @@ Suite più ampia:
 
 ```bash
 python -m pytest tests -q
+```
+
+Suite affidabilita' consigliate dopo modifiche a storage, osservabilita' o moduli admin nuovi:
+
+```bash
+python -m pytest tests/test_observability_runtime.py tests/test_migration_assistant.py tests/test_storage_postgres_migration.py tests/test_operational_surfaces.py tests/test_legal_coverage_surface.py tests/test_legal_updates_pipeline.py -q
 ```
 
 Test telematici di riferimento:

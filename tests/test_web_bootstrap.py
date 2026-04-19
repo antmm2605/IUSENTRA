@@ -440,6 +440,36 @@ def test_template_principali_usano_copy_italiana_e_date_localizzate():
     template_checks = {
         "web/templates/base.html": ["Panoramica", "Operazione completata", "Preparazione Udienza Guidata"],
         "web/templates/admin/base.html": ["Esci", "Piattaforma", "Aggiornamenti legali"],
+        "web/templates/admin/assistente_migrazione.html": [
+            "Assistente migrazione dati",
+            "Ultima esecuzione reale",
+            "Come risolvere",
+        ],
+        "web/templates/admin/osservabilita.html": [
+            "Osservabilita runtime",
+            "Segnali di degrado",
+            "Come intervenire",
+        ],
+        "web/templates/admin/legal_coverage_dashboard.html": [
+            "Copertura AI e autopubblicazione controllata",
+            "Studio per la coverage",
+            "Database coverage",
+        ],
+        "web/templates/admin/legal_coverage_review.html": [
+            "Coda revisione draft v2",
+            "Come si usa questa schermata",
+            "Contesto di retrieval",
+        ],
+        "web/templates/admin/legal_updates_dashboard.html": [
+            "Motore di aggiornamento normativo e giurisprudenziale",
+            "Fonti monitorate",
+            "Review pendenti",
+        ],
+        "web/templates/admin/legal_updates_review.html": [
+            "Coda revisioni aggiornamenti",
+            "Azione proposta",
+            "Pubblica",
+        ],
         "web/templates/dashboard.html": ["Panoramica dello studio"],
         "web/templates/agenda.html": ["Sincronizzazione automatica", "Configura sincronizzazione calendario"],
         "web/templates/impostazioni/index.html": ["Companion locale sul dispositivo cliente", "Prepara runtime automatico"],
@@ -1386,10 +1416,17 @@ def test_file_critici_non_contengono_marker_di_mojibake():
         REPO_ROOT / "pct/product_governance.py",
         REPO_ROOT / "pct/scheduler.py",
         REPO_ROOT / "web/services/core_runtime.py",
+        REPO_ROOT / "web/services/observability_runtime.py",
         REPO_ROOT / "web/services/product_governance_surface.py",
         REPO_ROOT / "web/templates/base.html",
         REPO_ROOT / "web/templates/auth/login.html",
         REPO_ROOT / "web/templates/auth/login_2fa.html",
+        REPO_ROOT / "web/templates/admin/assistente_migrazione.html",
+        REPO_ROOT / "web/templates/admin/osservabilita.html",
+        REPO_ROOT / "web/templates/admin/legal_coverage_dashboard.html",
+        REPO_ROOT / "web/templates/admin/legal_coverage_review.html",
+        REPO_ROOT / "web/templates/admin/legal_updates_dashboard.html",
+        REPO_ROOT / "web/templates/admin/legal_updates_review.html",
         REPO_ROOT / "web/templates/polisWeb.html",
         REPO_ROOT / "web/templates/portale/acquisizione_wizard.html",
         REPO_ROOT / "docs/STORAGE_MATRIX.md",
@@ -1397,6 +1434,7 @@ def test_file_critici_non_contengono_marker_di_mojibake():
         REPO_ROOT / "docs/STORAGE_MIGRATION_PLAN.md",
         REPO_ROOT / "docs/E2E_TESTING_MATRIX.md",
         REPO_ROOT / "docs/OBSERVABILITY_AUDIT_PRODUCT.md",
+        REPO_ROOT / "docs/LEGAL_UPDATE_INTELLIGENCE.md",
         REPO_ROOT / "docs/RELEASE_PROCESS.md",
     ]
 

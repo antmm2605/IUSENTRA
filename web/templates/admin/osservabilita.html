@@ -1,11 +1,13 @@
 {% extends "admin/base.html" %}
-{% block title %}Osservabilità Runtime{% endblock %}
+{% block title %}Osservabilita runtime{% endblock %}
 
 {% block content %}
 <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
   <div>
-    <h1 class="h3 mb-1">Osservabilità runtime</h1>
-    <p class="text-muted mb-0">Metriche vive del processo web, pipeline OCR e provider locali.</p>
+    <h1 class="h3 mb-1">Osservabilita runtime</h1>
+    <p class="text-muted mb-0">
+      Metriche vive del processo web, pipeline OCR, provider locali e segnali di degrado con rimedi operativi.
+    </p>
   </div>
   <a class="btn btn-outline-primary btn-sm" href="{{ url_for('admin.dashboard') }}">
     <i class="bi bi-arrow-left"></i> Torna alla dashboard
@@ -13,6 +15,19 @@
 </div>
 
 <div class="row g-3 mb-4">
+  <div class="col-12 col-md-6 col-xl-3">
+    <div class="card h-100 shadow-sm">
+      <div class="card-body">
+        <div class="text-muted small mb-1">Stato generale</div>
+        <div class="display-6 fw-semibold {{ 'text-danger' if payload.summary.degraded else 'text-success' }}">
+          {{ payload.summary.status_label }}
+        </div>
+        <div class="small text-muted">
+          Errori: {{ payload.summary.errors }} · Warning: {{ payload.summary.warnings }}
+        </div>
+      </div>
+    </div>
+  </div>
   <div class="col-12 col-md-6 col-xl-3">
     <div class="card h-100 shadow-sm">
       <div class="card-body">
@@ -24,9 +39,41 @@
   <div class="col-12 col-md-6 col-xl-3">
     <div class="card h-100 shadow-sm">
       <div class="card-body">
+        <div class="text-muted small mb-1">Storage predefinito</div>
+        <div class="display-6 fw-semibold">{{ payload.storage.default_mode }}</div>
+        <div class="small text-muted">
+          Indicizzazione: {{ payload.storage.search_index or 'non configurata' }}
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-12 col-md-6 col-xl-3">
+    <div class="card h-100 shadow-sm">
+      <div class="card-body">
+        <div class="text-muted small mb-1">Primo token Lex</div>
+        <div class="display-6 fw-semibold">{{ payload.runtime.lex.first_token.avg_ms if payload.runtime.lex.first_token else 0 }} ms</div>
+        <div class="small text-muted">P95: {{ payload.runtime.lex.first_token.p95_ms if payload.runtime.lex.first_token else 0 }} ms</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-12 col-md-6 col-xl-3">
+    <div class="card h-100 shadow-sm">
+      <div class="card-body">
         <div class="text-muted small mb-1">Queue OCR in coda</div>
         <div class="display-6 fw-semibold">{{ payload.ocr.in_coda if payload.ocr else 0 }}</div>
         <div class="small text-muted">In lavorazione: {{ payload.ocr.in_lavorazione if payload.ocr else 0 }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-12 col-md-6 col-xl-3">
+    <div class="card h-100 shadow-sm">
+      <div class="card-body">
+        <div class="text-muted small mb-1">Errori OCR</div>
+        <div class="display-6 fw-semibold">{{ payload.ocr.errori if payload.ocr else 0 }}</div>
+        <div class="small text-muted">Completati: {{ payload.ocr.completati if payload.ocr else 0 }}</div>
       </div>
     </div>
   </div>
@@ -41,11 +88,45 @@
   <div class="col-12 col-md-6 col-xl-3">
     <div class="card h-100 shadow-sm">
       <div class="card-body">
-        <div class="text-muted small mb-1">Primo token Lex</div>
-        <div class="display-6 fw-semibold">{{ payload.runtime.lex.first_token.avg_ms if payload.runtime.lex.first_token else 0 }} ms</div>
-        <div class="small text-muted">P95: {{ payload.runtime.lex.first_token.p95_ms if payload.runtime.lex.first_token else 0 }} ms</div>
+        <div class="text-muted small mb-1">Superfici autorizzative</div>
+        <div class="display-6 fw-semibold">{{ payload.product.authorization_surfaces }}</div>
+        <div class="small text-muted">Eventi audit: {{ payload.product.audit_events }}</div>
       </div>
     </div>
+  </div>
+</div>
+
+<div class="card shadow-sm mb-4">
+  <div class="card-header bg-body-tertiary d-flex flex-wrap justify-content-between align-items-center gap-2">
+    <strong>Segnali di degrado</strong>
+    <span class="badge text-bg-{{ 'danger' if payload.summary.degraded else 'success' }}">
+      {{ payload.summary.status_label }}
+    </span>
+  </div>
+  <div class="card-body">
+    {% if payload.alerts %}
+    <div class="d-flex flex-column gap-3">
+      {% for alert in payload.alerts %}
+      <div class="border rounded-3 p-3">
+        <div class="d-flex flex-wrap justify-content-between gap-2 mb-2">
+          <div class="fw-semibold">{{ alert.title }}</div>
+          <span class="badge text-bg-{{ alert.severity }}">
+            {{ 'Errore' if alert.severity == 'danger' else 'Attenzione' }}
+          </span>
+        </div>
+        <div class="small mb-2">{{ alert.detail }}</div>
+        <div class="small text-muted">
+          <strong>Come intervenire:</strong> {{ alert.remediation }}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="text-success fw-semibold">Nessun degrado rilevato.</div>
+    <div class="small text-muted mt-2">
+      Runtime, OCR, capability prodotto e provider locali risultano coerenti con l'ultima lettura disponibile.
+    </div>
+    {% endif %}
   </div>
 </div>
 

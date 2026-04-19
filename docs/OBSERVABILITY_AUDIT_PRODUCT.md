@@ -25,3 +25,22 @@ Osservabilita' non significa solo metriche runtime. Nel prodotto devono esistere
 - i dati di audit devono essere esportabili in modo governato
 - il pannello admin deve mostrare sia `runtime` sia `product capability`
 - il deploy non e' chiuso se metriche, audit e storage manifest raccontano storie diverse
+
+## Failure handling richiesto
+
+La vista `admin/osservabilita` non deve limitarsi a mostrare numeri:
+
+- deve evidenziare gli endpoint con errori `5xx`
+- deve segnalare backlog o errori OCR
+- deve dichiarare quando il runtime AI locale non e' operativo
+- deve avvisare se il runtime predefinito e' ancora `JSON`
+- deve suggerire un'azione concreta di presidio, non solo il sintomo
+
+## Criterio di chiusura operativa
+
+Una tranche osservabilita' e' chiusa solo quando:
+
+- il payload runtime continua a rispondere anche in presenza di errori parziali
+- la UI admin rende visibili degradi, severita' e rimedi
+- esiste almeno un test che simula un degrado reale e ne verifica la resa
+- il linguaggio resta italiano e non lascia dump incomprensibili come unica esperienza utente

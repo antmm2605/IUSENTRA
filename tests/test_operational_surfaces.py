@@ -278,6 +278,13 @@ def test_superadmin_product_surfaces_renderizzano(tmp_path: Path):
         migrazione = client.get("/admin/assistente-migrazione", follow_redirects=True)
         salute = client.get("/admin/salute-sistema", follow_redirects=True)
         scorecard = client.get("/admin/lex-scorecard", follow_redirects=True)
+        osservabilita = client.get("/admin/osservabilita", follow_redirects=True)
+        coverage = client.get("/admin/copertura-ai", follow_redirects=True)
+        coverage_review = client.get("/admin/copertura-ai/review", follow_redirects=True)
+        aggiornamenti = client.get("/admin/aggiornamenti-legali", follow_redirects=True)
+        aggiornamenti_fonti = client.get("/admin/aggiornamenti-legali/fonti", follow_redirects=True)
+        aggiornamenti_review = client.get("/admin/aggiornamenti-legali/review", follow_redirects=True)
+        news = client.get("/legal-intelligence/news", follow_redirects=True)
 
     assert stato.status_code == 200
     assert "Stato installazione studio" in stato.get_data(as_text=True)
@@ -287,6 +294,23 @@ def test_superadmin_product_surfaces_renderizzano(tmp_path: Path):
     assert "Salute sistema" in salute.get_data(as_text=True)
     assert scorecard.status_code == 200
     assert "Eval suite e scorecard Lex" in scorecard.get_data(as_text=True)
+    assert osservabilita.status_code == 200
+    assert "Osservabilita runtime" in osservabilita.get_data(as_text=True)
+    assert "Segnali di degrado" in osservabilita.get_data(as_text=True)
+    assert coverage.status_code == 200
+    assert "Copertura AI e autopubblicazione controllata" in coverage.get_data(as_text=True)
+    assert "Database coverage" in coverage.get_data(as_text=True)
+    assert coverage_review.status_code == 200
+    assert "Coda revisione draft v2" in coverage_review.get_data(as_text=True)
+    assert "Come si usa questa schermata" in coverage_review.get_data(as_text=True)
+    assert aggiornamenti.status_code == 200
+    assert "Motore di aggiornamento normativo e giurisprudenziale" in aggiornamenti.get_data(as_text=True)
+    assert aggiornamenti_fonti.status_code == 200
+    assert "Gestore fonti" in aggiornamenti_fonti.get_data(as_text=True)
+    assert aggiornamenti_review.status_code == 200
+    assert "Coda revisioni aggiornamenti" in aggiornamenti_review.get_data(as_text=True)
+    assert news.status_code == 200
+    assert "News giuridiche strutturate" in news.get_data(as_text=True)
 
 
 def test_superfici_cliente_fascicolo_e_timesheet_renderizzano_blocchi_operativi(tmp_path: Path):

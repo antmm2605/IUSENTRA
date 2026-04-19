@@ -465,6 +465,56 @@ def test_cli_migrate_to_postgres_attiva_cutover(monkeypatch, tmp_path: Path):
     assert "Cutover storage completato" in result.output
 
 
+def test_provision_storage_backend_postgres_non_attiva_cutover_se_la_migrazione_fallisce(
+    monkeypatch,
+    tmp_path: Path,
+):
+    registry = tmp_path / "tenants.json"
+    tm = GestioneTenant(str(registry))
+    studio = tm.crea(
+        "Studio Cutover",
+        "studio-cutover",
+        db_config={
+            "mode": "POSTGRESQL",
+            "host": "db.example.local",
+            "porta": 5432,
+            "db_name": "iusentra",
+            "utente": "iusentra",
+            "password": "secret",
+            "connessione_ok": True,
+        },
+    )
+
+    monkeypatch.setattr(
+        "pct.storage_migration_full.migrate_full_storage_to_postgres",
+        lambda **kwargs: {
+            "success": False,
+            "report_path": str(tmp_path / "report-fallito.json"),
+            "core": {
+                "consistency": {},
+                "errori": ["clienti: duplicate key su codice fiscale"],
+            },
+            "repositories": {},
+        },
+    )
+
+    payload = tm.provision_storage_backend(
+        studio.slug,
+        migrate_existing=True,
+        activate_external=True,
+        secret_key="test-secret",
+    )
+    studio_live = tm.get(studio.slug)
+
+    assert payload["ok"] is False
+    assert payload["migrated"] is False
+    assert payload["activated"] is False
+    assert payload["migration_report"]["core"]["errori"] == ["clienti: duplicate key su codice fiscale"]
+    assert studio_live is not None
+    assert studio_live.database.core_runtime_enabled is False
+    assert studio_live.database.effective_runtime_kind != "postgresql"
+
+
 def test_cli_demo_check_racconta_il_prossimo_passo(tmp_path: Path):
     registry = tmp_path / "tenants.json"
     tm = GestioneTenant(str(registry))

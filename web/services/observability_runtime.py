@@ -100,6 +100,17 @@ def build_observability_payload(app: Flask | None = None) -> dict[str, Any]:
             "capabilities": [],
         }
 
+    payload["alerts"] = _build_observability_alerts(payload)
+    errors = sum(1 for alert in payload["alerts"] if alert["severity"] == "danger")
+    warnings = sum(1 for alert in payload["alerts"] if alert["severity"] == "warning")
+    payload["summary"] = {
+        "degraded": bool(payload["alerts"]),
+        "status": "degraded" if payload["alerts"] else "ok",
+        "status_label": "Degradi rilevati" if payload["alerts"] else "Nessun degrado rilevato",
+        "errors": errors,
+        "warnings": warnings,
+    }
+
     return payload
 
 
@@ -111,3 +122,110 @@ def _endpoint_bucket() -> str:
             if value:
                 endpoint = endpoint.replace(value, f"<{key}>")
     return endpoint
+
+
+def _build_observability_alerts(payload: dict[str, Any]) -> list[dict[str, Any]]:
+    alerts: list[dict[str, Any]] = []
+
+    http_buckets = list((payload.get("runtime") or {}).get("http", {}).get("buckets") or [])
+    failing_buckets = [
+        bucket
+        for bucket in http_buckets
+        if "[5" in str(bucket.get("bucket") or "") and int(bucket.get("count") or 0) > 0
+    ]
+    if failing_buckets:
+        worst_bucket = max(failing_buckets, key=lambda item: int(item.get("count") or 0))
+        alerts.append(
+            {
+                "severity": "danger",
+                "title": "Endpoint con errori 5xx rilevati",
+                "detail": (
+                    f"Il bucket {worst_bucket.get('bucket')} ha registrato "
+                    f"{int(worst_bucket.get('count') or 0)} risposte in errore."
+                ),
+                "remediation": (
+                    "Controlla i log applicativi dell'endpoint indicato, verifica l'errore "
+                    "a livello Flask e ripeti lo smoke test della superficie coinvolta."
+                ),
+            }
+        )
+
+    ocr = dict(payload.get("ocr") or {})
+    if int(ocr.get("errori") or 0) > 0:
+        alerts.append(
+            {
+                "severity": "warning",
+                "title": "Pipeline OCR con errori pendenti",
+                "detail": (
+                    f"Risultano {int(ocr.get('errori') or 0)} job OCR falliti o da presidiare."
+                ),
+                "remediation": (
+                    "Apri la salute sistema, individua i documenti falliti e rilancia "
+                    "l'elaborazione solo dopo avere verificato file, Tesseract e storage."
+                ),
+            }
+        )
+    if int(ocr.get("in_coda") or 0) >= 20:
+        alerts.append(
+            {
+                "severity": "warning",
+                "title": "Coda OCR in accumulo",
+                "detail": (
+                    f"La coda OCR contiene {int(ocr.get('in_coda') or 0)} elementi in attesa."
+                ),
+                "remediation": (
+                    "Verifica che il worker OCR sia vivo, che il database di coda non sia "
+                    "bloccato e che il throughput dell'ultima ora non sia fermo."
+                ),
+            }
+        )
+
+    local_ai = dict((payload.get("providers") or {}).get("local_ai") or {})
+    local_ai_runtime = dict(local_ai.get("runtime") or {})
+    local_ai_status = str(local_ai_runtime.get("status") or "").strip().lower()
+    local_ai_error = str(local_ai_runtime.get("last_error") or local_ai.get("errore") or "").strip()
+    ai_enabled = bool((local_ai.get("settings") or {}).get("enabled", True))
+    ai_online = bool(local_ai.get("runtime_online"))
+    if ai_enabled and (local_ai_error or local_ai_status in {"error", "missing", "unsupported"} or not ai_online):
+        alerts.append(
+            {
+                "severity": "danger",
+                "title": "Runtime AI locale non operativo",
+                "detail": local_ai_error
+                or "Il provider locale non e' pronto oppure non risponde dal runtime applicativo.",
+                "remediation": (
+                    "Controlla la schermata impostazioni AI, verifica il runtime Ollama sullo "
+                    "stesso host dell'app e riesegui il bootstrap prima di usare Lex o i motori assistiti."
+                ),
+            }
+        )
+
+    storage = dict(payload.get("storage") or {})
+    if str(storage.get("default_mode") or "").upper() == "JSON":
+        alerts.append(
+            {
+                "severity": "warning",
+                "title": "Storage predefinito ancora su JSON",
+                "detail": "Il runtime principale non sta ancora usando un backend SQL come default operativo.",
+                "remediation": (
+                    "Chiudi il percorso di migrazione sul tenant interessato e verifica la parity "
+                    "read/write prima del cutover definitivo."
+                ),
+            }
+        )
+
+    product = dict(payload.get("product") or {})
+    if not list(product.get("capabilities") or []):
+        alerts.append(
+            {
+                "severity": "warning",
+                "title": "Capability di prodotto non disponibili",
+                "detail": "La lettura prodotto non ha restituito capability operative o superfici autorizzative.",
+                "remediation": (
+                    "Controlla audit, bootstrap admin e servizi di governance: la diagnostica deve "
+                    "raccontare sia il runtime sia il prodotto, non solo i log tecnici."
+                ),
+            }
+        )
+
+    return alerts

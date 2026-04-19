@@ -101,12 +101,22 @@ def _load_single_studio_payload(cfg_source: dict[str, Any]) -> dict[str, Any]:
     return payload if isinstance(payload, dict) else {}
 
 
-def _display_tenant_name(manager: GestioneTenant | None, studio: Any = None) -> str:
+def _tenant_name_bundle(manager: GestioneTenant | None, studio: Any = None) -> dict[str, Any]:
     payload = _load_tenant_studio_payload(manager, studio)
+    registry_name = str(getattr(studio, "nome", "") or "").strip()
     configured_name = str(((payload.get("studio") or {}).get("nome")) or "").strip()
-    if configured_name:
-        return configured_name
-    return str(getattr(studio, "nome", "") or "").strip()
+    mismatch = bool(
+        registry_name
+        and configured_name
+        and registry_name.casefold() != configured_name.casefold()
+    )
+    display_name = registry_name or configured_name
+    return {
+        "registry_name": registry_name,
+        "configured_name": configured_name,
+        "display_name": display_name,
+        "mismatch": mismatch,
+    }
 
 
 def _display_single_studio_name(cfg_source: dict[str, Any]) -> str:
@@ -170,10 +180,13 @@ def _tenant_choices_payload(cfg_source: dict[str, Any]) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     manager = _tenant_manager(cfg_source)
     for studio in _active_tenants(cfg_source, manager=manager):
+        tenant_name = _tenant_name_bundle(manager, studio)
         rows.append(
             {
                 "slug": str(getattr(studio, "slug", "") or ""),
-                "nome": _display_tenant_name(manager, studio),
+                "nome": tenant_name["registry_name"] or tenant_name["display_name"],
+                "configured_name": tenant_name["configured_name"],
+                "name_mismatch": tenant_name["mismatch"],
                 "db_mode": _coverage_backend_label(cfg_source, studio),
             }
         )
@@ -317,7 +330,13 @@ def build_legal_coverage_surface(
     repository = build_repository(app, tenant_slug=tenant_slug)
     manager = _tenant_manager(cfg_source)
     runtime_status = _db_status(repository)
-    tenant_name = _display_tenant_name(manager, resolved_tenant) or _display_single_studio_name(cfg_source)
+    tenant_name = _tenant_name_bundle(manager, resolved_tenant) if resolved_tenant is not None else {
+        "registry_name": "",
+        "configured_name": "",
+        "display_name": "",
+        "mismatch": False,
+    }
+    single_studio_name = _display_single_studio_name(cfg_source)
     selected_tenant_slug = str(getattr(resolved_tenant, "slug", "") or _resolve_requested_tenant_slug(tenant_slug)).strip().lower()
     runtime = {
         "db_configured": repository.config.configured,
@@ -327,7 +346,10 @@ def build_legal_coverage_surface(
         "ollama_url": str(cfg_source.get("LOCAL_AI_BASE_URL") or ""),
         "ollama_model": str(cfg_source.get("LOCAL_AI_CHAT_MODEL") or cfg_source.get("OLLAMA_MODEL") or ""),
         "tenant_slug": selected_tenant_slug,
-        "tenant_name": tenant_name,
+        "tenant_name": tenant_name["display_name"] or single_studio_name,
+        "tenant_registry_name": tenant_name["registry_name"],
+        "tenant_configured_name": tenant_name["configured_name"],
+        "tenant_name_mismatch": tenant_name["mismatch"],
         "tenant_choices": _tenant_choices_payload(cfg_source),
     }
     if not runtime["db_online"]:

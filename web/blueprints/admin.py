@@ -444,6 +444,7 @@ def dettaglio_studio(slug: str):
         db_mode_choices=_db_mode_choices(studio.database.mode),
         storage_manifest=tm.storage_manifest(slug),
         storage_paths=storage_paths,
+        storage_root_path=str(data_dir),
         storage_mb=storage_mb,
     )
 

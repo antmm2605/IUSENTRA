@@ -913,17 +913,30 @@ class GestioneTenant:
         In alcuni ambienti storici il registry punta ancora a `storage_key` opachi
         mentre una parte dei dati applicativi e' stata bootstrapata nel percorso
         basato su `slug`. Questa routine copia solo i file mancanti e unisce le
-        directory documentali, senza sovrascrivere dati gia' presenti nel percorso
-        canonico.
+        directory documentali, senza sovrascrivere dati gia' presenti.
+
+        La riconciliazione e' bidirezionale:
+        - alias -> canonico, per non perdere dati storici scritti sullo slug
+        - canonico -> alias, per evitare che superfici legacy leggano cartelle
+          vuote e mostrino l'effetto falso di "dati spariti"
         """
         canonical = self._data_dir(slug)
         aliases = self._legacy_alias_data_dirs(slug)
         if not aliases:
-            return {"ok": True, "copied_files": {}, "merged_dirs": {}, "canonical": str(canonical)}
+            return {
+                "ok": True,
+                "copied_files": {},
+                "merged_dirs": {},
+                "backfilled_alias_files": {},
+                "backfilled_alias_dirs": {},
+                "canonical": str(canonical),
+            }
 
         canonical.mkdir(parents=True, exist_ok=True)
         copied_files: Dict[str, str] = {}
         merged_dirs: Dict[str, str] = {}
+        backfilled_alias_files: Dict[str, str] = {}
+        backfilled_alias_dirs: Dict[str, str] = {}
         for alias in aliases:
             for relative in TENANT_FILE_SEED_PATHS:
                 source = alias / relative
@@ -941,11 +954,31 @@ class GestioneTenant:
                 if copied:
                     merged_dirs[f"{alias.name}:{relative}"] = str(destination_dir)
 
+            # Mantiene anche l'alias legacy minimamente allineato quando il
+            # dato autorevole e' ormai nel percorso canonico.
+            for relative in TENANT_FILE_SEED_PATHS:
+                source = canonical / relative
+                destination = alias / relative
+                if self._path_needs_seed(source, destination):
+                    backfilled_alias_files[f"{alias.name}:{relative}"] = self._copy_seed_path(source, destination)
+            for relative in TENANT_DIRECTORY_MERGE_PATHS:
+                source_dir = canonical / relative
+                destination_dir = alias / relative
+                if not source_dir.exists() or not source_dir.is_dir():
+                    continue
+                if not any(source_dir.iterdir()):
+                    continue
+                copied = self._merge_directory_tree(source_dir, destination_dir)
+                if copied:
+                    backfilled_alias_dirs[f"{alias.name}:{relative}"] = str(destination_dir)
+
         return {
             "ok": True,
             "canonical": str(canonical),
             "copied_files": copied_files,
             "merged_dirs": merged_dirs,
+            "backfilled_alias_files": backfilled_alias_files,
+            "backfilled_alias_dirs": backfilled_alias_dirs,
         }
 
     def data_dir(self, slug: str) -> Path:

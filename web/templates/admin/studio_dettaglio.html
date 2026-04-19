@@ -290,7 +290,7 @@
             {% elif db.normalized_mode == 'SQLITE' %}
             <div class="text-muted" style="font-size:.72rem">{{ storage_paths.STUDIO_DB }}</div>
             {% else %}
-            <div class="text-muted" style="font-size:.72rem">./data/tenants/{{ studio.slug }}/</div>
+            <div class="text-muted" style="font-size:.72rem">{{ storage_root_path or ('./data/tenants/' ~ studio.slug ~ '/') }}</div>
             {% endif %}
           </div>
         </div>
@@ -379,7 +379,7 @@
         <div class="text-muted mb-1">ID</div>
         <code style="font-size:.7rem;word-break:break-all">{{ studio.id }}</code>
         <div class="text-muted mt-2 mb-1">Directory dati</div>
-        <code style="font-size:.7rem">./data/tenants/{{ studio.slug }}/</code>
+        <code style="font-size:.7rem">{{ storage_root_path or ('./data/tenants/' ~ studio.slug ~ '/') }}</code>
       </div>
     </div>
 

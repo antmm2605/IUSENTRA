@@ -1,4 +1,5 @@
 import json
+from pathlib import Path
 
 from pct.auth import GestioneUtenti, RuoloUtente
 from pct.tenant import DbMode, GestioneTenant, StudioLegale
@@ -118,6 +119,109 @@ def test_percorsi_dati_usano_storage_key_legacy_quando_presente(tmp_path):
 
     assert "tenant-8bf98719c459" in paths["CLIENTI_DB"]
     assert "tenant-8bf98719c459" in paths["AUTH_DB"]
+
+
+def test_reconcile_storage_aliases_ripopola_l_alias_slug_quando_il_canonico_ha_i_dati(tmp_path):
+    registry_path = tmp_path / "tenants.json"
+    registry_path.write_text(
+        json.dumps(
+            {
+                "studio-001": {
+                    "slug": "antonella-mammola",
+                    "storage_key": "tenant-8bf98719c459",
+                    "nome": "Studio Antonella Mammola",
+                    "piano": "PROFESSIONAL",
+                    "stato": "ATTIVO",
+                    "db_config": {"mode": "SQLITE"},
+                }
+            },
+            ensure_ascii=False,
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+
+    tm = GestioneTenant(str(registry_path))
+    canonical_paths = tm.percorsi_dati("antonella-mammola")
+    canonical_fascicoli = Path(canonical_paths["FASCICOLI_DB"])
+    canonical_config = Path(canonical_paths["CONFIG_STUDIO_DB"])
+    canonical_studio_db = Path(canonical_paths["STUDIO_DB"])
+    canonical_fascicoli.parent.mkdir(parents=True, exist_ok=True)
+    canonical_config.parent.mkdir(parents=True, exist_ok=True)
+    canonical_fascicoli.write_text(
+        json.dumps([{"id": "f-001", "numero": "2026/001"}], ensure_ascii=False),
+        encoding="utf-8",
+    )
+    canonical_config.write_text(
+        json.dumps({"studio": {"nome": "Studio Legale Montagnese"}}, ensure_ascii=False),
+        encoding="utf-8",
+    )
+    canonical_studio_db.parent.mkdir(parents=True, exist_ok=True)
+    canonical_studio_db.write_text("sqlite-placeholder", encoding="utf-8")
+
+    alias_root = tmp_path / "tenants" / "antonella-mammola"
+    (alias_root / "fascicoli").mkdir(parents=True, exist_ok=True)
+    (alias_root / "config").mkdir(parents=True, exist_ok=True)
+
+    report = tm.reconcile_storage_aliases("antonella-mammola")
+
+    alias_fascicoli = alias_root / "fascicoli" / "fascicoli.json"
+    alias_config = alias_root / "config" / "studio.json"
+    alias_studio_db = alias_root / "studio.db"
+
+    assert report["ok"] is True
+    assert report["backfilled_alias_files"]
+    assert alias_fascicoli.exists()
+    assert alias_config.exists()
+    assert alias_studio_db.exists()
+    assert json.loads(alias_fascicoli.read_text(encoding="utf-8"))[0]["numero"] == "2026/001"
+    assert json.loads(alias_config.read_text(encoding="utf-8"))["studio"]["nome"] == "Studio Legale Montagnese"
+
+
+def test_admin_dettaglio_studio_mostra_storage_root_canonico_e_non_slug_legacy(tmp_path):
+    registry_path = tmp_path / "tenants.json"
+    registry_path.write_text(
+        json.dumps(
+            {
+                "studio-001": {
+                    "slug": "antonella-mammola",
+                    "storage_key": "tenant-8bf98719c459",
+                    "nome": "Studio Antonella Mammola",
+                    "piano": "PROFESSIONAL",
+                    "stato": "ATTIVO",
+                    "db_config": "LOCAL",
+                }
+            },
+            ensure_ascii=False,
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+
+    app = create_app(
+        {
+            "TESTING": True,
+            "TENANTS_REGISTRY": str(registry_path),
+            "AUTH_DB": str(tmp_path / "auth" / "utenti.json"),
+            "AUDIT_DB": str(tmp_path / "auth" / "audit.json"),
+            "CLIENTI_DB": str(tmp_path / "clienti" / "anagrafica.json"),
+            "BOOTSTRAP_ADMIN_PASSWORD": "superpass123",
+        }
+    )
+
+    client = app.test_client()
+    client.post(
+        "/login",
+        data={"username": "admin", "password": "superpass123"},
+        follow_redirects=False,
+    )
+    resp = client.get("/admin/studi/antonella-mammola")
+
+    html = resp.get_data(as_text=True)
+
+    assert resp.status_code == 200
+    assert "tenant-8bf98719c459" in html
+    assert "./data/tenants/antonella-mammola/" not in html
 
 
 def test_superadmin_ha_superficie_piattaforma_separata_dagli_utenti_studio(tmp_path):

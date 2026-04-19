@@ -87,14 +87,14 @@
               <strong>Nessuna configurazione richiesta.</strong><br>
               <span class="small">
                 I dati sono salvati in
-                <code>./data/tenants/{{ studio.slug }}/</code>
+                <code>{{ storage_root_path or ('./data/tenants/' ~ studio.slug ~ '/') }}</code>
                 sul filesystem del server.
               </span>
             </div>
           </div>
           <div class="mt-3">
             <div class="small text-muted fw-semibold mb-1">Directory dati:</div>
-            <code class="small">./data/tenants/{{ studio.slug }}/</code>
+            <code class="small">{{ storage_root_path or ('./data/tenants/' ~ studio.slug ~ '/') }}</code>
           </div>
         </div>
       </div>

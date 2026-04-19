@@ -91,7 +91,8 @@ def test_admin_copertura_ai_aggancia_il_tenant_unico_con_postgres_legacy(
     html = page.get_data(as_text=True)
     assert "DB configurato: si" in html
     assert "Studio attivo:" in html
-    assert "Studio Coverage Operativo" in html
+    assert "Studio Coverage</strong>" in html or "Studio Coverage" in html
+    assert "Configurazione interna studio: Studio Coverage Operativo" in html
     assert "PostgreSQL tenant-aware" in html
     assert 'name="tenant_slug"' in html
 
@@ -163,7 +164,8 @@ def test_admin_copertura_ai_sqlite_tenant_mostra_database_connesso(tmp_path: Pat
     html = page.get_data(as_text=True)
     assert "Database coverage connesso" in html
     assert "SQLite locale" in html
-    assert "Studio Coverage SQLite" in html
+    assert "Studio SQLite" in html
+    assert "Configurazione interna studio: Studio Coverage SQLite" in html
 
 
 def test_build_repository_rispetta_il_tenant_slug_esplicito_anche_in_request_context(tmp_path: Path):

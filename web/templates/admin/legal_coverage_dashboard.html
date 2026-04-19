@@ -40,7 +40,10 @@
       <div class="col-12 col-lg-3">
         <div class="small text-muted">
           {% if payload.runtime.tenant_name %}
-            Studio attivo: <strong>{{ payload.runtime.tenant_name }}</strong>
+            Studio attivo: <strong>{{ payload.runtime.tenant_registry_name or payload.runtime.tenant_name }}</strong>
+            {% if payload.runtime.tenant_name_mismatch and payload.runtime.tenant_configured_name %}
+              <br>Configurazione interna studio: {{ payload.runtime.tenant_configured_name }}
+            {% endif %}
           {% else %}
             Seleziona lo studio da usare per audit, revisione e publish.
           {% endif %}
@@ -60,7 +63,10 @@
       </div>
       <div class="small">
         {% if runtime_ok %}
-          Studio: {{ payload.runtime.tenant_name or payload.runtime.tenant_slug or 'n.d.' }} -
+          Studio: {{ payload.runtime.tenant_registry_name or payload.runtime.tenant_name or payload.runtime.tenant_slug or 'n.d.' }} -
+          {% if payload.runtime.tenant_name_mismatch and payload.runtime.tenant_configured_name %}
+            configurazione interna: {{ payload.runtime.tenant_configured_name }} -
+          {% endif %}
           backend: {{ payload.runtime.db_backend_label or 'n.d.' }} -
           Ollama: {{ payload.runtime.ollama_model or 'modello non configurato' }} -
           endpoint {{ payload.runtime.ollama_url or 'n.d.' }}

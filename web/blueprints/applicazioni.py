@@ -7,7 +7,6 @@ from flask import Blueprint, current_app, flash, g, redirect, render_template, r
 from werkzeug.routing import BuildError
 
 from pct.applicazioni_catalogo import (
-    applicazioni_correlate,
     applicazioni_primo_piano,
     cerca_applicazioni,
     catalogo_applicazioni,
@@ -17,6 +16,7 @@ from pct.applicazioni_catalogo import (
     statistiche_catalogo,
 )
 from pct.portale import GestionePortale
+from web.services.applicazioni_runtime import build_workspace_context
 from web.helpers import (
     get_agenda,
     get_clienti,
@@ -84,16 +84,18 @@ def _fmt_datetime_it(value: str) -> str:
 def _resolve_entry_url(entry: dict) -> dict:
     payload = dict(entry)
     payload["detail_url"] = url_for("applicazioni.dettaglio", app_id=payload["id"])
+    payload["workspace_url"] = url_for("applicazioni.index", app=payload["id"])
     endpoint = payload.get("endpoint")
     params = dict(payload.get("params") or {})
-    href = payload["detail_url"]
+    target_url = payload["detail_url"]
     if endpoint:
         try:
-            href = url_for(endpoint, **params)
+            target_url = url_for(endpoint, **params)
         except BuildError:
-            href = payload["detail_url"]
-    payload["href"] = href
-    payload["is_direct"] = href != payload["detail_url"]
+            target_url = payload["detail_url"]
+    payload["target_url"] = target_url
+    payload["href"] = payload["workspace_url"]
+    payload["is_direct"] = True
     return payload
 
 
@@ -271,16 +273,17 @@ def _quick_links() -> list:
     ]
 
 
-@applicazioni.route("/", methods=["GET"])
+@applicazioni.route("/", methods=["GET", "POST"])
 @_richiedi_login
 def index():
-    q = (request.args.get("q") or "").strip()
-    sezione = (request.args.get("sezione") or "").strip()
-    stato = (request.args.get("stato") or "").strip()
-    tipo = (request.args.get("tipo") or "").strip()
-    modalita = (request.args.get("modalita") or "").strip()
-    ordinamento = (request.args.get("ordinamento") or "priorita").strip() or "priorita"
-    solo_primo_piano = (request.args.get("solo_primo_piano") or "").strip() in {"1", "true", "on", "yes"}
+    q = (request.values.get("q") or "").strip()
+    sezione = (request.values.get("sezione") or "").strip()
+    stato = (request.values.get("stato") or "").strip()
+    tipo = (request.values.get("tipo") or "").strip()
+    modalita = (request.values.get("modalita") or "").strip()
+    ordinamento = (request.values.get("ordinamento") or "priorita").strip() or "priorita"
+    solo_primo_piano = (request.values.get("solo_primo_piano") or "").strip() in {"1", "true", "on", "yes"}
+    active_app = (request.values.get("app") or request.values.get("app_id") or "").strip()
     entries = cerca_applicazioni(
         q=q,
         sezione=sezione,
@@ -292,6 +295,7 @@ def index():
     entries = _ordina_entries(entries, ordinamento)
     snapshot = _snapshot()
     grouped_entries = _resolve_grouped_entries(entries)
+    resolved_entries = [_resolve_entry_url(item) for item in entries]
     section_shortcuts = [
         {
             "id": section["id"],
@@ -316,6 +320,7 @@ def index():
         )
         if value
     ]
+    workspace = build_workspace_context(resolved_entries, active_id=active_app)
     return render_template(
         "applicazioni/index.html",
         oggi=date.today(),
@@ -328,6 +333,7 @@ def index():
         solo_primo_piano=solo_primo_piano,
         sezioni=get_sezioni_catalogo(),
         grouped_entries=grouped_entries,
+        resolved_entries=resolved_entries,
         stats=statistiche_catalogo(catalogo_applicazioni()),
         filtered_stats=statistiche_catalogo(entries),
         quick_links=_quick_links(),
@@ -355,6 +361,7 @@ def index():
             ("guidata", "Percorso guidato"),
             ("catalogo", "Scheda workspace"),
         ],
+        **workspace,
     )
 
 
@@ -365,14 +372,4 @@ def dettaglio(app_id: str):
     if not entry:
         flash("Applicazione non trovata nel catalogo.", "warning")
         return redirect(url_for("applicazioni.index"))
-    resolved = _resolve_entry_url(entry)
-    section = next((row for row in get_sezioni_catalogo() if row["id"] == resolved["section_id"]), None)
-    correlati = [_resolve_entry_url(item) for item in applicazioni_correlate(app_id)]
-    return render_template(
-        "applicazioni/dettaglio.html",
-        oggi=date.today(),
-        entry=resolved,
-        section=section,
-        correlati=correlati,
-        azioni_workspace=_workspace_actions(resolved),
-    )
+    return redirect(url_for("applicazioni.index", app=app_id))

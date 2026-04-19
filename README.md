@@ -13,6 +13,7 @@ La repo oggi non è più solo un tool CLI per il Processo Civile Telematico: con
 - Fatturazione, pagamenti, saldo cliente e KPI economici per studio, cliente e fascicolo.
 - Fascicolo con `cabina operativa` a tab: quadro intelligente, workflow `fascicolo -> incasso`, controllo economico, governo documentale e conformita' deposito nella stessa vista.
 - Template atti, Checklist Atti professionale e workspace legali allineati sullo stesso catalogo operativo per aree, branche e sottobranche.
+- `Applicazioni` e' ora una cabina applicativa vera: moduli economici, telematici, template, lookup, utility e rassegna si aprono nello stesso workspace coerente invece di limitarsi a rinviare a link esterni o schede descrittive.
 - Giurisprudenza, legal intelligence, repository strutturati per Lex.
 - Motore `Update Intelligence` per monitoraggio normativo, giurisprudenziale e di prassi con area di acquisizione, coda revisioni e pagina news giuridiche strutturate.
 - Pipeline `Coverage AI` per audit tassonomico, gap queue, draft v2, review e publish SQL con retrieval interno, funzionante sia su `SQLite locale` sia su `PostgreSQL tenant-aware`.
@@ -33,6 +34,7 @@ La struttura è organizzata per responsabilità:
   Wiring Flask e registrazione route modulari, inclusi `flask_app_factory.py` e `runtime_bundle.py` per mantenere `web/app.py` minimale.
 - `web/services/`
   Servizi runtime, autenticazione, sicurezza e contesto UI non proprietario di Lex.
+- `/applicazioni` usa ora un runtime dedicato e governabile: `pct/applicazioni_runtime.py` mappa i moduli reali e `web/services/applicazioni_runtime.py` costruisce i pannelli operativi senza gonfiare il blueprint.
 - `lex/`
   Modulo autonomo di Lex con blueprint, router, registry, orchestrator, context, retrieval, guard rail, provider, prompt builder, memoria conversazionale e wiring runtime dedicato, incluso il bridge del servizio AI locale e della risoluzione runtime Ollama.
 - `web/blueprints/`
@@ -43,6 +45,7 @@ La struttura è organizzata per responsabilità:
   Test di dominio, smoke test Flask, flussi telematici, signer e sicurezza.
 
 Per una mappa più completa vedi [docs/ARCHITETTURA.md](docs/ARCHITETTURA.md).
+Per il workspace applicazioni vedi anche [docs/APPLICAZIONI_WORKSPACE.md](docs/APPLICAZIONI_WORKSPACE.md).
 
 ## Strategia storage per studio
 

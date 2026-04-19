@@ -1,6 +1,107 @@
 {% extends "base.html" %}
-{% block title %}Workspace Applicazioni{% endblock %}
+{% block title %}Applicazioni operative{% endblock %}
 {% block pct_modulo %}applicazioni{% endblock %}
+
+{% macro hidden_workspace_state() -%}
+<input type="hidden" name="q" value="{{ query }}">
+<input type="hidden" name="sezione" value="{{ sezione_sel }}">
+<input type="hidden" name="stato" value="{{ stato_sel }}">
+<input type="hidden" name="tipo" value="{{ tipo_sel }}">
+<input type="hidden" name="modalita" value="{{ modalita_sel }}">
+<input type="hidden" name="ordinamento" value="{{ ordinamento_sel }}">
+<input type="hidden" name="solo_primo_piano" value="{{ '1' if solo_primo_piano else '' }}">
+<input type="hidden" name="app" value="{{ active_entry.id if active_entry else '' }}">
+<input type="hidden" name="id_fascicolo" value="{{ fascicolo_sel.id if fascicolo_sel else '' }}">
+{%- endmacro %}
+
+{% macro render_field(field) -%}
+  {% if field.type == 'select' %}
+    <select name="{{ field.name }}" class="form-select">
+      {% for option in field.options %}
+      <option value="{{ option.value }}" {{ 'selected' if field.value|string == option.value|string }}>{{ option.label }}</option>
+      {% endfor %}
+    </select>
+  {% elif field.type == 'multiselect' %}
+    <div class="d-flex flex-wrap gap-2">
+      {% for option in field.options %}
+      <label class="form-check form-check-inline border rounded-3 px-3 py-2 bg-white">
+        <input class="form-check-input me-2" type="checkbox" name="{{ field.name }}" value="{{ option.value }}" {{ 'checked' if option.value in (field.value or []) }}>
+        <span class="form-check-label">{{ option.label }}</span>
+      </label>
+      {% endfor %}
+    </div>
+  {% else %}
+    <input
+      type="{{ field.type }}"
+      name="{{ field.name }}"
+      value="{{ field.value }}"
+      class="form-control"
+      {% if field.step is defined %}step="{{ field.step }}"{% endif %}
+      {% if field.min is defined %}min="{{ field.min }}"{% endif %}
+      {% if field.max is defined %}max="{{ field.max }}"{% endif %}
+    >
+  {% endif %}
+{%- endmacro %}
+
+{% macro render_metrics(metrics) -%}
+  {% if metrics %}
+  <div class="apps-kpi-grid">
+    {% for item in metrics %}
+    <div class="apps-kpi">
+      <div class="apps-kpi-label">{{ item.label }}</div>
+      <div class="apps-kpi-value">{{ item.value }}</div>
+      {% if item.subtext %}
+      <div class="apps-kpi-sub">{{ item.subtext }}</div>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+{%- endmacro %}
+
+{% macro render_tables(tables) -%}
+  {% for table in tables or [] %}
+  <div class="apps-panel">
+    <div class="apps-panel-body">
+      <div class="apps-panel-head mb-3">
+        <div>
+          <h3 class="h6 mb-1">{{ table.title }}</h3>
+        </div>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-sm align-middle">
+          <thead>
+            <tr>
+              {% for header in table.headers %}
+              <th>{{ header }}</th>
+              {% endfor %}
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in table.rows %}
+            <tr>
+              {% for cell in row %}
+              <td>{{ cell }}</td>
+              {% endfor %}
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+{%- endmacro %}
+
+{% macro render_sources(sources) -%}
+  {% if sources %}
+  <div class="apps-chip-row">
+    {% for source in sources %}
+    <a href="{{ source.url }}" class="apps-section-chip" target="_blank" rel="noopener">{{ source.title }}</a>
+    {% endfor %}
+  </div>
+  {% endif %}
+{%- endmacro %}
 
 {% block content %}
 <div class="apps-workspace">
@@ -9,39 +110,54 @@
       <div>
         <div class="small fw-semibold text-primary mb-2 d-inline-flex align-items-center gap-2">
           <i class="bi bi-grid-1x2"></i>
-          Workspace applicazioni professionali
+          Cabina applicativa unificata
         </div>
-        <h1 class="h2 mb-2">Un’unica postazione per strumenti, atti, calcoli, rassegna e moduli di studio</h1>
+        <h1 class="h2 mb-2">Applicazioni vere nello stesso workspace operativo</h1>
         <p class="text-muted mb-3">
-          Il workspace organizza tutti i moduli richiesti in aree operative reali, con azioni rapide,
-          filtri avanzati, collegamenti bidirezionali e schede compatte progettate per lavorare bene
-          su desktop, tablet e mobile.
+          Questa superficie non fa piu' da elenco di link. Ogni voce apre il proprio modulo nello stesso workspace,
+          con contesto fascicolo, input coerenti, risultati leggibili e raccordo con il dominio reale del gestionale.
         </p>
         <div class="apps-hero-badges">
-          <span class="apps-hero-badge"><i class="bi bi-grid"></i>{{ stats.totale }} moduli censiti</span>
-          <span class="apps-hero-badge"><i class="bi bi-star"></i>{{ stats.primo_piano }} moduli in primo piano</span>
-          <span class="apps-hero-badge"><i class="bi bi-box-arrow-up-right"></i>{{ stats.accessi_diretti }} accessi diretti</span>
-          <span class="apps-hero-badge"><i class="bi bi-columns-gap"></i>{{ stats.sezioni_attive }} aree operative</span>
+          <span class="apps-hero-badge"><i class="bi bi-grid"></i>{{ stats.totale }} voci censite</span>
+          <span class="apps-hero-badge"><i class="bi bi-star"></i>{{ stats.primo_piano }} in primo piano</span>
+          <span class="apps-hero-badge"><i class="bi bi-layers"></i>{{ filtered_stats.totale }} nel workspace attivo</span>
+          <span class="apps-hero-badge"><i class="bi bi-folder2-open"></i>{{ fascicoli|length }} fascicoli disponibili</span>
         </div>
       </div>
       <div class="d-grid gap-3">
-        <div class="apps-panel-body p-0">
-          <div class="small text-muted mb-2">Azioni immediate</div>
-          <div class="apps-hero-actions">
-            <a href="{{ url_for('legal_intelligence.index') }}" class="btn btn-outline-danger"><i class="bi bi-newspaper me-2"></i>Rassegna</a>
-            <a href="{{ url_for('strumenti_legali.index') }}" class="btn btn-outline-primary"><i class="bi bi-calculator me-2"></i>Strumenti</a>
-            <a href="{{ url_for('template_atti.catalogo') }}" class="btn btn-outline-secondary"><i class="bi bi-file-earmark-text me-2"></i>Atti</a>
-            <a href="{{ url_for('fatturazione.lista') }}" class="btn btn-primary"><i class="bi bi-receipt me-2"></i>Fatturazione</a>
-          </div>
+        <div class="apps-panel-body border rounded-4">
+          <div class="small text-muted mb-2">Contesto di studio</div>
+          <form method="get" class="d-grid gap-3">
+            <input type="hidden" name="q" value="{{ query }}">
+            <input type="hidden" name="sezione" value="{{ sezione_sel }}">
+            <input type="hidden" name="stato" value="{{ stato_sel }}">
+            <input type="hidden" name="tipo" value="{{ tipo_sel }}">
+            <input type="hidden" name="modalita" value="{{ modalita_sel }}">
+            <input type="hidden" name="ordinamento" value="{{ ordinamento_sel }}">
+            <input type="hidden" name="solo_primo_piano" value="{{ '1' if solo_primo_piano else '' }}">
+            <input type="hidden" name="app" value="{{ active_entry.id if active_entry else '' }}">
+            <div>
+              <label class="form-label fw-semibold">Fascicolo di contesto</label>
+              <select name="id_fascicolo" class="form-select">
+                <option value="">Nessun fascicolo selezionato</option>
+                {% for fascicolo in fascicoli %}
+                <option value="{{ fascicolo.id }}" {{ 'selected' if fascicolo_sel and fascicolo.id == fascicolo_sel.id }}>
+                  {{ fascicolo.numero }} - {{ fascicolo.titolo }}{% if fascicolo.nome_cliente %} - {{ fascicolo.nome_cliente }}{% endif %}
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+            <button class="btn btn-primary"><i class="bi bi-magic me-2"></i>Carica contesto applicativo</button>
+          </form>
         </div>
         <div class="apps-panel-body border rounded-4">
-          <div class="small text-muted mb-1">Risultato corrente</div>
-          <div class="fs-4 fw-bold">{{ filtered_stats.totale }}</div>
+          <div class="small text-muted mb-1">Studio attivo</div>
+          <div class="fw-semibold">{{ studio.nome }}</div>
           <div class="small text-muted">
-            {% if filtri_attivi %}
-            Filtri attivi: {{ filtri_attivi|join(', ') }}
+            {% if fascicolo_sel %}
+            Fascicolo attivo: {{ fascicolo_sel.numero }} - {{ fascicolo_sel.titolo }}
             {% else %}
-            Nessun filtro attivo: vedi tutto il workspace.
+            Nessun fascicolo attivo: i moduli lavorano in modalita' generale.
             {% endif %}
           </div>
         </div>
@@ -53,34 +169,37 @@
     <div class="apps-kpi">
       <div class="apps-kpi-label">Accesso diretto</div>
       <div class="apps-kpi-value text-success">{{ stats.per_modalita.diretta or 0 }}</div>
-      <div class="apps-kpi-sub">Moduli che si aprono subito nel gestionale.</div>
+      <div class="apps-kpi-sub">Moduli con motore operativo immediato.</div>
     </div>
     <div class="apps-kpi">
       <div class="apps-kpi-label">Percorsi guidati</div>
       <div class="apps-kpi-value text-primary">{{ stats.per_modalita.guidata or 0 }}</div>
-      <div class="apps-kpi-sub">Workflow e aree collegate con supporto operativo.</div>
+      <div class="apps-kpi-sub">Pannelli applicativi collegati ai domini reali.</div>
     </div>
     <div class="apps-kpi">
-      <div class="apps-kpi-label">Schede workspace</div>
-      <div class="apps-kpi-value text-secondary">{{ stats.per_modalita.catalogo or 0 }}</div>
-      <div class="apps-kpi-sub">Voci gestite con scheda, correlati e collegamenti rapidi.</div>
+      <div class="apps-kpi-label">Aree attive</div>
+      <div class="apps-kpi-value">{{ stats.sezioni_attive }}</div>
+      <div class="apps-kpi-sub">Famiglie professionali coperte nel workspace.</div>
     </div>
     <div class="apps-kpi">
-      <div class="apps-kpi-label">Voci filtrate</div>
+      <div class="apps-kpi-label">Workspace filtrato</div>
       <div class="apps-kpi-value">{{ filtered_stats.totale }}</div>
-      <div class="apps-kpi-sub">Risultato del catalogo con i filtri e l’ordinamento correnti.</div>
+      <div class="apps-kpi-sub">
+        {% if filtri_attivi %}
+        Filtri attivi: {{ filtri_attivi|join(', ') }}
+        {% else %}
+        Nessun filtro attivo.
+        {% endif %}
+      </div>
     </div>
   </section>
 
-  <section class="apps-panel" id="workspace-filtri">
+  <section class="apps-panel">
     <div class="apps-panel-body">
       <div class="apps-panel-head">
         <div>
-          <h2 class="h4 mb-1">Filtri avanzati</h2>
-          <div class="text-muted">Ricerca, modalità di accesso, tipologia workspace, ordinamento e primo piano.</div>
-        </div>
-        <div class="apps-card-actions">
-          <a href="{{ url_for('applicazioni.index') }}" class="btn btn-outline-secondary"><i class="bi bi-arrow-counterclockwise me-2"></i>Reset</a>
+          <h2 class="h4 mb-1">Filtri del workspace</h2>
+          <div class="text-muted">Riduci il perimetro, scegli l'area e apri la voce direttamente nella stessa cabina.</div>
         </div>
       </div>
       <form method="get" class="row g-3 align-items-end">
@@ -102,7 +221,7 @@
           <select name="stato" class="form-select">
             <option value="">Tutti</option>
             <option value="operativa" {{ 'selected' if stato_sel == 'operativa' }}>Operativa</option>
-            <option value="guidata" {{ 'selected' if stato_sel == 'guidata' }}>Workflow guidato</option>
+            <option value="guidata" {{ 'selected' if stato_sel == 'guidata' }}>Guidata</option>
             <option value="catalogata" {{ 'selected' if stato_sel == 'catalogata' }}>Catalogata</option>
           </select>
         </div>
@@ -116,7 +235,7 @@
           </select>
         </div>
         <div class="col-xl-2 col-md-6">
-          <label class="form-label fw-semibold">Modalità</label>
+          <label class="form-label fw-semibold">Modalita'</label>
           <select name="modalita" class="form-select">
             <option value="">Tutte</option>
             {% for value, label in modalita_options %}
@@ -127,26 +246,25 @@
         <div class="col-xl-3 col-md-6">
           <label class="form-label fw-semibold">Ordinamento</label>
           <select name="ordinamento" class="form-select">
-            <option value="priorita" {{ 'selected' if ordinamento_sel == 'priorita' }}>Priorità operativa</option>
+            <option value="priorita" {{ 'selected' if ordinamento_sel == 'priorita' }}>Priorita' operativa</option>
             <option value="titolo" {{ 'selected' if ordinamento_sel == 'titolo' }}>Titolo</option>
             <option value="sezione" {{ 'selected' if ordinamento_sel == 'sezione' }}>Area</option>
-            <option value="accesso" {{ 'selected' if ordinamento_sel == 'accesso' }}>Modalità di accesso</option>
+            <option value="accesso" {{ 'selected' if ordinamento_sel == 'accesso' }}>Modalita' di accesso</option>
           </select>
         </div>
         <div class="col-xl-3 col-md-6">
           <div class="form-check mt-4 pt-2">
             <input class="form-check-input" type="checkbox" value="1" id="solo_primo_piano" name="solo_primo_piano" {{ 'checked' if solo_primo_piano }}>
-            <label class="form-check-label fw-semibold" for="solo_primo_piano">Mostra solo moduli in primo piano</label>
+            <label class="form-check-label fw-semibold" for="solo_primo_piano">Mostra solo il primo piano</label>
           </div>
         </div>
         <div class="col-xl-6 col-12">
           <div class="apps-card-actions">
             <button class="btn btn-primary"><i class="bi bi-search me-2"></i>Applica filtri</button>
-            <a href="{{ url_for('applicazioni.index') }}" class="btn btn-outline-secondary"><i class="bi bi-x-circle me-2"></i>Pulisci</a>
+            <a href="{{ url_for('applicazioni.index') }}" class="btn btn-outline-secondary"><i class="bi bi-x-circle me-2"></i>Reset</a>
           </div>
         </div>
       </form>
-
       {% if filtri_attivi %}
       <div class="apps-chip-row mt-3">
         {% for item in filtri_attivi %}
@@ -157,30 +275,384 @@
     </div>
   </section>
 
+  {% if active_entry and active_panel %}
   <section class="apps-panel">
     <div class="apps-panel-body">
-      <div class="apps-panel-head mb-3">
+      <div class="apps-panel-head">
         <div>
-          <h2 class="h4 mb-1">Aree di lavoro</h2>
-          <div class="text-muted">Vai subito all’area che ti serve o filtra il workspace in un click.</div>
+          <div class="apps-module-meta mb-2">
+            <span class="apps-badge-soft">{{ active_entry.workspace_kind_label }}</span>
+            <span class="badge {{ active_entry.access_mode_badge_class }}">{{ active_entry.access_mode_label }}</span>
+            <span class="badge {{ active_entry.status_badge_class }}">{{ active_entry.status_label }}</span>
+          </div>
+          <h2 class="h3 mb-1">{{ active_entry.title }}</h2>
+          <div class="text-muted">{{ active_panel.subtitle }}</div>
+        </div>
+        <div class="apps-card-actions">
+          <a href="{{ active_entry.target_url }}" class="btn btn-primary">{{ active_entry.cta_label }}</a>
+          <a href="{{ url_for('applicazioni.index', sezione=active_entry.section_id) }}" class="btn btn-outline-secondary">Apri area</a>
         </div>
       </div>
-      <div class="apps-shortcuts">
-        {% for item in section_shortcuts %}
-        <a href="{{ item.url }}" class="apps-section-chip">
-          <i class="bi {{ item.icon }}"></i>{{ item.title }}<span class="badge text-bg-light">{{ item.count }}</span>
-        </a>
+
+      {{ render_metrics(active_panel.metrics) }}
+
+      {% if active_panel.kind in ['tool', 'utility', 'lookup'] %}
+      <div class="apps-panel mt-3">
+        <div class="apps-panel-body">
+          <form method="post" class="row g-3">
+            {{ hidden_workspace_state() }}
+            <input type="hidden" name="app_id" value="{{ active_entry.id }}">
+            {% for field in active_panel.fields %}
+            <div class="col-xl-3 col-md-6">
+              <label class="form-label fw-semibold">{{ field.label }}</label>
+              {{ render_field(field) }}
+            </div>
+            {% endfor %}
+            <div class="col-12">
+              <button class="btn btn-primary"><i class="bi bi-lightning-charge me-2"></i>{{ active_panel.submit_label if active_panel.submit_label is defined else 'Esegui' }}</button>
+            </div>
+          </form>
+        </div>
+      </div>
+      {% endif %}
+
+      {% if active_panel.warnings %}
+      <div class="alert alert-warning mt-3 mb-0">
+        {% for warning in active_panel.warnings %}
+        <div>{{ warning }}</div>
         {% endfor %}
       </div>
+      {% endif %}
+      {% if active_panel.notes %}
+      <div class="alert alert-info mt-3 mb-0">
+        {% for note in active_panel.notes %}
+        <div>{{ note }}</div>
+        {% endfor %}
+      </div>
+      {% endif %}
+      {% if active_panel.sources is defined %}
+      <div class="mt-3">
+        {{ render_sources(active_panel.sources) }}
+      </div>
+      {% endif %}
+
+      {% if active_panel.preview_text %}
+      <div class="apps-panel mt-3">
+        <div class="apps-panel-body">
+          <div class="apps-panel-head mb-3">
+            <div>
+              <h3 class="h6 mb-1">Anteprima testo</h3>
+            </div>
+          </div>
+          <pre class="mb-0 small text-wrap">{{ active_panel.preview_text }}</pre>
+        </div>
+      </div>
+      {% endif %}
+
+      {{ render_tables(active_panel.tables) }}
+
+      {% if active_panel.kind == 'template_atti' %}
+      <div class="row g-3 mt-1">
+        <div class="col-xl-7">
+          <div class="apps-panel">
+            <div class="apps-panel-body">
+              <div class="apps-panel-head mb-3">
+                <div>
+                  <h3 class="h6 mb-1">Template compatibili</h3>
+                </div>
+              </div>
+              <div class="apps-module-grid">
+                {% for item in active_panel.matches %}
+                <article class="apps-module-card">
+                  <div class="apps-module-meta">
+                    <span class="apps-badge-soft">{{ item.categoria }}</span>
+                    <span class="apps-badge-soft">{{ item.canale_telematico }}</span>
+                  </div>
+                  <div class="apps-module-title">{{ item.titolo }}</div>
+                  <div class="apps-module-summary">{{ item.area }} / {{ item.branca }} / {{ item.sottobranca }}</div>
+                  <div class="apps-module-actions">
+                    <a href="{{ item.scheda_url }}" class="btn btn-sm btn-primary">Scheda</a>
+                    <a href="{{ item.usa_url }}" class="btn btn-sm btn-outline-secondary">Usa</a>
+                  </div>
+                </article>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-xl-5">
+          <div class="apps-panel">
+            <div class="apps-panel-body">
+              <div class="apps-panel-head mb-3">
+                <div>
+                  <h3 class="h6 mb-1">Checklist correlate</h3>
+                </div>
+              </div>
+              <div class="d-grid gap-2">
+                {% for item in active_panel.checklists %}
+                <a href="{{ item.url }}" class="apps-section-chip justify-content-between">
+                  <span>{{ item.nome }}</span>
+                  <span class="small text-muted">{{ item.canale }}</span>
+                </a>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      {% elif active_panel.kind == 'rassegna' %}
+      <div class="apps-feed-grid mt-1">
+        <article class="apps-feed-card">
+          <div class="apps-panel-head">
+            <div>
+              <h3 class="h6 mb-1">Fonti presidiate</h3>
+            </div>
+          </div>
+          {% for item in active_panel.feed_rows %}
+          <div class="apps-feed-item">
+            <div class="small text-muted mb-1">{{ item.area }}{% if item.last_check %} - {{ item.last_check|fmt_dataora }}{% endif %}</div>
+            <div class="fw-semibold">{{ item.nome }}</div>
+            <div class="small text-muted">{{ item.summary or item.warning }}</div>
+          </div>
+          {% endfor %}
+        </article>
+        <article class="apps-feed-card">
+          <div class="apps-panel-head">
+            <div>
+              <h3 class="h6 mb-1">Alert recenti</h3>
+            </div>
+          </div>
+          {% for item in active_panel.alert_rows %}
+          <div class="apps-feed-item">
+            <div class="fw-semibold">{{ item.title }}</div>
+            <div class="small text-muted">{{ item.details or item.summary }}</div>
+          </div>
+          {% endfor %}
+        </article>
+      </div>
+      {% elif active_panel.kind == 'scadenze' %}
+      <div class="apps-panel mt-3">
+        <div class="apps-panel-body">
+          <div class="table-responsive">
+            <table class="table table-sm align-middle">
+              <thead>
+                <tr><th>Scadenza</th><th>Data</th><th>Priorita'</th><th>Fascicolo</th></tr>
+              </thead>
+              <tbody>
+                {% for row in active_panel.rows %}
+                <tr>
+                  <td>{{ row.titolo }}</td>
+                  <td>{{ row.data }}</td>
+                  <td>{{ row.priorita }}</td>
+                  <td>{{ row.fascicolo or 'n/d' }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      {% elif active_panel.kind == 'economico' %}
+      <div class="row g-3 mt-1">
+        <div class="col-xl-4">
+          <div class="apps-panel">
+            <div class="apps-panel-body">
+              <h3 class="h6 mb-3">Parcelle recenti</h3>
+              <div class="d-grid gap-2">
+                {% for row in active_panel.parcelle %}
+                <div class="border rounded-3 p-3">
+                  <div class="fw-semibold">{{ row.numero }}</div>
+                  <div class="small text-muted">{{ row.data_emissione|fmt_data }} - {{ row.stato.value }}</div>
+                  <div class="small">Totale: EUR {{ '%.2f'|format(row.totale)|replace('.', ',') }}</div>
+                </div>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-xl-4">
+          <div class="apps-panel">
+            <div class="apps-panel-body">
+              <h3 class="h6 mb-3">Preventivi recenti</h3>
+              <div class="d-grid gap-2">
+                {% for row in active_panel.preventivi %}
+                <div class="border rounded-3 p-3">
+                  <div class="fw-semibold">{{ row.numero }}</div>
+                  <div class="small text-muted">{{ row.data_emissione|fmt_data }} - {{ row.stato.value }}</div>
+                  <div class="small">{{ row.oggetto }}</div>
+                </div>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-xl-4">
+          <div class="apps-panel">
+            <div class="apps-panel-body">
+              <h3 class="h6 mb-3">Conferimenti recenti</h3>
+              <div class="d-grid gap-2">
+                {% for row in active_panel.conferimenti %}
+                <div class="border rounded-3 p-3">
+                  <div class="fw-semibold">{{ row.numero }}</div>
+                  <div class="small text-muted">{{ row.data_incarico|fmt_data }} - {{ row.stato.value }}</div>
+                  <div class="small">{{ row.oggetto }}</div>
+                </div>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      {% elif active_panel.kind == 'telematico' %}
+      <div class="row g-3 mt-1">
+        <div class="col-xl-5">
+          <div class="apps-panel">
+            <div class="apps-panel-body">
+              <h3 class="h6 mb-3">Portali attivi</h3>
+              <div class="d-grid gap-2">
+                {% for row in active_panel.portali %}
+                <div class="border rounded-3 p-3">
+                  <div class="fw-semibold">{{ row.nome }}</div>
+                  <div class="small text-muted">{{ row.categoria }} - {{ row.stato }}</div>
+                </div>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-xl-7">
+          <div class="apps-panel">
+            <div class="apps-panel-body">
+              <h3 class="h6 mb-3">Fascicoli disponibili</h3>
+              <div class="table-responsive">
+                <table class="table table-sm align-middle">
+                  <thead>
+                    <tr><th>Numero</th><th>Titolo</th><th>Tribunale</th><th>Documenti</th></tr>
+                  </thead>
+                  <tbody>
+                    {% for row in active_panel.fascicoli %}
+                    <tr>
+                      <td>{{ row.numero }}</td>
+                      <td>{{ row.titolo }}</td>
+                      <td>{{ row.tribunale or 'n/d' }}</td>
+                      <td>{{ row.documenti }}</td>
+                    </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      {% elif active_panel.kind == 'lookup' %}
+      <div class="apps-panel mt-3">
+        <div class="apps-panel-body">
+          <div class="table-responsive">
+            <table class="table table-sm align-middle">
+              <thead>
+                <tr><th>Nome</th><th>Tipo</th><th>Distretto</th><th>PEC</th></tr>
+              </thead>
+              <tbody>
+                {% for row in active_panel.rows %}
+                <tr>
+                  <td>{{ row.nome }}</td>
+                  <td>{{ row.tipo }}</td>
+                  <td>{{ row.distretto }}</td>
+                  <td>{{ row.pec or 'n/d' }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      {% elif active_panel.kind == 'giurisprudenza' %}
+      <div class="row g-3 mt-1">
+        <div class="col-xl-6">
+          <div class="apps-panel">
+            <div class="apps-panel-body">
+              <h3 class="h6 mb-3">Corpus professionale</h3>
+              <div class="d-grid gap-2">
+                {% for row in active_panel.corpus_rows %}
+                <div class="border rounded-3 p-3">
+                  <div class="fw-semibold">{{ row.titolo }}</div>
+                  <div class="small text-muted">{{ row.organo_giudicante }} - {{ row.data_decisione|default('', true) }}</div>
+                </div>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-xl-6">
+          <div class="apps-panel">
+            <div class="apps-panel-body">
+              <h3 class="h6 mb-3">Archivio interno</h3>
+              <div class="d-grid gap-2">
+                {% for row in active_panel.archive_rows %}
+                <div class="border rounded-3 p-3">
+                  <div class="fw-semibold">{{ row.titolo }}</div>
+                  <div class="small text-muted">{{ row.ufficio }} - {{ row.data_deposito|default('', true) }}</div>
+                </div>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      {% elif active_panel.kind in ['patrimonio', 'catalogo_operativo'] %}
+      <div class="row g-3 mt-1">
+        <div class="col-xl-7">
+          <div class="apps-panel">
+            <div class="apps-panel-body">
+              <h3 class="h6 mb-3">Moduli e template collegati</h3>
+              <div class="apps-module-grid">
+                {% for item in active_panel.matches %}
+                <article class="apps-module-card">
+                  <div class="apps-module-title">{{ item.titolo }}</div>
+                  <div class="apps-module-summary">{{ item.area }} / {{ item.branca }}</div>
+                  <div class="apps-module-actions">
+                    <a href="{{ item.scheda_url }}" class="btn btn-sm btn-primary">Scheda</a>
+                    <a href="{{ item.usa_url }}" class="btn btn-sm btn-outline-secondary">Usa</a>
+                  </div>
+                </article>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-xl-5">
+          <div class="apps-panel">
+            <div class="apps-panel-body">
+              <h3 class="h6 mb-3">Azioni dominio</h3>
+              <div class="d-grid gap-2">
+                {% for action in active_panel.actions %}
+                <a href="{{ action.url }}" class="btn btn-{{ action.variant }}">{{ action.label }}</a>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+      {% if active_panel.actions %}
+      <div class="apps-card-actions mt-3">
+        {% for action in active_panel.actions %}
+        <a href="{{ action.url }}" class="btn btn-{{ action.variant }}">{{ action.label }}</a>
+        {% endfor %}
+      </div>
+      {% endif %}
     </div>
   </section>
+  {% endif %}
 
   <section class="apps-panel">
     <div class="apps-panel-body">
       <div class="apps-panel-head">
         <div>
           <h2 class="h4 mb-1">Primo piano operativo</h2>
-          <div class="text-muted">Le funzioni da studio più ricorrenti, già pronte o collegate al modulo corretto.</div>
+          <div class="text-muted">Le voci piu' usate nello studio, tutte apribili dentro la stessa interfaccia.</div>
         </div>
       </div>
       <div class="apps-priority-grid">
@@ -193,9 +665,8 @@
           <div class="apps-module-title">{{ item.title }}</div>
           <div class="apps-module-summary">{{ item.summary }}</div>
           <div class="apps-module-actions">
-            <a href="{{ item.href }}" class="btn btn-sm btn-primary">{{ item.cta_label }}</a>
-            <a href="{{ item.detail_url }}" class="btn btn-sm btn-outline-secondary">Scheda</a>
-            <a href="{{ url_for('applicazioni.index', sezione=item.section_id) }}" class="btn btn-sm btn-outline-dark">Area</a>
+            <a href="{{ item.workspace_url }}" class="btn btn-sm btn-primary">Apri nel workspace</a>
+            <a href="{{ item.target_url }}" class="btn btn-sm btn-outline-secondary">Apri dominio</a>
           </div>
         </article>
         {% endfor %}
@@ -203,23 +674,56 @@
     </div>
   </section>
 
+  <section class="apps-panel">
+    <div class="apps-panel-body">
+      <div class="apps-panel-head">
+        <div>
+          <h2 class="h4 mb-1">Tutte le voci filtrate</h2>
+          <div class="text-muted">Seleziona la voce: il modulo si apre sopra, senza uscire dalla cabina applicativa.</div>
+        </div>
+      </div>
+      {% if resolved_entries %}
+      <div class="apps-module-grid">
+        {% for item in resolved_entries %}
+        <article class="apps-module-card">
+          <div class="apps-module-meta">
+            <span class="apps-badge-soft">{{ item.section_title }}</span>
+            <span class="badge {{ item.status_badge_class }}">{{ item.status_label }}</span>
+          </div>
+          <div class="apps-module-title">{{ item.title }}</div>
+          <div class="apps-module-summary">{{ item.summary }}</div>
+          <div class="apps-module-actions">
+            <a href="{{ item.workspace_url }}" class="btn btn-sm {{ 'btn-primary' if active_entry and active_entry.id == item.id else 'btn-outline-primary' }}">
+              {{ 'Attiva' if active_entry and active_entry.id == item.id else 'Apri nel workspace' }}
+            </a>
+            <a href="{{ item.target_url }}" class="btn btn-sm btn-outline-secondary">Apri dominio</a>
+            <a href="{{ url_for('applicazioni.index', sezione=item.section_id) }}" class="btn btn-sm btn-outline-dark">Area</a>
+          </div>
+        </article>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="apps-empty" style="display:block;">
+        Nessuna voce trovata con i filtri correnti.
+      </div>
+      {% endif %}
+    </div>
+  </section>
+
   <section class="apps-feed-grid">
     <article class="apps-feed-card">
       <div class="apps-panel-head">
         <div>
-          <h2 class="h4 mb-1">Rassegna stampa giuridica</h2>
-          <div class="text-muted">Fonti ufficiali, alert e monitoraggi per l’aggiornamento dello studio.</div>
+          <h2 class="h4 mb-1">Rassegna giuridica</h2>
+          <div class="text-muted">Fonti ufficiali e presidio continuo del contesto normativo.</div>
         </div>
-        <a href="{{ url_for('legal_intelligence.index') }}" class="btn btn-sm btn-outline-danger">Apri rassegna</a>
+        <a href="{{ url_for('legal_intelligence.index') }}" class="btn btn-sm btn-outline-danger">Apri Ricerca legale</a>
       </div>
       {% for item in rassegna.giuridiche %}
       <div class="apps-feed-item">
-        <div class="small text-muted mb-1">{{ item.subtitle }}{% if item.date_label %} · {{ item.date_label }}{% endif %}</div>
+        <div class="small text-muted mb-1">{{ item.subtitle }}{% if item.date_label %} - {{ item.date_label }}{% endif %}</div>
         <div class="fw-semibold">{{ item.title }}</div>
         <div class="small text-muted">{{ item.summary }}</div>
-        {% if item.url %}
-        <a href="{{ item.url }}" target="_blank" rel="noopener" class="small text-decoration-none">Apri fonte ufficiale</a>
-        {% endif %}
       </div>
       {% endfor %}
     </article>
@@ -227,89 +731,27 @@
     <article class="apps-feed-card">
       <div class="apps-panel-head">
         <div>
-          <h2 class="h4 mb-1">Rassegna consumatori</h2>
-          <div class="text-muted">Temi utili per clienti privati, famiglie, locazioni, interessi e fisco.</div>
-        </div>
-        <a href="{{ url_for('legal_intelligence.index') }}" class="btn btn-sm btn-outline-primary">Apri monitor</a>
-      </div>
-      {% for item in rassegna.consumatori %}
-      <div class="apps-feed-item">
-        <div class="small text-muted mb-1">{{ item.subtitle }}{% if item.date_label %} · {{ item.date_label }}{% endif %}</div>
-        <div class="fw-semibold">{{ item.title }}</div>
-        <div class="small text-muted">{{ item.summary }}</div>
-        {% if item.url %}
-        <a href="{{ item.url }}" target="_blank" rel="noopener" class="small text-decoration-none">Apri fonte ufficiale</a>
-        {% endif %}
-      </div>
-      {% endfor %}
-    </article>
-  </section>
-
-  <section class="apps-links-grid">
-    {% for link in quick_links %}
-    <article class="apps-link-card">
-      <div class="d-flex gap-3 align-items-start">
-        <div class="apps-link-icon"><i class="bi {{ link.icon }}"></i></div>
-        <div class="flex-grow-1">
-          <div class="fw-semibold">{{ link.title }}</div>
-          <div class="small text-muted">{{ link.text }}</div>
+          <h2 class="h4 mb-1">Azioni immediate</h2>
+          <div class="text-muted">Domini reali da cui i moduli applicativi attingono dati e operativita'.</div>
         </div>
       </div>
-      <div class="mt-auto">
-        <a href="{{ link.url }}" class="btn btn-outline-primary btn-sm">Apri area</a>
-      </div>
-    </article>
-    {% endfor %}
-  </section>
-
-  {% if grouped_entries %}
-    {% for section in grouped_entries %}
-    <section class="apps-panel" id="section-{{ section.id }}">
-      <div class="apps-panel-body">
-        <div class="apps-panel-head">
+      <div class="apps-links-grid">
+        {% for link in quick_links %}
+        <article class="apps-link-card">
           <div class="d-flex gap-3 align-items-start">
-            <div class="apps-section-icon"><i class="bi {{ section.icon }}"></i></div>
-            <div>
-              <h2 class="h4 mb-1">{{ section.title }}</h2>
-              <div class="text-muted">{{ section.description }}</div>
+            <div class="apps-link-icon"><i class="bi {{ link.icon }}"></i></div>
+            <div class="flex-grow-1">
+              <div class="fw-semibold">{{ link.title }}</div>
+              <div class="small text-muted">{{ link.text }}</div>
             </div>
           </div>
-          <div class="apps-card-actions">
-            <span class="apps-filter-chip"><i class="bi bi-collection"></i>{{ section["items"]|length }} moduli</span>
-            <a href="{{ url_for('applicazioni.index', sezione=section.id) }}" class="btn btn-sm btn-outline-secondary">Isola area</a>
+          <div class="mt-auto">
+            <a href="{{ link.url }}" class="btn btn-outline-primary btn-sm">Apri area</a>
           </div>
-        </div>
-
-        <div class="apps-module-grid">
-          {% for item in section["items"] %}
-          <article class="apps-module-card">
-            <div class="apps-module-meta">
-              <span class="apps-badge-soft">{{ item.workspace_kind_label }}</span>
-              <span class="badge {{ item.access_mode_badge_class }}">{{ item.access_mode_label }}</span>
-              {% if item.featured %}
-              <span class="apps-badge-soft"><i class="bi bi-star-fill"></i>Primo piano</span>
-              {% endif %}
-            </div>
-            <div class="apps-module-title">{{ item.title }}</div>
-            <div class="apps-module-summary">{{ item.summary }}</div>
-            <div class="small text-muted">{{ item.status_description }}</div>
-            <div class="apps-module-actions">
-              <a href="{{ item.href }}" class="btn btn-sm btn-primary">{{ item.cta_label }}</a>
-              <a href="{{ item.detail_url }}" class="btn btn-sm btn-outline-secondary">Scheda</a>
-              <a href="{{ url_for('applicazioni.index', tipo=item.workspace_kind) }}" class="btn btn-sm btn-outline-dark">Tipo</a>
-            </div>
-          </article>
-          {% endfor %}
-        </div>
+        </article>
+        {% endfor %}
       </div>
-    </section>
-    {% endfor %}
-  {% else %}
-  <section class="apps-panel">
-    <div class="apps-empty">
-      Nessuna applicazione corrisponde ai filtri attuali. Prova ad ampliare la ricerca o a cambiare area, tipologia o modalità.
-    </div>
+    </article>
   </section>
-  {% endif %}
 </div>
 {% endblock %}

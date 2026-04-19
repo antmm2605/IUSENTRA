@@ -27,8 +27,8 @@ Qui vivono i modelli dati, i repository e le integrazioni verticali:
   motore telematico
 - `giurisprudenza.py`, `giurisprudenza_corpus.py`, `legal_intelligence.py`
   motori legali e corpus professionale
-- `template_atti.py`, `preventivi.py`, `applicazioni_catalogo.py`
-  domini applicativi verticali
+- `template_atti.py`, `preventivi.py`, `applicazioni_catalogo.py`, `applicazioni_runtime.py`
+  domini applicativi verticali e mappatura runtime dei workspace applicativi
 - `tenant.py`, `storage.py`, `database.py`
   strategia storage multi-tenant, manifest, provisioning e backend SQLite per studio
 
@@ -60,6 +60,8 @@ Qui stanno i servizi trasversali che non appartengono a un singolo dominio:
   impostazioni runtime derivate da configurazione studio
 - `observability_runtime.py`
   metriche leggere HTTP/Lex e payload tecnico per pannello e API di osservabilita'
+- `applicazioni_runtime.py`
+  orchestration UI/runtime dei workspace applicativi reali, con pannelli operativi coerenti e azioni inline
 - servizi di contesto studio, sicurezza e compatibilità UI non proprietaria di Lex
 
 ### `pct/scheduler.py`, `pct/scheduler_worker.py` e `pct/ocr_worker.py`

@@ -122,6 +122,23 @@ def _db_mode_choices(current_mode: str = "") -> list[str]:
     return choices
 
 
+def _studi_assegnabili() -> list:
+    tm = _tenant_manager()
+    return [
+        studio
+        for studio in tm.lista()
+        if str(getattr(studio, "stato", "") or "").upper() != str(StatoTenant.SOSPESO)
+    ]
+
+
+def _utenti_globali_piattaforma(gu: GestioneUtenti) -> list:
+    return [
+        u
+        for u in gu.lista()
+        if not str(getattr(u, "tenant_slug", "") or "").strip()
+    ]
+
+
 # ============================================================= Decoratore
 
 from functools import wraps
@@ -165,7 +182,7 @@ def dashboard():
 def utenti_piattaforma():
     gu = _utenti_piattaforma()
     gu.ensure_platform_superadmin()
-    utenti_globali = [u for u in gu.lista() if not str(getattr(u, "tenant_slug", "") or "").strip()]
+    utenti_globali = _utenti_globali_piattaforma(gu)
     superadmin_rows = [u for u in utenti_globali if u.ruolo == RuoloUtente.SUPERADMIN]
     anomalie = []
     if len(superadmin_rows) != 1:
@@ -182,6 +199,9 @@ def utenti_piattaforma():
         utenti=utenti_globali,
         superadmin_rows=superadmin_rows,
         anomalie=anomalie,
+        studi=_studi_assegnabili(),
+        ruoli_studio=[ruolo for ruolo in RuoloUtente if ruolo != RuoloUtente.SUPERADMIN],
+        descrizioni_ruoli=DESCRIZIONI_RUOLI,
     )
 
 
@@ -203,6 +223,112 @@ def reset_password_piattaforma(uid: str):
         f"Password temporanea dell'account piattaforma '{utente.username}' aggiornata. Al prossimo accesso dovra cambiarla.",
         "success",
     )
+    return redirect(url_for("admin.utenti_piattaforma"))
+
+
+@admin_bp.route("/utenti-piattaforma/<uid>/sposta-nello-studio", methods=["POST"])
+@superadmin_required
+def sposta_utente_piattaforma_nello_studio(uid: str):
+    tenant_slug = str(request.form.get("tenant_slug", "") or "").strip().lower()
+    ruolo_raw = str(request.form.get("ruolo", RuoloUtente.AVVOCATO.value) or "").strip().upper()
+
+    if not tenant_slug:
+        flash("Seleziona lo studio di destinazione.", "danger")
+        return redirect(url_for("admin.utenti_piattaforma"))
+
+    try:
+        ruolo_destinazione = RuoloUtente(ruolo_raw)
+    except ValueError:
+        flash("Ruolo di studio non valido.", "danger")
+        return redirect(url_for("admin.utenti_piattaforma"))
+
+    if ruolo_destinazione == RuoloUtente.SUPERADMIN:
+        flash("Il ruolo SUPERADMIN non puo' essere assegnato dentro uno studio.", "danger")
+        return redirect(url_for("admin.utenti_piattaforma"))
+
+    tm = _tenant_manager()
+    studio = tm.get(tenant_slug)
+    if not studio:
+        flash("Studio di destinazione non trovato.", "danger")
+        return redirect(url_for("admin.utenti_piattaforma"))
+
+    gu_piattaforma = _utenti_piattaforma()
+    utente = gu_piattaforma.get(uid)
+    if not utente or str(getattr(utente, "tenant_slug", "") or "").strip():
+        abort(404)
+    if utente.ruolo == RuoloUtente.SUPERADMIN:
+        flash(
+            "Non puoi spostare fuori dalla piattaforma l'unico SUPERADMIN. Trasferisci prima il ruolo a un altro account.",
+            "danger",
+        )
+        return redirect(url_for("admin.utenti_piattaforma"))
+
+    gu_tenant = _utenti_tenant(tenant_slug)
+    if gu_tenant.get_by_username(utente.username):
+        flash(
+            f"Nello studio '{studio.nome}' esiste gia' un utente con username '{utente.username}'.",
+            "danger",
+        )
+        return redirect(url_for("admin.utenti_piattaforma"))
+
+    importato = None
+    try:
+        importato = gu_tenant.importa_utente_esistente(
+            utente,
+            ruolo=ruolo_destinazione,
+            tenant_slug=tenant_slug,
+            preserve_id=False,
+        )
+        gu_tenant.registra_evento(
+            azione="tenant.utente.importato_da_piattaforma",
+            id_utente=importato.id,
+            username=importato.username,
+            risorsa_tipo="utente",
+            risorsa_id=importato.id,
+            dettagli=(
+                f"Utente importato dalla piattaforma nello studio {tenant_slug} "
+                f"con ruolo {ruolo_destinazione.value}."
+            ),
+            ip=request.remote_addr or "",
+            esito="OK",
+        )
+        gu_piattaforma.elimina(uid, force=True)
+        gu_piattaforma.registra_evento(
+            azione="piattaforma.utente.spostato_nello_studio",
+            id_utente=uid,
+            username=utente.username,
+            risorsa_tipo="utente_piattaforma",
+            risorsa_id=uid,
+            dettagli=(
+                f"Account globale spostato nello studio {tenant_slug} "
+                f"come {ruolo_destinazione.value}."
+            ),
+            ip=request.remote_addr or "",
+            esito="OK",
+        )
+        _sync_tenant_user_directory()
+        flash(
+            f"L'account piattaforma '{utente.username}' ora appartiene allo studio '{studio.nome}' come {ruolo_destinazione.value}.",
+            "success",
+        )
+    except Exception as exc:
+        current_app.logger.exception(
+            "Errore spostamento utente piattaforma %s nello studio %s: %s",
+            uid,
+            tenant_slug,
+            exc,
+        )
+        if importato is not None:
+            try:
+                gu_tenant.elimina(importato.id, force=True)
+            except Exception as rollback_exc:
+                current_app.logger.exception(
+                    "Rollback import utente piattaforma %s fallito nello studio %s: %s",
+                    uid,
+                    tenant_slug,
+                    rollback_exc,
+                )
+        flash(f"Errore durante lo spostamento nello studio: {exc}", "danger")
     return redirect(url_for("admin.utenti_piattaforma"))
 
 

@@ -29,6 +29,7 @@
   <script src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.3/dist/htmx.min.js" defer></script>
 </head>
 <body>
+{% set superadmin_piattaforma = utente_corrente and utente_corrente.is_superadmin and not session.get('superadmin_user_id') %}
 
 <!-- Sidebar -->
 <nav id="sidebar">
@@ -54,6 +55,7 @@
 
   {# Area scorrevole #}
   <div class="sb-scroll" id="sb-scroll">
+    {% if not superadmin_piattaforma %}
 
     {# Panoramica e Ricerca - sempre visibili in cima #}
     <a href="{{ url_for('dashboard') }}"
@@ -331,6 +333,7 @@
         <i class="bi bi-calendar-check"></i><span class="sb-txt">Sincronizzazione</span>
       </a>
     </div>
+    {% endif %}
 
     {# ---- Piattaforma (superadmin) ---- #}
     {% if utente_corrente and utente_corrente.is_superadmin %}
@@ -434,6 +437,19 @@
   </button>
   <h1>{% block page_title %}{% endblock %}</h1>
   <div class="d-flex align-items-center gap-2 topbar-actions">
+    {% if superadmin_piattaforma %}
+    <span class="topbar-date d-none d-md-inline">
+      <i class="bi bi-calendar3"></i>{{ oggi|fmt_data }}
+    </span>
+    <a href="{{ url_for('admin.dashboard') }}" class="btn btn-sm btn-outline-primary d-none d-md-inline-flex"
+       title="Pannello piattaforma">
+      <i class="bi bi-building-gear"></i><span class="d-none d-md-inline ms-1">Piattaforma</span>
+    </a>
+    <a href="{{ url_for('admin.lista_studi') }}" class="btn btn-sm btn-primary"
+       title="Gestisci studi">
+      <i class="bi bi-building"></i><span class="d-none d-md-inline ms-1">Studi</span>
+    </a>
+    {% else %}
     {# ---- Ricerca globale ---- #}
     <div id="search-wrap">
       <form action="{{ url_for('cerca') }}" method="get" class="d-flex" autocomplete="off">
@@ -464,6 +480,7 @@
        title="Nuovo appuntamento">
       <i class="bi bi-plus-lg"></i><span class="d-none d-md-inline ms-1">Nuovo</span>
     </a>
+    {% endif %}
     <div id="htmx-loader" title="Caricamento in corso"></div>
     {# ── Indicatore stato worker OCR ── #}
     <span id="ocr-pill" class="ocr-pill is-hidden" title="Worker OCR - elaborazione documenti in corso">
@@ -471,7 +488,7 @@
       <i class="bi bi-check2-all ocr-pill-check is-hidden"></i>
       <span id="ocr-pill-txt">OCR</span>
     </span>
-    {% if utente_corrente %}
+    {% if utente_corrente and not superadmin_piattaforma %}
     {# ── Centro notifiche in-app ─────────────────────────────────── #}
     <span id="notifiche-center" class="d-inline-block notifiche-center">
       <button class="btn btn-sm btn-outline-secondary position-relative"
@@ -530,7 +547,7 @@
       </ul>
     </div>
     {% endif %}
-    {% if utente_corrente %}
+    {% if utente_corrente and not superadmin_piattaforma %}
     <span id="sync-operatori" title="Operatori connessi in questo momento">
       <span class="dot"></span>
       <span id="sync-count">{{ n_operatori_connessi }}</span>

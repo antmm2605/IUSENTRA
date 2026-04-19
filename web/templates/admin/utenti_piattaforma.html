@@ -18,12 +18,29 @@
   </div>
 </div>
 
+<div class="alert alert-secondary d-flex align-items-start gap-2">
+  <i class="bi bi-arrow-left-right mt-1"></i>
+  <div class="small">
+    Gli account globali che non sono <code>SUPERADMIN</code> non devono restare in piattaforma:
+    da qui puoi spostarli davvero nello studio corretto, mantenendo credenziali e storico.
+  </div>
+</div>
+
 {% for anomalia in anomalie %}
 <div class="alert alert-warning d-flex align-items-start gap-2">
   <i class="bi bi-exclamation-triangle-fill mt-1"></i>
   <div class="small">{{ anomalia }}</div>
 </div>
 {% endfor %}
+
+{% if not studi %}
+<div class="alert alert-warning d-flex align-items-start gap-2">
+  <i class="bi bi-building-add mt-1"></i>
+  <div class="small">
+    Per riallineare gli account globali devi prima creare almeno uno studio di destinazione.
+  </div>
+</div>
+{% endif %}
 
 <div class="card">
   <div class="table-responsive">
@@ -41,13 +58,23 @@
       </thead>
       <tbody>
         {% for u in utenti %}
+        {% set is_anomalo = u.ruolo.value != 'SUPERADMIN' %}
         <tr>
           <td>
             <div class="fw-semibold">{{ u.username }}</div>
             {% if u.nome_completo %}<div class="small text-muted">{{ u.nome_completo }}</div>{% endif %}
+            {% if is_anomalo %}
+            <div class="small text-warning-emphasis mt-1">
+              <i class="bi bi-exclamation-triangle-fill me-1"></i>Account globale da riallineare
+            </div>
+            {% endif %}
           </td>
           <td class="small text-muted">{{ u.email or '—' }}</td>
-          <td><span class="badge bg-dark">{{ u.ruolo.value }}</span></td>
+          <td>
+            <span class="badge {% if u.ruolo.value == 'SUPERADMIN' %}bg-dark{% else %}bg-warning text-dark{% endif %}">
+              {{ u.ruolo.value }}
+            </span>
+          </td>
           <td>
             {% if u.attivo %}
             <span class="badge bg-success bg-opacity-15 text-success rounded-pill">Attivo</span>
@@ -58,15 +85,30 @@
           <td class="small text-muted">Piattaforma</td>
           <td class="small text-muted">{{ u.ultimo_accesso[:10] if u.ultimo_accesso else 'Mai' }}</td>
           <td class="text-end">
-            <button
-              class="btn btn-sm btn-outline-primary"
-              data-bs-toggle="modal"
-              data-bs-target="#modalResetPwdPiattaforma"
-              data-uid="{{ u.id }}"
-              data-username="{{ u.username }}"
-            >
-              <i class="bi bi-key me-1"></i>Reset password
-            </button>
+            <div class="d-inline-flex flex-wrap justify-content-end gap-2">
+              {% if is_anomalo %}
+              <button
+                class="btn btn-sm btn-outline-warning"
+                data-bs-toggle="modal"
+                data-bs-target="#modalSpostaUtentePiattaforma"
+                data-uid="{{ u.id }}"
+                data-username="{{ u.username }}"
+                data-role="{{ u.ruolo.value }}"
+                {% if not studi %}disabled{% endif %}
+              >
+                <i class="bi bi-arrow-left-right me-1"></i>Sposta nello studio
+              </button>
+              {% endif %}
+              <button
+                class="btn btn-sm btn-outline-primary"
+                data-bs-toggle="modal"
+                data-bs-target="#modalResetPwdPiattaforma"
+                data-uid="{{ u.id }}"
+                data-username="{{ u.username }}"
+              >
+                <i class="bi bi-key me-1"></i>Reset password
+              </button>
+            </div>
           </td>
         </tr>
         {% else %}
@@ -88,6 +130,7 @@
       <li>Il <code>SUPERADMIN</code> usa il pannello piattaforma e non appartiene a uno studio.</li>
       <li>Ogni studio ha solo utenti tenant-aware: <code>AMMINISTRATORE</code>, <code>AVVOCATO</code>, <code>SEGRETERIA</code>, ecc.</li>
       <li><code>Aggiornamenti legali</code> e <code>Copertura AI</code> lavorano sul tenant selezionato dal <code>SUPERADMIN</code>, non su studi tecnici impliciti.</li>
+      <li>Se un account globale non e' SUPERADMIN, la correzione professionale e' spostarlo nello studio corretto da questa schermata.</li>
     </ul>
   </div>
 </div>
@@ -98,6 +141,7 @@
   <div class="modal-dialog modal-sm modal-fullscreen-sm-down">
     <div class="modal-content">
       <form method="post" id="formResetPwdPiattaforma">
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
         <div class="modal-header">
           <h5 class="modal-title"><i class="bi bi-key me-2"></i>Reset password piattaforma</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
@@ -114,6 +158,55 @@
         <div class="modal-footer">
           <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Annulla</button>
           <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-save me-1"></i>Salva</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="modalSpostaUtentePiattaforma" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-fullscreen-sm-down">
+    <div class="modal-content">
+      <form method="post" id="formSpostaUtentePiattaforma">
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-arrow-left-right me-2"></i>Sposta account nello studio</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="alert alert-warning small">
+            L'account <strong id="spostaUtentePlatformUsername"></strong> verra' rimosso dalla piattaforma e
+            diventera' un utente tenant-aware dello studio selezionato.
+          </div>
+          <div class="row g-3">
+            <div class="col-12 col-md-7">
+              <label class="form-label">Studio di destinazione</label>
+              <select class="form-select" name="tenant_slug" id="spostaUtentePlatformStudio" required>
+                <option value="">Seleziona uno studio</option>
+                {% for studio in studi %}
+                <option value="{{ studio.slug }}">{{ studio.nome }} - {{ studio.slug }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-12 col-md-5">
+              <label class="form-label">Ruolo nello studio</label>
+              <select class="form-select" name="ruolo" id="spostaUtentePlatformRuolo" required>
+                {% for ruolo in ruoli_studio %}
+                <option value="{{ ruolo.value }}">{{ ruolo.value }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+          <div class="small text-muted mt-3">
+            Credenziali, nome, email, stato attivo e storico accessi vengono preservati. Il ruolo <code>SUPERADMIN</code>
+            resta esclusivo della piattaforma.
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Annulla</button>
+          <button type="submit" class="btn btn-warning btn-sm">
+            <i class="bi bi-arrow-left-right me-1"></i>Conferma spostamento
+          </button>
         </div>
       </form>
     </div>
@@ -140,6 +233,18 @@ document.getElementById('modalResetPwdPiattaforma')?.addEventListener('show.bs.m
   document.getElementById('formResetPwdPiattaforma').action =
     '{{ url_for("admin.reset_password_piattaforma", uid="UID_PLACEHOLDER") }}'.replace('UID_PLACEHOLDER', uid);
   document.getElementById('resetPwdPlatformField').value = genPwdPiattaforma();
+});
+
+document.getElementById('modalSpostaUtentePiattaforma')?.addEventListener('show.bs.modal', function(e) {
+  const btn = e.relatedTarget;
+  const uid = btn.dataset.uid;
+  const username = btn.dataset.username;
+  const currentRole = btn.dataset.role || 'AVVOCATO';
+  document.getElementById('spostaUtentePlatformUsername').textContent = username;
+  document.getElementById('formSpostaUtentePiattaforma').action =
+    '{{ url_for("admin.sposta_utente_piattaforma_nello_studio", uid="UID_PLACEHOLDER") }}'.replace('UID_PLACEHOLDER', uid);
+  document.getElementById('spostaUtentePlatformRuolo').value =
+    currentRole === 'SUPERADMIN' ? 'AMMINISTRATORE' : currentRole;
 });
 </script>
 {% endblock %}

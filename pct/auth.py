@@ -741,6 +741,54 @@ class GestioneUtenti:
         self._salva_utenti()
         return u
 
+    def importa_utente_esistente(
+        self,
+        utente: Utente,
+        *,
+        ruolo: "RuoloUtente | str | None" = None,
+        tenant_slug: str = "",
+        preserve_id: bool = True,
+    ) -> Utente:
+        """Importa un utente esistente in questo repository preservando credenziali e auditabilità."""
+        if not isinstance(utente, Utente):
+            raise ValueError("Utente sorgente non valido")
+        ruolo_target = RuoloUtente(ruolo) if ruolo is not None else utente.ruolo
+        tenant_slug_norm = str(tenant_slug or "").strip().lower()
+        self._valida_ruolo_tenant(ruolo=ruolo_target, tenant_slug=tenant_slug_norm)
+
+        username = str(utente.username or "").strip().lower()
+        if not username:
+            raise ValueError("Username obbligatorio")
+        if any(existing.username == username for existing in self._utenti.values()):
+            raise ValueError(f"Username '{username}' gia' in uso nella destinazione")
+
+        imported_id = str(utente.id or "").strip() if preserve_id else ""
+        if not imported_id or imported_id in self._utenti:
+            imported_id = str(uuid.uuid4())
+
+        imported = Utente(
+            id=imported_id,
+            username=username,
+            email=str(utente.email or "").strip(),
+            nome_completo=str(utente.nome_completo or "").strip(),
+            ruolo=ruolo_target,
+            password_hash=str(utente.password_hash or ""),
+            attivo=bool(utente.attivo),
+            must_change_password=bool(utente.must_change_password),
+            creato_il=str(utente.creato_il or datetime.now().isoformat()),
+            ultimo_accesso=str(utente.ultimo_accesso or ""),
+            reset_token="",
+            reset_token_scade="",
+            permessi_extra=list(utente.permessi_extra or []),
+            permessi_negati=list(utente.permessi_negati or []),
+            tenant_slug=tenant_slug_norm,
+            totp_secret=str(utente.totp_secret or ""),
+            totp_attivato=bool(utente.totp_attivato),
+        )
+        self._utenti[imported.id] = imported
+        self._salva_utenti()
+        return imported
+
     def aggiorna_permessi(
         self,
         id_utente: str,
@@ -783,16 +831,16 @@ class GestioneUtenti:
                 self.clear_bootstrap_admin_credentials()
         return u
 
-    def elimina(self, id_utente: str):
+    def elimina(self, id_utente: str, *, force: bool = False):
         u = self._get_or_raise(id_utente)
-        if u.ruolo == RuoloUtente.SUPERADMIN:
+        if not force and u.ruolo == RuoloUtente.SUPERADMIN:
             superadmin_count = sum(
                 1 for x in self._utenti.values()
                 if x.ruolo == RuoloUtente.SUPERADMIN and x.attivo
             )
             if superadmin_count <= 1:
                 raise ValueError("Impossibile eliminare l'unico superadmin di piattaforma")
-        if u.ruolo == RuoloUtente.AMMINISTRATORE:
+        if not force and u.ruolo == RuoloUtente.AMMINISTRATORE:
             admin_count = sum(
                 1 for x in self._utenti.values()
                 if x.ruolo == RuoloUtente.AMMINISTRATORE and x.attivo

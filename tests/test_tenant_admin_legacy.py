@@ -528,3 +528,148 @@ def test_reset_password_piattaforma_aggiorna_l_unico_superadmin(tmp_path):
         studio_db=None,
     )
     assert refreshed_users.autentica("admin", "NuovaPiattaforma123!") is not None
+
+
+def test_superadmin_piattaforma_viene_reindirizzato_al_pannello_admin_fuori_dallo_studio(tmp_path):
+    registry_path = tmp_path / "tenants.json"
+    registry_path.write_text(
+        json.dumps(
+            {
+                "studio-001": {
+                    "slug": "antonella-mammola",
+                    "nome": "Studio Antonella Mammola",
+                    "piano": "PROFESSIONAL",
+                    "stato": "ATTIVO",
+                    "db_config": "LOCAL",
+                }
+            },
+            ensure_ascii=False,
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+
+    app = create_app(
+        {
+            "TESTING": True,
+            "MULTI_TENANT": True,
+            "TENANTS_REGISTRY": str(registry_path),
+            "AUTH_DB": str(tmp_path / "auth" / "utenti.json"),
+            "AUDIT_DB": str(tmp_path / "auth" / "audit.json"),
+            "CLIENTI_DB": str(tmp_path / "clienti" / "anagrafica.json"),
+            "BOOTSTRAP_ADMIN_PASSWORD": "superpass123",
+        }
+    )
+
+    client = app.test_client()
+    login = client.post(
+        "/login",
+        data={"username": "admin", "password": "superpass123"},
+        follow_redirects=False,
+    )
+
+    assert login.status_code == 302
+
+    response = client.get("/", follow_redirects=False)
+
+    assert response.status_code == 302
+    assert response.headers["Location"].endswith("/admin/")
+
+
+def test_superadmin_puo_spostare_un_utente_globale_dentro_uno_studio(tmp_path):
+    registry_path = tmp_path / "tenants.json"
+    registry_path.write_text(
+        json.dumps(
+            {
+                "studio-001": {
+                    "slug": "antonella-mammola",
+                    "nome": "Studio Antonella Mammola",
+                    "piano": "PROFESSIONAL",
+                    "stato": "ATTIVO",
+                    "db_config": "LOCAL",
+                }
+            },
+            ensure_ascii=False,
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+
+    app = create_app(
+        {
+            "TESTING": True,
+            "MULTI_TENANT": True,
+            "TENANTS_REGISTRY": str(registry_path),
+            "AUTH_DB": str(tmp_path / "auth" / "utenti.json"),
+            "AUDIT_DB": str(tmp_path / "auth" / "audit.json"),
+            "CLIENTI_DB": str(tmp_path / "clienti" / "anagrafica.json"),
+            "BOOTSTRAP_ADMIN_PASSWORD": "superpass123",
+        }
+    )
+
+    platform_users = GestioneUtenti(
+        db_path=app.config["AUTH_DB"],
+        audit_path=app.config["AUDIT_DB"],
+        secret_key=app.secret_key,
+        crea_admin_se_vuoto=False,
+        studio_db=None,
+    )
+    utente_globale = platform_users.crea(
+        username="roberto.montagnese",
+        password="Password123!",
+        ruolo=RuoloUtente.AVVOCATO,
+        email="roberto@example.com",
+        nome_completo="Avv. Roberto Montagnese",
+        tenant_slug="",
+        must_change_password=False,
+    )
+
+    client = app.test_client()
+    login = client.post(
+        "/login",
+        data={"username": "admin", "password": "superpass123"},
+        follow_redirects=False,
+    )
+    assert login.status_code == 302
+
+    page = client.get("/admin/utenti-piattaforma")
+    html = page.get_data(as_text=True)
+
+    assert page.status_code == 200
+    assert "Sposta nello studio" in html
+
+    response = client.post(
+        f"/admin/utenti-piattaforma/{utente_globale.id}/sposta-nello-studio",
+        data={
+            "tenant_slug": "antonella-mammola",
+            "ruolo": "AMMINISTRATORE",
+        },
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 302
+    assert response.headers["Location"].endswith("/admin/utenti-piattaforma")
+
+    refreshed_platform = GestioneUtenti(
+        db_path=app.config["AUTH_DB"],
+        audit_path=app.config["AUDIT_DB"],
+        secret_key=app.secret_key,
+        crea_admin_se_vuoto=False,
+        studio_db=None,
+    )
+    assert refreshed_platform.get_by_username("roberto.montagnese") is None
+
+    tm = GestioneTenant(str(registry_path))
+    tenant_paths = tm.percorsi_dati("antonella-mammola")
+    tenant_users = GestioneUtenti(
+        db_path=tenant_paths["AUTH_DB"],
+        audit_path=tenant_paths["AUDIT_DB"],
+        secret_key=app.secret_key,
+        crea_admin_se_vuoto=False,
+    )
+    imported = tenant_users.get_by_username("roberto.montagnese")
+
+    assert imported is not None
+    assert imported.ruolo == RuoloUtente.AMMINISTRATORE
+    assert imported.tenant_slug == "antonella-mammola"
+    assert tenant_users.autentica("roberto.montagnese", "Password123!") is not None

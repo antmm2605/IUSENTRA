@@ -228,6 +228,25 @@ def register_auth_runtime(
         return None
 
     @app.before_request
+    def blocca_superadmin_fuori_dalla_piattaforma():
+        if not app.config.get("MULTI_TENANT"):
+            return None
+        utente = getattr(g, "utente_corrente", None)
+        if not utente or not utente.is_superadmin:
+            return None
+        if session.get("superadmin_user_id"):
+            return None
+
+        blueprint = str(request.blueprint or "").strip().lower()
+        endpoint = str(request.endpoint or "").strip()
+        allowed_blueprints = {"admin", "legal_coverage_admin", "legal_updates_admin"}
+        allowed_endpoints = public_routes | password_change_routes | {"profilo"}
+
+        if blueprint in allowed_blueprints or endpoint in allowed_endpoints:
+            return None
+        return redirect(url_for("admin.dashboard"))
+
+    @app.before_request
     def richiedi_login():
         if request.endpoint in public_routes:
             return None

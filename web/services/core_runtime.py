@@ -501,12 +501,13 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
             bootstrap_admin_credentials_path = str(
                 Path(auth_db_path).parent / "bootstrap_admin.json"
             )
+            platform_studio_db = None if app.config.get("MULTI_TENANT") else get_studio_db()
             g._utenti = GestioneUtenti(
                 db_path=auth_db_path,
                 audit_path=audit_db_path,
                 secret_key=app.secret_key,
                 ruolo_default=ruolo_default,
-                studio_db=get_studio_db(),
+                studio_db=platform_studio_db,
                 bootstrap_admin_password=app.config.get("BOOTSTRAP_ADMIN_PASSWORD", ""),
                 bootstrap_admin_credentials_path=bootstrap_admin_credentials_path,
             )

@@ -40,6 +40,8 @@ TENANT_FILE_SEED_PATHS: tuple[str, ...] = (
     "fatturazione/parcelle.json",
     "intelligence/assistente_redazionale.json",
     "intelligence/giurisprudenza.json",
+    "intelligence/legal_updates.db",
+    "intelligence/legal_updates_repository.json",
     "intelligence/local_ai.db",
     "intelligence/motori.json",
     "intelligence/tabelle_normative.json",
@@ -1158,6 +1160,14 @@ class GestioneTenant:
             "TEMPLATE_ATTI_PREFS_DB",
             "WIZARD_PRO_DB",
             "CONFIG_STUDIO_DB",
+            "LEGAL_INTELLIGENCE_DB",
+            "LEGAL_UPDATES_DB",
+            "LEGAL_UPDATES_JSON",
+            "NORMATIVE_TABLES_DB",
+            "GIURISPRUDENZA_DB",
+            "WORKSPACE_INTELLIGENCE_DB",
+            "VALIDATION_RUNS_DB",
+            "REDACTION_ASSISTANT_DB",
         )
 
         for key in copy_keys:
@@ -1240,6 +1250,8 @@ class GestioneTenant:
             "TEMPLATE_ATTI_PREFS_DB": f"{base}/template_atti/editor_layout.json",
             "WIZARD_PRO_DB":     f"{base}/wizard_pro/sessioni.json",
             "LEGAL_INTELLIGENCE_DB": f"{base}/intelligence/motori.json",
+            "LEGAL_UPDATES_DB": f"{base}/intelligence/legal_updates.db",
+            "LEGAL_UPDATES_JSON": f"{base}/intelligence/legal_updates_repository.json",
             "NORMATIVE_TABLES_DB": f"{base}/intelligence/tabelle_normative.json",
             "GIURISPRUDENZA_DB": f"{base}/intelligence/giurisprudenza.json",
             "WORKSPACE_INTELLIGENCE_DB": f"{base}/intelligence/workspace_intelligence.json",
@@ -1288,6 +1300,16 @@ class GestioneTenant:
                 studio_db=studio_db,
             )
             for user in manager.lista():
+                if str(getattr(user.ruolo, "value", user.ruolo) or "").strip().upper() == "SUPERADMIN":
+                    conflicts.append(
+                        {
+                            "kind": "invalid-superadmin-in-tenant",
+                            "key": str(user.username or "").strip().lower(),
+                            "tenant_slug": slug,
+                            "existing_tenant_slug": "",
+                        }
+                    )
+                    continue
                 tenant_slug = str(user.tenant_slug or slug).strip().lower()
                 entry = {
                     "user_id": user.id,

@@ -78,6 +78,55 @@ def test_username_duplicato_errore(gu):
         gu.crea("pippo", "password456", RuoloUtente.AVVOCATO)
 
 
+def test_non_consente_superadmin_associato_a_uno_studio(gu):
+    with pytest.raises(ValueError, match="riservato alla piattaforma"):
+        gu.crea(
+            "superstudio",
+            "Password123!",
+            RuoloUtente.SUPERADMIN,
+            tenant_slug="studio-legale-rossi",
+        )
+
+
+def test_non_consente_piu_di_un_superadmin_di_piattaforma(gu):
+    gu.crea(
+        "superpiattaforma",
+        "Password123!",
+        RuoloUtente.SUPERADMIN,
+        tenant_slug="",
+        must_change_password=False,
+    )
+
+    with pytest.raises(ValueError, match="un solo SUPERADMIN"):
+        gu.crea(
+            "secondosuper",
+            "Password456!",
+            RuoloUtente.SUPERADMIN,
+            tenant_slug="",
+        )
+
+
+def test_non_promuove_a_superadmin_un_utente_tenant(gu):
+    tenant_user = gu.crea(
+        "adminstudio",
+        "Password123!",
+        RuoloUtente.AMMINISTRATORE,
+        tenant_slug="studio-legale-rossi",
+    )
+
+    with pytest.raises(ValueError, match="riservato alla piattaforma"):
+        gu.aggiorna(tenant_user.id, ruolo=RuoloUtente.SUPERADMIN)
+
+
+def test_riallinea_admin_piattaforma_legacy_a_superadmin(gu):
+    promoted = gu.ensure_platform_superadmin()
+    admin = gu.get_by_username("admin")
+
+    assert promoted is not None
+    assert admin is not None
+    assert admin.ruolo == RuoloUtente.SUPERADMIN
+
+
 def test_password_troppo_corta(gu):
     with pytest.raises(ValueError, match="8 caratteri"):
         gu.crea("utente2", "abc", RuoloUtente.SEGRETERIA)

@@ -3,7 +3,7 @@
 {% block title %}Analisi AI aggiornamenti{% endblock %}
 
 {% block breadcrumb %}
-<li class="breadcrumb-item"><a href="{{ url_for('legal_updates_admin.dashboard') }}" class="text-decoration-none">Aggiornamenti legali</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('legal_updates_admin.dashboard', tenant_slug=tenant_slug) }}" class="text-decoration-none">Aggiornamenti legali</a></li>
 <li class="breadcrumb-item active" aria-current="page">Analisi AI</li>
 {% endblock %}
 
@@ -13,16 +13,25 @@
     <div>
       <h1 class="h3 mb-1">Analisi AI</h1>
       <p class="text-muted mb-0">Classificazione, materia, confidenza, azione proposta e collegamento alla coda revisioni.</p>
+      {% if tenant_slug %}
+      <div class="small text-muted mt-1">
+        Studio attivo: <strong>{{ payload.runtime.tenant_registry_name or payload.runtime.tenant_name or tenant_slug }}</strong>
+        {% if payload.runtime.tenant_name_mismatch and payload.runtime.tenant_configured_name %}
+        · configurazione interna: {{ payload.runtime.tenant_configured_name }}
+        {% endif %}
+      </div>
+      {% endif %}
     </div>
     <div class="d-flex flex-wrap gap-2">
-      <a href="{{ url_for('legal_updates_admin.staging_page') }}" class="btn btn-outline-secondary">Acquisizione</a>
-      <a href="{{ url_for('legal_updates_admin.review_page') }}" class="btn btn-outline-primary">Review</a>
+      <a href="{{ url_for('legal_updates_admin.staging_page', tenant_slug=tenant_slug) }}" class="btn btn-outline-secondary">Acquisizione</a>
+      <a href="{{ url_for('legal_updates_admin.review_page', tenant_slug=tenant_slug) }}" class="btn btn-outline-primary">Review</a>
     </div>
   </div>
 
   <div class="li-card">
     <div class="li-card__body">
       <form method="get" class="row g-2">
+        {% if tenant_slug %}<input type="hidden" name="tenant_slug" value="{{ tenant_slug }}">{% endif %}
         <div class="col-md-4"><input class="form-control" name="classification" value="{{ classification_filter }}" placeholder="Classificazione"></div>
         <div class="col-md-4">
           <select class="form-select" name="materia">
@@ -34,7 +43,7 @@
         </div>
         <div class="col-md-4 d-flex gap-2">
           <button class="btn btn-primary">Filtra</button>
-          <a href="{{ url_for('legal_updates_admin.analysis_page') }}" class="btn btn-outline-secondary">Azzera</a>
+          <a href="{{ url_for('legal_updates_admin.analysis_page', tenant_slug=tenant_slug) }}" class="btn btn-outline-secondary">Azzera</a>
         </div>
       </form>
     </div>
@@ -62,6 +71,4 @@
   </div>
 </div>
 {% endblock %}
-
-
 

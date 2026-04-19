@@ -71,6 +71,14 @@
 
 <div class="row g-3 mb-4">
   <div class="col-12 col-lg-3">
+    <a href="{{ url_for('admin.utenti_piattaforma') }}" class="card admin-stat-card h-100 text-decoration-none text-body">
+      <div class="card-body">
+        <div class="fw-semibold">Utente piattaforma</div>
+        <div class="small text-muted mt-1">Account unico <code>SUPERADMIN</code>, separato dagli utenti degli studi.</div>
+      </div>
+    </a>
+  </div>
+  <div class="col-12 col-lg-3">
     <a href="{{ url_for('admin.stato_installazione') }}" class="card admin-stat-card h-100 text-decoration-none text-body">
       <div class="card-body">
         <div class="fw-semibold">Stato installazione</div>

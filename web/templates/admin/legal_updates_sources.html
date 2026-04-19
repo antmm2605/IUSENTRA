@@ -3,7 +3,7 @@
 {% block title %}Fonti aggiornamenti legali{% endblock %}
 
 {% block breadcrumb %}
-<li class="breadcrumb-item"><a href="{{ url_for('legal_updates_admin.dashboard') }}" class="text-decoration-none">Aggiornamenti legali</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('legal_updates_admin.dashboard', tenant_slug=tenant_slug) }}" class="text-decoration-none">Aggiornamenti legali</a></li>
 <li class="breadcrumb-item active" aria-current="page">Fonti</li>
 {% endblock %}
 
@@ -15,10 +15,41 @@
       <p class="text-muted mb-0">Gestisci fonti ufficiali, frequenze di polling, parser e acquisizioni mirate.</p>
     </div>
     <div class="d-flex flex-wrap gap-2">
-      <a href="{{ url_for('legal_updates_admin.dashboard') }}" class="btn btn-outline-secondary">Torna alla dashboard</a>
-      <a href="{{ url_for('legal_updates_admin.staging_page') }}" class="btn btn-outline-primary">Apri acquisizione</a>
+      <a href="{{ url_for('legal_updates_admin.dashboard', tenant_slug=tenant_slug) }}" class="btn btn-outline-secondary">Torna alla dashboard</a>
+      <a href="{{ url_for('legal_updates_admin.staging_page', tenant_slug=tenant_slug) }}" class="btn btn-outline-primary">Apri acquisizione</a>
     </div>
   </div>
+
+  {% if payload.runtime.tenant_choices %}
+  <div class="li-card mb-3">
+    <div class="li-card__body">
+      <form method="get" class="row g-3 align-items-end">
+        <div class="col-12 col-lg-6">
+          <label class="form-label fw-semibold small">Studio governato dal superadmin</label>
+          <select name="tenant_slug" class="form-select">
+            {% for studio in payload.runtime.tenant_choices %}
+            <option value="{{ studio.slug }}" {% if tenant_slug == studio.slug %}selected{% endif %}>
+              {{ studio.nome }}{% if studio.name_mismatch and studio.configured_name %} · interno: {{ studio.configured_name }}{% endif %} - {{ studio.slug }} - {{ studio.db_mode }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-12 col-lg-3">
+          <button class="btn btn-outline-primary w-100" type="submit">Apri contesto studio</button>
+        </div>
+        <div class="col-12 col-lg-3">
+          <div class="small text-muted">
+            Studio attivo: <strong>{{ payload.runtime.tenant_registry_name or payload.runtime.tenant_name or 'n.d.' }}</strong><br>
+            {% if payload.runtime.tenant_name_mismatch and payload.runtime.tenant_configured_name %}
+              Configurazione interna studio: {{ payload.runtime.tenant_configured_name }}<br>
+            {% endif %}
+            Il superadmin aggiorna le fonti del tenant selezionato, non crea uno studio tecnico separato.
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+  {% endif %}
 
   <div class="li-card">
     <div class="li-card__body">
@@ -129,6 +160,7 @@
       </div>
       <form method="post" action="{{ url_for('legal_updates_admin.create_source') }}" class="row g-2">
         <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+        {% if tenant_slug %}<input type="hidden" name="tenant_slug" value="{{ tenant_slug }}">{% endif %}
         <div class="col-md-3">
           <input class="form-control" name="name" placeholder="Cassazione - Terza Sezione Civile" required>
           <div class="form-text">Nome leggibile del canale o della sezione.</div>
@@ -195,6 +227,7 @@
           <div class="lu-inline-actions">
             <form method="post" action="{{ url_for('legal_updates_admin.update_source', source_id=source.id) }}" class="row g-2">
               <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+              {% if tenant_slug %}<input type="hidden" name="tenant_slug" value="{{ tenant_slug }}">{% endif %}
               <div class="col-12 col-md-6"><input class="form-control form-control-sm" name="name" value="{{ source.name }}"></div>
               <div class="col-12 col-md-6"><input class="form-control form-control-sm" name="base_url" value="{{ source.base_url }}"></div>
               <div class="col-6 col-md-3"><input class="form-control form-control-sm" name="category" value="{{ source.category }}"></div>
@@ -207,6 +240,7 @@
             </form>
             <form method="post" action="{{ url_for('legal_updates_admin.fetch_source', source_id=source.id) }}">
               <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+              {% if tenant_slug %}<input type="hidden" name="tenant_slug" value="{{ tenant_slug }}">{% endif %}
               <div class="d-flex flex-wrap gap-2">
                 <button class="btn btn-sm btn-outline-dark" type="submit">Acquisisci adesso</button>
               </div>
@@ -221,6 +255,3 @@
   </div>
 </div>
 {% endblock %}
-
-
-

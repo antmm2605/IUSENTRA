@@ -630,6 +630,56 @@ class GestioneUtenti:
         from werkzeug.security import check_password_hash
         return check_password_hash(hash_, password)
 
+    def _valida_ruolo_tenant(self, *, ruolo: RuoloUtente, tenant_slug: str = "", user_id: str = "") -> None:
+        tenant_slug_norm = str(tenant_slug or "").strip().lower()
+        if ruolo != RuoloUtente.SUPERADMIN:
+            return
+        if tenant_slug_norm:
+            raise ValueError(
+                "Il ruolo SUPERADMIN e' riservato alla piattaforma e non puo' appartenere a uno studio."
+            )
+        existing = next(
+            (
+                user
+                for user in self._utenti.values()
+                if user.ruolo == RuoloUtente.SUPERADMIN and str(user.id or "") != str(user_id or "")
+            ),
+            None,
+        )
+        if existing is not None:
+            raise ValueError(
+                "Esiste gia' un solo SUPERADMIN di piattaforma. Usa l'account esistente o promuovilo esplicitamente."
+            )
+
+    def ensure_platform_superadmin(self, *, preferred_username: str = "admin") -> Utente | None:
+        """Promuove un admin piattaforma legacy a SUPERADMIN se il ruolo radice manca."""
+        platform_superadmins = [
+            user
+            for user in self._utenti.values()
+            if user.ruolo == RuoloUtente.SUPERADMIN and not str(user.tenant_slug or "").strip()
+        ]
+        if platform_superadmins:
+            return platform_superadmins[0]
+
+        platform_admins = [
+            user
+            for user in self._utenti.values()
+            if user.ruolo == RuoloUtente.AMMINISTRATORE
+            and not str(user.tenant_slug or "").strip()
+            and user.attivo
+        ]
+        if not platform_admins:
+            return None
+
+        preferred = str(preferred_username or "").strip().lower()
+        target = next(
+            (user for user in platform_admins if str(user.username or "").strip().lower() == preferred),
+            platform_admins[0],
+        )
+        target.ruolo = RuoloUtente.SUPERADMIN
+        self._salva_utenti()
+        return target
+
     # ---- CRUD utenti
 
     def crea(
@@ -649,6 +699,9 @@ class GestioneUtenti:
             raise ValueError("Username obbligatorio")
         if len(password) < 8:
             raise ValueError("La password deve avere almeno 8 caratteri")
+        if not isinstance(ruolo, RuoloUtente):
+            ruolo = RuoloUtente(ruolo)
+        self._valida_ruolo_tenant(ruolo=ruolo, tenant_slug=tenant_slug)
         if any(u.username == username for u in self._utenti.values()):
             raise ValueError(f"Username '{username}' già in uso")
         utente = Utente(
@@ -669,9 +722,19 @@ class GestioneUtenti:
     def aggiorna(self, id_utente: str, **kwargs) -> Utente:
         u = self._get_or_raise(id_utente)
         campi_consentiti = {"email", "nome_completo", "ruolo", "attivo"}
+        ruolo_target = u.ruolo
         for k, v in kwargs.items():
             if k not in campi_consentiti:
                 raise ValueError(f"Campo non modificabile: {k}")
+            if k == "ruolo":
+                v = RuoloUtente(v)
+                ruolo_target = v
+        self._valida_ruolo_tenant(
+            ruolo=ruolo_target,
+            tenant_slug=u.tenant_slug,
+            user_id=u.id,
+        )
+        for k, v in kwargs.items():
             if k == "ruolo":
                 v = RuoloUtente(v)
             setattr(u, k, v)
@@ -722,6 +785,13 @@ class GestioneUtenti:
 
     def elimina(self, id_utente: str):
         u = self._get_or_raise(id_utente)
+        if u.ruolo == RuoloUtente.SUPERADMIN:
+            superadmin_count = sum(
+                1 for x in self._utenti.values()
+                if x.ruolo == RuoloUtente.SUPERADMIN and x.attivo
+            )
+            if superadmin_count <= 1:
+                raise ValueError("Impossibile eliminare l'unico superadmin di piattaforma")
         if u.ruolo == RuoloUtente.AMMINISTRATORE:
             admin_count = sum(
                 1 for x in self._utenti.values()

@@ -123,6 +123,22 @@ def register_auth_runtime(
             return str(getattr(active[0], "slug", "") or "")
         return ""
 
+    if app.config.get("MULTI_TENANT"):
+        try:
+            promoted = GestioneUtenti(
+                db_path=app.config["AUTH_DB"],
+                audit_path=app.config["AUDIT_DB"],
+                secret_key=app.secret_key,
+                crea_admin_se_vuoto=False,
+            ).ensure_platform_superadmin()
+            if promoted is not None:
+                app.logger.info(
+                    "Auth runtime multi-tenant: ruolo piattaforma allineato a SUPERADMIN per %s",
+                    promoted.username,
+                )
+        except Exception as exc:
+            app.logger.exception("Errore riallineamento SUPERADMIN di piattaforma: %s", exc)
+
     def _resolve_tenant_login(username: str, password: str):
         matches = []
         for studio in _active_tenants():

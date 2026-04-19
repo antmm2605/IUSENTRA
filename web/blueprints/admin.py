@@ -92,6 +92,16 @@ def _utenti_tenant(slug: str) -> GestioneUtenti:
     )
 
 
+def _utenti_piattaforma() -> GestioneUtenti:
+    return GestioneUtenti(
+        db_path=current_app.config["AUTH_DB"],
+        audit_path=current_app.config["AUDIT_DB"],
+        secret_key=current_app.secret_key,
+        crea_admin_se_vuoto=False,
+        studio_db=None,
+    )
+
+
 def _sync_tenant_user_directory() -> None:
     try:
         _tenant_manager().sync_user_directory(secret_key=current_app.secret_key)
@@ -147,6 +157,52 @@ def dashboard():
         in_scadenza=in_scadenza,
         piani=PIANI,
     )
+
+
+@admin_bp.route("/utenti-piattaforma")
+@superadmin_required
+def utenti_piattaforma():
+    gu = _utenti_piattaforma()
+    gu.ensure_platform_superadmin()
+    utenti_globali = [u for u in gu.lista() if not str(getattr(u, "tenant_slug", "") or "").strip()]
+    superadmin_rows = [u for u in utenti_globali if u.ruolo == RuoloUtente.SUPERADMIN]
+    anomalie = []
+    if len(superadmin_rows) != 1:
+        anomalie.append(
+            "La piattaforma deve avere un solo SUPERADMIN attivo. Verifica gli utenti globali e riallinea il ruolo."
+        )
+    for utente in utenti_globali:
+        if utente.ruolo != RuoloUtente.SUPERADMIN:
+            anomalie.append(
+                f"L'utente globale {utente.username} non e' SUPERADMIN: correggere il ruolo o spostarlo dentro uno studio."
+            )
+    return render_template(
+        "admin/utenti_piattaforma.html",
+        utenti=utenti_globali,
+        superadmin_rows=superadmin_rows,
+        anomalie=anomalie,
+    )
+
+
+@admin_bp.route("/utenti-piattaforma/<uid>/reset-password", methods=["POST"])
+@superadmin_required
+def reset_password_piattaforma(uid: str):
+    gu = _utenti_piattaforma()
+    nuova_password = request.form.get("nuova_password", "").strip()
+    if not nuova_password:
+        flash("La nuova password non puo' essere vuota.", "danger")
+        return redirect(url_for("admin.utenti_piattaforma"))
+
+    utente = gu.get(uid)
+    if not utente or str(getattr(utente, "tenant_slug", "") or "").strip():
+        abort(404)
+
+    gu.cambia_password(uid, nuova_password, must_change_password=True)
+    flash(
+        f"Password temporanea dell'account piattaforma '{utente.username}' aggiornata. Al prossimo accesso dovra cambiarla.",
+        "success",
+    )
+    return redirect(url_for("admin.utenti_piattaforma"))
 
 
 @admin_bp.route("/osservabilita")

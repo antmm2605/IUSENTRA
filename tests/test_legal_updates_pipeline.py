@@ -5,6 +5,11 @@ from pathlib import Path
 from web.app import create_app
 
 from pct.legal_update_pipeline import build_legal_update_pipeline
+from pct.tenant import GestioneTenant
+from web.services.legal_update_surface import (
+    build_legal_update_pipeline_runtime,
+    build_legal_update_surface,
+)
 
 
 class DummyResponse:
@@ -51,6 +56,12 @@ def _write_studio_config(path: Path) -> None:
         """,
         encoding="utf-8",
     )
+
+
+def _write_named_studio_config(path: Path, studio_name: str) -> None:
+    _write_studio_config(path)
+    payload = path.read_text(encoding="utf-8")
+    path.write_text(payload.replace("Studio Update", studio_name), encoding="utf-8")
 
 
 def _cfg_web(tmp_path: Path) -> dict[str, str]:
@@ -515,7 +526,7 @@ def test_form_fetch_e_rianalisi_attivano_il_popolamento(tmp_path: Path, monkeypa
         )
         calls: dict[str, list[int]] = {"fetch": [], "analyze": []}
 
-        def _fake_runtime():
+        def _fake_runtime(*args, **kwargs):
             return pipeline
 
         def _fake_fetch(source_id: int, *, auto_publish: bool = True):
@@ -575,3 +586,101 @@ def test_form_fetch_e_rianalisi_attivano_il_popolamento(tmp_path: Path, monkeypa
     assert response_analyze.status_code == 302
     assert calls["fetch"] == [source_id]
     assert calls["analyze"] == [raw_id]
+
+
+def test_update_intelligence_superadmin_lavora_sullo_studio_selezionato_e_bootstrappa_il_repository(tmp_path: Path):
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    cfg = _cfg_web(tmp_path)
+    tm = GestioneTenant(cfg["TENANTS_REGISTRY"])
+    studio = tm.crea("Studio Legale Montagnese", "antonella-mammola", db_config={"mode": "SQLITE"})
+    _write_named_studio_config(Path(tm.percorsi_dati(studio.slug)["CONFIG_STUDIO_DB"]), "Studio Legale Montagnese")
+    app = create_app(cfg)
+
+    with app.app_context():
+        root_pipeline = build_legal_update_pipeline(
+            app.config["LEGAL_INTELLIGENCE_DB"],
+            giurisprudenza_db_path=app.config["GIURISPRUDENZA_DB"],
+        )
+        root_pipeline.run_cycle(
+            source_codes=["gazzetta_ufficiale"],
+            request_get=lambda *args, **kwargs: DummyResponse(
+                _normativa_html(),
+                url="https://www.gazzettaufficiale.it/",
+            ),
+            auto_publish=False,
+        )
+
+        payload = build_legal_update_surface(app, tenant_slug=studio.slug)
+        tenant_pipeline = build_legal_update_pipeline_runtime(app, tenant_slug=studio.slug)
+
+    assert payload["runtime"]["tenant_slug"] == studio.slug
+    assert payload["runtime"]["tenant_name"] == "Studio Legale Montagnese"
+    assert payload["runtime"]["db_backend_label"] == "SQL locale tenant-aware"
+    assert payload["headline"]["raw_documents"] >= 1
+    assert Path(tenant_pipeline.repository.db_path).is_file()
+    assert tenant_pipeline.repository.list_raw_documents(limit=5)
+
+
+def test_dashboard_update_intelligence_mostra_il_tenant_attivo_e_non_uno_studio_globale(tmp_path: Path):
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    cfg = _cfg_web(tmp_path)
+    tm = GestioneTenant(cfg["TENANTS_REGISTRY"])
+    studio = tm.crea("Studio Legale Montagnese", "antonella-mammola", db_config={"mode": "SQLITE"})
+    _write_named_studio_config(Path(tm.percorsi_dati(studio.slug)["CONFIG_STUDIO_DB"]), "Studio Legale Montagnese")
+    app = create_app(cfg)
+
+    with app.app_context():
+        root_pipeline = build_legal_update_pipeline(
+            app.config["LEGAL_INTELLIGENCE_DB"],
+            giurisprudenza_db_path=app.config["GIURISPRUDENZA_DB"],
+        )
+        root_pipeline.run_cycle(
+            source_codes=["gazzetta_ufficiale"],
+            request_get=lambda *args, **kwargs: DummyResponse(
+                _normativa_html(),
+                url="https://www.gazzettaufficiale.it/",
+            ),
+            auto_publish=False,
+        )
+
+    with app.test_client() as client:
+        login = client.post("/login", data={"username": "admin", "password": "admin"}, follow_redirects=False)
+        assert login.status_code == 302
+
+        response = client.get(f"/admin/aggiornamenti-legali?tenant_slug={studio.slug}")
+
+    html = response.get_data(as_text=True)
+    assert response.status_code == 200
+    assert "Studio attivo: <strong>Studio Legale Montagnese</strong>" in html
+    assert "Il superadmin governa questo studio senza usare archivi globali impliciti." in html
+
+
+def test_dashboard_update_intelligence_mostra_nome_tenant_piattaforma_e_nome_interno_se_divergono(tmp_path: Path):
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    cfg = _cfg_web(tmp_path)
+    tm = GestioneTenant(cfg["TENANTS_REGISTRY"])
+    studio = tm.crea("Antonella Mammola", "antonella-mammola", db_config={"mode": "SQLITE"})
+    _write_named_studio_config(
+        Path(tm.percorsi_dati(studio.slug)["CONFIG_STUDIO_DB"]),
+        "Studio Legale Montagnese",
+    )
+    app = create_app(cfg)
+
+    with app.app_context():
+        payload = build_legal_update_surface(app, tenant_slug=studio.slug)
+
+    assert payload["runtime"]["tenant_registry_name"] == "Antonella Mammola"
+    assert payload["runtime"]["tenant_configured_name"] == "Studio Legale Montagnese"
+    assert payload["runtime"]["tenant_name_mismatch"] is True
+    assert payload["runtime"]["tenant_name"] == "Antonella Mammola"
+
+    with app.test_client() as client:
+        login = client.post("/login", data={"username": "admin", "password": "admin"}, follow_redirects=False)
+        assert login.status_code == 302
+
+        response = client.get(f"/admin/aggiornamenti-legali?tenant_slug={studio.slug}")
+
+    html = response.get_data(as_text=True)
+    assert response.status_code == 200
+    assert "Studio attivo: <strong>Antonella Mammola</strong>" in html
+    assert "Configurazione interna studio: Studio Legale Montagnese" in html

@@ -60,6 +60,10 @@
        class="nav-link {% if 'studi' in request.endpoint %}active{% endif %}">
       <i class="bi bi-building"></i> Studi Legali
     </a>
+    <a href="{{ url_for('admin.utenti_piattaforma') }}"
+       class="nav-link {% if request.endpoint == 'admin.utenti_piattaforma' or request.endpoint == 'admin.reset_password_piattaforma' %}active{% endif %}">
+      <i class="bi bi-person-badge"></i> Utente piattaforma
+    </a>
     <a href="{{ url_for('admin.osservabilita') }}"
        class="nav-link {% if request.endpoint == 'admin.osservabilita' %}active{% endif %}">
       <i class="bi bi-activity"></i> Osservabilità

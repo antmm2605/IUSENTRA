@@ -131,6 +131,16 @@ Per ambienti multi-tenant il flusso corretto e' questo:
 
 Questo evita configurazioni globali opache, rende ogni tenant governabile in modo indipendente e impedisce cutover invisibili.
 
+Regole di governance:
+
+- il `SUPERADMIN` e' unico e vive solo a livello piattaforma
+- il `SUPERADMIN` ha una superficie dedicata `admin/utenti-piattaforma`, separata dagli utenti degli studi
+- uno studio non puo' creare o promuovere utenti `SUPERADMIN`
+- in multi-tenant l'account `SUPERADMIN` usa sempre la persistenza auth di piattaforma e non eredita ruoli o permessi da `studio.db`
+- ogni studio ha il proprio `AMMINISTRATORE` tenant-aware
+- le console piattaforma che operano su dati di studio, come `Update Intelligence`, lavorano sempre sul tenant selezionato e non su un archivio globale implicito
+- nelle superfici superadmin il nome autorevole dello studio resta quello del tenant di piattaforma; un eventuale nome diverso dentro `config/studio.json` viene mostrato solo come configurazione interna, non come nuovo studio
+
 ## Stato storage professionale
 
 Oggi i domini `utenti`, `clienti`, `fascicoli`, `agenda`, `scadenziario`, `timesheet`, `preventivi`, `conferimenti`, `fatturazione` e `pagamenti` possono lavorare in lettura e scrittura anche su PostgreSQL tenant-aware.
@@ -208,6 +218,8 @@ IUSENTRA include ora un motore dedicato di aggiornamento normativo e giurisprude
 - apre una coda revisioni amministrativa per i contenuti strutturati
 - pubblica news giuridiche tracciabili nella UI dedicata
 - usa repository SQL locale o PostgreSQL tenant-aware in modo coerente con il backend migrato dello studio
+- in contesto multi-tenant il `SUPERADMIN` seleziona esplicitamente lo studio da governare, mentre archivio, review e publish restano segregati per tenant
+- se il nome configurato nello `studio.json` del tenant differisce dal nome registrato in piattaforma, il pannello superadmin mostra prima il nome del tenant e solo come nota il nome interno configurato
 
 Superfici principali:
 

@@ -134,6 +134,18 @@ La UI admin rende visibili tutti i blocchi della pipeline:
 - `archivio` -> normative, giurisprudenza, prassi, news e audit
 - `review` -> approvazione, rifiuto, modifica e pubblicazione
 
+## Governance multi-tenant
+
+Nel modello professionale di piattaforma:
+
+- il `SUPERADMIN` e' unico e governa gli studi dalla console piattaforma
+- il `SUPERADMIN` ha una superficie dedicata `admin/utenti-piattaforma` e non appartiene a nessun tenant
+- gli studi non possono creare utenti `SUPERADMIN`
+- il `SUPERADMIN` usa la persistenza auth di piattaforma anche quando lo studio selezionato gira su SQL locale o PostgreSQL tenant-aware
+- la console `Aggiornamenti legali` non usa un archivio globale implicito: il superadmin seleziona uno studio e fetch, review, archive e publish operano su quel tenant
+- se esistono dati legacy nella root storica, il bootstrap li porta nel repository tenant-aware dello studio selezionato prima di usare la console operativa
+- nelle superfici superadmin il nome di riferimento dello studio resta quello del tenant registrato in piattaforma; un nome diverso nel `config/studio.json` viene mostrato solo come configurazione interna per evitare falsi "nuovi studi"
+
 ## Compilazione corretta delle fonti
 
 Nella pagina `/admin/aggiornamenti-legali/fonti` e' presente una guida fissa ai campi del form. Le regole operative sono:

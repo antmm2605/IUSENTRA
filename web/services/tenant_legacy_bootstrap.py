@@ -7,6 +7,7 @@ from typing import Any
 
 from flask import Flask
 
+from pct.legal_update_repository import LegalUpdateDbConfig
 from pct.tenant import GestioneTenant
 
 
@@ -33,15 +34,27 @@ LEGACY_RUNTIME_DATA_MAPPING: dict[str, str] = {
     "WIZARD_PRO_DB": "WIZARD_PRO_DB",
     "CONFIG_STUDIO_DB": "STUDIO_CONFIG",
     "SEARCH_INDEX": "SEARCH_INDEX",
+    "LEGAL_INTELLIGENCE_DB": "LEGAL_INTELLIGENCE_DB",
+    "NORMATIVE_TABLES_DB": "NORMATIVE_TABLES_DB",
+    "GIURISPRUDENZA_DB": "GIURISPRUDENZA_DB",
+    "WORKSPACE_INTELLIGENCE_DB": "WORKSPACE_INTELLIGENCE_DB",
+    "VALIDATION_RUNS_DB": "VALIDATION_RUNS_DB",
+    "REDACTION_ASSISTANT_DB": "REDACTION_ASSISTANT_DB",
 }
 
 
 def legacy_root_data_paths(config: Mapping[str, Any]) -> dict[str, str]:
-    return {
+    paths = {
         target_key: str(config.get(source_key, "") or "")
         for target_key, source_key in LEGACY_RUNTIME_DATA_MAPPING.items()
         if str(config.get(source_key, "") or "").strip()
     }
+    intelligence_anchor = str(config.get("LEGAL_INTELLIGENCE_DB", "") or "").strip()
+    if intelligence_anchor:
+        cfg = LegalUpdateDbConfig.from_anchor(intelligence_anchor)
+        paths["LEGAL_UPDATES_DB"] = cfg.db_path
+        paths["LEGAL_UPDATES_JSON"] = cfg.json_path
+    return paths
 
 
 def bootstrap_legacy_tenant_runtime_data(

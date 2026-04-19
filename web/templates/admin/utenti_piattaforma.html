@@ -1,0 +1,145 @@
+{% extends "admin/base.html" %}
+{% block title %}Utente piattaforma{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item active">Utente piattaforma</li>{% endblock %}
+
+{% block content %}
+<div class="admin-page-header">
+  <div>
+    <h4 class="admin-page-title">Account piattaforma</h4>
+    <p class="admin-page-subtitle">Il <code>SUPERADMIN</code> e' unico, governa gli studi e non vive dentro alcun tenant.</p>
+  </div>
+</div>
+
+<div class="alert alert-info d-flex align-items-start gap-2">
+  <i class="bi bi-shield-lock-fill mt-1"></i>
+  <div class="small">
+    <strong>Regola di piattaforma:</strong> il <code>SUPERADMIN</code> crea e governa gli studi, assegna gli amministratori tenant-aware,
+    usa <code>Aggiornamenti legali</code> e <code>Copertura AI</code> sullo studio selezionato e non puo' essere creato da uno studio.
+  </div>
+</div>
+
+{% for anomalia in anomalie %}
+<div class="alert alert-warning d-flex align-items-start gap-2">
+  <i class="bi bi-exclamation-triangle-fill mt-1"></i>
+  <div class="small">{{ anomalia }}</div>
+</div>
+{% endfor %}
+
+<div class="card">
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead class="table-light">
+        <tr>
+          <th>Utente</th>
+          <th>Email</th>
+          <th>Ruolo</th>
+          <th>Stato</th>
+          <th>Ambito</th>
+          <th>Ultimo accesso</th>
+          <th class="text-end">Azioni</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for u in utenti %}
+        <tr>
+          <td>
+            <div class="fw-semibold">{{ u.username }}</div>
+            {% if u.nome_completo %}<div class="small text-muted">{{ u.nome_completo }}</div>{% endif %}
+          </td>
+          <td class="small text-muted">{{ u.email or '—' }}</td>
+          <td><span class="badge bg-dark">{{ u.ruolo.value }}</span></td>
+          <td>
+            {% if u.attivo %}
+            <span class="badge bg-success bg-opacity-15 text-success rounded-pill">Attivo</span>
+            {% else %}
+            <span class="badge bg-danger bg-opacity-15 text-danger rounded-pill">Inattivo</span>
+            {% endif %}
+          </td>
+          <td class="small text-muted">Piattaforma</td>
+          <td class="small text-muted">{{ u.ultimo_accesso[:10] if u.ultimo_accesso else 'Mai' }}</td>
+          <td class="text-end">
+            <button
+              class="btn btn-sm btn-outline-primary"
+              data-bs-toggle="modal"
+              data-bs-target="#modalResetPwdPiattaforma"
+              data-uid="{{ u.id }}"
+              data-username="{{ u.username }}"
+            >
+              <i class="bi bi-key me-1"></i>Reset password
+            </button>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="7" class="text-center py-5 text-muted">
+            Nessun account piattaforma trovato.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card mt-4">
+  <div class="card-body">
+    <div class="fw-semibold mb-2">Separazione professionale dei ruoli</div>
+    <ul class="small text-muted mb-0">
+      <li>Il <code>SUPERADMIN</code> usa il pannello piattaforma e non appartiene a uno studio.</li>
+      <li>Ogni studio ha solo utenti tenant-aware: <code>AMMINISTRATORE</code>, <code>AVVOCATO</code>, <code>SEGRETERIA</code>, ecc.</li>
+      <li><code>Aggiornamenti legali</code> e <code>Copertura AI</code> lavorano sul tenant selezionato dal <code>SUPERADMIN</code>, non su studi tecnici impliciti.</li>
+    </ul>
+  </div>
+</div>
+{% endblock %}
+
+{% block modals %}
+<div class="modal fade" id="modalResetPwdPiattaforma" tabindex="-1">
+  <div class="modal-dialog modal-sm modal-fullscreen-sm-down">
+    <div class="modal-content">
+      <form method="post" id="formResetPwdPiattaforma">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-key me-2"></i>Reset password piattaforma</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <p class="small text-muted">Nuova password temporanea per <strong id="resetPwdPlatformUsername"></strong>:</p>
+          <div class="input-group">
+            <input type="text" name="nuova_password" id="resetPwdPlatformField" class="form-control" required autocomplete="off">
+            <button type="button" class="btn btn-outline-secondary" id="genResetPwdPiattaforma" title="Genera">
+              <i class="bi bi-arrow-repeat"></i>
+            </button>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Annulla</button>
+          <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-save me-1"></i>Salva</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function genPwdPiattaforma() {
+  const c = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$%';
+  return Array.from({length:12}, () => c[Math.floor(Math.random()*c.length)]).join('');
+}
+
+document.getElementById('genResetPwdPiattaforma')?.addEventListener('click', () => {
+  document.getElementById('resetPwdPlatformField').value = genPwdPiattaforma();
+});
+
+document.getElementById('modalResetPwdPiattaforma')?.addEventListener('show.bs.modal', function(e) {
+  const btn = e.relatedTarget;
+  const uid = btn.dataset.uid;
+  const username = btn.dataset.username;
+  document.getElementById('resetPwdPlatformUsername').textContent = username;
+  document.getElementById('formResetPwdPiattaforma').action =
+    '{{ url_for("admin.reset_password_piattaforma", uid="UID_PLACEHOLDER") }}'.replace('UID_PLACEHOLDER', uid);
+  document.getElementById('resetPwdPlatformField').value = genPwdPiattaforma();
+});
+</script>
+{% endblock %}

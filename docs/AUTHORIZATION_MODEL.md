@@ -32,6 +32,10 @@
 ## Regole
 
 - `SUPERADMIN` non e' un ruolo di tenant: e' un ruolo di piattaforma
+- la piattaforma governa un solo `SUPERADMIN` attivo come account radice operativo
+- il `SUPERADMIN` usa una superficie dedicata `admin/utenti-piattaforma`, separata dagli utenti dei tenant
+- nessuno studio puo' creare, importare o promuovere utenti `SUPERADMIN`
+- in modalita' multi-tenant il `SUPERADMIN` legge e scrive sempre sulla persistenza auth di piattaforma, mai sul `studio.db` del tenant
 - Le superfici admin di tenant non devono implicare impersonazione o visibilita' cross-tenant
 - I depositi telematici devono restare separati dalla sola consultazione
 - L'uso di Lex e degli assistenti non implica configurazione del runtime AI

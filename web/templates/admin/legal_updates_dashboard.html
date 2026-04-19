@@ -18,33 +18,72 @@
     <div class="d-flex flex-wrap gap-2">
       <form method="post" action="{{ url_for('legal_updates_admin.execute_action', action='scan') }}">
         <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+        {% if payload.runtime.tenant_slug %}<input type="hidden" name="tenant_slug" value="{{ payload.runtime.tenant_slug }}">{% endif %}
         <button class="btn btn-primary">
           <i class="bi bi-arrow-repeat me-2"></i>Esegui scansione
         </button>
       </form>
       <form method="post" action="{{ url_for('legal_updates_admin.execute_action', action='autopublish') }}">
         <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+        {% if payload.runtime.tenant_slug %}<input type="hidden" name="tenant_slug" value="{{ payload.runtime.tenant_slug }}">{% endif %}
         <button class="btn btn-outline-primary">
           <i class="bi bi-megaphone me-2"></i>Autopubblica news a basso rischio
         </button>
       </form>
-      <a href="{{ url_for('legal_updates_admin.review_page') }}" class="btn btn-outline-dark">
+      <a href="{{ url_for('legal_updates_admin.review_page', tenant_slug=payload.runtime.tenant_slug) }}" class="btn btn-outline-dark">
         <i class="bi bi-ui-checks-grid me-2"></i>Coda revisioni
       </a>
-      <a href="{{ url_for('legal_updates_admin.sources_page') }}" class="btn btn-outline-secondary">
+      <a href="{{ url_for('legal_updates_admin.sources_page', tenant_slug=payload.runtime.tenant_slug) }}" class="btn btn-outline-secondary">
         <i class="bi bi-broadcast me-2"></i>Fonti
       </a>
-      <a href="{{ url_for('legal_updates_admin.staging_page') }}" class="btn btn-outline-secondary">
+      <a href="{{ url_for('legal_updates_admin.staging_page', tenant_slug=payload.runtime.tenant_slug) }}" class="btn btn-outline-secondary">
         <i class="bi bi-inboxes me-2"></i>Acquisizione
       </a>
-      <a href="{{ url_for('legal_updates_admin.analysis_page') }}" class="btn btn-outline-secondary">
+      <a href="{{ url_for('legal_updates_admin.analysis_page', tenant_slug=payload.runtime.tenant_slug) }}" class="btn btn-outline-secondary">
         <i class="bi bi-cpu me-2"></i>Analisi
       </a>
-      <a href="{{ url_for('legal_updates_admin.archive_page') }}" class="btn btn-outline-secondary">
+      <a href="{{ url_for('legal_updates_admin.archive_page', tenant_slug=payload.runtime.tenant_slug) }}" class="btn btn-outline-secondary">
         <i class="bi bi-archive me-2"></i>Archivio
       </a>
     </div>
   </div>
+
+  {% if payload.runtime.tenant_choices %}
+  <div class="li-card mb-3">
+    <div class="li-card__body">
+      <form method="get" class="row g-3 align-items-end">
+        <div class="col-12 col-lg-6">
+          <label class="form-label fw-semibold small">Studio per gli aggiornamenti legali</label>
+          <select name="tenant_slug" class="form-select">
+            {% for studio in payload.runtime.tenant_choices %}
+            <option value="{{ studio.slug }}" {% if payload.runtime.tenant_slug == studio.slug %}selected{% endif %}>
+              {{ studio.nome }}{% if studio.name_mismatch and studio.configured_name %} · interno: {{ studio.configured_name }}{% endif %} - {{ studio.slug }} - {{ studio.db_mode }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-12 col-lg-3">
+          <button class="btn btn-outline-primary w-100" type="submit">
+            <i class="bi bi-diagram-3 me-1"></i>Apri contesto studio
+          </button>
+        </div>
+        <div class="col-12 col-lg-3">
+          <div class="small text-muted">
+            {% if payload.runtime.tenant_name %}
+              Studio attivo: <strong>{{ payload.runtime.tenant_registry_name or payload.runtime.tenant_name }}</strong><br>
+              {% if payload.runtime.tenant_name_mismatch and payload.runtime.tenant_configured_name %}
+                Configurazione interna studio: {{ payload.runtime.tenant_configured_name }}<br>
+              {% endif %}
+              Il superadmin governa questo studio senza usare archivi globali impliciti.
+            {% else %}
+              Seleziona lo studio su cui il superadmin deve monitorare, revisionare e pubblicare.
+            {% endif %}
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+  {% endif %}
 
   <div class="lu-kpi-grid mb-3">
     <div class="lu-kpi-card">
@@ -125,6 +164,17 @@
           </div>
           <div class="li-soft-stack">
             <div class="li-soft-card">
+              <div class="small text-muted">Studio governato</div>
+              <div class="fw-semibold">{{ payload.runtime.tenant_registry_name or payload.runtime.tenant_name or 'piattaforma locale' }}</div>
+              {% if payload.runtime.tenant_name_mismatch and payload.runtime.tenant_configured_name %}
+              <div class="small text-muted">Configurazione interna: {{ payload.runtime.tenant_configured_name }}</div>
+              {% endif %}
+            </div>
+            <div class="li-soft-card">
+              <div class="small text-muted">Backend studio</div>
+              <div class="fw-semibold">{{ payload.runtime.db_backend_label or 'n.d.' }}</div>
+            </div>
+            <div class="li-soft-card">
               <div class="small text-muted">Database aggiornamenti</div>
               <div class="fw-semibold text-break">{{ payload.runtime.db_path }}</div>
             </div>
@@ -153,7 +203,7 @@
         <div class="li-card__body">
           <div class="li-section-head">
             <div class="li-section-title"><i class="bi bi-hourglass-split me-2 text-primary"></i>Coda revisioni</div>
-            <a href="{{ url_for('legal_updates_admin.review_page') }}" class="btn btn-sm btn-outline-primary">Gestisci</a>
+            <a href="{{ url_for('legal_updates_admin.review_page', tenant_slug=payload.runtime.tenant_slug) }}" class="btn btn-sm btn-outline-primary">Gestisci</a>
           </div>
           <div class="li-alert-stack">
             {% for item in payload.review_queue[:6] %}
@@ -203,7 +253,7 @@
         <div class="li-card__body">
           <div class="li-section-head">
             <div class="li-section-title"><i class="bi bi-inboxes me-2 text-primary"></i>Ultimi documenti acquisiti</div>
-            <a href="{{ url_for('legal_updates_admin.staging_page') }}" class="btn btn-sm btn-outline-primary">Apri acquisizione</a>
+            <a href="{{ url_for('legal_updates_admin.staging_page', tenant_slug=payload.runtime.tenant_slug) }}" class="btn btn-sm btn-outline-primary">Apri acquisizione</a>
           </div>
           <div class="li-alert-stack">
             {% for item in payload.raw_documents[:6] %}
@@ -229,7 +279,7 @@
         <div class="li-card__body">
           <div class="li-section-head">
             <div class="li-section-title"><i class="bi bi-journal-check me-2 text-primary"></i>Archivio strutturato</div>
-            <a href="{{ url_for('legal_updates_admin.archive_page') }}" class="btn btn-sm btn-outline-primary">Apri archivio</a>
+            <a href="{{ url_for('legal_updates_admin.archive_page', tenant_slug=payload.runtime.tenant_slug) }}" class="btn btn-sm btn-outline-primary">Apri archivio</a>
           </div>
           <div class="li-soft-stack">
             <div class="li-soft-card">
@@ -255,9 +305,6 @@
   </div>
 </div>
 {% endblock %}
-
-
-
 
 
 

@@ -24,6 +24,17 @@ def _reviewer_name() -> str:
     return str(getattr(user, "username", "") or "superadmin")
 
 
+def _selected_tenant_slug() -> str:
+    if request.is_json:
+        body = request.get_json(silent=True) or {}
+        return str(body.get("tenant_slug") or "").strip().lower()
+    return str(request.values.get("tenant_slug") or request.args.get("tenant_slug") or "").strip().lower()
+
+
+def _redirect_kwargs(tenant_slug: str) -> dict[str, str]:
+    return {"tenant_slug": tenant_slug} if tenant_slug else {}
+
+
 def _request_payload() -> dict[str, Any]:
     return request.get_json(silent=True) or request.form.to_dict()
 
@@ -36,8 +47,8 @@ def _bool_from_payload(value: Any, *, default: bool = False) -> bool:
     return str(value).strip().lower() in {"1", "true", "si", "sì", "yes", "on"}
 
 
-def _serialize_surface(pipeline) -> dict[str, Any]:
-    payload = build_legal_update_surface()
+def _serialize_surface(pipeline, *, tenant_slug: str = "") -> dict[str, Any]:
+    payload = build_legal_update_surface(tenant_slug=tenant_slug)
     payload["raw_documents"] = pipeline.repository.list_raw_documents(limit=20)
     payload["analyses"] = pipeline.repository.list_analyses(limit=20)
     payload["audit"] = pipeline.repository.list_audit(limit=20)
@@ -65,56 +76,68 @@ def _upsert_source_from_payload(payload: dict[str, Any], *, current_source: dict
 @legal_updates_admin.get("/")
 @superadmin_required
 def dashboard():
-    pipeline = build_legal_update_pipeline_runtime()
-    return render_template("admin/legal_updates_dashboard.html", payload=_serialize_surface(pipeline))
+    tenant_slug = _selected_tenant_slug()
+    pipeline = build_legal_update_pipeline_runtime(tenant_slug=tenant_slug)
+    payload = _serialize_surface(pipeline, tenant_slug=tenant_slug)
+    return render_template(
+        "admin/legal_updates_dashboard.html",
+        payload=payload,
+        tenant_slug=payload["runtime"].get("tenant_slug", ""),
+    )
 
 
 @legal_updates_admin.get("/fonti")
 @superadmin_required
 def sources_page():
-    pipeline = build_legal_update_pipeline_runtime()
+    tenant_slug = _selected_tenant_slug()
+    pipeline = build_legal_update_pipeline_runtime(tenant_slug=tenant_slug)
+    payload = _serialize_surface(pipeline, tenant_slug=tenant_slug)
     return render_template(
         "admin/legal_updates_sources.html",
-        payload=_serialize_surface(pipeline),
+        payload=payload,
         sources=pipeline.repository.list_sources(enabled_only=False),
+        tenant_slug=payload["runtime"].get("tenant_slug", ""),
     )
 
 
 @legal_updates_admin.post("/fonti/nuova")
 @superadmin_required
 def create_source():
+    tenant_slug = _selected_tenant_slug()
     try:
         source_row = _upsert_source_from_payload(request.form.to_dict())
-        build_legal_update_pipeline_runtime().repository.upsert_sources([source_row])
+        build_legal_update_pipeline_runtime(tenant_slug=tenant_slug).repository.upsert_sources([source_row])
         flash("Fonte salvata correttamente.", "success")
     except Exception as exc:
         current_app.logger.exception("Errore create_source: %s", exc)
         flash(f"Errore salvataggio fonte: {exc}", "danger")
-    return redirect(url_for("legal_updates_admin.sources_page"))
+    return redirect(url_for("legal_updates_admin.sources_page", **_redirect_kwargs(tenant_slug)))
 
 
 @legal_updates_admin.post("/fonti/<int:source_id>/aggiorna")
 @superadmin_required
 def update_source(source_id: int):
+    tenant_slug = _selected_tenant_slug()
     try:
-        pipeline = build_legal_update_pipeline_runtime()
+        pipeline = build_legal_update_pipeline_runtime(tenant_slug=tenant_slug)
         current_source = pipeline.repository.get_source_by_id(source_id)
         if not current_source:
             flash("Fonte non trovata.", "warning")
-            return redirect(url_for("legal_updates_admin.sources_page"))
+            return redirect(url_for("legal_updates_admin.sources_page", **_redirect_kwargs(tenant_slug)))
         pipeline.repository.upsert_sources([_upsert_source_from_payload(request.form.to_dict(), current_source=current_source)])
         flash("Fonte aggiornata.", "success")
     except Exception as exc:
         current_app.logger.exception("Errore update_source: %s", exc)
         flash(f"Errore aggiornamento fonte: {exc}", "danger")
-    return redirect(url_for("legal_updates_admin.sources_page"))
+    return redirect(url_for("legal_updates_admin.sources_page", **_redirect_kwargs(tenant_slug)))
 
 
 @legal_updates_admin.post("/fonti/<int:source_id>/fetch")
 @superadmin_required
 def fetch_source(source_id: int):
+    tenant_slug = _selected_tenant_slug()
     try:
-        result = build_legal_update_pipeline_runtime().fetch_source_by_id(source_id, auto_publish=True)
+        result = build_legal_update_pipeline_runtime(tenant_slug=tenant_slug).fetch_source_by_id(source_id, auto_publish=True)
         flash(
             f"Acquisizione completata: {result.get('documents_found', 0)} documenti trovati e {result.get('processed', 0)} processati.",
             "success",
@@ -122,16 +145,18 @@ def fetch_source(source_id: int):
     except Exception as exc:
         current_app.logger.exception("Errore fetch_source %s: %s", source_id, exc)
         flash(f"Errore acquisizione fonte: {exc}", "danger")
-    return redirect(url_for("legal_updates_admin.sources_page"))
+    return redirect(url_for("legal_updates_admin.sources_page", **_redirect_kwargs(tenant_slug)))
 
 
 @legal_updates_admin.get("/staging")
 @superadmin_required
 def staging_page():
-    pipeline = build_legal_update_pipeline_runtime()
+    tenant_slug = _selected_tenant_slug()
+    pipeline = build_legal_update_pipeline_runtime(tenant_slug=tenant_slug)
+    payload = _serialize_surface(pipeline, tenant_slug=tenant_slug)
     return render_template(
         "admin/legal_updates_staging.html",
-        payload=_serialize_surface(pipeline),
+        payload=payload,
         documents=pipeline.repository.list_raw_documents(
             source_code=request.args.get("source", ""),
             classification_type=request.args.get("classification", ""),
@@ -141,43 +166,56 @@ def staging_page():
         source_filter=request.args.get("source", ""),
         classification_filter=request.args.get("classification", ""),
         status_filter=request.args.get("status", ""),
+        tenant_slug=payload["runtime"].get("tenant_slug", ""),
     )
 
 
 @legal_updates_admin.get("/staging/<int:raw_document_id>")
 @superadmin_required
 def staging_detail_page(raw_document_id: int):
-    pipeline = build_legal_update_pipeline_runtime()
+    tenant_slug = _selected_tenant_slug()
+    pipeline = build_legal_update_pipeline_runtime(tenant_slug=tenant_slug)
     document = pipeline.repository.get_staging_document(raw_document_id)
     if not document:
         flash("Documento di staging non trovato.", "warning")
-        return redirect(url_for("legal_updates_admin.staging_page"))
+        return redirect(url_for("legal_updates_admin.staging_page", **_redirect_kwargs(tenant_slug)))
+    payload = _serialize_surface(pipeline, tenant_slug=tenant_slug)
     return render_template(
         "admin/legal_updates_staging_detail.html",
-        payload=_serialize_surface(pipeline),
+        payload=payload,
         document=document,
+        tenant_slug=payload["runtime"].get("tenant_slug", ""),
     )
 
 
 @legal_updates_admin.post("/staging/<int:raw_document_id>/analizza")
 @superadmin_required
 def analyze_staging_document(raw_document_id: int):
+    tenant_slug = _selected_tenant_slug()
     try:
-        build_legal_update_pipeline_runtime().analyze_raw_document(raw_document_id)
+        build_legal_update_pipeline_runtime(tenant_slug=tenant_slug).analyze_raw_document(raw_document_id)
         flash("Documento rianalizzato correttamente.", "success")
     except Exception as exc:
         current_app.logger.exception("Errore analyze_staging_document %s: %s", raw_document_id, exc)
         flash(f"Errore rianalisi documento: {exc}", "danger")
-    return redirect(url_for("legal_updates_admin.staging_detail_page", raw_document_id=raw_document_id))
+    return redirect(
+        url_for(
+            "legal_updates_admin.staging_detail_page",
+            raw_document_id=raw_document_id,
+            **_redirect_kwargs(tenant_slug),
+        )
+    )
 
 
 @legal_updates_admin.get("/analisi")
 @superadmin_required
 def analysis_page():
-    pipeline = build_legal_update_pipeline_runtime()
+    tenant_slug = _selected_tenant_slug()
+    pipeline = build_legal_update_pipeline_runtime(tenant_slug=tenant_slug)
+    payload = _serialize_surface(pipeline, tenant_slug=tenant_slug)
     return render_template(
         "admin/legal_updates_analysis.html",
-        payload=_serialize_surface(pipeline),
+        payload=payload,
         analyses=pipeline.repository.list_analyses(
             classification_type=request.args.get("classification", ""),
             matter_slug=request.args.get("materia", ""),
@@ -186,33 +224,38 @@ def analysis_page():
         classification_filter=request.args.get("classification", ""),
         matter_filter=request.args.get("materia", ""),
         matters=pipeline.repository.list_matters(),
+        tenant_slug=payload["runtime"].get("tenant_slug", ""),
     )
 
 
 @legal_updates_admin.get("/archivio")
 @superadmin_required
 def archive_page():
-    pipeline = build_legal_update_pipeline_runtime()
+    tenant_slug = _selected_tenant_slug()
+    pipeline = build_legal_update_pipeline_runtime(tenant_slug=tenant_slug)
     selected = (request.args.get("tab") or "normative").strip().lower()
     if selected not in {"normative", "jurisprudence", "prassi", "news", "audit"}:
         selected = "normative"
+    payload = _serialize_surface(pipeline, tenant_slug=tenant_slug)
     return render_template(
         "admin/legal_updates_archive.html",
-        payload=_serialize_surface(pipeline),
+        payload=payload,
         selected_tab=selected,
         normative=pipeline.repository.list_published_normative(limit=120),
         jurisprudence=pipeline.repository.list_published_jurisprudence(limit=120),
         prassi=pipeline.repository.list_published_prassi(limit=120),
         news=pipeline.repository.list_news(limit=120, include_drafts=True),
         audit_rows=pipeline.repository.list_audit(limit=120),
+        tenant_slug=payload["runtime"].get("tenant_slug", ""),
     )
 
 
 @legal_updates_admin.post("/esegui/<string:action>")
 @superadmin_required
 def execute_action(action: str):
+    tenant_slug = _selected_tenant_slug()
     try:
-        result = run_legal_update_action(action)
+        result = run_legal_update_action(action, tenant_slug=tenant_slug)
         labels = {
             "scan": "Scansione fonti completata correttamente.",
             "autopublish": "Autopubblicazione news completata.",
@@ -222,24 +265,29 @@ def execute_action(action: str):
     except Exception as exc:
         current_app.logger.exception("Errore legal updates action %s: %s", action, exc)
         flash(f"Errore durante l'azione {action}: {exc}", "danger")
-    return redirect(url_for("legal_updates_admin.dashboard"))
+    return redirect(url_for("legal_updates_admin.dashboard", **_redirect_kwargs(tenant_slug)))
 
 
 @legal_updates_admin.get("/review")
 @superadmin_required
 def review_page():
-    pipeline = build_legal_update_pipeline_runtime()
+    tenant_slug = _selected_tenant_slug()
+    pipeline = build_legal_update_pipeline_runtime(tenant_slug=tenant_slug)
+    payload = _serialize_surface(pipeline, tenant_slug=tenant_slug)
     return render_template(
         "admin/legal_updates_review.html",
         review_items=pipeline.repository.list_review_queue(limit=100),
+        payload=payload,
+        tenant_slug=payload["runtime"].get("tenant_slug", ""),
     )
 
 
 @legal_updates_admin.post("/review/<int:review_id>/approve")
 @superadmin_required
 def approve(review_id: int):
+    tenant_slug = _selected_tenant_slug()
     try:
-        build_legal_update_pipeline_runtime().approve_review(
+        build_legal_update_pipeline_runtime(tenant_slug=tenant_slug).approve_review(
             review_id,
             reviewer=_reviewer_name(),
             notes=request.form.get("review_notes", ""),
@@ -248,14 +296,15 @@ def approve(review_id: int):
     except Exception as exc:
         current_app.logger.exception("Errore approve review %s: %s", review_id, exc)
         flash(f"Errore approvazione: {exc}", "danger")
-    return redirect(url_for("legal_updates_admin.review_page"))
+    return redirect(url_for("legal_updates_admin.review_page", **_redirect_kwargs(tenant_slug)))
 
 
 @legal_updates_admin.post("/review/<int:review_id>/edit-and-approve")
 @superadmin_required
 def edit_and_approve(review_id: int):
+    tenant_slug = _selected_tenant_slug()
     try:
-        build_legal_update_pipeline_runtime().edit_and_approve_review(
+        build_legal_update_pipeline_runtime(tenant_slug=tenant_slug).edit_and_approve_review(
             review_id,
             reviewer=_reviewer_name(),
             review_notes=request.form.get("review_notes", ""),
@@ -266,14 +315,15 @@ def edit_and_approve(review_id: int):
     except Exception as exc:
         current_app.logger.exception("Errore edit_and_approve %s: %s", review_id, exc)
         flash(f"Errore modifica e approvazione: {exc}", "danger")
-    return redirect(url_for("legal_updates_admin.review_page"))
+    return redirect(url_for("legal_updates_admin.review_page", **_redirect_kwargs(tenant_slug)))
 
 
 @legal_updates_admin.post("/review/<int:review_id>/reject")
 @superadmin_required
 def reject(review_id: int):
+    tenant_slug = _selected_tenant_slug()
     try:
-        build_legal_update_pipeline_runtime().reject_review(
+        build_legal_update_pipeline_runtime(tenant_slug=tenant_slug).reject_review(
             review_id,
             reviewer=_reviewer_name(),
             notes=request.form.get("review_notes", ""),
@@ -282,26 +332,27 @@ def reject(review_id: int):
     except Exception as exc:
         current_app.logger.exception("Errore reject review %s: %s", review_id, exc)
         flash(f"Errore rifiuto: {exc}", "danger")
-    return redirect(url_for("legal_updates_admin.review_page"))
+    return redirect(url_for("legal_updates_admin.review_page", **_redirect_kwargs(tenant_slug)))
 
 
 @legal_updates_admin.post("/review/<int:review_id>/publish")
 @superadmin_required
 def publish(review_id: int):
+    tenant_slug = _selected_tenant_slug()
     try:
-        build_legal_update_pipeline_runtime().publish_review(review_id, reviewer=_reviewer_name())
+        build_legal_update_pipeline_runtime(tenant_slug=tenant_slug).publish_review(review_id, reviewer=_reviewer_name())
         flash("Contenuto pubblicato correttamente.", "success")
     except Exception as exc:
         current_app.logger.exception("Errore publish review %s: %s", review_id, exc)
         flash(f"Errore pubblicazione: {exc}", "danger")
-    return redirect(url_for("legal_updates_admin.review_page"))
+    return redirect(url_for("legal_updates_admin.review_page", **_redirect_kwargs(tenant_slug)))
 
 
 @legal_updates_admin.get("/api/review-queue")
 @superadmin_required
 def api_review_queue():
     try:
-        pipeline = build_legal_update_pipeline_runtime()
+        pipeline = build_legal_update_pipeline_runtime(tenant_slug=_selected_tenant_slug())
         return jsonify({"ok": True, "items": pipeline.repository.list_review_queue(limit=100)})
     except Exception as exc:
         current_app.logger.exception("Errore api_review_queue: %s", exc)
@@ -312,7 +363,7 @@ def api_review_queue():
 @superadmin_required
 def api_review_detail(review_id: int):
     try:
-        pipeline = build_legal_update_pipeline_runtime()
+        pipeline = build_legal_update_pipeline_runtime(tenant_slug=_selected_tenant_slug())
         row = pipeline.repository.get_review_item(review_id)
         if not row:
             return _json_error("Review non trovata.", status=404)
@@ -327,7 +378,9 @@ def api_review_detail(review_id: int):
 def api_review_approve(review_id: int):
     try:
         payload = _request_payload()
-        row = build_legal_update_pipeline_runtime().approve_review(
+        row = build_legal_update_pipeline_runtime(
+            tenant_slug=str(payload.get("tenant_slug") or _selected_tenant_slug()).strip().lower()
+        ).approve_review(
             review_id,
             reviewer=str(payload.get("reviewer") or "superadmin"),
             notes=str(payload.get("review_notes") or ""),
@@ -343,7 +396,9 @@ def api_review_approve(review_id: int):
 def api_review_edit_and_approve(review_id: int):
     try:
         payload = _request_payload()
-        item = build_legal_update_pipeline_runtime().edit_and_approve_review(
+        item = build_legal_update_pipeline_runtime(
+            tenant_slug=str(payload.get("tenant_slug") or _selected_tenant_slug()).strip().lower()
+        ).edit_and_approve_review(
             review_id,
             reviewer=str(payload.get("reviewer") or "superadmin"),
             review_notes=str(payload.get("review_notes") or ""),
@@ -361,7 +416,9 @@ def api_review_edit_and_approve(review_id: int):
 def api_review_reject(review_id: int):
     try:
         payload = _request_payload()
-        row = build_legal_update_pipeline_runtime().reject_review(
+        row = build_legal_update_pipeline_runtime(
+            tenant_slug=str(payload.get("tenant_slug") or _selected_tenant_slug()).strip().lower()
+        ).reject_review(
             review_id,
             reviewer=str(payload.get("reviewer") or "superadmin"),
             notes=str(payload.get("review_notes") or ""),
@@ -377,7 +434,9 @@ def api_review_reject(review_id: int):
 def api_review_publish(review_id: int):
     try:
         payload = _request_payload()
-        result = build_legal_update_pipeline_runtime().publish_review(
+        result = build_legal_update_pipeline_runtime(
+            tenant_slug=str(payload.get("tenant_slug") or _selected_tenant_slug()).strip().lower()
+        ).publish_review(
             review_id,
             reviewer=str(payload.get("reviewer") or "superadmin"),
         )
@@ -391,7 +450,7 @@ def api_review_publish(review_id: int):
 @superadmin_required
 def api_sources():
     try:
-        pipeline = build_legal_update_pipeline_runtime()
+        pipeline = build_legal_update_pipeline_runtime(tenant_slug=_selected_tenant_slug())
         return jsonify({"ok": True, "items": pipeline.list_sources(enabled_only=False)})
     except Exception as exc:
         current_app.logger.exception("Errore api_sources: %s", exc)
@@ -402,8 +461,11 @@ def api_sources():
 @superadmin_required
 def api_create_source():
     try:
-        pipeline = build_legal_update_pipeline_runtime()
-        source_row = _upsert_source_from_payload(_request_payload())
+        payload = _request_payload()
+        pipeline = build_legal_update_pipeline_runtime(
+            tenant_slug=str(payload.get("tenant_slug") or _selected_tenant_slug()).strip().lower()
+        )
+        source_row = _upsert_source_from_payload(payload)
         pipeline.repository.upsert_sources([source_row])
         created = pipeline.repository.get_source_by_code(str(source_row["code"]))
         return jsonify({"ok": True, "item": created})
@@ -416,11 +478,14 @@ def api_create_source():
 @superadmin_required
 def api_update_source(source_id: int):
     try:
-        pipeline = build_legal_update_pipeline_runtime()
+        payload = _request_payload()
+        pipeline = build_legal_update_pipeline_runtime(
+            tenant_slug=str(payload.get("tenant_slug") or _selected_tenant_slug()).strip().lower()
+        )
         current_source = pipeline.repository.get_source_by_id(source_id)
         if not current_source:
             return _json_error("Fonte non trovata.", status=404)
-        source_row = _upsert_source_from_payload(_request_payload(), current_source=current_source)
+        source_row = _upsert_source_from_payload(payload, current_source=current_source)
         pipeline.repository.upsert_sources([source_row])
         return jsonify({"ok": True, "item": pipeline.repository.get_source_by_code(str(source_row["code"]))})
     except Exception as exc:
@@ -434,7 +499,9 @@ def api_fetch_source(source_id: int):
     try:
         payload = _request_payload()
         auto_publish = _bool_from_payload(payload.get("auto_publish"), default=True)
-        result = build_legal_update_pipeline_runtime().fetch_source_by_id(source_id, auto_publish=auto_publish)
+        result = build_legal_update_pipeline_runtime(
+            tenant_slug=str(payload.get("tenant_slug") or _selected_tenant_slug()).strip().lower()
+        ).fetch_source_by_id(source_id, auto_publish=auto_publish)
         return jsonify({"ok": True, "result": result})
     except Exception as exc:
         current_app.logger.exception("Errore api_fetch_source: %s", exc)
@@ -445,7 +512,7 @@ def api_fetch_source(source_id: int):
 @superadmin_required
 def api_raw_documents():
     try:
-        pipeline = build_legal_update_pipeline_runtime()
+        pipeline = build_legal_update_pipeline_runtime(tenant_slug=_selected_tenant_slug())
         return jsonify(
             {
                 "ok": True,
@@ -466,7 +533,7 @@ def api_raw_documents():
 @superadmin_required
 def api_raw_document_detail(raw_document_id: int):
     try:
-        pipeline = build_legal_update_pipeline_runtime()
+        pipeline = build_legal_update_pipeline_runtime(tenant_slug=_selected_tenant_slug())
         item = pipeline.repository.get_staging_document(raw_document_id)
         if not item:
             return _json_error("Documento non trovato.", status=404)
@@ -480,7 +547,7 @@ def api_raw_document_detail(raw_document_id: int):
 @superadmin_required
 def api_analyze_raw_document(raw_document_id: int):
     try:
-        result = build_legal_update_pipeline_runtime().analyze_raw_document(raw_document_id)
+        result = build_legal_update_pipeline_runtime(tenant_slug=_selected_tenant_slug()).analyze_raw_document(raw_document_id)
         return jsonify({"ok": True, "result": result})
     except Exception as exc:
         current_app.logger.exception("Errore api_analyze_raw_document: %s", exc)
@@ -491,7 +558,7 @@ def api_analyze_raw_document(raw_document_id: int):
 @superadmin_required
 def api_analysis_detail(analysis_id: int):
     try:
-        pipeline = build_legal_update_pipeline_runtime()
+        pipeline = build_legal_update_pipeline_runtime(tenant_slug=_selected_tenant_slug())
         item = pipeline.repository.get_analysis(analysis_id)
         if not item:
             return _json_error("Analisi non trovata.", status=404)
@@ -505,7 +572,7 @@ def api_analysis_detail(analysis_id: int):
 @superadmin_required
 def api_normative():
     try:
-        pipeline = build_legal_update_pipeline_runtime()
+        pipeline = build_legal_update_pipeline_runtime(tenant_slug=_selected_tenant_slug())
         return jsonify({"ok": True, "items": pipeline.repository.list_published_normative(limit=int(request.args.get("limit") or 100))})
     except Exception as exc:
         current_app.logger.exception("Errore api_normative: %s", exc)
@@ -516,7 +583,7 @@ def api_normative():
 @superadmin_required
 def api_normative_versions(normative_id: int):
     try:
-        pipeline = build_legal_update_pipeline_runtime()
+        pipeline = build_legal_update_pipeline_runtime(tenant_slug=_selected_tenant_slug())
         return jsonify({"ok": True, "items": pipeline.repository.list_normative_versions(normative_id)})
     except Exception as exc:
         current_app.logger.exception("Errore api_normative_versions: %s", exc)
@@ -527,7 +594,7 @@ def api_normative_versions(normative_id: int):
 @superadmin_required
 def api_jurisprudence():
     try:
-        pipeline = build_legal_update_pipeline_runtime()
+        pipeline = build_legal_update_pipeline_runtime(tenant_slug=_selected_tenant_slug())
         return jsonify({"ok": True, "items": pipeline.repository.list_published_jurisprudence(limit=int(request.args.get("limit") or 100))})
     except Exception as exc:
         current_app.logger.exception("Errore api_jurisprudence: %s", exc)
@@ -538,7 +605,7 @@ def api_jurisprudence():
 @superadmin_required
 def api_prassi():
     try:
-        pipeline = build_legal_update_pipeline_runtime()
+        pipeline = build_legal_update_pipeline_runtime(tenant_slug=_selected_tenant_slug())
         return jsonify({"ok": True, "items": pipeline.repository.list_published_prassi(limit=int(request.args.get("limit") or 100))})
     except Exception as exc:
         current_app.logger.exception("Errore api_prassi: %s", exc)
@@ -549,7 +616,7 @@ def api_prassi():
 @superadmin_required
 def api_news():
     try:
-        pipeline = build_legal_update_pipeline_runtime()
+        pipeline = build_legal_update_pipeline_runtime(tenant_slug=_selected_tenant_slug())
         return jsonify({"ok": True, "items": pipeline.repository.list_news(limit=100, include_drafts=True)})
     except Exception as exc:
         current_app.logger.exception("Errore api_news admin: %s", exc)
@@ -560,7 +627,7 @@ def api_news():
 @superadmin_required
 def api_audit():
     try:
-        pipeline = build_legal_update_pipeline_runtime()
+        pipeline = build_legal_update_pipeline_runtime(tenant_slug=_selected_tenant_slug())
         return jsonify(
             {
                 "ok": True,
@@ -573,5 +640,3 @@ def api_audit():
     except Exception as exc:
         current_app.logger.exception("Errore api_audit: %s", exc)
         return _json_error(str(exc))
-
-

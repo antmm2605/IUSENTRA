@@ -44,23 +44,46 @@ def register_checklist_routes(
 
     @app.route("/checklist")
     def checklist_atti():
-        from pct.checklist_atti import CAT_COL, CAT_ICON, CATEGORIE, TUTTI_I_TEMPLATE
+        from pct.checklist_atti import AREA_META, CANALE_COL, CANALE_ICON, CANALE_LABEL, CATEGORIE, TUTTI_I_TEMPLATE, costruisci_catalogo_checklist
 
-        per_categoria = {}
-        for template in TUTTI_I_TEMPLATE:
-            per_categoria.setdefault(template.categoria, []).append(template)
+        query = (request.args.get("q") or "").strip()
+        area_filtro = (request.args.get("area") or "").strip()
+        catalogo = costruisci_catalogo_checklist(area=area_filtro, q=query)
+        catalogo_completo = costruisci_catalogo_checklist()
+        aree_disponibili = [
+            {
+                "nome": area["nome"],
+                "label": area["nome"],
+                "count": area["template_count"],
+                "meta": AREA_META.get(area["nome"], {}),
+            }
+            for area in catalogo_completo
+        ]
+        totale_template = sum(area["template_count"] for area in catalogo)
+        totale_obbligatori = sum(area["documenti_obbligatori"] for area in catalogo)
+        totale_critici = sum(area["critici_count"] for area in catalogo)
         return render_template(
             "checklist/lista.html",
-            per_cat=per_categoria,
+            catalogo=catalogo,
+            aree_disponibili=aree_disponibili,
+            area_meta=AREA_META,
             categorie=CATEGORIE,
-            cat_icon=CAT_ICON,
-            cat_col=CAT_COL,
+            canale_label=CANALE_LABEL,
+            canale_icon=CANALE_ICON,
+            canale_col=CANALE_COL,
+            q=query,
+            area_filtro=area_filtro,
+            totale_template=totale_template,
+            totale_aree=len(catalogo),
+            totale_documenti_obbligatori=totale_obbligatori,
+            totale_critici=totale_critici,
+            totale_template_completo=len(TUTTI_I_TEMPLATE),
             oggi=date.today(),
         )
 
     @app.route("/checklist/<id_template>")
     def checklist_dettaglio(id_template):
-        from pct.checklist_atti import CAT_COL, CAT_ICON, get_template, nome_cartella_compilato
+        from pct.checklist_atti import AREA_META, CANALE_COL, CANALE_ICON, CANALE_LABEL, CATEGORIE, get_template, nome_cartella_compilato, normalizza_data_cartella
 
         template = get_template(id_template)
         if not template:
@@ -83,10 +106,14 @@ def register_checklist_routes(
             parte=parte,
             rg=rg,
             data=data,
+            data_cartella=normalizza_data_cartella(data),
             id_fasc=id_fasc,
             fascicolo=fascicolo_ctx,
-            cat_icon=CAT_ICON,
-            cat_col=CAT_COL,
+            categorie=CATEGORIE,
+            canale_label=CANALE_LABEL,
+            canale_icon=CANALE_ICON,
+            canale_col=CANALE_COL,
+            area_meta=AREA_META,
             oggi=date.today(),
         )
 

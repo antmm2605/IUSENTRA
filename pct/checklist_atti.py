@@ -27,6 +27,9 @@ class TemplateAtto:
     id: str
     nome: str
     categoria: str
+    area: str
+    branca: str
+    sottobranca: str
     descrizione: str
     nome_cartella: str
     # Canale di deposito: PCT_TELEMATICO | PDP_PENALE | PAT_AMMINISTRATIVO | PEC | CARTACEO
@@ -84,6 +87,9 @@ DECRETO_INGIUNTIVO = TemplateAtto(
     id="decreto_ingiuntivo",
     nome="Decreto Ingiuntivo",
     categoria="CIVILE",
+    area="Civile e commerciale",
+    branca="Monitorio e sommario",
+    sottobranca="Ricorsi monitori",
     descrizione="Ricorso per decreto ingiuntivo ex artt. 633 ss. c.p.c.",
     nome_cartella="Decreto_ingiuntivo_{parte}_{data}",
     canale="PCT_TELEMATICO",
@@ -150,6 +156,9 @@ ISCRIZIONE_A_RUOLO = TemplateAtto(
     id="iscrizione_a_ruolo",
     nome="Iscrizione a Ruolo — Atto di Citazione",
     categoria="CIVILE",
+    area="Civile e commerciale",
+    branca="Cognizione ordinaria",
+    sottobranca="Fase introduttiva",
     descrizione="Iscrizione a ruolo dopo notifica dell'atto di citazione.",
     nome_cartella="Iscrizione_ruolo_{parte}_{data}",
     canale="PCT_TELEMATICO",
@@ -211,6 +220,9 @@ COMPARSA_RISPOSTA = TemplateAtto(
     id="comparsa_risposta",
     nome="Comparsa di Costituzione e Risposta",
     categoria="CIVILE",
+    area="Civile e commerciale",
+    branca="Cognizione ordinaria",
+    sottobranca="Costituzione del convenuto",
     descrizione="Costituzione in giudizio del convenuto.",
     nome_cartella="Comparsa_risposta_{rg}_{parte}_{data}",
     canale="PCT_TELEMATICO",
@@ -252,6 +264,9 @@ MEMORIA_DIFENSIVA = TemplateAtto(
     id="memoria_difensiva",
     nome="Memoria / Deposito Atti",
     categoria="CIVILE",
+    area="Civile e commerciale",
+    branca="Cognizione ordinaria",
+    sottobranca="Memorie e repliche",
     descrizione="Deposito di memoria difensiva o istruttoria con allegati.",
     nome_cartella="Memoria_{rg}_{parte}_{data}",
     canale="PCT_TELEMATICO",
@@ -293,6 +308,9 @@ RICORSO_APPELLO = TemplateAtto(
     id="ricorso_appello",
     nome="Ricorso in Appello Civile",
     categoria="CIVILE",
+    area="Civile e commerciale",
+    branca="Impugnazioni civili",
+    sottobranca="Appello ordinario",
     descrizione="Ricorso in appello avverso sentenza di primo grado.",
     nome_cartella="Appello_{rg}_{parte}_{data}",
     canale="PCT_TELEMATICO",
@@ -350,6 +368,9 @@ OPPOSIZIONE_DI = TemplateAtto(
     id="opposizione_decreto_ingiuntivo",
     nome="Opposizione a Decreto Ingiuntivo",
     categoria="CIVILE",
+    area="Civile e commerciale",
+    branca="Monitorio e sommario",
+    sottobranca="Opposizioni monitorie",
     descrizione="Atto di opposizione ex art. 645 c.p.c.",
     nome_cartella="Opposizione_DI_{rg}_{parte}_{data}",
     canale="PCT_TELEMATICO",
@@ -385,6 +406,9 @@ ATTO_PRECETTO = TemplateAtto(
     id="atto_precetto",
     nome="Atto di Precetto",
     categoria="ESECUTIVO",
+    area="Esecuzioni e cautelare",
+    branca="Esecuzione forzata",
+    sottobranca="Precetto e titolo",
     descrizione="Precetto ex art. 480 c.p.c. precedente all'esecuzione forzata.",
     nome_cartella="Precetto_{parte}_{data}",
     canale="CARTACEO",
@@ -415,6 +439,9 @@ PIGNORAMENTO = TemplateAtto(
     id="pignoramento",
     nome="Atto di Pignoramento",
     categoria="ESECUTIVO",
+    area="Esecuzioni e cautelare",
+    branca="Esecuzione forzata",
+    sottobranca="Pignoramenti",
     descrizione="Pignoramento mobiliare, immobiliare o presso terzi.",
     nome_cartella="Pignoramento_{parte}_{data}",
     canale="PCT_TELEMATICO",
@@ -451,6 +478,9 @@ RICORSO_CAUTELARE = TemplateAtto(
     id="ricorso_cautelare",
     nome="Ricorso Cautelare / Sequestro",
     categoria="CAUTELARE",
+    area="Esecuzioni e cautelare",
+    branca="Tutela cautelare",
+    sottobranca="Sequestri e urgenza",
     descrizione="Ricorso per sequestro conservativo, giudiziario o provvedimento d'urgenza.",
     nome_cartella="Cautelare_{parte}_{data}",
     canale="PCT_TELEMATICO",
@@ -489,6 +519,9 @@ RICORSO_TAR = TemplateAtto(
     id="ricorso_tar",
     nome="Ricorso al TAR",
     categoria="AMMINISTRATIVO",
+    area="Amministrativo e appalti",
+    branca="TAR - primo grado",
+    sottobranca="Ricorso introduttivo",
     descrizione="Ricorso al Tribunale Amministrativo Regionale.",
     nome_cartella="Ricorso_TAR_{parte}_{data}",
     canale="PAT_AMMINISTRATIVO",
@@ -552,6 +585,9 @@ MEDIAZIONE = TemplateAtto(
     id="mediazione",
     nome="Mediazione / Conciliazione",
     categoria="STRAGIUDIZIALE",
+    area="ADR e stragiudiziale",
+    branca="Mediazione e negoziazione",
+    sottobranca="Mediazione civile",
     descrizione="Istanza di mediazione obbligatoria o facoltativa.",
     nome_cartella="Mediazione_{parte}_{data}",
     canale="CARTACEO",
@@ -592,6 +628,9 @@ APPELLO_PENALE = TemplateAtto(
     id="appello_penale",
     nome="Appello Penale",
     categoria="PENALE",
+    area="Penale e indagini",
+    branca="Impugnazioni penali",
+    sottobranca="Appello penale",
     descrizione="Atto di appello avverso sentenza penale di primo grado.",
     nome_cartella="Appello_penale_{rg}_{parte}_{data}",
     canale="PDP_PENALE",
@@ -639,6 +678,9 @@ RICORSO_TRIBUTARIO = TemplateAtto(
     id="ricorso_tributario",
     nome="Ricorso Tributario (CTP/CGT primo grado)",
     categoria="TRIBUTARIO",
+    area="Tributario",
+    branca="Primo grado",
+    sottobranca="Ricorso introduttivo",
     descrizione="Ricorso alla Corte di Giustizia Tributaria di primo grado (ex CTP).",
     nome_cartella="Ricorso_tributario_{parte}_{data}",
     canale="PTT_TRIBUTARIO",
@@ -694,6 +736,9 @@ APPELLO_TRIBUTARIO = TemplateAtto(
     id="appello_tributario",
     nome="Appello Tributario (CGT secondo grado)",
     categoria="TRIBUTARIO",
+    area="Tributario",
+    branca="Secondo grado",
+    sottobranca="Appello tributario",
     descrizione="Appello alla Corte di Giustizia Tributaria di secondo grado (ex CTR).",
     nome_cartella="Appello_tributario_{rg}_{parte}_{data}",
     canale="PTT_TRIBUTARIO",
@@ -746,6 +791,9 @@ NOMINA_DIFENSORE = TemplateAtto(
     id="nomina_difensore",
     nome="Nomina Difensore (PDP Penale)",
     categoria="PENALE",
+    area="Penale e indagini",
+    branca="PDP e accesso fascicolo",
+    sottobranca="Nomina e atti abilitanti",
     descrizione="Nomina del difensore di fiducia ex art. 107 c.p.p. tramite PDP — primo deposito da fare per accedere al fascicolo.",
     nome_cartella="Nomina_difensore_{rg}_{parte}_{data}",
     canale="PDP_PENALE",
@@ -784,6 +832,9 @@ RINUNCIA_REVOCA_MANDATO = TemplateAtto(
     id="rinuncia_revoca_mandato",
     nome="Rinuncia / Revoca Mandato Penale (PDP)",
     categoria="PENALE",
+    area="Penale e indagini",
+    branca="PDP e accesso fascicolo",
+    sottobranca="Mandato difensivo",
     descrizione="Rinuncia al mandato difensivo o revoca ex art. 107 c.p.p. tramite PDP.",
     nome_cartella="Rinuncia_revoca_{rg}_{parte}_{data}",
     canale="PDP_PENALE",
@@ -814,6 +865,9 @@ OPPOSIZIONE_ARCHIVIAZIONE = TemplateAtto(
     id="opposizione_archiviazione",
     nome="Opposizione all'Archiviazione (PDP Penale)",
     categoria="PENALE",
+    area="Penale e indagini",
+    branca="Indagini preliminari",
+    sottobranca="Opposizioni e archiviazione",
     descrizione="Opposizione alla richiesta di archiviazione ex art. 410 c.p.p. tramite PDP.",
     nome_cartella="Opposizione_archiviazione_{rg}_{parte}_{data}",
     canale="PDP_PENALE",
@@ -850,6 +904,9 @@ DENUNCIA_QUERELA = TemplateAtto(
     id="denuncia_querela",
     nome="Denuncia / Querela (PDP Penale)",
     categoria="PENALE",
+    area="Penale e indagini",
+    branca="Persona offesa e notizie di reato",
+    sottobranca="Denuncia e querela",
     descrizione="Deposito di denuncia (art. 333 c.p.p.) o querela (art. 336 c.p.p.) tramite PDP.",
     nome_cartella="Denuncia_querela_{data}",
     canale="PDP_PENALE",
@@ -885,6 +942,383 @@ DENUNCIA_QUERELA = TemplateAtto(
     ],
 )
 
+RICORSO_LAVORO = TemplateAtto(
+    id="ricorso_lavoro",
+    nome="Ricorso Lavoro e Previdenza",
+    categoria="LAVORO",
+    area="Lavoro e previdenza",
+    branca="Rito lavoro",
+    sottobranca="Ricorso introduttivo",
+    descrizione="Ricorso ex artt. 409 ss. c.p.c. per controversie di lavoro e previdenza.",
+    nome_cartella="Ricorso_lavoro_{parte}_{data}",
+    canale="PCT_TELEMATICO",
+    endpoint_deposito="polisWeb_home",
+    tipo_atto_default="RICORSO",
+    nota_canale=(
+        "Il ricorso lavoro si deposita tramite redattore atti sul PCT. "
+        "Verificare rito, competenza territoriale e termini decadenziali della domanda."
+    ),
+    documenti=[
+        _doc(1, "Ricorso_lavoro", "Ricorso introduttivo firmato digitalmente"),
+        _doc(2, "Procura_alle_liti", "Procura alle liti"),
+        _doc(3, "Indice_documenti", "Indice numerato degli allegati"),
+        _doc(4, "Contratto_o_lettera_assunzione", "Contratto individuale, lettera di assunzione o inquadramento"),
+        _doc(5, "Buste_paga", "Buste paga e prospetti retributivi rilevanti", obbl=False),
+        _doc(6, "Diffida_o_messa_in_mora", "Diffida o messa in mora del datore", obbl=False),
+        _doc(7, "Ricevuta_contributo_unificato", "Ricevuta contributo unificato se dovuto", obbl=False),
+    ],
+    checklist=[
+        _chk("Rito lavoro e ufficio competente verificati", critico=True),
+        _chk("Domanda non decaduta o prescritta", critico=True),
+        _chk("Procura alle liti allegata nella busta", critico=True),
+        _chk("Cronologia del rapporto di lavoro ricostruita in modo coerente", critico=True),
+        _chk("Documenti retributivi e contrattuali essenziali allegati", critico=True),
+        _chk("Eventuale richiesta istruttoria articolata in modo puntuale"),
+        _chk("Tutti i PDF in formato PDF/A-1b e leggibili", critico=True),
+        _chk("Busta telematica generata dal redattore e ricevuta PEC salvata", critico=True),
+    ],
+)
+
+IMPUGNAZIONE_LICENZIAMENTO = TemplateAtto(
+    id="impugnazione_licenziamento",
+    nome="Impugnazione Licenziamento",
+    categoria="LAVORO",
+    area="Lavoro e previdenza",
+    branca="Licenziamenti e crisi rapporto",
+    sottobranca="Impugnazione giudiziale",
+    descrizione="Ricorso per impugnare un licenziamento con verifica termini 60/180 giorni.",
+    nome_cartella="Impugnazione_licenziamento_{parte}_{data}",
+    canale="PCT_TELEMATICO",
+    endpoint_deposito="polisWeb_home",
+    tipo_atto_default="RICORSO",
+    nota_canale=(
+        "Dopo l'impugnazione stragiudiziale, il ricorso giudiziale va proposto entro 180 giorni. "
+        "La checklist aiuta a non perdere i termini critici."
+    ),
+    documenti=[
+        _doc(1, "Ricorso_impugnazione_licenziamento", "Ricorso giudiziale firmato digitalmente"),
+        _doc(2, "Procura_alle_liti", "Procura alle liti"),
+        _doc(3, "Lettera_licenziamento", "Lettera di licenziamento impugnata"),
+        _doc(4, "Impugnazione_stragiudiziale", "Atto di impugnazione stragiudiziale entro 60 giorni"),
+        _doc(5, "Buste_paga_e_CUD", "Buste paga, CU e prospetti economici", obbl=False),
+        _doc(6, "Documenti_disciplinari", "Contestazioni disciplinari e difese", obbl=False),
+    ],
+    checklist=[
+        _chk("Impugnazione stragiudiziale inviata entro 60 giorni", critico=True),
+        _chk("Ricorso giudiziale depositato entro 180 giorni dall'impugnazione stragiudiziale", critico=True),
+        _chk("Lettera di licenziamento allegata integralmente", critico=True),
+        _chk("Domanda formulata con richieste economiche coerenti (reintegra / indennita')", critico=True),
+        _chk("Documenti sul rapporto e sulle contestazioni raccolti in ordine cronologico", critico=True),
+        _chk("Tutti i PDF in formato PDF/A-1b", critico=True),
+        _chk("Ricevuta di deposito salvata nel fascicolo", critico=True),
+    ],
+)
+
+SEPARAZIONE_CONSENSUALE = TemplateAtto(
+    id="separazione_consensuale",
+    nome="Separazione Consensuale",
+    categoria="FAMIGLIA",
+    area="Famiglia e persone",
+    branca="Separazione e divorzio",
+    sottobranca="Separazione consensuale",
+    descrizione="Ricorso congiunto per separazione consensuale e omologa.",
+    nome_cartella="Separazione_consensuale_{parte}_{data}",
+    canale="PCT_TELEMATICO",
+    endpoint_deposito="polisWeb_home",
+    tipo_atto_default="RICORSO",
+    nota_canale=(
+        "Il deposito telematico e' ammesso ove l'ufficio lo supporti. "
+        "Verificare sempre prassi del tribunale e presenza di figli minori o non autosufficienti."
+    ),
+    documenti=[
+        _doc(1, "Ricorso_separazione_consensuale", "Ricorso congiunto firmato dalle parti e dai difensori"),
+        _doc(2, "Procure_alle_liti", "Procure alle liti"),
+        _doc(3, "Certificato_matrimonio", "Estratto o certificato di matrimonio"),
+        _doc(4, "Stato_di_famiglia", "Stato di famiglia o certificazione anagrafica"),
+        _doc(5, "Accordi_economici", "Accordi economici e condizioni di separazione"),
+        _doc(6, "Documenti_reddituali", "Ultime dichiarazioni o documenti reddituali", obbl=False),
+    ],
+    checklist=[
+        _chk("Competenza territoriale del tribunale verificata", critico=True),
+        _chk("Condizioni consensuali chiare su casa, assegni, figli e spese straordinarie", critico=True),
+        _chk("Documentazione anagrafica e di matrimonio aggiornata allegata", critico=True),
+        _chk("Eventuali figli minori o non autosufficienti trattati in modo completo", critico=True),
+        _chk("Documenti reddituali coerenti con gli accordi proposti"),
+        _chk("Verificata la prassi del tribunale su udienza e comparizione personale"),
+    ],
+)
+
+DIVORZIO_CONGIUNTO = TemplateAtto(
+    id="divorzio_congiunto",
+    nome="Divorzio Congiunto",
+    categoria="FAMIGLIA",
+    area="Famiglia e persone",
+    branca="Separazione e divorzio",
+    sottobranca="Divorzio congiunto",
+    descrizione="Ricorso congiunto per scioglimento o cessazione degli effetti civili del matrimonio.",
+    nome_cartella="Divorzio_congiunto_{parte}_{data}",
+    canale="PCT_TELEMATICO",
+    endpoint_deposito="polisWeb_home",
+    tipo_atto_default="RICORSO",
+    nota_canale=(
+        "Verificare titolo del matrimonio, termini maturati dopo la separazione e prassi del tribunale."
+    ),
+    documenti=[
+        _doc(1, "Ricorso_divorzio_congiunto", "Ricorso congiunto firmato"),
+        _doc(2, "Procure_alle_liti", "Procure alle liti"),
+        _doc(3, "Verbale_o_sentenza_separazione", "Verbale omologato o sentenza di separazione"),
+        _doc(4, "Certificato_matrimonio", "Certificato di matrimonio con annotazioni"),
+        _doc(5, "Accordi_divorzili", "Accordi economici e genitoriali"),
+        _doc(6, "Documenti_reddituali", "Documenti reddituali recenti", obbl=False),
+    ],
+    checklist=[
+        _chk("Decorso del termine per il divorzio verificato", critico=True),
+        _chk("Verbale o sentenza di separazione allegati", critico=True),
+        _chk("Accordi economici e sui figli aggiornati alla situazione attuale", critico=True),
+        _chk("Certificato di matrimonio con annotazioni disponibile", critico=True),
+        _chk("Eventuali trasferimenti immobiliari valutati con atto idoneo separato"),
+    ],
+)
+
+MODIFICA_CONDIZIONI_FAMIGLIA = TemplateAtto(
+    id="modifica_condizioni_famiglia",
+    nome="Modifica Condizioni di Separazione o Divorzio",
+    categoria="FAMIGLIA",
+    area="Famiglia e persone",
+    branca="Modifica condizioni e volontaria giurisdizione",
+    sottobranca="Revisione condizioni",
+    descrizione="Ricorso per revisione di assegni, tempi di permanenza o altre condizioni familiari.",
+    nome_cartella="Modifica_condizioni_{parte}_{data}",
+    canale="PCT_TELEMATICO",
+    endpoint_deposito="polisWeb_home",
+    tipo_atto_default="RICORSO",
+    nota_canale=(
+        "Occorre allegare il titolo vigente e i fatti sopravvenuti che giustificano la modifica."
+    ),
+    documenti=[
+        _doc(1, "Ricorso_modifica_condizioni", "Ricorso di revisione condizioni"),
+        _doc(2, "Titolo_vigente", "Sentenza, decreto o verbale con condizioni attuali"),
+        _doc(3, "Procura_alle_liti", "Procura alle liti"),
+        _doc(4, "Documenti_sopravvenienze", "Documenti sulle sopravvenienze economiche o familiari"),
+        _doc(5, "Documenti_reddituali", "Documenti reddituali recenti"),
+    ],
+    checklist=[
+        _chk("Titolo vigente allegato integralmente", critico=True),
+        _chk("Sopravvenienze concrete e documentate", critico=True),
+        _chk("Richieste formulate in modo puntuale su assegni, spese e tempi di frequentazione", critico=True),
+        _chk("Documentazione reddituale aggiornata di entrambe le parti se disponibile"),
+    ],
+)
+
+OPPOSIZIONE_ESECUZIONE = TemplateAtto(
+    id="opposizione_esecuzione",
+    nome="Opposizione all'Esecuzione o agli Atti Esecutivi",
+    categoria="ESECUTIVO",
+    area="Esecuzioni e cautelare",
+    branca="Esecuzione forzata",
+    sottobranca="Opposizioni esecutive",
+    descrizione="Opposizione ex artt. 615 o 617 c.p.c. contro titolo, precetto o singolo atto esecutivo.",
+    nome_cartella="Opposizione_esecuzione_{parte}_{data}",
+    canale="PCT_TELEMATICO",
+    endpoint_deposito="polisWeb_home",
+    tipo_atto_default="RICORSO",
+    nota_canale=(
+        "Verificare se l'opposizione riguarda il diritto a procedere in executivis o la regolarita' del singolo atto."
+    ),
+    documenti=[
+        _doc(1, "Atto_opposizione_esecutiva", "Atto introduttivo di opposizione"),
+        _doc(2, "Titolo_o_atto_impugnato", "Titolo esecutivo, precetto o atto esecutivo impugnato"),
+        _doc(3, "Procura_alle_liti", "Procura alle liti"),
+        _doc(4, "Indice_documenti", "Indice allegati"),
+        _doc(5, "Prove_sospensione", "Documenti a supporto della sospensione", obbl=False),
+    ],
+    checklist=[
+        _chk("Corretta qualificazione tra opposizione ex art. 615 e art. 617 c.p.c.", critico=True),
+        _chk("Termini di impugnazione e competenza del giudice dell'esecuzione verificati", critico=True),
+        _chk("Titolo o atto esecutivo impugnato allegato", critico=True),
+        _chk("Istanza di sospensione motivata se necessaria"),
+        _chk("Busta telematica generata e ricevute salvate", critico=True),
+    ],
+)
+
+MOTIVI_AGGIUNTI_TAR = TemplateAtto(
+    id="motivi_aggiunti_tar",
+    nome="Motivi Aggiunti TAR",
+    categoria="AMMINISTRATIVO",
+    area="Amministrativo e appalti",
+    branca="TAR - primo grado",
+    sottobranca="Motivi aggiunti e atti sopravvenuti",
+    descrizione="Deposito di motivi aggiunti contro atti sopravvenuti o per nuovi vizi.",
+    nome_cartella="Motivi_aggiunti_TAR_{parte}_{data}",
+    canale="PAT_AMMINISTRATIVO",
+    endpoint_deposito="pat_home",
+    tipo_atto_default="ALTRO",
+    nota_canale=(
+        "Usare il portale PAT e mantenere il collegamento con il ricorso principale e con l'eventuale istanza cautelare."
+    ),
+    documenti=[
+        _doc(1, "Motivi_aggiunti_TAR", "Atto di motivi aggiunti"),
+        _doc(2, "Provvedimento_sopravvenuto", "Provvedimento sopravvenuto o atto nuovo impugnato"),
+        _doc(3, "Procura_alle_liti", "Procura alle liti, se necessaria integrazione"),
+        _doc(4, "Indice_documenti", "Indice allegati"),
+    ],
+    checklist=[
+        _chk("Collegamento con il ricorso principale indicato chiaramente", critico=True),
+        _chk("Termine di impugnazione dell'atto sopravvenuto verificato", critico=True),
+        _chk("Provvedimento sopravvenuto allegato integralmente", critico=True),
+        _chk("Canale PAT/Formweb corretto e firma ammessa verificati", critico=True),
+    ],
+)
+
+APPELLO_CONSIGLIO_STATO = TemplateAtto(
+    id="appello_consiglio_stato",
+    nome="Appello al Consiglio di Stato",
+    categoria="AMMINISTRATIVO",
+    area="Amministrativo e appalti",
+    branca="Consiglio di Stato",
+    sottobranca="Appello amministrativo",
+    descrizione="Appello contro sentenza o ordinanza del TAR davanti al Consiglio di Stato.",
+    nome_cartella="Appello_Consiglio_Stato_{parte}_{data}",
+    canale="PAT_AMMINISTRATIVO",
+    endpoint_deposito="pat_home",
+    tipo_atto_default="APPELLO",
+    nota_canale=(
+        "Verificare termini brevi o lunghi di impugnazione e canale PAT/Formweb in uso presso la giustizia amministrativa."
+    ),
+    documenti=[
+        _doc(1, "Appello_Consiglio_di_Stato", "Atto di appello"),
+        _doc(2, "Sentenza_o_ordinanza_TAR", "Provvedimento del TAR impugnato"),
+        _doc(3, "Procura_alle_liti", "Procura alle liti"),
+        _doc(4, "Relata_notifica", "Relata o prova di notifica del provvedimento", obbl=False),
+        _doc(5, "Indice_documenti", "Indice allegati"),
+    ],
+    checklist=[
+        _chk("Termine di appello verificato", critico=True),
+        _chk("Sentenza o ordinanza del TAR allegata integralmente", critico=True),
+        _chk("Motivi di appello specifici e non meramente riproduttivi", critico=True),
+        _chk("Eventuale istanza cautelare in appello valutata"),
+        _chk("Deposito sul portale PAT e ricevuta salvata", critico=True),
+    ],
+)
+
+MEMORIA_415BIS = TemplateAtto(
+    id="memoria_415bis",
+    nome="Memoria Difensiva ex art. 415-bis c.p.p.",
+    categoria="PENALE",
+    area="Penale e indagini",
+    branca="Indagini preliminari",
+    sottobranca="Memorie e richieste difensive",
+    descrizione="Memoria difensiva e richieste istruttorie dopo avviso di conclusione indagini.",
+    nome_cartella="Memoria_415bis_{rg}_{parte}_{data}",
+    canale="PDP_PENALE",
+    endpoint_deposito="pdp_home",
+    tipo_atto_default="MEMORIA",
+    nota_canale=(
+        "Dopo l'avviso ex art. 415-bis c.p.p. il deposito avviene tramite PDP e non richiede piu' atto abilitante."
+    ),
+    documenti=[
+        _doc(1, "Memoria_415bis", "Memoria difensiva firmata CAdES (.p7m)"),
+        _doc(2, "Avviso_415bis", "Avviso di conclusione indagini"),
+        _doc(3, "Documenti_difensivi", "Documenti o produzioni difensive", obbl=False),
+        _doc(4, "Richieste_istruttorie", "Richieste di interrogatorio, indagini o atti ex art. 415-bis", obbl=False),
+    ],
+    checklist=[
+        _chk("Nomina difensore gia' accettata e fascicolo visibile nel PDP", critico=True),
+        _chk("Termine per deposito memoria verificato", critico=True),
+        _chk("Avviso 415-bis allegato o riferito con dati completi", critico=True),
+        _chk("Firma CAdES valida e file .p7m corretto", critico=True),
+        _chk("Ricevuta PDP salvata nel fascicolo", critico=True),
+    ],
+)
+
+ISTANZA_DISSEQUESTRO = TemplateAtto(
+    id="istanza_dissequestro",
+    nome="Istanza di Dissequestro",
+    categoria="PENALE",
+    area="Penale e indagini",
+    branca="Indagini preliminari",
+    sottobranca="Istanza beni e restituzioni",
+    descrizione="Istanza di restituzione beni o dissequestro in fase di indagini o giudizio.",
+    nome_cartella="Istanza_dissequestro_{rg}_{parte}_{data}",
+    canale="PDP_PENALE",
+    endpoint_deposito="pdp_home",
+    tipo_atto_default="ISTANZA",
+    nota_canale=(
+        "Valutare ufficio competente, titolo del sequestro e documentazione sulla titolarita' del bene."
+    ),
+    documenti=[
+        _doc(1, "Istanza_dissequestro", "Istanza firmata CAdES (.p7m)"),
+        _doc(2, "Verbale_o_decreto_sequestro", "Verbale o decreto di sequestro"),
+        _doc(3, "Documenti_titolarita_bene", "Documenti di proprieta' o disponibilita' del bene"),
+        _doc(4, "Procura_speciale", "Procura speciale, se necessaria", obbl=False),
+    ],
+    checklist=[
+        _chk("Provvedimento di sequestro allegato", critico=True),
+        _chk("Titolarita' o disponibilita' del bene documentata", critico=True),
+        _chk("Ufficio destinatario e fase procedimentale verificati", critico=True),
+        _chk("Ricevuta di deposito PDP salvata", critico=True),
+    ],
+)
+
+NEGOZIAZIONE_ASSISTITA = TemplateAtto(
+    id="negoziazione_assistita",
+    nome="Negoziazione Assistita",
+    categoria="STRAGIUDIZIALE",
+    area="ADR e stragiudiziale",
+    branca="Mediazione e negoziazione",
+    sottobranca="Negoziazione assistita",
+    descrizione="Invito e convenzione di negoziazione assistita con controllo degli allegati di parte.",
+    nome_cartella="Negoziazione_assistita_{parte}_{data}",
+    canale="PEC",
+    endpoint_deposito="messaggi",
+    tipo_atto_default="ALTRO",
+    nota_canale=(
+        "L'invito e l'accordo si gestiscono di norma a mezzo PEC o scambio documentale tracciato; non si crea una busta PCT."
+    ),
+    documenti=[
+        _doc(1, "Invito_negoziazione_assistita", "Invito alla negoziazione"),
+        _doc(2, "Procura_o_incarico", "Procura o lettera di incarico"),
+        _doc(3, "Bozza_convenzione", "Bozza di convenzione di negoziazione"),
+        _doc(4, "Documenti_supporto", "Documenti a supporto della posizione"),
+    ],
+    checklist=[
+        _chk("Ambito di negoziazione ammesso e tentativo effettivamente necessario verificato", critico=True),
+        _chk("PEC o canale tracciato del destinatario verificato", critico=True),
+        _chk("Invito con termine e avvertimenti corretti", critico=True),
+        _chk("Documenti essenziali allegati in modo ordinato", critico=True),
+        _chk("Accordo finale sottoscritto con firme e allegati completi se raggiunto"),
+    ],
+)
+
+DIFFIDA_STRAGIUDIZIALE = TemplateAtto(
+    id="diffida_stragiudiziale",
+    nome="Diffida e Messa in Mora",
+    categoria="STRAGIUDIZIALE",
+    area="ADR e stragiudiziale",
+    branca="Diffide e prevenzione contenzioso",
+    sottobranca="Diffida stragiudiziale",
+    descrizione="Lettera di diffida o messa in mora con prova di invio e allegati essenziali.",
+    nome_cartella="Diffida_messa_in_mora_{parte}_{data}",
+    canale="PEC",
+    endpoint_deposito="messaggi",
+    tipo_atto_default="ALTRO",
+    nota_canale=(
+        "La diffida si prepara fuori dal deposito telematico giudiziario ma deve restare fascicolata in modo rigoroso."
+    ),
+    documenti=[
+        _doc(1, "Diffida_messa_in_mora", "Atto di diffida o messa in mora"),
+        _doc(2, "Procura_o_incarico", "Procura o incarico del cliente", obbl=False),
+        _doc(3, "Documenti_giustificativi", "Contratti, fatture, comunicazioni o prove"),
+        _doc(4, "Ricevuta_invio_PEC", "Ricevuta di invio e consegna PEC", obbl=False),
+    ],
+    checklist=[
+        _chk("Destinatario e indirizzo PEC corretti", critico=True),
+        _chk("Richiesta formulata in modo preciso con termine assegnato", critico=True),
+        _chk("Documenti probatori essenziali allegati o richiamati", critico=True),
+        _chk("Prova di invio e consegna conservata nel fascicolo", critico=True),
+    ],
+)
+
 # ---------------------------------------------------------------------------
 TUTTI_I_TEMPLATE: List[TemplateAtto] = [
     DECRETO_INGIUNTIVO,
@@ -893,22 +1327,36 @@ TUTTI_I_TEMPLATE: List[TemplateAtto] = [
     MEMORIA_DIFENSIVA,
     RICORSO_APPELLO,
     OPPOSIZIONE_DI,
+    RICORSO_LAVORO,
+    IMPUGNAZIONE_LICENZIAMENTO,
+    SEPARAZIONE_CONSENSUALE,
+    DIVORZIO_CONGIUNTO,
+    MODIFICA_CONDIZIONI_FAMIGLIA,
     ATTO_PRECETTO,
     PIGNORAMENTO,
+    OPPOSIZIONE_ESECUZIONE,
     RICORSO_CAUTELARE,
-    RICORSO_TAR,
-    MEDIAZIONE,
     APPELLO_PENALE,
     NOMINA_DIFENSORE,
+    MEMORIA_415BIS,
+    ISTANZA_DISSEQUESTRO,
     RINUNCIA_REVOCA_MANDATO,
     OPPOSIZIONE_ARCHIVIAZIONE,
     DENUNCIA_QUERELA,
+    RICORSO_TAR,
+    MOTIVI_AGGIUNTI_TAR,
+    APPELLO_CONSIGLIO_STATO,
     RICORSO_TRIBUTARIO,
     APPELLO_TRIBUTARIO,
+    MEDIAZIONE,
+    NEGOZIAZIONE_ASSISTITA,
+    DIFFIDA_STRAGIUDIZIALE,
 ]
 
 CATEGORIE = {
     "CIVILE":         "Civile",
+    "LAVORO":         "Lavoro",
+    "FAMIGLIA":       "Famiglia",
     "ESECUTIVO":      "Esecutivo",
     "CAUTELARE":      "Cautelare",
     "PENALE":         "Penale",
@@ -919,6 +1367,8 @@ CATEGORIE = {
 
 CAT_ICON = {
     "CIVILE":         "bi-balance-scale",
+    "LAVORO":         "bi-briefcase-fill",
+    "FAMIGLIA":       "bi-people-fill",
     "ESECUTIVO":      "bi-hammer",
     "CAUTELARE":      "bi-shield-exclamation",
     "PENALE":         "bi-shield-fill",
@@ -929,6 +1379,8 @@ CAT_ICON = {
 
 CAT_COL = {
     "CIVILE":         "primary",
+    "LAVORO":         "success",
+    "FAMIGLIA":       "danger",
     "ESECUTIVO":      "warning",
     "CAUTELARE":      "danger",
     "PENALE":         "dark",
@@ -936,6 +1388,187 @@ CAT_COL = {
     "TRIBUTARIO":     "warning",
     "STRAGIUDIZIALE": "success",
 }
+
+AREA_META = {
+    "Civile e commerciale": {
+        "ordine": 10,
+        "icona": "bi-bank2",
+        "colore": "primary",
+        "descrizione": "Ricorsi, costituzioni, memorie e impugnazioni del contenzioso civile e commerciale.",
+    },
+    "Lavoro e previdenza": {
+        "ordine": 20,
+        "icona": "bi-briefcase-fill",
+        "colore": "success",
+        "descrizione": "Rito lavoro, licenziamenti e vertenze previdenziali con controllo dei termini critici.",
+    },
+    "Famiglia e persone": {
+        "ordine": 30,
+        "icona": "bi-people-fill",
+        "colore": "danger",
+        "descrizione": "Separazioni, divorzi e revisioni delle condizioni familiari con documentazione anagrafica e reddituale.",
+    },
+    "Esecuzioni e cautelare": {
+        "ordine": 40,
+        "icona": "bi-shield-lock-fill",
+        "colore": "warning",
+        "descrizione": "Precetti, pignoramenti, opposizioni e tutele cautelari prima e durante l'esecuzione.",
+    },
+    "Penale e indagini": {
+        "ordine": 50,
+        "icona": "bi-shield-fill-check",
+        "colore": "dark",
+        "descrizione": "PDP, atti abilitanti, memorie difensive, impugnazioni penali e atti della persona offesa.",
+    },
+    "Amministrativo e appalti": {
+        "ordine": 60,
+        "icona": "bi-building",
+        "colore": "info",
+        "descrizione": "Ricorsi, motivi aggiunti e appelli in giustizia amministrativa, inclusi gli appalti.",
+    },
+    "Tributario": {
+        "ordine": 70,
+        "icona": "bi-receipt-cutoff",
+        "colore": "warning",
+        "descrizione": "Ricorsi e appelli nel processo tributario telematico con workflow NIR del portale MEF.",
+    },
+    "ADR e stragiudiziale": {
+        "ordine": 80,
+        "icona": "bi-handshake",
+        "colore": "secondary",
+        "descrizione": "Mediazione, negoziazione e diffide con fascicolazione rigorosa e prova di invio.",
+    },
+}
+
+
+def conta_documenti_obbligatori(template: TemplateAtto) -> int:
+    return sum(1 for documento in template.documenti if documento.obbligatorio)
+
+
+def conta_item_critici(template: TemplateAtto) -> int:
+    return sum(1 for item in template.checklist if item.critico)
+
+
+def normalizza_data_cartella(data: str = "") -> str:
+    from datetime import date as _date
+    from datetime import datetime as _datetime
+
+    raw = (data or "").strip()
+    if not raw:
+        return _date.today().strftime("%d-%m-%Y")
+    for formato in ("%Y-%m-%d", "%d/%m/%Y", "%d-%m-%Y", "%Y/%m/%d"):
+        try:
+            return _datetime.strptime(raw, formato).strftime("%d-%m-%Y")
+        except ValueError:
+            continue
+    return raw.replace("/", "-")
+
+
+def costruisci_catalogo_checklist(
+    templates: Optional[List[TemplateAtto]] = None,
+    *,
+    area: str = "",
+    q: str = "",
+) -> List[dict]:
+    sorgente = templates or TUTTI_I_TEMPLATE
+    area_filtro = (area or "").strip().lower()
+    ricerca = (q or "").strip().lower()
+    bucket_aree: dict[str, dict] = {}
+
+    for template in sorgente:
+        testo_ricerca = " ".join(
+            [
+                template.nome,
+                template.descrizione,
+                template.categoria,
+                template.area,
+                template.branca,
+                template.sottobranca,
+                template.canale,
+            ]
+        ).lower()
+        if area_filtro and template.area.lower() != area_filtro:
+            continue
+        if ricerca and ricerca not in testo_ricerca:
+            continue
+
+        meta_area = AREA_META.get(template.area, {})
+        area_bucket = bucket_aree.setdefault(
+            template.area,
+            {
+                "nome": template.area,
+                "meta": meta_area,
+                "template_count": 0,
+                "documenti_obbligatori": 0,
+                "critici_count": 0,
+                "_branche": {},
+            },
+        )
+        area_bucket["template_count"] += 1
+        area_bucket["documenti_obbligatori"] += conta_documenti_obbligatori(template)
+        area_bucket["critici_count"] += conta_item_critici(template)
+
+        branca_bucket = area_bucket["_branche"].setdefault(
+            template.branca,
+            {
+                "nome": template.branca,
+                "template_count": 0,
+                "_sottobranche": {},
+            },
+        )
+        branca_bucket["template_count"] += 1
+
+        sottobranca_bucket = branca_bucket["_sottobranche"].setdefault(
+            template.sottobranca,
+            {
+                "nome": template.sottobranca,
+                "template_count": 0,
+                "templates": [],
+            },
+        )
+        sottobranca_bucket["template_count"] += 1
+        sottobranca_bucket["templates"].append(template)
+
+    catalogo = []
+    for area_nome, area_bucket in sorted(
+        bucket_aree.items(),
+        key=lambda item: (item[1]["meta"].get("ordine", 999), item[0]),
+    ):
+        branche = []
+        for branca_nome, branca_bucket in sorted(area_bucket["_branche"].items(), key=lambda item: item[0]):
+            sottobranche = []
+            for sottobranca_nome, sottobranca_bucket in sorted(
+                branca_bucket["_sottobranche"].items(),
+                key=lambda item: item[0],
+            ):
+                sottobranche.append(
+                    {
+                        "nome": sottobranca_nome,
+                        "template_count": sottobranca_bucket["template_count"],
+                        "templates": sorted(
+                            sottobranca_bucket["templates"],
+                            key=lambda template: (CATEGORIE.get(template.categoria, template.categoria), template.nome),
+                        ),
+                    }
+                )
+            branche.append(
+                {
+                    "nome": branca_nome,
+                    "template_count": branca_bucket["template_count"],
+                    "sottobranche": sottobranche,
+                }
+            )
+        catalogo.append(
+            {
+                "nome": area_nome,
+                "meta": area_bucket["meta"],
+                "template_count": area_bucket["template_count"],
+                "documenti_obbligatori": area_bucket["documenti_obbligatori"],
+                "critici_count": area_bucket["critici_count"],
+                "branche": branche,
+            }
+        )
+    return catalogo
 
 
 def get_template(id_template: str) -> Optional[TemplateAtto]:
@@ -945,8 +1578,7 @@ def get_template(id_template: str) -> Optional[TemplateAtto]:
 def nome_cartella_compilato(template: TemplateAtto, parte: str = "",
                              rg: str = "", data: str = "") -> str:
     import re
-    from datetime import date as _date
-    d = data or _date.today().isoformat()
+    d = normalizza_data_cartella(data)
     parte_safe = re.sub(r"[^\w]", "_", parte).strip("_") if parte else "Controparte"
     rg_safe    = re.sub(r"[^\w]", "_", rg).strip("_")    if rg    else "RG"
     return (template.nome_cartella

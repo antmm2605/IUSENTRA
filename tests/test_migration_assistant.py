@@ -218,3 +218,62 @@ def test_admin_assistente_migrazione_renderizza_errori_e_rimedi(tmp_path, monkey
     assert "Esecuzione non completata" in html
     assert "Come risolvere" in html
     assert "Verifica host, porta, nome database, utente e password nello studio selezionato." in html
+
+
+def test_build_migration_assistant_tollera_report_postgres_con_metadata_stringhe(tmp_path):
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    registry = tmp_path / "tenants.json"
+    tm = GestioneTenant(str(registry))
+    studio = tm.crea("Studio Report", "antonella-mammola", db_config={"mode": "POSTGRESQL"})
+    paths = tm.percorsi_dati(studio.slug)
+    report_path = Path(paths["BACKUP_DIR"]) / "storage_migration_full_postgresql_antonella-mammola_20260419_120000.json"
+    report_path.parent.mkdir(parents=True, exist_ok=True)
+    report_path.write_text(
+        json.dumps(
+            {
+                "generated_at": "2026-04-19T12:00:00",
+                "target": "postgresql",
+                "success": True,
+                "report_path": str(report_path),
+                "sqlite_stage": {
+                    "success": True,
+                    "core": {"avvisi": []},
+                },
+                "core": {
+                    "success": True,
+                    "consistency": {
+                        "clienti": {"json": 10, "sqlite": 10, "postgres": 10, "ok": True},
+                    },
+                },
+                "repositories": {
+                    "template_atti": {
+                        "ok": True,
+                        "postgres_stats": {
+                            "db_path": str(tmp_path / "tenant" / "template_repository.db"),
+                            "backend_kind": "postgresql",
+                            "template_repository": 18,
+                            "template_blocks": 18,
+                        },
+                    },
+                    "coverage_ai": {
+                        "ok": True,
+                        "postgres_stats": {"snapshots": 4, "open_gaps": 2, "drafts": 1},
+                    },
+                },
+                "repository_errors": [],
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+
+    app = create_app({**_cfg_web(tmp_path), "TENANTS_REGISTRY": str(registry)})
+    with app.app_context():
+        payload = build_migration_assistant(selected_slug=studio.slug)
+
+    assert payload["last_execution"] is not None
+    assert payload["last_execution"]["success"] is True
+    repository_rows = payload["last_execution"]["repository_rows"]
+    template_row = next(row for row in repository_rows if row["label"] == "Template atti")
+    assert template_row["status"] == "success"
+    assert "18" in template_row["detail"]

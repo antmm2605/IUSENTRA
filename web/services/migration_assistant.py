@@ -130,11 +130,29 @@ def _compact_counts(values: dict[str, Any] | None) -> str:
     payload = dict(values or {})
     chunks: list[str] = []
     for key, raw_value in payload.items():
-        value = int(raw_value or 0)
-        if value <= 0:
+        value = _to_int_or_none(raw_value)
+        if value is None or value <= 0:
             continue
         chunks.append(f"{_DOMAIN_LABELS.get(key, key.replace('_', ' ').title())}: {value}")
     return " | ".join(chunks[:6]) if chunks else "Nessun record trasferito."
+
+
+def _to_int_or_none(raw_value: Any) -> int | None:
+    if isinstance(raw_value, bool):
+        return int(raw_value)
+    if isinstance(raw_value, int):
+        return raw_value
+    if isinstance(raw_value, float):
+        return int(raw_value)
+    try:
+        text = str(raw_value or "").strip()
+    except Exception:
+        return None
+    if not text:
+        return None
+    if text.isdigit():
+        return int(text)
+    return None
 
 
 def _collect_domain_messages(messages: list[str], domain_code: str) -> list[str]:

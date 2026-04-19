@@ -5,6 +5,7 @@ Interfaccia a riga di comando per il sistema PCT.
 import os
 import sys
 import json
+from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
@@ -53,6 +54,7 @@ from .pagamenti import GestionePagamenti
 from .preventivi import GestionePreventivi
 from .golden_paths import build_golden_path_payload, run_golden_path_suites
 from .legal_update_pipeline import build_legal_update_pipeline
+from .storage_migration_full import attach_migration_rollback_context
 from .studio_demo import build_studio_demo_snapshot
 from .tenant import DatabaseConfig, DbMode, GestioneTenant
 from .scadenziario import (
@@ -2414,8 +2416,51 @@ def cmd_crea_superadmin(username, password, email, nome, auth_db, forza):
     click.echo("Accedi su /login e poi visita /admin/ per gestire gli studi.")
 
 
+def _copy_database_config(database) -> DatabaseConfig:
+    if isinstance(database, DatabaseConfig):
+        return DatabaseConfig.from_dict(database.to_dict())
+    if hasattr(database, "to_dict"):
+        try:
+            return DatabaseConfig.from_dict(database.to_dict())
+        except Exception:
+            return DatabaseConfig.from_dict({})
+    return DatabaseConfig.from_dict(database)
+
+
+def _load_json_report(path: str) -> dict:
+    target = Path(str(path or "").strip())
+    if not target.exists():
+        return {}
+    try:
+        payload = json.loads(target.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+    return payload if isinstance(payload, dict) else {}
+
+
+def _latest_migration_report_path(tm: GestioneTenant, tenant_slug: str, explicit_path: str = "") -> str:
+    manual = str(explicit_path or "").strip()
+    if manual:
+        return manual
+    studio = tm.get(tenant_slug)
+    candidate = str(getattr(getattr(studio, "database", None), "last_migration_report", "") or "").strip()
+    if candidate and Path(candidate).exists():
+        return candidate
+    backup_dir = Path(tm.percorsi_dati(tenant_slug)["BACKUP_DIR"])
+    reports = sorted(backup_dir.glob("storage_migration_full_*.json"))
+    return str(reports[-1]) if reports else ""
+
+
+def _write_rollback_report(tm: GestioneTenant, tenant_slug: str, payload: dict) -> str:
+    backup_dir = Path(tm.percorsi_dati(tenant_slug)["BACKUP_DIR"])
+    backup_dir.mkdir(parents=True, exist_ok=True)
+    output = backup_dir / f"storage_migration_rollback_{tenant_slug}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+    output.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    return str(output)
+
+
 @cli.command("migrate")
-@click.option("--to", "target", required=True, type=click.Choice(["postgres", "sqlite"], case_sensitive=False), help="Backend target della migrazione ufficiale")
+@click.option("--to", "target", required=False, type=click.Choice(["postgres", "sqlite"], case_sensitive=False), help="Backend target della migrazione ufficiale")
 @click.option("--tenant", "tenant_slug", default="", help="Slug tenant. Se omesso e c'e' un solo tenant, viene risolto automaticamente")
 @click.option("--registry", default=lambda: os.getenv("PCT_TENANTS_REGISTRY", "./data/tenants.json"), show_default="PCT_TENANTS_REGISTRY o ./data/tenants.json", help="Registry tenant")
 @click.option("--host", default="", help="Host PostgreSQL")
@@ -2425,8 +2470,10 @@ def cmd_crea_superadmin(username, password, email, nome, auth_db, forza):
 @click.option("--password", default="", help="Password PostgreSQL")
 @click.option("--ssl/--no-ssl", default=False, help="Connessione SSL verso PostgreSQL")
 @click.option("--activate/--no-activate", default=True, help="Attiva il backend target dopo la migrazione")
+@click.option("--rollback/--no-rollback", default=False, help="Ripristina il backend precedente usando l'ultimo report di migrazione disponibile.")
+@click.option("--report-path", default="", help="Report di migrazione da usare esplicitamente per il rollback.")
 @click.option("--secret-key", default=lambda: os.getenv("PCT_SECRET_KEY", ""), help="Secret key per utenti e audit")
-def cmd_migrate_storage(target, tenant_slug, registry, host, port, db_name, user, password, ssl, activate, secret_key):
+def cmd_migrate_storage(target, tenant_slug, registry, host, port, db_name, user, password, ssl, activate, rollback, report_path, secret_key):
     """Esegue la migrazione ufficiale JSON -> SQLite -> PostgreSQL o JSON -> SQLite per un tenant."""
     tm = GestioneTenant(registry_path=registry)
     tenants = tm.lista()
@@ -2444,10 +2491,54 @@ def cmd_migrate_storage(target, tenant_slug, registry, host, port, db_name, user
         click.echo(f"Errore: tenant '{resolved_slug}' non trovato.", err=True)
         sys.exit(1)
 
+    if rollback:
+        report_file = _latest_migration_report_path(tm, resolved_slug, explicit_path=report_path)
+        if not report_file:
+            click.echo("Errore: nessun report di migrazione disponibile per il rollback.", err=True)
+            sys.exit(1)
+        report_payload = _load_json_report(report_file)
+        rollback_context = dict((report_payload.get("rollback") or {}).get("context") or {})
+        previous_payload = dict(rollback_context.get("previous_database_config") or {})
+        if not previous_payload:
+            click.echo("Errore: il report selezionato non contiene il contesto di rollback.", err=True)
+            sys.exit(1)
+        restored_config = DatabaseConfig.from_dict(previous_payload)
+        tm.aggiorna_db_config(resolved_slug, restored_config)
+        if restored_config.is_sqlite:
+            tm.provision_storage_backend(resolved_slug, migrate_existing=False)
+        restored_studio = tm.get(resolved_slug)
+        rollback_payload = {
+            "generated_at": datetime.now().replace(microsecond=0).isoformat(),
+            "tenant_slug": resolved_slug,
+            "source_report_path": report_file,
+            "restored_mode": restored_config.normalized_mode,
+            "effective_runtime_kind": getattr(getattr(restored_studio, "database", None), "effective_runtime_kind", ""),
+            "success": True,
+            "silent_fallback_disabled": True,
+        }
+        rollback_payload["report_path"] = _write_rollback_report(tm, resolved_slug, rollback_payload)
+        click.echo(f"Rollback completato per il tenant {resolved_slug}.")
+        click.echo(json.dumps(rollback_payload, ensure_ascii=False, indent=2))
+        return
+
+    if not target:
+        click.echo("Errore: specifica --to oppure usa --rollback.", err=True)
+        sys.exit(1)
+
+    previous_config = _copy_database_config(studio.database)
     if target.lower() == "sqlite":
         cfg = DatabaseConfig(mode=DbMode.SQLITE)
         tm.aggiorna_db_config(resolved_slug, cfg)
         payload = tm.provision_storage_backend(resolved_slug, migrate_existing=True)
+        if payload.get("migration_report"):
+            paths = tm.percorsi_dati(resolved_slug)
+            payload["migration_report"] = attach_migration_rollback_context(
+                report=dict(payload["migration_report"]),
+                paths=paths,
+                tenant_slug=resolved_slug,
+                previous_database_config=previous_config,
+            )
+            payload["migration_report_path"] = payload["migration_report"].get("report_path", payload.get("migration_report_path", ""))
         if not payload.get("ok"):
             click.echo("Migrazione verso SQLite non riuscita.", err=True)
             click.echo(json.dumps(payload, ensure_ascii=False, indent=2), err=True)
@@ -2482,6 +2573,15 @@ def cmd_migrate_storage(target, tenant_slug, registry, host, port, db_name, user
         activate_external=bool(activate),
         secret_key=secret_key,
     )
+    if payload.get("migration_report"):
+        paths = tm.percorsi_dati(resolved_slug)
+        payload["migration_report"] = attach_migration_rollback_context(
+            report=dict(payload["migration_report"]),
+            paths=paths,
+            tenant_slug=resolved_slug,
+            previous_database_config=previous_config,
+        )
+        payload["migration_report_path"] = payload["migration_report"].get("report_path", payload.get("migration_report_path", ""))
     if not payload.get("ok"):
         click.echo("Cutover PostgreSQL non riuscito.", err=True)
         click.echo(json.dumps(payload, ensure_ascii=False, indent=2), err=True)

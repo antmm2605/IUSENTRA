@@ -31,7 +31,6 @@ GOLDEN_PATH_SUITES: tuple[GoldenPathSuite, ...] = (
         criticality="critico",
         surfaces=("login", "dashboard admin", "bootstrap Flask", "observability"),
         pytest_selectors=(
-            "tests/test_end_to_end_studio.py",
             "tests/test_web_bootstrap.py",
             "tests/test_observability_runtime.py",
             "tests/test_operational_surfaces.py",
@@ -44,7 +43,7 @@ GOLDEN_PATH_SUITES: tuple[GoldenPathSuite, ...] = (
         criticality="critico",
         surfaces=("assistente migrazione", "storage parity", "cutover PostgreSQL"),
         pytest_selectors=(
-            "tests/test_tenant_migration_full.py",
+            "tests/e2e/test_tenant_migration_full.py",
             "tests/test_migration_assistant.py",
             "tests/test_storage_postgres_migration.py",
             "tests/test_storage_governance.py",
@@ -57,11 +56,7 @@ GOLDEN_PATH_SUITES: tuple[GoldenPathSuite, ...] = (
         criticality="alto",
         surfaces=("workflow commerciale", "dashboard economica", "portale economici"),
         pytest_selectors=(
-            "tests/test_clienti_workflow.py",
-            "tests/test_workflow_pipeline.py",
-            "tests/test_workflow_commerciale.py",
-            "tests/test_economic_dashboard.py",
-            "tests/test_portale_economici.py",
+            "tests/e2e/test_studio_reale_flow.py",
         ),
     ),
     GoldenPathSuite(
@@ -71,7 +66,7 @@ GOLDEN_PATH_SUITES: tuple[GoldenPathSuite, ...] = (
         criticality="critico",
         surfaces=("dashboard coverage", "review UI", "publish SQL"),
         pytest_selectors=(
-            "tests/test_ai_coverage_pipeline.py",
+            "tests/e2e/test_ai_pipeline_full.py",
             "tests/test_legal_coverage_pipeline.py",
             "tests/test_legal_coverage_surface.py",
         ),

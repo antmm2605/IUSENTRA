@@ -52,6 +52,7 @@ from web.services.observability_runtime import build_observability_payload
 from web.services.product_governance_surface import build_product_governance_surface
 from web.services.studio_installation_status import build_studio_installation_status
 from web.services.system_health_surface import build_system_health_surface
+from web.services.system_health_surface import build_system_health_api_payload
 
 admin_bp = Blueprint("admin", __name__, url_prefix="/admin")
 
@@ -275,6 +276,12 @@ def assistente_migrazione_esegui():
 def salute_sistema():
     payload = build_system_health_surface()
     return render_template("admin/salute_sistema.html", payload=payload)
+
+
+@admin_bp.route("/system-health")
+@superadmin_required
+def system_health():
+    return jsonify(build_system_health_api_payload())
 
 
 @admin_bp.route("/lex-scorecard")

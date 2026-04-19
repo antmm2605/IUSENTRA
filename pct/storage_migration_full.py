@@ -117,6 +117,44 @@ def _now_iso() -> str:
     return datetime.now().replace(microsecond=0).isoformat()
 
 
+def _stamp_now() -> str:
+    return datetime.now().strftime("%Y%m%d_%H%M%S")
+
+
+def _serialize_database_config(database_config: Any | None) -> dict[str, Any]:
+    if database_config is None:
+        return {}
+    if isinstance(database_config, DatabaseConfig):
+        return database_config.to_dict()
+    if isinstance(database_config, dict):
+        return dict(database_config)
+    if hasattr(database_config, "to_dict"):
+        try:
+            payload = database_config.to_dict()
+        except Exception:
+            payload = {}
+        return dict(payload or {})
+    return {}
+
+
+def _write_backup_artifact(
+    paths: dict[str, str],
+    *,
+    prefix: str,
+    tenant_slug: str,
+    target_label: str,
+    payload: dict[str, Any],
+) -> str:
+    backup_dir = Path(paths.get("BACKUP_DIR", "./backup"))
+    backup_dir.mkdir(parents=True, exist_ok=True)
+    output_path = backup_dir / f"{prefix}_{target_label}_{tenant_slug}_{_stamp_now()}.json"
+    output_path.write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+    return str(output_path)
+
+
 def _json_record_count(path: str) -> int:
     file_path = Path(str(path or "").strip())
     if not file_path.exists() or file_path.suffix.lower() != ".json":
@@ -397,6 +435,7 @@ def _build_diff_summary(*, inventory: dict[str, Any], target: str) -> dict[str, 
     source_label = "JSON legacy" if target == "sqlite" else "SQL locale"
     destination_label = "SQL locale" if target == "sqlite" else "PostgreSQL"
     rows: list[dict[str, Any]] = []
+    by_domain: dict[str, dict[str, Any]] = {}
     for domain in inventory.get("domains", []):
         kind = str(domain.get("storage_kind") or "")
         if kind == "filesystem":
@@ -419,8 +458,18 @@ def _build_diff_summary(*, inventory: dict[str, Any], target: str) -> dict[str, 
                 "note": str(domain.get("note") or ""),
             }
         )
+        by_domain[str(domain.get("code") or "")] = {
+            "title": str(domain.get("title") or ""),
+            "prima": source_count,
+            "dopo": destination_count,
+            "delta": delta,
+            "source_label": source_label,
+            "destination_label": destination_label,
+            "status": "success" if ok else "warning",
+        }
     return {
         "rows": rows,
+        "by_domain": by_domain,
         "summary": {
             "rows_total": len(rows),
             "matched": sum(1 for row in rows if row["status"] == "success"),
@@ -434,12 +483,24 @@ def _build_diff_summary(*, inventory: dict[str, Any], target: str) -> dict[str, 
 def _build_precheck_snapshot(*, inventory: dict[str, Any], target: str, paths: dict[str, str]) -> dict[str, Any]:
     source_label = "JSON legacy" if target == "sqlite" else "SQL locale"
     destination_label = "SQL locale" if target == "sqlite" else "PostgreSQL"
+    counts_by_domain: dict[str, dict[str, Any]] = {}
+    count_key = "json_count" if target == "sqlite" else "sqlite_count"
+    for domain in inventory.get("domains", []):
+        code = str(domain.get("code") or "").strip()
+        if not code:
+            continue
+        counts_by_domain[code] = {
+            "title": str(domain.get("title") or ""),
+            "conteggio": int(domain.get(count_key) or 0),
+            "storage_kind": str(domain.get("storage_kind") or ""),
+        }
     return {
         "generated_at": str(inventory.get("generated_at") or _now_iso()),
         "source_label": source_label,
         "destination_label": destination_label,
         "domains_total": len(list(inventory.get("domains") or [])),
         "backup_dir": str(paths.get("BACKUP_DIR", "")),
+        "counts_by_domain": counts_by_domain,
         "filesystem_preserved": True,
         "note": (
             "Snapshot pre-migrazione costruito dal precheck tenant-aware prima del cutover."
@@ -560,6 +621,7 @@ def _build_rollback_posture(*, target: str, success: bool) -> dict[str, Any]:
         return {
             "status": "success" if success else "warning",
             "label": "Rollback tenant-aware disponibile",
+            "command": "",
             "detail": (
                 "Il cutover PostgreSQL passa dallo staging SQL locale e non sposta i documenti su filesystem. "
                 "Se smoke test o consistenza falliscono, il tenant puo' tornare al backend precedente con rollback controllato."
@@ -569,10 +631,12 @@ def _build_rollback_posture(*, target: str, success: bool) -> dict[str, Any]:
                 "Riporta il tenant al backend strutturato precedente e verifica subito login, clienti, fascicoli, agenda e audit.",
                 "Non spostare manualmente documenti o upload: restano filesystem-first e non vanno riallineati durante il rollback.",
             ],
+            "context": {},
         }
     return {
         "status": "success" if success else "warning",
         "label": "Recovery locale disponibile",
+        "command": "",
         "detail": (
             "La migrazione verso SQL locale lascia intatti JSON legacy, backup tenant-aware e documenti su filesystem. "
             "Il ripristino puo' usare il report corrente e le sorgenti precedenti senza perdita dei file."
@@ -582,19 +646,52 @@ def _build_rollback_posture(*, target: str, success: bool) -> dict[str, Any]:
             "Se serve ripristino, usa le sorgenti JSON legacy e il backup dello studio per riallineare lo stato precedente.",
             "Dopo il recovery rilancia il precheck e correggi i domini con warning o delta prima di un nuovo cutover.",
         ],
+        "context": {},
     }
 
 
 def _write_report(paths: dict[str, str], tenant_slug: str, target_label: str, report: dict[str, Any]) -> str:
-    backup_dir = Path(paths.get("BACKUP_DIR", "./backup"))
-    backup_dir.mkdir(parents=True, exist_ok=True)
-    stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    output_path = backup_dir / f"storage_migration_full_{target_label}_{tenant_slug}_{stamp}.json"
-    output_path.write_text(
-        json.dumps(report, ensure_ascii=False, indent=2),
-        encoding="utf-8",
+    return _write_backup_artifact(
+        paths,
+        prefix="storage_migration_full",
+        tenant_slug=tenant_slug,
+        target_label=target_label,
+        payload=report,
     )
-    return str(output_path)
+
+
+def attach_migration_rollback_context(
+    *,
+    report: dict[str, Any],
+    paths: dict[str, str],
+    tenant_slug: str,
+    previous_database_config: Any | None = None,
+) -> dict[str, Any]:
+    payload = dict(report or {})
+    rollback = dict(payload.get("rollback") or {})
+    previous_payload = _serialize_database_config(previous_database_config)
+    rollback["command"] = f"iusentra migrate --tenant={tenant_slug} --rollback"
+    rollback["context"] = {
+        **dict(rollback.get("context") or {}),
+        "tenant_slug": tenant_slug,
+        "target": str(payload.get("target") or ""),
+        "report_path": str(payload.get("report_path") or ""),
+        "snapshot_path": str(
+            payload.get("pre_migration_snapshot_path")
+            or (payload.get("precheck_snapshot") or {}).get("snapshot_path")
+            or ""
+        ),
+        "previous_database_config": previous_payload,
+        "automatic_block_on_failure": True,
+        "silent_fallback_disabled": True,
+    }
+    payload["rollback"] = rollback
+    if payload.get("report_path"):
+        Path(str(payload["report_path"])).write_text(
+            json.dumps(payload, ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+    return payload
 
 
 def _workspace_service(paths: dict[str, str], *, postgres_dsn: str = "") -> WorkspaceIntelligenteService:
@@ -916,6 +1013,20 @@ def migrate_full_storage_to_sqlite(
     database_config: Any | None = None,
     write_report: bool = True,
 ) -> dict[str, Any]:
+    pre_inventory = build_full_storage_inventory(
+        paths=paths,
+        database_config=database_config,
+        tenant_slug=tenant_slug,
+    )
+    precheck_snapshot = _build_precheck_snapshot(inventory=pre_inventory, target="sqlite", paths=paths)
+    precheck_snapshot_path = _write_backup_artifact(
+        paths,
+        prefix="pre_migration",
+        tenant_slug=tenant_slug,
+        target_label="sqlite",
+        payload=precheck_snapshot,
+    )
+    precheck_snapshot["snapshot_path"] = precheck_snapshot_path
     migratore = GestioneDatabase(_extended_sqlite_sources(paths))
     core = migratore.migra_verso_sqlite(paths["STUDIO_DB"]).to_dict()
     repositories = _migrate_sqlite_repository_domains(paths)
@@ -944,7 +1055,8 @@ def migrate_full_storage_to_sqlite(
             "archive_count": _count_files(paths.get("FASCICOLI_ARCH", "")),
             "storage_kind": "filesystem",
         },
-        "precheck_snapshot": _build_precheck_snapshot(inventory=inventory, target="sqlite", paths=paths),
+        "precheck_snapshot": precheck_snapshot,
+        "pre_migration_snapshot_path": precheck_snapshot_path,
         "diff_summary": diff_summary,
         "dirty_tenant_findings": dirty_findings,
         "operation_log": _build_operation_log(
@@ -979,6 +1091,24 @@ def migrate_full_storage_to_postgres(
         database_config=database_config,
         write_report=False,
     )
+    precheck_inventory = build_full_storage_inventory(
+        paths=paths,
+        database_config=database_config,
+        tenant_slug=tenant_slug,
+    )
+    precheck_snapshot = _build_precheck_snapshot(
+        inventory=precheck_inventory,
+        target="postgresql",
+        paths=paths,
+    )
+    precheck_snapshot_path = _write_backup_artifact(
+        paths,
+        prefix="pre_migration",
+        tenant_slug=tenant_slug,
+        target_label="postgresql",
+        payload=precheck_snapshot,
+    )
+    precheck_snapshot["snapshot_path"] = precheck_snapshot_path
     try:
         StudioDB.get(paths["STUDIO_DB"]).chiudi()
     except Exception:
@@ -1013,7 +1143,8 @@ def migrate_full_storage_to_postgres(
         "core": core_report,
         "repositories": repositories,
         "repository_errors": repo_errors,
-        "precheck_snapshot": _build_precheck_snapshot(inventory=inventory, target="postgresql", paths=paths),
+        "precheck_snapshot": precheck_snapshot,
+        "pre_migration_snapshot_path": precheck_snapshot_path,
         "diff_summary": diff_summary,
         "dirty_tenant_findings": dirty_findings,
         "operation_log": _build_operation_log(

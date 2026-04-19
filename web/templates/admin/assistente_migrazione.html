@@ -300,6 +300,11 @@
         <div class="small mb-2">
           <strong>Backup tenant:</strong> <code>{{ payload.last_execution.precheck_snapshot.backup_dir|default('n/d') }}</code>
         </div>
+        {% if payload.last_execution.precheck_snapshot.snapshot_path %}
+        <div class="small mb-2">
+          <strong>Snapshot persistito:</strong> <code>{{ payload.last_execution.precheck_snapshot.snapshot_path }}</code>
+        </div>
+        {% endif %}
         <div class="small text-muted">{{ payload.last_execution.precheck_snapshot.note|default('') }}</div>
         {% else %}
         <div class="small text-muted">Nessuno snapshot pre-migrazione disponibile nel report corrente.</div>
@@ -374,6 +379,11 @@
           </span>
         </div>
         <div class="small mb-3">{{ payload.last_execution.rollback.detail }}</div>
+        {% if payload.last_execution.rollback.command %}
+        <div class="small mb-3">
+          <strong>Comando guidato:</strong> <code>{{ payload.last_execution.rollback.command }}</code>
+        </div>
+        {% endif %}
         <ol class="mb-0">
           {% for item in payload.last_execution.rollback.steps|default([]) %}
           <li class="mb-2">{{ item }}</li>

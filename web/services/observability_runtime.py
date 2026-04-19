@@ -102,11 +102,31 @@ def build_observability_payload(app: Flask | None = None) -> dict[str, Any]:
         }
 
     payload["alerts"] = _build_observability_alerts(payload)
+    for alert in payload["alerts"]:
+        alert["normalized_code"] = _normalized_alert_code(str(alert.get("code") or ""))
     errors = sum(1 for alert in payload["alerts"] if alert["severity"] == "danger")
     warnings = sum(1 for alert in payload["alerts"] if alert["severity"] == "warning")
+    taxonomy_catalog = _build_error_taxonomy_catalog()
     payload["taxonomy"] = {
         "families": sorted({str(alert.get("family") or "") for alert in payload["alerts"] if alert.get("family")}),
         "components": sorted({str(alert.get("component") or "") for alert in payload["alerts"] if alert.get("component")}),
+        "catalog": taxonomy_catalog,
+        "active_codes": sorted({str(alert.get("normalized_code") or alert.get("code") or "") for alert in payload["alerts"] if alert.get("normalized_code") or alert.get("code")}),
+    }
+    payload["error_taxonomy"] = {
+        "catalog": taxonomy_catalog,
+        "active_codes": payload["taxonomy"]["active_codes"],
+        "active": [
+            {
+                "code": str(alert.get("normalized_code") or alert.get("code") or ""),
+                "raw_code": str(alert.get("code") or ""),
+                "title": str(alert.get("title") or ""),
+                "severity": str(alert.get("severity") or ""),
+                "operator_message": str(alert.get("operator_message") or ""),
+                "remediation": str(alert.get("remediation") or ""),
+            }
+            for alert in payload["alerts"]
+        ],
     }
     payload["summary"] = {
         "degraded": bool(payload["alerts"]),
@@ -128,6 +148,81 @@ def _build_observability_thresholds() -> dict[str, Any]:
         "local_ai_runtime": {"label": "Runtime AI locale deve risultare online quando e' abilitato", "required": True},
         "storage_default_mode": {"label": "Il backend predefinito non deve restare JSON in produzione", "allowed": ("SQLITE", "POSTGRESQL")},
     }
+
+
+def _build_error_taxonomy_catalog() -> list[dict[str, str]]:
+    return [
+        {
+            "code": "HTTP_5XX_BUCKET",
+            "family": "HTTP",
+            "component": "Runtime Flask",
+            "title": "Errori 5xx su endpoint",
+            "explanation": "Una superficie HTTP sta fallendo in modo reale.",
+            "action": "Apri i log applicativi del bucket indicato e ripeti lo smoke test del flusso coinvolto.",
+        },
+        {
+            "code": "OCR_TIMEOUT",
+            "family": "OCR",
+            "component": "Pipeline OCR",
+            "title": "Job OCR falliti o bloccati",
+            "explanation": "Il motore OCR non ha completato uno o piu' job entro il comportamento atteso.",
+            "action": "Verifica documenti, runtime OCR e dipendenze, poi rilancia solo i job falliti.",
+        },
+        {
+            "code": "OCR_QUEUE_OVERFLOW",
+            "family": "OCR",
+            "component": "Coda OCR",
+            "title": "Coda OCR in accumulo",
+            "explanation": "La coda OCR cresce piu' del throughput disponibile.",
+            "action": "Controlla worker OCR, CPU e throughput prima che l'arretrato aumenti.",
+        },
+        {
+            "code": "OCR_WORKER_STALLED",
+            "family": "WORKER",
+            "component": "Worker OCR",
+            "title": "Worker OCR fermo",
+            "explanation": "Ci sono job in coda ma il worker non processa nulla.",
+            "action": "Riavvia il worker OCR e controlla lock sul database di coda o accessi filesystem.",
+        },
+        {
+            "code": "AI_MODEL_UNAVAILABLE",
+            "family": "AI",
+            "component": "Runtime AI locale",
+            "title": "Runtime AI o modello non disponibile",
+            "explanation": "Il provider locale non risponde o non ha un modello valido pronto.",
+            "action": "Verifica runtime Ollama, modello configurato e bootstrap AI prima di usare Lex o Coverage AI.",
+        },
+        {
+            "code": "TENANT_DB_ERROR",
+            "family": "STORAGE",
+            "component": "Backend strutturato tenant",
+            "title": "Backend database tenant non coerente",
+            "explanation": "Il runtime strutturato del tenant non e' sul backend SQL atteso o non risulta integro.",
+            "action": "Completa il cutover tenant-aware o correggi la configurazione del backend effettivo.",
+        },
+        {
+            "code": "MIGRATION_FAILED",
+            "family": "MIGRATION",
+            "component": "Assistente migrazione",
+            "title": "Migrazione o capability prodotto non coerente",
+            "explanation": "Un report o una capability critica non risultano leggibili o coerenti.",
+            "action": "Apri il report di migrazione o la governance prodotto e correggi il dominio segnalato prima del cutover.",
+        },
+    ]
+
+
+def _normalized_alert_code(code: str) -> str:
+    mapping = {
+        "HTTP_5XX_BUCKET": "HTTP_5XX_BUCKET",
+        "OCR_FAILED_JOBS": "OCR_TIMEOUT",
+        "OCR_QUEUE_BACKLOG": "OCR_QUEUE_OVERFLOW",
+        "OCR_WORKER_STALLED": "OCR_WORKER_STALLED",
+        "LOCAL_AI_RUNTIME_DOWN": "AI_MODEL_UNAVAILABLE",
+        "STORAGE_DEFAULT_JSON": "TENANT_DB_ERROR",
+        "PRODUCT_CAPABILITY_GAP": "MIGRATION_FAILED",
+    }
+    raw = str(code or "").strip()
+    return mapping.get(raw, raw)
 
 
 def _endpoint_bucket() -> str:

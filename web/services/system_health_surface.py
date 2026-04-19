@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from datetime import datetime
+from typing import Any
+
 from flask import current_app
 
 from web.services.admin_surfaces_shared import (
@@ -68,3 +71,74 @@ def build_system_health_surface() -> dict:
         "scheduler_worker_mode": bool(observability.get("scheduler_worker_mode")),
     }
 
+
+def _status_from_alerts(alerts: list[dict[str, Any]], *, codes: set[str]) -> str:
+    matched = [
+        alert
+        for alert in alerts
+        if str(alert.get("normalized_code") or alert.get("code") or "") in codes
+    ]
+    if any(str(alert.get("severity") or "") == "danger" for alert in matched):
+        return "error"
+    if matched:
+        return "degraded"
+    return "ok"
+
+
+def build_system_health_api_payload() -> dict[str, Any]:
+    observability = build_observability_payload(current_app._get_current_object())
+    alerts = list(observability.get("alerts") or [])
+    storage = dict(observability.get("storage") or {})
+    scheduler_status = "ok"
+    ocr_status = _status_from_alerts(
+        alerts,
+        codes={"OCR_TIMEOUT", "OCR_QUEUE_OVERFLOW", "OCR_WORKER_STALLED"},
+    )
+    ai_status = _status_from_alerts(alerts, codes={"AI_MODEL_UNAVAILABLE"})
+    db_status = _status_from_alerts(alerts, codes={"TENANT_DB_ERROR", "MIGRATION_FAILED"})
+    if db_status == "ok" and str(storage.get("default_mode") or "").upper() not in {"SQLITE", "POSTGRESQL"}:
+        db_status = "degraded"
+
+    overall_status = "ok"
+    if "error" in {ocr_status, ai_status, db_status}:
+        overall_status = "error"
+    elif "degraded" in {ocr_status, ai_status, db_status} or bool(alerts):
+        overall_status = "degraded"
+
+    return {
+        "generated_at": datetime.now().replace(microsecond=0).isoformat(),
+        "status": overall_status,
+        "scheduler": scheduler_status,
+        "ocr": ocr_status,
+        "ai": ai_status,
+        "db": db_status,
+        "components": {
+            "scheduler": {
+                "status": scheduler_status,
+                "detail": "Worker dedicato attivo" if observability.get("scheduler_worker_mode") else "Modalita web",
+            },
+            "ocr": {
+                "status": ocr_status,
+                "detail": f"Coda {int((observability.get('ocr') or {}).get('in_coda') or 0)} · throughput {int((observability.get('ocr') or {}).get('throughput_ultima_ora') or 0)}",
+            },
+            "ai": {
+                "status": ai_status,
+                "detail": str((((observability.get("providers") or {}).get("local_ai") or {}).get("runtime") or {}).get("status") or "n.d."),
+            },
+            "db": {
+                "status": db_status,
+                "detail": f"Backend predefinito {str(storage.get('default_mode') or 'n.d.')}",
+            },
+        },
+        "alerts": alerts,
+        "actions_required": [
+            {
+                "code": str(alert.get("normalized_code") or alert.get("code") or ""),
+                "title": str(alert.get("title") or ""),
+                "message": str(alert.get("operator_message") or ""),
+                "action": str(alert.get("remediation") or ""),
+            }
+            for alert in alerts
+        ],
+        "error_taxonomy": dict(observability.get("error_taxonomy") or {}),
+    }

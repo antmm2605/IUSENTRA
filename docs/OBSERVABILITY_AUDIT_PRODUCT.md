@@ -17,7 +17,7 @@ Osservabilita' non significa solo metriche runtime. Nel prodotto devono esistere
 | Storage parity e migrazione | `admin/governance` | matrice R/W, fallback, wave di cutover |
 | Audit accessi e ruoli | `admin/governance` | eventi audit, superfici presidiate, ruoli ammessi |
 | Capability telematiche | Centro Servizi Telematici / Motori Legali | stato canali, fonti, warning, catalogo capability |
-| Salute sistema | `admin/salute-sistema` | backup, OCR, provider locali, readiness deploy |
+| Salute sistema | `admin/salute-sistema`, `admin/system-health` | backup, OCR, provider locali, readiness deploy |
 
 ## Regole
 
@@ -37,6 +37,7 @@ La vista `admin/osservabilita` non deve limitarsi a mostrare numeri:
 - deve dichiarare quando il runtime AI locale non e' operativo
 - deve avvisare se il runtime predefinito e' ancora `JSON`
 - deve esporre un `messaggio operatore` leggibile, non solo un dettaglio tecnico
+- deve offrire anche un endpoint JSON operativo (`/admin/system-health`) con stato sintetico di scheduler, OCR, AI e backend database
 - deve suggerire un'azione concreta di presidio, non solo il sintomo
 - deve mostrare `codice`, `famiglia`, `componente`, `soglia operativa` e `passi di remediation`
 
@@ -45,11 +46,11 @@ La vista `admin/osservabilita` non deve limitarsi a mostrare numeri:
 | Famiglia | Esempi |
 | --- | --- |
 | `HTTP` | `HTTP_5XX_BUCKET` |
-| `OCR` | `OCR_FAILED_JOBS`, `OCR_QUEUE_BACKLOG` |
+| `OCR` | `OCR_TIMEOUT`, `OCR_QUEUE_OVERFLOW` |
 | `WORKER` | `OCR_WORKER_STALLED` |
-| `AI` | `LOCAL_AI_RUNTIME_DOWN` |
-| `STORAGE` | `STORAGE_DEFAULT_JSON` |
-| `PRODUCT` | `PRODUCT_CAPABILITY_GAP` |
+| `AI` | `AI_MODEL_UNAVAILABLE` |
+| `STORAGE` | `TENANT_DB_ERROR` |
+| `MIGRATION` | `MIGRATION_FAILED` |
 
 ## Output operatore atteso
 
@@ -57,13 +58,13 @@ Ogni alert deve tradurre la diagnostica in decisione operativa. Esempi:
 
 - `HTTP_5XX_BUCKET`
   "Errore applicativo reale: apri subito i log del bucket indicato e ripeti lo smoke test della superficie coinvolta."
-- `OCR_QUEUE_BACKLOG`
+- `OCR_QUEUE_OVERFLOW`
   "OCR rallentato: controlla worker, CPU e throughput prima che la coda continui a crescere."
 - `OCR_WORKER_STALLED`
   "Worker OCR fermo: riporta il worker online prima di accumulare nuova arretratezza."
-- `LOCAL_AI_RUNTIME_DOWN`
+- `AI_MODEL_UNAVAILABLE`
   "AI locale non disponibile: il prodotto resta operativo, ma Lex e i motori assistiti vanno usati solo dopo il ripristino del runtime."
-- `STORAGE_DEFAULT_JSON`
+- `TENANT_DB_ERROR`
   "Storage non ancora chiuso sul database: completa il cutover tenant-aware prima di considerare il backend stabile."
 
 ## Criterio di chiusura operativa

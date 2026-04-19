@@ -12,6 +12,7 @@ from flask import current_app
 from pct.checklist_atti import TUTTI_I_TEMPLATE
 from pct.product_governance import build_migration_program_payload, build_storage_parity_payload
 from pct.storage_migration_full import (
+    attach_migration_rollback_context,
     build_full_storage_inventory,
 )
 from pct.tenant import DatabaseConfig, DbMode, GestioneTenant
@@ -797,7 +798,13 @@ def execute_migration_assistant(*, selected_slug: str, target: str) -> dict[str,
             raise RuntimeError(
                 str(payload.get("error") or "Migrazione completa SQLite non riuscita.")
             )
-        return dict(payload.get("migration_report") or payload)
+        report = dict(payload.get("migration_report") or payload)
+        return attach_migration_rollback_context(
+            report=report,
+            paths=paths,
+            tenant_slug=studio.slug,
+            previous_database_config=previous_config,
+        )
     if wanted == "postgresql":
         if not _has_postgres_credentials(studio.database):
             raise ValueError(
@@ -826,5 +833,11 @@ def execute_migration_assistant(*, selected_slug: str, target: str) -> dict[str,
             raise RuntimeError(
                 str(payload.get("error") or "Migrazione completa PostgreSQL non riuscita.")
             )
-        return dict(payload.get("migration_report") or payload)
+        report = dict(payload.get("migration_report") or payload)
+        return attach_migration_rollback_context(
+            report=report,
+            paths=paths,
+            tenant_slug=studio.slug,
+            previous_database_config=previous_config,
+        )
     raise ValueError("Target di migrazione non supportato.")

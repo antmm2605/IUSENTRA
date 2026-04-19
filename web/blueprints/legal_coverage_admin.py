@@ -126,6 +126,21 @@ def api_draft_detail(draft_id: int):
         payload["retrieval_examples_json"] = list(row.get("retrieval_examples_json") or [])
         payload["review_diff_json"] = dict(row.get("review_diff_json") or {})
         payload["review_history"] = repository.list_review_history(draft_id)
+        risk_level = str(row.get("risk_level") or "MEDIUM").strip().upper()
+        payload["autopublish_policy"] = repository.get_policy(
+            str(row.get("subbranch_code") or ""),
+            risk_level,
+        )
+        payload["ai_governance"] = {
+            "draft_source": str(row.get("draft_source") or "AI"),
+            "risk_level": risk_level,
+            "auto_publish_eligible": bool(row.get("auto_publish_eligible")),
+            "review_required": not bool(row.get("auto_publish_eligible")) or str(row.get("status") or "") not in {"approved", "published"},
+            "reviewer": str(row.get("reviewer") or ""),
+            "review_signature": str(row.get("review_signature") or ""),
+            "review_reason": str(row.get("review_reason") or ""),
+            "decision": str(row.get("last_review_action") or ""),
+        }
         payload["sql_preview"] = generate_sql(spec_json)
         return jsonify(payload)
     except Exception as exc:

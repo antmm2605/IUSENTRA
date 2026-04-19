@@ -111,7 +111,12 @@
         <div class="d-flex flex-wrap justify-content-between gap-2 mb-2">
           <div>
             <div class="fw-semibold">{{ alert.title }}</div>
-            <div class="small text-muted">{{ alert.family }} / {{ alert.component }} / {{ alert.code }}</div>
+            <div class="small text-muted">
+              {{ alert.family }} / {{ alert.component }} / {{ alert.normalized_code or alert.code }}
+              {% if alert.normalized_code and alert.normalized_code != alert.code %}
+              <span>(runtime {{ alert.code }})</span>
+              {% endif %}
+            </div>
           </div>
           <span class="badge text-bg-{{ alert.severity }}">
             {{ 'Errore' if alert.severity == 'danger' else 'Attenzione' }}

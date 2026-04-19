@@ -160,6 +160,12 @@ Comando ufficiale di migrazione:
 iusentra migrate --to=postgres --tenant=<slug-tenant>
 ```
 
+Rollback guidato:
+
+```bash
+iusentra migrate --tenant=<slug-tenant> --rollback
+```
+
 Check rapido di operativita' end-to-end:
 
 ```bash
@@ -234,6 +240,12 @@ I flussi oggi presidiati come golden path di primo livello sono:
 
 La matrice completa e i test di riferimento vivono in [docs/E2E_TESTING_MATRIX.md](docs/E2E_TESTING_MATRIX.md).
 
+Test ufficiali nominati chiaramente:
+
+- `tests/e2e/test_studio_reale_flow.py`
+- `tests/e2e/test_ai_pipeline_full.py`
+- `tests/e2e/test_tenant_migration_full.py`
+
 ## Update Intelligence
 
 IUSENTRA include ora un motore dedicato di aggiornamento normativo e giurisprudenziale:
@@ -280,6 +292,8 @@ La review admin include:
 - firma reviewer obbligatoria per chiudere la revisione
 - diff tra spec originaria e versione corrente
 - storico revisioni persistito nel repository SQL
+- policy di autopublish leggibile insieme al draft
+- evidenza `AI -> review umana -> publish SQL` ricostruibile via audit
 
 Dettagli in [docs/LEGAL_COVERAGE_AUTOFILL.md](docs/LEGAL_COVERAGE_AUTOFILL.md).
 
@@ -293,6 +307,7 @@ Il pannello Superadmin include una vista tecnica dedicata in `/admin/osservabili
 - queue depth e throughput OCR dell'ultima ora
 - stato operativo di storage e runtime applicativo
 - segnali di degrado con codici tassonomici, soglie operative, messaggio operatore e rimedi per errori 5xx, OCR, worker OCR, AI locale e storage
+- endpoint JSON operativo in `/admin/system-health` con stato `scheduler`, `ocr`, `ai` e `db`
 
 Sul bounded context AI, il confine corretto adesso è:
 
@@ -318,6 +333,14 @@ Il comando esegue le suite ufficiali e persiste un report leggibile sotto `./dat
 - `Coverage AI` review/publish SQL
 - `Update Intelligence` review/publish news
 - telematico ufficiale
+
+I tre golden path "citizen di primo livello" sono questi:
+
+```bash
+python -m pytest tests/e2e/test_studio_reale_flow.py -q
+python -m pytest tests/e2e/test_ai_pipeline_full.py -q
+python -m pytest tests/e2e/test_tenant_migration_full.py -q
+```
 
 Esecuzione rapida locale:
 

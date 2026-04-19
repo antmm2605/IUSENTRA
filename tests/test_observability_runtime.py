@@ -128,3 +128,62 @@ def test_admin_osservabilita_page_mostra_alert_operativi(tmp_path, monkeypatch):
     assert "Come intervenire" in html
     assert "Messaggio operatore" in html
     assert "Soglia operativa" in html
+
+
+def test_admin_system_health_restituisce_json_azionabile(tmp_path):
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    app = create_app(_cfg_web(tmp_path))
+
+    with app.test_client() as client:
+        client.post("/login", data={"username": "admin", "password": "admin"}, follow_redirects=True)
+        response = client.get("/admin/system-health")
+
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert payload["status"] in {"ok", "degraded", "error"}
+    assert payload["scheduler"] in {"ok", "degraded", "error"}
+    assert payload["ocr"] in {"ok", "degraded", "error"}
+    assert payload["ai"] in {"ok", "degraded", "error"}
+    assert payload["db"] in {"ok", "degraded", "error"}
+    assert "components" in payload
+    assert "actions_required" in payload
+    assert "error_taxonomy" in payload
+    assert payload["error_taxonomy"]["catalog"]
+
+
+def test_admin_system_health_traduce_alert_in_azioni(tmp_path, monkeypatch):
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    app = create_app(_cfg_web(tmp_path))
+
+    class _FailingLocalAi:
+        def monitoring_snapshot(self):
+            return {
+                "settings": {"enabled": True},
+                "runtime": {"status": "error", "last_error": "Runtime Ollama non raggiungibile"},
+                "runtime_online": False,
+                "counts": {},
+            }
+
+    monkeypatch.setattr(
+        "lex.providers.local_ai_service.get_local_ai_service",
+        lambda: _FailingLocalAi(),
+    )
+
+    app.extensions["runtime_metrics"].observe_http(
+        method="GET",
+        endpoint="health-500",
+        status_code=500,
+        duration_ms=90.0,
+    )
+
+    with app.test_client() as client:
+        client.post("/login", data={"username": "admin", "password": "admin"}, follow_redirects=True)
+        response = client.get("/admin/system-health")
+
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert payload["status"] in {"degraded", "error"}
+    assert payload["ai"] in {"degraded", "error"}
+    assert payload["actions_required"]
+    active_codes = set(payload["error_taxonomy"]["active_codes"])
+    assert "AI_MODEL_UNAVAILABLE" in active_codes

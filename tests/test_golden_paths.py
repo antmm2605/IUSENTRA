@@ -15,6 +15,10 @@ def test_build_golden_path_payload_senza_report_mostra_suite_ufficiali(tmp_path)
     assert payload["summary"]["paths_total"] >= 5
     assert payload["summary"]["not_run"] == payload["summary"]["paths_total"]
     assert payload["rows"][0]["status"] == "not_run"
+    selectors = {selector for row in payload["rows"] for selector in row["pytest_selectors"]}
+    assert "tests/e2e/test_studio_reale_flow.py" in selectors
+    assert "tests/e2e/test_ai_pipeline_full.py" in selectors
+    assert "tests/e2e/test_tenant_migration_full.py" in selectors
 
 
 def test_run_golden_path_suites_persist_report(monkeypatch, tmp_path):

@@ -393,7 +393,7 @@ def test_superadmin_globale_viene_reindirizzato_fuori_dalla_gestione_utenti_lega
     response = client.get("/utenti/nuovo", follow_redirects=False)
 
     assert response.status_code == 302
-    assert response.headers["Location"].endswith("/admin/utenti-piattaforma")
+    assert response.headers["Location"].endswith("/admin/")
 
 
 def test_admin_tenant_non_vede_ne_accetta_superadmin_nella_route_legacy_utenti(tmp_path):
@@ -507,7 +507,7 @@ def test_reset_password_piattaforma_aggiorna_l_unico_superadmin(tmp_path):
         db_path=app.config["AUTH_DB"],
         audit_path=app.config["AUDIT_DB"],
         secret_key=app.secret_key,
-        crea_admin_se_vuoto=False,
+        bootstrap_admin_password="superpass123",
         studio_db=None,
     )
     superadmin = platform_users.get_by_username("admin")
@@ -528,6 +528,192 @@ def test_reset_password_piattaforma_aggiorna_l_unico_superadmin(tmp_path):
         studio_db=None,
     )
     assert refreshed_users.autentica("admin", "NuovaPiattaforma123!") is not None
+
+
+def test_superadmin_puo_modificare_un_account_globale_dalla_piattaforma(tmp_path):
+    registry_path = tmp_path / "tenants.json"
+    registry_path.write_text("{}", encoding="utf-8")
+
+    app = create_app(
+        {
+            "TESTING": True,
+            "TENANTS_REGISTRY": str(registry_path),
+            "AUTH_DB": str(tmp_path / "auth" / "utenti.json"),
+            "AUDIT_DB": str(tmp_path / "auth" / "audit.json"),
+            "CLIENTI_DB": str(tmp_path / "clienti" / "anagrafica.json"),
+            "BOOTSTRAP_ADMIN_PASSWORD": "superpass123",
+        }
+    )
+
+    platform_users = GestioneUtenti(
+        db_path=app.config["AUTH_DB"],
+        audit_path=app.config["AUDIT_DB"],
+        secret_key=app.secret_key,
+        bootstrap_admin_password="superpass123",
+        studio_db=None,
+    )
+    utente_globale = platform_users.crea(
+        username="roberto.montagnese",
+        password="Password123!",
+        ruolo=RuoloUtente.AMMINISTRATORE,
+        email="roberto@old.it",
+        nome_completo="Vecchio Nome",
+        tenant_slug="",
+        must_change_password=False,
+    )
+    platform_users.ensure_platform_superadmin()
+
+    client = app.test_client()
+    login = client.post(
+        "/login",
+        data={"username": "admin", "password": "superpass123"},
+        follow_redirects=False,
+    )
+    assert login.status_code == 302
+    page = client.get("/admin/utenti-piattaforma")
+    assert page.status_code == 200
+
+    response = client.post(
+        f"/admin/utenti-piattaforma/{utente_globale.id}/modifica",
+        data={
+            "nome_completo": "Avv. Roberto Montagnese",
+            "email": "roberto@iusentra.it",
+            "attivo": "1",
+        },
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 302
+    refreshed = GestioneUtenti(
+        db_path=app.config["AUTH_DB"],
+        audit_path=app.config["AUDIT_DB"],
+        secret_key=app.secret_key,
+        crea_admin_se_vuoto=False,
+        studio_db=None,
+    ).get(utente_globale.id)
+    assert refreshed is not None
+    assert refreshed.nome_completo == "Avv. Roberto Montagnese"
+    assert refreshed.email == "roberto@iusentra.it"
+    assert refreshed.attivo is True
+
+
+def test_superadmin_puo_generare_un_nuovo_account_piattaforma_e_trasferire_il_ruolo(tmp_path):
+    registry_path = tmp_path / "tenants.json"
+    registry_path.write_text("{}", encoding="utf-8")
+
+    app = create_app(
+        {
+            "TESTING": True,
+            "TENANTS_REGISTRY": str(registry_path),
+            "AUTH_DB": str(tmp_path / "auth" / "utenti.json"),
+            "AUDIT_DB": str(tmp_path / "auth" / "audit.json"),
+            "CLIENTI_DB": str(tmp_path / "clienti" / "anagrafica.json"),
+            "BOOTSTRAP_ADMIN_PASSWORD": "superpass123",
+        }
+    )
+
+    client = app.test_client()
+    login = client.post(
+        "/login",
+        data={"username": "admin", "password": "superpass123"},
+        follow_redirects=False,
+    )
+    assert login.status_code == 302
+    page = client.get("/admin/utenti-piattaforma")
+    assert page.status_code == 200
+
+    response = client.post(
+        "/admin/utenti-piattaforma/genera-superadmin",
+        data={
+            "username": "antmm2605",
+            "password": "PasswordNuova123!",
+            "email": "antmm2605@gmail.com",
+            "nome_completo": "Mm",
+            "ruolo_superadmin_precedente": "AMMINISTRATORE",
+        },
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 302
+    assert response.headers["Location"].endswith("/login")
+
+    refreshed_users = GestioneUtenti(
+        db_path=app.config["AUTH_DB"],
+        audit_path=app.config["AUDIT_DB"],
+        secret_key=app.secret_key,
+        crea_admin_se_vuoto=False,
+        studio_db=None,
+    )
+    nuovo_superadmin = refreshed_users.get_by_username("antmm2605")
+    admin = refreshed_users.get_by_username("admin")
+
+    assert nuovo_superadmin is not None
+    assert nuovo_superadmin.ruolo == RuoloUtente.SUPERADMIN
+    assert admin is not None
+    assert admin.ruolo == RuoloUtente.AMMINISTRATORE
+
+
+def test_superadmin_puo_trasferire_il_ruolo_a_un_account_globale_esistente(tmp_path):
+    registry_path = tmp_path / "tenants.json"
+    registry_path.write_text("{}", encoding="utf-8")
+
+    app = create_app(
+        {
+            "TESTING": True,
+            "TENANTS_REGISTRY": str(registry_path),
+            "AUTH_DB": str(tmp_path / "auth" / "utenti.json"),
+            "AUDIT_DB": str(tmp_path / "auth" / "audit.json"),
+            "CLIENTI_DB": str(tmp_path / "clienti" / "anagrafica.json"),
+            "BOOTSTRAP_ADMIN_PASSWORD": "superpass123",
+        }
+    )
+
+    platform_users = GestioneUtenti(
+        db_path=app.config["AUTH_DB"],
+        audit_path=app.config["AUDIT_DB"],
+        secret_key=app.secret_key,
+        bootstrap_admin_password="superpass123",
+        studio_db=None,
+    )
+    target = platform_users.crea(
+        username="roberto.montagnese",
+        password="Password123!",
+        ruolo=RuoloUtente.AMMINISTRATORE,
+        email="roberto@example.com",
+        nome_completo="Avv. Roberto Montagnese",
+        tenant_slug="",
+        must_change_password=False,
+    )
+    platform_users.ensure_platform_superadmin()
+
+    client = app.test_client()
+    login = client.post(
+        "/login",
+        data={"username": "admin", "password": "superpass123"},
+        follow_redirects=False,
+    )
+    assert login.status_code == 302
+    page = client.get("/admin/utenti-piattaforma")
+    assert page.status_code == 200
+
+    response = client.post(
+        f"/admin/utenti-piattaforma/{target.id}/trasferisci-superadmin",
+        data={"ruolo_superadmin_precedente": "AVVOCATO"},
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 302
+    assert response.headers["Location"].endswith("/login")
+
+    refreshed_users = GestioneUtenti(
+        db_path=app.config["AUTH_DB"],
+        audit_path=app.config["AUDIT_DB"],
+        secret_key=app.secret_key,
+        crea_admin_se_vuoto=False,
+        studio_db=None,
+    )
+    assert refreshed_users.get_by_username("roberto.montagnese").ruolo == RuoloUtente.SUPERADMIN
+    assert refreshed_users.get_by_username("admin").ruolo == RuoloUtente.AVVOCATO
 
 
 def test_superadmin_piattaforma_viene_reindirizzato_al_pannello_admin_fuori_dallo_studio(tmp_path):
@@ -611,7 +797,7 @@ def test_superadmin_puo_spostare_un_utente_globale_dentro_uno_studio(tmp_path):
         db_path=app.config["AUTH_DB"],
         audit_path=app.config["AUDIT_DB"],
         secret_key=app.secret_key,
-        crea_admin_se_vuoto=False,
+        bootstrap_admin_password="superpass123",
         studio_db=None,
     )
     utente_globale = platform_users.crea(
@@ -623,6 +809,7 @@ def test_superadmin_puo_spostare_un_utente_globale_dentro_uno_studio(tmp_path):
         tenant_slug="",
         must_change_password=False,
     )
+    platform_users.ensure_platform_superadmin()
 
     client = app.test_client()
     login = client.post(

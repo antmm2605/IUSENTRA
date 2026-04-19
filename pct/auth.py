@@ -680,6 +680,161 @@ class GestioneUtenti:
         self._salva_utenti()
         return target
 
+    def crea_o_promuovi_superadmin_piattaforma(
+        self,
+        *,
+        username: str,
+        password: str,
+        email: str = "",
+        nome_completo: str = "",
+        must_change_password: bool = True,
+    ) -> Utente:
+        username_norm = str(username or "").strip().lower()
+        if not username_norm:
+            raise ValueError("Username obbligatorio")
+        if len(password) < 8:
+            raise ValueError("La password deve avere almeno 8 caratteri")
+
+        esistente = self.get_by_username(username_norm)
+        if esistente is not None:
+            if str(esistente.tenant_slug or "").strip():
+                raise ValueError(
+                    "Esiste gia' un account con questo username dentro uno studio. "
+                    "Il SUPERADMIN deve nascere solo nella piattaforma."
+                )
+            self._valida_ruolo_tenant(
+                ruolo=RuoloUtente.SUPERADMIN,
+                tenant_slug="",
+                user_id=esistente.id,
+            )
+            esistente.ruolo = RuoloUtente.SUPERADMIN
+            esistente.email = str(email or "").strip()
+            esistente.nome_completo = str(nome_completo or "").strip()
+            esistente.attivo = True
+            esistente.must_change_password = must_change_password
+            esistente.password_hash = self._hash_password(password)
+            self._salva_utenti()
+            return esistente
+
+        return self.crea(
+            username=username_norm,
+            password=password,
+            ruolo=RuoloUtente.SUPERADMIN,
+            email=email,
+            nome_completo=nome_completo,
+            tenant_slug="",
+            must_change_password=must_change_password,
+        )
+
+    def genera_superadmin_piattaforma(
+        self,
+        *,
+        username: str,
+        password: str,
+        email: str = "",
+        nome_completo: str = "",
+        must_change_password: bool = True,
+        ruolo_superadmin_precedente: "RuoloUtente | str" = RuoloUtente.AMMINISTRATORE,
+    ) -> Utente:
+        username_norm = str(username or "").strip().lower()
+        if not username_norm:
+            raise ValueError("Username obbligatorio")
+        if len(password) < 8:
+            raise ValueError("La password deve avere almeno 8 caratteri")
+
+        superadmin_corrente = next(
+            (
+                u for u in self._utenti.values()
+                if not str(u.tenant_slug or "").strip()
+                and u.ruolo == RuoloUtente.SUPERADMIN
+                and u.attivo
+            ),
+            None,
+        )
+        if superadmin_corrente is None:
+            return self.crea_o_promuovi_superadmin_piattaforma(
+                username=username_norm,
+                password=password,
+                email=email,
+                nome_completo=nome_completo,
+                must_change_password=must_change_password,
+            )
+
+        esistente = self.get_by_username(username_norm)
+        if esistente is not None and str(esistente.tenant_slug or "").strip():
+            raise ValueError(
+                "Esiste gia' un account con questo username dentro uno studio. "
+                "Il SUPERADMIN deve nascere solo nella piattaforma."
+            )
+
+        if esistente is not None and esistente.id == superadmin_corrente.id:
+            superadmin_corrente.email = str(email or "").strip()
+            superadmin_corrente.nome_completo = str(nome_completo or "").strip()
+            superadmin_corrente.attivo = True
+            superadmin_corrente.must_change_password = must_change_password
+            superadmin_corrente.password_hash = self._hash_password(password)
+            self._salva_utenti()
+            return superadmin_corrente
+
+        creato_ora = False
+        target = esistente
+        if target is None:
+            target = self.crea(
+                username=username_norm,
+                password=password,
+                ruolo=RuoloUtente.AMMINISTRATORE,
+                email=email,
+                nome_completo=nome_completo,
+                tenant_slug="",
+                must_change_password=must_change_password,
+            )
+            creato_ora = True
+        else:
+            target.email = str(email or "").strip()
+            target.nome_completo = str(nome_completo or "").strip()
+            target.attivo = True
+            target.must_change_password = must_change_password
+            target.password_hash = self._hash_password(password)
+            self._salva_utenti()
+
+        try:
+            return self.trasferisci_superadmin_piattaforma(
+                source_id=superadmin_corrente.id,
+                target_id=target.id,
+                ruolo_sorgente=ruolo_superadmin_precedente,
+            )
+        except Exception:
+            if creato_ora:
+                self.elimina(target.id, force=True)
+            raise
+
+    def trasferisci_superadmin_piattaforma(
+        self,
+        *,
+        source_id: str,
+        target_id: str,
+        ruolo_sorgente: "RuoloUtente | str" = RuoloUtente.AMMINISTRATORE,
+    ) -> Utente:
+        sorgente = self._get_or_raise(source_id)
+        destinazione = self._get_or_raise(target_id)
+
+        if str(sorgente.tenant_slug or "").strip() or str(destinazione.tenant_slug or "").strip():
+            raise ValueError("Il trasferimento del SUPERADMIN e' ammesso solo tra account globali di piattaforma.")
+        if sorgente.id == destinazione.id:
+            raise ValueError("Seleziona un account diverso per trasferire il ruolo SUPERADMIN.")
+        if sorgente.ruolo != RuoloUtente.SUPERADMIN:
+            raise ValueError("L'account sorgente non e' il SUPERADMIN di piattaforma.")
+
+        ruolo_sorgente_norm = RuoloUtente(ruolo_sorgente)
+        if ruolo_sorgente_norm == RuoloUtente.SUPERADMIN:
+            raise ValueError("Il ruolo precedente del sorgente non puo' restare SUPERADMIN.")
+
+        destinazione.ruolo = RuoloUtente.SUPERADMIN
+        destinazione.attivo = True
+        sorgente.ruolo = ruolo_sorgente_norm
+        self._salva_utenti()
+        return destinazione
+
     # ---- CRUD utenti
 
     def crea(
@@ -839,7 +994,10 @@ class GestioneUtenti:
                 if x.ruolo == RuoloUtente.SUPERADMIN and x.attivo
             )
             if superadmin_count <= 1:
-                raise ValueError("Impossibile eliminare l'unico superadmin di piattaforma")
+                raise ValueError(
+                    "Impossibile eliminare l'unico superadmin di piattaforma. "
+                    "Trasferisci prima il ruolo a un altro account globale dal pannello piattaforma."
+                )
         if not force and u.ruolo == RuoloUtente.AMMINISTRATORE:
             admin_count = sum(
                 1 for x in self._utenti.values()

@@ -127,6 +127,46 @@ def test_riallinea_admin_piattaforma_legacy_a_superadmin(gu):
     assert admin.ruolo == RuoloUtente.SUPERADMIN
 
 
+def test_genera_superadmin_piattaforma_trasferisce_il_ruolo(gu):
+    gu.ensure_platform_superadmin()
+    admin = gu.get_by_username("admin")
+
+    nuovo = gu.genera_superadmin_piattaforma(
+        username="piattaforma.master",
+        password="NuovaPassword123!",
+        email="master@iusentra.it",
+        nome_completo="Master Piattaforma",
+        ruolo_superadmin_precedente=RuoloUtente.AMMINISTRATORE,
+    )
+
+    admin_aggiornato = gu.get(admin.id)
+    assert nuovo.username == "piattaforma.master"
+    assert nuovo.ruolo == RuoloUtente.SUPERADMIN
+    assert admin_aggiornato.ruolo == RuoloUtente.AMMINISTRATORE
+    assert gu.autentica("piattaforma.master", "NuovaPassword123!") is not None
+
+
+def test_trasferisce_superadmin_a_un_account_globale_esistente(gu):
+    superadmin = gu.ensure_platform_superadmin()
+    target = gu.crea(
+        "roberto.montagnese",
+        "Password123!",
+        RuoloUtente.AMMINISTRATORE,
+        tenant_slug="",
+        must_change_password=False,
+    )
+
+    promosso = gu.trasferisci_superadmin_piattaforma(
+        source_id=superadmin.id,
+        target_id=target.id,
+        ruolo_sorgente=RuoloUtente.AVVOCATO,
+    )
+
+    assert promosso.id == target.id
+    assert gu.get(target.id).ruolo == RuoloUtente.SUPERADMIN
+    assert gu.get(superadmin.id).ruolo == RuoloUtente.AVVOCATO
+
+
 def test_password_troppo_corta(gu):
     with pytest.raises(ValueError, match="8 caratteri"):
         gu.crea("utente2", "abc", RuoloUtente.SEGRETERIA)

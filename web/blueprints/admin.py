@@ -110,6 +110,16 @@ def _sync_tenant_user_directory() -> None:
         current_app.logger.exception("Errore sincronizzazione tenant_user_directory: %s", exc)
 
 
+def _superadmin_corrente_piattaforma(gu: GestioneUtenti):
+    return next(
+        (
+            utente for utente in _utenti_globali_piattaforma(gu)
+            if utente.ruolo == RuoloUtente.SUPERADMIN and utente.attivo
+        ),
+        None,
+    )
+
+
 def _utente_del_tenant(utente, slug: str) -> bool:
     return str(getattr(utente, "tenant_slug", "") or slug).strip().lower() == slug
 
@@ -184,6 +194,7 @@ def utenti_piattaforma():
     gu.ensure_platform_superadmin()
     utenti_globali = _utenti_globali_piattaforma(gu)
     superadmin_rows = [u for u in utenti_globali if u.ruolo == RuoloUtente.SUPERADMIN]
+    superadmin_corrente = superadmin_rows[0] if len(superadmin_rows) == 1 else None
     anomalie = []
     if len(superadmin_rows) != 1:
         anomalie.append(
@@ -198,11 +209,71 @@ def utenti_piattaforma():
         "admin/utenti_piattaforma.html",
         utenti=utenti_globali,
         superadmin_rows=superadmin_rows,
+        superadmin_corrente=superadmin_corrente,
         anomalie=anomalie,
         studi=_studi_assegnabili(),
         ruoli_studio=[ruolo for ruolo in RuoloUtente if ruolo != RuoloUtente.SUPERADMIN],
         descrizioni_ruoli=DESCRIZIONI_RUOLI,
     )
+
+
+@admin_bp.route("/utenti-piattaforma/genera-superadmin", methods=["POST"])
+@superadmin_required
+def genera_superadmin_piattaforma():
+    gu = _utenti_piattaforma()
+    current_superadmin = _superadmin_corrente_piattaforma(gu)
+    current_superadmin_id = current_superadmin.id if current_superadmin else ""
+    username = str(request.form.get("username", "") or "").strip().lower()
+    password = str(request.form.get("password", "") or "").strip()
+    email = str(request.form.get("email", "") or "").strip()
+    nome_completo = str(request.form.get("nome_completo", "") or "").strip()
+    ruolo_precedente_raw = str(
+        request.form.get("ruolo_superadmin_precedente", RuoloUtente.AMMINISTRATORE.value) or ""
+    ).strip().upper()
+
+    try:
+        ruolo_precedente = RuoloUtente(ruolo_precedente_raw)
+        nuovo_superadmin = gu.genera_superadmin_piattaforma(
+            username=username,
+            password=password,
+            email=email,
+            nome_completo=nome_completo,
+            must_change_password=True,
+            ruolo_superadmin_precedente=ruolo_precedente,
+        )
+        gu.registra_evento(
+            azione="piattaforma.superadmin.generato",
+            id_utente=nuovo_superadmin.id,
+            username=nuovo_superadmin.username,
+            risorsa_tipo="utente_piattaforma",
+            risorsa_id=nuovo_superadmin.id,
+            dettagli=(
+                "Generato o riallineato account SUPERADMIN dalla piattaforma "
+                f"con ruolo precedente assegnato a {ruolo_precedente.value}."
+            ),
+            ip=request.remote_addr or "",
+            esito="OK",
+        )
+        _sync_tenant_user_directory()
+    except Exception as exc:
+        current_app.logger.exception("Errore generazione superadmin piattaforma: %s", exc)
+        flash(f"Errore durante la generazione del SUPERADMIN: {exc}", "danger")
+        return redirect(url_for("admin.utenti_piattaforma"))
+
+    if current_superadmin_id and nuovo_superadmin.id != current_superadmin_id:
+        session.clear()
+        flash(
+            "Il ruolo SUPERADMIN e' stato trasferito al nuovo account piattaforma. "
+            "Accedi di nuovo con le nuove credenziali per continuare.",
+            "success",
+        )
+        return redirect(url_for("login"))
+
+    flash(
+        f"Account piattaforma '{nuovo_superadmin.username}' riallineato come SUPERADMIN.",
+        "success",
+    )
+    return redirect(url_for("admin.utenti_piattaforma"))
 
 
 @admin_bp.route("/utenti-piattaforma/<uid>/reset-password", methods=["POST"])
@@ -221,6 +292,115 @@ def reset_password_piattaforma(uid: str):
     gu.cambia_password(uid, nuova_password, must_change_password=True)
     flash(
         f"Password temporanea dell'account piattaforma '{utente.username}' aggiornata. Al prossimo accesso dovra cambiarla.",
+        "success",
+    )
+    return redirect(url_for("admin.utenti_piattaforma"))
+
+
+@admin_bp.route("/utenti-piattaforma/<uid>/modifica", methods=["POST"])
+@superadmin_required
+def modifica_utente_piattaforma(uid: str):
+    gu = _utenti_piattaforma()
+    utente = gu.get(uid)
+    if not utente or str(getattr(utente, "tenant_slug", "") or "").strip():
+        abort(404)
+
+    nome_completo = str(request.form.get("nome_completo", "") or "").strip()
+    email = str(request.form.get("email", "") or "").strip()
+    attivo = bool(request.form.get("attivo"))
+
+    if utente.ruolo == RuoloUtente.SUPERADMIN and not attivo:
+        flash(
+            "Il SUPERADMIN di piattaforma non puo' essere disattivato da qui. Trasferisci prima il ruolo a un altro account globale.",
+            "danger",
+        )
+        return redirect(url_for("admin.utenti_piattaforma"))
+
+    try:
+        aggiornato = gu.aggiorna(
+            uid,
+            nome_completo=nome_completo,
+            email=email,
+            attivo=(True if utente.ruolo == RuoloUtente.SUPERADMIN else attivo),
+        )
+        gu.registra_evento(
+            azione="piattaforma.utente.modificato",
+            id_utente=aggiornato.id,
+            username=aggiornato.username,
+            risorsa_tipo="utente_piattaforma",
+            risorsa_id=aggiornato.id,
+            dettagli="Account piattaforma aggiornato dal pannello superadmin.",
+            ip=request.remote_addr or "",
+            esito="OK",
+        )
+        _sync_tenant_user_directory()
+        flash(
+            f"Account piattaforma '{aggiornato.username}' aggiornato correttamente.",
+            "success",
+        )
+    except Exception as exc:
+        current_app.logger.exception("Errore modifica account piattaforma %s: %s", uid, exc)
+        flash(f"Errore durante la modifica dell'account piattaforma: {exc}", "danger")
+    return redirect(url_for("admin.utenti_piattaforma"))
+
+
+@admin_bp.route("/utenti-piattaforma/<uid>/trasferisci-superadmin", methods=["POST"])
+@superadmin_required
+def trasferisci_superadmin_piattaforma(uid: str):
+    gu = _utenti_piattaforma()
+    destinazione = gu.get(uid)
+    if not destinazione or str(getattr(destinazione, "tenant_slug", "") or "").strip():
+        abort(404)
+
+    sorgente = _superadmin_corrente_piattaforma(gu)
+    if not sorgente:
+        flash("Nessun SUPERADMIN globale attivo trovato in piattaforma.", "danger")
+        return redirect(url_for("admin.utenti_piattaforma"))
+
+    ruolo_precedente_raw = str(
+        request.form.get("ruolo_superadmin_precedente", RuoloUtente.AMMINISTRATORE.value) or ""
+    ).strip().upper()
+    try:
+        ruolo_precedente = RuoloUtente(ruolo_precedente_raw)
+        nuovo_superadmin = gu.trasferisci_superadmin_piattaforma(
+            source_id=sorgente.id,
+            target_id=destinazione.id,
+            ruolo_sorgente=ruolo_precedente,
+        )
+        gu.registra_evento(
+            azione="piattaforma.superadmin.trasferito",
+            id_utente=nuovo_superadmin.id,
+            username=nuovo_superadmin.username,
+            risorsa_tipo="utente_piattaforma",
+            risorsa_id=nuovo_superadmin.id,
+            dettagli=(
+                f"Ruolo SUPERADMIN trasferito da {sorgente.username} a {nuovo_superadmin.username}. "
+                f"Il ruolo precedente e' diventato {ruolo_precedente.value}."
+            ),
+            ip=request.remote_addr or "",
+            esito="OK",
+        )
+        _sync_tenant_user_directory()
+    except Exception as exc:
+        current_app.logger.exception(
+            "Errore trasferimento ruolo SUPERADMIN a %s: %s",
+            uid,
+            exc,
+        )
+        flash(f"Errore durante il trasferimento del ruolo SUPERADMIN: {exc}", "danger")
+        return redirect(url_for("admin.utenti_piattaforma"))
+
+    if getattr(getattr(g, "utente_corrente", None), "id", "") == sorgente.id:
+        session.clear()
+        flash(
+            "Il ruolo SUPERADMIN e' stato trasferito a un altro account piattaforma. "
+            "Accedi di nuovo con il nuovo account SUPERADMIN per continuare.",
+            "success",
+        )
+        return redirect(url_for("login"))
+
+    flash(
+        f"Il ruolo SUPERADMIN ora appartiene all'account piattaforma '{nuovo_superadmin.username}'.",
         "success",
     )
     return redirect(url_for("admin.utenti_piattaforma"))

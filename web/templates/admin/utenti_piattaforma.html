@@ -8,6 +8,16 @@
     <h4 class="admin-page-title">Account piattaforma</h4>
     <p class="admin-page-subtitle">Il <code>SUPERADMIN</code> e' unico, governa gli studi e non vive dentro alcun tenant.</p>
   </div>
+  <div class="d-flex flex-wrap gap-2">
+    <button
+      type="button"
+      class="btn btn-dark"
+      data-bs-toggle="modal"
+      data-bs-target="#modalGeneraSuperadminPiattaforma"
+    >
+      <i class="bi bi-shield-lock me-1"></i>Genera o sostituisci SUPERADMIN
+    </button>
+  </div>
 </div>
 
 <div class="alert alert-info d-flex align-items-start gap-2">
@@ -19,12 +29,33 @@
 </div>
 
 <div class="alert alert-secondary d-flex align-items-start gap-2">
-  <i class="bi bi-arrow-left-right mt-1"></i>
+  <i class="bi bi-diagram-3-fill mt-1"></i>
   <div class="small">
-    Gli account globali che non sono <code>SUPERADMIN</code> non devono restare in piattaforma:
-    da qui puoi spostarli davvero nello studio corretto, mantenendo credenziali e storico.
+    Se un account compare in questa schermata, e' un account <strong>globale di piattaforma</strong>:
+    non appartiene a nessuno studio e puo' essere corretto, trasferito o spostato nello studio giusto solo da qui.
   </div>
 </div>
+
+{% if superadmin_corrente %}
+<div class="card mb-4">
+  <div class="card-body d-flex flex-column flex-lg-row justify-content-between align-items-start gap-3">
+    <div>
+      <div class="text-uppercase small text-muted fw-semibold mb-1">SUPERADMIN attivo</div>
+      <div class="fw-semibold">{{ superadmin_corrente.username }}</div>
+      <div class="small text-muted">
+        {{ superadmin_corrente.nome_completo or 'Account piattaforma senza nome completo' }}
+      </div>
+      <div class="small text-muted">
+        {{ superadmin_corrente.email or 'Email non configurata' }}
+      </div>
+    </div>
+    <div class="small text-muted">
+      Da questa pagina puoi modificare l'account, trasferire il ruolo a un account globale esistente oppure generare
+      un nuovo account <code>SUPERADMIN</code> direttamente dalla piattaforma.
+    </div>
+  </div>
+</div>
+{% endif %}
 
 {% for anomalia in anomalie %}
 <div class="alert alert-warning d-flex align-items-start gap-2">
@@ -63,13 +94,16 @@
           <td>
             <div class="fw-semibold">{{ u.username }}</div>
             {% if u.nome_completo %}<div class="small text-muted">{{ u.nome_completo }}</div>{% endif %}
+            <div class="small text-muted mt-1">
+              <i class="bi bi-globe2 me-1"></i>Account globale di piattaforma
+            </div>
             {% if is_anomalo %}
             <div class="small text-warning-emphasis mt-1">
               <i class="bi bi-exclamation-triangle-fill me-1"></i>Account globale da riallineare
             </div>
             {% endif %}
           </td>
-          <td class="small text-muted">{{ u.email or '—' }}</td>
+          <td class="small text-muted">{{ u.email or '-' }}</td>
           <td>
             <span class="badge {% if u.ruolo.value == 'SUPERADMIN' %}bg-dark{% else %}bg-warning text-dark{% endif %}">
               {{ u.ruolo.value }}
@@ -83,9 +117,33 @@
             {% endif %}
           </td>
           <td class="small text-muted">Piattaforma</td>
-          <td class="small text-muted">{{ u.ultimo_accesso[:10] if u.ultimo_accesso else 'Mai' }}</td>
+          <td class="small text-muted">{{ u.ultimo_accesso|fmt_dataora if u.ultimo_accesso else 'Mai' }}</td>
           <td class="text-end">
             <div class="d-inline-flex flex-wrap justify-content-end gap-2">
+              <button
+                class="btn btn-sm btn-outline-secondary"
+                data-bs-toggle="modal"
+                data-bs-target="#modalModificaUtentePiattaforma"
+                data-uid="{{ u.id }}"
+                data-username="{{ u.username }}"
+                data-nome="{{ u.nome_completo or '' }}"
+                data-email="{{ u.email or '' }}"
+                data-active="{{ '1' if u.attivo else '0' }}"
+                data-role="{{ u.ruolo.value }}"
+              >
+                <i class="bi bi-pencil-square me-1"></i>Modifica
+              </button>
+              {% if superadmin_corrente and u.id != superadmin_corrente.id %}
+              <button
+                class="btn btn-sm btn-outline-dark"
+                data-bs-toggle="modal"
+                data-bs-target="#modalTrasferisciSuperadmin"
+                data-uid="{{ u.id }}"
+                data-username="{{ u.username }}"
+              >
+                <i class="bi bi-arrow-repeat me-1"></i>Rendi SUPERADMIN
+              </button>
+              {% endif %}
               {% if is_anomalo %}
               <button
                 class="btn btn-sm btn-outline-warning"
@@ -130,13 +188,122 @@
       <li>Il <code>SUPERADMIN</code> usa il pannello piattaforma e non appartiene a uno studio.</li>
       <li>Ogni studio ha solo utenti tenant-aware: <code>AMMINISTRATORE</code>, <code>AVVOCATO</code>, <code>SEGRETERIA</code>, ecc.</li>
       <li><code>Aggiornamenti legali</code> e <code>Copertura AI</code> lavorano sul tenant selezionato dal <code>SUPERADMIN</code>, non su studi tecnici impliciti.</li>
-      <li>Se un account globale non e' SUPERADMIN, la correzione professionale e' spostarlo nello studio corretto da questa schermata.</li>
+      <li>Se un account globale non e' SUPERADMIN, la correzione professionale e' trasferire il ruolo oppure spostarlo nello studio corretto da questa schermata.</li>
     </ul>
   </div>
 </div>
 {% endblock %}
 
 {% block modals %}
+<div class="modal fade" id="modalGeneraSuperadminPiattaforma" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-fullscreen-sm-down">
+    <div class="modal-content">
+      <form method="post" action="{{ url_for('admin.genera_superadmin_piattaforma') }}" id="formGeneraSuperadminPiattaforma">
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-shield-lock me-2"></i>Genera o sostituisci SUPERADMIN</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="alert alert-dark small">
+            {% if superadmin_corrente %}
+            Il nuovo account verra' creato o riallineato nella piattaforma, poi il ruolo <code>SUPERADMIN</code> verra'
+            trasferito automaticamente. L'account attuale <strong>{{ superadmin_corrente.username }}</strong> verra'
+            declassato al ruolo selezionato qui sotto e la sessione corrente si chiudera'.
+            {% else %}
+            Non esiste ancora un SUPERADMIN attivo: questo form genera il primo account piattaforma con ruolo <code>SUPERADMIN</code>.
+            {% endif %}
+          </div>
+          <div class="row g-3">
+            <div class="col-12 col-md-6">
+              <label class="form-label">Username piattaforma</label>
+              <input type="text" class="form-control" name="username" required autocomplete="off">
+            </div>
+            <div class="col-12 col-md-6">
+              <label class="form-label">Password temporanea</label>
+              <div class="input-group">
+                <input type="text" class="form-control" name="password" id="generaSuperadminPassword" required autocomplete="off">
+                <button type="button" class="btn btn-outline-secondary" id="generaSuperadminPasswordBtn" title="Genera password">
+                  <i class="bi bi-arrow-repeat"></i>
+                </button>
+              </div>
+            </div>
+            <div class="col-12 col-md-6">
+              <label class="form-label">Nome completo</label>
+              <input type="text" class="form-control" name="nome_completo" autocomplete="off">
+            </div>
+            <div class="col-12 col-md-6">
+              <label class="form-label">Email</label>
+              <input type="email" class="form-control" name="email" autocomplete="off">
+            </div>
+            <div class="col-12">
+              <label class="form-label">Ruolo del SUPERADMIN uscente</label>
+              <select class="form-select" name="ruolo_superadmin_precedente">
+                {% for ruolo in ruoli_studio %}
+                <option value="{{ ruolo.value }}" {% if ruolo.value == 'AMMINISTRATORE' %}selected{% endif %}>{{ ruolo.value }}</option>
+                {% endfor %}
+              </select>
+              <div class="form-text">
+                Il ruolo <code>SUPERADMIN</code> resta unico. Se l'account esiste gia' in piattaforma, verra' riallineato e poi diventera' il nuovo SUPERADMIN.
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Annulla</button>
+          <button type="submit" class="btn btn-dark btn-sm">
+            <i class="bi bi-shield-lock me-1"></i>Conferma generazione
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="modalModificaUtentePiattaforma" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-fullscreen-sm-down">
+    <div class="modal-content">
+      <form method="post" id="formModificaUtentePiattaforma">
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-pencil-square me-2"></i>Modifica account piattaforma</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-12 col-md-4">
+              <label class="form-label">Username</label>
+              <input type="text" class="form-control" id="modificaUtentePlatformUsername" readonly>
+            </div>
+            <div class="col-12 col-md-8">
+              <label class="form-label">Nome completo</label>
+              <input type="text" class="form-control" name="nome_completo" id="modificaUtentePlatformNome" autocomplete="off">
+            </div>
+            <div class="col-12 col-md-8">
+              <label class="form-label">Email</label>
+              <input type="email" class="form-control" name="email" id="modificaUtentePlatformEmail" autocomplete="off">
+            </div>
+            <div class="col-12 col-md-4">
+              <label class="form-label d-block">Stato</label>
+              <div class="form-check form-switch mt-2">
+                <input class="form-check-input" type="checkbox" role="switch" name="attivo" value="1" id="modificaUtentePlatformAttivo">
+                <label class="form-check-label" for="modificaUtentePlatformAttivo">Account attivo</label>
+              </div>
+            </div>
+          </div>
+          <div class="alert alert-secondary small mt-3 mb-0" id="modificaUtentePlatformHelp">
+            Questa modifica agisce sul profilo globale di piattaforma. Il ruolo <code>SUPERADMIN</code> si trasferisce con l'azione dedicata, non da questo form.
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Annulla</button>
+          <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-save me-1"></i>Salva modifiche</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
 <div class="modal fade" id="modalResetPwdPiattaforma" tabindex="-1">
   <div class="modal-dialog modal-sm modal-fullscreen-sm-down">
     <div class="modal-content">
@@ -158,6 +325,44 @@
         <div class="modal-footer">
           <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Annulla</button>
           <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-save me-1"></i>Salva</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="modalTrasferisciSuperadmin" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-fullscreen-sm-down">
+    <div class="modal-content">
+      <form method="post" id="formTrasferisciSuperadmin">
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-arrow-repeat me-2"></i>Trasferisci ruolo SUPERADMIN</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="alert alert-warning small">
+            Il ruolo <code>SUPERADMIN</code> verra' trasferito dall'account
+            <strong>{{ superadmin_corrente.username if superadmin_corrente else 'corrente' }}</strong>
+            all'account <strong id="trasferisciSuperadminUsername"></strong>. La sessione dell'account uscente verra' chiusa subito dopo.
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Ruolo dell'account SUPERADMIN uscente</label>
+            <select class="form-select" name="ruolo_superadmin_precedente">
+              {% for ruolo in ruoli_studio %}
+              <option value="{{ ruolo.value }}" {% if ruolo.value == 'AMMINISTRATORE' %}selected{% endif %}>{{ ruolo.value }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="small text-muted">
+            Dopo il trasferimento potrai eventualmente spostare l'account uscente nello studio corretto oppure mantenerlo come account globale di piattaforma non operativo.
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Annulla</button>
+          <button type="submit" class="btn btn-dark btn-sm">
+            <i class="bi bi-arrow-repeat me-1"></i>Conferma trasferimento
+          </button>
         </div>
       </form>
     </div>
@@ -218,11 +423,40 @@
 <script>
 function genPwdPiattaforma() {
   const c = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$%';
-  return Array.from({length:12}, () => c[Math.floor(Math.random()*c.length)]).join('');
+  return Array.from({length: 12}, () => c[Math.floor(Math.random() * c.length)]).join('');
 }
 
 document.getElementById('genResetPwdPiattaforma')?.addEventListener('click', () => {
   document.getElementById('resetPwdPlatformField').value = genPwdPiattaforma();
+});
+
+document.getElementById('generaSuperadminPasswordBtn')?.addEventListener('click', () => {
+  document.getElementById('generaSuperadminPassword').value = genPwdPiattaforma();
+});
+
+document.getElementById('modalGeneraSuperadminPiattaforma')?.addEventListener('show.bs.modal', function() {
+  document.getElementById('generaSuperadminPassword').value = genPwdPiattaforma();
+});
+
+document.getElementById('modalModificaUtentePiattaforma')?.addEventListener('show.bs.modal', function(e) {
+  const btn = e.relatedTarget;
+  const uid = btn.dataset.uid;
+  const username = btn.dataset.username || '';
+  const nome = btn.dataset.nome || '';
+  const email = btn.dataset.email || '';
+  const role = btn.dataset.role || '';
+  const isActive = btn.dataset.active === '1';
+  const isSuperadmin = role === 'SUPERADMIN';
+  document.getElementById('formModificaUtentePiattaforma').action =
+    '{{ url_for("admin.modifica_utente_piattaforma", uid="UID_PLACEHOLDER") }}'.replace('UID_PLACEHOLDER', uid);
+  document.getElementById('modificaUtentePlatformUsername').value = username;
+  document.getElementById('modificaUtentePlatformNome').value = nome;
+  document.getElementById('modificaUtentePlatformEmail').value = email;
+  document.getElementById('modificaUtentePlatformAttivo').checked = isActive || isSuperadmin;
+  document.getElementById('modificaUtentePlatformAttivo').disabled = isSuperadmin;
+  document.getElementById('modificaUtentePlatformHelp').innerHTML = isSuperadmin
+    ? 'Questo account e\\' il <code>SUPERADMIN</code> di piattaforma. Puoi aggiornarne i dati anagrafici, ma per cambiare ruolo devi prima trasferire il ruolo a un altro account globale.'
+    : 'Questa modifica agisce sul profilo globale di piattaforma. Il ruolo <code>SUPERADMIN</code> si trasferisce con l\\'azione dedicata, non da questo form.';
 });
 
 document.getElementById('modalResetPwdPiattaforma')?.addEventListener('show.bs.modal', function(e) {
@@ -233,6 +467,15 @@ document.getElementById('modalResetPwdPiattaforma')?.addEventListener('show.bs.m
   document.getElementById('formResetPwdPiattaforma').action =
     '{{ url_for("admin.reset_password_piattaforma", uid="UID_PLACEHOLDER") }}'.replace('UID_PLACEHOLDER', uid);
   document.getElementById('resetPwdPlatformField').value = genPwdPiattaforma();
+});
+
+document.getElementById('modalTrasferisciSuperadmin')?.addEventListener('show.bs.modal', function(e) {
+  const btn = e.relatedTarget;
+  const uid = btn.dataset.uid;
+  const username = btn.dataset.username;
+  document.getElementById('trasferisciSuperadminUsername').textContent = username;
+  document.getElementById('formTrasferisciSuperadmin').action =
+    '{{ url_for("admin.trasferisci_superadmin_piattaforma", uid="UID_PLACEHOLDER") }}'.replace('UID_PLACEHOLDER', uid);
 });
 
 document.getElementById('modalSpostaUtentePiattaforma')?.addEventListener('show.bs.modal', function(e) {

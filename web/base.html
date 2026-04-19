@@ -327,7 +327,7 @@
     {% endif %}
 
     {# ---- Admin (permesso utenti) ---- #}
-    {% if utente_corrente and utente_corrente.ha_permesso('utenti.leggi') %}
+    {% if utente_corrente and utente_corrente.ha_permesso('utenti.leggi') and not utente_corrente.is_superadmin %}
     {% set _usr = request.endpoint in ('lista_utenti','nuovo_utente','modifica_utente','profili','audit_log','admin_database','admin_database_verifica','admin_database_ottimizza','admin_database_migra','admin_database_export','registro_trattamenti','nuovo_trattamento') %}
     <button class="sb-toggle sb-admin {% if _usr %}open{% endif %}"
             data-bs-toggle="collapse" data-bs-target="#sb-admin" aria-expanded="{{ 'true' if _usr else 'false' }}">

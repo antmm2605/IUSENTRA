@@ -352,6 +352,134 @@ def test_superadmin_globale_ignora_ruolo_stale_nel_sql_locale(tmp_path):
     assert "adminstudio" not in html
 
 
+def test_superadmin_globale_viene_reindirizzato_fuori_dalla_gestione_utenti_legacy(tmp_path):
+    registry_path = tmp_path / "tenants.json"
+    registry_path.write_text(
+        json.dumps(
+            {
+                "studio-001": {
+                    "slug": "antonella-mammola",
+                    "nome": "Studio Antonella Mammola",
+                    "piano": "PROFESSIONAL",
+                    "stato": "ATTIVO",
+                    "db_config": "LOCAL",
+                }
+            },
+            ensure_ascii=False,
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+
+    app = create_app(
+        {
+            "TESTING": True,
+            "TENANTS_REGISTRY": str(registry_path),
+            "AUTH_DB": str(tmp_path / "auth" / "utenti.json"),
+            "AUDIT_DB": str(tmp_path / "auth" / "audit.json"),
+            "CLIENTI_DB": str(tmp_path / "clienti" / "anagrafica.json"),
+            "BOOTSTRAP_ADMIN_PASSWORD": "superpass123",
+        }
+    )
+
+    client = app.test_client()
+    login = client.post(
+        "/login",
+        data={"username": "admin", "password": "superpass123"},
+        follow_redirects=False,
+    )
+    assert login.status_code == 302
+
+    response = client.get("/utenti/nuovo", follow_redirects=False)
+
+    assert response.status_code == 302
+    assert response.headers["Location"].endswith("/admin/utenti-piattaforma")
+
+
+def test_admin_tenant_non_vede_ne_accetta_superadmin_nella_route_legacy_utenti(tmp_path):
+    registry_path = tmp_path / "tenants.json"
+    registry_path.write_text(
+        json.dumps(
+            {
+                "studio-001": {
+                    "slug": "antonella-mammola",
+                    "nome": "Studio Antonella Mammola",
+                    "piano": "PROFESSIONAL",
+                    "stato": "ATTIVO",
+                    "db_config": "LOCAL",
+                }
+            },
+            ensure_ascii=False,
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+
+    app = create_app(
+        {
+            "TESTING": True,
+            "MULTI_TENANT": True,
+            "TENANTS_REGISTRY": str(registry_path),
+            "AUTH_DB": str(tmp_path / "auth" / "utenti.json"),
+            "AUDIT_DB": str(tmp_path / "auth" / "audit.json"),
+            "CLIENTI_DB": str(tmp_path / "clienti" / "anagrafica.json"),
+            "BOOTSTRAP_ADMIN_PASSWORD": "superpass123",
+        }
+    )
+
+    tm = GestioneTenant(str(registry_path))
+    studio = tm.get("antonella-mammola")
+    assert studio is not None
+    tenant_paths = tm.percorsi_dati(studio.slug)
+    tenant_users = GestioneUtenti(
+        db_path=tenant_paths["AUTH_DB"],
+        audit_path=tenant_paths["AUDIT_DB"],
+        secret_key=app.secret_key,
+        crea_admin_se_vuoto=False,
+    )
+    tenant_users.crea(
+        username="adminstudio",
+        password="tenantpass123",
+        ruolo=RuoloUtente.AMMINISTRATORE,
+        tenant_slug=studio.slug,
+        must_change_password=False,
+    )
+
+    client = app.test_client()
+    login = client.post(
+        "/login",
+        data={
+            "username": "adminstudio",
+            "password": "tenantpass123",
+            "studio_slug": studio.slug,
+        },
+        follow_redirects=False,
+    )
+    assert login.status_code == 302
+
+    form_response = client.get("/utenti/nuovo")
+    html = form_response.get_data(as_text=True)
+
+    assert form_response.status_code == 200
+    assert 'option value="SUPERADMIN"' not in html
+
+    post_response = client.post(
+        "/utenti/nuovo",
+        data={
+            "username": "tentativo-superadmin",
+            "password": "Password123!",
+            "ruolo": "SUPERADMIN",
+            "email": "tenant@example.com",
+        },
+        follow_redirects=True,
+    )
+    post_html = post_response.get_data(as_text=True)
+
+    assert post_response.status_code == 200
+    assert "Il ruolo SUPERADMIN si gestisce solo dal pannello piattaforma." in post_html
+    assert tenant_users.get_by_username("tentativo-superadmin") is None
+
+
 def test_reset_password_piattaforma_aggiorna_l_unico_superadmin(tmp_path):
     registry_path = tmp_path / "tenants.json"
     registry_path.write_text("{}", encoding="utf-8")

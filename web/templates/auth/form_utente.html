@@ -26,6 +26,7 @@
         <label class="form-label fw-semibold">Ruolo <span class="text-danger">*</span></label>
         <select name="ruolo" class="form-select" required id="ruolo-select">
           {% for r in ruoli %}
+          {% if r.value != 'SUPERADMIN' %}
           {% set desc = DESCRIZIONI_RUOLI[r] %}
           <option value="{{ r.value }}"
                   data-desc="{{ desc.descrizione }}"
@@ -34,9 +35,13 @@
                   {{ 'selected' if utente and utente.ruolo == r }}>
             {{ r.value.replace('_',' ') }}
           </option>
+          {% endif %}
           {% endfor %}
         </select>
         <div id="ruolo-desc" class="form-text mt-1 small text-muted"></div>
+        <div class="form-text small">
+          Il ruolo <code>SUPERADMIN</code> e' riservato alla piattaforma e non si gestisce da questa schermata.
+        </div>
       </div>
       <div class="col-md-6">
         <label class="form-label fw-semibold">Nome completo</label>
@@ -97,6 +102,7 @@
     </div>
     <div class="list-group list-group-flush" id="ruoli-lista">
       {% for r in ruoli %}
+      {% if r.value != 'SUPERADMIN' %}
       {% set desc = DESCRIZIONI_RUOLI[r] %}
       <div class="list-group-item small py-2">
         <div class="d-flex align-items-center gap-2 mb-1">
@@ -105,6 +111,7 @@
         </div>
         <div class="text-muted" style="font-size:.78rem">{{ desc.descrizione }}</div>
       </div>
+      {% endif %}
       {% endfor %}
     </div>
   </div>

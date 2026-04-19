@@ -138,6 +138,7 @@ Regole di governance:
 - il `SUPERADMIN` e' unico e vive solo a livello piattaforma
 - il `SUPERADMIN` ha una superficie dedicata `admin/utenti-piattaforma`, separata dagli utenti degli studi
 - uno studio non puo' creare o promuovere utenti `SUPERADMIN`
+- le route legacy di studio `/utenti*` non governano il `SUPERADMIN`: in multi-tenant il superadmin viene reindirizzato al pannello piattaforma e i form utenti studio filtrano e rifiutano sempre il ruolo `SUPERADMIN`
 - in multi-tenant l'account `SUPERADMIN` usa sempre la persistenza auth di piattaforma e non eredita ruoli o permessi da `studio.db`
 - ogni studio ha il proprio `AMMINISTRATORE` tenant-aware
 - le console piattaforma che operano su dati di studio, come `Update Intelligence`, lavorano sempre sul tenant selezionato e non su un archivio globale implicito

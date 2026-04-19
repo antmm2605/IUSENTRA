@@ -30,6 +30,29 @@ def register_auth_management_routes(
     def _auth_manager() -> GestioneUtenti:
         return getattr(g, "utente_auth_manager", None) or get_utenti()
 
+    def _ruoli_gestibili_legacy() -> list[RuoloUtente]:
+        return [ruolo for ruolo in RuoloUtente if ruolo != RuoloUtente.SUPERADMIN]
+
+    def _redirect_superadmin_piattaforma():
+        utente = g.utente_corrente
+        if not app.config.get("MULTI_TENANT"):
+            return None
+        if not utente or not getattr(utente, "is_superadmin", False):
+            return None
+        flash(
+            "Il ruolo SUPERADMIN si gestisce solo dal pannello piattaforma dedicato.",
+            "info",
+        )
+        return redirect(url_for("admin.utenti_piattaforma"))
+
+    def _ruolo_legacy_da_form(ruolo_raw: str) -> RuoloUtente:
+        ruolo = RuoloUtente(ruolo_raw)
+        if ruolo == RuoloUtente.SUPERADMIN:
+            raise ValueError(
+                "Il ruolo SUPERADMIN si gestisce solo dal pannello piattaforma."
+            )
+        return ruolo
+
     @app.route("/profilo", methods=["GET", "POST"])
     def profilo():
         u = g.utente_corrente
@@ -120,6 +143,9 @@ def register_auth_management_routes(
         u = g.utente_corrente
         if not u or not u.ha_permesso("utenti.leggi"):
             abort(403)
+        platform_redirect = _redirect_superadmin_piattaforma()
+        if platform_redirect is not None:
+            return platform_redirect
         gu = _auth_manager()
         utenti = gu.tutti()
         stats = gu.statistiche()
@@ -127,7 +153,7 @@ def register_auth_management_routes(
             "auth/utenti.html",
             utenti=utenti,
             stats=stats,
-            ruoli=list(RuoloUtente),
+            ruoli=_ruoli_gestibili_legacy(),
             oggi=date.today(),
         )
 
@@ -136,13 +162,16 @@ def register_auth_management_routes(
         u = g.utente_corrente
         if not u or not u.ha_permesso("utenti.scrivi"):
             abort(403)
+        platform_redirect = _redirect_superadmin_piattaforma()
+        if platform_redirect is not None:
+            return platform_redirect
         if request.method == "POST":
             gu = _auth_manager()
             try:
                 nuovo = gu.crea(
                     username=request.form["username"],
                     password=request.form["password"],
-                    ruolo=RuoloUtente(request.form["ruolo"]),
+                    ruolo=_ruolo_legacy_da_form(request.form["ruolo"]),
                     email=request.form.get("email", ""),
                     nome_completo=request.form.get("nome_completo", ""),
                 )
@@ -156,7 +185,7 @@ def register_auth_management_routes(
                 flash(str(e), "danger")
         return render_template(
             "auth/form_utente.html",
-            ruoli=list(RuoloUtente),
+            ruoli=_ruoli_gestibili_legacy(),
             utente=None,
             oggi=date.today(),
         )
@@ -166,11 +195,20 @@ def register_auth_management_routes(
         u = g.utente_corrente
         if not u or not u.ha_permesso("utenti.scrivi"):
             abort(403)
+        platform_redirect = _redirect_superadmin_piattaforma()
+        if platform_redirect is not None:
+            return platform_redirect
         gu = _auth_manager()
         target = gu.get(id_utente)
         if not target:
             flash("Utente non trovato.", "warning")
             return redirect(url_for("lista_utenti"))
+        if target.ruolo == RuoloUtente.SUPERADMIN:
+            flash(
+                "L'account SUPERADMIN si gestisce solo dal pannello piattaforma.",
+                "warning",
+            )
+            return redirect(url_for("admin.utenti_piattaforma"))
         if request.method == "POST":
             try:
                 nuova_password = request.form.get("nuova_password") or request.form.get("password")
@@ -178,7 +216,9 @@ def register_auth_management_routes(
                     id_utente,
                     nome_completo=request.form.get("nome_completo", ""),
                     email=request.form.get("email", ""),
-                    ruolo=request.form.get("ruolo", target.ruolo.value),
+                    ruolo=_ruolo_legacy_da_form(
+                        request.form.get("ruolo", target.ruolo.value)
+                    ),
                     attivo=request.form.get("attivo") == "1",
                 )
                 if nuova_password:
@@ -200,7 +240,7 @@ def register_auth_management_routes(
                 flash(str(e), "danger")
         return render_template(
             "auth/form_utente.html",
-            ruoli=list(RuoloUtente),
+            ruoli=_ruoli_gestibili_legacy(),
             utente=target,
             oggi=date.today(),
         )
@@ -210,6 +250,9 @@ def register_auth_management_routes(
         u = g.utente_corrente
         if not u or not u.ha_permesso("utenti.elimina"):
             abort(403)
+        platform_redirect = _redirect_superadmin_piattaforma()
+        if platform_redirect is not None:
+            return platform_redirect
         gu = _auth_manager()
         try:
             gu.elimina(id_utente)
@@ -224,6 +267,9 @@ def register_auth_management_routes(
         u = g.utente_corrente
         if not u or not u.ha_permesso("audit.leggi"):
             abort(403)
+        platform_redirect = _redirect_superadmin_piattaforma()
+        if platform_redirect is not None:
+            return platform_redirect
         gu = _auth_manager()
         id_utente = request.args.get("id_utente", "")
         azione = request.args.get("azione", "")
@@ -243,6 +289,16 @@ def register_auth_management_routes(
         u = g.utente_corrente
         if not u or not u.ha_permesso("utenti.leggi"):
             abort(403)
+        if app.config.get("MULTI_TENANT") and u.is_superadmin:
+            return (
+                jsonify(
+                    {
+                        "errore": "Il ruolo SUPERADMIN usa il pannello piattaforma dedicato.",
+                        "redirect_url": url_for("admin.utenti_piattaforma"),
+                    }
+                ),
+                403,
+            )
         try:
             return jsonify(_auth_manager().statistiche())
         except Exception as e:
@@ -255,11 +311,15 @@ def register_auth_management_routes(
         u = g.utente_corrente
         if not u or not u.ha_permesso("utenti.leggi"):
             abort(403)
+        platform_redirect = _redirect_superadmin_piattaforma()
+        if platform_redirect is not None:
+            return platform_redirect
         gu = _auth_manager()
-        utenti_per_ruolo = {r: gu.per_ruolo(r) for r in RuoloUtente}
+        ruoli = _ruoli_gestibili_legacy()
+        utenti_per_ruolo = {r: gu.per_ruolo(r) for r in ruoli}
         return render_template(
             "auth/profili.html",
-            ruoli=list(RuoloUtente),
+            ruoli=ruoli,
             tutti_permessi=TUTTI_PERMESSI,
             permessi=PERMESSI,
             descrizioni=DESCRIZIONI_RUOLI,
@@ -273,11 +333,20 @@ def register_auth_management_routes(
         u = g.utente_corrente
         if not u or not u.ha_permesso("utenti.scrivi"):
             abort(403)
+        platform_redirect = _redirect_superadmin_piattaforma()
+        if platform_redirect is not None:
+            return platform_redirect
         gu = _auth_manager()
         target = gu.get(id_utente)
         if not target:
             flash("Utente non trovato.", "warning")
             return redirect(url_for("lista_utenti"))
+        if target.ruolo == RuoloUtente.SUPERADMIN:
+            flash(
+                "L'account SUPERADMIN si gestisce solo dal pannello piattaforma.",
+                "warning",
+            )
+            return redirect(url_for("admin.utenti_piattaforma"))
         if request.method == "POST":
             extra = request.form.getlist("permessi_extra")
             negati = request.form.getlist("permessi_negati")

@@ -12,7 +12,7 @@ La repo oggi non è più solo un tool CLI per il Processo Civile Telematico: con
 - Timesheet operativo con valorizzazione del tempo e generazione parcella dalle attivita' validate.
 - Fatturazione, pagamenti, saldo cliente e KPI economici per studio, cliente e fascicolo.
 - Fascicolo con `cabina operativa` a tab: quadro intelligente, workflow `fascicolo -> incasso`, controllo economico, governo documentale e conformita' deposito nella stessa vista.
-- Template atti, strumenti legali e workspace professionali.
+- Template atti, Checklist Atti professionale e workspace legali allineati sullo stesso catalogo operativo per aree, branche e sottobranche.
 - Giurisprudenza, legal intelligence, repository strutturati per Lex.
 - Motore `Update Intelligence` per monitoraggio normativo, giurisprudenziale e di prassi con area di acquisizione, coda revisioni e pagina news giuridiche strutturate.
 - Pipeline `Coverage AI` per audit tassonomico, gap queue, draft v2, review e publish SQL con retrieval interno, funzionante sia su `SQLite locale` sia su `PostgreSQL tenant-aware`.

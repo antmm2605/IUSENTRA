@@ -2,7 +2,10 @@
 Checklist e struttura cartelle per la preparazione degli atti processuali.
 """
 from __future__ import annotations
-from dataclasses import dataclass, field
+
+import re
+import unicodedata
+from dataclasses import dataclass, field, replace
 from typing import List, Optional
 
 
@@ -50,6 +53,7 @@ CANALE_LABEL = {
     "PDP_PENALE":         "Portale Deposito Penale (PDP)",
     "PAT_AMMINISTRATIVO": "Portale Atti Amministrativi (PAT)",
     "PTT_TRIBUTARIO":     "Portale PTT / SIGIT (MEF)",
+    "MISTO":              "Workflow misto / redazione professionale",
     "PEC":                "Deposito a mezzo PEC",
     "CARTACEO":           "Deposito cartaceo / cancelleria",
 }
@@ -59,6 +63,7 @@ CANALE_ICON = {
     "PDP_PENALE":         "bi-shield-fill",
     "PAT_AMMINISTRATIVO": "bi-building",
     "PTT_TRIBUTARIO":     "bi-receipt-cutoff",
+    "MISTO":              "bi-diagram-3-fill",
     "PEC":                "bi-envelope-fill",
     "CARTACEO":           "bi-printer-fill",
 }
@@ -68,6 +73,7 @@ CANALE_COL = {
     "PDP_PENALE":         "dark",
     "PAT_AMMINISTRATIVO": "info",
     "PTT_TRIBUTARIO":     "warning",
+    "MISTO":              "secondary",
     "PEC":                "success",
     "CARTACEO":           "secondary",
 }
@@ -1320,7 +1326,7 @@ DIFFIDA_STRAGIUDIZIALE = TemplateAtto(
 )
 
 # ---------------------------------------------------------------------------
-TUTTI_I_TEMPLATE: List[TemplateAtto] = [
+TEMPLATE_CURATI_BASE: List[TemplateAtto] = [
     DECRETO_INGIUNTIVO,
     ISCRIZIONE_A_RUOLO,
     COMPARSA_RISPOSTA,
@@ -1354,91 +1360,359 @@ TUTTI_I_TEMPLATE: List[TemplateAtto] = [
 ]
 
 CATEGORIE = {
-    "CIVILE":         "Civile",
-    "LAVORO":         "Lavoro",
-    "FAMIGLIA":       "Famiglia",
-    "ESECUTIVO":      "Esecutivo",
-    "CAUTELARE":      "Cautelare",
-    "PENALE":         "Penale",
+    "CIVILE": "Civile",
+    "LAVORO": "Lavoro",
+    "FAMIGLIA": "Famiglia",
+    "ESECUTIVO": "Esecutivo",
+    "CAUTELARE": "Cautelare",
+    "PENALE": "Penale",
     "AMMINISTRATIVO": "Amministrativo",
-    "TRIBUTARIO":     "Tributario",
+    "TRIBUTARIO": "Tributario",
     "STRAGIUDIZIALE": "Stragiudiziale",
+    "Amministrativo": "Amministrativo",
+    "Civile ordinario": "Civile ordinario",
+    "Esecuzioni": "Esecuzioni",
+    "Famiglia e volontaria giurisdizione": "Famiglia e volontaria giurisdizione",
+    "Immigrazione e cittadinanza": "Immigrazione e cittadinanza",
+    "Impugnazioni civili": "Impugnazioni civili",
+    "Lavoro e previdenza": "Lavoro e previdenza",
+    "Monitorio e cautelare": "Monitorio e cautelare",
+    "Penale": "Penale",
+    "Procure, nomine e deleghe": "Procure, nomine e deleghe",
+    "Societario": "Societario",
+    "Stragiudiziale collegato": "Stragiudiziale collegato",
+    "UNEP e notificazioni": "UNEP e notificazioni",
 }
 
 CAT_ICON = {
-    "CIVILE":         "bi-balance-scale",
-    "LAVORO":         "bi-briefcase-fill",
-    "FAMIGLIA":       "bi-people-fill",
-    "ESECUTIVO":      "bi-hammer",
-    "CAUTELARE":      "bi-shield-exclamation",
-    "PENALE":         "bi-shield-fill",
+    "CIVILE": "bi-balance-scale",
+    "LAVORO": "bi-briefcase-fill",
+    "FAMIGLIA": "bi-people-fill",
+    "ESECUTIVO": "bi-hammer",
+    "CAUTELARE": "bi-shield-exclamation",
+    "PENALE": "bi-shield-fill",
     "AMMINISTRATIVO": "bi-building",
-    "TRIBUTARIO":     "bi-receipt-cutoff",
+    "TRIBUTARIO": "bi-receipt-cutoff",
     "STRAGIUDIZIALE": "bi-handshake",
 }
 
 CAT_COL = {
-    "CIVILE":         "primary",
-    "LAVORO":         "success",
-    "FAMIGLIA":       "danger",
-    "ESECUTIVO":      "warning",
-    "CAUTELARE":      "danger",
-    "PENALE":         "dark",
+    "CIVILE": "primary",
+    "LAVORO": "success",
+    "FAMIGLIA": "danger",
+    "ESECUTIVO": "warning",
+    "CAUTELARE": "danger",
+    "PENALE": "dark",
     "AMMINISTRATIVO": "info",
-    "TRIBUTARIO":     "warning",
+    "TRIBUTARIO": "warning",
     "STRAGIUDIZIALE": "success",
 }
 
 AREA_META = {
-    "Civile e commerciale": {
+    "Civile": {
         "ordine": 10,
+        "icona": "bi-bank2",
+        "colore": "primary",
+        "descrizione": "Contenzioso civile, monitorio, esecuzioni, notifiche, procure e impugnazioni con checklist operative complete.",
+    },
+    "Civile e commerciale": {
+        "ordine": 11,
         "icona": "bi-bank2",
         "colore": "primary",
         "descrizione": "Ricorsi, costituzioni, memorie e impugnazioni del contenzioso civile e commerciale.",
     },
-    "Lavoro e previdenza": {
+    "Lavoro e Previdenza": {
         "ordine": 20,
+        "icona": "bi-briefcase-fill",
+        "colore": "success",
+        "descrizione": "Ricorsi, impugnazioni, memorie e presidio dei termini del rito lavoro e delle vertenze previdenziali.",
+    },
+    "Lavoro e previdenza": {
+        "ordine": 21,
         "icona": "bi-briefcase-fill",
         "colore": "success",
         "descrizione": "Rito lavoro, licenziamenti e vertenze previdenziali con controllo dei termini critici.",
     },
-    "Famiglia e persone": {
+    "Famiglia e Persone": {
         "ordine": 30,
+        "icona": "bi-people-fill",
+        "colore": "danger",
+        "descrizione": "Separazioni, divorzi, tutele e volontaria giurisdizione con presidio documentale e reddituale.",
+    },
+    "Famiglia e persone": {
+        "ordine": 31,
         "icona": "bi-people-fill",
         "colore": "danger",
         "descrizione": "Separazioni, divorzi e revisioni delle condizioni familiari con documentazione anagrafica e reddituale.",
     },
-    "Esecuzioni e cautelare": {
+    "Penale": {
         "ordine": 40,
+        "icona": "bi-shield-fill-check",
+        "colore": "dark",
+        "descrizione": "Difesa penale, memorie, istanze, impugnazioni e atti della persona offesa con workflow PDP e studio.",
+    },
+    "Esecuzioni e cautelare": {
+        "ordine": 41,
         "icona": "bi-shield-lock-fill",
         "colore": "warning",
         "descrizione": "Precetti, pignoramenti, opposizioni e tutele cautelari prima e durante l'esecuzione.",
     },
     "Penale e indagini": {
-        "ordine": 50,
+        "ordine": 42,
         "icona": "bi-shield-fill-check",
         "colore": "dark",
         "descrizione": "PDP, atti abilitanti, memorie difensive, impugnazioni penali e atti della persona offesa.",
     },
+    "Amministrativo": {
+        "ordine": 50,
+        "icona": "bi-building",
+        "colore": "info",
+        "descrizione": "Ricorsi, appelli, cautelare e memorie in giustizia amministrativa con presidio PAT e SIGA.",
+    },
     "Amministrativo e appalti": {
-        "ordine": 60,
+        "ordine": 51,
         "icona": "bi-building",
         "colore": "info",
         "descrizione": "Ricorsi, motivi aggiunti e appelli in giustizia amministrativa, inclusi gli appalti.",
     },
     "Tributario": {
-        "ordine": 70,
+        "ordine": 60,
         "icona": "bi-receipt-cutoff",
         "colore": "warning",
         "descrizione": "Ricorsi e appelli nel processo tributario telematico con workflow NIR del portale MEF.",
     },
-    "ADR e stragiudiziale": {
+    "Societario": {
+        "ordine": 70,
+        "icona": "bi-building-gear",
+        "colore": "secondary",
+        "descrizione": "Pareri, governance, contratti e contenzioso societario con supporto documentale interno ed esterno.",
+    },
+    "Immigrazione": {
         "ordine": 80,
+        "icona": "bi-passport",
+        "colore": "info",
+        "descrizione": "Ricorsi, permessi, cittadinanza e protezione internazionale con controllo documentale e scadenze sensibili.",
+    },
+    "Stragiudiziale": {
+        "ordine": 90,
+        "icona": "bi-handshake",
+        "colore": "secondary",
+        "descrizione": "Diffide, accordi, mediazione, negoziazione e atti esterni con prova di invio e fascicolazione rigorosa.",
+    },
+    "ADR e stragiudiziale": {
+        "ordine": 91,
         "icona": "bi-handshake",
         "colore": "secondary",
         "descrizione": "Mediazione, negoziazione e diffide con fascicolazione rigorosa e prova di invio.",
     },
 }
+
+_AREA_CANONICHE_TEMPLATE = {
+    "Civile e commerciale": "Civile",
+    "Lavoro e previdenza": "Lavoro e Previdenza",
+    "Famiglia e persone": "Famiglia e Persone",
+    "Esecuzioni e cautelare": "Civile",
+    "Penale e indagini": "Penale",
+    "Amministrativo e appalti": "Amministrativo",
+    "ADR e stragiudiziale": "Stragiudiziale",
+}
+
+_CRITICAL_TERMS = (
+    "firma",
+    "termine",
+    "deposit",
+    "procura",
+    "notifica",
+    "contributo",
+    "ricevut",
+    "pec",
+    "pdf/a",
+    "conform",
+    "competenza",
+    "abilitat",
+    "scadenz",
+    "autent",
+)
+
+
+def _slug_ascii(text: str, *, fallback: str = "Documento") -> str:
+    raw = unicodedata.normalize("NFKD", (text or "").strip())
+    ascii_text = raw.encode("ascii", "ignore").decode("ascii")
+    slug = re.sub(r"[^A-Za-z0-9]+", "_", ascii_text).strip("_")
+    return slug[:90] or fallback
+
+
+def _normalizza_chiave_testo(text: str) -> str:
+    return re.sub(r"[^a-z0-9]+", " ", _slug_ascii(text, fallback="x").lower()).strip()
+
+
+def _normalizza_template_curato(template: TemplateAtto) -> TemplateAtto:
+    area_canonica = _AREA_CANONICHE_TEMPLATE.get(template.area, template.area)
+    return replace(template, area=area_canonica)
+
+
+def _mappa_canale_template(canale_template: str) -> str:
+    raw = (canale_template or "").strip().upper()
+    if raw == "PCT":
+        return "PCT_TELEMATICO"
+    if raw == "PDP":
+        return "PDP_PENALE"
+    if raw in {"PAT", "PAT / SIGA"}:
+        return "PAT_AMMINISTRATIVO"
+    if raw in {"PTT", "PTT / SIGIT"}:
+        return "PTT_TRIBUTARIO"
+    if raw == "PEC / ANALOGICO":
+        return "PEC"
+    return "MISTO"
+
+
+def _nota_canale_template(canale: str, profilo: str = "") -> str:
+    profilo_clean = (profilo or "").replace("_", " ").strip()
+    profilo_note = f" Profilo operativo: {profilo_clean}." if profilo_clean else ""
+    if canale == "PCT_TELEMATICO":
+        return (
+            "Preparazione e deposito tramite redattore atti PCT con busta telematica .enc, controllo allegati, firma, contributo e ricevute nel fascicolo."
+            + profilo_note
+        )
+    if canale == "PDP_PENALE":
+        return (
+            "Workflow dedicato al Portale Deposito Penale, con verifica della procura, dei termini e della coerenza tra atto, allegati e fascicolo digitale."
+            + profilo_note
+        )
+    if canale == "PAT_AMMINISTRATIVO":
+        return (
+            "Predisposizione e deposito sul PAT/SIGA con controllo formale di firma, allegati, modulo di deposito e prova di invio."
+            + profilo_note
+        )
+    if canale == "PTT_TRIBUTARIO":
+        return (
+            "Preparazione per il processo tributario telematico con presidio dei documenti NIR, ricevute e canale PTT/SIGIT."
+            + profilo_note
+        )
+    if canale == "PEC":
+        return (
+            "Atto o comunicazione da gestire con fascicolazione rigorosa, prova di invio/consegna e controllo del canale esterno scelto."
+            + profilo_note
+        )
+    return (
+        "Checklist professionale di redazione e controllo per atti interni, procure, pareri o workflow misti non legati a un solo portale di deposito."
+        + profilo_note
+    )
+
+
+def _endpoint_da_canale(canale: str) -> str:
+    if canale == "PCT_TELEMATICO":
+        return "polisWeb_home"
+    if canale == "PEC":
+        return "messaggi"
+    return ""
+
+
+def _documenti_da_template_catalogo(voci: List[str]) -> List[DocumentoRichiesto]:
+    documenti: List[DocumentoRichiesto] = []
+    for indice, voce in enumerate(voci, start=1):
+        titolo = (voce or "").strip()
+        documenti.append(
+            DocumentoRichiesto(
+                numero=indice,
+                nome_file=f"{indice:02d}_{_slug_ascii(titolo, fallback=f'Documento_{indice:02d}')}",
+                descrizione=titolo,
+                obbligatorio=True,
+            )
+        )
+    return documenti
+
+
+def _checklist_critico(testo: str) -> bool:
+    testo_norm = (testo or "").lower()
+    return any(termine in testo_norm for termine in _CRITICAL_TERMS)
+
+
+def _checklist_da_template_catalogo(voci: List[str]) -> List[ItemChecklist]:
+    checklist = [
+        ItemChecklist(testo=(voce or "").strip(), critico=_checklist_critico(voce or ""))
+        for voce in voci
+        if (voce or "").strip()
+    ]
+    checklist.append(
+        ItemChecklist(
+            testo="Cartella e naming file coerenti con il fascicolo e con la data italiana gg-mm-aaaa.",
+            critico=True,
+        )
+    )
+    checklist.append(
+        ItemChecklist(
+            testo="Indice allegati e ordine dei file allineati prima di chiudere il workflow.",
+            critico=True,
+        )
+    )
+    return checklist
+
+
+def _note_generali_template_catalogo(template: dict) -> str:
+    dettagli = []
+    for label, key in (
+        ("Microtema", "microtema"),
+        ("Fase", "fase"),
+        ("Rito", "rito"),
+        ("Grado", "grado"),
+        ("Profilo deposito", "profilo_deposito"),
+    ):
+        valore = template.get(key)
+        if isinstance(valore, str):
+            valore = valore.strip()
+        if valore:
+            dettagli.append(f"{label}: {valore}")
+    nota = template.get("note")
+    if isinstance(nota, str) and nota.strip():
+        dettagli.append(nota.strip())
+    return " | ".join(dettagli)
+
+
+def _template_checklist_da_builtin(template: dict) -> TemplateAtto:
+    titolo = str(template.get("titolo") or template.get("id") or "Template professionale")
+    canale = _mappa_canale_template(str(template.get("canale_telematico") or "Misto"))
+    profilo = str(template.get("profilo_deposito") or "")
+    return TemplateAtto(
+        id=str(template.get("id") or _slug_ascii(titolo, fallback="template_checklist").lower()),
+        nome=titolo,
+        categoria=str(template.get("categoria") or template.get("area") or "Altro"),
+        area=str(template.get("area") or "Operativo"),
+        branca=str(template.get("branca") or "Workflow professionale"),
+        sottobranca=str(template.get("sottobranca") or "Redazione e deposito"),
+        descrizione=str(template.get("descrizione") or titolo),
+        nome_cartella=f"{_slug_ascii(titolo, fallback='Atto')}" + "_{parte}_{data}",
+        canale=canale,
+        endpoint_deposito=_endpoint_da_canale(canale),
+        tipo_atto_default=profilo.upper() if profilo else "",
+        nota_canale=_nota_canale_template(canale, profilo),
+        documenti=_documenti_da_template_catalogo(list(template.get("allegati_obbligatori") or [])),
+        checklist=_checklist_da_template_catalogo(list(template.get("controlli_conformita") or [])),
+        note_generali=_note_generali_template_catalogo(template),
+    )
+
+
+def _costruisci_template_derivati_catalogo() -> List[TemplateAtto]:
+    from pct.template_atti_catalogo import build_builtin_templates
+
+    derivati: List[TemplateAtto] = []
+    for template in build_builtin_templates():
+        derivati.append(_template_checklist_da_builtin(template))
+    return derivati
+
+
+TEMPLATE_CURATI: List[TemplateAtto] = [_normalizza_template_curato(template) for template in TEMPLATE_CURATI_BASE]
+TUTTI_I_TEMPLATE: List[TemplateAtto] = sorted(
+    TEMPLATE_CURATI + _costruisci_template_derivati_catalogo(),
+    key=lambda template: (
+        AREA_META.get(template.area, {}).get("ordine", 999),
+        template.area,
+        template.branca,
+        template.sottobranca,
+        CATEGORIE.get(template.categoria, template.categoria),
+        template.nome,
+    ),
+)
 
 
 def conta_documenti_obbligatori(template: TemplateAtto) -> int:
@@ -1447,6 +1721,30 @@ def conta_documenti_obbligatori(template: TemplateAtto) -> int:
 
 def conta_item_critici(template: TemplateAtto) -> int:
     return sum(1 for item in template.checklist if item.critico)
+
+
+def statistiche_copertura_template_atti() -> dict[str, int]:
+    from pct.template_atti_catalogo import build_builtin_templates
+
+    builtins = build_builtin_templates()
+    ids_template = {str(template.get("id") or "") for template in builtins}
+    ids_checklist = {template.id for template in TUTTI_I_TEMPLATE}
+    tassonomie_template = {
+        (
+            str(template.get("area") or ""),
+            str(template.get("branca") or ""),
+            str(template.get("sottobranca") or ""),
+        )
+        for template in builtins
+    }
+    tassonomie_checklist = {(template.area, template.branca, template.sottobranca) for template in TUTTI_I_TEMPLATE}
+    return {
+        "template_totali": len(ids_template),
+        "template_coperti": len(ids_template & ids_checklist),
+        "tassonomie_totali": len(tassonomie_template),
+        "tassonomie_coperte": len(tassonomie_template & tassonomie_checklist),
+        "tassonomie_scoperte": len(tassonomie_template - tassonomie_checklist),
+    }
 
 
 def normalizza_data_cartella(data: str = "") -> str:
@@ -1478,6 +1776,7 @@ def costruisci_catalogo_checklist(
     for template in sorgente:
         testo_ricerca = " ".join(
             [
+                template.id,
                 template.nome,
                 template.descrizione,
                 template.categoria,
@@ -1485,6 +1784,8 @@ def costruisci_catalogo_checklist(
                 template.branca,
                 template.sottobranca,
                 template.canale,
+                template.nota_canale,
+                template.note_generali,
             ]
         ).lower()
         if area_filtro and template.area.lower() != area_filtro:

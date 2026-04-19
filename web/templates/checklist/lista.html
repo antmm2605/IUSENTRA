@@ -11,8 +11,9 @@
           <span class="checklist-eyebrow">Preparazione atti</span>
           <h1 class="checklist-hero__title mb-2">Checklist Atti professionale per aree, branche e sottobranche</h1>
           <p class="checklist-hero__text mb-0">
-            Struttura cartelle, controllo finale e catalogo operativo completo per civile, lavoro, famiglia,
-            esecuzioni, penale, amministrativo, tributario e stragiudiziale.
+            Struttura cartelle, controllo finale e catalogo operativo completo allineato al workspace
+            Template Atti per civile, lavoro, famiglia, penale, amministrativo, tributario, societario,
+            immigrazione e stragiudiziale.
           </p>
         </div>
         <div class="checklist-hero__summary">
@@ -78,6 +79,22 @@
         {% else %}
         con copertura completa di aree, branche e sottobranche operative.
         {% endif %}
+      </div>
+      <div class="row g-2 mt-2">
+        <div class="col-lg-6">
+          <div class="small text-muted">
+            Copertura Template Atti:
+            <strong>{{ copertura_template_atti.template_coperti }}/{{ copertura_template_atti.template_totali }}</strong>
+            template professionali presenti anche in Checklist Atti.
+          </div>
+        </div>
+        <div class="col-lg-6">
+          <div class="small text-muted">
+            Tassonomie coperte:
+            <strong>{{ copertura_template_atti.tassonomie_coperte }}/{{ copertura_template_atti.tassonomie_totali }}</strong>
+            aree, branche e sottobranche del catalogo professionale.
+          </div>
+        </div>
       </div>
     </div>
   </section>
@@ -230,6 +247,7 @@
             <span class="badge bg-dark-subtle text-dark-emphasis border border-dark-subtle">PDP Penale</span>
             <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle">PAT</span>
             <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle">PTT / SIGIT</span>
+            <span class="badge bg-secondary-subtle text-secondary-emphasis border border-secondary-subtle">Workflow misto</span>
             <span class="badge bg-success-subtle text-success-emphasis border border-success-subtle">PEC</span>
             <span class="badge bg-secondary-subtle text-secondary-emphasis border border-secondary-subtle">Cartaceo / UNEP</span>
           </div>

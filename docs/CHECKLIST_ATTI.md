@@ -24,37 +24,42 @@ La superficie `/checklist` e' il catalogo operativo degli atti con:
   - `PDP_PENALE`
   - `PAT_AMMINISTRATIVO`
   - `PTT_TRIBUTARIO`
+  - `MISTO`
   - `PEC`
   - `CARTACEO`
 - Il naming cartella e' generato dal dominio e non dal template HTML.
+- Il catalogo checklist deriva anche dal catalogo built-in del workspace `Template Atti`, cosi' aree, branche e sottobranche non divergono piu' tra le due superfici.
 
 ## Aree operative coperte
 
-- Civile e commerciale
-- Lavoro e previdenza
-- Famiglia e persone
-- Esecuzioni e cautelare
-- Penale e indagini
-- Amministrativo e appalti
+- Civile
+- Lavoro e Previdenza
+- Famiglia e Persone
+- Penale
+- Amministrativo
 - Tributario
-- ADR e stragiudiziale
+- Societario
+- Immigrazione
+- Stragiudiziale
 
 ## Template inclusi
 
-La release `2.175.0` porta il catalogo a `30` template strutturati, con copertura espansa su:
+La release `2.176.0` porta il catalogo a `318` checklist operative:
 
-- rito lavoro
-- licenziamenti
-- separazione consensuale
-- divorzio congiunto
-- modifica condizioni familiari
-- opposizioni esecutive
-- motivi aggiunti TAR
-- appello al Consiglio di Stato
-- memoria ex art. 415-bis c.p.p.
-- istanza di dissequestro
-- negoziazione assistita
-- diffida e messa in mora
+- `30` checklist curate ad alta densita' operativa
+- `288` checklist derivate dal catalogo built-in di `Template Atti`
+- copertura completa `288/288` del catalogo professionale
+- copertura completa `25/25` di aree, branche e sottobranche presenti nel catalogo template
+
+Le checklist ora coprono anche i rami che mancavano in modo evidente rispetto a `/template-atti`, per esempio:
+
+- procure e deleghe
+- UNEP e notificazioni
+- contenzioso tributario
+- societario
+- immigrazione e cittadinanza
+- workflow misti di studio, pareri e atti esterni
+- tutte le varianti built-in del workspace atti professionale
 
 ## Verifiche minime
 

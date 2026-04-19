@@ -44,12 +44,13 @@ def register_checklist_routes(
 
     @app.route("/checklist")
     def checklist_atti():
-        from pct.checklist_atti import AREA_META, CANALE_COL, CANALE_ICON, CANALE_LABEL, CATEGORIE, TUTTI_I_TEMPLATE, costruisci_catalogo_checklist
+        from pct.checklist_atti import AREA_META, CANALE_COL, CANALE_ICON, CANALE_LABEL, CATEGORIE, TUTTI_I_TEMPLATE, costruisci_catalogo_checklist, statistiche_copertura_template_atti
 
         query = (request.args.get("q") or "").strip()
         area_filtro = (request.args.get("area") or "").strip()
         catalogo = costruisci_catalogo_checklist(area=area_filtro, q=query)
         catalogo_completo = costruisci_catalogo_checklist()
+        copertura_template_atti = statistiche_copertura_template_atti()
         aree_disponibili = [
             {
                 "nome": area["nome"],
@@ -78,6 +79,7 @@ def register_checklist_routes(
             totale_documenti_obbligatori=totale_obbligatori,
             totale_critici=totale_critici,
             totale_template_completo=len(TUTTI_I_TEMPLATE),
+            copertura_template_atti=copertura_template_atti,
             oggi=date.today(),
         )
 

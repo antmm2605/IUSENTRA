@@ -125,6 +125,12 @@
               <span>Canale</span>
               <strong>{{ canale_label.get(tmpl.canale, tmpl.canale) }}</strong>
             </div>
+            {% if tmpl.note_generali %}
+            <div class="checklist-summary-list__item">
+              <span>Profilo operativo</span>
+              <strong>{{ tmpl.note_generali }}</strong>
+            </div>
+            {% endif %}
           </div>
         </div>
       </div>

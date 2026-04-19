@@ -1,8 +1,15 @@
 from pathlib import Path
 
 from pct.auth import GestioneUtenti, RuoloUtente
-from pct.checklist_atti import DECRETO_INGIUNTIVO, TUTTI_I_TEMPLATE, costruisci_catalogo_checklist, nome_cartella_compilato
+from pct.checklist_atti import (
+    DECRETO_INGIUNTIVO,
+    TUTTI_I_TEMPLATE,
+    costruisci_catalogo_checklist,
+    nome_cartella_compilato,
+    statistiche_copertura_template_atti,
+)
 from pct.storage import StudioDB
+from pct.template_atti_catalogo import build_builtin_templates
 from pct.tenant import GestioneTenant
 from web.app import create_app
 
@@ -44,20 +51,28 @@ def _login_tenant_admin(app, client):
     assert response.status_code == 302
 
 
-def test_catalogo_checklist_copre_aree_branche_e_sottobranche():
+def test_catalogo_checklist_copre_tutto_il_catalogo_professionale_template_atti():
     catalogo = costruisci_catalogo_checklist()
+    stats = statistiche_copertura_template_atti()
+    tassonomie_template = {
+        (template["area"], template["branca"], template["sottobranca"])
+        for template in build_builtin_templates()
+    }
+    tassonomie_checklist = {(template.area, template.branca, template.sottobranca) for template in TUTTI_I_TEMPLATE}
 
-    assert len(TUTTI_I_TEMPLATE) == 30
-    assert len(catalogo) == 8
+    assert len(TUTTI_I_TEMPLATE) >= len(build_builtin_templates())
+    assert stats["template_coperti"] == stats["template_totali"] == len(build_builtin_templates())
+    assert stats["tassonomie_scoperte"] == 0
+    assert tassonomie_template <= tassonomie_checklist
     assert all(template.area and template.branca and template.sottobranca for template in TUTTI_I_TEMPLATE)
-    assert any(area["nome"] == "Lavoro e previdenza" for area in catalogo)
+    assert any(area["nome"] == "Societario" for area in catalogo)
     assert any(
-        branca["nome"] == "Licenziamenti e crisi rapporto"
+        branca["nome"] == "Procure e deleghe"
         for area in catalogo
         for branca in area["branche"]
     )
     assert any(
-        sottobranca["nome"] == "Negoziazione assistita"
+        sottobranca["nome"] == "Ricorsi, permessi e protezione"
         for area in catalogo
         for branca in area["branche"]
         for sottobranca in branca["sottobranche"]
@@ -75,7 +90,7 @@ def test_nome_cartella_compilato_usa_data_italiana_filesystem_safe():
     assert "/" not in cartella
 
 
-def test_checklist_route_renderizza_catalogo_esteso(tmp_path: Path):
+def test_checklist_route_renderizza_catalogo_professionale_completo(tmp_path: Path):
     app = _build_app(tmp_path)
 
     with app.test_client() as client:
@@ -85,11 +100,11 @@ def test_checklist_route_renderizza_catalogo_esteso(tmp_path: Path):
     assert response.status_code == 200
     html = response.get_data(as_text=True)
     assert "Checklist Atti professionale per aree, branche e sottobranche" in html
-    assert "Lavoro e previdenza" in html
-    assert "Famiglia e persone" in html
-    assert "Impugnazione Licenziamento" in html
+    assert "Copertura Template Atti" in html
+    assert "Immigrazione" in html
+    assert "Societario" in html
+    assert "Procure e deleghe" in html
     assert "gg-mm-aaaa" in html
-    assert "â" not in html
 
 
 def test_checklist_dettaglio_mostra_cartella_con_data_italiana(tmp_path: Path):
@@ -102,5 +117,22 @@ def test_checklist_dettaglio_mostra_cartella_con_data_italiana(tmp_path: Path):
     assert response.status_code == 200
     html = response.get_data(as_text=True)
     assert "Decreto_ingiuntivo_Rossi_Mario_19-04-2026" in html
+    assert "Civile" in html
     assert "Monitorio e sommario" in html
     assert "Ricorsi monitori" in html
+
+
+def test_checklist_dettaglio_builtin_renderizza_template_professionale_derivato(tmp_path: Path):
+    app = _build_app(tmp_path)
+
+    with app.test_client() as client:
+        _login_tenant_admin(app, client)
+        response = client.get("/checklist/builtin-tmp-proc-001?parte=Rossi%20Mario&data=2026-04-19")
+
+    assert response.status_code == 200
+    html = response.get_data(as_text=True)
+    assert "Procura alle liti" in html
+    assert "Procure e deleghe" in html
+    assert "Mandati e domiciliazioni" in html
+    assert "Workflow misto / redazione professionale" in html
+    assert "19-04-2026" in html

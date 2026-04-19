@@ -11,6 +11,7 @@ La repo oggi non è più solo un tool CLI per il Processo Civile Telematico: con
 - Workflow completo `cliente -> preventivo -> conferimento -> fascicolo -> attivita' -> parcella -> incasso`.
 - Timesheet operativo con valorizzazione del tempo e generazione parcella dalle attivita' validate.
 - Fatturazione, pagamenti, saldo cliente e KPI economici per studio, cliente e fascicolo.
+- Fascicolo con `cabina operativa` a tab: quadro intelligente, workflow `fascicolo -> incasso`, controllo economico, governo documentale e conformita' deposito nella stessa vista.
 - Template atti, strumenti legali e workspace professionali.
 - Giurisprudenza, legal intelligence, repository strutturati per Lex.
 - Motore `Update Intelligence` per monitoraggio normativo, giurisprudenziale e di prassi con area di acquisizione, coda revisioni e pagina news giuridiche strutturate.
@@ -172,7 +173,7 @@ La demo mentale finale non e' piu' un racconto separato dal prodotto: e' una cap
 
 - La dashboard mostra il riquadro `Studio reale in 5 minuti` con lo stato dei sette passaggi chiave.
 - Il timesheet espone il riepilogo di valorizzazione e puo' generare la parcella dalle voci validate.
-- Il portale cliente, la cartella cliente, il fascicolo e la dashboard economica usano lo stesso flusso condiviso.
+- Il portale cliente, la cartella cliente, il fascicolo e la dashboard economica usano lo stesso flusso condiviso, con il fascicolo come cabina unica fino all'incasso.
 - La CLI `iusentra demo-check` riassume lo stato dello studio e la prossima azione utile.
 
 Per il percorso completo vedi [docs/DEMO_STUDIO_REALE.md](docs/DEMO_STUDIO_REALE.md).

@@ -343,9 +343,13 @@ def test_superfici_cliente_fascicolo_e_timesheet_renderizzano_blocchi_operativi(
 
     assert dettaglio.status_code == 200
     html_fascicolo = dettaglio.get_data(as_text=True)
+    assert "Cabina fascicolo" in html_fascicolo
+    assert "Quadro intelligente" in html_fascicolo
+    assert "Workflow -> incasso" in html_fascicolo
     assert 'id="sezione-workflow-fascicolo"' in html_fascicolo
     assert "Controllo economico fascicolo" in html_fascicolo
     assert "Governo documentale" in html_fascicolo
+    assert "Deposito e conformita'" in html_fascicolo
 
     assert timesheet.status_code == 200
     html_timesheet = timesheet.get_data(as_text=True)

@@ -18,6 +18,7 @@ Portare il testing oltre il singolo modulo e presidiare i flussi che attraversan
 | Telematico ufficiale | runtime telematico, repository capability, portali | integrato | `tests/test_polisweb.py`, `tests/test_simulazione_deposito.py` |
 | Workspace template atti | catalogo built-in, workspace atti, repository template | integrato | `tests/test_template_atti_workspace.py`, `tests/test_template_atti_repository.py` |
 | Coerenza UI moduli nuovi | menu admin, copy italiana, route protette, superfici operative | rinforzato | `tests/test_operational_surfaces.py`, `tests/test_web_bootstrap.py` |
+| Cockpit fascicolo end-to-end | dettaglio fascicolo, AI locale, workflow economico, document management, conformita' deposito | rinforzato | `tests/test_operational_surfaces.py`, `tests/test_web_bootstrap.py` |
 
 ## Golden path ufficiali
 

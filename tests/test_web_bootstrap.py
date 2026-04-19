@@ -830,13 +830,15 @@ def test_notifiche_whatsapp_usa_js_esterno_e_date_localizzate():
 
 def test_ai_operativa_usa_bridge_browser_e_template_senza_logica_inline():
     fascicolo_template = (REPO_ROOT / "web/templates/fascicoli/dettaglio.html").read_text(encoding="utf-8")
+    fascicolo_cockpit = (REPO_ROOT / "web/templates/components/fascicolo_cockpit_tabs.html").read_text(encoding="utf-8")
     fascicolo_component = (REPO_ROOT / "web/templates/components/fascicolo_smart_board.html").read_text(encoding="utf-8")
     workspace_template = (REPO_ROOT / "web/templates/workspace_intelligente.html").read_text(encoding="utf-8")
     bridge_js = (REPO_ROOT / "web/static/js/local-ai-browser-bridge.js").read_text(encoding="utf-8")
     fascicolo_js = (REPO_ROOT / "web/static/js/fascicolo-ai.js").read_text(encoding="utf-8")
     workspace_js = (REPO_ROOT / "web/static/js/workspace-ai.js").read_text(encoding="utf-8")
 
-    assert '{% include "components/fascicolo_smart_board.html" %}' in fascicolo_template
+    assert '{% include "components/fascicolo_cockpit_tabs.html" %}' in fascicolo_template
+    assert '{% include "components/fascicolo_smart_board.html" %}' in fascicolo_cockpit
     assert "/static/js/local-ai-browser-bridge.js?v={{ app_version }}" in fascicolo_template
     assert "/static/js/fascicolo-ai.js?v={{ app_version }}" in fascicolo_template
     assert "async function askFascicoloAi" not in fascicolo_template
@@ -1294,13 +1296,22 @@ def test_modal_firma_deposito_prevede_riavvio_local_signer():
     assert "getSignaturePlace" in helper_js
 
 
-def test_quadro_intelligente_fascicolo_e_collassabile_con_collegamenti_rapidi():
+def test_cockpit_fascicolo_unifica_quadro_workflow_e_controlli_operativi():
     dettaglio = (REPO_ROOT / "web/templates/fascicoli/dettaglio.html").read_text(encoding="utf-8")
+    cockpit = (REPO_ROOT / "web/templates/components/fascicolo_cockpit_tabs.html").read_text(encoding="utf-8")
     smart_board = (REPO_ROOT / "web/templates/components/fascicolo_smart_board.html").read_text(encoding="utf-8")
     app_scss = (REPO_ROOT / "web/static/scss/app.scss").read_text(encoding="utf-8")
+    cockpit_scss = (REPO_ROOT / "web/static/scss/pages/_fascicolo-cockpit.scss").read_text(encoding="utf-8")
     smart_board_scss = (REPO_ROOT / "web/static/scss/pages/_fascicolo-smart-board.scss").read_text(encoding="utf-8")
 
-    assert '{% include "components/fascicolo_smart_board.html" %}' in dettaglio
+    assert '{% include "components/fascicolo_cockpit_tabs.html" %}' in dettaglio
+    assert "Cabina fascicolo" in cockpit
+    assert "Quadro intelligente" in cockpit
+    assert "Workflow -> incasso" in cockpit
+    assert "Controllo economico" in cockpit
+    assert "Governo documentale" in cockpit
+    assert "Deposito e conformita'" in cockpit
+    assert '{% include "components/fascicolo_smart_board.html" %}' in cockpit
     assert 'data-bs-target="#collapse-sezione-intelligenza-fascicolo"' in smart_board
     assert 'id="collapse-sezione-intelligenza-fascicolo"' in smart_board
     assert "Cambia stato" in smart_board
@@ -1309,8 +1320,12 @@ def test_quadro_intelligente_fascicolo_e_collassabile_con_collegamenti_rapidi():
     assert "Cliente" in smart_board
     assert "Parti del procedimento" in smart_board
     assert "Collegamenti rapidi" in smart_board
+    assert "@use 'pages/fascicolo-cockpit';" in app_scss
     assert "@use 'pages/fascicolo-smart-board';" in app_scss
     assert "@use 'pages/lex-operational';" in app_scss
+    assert ".fascicolo-cockpit__nav" in cockpit_scss
+    assert ".fascicolo-cockpit__grid" in cockpit_scss
+    assert ".fascicolo-cockpit__deposit-grid" in cockpit_scss
     assert ".fascicolo-smart-board__quick-link" in smart_board_scss
     assert ".fascicolo-smart-board__hero" in smart_board_scss
 

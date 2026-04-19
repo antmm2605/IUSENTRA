@@ -160,22 +160,7 @@
 </div>
 {% endif %}
 
-{% if intelligenza_fascicolo %}
-{% include "components/fascicolo_smart_board.html" %}
-{% endif %}
-
-<div class="row g-3 mb-1">
-  <div class="col-12 col-xl-6">
-    {% with pipeline=fascicolo_pipeline, title="Workflow fascicolo -> incasso", anchor_id="sezione-workflow-fascicolo" %}
-      {% include "components/workflow_pipeline.html" %}
-    {% endwith %}
-  </div>
-  <div class="col-12 col-xl-6">
-    {% with dashboard=economic_dashboard, title="Controllo economico fascicolo", anchor_id="sezione-economico-fascicolo" %}
-      {% include "components/economic_overview.html" %}
-    {% endwith %}
-  </div>
-</div>
+{% include "components/fascicolo_cockpit_tabs.html" %}
 
 <div class="row g-3">
 
@@ -5627,4 +5612,3 @@ window.addEventListener('hashchange', function() {
 <script src="/static/js/local-ai-browser-bridge.js?v={{ app_version }}"></script>
 <script src="/static/js/fascicolo-ai.js?v={{ app_version }}"></script>
 {% endblock %}
-

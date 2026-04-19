@@ -1,0 +1,253 @@
+.fascicolo-cockpit {
+  border: 1px solid rgba(30, 64, 175, 0.1);
+  background:
+    radial-gradient(circle at top right, rgba(37, 99, 235, 0.08), transparent 34%),
+    linear-gradient(180deg, rgba(248, 250, 252, 0.96), rgba(255, 255, 255, 0.98));
+}
+
+.fascicolo-cockpit__hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(18rem, 0.95fr);
+  gap: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+}
+
+.fascicolo-cockpit__eyebrow,
+.fascicolo-cockpit__section-label,
+.fascicolo-cockpit__summary-label,
+.fascicolo-cockpit__hero-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+.fascicolo-cockpit__title {
+  margin: 0.35rem 0 0.55rem;
+  font-size: 1.35rem;
+  line-height: 1.15;
+  color: #0f172a;
+}
+
+.fascicolo-cockpit__subtitle {
+  margin: 0;
+  max-width: 56rem;
+  color: #475569;
+}
+
+.fascicolo-cockpit__hero-side {
+  border: 1px solid rgba(37, 99, 235, 0.12);
+  border-radius: 1.15rem;
+  background: rgba(255, 255, 255, 0.86);
+  box-shadow: 0 14px 28px rgba(15, 23, 42, 0.05);
+  padding: 1rem 1.1rem;
+}
+
+.fascicolo-cockpit__hero-step {
+  margin-top: 0.45rem;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.fascicolo-cockpit__nav {
+  gap: 0.55rem;
+  padding: 1rem 0 0.25rem;
+}
+
+.fascicolo-cockpit__nav .nav-link {
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  color: #334155;
+  font-weight: 600;
+  padding: 0.6rem 0.95rem;
+  background: rgba(255, 255, 255, 0.8);
+}
+
+.fascicolo-cockpit__nav .nav-link.active {
+  background: linear-gradient(135deg, #1d4ed8, #2563eb);
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 10px 20px rgba(37, 99, 235, 0.18);
+}
+
+.fascicolo-cockpit__content {
+  padding-top: 0.9rem;
+}
+
+.fascicolo-cockpit__grid,
+.fascicolo-cockpit__document-grid,
+.fascicolo-cockpit__deposit-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+.fascicolo-cockpit__grid {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.fascicolo-cockpit__document-grid,
+.fascicolo-cockpit__deposit-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.fascicolo-cockpit__summary-card,
+.fascicolo-cockpit__document-card,
+.fascicolo-cockpit__deposit-card {
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 1.15rem;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 16px 32px rgba(15, 23, 42, 0.05);
+  padding: 1rem 1.05rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+.fascicolo-cockpit__summary-value,
+.fascicolo-cockpit__section-title {
+  font-size: 0.98rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.fascicolo-cockpit__summary-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  color: #64748b;
+  font-size: 0.82rem;
+}
+
+.fascicolo-cockpit__switch {
+  align-self: flex-start;
+  border-radius: 999px;
+}
+
+.fascicolo-cockpit__actions,
+.fascicolo-cockpit__badge-row,
+.fascicolo-cockpit__tag-cloud {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+
+.fascicolo-cockpit__actions {
+  margin-top: 1rem;
+}
+
+.fascicolo-cockpit__search-results,
+.fascicolo-cockpit__workflow-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+.fascicolo-cockpit__search-item,
+.fascicolo-cockpit__workflow-row {
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 1rem;
+  padding: 0.8rem 0.9rem;
+  background: rgba(248, 250, 252, 0.72);
+}
+
+.fascicolo-cockpit__workflow-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.9rem;
+}
+
+.fascicolo-cockpit__workflow-row.status-block {
+  border-color: rgba(220, 38, 38, 0.18);
+  background: rgba(254, 242, 242, 0.95);
+}
+
+.fascicolo-cockpit__workflow-row.status-warning {
+  border-color: rgba(245, 158, 11, 0.18);
+  background: rgba(255, 251, 235, 0.95);
+}
+
+.fascicolo-cockpit__workflow-row.status-ok {
+  border-color: rgba(22, 163, 74, 0.16);
+  background: rgba(240, 253, 244, 0.95);
+}
+
+.fascicolo-cockpit__deposit-next {
+  border-top: 1px solid rgba(148, 163, 184, 0.16);
+  padding-top: 0.85rem;
+}
+
+.fascicolo-cockpit__pdp {
+  border-top: 1px solid rgba(148, 163, 184, 0.16);
+  padding-top: 0.85rem;
+}
+
+.fascicolo-cockpit__empty {
+  border: 1px dashed rgba(148, 163, 184, 0.4);
+  border-radius: 1rem;
+  padding: 1rem;
+  text-align: center;
+  color: #64748b;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+@media (max-width: 1399.98px) {
+  .fascicolo-cockpit__grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 1199.98px) {
+  .fascicolo-cockpit__hero {
+    grid-template-columns: 1fr;
+  }
+
+  .fascicolo-cockpit__grid,
+  .fascicolo-cockpit__document-grid,
+  .fascicolo-cockpit__deposit-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 767.98px) {
+  .fascicolo-cockpit__nav {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    padding-bottom: 0.35rem;
+  }
+
+  .fascicolo-cockpit__nav .nav-item {
+    flex: 0 0 auto;
+  }
+
+  .fascicolo-cockpit__grid,
+  .fascicolo-cockpit__document-grid,
+  .fascicolo-cockpit__deposit-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .fascicolo-cockpit__workflow-row {
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .fascicolo-cockpit__title {
+    font-size: 1.15rem;
+  }
+
+  .fascicolo-cockpit__summary-card,
+  .fascicolo-cockpit__document-card,
+  .fascicolo-cockpit__deposit-card,
+  .fascicolo-cockpit__hero-side {
+    padding: 0.95rem;
+    border-radius: 1rem;
+  }
+
+  .fascicolo-cockpit__actions .btn {
+    width: 100%;
+  }
+}

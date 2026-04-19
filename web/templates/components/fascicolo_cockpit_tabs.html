@@ -1,0 +1,311 @@
+{% set requested_focus = (request.args.get('focus', '') or '').strip().lower() %}
+{% if requested_focus in ['documenti', 'documentale', 'ocr', 'ricerca-documenti'] %}
+  {% set active_tab = 'documentale' %}
+{% elif requested_focus in ['economico', 'timesheet', 'fatture', 'incassi'] %}
+  {% set active_tab = 'economico' %}
+{% elif requested_focus in ['workflow', 'incasso', 'commerciale'] %}
+  {% set active_tab = 'workflow' %}
+{% elif requested_focus in ['deposito', 'conformita', 'telematico', 'pst'] %}
+  {% set active_tab = 'deposito' %}
+{% elif requested_focus in ['quadro', 'intelligenza', 'ai'] %}
+  {% set active_tab = 'quadro' %}
+{% else %}
+  {% set active_tab = 'overview' %}
+{% endif %}
+
+{% set rc = responsabile_conformita or {} %}
+{% set rc_state = rc.overall_state if rc and rc.available else 'warning' %}
+{% set rc_state_badge = {'ok': 'success', 'warning': 'warning', 'blocco': 'danger'}.get(rc_state, 'secondary') %}
+{% set smart_actions = intelligenza_fascicolo.next_actions if intelligenza_fascicolo and intelligenza_fascicolo.next_actions else [] %}
+{% set flow_stages = fascicolo_pipeline.stages if fascicolo_pipeline and fascicolo_pipeline.stages else [] %}
+{% set completed_stages = flow_stages | selectattr('complete') | list | length %}
+{% set eco_totals = economic_dashboard.totals if economic_dashboard and economic_dashboard.totals else {} %}
+{% set eco_worklist = economic_dashboard.worklist if economic_dashboard and economic_dashboard.worklist else [] %}
+{% set dm_stats = document_management.stats if document_management and document_management.stats else {} %}
+{% set dm_tags = document_management.tag_cloud if document_management and document_management.tag_cloud else [] %}
+{% set dm_results = document_management.search_results if document_management and document_management.search_results else [] %}
+{% set open_scadenze = WFS.scadenze | rejectattr('stato.value', 'equalto', 'COMPLETATO') | list if WFS.scadenze is defined and WFS.scadenze else [] %}
+{% set deposit_steps = rc.workflow[:5] if rc and rc.workflow else [] %}
+{% set hero_next_step = (rc.next_step.title if rc and rc.next_step else '') or (smart_actions[0] if smart_actions else '') or (fascicolo_pipeline.next_action if fascicolo_pipeline else '') or (economic_dashboard.next_action if economic_dashboard else '') or "Presidia il fascicolo con la cabina operativa e chiudi il ciclo fino all'incasso." %}
+
+<div class="card shadow-sm fascicolo-cockpit mb-3" id="sezione-cabina-fascicolo" style="scroll-margin-top:1rem">
+  <div class="card-body">
+    <div class="fascicolo-cockpit__hero">
+      <div class="fascicolo-cockpit__hero-copy">
+        <div class="fascicolo-cockpit__eyebrow">Cabina fascicolo</div>
+        <h2 class="fascicolo-cockpit__title">Quadro intelligente, economia, deposito e documenti nella stessa regia</h2>
+        <p class="fascicolo-cockpit__subtitle">
+          Il fascicolo diventa una postazione operativa completa: prossime mosse, workflow fino all'incasso,
+          presidio economico, governo documentale e conformita' del deposito.
+        </p>
+      </div>
+      <div class="fascicolo-cockpit__hero-side">
+        <div class="fascicolo-cockpit__hero-label">Prossimo passo consigliato</div>
+        <div class="fascicolo-cockpit__hero-step">{{ hero_next_step }}</div>
+        <div class="d-flex flex-wrap gap-2 mt-3">
+          <span class="badge text-bg-{{ SC[fascicolo.stato.value] }}">{{ fascicolo.stato.value.replace('_', ' ') }}</span>
+          <span class="badge text-bg-light border">{{ fascicolo.documenti|length }} documenti</span>
+          <span class="badge text-bg-light border">{{ open_scadenze|length }} scadenze aperte</span>
+          <span class="badge text-bg-light border">{{ timesheet_entries|length }} voci timesheet</span>
+          <span class="badge text-bg-{{ rc_state_badge }}">
+            Deposito {{ 'pronto' if rc and rc.deposit_ready else 'da verificare' }}
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <ul class="nav nav-pills fascicolo-cockpit__nav" id="fascicoloCockpitTabs" role="tablist">
+      <li class="nav-item" role="presentation">
+        <button class="nav-link {% if active_tab == 'overview' %}active{% endif %}" id="fascicolo-cockpit-overview-tab" data-bs-toggle="pill" data-bs-target="#fascicolo-cockpit-overview" type="button" role="tab" aria-controls="fascicolo-cockpit-overview" aria-selected="{{ 'true' if active_tab == 'overview' else 'false' }}">
+          Cabina
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link {% if active_tab == 'quadro' %}active{% endif %}" id="fascicolo-cockpit-quadro-tab" data-bs-toggle="pill" data-bs-target="#fascicolo-cockpit-quadro" type="button" role="tab" aria-controls="fascicolo-cockpit-quadro" aria-selected="{{ 'true' if active_tab == 'quadro' else 'false' }}">
+          Quadro intelligente
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link {% if active_tab == 'workflow' %}active{% endif %}" id="fascicolo-cockpit-workflow-tab" data-bs-toggle="pill" data-bs-target="#fascicolo-cockpit-workflow" type="button" role="tab" aria-controls="fascicolo-cockpit-workflow" aria-selected="{{ 'true' if active_tab == 'workflow' else 'false' }}">
+          Workflow -> incasso
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link {% if active_tab == 'economico' %}active{% endif %}" id="fascicolo-cockpit-economico-tab" data-bs-toggle="pill" data-bs-target="#fascicolo-cockpit-economico" type="button" role="tab" aria-controls="fascicolo-cockpit-economico" aria-selected="{{ 'true' if active_tab == 'economico' else 'false' }}">
+          Controllo economico
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link {% if active_tab == 'documentale' %}active{% endif %}" id="fascicolo-cockpit-documentale-tab" data-bs-toggle="pill" data-bs-target="#fascicolo-cockpit-documentale" type="button" role="tab" aria-controls="fascicolo-cockpit-documentale" aria-selected="{{ 'true' if active_tab == 'documentale' else 'false' }}">
+          Governo documentale
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link {% if active_tab == 'deposito' %}active{% endif %}" id="fascicolo-cockpit-deposito-tab" data-bs-toggle="pill" data-bs-target="#fascicolo-cockpit-deposito" type="button" role="tab" aria-controls="fascicolo-cockpit-deposito" aria-selected="{{ 'true' if active_tab == 'deposito' else 'false' }}">
+          Deposito e conformita'
+        </button>
+      </li>
+    </ul>
+
+    <div class="tab-content fascicolo-cockpit__content" id="fascicoloCockpitTabsContent">
+      <div class="tab-pane fade {% if active_tab == 'overview' %}show active{% endif %}" id="fascicolo-cockpit-overview" role="tabpanel" aria-labelledby="fascicolo-cockpit-overview-tab" tabindex="0">
+        <div class="fascicolo-cockpit__grid">
+          <article class="fascicolo-cockpit__summary-card">
+            <div class="fascicolo-cockpit__summary-label">Quadro intelligente</div>
+            <div class="fascicolo-cockpit__summary-value">
+              {{ smart_actions[0] if smart_actions else 'Apri la scheda intelligente per rischi, prossime mosse e collegamenti rapidi.' }}
+            </div>
+            <div class="fascicolo-cockpit__summary-meta">
+              <span>{{ intelligenza_fascicolo.scadenze|length if intelligenza_fascicolo and intelligenza_fascicolo.scadenze else 0 }} scadenze presidiate</span>
+              <span>{{ intelligenza_fascicolo.giurisprudenza|length if intelligenza_fascicolo and intelligenza_fascicolo.giurisprudenza else 0 }} sentenze suggerite</span>
+            </div>
+            <button class="btn btn-sm btn-outline-primary fascicolo-cockpit__switch" type="button" data-bs-toggle="pill" data-bs-target="#fascicolo-cockpit-quadro">Apri scheda</button>
+          </article>
+
+          <article class="fascicolo-cockpit__summary-card">
+            <div class="fascicolo-cockpit__summary-label">Workflow fascicolo -> incasso</div>
+            <div class="fascicolo-cockpit__summary-value">{{ fascicolo_pipeline.next_action if fascicolo_pipeline else 'Workflow non disponibile.' }}</div>
+            <div class="fascicolo-cockpit__summary-meta">
+              <span>{{ completed_stages }}/{{ flow_stages|length }} step coperti</span>
+              <span>{{ fascicolo_pipeline.parcelle_emesse if fascicolo_pipeline and fascicolo_pipeline.parcelle_emesse is defined else 0 }} parcelle emesse</span>
+            </div>
+            <button class="btn btn-sm btn-outline-primary fascicolo-cockpit__switch" type="button" data-bs-toggle="pill" data-bs-target="#fascicolo-cockpit-workflow">Apri workflow</button>
+          </article>
+
+          <article class="fascicolo-cockpit__summary-card">
+            <div class="fascicolo-cockpit__summary-label">Controllo economico fascicolo</div>
+            <div class="fascicolo-cockpit__summary-value">
+              {{ economic_dashboard.next_action if economic_dashboard else 'Controllo economico non disponibile.' }}
+            </div>
+            <div class="fascicolo-cockpit__summary-meta">
+              <span>Insoluto {{ eco_worklist[0].value if eco_worklist else 'n.d.' }}</span>
+              <span>{{ eco_totals.parcelle_aperte if eco_totals and eco_totals.parcelle_aperte is defined else 0 }} parcelle aperte</span>
+            </div>
+            <button class="btn btn-sm btn-outline-primary fascicolo-cockpit__switch" type="button" data-bs-toggle="pill" data-bs-target="#fascicolo-cockpit-economico">Apri controllo</button>
+          </article>
+
+          <article class="fascicolo-cockpit__summary-card">
+            <div class="fascicolo-cockpit__summary-label">Governo documentale</div>
+            <div class="fascicolo-cockpit__summary-value">
+              {{ document_management.next_action if document_management else 'Nessuna analisi documentale disponibile.' }}
+            </div>
+            <div class="fascicolo-cockpit__summary-meta">
+              <span>{{ dm_stats.totale if dm_stats and dm_stats.totale is defined else fascicolo.documenti|length }} documenti</span>
+              <span>{{ dm_stats.ocr_ready if dm_stats and dm_stats.ocr_ready is defined else 0 }} con OCR</span>
+            </div>
+            <button class="btn btn-sm btn-outline-primary fascicolo-cockpit__switch" type="button" data-bs-toggle="pill" data-bs-target="#fascicolo-cockpit-documentale">Apri documenti</button>
+          </article>
+
+          <article class="fascicolo-cockpit__summary-card">
+            <div class="fascicolo-cockpit__summary-label">Deposito e conformita'</div>
+            <div class="fascicolo-cockpit__summary-value">
+              {% if rc and rc.available %}
+                {{ rc.summary_text }}
+              {% else %}
+                Controlli di conformita' non ancora disponibili per questa pratica.
+              {% endif %}
+            </div>
+            <div class="fascicolo-cockpit__summary-meta">
+              <span>Punteggio {{ rc.score if rc and rc.score is defined else 0 }}/100</span>
+              <span>{{ rc.blockers_count if rc and rc.blockers_count is defined else 0 }} blocchi</span>
+            </div>
+            <button class="btn btn-sm btn-outline-primary fascicolo-cockpit__switch" type="button" data-bs-toggle="pill" data-bs-target="#fascicolo-cockpit-deposito">Apri deposito</button>
+          </article>
+        </div>
+
+        <div class="fascicolo-cockpit__actions">
+          <a href="#sezione-documenti-fascicolo" class="btn btn-sm btn-outline-secondary">
+            <i class="bi bi-paperclip me-1"></i>Vai ai documenti
+          </a>
+          <a href="#sezione-udienze-scadenze" class="btn btn-sm btn-outline-secondary">
+            <i class="bi bi-calendar-event me-1"></i>Vai a udienze e scadenze
+          </a>
+          <a href="#sezione-attivita-processuali" class="btn btn-sm btn-outline-secondary">
+            <i class="bi bi-list-check me-1"></i>Vai alle attivita'
+          </a>
+          <a href="#sezione-responsabile-conformita" class="btn btn-sm btn-outline-secondary">
+            <i class="bi bi-shield-check me-1"></i>Vai ai controlli deposito
+          </a>
+        </div>
+      </div>
+
+      <div class="tab-pane fade {% if active_tab == 'quadro' %}show active{% endif %}" id="fascicolo-cockpit-quadro" role="tabpanel" aria-labelledby="fascicolo-cockpit-quadro-tab" tabindex="0">
+        {% if intelligenza_fascicolo %}
+          {% include "components/fascicolo_smart_board.html" %}
+        {% else %}
+        <div class="fascicolo-cockpit__empty">
+          Nessuna analisi intelligente disponibile per il fascicolo corrente.
+        </div>
+        {% endif %}
+      </div>
+
+      <div class="tab-pane fade {% if active_tab == 'workflow' %}show active{% endif %}" id="fascicolo-cockpit-workflow" role="tabpanel" aria-labelledby="fascicolo-cockpit-workflow-tab" tabindex="0">
+        {% with pipeline=fascicolo_pipeline, title="Workflow fascicolo -> incasso", anchor_id="sezione-workflow-fascicolo" %}
+          {% include "components/workflow_pipeline.html" %}
+        {% endwith %}
+      </div>
+
+      <div class="tab-pane fade {% if active_tab == 'economico' %}show active{% endif %}" id="fascicolo-cockpit-economico" role="tabpanel" aria-labelledby="fascicolo-cockpit-economico-tab" tabindex="0">
+        {% with dashboard=economic_dashboard, title="Controllo economico fascicolo", anchor_id="sezione-economico-fascicolo" %}
+          {% include "components/economic_overview.html" %}
+        {% endwith %}
+      </div>
+
+      <div class="tab-pane fade {% if active_tab == 'documentale' %}show active{% endif %}" id="fascicolo-cockpit-documentale" role="tabpanel" aria-labelledby="fascicolo-cockpit-documentale-tab" tabindex="0">
+        <div class="fascicolo-cockpit__document-grid">
+          <section class="fascicolo-cockpit__document-card">
+            <div class="fascicolo-cockpit__section-label">Governo documentale</div>
+            <h3 class="fascicolo-cockpit__section-title">{{ document_management.next_action if document_management else 'Presidia i documenti principali del fascicolo.' }}</h3>
+            <div class="fascicolo-cockpit__badge-row">
+              <span class="badge text-bg-light border">Documenti {{ dm_stats.totale if dm_stats and dm_stats.totale is defined else fascicolo.documenti|length }}</span>
+              <span class="badge text-bg-light border">Taggati {{ dm_stats.taggati if dm_stats and dm_stats.taggati is defined else 0 }}</span>
+              <span class="badge text-bg-light border">OCR {{ dm_stats.ocr_ready if dm_stats and dm_stats.ocr_ready is defined else 0 }}</span>
+              <span class="badge text-bg-light border">Versioni {{ dm_stats.versioni if dm_stats and dm_stats.versioni is defined else 0 }}</span>
+              <span class="badge text-bg-light border">Portale {{ dm_stats.dal_portale if dm_stats and dm_stats.dal_portale is defined else 0 }}</span>
+            </div>
+            <div class="small text-muted mt-3">
+              Usa questa scheda per capire se il fascicolo e' indicizzato, se i documenti sono ricercabili e se restano allegati da strutturare.
+            </div>
+            <div class="d-flex gap-2 flex-wrap mt-3">
+              <a href="#sezione-documenti-fascicolo" class="btn btn-sm btn-primary">
+                <i class="bi bi-paperclip me-1"></i>Apri sezione documenti
+              </a>
+              {% if document_management and document_management.query %}
+              <span class="badge text-bg-primary">Filtro attivo: {{ document_management.query }}</span>
+              {% endif %}
+            </div>
+          </section>
+
+          <section class="fascicolo-cockpit__document-card">
+            <div class="fascicolo-cockpit__section-label">Tag e ricerca</div>
+            {% if dm_tags %}
+            <div class="fascicolo-cockpit__tag-cloud">
+              {% for tag in dm_tags[:8] %}
+              <span class="badge rounded-pill text-bg-secondary">{{ tag.label }} - {{ tag.count }}</span>
+              {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-muted small">Nessun tag ancora associato ai documenti del fascicolo.</div>
+            {% endif %}
+
+            <div class="fascicolo-cockpit__search-results">
+              {% for result in dm_results[:3] %}
+              <div class="fascicolo-cockpit__search-item">
+                <div class="fw-semibold">{{ result.titolo }}</div>
+                {% if result.snippet %}
+                <div class="small text-muted">{{ result.snippet|safe }}</div>
+                {% endif %}
+              </div>
+              {% else %}
+              <div class="text-muted small mt-3">Nessun risultato di ricerca documentale da mostrare in evidenza.</div>
+              {% endfor %}
+            </div>
+          </section>
+        </div>
+      </div>
+
+      <div class="tab-pane fade {% if active_tab == 'deposito' %}show active{% endif %}" id="fascicolo-cockpit-deposito" role="tabpanel" aria-labelledby="fascicolo-cockpit-deposito-tab" tabindex="0">
+        <div class="fascicolo-cockpit__deposit-grid">
+          <section class="fascicolo-cockpit__deposit-card">
+            <div class="fascicolo-cockpit__section-label">Stato deposito</div>
+            <div class="d-flex align-items-center gap-2 flex-wrap mb-2">
+              <span class="badge text-bg-{{ rc_state_badge }}">
+                {% if rc and rc.deposit_ready %}Pronto{% elif rc and rc.available %}Non pronto{% else %}Da configurare{% endif %}
+              </span>
+              <span class="badge text-bg-light border">Score {{ rc.score if rc and rc.score is defined else 0 }}/100</span>
+            </div>
+            <div class="fascicolo-cockpit__section-title">
+              {{ rc.ready_reason if rc and rc.ready_reason else 'Presidia i controlli di conformita e il pre-deposito tecnico.' }}
+            </div>
+            <div class="fascicolo-cockpit__badge-row mt-3">
+              <span class="badge text-bg-light border">Blocchi {{ rc.blockers_count if rc and rc.blockers_count is defined else 0 }}</span>
+              <span class="badge text-bg-light border">Avvisi {{ rc.warnings_count if rc and rc.warnings_count is defined else 0 }}</span>
+              <span class="badge text-bg-light border">OK {{ rc.passed_count if rc and rc.passed_count is defined else 0 }}</span>
+              <span class="badge text-bg-light border">Documenti mancanti {{ rc.missing_docs_count if rc and rc.missing_docs_count is defined else 0 }}</span>
+            </div>
+            {% if rc and rc.next_step %}
+            <div class="fascicolo-cockpit__deposit-next mt-3">
+              <div class="fw-semibold">{{ rc.next_step.title }}</div>
+              <div class="small text-muted">{{ rc.next_step.reason }}</div>
+              <a href="{{ rc.next_step.url or '#sezione-responsabile-conformita' }}" class="btn btn-sm btn-primary mt-2">
+                <i class="bi bi-shield-check me-1"></i>{{ rc.next_step.cta or 'Apri controlli' }}
+              </a>
+            </div>
+            {% endif %}
+          </section>
+
+          <section class="fascicolo-cockpit__deposit-card">
+            <div class="fascicolo-cockpit__section-label">Workflow deposito</div>
+            <div class="fascicolo-cockpit__workflow-list">
+              {% for step in deposit_steps %}
+              <div class="fascicolo-cockpit__workflow-row status-{{ step.status }}">
+                <div>
+                  <div class="fw-semibold">{{ step.label }}</div>
+                  <div class="small text-muted">{{ step.note }}</div>
+                </div>
+                <a href="{{ step.url or '#sezione-responsabile-conformita' }}" class="btn btn-sm btn-outline-secondary">
+                  {{ step.cta or 'Apri' }}
+                </a>
+              </div>
+              {% else %}
+              <div class="text-muted small">Nessun workflow di deposito disponibile per questa pratica.</div>
+              {% endfor %}
+            </div>
+
+            {% if pdp_penale_summary and pdp_penale_summary.enabled %}
+            <div class="fascicolo-cockpit__pdp mt-3">
+              <div class="fw-semibold text-danger">Presidio PDP penale</div>
+              <div class="small text-muted">
+                {{ pdp_penale_summary.case_count }} case ministeriali - {{ pdp_penale_summary.documents_count }} documenti - {{ pdp_penale_summary.open_tasks }} task aperti
+              </div>
+              <a href="{{ pdp_penale_summary.url }}" class="btn btn-sm btn-outline-danger mt-2">
+                <i class="bi bi-arrow-right-circle me-1"></i>Apri workspace penale
+              </a>
+            </div>
+            {% endif %}
+          </section>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

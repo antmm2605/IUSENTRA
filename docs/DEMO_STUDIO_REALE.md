@@ -13,7 +13,7 @@ Il percorso ufficiale e':
 - Dashboard principale: card `Studio reale in 5 minuti`
 - Timesheet: riepilogo valorizzazione e azione `Genera parcella dalle voci validate`
 - Cartella cliente: workflow economico e stato dei documenti commerciali
-- Fascicolo: quadro operativo, documentale ed economico sullo stesso centro di lavoro
+- Fascicolo: cabina operativa con tab `Quadro intelligente`, `Workflow -> incasso`, `Controllo economico`, `Governo documentale` e `Deposito e conformita'`
 - Portale cliente: timeline coerente di preventivi, conferimenti e parcelle
 
 ## Comando CLI ufficiale

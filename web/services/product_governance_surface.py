@@ -7,6 +7,7 @@ from typing import Any
 from flask import current_app
 
 from pct.tenant import DB_MODE_INFO, GestioneTenant
+from pct.golden_paths import build_golden_path_payload
 from pct.product_governance import (
     STORAGE_PARITY_REGISTRY,
     build_authorization_model_payload,
@@ -170,6 +171,7 @@ def build_product_governance_surface(*, selected_slug: str = "") -> dict[str, An
     authorization = build_authorization_model_payload()
     migration = build_migration_program_payload()
     e2e = build_e2e_flow_payload()
+    golden_paths = build_golden_path_payload()
     observability_product = build_observability_capabilities_payload(
         audit_events=int(auth_stats.get("totale_eventi_audit", 0) or 0),
         runtime_ok=bool(observability.get("ok")),
@@ -206,6 +208,7 @@ def build_product_governance_surface(*, selected_slug: str = "") -> dict[str, An
         "authorization": authorization,
         "migration": migration,
         "e2e": e2e,
+        "golden_paths": golden_paths,
         "observability": observability_product,
         "recent_audit": recent_audit,
     }

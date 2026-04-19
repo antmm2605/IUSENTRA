@@ -21,6 +21,8 @@ def test_runtime_metrics_endpoint_restituisce_payload_strutturato(tmp_path):
     assert "product" in payload
     assert "summary" in payload
     assert "alerts" in payload
+    assert "thresholds" in payload
+    assert "taxonomy" in payload
     assert payload["product"]["authorization_surfaces"] >= 1
     assert payload["product"]["capabilities"]
     assert payload["storage"]["default_mode"] == "SQLITE"
@@ -69,6 +71,9 @@ def test_runtime_metrics_endpoint_segnala_degradi_e_rimedi(tmp_path, monkeypatch
     titles = {alert["title"] for alert in payload["alerts"]}
     assert "Runtime AI locale non operativo" in titles
     assert "Endpoint con errori 5xx rilevati" in titles
+    codes = {alert["code"] for alert in payload["alerts"]}
+    assert "LOCAL_AI_RUNTIME_DOWN" in codes
+    assert "HTTP_5XX_BUCKET" in codes
     remediations = " ".join(alert["remediation"] for alert in payload["alerts"])
     assert "Controlla i log applicativi" in remediations
     assert "verifica il runtime Ollama" in remediations
@@ -118,3 +123,4 @@ def test_admin_osservabilita_page_mostra_alert_operativi(tmp_path, monkeypatch):
     assert "Degradi rilevati" in html
     assert "Runtime AI locale non operativo" in html
     assert "Come intervenire" in html
+    assert "Soglia operativa" in html

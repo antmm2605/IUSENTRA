@@ -23,6 +23,9 @@ La console `/admin/assistente-migrazione` non si limita a descrivere il piano:
 - mostra a video l'ultima esecuzione con:
   - domini core migrati o verificati
   - repository SQL sincronizzati
+  - diff `pre/post` tra sorgente e destinazione
+  - failure mode del tenant sporco
+  - postura di rollback e recovery guidato
   - eventuali errori bloccanti
   - passi consigliati per la risoluzione
 
@@ -63,6 +66,14 @@ Questo consente al superadmin di capire subito se il cutover e' riuscito o dove 
 - JSON resta compatibilita' legacy o ponte per domini non ancora migrati
 - filesystem tenant resta sorgente primaria per documenti, buste, upload e modelli AI locali
 - il cutover completo del tenant include anche i repository SQL laterali e le pipeline `Coverage AI` / `Update Intelligence`, non solo `studio.db`
+
+## Cosa rende una migrazione "blindata"
+
+- `diff pre/post` leggibile per dominio
+- `dirty tenant findings` espliciti su riferimenti orfani, delta e incongruenze
+- `rollback posture` dichiarata e guidata nel report
+- `recovery steps` coerenti con il failure mode rilevato
+- `cutover PostgreSQL` attivato solo se staging, consistenza e repository strutturati risultano chiusi
 
 ## Comando CLI ufficiale
 

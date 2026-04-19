@@ -143,6 +143,34 @@ def test_admin_assistente_migrazione_renderizza_esito_reale_con_report(tmp_path,
                     "coverage_ai": {"ok": True, "sqlite_stats": {"drafts": 3, "snapshots": 4}},
                 },
                 "documents": {"count": 12},
+                "diff_summary": {
+                    "summary": {
+                        "rows_total": 2,
+                        "matched": 2,
+                        "mismatched": 0,
+                        "source_label": "JSON legacy",
+                        "destination_label": "SQL locale",
+                    },
+                    "rows": [
+                        {
+                            "code": "clienti",
+                            "title": "Clienti",
+                            "source_label": "JSON legacy",
+                            "source_count": 4,
+                            "destination_label": "SQL locale",
+                            "destination_count": 4,
+                            "delta": 0,
+                            "status": "success",
+                            "status_label": "Allineato",
+                        }
+                    ],
+                },
+                "rollback": {
+                    "status": "success",
+                    "label": "Recovery locale disponibile",
+                    "detail": "Le sorgenti legacy restano disponibili.",
+                    "steps": ["Conserva il report.", "Riesegui il precheck."],
+                },
             },
             ensure_ascii=False,
         ),
@@ -176,6 +204,8 @@ def test_admin_assistente_migrazione_renderizza_esito_reale_con_report(tmp_path,
     assert "Migrazione completata" in html
     assert "Clienti" in html
     assert "Repository strutturati" in html
+    assert "Diff pre / post migrazione" in html
+    assert "Rollback e recovery guidato" in html
     assert str(report_path) in html
 
 

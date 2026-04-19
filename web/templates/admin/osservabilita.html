@@ -109,15 +109,30 @@
       {% for alert in payload.alerts %}
       <div class="border rounded-3 p-3">
         <div class="d-flex flex-wrap justify-content-between gap-2 mb-2">
-          <div class="fw-semibold">{{ alert.title }}</div>
+          <div>
+            <div class="fw-semibold">{{ alert.title }}</div>
+            <div class="small text-muted">{{ alert.family }} / {{ alert.component }} / {{ alert.code }}</div>
+          </div>
           <span class="badge text-bg-{{ alert.severity }}">
             {{ 'Errore' if alert.severity == 'danger' else 'Attenzione' }}
           </span>
         </div>
         <div class="small mb-2">{{ alert.detail }}</div>
+        {% if alert.threshold %}
+        <div class="small text-muted mb-2">
+          <strong>Soglia operativa:</strong> {{ alert.threshold }}
+        </div>
+        {% endif %}
         <div class="small text-muted">
           <strong>Come intervenire:</strong> {{ alert.remediation }}
         </div>
+        {% if alert.remediation_steps %}
+        <ol class="small mt-2 mb-0">
+          {% for step in alert.remediation_steps %}
+          <li class="mb-1">{{ step }}</li>
+          {% endfor %}
+        </ol>
+        {% endif %}
       </div>
       {% endfor %}
     </div>

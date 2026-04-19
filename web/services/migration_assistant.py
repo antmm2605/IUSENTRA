@@ -288,6 +288,92 @@ def _build_repository_rows(repositories: dict[str, Any], *, target: str) -> list
     return rows
 
 
+def _build_diff_payload(report: dict[str, Any], *, target: str) -> dict[str, Any]:
+    diff_summary = dict(report.get("diff_summary") or {})
+    rows = list(diff_summary.get("rows") or [])
+    if rows:
+        return {"summary": dict(diff_summary.get("summary") or {}), "rows": rows}
+
+    inventory = dict(report.get("inventory") or {})
+    source_key = "json_count" if target == "sqlite" else "sqlite_count"
+    destination_key = "sqlite_count" if target == "sqlite" else "postgres_count"
+    source_label = "JSON legacy" if target == "sqlite" else "SQL locale"
+    destination_label = "SQL locale" if target == "sqlite" else "PostgreSQL"
+    fallback_rows: list[dict[str, Any]] = []
+    for domain in inventory.get("domains", []):
+        if str(domain.get("storage_kind") or "") == "filesystem":
+            continue
+        source_count = int(domain.get(source_key) or 0)
+        destination_count = int(domain.get(destination_key) or 0)
+        fallback_rows.append(
+            {
+                "code": str(domain.get("code") or ""),
+                "title": str(domain.get("title") or ""),
+                "source_label": source_label,
+                "source_count": source_count,
+                "destination_label": destination_label,
+                "destination_count": destination_count,
+                "delta": destination_count - source_count,
+                "status": "success" if source_count == destination_count else "warning",
+                "status_label": "Allineato" if source_count == destination_count else "Delta da presidiare",
+            }
+        )
+    return {
+        "summary": {
+            "rows_total": len(fallback_rows),
+            "matched": sum(1 for row in fallback_rows if row["status"] == "success"),
+            "mismatched": sum(1 for row in fallback_rows if row["status"] != "success"),
+            "source_label": source_label,
+            "destination_label": destination_label,
+        },
+        "rows": fallback_rows,
+    }
+
+
+def _build_failure_modes(report: dict[str, Any], *, errors: list[str], warnings: list[str]) -> list[dict[str, Any]]:
+    findings = list(report.get("dirty_tenant_findings") or [])
+    if findings:
+        rows: list[dict[str, Any]] = []
+        seen: set[str] = set()
+        for finding in findings:
+            code = str(finding.get("code") or "").strip()
+            if not code or code in seen:
+                continue
+            seen.add(code)
+            rows.append(
+                {
+                    "code": code,
+                    "severity": str(finding.get("severity") or "warning"),
+                    "title": str(finding.get("title") or "Failure mode"),
+                    "recovery": str(finding.get("recovery") or ""),
+                }
+            )
+        return rows
+
+    rows: list[dict[str, Any]] = []
+    for message in errors + warnings:
+        lowered = str(message or "").lower()
+        if "non trovato" in lowered:
+            rows.append(
+                {
+                    "code": "RIFERIMENTO_ORFANO",
+                    "severity": "warning",
+                    "title": "Riferimento legacy non risolto",
+                    "recovery": "Correggi il collegamento al record mancante e rilancia la migrazione.",
+                }
+            )
+        elif "connessione postgresql" in lowered or "connection refused" in lowered:
+            rows.append(
+                {
+                    "code": "POSTGRES_NON_RAGGIUNGIBILE",
+                    "severity": "danger",
+                    "title": "Connessione PostgreSQL non disponibile",
+                    "recovery": "Verifica credenziali, reachability e SSL del tenant prima del nuovo cutover.",
+                }
+            )
+    return rows
+
+
 def _build_sqlite_execution(report: dict[str, Any]) -> dict[str, Any]:
     core = dict(report.get("core") or {})
     repositories = dict(report.get("repositories") or {})
@@ -327,6 +413,8 @@ def _build_sqlite_execution(report: dict[str, Any]) -> dict[str, Any]:
     all_errors = core_errors + repository_errors
     success = bool(report.get("success"))
     repo_ok = sum(1 for row in repository_rows if row["status"] == "success")
+    diff_payload = _build_diff_payload(report, target="sqlite")
+    failure_modes = _build_failure_modes(report, errors=all_errors, warnings=core_warnings)
     return {
         "target": "sqlite",
         "target_label": _TARGET_LABELS["sqlite"],
@@ -376,6 +464,11 @@ def _build_sqlite_execution(report: dict[str, Any]) -> dict[str, Any]:
         ],
         "core_rows": core_rows,
         "repository_rows": repository_rows,
+        "diff_summary": dict(diff_payload.get("summary") or {}),
+        "diff_rows": list(diff_payload.get("rows") or []),
+        "dirty_findings": list(report.get("dirty_tenant_findings") or []),
+        "failure_modes": failure_modes,
+        "rollback": dict(report.get("rollback") or {}),
         "warnings": core_warnings,
         "errors": all_errors,
         "resolution_steps": _resolution_steps(all_errors, target="sqlite"),
@@ -417,6 +510,8 @@ def _build_postgres_execution(report: dict[str, Any]) -> dict[str, Any]:
     consistency_ok = sum(1 for row in consistency_rows if row["status"] == "success")
     repo_ok = sum(1 for row in repository_rows if row["status"] == "success")
     errors = repository_errors + mismatches
+    diff_payload = _build_diff_payload(report, target="postgresql")
+    failure_modes = _build_failure_modes(report, errors=errors, warnings=warnings)
     return {
         "target": "postgresql",
         "target_label": _TARGET_LABELS["postgresql"],
@@ -466,9 +561,14 @@ def _build_postgres_execution(report: dict[str, Any]) -> dict[str, Any]:
         ],
         "core_rows": consistency_rows,
         "repository_rows": repository_rows,
+        "diff_summary": dict(diff_payload.get("summary") or {}),
+        "diff_rows": list(diff_payload.get("rows") or []),
+        "dirty_findings": list(report.get("dirty_tenant_findings") or []),
+        "failure_modes": failure_modes,
+        "rollback": dict(report.get("rollback") or {}),
         "warnings": warnings,
         "errors": errors,
-        "resolution_steps": _resolution_steps(errors, target="postgresql"),
+        "resolution_steps": _resolution_steps(errors + warnings, target="postgresql"),
         "show_consistency_table": True,
     }
 
@@ -505,6 +605,11 @@ def _build_failed_execution(
         ],
         "core_rows": [],
         "repository_rows": [],
+        "diff_summary": {},
+        "diff_rows": [],
+        "dirty_findings": [],
+        "failure_modes": [],
+        "rollback": {},
         "warnings": [],
         "errors": messages,
         "resolution_steps": _resolution_steps(messages, target=target),

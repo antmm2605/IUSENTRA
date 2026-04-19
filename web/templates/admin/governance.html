@@ -274,6 +274,72 @@
   </div>
 </div>
 
+<div class="card mb-4">
+  <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+    <strong>Golden path ufficiali</strong>
+    <span class="badge text-bg-light border">
+      Pass: {{ payload.golden_paths.summary.passed }} / {{ payload.golden_paths.summary.paths_total }}
+    </span>
+  </div>
+  <div class="card-body border-bottom">
+    <div class="small text-muted">
+      Queste sono le suite ufficiali che certificano i flussi core business, migrazione tenant e AI review/publish.
+      {% if payload.golden_paths.summary.last_generated_at %}
+      Ultima esecuzione: {{ payload.golden_paths.summary.last_generated_at|fmt_dataora }}.
+      {% else %}
+      Nessuna esecuzione registrata: usa la CLI <code>iusentra golden-path</code> per produrre il report persistito.
+      {% endif %}
+    </div>
+    {% if payload.golden_paths.summary.last_report_path %}
+    <div class="small text-break text-muted mt-2">Report: <code>{{ payload.golden_paths.summary.last_report_path }}</code></div>
+    {% endif %}
+  </div>
+  <div class="table-responsive">
+    <table class="table table-sm align-middle mb-0">
+      <thead>
+        <tr>
+          <th>Flusso ufficiale</th>
+          <th>Criticita'</th>
+          <th>Superfici</th>
+          <th>Test</th>
+          <th>Stato</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in payload.golden_paths.rows %}
+        <tr>
+          <td>
+            <div class="fw-semibold">{{ row.label }}</div>
+            <div class="small text-muted">{{ row.business_outcome }}</div>
+            {% if row.output_excerpt %}
+            <div class="small mt-2"><code>{{ row.output_excerpt }}</code></div>
+            {% endif %}
+          </td>
+          <td>
+            <span class="badge text-bg-{{ 'danger' if row.criticality == 'critico' else 'warning' if row.criticality == 'alto' else 'secondary' }}">
+              {{ row.criticality }}
+            </span>
+          </td>
+          <td class="small">{{ row.surfaces | join(', ') }}</td>
+          <td class="small"><code>{{ row.pytest_selectors | join(', ') }}</code></td>
+          <td>
+            <span class="badge text-bg-{{ 'success' if row.status == 'passed' else 'danger' if row.status == 'failed' else 'secondary' }}">
+              {{ row.status_label }}
+            </span>
+            {% if row.completed_at %}
+            <div class="small text-muted mt-1">{{ row.completed_at|fmt_dataora }}</div>
+            {% endif %}
+            {% if row.duration_seconds %}
+            <div class="small text-muted">{{ row.duration_seconds }} s</div>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
 <div class="row g-3 mb-4">
   <div class="col-12 col-xl-7">
     <div class="card h-100">

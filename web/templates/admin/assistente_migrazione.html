@@ -245,6 +245,97 @@
     </div>
   </div>
 </div>
+
+{% if payload.last_execution.diff_rows %}
+<div class="card mb-4">
+  <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+    <span class="fw-semibold">Diff pre / post migrazione</span>
+    <span class="badge text-bg-light border">
+      {{ payload.last_execution.diff_summary.matched|default(0) }}/{{ payload.last_execution.diff_summary.rows_total|default(0) }} allineati
+    </span>
+  </div>
+  <div class="table-responsive">
+    <table class="table align-middle mb-0">
+      <thead>
+        <tr>
+          <th>Dominio</th>
+          <th>{{ payload.last_execution.diff_summary.source_label|default('Origine') }}</th>
+          <th>{{ payload.last_execution.diff_summary.destination_label|default('Destinazione') }}</th>
+          <th>Delta</th>
+          <th>Esito</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in payload.last_execution.diff_rows %}
+        <tr>
+          <td class="fw-semibold">{{ row.title }}</td>
+          <td>{{ row.source_count }}</td>
+          <td>{{ row.destination_count }}</td>
+          <td>{{ row.delta }}</td>
+          <td><span class="badge text-bg-{{ row.status }}">{{ row.status_label }}</span></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+<div class="row g-4 mb-4">
+  <div class="col-12 col-lg-6">
+    <div class="card h-100">
+      <div class="card-header fw-semibold">Tenant sporco e failure mode</div>
+      <div class="card-body">
+        {% if payload.last_execution.dirty_findings %}
+        <div class="d-flex flex-column gap-3">
+          {% for item in payload.last_execution.dirty_findings %}
+          <div class="border rounded-3 p-3">
+            <div class="d-flex justify-content-between align-items-center gap-2 mb-2">
+              <div class="fw-semibold">{{ item.title }}</div>
+              <span class="badge text-bg-{{ 'danger' if item.severity == 'danger' else 'warning' }}">{{ item.code }}</span>
+            </div>
+            <div class="small mb-2">{{ item.detail }}</div>
+            <div class="small text-muted"><strong>Recovery:</strong> {{ item.recovery }}</div>
+          </div>
+          {% endfor %}
+        </div>
+        {% elif payload.last_execution.failure_modes %}
+        <ul class="mb-0">
+          {% for item in payload.last_execution.failure_modes %}
+          <li class="mb-2"><strong>{{ item.code }}</strong> — {{ item.title }}. {{ item.recovery }}</li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <div class="text-success fw-semibold">Nessun tenant sporco rilevato nel report corrente.</div>
+        <div class="small text-muted mt-2">Il report non evidenzia riferimenti orfani, mismatch o failure mode aperti.</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  <div class="col-12 col-lg-6">
+    <div class="card h-100">
+      <div class="card-header fw-semibold">Rollback e recovery guidato</div>
+      <div class="card-body">
+        {% if payload.last_execution.rollback %}
+        <div class="d-flex justify-content-between align-items-center gap-2 mb-2">
+          <div class="fw-semibold">{{ payload.last_execution.rollback.label }}</div>
+          <span class="badge text-bg-{{ payload.last_execution.rollback.status|default('secondary') }}">
+            {{ 'OK' if payload.last_execution.rollback.status == 'success' else 'Attenzione' if payload.last_execution.rollback.status == 'warning' else 'Info' }}
+          </span>
+        </div>
+        <div class="small mb-3">{{ payload.last_execution.rollback.detail }}</div>
+        <ol class="mb-0">
+          {% for item in payload.last_execution.rollback.steps|default([]) %}
+          <li class="mb-2">{{ item }}</li>
+          {% endfor %}
+        </ol>
+        {% else %}
+        <div class="small text-muted">Nessuna postura di rollback disponibile nel report corrente.</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
 {% endif %}
 
 <div class="card mb-4">

@@ -33,9 +33,22 @@ La vista `admin/osservabilita` non deve limitarsi a mostrare numeri:
 
 - deve evidenziare gli endpoint con errori `5xx`
 - deve segnalare backlog o errori OCR
+- deve distinguere backlog OCR da worker OCR fermo
 - deve dichiarare quando il runtime AI locale non e' operativo
 - deve avvisare se il runtime predefinito e' ancora `JSON`
 - deve suggerire un'azione concreta di presidio, non solo il sintomo
+- deve mostrare `codice`, `famiglia`, `componente`, `soglia operativa` e `passi di remediation`
+
+## Tassonomia minima attesa
+
+| Famiglia | Esempi |
+| --- | --- |
+| `HTTP` | `HTTP_5XX_BUCKET` |
+| `OCR` | `OCR_FAILED_JOBS`, `OCR_QUEUE_BACKLOG` |
+| `WORKER` | `OCR_WORKER_STALLED` |
+| `AI` | `LOCAL_AI_RUNTIME_DOWN` |
+| `STORAGE` | `STORAGE_DEFAULT_JSON` |
+| `PRODUCT` | `PRODUCT_CAPABILITY_GAP` |
 
 ## Criterio di chiusura operativa
 

@@ -61,7 +61,7 @@ La parte importante, adesso, è che lo stato non viene più raccontato in modo g
 - i moduli economici (`preventivi`, `conferimenti`, `timesheet`, `fatturazione`, `pagamenti`) usano ora lo stesso percorso ufficiale di storage tenant-aware, con parita' reale su SQLite e PostgreSQL
 - anche `template atti`, `legal intelligence`, `giurisprudenza`, `repository telematico` e `workspace intelligence` hanno ora repository SQL/PostgreSQL dedicati, con JSON mantenuto come export o bootstrap controllato
 - l'`Assistente migrazione dati` esegue ormai il cutover completo del tenant: `studio.db`, repository strutturati laterali, `Update Intelligence` e `Coverage AI`, con report persistito sotto `backup/`
-- la pagina `/admin/assistente-migrazione` mostra l'ultima esecuzione reale con domini migrati, parita' di consistenza, errori bloccanti e istruzioni operative per la correzione
+- la pagina `/admin/assistente-migrazione` mostra l'ultima esecuzione reale con domini migrati, diff pre/post, failure mode del tenant sporco, rollback guidato e istruzioni operative per la correzione
 
 ## Avvio locale
 
@@ -236,7 +236,7 @@ Il pannello Superadmin include una vista tecnica dedicata in `/admin/osservabili
 - stato del provider AI locale
 - queue depth e throughput OCR dell'ultima ora
 - stato operativo di storage e runtime applicativo
-- segnali di degrado con rimedi operativi per errori 5xx, OCR, AI locale e storage
+- segnali di degrado con codici tassonomici, soglie operative e rimedi per errori 5xx, OCR, worker OCR, AI locale e storage
 
 Sul bounded context AI, il confine corretto adesso è:
 
@@ -247,6 +247,21 @@ Sul bounded context AI, il confine corretto adesso è:
 - `lex/context/`, `lex/retrieval/`, `lex/guards/`, `lex/providers/`, `lex/tools/`, `lex/workflows/` come sottosistemi del pacchetto
 
 ## Test utili
+
+Golden path ufficiali eseguibili:
+
+```bash
+iusentra golden-path
+```
+
+Il comando esegue le suite ufficiali e persiste un report leggibile sotto `./data/governance/`, poi la pagina `admin/governance` mostra stato `pass/fail` dei flussi core:
+
+- bootstrap, login e superfici admin
+- migrazione tenant, diff e cutover
+- workflow business `cliente -> fascicolo -> parcella -> incasso`
+- `Coverage AI` review/publish SQL
+- `Update Intelligence` review/publish news
+- telematico ufficiale
 
 Esecuzione rapida locale:
 

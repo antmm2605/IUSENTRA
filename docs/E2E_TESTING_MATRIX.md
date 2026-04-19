@@ -19,6 +19,25 @@ Portare il testing oltre il singolo modulo e presidiare i flussi che attraversan
 | Workspace template atti | catalogo built-in, workspace atti, repository template | integrato | `tests/test_template_atti_workspace.py`, `tests/test_template_atti_repository.py` |
 | Coerenza UI moduli nuovi | menu admin, copy italiana, route protette, superfici operative | rinforzato | `tests/test_operational_surfaces.py`, `tests/test_web_bootstrap.py` |
 
+## Golden path ufficiali
+
+I golden path non sono piu' solo una lettura architetturale: esiste un comando ufficiale che esegue le suite e persiste un report riusabile anche dalla governance prodotto.
+
+```bash
+iusentra golden-path
+```
+
+Il report vive sotto `./data/governance/` e viene letto anche da `admin/governance`.
+
+| Golden path | Esito atteso | Suite ufficiali |
+| --- | --- | --- |
+| Bootstrap, login e superfici admin | pass | `tests/test_web_bootstrap.py`, `tests/test_observability_runtime.py`, `tests/test_operational_surfaces.py` |
+| Migrazione tenant, diff e cutover | pass | `tests/test_migration_assistant.py`, `tests/test_storage_postgres_migration.py`, `tests/test_storage_governance.py` |
+| Workflow business `cliente -> fascicolo -> parcella -> incasso` | pass | `tests/test_clienti_workflow.py`, `tests/test_workflow_pipeline.py`, `tests/test_workflow_commerciale.py`, `tests/test_economic_dashboard.py`, `tests/test_portale_economici.py` |
+| Coverage AI review/publish SQL | pass | `tests/test_legal_coverage_pipeline.py`, `tests/test_legal_coverage_surface.py` |
+| Update Intelligence review/publish | pass | `tests/test_legal_updates_pipeline.py`, `tests/test_legal_intelligence.py` |
+| Telematico ufficiale | pass | `tests/test_polisweb.py`, `tests/test_telematico_workflow.py`, `tests/test_pdp_penale_workflow.py`, `tests/test_simulazione_deposito.py` |
+
 ## Regola
 
 Ogni nuova wave di migrazione o di governance deve arrivare con almeno:

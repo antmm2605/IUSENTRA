@@ -18,6 +18,7 @@ def test_product_governance_surface_espone_le_cinque_aree_prioritarie(tmp_path):
     assert payload["authorization"]["summary"]["surfaces_total"] >= 4
     assert payload["migration"]["summary"]["phases_total"] == 4
     assert payload["e2e"]["summary"]["flows_total"] >= 4
+    assert payload["golden_paths"]["summary"]["paths_total"] >= 5
     assert payload["observability"]["summary"]["capabilities_total"] >= 4
 
 
@@ -58,6 +59,7 @@ def test_admin_governance_page_e_api_sono_accessibili_al_superadmin(tmp_path):
     assert "Backend strutturato effettivo dello studio" in html
     assert "Matrice storage e read/write parity della piattaforma" in html
     assert "Percorso di migrazione JSON / SQLite -> PostgreSQL" in html
+    assert "Golden path ufficiali" in html
     assert "Superfici autorizzative" in html
     assert "SQL locale tenant-aware" in html
 
@@ -65,5 +67,6 @@ def test_admin_governance_page_e_api_sono_accessibili_al_superadmin(tmp_path):
     payload = api.get_json()
     assert payload["storage"]["summary"]["domains_total"] >= 10
     assert payload["authorization"]["summary"]["surfaces_total"] >= 4
+    assert payload["golden_paths"]["summary"]["paths_total"] >= 5
     assert payload["observability"]["summary"]["capabilities_total"] >= 4
     assert payload["backend_policy"]["selected_studio"]["slug"] == studio.slug

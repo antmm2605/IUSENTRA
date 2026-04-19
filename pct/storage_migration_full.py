@@ -346,6 +346,176 @@ def _extended_sqlite_sources(paths: dict[str, str]) -> dict[str, str]:
     return sources
 
 
+def _migration_issue_mode(message: str) -> dict[str, str]:
+    lowered = str(message or "").strip().lower()
+    if "non trovato" in lowered:
+        return {
+            "code": "RIFERIMENTO_ORFANO",
+            "title": "Riferimento legacy non risolto",
+            "recovery": "Correggi o ricollega il riferimento al record mancante, poi rilancia il cutover dello stesso tenant.",
+        }
+    if "connessione postgresql" in lowered or "connection refused" in lowered or "could not connect" in lowered:
+        return {
+            "code": "POSTGRES_NON_RAGGIUNGIBILE",
+            "title": "Connessione PostgreSQL non disponibile",
+            "recovery": "Verifica host, porta, database, utente, password e SSL del tenant prima di ripetere la migrazione.",
+        }
+    if "database is locked" in lowered or " locked" in lowered:
+        return {
+            "code": "SQLITE_LOCKED",
+            "title": "Database SQL locale bloccato",
+            "recovery": "Chiudi i processi che tengono aperto studio.db e rilancia la migrazione dopo il riavvio del runtime.",
+        }
+    if "duplicate key" in lowered or "unique constraint failed" in lowered:
+        return {
+            "code": "CHIAVE_DUPLICATA",
+            "title": "Chiavi duplicate nella sorgente",
+            "recovery": "Ripulisci i duplicati sugli identificativi del dominio indicato e riesegui il cutover.",
+        }
+    if "no such table" in lowered or "undefinedtable" in lowered or "does not exist" in lowered:
+        return {
+            "code": "SCHEMA_SQL_MANCANTE",
+            "title": "Schema SQL non allineato",
+            "recovery": "Applica o ricrea lo schema SQL del dominio interessato prima di riprovare la migrazione.",
+        }
+    if "permission denied" in lowered or "access denied" in lowered or "forbidden" in lowered:
+        return {
+            "code": "PERMESSI_INSUFFICIENTI",
+            "title": "Permessi insufficienti su storage o database",
+            "recovery": "Verifica i permessi dell'utente applicativo e della directory tenant-aware, poi rilancia il flusso.",
+        }
+    return {
+        "code": "CONSISTENZA_DA_VERIFICARE",
+        "title": "Consistenza dati da verificare",
+        "recovery": "Apri il report completo, correggi il dominio evidenziato e rilancia la migrazione dello stesso studio.",
+    }
+
+
+def _build_diff_summary(*, inventory: dict[str, Any], target: str) -> dict[str, Any]:
+    source_key = "json_count" if target == "sqlite" else "sqlite_count"
+    destination_key = "sqlite_count" if target == "sqlite" else "postgres_count"
+    source_label = "JSON legacy" if target == "sqlite" else "SQL locale"
+    destination_label = "SQL locale" if target == "sqlite" else "PostgreSQL"
+    rows: list[dict[str, Any]] = []
+    for domain in inventory.get("domains", []):
+        kind = str(domain.get("storage_kind") or "")
+        if kind == "filesystem":
+            continue
+        source_count = int(domain.get(source_key) or 0)
+        destination_count = int(domain.get(destination_key) or 0)
+        delta = destination_count - source_count
+        ok = source_count == destination_count
+        rows.append(
+            {
+                "code": str(domain.get("code") or ""),
+                "title": str(domain.get("title") or ""),
+                "source_label": source_label,
+                "source_count": source_count,
+                "destination_label": destination_label,
+                "destination_count": destination_count,
+                "delta": delta,
+                "status": "success" if ok else "warning",
+                "status_label": "Allineato" if ok else "Delta da presidiare",
+                "note": str(domain.get("note") or ""),
+            }
+        )
+    return {
+        "rows": rows,
+        "summary": {
+            "rows_total": len(rows),
+            "matched": sum(1 for row in rows if row["status"] == "success"),
+            "mismatched": sum(1 for row in rows if row["status"] != "success"),
+            "source_label": source_label,
+            "destination_label": destination_label,
+        },
+    }
+
+
+def _build_dirty_tenant_findings(
+    *,
+    errors: list[str],
+    warnings: list[str],
+    diff_summary: dict[str, Any],
+) -> list[dict[str, Any]]:
+    findings: list[dict[str, Any]] = []
+    for message in errors:
+        mode = _migration_issue_mode(message)
+        findings.append(
+            {
+                "severity": "danger",
+                "code": mode["code"],
+                "title": mode["title"],
+                "detail": str(message),
+                "recovery": mode["recovery"],
+            }
+        )
+    for message in warnings:
+        mode = _migration_issue_mode(message)
+        findings.append(
+            {
+                "severity": "warning",
+                "code": mode["code"],
+                "title": mode["title"],
+                "detail": str(message),
+                "recovery": mode["recovery"],
+            }
+        )
+    for row in diff_summary.get("rows", []):
+        if row.get("status") == "success":
+            continue
+        findings.append(
+            {
+                "severity": "warning",
+                "code": "DELTA_PRE_POST",
+                "title": "Differenza tra sorgente e destinazione",
+                "detail": (
+                    f"{row['title']}: {row['source_label']}={row['source_count']} | "
+                    f"{row['destination_label']}={row['destination_count']}."
+                ),
+                "recovery": "Verifica il dominio con delta, correggi la sorgente o il repository e riesegui il cutover.",
+            }
+        )
+    unique_findings: list[dict[str, Any]] = []
+    seen: set[tuple[str, str]] = set()
+    for item in findings:
+        key = (str(item.get("code") or ""), str(item.get("detail") or ""))
+        if key in seen:
+            continue
+        seen.add(key)
+        unique_findings.append(item)
+    return unique_findings
+
+
+def _build_rollback_posture(*, target: str, success: bool) -> dict[str, Any]:
+    if target == "postgresql":
+        return {
+            "status": "success" if success else "warning",
+            "label": "Rollback tenant-aware disponibile",
+            "detail": (
+                "Il cutover PostgreSQL passa dallo staging SQL locale e non sposta i documenti su filesystem. "
+                "Se smoke test o consistenza falliscono, il tenant puo' tornare al backend precedente con rollback controllato."
+            ),
+            "steps": [
+                "Conserva il report di migrazione e il backup del tenant come prova del punto di ripristino.",
+                "Riporta il tenant al backend strutturato precedente e verifica subito login, clienti, fascicoli, agenda e audit.",
+                "Non spostare manualmente documenti o upload: restano filesystem-first e non vanno riallineati durante il rollback.",
+            ],
+        }
+    return {
+        "status": "success" if success else "warning",
+        "label": "Recovery locale disponibile",
+        "detail": (
+            "La migrazione verso SQL locale lascia intatti JSON legacy, backup tenant-aware e documenti su filesystem. "
+            "Il ripristino puo' usare il report corrente e le sorgenti precedenti senza perdita dei file."
+        ),
+        "steps": [
+            "Conserva il report nel backup del tenant come baseline del passaggio.",
+            "Se serve ripristino, usa le sorgenti JSON legacy e il backup dello studio per riallineare lo stato precedente.",
+            "Dopo il recovery rilancia il precheck e correggi i domini con warning o delta prima di un nuovo cutover.",
+        ],
+    }
+
+
 def _write_report(paths: dict[str, str], tenant_slug: str, target_label: str, report: dict[str, Any]) -> str:
     backup_dir = Path(paths.get("BACKUP_DIR", "./backup"))
     backup_dir.mkdir(parents=True, exist_ok=True)
@@ -680,6 +850,19 @@ def migrate_full_storage_to_sqlite(
     migratore = GestioneDatabase(_extended_sqlite_sources(paths))
     core = migratore.migra_verso_sqlite(paths["STUDIO_DB"]).to_dict()
     repositories = _migrate_sqlite_repository_domains(paths)
+    inventory = build_full_storage_inventory(
+        paths=paths,
+        database_config=database_config,
+        tenant_slug=tenant_slug,
+    )
+    core_errors = [str(item) for item in core.get("errori") or []]
+    core_warnings = [str(item) for item in core.get("avvisi") or []]
+    diff_summary = _build_diff_summary(inventory=inventory, target="sqlite")
+    dirty_findings = _build_dirty_tenant_findings(
+        errors=core_errors,
+        warnings=core_warnings,
+        diff_summary=diff_summary,
+    )
     report = {
         "generated_at": _now_iso(),
         "tenant_slug": tenant_slug,
@@ -692,12 +875,11 @@ def migrate_full_storage_to_sqlite(
             "archive_count": _count_files(paths.get("FASCICOLI_ARCH", "")),
             "storage_kind": "filesystem",
         },
+        "diff_summary": diff_summary,
+        "dirty_tenant_findings": dirty_findings,
+        "rollback": _build_rollback_posture(target="sqlite", success=bool(core.get("riuscita"))),
     }
-    report["inventory"] = build_full_storage_inventory(
-        paths=paths,
-        database_config=database_config,
-        tenant_slug=tenant_slug,
-    )
+    report["inventory"] = inventory
     if write_report:
         report["report_path"] = _write_report(paths, tenant_slug, "sqlite", report)
     return report
@@ -732,6 +914,19 @@ def migrate_full_storage_to_postgres(
     )
     repositories, repo_errors = _migrate_postgres_repository_domains(paths, dsn)
     success = bool(core_report.get("success")) and not repo_errors
+    inventory = build_full_storage_inventory(
+        paths=paths,
+        database_config=database_config,
+        tenant_slug=tenant_slug,
+    )
+    sqlite_warnings = [str(item) for item in (sqlite_report.get("core") or {}).get("avvisi") or []]
+    repo_errors_text = [str(item) for item in repo_errors]
+    diff_summary = _build_diff_summary(inventory=inventory, target="postgresql")
+    dirty_findings = _build_dirty_tenant_findings(
+        errors=repo_errors_text,
+        warnings=sqlite_warnings,
+        diff_summary=diff_summary,
+    )
     report = {
         "generated_at": _now_iso(),
         "tenant_slug": tenant_slug,
@@ -741,12 +936,11 @@ def migrate_full_storage_to_postgres(
         "core": core_report,
         "repositories": repositories,
         "repository_errors": repo_errors,
+        "diff_summary": diff_summary,
+        "dirty_tenant_findings": dirty_findings,
+        "rollback": _build_rollback_posture(target="postgresql", success=success),
     }
-    report["inventory"] = build_full_storage_inventory(
-        paths=paths,
-        database_config=database_config,
-        tenant_slug=tenant_slug,
-    )
+    report["inventory"] = inventory
     report["report_path"] = _write_report(paths, tenant_slug, "postgresql", report)
     return report
 

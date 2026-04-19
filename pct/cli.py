@@ -51,6 +51,7 @@ from .auth import (
 from .fatturazione import GestioneFatturazione
 from .pagamenti import GestionePagamenti
 from .preventivi import GestionePreventivi
+from .golden_paths import build_golden_path_payload, run_golden_path_suites
 from .legal_update_pipeline import build_legal_update_pipeline
 from .studio_demo import build_studio_demo_snapshot
 from .tenant import DatabaseConfig, DbMode, GestioneTenant
@@ -2603,6 +2604,33 @@ def cmd_aggiornamenti_legali(intelligence_db, giurisprudenza_db, source_codes, n
         ensure_ascii=False,
         indent=2,
     ))
+
+
+@cli.command("golden-path")
+@click.option(
+    "--run/--no-run",
+    "should_run",
+    default=True,
+    show_default=True,
+    help="Esegue davvero le suite ufficiali oppure mostra l'ultimo report disponibile.",
+)
+@click.option(
+    "--report-dir",
+    default=lambda: os.getenv("PCT_GOLDEN_PATH_REPORT_DIR", "./data/governance"),
+    show_default="PCT_GOLDEN_PATH_REPORT_DIR o ./data/governance",
+    help="Directory dove persistire e leggere i report ufficiali dei golden path.",
+)
+def cmd_golden_path(should_run, report_dir):
+    """Esegue o mostra i golden path ufficiali del prodotto."""
+    if should_run:
+        report = run_golden_path_suites(base_dir=report_dir, cwd=str(Path.cwd()))
+        payload = build_golden_path_payload(base_dir=report_dir, report_payload=report)
+        payload["report_path"] = report.get("report_path", "")
+        click.echo(json.dumps(payload, ensure_ascii=False, indent=2))
+        return
+
+    payload = build_golden_path_payload(base_dir=report_dir)
+    click.echo(json.dumps(payload, ensure_ascii=False, indent=2))
 
 
 def main():

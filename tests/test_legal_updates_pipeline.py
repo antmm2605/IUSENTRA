@@ -209,6 +209,86 @@ def test_legal_update_duplicate_non_moltiplica_queue(tmp_path: Path):
     assert len(queue) == 1
 
 
+def test_publish_review_supporta_needs_review_giurisprudenza_con_revisione_umana(tmp_path: Path, monkeypatch):
+    pipeline = build_legal_update_pipeline(
+        str(tmp_path / "intelligence" / "motori.json"),
+        giurisprudenza_db_path=str(tmp_path / "intelligence" / "giurisprudenza.json"),
+    )
+    pipeline.repository.upsert_sources(
+        [
+            {
+                "name": "Cassazione - Prima Sezione Civile",
+                "code": "cassazione_prima_sezione",
+                "category": "giurisprudenza",
+                "base_url": "https://www.cortedicassazione.it/it/prima_sezione_civile.page",
+                "source_type": "web",
+                "trust_class": "A",
+                "is_official": True,
+                "enabled": True,
+                "polling_minutes": 180,
+                "parser_type": "html",
+                "notes": "",
+            }
+        ]
+    )
+    source = pipeline.repository.get_source_by_code("cassazione_prima_sezione")
+
+    def _fake_analyze_document(document, source_row, *, ai_base_url="", ai_model=""):
+        return {
+            "classification_type": "GIURISPRUDENZA",
+            "confidence_score": 0.67,
+            "impact_level": "medio",
+            "matter_slug": "diritto_civile",
+            "submatter_slug": "",
+            "issuer": "",
+            "norm_number": "",
+            "norm_year": "",
+            "norm_type": "",
+            "decision_number": "9173",
+            "decision_year": "",
+            "court_name": "",
+            "effective_date": "",
+            "summary_short": "Ordinanza interlocutoria sulla riscossione dei canoni.",
+            "summary_long": "Sintesi estesa dell'ordinanza interlocutoria.",
+            "what_changes": "Chiarisce il perimetro applicativo del canone richiesto da Anas.",
+            "extracted_entities_json": {},
+            "proposed_action": "NEEDS_REVIEW",
+            "target_entity_type": "",
+            "target_entity_id": None,
+        }
+
+    monkeypatch.setattr("pct.legal_update_pipeline.analyze_document", _fake_analyze_document)
+
+    processed = pipeline.process_document(
+        source,
+        {
+            "external_id": "cass-9173",
+            "source_url": "https://www.cortedicassazione.it/doc/9173",
+            "title": "Ordinanza interlocutoria n. 9173 del 11/04/2026",
+            "published_at": "2026-04-11",
+            "raw_html": "",
+            "raw_text": "Ordinanza interlocutoria n. 9173 del 11/04/2026 Demanio: Accesso alla strada statale e canoni.",
+            "content_hash": "hash-9173",
+            "fetch_status": "fetched",
+            "http_status": 200,
+        },
+    )
+
+    review = pipeline.repository.get_review_item(int(processed["review"]["id"]))
+
+    assert review is not None
+    assert review["proposed_action"] == "NEEDS_REVIEW"
+    assert review["status"] == "pending"
+
+    result = pipeline.publish_review(int(review["id"]), reviewer="superadmin")
+    published_review = pipeline.repository.get_review_item(int(review["id"]))
+
+    assert result["jurisprudence"]["id"] >= 1
+    assert result["news"]["id"] >= 1
+    assert published_review is not None
+    assert published_review["status"] == "published"
+
+
 def test_fetch_html_paginato_acquisisce_tutti_i_documenti_della_fonte(tmp_path: Path):
     pipeline = build_legal_update_pipeline(str(tmp_path / "intelligence" / "motori.json"))
     source = {

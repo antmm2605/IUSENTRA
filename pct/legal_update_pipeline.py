@@ -176,6 +176,14 @@ def _parse_pub_date(value: Any) -> str:
     return f"{year}-{int(month):02d}-{int(day):02d}"
 
 
+def _year_from_date_like(value: Any) -> str:
+    text = _clean_spaces(value)
+    if not text:
+        return ""
+    match = re.search(r"\b(20[0-9]{2}|19[0-9]{2})\b", text)
+    return match.group(1) if match else ""
+
+
 def _looks_like_feed(content: str, content_type: str) -> bool:
     return "xml" in (content_type or "").lower() or content.lstrip().startswith("<rss") or content.lstrip().startswith("<feed")
 
@@ -703,11 +711,66 @@ class LegalUpdatePipeline:
         self.repository.set_review_status(int(review["id"]), "published", reviewer=reviewer, notes="News pubblicata.")
         return {"news": payload}
 
+    def _enrich_review_for_publish(self, review: dict[str, Any]) -> dict[str, Any]:
+        enriched = dict(review or {})
+        if not enriched.get("decision_year"):
+            enriched["decision_year"] = _year_from_date_like(
+                enriched.get("document_date") or enriched.get("published_at") or enriched.get("title")
+            )
+        if not enriched.get("norm_year"):
+            enriched["norm_year"] = _year_from_date_like(
+                enriched.get("document_date") or enriched.get("published_at") or enriched.get("title")
+            )
+        if not enriched.get("court_name"):
+            source_name = _clean_spaces(enriched.get("source_name"))
+            lower_source = source_name.lower()
+            if "cassazione" in lower_source:
+                enriched["court_name"] = "Corte di Cassazione"
+            elif "costituzionale" in lower_source:
+                enriched["court_name"] = "Corte costituzionale"
+            elif "consiglio di stato" in lower_source:
+                enriched["court_name"] = "Consiglio di Stato"
+            elif "tar" in lower_source:
+                enriched["court_name"] = "TAR"
+        if not enriched.get("issuer"):
+            enriched["issuer"] = enriched.get("analysis_issuer") or enriched.get("source_name") or ""
+        return enriched
+
+    def _resolve_publish_action(self, review: dict[str, Any]) -> tuple[str, dict[str, Any]]:
+        enriched = self._enrich_review_for_publish(review)
+        proposed_action = str(enriched.get("proposed_action") or "").upper()
+        if proposed_action and proposed_action != "NEEDS_REVIEW":
+            return proposed_action, enriched
+
+        classification = str(enriched.get("classification_type") or "").upper()
+        is_official = bool(enriched.get("is_official"))
+        has_norm_key = all(enriched.get(field) for field in ("norm_type", "norm_number", "norm_year"))
+        has_judgment_key = all(enriched.get(field) for field in ("court_name", "decision_number", "decision_year"))
+        has_prassi_key = all(enriched.get(field) for field in ("issuer", "norm_type", "norm_number", "norm_year"))
+
+        if classification in {"NEWS", "COMMENTO", "INCERTO"}:
+            return "NEWS_ONLY", enriched
+        if classification == "DUPLICATO":
+            return "DUPLICATE", enriched
+        if classification == "GIURISPRUDENZA":
+            return ("NEW_CASE_LAW" if has_judgment_key else "NEWS_ONLY"), enriched
+        if classification == "PRASSI":
+            return ("NEW_PRASSI" if is_official and has_prassi_key else "NEWS_ONLY"), enriched
+        if classification in {"NORMATIVA_NUOVA", "NORMATIVA_AGGIORNAMENTO"}:
+            if is_official and has_norm_key:
+                if enriched.get("target_entity_id"):
+                    return "UPDATE_NORMATIVE", enriched
+                return "NEW_NORMATIVE", enriched
+            return "NEWS_ONLY", enriched
+        return "NEWS_ONLY", enriched
+
     def publish_review(self, review_id: int, *, reviewer: str = "admin") -> dict[str, Any]:
         review = self.repository.get_review_item(review_id)
         if not review:
             raise ValueError("Review non trovata.")
-        proposed_action = str(review.get("proposed_action") or "")
+        if str(review.get("status") or "").lower() == "rejected":
+            raise ValueError("La proposta è stata rifiutata e non può essere pubblicata.")
+        proposed_action, review = self._resolve_publish_action(review)
         classification = str(review.get("classification_type") or "")
         result: dict[str, Any] = {}
 

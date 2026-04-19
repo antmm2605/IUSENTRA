@@ -38,9 +38,21 @@
               confidenza {{ '%.2f'|format(item.confidence_score or 0) }}
             </div>
             <div class="small mb-2">{{ item.summary_short or 'Sintesi non disponibile.' }}</div>
-            <div class="small text-muted">Azione proposta: {{ item.proposed_action|replace('_', ' ') }}</div>
+            <div class="small text-muted">
+              Azione proposta:
+              {% if item.proposed_action == 'NEEDS_REVIEW' %}
+                da definire in revisione
+              {% else %}
+                {{ item.proposed_action|replace('_', ' ') }}
+              {% endif %}
+            </div>
             {% if item.matter_name %}
             <div class="small text-muted">Materia: {{ item.matter_name }}{% if item.submatter_name %} / {{ item.submatter_name }}{% endif %}</div>
+            {% endif %}
+            {% if item.proposed_action == 'NEEDS_REVIEW' %}
+            <div class="small text-muted">
+              Questa proposta richiede controllo umano. Dopo la revisione, il publish usera' l'azione coerente con classificazione e dati disponibili.
+            </div>
             {% endif %}
           </div>
 
@@ -70,7 +82,7 @@
             </form>
             <form method="post" action="{{ url_for('legal_updates_admin.publish', review_id=item.id) }}">
               <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
-              <button class="btn btn-sm btn-primary">
+              <button class="btn btn-sm btn-primary" {% if item.status in ('rejected', 'published') %}disabled{% endif %}>
                 <i class="bi bi-upload me-1"></i>Pubblica
               </button>
             </form>
@@ -88,4 +100,3 @@
   </div>
 </div>
 {% endblock %}
-

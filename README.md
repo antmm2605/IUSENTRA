@@ -16,6 +16,7 @@ La repo oggi non è più solo un tool CLI per il Processo Civile Telematico: con
 - Giurisprudenza, legal intelligence, repository strutturati per Lex.
 - Motore `Update Intelligence` per monitoraggio normativo, giurisprudenziale e di prassi con area di acquisizione, coda revisioni e pagina news giuridiche strutturate.
 - Pipeline `Coverage AI` per audit tassonomico, gap queue, draft v2, review e publish SQL con retrieval interno, funzionante sia su `SQLite locale` sia su `PostgreSQL tenant-aware`.
+- Review `Coverage AI` con audit forte: motivo decisione, firma reviewer, diff tra spec originale e corrente, storico revisioni e publish SQL tracciato.
 - La console `Copertura AI` aggancia automaticamente il backend SQL reale del tenant selezionato: `studio.db` per gli studi `SQLite` oppure PostgreSQL tenant-aware per gli studi cloud o legacy gia' configurati.
 - Workspace/applicazioni, portali di acquisizione, privacy e audit.
 - Runtime AI locale con Lex come strato linguistico sopra motori deterministici.
@@ -62,7 +63,7 @@ La parte importante, adesso, è che lo stato non viene più raccontato in modo g
 - i moduli economici (`preventivi`, `conferimenti`, `timesheet`, `fatturazione`, `pagamenti`) usano ora lo stesso percorso ufficiale di storage tenant-aware, con parita' reale su SQLite e PostgreSQL
 - anche `template atti`, `legal intelligence`, `giurisprudenza`, `repository telematico` e `workspace intelligence` hanno ora repository SQL/PostgreSQL dedicati, con JSON mantenuto come export o bootstrap controllato
 - l'`Assistente migrazione dati` esegue ormai il cutover completo del tenant: `studio.db`, repository strutturati laterali, `Update Intelligence` e `Coverage AI`, con report persistito sotto `backup/`
-- la pagina `/admin/assistente-migrazione` mostra l'ultima esecuzione reale con domini migrati, diff pre/post, failure mode del tenant sporco, rollback guidato e istruzioni operative per la correzione
+- la pagina `/admin/assistente-migrazione` mostra l'ultima esecuzione reale con domini migrati, diff pre/post, snapshot pre-migrazione, log operativo, failure mode del tenant sporco, rollback guidato e istruzioni operative per la correzione
 
 ## Avvio locale
 
@@ -208,6 +209,31 @@ Il gate lint attuale è volutamente centrato su errori sintattici e import/fatal
 Il job `Governance repo` esegue `tools/check_repo_governance.py` e blocca regressioni su modularizzazione, budget dei moduli e confini tra `web/` e `lex/`.
 La pipeline notturna `.github/workflows/performance-nightly.yml` esegue `tools/performance_smoke.py` per misurare startup, login, metriche runtime e tempi base di Lex.
 
+## Golden path ufficiali
+
+I flussi critici non sono piu' documentati soltanto a parole: esiste una suite ufficiale eseguibile con report persistito.
+
+```bash
+iusentra golden-path
+```
+
+Il comando:
+
+- esegue i golden path ufficiali del prodotto
+- salva report JSON e report leggibile Markdown sotto `./data/governance/`
+- alimenta la vista `Piattaforma -> Governance prodotto`
+
+I flussi oggi presidiati come golden path di primo livello sono:
+
+- bootstrap, login e superfici admin
+- migrazione tenant, diff e cutover
+- workflow `cliente -> fascicolo -> parcella -> incasso`
+- `Coverage AI` con review e publish SQL
+- `Update Intelligence` con review e pubblicazione news
+- telematico ufficiale
+
+La matrice completa e i test di riferimento vivono in [docs/E2E_TESTING_MATRIX.md](docs/E2E_TESTING_MATRIX.md).
+
 ## Update Intelligence
 
 IUSENTRA include ora un motore dedicato di aggiornamento normativo e giurisprudenziale:
@@ -240,6 +266,23 @@ iusentra aggiornamenti-legali
 
 Dettagli architetturali e regole operative in [docs/LEGAL_UPDATE_INTELLIGENCE.md](docs/LEGAL_UPDATE_INTELLIGENCE.md).
 
+## Coverage AI
+
+La console `Copertura AI` non si limita piu' a generare draft. Il flusso governato e' ora:
+
+`DB -> auditor -> gap queue -> AI + retrieval -> draft v2 -> review -> publish SQL -> training implicito`
+
+La review admin include:
+
+- contesto di retrieval usato per generare il draft
+- salvataggio controllato della spec JSON
+- motivazione obbligatoria per approvazione o rifiuto
+- firma reviewer obbligatoria per chiudere la revisione
+- diff tra spec originaria e versione corrente
+- storico revisioni persistito nel repository SQL
+
+Dettagli in [docs/LEGAL_COVERAGE_AUTOFILL.md](docs/LEGAL_COVERAGE_AUTOFILL.md).
+
 ## Osservabilità tecnica
 
 Il pannello Superadmin include una vista tecnica dedicata in `/admin/osservabilita`.
@@ -249,7 +292,7 @@ Il pannello Superadmin include una vista tecnica dedicata in `/admin/osservabili
 - stato del provider AI locale
 - queue depth e throughput OCR dell'ultima ora
 - stato operativo di storage e runtime applicativo
-- segnali di degrado con codici tassonomici, soglie operative e rimedi per errori 5xx, OCR, worker OCR, AI locale e storage
+- segnali di degrado con codici tassonomici, soglie operative, messaggio operatore e rimedi per errori 5xx, OCR, worker OCR, AI locale e storage
 
 Sul bounded context AI, il confine corretto adesso è:
 

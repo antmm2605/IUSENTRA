@@ -164,6 +164,7 @@ def _build_observability_alerts(payload: dict[str, Any]) -> list[dict[str, Any]]
                     f"{int(worst_bucket.get('count') or 0)} risposte in errore."
                 ),
                 "threshold": str((thresholds.get("http_5xx_bucket") or {}).get("label") or ""),
+                "operator_message": "Errore applicativo reale: apri subito i log del bucket indicato e ripeti lo smoke test della superficie coinvolta.",
                 "remediation": (
                     "Controlla i log applicativi dell'endpoint indicato, verifica l'errore "
                     "a livello Flask e ripeti lo smoke test della superficie coinvolta."
@@ -189,6 +190,7 @@ def _build_observability_alerts(payload: dict[str, Any]) -> list[dict[str, Any]]
                     f"Risultano {int(ocr.get('errori') or 0)} job OCR falliti o da presidiare."
                 ),
                 "threshold": str((thresholds.get("ocr_error_jobs") or {}).get("label") or ""),
+                "operator_message": "OCR con errori: verifica i documenti falliti e rilancia solo dopo avere corretto file o runtime.",
                 "remediation": (
                     "Apri la salute sistema, individua i documenti falliti e rilancia "
                     "l'elaborazione solo dopo avere verificato file, Tesseract e storage."
@@ -212,6 +214,7 @@ def _build_observability_alerts(payload: dict[str, Any]) -> list[dict[str, Any]]
                     f"La coda OCR contiene {int(ocr.get('in_coda') or 0)} elementi in attesa."
                 ),
                 "threshold": str((thresholds.get("ocr_queue_backlog") or {}).get("label") or ""),
+                "operator_message": "OCR rallentato: controlla worker, CPU e throughput prima che la coda continui a crescere.",
                 "remediation": (
                     "Verifica che il worker OCR sia vivo, che il database di coda non sia "
                     "bloccato e che il throughput dell'ultima ora non sia fermo."
@@ -235,6 +238,7 @@ def _build_observability_alerts(payload: dict[str, Any]) -> list[dict[str, Any]]
                     f"La coda OCR ha {int(ocr.get('in_coda') or 0)} elementi ma il throughput dell'ultima ora e' zero."
                 ),
                 "threshold": str((thresholds.get("ocr_worker_stall") or {}).get("label") or ""),
+                "operator_message": "Worker OCR fermo: riporta il worker online prima di accumulare nuova arretratezza.",
                 "remediation": (
                     "Il worker OCR sembra fermo: verifica processo, log del worker e lock sul database di coda."
                 ),
@@ -263,6 +267,7 @@ def _build_observability_alerts(payload: dict[str, Any]) -> list[dict[str, Any]]
                 "detail": local_ai_error
                 or "Il provider locale non e' pronto oppure non risponde dal runtime applicativo.",
                 "threshold": str((thresholds.get("local_ai_runtime") or {}).get("label") or ""),
+                "operator_message": "AI locale non disponibile: il prodotto resta operativo, ma Lex e i motori assistiti vanno usati solo dopo il ripristino del runtime.",
                 "remediation": (
                     "Controlla la schermata impostazioni AI, verifica il runtime Ollama sullo "
                     "stesso host dell'app e riesegui il bootstrap prima di usare Lex o i motori assistiti."
@@ -286,6 +291,7 @@ def _build_observability_alerts(payload: dict[str, Any]) -> list[dict[str, Any]]
                 "title": "Storage predefinito ancora su JSON",
                 "detail": "Il runtime principale non sta ancora usando un backend SQL come default operativo.",
                 "threshold": str((thresholds.get("storage_default_mode") or {}).get("label") or ""),
+                "operator_message": "Storage non ancora chiuso sul database: completa il cutover tenant-aware prima di considerare il backend stabile.",
                 "remediation": (
                     "Chiudi il percorso di migrazione sul tenant interessato e verifica la parity "
                     "read/write prima del cutover definitivo."
@@ -309,6 +315,7 @@ def _build_observability_alerts(payload: dict[str, Any]) -> list[dict[str, Any]]
                 "title": "Capability di prodotto non disponibili",
                 "detail": "La lettura prodotto non ha restituito capability operative o superfici autorizzative.",
                 "threshold": "Le capability di prodotto devono essere presenti e leggibili nella diagnostica runtime.",
+                "operator_message": "Diagnostica prodotto incompleta: verifica bootstrap admin e servizi di governance prima di fidarti del pannello.",
                 "remediation": (
                     "Controlla audit, bootstrap admin e servizi di governance: la diagnostica deve "
                     "raccontare sia il runtime sia il prodotto, non solo i log tecnici."

@@ -23,7 +23,7 @@
           {{ payload.summary.status_label }}
         </div>
         <div class="small text-muted">
-          Errori: {{ payload.summary.errors }} · Warning: {{ payload.summary.warnings }}
+          Errori: {{ payload.summary.errors }} - Warning: {{ payload.summary.warnings }}
         </div>
       </div>
     </div>
@@ -121,6 +121,11 @@
         {% if alert.threshold %}
         <div class="small text-muted mb-2">
           <strong>Soglia operativa:</strong> {{ alert.threshold }}
+        </div>
+        {% endif %}
+        {% if alert.operator_message %}
+        <div class="small mb-2">
+          <strong>Messaggio operatore:</strong> {{ alert.operator_message }}
         </div>
         {% endif %}
         <div class="small text-muted">

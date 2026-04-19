@@ -44,6 +44,7 @@ Trasformare la tassonomia procedure da catalogo statico a capability continua:
 - `published_procedure_history`
 - `coverage_policies`
 - `coverage_learning_events`
+- `coverage_review_audit_log`
 
 ## Configurazione
 
@@ -87,6 +88,13 @@ Se il tenant ha gia' PostgreSQL attivo, la dashboard non resta piu' bloccata su 
 Se il superadmin opera fuori impersonazione, la dashboard seleziona automaticamente il tenant unico attivo oppure permette di scegliere esplicitamente lo studio dalla UI, propagando lo stesso contesto a review, action forms e API.
 La UI mostra anche il nome studio configurato nel `config/studio.json` del tenant e il backend coverage effettivo (`PostgreSQL tenant-aware`, `SQLite locale`, `JSON locale`), cosi' il contesto operativo non resta ambiguo.
 La schermata review autoseleziona la prima bozza disponibile, spiega il flusso da seguire e rende visibile il contesto di retrieval usato per generare il draft.
+La review ora espone anche:
+
+- `firma reviewer` obbligatoria per approvazione, rifiuto e publish
+- `motivo decisione` obbligatorio per approvare o rifiutare
+- `diff bozza -> versione corrente` costruito sulla spec originale generata dall'AI
+- `storico revisioni` persistito nel repository SQL
+- `ultima decisione`, reviewer, firma e motivazione direttamente nella panoramica draft
 
 ## CLI
 
@@ -125,3 +133,19 @@ Il retrieval dei draft successivi usa:
 2. storico publish
 3. learning events recenti
 4. seed operativo interno
+
+## Audit review difendibile
+
+La review admin non e' piu' un semplice cambio stato del draft.
+
+Per ogni bozza vengono persistiti:
+
+- spec originale generata dall'AI
+- spec corrente salvata dal reviewer
+- diff strutturato tra versione iniziale e stato corrente
+- reviewer
+- firma reviewer
+- motivo approvazione o rifiuto
+- azione review eseguita (`generated`, `saved`, `approved`, `rejected`, `published`)
+
+Questo rende il flusso piu' difendibile e leggibile anche a posteriori, quando serve ricostruire perche' una procedura e' stata approvata, modificata o respinta.

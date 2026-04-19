@@ -32,12 +32,15 @@ def test_run_golden_path_suites_persist_report(monkeypatch, tmp_path):
 
     report = run_golden_path_suites(base_dir=str(tmp_path), cwd=str(tmp_path))
     latest_report = Path(tmp_path) / "golden_paths_latest.json"
+    latest_markdown = Path(tmp_path) / "golden_paths_latest.md"
 
     assert report["success"] is True
     assert latest_report.exists()
+    assert latest_markdown.exists()
     payload = json.loads(latest_report.read_text(encoding="utf-8"))
     assert payload["success"] is True
     assert len(payload["suites"]) >= 5
+    assert "Golden path ufficiali" in latest_markdown.read_text(encoding="utf-8")
 
 
 def test_cli_golden_path_restituisce_json(monkeypatch, tmp_path):

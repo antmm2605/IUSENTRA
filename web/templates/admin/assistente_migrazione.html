@@ -284,6 +284,56 @@
 <div class="row g-4 mb-4">
   <div class="col-12 col-lg-6">
     <div class="card h-100">
+      <div class="card-header fw-semibold">Snapshot pre-migrazione</div>
+      <div class="card-body">
+        {% if payload.last_execution.precheck_snapshot %}
+        <div class="small mb-2">
+          <strong>Generato:</strong> {{ payload.last_execution.precheck_snapshot.generated_at|fmt_dataora if payload.last_execution.precheck_snapshot.generated_at else 'n/d' }}
+        </div>
+        <div class="small mb-2">
+          <strong>Sorgente:</strong> {{ payload.last_execution.precheck_snapshot.source_label|default('n/d') }}
+          <strong class="ms-2">Destinazione:</strong> {{ payload.last_execution.precheck_snapshot.destination_label|default('n/d') }}
+        </div>
+        <div class="small mb-2">
+          <strong>Domini censiti:</strong> {{ payload.last_execution.precheck_snapshot.domains_total|default(0) }}
+        </div>
+        <div class="small mb-2">
+          <strong>Backup tenant:</strong> <code>{{ payload.last_execution.precheck_snapshot.backup_dir|default('n/d') }}</code>
+        </div>
+        <div class="small text-muted">{{ payload.last_execution.precheck_snapshot.note|default('') }}</div>
+        {% else %}
+        <div class="small text-muted">Nessuno snapshot pre-migrazione disponibile nel report corrente.</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  <div class="col-12 col-lg-6">
+    <div class="card h-100">
+      <div class="card-header fw-semibold">Log operativo della migrazione</div>
+      <div class="card-body">
+        {% if payload.last_execution.operation_log %}
+        <div class="d-flex flex-column gap-3">
+          {% for item in payload.last_execution.operation_log %}
+          <div class="border rounded-3 p-3">
+            <div class="d-flex justify-content-between align-items-center gap-2 mb-2">
+              <div class="fw-semibold">{{ item.label }}</div>
+              <span class="badge text-bg-{{ item.status }}">{{ 'OK' if item.status == 'success' else 'Attenzione' if item.status == 'warning' else 'Errore' }}</span>
+            </div>
+            <div class="small">{{ item.detail }}</div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="small text-muted">Nessun log operativo disponibile nel report corrente.</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4 mb-4">
+  <div class="col-12 col-lg-6">
+    <div class="card h-100">
       <div class="card-header fw-semibold">Tenant sporco e failure mode</div>
       <div class="card-body">
         {% if payload.last_execution.dirty_findings %}
@@ -302,7 +352,7 @@
         {% elif payload.last_execution.failure_modes %}
         <ul class="mb-0">
           {% for item in payload.last_execution.failure_modes %}
-          <li class="mb-2"><strong>{{ item.code }}</strong> — {{ item.title }}. {{ item.recovery }}</li>
+          <li class="mb-2"><strong>{{ item.code }}</strong> - {{ item.title }}. {{ item.recovery }}</li>
           {% endfor %}
         </ul>
         {% else %}

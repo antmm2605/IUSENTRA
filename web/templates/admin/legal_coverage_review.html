@@ -32,7 +32,8 @@
     <div class="fw-semibold mb-1">Come si usa questa schermata</div>
     <div class="small">
       1. Seleziona una bozza dalla coda a sinistra. 2. Controlla metadati, report di validazione e contesto di retrieval.
-      3. Correggi lo spec JSON solo se serve. 4. Approva o rifiuta la bozza. 5. Pubblica solo dopo l'approvazione per generare lo SQL reale.
+      3. Correggi lo spec JSON solo se serve. 4. Inserisci firma reviewer e motivazione. 5. Approva o rifiuta la bozza.
+      6. Pubblica solo dopo l'approvazione per generare lo SQL reale con audit legale completo.
     </div>
   </div>
 
@@ -92,13 +93,37 @@
                   <span class="review-chip" id="chip-created-at">Creato: -</span>
                   <span class="review-chip" id="chip-reviewed-at">Review: -</span>
                 </div>
+                <div class="row g-3 mt-1">
+                  <div class="col-12 col-md-4">
+                    <div class="border rounded-3 p-3 h-100">
+                      <div class="small text-muted text-uppercase mb-1">Reviewer</div>
+                      <div class="fw-semibold" id="meta-reviewer">-</div>
+                    </div>
+                  </div>
+                  <div class="col-12 col-md-4">
+                    <div class="border rounded-3 p-3 h-100">
+                      <div class="small text-muted text-uppercase mb-1">Firma reviewer</div>
+                      <div class="fw-semibold" id="meta-signature">-</div>
+                    </div>
+                  </div>
+                  <div class="col-12 col-md-4">
+                    <div class="border rounded-3 p-3 h-100">
+                      <div class="small text-muted text-uppercase mb-1">Ultima decisione</div>
+                      <div class="fw-semibold" id="meta-last-action">-</div>
+                    </div>
+                  </div>
+                </div>
+                <div class="border rounded-3 p-3 mt-3">
+                  <div class="small text-muted text-uppercase mb-1">Motivo decisione</div>
+                  <div class="small" id="meta-review-reason">Nessuna motivazione registrata.</div>
+                </div>
               </div>
             </div>
           </div>
         </div>
 
         <div class="col-12 col-xxl-7">
-          <div class="card review-card">
+          <div class="card review-card mb-3">
             <div class="card-header review-card-header">
               <div>
                 <h2 class="review-card-title">Spec JSON</h2>
@@ -110,9 +135,47 @@
               <textarea id="spec-editor" class="review-editor" spellcheck="false" placeholder="{ }"></textarea>
             </div>
           </div>
+
+          <div class="card review-card">
+            <div class="card-header review-card-header">
+              <div>
+                <h2 class="review-card-title">Diff bozza -> versione corrente</h2>
+                <small class="text-muted">Confronto tra draft iniziale AI e versione oggi in review</small>
+              </div>
+            </div>
+            <div class="card-body">
+              <div id="diff-empty" class="small text-muted">
+                Nessuna differenza registrata tra la bozza iniziale e la versione corrente.
+              </div>
+              <div id="diff-list" class="d-flex flex-column gap-2"></div>
+            </div>
+          </div>
         </div>
 
         <div class="col-12 col-xxl-5">
+          <div class="card review-card mb-3">
+            <div class="card-header review-card-header">
+              <div>
+                <h2 class="review-card-title">Decisione reviewer</h2>
+                <small class="text-muted">Motivazione, firma e chiusura auditabile</small>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="mb-3">
+                <label class="form-label small text-uppercase text-muted" for="review-signature">Firma reviewer</label>
+                <input id="review-signature" class="form-control" placeholder="Es. Avv. Antonella Mammola - Superadmin">
+              </div>
+              <div class="mb-3">
+                <label class="form-label small text-uppercase text-muted" for="approval-notes">Motivo approvazione / publish</label>
+                <textarea id="approval-notes" class="form-control" rows="4" placeholder="Spiega perche' la bozza e' corretta, quali correzioni hai fatto e perche' il publish e' difendibile."></textarea>
+              </div>
+              <div>
+                <label class="form-label small text-uppercase text-muted" for="reject-notes">Motivo rifiuto</label>
+                <textarea id="reject-notes" class="form-control" rows="3" placeholder="Indica il motivo del rifiuto, il rischio legale o i dati mancanti da correggere."></textarea>
+              </div>
+            </div>
+          </div>
+
           <div class="card review-card mb-3">
             <div class="card-header review-card-header">
               <div>
@@ -137,6 +200,21 @@
                 Nessun esempio di retrieval disponibile per questa bozza.
               </div>
               <div id="retrieval-list" class="review-retrieval-list"></div>
+            </div>
+          </div>
+
+          <div class="card review-card mb-3">
+            <div class="card-header review-card-header">
+              <div>
+                <h2 class="review-card-title">Storico revisioni</h2>
+                <small class="text-muted">Salvataggi, approvazioni, rifiuti e pubblicazioni</small>
+              </div>
+            </div>
+            <div class="card-body">
+              <div id="history-empty" class="small text-muted">
+                Nessun evento di review registrato per questa bozza.
+              </div>
+              <div id="history-list" class="d-flex flex-column gap-2"></div>
             </div>
           </div>
 

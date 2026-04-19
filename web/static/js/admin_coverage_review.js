@@ -1,5 +1,6 @@
 let currentDraftId = null;
 let cachedDrafts = [];
+let currentDraftDetail = null;
 let reviewToast = null;
 
 const reviewTenantSlug = String(window.REVIEW_TENANT_SLUG || '').trim();
@@ -55,6 +56,7 @@ function setActionState(enabled) {
 
 function resetDraftPanel(message) {
   currentDraftId = null;
+  currentDraftDetail = null;
   setActionState(false);
   document.getElementById('draft-empty').classList.remove('d-none');
   document.getElementById('draft-empty').textContent = message;
@@ -64,6 +66,13 @@ function resetDraftPanel(message) {
   document.getElementById('sql-view').textContent = '';
   document.getElementById('retrieval-list').innerHTML = '';
   document.getElementById('retrieval-empty').classList.remove('d-none');
+  document.getElementById('diff-list').innerHTML = '';
+  document.getElementById('diff-empty').classList.remove('d-none');
+  document.getElementById('history-list').innerHTML = '';
+  document.getElementById('history-empty').classList.remove('d-none');
+  document.getElementById('approval-notes').value = '';
+  document.getElementById('reject-notes').value = '';
+  document.getElementById('review-signature').value = '';
 }
 
 async function fetchJson(url, options = {}) {
@@ -108,6 +117,71 @@ function renderRetrievalExamples(examples) {
   }).join('');
 }
 
+function renderReviewDiff(diffPayload) {
+  const list = document.getElementById('diff-list');
+  const empty = document.getElementById('diff-empty');
+  const sections = Array.isArray(diffPayload?.sections) ? diffPayload.sections : [];
+  if (!sections.length) {
+    list.innerHTML = '';
+    empty.classList.remove('d-none');
+    return;
+  }
+
+  empty.classList.add('d-none');
+  list.innerHTML = sections.map((section) => {
+    const fields = Array.isArray(section.fields) ? section.fields : [];
+    const fieldHtml = fields.length
+      ? `
+        <div class="mt-2 small">
+          ${fields.map((field) => `
+            <div class="border rounded-2 px-2 py-1 mb-1 bg-light-subtle">
+              <strong>${escapeHtml(field.field)}</strong>: ${escapeHtml(field.before)} -> ${escapeHtml(field.after)}
+            </div>
+          `).join('')}
+        </div>
+      `
+      : '';
+    return `
+      <div class="border rounded-3 p-3">
+        <div class="d-flex flex-wrap justify-content-between gap-2 mb-2">
+          <div class="fw-semibold">${escapeHtml(section.section || 'Sezione')}</div>
+          ${badge(section.change || 'updated', `status-${String(section.change || '').toLowerCase()}`)}
+        </div>
+        <div class="small text-muted">Prima: ${escapeHtml(section.before)}</div>
+        <div class="small text-muted">Dopo: ${escapeHtml(section.after)}</div>
+        ${fieldHtml}
+      </div>
+    `;
+  }).join('');
+}
+
+function renderReviewHistory(historyRows) {
+  const list = document.getElementById('history-list');
+  const empty = document.getElementById('history-empty');
+  const rows = Array.isArray(historyRows) ? historyRows : [];
+  if (!rows.length) {
+    list.innerHTML = '';
+    empty.classList.remove('d-none');
+    return;
+  }
+
+  empty.classList.add('d-none');
+  list.innerHTML = rows.map((row) => `
+    <div class="border rounded-3 p-3">
+      <div class="d-flex flex-wrap justify-content-between gap-2 mb-2">
+        <div class="fw-semibold">${escapeHtml(row.review_action || 'evento')}</div>
+        <div class="small text-muted">${formatDate(row.created_at)}</div>
+      </div>
+      <div class="small mb-1"><strong>Reviewer:</strong> ${escapeHtml(row.reviewer || '-')}</div>
+      <div class="small mb-1"><strong>Firma:</strong> ${escapeHtml(row.reviewer_signature || '-')}</div>
+      <div class="small mb-2"><strong>Motivo:</strong> ${escapeHtml(row.review_reason || 'Nessuna motivazione registrata.')}</div>
+      <div class="small text-muted">
+        Diff sezioni: ${Number(row.diff_json?.summary?.changed_sections || 0)}
+      </div>
+    </div>
+  `).join('');
+}
+
 function renderDraftList(data) {
   const filter = (document.getElementById('filter-text').value || '').toLowerCase().trim();
   const list = document.getElementById('draft-list');
@@ -148,6 +222,29 @@ function renderDraftList(data) {
   return filtered;
 }
 
+function buildReviewRequestPayload(action) {
+  const reviewSignature = String(document.getElementById('review-signature').value || '').trim();
+  const approvalReason = String(document.getElementById('approval-notes').value || '').trim();
+  const rejectReason = String(document.getElementById('reject-notes').value || '').trim();
+  const reviewReason = action === 'reject' ? rejectReason : approvalReason;
+
+  if (!reviewSignature) {
+    showToast('Inserisci la firma del reviewer prima di proseguire.');
+    return null;
+  }
+  if ((action === 'approve' || action === 'reject') && !reviewReason) {
+    showToast('Inserisci il motivo della decisione prima di proseguire.');
+    return null;
+  }
+
+  return {
+    reviewer: 'review-ui',
+    tenant_slug: reviewTenantSlug,
+    review_signature: reviewSignature,
+    review_reason: reviewReason
+  };
+}
+
 async function fetchDrafts() {
   try {
     const data = await fetchJson(reviewUrl('/drafts'));
@@ -184,6 +281,7 @@ async function loadDraft(id) {
     setActionState(true);
     renderDraftList(cachedDrafts);
     const data = await fetchJson(reviewUrl(`/drafts/${id}`));
+    currentDraftDetail = data;
 
     document.getElementById('draft-empty').classList.add('d-none');
     document.getElementById('draft-meta').classList.remove('d-none');
@@ -198,10 +296,21 @@ async function loadDraft(id) {
       `Auto publish: ${data.auto_publish_eligible ? 'si' : 'no'}`;
     document.getElementById('chip-created-at').textContent = `Creato: ${formatDate(data.created_at)}`;
     document.getElementById('chip-reviewed-at').textContent = `Review: ${formatDate(data.reviewed_at)}`;
+    document.getElementById('meta-reviewer').textContent = data.reviewer || '-';
+    document.getElementById('meta-signature').textContent = data.review_signature || '-';
+    document.getElementById('meta-last-action').textContent = data.last_review_action || '-';
+    document.getElementById('meta-review-reason').textContent = data.review_reason || 'Nessuna motivazione registrata.';
     document.getElementById('spec-editor').value = JSON.stringify(data.spec_json || {}, null, 2);
     document.getElementById('validation-view').textContent = JSON.stringify(data.validation_report_json || {}, null, 2);
     document.getElementById('sql-view').textContent = data.sql_preview || '';
+    document.getElementById('review-signature').value = data.review_signature || '';
+    document.getElementById('approval-notes').value =
+      ['approved', 'published'].includes(String(data.last_review_action || '')) ? (data.review_reason || '') : '';
+    document.getElementById('reject-notes').value =
+      String(data.last_review_action || '') === 'rejected' ? (data.review_reason || '') : '';
     renderRetrievalExamples(data.retrieval_examples_json || []);
+    renderReviewDiff(data.review_diff_json || {});
+    renderReviewHistory(data.review_history || []);
   } catch (error) {
     resetDraftPanel(`Impossibile caricare la bozza selezionata: ${error.message}`);
     showToast(error.message);
@@ -222,7 +331,12 @@ async function saveDraft() {
     const data = await fetchJson(reviewUrl(`/drafts/${currentDraftId}/save`), {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({spec_json: spec, tenant_slug: reviewTenantSlug})
+      body: JSON.stringify({
+        spec_json: spec,
+        tenant_slug: reviewTenantSlug,
+        reviewer: 'review-ui',
+        review_signature: String(document.getElementById('review-signature').value || '').trim()
+      })
     });
     document.getElementById('validation-view').textContent = JSON.stringify(data.validation || {}, null, 2);
     showToast('Bozza salvata correttamente.');
@@ -234,13 +348,15 @@ async function saveDraft() {
 
 async function approveDraft() {
   if (!currentDraftId) return;
+  const payload = buildReviewRequestPayload('approve');
+  if (!payload) return;
   try {
     await fetchJson(reviewUrl(`/drafts/${currentDraftId}/approve`), {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({reviewer: 'review-ui', tenant_slug: reviewTenantSlug})
+      body: JSON.stringify(payload)
     });
-    showToast('Bozza approvata.');
+    showToast('Bozza approvata con audit registrato.');
     await fetchDrafts();
   } catch (error) {
     showToast(error.message);
@@ -249,13 +365,15 @@ async function approveDraft() {
 
 async function rejectDraft() {
   if (!currentDraftId) return;
+  const payload = buildReviewRequestPayload('reject');
+  if (!payload) return;
   try {
     await fetchJson(reviewUrl(`/drafts/${currentDraftId}/reject`), {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({reviewer: 'review-ui', tenant_slug: reviewTenantSlug})
+      body: JSON.stringify(payload)
     });
-    showToast('Bozza rifiutata.');
+    showToast('Bozza rifiutata con audit registrato.');
     await fetchDrafts();
   } catch (error) {
     showToast(error.message);
@@ -275,11 +393,13 @@ async function previewSql() {
 
 async function publishDraft() {
   if (!currentDraftId) return;
+  const payload = buildReviewRequestPayload('publish');
+  if (!payload) return;
   try {
     await fetchJson(reviewUrl(`/drafts/${currentDraftId}/publish`), {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({tenant_slug: reviewTenantSlug})
+      body: JSON.stringify(payload)
     });
     showToast('Bozza pubblicata e database aggiornato.');
     await fetchDrafts();

@@ -431,6 +431,22 @@ def _build_diff_summary(*, inventory: dict[str, Any], target: str) -> dict[str, 
     }
 
 
+def _build_precheck_snapshot(*, inventory: dict[str, Any], target: str, paths: dict[str, str]) -> dict[str, Any]:
+    source_label = "JSON legacy" if target == "sqlite" else "SQL locale"
+    destination_label = "SQL locale" if target == "sqlite" else "PostgreSQL"
+    return {
+        "generated_at": str(inventory.get("generated_at") or _now_iso()),
+        "source_label": source_label,
+        "destination_label": destination_label,
+        "domains_total": len(list(inventory.get("domains") or [])),
+        "backup_dir": str(paths.get("BACKUP_DIR", "")),
+        "filesystem_preserved": True,
+        "note": (
+            "Snapshot pre-migrazione costruito dal precheck tenant-aware prima del cutover."
+        ),
+    }
+
+
 def _build_dirty_tenant_findings(
     *,
     errors: list[str],
@@ -484,6 +500,59 @@ def _build_dirty_tenant_findings(
         seen.add(key)
         unique_findings.append(item)
     return unique_findings
+
+
+def _build_operation_log(
+    *,
+    target: str,
+    success: bool,
+    core_success: bool,
+    diff_summary: dict[str, Any],
+    repository_rows: int,
+    repository_errors: list[str] | None = None,
+) -> list[dict[str, Any]]:
+    repo_errors = list(repository_errors or [])
+    mismatched = int((diff_summary.get("summary") or {}).get("mismatched") or 0)
+    return [
+        {
+            "step": "precheck_snapshot",
+            "label": "Precheck e snapshot",
+            "status": "success",
+            "detail": "Baseline del tenant congelata prima della migrazione con inventario domini e backup di riferimento.",
+        },
+        {
+            "step": "core_transfer",
+            "label": "Trasferimento domini core",
+            "status": "success" if core_success else "danger",
+            "detail": "Migrazione effettiva di clienti, fascicoli, agenda, scadenze e domini strutturati principali.",
+        },
+        {
+            "step": "repository_sync",
+            "label": "Sincronizzazione repository SQL",
+            "status": "warning" if repo_errors else "success",
+            "detail": (
+                f"Repository strutturati elaborati: {repository_rows}. "
+                + ("Sono presenti errori da correggere." if repo_errors else "Nessun errore strutturato nel sync.")
+            ),
+        },
+        {
+            "step": "diff_check",
+            "label": "Diff pre/post e consistenza",
+            "status": "warning" if mismatched else "success",
+            "detail": (
+                f"Domini con delta residuo: {mismatched}. "
+                + ("Serve correzione prima del cutover definitivo." if mismatched else "Conteggi allineati nel report corrente.")
+            ),
+        },
+        {
+            "step": "cutover_ready",
+            "label": "Prontezza al cutover",
+            "status": "success" if success else "warning",
+            "detail": (
+                f"Target {target} {'pronto' if success else 'non ancora pronto'} secondo il report reale di migrazione."
+            ),
+        },
+    ]
 
 
 def _build_rollback_posture(*, target: str, success: bool) -> dict[str, Any]:
@@ -875,8 +944,16 @@ def migrate_full_storage_to_sqlite(
             "archive_count": _count_files(paths.get("FASCICOLI_ARCH", "")),
             "storage_kind": "filesystem",
         },
+        "precheck_snapshot": _build_precheck_snapshot(inventory=inventory, target="sqlite", paths=paths),
         "diff_summary": diff_summary,
         "dirty_tenant_findings": dirty_findings,
+        "operation_log": _build_operation_log(
+            target="sqlite",
+            success=bool(core.get("riuscita")),
+            core_success=bool(core.get("riuscita")),
+            diff_summary=diff_summary,
+            repository_rows=len(repositories),
+        ),
         "rollback": _build_rollback_posture(target="sqlite", success=bool(core.get("riuscita"))),
     }
     report["inventory"] = inventory
@@ -936,8 +1013,17 @@ def migrate_full_storage_to_postgres(
         "core": core_report,
         "repositories": repositories,
         "repository_errors": repo_errors,
+        "precheck_snapshot": _build_precheck_snapshot(inventory=inventory, target="postgresql", paths=paths),
         "diff_summary": diff_summary,
         "dirty_tenant_findings": dirty_findings,
+        "operation_log": _build_operation_log(
+            target="postgresql",
+            success=success,
+            core_success=bool(core_report.get("success")),
+            diff_summary=diff_summary,
+            repository_rows=len(repositories),
+            repository_errors=repo_errors_text,
+        ),
         "rollback": _build_rollback_posture(target="postgresql", success=success),
     }
     report["inventory"] = inventory

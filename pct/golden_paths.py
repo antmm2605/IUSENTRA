@@ -31,6 +31,7 @@ GOLDEN_PATH_SUITES: tuple[GoldenPathSuite, ...] = (
         criticality="critico",
         surfaces=("login", "dashboard admin", "bootstrap Flask", "observability"),
         pytest_selectors=(
+            "tests/test_end_to_end_studio.py",
             "tests/test_web_bootstrap.py",
             "tests/test_observability_runtime.py",
             "tests/test_operational_surfaces.py",
@@ -43,6 +44,7 @@ GOLDEN_PATH_SUITES: tuple[GoldenPathSuite, ...] = (
         criticality="critico",
         surfaces=("assistente migrazione", "storage parity", "cutover PostgreSQL"),
         pytest_selectors=(
+            "tests/test_tenant_migration_full.py",
             "tests/test_migration_assistant.py",
             "tests/test_storage_postgres_migration.py",
             "tests/test_storage_governance.py",
@@ -69,6 +71,7 @@ GOLDEN_PATH_SUITES: tuple[GoldenPathSuite, ...] = (
         criticality="critico",
         surfaces=("dashboard coverage", "review UI", "publish SQL"),
         pytest_selectors=(
+            "tests/test_ai_coverage_pipeline.py",
             "tests/test_legal_coverage_pipeline.py",
             "tests/test_legal_coverage_surface.py",
         ),
@@ -136,6 +139,43 @@ def _latest_report_payload(base_dir: str = "") -> dict[str, Any] | None:
     return best_payload
 
 
+def _build_markdown_report(report: dict[str, Any]) -> str:
+    rows = list(report.get("suites") or [])
+    lines = [
+        "# Golden path ufficiali",
+        "",
+        f"- Generato: {report.get('generated_at') or 'n/d'}",
+        f"- Esito complessivo: {'PASS' if report.get('success') else 'FAIL'}",
+        "",
+        "| Flusso | Criticita' | Stato | Durata | Test |",
+        "| --- | --- | --- | --- | --- |",
+    ]
+    for row in rows:
+        lines.append(
+            "| {label} | {criticality} | {status_label} | {duration}s | `{tests}` |".format(
+                label=row.get("label") or "",
+                criticality=row.get("criticality") or "",
+                status_label=row.get("status_label") or "",
+                duration=row.get("duration_seconds") or 0,
+                tests="`, `".join(row.get("pytest_selectors") or []),
+            )
+        )
+        excerpt = str(row.get("output_excerpt") or "").strip()
+        if excerpt:
+            lines.extend(
+                [
+                    "",
+                    f"## {row.get('label') or row.get('suite_id')}",
+                    "",
+                    "```text",
+                    excerpt,
+                    "```",
+                    "",
+                ]
+            )
+    return "\n".join(lines).strip() + "\n"
+
+
 def _suite_row_base(suite: GoldenPathSuite) -> dict[str, Any]:
     return {
         "suite_id": suite.suite_id,
@@ -174,6 +214,7 @@ def build_golden_path_payload(*, base_dir: str = "", report_payload: dict[str, A
             "not_run": not_run,
             "last_generated_at": str(payload.get("generated_at") or ""),
             "last_report_path": str(payload.get("_path") or payload.get("report_path") or ""),
+            "last_markdown_report_path": str(payload.get("report_markdown_path") or ""),
             "status": "failed" if failed else "passed" if passed and not not_run else "not_run",
         },
         "rows": rows,
@@ -225,8 +266,13 @@ def run_golden_path_suites(*, base_dir: str = "", cwd: str = "") -> dict[str, An
     report_dir.mkdir(parents=True, exist_ok=True)
     stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     report_path = report_dir / f"golden_paths_{stamp}.json"
+    report_markdown_path = report_dir / f"golden_paths_{stamp}.md"
     report_path.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
+    report_markdown_path.write_text(_build_markdown_report(report), encoding="utf-8")
     latest_path = report_dir / "golden_paths_latest.json"
+    latest_markdown_path = report_dir / "golden_paths_latest.md"
     latest_path.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
+    latest_markdown_path.write_text(_build_markdown_report(report), encoding="utf-8")
     report["report_path"] = str(report_path)
+    report["report_markdown_path"] = str(report_markdown_path)
     return report

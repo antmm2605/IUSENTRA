@@ -124,6 +124,9 @@ def test_review_copertura_ai_spiega_il_flusso_e_mostra_la_coda(tmp_path: Path):
     html = page.get_data(as_text=True)
     assert "Come si usa questa schermata" in html
     assert "Contesto di retrieval" in html
+    assert "Decisione reviewer" in html
+    assert "Storico revisioni" in html
+    assert "Diff bozza -&gt; versione corrente" in html or "Diff bozza -> versione corrente" in html
     assert "Nessuna bozza selezionata." in html
 
 
@@ -283,14 +286,29 @@ def test_copertura_ai_single_studio_sqlite_esegue_pipeline_e_publish(tmp_path: P
 
         approve_response = client.post(
             f"/admin/copertura-ai/api/drafts/{draft_id}/approve",
-            json={"reviewer": "test-ui"},
+            json={
+                "reviewer": "test-ui",
+                "review_reason": "Bozza verificata e coerente con il dataset.",
+                "review_signature": "Avv. Test UI",
+            },
         )
         assert approve_response.status_code == 200
         assert approve_response.get_json()["ok"] is True
 
+        detail_response = client.get(f"/admin/copertura-ai/api/drafts/{draft_id}")
+        assert detail_response.status_code == 200
+        detail = detail_response.get_json()
+        assert detail["review_reason"] == "Bozza verificata e coerente con il dataset."
+        assert detail["review_signature"] == "Avv. Test UI"
+        assert detail["review_history"]
+
         publish_response = client.post(
             f"/admin/copertura-ai/api/drafts/{draft_id}/publish",
-            json={},
+            json={
+                "reviewer": "test-ui",
+                "review_reason": "Publish autorizzato dopo controllo finale.",
+                "review_signature": "Avv. Test UI",
+            },
         )
         assert publish_response.status_code == 200
         assert publish_response.get_json()["ok"] is True

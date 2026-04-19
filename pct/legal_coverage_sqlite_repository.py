@@ -11,6 +11,7 @@ import sqlite3
 from typing import Any, Iterator
 
 from pct.legal_platform_seed import LEGAL_PLATFORM_SEED
+from pct.legal_coverage_review_audit import build_review_diff
 
 
 TAXONOMY_SCHEMA_SQL = Path(__file__).with_name("sql") / "20260417_legal_taxonomy_operational_tables.sql"
@@ -108,10 +109,34 @@ class SQLiteCoverageRepository:
         )
         return bool((row or {}).get("name"))
 
+    def column_exists(self, conn: sqlite3.Connection, table_name: str, column_name: str) -> bool:
+        rows = self._fetch_all(conn, f"PRAGMA table_info({table_name})")
+        return any(str(row.get("name") or "") == column_name for row in rows)
+
+    def _ensure_review_columns(self, conn: sqlite3.Connection) -> None:
+        columns = {
+            "draft_spec_original_json": "TEXT",
+            "review_reason": "TEXT",
+            "review_signature": "TEXT",
+            "review_diff_json": "TEXT",
+            "last_review_action": "TEXT",
+        }
+        for column_name, sql_type in columns.items():
+            if not self.column_exists(conn, "generated_procedure_drafts", column_name):
+                conn.execute(f"ALTER TABLE generated_procedure_drafts ADD COLUMN {column_name} {sql_type}")
+        conn.execute(
+            """
+            UPDATE generated_procedure_drafts
+            SET draft_spec_original_json = COALESCE(NULLIF(draft_spec_original_json, ''), spec_json),
+                review_diff_json = COALESCE(NULLIF(review_diff_json, ''), '{}')
+            """
+        )
+
     def ensure_schema(self) -> None:
         with self.connect() as conn:
             conn.executescript(_sqliteify_schema(TAXONOMY_SCHEMA_SQL.read_text(encoding="utf-8")))
             conn.executescript(_sqliteify_schema(COVERAGE_SCHEMA_SQL.read_text(encoding="utf-8")))
+            self._ensure_review_columns(conn)
             conn.commit()
 
     def ping(self) -> bool:
@@ -371,11 +396,14 @@ class SQLiteCoverageRepository:
                     prompt_used,
                     retrieval_examples_json,
                     spec_json,
+                    draft_spec_original_json,
                     validation_report_json,
                     status,
                     risk_level,
-                    auto_publish_eligible
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    auto_publish_eligible,
+                    review_diff_json,
+                    last_review_action
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     payload["subbranch_code"],
@@ -384,10 +412,13 @@ class SQLiteCoverageRepository:
                     payload.get("prompt_used"),
                     json.dumps(payload.get("retrieval_examples") or [], ensure_ascii=False),
                     json.dumps(payload["spec_json"], ensure_ascii=False),
+                    json.dumps(payload["spec_json"], ensure_ascii=False),
                     json.dumps(payload.get("validation_report_json") or {}, ensure_ascii=False),
                     payload.get("status", "generated"),
                     payload.get("risk_level", "MEDIUM"),
                     1 if payload.get("auto_publish_eligible") else 0,
+                    json.dumps({}, ensure_ascii=False),
+                    "generated",
                 ),
             )
             conn.commit()
@@ -401,7 +432,8 @@ class SQLiteCoverageRepository:
                 conn,
                 f"""
                 SELECT id, subbranch_code, procedure_code, status, risk_level,
-                       auto_publish_eligible, created_at, reviewed_at
+                       auto_publish_eligible, created_at, reviewed_at,
+                       review_reason, review_signature, last_review_action
                 FROM generated_procedure_drafts
                 WHERE status IN ({placeholders})
                 ORDER BY auto_publish_eligible DESC, created_at ASC
@@ -418,9 +450,10 @@ class SQLiteCoverageRepository:
                 conn,
                 """
                 SELECT id, subbranch_code, procedure_code, draft_source, prompt_used,
-                       retrieval_examples_json, spec_json, validation_report_json,
+                       retrieval_examples_json, spec_json, draft_spec_original_json, validation_report_json,
                        status, risk_level, auto_publish_eligible, created_at,
-                       reviewed_at, reviewer, published_at
+                       reviewed_at, reviewer, review_reason, review_signature,
+                       review_diff_json, last_review_action, published_at
                 FROM generated_procedure_drafts
                 WHERE id = ?
                 """,
@@ -430,40 +463,160 @@ class SQLiteCoverageRepository:
             return None
         row["retrieval_examples_json"] = _decode_json(row.get("retrieval_examples_json"), [])
         row["spec_json"] = _decode_json(row.get("spec_json"), {})
+        row["draft_spec_original_json"] = _decode_json(row.get("draft_spec_original_json"), {})
         row["validation_report_json"] = _decode_json(row.get("validation_report_json"), {})
+        row["review_diff_json"] = _decode_json(row.get("review_diff_json"), {})
         row["auto_publish_eligible"] = bool(row.get("auto_publish_eligible"))
         return row
 
-    def update_draft_spec(self, draft_id: int, spec_json: dict[str, Any], validation: dict[str, Any], status: str) -> None:
+    def _record_review_event(
+        self,
+        conn: sqlite3.Connection,
+        *,
+        draft_id: int,
+        action: str,
+        reviewer: str = "",
+        review_reason: str = "",
+        review_signature: str = "",
+        before_spec: dict[str, Any] | None = None,
+        after_spec: dict[str, Any] | None = None,
+        diff_payload: dict[str, Any] | None = None,
+    ) -> None:
+        conn.execute(
+            """
+            INSERT INTO coverage_review_audit_log (
+                draft_id,
+                review_action,
+                reviewer,
+                reviewer_signature,
+                review_reason,
+                spec_before_json,
+                spec_after_json,
+                diff_json
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                draft_id,
+                action,
+                reviewer or None,
+                review_signature or None,
+                review_reason or None,
+                json.dumps(before_spec or {}, ensure_ascii=False),
+                json.dumps(after_spec or {}, ensure_ascii=False),
+                json.dumps(diff_payload or {}, ensure_ascii=False),
+            ),
+        )
+
+    def update_draft_spec(
+        self,
+        draft_id: int,
+        spec_json: dict[str, Any],
+        validation: dict[str, Any],
+        status: str,
+        *,
+        reviewer: str = "",
+        review_signature: str = "",
+    ) -> None:
         with self.connect() as conn:
+            current = self._fetch_one(
+                conn,
+                """
+                SELECT spec_json, draft_spec_original_json, review_reason
+                FROM generated_procedure_drafts
+                WHERE id = ?
+                """,
+                (draft_id,),
+            ) or {}
+            original_spec = _decode_json(current.get("draft_spec_original_json"), _decode_json(current.get("spec_json"), {}))
+            current_spec = _decode_json(current.get("spec_json"), {})
+            diff_payload = build_review_diff(original_spec, spec_json)
             conn.execute(
                 """
                 UPDATE generated_procedure_drafts
                 SET spec_json = ?,
                     validation_report_json = ?,
-                    status = ?
+                    status = ?,
+                    review_diff_json = ?,
+                    last_review_action = 'saved',
+                    review_signature = COALESCE(?, review_signature)
                 WHERE id = ?
                 """,
                 (
                     json.dumps(spec_json, ensure_ascii=False),
                     json.dumps(validation, ensure_ascii=False),
                     status,
+                    json.dumps(diff_payload, ensure_ascii=False),
+                    review_signature or None,
                     draft_id,
                 ),
             )
+            self._record_review_event(
+                conn,
+                draft_id=draft_id,
+                action="saved",
+                reviewer=reviewer,
+                review_signature=review_signature,
+                review_reason=str(current.get("review_reason") or "").strip(),
+                before_spec=current_spec,
+                after_spec=spec_json,
+                diff_payload=build_review_diff(current_spec, spec_json),
+            )
             conn.commit()
 
-    def set_draft_status(self, draft_id: int, status: str, reviewer: str = "") -> None:
+    def set_draft_status(
+        self,
+        draft_id: int,
+        status: str,
+        reviewer: str = "",
+        *,
+        review_reason: str = "",
+        review_signature: str = "",
+    ) -> None:
         with self.connect() as conn:
+            current = self._fetch_one(
+                conn,
+                """
+                SELECT spec_json, draft_spec_original_json
+                FROM generated_procedure_drafts
+                WHERE id = ?
+                """,
+                (draft_id,),
+            ) or {}
+            current_spec = _decode_json(current.get("spec_json"), {})
+            original_spec = _decode_json(current.get("draft_spec_original_json"), current_spec)
+            diff_payload = build_review_diff(original_spec, current_spec)
             conn.execute(
                 """
                 UPDATE generated_procedure_drafts
                 SET status = ?,
                     reviewer = ?,
+                    review_reason = ?,
+                    review_signature = ?,
+                    review_diff_json = ?,
+                    last_review_action = ?,
                     reviewed_at = CURRENT_TIMESTAMP
                 WHERE id = ?
                 """,
-                (status, reviewer or None, draft_id),
+                (
+                    status,
+                    reviewer or None,
+                    review_reason or None,
+                    review_signature or None,
+                    json.dumps(diff_payload, ensure_ascii=False),
+                    status,
+                    draft_id,
+                ),
+            )
+            self._record_review_event(
+                conn,
+                draft_id=draft_id,
+                action=status,
+                reviewer=reviewer,
+                review_reason=review_reason,
+                review_signature=review_signature,
+                before_spec=current_spec,
+                after_spec=current_spec,
+                diff_payload=diff_payload,
             )
             conn.commit()
 
@@ -476,7 +629,8 @@ class SQLiteCoverageRepository:
                 conn,
                 f"""
                 SELECT id, subbranch_code, procedure_code, spec_json, validation_report_json,
-                       auto_publish_eligible, created_at, reviewed_at
+                       auto_publish_eligible, created_at, reviewed_at,
+                       review_reason, review_signature, review_diff_json
                 FROM generated_procedure_drafts
                 WHERE {where}
                 ORDER BY reviewed_at IS NULL, reviewed_at ASC, created_at ASC
@@ -487,6 +641,7 @@ class SQLiteCoverageRepository:
         for row in rows:
             row["spec_json"] = _decode_json(row.get("spec_json"), {})
             row["validation_report_json"] = _decode_json(row.get("validation_report_json"), {})
+            row["review_diff_json"] = _decode_json(row.get("review_diff_json"), {})
             row["auto_publish_eligible"] = bool(row.get("auto_publish_eligible"))
         return rows
 
@@ -497,6 +652,15 @@ class SQLiteCoverageRepository:
 
     def mark_published(self, draft_id: int, subbranch_code: str, procedure_code: str, sql_payload: str, mode: str) -> int:
         with self.connect() as conn:
+            current = self._fetch_one(
+                conn,
+                """
+                SELECT reviewer, review_reason, review_signature, spec_json, draft_spec_original_json, review_diff_json
+                FROM generated_procedure_drafts
+                WHERE id = ?
+                """,
+                (draft_id,),
+            ) or {}
             cur = conn.execute(
                 """
                 INSERT INTO published_procedure_history (
@@ -513,10 +677,26 @@ class SQLiteCoverageRepository:
                 """
                 UPDATE generated_procedure_drafts
                 SET status = 'published',
+                    last_review_action = 'published',
                     published_at = CURRENT_TIMESTAMP
                 WHERE id = ?
                 """,
                 (draft_id,),
+            )
+            self._record_review_event(
+                conn,
+                draft_id=draft_id,
+                action="published",
+                reviewer=str(current.get("reviewer") or ""),
+                review_reason=str(current.get("review_reason") or ""),
+                review_signature=str(current.get("review_signature") or ""),
+                before_spec=_decode_json(current.get("spec_json"), {}),
+                after_spec=_decode_json(current.get("spec_json"), {}),
+                diff_payload=_decode_json(current.get("review_diff_json"), {})
+                or build_review_diff(
+                    _decode_json(current.get("draft_spec_original_json"), _decode_json(current.get("spec_json"), {})),
+                    _decode_json(current.get("spec_json"), {}),
+                ),
             )
             conn.commit()
         return int(cur.lastrowid)
@@ -583,13 +763,33 @@ class SQLiteCoverageRepository:
             return self._fetch_all(
                 conn,
                 """
-                SELECT id, draft_id, procedure_code, subbranch_code, published_mode, published_at
+                SELECT id, draft_id, procedure_code, subbranch_code, published_mode, published_at, sql_payload
                 FROM published_procedure_history
                 ORDER BY published_at DESC, id DESC
                 LIMIT ?
                 """,
                 (limit,),
             )
+
+    def list_review_history(self, draft_id: int, *, limit: int = 20) -> list[dict[str, Any]]:
+        with self.connect() as conn:
+            if not self.table_exists(conn, "coverage_review_audit_log"):
+                return []
+            rows = self._fetch_all(
+                conn,
+                """
+                SELECT id, draft_id, review_action, reviewer, reviewer_signature,
+                       review_reason, diff_json, created_at
+                FROM coverage_review_audit_log
+                WHERE draft_id = ?
+                ORDER BY created_at DESC, id DESC
+                LIMIT ?
+                """,
+                (draft_id, limit),
+            )
+        for row in rows:
+            row["diff_json"] = _decode_json(row.get("diff_json"), {})
+        return rows
 
     def count_learning_events(self) -> int:
         with self.connect() as conn:

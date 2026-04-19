@@ -143,6 +143,14 @@ def test_admin_assistente_migrazione_renderizza_esito_reale_con_report(tmp_path,
                     "coverage_ai": {"ok": True, "sqlite_stats": {"drafts": 3, "snapshots": 4}},
                 },
                 "documents": {"count": 12},
+                "precheck_snapshot": {
+                    "generated_at": "2026-04-19T10:00:00",
+                    "source_label": "JSON legacy",
+                    "destination_label": "SQL locale",
+                    "domains_total": 20,
+                    "backup_dir": str(tmp_path / "backup"),
+                    "note": "Snapshot pre-migrazione costruito dal precheck tenant-aware.",
+                },
                 "diff_summary": {
                     "summary": {
                         "rows_total": 2,
@@ -171,6 +179,14 @@ def test_admin_assistente_migrazione_renderizza_esito_reale_con_report(tmp_path,
                     "detail": "Le sorgenti legacy restano disponibili.",
                     "steps": ["Conserva il report.", "Riesegui il precheck."],
                 },
+                "operation_log": [
+                    {
+                        "step": "precheck_snapshot",
+                        "label": "Precheck e snapshot",
+                        "status": "success",
+                        "detail": "Baseline del tenant congelata prima del cutover.",
+                    }
+                ],
             },
             ensure_ascii=False,
         ),
@@ -205,6 +221,8 @@ def test_admin_assistente_migrazione_renderizza_esito_reale_con_report(tmp_path,
     assert "Clienti" in html
     assert "Repository strutturati" in html
     assert "Diff pre / post migrazione" in html
+    assert "Snapshot pre-migrazione" in html
+    assert "Log operativo della migrazione" in html
     assert "Rollback e recovery guidato" in html
     assert str(report_path) in html
 

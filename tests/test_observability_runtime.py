@@ -75,8 +75,11 @@ def test_runtime_metrics_endpoint_segnala_degradi_e_rimedi(tmp_path, monkeypatch
     assert "LOCAL_AI_RUNTIME_DOWN" in codes
     assert "HTTP_5XX_BUCKET" in codes
     remediations = " ".join(alert["remediation"] for alert in payload["alerts"])
+    operator_messages = " ".join(alert.get("operator_message") or "" for alert in payload["alerts"])
     assert "Controlla i log applicativi" in remediations
     assert "verifica il runtime Ollama" in remediations
+    assert "Errore applicativo reale" in operator_messages
+    assert "AI locale non disponibile" in operator_messages
 
 
 def test_admin_osservabilita_page_e_accessibile_al_superadmin(tmp_path):
@@ -123,4 +126,5 @@ def test_admin_osservabilita_page_mostra_alert_operativi(tmp_path, monkeypatch):
     assert "Degradi rilevati" in html
     assert "Runtime AI locale non operativo" in html
     assert "Come intervenire" in html
+    assert "Messaggio operatore" in html
     assert "Soglia operativa" in html

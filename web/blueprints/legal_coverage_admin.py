@@ -36,6 +36,18 @@ def _selected_tenant_slug() -> str:
     return str(request.values.get("tenant_slug") or request.args.get("tenant_slug") or "").strip().lower()
 
 
+def _review_payload(required_reason: bool = False) -> tuple[dict[str, Any], str, str, str]:
+    body = request.get_json(silent=True) or {}
+    reviewer = str(body.get("reviewer") or "superadmin").strip()
+    review_reason = str(body.get("review_reason") or "").strip()
+    review_signature = str(body.get("review_signature") or "").strip()
+    if required_reason and not review_reason:
+        raise ValueError("Inserisci il motivo della decisione prima di continuare.")
+    if not review_signature:
+        raise ValueError("Inserisci la firma del reviewer per chiudere la revisione.")
+    return body, reviewer, review_reason, review_signature
+
+
 @legal_coverage_admin.get("")
 @legal_coverage_admin.get("/")
 @superadmin_required
@@ -109,8 +121,11 @@ def api_draft_detail(draft_id: int):
         spec_json = dict(row.get("spec_json") or {})
         payload: dict[str, Any] = dict(row)
         payload["spec_json"] = spec_json
+        payload["draft_spec_original_json"] = dict(row.get("draft_spec_original_json") or {})
         payload["validation_report_json"] = dict(row.get("validation_report_json") or {})
         payload["retrieval_examples_json"] = list(row.get("retrieval_examples_json") or [])
+        payload["review_diff_json"] = dict(row.get("review_diff_json") or {})
+        payload["review_history"] = repository.list_review_history(draft_id)
         payload["sql_preview"] = generate_sql(spec_json)
         return jsonify(payload)
     except Exception as exc:
@@ -127,7 +142,13 @@ def api_draft_save(draft_id: int):
         if not isinstance(spec_json, dict):
             return _json_error("spec_json non valido.", status=400)
         repository = build_repository(tenant_slug=str(body.get("tenant_slug") or _selected_tenant_slug()).strip().lower())
-        validation = save_draft(repository, draft_id, spec_json)
+        validation = save_draft(
+            repository,
+            draft_id,
+            spec_json,
+            reviewer=str(body.get("reviewer") or "review-ui").strip(),
+            review_signature=str(body.get("review_signature") or "").strip(),
+        )
         return jsonify({"ok": True, "validation": validation})
     except Exception as exc:
         current_app.logger.exception("Errore api_draft_save: %s", exc)
@@ -138,10 +159,15 @@ def api_draft_save(draft_id: int):
 @superadmin_required
 def api_draft_approve(draft_id: int):
     try:
-        body = request.get_json(silent=True) or {}
-        reviewer = str(body.get("reviewer") or "superadmin")
+        body, reviewer, review_reason, review_signature = _review_payload(required_reason=True)
         repository = build_repository(tenant_slug=str(body.get("tenant_slug") or _selected_tenant_slug()).strip().lower())
-        approve_draft(repository, draft_id, reviewer)
+        approve_draft(
+            repository,
+            draft_id,
+            reviewer,
+            review_reason=review_reason,
+            review_signature=review_signature,
+        )
         return jsonify({"ok": True})
     except Exception as exc:
         current_app.logger.exception("Errore api_draft_approve: %s", exc)
@@ -152,10 +178,15 @@ def api_draft_approve(draft_id: int):
 @superadmin_required
 def api_draft_reject(draft_id: int):
     try:
-        body = request.get_json(silent=True) or {}
-        reviewer = str(body.get("reviewer") or "superadmin")
+        body, reviewer, review_reason, review_signature = _review_payload(required_reason=True)
         repository = build_repository(tenant_slug=str(body.get("tenant_slug") or _selected_tenant_slug()).strip().lower())
-        reject_draft(repository, draft_id, reviewer)
+        reject_draft(
+            repository,
+            draft_id,
+            reviewer,
+            review_reason=review_reason,
+            review_signature=review_signature,
+        )
         return jsonify({"ok": True})
     except Exception as exc:
         current_app.logger.exception("Errore api_draft_reject: %s", exc)
@@ -166,12 +197,19 @@ def api_draft_reject(draft_id: int):
 @superadmin_required
 def api_draft_publish(draft_id: int):
     try:
-        body = request.get_json(silent=True) or {}
+        body, reviewer, review_reason, review_signature = _review_payload(required_reason=False)
         repository = build_repository(tenant_slug=str(body.get("tenant_slug") or _selected_tenant_slug()).strip().lower())
         draft = repository.get_draft(draft_id)
         if not draft:
             return _json_error("Draft non trovato.", status=404)
-        repository.set_draft_status(draft_id, "approved", "review-ui")
+        if draft.get("status") != "approved":
+            repository.set_draft_status(
+                draft_id,
+                "approved",
+                reviewer or "review-ui",
+                review_reason=review_reason or str(draft.get("review_reason") or ""),
+                review_signature=review_signature or str(draft.get("review_signature") or ""),
+            )
         result = publish_single_draft(repository, draft_id, apply_to_db=True)
         return jsonify({"ok": True, "result": result})
     except Exception as exc:

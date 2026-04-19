@@ -18,6 +18,7 @@ except ImportError:
     _HAS_PSYCOPG2 = False
 
 from pct.legal_platform_seed import LEGAL_PLATFORM_SEED
+from pct.legal_coverage_review_audit import build_review_diff
 
 
 TAXONOMY_SCHEMA_SQL = Path(__file__).with_name("sql") / "20260417_legal_taxonomy_operational_tables.sql"
@@ -157,10 +158,47 @@ class PostgresCoverageRepository:
         row = self._fetch_one(conn, "SELECT to_regclass(%s) AS table_name", (table_name,))
         return bool((row or {}).get("table_name"))
 
+    def column_exists(self, conn: Any, table_name: str, column_name: str) -> bool:
+        row = self._fetch_one(
+            conn,
+            """
+            SELECT 1 AS ok
+            FROM information_schema.columns
+            WHERE table_name = %s AND column_name = %s
+            LIMIT 1
+            """,
+            (table_name, column_name),
+        )
+        return bool(row)
+
+    def _ensure_review_columns(self, conn: Any) -> None:
+        columns = {
+            "draft_spec_original_json": "JSONB",
+            "review_reason": "TEXT",
+            "review_signature": "VARCHAR(255)",
+            "review_diff_json": "JSONB NOT NULL DEFAULT '{}'::jsonb",
+            "last_review_action": "VARCHAR(32)",
+        }
+        for column_name, sql_type in columns.items():
+            if not self.column_exists(conn, "generated_procedure_drafts", column_name):
+                self._execute(
+                    conn,
+                    f"ALTER TABLE generated_procedure_drafts ADD COLUMN {column_name} {sql_type}",
+                )
+        self._execute(
+            conn,
+            """
+            UPDATE generated_procedure_drafts
+            SET draft_spec_original_json = COALESCE(draft_spec_original_json, spec_json),
+                review_diff_json = COALESCE(review_diff_json, '{}'::jsonb)
+            """,
+        )
+
     def ensure_schema(self) -> None:
         with self.connect() as conn:
             self._execute_script(conn, TAXONOMY_SCHEMA_SQL)
             self._execute_script(conn, COVERAGE_SCHEMA_SQL)
+            self._ensure_review_columns(conn)
             conn.commit()
 
     def ping(self) -> bool:
@@ -408,11 +446,14 @@ class PostgresCoverageRepository:
                     prompt_used,
                     retrieval_examples_json,
                     spec_json,
+                    draft_spec_original_json,
                     validation_report_json,
                     status,
                     risk_level,
-                    auto_publish_eligible
-                ) VALUES (%s, %s, %s, %s, %s::jsonb, %s::jsonb, %s::jsonb, %s, %s, %s)
+                    auto_publish_eligible,
+                    review_diff_json,
+                    last_review_action
+                ) VALUES (%s, %s, %s, %s, %s::jsonb, %s::jsonb, %s::jsonb, %s::jsonb, %s, %s, %s, %s::jsonb, %s)
                 RETURNING id
                 """,
                 (
@@ -422,10 +463,13 @@ class PostgresCoverageRepository:
                     payload.get("prompt_used"),
                     json.dumps(payload.get("retrieval_examples") or [], ensure_ascii=False),
                     json.dumps(payload["spec_json"], ensure_ascii=False),
+                    json.dumps(payload["spec_json"], ensure_ascii=False),
                     json.dumps(payload.get("validation_report_json") or {}, ensure_ascii=False),
                     payload.get("status", "generated"),
                     payload.get("risk_level", "MEDIUM"),
                     bool(payload.get("auto_publish_eligible")),
+                    json.dumps({}, ensure_ascii=False),
+                    "generated",
                 ),
             )
             conn.commit()
@@ -439,7 +483,8 @@ class PostgresCoverageRepository:
                 conn,
                 f"""
                 SELECT id, subbranch_code, procedure_code, status, risk_level,
-                       auto_publish_eligible, created_at, reviewed_at
+                       auto_publish_eligible, created_at, reviewed_at,
+                       review_reason, review_signature, last_review_action
                 FROM generated_procedure_drafts
                 WHERE status IN ({placeholders})
                 ORDER BY auto_publish_eligible DESC, created_at ASC
@@ -453,47 +498,167 @@ class PostgresCoverageRepository:
                 conn,
                 """
                 SELECT id, subbranch_code, procedure_code, draft_source, prompt_used,
-                       retrieval_examples_json, spec_json, validation_report_json,
+                       retrieval_examples_json, spec_json, draft_spec_original_json, validation_report_json,
                        status, risk_level, auto_publish_eligible, created_at,
-                       reviewed_at, reviewer, published_at
+                       reviewed_at, reviewer, review_reason, review_signature,
+                       review_diff_json, last_review_action, published_at
                 FROM generated_procedure_drafts
                 WHERE id = %s
                 """,
                 (draft_id,),
             )
 
-    def update_draft_spec(self, draft_id: int, spec_json: dict[str, Any], validation: dict[str, Any], status: str) -> None:
+    def _record_review_event(
+        self,
+        conn: Any,
+        *,
+        draft_id: int,
+        action: str,
+        reviewer: str = "",
+        review_reason: str = "",
+        review_signature: str = "",
+        before_spec: dict[str, Any] | None = None,
+        after_spec: dict[str, Any] | None = None,
+        diff_payload: dict[str, Any] | None = None,
+    ) -> None:
+        self._execute(
+            conn,
+            """
+            INSERT INTO coverage_review_audit_log (
+                draft_id,
+                review_action,
+                reviewer,
+                reviewer_signature,
+                review_reason,
+                spec_before_json,
+                spec_after_json,
+                diff_json
+            ) VALUES (%s, %s, %s, %s, %s, %s::jsonb, %s::jsonb, %s::jsonb)
+            """,
+            (
+                draft_id,
+                action,
+                reviewer or None,
+                review_signature or None,
+                review_reason or None,
+                json.dumps(before_spec or {}, ensure_ascii=False),
+                json.dumps(after_spec or {}, ensure_ascii=False),
+                json.dumps(diff_payload or {}, ensure_ascii=False),
+            ),
+        )
+
+    def update_draft_spec(
+        self,
+        draft_id: int,
+        spec_json: dict[str, Any],
+        validation: dict[str, Any],
+        status: str,
+        *,
+        reviewer: str = "",
+        review_signature: str = "",
+    ) -> None:
         with self.connect() as conn:
+            current = self._fetch_one(
+                conn,
+                """
+                SELECT spec_json, draft_spec_original_json, review_reason
+                FROM generated_procedure_drafts
+                WHERE id = %s
+                """,
+                (draft_id,),
+            ) or {}
+            original_spec = dict(current.get("draft_spec_original_json") or current.get("spec_json") or {})
+            current_spec = dict(current.get("spec_json") or {})
+            diff_payload = build_review_diff(original_spec, spec_json)
             self._execute(
                 conn,
                 """
                 UPDATE generated_procedure_drafts
                 SET spec_json = %s::jsonb,
                     validation_report_json = %s::jsonb,
-                    status = %s
+                    status = %s,
+                    review_diff_json = %s::jsonb,
+                    last_review_action = 'saved',
+                    review_signature = COALESCE(%s, review_signature)
                 WHERE id = %s
                 """,
                 (
                     json.dumps(spec_json, ensure_ascii=False),
                     json.dumps(validation, ensure_ascii=False),
                     status,
+                    json.dumps(diff_payload, ensure_ascii=False),
+                    review_signature or None,
                     draft_id,
                 ),
             )
+            self._record_review_event(
+                conn,
+                draft_id=draft_id,
+                action="saved",
+                reviewer=reviewer,
+                review_signature=review_signature,
+                review_reason=str(current.get("review_reason") or "").strip(),
+                before_spec=current_spec,
+                after_spec=spec_json,
+                diff_payload=build_review_diff(current_spec, spec_json),
+            )
             conn.commit()
 
-    def set_draft_status(self, draft_id: int, status: str, reviewer: str = "") -> None:
+    def set_draft_status(
+        self,
+        draft_id: int,
+        status: str,
+        reviewer: str = "",
+        *,
+        review_reason: str = "",
+        review_signature: str = "",
+    ) -> None:
         with self.connect() as conn:
+            current = self._fetch_one(
+                conn,
+                """
+                SELECT spec_json, draft_spec_original_json
+                FROM generated_procedure_drafts
+                WHERE id = %s
+                """,
+                (draft_id,),
+            ) or {}
+            current_spec = dict(current.get("spec_json") or {})
+            original_spec = dict(current.get("draft_spec_original_json") or current_spec)
+            diff_payload = build_review_diff(original_spec, current_spec)
             self._execute(
                 conn,
                 """
                 UPDATE generated_procedure_drafts
                 SET status = %s,
                     reviewer = %s,
+                    review_reason = %s,
+                    review_signature = %s,
+                    review_diff_json = %s::jsonb,
+                    last_review_action = %s,
                     reviewed_at = NOW()
                 WHERE id = %s
                 """,
-                (status, reviewer or None, draft_id),
+                (
+                    status,
+                    reviewer or None,
+                    review_reason or None,
+                    review_signature or None,
+                    json.dumps(diff_payload, ensure_ascii=False),
+                    status,
+                    draft_id,
+                ),
+            )
+            self._record_review_event(
+                conn,
+                draft_id=draft_id,
+                action=status,
+                reviewer=reviewer,
+                review_reason=review_reason,
+                review_signature=review_signature,
+                before_spec=current_spec,
+                after_spec=current_spec,
+                diff_payload=diff_payload,
             )
             conn.commit()
 
@@ -506,7 +671,8 @@ class PostgresCoverageRepository:
                 conn,
                 f"""
                 SELECT id, subbranch_code, procedure_code, spec_json, validation_report_json,
-                       auto_publish_eligible, created_at, reviewed_at
+                       auto_publish_eligible, created_at, reviewed_at,
+                       review_reason, review_signature, review_diff_json
                 FROM generated_procedure_drafts
                 WHERE {where}
                 ORDER BY reviewed_at ASC NULLS LAST, created_at ASC
@@ -522,6 +688,15 @@ class PostgresCoverageRepository:
 
     def mark_published(self, draft_id: int, subbranch_code: str, procedure_code: str, sql_payload: str, mode: str) -> int:
         with self.connect() as conn:
+            current = self._fetch_one(
+                conn,
+                """
+                SELECT reviewer, review_reason, review_signature, spec_json, draft_spec_original_json, review_diff_json
+                FROM generated_procedure_drafts
+                WHERE id = %s
+                """,
+                (draft_id,),
+            ) or {}
             row = self._fetch_one(
                 conn,
                 """
@@ -541,10 +716,25 @@ class PostgresCoverageRepository:
                 """
                 UPDATE generated_procedure_drafts
                 SET status = 'published',
+                    last_review_action = 'published',
                     published_at = NOW()
                 WHERE id = %s
                 """,
                 (draft_id,),
+            )
+            self._record_review_event(
+                conn,
+                draft_id=draft_id,
+                action="published",
+                reviewer=str(current.get("reviewer") or ""),
+                review_reason=str(current.get("review_reason") or ""),
+                review_signature=str(current.get("review_signature") or ""),
+                before_spec=dict(current.get("spec_json") or {}),
+                after_spec=dict(current.get("spec_json") or {}),
+                diff_payload=dict(current.get("review_diff_json") or {}) or build_review_diff(
+                    dict(current.get("draft_spec_original_json") or current.get("spec_json") or {}),
+                    dict(current.get("spec_json") or {}),
+                ),
             )
             conn.commit()
         return int((row or {})["id"])
@@ -610,12 +800,29 @@ class PostgresCoverageRepository:
             return self._fetch_all(
                 conn,
                 """
-                SELECT id, draft_id, procedure_code, subbranch_code, published_mode, published_at
+                SELECT id, draft_id, procedure_code, subbranch_code, published_mode, published_at, sql_payload
                 FROM published_procedure_history
                 ORDER BY published_at DESC
                 LIMIT %s
                 """,
                 (limit,),
+            )
+
+    def list_review_history(self, draft_id: int, *, limit: int = 20) -> list[dict[str, Any]]:
+        with self.connect() as conn:
+            if not self.table_exists(conn, "coverage_review_audit_log"):
+                return []
+            return self._fetch_all(
+                conn,
+                """
+                SELECT id, draft_id, review_action, reviewer, reviewer_signature,
+                       review_reason, diff_json, created_at
+                FROM coverage_review_audit_log
+                WHERE draft_id = %s
+                ORDER BY created_at DESC, id DESC
+                LIMIT %s
+                """,
+                (draft_id, limit),
             )
 
     def count_learning_events(self) -> int:

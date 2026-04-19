@@ -36,6 +36,7 @@ La vista `admin/osservabilita` non deve limitarsi a mostrare numeri:
 - deve distinguere backlog OCR da worker OCR fermo
 - deve dichiarare quando il runtime AI locale non e' operativo
 - deve avvisare se il runtime predefinito e' ancora `JSON`
+- deve esporre un `messaggio operatore` leggibile, non solo un dettaglio tecnico
 - deve suggerire un'azione concreta di presidio, non solo il sintomo
 - deve mostrare `codice`, `famiglia`, `componente`, `soglia operativa` e `passi di remediation`
 
@@ -49,6 +50,21 @@ La vista `admin/osservabilita` non deve limitarsi a mostrare numeri:
 | `AI` | `LOCAL_AI_RUNTIME_DOWN` |
 | `STORAGE` | `STORAGE_DEFAULT_JSON` |
 | `PRODUCT` | `PRODUCT_CAPABILITY_GAP` |
+
+## Output operatore atteso
+
+Ogni alert deve tradurre la diagnostica in decisione operativa. Esempi:
+
+- `HTTP_5XX_BUCKET`
+  "Errore applicativo reale: apri subito i log del bucket indicato e ripeti lo smoke test della superficie coinvolta."
+- `OCR_QUEUE_BACKLOG`
+  "OCR rallentato: controlla worker, CPU e throughput prima che la coda continui a crescere."
+- `OCR_WORKER_STALLED`
+  "Worker OCR fermo: riporta il worker online prima di accumulare nuova arretratezza."
+- `LOCAL_AI_RUNTIME_DOWN`
+  "AI locale non disponibile: il prodotto resta operativo, ma Lex e i motori assistiti vanno usati solo dopo il ripristino del runtime."
+- `STORAGE_DEFAULT_JSON`
+  "Storage non ancora chiuso sul database: completa il cutover tenant-aware prima di considerare il backend stabile."
 
 ## Criterio di chiusura operativa
 

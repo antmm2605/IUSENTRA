@@ -293,6 +293,9 @@
     {% if payload.golden_paths.summary.last_report_path %}
     <div class="small text-break text-muted mt-2">Report: <code>{{ payload.golden_paths.summary.last_report_path }}</code></div>
     {% endif %}
+    {% if payload.golden_paths.summary.last_markdown_report_path %}
+    <div class="small text-break text-muted mt-1">Report leggibile: <code>{{ payload.golden_paths.summary.last_markdown_report_path }}</code></div>
+    {% endif %}
   </div>
   <div class="table-responsive">
     <table class="table table-sm align-middle mb-0">

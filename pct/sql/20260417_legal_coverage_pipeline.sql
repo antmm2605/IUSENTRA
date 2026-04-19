@@ -29,6 +29,7 @@ CREATE TABLE IF NOT EXISTS generated_procedure_drafts (
     prompt_used TEXT,
     retrieval_examples_json JSONB NOT NULL DEFAULT '[]'::jsonb,
     spec_json JSONB NOT NULL,
+    draft_spec_original_json JSONB,
     validation_report_json JSONB,
     status VARCHAR(32) NOT NULL DEFAULT 'generated',
     risk_level VARCHAR(32) NOT NULL DEFAULT 'MEDIUM',
@@ -36,7 +37,24 @@ CREATE TABLE IF NOT EXISTS generated_procedure_drafts (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     reviewed_at TIMESTAMPTZ,
     reviewer VARCHAR(255),
+    review_reason TEXT,
+    review_signature VARCHAR(255),
+    review_diff_json JSONB NOT NULL DEFAULT '{}'::jsonb,
+    last_review_action VARCHAR(32),
     published_at TIMESTAMPTZ
+);
+
+CREATE TABLE IF NOT EXISTS coverage_review_audit_log (
+    id BIGSERIAL PRIMARY KEY,
+    draft_id BIGINT NOT NULL REFERENCES generated_procedure_drafts(id),
+    review_action VARCHAR(32) NOT NULL,
+    reviewer VARCHAR(255),
+    reviewer_signature VARCHAR(255),
+    review_reason TEXT,
+    spec_before_json JSONB NOT NULL DEFAULT '{}'::jsonb,
+    spec_after_json JSONB NOT NULL DEFAULT '{}'::jsonb,
+    diff_json JSONB NOT NULL DEFAULT '{}'::jsonb,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE IF NOT EXISTS published_procedure_history (
@@ -75,6 +93,8 @@ CREATE INDEX IF NOT EXISTS idx_cov_gap_status
     ON coverage_gap_queue (status, priority_score DESC, created_at ASC);
 CREATE INDEX IF NOT EXISTS idx_cov_drafts_status
     ON generated_procedure_drafts (status, risk_level, auto_publish_eligible, created_at ASC);
+CREATE INDEX IF NOT EXISTS idx_cov_review_audit_draft
+    ON coverage_review_audit_log (draft_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_cov_history_subbranch
     ON published_procedure_history (subbranch_code, published_at DESC);
 CREATE INDEX IF NOT EXISTS idx_cov_learning_subbranch

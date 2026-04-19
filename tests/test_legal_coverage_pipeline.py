@@ -14,6 +14,7 @@ from pct.legal_coverage_pipeline import (
     run_coverage_audit,
     save_draft,
 )
+from pct.legal_coverage_review_audit import build_review_diff
 from pct.legal_coverage_sqlite_repository import CoverageSqliteConfig, SQLiteCoverageRepository
 
 
@@ -23,6 +24,7 @@ class _FakeCoverageRepository:
         self.gaps: list[dict] = []
         self.drafts: list[dict] = []
         self.history: list[dict] = []
+        self.review_history: list[dict] = []
         self.learning_events: list[dict] = []
         self.applied_sql: list[str] = []
         self._next_gap_id = 1
@@ -136,6 +138,11 @@ class _FakeCoverageRepository:
         row["id"] = self._next_draft_id
         row["created_at"] = "2026-04-17T10:00:00"
         row["reviewed_at"] = None
+        row["draft_spec_original_json"] = deepcopy(payload["spec_json"])
+        row["review_diff_json"] = {}
+        row["review_reason"] = ""
+        row["review_signature"] = ""
+        row["last_review_action"] = "generated"
         self._next_draft_id += 1
         self.drafts.append(row)
         return row["id"]
@@ -147,19 +154,49 @@ class _FakeCoverageRepository:
     def get_draft(self, draft_id: int):
         return next((deepcopy(row) for row in self.drafts if row["id"] == draft_id), None)
 
-    def update_draft_spec(self, draft_id: int, spec_json, validation, status):
+    def update_draft_spec(self, draft_id: int, spec_json, validation, status, *, reviewer="", review_signature=""):
         for draft in self.drafts:
             if draft["id"] == draft_id:
+                previous = deepcopy(draft["spec_json"])
                 draft["spec_json"] = deepcopy(spec_json)
                 draft["validation_report_json"] = deepcopy(validation)
                 draft["status"] = status
+                draft["review_signature"] = review_signature
+                draft["review_diff_json"] = build_review_diff(draft["draft_spec_original_json"], spec_json)
+                draft["last_review_action"] = "saved"
+                self.review_history.append(
+                    {
+                        "draft_id": draft_id,
+                        "review_action": "saved",
+                        "reviewer": reviewer,
+                        "reviewer_signature": review_signature,
+                        "review_reason": draft.get("review_reason") or "",
+                        "diff_json": build_review_diff(previous, spec_json),
+                        "created_at": "2026-04-17T10:30:00",
+                    }
+                )
 
-    def set_draft_status(self, draft_id: int, status: str, reviewer: str = ""):
+    def set_draft_status(self, draft_id: int, status: str, reviewer: str = "", *, review_reason: str = "", review_signature: str = ""):
         for draft in self.drafts:
             if draft["id"] == draft_id:
                 draft["status"] = status
                 draft["reviewer"] = reviewer
+                draft["review_reason"] = review_reason
+                draft["review_signature"] = review_signature
+                draft["review_diff_json"] = build_review_diff(draft["draft_spec_original_json"], draft["spec_json"])
+                draft["last_review_action"] = status
                 draft["reviewed_at"] = "2026-04-17T11:00:00"
+                self.review_history.append(
+                    {
+                        "draft_id": draft_id,
+                        "review_action": status,
+                        "reviewer": reviewer,
+                        "reviewer_signature": review_signature,
+                        "review_reason": review_reason,
+                        "diff_json": deepcopy(draft["review_diff_json"]),
+                        "created_at": "2026-04-17T11:00:00",
+                    }
+                )
 
     def list_publishable_drafts(self, *, limit: int = 20, auto_only: bool = False):
         rows = [row for row in self.drafts if row["status"] == "approved"]
@@ -184,6 +221,18 @@ class _FakeCoverageRepository:
         for draft in self.drafts:
             if draft["id"] == draft_id:
                 draft["status"] = "published"
+                draft["last_review_action"] = "published"
+                self.review_history.append(
+                    {
+                        "draft_id": draft_id,
+                        "review_action": "published",
+                        "reviewer": draft.get("reviewer") or "",
+                        "reviewer_signature": draft.get("review_signature") or "",
+                        "review_reason": draft.get("review_reason") or "",
+                        "diff_json": deepcopy(draft.get("review_diff_json") or {}),
+                        "created_at": "2026-04-17T12:00:00",
+                    }
+                )
         self._block_state[subbranch_code] = {
             "profile": 1,
             "procedure": 1,
@@ -222,6 +271,13 @@ class _FakeCoverageRepository:
 
     def list_published_history(self, *, limit: int = 12):
         return deepcopy(self.history[:limit])
+
+    def list_review_history(self, draft_id: int, *, limit: int = 20):
+        return [
+            deepcopy(row)
+            for row in self.review_history
+            if row["draft_id"] == draft_id
+        ][:limit]
 
     def count_learning_events(self):
         return len(self.learning_events)
@@ -309,11 +365,23 @@ def test_legal_coverage_pipeline_copre_il_flusso_end_to_end():
 
     bad_spec = deepcopy(repository.drafts[0]["spec_json"])
     bad_spec["templates"] = []
-    validation = save_draft(repository, repository.drafts[0]["id"], bad_spec)
+    validation = save_draft(
+        repository,
+        repository.drafts[0]["id"],
+        bad_spec,
+        reviewer="review-ui",
+        review_signature="Avv. Tester",
+    )
     assert validation["errors"]
     assert repository.drafts[0]["status"] == "generated"
 
-    approve_draft(repository, repository.drafts[0]["id"], "tester")
+    approve_draft(
+        repository,
+        repository.drafts[0]["id"],
+        "tester",
+        review_reason="Bozza verificata e corretta per il ramo consumer.",
+        review_signature="Avv. Tester",
+    )
     assert repository.drafts[0]["status"] == "approved"
 
     published = publish_approved_drafts(repository, limit=1, auto_only=False, apply_to_db=True)
@@ -321,6 +389,7 @@ def test_legal_coverage_pipeline_copre_il_flusso_end_to_end():
     assert repository.applied_sql
     assert repository.learning_events
     assert repository.history
+    assert repository.review_history
 
     dashboard = build_dashboard_payload(repository)
     assert dashboard["headline"]["training_implicito"] == 1
@@ -332,7 +401,13 @@ def test_publish_single_draft_pubblica_il_draft_richiesto():
     run_coverage_audit(repository)
     build_gap_queue(repository)
     generate_drafts(repository, _StubGenerator(), limit=2)
-    approve_draft(repository, repository.drafts[0]["id"], "reviewer")
+    approve_draft(
+        repository,
+        repository.drafts[0]["id"],
+        "reviewer",
+        review_reason="Bozza approvata per pubblicazione singola.",
+        review_signature="Avv. Reviewer",
+    )
 
     result = publish_single_draft(repository, repository.drafts[0]["id"], apply_to_db=True)
 
@@ -357,7 +432,13 @@ def test_sqlite_coverage_repository_supporta_pipeline_end_to_end(tmp_path: Path)
     assert generated["draft_total"] == 1
 
     draft = repository.list_drafts()[0]
-    approve_draft(repository, int(draft["id"]), "tester")
+    approve_draft(
+        repository,
+        int(draft["id"]),
+        "tester",
+        review_reason="Audit completato su SQLite.",
+        review_signature="Avv. Tester",
+    )
 
     result = publish_single_draft(repository, int(draft["id"]), apply_to_db=True)
     assert result["published_total"] == 1
@@ -370,9 +451,44 @@ def test_sqlite_coverage_repository_supporta_pipeline_end_to_end(tmp_path: Path)
         }
         assert "coverage_snapshots" in legal_tables
         assert "generated_procedure_drafts" in legal_tables
+        assert "coverage_review_audit_log" in legal_tables
         assert "legal_procedures" in legal_tables
         assert conn.execute("SELECT COUNT(*) FROM legal_procedures").fetchone()[0] >= 1
         assert conn.execute("SELECT COUNT(*) FROM published_procedure_history").fetchone()[0] == 1
         assert conn.execute("SELECT COUNT(*) FROM coverage_learning_events").fetchone()[0] == 1
+        assert conn.execute("SELECT COUNT(*) FROM coverage_review_audit_log").fetchone()[0] >= 2
     finally:
         conn.close()
+
+
+def test_review_audit_salva_diff_motivo_e_firma():
+    repository = _FakeCoverageRepository()
+    run_coverage_audit(repository)
+    build_gap_queue(repository)
+    generate_drafts(repository, _StubGenerator(), limit=1)
+
+    draft_id = int(repository.drafts[0]["id"])
+    edited_spec = deepcopy(repository.drafts[0]["spec_json"])
+    edited_spec["procedure"]["name"] = "Reclamo consumatore revisionato"
+    save_draft(
+        repository,
+        draft_id,
+        edited_spec,
+        reviewer="review-ui",
+        review_signature="Avv. Audit",
+    )
+    approve_draft(
+        repository,
+        draft_id,
+        "review-ui",
+        review_reason="Titolo procedura corretto e flusso coerente.",
+        review_signature="Avv. Audit",
+    )
+
+    draft = repository.get_draft(draft_id)
+    assert draft["review_signature"] == "Avv. Audit"
+    assert draft["review_reason"] == "Titolo procedura corretto e flusso coerente."
+    assert draft["review_diff_json"]["summary"]["changed_sections"] >= 1
+    history = repository.list_review_history(draft_id)
+    assert history
+    assert any(row["review_action"] == "approved" for row in history)

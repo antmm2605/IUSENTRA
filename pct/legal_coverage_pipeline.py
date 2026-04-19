@@ -138,22 +138,62 @@ def generate_drafts(
     return {"draft_total": created, "auto_approved_total": auto_approved}
 
 
-def save_draft(repository: Any, draft_id: int, spec_json: dict[str, Any]) -> dict[str, Any]:
+def save_draft(
+    repository: Any,
+    draft_id: int,
+    spec_json: dict[str, Any],
+    *,
+    reviewer: str = "",
+    review_signature: str = "",
+) -> dict[str, Any]:
     validation = validate_spec(spec_json, strict=False)
     status = normalize_validation_status(
         list(validation.get("errors") or []),
         list(validation.get("warnings") or []),
     )
-    repository.update_draft_spec(draft_id, spec_json, validation, status)
+    repository.update_draft_spec(
+        draft_id,
+        spec_json,
+        validation,
+        status,
+        reviewer=reviewer,
+        review_signature=review_signature,
+    )
     return validation
 
 
-def approve_draft(repository: Any, draft_id: int, reviewer: str) -> None:
-    repository.set_draft_status(draft_id, "approved", reviewer)
+def approve_draft(
+    repository: Any,
+    draft_id: int,
+    reviewer: str,
+    *,
+    review_reason: str = "",
+    review_signature: str = "",
+) -> None:
+    repository.set_draft_status(
+        draft_id,
+        "approved",
+        reviewer,
+        review_reason=review_reason,
+        review_signature=review_signature,
+    )
 
 
-def reject_draft(repository: Any, draft_id: int, reviewer: str) -> None:
-    repository.set_draft_status(draft_id, "rejected", reviewer)
+def reject_draft(
+    repository: Any,
+    draft_id: int,
+    reviewer: str,
+    *,
+    review_reason: str = "",
+    review_signature: str = "",
+) -> None:
+    repository.set_draft_status(
+        draft_id,
+        "rejected",
+        reviewer,
+        review_reason=review_reason,
+        review_signature=review_signature,
+    )
 
 
 def publish_approved_drafts(

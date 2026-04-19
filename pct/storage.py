@@ -161,6 +161,10 @@ class StudioDB:
         conn.commit()
         self._local._conn = conn
 
+    def ensure_schema(self) -> None:
+        """Riallinea lo schema SQLite corrente ai requisiti runtime."""
+        self._ensure_schema()
+
     # ---------------------------------------------------------------- utilità transazione
 
     def salva_tabella(

@@ -60,6 +60,8 @@ La parte importante, adesso, è che lo stato non viene più raccontato in modo g
 - `PCT_SQLITE_MODE=1` resta supportato come compatibilità legacy, ma non è più l’unico punto di verità
 - i moduli economici (`preventivi`, `conferimenti`, `timesheet`, `fatturazione`, `pagamenti`) usano ora lo stesso percorso ufficiale di storage tenant-aware, con parita' reale su SQLite e PostgreSQL
 - anche `template atti`, `legal intelligence`, `giurisprudenza`, `repository telematico` e `workspace intelligence` hanno ora repository SQL/PostgreSQL dedicati, con JSON mantenuto come export o bootstrap controllato
+- l'`Assistente migrazione dati` esegue ormai il cutover completo del tenant: `studio.db`, repository strutturati laterali, `Update Intelligence` e `Coverage AI`, con report persistito sotto `backup/`
+- la pagina `/admin/assistente-migrazione` mostra l'ultima esecuzione reale con domini migrati, parita' di consistenza, errori bloccanti e istruzioni operative per la correzione
 
 ## Avvio locale
 
@@ -205,6 +207,7 @@ IUSENTRA include ora un motore dedicato di aggiornamento normativo e giurisprude
 - confronta il risultato con l'archivio interno
 - apre una coda revisioni amministrativa per i contenuti strutturati
 - pubblica news giuridiche tracciabili nella UI dedicata
+- usa repository SQL locale o PostgreSQL tenant-aware in modo coerente con il backend migrato dello studio
 
 Superfici principali:
 

@@ -15,9 +15,7 @@ from pct.auth import GestioneUtenti
 from pct.database import GestioneDatabase
 from pct.fatturazione import GestioneFatturazione
 from pct.fascicoli import GestioneFascicoli
-from pct.pagamenti import GestionePagamenti
 from pct.preventivi import GestionePreventivi
-from pct.scadenziario import GestioneScadenziario
 from pct.storage import StudioDB
 from pct.core_storage_backend import build_postgres_backend
 from pct.timesheet import GestioneTimesheet
@@ -162,6 +160,96 @@ def _copy_appuntamenti(sqlite_backend, target_backend) -> None:
     target_backend.salva_tabella("appuntamenti", list(rows), _insert)
 
 
+def _copy_scadenze(sqlite_backend, target_backend) -> None:
+    rows = sqlite_backend.conn.execute("SELECT * FROM scadenze").fetchall()
+
+    def _insert(conn, row):
+        raw = _row_dict(row)
+        conn.execute(
+            """
+            INSERT INTO scadenze
+            (id, tipo, stato, titolo, data_scadenza, priorita, perentorio, note,
+             id_fascicolo, id_appuntamento, id_utente, giorni_preavviso,
+             avvisi_inviati, completata_il, creato_il, dati_json)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+            """,
+            (
+                raw.get("id", ""),
+                raw.get("tipo", "ALTRO"),
+                raw.get("stato", "APERTO"),
+                raw.get("titolo", ""),
+                raw.get("data_scadenza", ""),
+                raw.get("priorita", "MEDIA"),
+                int(raw.get("perentorio") or 0),
+                raw.get("note", ""),
+                raw.get("id_fascicolo"),
+                raw.get("id_appuntamento"),
+                raw.get("id_utente", ""),
+                raw.get("giorni_preavviso", "[]"),
+                raw.get("avvisi_inviati", "[]"),
+                raw.get("completata_il", ""),
+                raw.get("creato_il", ""),
+                raw.get("dati_json", "{}"),
+            ),
+        )
+
+    target_backend.salva_tabella("scadenze", list(rows), _insert)
+
+
+def _copy_payment_config(sqlite_backend, target_backend) -> None:
+    rows = sqlite_backend.conn.execute("SELECT * FROM payment_config").fetchall()
+
+    def _insert(conn, row):
+        raw = _row_dict(row)
+        conn.execute(
+            """
+            INSERT INTO payment_config
+            (config_id, provider_count, updated_at, dati_json)
+            VALUES (?,?,?,?)
+            """,
+            (
+                raw.get("config_id", "default"),
+                int(raw.get("provider_count") or 0),
+                raw.get("updated_at", ""),
+                raw.get("dati_json", "{}"),
+            ),
+        )
+
+    target_backend.salva_tabella("payment_config", list(rows), _insert)
+
+
+def _copy_payment_links(sqlite_backend, target_backend) -> None:
+    rows = sqlite_backend.conn.execute("SELECT * FROM payment_links").fetchall()
+
+    def _insert(conn, row):
+        raw = _row_dict(row)
+        conn.execute(
+            """
+            INSERT INTO payment_links
+            (id, token, id_parcella, id_cliente, importo, valuta, stato,
+             provider_usato, provider_tx_id, creato_il, scade_il, pagato_il, dati_json)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
+            """,
+            (
+                raw.get("id", ""),
+                raw.get("token", ""),
+                raw.get("id_parcella", ""),
+                raw.get("id_cliente"),
+                float(raw.get("importo") or 0),
+                raw.get("valuta", "EUR"),
+                raw.get("stato", "ATTESO"),
+                raw.get("provider_usato", ""),
+                raw.get("provider_tx_id", ""),
+                raw.get("creato_il", ""),
+                raw.get("scade_il", ""),
+                raw.get("pagato_il", ""),
+                raw.get("dati_json", "{}"),
+            ),
+        )
+
+    target_backend.salva_tabella("payment_links", list(rows), _insert)
+
+
 def _json_record_count(path: str) -> int:
     file_path = Path(str(path or "").strip())
     if not file_path.exists() or file_path.suffix.lower() != ".json":
@@ -228,10 +316,20 @@ def _build_json_to_sqlite_sources(paths: dict[str, str]) -> dict[str, str]:
     }
 
 
-def _ensure_sqlite_stage(paths: dict[str, str]) -> dict[str, Any]:
+def _ensure_sqlite_stage(paths: dict[str, str], *, stage_path: str = "") -> dict[str, Any]:
+    target_path = str(stage_path or paths["STUDIO_DB"]).strip()
+    if not target_path:
+        raise ValueError("Percorso SQLite di staging non configurato.")
+    if not stage_path:
+        try:
+            StudioDB.get(paths["STUDIO_DB"]).chiudi()
+        except Exception:
+            pass
     migratore = GestioneDatabase(_build_json_to_sqlite_sources(paths))
-    risultato = migratore.migra_verso_sqlite(paths["STUDIO_DB"])
-    return risultato.to_dict()
+    risultato = migratore.migra_verso_sqlite(target_path)
+    payload = risultato.to_dict()
+    payload["stage_db_path"] = target_path
+    return payload
 
 
 def _copy_core_state_to_target(
@@ -259,11 +357,7 @@ def _copy_core_state_to_target(
     fascicoli_dst._salva()
 
     _copy_appuntamenti(sqlite_backend, target_backend)
-
-    scadenziario_src = GestioneScadenziario(db_path=paths["SCADENZIARIO_DB"], studio_db=sqlite_backend)
-    scadenziario_dst = GestioneScadenziario(db_path=paths["SCADENZIARIO_DB"], studio_db=target_backend)
-    scadenziario_dst._scadenze = {row.id: row for row in scadenziario_src.tutte()}
-    scadenziario_dst._salva()
+    _copy_scadenze(sqlite_backend, target_backend)
 
     timesheet_path = paths.get("TIMESHEET_DB")
     if timesheet_path:
@@ -296,12 +390,8 @@ def _copy_core_state_to_target(
 
     pagamenti_dir = paths.get("PAGAMENTI_DIR", "")
     if pagamenti_dir:
-        pagamenti_src = GestionePagamenti(db_dir=pagamenti_dir, studio_db=sqlite_backend)
-        pagamenti_dst = GestionePagamenti(db_dir=pagamenti_dir, studio_db=target_backend)
-        pagamenti_dst._config = pagamenti_src.config
-        pagamenti_dst._link = {row.id: row for row in pagamenti_src.tutti_link()}
-        pagamenti_dst._salva_config()
-        pagamenti_dst._salva_link()
+        _copy_payment_config(sqlite_backend, target_backend)
+        _copy_payment_links(sqlite_backend, target_backend)
 
     auth_src = GestioneUtenti(
         db_path=paths["AUTH_DB"],
@@ -330,8 +420,13 @@ def migrate_core_storage_to_postgres(
     secret_key: str,
     tenant_slug: str,
 ) -> dict[str, Any]:
-    stage_sqlite = _ensure_sqlite_stage(paths)
-    sqlite_backend = StudioDB.get(paths["STUDIO_DB"])
+    stage_stamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
+    stage_db_path = str(
+        Path(paths.get("BACKUP_DIR", "./backup")) / f"sqlite_stage_{tenant_slug}_{stage_stamp}.db"
+    )
+    stage_sqlite = _ensure_sqlite_stage(paths, stage_path=stage_db_path)
+    sqlite_backend = StudioDB.get(stage_sqlite["stage_db_path"])
+    sqlite_backend.ensure_schema()
     postgres_backend = build_postgres_backend(database_config)
     if postgres_backend is None:
         raise ValueError("Configurazione PostgreSQL incompleta o non disponibile per il backend core")
@@ -390,6 +485,7 @@ def migrate_core_storage_to_postgres(
         "tenant_slug": tenant_slug,
         "selected_backend": "postgresql",
         "json_to_sqlite": stage_sqlite,
+        "stage_db_path": stage_sqlite.get("stage_db_path", ""),
         "counts": {
             "json": json_counts,
             "sqlite": sqlite_counts_before,

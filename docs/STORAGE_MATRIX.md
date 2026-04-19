@@ -25,6 +25,8 @@ Legenda:
 | Economico | Fatturazione, pagamenti e saldo cliente | R/W | R/W | R/W | parita' completa | Wave 4 - economico | cutover ufficiale con report di consistenza e nessun fallback invisibile |
 | Motori legali | Legal intelligence, monitoraggio e audit fonti | R/W | R/W | R/W | parita' completa | Wave 5 - intelligence | JSON tenant-aware come export/recovery, senza fallback invisibili |
 | Motori legali | Giurisprudenza e corpus interno | R/W | R/W | R/W | parita' completa | Wave 5 - intelligence | JSON tenant-aware come export/import storico controllato |
+| Motori legali | Update Intelligence, news e archivio normativo assistito | R/W | R/W | R/W | parita' completa | Wave 5 - intelligence | repository SQL/PostgreSQL dedicato, JSON solo come export amministrativo |
+| Motori legali | Coverage AI, gap queue, draft v2 e publish SQL | - | R/W | R/W | parita' completa | Wave 5 - intelligence | pipeline SQL reale su `studio.db` o PostgreSQL tenant-aware, senza fallback fittizi |
 | Telematico | PST, PDP, PAT e PTT/SIGIT | R/W | R/W | R/W | parita' completa | Wave 3 - workspace professionali | metadati e repository su SQL/PostgreSQL, file e buste sempre su filesystem tenant |
 | Cabina intelligente | Workspace intelligence e cockpit | R/W | R/W | R/W | parita' completa | Wave 5 - intelligence | snapshot SQL/PostgreSQL con JSON come export derivato |
 | AI locale | Runtime locale, modelli e RAG | - | R/W | - | non attiva | Fuori scope come backend primario | SQLite locale e filesystem sullo stesso host del runtime |
@@ -36,6 +38,7 @@ Legenda:
 - non esiste fallback silenzioso da PostgreSQL attivo a JSON: il runtime blocca l'operazione e lascia traccia nel log applicativo.
 - documenti, buste telematiche e modelli locali AI restano filesystem-first anche dopo il cutover SQL.
 - i moduli economici condividono lo stesso percorso ufficiale di migrazione `JSON -> SQLite -> PostgreSQL` con report di consistenza.
+- anche `Update Intelligence` e `Coverage AI` rientrano nello stesso programma ufficiale di migrazione, con repository SQL locale e replica PostgreSQL tenant-aware.
 
 ## Check di consistenza minimi
 
@@ -44,4 +47,6 @@ Legenda:
 - fascicoli, riferimenti cliente e metadati documentali coerenti
 - appuntamenti, scadenze e riferimenti forti invariati
 - timesheet, preventivi, conferimenti, parcelle e link pagamento coerenti tra cliente e fascicolo
+- fonti, staging, review queue, news, normative, giurisprudenza e prassi di `Update Intelligence` coerenti tra SQL locale e PostgreSQL
+- snapshot, gap queue, draft e publish history di `Coverage AI` coerenti tra `studio.db` e PostgreSQL tenant-aware
 - report di migrazione persistito sotto `backup/` del tenant

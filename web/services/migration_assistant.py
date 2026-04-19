@@ -1,74 +1,569 @@
-"""Assistente di migrazione iniziale per clienti, fascicoli e dati core."""
+"""Superficie admin per migrazione dati completa tenant-aware."""
 
 from __future__ import annotations
 
+from datetime import datetime
+import json
+from pathlib import Path
 from typing import Any
+
+from flask import current_app
 
 from pct.checklist_atti import TUTTI_I_TEMPLATE
 from pct.product_governance import build_migration_program_payload, build_storage_parity_payload
-from web.services.admin_surfaces_shared import (
-    count_documents,
-    get_agenda_manager,
-    get_clienti_manager,
-    get_fascicoli_manager,
-    get_scadenziario_manager,
-    get_template_manager,
+from pct.storage_migration_full import (
+    build_full_storage_inventory,
 )
+from pct.tenant import DatabaseConfig, DbMode, GestioneTenant
 
 
-def build_migration_assistant() -> dict[str, Any]:
-    clienti = get_clienti_manager()
-    fascicoli = get_fascicoli_manager()
-    agenda = get_agenda_manager()
-    scadenziario = get_scadenziario_manager()
-    template_manager = get_template_manager()
+_DOMAIN_LABELS = {
+    "clienti": "Clienti",
+    "fascicoli": "Fascicoli",
+    "appuntamenti": "Appuntamenti",
+    "scadenze": "Scadenze",
+    "timesheet": "Timesheet",
+    "preventivi": "Preventivi",
+    "conferimenti": "Conferimenti",
+    "fatturazione": "Fatturazione",
+    "pagamenti_links": "Pagamenti - link",
+    "pagamenti_config": "Pagamenti - configurazione",
+    "messaggi": "Messaggi",
+    "utenti": "Utenti",
+    "audit": "Audit",
+    "privacy": "Privacy",
+    "notifiche": "Notifiche",
+    "backup": "Backup",
+}
 
-    clienti_totale = int(clienti.statistiche().get("totale", 0) or 0)
-    fascicoli_totale = int(fascicoli.statistiche().get("totale", 0) or 0)
-    agenda_totale = int(agenda.statistiche().get("totale", 0) or 0)
-    scadenze_totale = int(scadenziario.statistiche().get("totale", 0) or 0)
-    documenti_totale = int(count_documents(fascicoli) or 0)
-    template_totale = len(template_manager.tutti())
+_REPOSITORY_LABELS = {
+    "template_atti": "Template atti",
+    "legal_intelligence": "Legal intelligence",
+    "telematico_repository": "Repository telematico",
+    "giurisprudenza": "Giurisprudenza",
+    "workspace_intelligence": "Workspace intelligence",
+    "aggiornamenti_legali": "Aggiornamenti legali",
+    "coverage_ai": "Copertura AI",
+}
 
-    modules = [
+_TARGET_LABELS = {
+    "sqlite": "SQL locale tenant-aware",
+    "postgresql": "PostgreSQL tenant-aware",
+}
+
+
+def _tenant_manager() -> GestioneTenant:
+    registry = current_app.config.get("TENANTS_REGISTRY", "./data/tenants.json")
+    return GestioneTenant(registry_path=registry)
+
+
+def _resolve_selected_studio(selected_slug: str = "") -> tuple[GestioneTenant, Any | None]:
+    tm = _tenant_manager()
+    studios = tm.lista()
+    wanted = str(selected_slug or "").strip().lower()
+    studio = tm.get(wanted) if wanted else None
+    if studio is None and studios:
+        studio = studios[0]
+    return tm, studio
+
+
+def _copy_database_config(database: Any) -> DatabaseConfig:
+    if isinstance(database, DatabaseConfig):
+        return DatabaseConfig.from_dict(database.to_dict())
+    if hasattr(database, "to_dict"):
+        try:
+            return DatabaseConfig.from_dict(database.to_dict())
+        except Exception:
+            return DatabaseConfig.from_dict({})
+    return DatabaseConfig.from_dict(database)
+
+
+def _has_postgres_credentials(database: Any) -> bool:
+    cfg = _copy_database_config(database)
+    host = str(cfg.host or "").strip()
+    db_name = str(cfg.db_name or "").strip()
+    user = str(cfg.utente or "").strip()
+    return bool(host and db_name and user)
+
+
+def _sqlite_target_config(database: Any) -> DatabaseConfig:
+    cfg = _copy_database_config(database)
+    cfg.mode = DbMode.SQLITE
+    cfg.core_runtime_enabled = False
+    return cfg
+
+
+def _postgres_target_config(database: Any) -> DatabaseConfig:
+    cfg = _copy_database_config(database)
+    cfg.mode = DbMode.POSTGRESQL
+    return cfg
+
+
+def _latest_report_payload(backup_dir: str) -> dict[str, Any] | None:
+    root = Path(str(backup_dir or "").strip())
+    if not root.exists():
+        return None
+    report_files = sorted(root.glob("storage_migration_full_*.json"), key=lambda path: path.stat().st_mtime, reverse=True)
+    if not report_files:
+        return None
+    try:
+        payload = json.loads(report_files[0].read_text(encoding="utf-8"))
+    except Exception:
+        return None
+    payload["_path"] = str(report_files[0])
+    return payload
+
+
+def _load_report_payload(report_path: str) -> dict[str, Any] | None:
+    target = Path(str(report_path or "").strip())
+    if not target.exists():
+        return None
+    try:
+        payload = json.loads(target.read_text(encoding="utf-8"))
+    except Exception:
+        return None
+    payload["_path"] = str(target)
+    return payload
+
+
+def _compact_counts(values: dict[str, Any] | None) -> str:
+    payload = dict(values or {})
+    chunks: list[str] = []
+    for key, raw_value in payload.items():
+        value = int(raw_value or 0)
+        if value <= 0:
+            continue
+        chunks.append(f"{_DOMAIN_LABELS.get(key, key.replace('_', ' ').title())}: {value}")
+    return " | ".join(chunks[:6]) if chunks else "Nessun record trasferito."
+
+
+def _collect_domain_messages(messages: list[str], domain_code: str) -> list[str]:
+    prefix = f"{domain_code}:"
+    nested_prefix = f"{domain_code}/"
+    matched = [
+        str(message).strip()
+        for message in messages
+        if str(message or "").strip().startswith(prefix) or str(message or "").strip().startswith(nested_prefix)
+    ]
+    return matched
+
+
+def _status_badge(ok: bool | None = None, *, warning: bool = False) -> str:
+    if warning:
+        return "warning"
+    if ok is None:
+        return "secondary"
+    return "success" if ok else "danger"
+
+
+def _resolution_steps(messages: list[str], *, target: str) -> list[str]:
+    if not messages:
+        if target == "postgresql":
+            return [
+                "Apri clienti, fascicoli, agenda, scadenze e fatturazione dello studio per confermare il cutover operativo.",
+                "Verifica che il backend effettivo del tenant risulti PostgreSQL tenant-aware anche nella dashboard storage.",
+                "Conserva il report nel backup del tenant come prova del passaggio riuscito.",
+            ]
+        return [
+            "Apri i moduli core dello studio per verificare che i dati migrati siano leggibili dal database SQL locale.",
+            "Controlla che il file `studio.db` del tenant sia stato aggiornato e che i repository laterali risultino coerenti.",
+            "Conserva il report nel backup del tenant per eventuali confronti o rollback controllati.",
+        ]
+    joined = " \n".join(str(message or "") for message in messages).lower()
+    steps: list[str] = []
+    if "connessione postgresql" in joined or "could not connect" in joined or "connection refused" in joined:
+        steps.extend(
+            [
+                "Verifica host, porta, nome database, utente e password nello studio selezionato.",
+                "Esegui il test connessione dalla scheda database dello studio prima di rilanciare la migrazione.",
+                "Controlla che il server PostgreSQL sia raggiungibile dal runtime dell'app e che SSL sia coerente con il server.",
+            ]
+        )
+    if "database is locked" in joined or "locked" in joined:
+        steps.extend(
+            [
+                "Chiudi eventuali processi che tengono aperto `studio.db` e ripeti la migrazione.",
+                "Se il lock persiste, riavvia l'applicazione e rilancia il cutover dallo stesso studio.",
+            ]
+        )
+    if "unique constraint failed" in joined or "duplicate key" in joined:
+        steps.extend(
+            [
+                "Ripulisci duplicati sugli identificativi del dominio indicato prima di rilanciare la migrazione.",
+                "Controlla i JSON legacy o il repository sorgente per record con lo stesso `id` o chiave univoca.",
+            ]
+        )
+    if "no such table" in joined or "undefinedtable" in joined or "does not exist" in joined:
+        steps.extend(
+            [
+                "Ricrea lo schema SQL del dominio interessato e verifica che la migrazione applicativa sia stata eseguita.",
+                "Se il problema e' su PostgreSQL, verifica che il database selezionato sia quello corretto per il tenant.",
+            ]
+        )
+    if "permission denied" in joined or "access denied" in joined or "forbidden" in joined:
+        steps.extend(
+            [
+                "Verifica i permessi di lettura e scrittura sul database o sulla directory del tenant.",
+                "Controlla che l'utente applicativo abbia privilegi sufficienti sullo schema SQL destinazione.",
+            ]
+        )
+    if "ssl" in joined:
+        steps.append("Allinea il flag SSL della connessione con la configurazione reale del server PostgreSQL.")
+    if not steps and target == "postgresql":
+        steps.extend(
+            [
+                "Controlla il report completo nel backup del tenant e correggi il dominio indicato come non consistente.",
+                "Dopo la correzione, rilancia il cutover PostgreSQL dallo stesso studio senza modificare i dati su filesystem.",
+            ]
+        )
+    if not steps:
+        steps.extend(
+            [
+                "Apri il report completo generato nel backup del tenant e correggi il dominio segnato come non riuscito.",
+                "Dopo la correzione, rilancia la migrazione dallo stesso studio e verifica di nuovo il riepilogo finale.",
+            ]
+        )
+    unique_steps: list[str] = []
+    for step in steps:
+        if step not in unique_steps:
+            unique_steps.append(step)
+    return unique_steps
+
+
+def _build_repository_rows(repositories: dict[str, Any], *, target: str) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for code, payload in repositories.items():
+        item = dict(payload or {})
+        ok = bool(item.get("ok"))
+        details_source = (
+            item.get("postgres_stats")
+            or item.get("sqlite_stats")
+            or item.get("copied_tables")
+            or item.get("runtime_counts")
+            or item.get("headline")
+            or {}
+        )
+        detail = _compact_counts(details_source) if isinstance(details_source, dict) else ""
+        if item.get("error"):
+            detail = str(item.get("error"))
+        rows.append(
+            {
+                "label": _REPOSITORY_LABELS.get(code, code.replace("_", " ").title()),
+                "status": _status_badge(ok),
+                "status_label": "OK" if ok else "Errore",
+                "detail": detail or f"Repository sincronizzato su {_TARGET_LABELS.get(target, target)}.",
+            }
+        )
+    return rows
+
+
+def _build_sqlite_execution(report: dict[str, Any]) -> dict[str, Any]:
+    core = dict(report.get("core") or {})
+    repositories = dict(report.get("repositories") or {})
+    core_errors = [str(item) for item in core.get("errori") or []]
+    core_warnings = [str(item) for item in core.get("avvisi") or []]
+    record_migrati = dict(core.get("record_migrati") or {})
+    repository_rows = _build_repository_rows(repositories, target="sqlite")
+    repository_errors = [
+        str(payload.get("error"))
+        for payload in repositories.values()
+        if isinstance(payload, dict) and payload.get("error")
+    ]
+    core_rows: list[dict[str, Any]] = []
+    for code, migrated_count in record_migrati.items():
+        domain_errors = _collect_domain_messages(core_errors, code)
+        domain_warnings = _collect_domain_messages(core_warnings, code)
+        status = _status_badge(not domain_errors, warning=bool(domain_warnings and not domain_errors))
+        note = (
+            domain_errors[0]
+            if domain_errors
+            else domain_warnings[0]
+            if domain_warnings
+            else "Dominio trasferito nel database SQL locale."
+            if int(migrated_count or 0) > 0
+            else "Nessun record presente nella sorgente legacy."
+        )
+        core_rows.append(
+            {
+                "label": _DOMAIN_LABELS.get(code, code.replace("_", " ").title()),
+                "migrated_count": int(migrated_count or 0),
+                "status": status,
+                "status_label": "Errore" if domain_errors else "Attenzione" if domain_warnings else "OK",
+                "note": note,
+            }
+        )
+
+    all_errors = core_errors + repository_errors
+    success = bool(report.get("success"))
+    repo_ok = sum(1 for row in repository_rows if row["status"] == "success")
+    return {
+        "target": "sqlite",
+        "target_label": _TARGET_LABELS["sqlite"],
+        "success": success,
+        "status": "success" if success else "error",
+        "status_label": "Migrazione completata" if success else "Migrazione con errori",
+        "headline": (
+            "Il tenant e' stato migrato sul database SQL locale con report reale."
+            if success
+            else "La migrazione SQL locale ha trovato errori reali da correggere prima del cutover."
+        ),
+        "generated_at": report.get("generated_at") or "",
+        "report_path": report.get("report_path") or report.get("_path") or "",
+        "summary_cards": [
+            {
+                "label": "Record core migrati",
+                "value": sum(int(value or 0) for value in record_migrati.values()),
+                "detail": f"Domini core toccati: {len(record_migrati)}",
+            },
+            {
+                "label": "Repository SQL sincronizzati",
+                "value": repo_ok,
+                "detail": f"Su {len(repository_rows)} repository strutturati",
+            },
+            {
+                "label": "Documenti tenant",
+                "value": int(((report.get("documents") or {}).get("count") or 0)),
+                "detail": "File mantenuti sul filesystem tenant-aware",
+            },
+        ],
+        "checkpoints": [
+            {
+                "title": "Migrazione SQL locale",
+                "status": _status_badge(success),
+                "detail": "Il motore ha eseguito davvero il trasferimento completo nel database SQL locale.",
+            },
+            {
+                "title": "Repository strutturati",
+                "status": _status_badge(repo_ok == len(repository_rows)),
+                "detail": f"Repository sincronizzati con esito positivo: {repo_ok}/{len(repository_rows)}.",
+            },
+            {
+                "title": "Documenti e archivi",
+                "status": "success",
+                "detail": "Documenti, archivio e upload restano sul filesystem del tenant e non vengono persi.",
+            },
+        ],
+        "core_rows": core_rows,
+        "repository_rows": repository_rows,
+        "warnings": core_warnings,
+        "errors": all_errors,
+        "resolution_steps": _resolution_steps(all_errors, target="sqlite"),
+        "show_consistency_table": False,
+    }
+
+
+def _build_postgres_execution(report: dict[str, Any]) -> dict[str, Any]:
+    sqlite_stage = dict(report.get("sqlite_stage") or {})
+    sqlite_core = dict(sqlite_stage.get("core") or {})
+    core = dict(report.get("core") or {})
+    consistency = dict(core.get("consistency") or {})
+    repositories = dict(report.get("repositories") or {})
+    repository_rows = _build_repository_rows(repositories, target="postgresql")
+    repository_errors = [str(item) for item in report.get("repository_errors") or []]
+    warnings = [str(item) for item in sqlite_core.get("avvisi") or []]
+    consistency_rows: list[dict[str, Any]] = []
+    mismatches: list[str] = []
+    for code, values in consistency.items():
+        item = dict(values or {})
+        ok = bool(item.get("ok"))
+        if not ok:
+            mismatches.append(
+                f"{_DOMAIN_LABELS.get(code, code)}: SQLite={int(item.get('sqlite') or 0)} | PostgreSQL={int(item.get('postgres') or 0)}"
+            )
+        consistency_rows.append(
+            {
+                "label": _DOMAIN_LABELS.get(code, code.replace("_", " ").title()),
+                "json_count": int(item.get("json") or 0),
+                "sqlite_count": int(item.get("sqlite") or 0),
+                "postgres_count": int(item.get("postgres") or 0),
+                "status": _status_badge(ok),
+                "status_label": "OK" if ok else "Da correggere",
+                "note": "Conteggi allineati tra staging SQLite e PostgreSQL." if ok else "I conteggi non coincidono tra stage e destinazione.",
+            }
+        )
+
+    success = bool(report.get("success"))
+    consistency_ok = sum(1 for row in consistency_rows if row["status"] == "success")
+    repo_ok = sum(1 for row in repository_rows if row["status"] == "success")
+    errors = repository_errors + mismatches
+    return {
+        "target": "postgresql",
+        "target_label": _TARGET_LABELS["postgresql"],
+        "success": success,
+        "status": "success" if success else "error",
+        "status_label": "Cutover completato" if success else "Cutover con errori",
+        "headline": (
+            "Il tenant e' stato migrato su PostgreSQL con verifica di consistenza reale."
+            if success
+            else "Il cutover PostgreSQL ha trovato differenze o errori reali prima della messa in produzione."
+        ),
+        "generated_at": report.get("generated_at") or "",
+        "report_path": report.get("report_path") or report.get("_path") or "",
+        "summary_cards": [
+            {
+                "label": "Domini consistenti",
+                "value": consistency_ok,
+                "detail": f"Su {len(consistency_rows)} domini core verificati",
+            },
+            {
+                "label": "Repository SQL sincronizzati",
+                "value": repo_ok,
+                "detail": f"Su {len(repository_rows)} repository strutturati",
+            },
+            {
+                "label": "Record core su PostgreSQL",
+                "value": sum(int(row["postgres_count"]) for row in consistency_rows),
+                "detail": "Conteggi effettivi letti sul backend PostgreSQL",
+            },
+        ],
+        "checkpoints": [
+            {
+                "title": "Stage SQL locale",
+                "status": _status_badge(bool(sqlite_stage.get("success"))),
+                "detail": "Prima del cutover il tenant passa sempre dallo staging SQLite con report persistito.",
+            },
+            {
+                "title": "Replica core su PostgreSQL",
+                "status": _status_badge(bool(core.get("success"))),
+                "detail": f"Domini consistenti tra staging e PostgreSQL: {consistency_ok}/{len(consistency_rows)}.",
+            },
+            {
+                "title": "Repository strutturati",
+                "status": _status_badge(repo_ok == len(repository_rows)),
+                "detail": f"Repository sincronizzati con esito positivo: {repo_ok}/{len(repository_rows)}.",
+            },
+        ],
+        "core_rows": consistency_rows,
+        "repository_rows": repository_rows,
+        "warnings": warnings,
+        "errors": errors,
+        "resolution_steps": _resolution_steps(errors, target="postgresql"),
+        "show_consistency_table": True,
+    }
+
+
+def _build_failed_execution(
+    *,
+    target: str,
+    error_message: str,
+    generated_at: str = "",
+) -> dict[str, Any]:
+    messages = [str(error_message or "Migrazione non completata.")]
+    return {
+        "target": target,
+        "target_label": _TARGET_LABELS.get(target, target.upper()),
+        "success": False,
+        "status": "error",
+        "status_label": "Esecuzione non completata",
+        "headline": "La migrazione non e' partita o si e' fermata prima di generare un report completo.",
+        "generated_at": generated_at or datetime.now().replace(microsecond=0).isoformat(),
+        "report_path": "",
+        "summary_cards": [
+            {
+                "label": "Stato",
+                "value": "Errore",
+                "detail": "Il motore non ha potuto chiudere la migrazione richiesta.",
+            }
+        ],
+        "checkpoints": [
+            {
+                "title": "Esecuzione",
+                "status": "danger",
+                "detail": messages[0],
+            }
+        ],
+        "core_rows": [],
+        "repository_rows": [],
+        "warnings": [],
+        "errors": messages,
+        "resolution_steps": _resolution_steps(messages, target=target),
+        "show_consistency_table": False,
+    }
+
+
+def _build_execution_payload(
+    *,
+    latest_report: dict[str, Any] | None,
+    execution_state: dict[str, Any] | None,
+    selected_slug: str,
+) -> dict[str, Any] | None:
+    current_state = dict(execution_state or {})
+    if current_state and str(current_state.get("slug") or "").strip().lower() == str(selected_slug or "").strip().lower():
+        report_path = str(current_state.get("report_path") or "").strip()
+        if report_path:
+            report = _load_report_payload(report_path)
+            if report:
+                return _build_postgres_execution(report) if str(report.get("target") or "").strip().lower() == "postgresql" else _build_sqlite_execution(report)
+        if current_state.get("error_message"):
+            return _build_failed_execution(
+                target=str(current_state.get("target") or "").strip().lower(),
+                error_message=str(current_state.get("error_message") or "").strip(),
+                generated_at=str(current_state.get("generated_at") or ""),
+            )
+    if latest_report is None:
+        return None
+    return _build_postgres_execution(latest_report) if str(latest_report.get("target") or "").strip().lower() == "postgresql" else _build_sqlite_execution(latest_report)
+
+
+def _effective_count(domain: dict[str, Any], effective_runtime_kind: str) -> int:
+    kind = str(domain.get("storage_kind") or "")
+    if kind == "filesystem":
+        return int(domain.get("json_count") or 0)
+    runtime = str(effective_runtime_kind or "").strip().lower()
+    if runtime == "postgresql" and kind in {"core", "repository", "sql_pipeline"}:
+        return int(domain.get("postgres_count") or 0)
+    if runtime == "sqlite" and kind in {"core", "repository", "sqlite_repository", "sql_pipeline"}:
+        return int(domain.get("sqlite_count") or 0)
+    return int(domain.get("json_count") or 0)
+
+
+def _module_cards(inventory: dict[str, Any], effective_runtime_kind: str) -> list[dict[str, Any]]:
+    index = {row["code"]: row for row in inventory.get("domains", [])}
+    cards = [
         {
             "title": "Clienti",
-            "count": clienti_totale,
-            "status": "ok" if clienti_totale else "warning",
+            "count": _effective_count(index.get("clienti", {}), effective_runtime_kind),
+            "status": "ok" if _effective_count(index.get("clienti", {}), effective_runtime_kind) else "warning",
             "next_step": "Verificare anagrafica, codici fiscali, PEC e soggetti collegati.",
         },
         {
             "title": "Fascicoli",
-            "count": fascicoli_totale,
-            "status": "ok" if fascicoli_totale else "warning",
+            "count": _effective_count(index.get("fascicoli", {}), effective_runtime_kind),
+            "status": "ok" if _effective_count(index.get("fascicoli", {}), effective_runtime_kind) else "warning",
             "next_step": "Allineare numero RG, tribunale, controparte e pratica attiva.",
         },
         {
             "title": "Appuntamenti",
-            "count": agenda_totale,
-            "status": "ok" if agenda_totale else "warning",
+            "count": _effective_count(index.get("appuntamenti", {}), effective_runtime_kind),
+            "status": "ok" if _effective_count(index.get("appuntamenti", {}), effective_runtime_kind) else "warning",
             "next_step": "Importare udienze, riunioni e reminder della prima settimana.",
         },
         {
             "title": "Scadenze",
-            "count": scadenze_totale,
-            "status": "ok" if scadenze_totale else "warning",
+            "count": _effective_count(index.get("scadenze", {}), effective_runtime_kind),
+            "status": "ok" if _effective_count(index.get("scadenze", {}), effective_runtime_kind) else "warning",
             "next_step": "Presidiare termini perentori e scadenze operative collegate.",
         },
         {
             "title": "Documenti",
-            "count": documenti_totale,
-            "status": "ok" if documenti_totale else "warning",
+            "count": _effective_count(index.get("documenti", {}), effective_runtime_kind),
+            "status": "ok" if _effective_count(index.get("documenti", {}), effective_runtime_kind) else "warning",
             "next_step": "Indicizzare PDF, DOCX e firmati .p7m dei fascicoli prioritari.",
         },
         {
             "title": "Template base",
-            "count": template_totale,
-            "status": "ok" if template_totale else "warning",
+            "count": _effective_count(index.get("template_atti", {}), effective_runtime_kind),
+            "status": "ok" if _effective_count(index.get("template_atti", {}), effective_runtime_kind) else "warning",
             "next_step": "Mappare i modelli interni piu' usati e le clausole ricorrenti.",
         },
     ]
+    return cards
 
+
+def build_migration_assistant(*, selected_slug: str = "", execution_state: dict[str, Any] | None = None) -> dict[str, Any]:
+    tm, studio = _resolve_selected_studio(selected_slug)
+    migration_program = build_migration_program_payload()
+    storage_parity = build_storage_parity_payload()
     workflow = [
         "1. Caricare clienti e soggetti essenziali.",
         "2. Importare fascicoli aperti e documenti chiave.",
@@ -76,14 +571,116 @@ def build_migration_assistant() -> dict[str, Any]:
         "4. Validare PEC, firma e canali telematici.",
         "5. Attivare Lex sui fascicoli prioritari e sulla regia giornaliera.",
     ]
+    studies = [
+        {
+            "slug": studio_item.slug,
+            "nome": studio_item.nome,
+            "selected": bool(studio and studio_item.slug == studio.slug),
+            "db_mode": studio_item.database.normalized_mode,
+            "effective_runtime_kind": studio_item.database.effective_runtime_kind,
+        }
+        for studio_item in tm.lista()
+    ]
+    if studio is None:
+        return {
+            "studios": studies,
+            "selected_studio": None,
+            "modules": [],
+            "workflow": workflow,
+            "built_in_templates": len(TUTTI_I_TEMPLATE),
+            "migration_program": migration_program,
+            "storage_parity": storage_parity["summary"],
+            "inventory": {"domains": [], "postgres_online": False},
+            "latest_report": None,
+            "last_execution": None,
+        }
 
-    migration_program = build_migration_program_payload()
-    storage_parity = build_storage_parity_payload()
+    paths = tm.percorsi_dati(studio.slug)
+    inventory = build_full_storage_inventory(
+        paths=paths,
+        database_config=studio.database,
+        tenant_slug=studio.slug,
+    )
+    latest_report = _latest_report_payload(paths["BACKUP_DIR"])
+    effective_runtime_kind = studio.database.effective_runtime_kind
+
+    execution = _build_execution_payload(
+        latest_report=latest_report,
+        execution_state=execution_state,
+        selected_slug=studio.slug,
+    )
 
     return {
-        "modules": modules,
+        "studios": studies,
+        "selected_studio": {
+            "slug": studio.slug,
+            "nome": studio.nome,
+            "selected_mode": studio.database.normalized_mode,
+            "effective_runtime_kind": effective_runtime_kind,
+            "core_runtime_enabled": bool(studio.database.core_runtime_enabled),
+            "connessione_ok": bool(studio.database.connessione_ok),
+            "connection_url_safe": studio.database.connection_url_safe,
+        },
+        "modules": _module_cards(inventory, effective_runtime_kind),
         "workflow": workflow,
         "built_in_templates": len(TUTTI_I_TEMPLATE),
         "migration_program": migration_program,
         "storage_parity": storage_parity["summary"],
+        "inventory": inventory,
+        "latest_report": latest_report,
+        "can_run_postgres": _has_postgres_credentials(studio.database),
+        "last_execution": execution,
     }
+
+
+def execute_migration_assistant(*, selected_slug: str, target: str) -> dict[str, Any]:
+    tm, studio = _resolve_selected_studio(selected_slug)
+    if studio is None:
+        raise ValueError("Nessuno studio disponibile per la migrazione.")
+    paths = tm.percorsi_dati(studio.slug)
+    wanted = str(target or "").strip().lower()
+    previous_config = _copy_database_config(studio.database)
+    if wanted == "sqlite":
+        sqlite_config = _sqlite_target_config(studio.database)
+        tm.aggiorna_db_config(studio.slug, sqlite_config)
+        try:
+            payload = tm.provision_storage_backend(studio.slug, migrate_existing=True)
+        except Exception:
+            tm.aggiorna_db_config(studio.slug, previous_config)
+            raise
+        if not payload.get("ok"):
+            tm.aggiorna_db_config(studio.slug, previous_config)
+            raise RuntimeError(
+                str(payload.get("error") or "Migrazione completa SQLite non riuscita.")
+            )
+        return dict(payload.get("migration_report") or payload)
+    if wanted == "postgresql":
+        if not _has_postgres_credentials(studio.database):
+            raise ValueError(
+                "Configura prima il backend PostgreSQL nello studio selezionato e riprova."
+            )
+        postgres_config = _postgres_target_config(studio.database)
+        tm.aggiorna_db_config(studio.slug, postgres_config)
+        connection_test = tm.testa_connessione(studio.slug)
+        if not connection_test.get("ok"):
+            tm.aggiorna_db_config(studio.slug, previous_config)
+            raise RuntimeError(
+                str(connection_test.get("messaggio") or "Connessione PostgreSQL non disponibile.")
+            )
+        try:
+            payload = tm.provision_storage_backend(
+                studio.slug,
+                migrate_existing=True,
+                activate_external=True,
+                secret_key=current_app.secret_key,
+            )
+        except Exception:
+            tm.aggiorna_db_config(studio.slug, previous_config)
+            raise
+        if not payload.get("ok"):
+            tm.aggiorna_db_config(studio.slug, previous_config)
+            raise RuntimeError(
+                str(payload.get("error") or "Migrazione completa PostgreSQL non riuscita.")
+            )
+        return dict(payload.get("migration_report") or payload)
+    raise ValueError("Target di migrazione non supportato.")

@@ -2,7 +2,7 @@
 
 ## Obiettivo
 
-Rendere ufficiale il percorso `JSON -> SQLite -> PostgreSQL` per i domini core, con report di consistenza e senza fallback invisibili.
+Rendere ufficiale il percorso `JSON -> SQLite -> PostgreSQL` per tutti i domini migrabili, con report di consistenza e senza fallback invisibili.
 
 ## Flusso ufficiale
 
@@ -12,7 +12,21 @@ Rendere ufficiale il percorso `JSON -> SQLite -> PostgreSQL` per i domini core, 
 4. replica su PostgreSQL
 5. confronto conteggi JSON / SQLite / PostgreSQL
 6. generazione report sotto `backup/`
-7. attivazione esplicita del backend PostgreSQL per i domini core
+7. attivazione esplicita del backend PostgreSQL per i domini tenant-aware compatibili
+
+## Superficie amministrativa ufficiale
+
+La console `/admin/assistente-migrazione` non si limita a descrivere il piano:
+
+- lancia davvero la migrazione completa verso `SQLite` o `PostgreSQL`
+- salva il report reale nel `backup/` del tenant
+- mostra a video l'ultima esecuzione con:
+  - domini core migrati o verificati
+  - repository SQL sincronizzati
+  - eventuali errori bloccanti
+  - passi consigliati per la risoluzione
+
+Questo consente al superadmin di capire subito se il cutover e' riuscito o dove intervenire prima di riprovare.
 
 ## Domini coperti dal cutover ufficiale
 
@@ -22,6 +36,18 @@ Rendere ufficiale il percorso `JSON -> SQLite -> PostgreSQL` per i domini core, 
 - fascicoli
 - agenda
 - scadenziario
+- timesheet
+- preventivi
+- conferimenti
+- fatturazione
+- pagamenti
+- template atti e preferenze editor
+- legal intelligence
+- giurisprudenza
+- repository telematico
+- workspace intelligence
+- aggiornamenti legali
+- coverage AI
 
 ## Regole di attivazione
 
@@ -32,10 +58,11 @@ Rendere ufficiale il percorso `JSON -> SQLite -> PostgreSQL` per i domini core, 
 
 ## Regole di sicurezza operativa
 
-- se PostgreSQL attivo non e' disponibile, i domini core non ricadono in modo invisibile su JSON
+- se PostgreSQL attivo non e' disponibile, i domini migrati non ricadono in modo invisibile su JSON
 - SQLite resta backend locale o fallback dichiarato per tenant non ancora cutoverizzati
 - JSON resta compatibilita' legacy o ponte per domini non ancora migrati
 - filesystem tenant resta sorgente primaria per documenti, buste, upload e modelli AI locali
+- il cutover completo del tenant include anche i repository SQL laterali e le pipeline `Coverage AI` / `Update Intelligence`, non solo `studio.db`
 
 ## Comando CLI ufficiale
 

@@ -935,9 +935,9 @@ class GestioneTenant:
                     continue
                 if not any(source_dir.iterdir()):
                     continue
-                destination_dir.parent.mkdir(parents=True, exist_ok=True)
-                shutil.copytree(source_dir, destination_dir, dirs_exist_ok=True)
-                merged_dirs[f"{alias.name}:{relative}"] = str(destination_dir)
+                copied = self._merge_directory_tree(source_dir, destination_dir)
+                if copied:
+                    merged_dirs[f"{alias.name}:{relative}"] = str(destination_dir)
 
         return {
             "ok": True,
@@ -990,6 +990,21 @@ class GestioneTenant:
         else:
             shutil.copy2(source, destination)
         return str(destination)
+
+    @classmethod
+    def _merge_directory_tree(cls, source_dir: Path, destination_dir: Path) -> int:
+        destination_dir.mkdir(parents=True, exist_ok=True)
+        copied = 0
+        for source in source_dir.rglob("*"):
+            if not source.is_file():
+                continue
+            destination = destination_dir / source.relative_to(source_dir)
+            if not cls._path_needs_seed(source, destination):
+                continue
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(source, destination)
+            copied += 1
+        return copied
 
     @staticmethod
     def _sqlite_table_has_records(db_path: Path, table_name: str) -> bool:
@@ -1408,29 +1423,20 @@ class GestioneTenant:
 
         if db.is_sqlite:
             if migrate_existing:
-                from pct.database import GestioneDatabase
+                from pct.storage_migration_full import migrate_full_storage_to_sqlite
 
-                migratore = GestioneDatabase(
-                    {
-                        "clienti": paths["CLIENTI_DB"],
-                        "fascicoli": paths["FASCICOLI_DB"],
-                        "appuntamenti": paths["AGENDA_DB"],
-                        "scadenze": paths["SCADENZIARIO_DB"],
-                        "timesheet": paths["TIMESHEET_DB"],
-                        "messaggi": paths["MESSAGGI_DB"],
-                        "utenti": paths["AUTH_DB"],
-                        "audit": paths["AUDIT_DB"],
-                        "privacy": paths["PRIVACY_DB"],
-                        "notifiche": paths["NOTIFICHE_LOG"],
-                        "backup": str(Path(paths["BACKUP_DIR"]) / "registro.json"),
-                        "search_index": paths["SEARCH_INDEX"],
-                    }
+                report = migrate_full_storage_to_sqlite(
+                    paths=paths,
+                    tenant_slug=slug,
+                    database_config=db,
                 )
-                risultato = migratore.migra_verso_sqlite(paths["STUDIO_DB"])
-                payload["migrated"] = bool(risultato.riuscita)
-                payload["migration_errors"] = list(risultato.errori)
-                payload["migration_warnings"] = list(risultato.avvisi)
-                payload["migration_records"] = dict(risultato.record_migrati)
+                core = dict(report.get("core") or {})
+                payload["migrated"] = bool(report.get("success"))
+                payload["migration_report"] = report
+                payload["migration_report_path"] = report.get("report_path", "")
+                payload["migration_errors"] = list(core.get("errori") or [])
+                payload["migration_warnings"] = list(core.get("avvisi") or [])
+                payload["migration_records"] = dict(core.get("record_migrati") or {})
 
             from pct.storage import StudioDB
 
@@ -1451,10 +1457,19 @@ class GestioneTenant:
                     self._scrivi_storage_manifest(slug, studio)
                     return payload
 
-            from pct.storage_migration import migrate_core_storage_to_postgres
+            from pct.storage_migration_full import migrate_full_storage_to_postgres
+            from pct.storage import StudioDB
+
+            # Chiude eventuali handle SQLite del thread corrente prima del
+            # cutover verso PostgreSQL, cosi' il secondo stadio non trova
+            # studio.db bloccato da una migrazione precedente.
+            try:
+                StudioDB.get(paths["STUDIO_DB"]).chiudi()
+            except Exception:
+                pass
 
             if migrate_existing:
-                report = migrate_core_storage_to_postgres(
+                report = migrate_full_storage_to_postgres(
                     paths=paths,
                     database_config=db,
                     secret_key=secret_key,
@@ -1463,7 +1478,7 @@ class GestioneTenant:
                 payload["migrated"] = bool(report.get("success"))
                 payload["migration_report"] = report
                 payload["migration_report_path"] = report.get("report_path", "")
-                payload["consistency"] = report.get("consistency", {})
+                payload["consistency"] = (report.get("core") or {}).get("consistency", {})
                 if not report.get("success"):
                     payload["ok"] = False
 

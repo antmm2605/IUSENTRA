@@ -1,0 +1,220 @@
+import json
+from pathlib import Path
+
+from pct.tenant import GestioneTenant
+from web.app import create_app
+from web.services.migration_assistant import build_migration_assistant, execute_migration_assistant
+
+from tests.test_web_bootstrap import _cfg_web, _write_studio_config
+
+
+def test_admin_assistente_migrazione_esegui_reindirizza_sullo_studio(tmp_path, monkeypatch):
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    registry = tmp_path / "tenants.json"
+    tm = GestioneTenant(str(registry))
+    studio = tm.crea("Studio Migrazione", "studio-migrazione", db_config={"mode": "SQLITE"})
+
+    app = create_app({**_cfg_web(tmp_path), "TENANTS_REGISTRY": str(registry)})
+
+    monkeypatch.setattr(
+        "web.blueprints.admin.execute_migration_assistant",
+        lambda *, selected_slug, target: {"report_path": str(Path(tmp_path) / "report.json")},
+    )
+
+    with app.test_client() as client:
+        login = client.post(
+            "/login",
+            data={"username": "admin", "password": "admin"},
+            follow_redirects=False,
+        )
+        assert login.status_code == 302
+
+        response = client.post(
+            "/admin/assistente-migrazione/esegui",
+            data={"slug": studio.slug, "target": "sqlite"},
+            follow_redirects=False,
+        )
+
+    assert response.status_code == 302
+    assert response.headers["Location"].endswith(
+        f"/admin/assistente-migrazione?slug={studio.slug}"
+    )
+
+
+def test_build_migration_assistant_rileva_postgres_anche_se_storage_corrente_e_json(tmp_path):
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    registry = tmp_path / "tenants.json"
+    tm = GestioneTenant(str(registry))
+    studio = tm.crea(
+        "Studio PostgreSQL",
+        "studio-postgres",
+        db_config={
+            "mode": "LOCAL",
+            "host": "db.example.local",
+            "porta": 5432,
+            "db_name": "iusentra",
+            "utente": "iusentra",
+            "password": "secret",
+        },
+    )
+
+    app = create_app({**_cfg_web(tmp_path), "TENANTS_REGISTRY": str(registry)})
+    with app.app_context():
+        payload = build_migration_assistant(selected_slug=studio.slug)
+
+    assert payload["selected_studio"]["selected_mode"] == "JSON"
+    assert payload["can_run_postgres"] is True
+
+
+def test_execute_migration_assistant_attiva_postgres_con_cutover_reale(tmp_path, monkeypatch):
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    registry = tmp_path / "tenants.json"
+    tm = GestioneTenant(str(registry))
+    studio = tm.crea(
+        "Studio PostgreSQL",
+        "studio-postgres",
+        db_config={
+            "mode": "LOCAL",
+            "host": "db.example.local",
+            "porta": 5432,
+            "db_name": "iusentra",
+            "utente": "iusentra",
+            "password": "secret",
+        },
+    )
+    app = create_app({**_cfg_web(tmp_path), "TENANTS_REGISTRY": str(registry)})
+
+    calls = {}
+
+    def _fake_test(self, slug):
+        calls["tested_slug"] = slug
+        studio_live = self.get(slug)
+        calls["tested_mode"] = studio_live.database.normalized_mode
+        return {"ok": True, "messaggio": "ok", "latenza_ms": 3}
+
+    def _fake_provision(self, slug, migrate_existing, activate_external=False, secret_key=""):
+        calls["provisioned_slug"] = slug
+        calls["activate_external"] = activate_external
+        calls["provisioned_mode"] = self.get(slug).database.normalized_mode
+        return {
+            "ok": True,
+            "activated": activate_external,
+            "migration_report": {
+                "target": "postgresql",
+                "success": True,
+                "report_path": str(Path(tmp_path) / "report-postgres.json"),
+            },
+        }
+
+    monkeypatch.setattr("pct.tenant.GestioneTenant.testa_connessione", _fake_test)
+    monkeypatch.setattr("pct.tenant.GestioneTenant.provision_storage_backend", _fake_provision)
+
+    with app.app_context():
+        report = execute_migration_assistant(selected_slug=studio.slug, target="postgresql")
+
+    assert report["target"] == "postgresql"
+    assert calls["tested_slug"] == studio.slug
+    assert calls["tested_mode"] == "POSTGRESQL"
+    assert calls["provisioned_mode"] == "POSTGRESQL"
+    assert calls["activate_external"] is True
+
+
+def test_admin_assistente_migrazione_renderizza_esito_reale_con_report(tmp_path, monkeypatch):
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    registry = tmp_path / "tenants.json"
+    tm = GestioneTenant(str(registry))
+    studio = tm.crea("Studio Migrazione", "studio-migrazione", db_config={"mode": "SQLITE"})
+    report_path = tmp_path / "report-migrazione.json"
+    report_path.write_text(
+        json.dumps(
+            {
+                "generated_at": "2026-04-19T10:30:00",
+                "target": "sqlite",
+                "success": True,
+                "report_path": str(report_path),
+                "core": {
+                    "riuscita": True,
+                    "record_migrati": {"clienti": 4, "fascicoli": 2, "appuntamenti": 1},
+                    "errori": [],
+                    "avvisi": ["timesheet: nessun record legacy presente."],
+                },
+                "repositories": {
+                    "template_atti": {"ok": True, "sqlite_stats": {"template_atti": 18}},
+                    "coverage_ai": {"ok": True, "sqlite_stats": {"drafts": 3, "snapshots": 4}},
+                },
+                "documents": {"count": 12},
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+
+    app = create_app({**_cfg_web(tmp_path), "TENANTS_REGISTRY": str(registry)})
+
+    monkeypatch.setattr(
+        "web.blueprints.admin.execute_migration_assistant",
+        lambda *, selected_slug, target: {
+            "target": target,
+            "generated_at": "2026-04-19T10:30:00",
+            "report_path": str(report_path),
+        },
+    )
+
+    with app.test_client() as client:
+        login = client.post("/login", data={"username": "admin", "password": "admin"}, follow_redirects=False)
+        assert login.status_code == 302
+
+        response = client.post(
+            "/admin/assistente-migrazione/esegui",
+            data={"slug": studio.slug, "target": "sqlite"},
+            follow_redirects=True,
+        )
+
+    html = response.get_data(as_text=True)
+    assert response.status_code == 200
+    assert "Ultima esecuzione reale" in html
+    assert "Migrazione completata" in html
+    assert "Clienti" in html
+    assert "Repository strutturati" in html
+    assert str(report_path) in html
+
+
+def test_admin_assistente_migrazione_renderizza_errori_e_rimedi(tmp_path, monkeypatch):
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    registry = tmp_path / "tenants.json"
+    tm = GestioneTenant(str(registry))
+    studio = tm.crea(
+        "Studio PostgreSQL",
+        "studio-postgres",
+        db_config={
+            "mode": "POSTGRESQL",
+            "host": "db.example.local",
+            "porta": 5432,
+            "db_name": "iusentra",
+            "utente": "iusentra",
+            "password": "secret",
+        },
+    )
+
+    app = create_app({**_cfg_web(tmp_path), "TENANTS_REGISTRY": str(registry)})
+
+    def _raise_execute(*, selected_slug, target):
+        raise RuntimeError("Connessione PostgreSQL non disponibile")
+
+    monkeypatch.setattr("web.blueprints.admin.execute_migration_assistant", _raise_execute)
+
+    with app.test_client() as client:
+        login = client.post("/login", data={"username": "admin", "password": "admin"}, follow_redirects=False)
+        assert login.status_code == 302
+
+        response = client.post(
+            "/admin/assistente-migrazione/esegui",
+            data={"slug": studio.slug, "target": "postgresql"},
+            follow_redirects=True,
+        )
+
+    html = response.get_data(as_text=True)
+    assert response.status_code == 200
+    assert "Esecuzione non completata" in html
+    assert "Come risolvere" in html
+    assert "Verifica host, porta, nome database, utente e password nello studio selezionato." in html

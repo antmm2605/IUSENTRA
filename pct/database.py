@@ -983,6 +983,47 @@ class GestioneDatabase:
 
     # ---------------------------------------------------------------- Migrazione SQLite
 
+    def _reset_sqlite_target(self, conn: sqlite3.Connection) -> None:
+        """Svuota in modo sicuro il DB target senza richiedere unlink del file."""
+        rows = conn.execute(
+            """
+            SELECT type, name
+            FROM sqlite_master
+            WHERE name NOT LIKE 'sqlite_%'
+              AND name NOT LIKE 'fts_%'
+            ORDER BY
+                CASE type
+                    WHEN 'trigger' THEN 0
+                    WHEN 'index' THEN 1
+                    WHEN 'view' THEN 2
+                    ELSE 3
+                END,
+                name DESC
+            """
+        ).fetchall()
+        conn.execute("PRAGMA foreign_keys = OFF")
+        try:
+            for row in rows:
+                object_type = str(row["type"] if isinstance(row, sqlite3.Row) else row[0]).lower()
+                object_name = str(row["name"] if isinstance(row, sqlite3.Row) else row[1])
+                if object_name == "sqlite_sequence":
+                    continue
+                if object_type == "index":
+                    sql = f'DROP INDEX IF EXISTS "{object_name}"'
+                elif object_type == "trigger":
+                    sql = f'DROP TRIGGER IF EXISTS "{object_name}"'
+                elif object_type == "view":
+                    sql = f'DROP VIEW IF EXISTS "{object_name}"'
+                else:
+                    sql = f'DROP TABLE IF EXISTS "{object_name}"'
+                try:
+                    conn.execute(sql)
+                except sqlite3.Error:
+                    continue
+            conn.commit()
+        finally:
+            conn.execute("PRAGMA foreign_keys = ON")
+
     def migra_verso_sqlite(self, percorso_db: str) -> RisultatoMigrazione:
         """
         Migra tutti i dati dai file JSON verso un database SQLite unificato.
@@ -1003,10 +1044,6 @@ class GestioneDatabase:
         percorso_db = str(Path(percorso_db).resolve())
         Path(percorso_db).parent.mkdir(parents=True, exist_ok=True)
 
-        # Rimuovi DB esistente per ricrearlo pulito
-        if Path(percorso_db).exists():
-            Path(percorso_db).unlink()
-
         conn = sqlite3.connect(percorso_db)
         conn.row_factory = sqlite3.Row
         errori: List[str] = []
@@ -1017,6 +1054,7 @@ class GestioneDatabase:
         id_appuntamenti_migrati = set()
 
         try:
+            self._reset_sqlite_target(conn)
             conn.executescript(SCHEMA_SQL)
 
             # Meta

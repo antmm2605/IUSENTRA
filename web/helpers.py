@@ -30,6 +30,7 @@ from pct.fatturazione import GestioneFatturazione
 from pct.pagamenti import GestionePagamenti
 from pct.preventivi import GestionePreventivi
 from pct.legal_update_pipeline import LegalUpdatePipeline, build_legal_update_pipeline
+from pct.postgres_runtime_support import resolve_runtime_postgres_dsn
 from web.services.storage_runtime import get_request_storage_runtime, get_request_studio_db
 
 
@@ -127,6 +128,7 @@ def get_legal_intelligence() -> GestioneLegalIntelligence:
 
 
 def get_legal_update_pipeline() -> LegalUpdatePipeline:
+    tenant = getattr(g, "tenant", None)
     return build_legal_update_pipeline(
         _cfg("LEGAL_INTELLIGENCE_DB"),
         giurisprudenza_db_path=_cfg("GIURISPRUDENZA_DB"),
@@ -139,6 +141,10 @@ def get_legal_update_pipeline() -> LegalUpdatePipeline:
             current_app.config.get("LOCAL_AI_CHAT_MODEL")
             or current_app.config.get("OLLAMA_MODEL")
             or "mistral"
+        ),
+        postgres_dsn=resolve_runtime_postgres_dsn(
+            database=getattr(tenant, "database", None),
+            config=current_app.config,
         ),
     )
 

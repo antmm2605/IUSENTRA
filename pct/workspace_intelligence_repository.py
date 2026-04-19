@@ -59,7 +59,7 @@ class WorkspaceIntelligenceRepository:
             conn.commit()
 
     def save_snapshot(self, payload: dict[str, Any]) -> dict[str, Any]:
-        encoded = json.dumps(dict(payload or {}), ensure_ascii=False)
+        encoded = json.dumps(dict(payload or {}), ensure_ascii=False, default=str)
         with self._connect() as conn:
             conn.execute(
                 """

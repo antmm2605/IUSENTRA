@@ -7,6 +7,7 @@ Prefix:  /admin/
 
 from __future__ import annotations
 
+from datetime import datetime
 from pathlib import Path
 import sqlite3
 
@@ -43,7 +44,10 @@ from pct.auth import (
 )
 from pct.core_storage_backend import build_core_storage_backend
 from web.services.lex_eval_scorecard import build_lex_eval_scorecard
-from web.services.migration_assistant import build_migration_assistant
+from web.services.migration_assistant import (
+    build_migration_assistant,
+    execute_migration_assistant,
+)
 from web.services.observability_runtime import build_observability_payload
 from web.services.product_governance_surface import build_product_governance_surface
 from web.services.studio_installation_status import build_studio_installation_status
@@ -169,8 +173,45 @@ def stato_installazione():
 @admin_bp.route("/assistente-migrazione")
 @superadmin_required
 def assistente_migrazione():
-    payload = build_migration_assistant()
+    payload = build_migration_assistant(
+        selected_slug=request.args.get("slug", ""),
+        execution_state=session.get("assistente_migrazione_last_execution"),
+    )
     return render_template("admin/assistente_migrazione.html", payload=payload)
+
+
+@admin_bp.route("/assistente-migrazione/esegui", methods=["POST"])
+@superadmin_required
+def assistente_migrazione_esegui():
+    selected_slug = str(request.form.get("slug", "") or "").strip().lower()
+    target = str(request.form.get("target", "") or "").strip().lower()
+    try:
+        report = execute_migration_assistant(selected_slug=selected_slug, target=target)
+        session["assistente_migrazione_last_execution"] = {
+            "slug": selected_slug,
+            "target": target,
+            "report_path": str(report.get("report_path") or "").strip(),
+            "generated_at": str(
+                report.get("generated_at") or datetime.now().replace(microsecond=0).isoformat()
+            ),
+        }
+        if target == "postgresql":
+            flash("Migrazione completa su PostgreSQL eseguita con report reale.", "success")
+        else:
+            flash("Migrazione completa su SQL locale eseguita con report reale.", "success")
+        report_path = str(report.get("report_path") or "").strip()
+        if report_path:
+            flash(f"Report generato: {report_path}", "info")
+    except Exception as exc:
+        current_app.logger.exception("Errore assistente migrazione %s: %s", target, exc)
+        session["assistente_migrazione_last_execution"] = {
+            "slug": selected_slug,
+            "target": target,
+            "generated_at": datetime.now().replace(microsecond=0).isoformat(),
+            "error_message": str(exc),
+        }
+        flash(f"Errore durante la migrazione completa: {exc}", "danger")
+    return redirect(url_for("admin.assistente_migrazione", slug=selected_slug))
 
 
 @admin_bp.route("/salute-sistema")

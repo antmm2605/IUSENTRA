@@ -279,6 +279,26 @@ def _classificazioni_tassonomiche_da_raw(raw: str | list | None) -> list[dict]:
     return _normalizza_classificazioni_tassonomiche(parsed if isinstance(parsed, list) else [])
 
 
+def _wizard_log_story(evento: str, **context) -> None:
+    parti = []
+    utente = g.get("utente_corrente")
+    username = getattr(utente, "username", "") or "anonimo"
+    parti.append(f"utente={username}")
+    for key, value in context.items():
+        if value in (None, "", [], {}):
+            continue
+        if isinstance(value, bool):
+            rendered = "si" if value else "no"
+        elif isinstance(value, float):
+            rendered = f"{value:.2f}"
+        elif isinstance(value, (list, tuple, set)):
+            rendered = ",".join(str(item) for item in value if item not in (None, ""))
+        else:
+            rendered = str(value)
+        parti.append(f"{key}={rendered}")
+    current_app.logger.info("Preventivi wizard | %s | %s", evento, " | ".join(parti))
+
+
 def _crea_cliente_rapido_da_wizard(form) -> tuple[str, str]:
     from pct.clienti import TipoCliente
 
@@ -967,6 +987,12 @@ def ajax_cliente_rapido():
     try:
         id_cliente, msg_cliente = _crea_cliente_rapido_da_wizard(request.form)
         cliente = get_clienti().get(id_cliente)
+        _wizard_log_story(
+            "cliente rapido collegato",
+            id_cliente=id_cliente,
+            cliente=getattr(cliente, "nome_completo", "") or id_cliente,
+            stato="creato" if "creat" in msg_cliente.lower() else "riutilizzato",
+        )
         return jsonify(
             {
                 "ok": True,
@@ -977,8 +1003,10 @@ def ajax_cliente_rapido():
             }
         )
     except ValueError as exc:
+        _wizard_log_story("cliente rapido non completato", motivo=str(exc))
         return jsonify({"ok": False, "errore": str(exc)}), 200
     except Exception as exc:
+        _wizard_log_story("cliente rapido fallito", motivo=str(exc))
         current_app.logger.exception("Errore creazione cliente rapido wizard: %s", exc)
         return jsonify({"ok": False, "errore": "Impossibile creare il cliente rapido."}), 200
 
@@ -1427,6 +1455,18 @@ def wizard_calcola():
             anticipazioni=anticipazioni,
         )
 
+        _wizard_log_story(
+            "calcolo completato",
+            pratica=id_pratica,
+            regola=regola_tariffaria,
+            grado=grado_raw,
+            complessita=complessita,
+            fasi=[fase.value for fase in fasi] if fasi else [],
+            spese_generali=incl_spese,
+            bonus_telematico=bonus_tel,
+            totale=ris.totale,
+        )
+
         dm = ris.calcolo_dm55
         fasi_out = {fase: {"min": v[0], "base": v[1], "max": v[2]}
                     for fase, v in dm.dettaglio.items()}
@@ -1461,6 +1501,11 @@ def wizard_calcola():
             "base_normativa":        tp.base_normativa,
         })
     except Exception as e:
+        _wizard_log_story(
+            "calcolo fallito",
+            pratica=request.args.get("id_pratica", ""),
+            motivo=str(e),
+        )
         current_app.logger.exception("Errore wizard_calcola: %s", e)
         return jsonify({"errore": str(e)}), 200
 
@@ -1570,6 +1615,16 @@ def wizard_genera():
         clausola_controversie_fonte=f.get("clausola_controversie_fonte", "").strip(),
     )
 
+    _wizard_log_story(
+        "preventivo creato",
+        numero=p.numero,
+        cliente=id_cliente,
+        id_pratica=f.get("id_pratica", "").strip(),
+        voci=len(voci),
+        classificazioni_extra=len(classificazioni_tassonomiche),
+        totale=p.totale,
+    )
+
     # Conferimento immediato?
     if _flag_from_form(f, "genera_conferimento"):
         conferimento = None
@@ -1611,6 +1666,13 @@ def wizard_genera():
         )
         from pct.preventivi import StatoPreventivo
         gp.aggiorna_preventivo(p.id, stato=StatoPreventivo.CONVERTITO)
+        _wizard_log_story(
+            "conferimento creato dal wizard",
+            numero_preventivo=p.numero,
+            numero_conferimento=getattr(conferimento, "numero", ""),
+            cliente=id_cliente,
+            apri_fascicolo_guidato=_flag_from_form(f, "apri_fascicolo_guidato") and not p.id_fascicolo,
+        )
         if _flag_from_form(f, "apri_fascicolo_guidato") and not p.id_fascicolo:
             flash(
                 f"Preventivo {p.numero} e conferimento incarico creati. Completa ora l'apertura guidata del fascicolo.",

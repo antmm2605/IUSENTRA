@@ -1296,9 +1296,10 @@
             <div class="label">Totale preventivo</div>
             <div class="value" id="stickyTotale">€ 0,00</div>
           </div>
+          <div id="wizardInlineStatus" class="alert alert-light border d-none mb-0 py-2 px-3 small flex-grow-1" role="status" aria-live="polite"></div>
           <div class="prev-action-buttons">
             <a href="{{ url_for('preventivi.lista') }}" class="btn btn-outline-secondary">Annulla</a>
-            <button type="button" class="btn btn-primary" id="btnCalcolaPreventivo"><i class="bi bi-lightning-charge me-1"></i>Calcola e aggiorna bozza</button>
+            <button type="button" class="btn btn-primary" id="btnCalcolaPreventivo"><i class="bi bi-lightning-charge me-1"></i>Calcola e aggiorna la bozza</button>
             <button type="submit" class="btn btn-success"><i class="bi bi-check-lg me-1"></i>Crea preventivo</button>
           </div>
         </div>
@@ -1407,6 +1408,71 @@ let classificazioniAggiuntive = Array.isArray(WIZARD_PREFILL.classificazioni_tas
   : [];
 let clienteRapidoAutoState = { fingerprint: '', idCliente: '', pending: false };
 let clienteRapidoAutoTimer = null;
+let wizardInlineStatusTimer = null;
+let wizardRecalcTimer = null;
+let wizardCalcoloCache = new Map();
+let wizardCalcoloSequence = 0;
+
+function scrollToWizardStatus() {
+  const node = document.getElementById('wizardInlineStatus');
+  if (!node || node.classList.contains('d-none')) return;
+  node.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function setWizardStatus(kind, message, options = {}) {
+  const target = document.getElementById('wizardInlineStatus');
+  if (!target) return;
+  const autoHideMs = Number(options.autoHideMs || 0);
+  window.clearTimeout(wizardInlineStatusTimer);
+  target.className = 'alert border mb-0 py-2 px-3 small flex-grow-1';
+  target.classList.remove('d-none');
+  if (kind === 'success') {
+    target.classList.add('alert-success');
+  } else if (kind === 'danger') {
+    target.classList.add('alert-danger');
+  } else if (kind === 'warning') {
+    target.classList.add('alert-warning');
+  } else {
+    target.classList.add('alert-primary');
+  }
+  target.textContent = message;
+  if (autoHideMs > 0) {
+    wizardInlineStatusTimer = window.setTimeout(() => {
+      target.classList.add('d-none');
+      target.textContent = '';
+    }, autoHideMs);
+  }
+}
+
+function scheduleRecalcoloPreventivo(message, delay = 220) {
+  if (!tipologiaCorrente || !ultimoCalcolo) {
+    syncCalcoloHiddenFields();
+    return;
+  }
+  window.clearTimeout(wizardRecalcTimer);
+  setWizardStatus('info', message || 'Aggiorno la bozza con i nuovi parametri di calcolo...');
+  wizardRecalcTimer = window.setTimeout(() => {
+    calcolaPreventivo({ reason: message || 'Aggiorno la bozza con i nuovi parametri di calcolo...' });
+  }, delay);
+}
+
+async function fetchWizardCalculation(url) {
+  if (wizardCalcoloCache.has(url)) {
+    return wizardCalcoloCache.get(url);
+  }
+  const pending = fetch(url)
+    .then((response) => response.json())
+    .catch((error) => {
+      wizardCalcoloCache.delete(url);
+      throw error;
+    });
+  wizardCalcoloCache.set(url, pending);
+  if (wizardCalcoloCache.size > 40) {
+    const oldestKey = wizardCalcoloCache.keys().next().value;
+    if (oldestKey) wizardCalcoloCache.delete(oldestKey);
+  }
+  return pending;
+}
 
 function taxonomyMeta(item) {
   return {
@@ -1645,7 +1711,7 @@ function clearClassificazioneRows() {
 async function onClassificazioniAggiuntiveChanged() {
   syncClassificazioniTassonomicheHidden();
   if (ultimoCalcolo) {
-    await calcolaPreventivo();
+    scheduleRecalcoloPreventivo('Aggiorno la bozza dopo la classificazione tassonomica aggiuntiva...');
   } else {
     clearClassificazioneRows();
     aggiornaEmptyState();
@@ -2620,30 +2686,22 @@ function renderAdrVariationBox() {
   `;
   const accordoNode = box.querySelector('#chkAdrAccordo');
   if (accordoNode) {
-    accordoNode.addEventListener('change', async () => {
+    accordoNode.addEventListener('change', () => {
       renderAdrVariationBox();
       if (ultimoCalcolo) {
-        try {
-          await calcolaPreventivo();
-        } catch (error) {
-          alert(`Impossibile aggiornare le variazioni ADR: ${error.message}`);
-        }
-      } else {
-        syncCalcoloHiddenFields();
+        scheduleRecalcoloPreventivo('Aggiorno la bozza dopo la variazione dell\'accordo ADR...');
+        return;
       }
+      syncCalcoloHiddenFields();
     });
   }
   box.querySelectorAll('.adr-var-input').forEach((node) => {
-    node.addEventListener('change', async () => {
+    node.addEventListener('change', () => {
       if (ultimoCalcolo) {
-        try {
-          await calcolaPreventivo();
-        } catch (error) {
-          alert(`Impossibile aggiornare le variazioni ADR: ${error.message}`);
-        }
-      } else {
-        syncCalcoloHiddenFields();
+        scheduleRecalcoloPreventivo('Aggiorno la bozza dopo la variazione manuale ADR...');
+        return;
       }
+      syncCalcoloHiddenFields();
     });
   });
 }
@@ -2933,34 +2991,26 @@ function renderFasi() {
     accessoriGrid.innerHTML = accessoriMarkup || '<div class="col-12 text-muted small">Nessuna integrazione selezionabile per questa tipologia.</div>';
   }
   document.querySelectorAll('.fase-check').forEach((node) => {
-    node.addEventListener('change', async () => {
+    node.addEventListener('change', () => {
       if (ultimoCalcolo) {
-        try {
-          await calcolaPreventivo();
-        } catch (error) {
-          alert(`Impossibile aggiornare le fasi del preventivo: ${error.message}`);
-        }
-      } else {
-        syncCalcoloHiddenFields();
+        scheduleRecalcoloPreventivo('Aggiorno la bozza dopo la variazione delle fasi incluse...');
+        return;
       }
+      syncCalcoloHiddenFields();
     });
   });
   document.querySelectorAll('.accessorio-check').forEach((node) => {
-    node.addEventListener('change', async () => {
+    node.addEventListener('change', () => {
       renderSchedaTipologia();
       renderAdrVariationBox();
       renderEsborsi();
       clearAccessorioRows();
       if (ultimoCalcolo) {
-        try {
-          await applicaAccessoriCalcolo();
-        } catch (error) {
-          alert(`Impossibile aggiornare gli accessori del preventivo: ${error.message}`);
-        }
-      } else {
-        aggiornaEmptyState();
-        recalcTotals();
+        scheduleRecalcoloPreventivo('Aggiorno la bozza dopo la variazione delle integrazioni operative...');
+        return;
       }
+      aggiornaEmptyState();
+      recalcTotals();
     });
   });
   renderAdrVariationBox();
@@ -3112,7 +3162,7 @@ async function syncClienteRapidoAutoCreate(force = false) {
   if (!force && clienteRapidoAutoState.pending) return;
   if (!force && clienteRapidoAutoState.fingerprint === fingerprint && clienteRapidoAutoState.idCliente) return;
   clienteRapidoAutoState.pending = true;
-  setClienteRapidoStatus('secondary', 'Creazione automatica del cliente rapido in corso...');
+  setClienteRapidoStatus('secondary', 'Sto creando o riutilizzando il cliente rapido collegato al preventivo...');
   try {
     const formData = new FormData();
     Object.entries(payload).forEach(([key, value]) => formData.set(key, value));
@@ -3124,7 +3174,7 @@ async function syncClienteRapidoAutoCreate(force = false) {
     if (!data.ok) {
       clienteRapidoAutoState.pending = false;
       clienteRapidoAutoState.idCliente = '';
-      setClienteRapidoStatus('warning', data.errore || 'Non e stato possibile creare il cliente rapido.');
+      setClienteRapidoStatus('warning', data.errore || 'Il cliente rapido non e stato collegato: controlla i dati minimi richiesti.');
       return;
     }
     clienteRapidoAutoState = {
@@ -3133,10 +3183,10 @@ async function syncClienteRapidoAutoCreate(force = false) {
       pending: false,
     };
     aggiornaClienteSelezionatoRapido(data);
-    setClienteRapidoStatus('success', data.messaggio || 'Cliente rapido collegato al preventivo.');
+    setClienteRapidoStatus('success', data.messaggio || 'Cliente rapido collegato correttamente al preventivo.');
   } catch (error) {
     clienteRapidoAutoState.pending = false;
-    setClienteRapidoStatus('danger', 'Impossibile contattare il servizio di creazione cliente rapido.');
+    setClienteRapidoStatus('danger', 'Servizio cliente rapido non raggiungibile: riprova tra pochi istanti.');
   }
 }
 
@@ -3591,6 +3641,10 @@ function buildQuery(idPratica = '', fasiOverride = null) {
   return params;
 }
 
+function buildWizardCalculationUrl(idPratica = '', fasiOverride = null) {
+  return `{{ url_for('preventivi.wizard_calcola') }}?${buildQuery(idPratica, fasiOverride).toString()}`;
+}
+
 function renderRisultato(data) {
   ultimoCalcolo = data;
   document.getElementById('kpiCompenso').textContent = money(data.onorario_base || data.totale_base || data.onorario_selezionato || 0);
@@ -3615,8 +3669,9 @@ async function applicaAccessoriCalcolo() {
   const accessori = accessoriCalcoloSelezionati();
   const ruoliAttivi = new Set();
   for (const accessorio of accessori) {
-    const response = await fetch(`{{ url_for('preventivi.wizard_calcola') }}?${buildQuery(accessorio.tipo_pratica_id, accessorio.fasi_default_keys || null).toString()}`);
-    const data = await response.json();
+    const data = await fetchWizardCalculation(
+      buildWizardCalculationUrl(accessorio.tipo_pratica_id, accessorio.fasi_default_keys || null)
+    );
     if (data.errore) {
       throw new Error(data.errore);
     }
@@ -3637,8 +3692,7 @@ async function applicaClassificazioniAggiuntiveCalcolo() {
   const ruoliAttivi = new Set();
   for (const row of rows) {
     if (!row.tipologia_pratica_id) continue;
-    const response = await fetch(`{{ url_for('preventivi.wizard_calcola') }}?${buildQuery(row.tipologia_pratica_id).toString()}`);
-    const data = await response.json();
+    const data = await fetchWizardCalculation(buildWizardCalculationUrl(row.tipologia_pratica_id));
     if (data.errore) {
       throw new Error(data.errore);
     }
@@ -3654,10 +3708,11 @@ async function applicaClassificazioniAggiuntiveCalcolo() {
   recalcTotals();
 }
 
-async function calcolaPreventivo() {
+async function calcolaPreventivo(options = {}) {
   if (!tipologiaCorrente) {
-    alert('Seleziona prima una tipologia di pratica.');
-    return;
+    setWizardStatus('warning', 'Seleziona prima una tipologia di pratica per avviare il calcolo.');
+    scrollToWizardStatus();
+    return false;
   }
   const tipoCompenso = (tipologiaCorrente.tipo_compenso_default || '').toLowerCase();
   if (tipoCompenso.includes('orario')) {
@@ -3665,27 +3720,41 @@ async function calcolaPreventivo() {
     const ore = parseLocaleNumber(document.getElementById('inpOreStimate').value || 0);
     if (tariffa > 0 && ore > 0) {
       renderRisultatoOrario();
-      return;
+      setWizardStatus('success', 'Bozza aggiornata con il compenso orario pattuito.', { autoHideMs: 2800 });
+      return true;
     }
   }
+  const requestSequence = ++wizardCalcoloSequence;
   const btn = document.getElementById('btnCalcolaPreventivo');
   const oldHtml = btn.innerHTML;
   btn.disabled = true;
   btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Calcolo...';
+  setWizardStatus('info', options.reason || 'Sto aggiornando la bozza del preventivo con i parametri correnti...');
   try {
-    const response = await fetch(`{{ url_for('preventivi.wizard_calcola') }}?${buildQuery().toString()}`);
-    const data = await response.json();
+    const data = await fetchWizardCalculation(buildWizardCalculationUrl());
+    if (requestSequence !== wizardCalcoloSequence) {
+      return false;
+    }
     if (data.errore) {
-      alert(data.errore);
-      return;
+      setWizardStatus('danger', data.errore || 'Il calcolo non e stato completato.');
+      scrollToWizardStatus();
+      return false;
     }
     renderRisultato(data);
     await applicaAccessoriCalcolo();
     await applicaClassificazioniAggiuntiveCalcolo();
     setWizardStep('wizardStep4Collapse', true);
     scrollWizardSection('wizardStep4Collapse');
+    setWizardStatus(
+      'success',
+      'Bozza aggiornata: totale, fasi, integrazioni, classificazioni e opzioni fiscali sono allineati.',
+      { autoHideMs: 3200 }
+    );
+    return true;
   } catch (error) {
-    alert(`Impossibile calcolare il preventivo: ${error.message}`);
+    setWizardStatus('danger', `Calcolo non completato: ${error.message}`);
+    scrollToWizardStatus();
+    return false;
   } finally {
     btn.disabled = false;
     btn.innerHTML = oldHtml;
@@ -3738,6 +3807,7 @@ async function caricaFascicoli(idCliente) {
     sel.disabled = false;
     fascicoliCliente = [];
     applicaContestoFascicolo(null);
+    setWizardStatus('warning', 'Non sono riuscito a leggere i fascicoli del cliente selezionato. Puoi continuare oppure riprovare tra poco.', { autoHideMs: 4200 });
   }
   syncWorkflowChecks();
 }
@@ -3842,26 +3912,26 @@ document.addEventListener('DOMContentLoaded', async () => {
       renderEsborsi();
       syncTipoProcedimentoHidden();
       if (tipologiaCorrente && ultimoCalcolo) {
-        calcolaPreventivo();
-      } else {
-        syncCalcoloHiddenFields();
+        scheduleRecalcoloPreventivo('Aggiorno la bozza dopo la variazione della regola tariffaria...');
+        return;
       }
+      syncCalcoloHiddenFields();
     });
     selGrado.addEventListener('change', () => {
       syncTipoProcedimentoHidden();
       renderAdrVariationBox();
       if (tipologiaCorrente && ultimoCalcolo) {
-        calcolaPreventivo();
-      } else {
-        syncCalcoloHiddenFields();
+        scheduleRecalcoloPreventivo('Aggiorno la bozza dopo la variazione di grado o sede...');
+        return;
       }
+      syncCalcoloHiddenFields();
     });
     document.getElementById('selComplessita').addEventListener('change', () => {
       if (tipologiaCorrente && ultimoCalcolo) {
-        calcolaPreventivo();
-      } else {
-        syncCalcoloHiddenFields();
+        scheduleRecalcoloPreventivo('Aggiorno la bozza dopo la variazione della complessita stimata...');
+        return;
       }
+      syncCalcoloHiddenFields();
     });
   const selAreaTassonomica = document.getElementById('selAreaTassonomica');
   const selMacroAreaTassonomica = document.getElementById('selMacroAreaTassonomica');
@@ -3943,6 +4013,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     classificazioniAggiuntive.push(normalizeClassificazioneAggiuntiva({ uid: newClassificazioneUid() }));
     renderClassificazioniAggiuntive();
     syncClassificazioniTassonomicheHidden();
+    setWizardStatus('info', 'Aggiungi area, macro-area, sottobranca e tipologia per includere una nuova voce autonoma.', { autoHideMs: 2600 });
   });
   [
     'inpClienteRapidoNome',
@@ -3959,32 +4030,32 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
   document.getElementById('inpValore').addEventListener('change', () => {
     if (tipologiaCorrente && ultimoCalcolo) {
-      calcolaPreventivo();
-    } else {
-      syncCalcoloHiddenFields();
+      scheduleRecalcoloPreventivo('Aggiorno la bozza dopo la variazione del valore della pratica...');
+      return;
     }
+    syncCalcoloHiddenFields();
   });
   document.getElementById('chkBonusTelematico').addEventListener('change', () => {
     if (tipologiaCorrente && ultimoCalcolo) {
-      calcolaPreventivo();
-    } else {
-      syncCalcoloHiddenFields();
+      scheduleRecalcoloPreventivo('Aggiorno la bozza dopo la variazione del bonus telematico...');
+      return;
     }
+    syncCalcoloHiddenFields();
   });
   document.getElementById('chkSpeseGenerali').addEventListener('change', () => {
     syncSpeseGeneraliUi();
     if (tipologiaCorrente && ultimoCalcolo) {
-      calcolaPreventivo();
-    } else {
-      syncCalcoloHiddenFields();
+      scheduleRecalcoloPreventivo('Aggiorno la bozza dopo la variazione delle spese generali...');
+      return;
     }
+    syncCalcoloHiddenFields();
   });
   document.getElementById('inpPercSpese').addEventListener('change', () => {
     if (tipologiaCorrente && ultimoCalcolo) {
-      calcolaPreventivo();
-    } else {
-      syncCalcoloHiddenFields();
+      scheduleRecalcoloPreventivo('Aggiorno la bozza dopo la variazione della percentuale di spese generali...');
+      return;
     }
+    syncCalcoloHiddenFields();
   });
   document.getElementById('chkCassa').addEventListener('change', () => {
     recalcTotals();
@@ -4013,12 +4084,14 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('wizardPreventivo').addEventListener('submit', (event) => {
     if (!tipologiaCorrente) {
       event.preventDefault();
-      alert('Seleziona una tipologia di pratica prima di creare il preventivo.');
+      setWizardStatus('danger', 'Seleziona una tipologia di pratica prima di creare il preventivo.');
+      scrollToWizardStatus();
       return;
     }
     if (!document.querySelectorAll('.prev-voice-row').length) {
       event.preventDefault();
-      alert('Calcola il compenso o aggiungi almeno una voce al preventivo.');
+      setWizardStatus('danger', 'Calcola il compenso o aggiungi almeno una voce prima di salvare il preventivo.');
+      scrollToWizardStatus();
       return;
     }
     if (chkClienteRapido.checked) {
@@ -4026,7 +4099,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (tipoRapido === 'PERSONA_FISICA') {
         if (!document.getElementById('inpClienteRapidoNome').value.trim() || !document.getElementById('inpClienteRapidoCognome').value.trim() || !document.getElementById('inpClienteRapidoCfPf').value.trim()) {
           event.preventDefault();
-          alert('Completa nome, cognome e codice fiscale del cliente rapido.');
+          setWizardStatus('danger', 'Completa nome, cognome e codice fiscale del cliente rapido prima di salvare.');
+          scrollToWizardStatus();
           return;
         }
       } else {
@@ -4035,17 +4109,20 @@ document.addEventListener('DOMContentLoaded', async () => {
         const cf = document.getElementById('inpClienteRapidoCfPg').value.trim();
         if (!ragione || (!piva && !cf)) {
           event.preventDefault();
-          alert('Per il cliente rapido persona giuridica inserisci ragione sociale e partita IVA oppure codice fiscale.');
+          setWizardStatus('danger', 'Per il cliente rapido persona giuridica inserisci ragione sociale e partita IVA oppure codice fiscale.');
+          scrollToWizardStatus();
           return;
         }
       }
     } else if (!clienteSelect.value) {
       event.preventDefault();
-      alert('Seleziona un cliente oppure usa l\'inserimento rapido.');
+      setWizardStatus('danger', 'Seleziona un cliente oppure usa l\'inserimento rapido prima di salvare.');
+      scrollToWizardStatus();
       return;
     }
     syncCalcoloHiddenFields();
     syncClausolaHiddenFields();
+    setWizardStatus('info', 'Sto salvando il preventivo con i dati della bozza aggiornata...');
   });
 });
 </script>

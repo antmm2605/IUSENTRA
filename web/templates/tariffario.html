@@ -277,8 +277,8 @@
             </div>
 
             <div class="col-12 d-flex gap-2 flex-wrap">
-              <button type="submit" class="btn btn-primary">
-                <i class="bi bi-calculator me-1"></i>Calcola compenso
+              <button type="submit" class="btn btn-primary" id="btnTariffarioCalcola">
+                <i class="bi bi-calculator me-1"></i>Calcola e aggiorna il quadro
               </button>
               <a href="{{ url_for('tariffario') }}" class="btn btn-outline-secondary">
                 <i class="bi bi-arrow-counterclockwise me-1"></i>Reset
@@ -295,6 +295,21 @@
         <i class="bi bi-cash-stack me-2"></i>Risultato del calcolo
       </div>
       <div class="card-body">
+        <div class="alert alert-primary small mb-3">
+          <div class="fw-semibold mb-1">Motore di calcolo attivo</div>
+          <div>
+            {% if tipo_pratica_attiva %}
+            {{ tipo_pratica_attiva.tipo_compenso_default }} - {{ tipo_pratica_attiva.label }}.
+            {% else %}
+            Per fasi processuali (D.M. 55/2014).
+            {% endif %}
+            {% if spese_gen %}
+            Spese generali incluse nel totale.
+            {% else %}
+            Spese generali escluse dal totale.
+            {% endif %}
+          </div>
+        </div>
         {% set riepilogo_min = risultato.riepilogo_livello('minimo') %}
         {% set riepilogo_base = risultato.riepilogo_livello('base') %}
         {% set riepilogo_max = risultato.riepilogo_livello('massimo') %}
@@ -1102,6 +1117,8 @@ function addManualRow(descrizione = '', tipo = 'Onorario', importo = '') {
 }
 
   document.addEventListener('DOMContentLoaded', () => {
+    const tariffarioForm = document.getElementById('tariffarioForm');
+    const btnTariffarioCalcola = document.getElementById('btnTariffarioCalcola');
     const selMateria = document.getElementById('selMateria');
     const selRegola = document.getElementById('selRegolaTariffaria');
     const selGrado = document.getElementById('selGrado');
@@ -1151,6 +1168,11 @@ function addManualRow(descrizione = '', tipo = 'Onorario', importo = '') {
       node.closest('.manual-row')?.remove();
       updateManualEmptyState();
     });
+  });
+  tariffarioForm?.addEventListener('submit', () => {
+    if (!btnTariffarioCalcola) return;
+    btnTariffarioCalcola.disabled = true;
+    btnTariffarioCalcola.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Calcolo in corso...';
   });
 });
 </script>

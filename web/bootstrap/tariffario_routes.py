@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from datetime import date
 
-from flask import Flask, flash, render_template, request, url_for
+from flask import Flask, current_app, flash, g, render_template, request, url_for
 
 from pct.tariffario import ComplessitaStimata, Fase, Grado, Materia, calcola_compenso, livello_compenso_da_complessita
 from pct.tariffario_catalogo import (
@@ -43,6 +43,26 @@ def _switch_from_form(form, key: str, *, default: bool = False) -> bool:
     if raw in {"0", "false", "off", "no"}:
         return False
     return default
+
+
+def _log_tariffario_story(evento: str, **context) -> None:
+    parti = []
+    utente = g.get("utente_corrente")
+    username = getattr(utente, "username", "") or "anonimo"
+    parti.append(f"utente={username}")
+    for key, value in context.items():
+        if value in (None, "", [], {}):
+            continue
+        if isinstance(value, bool):
+            rendered = "si" if value else "no"
+        elif isinstance(value, float):
+            rendered = f"{value:.2f}"
+        elif isinstance(value, (list, tuple, set)):
+            rendered = ",".join(str(item) for item in value if item not in (None, ""))
+        else:
+            rendered = str(value)
+        parti.append(f"{key}={rendered}")
+    current_app.logger.info("Tariffario | %s | %s", evento, " | ".join(parti))
 
 
 def register_tariffario_routes(app: Flask) -> None:
@@ -263,7 +283,30 @@ def register_tariffario_routes(app: Flask) -> None:
                     "iva": iva,
                     "totale": totale,
                 }
+                _log_tariffario_story(
+                    "calcolo completato",
+                    materia=materia_sel,
+                    regola=regola_tariffaria_sel or "standard",
+                    grado=grado_sel,
+                    complessita=complessita_sel,
+                    fasi=fasi_sel,
+                    spese_generali=spese_gen,
+                    bonus_telematico=bonus_tel,
+                    motore=(
+                        tipo_pratica_attiva.tipo_compenso_default
+                        if tipo_pratica_attiva
+                        else "Per fasi processuali (D.M. 55/2014)"
+                    ),
+                    totale=(riepilogo_economico or {}).get("totale", 0.0),
+                )
             except (ValueError, KeyError) as e:
+                _log_tariffario_story(
+                    "calcolo non completato",
+                    materia=materia_sel,
+                    regola=regola_tariffaria_sel or "standard",
+                    grado=grado_sel,
+                    motivo=str(e),
+                )
                 flash(str(e), "danger")
 
         tabelle_normative = get_normative_tables()

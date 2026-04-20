@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.178.3 - 2026-04-20
+
+- Rifinito il `Wizard preventivi` con microcopy coerente, stato inline persistente al posto dei vecchi `alert()` browser, messaggi di validazione piu' chiari e ricalcolo guidato e debounced per fasi, ADR, accessori, classificazioni tassonomiche e opzioni fiscali.
+- Rafforzata la percezione di performance e coerenza: il wizard ora riusa i fetch di calcolo gia' eseguiti per accessori e classificazioni, mostra feedback immediato mentre aggiorna la bozza e riduce i ricalcoli ripetuti durante la stessa sessione.
+- Migliorata la `Console tariffaria` con indicazione esplicita del motore di calcolo attivo, distinzione chiara tra spese generali incluse o escluse e submit con stato di elaborazione visibile.
+- Resi i log di `preventivi` e `tariffario` piu' leggibili e narrativi: le operazioni principali raccontano utente, motore, regola, fase e risultato invece di limitarsi a messaggi tecnici di errore.
+
 ## 2.178.2 - 2026-04-20
 
 - Corretto davvero il flusso `Preventivi -> Wizard` sui toggle economici: fasi selezionate, spese generali e altri flag booleani incidono ora in modo coerente sia nel calcolo live sia nel salvataggio finale, senza effetti fantasma dovuti ai campi hidden `0/1`.

@@ -10,6 +10,7 @@ La repo oggi non è più solo un tool CLI per il Processo Civile Telematico: con
 - Deposito telematico civile, penale e dashboard servizi telematici.
 - Workflow completo `cliente -> preventivo -> conferimento -> fascicolo -> attivita' -> parcella -> incasso`.
 - Wizard preventivi e console tariffaria ora usano davvero il tariffario corretto per fase: `D.M. 55/2014` per i giudiziali, `Tabella A25` per lo stragiudiziale e `Tabella A27` per mediazione / negoziazione assistita, con checkbox fiscali che incidono davvero sul totale.
+- Le superfici economiche finali usano ora microcopy coerente, ricalcolo guidato inline e log applicativi leggibili come una storia operativa, senza `alert()` ambigui o stati poco spiegabili.
 - Timesheet operativo con valorizzazione del tempo e generazione parcella dalle attivita' validate.
 - Fatturazione, pagamenti, saldo cliente e KPI economici per studio, cliente e fascicolo.
 - Fascicolo con `cabina operativa` a tab: quadro intelligente, workflow `fascicolo -> incasso`, controllo economico, governo documentale e conformita' deposito nella stessa vista.

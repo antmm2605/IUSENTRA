@@ -167,6 +167,9 @@ def test_template_wizard_espone_classificazione_operativa_visibile():
     assert "Inquadramento operativo" in template
     assert "Agganci di prodotto" in template
     assert "workflow_operativo_codice" in template
+    assert "wizardInlineStatus" in template
+    assert "scheduleRecalcoloPreventivo" in template
+    assert "Calcola e aggiorna la bozza" in template
 
 
 def test_template_wizard_allinea_clausola_controversie_al_form_classico():

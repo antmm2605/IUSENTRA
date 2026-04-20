@@ -87,4 +87,7 @@ def test_tariffario_route_rispetta_toggle_spese_generali(tmp_path):
     assert con_spese.status_code == 200
     assert ">Spese generali<" not in html_senza_spese
     assert ">Spese generali<" in html_con_spese
+    assert "Motore di calcolo attivo" in html_senza_spese
+    assert "Spese generali escluse dal totale." in html_senza_spese
+    assert "Spese generali incluse nel totale." in html_con_spese
     assert _extract_totale_compenso_base(html_con_spese) > _extract_totale_compenso_base(html_senza_spese)

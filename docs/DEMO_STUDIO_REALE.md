@@ -42,10 +42,12 @@ Il comando restituisce:
 ## Regole di qualita'
 
 - Il fascicolo resta il centro del lavoro operativo.
+- I documenti di portale devono mostrare nome ufficiale, classificazione, tipo atto e identificativi deposito; il quadro intelligente usa solo controlli reali e valuta scadenze e udienze rispetto alla data corrente.
 - Le attivita' validate possono diventare parcella senza ricopiare dati.
 - Il saldo cliente deriva da parcelle e pagamenti, non da contatori manuali.
 - La dashboard deve sempre dire `cosa fare adesso`.
 - L'AI aiuta con riepiloghi e suggerimenti, ma non prende decisioni legali non verificate.
+- `Sincronizza PEC` e `Auto-esiti` devono cercare le comunicazioni sul fascicolo usando almeno `RG + tribunale + nominativi cliente/controparte`, evitando associazioni deboli sul solo oggetto email.
 
 ## Evidenze minime da verificare
 

@@ -25,6 +25,10 @@
       <span class="badge bg-light text-dark border">OCR {{ document_management.stats.ocr_ready }}</span>
       <span class="badge bg-light text-dark border">Versioni {{ document_management.stats.versioni }}</span>
       <span class="badge bg-light text-dark border">Da portale {{ document_management.stats.dal_portale }}</span>
+      <span class="badge bg-light text-dark border">Metadati portale {{ document_management.stats.portale_classificati }}</span>
+      {% if document_management.stats.portale_senza_metadati %}
+      <span class="badge text-bg-warning border">Da riallineare {{ document_management.stats.portale_senza_metadati }}</span>
+      {% endif %}
     </div>
     {% if document_management.tag_cloud %}
     <div class="d-flex flex-wrap gap-2 mt-3">

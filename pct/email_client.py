@@ -17,6 +17,7 @@ import json
 import re
 import uuid
 import shutil
+import unicodedata
 from datetime import datetime
 from email.header import decode_header
 from email.utils import parsedate_to_datetime
@@ -624,6 +625,101 @@ def _estrai_rg_email(em: EmailRicevuta) -> tuple[str, str] | None:
     return match.group(1).lstrip("0") or "0", match.group(2)
 
 
+_EMAIL_MATCH_STOPWORDS = {
+    "rg",
+    "tribunale",
+    "causa",
+    "fascicolo",
+    "telematico",
+    "deposito",
+    "cancelleria",
+    "pec",
+    "atto",
+    "udienza",
+    "della",
+    "delle",
+    "degli",
+    "degli",
+    "dello",
+    "dalla",
+    "dello",
+    "per",
+    "con",
+    "del",
+    "dell",
+    "dellavv",
+    "avv",
+    "studio",
+}
+
+
+def _normalizza_testo_email_match(value: str) -> str:
+    testo = unicodedata.normalize("NFKD", str(value or "")).encode("ascii", "ignore").decode("ascii")
+    testo = re.sub(r"[_/\\-]+", " ", testo.lower())
+    return " ".join(testo.split())
+
+
+def _tokenizza_email_match(value: str) -> set[str]:
+    testo = _normalizza_testo_email_match(value)
+    tokens = re.findall(r"[a-z0-9]{3,}", testo)
+    return {
+        token
+        for token in tokens
+        if token not in _EMAIL_MATCH_STOPWORDS and not token.isdigit()
+    }
+
+
+def _corpo_normalizzato_email(em: EmailRicevuta) -> str:
+    return _normalizza_testo_email_match(
+        " ".join(
+            [
+                em.oggetto or "",
+                em.corpo_testo or "",
+                re.sub(r"<[^>]+>", " ", em.corpo_html or ""),
+                em.mittente or "",
+                em.mittente_nome or "",
+            ]
+        )
+    )
+
+
+def _score_fascicolo_email_identity(fasc, em: EmailRicevuta) -> int:
+    testo_email = _corpo_normalizzato_email(em)
+    tokens_email = _tokenizza_email_match(testo_email)
+    score = 0
+
+    nome_cliente = str(getattr(fasc, "nome_cliente", "") or "").strip()
+    if nome_cliente:
+        nome_cliente_norm = _normalizza_testo_email_match(nome_cliente)
+        if nome_cliente_norm and nome_cliente_norm in testo_email:
+            score += 55
+        overlap_cliente = _tokenizza_email_match(nome_cliente) & tokens_email
+        if len(overlap_cliente) >= 2:
+            score += 35
+        elif len(overlap_cliente) == 1:
+            score += 15
+
+    controparte = str(getattr(fasc, "controparte", "") or "").strip()
+    if controparte:
+        overlap_controparte = _tokenizza_email_match(controparte) & tokens_email
+        if len(overlap_controparte) >= 2:
+            score += 18
+
+    oggetto = str(getattr(fasc, "oggetto", "") or "").strip()
+    if oggetto:
+        overlap_oggetto = _tokenizza_email_match(oggetto) & tokens_email
+        if len(overlap_oggetto) >= 2:
+            score += 14
+
+    tribunale = str(getattr(fasc, "tribunale", "") or "").strip()
+    if tribunale:
+        overlap_tribunale = _tokenizza_email_match(tribunale) & tokens_email
+        if len(overlap_tribunale) >= 1:
+            score += 8
+
+    return score
+
+
 def _ordine_stato_pct(stato: str) -> int:
     return _STATI_PCT_ORDINE.get(str(stato or "").upper(), -1)
 
@@ -668,6 +764,7 @@ def _trova_match_deposito_email(fascicoli: List[object], em: EmailRicevuta) -> t
 
     for fasc in fascicoli:
         rg_ok = False
+        identity_score = _score_fascicolo_email_identity(fasc, em)
         if rg_email:
             num_rg, anno_rg = rg_email
             rg_ok = (
@@ -684,6 +781,7 @@ def _trova_match_deposito_email(fascicoli: List[object], em: EmailRicevuta) -> t
                     score += 140
             if rg_ok:
                 score += 60
+            score += identity_score
             if str(getattr(dep, "stato", "") or "").upper() not in {
                 "ACCETTATO_CANCELLERIA",
                 "RIFIUTATO_CANCELLERIA",
@@ -735,13 +833,17 @@ def _trova_fascicolo_da_email(fascicoli: List[object], em: EmailRicevuta):
     if not rg_email:
         return None
     num_rg, anno_rg = rg_email
+    best: tuple[int, object] | None = None
     for fasc in fascicoli:
-        if (
+        if not (
             str(getattr(fasc, "numero_rg", "") or "").lstrip("0") == num_rg
             and str(getattr(fasc, "anno_rg", "") or "") == anno_rg
         ):
-            return fasc
-    return None
+            continue
+        score = 100 + _score_fascicolo_email_identity(fasc, em)
+        if best is None or score > best[0]:
+            best = (score, fasc)
+    return best[1] if best else None
 
 
 def aggiorna_comunicazioni_cancelleria_da_email(

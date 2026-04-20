@@ -38,6 +38,8 @@ def build_document_management_summary(
     signed = 0
     ocr_ready = 0
     portale = 0
+    portale_classificati = 0
+    portale_senza_metadati = 0
     for doc in documenti:
         tags = normalize_document_tags(getattr(doc, "tags", []))
         for tag in tags:
@@ -49,6 +51,13 @@ def build_document_management_summary(
             ocr_ready += 1
         if getattr(doc, "id_deposito_pct", ""):
             portale += 1
+            if any(
+                str(getattr(doc, field_name, "") or "").strip()
+                for field_name in ("classificazione_portale", "tipo_atto_portale", "id_documento_portale")
+            ):
+                portale_classificati += 1
+            else:
+                portale_senza_metadati += 1
 
     search_results: list[dict[str, Any]] = []
     query_clean = str(query or "").strip()
@@ -74,7 +83,13 @@ def build_document_management_summary(
 
     next_action = "Carica il primo documento del fascicolo."
     if documenti:
-        if any(not normalize_document_tags(getattr(doc, "tags", [])) for doc in documenti[:10]):
+        if portale_senza_metadati:
+            next_action = (
+                f"Allinea {portale_senza_metadati} document"
+                + ("o" if portale_senza_metadati == 1 else "i")
+                + " del portale con classificazione ufficiale e metadati del deposito."
+            )
+        elif any(not normalize_document_tags(getattr(doc, "tags", [])) for doc in documenti[:10]):
             next_action = "Completa i tag dei documenti principali per migliorare ricerca e filtro."
         elif any(not getattr(doc, "ocr_estratto", False) and doc.nome.lower().endswith(".pdf") for doc in documenti):
             next_action = "Completa l'indicizzazione OCR dei PDF piu' rilevanti."
@@ -97,6 +112,8 @@ def build_document_management_summary(
             "taggati": sum(1 for doc in documenti if normalize_document_tags(getattr(doc, "tags", []))),
             "versioni": latest_versions,
             "dal_portale": portale,
+            "portale_classificati": portale_classificati,
+            "portale_senza_metadati": portale_senza_metadati,
         },
         "tag_cloud": [{"label": tag, "count": count} for tag, count in tags_counter.most_common(12)],
         "recenti": recenti,

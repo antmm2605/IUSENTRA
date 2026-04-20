@@ -402,6 +402,11 @@ def test_collega_documenti_a_deposito_portale_aggancia_file_locali_al_deposito_u
     assert deposito.servizio_portale == "DocumentiFascicolo"
     assert "File ufficiale acquisito dal fascicolo locale" in deposito.note
     assert fascicolo.documenti[0].id_deposito_pct == dep.id
+    assert fascicolo.documenti[0].classificazione_portale == "PROVVEDIMENTO"
+    assert fascicolo.documenti[0].tipo_atto_portale == "Sentenza"
+    assert fascicolo.documenti[0].id_documento_portale == "DOC-001"
+    assert fascicolo.documenti[0].mittente_portale == "cancelleria@tribunale.giustiziapec.it"
+    assert fascicolo.documenti[0].fonte_documento == "PORTALE_TELEMATICO"
     assert not any(
         att.tipo == TipoAttivita.CONSULTAZIONE and att.id_deposito_pct == dep.id
         for att in fascicolo.attivita
@@ -525,6 +530,52 @@ def test_sincronizza_deposito_portale_aggiorna_senza_duplicare(gf, fascicolo_bas
     assert len(esito_aggiornato.documenti_portale) == 2
     assert esito_aggiornato.documenti_portale[0]["nome"] in {"dispositivo.pdf", "sentenza.pdf"}
     assert len([att for att in fascicolo.attivita if att.id_deposito_pct == esito_aggiornato.id]) == 1
+
+
+def test_riconcilia_documenti_portale_allinea_nome_e_metadati(gf, fascicolo_base):
+    gf.sincronizza_deposito_portale(
+        fascicolo_base.id,
+        fonte="PolisWeb / PST",
+        id_deposito_esterno="BUSTA-PST-002",
+        tipo_atto="Verbale di udienza",
+        data_deposito="2026-04-06",
+        mittente="cancelleria@tribunale.palmi.giustiziapec.it",
+        documenti_portale=[
+            {
+                "id_documento": "DOC-VERB-01",
+                "nome": "VerbaleUdienza_33393309.pdf.p7m",
+                "tipo": "VERBALE",
+                "data_deposito": "2026-04-06",
+                "mittente": "cancelleria@tribunale.palmi.giustiziapec.it",
+                "dimensione_bytes": 20480,
+                "disponibile": True,
+                "id_deposito": "BUSTA-PST-002",
+                "tipo_atto": "Verbale di udienza",
+            }
+        ],
+        registrato_da="admin",
+        servizio_portale="DocumentiFascicolo",
+    )
+
+    doc = gf.aggiungi_documento(
+        fascicolo_base.id,
+        "verbaleudienza_33393309.pdf.p7m",
+        TipoDocumento.VERBALE,
+        b"verbale firmato",
+    )
+
+    report = gf.riconcilia_documenti_portale(fascicolo_base.id)
+    fascicolo = gf.get(fascicolo_base.id)
+    aggiornato = next(item for item in fascicolo.documenti if item.id == doc.id)
+
+    assert report["documenti_allineati"] == 1
+    assert aggiornato.nome == "VerbaleUdienza_33393309.pdf.p7m"
+    assert aggiornato.nome_originale == "verbaleudienza_33393309.pdf.p7m"
+    assert aggiornato.nome_portale == "VerbaleUdienza_33393309.pdf.p7m"
+    assert aggiornato.classificazione_portale == "VERBALE"
+    assert aggiornato.tipo_atto_portale == "Verbale di udienza"
+    assert aggiornato.id_documento_portale == "DOC-VERB-01"
+    assert aggiornato.fonte_documento == "PORTALE_TELEMATICO"
 
 
 # ------------------------------------------------------------------ Attività

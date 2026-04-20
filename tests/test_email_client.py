@@ -11,6 +11,7 @@ from pct.email_client import (
     EmailRicevuta,
     GestioneEmailRicevute,
     StatoEmail,
+    _trova_fascicolo_da_email,
     aggiorna_comunicazioni_cancelleria_da_email,
     aggiorna_esiti_da_email,
 )
@@ -244,6 +245,47 @@ def test_aggiorna_comunicazioni_cancelleria_da_email_associa_per_rg_senza_duplic
 
     report_dup = aggiorna_comunicazioni_cancelleria_da_email(ge, gf)
     assert report_dup["duplicati"] == 1
+
+
+def test_trova_fascicolo_da_email_pesa_rg_e_nome_cliente(tmp_path):
+    gf = GestioneFascicoli(
+        db_path=str(tmp_path / "fascicoli.json"),
+        documents_dir=str(tmp_path / "docs"),
+        archive_dir=str(tmp_path / "arch"),
+    )
+    fasc_match = gf.nuovo(
+        titolo="RG 1025/2024 Giovannella Maria Elena",
+        tipo=TipoFascicolo.CIVILE,
+        tribunale="Tribunale di Palmi",
+        numero_rg="1025",
+        anno_rg=2024,
+        nome_cliente="Giovannella Maria Elena",
+        oggetto="Vendita immobili",
+    )
+    gf.nuovo(
+        titolo="RG 1025/2024 altro fascicolo",
+        tipo=TipoFascicolo.CIVILE,
+        tribunale="Tribunale di Palmi",
+        numero_rg="1025",
+        anno_rg=2024,
+        nome_cliente="Mario Rossi",
+        oggetto="Opposizione",
+    )
+
+    em = EmailRicevuta(
+        id="PEC-MATCH-1",
+        cartella="INBOX",
+        stato=StatoEmail.NON_LETTA,
+        mittente="cancelleria@giustiziapec.it",
+        oggetto="Esito deposito RG 1025/2024 - Giovannella Maria Elena",
+        data="2026-04-20T09:15:00",
+        corpo_testo="Tribunale di Palmi - procedimento RG 1025/2024 relativo a Giovannella Maria Elena.",
+    )
+
+    trovato = _trova_fascicolo_da_email(gf.tutti(), em)
+
+    assert trovato is not None
+    assert trovato.id == fasc_match.id
 
 
 def test_aggiorna_esiti_da_email_popola_fasi_deposito_tramite_rg(tmp_path):

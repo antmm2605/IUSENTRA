@@ -15,6 +15,7 @@ La repo oggi non è più solo un tool CLI per il Processo Civile Telematico: con
 - Timesheet operativo con valorizzazione del tempo e generazione parcella dalle attivita' validate.
 - Fatturazione, pagamenti, saldo cliente e KPI economici per studio, cliente e fascicolo.
 - Fascicolo con `cabina operativa` a tab: quadro intelligente, workflow `fascicolo -> incasso`, controllo economico, governo documentale e conformita' deposito nella stessa vista.
+- Il `Quadro intelligente fascicolo` non usa piu' avanzamenti statici: valuta davvero documenti, classificazioni portale, scadenze rispetto a oggi, provvedimenti presenti e coerenza dello stato, mentre la PEC/auto-esiti associa i messaggi usando `RG + nominativo cliente/controparte + tribunale`.
 - Template atti, Checklist Atti professionale e workspace legali allineati sullo stesso catalogo operativo per aree, branche e sottobranche.
 - `Applicazioni` e' ora una cabina applicativa vera: moduli economici, telematici, template, lookup, utility e rassegna si aprono nello stesso workspace coerente invece di limitarsi a rinviare a link esterni o schede descrittive.
 - Giurisprudenza, legal intelligence, repository strutturati per Lex.

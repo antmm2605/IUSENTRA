@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.178.5 - 2026-04-20
+
+- Il `Quadro intelligente fascicolo` usa ora controlli reali sul fascicolo corrente invece delle vecchie percentuali statiche: anagrafica, documenti, metadati ufficiali di portale, scadenze rispetto alla data odierna, udienze storiche non riallineate e coerenza tra stato della pratica e provvedimenti presenti.
+- La regia del fascicolo non propone piu' mosse fuorvianti come `Udienza da portale` su pratiche con udienze ormai storiche: le scadenze vengono mostrate come future oppure scadute, e i provvedimenti finali presenti nel fascicolo entrano nella valutazione operativa.
+- I documenti acquisiti dal portale telematico riportano ora davvero nome ufficiale, classificazione, tipo atto, mittente, identificativi del deposito e riferimenti del portale anche sui fascicoli gia' scaricati, grazie alla riconciliazione automatica al primo accesso del dettaglio.
+- Il caricamento manuale memorizza il nome originale del file e la UI documento espone metadati ufficiali e origine del documento, cosi' la sezione documentale del fascicolo resta leggibile e verificabile.
+- Il presidio intelligente riconosce come chiusa anche una pratica legacy che serializza lo stato come stringa `DEFINITO` o `ARCHIVIATO`, e non duplica piu' gli stessi provvedimenti quando il portale li ha fatti entrare piu' volte nel fascicolo.
+- Rafforzato il matching PEC e `Auto-esiti`: oltre al numero RG usa anche nominativo cliente, controparte, oggetto e tribunale, migliorando l'associazione di comunicazioni di cancelleria e aggiornamenti deposito sul fascicolo corretto.
+
 ## 2.178.4 - 2026-04-20
 
 - Completato il supporto ufficiale ai costi organismo mediazione ex `D.M. 24 ottobre 2023, n. 150` in `Wizard preventivi` e `Console tariffaria`: regime volontaria / obbligatoria-demandata, esito del primo incontro o degli incontri successivi, maggiorazione art. 31, comma 3 e costo organismo che entra davvero nel totale operativo.

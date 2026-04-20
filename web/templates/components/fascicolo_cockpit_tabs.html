@@ -96,8 +96,14 @@
               {{ smart_actions[0] if smart_actions else 'Apri la scheda intelligente per rischi, prossime mosse e collegamenti rapidi.' }}
             </div>
             <div class="fascicolo-cockpit__summary-meta">
-              <span>{{ intelligenza_fascicolo.scadenze|length if intelligenza_fascicolo and intelligenza_fascicolo.scadenze else 0 }} scadenze presidiate</span>
-              <span>{{ intelligenza_fascicolo.giurisprudenza|length if intelligenza_fascicolo and intelligenza_fascicolo.giurisprudenza else 0 }} sentenze suggerite</span>
+              <span>
+                {{ intelligenza_fascicolo.scadenze|length if intelligenza_fascicolo and intelligenza_fascicolo.scadenze else 0 }}
+                in agenda{% if intelligenza_fascicolo and intelligenza_fascicolo.scadenze_scadute %} · {{ intelligenza_fascicolo.scadenze_scadute|length }} scadute{% endif %}
+              </span>
+              <span>
+                {{ intelligenza_fascicolo.provvedimenti|length if intelligenza_fascicolo and intelligenza_fascicolo.provvedimenti else 0 }}
+                provvedimenti{% if intelligenza_fascicolo and intelligenza_fascicolo.giurisprudenza %} · {{ intelligenza_fascicolo.giurisprudenza|length }} sentenze suggerite{% endif %}
+              </span>
             </div>
             <button class="btn btn-sm btn-outline-primary fascicolo-cockpit__switch" type="button" data-bs-toggle="pill" data-bs-target="#fascicolo-cockpit-quadro">Apri scheda</button>
           </article>
@@ -202,6 +208,10 @@
               <span class="badge text-bg-light border">OCR {{ dm_stats.ocr_ready if dm_stats and dm_stats.ocr_ready is defined else 0 }}</span>
               <span class="badge text-bg-light border">Versioni {{ dm_stats.versioni if dm_stats and dm_stats.versioni is defined else 0 }}</span>
               <span class="badge text-bg-light border">Portale {{ dm_stats.dal_portale if dm_stats and dm_stats.dal_portale is defined else 0 }}</span>
+              <span class="badge text-bg-light border">Classificati {{ dm_stats.portale_classificati if dm_stats and dm_stats.portale_classificati is defined else 0 }}</span>
+              {% if dm_stats and dm_stats.portale_senza_metadati %}
+              <span class="badge text-bg-warning">Da riallineare {{ dm_stats.portale_senza_metadati }}</span>
+              {% endif %}
             </div>
             <div class="small text-muted mt-3">
               Usa questa scheda per capire se il fascicolo e' indicizzato, se i documenti sono ricercabili e se restano allegati da strutturare.

@@ -192,6 +192,18 @@ class Documento:
     tags: List[str] = field(default_factory=list)
     id_deposito_pct: str = ""      # collegamento a deposito PCT
     caricato_da: str = ""
+    fonte_documento: str = ""      # CARICAMENTO_STUDIO | PORTALE_TELEMATICO | IMPORT_ESTERNO
+    nome_originale: str = ""       # nome file effettivamente acquisito
+    nome_portale: str = ""         # nome censito dal portale ufficiale
+    classificazione_portale: str = ""
+    tipo_atto_portale: str = ""
+    servizio_portale: str = ""
+    mittente_portale: str = ""
+    data_deposito_portale: str = ""
+    id_documento_portale: str = ""
+    id_cat_portale: str = ""
+    id_repeatto_portale: str = ""
+    msg_id_portale: str = ""
     ocr_estratto: bool = False     # True dopo OCR completato e testo indicizzato
     # #7 — Storico versioni (versioni precedenti del documento)
     versioni: List["DocumentoVersione"] = field(default_factory=list)
@@ -217,6 +229,18 @@ class Documento:
         d["versioni"] = [DocumentoVersione.from_dict(v) for v in d.get("versioni", [])]
         d.setdefault("ocr_estratto", False)
         d.setdefault("tags", [])
+        d.setdefault("fonte_documento", "")
+        d.setdefault("nome_originale", "")
+        d.setdefault("nome_portale", "")
+        d.setdefault("classificazione_portale", "")
+        d.setdefault("tipo_atto_portale", "")
+        d.setdefault("servizio_portale", "")
+        d.setdefault("mittente_portale", "")
+        d.setdefault("data_deposito_portale", "")
+        d.setdefault("id_documento_portale", "")
+        d.setdefault("id_cat_portale", "")
+        d.setdefault("id_repeatto_portale", "")
+        d.setdefault("msg_id_portale", "")
         return cls(**d)
 
 
@@ -323,6 +347,30 @@ def _normalizza_esito_controlli(esito: str) -> str:
     if valore not in {"OK", "WARN", "ERROR"}:
         raise ValueError(f"Esito controlli non valido: {esito}")
     return valore
+
+
+def _normalizza_nome_documento_match(nome: str) -> str:
+    testo = Path(str(nome or "").strip()).name.casefold()
+    testo = re.sub(r"\.p7m$", "", testo)
+    testo = re.sub(r"\s+", "", testo)
+    return re.sub(r"[^a-z0-9]+", "", testo)
+
+
+def _documento_portale_payload(dep: "EsitoDepositoPCT", item: dict | None) -> dict[str, str]:
+    row = dict(item or {})
+    return {
+        "fonte_documento": "PORTALE_TELEMATICO",
+        "nome_portale": str(row.get("nome") or "").strip(),
+        "classificazione_portale": str(row.get("tipo") or "").strip(),
+        "tipo_atto_portale": str(row.get("tipo_atto") or getattr(dep, "tipo_atto", "") or "").strip(),
+        "servizio_portale": str(getattr(dep, "servizio_portale", "") or "").strip(),
+        "mittente_portale": str(row.get("mittente") or getattr(dep, "pec_destinatario", "") or "").strip(),
+        "data_deposito_portale": str(row.get("data_deposito") or "").strip(),
+        "id_documento_portale": str(row.get("id_documento") or "").strip(),
+        "id_cat_portale": str(row.get("id_cat") or "").strip(),
+        "id_repeatto_portale": str(row.get("id_repeatto") or "").strip(),
+        "msg_id_portale": str(row.get("msg_id") or "").strip(),
+    }
 
 
 def _migra_payload_depositi_pct(payload_fascicolo: dict) -> bool:
@@ -839,6 +887,18 @@ class GestioneFascicoli:
         firmato: bool = False,
         caricato_da: str = "",
         id_deposito_pct: str = "",
+        fonte_documento: str = "",
+        nome_originale: str = "",
+        nome_portale: str = "",
+        classificazione_portale: str = "",
+        tipo_atto_portale: str = "",
+        servizio_portale: str = "",
+        mittente_portale: str = "",
+        data_deposito_portale: str = "",
+        id_documento_portale: str = "",
+        id_cat_portale: str = "",
+        id_repeatto_portale: str = "",
+        msg_id_portale: str = "",
     ) -> Documento:
         """
         Aggiunge un documento al fascicolo salvandolo su disco.
@@ -875,6 +935,18 @@ class GestioneFascicoli:
             data_documento=data_documento or date.today().isoformat(),
             caricato_da=caricato_da,
             id_deposito_pct=id_deposito_pct,
+            fonte_documento=str(fonte_documento or "").strip(),
+            nome_originale=str(nome_originale or nome_file or "").strip(),
+            nome_portale=str(nome_portale or "").strip(),
+            classificazione_portale=str(classificazione_portale or "").strip(),
+            tipo_atto_portale=str(tipo_atto_portale or "").strip(),
+            servizio_portale=str(servizio_portale or "").strip(),
+            mittente_portale=str(mittente_portale or "").strip(),
+            data_deposito_portale=str(data_deposito_portale or "").strip(),
+            id_documento_portale=str(id_documento_portale or "").strip(),
+            id_cat_portale=str(id_cat_portale or "").strip(),
+            id_repeatto_portale=str(id_repeatto_portale or "").strip(),
+            msg_id_portale=str(msg_id_portale or "").strip(),
         )
         f.documenti.append(doc)
         f.modificato_il = datetime.now().isoformat()
@@ -937,6 +1009,132 @@ class GestioneFascicoli:
         f.modificato_il = datetime.now().isoformat()
         self._salva()
         return doc
+
+    @staticmethod
+    def _trova_documento_portale_correlato(
+        doc: Documento,
+        dep: "EsitoDepositoPCT",
+    ) -> dict | None:
+        documenti_portale = list(getattr(dep, "documenti_portale", []) or [])
+        if not documenti_portale:
+            return None
+
+        doc_portale_id = str(getattr(doc, "id_documento_portale", "") or "").strip()
+        if doc_portale_id:
+            match = next(
+                (
+                    item
+                    for item in documenti_portale
+                    if str((item or {}).get("id_documento") or "").strip() == doc_portale_id
+                ),
+                None,
+            )
+            if match:
+                return match
+
+        id_cat = str(getattr(doc, "id_cat_portale", "") or "").strip()
+        if id_cat:
+            match = next(
+                (
+                    item
+                    for item in documenti_portale
+                    if str((item or {}).get("id_cat") or "").strip() == id_cat
+                ),
+                None,
+            )
+            if match:
+                return match
+
+        keys = {
+            _normalizza_nome_documento_match(getattr(doc, "nome", "")),
+            _normalizza_nome_documento_match(getattr(doc, "nome_originale", "")),
+            _normalizza_nome_documento_match(getattr(doc, "nome_portale", "")),
+        }
+        keys.discard("")
+        exact = [
+            item
+            for item in documenti_portale
+            if _normalizza_nome_documento_match((item or {}).get("nome") or "") in keys
+        ]
+        if len(exact) == 1:
+            return exact[0]
+
+        if len(documenti_portale) == 1 and (
+            getattr(doc, "id_deposito_pct", "") == getattr(dep, "id", "")
+            or getattr(doc, "id", "") in (getattr(dep, "documenti_ids", []) or [])
+            or getattr(doc, "fonte_documento", "") == "PORTALE_TELEMATICO"
+        ):
+            return documenti_portale[0]
+        return None
+
+    @staticmethod
+    def _arricchisci_documento_da_deposito_portale(
+        doc: Documento,
+        dep: "EsitoDepositoPCT",
+        item: dict | None,
+    ) -> bool:
+        row = _documento_portale_payload(dep, item)
+        changed = False
+
+        if not getattr(doc, "fonte_documento", ""):
+            doc.fonte_documento = row["fonte_documento"]
+            changed = True
+        if not doc.nome_originale:
+            doc.nome_originale = doc.nome
+            changed = True
+
+        for field_name, value in row.items():
+            if field_name == "fonte_documento":
+                continue
+            if not value:
+                continue
+            if getattr(doc, field_name, "") != value:
+                setattr(doc, field_name, value)
+                changed = True
+        nome_ufficiale = row.get("nome_portale", "")
+        if (
+            nome_ufficiale
+            and doc.fonte_documento == "PORTALE_TELEMATICO"
+            and getattr(doc, "nome", "") != nome_ufficiale
+        ):
+            if not doc.nome_originale:
+                doc.nome_originale = doc.nome
+            doc.nome = nome_ufficiale
+            changed = True
+        return changed
+
+    def riconcilia_documenti_portale(self, id_fasc: str) -> dict[str, int]:
+        f = self._get_o_errore(id_fasc)
+        aggiornati = 0
+        depositi_toccati = 0
+        for dep in f.depositi_pct:
+            docs_locali = []
+            for doc in f.documenti:
+                if doc.id_deposito_pct == dep.id or doc.id in (dep.documenti_ids or []):
+                    docs_locali.append(doc)
+                    continue
+                if self._trova_documento_portale_correlato(doc, dep):
+                    docs_locali.append(doc)
+            if not docs_locali or not getattr(dep, "documenti_portale", None):
+                continue
+            dep_changed = False
+            for doc in docs_locali:
+                match = self._trova_documento_portale_correlato(doc, dep)
+                if not match:
+                    continue
+                if self._arricchisci_documento_da_deposito_portale(doc, dep, match):
+                    aggiornati += 1
+                    dep_changed = True
+            if dep_changed:
+                depositi_toccati += 1
+
+        if aggiornati:
+            f.modificato_il = datetime.now().isoformat()
+            self._salva()
+        return {
+            "documenti_allineati": aggiornati,
+            "depositi_toccati": depositi_toccati,
+        }
 
     def rimuovi_documento(self, id_fasc: str, id_doc: str) -> None:
         f = self._get_o_errore(id_fasc)
@@ -1144,6 +1342,9 @@ class GestioneFascicoli:
         for doc in f.documenti:
             if doc.id in nuovi_ids:
                 doc.id_deposito_pct = dep.id
+                match = self._trova_documento_portale_correlato(doc, dep)
+                if match:
+                    self._arricchisci_documento_da_deposito_portale(doc, dep, match)
 
         descrizione = note.strip()
         if descrizione:
@@ -1285,6 +1486,11 @@ class GestioneFascicoli:
             dep.fonte_portale = fonte or dep.fonte_portale
             dep.servizio_portale = servizio_portale or dep.servizio_portale
             dep.documenti_portale = _merge_documenti_portale(dep.documenti_portale, documenti_norm)
+            for doc in f.documenti:
+                if doc.id_deposito_pct == dep.id or doc.id in (dep.documenti_ids or []):
+                    match = self._trova_documento_portale_correlato(doc, dep)
+                    if match:
+                        self._arricchisci_documento_da_deposito_portale(doc, dep, match)
             f.modificato_il = datetime.now().isoformat()
             self._salva()
             return dep

@@ -9,7 +9,7 @@ from typing import Any, Dict, Iterable, List, Optional
 from pct import cache as _cache
 from pct.agenda import Agenda, StatoAppuntamento
 from pct.calendar_sync import GestioneCalendarSync
-from pct.fascicoli import Fascicolo, GestioneFascicoli, StatoFascicolo, TipoFascicolo
+from pct.fascicoli import Fascicolo, GestioneFascicoli, StatoFascicolo, TipoDocumento, TipoFascicolo
 from pct.giurisprudenza import GestioneGiurisprudenza
 from pct.postgres_runtime_support import resolve_runtime_postgres_dsn
 from pct.scadenziario import GestioneScadenziario, RegolaCalendario, Scadenza
@@ -155,6 +155,67 @@ def _extract_keywords(fascicolo: Fascicolo) -> List[str]:
     return [seed for seed in seeds if seed in bag]
 
 
+def _documento_tipo_value(documento: Any) -> str:
+    return str(getattr(getattr(documento, "tipo", ""), "value", getattr(documento, "tipo", "")) or "").strip().upper()
+
+
+def _documento_classificazione_ufficiale(documento: Any) -> str:
+    return str(
+        getattr(documento, "classificazione_portale", "")
+        or getattr(documento, "tipo_atto_portale", "")
+        or getattr(documento, "nome_portale", "")
+        or _documento_tipo_value(documento).replace("_", " ")
+    ).strip()
+
+
+def _documento_e_provvedimento(documento: Any) -> bool:
+    return _documento_tipo_value(documento) in {
+        TipoDocumento.SENTENZA.value,
+        TipoDocumento.ORDINANZA.value,
+        TipoDocumento.DECRETO.value,
+        TipoDocumento.VERBALE.value,
+    }
+
+
+def _documento_e_provvedimento_finale(documento: Any) -> bool:
+    tipo = _documento_tipo_value(documento)
+    testo = " ".join(
+        [
+            tipo,
+            str(getattr(documento, "classificazione_portale", "") or ""),
+            str(getattr(documento, "tipo_atto_portale", "") or ""),
+            str(getattr(documento, "nome_portale", "") or ""),
+            str(getattr(documento, "nome", "") or ""),
+        ]
+    ).lower()
+    if tipo == TipoDocumento.SENTENZA.value:
+        return True
+    return tipo in {TipoDocumento.ORDINANZA.value, TipoDocumento.DECRETO.value} and any(
+        token in testo for token in ("definitiv", "estin", "chius", "provvedimento finale")
+    )
+
+
+def _documento_sort_date(documento: Any) -> str:
+    return str(
+        getattr(documento, "data_deposito_portale", "")
+        or getattr(documento, "data_documento", "")
+        or getattr(documento, "data_caricamento", "")
+        or ""
+    )[:10]
+
+
+def _normalizza_chiave_presidio(value: Any) -> str:
+    return " ".join(str(value or "").strip().lower().split())
+
+
+def _stato_fascicolo_chiuso(fascicolo: Fascicolo) -> bool:
+    stato = getattr(fascicolo, "stato", "")
+    if stato in {StatoFascicolo.DEFINITO, StatoFascicolo.ARCHIVIATO}:
+        return True
+    stato_value = str(getattr(stato, "value", stato) or "").strip().upper()
+    return stato_value in {"DEFINITO", "ARCHIVIATO", "STATOFASCICOLO.DEFINITO", "STATOFASCICOLO.ARCHIVIATO"}
+
+
 class WorkspaceIntelligenteService:
     def __init__(
         self,
@@ -281,34 +342,279 @@ class WorkspaceIntelligenteService:
                     return suggestions
         return suggestions[:limit]
 
+    @staticmethod
+    def _scadenze_operative_fascicolo(scadenze: List[Scadenza]) -> dict[str, List[Scadenza]]:
+        aperte = [
+            row
+            for row in (scadenze or [])
+            if getattr(getattr(row, "stato", ""), "value", getattr(row, "stato", "")) not in {"COMPLETATO", "ANNULLATO"}
+        ]
+        aperte.sort(key=lambda row: row.data_scadenza or "9999-12-31")
+        future = [row for row in aperte if (row.giorni_alla_scadenza or 0) >= 0]
+        overdue = [row for row in aperte if row.giorni_alla_scadenza is not None and row.giorni_alla_scadenza < 0]
+        return {
+            "aperte": aperte,
+            "future": future,
+            "scadute": overdue,
+        }
+
+    @staticmethod
+    def _date_udienza_fascicolo(fascicolo: Fascicolo, apps: List[Any]) -> dict[str, Any]:
+        candidati: list[date] = []
+        for raw_value in (
+            getattr(fascicolo, "data_prossima_udienza", ""),
+            getattr(fascicolo, "data_prima_udienza", ""),
+        ):
+            parsed = _parse_date(str(raw_value or ""))
+            if parsed:
+                candidati.append(parsed)
+        for item in apps or []:
+            titolo = str(getattr(item, "titolo", "") or "").lower()
+            if "udienza" not in titolo:
+                continue
+            parsed = _parse_date(str(getattr(item, "data_ora", "") or getattr(item, "data_ora_dt", "") or ""))
+            if parsed:
+                candidati.append(parsed)
+        unique_dates = sorted({giorno.isoformat(): giorno for giorno in candidati}.values())
+        today = date.today()
+        future = [giorno for giorno in unique_dates if giorno >= today]
+        past = [giorno for giorno in unique_dates if giorno < today]
+        return {
+            "future": future[0] if future else None,
+            "last_past": past[-1] if past else None,
+            "all": unique_dates,
+        }
+
+    @staticmethod
+    def _provvedimenti_fascicolo(fascicolo: Fascicolo, limit: int = 5) -> List[Dict[str, Any]]:
+        rows: list[dict[str, Any]] = []
+        seen: set[tuple[str, str, str]] = set()
+        for doc in getattr(fascicolo, "documenti", []) or []:
+            if not _documento_e_provvedimento(doc):
+                continue
+            row = {
+                "id_doc": getattr(doc, "id", ""),
+                "titolo": str(getattr(doc, "nome_portale", "") or getattr(doc, "nome", "")).strip(),
+                "classificazione": _documento_classificazione_ufficiale(doc),
+                "data": _documento_sort_date(doc),
+                "finale": _documento_e_provvedimento_finale(doc),
+                "fonte": str(
+                    getattr(doc, "servizio_portale", "")
+                    or getattr(doc, "fonte_documento", "")
+                    or "fascicolo"
+                ).strip(),
+            }
+            dedup_key = (
+                _normalizza_chiave_presidio(row["titolo"]),
+                _normalizza_chiave_presidio(row["classificazione"]),
+                _normalizza_chiave_presidio(row["data"]),
+            )
+            if dedup_key in seen:
+                continue
+            seen.add(dedup_key)
+            rows.append(row)
+        rows.sort(key=lambda row: (row.get("data", ""), row.get("titolo", "")), reverse=True)
+        return rows[:limit]
+
+    def _presidio_documentale_fascicolo(self, fascicolo: Fascicolo) -> dict[str, Any]:
+        documenti = list(getattr(fascicolo, "documenti", []) or [])
+        portale_docs = [
+            doc
+            for doc in documenti
+            if getattr(doc, "id_deposito_pct", "") or getattr(doc, "fonte_documento", "") == "PORTALE_TELEMATICO"
+        ]
+        metadati_mancanti = [
+            doc
+            for doc in portale_docs
+            if not any(
+                str(getattr(doc, field_name, "") or "").strip()
+                for field_name in ("classificazione_portale", "tipo_atto_portale", "id_documento_portale")
+            )
+        ]
+        return {
+            "documenti_totali": len(documenti),
+            "documenti_portale": len(portale_docs),
+            "documenti_portale_allineati": len(portale_docs) - len(metadati_mancanti),
+            "documenti_portale_mancanti": len(metadati_mancanti),
+            "metadati_mancanti": metadati_mancanti[:5],
+            "provvedimenti": self._provvedimenti_fascicolo(fascicolo),
+            "ha_provvedimento_finale": any(_documento_e_provvedimento_finale(doc) for doc in documenti),
+        }
+
+    def _presidio_fascicolo(
+        self,
+        fascicolo: Fascicolo,
+        deadlines: List[Scadenza],
+        appointments: List[Any],
+        judgments: List[Dict[str, Any]],
+    ) -> Dict[str, Any]:
+        scadenze = self._scadenze_operative_fascicolo(deadlines)
+        udienze = self._date_udienza_fascicolo(fascicolo, appointments)
+        documenti = self._presidio_documentale_fascicolo(fascicolo)
+        stato_chiusura = _stato_fascicolo_chiuso(fascicolo)
+        anagrafica_ok = bool(
+            (getattr(fascicolo, "id_cliente", "") or getattr(fascicolo, "nome_cliente", ""))
+            and getattr(fascicolo, "tribunale", "")
+            and getattr(fascicolo, "numero_rg", "")
+            and getattr(fascicolo, "anno_rg", 0)
+        )
+        documenti_ok = documenti["documenti_totali"] > 0
+        portale_ok = documenti["documenti_portale"] == 0 or documenti["documenti_portale_mancanti"] == 0
+        udienza_passata_non_allineata = bool(
+            udienze["last_past"]
+            and not udienze["future"]
+            and not documenti["ha_provvedimento_finale"]
+            and not stato_chiusura
+        )
+        calendario_ok = not scadenze["scadute"] and not udienza_passata_non_allineata
+        stato_pratica_ok = not (documenti["ha_provvedimento_finale"] and not stato_chiusura)
+        checks = [
+            {
+                "label": "Anagrafica pratica completa",
+                "ok": anagrafica_ok,
+                "note": "Cliente, RG e tribunale presenti." if anagrafica_ok else "Completare cliente, RG o tribunale.",
+            },
+            {
+                "label": "Documenti fascicolo disponibili",
+                "ok": documenti_ok,
+                "note": (
+                    f"{documenti['documenti_totali']} documenti presenti."
+                    if documenti_ok
+                    else "Manca almeno un documento operativo."
+                ),
+            },
+            {
+                "label": "Metadati ufficiali del portale",
+                "ok": portale_ok,
+                "note": (
+                    "Classificazioni ufficiali allineate."
+                    if portale_ok
+                    else f"{documenti['documenti_portale_mancanti']} documenti da riallineare."
+                ),
+            },
+            {
+                "label": "Scadenze e udienze coerenti con oggi",
+                "ok": calendario_ok,
+                "note": (
+                    "Nessuna scadenza aperta scaduta."
+                    if calendario_ok
+                    else "Sono presenti scadenze scadute o udienze storiche ancora aperte."
+                ),
+            },
+            {
+                "label": "Stato pratica coerente con gli atti",
+                "ok": stato_pratica_ok,
+                "note": (
+                    "Lo stato e' coerente con i provvedimenti presenti."
+                    if stato_pratica_ok
+                    else "E' presente un provvedimento finale ma la pratica non risulta definita."
+                ),
+            },
+        ]
+        completed = sum(1 for item in checks if item["ok"])
+        progress = int(round((completed / len(checks)) * 100)) if checks else 0
+
+        tone = "secondary"
+        summary = "Pratica da riallineare"
+        hero_note = "Controlli reali eseguiti su documenti, scadenze, udienze e stato della pratica."
+        if scadenze["scadute"]:
+            tone = "danger"
+            first = scadenze["scadute"][0]
+            summary = "Presidio urgente richiesto"
+            hero_note = f"La scadenza '{first.titolo}' risulta scaduta e va chiusa o riallineata."
+        elif udienza_passata_non_allineata:
+            tone = "warning"
+            summary = "Udienza storica da storicizzare"
+            hero_note = "E' presente un'udienza gia' trascorsa ma la pratica non risulta ancora riallineata."
+        elif not portale_ok:
+            tone = "warning"
+            summary = "Metadati ufficiali da completare"
+            hero_note = "I documenti scaricati dal portale devono riportare classificazione e identificativi ufficiali."
+        elif not stato_pratica_ok:
+            tone = "primary"
+            summary = "Provvedimento finale presente"
+            hero_note = "Gli atti mostrano una chiusura sostanziale: aggiorna definizione, incasso e archivio."
+        elif stato_chiusura and progress == 100:
+            tone = "success"
+            summary = "Pratica chiusa e coerente"
+            hero_note = "Il fascicolo e' definito e non emergono disallineamenti operativi residui."
+        elif progress >= 80:
+            tone = "success"
+            summary = "Pratica presidiata"
+            hero_note = "Il fascicolo e' allineato sulle evidenze operative correnti."
+
+        return {
+            "progress_percent": progress,
+            "tone": tone,
+            "summary": summary,
+            "hero_note": hero_note,
+            "checks": checks,
+            "scadenze_future": scadenze["future"][:4],
+            "scadenze_scadute": scadenze["scadute"][:4],
+            "udienza_futura": udienze["future"].isoformat() if udienze["future"] else "",
+            "udienza_passata": udienze["last_past"].isoformat() if udienze["last_past"] else "",
+            "documentale": documenti,
+            "stato_chiusura": stato_chiusura,
+            "ha_giurisprudenza": bool(judgments),
+            "udienza_passata_non_allineata": udienza_passata_non_allineata,
+            "provvedimenti": documenti["provvedimenti"],
+        }
+
     def _next_actions_for_fascicolo(
         self,
         fascicolo: Fascicolo,
         deadlines: List[Scadenza],
         appointments: List[Any],
         judgments: List[Dict[str, Any]],
+        *,
+        presidio: Optional[Dict[str, Any]] = None,
     ) -> List[str]:
         actions: List[str] = []
-        if deadlines:
-            first = deadlines[0]
+        presidio = dict(presidio or {})
+        scadenze_future = list(presidio.get("scadenze_future") or deadlines or [])
+        scadenze_scadute = list(presidio.get("scadenze_scadute") or [])
+        documentale = dict(presidio.get("documentale") or {})
+        ha_provvedimento_finale_aperto = bool(
+            documentale.get("ha_provvedimento_finale") and not presidio.get("stato_chiusura")
+        )
+
+        if ha_provvedimento_finale_aperto:
+            actions.append(
+                "E' presente un provvedimento finale: aggiorna definizione, incasso e archiviazione della pratica."
+            )
+        elif scadenze_scadute:
+            first = scadenze_scadute[0]
+            actions.append(
+                f"Chiudere o riallineare subito la scadenza '{first.titolo}' perche' risulta gia' scaduta."
+            )
+        elif scadenze_future:
+            first = scadenze_future[0]
             days = first.giorni_alla_scadenza
             if days is not None and days <= 3:
                 actions.append(f"Preparare subito l'adempimento '{first.titolo}' e verificare firma o allegati.")
             elif days is not None and days <= 7:
                 actions.append(f"Pianificare entro oggi la lavorazione di '{first.titolo}'.")
-        else:
-            actions.append("Valutare se manca una scadenza processuale da presidiare nel fascicolo.")
+        elif fascicolo.stato in (StatoFascicolo.APERTO, StatoFascicolo.IN_CORSO):
+            actions.append("Verificare se manca una scadenza processuale o un esito udienza da presidiare nel fascicolo.")
 
-        if appointments:
+        if documentale.get("documenti_portale_mancanti"):
+            actions.append(
+                f"Allineare {documentale['documenti_portale_mancanti']} documenti del portale con classificazione ufficiale e identificativi del deposito."
+            )
+        elif presidio.get("udienza_passata_non_allineata"):
+            actions.append("Storicizzare l'udienza gia' trascorsa o aggiornare il fascicolo con il relativo provvedimento.")
+        elif appointments and not ha_provvedimento_finale_aperto:
             first_app = appointments[0]
             actions.append(f"Confermare agenda e note operative per '{first_app.titolo}'.")
-        elif fascicolo.stato in (StatoFascicolo.APERTO, StatoFascicolo.IN_CORSO):
+        elif presidio.get("udienza_futura") and not ha_provvedimento_finale_aperto:
+            actions.append("Confermare note operative, presenze e allegati per la prossima udienza.")
+        elif fascicolo.stato in (StatoFascicolo.APERTO, StatoFascicolo.IN_CORSO) and not ha_provvedimento_finale_aperto:
             actions.append("Valutare un appuntamento cliente o una riunione di preparazione.")
 
-        if not judgments:
+        if not judgments and not presidio.get("provvedimenti"):
             actions.append("Avviare una ricerca giurisprudenziale mirata collegata all'oggetto della pratica.")
         else:
-            actions.append("Selezionare le sentenze piu forti e collegarle all'atto o all'udienza.")
+            actions.append("Selezionare i provvedimenti o le sentenze piu rilevanti e collegarli all'atto o all'esito della pratica.")
 
         return actions[:3]
 
@@ -341,9 +647,12 @@ class WorkspaceIntelligenteService:
             fasc_deadlines = deadlines_by_fascicolo.get(fascicolo.id, [])
             fasc_apps = appointments_by_fascicolo.get(fascicolo.id, [])
             judgments = self._giurisprudenza_per_fascicolo(fascicolo, limit=3)
+            presidio = self._presidio_fascicolo(fascicolo, fasc_deadlines[:6], fasc_apps[:4], judgments)
             score = 0
-            if fasc_deadlines:
-                first_deadline = fasc_deadlines[0]
+            if presidio["scadenze_scadute"]:
+                score += 70
+            elif presidio["scadenze_future"]:
+                first_deadline = presidio["scadenze_future"][0]
                 days = first_deadline.giorni_alla_scadenza
                 if days is not None:
                     if days <= 3:
@@ -352,18 +661,17 @@ class WorkspaceIntelligenteService:
                         score += 40
                     elif days <= horizon_days:
                         score += 20
-            if fasc_apps:
-                first_app = fasc_apps[0]
-                days_to_app = (first_app.data_ora_dt.date() - date.today()).days
-                if days_to_app <= 2:
-                    score += 30
-                elif days_to_app <= 7:
-                    score += 15
+            if presidio.get("udienza_futura"):
+                score += 20
+            if presidio.get("documentale", {}).get("documenti_portale_mancanti"):
+                score += 18
+            if presidio.get("udienza_passata_non_allineata"):
+                score += 16
+            if presidio.get("documentale", {}).get("ha_provvedimento_finale") and not presidio.get("stato_chiusura"):
+                score += 14
             if fascicolo.stato == StatoFascicolo.IN_CORSO:
                 score += 10
-            if not fasc_deadlines and fascicolo.stato in (StatoFascicolo.APERTO, StatoFascicolo.IN_CORSO):
-                score += 5
-            if not judgments:
+            if not judgments and not presidio.get("provvedimenti"):
                 score += 4
             if not score:
                 continue
@@ -377,10 +685,19 @@ class WorkspaceIntelligenteService:
                     "stato": getattr(fascicolo.stato, "value", ""),
                     "tribunale": fascicolo.tribunale,
                     "score": score,
-                    "scadenze": fasc_deadlines[:3],
+                    "scadenze": presidio["scadenze_future"][:3],
+                    "scadenze_scadute": presidio["scadenze_scadute"][:2],
                     "appuntamenti": fasc_apps[:2],
                     "giurisprudenza": judgments,
-                    "azioni": self._next_actions_for_fascicolo(fascicolo, fasc_deadlines[:3], fasc_apps[:2], judgments),
+                    "provvedimenti": presidio["provvedimenti"],
+                    "presidio": presidio,
+                    "azioni": self._next_actions_for_fascicolo(
+                        fascicolo,
+                        presidio["scadenze_future"][:3],
+                        fasc_apps[:2],
+                        judgments,
+                        presidio=presidio,
+                    ),
                 }
             )
         hot.sort(
@@ -516,20 +833,30 @@ class WorkspaceIntelligenteService:
         fasc_apps.sort(key=lambda row: row.data_ora)
 
         judgments = self._giurisprudenza_per_fascicolo(fascicolo, limit=judgments_limit)
+        presidio = self._presidio_fascicolo(fascicolo, fasc_deadlines[:8], fasc_apps[:4], judgments)
         office_sources = _unique_strings(
             deadline.judicial_office_source_url
             for deadline in fasc_deadlines
             if deadline.judicial_office_source_url
         )
         return {
-            "next_actions": self._next_actions_for_fascicolo(fascicolo, fasc_deadlines[:3], fasc_apps[:2], judgments),
-            "scadenze": fasc_deadlines[:4],
+            "next_actions": self._next_actions_for_fascicolo(
+                fascicolo,
+                presidio["scadenze_future"][:3],
+                fasc_apps[:2],
+                judgments,
+                presidio=presidio,
+            ),
+            "scadenze": presidio["scadenze_future"][:4],
+            "scadenze_scadute": presidio["scadenze_scadute"][:4],
             "appuntamenti": fasc_apps[:3],
             "giurisprudenza": judgments,
+            "provvedimenti": presidio["provvedimenti"],
+            "presidio": presidio,
             "area_hint": _fascicolo_area_hint(fascicolo),
             "keywords": _extract_keywords(fascicolo),
             "office_sources": office_sources,
-            "has_items": bool(fasc_deadlines or fasc_apps or judgments),
+            "has_items": bool(fasc_deadlines or fasc_apps or judgments or presidio["provvedimenti"]),
         }
 
     def save_snapshot(self, path: str, overview: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:

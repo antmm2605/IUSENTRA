@@ -1353,6 +1353,18 @@ def build_fascicoli_runtime(
         data_documento: str = "",
         firmato: bool = False,
         caricato_da: str = "",
+        fonte_documento: str = "",
+        nome_originale: str = "",
+        nome_portale: str = "",
+        classificazione_portale: str = "",
+        tipo_atto_portale: str = "",
+        servizio_portale: str = "",
+        mittente_portale: str = "",
+        data_deposito_portale: str = "",
+        id_documento_portale: str = "",
+        id_cat_portale: str = "",
+        id_repeatto_portale: str = "",
+        msg_id_portale: str = "",
     ) -> Documento:
         contenuto = _encrypt_doc(raw)
         doc = gf.aggiungi_documento(
@@ -1365,6 +1377,18 @@ def build_fascicoli_runtime(
             data_documento=data_documento,
             firmato=firmato,
             caricato_da=caricato_da,
+            fonte_documento=fonte_documento,
+            nome_originale=nome_originale,
+            nome_portale=nome_portale,
+            classificazione_portale=classificazione_portale,
+            tipo_atto_portale=tipo_atto_portale,
+            servizio_portale=servizio_portale,
+            mittente_portale=mittente_portale,
+            data_deposito_portale=data_deposito_portale,
+            id_documento_portale=id_documento_portale,
+            id_cat_portale=id_cat_portale,
+            id_repeatto_portale=id_repeatto_portale,
+            msg_id_portale=msg_id_portale,
         )
         # ── Conversione automatica PDF → PDF/A-2B (D.M. 44/2011 art. 12) ──
         # Se il file è un PDF non firmato, lo converte in PDF/A tramite
@@ -1529,6 +1553,8 @@ def build_fascicoli_runtime(
                 item["id_documento_portale"] = str((file_item or {}).get("id_documento_portale") or "").strip()
                 item["tipo_atto"] = str((file_item or {}).get("tipo_atto") or "").strip()
                 item["tipo"] = str((file_item or {}).get("tipo") or "").strip()
+                item["mittente"] = str((file_item or {}).get("mittente") or "").strip()
+                item["servizio_portale"] = str((file_item or {}).get("servizio_portale") or "").strip()
                 item["id_cat"] = str((file_item or {}).get("id_cat") or "").strip()
                 item["id_repeatto"] = str((file_item or {}).get("id_repeatto") or "").strip()
                 item["msg_id"] = str((file_item or {}).get("msg_id") or "").strip()
@@ -1880,6 +1906,18 @@ def build_fascicoli_runtime(
                 data_documento=item.get("data_documento", "") or date.today().isoformat(),
                 firmato=nome.lower().endswith(".p7m"),
                 caricato_da=u.username if u else "",
+                fonte_documento="PORTALE_TELEMATICO",
+                nome_originale=str(item.get("nome_file_originale") or item.get("origine") or nome).strip(),
+                nome_portale=str(item.get("nome") or item.get("nome_documento") or nome).strip(),
+                classificazione_portale=str(item.get("tipo") or "").strip(),
+                tipo_atto_portale=str(item.get("tipo_atto") or item.get("tipo") or "").strip(),
+                servizio_portale=str(item.get("servizio_portale") or "").strip(),
+                mittente_portale=str(item.get("mittente") or "").strip(),
+                data_deposito_portale=str(item.get("data_documento") or "").strip(),
+                id_documento_portale=str(item.get("id_documento_portale") or item.get("id_documento") or "").strip(),
+                id_cat_portale=str(item.get("id_cat") or "").strip(),
+                id_repeatto_portale=str(item.get("id_repeatto") or "").strip(),
+                msg_id_portale=str(item.get("msg_id") or "").strip(),
             )
             documenti_creati.append({"doc": doc, "item": item})
             nomi_esistenti[nome_norm] = doc

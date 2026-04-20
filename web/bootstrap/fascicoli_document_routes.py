@@ -134,6 +134,8 @@ def register_fascicoli_document_routes(
                 data_documento=form.get("data_documento", ""),
                 firmato=form.get("firmato") == "1",
                 caricato_da=utente.username if utente else "",
+                fonte_documento="CARICAMENTO_STUDIO",
+                nome_originale=file.filename,
             )
             flash(f"Documento '{file.filename}' caricato.", "success")
             audit("fascicoli.documento.carica", "fascicolo", id_fasc, dettagli=f"file: {file.filename}")

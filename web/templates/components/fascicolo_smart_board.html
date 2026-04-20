@@ -1,12 +1,6 @@
-{% set stato_corrente = fascicolo.stato.value.replace('_', ' ') %}
-{% set progress_map = {
-  'APERTO': 18,
-  'IN_CORSO': 56,
-  'SOSPESO': 42,
-  'DEFINITO': 86,
-  'ARCHIVIATO': 100
-} %}
-{% set progresso_pratica = progress_map.get(fascicolo.stato.value, 30) %}
+﻿{% set stato_corrente = fascicolo.stato.value.replace('_', ' ') %}
+{% set presidio = intelligenza_fascicolo.presidio or {} %}
+{% set progresso_pratica = presidio.progress_percent or 0 %}
 {% set ultimo_avanzamento = fascicolo.avanzamento|last if fascicolo.avanzamento else None %}
 {% set scadenze_aperte = WFS.scadenze | rejectattr('stato.value', 'equalto', 'COMPLETATO') | list %}
 {% set prossima_scadenza = scadenze_aperte|sort(attribute='data_scadenza')|first if scadenze_aperte else None %}
@@ -62,19 +56,24 @@
             <span class="badge bg-{{ SC[fascicolo.stato.value] }} fs-6">{{ stato_corrente }}</span>
             <span class="text-muted small">
               {{ fascicolo.rg_completo or fascicolo.numero }}
-              {% if fascicolo.tribunale %} · {{ fascicolo.tribunale }}{% endif %}
+              {% if fascicolo.tribunale %} &middot; {{ fascicolo.tribunale }}{% endif %}
             </span>
           </div>
           <div class="fascicolo-smart-board__progress">
             <div class="d-flex justify-content-between align-items-center small text-muted mb-1">
-              <span>Avanzamento pratica</span>
+              <span>Affidabilita' controlli pratica</span>
               <span>{{ progresso_pratica }}%</span>
             </div>
             <div class="progress" role="progressbar" aria-label="Avanzamento pratica" aria-valuenow="{{ progresso_pratica }}" aria-valuemin="0" aria-valuemax="100">
               <div class="progress-bar bg-primary" style="width: {{ progresso_pratica }}%"></div>
             </div>
           </div>
-          {% if prossima_scadenza %}
+          {% if presidio.hero_note %}
+          <div class="fascicolo-smart-board__inline-note{% if presidio.tone == 'warning' %} is-muted{% endif %}">
+            <i class="bi bi-shield-check me-2"></i>
+            {{ presidio.hero_note }}
+          </div>
+          {% elif prossima_scadenza %}
           <div class="fascicolo-smart-board__inline-note">
             <i class="bi bi-alarm me-2"></i>
             Prossima scadenza: <strong>{{ prossima_scadenza.titolo }}</strong> il {{ prossima_scadenza.data_scadenza|fmt_data }}
@@ -83,11 +82,24 @@
           <div class="fascicolo-smart-board__inline-note">
             <i class="bi bi-clock-history me-2"></i>
             Ultimo avanzamento: <strong>{{ ultimo_avanzamento.descrizione }}</strong>
-            {% if ultimo_avanzamento.data %} · {{ ultimo_avanzamento.data[:10]|fmt_data }}{% endif %}
+            {% if ultimo_avanzamento.data %} &middot; {{ ultimo_avanzamento.data[:10]|fmt_data }}{% endif %}
           </div>
           {% else %}
           <div class="fascicolo-smart-board__inline-note is-muted">
             <i class="bi bi-info-circle me-2"></i>Nessun avanzamento registrato al momento.
+          </div>
+          {% endif %}
+          {% if presidio.checks %}
+          <div class="d-flex flex-column gap-1 mt-3 small">
+            {% for check in presidio.checks %}
+            <div class="d-flex justify-content-between gap-2 flex-wrap">
+              <span class="{% if check.ok %}text-success{% else %}text-warning{% endif %}">
+                <i class="bi {% if check.ok %}bi-check-circle-fill{% else %}bi-exclamation-circle-fill{% endif %} me-1"></i>
+                {{ check.label }}
+              </span>
+              <span class="text-muted">{{ check.note }}</span>
+            </div>
+            {% endfor %}
           </div>
           {% endif %}
         </div>
@@ -121,9 +133,11 @@
           <div class="fascicolo-smart-board__meta-card">
             <div class="fascicolo-smart-board__meta-label">Presidio operativo</div>
             <div class="fascicolo-smart-board__meta-value">
-              {{ fascicolo.documenti|length }} documenti · {{ WFC.udienze_scadenze or 0 }} eventi · {{ WFC.comunicazioni or 0 }} comunicazioni
+              {{ fascicolo.documenti|length }} documenti &middot; {{ WFC.udienze_scadenze or 0 }} eventi &middot; {{ WFC.comunicazioni or 0 }} comunicazioni
             </div>
-            <div class="small text-muted">Vista compatta per capire subito dove intervenire.</div>
+            <div class="small text-muted">
+              {% if presidio.summary %}{{ presidio.summary }}.{% else %}Vista compatta per capire subito dove intervenire.{% endif %}
+            </div>
           </div>
         </div>
       </div>
@@ -188,15 +202,31 @@
                 <span class="text-muted">{{ sc.data_scadenza|fmt_data }}</span>
               </div>
               {% else %}
-              <div class="text-muted">Nessuna scadenza aperta collegata.</div>
+                {% for sc in intelligenza_fascicolo.scadenze_scadute[:2] %}
+                <div class="fascicolo-smart-board__list-row">
+                  <a href="{{ url_for('dettaglio_scadenza', id_sc=sc.id) }}" class="text-decoration-none">{{ sc.titolo }}</a>
+                  <span class="text-danger">Scaduta il {{ sc.data_scadenza|fmt_data }}</span>
+                </div>
+                {% else %}
+                <div class="text-muted">Nessuna scadenza aperta collegata.</div>
+                {% endfor %}
               {% endfor %}
             </div>
           </div>
         </div>
         <div class="col-xl-5 col-lg-4">
           <div class="fascicolo-smart-board__panel">
-            <div class="fascicolo-smart-board__panel-label">Sentenze utili</div>
+            <div class="fascicolo-smart-board__panel-label">Provvedimenti e sentenze utili</div>
             <div class="small">
+              {% for provv in intelligenza_fascicolo.provvedimenti[:2] %}
+              <div class="fascicolo-smart-board__list-row">
+                <a href="{{ url_for('scarica_documento', id_fasc=fascicolo.id, id_doc=provv.id_doc) }}" class="text-decoration-none">{{ provv.titolo }}</a>
+                <span class="text-muted">
+                  {{ provv.classificazione }}
+                  {% if provv.data %} &middot; {{ provv.data|fmt_data }}{% endif %}
+                </span>
+              </div>
+              {% else %}
               {% for sent in intelligenza_fascicolo.giurisprudenza[:2] %}
               <div class="fascicolo-smart-board__list-row">
                 <a href="{{ url_for('giurisprudenza.dettaglio', judgment_id=sent.id) }}" class="text-decoration-none">{{ sent.titolo }}</a>
@@ -204,6 +234,7 @@
               </div>
               {% else %}
               <div class="text-muted">Nessuna sentenza ancora collegata o suggerita.</div>
+              {% endfor %}
               {% endfor %}
             </div>
           </div>

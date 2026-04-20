@@ -694,6 +694,18 @@
         {% set ext = nome_preview.rsplit('.',1)[-1].lower() if '.' in nome_preview else '' %}
         {% set visualizzabile = ext in ['pdf','jpg','jpeg','png','gif'] %}
         {% set editorabile = ext in ('docx', 'txt', 'html', 'htm', 'pdf') and not doc.firmato_digitalmente and not doc.nome.lower().endswith('.p7m') %}
+        {% set nome_ufficiale = doc.nome_portale or doc.nome %}
+        {% set nome_secondario = doc.nome_originale if doc.nome_originale and doc.nome_originale != nome_ufficiale else '' %}
+        {% set classificazione_ufficiale = doc.classificazione_portale or '' %}
+        {% set tipo_portale = doc.tipo_atto_portale or '' %}
+        {% set metadati_portale = classificazione_ufficiale or tipo_portale or doc.id_documento_portale or doc.msg_id_portale or doc.id_cat_portale or doc.id_repeatto_portale %}
+        {% if doc.fonte_documento == 'PORTALE_TELEMATICO' %}
+          {% set fonte_label = 'Portale telematico' %}
+        {% elif doc.fonte_documento == 'CARICAMENTO_STUDIO' %}
+          {% set fonte_label = 'Caricamento studio' %}
+        {% else %}
+          {% set fonte_label = doc.fonte_documento or 'Archivio fascicolo' %}
+        {% endif %}
         <tr>
           <td data-label="Nome" style="min-width:0">
             <div style="min-width:0;word-break:break-word;overflow-wrap:anywhere">
@@ -704,12 +716,12 @@
                  data-scarica-url="{{ url_for('scarica_documento', id_fasc=fascicolo.id, id_doc=doc.id) }}"
                  data-info-firma-url="{{ url_for('api_info_firma_documento', id_fasc=fascicolo.id, id_doc=doc.id) }}"
                  onclick="apriVisualizzatore(this); return false;">
-                <i class="bi bi-file-earmark me-1 text-muted"></i>{{ doc.nome }}
+                <i class="bi bi-file-earmark me-1 text-muted"></i>{{ nome_ufficiale }}
               </a>
               {% else %}
               <a href="{{ url_for('scarica_documento', id_fasc=fascicolo.id, id_doc=doc.id) }}"
                  class="text-decoration-none fw-semibold">
-                <i class="bi bi-file-earmark me-1 text-muted"></i>{{ doc.nome }}
+                <i class="bi bi-file-earmark me-1 text-muted"></i>{{ nome_ufficiale }}
               </a>
               {% endif %}
               {% if doc.id_deposito_pct %}
@@ -769,7 +781,24 @@
                   <div class="text-muted" style="font-size:.72rem">{{ doc.note }}</div>
                 {% endif %}
               {% endif %}
+              {% if nome_secondario %}
+              <div class="text-muted" style="font-size:.72rem">Nome originario acquisito: {{ nome_secondario }}</div>
+              {% endif %}
               <div class="d-flex flex-wrap gap-1 mt-2">
+                <span class="badge bg-light text-dark border">{{ fonte_label }}</span>
+                {% if classificazione_ufficiale %}
+                <span class="badge bg-primary-subtle text-primary-emphasis border border-primary-subtle">
+                  Classificazione: {{ classificazione_ufficiale }}
+                </span>
+                {% endif %}
+                {% if tipo_portale %}
+                <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle">
+                  Tipo atto: {{ tipo_portale }}
+                </span>
+                {% endif %}
+                {% if doc.servizio_portale %}
+                <span class="badge bg-light text-dark border">{{ doc.servizio_portale }}</span>
+                {% endif %}
                 {% if doc.versioni %}
                 <span class="badge bg-light text-dark border">{{ doc.versioni|length }} versioni</span>
                 {% endif %}
@@ -791,6 +820,71 @@
                 <form method="post"
                       action="{{ url_for('aggiorna_metadati_documento', id_fasc=fascicolo.id, id_doc=doc.id) }}"
                       class="row g-2 align-items-end p-2 rounded border bg-light-subtle">
+                  <div class="col-12">
+                    <div class="row g-2 mb-1 small">
+                      <div class="col-md-4">
+                        <div class="text-muted">Fonte</div>
+                        <div class="fw-semibold">{{ fonte_label }}</div>
+                      </div>
+                      <div class="col-md-8">
+                        <div class="text-muted">Nome ufficiale</div>
+                        <div class="fw-semibold text-break">{{ nome_ufficiale }}</div>
+                      </div>
+                      {% if metadati_portale %}
+                      <div class="col-md-4">
+                        <div class="text-muted">Classificazione ufficiale</div>
+                        <div class="fw-semibold">{{ classificazione_ufficiale or 'Non indicata' }}</div>
+                      </div>
+                      <div class="col-md-4">
+                        <div class="text-muted">Tipo atto del portale</div>
+                        <div class="fw-semibold">{{ tipo_portale or 'Non indicato' }}</div>
+                      </div>
+                      <div class="col-md-4">
+                        <div class="text-muted">Deposito / servizio</div>
+                        <div class="fw-semibold">
+                          {% if doc.id_deposito_pct %}{{ doc.id_deposito_pct }}{% else %}Nessun deposito{% endif %}
+                          {% if doc.servizio_portale %} · {{ doc.servizio_portale }}{% endif %}
+                        </div>
+                      </div>
+                      {% if doc.mittente_portale %}
+                      <div class="col-md-6">
+                        <div class="text-muted">Mittente / cancelleria</div>
+                        <div class="fw-semibold text-break">{{ doc.mittente_portale }}</div>
+                      </div>
+                      {% endif %}
+                      {% if doc.data_deposito_portale %}
+                      <div class="col-md-3">
+                        <div class="text-muted">Data deposito</div>
+                        <div class="fw-semibold">{{ doc.data_deposito_portale|fmt_data }}</div>
+                      </div>
+                      {% endif %}
+                      {% if doc.id_documento_portale %}
+                      <div class="col-md-3">
+                        <div class="text-muted">ID documento</div>
+                        <div class="fw-semibold font-monospace">{{ doc.id_documento_portale }}</div>
+                      </div>
+                      {% endif %}
+                      {% if doc.id_cat_portale %}
+                      <div class="col-md-3">
+                        <div class="text-muted">ID categoria</div>
+                        <div class="fw-semibold font-monospace">{{ doc.id_cat_portale }}</div>
+                      </div>
+                      {% endif %}
+                      {% if doc.id_repeatto_portale %}
+                      <div class="col-md-3">
+                        <div class="text-muted">ID repertorio</div>
+                        <div class="fw-semibold font-monospace">{{ doc.id_repeatto_portale }}</div>
+                      </div>
+                      {% endif %}
+                      {% if doc.msg_id_portale %}
+                      <div class="col-md-6">
+                        <div class="text-muted">Message ID / riferimento</div>
+                        <div class="fw-semibold font-monospace text-break">{{ doc.msg_id_portale }}</div>
+                      </div>
+                      {% endif %}
+                      {% endif %}
+                    </div>
+                  </div>
                   <div class="col-12 col-xl-4">
                     <label class="form-label small fw-semibold mb-1">Note</label>
                     <input type="text"

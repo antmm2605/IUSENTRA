@@ -217,6 +217,9 @@ def register_fascicoli_core_routes(
         if not fascicolo:
             flash("Fascicolo non trovato.", "warning")
             return redirect(url_for("lista_fascicoli"))
+        repair_report = gestore_fascicoli.riconcilia_documenti_portale(id_fasc)
+        if repair_report.get("documenti_allineati"):
+            fascicolo = gestore_fascicoli.get(id_fasc)
 
         cliente = get_clienti().get(fascicolo.id_cliente) if fascicolo.id_cliente else None
         gestore_preventivi = get_preventivi()

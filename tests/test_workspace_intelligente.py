@@ -5,7 +5,7 @@ from pct.agenda import Agenda, TipoAppuntamento
 from pct.auth import GestioneUtenti, RuoloUtente
 from pct.calendar_sync import GestioneCalendarSync
 from pct.clienti import GestioneClienti, TipoCliente
-from pct.fascicoli import GestioneFascicoli, TipoFascicolo
+from pct.fascicoli import GestioneFascicoli, StatoFascicolo, TipoDocumento, TipoFascicolo
 from pct.giurisprudenza import GestioneGiurisprudenza
 from pct.scadenziario import GestioneScadenziario, TipoTermine
 from pct.workspace_intelligente import WorkspaceIntelligenteService
@@ -170,6 +170,84 @@ def test_workspace_intelligente_propone_sentenza_per_fascicolo(tmp_path: Path):
     assert quadro["next_actions"]
 
 
+def test_workspace_intelligente_calcola_presidio_reale_per_pratica_definita(tmp_path: Path):
+    fascicolo, agenda, scadenziario, fascicoli, sync, giurisprudenza = _seed_workspace(tmp_path)
+    scadenze = scadenziario.tutte(id_fascicolo=fascicolo.id, solo_aperte=True)
+    for item in scadenze:
+        scadenziario.completa(item.id)
+
+    fascicoli.aggiungi_documento(
+        fascicolo.id,
+        nome_file="SentenzaDefinitiva_33581101.pdf.p7m",
+        tipo=TipoDocumento.SENTENZA,
+        contenuto=b"sentenza definitiva",
+        fonte_documento="PORTALE_TELEMATICO",
+        nome_portale="SentenzaDefinitiva_33581101.pdf.p7m",
+        classificazione_portale="SENTENZA",
+        tipo_atto_portale="Sentenza definitiva",
+        servizio_portale="DocumentiFascicolo",
+        mittente_portale="cancelleria@tribunale.palmi.giustiziapec.it",
+        data_deposito_portale="2026-04-10",
+        id_documento_portale="DOC-SENT-01",
+    )
+    fascicoli.cambia_stato(fascicolo.id, StatoFascicolo.DEFINITO, note="Pratica definita con sentenza")
+    fascicolo = fascicoli.get(fascicolo.id)
+    fascicolo.data_prima_udienza = "2024-12-12"
+    fascicoli._salva()
+
+    service = WorkspaceIntelligenteService(
+        agenda=agenda,
+        scadenziario=scadenziario,
+        fascicoli=fascicoli,
+        calendar_sync=sync,
+        giurisprudenza=giurisprudenza,
+    )
+
+    quadro = service.per_fascicolo(fascicolo)
+
+    assert quadro["presidio"]["progress_percent"] == 100
+    assert quadro["presidio"]["summary"] == "Pratica chiusa e coerente"
+    assert quadro["presidio"]["udienza_passata_non_allineata"] is False
+    assert quadro["provvedimenti"]
+    assert not any("udienza da portale" in action.lower() for action in quadro["next_actions"])
+    assert not any("preparare subito" in action.lower() for action in quadro["next_actions"])
+
+
+def test_workspace_intelligente_riconosce_stato_chiuso_legacy_e_deduplica_provvedimenti(tmp_path: Path):
+    fascicolo, agenda, scadenziario, fascicoli, sync, giurisprudenza = _seed_workspace(tmp_path)
+    for idx in range(2):
+        fascicoli.aggiungi_documento(
+            fascicolo.id,
+            nome_file=f"SentenzaDefinitiva_33581101_dup_{idx}.pdf.p7m",
+            tipo=TipoDocumento.SENTENZA,
+            contenuto=b"sentenza definitiva",
+            fonte_documento="PORTALE_TELEMATICO",
+            nome_portale="SentenzaDefinitiva_33581101.pdf.p7m",
+            classificazione_portale="SENTENZA",
+            tipo_atto_portale="Sentenza definitiva",
+            servizio_portale="DocumentiFascicolo",
+            mittente_portale="cancelleria@tribunale.palmi.giustiziapec.it",
+            data_deposito_portale="2026-04-10",
+            id_documento_portale=f"DOC-SENT-LEGACY-{idx}",
+        )
+    fascicoli.cambia_stato(fascicolo.id, StatoFascicolo.DEFINITO, note="Pratica definita con sentenza")
+    fascicolo = fascicoli.get(fascicolo.id)
+    fascicolo.stato = "DEFINITO"
+
+    service = WorkspaceIntelligenteService(
+        agenda=agenda,
+        scadenziario=scadenziario,
+        fascicoli=fascicoli,
+        calendar_sync=sync,
+        giurisprudenza=giurisprudenza,
+    )
+    quadro = service.per_fascicolo(fascicolo)
+
+    assert quadro["presidio"]["stato_chiusura"] is True
+    assert quadro["presidio"]["progress_percent"] >= 80
+    assert len(quadro["provvedimenti"]) == 1
+
+
 def test_workspace_intelligente_web_e_fascicolo_renderizzano(tmp_path: Path):
     cfg = _cfg_web(tmp_path)
     GestioneUtenti(
@@ -204,3 +282,5 @@ def test_workspace_intelligente_web_e_fascicolo_renderizzano(tmp_path: Path):
     assert "Fascicoli attenzionati" in workspace_html
     assert fascicolo_detail.status_code == 200
     assert "Quadro intelligente fascicolo" in fascicolo_html
+    assert "Affidabilita' controlli pratica" in fascicolo_html
+    assert "Provvedimenti e sentenze utili" in fascicolo_html

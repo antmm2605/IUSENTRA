@@ -1771,7 +1771,6 @@ _ESBORSI_TIPICI: Dict[str, List[Dict]] = {
         {"descrizione": "Perizia medico-legale o tecnica (indicativa)", "importo": 180.0},
     ],
     "mediazione": [
-        {"descrizione": "Indennità organismo di mediazione (indicativa)", "importo": 100.0},
         {"descrizione": "Spese postali / PEC organismo", "importo": 15.0},
     ],
     "negoziazione_assistita": [
@@ -2025,7 +2024,7 @@ _URL_REGISTRO_MEDIAZIONE_INFO = "https://www.giustizia.it/giustizia/it/mg_3_4_15
 _URL_NEGOZIAZIONE = "https://www.normattiva.it/uri-res/N2Ls?urn%3Anir%3Astato%3Adecreto.legge%3A2014-09-12%3B132"
 _URL_DM150_MEDIAZIONE = (
     "https://www.gazzettaufficiale.it/atto/serie_generale/caricaDettaglioAtto/originario?"
-    "atto.codiceRedazionale=23G00162&atto.dataPubblicazioneGazzetta=2023-10-31"
+    "atto.codiceRedazionale=23G00163&atto.dataPubblicazioneGazzetta=2023-10-31"
     "&atto.tipoProvvedimento=DECRETO"
 )
 _URL_CODICE_ASSICURAZIONI = (

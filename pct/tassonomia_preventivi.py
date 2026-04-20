@@ -149,7 +149,7 @@ SOURCE_CATALOG: Dict[str, Dict[str, str]] = {
         "title": "D.M. 24 ottobre 2023, n. 150",
         "article": "spese e indennita di mediazione",
         "authority": "Gazzetta Ufficiale",
-        "url": "https://www.gazzettaufficiale.it/atto/serie_generale/caricaDettaglioAtto/originario?atto.codiceRedazionale=23G00162&atto.dataPubblicazioneGazzetta=2023-10-31&atto.tipoProvvedimento=DECRETO",
+        "url": "https://www.gazzettaufficiale.it/atto/serie_generale/caricaDettaglioAtto/originario?atto.codiceRedazionale=23G00163&atto.dataPubblicazioneGazzetta=2023-10-31&atto.tipoProvvedimento=DECRETO",
         "checked_on": "2026-04-03",
         "scope": "costi e indennita mediazione",
         "note": "Fonte aggiornata post Cartabia per organismi e indennita di mediazione.",

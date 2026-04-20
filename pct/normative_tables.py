@@ -174,6 +174,19 @@ FONTI_OPERATIVE: Dict[str, FonteOperativa] = {
         ),
         note="Aggiornamento ufficiale dei parametri forensi e del bonus telematico.",
     ),
+    "dm_150_2023_mediazione": FonteOperativa(
+        code="dm_150_2023_mediazione",
+        title="D.M. 150/2023 - organismi di mediazione",
+        url=(
+            "https://www.gazzettaufficiale.it/atto/serie_generale/caricaDettaglioAtto/originario?"
+            "atto.codiceRedazionale=23G00163&atto.dataPubblicazioneGazzetta=2023-10-31"
+            "&atto.tipoProvvedimento=DECRETO"
+        ),
+        note=(
+            "Fonte primaria per spese di avvio, spese del primo incontro, Tabella A e "
+            "maggiorazioni dei costi organismo mediazione dopo la riforma Cartabia."
+        ),
+    ),
     "equo_compenso_49_2023": FonteOperativa(
         code="equo_compenso_49_2023",
         title="L. 49/2023 - equo compenso",
@@ -783,6 +796,137 @@ def canonical_table_definitions() -> Dict[str, Dict[str, Any]]:
             },
             "published_at": "2026-03-04",
             "effective_from": "2026-03-04",
+        },
+        "mediazione_costi_odm_dm150": {
+            "id": "mediazione_costi_odm_dm150",
+            "title": "Mediazione civile - costi organismo D.M. 150/2023",
+            "category": "adr_mediazione",
+            "description": (
+                "Scaglioni ufficiali per spese di avvio, spese del primo incontro e importi "
+                "minimi Tabella A degli organismi di mediazione ex D.M. 150/2023."
+            ),
+            "strategy": "seed_mirror",
+            "source_codes": ["dm_150_2023_mediazione", "registro_mediazione_portale"],
+            "watch_source_ids": ["gazzetta_ufficiale", "registro_mediazione"],
+            "rows": [
+                {
+                    "from_value": 0.0,
+                    "to_value": 1000.0,
+                    "label": "Fino a EUR 1.000",
+                    "spese_avvio": 40.0,
+                    "spese_primo_incontro": 60.0,
+                    "tabella_a_minimo": 80.0,
+                },
+                {
+                    "from_value": 1000.01,
+                    "to_value": 5000.0,
+                    "label": "Da EUR 1.000,01 a EUR 5.000",
+                    "spese_avvio": 75.0,
+                    "spese_primo_incontro": 120.0,
+                    "tabella_a_minimo": 160.0,
+                },
+                {
+                    "from_value": 5000.01,
+                    "to_value": 10000.0,
+                    "label": "Da EUR 5.000,01 a EUR 10.000",
+                    "spese_avvio": 75.0,
+                    "spese_primo_incontro": 120.0,
+                    "tabella_a_minimo": 290.0,
+                },
+                {
+                    "from_value": 10000.01,
+                    "to_value": 25000.0,
+                    "label": "Da EUR 10.000,01 a EUR 25.000",
+                    "spese_avvio": 75.0,
+                    "spese_primo_incontro": 120.0,
+                    "tabella_a_minimo": 440.0,
+                },
+                {
+                    "from_value": 25000.01,
+                    "to_value": 50000.0,
+                    "label": "Da EUR 25.000,01 a EUR 50.000",
+                    "spese_avvio": 75.0,
+                    "spese_primo_incontro": 120.0,
+                    "tabella_a_minimo": 720.0,
+                },
+                {
+                    "from_value": 50000.01,
+                    "to_value": 150000.0,
+                    "label": "Da EUR 50.000,01 a EUR 150.000",
+                    "spese_avvio": 110.0,
+                    "spese_primo_incontro": 170.0,
+                    "tabella_a_minimo": 1200.0,
+                },
+                {
+                    "from_value": 150000.01,
+                    "to_value": 250000.0,
+                    "label": "Da EUR 150.000,01 a EUR 250.000",
+                    "spese_avvio": 110.0,
+                    "spese_primo_incontro": 170.0,
+                    "tabella_a_minimo": 1500.0,
+                },
+                {
+                    "from_value": 250000.01,
+                    "to_value": 500000.0,
+                    "label": "Da EUR 250.000,01 a EUR 500.000",
+                    "spese_avvio": 110.0,
+                    "spese_primo_incontro": 170.0,
+                    "tabella_a_minimo": 2500.0,
+                },
+                {
+                    "from_value": 500000.01,
+                    "to_value": 1500000.0,
+                    "label": "Da EUR 500.000,01 a EUR 1.500.000",
+                    "spese_avvio": 110.0,
+                    "spese_primo_incontro": 170.0,
+                    "tabella_a_minimo": 3900.0,
+                },
+                {
+                    "from_value": 1500000.01,
+                    "to_value": 2500000.0,
+                    "label": "Da EUR 1.500.000,01 a EUR 2.500.000",
+                    "spese_avvio": 110.0,
+                    "spese_primo_incontro": 170.0,
+                    "tabella_a_minimo": 4600.0,
+                },
+                {
+                    "from_value": 2500000.01,
+                    "to_value": 5000000.0,
+                    "label": "Da EUR 2.500.000,01 a EUR 5.000.000",
+                    "spese_avvio": 110.0,
+                    "spese_primo_incontro": 170.0,
+                    "tabella_a_minimo": 6500.0,
+                },
+                {
+                    "from_value": 5000000.01,
+                    "to_value": None,
+                    "label": "Oltre EUR 5.000.000",
+                    "spese_avvio": 110.0,
+                    "spese_primo_incontro": 170.0,
+                    "tabella_a_minimo_rate_min": 0.002,
+                    "tabella_a_minimo_rate_max": 0.003,
+                },
+                {
+                    "from_value": 0.0,
+                    "to_value": None,
+                    "label": "Valore indeterminabile",
+                    "kind": "indeterminabile",
+                    "spese_avvio": 110.0,
+                    "spese_primo_incontro": 170.0,
+                    "tabella_a_minimo": 1200.0,
+                },
+            ],
+            "defaults": {
+                "regime_standard": "volontaria",
+                "regime_ridotto": "obbligatoria_demandata",
+                "riduzione_obbligatoria_multiplier": 0.8,
+                "esito_primo_accordo_multiplier": 1.10,
+                "esito_successivi_accordo_multiplier": 1.25,
+                "maggiorazione_art31_comma3_multiplier": 1.20,
+                "indeterminabile_reference_label": "Da EUR 50.000,01 a EUR 150.000",
+            },
+            "published_at": "2023-10-31",
+            "effective_from": "2023-11-15",
         },
         "tariffario_forense_scaglioni": {
             "id": "tariffario_forense_scaglioni",

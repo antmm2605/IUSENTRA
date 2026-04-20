@@ -27,6 +27,12 @@ from web.services.tariffario_runtime import (
     variazioni_fasi_da_form,
     variazioni_prefill_from_form,
 )
+from web.services.mediazione_dm150_runtime import (
+    MEDIAZIONE_ODM_TABLE_ID,
+    calcola_mediazione_odm_da_context,
+    is_mediazione_practice,
+    mediazione_odm_context_for_prefill,
+)
 
 
 def _switch_from_form(form, key: str, *, default: bool = False) -> bool:
@@ -107,6 +113,7 @@ def register_tariffario_routes(app: Flask) -> None:
         bonus_tel = _switch_from_form(request.form, "bonus_telematico")
         spese_gen = _switch_from_form(request.form, "spese_generali", default=request.method != "POST")
         perc_spese = parse_float(request.form.get("perc_spese_generali", "15"), 15.0)
+        mediazione_odm_context = mediazione_odm_context_for_prefill(request.form)
         accessori_sel = request.form.getlist("accessori")
         esborsi_sel = request.form.getlist("esborsi")
         manual_rows_prefill = manual_rows_from_form(request.form)
@@ -198,6 +205,18 @@ def register_tariffario_routes(app: Flask) -> None:
                             "fonte": "principale",
                         }
                     )
+                if tipo_pratica_attiva and is_mediazione_practice(tipo_pratica_attiva):
+                    mediazione_odm = calcola_mediazione_odm_da_context(valore, mediazione_odm_context)
+                    if mediazione_odm:
+                        righe_calcolo.append(
+                            {
+                                "descrizione": mediazione_odm.get("voce_label")
+                                or "Costi organismo mediazione D.M. 150/2023",
+                                "tipo": "Spesa viva",
+                                "importo": float(mediazione_odm.get("totale_organismo") or 0.0),
+                                "fonte": "mediazione_odm:principale",
+                            }
+                        )
 
                 accessori_map = {
                     item.get("id"): item for item in (tipo_pratica_attiva.accessori_calcolo or [])
@@ -248,6 +267,22 @@ def register_tariffario_routes(app: Flask) -> None:
                             "fonte": f"accessorio:{accessorio_id}",
                         }
                     )
+                    if tp_accessorio and is_mediazione_practice(tp_accessorio):
+                        mediazione_odm_accessorio = calcola_mediazione_odm_da_context(
+                            valore, mediazione_odm_context
+                        )
+                        if mediazione_odm_accessorio:
+                            righe_calcolo.append(
+                                {
+                                    "descrizione": (
+                                        f"{mediazione_odm_accessorio.get('voce_label') or 'Costi organismo mediazione D.M. 150/2023'}"
+                                        f" - {accessorio.get('label') or tp_accessorio.label}"
+                                    ),
+                                    "tipo": "Spesa viva",
+                                    "importo": float(mediazione_odm_accessorio.get("totale_organismo") or 0.0),
+                                    "fonte": f"mediazione_odm:{accessorio_id}",
+                                }
+                            )
 
                 for item in esborsi_catalogo_rows:
                     if item["key"] not in esborsi_sel_set:
@@ -292,6 +327,7 @@ def register_tariffario_routes(app: Flask) -> None:
                     fasi=fasi_sel,
                     spese_generali=spese_gen,
                     bonus_telematico=bonus_tel,
+                    mediazione_odm=mediazione_odm_context.get("attiva"),
                     motore=(
                         tipo_pratica_attiva.tipo_compenso_default
                         if tipo_pratica_attiva
@@ -312,7 +348,7 @@ def register_tariffario_routes(app: Flask) -> None:
         tabelle_normative = get_normative_tables()
         tariffario_tables = [
             row for row in tabelle_normative.catalogo_tabelle()
-            if row["id"].startswith("tariffario_forense_")
+            if row["id"].startswith("tariffario_forense_") or row["id"] == MEDIAZIONE_ODM_TABLE_ID
         ]
         tariffario_profili = tabelle_normative.tariffario_profili()
         tariffario_regole = tabelle_normative.tariffario_regole()
@@ -374,6 +410,12 @@ def register_tariffario_routes(app: Flask) -> None:
                 "bonus_telematico": "1" if bonus_tel else "0",
                 "spese_generali": "1" if spese_gen else "0",
                 "perc_spese_generali": str(int(round(perc_spese))),
+                "mediazione_odm_attiva": "1" if mediazione_odm_context.get("attiva") else "0",
+                "mediazione_odm_regime": mediazione_odm_context.get("regime") or "",
+                "mediazione_odm_esito": mediazione_odm_context.get("esito") or "",
+                "mediazione_odm_art31_maggiorazione_20": (
+                    "1" if mediazione_odm_context.get("art31_comma3_maggiorazione_20") else "0"
+                ),
                 "applica_cpa": "1",
                 "applica_iva": "1",
                 "anticipazioni": "0",
@@ -496,6 +538,7 @@ def register_tariffario_routes(app: Flask) -> None:
             accessori_sel=accessori_sel,
             esborsi_sel=esborsi_sel,
             adr_accordo=adr_accordo,
+            mediazione_odm_context=mediazione_odm_context,
             variazioni_prefill=variazioni_prefill,
             esborsi_catalogo=esborsi_catalogo_rows,
             manual_rows_prefill=manual_rows_prefill,

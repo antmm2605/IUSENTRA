@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.178.4 - 2026-04-20
+
+- Completato il supporto ufficiale ai costi organismo mediazione ex `D.M. 24 ottobre 2023, n. 150` in `Wizard preventivi` e `Console tariffaria`: regime volontaria / obbligatoria-demandata, esito del primo incontro o degli incontri successivi, maggiorazione art. 31, comma 3 e costo organismo che entra davvero nel totale operativo.
+- Corretto il wiring del wizard sulle tipologie a `compenso unico`: la UI non mostra piu' checkbox fasi fuorvianti e le classificazioni tassonomiche aggiuntive usano le fasi reali della pratica collegata.
+- Pulite le fonti normative collegate a mediazione e tassonomia, con URL Gazzetta ufficiale corretti (`23G00163`) e tabella normativa `mediazione_costi_odm_dm150` resa disponibile anche nella console tariffaria.
+- Aggiunte regressioni eseguibili su calcolo D.M. 150/2023, seed normativo, route wizard e route tariffario per impedire ritorni ai vecchi bug su totale invariato, placeholder indicativi e riferimenti normativi errati.
+
 ## 2.178.3 - 2026-04-20
 
 - Rifinito il `Wizard preventivi` con microcopy coerente, stato inline persistente al posto dei vecchi `alert()` browser, messaggi di validazione piu' chiari e ricalcolo guidato e debounced per fasi, ADR, accessori, classificazioni tassonomiche e opzioni fiscali.

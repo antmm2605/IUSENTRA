@@ -50,6 +50,16 @@ def _extract_totale_compenso_base(html: str) -> float:
     return float(match.group(2))
 
 
+def _extract_totale_operativo(html: str) -> float:
+    match = re.search(
+        r"border-top pt-1 text-primary\">EUR ([0-9.]+)</div>",
+        html,
+        re.IGNORECASE | re.DOTALL,
+    )
+    assert match, "Totale operativo non trovato nel markup del tariffario"
+    return float(match.group(1))
+
+
 def test_tariffario_route_rispetta_toggle_spese_generali(tmp_path):
     _write_studio_config(tmp_path / "config" / "studio.json")
     app = create_app(_cfg_web(tmp_path))
@@ -91,3 +101,45 @@ def test_tariffario_route_rispetta_toggle_spese_generali(tmp_path):
     assert "Spese generali escluse dal totale." in html_senza_spese
     assert "Spese generali incluse nel totale." in html_con_spese
     assert _extract_totale_compenso_base(html_con_spese) > _extract_totale_compenso_base(html_senza_spese)
+
+
+def test_tariffario_route_mediazione_odm_incide_sul_totale(tmp_path):
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    app = create_app(_cfg_web(tmp_path))
+    _crea_admin(app)
+
+    data_base = [
+        ("materia", Materia.MEDIAZIONE.value),
+        ("grado", Grado.PROCEDURA_ADR.value),
+        ("complessita", "media"),
+        ("valore", "10000"),
+        ("perc_spese_generali", "15"),
+    ]
+
+    with app.test_client() as client:
+        _login(client)
+        senza_odm = client.post(
+            "/tariffario",
+            data=MultiDict(data_base),
+            follow_redirects=True,
+        )
+        con_odm = client.post(
+            "/tariffario",
+            data=MultiDict(
+                data_base
+                + [
+                    ("mediazione_odm_attiva", "1"),
+                    ("mediazione_odm_regime", "volontaria"),
+                    ("mediazione_odm_esito", "primo_incontro_senza_accordo"),
+                ]
+            ),
+            follow_redirects=True,
+        )
+
+    html_senza_odm = senza_odm.get_data(as_text=True)
+    html_con_odm = con_odm.get_data(as_text=True)
+
+    assert senza_odm.status_code == 200
+    assert con_odm.status_code == 200
+    assert "Mediazione civile - costi organismo D.M. 150/2023" in html_con_odm
+    assert _extract_totale_operativo(html_con_odm) > _extract_totale_operativo(html_senza_odm)

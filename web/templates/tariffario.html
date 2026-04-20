@@ -208,6 +208,27 @@
                 </div>
 
                 <div class="accordion-item">
+                  <h2 class="accordion-header" id="tfMediazioneOdmHeading">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#tfMediazioneOdmCollapse" aria-expanded="false" aria-controls="tfMediazioneOdmCollapse">
+                      <span>
+                        <span class="tf-accordion-title">
+                          Costi organismo mediazione D.M. 150/2023
+                          <span class="tf-chip">ODM</span>
+                        </span>
+                        <span class="tf-accordion-meta">Spese di avvio, primo incontro, Tabella A e maggiorazioni ufficiali quando la pratica usa la mediazione civile.</span>
+                      </span>
+                    </button>
+                  </h2>
+                  <div id="tfMediazioneOdmCollapse" class="accordion-collapse collapse" aria-labelledby="tfMediazioneOdmHeading">
+                    <div class="accordion-body">
+                      <div id="mediazioneOdmBox" class="tf-form-panel tf-dynamic-box">
+                        <div class="text-muted small">Il pannello si attiva quando il profilo attivo o una sua integrazione usa la mediazione civile / commerciale.</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="accordion-item">
                   <h2 class="accordion-header" id="tfExpenseHeading">
                     <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#tfExpenseCollapse" aria-expanded="false" aria-controls="tfExpenseCollapse">
                       <span>
@@ -655,6 +676,7 @@ const ACCESSORI_SEL = {{ accessori_sel|tojson }};
 const ESBORSI_SEL = {{ esborsi_sel|tojson }};
 const ADR_ACCORDO_SEL = {{ adr_accordo|tojson }};
 const VARIAZIONI_PREFILL = {{ variazioni_prefill|tojson }};
+const MEDIAZIONE_ODM_PREFILL = {{ mediazione_odm_context|tojson }};
 
 let accessoriInit = false;
 let esborsiInit = false;
@@ -873,6 +895,55 @@ function currentPractice() {
   return PRACTICE_BY_ID[profile.suggested_practice_id] || null;
 }
 
+function isMediazionePractice(practice) {
+  if (!practice) return false;
+  const id = String(practice.id || '').trim().toLowerCase();
+  const materia = String(practice.materia || '').trim().toLowerCase();
+  const label = String(practice.label || '').trim().toLowerCase();
+  return id === 'mediazione' || materia.includes('mediazione') || label.includes('mediazione');
+}
+
+function currentMediazioneTargets() {
+  const practice = currentPractice();
+  const targets = [];
+  const seen = new Set();
+  const pushTarget = (row, label) => {
+    if (!row || !isMediazionePractice(row) || seen.has(row.id)) return;
+    seen.add(row.id);
+    targets.push({ practice: row, label: label || row.label || 'Mediazione' });
+  };
+  pushTarget(practice, practice?.label || '');
+  const selectedAccessori = currentAccessoriSelection();
+  (practice?.accessori_calcolo || []).forEach((accessorio) => {
+    if (!selectedAccessori.has(accessorio.id)) return;
+    pushTarget(PRACTICE_BY_ID[accessorio.tipo_pratica_id], accessorio.label || '');
+  });
+  return targets;
+}
+
+function currentMediazioneOdmState() {
+  const chk = document.getElementById('chkMediazioneOdmAttiva');
+  const regime = document.getElementById('selMediazioneOdmRegime');
+  const esito = document.getElementById('selMediazioneOdmEsito');
+  const art31 = document.getElementById('chkMediazioneOdmArt31');
+  if (!chk && !regime && !esito && !art31 && !currentMediazioneTargets().length) {
+    return {
+      attiva: false,
+      regime: 'volontaria',
+      esito: 'primo_incontro_senza_accordo',
+      art31_comma3_maggiorazione_20: false,
+    };
+  }
+  return {
+    attiva: chk ? !!chk.checked : !!MEDIAZIONE_ODM_PREFILL.attiva,
+    regime: regime?.value || MEDIAZIONE_ODM_PREFILL.regime || 'volontaria',
+    esito: esito?.value || MEDIAZIONE_ODM_PREFILL.esito || 'primo_incontro_senza_accordo',
+    art31_comma3_maggiorazione_20: art31
+      ? !!art31.checked
+      : !!MEDIAZIONE_ODM_PREFILL.art31_comma3_maggiorazione_20,
+  };
+}
+
 function currentVariationValues() {
   const values = {};
   document.querySelectorAll('.adr-var-input').forEach((node) => {
@@ -969,6 +1040,67 @@ function renderAdrVariations() {
   }
 }
 
+function renderMediazioneOdm() {
+  const box = document.getElementById('mediazioneOdmBox');
+  if (!box) return;
+  const targets = currentMediazioneTargets();
+  if (!targets.length) {
+    box.innerHTML = '<div class="text-muted small">Il pannello si attiva quando il profilo attivo o una sua integrazione usa la mediazione civile / commerciale.</div>';
+    return;
+  }
+  const state = currentMediazioneOdmState();
+  const art31Allowed = state.esito === 'incontri_successivi_con_accordo';
+  box.innerHTML = `
+    <div class="d-flex flex-column gap-3">
+      <div class="d-flex flex-column flex-lg-row justify-content-between gap-3">
+        <div>
+          <div class="fw-semibold text-dark">Calcolo costi organismo mediazione</div>
+          <div class="small text-muted">Artt. 28, 30, 31 e Tabella A del D.M. 24 ottobre 2023, n. 150.</div>
+        </div>
+        <div class="form-check form-switch m-0">
+          <input class="form-check-input" type="checkbox" name="mediazione_odm_attiva" value="1" id="chkMediazioneOdmAttiva" ${state.attiva ? 'checked' : ''}>
+          <label class="form-check-label small fw-semibold" for="chkMediazioneOdmAttiva">Includi costi organismo</label>
+        </div>
+      </div>
+      <div class="d-flex flex-wrap gap-2">
+        ${targets.map((item) => `<span class="badge bg-light text-dark border">${escapeHtml(item.label)}</span>`).join('')}
+      </div>
+      <div class="row g-2 ${state.attiva ? '' : 'opacity-50'}">
+        <div class="col-lg-4">
+          <label class="form-label small text-muted mb-1">Regime</label>
+          <select name="mediazione_odm_regime" id="selMediazioneOdmRegime" class="form-select form-select-sm" ${state.attiva ? '' : 'disabled'}>
+            <option value="volontaria" ${state.regime === 'volontaria' ? 'selected' : ''}>Volontaria</option>
+            <option value="obbligatoria_demandata" ${state.regime === 'obbligatoria_demandata' ? 'selected' : ''}>Obbligatoria / demandata</option>
+          </select>
+        </div>
+        <div class="col-lg-5">
+          <label class="form-label small text-muted mb-1">Esito procedura</label>
+          <select name="mediazione_odm_esito" id="selMediazioneOdmEsito" class="form-select form-select-sm" ${state.attiva ? '' : 'disabled'}>
+            <option value="primo_incontro_senza_accordo" ${state.esito === 'primo_incontro_senza_accordo' ? 'selected' : ''}>Solo primo incontro senza accordo</option>
+            <option value="primo_incontro_con_accordo" ${state.esito === 'primo_incontro_con_accordo' ? 'selected' : ''}>Accordo al primo incontro</option>
+            <option value="incontri_successivi_senza_accordo" ${state.esito === 'incontri_successivi_senza_accordo' ? 'selected' : ''}>Incontri successivi senza accordo</option>
+            <option value="incontri_successivi_con_accordo" ${state.esito === 'incontri_successivi_con_accordo' ? 'selected' : ''}>Incontri successivi con accordo</option>
+          </select>
+        </div>
+        <div class="col-lg-3">
+          <label class="form-label small text-muted mb-1">Maggiorazione art. 31</label>
+          <div class="form-check mt-2">
+            <input class="form-check-input" type="checkbox" name="mediazione_odm_art31_maggiorazione_20" value="1" id="chkMediazioneOdmArt31" ${state.art31_comma3_maggiorazione_20 && art31Allowed ? 'checked' : ''} ${state.attiva && art31Allowed ? '' : 'disabled'}>
+            <label class="form-check-label small" for="chkMediazioneOdmArt31">+20% art. 31, comma 3</label>
+          </div>
+        </div>
+      </div>
+      <div class="small text-muted">
+        Primo incontro: spese di avvio + spese del primo incontro. Incontri successivi: il sistema usa il differenziale minimo della Tabella A e aggiunge le maggiorazioni quando previste.
+      </div>
+    </div>
+  `;
+  box.querySelector('#chkMediazioneOdmAttiva')?.addEventListener('change', renderMediazioneOdm);
+  box.querySelector('#selMediazioneOdmRegime')?.addEventListener('change', () => {});
+  box.querySelector('#selMediazioneOdmEsito')?.addEventListener('change', renderMediazioneOdm);
+  box.querySelector('#chkMediazioneOdmArt31')?.addEventListener('change', () => {});
+}
+
 function currentAccessoriSelection() {
   return new Set(Array.from(document.querySelectorAll('input[name="accessori"]:checked')).map((node) => node.value));
 }
@@ -1029,6 +1161,7 @@ function renderAccessori() {
   if (!practice || !(practice.accessori_calcolo || []).length) {
     box.innerHTML = '<div class="text-muted small">Nessuna integrazione opzionale per il profilo attivo.</div>';
     renderAdrVariations();
+    renderMediazioneOdm();
     renderExpenses();
     return;
   }
@@ -1047,11 +1180,13 @@ function renderAccessori() {
   box.querySelectorAll('input[name="accessori"]').forEach((node) => {
     node.addEventListener('change', () => {
       renderAdrVariations();
+      renderMediazioneOdm();
       renderExpenses();
       renderProfilo();
     });
   });
   renderAdrVariations();
+  renderMediazioneOdm();
   renderExpenses();
 }
 

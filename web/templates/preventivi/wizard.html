@@ -737,6 +737,10 @@
   <input type="hidden" name="spese_generali" id="inpSpeseGenerali" value="1">
   <input type="hidden" name="perc_spese_generali" id="inpPercSpeseGenerali" value="15">
   <input type="hidden" name="adr_accordo" id="inpAdrAccordo" value="0">
+  <input type="hidden" name="mediazione_odm_attiva" id="inpMediazioneOdmAttiva" value="0">
+  <input type="hidden" name="mediazione_odm_regime" id="inpMediazioneOdmRegime" value="volontaria">
+  <input type="hidden" name="mediazione_odm_esito" id="inpMediazioneOdmEsito" value="primo_incontro_senza_accordo">
+  <input type="hidden" name="mediazione_odm_art31_maggiorazione_20" id="inpMediazioneOdmArt31" value="0">
   <input type="hidden" name="log_calcolo" id="inpLogCalcolo">
   <input type="hidden" name="compenso_pattuito" id="inpCompensoPattuito" value="0">
   <input type="hidden" name="clausola_controversie_attiva" id="inpClausolaContAtt" value="">
@@ -1103,6 +1107,20 @@
             </div>
             <div class="accordion-item">
               <h2 class="accordion-header">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#step3MediazioneOdmCollapse" aria-expanded="false" aria-controls="step3MediazioneOdmCollapse">
+                  Costi organismo mediazione D.M. 150/2023
+                </button>
+              </h2>
+              <div id="step3MediazioneOdmCollapse" class="accordion-collapse collapse">
+                <div class="accordion-body">
+                  <div id="mediazioneOdmBox" class="small text-muted">
+                    Il pannello si attiva quando la pratica principale o una classificazione aggiuntiva usa la mediazione civile / commerciale.
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="accordion-item">
+              <h2 class="accordion-header">
                 <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#step3AccessoriCollapse" aria-expanded="false" aria-controls="step3AccessoriCollapse">
                   Integrazioni selezionabili
                 </button>
@@ -1381,6 +1399,7 @@ const AREE = {{ aree|tojson }};
 const ID_FASCICOLO_PRE = {{ id_fascicolo_pre|tojson }};
 const FASCICOLO_PRE = {% if fascicolo_pre_context %}{{ fascicolo_pre_context|tojson }}{% else %}null{% endif %};
 const WIZARD_PREFILL = {{ wizard_prefill|tojson }};
+const MEDIAZIONE_ODM_PREFILL = WIZARD_PREFILL.mediazione_odm || {};
 const CLAUSOLA_CATALOGO = {{ clausola_catalogo|tojson }};
 const CLAUSOLA_STATE = {{ clausola_state|tojson }};
 
@@ -1704,12 +1723,9 @@ function syncClassificazioniTassonomicheHidden() {
   );
 }
 
-function clearClassificazioneRows() {
-  document.querySelectorAll('tr[data-role^="classificazione-"]').forEach((row) => row.remove());
-}
-
 async function onClassificazioniAggiuntiveChanged() {
   syncClassificazioniTassonomicheHidden();
+  renderMediazioneOdmBox();
   if (ultimoCalcolo) {
     scheduleRecalcoloPreventivo('Aggiorno la bozza dopo la classificazione tassonomica aggiuntiva...');
   } else {
@@ -2428,6 +2444,77 @@ function currentRegolaTariffaria() {
   return rows.find((item) => item.rule_code === select.value) || rows[0] || null;
 }
 
+function currentCalcProfile() {
+  return currentRegolaTariffaria()?.profile || {};
+}
+
+function currentCalcMode() {
+  return String(currentCalcProfile().calc_mode || '').trim().toLowerCase();
+}
+
+function defaultPhaseKeysForPractice(practice) {
+  return Array.isArray(practice?.fasi_default_keys)
+    ? practice.fasi_default_keys.filter((key) => String(key || '').trim() !== '')
+    : [];
+}
+
+function isMediazionePractice(practice) {
+  if (!practice) return false;
+  const id = String(practice.id || '').trim().toLowerCase();
+  const materia = String(practice.materia || '').trim().toLowerCase();
+  const label = String(practice.label || '').trim().toLowerCase();
+  return id === 'mediazione' || materia.includes('mediazione') || label.includes('mediazione');
+}
+
+function mediazioneOdmTargets() {
+  const targets = [];
+  const seen = new Set();
+  const pushTarget = (practice, role, label) => {
+    if (!practice || !isMediazionePractice(practice) || seen.has(role)) return;
+    seen.add(role);
+    targets.push({ practice, role, label: label || practice.label || 'Mediazione' });
+  };
+  pushTarget(tipologiaCorrente, 'main', tipologiaCorrente?.label || '');
+  accessoriCalcoloSelezionati().forEach((accessorio) => {
+    pushTarget(
+      getTipologiaById(accessorio.tipo_pratica_id),
+      `accessorio-${accessorio.id}`,
+      accessorio.label || ''
+    );
+  });
+  classificazioniAggiuntiveSelezionate().forEach((row) => {
+    pushTarget(
+      getTipologiaById(row.tipologia_pratica_id),
+      `classificazione-${row.uid}`,
+      row.tipologia_pratica_label || ''
+    );
+  });
+  return targets;
+}
+
+function currentMediazioneOdmState() {
+  const chk = document.getElementById('chkMediazioneOdmAttiva');
+  const selRegime = document.getElementById('selMediazioneOdmRegime');
+  const selEsito = document.getElementById('selMediazioneOdmEsito');
+  const chkArt31 = document.getElementById('chkMediazioneOdmArt31');
+  if (!chk && !selRegime && !selEsito && !chkArt31 && !mediazioneOdmTargets().length) {
+    return {
+      attiva: false,
+      regime: 'volontaria',
+      esito: 'primo_incontro_senza_accordo',
+      art31_comma3_maggiorazione_20: false,
+    };
+  }
+  return {
+    attiva: chk ? !!chk.checked : !!MEDIAZIONE_ODM_PREFILL.attiva,
+    regime: selRegime?.value || MEDIAZIONE_ODM_PREFILL.regime || 'volontaria',
+    esito: selEsito?.value || MEDIAZIONE_ODM_PREFILL.esito || 'primo_incontro_senza_accordo',
+    art31_comma3_maggiorazione_20: chkArt31
+      ? !!chkArt31.checked
+      : !!MEDIAZIONE_ODM_PREFILL.art31_comma3_maggiorazione_20,
+  };
+}
+
 function renderRegoleTariffarie() {
   const select = document.getElementById('selRegolaTariffaria');
   if (!tipologiaCorrente) {
@@ -2706,6 +2793,106 @@ function renderAdrVariationBox() {
   });
 }
 
+function syncMediazioneOdmHiddenFields() {
+  const state = currentMediazioneOdmState();
+  document.getElementById('inpMediazioneOdmAttiva').value = state.attiva ? '1' : '0';
+  document.getElementById('inpMediazioneOdmRegime').value = state.regime || 'volontaria';
+  document.getElementById('inpMediazioneOdmEsito').value = state.esito || 'primo_incontro_senza_accordo';
+  document.getElementById('inpMediazioneOdmArt31').value = state.art31_comma3_maggiorazione_20 ? '1' : '0';
+}
+
+function renderMediazioneOdmBox() {
+  const box = document.getElementById('mediazioneOdmBox');
+  if (!box) return;
+  const targets = mediazioneOdmTargets();
+  if (!targets.length) {
+    box.classList.add('text-muted');
+    box.innerHTML = 'Il pannello si attiva quando la pratica principale o una classificazione aggiuntiva usa la mediazione civile / commerciale.';
+    document.querySelectorAll('tr[data-role^="mediazione-odm-"]').forEach((row) => row.remove());
+    aggiornaEmptyState();
+    recalcTotals();
+    document.getElementById('inpMediazioneOdmAttiva').value = '0';
+    document.getElementById('inpMediazioneOdmRegime').value = 'volontaria';
+    document.getElementById('inpMediazioneOdmEsito').value = 'primo_incontro_senza_accordo';
+    document.getElementById('inpMediazioneOdmArt31').value = '0';
+    return;
+  }
+
+  const state = currentMediazioneOdmState();
+  const art31Allowed = state.esito === 'incontri_successivi_con_accordo';
+  const targetsMarkup = targets
+    .map((target) => `<span class="badge text-bg-light border">${escapeHtml(target.label)}</span>`)
+    .join('');
+  box.classList.remove('text-muted');
+  box.innerHTML = `
+    <div class="d-flex flex-column gap-3">
+      <div class="d-flex flex-column flex-lg-row justify-content-between gap-3">
+        <div>
+          <div class="fw-semibold text-dark">Spese organismo mediazione</div>
+          <div class="small text-muted">Artt. 28, 30, 31 e Tabella A del D.M. 24 ottobre 2023, n. 150 (${targets.length} applicazione${targets.length > 1 ? 'i' : ''} attiva${targets.length > 1 ? 'e' : ''}).</div>
+        </div>
+        <div class="form-check form-switch m-0">
+          <input class="form-check-input" type="checkbox" id="chkMediazioneOdmAttiva" ${state.attiva ? 'checked' : ''}>
+          <label class="form-check-label fw-semibold small" for="chkMediazioneOdmAttiva">Includi costi organismo nel preventivo</label>
+        </div>
+      </div>
+      <div class="d-flex flex-wrap gap-2">${targetsMarkup}</div>
+      <div class="row g-2 ${state.attiva ? '' : 'opacity-50'}">
+        <div class="col-lg-4">
+          <label class="form-label small text-muted mb-1">Regime</label>
+          <select id="selMediazioneOdmRegime" class="form-select form-select-sm" ${state.attiva ? '' : 'disabled'}>
+            <option value="volontaria" ${state.regime === 'volontaria' ? 'selected' : ''}>Volontaria</option>
+            <option value="obbligatoria_demandata" ${state.regime === 'obbligatoria_demandata' ? 'selected' : ''}>Obbligatoria / demandata</option>
+          </select>
+        </div>
+        <div class="col-lg-5">
+          <label class="form-label small text-muted mb-1">Esito procedura</label>
+          <select id="selMediazioneOdmEsito" class="form-select form-select-sm" ${state.attiva ? '' : 'disabled'}>
+            <option value="primo_incontro_senza_accordo" ${state.esito === 'primo_incontro_senza_accordo' ? 'selected' : ''}>Solo primo incontro senza accordo</option>
+            <option value="primo_incontro_con_accordo" ${state.esito === 'primo_incontro_con_accordo' ? 'selected' : ''}>Accordo raggiunto al primo incontro</option>
+            <option value="incontri_successivi_senza_accordo" ${state.esito === 'incontri_successivi_senza_accordo' ? 'selected' : ''}>Incontri successivi senza accordo</option>
+            <option value="incontri_successivi_con_accordo" ${state.esito === 'incontri_successivi_con_accordo' ? 'selected' : ''}>Incontri successivi con accordo</option>
+          </select>
+        </div>
+        <div class="col-lg-3">
+          <label class="form-label small text-muted mb-1">Maggiorazione art. 31</label>
+          <div class="form-check mt-2">
+            <input class="form-check-input" type="checkbox" id="chkMediazioneOdmArt31" ${state.art31_comma3_maggiorazione_20 && art31Allowed ? 'checked' : ''} ${state.attiva && art31Allowed ? '' : 'disabled'}>
+            <label class="form-check-label small" for="chkMediazioneOdmArt31">+20% art. 31, comma 3</label>
+          </div>
+        </div>
+      </div>
+      <div class="alert alert-light border small mb-0">
+        Primo incontro: spese di avvio + spese del primo incontro. Incontri successivi: il sistema aggiunge il differenziale minimo della Tabella A e, se previsto, le maggiorazioni di accordo e art. 31.
+      </div>
+    </div>`;
+
+  const onStateChange = (message) => {
+    syncMediazioneOdmHiddenFields();
+    if (ultimoCalcolo) {
+      scheduleRecalcoloPreventivo(message);
+      return;
+    }
+    syncCalcoloHiddenFields();
+  };
+
+  box.querySelector('#chkMediazioneOdmAttiva')?.addEventListener('change', () => {
+    renderMediazioneOdmBox();
+    onStateChange('Aggiorno la bozza dopo la variazione dei costi organismo mediazione...');
+  });
+  box.querySelector('#selMediazioneOdmRegime')?.addEventListener('change', () => {
+    onStateChange('Aggiorno la bozza dopo il cambio del regime di mediazione...');
+  });
+  box.querySelector('#selMediazioneOdmEsito')?.addEventListener('change', () => {
+    renderMediazioneOdmBox();
+    onStateChange('Aggiorno la bozza dopo il cambio dell’esito della mediazione...');
+  });
+  box.querySelector('#chkMediazioneOdmArt31')?.addEventListener('change', () => {
+    onStateChange('Aggiorno la bozza dopo la maggiorazione art. 31 della mediazione...');
+  });
+  syncMediazioneOdmHiddenFields();
+}
+
 function dedupeNormativeReferences(refs) {
   const seen = new Set();
   return (refs || []).filter((ref) => {
@@ -2968,14 +3155,36 @@ function renderFasi() {
     renderAdrVariationBox();
     return;
   }
-  const phases = tipologiaCorrente.fasi_default_keys || [];
-  const phaseMarkup = phases.map((key) => `
-    <div class="col-md-6">
-      <label class="border rounded-3 p-2 d-flex align-items-center gap-2">
-        <input class="form-check-input mt-0 fase-check" type="checkbox" value="${key}" checked>
-        <span>${escapeHtml(phaseLabel(key))}</span>
-      </label>
-    </div>`).join('');
+  const phases = defaultPhaseKeysForPractice(tipologiaCorrente);
+  const calcMode = currentCalcMode();
+  const activePhaseSet = new Set(
+    Array.from(document.querySelectorAll('.fase-check:checked')).map((node) => node.value)
+  );
+  const prefillPhaseSet = Array.isArray(WIZARD_PREFILL.fasi) && WIZARD_PREFILL.fasi.length
+    ? new Set(WIZARD_PREFILL.fasi)
+    : new Set(phases);
+  const selectedPhaseSet = activePhaseSet.size ? activePhaseSet : prefillPhaseSet;
+  let phaseMarkup = '';
+  if (calcMode === 'compenso_unico') {
+    phaseMarkup = `
+      <div class="col-12">
+        <div class="alert alert-info small mb-2">
+          Questa tipologia usa il <strong>compenso unico tabellare</strong>: le fasi restano accorpate in automatico e non producono variazioni manuali.
+        </div>
+        <div class="border rounded-3 p-3 bg-light small text-dark">
+          <div class="fw-semibold mb-1">Fasi accorpate dal motore</div>
+          <div>${phases.length ? phases.map((key) => escapeHtml(phaseLabel(key))).join(' · ') : 'Compenso unico tabellare'}</div>
+        </div>
+      </div>`;
+  } else {
+    phaseMarkup = phases.map((key) => `
+      <div class="col-md-6">
+        <label class="border rounded-3 p-2 d-flex align-items-center gap-2">
+          <input class="form-check-input mt-0 fase-check" type="checkbox" value="${key}" ${selectedPhaseSet.has(key) ? 'checked' : ''}>
+          <span>${escapeHtml(phaseLabel(key))}</span>
+        </label>
+      </div>`).join('');
+  }
   const accessoriMarkup = (tipologiaCorrente.accessori_calcolo || []).map((accessorio) => `
     <div class="col-12">
       <label class="border rounded-3 p-3 d-flex align-items-start gap-2 h-100 bg-light">
@@ -3003,6 +3212,7 @@ function renderFasi() {
     node.addEventListener('change', () => {
       renderSchedaTipologia();
       renderAdrVariationBox();
+      renderMediazioneOdmBox();
       renderEsborsi();
       clearAccessorioRows();
       if (ultimoCalcolo) {
@@ -3014,6 +3224,7 @@ function renderFasi() {
     });
   });
   renderAdrVariationBox();
+  renderMediazioneOdmBox();
 }
 
 function renderEsborsi() {
@@ -3245,6 +3456,13 @@ function applyWizardPrefill() {
   const hasPrefill = Object.values(WIZARD_PREFILL || {}).some((value) => {
     if (Array.isArray(value)) return value.length > 0;
     if (typeof value === 'boolean') return value;
+    if (value && typeof value === 'object') {
+      return Object.values(value).some((nested) => {
+        if (Array.isArray(nested)) return nested.length > 0;
+        if (typeof nested === 'boolean') return nested;
+        return String(nested || '').trim() !== '';
+      });
+    }
     return String(value || '').trim() !== '';
   });
   if (!hasPrefill) {
@@ -3487,12 +3705,39 @@ function upsertVocePerRuolo(role, desc, importo, tipo = 'Onorario') {
   recalcTotals();
 }
 
+function removeVocePerRuolo(role) {
+  const row = document.querySelector(`tr[data-role="${role}"]`);
+  if (!row) return;
+  row.remove();
+  aggiornaEmptyState();
+  recalcTotals();
+}
+
 function upsertVocePrincipale(desc, importo) {
   upsertVocePerRuolo('main-compenso', desc, importo, 'Onorario');
 }
 
 function clearAccessorioRows() {
   document.querySelectorAll('tr[data-role^="accessorio-"]').forEach((row) => row.remove());
+  document.querySelectorAll('tr[data-role^="mediazione-odm-accessorio-"]').forEach((row) => row.remove());
+}
+
+function clearClassificazioneRows() {
+  document.querySelectorAll('tr[data-role^="classificazione-"]').forEach((row) => row.remove());
+  document.querySelectorAll('tr[data-role^="mediazione-odm-classificazione-"]').forEach((row) => row.remove());
+}
+
+function syncMediazioneOdmMainRow(data = null) {
+  if (!tipologiaCorrente || !isMediazionePractice(tipologiaCorrente) || !data?.mediazione_odm) {
+    removeVocePerRuolo('mediazione-odm-main');
+    return;
+  }
+  upsertVocePerRuolo(
+    'mediazione-odm-main',
+    data.mediazione_odm.voce_label || 'Costi organismo mediazione D.M. 150/2023',
+    data.mediazione_odm.totale_organismo || 0,
+    'Spesa viva'
+  );
 }
 
 function syncEsborsiRows() {
@@ -3534,6 +3779,7 @@ function buildEconomicLogPayload() {
   const regola = currentRegolaTariffaria();
   const grado = document.getElementById('selGrado').value || '';
   const chkAdrAccordo = document.getElementById('chkAdrAccordo');
+  const mediazioneOdm = currentMediazioneOdmState();
   const accessori = accessoriCalcoloSelezionati().map((row) => ({
     id: row.id,
     label: row.label,
@@ -3581,6 +3827,7 @@ function buildEconomicLogPayload() {
       accordo: !!(chkAdrAccordo && chkAdrAccordo.checked),
       variazioni_fasi_pct: currentAdrVariationValues(),
     },
+    mediazione_odm: mediazioneOdm,
     classificazioni_tassonomiche: classificazioniExtra,
     accessori,
     esborsi: esborsiSuggeritiAttivi(),
@@ -3608,6 +3855,7 @@ function syncCalcoloHiddenFields() {
   document.getElementById('inpPercSpeseGenerali').value = document.getElementById('inpPercSpese').value || '15';
   const chkAdrAccordo = document.getElementById('chkAdrAccordo');
   document.getElementById('inpAdrAccordo').value = chkAdrAccordo && chkAdrAccordo.checked ? '1' : '0';
+  syncMediazioneOdmHiddenFields();
   document.getElementById('inpLogCalcolo').value = JSON.stringify(buildEconomicLogPayload());
 }
 
@@ -3624,14 +3872,27 @@ function buildQuery(idPratica = '', fasiOverride = null) {
   params.set('applica_cpa', document.getElementById('chkCassa').checked ? '1' : '0');
   params.set('applica_iva', document.getElementById('chkIva').checked ? '1' : '0');
   params.set('anticipazioni', String(parseLocaleNumber(document.getElementById('inpAnticipazioni').value || 0)));
+  const practice = getTipologiaById(idPratica || tipologiaCorrente?.id || '') || tipologiaCorrente;
   const fasi = Array.isArray(fasiOverride)
     ? fasiOverride
-    : Array.from(document.querySelectorAll('.fase-check:checked')).map((node) => node.value);
+    : (() => {
+        const checked = Array.from(document.querySelectorAll('.fase-check:checked')).map((node) => node.value);
+        if (checked.length) return checked;
+        return defaultPhaseKeysForPractice(practice);
+      })();
   params.set('fasi', fasi.join(','));
   const chkAdrAccordo = document.getElementById('chkAdrAccordo');
   if (chkAdrAccordo) {
     params.set('adr_accordo', chkAdrAccordo.checked ? '1' : '0');
   }
+  const mediazioneOdm = currentMediazioneOdmState();
+  params.set('mediazione_odm_attiva', mediazioneOdm.attiva ? '1' : '0');
+  params.set('mediazione_odm_regime', mediazioneOdm.regime || 'volontaria');
+  params.set('mediazione_odm_esito', mediazioneOdm.esito || 'primo_incontro_senza_accordo');
+  params.set(
+    'mediazione_odm_art31_maggiorazione_20',
+    mediazioneOdm.art31_comma3_maggiorazione_20 ? '1' : '0'
+  );
   document.querySelectorAll('.adr-var-input').forEach((node) => {
     const rawValue = String(node.value || '').trim();
     if (rawValue !== '') {
@@ -3645,11 +3906,20 @@ function buildWizardCalculationUrl(idPratica = '', fasiOverride = null) {
   return `{{ url_for('preventivi.wizard_calcola') }}?${buildQuery(idPratica, fasiOverride).toString()}`;
 }
 
+function buildPracticeCalculationUrl(practiceId = '', fasiOverride = null) {
+  const practice = getTipologiaById(practiceId) || tipologiaCorrente;
+  const effectiveFasi = Array.isArray(fasiOverride) && fasiOverride.length
+    ? fasiOverride
+    : defaultPhaseKeysForPractice(practice);
+  return buildWizardCalculationUrl(practiceId, effectiveFasi);
+}
+
 function renderRisultato(data) {
   ultimoCalcolo = data;
   document.getElementById('kpiCompenso').textContent = money(data.onorario_base || data.totale_base || data.onorario_selezionato || 0);
   document.getElementById('kpiTotale').textContent = money(data.totale || 0);
   upsertVocePrincipale(`Compenso professionale per ${tipologiaCorrente.label} - ${data.scaglione}`, data.onorario_base || data.totale_base || data.onorario_selezionato || 0);
+  syncMediazioneOdmMainRow(data);
   recalcTotals();
 }
 
@@ -3668,9 +3938,10 @@ function renderRisultatoOrario() {
 async function applicaAccessoriCalcolo() {
   const accessori = accessoriCalcoloSelezionati();
   const ruoliAttivi = new Set();
+  const odmRuoliAttivi = new Set();
   for (const accessorio of accessori) {
     const data = await fetchWizardCalculation(
-      buildWizardCalculationUrl(accessorio.tipo_pratica_id, accessorio.fasi_default_keys || null)
+      buildPracticeCalculationUrl(accessorio.tipo_pratica_id, accessorio.fasi_default_keys || null)
     );
     if (data.errore) {
       throw new Error(data.errore);
@@ -3678,10 +3949,23 @@ async function applicaAccessoriCalcolo() {
     const role = `accessorio-${accessorio.id}`;
     const label = accessorio.row_label || `Compenso professionale per ${data.tipo_pratica?.label || accessorio.label}`;
     ruoliAttivi.add(role);
-      upsertVocePerRuolo(role, label, data.onorario_base || data.totale_base || data.onorario_selezionato || 0, 'Onorario');
+    upsertVocePerRuolo(role, label, data.onorario_base || data.totale_base || data.onorario_selezionato || 0, 'Onorario');
+    if (data.mediazione_odm) {
+      const odmRole = `mediazione-odm-accessorio-${accessorio.id}`;
+      odmRuoliAttivi.add(odmRole);
+      upsertVocePerRuolo(
+        odmRole,
+        `${data.mediazione_odm.voce_label || 'Costi organismo mediazione D.M. 150/2023'} - ${accessorio.label || data.tipo_pratica?.label || accessorio.id}`,
+        data.mediazione_odm.totale_organismo || 0,
+        'Spesa viva'
+      );
+    }
   }
   document.querySelectorAll('tr[data-role^="accessorio-"]').forEach((row) => {
     if (!ruoliAttivi.has(row.getAttribute('data-role'))) row.remove();
+  });
+  document.querySelectorAll('tr[data-role^="mediazione-odm-accessorio-"]').forEach((row) => {
+    if (!odmRuoliAttivi.has(row.getAttribute('data-role'))) row.remove();
   });
   aggiornaEmptyState();
   recalcTotals();
@@ -3690,9 +3974,13 @@ async function applicaAccessoriCalcolo() {
 async function applicaClassificazioniAggiuntiveCalcolo() {
   const rows = classificazioniAggiuntiveSelezionate();
   const ruoliAttivi = new Set();
+  const odmRuoliAttivi = new Set();
   for (const row of rows) {
     if (!row.tipologia_pratica_id) continue;
-    const data = await fetchWizardCalculation(buildWizardCalculationUrl(row.tipologia_pratica_id));
+    const practice = getTipologiaById(row.tipologia_pratica_id);
+    const data = await fetchWizardCalculation(
+      buildPracticeCalculationUrl(row.tipologia_pratica_id, defaultPhaseKeysForPractice(practice))
+    );
     if (data.errore) {
       throw new Error(data.errore);
     }
@@ -3700,9 +3988,22 @@ async function applicaClassificazioniAggiuntiveCalcolo() {
     const label = `Compenso aggiuntivo per ${row.tipologia_pratica_label || data.tipo_pratica?.label || row.tipologia_pratica_id}`;
     ruoliAttivi.add(role);
     upsertVocePerRuolo(role, label, data.onorario_base || data.totale_base || data.onorario_selezionato || 0, 'Onorario');
+    if (data.mediazione_odm) {
+      const odmRole = `mediazione-odm-classificazione-${row.uid}`;
+      odmRuoliAttivi.add(odmRole);
+      upsertVocePerRuolo(
+        odmRole,
+        `${data.mediazione_odm.voce_label || 'Costi organismo mediazione D.M. 150/2023'} - ${row.tipologia_pratica_label || data.tipo_pratica?.label || row.tipologia_pratica_id}`,
+        data.mediazione_odm.totale_organismo || 0,
+        'Spesa viva'
+      );
+    }
   }
   document.querySelectorAll('tr[data-role^="classificazione-"]').forEach((row) => {
     if (!ruoliAttivi.has(row.getAttribute('data-role'))) row.remove();
+  });
+  document.querySelectorAll('tr[data-role^="mediazione-odm-classificazione-"]').forEach((row) => {
+    if (!odmRuoliAttivi.has(row.getAttribute('data-role'))) row.remove();
   });
   aggiornaEmptyState();
   recalcTotals();

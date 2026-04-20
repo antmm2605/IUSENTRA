@@ -170,6 +170,9 @@ def test_template_wizard_espone_classificazione_operativa_visibile():
     assert "wizardInlineStatus" in template
     assert "scheduleRecalcoloPreventivo" in template
     assert "Calcola e aggiorna la bozza" in template
+    assert "Costi organismo mediazione D.M. 150/2023" in template
+    assert "Includi costi organismo nel preventivo" in template
+    assert "+20% art. 31, comma 3" in template
 
 
 def test_template_wizard_allinea_clausola_controversie_al_form_classico():
@@ -291,6 +294,35 @@ def test_wizard_calcola_rispetta_fasi_e_spese_generali(tmp_path):
     assert payload_tutte_fasi["spese_generali"] == 0
     assert payload_con_spese["spese_generali"] > 0
     assert payload_con_spese["totale"] > payload_tutte_fasi["totale"]
+
+
+def test_wizard_calcola_mediazione_odm_restituisce_costi_organismo_dm150(tmp_path):
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    app = create_app(_cfg_web(tmp_path))
+    _crea_admin(app)
+
+    with app.test_client() as client:
+        _login(client)
+        response = client.get(
+            "/preventivi/wizard/calcola",
+            query_string={
+                "id_pratica": "mediazione",
+                "valore": "10000",
+                "grado": "Procedura ADR",
+                "complessita": "media",
+                "spese_generali": "0",
+                "mediazione_odm_attiva": "1",
+                "mediazione_odm_regime": "volontaria",
+                "mediazione_odm_esito": "primo_incontro_senza_accordo",
+            },
+        )
+
+    payload = response.get_json()
+
+    assert response.status_code == 200
+    assert payload["mediazione_odm"]["totale_organismo"] == 195.0
+    assert "23G00163" in payload["mediazione_odm"]["riferimento_url"]
+    assert payload["mediazione_odm"]["voce_label"].startswith("Costi organismo mediazione D.M. 150/2023")
 
 
 def test_wizard_genera_salva_flag_reali_e_classificazioni_tassonomiche(tmp_path):

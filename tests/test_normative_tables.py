@@ -12,6 +12,7 @@ def test_catalogo_normativo_seeded(tmp_path):
     assert any(row["id"] == "riferimenti_normativi_catalogo" for row in snapshot["tabelle"])
     assert any(row["id"] == "registro_organismi_mediazione" for row in snapshot["tabelle"])
     assert any(row["id"] == "organismi_mediazione_elenco" for row in snapshot["tabelle"])
+    assert any(row["id"] == "mediazione_costi_odm_dm150" for row in snapshot["tabelle"])
     assert any(row["id"] == "tariffario_forense_scaglioni" for row in snapshot["tabelle"])
     assert any(row["id"] == "tariffario_forense_profili" for row in snapshot["tabelle"])
     assert any(row["id"] == "tariffario_forense_regole" for row in snapshot["tabelle"])
@@ -136,3 +137,19 @@ def test_tariffario_forense_tables_espongono_profili_opzioni_e_fatturazione(tmp_
     assert any(row["option_code"] == "spese_generali_15" for row in opzioni)
     assert any(row["reference_code"] == "dlgs127_fattura_elettronica" for row in riferimenti)
     assert any(row["channel_code"] == "fatturapa_xml" for row in fatturazione)
+
+
+def test_mediazione_odm_table_espone_scaglioni_dm150_e_fonte_ufficiale(tmp_path):
+    gestore = GestioneTabelleNormative(str(tmp_path / "tabelle_normative.json"))
+
+    snapshot = gestore.snapshot()
+    table = gestore.get_table("mediazione_costi_odm_dm150")
+    rows = gestore.rows("mediazione_costi_odm_dm150")
+
+    assert next(item for item in snapshot["tabelle"] if item["id"] == "mediazione_costi_odm_dm150")["category"] == "adr_mediazione"
+    assert any(row["label"] == "Fino a EUR 1.000" and row["spese_avvio"] == 40.0 for row in rows)
+    assert any(row.get("kind") == "indeterminabile" and row["tabella_a_minimo"] == 1200.0 for row in rows)
+    assert any(
+        source["code"] == "dm_150_2023_mediazione" and "23G00163" in source["url"]
+        for source in table["sources"]
+    )

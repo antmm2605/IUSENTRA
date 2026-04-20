@@ -33,6 +33,12 @@ from pct.preventivi import (
 )
 from pct.tariffario import parse_numero_locale
 from pct.workflow_commerciale import apri_fascicolo_automatico, build_workflow_summary
+from web.services.mediazione_dm150_runtime import (
+    calcola_mediazione_odm_da_context,
+    is_mediazione_practice,
+    mediazione_odm_context_for_prefill,
+    parse_mediazione_odm_context,
+)
 
 preventivi = Blueprint("preventivi", __name__, url_prefix="/preventivi")
 
@@ -1250,6 +1256,7 @@ def wizard():
             for key in ("attivazione", "rivitalizzazione", "negoziazione", "conciliazione")
             if (request.args.get(f"var_{key}", "") or "").strip()
         },
+        "mediazione_odm": mediazione_odm_context_for_prefill(request.args),
         "adr_accordo": request.args.get("adr_accordo", "0") == "1",
         "bonus_telematico": request.args.get("bonus_telematico", "0") == "1",
         "spese_generali": request.args.get("spese_generali", "1") == "1",
@@ -1350,6 +1357,7 @@ def wizard_calcola():
         fasi_raw = request.args.get("fasi", "")
         bonus_tel = request.args.get("bonus_telematico", "0") == "1"
         incl_spese = request.args.get("spese_generali", "1") == "1"
+        mediazione_odm_context = parse_mediazione_odm_context(request.args)
         try:
             perc_sg = _parse_numero(request.args.get("perc_spese_generali", "15"), 15.0) / 100.0
         except (ValueError, TypeError):
@@ -1454,6 +1462,11 @@ def wizard_calcola():
             applica_iva=applica_iva,
             anticipazioni=anticipazioni,
         )
+        mediazione_odm = (
+            calcola_mediazione_odm_da_context(valore, mediazione_odm_context)
+            if is_mediazione_practice(tp)
+            else None
+        )
 
         _wizard_log_story(
             "calcolo completato",
@@ -1464,6 +1477,7 @@ def wizard_calcola():
             fasi=[fase.value for fase in fasi] if fasi else [],
             spese_generali=incl_spese,
             bonus_telematico=bonus_tel,
+            mediazione_odm=bool(mediazione_odm),
             totale=ris.totale,
         )
 
@@ -1499,6 +1513,7 @@ def wizard_calcola():
             "regola_tariffaria":     regola_tariffaria,
             "nota":                  dm.note,
             "base_normativa":        tp.base_normativa,
+            "mediazione_odm":        mediazione_odm,
         })
     except Exception as e:
         _wizard_log_story(

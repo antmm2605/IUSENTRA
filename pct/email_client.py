@@ -69,7 +69,10 @@ _MAPPA_STATO_PST = {
     "ERRORE":                "ERRORE_CONTROLLI",
 }
 
-_RE_RG_PCT = re.compile(r"\bR\.?\s*G\.?\s+(\d+)\s*/\s*(\d{4})\b", re.IGNORECASE)
+_RE_RG_PCT = re.compile(
+    r"\b(?:N\.?\s*CAUSA\s*)?(?:R\.?\s*G\.?|REGISTRO\s+GENERALE)(?:\s*N\.?\s*R\.?)?\s*[:\-]?\s*(\d+)\s*/\s*(\d{4})\b",
+    re.IGNORECASE,
+)
 _RE_SAFE_FILENAME = re.compile(r'[^A-Za-z0-9._()\- ]+')
 _STATI_PCT_ORDINE = {
     "INVIATO": 0,
@@ -659,11 +662,39 @@ _EMAIL_MATCH_STOPWORDS = {
     "avv",
     "studio",
 }
+_KEYWORDS_CANCELLERIA = (
+    "accettazione",
+    "consegna",
+    "cancelleria",
+    "deposito telematico",
+    "esito deposito",
+    "controlli automatici",
+    "rifiuto",
+    "notificazione ai sensi del d l 179 2012",
+    "biglietto di cancelleria",
+    "comunicazione di cancelleria",
+    "tribunale ordinario",
+    "ufficio notificazioni",
+)
+_GIUSTIZIA_SENDER_HINTS = (
+    "giustiziapec.it",
+    "giustiziacert.it",
+    "civile.ptel.giustiziacert.it",
+    "pst.giustizia.it",
+    "appweb.giustizia.it",
+    "giustizia.it",
+)
 
 
 def _normalizza_testo_email_match(value: str) -> str:
     testo = unicodedata.normalize("NFKD", str(value or "")).encode("ascii", "ignore").decode("ascii")
     testo = re.sub(r"[_/\\-]+", " ", testo.lower())
+    return " ".join(testo.split())
+
+
+def _normalizza_testo_email_keywords(value: str) -> str:
+    testo = _normalizza_testo_email_match(value)
+    testo = re.sub(r"[^a-z0-9]+", " ", testo)
     return " ".join(testo.split())
 
 
@@ -678,7 +709,7 @@ def _tokenizza_email_match(value: str) -> set[str]:
 
 
 def _corpo_normalizzato_email(em: EmailRicevuta) -> str:
-    return _normalizza_testo_email_match(
+    return _normalizza_testo_email_keywords(
         " ".join(
             [
                 em.oggetto or "",
@@ -688,6 +719,15 @@ def _corpo_normalizzato_email(em: EmailRicevuta) -> str:
                 em.mittente_nome or "",
             ]
         )
+    )
+
+
+def _email_da_canale_giustizia(em: EmailRicevuta) -> bool:
+    sender_text = _normalizza_testo_email_match(" ".join([em.mittente or "", em.mittente_nome or ""]))
+    body_text = _corpo_normalizzato_email(em)
+    return any(
+        hint in sender_text or hint in body_text
+        for hint in _GIUSTIZIA_SENDER_HINTS
     )
 
 
@@ -816,24 +856,12 @@ def _trova_match_deposito_email(fascicoli: List[object], em: EmailRicevuta) -> t
 def _email_e_comunicazione_cancelleria(em: EmailRicevuta) -> bool:
     if not _estrai_rg_email(em):
         return False
-    testo = " ".join([
-        em.oggetto or "",
-        em.corpo_testo or "",
-        re.sub(r"<[^>]+>", " ", em.corpo_html or ""),
-    ]).lower()
+    testo = _corpo_normalizzato_email(em)
     if em.e_pst:
         return True
-    parole = (
-        "accettazione",
-        "consegna",
-        "cancelleria",
-        "deposito telematico",
-        "esito deposito",
-        "controlli automatici",
-        "rifiuto",
-        "notifica",
-    )
-    return any(p in testo for p in parole)
+    if _email_da_canale_giustizia(em):
+        return True
+    return any(parola in testo for parola in _KEYWORDS_CANCELLERIA)
 
 
 def _trova_fascicolo_da_email(fascicoli: List[object], em: EmailRicevuta):
@@ -857,6 +885,7 @@ def _trova_fascicolo_da_email(fascicoli: List[object], em: EmailRicevuta):
 def aggiorna_comunicazioni_cancelleria_da_email(
     gestione_email: GestioneEmailRicevute,
     gestione_fascicoli,
+    fascicolo_id: str | None = None,
 ) -> dict:
     from pct.fascicoli import TipoAttivita, EsitoAttivita
 
@@ -864,6 +893,8 @@ def aggiorna_comunicazioni_cancelleria_da_email(
     db = gestione_email._carica()
     emails = sorted(db.values(), key=lambda e: e.timestamp or e.ricevuta_il)
     fascicoli = gestione_fascicoli.tutti()
+    if fascicolo_id:
+        fascicoli = [fasc for fasc in fascicoli if getattr(fasc, "id", "") == fascicolo_id]
 
     for em in emails:
         if not _email_e_comunicazione_cancelleria(em):
@@ -952,6 +983,7 @@ def sincronizza_pec_e_fascicoli(
     gestione_fascicoli,
     config_pec: object,
     *,
+    fascicolo_id: str | None = None,
     state_path: str = "",
     giorni_indietro: int = 30,
     limite: int = 100,
@@ -978,12 +1010,21 @@ def sincronizza_pec_e_fascicoli(
         limite=limite,
         timeout_seconds=timeout_s,
     )
-    auto_log = aggiorna_esiti_da_email(gestione_email, gestione_fascicoli)
-    comm_report = aggiorna_comunicazioni_cancelleria_da_email(gestione_email, gestione_fascicoli)
+    auto_log = aggiorna_esiti_da_email(
+        gestione_email,
+        gestione_fascicoli,
+        fascicolo_id=fascicolo_id,
+    )
+    comm_report = aggiorna_comunicazioni_cancelleria_da_email(
+        gestione_email,
+        gestione_fascicoli,
+        fascicolo_id=fascicolo_id,
+    )
     try:
         poll_report_raw = poll_cancelleria_pec(
             gf=gestione_fascicoli,
             config_pec=config_pec,
+            fascicolo_id=fascicolo_id,
             state_path=state_path,
             giorni_indietro=giorni_indietro,
             timeout_seconds=timeout_s,
@@ -993,6 +1034,7 @@ def sincronizza_pec_e_fascicoli(
         poll_report_raw = poll_cancelleria_pec(
             gf=gestione_fascicoli,
             config_pec=config_pec,
+            fascicolo_id=fascicolo_id,
             state_path=state_path,
             giorni_indietro=giorni_indietro,
         )
@@ -1014,6 +1056,7 @@ def sincronizza_pec_e_fascicoli(
 def aggiorna_esiti_da_email(
     gestione_email: GestioneEmailRicevute,
     gestione_fascicoli,  # GestioneFascicoli — evita import circolare
+    fascicolo_id: str | None = None,
 ) -> List[str]:
     """
     Scorre le email PST non ancora auto-registrate e aggiorna
@@ -1030,10 +1073,13 @@ def aggiorna_esiti_da_email(
         key=lambda e: e.timestamp or e.ricevuta_il,
     )
 
+    tutti_fascicoli = gestione_fascicoli.tutti()
+    if fascicolo_id:
+        tutti_fascicoli = [fasc for fasc in tutti_fascicoli if getattr(fasc, "id", "") == fascicolo_id]
+
     for em in pst_da_processare:
         trovato = False
         try:
-            tutti_fascicoli = gestione_fascicoli.tutti()
             fasc, dep = _trova_match_deposito_email(tutti_fascicoli, em)
             if fasc and dep:
                 _aggiorna_ricevute_deposito_da_email(dep, em)
@@ -1046,11 +1092,34 @@ def aggiorna_esiti_da_email(
         except Exception as exc:
             log.append(f"Errore auto-esito email {em.id}: {exc}")
 
-        em.auto_registrata = True
-        if not trovato:
+        if trovato:
+            em.auto_registrata = True
+        else:
             log.append(f"Nessun deposito abbinato per email PST: {em.oggetto[:60]}")
 
     if pst_da_processare:
         gestione_email._salva()
 
     return log
+
+
+def riassunto_auto_esiti(log: List[str]) -> dict:
+    aggiornati = 0
+    non_abbinati = 0
+    errori = 0
+    for entry in log or []:
+        testo = str(entry or "").strip()
+        if not testo:
+            continue
+        if testo.startswith("Nessun deposito abbinato"):
+            non_abbinati += 1
+        elif testo.lower().startswith("errore"):
+            errori += 1
+        else:
+            aggiornati += 1
+    return {
+        "aggiornati": aggiornati,
+        "non_abbinati": non_abbinati,
+        "errori": errori,
+        "totale": len(log or []),
+    }

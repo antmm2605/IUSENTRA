@@ -407,6 +407,7 @@ def _salva_uid_processati(uid_set: set, state_path: str) -> None:
 def poll_cancelleria_pec(
     gf: "GestioneFascicoli",
     config_pec: object,
+    fascicolo_id: str | None = None,
     state_path: str = "",
     giorni_indietro: int = 30,
     timeout_seconds: int | None = None,
@@ -453,6 +454,9 @@ def poll_cancelleria_pec(
         )
     except Exception:
         tutti = []
+
+    if fascicolo_id:
+        tutti = [f for f in tutti if getattr(f, "id", "") == fascicolo_id]
 
     for f in tutti:
         nr = str(getattr(f, "numero_rg", "") or "").strip()

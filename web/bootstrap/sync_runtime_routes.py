@@ -93,7 +93,11 @@ def register_sync_runtime_routes(
     def api_pec_poll_cancelleria():
         try:
             from pct.config_studio import GestioneConfigStudio
-            from pct.email_client import GestioneEmailRicevute, sincronizza_pec_e_fascicoli
+            from pct.email_client import (
+                GestioneEmailRicevute,
+                riassunto_auto_esiti,
+                sincronizza_pec_e_fascicoli,
+            )
             from pct.fascicoli import GestioneFascicoli
 
             utente = _current_user()
@@ -103,6 +107,9 @@ def register_sync_runtime_routes(
             fascicoli_db = app.config.get("FASCICOLI_DB", "./fascicoli/fascicoli.json")
             if not os.path.exists(fascicoli_db):
                 return jsonify({"ok": False, "errore": "Database fascicoli non trovato"}), 404
+
+            payload = request.get_json(silent=True) or {}
+            fascicolo_id = str(payload.get("id_fascicolo") or "").strip()
 
             config_pec = None
             try:
@@ -143,11 +150,13 @@ def register_sync_runtime_routes(
                 gestione_email=ge,
                 gestione_fascicoli=gf,
                 config_pec=config_pec,
+                fascicolo_id=fascicolo_id or None,
                 state_path=state_path,
                 limite=100,
             )
             sync_result = workflow.get("sync", {}) or {}
             auto_log = workflow.get("auto_esiti", []) or []
+            auto_summary = riassunto_auto_esiti(auto_log)
             report = workflow.get("poll", {}) or {
                 "trovati": 0,
                 "associati": 0,
@@ -155,6 +164,10 @@ def register_sync_runtime_routes(
                 "errori": 0,
             }
             sync_errore = str(sync_result.get("errore") or "").strip()
+            pst_in_attesa = sum(
+                1 for em in ge._carica().values()
+                if em.e_pst and not em.auto_registrata
+            )
 
             if report["associati"]:
                 msg = (
@@ -164,16 +177,20 @@ def register_sync_runtime_routes(
             elif report["duplicati"]:
                 msg = (
                     f"{report['duplicati']} comunicazion{'e' if report['duplicati'] == 1 else 'i'} "
-                    f"gia' present{'e' if report['duplicati'] == 1 else 'i'} nel fascicolo."
+                    f"gia' present{'e' if report['duplicati'] == 1 else 'i'} nel fascicolo selezionato."
                 )
-            elif auto_log:
-                msg = f"Workflow PEC completato: {len(auto_log)} esiti deposito aggiornati."
+            elif auto_summary["aggiornati"]:
+                msg = f"Workflow PEC completato: {auto_summary['aggiornati']} esiti deposito aggiornati."
+            elif auto_summary["non_abbinati"]:
+                msg = f"{auto_summary['non_abbinati']} PEC PST restano in attesa di abbinamento ai depositi."
             elif sync_result.get("nuove"):
                 msg = f"Sincronizzazione PEC completata: {sync_result.get('nuove', 0)} email nuove."
             elif report["trovati"]:
                 msg = "Nessuna comunicazione nuova trovata (gia' tutte caricate)."
             else:
                 msg = "Nessuna email di cancelleria trovata nella casella PEC."
+            if pst_in_attesa and not auto_summary["non_abbinati"]:
+                msg = f"{msg} PEC PST ancora da verificare: {pst_in_attesa}."
             if sync_errore:
                 msg = f"{msg} Sincronizzazione IMAP non completata."
 
@@ -192,7 +209,9 @@ def register_sync_runtime_routes(
                     "report": report,
                     "nuove": sync_result.get("nuove", 0),
                     "pst_trovate": sync_result.get("pst_trovate", 0),
-                    "esiti_aggiornati": len(auto_log),
+                    "esiti_aggiornati": auto_summary["aggiornati"],
+                    "non_abbinati": auto_summary["non_abbinati"],
+                    "pst_in_attesa": pst_in_attesa,
                     "log": auto_log,
                     "sync_errore": sync_errore,
                     "warning": bool(sync_errore),

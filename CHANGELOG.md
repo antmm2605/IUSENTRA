@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.178.10 - 2026-04-20
+
+- Corrette le date nella pagina `Email`: l'elenco e il dettaglio usano ora i filtri condivisi italiani e non mostrano piu' formati `mm/dd`.
+- Rafforzato il matching PEC/fascicoli: le notifiche dal canale giustizia (`giustiziacert`, `Notificazione ai sensi del D.L. 179/2012`) vengono collegate correttamente alle comunicazioni di cancelleria del fascicolo.
+- `Auto-esiti` non consuma piu' in modo definitivo le PEC PST non abbinate: restano rielaborabili ai click successivi finche' non trovano il deposito giusto.
+- `Sincronizza PEC` dalla pagina fascicolo lavora sul fascicolo corrente, espone le PEC in attesa di abbinamento e ricarica la vista anche quando trova comunicazioni gia' presenti per mostrare davvero la sezione aggiornata.
+
 ## 2.178.9 - 2026-04-20
 
 - Corretto il flusso `Email`: la sincronizzazione IMAP e il polling PEC ora usano un timeout esplicito, così il pulsante `Aggiorna` non resta più indefinitamente in `Sync` quando il server PEC non risponde.

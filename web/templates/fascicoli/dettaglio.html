@@ -5610,6 +5610,7 @@ function _syncPecCancelleria(btn) {
   fetch('/api/pec/poll-cancelleria', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+    body: JSON.stringify({ id_fascicolo: '{{ fascicolo.id }}' }),
   })
   .then(r => r.json())
   .then(d => {
@@ -5619,9 +5620,15 @@ function _syncPecCancelleria(btn) {
       const r = d.report || {};
       const msg = d.messaggio || 'Operazione completata.';
       const syncErr = d.sync_errore ? `<br><small class="text-warning-emphasis">${_escapeToastHtml(d.sync_errore)}</small>` : '';
-      const detail = `<br><small class="text-muted">${d.nuove||0} email nuove · ${d.esiti_aggiornati||0} esiti aggiornati · ${r.associati||0} comunicazioni nuove · ${r.duplicati||0} già presenti</small>${syncErr}`;
+      const detail = `<br><small class="text-muted">${d.nuove||0} email nuove · ${d.esiti_aggiornati||0} esiti aggiornati · ${r.associati||0} comunicazioni nuove · ${r.duplicati||0} già presenti · ${d.non_abbinati||0} in attesa</small>${syncErr}`;
       _mostraToast(d.warning ? 'warning' : 'success', msg + detail);
-      if ((d.nuove||0) || (d.esiti_aggiornati||0) || (r.associati||0)) setTimeout(() => location.reload(), 1800);
+      if ((d.nuove||0) || (d.esiti_aggiornati||0) || (r.associati||0) || (r.duplicati||0)) {
+        setTimeout(() => {
+          const nextUrl = new URL(window.location.href);
+          nextUrl.hash = 'sezione-comunicazioni-cancelleria';
+          window.location.assign(nextUrl.toString());
+        }, 1800);
+      }
     } else {
       _mostraToast('danger', d.errore || 'Errore durante il polling PEC.');
     }

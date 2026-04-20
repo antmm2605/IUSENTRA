@@ -234,9 +234,8 @@
             </td>
             <td class="small text-nowrap text-muted d-none d-md-table-cell">
               {% set ts = em.timestamp %}{% if ts %}
-                {% if ts[:10] == oggi.strftime('%Y-%m-%d') %}{{ ts[11:16] }}
-                {% elif ts[:4] == oggi.strftime('%Y') %}{{ ts[5:7] }}/{{ ts[8:10] }}
-                {% else %}{{ ts[2:10] }}{% endif %}
+                {% if ts[:10] == oggi.isoformat() %}{{ ts|fmt_ora }}
+                {% else %}{{ ts|fmt_data }}{% endif %}
               {% endif %}
             </td>
             <td>
@@ -354,6 +353,7 @@ document.getElementById('btnSync')?.addEventListener('click', function () {
         if (d.nuove > 0)                      msg += ` | ${d.nuove} nuova/e`;
         if (d.pst_trovate > 0)                msg += ` | ${d.pst_trovate} PST`;
         if (d.esiti_aggiornati > 0)           msg += ` | ${d.esiti_aggiornati} esiti`;
+        if (d.non_abbinati > 0)               msg += ` | ${d.non_abbinati} in attesa`;
         if ((d.comunicazioni_cancelleria||0) > 0) msg += ` | ${d.comunicazioni_cancelleria} comunicazioni`;
         if (d.sync_errore)                    msg += ` | ${d.sync_errore}`;
         _toast(d.warning ? 'warning' : 'success', msg);

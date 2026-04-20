@@ -267,6 +267,49 @@ def test_aggiorna_comunicazioni_cancelleria_da_email_associa_per_rg_senza_duplic
     assert report_dup["duplicati"] == 1
 
 
+def test_aggiorna_comunicazioni_cancelleria_da_email_riconosce_notifiche_giustiziacert(tmp_path):
+    gf = GestioneFascicoli(
+        db_path=str(tmp_path / "fascicoli.json"),
+        documents_dir=str(tmp_path / "docs"),
+        archive_dir=str(tmp_path / "arch"),
+    )
+    fasc = gf.nuovo(
+        titolo="RG 1025/2024 Giovannella Maria Elena",
+        tipo=TipoFascicolo.CIVILE,
+        tribunale="Tribunale di Palmi",
+        numero_rg="1025",
+        anno_rg=2024,
+        nome_cliente="Giovannella Maria Elena",
+        oggetto="Vendita immobili",
+    )
+
+    ge = GestioneEmailRicevute(str(tmp_path / "casella.json"))
+    ge.aggiungi(
+        EmailRicevuta(
+            id="PEC-GIUSTIZIA-1",
+            cartella="INBOX",
+            stato=StatoEmail.NON_LETTA,
+            mittente="tribunale.palmi@civile.ptel.giustiziacert.it",
+            mittente_nome="Tribunale di Palmi",
+            oggetto="POSTA CERTIFICATA: Tribunale di Palmi Notificazione ai sensi del D.L. 179/2012",
+            data="2026-04-10T11:42:10",
+            corpo_testo="Procedimento RG 1025/2024 relativo a Giovannella Maria Elena.",
+            uid_imap="INBOX:200",
+        )
+    )
+
+    report = aggiorna_comunicazioni_cancelleria_da_email(ge, gf)
+
+    assert report["associati"] == 1
+    fasc_reload = gf.get(fasc.id)
+    comunicazioni = [
+        att for att in fasc_reload.attivita
+        if att.tipo == TipoAttivita.COMUNICAZIONE_CANCELLERIA
+    ]
+    assert len(comunicazioni) == 1
+    assert "Notificazione ai sensi del D.L. 179/2012" in comunicazioni[0].titolo
+
+
 def test_trova_fascicolo_da_email_pesa_rg_e_nome_cliente(tmp_path):
     gf = GestioneFascicoli(
         db_path=str(tmp_path / "fascicoli.json"),
@@ -398,6 +441,51 @@ def test_aggiorna_esiti_da_email_popola_fasi_deposito_tramite_rg(tmp_path):
     assert dep_reload.ricevuta_cancelleria
 
 
+def test_aggiorna_esiti_da_email_non_marca_come_processata_email_non_abbinata(tmp_path):
+    gf = GestioneFascicoli(
+        db_path=str(tmp_path / "fascicoli.json"),
+        documents_dir=str(tmp_path / "docs"),
+        archive_dir=str(tmp_path / "arch"),
+    )
+    ge = GestioneEmailRicevute(str(tmp_path / "casella.json"))
+    ge.aggiungi(
+        EmailRicevuta(
+            id="E-NO-MATCH",
+            cartella="INBOX",
+            stato=StatoEmail.NON_LETTA,
+            mittente="cancelleria@giustiziapec.it",
+            oggetto="ACCETTAZIONE DEPOSITO TELEMATICO RG 1025/2024",
+            data="2026-04-08T09:00:00",
+            corpo_testo="Accettazione PEC",
+            stato_pct="ACCETTATO_PEC",
+        )
+    )
+
+    log = aggiorna_esiti_da_email(ge, gf)
+    assert any("Nessun deposito abbinato" in row for row in log)
+    assert ge.get("E-NO-MATCH").auto_registrata is False
+
+    fasc = gf.nuovo(
+        titolo="RG 1025/2024",
+        tipo=TipoFascicolo.CIVILE,
+        tribunale="Tribunale di Palmi",
+        numero_rg="1025",
+        anno_rg=2024,
+        oggetto="Vendita di cose immobili",
+    )
+    dep = gf.aggiungi_esito_deposito(
+        fasc.id,
+        tipo_atto="CITAZIONE",
+        pec_destinatario="tribunale.palmi@giustiziapec.it",
+        stato="INVIATO",
+        nome_atto_principale="citazione.pdf.p7m",
+    )
+
+    log_retry = aggiorna_esiti_da_email(ge, gf)
+    assert any(dep.id in row for row in log_retry)
+    assert ge.get("E-NO-MATCH").auto_registrata is True
+
+
 def test_api_pec_poll_cancelleria_usa_workflow_condiviso(tmp_path, monkeypatch):
     from web.app import create_app
 
@@ -436,6 +524,7 @@ def test_api_pec_poll_cancelleria_usa_workflow_condiviso(tmp_path, monkeypatch):
     def _fake_sync_workflow(gestione_email, gestione_fascicoli, config_pec, **kwargs):
         osservato["indirizzo"] = config_pec.indirizzo
         osservato["state_path"] = kwargs.get("state_path", "")
+        osservato["fascicolo_id"] = kwargs.get("fascicolo_id", "")
         return {
             "sync": {"nuove": 2, "pst_trovate": 2, "errore": ""},
             "auto_esiti": ["ok-1", "ok-2"],
@@ -449,7 +538,7 @@ def test_api_pec_poll_cancelleria_usa_workflow_condiviso(tmp_path, monkeypatch):
         login = client.post("/login", data={"username": "admin", "password": "admin"}, follow_redirects=True)
         assert login.status_code == 200
 
-        response = client.post("/api/pec/poll-cancelleria", json={}, follow_redirects=True)
+        response = client.post("/api/pec/poll-cancelleria", json={"id_fascicolo": gf.tutti()[0].id}, follow_redirects=True)
 
     data = response.get_json()
     assert response.status_code == 200
@@ -459,6 +548,7 @@ def test_api_pec_poll_cancelleria_usa_workflow_condiviso(tmp_path, monkeypatch):
     assert data["report"]["associati"] == 1
     assert osservato["indirizzo"] == "studio@example.pec.it"
     assert osservato["state_path"].endswith("pec_cancelleria_state.json")
+    assert osservato["fascicolo_id"] == gf.tutti()[0].id
 
 
 def test_api_pec_poll_cancelleria_espone_duplicati_e_warning_sync(tmp_path, monkeypatch):

@@ -835,6 +835,21 @@ def test_notifiche_whatsapp_usa_js_esterno_e_date_localizzate():
     assert "dataset.promemoriaCount" in script
 
 
+def test_email_e_sync_fascicolo_usano_date_italiane_e_target_corrente():
+    email_template = (REPO_ROOT / "web/templates/email/client.html").read_text(encoding="utf-8")
+    email_detail = (REPO_ROOT / "web/templates/email/_dettaglio_panel.html").read_text(encoding="utf-8")
+    fascicolo_template = (REPO_ROOT / "web/templates/fascicoli/dettaglio.html").read_text(encoding="utf-8")
+
+    assert "|fmt_ora" in email_template
+    assert "|fmt_data" in email_template
+    assert "ts[5:7]" not in email_template
+    assert "ts[8:10]" not in email_template
+    assert "|fmt_dataora" in email_detail
+    assert "JSON.stringify({ id_fascicolo: '{{ fascicolo.id }}' })" in fascicolo_template
+    assert "nextUrl.hash = 'sezione-comunicazioni-cancelleria';" in fascicolo_template
+    assert "window.location.assign(nextUrl.toString())" in fascicolo_template
+
+
 def test_ai_operativa_usa_bridge_browser_e_template_senza_logica_inline():
     fascicolo_template = (REPO_ROOT / "web/templates/fascicoli/dettaglio.html").read_text(encoding="utf-8")
     fascicolo_cockpit = (REPO_ROOT / "web/templates/components/fascicolo_cockpit_tabs.html").read_text(encoding="utf-8")

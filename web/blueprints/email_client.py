@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import mimetypes
 import os
-from datetime import datetime
+from datetime import date, datetime
 from functools import wraps
 
 from flask import (
@@ -162,7 +162,7 @@ def casella():
         data_a=data_a,
         has_advanced_filters=any([solo_pst, con_allegati, stato_pct, origine, data_da, data_a, stato_lettura]),
         stats=stats,
-        oggi=datetime.today(),
+        oggi=date.today(),
     )
 
 
@@ -178,7 +178,7 @@ def dettaglio(id_email: str):
     if em.stato == "NON_LETTA":
         ge.marca_letta(id_email)
         em.stato = "LETTA"
-    return render_template("email/dettaglio.html", em=em, oggi=datetime.today())
+    return render_template("email/dettaglio.html", em=em, oggi=date.today())
 
 
 @email_client.route("/messaggio/<id_email>/allegato/<int:indice_allegato>")
@@ -370,6 +370,7 @@ def sincronizza():
     try:
         poll_report = {"trovati": 0, "associati": 0, "duplicati": 0, "errori": 0}
         log_esiti = []
+        auto_summary = {"aggiornati": 0, "non_abbinati": 0, "errori": 0, "totale": 0, "pst_in_attesa": 0}
         if pec_cfg and getattr(pec_cfg, "imap_host", ""):
             from pct.email_client import sincronizza_pec_e_fascicoli
             from pct.fascicoli import GestioneFascicoli
@@ -384,6 +385,7 @@ def sincronizza():
             )
             ris = workflow.get("sync", {})
             log_esiti = workflow.get("auto_esiti", []) or []
+            auto_summary = _riassunto_auto_esiti_route(ge, log_esiti)
             poll_report = workflow.get("poll", {}) or poll_report
         else:
             ris = ge.sincronizza_imap(
@@ -398,6 +400,7 @@ def sincronizza():
             )
             if ris.get("pst_trovate", 0) > 0:
                 log_esiti = _auto_esiti(ge)
+                auto_summary = _riassunto_auto_esiti_route(ge, log_esiti)
 
         _sync_inviati(ge)
 
@@ -414,7 +417,9 @@ def sincronizza():
             "messaggio": messaggio,
             "nuove": ris.get("nuove", 0),
             "pst_trovate": ris.get("pst_trovate", 0),
-            "esiti_aggiornati": len(log_esiti),
+            "esiti_aggiornati": auto_summary["aggiornati"],
+            "non_abbinati": auto_summary["non_abbinati"],
+            "pst_in_attesa": auto_summary["pst_in_attesa"],
             "comunicazioni_cancelleria": poll_report.get("associati", 0),
             "report": poll_report,
             "errore": sync_errore,
@@ -431,6 +436,7 @@ def auto_esiti():
     """AJAX — aggiorna esiti PCT da email PST già ricevute."""
     ge   = _get_gestore()
     log  = _auto_esiti(ge)
+    auto_summary = _riassunto_auto_esiti_route(ge, log)
     comm_report = {"trovati": 0, "associati": 0, "duplicati": 0, "errori": 0}
     try:
         from pct.email_client import aggiorna_comunicazioni_cancelleria_da_email
@@ -440,8 +446,15 @@ def auto_esiti():
         comm_report = aggiorna_comunicazioni_cancelleria_da_email(ge, gf)
     except Exception as exc:
         log.append(f"Errore comunicazioni cancelleria: {exc}")
-    warning = bool(comm_report.get("errori", 0))
-    messaggio = f"{len(log)} esiti PCT aggiornati automaticamente."
+    warning = bool(comm_report.get("errori", 0) or auto_summary["errori"])
+    if auto_summary["aggiornati"]:
+        messaggio = f"{auto_summary['aggiornati']} esiti deposito aggiornati automaticamente."
+    else:
+        messaggio = "Nessun esito deposito nuovo da collegare ai fascicoli."
+    if auto_summary["non_abbinati"]:
+        messaggio += f" {auto_summary['non_abbinati']} PEC PST restano in attesa di abbinamento."
+    if auto_summary["pst_in_attesa"] and not auto_summary["non_abbinati"]:
+        messaggio += f" {auto_summary['pst_in_attesa']} PEC PST restano ancora da verificare."
     if comm_report.get("associati", 0):
         messaggio += f" Comunicazioni di cancelleria collegate: {comm_report.get('associati', 0)}."
     if warning:
@@ -450,7 +463,10 @@ def auto_esiti():
         "ok": True,
         "warning": warning,
         "messaggio": messaggio,
-        "aggiornati": len(log),
+        "aggiornati": auto_summary["aggiornati"],
+        "esiti_aggiornati": auto_summary["aggiornati"],
+        "non_abbinati": auto_summary["non_abbinati"],
+        "pst_in_attesa": auto_summary["pst_in_attesa"],
         "comunicazioni_aggiornate": comm_report.get("associati", 0),
         "report": comm_report,
         "log": log,
@@ -516,7 +532,7 @@ def impostazioni():
         "email/impostazioni.html",
         email_cfg=email_cfg,
         pec_cfg=pec_cfg,
-        oggi=datetime.today(),
+        oggi=date.today(),
     )
 
 
@@ -584,6 +600,17 @@ def _auto_esiti(ge) -> list:
         return aggiorna_esiti_da_email(ge, gf)
     except Exception as exc:
         return [f"Errore auto-esiti: {exc}"]
+
+
+def _riassunto_auto_esiti_route(ge, log: list[str]) -> dict:
+    from pct.email_client import riassunto_auto_esiti
+
+    summary = riassunto_auto_esiti(log)
+    summary["pst_in_attesa"] = sum(
+        1 for em in ge._carica().values()
+        if em.e_pst and not em.auto_registrata
+    )
+    return summary
 
 
 def _test_smtp(gs) -> "Response":

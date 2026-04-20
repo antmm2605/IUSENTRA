@@ -263,6 +263,7 @@ CREATE TABLE IF NOT EXISTS preventivi_records (
     procedura_operativa_nome      TEXT NOT NULL DEFAULT '',
     canale_operativo              TEXT NOT NULL DEFAULT '',
     registro_operativo            TEXT NOT NULL DEFAULT '',
+    classificazioni_tassonomiche_json TEXT NOT NULL DEFAULT '[]',
     totale                        REAL NOT NULL DEFAULT 0,
     accettato_il                  TEXT,
     id_preventivo_precedente      TEXT NOT NULL DEFAULT '',
@@ -292,6 +293,7 @@ CREATE TABLE IF NOT EXISTS conferimenti_records (
     procedura_operativa_nome      TEXT NOT NULL DEFAULT '',
     canale_operativo              TEXT NOT NULL DEFAULT '',
     registro_operativo            TEXT NOT NULL DEFAULT '',
+    classificazioni_tassonomiche_json TEXT NOT NULL DEFAULT '[]',
     compenso_pattuito             REAL NOT NULL DEFAULT 0,
     firma_cliente_eseguita        INTEGER NOT NULL DEFAULT 0,
     fascicolo_aperto_il           TEXT,
@@ -1056,6 +1058,14 @@ class GestioneDatabase:
         try:
             self._reset_sqlite_target(conn)
             conn.executescript(SCHEMA_SQL)
+            for ddl in (
+                "ALTER TABLE preventivi_records ADD COLUMN classificazioni_tassonomiche_json TEXT NOT NULL DEFAULT '[]'",
+                "ALTER TABLE conferimenti_records ADD COLUMN classificazioni_tassonomiche_json TEXT NOT NULL DEFAULT '[]'",
+            ):
+                try:
+                    conn.execute(ddl)
+                except Exception:
+                    pass
 
             # Meta
             conn.execute(
@@ -1303,9 +1313,9 @@ class GestioneDatabase:
                             (preventivo_id, numero, id_cliente, id_fascicolo, data_emissione, data_scadenza,
                              oggetto, stato, workflow_channel, tipo_compenso, tipo_procedimento,
                              area_pratica, id_pratica, procedura_operativa_codice, procedura_operativa_nome,
-                             canale_operativo, registro_operativo, totale, accettato_il,
+                             canale_operativo, registro_operativo, classificazioni_tassonomiche_json, totale, accettato_il,
                              id_preventivo_precedente, token_portale, creato_il, dati_json)
-                            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
                             """,
                             (
                                 preventivo.get("id"),
@@ -1325,6 +1335,10 @@ class GestioneDatabase:
                                 preventivo.get("procedura_operativa_nome", ""),
                                 preventivo.get("canale_operativo", ""),
                                 preventivo.get("registro_operativo", ""),
+                                json.dumps(
+                                    preventivo.get("classificazioni_tassonomiche") or [],
+                                    ensure_ascii=False,
+                                ),
                                 totale,
                                 preventivo.get("accettato_il", ""),
                                 preventivo.get("id_preventivo_precedente", ""),
@@ -1364,8 +1378,9 @@ class GestioneDatabase:
                              data_incarico, oggetto, stato, workflow_channel, tipo_compenso,
                              tipo_procedimento, area_pratica, id_pratica, procedura_operativa_codice,
                              procedura_operativa_nome, canale_operativo, registro_operativo,
+                             classificazioni_tassonomiche_json,
                              compenso_pattuito, firma_cliente_eseguita, fascicolo_aperto_il, dati_json)
-                            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
                             """,
                             (
                                 conferimento.get("id"),
@@ -1385,6 +1400,10 @@ class GestioneDatabase:
                                 conferimento.get("procedura_operativa_nome", ""),
                                 conferimento.get("canale_operativo", ""),
                                 conferimento.get("registro_operativo", ""),
+                                json.dumps(
+                                    conferimento.get("classificazioni_tassonomiche") or [],
+                                    ensure_ascii=False,
+                                ),
                                 float(conferimento.get("compenso_pattuito", 0.0) or 0.0),
                                 1 if conferimento.get("firma_cliente_eseguita") else 0,
                                 conferimento.get("fascicolo_aperto_il", ""),

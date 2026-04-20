@@ -188,6 +188,7 @@ CREATE TABLE IF NOT EXISTS preventivi_records (
     procedura_operativa_nome TEXT NOT NULL DEFAULT '',
     canale_operativo TEXT NOT NULL DEFAULT '',
     registro_operativo TEXT NOT NULL DEFAULT '',
+    classificazioni_tassonomiche_json TEXT NOT NULL DEFAULT '[]',
     totale DOUBLE PRECISION NOT NULL DEFAULT 0,
     accettato_il TEXT,
     id_preventivo_precedente TEXT NOT NULL DEFAULT '',
@@ -214,6 +215,7 @@ CREATE TABLE IF NOT EXISTS conferimenti_records (
     procedura_operativa_nome TEXT NOT NULL DEFAULT '',
     canale_operativo TEXT NOT NULL DEFAULT '',
     registro_operativo TEXT NOT NULL DEFAULT '',
+    classificazioni_tassonomiche_json TEXT NOT NULL DEFAULT '[]',
     compenso_pattuito DOUBLE PRECISION NOT NULL DEFAULT 0,
     firma_cliente_eseguita INTEGER NOT NULL DEFAULT 0,
     fascicolo_aperto_il TEXT,
@@ -648,6 +650,12 @@ class PostgresStudioDB:
         with psycopg2.connect(self.dsn) as conn:
             with conn.cursor() as cur:
                 cur.execute(CORE_POSTGRES_SCHEMA_SQL)
+                cur.execute(
+                    "ALTER TABLE preventivi_records ADD COLUMN IF NOT EXISTS classificazioni_tassonomiche_json TEXT NOT NULL DEFAULT '[]'"
+                )
+                cur.execute(
+                    "ALTER TABLE conferimenti_records ADD COLUMN IF NOT EXISTS classificazioni_tassonomiche_json TEXT NOT NULL DEFAULT '[]'"
+                )
                 cur.execute(
                     """
                     INSERT INTO _meta (chiave, valore)

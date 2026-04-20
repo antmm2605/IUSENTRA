@@ -29,6 +29,22 @@ from web.services.tariffario_runtime import (
 )
 
 
+def _switch_from_form(form, key: str, *, default: bool = False) -> bool:
+    values = form.getlist(key) if hasattr(form, "getlist") else []
+    if values:
+        normalized = [str(value or "").strip().lower() for value in values]
+        if any(value in {"1", "true", "on", "si", "s", "yes"} for value in normalized):
+            return True
+        if any(value in {"0", "false", "off", "no"} for value in normalized):
+            return False
+    raw = str(form.get(key, "") or "").strip().lower()
+    if raw in {"1", "true", "on", "si", "s", "yes"}:
+        return True
+    if raw in {"0", "false", "off", "no"}:
+        return False
+    return default
+
+
 def register_tariffario_routes(app: Flask) -> None:
     """Register tariffario route and keep its runtime isolated from web.app."""
 
@@ -68,13 +84,13 @@ def register_tariffario_routes(app: Flask) -> None:
         livello_compenso_sel = livello_compenso_da_complessita(complessita_sel)
         valore_str = (request.form.get("valore", "0") or "0").strip()
         fasi_sel = request.form.getlist("fasi")
-        bonus_tel = request.form.get("bonus_telematico") == "1"
-        spese_gen = request.form.get("spese_generali", "1") == "1"
+        bonus_tel = _switch_from_form(request.form, "bonus_telematico")
+        spese_gen = _switch_from_form(request.form, "spese_generali", default=request.method != "POST")
         perc_spese = parse_float(request.form.get("perc_spese_generali", "15"), 15.0)
         accessori_sel = request.form.getlist("accessori")
         esborsi_sel = request.form.getlist("esborsi")
         manual_rows_prefill = manual_rows_from_form(request.form)
-        adr_accordo = request.form.get("adr_accordo") == "1"
+        adr_accordo = _switch_from_form(request.form, "adr_accordo")
         variazioni_prefill = variazioni_prefill_from_form(request.form)
 
         fasi_valide = phase_catalog.get(materia_sel) or []

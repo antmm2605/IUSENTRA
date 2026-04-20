@@ -29,6 +29,7 @@ _PREVENTIVO_SECTION_MAP: dict[str, str] = {
     "sottobranca_tassonomica": "Pratica e tassonomia",
     "tassonomia_codice": "Pratica e tassonomia",
     "fonti_tassonomia": "Pratica e tassonomia",
+    "classificazioni_tassonomiche": "Pratica e tassonomia",
     "tipo_compenso": "Tipo compenso",
     "tipo_procedimento": "Pratica e tassonomia",
     "procedura_operativa_codice": "Piattaforma operativa",
@@ -77,6 +78,7 @@ _CONFERIMENTO_SECTION_MAP: dict[str, str] = {
     "sottobranca_tassonomica": "Pratica e tassonomia",
     "tassonomia_codice": "Pratica e tassonomia",
     "fonti_tassonomia": "Pratica e tassonomia",
+    "classificazioni_tassonomiche": "Pratica e tassonomia",
     "tipo_compenso": "Tipo compenso",
     "tipo_procedimento": "Pratica e tassonomia",
     "procedura_operativa_codice": "Piattaforma operativa",
@@ -150,6 +152,12 @@ _FIELD_OVERRIDES: dict[str, dict[str, Any]] = {
         "label": "Tipo procedimento",
         "help_text": "Descrizione del procedimento o del rito usato nel preventivo.",
         "required_runtime": True,
+        "step_key": "pratica_tassonomia",
+    },
+    "classificazioni_tassonomiche": {
+        "label": "Classificazioni tassonomiche aggiuntive",
+        "help_text": "Blocchi ulteriori di area, macro-area, sottobranca e tipologia collegata che ampliano il preventivo con voci coerenti allo sviluppo reale della pratica.",
+        "required_runtime": False,
         "step_key": "pratica_tassonomia",
     },
     "procedura_operativa_codice": {
@@ -998,6 +1006,9 @@ def _build_preventivo_record(
     numero = _clean_spaces(getattr(preventivo, "numero", ""))
     stato = _clean_spaces(getattr(getattr(preventivo, "stato", None), "value", getattr(preventivo, "stato", "")))
     workflow_channel = _clean_spaces(getattr(preventivo, "workflow_channel", "")) or "STUDIO"
+    classificazioni_tassonomiche = list(
+        getattr(preventivo, "classificazioni_tassonomiche", []) or []
+    )
     parts = [
         numero,
         getattr(preventivo, "oggetto", ""),
@@ -1017,6 +1028,18 @@ def _build_preventivo_record(
         wizard_step,
         wizard_step_label,
     ]
+    for row in classificazioni_tassonomiche:
+        if not isinstance(row, dict):
+            continue
+        parts.extend(
+            [
+                row.get("area_tassonomica", ""),
+                row.get("macro_area_tassonomica", ""),
+                row.get("sottobranca_tassonomica", ""),
+                row.get("tipologia_pratica_label", ""),
+                row.get("tipologia_pratica_id", ""),
+            ]
+        )
     for voce in getattr(preventivo, "voci", []) or []:
         parts.extend(
             [
@@ -1068,6 +1091,8 @@ def _build_preventivo_record(
         "id_preventivo_precedente": _clean_spaces(getattr(preventivo, "id_preventivo_precedente", "")),
         "wizard_step": wizard_step,
         "wizard_step_label": wizard_step_label,
+        "classificazioni_tassonomiche": classificazioni_tassonomiche,
+        "classificazioni_tassonomiche_count": len(classificazioni_tassonomiche),
         "campi_mancanti": missing_fields,
         "warning": warnings,
         "next_action": _preventivo_next_action(preventivo, conferimento),
@@ -1078,6 +1103,9 @@ def _build_preventivo_record(
 def _build_conferimento_record(conferimento: Any) -> dict[str, Any]:
     workflow_channel = _clean_spaces(getattr(conferimento, "workflow_channel", "")) or "STUDIO"
     stato = _clean_spaces(getattr(getattr(conferimento, "stato", None), "value", getattr(conferimento, "stato", "")))
+    classificazioni_tassonomiche = list(
+        getattr(conferimento, "classificazioni_tassonomiche", []) or []
+    )
     parts = [
         getattr(conferimento, "numero", ""),
         getattr(conferimento, "oggetto", ""),
@@ -1095,6 +1123,18 @@ def _build_conferimento_record(conferimento: Any) -> dict[str, Any]:
         stato,
         workflow_channel,
     ]
+    for row in classificazioni_tassonomiche:
+        if not isinstance(row, dict):
+            continue
+        parts.extend(
+            [
+                row.get("area_tassonomica", ""),
+                row.get("macro_area_tassonomica", ""),
+                row.get("sottobranca_tassonomica", ""),
+                row.get("tipologia_pratica_label", ""),
+                row.get("tipologia_pratica_id", ""),
+            ]
+        )
     return {
         "conferimento_id": _clean_spaces(getattr(conferimento, "id", "")),
         "numero": _clean_spaces(getattr(conferimento, "numero", "")),
@@ -1126,6 +1166,8 @@ def _build_conferimento_record(conferimento: Any) -> dict[str, Any]:
         "fascicolo_aperto_il": _clean_spaces(getattr(conferimento, "fascicolo_aperto_il", "")),
         "clausola_controversie_attiva": bool(getattr(conferimento, "clausola_controversie_attiva", False)),
         "clausola_controversie_modello": _clean_spaces(getattr(conferimento, "clausola_controversie_modello", "")),
+        "classificazioni_tassonomiche": classificazioni_tassonomiche,
+        "classificazioni_tassonomiche_count": len(classificazioni_tassonomiche),
         "warning": _conferimento_warnings(conferimento),
         "next_action": _conferimento_next_action(conferimento),
         "search_text": _record_search_text(parts),
@@ -1190,6 +1232,8 @@ class GestionePreventiviRepository:
                     "copertura_operativa": "TEXT NOT NULL DEFAULT ''",
                     "canale_operativo": "TEXT NOT NULL DEFAULT ''",
                     "registro_operativo": "TEXT NOT NULL DEFAULT ''",
+                    "classificazioni_tassonomiche_json": "TEXT NOT NULL DEFAULT '[]'",
+                    "classificazioni_tassonomiche_count": "INTEGER NOT NULL DEFAULT 0",
                 },
             )
             self._ensure_table_columns(
@@ -1203,6 +1247,8 @@ class GestionePreventiviRepository:
                     "copertura_operativa": "TEXT NOT NULL DEFAULT ''",
                     "canale_operativo": "TEXT NOT NULL DEFAULT ''",
                     "registro_operativo": "TEXT NOT NULL DEFAULT ''",
+                    "classificazioni_tassonomiche_json": "TEXT NOT NULL DEFAULT '[]'",
+                    "classificazioni_tassonomiche_count": "INTEGER NOT NULL DEFAULT 0",
                 },
             )
             conn.commit()
@@ -1455,6 +1501,7 @@ class GestionePreventiviRepository:
                     "base_iva", "iva", "totale", "piano_pagamenti_count", "clausola_controversie_attiva",
                     "clausola_controversie_modello", "token_portale_present", "inviato_cliente_il", "accettato_il",
                     "versione", "id_preventivo_precedente", "wizard_step", "wizard_step_label",
+                    "classificazioni_tassonomiche_json", "classificazioni_tassonomiche_count",
                     "campi_mancanti_json", "warning_json", "next_action", "search_text",
                 ]
                 conn.execute(
@@ -1477,6 +1524,8 @@ class GestionePreventiviRepository:
                         row.get("clausola_controversie_modello") or "", 1 if row.get("token_portale_present") else 0,
                         row.get("inviato_cliente_il") or "", row.get("accettato_il") or "", int(row.get("versione") or 1),
                         row.get("id_preventivo_precedente") or "", row.get("wizard_step") or "", row.get("wizard_step_label") or "",
+                        _to_json(row.get("classificazioni_tassonomiche") or []),
+                        int(row.get("classificazioni_tassonomiche_count") or 0),
                         _to_json(row.get("campi_mancanti") or []), _to_json(row.get("warning") or []),
                         row.get("next_action") or "", row.get("search_text") or "",
                     ),
@@ -1491,7 +1540,9 @@ class GestionePreventiviRepository:
                     "workflow_operativo_codice", "copertura_operativa", "canale_operativo", "registro_operativo",
                     "compenso_pattuito", "informativa_art13_resa", "clausola_adr_resa",
                     "firma_cliente_richiesta", "firma_cliente_eseguita", "firma_cliente_il", "fascicolo_aperto_il",
-                    "clausola_controversie_attiva", "clausola_controversie_modello", "warning_json", "next_action", "search_text",
+                    "clausola_controversie_attiva", "clausola_controversie_modello",
+                    "classificazioni_tassonomiche_json", "classificazioni_tassonomiche_count",
+                    "warning_json", "next_action", "search_text",
                 ]
                 conn.execute(
                     f"INSERT INTO conferimenti_records ({', '.join(columns)}) VALUES ({', '.join('?' for _ in columns)})",
@@ -1508,6 +1559,8 @@ class GestionePreventiviRepository:
                         1 if row.get("firma_cliente_richiesta") else 0, 1 if row.get("firma_cliente_eseguita") else 0,
                         row.get("firma_cliente_il") or "", row.get("fascicolo_aperto_il") or "",
                         1 if row.get("clausola_controversie_attiva") else 0, row.get("clausola_controversie_modello") or "",
+                        _to_json(row.get("classificazioni_tassonomiche") or []),
+                        int(row.get("classificazioni_tassonomiche_count") or 0),
                         _to_json(row.get("warning") or []), row.get("next_action") or "", row.get("search_text") or "",
                     ),
                 )
@@ -1572,7 +1625,15 @@ class GestionePreventiviRepository:
             ]
             preventivi = [
                 {
-                    **_drop_keys(row, "campi_mancanti_json", "warning_json"),
+                    **_drop_keys(
+                        row,
+                        "campi_mancanti_json",
+                        "warning_json",
+                        "classificazioni_tassonomiche_json",
+                    ),
+                    "classificazioni_tassonomiche": json.loads(
+                        row["classificazioni_tassonomiche_json"] or "[]"
+                    ),
                     "campi_mancanti": json.loads(row["campi_mancanti_json"] or "[]"),
                     "warning": json.loads(row["warning_json"] or "[]"),
                 }
@@ -1582,7 +1643,10 @@ class GestionePreventiviRepository:
             ]
             conferimenti = [
                 {
-                    **_drop_keys(row, "warning_json"),
+                    **_drop_keys(row, "warning_json", "classificazioni_tassonomiche_json"),
+                    "classificazioni_tassonomiche": json.loads(
+                        row["classificazioni_tassonomiche_json"] or "[]"
+                    ),
                     "warning": json.loads(row["warning_json"] or "[]"),
                 }
                 for row in conn.execute(

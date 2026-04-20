@@ -121,6 +121,8 @@ CREATE TABLE IF NOT EXISTS preventivi_records (
     id_preventivo_precedente TEXT NOT NULL DEFAULT '',
     wizard_step TEXT NOT NULL DEFAULT '',
     wizard_step_label TEXT NOT NULL DEFAULT '',
+    classificazioni_tassonomiche_json TEXT NOT NULL DEFAULT '[]',
+    classificazioni_tassonomiche_count INTEGER NOT NULL DEFAULT 0,
     campi_mancanti_json TEXT NOT NULL DEFAULT '[]',
     warning_json TEXT NOT NULL DEFAULT '[]',
     next_action TEXT NOT NULL DEFAULT '',
@@ -158,6 +160,8 @@ CREATE TABLE IF NOT EXISTS conferimenti_records (
     fascicolo_aperto_il TEXT NOT NULL DEFAULT '',
     clausola_controversie_attiva INTEGER NOT NULL DEFAULT 0 CHECK (clausola_controversie_attiva IN (0,1)),
     clausola_controversie_modello TEXT NOT NULL DEFAULT '',
+    classificazioni_tassonomiche_json TEXT NOT NULL DEFAULT '[]',
+    classificazioni_tassonomiche_count INTEGER NOT NULL DEFAULT 0,
     warning_json TEXT NOT NULL DEFAULT '[]',
     next_action TEXT NOT NULL DEFAULT '',
     search_text TEXT NOT NULL DEFAULT ''

@@ -196,6 +196,7 @@ def costruisci_contesto_economico(
     risultato: Optional[Dict[str, Any]] = None,
     riferimenti_normativi: Optional[Iterable[Any]] = None,
     riferimenti_tassonomia: Optional[Iterable[Any]] = None,
+    classificazioni_tassonomiche: Optional[Iterable[Dict[str, Any]]] = None,
     audit_tariffario: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     audit = _resolve_tariffario_audit(
@@ -224,6 +225,23 @@ def costruisci_contesto_economico(
     )
     if procedura_operativa_nome and not operational_fields.get("procedura_operativa_nome"):
         operational_fields["procedura_operativa_nome"] = procedura_operativa_nome
+    classificazioni_norm = [
+        {
+            "uid": str(row.get("uid") or "").strip(),
+            "area_tassonomica_code": str(row.get("area_tassonomica_code") or "").strip(),
+            "area_tassonomica": str(row.get("area_tassonomica") or "").strip(),
+            "macro_area_tassonomica_code": str(row.get("macro_area_tassonomica_code") or "").strip(),
+            "macro_area_tassonomica": str(row.get("macro_area_tassonomica") or "").strip(),
+            "sottobranca_tassonomica_code": str(row.get("sottobranca_tassonomica_code") or "").strip(),
+            "sottobranca_tassonomica": str(row.get("sottobranca_tassonomica") or "").strip(),
+            "tassonomia_codice": str(row.get("tassonomia_codice") or "").strip(),
+            "tipologia_pratica_id": str(row.get("tipologia_pratica_id") or "").strip(),
+            "tipologia_pratica_label": str(row.get("tipologia_pratica_label") or "").strip(),
+            "tipo_compenso": str(row.get("tipo_compenso") or "").strip(),
+        }
+        for row in (classificazioni_tassonomiche or [])
+        if isinstance(row, dict)
+    ]
     return {
         "source": source,
         "source_label": source_label,
@@ -276,6 +294,7 @@ def costruisci_contesto_economico(
         "risultato": dict(risultato or {}),
         "riferimenti_normativi": _compact_refs(riferimenti_normativi or []),
         "riferimenti_tassonomia": _compact_refs(riferimenti_tassonomia or []),
+        "classificazioni_tassonomiche": classificazioni_norm,
         "audit_tariffario": audit,
     }
 
@@ -327,6 +346,9 @@ def riepilogo_contesto_economico(raw: Any) -> Dict[str, Any]:
         "variazioni_fasi": _variation_list(adr.get("variazioni_fasi_pct") or {}),
         "riferimenti_normativi": riferimenti,
         "riferimenti_tassonomia": [row for row in data.get("riferimenti_tassonomia", []) if row][:4],
+        "classificazioni_tassonomiche": [
+            row for row in (data.get("classificazioni_tassonomiche") or []) if isinstance(row, dict)
+        ][:6],
         "scaglione": str(result.get("scaglione") or "").strip(),
         "onorario_base": round(_safe_float(result.get("onorario_base")), 2),
         "cpa": round(_safe_float(result.get("cpa")), 2),

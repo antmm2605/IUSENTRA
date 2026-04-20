@@ -61,6 +61,7 @@ Il comando restituisce:
 
 1. Crea il cliente.
 2. Apri il preventivo guidato.
+   Il wizard usa le tabelle giuste per il tipo di pratica: D.M. 55/2014 per le fasi giudiziali, Tabella A25 per lo stragiudiziale e Tabella A27 per mediazione / negoziazione assistita. Le opzioni fiscali e le classificazioni tassonomiche aggiuntive entrano davvero nel totale e nella bozza.
 3. Genera o conferma il conferimento.
 4. Apri il fascicolo.
 5. Registra la prima attivita' nel timesheet.

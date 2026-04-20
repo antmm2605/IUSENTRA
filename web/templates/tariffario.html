@@ -137,6 +137,7 @@
                               </div>
                               <div class="col-md-6">
                                 <div class="form-check form-switch mb-2">
+                                  <input type="hidden" name="spese_generali" value="0">
                                   <input class="form-check-input" type="checkbox" name="spese_generali" value="1"
                                          id="chkSpese" {{ 'checked' if spese_gen else '' }}>
                                   <label class="form-check-label" for="chkSpese">Spese generali 15%</label>
@@ -794,6 +795,22 @@ function renderGradi() {
 function renderFasi() {
   const materia = document.getElementById('selMateria').value;
   const box = document.getElementById('phaseBox');
+  const profile = currentProfile();
+  if (profile?.calc_mode === 'compenso_unico') {
+    box.innerHTML = `
+      <div class="col-12">
+        <div class="alert alert-info small mb-2">
+          Il profilo tariffario attivo usa il <strong>compenso unico tabellare</strong>: le fasi operative restano accorpate automaticamente.
+        </div>
+        <input type="hidden" name="fasi" value="studio">
+        <label class="border rounded-3 p-2 d-flex align-items-center gap-2 h-100 bg-light">
+          <input class="form-check-input mt-0" type="checkbox" checked disabled>
+          <span>Compenso unico tabellare</span>
+        </label>
+      </div>
+    `;
+    return;
+  }
   const fasi = PHASE_CATALOG[materia] || [];
   const live = Array.from(document.querySelectorAll('#phaseBox input[name="fasi"]:checked')).map((node) => node.value);
   const selected = new Set(live.length ? live : FASI_SEL);
@@ -805,6 +822,14 @@ function renderFasi() {
       </label>
     </div>
   `).join('');
+}
+
+function syncSpeseGeneraliUi() {
+  const chk = document.getElementById('chkSpese');
+  const input = document.getElementById('inpPercSpese');
+  if (!chk || !input) return;
+  input.disabled = !chk.checked;
+  input.classList.toggle('bg-light', !chk.checked);
 }
 
 function currentProfile() {
@@ -1081,6 +1106,8 @@ function addManualRow(descrizione = '', tipo = 'Onorario', importo = '') {
     const selRegola = document.getElementById('selRegolaTariffaria');
     const selGrado = document.getElementById('selGrado');
     const inpValore = document.getElementById('inpValore');
+    const chkSpese = document.getElementById('chkSpese');
+    const inpPercSpese = document.getElementById('inpPercSpese');
     selRegola.dataset.selected = REGOLA_SEL;
     selGrado.dataset.selected = GRADO_SEL;
     inpValore?.addEventListener('blur', () => normalizeMoneyFieldValue(inpValore));
@@ -1089,6 +1116,7 @@ function addManualRow(descrizione = '', tipo = 'Onorario', importo = '') {
     renderFasi();
     renderProfilo();
     renderAccessori();
+    syncSpeseGeneraliUi();
     updateManualEmptyState();
     selMateria.addEventListener('change', () => {
       selRegola.dataset.selected = '';
@@ -1109,6 +1137,14 @@ function addManualRow(descrizione = '', tipo = 'Onorario', importo = '') {
       renderProfilo();
       renderAccessori();
     });
+  chkSpese?.addEventListener('change', () => {
+    syncSpeseGeneraliUi();
+  });
+  inpPercSpese?.addEventListener('change', () => {
+    if (!chkSpese?.checked && !inpPercSpese.value) {
+      inpPercSpese.value = '15';
+    }
+  });
   document.getElementById('btnAddManualRow').addEventListener('click', () => addManualRow('', 'Onorario', ''));
   document.querySelectorAll('.btn-remove-manual').forEach((node) => {
     node.addEventListener('click', () => {

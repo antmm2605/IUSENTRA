@@ -131,3 +131,34 @@ def test_preventivi_repository_esporta_procedura_operativa(tmp_path):
     assert record["procedura_operativa_codice"] == "PROC_TRIB_RIC_002"
     assert record["registro_operativo"] == "PTT_TRIBUTARIO"
     assert any(row["field_name"] == "procedura_operativa_nome" for row in payload["field_map"]["preventivo"])
+
+
+def test_preventivi_repository_esporta_classificazioni_tassonomiche_aggiuntive(tmp_path):
+    gestore = _build_gestore(tmp_path)
+    preventivo = gestore.crea_preventivo(
+        id_cliente="cli-003",
+        oggetto="Preventivo con tassonomia multipla",
+        voci=[VocePreventivo(descrizione="Compenso", importo=950.0, tipo=TipoVoce.ONORARIO)],
+        creato_da="avv.rossi",
+        id_pratica="decreto_ingiuntivo",
+        area_pratica="Civile",
+        tipo_compenso="Per fasi processuali (D.M. 55/2014)",
+        tipo_procedimento="Procedimento monitorio",
+        classificazioni_tassonomiche=[
+            {
+                "uid": "row-1",
+                "area_tassonomica": "Giudiziale",
+                "macro_area_tassonomica": "Diritto civile",
+                "sottobranca_tassonomica": "Recupero crediti e monitori",
+                "tipologia_pratica_id": "decreto_ingiuntivo",
+                "tipologia_pratica_label": "Decreto ingiuntivo",
+            }
+        ],
+    )
+
+    payload = gestore.repository_payload()
+    record = next(row for row in payload["preventivi"] if row["preventivo_id"] == preventivo.id)
+
+    assert record["classificazioni_tassonomiche_count"] == 1
+    assert record["classificazioni_tassonomiche"][0]["tipologia_pratica_id"] == "decreto_ingiuntivo"
+    assert any(row["field_name"] == "classificazioni_tassonomiche" for row in payload["field_map"]["preventivo"])

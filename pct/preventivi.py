@@ -83,6 +83,41 @@ def _normalize_workflow_channel(value: str | None) -> str:
     return channel if channel in {"STUDIO", "ONLINE"} else "STUDIO"
 
 
+def _normalizza_classificazioni_tassonomiche(
+    rows: Optional[List[Dict[str, Any]]] = None,
+) -> List[Dict[str, Any]]:
+    normalized: List[Dict[str, Any]] = []
+    for raw in list(rows or []):
+        if not isinstance(raw, dict):
+            continue
+        item = {
+            "uid": str(raw.get("uid") or "").strip(),
+            "area_tassonomica_code": str(raw.get("area_tassonomica_code") or "").strip(),
+            "area_tassonomica": str(raw.get("area_tassonomica") or "").strip(),
+            "macro_area_tassonomica_code": str(raw.get("macro_area_tassonomica_code") or "").strip(),
+            "macro_area_tassonomica": str(raw.get("macro_area_tassonomica") or "").strip(),
+            "sottobranca_tassonomica_code": str(raw.get("sottobranca_tassonomica_code") or "").strip(),
+            "sottobranca_tassonomica": str(raw.get("sottobranca_tassonomica") or "").strip(),
+            "tassonomia_codice": str(raw.get("tassonomia_codice") or "").strip(),
+            "tipologia_pratica_id": str(raw.get("tipologia_pratica_id") or "").strip(),
+            "tipologia_pratica_label": str(raw.get("tipologia_pratica_label") or "").strip(),
+            "tipo_compenso": str(raw.get("tipo_compenso") or "").strip(),
+        }
+        if not any(
+            item[key]
+            for key in (
+                "area_tassonomica",
+                "macro_area_tassonomica",
+                "sottobranca_tassonomica",
+                "tipologia_pratica_id",
+                "tipologia_pratica_label",
+            )
+        ):
+            continue
+        normalized.append(item)
+    return normalized
+
+
 CLAUSOLA_CONTROVERSIE_NESSUNA = "NESSUNA"
 CLAUSOLA_CONTROVERSIE_TUTELA_CLIENTE = "TUTELA_CLIENTE_CONSUMATORE"
 CLAUSOLA_CONTROVERSIE_MULTISTEP = "MULTISTEP_MEDIAZIONE_ARBITRATO"
@@ -300,6 +335,7 @@ class Preventivo:
     sottobranca_tassonomica: str = ""
     tassonomia_codice:     str   = ""
     fonti_tassonomia:      List[Dict[str, Any]] = field(default_factory=list)
+    classificazioni_tassonomiche: List[Dict[str, Any]] = field(default_factory=list)
     procedura_operativa_codice: str = ""
     procedura_operativa_nome: str = ""
     subbranch_operativa_codice: str = ""
@@ -410,6 +446,9 @@ class Preventivo:
         d["clausola_controversie_modello"] = normalizza_modello_clausola_controversie(
             d.get("clausola_controversie_modello")
         )
+        d["classificazioni_tassonomiche"] = _normalizza_classificazioni_tassonomiche(
+            d.get("classificazioni_tassonomiche")
+        )
         d["voci"] = [VocePreventivo.from_dict(v) for v in d.get("voci", [])]
         d["piano_pagamenti"] = [VoceScadenza.from_dict(r) for r in d.get("piano_pagamenti", [])]
         campi = set(Preventivo.__dataclass_fields__)
@@ -449,6 +488,7 @@ class ConferimentoIncarico:
     sottobranca_tassonomica:  str   = ""
     tassonomia_codice:        str   = ""
     fonti_tassonomia:         List[Dict[str, Any]] = field(default_factory=list)
+    classificazioni_tassonomiche: List[Dict[str, Any]] = field(default_factory=list)
     procedura_operativa_codice: str = ""
     procedura_operativa_nome: str = ""
     subbranch_operativa_codice: str = ""
@@ -500,6 +540,9 @@ class ConferimentoIncarico:
         d["workflow_channel"] = _normalize_workflow_channel(d.get("workflow_channel"))
         d["clausola_controversie_modello"] = normalizza_modello_clausola_controversie(
             d.get("clausola_controversie_modello")
+        )
+        d["classificazioni_tassonomiche"] = _normalizza_classificazioni_tassonomiche(
+            d.get("classificazioni_tassonomiche")
         )
         campi = set(ConferimentoIncarico.__dataclass_fields__)
         return ConferimentoIncarico(**{k: v for k, v in d.items() if k in campi})
@@ -597,9 +640,9 @@ class GestionePreventivi:
                     (preventivo_id, numero, id_cliente, id_fascicolo, data_emissione, data_scadenza,
                      oggetto, stato, workflow_channel, tipo_compenso, tipo_procedimento,
                      area_pratica, id_pratica, procedura_operativa_codice, procedura_operativa_nome,
-                     canale_operativo, registro_operativo, totale, accettato_il,
-                     id_preventivo_precedente, token_portale, creato_il, dati_json)
-                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                     canale_operativo, registro_operativo, classificazioni_tassonomiche_json,
+                     totale, accettato_il, id_preventivo_precedente, token_portale, creato_il, dati_json)
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
                     """,
                     (
                         preventivo.id,
@@ -619,6 +662,10 @@ class GestionePreventivi:
                         preventivo.procedura_operativa_nome,
                         preventivo.canale_operativo,
                         preventivo.registro_operativo,
+                        json.dumps(
+                            preventivo.classificazioni_tassonomiche or [],
+                            ensure_ascii=False,
+                        ),
                         float(preventivo.totale or 0.0),
                         preventivo.accettato_il or "",
                         preventivo.id_preventivo_precedente or "",
@@ -654,8 +701,9 @@ class GestionePreventivi:
                      data_incarico, oggetto, stato, workflow_channel, tipo_compenso,
                      tipo_procedimento, area_pratica, id_pratica, procedura_operativa_codice,
                      procedura_operativa_nome, canale_operativo, registro_operativo,
-                     compenso_pattuito, firma_cliente_eseguita, fascicolo_aperto_il, dati_json)
-                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                     classificazioni_tassonomiche_json, compenso_pattuito,
+                     firma_cliente_eseguita, fascicolo_aperto_il, dati_json)
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
                     """,
                     (
                         conferimento.id,
@@ -675,6 +723,10 @@ class GestionePreventivi:
                         conferimento.procedura_operativa_nome,
                         conferimento.canale_operativo,
                         conferimento.registro_operativo,
+                        json.dumps(
+                            conferimento.classificazioni_tassonomiche or [],
+                            ensure_ascii=False,
+                        ),
                         float(conferimento.compenso_pattuito or 0.0),
                         1 if conferimento.firma_cliente_eseguita else 0,
                         conferimento.fascicolo_aperto_il or "",
@@ -783,6 +835,7 @@ class GestionePreventivi:
                         sottobranca_tassonomica: str = "",
                         tassonomia_codice:    str   = "",
                         fonti_tassonomia: Optional[List[Dict[str, Any]]] = None,
+                        classificazioni_tassonomiche: Optional[List[Dict[str, Any]]] = None,
                         procedura_operativa_codice: str = "",
                         tipo_compenso:       str   = "",
                         tipo_procedimento:   str   = "",
@@ -835,6 +888,9 @@ class GestionePreventivi:
             sottobranca_tassonomica=sottobranca_tassonomica,
             tassonomia_codice=tassonomia_codice,
             fonti_tassonomia=list(fonti_tassonomia or []),
+            classificazioni_tassonomiche=_normalizza_classificazioni_tassonomiche(
+                classificazioni_tassonomiche
+            ),
             procedura_operativa_codice=operational_fields.get("procedura_operativa_codice", ""),
             procedura_operativa_nome=operational_fields.get("procedura_operativa_nome", ""),
             subbranch_operativa_codice=operational_fields.get("subbranch_operativa_codice", ""),
@@ -970,6 +1026,7 @@ class GestionePreventivi:
                           sottobranca_tassonomica: str  = "",
                           tassonomia_codice:      str   = "",
                           fonti_tassonomia: Optional[List[Dict[str, Any]]] = None,
+                          classificazioni_tassonomiche: Optional[List[Dict[str, Any]]] = None,
                           procedura_operativa_codice: str = "",
                           numero_iscrizione_albo: str   = "",
                           ordine_avvocati:        str   = "",
@@ -1007,6 +1064,10 @@ class GestionePreventivi:
                     tassonomia_codice = preventivo.tassonomia_codice
                 if not fonti_tassonomia:
                     fonti_tassonomia = list(preventivo.fonti_tassonomia or [])
+                if not classificazioni_tassonomiche:
+                    classificazioni_tassonomiche = list(
+                        preventivo.classificazioni_tassonomiche or []
+                    )
                 if not procedura_operativa_codice:
                     procedura_operativa_codice = preventivo.procedura_operativa_codice
                 if not tipo_compenso:
@@ -1064,6 +1125,9 @@ class GestionePreventivi:
             sottobranca_tassonomica=sottobranca_tassonomica,
             tassonomia_codice=tassonomia_codice,
             fonti_tassonomia=list(fonti_tassonomia or []),
+            classificazioni_tassonomiche=_normalizza_classificazioni_tassonomiche(
+                classificazioni_tassonomiche
+            ),
             procedura_operativa_codice=operational_fields.get("procedura_operativa_codice", ""),
             procedura_operativa_nome=operational_fields.get("procedura_operativa_nome", ""),
             subbranch_operativa_codice=operational_fields.get("subbranch_operativa_codice", ""),

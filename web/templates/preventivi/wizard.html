@@ -721,6 +721,7 @@
   <input type="hidden" name="sottobranca_tassonomica" id="inpSottobrancaTassonomica">
   <input type="hidden" name="tassonomia_codice" id="inpTassonomiaCodice">
   <input type="hidden" name="fonti_tassonomia_json" id="inpFontiTassonomiaJson">
+  <input type="hidden" name="classificazioni_tassonomiche_json" id="inpClassificazioniTassonomicheJson" value="[]">
   <input type="hidden" name="procedura_operativa_codice" id="inpProceduraOperativaCodice">
   <input type="hidden" name="procedura_operativa_nome" id="inpProceduraOperativaNome">
   <input type="hidden" name="subbranch_operativa_codice" id="inpSubbranchOperativaCodice">
@@ -817,6 +818,9 @@
                     <label class="form-label fw-semibold">Codice fiscale</label>
                     <input type="text" name="cliente_rapido_codice_fiscale_pg" id="inpClienteRapidoCfPg" class="form-control font-monospace text-uppercase" maxlength="16" placeholder="Codice fiscale ente">
                   </div>
+                </div>
+                <div class="alert alert-secondary small mt-3 mb-0" id="clienteRapidoStatus">
+                  Il cliente rapido verra creato automaticamente appena completi i dati minimi richiesti.
                 </div>
                 <div class="small text-muted mt-3">
                   Il cliente viene salvato come <strong>potenziale</strong>. Prima del conferimento il sistema ti guidera al completamento di recapiti e indirizzi.
@@ -929,6 +933,22 @@
                     <div class="prev-taxonomy-hint" id="taxonomySelectionHint">La tassonomia tecnica affina il catalogo operativo e conserva area, macro-area, sottobranca e fonti ufficiali aggregate nel tracciato del preventivo.</div>
                     <div id="taxonomySelectionPreview" class="alert alert-light border mt-2 mb-0 small">
                       La classificazione tassonomica selezionata verra mostrata qui con area, macro-area, sottobranca e fonti ufficiali aggregate.
+                    </div>
+                    <div class="border rounded-4 bg-light p-3 mt-3">
+                      <div class="d-flex flex-wrap align-items-start justify-content-between gap-2 mb-2">
+                        <div>
+                          <div class="fw-semibold text-dark">Classificazioni tassonomiche aggiuntive</div>
+                          <div class="small text-muted">
+                            Aggiungi altri sviluppi della pratica: ogni classificazione puo collegare una tipologia tariffaria e genera una voce autonoma nel preventivo.
+                          </div>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-outline-primary" id="btnAggiungiClassificazioneTassonomica">
+                          <i class="bi bi-plus-lg me-1"></i>Aggiungi classificazione
+                        </button>
+                      </div>
+                      <div id="classificazioniAggiuntiveList" class="d-flex flex-column gap-2">
+                        <div class="small text-muted">Nessuna classificazione aggiuntiva inserita.</div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -1382,6 +1402,11 @@ let compactMode = window.localStorage.getItem(STORAGE_KEY_COMPACT) === '1';
 let favoriteTipologie = new Set(JSON.parse(window.localStorage.getItem(STORAGE_KEY_PREFERITE) || '[]'));
 let tassonomiaSelezione = { area: '', macro: '', sub: '' };
 let selezioneOperativa = { procedure: '', workflow: '', channel: '' };
+let classificazioniAggiuntive = Array.isArray(WIZARD_PREFILL.classificazioni_tassonomiche)
+  ? WIZARD_PREFILL.classificazioni_tassonomiche.map((row) => ({ ...row }))
+  : [];
+let clienteRapidoAutoState = { fingerprint: '', idCliente: '', pending: false };
+let clienteRapidoAutoTimer = null;
 
 function taxonomyMeta(item) {
   return {
@@ -1510,6 +1535,233 @@ function currentTaxonomyNode() {
   };
 }
 
+function newClassificazioneUid() {
+  return `classificazione-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function taxonomyAreaOptions() {
+  return TAXONOMY_CATALOG.map((row) => ({ code: row.code, label: row.label, count: row.count || 0 }));
+}
+
+function taxonomyMacroOptions(areaCode = '') {
+  const area = TAXONOMY_CATALOG.find((row) => row.code === areaCode) || null;
+  const rows = area ? area.macros : TAXONOMY_CATALOG.flatMap((row) => row.macros);
+  const seen = new Set();
+  return rows.filter((row) => {
+    if (seen.has(row.code)) return false;
+    seen.add(row.code);
+    return true;
+  }).map((row) => ({ code: row.code, label: row.label, count: row.count || 0 }));
+}
+
+function taxonomySubOptions(areaCode = '', macroCode = '') {
+  let macros = [];
+  if (areaCode) {
+    const area = TAXONOMY_CATALOG.find((row) => row.code === areaCode) || null;
+    macros = area ? area.macros : [];
+  } else {
+    macros = TAXONOMY_CATALOG.flatMap((row) => row.macros);
+  }
+  if (macroCode) {
+    macros = macros.filter((row) => row.code === macroCode);
+  }
+  const seen = new Set();
+  return macros.flatMap((row) => row.subs).filter((row) => {
+    if (seen.has(row.code)) return false;
+    seen.add(row.code);
+    return true;
+  }).map((row) => ({ code: row.code, label: row.label, count: row.count || 0 }));
+}
+
+function matchingTipologiePerClassificazione(row = {}) {
+  const areaCode = String(row.area_tassonomica_code || '').trim();
+  const macroCode = String(row.macro_area_tassonomica_code || '').trim();
+  const subCode = String(row.sottobranca_tassonomica_code || '').trim();
+  return catalogoFlat
+    .filter((item) => {
+      const meta = taxonomyMeta(item);
+      if (areaCode && meta.areaCode !== areaCode) return false;
+      if (macroCode && meta.macroCode !== macroCode) return false;
+      if (subCode && meta.subCode !== subCode) return false;
+      return true;
+    })
+    .sort((a, b) => String(a.label || '').localeCompare(String(b.label || ''), 'it'));
+}
+
+function normalizeClassificazioneAggiuntiva(raw = {}) {
+  const areaCode = resolveTaxonomyPrefill(raw.area_tassonomica_code || raw.area_tassonomica, 'area');
+  const macroCode = resolveTaxonomyPrefill(raw.macro_area_tassonomica_code || raw.macro_area_tassonomica, 'macro');
+  const subCode = resolveTaxonomyPrefill(raw.sottobranca_tassonomica_code || raw.sottobranca_tassonomica, 'sub');
+  const area = TAXONOMY_CATALOG.find((row) => row.code === areaCode) || null;
+  const macro = taxonomyMacroOptions(areaCode).find((row) => row.code === macroCode) || null;
+  const sub = taxonomySubOptions(areaCode, macroCode).find((row) => row.code === subCode) || null;
+  const matches = matchingTipologiePerClassificazione({
+    area_tassonomica_code: areaCode,
+    macro_area_tassonomica_code: macroCode,
+    sottobranca_tassonomica_code: subCode,
+  });
+  let tipologiaId = String(raw.tipologia_pratica_id || '').trim();
+  if (tipologiaId && !matches.some((item) => item.id === tipologiaId)) {
+    tipologiaId = '';
+  }
+  if (!tipologiaId && matches.length === 1) {
+    tipologiaId = matches[0].id;
+  }
+  const tipologia = getTipologiaById(tipologiaId);
+  const meta = tipologia ? taxonomyMeta(tipologia) : null;
+  return {
+    uid: String(raw.uid || '').trim() || newClassificazioneUid(),
+    area_tassonomica_code: meta?.areaCode || areaCode,
+    area_tassonomica: meta?.areaLabel || area?.label || String(raw.area_tassonomica || '').trim(),
+    macro_area_tassonomica_code: meta?.macroCode || macroCode,
+    macro_area_tassonomica: meta?.macroLabel || macro?.label || String(raw.macro_area_tassonomica || '').trim(),
+    sottobranca_tassonomica_code: meta?.subCode || subCode,
+    sottobranca_tassonomica: meta?.subLabel || sub?.label || String(raw.sottobranca_tassonomica || '').trim(),
+    tassonomia_codice: String(
+      meta?.nodeCode || tipologia?.tassonomia_codice || raw.tassonomia_codice || ''
+    ).trim(),
+    tipologia_pratica_id: tipologiaId,
+    tipologia_pratica_label: String(tipologia?.label || raw.tipologia_pratica_label || '').trim(),
+    tipo_compenso: String(tipologia?.tipo_compenso_default || raw.tipo_compenso || '').trim(),
+  };
+}
+
+function classificazioniAggiuntiveSelezionate() {
+  return classificazioniAggiuntive
+    .map((row) => normalizeClassificazioneAggiuntiva(row))
+    .filter((row) => row.tipologia_pratica_id);
+}
+
+function syncClassificazioniTassonomicheHidden() {
+  document.getElementById('inpClassificazioniTassonomicheJson').value = JSON.stringify(
+    classificazioniAggiuntiveSelezionate()
+  );
+}
+
+function clearClassificazioneRows() {
+  document.querySelectorAll('tr[data-role^="classificazione-"]').forEach((row) => row.remove());
+}
+
+async function onClassificazioniAggiuntiveChanged() {
+  syncClassificazioniTassonomicheHidden();
+  if (ultimoCalcolo) {
+    await calcolaPreventivo();
+  } else {
+    clearClassificazioneRows();
+    aggiornaEmptyState();
+    recalcTotals();
+  }
+}
+
+function renderClassificazioniAggiuntive() {
+  const container = document.getElementById('classificazioniAggiuntiveList');
+  if (!container) return;
+  if (!classificazioniAggiuntive.length) {
+    container.innerHTML = '<div class="small text-muted">Nessuna classificazione aggiuntiva inserita.</div>';
+    syncClassificazioniTassonomicheHidden();
+    return;
+  }
+  container.innerHTML = classificazioniAggiuntive.map((rawRow, index) => {
+    const row = normalizeClassificazioneAggiuntiva(rawRow);
+    classificazioniAggiuntive[index] = row;
+    const areaRows = taxonomyAreaOptions();
+    const macroRows = taxonomyMacroOptions(row.area_tassonomica_code);
+    const subRows = taxonomySubOptions(row.area_tassonomica_code, row.macro_area_tassonomica_code);
+    const practiceRows = matchingTipologiePerClassificazione(row);
+    return `
+      <div class="border rounded-4 bg-white p-3" data-classificazione-index="${index}">
+        <div class="d-flex flex-wrap align-items-start justify-content-between gap-2 mb-2">
+          <div>
+            <div class="fw-semibold text-dark">Classificazione aggiuntiva ${index + 1}</div>
+            <div class="small text-muted">Questa classificazione aggiunge una voce autonoma al preventivo in base alla tipologia collegata.</div>
+          </div>
+          <button type="button" class="btn btn-sm btn-outline-danger" data-remove-classificazione="${index}">
+            <i class="bi bi-trash me-1"></i>Rimuovi
+          </button>
+        </div>
+        <div class="row g-2">
+          <div class="col-lg-3">
+            <label class="form-label fw-semibold">Area tassonomica</label>
+            <select class="form-select form-select-sm" data-field="area">
+              <option value="">Seleziona area</option>
+              ${areaRows.map((option) => `<option value="${escapeHtml(option.code)}" ${option.code === row.area_tassonomica_code ? 'selected' : ''}>${escapeHtml(option.label)}</option>`).join('')}
+            </select>
+          </div>
+          <div class="col-lg-3">
+            <label class="form-label fw-semibold">Macro-area</label>
+            <select class="form-select form-select-sm" data-field="macro">
+              <option value="">Seleziona macro-area</option>
+              ${macroRows.map((option) => `<option value="${escapeHtml(option.code)}" ${option.code === row.macro_area_tassonomica_code ? 'selected' : ''}>${escapeHtml(option.label)}</option>`).join('')}
+            </select>
+          </div>
+          <div class="col-lg-3">
+            <label class="form-label fw-semibold">Sottobranca</label>
+            <select class="form-select form-select-sm" data-field="sub">
+              <option value="">Seleziona sottobranca</option>
+              ${subRows.map((option) => `<option value="${escapeHtml(option.code)}" ${option.code === row.sottobranca_tassonomica_code ? 'selected' : ''}>${escapeHtml(option.label)}</option>`).join('')}
+            </select>
+          </div>
+          <div class="col-lg-3">
+            <label class="form-label fw-semibold">Tipologia collegata</label>
+            <select class="form-select form-select-sm" data-field="tipologia">
+              <option value="">Seleziona tipologia</option>
+              ${practiceRows.map((option) => `<option value="${escapeHtml(option.id)}" ${option.id === row.tipologia_pratica_id ? 'selected' : ''}>${escapeHtml(option.label)}</option>`).join('')}
+            </select>
+          </div>
+        </div>
+        <div class="small text-muted mt-2">
+          ${row.tipologia_pratica_label ? `Voce aggiuntiva pronta: ${escapeHtml(row.tipologia_pratica_label)}${row.tipo_compenso ? ` — ${escapeHtml(row.tipo_compenso)}` : ''}.` : 'Completa la classificazione e scegli la tipologia tariffaria da aggiungere al preventivo.'}
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  container.querySelectorAll('[data-remove-classificazione]').forEach((node) => {
+    node.addEventListener('click', async () => {
+      const index = Number(node.dataset.removeClassificazione);
+      classificazioniAggiuntive.splice(index, 1);
+      renderClassificazioniAggiuntive();
+      await onClassificazioniAggiuntiveChanged();
+    });
+  });
+
+  container.querySelectorAll('[data-classificazione-index]').forEach((card) => {
+    const index = Number(card.dataset.classificazioneIndex);
+    const current = normalizeClassificazioneAggiuntiva(classificazioniAggiuntive[index] || {});
+    const updateRow = async (patch) => {
+      classificazioniAggiuntive[index] = normalizeClassificazioneAggiuntiva({ ...current, ...patch });
+      renderClassificazioniAggiuntive();
+      await onClassificazioniAggiuntiveChanged();
+    };
+    card.querySelector('[data-field="area"]')?.addEventListener('change', async (event) => {
+      await updateRow({
+        area_tassonomica_code: event.target.value || '',
+        macro_area_tassonomica_code: '',
+        sottobranca_tassonomica_code: '',
+        tipologia_pratica_id: '',
+      });
+    });
+    card.querySelector('[data-field="macro"]')?.addEventListener('change', async (event) => {
+      await updateRow({
+        macro_area_tassonomica_code: event.target.value || '',
+        sottobranca_tassonomica_code: '',
+        tipologia_pratica_id: '',
+      });
+    });
+    card.querySelector('[data-field="sub"]')?.addEventListener('change', async (event) => {
+      await updateRow({
+        sottobranca_tassonomica_code: event.target.value || '',
+        tipologia_pratica_id: '',
+      });
+    });
+    card.querySelector('[data-field="tipologia"]')?.addEventListener('change', async (event) => {
+      await updateRow({ tipologia_pratica_id: event.target.value || '' });
+    });
+  });
+
+  syncClassificazioniTassonomicheHidden();
+}
+
 function currentOperationalNode() {
   if (tipologiaCorrente) return operationalMeta(tipologiaCorrente);
   return {
@@ -1624,6 +1876,7 @@ function syncTaxonomyHiddenFields() {
   document.getElementById('inpSottobrancaTassonomica').value = meta.subLabel || '';
   document.getElementById('inpTassonomiaCodice').value = meta.nodeCode || '';
   document.getElementById('inpFontiTassonomiaJson').value = JSON.stringify(meta.sources || []);
+  syncClassificazioniTassonomicheHidden();
 }
 
 function syncOperationalHiddenFields() {
@@ -2367,8 +2620,32 @@ function renderAdrVariationBox() {
   `;
   const accordoNode = box.querySelector('#chkAdrAccordo');
   if (accordoNode) {
-    accordoNode.addEventListener('change', () => renderAdrVariationBox());
+    accordoNode.addEventListener('change', async () => {
+      renderAdrVariationBox();
+      if (ultimoCalcolo) {
+        try {
+          await calcolaPreventivo();
+        } catch (error) {
+          alert(`Impossibile aggiornare le variazioni ADR: ${error.message}`);
+        }
+      } else {
+        syncCalcoloHiddenFields();
+      }
+    });
   }
+  box.querySelectorAll('.adr-var-input').forEach((node) => {
+    node.addEventListener('change', async () => {
+      if (ultimoCalcolo) {
+        try {
+          await calcolaPreventivo();
+        } catch (error) {
+          alert(`Impossibile aggiornare le variazioni ADR: ${error.message}`);
+        }
+      } else {
+        syncCalcoloHiddenFields();
+      }
+    });
+  });
 }
 
 function dedupeNormativeReferences(refs) {
@@ -2655,6 +2932,19 @@ function renderFasi() {
   if (accessoriGrid) {
     accessoriGrid.innerHTML = accessoriMarkup || '<div class="col-12 text-muted small">Nessuna integrazione selezionabile per questa tipologia.</div>';
   }
+  document.querySelectorAll('.fase-check').forEach((node) => {
+    node.addEventListener('change', async () => {
+      if (ultimoCalcolo) {
+        try {
+          await calcolaPreventivo();
+        } catch (error) {
+          alert(`Impossibile aggiornare le fasi del preventivo: ${error.message}`);
+        }
+      } else {
+        syncCalcoloHiddenFields();
+      }
+    });
+  });
   document.querySelectorAll('.accessorio-check').forEach((node) => {
     node.addEventListener('change', async () => {
       renderSchedaTipologia();
@@ -2749,6 +3039,116 @@ function aggiornaGradoDefault() {
   syncTipoProcedimentoHidden();
 }
 
+function setClienteRapidoStatus(kind, message) {
+  const target = document.getElementById('clienteRapidoStatus');
+  if (!target) return;
+  target.className = 'alert small mt-3 mb-0';
+  if (kind === 'success') {
+    target.classList.add('alert-success');
+  } else if (kind === 'danger') {
+    target.classList.add('alert-danger');
+  } else if (kind === 'warning') {
+    target.classList.add('alert-warning');
+  } else {
+    target.classList.add('alert-secondary');
+  }
+  target.textContent = message;
+}
+
+function clienteRapidoPayloadCompleto() {
+  if (!document.getElementById('chkClienteRapido').checked) return null;
+  const tipo = document.getElementById('selClienteRapidoTipo').value || 'PERSONA_FISICA';
+  if (tipo === 'PERSONA_FISICA') {
+    const nome = document.getElementById('inpClienteRapidoNome').value.trim();
+    const cognome = document.getElementById('inpClienteRapidoCognome').value.trim();
+    const codiceFiscale = document.getElementById('inpClienteRapidoCfPf').value.trim().toUpperCase();
+    if (!nome || !cognome || !codiceFiscale) return null;
+    return {
+      cliente_rapido_tipo: tipo,
+      cliente_rapido_nome: nome,
+      cliente_rapido_cognome: cognome,
+      cliente_rapido_codice_fiscale: codiceFiscale,
+    };
+  }
+  const ragioneSociale = document.getElementById('inpClienteRapidoRagioneSociale').value.trim();
+  const partitaIva = document.getElementById('inpClienteRapidoPiva').value.trim();
+  const codiceFiscale = document.getElementById('inpClienteRapidoCfPg').value.trim().toUpperCase();
+  if (!ragioneSociale || (!partitaIva && !codiceFiscale)) return null;
+  return {
+    cliente_rapido_tipo: tipo,
+    cliente_rapido_ragione_sociale: ragioneSociale,
+    cliente_rapido_partita_iva: partitaIva,
+    cliente_rapido_codice_fiscale_pg: codiceFiscale,
+    cliente_rapido_codice_fiscale: codiceFiscale,
+  };
+}
+
+function clienteRapidoFingerprint(payload) {
+  return JSON.stringify(payload || {});
+}
+
+function aggiornaClienteSelezionatoRapido(data) {
+  const selectCliente = document.getElementById('selectCliente');
+  if (!selectCliente || !data?.id_cliente) return;
+  let option = Array.from(selectCliente.options).find((item) => item.value === data.id_cliente) || null;
+  if (!option) {
+    option = document.createElement('option');
+    option.value = data.id_cliente;
+    selectCliente.appendChild(option);
+  }
+  option.textContent = data.label || data.id_cliente;
+  selectCliente.value = data.id_cliente;
+}
+
+async function syncClienteRapidoAutoCreate(force = false) {
+  if (!document.getElementById('chkClienteRapido').checked) return;
+  const payload = clienteRapidoPayloadCompleto();
+  if (!payload) {
+    clienteRapidoAutoState = { fingerprint: '', idCliente: '', pending: false };
+    setClienteRapidoStatus('secondary', 'Completa i dati minimi e il sistema creera subito il cliente potenziale collegato al preventivo.');
+    return;
+  }
+  const fingerprint = clienteRapidoFingerprint(payload);
+  if (!force && clienteRapidoAutoState.pending) return;
+  if (!force && clienteRapidoAutoState.fingerprint === fingerprint && clienteRapidoAutoState.idCliente) return;
+  clienteRapidoAutoState.pending = true;
+  setClienteRapidoStatus('secondary', 'Creazione automatica del cliente rapido in corso...');
+  try {
+    const formData = new FormData();
+    Object.entries(payload).forEach(([key, value]) => formData.set(key, value));
+    const response = await fetch('{{ url_for("preventivi.ajax_cliente_rapido") }}', {
+      method: 'POST',
+      body: formData,
+    });
+    const data = await response.json();
+    if (!data.ok) {
+      clienteRapidoAutoState.pending = false;
+      clienteRapidoAutoState.idCliente = '';
+      setClienteRapidoStatus('warning', data.errore || 'Non e stato possibile creare il cliente rapido.');
+      return;
+    }
+    clienteRapidoAutoState = {
+      fingerprint,
+      idCliente: data.id_cliente,
+      pending: false,
+    };
+    aggiornaClienteSelezionatoRapido(data);
+    setClienteRapidoStatus('success', data.messaggio || 'Cliente rapido collegato al preventivo.');
+  } catch (error) {
+    clienteRapidoAutoState.pending = false;
+    setClienteRapidoStatus('danger', 'Impossibile contattare il servizio di creazione cliente rapido.');
+  }
+}
+
+function scheduleClienteRapidoAutoCreate() {
+  if (clienteRapidoAutoTimer) {
+    window.clearTimeout(clienteRapidoAutoTimer);
+  }
+  clienteRapidoAutoTimer = window.setTimeout(() => {
+    syncClienteRapidoAutoCreate();
+  }, 350);
+}
+
 function syncClienteRapidoUi() {
   const quick = document.getElementById('chkClienteRapido').checked;
   const box = document.getElementById('boxClienteRapido');
@@ -2759,13 +3159,15 @@ function syncClienteRapidoUi() {
   selectCliente.disabled = quick;
   selectCliente.required = !quick;
   if (quick) {
-    selectCliente.value = '';
     selectFascicolo.innerHTML = '<option value="">Nessun fascicolo collegato</option>';
     selectFascicolo.disabled = true;
     fascicoliCliente = [];
     applicaContestoFascicolo(null);
+    scheduleClienteRapidoAutoCreate();
   } else {
     selectFascicolo.disabled = false;
+    clienteRapidoAutoState = { fingerprint: '', idCliente: '', pending: false };
+    setClienteRapidoStatus('secondary', 'Il cliente rapido verra creato automaticamente appena completi i dati minimi richiesti.');
     if (selectCliente.value) {
       caricaFascicoli(selectCliente.value);
     } else {
@@ -2805,6 +3207,10 @@ function applyWizardPrefill() {
   tassonomiaSelezione.sub = resolveTaxonomyPrefill(WIZARD_PREFILL.sottobranca_tassonomica, 'sub');
   ensureOperationalAreaForTaxonomy();
   renderTaxonomyFilters();
+  if (Array.isArray(WIZARD_PREFILL.classificazioni_tassonomiche)) {
+    classificazioniAggiuntive = WIZARD_PREFILL.classificazioni_tassonomiche.map((row) => normalizeClassificazioneAggiuntiva(row));
+  }
+  renderClassificazioniAggiuntive();
 
   if (WIZARD_PREFILL.area && (CATALOGO[WIZARD_PREFILL.area] || []).length) {
     impostaAreaPratica(WIZARD_PREFILL.area, { preferFirst: true });
@@ -2844,6 +3250,7 @@ function applyWizardPrefill() {
   }
   document.getElementById('chkCassa').checked = WIZARD_PREFILL.applica_cpa !== false;
   document.getElementById('chkIva').checked = WIZARD_PREFILL.applica_iva !== false;
+  syncSpeseGeneraliUi();
 
     if (Array.isArray(WIZARD_PREFILL.fasi) && WIZARD_PREFILL.fasi.length) {
       const checkedSet = new Set(WIZARD_PREFILL.fasi);
@@ -2904,6 +3311,7 @@ function applyWizardPrefill() {
 
   prefillApplicato = true;
   syncTipoProcedimentoHidden();
+  syncClassificazioniTassonomicheHidden();
   recalcTotals();
 
   if (WIZARD_PREFILL.auto_calcola && tipologiaCorrente) {
@@ -3064,6 +3472,14 @@ function recalcTotals() {
   document.getElementById('inpCompensoPattuito').value = totale.toFixed(2);
 }
 
+function syncSpeseGeneraliUi() {
+  const chk = document.getElementById('chkSpeseGenerali');
+  const input = document.getElementById('inpPercSpese');
+  if (!chk || !input) return;
+  input.disabled = !chk.checked;
+  input.classList.toggle('bg-light', !chk.checked);
+}
+
 function buildEconomicLogPayload() {
   const regola = currentRegolaTariffaria();
   const grado = document.getElementById('selGrado').value || '';
@@ -3073,6 +3489,7 @@ function buildEconomicLogPayload() {
     label: row.label,
     tipo_pratica_id: row.tipo_pratica_id,
   }));
+  const classificazioniExtra = classificazioniAggiuntiveSelezionate();
   const manualVoci = Array.from(document.querySelectorAll('tr[data-role^="manual-"], tr[data-role^="manual-prefill-"]')).map((row) => ({
     descrizione: row.querySelector('input[name="voce_descr[]"]')?.value || '',
         importo: parseLocaleNumber(row.querySelector('input[name="voce_importo[]"]')?.value || 0),
@@ -3114,6 +3531,7 @@ function buildEconomicLogPayload() {
       accordo: !!(chkAdrAccordo && chkAdrAccordo.checked),
       variazioni_fasi_pct: currentAdrVariationValues(),
     },
+    classificazioni_tassonomiche: classificazioniExtra,
     accessori,
     esborsi: esborsiSuggeritiAttivi(),
     manual_voci: manualVoci,
@@ -3121,8 +3539,12 @@ function buildEconomicLogPayload() {
       ...(tipologiaCorrente?.tassonomia_sources || []),
       ...(tipologiaCorrente?.normative_references || []),
       ...accessori.flatMap((row) => getTipologiaById(row.tipo_pratica_id)?.normative_references || []),
+      ...classificazioniExtra.flatMap((row) => getTipologiaById(row.tipologia_pratica_id)?.normative_references || []),
     ]).map((row) => `${row.title || ''}${row.article ? ' — ' + row.article : ''}`.trim()),
-    riferimenti_tassonomia: dedupeNormativeReferences(tipologiaCorrente?.tassonomia_sources || []).map((row) => `${row.title || ''}${row.article ? ' — ' + row.article : ''}`.trim()),
+    riferimenti_tassonomia: dedupeNormativeReferences([
+      ...(tipologiaCorrente?.tassonomia_sources || []),
+      ...classificazioniExtra.flatMap((row) => getTipologiaById(row.tipologia_pratica_id)?.tassonomia_sources || []),
+    ]).map((row) => `${row.title || ''}${row.article ? ' — ' + row.article : ''}`.trim()),
     risultato: ultimoCalcolo || {},
   };
 }
@@ -3130,6 +3552,7 @@ function buildEconomicLogPayload() {
 function syncCalcoloHiddenFields() {
   syncTaxonomyHiddenFields();
   syncOperationalHiddenFields();
+  syncClassificazioniTassonomicheHidden();
   document.getElementById('inpBonusTelematico').value = document.getElementById('chkBonusTelematico').checked ? '1' : '0';
   document.getElementById('inpSpeseGenerali').value = document.getElementById('chkSpeseGenerali').checked ? '1' : '0';
   document.getElementById('inpPercSpeseGenerali').value = document.getElementById('inpPercSpese').value || '15';
@@ -3209,6 +3632,28 @@ async function applicaAccessoriCalcolo() {
   recalcTotals();
 }
 
+async function applicaClassificazioniAggiuntiveCalcolo() {
+  const rows = classificazioniAggiuntiveSelezionate();
+  const ruoliAttivi = new Set();
+  for (const row of rows) {
+    if (!row.tipologia_pratica_id) continue;
+    const response = await fetch(`{{ url_for('preventivi.wizard_calcola') }}?${buildQuery(row.tipologia_pratica_id).toString()}`);
+    const data = await response.json();
+    if (data.errore) {
+      throw new Error(data.errore);
+    }
+    const role = `classificazione-${row.uid}`;
+    const label = `Compenso aggiuntivo per ${row.tipologia_pratica_label || data.tipo_pratica?.label || row.tipologia_pratica_id}`;
+    ruoliAttivi.add(role);
+    upsertVocePerRuolo(role, label, data.onorario_base || data.totale_base || data.onorario_selezionato || 0, 'Onorario');
+  }
+  document.querySelectorAll('tr[data-role^="classificazione-"]').forEach((row) => {
+    if (!ruoliAttivi.has(row.getAttribute('data-role'))) row.remove();
+  });
+  aggiornaEmptyState();
+  recalcTotals();
+}
+
 async function calcolaPreventivo() {
   if (!tipologiaCorrente) {
     alert('Seleziona prima una tipologia di pratica.');
@@ -3236,6 +3681,7 @@ async function calcolaPreventivo() {
     }
     renderRisultato(data);
     await applicaAccessoriCalcolo();
+    await applicaClassificazioniAggiuntiveCalcolo();
     setWizardStep('wizardStep4Collapse', true);
     scrollWizardSection('wizardStep4Collapse');
   } catch (error) {
@@ -3388,8 +3834,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('btnCalcolaPreventivo').addEventListener('click', calcolaPreventivo);
     document.getElementById('btnAggiungiVoce').addEventListener('click', () => addVoce('', '', 'Onorario'));
     document.getElementById('inpAnticipazioni').addEventListener('input', recalcTotals);
-    document.getElementById('chkCassa').addEventListener('change', recalcTotals);
-    document.getElementById('chkIva').addEventListener('change', recalcTotals);
     selRegolaTariffaria.addEventListener('change', () => {
       selGrado.dataset.selected = '';
       renderGradiTariffari();
@@ -3397,14 +3841,26 @@ document.addEventListener('DOMContentLoaded', async () => {
       renderAdrVariationBox();
       renderEsborsi();
       syncTipoProcedimentoHidden();
+      if (tipologiaCorrente && ultimoCalcolo) {
+        calcolaPreventivo();
+      } else {
+        syncCalcoloHiddenFields();
+      }
     });
     selGrado.addEventListener('change', () => {
       syncTipoProcedimentoHidden();
       renderAdrVariationBox();
+      if (tipologiaCorrente && ultimoCalcolo) {
+        calcolaPreventivo();
+      } else {
+        syncCalcoloHiddenFields();
+      }
     });
     document.getElementById('selComplessita').addEventListener('change', () => {
       if (tipologiaCorrente && ultimoCalcolo) {
         calcolaPreventivo();
+      } else {
+        syncCalcoloHiddenFields();
       }
     });
   const selAreaTassonomica = document.getElementById('selAreaTassonomica');
@@ -3483,6 +3939,61 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
   document.getElementById('inpOggetto').addEventListener('input', () => { oggettoToccato = true; });
   document.getElementById('inpNote').addEventListener('input', () => { noteToccate = true; });
+  document.getElementById('btnAggiungiClassificazioneTassonomica')?.addEventListener('click', () => {
+    classificazioniAggiuntive.push(normalizeClassificazioneAggiuntiva({ uid: newClassificazioneUid() }));
+    renderClassificazioniAggiuntive();
+    syncClassificazioniTassonomicheHidden();
+  });
+  [
+    'inpClienteRapidoNome',
+    'inpClienteRapidoCognome',
+    'inpClienteRapidoCfPf',
+    'inpClienteRapidoRagioneSociale',
+    'inpClienteRapidoPiva',
+    'inpClienteRapidoCfPg',
+  ].forEach((id) => {
+    const node = document.getElementById(id);
+    if (!node) return;
+    node.addEventListener('input', scheduleClienteRapidoAutoCreate);
+    node.addEventListener('blur', scheduleClienteRapidoAutoCreate);
+  });
+  document.getElementById('inpValore').addEventListener('change', () => {
+    if (tipologiaCorrente && ultimoCalcolo) {
+      calcolaPreventivo();
+    } else {
+      syncCalcoloHiddenFields();
+    }
+  });
+  document.getElementById('chkBonusTelematico').addEventListener('change', () => {
+    if (tipologiaCorrente && ultimoCalcolo) {
+      calcolaPreventivo();
+    } else {
+      syncCalcoloHiddenFields();
+    }
+  });
+  document.getElementById('chkSpeseGenerali').addEventListener('change', () => {
+    syncSpeseGeneraliUi();
+    if (tipologiaCorrente && ultimoCalcolo) {
+      calcolaPreventivo();
+    } else {
+      syncCalcoloHiddenFields();
+    }
+  });
+  document.getElementById('inpPercSpese').addEventListener('change', () => {
+    if (tipologiaCorrente && ultimoCalcolo) {
+      calcolaPreventivo();
+    } else {
+      syncCalcoloHiddenFields();
+    }
+  });
+  document.getElementById('chkCassa').addEventListener('change', () => {
+    recalcTotals();
+    syncCalcoloHiddenFields();
+  });
+  document.getElementById('chkIva').addEventListener('change', () => {
+    recalcTotals();
+    syncCalcoloHiddenFields();
+  });
   renderTaxonomyFilters();
   renderOperationalFilters();
   const areaIniziale = (FASCICOLO_PRE && FASCICOLO_PRE.area_pratica) || areaCorrente;
@@ -3495,6 +4006,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   syncClienteRapidoUi();
   syncWorkflowChecks();
   applyWizardPrefill();
+  syncSpeseGeneraliUi();
   syncToolbarState();
   setChipButtonState(btnToggleAdvancedFilters, advancedFiltersCollapse.classList.contains('show'));
   syncTipologiaToolbarPin();
@@ -3538,4 +4050,3 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 </script>
 {% endblock %}
-

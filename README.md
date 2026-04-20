@@ -9,6 +9,7 @@ La repo oggi non è più solo un tool CLI per il Processo Civile Telematico: con
 - Gestione fascicoli, clienti, soggetti, agenda e scadenziario.
 - Deposito telematico civile, penale e dashboard servizi telematici.
 - Workflow completo `cliente -> preventivo -> conferimento -> fascicolo -> attivita' -> parcella -> incasso`.
+- Wizard preventivi e console tariffaria ora usano davvero il tariffario corretto per fase: `D.M. 55/2014` per i giudiziali, `Tabella A25` per lo stragiudiziale e `Tabella A27` per mediazione / negoziazione assistita, con checkbox fiscali che incidono davvero sul totale.
 - Timesheet operativo con valorizzazione del tempo e generazione parcella dalle attivita' validate.
 - Fatturazione, pagamenti, saldo cliente e KPI economici per studio, cliente e fascicolo.
 - Fascicolo con `cabina operativa` a tab: quadro intelligente, workflow `fascicolo -> incasso`, controllo economico, governo documentale e conformita' deposito nella stessa vista.
@@ -20,6 +21,7 @@ La repo oggi non è più solo un tool CLI per il Processo Civile Telematico: con
 - Review `Coverage AI` con audit forte: motivo decisione, firma reviewer, diff tra spec originale e corrente, storico revisioni e publish SQL tracciato.
 - La console `Copertura AI` aggancia automaticamente il backend SQL reale del tenant selezionato: `studio.db` per gli studi `SQLite` oppure PostgreSQL tenant-aware per gli studi cloud o legacy gia' configurati.
 - `Crash test operativo` con simulazione di una giornata reale di studio, repair loop, ticket di riparazione, checklist finale `si/no`, backup blindato completo + incrementale e report persistiti per tenant.
+- Il preventivo guidato puo' creare subito il cliente minimale, gestisce classificazioni tassonomiche ripetibili `area -> macro-area -> sottobranca`, le porta nei repository SQL/PostgreSQL e somma le relative voci di compenso nella bozza economica.
 - Workspace/applicazioni, portali di acquisizione, privacy e audit.
 - Registro audit storico spiegabile: se un fascicolo e' stato migrato, ricreato o rimosso, la UI segnala se l'evento e' attivo, riconciliato verso il fascicolo corrente oppure solo storico.
 - Runtime AI locale con Lex come strato linguistico sopra motori deterministici.

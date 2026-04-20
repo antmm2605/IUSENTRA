@@ -24,6 +24,7 @@ from pct.economico_context import (
 )
 from pct.preventivi import (
     CLAUSOLA_CONTROVERSIE_TUTELA_CLIENTE,
+    _normalizza_classificazioni_tassonomiche,
     catalogo_clausola_controversie,
     fonte_modello_clausola_controversie,
     label_modello_clausola_controversie,
@@ -192,6 +193,22 @@ def _contesto_fascicolo_wizard(fascicolo) -> dict:
     }
 
 
+def _flag_from_form(form, key: str, default: bool = False) -> bool:
+    values = form.getlist(key) if hasattr(form, "getlist") else []
+    if values:
+        normalized = [str(value or "").strip().lower() for value in values]
+        if any(value in {"1", "true", "on", "si", "s", "yes"} for value in normalized):
+            return True
+        if any(value in {"0", "false", "off", "no"} for value in normalized):
+            return False
+    raw = str(form.get(key, "") or "").strip().lower()
+    if raw in {"1", "true", "on", "si", "s", "yes"}:
+        return True
+    if raw in {"0", "false", "off", "no"}:
+        return False
+    return default
+
+
 def _contesto_log_wizard_da_form(form) -> str:
     raw = (form.get("log_calcolo", "") or "").strip()
     parsed = sincronizza_contesto_economico(raw)
@@ -204,7 +221,12 @@ def _contesto_log_wizard_da_form(form) -> str:
             parsed_fonti = []
         if isinstance(parsed_fonti, list):
             riferimenti_tassonomia = parsed_fonti
+    classificazioni_tassonomiche = _classificazioni_tassonomiche_da_raw(
+        form.get("classificazioni_tassonomiche_json", "")
+    )
     if parsed:
+        if classificazioni_tassonomiche:
+            parsed["classificazioni_tassonomiche"] = classificazioni_tassonomiche
         return dump_log_calcolo(parsed)
     return dump_log_calcolo(
         costruisci_contesto_economico(
@@ -231,16 +253,30 @@ def _contesto_log_wizard_da_form(form) -> str:
             regola_tariffaria_code=form.get("regola_tariffaria", "").strip(),
             complessita=form.get("complessita", "").strip(),
             valore_controversia=form.get("valore_controversia", "0"),
-            bonus_telematico=bool(form.get("bonus_telematico")),
-            spese_generali=bool(form.get("spese_generali")),
+            bonus_telematico=_flag_from_form(form, "bonus_telematico"),
+            spese_generali=_flag_from_form(form, "spese_generali", default=True),
             perc_spese_generali=form.get("perc_spese_generali", "15"),
-            applica_cpa=bool(form.get("applica_cassa")),
-            applica_iva=bool(form.get("applica_iva")),
+            applica_cpa=_flag_from_form(form, "applica_cassa", default=True),
+            applica_iva=_flag_from_form(form, "applica_iva", default=True),
             anticipazioni_art15=form.get("anticipazioni_art15", "0"),
-            adr_accordo=bool(form.get("adr_accordo")),
+            adr_accordo=_flag_from_form(form, "adr_accordo"),
             riferimenti_tassonomia=riferimenti_tassonomia,
+            classificazioni_tassonomiche=classificazioni_tassonomiche,
         )
     )
+
+
+def _classificazioni_tassonomiche_da_raw(raw: str | list | None) -> list[dict]:
+    if isinstance(raw, list):
+        return _normalizza_classificazioni_tassonomiche(raw)
+    payload = (raw or "").strip()
+    if not payload:
+        return []
+    try:
+        parsed = json.loads(payload)
+    except (TypeError, ValueError, json.JSONDecodeError):
+        return []
+    return _normalizza_classificazioni_tassonomiche(parsed if isinstance(parsed, list) else [])
 
 
 def _crea_cliente_rapido_da_wizard(form) -> tuple[str, str]:
@@ -923,6 +959,30 @@ def ajax_fascicoli(id_cliente: str):
     return jsonify([_contesto_fascicolo_wizard(f) for f in fascicoli])
 
 
+@preventivi.route("/ajax/cliente-rapido", methods=["POST"])
+@_richiedi_login
+def ajax_cliente_rapido():
+    from flask import jsonify
+
+    try:
+        id_cliente, msg_cliente = _crea_cliente_rapido_da_wizard(request.form)
+        cliente = get_clienti().get(id_cliente)
+        return jsonify(
+            {
+                "ok": True,
+                "id_cliente": id_cliente,
+                "label": getattr(cliente, "nome_completo", "") or id_cliente,
+                "messaggio": msg_cliente,
+                "creato": "creat" in msg_cliente.lower(),
+            }
+        )
+    except ValueError as exc:
+        return jsonify({"ok": False, "errore": str(exc)}), 200
+    except Exception as exc:
+        current_app.logger.exception("Errore creazione cliente rapido wizard: %s", exc)
+        return jsonify({"ok": False, "errore": "Impossibile creare il cliente rapido."}), 200
+
+
 @preventivi.route("/ajax/preventivi/<id_cliente>")
 @_richiedi_login
 def ajax_preventivi(id_cliente: str):
@@ -1176,9 +1236,11 @@ def wizard():
         "accessori": [],
         "esborsi": [],
         "manual_voci": [],
+        "classificazioni_tassonomiche": [],
         "has_accessori_prefill": False,
         "has_esborsi_prefill": False,
         "has_manual_voci_prefill": False,
+        "has_classificazioni_tassonomiche_prefill": False,
         "auto_calcola": request.args.get("auto_calcola", "").strip() == "1",
     }
     clausola_state = {
@@ -1212,6 +1274,12 @@ def wizard():
         if isinstance(parsed, list):
             wizard_prefill[field_name] = parsed
             wizard_prefill[f"has_{field_name}_prefill"] = True
+    wizard_prefill["classificazioni_tassonomiche"] = _classificazioni_tassonomiche_da_raw(
+        request.args.get("classificazioni_tassonomiche_json", "")
+    )
+    wizard_prefill["has_classificazioni_tassonomiche_prefill"] = bool(
+        wizard_prefill["classificazioni_tassonomiche"]
+    )
     return render_template(
         "preventivi/wizard.html",
         catalogo_per_area=catalogo_wizard(),
@@ -1407,7 +1475,7 @@ def wizard_genera():
 
     id_cliente = f.get("id_cliente", "").strip()
     if not id_cliente:
-        if f.get("cliente_rapido_attivo"):
+        if _flag_from_form(f, "cliente_rapido_attivo"):
             try:
                 id_cliente, msg_cliente = _crea_cliente_rapido_da_wizard(f)
                 flash(msg_cliente, "success")
@@ -1459,6 +1527,9 @@ def wizard_genera():
         fonti_tassonomia = []
     if not isinstance(fonti_tassonomia, list):
         fonti_tassonomia = []
+    classificazioni_tassonomiche = _classificazioni_tassonomiche_da_raw(
+        f.get("classificazioni_tassonomiche_json", "")
+    )
     p = gp.crea_preventivo(
         id_cliente=id_cliente,
         oggetto=oggetto,
@@ -1467,8 +1538,8 @@ def wizard_genera():
         id_fascicolo=f.get("id_fascicolo", "").strip() or None,
         data_emissione=f.get("data_emissione") or date.today().isoformat(),
         data_scadenza=f.get("data_scadenza", "").strip() or None,
-        applica_cassa=bool(f.get("applica_cassa")),
-        applica_iva=bool(f.get("applica_iva")),
+        applica_cassa=_flag_from_form(f, "applica_cassa", default=True),
+        applica_iva=_flag_from_form(f, "applica_iva", default=True),
         anticipazioni_art15=anticipazioni,
         note=f.get("note", "").strip(),
         id_pratica=f.get("id_pratica", "").strip(),
@@ -1479,6 +1550,7 @@ def wizard_genera():
         tassonomia_codice=f.get("tassonomia_codice", "").strip(),
         procedura_operativa_codice=f.get("procedura_operativa_codice", "").strip(),
         fonti_tassonomia=fonti_tassonomia,
+        classificazioni_tassonomiche=classificazioni_tassonomiche,
         tipo_compenso=f.get("tipo_compenso", "").strip(),
         tipo_procedimento=f.get("tipo_procedimento", "").strip(),
         valore_controversia=valore_controversia,
@@ -1489,17 +1561,17 @@ def wizard_genera():
         studio_piva=cfg.get("STUDIO_PIVA", ""),
         studio_cf=cfg.get("STUDIO_CF", ""),
         studio_indirizzo=cfg.get("STUDIO_INDIRIZZO", ""),
-        clausola_controversie_attiva=bool(f.get("clausola_controversie_attiva")),
+        clausola_controversie_attiva=_flag_from_form(f, "clausola_controversie_attiva"),
         clausola_controversie_modello=f.get("clausola_controversie_modello", "").strip(),
         clausola_controversie_testo=f.get("clausola_controversie_testo", "").strip(),
-        clausola_controversie_trattativa_individuale=bool(
-            f.get("clausola_controversie_trattativa_individuale")
+        clausola_controversie_trattativa_individuale=_flag_from_form(
+            f, "clausola_controversie_trattativa_individuale"
         ),
         clausola_controversie_fonte=f.get("clausola_controversie_fonte", "").strip(),
     )
 
     # Conferimento immediato?
-    if f.get("genera_conferimento"):
+    if _flag_from_form(f, "genera_conferimento"):
         conferimento = None
         avvocato = f.get("avvocato_referente", "").strip() or cfg.get("STUDIO_NOME", "Studio Legale")
         try:
@@ -1522,21 +1594,24 @@ def wizard_genera():
             tassonomia_codice=f.get("tassonomia_codice", "").strip(),
             procedura_operativa_codice=f.get("procedura_operativa_codice", "").strip(),
             fonti_tassonomia=fonti_tassonomia,
+            classificazioni_tassonomiche=classificazioni_tassonomiche,
             tipo_compenso=f.get("tipo_compenso", "").strip(),
             tipo_procedimento=f.get("tipo_procedimento", "").strip(),
-            informativa_art13_resa=bool(f.get("informativa_art13_resa")),
-            clausola_adr_resa=bool(f.get("clausola_adr_resa")),
-            clausola_controversie_attiva=bool(f.get("clausola_controversie_attiva")) or None,
+            informativa_art13_resa=_flag_from_form(f, "informativa_art13_resa"),
+            clausola_adr_resa=_flag_from_form(f, "clausola_adr_resa"),
+            clausola_controversie_attiva=_flag_from_form(f, "clausola_controversie_attiva"),
             clausola_controversie_modello=f.get("clausola_controversie_modello", "").strip(),
             clausola_controversie_testo=f.get("clausola_controversie_testo", "").strip(),
-            clausola_controversie_trattativa_individuale=bool(f.get("clausola_controversie_trattativa_individuale")) or None,
+            clausola_controversie_trattativa_individuale=_flag_from_form(
+                f, "clausola_controversie_trattativa_individuale"
+            ),
             studio_piva=cfg.get("STUDIO_PIVA", ""),
             studio_cf=cfg.get("STUDIO_CF", ""),
             studio_indirizzo=cfg.get("STUDIO_INDIRIZZO", ""),
         )
         from pct.preventivi import StatoPreventivo
         gp.aggiorna_preventivo(p.id, stato=StatoPreventivo.CONVERTITO)
-        if bool(f.get("apri_fascicolo_guidato")) and not p.id_fascicolo:
+        if _flag_from_form(f, "apri_fascicolo_guidato") and not p.id_fascicolo:
             flash(
                 f"Preventivo {p.numero} e conferimento incarico creati. Completa ora l'apertura guidata del fascicolo.",
                 "success",

@@ -21,9 +21,12 @@ import json
 import logging
 import os
 import re
+import socket
 import email as _email_lib
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING
+
+from pct.imap_runtime import describe_imap_connection_error, resolve_imap_timeout_seconds
 
 if TYPE_CHECKING:
     from pct.fascicoli import GestioneFascicoli, EsitoDepositoPCT, Fascicolo
@@ -62,6 +65,7 @@ def _cerca_ricevute_imap(
     indirizzo: str,
     password: str,
     giorni_indietro: int = 30,
+    timeout_seconds: int | None = None,
 ) -> list[dict]:
     """
     Si connette all'IMAP e restituisce una lista di messaggi recenti
@@ -70,8 +74,9 @@ def _cerca_ricevute_imap(
     Ogni elemento: {"subject": str, "from": str, "date": str, "body_snippet": str}
     """
     risultati = []
+    timeout_s = resolve_imap_timeout_seconds(timeout_seconds)
     try:
-        mail = imaplib.IMAP4_SSL(imap_host, imap_port)
+        mail = imaplib.IMAP4_SSL(imap_host, imap_port, timeout=timeout_s)
         mail.login(indirizzo, password)
         mail.select("INBOX")
 
@@ -110,7 +115,7 @@ def _cerca_ricevute_imap(
                 pass
 
         mail.logout()
-    except (imaplib.IMAP4.error, OSError) as e:
+    except (imaplib.IMAP4.error, OSError, socket.timeout, TimeoutError) as e:
         logger.warning("IMAP polling depositi: connessione fallita — %s", e)
     except Exception as e:
         logger.warning("IMAP polling depositi: errore inatteso — %s", e)
@@ -259,6 +264,7 @@ def esegui_polling(
     config_pec: object | None = None,
     credenziali_pdp: dict | None = None,
     giorni_indietro: int = 30,
+    timeout_seconds: int | None = None,
 ) -> dict:
     """
     Punto di ingresso principale per il polling scheduler.
@@ -279,12 +285,14 @@ def esegui_polling(
     # Carica ricevute IMAP una volta sola (costoso)
     ricevute_imap: list[dict] = []
     if config_pec and getattr(config_pec, "imap_host", ""):
+        timeout_s = resolve_imap_timeout_seconds(timeout_seconds)
         ricevute_imap = _cerca_ricevute_imap(
             imap_host=config_pec.imap_host,
             imap_port=getattr(config_pec, "imap_port", 993),
             indirizzo=config_pec.indirizzo,
             password=config_pec.password,
             giorni_indietro=giorni_indietro,
+            timeout_seconds=timeout_s,
         )
         logger.info("Polling depositi: trovate %d ricevute PEC recenti", len(ricevute_imap))
 
@@ -401,6 +409,7 @@ def poll_cancelleria_pec(
     config_pec: object,
     state_path: str = "",
     giorni_indietro: int = 30,
+    timeout_seconds: int | None = None,
 ) -> dict:
     """
     Scansiona la casella PEC alla ricerca di comunicazioni di cancelleria
@@ -458,9 +467,11 @@ def poll_cancelleria_pec(
     uid_nuovi: set = set()
 
     try:
+        timeout_s = resolve_imap_timeout_seconds(timeout_seconds)
         mail = imaplib.IMAP4_SSL(
             config_pec.imap_host,
             getattr(config_pec, "imap_port", 993),
+            timeout=timeout_s,
         )
         mail.login(config_pec.indirizzo, config_pec.password)
         mail.select("INBOX")
@@ -625,7 +636,7 @@ def poll_cancelleria_pec(
 
         mail.logout()
 
-    except (imaplib.IMAP4.error, OSError) as e:
+    except (imaplib.IMAP4.error, OSError, socket.timeout, TimeoutError) as e:
         logger.warning("Poll cancelleria PEC: connessione IMAP fallita — %s", e)
     except Exception as e:
         logger.warning("Poll cancelleria PEC: errore inatteso — %s", e)

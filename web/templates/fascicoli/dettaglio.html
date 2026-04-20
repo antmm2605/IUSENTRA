@@ -5673,6 +5673,36 @@ function _expandSectionFromHash(hash) {
   bootstrap.Collapse.getOrCreateInstance(collapseEl, { toggle: false }).show();
 }
 
+function _activateFascicoloCockpitTab(targetSelector) {
+  if (!targetSelector) return;
+  const pane = document.querySelector(targetSelector);
+  const navButton = document.querySelector(`#fascicoloCockpitTabs [data-bs-target="${targetSelector}"]`);
+  const cockpitRoot = document.getElementById('sezione-cabina-fascicolo');
+  if (!pane || !navButton) return;
+
+  if (window.bootstrap?.Tab) {
+    bootstrap.Tab.getOrCreateInstance(navButton).show();
+  } else {
+    document.querySelectorAll('#fascicoloCockpitTabs .nav-link').forEach((button) => {
+      const active = button === navButton;
+      button.classList.toggle('active', active);
+      button.setAttribute('aria-selected', active ? 'true' : 'false');
+    });
+    document.querySelectorAll('#fascicoloCockpitTabsContent .tab-pane').forEach((tabPane) => {
+      const active = tabPane === pane;
+      tabPane.classList.toggle('show', active);
+      tabPane.classList.toggle('active', active);
+    });
+  }
+
+  window.setTimeout(() => {
+    cockpitRoot?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (typeof pane.focus === 'function') {
+      pane.focus({ preventScroll: true });
+    }
+  }, 80);
+}
+
 document.addEventListener('DOMContentLoaded', function() {
   document.querySelectorAll('.section-collapse-trigger[data-bs-target]').forEach(function(trigger) {
     const selector = trigger.getAttribute('data-bs-target');
@@ -5694,6 +5724,12 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   });
   _expandSectionFromHash(window.location.hash);
+  document.querySelectorAll('.fascicolo-cockpit__switch[data-bs-target]').forEach(function(button) {
+    button.addEventListener('click', function(event) {
+      event.preventDefault();
+      _activateFascicoloCockpitTab(button.getAttribute('data-bs-target'));
+    });
+  });
 });
 
 window.addEventListener('hashchange', function() {

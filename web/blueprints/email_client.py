@@ -329,6 +329,13 @@ def svuota_cestino():
 
 # ─────────────────────────────────────────────────────────── Sync / IMAP
 
+@email_client.route("/api/stats")
+@_login_required
+def stats_json():
+    ge = _get_gestore()
+    return jsonify(ge.statistiche())
+
+
 @email_client.route("/sincronizza", methods=["POST"])
 @_login_required
 def sincronizza():
@@ -387,6 +394,7 @@ def sincronizza():
                 use_ssl=bool(use_ssl),
                 cartelle_imap=["INBOX"],
                 limite=100,
+                timeout_seconds=15,
             )
             if ris.get("pst_trovate", 0) > 0:
                 log_esiti = _auto_esiti(ge)
@@ -394,15 +402,23 @@ def sincronizza():
         _sync_inviati(ge)
 
         _audit("email.sincronizzata", f"Nuove: {ris.get('nuove', 0)}, PST: {ris.get('pst_trovate', 0)}")
+        sync_errore = str(ris.get("errore", "") or "").strip()
+        warning = bool(sync_errore)
+        messaggio = "Sincronizzazione completata."
+        if warning:
+            messaggio = "Sincronizzazione completata con avvisi. Sincronizzazione IMAP non completata."
 
         return jsonify({
             "ok": True,
+            "warning": warning,
+            "messaggio": messaggio,
             "nuove": ris.get("nuove", 0),
             "pst_trovate": ris.get("pst_trovate", 0),
             "esiti_aggiornati": len(log_esiti),
             "comunicazioni_cancelleria": poll_report.get("associati", 0),
             "report": poll_report,
-            "errore": ris.get("errore", ""),
+            "errore": sync_errore,
+            "sync_errore": sync_errore,
             "stats": ge.statistiche(),
         })
     except Exception as exc:
@@ -424,8 +440,16 @@ def auto_esiti():
         comm_report = aggiorna_comunicazioni_cancelleria_da_email(ge, gf)
     except Exception as exc:
         log.append(f"Errore comunicazioni cancelleria: {exc}")
+    warning = bool(comm_report.get("errori", 0))
+    messaggio = f"{len(log)} esiti PCT aggiornati automaticamente."
+    if comm_report.get("associati", 0):
+        messaggio += f" Comunicazioni di cancelleria collegate: {comm_report.get('associati', 0)}."
+    if warning:
+        messaggio += " Alcune comunicazioni non sono state elaborate completamente."
     return jsonify({
         "ok": True,
+        "warning": warning,
+        "messaggio": messaggio,
         "aggiornati": len(log),
         "comunicazioni_aggiornate": comm_report.get("associati", 0),
         "report": comm_report,

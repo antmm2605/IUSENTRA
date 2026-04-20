@@ -1,9 +1,9 @@
 {% extends "base.html" %}
-{% block title %}Email — {{ cartella|replace('INBOX','In arrivo')|replace('INVIATI','Inviati')|replace('CESTINO','Cestino') }}{% endblock %}
+{% block title %}Email - {{ cartella|replace('INBOX','In arrivo')|replace('INVIATI','Inviati')|replace('CESTINO','Cestino') }}{% endblock %}
 
 {% block content %}
 
-{# ── Page Header ── #}
+{# Header pagina #}
 <div class="ds-ph">
   <div class="ds-ph-icon"><i class="bi bi-envelope-fill"></i></div>
   <div class="ds-ph-body">
@@ -28,7 +28,7 @@
   </div>
 </div>
 
-{# ── Stats ── #}
+{# Riepilogo #}
 <div class="ds-stats">
   <span class="ds-stat-pill">
     <span class="num">{{ stats.totale }}</span> totali
@@ -53,7 +53,7 @@
   {% endif %}
 </div>
 
-{# ── Cartelle tabs ── #}
+{# Schede cartelle #}
 <div class="d-flex gap-2 mb-3 flex-wrap">
   {% for cid, label, icon in [('INBOX','In arrivo','inbox'), ('INVIATI','Inviati','send'), ('CESTINO','Cestino','trash')] %}
   <a href="{{ url_for('email_client.casella', cartella=cid) }}"
@@ -68,11 +68,11 @@
   {% endfor %}
 </div>
 
-{# ── Filtri ── #}
+{# Filtri #}
 <form method="get" class="ds-search-bar mb-3">
   <input type="hidden" name="cartella" value="{{ cartella }}">
   <input type="search" name="q" class="ds-search-input"
-         placeholder="Cerca mittente, oggetto…"
+         placeholder="Cerca mittente, oggetto..."
          value="{{ q }}" autocomplete="off">
   {% if cartella == 'INBOX' %}
   <a href="{{ url_for('email_client.casella', cartella=cartella, q=q, stato='' if stato_lettura == 'NON_LETTA' else 'NON_LETTA', pst='1' if solo_pst else '', con_allegati='1' if con_allegati else '', stato_pct=stato_pct, origine=origine, data_da=data_da, data_a=data_a) }}"
@@ -157,7 +157,7 @@
   </div>
 </div>
 
-{# ── Lista email ── #}
+{# Elenco email #}
 {% if emails %}
 <div class="card shadow-sm">
   <div class="card-header d-flex align-items-center justify-content-between">
@@ -292,7 +292,7 @@
 <div class="ds-empty">
   <i class="bi bi-{{ 'search' if q else ('inbox' if cartella == 'INBOX' else ('send' if cartella == 'INVIATI' else 'trash')) }} ds-empty-icon"></i>
   <div class="ds-empty-title">
-    {% if q %}Nessun risultato per «{{ q }}»
+    {% if q %}Nessun risultato per "{{ q }}"
     {% elif cartella == 'INBOX' %}Posta in arrivo vuota
     {% elif cartella == 'INVIATI' %}Nessuna email inviata
     {% else %}Cestino vuoto{% endif %}
@@ -316,39 +316,64 @@
 
 {% block extra_scripts %}
 <script>
-// ── Sync IMAP
+function _fetchJsonWithTimeout(url, options = {}, timeoutMs = 25000) {
+  const controller = new AbortController();
+  const timer = window.setTimeout(() => controller.abort(), timeoutMs);
+  const headers = Object.assign({ 'X-Requested-With': 'XMLHttpRequest' }, options.headers || {});
+  return fetch(url, Object.assign({}, options, { headers, signal: controller.signal }))
+    .then(async (response) => {
+      let payload = {};
+      try {
+        payload = await response.json();
+      } catch (error) {
+        payload = {};
+      }
+      if (!response.ok) {
+        throw new Error(payload.errore || payload.messaggio || `Richiesta non completata (${response.status})`);
+      }
+      return payload;
+    })
+    .catch((error) => {
+      if (error?.name === 'AbortError') {
+        throw new Error('Connessione IMAP ancora in attesa. Verifica server PEC o rete e riprova.');
+      }
+      throw error;
+    })
+    .finally(() => window.clearTimeout(timer));
+}
+// Sync IMAP
 document.getElementById('btnSync')?.addEventListener('click', function () {
   const btn = this;
   btn.disabled = true;
   const orig = btn.innerHTML;
-  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span><span class="d-none d-sm-inline">Sync…</span>';
-  fetch("{{ url_for('email_client.sincronizza') }}", { method: 'POST', headers: {'X-Requested-With': 'XMLHttpRequest'} })
-    .then(r => r.json())
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span><span class="d-none d-sm-inline">Sincronizzo...</span>';
+  _fetchJsonWithTimeout("{{ url_for('email_client.sincronizza') }}", { method: 'POST' }, 25000)
     .then(d => {
       if (d.ok) {
-        let msg = 'Sincronizzazione completata';
-        if (d.nuove > 0)                      msg += ` · ${d.nuove} nuova/e`;
-        if (d.pst_trovate > 0)                msg += ` · ${d.pst_trovate} PST`;
-        if (d.esiti_aggiornati > 0)           msg += ` · ${d.esiti_aggiornati} esiti`;
-        if ((d.comunicazioni_cancelleria||0) > 0) msg += ` · ${d.comunicazioni_cancelleria} comunicazioni`;
-        _toast('success', msg);
+        let msg = d.messaggio || 'Sincronizzazione completata.';
+        if (d.nuove > 0)                      msg += ` | ${d.nuove} nuova/e`;
+        if (d.pst_trovate > 0)                msg += ` | ${d.pst_trovate} PST`;
+        if (d.esiti_aggiornati > 0)           msg += ` | ${d.esiti_aggiornati} esiti`;
+        if ((d.comunicazioni_cancelleria||0) > 0) msg += ` | ${d.comunicazioni_cancelleria} comunicazioni`;
+        if (d.sync_errore)                    msg += ` | ${d.sync_errore}`;
+        _toast(d.warning ? 'warning' : 'success', msg);
         if (d.nuove > 0 || d.esiti_aggiornati > 0 || (d.comunicazioni_cancelleria||0) > 0) setTimeout(() => location.reload(), 1800);
       } else _toast('danger', d.errore || 'Errore sincronizzazione');
     })
-    .catch(() => _toast('danger', 'Errore di rete'))
+    .catch((error) => _toast('danger', error?.message || 'Errore di rete'))
     .finally(() => { btn.disabled = false; btn.innerHTML = orig; });
 });
 
-// ── Auto-esiti
+// Auto-esiti
 document.getElementById('btnAutoEsiti')?.addEventListener('click', function () {
   const btn = this;
   btn.disabled = true;
   const orig = btn.innerHTML;
   btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>';
-  fetch("{{ url_for('email_client.auto_esiti') }}", { method: 'POST', headers: {'X-Requested-With': 'XMLHttpRequest'} })
-    .then(r => r.json())
-    .then(d => _toast(d.ok ? 'success' : 'danger',
-      d.ok ? `${d.aggiornati} esiti PCT aggiornati automaticamente.` : 'Errore auto-esiti'))
+  _fetchJsonWithTimeout("{{ url_for('email_client.auto_esiti') }}", { method: 'POST' }, 25000)
+    .then(d => _toast(d.ok ? (d.warning ? 'warning' : 'success') : 'danger',
+      d.ok ? (d.messaggio || `${d.aggiornati} esiti PCT aggiornati automaticamente.`) : (d.errore || 'Errore auto-esiti')))
+    .catch((error) => _toast('danger', error?.message || 'Errore auto-esiti'))
     .finally(() => { btn.disabled = false; btn.innerHTML = orig; });
 });
 

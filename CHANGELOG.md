@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.178.9 - 2026-04-20
+
+- Corretto il flusso `Email`: la sincronizzazione IMAP e il polling PEC ora usano un timeout esplicito, così il pulsante `Aggiorna` non resta più indefinitamente in `Sync` quando il server PEC non risponde.
+- Aggiunta la route reale `/email/api/stats`, già richiesta dalla shell UI, per eliminare i `404` silenziosi sul badge posta e riallineare la pagina `Email` al runtime effettivo.
+- La pagina `Email` gestisce ora timeout, warning e messaggi operativi leggibili lato browser sia su `Aggiorna` sia su `Auto-esiti`, senza spinner infiniti o esiti muti.
+- Corretto il `cockpit fascicolo`: i pulsanti `Apri scheda`, `Apri workflow`, `Apri controllo`, `Apri documenti` e `Apri deposito` attivano davvero il tab corretto anche quando il wiring Bootstrap non si innesca in automatico.
+- Aggiunte regressioni eseguibili su timeout IMAP, warning della route `/email/sincronizza`, route `/email/api/stats` e attivazione della cabina fascicolo.
+
 ## 2.178.8 - 2026-04-20
 
 - Alleggerito il runtime locale multi-tenant: il bootstrap legacy, la riconciliazione storage e il bootstrap dei moduli dati non vengono piu' rieseguiti a ogni richiesta della stessa sessione tenant-aware.

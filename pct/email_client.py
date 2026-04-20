@@ -15,6 +15,7 @@ import email
 import imaplib
 import json
 import re
+import socket
 import uuid
 import shutil
 import unicodedata
@@ -24,6 +25,8 @@ from email.utils import parsedate_to_datetime
 from pathlib import Path
 from typing import Optional, List, Dict, Any
 from dataclasses import dataclass, field, asdict
+
+from pct.imap_runtime import describe_imap_connection_error, resolve_imap_timeout_seconds
 
 
 # ------------------------------------------------------------------ Enums / cost.
@@ -362,6 +365,7 @@ class GestioneEmailRicevute:
         use_ssl: bool = True,
         cartelle_imap: Optional[List[str]] = None,
         limite: int = 50,
+        timeout_seconds: int | None = None,
     ) -> dict:
         """
         Scarica le email più recenti via IMAP e le salva nel database locale.
@@ -371,16 +375,20 @@ class GestioneEmailRicevute:
         """
         risultato = {"nuove": 0, "errori": 0, "pst_trovate": 0, "errore": ""}
         cartelle_imap = cartelle_imap or ["INBOX"]
+        timeout_s = resolve_imap_timeout_seconds(timeout_seconds)
 
         try:
             if use_ssl:
-                mail = imaplib.IMAP4_SSL(imap_host, imap_port)
+                mail = imaplib.IMAP4_SSL(imap_host, imap_port, timeout=timeout_s)
             else:
-                mail = imaplib.IMAP4(imap_host, imap_port)
+                mail = imaplib.IMAP4(imap_host, imap_port, timeout=timeout_s)
                 mail.starttls()
             mail.login(username, password)
+        except (imaplib.IMAP4.error, OSError, socket.timeout, TimeoutError) as e:
+            risultato["errore"] = describe_imap_connection_error(e, timeout_seconds=timeout_s)
+            return risultato
         except Exception as e:
-            risultato["errore"] = f"Connessione IMAP fallita: {e}"
+            risultato["errore"] = describe_imap_connection_error(e, timeout_seconds=timeout_s)
             return risultato
 
         db = self._carica()
@@ -958,6 +966,7 @@ def sincronizza_pec_e_fascicoli(
         raise ValueError("PEC IMAP non configurata.")
     if not getattr(config_pec, "indirizzo", "") or not getattr(config_pec, "password", ""):
         raise ValueError("Credenziali PEC incomplete.")
+    timeout_s = resolve_imap_timeout_seconds()
 
     sync_result = gestione_email.sincronizza_imap(
         imap_host=config_pec.imap_host,
@@ -967,6 +976,7 @@ def sincronizza_pec_e_fascicoli(
         use_ssl=bool(getattr(config_pec, "use_ssl", True)),
         cartelle_imap=["INBOX"],
         limite=limite,
+        timeout_seconds=timeout_s,
     )
     auto_log = aggiorna_esiti_da_email(gestione_email, gestione_fascicoli)
     comm_report = aggiorna_comunicazioni_cancelleria_da_email(gestione_email, gestione_fascicoli)
@@ -976,6 +986,7 @@ def sincronizza_pec_e_fascicoli(
             config_pec=config_pec,
             state_path=state_path,
             giorni_indietro=giorni_indietro,
+            timeout_seconds=timeout_s,
         )
     except TypeError:
         # Compatibilità con mock/test legacy che espongono ancora la firma corta.
@@ -983,6 +994,7 @@ def sincronizza_pec_e_fascicoli(
             gf=gestione_fascicoli,
             config_pec=config_pec,
             state_path=state_path,
+            giorni_indietro=giorni_indietro,
         )
     poll_report = {
         "trovati": int(comm_report.get("trovati", 0)) + int((poll_report_raw or {}).get("trovati", 0)),

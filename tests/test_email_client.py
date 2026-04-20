@@ -2,11 +2,14 @@ from __future__ import annotations
 
 import os
 import sys
+from datetime import datetime
 from pathlib import Path
+from types import SimpleNamespace
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from pct.config_studio import ConfigPEC, GestioneConfigStudio
+from pct.auth import GestioneUtenti
 from pct.email_client import (
     EmailRicevuta,
     GestioneEmailRicevute,
@@ -22,6 +25,7 @@ def _cfg_web(tmp_path: Path) -> dict:
     os.makedirs(str(tmp_path / "backup"), exist_ok=True)
     return {
         "TESTING": True,
+        "SECRET_KEY": "test",
         "AUTH_DB": str(tmp_path / "utenti.json"),
         "AUDIT_DB": str(tmp_path / "audit.json"),
         "CLIENTI_DB": str(tmp_path / "clienti.json"),
@@ -39,6 +43,22 @@ def _cfg_web(tmp_path: Path) -> dict:
         "EMAIL_CASELLA_DB": str(tmp_path / "casella.json"),
         "STUDIO_CONFIG": str(tmp_path / "config" / "studio.json"),
     }
+
+
+def _autentica_admin_session(app, client, cfg: dict) -> None:
+    utenti = GestioneUtenti(
+        db_path=cfg["AUTH_DB"],
+        audit_path=cfg["AUDIT_DB"],
+        secret_key=app.secret_key,
+    )
+    admin = utenti.get_by_username("admin")
+    assert admin is not None
+    with client.session_transaction() as session_data:
+        session_data["user_id"] = admin.id
+        session_data["tenant_slug"] = ""
+        session_data["auth_scope"] = "platform"
+        session_data["auth_tenant_slug"] = ""
+        session_data["last_activity"] = datetime.now().isoformat()
 
 
 def test_email_casella_filtri_avanzati_e_flag_letto(tmp_path):
@@ -492,3 +512,143 @@ def test_api_pec_poll_cancelleria_espone_duplicati_e_warning_sync(tmp_path, monk
     assert data["report"]["duplicati"] == 1
     assert "già present" in data["messaggio"]
     assert "Sincronizzazione IMAP non completata" in data["messaggio"]
+
+
+def test_email_stats_route_restituisce_statistiche_json(tmp_path):
+    from web.app import create_app
+
+    cfg = _cfg_web(tmp_path)
+    ge = GestioneEmailRicevute(cfg["EMAIL_CASELLA_DB"])
+    ge.aggiungi(
+        EmailRicevuta(
+            id="MAIL-STATS-1",
+            cartella="INBOX",
+            stato=StatoEmail.NON_LETTA,
+            mittente="cancelleria@giustiziapec.it",
+            oggetto="Comunicazione di prova",
+            data="2026-04-20T09:30:00",
+            corpo_testo="Test statistica.",
+            stato_pct="ACCETTATO_PEC",
+        )
+    )
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        _autentica_admin_session(app, client, cfg)
+        response = client.get("/email/api/stats")
+
+    data = response.get_json()
+    assert response.status_code == 200
+    assert data["totale"] == 1
+    assert data["non_lette"] == 1
+    assert data["pst"] == 1
+
+
+def test_email_sync_route_espone_warning_e_sync_errore(tmp_path, monkeypatch):
+    from web.app import create_app
+
+    cfg = _cfg_web(tmp_path)
+    pec_cfg = SimpleNamespace(
+        imap_host="imaps.pec.aruba.it",
+        imap_port=993,
+        indirizzo="studio@example.pec.it",
+        password="segreta",
+        use_ssl=True,
+    )
+
+    monkeypatch.setattr("web.blueprints.email_client._get_config_pec", lambda: pec_cfg)
+    monkeypatch.setattr("web.blueprints.email_client._get_config_email", lambda: None)
+
+    def _fake_sync_workflow(gestione_email, gestione_fascicoli, config_pec, **kwargs):
+        return {
+            "sync": {
+                "nuove": 0,
+                "pst_trovate": 0,
+                "errore": "Connessione IMAP non completata entro 15 secondi. Verifica server PEC o rete e riprova.",
+            },
+            "auto_esiti": [],
+            "poll": {"trovati": 0, "associati": 0, "duplicati": 0, "errori": 0},
+        }
+
+    monkeypatch.setattr("pct.email_client.sincronizza_pec_e_fascicoli", _fake_sync_workflow)
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        _autentica_admin_session(app, client, cfg)
+        response = client.post("/email/sincronizza", follow_redirects=True)
+
+    data = response.get_json()
+    assert response.status_code == 200
+    assert data["ok"] is True
+    assert data["warning"] is True
+    assert "Sincronizzazione IMAP non completata" in data["messaggio"]
+    assert "Connessione IMAP non completata entro 15 secondi" in data["sync_errore"]
+
+
+def test_sincronizza_imap_usa_timeout_e_restituisce_errore_chiaro(tmp_path, monkeypatch):
+    import pct.email_client as email_runtime
+
+    osservato = {}
+
+    def _fake_imap_ssl(host, port, timeout=None):
+        osservato["host"] = host
+        osservato["port"] = port
+        osservato["timeout"] = timeout
+        raise TimeoutError("timed out")
+
+    monkeypatch.setattr(email_runtime.imaplib, "IMAP4_SSL", _fake_imap_ssl)
+
+    ge = GestioneEmailRicevute(str(tmp_path / "casella.json"))
+    report = ge.sincronizza_imap(
+        imap_host="imaps.pec.aruba.it",
+        imap_port=993,
+        username="studio@example.pec.it",
+        password="segreta",
+        use_ssl=True,
+        cartelle_imap=["INBOX"],
+        limite=10,
+    )
+
+    assert osservato["timeout"] == 15
+    assert report["nuove"] == 0
+    assert "Connessione IMAP non completata entro 15 secondi" in report["errore"]
+
+
+def test_poll_cancelleria_pec_usa_timeout_imap(tmp_path, monkeypatch):
+    import pct.polling_depositi as polling_runtime
+
+    gf = GestioneFascicoli(
+        db_path=str(tmp_path / "fascicoli.json"),
+        documents_dir=str(tmp_path / "docs"),
+        archive_dir=str(tmp_path / "arch"),
+    )
+    gf.nuovo(
+        titolo="RG 1025/2024",
+        tipo=TipoFascicolo.CIVILE,
+        tribunale="Tribunale di Palmi",
+        numero_rg="1025",
+        anno_rg=2024,
+        oggetto="Vendita immobili",
+    )
+
+    osservato = {}
+
+    def _fake_imap_ssl(host, port, timeout=None):
+        osservato["timeout"] = timeout
+        raise TimeoutError("timed out")
+
+    monkeypatch.setattr(polling_runtime.imaplib, "IMAP4_SSL", _fake_imap_ssl)
+
+    report = polling_runtime.poll_cancelleria_pec(
+        gf=gf,
+        config_pec=SimpleNamespace(
+            imap_host="imaps.pec.aruba.it",
+            imap_port=993,
+            indirizzo="studio@example.pec.it",
+            password="segreta",
+        ),
+        state_path=str(tmp_path / "pec_cancelleria_state.json"),
+    )
+
+    assert osservato["timeout"] == 15
+    assert report == {"trovati": 0, "associati": 0, "duplicati": 0, "errori": 0}

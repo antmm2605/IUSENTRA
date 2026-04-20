@@ -1318,7 +1318,10 @@ def test_cockpit_fascicolo_unifica_quadro_workflow_e_controlli_operativi():
     assert "Controllo economico" in cockpit
     assert "Governo documentale" in cockpit
     assert "Deposito e conformita'" in cockpit
+    assert 'class="btn btn-sm btn-outline-primary fascicolo-cockpit__switch"' in cockpit
     assert '{% include "components/fascicolo_smart_board.html" %}' in cockpit
+    assert "_activateFascicoloCockpitTab" in dettaglio
+    assert "bootstrap.Tab.getOrCreateInstance" in dettaglio
     assert 'data-bs-target="#collapse-sezione-intelligenza-fascicolo"' in smart_board
     assert 'id="collapse-sezione-intelligenza-fascicolo"' in smart_board
     assert "Cambia stato" in smart_board

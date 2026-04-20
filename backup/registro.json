@@ -142,5 +142,41 @@
     "nota": "Backup blindato incrementale test",
     "errore": "",
     "backup_base_id": "5b5a6bc7-d491-4d75-8d4f-f8d6ad018915"
+  },
+  {
+    "id": "ab6df61b-53c9-4bd5-a583-e79dbc3dacd9",
+    "timestamp": "2026-04-20T21:30:34.309618",
+    "tipo": "COMPLETO",
+    "stato": "OK",
+    "percorso_file": "backup/ab6df61b-53c9-4bd5-a583-e79dbc3dacd9.zip",
+    "hash_file": "c073453c0395e6f88ba078e47ec735cd0ddd12d6003ae5f760db36cbf28d1d7b",
+    "dimensione_bytes": 1974,
+    "num_file": 2,
+    "componenti": [
+      "clienti",
+      "fascicoli"
+    ],
+    "cifrato": false,
+    "nota": "Backup blindato completo test",
+    "errore": "",
+    "backup_base_id": ""
+  },
+  {
+    "id": "aca355e9-a9b9-472b-a306-d177acf95dc2",
+    "timestamp": "2026-04-20T21:30:34.320055",
+    "tipo": "INCREMENTALE",
+    "stato": "OK",
+    "percorso_file": "backup/aca355e9-a9b9-472b-a306-d177acf95dc2.zip",
+    "hash_file": "eeca3f1dded13b3a1e2fe1ee3c59e376d86c8cbd433fc611c6b54d5c42b34f2c",
+    "dimensione_bytes": 399,
+    "num_file": 0,
+    "componenti": [
+      "clienti",
+      "fascicoli"
+    ],
+    "cifrato": false,
+    "nota": "Backup blindato incrementale test",
+    "errore": "",
+    "backup_base_id": "ab6df61b-53c9-4bd5-a583-e79dbc3dacd9"
   }
 ]

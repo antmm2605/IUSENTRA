@@ -70,6 +70,8 @@ tmp_local_signer_*.out.log
 /template_atti/template_atti/template_repository.db
 /preventivi/preventivi_repository.json
 /preventivi/preventivi_repository.db
+/preventivi/preventivi_repository.db-shm
+/preventivi/preventivi_repository.db-wal
 /preventivi/preventivi_workflow_states.json
 /preventivi/preventivi_field_map.json
 /preventivi/preventivi_rules.json

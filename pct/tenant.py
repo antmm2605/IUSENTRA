@@ -1254,9 +1254,10 @@ class GestioneTenant:
             "sqlite_records": sqlite_records,
         }
 
-    def percorsi_dati(self, slug: str) -> Dict[str, str]:
+    def percorsi_dati(self, slug: str, *, reconcile_aliases: bool = True) -> Dict[str, str]:
         """Restituisce il dizionario di configurazione data paths per questo tenant."""
-        self.reconcile_storage_aliases(slug)
+        if reconcile_aliases:
+            self.reconcile_storage_aliases(slug)
         base = str(self._data_dir(slug))
         return {
             "AGENDA_DB":         f"{base}/agenda/appuntamenti.json",

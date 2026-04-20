@@ -973,6 +973,89 @@ def test_superadmin_can_create_studio_with_postgresql_strategy(tmp_path: Path):
     assert manifest["activation_state"] == "external-pending"
 
 
+def test_carica_tenant_non_bootstrappa_sulle_risorse_statiche(tmp_path: Path, monkeypatch):
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    app = create_app({**_cfg(tmp_path), "MULTI_TENANT": True})
+    tm = GestioneTenant(app.config["TENANTS_REGISTRY"])
+    studio = tm.crea("Studio Tenant", "studio-tenant", db_config={"mode": "SQLITE"})
+    counters = {"legacy": 0, "reconcile": 0}
+
+    def _fake_bootstrap(app_obj, *, tenant_slug=None):
+        counters["legacy"] += 1
+        return {"ok": True, "copied": {}, "sqlite_migrated": False}
+
+    def _fake_reconcile(self, slug):
+        counters["reconcile"] += 1
+        return {
+            "ok": True,
+            "copied_files": {},
+            "merged_dirs": {},
+            "backfilled_alias_files": {},
+            "backfilled_alias_dirs": {},
+            "canonical": str(tmp_path / "tenants" / slug),
+        }
+
+    monkeypatch.setattr(
+        "web.services.auth_runtime.bootstrap_legacy_tenant_runtime_data",
+        _fake_bootstrap,
+    )
+    monkeypatch.setattr(GestioneTenant, "reconcile_storage_aliases", _fake_reconcile)
+
+    client = app.test_client()
+    with client.session_transaction() as sess:
+        sess["tenant_slug"] = studio.slug
+
+    response = client.get("/static/css/app.css")
+
+    assert response.status_code in {200, 304}
+    assert counters == {"legacy": 0, "reconcile": 0}
+
+
+def test_carica_tenant_bootstrappa_una_sola_volta_per_tenant(tmp_path: Path, monkeypatch):
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    app = create_app({**_cfg(tmp_path), "MULTI_TENANT": True})
+    tm = GestioneTenant(app.config["TENANTS_REGISTRY"])
+    studio = tm.crea("Studio Tenant", "studio-tenant", db_config={"mode": "SQLITE"})
+    counters = {"legacy": 0, "reconcile": 0}
+
+    def _fake_bootstrap(app_obj, *, tenant_slug=None):
+        counters["legacy"] += 1
+        return {"ok": True, "copied": {}, "sqlite_migrated": False}
+
+    def _fake_reconcile(self, slug):
+        counters["reconcile"] += 1
+        return {
+            "ok": True,
+            "copied_files": {},
+            "merged_dirs": {},
+            "backfilled_alias_files": {},
+            "backfilled_alias_dirs": {},
+            "canonical": str(tmp_path / "tenants" / slug),
+        }
+
+    monkeypatch.setattr(
+        "web.services.auth_runtime.bootstrap_legacy_tenant_runtime_data",
+        _fake_bootstrap,
+    )
+    monkeypatch.setattr(GestioneTenant, "reconcile_storage_aliases", _fake_reconcile)
+
+    client = app.test_client()
+    with client.session_transaction() as sess:
+        sess["tenant_slug"] = studio.slug
+
+    first = client.get("/login")
+    second = client.get("/login")
+
+    state = app.extensions["tenant_runtime_state"][studio.slug]
+
+    assert first.status_code == 200
+    assert second.status_code == 200
+    assert counters == {"legacy": 1, "reconcile": 1}
+    assert state["legacy_bootstrap_completed"] is True
+    assert state["storage_reconciled"] is True
+    assert state["module_bootstrap_completed"] is True
+
+
 def test_request_storage_runtime_uses_active_postgresql_backend(tmp_path: Path, monkeypatch):
     _write_studio_config(tmp_path / "config" / "studio.json")
     app = create_app(_cfg(tmp_path))

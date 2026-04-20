@@ -21,6 +21,8 @@ def register_auth_runtime(
     bootstrap_runtime_data_modules: Callable[[], dict[str, str]],
 ) -> None:
     """Register auth middleware and core authentication routes."""
+    tenant_runtime_state = app.extensions.setdefault("tenant_runtime_state", {})
+
     public_routes = {
         "login",
         "login_2fa",
@@ -49,7 +51,7 @@ def register_auth_runtime(
 
         tenants = GestioneTenant(registry_path=app.config["TENANTS_REGISTRY"])
         studio = tenants.get(tenant_slug)
-        paths = tenants.percorsi_dati(tenant_slug)
+        paths = tenants.percorsi_dati(tenant_slug, reconcile_aliases=False)
         studio_db = None
         if studio:
             try:
@@ -123,6 +125,68 @@ def register_auth_runtime(
             return str(getattr(active[0], "slug", "") or "")
         return ""
 
+    def _skip_tenant_runtime_bootstrap() -> bool:
+        endpoint = str(request.endpoint or "").strip().lower()
+        path = str(request.path or "").strip().lower()
+        return endpoint == "static" or path.startswith("/static/")
+
+    def _tenant_runtime_entry(tenant_slug: str) -> dict:
+        slug = str(tenant_slug or "").strip().lower()
+        return tenant_runtime_state.setdefault(
+            slug,
+            {
+                "legacy_bootstrap_completed": False,
+                "storage_reconciled": False,
+                "module_bootstrap_completed": False,
+            },
+        )
+
+    def _ensure_tenant_runtime_ready(tenants, tenant_slug: str) -> None:
+        state = _tenant_runtime_entry(tenant_slug)
+
+        if not state.get("legacy_bootstrap_completed"):
+            try:
+                bootstrap_report = bootstrap_legacy_tenant_runtime_data(
+                    app,
+                    tenant_slug=tenant_slug,
+                )
+                state["legacy_bootstrap_completed"] = True
+                if bootstrap_report.get("copied") or bootstrap_report.get("sqlite_migrated"):
+                    app.logger.info(
+                        "Bootstrap dati legacy per tenant %s: copied=%s sqlite=%s",
+                        tenant_slug,
+                        ",".join(sorted(bootstrap_report.get("copied", {}).keys())) or "-",
+                        bootstrap_report.get("sqlite_migrated", False),
+                    )
+            except Exception as exc:
+                app.logger.exception(
+                    "Errore bootstrap dati legacy per tenant %s: %s",
+                    tenant_slug,
+                    exc,
+                )
+
+        if not state.get("storage_reconciled"):
+            try:
+                tenants.reconcile_storage_aliases(tenant_slug)
+                state["storage_reconciled"] = True
+            except Exception as exc:
+                app.logger.exception(
+                    "Errore riconciliazione storage tenant %s: %s",
+                    tenant_slug,
+                    exc,
+                )
+
+        if not state.get("module_bootstrap_completed"):
+            try:
+                bootstrap_runtime_data_modules()
+                state["module_bootstrap_completed"] = True
+            except Exception as exc:
+                app.logger.exception(
+                    "Errore bootstrap moduli dati tenant %s: %s",
+                    tenant_slug,
+                    exc,
+                )
+
     if app.config.get("MULTI_TENANT"):
         try:
             promoted = GestioneUtenti(
@@ -192,6 +256,8 @@ def register_auth_runtime(
         g.storage_runtime = None
         if not app.config.get("MULTI_TENANT"):
             return None
+        if _skip_tenant_runtime_bootstrap():
+            return None
 
         user = getattr(g, "utente_corrente", None)
         tenant_slug = session.get("tenant_slug") or (user.tenant_slug if user else "")
@@ -203,28 +269,10 @@ def register_auth_runtime(
         tenants = GestioneTenant(registry_path=app.config["TENANTS_REGISTRY"])
         studio = tenants.get(tenant_slug)
         if studio:
-            try:
-                bootstrap_report = bootstrap_legacy_tenant_runtime_data(
-                    app,
-                    tenant_slug=tenant_slug,
-                )
-                if bootstrap_report.get("copied") or bootstrap_report.get("sqlite_migrated"):
-                    app.logger.info(
-                        "Bootstrap dati legacy per tenant %s: copied=%s sqlite=%s",
-                        tenant_slug,
-                        ",".join(sorted(bootstrap_report.get("copied", {}).keys())) or "-",
-                        bootstrap_report.get("sqlite_migrated", False),
-                    )
-            except Exception as exc:
-                app.logger.exception(
-                    "Errore bootstrap dati legacy per tenant %s: %s",
-                    tenant_slug,
-                    exc,
-                )
             g.tenant = studio
-            g.data_paths = tenants.percorsi_dati(tenant_slug)
+            g.data_paths = tenants.percorsi_dati(tenant_slug, reconcile_aliases=False)
             g.storage_runtime = get_request_storage_runtime(g.data_paths["CLIENTI_DB"]).to_dict()
-            bootstrap_runtime_data_modules()
+            _ensure_tenant_runtime_ready(tenants, tenant_slug)
         return None
 
     @app.before_request

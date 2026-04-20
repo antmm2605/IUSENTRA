@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.178.8 - 2026-04-20
+
+- Alleggerito il runtime locale multi-tenant: il bootstrap legacy, la riconciliazione storage e il bootstrap dei moduli dati non vengono piu' rieseguiti a ogni richiesta della stessa sessione tenant-aware.
+- Le richieste statiche (`/static/...`) vengono escluse dal bootstrap tenant, evitando il collo di bottiglia che rallentava caricamento di CSS, JavaScript e panoramica generale.
+- Aggiunte regressioni automatiche per bloccare il ritorno del bootstrap tenant su asset statici e per garantire che la preparazione del tenant avvenga una sola volta per worker.
+
 ## 2.178.7 - 2026-04-20
 
 - Corretto il parser JavaScript del `Wizard preventivi`: alcune espressioni introdotte nella tranche precedente mescolavano `??` e `||` nella stessa riga, bloccando l'inizializzazione completa della pagina e lasciando vuoti i filtri di `Classificazione tassonomica` e le altre superfici guidate del wizard.

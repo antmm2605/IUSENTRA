@@ -97,8 +97,7 @@ def test_email_casella_filtri_avanzati_e_flag_letto(tmp_path):
 
     app = create_app(cfg)
     with app.test_client() as client:
-        login = client.post("/login", data={"username": "admin", "password": "admin"}, follow_redirects=True)
-        assert login.status_code == 200
+        _autentica_admin_session(app, client, cfg)
 
         response = client.get(
             "/email/?cartella=INBOX&stato=LETTA&pst=1&con_allegati=1&stato_pct=ACCETTATO_PEC&data_da=2026-04-01&data_a=2026-04-30"
@@ -145,8 +144,7 @@ def test_email_dettaglio_visualizza_e_scarica_allegato_salvato(tmp_path):
 
     app = create_app(cfg)
     with app.test_client() as client:
-        login = client.post("/login", data={"username": "admin", "password": "admin"}, follow_redirects=True)
-        assert login.status_code == 200
+        _autentica_admin_session(app, client, cfg)
 
         dettaglio = client.get("/email/messaggio/MAIL-ATT-1", follow_redirects=True)
         body = dettaglio.get_data(as_text=True)
@@ -200,8 +198,7 @@ def test_email_dettaglio_visualizza_anche_xml_ed_eml(tmp_path):
 
     app = create_app(cfg)
     with app.test_client() as client:
-        login = client.post("/login", data={"username": "admin", "password": "admin"}, follow_redirects=True)
-        assert login.status_code == 200
+        _autentica_admin_session(app, client, cfg)
 
         dettaglio = client.get("/email/messaggio/MAIL-ATT-XML", follow_redirects=True)
         body = dettaglio.get_data(as_text=True)
@@ -535,8 +532,7 @@ def test_api_pec_poll_cancelleria_usa_workflow_condiviso(tmp_path, monkeypatch):
 
     app = create_app(cfg)
     with app.test_client() as client:
-        login = client.post("/login", data={"username": "admin", "password": "admin"}, follow_redirects=True)
-        assert login.status_code == 200
+        _autentica_admin_session(app, client, cfg)
 
         response = client.post("/api/pec/poll-cancelleria", json={"id_fascicolo": gf.tutti()[0].id}, follow_redirects=True)
 
@@ -589,8 +585,7 @@ def test_api_pec_poll_cancelleria_espone_duplicati_e_warning_sync(tmp_path, monk
 
     app = create_app(cfg)
     with app.test_client() as client:
-        login = client.post("/login", data={"username": "admin", "password": "admin"}, follow_redirects=True)
-        assert login.status_code == 200
+        _autentica_admin_session(app, client, cfg)
 
         response = client.post("/api/pec/poll-cancelleria", json={}, follow_redirects=True)
 

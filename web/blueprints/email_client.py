@@ -248,7 +248,7 @@ def scrivi():
             "email/scrivi.html",
             a=a, oggetto=oggetto,
             clienti=clienti,
-            oggi=datetime.today(),
+            oggi=date.today(),
         )
 
     # POST — invio

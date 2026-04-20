@@ -17,7 +17,7 @@ Routes:
 from __future__ import annotations
 
 import os
-from datetime import datetime
+from datetime import datetime, date
 from functools import wraps
 
 from flask import (
@@ -127,7 +127,7 @@ def casella():
         q=q,
         solo_non_lette=solo_non_lette,
         stats=stats,
-        oggi=datetime.today(),
+        oggi=date.today(),
     )
 
 
@@ -143,7 +143,7 @@ def dettaglio(id_email: str):
     if em.stato == "NON_LETTA":
         ge.marca_letta(id_email)
         em.stato = "LETTA"
-    return render_template("email/dettaglio.html", em=em, oggi=datetime.today())
+    return render_template("email/dettaglio.html", em=em, oggi=date.today())
 
 
 @email_client.route("/scrivi", methods=["GET", "POST"])
@@ -166,7 +166,7 @@ def scrivi():
             "email/scrivi.html",
             a=a, oggetto=oggetto,
             clienti=clienti,
-            oggi=datetime.today(),
+            oggi=date.today(),
         )
 
     # POST — invio
@@ -377,7 +377,7 @@ def impostazioni():
         "email/impostazioni.html",
         email_cfg=email_cfg,
         pec_cfg=pec_cfg,
-        oggi=datetime.today(),
+        oggi=date.today(),
     )
 
 

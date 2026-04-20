@@ -1,1 +1,31 @@
-{}
+{
+  "721b1de6-714c-45ba-bb5d-24b6ef6dfbb2": {
+    "id": "721b1de6-714c-45ba-bb5d-24b6ef6dfbb2",
+    "titolo": "Test soggetti",
+    "categoria": "Atti giudiziari",
+    "corpo": "Controparte: {{ parti.controparte_principale.nome_completo }}",
+    "codice": "",
+    "note": "",
+    "descrizione": "",
+    "area": "",
+    "branca": "",
+    "sottobranca": "",
+    "microtema": "",
+    "fase": "",
+    "rito": "",
+    "grado": "",
+    "canale_telematico": "Misto",
+    "profilo_deposito": "",
+    "collezione": "",
+    "allegati_obbligatori": [],
+    "controlli_conformita": [],
+    "parole_chiave": [],
+    "campi_guidati": [],
+    "varianti": [],
+    "link_compilatore_code": "",
+    "ordine": 9999,
+    "builtin": false,
+    "creato_il": "2026-04-20T21:12:33.537480",
+    "modificato_il": null
+  }
+}

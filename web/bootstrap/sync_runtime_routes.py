@@ -177,7 +177,7 @@ def register_sync_runtime_routes(
             elif report["duplicati"]:
                 msg = (
                     f"{report['duplicati']} comunicazion{'e' if report['duplicati'] == 1 else 'i'} "
-                    f"gia' present{'e' if report['duplicati'] == 1 else 'i'} nel fascicolo selezionato."
+                    f"già present{'e' if report['duplicati'] == 1 else 'i'} nel fascicolo selezionato."
                 )
             elif auto_summary["aggiornati"]:
                 msg = f"Workflow PEC completato: {auto_summary['aggiornati']} esiti deposito aggiornati."
@@ -186,7 +186,7 @@ def register_sync_runtime_routes(
             elif sync_result.get("nuove"):
                 msg = f"Sincronizzazione PEC completata: {sync_result.get('nuove', 0)} email nuove."
             elif report["trovati"]:
-                msg = "Nessuna comunicazione nuova trovata (gia' tutte caricate)."
+                msg = "Nessuna comunicazione nuova trovata (già tutte caricate)."
             else:
                 msg = "Nessuna email di cancelleria trovata nella casella PEC."
             if pst_in_attesa and not auto_summary["non_abbinati"]:

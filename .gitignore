@@ -67,6 +67,7 @@ tmp_local_signer_*.out.log
 /scadenziario/
 /template_atti/template_repository.json
 /template_atti/template_repository.db
+/template_atti/template_atti/template_repository.db
 /preventivi/preventivi_repository.json
 /preventivi/preventivi_repository.db
 /preventivi/preventivi_workflow_states.json

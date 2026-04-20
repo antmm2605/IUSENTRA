@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.178.6 - 2026-04-20
+
+- Corretto il `Wizard preventivi` sulla bozza economica: quando il flag `Spese generali ex art. 2 D.M. 55/2014` e' attivo, il suo importo non viene piu' inglobato nella riga `Compenso professionale`, ma confluisce nel riepilogo `Anticipazioni art. 15` della bozza come richiesto dal flusso operativo.
+- Allineato anche il salvataggio finale del preventivo: il wizard persiste il totale anticipazioni della bozza tramite campo dedicato, cosi' il dettaglio preventivo non diverge piu' da quanto l'operatore ha visto nel riepilogo prima della creazione.
+- Aggiunte regressioni eseguibili per calcolo wizard e generazione preventivo, in modo da bloccare il ritorno del bug su `Spese generali` e `Anticipazioni art. 15`.
+
 ## 2.178.5 - 2026-04-20
 
 - Il `Quadro intelligente fascicolo` usa ora controlli reali sul fascicolo corrente invece delle vecchie percentuali statiche: anagrafica, documenti, metadati ufficiali di portale, scadenze rispetto alla data odierna, udienze storiche non riallineate e coerenza tra stato della pratica e provvedimenti presenti.

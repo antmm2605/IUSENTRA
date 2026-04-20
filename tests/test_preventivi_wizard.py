@@ -296,6 +296,36 @@ def test_wizard_calcola_rispetta_fasi_e_spese_generali(tmp_path):
     assert payload_con_spese["totale"] > payload_tutte_fasi["totale"]
 
 
+def test_wizard_calcola_sposta_spese_generali_nella_bozza_anticipazioni(tmp_path):
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    app = create_app(_cfg_web(tmp_path))
+    _crea_admin(app)
+
+    with app.test_client() as client:
+        _login(client)
+        response = client.get(
+            "/preventivi/wizard/calcola",
+            query_string={
+                "id_pratica": "ricorso_tributario",
+                "valore": "10000",
+                "grado": "CGT di primo grado",
+                "complessita": "media",
+                "fasi": "studio,introduttiva,istruttoria,decisionale",
+                "spese_generali": "1",
+                "perc_spese_generali": "15",
+                "anticipazioni": "43,50",
+            },
+        )
+
+    payload = response.get_json()
+
+    assert response.status_code == 200
+    assert payload["spese_generali_bozza"] == payload["spese_generali"]
+    assert payload["compenso_bozza"] == payload["totale_base"]
+    assert payload["anticipazioni_bozza"] == round(payload["spese_generali"] + 43.5, 2)
+    assert payload["totale_bozza"] < payload["totale"]
+
+
 def test_wizard_calcola_mediazione_odm_restituisce_costi_organismo_dm150(tmp_path):
     _write_studio_config(tmp_path / "config" / "studio.json")
     app = create_app(_cfg_web(tmp_path))
@@ -376,3 +406,45 @@ def test_wizard_genera_salva_flag_reali_e_classificazioni_tassonomiche(tmp_path)
     assert preventivo.clausola_controversie_attiva is False
     assert preventivo.clausola_controversie_trattativa_individuale is False
     assert preventivo.classificazioni_tassonomiche[0]["tipologia_pratica_id"] == "decreto_ingiuntivo"
+
+
+def test_wizard_genera_salva_anticipazioni_totali_della_bozza(tmp_path):
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    app = create_app(_cfg_web(tmp_path))
+    _crea_admin(app)
+
+    with app.test_client() as client:
+        _login(client)
+        response = client.post(
+            "/preventivi/wizard/genera",
+            data={
+                "cliente_rapido_attivo": "1",
+                "cliente_rapido_tipo": "PERSONA_FISICA",
+                "cliente_rapido_nome": "Luigi",
+                "cliente_rapido_cognome": "Verdi",
+                "cliente_rapido_codice_fiscale": "VRDLGU80A01H501W",
+                "oggetto": "Ricorso tributario",
+                "id_pratica": "ricorso_tributario",
+                "area_pratica": "Tributario",
+                "tipo_compenso": "Per fasi processuali (D.M. 55/2014)",
+                "tipo_procedimento": "CGT di primo grado",
+                "applica_cassa": "1",
+                "applica_iva": "1",
+                "anticipazioni_art15": "43,50",
+                "anticipazioni_art15_totali": "193,50",
+                "voce_descr[]": "Compenso professionale per Ricorso tributario",
+                "voce_importo[]": "1000",
+                "voce_tipo[]": "Onorario",
+                "clausola_controversie_attiva": "0",
+                "clausola_controversie_trattativa_individuale": "0",
+            },
+            follow_redirects=False,
+        )
+
+    assert response.status_code == 302
+
+    with app.app_context():
+        gestore = get_preventivi()
+        preventivo = gestore.tutti_preventivi()[0]
+
+    assert round(preventivo.anticipazioni_art15, 2) == 193.50

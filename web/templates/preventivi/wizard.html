@@ -736,6 +736,7 @@
   <input type="hidden" name="bonus_telematico" id="inpBonusTelematico" value="0">
   <input type="hidden" name="spese_generali" id="inpSpeseGenerali" value="1">
   <input type="hidden" name="perc_spese_generali" id="inpPercSpeseGenerali" value="15">
+  <input type="hidden" name="anticipazioni_art15_totali" id="inpAnticipazioniTotali" value="0">
   <input type="hidden" name="adr_accordo" id="inpAdrAccordo" value="0">
   <input type="hidden" name="mediazione_odm_attiva" id="inpMediazioneOdmAttiva" value="0">
   <input type="hidden" name="mediazione_odm_regime" id="inpMediazioneOdmRegime" value="volontaria">
@@ -1431,6 +1432,7 @@ let wizardInlineStatusTimer = null;
 let wizardRecalcTimer = null;
 let wizardCalcoloCache = new Map();
 let wizardCalcoloSequence = 0;
+let wizardAnticipazioniExtra = new Map();
 
 function scrollToWizardStatus() {
   const node = document.getElementById('wizardInlineStatus');
@@ -2577,7 +2579,9 @@ function tipologiaValidaPerArea(area) {
 function resetTipologiaSelection() {
   tipologiaCorrente = null;
   ultimoCalcolo = null;
+  wizardAnticipazioniExtra.clear();
   clearAccessorioRows();
+  clearClassificazioneRows();
   document.getElementById('inpIdPratica').value = '';
   document.getElementById('inpAreaPratica').value = areaCorrente || '';
   document.getElementById('inpAreaTassonomica').value = '';
@@ -3720,11 +3724,17 @@ function upsertVocePrincipale(desc, importo) {
 function clearAccessorioRows() {
   document.querySelectorAll('tr[data-role^="accessorio-"]').forEach((row) => row.remove());
   document.querySelectorAll('tr[data-role^="mediazione-odm-accessorio-"]').forEach((row) => row.remove());
+  Array.from(wizardAnticipazioniExtra.keys()).forEach((key) => {
+    if (key.startsWith('spese-generali-accessorio-')) wizardAnticipazioniExtra.delete(key);
+  });
 }
 
 function clearClassificazioneRows() {
   document.querySelectorAll('tr[data-role^="classificazione-"]').forEach((row) => row.remove());
   document.querySelectorAll('tr[data-role^="mediazione-odm-classificazione-"]').forEach((row) => row.remove());
+  Array.from(wizardAnticipazioniExtra.keys()).forEach((key) => {
+    if (key.startsWith('spese-generali-classificazione-')) wizardAnticipazioniExtra.delete(key);
+  });
 }
 
 function syncMediazioneOdmMainRow(data = null) {
@@ -3749,13 +3759,36 @@ function syncEsborsiRows() {
   recalcTotals();
 }
 
+function sumAnticipazioniExtra() {
+  let totale = 0;
+  wizardAnticipazioniExtra.forEach((value) => {
+    totale += parseLocaleNumber(value || 0);
+  });
+  return totale;
+}
+
+function effectiveAnticipazioniArt15() {
+  const manuali = parseLocaleNumber(document.getElementById('inpAnticipazioni').value || 0);
+  return manuali + sumAnticipazioniExtra();
+}
+
+function setAnticipazioniExtra(role, importo) {
+  if (!role) return;
+  const value = parseLocaleNumber(importo || 0);
+  if (value > 0) {
+    wizardAnticipazioniExtra.set(role, value);
+  } else {
+    wizardAnticipazioniExtra.delete(role);
+  }
+}
+
 function recalcTotals() {
   let imponibile = 0;
   document.querySelectorAll('input[name="voce_importo[]"]').forEach((node) => { imponibile += parseLocaleNumber(node.value || 0); });
   const cassa = document.getElementById('chkCassa').checked ? imponibile * 0.04 : 0;
   const baseIva = imponibile + cassa;
   const iva = document.getElementById('chkIva').checked ? baseIva * 0.22 : 0;
-  const anticipazioni = parseLocaleNumber(document.getElementById('inpAnticipazioni').value || 0);
+  const anticipazioni = effectiveAnticipazioniArt15();
   const totale = baseIva + iva + anticipazioni;
   document.getElementById('lblImponibile').textContent = money(imponibile);
   document.getElementById('lblCassa').textContent = money(cassa);
@@ -3765,6 +3798,8 @@ function recalcTotals() {
   document.getElementById('kpiTotale').textContent = money(totale);
   document.getElementById('stickyTotale').textContent = money(totale);
   document.getElementById('inpCompensoPattuito').value = totale.toFixed(2);
+  const anticipazioniTotali = document.getElementById('inpAnticipazioniTotali');
+  if (anticipazioniTotali) anticipazioniTotali.value = anticipazioni.toFixed(2);
 }
 
 function syncSpeseGeneraliUi() {
@@ -3821,7 +3856,7 @@ function buildEconomicLogPayload() {
     perc_spese_generali: parseLocaleNumber(document.getElementById('inpPercSpese').value || 15),
     applica_cpa: document.getElementById('chkCassa').checked,
     applica_iva: document.getElementById('chkIva').checked,
-    anticipazioni_art15: parseLocaleNumber(document.getElementById('inpAnticipazioni').value || 0),
+    anticipazioni_art15: effectiveAnticipazioniArt15(),
     adr: {
       enabled: !!activeAdrTipologia(),
       accordo: !!(chkAdrAccordo && chkAdrAccordo.checked),
@@ -3916,9 +3951,11 @@ function buildPracticeCalculationUrl(practiceId = '', fasiOverride = null) {
 
 function renderRisultato(data) {
   ultimoCalcolo = data;
-  document.getElementById('kpiCompenso').textContent = money(data.onorario_base || data.totale_base || data.onorario_selezionato || 0);
-  document.getElementById('kpiTotale').textContent = money(data.totale || 0);
-  upsertVocePrincipale(`Compenso professionale per ${tipologiaCorrente.label} - ${data.scaglione}`, data.onorario_base || data.totale_base || data.onorario_selezionato || 0);
+  const compensoBozza = data.compenso_bozza ?? data.totale_base ?? data.onorario_base ?? data.onorario_selezionato ?? 0;
+  setAnticipazioniExtra('spese-generali-main', data.spese_generali_bozza ?? data.spese_generali ?? 0);
+  document.getElementById('kpiCompenso').textContent = money(compensoBozza);
+  document.getElementById('kpiTotale').textContent = money(data.totale_bozza ?? data.totale || 0);
+  upsertVocePrincipale(`Compenso professionale per ${tipologiaCorrente.label} - ${data.scaglione}`, compensoBozza);
   syncMediazioneOdmMainRow(data);
   recalcTotals();
 }
@@ -3927,6 +3964,7 @@ function renderRisultatoOrario() {
   const tariffa = parseLocaleNumber(document.getElementById('inpTariffaOraria').value || 0);
   const ore = parseLocaleNumber(document.getElementById('inpOreStimate').value || 0);
   const imponibile = tariffa * ore;
+  setAnticipazioniExtra('spese-generali-main', 0);
   ultimoCalcolo = { onorario_base: imponibile, totale: imponibile, scaglione: 'Compenso orario pattuito' };
   document.getElementById('kpiCompenso').textContent = money(imponibile);
   upsertVocePrincipale(`Compenso orario per ${tipologiaCorrente.label} (${ore.toLocaleString('it-IT')} ore x ${money(tariffa)})`, imponibile);
@@ -3947,9 +3985,11 @@ async function applicaAccessoriCalcolo() {
       throw new Error(data.errore);
     }
     const role = `accessorio-${accessorio.id}`;
+    const anticipazioniRole = `spese-generali-accessorio-${accessorio.id}`;
     const label = accessorio.row_label || `Compenso professionale per ${data.tipo_pratica?.label || accessorio.label}`;
     ruoliAttivi.add(role);
-    upsertVocePerRuolo(role, label, data.onorario_base || data.totale_base || data.onorario_selezionato || 0, 'Onorario');
+    upsertVocePerRuolo(role, label, data.compenso_bozza ?? data.totale_base ?? data.onorario_base ?? data.onorario_selezionato || 0, 'Onorario');
+    setAnticipazioniExtra(anticipazioniRole, data.spese_generali_bozza ?? data.spese_generali ?? 0);
     if (data.mediazione_odm) {
       const odmRole = `mediazione-odm-accessorio-${accessorio.id}`;
       odmRuoliAttivi.add(odmRole);
@@ -3963,6 +4003,11 @@ async function applicaAccessoriCalcolo() {
   }
   document.querySelectorAll('tr[data-role^="accessorio-"]').forEach((row) => {
     if (!ruoliAttivi.has(row.getAttribute('data-role'))) row.remove();
+  });
+  Array.from(wizardAnticipazioniExtra.keys()).forEach((key) => {
+    if (!key.startsWith('spese-generali-accessorio-')) return;
+    const accessorioId = key.replace('spese-generali-accessorio-', '');
+    if (!ruoliAttivi.has(`accessorio-${accessorioId}`)) wizardAnticipazioniExtra.delete(key);
   });
   document.querySelectorAll('tr[data-role^="mediazione-odm-accessorio-"]').forEach((row) => {
     if (!odmRuoliAttivi.has(row.getAttribute('data-role'))) row.remove();
@@ -3985,9 +4030,11 @@ async function applicaClassificazioniAggiuntiveCalcolo() {
       throw new Error(data.errore);
     }
     const role = `classificazione-${row.uid}`;
+    const anticipazioniRole = `spese-generali-classificazione-${row.uid}`;
     const label = `Compenso aggiuntivo per ${row.tipologia_pratica_label || data.tipo_pratica?.label || row.tipologia_pratica_id}`;
     ruoliAttivi.add(role);
-    upsertVocePerRuolo(role, label, data.onorario_base || data.totale_base || data.onorario_selezionato || 0, 'Onorario');
+    upsertVocePerRuolo(role, label, data.compenso_bozza ?? data.totale_base ?? data.onorario_base ?? data.onorario_selezionato || 0, 'Onorario');
+    setAnticipazioniExtra(anticipazioniRole, data.spese_generali_bozza ?? data.spese_generali ?? 0);
     if (data.mediazione_odm) {
       const odmRole = `mediazione-odm-classificazione-${row.uid}`;
       odmRuoliAttivi.add(odmRole);
@@ -4001,6 +4048,11 @@ async function applicaClassificazioniAggiuntiveCalcolo() {
   }
   document.querySelectorAll('tr[data-role^="classificazione-"]').forEach((row) => {
     if (!ruoliAttivi.has(row.getAttribute('data-role'))) row.remove();
+  });
+  Array.from(wizardAnticipazioniExtra.keys()).forEach((key) => {
+    if (!key.startsWith('spese-generali-classificazione-')) return;
+    const uid = key.replace('spese-generali-classificazione-', '');
+    if (!ruoliAttivi.has(`classificazione-${uid}`)) wizardAnticipazioniExtra.delete(key);
   });
   document.querySelectorAll('tr[data-role^="mediazione-odm-classificazione-"]').forEach((row) => {
     if (!odmRuoliAttivi.has(row.getAttribute('data-role'))) row.remove();

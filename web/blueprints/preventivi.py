@@ -230,9 +230,11 @@ def _contesto_log_wizard_da_form(form) -> str:
     classificazioni_tassonomiche = _classificazioni_tassonomiche_da_raw(
         form.get("classificazioni_tassonomiche_json", "")
     )
+    anticipazioni_totali = _anticipazioni_totali_wizard(form)
     if parsed:
         if classificazioni_tassonomiche:
             parsed["classificazioni_tassonomiche"] = classificazioni_tassonomiche
+        parsed["anticipazioni_art15"] = anticipazioni_totali
         return dump_log_calcolo(parsed)
     return dump_log_calcolo(
         costruisci_contesto_economico(
@@ -264,12 +266,19 @@ def _contesto_log_wizard_da_form(form) -> str:
             perc_spese_generali=form.get("perc_spese_generali", "15"),
             applica_cpa=_flag_from_form(form, "applica_cassa", default=True),
             applica_iva=_flag_from_form(form, "applica_iva", default=True),
-            anticipazioni_art15=form.get("anticipazioni_art15", "0"),
+            anticipazioni_art15=anticipazioni_totali,
             adr_accordo=_flag_from_form(form, "adr_accordo"),
             riferimenti_tassonomia=riferimenti_tassonomia,
             classificazioni_tassonomiche=classificazioni_tassonomiche,
         )
     )
+
+
+def _anticipazioni_totali_wizard(form) -> float:
+    totale_hidden = (form.get("anticipazioni_art15_totali", "") or "").strip()
+    if totale_hidden:
+        return _parse_numero(totale_hidden, 0.0)
+    return _parse_numero(form.get("anticipazioni_art15"), 0.0)
 
 
 def _classificazioni_tassonomiche_da_raw(raw: str | list | None) -> list[dict]:
@@ -1467,6 +1476,13 @@ def wizard_calcola():
             if is_mediazione_practice(tp)
             else None
         )
+        dm = ris.calcolo_dm55
+        compenso_bozza = round(dm.totale_base, 2)
+        anticipazioni_bozza = round(anticipazioni + dm.spese_generali, 2)
+        cpa_bozza = round(compenso_bozza * 0.04, 2) if applica_cpa else 0.0
+        base_iva_bozza = round(compenso_bozza + cpa_bozza, 2)
+        iva_bozza = round(base_iva_bozza * 0.22, 2) if applica_iva else 0.0
+        totale_bozza = round(base_iva_bozza + iva_bozza + anticipazioni_bozza, 2)
 
         _wizard_log_story(
             "calcolo completato",
@@ -1481,7 +1497,6 @@ def wizard_calcola():
             totale=ris.totale,
         )
 
-        dm = ris.calcolo_dm55
         fasi_out = {fase: {"min": v[0], "base": v[1], "max": v[2]}
                     for fase, v in dm.dettaglio.items()}
 
@@ -1506,6 +1521,13 @@ def wizard_calcola():
             "iva":                   ris.iva,
             "anticipazioni":         ris.anticipazioni,
             "totale":                ris.totale,
+            "compenso_bozza":        compenso_bozza,
+            "spese_generali_bozza":  dm.spese_generali,
+            "anticipazioni_bozza":   anticipazioni_bozza,
+            "cpa_bozza":             cpa_bozza,
+            "base_iva_bozza":        base_iva_bozza,
+            "iva_bozza":             iva_bozza,
+            "totale_bozza":          totale_bozza,
             "applica_cpa":           ris.applica_cpa,
             "applica_iva":           ris.applica_iva,
             "livello_compenso":      ris.livello_compenso,
@@ -1576,7 +1598,7 @@ def wizard_genera():
     valore_controversia = _parse_numero(f.get("valore_controversia"), 0.0)
     tariffa_oraria = _parse_numero(f.get("tariffa_oraria"), 0.0)
     ore_stimate = _parse_numero(f.get("ore_stimate"), 0.0)
-    anticipazioni = _parse_numero(f.get("anticipazioni_art15"), 0.0)
+    anticipazioni = _anticipazioni_totali_wizard(f)
 
     cfg = current_app.config
     log_calcolo = _contesto_log_wizard_da_form(f)

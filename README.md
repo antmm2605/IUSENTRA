@@ -19,6 +19,7 @@ La repo oggi non è più solo un tool CLI per il Processo Civile Telematico: con
 - Pipeline `Coverage AI` per audit tassonomico, gap queue, draft v2, review e publish SQL con retrieval interno, funzionante sia su `SQLite locale` sia su `PostgreSQL tenant-aware`.
 - Review `Coverage AI` con audit forte: motivo decisione, firma reviewer, diff tra spec originale e corrente, storico revisioni e publish SQL tracciato.
 - La console `Copertura AI` aggancia automaticamente il backend SQL reale del tenant selezionato: `studio.db` per gli studi `SQLite` oppure PostgreSQL tenant-aware per gli studi cloud o legacy gia' configurati.
+- `Crash test operativo` con simulazione di una giornata reale di studio, repair loop, ticket di riparazione, checklist finale `si/no`, backup blindato completo + incrementale e report persistiti per tenant.
 - Workspace/applicazioni, portali di acquisizione, privacy e audit.
 - Registro audit storico spiegabile: se un fascicolo e' stato migrato, ricreato o rimosso, la UI segnala se l'evento e' attivo, riconciliato verso il fascicolo corrente oppure solo storico.
 - Runtime AI locale con Lex come strato linguistico sopra motori deterministici.
@@ -253,6 +254,41 @@ Test ufficiali nominati chiaramente:
 - `tests/e2e/test_studio_reale_flow.py`
 - `tests/e2e/test_ai_pipeline_full.py`
 - `tests/e2e/test_tenant_migration_full.py`
+- `tests/e2e/test_operational_crash_day.py`
+
+## Crash test operativo e backup blindato
+
+La cabina `Piattaforma -> Crash test operativo` esegue il test di una giornata reale di studio senza fermarsi a un riepilogo teorico:
+
+- avvio e setup studio con stato chiaro di database, AI e worker
+- blocco dati sporchi su clienti e fascicoli
+- workflow economico `cliente -> fascicolo -> parcella -> incasso`
+- pipeline AI con review, audit, reject e publish SQL
+- migrazione tenant con snapshot, diff e rollback
+- observability azionabile per operatore non tecnico
+
+In piu':
+
+- genera ticket di riparazione leggibili
+- salva report JSON persistiti nel backup del tenant
+- pianifica autotest di riparazione alle `07:00`, `13:30`, `19:30`
+- pianifica backup blindato completo + incrementale alle `23:50`
+- usa i test E2E ufficiali quando `pytest` e' disponibile e, nel runtime di produzione, passa automaticamente a controlli operativi interni equivalenti senza dipendere dai tool di sviluppo
+
+Comandi ufficiali:
+
+```bash
+iusentra crash-test-operativo --tenant=<slug-tenant>
+iusentra backup-blindato --tenant=<slug-tenant>
+```
+
+Configurazioni operative:
+
+- `PCT_BACKUP_LOCAL_MIRROR_DIR`: cartella locale del PC cliente dove salvare la copia giornaliera
+- `PCT_BACKUP_SECONDARY_MIRROR_DIR`: seconda destinazione esterna o sincronizzata cloud
+- `PCT_BACKUP_SECONDARY_LABEL`: etichetta leggibile della seconda destinazione, ad esempio `Google Drive studio`
+
+Dettagli completi in [docs/CRASH_TEST_OPERATIVO.md](docs/CRASH_TEST_OPERATIVO.md).
 
 ## Update Intelligence
 

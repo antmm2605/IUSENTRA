@@ -88,6 +88,25 @@ def test_cf_case_insensitive(gc, persona_fisica):
         )
 
 
+def test_cf_non_valido_blocca_creazione(gc):
+    with pytest.raises(ValueError, match="non valido"):
+        gc.nuovo(
+            tipo=TipoCliente.PERSONA_FISICA,
+            nome="Mario",
+            cognome="Errato",
+            codice_fiscale="ABC123",
+        )
+
+
+def test_piva_non_valida_blocca_creazione(gc):
+    with pytest.raises(ValueError, match="non valida"):
+        gc.nuovo(
+            tipo=TipoCliente.PERSONA_GIURIDICA,
+            ragione_sociale="Acme S.r.l.",
+            partita_iva="123",
+        )
+
+
 def test_pf_senza_nome_errore(gc):
     with pytest.raises(ValueError, match="Nome o cognome"):
         gc.nuovo(tipo=TipoCliente.PERSONA_FISICA)
@@ -102,6 +121,11 @@ def test_aggiorna_campi(gc, persona_fisica):
     c = gc.aggiorna(persona_fisica.id, note="Cliente importante", avvocato_referente="Avv. Bianchi")
     assert c.note == "Cliente importante"
     assert c.avvocato_referente == "Avv. Bianchi"
+
+
+def test_aggiorna_cf_non_valido_blocca(gc, persona_fisica):
+    with pytest.raises(ValueError, match="non valido"):
+        gc.aggiorna(persona_fisica.id, codice_fiscale="XYZ")
 
 
 def test_aggiorna_recapiti(gc, persona_fisica):

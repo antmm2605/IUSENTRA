@@ -239,7 +239,13 @@ def register_auth_runtime(
 
         blueprint = str(request.blueprint or "").strip().lower()
         endpoint = str(request.endpoint or "").strip()
-        allowed_blueprints = {"admin", "legal_coverage_admin", "legal_updates_admin"}
+        allowed_blueprints = {
+            "admin",
+            "legal_coverage_admin",
+            "legal_updates_admin",
+            "operational_resilience_admin",
+            "legal_intelligence",
+        }
         allowed_endpoints = public_routes | password_change_routes | {"profilo"}
 
         if blueprint in allowed_blueprints or endpoint in allowed_endpoints:

@@ -31,8 +31,11 @@ def test_start_scheduler_worker_registra_job_core(monkeypatch, tmp_path: Path):
         assert scheduler.get_job("local_ai_maintenance") is not None
         assert scheduler.get_job("legal_updates_gazzetta") is not None
         assert scheduler.get_job("legal_updates_batch") is not None
+        assert scheduler.get_job("operational_crash_morning") is not None
+        assert scheduler.get_job("operational_crash_midday") is not None
+        assert scheduler.get_job("operational_crash_evening") is not None
+        assert scheduler.get_job("operational_backup_nightly") is not None
     finally:
         if scheduler is not None:
             scheduler.shutdown(wait=False)
         monkeypatch.delenv("PCT_SCHEDULER_RUNNING", raising=False)
-

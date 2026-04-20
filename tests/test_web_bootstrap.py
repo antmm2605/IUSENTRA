@@ -287,6 +287,7 @@ def test_route_domini_estratti_restano_operativi(tmp_path: Path):
             "/admin/database",
             "/admin/governance",
             "/admin/assistente-migrazione",
+            "/admin/crash-test-operativo",
             "/admin/copertura-ai",
             "/admin/copertura-ai/review",
             "/admin/aggiornamenti-legali",

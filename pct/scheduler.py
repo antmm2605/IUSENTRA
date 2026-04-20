@@ -515,6 +515,84 @@ def start_scheduler(app):
             except Exception as e:
                 logger.error("[scheduler] Local AI maintenance fallita: %s", e)
 
+    def _operational_resilience_targets():
+        if app.config.get("MULTI_TENANT"):
+            try:
+                from pct.tenant import GestioneTenant, StatoTenant
+
+                manager = GestioneTenant(registry_path=app.config["TENANTS_REGISTRY"])
+                found = False
+                for studio in manager.lista():
+                    if studio.stato == StatoTenant.SOSPESO:
+                        continue
+                    found = True
+                    yield str(studio.slug or "").strip().lower() or "", str(studio.nome or "").strip() or "tenant"
+                if found:
+                    return
+            except Exception as exc:
+                logger.warning("[scheduler] Crash test operativo multi-tenant non disponibile: %s", exc)
+        yield "", "single-studio"
+
+    def _run_operational_crash(schedule_code: str):
+        with app.app_context():
+            try:
+                from web.services.operational_resilience_surface import execute_operational_crash_surface
+
+                for slug, label in _operational_resilience_targets():
+                    report = execute_operational_crash_surface(
+                        selected_slug=slug,
+                        trigger_source="scheduler",
+                        schedule_code=schedule_code,
+                        auto_repair=True,
+                        max_attempts=3,
+                    )
+                    logger.info(
+                        "[scheduler] Crash test operativo %s %s: %s (%d/%d fasi passate)",
+                        schedule_code,
+                        label,
+                        "OK" if report.get("overall_ok") else "CRITICO",
+                        int(((report.get("summary") or {}).get("passed_phases") or 0)),
+                        int(((report.get("summary") or {}).get("phase_total") or 0)),
+                    )
+            except Exception as exc:
+                logger.error("[scheduler] Crash test operativo %s fallito: %s", schedule_code, exc)
+
+    def _run_operational_backup(schedule_code: str):
+        with app.app_context():
+            try:
+                from web.services.operational_resilience_surface import execute_operational_backup_surface
+
+                for slug, label in _operational_resilience_targets():
+                    report = execute_operational_backup_surface(
+                        selected_slug=slug,
+                        trigger_source="scheduler",
+                        schedule_code=schedule_code,
+                    )
+                    logger.info(
+                        "[scheduler] Backup blindato %s %s: %s",
+                        schedule_code,
+                        label,
+                        "OK" if report.get("success") else "CRITICO",
+                    )
+            except Exception as exc:
+                logger.error("[scheduler] Backup blindato %s fallito: %s", schedule_code, exc)
+
+    @scheduler.scheduled_job(CronTrigger(hour=7, minute=0), id="operational_crash_morning")
+    def _operational_crash_morning():
+        _run_operational_crash("morning")
+
+    @scheduler.scheduled_job(CronTrigger(hour=13, minute=30), id="operational_crash_midday")
+    def _operational_crash_midday():
+        _run_operational_crash("midday")
+
+    @scheduler.scheduled_job(CronTrigger(hour=19, minute=30), id="operational_crash_evening")
+    def _operational_crash_evening():
+        _run_operational_crash("evening")
+
+    @scheduler.scheduled_job(CronTrigger(hour=23, minute=50), id="operational_backup_nightly")
+    def _operational_backup_nightly():
+        _run_operational_backup("nightly")
+
     # ---- Polling automatico esiti depositi telematici (ogni 15 minuti) ----
     # Aggiorna EsitoDepositoPCT in stati pendenti (INVIATO -> ACCETTATO_PEC -> CONSEGNATO)
     # interrogando PEC IMAP e PDP REST senza bloccare il thread principale.

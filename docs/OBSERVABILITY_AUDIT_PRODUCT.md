@@ -18,6 +18,7 @@ Osservabilita' non significa solo metriche runtime. Nel prodotto devono esistere
 | Audit accessi e ruoli | `admin/governance` | eventi audit, superfici presidiate, ruoli ammessi |
 | Capability telematiche | Centro Servizi Telematici / Motori Legali | stato canali, fonti, warning, catalogo capability |
 | Salute sistema | `admin/salute-sistema`, `admin/system-health` | backup, OCR, provider locali, readiness deploy |
+| Crash test operativo | `admin/crash-test-operativo` | checklist finale `si/no`, ticket di riparazione, backup blindato, esito per fase |
 
 ## Regole
 
@@ -40,6 +41,7 @@ La vista `admin/osservabilita` non deve limitarsi a mostrare numeri:
 - deve offrire anche un endpoint JSON operativo (`/admin/system-health`) con stato sintetico di scheduler, OCR, AI e backend database
 - deve suggerire un'azione concreta di presidio, non solo il sintomo
 - deve mostrare `codice`, `famiglia`, `componente`, `soglia operativa` e `passi di remediation`
+- il `crash test operativo` deve riusare questi segnali e tradurli in ticket di riparazione senza richiedere lettura dei log applicativi
 
 ## Tassonomia minima attesa
 
@@ -75,3 +77,4 @@ Una tranche osservabilita' e' chiusa solo quando:
 - la UI admin rende visibili degradi, severita' e rimedi
 - esiste almeno un test che simula un degrado reale e ne verifica la resa
 - il linguaggio resta italiano e non lascia dump incomprensibili come unica esperienza utente
+- il crash test operativo riesce a trasformare il degrado in report persistito, ticket di riparazione e backup blindato prima del nuovo tentativo

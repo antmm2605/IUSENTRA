@@ -102,6 +102,18 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
     app.config["BACKUP_DIR"] = cfg.get(
         "BACKUP_DIR", os.getenv("PCT_BACKUP_DIR", "./backup")
     )
+    app.config["BACKUP_LOCAL_MIRROR_DIR"] = cfg.get(
+        "BACKUP_LOCAL_MIRROR_DIR",
+        os.getenv("PCT_BACKUP_LOCAL_MIRROR_DIR", ""),
+    )
+    app.config["BACKUP_SECONDARY_MIRROR_DIR"] = cfg.get(
+        "BACKUP_SECONDARY_MIRROR_DIR",
+        os.getenv("PCT_BACKUP_SECONDARY_MIRROR_DIR", ""),
+    )
+    app.config["BACKUP_SECONDARY_LABEL"] = cfg.get(
+        "BACKUP_SECONDARY_LABEL",
+        os.getenv("PCT_BACKUP_SECONDARY_LABEL", "Destinazione esterna da configurare"),
+    )
     app.config["AUTH_DB"] = cfg.get(
         "AUTH_DB", os.getenv("PCT_AUTH_DB", "./auth/utenti.json")
     )

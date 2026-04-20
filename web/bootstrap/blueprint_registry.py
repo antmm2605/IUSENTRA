@@ -45,6 +45,12 @@ BLUEPRINT_REGISTRY: tuple[BlueprintRegistration, ...] = (
     BlueprintRegistration("export_csv", "web.blueprints.export_csv", "export_csv", "/export"),
     BlueprintRegistration("pagamenti", "web.blueprints.pagamenti", "pagamenti", "/pagamenti"),
     BlueprintRegistration("admin", "web.blueprints.admin", "admin_bp", "/admin"),
+    BlueprintRegistration(
+        "operational_resilience_admin",
+        "web.blueprints.operational_resilience_admin",
+        "operational_resilience_admin",
+        "",
+    ),
     BlueprintRegistration("legal_coverage_admin", "web.blueprints.legal_coverage_admin", "legal_coverage_admin", "/admin/copertura-ai"),
     BlueprintRegistration("legal_updates_admin", "web.blueprints.legal_updates_admin", "legal_updates_admin", "/admin/aggiornamenti-legali"),
     BlueprintRegistration("impostazioni", "web.blueprints.impostazioni", "impostazioni", "/impostazioni"),

@@ -364,9 +364,16 @@ class GestioneClienti:
 
         if codice_fiscale:
             cf = codice_fiscale.upper().strip()
+            if not self.valida_cf(cf):
+                raise ValueError("Codice fiscale non valido.")
             if self._cerca_per_cf(cf):
                 raise ValueError(f"Cliente con CF '{cf}' già presente.")
             codice_fiscale = cf
+        if partita_iva:
+            piva = partita_iva.strip()
+            if not self.valida_piva(piva):
+                raise ValueError("Partita IVA non valida.")
+            partita_iva = piva
 
         cliente = Cliente(
             id=uuid.uuid4().hex[:8].upper(),
@@ -385,6 +392,20 @@ class GestioneClienti:
     def aggiorna(self, id_cliente: str, **campi) -> Cliente:
         """Aggiorna i campi di un cliente."""
         c = self._get_o_errore(id_cliente)
+        if "codice_fiscale" in campi:
+            cf = str(campi.get("codice_fiscale") or "").strip().upper()
+            if cf:
+                if not self.valida_cf(cf):
+                    raise ValueError("Codice fiscale non valido.")
+                existing = self._cerca_per_cf(cf)
+                if existing and existing.id != c.id:
+                    raise ValueError(f"Cliente con CF '{cf}' già presente.")
+            campi["codice_fiscale"] = cf
+        if "partita_iva" in campi:
+            piva = str(campi.get("partita_iva") or "").strip()
+            if piva and not self.valida_piva(piva):
+                raise ValueError("Partita IVA non valida.")
+            campi["partita_iva"] = piva
         for k, v in campi.items():
             if hasattr(c, k):
                 setattr(c, k, v)

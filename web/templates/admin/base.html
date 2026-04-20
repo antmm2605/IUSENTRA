@@ -87,6 +87,10 @@
        class="nav-link {% if request.endpoint == 'admin.assistente_migrazione' %}active{% endif %}">
       <i class="bi bi-arrow-left-right"></i> Assistente migrazione
     </a>
+    <a href="{{ url_for('operational_resilience_admin.dashboard') }}"
+       class="nav-link {% if request.blueprint == 'operational_resilience_admin' %}active{% endif %}">
+      <i class="bi bi-shield-check"></i> Crash test operativo
+    </a>
     <a href="{{ url_for('admin.lex_scorecard') }}"
        class="nav-link {% if request.endpoint == 'admin.lex_scorecard' %}active{% endif %}">
       <i class="bi bi-graph-up-arrow"></i> Scorecard Lex

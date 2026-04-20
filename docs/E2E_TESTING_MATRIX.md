@@ -14,6 +14,7 @@ Portare il testing oltre il singolo modulo e presidiare i flussi che attraversan
 | Governance prodotto | admin, runtime metrics, auth audit, registry governance | nuovo presidio | `tests/test_product_governance_surface.py` |
 | Osservabilita' e failure handling | metriche runtime, provider AI locale, OCR, remediation UI | rinforzato | `tests/test_observability_runtime.py` |
 | Copertura AI end-to-end | dashboard admin, repository SQLite/PostgreSQL, review con audit forte e publish SQL | integrato | `tests/e2e/test_ai_pipeline_full.py`, `tests/test_legal_coverage_surface.py`, `tests/test_legal_coverage_pipeline.py` |
+| Crash test operativo e repair loop | salute sistema, dati sporchi, publish SQL, rollback, backup blindato, ticket di riparazione | nuovo presidio | `tests/e2e/test_operational_crash_day.py`, `tests/test_operational_resilience.py`, `tests/test_scheduler_worker.py` |
 | Update Intelligence end-to-end | fonti ufficiali, staging, analisi AI, review queue, news | integrato | `tests/test_legal_updates_pipeline.py` |
 | Telematico ufficiale | runtime telematico, repository capability, portali | integrato | `tests/test_polisweb.py`, `tests/test_simulazione_deposito.py` |
 | Studio reale end-to-end | clienti, workflow commerciale, fascicoli, timesheet, fatturazione, pagamenti | nuovo presidio | `tests/e2e/test_studio_reale_flow.py` |
@@ -37,6 +38,7 @@ Il report vive sotto `./data/governance/` e viene letto anche da `admin/governan
 | Migrazione tenant, diff e cutover | pass | `tests/e2e/test_tenant_migration_full.py`, `tests/test_migration_assistant.py`, `tests/test_storage_postgres_migration.py`, `tests/test_storage_governance.py` |
 | Workflow business `cliente -> fascicolo -> parcella -> incasso` | pass | `tests/e2e/test_studio_reale_flow.py` |
 | Coverage AI review/publish SQL | pass | `tests/e2e/test_ai_pipeline_full.py`, `tests/test_legal_coverage_pipeline.py`, `tests/test_legal_coverage_surface.py` |
+| Crash test operativo, repair loop e backup blindato | pass | `tests/e2e/test_operational_crash_day.py`, `tests/test_operational_resilience.py`, `tests/test_scheduler_worker.py` |
 | Update Intelligence review/publish | pass | `tests/test_legal_updates_pipeline.py`, `tests/test_legal_intelligence.py` |
 | Telematico ufficiale | pass | `tests/test_polisweb.py`, `tests/test_telematico_workflow.py`, `tests/test_pdp_penale_workflow.py`, `tests/test_simulazione_deposito.py` |
 
@@ -56,3 +58,4 @@ Ogni nuova wave di migrazione o di governance deve arrivare con almeno:
 - `Osservabilita'`: non basta un dump tecnico; il pannello deve segnalare i degradi e suggerire il prossimo intervento operativo.
 - `Coverage AI`: la review deve mostrare anche diff, motivo decisione, firma reviewer e storico modifiche in audit SQL.
 - `Coverage AI` e `Update Intelligence`: le superfici admin devono essere raggiungibili, in italiano, coerenti tra dashboard, review e publish.
+- `Crash test operativo`: deve produrre checklist finale `si/no`, ticket di riparazione, report persistito, backup blindato e pianificazione reale alle `07:00`, `13:30`, `19:30` e `23:50`.

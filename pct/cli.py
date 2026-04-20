@@ -57,6 +57,7 @@ from .legal_update_pipeline import build_legal_update_pipeline
 from .storage_migration_full import attach_migration_rollback_context
 from .studio_demo import build_studio_demo_snapshot
 from .tenant import DatabaseConfig, DbMode, GestioneTenant
+from .cli_operational import cmd_backup_blindato, cmd_crash_test_operativo
 from .scadenziario import (
     GestioneScadenziario,
     TipoTermine,
@@ -2731,6 +2732,10 @@ def cmd_golden_path(should_run, report_dir):
 
     payload = build_golden_path_payload(base_dir=report_dir)
     click.echo(json.dumps(payload, ensure_ascii=False, indent=2))
+
+
+cli.add_command(cmd_crash_test_operativo)
+cli.add_command(cmd_backup_blindato)
 
 
 def main():

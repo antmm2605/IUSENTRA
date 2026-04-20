@@ -175,6 +175,13 @@ def test_template_wizard_espone_classificazione_operativa_visibile():
     assert "+20% art. 31, comma 3" in template
 
 
+def test_template_wizard_non_mischia_nullish_e_or_nelle_espressioni_js():
+    template = Path("web/templates/preventivi/wizard.html").read_text(encoding="utf-8")
+
+    assert "data.totale_bozza ?? data.totale || 0" not in template
+    assert "data.compenso_bozza ?? data.totale_base ?? data.onorario_base ?? data.onorario_selezionato || 0" not in template
+
+
 def test_template_wizard_allinea_clausola_controversie_al_form_classico():
     template = Path("web/templates/preventivi/wizard.html").read_text(encoding="utf-8")
 

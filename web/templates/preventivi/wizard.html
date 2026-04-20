@@ -2181,6 +2181,13 @@ function applyTaxonomyFromPractice(item) {
   syncOperationalHiddenFields();
 }
 
+function firstDefined(...values) {
+  for (const value of values) {
+    if (value !== null && value !== undefined) return value;
+  }
+  return 0;
+}
+
 function money(value) {
   const num = parseLocaleNumber(value);
   return `€ ${num.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -3951,10 +3958,16 @@ function buildPracticeCalculationUrl(practiceId = '', fasiOverride = null) {
 
 function renderRisultato(data) {
   ultimoCalcolo = data;
-  const compensoBozza = data.compenso_bozza ?? data.totale_base ?? data.onorario_base ?? data.onorario_selezionato ?? 0;
-  setAnticipazioniExtra('spese-generali-main', data.spese_generali_bozza ?? data.spese_generali ?? 0);
+  const compensoBozza = firstDefined(
+    data.compenso_bozza,
+    data.totale_base,
+    data.onorario_base,
+    data.onorario_selezionato,
+    0
+  );
+  setAnticipazioniExtra('spese-generali-main', firstDefined(data.spese_generali_bozza, data.spese_generali, 0));
   document.getElementById('kpiCompenso').textContent = money(compensoBozza);
-  document.getElementById('kpiTotale').textContent = money(data.totale_bozza ?? data.totale || 0);
+  document.getElementById('kpiTotale').textContent = money(firstDefined(data.totale_bozza, data.totale, 0));
   upsertVocePrincipale(`Compenso professionale per ${tipologiaCorrente.label} - ${data.scaglione}`, compensoBozza);
   syncMediazioneOdmMainRow(data);
   recalcTotals();
@@ -3988,8 +4001,13 @@ async function applicaAccessoriCalcolo() {
     const anticipazioniRole = `spese-generali-accessorio-${accessorio.id}`;
     const label = accessorio.row_label || `Compenso professionale per ${data.tipo_pratica?.label || accessorio.label}`;
     ruoliAttivi.add(role);
-    upsertVocePerRuolo(role, label, data.compenso_bozza ?? data.totale_base ?? data.onorario_base ?? data.onorario_selezionato || 0, 'Onorario');
-    setAnticipazioniExtra(anticipazioniRole, data.spese_generali_bozza ?? data.spese_generali ?? 0);
+    upsertVocePerRuolo(
+      role,
+      label,
+      firstDefined(data.compenso_bozza, data.totale_base, data.onorario_base, data.onorario_selezionato, 0),
+      'Onorario'
+    );
+    setAnticipazioniExtra(anticipazioniRole, firstDefined(data.spese_generali_bozza, data.spese_generali, 0));
     if (data.mediazione_odm) {
       const odmRole = `mediazione-odm-accessorio-${accessorio.id}`;
       odmRuoliAttivi.add(odmRole);
@@ -4033,8 +4051,13 @@ async function applicaClassificazioniAggiuntiveCalcolo() {
     const anticipazioniRole = `spese-generali-classificazione-${row.uid}`;
     const label = `Compenso aggiuntivo per ${row.tipologia_pratica_label || data.tipo_pratica?.label || row.tipologia_pratica_id}`;
     ruoliAttivi.add(role);
-    upsertVocePerRuolo(role, label, data.compenso_bozza ?? data.totale_base ?? data.onorario_base ?? data.onorario_selezionato || 0, 'Onorario');
-    setAnticipazioniExtra(anticipazioniRole, data.spese_generali_bozza ?? data.spese_generali ?? 0);
+    upsertVocePerRuolo(
+      role,
+      label,
+      firstDefined(data.compenso_bozza, data.totale_base, data.onorario_base, data.onorario_selezionato, 0),
+      'Onorario'
+    );
+    setAnticipazioniExtra(anticipazioniRole, firstDefined(data.spese_generali_bozza, data.spese_generali, 0));
     if (data.mediazione_odm) {
       const odmRole = `mediazione-odm-classificazione-${row.uid}`;
       odmRuoliAttivi.add(odmRole);

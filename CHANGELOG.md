@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.178.7 - 2026-04-20
+
+- Corretto il parser JavaScript del `Wizard preventivi`: alcune espressioni introdotte nella tranche precedente mescolavano `??` e `||` nella stessa riga, bloccando l'inizializzazione completa della pagina e lasciando vuoti i filtri di `Classificazione tassonomica` e le altre superfici guidate del wizard.
+- Il wizard ora usa un helper esplicito per scegliere i valori economici della bozza senza rompere il parsing del browser, mantenendo la correzione sulle `Spese generali` dentro `Anticipazioni art. 15`.
+- Aggiunta regressione statica sul template per impedire il ritorno di espressioni JavaScript non valide nelle sezioni critiche del preventivo guidato.
+
 ## 2.178.6 - 2026-04-20
 
 - Corretto il `Wizard preventivi` sulla bozza economica: quando il flag `Spese generali ex art. 2 D.M. 55/2014` e' attivo, il suo importo non viene piu' inglobato nella riga `Compenso professionale`, ma confluisce nel riepilogo `Anticipazioni art. 15` della bozza come richiesto dal flusso operativo.

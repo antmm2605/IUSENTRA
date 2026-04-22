@@ -1,15 +1,15 @@
 #  Railway - Configurazione deploy
 #  Docs: https://docs.railway.app
-#  version: 2.182.4
-#  redeploy: 2026-04-22T23:55:00
+#  version: 2.182.5
+#  redeploy: 2026-04-23T00:20:00
 
 [build]
 builder = "DOCKERFILE"
 dockerfilePath = "Dockerfile"
 
 [deploy]
-healthcheckPath = "/login"
-healthcheckTimeout = 60
+healthcheckPath = "/api/pronto"
+healthcheckTimeout = 180
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 5
 

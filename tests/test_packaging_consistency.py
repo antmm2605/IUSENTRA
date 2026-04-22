@@ -81,19 +81,24 @@ def test_flat_requirements_sono_generati_dal_manifest():
 def test_docker_runtime_ha_healthcheck_railway_compatibile_e_entrypoint_hardened():
     docker_text = (REPO_ROOT / "Dockerfile").read_text(encoding="utf-8")
     compose_text = (REPO_ROOT / "docker-compose.yml").read_text(encoding="utf-8")
+    railway_text = (REPO_ROOT / "railway.toml").read_text(encoding="utf-8")
 
     assert "HEALTHCHECK" in docker_text
     assert 'VOLUME ["/data"]' not in docker_text
     assert "RUN mkdir -p /data" in docker_text
+    assert "/api/pronto" in docker_text
     assert 'adduser --system --ingroup iusentra' in docker_text
     assert "COPY pyproject.toml ." in docker_text
     assert "COPY packaging_manifest.py ." in docker_text
     assert "COPY requirements ./requirements" in docker_text
     assert 'COPY docker/entrypoint.py /usr/local/bin/iusentra-entrypoint.py' in docker_text
     assert 'ENTRYPOINT ["python", "/usr/local/bin/iusentra-entrypoint.py"]' in docker_text
+    assert "/api/pronto" in compose_text
     assert "pct.scheduler_worker" in compose_text
     assert "pct.ocr_worker" in compose_text
     assert "healthcheck:" in compose_text
+    assert 'healthcheckPath = "/api/pronto"' in railway_text
+    assert "healthcheckTimeout = 180" in railway_text
 
 
 def test_root_governance_docs_e_pyproject_sono_presenti():

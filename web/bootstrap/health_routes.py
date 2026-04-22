@@ -6,6 +6,7 @@ from collections.abc import Callable
 from datetime import datetime
 
 from flask import Flask, current_app, jsonify
+from pct import __version__ as APP_VERSION
 
 from web.services.observability_runtime import build_observability_payload
 
@@ -19,6 +20,20 @@ def register_health_routes(
     get_scadenziario: Callable[[], object],
 ) -> None:
     """Register monitoring endpoints that must stay lightweight."""
+
+    @app.route("/api/pronto")
+    def api_ready():
+        return (
+            jsonify(
+                {
+                    "ok": True,
+                    "stato": "pronto",
+                    "versione": APP_VERSION,
+                    "timestamp": datetime.now().isoformat(),
+                }
+            ),
+            200,
+        )
 
     @app.route("/api/health")
     def api_health():

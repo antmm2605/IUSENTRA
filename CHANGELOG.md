@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.182.5 - 2026-04-22
+
+- Alleggerito l'avvio cloud del container: il bootstrap dei permessi sul volume dati non scandisce piu' ricorsivamente tutto `/data` prima di avviare l'applicazione, evitando partenze lente su Railway con archivi gia' popolati.
+- Introdotto il controllo di prontezza leggero `/api/pronto`, usato ora sia dall'immagine Docker sia dal deploy Railway e dal compose locale per verificare che la cabina sia pronta senza aspettare controlli piu' pesanti.
+- Railway usa ora una finestra iniziale piu' ampia per il primo controllo di avvio, cosi' l'istanza non viene dichiarata non pronta mentre completa il bootstrap iniziale del volume.
+
 ## 2.182.4 - 2026-04-22
 
 - Riallineato il Dockerfile al deploy Railway: rimossa la direttiva `VOLUME`, non supportata dal builder Railway, lasciando la persistenza governata dal volume del servizio e dal percorso runtime `/data`.

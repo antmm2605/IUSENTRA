@@ -1,4 +1,4 @@
-#  version: 2.182.4
+#  version: 2.182.5
 #  IUSENTRA | Dockerfile produzione
 
 #  Build multi-stage:
@@ -74,7 +74,7 @@ RUN mkdir -p /out && /tmp/dart-sass/sass --no-source-map --style=compressed \
 FROM python:3.12-slim
 
 LABEL org.opencontainers.image.title="IUSENTRA" \
-      org.opencontainers.image.version="2.182.4" \
+      org.opencontainers.image.version="2.182.5" \
       org.opencontainers.image.description="Gestionale PCT per studi legali italiani" \
       org.opencontainers.image.created="2026-03-18"
 
@@ -180,7 +180,7 @@ RUN mkdir -p /data
 EXPOSE 8080
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
-  CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/api/health', timeout=5)" || exit 1
+  CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/api/pronto', timeout=5)" || exit 1
 
 ENTRYPOINT ["python", "/usr/local/bin/iusentra-entrypoint.py"]
 

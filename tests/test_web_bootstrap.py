@@ -241,6 +241,20 @@ def test_auth_guard_keeps_login_public_and_redirects_protected_routes(tmp_path: 
     assert protected.headers["Location"].endswith("/login?next=/profilo")
 
 
+def test_api_pronto_restituisce_subito_stato_pronto(tmp_path: Path):
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    app = create_app(_cfg_web(tmp_path))
+
+    with app.test_client() as client:
+        response = client.get("/api/pronto")
+
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert payload["ok"] is True
+    assert payload["stato"] == "pronto"
+    assert payload["versione"] == APP_VERSION
+
+
 def test_template_runtime_registers_filters_and_globals(tmp_path: Path):
     _write_studio_config(tmp_path / "config" / "studio.json")
     app = create_app(_cfg_web(tmp_path))

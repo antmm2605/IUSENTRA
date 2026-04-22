@@ -18,15 +18,17 @@ def _resolve_identity() -> tuple[int, int]:
     return user.pw_uid, group.gr_gid
 
 
-def _chown_tree(path: pathlib.Path, uid: int, gid: int) -> None:
-    if not path.exists():
+def _prepare_data_root(path: pathlib.Path, uid: int, gid: int) -> None:
+    path.mkdir(parents=True, exist_ok=True)
+    chown_fn = getattr(os, "chown", None)
+    if chown_fn is None:
         return
-    os.chown(path, uid, gid)
-    for root, dirs, files in os.walk(path):
-        for name in dirs:
-            os.chown(os.path.join(root, name), uid, gid)
-        for name in files:
-            os.chown(os.path.join(root, name), uid, gid)
+    try:
+        chown_fn(path, uid, gid)
+    except OSError:
+        # Su alcuni volumi gestiti dal provider cloud il mount resta scrivibile
+        # anche senza chown esplicito: non blocchiamo l'avvio.
+        pass
 
 
 def _drop_privileges(uid: int, gid: int) -> None:
@@ -105,10 +107,9 @@ def main(argv: list[str]) -> int:
 
     uid, gid = _resolve_identity()
 
-    DATA_ROOT.mkdir(parents=True, exist_ok=True)
+    _prepare_data_root(DATA_ROOT, uid, gid)
 
     if os.geteuid() == 0:
-        _chown_tree(DATA_ROOT, uid, gid)
         if _should_drop_privileges(uid, gid):
             _drop_privileges(uid, gid)
 

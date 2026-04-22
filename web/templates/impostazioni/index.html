@@ -178,7 +178,7 @@
         <h6 class="fw-bold mb-1"><i class="bi bi-envelope-at-fill text-primary me-2"></i>Posta Elettronica Certificata</h6>
         <p class="text-muted mb-0" style="font-size:.82rem;">
           Usata per i depositi telematici (PCT) e le notifiche via PEC.
-          Provider italiani: Aruba, Legalmail, Namirial, Infocert, Poste.
+          Servizi italiani: Aruba, Legalmail, Namirial, Infocert, Poste.
         </p>
       </div>
       {% if cfg.pec.indirizzo %}
@@ -210,7 +210,7 @@
       {% endfor %}
     </div>
     <div class="text-muted mb-4" style="font-size:.75rem;">
-      <i class="bi bi-cursor me-1"></i>Clicca un provider per precompilare i parametri SMTP/IMAP.
+      <i class="bi bi-cursor me-1"></i>Clicca un servizio per precompilare i parametri SMTP/IMAP.
     </div>
 
     <form method="post" id="form-pec">
@@ -404,7 +404,7 @@
                 <span class="fw-bold">Certificato P12 / PFX</span>
               </div>
               <p class="text-muted small mb-0">
-                File certificato rilasciato dal tuo provider<br>
+                File certificato rilasciato dal tuo gestore di firma<br>
                 (Aruba, Infocert, Namirial, Poste).
               </p>
             </div>
@@ -476,7 +476,7 @@
               <i class="bi bi-check-circle me-1"></i>Certificato presente
             </div>
             {% else %}
-            <div class="form-text">Seleziona il file .p12 o .pfx rilasciato dal tuo provider.</div>
+            <div class="form-text">Seleziona il file .p12 o .pfx rilasciato dal tuo gestore di firma.</div>
             {% endif %}
           </div>
           <div class="col-md-5">
@@ -608,7 +608,7 @@
 
             <div class="text-muted small">
               <i class="bi bi-info-circle me-1"></i>
-              I certificati di firma scadono ogni 3 anni. Verifica la scadenza sul portale del tuo provider.
+              I certificati di firma scadono ogni 3 anni. Verifica la scadenza sul portale del tuo gestore di firma.
             </div>
           </div>
         </div>
@@ -627,7 +627,7 @@
     <h6 class="fw-bold mb-1"><i class="bi bi-at text-primary me-2"></i>Email SMTP (email ordinaria)</h6>
     <p class="text-muted mb-4" style="font-size:.82rem;">
       Usata per promemoria, avvisi ai clienti, invio parcelle. <strong>Diversa dalla PEC</strong>
-      (che è certificata). Puoi usare Gmail, Outlook, Aruba, o qualsiasi provider SMTP.
+      (che è certificata). Puoi usare Gmail, Outlook, Aruba, o qualsiasi servizio SMTP.
       Su Railway/cloud usa <strong>Brevo</strong> (piano gratuito, funziona sempre da hosting).
     </p>
 
@@ -736,7 +736,7 @@
               <li><strong>Password</strong>: la <em>Master password SMTP</em> (non la password dell'account)</li>
             </ol>
             <i class="bi bi-exclamation-triangle-fill text-warning me-1"></i>
-            <strong>Timeout?</strong> L'account potrebbe non essere ancora attivato oppure il dominio mittente non verificato. Accedi a brevo.com e controlla eventuali avvisi nella dashboard.
+            <strong>Attesa prolungata?</strong> L'account potrebbe non essere ancora attivato oppure il dominio mittente non verificato. Accedi a brevo.com e controlla eventuali avvisi nel pannello principale.
           </div>
         </div>
 
@@ -779,7 +779,7 @@
     <h6 class="fw-bold mb-1"><i class="bi bi-whatsapp text-success me-2"></i>Notifiche WhatsApp</h6>
     <p class="text-muted mb-4" style="font-size:.82rem;">
       Invia promemoria appuntamenti, avvisi scadenze e link portale via WhatsApp.
-      Scegli il provider: <strong>Twilio</strong> (professionale, a pagamento) o
+      Scegli il servizio: <strong>Twilio</strong> (professionale, a pagamento) o
       <strong>CallMeBot</strong> (gratuito, personale).
     </p>
 
@@ -795,7 +795,7 @@
             <ul class="mb-2 ps-3" style="font-size:.8rem;">
               <li>Numero WhatsApp Business dedicato</li>
               <li>API affidabile, SLA garantito</li>
-              <li>Dashboard analytics</li>
+              <li>Quadro statistiche</li>
             </ul>
             <a href="https://console.twilio.com/us1/develop/sms/try-it-out/whatsapp-learn-more"
                target="_blank" class="btn btn-sm btn-outline-primary w-100">
@@ -988,7 +988,7 @@
             <div class="settings-ai-hero__eyebrow">Intelligenza locale governata</div>
             <h6 class="fw-bold mb-1"><i class="bi bi-cpu-fill text-primary me-2"></i>AI locale con Ollama</h6>
             <p class="text-muted mb-0 settings-ai-hero__text">
-              Runtime locale non bloccante per fascicoli, documenti, agenda, scadenziario e workspace intelligente.
+              Motore locale non bloccante per fascicoli, documenti, agenda, scadenziario e cabina intelligente.
               Quando IUSENTRA e' online, il browser usa un companion locale sul dispositivo cliente per parlare con Ollama.
             </p>
           </div>
@@ -1032,11 +1032,11 @@
               <div class="form-text">Quando IUSENTRA e' online, il bootstrap passa dal companion locale del cliente. In locale o self-hosted resta disponibile anche il controllo lato server.</div>
             </div>
             <div class="col-12">
-              <label class="form-label fw-semibold">Prefisso API del runtime locale</label>
+              <label class="form-label fw-semibold">Indirizzo del motore locale</label>
               <input type="text" name="ai_base_url" id="ai_base_url" class="form-control font-monospace"
                      value="{{ cfg.ai.base_url }}" placeholder="http://127.0.0.1:11434/api">
-              <div class="form-text">Questo campo e' un prefisso tecnico API, non una pagina da aprire nel browser. Sul dispositivo cliente il valore consigliato resta <span class="font-monospace">http://127.0.0.1:11434/api</span>. Nelle installazioni locali containerizzate puo' essere utile <span class="font-monospace">http://host.docker.internal:11434/api</span>. Se apri la sola root <span class="font-monospace">/api</span> e vedi <span class="font-monospace">404 page not found</span>, e' normale: il controllo umano corretto va fatto su <span class="font-monospace">/api/version</span>.</div>
-              <div class="form-text text-break" id="ai-version-check-hint">Controllo endpoint consigliato: <span class="font-monospace">http://127.0.0.1:11434/api/version</span></div>
+              <div class="form-text">Questo campo indica l'indirizzo usato da IUSENTRA per parlare con il motore locale, non una pagina da aprire nel browser. Sul dispositivo cliente il valore consigliato resta <span class="font-monospace">http://127.0.0.1:11434/api</span>. Nelle installazioni locali containerizzate puo' essere utile <span class="font-monospace">http://host.docker.internal:11434/api</span>. Se apri la sola root <span class="font-monospace">/api</span> e vedi <span class="font-monospace">404 page not found</span>, e' normale: il controllo corretto va fatto su <span class="font-monospace">/api/version</span>.</div>
+              <div class="form-text text-break" id="ai-version-check-hint">Controllo consigliato: <span class="font-monospace">http://127.0.0.1:11434/api/version</span></div>
             </div>
             <div class="col-md-6">
               <label class="form-label fw-semibold">Modello conversazionale preferito</label>
@@ -1070,7 +1070,7 @@
               <i class="bi bi-floppy me-2"></i>Salva impostazioni AI
             </button>
             <button type="button" class="btn btn-outline-primary" id="ai-bootstrap-btn" onclick="runLocalAiBootstrap()">
-              <i class="bi bi-rocket-takeoff me-2"></i>Prepara runtime automatico
+              <i class="bi bi-rocket-takeoff me-2"></i>Prepara motore automatico
             </button>
             <button type="button" class="btn btn-outline-secondary" id="ai-refresh-btn" onclick="refreshLocalAiStatus(true)">
               <i class="bi bi-arrow-repeat me-2"></i>Aggiorna stato operativo
@@ -1088,14 +1088,14 @@
     <div class="card border-0 shadow-sm h-100 settings-card settings-card--aside">
       <div class="card-body p-4 d-grid gap-4">
         <h6 class="fw-bold mb-3"><i class="bi bi-speedometer2 text-primary me-2"></i>Stato operativo</h6>
-        <div class="small text-muted mb-3">Questo pannello legge lo stato reale del runtime locale e dell'indice documentale dal companion del dispositivo cliente oppure dal server locale, in base all'ambiente.</div>
+        <div class="small text-muted mb-3">Questo pannello legge lo stato reale del motore locale e dell'indice documentale dal servizio sul dispositivo cliente oppure dal server locale, in base all'ambiente.</div>
         <div id="ai-runtime-summary" class="settings-ai-summary-grid">
           <div class="text-muted">In attesa di stato…</div>
         </div>
         <div>
           <div class="settings-ai-section-head mt-1">
             <div>
-              <h6 class="fw-bold mb-1"><i class="bi bi-box-seam text-primary me-2"></i>Provisioning runtime</h6>
+              <h6 class="fw-bold mb-1"><i class="bi bi-box-seam text-primary me-2"></i>Preparazione motore</h6>
               <p class="text-muted mb-0 small">Strategia di installazione e pacchetto ufficiale consigliato.</p>
             </div>
           </div>

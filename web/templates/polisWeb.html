@@ -140,7 +140,7 @@
   {% if demo_mode %}
   <div class="alert alert-warning alert-dismissible fade show small mb-3" id="banner-demo">
     <i class="bi bi-cone me-2"></i>
-    <strong>Modalità demo solo come fallback offline.</strong>
+              <strong>Modalità dimostrativa solo come via alternativa offline.</strong>
     I risultati mostrati qui sono dati di esempio e non sostituiscono la ricerca reale sul PST.
     <strong>Configura uno solo dei canali reali supportati.</strong>
     Se usi <strong>Aruba Key / token PKCS#11</strong>, basta questo canale:
@@ -185,7 +185,7 @@
     <div>
       <strong><i class="bi bi-stars me-1"></i>Percorso consigliato</strong>
       Usa <strong>Importa pratiche dal PST</strong> per ricerca, selezione certificato e importazione guidata.
-      La ricerca manuale resta disponibile come fallback avanzato / compatibilità.
+              La ricerca manuale resta disponibile come via alternativa avanzata / compatibilità.
     </div>
     <button type="button" class="btn btn-sm btn-outline-primary"
             data-bs-toggle="collapse" data-bs-target="#manual-pst-search-body"
@@ -199,7 +199,7 @@
   <div class="card shadow-sm mb-4 border-primary-subtle">
     <div class="card-header fw-semibold d-flex align-items-center gap-2">
       <i class="bi bi-search text-primary"></i>Ricerca pratiche nel registro del tribunale
-      <span class="badge bg-light text-dark border">Fallback manuale</span>
+                  <span class="badge bg-light text-dark border">Via alternativa manuale</span>
       <button type="button" class="btn-help ms-1"
               data-bs-toggle="popover"
               data-bs-title="Come funziona la ricerca"
@@ -414,8 +414,8 @@
                           anno_rg=f.anno_rg,
                           id_fasc=id_fasc or '') }}"
                  class="btn btn-sm btn-outline-info"
-                 title="Naviga il fascicolo suddiviso per sezioni (wizard 5 fasi)">
-                <i class="bi bi-diagram-3 me-1"></i>Wizard
+                         title="Naviga il fascicolo suddiviso per sezioni (percorso guidato in 5 fasi)">
+                        <i class="bi bi-diagram-3 me-1"></i>Percorso guidato
               </a>
               {# Form importazione #}
               <form method="post" action="{{ url_for('polisWeb_importa') }}"
@@ -567,7 +567,7 @@
                 <div class="card-body">
                   <h6 class="fw-bold"><i class="bi bi-1-circle text-primary me-2"></i>Installazione tecnica manuale</h6>
                   <p class="small text-muted mb-2">
-                    Fallback tecnico: scarica <code>local_signer.py</code> e avvialo manualmente solo se necessario.
+                  Via alternativa tecnica: scarica <code>local_signer.py</code> e avvialo manualmente solo se necessario.
                   </p>
                   <a href="{{ url_for('polis_local_signer_download') }}"
                      class="btn btn-outline-primary btn-sm w-100" download>
@@ -1572,7 +1572,7 @@ function _lsInstallerMeta() {
         'Apri IUSENTRA da un PC Windows, macOS o Linux',
         'Scarica l installer del sistema operativo corretto',
         'Completa la configurazione del middleware della smart card o del token',
-        'Torna nel wizard e clicca Riverifica'
+            'Torna nel percorso guidato e clicca Riverifica'
       ],
       cta: 'Disponibile solo da desktop',
       icon: 'bi-phone',

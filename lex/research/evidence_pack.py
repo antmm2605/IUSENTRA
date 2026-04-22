@@ -6,6 +6,8 @@ from typing import Any
 from lex.contracts import EvidencePack
 from .official_sources import OfficialSourcesCatalog
 
+_STRICT_SOURCE_WORKFLOWS = {"normativa", "giurisprudenza", "prassi", "research", "fonti"}
+
 
 def _to_dict(item: Any) -> dict[str, Any]:
     if isinstance(item, dict):
@@ -88,17 +90,20 @@ class EvidencePackBuilder:
             if len(non_empty) > 1:
                 conflicting_items.append(key)
 
+        pack_metadata = dict(metadata or {})
+        workflow = str(pack_metadata.get("workflow") or "").strip()
+        strict_sources_required = workflow in _STRICT_SOURCE_WORKFLOWS
+
         coverage_gaps: list[str] = []
         if not rows:
             coverage_gaps.append("Nessuna evidenza disponibile.")
-        if not official:
+        if strict_sources_required and not official:
             coverage_gaps.append("Mancano fonti ufficiali tra le evidenze selezionate.")
-        if len(compared_sources) < 2:
+        if strict_sources_required and len(compared_sources) < 2:
             coverage_gaps.append("Confronto fonti limitato: meno di due fonti rilevanti.")
-        if not any(row["trust_class"] == "A" for row in compared_sources):
+        if strict_sources_required and not any(row["trust_class"] == "A" for row in compared_sources):
             coverage_gaps.append("Nessuna fonte primaria di trust class A rilevata.")
 
-        pack_metadata = dict(metadata or {})
         registry_metadata = dict(pack_metadata.get("source_registry") or {})
         restricted_sources = list(registry_metadata.get("restricted_sources") or [])
         partner_sources = list(registry_metadata.get("partner_sources") or [])
@@ -134,7 +139,12 @@ class EvidencePackBuilder:
                 f"Per alcune fonti servono credenziali o abilitazioni aggiuntive: {labels}."
             )
 
-        sufficient = bool(rows) and not ("Mancano fonti ufficiali tra le evidenze selezionate." in coverage_gaps and len(rows) < 3)
+        if strict_sources_required:
+            sufficient = bool(rows) and not (
+                "Mancano fonti ufficiali tra le evidenze selezionate." in coverage_gaps and len(rows) < 3
+            )
+        else:
+            sufficient = bool(rows)
         needs_human_review = bool(conflicting_items) or not sufficient
 
         pack_metadata.update(
@@ -142,6 +152,7 @@ class EvidencePackBuilder:
                 "source_count": len(rows),
                 "official_count": len(official),
                 "trusted_count": len(trusted),
+                "strict_sources_required": strict_sources_required,
                 "source_registry_requested": requested_sources,
                 "source_registry_restricted": restricted_sources,
                 "source_registry_partner": partner_sources,

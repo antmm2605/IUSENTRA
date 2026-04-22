@@ -1,5 +1,30 @@
 # Changelog
 
+## 2.182.3 - 2026-04-22
+
+- Chiusa la leggibilita' del menu laterale: le voci principali e i collegamenti recenti non vengono piu' tagliati su una sola riga, ma si adattano su due righe con sidebar piu' ampia e spaziatura coerente.
+- La navigazione laterale conserva una lettura chiara anche su etichette piu' lunghe come `Cabina Intelligente`, `Tutti i Fascicoli` e i riferimenti recenti di fascicolo o cliente, evitando ellissi premature che rendevano il menu poco usabile.
+- Ripuliti diversi testi utente ancora troppo tecnici: `dashboard`, `console`, `wizard`, `workflow`, `runtime`, `fallback` ed `endpoint` vengono ora mostrati con un linguaggio piu' vicino al lavoro di studio (`panoramica`, `cabina`, `percorso guidato`, `percorso operativo`, `motore locale`, `via alternativa`, `indirizzo del servizio`).
+
+## 2.182.2 - 2026-04-22
+
+- Chiusa la governance packaging/deploy che restava ancora troppo fragile: introdotti `packaging_manifest.py`, `pyproject.toml`, `LICENSE`, `SECURITY.md`, `CONTRIBUTING.md` e lo script `tools/sync_packaging_files.py`, cosi' versione e dipendenze non restano piu' duplicate in piu' file scollegati.
+- `setup.py` non mantiene piu' liste hardcoded: legge ora versione da `pct/__init__.py`, runtime requirements da `requirements/base.txt` e gli extra ufficiali da `requirements/pdf.txt`, `requirements/pades.txt`, `requirements/pkcs11.txt`.
+- I file flat `requirements.txt` e `requirements-dev.txt` sono ora generati in modo rigoroso dal manifest requirements, con check automatico in CI per impedire nuove divergenze tra locale, container e pipeline GitHub.
+- Rafforzata la CI: packaging sync check, lint Ruff piu' severo sui moduli governati, gate mypy sui boundary packaging, coverage minima sui moduli critici (`auth`, `storage`, `lex`, `telematico`) ed E2E smoke su pull request, piu' workflow notturno separato per la suite E2E completa.
+- Riallineato il backend PostgreSQL al toolchain attuale: `psycopg2-binary` passa a `2.9.11`, coerente tra manifest e requirements flat.
+- Corretto un difetto reale del corpus giurisprudenziale: query FTS con date e punteggiatura (`sentenza n. 8785 del 08/04/2026`) non generano piu' `fts5: syntax error`, ma vengono normalizzate prima della ricerca.
+- Sul caso operativo `vorrei fare un preventivo`, Lex conferma ora nel runtime reale il comportamento atteso: risposta workflow-aware, `fallback_triggered=False`, `web_fallback_used=False`, affidabilita' alta e sole fonti di studio realmente pertinenti.
+
+## 2.182.1 - 2026-04-22
+
+- Corretto il comportamento di Lex sui workflow operativi con una `via di mezzo` governata: `preventivo`, `tariffario`, `fattura`, `cabina` e `prossima azione` usano prima il contesto studio e i moduli interni, senza trascinare automaticamente dentro fonti legali e motori di ricerca non pertinenti.
+- Il retrieval bounded di Lex puo' ora seminare evidenze dal `contesto studio` gia' costruito da IUSENTRA, cosi' il workflow economico non parte piu' da zero e non degrada su fonti decorative quando il repository interno ha gia' elementi utili.
+- Il router delle fonti non aggiunge piu' in automatico `NormativeSource`, `GiurisprudenzaSource` e `LegalIntelligenceSource` a una semplice richiesta tipo `vorrei fare un preventivo`, salvo quando la domanda diventa davvero normativa o richiede fonti ufficiali forti.
+- L'affidabilita' e i gap di evidenza sono ora workflow-aware: le richieste legali strette continuano a richiedere fonti ufficiali e confronto forte, mentre i workflow economici non vengono piu' penalizzati con warning tipo `mancano fonti ufficiali` quando la risposta e' solo operativa.
+- Riallineato il packaging runtime: `setup.py` include ora anche `sqlalchemy` e `PyMySQL`, usa la stessa versione di `psycopg2-binary` di `requirements.txt`, e il `Dockerfile` esegue il runtime con bootstrap sicuro del volume `/data`, drop privilegiato verso `iusentra` quando il mount lo consente, fallback esplicito a `root` sui bind mount incompatibili, `HEALTHCHECK` e volume dati esplicito.
+- Aggiunti test automatici dedicati su source routing economico, seed del contesto studio nel retrieval, payload HTTP bounded e coerenza packaging/versioning.
+
 ## 2.182.0 - 2026-04-22
 
 - Integrato in Lex il catalogo governato delle fonti `aperte / con registrazione / partner / riservate / portale istituzionale`, caricato da registry YAML e agganciato davvero a retrieval, source policy, evidence pack, guardrail e payload finale del widget.

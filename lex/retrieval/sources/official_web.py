@@ -94,6 +94,8 @@ def _should_search_official_web(request, workflow: str) -> bool:
 
     has_legal_lookup = any(token in text for token in _LEGAL_LOOKUP_TOKENS)
     has_recency = any(token in text for token in _RECENCY_TOKENS)
+    if workflow in {"economico", "cabina", "next_action", "compliance"} and not has_legal_lookup:
+        return False
     if has_legal_lookup and has_recency:
         return True
 

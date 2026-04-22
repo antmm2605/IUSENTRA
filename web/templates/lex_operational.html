@@ -141,7 +141,7 @@
           <h2 class="h5 mb-1">Control Tower telematica</h2>
           <div class="small text-muted">{{ payload.telematico.summary }}</div>
         </div>
-        <a href="{{ url_for('telematico_dashboard') }}" class="btn btn-sm btn-outline-primary">Apri control tower</a>
+          <a href="{{ url_for('telematico_dashboard') }}" class="btn btn-sm btn-outline-primary">Apri cabina telematica</a>
       </div>
       <div class="lexop-metrics">
         <div class="lexop-metric">
@@ -185,7 +185,7 @@
           <h2 class="h5 mb-1">Prossima azione giusta</h2>
           <div class="small text-muted">{{ payload.operativo.summary }}</div>
         </div>
-        <a href="{{ url_for('dashboard') }}" class="btn btn-sm btn-outline-primary">Torna alla home</a>
+          <a href="{{ url_for('dashboard') }}" class="btn btn-sm btn-outline-primary">Torna alla panoramica</a>
       </div>
       <div class="lexop-list">
         {% for action in payload.operativo.actions %}

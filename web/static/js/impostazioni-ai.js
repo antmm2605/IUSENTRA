@@ -58,7 +58,7 @@
   function aiStatusMeta(status) {
     const labels = {
       ready: { label: 'Operativo', tone: 'success', icon: 'bi-check-circle-fill' },
-      missing: { label: 'Runtime non disponibile', tone: 'warning', icon: 'bi-exclamation-triangle-fill' },
+      missing: { label: 'Motore non disponibile', tone: 'warning', icon: 'bi-exclamation-triangle-fill' },
       starting: { label: 'Avvio in corso', tone: 'info', icon: 'bi-arrow-repeat' },
       installing: { label: 'Installazione in corso', tone: 'info', icon: 'bi-box-arrow-in-down' },
       error: { label: 'Errore operativo', tone: 'danger', icon: 'bi-x-octagon-fill' },
@@ -203,7 +203,7 @@
       return;
     }
     const versionUrl = buildLocalAiVersionUrl(currentAiSettings().base_url);
-    hint.innerHTML = 'Controllo endpoint consigliato: <span class="font-monospace">' + escapeHtml(versionUrl) + '</span>';
+    hint.innerHTML = 'Controllo consigliato: <span class="font-monospace">' + escapeHtml(versionUrl) + '</span>';
   }
 
   async function readJsonResponse(response) {
@@ -284,7 +284,7 @@
       '<article class="settings-ai-stat settings-ai-stat--' + statusMeta.tone + '">' +
       '<div class="settings-ai-stat__label">Stato operativo</div>' +
       '<div class="settings-ai-stat__value"><i class="bi ' + statusMeta.icon + ' me-2"></i>' + statusMeta.label + '</div>' +
-      '<div class="settings-ai-stat__meta">Runtime online: ' + (runtimeLive ? 'si' : 'no') + '</div>' +
+      '<div class="settings-ai-stat__meta">Motore raggiungibile: ' + (runtimeLive ? 'si' : 'no') + '</div>' +
       '</article>' +
       '<article class="settings-ai-stat">' +
       '<div class="settings-ai-stat__label">Versione live</div>' +
@@ -312,7 +312,7 @@
       '<div class="settings-ai-stat__meta">' + modelMeta.join(' · ') + '</div>' +
       '</article>' +
       '<article class="settings-ai-stat">' +
-      '<div class="settings-ai-stat__label">Runtime collegato</div>' +
+      '<div class="settings-ai-stat__label">Motore collegato</div>' +
       '<div class="settings-ai-stat__value settings-ai-installer__value--mono">' + escapeHtml(effectiveBaseUrl) + '</div>' +
       '<div class="settings-ai-stat__meta">Host reale ' + escapeHtml(hostPlatform) + ' · Ambiente IUSENTRA ' + escapeHtml(executionLabel) + '</div>' +
       '</article>' +
@@ -334,7 +334,7 @@
       '<div class="settings-ai-installer__item"><div class="settings-ai-installer__label">' + escapeHtml(installerData.asset_label || 'Pacchetto consigliato') + '</div><div class="settings-ai-installer__value">' + escapeHtml(installerData.asset_name || 'n.d.') + '</div><div class="settings-ai-installer__meta">' + formatBytes(installerData.asset_size_bytes) + '</div></div>' +
       '<div class="settings-ai-installer__item"><div class="settings-ai-installer__label">Percorso gestito</div><div class="settings-ai-installer__value settings-ai-installer__value--mono">' + escapeHtml(installerData.managed_runtime_dir || 'n.d.') + '</div></div>' +
       '<div class="settings-ai-installer__item"><div class="settings-ai-installer__label">Host reale</div><div class="settings-ai-installer__value">' + escapeHtml(hostPlatform) + '</div><div class="settings-ai-installer__meta">Architettura ' + escapeHtml(installerData.host_machine || installerData.machine || 'n.d.') + '</div></div>' +
-      '<div class="settings-ai-installer__item"><div class="settings-ai-installer__label">Ambiente IUSENTRA</div><div class="settings-ai-installer__value">' + escapeHtml(executionLabel) + '</div><div class="settings-ai-installer__meta">' + (installerData.containerized ? 'Runtime applicativo in container' : 'Runtime applicativo nativo') + '</div></div>' +
+      '<div class="settings-ai-installer__item"><div class="settings-ai-installer__label">Ambiente IUSENTRA</div><div class="settings-ai-installer__value">' + escapeHtml(executionLabel) + '</div><div class="settings-ai-installer__meta">' + (installerData.containerized ? 'Motore applicativo in container' : 'Motore applicativo nativo') + '</div></div>' +
       '<div class="settings-ai-installer__item settings-ai-installer__item--full"><div class="settings-ai-installer__label">Eseguibile rilevato</div><div class="settings-ai-installer__value settings-ai-installer__value--mono">' + escapeHtml(detectedExecutable) + '</div></div>' +
       '<div class="settings-ai-installer__item settings-ai-installer__item--full"><div class="settings-ai-installer__label">Ambito di distribuzione</div><div class="settings-ai-installer__body">' + escapeHtml(installerData.distribution_scope || '') + '</div></div>' +
       (installerData.post_install_note
@@ -398,12 +398,12 @@
         summary_body: outdated
           ? 'La web app online ha trovato un Local Signer raggiungibile, ma la versione installata non espone ancora il bridge AI locale. Aggiornalo dal pacchetto ufficiale e poi ripeti il controllo.'
           : 'Quando IUSENTRA e\' online, il browser deve parlare con il Local Signer sul dispositivo cliente. Installa o avvia il companion locale su questa macchina e poi ripeti il controllo.',
-        distribution_scope: reason || 'Il runtime AI resta sul dispositivo cliente e non viene eseguito dal browser.',
+        distribution_scope: reason || 'Il motore AI resta sul dispositivo cliente e non viene eseguito dal browser.',
         host_platform: platformKey,
         host_machine: 'n.d.',
         execution_platform: platformKey,
         containerized: false,
-        managed_runtime_dir: 'Companion locale richiesto sul dispositivo cliente',
+        managed_runtime_dir: 'Servizio locale richiesto sul dispositivo cliente',
         install_actions: [
           preferredHref ? {
             label: outdated ? 'Aggiorna Local Signer su questo dispositivo' : 'Installa Local Signer su questo dispositivo',
@@ -456,7 +456,7 @@
           'Stato aggiornato',
           config.remoteHosted
             ? 'Il pannello AI locale e\' stato aggiornato leggendo il companion sul dispositivo cliente.'
-            : 'Il pannello AI locale e\' stato aggiornato con lo stato reale del runtime e dell\'indice documentale.'
+            : 'Il pannello AI locale e\' stato aggiornato con lo stato reale del motore e dell\'indice documentale.'
         );
       }
     } catch (error) {
@@ -476,7 +476,7 @@
         return;
       }
 
-      setAiBadge('Errore runtime', 'danger');
+      setAiBadge('Errore motore', 'danger');
       const summary = document.getElementById('ai-runtime-summary');
       if (summary) {
         summary.innerHTML = '<div class="settings-ai-empty text-danger">Non e\' stato possibile leggere lo stato dell\'AI locale.</div>';
@@ -484,7 +484,7 @@
       showAiFeedback(
         'danger',
         'Controllo non riuscito',
-        'Non sono riuscito a leggere lo stato del runtime locale. Verifica il servizio Ollama sulla stessa macchina di IUSENTRA oppure riprova tra pochi istanti.'
+        'Non sono riuscito a leggere lo stato del motore locale. Verifica il servizio Ollama sulla stessa macchina di IUSENTRA oppure riprova tra pochi istanti.'
       );
     }
   }
@@ -499,7 +499,7 @@
     setAiBadge('Preparazione in corso', 'info');
     showAiFeedback(
       'warning',
-      'Preparazione runtime in corso',
+      'Preparazione motore in corso',
       config.remoteHosted
         ? 'Sto chiedendo al companion locale di verificare Ollama e i modelli su questo dispositivo, senza coinvolgere il server Railway.'
         : 'Sto verificando la strategia corretta per questa macchina e la disponibilita\' dei modelli locali.'

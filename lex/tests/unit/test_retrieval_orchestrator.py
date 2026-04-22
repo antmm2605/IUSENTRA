@@ -3,6 +3,7 @@ from __future__ import annotations
 from lex.contracts import EvidenceItem, LexRequest
 from lex.retrieval.cache import clear_retrieval_cache
 from lex.retrieval.orchestrator import RetrievalOrchestrator
+from lex.retrieval.source_router import SourceRouter
 from lex.retrieval.sources.official_web import OfficialWebSource as RealOfficialWebSource
 
 
@@ -86,6 +87,11 @@ class RestrictedRegistryRouter:
 class _EmptyResponse:
     status_code = 200
     text = "<html><body></body></html>"
+
+
+class NoopRouter:
+    def resolve(self, request, context, workflow):
+        return []
 
 
 def test_retrieval_orchestrator_triggers_official_fallback_and_builds_comparison():
@@ -188,3 +194,66 @@ def test_retrieval_orchestrator_espone_gap_su_fonti_partner_non_cercabili_via_we
     assert payload["fallback_triggered"] is True
     assert any("fonti partner" in gap.lower() for gap in payload["coverage_gaps"])
     assert payload["evidence_pack"]["metadata"]["source_registry_partner"][0]["key"] == "registro_imprese_api"
+
+
+def test_source_router_non_trascina_fonti_legali_su_preventivo_operativo():
+    router = SourceRouter()
+    request = LexRequest(
+        tenant_id="tenant-1",
+        user_id="user-1",
+        session_id="session-1",
+        query="vorrei fare un preventivo",
+        intent="evaluate_preventivo",
+        workflow_hint="economico",
+        metadata={"request_profile": {"intent": "preventivo_guidato", "source_mode": "balanced"}},
+    )
+
+    sources = router.resolve(request, {"studio": {}}, "economico")
+    source_names = [source.__class__.__name__ for source in sources]
+
+    assert "PreventiviSource" in source_names
+    assert "ApplicazioniSource" in source_names
+    assert "NormativeSource" not in source_names
+    assert "GiurisprudenzaSource" not in source_names
+    assert "LegalIntelligenceSource" not in source_names
+    assert "OfficialWebSource" not in source_names
+
+
+def test_retrieval_orchestrator_usa_contesto_studio_per_workflow_economico():
+    clear_retrieval_cache()
+    orchestrator = RetrievalOrchestrator(
+        query_planner=StaticPlanner(),
+        source_router=NoopRouter(),
+        filters=PassFilters(),
+    )
+    request = LexRequest(
+        tenant_id="tenant-1",
+        user_id="user-1",
+        session_id="session-1",
+        query="vorrei fare un preventivo",
+        intent="evaluate_preventivo",
+        workflow_hint="economico",
+    )
+
+    payload = orchestrator.collect(
+        request,
+        {
+            "studio": {
+                "effective_question": request.query,
+                "sources": [
+                    {
+                        "id": "preventivi:repo",
+                        "title": "Preventivo guidato",
+                        "text": "Repository preventivi strutturato e wizard disponibile.",
+                    }
+                ],
+            }
+        },
+        "economico",
+    )
+
+    assert payload["fallback_triggered"] is False
+    assert payload["evidence_sufficient"] is True
+    assert payload["items"][0].title == "Preventivo guidato"
+    assert payload["items"][0].authority == "studio_context"
+    assert not any("fonti ufficiali" in gap.lower() for gap in payload["coverage_gaps"])

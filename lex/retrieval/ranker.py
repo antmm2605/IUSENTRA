@@ -4,7 +4,6 @@ import math
 import re
 from typing import Any
 
-
 _OFFICIAL_BONUS = {"A": 1.0, "B": 0.75, "C": 0.35, "D": 0.1}
 _WORKFLOW_WEIGHTS = {
     "fascicolo": {"base": 0.35, "trust": 0.10, "freshness": 0.10, "context": 0.30, "consensus": 0.15},

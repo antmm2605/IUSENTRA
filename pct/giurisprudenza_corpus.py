@@ -1,11 +1,10 @@
 from __future__ import annotations
 
-import json
+import re
 import sqlite3
 import uuid
 from pathlib import Path
 from typing import Any
-
 
 SCHEMA_GIURISPRUDENZA_CORPUS = (
     Path(__file__).resolve().parent / "sql" / "20260414_giurisprudenza_corpus.sql"
@@ -50,6 +49,17 @@ def _derive_uuid(payload: dict[str, Any]) -> str:
     ]
     stable = "|".join(part for part in parts if part)
     return stable or uuid.uuid4().hex
+
+
+def _escape_fts_query(value: Any) -> str:
+    sanitized = re.sub(r"[^0-9A-Za-zÀ-ÿ]+", " ", _clean_spaces(value))
+    words = [token.strip() for token in sanitized.split()]
+    cleaned = [token for token in words if token]
+    if not cleaned:
+        return '""'
+    if len(cleaned) == 1:
+        return f'"{cleaned[0]}"'
+    return " ".join(cleaned[:-1] + [f"{cleaned[-1]}*"])
 
 
 def derive_corpus_db_path(storage_path: str) -> str:
@@ -541,7 +551,7 @@ class GestioneCorpusGiurisprudenza:
                 JOIN sentenze_fts fts ON fts.rowid = s.id
                 WHERE sentenze_fts MATCH ?
             """
-            params.append(_clean_spaces(q))
+            params.append(_escape_fts_query(q))
         else:
             sql = """
                 SELECT s.id, s.organo_giudicante, s.sezione, s.numero_sentenza, s.anno_sentenza,

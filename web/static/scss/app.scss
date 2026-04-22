@@ -36,7 +36,7 @@
 
 /* ---- Variabili & Font ---- */
 :root {
-  --sidebar-w:    210px;   /* Ridotto da 240px — pannello laterale contenuto */
+  --sidebar-w:    232px;   /* Larghezza leggermente maggiore per etichette menu leggibili su due righe */
   --sidebar-mini: 52px;    /* Modalità icone (tablet e mini-toggle desktop) */
   --topbar-h:     50px;    /* Ridotto da 58px */
   --bottomnav-h:  60px;    /* Ridotto da 62px */
@@ -175,19 +175,20 @@ body {
 /* Nav links */
 #sidebar .sb-link {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: .6rem;
   color: rgba(255,255,255,.75);
-  padding: .55rem 1.1rem .55rem 1.45rem;
+  padding: .62rem 1.1rem .62rem 1.45rem;
   border-radius: 9px;
   margin: 3px 9px;
   font-size: .85rem;
   transition: all .2s ease;
   text-decoration: none;
-  white-space: nowrap;
-  overflow: hidden;
+  white-space: normal;
+  overflow: visible;
   border-left: 3px solid transparent;
   position: relative;
+  min-height: 46px;
 }
 #sidebar .sb-link::before {
   content: '';
@@ -202,8 +203,26 @@ body {
   transition: width .2s ease;
   opacity: 0;
 }
-#sidebar .sb-link i { flex-shrink: 0; width: 18px; font-size: .95rem; transition: transform .2s, color .2s; }
-#sidebar .sb-link .sb-txt { overflow: hidden; text-overflow: ellipsis; font-weight: 400; }
+#sidebar .sb-link i {
+  flex-shrink: 0;
+  width: 18px;
+  margin-top: .08rem;
+  font-size: .95rem;
+  transition: transform .2s, color .2s;
+}
+#sidebar .sb-link .sb-txt {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  white-space: normal;
+  text-overflow: initial;
+  word-break: break-word;
+  line-height: 1.28;
+  font-weight: 400;
+  flex: 1 1 auto;
+  min-width: 0;
+}
 #sidebar .sb-link:hover {
   background: rgba(255,255,255,.12);
   color: #fff;
@@ -233,10 +252,11 @@ body {
 
 /* Recent links */
 #sidebar .sb-recent .sb-txt {
-  max-width: 158px;
-  white-space: nowrap;
+  max-width: none;
+  white-space: normal;
   overflow: hidden;
-  text-overflow: ellipsis;
+  text-overflow: initial;
+  line-height: 1.24;
 }
 #sidebar .sb-group-label {
   font-size: .6rem;

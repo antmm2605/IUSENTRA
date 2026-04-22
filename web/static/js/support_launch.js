@@ -28,7 +28,7 @@
               </div>
               <div class="d-flex gap-2 flex-wrap">
                 <a href="#" class="btn btn-primary" id="supportLaunchOpenOperator" target="_blank" rel="noopener">Apri stanza operatore</a>
-                <a href="#" class="btn btn-outline-secondary" id="supportLaunchOpenConsole">Apri in console</a>
+        <a href="#" class="btn btn-outline-secondary" id="supportLaunchOpenConsole">Apri in cabina</a>
               </div>
             </div>
           </div>

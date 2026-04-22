@@ -53,7 +53,7 @@ def test_http_bridge_instrada_preventivo_sul_workflow_bounded(monkeypatch):
         confidence=0.84,
         answer_mode="grounded",
         metadata={"workflow": "economico", "provider": "deterministic"},
-        evidence_summary={"official_count": 0, "trusted_count": 1, "fallback_triggered": False},
+        evidence_summary={"official_count": 0, "trusted_count": 1, "fallback_triggered": False, "evidence_count": 1},
     )
     service = DummyLexService(response)
     monkeypatch.setattr("lex.http_bounded_bridge._application_lex_service", lambda: service)
@@ -71,9 +71,37 @@ def test_http_bridge_instrada_preventivo_sul_workflow_bounded(monkeypatch):
     assert payload["query_type"] == "workflow_answer"
     assert "preventivo guidato" in str(payload["answer"]).lower()
     assert payload["confidence_label"] == "alta"
+    assert "base operativa di studio" in str(payload["confidence_reason"]).lower()
     assert service.last_request.intent == "evaluate_preventivo"
     assert service.last_request.workflow_hint == "economico"
     assert service.last_request.tenant_id == "antonella-mammola"
+
+
+def test_http_bridge_non_aggiunge_fonti_legali_di_comodo_su_workflow_economico(monkeypatch):
+    response = LexResponse(
+        answer="Possiamo partire dal preventivo guidato.",
+        citations=[],
+        confidence=0.82,
+        answer_mode="grounded",
+        metadata={"workflow": "economico", "provider": "deterministic"},
+        legal_basis=["Consiglio Nazionale Forense", "Gazzetta Ufficiale"],
+        considered_sources=["Preventivo guidato"],
+        evidence_summary={"official_count": 2, "trusted_count": 1, "fallback_triggered": False, "evidence_count": 1},
+    )
+    service = DummyLexService(response)
+    monkeypatch.setattr("lex.http_bounded_bridge._application_lex_service", lambda: service)
+
+    payload = build_bounded_http_payload(
+        user=SimpleNamespace(username="admin"),
+        studio=SimpleNamespace(slug="antonella-mammola"),
+        data={"session_id": "sess-1b", "messages": [], "mode": "chat"},
+        current_user_message="vorrei fare un preventivo",
+        resolved_effective_question="vorrei fare un preventivo",
+        studio_context=_studio_context(),
+    )
+
+    assert payload is not None
+    assert payload["sources"] == []
 
 
 def test_http_bridge_attiva_ricerca_web_quando_manca_contesto_interno(monkeypatch):

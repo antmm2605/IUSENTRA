@@ -12,6 +12,7 @@ from .filters import RetrievalFilters
 from .query_planner import QueryPlanner
 from .ranker import rank_evidence
 from .source_router import SourceRouter
+from .sources import row_to_evidence
 
 
 class RetrievalOrchestrator:
@@ -47,6 +48,44 @@ class RetrievalOrchestrator:
                 results.extend(found)
                 used.append(source.__class__.__name__)
         return results, used
+
+    def _studio_context_seed_results(self, context, workflow: str):
+        studio = dict((context or {}).get("studio") or {})
+        rows = list(studio.get("sources") or [])
+        if not rows:
+            return []
+
+        default_source_type = {
+            "economico": "preventivo",
+            "cabina": "strumento",
+            "next_action": "agenda",
+            "fascicolo": "fascicolo",
+            "udienza": "agenda",
+            "telematico_status": "telematico",
+            "compliance": "compliance",
+        }.get(workflow, "legal_intelligence")
+        default_score = 0.82 if workflow in {"economico", "cabina", "next_action"} else 0.68
+
+        seeded = []
+        for row in rows[:6]:
+            if not isinstance(row, dict):
+                continue
+            title = str(row.get("title") or row.get("citation") or "").strip()
+            excerpt = str(row.get("text") or row.get("excerpt") or row.get("content") or "").strip()
+            if not title and not excerpt:
+                continue
+            payload = dict(row)
+            payload.setdefault("type", default_source_type)
+            payload.setdefault("id", str(row.get("id") or title.lower().replace(" ", "-")))
+            payload.setdefault("title", title or "Contesto studio")
+            payload.setdefault("excerpt", excerpt or title)
+            payload.setdefault("score", default_score)
+            payload.setdefault("authority", "studio_context")
+            payload.setdefault("source_level", 3)
+            payload.setdefault("trust_class", "B" if workflow in {"economico", "cabina", "next_action"} else "")
+            payload["from_studio_context"] = True
+            seeded.append(row_to_evidence(payload, default_source_type))
+        return seeded
 
     def _evidence_is_sufficient(self, results, workflow: str) -> bool:
         if not results:
@@ -90,6 +129,7 @@ class RetrievalOrchestrator:
 
         queries = self.query_planner.plan(request, context, workflow)
         sources = self.source_router.resolve(request, context, workflow)
+        studio_seed_results = self._studio_context_seed_results(context, workflow)
 
         internal_sources = [source for source in sources if not self._is_official_web_source(source)]
         external_sources = [source for source in sources if self._is_official_web_source(source)]
@@ -100,6 +140,9 @@ class RetrievalOrchestrator:
             request=request,
             context=context,
         )
+        if studio_seed_results:
+            internal_results = [*studio_seed_results, *internal_results]
+            internal_used = ["StudioContext", *internal_used]
         internal_results = self.filters.apply(internal_results, request, context, workflow)
         internal_results = deduplicate_evidence(internal_results)
         internal_results = rank_evidence(internal_results, request, workflow)
@@ -108,7 +151,11 @@ class RetrievalOrchestrator:
         results = list(internal_results)
         used_sources = list(internal_used)
 
-        if not self._evidence_is_sufficient(results, workflow) and bool(getattr(request, "allow_external_research", True)):
+        if (
+            not self._evidence_is_sufficient(results, workflow)
+            and bool(getattr(request, "allow_external_research", True))
+            and external_sources
+        ):
             fallback_triggered = True
             external_results, external_used = self._search_sources(
                 external_sources,

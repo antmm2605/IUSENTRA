@@ -9,7 +9,7 @@ class ScadenziarioSource:
     source_name = "scadenziario"
 
     def search(self, queries, request, context):
-        rows = list((context.get("scadenziario") or context.get("structured_context", {}).get("scadenze") or []))[:3]
+        rows = list(context.get("scadenziario") or context.get("structured_context", {}).get("scadenze") or [])[:3]
         return [
             EvidenceItem(
                 source_type="scadenziario",

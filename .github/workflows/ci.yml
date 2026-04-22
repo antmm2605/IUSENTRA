@@ -42,6 +42,10 @@ jobs:
         run: |
           pip install -r requirements-dev.txt
 
+      - name: Packaging sync check
+        run: |
+          python tools/sync_packaging_files.py --check
+
       - name: Build Python target list
         shell: bash
         run: |
@@ -63,6 +67,24 @@ jobs:
         shell: bash
         run: |
           python -m ruff check --output-format=github --select E9,F63,F7,F82 $(tr '\n' ' ' < .python-targets)
+
+      - name: Ruff governed modules
+        run: |
+          python -m ruff check --config pyproject.toml \
+            packaging_manifest.py \
+            docker/entrypoint.py \
+            tools/sync_packaging_files.py \
+            pct/giurisprudenza_corpus.py \
+            lex/http_bounded_bridge.py \
+            lex/context/studio_context.py \
+            lex/retrieval \
+            lex/formatting/answer_builder.py \
+            tests/test_packaging_consistency.py \
+            tests/test_docker_entrypoint.py
+
+      - name: Mypy governed modules
+        run: |
+          python -m mypy --platform linux packaging_manifest.py docker/entrypoint.py tools/sync_packaging_files.py
 
       - name: Flake8
         shell: bash
@@ -325,6 +347,84 @@ jobs:
             tests/test_preventivi_repository.py \
             tests/test_applicazioni_repository.py \
             tests/test_lex_module.py
+
+  coverage-critical:
+    name: Coverage moduli critici
+    runs-on: ubuntu-latest
+    needs:
+      - quality
+      - governance
+    timeout-minutes: 35
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install runtime deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Install dev deps
+        run: |
+          pip install -r requirements-dev.txt
+
+      - name: Run critical coverage gate
+        run: |
+          pytest --cov=. -q \
+            lex/tests \
+            tests/test_auth.py \
+            tests/test_storage_strategy.py \
+            tests/test_storage_governance.py \
+            tests/test_telematico_repository.py \
+            tests/test_telematico_workflow.py \
+            tests/test_telematico_resilience.py \
+            --cov=lex \
+            --cov=pct.auth \
+            --cov=pct.storage \
+            --cov=pct.storage_postgres \
+            --cov=pct.telematico_repository \
+            --cov=pct.telematico_workflow \
+            --cov-report=term-missing \
+            --cov-report=xml \
+            --cov-fail-under=55
+
+  e2e-smoke:
+    name: E2E smoke
+    runs-on: ubuntu-latest
+    needs:
+      - quality
+      - governance
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install runtime deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Install dev deps
+        run: |
+          pip install -r requirements-dev.txt
+
+      - name: Run E2E smoke
+        run: |
+          pytest -q tests/e2e/test_studio_reale_flow.py
 
   signer-matrix:
     name: Local Signer e PKCS#11 (${{ matrix.os }})

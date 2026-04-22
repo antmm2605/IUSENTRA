@@ -98,15 +98,15 @@
       return;
     }
     const config = bridge().rootConfig(currentRoot);
-    target.textContent = 'Verifica del runtime AI in corso...';
+    target.textContent = 'Verifica del motore AI in corso...';
     try {
       const payload = await bridge().fetchRuntimeStatus(config);
       const runtime = payload.runtime || {};
-      target.textContent = 'Runtime locale: ' + bridge().runtimeLabel(runtime) + ' · profilo ' + (runtime.hardware_profile || 'n.d.');
+      target.textContent = 'Motore locale: ' + bridge().runtimeLabel(runtime) + ' · profilo ' + (runtime.hardware_profile || 'n.d.');
     } catch (error) {
       target.textContent = config.remoteHosted
-        ? 'Companion locale non raggiungibile su questo dispositivo'
-        : 'Runtime locale non disponibile';
+        ? 'Servizio locale non raggiungibile su questo dispositivo'
+        : 'Motore locale non disponibile';
     }
   }
 

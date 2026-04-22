@@ -10,8 +10,8 @@ from urllib.parse import parse_qs, unquote, urlparse
 
 from lxml import html as lxml_html
 
-from pct.legal_intelligence import FONTI_UFFICIALI, USER_AGENT, fonti_per_query
 from lex.research.source_registry import get_source_registry
+from pct.legal_intelligence import FONTI_UFFICIALI, USER_AGENT, fonti_per_query
 
 DEFAULT_WEB_SOURCE_IDS: tuple[str, ...] = (
     "normattiva",

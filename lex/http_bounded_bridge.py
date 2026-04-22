@@ -6,7 +6,6 @@ from typing import Any
 from .contracts import Citation, LexRequest, LexResponse
 from .formatting.ui_payloads import direct_answer_payload
 
-
 _BOUNDED_FOCUS_TOPICS = {
     "agenda",
     "archivio_sentenze",
@@ -32,6 +31,7 @@ _REQUEST_PROFILE_INTENTS = {
     "tariffario_economico",
 }
 _STRICT_OFFICIAL_INTENTS = {"giurisprudenza", "normativa", "pratica_procedura"}
+_STRICT_SOURCE_WORKFLOWS = {"normativa", "giurisprudenza", "prassi", "research", "fonti"}
 
 
 def _clean_spaces(value: Any) -> str:
@@ -147,6 +147,7 @@ def _citation_label(citation: Citation) -> str:
 def _source_rows(response: LexResponse) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     seen: set[str] = set()
+    workflow = _clean_spaces(response.metadata.get("workflow"))
     compared_index: dict[str, dict[str, Any]] = {}
     for item in list(response.compared_sources or []):
         title = _clean_spaces(item.get("title"))
@@ -181,6 +182,8 @@ def _source_rows(response: LexResponse) -> list[dict[str, Any]]:
             }
         )
         seen.add(key)
+    if workflow not in _STRICT_SOURCE_WORKFLOWS:
+        return rows[:8]
     for title in list(response.legal_basis or []):
         clean_title = _clean_spaces(title)
         if not clean_title or clean_title in seen:
@@ -200,8 +203,16 @@ def _confidence_label(value: float) -> str:
 
 def _confidence_reason(response: LexResponse) -> str:
     summary = dict(response.evidence_summary or {})
+    workflow = _clean_spaces(response.metadata.get("workflow"))
     restricted_sources = list(response.metadata.get("restricted_sources") or [])
     partner_sources = list(response.metadata.get("partner_sources") or [])
+    evidence_count = int(summary.get("evidence_count") or 0)
+    if workflow in {"economico", "cabina", "next_action", "telematico_status", "compliance"}:
+        if response.answer_mode != "grounded":
+            return "Risposta prudenziale: il percorso operativo e' disponibile, ma serve ancora una verifica sui dati dello studio prima di chiudere."
+        if evidence_count:
+            return "Base operativa di studio: riferimenti interni e percorso applicativo disponibili, senza bisogno di trasformare la risposta in ricerca legale."
+        return "Base operativa minima: Lex ha individuato il flusso corretto, ma conviene ancora agganciare i dati interni della pratica."
     if response.answer_mode != "grounded":
         return "Risposta prudenziale: le evidenze disponibili non bastano ancora per chiudere il punto senza revisione."
     official = int(summary.get("official_count") or 0)
@@ -250,6 +261,18 @@ def build_bounded_http_payload(
             "source_mode": _clean_spaces(studio_context.get("source_mode")),
             "web_fallback_used": bool(studio_context.get("web_fallback_used")),
             "web_execution_requested": bool(studio_context.get("web_execution_requested")),
+            "studio_context_seed": {
+                "sources": list(studio_context.get("sources") or []),
+                "structured_context": dict(studio_context.get("structured_context") or {}),
+                "focus_label": _clean_spaces(studio_context.get("focus_label")),
+                "focus_topic": _clean_spaces(studio_context.get("focus_topic")),
+                "request_profile": request_profile,
+                "execution_policy": dict(studio_context.get("execution_policy") or {}),
+                "source_policy_summary": dict(studio_context.get("source_policy_summary") or {}),
+                "source_mode": _clean_spaces(studio_context.get("source_mode")),
+                "web_fallback_used": bool(studio_context.get("web_fallback_used")),
+                "web_execution_requested": bool(studio_context.get("web_execution_requested")),
+            },
         }
     )
     request = LexRequest(

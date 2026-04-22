@@ -14,6 +14,47 @@ from .sources.scadenziario import ScadenziarioSource
 from .sources.telematico import TelematicoSource
 from .sources.template_atti import TemplateAttiSource
 
+_LEGAL_RESEARCH_HINTS = (
+    "norma",
+    "normativa",
+    "legge",
+    "decreto",
+    "articolo",
+    "art.",
+    "gazzetta",
+    "normattiva",
+    "sentenza",
+    "giurisprudenza",
+    "cassazione",
+    "tariffario",
+    "d.m. 55",
+    "dm 55",
+    "d.m. 150",
+    "dm 150",
+)
+
+
+def _clean_spaces(value: object) -> str:
+    return " ".join(str(value or "").split()).strip()
+
+
+def _should_include_legal_sources(request, workflow: str) -> bool:
+    if workflow in {"normativa", "giurisprudenza", "prassi", "research", "fonti"}:
+        return True
+    if workflow not in {"economico", "cabina", "next_action"}:
+        return True
+
+    if bool(getattr(request, "require_official_sources", False)):
+        return True
+
+    metadata = dict(getattr(request, "metadata", {}) or {})
+    profile = dict(metadata.get("request_profile") or {})
+    if _clean_spaces(profile.get("source_mode")).lower() == "strict":
+        return True
+
+    haystack = _clean_spaces(getattr(request, "query", "") or "").lower()
+    return any(token in haystack for token in _LEGAL_RESEARCH_HINTS)
+
 
 class SourceRouter:
     def resolve(self, request, context, workflow: str):
@@ -24,7 +65,8 @@ class SourceRouter:
         if request.fascicolo_id:
             local_sources.extend([FascicoliSource(), DocumentiSource()])
 
-        legal_sources.extend([LegalIntelligenceSource(), NormativeSource(), GiurisprudenzaSource()])
+        if _should_include_legal_sources(request, workflow):
+            legal_sources.extend([LegalIntelligenceSource(), NormativeSource(), GiurisprudenzaSource()])
 
         if workflow in {"telematico", "telematico_status"}:
             workflow_sources.extend([TelematicoSource(), ComplianceSource()])

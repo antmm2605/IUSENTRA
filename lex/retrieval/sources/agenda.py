@@ -9,7 +9,7 @@ class AgendaSource:
     source_name = "agenda"
 
     def search(self, queries, request, context):
-        rows = list((context.get("agenda") or context.get("structured_context", {}).get("agenda") or []))[:3]
+        rows = list(context.get("agenda") or context.get("structured_context", {}).get("agenda") or [])[:3]
         return [
             EvidenceItem(
                 source_type="agenda",

@@ -1,8 +1,6 @@
-# requirements.txt — lista piatta per Vercel e pip install -r
-# Generata da requirements/base.txt (core + pdf + integrations + db)
-# Vercel non supporta -r <subfile> con path relativi → file flat obbligatorio
+# requirements.txt - file flat generato da requirements/base.txt
+# Non modificare a mano: usare requirements/*.txt e tools/sync_packaging_files.py
 
-# core
 apscheduler>=3.10.0
 click>=8.1.0
 cryptography>=41.0.0
@@ -13,23 +11,15 @@ lxml>=4.9.0
 python-dotenv>=1.0.0
 PyYAML>=6.0.2
 requests>=2.31.0
-
-# pdf
 mammoth>=1.6.0
 pdfplumber>=0.10.0
 pypdf>=6.0.0
 pytesseract>=0.3.10
 python-docx>=1.1.0
 reportlab>=4.0.0
-
-# integrations
-pyhanko>=0.20.0
-pyhanko-certvalidator>=0.26.0
 stripe>=7.0.0
 twilio>=8.0.0
 zeep>=4.2.1
-
-# db
-psycopg2-binary==2.9.9
+psycopg2-binary==2.9.11
 PyMySQL>=1.1.0
 sqlalchemy>=2.0.0

@@ -60,7 +60,7 @@
       'href': url_for('pdp_penale_workspace', id_fasc=fascicolo.id),
       'class': 'btn-outline-danger',
       'icon': 'bi-shield-lock',
-      'label': 'Workflow PDP'
+        'label': 'Percorso operativo PDP'
     },
     {
       'href': url_for('dettaglio_fascicolo', id_fasc=fascicolo.id),
@@ -86,7 +86,7 @@
       'href': url_for('pdp_penale_workspace', id_fasc=fascicolo.id),
       'class': 'btn-outline-secondary',
       'icon': 'bi-shield-lock',
-      'label': 'Apri workflow PDP'
+        'label': 'Apri percorso operativo PDP'
     },
     {
       'href': url_for('dettaglio_fascicolo', id_fasc=fascicolo.id) ~ '#sezione-documenti-fascicolo',
@@ -122,7 +122,7 @@
   'Portale Deposito Atti Penale - MinGiust',
   url_for('telematico_dashboard'),
   'Modello corretto del PDP',
-  "In IUSENTRA il fascicolo penale è interno: consultazione, accesso atti e ricerca pratica passano dal canale ufficiale MinGiust, mentre il gestionale governa controlli, workflow PDP, esiti, PEC, password operative e import dei file già scaricati dal portale.",
+        "In IUSENTRA il fascicolo penale è interno: consultazione, accesso atti e ricerca pratica passano dal canale ufficiale MinGiust, mentre il gestionale governa controlli, percorso operativo PDP, esiti, PEC, password operative e import dei file già scaricati dal portale.",
   intro_actions,
   fascicolo,
   fascicolo_actions,
@@ -130,11 +130,11 @@
   'La ricerca del fascicolo, la consultazione e i passaggi autenticati del penale si completano nel canale ufficiale PDP con le stesse credenziali CNS del PCT civile.',
   official_actions,
   'Gestione in IUSENTRA',
-  'IUSENTRA evita duplicati, costruisce il fascicolo penale interno, collega il workflow PDP e integra atti, PEC, password operative, ricevute ed esiti dopo il download dal portale ufficiale.',
+        'IUSENTRA evita duplicati, costruisce il fascicolo penale interno, collega il percorso operativo PDP e integra atti, PEC, password operative, ricevute ed esiti dopo il download dal portale ufficiale.',
   managed_actions,
   managed_note,
   'Fascicolo Penale Interno',
-  'La vista interna non sostituisce il portale penale: ricostruisce un fascicolo operativo di studio con storia completa, cartelle coerenti e collegamento diretto al workflow PDP.',
+        'La vista interna non sostituisce il portale penale: ricostruisce un fascicolo operativo di studio con storia completa, cartelle coerenti e collegamento diretto al percorso operativo PDP.',
   [
     'Atti principali',
     'Accesso atti',
@@ -143,14 +143,14 @@
     'Ricevute',
     'Documenti importati',
     'Timeline',
-    'Workflow PDP'
+        'Percorso operativo PDP'
   ],
   'Il gestionale è forte prima dell’acquisizione e dopo il download: controlli, handoff al portale, import dei file reali e governo della pratica penale.',
   'Come funziona il modulo PDP',
   [
     {
       'title': 'Ricerca guidata',
-      'body': "La ricerca libera è stata sostituita da un percorso guidato che evita doppioni, aggancia il fascicolo corretto e prepara subito il workflow operativo penale."
+        'body': "La ricerca libera è stata sostituita da un percorso guidato che evita doppioni, aggancia il fascicolo corretto e prepara subito il percorso operativo penale."
     },
     {
       'title': 'Portale ufficiale al centro',
@@ -158,7 +158,7 @@
     },
     {
       'title': 'Rientro nel gestionale',
-      'body': "Dopo il download dal portale, importi i file reali in IUSENTRA, che aggiorna fascicolo interno, documenti, workflow PDP e collegamenti rapidi alla pratica."
+        'body': "Dopo il download dal portale, importi i file reali in IUSENTRA, che aggiorna fascicolo interno, documenti, percorso operativo PDP e collegamenti rapidi alla pratica."
     }
   ]
 ) }}

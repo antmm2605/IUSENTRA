@@ -909,7 +909,7 @@
 
   function renderCompanionHelp(outdated) {
     if (!browserBridge() || !bridgeConfig) {
-      return '<div class="text-danger">Companion locale non raggiungibile su questo dispositivo.</div>';
+      return '<div class="text-danger">Servizio locale non raggiungibile su questo dispositivo.</div>';
     }
     var help = browserBridge().companionHelp(bridgeConfig, { outdated: outdated });
     return (
@@ -1533,7 +1533,7 @@
     }).catch(function (error) {
       setBubbleContent(state.currentBubble, 'Errore di connessione: ' + escapeHtml(error.message));
       finalizeThinkingFeedback(false);
-      finalizeRequest('Connessione al runtime non riuscita.');
+      finalizeRequest('Connessione al motore locale non riuscita.');
     });
   }
 
@@ -1605,7 +1605,7 @@
             },
           })
           .catch(function (error) {
-            error = error || new Error('Companion locale non raggiungibile.');
+            error = error || new Error('Servizio locale non raggiungibile.');
             error.__companionStage = true;
             error.__partialAnswer = partial;
             throw error;
@@ -1681,13 +1681,13 @@
         }
         if (isCompanionTransportError(error)) {
           if (!bridgeConfig.remoteHosted) {
-            setStatus('Companion locale non raggiungibile, attivo fallback sul runtime locale di IUSENTRA...');
+            setStatus('Servizio locale non raggiungibile, attivo il percorso alternativo sul motore locale di IUSENTRA...');
             sendLocal(text);
             return;
           }
           finalizeThinkingFeedback(false);
           setBubbleHtml(state.currentBubble, renderCompanionHelp(false));
-          finalizeRequest('Companion locale non raggiungibile.');
+          finalizeRequest('Servizio locale non raggiungibile.');
           return;
         }
         if (error && error.__partialAnswer) {
@@ -1815,15 +1815,15 @@
       .then(function (data) {
         if (data.ok) {
           updateBadge(true, data.modello_attivo || 'Operativo');
-          setStatus('Lex e\' pronto sul runtime locale di IUSENTRA.');
+          setStatus('Lex e\' pronto sul motore locale di IUSENTRA.');
         } else {
           updateBadge(false, 'Offline');
-          setStatus('Runtime locale non disponibile su questa installazione.');
+          setStatus('Motore locale non disponibile su questa installazione.');
         }
       })
       .catch(function () {
         updateBadge(false, 'Offline');
-        setStatus('Stato del runtime non disponibile in questo momento.');
+        setStatus('Stato del motore non disponibile in questo momento.');
       });
   }
 

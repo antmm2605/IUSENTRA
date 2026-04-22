@@ -1,4 +1,4 @@
-#  version: 2.182.0
+#  version: 2.182.3
 #  IUSENTRA | Dockerfile produzione
 
 #  Build multi-stage:
@@ -30,8 +30,11 @@ WORKDIR /build
 RUN python -m venv /venv
 ENV PATH="/venv/bin:$PATH"
 
-# Layer cache: ricalcola solo se setup.py cambia
+# Layer cache: ricalcola solo se cambiano manifest o requirements
 COPY setup.py .
+COPY pyproject.toml .
+COPY packaging_manifest.py .
+COPY requirements ./requirements
 COPY pct/__init__.py pct/__init__.py
 RUN pip install --no-cache-dir ".[pdf,pades,pkcs11]" "gunicorn>=23.0.0,<24" "gevent>=24.2.0,<25"
 
@@ -71,7 +74,7 @@ RUN mkdir -p /out && /tmp/dart-sass/sass --no-source-map --style=compressed \
 FROM python:3.12-slim
 
 LABEL org.opencontainers.image.title="IUSENTRA" \
-      org.opencontainers.image.version="2.182.0" \
+      org.opencontainers.image.version="2.182.3" \
       org.opencontainers.image.description="Gestionale PCT per studi legali italiani" \
       org.opencontainers.image.created="2026-03-18"
 
@@ -92,6 +95,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         opensc \
     && rm -rf /var/lib/apt/lists/*
 
+RUN addgroup --system iusentra \
+    && adduser --system --ingroup iusentra --home /nonexistent --no-create-home iusentra
+
 # Copia il venv compilato dallo stage builder
 COPY --from=builder /venv /venv
 ENV PATH="/venv/bin:$PATH"
@@ -107,6 +113,7 @@ COPY pct /app/pct
 COPY pct/__init__.py /app/pct/__init__.py
 COPY web /app/web
 COPY lex /app/lex
+COPY docker/entrypoint.py /usr/local/bin/iusentra-entrypoint.py
 RUN find /app -type d -name '__pycache__' -prune -exec rm -rf {} + \
     && find /app -type f \( -name '*.pyc' -o -name '*.pyo' \) -delete
 
@@ -170,18 +177,17 @@ ENV PCT_AGENDA_DB=/data/agenda/appuntamenti.json \
 
 RUN mkdir -p /data
 
+VOLUME ["/data"]
+
 EXPOSE 8080
 
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+  CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/api/health', timeout=5)" || exit 1
+
+ENTRYPOINT ["python", "/usr/local/bin/iusentra-entrypoint.py"]
+
 # Gunicorn: worker gevent per SSE/long-polling, timeout 120s per PDF/ZIP grandi
-CMD gunicorn \
-    --bind "0.0.0.0:${PORT:-8080}" \
-    --worker-class gevent \
-    --workers 2 \
-    --worker-connections 100 \
-    --timeout 120 \
-    --access-logfile - \
-    --error-logfile - \
-    wsgi:app
+CMD ["gunicorn", "--bind", "0.0.0.0:8080", "--worker-class", "gevent", "--workers", "2", "--worker-connections", "100", "--timeout", "120", "--access-logfile", "-", "--error-logfile", "-", "wsgi:app"]
 
 
 

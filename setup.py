@@ -1,8 +1,16 @@
-from setuptools import setup, find_packages
+from pathlib import Path
+import sys
+
+from setuptools import find_packages, setup
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from packaging_manifest import extras_requirements, read_version, runtime_requirements
+
 
 setup(
     name="pct-studio-legale",
-    version="2.182.0",
+    version=read_version(),
     description="IUSENTRA: gestionale web modulare per studi legali con PCT, Lex locale e servizi telematici",
     packages=find_packages(),
     include_package_data=True,
@@ -11,33 +19,8 @@ setup(
         "lex": ["research/source_policy/*.yaml"],
     },
     python_requires=">=3.9",
-    install_requires=[
-        "cryptography>=41.0.0",
-        "lxml>=4.9.0",
-        "python-dotenv>=1.0.0",
-        "PyYAML>=6.0.2",
-        "requests>=2.31.0",
-        "click>=8.1.0",
-        "flask>=3.0.0",
-        "flask-sock>=0.7.0",
-        "apscheduler>=3.10.0",
-        "jinja2>=3.1.0",
-        "pdfplumber>=0.10.0",
-        "pytesseract>=0.3.10",
-        "mammoth>=1.6.0",
-        "python-docx>=1.1.0",
-        "reportlab>=4.0.0",
-        "pypdf>=6.0.0",
-        "twilio>=8.0.0",
-        "stripe>=7.0.0",
-        "zeep>=4.2.1",
-        "psycopg2-binary>=2.9.10",
-    ],
-    extras_require={
-        "pades": ["pyhanko>=0.20.0", "pyhanko-certvalidator>=0.26.0"],
-        "pdf": ["reportlab>=4.0.0", "pdfplumber>=0.10.0"],
-        "pkcs11": ["python-pkcs11>=0.7.0", "asn1crypto>=1.5.0"],
-    },
+    install_requires=runtime_requirements(),
+    extras_require=extras_requirements(),
     entry_points={
         "console_scripts": [
             "pct=pct.cli:main",

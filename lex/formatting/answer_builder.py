@@ -6,18 +6,28 @@ from typing import Any
 
 from lex.contracts import LexResponse as WorkflowLexResponse
 from lex.domain.confidence import compute_confidence
+from lex.schemas import LexGroundingResult
+
 from .citations import build_citations
 from .sections import build_sections
-from lex.schemas import LexGroundingResult
 
 
 class AnswerBuilder:
     def build_response(self, request, context, workflow, evidence, draft, verdict) -> WorkflowLexResponse:
+        strict_workflow = workflow in {"normativa", "giurisprudenza", "prassi", "research", "fonti"}
         citations = list((evidence or {}).get("citations") or [])
         evidence_pack = dict((evidence or {}).get("evidence_pack") or {})
         official_sources = list((evidence or {}).get("official_sources") or evidence_pack.get("official_sources") or [])
         trusted_sources = list((evidence or {}).get("trusted_sources") or evidence_pack.get("trusted_sources") or [])
-        considered_sources = official_sources or trusted_sources or [citation.title for citation in citations if getattr(citation, "title", "")]
+        if strict_workflow:
+            considered_sources = official_sources or trusted_sources or [citation.title for citation in citations if getattr(citation, "title", "")]
+        else:
+            compared_sources_preview = list((evidence or {}).get("source_comparison") or evidence_pack.get("compared_sources") or [])
+            considered_sources = [
+                str(item.get("title") or "").strip()
+                for item in compared_sources_preview
+                if str(item.get("title") or "").strip()
+            ] or [citation.title for citation in citations if getattr(citation, "title", "")]
         missing_evidence = list((evidence or {}).get("coverage_gaps") or evidence_pack.get("coverage_gaps") or [])
         compared_sources = list((evidence or {}).get("source_comparison") or evidence_pack.get("compared_sources") or [])
         fallback_triggered = bool((evidence or {}).get("fallback_triggered") or evidence_pack.get("fallback_triggered"))
@@ -47,6 +57,11 @@ class AnswerBuilder:
             confidence -= min(0.2, len(missing_evidence) * 0.05)
         if str(getattr(verdict, "risk_level", "low") or "low") in {"high", "critical"}:
             confidence -= 0.1
+        if not strict_workflow:
+            if evidence_sufficient and evidence_count:
+                confidence = max(confidence, 0.82 if workflow == "economico" else 0.72)
+            elif evidence_count:
+                confidence = max(confidence, 0.62)
         confidence = max(0.0, min(0.99, round(confidence, 4)))
         answer_mode = "grounded" if evidence_sufficient else "needs_review"
         next_actions: list[str] = []
@@ -73,7 +88,7 @@ class AnswerBuilder:
             warnings=list(getattr(verdict, "warnings", []) or []),
             next_actions=next_actions,
             risk_level=str(getattr(verdict, "risk_level", "low") or "low"),
-            legal_basis=official_sources or trusted_sources,
+            legal_basis=(official_sources or trusted_sources) if strict_workflow else [],
             considered_sources=considered_sources,
             compared_sources=compared_sources,
             missing_evidence=missing_evidence,

@@ -75,12 +75,13 @@ Esempi coperti:
 
 - `cabina`, `next_action`, `economico`, `telematico_status`, `compliance`
   usano il provider deterministico locale per risposte rapide, spiegabili e senza dipendenza dal runtime generativo.
+- Nei workflow operativi il retrieval usa prima il `contesto studio` e i moduli interni gia' presenti in IUSENTRA, e non trascina automaticamente dentro motori di normativa o giurisprudenza se la domanda non lo richiede.
 - `normativa`, `giurisprudenza`, `prassi`, `fonti`
   restano workflow con retrieval, confronto fonti e obbligo di riferimenti ufficiali verificati.
 - quando il runtime Ollama locale entra in circuito aperto dopo errori ripetuti, Lex degrada in modo esplicito invece di continuare a tentare chiamate opache.
 - quando il retrieval e' gia' stato calcolato per lo stesso tenant e lo stesso contesto, Lex riusa il pacchetto evidenze dalla cache e dichiara il `cache hit` nel metadata finale.
 - Se il pacchetto evidenze non e' sufficiente, Lex non completa in modo plausibile: produce risposta degradata con warning e gap evidenza.
-- nelle richieste economiche (`preventivo`, `tariffario`, `fattura`) il bounded workflow evita risposte meta o simulate e apre direttamente il percorso operativo corretto.
+- nelle richieste economiche (`preventivo`, `tariffario`, `fattura`) il bounded workflow evita risposte meta o simulate, non gonfia la UI con fonti legali decorative e apre direttamente il percorso operativo corretto.
 
 ## Modalita'
 

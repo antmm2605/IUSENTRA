@@ -230,3 +230,30 @@ def test_corpus_giurisprudenza_ordina_prima_le_pronunce_verificate_e_con_pdf(tmp
     assert len(rows) == 2
     assert rows[0]["stato_verifica"] == "verificata"
     assert rows[0]["pdf_ufficiale_presente"] == 1
+
+
+def test_corpus_giurisprudenza_non_crasha_su_query_fts_con_data_e_punteggiatura(tmp_path: Path):
+    corpus = GestioneCorpusGiurisprudenza(str(tmp_path / "giurisprudenza_corpus.db"))
+
+    corpus.salva_sentenza(
+        {
+            "fonte": {
+                "codice": "cassazione",
+                "nome": "Corte di Cassazione",
+                "tipo_fonte": "ufficiale",
+            },
+            "titolo": "Sentenza su accesso agli atti",
+            "organo_giudicante": "Corte di Cassazione",
+            "numero_sentenza": "8785",
+            "anno_sentenza": 2026,
+            "data_deposito": "2026-04-08",
+            "tipo_provvedimento": "sentenza",
+            "massima_ufficiale": "Accesso agli atti in presenza di interesse diretto.",
+            "principio_sintetico": "Serve un interesse specifico e attuale.",
+            "stato_verifica": "verificata",
+        }
+    )
+
+    rows = corpus.cerca_sentenze(q="sentenza n. 8785 del 08/04/2026", limit=4)
+
+    assert isinstance(rows, list)

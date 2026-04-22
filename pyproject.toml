@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.ruff]
+line-length = 120
+target-version = "py39"
+exclude = [
+  ".git",
+  "__pycache__",
+  ".pytest_cache",
+  ".ruff_cache",
+  ".venv",
+  "venv",
+  "node_modules",
+  "tools/dist",
+]
+
+[tool.ruff.lint]
+select = ["E", "F", "B", "I", "UP"]
+ignore = ["E501"]
+
+[tool.mypy]
+python_version = "3.12"
+pretty = true
+warn_unused_configs = true
+ignore_missing_imports = true
+follow_imports = "silent"

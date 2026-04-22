@@ -31,6 +31,8 @@ La repo oggi non è più solo un tool CLI per il Processo Civile Telematico: con
 - Lex usa ora fast-path deterministici per i casi operativi, fallback automatico a fonti ufficiali quando il retrieval interno non basta, cache TTL tenant-aware sul retrieval e guardrail che degradano o bloccano le risposte legali senza riferimenti verificati, esponendo sempre `official_sources`, `coverage_gaps`, `fallback_triggered`, `retrieval_cache` e confronto fonti nella risposta finale.
 - Il catalogo fonti di Lex distingue ora anche `fonte aperta`, `fonte con registrazione`, `fonte partner`, `fonte riservata` e `portale istituzionale`, cosi' le risposte spiegano quando il fallback web pubblico basta davvero e quando invece servono credenziali, convenzioni o accessi dedicati dello studio.
 - Il widget chat di Lex non lascia piu' le richieste operative a prompt generici: `preventivo`, `tariffario`, `fatturazione`, `telematico`, `fascicolo` e `ricerca legale` passano dal bounded workflow anche dalla UI, con contesto studio completo e fallback web ufficiale quando il contesto interno non basta.
+- Nei workflow operativi (`preventivo`, `tariffario`, `fattura`, `cabina`, `prossima azione`) Lex usa una via di mezzo governata: prima contesto studio e moduli interni, poi eventuale ricerca esterna solo se la richiesta diventa davvero normativa o il contesto locale non basta, senza gonfiare la risposta con fonti legali inutili.
+- Il corpus giurisprudenziale non esplode piu' su query con date e punteggiatura (`sentenza n. 8785 del 08/04/2026`): le ricerche FTS vengono normalizzate prima di interrogare SQLite, cosi' il fallback legale degrada in modo spiegabile invece di lanciare errori interni.
 - Multi-tenant amministrabile dalla piattaforma.
 - Assistenza remota cliente sempre da `SUPERADMIN`, con schermo WebRTC, microfono opzionale, chat tecnica, audit, consensi ed escalation governata al controllo remoto avanzato esterno.
 - `Sito Studio` nativo per ogni tenant: pagine a blocchi, articoli, servizi, professionisti, sedi, contatti, agenda appuntamenti pubblica e sito web pubblicabile senza WordPress esterno.
@@ -62,6 +64,32 @@ Per la separazione ferrea tra `Product Pack`, `Studio Local Pack` e `Update Pack
 Per hardening, observability e source policy vedi anche [docs/OBSERVABILITY_AUDIT_PRODUCT.md](docs/OBSERVABILITY_AUDIT_PRODUCT.md) e [docs/LEX_SOURCE_POLICY_SYSTEM.md](docs/LEX_SOURCE_POLICY_SYSTEM.md).
 Per l'assistenza remota cliente vedi [docs/ASSISTENZA_REMOTA.md](docs/ASSISTENZA_REMOTA.md).
 Per il modulo `Sito Studio` vedi [docs/SITO_STUDIO.md](docs/SITO_STUDIO.md).
+
+## Packaging e deploy coerenti
+
+La build container usa il package Python del repo, ma ora il packaging non dipende piu' da liste duplicate scollegate:
+
+- la versione sorgente vive in `pct/__init__.py`
+- `setup.py` legge versione e dipendenze dal manifest governato
+- la sorgente runtime e' `requirements/base.txt`
+- la sorgente dev e' `requirements/dev.txt`
+- gli extra ufficiali vivono in `requirements/pdf.txt`, `requirements/pades.txt`, `requirements/pkcs11.txt`
+- `requirements.txt` e `requirements-dev.txt` sono file flat generati da `python tools/sync_packaging_files.py`
+
+Guardrail attivi:
+
+- versione unica riallineata tra package, immagine Docker e release Railway;
+- dipendenze DB runtime coerenti tra package e requirements (`sqlalchemy`, `PyMySQL`, `psycopg2-binary`);
+- container runtime con bootstrap sicuro del volume `/data`, drop privilegiato verso `iusentra` quando il mount lo consente e fallback esplicito a `root` solo sui bind mount host incompatibili, piu' `HEALTHCHECK` e volume esplicito solo su `/data`;
+- CI con check packaging dedicato, lint Ruff piu' severo sui moduli governati, gate mypy sui boundary packaging, coverage minima sui moduli critici ed E2E smoke in pull request;
+- workflow E2E notturno separato su GitHub Actions, schedulato in UTC ma allineato alla notte italiana.
+
+Documenti di governance pubblica ora presenti in root:
+
+- `pyproject.toml`
+- `LICENSE`
+- `SECURITY.md`
+- `CONTRIBUTING.md`
 
 ## Pack di installazione governati dal SUPERADMIN
 

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import json
 from collections.abc import Callable, Mapping
 from pathlib import Path
 from typing import Any
@@ -11,6 +12,23 @@ from flask import Flask
 
 from pct.local_ai import strip_api_suffix
 from web.services.hosted_runtime import apply_hosted_local_ai_safety_overrides
+
+
+def _list_from_runtime_value(value: Any) -> list[str]:
+    raw = value if value is not None else ""
+    if isinstance(raw, (list, tuple, set)):
+        return [str(item or "").strip() for item in raw if str(item or "").strip()]
+    text = str(raw or "").strip()
+    if not text:
+        return []
+    if text.startswith("["):
+        try:
+            parsed = json.loads(text)
+        except Exception:
+            parsed = None
+        if isinstance(parsed, list):
+            return [str(item or "").strip() for item in parsed if str(item or "").strip()]
+    return [chunk.strip() for chunk in text.split(",") if chunk.strip()]
 
 
 def apply_runtime_settings(
@@ -85,6 +103,47 @@ def apply_runtime_settings(
         "CONFIG_STUDIO_DB",
         os.getenv("PCT_CONFIG_STUDIO_DB", app.config["STUDIO_CONFIG"]),
     )
+    app.config["SUPPORT_DB"] = cfg.get(
+        "SUPPORT_DB",
+        os.getenv(
+            "PCT_SUPPORT_DB",
+            data_peer_path(app.config["AUTH_DB"], "support", "assistenza_remota.db"),
+        ),
+    )
+    app.config["SUPPORT_STUN_URLS"] = _list_from_runtime_value(
+        cfg.get("SUPPORT_STUN_URLS", os.getenv("PCT_SUPPORT_STUN_URLS", ""))
+    )
+    app.config["SUPPORT_TURN_URLS"] = _list_from_runtime_value(
+        cfg.get("SUPPORT_TURN_URLS", os.getenv("PCT_SUPPORT_TURN_URLS", ""))
+    )
+    app.config["SUPPORT_TURN_SHARED_SECRET"] = str(
+        cfg.get(
+            "SUPPORT_TURN_SHARED_SECRET",
+            os.getenv("PCT_SUPPORT_TURN_SHARED_SECRET", ""),
+        )
+        or ""
+    ).strip()
+    app.config["SUPPORT_TURN_TTL_SECONDS"] = int(
+        cfg.get(
+            "SUPPORT_TURN_TTL_SECONDS",
+            os.getenv("PCT_SUPPORT_TURN_TTL_SECONDS", "3600"),
+        )
+        or 3600
+    )
+    app.config["SUPPORT_WS_TOKEN_MAX_AGE"] = int(
+        cfg.get(
+            "SUPPORT_WS_TOKEN_MAX_AGE",
+            os.getenv("PCT_SUPPORT_WS_TOKEN_MAX_AGE", "43200"),
+        )
+        or 43200
+    )
+    app.config["SUPPORT_ADVANCED_URL_TEMPLATE"] = str(
+        cfg.get(
+            "SUPPORT_ADVANCED_URL_TEMPLATE",
+            os.getenv("PCT_SUPPORT_ADVANCED_URL_TEMPLATE", ""),
+        )
+        or ""
+    ).strip()
 
     apply_persistent_studio_overrides(app)
     apply_hosted_local_ai_safety_overrides(app, dict(cfg))

@@ -1,0 +1,106 @@
+{% extends "admin/base.html" %}
+{% block title %}Stanza operatore{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('support_remote.support_console') }}">Assistenza remota</a></li>
+<li class="breadcrumb-item active">Stanza operatore</li>
+{% endblock %}
+
+{% block content %}
+<div class="support-room support-room--operator">
+  <div class="support-room__header">
+    <div>
+      <h4 class="admin-page-title mb-1">Stanza operatore</h4>
+      <p class="admin-page-subtitle mb-0">
+        Cliente {{ sessione.customer_name or 'non indicato' }}
+        {% if sessione.practice_label %} · {{ sessione.practice_label }}{% endif %}
+      </p>
+    </div>
+    <div class="support-room__header-badges">
+      <span class="badge bg-light text-dark border" id="statusBadge">{{ sessione.status_label }}</span>
+      <span class="badge {% if sessione.presence.client %}bg-success{% else %}bg-secondary{% endif %}" id="peerBadge">
+        {% if sessione.presence.client %}Cliente collegato{% else %}Cliente non collegato{% endif %}
+      </span>
+    </div>
+  </div>
+
+  <div class="row g-3">
+    <div class="col-12 col-xl-8">
+      <div class="card h-100">
+        <div class="card-header fw-semibold d-flex justify-content-between align-items-center gap-2 flex-wrap">
+          <span><i class="bi bi-display me-2 text-primary"></i>Schermo cliente</span>
+          <div class="form-check form-switch m-0">
+            <input class="form-check-input" type="checkbox" id="operatorMic">
+            <label class="form-check-label small" for="operatorMic">Microfono operatore</label>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="support-room__actions mb-3">
+            <button class="btn btn-primary" id="joinBtn" type="button">
+              <i class="bi bi-broadcast-pin me-1"></i>Entra nella sessione
+            </button>
+            <button class="btn btn-outline-secondary" id="requestAdvancedBtn" type="button">
+              <i class="bi bi-shield-lock me-1"></i>Richiedi controllo avanzato
+            </button>
+            <button class="btn btn-outline-dark d-none" id="openAdvancedBtn" type="button">
+              <i class="bi bi-box-arrow-up-right me-1"></i>Apri controllo avanzato
+            </button>
+            <button class="btn btn-outline-danger" id="closeBtn" type="button">
+              <i class="bi bi-x-circle me-1"></i>Chiudi sessione
+            </button>
+          </div>
+          <div class="support-room__screen">
+            <video id="remoteVideo" autoplay playsinline></video>
+            <div class="support-room__screen-empty" id="remoteVideoFallback">
+              Il video del cliente comparira' qui appena il browser completa la negoziazione WebRTC.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-12 col-xl-4">
+      <div class="card mb-3">
+        <div class="card-header fw-semibold">
+          <i class="bi bi-link-45deg me-2 text-primary"></i>Link cliente
+        </div>
+        <div class="card-body">
+          <label class="form-label small">Invia questo link al cliente</label>
+          <div class="input-group">
+            <input class="form-control" id="joinUrlField" readonly value="{{ bootstrap.customerJoinUrl }}">
+            <button class="btn btn-outline-secondary" id="copyLinkBtn" type="button">Copia</button>
+          </div>
+          <div class="small text-muted mt-2">Il cliente accede senza login, ma solo tramite token firmato e consenso esplicito.</div>
+          {% if not bootstrap.advancedConfigured %}
+          <div class="small text-muted mt-2">
+            Il controllo remoto avanzato non e' ancora configurato sulla piattaforma: questa sessione resta limitata a schermo, audio e chat tecnica.
+          </div>
+          {% endif %}
+        </div>
+      </div>
+      <div class="card h-100">
+        <div class="card-header fw-semibold">
+          <i class="bi bi-chat-dots me-2 text-primary"></i>Chat tecnica
+        </div>
+        <div class="card-body d-flex flex-column">
+          <div id="chatLog" class="support-chat-log flex-grow-1"></div>
+          <div class="mt-3">
+            <label class="form-label small">Messaggio operatore</label>
+            <div class="input-group">
+              <input class="form-control" id="chatInput" placeholder="Scrivi un messaggio operativo">
+              <button class="btn btn-outline-primary" id="sendBtn" type="button">Invia</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  window.SUPPORT_BOOTSTRAP = {{ bootstrap | tojson }};
+</script>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script src="{{ url_for('static', filename='js/support_operator_room.js') }}?v={{ app_version }}"></script>
+{% endblock %}

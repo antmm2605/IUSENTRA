@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.180.0 - 2026-04-22
+
+- Introdotto il modulo `Assistenza remota cliente` governato solo dal `SUPERADMIN`, con console piattaforma dedicata (`/admin/supporto-remoto`), creazione sessione da dashboard studio, scheda cliente e dettaglio fascicolo.
+- Aggiunta la filiera completa WebRTC per supporto remoto: link cliente firmato, stanza operatore, signaling WebSocket, condivisione schermo, microfono opzionale, chat tecnica, audit leggibile, consensi espliciti e chiusura sessione tracciata.
+- Creato il repository SQL governato del dominio `support_remote` con schema dedicato sia `SQLite` sia `PostgreSQL`, senza fallback invisibili su JSON.
+- Integrato l'aggancio al controllo remoto avanzato esterno: l'operatore puo' richiedere l'escalation, il cliente deve approvarla in modo esplicito e il runtime la blocca se `SUPPORT_ADVANCED_URL_TEMPLATE` non e' configurato.
+- Allineato il runtime locale e containerizzato: `Sock` inizializzato nella factory Flask, WebSocket registrato nel wiring applicativo, reverse proxy Nginx configurato per `/support/ws/`, percorso persistente `PCT_SUPPORT_DB` e documentazione operativa dedicata.
+
 ## 2.179.3 - 2026-04-22
 
 - Corretto il comportamento reale del widget Lex sulla chat operativa: le richieste di `preventivo`, `tariffario`, `fatturazione`, `telematico`, `fascicolo` e `ricerca legale` non restano piu' affidate a prompt generici, ma passano direttamente al bounded workflow governato anche dalla UI `/api/assistente/*`.

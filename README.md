@@ -31,6 +31,7 @@ La repo oggi non è più solo un tool CLI per il Processo Civile Telematico: con
 - Lex usa ora fast-path deterministici per i casi operativi, fallback automatico a fonti ufficiali quando il retrieval interno non basta, cache TTL tenant-aware sul retrieval e guardrail che degradano o bloccano le risposte legali senza riferimenti verificati, esponendo sempre `official_sources`, `coverage_gaps`, `fallback_triggered`, `retrieval_cache` e confronto fonti nella risposta finale.
 - Il widget chat di Lex non lascia piu' le richieste operative a prompt generici: `preventivo`, `tariffario`, `fatturazione`, `telematico`, `fascicolo` e `ricerca legale` passano dal bounded workflow anche dalla UI, con contesto studio completo e fallback web ufficiale quando il contesto interno non basta.
 - Multi-tenant amministrabile dalla piattaforma.
+- Assistenza remota cliente sempre da `SUPERADMIN`, con schermo WebRTC, microfono opzionale, chat tecnica, audit, consensi ed escalation governata al controllo remoto avanzato esterno.
 
 ## Architettura
 
@@ -56,6 +57,7 @@ Per una mappa più completa vedi [docs/ARCHITETTURA.md](docs/ARCHITETTURA.md).
 Per il workspace applicazioni vedi anche [docs/APPLICAZIONI_WORKSPACE.md](docs/APPLICAZIONI_WORKSPACE.md).
 Per la separazione ferrea tra `Product Pack`, `Studio Local Pack` e `Update Pack` vedi [docs/PACK_ARCHITECTURE.md](docs/PACK_ARCHITECTURE.md).
 Per hardening, observability e source policy vedi anche [docs/OBSERVABILITY_AUDIT_PRODUCT.md](docs/OBSERVABILITY_AUDIT_PRODUCT.md) e [docs/LEX_SOURCE_POLICY_SYSTEM.md](docs/LEX_SOURCE_POLICY_SYSTEM.md).
+Per l'assistenza remota cliente vedi [docs/ASSISTENZA_REMOTA.md](docs/ASSISTENZA_REMOTA.md).
 
 ## Pack di installazione governati dal SUPERADMIN
 
@@ -78,6 +80,35 @@ Da questa cabina il `SUPERADMIN` puo' vedere e rigenerare:
 - manifest dell'`Update Pack`
 - repository SQL/PostgreSQL dei manifest
 - servizi locali previsti sul nodo (`hacs-web`, `hacs-lex`, `hacs-embed`, `hacs-jobs`, `hacs-telematico`, `hacs-updater`)
+
+## Assistenza remota cliente
+
+La piattaforma include ora il modulo `Assistenza remota` governato solo dal `SUPERADMIN`.
+
+Superfici ufficiali:
+
+- `Piattaforma -> Assistenza remota` -> `/admin/supporto-remoto`
+- pulsante `Assistenza remota` nella panoramica studio durante impersonazione
+- pulsante `Assistenza cliente` nella scheda cliente
+- pulsante `Sessione tecnica` nel fascicolo
+
+Capability coperte:
+
+- link cliente firmato e senza login
+- stanza operatore separata
+- screen sharing WebRTC
+- audio opzionale
+- chat tecnica
+- audit leggibile come storia
+- consensi espliciti
+- escalation verso controllo remoto avanzato esterno solo dopo approvazione del cliente
+
+Requisiti operativi:
+
+- `HTTPS` o `localhost`
+- reverse proxy con upgrade WebSocket su `/support/ws/`
+- `STUN` consigliato
+- `TURN` raccomandato per reti esterne o NAT difficili
 
 ## Strategia storage per studio
 

@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Assistenza remota cliente - IUSENTRA</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="/static/css/app.css?v={{ app_version }}" rel="stylesheet">
+  <link href="/static/css/design-system.css?v={{ app_version }}" rel="stylesheet">
+  <link href="/static/css/mobile.css?v={{ app_version }}" rel="stylesheet">
+  <link href="/static/css/theme.css?v={{ app_version }}" rel="stylesheet">
+</head>
+<body class="support-customer-page">
+  <main class="support-customer-shell">
+    <section class="support-customer-hero">
+      <div class="support-customer-hero__brand">
+        <div class="support-customer-hero__badge">I</div>
+        <div>
+          <div class="support-customer-hero__wordmark">IUSENTRA</div>
+          <div class="support-customer-hero__subtitle">Assistenza remota protetta</div>
+        </div>
+      </div>
+      <h1 class="support-customer-hero__title">Assistenza remota con consenso esplicito</h1>
+      <p class="support-customer-hero__text">
+        Il SUPERADMIN dello studio puo' vedere solo lo schermo e l'audio che autorizzi qui. La sessione resta cifrata, tracciata e chiudibile in qualsiasi momento.
+      </p>
+      <div class="support-customer-hero__badges">
+        <span class="badge bg-light text-dark border" id="statusBadge">{{ sessione.status_label }}</span>
+        <span class="badge {% if sessione.presence.operator %}bg-success{% else %}bg-secondary{% endif %}" id="peerBadge">
+          {% if sessione.presence.operator %}Operatore collegato{% else %}Operatore non collegato{% endif %}
+        </span>
+      </div>
+    </section>
+
+    <section class="support-customer-grid">
+      <div class="card shadow-sm">
+        <div class="card-header fw-semibold">
+          <i class="bi bi-display me-2 text-primary"></i>Condivisione schermo
+        </div>
+        <div class="card-body">
+          <div class="support-consent-list">
+            <label class="form-check">
+              <input class="form-check-input" type="checkbox" id="consentScreen" checked>
+              <span class="form-check-label">Autorizzo la condivisione dello schermo</span>
+            </label>
+            <label class="form-check">
+              <input class="form-check-input" type="checkbox" id="consentAudio">
+              <span class="form-check-label">Autorizzo il microfono</span>
+            </label>
+            <label class="form-check">
+              <input class="form-check-input" type="checkbox" id="consentChat" checked>
+              <span class="form-check-label">Autorizzo la chat tecnica</span>
+            </label>
+          </div>
+          <div class="support-room__actions mt-3">
+            <button class="btn btn-primary" id="startBtn" type="button">
+              <i class="bi bi-play-circle me-1"></i>Avvia assistenza
+            </button>
+            <button class="btn btn-outline-danger" id="stopBtn" type="button" disabled>
+              <i class="bi bi-stop-circle me-1"></i>Termina sessione
+            </button>
+          </div>
+          <div class="support-room__screen support-room__screen--customer mt-3">
+            <video id="localPreview" autoplay playsinline muted></video>
+            <div class="support-room__screen-empty" id="localPreviewFallback">
+              Dopo il consenso il browser mostrera' l'anteprima del tuo schermo condiviso.
+            </div>
+            <audio id="remoteAudio" autoplay></audio>
+          </div>
+        </div>
+      </div>
+
+      <div class="card shadow-sm">
+        <div class="card-header fw-semibold">
+          <i class="bi bi-chat-dots me-2 text-primary"></i>Chat tecnica
+        </div>
+        <div class="card-body d-flex flex-column">
+          <div id="chatLog" class="support-chat-log flex-grow-1"></div>
+          <div class="mt-3">
+            <label class="form-label small">Messaggio al tecnico</label>
+            <div class="input-group">
+              <input class="form-control" id="chatInput" placeholder="Scrivi qui se vuoi spiegare il problema">
+              <button class="btn btn-outline-primary" id="sendBtn" type="button">Invia</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card shadow-sm mt-3 d-none" id="advancedBanner">
+      <div class="card-body">
+        <div class="fw-semibold mb-2">
+          <i class="bi bi-shield-lock me-2 text-warning"></i>Richiesta controllo remoto avanzato
+        </div>
+        <p class="text-muted mb-3">
+          L'operatore ha chiesto di passare a un livello avanzato di supporto. Approvalo solo se vuoi attivare lo strumento esterno configurato dalla piattaforma.
+        </p>
+        <div class="support-room__actions">
+          <button class="btn btn-primary" id="approveAdvancedBtn" type="button">Approva</button>
+          <button class="btn btn-outline-secondary" id="rejectAdvancedBtn" type="button">Rifiuta</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    window.SUPPORT_BOOTSTRAP = {{ bootstrap | tojson }};
+  </script>
+  <script src="{{ url_for('static', filename='js/support_customer_room.js') }}?v={{ app_version }}"></script>
+</body>
+</html>

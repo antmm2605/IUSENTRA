@@ -22,6 +22,8 @@ def create_app(config: dict | None = None) -> Flask:
 
     app, cfg = create_flask_app(config)
     runtime_bundle = build_application_runtime_bundle(app, cfg)
+    app.extensions["application_runtime_bundle"] = runtime_bundle
+    app.extensions["core_runtime"] = runtime_bundle.core
     if runtime_bundle.scheduler_only:
         return app
 

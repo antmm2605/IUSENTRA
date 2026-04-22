@@ -40,6 +40,21 @@
     </p>
   </div>
   <div class="ds-ph-actions">
+    {% if session.get('superadmin_user_id') %}
+    <button type="button"
+       class="ds-btn ds-btn-primary"
+       data-support-launch
+       data-support-customer-name="{{ (cliente.nome_completo if cliente else fascicolo.nome_cliente) or '' }}"
+       data-support-customer-email="{{ (cliente.recapiti.email if cliente and cliente.recapiti else '') or (cliente.recapiti.pec if cliente and cliente.recapiti else '') }}"
+       data-support-studio-slug="{{ g.tenant.slug if g.tenant else '' }}"
+       data-support-studio-name="{{ g.tenant.nome if g.tenant else '' }}"
+       data-support-client-id="{{ cliente.id if cliente else '' }}"
+       data-support-practice-id="{{ fascicolo.id }}"
+       data-support-practice-label="{{ fascicolo_ref_principale }} — {{ fascicolo.titolo }}"
+       data-support-context-label="Sessione aperta dal fascicolo {{ fascicolo_ref_principale }}.">
+      <i class="bi bi-headset"></i><span class="d-none d-sm-inline">Sessione tecnica</span>
+    </button>
+    {% endif %}
     {% if fascicolo.tipo.value == 'PENALE' %}
     <a href="{{ url_for('pdp_penale_workspace', id_fasc=fascicolo.id) }}"
        class="ds-btn ds-btn-primary" title="Workflow PDP Penale">

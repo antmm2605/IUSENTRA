@@ -1,0 +1,271 @@
+{% extends "admin/base.html" %}
+{% block title %}Assistenza remota{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item active">Assistenza remota</li>{% endblock %}
+
+{% block content %}
+<div class="admin-page-header">
+  <div>
+    <h4 class="admin-page-title">Assistenza remota cliente</h4>
+    <p class="admin-page-subtitle">Console piattaforma per sessioni WebRTC, consensi, chat tecnica, audit e aggancio al controllo remoto avanzato.</p>
+  </div>
+</div>
+
+{% if payload.warnings %}
+<div class="ui-feedback ui-feedback--warning mb-3">
+  <div class="ui-feedback__icon"><i class="bi bi-exclamation-triangle"></i></div>
+  <div class="ui-feedback__content">
+    <div class="ui-feedback__title">Presidio operativo richiesto</div>
+    <div class="ui-feedback__body">
+      {% for warning in payload.warnings %}
+      <div class="small">{{ warning }}</div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<div class="row g-3 mb-4 support-console-stats">
+  <div class="col-6 col-lg-3">
+    <div class="card admin-stat-card h-100">
+      <div class="card-body">
+        <div class="text-muted small">Sessioni totali</div>
+        <div class="fs-2 fw-bold">{{ payload.stats.totale_sessioni }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card admin-stat-card h-100">
+      <div class="card-body">
+        <div class="text-muted small">Aperte</div>
+        <div class="fs-2 fw-bold">{{ payload.stats.aperte }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card admin-stat-card h-100">
+      <div class="card-body">
+        <div class="text-muted small">Attive</div>
+        <div class="fs-2 fw-bold">{{ payload.stats.attive }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card admin-stat-card h-100">
+      <div class="card-body">
+        <div class="text-muted small">Chiuse</div>
+        <div class="fs-2 fw-bold">{{ payload.stats.chiuse }}</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-12 col-xl-4">
+    <div class="card h-100">
+      <div class="card-header fw-semibold">
+        <i class="bi bi-plus-circle me-2 text-primary"></i>Nuova sessione
+      </div>
+      <div class="card-body">
+        <div id="supportConsoleFeedback" class="d-none mb-3"></div>
+        <form id="supportCreateForm" class="support-create-form" action="{{ payload.create_action }}">
+          <div class="mb-3">
+            <label class="form-label">Cliente</label>
+            <input class="form-control" name="customer_name" placeholder="Nome e cognome cliente">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Email cliente</label>
+            <input class="form-control" name="customer_email" placeholder="email@cliente.it">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Studio</label>
+            <input class="form-control" name="studio_nome" placeholder="Studio di riferimento">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Riferimento pratica</label>
+            <input class="form-control" name="practice_label" placeholder="RG 1025/2024 - Vendita immobili">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Note operative</label>
+            <textarea class="form-control" name="notes" rows="3" placeholder="Motivo dell'assistenza, anomalia da verificare, canale di contatto."></textarea>
+          </div>
+          <div class="d-grid gap-2">
+            <button class="btn btn-primary" type="submit">
+              <i class="bi bi-broadcast-pin me-1"></i>Apri assistenza remota
+            </button>
+            <div class="small text-muted">{{ payload.operator_rule }}</div>
+            <div class="small text-muted">
+              {% if payload.advanced_ready %}
+              Escalation avanzata pronta: la piattaforma puo' aprire il controllo remoto esterno solo dopo approvazione esplicita del cliente.
+              {% else %}
+              Controllo remoto avanzato non ancora configurato: questa console copre comunque schermo, audio, chat, audit e consensi.
+              {% endif %}
+            </div>
+          </div>
+        </form>
+        <div id="supportCreateResult" class="support-launch-result d-none mt-3">
+          <div class="alert alert-success mb-2">Sessione creata. La stanza operatore viene aperta in una nuova scheda.</div>
+          <label class="form-label">Link cliente</label>
+          <div class="input-group">
+            <input class="form-control" id="supportJoinUrl" readonly>
+            <button class="btn btn-outline-secondary" id="supportCopyJoinUrl" type="button">Copia</button>
+          </div>
+          <div class="d-flex gap-2 mt-2 flex-wrap">
+            <a class="btn btn-sm btn-outline-primary" id="supportOpenOperator" href="#" target="_blank" rel="noopener">Apri stanza operatore</a>
+            <a class="btn btn-sm btn-outline-secondary" id="supportOpenSessionDetail" href="#">Apri sessione in console</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-12 col-xl-8">
+    <div class="card h-100">
+      <div class="card-header fw-semibold d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <span><i class="bi bi-headset me-2 text-primary"></i>Sessioni assistenza</span>
+        <form class="d-flex gap-2 flex-wrap" method="get">
+          <input type="search" class="form-control form-control-sm" name="q" value="{{ payload.filters.q }}" placeholder="Cerca cliente, pratica o studio">
+          <select class="form-select form-select-sm" name="stato">
+            <option value="">Tutti gli stati</option>
+            {% for value, label in [('created','Creata'),('waiting_operator','Attesa operatore'),('waiting_client','Attesa cliente'),('waiting_peer','Attesa altra parte'),('active','Attiva'),('closed','Chiusa')] %}
+            <option value="{{ value }}" {% if payload.filters.status == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+          <button class="btn btn-sm btn-outline-primary" type="submit">Filtra</button>
+        </form>
+      </div>
+      <div class="card-body p-0">
+        {% if payload.sessions %}
+        <div class="list-group list-group-flush support-console-list">
+          {% for item in payload.sessions %}
+          <a href="{{ url_for('support_remote.support_console', sessione=item.public_id, q=payload.filters.q, stato=payload.filters.status) }}"
+             class="list-group-item list-group-item-action {% if payload.selected_session and payload.selected_session.public_id == item.public_id %}active{% endif %}">
+            <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
+              <div class="min-width-0">
+                <div class="fw-semibold text-truncate">{{ item.customer_name or 'Cliente non indicato' }}</div>
+                <div class="small {% if payload.selected_session and payload.selected_session.public_id == item.public_id %}text-white-50{% else %}text-muted{% endif %}">
+                  {{ item.practice_label or 'Nessuna pratica collegata' }}
+                  {% if item.studio_nome %} · {{ item.studio_nome }}{% endif %}
+                </div>
+              </div>
+              <div class="text-end">
+                <span class="badge {% if item.status == 'active' %}bg-success{% elif item.status == 'closed' %}bg-secondary{% else %}bg-warning text-dark{% endif %}">
+                  {{ item.status_label }}
+                </span>
+                <div class="small {% if payload.selected_session and payload.selected_session.public_id == item.public_id %}text-white-50{% else %}text-muted{% endif %}">
+                  {{ item.updated_at|fmt_dataora if item.updated_at else '—' }}
+                </div>
+              </div>
+            </div>
+          </a>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="ui-empty-state py-5">Nessuna sessione di assistenza remota registrata.</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+{% if payload.selected_session %}
+<div class="row g-3 mt-1">
+  <div class="col-12 col-xl-5">
+    <div class="card h-100">
+      <div class="card-header fw-semibold">
+        <i class="bi bi-display me-2 text-primary"></i>Sessione selezionata
+      </div>
+      <div class="card-body">
+        <dl class="row small mb-0 support-session-details">
+          <dt class="col-5 text-muted">Cliente</dt>
+          <dd class="col-7">{{ payload.selected_session.customer_name or '—' }}</dd>
+          <dt class="col-5 text-muted">Email</dt>
+          <dd class="col-7">{{ payload.selected_session.customer_email or '—' }}</dd>
+          <dt class="col-5 text-muted">Studio</dt>
+          <dd class="col-7">{{ payload.selected_session.studio_nome or '—' }}</dd>
+          <dt class="col-5 text-muted">Pratica</dt>
+          <dd class="col-7">{{ payload.selected_session.practice_label or '—' }}</dd>
+          <dt class="col-5 text-muted">Presenza</dt>
+          <dd class="col-7">
+            <span class="badge {% if payload.selected_session.presence.operator %}bg-success{% else %}bg-secondary{% endif %}">Operatore</span>
+            <span class="badge {% if payload.selected_session.presence.client %}bg-success{% else %}bg-secondary{% endif %}">Cliente</span>
+          </dd>
+          <dt class="col-5 text-muted">Consensi</dt>
+          <dd class="col-7">
+            <span class="badge {% if payload.selected_session.consent_screen %}bg-success{% else %}bg-light text-dark border{% endif %}">Schermo</span>
+            <span class="badge {% if payload.selected_session.consent_audio %}bg-success{% else %}bg-light text-dark border{% endif %}">Audio</span>
+            <span class="badge {% if payload.selected_session.consent_chat %}bg-success{% else %}bg-light text-dark border{% endif %}">Chat</span>
+          </dd>
+          <dt class="col-5 text-muted">Controllo avanzato</dt>
+          <dd class="col-7">
+            {% if payload.selected_session.advanced_control_approved %}
+            <span class="badge bg-success">Approvato</span>
+            {% elif payload.selected_session.advanced_control_requested %}
+            <span class="badge bg-warning text-dark">In attesa</span>
+            {% else %}
+            <span class="badge bg-light text-dark border">Non richiesto</span>
+            {% endif %}
+          </dd>
+          <dt class="col-5 text-muted">Creata</dt>
+          <dd class="col-7">{{ payload.selected_session.created_at|fmt_dataora if payload.selected_session.created_at else '—' }}</dd>
+          <dt class="col-5 text-muted">Avviata</dt>
+          <dd class="col-7">{{ payload.selected_session.started_at|fmt_dataora if payload.selected_session.started_at else '—' }}</dd>
+          <dt class="col-5 text-muted">Chiusa</dt>
+          <dd class="col-7">{{ payload.selected_session.ended_at|fmt_dataora if payload.selected_session.ended_at else '—' }}</dd>
+        </dl>
+        <div class="mt-3">
+          <label class="form-label">Note finali sessione</label>
+          <textarea class="form-control" id="supportNotes" rows="4">{{ payload.selected_session.notes }}</textarea>
+          <div class="d-flex gap-2 mt-2 flex-wrap">
+            <button class="btn btn-sm btn-outline-primary" id="supportSaveNotes" data-public-id="{{ payload.selected_session.public_id }}">Salva note</button>
+            <a class="btn btn-sm btn-primary" href="{{ url_for('support_remote.operator_room', public_id=payload.selected_session.public_id) }}" target="_blank" rel="noopener">
+              Apri stanza operatore
+            </a>
+            <a class="btn btn-sm btn-outline-secondary" href="{{ payload.selected_session.join_path }}" target="_blank" rel="noopener">
+              Apri link cliente
+            </a>
+            {% if payload.selected_session.advanced_url %}
+            <a class="btn btn-sm btn-outline-dark" href="{{ payload.selected_session.advanced_url }}" target="_blank" rel="noopener">
+              Controllo avanzato
+            </a>
+            {% endif %}
+            {% if payload.selected_session.status != 'closed' %}
+            <form method="post" action="{{ url_for('support_remote.close_from_console', public_id=payload.selected_session.public_id) }}">
+              <button class="btn btn-sm btn-outline-danger" type="submit">Chiudi sessione</button>
+            </form>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-12 col-xl-7">
+    <div class="card h-100">
+      <div class="card-header fw-semibold">
+        <i class="bi bi-journal-text me-2 text-primary"></i>Audit sessione
+      </div>
+      <div class="card-body">
+        {% if payload.events %}
+        <div class="support-event-story">
+          {% for event in payload.events %}
+          <div class="support-event-item">
+            <div class="support-event-meta">
+              <span class="badge bg-light text-dark border">{{ event.event_type }}</span>
+              <span class="text-muted">{{ event.created_at|fmt_dataora if event.created_at else '—' }}</span>
+            </div>
+            <div class="fw-semibold">{{ event.story_line or 'Evento registrato.' }}</div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="ui-empty-state">Nessun evento registrato per questa sessione.</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script src="{{ url_for('static', filename='js/support_console.js') }}?v={{ app_version }}"></script>
+{% endblock %}

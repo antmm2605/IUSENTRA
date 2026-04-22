@@ -24,6 +24,19 @@
     </p>
   </div>
   <div class="ds-ph-actions">
+    {% if session.get('superadmin_user_id') %}
+    <button type="button"
+       class="ds-btn ds-btn-primary"
+       data-support-launch
+       data-support-customer-name="{{ cliente.nome_completo }}"
+       data-support-customer-email="{{ cliente.recapiti.email or cliente.recapiti.pec }}"
+       data-support-studio-slug="{{ g.tenant.slug if g.tenant else '' }}"
+       data-support-studio-name="{{ g.tenant.nome if g.tenant else '' }}"
+       data-support-client-id="{{ cliente.id }}"
+       data-support-context-label="Sessione aperta dalla scheda cliente.">
+      <i class="bi bi-headset"></i><span class="d-none d-sm-inline">Assistenza cliente</span>
+    </button>
+    {% endif %}
     <a href="{{ url_for('cartella_cliente', id_cliente=cliente.id) }}"
        class="ds-btn ds-btn-primary" title="Cartella cliente — tutti i fascicoli">
       <i class="bi bi-folder2-open"></i><span class="d-none d-sm-inline">Cartella</span>

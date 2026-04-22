@@ -13,6 +13,16 @@
     <p class="ds-ph-sub">Panoramica dello studio — {{ oggi|fmt_data_estesa }}</p>
   </div>
   <div class="ds-ph-actions">
+    {% if session.get('superadmin_user_id') %}
+    <button type="button"
+            class="ds-btn ds-btn-ghost"
+            data-support-launch
+            data-support-studio-slug="{{ g.tenant.slug if g.tenant else '' }}"
+            data-support-studio-name="{{ g.tenant.nome if g.tenant else '' }}"
+            data-support-context-label="Sessione aperta dalla panoramica dello studio.">
+      <i class="bi bi-headset"></i><span class="d-none d-sm-inline">Assistenza remota</span>
+    </button>
+    {% endif %}
     <a href="{{ url_for('workspace_intelligente') }}" class="ds-btn ds-btn-ghost">
       <i class="bi bi-stars"></i><span class="d-none d-sm-inline">Cabina</span>
     </a>

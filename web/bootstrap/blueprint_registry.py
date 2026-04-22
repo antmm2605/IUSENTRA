@@ -57,6 +57,7 @@ BLUEPRINT_REGISTRY: tuple[BlueprintRegistration, ...] = (
         "operational_resilience_admin",
         "",
     ),
+    BlueprintRegistration("support_remote", "web.blueprints.support_remote", "support_remote", ""),
     BlueprintRegistration("legal_coverage_admin", "web.blueprints.legal_coverage_admin", "legal_coverage_admin", "/admin/copertura-ai"),
     BlueprintRegistration("legal_updates_admin", "web.blueprints.legal_updates_admin", "legal_updates_admin", "/admin/aggiornamenti-legali"),
     BlueprintRegistration("impostazioni", "web.blueprints.impostazioni", "impostazioni", "/impostazioni"),

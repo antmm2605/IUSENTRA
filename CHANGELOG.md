@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.182.6 - 2026-04-22
+
+- Allineato l'avvio cloud alla porta assegnata dal provider: Gunicorn ascolta ora su `PORT` quando Railway la imposta, mantenendo `8080` come fallback locale. Questo evita controlli iniziali falliti con messaggio `service unavailable` pur in presenza di applicazione corretta.
+- Il controllo di prontezza del contenitore usa la stessa porta effettiva del servizio, cosi' il presidio iniziale non resta piu' legato a una porta fissa solo locale.
+
 ## 2.182.5 - 2026-04-22
 
 - Alleggerito l'avvio cloud del container: il bootstrap dei permessi sul volume dati non scandisce piu' ricorsivamente tutto `/data` prima di avviare l'applicazione, evitando partenze lente su Railway con archivi gia' popolati.

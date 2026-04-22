@@ -87,6 +87,8 @@ def test_docker_runtime_ha_healthcheck_railway_compatibile_e_entrypoint_hardened
     assert 'VOLUME ["/data"]' not in docker_text
     assert "RUN mkdir -p /data" in docker_text
     assert "/api/pronto" in docker_text
+    assert "${PORT:-8080}" in docker_text
+    assert "os.getenv('PORT', '8080')" in docker_text
     assert 'adduser --system --ingroup iusentra' in docker_text
     assert "COPY pyproject.toml ." in docker_text
     assert "COPY packaging_manifest.py ." in docker_text

@@ -356,7 +356,9 @@ Il pannello Superadmin include una vista tecnica dedicata in `/admin/osservabili
 - stato del provider AI locale
 - queue depth e throughput OCR dell'ultima ora
 - stato operativo di storage e runtime applicativo
-- segnali di degrado con codici tassonomici, soglie operative, messaggio operatore e rimedi per errori 5xx, OCR, worker OCR, AI locale e storage
+- segnali di degrado con codici tassonomici, soglie operative, messaggio operatore e rimedi per errori 5xx, OCR, worker OCR, AI locale, PEC/IMAP e storage
+- logging strutturato con masking automatico di CF, email, IBAN, telefoni e altri dati sensibili nei log applicativi
+- circuit breaker operativi su runtime AI locale e sincronizzazione PEC, per evitare loop di timeout e rendere gli errori leggibili
 - endpoint JSON operativo in `/admin/system-health` con stato `scheduler`, `ocr`, `ai` e `db`
 
 Sul bounded context AI, il confine corretto adesso è:

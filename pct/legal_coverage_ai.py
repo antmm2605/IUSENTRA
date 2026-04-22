@@ -7,10 +7,9 @@ from pathlib import Path
 import re
 from typing import Any
 
-import requests
-
 from pct.legal_platform_catalog import PROCEDURE_REGISTRY
 from pct.legal_taxonomy_sql_generator import apply_presets, validate_spec
+from pct.local_ai import OllamaHttpClient
 
 
 PRESETS_PATH = Path(__file__).with_name("data") / "legal_coverage_presets.json"
@@ -118,13 +117,12 @@ def build_prompt(subbranch_code: str, gap_type: str, gap_payload: dict[str, Any]
 
 
 def query_ollama(base_url: str, model: str, prompt: str, *, timeout: int = 120) -> dict[str, Any]:
-    response = requests.post(
-        f"{base_url.rstrip('/')}/api/generate",
-        json={"model": model, "prompt": prompt, "stream": False, "format": "json"},
+    payload = OllamaHttpClient(base_url, timeout=timeout).generate_completion(
+        model,
+        prompt,
+        response_format="json",
         timeout=timeout,
     )
-    response.raise_for_status()
-    payload = response.json()
     content = _sanitize_json_text(str(payload.get("response") or ""))
     return json.loads(content)
 

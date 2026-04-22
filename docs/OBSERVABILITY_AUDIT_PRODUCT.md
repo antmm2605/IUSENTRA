@@ -36,12 +36,14 @@ La vista `admin/osservabilita` non deve limitarsi a mostrare numeri:
 - deve segnalare backlog o errori OCR
 - deve distinguere backlog OCR da worker OCR fermo
 - deve dichiarare quando il runtime AI locale non e' operativo
+- deve dichiarare quando la sincronizzazione PEC/IMAP entra in circuito aperto dopo errori ripetuti
 - deve avvisare se il runtime predefinito e' ancora `JSON`
 - deve esporre un `messaggio operatore` leggibile, non solo un dettaglio tecnico
 - deve offrire anche un endpoint JSON operativo (`/admin/system-health`) con stato sintetico di scheduler, OCR, AI e backend database
 - deve suggerire un'azione concreta di presidio, non solo il sintomo
 - deve mostrare `codice`, `famiglia`, `componente`, `soglia operativa` e `passi di remediation`
 - il `crash test operativo` deve riusare questi segnali e tradurli in ticket di riparazione senza richiedere lettura dei log applicativi
+- i log applicativi devono essere strutturati e mascherare automaticamente CF, email, IBAN, telefoni e altri identificativi sensibili
 
 ## Tassonomia minima attesa
 
@@ -51,6 +53,7 @@ La vista `admin/osservabilita` non deve limitarsi a mostrare numeri:
 | `OCR` | `OCR_TIMEOUT`, `OCR_QUEUE_OVERFLOW` |
 | `WORKER` | `OCR_WORKER_STALLED` |
 | `AI` | `AI_MODEL_UNAVAILABLE` |
+| `COMUNICAZIONI` | `IMAP_CIRCUIT_OPEN` |
 | `STORAGE` | `TENANT_DB_ERROR` |
 | `MIGRATION` | `MIGRATION_FAILED` |
 
@@ -66,6 +69,8 @@ Ogni alert deve tradurre la diagnostica in decisione operativa. Esempi:
   "Worker OCR fermo: riporta il worker online prima di accumulare nuova arretratezza."
 - `AI_MODEL_UNAVAILABLE`
   "AI locale non disponibile: il prodotto resta operativo, ma Lex e i motori assistiti vanno usati solo dopo il ripristino del runtime."
+- `IMAP_CIRCUIT_OPEN`
+  "PEC temporaneamente sospesa: verifica server, rete o credenziali prima di rilanciare aggiorna o auto-esiti."
 - `TENANT_DB_ERROR`
   "Storage non ancora chiuso sul database: completa il cutover tenant-aware prima di considerare il backend stabile."
 

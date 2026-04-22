@@ -4,7 +4,7 @@ import json
 import re
 from typing import Any
 
-import requests
+from pct.local_ai import OllamaHttpClient
 
 
 CLASSIFICATION_TYPES = {
@@ -190,13 +190,12 @@ def _sanitize_json_text(text: str) -> str:
 
 
 def _query_ollama(base_url: str, model: str, prompt: str, *, timeout: int = 60) -> dict[str, Any]:
-    response = requests.post(
-        f"{base_url.rstrip('/')}/api/generate",
-        json={"model": model, "prompt": prompt, "stream": False, "format": "json"},
+    payload = OllamaHttpClient(base_url, timeout=timeout).generate_completion(
+        model,
+        prompt,
+        response_format="json",
         timeout=timeout,
     )
-    response.raise_for_status()
-    payload = response.json()
     content = _sanitize_json_text(payload.get("response") or "")
     return json.loads(content)
 

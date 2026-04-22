@@ -46,6 +46,7 @@ La logica governabile vera vive in:
   usano il provider deterministico locale per risposte rapide, spiegabili e senza dipendenza dal runtime generativo.
 - `normativa`, `giurisprudenza`, `prassi`, `fonti`
   restano workflow con retrieval, confronto fonti e obbligo di riferimenti ufficiali verificati.
+- quando il runtime Ollama locale entra in circuito aperto dopo errori ripetuti, Lex degrada in modo esplicito invece di continuare a tentare chiamate opache.
 - Se il pacchetto evidenze non e' sufficiente, Lex non completa in modo plausibile: produce risposta degradata con warning e gap evidenza.
 
 ## Modalita'
@@ -76,7 +77,10 @@ Copertura minima dedicata:
 
 - `lex/tests/unit/test_bundle_scenarios.py`
 - `lex/tests/unit/test_source_policy.py`
+- `lex/tests/unit/test_source_policy_invariants.py`
 - `tests/test_local_ai.py`
+- `tests/test_runtime_resilience.py`
+- `tests/test_structured_logging.py`
 - `tests/test_web_bootstrap.py`
 - `tests/test_assistente_*.py`
 - `tests/test_lex_*.py`

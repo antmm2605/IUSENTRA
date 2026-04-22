@@ -6,10 +6,13 @@ import zipfile
 from pathlib import Path
 from types import SimpleNamespace
 
+import pytest
+
 from lex.prompts.prompt_builder import build_assistente_prompt
 from pct.fascicoli import GestioneFascicoli, TipoDocumento, TipoFascicolo
 from pct.local_ai import LocalAIService
 from pct.local_ai_runtime import OllamaRuntimeProvisioner
+from pct.runtime_resilience import CircuitBreakerOpenError, clear_runtime_circuit_breakers
 from web.app import create_app
 from web.services.storage_runtime import get_request_studio_db
 
@@ -1035,6 +1038,32 @@ def test_resolved_ollama_runtime_cache_evita_health_snapshot_ripetuti(tmp_path: 
         assert resolved_ollama_api_base_url() == "http://host.docker.internal:11434/api"
         assert resolved_ollama_chat_model("mistral") == "gemma3:1b"
         assert resolved_ollama_keep_alive("7m") == "10m"
+
+
+def test_ollama_http_client_apre_circuit_breaker_dopo_errori_ripetuti(monkeypatch):
+    from pct.local_ai import OllamaHttpClient
+
+    clear_runtime_circuit_breakers()
+    monkeypatch.setenv("PCT_OLLAMA_CIRCUIT_FAILURE_THRESHOLD", "2")
+    monkeypatch.setenv("PCT_OLLAMA_CIRCUIT_TIMEOUT", "120")
+
+    osservato = {"chiamate": 0}
+
+    def _fake_request(*args, **kwargs):
+        osservato["chiamate"] += 1
+        raise RuntimeError("Runtime Ollama non raggiungibile")
+
+    monkeypatch.setattr("pct.local_ai.requests.request", _fake_request)
+
+    client = OllamaHttpClient("http://127.0.0.1:11434/api", timeout=5)
+    with pytest.raises(RuntimeError):
+        client.list_models()
+    with pytest.raises(RuntimeError):
+        client.list_models()
+    with pytest.raises(CircuitBreakerOpenError):
+        client.list_models()
+
+    assert osservato["chiamate"] == 2
 
 
 def test_assistente_chat_non_duplica_cronologia_nel_system_prompt_e_usa_keep_alive(tmp_path: Path, monkeypatch):

@@ -19,6 +19,7 @@ from pct.email_client import (
     aggiorna_esiti_da_email,
 )
 from pct.fascicoli import GestioneFascicoli, TipoAttivita, TipoFascicolo
+from pct.runtime_resilience import clear_runtime_circuit_breakers
 
 
 def _cfg_web(tmp_path: Path) -> dict:
@@ -699,9 +700,52 @@ def test_sincronizza_imap_usa_timeout_e_restituisce_errore_chiaro(tmp_path, monk
     assert "Connessione IMAP non completata entro 15 secondi" in report["errore"]
 
 
+def test_sincronizza_imap_apre_circuit_breaker_dopo_errori_ripetuti(tmp_path, monkeypatch):
+    import pct.email_client as email_runtime
+
+    clear_runtime_circuit_breakers("pec_imap")
+    monkeypatch.setenv("PCT_IMAP_CIRCUIT_FAILURE_THRESHOLD", "2")
+    monkeypatch.setenv("PCT_IMAP_CIRCUIT_TIMEOUT", "120")
+
+    osservato = {"chiamate": 0}
+
+    def _fake_imap_ssl(host, port, timeout=None):
+        osservato["chiamate"] += 1
+        raise TimeoutError("timed out")
+
+    monkeypatch.setattr(email_runtime.imaplib, "IMAP4_SSL", _fake_imap_ssl)
+
+    ge = GestioneEmailRicevute(str(tmp_path / "casella.json"))
+    for _ in range(2):
+        report = ge.sincronizza_imap(
+            imap_host="imaps.pec.aruba.it",
+            imap_port=993,
+            username="studio@example.pec.it",
+            password="segreta",
+            use_ssl=True,
+            cartelle_imap=["INBOX"],
+            limite=10,
+        )
+        assert "Connessione IMAP non completata entro 15 secondi" in report["errore"]
+
+    third = ge.sincronizza_imap(
+        imap_host="imaps.pec.aruba.it",
+        imap_port=993,
+        username="studio@example.pec.it",
+        password="segreta",
+        use_ssl=True,
+        cartelle_imap=["INBOX"],
+        limite=10,
+    )
+
+    assert osservato["chiamate"] == 2
+    assert "temporaneamente sospesa" in third["errore"]
+
+
 def test_poll_cancelleria_pec_usa_timeout_imap(tmp_path, monkeypatch):
     import pct.polling_depositi as polling_runtime
 
+    clear_runtime_circuit_breakers("pec_imap")
     gf = GestioneFascicoli(
         db_path=str(tmp_path / "fascicoli.json"),
         documents_dir=str(tmp_path / "docs"),

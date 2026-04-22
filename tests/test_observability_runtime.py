@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from pct.runtime_resilience import clear_runtime_circuit_breakers
 from tests.test_web_bootstrap import _cfg_web, _write_studio_config
 from web.app import create_app
 
@@ -187,3 +188,23 @@ def test_admin_system_health_traduce_alert_in_azioni(tmp_path, monkeypatch):
     assert payload["actions_required"]
     active_codes = set(payload["error_taxonomy"]["active_codes"])
     assert "AI_MODEL_UNAVAILABLE" in active_codes
+
+
+def test_runtime_metrics_endpoint_segnala_circuit_breaker_pec(tmp_path):
+    from pct.imap_runtime import get_imap_circuit_breaker
+
+    clear_runtime_circuit_breakers("pec_imap")
+    breaker = get_imap_circuit_breaker()
+    breaker.record_failure(RuntimeError("Server PEC non raggiungibile"))
+    breaker.record_failure(RuntimeError("Server PEC non raggiungibile"))
+
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    app = create_app(_cfg_web(tmp_path))
+
+    with app.test_client() as client:
+        response = client.get("/api/metriche/runtime")
+
+    payload = response.get_json()
+    active_codes = set(payload["error_taxonomy"]["active_codes"])
+    assert "IMAP_CIRCUIT_OPEN" in active_codes
+    assert any(alert["code"] == "IMAP_CIRCUIT_OPEN" for alert in payload["alerts"])

@@ -26,7 +26,11 @@ from pathlib import Path
 from typing import Optional, List, Dict, Any
 from dataclasses import dataclass, field, asdict
 
-from pct.imap_runtime import describe_imap_connection_error, resolve_imap_timeout_seconds
+from pct.imap_runtime import (
+    describe_imap_connection_error,
+    resolve_imap_timeout_seconds,
+    run_imap_runtime_operation,
+)
 
 
 # ------------------------------------------------------------------ Enums / cost.
@@ -381,12 +385,16 @@ class GestioneEmailRicevute:
         timeout_s = resolve_imap_timeout_seconds(timeout_seconds)
 
         try:
-            if use_ssl:
-                mail = imaplib.IMAP4_SSL(imap_host, imap_port, timeout=timeout_s)
-            else:
-                mail = imaplib.IMAP4(imap_host, imap_port, timeout=timeout_s)
-                mail.starttls()
-            mail.login(username, password)
+            def _connect_mail():
+                if use_ssl:
+                    client = imaplib.IMAP4_SSL(imap_host, imap_port, timeout=timeout_s)
+                else:
+                    client = imaplib.IMAP4(imap_host, imap_port, timeout=timeout_s)
+                    client.starttls()
+                client.login(username, password)
+                return client
+
+            mail = run_imap_runtime_operation(_connect_mail)
         except (imaplib.IMAP4.error, OSError, socket.timeout, TimeoutError) as e:
             risultato["errore"] = describe_imap_connection_error(e, timeout_seconds=timeout_s)
             return risultato

@@ -26,7 +26,11 @@ import email as _email_lib
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING
 
-from pct.imap_runtime import describe_imap_connection_error, resolve_imap_timeout_seconds
+from pct.imap_runtime import (
+    describe_imap_connection_error,
+    resolve_imap_timeout_seconds,
+    run_imap_runtime_operation,
+)
 
 if TYPE_CHECKING:
     from pct.fascicoli import GestioneFascicoli, EsitoDepositoPCT, Fascicolo
@@ -76,8 +80,12 @@ def _cerca_ricevute_imap(
     risultati = []
     timeout_s = resolve_imap_timeout_seconds(timeout_seconds)
     try:
-        mail = imaplib.IMAP4_SSL(imap_host, imap_port, timeout=timeout_s)
-        mail.login(indirizzo, password)
+        def _connect_mail():
+            client = imaplib.IMAP4_SSL(imap_host, imap_port, timeout=timeout_s)
+            client.login(indirizzo, password)
+            return client
+
+        mail = run_imap_runtime_operation(_connect_mail)
         mail.select("INBOX")
 
         since_dt = datetime.now() - timedelta(days=giorni_indietro)
@@ -472,12 +480,16 @@ def poll_cancelleria_pec(
 
     try:
         timeout_s = resolve_imap_timeout_seconds(timeout_seconds)
-        mail = imaplib.IMAP4_SSL(
-            config_pec.imap_host,
-            getattr(config_pec, "imap_port", 993),
-            timeout=timeout_s,
-        )
-        mail.login(config_pec.indirizzo, config_pec.password)
+        def _connect_mail():
+            client = imaplib.IMAP4_SSL(
+                config_pec.imap_host,
+                getattr(config_pec, "imap_port", 993),
+                timeout=timeout_s,
+            )
+            client.login(config_pec.indirizzo, config_pec.password)
+            return client
+
+        mail = run_imap_runtime_operation(_connect_mail)
         mail.select("INBOX")
 
         since_dt = datetime.now() - timedelta(days=giorni_indietro)

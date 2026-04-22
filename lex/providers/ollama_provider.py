@@ -11,6 +11,8 @@ from __future__ import annotations
 import json
 from typing import Any
 
+from pct.local_ai import OllamaHttpClient
+
 from .base import BaseProvider
 from lex.contracts import ProviderDraft
 
@@ -120,28 +122,15 @@ def _resolve_runtime() -> dict[str, Any]:
 
 
 def _call_ollama(payload: dict[str, Any], api_base_url: str, timeout: int = 120) -> str:
-    try:
-        import requests  # type: ignore
-    except Exception as exc:
-        raise RuntimeError(f"requests non disponibile: {exc}") from exc
-
-    url = f"{api_base_url.rstrip('/')}/chat"
-    response = requests.post(url, json=payload, timeout=timeout)
-    response.raise_for_status()
-    tokens: list[str] = []
-    for line in response.iter_lines():
-        if not line:
-            continue
-        try:
-            chunk = json.loads(line)
-        except json.JSONDecodeError:
-            continue
-        content = chunk.get("message", {}).get("content", "")
-        if content:
-            tokens.append(str(content))
-        if chunk.get("done"):
-            break
-    return "".join(tokens).strip()
+    client = OllamaHttpClient(api_base_url, timeout=timeout)
+    response = client.chat(
+        str(payload.get("model") or "mistral"),
+        messages=list(payload.get("messages") or []),
+        keep_alive=str(payload.get("keep_alive") or "10m"),
+        options=dict(payload.get("options") or {}),
+        timeout=timeout,
+    )
+    return str(((response.get("message") or {}).get("content") or "")).strip()
 
 
 class OllamaProvider(BaseProvider):
@@ -170,7 +159,6 @@ class OllamaProvider(BaseProvider):
 
         payload = {
             "model": model,
-            "stream": True,
             "keep_alive": keep_alive,
             "options": {"temperature": 0.2, "num_ctx": 4096},
             "messages": [

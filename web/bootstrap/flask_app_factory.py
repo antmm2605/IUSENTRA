@@ -9,6 +9,7 @@ from flask import Flask
 
 from web.services.observability_runtime import register_observability_runtime
 from web.services.security_runtime import apply_security_defaults
+from web.services.structured_logging import configure_structured_logging
 
 
 def create_flask_app(config: dict[str, Any] | None = None) -> tuple[Flask, dict[str, Any]]:
@@ -18,6 +19,7 @@ def create_flask_app(config: dict[str, Any] | None = None) -> tuple[Flask, dict[
     app = Flask("web", template_folder="templates", static_folder="static")
     app.config["TESTING"] = bool(cfg.get("TESTING", False))
     app.config["PCT_SCHEDULER_WORKER"] = bool(cfg.get("SCHEDULER_ONLY"))
+    configure_structured_logging(app, cfg)
 
     from werkzeug.middleware.proxy_fix import ProxyFix
 

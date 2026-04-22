@@ -33,6 +33,7 @@ from pct.firme_cades import (
     payload_mime_from_bytes as cades_payload_mime_from_bytes,
 )
 from pct.local_ai_runtime import OllamaRuntimeProvisioner
+from pct.runtime_resilience import get_runtime_circuit_breaker
 
 logger = logging.getLogger("pct.local_ai")
 
@@ -67,9 +68,48 @@ def _normalize_api_base_url(value: str) -> str:
     return f"{raw}/api"
 
 
+def _resolve_runtime_guardrail_int(
+    env_name: str,
+    default: int,
+    *,
+    minimum: int,
+    maximum: int,
+) -> int:
+    raw = os.getenv(env_name, "")
+    try:
+        value = int(float(str(raw).strip() or default))
+    except (TypeError, ValueError):
+        value = default
+    return max(minimum, min(maximum, value))
+
+
 def strip_api_suffix(value: str) -> str:
     raw = str(value or "").strip().rstrip("/")
     return raw[:-4] if raw.endswith("/api") else raw
+
+
+def get_ollama_circuit_breaker(base_url: str | None = None):
+    normalized = _normalize_api_base_url(base_url or "http://127.0.0.1:11434/api")
+    return get_runtime_circuit_breaker(
+        f"ollama_runtime:{normalized}",
+        component="Runtime AI locale",
+        failure_threshold=_resolve_runtime_guardrail_int(
+            "PCT_OLLAMA_CIRCUIT_FAILURE_THRESHOLD",
+            2,
+            minimum=1,
+            maximum=10,
+        ),
+        recovery_timeout_seconds=_resolve_runtime_guardrail_int(
+            "PCT_OLLAMA_CIRCUIT_TIMEOUT",
+            60,
+            minimum=5,
+            maximum=600,
+        ),
+        open_message_template=(
+            "Runtime AI locale temporaneamente sospeso dopo errori ripetuti. "
+            "Verifica Ollama e riprova tra circa {remaining_seconds} secondi."
+        ),
+    )
 
 
 def _sha256_bytes(data: bytes) -> str:
@@ -309,14 +349,17 @@ class OllamaHttpClient:
         payload: dict[str, Any] | None = None,
         timeout: float | None = None,
     ) -> dict[str, Any]:
-        response = requests.request(
-            method=method,
-            url=f"{self.base_url}{path}",
-            json=payload,
-            timeout=timeout or self.timeout,
-        )
-        response.raise_for_status()
-        return response.json()
+        def _perform_request() -> dict[str, Any]:
+            response = requests.request(
+                method=method,
+                url=f"{self.base_url}{path}",
+                json=payload,
+                timeout=timeout or self.timeout,
+            )
+            response.raise_for_status()
+            return response.json()
+
+        return get_ollama_circuit_breaker(self.base_url).call(_perform_request)
 
     def get_version(self) -> str | None:
         try:
@@ -360,12 +403,50 @@ class OllamaHttpClient:
         }
 
     def generate(self, model_name: str, prompt: str, keep_alive: str = "10m") -> dict[str, Any]:
+        return self.generate_completion(model_name, prompt, keep_alive=keep_alive)
+
+    def generate_completion(
+        self,
+        model_name: str,
+        prompt: str,
+        *,
+        keep_alive: str = "10m",
+        response_format: str | None = None,
+        timeout: float = 300,
+    ) -> dict[str, Any]:
+        payload: dict[str, Any] = {
+            "model": model_name,
+            "prompt": prompt,
+            "stream": False,
+            "keep_alive": keep_alive,
+        }
+        if response_format:
+            payload["format"] = response_format
         return self._request(
             "POST",
             "/generate",
-            payload={"model": model_name, "prompt": prompt, "stream": False, "keep_alive": keep_alive},
-            timeout=300,
+            payload=payload,
+            timeout=timeout,
         )
+
+    def chat(
+        self,
+        model_name: str,
+        *,
+        messages: list[dict[str, Any]],
+        keep_alive: str = "10m",
+        options: dict[str, Any] | None = None,
+        timeout: float = 300,
+    ) -> dict[str, Any]:
+        payload: dict[str, Any] = {
+            "model": model_name,
+            "messages": messages,
+            "stream": False,
+            "keep_alive": keep_alive,
+        }
+        if options:
+            payload["options"] = dict(options)
+        return self._request("POST", "/chat", payload=payload, timeout=timeout)
 
 
 class LocalAIService:
@@ -1216,6 +1297,9 @@ class LocalAIService:
             }
 
         runtime_status = str(runtime.get("status") or "").strip().lower()
+        breaker = get_ollama_circuit_breaker(
+            str(runtime.get("api_base_url") or settings.base_url or "http://127.0.0.1:11434/api")
+        ).snapshot()
         return {
             "settings": {
                 "enabled": settings.enabled,
@@ -1237,6 +1321,7 @@ class LocalAIService:
             },
             "counts": dict(counts or {}),
             "models_path": str(self.models_path),
+            "circuit_breaker": breaker,
         }
 
     def _active_model(self, role: str) -> str | None:

@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.178.12 - 2026-04-22
+
+- Introdotto un layer governabile di resilienza runtime con circuit breaker condivisi per `Ollama` e `PEC / IMAP`, cosi' i runtime esterni instabili non vengono martellati all'infinito e restituiscono messaggi operativi leggibili.
+- Rafforzata l'osservabilita': il pannello `admin/osservabilita` e il payload `/admin/system-health` leggono ora anche il circuito `PEC / IMAP`, mentre il runtime AI locale espone lo stato del proprio breaker insieme alla diagnostica del provider.
+- Aggiunto logging strutturato con masking automatico di CF, email, IBAN e telefoni, attivabile in JSON in produzione senza introdurre dipendenze extra.
+- Riallineati i workflow AI che chiamano Ollama (`Lex`, `Coverage AI`, `Update Intelligence`) al client condiviso, evitando path divergenti tra runtime locale e motori assistiti.
+- Estesa la suite con test dedicati su logging sensibile, circuit breaker runtime, degrado observability e invarianti deterministici della source policy di Lex.
+
 ## 2.178.11 - 2026-04-22
 
 - Integrato il bundle `Lex` con router applicativo piu' ricco, provider deterministico locale per i workflow operativi (`cabina`, `economico`, `telematico_status`, `compliance`, `next_action`) e registry provider riallineato ai nuovi contratti.

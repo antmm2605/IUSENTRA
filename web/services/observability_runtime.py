@@ -76,6 +76,21 @@ def build_observability_payload(app: Flask | None = None) -> dict[str, Any]:
         }
 
     try:
+        from pct.imap_runtime import imap_breaker_snapshot
+
+        payload["providers"]["pec_imap"] = {
+            "circuit_breaker": imap_breaker_snapshot(),
+        }
+    except Exception:
+        payload["providers"]["pec_imap"] = {
+            "circuit_breaker": {
+                "state": "unknown",
+                "open": False,
+                "last_error": "",
+            }
+        }
+
+    try:
         from pct.product_governance import (
             build_authorization_model_payload,
             build_observability_capabilities_payload,
@@ -146,6 +161,7 @@ def _build_observability_thresholds() -> dict[str, Any]:
         "ocr_queue_backlog": {"label": "Coda OCR in warning da 20 elementi", "limit": 20},
         "ocr_worker_stall": {"label": "Coda OCR > 0 e throughput ultima ora = 0", "limit": 1},
         "local_ai_runtime": {"label": "Runtime AI locale deve risultare online quando e' abilitato", "required": True},
+        "imap_circuit_open": {"label": "PEC / IMAP non deve restare in circuito aperto dopo errori ripetuti", "limit": 1},
         "storage_default_mode": {"label": "Il backend predefinito non deve restare JSON in produzione", "allowed": ("SQLITE", "POSTGRESQL")},
     }
 
@@ -193,6 +209,14 @@ def _build_error_taxonomy_catalog() -> list[dict[str, str]]:
             "action": "Verifica runtime Ollama, modello configurato e bootstrap AI prima di usare Lex o Coverage AI.",
         },
         {
+            "code": "IMAP_CIRCUIT_OPEN",
+            "family": "COMUNICAZIONI",
+            "component": "PEC / IMAP",
+            "title": "PEC temporaneamente sospesa",
+            "explanation": "La sincronizzazione PEC e' stata sospesa dopo errori ripetuti per evitare timeout e loop.",
+            "action": "Verifica server PEC, rete e credenziali, poi riprova quando il circuito torna disponibile.",
+        },
+        {
             "code": "TENANT_DB_ERROR",
             "family": "STORAGE",
             "component": "Backend strutturato tenant",
@@ -218,6 +242,7 @@ def _normalized_alert_code(code: str) -> str:
         "OCR_QUEUE_BACKLOG": "OCR_QUEUE_OVERFLOW",
         "OCR_WORKER_STALLED": "OCR_WORKER_STALLED",
         "LOCAL_AI_RUNTIME_DOWN": "AI_MODEL_UNAVAILABLE",
+        "IMAP_CIRCUIT_OPEN": "IMAP_CIRCUIT_OPEN",
         "STORAGE_DEFAULT_JSON": "TENANT_DB_ERROR",
         "PRODUCT_CAPABILITY_GAP": "MIGRATION_FAILED",
     }
@@ -349,9 +374,13 @@ def _build_observability_alerts(payload: dict[str, Any]) -> list[dict[str, Any]]
     local_ai_runtime = dict(local_ai.get("runtime") or {})
     local_ai_status = str(local_ai_runtime.get("status") or "").strip().lower()
     local_ai_error = str(local_ai_runtime.get("last_error") or local_ai.get("errore") or "").strip()
+    local_ai_breaker = dict(local_ai.get("circuit_breaker") or {})
     ai_enabled = bool((local_ai.get("settings") or {}).get("enabled", True))
     ai_online = bool(local_ai.get("runtime_online"))
-    if ai_enabled and (local_ai_error or local_ai_status in {"error", "missing", "unsupported"} or not ai_online):
+    ai_breaker_open = bool(local_ai_breaker.get("open"))
+    if ai_breaker_open and not local_ai_error:
+        local_ai_error = str(local_ai_breaker.get("open_message") or local_ai_breaker.get("last_error") or "").strip()
+    if ai_enabled and (local_ai_error or local_ai_status in {"error", "missing", "unsupported"} or not ai_online or ai_breaker_open):
         alerts.append(
             {
                 "severity": "danger",
@@ -371,6 +400,35 @@ def _build_observability_alerts(payload: dict[str, Any]) -> list[dict[str, Any]]
                     "Verifica che Ollama o il provider locale sia realmente avviato sullo stesso host dell'app.",
                     "Controlla modello, porta e URL del runtime AI configurato.",
                     "Riesegui il bootstrap AI e riprova prima di usare Lex o Coverage AI.",
+                ],
+            }
+        )
+
+    imap_runtime = dict((payload.get("providers") or {}).get("pec_imap") or {})
+    imap_breaker = dict(imap_runtime.get("circuit_breaker") or {})
+    if bool(imap_breaker.get("open")):
+        alerts.append(
+            {
+                "severity": "warning",
+                "family": "COMUNICAZIONI",
+                "component": "PEC / IMAP",
+                "code": "IMAP_CIRCUIT_OPEN",
+                "title": "Sincronizzazione PEC temporaneamente sospesa",
+                "detail": str(
+                    imap_breaker.get("open_message")
+                    or imap_breaker.get("last_error")
+                    or "Il circuito IMAP e' aperto dopo errori ripetuti."
+                ),
+                "threshold": str((thresholds.get("imap_circuit_open") or {}).get("label") or ""),
+                "operator_message": "PEC temporaneamente sospesa: verifica server, rete o credenziali prima di rilanciare aggiorna o auto-esiti.",
+                "remediation": (
+                    "Controlla il server PEC/IMAP, la rete e le credenziali. "
+                    "Attendi la riapertura del circuito oppure riprova dopo il timeout di recovery."
+                ),
+                "remediation_steps": [
+                    "Verifica server PEC, porta IMAP e raggiungibilita' della rete.",
+                    "Controlla che le credenziali della casella PEC siano valide.",
+                    "Ripeti la sincronizzazione solo dopo il rientro del circuito da stato aperto.",
                 ],
             }
         )

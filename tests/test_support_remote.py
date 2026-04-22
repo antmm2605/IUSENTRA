@@ -6,6 +6,7 @@ from pathlib import Path
 from pct.auth import GestioneUtenti
 from web.app import create_app
 from web.services.support_runtime import support_repository
+from web.services.support_surface import build_support_console_payload
 from tests.test_web_bootstrap import _cfg_web, _seed_tenant_admin, _write_studio_config
 
 
@@ -210,3 +211,42 @@ def test_support_remote_escalation_requires_advanced_template(tmp_path: Path):
 
     assert escalation_response.status_code == 409
     assert "Controllo remoto avanzato non configurato" in escalation_response.get_data(as_text=True)
+
+
+def test_support_remote_platform_config_can_be_saved_from_console(tmp_path: Path):
+    app, superadmin, _, _ = _seed_runtime(tmp_path)
+
+    with app.test_client() as client:
+        with client.session_transaction() as session_tx:
+            session_tx["user_id"] = superadmin.id
+            session_tx["auth_scope"] = "global"
+            session_tx["auth_tenant_slug"] = ""
+            session_tx["last_activity"] = datetime.now().isoformat()
+
+        response = client.post(
+            "/admin/supporto-remoto/configurazione",
+            data={
+                "stun_urls": "stun:turn.example.it:3478",
+                "turn_urls": "turn:turn.example.it:3478?transport=udp",
+                "turn_shared_secret": "support-secret-demo",
+                "turn_ttl_seconds": "7200",
+                "ws_token_max_age": "1800",
+                "advanced_url_template": "https://support.example.it/advanced/{public_id}",
+            },
+            follow_redirects=True,
+        )
+
+    assert response.status_code == 200
+    assert "Configurazione assistenza remota aggiornata." in response.get_data(as_text=True)
+    assert app.config["SUPPORT_STUN_URLS"] == ["stun:turn.example.it:3478"]
+    assert app.config["SUPPORT_TURN_URLS"] == ["turn:turn.example.it:3478?transport=udp"]
+    assert app.config["SUPPORT_TURN_SHARED_SECRET"] == "support-secret-demo"
+    assert app.config["SUPPORT_TURN_TTL_SECONDS"] == 7200
+    assert app.config["SUPPORT_WS_TOKEN_MAX_AGE"] == 1800
+    assert app.config["SUPPORT_ADVANCED_URL_TEMPLATE"] == "https://support.example.it/advanced/{public_id}"
+
+    with app.test_request_context("/admin/supporto-remoto"):
+        payload = build_support_console_payload()
+
+    assert "TURN non configurato" not in " ".join(payload["warnings"])
+    assert payload["advanced_ready"] is True

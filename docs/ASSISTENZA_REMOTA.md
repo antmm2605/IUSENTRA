@@ -87,6 +87,12 @@ PCT_SUPPORT_TURN_TTL_SECONDS=3600
 PCT_SUPPORT_ADVANCED_URL_TEMPLATE=https://support.tuodominio.it/advanced/{public_id}
 ```
 
+Dal prodotto queste stesse impostazioni sono gestibili anche in:
+
+- `Piattaforma -> Assistenza remota -> Configurazione realtime`
+
+Il salvataggio aggiorna subito il runtime applicativo e persiste i valori nel file config piattaforma.
+
 ## Nginx e WebSocket
 
 Per funzionare dietro reverse proxy serve il blocco WebSocket dedicato su `/support/ws/`.

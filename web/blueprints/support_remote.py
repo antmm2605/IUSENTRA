@@ -20,6 +20,7 @@ from web.services.support_runtime import (
     support_session_payload,
 )
 from web.services.support_surface import build_support_console_payload
+from web.services.support_surface import save_support_configuration
 
 
 support_remote = Blueprint("support_remote", __name__)
@@ -55,6 +56,18 @@ def support_console_api():
             query=str(request.args.get("q") or "").strip(),
         )
     )
+
+
+@support_remote.post("/admin/supporto-remoto/configurazione")
+@superadmin_required
+def save_support_config():
+    try:
+        save_support_configuration(request.form.to_dict())
+    except Exception as exc:
+        flash(f"Configurazione assistenza remota non salvata: {exc}", "danger")
+        return redirect(url_for("support_remote.support_console"))
+    flash("Configurazione assistenza remota aggiornata.", "success")
+    return redirect(url_for("support_remote.support_console"))
 
 
 @support_remote.post("/support/api/session")

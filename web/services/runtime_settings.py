@@ -195,6 +195,47 @@ def apply_persistent_studio_overrides(app: Flask) -> None:
         if app.config["LOCAL_AI_CHAT_MODEL"]:
             app.config["OLLAMA_MODEL"] = app.config["LOCAL_AI_CHAT_MODEL"]
 
+        support_cfg = getattr(studio_cfg, "support_remote", None)
+        if support_cfg is not None:
+            app.config["SUPPORT_STUN_URLS"] = _list_from_runtime_value(
+                getattr(support_cfg, "stun_urls", app.config.get("SUPPORT_STUN_URLS", []))
+            )
+            app.config["SUPPORT_TURN_URLS"] = _list_from_runtime_value(
+                getattr(support_cfg, "turn_urls", app.config.get("SUPPORT_TURN_URLS", []))
+            )
+            app.config["SUPPORT_TURN_SHARED_SECRET"] = str(
+                getattr(
+                    support_cfg,
+                    "turn_shared_secret",
+                    app.config.get("SUPPORT_TURN_SHARED_SECRET", ""),
+                )
+                or ""
+            ).strip()
+            app.config["SUPPORT_TURN_TTL_SECONDS"] = int(
+                getattr(
+                    support_cfg,
+                    "turn_ttl_seconds",
+                    app.config.get("SUPPORT_TURN_TTL_SECONDS", 3600),
+                )
+                or 3600
+            )
+            app.config["SUPPORT_WS_TOKEN_MAX_AGE"] = int(
+                getattr(
+                    support_cfg,
+                    "ws_token_max_age",
+                    app.config.get("SUPPORT_WS_TOKEN_MAX_AGE", 43200),
+                )
+                or 43200
+            )
+            app.config["SUPPORT_ADVANCED_URL_TEMPLATE"] = str(
+                getattr(
+                    support_cfg,
+                    "advanced_url_template",
+                    app.config.get("SUPPORT_ADVANCED_URL_TEMPLATE", ""),
+                )
+                or ""
+            ).strip()
+
         app.config["SMTP_HOST"] = studio_cfg.smtp.host or os.getenv("PCT_SMTP_HOST", "")
         app.config["SMTP_PORT"] = studio_cfg.smtp.port or int(
             os.getenv("PCT_SMTP_PORT", "587")

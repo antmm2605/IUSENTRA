@@ -110,6 +110,8 @@ Requisiti operativi:
 - `STUN` consigliato
 - `TURN` raccomandato per reti esterne o NAT difficili
 
+La configurazione operativa (`STUN`, `TURN`, secret temporanei, URL controllo avanzato) e' salvabile direttamente dalla console `Piattaforma -> Assistenza remota`, senza modifica manuale dei file sul server.
+
 ## Strategia storage per studio
 
 La strategia storage non è più una scelta implicita o globale: viene definita dal `SUPERADMIN` quando crea lo studio e resta modificabile dal dettaglio tenant.

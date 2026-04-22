@@ -37,6 +37,7 @@ _CAMPI_CIFRATI: List[tuple[str, str]] = [
     ("firma",     "key_pem_password"),
     ("smtp",      "password"),
     ("whatsapp",  "twilio_token"),
+    ("support_remote", "turn_shared_secret"),
 ]
 
 
@@ -306,6 +307,16 @@ class ConfigLocalAI:
 
 
 @dataclass
+class ConfigSupportRemote:
+    stun_urls: List[str] = field(default_factory=list)
+    turn_urls: List[str] = field(default_factory=list)
+    turn_shared_secret: str = ""
+    turn_ttl_seconds: int = 3600
+    ws_token_max_age: int = 43200
+    advanced_url_template: str = ""
+
+
+@dataclass
 class ConfigStudio:
     studio: ConfigDatiStudio = field(default_factory=ConfigDatiStudio)
     pec: ConfigPEC = field(default_factory=ConfigPEC)
@@ -314,6 +325,7 @@ class ConfigStudio:
     whatsapp: ConfigWhatsApp = field(default_factory=ConfigWhatsApp)
     scheduler: ConfigScheduler = field(default_factory=ConfigScheduler)
     ai: ConfigLocalAI = field(default_factory=ConfigLocalAI)
+    support_remote: ConfigSupportRemote = field(default_factory=ConfigSupportRemote)
 
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)
@@ -331,6 +343,7 @@ class ConfigStudio:
             whatsapp=_pick(ConfigWhatsApp, d.get("whatsapp", {})),
             scheduler=_pick(ConfigScheduler, d.get("scheduler", {})),
             ai=_pick(ConfigLocalAI, d.get("ai", {})),
+            support_remote=_pick(ConfigSupportRemote, d.get("support_remote", {})),
         )
 
 
@@ -438,6 +451,22 @@ class GestioneConfigStudio:
                 embed_model=os.getenv("PCT_LOCAL_AI_EMBED_MODEL", ""),
                 keep_alive=os.getenv("PCT_LOCAL_AI_KEEP_ALIVE", "10m"),
                 auto_index_documents=os.getenv("PCT_LOCAL_AI_AUTO_INDEX_DOCUMENTS", "1").lower() not in {"0", "false", "no"},
+            ),
+            support_remote=ConfigSupportRemote(
+                stun_urls=[
+                    item.strip()
+                    for item in str(os.getenv("PCT_SUPPORT_STUN_URLS", "") or "").replace(";", ",").split(",")
+                    if item.strip()
+                ],
+                turn_urls=[
+                    item.strip()
+                    for item in str(os.getenv("PCT_SUPPORT_TURN_URLS", "") or "").replace(";", ",").split(",")
+                    if item.strip()
+                ],
+                turn_shared_secret=os.getenv("PCT_SUPPORT_TURN_SHARED_SECRET", ""),
+                turn_ttl_seconds=int(os.getenv("PCT_SUPPORT_TURN_TTL_SECONDS", "3600") or "3600"),
+                ws_token_max_age=int(os.getenv("PCT_SUPPORT_WS_TOKEN_MAX_AGE", "43200") or "43200"),
+                advanced_url_template=os.getenv("PCT_SUPPORT_ADVANCED_URL_TEMPLATE", ""),
             ),
         )
 

@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.180.1 - 2026-04-22
+
+- La console `Piattaforma -> Assistenza remota` permette ora al `SUPERADMIN` di configurare direttamente da UI i parametri operativi del modulo: `STUN`, `TURN`, secret condiviso, TTL, durata token WebSocket e `SUPPORT_ADVANCED_URL_TEMPLATE`.
+- Il runtime applica subito i valori salvati senza restart manuale e li persiste nella configurazione piattaforma, cosi' i warning di readiness non restano piu' messaggi senza azione possibile.
+- Il secret TURN non viene sovrascritto se il campo resta vuoto in modifica, e il modulo continua a bloccare l'escalation avanzata solo quando manca davvero la configurazione necessaria.
+
 ## 2.180.0 - 2026-04-22
 
 - Introdotto il modulo `Assistenza remota cliente` governato solo dal `SUPERADMIN`, con console piattaforma dedicata (`/admin/supporto-remoto`), creazione sessione da dashboard studio, scheda cliente e dettaglio fascicolo.

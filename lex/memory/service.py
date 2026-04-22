@@ -1,5 +1,3 @@
-"""Servizio memoria del bounded context Lex."""
-
 from __future__ import annotations
 
 from dataclasses import asdict, is_dataclass
@@ -49,12 +47,20 @@ class LexMemoryService:
         all_facts = [fact for pack in module_packs for fact in list(getattr(pack, "facts", []) or [])]
         all_events = [event for pack in module_packs for event in list(getattr(pack, "events", []) or [])]
 
+        response_metadata = dict(getattr(response, "metadata", {}) or {})
+        response_confidence = float(getattr(response, "confidence", 0.0) or response_metadata.get("confidence") or 0.0)
+        source_summary = list(getattr(response, "considered_sources", []) or response_metadata.get("considered_sources") or [])
+        missing_evidence = list(getattr(response, "missing_evidence", []) or response_metadata.get("missing_evidence") or [])
+
         self.session_state.update(
             session_id,
             {
                 "last_query": str(getattr(request, "query", "") or ""),
                 "last_answer": str(getattr(response, "answer", "") or ""),
                 "workflow": workflow,
+                "confidence": response_confidence,
+                "considered_sources": source_summary,
+                "missing_evidence": missing_evidence,
             },
         )
         if fascicolo_id:
@@ -64,6 +70,9 @@ class LexMemoryService:
                     "last_query": str(getattr(request, "query", "") or ""),
                     "last_answer": str(getattr(response, "answer", "") or ""),
                     "workflow": workflow,
+                    "confidence": response_confidence,
+                    "considered_sources": source_summary,
+                    "missing_evidence": missing_evidence,
                 },
             )
 
@@ -98,7 +107,7 @@ class LexMemoryService:
             economic_facts=economic_facts,
         )
 
-        metadata = dict(getattr(response, "metadata", {}) or {})
+        metadata = dict(response_metadata)
         metadata.update(
             {
                 "module_packs": self._serialize(module_packs),
@@ -109,6 +118,13 @@ class LexMemoryService:
                 "trusted_sources": list(evidence_pack.get("trusted_sources") or []),
                 "facts_count": len(all_facts),
                 "events_count": len(all_events),
+                "confidence": response_confidence,
+                "considered_sources": source_summary,
+                "missing_evidence": missing_evidence,
+                "workflow_outcome": "grounded" if response_confidence >= 0.7 else "needs_review",
+                "fallback_triggered": bool((evidence or {}).get("fallback_triggered")),
+                "evidence_sufficient": bool((evidence or {}).get("evidence_sufficient")),
+                "coverage_gaps": list((evidence or {}).get("coverage_gaps") or []),
             }
         )
         response.metadata = metadata

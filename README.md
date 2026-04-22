@@ -28,6 +28,7 @@ La repo oggi non è più solo un tool CLI per il Processo Civile Telematico: con
 - Workspace/applicazioni, portali di acquisizione, privacy e audit.
 - Registro audit storico spiegabile: se un fascicolo e' stato migrato, ricreato o rimosso, la UI segnala se l'evento e' attivo, riconciliato verso il fascicolo corrente oppure solo storico.
 - Runtime AI locale con Lex come strato linguistico sopra motori deterministici.
+- Lex usa ora fast-path deterministici per i casi operativi, fallback automatico a fonti ufficiali quando il retrieval interno non basta e guardrail che degradano o bloccano le risposte legali senza riferimenti verificati, esponendo sempre `official_sources`, `coverage_gaps`, `fallback_triggered` e confronto fonti nella risposta finale.
 - Multi-tenant amministrabile dalla piattaforma.
 
 ## Architettura

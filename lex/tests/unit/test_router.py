@@ -16,7 +16,7 @@ def _request(intent: str):
 
 def test_router_resolves_telematico_workflow():
     workflow = LexRouter().resolve_workflow(_request("explain_telematico_error"))
-    assert workflow == "telematico"
+    assert workflow == "telematico_status"
 
 
 def test_router_resolves_atto_workflow():
@@ -26,4 +26,22 @@ def test_router_resolves_atto_workflow():
 
 def test_router_defaults_to_chat():
     workflow = LexRouter().resolve_workflow(_request("ask_lex"))
-    assert workflow == "chat"
+    assert workflow == "question_answering"
+
+
+def test_router_infers_normativa_from_query_text():
+    request = _request("ask_lex")
+    request.query = "Qual e la normativa vigente sul deposito telematico?"
+
+    workflow = LexRouter().resolve_workflow(request)
+
+    assert workflow == "normativa"
+
+
+def test_router_infers_economico_from_query_text():
+    request = _request("ask_lex")
+    request.query = "Calcola il preventivo e la parcella della pratica"
+
+    workflow = LexRouter().resolve_workflow(request)
+
+    assert workflow == "economico"

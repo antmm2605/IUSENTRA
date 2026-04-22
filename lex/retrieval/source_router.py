@@ -1,5 +1,3 @@
-"""Scelta delle fonti di retrieval per workflow Lex."""
-
 from __future__ import annotations
 
 from .sources.agenda import AgendaSource
@@ -19,29 +17,41 @@ from .sources.template_atti import TemplateAttiSource
 
 class SourceRouter:
     def resolve(self, request, context, workflow: str):
-        sources = [GiurisprudenzaSource(), LegalIntelligenceSource(), NormativeSource()]
+        local_sources = []
+        legal_sources = []
+        workflow_sources = []
 
         if request.fascicolo_id:
-            sources.insert(0, FascicoliSource())
-            sources.insert(1, DocumentiSource())
+            local_sources.extend([FascicoliSource(), DocumentiSource()])
 
-        if workflow == "telematico":
-            sources.append(TelematicoSource())
-            sources.append(ComplianceSource())
+        legal_sources.extend([LegalIntelligenceSource(), NormativeSource(), GiurisprudenzaSource()])
 
-        if workflow == "udienza":
-            sources.append(AgendaSource())
-            sources.append(ScadenziarioSource())
+        if workflow in {"telematico", "telematico_status"}:
+            workflow_sources.extend([TelematicoSource(), ComplianceSource()])
+        elif workflow == "udienza":
+            workflow_sources.extend([AgendaSource(), ScadenziarioSource()])
+        elif workflow == "atto":
+            workflow_sources.extend([TemplateAttiSource(), ComplianceSource()])
+        elif workflow == "economico":
+            workflow_sources.extend([PreventiviSource(), ApplicazioniSource()])
+        elif workflow == "cabina":
+            workflow_sources.extend([AgendaSource(), ScadenziarioSource(), ApplicazioniSource()])
+        elif workflow == "compliance":
+            workflow_sources.extend([ComplianceSource(), TemplateAttiSource()])
+        elif workflow in {"documento", "fascicolo"} and not request.fascicolo_id:
+            workflow_sources.extend([DocumentiSource()])
 
-        if workflow == "atto":
-            sources.append(TemplateAttiSource())
-            sources.append(ComplianceSource())
-
-        if workflow == "chat":
-            sources.append(PreventiviSource())
-            sources.append(ApplicazioniSource())
+        ordered = [*local_sources, *workflow_sources, *legal_sources]
 
         if OfficialWebSource.should_include(request, workflow):
-            sources.append(OfficialWebSource())
+            ordered.append(OfficialWebSource())
 
-        return sources
+        seen = set()
+        unique = []
+        for source in ordered:
+            key = source.__class__.__name__
+            if key in seen:
+                continue
+            unique.append(source)
+            seen.add(key)
+        return unique

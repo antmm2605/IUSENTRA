@@ -35,10 +35,18 @@ La logica governabile vera vive in:
 
 1. `classify_request(...)` profila intento, rischio, modalita' fonti e schema risposta.
 2. `build_lex_studio_context(...)` raccoglie contesto interno e, se utile, fonti ufficiali.
-3. `evaluate_source_row(...)` assegna tier, score e affidabilita' alle fonti.
-4. `summarize_evaluated_sources(...)` decide warning e blocchi prudenziali.
-5. `GroundingGuard` produce `confidence`, `confidence_label` e motivazione.
-6. `AnswerBuilder` e il widget UI mostrano risposta, fonti e affidabilita'.
+3. `SourceRouter` prova prima fonti interne e attiva `OfficialWebSource` solo quando la domanda o il gap di evidenza lo richiedono.
+4. `rank_evidence(...)` pesa ogni fonte con trust, freshness, context fit e consensus, non solo con lo score di retrieval.
+5. `LegalReferenceGuard` blocca o degrada le richieste legali ad alto rischio se non emergono riferimenti verificati o PDF ufficiali.
+6. `AnswerBuilder` espone nella `LexResponse` i campi governati finali: `official_sources`, `coverage_gaps`, `fallback_triggered`, `compared_sources`, `confidence`, `answer_mode`.
+
+## Fast-path operativi
+
+- `cabina`, `next_action`, `economico`, `telematico_status`, `compliance`
+  usano il provider deterministico locale per risposte rapide, spiegabili e senza dipendenza dal runtime generativo.
+- `normativa`, `giurisprudenza`, `prassi`, `fonti`
+  restano workflow con retrieval, confronto fonti e obbligo di riferimenti ufficiali verificati.
+- Se il pacchetto evidenze non e' sufficiente, Lex non completa in modo plausibile: produce risposta degradata con warning e gap evidenza.
 
 ## Modalita'
 
@@ -66,6 +74,7 @@ La logica governabile vera vive in:
 
 Copertura minima dedicata:
 
+- `lex/tests/unit/test_bundle_scenarios.py`
 - `lex/tests/unit/test_source_policy.py`
 - `tests/test_local_ai.py`
 - `tests/test_web_bootstrap.py`

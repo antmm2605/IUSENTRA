@@ -1,5 +1,6 @@
 """Provider del bounded context Lex."""
 
+from .deterministic_provider import DeterministicProvider
 from .health import provider_health, resolved_runtime, warm_runtime
 from .local_ai_service import get_local_ai_service
 from .local_llm import LocalLLMProvider
@@ -17,6 +18,7 @@ from .ollama_runtime import (
 from .registry import ProviderRegistry
 
 __all__ = [
+    "DeterministicProvider",
     "LocalLLMProvider",
     "ProviderRegistry",
     "clear_ollama_runtime_resolution_cache",

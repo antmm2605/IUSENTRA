@@ -1,5 +1,3 @@
-"""Contratti applicativi del bounded context Lex."""
-
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -11,6 +9,7 @@ from .types import (
     IntentType,
     ModuleType,
     PackStatus,
+    ProviderType,
     RiskLevel,
     SourceType,
     WorkflowType,
@@ -28,6 +27,10 @@ class LexRequest:
     document_id: str | None = None
     workflow_hint: str | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
+    allow_external_research: bool = True
+    require_citations: bool = False
+    require_official_sources: bool = False
+    max_latency_ms: int | None = None
 
 
 @dataclass(slots=True)
@@ -39,6 +42,11 @@ class Citation:
     confidence: float = 0.0
     authority: str = ""
     url: str | None = None
+    trust_class: str = ""
+    source_level: int = 0
+    verified_reference: bool = False
+    published_at: str | None = None
+    freshness_score: float = 0.0
 
 
 @dataclass(slots=True)
@@ -49,6 +57,16 @@ class EvidenceItem:
     content: str
     score: float
     metadata: dict[str, Any] = field(default_factory=dict)
+    trust_class: str = ""
+    source_level: int = 0
+    trust_score: float = 0.0
+    freshness_score: float = 0.0
+    context_fit_score: float = 0.0
+    consensus_score: float = 0.0
+    verified_reference: bool = False
+    authority: str = ""
+    published_at: str | None = None
+    official_url: str | None = None
 
 
 @dataclass(slots=True)
@@ -71,6 +89,19 @@ class GuardVerdict:
 @dataclass(slots=True)
 class ProviderDraft:
     text: str
+    metadata: dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass(slots=True)
+class AnswerContract:
+    workflow: WorkflowType
+    sections: list[str] = field(default_factory=list)
+    require_citations: bool = False
+    require_official_sources: bool = False
+    require_source_comparison: bool = False
+    allow_abstention: bool = True
+    provider_hint: ProviderType | None = None
+    target_latency_ms: int | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
 
 
@@ -137,6 +168,15 @@ class EvidencePack:
     trusted_sources: list[str] = field(default_factory=list)
     freshness: dict[str, Any] = field(default_factory=dict)
     metadata: dict[str, Any] = field(default_factory=dict)
+    aggregate_trust_score: float = 0.0
+    aggregate_freshness_score: float = 0.0
+    aggregate_context_fit_score: float = 0.0
+    aggregate_consensus_score: float = 0.0
+    compared_sources: list[dict[str, Any]] = field(default_factory=list)
+    conflicting_items: list[str] = field(default_factory=list)
+    coverage_gaps: list[str] = field(default_factory=list)
+    needs_human_review: bool = False
+    sufficient: bool = False
 
 
 @dataclass(slots=True)
@@ -158,3 +198,56 @@ class LexResponse:
     next_actions: list[str] = field(default_factory=list)
     risk_level: RiskLevel = "low"
     metadata: dict[str, Any] = field(default_factory=dict)
+    legal_basis: list[str] = field(default_factory=list)
+    considered_sources: list[str] = field(default_factory=list)
+    compared_sources: list[dict[str, Any]] = field(default_factory=list)
+    missing_evidence: list[str] = field(default_factory=list)
+    confidence: float = 0.0
+    answer_mode: str = "grounded"
+    evidence_summary: dict[str, Any] = field(default_factory=dict)
+
+
+def answer_contract_for(workflow: WorkflowType) -> AnswerContract:
+    if workflow == "fascicolo":
+        return AnswerContract(
+            workflow=workflow,
+            sections=["risposta", "fonti_considerate", "prossime_azioni"],
+            require_citations=True,
+            allow_abstention=True,
+            target_latency_ms=2500,
+        )
+    if workflow == "udienza":
+        return AnswerContract(
+            workflow=workflow,
+            sections=["risposta", "timeline", "criticita", "prossime_azioni"],
+            require_citations=True,
+            allow_abstention=True,
+            target_latency_ms=3000,
+        )
+    if workflow in {"normativa", "giurisprudenza", "prassi", "research", "fonti"}:
+        return AnswerContract(
+            workflow=workflow,
+            sections=["risposta", "base_legale", "fonti_considerate", "confronto_fonti", "limiti"],
+            require_citations=True,
+            require_official_sources=True,
+            require_source_comparison=True,
+            allow_abstention=True,
+            provider_hint="ollama",
+            target_latency_ms=4500,
+        )
+    if workflow in {"economico", "next_action", "cabina", "telematico_status", "compliance"}:
+        return AnswerContract(
+            workflow=workflow,
+            sections=["risposta", "dati_usati", "prossima_azione"],
+            require_citations=False,
+            allow_abstention=False,
+            provider_hint="deterministic",
+            target_latency_ms=1200,
+        )
+    return AnswerContract(
+        workflow=workflow,
+        sections=["risposta", "fonti_considerate"],
+        require_citations=False,
+        allow_abstention=True,
+        target_latency_ms=2500,
+    )

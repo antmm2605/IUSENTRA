@@ -8,6 +8,7 @@ from lex.contracts import Citation
 def build_citations(items):
     citations: list[Citation] = []
     for item in list(items or []):
+        metadata = dict(getattr(item, "metadata", {}) or {})
         citations.append(
             Citation(
                 source_type=item.source_type,
@@ -15,8 +16,13 @@ def build_citations(items):
                 title=item.title,
                 excerpt=item.content[:240],
                 confidence=float(item.score),
-                authority=str(item.metadata.get("authority") or ""),
-                url=item.metadata.get("url"),
+                authority=str(getattr(item, "authority", "") or metadata.get("authority") or ""),
+                url=getattr(item, "official_url", None) or metadata.get("official_url") or metadata.get("url"),
+                trust_class=str(getattr(item, "trust_class", "") or metadata.get("trust_class") or ""),
+                source_level=int(getattr(item, "source_level", 0) or metadata.get("source_level") or 0),
+                verified_reference=bool(getattr(item, "verified_reference", False) or metadata.get("verified_reference")),
+                published_at=getattr(item, "published_at", None) or metadata.get("published_at"),
+                freshness_score=float(getattr(item, "freshness_score", 0.0) or metadata.get("freshness_score") or 0.0),
             )
         )
     return citations

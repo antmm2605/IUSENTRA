@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.178.11 - 2026-04-22
+
+- Integrato il bundle `Lex` con router applicativo piu' ricco, provider deterministico locale per i workflow operativi (`cabina`, `economico`, `telematico_status`, `compliance`, `next_action`) e registry provider riallineato ai nuovi contratti.
+- Il retrieval Lex ora attiva davvero il fallback verso fonti ufficiali esterne quando l'evidenza interna non basta, confronta le fonti con trust/freshness/context fit/consensus ed espone nel payload finale `official_sources`, `coverage_gaps`, `fallback_triggered`, `compared_sources` ed `evidence_sufficient`.
+- Rafforzati i guardrail legali: le richieste di sentenze, riferimenti puntuali e PDF vengono degradate o bloccate se non emergono riferimenti verificati, invece di completarsi in modo plausibile.
+- Aggiunti test dedicati per i 5 scenari chiave del bundle (`sentenza con numero/PDF`, `normativa con fallback ufficiale`, `errore telematico`, `riassunto fascicolo`, `caso economico preventivo/tariffario/fattura`) e riallineata la suite Lex ai nuovi workflow.
+
 ## 2.178.10 - 2026-04-20
 
 - Corrette le date nella pagina `Email`: l'elenco e il dettaglio usano ora i filtri condivisi italiani e non mostrano piu' formati `mm/dd`.

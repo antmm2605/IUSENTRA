@@ -2,7 +2,29 @@
 
 from __future__ import annotations
 
+from types import SimpleNamespace
+
+from .contracts import answer_contract_for
 from .exceptions import LexGuardError
+
+
+def _guardrail_reply(request, workflow: str, evidence: dict, verdict) -> str:
+    coverage_gaps = list((evidence or {}).get("coverage_gaps") or [])
+    base_lines: list[str] = []
+    if workflow in {"normativa", "giurisprudenza", "prassi", "research", "fonti"}:
+        base_lines.append(
+            "Non posso completare una risposta legale affidabile con i riferimenti oggi verificati."
+        )
+    else:
+        base_lines.append(
+            "La richiesta richiede una verifica aggiuntiva prima di produrre una risposta affidabile."
+        )
+    for warning in list(getattr(verdict, "warnings", []) or [])[:2]:
+        base_lines.append(f"Avviso: {warning}")
+    for gap in coverage_gaps[:2]:
+        base_lines.append(f"Gap evidenza: {gap}")
+    base_lines.append("Azione suggerita: integra fonti ufficiali o valida manualmente il passaggio critico.")
+    return "\n".join(base_lines)
 
 
 def run_workflow(orchestrator, request):
@@ -27,7 +49,18 @@ def run_workflow(orchestrator, request):
 
     post = orchestrator.guard_orchestrator.run_post(request, context, workflow, evidence, draft)
     if not post.allowed:
-        raise LexGuardError("; ".join(post.reasons or ["Response blocked by guards"]))
+        contract = answer_contract_for(workflow)
+        if not contract.allow_abstention:
+            raise LexGuardError("; ".join(post.reasons or ["Response blocked by guards"]))
+        draft = SimpleNamespace(
+            text=_guardrail_reply(request, workflow, evidence, post),
+            metadata={
+                "provider": "guardrail",
+                "status": "blocked",
+                "guard_blocked": True,
+                "reason": "; ".join(post.reasons or []),
+            },
+        )
 
     response = orchestrator.response_formatter.build_response(
         request=request,

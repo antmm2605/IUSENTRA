@@ -14,7 +14,7 @@ class PassFilters:
         return list(results)
 
 
-class OfficialSource:
+class OfficialWebSource:
     source_name = "official_web"
 
     def search(self, queries, request, context):
@@ -25,33 +25,42 @@ class OfficialSource:
                 title="Ministero della Giustizia",
                 content="Fonte ufficiale disponibile",
                 score=0.95,
+                authority="Ministero della Giustizia",
+                official_url="https://www.giustizia.it/it/fonte",
+                trust_class="B",
+                source_level=2,
+                verified_reference=True,
                 metadata={"url": "https://www.giustizia.it/it/fonte", "authority": "official"},
-            )
+            ),
+            EvidenceItem(
+                source_type="web_ufficiale",
+                source_id="off-2",
+                title="Normattiva",
+                content="Testo consolidato disponibile",
+                score=0.93,
+                authority="Normattiva",
+                official_url="https://www.normattiva.it/atto",
+                trust_class="A",
+                source_level=1,
+                verified_reference=True,
+                metadata={"url": "https://www.normattiva.it/atto", "authority": "official"},
+            ),
         ]
 
 
-class NormativeSource:
+class EmptyNormativeSource:
     source_name = "normative"
 
     def search(self, queries, request, context):
-        return [
-            EvidenceItem(
-                source_type="normativa",
-                source_id="norma-1",
-                title="Normattiva",
-                content="Testo consolidato disponibile",
-                score=0.84,
-                metadata={"url": "https://www.normattiva.it/atto", "authority": "institutional"},
-            )
-        ]
+        return []
 
 
 class StaticRouter:
     def resolve(self, request, context, workflow):
-        return [OfficialSource(), NormativeSource()]
+        return [EmptyNormativeSource(), OfficialWebSource()]
 
 
-def test_retrieval_orchestrator_builds_evidence_pack_with_official_and_trusted_sources():
+def test_retrieval_orchestrator_triggers_official_fallback_and_builds_comparison():
     orchestrator = RetrievalOrchestrator(
         query_planner=StaticPlanner(),
         source_router=StaticRouter(),
@@ -64,9 +73,13 @@ def test_retrieval_orchestrator_builds_evidence_pack_with_official_and_trusted_s
         query="aggiorna le fonti ufficiali sul tema",
     )
 
-    payload = orchestrator.collect(request, {"studio": {"effective_question": request.query}}, "chat")
+    payload = orchestrator.collect(request, {"studio": {"effective_question": request.query}}, "normativa")
 
-    assert payload["official_sources"] == ["Ministero della Giustizia", "Normattiva"]
+    assert sorted(payload["official_sources"]) == ["Ministero della Giustizia", "Normattiva"]
     assert "Normattiva" in payload["trusted_sources"]
     assert payload["retrieval_context"]["official_web_requested"] is True
-    assert payload["evidence_pack"]["metadata"]["workflow"] == "chat"
+    assert payload["evidence_pack"]["metadata"]["workflow"] == "normativa"
+    assert payload["fallback_triggered"] is True
+    assert payload["evidence_sufficient"] is True
+    assert len(payload["source_comparison"]) == 2
+    assert payload["coverage_gaps"] == []

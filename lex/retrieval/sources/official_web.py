@@ -138,6 +138,11 @@ class OfficialWebSource:
                     title=_clean_spaces(row.get("title") or source_name) or source_name,
                     content=_clean_spaces(row.get("excerpt") or f"Risorsa ufficiale trovata su {source_name}."),
                     score=score,
+                    trust_class="A",
+                    source_level=1,
+                    verified_reference=True,
+                    authority=source_name or "Fonte ufficiale",
+                    official_url=_clean_spaces(row.get("official_url") or url) or None,
                     metadata={
                         "authority": "official_web",
                         "url": url,

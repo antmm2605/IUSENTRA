@@ -18,6 +18,8 @@ def test_get_tier_for_domain_resta_deterministico_su_domini_noti_e_sconosciuti()
     domains = [
         "normattiva.it",
         "gazzettaufficiale.it",
+        "www.inipec.gov.it",
+        "accessoallebanchedati.registroimprese.it",
         "altalex.com",
         "wikipedia.org",
         "dominio-sconosciuto.example",

@@ -80,3 +80,21 @@ def test_source_router_aggiunge_official_web_source_su_richiesta_web():
     sources = router.resolve(request, {}, "chat")
 
     assert any(isinstance(source, OfficialWebSource) for source in sources)
+
+
+def test_official_web_source_traccia_fonti_partner_quando_non_esiste_fallback_pubblico():
+    source = OfficialWebSource(request_get=lambda *args, **kwargs: _FakeResponse("<html><body></body></html>"))
+    request = LexRequest(
+        tenant_id="tenant-demo",
+        user_id="u1",
+        session_id="s1",
+        query="Vorrei una visura dal registro imprese",
+        metadata={"source_ids": ["registro_imprese_api"]},
+    )
+
+    items = source.search(["visura registro imprese"], request=request, context={"workflow": "chat"})
+
+    registry_context = request.metadata.get("source_registry") or {}
+    assert items == []
+    assert registry_context["partner_sources"][0]["key"] == "registro_imprese_api"
+    assert registry_context["credentialed_sources"][0]["key"] == "registro_imprese_api"

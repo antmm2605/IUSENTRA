@@ -2,18 +2,20 @@ from setuptools import setup, find_packages
 
 setup(
     name="pct-studio-legale",
-    version="2.181.0",
+    version="2.182.0",
     description="IUSENTRA: gestionale web modulare per studi legali con PCT, Lex locale e servizi telematici",
     packages=find_packages(),
     include_package_data=True,
     package_data={
         "pct": ["data/*.json", "sql/*.sql"],
+        "lex": ["research/source_policy/*.yaml"],
     },
     python_requires=">=3.9",
     install_requires=[
         "cryptography>=41.0.0",
         "lxml>=4.9.0",
         "python-dotenv>=1.0.0",
+        "PyYAML>=6.0.2",
         "requests>=2.31.0",
         "click>=8.1.0",
         "flask>=3.0.0",

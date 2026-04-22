@@ -42,6 +42,35 @@ La logica governabile vera vive in:
 7. `LexRetrievalCache` applica una cache TTL tenant-aware sul retrieval, cosi' le richieste ripetute dello stesso studio non riattivano inutilmente lo stesso giro di sorgenti.
 8. Il bridge HTTP del widget chat porta lo stesso messaggio dentro il bounded workflow quando la richiesta e' operativa o legale, trasferendo `focus`, `request_profile`, `execution_policy`, messaggi di sessione e fallback web consentito.
 
+## Catalogo fonti governate
+
+Lex carica ora anche il catalogo fonti da `lex/research/source_policy/sources_registry.yaml`, derivato dal kit operativo delle fonti ufficiali, partner e riservate.
+
+Ogni fonte puo' essere classificata come:
+
+- `API aperta`
+- `Open data`
+- `Registrazione richiesta`
+- `Fonte partner con credenziali`
+- `Portale o canale istituzionale`
+- `Portale riservato`
+
+Effetti reali nel prodotto:
+
+- i domini del catalogo entrano nel ranking della source policy e non restano piu' `unknown`;
+- `OfficialWebSource` prova il fallback web solo sulle fonti davvero compatibili con ricerca pubblica;
+- le fonti `partner` o `riservate` non producono risultati finti: finiscono nei `coverage_gaps` e nei `next_actions`;
+- il payload finale di Lex conserva i badge di accesso (`source_access_label`, `source_requires_credentials`, `source_restricted`) fino al widget UI.
+
+Esempi coperti:
+
+- `Normattiva`, `Gazzetta Ufficiale`, `EUR-Lex`, `OpenGA`
+- `Registro Imprese`
+- `INI-PEC`
+- `PST / ReGIndE / PdA`
+- `PAT / SIGA`
+- `PTT / SIGIT`
+
 ## Fast-path operativi
 
 - `cabina`, `next_action`, `economico`, `telematico_status`, `compliance`
@@ -75,6 +104,8 @@ La logica governabile vera vive in:
 - `lex/orchestrator_http.py`
 - `lex/http_bounded_bridge.py`
 - `web/static/js/pct-lex-assistant.js`
+- `lex/research/source_registry.py`
+- `lex/research/source_policy/sources_registry.yaml`
 
 ## Test
 
@@ -84,6 +115,7 @@ Copertura minima dedicata:
 - `lex/tests/test_http_bounded_bridge.py`
 - `lex/tests/unit/test_source_policy.py`
 - `lex/tests/unit/test_source_policy_invariants.py`
+- `lex/tests/unit/test_source_registry.py`
 - `tests/test_telematico_resilience.py`
 - `tests/test_local_ai.py`
 - `tests/test_runtime_resilience.py`

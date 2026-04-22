@@ -23,6 +23,10 @@ class AnswerBuilder:
         fallback_triggered = bool((evidence or {}).get("fallback_triggered") or evidence_pack.get("fallback_triggered"))
         evidence_sufficient = bool((evidence or {}).get("evidence_sufficient") or evidence_pack.get("sufficient"))
         retrieval_cache = dict((evidence or {}).get("cache") or {})
+        requested_registry_sources = list(evidence_pack.get("metadata", {}).get("source_registry_requested") or [])
+        restricted_registry_sources = list(evidence_pack.get("metadata", {}).get("source_registry_restricted") or [])
+        partner_registry_sources = list(evidence_pack.get("metadata", {}).get("source_registry_partner") or [])
+        credentialed_registry_sources = list(evidence_pack.get("metadata", {}).get("source_registry_credentialed") or [])
         evidence_count = len(list((evidence or {}).get("items") or []))
         aggregate_trust = float(evidence_pack.get("aggregate_trust_score") or 0.0)
         aggregate_freshness = float(evidence_pack.get("aggregate_freshness_score") or 0.0)
@@ -58,6 +62,10 @@ class AnswerBuilder:
             next_actions.append("Verifica le fonti esterne ufficiali utilizzate nel fallback")
         if missing_evidence and "Colma i gap di evidenza prima di chiudere la risposta" not in next_actions:
             next_actions.append("Colma i gap di evidenza prima di chiudere la risposta")
+        if restricted_registry_sources:
+            next_actions.append("Se serve una fonte riservata, usa le credenziali o il portale dedicato dello studio")
+        elif partner_registry_sources or credentialed_registry_sources:
+            next_actions.append("Per le fonti partner, verifica credenziali e abilitazioni prima di chiudere il parere")
 
         return WorkflowLexResponse(
             answer=str(getattr(draft, "text", "") or "").strip(),
@@ -77,6 +85,9 @@ class AnswerBuilder:
                 "trusted_count": len(trusted_sources),
                 "fallback_triggered": fallback_triggered,
                 "evidence_sufficient": evidence_sufficient,
+                "requested_source_count": len(requested_registry_sources),
+                "restricted_source_count": len(restricted_registry_sources),
+                "partner_source_count": len(partner_registry_sources),
             },
             metadata={
                 "workflow": workflow,
@@ -89,6 +100,10 @@ class AnswerBuilder:
                 "evidence_sufficient": evidence_sufficient,
                 "compared_sources": compared_sources,
                 "retrieval_cache": retrieval_cache,
+                "source_registry_requested": requested_registry_sources,
+                "restricted_sources": restricted_registry_sources,
+                "partner_sources": partner_registry_sources,
+                "credentialed_sources": credentialed_registry_sources,
                 "confidence": confidence,
                 "answer_mode": answer_mode,
             },

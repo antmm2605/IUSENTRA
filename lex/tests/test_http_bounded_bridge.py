@@ -119,3 +119,64 @@ def test_http_bridge_attiva_ricerca_web_quando_manca_contesto_interno(monkeypatc
     assert service.last_request.require_official_sources is True
     assert service.last_request.require_citations is True
     assert service.last_request.workflow_hint == "giurisprudenza"
+
+
+def test_http_bridge_propaga_badge_fonti_governate_partner_e_riservate(monkeypatch):
+    response = LexResponse(
+        answer="La fonte richiesta e governata ma richiede credenziali dedicate.",
+        citations=[
+            Citation(
+                source_type="web_ufficiale",
+                source_id="live-web-search:abc",
+                title="Registro Imprese",
+                excerpt="Accesso partner con credenziali.",
+                confidence=0.71,
+            )
+        ],
+        confidence=0.71,
+        answer_mode="grounded",
+        compared_sources=[
+            {
+                "title": "Registro Imprese",
+                "source_registry_key": "registro_imprese_api",
+                "source_access_status": "partner_api",
+                "source_access_label": "Fonte partner con credenziali",
+                "source_requires_credentials": True,
+                "source_restricted": True,
+            }
+        ],
+        metadata={
+            "workflow": "normativa",
+            "provider": "ollama",
+            "partner_sources": [{"key": "registro_imprese_api"}],
+            "restricted_sources": [{"key": "registro_imprese_api"}],
+        },
+        evidence_summary={"official_count": 1, "trusted_count": 0, "fallback_triggered": True},
+    )
+    service = DummyLexService(response)
+    monkeypatch.setattr("lex.http_bounded_bridge._application_lex_service", lambda: service)
+
+    payload = build_bounded_http_payload(
+        user=SimpleNamespace(username="admin"),
+        studio=SimpleNamespace(slug="antonella-mammola"),
+        data={"session_id": "sess-3", "messages": [], "mode": "chat"},
+        current_user_message="Mi serve una visura dal registro imprese",
+        resolved_effective_question="Mi serve una visura dal registro imprese",
+        studio_context=_studio_context(
+            sources=[],
+            structured_context={},
+            focus_label="ricerca legale aggiornata",
+            focus_topic="sentenze_web",
+            request_profile={
+                "intent": "normativa",
+                "source_mode": "strict",
+                "needs_external_validation": True,
+                "drafting_mode": False,
+            },
+            source_mode="strict",
+        ),
+    )
+
+    assert payload is not None
+    assert payload["sources"][0]["source_access_label"] == "Fonte partner con credenziali"
+    assert payload["sources"][0]["source_requires_credentials"] is True

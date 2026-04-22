@@ -275,13 +275,33 @@
     sources.forEach(function (item) {
       var title = String(item && (item.title || item.citation || item.id || '') || '').trim();
       var excerpt = String(item && (item.excerpt || item.text || '') || '').trim();
+      var accessLabel = String(item && (item.source_access_label || item.access_label || '') || '').trim();
+      var requiresCredentials = Boolean(item && item.source_requires_credentials);
+      var restricted = Boolean(item && item.source_restricted);
+      var badge = accessLabel
+        ? '<span class="badge rounded-pill bg-secondary-subtle text-secondary-emphasis me-1">' + escapeHtml(accessLabel) + '</span>'
+        : '';
+      if (requiresCredentials) {
+        badge += '<span class="badge rounded-pill bg-warning-subtle text-warning-emphasis me-1">Credenziali</span>';
+      }
+      if (restricted) {
+        badge += '<span class="badge rounded-pill bg-danger-subtle text-danger-emphasis">Riservata</span>';
+      }
+      var note = '';
+      if (restricted) {
+        note = 'Questa fonte non e utilizzabile via web pubblico: serve il portale o il canale dedicato dello studio.';
+      } else if (requiresCredentials) {
+        note = 'Questa fonte richiede credenziali o abilitazioni dedicate prima della consultazione completa.';
+      }
       if (!title && !excerpt) {
         return;
       }
       items.push(
         '<li>' +
           '<span class="fw-semibold">' + escapeHtml(title || 'Fonte') + '</span>' +
+          (badge ? '<div class="mt-1">' + badge + '</div>' : '') +
           (excerpt ? '<div class="small text-muted">' + escapeHtml(excerpt.slice(0, 220)) + '</div>' : '') +
+          (note ? '<div class="small text-muted mt-1">' + escapeHtml(note) + '</div>' : '') +
         '</li>'
       );
     });

@@ -147,20 +147,37 @@ def _citation_label(citation: Citation) -> str:
 def _source_rows(response: LexResponse) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     seen: set[str] = set()
+    compared_index: dict[str, dict[str, Any]] = {}
+    for item in list(response.compared_sources or []):
+        title = _clean_spaces(item.get("title"))
+        source_id = _clean_spaces(item.get("source_registry_key") or item.get("source_id"))
+        if title:
+            compared_index[f"title:{title.lower()}"] = dict(item)
+        if source_id:
+            compared_index[f"id:{source_id.lower()}"] = dict(item)
     for citation in list(response.citations or []):
         key = f"{_clean_spaces(getattr(citation, 'source_id', ''))}:{_clean_spaces(getattr(citation, 'title', ''))}"
         if key in seen:
             continue
+        source_id = _clean_spaces(getattr(citation, "source_id", ""))
+        title = _clean_spaces(getattr(citation, "title", ""))
+        compared = compared_index.get(f"id:{source_id.lower()}") or compared_index.get(f"title:{title.lower()}") or {}
         rows.append(
             {
-                "id": _clean_spaces(getattr(citation, "source_id", "")),
-                "title": _clean_spaces(getattr(citation, "title", "")) or "Fonte",
+                "id": source_id,
+                "title": title or "Fonte",
                 "excerpt": _clean_spaces(getattr(citation, "excerpt", "")),
                 "url": getattr(citation, "url", None),
                 "authority": _clean_spaces(getattr(citation, "authority", "")),
                 "confidence": float(getattr(citation, "confidence", 0.0) or 0.0),
                 "verified_reference": bool(getattr(citation, "verified_reference", False)),
                 "trust_class": _clean_spaces(getattr(citation, "trust_class", "")),
+                "source_registry_key": _clean_spaces(compared.get("source_registry_key")),
+                "source_access_status": _clean_spaces(compared.get("source_access_status")),
+                "source_access_label": _clean_spaces(compared.get("source_access_label")),
+                "source_requires_credentials": bool(compared.get("source_requires_credentials")),
+                "source_restricted": bool(compared.get("source_restricted")),
+                "source_supports_web_search": bool(compared.get("source_supports_web_search", True)),
             }
         )
         seen.add(key)
@@ -183,10 +200,20 @@ def _confidence_label(value: float) -> str:
 
 def _confidence_reason(response: LexResponse) -> str:
     summary = dict(response.evidence_summary or {})
+    restricted_sources = list(response.metadata.get("restricted_sources") or [])
+    partner_sources = list(response.metadata.get("partner_sources") or [])
     if response.answer_mode != "grounded":
         return "Risposta prudenziale: le evidenze disponibili non bastano ancora per chiudere il punto senza revisione."
     official = int(summary.get("official_count") or 0)
     trusted = int(summary.get("trusted_count") or 0)
+    if restricted_sources:
+        return (
+            f"Base forte ma incompleta: restano {len(restricted_sources)} fonti riservate che richiedono portale o credenziali dedicate."
+        )
+    if partner_sources:
+        return (
+            f"Base buona ma governata: restano {len(partner_sources)} fonti partner che richiedono abilitazioni aggiuntive."
+        )
     if official:
         return f"Base forte: fonti ufficiali {official}, fonti attendibili {trusted}, nessun blocco attivo."
     if trusted:

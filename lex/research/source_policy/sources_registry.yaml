@@ -1,0 +1,328 @@
+sources:
+  - key: normattiva
+    label: Normattiva Open Data
+    category: normativa_nazionale
+    status: open_api
+    priority: P0
+    official: true
+    base_url: https://dati.normattiva.it
+    entrypoints:
+      project: https://dati.normattiva.it/Il-progetto
+      docs_pdf: https://dati.normattiva.it/assets/come_fare_per/API_Normattiva_OpenData.pdf
+    formats:
+      - AKN/XML
+      - JSON
+      - HTML
+      - PDF
+      - EPUB
+      - RTF
+      - URI
+    auth: none
+    use_cases:
+      - normativa vigente
+      - ricerca atto per URN
+      - atti aggiornati tra due date
+      - download collezioni
+      - dettaglio atto per articolo
+  - key: eurlex
+    label: EUR-Lex / CELLAR
+    category: normativa_ue
+    status: open_plus_registration
+    priority: P0
+    official: true
+    base_url: https://eur-lex.europa.eu
+    entrypoints:
+      webservice: https://eur-lex.europa.eu/content/help/data-reuse/webservice.html
+      cellar: https://eur-lex.europa.eu/content/help/data-reuse/webservice.html
+    formats:
+      - XML
+      - RDF
+      - REST download
+      - RSS
+    auth: SOAP webservice after registration; REST download by identifier
+    use_cases:
+      - normativa UE
+      - giurisprudenza UE
+      - monitoring OJ
+      - download documenti per identificatore
+  - key: corte_costituzionale
+    label: Corte costituzionale Open Data
+    category: giurisprudenza_costituzionale
+    status: open_data
+    priority: P0
+    official: true
+    base_url: https://dati.cortecostituzionale.it
+    entrypoints:
+      portal: https://dati.cortecostituzionale.it/
+    formats:
+      - Dataset
+      - SPARQL
+      - ECLI linked data
+    auth: none
+    use_cases:
+      - pronunce
+      - massime
+      - monitoraggio temi costituzionali
+  - key: openga
+    label: OpenGA - Giustizia Amministrativa
+    category: giustizia_amministrativa
+    status: open_ckan
+    priority: P0
+    official: true
+    base_url: https://openga.giustizia-amministrativa.it
+    entrypoints:
+      portal: https://openga.giustizia-amministrativa.it/dataset/
+    formats:
+      - CSV
+      - JSON
+      - ODS
+      - CKAN API
+    auth: none
+    use_cases:
+      - calendario udienze
+      - ricorsi pendenti
+      - ricorsi pervenuti
+      - decreti
+      - pareri
+  - key: gazzetta_rss
+    label: Gazzetta Ufficiale - RSS e atti pubblicati
+    category: pubblicazioni_ufficiali
+    status: rss_export
+    priority: P0
+    official: true
+    base_url: https://www.gazzettaufficiale.it
+    entrypoints:
+      home: https://www.gazzettaufficiale.it/
+      faq_rss: https://www.gazzettaufficiale.it/caricaHtml?nomeTiles=faq
+    formats:
+      - RSS
+      - HTML
+      - PDF
+    auth: none
+    use_cases:
+      - monitoraggio nuove pubblicazioni
+      - link diretto agli atti
+      - pdf ufficiale
+  - key: ipa_open_data
+    label: Indice PA - Open Data IPA
+    category: anagrafiche_pubbliche
+    status: open_ckan
+    priority: P1
+    official: true
+    base_url: https://indicepa.gov.it/ipa-dati
+    entrypoints:
+      portal: https://indicepa.gov.it/ipa-dati
+      api_info_example: https://indicepa.gov.it/ipa-dati/api/1/util/snippet/api_info.html?resource_id=0226284e-27e5-4fdd-8bf9-4deba9f4d239
+    formats:
+      - CSV
+      - JSON
+      - XML
+      - CKAN Data API
+      - SPARQL
+    auth: none
+    use_cases:
+      - domicili digitali PA
+      - uffici pubblici
+      - codici IPA
+      - indirizzi PEC
+  - key: anac_open_data
+    label: ANAC Open Data / PCP
+    category: contratti_pubblici
+    status: open_data_plus_api
+    priority: P1
+    official: true
+    base_url: https://dati.anticorruzione.it
+    entrypoints:
+      portal: https://dati.anticorruzione.it/opendata/
+      dataset_catalog: https://dati.anticorruzione.it/opendata/dataset
+      ocds: https://dati.anticorruzione.it/opendata/ocds_it
+    formats:
+      - JSON OCDS
+      - dataset open
+      - analytics
+    auth: none for open data
+    use_cases:
+      - appalti pubblici
+      - monitoring contratti
+      - ricorsi appalti
+      - evidenze stazioni appaltanti
+  - key: camera_open_data
+    label: Camera dei Deputati Open Data
+    category: iter_legislativo
+    status: open_sparql
+    priority: P1
+    official: true
+    base_url: https://dati.camera.it
+    entrypoints:
+      portal: https://dati.camera.it/en
+      sparql_base: http://dati.camera.it/sparql/
+    formats:
+      - SPARQL
+      - RDF
+      - ld+json
+      - xml
+      - ntriples
+      - turtle
+    auth: none
+    use_cases:
+      - iter dei ddl
+      - atti parlamentari
+      - monitoraggio attivita legislativa
+  - key: senato_open_data
+    label: Senato della Repubblica Open Data
+    category: iter_legislativo
+    status: open_sparql_plus_download
+    priority: P1
+    official: true
+    base_url: https://dati.senato.it
+    entrypoints:
+      portal: https://dati.senato.it/
+      sparql: https://dati.senato.it/sito/23
+      download: https://dati.senato.it/sito/scarica_i_dati
+    formats:
+      - CSV
+      - JSON
+      - XML
+      - SPARQL
+    auth: none
+    use_cases:
+      - iter ddl
+      - atti ispettivi
+      - commissioni
+      - votazioni aula
+  - key: giustizia_stats
+    label: Ministero della Giustizia - Dati e statistiche
+    category: statistiche_giudiziarie
+    status: portal_data
+    priority: P1
+    official: true
+    base_url: https://datiestatistiche.giustizia.it
+    entrypoints:
+      portal: https://datiestatistiche.giustizia.it/
+    formats:
+      - dashboard
+      - dataset/indicatori ove disponibili
+    auth: none
+    use_cases:
+      - statistiche giudiziarie
+      - monitoraggio uffici
+      - KPI territoriali
+  - key: bdp_giustizia
+    label: Banca Dati di Merito
+    category: giurisprudenza_di_merito
+    status: portal_only
+    priority: P1
+    official: true
+    base_url: https://bdp.giustizia.it
+    entrypoints:
+      portal: https://bdp.giustizia.it/
+    formats:
+      - consultazione portale
+    auth: portale web
+    use_cases:
+      - provvedimenti civili di merito
+      - abstract
+      - ricerca sentenze decreti ordinanze
+  - key: pvp_bdag
+    label: Portale delle Vendite Pubbliche / BDAG
+    category: aste_giudiziarie
+    status: portal_only_regulated
+    priority: P1
+    official: true
+    base_url: https://pvp.giustizia.it/pvp/
+    entrypoints:
+      portal: https://pvp.giustizia.it/pvp/
+      bdag: https://pvp.giustizia.it/pvp/it/bdag.page
+    formats:
+      - consultazione portale
+    auth: portale pubblico; regime regolamentato
+    use_cases:
+      - aste giudiziarie
+      - monitoraggio vendite
+      - visure procedurali collegate
+  - key: registro_imprese_api
+    label: Registro Imprese / Accesso alle banche dati
+    category: anagrafiche_imprese
+    status: partner_api
+    priority: P1
+    official: true
+    base_url: https://accessoallebanchedati.registroimprese.it
+    entrypoints:
+      service: https://accessoallebanchedati.registroimprese.it/abdo/api
+      docs_work_data: https://www.registroimprese.it/specifiche-tecniche
+    formats:
+      - API ufficiali
+      - web services
+      - visure dati di lavoro
+    auth: contratto/credenziali
+    use_cases:
+      - visure
+      - monitoring imprese
+      - bilanci
+      - dati persone aziende
+  - key: ini_pec
+    label: INI-PEC
+    category: domicili_digitali
+    status: portal_or_institutional_channel
+    priority: P1
+    official: true
+    base_url: https://www.inipec.gov.it
+    entrypoints:
+      portal: https://www.inipec.gov.it
+    formats:
+      - consultazione portale / canali istituzionali
+    auth: variabile
+    use_cases:
+      - ricerca PEC professionisti e imprese
+      - domicili digitali
+  - key: pst_reginde_pda
+    label: PST / ReGIndE / PdA
+    category: processo_telematico
+    status: partner_or_reserved
+    priority: P0
+    official: true
+    base_url: https://pst.giustizia.it
+    entrypoints:
+      portal: https://pst.giustizia.it
+    formats:
+      - portale
+      - servizi web nel perimetro PdA
+    auth: PdA / CNS-CIE / requisiti tecnici
+    use_cases:
+      - polisweb
+      - fascicoli telematici
+      - ReGIndE
+      - servizi PCT
+  - key: pat_siga
+    label: PAT / SIGA / Nuovo Portale Avvocato
+    category: processo_amministrativo_telematico
+    status: reserved_portal
+    priority: P1
+    official: true
+    base_url: https://www.giustizia-amministrativa.it
+    entrypoints:
+      portal: https://www.giustizia-amministrativa.it
+    formats:
+      - portale
+      - deposito telematico
+    auth: portale riservato
+    use_cases:
+      - depositi PAT
+      - fascicoli amministrativi
+      - workflow avvocato
+  - key: ptt_sigit
+    label: PTT / SIGIT
+    category: processo_tributario_telematico
+    status: reserved_portal
+    priority: P1
+    official: true
+    base_url: https://www.giustiziatributaria.gov.it
+    entrypoints:
+      portal: https://www.giustiziatributaria.gov.it
+    formats:
+      - portale
+    auth: portale riservato
+    use_cases:
+      - depositi tributari
+      - fascicoli tributari
+      - monitoraggio udienze

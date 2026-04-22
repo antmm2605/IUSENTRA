@@ -9,6 +9,7 @@ from urllib.parse import urlparse
 
 from .catalog import AREA_KEYWORDS, SOURCE_POLICIES
 from .models import SourceMode, Tier
+from ..source_registry import get_source_registry
 
 
 def _clean_spaces(value: Any) -> str:
@@ -52,6 +53,13 @@ def get_tier_for_domain(domain: str, area: str) -> Tier:
         for pattern in policy.get(tier_name, []):
             if match_domain_pattern(domain, pattern):
                 return Tier(tier_name)
+    registry_entry = get_source_registry().find_by_host(domain)
+    if registry_entry is not None:
+        if registry_entry.official:
+            return Tier.TIER_1
+        if registry_entry.supports_public_web_search:
+            return Tier.TIER_2
+        return Tier.TIER_3
     return Tier.UNKNOWN
 
 
@@ -75,12 +83,39 @@ def allowed_domains(area: str, mode: SourceMode | str = SourceMode.BALANCED) -> 
     rows: list[str] = []
     for tier_name in tiers_by_mode[mode_key]:
         rows.extend(policy.get(tier_name, []))
-    return rows
+    registry = get_source_registry()
+    for source in registry.all():
+        tier = get_tier_for_domain(source.base_url, area)
+        if (
+            (mode_key == "strict" and tier == Tier.TIER_1)
+            or (mode_key == "balanced" and tier in {Tier.TIER_1, Tier.TIER_2})
+            or (mode_key == "broad" and tier in {Tier.TIER_1, Tier.TIER_2, Tier.TIER_3})
+        ):
+            rows.extend(source.domains)
+    seen: set[str] = set()
+    unique: list[str] = []
+    for row in rows:
+        normalized = _clean_spaces(row).lower()
+        if not normalized or normalized in seen:
+            continue
+        seen.add(normalized)
+        unique.append(normalized)
+    return unique
 
 
 def is_domain_allowed(domain: str, area: str, mode: SourceMode | str = SourceMode.BALANCED) -> bool:
     normalized = normalize_domain(domain)
-    return any(match_domain_pattern(normalized, pattern) for pattern in allowed_domains(area, mode))
+    if any(match_domain_pattern(normalized, pattern) for pattern in allowed_domains(area, mode)):
+        return True
+    registry_entry = get_source_registry().find_by_host(normalized)
+    if registry_entry is None:
+        return False
+    resolved_mode = normalize_source_mode(mode)
+    if resolved_mode == SourceMode.STRICT:
+        return registry_entry.official
+    if resolved_mode == SourceMode.BALANCED:
+        return registry_entry.official or registry_entry.supports_public_web_search
+    return True
 
 
 def infer_area(query: str, threshold: float = 2.0, fallback_to_default: bool = True) -> str:

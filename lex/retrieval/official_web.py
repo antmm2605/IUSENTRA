@@ -11,6 +11,7 @@ from urllib.parse import parse_qs, unquote, urlparse
 from lxml import html as lxml_html
 
 from pct.legal_intelligence import FONTI_UFFICIALI, USER_AGENT, fonti_per_query
+from lex.research.source_registry import get_source_registry
 
 DEFAULT_WEB_SOURCE_IDS: tuple[str, ...] = (
     "normattiva",
@@ -69,7 +70,9 @@ def _extra_domains() -> list[str]:
 
 
 def _domains_for_source(source_id: str) -> list[str]:
+    registry = get_source_registry()
     source = FONTI_UFFICIALI.get(str(source_id or "").strip())
+    registry_source = registry.get(source_id)
     domains: list[str] = []
     seen: set[str] = set()
 
@@ -83,6 +86,10 @@ def _domains_for_source(source_id: str) -> list[str]:
     if source:
         _push(source.official_url)
         _push(source.monitor_url)
+    if registry_source and registry_source.supports_public_web_search:
+        _push(registry_source.base_url)
+        for value in registry_source.entrypoints.values():
+            _push(value)
     for alias in _SOURCE_DOMAIN_ALIASES.get(str(source_id or "").strip(), ()):
         _push(alias)
     return domains
@@ -94,6 +101,7 @@ def resolve_official_source_ids_for_query(
     explicit_source_ids: list[str] | None = None,
     limit: int = 4,
 ) -> list[str]:
+    registry = get_source_registry()
     if isinstance(explicit_source_ids, str):
         explicit_values = [explicit_source_ids]
     else:
@@ -103,7 +111,9 @@ def resolve_official_source_ids_for_query(
 
     def _push(source_id: str) -> None:
         normalized = str(source_id or "").strip()
-        if not normalized or normalized in seen or normalized not in FONTI_UFFICIALI:
+        if not normalized or normalized in seen:
+            return
+        if normalized not in FONTI_UFFICIALI and registry.get(normalized) is None:
             return
         seen.add(normalized)
         selected.append(normalized)
@@ -118,11 +128,59 @@ def resolve_official_source_ids_for_query(
         if len(selected) >= limit:
             return selected[:limit]
 
+    for source in registry.resolve_requested_sources(question, explicit_source_ids=explicit_values, limit=limit):
+        _push(source.key)
+        if len(selected) >= limit:
+            return selected[:limit]
+
     for source_id in DEFAULT_WEB_SOURCE_IDS:
         _push(source_id)
         if len(selected) >= limit:
             return selected[:limit]
     return selected[:limit]
+
+
+def build_source_registry_context(
+    question: str,
+    *,
+    explicit_source_ids: list[str] | None = None,
+    limit: int = 6,
+) -> dict[str, Any]:
+    registry = get_source_registry()
+    rows = registry.resolve_requested_sources(
+        question,
+        explicit_source_ids=list(explicit_source_ids or []),
+        limit=limit,
+    )
+    summaries = [row.to_summary_dict() for row in rows]
+    present_keys = {row["key"] for row in summaries}
+    selected_source_ids = resolve_official_source_ids_for_query(
+        question,
+        explicit_source_ids=list(explicit_source_ids or []),
+        limit=limit,
+    )
+    searchable: list[dict[str, Any]] = []
+    partner: list[dict[str, Any]] = []
+    restricted: list[dict[str, Any]] = []
+    credentialed: list[dict[str, Any]] = []
+    for row in summaries:
+        if row["supports_public_web_search"]:
+            searchable.append(row)
+        if row["partner"]:
+            partner.append(row)
+        if row["restricted"]:
+            restricted.append(row)
+        if row["requires_credentials"]:
+            credentialed.append(row)
+    return {
+        "requested_sources": summaries,
+        "selected_source_ids": selected_source_ids,
+        "searchable_sources": searchable,
+        "partner_sources": partner,
+        "restricted_sources": restricted,
+        "credentialed_sources": credentialed,
+        "matched_keys": sorted(present_keys),
+    }
 
 
 def _extract_result_url(raw_url: str) -> str:
@@ -169,6 +227,7 @@ def search_recognized_official_web(
     request_get: Callable[..., Any] | None = None,
     limit_results: int = 4,
 ) -> list[dict[str, Any]]:
+    registry = get_source_registry()
     query = _clean_spaces(question)
     selected_source_ids = resolve_official_source_ids_for_query(
         query,
@@ -254,17 +313,25 @@ def search_recognized_official_web(
             snippet = _clean_spaces(snippet_nodes[0].text_content()) if snippet_nodes else ""
             matched_source_id = _match_source_id_for_domain(selected_source_ids, domain)
             source = FONTI_UFFICIALI.get(matched_source_id)
+            registry_source = registry.get(matched_source_id) or registry.find_by_host(domain)
             results.append(
                 {
                     "id": f"live-web-search:{hashlib.sha1(url.encode('utf-8')).hexdigest()[:12]}",
-                    "title": title or (source.nome if source else domain),
+                    "title": title or (source.nome if source else (registry_source.label if registry_source else domain)),
                     "url": url,
-                    "official_url": source.official_url if source else url,
+                    "official_url": source.official_url if source else (registry_source.base_url if registry_source else url),
                     "domain": _normalize_domain(urlparse(url).netloc),
-                    "source_id": matched_source_id or domain,
-                    "source_name": source.nome if source else domain,
+                    "source_id": matched_source_id or (registry_source.key if registry_source else domain),
+                    "source_name": source.nome if source else (registry_source.label if registry_source else domain),
                     "kind": "pdf" if str(url).lower().endswith(".pdf") else "html",
                     "excerpt": snippet,
+                    "source_access_status": registry_source.status if registry_source else "",
+                    "source_access_label": registry_source.access_label if registry_source else "",
+                    "source_category": registry_source.category if registry_source else "",
+                    "source_priority": registry_source.priority if registry_source else "",
+                    "source_requires_credentials": registry_source.requires_credentials if registry_source else False,
+                    "source_restricted": registry_source.is_restricted_source if registry_source else False,
+                    "source_supports_web_search": registry_source.supports_public_web_search if registry_source else True,
                 }
             )
             if len(results) >= limit_results:
@@ -277,6 +344,7 @@ def search_recognized_official_web(
 
 __all__ = [
     "DEFAULT_WEB_SOURCE_IDS",
+    "build_source_registry_context",
     "resolve_official_source_ids_for_query",
     "search_recognized_official_web",
 ]

@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.182.0 - 2026-04-22
+
+- Integrato in Lex il catalogo governato delle fonti `aperte / con registrazione / partner / riservate / portale istituzionale`, caricato da registry YAML e agganciato davvero a retrieval, source policy, evidence pack, guardrail e payload finale del widget.
+- I domini del kit non restano piu' `unknown`: la source policy riconosce ora anche fonti come `INI-PEC`, `Registro Imprese`, `PST / ReGIndE / PdA`, `PAT / SIGA` e `PTT / SIGIT`, distinguendo autorita' della fonte e modalita' di accesso.
+- Il fallback web ufficiale cerca solo dove ha senso: per le fonti `partner` o `riservate` Lex non inventa risultati pubblici, ma espone gap di copertura, badge di accesso, warning sulle credenziali necessarie e prossime azioni operative.
+- Il widget chat mostra ora anche il profilo di accesso delle fonti (`source_access_label`, `Credenziali`, `Riservata`), cosi' l'operatore capisce perche' una fonte non e' interrogabile via web pubblico.
+- Aggiunte regressioni automatiche dedicate su registry, source policy, fallback partner/riservato, orchestrator retrieval e bridge HTTP di Lex.
+
 ## 2.181.0 - 2026-04-22
 
 - Introdotto il modulo nativo `Sito Studio`, con dashboard tenant-aware, branding, pagine a blocchi, articoli, servizi, professionisti, sedi, contatti, agenda pubblica e sito web pubblicabile senza CMS esterno.

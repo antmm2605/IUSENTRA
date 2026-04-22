@@ -4,7 +4,9 @@ from __future__ import annotations
 
 from lex.contracts import EvidenceItem
 from lex.memory.web_execution import is_web_execution_request
+from lex.research.source_registry import get_source_registry
 from lex.retrieval.official_web import (
+    build_source_registry_context,
     resolve_official_source_ids_for_query,
     search_recognized_official_web,
 )
@@ -34,7 +36,14 @@ _LEGAL_LOOKUP_TOKENS: tuple[str, ...] = (
     "pst",
     "pdp",
     "pat",
+    "ptt",
     "pec",
+    "ini pec",
+    "ini-pec",
+    "registro imprese",
+    "reginde",
+    "siga",
+    "sigit",
     "firma",
     "reginde",
     "circolari",
@@ -92,6 +101,9 @@ def _should_search_official_web(request, workflow: str) -> bool:
     if workflow in {"telematico", "intelligence", "atto"} and has_legal_lookup:
         return True
 
+    if get_source_registry().search(text, limit=2):
+        return True
+
     return False
 
 
@@ -119,6 +131,14 @@ class OfficialWebSource:
             explicit_source_ids=list(metadata_source_ids or []),
             limit=4,
         )
+        registry_context = build_source_registry_context(
+            query,
+            explicit_source_ids=list(metadata_source_ids or []),
+            limit=6,
+        )
+        request_metadata = getattr(request, "metadata", None)
+        if isinstance(request_metadata, dict):
+            request_metadata["source_registry"] = registry_context
         rows = search_recognized_official_web(
             query,
             source_ids=source_ids,
@@ -151,6 +171,14 @@ class OfficialWebSource:
                         "source_name": source_name,
                         "official_source_id": _clean_spaces(row.get("source_id") or ""),
                         "kind": _clean_spaces(row.get("kind") or ""),
+                        "source_registry_key": _clean_spaces(row.get("source_id") or ""),
+                        "source_access_status": _clean_spaces(row.get("source_access_status") or ""),
+                        "source_access_label": _clean_spaces(row.get("source_access_label") or ""),
+                        "source_category": _clean_spaces(row.get("source_category") or ""),
+                        "source_priority": _clean_spaces(row.get("source_priority") or ""),
+                        "source_requires_credentials": bool(row.get("source_requires_credentials")),
+                        "source_restricted": bool(row.get("source_restricted")),
+                        "source_supports_web_search": bool(row.get("source_supports_web_search", True)),
                     },
                 )
             )

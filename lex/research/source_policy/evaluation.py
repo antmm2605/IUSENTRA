@@ -14,6 +14,7 @@ from .inference import (
     normalize_source_mode,
 )
 from .models import SourceEvaluation, SourceMode, SourcePolicySummary, Tier
+from ..source_registry import get_source_registry
 
 
 LOGGER = logging.getLogger("lex.source_policy")
@@ -45,10 +46,16 @@ def evaluate_source(url: str, area: str, mode: SourceMode | str = SourceMode.BAL
     tier = get_tier_for_domain(domain, area)
     score = calculate_source_score(domain, area, resolved_mode)
     warnings: list[str] = []
+    registry_entry = get_source_registry().find_by_host(domain)
     if tier == Tier.TIER_3:
         warnings.append("Fonte residuale: usare solo come supporto orientativo.")
     elif tier == Tier.UNKNOWN:
         warnings.append("Dominio non classificato: verificare con fonte primaria prima dell'uso.")
+    if registry_entry is not None:
+        if registry_entry.requires_credentials:
+            warnings.append(f"Fonte governata con accesso non libero: {registry_entry.access_label.lower()}.")
+        elif registry_entry.requires_registration:
+            warnings.append("Fonte ufficiale con registrazione preventiva: verificare abilitazione e credenziali.")
     authority_band = {
         Tier.TIER_1: "istituzionale_o_primaria",
         Tier.TIER_2: "professionale_affidabile",

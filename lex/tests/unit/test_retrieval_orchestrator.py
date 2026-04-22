@@ -3,6 +3,7 @@ from __future__ import annotations
 from lex.contracts import EvidenceItem, LexRequest
 from lex.retrieval.cache import clear_retrieval_cache
 from lex.retrieval.orchestrator import RetrievalOrchestrator
+from lex.retrieval.sources.official_web import OfficialWebSource as RealOfficialWebSource
 
 
 class StaticPlanner:
@@ -71,6 +72,20 @@ class StaticRouter:
 
     def resolve(self, request, context, workflow):
         return [self.internal, self.official]
+
+
+class RestrictedRegistryRouter:
+    def __init__(self) -> None:
+        self.internal = EmptyNormativeSource()
+        self.official = RealOfficialWebSource(request_get=lambda *args, **kwargs: _EmptyResponse())
+
+    def resolve(self, request, context, workflow):
+        return [self.internal, self.official]
+
+
+class _EmptyResponse:
+    status_code = 200
+    text = "<html><body></body></html>"
 
 
 def test_retrieval_orchestrator_triggers_official_fallback_and_builds_comparison():
@@ -151,3 +166,25 @@ def test_retrieval_orchestrator_non_condivide_cache_tra_tenant_diversi():
     assert second["cache"]["hit"] is False
     assert router.internal.calls == 2
     assert router.official.calls == 2
+
+
+def test_retrieval_orchestrator_espone_gap_su_fonti_partner_non_cercabili_via_web_pubblico():
+    clear_retrieval_cache()
+    orchestrator = RetrievalOrchestrator(
+        query_planner=StaticPlanner(),
+        source_router=RestrictedRegistryRouter(),
+        filters=PassFilters(),
+    )
+    request = LexRequest(
+        tenant_id="tenant-1",
+        user_id="user-1",
+        session_id="session-1",
+        query="Mi serve una visura dal registro imprese",
+        metadata={"source_ids": ["registro_imprese_api"]},
+    )
+
+    payload = orchestrator.collect(request, {"studio": {"effective_question": request.query}}, "normativa")
+
+    assert payload["fallback_triggered"] is True
+    assert any("fonti partner" in gap.lower() for gap in payload["coverage_gaps"])
+    assert payload["evidence_pack"]["metadata"]["source_registry_partner"][0]["key"] == "registro_imprese_api"

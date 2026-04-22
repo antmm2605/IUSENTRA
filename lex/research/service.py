@@ -37,6 +37,7 @@ class LexResearchService:
         official_sources = self.official_sources.extract(unique_rows, citations_list)
         trusted_sources = self.trusted_sources.extract(unique_rows, citations_list)
         freshness = self.freshness.measure(unique_rows)
+        request_metadata = dict(getattr(request, "metadata", {}) or {})
         return self.evidence_pack_builder.build(
             queries=normalized_queries,
             items=items,
@@ -47,5 +48,6 @@ class LexResearchService:
             metadata={
                 "workflow": workflow,
                 "rows_count": len(unique_rows),
+                "source_registry": dict(request_metadata.get("source_registry") or {}),
             },
         )

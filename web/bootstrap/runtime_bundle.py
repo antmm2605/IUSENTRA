@@ -10,6 +10,7 @@ from flask import Flask
 
 from pct import __version__ as APP_VERSION
 from pct.installation_packs import bootstrap_pack_governance
+from pct.runtime_env import is_managed_cloud_runtime
 from pct.tenant import GestioneTenant
 from web.services.core_runtime import build_core_runtime
 from web.services.document_crypto import decrypt_doc, encrypt_doc
@@ -46,7 +47,9 @@ def build_application_runtime_bundle(
             core=core,
         )
 
-    if app.config.get("MULTI_TENANT"):
+    startup_governance_enabled = not is_managed_cloud_runtime()
+
+    if app.config.get("MULTI_TENANT") and startup_governance_enabled:
         try:
             GestioneTenant(app.config["TENANTS_REGISTRY"]).sync_user_directory(
                 secret_key=app.secret_key,
@@ -54,26 +57,31 @@ def build_application_runtime_bundle(
         except Exception as exc:
             app.logger.exception("Errore sync tenant_user_directory in avvio: %s", exc)
 
-    try:
-        bootstrap_pack_governance(
-            app_root=Path(__file__).resolve().parents[2],
-            registry_path=str(app.config.get("TENANTS_REGISTRY", "./data/tenants.json")),
-            app_version=APP_VERSION,
-        )
-    except Exception as exc:
-        app.logger.exception("Errore bootstrap Product Pack / Studio Local Pack: %s", exc)
-
-    try:
-        bootstrap_report = bootstrap_legacy_tenant_runtime_data(app)
-        if bootstrap_report.get("copied") or bootstrap_report.get("sqlite_migrated"):
-            app.logger.info(
-                "Bootstrap legacy tenant in avvio per %s: copied=%s sqlite=%s",
-                bootstrap_report.get("target_slug", ""),
-                ",".join(sorted(bootstrap_report.get("copied", {}).keys())) or "-",
-                bootstrap_report.get("sqlite_migrated", False),
+    if startup_governance_enabled:
+        try:
+            bootstrap_pack_governance(
+                app_root=Path(__file__).resolve().parents[2],
+                registry_path=str(app.config.get("TENANTS_REGISTRY", "./data/tenants.json")),
+                app_version=APP_VERSION,
             )
-    except Exception as exc:
-        app.logger.exception("Errore bootstrap legacy tenant in avvio: %s", exc)
+        except Exception as exc:
+            app.logger.exception("Errore bootstrap Product Pack / Studio Local Pack: %s", exc)
+
+        try:
+            bootstrap_report = bootstrap_legacy_tenant_runtime_data(app)
+            if bootstrap_report.get("copied") or bootstrap_report.get("sqlite_migrated"):
+                app.logger.info(
+                    "Bootstrap legacy tenant in avvio per %s: copied=%s sqlite=%s",
+                    bootstrap_report.get("target_slug", ""),
+                    ",".join(sorted(bootstrap_report.get("copied", {}).keys())) or "-",
+                    bootstrap_report.get("sqlite_migrated", False),
+                )
+        except Exception as exc:
+            app.logger.exception("Errore bootstrap legacy tenant in avvio: %s", exc)
+    else:
+        app.logger.info(
+            "Runtime cloud gestito: rinvio bootstrap tenant e governance pesante dopo il primo avvio."
+        )
 
     ocr_runtime = build_ocr_runtime(
         queue_db_path=app.config.get("OCR_QUEUE_DB"),

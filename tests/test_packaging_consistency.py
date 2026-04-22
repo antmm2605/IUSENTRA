@@ -88,6 +88,7 @@ def test_docker_runtime_ha_healthcheck_railway_compatibile_e_entrypoint_hardened
     assert "RUN mkdir -p /data" in docker_text
     assert "/api/pronto" in docker_text
     assert "${PORT:-8080}" in docker_text
+    assert "${WEB_CONCURRENCY:-1}" in docker_text
     assert "os.getenv('PORT', '8080')" in docker_text
     assert 'adduser --system --ingroup iusentra' in docker_text
     assert "COPY pyproject.toml ." in docker_text
@@ -100,7 +101,7 @@ def test_docker_runtime_ha_healthcheck_railway_compatibile_e_entrypoint_hardened
     assert "pct.ocr_worker" in compose_text
     assert "healthcheck:" in compose_text
     assert 'healthcheckPath = "/api/pronto"' in railway_text
-    assert "healthcheckTimeout = 180" in railway_text
+    assert "healthcheckTimeout = 300" in railway_text
 
 
 def test_root_governance_docs_e_pyproject_sono_presenti():

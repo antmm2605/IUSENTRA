@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.182.7 - 2026-04-22
+
+- Alleggerito davvero l'avvio nel cloud gestito: in ambiente Railway/Render il bootstrap pesante dei registri dati, della governance installazione e dei tenant legacy non viene piu' eseguito prima che il servizio dichiari la propria disponibilita', ma solo quando serve davvero.
+- Ridotto l'avvio predefinito di Gunicorn a un solo processo applicativo, coerente con il motore `gevent`, cosi' il cloud non raddoppia inutilmente il lavoro iniziale sul volume dati durante il primo avvio.
+- Il controllo permessi sul volume dati non scandisce piu' in profondita' l'albero `/data` nei cloud gestiti: verifica solo i punti essenziali e lascia partire subito il servizio.
+- Railway ha ora una finestra di controllo iniziale piu' ampia (`300s`) per gestire con margine i volumi gia' popolati senza dichiarare prematuramente il servizio non disponibile.
+
 ## 2.182.6 - 2026-04-22
 
 - Allineato l'avvio cloud alla porta assegnata dal provider: Gunicorn ascolta ora su `PORT` quando Railway la imposta, mantenendo `8080` come fallback locale. Questo evita controlli iniziali falliti con messaggio `service unavailable` pur in presenza di applicazione corretta.

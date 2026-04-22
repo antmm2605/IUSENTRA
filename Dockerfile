@@ -1,4 +1,4 @@
-#  version: 2.182.6
+#  version: 2.182.7
 #  IUSENTRA | Dockerfile produzione
 
 #  Build multi-stage:
@@ -74,7 +74,7 @@ RUN mkdir -p /out && /tmp/dart-sass/sass --no-source-map --style=compressed \
 FROM python:3.12-slim
 
 LABEL org.opencontainers.image.title="IUSENTRA" \
-      org.opencontainers.image.version="2.182.6" \
+      org.opencontainers.image.version="2.182.7" \
       org.opencontainers.image.description="Gestionale PCT per studi legali italiani" \
       org.opencontainers.image.created="2026-03-18"
 
@@ -185,7 +185,7 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
 ENTRYPOINT ["python", "/usr/local/bin/iusentra-entrypoint.py"]
 
 # Gunicorn: worker gevent per SSE/long-polling, timeout 120s per PDF/ZIP grandi
-CMD ["sh", "-c", "gunicorn --bind 0.0.0.0:${PORT:-8080} --worker-class gevent --workers 2 --worker-connections 100 --timeout 120 --access-logfile - --error-logfile - wsgi:app"]
+CMD ["sh", "-c", "gunicorn --bind 0.0.0.0:${PORT:-8080} --worker-class gevent --workers ${WEB_CONCURRENCY:-1} --worker-connections 100 --timeout 120 --access-logfile - --error-logfile - wsgi:app"]
 
 
 

@@ -989,12 +989,12 @@
             <h6 class="fw-bold mb-1"><i class="bi bi-cpu-fill text-primary me-2"></i>AI locale con Ollama</h6>
             <p class="text-muted mb-0 settings-ai-hero__text">
               Motore locale non bloccante per fascicoli, documenti, agenda, scadenziario e cabina intelligente.
-              Quando IUSENTRA e' online, il browser usa un companion locale sul dispositivo cliente per parlare con Ollama.
+              Quando IUSENTRA e' online, il browser usa il servizio locale del dispositivo cliente per parlare con Ollama.
             </p>
           </div>
           <div class="settings-ai-hero__meta">
             <span class="badge text-bg-secondary" id="ai-runtime-badge">Verifica in corso</span>
-            <div class="settings-ai-hero__note">Companion locale sul dispositivo cliente</div>
+            <div class="settings-ai-hero__note">Servizio locale sul dispositivo cliente</div>
           </div>
         </div>
 
@@ -1006,8 +1006,8 @@
             <div class="ui-feedback__title">Distribuzione consigliata</div>
             <div class="ui-feedback__body">
               La web app online non puo' raggiungere direttamente <span class="font-monospace">localhost:11434</span>
-              del cliente. Per questo IUSENTRA usa il Local Signer come companion locale: il browser parla con
-              <span class="font-monospace">127.0.0.1:27272</span> sul dispositivo cliente, e il companion gestisce Ollama.
+              del cliente. Per questo IUSENTRA usa il Local Signer come ponte locale del dispositivo: il browser parla con
+              <span class="font-monospace">127.0.0.1:27272</span> sul dispositivo cliente, e il servizio locale gestisce Ollama.
             </div>
           </div>
         </div>
@@ -1029,7 +1029,7 @@
                 <input class="form-check-input" type="checkbox" role="switch" name="ai_auto_bootstrap" id="ai_auto_bootstrap" value="1" {{ 'checked' if cfg.ai.auto_bootstrap }}>
                 <label class="form-check-label fw-semibold" for="ai_auto_bootstrap">Provisioning e avvio automatici</label>
               </div>
-              <div class="form-text">Quando IUSENTRA e' online, il bootstrap passa dal companion locale del cliente. In locale o self-hosted resta disponibile anche il controllo lato server.</div>
+              <div class="form-text">Quando IUSENTRA e' online, la preparazione passa dal servizio locale del dispositivo cliente. In locale o self-hosted resta disponibile anche il controllo lato server.</div>
             </div>
             <div class="col-12">
               <label class="form-label fw-semibold">Indirizzo del motore locale</label>
@@ -1070,7 +1070,7 @@
               <i class="bi bi-floppy me-2"></i>Salva impostazioni AI
             </button>
             <button type="button" class="btn btn-outline-primary" id="ai-bootstrap-btn" onclick="runLocalAiBootstrap()">
-              <i class="bi bi-rocket-takeoff me-2"></i>Prepara motore automatico
+              <i class="bi bi-rocket-takeoff me-2"></i>Prepara il motore locale
             </button>
             <button type="button" class="btn btn-outline-secondary" id="ai-refresh-btn" onclick="refreshLocalAiStatus(true)">
               <i class="bi bi-arrow-repeat me-2"></i>Aggiorna stato operativo

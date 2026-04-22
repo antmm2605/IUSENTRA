@@ -216,6 +216,58 @@ def test_runtime_bundle_scheduler_only_costruisce_solo_core(tmp_path: Path):
     assert runtime_bundle.core["get_agenda"] is not None
 
 
+def test_runtime_bundle_cloud_gestito_rinvia_governance_pesante(monkeypatch, tmp_path: Path):
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    app, cfg = create_flask_app(_cfg_web(tmp_path))
+    called = {"sync": 0, "pack": 0, "legacy": 0}
+
+    class _FakeTenantManager:
+        def __init__(self, registry_path):
+            self.registry_path = registry_path
+
+        def sync_user_directory(self, secret_key):
+            called["sync"] += 1
+
+    monkeypatch.setattr("web.bootstrap.runtime_bundle.is_managed_cloud_runtime", lambda: True)
+    monkeypatch.setattr("web.bootstrap.runtime_bundle.GestioneTenant", _FakeTenantManager)
+    monkeypatch.setattr(
+        "web.bootstrap.runtime_bundle.bootstrap_pack_governance",
+        lambda **kwargs: called.__setitem__("pack", called["pack"] + 1),
+    )
+    monkeypatch.setattr(
+        "web.bootstrap.runtime_bundle.bootstrap_legacy_tenant_runtime_data",
+        lambda app, tenant_slug=None: called.__setitem__("legacy", called["legacy"] + 1) or {},
+    )
+
+    runtime_bundle = build_application_runtime_bundle(app, cfg)
+
+    assert runtime_bundle.scheduler_only is False
+    assert called == {"sync": 0, "pack": 0, "legacy": 0}
+
+
+def test_create_app_cloud_gestito_rinvia_bootstrap_moduli_ma_get_database_lo_esegue(
+    monkeypatch,
+    tmp_path: Path,
+):
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    calls: list[dict[str, str]] = []
+
+    monkeypatch.setattr("web.services.core_runtime.is_managed_cloud_runtime", lambda: True)
+    monkeypatch.setattr(
+        "web.services.core_runtime.bootstrap_moduli_monitorati",
+        lambda paths: calls.append(dict(paths)) or {},
+    )
+
+    app = create_app(_cfg_web(tmp_path))
+
+    assert calls == []
+
+    with app.app_context():
+        app.extensions["core_runtime"]["get_database"]()
+
+    assert len(calls) == 1
+
+
 def test_root_repo_resta_pulita_e_spec_tecniche_stanno_fuori_dalla_root():
     root_test_files = sorted(path.name for path in REPO_ROOT.glob("test_*.py"))
     root_temp_logs = sorted(path.name for path in REPO_ROOT.glob("tmp_local_signer_*.log"))
@@ -587,7 +639,7 @@ def test_template_principali_usano_copy_italiana_e_date_localizzate():
         ],
         "web/templates/dashboard.html": ["Panoramica dello studio"],
         "web/templates/agenda.html": ["Sincronizzazione automatica", "Configura sincronizzazione calendario"],
-        "web/templates/impostazioni/index.html": ["Companion locale sul dispositivo cliente", "Prepara runtime automatico"],
+        "web/templates/impostazioni/index.html": ["Servizio locale sul dispositivo cliente", "Prepara il motore locale"],
         "web/templates/notifiche/pannello.html": ["Invia messaggio", "Registro notifiche"],
         "web/templates/wizard_pro/index.html": [
             "Preparazione Udienza Guidata",
@@ -884,7 +936,7 @@ def test_impostazioni_js_e_esterno_e_senza_duplicazioni():
     assert "127.0.0.1:27272" in ai_js
     assert "/ai/status" in ai_js
     assert "/ai/bootstrap" in ai_js
-    assert "companion locale" in ai_js
+    assert "servizio locale" in ai_js.lower()
     assert "fetch(config.localSignerUrl + '/ai/status?' + params.toString(), {\n      method: 'GET',\n    });" in ai_js
     assert "fetch(config.localSignerUrl + '/ai/bootstrap', {\n          method: 'POST'," in ai_js
     assert 'data-local-signer-url="http://127.0.0.1:27272"' in template
@@ -1135,12 +1187,12 @@ def test_lex_assistant_usa_componente_esterno_e_posizione_persistente():
     assert "__companionStage" in widget_js
     assert "Preparazione richiesta non riuscita" in widget_js
     assert "Sessione scaduta o non autorizzata" in widget_js
-    assert "Companion locale raggiunto, ma la richiesta non e\\' andata a buon fine" in widget_js
-    assert "Local Signer raggiungibile, ma il modulo AI locale non e\\' operativo su questo dispositivo." in widget_js
+    assert "Servizio locale del dispositivo raggiunto, ma la richiesta non e\\' andata a buon fine" in widget_js
+    assert "Local Signer raggiungibile, ma il motore locale non e\\' operativo su questo dispositivo." in widget_js
     assert "remoteHosted" in widget_js
     assert "Lex sta scrivendo dal dispositivo locale" not in widget_js
     assert "Risposta generata sul dispositivo locale." in widget_js
-    assert "Companion locale non raggiungibile, attivo fallback sul runtime locale di IUSENTRA..." in widget_js
+    assert "Servizio locale del dispositivo non raggiungibile, attivo il percorso alternativo sul motore locale di IUSENTRA..." in widget_js
     assert "sendLocal(text);" in widget_js
     assert "var preparedLegalReferenceGuardActive = false;" in widget_js
     assert "preparedLegalReferenceGuardActive = Boolean(prepared && prepared.legal_reference_guard_active);" in widget_js

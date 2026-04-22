@@ -48,3 +48,20 @@ def test_prepare_data_root_crea_la_radice_senza_scansione_ricorsiva(monkeypatch,
 
     assert target.exists()
     assert touched == [("chown", target, 1000, 1000)]
+
+
+def test_candidate_write_roots_cloud_gestito_resta_leggero(monkeypatch, tmp_path):
+    data_root = tmp_path / "data"
+    (data_root / "search").mkdir(parents=True, exist_ok=True)
+    (data_root / "tenant-a" / "fascicoli").mkdir(parents=True, exist_ok=True)
+    monkeypatch.setattr(ENTRYPOINT, "DATA_ROOT", data_root)
+    monkeypatch.setenv("RAILWAY_ENVIRONMENT", "production")
+
+    roots = ENTRYPOINT._candidate_write_roots()
+
+    assert roots == [
+        data_root,
+        data_root / "search",
+        data_root / "system" / "installation",
+        data_root / "system" / "installation" / "keys",
+    ]

@@ -27,6 +27,7 @@ from pct.search_index import IndiceRicerca
 from pct.soggetti import GestioneSoggetti
 from pct.sync import get_gestore
 from pct.telematico_workflow import TelematicoWorkflowRepository
+from pct.runtime_env import is_managed_cloud_runtime
 from pct.tenant import DbMode, normalize_db_mode
 from pct.timesheet import GestioneTimesheet
 from pct.workspace_intelligente import WorkspaceIntelligenteService
@@ -643,7 +644,12 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
         )
         return str(candidates[0]) if candidates else str(preferred)
 
-    _bootstrap_runtime_data_modules()
+    if not is_managed_cloud_runtime():
+        _bootstrap_runtime_data_modules()
+    else:
+        app.logger.info(
+            "Runtime cloud gestito: rinvio il bootstrap iniziale dei registri dati al primo uso effettivo."
+        )
 
     # Singleton di sincronizzazione (uno per processo Flask)
     _sync = get_gestore()

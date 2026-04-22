@@ -913,7 +913,7 @@
     }
     var help = browserBridge().companionHelp(bridgeConfig, { outdated: outdated });
     return (
-      '<div class="text-danger fw-semibold mb-2">' + escapeHtml(help.title || 'Companion locale non disponibile') + '</div>' +
+      '<div class="text-danger fw-semibold mb-2">' + escapeHtml(help.title || 'Servizio locale del dispositivo non disponibile') + '</div>' +
       '<div class="small text-muted">' + escapeHtml(help.body || '') + '</div>' +
       (help.actionUrl
         ? '<div class="mt-3"><a class="btn btn-sm btn-outline-primary" href="' + escapeHtml(help.actionUrl) + '" target="_blank" rel="noreferrer">' +
@@ -938,10 +938,10 @@
   }
 
   function renderCompanionRuntimeHelp(error) {
-    var message = escapeHtml((error && error.message) || 'Il companion locale ha rifiutato la richiesta AI.');
+    var message = escapeHtml((error && error.message) || 'Il servizio locale del dispositivo ha rifiutato la richiesta AI.');
     return (
-      '<div class="text-warning fw-semibold mb-2">Companion locale raggiunto, ma la richiesta non e\' andata a buon fine</div>' +
-      '<div class="small text-muted">Lex e\' riuscito a contattare il Local Signer su questo dispositivo, ma il modulo AI locale ha restituito un errore operativo.</div>' +
+      '<div class="text-warning fw-semibold mb-2">Servizio locale del dispositivo raggiunto, ma la richiesta non e\' andata a buon fine</div>' +
+      '<div class="small text-muted">Lex e\' riuscito a contattare il Local Signer su questo dispositivo, ma il motore locale ha restituito un errore operativo.</div>' +
       '<div class="small mt-2"><code>' + message + '</code></div>'
     );
   }
@@ -954,7 +954,7 @@
       '<div class="small text-muted">' + (
         authProblem
           ? 'Ricarica la pagina ed effettua nuovamente l\'accesso a IUSENTRA prima di chiedere una risposta a Lex.'
-          : 'Lex non e\' riuscito a preparare il contesto sul server IUSENTRA prima di interrogare il companion locale.'
+          : 'Lex non e\' riuscito a preparare il contesto sul server IUSENTRA prima di interrogare il servizio locale del dispositivo.'
       ) + '</div>' +
       '<div class="small mt-2"><code>' + message + '</code></div>'
     );
@@ -1676,12 +1676,12 @@
         if (outdated) {
           finalizeThinkingFeedback(false);
           setBubbleHtml(state.currentBubble, renderCompanionHelp(true));
-          finalizeRequest('Aggiornamento del companion locale richiesto.');
+          finalizeRequest('Aggiornamento del servizio locale richiesto.');
           return;
         }
         if (isCompanionTransportError(error)) {
           if (!bridgeConfig.remoteHosted) {
-            setStatus('Servizio locale non raggiungibile, attivo il percorso alternativo sul motore locale di IUSENTRA...');
+            setStatus('Servizio locale del dispositivo non raggiungibile, attivo il percorso alternativo sul motore locale di IUSENTRA...');
             sendLocal(text);
             return;
           }
@@ -1707,12 +1707,12 @@
             },
           });
           saveConversationMemory();
-          finalizeRequest('Risposta interrotta dal companion locale.');
+          finalizeRequest('Risposta interrotta dal servizio locale del dispositivo.');
           return;
         }
         finalizeThinkingFeedback(false);
         setBubbleHtml(state.currentBubble, renderCompanionRuntimeHelp(error));
-        finalizeRequest('Companion locale raggiunto, ma la richiesta non e\' andata a buon fine.');
+        finalizeRequest('Servizio locale del dispositivo raggiunto, ma la richiesta non e\' andata a buon fine.');
       });
   }
 
@@ -1781,12 +1781,12 @@
       .then(function (data) {
         var runtime = data.runtime || {};
         var ready = Boolean(data.runtime_online || runtime.status === 'ready');
-        var modelLabel = (data.resolved_models && data.resolved_models.chat) || 'Companion locale';
-        updateBadge(ready, ready ? modelLabel : 'Companion offline');
+        var modelLabel = (data.resolved_models && data.resolved_models.chat) || 'Servizio locale';
+        updateBadge(ready, ready ? modelLabel : 'Servizio locale offline');
         setStatus(
           ready
-            ? 'Lex e\' collegato al companion locale di questo dispositivo.'
-            : 'Il companion locale non e\' ancora operativo su questo dispositivo.'
+            ? 'Lex e\' collegato al servizio locale di questo dispositivo.'
+            : 'Il servizio locale di questo dispositivo non e\' ancora operativo.'
         );
       })
       .catch(function () {
@@ -1794,11 +1794,11 @@
           .fetchCompanionPing(bridgeConfig)
           .then(function () {
             updateBadge(false, 'AI locale non pronta');
-            setStatus('Local Signer raggiungibile, ma il modulo AI locale non e\' operativo su questo dispositivo.');
+            setStatus('Local Signer raggiungibile, ma il motore locale non e\' operativo su questo dispositivo.');
           })
           .catch(function () {
-            updateBadge(false, 'Companion offline');
-            setStatus('Il browser non riesce a raggiungere il companion locale su questo dispositivo.');
+            updateBadge(false, 'Servizio locale offline');
+            setStatus('Il browser non riesce a raggiungere il servizio locale di questo dispositivo.');
           });
       });
   }

@@ -7,6 +7,17 @@ from collections import deque
 
 DATA_ROOT = pathlib.Path("/data")
 RUN_USER = "iusentra"
+MANAGED_CLOUD_ENV_VARS = (
+    "RAILWAY_ENVIRONMENT",
+    "RAILWAY_PROJECT_ID",
+    "RAILWAY_SERVICE_ID",
+    "RENDER",
+    "RENDER_SERVICE_ID",
+)
+
+
+def _is_managed_cloud_runtime() -> bool:
+    return any(os.getenv(name) for name in MANAGED_CLOUD_ENV_VARS)
 
 
 def _resolve_identity() -> tuple[int, int]:
@@ -43,6 +54,8 @@ def _candidate_write_roots() -> list[pathlib.Path]:
         DATA_ROOT / "system" / "installation",
         DATA_ROOT / "system" / "installation" / "keys",
     ]
+    if _is_managed_cloud_runtime():
+        return roots
     queue: deque[tuple[pathlib.Path, int]] = deque([(DATA_ROOT, 0)])
     seen = {root for root in roots}
     while queue and len(roots) < 20:

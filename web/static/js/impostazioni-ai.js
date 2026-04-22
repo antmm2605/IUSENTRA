@@ -393,11 +393,11 @@
       },
       models: [],
       installer: {
-        strategy_label: 'Companion locale sul dispositivo cliente',
-        summary_title: outdated ? 'Aggiornamento Local Signer richiesto' : 'Companion locale non rilevato',
+        strategy_label: 'Servizio locale sul dispositivo cliente',
+        summary_title: outdated ? 'Aggiornamento Local Signer richiesto' : 'Servizio locale non rilevato',
         summary_body: outdated
           ? 'La web app online ha trovato un Local Signer raggiungibile, ma la versione installata non espone ancora il bridge AI locale. Aggiornalo dal pacchetto ufficiale e poi ripeti il controllo.'
-          : 'Quando IUSENTRA e\' online, il browser deve parlare con il Local Signer sul dispositivo cliente. Installa o avvia il companion locale su questa macchina e poi ripeti il controllo.',
+          : 'Quando IUSENTRA e\' online, il browser deve parlare con il Local Signer sul dispositivo cliente. Installa o avvia il servizio locale su questa macchina e poi ripeti il controllo.',
         distribution_scope: reason || 'Il motore AI resta sul dispositivo cliente e non viene eseguito dal browser.',
         host_platform: platformKey,
         host_machine: 'n.d.',
@@ -462,13 +462,13 @@
     } catch (error) {
       if (config.remoteHosted) {
         const payload = companionUnavailablePayload(
-          'Companion locale non raggiungibile dal browser su http://127.0.0.1:27272.',
+          'Servizio locale non raggiungibile dal browser su http://127.0.0.1:27272.',
           Number(error.httpStatus || 0) === 404
         );
         renderLocalAiStatus(payload);
         showAiFeedback(
           'warning',
-          Number(error.httpStatus || 0) === 404 ? 'Aggiornamento richiesto' : 'Companion locale non raggiungibile',
+          Number(error.httpStatus || 0) === 404 ? 'Aggiornamento richiesto' : 'Servizio locale non raggiungibile',
           Number(error.httpStatus || 0) === 404
             ? 'Il Local Signer risponde ma non supporta ancora il bridge AI locale. Aggiornalo da questo dispositivo e poi ripeti il controllo.'
             : 'La web app online non puo\' leggere Ollama direttamente dal server. Installa o avvia il Local Signer su questo dispositivo e poi ripeti il controllo.'
@@ -501,7 +501,7 @@
       'warning',
       'Preparazione motore in corso',
       config.remoteHosted
-        ? 'Sto chiedendo al companion locale di verificare Ollama e i modelli su questo dispositivo, senza coinvolgere il server Railway.'
+        ? 'Sto chiedendo al servizio locale di verificare Ollama e i modelli su questo dispositivo, senza coinvolgere il server Railway.'
         : 'Sto verificando la strategia corretta per questa macchina e la disponibilita\' dei modelli locali.'
     );
 
@@ -547,8 +547,8 @@
         renderLocalAiStatus(payload);
         showAiFeedback(
           'warning',
-          'Companion locale necessario',
-          'Per la versione online di IUSENTRA il bootstrap AI deve passare dal Local Signer sul dispositivo cliente. Installa o aggiorna il companion locale e poi ripeti la procedura.'
+          'Servizio locale necessario',
+          'Per la versione online di IUSENTRA la preparazione AI deve passare dal Local Signer sul dispositivo cliente. Installa o aggiorna il servizio locale e poi ripeti la procedura.'
         );
       } else {
         setAiBadge('Preparazione fallita', 'danger');

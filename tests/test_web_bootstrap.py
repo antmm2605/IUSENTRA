@@ -5,12 +5,15 @@ from pathlib import Path
 from flask import g
 
 from pct import __version__ as APP_VERSION
-from pct.auth import GestioneUtenti
+from pct.auth import GestioneUtenti, RuoloUtente
 from pct.fascicoli import GestioneFascicoli, TipoDocumento, TipoFascicolo
+from pct.storage import StudioDB
+from pct.tenant import GestioneTenant
 from web.bootstrap.blueprint_registry import BLUEPRINT_REGISTRY
 from web.bootstrap.flask_app_factory import create_flask_app
 from web.bootstrap.runtime_bundle import build_application_runtime_bundle
 from web.app import create_app
+from web.services.tenant_legacy_bootstrap import bootstrap_legacy_tenant_runtime_data
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -111,6 +114,54 @@ def _cfg_web(tmp_path: Path) -> dict:
         "PORTALE_UPLOADS": str(tmp_path / "portale" / "uploads"),
         "TENANTS_REGISTRY": str(tmp_path / "tenants.json"),
     }
+
+
+def _seed_tenant_admin(
+    app,
+    *,
+    studio_nome: str = "Studio Refactor",
+    studio_slug: str = "studio-refactor",
+    username: str = "studio-admin",
+    password: str = "PasswordSicura!123",
+):
+    tm = GestioneTenant(app.config["TENANTS_REGISTRY"])
+    studio = tm.get(studio_slug) or tm.crea(
+        studio_nome,
+        studio_slug,
+        db_config={"mode": "SQLITE"},
+    )
+    bootstrap_legacy_tenant_runtime_data(app, tenant_slug=studio.slug)
+    paths = tm.percorsi_dati(studio.slug)
+    utenti = GestioneUtenti(
+        db_path=paths["AUTH_DB"],
+        audit_path=paths["AUDIT_DB"],
+        secret_key=app.secret_key,
+        crea_admin_se_vuoto=False,
+        studio_db=StudioDB.get(paths["STUDIO_DB"]),
+    )
+    utenti_json = GestioneUtenti(
+        db_path=paths["AUTH_DB"],
+        audit_path=paths["AUDIT_DB"],
+        secret_key=app.secret_key,
+        crea_admin_se_vuoto=False,
+        studio_db=None,
+    )
+    esistente = utenti.get_by_username(username)
+    if esistente is None:
+        esistente = utenti.crea(
+            username=username,
+            password=password,
+            ruolo=RuoloUtente.AMMINISTRATORE,
+            tenant_slug=studio.slug,
+            must_change_password=False,
+        )
+    if utenti_json.get_by_username(username) is None:
+        utenti_json.importa_utente_esistente(
+            esistente,
+            tenant_slug=studio.slug,
+            preserve_id=True,
+        )
+    return studio, esistente
 
 
 def test_create_app_applies_runtime_overrides_and_registers_blueprints(tmp_path: Path):
@@ -235,9 +286,18 @@ def test_template_runtime_registers_filters_and_globals(tmp_path: Path):
 def test_pwa_routes_and_error_handlers_restano_registrati(tmp_path: Path):
     _write_studio_config(tmp_path / "config" / "studio.json")
     app = create_app(_cfg_web(tmp_path))
+    studio, tenant_admin = _seed_tenant_admin(app)
 
     with app.test_client() as client:
-        client.post("/login", data={"username": "admin", "password": "admin"}, follow_redirects=True)
+        client.post(
+            "/login",
+            data={
+                "username": tenant_admin.username,
+                "password": "PasswordSicura!123",
+                "studio_slug": studio.slug,
+            },
+            follow_redirects=False,
+        )
         service_worker = client.get("/sw.js")
         offline = client.get("/offline")
         missing = client.get("/percorso-inesistente")
@@ -251,65 +311,92 @@ def test_pwa_routes_and_error_handlers_restano_registrati(tmp_path: Path):
 def test_route_domini_estratti_restano_operativi(tmp_path: Path):
     _write_studio_config(tmp_path / "config" / "studio.json")
     app = create_app(_cfg_web(tmp_path))
+    studio, tenant_admin = _seed_tenant_admin(app)
 
-    with app.test_client() as client:
-        login = client.post(
+    tenant_paths = (
+        "/profilo",
+        "/agenda",
+        "/scadenziario",
+        "/workspace-intelligente",
+        "/telematico",
+        "/polisWeb",
+        "/pdp",
+        "/pat",
+        "/sigit",
+        "/tribunali",
+        "/tariffario",
+        "/timesheet",
+        "/clienti",
+        "/cartelle-condivise",
+        "/messaggi",
+        "/backup",
+        "/cerca",
+        "/portali/pst/acquisizione",
+        "/deposito/checklist",
+        "/guida/firma-digitale",
+        "/impostazioni/calendario",
+        "/privacy/registro",
+        "/soggetti",
+    )
+    platform_paths = (
+        "/admin/database",
+        "/admin/governance",
+        "/admin/assistente-migrazione",
+        "/admin/crash-test-operativo",
+        "/admin/copertura-ai",
+        "/admin/copertura-ai/review",
+        "/admin/aggiornamenti-legali",
+        "/admin/aggiornamenti-legali/fonti",
+        "/admin/aggiornamenti-legali/staging",
+        "/admin/aggiornamenti-legali/analisi",
+        "/admin/aggiornamenti-legali/archivio",
+        "/admin/aggiornamenti-legali/review",
+        "/admin/installazione-pack/",
+        "/legal-intelligence/news",
+    )
+
+    with app.test_client() as tenant_client:
+        login = tenant_client.post(
+            "/login",
+            data={
+                "username": tenant_admin.username,
+                "password": "PasswordSicura!123",
+                "studio_slug": studio.slug,
+            },
+            follow_redirects=False,
+        )
+        assert login.status_code == 302
+
+        for path in tenant_paths:
+            response = tenant_client.get(path)
+            assert response.status_code == 200, path
+
+    with app.test_client() as platform_client:
+        login = platform_client.post(
             "/login",
             data={"username": "admin", "password": "admin"},
             follow_redirects=False,
         )
         assert login.status_code == 302
 
-        for path in (
-            "/profilo",
-            "/agenda",
-            "/scadenziario",
-            "/workspace-intelligente",
-            "/telematico",
-            "/polisWeb",
-            "/pdp",
-            "/pat",
-            "/sigit",
-            "/tribunali",
-            "/tariffario",
-            "/timesheet",
-            "/clienti",
-            "/cartelle-condivise",
-            "/messaggi",
-            "/backup",
-            "/cerca",
-            "/portali/pst/acquisizione",
-            "/deposito/checklist",
-            "/guida/firma-digitale",
-            "/impostazioni/calendario",
-            "/privacy/registro",
-            "/soggetti",
-            "/admin/database",
-            "/admin/governance",
-            "/admin/assistente-migrazione",
-            "/admin/crash-test-operativo",
-            "/admin/copertura-ai",
-            "/admin/copertura-ai/review",
-            "/admin/aggiornamenti-legali",
-            "/admin/aggiornamenti-legali/fonti",
-            "/admin/aggiornamenti-legali/staging",
-            "/admin/aggiornamenti-legali/analisi",
-            "/admin/aggiornamenti-legali/archivio",
-            "/admin/aggiornamenti-legali/review",
-            "/legal-intelligence/news",
-        ):
-            response = client.get(path)
+        for path in platform_paths:
+            response = platform_client.get(path)
             assert response.status_code == 200, path
 
 
 def test_nuovo_cliente_renderizza_il_form_prima_del_modal_scanner(tmp_path: Path):
     _write_studio_config(tmp_path / "config" / "studio.json")
     app = create_app(_cfg_web(tmp_path))
+    studio, tenant_admin = _seed_tenant_admin(app)
 
     with app.test_client() as client:
         login = client.post(
             "/login",
-            data={"username": "admin", "password": "admin"},
+            data={
+                "username": tenant_admin.username,
+                "password": "PasswordSicura!123",
+                "studio_slug": studio.slug,
+            },
             follow_redirects=False,
         )
         assert login.status_code == 302
@@ -442,7 +529,13 @@ def test_i_moduli_bootstrap_restano_governabili():
 def test_template_principali_usano_copy_italiana_e_date_localizzate():
     template_checks = {
         "web/templates/base.html": ["Panoramica", "Operazione completata", "Preparazione Udienza Guidata"],
-        "web/templates/admin/base.html": ["Esci", "Piattaforma", "Aggiornamenti legali"],
+        "web/templates/admin/base.html": ["Esci", "Piattaforma", "Aggiornamenti legali", "Pack installazione"],
+        "web/templates/admin/installazione_pack.html": [
+            "Product Pack, Studio Local Pack e Update Pack",
+            "Rigenera bootstrap e manifest",
+            "Bootstrap macchina",
+            "Update Pack e repository SQL",
+        ],
         "web/templates/admin/assistente_migrazione.html": [
             "Assistente migrazione dati",
             "Ultima esecuzione reale",
@@ -693,6 +786,7 @@ def test_scss_governance_usa_bundle_modulari_e_niente_style_inline():
         "web/templates/base.html",
         "web/templates/admin/base.html",
         "web/templates/admin/dashboard.html",
+        "web/templates/admin/installazione_pack.html",
         "web/templates/admin/studio_nuovo.html",
         "web/templates/dashboard.html",
         "web/templates/impostazioni/index.html",
@@ -1282,9 +1376,18 @@ def test_preparazione_udienza_guidata_usa_componenti_modulari_e_js_esterno():
 def test_preparazione_udienza_guidata_reindirizza_la_vecchia_route_nuovo(tmp_path: Path):
     _write_studio_config(tmp_path / "config" / "studio.json")
     app = create_app(_cfg_web(tmp_path))
+    studio, tenant_admin = _seed_tenant_admin(app)
 
     with app.test_client() as client:
-        client.post("/login", data={"username": "admin", "password": "admin"}, follow_redirects=True)
+        client.post(
+            "/login",
+            data={
+                "username": tenant_admin.username,
+                "password": "PasswordSicura!123",
+                "studio_slug": studio.slug,
+            },
+            follow_redirects=True,
+        )
         response = client.get("/wizard-pro/nuovo?id_fascicolo=FASC001")
 
     assert response.status_code == 302
@@ -1360,6 +1463,7 @@ def test_assistente_stato_usa_runtime_ollama_risolto(monkeypatch, tmp_path: Path
 
     _write_studio_config(tmp_path / "config" / "studio.json")
     app = create_app(_cfg_web(tmp_path))
+    studio, tenant_admin = _seed_tenant_admin(app)
 
     class FakeResponse:
         def json(self):
@@ -1384,7 +1488,15 @@ def test_assistente_stato_usa_runtime_ollama_risolto(monkeypatch, tmp_path: Path
     monkeypatch.setattr("lex.runtime_dependencies.requests.get", fake_get)
 
     with app.test_client() as client:
-        client.post("/login", data={"username": "admin", "password": "admin"}, follow_redirects=True)
+        client.post(
+            "/login",
+            data={
+                "username": tenant_admin.username,
+                "password": "PasswordSicura!123",
+                "studio_slug": studio.slug,
+            },
+            follow_redirects=True,
+        )
         response = client.get("/api/assistente/stato")
 
     payload = response.get_json()
@@ -1401,6 +1513,7 @@ def test_assistente_chat_usa_runtime_ollama_risolto(monkeypatch, tmp_path: Path)
 
     _write_studio_config(tmp_path / "config" / "studio.json")
     app = create_app(_cfg_web(tmp_path))
+    studio, tenant_admin = _seed_tenant_admin(app)
 
     class FakeStreamResponse:
         def iter_lines(self):
@@ -1428,7 +1541,15 @@ def test_assistente_chat_usa_runtime_ollama_risolto(monkeypatch, tmp_path: Path)
     monkeypatch.setattr("lex.runtime_dependencies.requests.post", fake_post)
 
     with app.test_client() as client:
-        client.post("/login", data={"username": "admin", "password": "admin"}, follow_redirects=True)
+        client.post(
+            "/login",
+            data={
+                "username": tenant_admin.username,
+                "password": "PasswordSicura!123",
+                "studio_slug": studio.slug,
+            },
+            follow_redirects=True,
+        )
         response = client.post(
             "/api/assistente/chat",
             json={"messages": [{"role": "user", "content": "Qual e' lo stato del fascicolo?"}]},
@@ -1448,11 +1569,20 @@ def test_assistente_chat_usa_runtime_ollama_risolto(monkeypatch, tmp_path: Path)
 def test_audit_log_riconcilia_eventi_storici_con_fascicolo_corrente(tmp_path: Path):
     _write_studio_config(tmp_path / "config" / "studio.json")
     app = create_app(_cfg_web(tmp_path))
+    studio, tenant_admin = _seed_tenant_admin(
+        app,
+        studio_nome="Studio Audit",
+        studio_slug="studio-audit",
+        username="audit-admin",
+    )
+    tm = GestioneTenant(app.config["TENANTS_REGISTRY"])
+    paths = tm.percorsi_dati(studio.slug)
 
     fascicoli = GestioneFascicoli(
-        db_path=app.config["FASCICOLI_DB"],
-        documents_dir=app.config["FASCICOLI_DOCS"],
-        archive_dir=app.config["FASCICOLI_ARCH"],
+        db_path=paths["FASCICOLI_DB"],
+        documents_dir=paths["FASCICOLI_DOCS"],
+        archive_dir=paths["FASCICOLI_ARCH"],
+        studio_db=None,
     )
     fascicolo = fascicoli.nuovo(
         "Vendita immobili",
@@ -1468,13 +1598,13 @@ def test_audit_log_riconcilia_eventi_storici_con_fascicolo_corrente(tmp_path: Pa
     )
 
     utenti = GestioneUtenti(
-        db_path=app.config["AUTH_DB"],
-        audit_path=app.config["AUDIT_DB"],
+        db_path=paths["AUTH_DB"],
+        audit_path=paths["AUDIT_DB"],
         secret_key=app.secret_key,
         crea_admin_se_vuoto=False,
-        bootstrap_admin_password="admin",
+        studio_db=None,
     )
-    admin = utenti.autentica("admin", "admin")
+    admin = utenti.autentica(tenant_admin.username, "PasswordSicura!123")
     assert admin is not None
     utenti.registra_evento(
         "fascicoli.documento.visualizza",
@@ -1490,7 +1620,11 @@ def test_audit_log_riconcilia_eventi_storici_con_fascicolo_corrente(tmp_path: Pa
     with app.test_client() as client:
         login = client.post(
             "/login",
-            data={"username": "admin", "password": "admin"},
+            data={
+                "username": tenant_admin.username,
+                "password": "PasswordSicura!123",
+                "studio_slug": studio.slug,
+            },
             follow_redirects=False,
         )
         assert login.status_code == 302

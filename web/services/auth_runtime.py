@@ -27,6 +27,8 @@ def register_auth_runtime(
         "login",
         "login_2fa",
         "static",
+        "service_worker",
+        "offline",
         "logout",
         "admin.esci_impersonazione",
         "polis_local_signer_download",
@@ -287,16 +289,29 @@ def register_auth_runtime(
 
         blueprint = str(request.blueprint or "").strip().lower()
         endpoint = str(request.endpoint or "").strip()
+        path = str(request.path or "").strip().lower()
         allowed_blueprints = {
             "admin",
+            "installation_pack_admin",
             "legal_coverage_admin",
             "legal_updates_admin",
             "operational_resilience_admin",
             "legal_intelligence",
         }
-        allowed_endpoints = public_routes | password_change_routes | {"profilo"}
+        allowed_endpoints = public_routes | password_change_routes | {
+            "profilo",
+            "service_worker",
+            "offline",
+        }
+        allowed_path_prefixes = (
+            "/admin/database",
+        )
 
-        if blueprint in allowed_blueprints or endpoint in allowed_endpoints:
+        if (
+            blueprint in allowed_blueprints
+            or endpoint in allowed_endpoints
+            or any(path.startswith(prefix) for prefix in allowed_path_prefixes)
+        ):
             return None
         return redirect(url_for("admin.dashboard"))
 
@@ -410,7 +425,13 @@ def register_auth_runtime(
                         "warning",
                     )
                     return redirect(url_for("profilo", password_obbligatoria=1))
-                next_url = request.args.get("next") or url_for("dashboard")
+                next_url = request.args.get("next")
+                if not next_url:
+                    next_url = (
+                        url_for("admin.dashboard")
+                        if utente.is_superadmin and not session.get("superadmin_user_id")
+                        else url_for("dashboard")
+                    )
                 return redirect(next_url)
 
             if not errore:
@@ -477,7 +498,7 @@ def register_auth_runtime(
         if request.method == "POST":
             codice = request.form.get("codice", "").strip()
             if verifica_totp(utente.totp_secret, codice):
-                next_url = session.pop("totp_pending_next", url_for("dashboard"))
+                next_url = session.pop("totp_pending_next", "")
                 force_password_change = bool(
                     session.pop("totp_pending_force_password_change", False)
                 )
@@ -498,6 +519,12 @@ def register_auth_runtime(
                 session["last_activity"] = datetime.now().isoformat()
                 session["must_change_password"] = force_password_change
                 session.permanent = True
+                if not next_url:
+                    next_url = (
+                        url_for("admin.dashboard")
+                        if utente.is_superadmin and not session.get("superadmin_user_id")
+                        else url_for("dashboard")
+                    )
                 manager.registra_evento(
                     "auth.login",
                     id_utente=utente.id,

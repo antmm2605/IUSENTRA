@@ -1145,6 +1145,13 @@ class GestioneTenant:
             "intelligence", "search", "config",
             # directory aggiuntive per moduli preventivi, email e soggetti
             "preventivi", "email", "soggetti",
+            # struttura governata Studio Local Pack
+            "studio_data", "studio_data/db", "studio_data/vectors",
+            "studio_data/memory", "studio_data/memory/facts", "studio_data/memory/timeline",
+            "studio_data/memory/profiles", "studio_data/memory/economic",
+            "studio_data/documents", "studio_data/attachments", "studio_data/cache",
+            "studio_data/jobs", "studio_data/backups", "studio_data/audit",
+            "studio_data/keys",
         ]:
             (base / subdir).mkdir(parents=True, exist_ok=True)
 

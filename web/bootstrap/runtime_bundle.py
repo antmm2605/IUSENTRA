@@ -3,10 +3,13 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any
 
 from flask import Flask
 
+from pct import __version__ as APP_VERSION
+from pct.installation_packs import bootstrap_pack_governance
 from pct.tenant import GestioneTenant
 from web.services.core_runtime import build_core_runtime
 from web.services.document_crypto import decrypt_doc, encrypt_doc
@@ -50,6 +53,15 @@ def build_application_runtime_bundle(
             )
         except Exception as exc:
             app.logger.exception("Errore sync tenant_user_directory in avvio: %s", exc)
+
+    try:
+        bootstrap_pack_governance(
+            app_root=Path(__file__).resolve().parents[2],
+            registry_path=str(app.config.get("TENANTS_REGISTRY", "./data/tenants.json")),
+            app_version=APP_VERSION,
+        )
+    except Exception as exc:
+        app.logger.exception("Errore bootstrap Product Pack / Studio Local Pack: %s", exc)
 
     try:
         bootstrap_report = bootstrap_legacy_tenant_runtime_data(app)

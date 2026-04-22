@@ -1,0 +1,238 @@
+{% extends "admin/base.html" %}
+{% block title %}Pack installazione{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item active">Pack installazione</li>{% endblock %}
+
+{% block content %}
+<div class="admin-page-header">
+  <div>
+    <h4 class="admin-page-title">Product Pack, Studio Local Pack e Update Pack</h4>
+    <p class="admin-page-subtitle">Separazione ferrea tra prodotto distribuibile, memoria privata di studio e aggiornamenti governati dal SUPERADMIN.</p>
+  </div>
+  <form method="post" action="{{ url_for('installation_pack_admin.refresh') }}" class="d-flex gap-2 flex-wrap">
+    <input type="hidden" name="slug" value="{{ payload.selected_studio_pack.studio_slug if payload.selected_studio_pack else '' }}">
+    <button type="submit" class="btn btn-primary">
+      <i class="bi bi-arrow-repeat me-2"></i>Rigenera bootstrap e manifest
+    </button>
+  </form>
+</div>
+
+<div class="alert alert-info d-flex gap-2 align-items-start">
+  <i class="bi bi-shield-lock-fill mt-1"></i>
+  <div>
+    <div class="fw-semibold">Regola di piattaforma</div>
+    <div class="small">{{ payload.superadmin_rule }}</div>
+  </div>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-6 col-lg-3">
+    <div class="card admin-stat-card h-100"><div class="card-body"><div class="small text-muted">Servizi prodotto</div><div class="fs-3 fw-bold">{{ payload.headline.product_services }}</div></div></div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card admin-stat-card h-100"><div class="card-body"><div class="small text-muted">Knowledge pubblica</div><div class="fs-3 fw-bold">{{ payload.headline.public_knowledge_assets }}</div></div></div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card admin-stat-card h-100"><div class="card-body"><div class="small text-muted">Studio Local Pack</div><div class="fs-3 fw-bold">{{ payload.headline.studio_local_packs }}</div></div></div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card admin-stat-card h-100"><div class="card-body"><div class="small text-muted">Migrazioni Update Pack</div><div class="fs-3 fw-bold">{{ payload.headline.update_migrations }}</div></div></div>
+  </div>
+</div>
+
+<div class="row g-4">
+  <div class="col-12 col-xl-5">
+    <div class="card h-100">
+      <div class="card-header fw-semibold">Bootstrap macchina</div>
+      <div class="card-body">
+        <div class="admin-surface-list">
+          <div class="admin-surface-item">
+            <div class="small text-muted">Installation ID</div>
+            <div class="fw-semibold font-monospace">{{ payload.installation.installation_id }}</div>
+          </div>
+          <div class="admin-surface-item">
+            <div class="small text-muted">Profilo cifratura</div>
+            <div class="fw-semibold">{{ payload.installation.encryption_profile }}</div>
+            <div class="small mt-1">Master key unica per installazione, chiavi derivate separate per database, documenti, backup e token locali.</div>
+          </div>
+          <div class="admin-surface-item">
+            <div class="small text-muted">Master key fingerprint</div>
+            <div class="fw-semibold font-monospace text-break">{{ payload.installation.master_key_fingerprint }}</div>
+          </div>
+          <div class="admin-surface-item">
+            <div class="small text-muted">Root sistema</div>
+            <div class="fw-semibold font-monospace text-break">{{ payload.installation.system_root }}</div>
+          </div>
+          <div class="admin-surface-item">
+            <div class="small text-muted">Chiavi derivate</div>
+            <ul class="mb-0 small">
+              {% for item in payload.installation.derived_keys %}
+              <li><span class="fw-semibold">{{ item.purpose }}</span> · <span class="font-monospace">{{ item.fingerprint[:18] }}…</span></li>
+              {% endfor %}
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-xl-7">
+    <div class="card h-100">
+      <div class="card-header fw-semibold">Product Pack</div>
+      <div class="card-body">
+        <div class="row g-3">
+          <div class="col-md-6">
+            <div class="admin-surface-item h-100">
+              <div class="small text-muted">Versione prodotto</div>
+              <div class="fw-semibold">{{ payload.product_pack.version }}</div>
+              <div class="small mt-2">App build e Lex build sono allineati alla release corrente.</div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="admin-surface-item h-100">
+              <div class="small text-muted">Manifest firmato</div>
+              <div class="fw-semibold font-monospace text-break">{{ payload.product_pack.signature }}</div>
+              <div class="small mt-2">Firma HMAC-SHA256 del manifest di prodotto.</div>
+            </div>
+          </div>
+          <div class="col-12">
+            <div class="admin-surface-item">
+              <div class="small text-muted">Confine del Product Pack</div>
+              <div class="small mt-2">{{ payload.product_pack.knowledge_boundary.public_knowledge }}</div>
+              <ul class="mt-2 mb-0 small">
+                {% for item in payload.product_pack.knowledge_boundary.forbidden_payloads %}
+                <li>{{ item }}</li>
+                {% endfor %}
+              </ul>
+            </div>
+          </div>
+          <div class="col-12">
+            <div class="admin-surface-item">
+              <div class="small text-muted">Knowledge pubblica bonificata</div>
+              <div class="table-responsive mt-2">
+                <table class="table table-sm align-middle mb-0">
+                  <thead>
+                    <tr>
+                      <th>Asset</th>
+                      <th>Tipo</th>
+                      <th>SHA-256</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for item in payload.product_pack.public_knowledge_manifest %}
+                    <tr>
+                      <td>{{ item.relative_pack_path }}</td>
+                      <td>{{ item.kind }}</td>
+                      <td class="font-monospace small text-break">{{ item.sha256[:18] }}…</td>
+                    </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4 mt-1">
+  <div class="col-12 col-xl-6">
+    <div class="card h-100">
+      <div class="card-header fw-semibold d-flex justify-content-between align-items-center gap-2 flex-wrap">
+        <span>Studio Local Pack</span>
+        <form method="get" class="d-flex gap-2 align-items-center">
+          <label class="small text-muted" for="studio-pack-slug">Studio</label>
+          <select name="slug" id="studio-pack-slug" class="form-select form-select-sm" onchange="this.form.submit()">
+            {% for item in payload.studios %}
+            <option value="{{ item.slug }}" {{ 'selected' if item.selected else '' }}>{{ item.nome }}</option>
+            {% endfor %}
+          </select>
+        </form>
+      </div>
+      <div class="card-body">
+        {% if payload.selected_studio_pack %}
+        <div class="admin-surface-list">
+          <div class="admin-surface-item">
+            <div class="small text-muted">Studio selezionato</div>
+            <div class="fw-semibold">{{ payload.selected_studio_pack.studio_nome }}</div>
+            <div class="small mt-1">Backend effettivo: {{ payload.selected_studio_pack.database_backend }} · slug: <span class="font-monospace">{{ payload.selected_studio_pack.studio_slug }}</span></div>
+          </div>
+          <div class="admin-surface-item">
+            <div class="small text-muted">Confine Studio Local Pack</div>
+            <div class="small mt-2">{{ payload.selected_studio_pack.knowledge_boundary.private_memory }}</div>
+            <div class="small mt-2">{{ payload.selected_studio_pack.knowledge_boundary.product_boundary }}</div>
+          </div>
+          <div class="admin-surface-item">
+            <div class="small text-muted">Percorsi governati</div>
+            <ul class="mb-0 small">
+              <li><span class="fw-semibold">Pack root</span> · <span class="font-monospace">{{ payload.selected_studio_pack.paths.pack_root }}</span></li>
+              <li><span class="fw-semibold">Documenti</span> · <span class="font-monospace">{{ payload.selected_studio_pack.paths.documents_root }}</span></li>
+              <li><span class="fw-semibold">Allegati</span> · <span class="font-monospace">{{ payload.selected_studio_pack.paths.attachments_root }}</span></li>
+              <li><span class="fw-semibold">Vectors</span> · <span class="font-monospace">{{ payload.selected_studio_pack.paths.vectors_root }}</span></li>
+              <li><span class="fw-semibold">Backup</span> · <span class="font-monospace">{{ payload.selected_studio_pack.paths.backup_root }}</span></li>
+            </ul>
+          </div>
+          <div class="admin-surface-item">
+            <div class="small text-muted">Memory privata</div>
+            <ul class="mb-0 small">
+              <li>Facts · <span class="font-monospace">{{ payload.selected_studio_pack.private_memory.facts_path }}</span></li>
+              <li>Timeline · <span class="font-monospace">{{ payload.selected_studio_pack.private_memory.timeline_path }}</span></li>
+              <li>Profili · <span class="font-monospace">{{ payload.selected_studio_pack.private_memory.profiles_path }}</span></li>
+              <li>Economico · <span class="font-monospace">{{ payload.selected_studio_pack.private_memory.economic_path }}</span></li>
+            </ul>
+          </div>
+          <div class="admin-surface-item">
+            <div class="small text-muted">Compatibilità runtime attuale</div>
+            <ul class="mb-0 small">
+              {% for key, value in payload.selected_studio_pack.compatibility_paths.items() %}
+              <li><span class="fw-semibold">{{ key }}</span> · <span class="font-monospace">{{ value }}</span></li>
+              {% endfor %}
+            </ul>
+          </div>
+        </div>
+        {% else %}
+        <div class="text-muted">Nessuno studio disponibile al momento.</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-xl-6">
+    <div class="card h-100">
+      <div class="card-header fw-semibold">Update Pack e repository SQL</div>
+      <div class="card-body">
+        <div class="admin-surface-list">
+          <div class="admin-surface-item">
+            <div class="small text-muted">Update Pack corrente</div>
+            <div class="fw-semibold">{{ payload.update_pack.from_version }} → {{ payload.update_pack.to_version }}</div>
+            <div class="small mt-1">Manifest firmato: <span class="font-monospace">{{ payload.update_pack.signature }}</span></div>
+          </div>
+          <div class="admin-surface-item">
+            <div class="small text-muted">Repository pack</div>
+            <div class="small mt-2">Backend: <span class="fw-semibold">{{ payload.repository.backend_kind }}</span></div>
+            <div class="small">Product Pack: {{ payload.repository.product_packs }} · Studio Local Pack: {{ payload.repository.studio_local_packs }} · Update Pack: {{ payload.repository.update_packs }}</div>
+            <div class="small text-break font-monospace mt-2">{{ payload.repository.db_path }}</div>
+          </div>
+          <div class="admin-surface-item">
+            <div class="small text-muted">Servizi prodotto previsti</div>
+            <ul class="mb-0 small">
+              {% for item in payload.service_runtime %}
+              <li>
+                <span class="fw-semibold">{{ item.label }}</span>
+                <span class="badge text-bg-{{ 'success' if item.status == 'ok' else 'warning' }} ms-1">{{ item.status|upper }}</span>
+                <div class="text-muted">{{ item.detail }}</div>
+              </li>
+              {% endfor %}
+            </ul>
+          </div>
+          <div class="admin-surface-item">
+            <div class="small text-muted">Migrazioni incluse nell'Update Pack</div>
+            <div class="small mt-2">{{ payload.headline.update_migrations }} file SQL tra SQLite e PostgreSQL sono stati censiti nel manifest corrente.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -83,6 +83,10 @@
        class="nav-link {% if request.endpoint == 'admin.stato_installazione' %}active{% endif %}">
       <i class="bi bi-clipboard2-check"></i> Stato installazione
     </a>
+    <a href="{{ url_for('installation_pack_admin.dashboard') }}"
+       class="nav-link {% if request.blueprint == 'installation_pack_admin' %}active{% endif %}">
+      <i class="bi bi-box-seam"></i> Pack installazione
+    </a>
     <a href="{{ url_for('admin.assistente_migrazione') }}"
        class="nav-link {% if request.endpoint == 'admin.assistente_migrazione' %}active{% endif %}">
       <i class="bi bi-arrow-left-right"></i> Assistente migrazione

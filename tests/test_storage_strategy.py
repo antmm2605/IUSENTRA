@@ -69,7 +69,7 @@ def _root_utenti_manager(app):
         audit_path=app.config["AUDIT_DB"],
         secret_key=app.secret_key,
         crea_admin_se_vuoto=False,
-        studio_db=get_request_studio_db(app.config["CLIENTI_DB"]),
+        studio_db=None if app.config.get("MULTI_TENANT") else get_request_studio_db(app.config["CLIENTI_DB"]),
     )
 
 

@@ -46,6 +46,12 @@ BLUEPRINT_REGISTRY: tuple[BlueprintRegistration, ...] = (
     BlueprintRegistration("pagamenti", "web.blueprints.pagamenti", "pagamenti", "/pagamenti"),
     BlueprintRegistration("admin", "web.blueprints.admin", "admin_bp", "/admin"),
     BlueprintRegistration(
+        "installation_pack_admin",
+        "web.blueprints.installation_pack_admin",
+        "installation_pack_admin",
+        "",
+    ),
+    BlueprintRegistration(
         "operational_resilience_admin",
         "web.blueprints.operational_resilience_admin",
         "operational_resilience_admin",

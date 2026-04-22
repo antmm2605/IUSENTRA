@@ -6,7 +6,7 @@ import re
 from pathlib import Path
 from typing import Any
 
-from flask import current_app, url_for
+from flask import current_app, g, url_for
 
 from pct.fascicoli import GestioneFascicoli
 from web.services.storage_runtime import get_request_studio_db
@@ -65,11 +65,18 @@ def _build_document_index(fascicoli: list) -> dict[str, list]:
 
 
 def _load_fascicoli_manager() -> GestioneFascicoli:
-    anchor_path = str(current_app.config.get("FASCICOLI_DB", ""))
+    data_paths = getattr(g, "data_paths", {}) or {}
+    anchor_path = str(data_paths.get("FASCICOLI_DB") or current_app.config.get("FASCICOLI_DB", ""))
+    documents_dir = str(
+        data_paths.get("FASCICOLI_DOCS") or current_app.config.get("FASCICOLI_DOCS", "")
+    )
+    archive_dir = str(
+        data_paths.get("FASCICOLI_ARCH") or current_app.config.get("FASCICOLI_ARCH", "")
+    )
     return GestioneFascicoli(
         db_path=anchor_path,
-        documents_dir=str(current_app.config.get("FASCICOLI_DOCS", "")),
-        archive_dir=str(current_app.config.get("FASCICOLI_ARCH", "")),
+        documents_dir=documents_dir,
+        archive_dir=archive_dir,
         studio_db=get_request_studio_db(anchor_path),
     )
 

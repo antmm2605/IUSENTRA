@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.179.0 - 2026-04-22
+
+- Introdotta l'architettura governata `Product Pack / Studio Local Pack / Update Pack`, con bootstrap installazione idempotente, identita' macchina, chiavi per installazione e manifest separati per prodotto, tenant e aggiornamenti.
+- Aggiunta la cabina piattaforma `Piattaforma -> Pack installazione` (`/admin/installazione-pack`), riservata al `SUPERADMIN`, con rigenerazione manifest, stato servizi locali e repository SQL/PostgreSQL dei pack.
+- Creati repository SQL espliciti per i manifest dei pack, con schema dedicato sia SQLite/SQL locale sia PostgreSQL (`installation_product_pack_manifest`, `installation_studio_local_pack_manifest`, `installation_update_pack_manifest`).
+- Estesa la struttura tenant-aware con la root `studio_data/` e sottodirectory governate per `db`, `vectors`, `memory`, `documents`, `attachments`, `audit`, `backups`, `cache`, `jobs` e `keys`.
+- Corrette due incoerenze reali di piattaforma: il `SUPERADMIN` puo' usare anche la superficie legacy `/admin/database`, e il registro `Audit` riconcilia i fascicoli sul tenant attivo usando i percorsi request-aware invece della configurazione globale.
+- Riallineate le regressioni di bootstrap web e tenant-aware alla separazione vera tra piattaforma e studio, preservando test pubblici PWA, login tenant, audit storico e nuova superficie pack.
+
 ## 2.178.13 - 2026-04-22
 
 - Chiarita la configurazione del runtime AI locale nelle `Impostazioni`: il campo non viene piu' presentato come semplice URL, ma come `Prefisso API del runtime locale`, per evitare ambiguita' quando si apre manualmente Ollama dal browser.

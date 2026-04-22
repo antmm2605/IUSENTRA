@@ -53,6 +53,29 @@ La struttura è organizzata per responsabilità:
 
 Per una mappa più completa vedi [docs/ARCHITETTURA.md](docs/ARCHITETTURA.md).
 Per il workspace applicazioni vedi anche [docs/APPLICAZIONI_WORKSPACE.md](docs/APPLICAZIONI_WORKSPACE.md).
+Per la separazione ferrea tra `Product Pack`, `Studio Local Pack` e `Update Pack` vedi [docs/PACK_ARCHITECTURE.md](docs/PACK_ARCHITECTURE.md).
+
+## Pack di installazione governati dal SUPERADMIN
+
+La piattaforma distingue ora in modo esplicito tre pack, con governo esclusivo del `SUPERADMIN`:
+
+- `Product Pack`
+  runtime installabile e condivisibile: servizi locali, Lex core, prompt/policy, knowledge pubblica, manifest prodotto.
+- `Studio Local Pack`
+  memoria privata dello studio: `studio.db`, `vectors`, `memory`, `documents`, `attachments`, `audit`, `backups`, `cache`, `keys`.
+- `Update Pack`
+  aggiornamenti firmati e governati: nuove regole, template, knowledge pubblica aggiornata e migrazioni schema SQL/PostgreSQL.
+
+La superficie ufficiale e' `Piattaforma -> Pack installazione` (`/admin/installazione-pack`).
+
+Da questa cabina il `SUPERADMIN` puo' vedere e rigenerare:
+
+- identita' installazione e chiavi per installazione
+- manifest del `Product Pack`
+- manifest degli `Studio Local Pack` tenant-aware
+- manifest dell'`Update Pack`
+- repository SQL/PostgreSQL dei manifest
+- servizi locali previsti sul nodo (`hacs-web`, `hacs-lex`, `hacs-embed`, `hacs-jobs`, `hacs-telematico`, `hacs-updater`)
 
 ## Strategia storage per studio
 
@@ -148,6 +171,7 @@ Regole di governance:
 
 - il `SUPERADMIN` e' unico e vive solo a livello piattaforma
 - il `SUPERADMIN` ha una superficie dedicata `admin/utenti-piattaforma`, separata dagli utenti degli studi
+- il `SUPERADMIN` governa anche `Product Pack`, `Studio Local Pack` e `Update Pack` dal pannello `admin/installazione-pack`
 - uno studio non puo' creare o promuovere utenti `SUPERADMIN`
 - il pannello `admin/utenti-piattaforma` permette di modificare davvero gli account globali, generare o sostituire il `SUPERADMIN` e trasferire il ruolo a un altro account globale con logout pulito della sessione uscente
 - le route legacy di studio `/utenti*` non governano il `SUPERADMIN`: in multi-tenant il superadmin viene reindirizzato al pannello piattaforma e i form utenti studio filtrano e rifiutano sempre il ruolo `SUPERADMIN`
@@ -157,6 +181,7 @@ Regole di governance:
 - se esistono account globali anomali non `SUPERADMIN`, il pannello `admin/utenti-piattaforma` consente di spostarli davvero dentro uno studio preservando credenziali, audit e ruolo tenant-aware oppure di correggerli direttamente dalla piattaforma
 - le console piattaforma che operano su dati di studio, come `Update Intelligence`, lavorano sempre sul tenant selezionato e non su un archivio globale implicito
 - nelle superfici superadmin il nome autorevole dello studio resta quello del tenant di piattaforma; un eventuale nome diverso dentro `config/studio.json` viene mostrato solo come configurazione interna, non come nuovo studio
+- il bootstrap applicativo inizializza in modo idempotente l'identita' installazione e i manifest dei pack, ma la rigenerazione governata resta disponibile solo nella superficie `SUPERADMIN`
 
 ## Stato storage professionale
 

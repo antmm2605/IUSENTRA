@@ -136,3 +136,18 @@ def test_checklist_dettaglio_builtin_renderizza_template_professionale_derivato(
     assert "Mandati e domiciliazioni" in html
     assert "Workflow misto / redazione professionale" in html
     assert "19-04-2026" in html
+
+
+def test_checklist_dettaglio_builtin_pec_usa_endpoint_operativo_valido(tmp_path: Path):
+    app = _build_app(tmp_path)
+
+    with app.test_client() as client:
+        _login_tenant_admin(app, client)
+        response = client.get("/checklist/builtin-tmp-str-008?parte=Rossi%20Mario&data=2026-04-19")
+
+    assert response.status_code == 200
+    html = response.get_data(as_text=True)
+    assert "Atto di messa in mora" in html
+    assert "Deposito a mezzo PEC" in html
+    assert "Apri canale operativo" in html
+    assert 'href="/messaggi"' in html

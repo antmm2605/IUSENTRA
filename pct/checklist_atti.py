@@ -1276,7 +1276,7 @@ NEGOZIAZIONE_ASSISTITA = TemplateAtto(
     descrizione="Invito e convenzione di negoziazione assistita con controllo degli allegati di parte.",
     nome_cartella="Negoziazione_assistita_{parte}_{data}",
     canale="PEC",
-    endpoint_deposito="messaggi",
+    endpoint_deposito="lista_messaggi",
     tipo_atto_default="ALTRO",
     nota_canale=(
         "L'invito e l'accordo si gestiscono di norma a mezzo PEC o scambio documentale tracciato; non si crea una busta PCT."
@@ -1306,7 +1306,7 @@ DIFFIDA_STRAGIUDIZIALE = TemplateAtto(
     descrizione="Lettera di diffida o messa in mora con prova di invio e allegati essenziali.",
     nome_cartella="Diffida_messa_in_mora_{parte}_{data}",
     canale="PEC",
-    endpoint_deposito="messaggi",
+    endpoint_deposito="lista_messaggi",
     tipo_atto_default="ALTRO",
     nota_canale=(
         "La diffida si prepara fuori dal deposito telematico giudiziario ma deve restare fascicolata in modo rigoroso."
@@ -1604,7 +1604,7 @@ def _endpoint_da_canale(canale: str) -> str:
     if canale == "PCT_TELEMATICO":
         return "polisWeb_home"
     if canale == "PEC":
-        return "messaggi"
+        return "lista_messaggi"
     return ""
 
 

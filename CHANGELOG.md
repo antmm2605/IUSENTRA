@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.179.1 - 2026-04-22
+
+- Corretto il `500` reale della sezione `Checklist Atti` sui template stragiudiziali a canale `PEC`, in particolare sul dettaglio built-in `Atto di messa in mora`.
+- Riallineato il mapping degli endpoint operativi checklist: il canale `PEC` usa ora l'endpoint Flask reale `lista_messaggi` invece del vecchio alias `messaggi`.
+- Aggiunta una salvaguardia nella route `checklist_dettaglio` che normalizza gli alias legacy degli endpoint operativi e impedisce nuovi `BuildError` in render Jinja se un nome route storico non e' piu' registrato.
+- Aggiunta regressione HTTP sul template built-in `builtin-tmp-str-008` per garantire che il dettaglio risponda `200` e che il pulsante `Apri canale operativo` punti davvero a `/messaggi`.
+
 ## 2.179.0 - 2026-04-22
 
 - Introdotta l'architettura governata `Product Pack / Studio Local Pack / Update Pack`, con bootstrap installazione idempotente, identita' macchina, chiavi per installazione e manifest separati per prodotto, tenant e aggiornamenti.

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 from collections.abc import Callable
+from dataclasses import replace
 from datetime import date
 from pathlib import Path
 
@@ -21,6 +22,19 @@ def register_checklist_routes(
     audit: Callable[..., None],
 ) -> None:
     """Register checklist catalog and fascicolo wizard routes."""
+
+    endpoint_aliases = {
+        "messaggi": "lista_messaggi",
+    }
+
+    def _resolve_endpoint_operativo(endpoint_name: str) -> str:
+        raw = str(endpoint_name or "").strip()
+        if not raw:
+            return ""
+        for candidate in (raw, endpoint_aliases.get(raw, "")):
+            if candidate and candidate in app.view_functions:
+                return candidate
+        return ""
 
     def _wizard_step_stato(fascicolo, documento_richiesto, id_template):
         nota_tag = f"[wizard:{id_template}:step{documento_richiesto.numero}]"
@@ -91,6 +105,9 @@ def register_checklist_routes(
         if not template:
             flash("Template non trovato.", "warning")
             return redirect(url_for("checklist_atti"))
+        endpoint_operativo = _resolve_endpoint_operativo(getattr(template, "endpoint_deposito", ""))
+        if endpoint_operativo != getattr(template, "endpoint_deposito", ""):
+            template = replace(template, endpoint_deposito=endpoint_operativo)
         id_fasc = request.args.get("id_fasc", "")
         fascicolo_ctx = None
         if id_fasc:

@@ -813,11 +813,14 @@ def test_impostazioni_template_contains_ai_locale_tab():
     assert "AI Locale" in html
     assert "Prepara runtime automatico" in html
     assert "runLocalAiBootstrap" in html
+    assert "Prefisso API del runtime locale" in html
     assert "Companion locale sul dispositivo cliente" in html
     assert "127.0.0.1:27272" in html
     assert "ai-installer-summary" in html
     assert "http://host.docker.internal:11434/api" in html
     assert "/api/version" in html
+    assert "ai-version-check-hint" in html
+    assert "openLocalAiVersionCheck" in html
 
 
 def test_ollama_runtime_provisioner_selects_windows_installer_asset_per_l_utente(tmp_path: Path):

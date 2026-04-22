@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.178.13 - 2026-04-22
+
+- Chiarita la configurazione del runtime AI locale nelle `Impostazioni`: il campo non viene piu' presentato come semplice URL, ma come `Prefisso API del runtime locale`, per evitare ambiguita' quando si apre manualmente Ollama dal browser.
+- Aggiunto nel pannello AI il controllo rapido `Apri controllo /api/version`, che compone automaticamente l'endpoint corretto a partire dal prefisso configurato e aggiorna anche il promemoria inline visibile all'operatore.
+- Rafforzata la regressione statica della tab `AI Locale` per impedire il ritorno di etichette fuorvianti o la perdita del controllo guidato verso `/api/version`.
+
 ## 2.178.12 - 2026-04-22
 
 - Introdotto un layer governabile di resilienza runtime con circuit breaker condivisi per `Ollama` e `PEC / IMAP`, cosi' i runtime esterni instabili non vengono martellati all'infinito e restituiscono messaggi operativi leggibili.

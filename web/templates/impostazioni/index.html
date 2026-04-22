@@ -1032,10 +1032,11 @@
               <div class="form-text">Quando IUSENTRA e' online, il bootstrap passa dal companion locale del cliente. In locale o self-hosted resta disponibile anche il controllo lato server.</div>
             </div>
             <div class="col-12">
-              <label class="form-label fw-semibold">Base URL del runtime</label>
+              <label class="form-label fw-semibold">Prefisso API del runtime locale</label>
               <input type="text" name="ai_base_url" id="ai_base_url" class="form-control font-monospace"
                      value="{{ cfg.ai.base_url }}" placeholder="http://127.0.0.1:11434/api">
-              <div class="form-text">Sul dispositivo cliente il valore consigliato resta <span class="font-monospace">http://127.0.0.1:11434/api</span>. Nelle installazioni locali containerizzate puo' essere utile <span class="font-monospace">http://host.docker.internal:11434/api</span>. Se apri la sola root <span class="font-monospace">/api</span> e vedi <span class="font-monospace">404 page not found</span>, e' normale: il controllo corretto va fatto su <span class="font-monospace">/api/version</span>.</div>
+              <div class="form-text">Questo campo e' un prefisso tecnico API, non una pagina da aprire nel browser. Sul dispositivo cliente il valore consigliato resta <span class="font-monospace">http://127.0.0.1:11434/api</span>. Nelle installazioni locali containerizzate puo' essere utile <span class="font-monospace">http://host.docker.internal:11434/api</span>. Se apri la sola root <span class="font-monospace">/api</span> e vedi <span class="font-monospace">404 page not found</span>, e' normale: il controllo umano corretto va fatto su <span class="font-monospace">/api/version</span>.</div>
+              <div class="form-text text-break" id="ai-version-check-hint">Controllo endpoint consigliato: <span class="font-monospace">http://127.0.0.1:11434/api/version</span></div>
             </div>
             <div class="col-md-6">
               <label class="form-label fw-semibold">Modello conversazionale preferito</label>
@@ -1073,6 +1074,9 @@
             </button>
             <button type="button" class="btn btn-outline-secondary" id="ai-refresh-btn" onclick="refreshLocalAiStatus(true)">
               <i class="bi bi-arrow-repeat me-2"></i>Aggiorna stato operativo
+            </button>
+            <button type="button" class="btn btn-outline-secondary" id="ai-version-check-btn" onclick="openLocalAiVersionCheck()">
+              <i class="bi bi-box-arrow-up-right me-2"></i>Apri controllo /api/version
             </button>
           </div>
         </form>

@@ -182,6 +182,30 @@
     };
   }
 
+  function normalizeAiApiPrefix(baseUrl) {
+    const raw = String(baseUrl || '').trim().replace(/\/+$/, '');
+    if (!raw) {
+      return 'http://127.0.0.1:11434/api';
+    }
+    if (raw.endsWith('/api')) {
+      return raw;
+    }
+    return raw + '/api';
+  }
+
+  function buildLocalAiVersionUrl(baseUrl) {
+    return normalizeAiApiPrefix(baseUrl) + '/version';
+  }
+
+  function updateAiVersionCheckHint() {
+    const hint = document.getElementById('ai-version-check-hint');
+    if (!hint) {
+      return;
+    }
+    const versionUrl = buildLocalAiVersionUrl(currentAiSettings().base_url);
+    hint.innerHTML = 'Controllo endpoint consigliato: <span class="font-monospace">' + escapeHtml(versionUrl) + '</span>';
+  }
+
   async function readJsonResponse(response) {
     let payload = {};
     try {
@@ -542,7 +566,23 @@
     }
   }
 
+  function openLocalAiVersionCheck() {
+    const versionUrl = buildLocalAiVersionUrl(currentAiSettings().base_url);
+    window.open(versionUrl, '_blank', 'noopener,noreferrer');
+    showAiFeedback(
+      'info',
+      'Controllo endpoint aperto',
+      'Ho aperto il controllo corretto su /api/version. Se la root /api da sola restituisce 404 e /api/version risponde, il runtime Ollama e\' configurato correttamente.'
+    );
+  }
+
   document.addEventListener('DOMContentLoaded', function () {
+    const baseUrlField = document.getElementById('ai_base_url');
+    if (baseUrlField) {
+      baseUrlField.addEventListener('input', updateAiVersionCheckHint);
+      baseUrlField.addEventListener('change', updateAiVersionCheckHint);
+    }
+    updateAiVersionCheckHint();
     if (document.getElementById('ai-runtime-summary')) {
       refreshLocalAiStatus(false);
     }
@@ -550,5 +590,6 @@
 
   window.refreshLocalAiStatus = refreshLocalAiStatus;
   window.runLocalAiBootstrap = runLocalAiBootstrap;
+  window.openLocalAiVersionCheck = openLocalAiVersionCheck;
 })();
 

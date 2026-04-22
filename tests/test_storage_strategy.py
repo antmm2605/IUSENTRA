@@ -6,6 +6,7 @@ from pathlib import Path
 from flask import g
 
 from pct.auth import GestioneUtenti, RuoloUtente
+from pct.core_storage_backend import build_core_storage_backend
 from pct.storage import StudioDB
 from pct.tenant import DatabaseConfig, DbMode, GestioneTenant
 from web.bootstrap.flask_app_factory import create_flask_app
@@ -79,6 +80,18 @@ def test_database_config_normalizes_storage_modes():
     assert DatabaseConfig.from_dict("SQLITE3").normalized_mode == DbMode.SQLITE
     assert DatabaseConfig.from_dict("POSTGRES").normalized_mode == DbMode.POSTGRESQL
     assert DatabaseConfig().normalized_mode == DbMode.SQLITE
+
+
+def test_core_storage_backend_factory_enforces_common_contract(tmp_path: Path):
+    backend = build_core_storage_backend(
+        DatabaseConfig(mode=DbMode.SQLITE),
+        studio_db_path=str(tmp_path / "studio.db"),
+    )
+
+    assert backend is not None
+    assert callable(getattr(backend, "carica_tabella", None))
+    assert callable(getattr(backend, "salva_tabella", None))
+    assert callable(getattr(backend, "ha_dati", None))
 
 
 def test_gestione_tenant_provision_storage_backend_creates_sqlite_and_manifest(tmp_path: Path):

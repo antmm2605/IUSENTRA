@@ -22,6 +22,7 @@ class AnswerBuilder:
         compared_sources = list((evidence or {}).get("source_comparison") or evidence_pack.get("compared_sources") or [])
         fallback_triggered = bool((evidence or {}).get("fallback_triggered") or evidence_pack.get("fallback_triggered"))
         evidence_sufficient = bool((evidence or {}).get("evidence_sufficient") or evidence_pack.get("sufficient"))
+        retrieval_cache = dict((evidence or {}).get("cache") or {})
         evidence_count = len(list((evidence or {}).get("items") or []))
         aggregate_trust = float(evidence_pack.get("aggregate_trust_score") or 0.0)
         aggregate_freshness = float(evidence_pack.get("aggregate_freshness_score") or 0.0)
@@ -87,6 +88,7 @@ class AnswerBuilder:
                 "fallback_triggered": fallback_triggered,
                 "evidence_sufficient": evidence_sufficient,
                 "compared_sources": compared_sources,
+                "retrieval_cache": retrieval_cache,
                 "confidence": confidence,
                 "answer_mode": answer_mode,
             },

@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.179.2 - 2026-04-22
+
+- Rafforzato Lex dove mancava ancora la parte piu' operativa: il retrieval usa ora una cache TTL tenant-aware, cosi' richieste ripetute dello stesso studio riusano il pacchetto evidenze senza rilanciare inutilmente tutte le sorgenti e dichiarano sempre `cache hit` e `ttl` nel payload finale.
+- Aggiunti property test veri sulla source policy e sui guardrail legali di Lex (`tier`, ordinamento score, ranking e blocco PDF/sentenze non verificate), con `hypothesis` come dipendenza dev esplicita e governata.
+- Chiuso il presidio dei canali telematici esterni con circuit breaker dedicati per ricerca e anteprima portali, messaggi operativi leggibili e nuova diagnostica `PORTAL_CIRCUIT_OPEN` dentro observability.
+- Rafforzata la governance storage senza refactor distruttivi: il factory `core_storage_backend` valida ora un contratto minimo comune del backend strutturato tenant-aware prima di usarlo a runtime.
+
 ## 2.179.1 - 2026-04-22
 
 - Corretto il `500` reale della sezione `Checklist Atti` sui template stragiudiziali a canale `PEC`, in particolare sul dettaglio built-in `Atto di messa in mora`.

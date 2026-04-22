@@ -91,6 +91,17 @@ def build_observability_payload(app: Flask | None = None) -> dict[str, Any]:
         }
 
     try:
+        from web.services.telematico_resilience import portale_breaker_snapshots
+
+        payload["providers"]["telematico_portali"] = {
+            "circuit_breakers": portale_breaker_snapshots(),
+        }
+    except Exception:
+        payload["providers"]["telematico_portali"] = {
+            "circuit_breakers": {},
+        }
+
+    try:
         from pct.product_governance import (
             build_authorization_model_payload,
             build_observability_capabilities_payload,
@@ -162,6 +173,7 @@ def _build_observability_thresholds() -> dict[str, Any]:
         "ocr_worker_stall": {"label": "Coda OCR > 0 e throughput ultima ora = 0", "limit": 1},
         "local_ai_runtime": {"label": "Runtime AI locale deve risultare online quando e' abilitato", "required": True},
         "imap_circuit_open": {"label": "PEC / IMAP non deve restare in circuito aperto dopo errori ripetuti", "limit": 1},
+        "portal_circuit_open": {"label": "Ricerca o anteprima portali non deve restare in circuito aperto dopo errori ripetuti", "limit": 1},
         "storage_default_mode": {"label": "Il backend predefinito non deve restare JSON in produzione", "allowed": ("SQLITE", "POSTGRESQL")},
     }
 
@@ -217,6 +229,14 @@ def _build_error_taxonomy_catalog() -> list[dict[str, str]]:
             "action": "Verifica server PEC, rete e credenziali, poi riprova quando il circuito torna disponibile.",
         },
         {
+            "code": "PORTAL_CIRCUIT_OPEN",
+            "family": "TELEMATICO",
+            "component": "Portali telematici",
+            "title": "Canale portale temporaneamente sospeso",
+            "explanation": "Ricerca o anteprima del portale ufficiale ha superato la soglia di errori ripetuti.",
+            "action": "Verifica rete, certificati, Local Signer o disponibilita' del canale ufficiale prima di rilanciare la consultazione.",
+        },
+        {
             "code": "TENANT_DB_ERROR",
             "family": "STORAGE",
             "component": "Backend strutturato tenant",
@@ -243,6 +263,7 @@ def _normalized_alert_code(code: str) -> str:
         "OCR_WORKER_STALLED": "OCR_WORKER_STALLED",
         "LOCAL_AI_RUNTIME_DOWN": "AI_MODEL_UNAVAILABLE",
         "IMAP_CIRCUIT_OPEN": "IMAP_CIRCUIT_OPEN",
+        "PORTAL_CIRCUIT_OPEN": "PORTAL_CIRCUIT_OPEN",
         "STORAGE_DEFAULT_JSON": "TENANT_DB_ERROR",
         "PRODUCT_CAPABILITY_GAP": "MIGRATION_FAILED",
     }
@@ -429,6 +450,39 @@ def _build_observability_alerts(payload: dict[str, Any]) -> list[dict[str, Any]]
                     "Verifica server PEC, porta IMAP e raggiungibilita' della rete.",
                     "Controlla che le credenziali della casella PEC siano valide.",
                     "Ripeti la sincronizzazione solo dopo il rientro del circuito da stato aperto.",
+                ],
+            }
+        )
+
+    portal_breakers = dict((((payload.get("providers") or {}).get("telematico_portali") or {}).get("circuit_breakers") or {}))
+    open_portal_breakers = [
+        (name, dict(snapshot or {}))
+        for name, snapshot in portal_breakers.items()
+        if bool(dict(snapshot or {}).get("open"))
+    ]
+    if open_portal_breakers:
+        name, snapshot = open_portal_breakers[0]
+        alerts.append(
+            {
+                "severity": "warning",
+                "family": "TELEMATICO",
+                "component": "Portali telematici",
+                "code": "PORTAL_CIRCUIT_OPEN",
+                "title": "Canale portale temporaneamente sospeso",
+                "detail": (
+                    f"Il circuito {name} e' aperto dopo errori ripetuti: "
+                    f"{str(snapshot.get('last_error') or 'errore non disponibile')}"
+                ),
+                "threshold": str((thresholds.get("portal_circuit_open") or {}).get("label") or ""),
+                "operator_message": "Portale telematico sospeso: controlla certificati, rete o canale ufficiale prima di rilanciare la consultazione.",
+                "remediation": (
+                    "Verifica disponibilita' del portale ufficiale, Local Signer, certificati e connettivita', "
+                    "poi ripeti ricerca o anteprima solo quando il circuito torna disponibile."
+                ),
+                "remediation_steps": [
+                    "Controlla se il portale ufficiale o il proxy PST/PDP e' raggiungibile.",
+                    "Verifica certificati, Local Signer e configurazione del canale telematico.",
+                    "Riprova la consultazione solo dopo il ripristino del canale e la chiusura del circuito.",
                 ],
             }
         )

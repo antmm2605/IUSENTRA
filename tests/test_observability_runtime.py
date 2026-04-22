@@ -208,3 +208,23 @@ def test_runtime_metrics_endpoint_segnala_circuit_breaker_pec(tmp_path):
     active_codes = set(payload["error_taxonomy"]["active_codes"])
     assert "IMAP_CIRCUIT_OPEN" in active_codes
     assert any(alert["code"] == "IMAP_CIRCUIT_OPEN" for alert in payload["alerts"])
+
+
+def test_runtime_metrics_endpoint_segnala_circuit_breaker_portali(tmp_path):
+    from web.services.telematico_resilience import get_portale_circuit_breaker
+
+    clear_runtime_circuit_breakers("portale:pst:search")
+    breaker = get_portale_circuit_breaker("pst", operation="search")
+    breaker.record_failure(RuntimeError("Proxy PST non raggiungibile"))
+    breaker.record_failure(RuntimeError("Proxy PST non raggiungibile"))
+
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    app = create_app(_cfg_web(tmp_path))
+
+    with app.test_client() as client:
+        response = client.get("/api/metriche/runtime")
+
+    payload = response.get_json()
+    active_codes = set(payload["error_taxonomy"]["active_codes"])
+    assert "PORTAL_CIRCUIT_OPEN" in active_codes
+    assert any(alert["code"] == "PORTAL_CIRCUIT_OPEN" for alert in payload["alerts"])

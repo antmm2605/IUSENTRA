@@ -38,7 +38,8 @@ La logica governabile vera vive in:
 3. `SourceRouter` prova prima fonti interne e attiva `OfficialWebSource` solo quando la domanda o il gap di evidenza lo richiedono.
 4. `rank_evidence(...)` pesa ogni fonte con trust, freshness, context fit e consensus, non solo con lo score di retrieval.
 5. `LegalReferenceGuard` blocca o degrada le richieste legali ad alto rischio se non emergono riferimenti verificati o PDF ufficiali.
-6. `AnswerBuilder` espone nella `LexResponse` i campi governati finali: `official_sources`, `coverage_gaps`, `fallback_triggered`, `compared_sources`, `confidence`, `answer_mode`.
+6. `AnswerBuilder` espone nella `LexResponse` i campi governati finali: `official_sources`, `coverage_gaps`, `fallback_triggered`, `compared_sources`, `retrieval_cache`, `confidence`, `answer_mode`.
+7. `LexRetrievalCache` applica una cache TTL tenant-aware sul retrieval, cosi' le richieste ripetute dello stesso studio non riattivano inutilmente lo stesso giro di sorgenti.
 
 ## Fast-path operativi
 
@@ -47,6 +48,7 @@ La logica governabile vera vive in:
 - `normativa`, `giurisprudenza`, `prassi`, `fonti`
   restano workflow con retrieval, confronto fonti e obbligo di riferimenti ufficiali verificati.
 - quando il runtime Ollama locale entra in circuito aperto dopo errori ripetuti, Lex degrada in modo esplicito invece di continuare a tentare chiamate opache.
+- quando il retrieval e' gia' stato calcolato per lo stesso tenant e lo stesso contesto, Lex riusa il pacchetto evidenze dalla cache e dichiara il `cache hit` nel metadata finale.
 - Se il pacchetto evidenze non e' sufficiente, Lex non completa in modo plausibile: produce risposta degradata con warning e gap evidenza.
 
 ## Modalita'
@@ -78,6 +80,7 @@ Copertura minima dedicata:
 - `lex/tests/unit/test_bundle_scenarios.py`
 - `lex/tests/unit/test_source_policy.py`
 - `lex/tests/unit/test_source_policy_invariants.py`
+- `tests/test_telematico_resilience.py`
 - `tests/test_local_ai.py`
 - `tests/test_runtime_resilience.py`
 - `tests/test_structured_logging.py`

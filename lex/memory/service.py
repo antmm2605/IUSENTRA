@@ -125,6 +125,7 @@ class LexMemoryService:
                 "fallback_triggered": bool((evidence or {}).get("fallback_triggered")),
                 "evidence_sufficient": bool((evidence or {}).get("evidence_sufficient")),
                 "coverage_gaps": list((evidence or {}).get("coverage_gaps") or []),
+                "retrieval_cache": dict((evidence or {}).get("cache") or {}),
             }
         )
         response.metadata = metadata

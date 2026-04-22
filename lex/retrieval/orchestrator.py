@@ -4,6 +4,7 @@ from dataclasses import asdict
 
 from lex.research import LexResearchService
 
+from .cache import get_retrieval_cache
 from .citations import build_citations
 from .context_builder import RetrievalContextBuilder
 from .dedup import deduplicate_evidence
@@ -22,12 +23,14 @@ class RetrievalOrchestrator:
         filters=None,
         research_service: LexResearchService | None = None,
         context_builder: RetrievalContextBuilder | None = None,
+        retrieval_cache=None,
     ) -> None:
         self.query_planner = query_planner or QueryPlanner()
         self.source_router = source_router or SourceRouter()
         self.filters = filters or RetrievalFilters()
         self.research_service = research_service or LexResearchService()
         self.context_builder = context_builder or RetrievalContextBuilder()
+        self.retrieval_cache = retrieval_cache or get_retrieval_cache()
 
     def _is_official_web_source(self, source) -> bool:
         return source.__class__.__name__ == "OfficialWebSource"
@@ -68,6 +71,23 @@ class RetrievalOrchestrator:
         return strong_count >= 1
 
     def collect(self, request, context, workflow: str):
+        cache_disabled = bool((getattr(request, "metadata", {}) or {}).get("disable_retrieval_cache"))
+        cache_key = self.retrieval_cache.build_key(request, context, workflow)
+        if not cache_disabled:
+            cached_payload = self.retrieval_cache.get(cache_key)
+            if cached_payload is not None:
+                evidence_pack = dict(cached_payload.get("evidence_pack") or {})
+                metadata = dict(evidence_pack.get("metadata") or {})
+                metadata["retrieval_cache_hit"] = True
+                metadata["retrieval_cache_ttl_seconds"] = self.retrieval_cache.ttl_seconds
+                evidence_pack["metadata"] = metadata
+                cached_payload["evidence_pack"] = evidence_pack
+                cached_payload["cache"] = {
+                    "hit": True,
+                    "ttl_seconds": self.retrieval_cache.ttl_seconds,
+                }
+                return cached_payload
+
         queries = self.query_planner.plan(request, context, workflow)
         sources = self.source_router.resolve(request, context, workflow)
 
@@ -105,7 +125,7 @@ class RetrievalOrchestrator:
 
         selected = results[:12]
         citations = build_citations(selected)
-        evidence_pack = self.research_service.build_evidence_pack(
+        evidence_pack_obj = self.research_service.build_evidence_pack(
             request,
             context,
             workflow,
@@ -114,19 +134,31 @@ class RetrievalOrchestrator:
             citations,
         )
         retrieval_context = self.context_builder.build(request, context, workflow, queries, sources)
-        sufficient = bool(getattr(evidence_pack, "sufficient", False))
-        return {
-            "queries": list(evidence_pack.queries or queries),
+        sufficient = bool(getattr(evidence_pack_obj, "sufficient", False))
+        evidence_pack = asdict(evidence_pack_obj)
+        metadata = dict(evidence_pack.get("metadata") or {})
+        metadata["retrieval_cache_hit"] = False
+        metadata["retrieval_cache_ttl_seconds"] = self.retrieval_cache.ttl_seconds
+        evidence_pack["metadata"] = metadata
+        payload = {
+            "queries": list(evidence_pack_obj.queries or queries),
             "items": selected,
-            "citations": list(evidence_pack.citations or citations),
-            "evidence_pack": asdict(evidence_pack),
-            "official_sources": list(evidence_pack.official_sources or []),
-            "trusted_sources": list(evidence_pack.trusted_sources or []),
+            "citations": list(evidence_pack_obj.citations or citations),
+            "evidence_pack": evidence_pack,
+            "official_sources": list(evidence_pack_obj.official_sources or []),
+            "trusted_sources": list(evidence_pack_obj.trusted_sources or []),
             "retrieval_context": retrieval_context,
-            "source_comparison": list(getattr(evidence_pack, "compared_sources", []) or []),
-            "coverage_gaps": list(getattr(evidence_pack, "coverage_gaps", []) or []),
-            "conflicting_items": list(getattr(evidence_pack, "conflicting_items", []) or []),
+            "source_comparison": list(getattr(evidence_pack_obj, "compared_sources", []) or []),
+            "coverage_gaps": list(getattr(evidence_pack_obj, "coverage_gaps", []) or []),
+            "conflicting_items": list(getattr(evidence_pack_obj, "conflicting_items", []) or []),
             "fallback_triggered": fallback_triggered,
             "evidence_sufficient": sufficient,
             "used_sources": used_sources,
+            "cache": {
+                "hit": False,
+                "ttl_seconds": self.retrieval_cache.ttl_seconds,
+            },
         }
+        if not cache_disabled:
+            self.retrieval_cache.set(cache_key, payload)
+        return payload

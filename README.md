@@ -28,7 +28,7 @@ La repo oggi non è più solo un tool CLI per il Processo Civile Telematico: con
 - Workspace/applicazioni, portali di acquisizione, privacy e audit.
 - Registro audit storico spiegabile: se un fascicolo e' stato migrato, ricreato o rimosso, la UI segnala se l'evento e' attivo, riconciliato verso il fascicolo corrente oppure solo storico.
 - Runtime AI locale con Lex come strato linguistico sopra motori deterministici.
-- Lex usa ora fast-path deterministici per i casi operativi, fallback automatico a fonti ufficiali quando il retrieval interno non basta e guardrail che degradano o bloccano le risposte legali senza riferimenti verificati, esponendo sempre `official_sources`, `coverage_gaps`, `fallback_triggered` e confronto fonti nella risposta finale.
+- Lex usa ora fast-path deterministici per i casi operativi, fallback automatico a fonti ufficiali quando il retrieval interno non basta, cache TTL tenant-aware sul retrieval e guardrail che degradano o bloccano le risposte legali senza riferimenti verificati, esponendo sempre `official_sources`, `coverage_gaps`, `fallback_triggered`, `retrieval_cache` e confronto fonti nella risposta finale.
 - Multi-tenant amministrabile dalla piattaforma.
 
 ## Architettura
@@ -54,6 +54,7 @@ La struttura è organizzata per responsabilità:
 Per una mappa più completa vedi [docs/ARCHITETTURA.md](docs/ARCHITETTURA.md).
 Per il workspace applicazioni vedi anche [docs/APPLICAZIONI_WORKSPACE.md](docs/APPLICAZIONI_WORKSPACE.md).
 Per la separazione ferrea tra `Product Pack`, `Studio Local Pack` e `Update Pack` vedi [docs/PACK_ARCHITECTURE.md](docs/PACK_ARCHITECTURE.md).
+Per hardening, observability e source policy vedi anche [docs/OBSERVABILITY_AUDIT_PRODUCT.md](docs/OBSERVABILITY_AUDIT_PRODUCT.md) e [docs/LEX_SOURCE_POLICY_SYSTEM.md](docs/LEX_SOURCE_POLICY_SYSTEM.md).
 
 ## Pack di installazione governati dal SUPERADMIN
 

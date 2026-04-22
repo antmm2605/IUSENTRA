@@ -13,6 +13,10 @@ from flask import Flask, g, url_for
 
 from pct.fascicoli import Fascicolo, TipoAttivita, stato_fascicolo_da_descrizione_portale
 from pct.scadenziario import TipoTermine
+from web.services.telematico_resilience import (
+    describe_portale_runtime_error,
+    run_portale_runtime_operation,
+)
 
 
 def build_telematico_runtime(
@@ -1934,54 +1938,60 @@ def build_telematico_runtime(
         quick = str(query.get("quick_filter") or "").strip().lower()
 
         try:
-            if portale == "pst":
-                if _portale_local_channel_enabled(portale):
-                    raise ValueError("Per PST la ricerca guidata usa il Local Signer dal browser.")
-                from pct.polisWeb import crea_client
+            def _perform_search():
+                if portale == "pst":
+                    if _portale_local_channel_enabled(portale):
+                        raise ValueError("Per PST la ricerca guidata usa il Local Signer dal browser.")
+                    from pct.polisWeb import crea_client
 
-                ufficio = str(query.get("ufficio_codice") or "").strip()
-                if not ufficio:
-                    raise ValueError("Seleziona un ufficio giudiziario.")
-                fascicoli = crea_client(demo=_portale_demo_mode(portale)).ricerca_fascicoli(
-                    tribunale=ufficio,
-                    numero_rg=numero,
-                    anno_rg=anno,
-                    nome_parte=assistito or controparte,
-                    codice_fiscale_parte=cf,
-                )
-            elif portale == "pdp":
-                if _portale_browser_channel_required(portale):
-                    raise ValueError(_portale_browser_guided_message(portale))
-                if _portale_usa_local_signer(portale):
-                    raise ValueError("Per PDP Penale la ricerca guidata usa il Local Signer dal browser.")
-                from pct.pdp import crea_client_pdp
+                    ufficio = str(query.get("ufficio_codice") or "").strip()
+                    if not ufficio:
+                        raise ValueError("Seleziona un ufficio giudiziario.")
+                    return crea_client(demo=_portale_demo_mode(portale)).ricerca_fascicoli(
+                        tribunale=ufficio,
+                        numero_rg=numero,
+                        anno_rg=anno,
+                        nome_parte=assistito or controparte,
+                        codice_fiscale_parte=cf,
+                    )
+                if portale == "pdp":
+                    if _portale_browser_channel_required(portale):
+                        raise ValueError(_portale_browser_guided_message(portale))
+                    if _portale_usa_local_signer(portale):
+                        raise ValueError("Per PDP Penale la ricerca guidata usa il Local Signer dal browser.")
+                    from pct.pdp import crea_client_pdp
 
-                ufficio = str(query.get("ufficio_codice") or "").strip()
-                if not ufficio:
-                    raise ValueError("Seleziona un ufficio giudiziario.")
-                fascicoli = crea_client_pdp(demo=_portale_demo_mode(portale)).ricerca_fascicoli(
-                    ufficio=ufficio,
-                    numero_rg=numero,
-                    anno_rg=anno,
-                    nome_imputato=assistito,
-                    tipo_registro=str(query.get("registro") or "").strip() or None,
-                )
-            elif portale == "pat":
-                raise ValueError(
-                    "Per PAT l'acquisizione guidata non promette una ricerca live diretta da SIGA. "
-                    "Apri il Portale dell'Avvocato ufficiale dal browser e usa IUSENTRA per il fascicolo interno, "
-                    "le ricevute e l'import guidato dei file gia scaricati."
-                )
-            else:
+                    ufficio = str(query.get("ufficio_codice") or "").strip()
+                    if not ufficio:
+                        raise ValueError("Seleziona un ufficio giudiziario.")
+                    return crea_client_pdp(demo=_portale_demo_mode(portale)).ricerca_fascicoli(
+                        ufficio=ufficio,
+                        numero_rg=numero,
+                        anno_rg=anno,
+                        nome_imputato=assistito,
+                        tipo_registro=str(query.get("registro") or "").strip() or None,
+                    )
+                if portale == "pat":
+                    raise ValueError(
+                        "Per PAT l'acquisizione guidata non promette una ricerca live diretta da SIGA. "
+                        "Apri il Portale dell'Avvocato ufficiale dal browser e usa IUSENTRA per il fascicolo interno, "
+                        "le ricevute e l'import guidato dei file gia scaricati."
+                    )
                 raise ValueError(
                     "Per PTT / SIGIT l'acquisizione guidata non promette una ricerca live diretta del fascicolo. "
                     "Apri il portale ufficiale o Telecontenzioso nel browser, consulta il fascicolo processuale e "
                     "poi usa IUSENTRA per il fascicolo tributario interno e per l'import guidato dei file gia scaricati."
                 )
+
+            fascicoli = run_portale_runtime_operation(
+                portale,
+                operation="search",
+                callable_=_perform_search,
+            )
         except Exception as e:
             if _is_portale_dns_error(e):
                 raise ValueError(_portale_browser_guided_message(portale)) from e
-            raise
+            raise ValueError(describe_portale_runtime_error(portale, operation="search", exc=e)) from e
 
         rows = [_serialize_portale_search_item(portale, fascicolo) for fascicolo in fascicoli]
         if oggetto:
@@ -2000,44 +2010,50 @@ def build_telematico_runtime(
     def _preview_documenti_portale_server(portale: str, selection: dict[str, Any]) -> list[dict]:
         portale = (portale or "").strip().lower()
         try:
-            if portale == "pst":
-                if _portale_local_channel_enabled(portale):
-                    raise ValueError("Anteprima documenti PST via browser locale richiesta.")
-                from pct.polisWeb import crea_client
+            def _perform_preview():
+                if portale == "pst":
+                    if _portale_local_channel_enabled(portale):
+                        raise ValueError("Anteprima documenti PST via browser locale richiesta.")
+                    from pct.polisWeb import crea_client
 
-                docs = crea_client(demo=_portale_demo_mode(portale)).consulta_documenti(
-                    str(selection.get("ufficio_codice") or "").strip(),
-                    str(selection.get("numero") or "").strip(),
-                    int(selection.get("anno") or 0),
-                )
-            elif portale == "pdp":
-                if _portale_browser_channel_required(portale):
-                    raise ValueError(_portale_browser_guided_message(portale))
-                if _portale_usa_local_signer(portale):
-                    raise ValueError("Anteprima documenti PDP via browser locale richiesta.")
-                from pct.pdp import crea_client_pdp
+                    return crea_client(demo=_portale_demo_mode(portale)).consulta_documenti(
+                        str(selection.get("ufficio_codice") or "").strip(),
+                        str(selection.get("numero") or "").strip(),
+                        int(selection.get("anno") or 0),
+                    )
+                if portale == "pdp":
+                    if _portale_browser_channel_required(portale):
+                        raise ValueError(_portale_browser_guided_message(portale))
+                    if _portale_usa_local_signer(portale):
+                        raise ValueError("Anteprima documenti PDP via browser locale richiesta.")
+                    from pct.pdp import crea_client_pdp
 
-                docs = crea_client_pdp(demo=_portale_demo_mode(portale)).consulta_documenti(
-                    str(selection.get("ufficio_codice") or "").strip(),
-                    str(selection.get("numero") or "").strip(),
-                    int(selection.get("anno") or 0),
-                )
-            elif portale == "pat":
-                raise ValueError(
-                    "Per PAT la consultazione del fascicolo si completa nel Portale dell'Avvocato ufficiale. "
-                    "In IUSENTRA puoi continuare con il fascicolo PAT interno e con l'import guidato di documenti, "
-                    "provvedimenti e ricevute gia scaricati dal portale."
-                )
-            else:
+                    return crea_client_pdp(demo=_portale_demo_mode(portale)).consulta_documenti(
+                        str(selection.get("ufficio_codice") or "").strip(),
+                        str(selection.get("numero") or "").strip(),
+                        int(selection.get("anno") or 0),
+                    )
+                if portale == "pat":
+                    raise ValueError(
+                        "Per PAT la consultazione del fascicolo si completa nel Portale dell'Avvocato ufficiale. "
+                        "In IUSENTRA puoi continuare con il fascicolo PAT interno e con l'import guidato di documenti, "
+                        "provvedimenti e ricevute gia scaricati dal portale."
+                    )
                 raise ValueError(
                     "Per PTT / SIGIT la consultazione del fascicolo si completa nel portale ufficiale e nei servizi "
                     "collegati, come Telecontenzioso. In IUSENTRA prosegui con il fascicolo tributario interno e con "
                     "l'import guidato di documenti, ricevute, provvedimenti ed esiti gia scaricati."
                 )
+
+            docs = run_portale_runtime_operation(
+                portale,
+                operation="preview",
+                callable_=_perform_preview,
+            )
         except Exception as e:
             if _is_portale_dns_error(e):
                 raise ValueError(_portale_browser_guided_message(portale)) from e
-            raise
+            raise ValueError(describe_portale_runtime_error(portale, operation="preview", exc=e)) from e
         return [dict(vars(doc)) for doc in docs]
 
     def _local_signer_tools_dir() -> Path:

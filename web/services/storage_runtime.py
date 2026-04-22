@@ -11,7 +11,11 @@ from typing import Any
 
 from flask import current_app, g, has_app_context, has_request_context
 
-from pct.core_storage_backend import build_core_storage_backend, is_postgres_core_active
+from pct.core_storage_backend import (
+    build_core_storage_backend,
+    ensure_core_storage_backend_contract,
+    is_postgres_core_active,
+)
 from pct.storage import StudioDB
 from pct.tenant import DbMode, normalize_db_mode
 
@@ -256,8 +260,8 @@ def get_request_studio_db(anchor_path: str):
         return cached
 
     try:
-        studio_db = StudioDB.get(profile.studio_db_path)
-    except (OSError, sqlite3.Error) as exc:
+        studio_db = ensure_core_storage_backend_contract(StudioDB.get(profile.studio_db_path))
+    except (OSError, sqlite3.Error, TypeError) as exc:
         fallback_profile = replace(
             profile,
             effective_mode=DbMode.JSON,

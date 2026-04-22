@@ -29,6 +29,44 @@ class LexRequestProfile:
 
 _INTENT_CATALOG: tuple[dict[str, Any], ...] = (
     {
+        "intent": "preventivo_guidato",
+        "label": "preventivo guidato",
+        "patterns": (
+            r"\bpreventiv",
+            r"\bvorrei fare un preventivo\b",
+            r"\bcrea(?:re)? un preventivo\b",
+            r"\bpreventivo professionale\b",
+        ),
+        "schema": ("Obiettivo", "Dati necessari", "Percorso consigliato", "Prossima azione", "Fonti e affidabilita"),
+        "risk": "medium",
+        "source_mode": "balanced",
+        "internal": True,
+        "external": True,
+        "drafting": False,
+    },
+    {
+        "intent": "tariffario_economico",
+        "label": "tariffario e compensi",
+        "patterns": (r"\btariffario\b", r"\bcompenso\b", r"\bonorario\b", r"\bscaglione\b", r"\bd\.m\.?\s*55\b"),
+        "schema": ("Sintesi", "Dati economici", "Calcolo o percorso", "Prossima azione", "Fonti e affidabilita"),
+        "risk": "medium",
+        "source_mode": "balanced",
+        "internal": True,
+        "external": True,
+        "drafting": False,
+    },
+    {
+        "intent": "fatturazione_economica",
+        "label": "fatturazione, parcella o pagamento",
+        "patterns": (r"\bfattura\b", r"\bfatture\b", r"\bparcella\b", r"\bparcelle\b", r"\bpagament", r"\bincasso\b"),
+        "schema": ("Sintesi", "Stato economico", "Verifiche residue", "Prossima azione", "Fonti e affidabilita"),
+        "risk": "medium",
+        "source_mode": "balanced",
+        "internal": True,
+        "external": True,
+        "drafting": False,
+    },
+    {
         "intent": "bozza_atto",
         "label": "bozza atto o memoria",
         "patterns": (r"\bbozza\b", r"\bredig", r"\bmemoria\b", r"\bricorso\b", r"\bcomparsa\b", r"\bcitazione\b", r"\batto\b"),
@@ -224,6 +262,7 @@ def build_request_profile_prompt(profile: LexRequestProfile) -> str:
         f"Livello di rischio: {profile.risk_level}.",
         f"Modalita fonti: {profile.source_mode}.",
         "Schema risposta richiesto: " + "; ".join(profile.response_schema) + ".",
+        "Non scrivere mai testo meta come 'ecco la risposta', 'simulazione', 'motivazione', 'risposta:' o spiegazioni su come risponderai.",
     ]
     if profile.needs_internal_retrieval:
         lines.append("Usa prima il contesto interno di studio e del fascicolo.")
@@ -231,6 +270,14 @@ def build_request_profile_prompt(profile: LexRequestProfile) -> str:
         lines.append("Se il contesto interno non basta, integra con fonti esterne coerenti con la policy.")
     if profile.drafting_mode:
         lines.append("La bozza deve restare modificabile e deve evidenziare i punti da verificare.")
+    if profile.intent == "preventivo_guidato":
+        lines.append(
+            "Se l'utente vuole avviare un preventivo, parti subito dal percorso operativo corretto e chiedi solo i dati davvero necessari per chiuderlo."
+        )
+    if profile.intent in {"tariffario_economico", "fatturazione_economica"}:
+        lines.append(
+            "Per l'area economica distingui sempre tra preventivo, tariffario, parcella, fattura e pagamento senza mescolare i piani."
+        )
     for item in profile.reasoning:
         lines.append(item)
     return "\n".join(lines).strip()

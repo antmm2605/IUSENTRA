@@ -36,11 +36,11 @@ class FakeRequestsDown:
 def make_deps(requests_module):
     return LexDependencies(
         requests_module=requests_module,
-        build_studio_context=lambda **kwargs: {
+        build_studio_context=lambda *args, **kwargs: {
             "sources": [],
             "citations": [],
             "prompt_block": "",
-            "effective_question": kwargs.get("question", ""),
+            "effective_question": kwargs.get("question", args[0] if args else ""),
             "structured_context": {},
             "engine_ids": [],
             "source_ids": [],
@@ -234,4 +234,67 @@ def test_chat_response_social_only_returns_sse(monkeypatch):
         for chunk in response.response
     )
     assert "Dimmi pure." in body
+    assert "[DONE]" in body
+
+
+def test_build_context_response_restituisce_payload_bounded_quando_disponibile(monkeypatch):
+    orch = make_orchestrator()
+    monkeypatch.setattr(orch.auth_guard, "ensure_can_access", lambda **kwargs: None)
+    monkeypatch.setattr(
+        "lex.orchestrator.resolve_current_and_previous_user_messages",
+        lambda explicit_question, messages: ("vorrei fare un preventivo", "", []),
+    )
+    monkeypatch.setattr(
+        "lex.orchestrator_http.build_bounded_http_payload",
+        lambda **kwargs: {
+            "ok": True,
+            "query_type": "workflow_answer",
+            "answer": "Possiamo partire dal preventivo guidato.",
+            "routing": {},
+            "followup_resolution": {},
+        },
+    )
+
+    payload, status = orch.build_context_response(
+        user=None,
+        studio=None,
+        data={"messages": [{"role": "user", "content": "vorrei fare un preventivo"}]},
+    )
+
+    assert status == 200
+    assert payload["query_type"] == "workflow_answer"
+    assert "preventivo guidato" in payload["answer"].lower()
+
+
+def test_chat_response_streamma_risposta_bounded_quando_disponibile(monkeypatch):
+    orch = make_orchestrator()
+    monkeypatch.setattr(orch.auth_guard, "ensure_can_access", lambda **kwargs: None)
+    monkeypatch.setattr(
+        "lex.orchestrator.resolve_current_and_previous_user_messages",
+        lambda explicit_question, messages: ("vorrei fare un preventivo", "", []),
+    )
+    monkeypatch.setattr(
+        "lex.orchestrator_http.build_bounded_http_payload",
+        lambda **kwargs: {
+            "ok": True,
+            "query_type": "workflow_answer",
+            "answer": "Possiamo partire dal preventivo guidato.",
+        },
+    )
+
+    app = Flask(__name__)
+    app.config["TESTING"] = True
+    with app.test_request_context("/api/assistente/chat", method="POST"):
+        response = orch.chat_response(
+            user=None,
+            studio=None,
+            data={"messages": [{"role": "user", "content": "vorrei fare un preventivo"}]},
+        )
+
+    assert isinstance(response, Response)
+    body = "".join(
+        chunk.decode("utf-8") if isinstance(chunk, bytes) else str(chunk)
+        for chunk in response.response
+    )
+    assert "preventivo guidato" in body.lower()
     assert "[DONE]" in body

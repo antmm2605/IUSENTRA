@@ -82,14 +82,25 @@ def _build_system_prompt(workflow: str, context: Any) -> str:
     return "\n\n".join(parts)
 
 
+def _evidence_items(evidence: Any) -> list[Any]:
+    if isinstance(evidence, dict):
+        return list(evidence.get("items") or [])
+    items = getattr(evidence, "items", None)
+    if callable(items):
+        return []
+    return list(items or [])
+
+
 def _format_evidence(evidence: Any, limit: int = 8) -> str:
-    items = list((evidence or {}).get("items") if isinstance(evidence, dict) else []) or []
-    if not items:
-        items = list(getattr(evidence, "items", None) or [])
+    items = _evidence_items(evidence)
     rows: list[str] = []
     for idx, item in enumerate(items[:limit], start=1):
-        title = str(getattr(item, "title", "") or "").strip() or f"Evidenza {idx}"
-        content = str(getattr(item, "content", "") or "").strip()
+        title = str(
+            (item.get("title") if isinstance(item, dict) else getattr(item, "title", "")) or ""
+        ).strip() or f"Evidenza {idx}"
+        content = str(
+            (item.get("content") if isinstance(item, dict) else getattr(item, "content", "")) or ""
+        ).strip()
         if not content:
             continue
         rows.append(f"[{idx}] {title}\n{content}")
@@ -171,7 +182,7 @@ class OllamaProvider(BaseProvider):
             "provider": self.provider_name,
             "model": model,
             "workflow": workflow or "chat",
-            "evidence_count": len(list((evidence or {}).get("items") or [])),
+            "evidence_count": len(_evidence_items(evidence)),
         }
 
         try:

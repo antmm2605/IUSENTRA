@@ -15,6 +15,7 @@ from .formatting.ui_payloads import (
     routing_payload,
     social_context_payload,
 )
+from .http_bounded_bridge import build_bounded_http_payload
 from .telemetry.audit import audit_trace
 
 
@@ -194,6 +195,20 @@ def build_context_response(
             or "Lex si e' fermato per prudenza: le fonti disponibili non bastano a una risposta forte."
         )
         return payload, 200
+
+    bounded_payload = build_bounded_http_payload(
+        user=user,
+        studio=studio,
+        data=data,
+        current_user_message=current_user_message,
+        resolved_effective_question=resolved_effective_question,
+        studio_context=studio_context,
+        attachments=attachments,
+    )
+    if bounded_payload:
+        bounded_payload["routing"] = routing_payload(routing)
+        bounded_payload["followup_resolution"] = followup_resolution_payload(followup)
+        return bounded_payload, 200
 
     prompt_question = resolved_effective_question
     web_execution_requested = bool(studio_context.get("web_execution_requested")) or bool(followup.is_web_request)
@@ -422,6 +437,32 @@ def chat_response(
 
         return Response(
             stream_with_context(generate_direct()),
+            mimetype="text/event-stream",
+            headers={
+                "Cache-Control": "no-cache",
+                "X-Accel-Buffering": "no",
+                "Connection": "keep-alive",
+            },
+        )
+
+    bounded_payload = build_bounded_http_payload(
+        user=user,
+        studio=studio,
+        data=data,
+        current_user_message=current_user_message,
+        resolved_effective_question=resolved_effective_question,
+        studio_context=studio_context,
+        attachments=attachments,
+    )
+    if bounded_payload:
+        direct_answer = clean_spaces(bounded_payload.get("answer"))
+
+        def generate_bounded():
+            yield f"data: {json.dumps({'token': direct_answer})}\n\n"
+            yield "data: [DONE]\n\n"
+
+        return Response(
+            stream_with_context(generate_bounded()),
             mimetype="text/event-stream",
             headers={
                 "Cache-Control": "no-cache",

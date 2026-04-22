@@ -305,5 +305,5 @@ def test_caso_economico_preventivo_tariffario_fattura_usa_fast_path_deterministi
 
     assert response.metadata["workflow"] == "economico"
     assert response.metadata["provider"] == "deterministic"
-    assert "Esito economico governato" in response.answer
+    assert "preventivo guidato" in response.answer.lower()
     assert response.evidence_summary["fallback_triggered"] is False

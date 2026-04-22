@@ -982,6 +982,24 @@
     return clean.replace(/^([^.!?\n]{6,180}[.!?])\s+\1(\s+|$)/i, '$1 ').trim();
   }
 
+  function stripMetaResponseScaffolding(answer) {
+    var clean = String(answer || '').trim();
+    if (!clean) {
+      return '';
+    }
+    clean = clean
+      .replace(/^ok,\s*ecco una risposta[^\n]*\n*/i, '')
+      .replace(/^ok,\s*ho capito\.[^\n]*\n*/i, '')
+      .replace(/^risposta:\s*/i, '')
+      .replace(/^\(a questo punto,[\s\S]*?\)\s*/i, '')
+      .replace(/^motivazione:\s*/i, '')
+      .replace(/spero che questa risposta sia adatta[^\n]*$/i, '')
+      .replace(/applica immediatamente l'input fornito[^\n]*$/i, '')
+      .replace(/---\s*motivazione:[\s\S]*$/i, '')
+      .trim();
+    return clean;
+  }
+
   function replaceUnverifiedCaseLawExamples(answer, options) {
     var clean = String(answer || '').trim();
     var question = cleanIntentText(options && options.question || '');
@@ -1013,6 +1031,7 @@
       return '';
     }
     var clean = stripArtificialPlaceholders(original);
+    clean = stripMetaResponseScaffolding(clean);
     clean = stripLexGreeting(clean, options && options.question || '');
     clean = collapseLeadingDuplicateSentence(clean, options && options.openingLine || '');
     clean = replaceUnverifiedCaseLawExamples(clean, options || {});

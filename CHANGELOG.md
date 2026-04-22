@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.179.3 - 2026-04-22
+
+- Corretto il comportamento reale del widget Lex sulla chat operativa: le richieste di `preventivo`, `tariffario`, `fatturazione`, `telematico`, `fascicolo` e `ricerca legale` non restano piu' affidate a prompt generici, ma passano direttamente al bounded workflow governato anche dalla UI `/api/assistente/*`.
+- Il bridge HTTP di Lex trasferisce ora davvero il contesto di studio alla pipeline bounded (`messaggi`, `focus`, `profilo richiesta`, `execution policy`, `source policy`) e, quando il contesto interno non basta, abilita in modo esplicito il fallback di ricerca web ufficiale invece di lasciare la risposta nel vago.
+- Rafforzato il profilo richiesta economica: `preventivo guidato`, `tariffario e compensi`, `fatturazione/parcelle/pagamenti` hanno ora intenti distinti e portano Lex sul percorso giusto senza risposte meta o simulate.
+- Migliorata la risposta deterministica economica: su richieste come `vorrei fare un preventivo` Lex apre il percorso corretto, distingue preventivo/tariffario/fattura e chiede solo i dati davvero necessari per proseguire.
+- Aggiunta una cintura di sicurezza lato prompt e lato widget per impedire output meta del tipo `ecco una risposta`, `motivazione`, `simulazione di chatbot` o scaffolding simili.
+
 ## 2.179.2 - 2026-04-22
 
 - Rafforzato Lex dove mancava ancora la parte piu' operativa: il retrieval usa ora una cache TTL tenant-aware, cosi' richieste ripetute dello stesso studio riusano il pacchetto evidenze senza rilanciare inutilmente tutte le sorgenti e dichiarano sempre `cache hit` e `ttl` nel payload finale.

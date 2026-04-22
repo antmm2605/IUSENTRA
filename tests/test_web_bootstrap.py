@@ -1552,7 +1552,7 @@ def test_assistente_chat_usa_runtime_ollama_risolto(monkeypatch, tmp_path: Path)
         )
         response = client.post(
             "/api/assistente/chat",
-            json={"messages": [{"role": "user", "content": "Qual e' lo stato del fascicolo?"}]},
+            json={"messages": [{"role": "user", "content": "Preparami una bozza di memoria per la pratica"}]},
         )
 
     body = response.get_data(as_text=True)

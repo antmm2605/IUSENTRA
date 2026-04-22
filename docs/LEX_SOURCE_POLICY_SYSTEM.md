@@ -40,6 +40,7 @@ La logica governabile vera vive in:
 5. `LegalReferenceGuard` blocca o degrada le richieste legali ad alto rischio se non emergono riferimenti verificati o PDF ufficiali.
 6. `AnswerBuilder` espone nella `LexResponse` i campi governati finali: `official_sources`, `coverage_gaps`, `fallback_triggered`, `compared_sources`, `retrieval_cache`, `confidence`, `answer_mode`.
 7. `LexRetrievalCache` applica una cache TTL tenant-aware sul retrieval, cosi' le richieste ripetute dello stesso studio non riattivano inutilmente lo stesso giro di sorgenti.
+8. Il bridge HTTP del widget chat porta lo stesso messaggio dentro il bounded workflow quando la richiesta e' operativa o legale, trasferendo `focus`, `request_profile`, `execution_policy`, messaggi di sessione e fallback web consentito.
 
 ## Fast-path operativi
 
@@ -50,6 +51,7 @@ La logica governabile vera vive in:
 - quando il runtime Ollama locale entra in circuito aperto dopo errori ripetuti, Lex degrada in modo esplicito invece di continuare a tentare chiamate opache.
 - quando il retrieval e' gia' stato calcolato per lo stesso tenant e lo stesso contesto, Lex riusa il pacchetto evidenze dalla cache e dichiara il `cache hit` nel metadata finale.
 - Se il pacchetto evidenze non e' sufficiente, Lex non completa in modo plausibile: produce risposta degradata con warning e gap evidenza.
+- nelle richieste economiche (`preventivo`, `tariffario`, `fattura`) il bounded workflow evita risposte meta o simulate e apre direttamente il percorso operativo corretto.
 
 ## Modalita'
 
@@ -71,6 +73,7 @@ La logica governabile vera vive in:
 - `lex/retrieval/search_ranker.py`
 - `lex/guards/grounding.py`
 - `lex/orchestrator_http.py`
+- `lex/http_bounded_bridge.py`
 - `web/static/js/pct-lex-assistant.js`
 
 ## Test
@@ -78,6 +81,7 @@ La logica governabile vera vive in:
 Copertura minima dedicata:
 
 - `lex/tests/unit/test_bundle_scenarios.py`
+- `lex/tests/test_http_bounded_bridge.py`
 - `lex/tests/unit/test_source_policy.py`
 - `lex/tests/unit/test_source_policy_invariants.py`
 - `tests/test_telematico_resilience.py`

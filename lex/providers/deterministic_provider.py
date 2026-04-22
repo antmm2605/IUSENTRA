@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Any
 
 from .base import BaseProvider
@@ -17,6 +18,151 @@ def _shorten(value: str, limit: int = 220) -> str:
     if len(text) <= limit:
         return text
     return text[: limit - 3].rstrip() + "..."
+
+
+def _context_section(context: Any, key: str) -> Any:
+    if isinstance(context, dict):
+        structured = context.get("structured_context") or {}
+        if isinstance(structured, dict) and key in structured:
+            return structured.get(key)
+        return context.get(key)
+    return {}
+
+
+def _format_data_italiana(value: Any) -> str:
+    text = str(value or "").strip()
+    if not text:
+        return ""
+    normalized = text.replace("Z", "+00:00")
+    try:
+        return datetime.fromisoformat(normalized).strftime("%d/%m/%Y")
+    except Exception:
+        pass
+    for pattern in ("%Y-%m-%d", "%d/%m/%Y", "%d/%m/%Y %H:%M"):
+        try:
+            parsed = datetime.strptime(text, pattern)
+            return parsed.strftime("%d/%m/%Y")
+        except Exception:
+            continue
+    return text
+
+
+def _format_dataora_italiana(value: Any) -> str:
+    text = str(value or "").strip()
+    if not text:
+        return ""
+    normalized = text.replace("Z", "+00:00")
+    try:
+        return datetime.fromisoformat(normalized).strftime("%d/%m/%Y alle %H:%M")
+    except Exception:
+        pass
+    for pattern in ("%Y-%m-%dT%H:%M:%S", "%Y-%m-%dT%H:%M", "%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M"):
+        try:
+            parsed = datetime.strptime(text, pattern)
+            return parsed.strftime("%d/%m/%Y alle %H:%M")
+        except Exception:
+            continue
+    return _format_data_italiana(text)
+
+
+def _fascicolo_text(question: str, context: Any, title: str, summary: str) -> str:
+    fascicolo = _context_section(context, "fascicolo") or {}
+    documenti = list(_context_section(context, "documenti") or [])
+    agenda = list(_context_section(context, "agenda") or [])
+    scadenziario = list(_context_section(context, "scadenziario") or _context_section(context, "scadenze") or [])
+
+    if not fascicolo:
+        return (
+            "Per aiutarti bene sul fascicolo ho bisogno del riferimento corretto della pratica.\n"
+            "Indicami almeno numero di ruolo, cliente oppure apri direttamente il fascicolo da cui vuoi partire.\n"
+            "Appena ho il fascicolo giusto, ti restituisco quadro della pratica, documenti utili, scadenze e prossimo passo."
+        )
+
+    numero = str(fascicolo.get("numero") or fascicolo.get("id") or "").strip()
+    titolo = str(fascicolo.get("titolo") or "").strip()
+    oggetto = str(fascicolo.get("oggetto") or "").strip()
+    cliente = str(fascicolo.get("cliente") or "").strip()
+    controparte = str(fascicolo.get("controparte") or "").strip()
+    tribunale = str(fascicolo.get("tribunale") or "").strip()
+    stato = str(fascicolo.get("stato") or "").strip()
+    prossima_udienza = _format_dataora_italiana(fascicolo.get("data_prossima_udienza"))
+    documenti_count = int(fascicolo.get("documenti_count") or len(documenti) or 0)
+
+    lines = [
+        f"Sto lavorando sul fascicolo {numero or 'senza numero'}{f' - {titolo}' if titolo else ''}.",
+    ]
+    if oggetto:
+        lines.append(f"Oggetto: {oggetto}.")
+    if cliente or controparte:
+        parties = []
+        if cliente:
+            parties.append(f"assistito {cliente}")
+        if controparte:
+            parties.append(f"controparte {controparte}")
+        lines.append("Parti rilevanti: " + "; ".join(parties) + ".")
+    if tribunale or stato:
+        details = []
+        if tribunale:
+            details.append(f"ufficio {tribunale}")
+        if stato:
+            details.append(f"stato {stato.lower()}")
+        lines.append("Quadro attuale: " + ", ".join(details) + ".")
+    if prossima_udienza:
+        lines.append(f"Udienza o evento gia' fissato: {prossima_udienza}.")
+    if documenti_count:
+        lines.append(f"Documenti collegati: {documenti_count}.")
+    elif title:
+        lines.append(f"Riferimento disponibile: {title}.")
+
+    prossima_scadenza = next(
+        (
+            row for row in scadenziario
+            if isinstance(row, dict) and (row.get("data") or row.get("data_scadenza") or row.get("scadenza"))
+        ),
+        None,
+    )
+    if prossima_scadenza:
+        scadenza_data = _format_data_italiana(
+            prossima_scadenza.get("data") or prossima_scadenza.get("data_scadenza") or prossima_scadenza.get("scadenza")
+        )
+        scadenza_titolo = str(
+            prossima_scadenza.get("titolo") or prossima_scadenza.get("oggetto") or prossima_scadenza.get("descrizione") or "scadenza aperta"
+        ).strip()
+        lines.append(f"Scadenza da presidiare: {scadenza_titolo} ({scadenza_data}).")
+
+    prossimo_impegno = next(
+        (
+            row for row in agenda
+            if isinstance(row, dict) and (row.get("data_ora") or row.get("inizio") or row.get("quando"))
+        ),
+        None,
+    )
+    if prossimo_impegno:
+        agenda_data = _format_dataora_italiana(
+            prossimo_impegno.get("data_ora") or prossimo_impegno.get("inizio") or prossimo_impegno.get("quando")
+        )
+        agenda_titolo = str(
+            prossimo_impegno.get("titolo") or prossimo_impegno.get("oggetto") or prossimo_impegno.get("tipo") or "attivita' pianificata"
+        ).strip()
+        lines.append(f"Attivita' in agenda: {agenda_titolo} ({agenda_data}).")
+
+    haystack = str(question or "").lower()
+    if "udienz" in haystack and prossima_udienza:
+        next_step = "prepara subito documenti essenziali, note d'udienza e verifiche finali del fascicolo."
+    elif prossima_scadenza:
+        next_step = "presidiare la scadenza aperta e verificare che il fascicolo abbia gia' atto, allegati e attivita' collegata."
+    elif documenti_count == 0:
+        next_step = "collegare almeno l'atto principale e il provvedimento piu' recente, cosi' il fascicolo diventa governabile."
+    elif stato.upper() in {"DEFINITO", "ARCHIVIATO", "CHIUSO"}:
+        next_step = "chiudere il presidio economico e verificare se restano adempimenti finali o archiviazione documentale."
+    else:
+        next_step = "verificare ultimo provvedimento, prossima attivita' e completezza documentale prima di procedere."
+    lines.append(f"Prossimo passo consigliato: {next_step}")
+
+    if summary and summary != "Nessuna evidenza disponibile." and not documenti_count:
+        lines.append(f"Sintesi utile gia' disponibile: {summary}")
+
+    return "\n".join(line for line in lines if line)
 
 
 def _economic_text(question: str, title: str, summary: str) -> str:
@@ -94,6 +240,8 @@ class DeterministicProvider(BaseProvider):
             )
         elif workflow in {"economico"}:
             text = _economic_text(q, title, summary)
+        elif workflow in {"fascicolo"}:
+            text = _fascicolo_text(q, context, title, summary)
         elif workflow in {"telematico_status", "compliance"}:
             text = (
                 "Esito operativo governato\n"

@@ -15,6 +15,7 @@ import json
 import uuid
 import hmac
 import hashlib
+import logging
 import secrets
 import struct
 import time as _time
@@ -26,6 +27,9 @@ from typing import Optional, List, Dict, Any, Tuple
 from dataclasses import dataclass, field, asdict
 from enum import Enum
 from functools import wraps
+
+
+logger = logging.getLogger(__name__)
 
 
 # ------------------------------------------------------------------ TOTP (RFC 6238) — implementazione nativa
@@ -391,6 +395,16 @@ class GestioneUtenti:
         if not self._utenti and self._crea_admin_se_vuoto:
             self._crea_admin_default()
 
+    def _disable_studio_db(self, exc: Exception, *, operation: str) -> None:
+        if self._studio_db is None:
+            return
+        logger.warning(
+            "GestioneUtenti: backend studio non disponibile durante %s, fallback su archivio locale (%s)",
+            operation,
+            exc,
+        )
+        self._studio_db = None
+
     # ---- persistenza
 
     def _ensure_studio_db_schema(self):
@@ -432,7 +446,7 @@ class GestioneUtenti:
 
         if self._studio_db is not None:
             import json as _json
-            # Utenti
+
             try:
                 rows = self._studio_db.conn.execute(
                     "SELECT id, username, email, nome_completo, ruolo, "
@@ -450,15 +464,12 @@ class GestioneUtenti:
                         self._utenti[u.id] = u
                     except Exception:
                         pass
-            except Exception:
-                self._utenti = {}
-            if not self._utenti:
-                legacy_utenti = _load_json_utenti()
-                if legacy_utenti:
-                    self._utenti = legacy_utenti
-                    self._salva_utenti()
-            # Audit log
-            try:
+                if not self._utenti:
+                    legacy_utenti = _load_json_utenti()
+                    if legacy_utenti:
+                        self._utenti = legacy_utenti
+                        self._salva_utenti()
+
                 rows = self._studio_db.conn.execute(
                     "SELECT id, timestamp, id_utente, username, azione, "
                     "risorsa_tipo, risorsa_id, dettagli, ip, esito FROM audit_log"
@@ -469,14 +480,14 @@ class GestioneUtenti:
                         self._audit.append(EventoAudit.from_dict(dict(row)))
                     except Exception:
                         pass
-            except Exception:
-                self._audit = []
-            if not self._audit:
-                legacy_audit = _load_json_audit()
-                if legacy_audit:
-                    self._audit = legacy_audit
-                    self._salva_audit()
-            return
+                if not self._audit:
+                    legacy_audit = _load_json_audit()
+                    if legacy_audit:
+                        self._audit = legacy_audit
+                        self._salva_audit()
+                return
+            except Exception as exc:
+                self._disable_studio_db(exc, operation="caricamento utenti e audit")
         self._utenti = _load_json_utenti()
         self._audit = _load_json_audit()
 
@@ -504,8 +515,11 @@ class GestioneUtenti:
                     ),
                 )
 
-            self._studio_db.salva_tabella("utenti", list(self._utenti.values()), _insert)
-            return
+            try:
+                self._studio_db.salva_tabella("utenti", list(self._utenti.values()), _insert)
+                return
+            except Exception as exc:
+                self._disable_studio_db(exc, operation="salvataggio utenti")
         from pct import cache as _cache
         _cache.save(self.db_path, {k: v.to_dict() for k, v in self._utenti.items()})
 
@@ -531,8 +545,11 @@ class GestioneUtenti:
                     ),
                 )
 
-            self._studio_db.salva_tabella("audit_log", recenti, _insert)
-            return
+            try:
+                self._studio_db.salva_tabella("audit_log", recenti, _insert)
+                return
+            except Exception as exc:
+                self._disable_studio_db(exc, operation="salvataggio audit")
         from pct import cache as _cache
         cutoff = (datetime.now() - timedelta(days=self._retention_days)).isoformat()
         recenti = [e for e in self._audit if e.timestamp >= cutoff]

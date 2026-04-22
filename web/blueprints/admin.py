@@ -84,13 +84,26 @@ def _utenti_tenant(slug: str) -> GestioneUtenti:
         )
     except (OSError, sqlite3.Error):
         studio_db = None
-    return GestioneUtenti(
-        db_path=percorsi["AUTH_DB"],
-        audit_path=percorsi["AUDIT_DB"],
-        secret_key=current_app.secret_key,
-        crea_admin_se_vuoto=False,  # Non auto-creare admin — lo fa il pannello
-        studio_db=studio_db,
-    )
+    try:
+        return GestioneUtenti(
+            db_path=percorsi["AUTH_DB"],
+            audit_path=percorsi["AUDIT_DB"],
+            secret_key=current_app.secret_key,
+            crea_admin_se_vuoto=False,  # Non auto-creare admin — lo fa il pannello
+            studio_db=studio_db,
+        )
+    except (OSError, sqlite3.Error):
+        current_app.logger.warning(
+            "Admin studio %s: archivio SQL non disponibile, uso archivio locale utenti",
+            slug,
+        )
+        return GestioneUtenti(
+            db_path=percorsi["AUTH_DB"],
+            audit_path=percorsi["AUDIT_DB"],
+            secret_key=current_app.secret_key,
+            crea_admin_se_vuoto=False,
+            studio_db=None,
+        )
 
 
 def _utenti_piattaforma() -> GestioneUtenti:

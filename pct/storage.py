@@ -26,6 +26,7 @@ Thread-safety:
 from __future__ import annotations
 
 import json
+import logging
 import sqlite3
 import threading
 from pathlib import Path
@@ -42,6 +43,7 @@ def _schema_sql() -> str:
 
 _instances: Dict[str, "StudioDB"] = {}
 _instances_lock = threading.Lock()
+logger = logging.getLogger(__name__)
 
 
 # ------------------------------------------------------------------ helpers I/O
@@ -120,7 +122,15 @@ class StudioDB:
             check_same_thread=False,
         )
         c.row_factory = sqlite3.Row
-        c.execute("PRAGMA journal_mode=WAL")
+        try:
+            c.execute("PRAGMA journal_mode=WAL")
+        except sqlite3.OperationalError as exc:
+            logger.warning(
+                "SQLite tenant %s: WAL non disponibile, fallback a modalita' DELETE (%s)",
+                self.db_path,
+                exc,
+            )
+            c.execute("PRAGMA journal_mode=DELETE")
         c.execute("PRAGMA foreign_keys=ON")
         c.execute("PRAGMA synchronous=NORMAL")
         c.execute("PRAGMA cache_size=-16000")   # 16 MB page cache

@@ -63,13 +63,26 @@ def register_auth_runtime(
                 )
             except (OSError, sqlite3.Error):
                 studio_db = None
-        return GestioneUtenti(
-            db_path=paths["AUTH_DB"],
-            audit_path=paths["AUDIT_DB"],
-            secret_key=app.secret_key,
-            crea_admin_se_vuoto=False,
-            studio_db=studio_db,
-        )
+        try:
+            return GestioneUtenti(
+                db_path=paths["AUTH_DB"],
+                audit_path=paths["AUDIT_DB"],
+                secret_key=app.secret_key,
+                crea_admin_se_vuoto=False,
+                studio_db=studio_db,
+            )
+        except (OSError, sqlite3.Error):
+            app.logger.warning(
+                "Auth runtime tenant %s: archivio SQL non disponibile, uso archivio locale utenti",
+                tenant_slug,
+            )
+            return GestioneUtenti(
+                db_path=paths["AUTH_DB"],
+                audit_path=paths["AUDIT_DB"],
+                secret_key=app.secret_key,
+                crea_admin_se_vuoto=False,
+                studio_db=None,
+            )
 
     def _session_auth_scope() -> str:
         return str(session.get("auth_scope", "") or "").strip().lower()

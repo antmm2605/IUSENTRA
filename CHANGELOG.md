@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.182.8 - 2026-04-22
+
+- Rimesso in sicurezza l'accesso ai dati di studio sui tenant SQLite: se la modalita' `WAL` non e' disponibile sul volume dati, il motore passa automaticamente a una modalita' compatibile invece di far esplodere pagine come `Panoramica studio`, `Fascicolo` e superfici amministrative collegate.
+- Rafforzato anche il gestore utenti dei tenant: se il backend SQL dello studio non e' disponibile, il sistema ripiega in modo governato sull'archivio locale utenti e audit, evitando errori interni sulle pagine di amministrazione e autenticazione.
+- Lex AI non lascia piu' passare risposte artificiose o da "esempio di chatbot" sui fascicoli e sulle ricerche legali: le richieste sul fascicolo passano su un percorso guidato piu' concreto, mentre le risposte giuridiche prive di base verificata vengono degradate con prudenza invece di essere mostrate come buone.
+- Ridotta anche la verbosita' inutile delle fonti mostrate da Lex nei percorsi operativi: sulle richieste di studio vengono evidenziati solo i riferimenti davvero utili alla risposta, non liste tecniche poco leggibili.
+
 ## 2.182.7 - 2026-04-22
 
 - Alleggerito davvero l'avvio nel cloud gestito: in ambiente Railway/Render il bootstrap pesante dei registri dati, della governance installazione e dei tenant legacy non viene piu' eseguito prima che il servizio dichiari la propria disponibilita', ma solo quando serve davvero.

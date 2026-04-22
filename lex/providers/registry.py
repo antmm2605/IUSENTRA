@@ -9,6 +9,15 @@ from .openai_provider import OpenAIProvider
 from lex.contracts import answer_contract_for
 
 
+def _has_fascicolo_context(context) -> bool:
+    if not isinstance(context, dict):
+        return False
+    structured = context.get("structured_context") or {}
+    if isinstance(structured, dict) and structured.get("fascicolo"):
+        return True
+    return bool(context.get("fascicolo"))
+
+
 class ProviderRegistry:
     def __init__(self) -> None:
         self.providers = {
@@ -34,11 +43,13 @@ class ProviderRegistry:
         if workflow in {"economico", "next_action", "cabina", "telematico_status", "compliance"}:
             return self.providers["deterministic"]
 
+        if workflow == "fascicolo" and _has_fascicolo_context(context):
+            return self.providers["deterministic"]
+
         if workflow in {
             "telematico",
             "udienza",
             "atto",
-            "fascicolo",
             "normativa",
             "giurisprudenza",
             "prassi",
@@ -49,5 +60,8 @@ class ProviderRegistry:
             "intelligence",
         }:
             return self.providers["ollama"]
+
+        if workflow == "fascicolo":
+            return self.providers["deterministic"]
 
         return self.providers["ollama"]

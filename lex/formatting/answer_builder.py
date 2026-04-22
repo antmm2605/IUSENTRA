@@ -15,12 +15,34 @@ from .sections import build_sections
 class AnswerBuilder:
     def build_response(self, request, context, workflow, evidence, draft, verdict) -> WorkflowLexResponse:
         strict_workflow = workflow in {"normativa", "giurisprudenza", "prassi", "research", "fonti"}
+        practical_workflow = workflow in {
+            "fascicolo",
+            "udienza",
+            "atto",
+            "documento",
+            "question_answering",
+            "economico",
+            "next_action",
+            "cabina",
+            "telematico",
+            "telematico_status",
+            "compliance",
+        }
         citations = list((evidence or {}).get("citations") or [])
         evidence_pack = dict((evidence or {}).get("evidence_pack") or {})
         official_sources = list((evidence or {}).get("official_sources") or evidence_pack.get("official_sources") or [])
         trusted_sources = list((evidence or {}).get("trusted_sources") or evidence_pack.get("trusted_sources") or [])
         if strict_workflow:
             considered_sources = official_sources or trusted_sources or [citation.title for citation in citations if getattr(citation, "title", "")]
+        elif practical_workflow:
+            considered_sources = [citation.title for citation in citations if getattr(citation, "title", "")]
+            if not considered_sources:
+                considered_sources = [
+                    str(item.get("title") or "").strip()
+                    for item in list((evidence or {}).get("items") or [])
+                    if isinstance(item, dict) and str(item.get("title") or "").strip()
+                ]
+            considered_sources = considered_sources[:6]
         else:
             compared_sources_preview = list((evidence or {}).get("source_comparison") or evidence_pack.get("compared_sources") or [])
             considered_sources = [

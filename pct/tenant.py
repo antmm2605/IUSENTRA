@@ -1333,13 +1333,22 @@ class GestioneTenant:
                 studio_db = build_core_storage_backend(studio.database, studio_db_path=paths["STUDIO_DB"])
             except (OSError, sqlite3.Error):
                 studio_db = None
-            manager = GestioneUtenti(
-                db_path=paths["AUTH_DB"],
-                audit_path=paths["AUDIT_DB"],
-                secret_key=secret_key,
-                crea_admin_se_vuoto=False,
-                studio_db=studio_db,
-            )
+            try:
+                manager = GestioneUtenti(
+                    db_path=paths["AUTH_DB"],
+                    audit_path=paths["AUDIT_DB"],
+                    secret_key=secret_key,
+                    crea_admin_se_vuoto=False,
+                    studio_db=studio_db,
+                )
+            except (OSError, sqlite3.Error):
+                manager = GestioneUtenti(
+                    db_path=paths["AUTH_DB"],
+                    audit_path=paths["AUDIT_DB"],
+                    secret_key=secret_key,
+                    crea_admin_se_vuoto=False,
+                    studio_db=None,
+                )
             for user in manager.lista():
                 if str(getattr(user.ruolo, "value", user.ruolo) or "").strip().upper() == "SUPERADMIN":
                     conflicts.append(

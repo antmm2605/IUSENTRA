@@ -1218,3 +1218,86 @@ def test_storage_manifest_mostra_postgresql_attivo_per_domini_core(tmp_path: Pat
     assert manifest["effective_runtime_kind"] == "postgresql"
     assert manifest["activation_state"] == "active"
     assert manifest["core_runtime_enabled"] is True
+
+
+def test_studio_db_fallbacks_to_delete_when_wal_non_disponibile(tmp_path: Path, monkeypatch):
+    from pct import storage as storage_module
+
+    real_connect = sqlite3.connect
+    statements: list[str] = []
+
+    class _ProxyConnection:
+        def __init__(self, conn):
+            self._conn = conn
+
+        @property
+        def row_factory(self):
+            return self._conn.row_factory
+
+        @row_factory.setter
+        def row_factory(self, value):
+            self._conn.row_factory = value
+
+        def execute(self, sql, *args, **kwargs):
+            statements.append(str(sql))
+            if str(sql).strip().upper() == "PRAGMA JOURNAL_MODE=WAL":
+                raise sqlite3.OperationalError("wal non disponibile")
+            return self._conn.execute(sql, *args, **kwargs)
+
+        def __getattr__(self, name):
+            return getattr(self._conn, name)
+
+    monkeypatch.setattr(
+        storage_module.sqlite3,
+        "connect",
+        lambda *args, **kwargs: _ProxyConnection(real_connect(*args, **kwargs)),
+    )
+
+    db = StudioDB(str(tmp_path / "studio.db"))
+    row = db.conn.execute("SELECT 1").fetchone()
+
+    assert any("PRAGMA journal_mode=WAL" in sql for sql in statements)
+    assert any("PRAGMA journal_mode=DELETE" in sql for sql in statements)
+    assert row[0] == 1
+
+
+def test_gestione_utenti_ripiega_su_json_quando_backend_studio_non_e_disponibile(tmp_path: Path):
+    auth_path = tmp_path / "auth" / "utenti.json"
+    audit_path = tmp_path / "auth" / "audit.json"
+    auth_path.parent.mkdir(parents=True, exist_ok=True)
+    auth_path.write_text("{}", encoding="utf-8")
+    audit_path.write_text("[]", encoding="utf-8")
+
+    legacy = GestioneUtenti(
+        db_path=str(auth_path),
+        audit_path=str(audit_path),
+        secret_key="test",
+        crea_admin_se_vuoto=False,
+    )
+    legacy.crea(
+        username="avvtest",
+        password="PasswordSicura!123",
+        ruolo=RuoloUtente.AVVOCATO,
+        must_change_password=False,
+    )
+
+    class _BrokenBackend:
+        @property
+        def conn(self):
+            raise sqlite3.OperationalError("backend studio non disponibile")
+
+        def salva_tabella(self, *args, **kwargs):
+            raise sqlite3.OperationalError("backend studio non disponibile")
+
+    manager = GestioneUtenti(
+        db_path=str(auth_path),
+        audit_path=str(audit_path),
+        secret_key="test",
+        crea_admin_se_vuoto=False,
+        studio_db=_BrokenBackend(),
+    )
+
+    utenti = manager.lista()
+
+    assert len(utenti) == 1
+    assert utenti[0].username == "avvtest"

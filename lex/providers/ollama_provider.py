@@ -25,6 +25,17 @@ _FALLBACK_SYSTEM_PROMPT = (
     "dati mancanti e suggerisci la verifica presso le fonti ufficiali."
 )
 
+_META_RESPONSE_MARKERS = (
+    "ecco un esempio di risposta",
+    "motivazione:",
+    "spero che questa risposta",
+    "per aiutarti ulteriormente",
+    "passi proposti",
+    "rischi:",
+    "[nome/dipartimento]",
+    "simulazione di un sistema di chatbot",
+)
+
 
 def _safe_import_prompt_builder():
     try:
@@ -144,6 +155,30 @@ def _call_ollama(payload: dict[str, Any], api_base_url: str, timeout: int = 120)
     return str(((response.get("message") or {}).get("content") or "")).strip()
 
 
+def _looks_like_meta_response(text: str) -> bool:
+    normalized = " ".join(str(text or "").split()).strip().lower()
+    if not normalized:
+        return False
+    return any(marker in normalized for marker in _META_RESPONSE_MARKERS)
+
+
+def _strict_legal_fallback(workflow: str) -> str:
+    if workflow == "giurisprudenza":
+        return (
+            "Non ho ancora una base verificata sufficiente per chiudere una risposta sulla giurisprudenza richiesta.\n"
+            "Indicami numero completo della decisione, ufficio giudiziario o allega il provvedimento, cosi' posso lavorare su riferimenti controllabili."
+        )
+    if workflow == "normativa":
+        return (
+            "Non ho ancora una base verificata sufficiente per chiudere una risposta normativa attendibile.\n"
+            "Indicami almeno il riferimento dell'atto, l'articolo o la materia, cosi' posso cercare la fonte ufficiale corretta."
+        )
+    return (
+        "La risposta generata non e' abbastanza affidabile per essere proposta come base legale verificata.\n"
+        "Serve un riferimento piu' preciso oppure una ricerca sulle fonti ufficiali prima di chiudere il riscontro."
+    )
+
+
 class OllamaProvider(BaseProvider):
     provider_name = "ollama"
 
@@ -189,6 +224,25 @@ class OllamaProvider(BaseProvider):
             text = _call_ollama(payload, api_base_url)
             if not text:
                 raise RuntimeError("Nessun contenuto generato da Ollama.")
+            if _looks_like_meta_response(text):
+                metadata["status"] = "fallback_meta"
+                metadata["meta_response_filtered"] = True
+                if (workflow or "") in {"normativa", "giurisprudenza", "prassi", "research", "fonti"}:
+                    return ProviderDraft(
+                        text=_strict_legal_fallback(workflow or "chat"),
+                        metadata=metadata,
+                    )
+                from .deterministic_provider import DeterministicProvider
+
+                draft = DeterministicProvider().generate(request, context, evidence, workflow or "chat")
+                draft.metadata = {
+                    **dict(getattr(draft, "metadata", {}) or {}),
+                    "provider": self.provider_name,
+                    "fallback_provider": "deterministic",
+                    "status": "fallback_meta",
+                    "meta_response_filtered": True,
+                }
+                return draft
             metadata["status"] = "ok"
             return ProviderDraft(text=text, metadata=metadata)
         except Exception as exc:

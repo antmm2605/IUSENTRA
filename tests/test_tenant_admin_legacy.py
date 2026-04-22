@@ -1,4 +1,5 @@
 import json
+import sqlite3
 from pathlib import Path
 
 from pct.auth import GestioneUtenti, RuoloUtente
@@ -52,6 +53,58 @@ def test_admin_dettaglio_studio_renderizza_anche_con_db_legacy(tmp_path):
             "BOOTSTRAP_ADMIN_PASSWORD": "superpass123",
         }
     )
+
+    client = app.test_client()
+    client.post(
+        "/login",
+        data={"username": "admin", "password": "superpass123"},
+        follow_redirects=False,
+    )
+    resp = client.get("/admin/studi/antonella-mammola")
+
+    assert resp.status_code == 200
+    assert b"Antonella Mammola" in resp.data
+
+
+def test_admin_dettaglio_studio_non_va_in_500_se_backend_studio_non_e_disponibile(tmp_path, monkeypatch):
+    registry_path = tmp_path / "tenants.json"
+    registry_path.write_text(
+        json.dumps(
+            {
+                "studio-001": {
+                    "slug": "antonella-mammola",
+                    "nome": "Studio Antonella Mammola",
+                    "piano": "PROFESSIONAL",
+                    "stato": "ATTIVO",
+                    "db_config": "LOCAL",
+                }
+            },
+            ensure_ascii=False,
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+
+    app = create_app(
+        {
+            "TESTING": True,
+            "TENANTS_REGISTRY": str(registry_path),
+            "AUTH_DB": str(tmp_path / "auth" / "utenti.json"),
+            "AUDIT_DB": str(tmp_path / "auth" / "audit.json"),
+            "CLIENTI_DB": str(tmp_path / "clienti" / "anagrafica.json"),
+            "BOOTSTRAP_ADMIN_PASSWORD": "superpass123",
+        }
+    )
+
+    class _BrokenBackend:
+        @property
+        def conn(self):
+            raise sqlite3.OperationalError("backend tenant non disponibile")
+
+        def salva_tabella(self, *args, **kwargs):
+            raise sqlite3.OperationalError("backend tenant non disponibile")
+
+    monkeypatch.setattr("web.blueprints.admin.build_core_storage_backend", lambda *args, **kwargs: _BrokenBackend())
 
     client = app.test_client()
     client.post(

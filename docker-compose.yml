@@ -140,6 +140,13 @@ services:
       PCT_HOST_PLATFORM: ${OS:-}
       PCT_HOST_MACHINE: ${PROCESSOR_ARCHITECTURE:-}
 
+    healthcheck:
+      test: ["CMD", "python", "-c", "from pathlib import Path; cmd = Path('/proc/1/cmdline').read_text(encoding='utf-8', errors='ignore'); raise SystemExit(0 if 'pct.scheduler_worker' in cmd else 1)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
   # --------------------------------------------------------------------------
   #  OCR worker dedicato
   # --------------------------------------------------------------------------
@@ -172,6 +179,13 @@ services:
       PCT_SEARCH_INDEX: /data/search/index.db
       PCT_OCR_QUEUE_DB: /data/search/ocr_jobs.db
       PCT_OCR_WORKERS: ${PCT_OCR_WORKERS:-2}
+
+    healthcheck:
+      test: ["CMD", "python", "-c", "from pathlib import Path; cmd = Path('/proc/1/cmdline').read_text(encoding='utf-8', errors='ignore'); raise SystemExit(0 if 'pct.ocr_worker' in cmd else 1)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
 
   ollama:
     profiles: ["ollama-sidecar"]

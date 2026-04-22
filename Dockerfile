@@ -1,4 +1,4 @@
-#  version: 2.182.3
+#  version: 2.182.4
 #  IUSENTRA | Dockerfile produzione
 
 #  Build multi-stage:
@@ -74,7 +74,7 @@ RUN mkdir -p /out && /tmp/dart-sass/sass --no-source-map --style=compressed \
 FROM python:3.12-slim
 
 LABEL org.opencontainers.image.title="IUSENTRA" \
-      org.opencontainers.image.version="2.182.3" \
+      org.opencontainers.image.version="2.182.4" \
       org.opencontainers.image.description="Gestionale PCT per studi legali italiani" \
       org.opencontainers.image.created="2026-03-18"
 
@@ -176,8 +176,6 @@ ENV PCT_AGENDA_DB=/data/agenda/appuntamenti.json \
 # nel pannello Railway/Render - NON metterle nel Dockerfile!
 
 RUN mkdir -p /data
-
-VOLUME ["/data"]
 
 EXPOSE 8080
 

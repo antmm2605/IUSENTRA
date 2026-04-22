@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.182.4 - 2026-04-22
+
+- Riallineato il Dockerfile al deploy Railway: rimossa la direttiva `VOLUME`, non supportata dal builder Railway, lasciando la persistenza governata dal volume del servizio e dal percorso runtime `/data`.
+- Rafforzata anche la salute dei servizi locali: `scheduler-worker` e `ocr-worker` non ereditano piu' un controllo pensato per l'interfaccia web, ma avranno un controllo dedicato coerente con il loro ruolo.
+
 ## 2.182.3 - 2026-04-22
 
 - Chiusa la leggibilita' del menu laterale: le voci principali e i collegamenti recenti non vengono piu' tagliati su una sola riga, ma si adattano su due righe con sidebar piu' ampia e spaziatura coerente.

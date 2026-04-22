@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }} - Sito Studio{% endblock %}
+{% block pct_modulo %}sito_studio{% endblock %}
+{% block content %}
+<div class="container py-4 studio-site-admin">
+  <div class="d-flex justify-content-between align-items-start gap-3 mb-4">
+    <div>
+      <h1 class="h3 mb-1">{{ title }}</h1>
+      <p class="text-muted mb-0">Gestione del catalogo pubblico del sito studio.</p>
+    </div>
+    <a class="btn btn-outline-dark" href="{{ url_for('studio_site.dashboard') }}">Torna alla dashboard</a>
+  </div>
+  <form method="post" action="{{ endpoint }}" class="studio-site-panel">
+    <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+    <div class="row g-3">
+      {% if item_type == 'service' %}
+        <div class="col-lg-8"><label class="form-label">Titolo</label><input class="form-control" name="title" value="{{ item.title or '' }}" required></div>
+        <div class="col-lg-4"><label class="form-label">Slug</label><input class="form-control" name="slug" value="{{ item.slug or '' }}"></div>
+        <div class="col-lg-4"><label class="form-label">Icona Bootstrap</label><input class="form-control" name="icon" value="{{ item.icon or '' }}" placeholder="bi-briefcase"></div>
+        <div class="col-lg-4"><label class="form-label">Ordine</label><input class="form-control" type="number" name="sort_order" value="{{ item.sort_order or 0 }}"></div>
+        <div class="col-lg-4 d-flex align-items-end"><div class="form-check mb-2"><input class="form-check-input" type="checkbox" name="is_visible" value="1" id="serviceVisible" {% if item.is_visible or not item %}checked{% endif %}><label class="form-check-label" for="serviceVisible">Visibile</label></div></div>
+        <div class="col-12"><label class="form-label">Descrizione breve</label><textarea class="form-control" rows="3" name="short_description">{{ item.short_description or '' }}</textarea></div>
+        <div class="col-12"><label class="form-label">Descrizione estesa</label><textarea class="form-control" rows="6" name="long_description">{{ item.long_description or '' }}</textarea></div>
+      {% elif item_type == 'professional' %}
+        <div class="col-lg-8"><label class="form-label">Nome e cognome</label><input class="form-control" name="full_name" value="{{ item.full_name or '' }}" required></div>
+        <div class="col-lg-4"><label class="form-label">Ruolo</label><input class="form-control" name="role_title" value="{{ item.role_title or '' }}"></div>
+        <div class="col-lg-4"><label class="form-label">Email</label><input class="form-control" name="email" value="{{ item.email or '' }}"></div>
+        <div class="col-lg-4"><label class="form-label">Telefono</label><input class="form-control" name="phone" value="{{ item.phone or '' }}"></div>
+        <div class="col-lg-4"><label class="form-label">Ordine</label><input class="form-control" type="number" name="sort_order" value="{{ item.sort_order or 0 }}"></div>
+        <div class="col-12"><label class="form-label">URL foto</label><input class="form-control" name="photo_url" value="{{ item.photo_url or '' }}"></div>
+        <div class="col-12"><label class="form-label">Bio</label><textarea class="form-control" rows="6" name="bio">{{ item.bio or '' }}</textarea></div>
+        <div class="col-12"><div class="form-check"><input class="form-check-input" type="checkbox" name="is_visible" value="1" id="professionalVisible" {% if item.is_visible or not item %}checked{% endif %}><label class="form-check-label" for="professionalVisible">Visibile</label></div></div>
+      {% elif item_type == 'office' %}
+        <div class="col-lg-6"><label class="form-label">Nome sede</label><input class="form-control" name="name" value="{{ item.name or '' }}" required></div>
+        <div class="col-lg-6"><label class="form-label">Email</label><input class="form-control" name="email" value="{{ item.email or '' }}"></div>
+        <div class="col-lg-8"><label class="form-label">Indirizzo</label><input class="form-control" name="address" value="{{ item.address or '' }}"></div>
+        <div class="col-lg-4"><label class="form-label">CAP</label><input class="form-control" name="zip_code" value="{{ item.zip_code or '' }}"></div>
+        <div class="col-lg-6"><label class="form-label">Citta'</label><input class="form-control" name="city" value="{{ item.city or '' }}"></div>
+        <div class="col-lg-6"><label class="form-label">Provincia</label><input class="form-control" name="province" value="{{ item.province or '' }}"></div>
+        <div class="col-lg-6"><label class="form-label">Telefono</label><input class="form-control" name="phone" value="{{ item.phone or '' }}"></div>
+        <div class="col-lg-6"><label class="form-label">Link mappa</label><input class="form-control" name="map_url" value="{{ item.map_url or '' }}"></div>
+        <div class="col-12"><label class="form-label">Orari / note sede</label><textarea class="form-control" rows="4" name="opening_hours">{{ item.opening_hours or '' }}</textarea></div>
+        <div class="col-md-6"><div class="form-check"><input class="form-check-input" type="checkbox" name="is_primary" value="1" id="officePrimary" {% if item.is_primary %}checked{% endif %}><label class="form-check-label" for="officePrimary">Sede principale</label></div></div>
+        <div class="col-md-6"><div class="form-check"><input class="form-check-input" type="checkbox" name="is_visible" value="1" id="officeVisible" {% if item.is_visible or not item %}checked{% endif %}><label class="form-check-label" for="officeVisible">Visibile</label></div></div>
+      {% elif item_type == 'booking_rule' %}
+        <div class="col-lg-6">
+          <label class="form-label">Sede</label>
+          <select class="form-select" name="office_id" required>
+            {% for office in offices %}
+              <option value="{{ office.id }}" {% if (item.office_id|string) == (office.id|string) %}selected{% endif %}>{{ office.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-lg-6">
+          <label class="form-label">Giorno settimana</label>
+          <select class="form-select" name="weekday" required>
+            {% for key, value in weekday_labels.items() %}
+              <option value="{{ key }}" {% if (item.weekday|string) == (key|string) %}selected{% endif %}>{{ value }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-lg-3"><label class="form-label">Inizio</label><input class="form-control" type="time" name="start_time" value="{{ item.start_time or '09:00' }}" required></div>
+        <div class="col-lg-3"><label class="form-label">Fine</label><input class="form-control" type="time" name="end_time" value="{{ item.end_time or '12:00' }}" required></div>
+        <div class="col-lg-3"><label class="form-label">Slot minuti</label><input class="form-control" type="number" name="slot_minutes" value="{{ item.slot_minutes or 30 }}" required></div>
+        <div class="col-lg-3"><label class="form-label">Max per slot</label><input class="form-control" type="number" name="max_requests_per_slot" value="{{ item.max_requests_per_slot or 1 }}" required></div>
+        <div class="col-12"><div class="form-check"><input class="form-check-input" type="checkbox" name="is_active" value="1" id="ruleActive" {% if item.is_active or not item %}checked{% endif %}><label class="form-check-label" for="ruleActive">Regola attiva</label></div></div>
+      {% endif %}
+      <div class="col-12 d-flex justify-content-end gap-2">
+        <a class="btn btn-outline-secondary" href="{{ url_for('studio_site.dashboard') }}">Annulla</a>
+        <button class="btn btn-primary" type="submit">Salva</button>
+      </div>
+    </div>
+  </form>
+</div>
+{% endblock %}

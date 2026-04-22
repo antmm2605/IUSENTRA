@@ -1,0 +1,13 @@
+{% extends "studio_site/public_base.html" %}
+{% from "studio_site/_public_blocks.html" import render_blocks %}
+
+{% block title %}{{ page.seo_title or page.title }} - {{ payload.site.site_name }}{% endblock %}
+{% block content %}
+  <section class="studio-site-section">
+    <div class="container">
+      <h1>{{ page.title }}</h1>
+      {% if page.excerpt %}<p class="lead text-muted">{{ page.excerpt }}</p>{% endif %}
+    </div>
+  </section>
+  {{ render_blocks(payload, page.body_json or []) }}
+{% endblock %}

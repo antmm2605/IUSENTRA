@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.181.0 - 2026-04-22
+
+- Introdotto il modulo nativo `Sito Studio`, con dashboard tenant-aware, branding, pagine a blocchi, articoli, servizi, professionisti, sedi, contatti, agenda pubblica e sito web pubblicabile senza CMS esterno.
+- Aggiunta la superficie pubblica `/web/<public_slug>/` e la console piattaforma `Piattaforma -> Siti studio`, con repository SQL dedicato sia `SQLite` sia `PostgreSQL`, asset tenant-aware e bootstrap automatico del sito studio dal profilo del tenant.
+- Le sezioni pubbliche `Strumenti legali`, `Applicazioni` e `News giuridiche strutturate` sono ora governate da flag espliciti dell'amministratore del sito: restano nascoste e rispondono `404` finche' non vengono attivate da `Sito Studio -> Impostazioni`.
+- Chiusa la filiera `prenotazione pubblica -> approvazione studio -> agenda`: le richieste sito si sincronizzano davvero in agenda tenant-aware e la migrazione legacy verso `studio.db` riallinea ora correttamente le colonne `dati_json` richieste dai moduli runtime.
+- Rafforzata la migrazione SQLite unificata: le tabelle core legacy (`fascicoli`, `appuntamenti`, `scadenze`, `messaggi`, `utenti`) includono ora `dati_json` gia' nello schema base e nel payload migrato, con riallineamento automatico post-migrazione.
+
 ## 2.180.1 - 2026-04-22
 
 - La console `Piattaforma -> Assistenza remota` permette ora al `SUPERADMIN` di configurare direttamente da UI i parametri operativi del modulo: `STUN`, `TURN`, secret condiviso, TTL, durata token WebSocket e `SUPPORT_ADVANCED_URL_TEMPLATE`.

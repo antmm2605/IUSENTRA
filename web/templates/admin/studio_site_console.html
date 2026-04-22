@@ -1,0 +1,55 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Siti Studio{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item active">Siti studio</li>{% endblock %}
+{% block content %}
+<section class="studio-site-platform">
+  <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-4">
+    <div>
+      <h1 class="h3 mb-1">Siti Studio</h1>
+      <p class="text-muted mb-0">Console piattaforma per i siti web nativi degli studi.</p>
+    </div>
+    <form class="d-flex gap-2" method="get">
+      <input class="form-control" name="q" value="{{ payload.query }}" placeholder="Cerca tenant, studio, slug">
+      <button class="btn btn-outline-primary" type="submit">Cerca</button>
+    </form>
+  </div>
+
+  <div class="row g-3 mb-4">
+    <div class="col-md-3"><div class="studio-site-kpi"><span>Siti totali</span><strong>{{ payload.stats.sites }}</strong></div></div>
+    <div class="col-md-3"><div class="studio-site-kpi"><span>Siti pubblicati</span><strong>{{ payload.stats.published }}</strong></div></div>
+    <div class="col-md-3"><div class="studio-site-kpi"><span>Prenotazioni in attesa</span><strong>{{ payload.stats.pending_bookings }}</strong></div></div>
+    <div class="col-md-3"><div class="studio-site-kpi"><span>Richieste contatto</span><strong>{{ payload.stats.contacts }}</strong></div></div>
+  </div>
+
+  <div class="studio-site-panel">
+    <div class="table-responsive">
+      <table class="table align-middle">
+        <thead><tr><th>Studio</th><th>Tenant</th><th>URL</th><th>Stato</th><th>Sezioni opzionali</th><th class="text-end">Azioni</th></tr></thead>
+        <tbody>
+          {% for item in payload.sites %}
+            <tr>
+              <td><strong>{{ item.site_name }}</strong><div class="small text-muted">{{ item.studio_nome }}</div></td>
+              <td>{{ item.tenant_slug }}</td>
+              <td>/web/{{ item.public_slug }}/</td>
+              <td>
+                <span class="badge {{ 'text-bg-success' if item.is_published else 'text-bg-secondary' }}">{{ 'Pubblicato' if item.is_published else 'Bozza' }}</span>
+              </td>
+              <td class="small">
+                Strumenti: {{ 'Si' if item.show_legal_tools else 'No' }}<br>
+                Applicazioni: {{ 'Si' if item.show_applications else 'No' }}<br>
+                News: {{ 'Si' if item.show_legal_news else 'No' }}
+              </td>
+              <td class="text-end">
+                <a class="btn btn-sm btn-outline-primary" href="{{ item.public_url }}" target="_blank" rel="noopener">Apri sito</a>
+              </td>
+            </tr>
+          {% else %}
+            <tr><td colspan="6" class="text-center text-muted py-4">Nessun sito studio configurato.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+{% endblock %}

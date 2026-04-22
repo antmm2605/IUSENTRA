@@ -81,6 +81,10 @@
        class="nav-link {% if request.blueprint == 'support_remote' %}active{% endif %}">
       <i class="bi bi-headset"></i> Assistenza remota
     </a>
+    <a href="{{ url_for('studio_site_admin.console') }}"
+       class="nav-link {% if request.blueprint == 'studio_site_admin' %}active{% endif %}">
+      <i class="bi bi-globe2"></i> Siti studio
+    </a>
 
     <div class="nav-section mt-2">Attivazione e Lex</div>
     <a href="{{ url_for('admin.stato_installazione') }}"

@@ -7,6 +7,7 @@ from flask import g
 
 from pct.auth import GestioneUtenti, RuoloUtente
 from pct.core_storage_backend import build_core_storage_backend
+from pct.database import GestioneDatabase
 from pct.storage import StudioDB
 from pct.tenant import DatabaseConfig, DbMode, GestioneTenant
 from web.bootstrap.flask_app_factory import create_flask_app
@@ -219,6 +220,50 @@ def test_request_storage_runtime_default_operational_prefers_sqlite(tmp_path: Pa
     assert profile.uses_sqlite is True
     assert profile.effective_mode == DbMode.SQLITE
     assert studio_db is not None
+
+
+def test_migrazione_sqlite_riallinea_colonne_dati_json_runtime(tmp_path: Path):
+    agenda_path = tmp_path / "agenda" / "appuntamenti.json"
+    agenda_path.parent.mkdir(parents=True, exist_ok=True)
+    agenda_path.write_text(
+        json.dumps(
+            [
+                {
+                    "id": "APP001",
+                    "titolo": "Consulenza iniziale",
+                    "tipo": "CONSULTAZIONE",
+                    "stato": "PROGRAMMATO",
+                    "data_ora": "2026-04-28T10:30:00",
+                    "durata_minuti": 30,
+                    "luogo": "Studio",
+                    "note": "Migrazione agenda",
+                    "creato_il": "2026-04-22T09:00:00",
+                }
+            ],
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+
+    risultato = GestioneDatabase({"appuntamenti": str(agenda_path)}).migra_verso_sqlite(
+        str(tmp_path / "studio.db")
+    )
+
+    assert risultato.riuscita is True
+
+    conn = sqlite3.connect(str(tmp_path / "studio.db"))
+    try:
+        colonne = [row[1] for row in conn.execute("PRAGMA table_info(appuntamenti)").fetchall()]
+        dati_json = conn.execute(
+            "SELECT dati_json FROM appuntamenti WHERE id = ?",
+            ("APP001",),
+        ).fetchone()
+    finally:
+        conn.close()
+
+    assert "dati_json" in colonne
+    assert dati_json is not None
+    assert "Consulenza iniziale" in str(dati_json[0] or "")
 
 
 def test_request_storage_runtime_honors_default_storage_mode_json(tmp_path: Path):

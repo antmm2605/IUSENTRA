@@ -1,0 +1,24 @@
+{% extends "studio_site/public_base.html" %}
+
+{% block title %}Applicazioni - {{ payload.site.site_name }}{% endblock %}
+{% block content %}
+  <section class="studio-site-section">
+    <div class="container">
+      <h1>Applicazioni</h1>
+      <p class="lead text-muted">Workspace e moduli visibili sul sito solo per scelta esplicita dello studio.</p>
+      <div class="row g-4">
+        {% for item in payload.applications %}
+          <div class="col-md-6 col-xl-4">
+            <article class="studio-site-card h-100">
+              <div class="studio-site-card-icon"><i class="bi {{ item.icon }}"></i></div>
+              <div class="studio-site-small-label">{{ item.section_title }}</div>
+              <h3>{{ item.title }}</h3>
+              <p>{{ item.summary }}</p>
+              {% if item.badge %}<span class="badge text-bg-light">{{ item.badge }}</span>{% endif %}
+            </article>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+{% endblock %}

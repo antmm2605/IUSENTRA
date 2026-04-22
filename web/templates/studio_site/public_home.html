@@ -1,0 +1,46 @@
+{% extends "studio_site/public_base.html" %}
+{% from "studio_site/_public_blocks.html" import render_blocks %}
+
+{% block title %}{{ payload.site.site_title or payload.site.site_name }}{% endblock %}
+{% block content %}
+  {{ render_blocks(payload, page.body_json or []) }}
+
+  {% if payload.show_legal_tools or payload.show_applications or payload.show_legal_news %}
+    <section class="studio-site-section studio-site-section-muted">
+      <div class="container">
+        <div class="row g-4">
+          {% if payload.show_legal_tools %}
+            <div class="col-lg-4">
+              <article class="studio-site-card h-100">
+                <div class="studio-site-small-label">Sezione opzionale</div>
+                <h3>Strumenti legali</h3>
+                <p>Calcoli, moduli e strumenti operativi pubblici selezionati dallo studio.</p>
+                <a class="btn btn-outline-dark" href="{{ url_for('studio_site_public.legal_tools', public_slug=payload.site.public_slug) }}">Apri strumenti</a>
+              </article>
+            </div>
+          {% endif %}
+          {% if payload.show_applications %}
+            <div class="col-lg-4">
+              <article class="studio-site-card h-100">
+                <div class="studio-site-small-label">Sezione opzionale</div>
+                <h3>Applicazioni</h3>
+                <p>Moduli e workspace che lo studio sceglie di rendere visibili sul sito.</p>
+                <a class="btn btn-outline-dark" href="{{ url_for('studio_site_public.applications', public_slug=payload.site.public_slug) }}">Apri applicazioni</a>
+              </article>
+            </div>
+          {% endif %}
+          {% if payload.show_legal_news %}
+            <div class="col-lg-4">
+              <article class="studio-site-card h-100">
+                <div class="studio-site-small-label">Sezione opzionale</div>
+                <h3>News giuridiche strutturate</h3>
+                <p>Aggiornamenti giuridici reali pubblicati dallo studio dal presidio interno delle fonti.</p>
+                <a class="btn btn-outline-dark" href="{{ url_for('studio_site_public.legal_news', public_slug=payload.site.public_slug) }}">Apri news</a>
+              </article>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </section>
+  {% endif %}
+{% endblock %}

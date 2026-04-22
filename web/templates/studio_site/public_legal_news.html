@@ -1,0 +1,33 @@
+{% extends "studio_site/public_base.html" %}
+
+{% block title %}News giuridiche - {{ payload.site.site_name }}{% endblock %}
+{% block content %}
+  <section class="studio-site-section">
+    <div class="container">
+      <h1>News giuridiche strutturate</h1>
+      <p class="lead text-muted">Aggiornamenti selezionati dal presidio normativo e giurisprudenziale dello studio.</p>
+      <div class="row g-4">
+        {% for item in payload.legal_news %}
+          <div class="col-lg-6">
+            <article class="studio-site-card h-100">
+              <div class="studio-site-small-label">{{ item.matter_name or 'Aggiornamento giuridico' }}</div>
+              <h3>{{ item.title }}</h3>
+              <p>{{ item.summary }}</p>
+              <div class="small text-muted">
+                {% if item.publication_date %}<div>{{ item.publication_date|fmt_data }}</div>{% endif %}
+                {% if item.source_name %}<div>{{ item.source_name }}</div>{% endif %}
+              </div>
+              {% if item.url %}
+                <a class="btn btn-link p-0 mt-3" href="{{ item.url }}" target="_blank" rel="noopener">Fonte collegata</a>
+              {% endif %}
+            </article>
+          </div>
+        {% else %}
+          <div class="col-12">
+            <div class="alert alert-secondary">Nessuna news giuridica pubblicata al momento.</div>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+{% endblock %}

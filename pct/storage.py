@@ -149,7 +149,7 @@ class StudioDB:
         for table in self._UPGRADE_ADD_DATI_JSON:
             try:
                 conn.execute(
-                    f"ALTER TABLE {table} ADD COLUMN dati_json TEXT DEFAULT NULL"
+                    f"ALTER TABLE {table} ADD COLUMN dati_json TEXT DEFAULT '{{}}'"
                 )
             except Exception:
                 pass  # colonna già presente — ok

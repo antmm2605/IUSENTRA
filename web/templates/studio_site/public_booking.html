@@ -1,0 +1,80 @@
+{% extends "studio_site/public_base.html" %}
+
+{% block title %}Prenota un appuntamento - {{ payload.site.site_name }}{% endblock %}
+{% block content %}
+  <section class="studio-site-section">
+    <div class="container">
+      <div class="row g-4">
+        <div class="col-lg-5">
+          <h1>Prenota un appuntamento</h1>
+          <p class="lead text-muted">Scegli sede, data e fascia oraria. La richiesta verra' confermata dallo studio dopo la verifica interna.</p>
+          <div class="row g-3">
+            {% for office in payload.offices %}
+              <div class="col-12">
+                <article class="studio-site-card">
+                  <h3>{{ office.name }}</h3>
+                  <p class="mb-1">{{ office.address }}{% if office.city %}, {{ office.city }}{% endif %}</p>
+                  {% if office.opening_hours %}<div class="small text-muted">{{ office.opening_hours }}</div>{% endif %}
+                </article>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+        <div class="col-lg-7">
+          <form method="post" class="studio-site-form">
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label">Nome e cognome</label>
+                <input class="form-control" name="customer_name" required>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Email</label>
+                <input class="form-control" name="customer_email" type="email" required>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Telefono</label>
+                <input class="form-control" name="customer_phone">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Oggetto</label>
+                <input class="form-control" name="subject" placeholder="Es. prima consulenza, esame documenti, parere">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Sede</label>
+                <select class="form-select" name="office_id" id="siteBookingOffice" required data-slots-url="{{ url_for('studio_site_public.public_slots_api', public_slug=payload.site.public_slug) }}">
+                  <option value="">Seleziona una sede</option>
+                  {% for office in payload.offices %}
+                    <option value="{{ office.id }}">{{ office.name }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Data</label>
+                <input class="form-control" type="date" name="requested_date" id="siteBookingDate" min="{{ oggi }}" required>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Fascia disponibile</label>
+                <select class="form-select" name="requested_time" id="siteBookingTime" required>
+                  <option value="">Seleziona prima sede e data</option>
+                </select>
+              </div>
+              <div class="col-12">
+                <label class="form-label">Note</label>
+                <textarea class="form-control" rows="4" name="notes" placeholder="Inserisci brevemente il contesto della richiesta"></textarea>
+              </div>
+              <div class="col-12">
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" id="bookingPrivacy" name="privacy_accepted" value="1" required>
+                  <label class="form-check-label" for="bookingPrivacy">Confermo l'informativa privacy e autorizzo l'uso dei dati per la gestione della richiesta appuntamento.</label>
+                </div>
+              </div>
+              <div class="col-12">
+                <button class="btn btn-primary btn-lg" type="submit">Invia richiesta appuntamento</button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </section>
+{% endblock %}

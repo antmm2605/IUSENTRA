@@ -298,6 +298,8 @@ def register_auth_runtime(
             "operational_resilience_admin",
             "legal_intelligence",
             "support_remote",
+            "studio_site_admin",
+            "studio_site_public",
         }
         allowed_endpoints = public_routes | password_change_routes | {
             "profilo",
@@ -322,7 +324,7 @@ def register_auth_runtime(
             return None
         if any(
             str(request.path or "").startswith(prefix)
-            for prefix in ("/support/join/", "/support/api/", "/support/ws/")
+            for prefix in ("/support/join/", "/support/api/", "/support/ws/", "/web/")
         ):
             return None
         if request.endpoint and request.endpoint.startswith(("api_", "portale")):

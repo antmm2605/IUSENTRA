@@ -32,6 +32,8 @@ La repo oggi non è più solo un tool CLI per il Processo Civile Telematico: con
 - Il widget chat di Lex non lascia piu' le richieste operative a prompt generici: `preventivo`, `tariffario`, `fatturazione`, `telematico`, `fascicolo` e `ricerca legale` passano dal bounded workflow anche dalla UI, con contesto studio completo e fallback web ufficiale quando il contesto interno non basta.
 - Multi-tenant amministrabile dalla piattaforma.
 - Assistenza remota cliente sempre da `SUPERADMIN`, con schermo WebRTC, microfono opzionale, chat tecnica, audit, consensi ed escalation governata al controllo remoto avanzato esterno.
+- `Sito Studio` nativo per ogni tenant: pagine a blocchi, articoli, servizi, professionisti, sedi, contatti, agenda appuntamenti pubblica e sito web pubblicabile senza WordPress esterno.
+- Le sezioni pubbliche `Strumenti legali`, `Applicazioni` e `News giuridiche strutturate` non sono esposte in automatico: compaiono sul sito dello studio solo se l'amministratore del sito attiva i flag dedicati da `Sito Studio -> Impostazioni`.
 
 ## Architettura
 
@@ -58,6 +60,7 @@ Per il workspace applicazioni vedi anche [docs/APPLICAZIONI_WORKSPACE.md](docs/A
 Per la separazione ferrea tra `Product Pack`, `Studio Local Pack` e `Update Pack` vedi [docs/PACK_ARCHITECTURE.md](docs/PACK_ARCHITECTURE.md).
 Per hardening, observability e source policy vedi anche [docs/OBSERVABILITY_AUDIT_PRODUCT.md](docs/OBSERVABILITY_AUDIT_PRODUCT.md) e [docs/LEX_SOURCE_POLICY_SYSTEM.md](docs/LEX_SOURCE_POLICY_SYSTEM.md).
 Per l'assistenza remota cliente vedi [docs/ASSISTENZA_REMOTA.md](docs/ASSISTENZA_REMOTA.md).
+Per il modulo `Sito Studio` vedi [docs/SITO_STUDIO.md](docs/SITO_STUDIO.md).
 
 ## Pack di installazione governati dal SUPERADMIN
 
@@ -111,6 +114,33 @@ Requisiti operativi:
 - `TURN` raccomandato per reti esterne o NAT difficili
 
 La configurazione operativa (`STUN`, `TURN`, secret temporanei, URL controllo avanzato) e' salvabile direttamente dalla console `Piattaforma -> Assistenza remota`, senza modifica manuale dei file sul server.
+
+## Sito Studio nativo
+
+Ogni studio puo' gestire dentro IUSENTRA un sito pubblico nativo, senza integrare WordPress esterno.
+
+Superfici ufficiali:
+
+- `Studio -> Sito Studio` per dashboard, contenuti, branding, sedi e agenda pubblica
+- `Piattaforma -> Siti studio` per la console `SUPERADMIN`
+- `/web/<public_slug>/` per il sito pubblico dello studio
+
+Capacita' coperte:
+
+- logo, favicon, colori e identita' del sito
+- pagine a blocchi e menu navigabile
+- articoli e news editoriali
+- servizi, professionisti, sedi, contatti e dove siamo
+- richieste contatto e prenotazioni appuntamenti sincronizzabili in agenda studio
+- anteprima bozza per utenti autenticati dello studio
+
+Sezioni opzionali pubbliche governate da flag:
+
+- `Strumenti legali`
+- `Applicazioni`
+- `News giuridiche strutturate`
+
+Queste sezioni sono disponibili nel prodotto ma restano nascoste sul sito pubblico finche' l'amministratore del sito non le attiva da `Sito Studio -> Impostazioni`.
 
 ## Strategia storage per studio
 

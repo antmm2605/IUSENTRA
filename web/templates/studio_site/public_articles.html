@@ -1,0 +1,28 @@
+{% extends "studio_site/public_base.html" %}
+
+{% block title %}Articoli - {{ payload.site.site_name }}{% endblock %}
+{% block content %}
+  <section class="studio-site-section">
+    <div class="container">
+      <h1>Articoli e approfondimenti</h1>
+      <p class="lead text-muted">Contenuti editoriali pubblicati dallo studio per orientare clienti e imprese.</p>
+      <div class="row g-4 mt-2">
+        {% for item in payload.articles %}
+          <div class="col-md-6 col-xl-4">
+            <article class="studio-site-card h-100">
+              {% if item.cover_url %}<img src="{{ item.cover_url }}" alt="{{ item.title }}" class="studio-site-cover">{% endif %}
+              <div class="studio-site-small-label">{{ item.category or 'Approfondimento' }}</div>
+              <h3>{{ item.title }}</h3>
+              <p>{{ item.excerpt }}</p>
+              <a class="btn btn-link p-0" href="{{ url_for('studio_site_public.article_detail', public_slug=payload.site.public_slug, article_slug=item.slug) }}">Leggi l'articolo</a>
+            </article>
+          </div>
+        {% else %}
+          <div class="col-12">
+            <div class="alert alert-secondary">Nessun articolo pubblicato al momento.</div>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+{% endblock %}

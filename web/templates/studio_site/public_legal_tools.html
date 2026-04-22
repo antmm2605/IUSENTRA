@@ -1,0 +1,23 @@
+{% extends "studio_site/public_base.html" %}
+
+{% block title %}Strumenti legali - {{ payload.site.site_name }}{% endblock %}
+{% block content %}
+  <section class="studio-site-section">
+    <div class="container">
+      <h1>Strumenti legali</h1>
+      <p class="lead text-muted">Sezione pubblica attivata dall'amministratore del sito studio.</p>
+      <div class="row g-4">
+        {% for item in payload.legal_tools %}
+          <div class="col-md-6 col-xl-4">
+            <article class="studio-site-card h-100">
+              <div class="studio-site-card-icon"><i class="bi {{ item.icon }}"></i></div>
+              <h3>{{ item.title }}</h3>
+              <p>{{ item.subtitle }}</p>
+              {% if item.category %}<div class="studio-site-small-label">{{ item.category }}</div>{% endif %}
+            </article>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+{% endblock %}

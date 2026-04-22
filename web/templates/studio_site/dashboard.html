@@ -1,0 +1,191 @@
+{% extends "base.html" %}
+
+{% block title %}Sito Studio - IUSENTRA{% endblock %}
+{% block pct_modulo %}sito_studio{% endblock %}
+{% block content %}
+<div class="container-fluid py-3 studio-site-admin">
+  <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
+    <div>
+      <div class="text-muted small">Studio / Sito web</div>
+      <h1 class="h3 mb-1">Sito Studio</h1>
+      <p class="text-muted mb-0">CMS nativo per presentazione studio, articoli, contatti, agenda appuntamenti e sezioni opzionali del sito.</p>
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+      <a class="btn btn-outline-dark" href="{{ payload.public_url }}" target="_blank" rel="noopener">Apri sito pubblico</a>
+      <a class="btn btn-primary" href="{{ url_for('studio_site.settings_form') }}">Impostazioni sito</a>
+    </div>
+  </div>
+
+  {% if payload.warnings %}
+    <div class="row g-3 mb-4">
+      {% for warning in payload.warnings %}
+        <div class="col-lg-4">
+          <div class="alert alert-warning h-100 mb-0">{{ warning }}</div>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <div class="row g-3 mb-4">
+    <div class="col-md-6 col-xl-3"><div class="studio-site-kpi"><span>Pagine</span><strong>{{ payload.stats.pages }}</strong></div></div>
+    <div class="col-md-6 col-xl-3"><div class="studio-site-kpi"><span>Articoli</span><strong>{{ payload.stats.articles }}</strong></div></div>
+    <div class="col-md-6 col-xl-3"><div class="studio-site-kpi"><span>Prenotazioni in attesa</span><strong>{{ payload.stats.pending_booking_requests }}</strong></div></div>
+    <div class="col-md-6 col-xl-3"><div class="studio-site-kpi"><span>Richieste contatto</span><strong>{{ payload.stats.contact_submissions }}</strong></div></div>
+  </div>
+
+  <div class="row g-4">
+    <div class="col-12" id="branding">
+      <div class="studio-site-panel">
+        <div class="d-flex justify-content-between flex-wrap gap-3">
+          <div>
+            <h2 class="h5 mb-1">Branding e pubblicazione</h2>
+            <p class="text-muted mb-0">URL pubblico, colori, logo, contatti e flag di visibilita delle sezioni opzionali.</p>
+          </div>
+          <a class="btn btn-sm btn-outline-primary" href="{{ url_for('studio_site.settings_form') }}">Apri impostazioni</a>
+        </div>
+        <div class="row g-3 mt-2">
+          <div class="col-lg-4"><div class="studio-site-summary-card"><span>URL pubblico</span><strong>/web/{{ payload.site.public_slug }}/</strong></div></div>
+          <div class="col-lg-4"><div class="studio-site-summary-card"><span>Stato</span><strong>{{ 'Pubblicato' if payload.site.is_published else 'Bozza' }}</strong></div></div>
+          <div class="col-lg-4"><div class="studio-site-summary-card"><span>Sezioni opzionali</span><strong>{{ (payload.site.show_legal_tools|int) + (payload.site.show_applications|int) + (payload.site.show_legal_news|int) }}/3 attive</strong></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12" id="contenuti">
+      <div class="studio-site-panel">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+          <div><h2 class="h5 mb-1">Pagine</h2><p class="text-muted mb-0">Home e pagine statiche composte a blocchi.</p></div>
+          <a class="btn btn-sm btn-primary" href="{{ url_for('studio_site.new_page_form') }}">Nuova pagina</a>
+        </div>
+        <div class="table-responsive">
+          <table class="table align-middle">
+            <thead><tr><th>Titolo</th><th>Slug</th><th>Stato</th><th>Menu</th><th class="text-end">Azioni</th></tr></thead>
+            <tbody>
+              {% for item in payload.pages %}
+                <tr>
+                  <td><strong>{{ item.title }}</strong>{% if item.is_home %}<span class="badge text-bg-dark ms-2">Home</span>{% endif %}</td>
+                  <td>{{ item.slug }}</td>
+                  <td>{{ item.status }}</td>
+                  <td>{{ 'Si' if item.show_in_menu else 'No' }}</td>
+                  <td class="text-end">
+                    <a class="btn btn-sm btn-outline-primary" href="{{ url_for('studio_site.edit_page_form', page_id=item.id) }}">Modifica</a>
+                    <form class="d-inline" method="post" action="{{ url_for('studio_site.delete_page', page_id=item.id) }}">
+                      <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+                      <button class="btn btn-sm btn-outline-danger" type="submit">Elimina</button>
+                    </form>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12" id="articoli">
+      <div class="studio-site-panel">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+          <div><h2 class="h5 mb-1">Articoli</h2><p class="text-muted mb-0">Editoriale del sito studio e approfondimenti pubblicabili.</p></div>
+          <a class="btn btn-sm btn-primary" href="{{ url_for('studio_site.new_article_form') }}">Nuovo articolo</a>
+        </div>
+        <div class="table-responsive">
+          <table class="table align-middle">
+            <thead><tr><th>Titolo</th><th>Categoria</th><th>Stato</th><th>Pubblicazione</th><th class="text-end">Azioni</th></tr></thead>
+            <tbody>
+              {% for item in payload.articles %}
+                <tr>
+                  <td><strong>{{ item.title }}</strong></td>
+                  <td>{{ item.category or '-' }}</td>
+                  <td>{{ item.status }}</td>
+                  <td>{{ item.published_at|fmt_data }}</td>
+                  <td class="text-end">
+                    <a class="btn btn-sm btn-outline-primary" href="{{ url_for('studio_site.edit_article_form', article_id=item.id) }}">Modifica</a>
+                    <form class="d-inline" method="post" action="{{ url_for('studio_site.delete_article', article_id=item.id) }}">
+                      <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+                      <button class="btn btn-sm btn-outline-danger" type="submit">Elimina</button>
+                    </form>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-6" id="servizi">
+      <div class="studio-site-panel h-100">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+          <div><h2 class="h5 mb-1">Servizi</h2><p class="text-muted mb-0">Aree di attivita mostrate sul sito.</p></div>
+          <a class="btn btn-sm btn-primary" href="{{ url_for('studio_site.new_service_form') }}">Nuovo servizio</a>
+        </div>
+        <div class="studio-site-list">
+          {% for item in payload.services %}
+            <div class="studio-site-list-row">
+              <div><strong>{{ item.title }}</strong><div class="small text-muted">{{ item.short_description }}</div></div>
+              <a class="btn btn-sm btn-outline-primary" href="{{ url_for('studio_site.edit_service_form', service_id=item.id) }}">Modifica</a>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-6" id="team">
+      <div class="studio-site-panel h-100">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+          <div><h2 class="h5 mb-1">Professionisti</h2><p class="text-muted mb-0">Team e ruoli mostrati sul sito.</p></div>
+          <a class="btn btn-sm btn-primary" href="{{ url_for('studio_site.new_professional_form') }}">Nuovo professionista</a>
+        </div>
+        <div class="studio-site-list">
+          {% for item in payload.professionals %}
+            <div class="studio-site-list-row">
+              <div><strong>{{ item.full_name }}</strong><div class="small text-muted">{{ item.role_title }}</div></div>
+              <a class="btn btn-sm btn-outline-primary" href="{{ url_for('studio_site.edit_professional_form', professional_id=item.id) }}">Modifica</a>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-6" id="sedi">
+      <div class="studio-site-panel h-100">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+          <div><h2 class="h5 mb-1">Sedi e contatti</h2><p class="text-muted mb-0">Dove siamo, recapiti e mappe del sito.</p></div>
+          <a class="btn btn-sm btn-primary" href="{{ url_for('studio_site.new_office_form') }}">Nuova sede</a>
+        </div>
+        <div class="studio-site-list">
+          {% for item in payload.offices %}
+            <div class="studio-site-list-row">
+              <div><strong>{{ item.name }}</strong><div class="small text-muted">{{ item.address }} {{ item.city }}</div></div>
+              <a class="btn btn-sm btn-outline-primary" href="{{ url_for('studio_site.edit_office_form', office_id=item.id) }}">Modifica</a>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-6" id="agenda">
+      <div class="studio-site-panel h-100">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+          <div><h2 class="h5 mb-1">Agenda appuntamenti</h2><p class="text-muted mb-0">Regole orarie pubbliche e richieste in ingresso.</p></div>
+          <div class="d-flex gap-2">
+            <a class="btn btn-sm btn-primary" href="{{ url_for('studio_site.new_booking_rule_form') }}">Nuova regola</a>
+            <a class="btn btn-sm btn-outline-dark" href="{{ url_for('studio_site.booking_requests') }}">Prenotazioni</a>
+          </div>
+        </div>
+        <div class="studio-site-list">
+          {% for item in payload.booking_rules %}
+            <div class="studio-site-list-row">
+              <div>
+                <strong>{{ weekday_labels.get(item.weekday|int, item.weekday) }}</strong>
+                <div class="small text-muted">{{ item.office_name or 'Sede non indicata' }} - {{ item.start_time }} - {{ item.end_time }} - {{ item.slot_minutes }} min</div>
+              </div>
+              <a class="btn btn-sm btn-outline-primary" href="{{ url_for('studio_site.edit_booking_rule_form', rule_id=item.id) }}">Modifica</a>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

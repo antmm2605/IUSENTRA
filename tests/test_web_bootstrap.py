@@ -343,6 +343,7 @@ def test_route_domini_estratti_restano_operativi(tmp_path: Path):
         "/admin/governance",
         "/admin/assistente-migrazione",
         "/admin/crash-test-operativo",
+        "/admin/siti-studio/",
         "/admin/copertura-ai",
         "/admin/copertura-ai/review",
         "/admin/aggiornamenti-legali",
@@ -1317,6 +1318,7 @@ def test_contesto_lex_compatta_le_sezioni_e_limita_le_fonti():
 
 def test_preparazione_udienza_guidata_usa_componenti_modulari_e_js_esterno():
     base_template = (REPO_ROOT / "web/templates/base.html").read_text(encoding="utf-8")
+    admin_base_template = (REPO_ROOT / "web/templates/admin/base.html").read_text(encoding="utf-8")
     index_template = (REPO_ROOT / "web/templates/wizard_pro/index.html").read_text(encoding="utf-8")
     nuovo_template = (REPO_ROOT / "web/templates/wizard_pro/nuovo.html").read_text(encoding="utf-8")
     step_template = (REPO_ROOT / "web/templates/wizard_pro/step.html").read_text(encoding="utf-8")
@@ -1331,6 +1333,8 @@ def test_preparazione_udienza_guidata_usa_componenti_modulari_e_js_esterno():
 
     assert "Preparazione Udienza Guidata" in base_template
     assert "Wizard Pro</span>" not in base_template
+    assert "Sito Studio" in base_template
+    assert "Siti studio" in admin_base_template
 
     assert '{% include "components/hearing_preparation_module_nav.html" %}' in index_template
     assert '{% include "components/hearing_preparation_stepper.html" %}' in index_template

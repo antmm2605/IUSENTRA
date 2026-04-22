@@ -30,6 +30,7 @@ Legenda:
 | Telematico | PST, PDP, PAT e PTT/SIGIT | R/W | R/W | R/W | parita' completa | Wave 3 - workspace professionali | metadati e repository su SQL/PostgreSQL, file e buste sempre su filesystem tenant |
 | Cabina intelligente | Workspace intelligence e cockpit | R/W | R/W | R/W | parita' completa | Wave 5 - intelligence | snapshot SQL/PostgreSQL con JSON come export derivato |
 | Piattaforma | Assistenza remota cliente e audit sessioni | - | R/W | R/W | parita' completa | Wave piattaforma | repository SQL/PostgreSQL dedicato, nessun fallback invisibile |
+| Web pubblico studio | Sito Studio, pagine, articoli, sedi, contatti e prenotazioni | - | R/W | R/W | parita' completa | Wave web studio | repository SQL/PostgreSQL dedicato; asset su filesystem tenant; sezioni pubbliche opzionali governate da flag |
 | AI locale | Runtime locale, modelli e RAG | - | R/W | - | non attiva | Fuori scope come backend primario | SQLite locale e filesystem sullo stesso host del runtime |
 
 ## Verita' operativa oggi
@@ -45,6 +46,7 @@ Legenda:
 - i moduli economici condividono lo stesso percorso ufficiale di migrazione `JSON -> SQLite -> PostgreSQL` con report di consistenza.
 - anche `Update Intelligence` e `Coverage AI` rientrano nello stesso programma ufficiale di migrazione, con repository SQL locale e replica PostgreSQL tenant-aware.
 - l'`Assistenza remota cliente` e' un dominio di piattaforma: sessioni, eventi, consensi ed escalation vivono nel repository SQL dedicato e non degradano su JSON.
+- `Sito Studio` usa un repository SQL dedicato per tenant, mentre immagini e asset restano su filesystem tenant-aware; `strumenti legali`, `applicazioni` e `news giuridiche strutturate` vengono pubblicati solo quando il flag amministrativo del sito e' attivo.
 
 ## Check di consistenza minimi
 

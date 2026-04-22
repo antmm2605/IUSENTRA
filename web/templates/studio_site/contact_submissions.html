@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block title %}Richieste contatto Sito Studio{% endblock %}
+{% block pct_modulo %}sito_studio{% endblock %}
+{% block content %}
+<div class="container py-4 studio-site-admin">
+  <div class="d-flex justify-content-between align-items-start gap-3 mb-4">
+    <div>
+      <h1 class="h3 mb-1">Richieste contatto dal sito</h1>
+      <p class="text-muted mb-0">Messaggi inviati dal modulo pubblico contatti.</p>
+    </div>
+    <a class="btn btn-outline-dark" href="{{ url_for('studio_site.dashboard') }}">Torna alla dashboard</a>
+  </div>
+  <div class="studio-site-panel">
+    <div class="table-responsive">
+      <table class="table align-middle">
+        <thead><tr><th>Nome</th><th>Email</th><th>Oggetto</th><th>Messaggio</th><th>Data</th></tr></thead>
+        <tbody>
+          {% for item in payload.contact_submissions %}
+            <tr>
+              <td><strong>{{ item.full_name }}</strong>{% if item.phone %}<div class="small text-muted">{{ item.phone }}</div>{% endif %}</td>
+              <td>{{ item.email }}</td>
+              <td>{{ item.subject or '-' }}</td>
+              <td class="small">{{ item.message }}</td>
+              <td>{{ item.created_at|fmt_dataora }}</td>
+            </tr>
+          {% else %}
+            <tr><td colspan="5" class="text-center text-muted py-4">Nessuna richiesta contatto ricevuta.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

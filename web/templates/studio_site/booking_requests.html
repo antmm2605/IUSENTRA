@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block title %}Prenotazioni Sito Studio{% endblock %}
+{% block pct_modulo %}sito_studio{% endblock %}
+{% block content %}
+<div class="container py-4 studio-site-admin">
+  <div class="d-flex justify-content-between align-items-start gap-3 mb-4">
+    <div>
+      <h1 class="h3 mb-1">Prenotazioni dal sito</h1>
+      <p class="text-muted mb-0">Richieste appuntamento pubbliche con approvazione manuale e sincronizzazione in agenda.</p>
+    </div>
+    <a class="btn btn-outline-dark" href="{{ url_for('studio_site.dashboard') }}">Torna alla dashboard</a>
+  </div>
+  <div class="studio-site-panel">
+    <div class="table-responsive">
+      <table class="table align-middle">
+        <thead><tr><th>Cliente</th><th>Data</th><th>Sede</th><th>Oggetto</th><th>Stato</th><th class="text-end">Azioni</th></tr></thead>
+        <tbody>
+          {% for item in payload.booking_requests %}
+            <tr>
+              <td><strong>{{ item.customer_name }}</strong><div class="small text-muted">{{ item.customer_email }}</div></td>
+              <td>{{ item.requested_date|fmt_data }} {{ item.requested_time }}</td>
+              <td>{{ item.office_name or 'Sede non indicata' }}</td>
+              <td>{{ item.subject or 'Consulenza' }}</td>
+              <td><span class="badge text-bg-light">{{ item.status }}</span></td>
+              <td class="text-end">
+                {% if item.status == 'pending' %}
+                  <form class="d-inline" method="post" action="{{ url_for('studio_site.approve_booking_request', booking_request_id=item.id) }}">
+                    <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+                    <button class="btn btn-sm btn-primary" type="submit">Approva</button>
+                  </form>
+                  <form class="d-inline" method="post" action="{{ url_for('studio_site.reject_booking_request', booking_request_id=item.id) }}">
+                    <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+                    <button class="btn btn-sm btn-outline-danger" type="submit">Rifiuta</button>
+                  </form>
+                {% else %}
+                  {{ item.reviewed_by or '-' }}
+                {% endif %}
+              </td>
+            </tr>
+          {% else %}
+            <tr><td colspan="6" class="text-center text-muted py-4">Nessuna prenotazione ricevuta.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

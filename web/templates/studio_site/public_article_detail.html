@@ -1,0 +1,16 @@
+{% extends "studio_site/public_base.html" %}
+{% from "studio_site/_public_blocks.html" import render_blocks %}
+
+{% block title %}{{ article.seo_title or article.title }} - {{ payload.site.site_name }}{% endblock %}
+{% block content %}
+  <section class="studio-site-section">
+    <div class="container">
+      <a href="{{ url_for('studio_site_public.articles', public_slug=payload.site.public_slug) }}" class="btn btn-link px-0">← Torna agli articoli</a>
+      <div class="studio-site-small-label">{{ article.category or 'Approfondimento' }}</div>
+      <h1>{{ article.title }}</h1>
+      {% if article.excerpt %}<p class="lead text-muted">{{ article.excerpt }}</p>{% endif %}
+      {% if article.cover_url %}<img src="{{ article.cover_url }}" alt="{{ article.title }}" class="studio-site-cover studio-site-cover--hero">{% endif %}
+    </div>
+  </section>
+  {{ render_blocks(payload, article.body_json or []) }}
+{% endblock %}

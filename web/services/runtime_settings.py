@@ -110,6 +110,20 @@ def apply_runtime_settings(
             data_peer_path(app.config["AUTH_DB"], "support", "assistenza_remota.db"),
         ),
     )
+    app.config["SITE_STUDIO_DB"] = cfg.get(
+        "SITE_STUDIO_DB",
+        os.getenv(
+            "PCT_SITE_STUDIO_DB",
+            data_peer_path(app.config["AUTH_DB"], "site_studio", "siti_studio.db"),
+        ),
+    )
+    app.config["SITE_STUDIO_ASSETS_DIR"] = cfg.get(
+        "SITE_STUDIO_ASSETS_DIR",
+        os.getenv(
+            "PCT_SITE_STUDIO_ASSETS_DIR",
+            data_peer_path(app.config["AUTH_DB"], "site_studio", "assets"),
+        ),
+    )
     app.config["SUPPORT_STUN_URLS"] = _list_from_runtime_value(
         cfg.get("SUPPORT_STUN_URLS", os.getenv("PCT_SUPPORT_STUN_URLS", ""))
     )

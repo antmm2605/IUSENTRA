@@ -167,7 +167,8 @@ CREATE TABLE IF NOT EXISTS fascicoli (
     modificato_il      TEXT,
     attivita_json      TEXT DEFAULT '[]',
     documenti_json     TEXT DEFAULT '[]',
-    scadenze_json      TEXT DEFAULT '[]'
+    scadenze_json      TEXT DEFAULT '[]',
+    dati_json          TEXT DEFAULT '{}'
 );
 CREATE INDEX IF NOT EXISTS idx_fascicoli_tipo     ON fascicoli(tipo);
 CREATE INDEX IF NOT EXISTS idx_fascicoli_stato    ON fascicoli(stato);
@@ -191,7 +192,8 @@ CREATE TABLE IF NOT EXISTS appuntamenti (
     tribunale       TEXT,
     note            TEXT,
     creato_il       TEXT,
-    modificato_il   TEXT
+    modificato_il   TEXT,
+    dati_json       TEXT DEFAULT '{}'
 );
 CREATE INDEX IF NOT EXISTS idx_app_tipo     ON appuntamenti(tipo);
 CREATE INDEX IF NOT EXISTS idx_app_stato    ON appuntamenti(stato);
@@ -214,7 +216,8 @@ CREATE TABLE IF NOT EXISTS scadenze (
     giorni_preavviso TEXT DEFAULT '[]',
     avvisi_inviati   TEXT DEFAULT '[]',
     completata_il    TEXT,
-    creato_il        TEXT
+    creato_il        TEXT,
+    dati_json        TEXT DEFAULT '{}'
 );
 CREATE INDEX IF NOT EXISTS idx_scad_stato      ON scadenze(stato);
 CREATE INDEX IF NOT EXISTS idx_scad_data       ON scadenze(data_scadenza);
@@ -375,7 +378,8 @@ CREATE TABLE IF NOT EXISTS messaggi (
     tipo_automazione      TEXT,
     inviato_il            TEXT,
     errore_invio          TEXT,
-    creato_il             TEXT
+    creato_il             TEXT,
+    dati_json             TEXT DEFAULT '{}'
 );
 CREATE INDEX IF NOT EXISTS idx_msg_stato    ON messaggi(stato);
 CREATE INDEX IF NOT EXISTS idx_msg_canale   ON messaggi(canale);
@@ -394,7 +398,8 @@ CREATE TABLE IF NOT EXISTS utenti (
     permessi_extra      TEXT DEFAULT '[]',
     permessi_negati     TEXT DEFAULT '[]',
     creato_il           TEXT,
-    ultimo_accesso      TEXT
+    ultimo_accesso      TEXT,
+    dati_json           TEXT DEFAULT '{}'
 );
 CREATE INDEX IF NOT EXISTS idx_utenti_ruolo     ON utenti(ruolo);
 CREATE INDEX IF NOT EXISTS idx_utenti_attivo    ON utenti(attivo);
@@ -1136,8 +1141,8 @@ class GestioneDatabase:
                              tribunale, sezione, giudice, numero_rg, anno_rg,
                              controparte, avvocato_referente, avvocato_dominus,
                              data_apertura, data_chiusura, oggetto, note, creato_il,
-                             attivita_json, documenti_json, scadenze_json)
-                            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                             attivita_json, documenti_json, scadenze_json, dati_json)
+                            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
                         """, (
                             f.get("id"), f.get("numero"), f.get("titolo"),
                             f.get("tipo", "CIVILE"), f.get("stato", "APERTO"),
@@ -1152,6 +1157,7 @@ class GestioneDatabase:
                             json.dumps(f.get("attivita", []), ensure_ascii=False),
                             json.dumps(f.get("documenti", []), ensure_ascii=False),
                             json.dumps(f.get("scadenze", []), ensure_ascii=False),
+                            json.dumps(f, ensure_ascii=False),
                         ))
                         f_count += 1
                         if f.get("id"):
@@ -1172,8 +1178,8 @@ class GestioneDatabase:
                             INSERT OR REPLACE INTO appuntamenti
                             (id, tipo, stato, titolo, data_ora, durata_minuti, luogo,
                              descrizione, cliente, cf_cliente, procedimento, tribunale,
-                             note, creato_il)
-                            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                             note, creato_il, modificato_il, dati_json)
+                            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
                         """, (
                             a.get("id"), a.get("tipo", "CONSULTAZIONE"),
                             a.get("stato", "PROGRAMMATO"), a.get("titolo", ""),
@@ -1182,6 +1188,8 @@ class GestioneDatabase:
                             a.get("cliente", ""), a.get("cf_cliente", ""),
                             a.get("procedimento", ""), a.get("tribunale", ""),
                             a.get("note", ""), a.get("creato_il", ""),
+                            a.get("modificato_il", ""),
+                            json.dumps(a, ensure_ascii=False),
                         ))
                         a_count += 1
                         if a.get("id"):
@@ -1214,8 +1222,8 @@ class GestioneDatabase:
                             INSERT OR REPLACE INTO scadenze
                             (id, tipo, stato, titolo, data_scadenza, priorita,
                              perentorio, note, id_fascicolo, id_appuntamento, id_utente,
-                             giorni_preavviso, avvisi_inviati, completata_il, creato_il)
-                            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                             giorni_preavviso, avvisi_inviati, completata_il, creato_il, dati_json)
+                            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
                         """, (
                             s.get("id"), s.get("tipo", "ALTRO"),
                             s.get("stato", "APERTO"), s.get("titolo", ""),
@@ -1227,6 +1235,7 @@ class GestioneDatabase:
                             json.dumps(s.get("giorni_preavviso", []), ensure_ascii=False),
                             json.dumps(s.get("avvisi_inviati", []), ensure_ascii=False),
                             s.get("completata_il", ""), s.get("creato_il", ""),
+                            json.dumps(s, ensure_ascii=False),
                         ))
                         s_count += 1
                     except Exception as e:
@@ -1574,8 +1583,8 @@ class GestioneDatabase:
                             (id, canale, stato, oggetto, corpo,
                              email_destinatario, telefono_destinatario,
                              id_cliente, id_fascicolo, tipo_automazione,
-                             inviato_il, errore_invio, creato_il)
-                            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
+                             inviato_il, errore_invio, creato_il, dati_json)
+                            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)
                         """, (
                             m.get("id"), m.get("canale", "EMAIL"),
                             m.get("stato", "BOZZA"), m.get("oggetto", ""),
@@ -1584,6 +1593,7 @@ class GestioneDatabase:
                             id_cliente, id_fascicolo,
                             m.get("tipo_automazione", ""), m.get("inviato_il", ""),
                             m.get("errore_invio", ""), m.get("creato_il", ""),
+                            json.dumps(m, ensure_ascii=False),
                         ))
                         m_count += 1
                     except Exception as e:
@@ -1602,8 +1612,8 @@ class GestioneDatabase:
                             INSERT OR REPLACE INTO utenti
                             (id, username, email, nome_completo, ruolo,
                              password_hash, attivo, must_change_password,
-                             permessi_extra, permessi_negati, creato_il, ultimo_accesso)
-                            VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
+                             permessi_extra, permessi_negati, creato_il, ultimo_accesso, dati_json)
+                            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
                         """, (
                             u.get("id"), u.get("username", ""),
                             u.get("email", ""), u.get("nome_completo", ""),
@@ -1613,6 +1623,7 @@ class GestioneDatabase:
                             json.dumps(u.get("permessi_extra", []), ensure_ascii=False),
                             json.dumps(u.get("permessi_negati", []), ensure_ascii=False),
                             u.get("creato_il", ""), u.get("ultimo_accesso", ""),
+                            json.dumps(u, ensure_ascii=False),
                         ))
                         u_count += 1
                     except Exception as e:
@@ -1857,6 +1868,13 @@ class GestioneDatabase:
             conn.rollback()
         finally:
             conn.close()
+
+        try:
+            from pct.storage import StudioDB
+
+            StudioDB.get(percorso_db).ensure_schema()
+        except Exception as exc:
+            errori.append(f"Riallineamento schema SQLite post-migrazione non riuscito: {exc}")
 
         ms = int((time.monotonic() - t0) * 1000)
         return RisultatoMigrazione(

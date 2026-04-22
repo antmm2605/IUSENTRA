@@ -1,0 +1,25 @@
+{% extends "studio_site/public_base.html" %}
+{% from "studio_site/_public_blocks.html" import contact_form %}
+
+{% block title %}Contatti - {{ payload.site.site_name }}{% endblock %}
+{% block content %}
+  <section class="studio-site-section">
+    <div class="container">
+      <div class="row g-4">
+        <div class="col-lg-5">
+          <h1>Contatta lo studio</h1>
+          <p class="lead text-muted">Richiedi informazioni, una consulenza o un primo confronto operativo.</p>
+          <div class="studio-site-card">
+            {% if payload.site.contact_phone %}<div><strong>Telefono:</strong> {{ payload.site.contact_phone }}</div>{% endif %}
+            {% if payload.site.contact_email %}<div><strong>Email:</strong> {{ payload.site.contact_email }}</div>{% endif %}
+            {% if payload.site.address %}<div><strong>Indirizzo:</strong> {{ payload.site.address }}</div>{% endif %}
+            {% if payload.site.city %}<div><strong>Città:</strong> {{ payload.site.city }}{% if payload.site.province %} ({{ payload.site.province }}){% endif %}</div>{% endif %}
+          </div>
+        </div>
+        <div class="col-lg-7">
+          {{ contact_form(payload) }}
+        </div>
+      </div>
+    </div>
+  </section>
+{% endblock %}

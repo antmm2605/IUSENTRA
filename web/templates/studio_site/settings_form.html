@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+
+{% block title %}Impostazioni Sito Studio{% endblock %}
+{% block pct_modulo %}sito_studio{% endblock %}
+{% block content %}
+<div class="container py-4 studio-site-admin">
+  <div class="d-flex justify-content-between align-items-start gap-3 mb-4">
+    <div>
+      <h1 class="h3 mb-1">Impostazioni Sito Studio</h1>
+      <p class="text-muted mb-0">Branding, contatti, pubblicazione, logo e attivazione delle sezioni opzionali del sito.</p>
+    </div>
+    <a class="btn btn-outline-dark" href="{{ url_for('studio_site.dashboard') }}">Torna alla dashboard</a>
+  </div>
+
+  <form method="post" class="studio-site-panel">
+    <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+    <div class="row g-3">
+      <div class="col-lg-6">
+        <label class="form-label">Nome sito</label>
+        <input class="form-control" name="site_name" value="{{ site.site_name }}" required>
+      </div>
+      <div class="col-lg-6">
+        <label class="form-label">Slug pubblico</label>
+        <input class="form-control" name="public_slug" value="{{ site.public_slug }}" required>
+      </div>
+      <div class="col-lg-6">
+        <label class="form-label">Titolo SEO</label>
+        <input class="form-control" name="site_title" value="{{ site.site_title }}">
+      </div>
+      <div class="col-lg-6">
+        <label class="form-label">Email contatto</label>
+        <input class="form-control" name="contact_email" type="email" value="{{ site.contact_email }}">
+      </div>
+      <div class="col-lg-6">
+        <label class="form-label">Telefono</label>
+        <input class="form-control" name="contact_phone" value="{{ site.contact_phone }}">
+      </div>
+      <div class="col-lg-6">
+        <label class="form-label">WhatsApp</label>
+        <input class="form-control" name="whatsapp_number" value="{{ site.whatsapp_number }}">
+      </div>
+      <div class="col-12">
+        <label class="form-label">Descrizione sito</label>
+        <textarea class="form-control" rows="3" name="site_description">{{ site.site_description }}</textarea>
+      </div>
+      <div class="col-12">
+        <label class="form-label">Claim hero</label>
+        <textarea class="form-control" rows="2" name="hero_claim">{{ site.hero_claim }}</textarea>
+      </div>
+      <div class="col-lg-4">
+        <label class="form-label">Colore primario</label>
+        <input class="form-control form-control-color" name="primary_color" type="color" value="{{ site.primary_color }}">
+      </div>
+      <div class="col-lg-4">
+        <label class="form-label">Colore secondario</label>
+        <input class="form-control form-control-color" name="secondary_color" type="color" value="{{ site.secondary_color }}">
+      </div>
+      <div class="col-lg-4">
+        <label class="form-label">Colore accento</label>
+        <input class="form-control form-control-color" name="accent_color" type="color" value="{{ site.accent_color }}">
+      </div>
+      <div class="col-lg-8">
+        <label class="form-label">Indirizzo</label>
+        <input class="form-control" name="address" value="{{ site.address }}">
+      </div>
+      <div class="col-lg-4">
+        <label class="form-label">CAP</label>
+        <input class="form-control" name="zip_code" value="{{ site.zip_code }}">
+      </div>
+      <div class="col-lg-6">
+        <label class="form-label">Citta'</label>
+        <input class="form-control" name="city" value="{{ site.city }}">
+      </div>
+      <div class="col-lg-6">
+        <label class="form-label">Provincia</label>
+        <input class="form-control" name="province" value="{{ site.province }}">
+      </div>
+      <div class="col-lg-4"><label class="form-label">Facebook</label><input class="form-control" name="facebook_url" value="{{ site.facebook_url }}"></div>
+      <div class="col-lg-4"><label class="form-label">Instagram</label><input class="form-control" name="instagram_url" value="{{ site.instagram_url }}"></div>
+      <div class="col-lg-4"><label class="form-label">LinkedIn</label><input class="form-control" name="linkedin_url" value="{{ site.linkedin_url }}"></div>
+      <div class="col-12">
+        <label class="form-label">Testo footer</label>
+        <textarea class="form-control" rows="2" name="footer_text">{{ site.footer_text }}</textarea>
+      </div>
+      <div class="col-lg-4">
+        <div class="form-check mt-4">
+          <input class="form-check-input" type="checkbox" id="publishSite" name="is_published" value="1" {% if site.is_published %}checked{% endif %}>
+          <label class="form-check-label" for="publishSite">Sito pubblicato</label>
+        </div>
+      </div>
+      <div class="col-lg-4">
+        <div class="form-check mt-4">
+          <input class="form-check-input" type="checkbox" id="activeSite" name="is_active" value="1" {% if site.is_active %}checked{% endif %}>
+          <label class="form-check-label" for="activeSite">Sito attivo</label>
+        </div>
+      </div>
+      <div class="col-12"><hr></div>
+      <div class="col-md-4">
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" id="showTools" name="show_legal_tools" value="1" {% if site.show_legal_tools %}checked{% endif %}>
+          <label class="form-check-label" for="showTools">Mostra Strumenti legali</label>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" id="showApps" name="show_applications" value="1" {% if site.show_applications %}checked{% endif %}>
+          <label class="form-check-label" for="showApps">Mostra Applicazioni</label>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" id="showNews" name="show_legal_news" value="1" {% if site.show_legal_news %}checked{% endif %}>
+          <label class="form-check-label" for="showNews">Mostra News giuridiche strutturate</label>
+        </div>
+      </div>
+      <div class="col-12 d-flex justify-content-end">
+        <button class="btn btn-primary" type="submit">Salva impostazioni</button>
+      </div>
+    </div>
+  </form>
+
+  <div class="row g-4 mt-2">
+    <div class="col-lg-6">
+      <form method="post" enctype="multipart/form-data" action="{{ url_for('studio_site.upload_asset') }}" class="studio-site-panel">
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+        <input type="hidden" name="field_name" value="logo_url">
+        <h2 class="h5 mb-3">Logo studio</h2>
+        {% if site.logo_url %}<img src="{{ site.logo_url }}" alt="Logo studio" class="studio-site-preview-image mb-3">{% endif %}
+        <input class="form-control mb-3" type="file" name="file" accept=".png,.jpg,.jpeg,.webp,.svg">
+        <button class="btn btn-outline-primary" type="submit">Carica logo</button>
+      </form>
+    </div>
+    <div class="col-lg-6">
+      <form method="post" enctype="multipart/form-data" action="{{ url_for('studio_site.upload_asset') }}" class="studio-site-panel">
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+        <input type="hidden" name="field_name" value="favicon_url">
+        <h2 class="h5 mb-3">Favicon</h2>
+        {% if site.favicon_url %}<img src="{{ site.favicon_url }}" alt="Favicon sito" class="studio-site-preview-image mb-3">{% endif %}
+        <input class="form-control mb-3" type="file" name="file" accept=".png,.jpg,.jpeg,.webp,.svg,.ico">
+        <button class="btn btn-outline-primary" type="submit">Carica favicon</button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -16,7 +16,24 @@ def _clean_spaces(value: Any) -> str:
     return " ".join(str(value or "").split()).strip()
 
 
-def load_document_context(*, pratica_id: str = "", fascicolo_id: str = "", limit: int = 8) -> list[dict[str, Any]]:
+def _apply_limit(rows: list[Any], limit: int | None) -> list[Any]:
+    if limit is None:
+        return rows
+    try:
+        max_items = int(limit)
+    except Exception:
+        return rows
+    if max_items <= 0:
+        return rows
+    return rows[:max_items]
+
+
+def load_document_context(
+    *,
+    pratica_id: str = "",
+    fascicolo_id: str = "",
+    limit: int | None = None,
+) -> list[dict[str, Any]]:
     target_id = _clean_spaces(pratica_id) or _clean_spaces(fascicolo_id)
     if not target_id:
         return []
@@ -25,7 +42,7 @@ def load_document_context(*, pratica_id: str = "", fascicolo_id: str = "", limit
     if not fascicolo:
         return []
     rows: list[dict[str, Any]] = []
-    for doc in list(fascicolo.documenti or [])[: max(int(limit or 0), 1)]:
+    for doc in _apply_limit(list(fascicolo.documenti or []), limit):
         signed_snapshot = None
         if str(getattr(doc, "nome", "") or "").strip().lower().endswith(".p7m"):
             try:

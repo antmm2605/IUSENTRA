@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.182.13 - 2026-04-23
+
+- Lex AI non tronca piu' il contesto documentale del fascicolo a 8 elementi: `load_document_context` e il retrieval documentale leggono ora tutto l'archivio del fascicolo aperto, cosi' pratiche con decine di allegati non perdono piu' contesto nel RAG.
+- Estratta in `pct/fascicolo_workspace.py` la classificazione condivisa delle sezioni del fascicolo (`attivita' processuali`, `documenti fascicolo`, `udienze e scadenze`, `comunicazioni di cancelleria`, `istanze`), riusata sia dal runtime UI sia da Lex per evitare disallineamenti futuri tra pagina fascicolo e assistente.
+- Il contesto strutturato di Lex espone ora anche `fascicolo_sezioni`, con conteggi e voci per sezione, e il retrieval fascicolo pubblica riepiloghi e voci rilevanti delle stesse sezioni, cosi' Lex puo' rispondere sul fascicolo usando la stessa tassonomia che l'utente vede nell'interfaccia.
+- Rafforzati i test di Lex per coprire fascicoli con piu' di 8 documenti e workspace completi con attivita', udienze/scadenze, comunicazioni e istanze, prevenendo il ritorno del limite rigido nei prossimi commit.
+
 ## 2.182.12 - 2026-04-23
 
 - Resa stabile la disciplina dei due branch gemelli: il workflow `.github/workflows/sync-claude-to-codex.yml` specchia ora automaticamente sia `Codex/legal-electronic-filing-kIxcV` verso `claude/legal-electronic-filing-kIxcV` sia il percorso inverso, evitando riallineamenti manuali ripetuti dopo ogni push.

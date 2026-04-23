@@ -18,11 +18,9 @@ from urllib.parse import urlencode
 from flask import Flask, g, request, url_for
 
 from pct.fascicoli import Documento, Fascicolo, GestioneFascicoli, TipoAttivita, TipoDocumento, TipoFascicolo
-from pct.pst_servizi_catalogo import (
-    SEZIONE_COMUNICAZIONI_CANCELLERIA,
-    SEZIONE_ISTANZE,
-    SEZIONE_UDIENZE_SCADENZE,
-    sezione_fascicolo_da_servizio_pst,
+from pct.fascicolo_workspace import (
+    build_fascicolo_workspace as _shared_build_fascicolo_workspace,
+    fascicolo_text as _shared_fascicolo_text,
 )
 from pct.reginde import ClientReGINde
 
@@ -155,103 +153,8 @@ def build_fascicoli_runtime(
             return 0
         return sum(1 for path in cartella.rglob("*") if path.is_file())
 
-    _DOC_TIPI_ATTI_PRINCIPALI = {
-        TipoDocumento.ATTO_GIUDIZIARIO,
-        TipoDocumento.MEMORIA,
-        TipoDocumento.RICORSO,
-        TipoDocumento.CITAZIONE,
-        TipoDocumento.COMPARSA,
-    }
-    _DOC_TIPI_PROVVEDIMENTI = {
-        TipoDocumento.SENTENZA,
-        TipoDocumento.ORDINANZA,
-        TipoDocumento.DECRETO,
-        TipoDocumento.VERBALE,
-    }
-    _DOC_TIPI_RICEVUTE = {
-        TipoDocumento.COMUNICAZIONE,
-        TipoDocumento.DEPOSITO_PCT,
-        TipoDocumento.NOTIFICA,
-    }
-    _ATTIVITA_UDIENZE_SCADENZE = {
-        TipoAttivita.UDIENZA,
-        TipoAttivita.TERMINE_SCADENZA,
-        TipoAttivita.RINVIO,
-    }
-
     def _fascicolo_text(*parts: object) -> str:
-        return " ".join(str(part or "").strip() for part in parts if str(part or "").strip()).lower()
-
-    def _documento_bucket(doc: Documento) -> str:
-        tipo = getattr(doc, "tipo", None)
-        if tipo in _DOC_TIPI_PROVVEDIMENTI:
-            return "provvedimenti"
-        if tipo in _DOC_TIPI_RICEVUTE:
-            return "ricevute"
-        if tipo in _DOC_TIPI_ATTI_PRINCIPALI:
-            return "atti_principali"
-        return "allegati"
-
-    def _documento_is_istanza(doc: Documento) -> bool:
-        testo = _fascicolo_text(getattr(doc, "nome", ""), getattr(doc, "note", ""), getattr(doc, "tipo", ""))
-        return "istanza" in testo
-
-    def _deposito_servizio_portale(dep) -> str:
-        return str(getattr(dep, "servizio_portale", "") or "").strip()
-
-    def _deposito_sezione_portale(dep) -> str:
-        servizio = _deposito_servizio_portale(dep)
-        return sezione_fascicolo_da_servizio_pst(servizio) if servizio else ""
-
-    def _deposito_ha_ricevute(dep) -> bool:
-        return any(
-            (
-                getattr(dep, "ricevuta_accettazione", ""),
-                getattr(dep, "ricevuta_consegna", ""),
-                getattr(dep, "ricevuta_controlli_automatici", ""),
-                getattr(dep, "ricevuta_cancelleria", ""),
-            )
-        )
-
-    def _deposito_is_istanza(dep) -> bool:
-        if _deposito_sezione_portale(dep) == SEZIONE_ISTANZE:
-            return True
-        testo = _fascicolo_text(
-            getattr(dep, "tipo_atto", ""),
-            getattr(dep, "messaggio", ""),
-            getattr(dep, "note", ""),
-            getattr(dep, "nome_atto_principale", ""),
-        )
-        return "istanza" in testo
-
-    def _deposito_is_udienza_scadenza(dep) -> bool:
-        if _deposito_sezione_portale(dep) == SEZIONE_UDIENZE_SCADENZE:
-            return True
-        testo = _fascicolo_text(
-            getattr(dep, "tipo_atto", ""),
-            getattr(dep, "note", ""),
-            getattr(dep, "nome_atto_principale", ""),
-        )
-        return any(t in testo for t in ("udienza", "verbale", "scadenz", "rinvio", "termine"))
-
-    def _deposito_is_comunicazione(dep) -> bool:
-        sezione_portale = _deposito_sezione_portale(dep)
-        if sezione_portale:
-            return sezione_portale == SEZIONE_COMUNICAZIONI_CANCELLERIA
-        if _deposito_ha_ricevute(dep):
-            return True
-        return str(getattr(dep, "stato", "") or "").strip().upper() in {
-            "INVIATO",
-            "ACCETTATO",
-            "ACCETTATO_PEC",
-            "CONSEGNATO",
-            "WARN_CONTROLLI",
-            "ERRORE_CONTROLLI",
-            "RIFIUTATO",
-            "ACCETTATO_CANCELLERIA",
-            "RIFIUTATO_CANCELLERIA",
-            "ERRORE",
-        }
+        return _shared_fascicolo_text(*parts)
 
     def _build_fascicolo_workspace(
         fasc: Fascicolo,
@@ -259,67 +162,7 @@ def build_fascicoli_runtime(
         apps: Optional[list] = None,
         scadenze: Optional[list] = None,
     ) -> dict:
-        documenti = list(getattr(fasc, "documenti", []) or [])
-        attivita = list(getattr(fasc, "attivita", []) or [])
-        depositi = list(getattr(fasc, "depositi_pct", []) or [])
-        appuntamenti = list(apps or [])
-        termini = list(scadenze or [])
-
-        documenti_buckets = {
-            "all": len(documenti),
-            "atti_principali": 0,
-            "allegati": 0,
-            "ricevute": 0,
-            "provvedimenti": 0,
-            "istanze": 0,
-        }
-        for doc in documenti:
-            documenti_buckets[_documento_bucket(doc)] += 1
-            if _documento_is_istanza(doc):
-                documenti_buckets["istanze"] += 1
-
-        attivita_processuali = [
-            att for att in attivita
-            if att.tipo not in _ATTIVITA_UDIENZE_SCADENZE
-            and att.tipo != TipoAttivita.COMUNICAZIONE_CANCELLERIA
-        ]
-        udienze_attivita = [att for att in attivita if att.tipo in _ATTIVITA_UDIENZE_SCADENZE]
-        comunicazioni_attivita = [
-            att for att in attivita if att.tipo == TipoAttivita.COMUNICAZIONE_CANCELLERIA
-        ]
-        comunicazioni_depositi = [dep for dep in depositi if _deposito_is_comunicazione(dep)]
-        udienze_depositi = [dep for dep in depositi if _deposito_is_udienza_scadenza(dep)]
-        istanze_documenti = [doc for doc in documenti if _documento_is_istanza(doc)]
-        istanze_depositi = [dep for dep in depositi if _deposito_is_istanza(dep)]
-
-        attivita_processuali.sort(key=lambda att: getattr(att, "data", "") or "", reverse=True)
-        udienze_attivita.sort(key=lambda att: getattr(att, "data", "") or "")
-        udienze_depositi.sort(key=lambda dep: getattr(dep, "timestamp", "") or "", reverse=True)
-        comunicazioni_attivita.sort(key=lambda att: getattr(att, "data", "") or "", reverse=True)
-        comunicazioni_depositi.sort(key=lambda dep: getattr(dep, "timestamp", "") or "", reverse=True)
-        termini.sort(key=lambda sc: getattr(sc, "data_scadenza", "") or "")
-        appuntamenti.sort(key=lambda app_obj: getattr(app_obj, "data_ora", "") or "")
-
-        return {
-            "counts": {
-                "profilo": 1,
-                "documenti": len(documenti),
-                "attivita": len(attivita_processuali),
-                "udienze_scadenze": len(udienze_attivita) + len(udienze_depositi) + len(termini) + len(appuntamenti),
-                "comunicazioni": len(comunicazioni_attivita) + len(comunicazioni_depositi),
-                "istanze": len(istanze_documenti) + len(istanze_depositi),
-            },
-            "documenti_buckets": documenti_buckets,
-            "attivita_processuali": attivita_processuali,
-            "udienze_attivita": udienze_attivita,
-            "udienze_depositi": udienze_depositi,
-            "scadenze": termini,
-            "appuntamenti": appuntamenti,
-            "comunicazioni_attivita": comunicazioni_attivita,
-            "comunicazioni_depositi": comunicazioni_depositi,
-            "istanze_documenti": istanze_documenti,
-            "istanze_depositi": istanze_depositi,
-        }
+        return _shared_build_fascicolo_workspace(fasc, apps=apps, scadenze=scadenze)
 
     def _url_with_query(base_url: str, **params) -> str:
         clean = {

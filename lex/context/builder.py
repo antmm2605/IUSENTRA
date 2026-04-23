@@ -9,6 +9,7 @@ from .agenda_context import load_agenda_context
 from .anagrafica_context import load_anagrafica_context
 from .document_context import load_document_context
 from .fascicolo_context import load_fascicolo_context
+from .fascicolo_sections_context import load_fascicolo_sections_context
 from .permissions_context import build_permissions_context
 from .runtime_context import build_runtime_context
 from .scadenze_context import load_scadenze_context
@@ -44,17 +45,25 @@ class LexContextBuilder:
             }
         )
         if request.fascicolo_id:
+            documenti_context = self._safe_section(
+                load_document_context,
+                fallback=[],
+                pratica_id=pratica_id,
+                fascicolo_id=str(request.fascicolo_id or "").strip(),
+            )
             sanitized["fascicolo"] = self._safe_section(
                 load_fascicolo_context,
                 fallback={},
                 pratica_id=pratica_id,
                 fascicolo_id=str(request.fascicolo_id or "").strip(),
             )
-            sanitized["documenti"] = self._safe_section(
-                load_document_context,
-                fallback=[],
+            sanitized["documenti"] = documenti_context
+            sanitized["fascicolo_sezioni"] = self._safe_section(
+                load_fascicolo_sections_context,
+                fallback={},
                 pratica_id=pratica_id,
                 fascicolo_id=str(request.fascicolo_id or "").strip(),
+                documenti=documenti_context,
             )
             sanitized["anagrafica"] = self._safe_section(
                 load_anagrafica_context,
@@ -87,10 +96,23 @@ class LexContextBuilder:
                 messages=history_messages or [],
             )
 
+        documenti_context = self._safe_section(
+            load_document_context,
+            fallback=[],
+            pratica_id=pratica_id,
+            fascicolo_id=fascicolo_id,
+        )
         structured_sections = self._privacy_guard.sanitize_sections(
             {
                 "fascicolo": self._safe_section(load_fascicolo_context, fallback={}, pratica_id=pratica_id, fascicolo_id=fascicolo_id),
-                "documenti": self._safe_section(load_document_context, fallback=[], pratica_id=pratica_id, fascicolo_id=fascicolo_id),
+                "documenti": documenti_context,
+                "fascicolo_sezioni": self._safe_section(
+                    load_fascicolo_sections_context,
+                    fallback={},
+                    pratica_id=pratica_id,
+                    fascicolo_id=fascicolo_id,
+                    documenti=documenti_context,
+                ),
                 "agenda": self._safe_section(load_agenda_context, fallback=[], pratica_id=pratica_id),
                 "scadenze": self._safe_section(load_scadenze_context, fallback=[], pratica_id=pratica_id),
                 "anagrafica": self._safe_section(load_anagrafica_context, fallback={"clienti": [], "soggetti": []}, pratica_id=pratica_id),

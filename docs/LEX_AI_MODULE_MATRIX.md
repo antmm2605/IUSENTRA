@@ -1,6 +1,6 @@
 # Lex AI - Matrice Moduli
 
-Data di aggiornamento: 16 aprile 2026
+Data di aggiornamento: 23 aprile 2026
 
 ## Regola architetturale
 
@@ -13,6 +13,18 @@ Ogni modulo deve dialogare con Lex tramite:
 - `facts`
 - `context request`
 - `result pack`
+
+## Presidio fascicoli
+
+Sul dominio `Fascicoli` Lex deve leggere la stessa struttura che l'utente vede nella pagina pratica. Il contesto strutturato del fascicolo deve quindi mantenere sempre queste sezioni governate:
+
+- `attivita_processuali`
+- `documenti_fascicolo`
+- `udienze_scadenze`
+- `comunicazioni_cancelleria`
+- `istanze`
+
+Regola operativa: sui fascicoli aperti non sono ammessi cap rigidi come `limit=8` sul caricamento documentale del RAG. Se servono limiti per ranking o presentazione, devono vivere a valle dell'indicizzazione completa e non nel caricamento del contesto.
 
 ## Matrice
 

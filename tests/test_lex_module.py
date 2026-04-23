@@ -1,6 +1,7 @@
 import json
 from pathlib import Path
 
+from lex.contracts import LexRequest
 from lex.context.builder import LexContextBuilder
 from lex.context.document_context import load_document_context
 from lex.context.studio_context import build_lex_studio_context
@@ -8,7 +9,9 @@ from lex.memory.conversation_state import (
     messages_with_effective_question,
     resolve_current_and_previous_user_messages,
 )
-from pct.fascicoli import GestioneFascicoli, TipoDocumento, TipoFascicolo
+from lex.retrieval.documenti import search_document_sources
+from lex.retrieval.fascicoli import search_fascicolo_sources
+from pct.fascicoli import EsitoDepositoPCT, GestioneFascicoli, TipoAttivita, TipoDocumento, TipoFascicolo
 from web.app import create_app
 
 
@@ -151,7 +154,15 @@ def test_lex_context_builder_adds_structured_sections():
     )
 
     assert "structured_context" in payload
-    assert set(payload["structured_context"].keys()) >= {"fascicolo", "documenti", "agenda", "scadenze", "anagrafica", "mode"}
+    assert set(payload["structured_context"].keys()) >= {
+        "fascicolo",
+        "documenti",
+        "fascicolo_sezioni",
+        "agenda",
+        "scadenze",
+        "anagrafica",
+        "mode",
+    }
 
 
 def test_lex_document_context_marca_p7m_detached_come_ai_readable_se_esiste_originale(tmp_path: Path):
@@ -196,6 +207,188 @@ def test_lex_document_context_marca_p7m_detached_come_ai_readable_se_esiste_orig
     assert rows
     assert rows[0]["signed_status"]["detached_signature"] is True
     assert rows[0]["ai_readable"] is True
+
+
+def _seed_lex_fascicolo_workspace(tmp_path: Path) -> tuple[object, str]:
+    from pct.agenda import TipoAppuntamento
+    from pct.scadenziario import TipoTermine
+    from web.helpers import get_agenda, get_scadenziario
+
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    app = create_app(_cfg_web(tmp_path))
+    gestione_fascicoli = GestioneFascicoli(
+        db_path=str(tmp_path / "fascicoli.json"),
+        documents_dir=str(tmp_path / "docs"),
+        archive_dir=str(tmp_path / "arch"),
+    )
+    fascicolo = gestione_fascicoli.nuovo("RG 250/2026", TipoFascicolo.CIVILE)
+    fascicolo.nome_cliente = "Mario Rossi"
+    fascicolo.oggetto = "Opposizione a decreto ingiuntivo"
+    fascicolo.tribunale = "Tribunale di Milano"
+    gestione_fascicoli.aggiungi_documento(
+        fascicolo.id,
+        "comparsa.pdf",
+        TipoDocumento.ATTO_GIUDIZIARIO,
+        b"%PDF-1.4\n%%EOF",
+        caricato_da="admin",
+        data_documento="2026-04-01",
+    )
+    gestione_fascicoli.aggiungi_documento(
+        fascicolo.id,
+        "istanza-rinvio.pdf",
+        TipoDocumento.ALLEGATO,
+        b"%PDF-1.4\n%%EOF",
+        caricato_da="admin",
+        data_documento="2026-04-02",
+        note="Istanza di rinvio udienza",
+    )
+    gestione_fascicoli.aggiungi_attivita(
+        fascicolo.id,
+        TipoAttivita.DEPOSITO_ATTI,
+        "2026-04-03",
+        "Deposito comparsa",
+        descrizione="Deposito telematico comparsa di risposta",
+    )
+    gestione_fascicoli.aggiungi_attivita(
+        fascicolo.id,
+        TipoAttivita.COMUNICAZIONE_CANCELLERIA,
+        "2026-04-04",
+        "Comunicazione esito",
+        descrizione="Comunicazione di cancelleria ricevuta via PEC",
+    )
+    gestione_fascicoli.aggiungi_attivita(
+        fascicolo.id,
+        TipoAttivita.UDIENZA,
+        "2026-05-10",
+        "Udienza istruttoria",
+        descrizione="Comparizione parti",
+    )
+    fascicolo.depositi_pct.extend(
+        [
+            EsitoDepositoPCT(
+                id="DEP-COMM-01",
+                timestamp="2026-04-05T09:00:00",
+                stato="ACCETTATO_CANCELLERIA",
+                tipo_atto="COMUNICAZIONE_CANCELLERIA",
+                pec_destinatario="tribunale@example.it",
+                messaggio="Comunicazione cancelleria su esito controlli",
+                note="Comunicazione cancelleria acquisita da PST",
+            ),
+            EsitoDepositoPCT(
+                id="DEP-IST-01",
+                timestamp="2026-04-06T11:30:00",
+                stato="ACCETTATO_CANCELLERIA",
+                tipo_atto="ISTANZA",
+                pec_destinatario="tribunale@example.it",
+                messaggio="Istanza di rinvio",
+                note="Istanza di rinvio depositata",
+            ),
+        ]
+    )
+    gestione_fascicoli._salva()
+
+    with app.app_context():
+        get_agenda().aggiungi(
+            "Udienza istruttoria",
+            TipoAppuntamento.UDIENZA,
+            "2026-05-10T10:00:00",
+            procedimento=fascicolo.id,
+            tribunale="Tribunale di Milano",
+            luogo="Aula 12",
+            note="Preparare fascicolo e note d'udienza",
+        )
+        get_scadenziario().nuova(
+            titolo="Termine note autorizzate",
+            tipo=TipoTermine.ALTRO,
+            data_scadenza="2026-05-08",
+            id_fascicolo=fascicolo.id,
+            descrizione="Deposito note autorizzate",
+        )
+
+    return app, fascicolo.id
+
+
+def test_lex_document_context_non_taglia_fascicolo_con_piu_di_otto_documenti(tmp_path: Path):
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    app = create_app(_cfg_web(tmp_path))
+    gestione_fascicoli = GestioneFascicoli(
+        db_path=str(tmp_path / "fascicoli.json"),
+        documents_dir=str(tmp_path / "docs"),
+        archive_dir=str(tmp_path / "arch"),
+    )
+    fascicolo = gestione_fascicoli.nuovo("RG 300/2026", TipoFascicolo.CIVILE)
+    for index in range(10):
+        gestione_fascicoli.aggiungi_documento(
+            fascicolo.id,
+            f"allegato-{index + 1:02d}.pdf",
+            TipoDocumento.ALLEGATO,
+            b"%PDF-1.4\n%%EOF",
+            caricato_da="admin",
+            data_documento=f"2026-04-{index + 1:02d}",
+        )
+
+    with app.app_context():
+        rows = load_document_context(pratica_id=fascicolo.id, fascicolo_id=fascicolo.id)
+
+    assert len(rows) == 10
+    assert rows[-1]["nome"] == "allegato-10.pdf"
+
+
+def test_lex_fascicolo_sections_context_censisce_tutte_le_sezioni_del_workspace(tmp_path: Path):
+    app, fascicolo_id = _seed_lex_fascicolo_workspace(tmp_path)
+    builder = LexContextBuilder()
+    request = LexRequest(
+        tenant_id="tenant-test",
+        user_id="admin",
+        session_id="sess-lex",
+        query="fammi il quadro completo del fascicolo",
+        fascicolo_id=fascicolo_id,
+    )
+
+    with app.app_context():
+        context = builder.build_request_context(request, "fascicolo")
+
+    sections = context["fascicolo_sezioni"]
+    assert sections["counts"]["documenti"] == 2
+    assert sections["counts"]["attivita"] == 1
+    assert sections["counts"]["udienze_scadenze"] == 3
+    assert sections["counts"]["comunicazioni"] == 2
+    assert sections["counts"]["istanze"] == 2
+    assert len(sections["documenti_fascicolo"]) == 2
+    assert len(sections["attivita_processuali"]) == 1
+    assert len(sections["udienze_scadenze"]) == 3
+    assert len(sections["comunicazioni_cancelleria"]) == 2
+    assert len(sections["istanze"]) == 2
+
+
+def test_lex_retrieval_fascicolo_esporta_sommari_sezioni_e_tutti_i_documenti(tmp_path: Path):
+    app, fascicolo_id = _seed_lex_fascicolo_workspace(tmp_path)
+    builder = LexContextBuilder()
+    request = LexRequest(
+        tenant_id="tenant-test",
+        user_id="admin",
+        session_id="sess-lex",
+        query="mostrami comunicazioni di cancelleria e istanze del fascicolo",
+        fascicolo_id=fascicolo_id,
+    )
+
+    with app.app_context():
+        context = builder.build_request_context(request, "fascicolo")
+        document_evidence = search_document_sources(
+            fascicolo_id,
+            "",
+            context,
+        )
+        fascicolo_sources = search_fascicolo_sources(
+            fascicolo_id,
+            "comunicazioni di cancelleria e istanze",
+            context,
+        )
+
+    section_titles = {row.title for row in fascicolo_sources}
+    assert len(document_evidence) == 2
+    assert "Comunicazioni di cancelleria" in section_titles
+    assert "Istanze" in section_titles
 
 
 def test_lex_studio_context_espone_dashboard_motori_legali(tmp_path: Path):

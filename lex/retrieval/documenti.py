@@ -142,7 +142,4 @@ def search_document_sources(
                 },
             )
         )
-        if len(items) >= 8:
-            break
-
     return items

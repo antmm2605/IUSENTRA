@@ -29,6 +29,69 @@ def _context_section(context: Any, key: str) -> Any:
     return {}
 
 
+def _section_rows(context: Any, key: str) -> list[dict[str, Any]]:
+    sezioni = _context_section(context, "fascicolo_sezioni") or {}
+    if key == "documenti_fascicolo":
+        return list(sezioni.get(key) or _context_section(context, "documenti") or [])
+    return list(sezioni.get(key) or [])
+
+
+def _section_count(sezioni: dict[str, Any], key: str, fallback: int = 0) -> int:
+    count_map = {
+        "attivita_processuali": "attivita",
+        "documenti_fascicolo": "documenti",
+        "udienze_scadenze": "udienze_scadenze",
+        "comunicazioni_cancelleria": "comunicazioni",
+        "istanze": "istanze",
+    }
+    try:
+        return int((sezioni.get("counts") or {}).get(count_map.get(key, ""), fallback) or fallback)
+    except Exception:
+        return fallback
+
+
+def _row_title(row: dict[str, Any]) -> str:
+    return str(
+        row.get("titolo")
+        or row.get("nome")
+        or row.get("tipo_atto")
+        or row.get("tipo")
+        or "voce senza titolo"
+    ).strip()
+
+
+def _row_when(row: dict[str, Any]) -> str:
+    return str(
+        row.get("data_ora")
+        or row.get("timestamp")
+        or row.get("data")
+        or row.get("data_documento")
+        or row.get("data_caricamento")
+        or ""
+    ).strip()
+
+
+def _describe_section_row(row: dict[str, Any]) -> str:
+    titolo = _row_title(row)
+    quando = _row_when(row)
+    stato = str(row.get("stato") or row.get("esito") or row.get("signed_ui") or "").strip()
+    parts = [titolo]
+    if quando:
+        parts.append(_format_dataora_italiana(quando) if "T" in quando else _format_data_italiana(quando))
+    if stato:
+        parts.append(stato.lower())
+    return " - ".join(part for part in parts if part)
+
+
+def _section_line(label: str, rows: list[dict[str, Any]], count: int) -> str:
+    if count <= 0:
+        return ""
+    preview = _describe_section_row(rows[0]) if rows else ""
+    if preview:
+        return f"{label}: {count} voci; ultima o prossima rilevante {preview}."
+    return f"{label}: {count} voci."
+
+
 def _format_data_italiana(value: Any) -> str:
     text = str(value or "").strip()
     if not text:
@@ -68,6 +131,12 @@ def _format_dataora_italiana(value: Any) -> str:
 def _fascicolo_text(question: str, context: Any, title: str, summary: str) -> str:
     fascicolo = _context_section(context, "fascicolo") or {}
     documenti = list(_context_section(context, "documenti") or [])
+    fascicolo_sezioni = dict(_context_section(context, "fascicolo_sezioni") or {})
+    attivita_processuali = _section_rows(context, "attivita_processuali")
+    documenti_fascicolo = _section_rows(context, "documenti_fascicolo")
+    udienze_scadenze = _section_rows(context, "udienze_scadenze")
+    comunicazioni_cancelleria = _section_rows(context, "comunicazioni_cancelleria")
+    istanze = _section_rows(context, "istanze")
     agenda = list(_context_section(context, "agenda") or [])
     scadenziario = list(_context_section(context, "scadenziario") or _context_section(context, "scadenze") or [])
 
@@ -86,7 +155,11 @@ def _fascicolo_text(question: str, context: Any, title: str, summary: str) -> st
     tribunale = str(fascicolo.get("tribunale") or "").strip()
     stato = str(fascicolo.get("stato") or "").strip()
     prossima_udienza = _format_dataora_italiana(fascicolo.get("data_prossima_udienza"))
-    documenti_count = int(fascicolo.get("documenti_count") or len(documenti) or 0)
+    documenti_count = _section_count(
+        fascicolo_sezioni,
+        "documenti_fascicolo",
+        fallback=int(fascicolo.get("documenti_count") or len(documenti_fascicolo) or len(documenti) or 0),
+    )
 
     lines = [
         f"Sto lavorando sul fascicolo {numero or 'senza numero'}{f' - {titolo}' if titolo else ''}.",
@@ -113,6 +186,35 @@ def _fascicolo_text(question: str, context: Any, title: str, summary: str) -> st
         lines.append(f"Documenti collegati: {documenti_count}.")
     elif title:
         lines.append(f"Riferimento disponibile: {title}.")
+    if fascicolo_sezioni:
+        section_lines = [
+            _section_line(
+                "Attivita' processuali",
+                attivita_processuali,
+                _section_count(fascicolo_sezioni, "attivita_processuali", fallback=len(attivita_processuali)),
+            ),
+            _section_line(
+                "Documenti fascicolo",
+                documenti_fascicolo or documenti,
+                _section_count(fascicolo_sezioni, "documenti_fascicolo", fallback=len(documenti_fascicolo or documenti)),
+            ),
+            _section_line(
+                "Udienze e scadenze",
+                udienze_scadenze,
+                _section_count(fascicolo_sezioni, "udienze_scadenze", fallback=len(udienze_scadenze)),
+            ),
+            _section_line(
+                "Comunicazioni di cancelleria",
+                comunicazioni_cancelleria,
+                _section_count(fascicolo_sezioni, "comunicazioni_cancelleria", fallback=len(comunicazioni_cancelleria)),
+            ),
+            _section_line(
+                "Istanze",
+                istanze,
+                _section_count(fascicolo_sezioni, "istanze", fallback=len(istanze)),
+            ),
+        ]
+        lines.extend(line for line in section_lines if line)
 
     prossima_scadenza = next(
         (
@@ -147,7 +249,15 @@ def _fascicolo_text(question: str, context: Any, title: str, summary: str) -> st
         lines.append(f"Attivita' in agenda: {agenda_titolo} ({agenda_data}).")
 
     haystack = str(question or "").lower()
-    if "udienz" in haystack and prossima_udienza:
+    if "comunicaz" in haystack and comunicazioni_cancelleria:
+        next_step = (
+            "rivedere subito l'ultima comunicazione di cancelleria e verificare se apre termini, adempimenti o allegati mancanti."
+        )
+    elif "istanz" in haystack and istanze:
+        next_step = "controllare l'istanza piu' recente e verificare esito, documenti collegati e prossima attivita' conseguente."
+    elif "document" in haystack and documenti_count:
+        next_step = "confermare che siano presenti atto principale, ultimo provvedimento e allegati essenziali richiamati nella richiesta."
+    elif "udienz" in haystack and (prossima_udienza or udienze_scadenze):
         next_step = "prepara subito documenti essenziali, note d'udienza e verifiche finali del fascicolo."
     elif prossima_scadenza:
         next_step = "presidiare la scadenza aperta e verificare che il fascicolo abbia gia' atto, allegati e attivita' collegata."

@@ -31,6 +31,11 @@ def _list_from_runtime_value(value: Any) -> list[str]:
     return [chunk.strip() for chunk in text.split(",") if chunk.strip()]
 
 
+def _tenant_registry_ready(value: Any) -> bool:
+    path = str(value or "").strip()
+    return bool(path) and Path(path).exists()
+
+
 def apply_runtime_settings(
     app: Flask,
     cfg: Mapping[str, Any],
@@ -85,17 +90,33 @@ def apply_runtime_settings(
     app.config["PAGAMENTI_DIR"] = cfg.get(
         "PAGAMENTI_DIR", os.getenv("PCT_PAGAMENTI_DIR", "./pagamenti")
     )
+    env_tenants_registry = os.getenv("PCT_TENANTS_REGISTRY", "./data/tenants.json")
     app.config["TENANTS_REGISTRY"] = cfg.get(
-        "TENANTS_REGISTRY", os.getenv("PCT_TENANTS_REGISTRY", "./data/tenants.json")
+        "TENANTS_REGISTRY", env_tenants_registry
+    )
+    app.config["TENANTS_REGISTRY_EXPLICIT"] = bool(
+        "TENANTS_REGISTRY" in cfg
+        or (os.getenv("PCT_TENANTS_REGISTRY") is not None and str(os.getenv("PCT_TENANTS_REGISTRY") or "").strip())
     )
     if "MULTI_TENANT" in cfg:
         app.config["MULTI_TENANT"] = bool(cfg.get("MULTI_TENANT"))
+        app.config["MULTI_TENANT_EXPLICIT"] = True
     else:
-        app.config["MULTI_TENANT"] = os.getenv("PCT_MULTI_TENANT", "1").lower() not in (
-            "0",
-            "false",
-            "no",
-        )
+        runtime_multi_tenant = os.getenv("PCT_MULTI_TENANT")
+        if runtime_multi_tenant is not None and str(runtime_multi_tenant).strip():
+            app.config["MULTI_TENANT"] = runtime_multi_tenant.lower() not in (
+                "0",
+                "false",
+                "no",
+            )
+            app.config["MULTI_TENANT_EXPLICIT"] = True
+        else:
+            # La modalità multi-studio deve essere esplicita: evitiamo di
+            # attivarla in installazioni o test che non hanno chiesto un registry.
+            app.config["MULTI_TENANT"] = _tenant_registry_ready(cfg.get("TENANTS_REGISTRY")) or _tenant_registry_ready(
+                os.getenv("PCT_TENANTS_REGISTRY", "")
+            )
+            app.config["MULTI_TENANT_EXPLICIT"] = False
     app.config["STUDIO_CONFIG"] = cfg.get(
         "STUDIO_CONFIG", os.getenv("PCT_STUDIO_CONFIG", "./config/studio.json")
     )

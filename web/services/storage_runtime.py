@@ -103,13 +103,27 @@ def _json_anchor_has_legacy_data(anchor_path: Path) -> bool:
     return bool(payload)
 
 
-def _sqlite_runtime_is_unseeded(studio_db_path: Path) -> bool:
+def _anchor_seed_tables(anchor_path: Path) -> tuple[str, ...]:
+    stem = anchor_path.stem.lower()
+    mapping = {
+        "clienti": ("clienti",),
+        "fascicoli": ("fascicoli",),
+        "agenda": ("appuntamenti",),
+        "scadenze": ("scadenze",),
+        "scadenziario": ("scadenze",),
+        "utenti": ("utenti",),
+        "auth": ("utenti",),
+    }
+    return mapping.get(stem, ("clienti", "fascicoli", "appuntamenti", "scadenze"))
+
+
+def _sqlite_runtime_is_unseeded(studio_db_path: Path, anchor_path: Path) -> bool:
     if not studio_db_path.exists():
         return True
     try:
         conn = sqlite3.connect(str(studio_db_path))
         try:
-            tables = ("clienti", "fascicoli", "appuntamenti", "scadenze", "utenti")
+            tables = _anchor_seed_tables(anchor_path)
             total = 0
             for table in tables:
                 try:
@@ -239,7 +253,7 @@ def get_request_studio_db(anchor_path: str):
 
     anchor = Path(profile.data_anchor_path)
     studio_db_path = Path(profile.studio_db_path)
-    if _json_anchor_has_legacy_data(anchor) and _sqlite_runtime_is_unseeded(studio_db_path):
+    if _json_anchor_has_legacy_data(anchor) and _sqlite_runtime_is_unseeded(studio_db_path, anchor):
         fallback_profile = replace(
             profile,
             effective_mode=DbMode.JSON,

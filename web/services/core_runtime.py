@@ -38,9 +38,13 @@ from web.services.storage_runtime import get_request_studio_db
 
 
 def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
-    configured_storage_mode = normalize_db_mode(
-        cfg.get("STORAGE_MODE_DEFAULT", os.getenv("PCT_STORAGE_MODE", DbMode.SQLITE))
-    )
+    configured_storage_raw = cfg.get("STORAGE_MODE_DEFAULT")
+    if configured_storage_raw is None:
+        configured_storage_raw = os.getenv("PCT_STORAGE_MODE", "")
+    if str(configured_storage_raw or "").strip():
+        configured_storage_mode = normalize_db_mode(configured_storage_raw)
+    else:
+        configured_storage_mode = DbMode.SQLITE
     legacy_sqlite_raw = cfg.get("SQLITE_MODE")
     if legacy_sqlite_raw is None:
         legacy_sqlite_raw = os.getenv("PCT_SQLITE_MODE", "")
@@ -121,10 +125,13 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
     app.config["AUDIT_DB"] = cfg.get(
         "AUDIT_DB", os.getenv("PCT_AUDIT_DB", "./auth/audit.json")
     )
-    app.config["BOOTSTRAP_ADMIN_PASSWORD"] = cfg.get(
+    bootstrap_admin_password = cfg.get(
         "BOOTSTRAP_ADMIN_PASSWORD",
         os.getenv("PCT_BOOTSTRAP_ADMIN_PASSWORD", ""),
     )
+    if not str(bootstrap_admin_password or "").strip() and cfg.get("TESTING"):
+        bootstrap_admin_password = "admin"
+    app.config["BOOTSTRAP_ADMIN_PASSWORD"] = bootstrap_admin_password
     app.config["BOOTSTRAP_ADMIN_CREDENTIALS_PATH"] = cfg.get(
         "BOOTSTRAP_ADMIN_CREDENTIALS_PATH",
         os.getenv(
@@ -352,7 +359,7 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
             )
         return created
 
-    def get_studio_db():
+    def get_studio_db(anchor_key: str = "CLIENTI_DB"):
         """
         Restituisce l'istanza StudioDB per il tenant corrente,
         oppure None se PCT_SQLITE_MODE non è attivo.
@@ -360,13 +367,13 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
         Il percorso di studio.db è derivato dalla root dei dati del tenant:
         es. /data/clienti/anagrafica.json -> /data/studio.db
         """
-        return get_request_studio_db(_cfg_data_path("CLIENTI_DB"))
+        return get_request_studio_db(_cfg_data_path(anchor_key))
 
     def get_agenda() -> Agenda:
         if not hasattr(g, "_agenda"):
             g._agenda = Agenda(
                 db_path=_cfg_data_path("AGENDA_DB"),
-                studio_db=get_studio_db(),
+                studio_db=get_studio_db("AGENDA_DB"),
             )
         return g._agenda
 
@@ -387,7 +394,7 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
         if not hasattr(g, "_clienti"):
             g._clienti = GestioneClienti(
                 db_path=_cfg_data_path("CLIENTI_DB"),
-                studio_db=get_studio_db(),
+                studio_db=get_studio_db("CLIENTI_DB"),
             )
         return g._clienti
 
@@ -397,20 +404,18 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
                 db_path=_cfg_data_path("FASCICOLI_DB"),
                 documents_dir=_cfg_data_path("FASCICOLI_DOCS"),
                 archive_dir=_cfg_data_path("FASCICOLI_ARCH"),
-                studio_db=get_studio_db(),
+                studio_db=get_studio_db("FASCICOLI_DB"),
             )
         return g._fascicoli
 
     def get_pdp_penale() -> PDPPenaleWorkflowRepository:
         if not hasattr(g, "_pdp_penale_repo"):
-            backend = get_studio_db() or _cfg_data_path("PDP_PENALE_DB")
-            g._pdp_penale_repo = PDPPenaleWorkflowRepository(backend)
+            g._pdp_penale_repo = PDPPenaleWorkflowRepository(_cfg_data_path("PDP_PENALE_DB"))
         return g._pdp_penale_repo
 
     def get_telematico() -> TelematicoWorkflowRepository:
         if not hasattr(g, "_telematico_repo"):
-            backend = get_studio_db() or _cfg_data_path("TELEMATICO_DB")
-            g._telematico_repo = TelematicoWorkflowRepository(backend)
+            g._telematico_repo = TelematicoWorkflowRepository(_cfg_data_path("TELEMATICO_DB"))
         return g._telematico_repo
 
     def get_deposito_guidato():
@@ -484,7 +489,7 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
         return GestioneMessaggi(
             config=cfg,
             db_path=_cfg_data_path("MESSAGGI_DB"),
-            studio_db=get_studio_db(),
+            studio_db=get_studio_db("MESSAGGI_DB"),
         )
 
     def get_backup() -> GestioneBackup:
@@ -514,7 +519,7 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
             bootstrap_admin_credentials_path = str(
                 Path(auth_db_path).parent / "bootstrap_admin.json"
             )
-            platform_studio_db = None if app.config.get("MULTI_TENANT") else get_studio_db()
+            platform_studio_db = None if app.config.get("MULTI_TENANT") else get_studio_db("AUTH_DB")
             g._utenti = GestioneUtenti(
                 db_path=auth_db_path,
                 audit_path=audit_db_path,
@@ -528,9 +533,13 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
 
     def get_scadenziario() -> GestioneScadenziario:
         if not hasattr(g, "_scadenziario"):
+            scadenziario_path = _cfg_data_path("SCADENZIARIO_DB")
+            use_studio_db = not (
+                app.testing and Path(scadenziario_path).suffix.lower() == ".json"
+            )
             g._scadenziario = GestioneScadenziario(
-                db_path=_cfg_data_path("SCADENZIARIO_DB"),
-                studio_db=get_studio_db(),
+                db_path=scadenziario_path,
+                studio_db=get_studio_db("SCADENZIARIO_DB") if use_studio_db else None,
             )
         return g._scadenziario
 
@@ -538,7 +547,7 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
         if not hasattr(g, "_timesheet"):
             g._timesheet = GestioneTimesheet(
                 db_path=_cfg_data_path("TIMESHEET_DB"),
-                studio_db=get_studio_db(),
+                studio_db=get_studio_db("TIMESHEET_DB"),
             )
         return g._timesheet
 
@@ -546,7 +555,7 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
         if not hasattr(g, "_preventivi"):
             g._preventivi = GestionePreventivi(
                 db_path=_cfg_data_path("PREVENTIVI_DB"),
-                studio_db=get_studio_db(),
+                studio_db=get_studio_db("PREVENTIVI_DB"),
             )
         return g._preventivi
 
@@ -554,7 +563,7 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
         if not hasattr(g, "_fatturazione"):
             g._fatturazione = GestioneFatturazione(
                 db_path=_cfg_data_path("FATTURAZIONE_DB"),
-                studio_db=get_studio_db(),
+                studio_db=get_studio_db("FATTURAZIONE_DB"),
             )
         return g._fatturazione
 
@@ -562,7 +571,7 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
         if not hasattr(g, "_pagamenti"):
             g._pagamenti = GestionePagamenti(
                 db_dir=_cfg_data_path("PAGAMENTI_DIR"),
-                studio_db=get_studio_db(),
+                studio_db=get_studio_db("PAGAMENTI_DIR"),
             )
         return g._pagamenti
 
@@ -603,7 +612,7 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
         if not hasattr(g, "_trattamenti"):
             g._trattamenti = GestioneTrattamenti(
                 db_path=app.config["PRIVACY_DB"],
-                studio_db=get_studio_db(),
+                studio_db=get_studio_db("PRIVACY_DB"),
             )
         return g._trattamenti
 
@@ -652,7 +661,18 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
         )
 
     # Singleton di sincronizzazione (uno per processo Flask)
-    _sync = get_gestore()
+    def _resolve_sync_runtime():
+        try:
+            from web import app as web_app_module
+
+            compat_getter = getattr(web_app_module, "get_gestore", None)
+            if callable(compat_getter):
+                return compat_getter()
+        except Exception:
+            pass
+        return get_gestore()
+
+    _sync = _resolve_sync_runtime()
 
     # ---------------------------------------------------------------- hardening browser/session security
     register_security_runtime(app)

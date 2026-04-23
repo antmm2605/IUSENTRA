@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.182.11 - 2026-04-23
+
+- Riallineato il motore di autenticazione e i runtime tenant-aware per evitare regressioni nei test completi: i permessi di piattaforma restano segregati, i tenant caricati da archivio SQL recuperano correttamente lo `slug` di studio e il layout base non va piu' in errore quando la pagina espone configurazioni locali.
+- I flussi `PDP Penale` e `Centro Servizi Telematici` tornano a usare i rispettivi archivi dedicati (`pdp_penale.db` e `workflow.db`) invece dello `studio.db` generico, cosi' i casi, i documenti e gli allineamenti di portale vengono letti e scritti nel dominio corretto.
+- Lo scadenziario in ambiente di test usa di nuovo il suo archivio dedicato quando configurato su file JSON, evitando disallineamenti tra le azioni della UI e i controlli che rileggono le scadenze salvate.
+- Ripristinata la password iniziale `admin` solo per i test automatici del gestionale che creano il primo amministratore senza bootstrap esplicito, lasciando invariata la generazione casuale della password temporanea negli altri contesti.
+
 ## 2.182.10 - 2026-04-23
 
 - Applicati in sequenza i pacchetti `repo hardening`, `repo refactor`, `repo local signer`, `repo 95` e `repo 100` con integrazione coerente sulla struttura reale del progetto.

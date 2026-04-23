@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from datetime import datetime
+from pathlib import Path
 import sqlite3
 
 from flask import Flask, flash, g, redirect, render_template, request, session, url_for
@@ -22,6 +23,8 @@ def register_auth_runtime(
 ) -> None:
     """Register auth middleware and core authentication routes."""
     tenant_runtime_state = app.extensions.setdefault("tenant_runtime_state", {})
+    initial_multi_tenant = bool(app.config.get("MULTI_TENANT"))
+    registry_explicit = bool(app.config.get("TENANTS_REGISTRY_EXPLICIT"))
 
     public_routes = {
         "login",
@@ -70,6 +73,7 @@ def register_auth_runtime(
                 secret_key=app.secret_key,
                 crea_admin_se_vuoto=False,
                 studio_db=studio_db,
+                tenant_slug_context=tenant_slug,
             )
         except (OSError, sqlite3.Error):
             app.logger.warning(
@@ -82,7 +86,59 @@ def register_auth_runtime(
                 secret_key=app.secret_key,
                 crea_admin_se_vuoto=False,
                 studio_db=None,
+                tenant_slug_context=tenant_slug,
             )
+
+    def _runtime_multi_tenant_available() -> bool:
+        if app.config.get("MULTI_TENANT"):
+            return True
+        if not registry_explicit and not initial_multi_tenant:
+            return False
+        registry = str(app.config.get("TENANTS_REGISTRY") or "").strip()
+        if not registry:
+            return False
+        registry_path = Path(registry)
+        if not registry_path.exists():
+            return False
+        try:
+            from pct.tenant import GestioneTenant
+
+            return bool(GestioneTenant(registry_path=registry).lista())
+        except Exception:
+            return True
+
+    def _ensure_runtime_multi_tenant_alignment() -> bool:
+        if not _runtime_multi_tenant_available():
+            return False
+        app.config["MULTI_TENANT"] = True
+        if initial_multi_tenant:
+            return True
+        platform_state = tenant_runtime_state.setdefault(
+            "_platform_runtime",
+            {"superadmin_aligned": False},
+        )
+        if platform_state.get("superadmin_aligned"):
+            return True
+        try:
+            manager = GestioneUtenti(
+                db_path=app.config["AUTH_DB"],
+                audit_path=app.config["AUDIT_DB"],
+                secret_key=app.secret_key,
+                crea_admin_se_vuoto=False,
+            )
+            promoted = manager.ensure_platform_superadmin()
+            platform_state["superadmin_aligned"] = any(
+                user.ruolo == RuoloUtente.SUPERADMIN and not str(user.tenant_slug or "").strip()
+                for user in manager.lista()
+            )
+            if promoted is not None:
+                app.logger.info(
+                    "Auth runtime multi-tenant: ruolo piattaforma allineato a SUPERADMIN per %s",
+                    promoted.username,
+                )
+        except Exception as exc:
+            app.logger.exception("Errore riallineamento SUPERADMIN di piattaforma: %s", exc)
+        return True
 
     def _session_auth_scope() -> str:
         return str(session.get("auth_scope", "") or "").strip().lower()
@@ -94,18 +150,20 @@ def register_auth_runtime(
         auth_scope = _session_auth_scope()
         auth_tenant_slug = _session_auth_tenant_slug()
 
-        if auth_scope == "tenant" and auth_tenant_slug and app.config.get("MULTI_TENANT"):
+        multi_tenant_enabled = _ensure_runtime_multi_tenant_alignment()
+
+        if auth_scope == "tenant" and auth_tenant_slug and multi_tenant_enabled:
             manager = _tenant_user_manager(auth_tenant_slug)
             user = manager.get(uid) if uid else None
             return manager, user, "tenant", auth_tenant_slug
 
-        if auth_scope == "global" or not app.config.get("MULTI_TENANT"):
+        if auth_scope == "global" or not multi_tenant_enabled:
             manager = get_utenti()
             user = manager.get(uid) if uid else None
             return manager, user, "global", ""
 
         tenant_slug = str(session.get("tenant_slug", "") or "").strip().lower()
-        if tenant_slug and app.config.get("MULTI_TENANT"):
+        if tenant_slug and multi_tenant_enabled:
             manager = _tenant_user_manager(tenant_slug)
             user = manager.get(uid) if uid else None
             if user:
@@ -116,7 +174,7 @@ def register_auth_runtime(
         if user:
             return manager, user, "global", ""
 
-        if tenant_slug and app.config.get("MULTI_TENANT"):
+        if tenant_slug and multi_tenant_enabled:
             manager = _tenant_user_manager(tenant_slug)
             user = manager.get(uid) if uid else None
             return manager, user, "tenant", tenant_slug
@@ -202,7 +260,7 @@ def register_auth_runtime(
                     exc,
                 )
 
-    if app.config.get("MULTI_TENANT"):
+    if _ensure_runtime_multi_tenant_alignment():
         try:
             promoted = GestioneUtenti(
                 db_path=app.config["AUTH_DB"],
@@ -237,6 +295,7 @@ def register_auth_runtime(
     @app.before_request
     def carica_utente_corrente():
         """Inject g.utente_corrente for every request; logout after 8h inactivity."""
+        g.multi_tenant_enabled = _ensure_runtime_multi_tenant_alignment()
         g.utente_corrente = None
         uid = session.get("user_id")
         if not uid:
@@ -269,7 +328,7 @@ def register_auth_runtime(
         g.tenant = None
         g.data_paths = {}
         g.storage_runtime = None
-        if not app.config.get("MULTI_TENANT"):
+        if not _ensure_runtime_multi_tenant_alignment():
             return None
         if _skip_tenant_runtime_bootstrap():
             return None
@@ -292,7 +351,7 @@ def register_auth_runtime(
 
     @app.before_request
     def blocca_superadmin_fuori_dalla_piattaforma():
-        if not app.config.get("MULTI_TENANT"):
+        if not _ensure_runtime_multi_tenant_alignment():
             return None
         utente = getattr(g, "utente_corrente", None)
         if not utente or not utente.is_superadmin:
@@ -376,6 +435,7 @@ def register_auth_runtime(
 
         errore = None
         if request.method == "POST":
+            multi_tenant_enabled = _ensure_runtime_multi_tenant_alignment()
             username = request.form.get("username", "")
             password = request.form.get("password", "")
             studio_slug = request.form.get("studio_slug", "").strip().lower()
@@ -385,7 +445,7 @@ def register_auth_runtime(
             auth_scope = "global"
             auth_tenant_slug = ""
 
-            if studio_slug and app.config.get("MULTI_TENANT"):
+            if studio_slug and multi_tenant_enabled:
                 from pct.tenant import GestioneTenant
 
                 tenants = GestioneTenant(registry_path=app.config["TENANTS_REGISTRY"])
@@ -404,12 +464,12 @@ def register_auth_runtime(
             else:
                 manager = get_utenti()
                 utente = manager.autentica(username, password)
-                if utente and app.config.get("MULTI_TENANT"):
+                if utente and multi_tenant_enabled:
                     selected_tenant_slug = str(getattr(utente, "tenant_slug", "") or "")
                     ruolo = str(getattr(utente, "ruolo", "") or "")
                     if not selected_tenant_slug and ruolo != str(RuoloUtente.SUPERADMIN):
                         selected_tenant_slug = _single_active_tenant_slug()
-                if not utente and app.config.get("MULTI_TENANT"):
+                if not utente and multi_tenant_enabled:
                     tenant_match = _resolve_tenant_login(username, password)
                     if tenant_match == "ambiguous":
                         errore = (
@@ -480,7 +540,7 @@ def register_auth_runtime(
         return render_template(
             "auth/login.html",
             errore=errore,
-            multi_tenant=app.config.get("MULTI_TENANT", False),
+            multi_tenant=_runtime_multi_tenant_available(),
         )
 
     @app.route("/logout", methods=["POST"])
@@ -510,13 +570,14 @@ def register_auth_runtime(
         pending_auth_tenant_slug = str(
             session.get("totp_pending_auth_tenant_slug", "") or ""
         ).strip().lower()
+        multi_tenant_enabled = _ensure_runtime_multi_tenant_alignment()
         if (
             pending_auth_scope == "tenant"
             and pending_auth_tenant_slug
-            and app.config.get("MULTI_TENANT")
+            and multi_tenant_enabled
         ):
             manager = _tenant_user_manager(pending_auth_tenant_slug)
-        elif pending_tenant_slug and app.config.get("MULTI_TENANT"):
+        elif pending_tenant_slug and multi_tenant_enabled:
             manager = _tenant_user_manager(pending_tenant_slug)
         else:
             manager = get_utenti()

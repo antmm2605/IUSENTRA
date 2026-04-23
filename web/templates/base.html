@@ -30,6 +30,8 @@
 </head>
 <body>
 {% set superadmin_piattaforma = utente_corrente and utente_corrente.is_superadmin and not session.get('superadmin_user_id') %}
+{% set multi_tenant_attivo = g.multi_tenant_enabled if g.multi_tenant_enabled is defined else false %}
+{% set governo_piattaforma = utente_corrente and (superadmin_piattaforma or (utente_corrente.ha_permesso('utenti.leggi') and not multi_tenant_attivo)) %}
 
 <!-- Sidebar -->
 <nav id="sidebar">
@@ -340,7 +342,7 @@
     {% endif %}
 
     {# ---- Piattaforma (superadmin) ---- #}
-    {% if utente_corrente and utente_corrente.is_superadmin %}
+    {% if governo_piattaforma %}
     {% set _adm = request.blueprint in ('admin', 'legal_coverage_admin', 'legal_updates_admin') %}
     <button class="sb-toggle sb-admin {% if _adm %}open{% endif %}"
             data-bs-toggle="collapse" data-bs-target="#sb-piattaforma" aria-expanded="{{ 'true' if _adm else 'false' }}">

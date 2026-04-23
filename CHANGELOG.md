@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.182.10 - 2026-04-23
+
+- Applicati in sequenza i pacchetti `repo hardening`, `repo refactor`, `repo local signer`, `repo 95` e `repo 100` con integrazione coerente sulla struttura reale del progetto.
+- Aggiunti i nuovi strumenti di presidio `check_local_signer_boundaries`, `check_lex_quality_gates`, `check_performance_budget` e `check_release_readiness`, insieme ai test dedicati e ai workflow overlay di qualita' e readiness.
+- Il `Local Signer` adotta ora i moduli separati `local_signer_mod` per sicurezza/origini, cache AI, facciata AI e bootstrap server, mantenendo la logica AI gia' operativa nel file principale tramite delega incrementale invece di sostituirla con stub vuoti.
+- Introdotte anche le guide operative e la documentazione di maturita' (`LEX`, `performance`, osservabilita', multi-studio, release train e checklist di esercizio) previste dai pacchetti strutturali.
+
 ## 2.182.9 - 2026-04-23
 
 - Chiusa la tranche di hardening repository richiesta nel bundle senza deviazioni: `pyproject.toml` riallineato a Python `3.12`, `setup.py` governato dal manifest condiviso, `SECURITY.md` e `CONTRIBUTING.md` riscritti in modo coerente con il prodotto e introdotti `constraints` globali per stabilizzare installazioni locali, CI e deploy.

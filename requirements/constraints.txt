@@ -21,3 +21,9 @@ click<9
 jinja2<4
 flask-sock<1
 pypdf<7
+pytest<9
+pytest-cov<7
+ruff<1
+mypy<2
+flake8<8
+hypothesis<7

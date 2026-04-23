@@ -1,0 +1,51 @@
+name: CI Quality Overlay
+
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches:
+      - "**"
+
+jobs:
+  quality-gates:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Upgrade pip
+        run: python -m pip install --upgrade pip wheel setuptools
+
+      - name: Install runtime dependencies
+        run: pip install -c requirements/constraints.txt -r requirements.txt
+
+      - name: Install dev dependencies
+        run: pip install -c requirements/constraints.txt -r requirements-dev.txt
+
+      - name: Governance
+        run: python tools/check_repo_governance.py
+
+      - name: Packaging sync
+        run: python tools/sync_packaging_files.py --check
+
+      - name: Python baseline
+        run: python tools/check_python_baseline.py
+
+      - name: Local Signer boundaries
+        run: python tools/check_local_signer_boundaries.py
+
+      - name: Lex quality gates
+        run: python tools/check_lex_quality_gates.py
+
+      - name: Performance budget
+        run: python tools/check_performance_budget.py
+
+      - name: Targeted tests
+        run: python -m pytest -q tests/test_lex_quality_gates.py tests/test_performance_budget.py tests/test_local_signer_ai_cache.py

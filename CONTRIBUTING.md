@@ -4,8 +4,8 @@
 
 Questo repository evolve come prodotto applicativo professionale. Ogni modifica deve privilegiare:
 
-- prevedibilita';
-- tracciabilita';
+- prevedibilità;
+- tracciabilità;
 - sicurezza;
 - coerenza tra dominio, storage, UI e documentazione.
 
@@ -22,7 +22,7 @@ Questo repository evolve come prodotto applicativo professionale. Ogni modifica 
 - usare branch descrittivi e orientati al cambiamento;
 - evitare branch temporanei inutili;
 - mantenere piccole PR coerenti per dominio;
-- non mescolare refactor, fix e feature senza necessita' reale.
+- non mescolare refactor, fix e feature senza necessità reale.
 
 Esempi branch:
 
@@ -33,7 +33,7 @@ Esempi branch:
 
 ## Packaging governato
 
-Le dipendenze non si aggiornano a mano in piu' punti.
+Le dipendenze non si aggiornano a mano in più punti.
 
 Sorgenti principali:
 
@@ -62,6 +62,7 @@ python tools/sync_packaging_files.py --check
 
 ```bash
 python tools/check_repo_governance.py
+python tools/check_python_baseline.py
 python -m pytest -q tests/test_packaging_consistency.py
 python -m pytest -q
 docker compose build --no-cache
@@ -71,11 +72,11 @@ docker compose ps
 
 ## Definition of done
 
-Una modifica e' considerata chiusa solo se:
+Una modifica è considerata chiusa solo se:
 
-- il comportamento e' verificabile;
+- il comportamento è verificabile;
 - i file di packaging restano coerenti;
-- la documentazione minima e' aggiornata;
+- la documentazione minima è aggiornata;
 - la CI passa;
 - non introduce segreti, debug residuo o config ambigue.
 
@@ -91,5 +92,5 @@ Una modifica e' considerata chiusa solo se:
 - percorsi locali hardcoded;
 - branch policy dipendenti da una singola macchina;
 - fix rapidi senza test minimo o scenario riproducibile;
-- dipendenze aggiunte senza reale necessita';
-- modifica manuale dei file generati se esiste gia' una sorgente governata.
+- dipendenze aggiunte senza reale necessità;
+- modifica manuale dei file generati se esiste già una sorgente governata.

@@ -96,6 +96,15 @@ except Exception:
     build_attachment_prompt_block = None  # type: ignore[assignment]
     parse_attachment_payloads = None  # type: ignore[assignment]
 
+from local_signer_mod.ai_handlers import LocalAiHandlerFacade
+from local_signer_mod.security import (
+    build_allowed_origins,
+    is_allowed_origin,
+    is_loopback_origin,
+    normalize_origin,
+)
+from local_signer_mod.server_bootstrap import print_startup_banner
+
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
 VERSION = "1.6.9"
@@ -595,43 +604,19 @@ def _risolvi_codice_commissione_ptt_runtime(valore: str) -> str:
 
 
 def _normalizza_origin(origin: str) -> str:
-    """Restituisce un'origin canonicale per i controlli CORS."""
-    origin = (origin or "").strip().rstrip("/")
-    if not origin:
-        return ""
-    parsed = urlparse(origin)
-    if parsed.scheme not in ("http", "https") or not parsed.hostname:
-        return ""
-    host = parsed.hostname.lower()
-    port = parsed.port
-    default_port = 80 if parsed.scheme == "http" else 443
-    if port and port != default_port:
-        return f"{parsed.scheme}://{host}:{port}"
-    return f"{parsed.scheme}://{host}"
+    return normalize_origin(origin)
 
 
 def _origin_loopback(origin: str) -> bool:
-    parsed = urlparse((origin or "").strip())
-    if parsed.scheme not in ("http", "https") or not parsed.hostname:
-        return False
-    return parsed.hostname.lower() in _LOCALHOST_ORIGIN_HOSTS
+    return is_loopback_origin(origin)
 
 
 def _origini_hacs_consentite() -> set[str]:
-    origini: set[str] = set()
-    for chunk in re.split(r"[,\s;]+", LOCAL_SIGNER_ALLOWED_ORIGINS or ""):
-        origin = _normalizza_origin(chunk)
-        if origin:
-            origini.add(origin)
-    return origini
+    return build_allowed_origins(LOCAL_SIGNER_ALLOWED_ORIGINS)
 
 
 def _origin_cors_consentita(origin: str) -> bool:
-    if not origin:
-        return True
-    if _origin_loopback(origin):
-        return True
-    return _normalizza_origin(origin) in _origini_hacs_consentite()
+    return is_allowed_origin(origin, LOCAL_SIGNER_ALLOWED_ORIGINS)
 
 
 def _risolvi_base_pst_da_snapshot(codice_o_nome: str) -> str:
@@ -5264,6 +5249,18 @@ class _Handler(BaseHTTPRequestHandler):
             "prompt": str(payload.get("prompt") or "").strip(),
         }
 
+    def _ai_facade(self) -> LocalAiHandlerFacade:
+        return LocalAiHandlerFacade(
+            get_bridge=_get_local_ai_bridge,
+            request_payload_factory=self._local_ai_request_payload,
+            read_json=self._read_json,
+            send_json=self._send_json,
+            stream_sse=self._stream_sse,
+            logger=log,
+            parse_attachment_payloads=parse_attachment_payloads,
+            build_attachment_prompt_block=build_attachment_prompt_block,
+        )
+
     def do_OPTIONS(self):  # noqa: N802
         self.send_response(204)
         self._add_cors()
@@ -5367,123 +5364,28 @@ class _Handler(BaseHTTPRequestHandler):
     # ── Handlers ────────────────────────────────────────────────────────────────
 
     def _ai_status(self):
-        try:
-            bridge = _get_local_ai_bridge()
-            payload = bridge.health_snapshot(self._local_ai_request_payload())
-            self._send_json(payload)
-        except Exception as e:
-            log.error("Errore AI status locale: %s", e)
-            self._send_json({"ok": False, "errore": str(e)}, 500)
+        self._ai_facade().status()
 
     def _ai_bootstrap(self):
-        try:
-            data = self._read_json()
-            bridge = _get_local_ai_bridge()
-            payload = bridge.bootstrap_runtime(
-                self._local_ai_request_payload(data),
-                force=_coerce_bool(data.get("force"), False),
-            )
-            self._send_json(payload)
-        except Exception as e:
-            log.error("Errore AI bootstrap locale: %s", e)
-            self._send_json({"ok": False, "errore": str(e)}, 500)
+        self._ai_facade().bootstrap()
 
     def _ai_attachments_parse(self):
-        if parse_attachment_payloads is None or build_attachment_prompt_block is None:
-            self._send_json(
-                {"ok": False, "errore": "Parser documentale locale non disponibile sul companion."},
-                500,
-            )
-            return
-        try:
-            data = self._read_json()
-            attachments, errors = parse_attachment_payloads(data.get("files") or [])
-            self._send_json(
-                {
-                    "ok": True,
-                    "attachments": attachments,
-                    "errors": errors,
-                    "prompt_block": build_attachment_prompt_block(attachments),
-                }
-            )
-        except Exception as e:
-            log.error("Errore parsing documenti Lex locale: %s", e)
-            self._send_json({"ok": False, "errore": str(e)}, 500)
+        self._ai_facade().attachments_parse()
 
     def _ai_chat(self):
-        data = self._local_ai_request_payload()
-        prompt = str(data.get("prompt") or "").strip()
-        if not prompt:
-            self._send_json({"ok": False, "errore": "Prompt mancante."}, 400)
-            return
-        try:
-            bridge = _get_local_ai_bridge()
-            payload = bridge.chat(prompt, data)
-            self._send_json(payload)
-        except Exception as e:
-            log.error("Errore AI chat locale: %s", e)
-            self._send_json({"ok": False, "errore": str(e)}, 500)
+        self._ai_facade().chat()
 
     def _ai_chat_stream(self):
-        data = self._local_ai_request_payload()
-        prompt = str(data.get("prompt") or "").strip()
-        if not prompt:
-            self._send_json({"ok": False, "errore": "Prompt mancante."}, 400)
-            return
-        try:
-            bridge = _get_local_ai_bridge()
-            self._stream_sse(bridge.chat_stream(prompt, data))
-        except Exception as e:
-            log.error("Errore AI chat streaming locale: %s", e)
-            self._send_json({"ok": False, "errore": str(e)}, 500)
+        self._ai_facade().chat_stream()
 
     def _ai_rag_query(self):
-        data = self._read_json()
-        question = str(data.get("question") or "").strip()
-        prompt = str(data.get("prompt") or "").strip()
-        if not question and not prompt:
-            self._send_json({"ok": False, "errore": "Domanda mancante."}, 400)
-            return
-        try:
-            bridge = _get_local_ai_bridge()
-            payload = bridge.rag_query({**self._local_ai_request_payload(data), **data})
-            self._send_json(payload)
-        except Exception as e:
-            log.error("Errore AI rag query locale: %s", e)
-            self._send_json({"ok": False, "errore": str(e)}, 500)
+        self._ai_facade().rag_query()
 
     def _ai_rag_query_stream(self):
-        data = self._read_json()
-        question = str(data.get("question") or "").strip()
-        prompt = str(data.get("prompt") or "").strip()
-        if not question and not prompt:
-            self._send_json({"ok": False, "errore": "Domanda mancante."}, 400)
-            return
-        try:
-            bridge = _get_local_ai_bridge()
-            self._stream_sse(bridge.rag_query_stream({**self._local_ai_request_payload(data), **data}))
-        except Exception as e:
-            log.error("Errore AI rag query streaming locale: %s", e)
-            self._send_json({"ok": False, "errore": str(e)}, 500)
+        self._ai_facade().rag_query_stream()
 
     def _ai_embed(self):
-        raw_body = self._read_json()
-        data = self._local_ai_request_payload(raw_body)
-        raw_inputs = raw_body.get("inputs")
-        if not isinstance(raw_inputs, list) or not raw_inputs:
-            prompt = str(data.get("prompt") or "").strip()
-            raw_inputs = [prompt] if prompt else []
-        inputs = [str(value or "").strip() for value in raw_inputs if str(value or "").strip()]
-        if not inputs:
-            self._send_json({"ok": False, "errore": "Testo da indicizzare mancante."}, 400)
-            return
-        try:
-            bridge = _get_local_ai_bridge()
-            payload = bridge.embed(inputs, data)
-            self._send_json(payload)
-        except Exception as e:
-            log.error("Errore AI embed locale: %s", e)
-            self._send_json({"ok": False, "errore": str(e)}, 500)
+        self._ai_facade().embed()
 
     def _ping(self):
         lib = _trova_libreria()
@@ -6824,38 +6726,15 @@ Esempi:
 
     server = _ThreadingLocalSignerServer(("127.0.0.1", args.port), _Handler)
 
-    print("=" * 60)
-    print(f"  IUSENTRA Local Signer v{VERSION}")
-    print(f"  In ascolto su  http://127.0.0.1:{args.port}")
-    print(f"  Piattaforma:   {sys.platform}")
-    print("=" * 60)
-
     lib = _trova_libreria()
-    if lib:
-        print(f"  Libreria PKCS#11 : {lib}")
-        try:
-            tokens = _info_token(lib)
-            if tokens:
-                for tok in tokens:
-                    label = tok.get("label") or tok.get("manufacturer") or "Token"
-                    print(f"  Token trovato    : {label} (slot {tok['slot_id']})")
-            else:
-                print("  Token            : libreria OK — inserire smart card/token")
-        except RuntimeError as e:
-            # Messaggio di errore su più righe → prima riga in console
-            print(f"  AVVISO token     : {str(e).splitlines()[0]}")
-        except Exception as e:
-            print(f"  AVVISO token     : {e}")
-    else:
-        print("  AVVISO: Libreria PKCS#11 non trovata.")
-        print("  → Verificare che il middleware PKCS#11 del dispositivo sia installato.")
-        print("  → Oppure impostare: set PCT_PKCS11_LIBRARY=C:\\percorso\\bit4xpki.dll")
-        print(f"  → Diagnostica completa: http://127.0.0.1:{args.port}/diagnosi")
-
-    if _curl_disponibile():
-        print(f"  curl             : disponibile (PST abilitato)")
-    else:
-        print("  AVVISO: curl non trovato nel PATH (PST non disponibile)")
+    print_startup_banner(
+        version=VERSION,
+        port=args.port,
+        platform_name=sys.platform,
+        lib_path=lib,
+        curl_available=_curl_disponibile(),
+        token_info_fetcher=lambda lib_path: _info_token(lib_path),
+    )
 
     if _pst_endpoint_configurato_e_legacy():
         print("  AVVISO PST       : endpoint legacy wspa.giustizia.it configurato")

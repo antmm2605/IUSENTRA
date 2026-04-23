@@ -10,12 +10,3 @@ trim_trailing_whitespace = true
 
 [*.md]
 trim_trailing_whitespace = false
-
-[*.yml]
-indent_size = 2
-
-[*.yaml]
-indent_size = 2
-
-[Dockerfile]
-indent_size = 4

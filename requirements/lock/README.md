@@ -7,17 +7,17 @@ IUSENTRA usa una strategia in due fasi:
 
 ## Obiettivo
 
-Garantire installazioni piu' riproducibili senza bloccare troppo presto tutte le dipendenze.
+Garantire installazioni più riproducibili senza bloccare troppo presto tutte le dipendenze.
 
 ## Regola pratica
 
 - per sviluppo ordinario: aggiornare i file sorgente;
-- per stabilizzazione release: verificare compatibilita' con `constraints.txt`;
-- per ambienti critici: introdurre progressivamente lock piu' stretti dopo validazione completa.
+- per stabilizzazione release: verificare compatibilità con `constraints.txt`;
+- per ambienti critici: introdurre progressivamente lock più stretti dopo validazione completa.
 
 ## Evoluzione consigliata
 
-Quando la pipeline sara' stabile, introdurre:
+Quando la pipeline sarà stabile, introdurre:
 
-- `pip-compile` oppure
+- `pip-compile`; oppure
 - lockfile separati per runtime e dev.

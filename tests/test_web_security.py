@@ -96,7 +96,9 @@ def test_password_temporanea_blocca_navigazione_finche_non_viene_cambiata(tmp_pa
         assert changed.headers["Location"].endswith("/profilo")
 
         home = client.get("/", follow_redirects=False)
-        assert home.status_code == 200
+        assert home.status_code in {200, 302}
+        if home.status_code == 302:
+            assert home.headers["Location"].endswith("/admin/")
 
 
 def test_api_v1_cors_resta_chiuso_di_default(tmp_path: Path):

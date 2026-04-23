@@ -56,6 +56,7 @@ def test_manifest_runtime_ed_extra_coprono_i_backend_e_gli_extra_ufficiali():
         "mammoth>=1.6.0",
         "pdfplumber>=0.10.0",
         "pypdf>=6.0.0",
+        "asn1crypto>=1.5.0",
         "pytesseract>=0.3.10",
         "python-docx>=1.1.0",
         "reportlab>=4.0.0",
@@ -116,7 +117,10 @@ def test_ci_include_packaging_check_coverage_ed_e2e_smoke():
     nightly_text = (REPO_ROOT / ".github" / "workflows" / "e2e-nightly.yml").read_text(encoding="utf-8")
 
     assert "python tools/sync_packaging_files.py --check" in ci_text
-    assert "pytest --cov" in ci_text
+    assert "python tools/check_python_baseline.py" in ci_text
+    assert "requirements/constraints.txt" in ci_text
+    assert "--cov=" in ci_text
+    assert "--cov-fail-under=65" in ci_text
     assert "tests/e2e/test_studio_reale_flow.py" in ci_text
     assert "tests/e2e/test_ai_pipeline_full.py" in nightly_text
     assert "tests/e2e/test_tenant_migration_full.py" in nightly_text

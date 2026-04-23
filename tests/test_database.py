@@ -817,6 +817,7 @@ def test_create_app_bootstrap_moduli_monitorati(tmp_path):
 
     cfg = {
         "TESTING": True,
+        "MULTI_TENANT": False,
         "SECRET_KEY": "test",
         "AUTH_DB": auth_db,
         "AUDIT_DB": audit_db,
@@ -885,7 +886,7 @@ def client_admin(tmp_path):
         audit_path=audit_db,
         secret_key="test",
         crea_admin_se_vuoto=False,
-        studio_db=get_request_studio_db(clienti_db),
+        studio_db=None,
     )
     gu.crea(
         username="testadmin",
@@ -911,6 +912,7 @@ def client_admin(tmp_path):
         "SEARCH_INDEX": str(tmp_path / "search" / "index.db"),
         "FASCICOLI_DOCS": str(tmp_path / "fascicoli" / "documenti"),
         "FASCICOLI_ARCH": str(tmp_path / "fascicoli" / "archivio"),
+        "MULTI_TENANT": False,
     }
     app = create_app(cfg)
     with app.test_client() as c:

@@ -7,28 +7,23 @@ from .contracts import Citation, LexRequest, LexResponse
 from .formatting.ui_payloads import direct_answer_payload
 
 _BOUNDED_FOCUS_TOPICS = {
-    "agenda",
-    "archivio_sentenze",
     "economico",
     "fatture",
-    "fascicoli",
     "pec_firma",
     "preventivi",
-    "ricerca_legale",
-    "scadenze",
-    "sentenze_civili",
-    "sentenze_web",
     "telematico",
 }
 _REQUEST_PROFILE_INTENTS = {
-    "checklist_operativa",
     "fatturazione_economica",
+    "preventivo_guidato",
+    "tariffario_economico",
+}
+_UNBOUNDED_PROFILE_INTENTS = {
+    "checklist_operativa",
     "giurisprudenza",
     "normativa",
     "pratica_procedura",
-    "preventivo_guidato",
     "sintesi_fascicolo",
-    "tariffario_economico",
 }
 _STRICT_OFFICIAL_INTENTS = {"giurisprudenza", "normativa", "pratica_procedura"}
 _STRICT_SOURCE_WORKFLOWS = {"normativa", "giurisprudenza", "prassi", "research", "fonti"}
@@ -90,20 +85,24 @@ def _resolve_intent(question: str, studio_context: dict[str, Any], request_profi
     haystack = _clean_spaces(question).lower()
     focus_topic = _clean_spaces(studio_context.get("focus_topic"))
     profile_intent = _clean_spaces(request_profile.get("intent"))
+    if profile_intent == "normativa":
+        return "research_normativa"
+    if profile_intent == "giurisprudenza":
+        return "research_giurisprudenza"
+    if profile_intent == "pratica_procedura":
+        return "suggest_next_action"
+    if profile_intent == "sintesi_fascicolo":
+        return "summarize_fascicolo"
+    if profile_intent == "checklist_operativa":
+        return "suggest_next_action"
     if profile_intent == "preventivo_guidato" or "preventiv" in haystack:
         return "evaluate_preventivo"
     if profile_intent == "tariffario_economico" or "tariffario" in haystack:
         return "evaluate_tariffario"
     if profile_intent == "fatturazione_economica" or any(token in haystack for token in ("fattura", "fatture", "parcella", "parcelle")):
         return "evaluate_fatturazione"
-    if profile_intent == "sintesi_fascicolo" or focus_topic == "fascicoli":
+    if focus_topic == "fascicoli":
         return "summarize_fascicolo"
-    if profile_intent == "normativa":
-        return "research_normativa"
-    if profile_intent == "giurisprudenza":
-        return "research_giurisprudenza"
-    if profile_intent == "checklist_operativa":
-        return "suggest_next_action"
     if focus_topic == "telematico":
         return "explain_telematico_error"
     return "ask_lex"
@@ -122,9 +121,14 @@ def _should_use_bounded_workflow(
     profile_intent = _clean_spaces(request_profile.get("intent"))
     focus_topic = _clean_spaces(studio_context.get("focus_topic"))
     source_mode = _clean_spaces(studio_context.get("source_mode"))
-    return (
+    if (
         source_mode == "strict"
-        or profile_intent in _REQUEST_PROFILE_INTENTS
+        or profile_intent in _UNBOUNDED_PROFILE_INTENTS
+        or bool(studio_context.get("web_execution_requested"))
+    ):
+        return False
+    return (
+        profile_intent in _REQUEST_PROFILE_INTENTS
         or focus_topic in _BOUNDED_FOCUS_TOPICS
     )
 
@@ -341,6 +345,7 @@ def build_bounded_http_payload(
             "request_profile": request_profile,
             "source_policy_summary": dict(studio_context.get("source_policy_summary") or {}),
             "source_mode": _clean_spaces(studio_context.get("source_mode")),
+            "competence_labels": list(studio_context.get("competence_labels") or []),
             "routing": dict(payload.get("routing") or {}),
             "followup_resolution": dict(payload.get("followup_resolution") or {}),
             "provider": _clean_spaces(response.metadata.get("provider")),

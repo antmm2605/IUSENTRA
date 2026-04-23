@@ -1,0 +1,23 @@
+# Vincoli globali condivisi per ambienti CI e deploy.
+# Aggiornare solo dopo esecuzione completa dei test e smoke deploy.
+
+Flask<4
+SQLAlchemy<3
+requests<3
+cryptography<45
+lxml<6
+reportlab<5
+stripe<13
+twilio<10
+zeep<5
+PyMySQL<2
+APScheduler<4
+pdfplumber<1
+pytesseract<0.4
+python-docx<2
+mammoth<2
+PyYAML<7
+click<9
+jinja2<4
+flask-sock<1
+pypdf<7

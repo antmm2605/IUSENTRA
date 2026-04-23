@@ -18,7 +18,7 @@ setup(
         "pct": ["data/*.json", "sql/*.sql"],
         "lex": ["research/source_policy/*.yaml"],
     },
-    python_requires=">=3.9",
+    python_requires=">=3.12",
     install_requires=runtime_requirements(),
     extras_require=extras_requirements(),
     entry_points={

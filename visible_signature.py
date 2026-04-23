@@ -207,7 +207,7 @@ def apply_visible_signature_stamp(
 
     try:
         reader = PdfReader(io.BytesIO(pdf_data))
-        writer = PdfWriter()
+        writer = PdfWriter(clone_from=io.BytesIO(pdf_data))
         page_count = len(reader.pages)
         if page_count == 0:
             return pdf_data
@@ -216,7 +216,8 @@ def apply_visible_signature_stamp(
         signer_name = str(intestatario or "").strip()
         signature_place = str(luogo or "").strip()
 
-        for index, page in enumerate(reader.pages):
+        for index in range(page_count):
+            page = writer.pages[index]
             if index == last_page_index:
                 width = float(page.mediabox.width)
                 height = float(page.mediabox.height)
@@ -256,8 +257,6 @@ def apply_visible_signature_stamp(
                 overlay_buffer.seek(0)
                 overlay_page = PdfReader(overlay_buffer).pages[0]
                 page.merge_page(overlay_page)
-
-            writer.add_page(page)
 
         metadata = {}
         try:

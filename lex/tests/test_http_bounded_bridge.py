@@ -104,7 +104,7 @@ def test_http_bridge_non_aggiunge_fonti_legali_di_comodo_su_workflow_economico(m
     assert payload["sources"] == []
 
 
-def test_http_bridge_attiva_ricerca_web_quando_manca_contesto_interno(monkeypatch):
+def test_http_bridge_non_attiva_il_percorso_guidato_su_ricerca_web_strict(monkeypatch):
     response = LexResponse(
         answer="Ho trovato una base normativa ufficiale sufficiente per partire.",
         citations=[],
@@ -141,15 +141,11 @@ def test_http_bridge_attiva_ricerca_web_quando_manca_contesto_interno(monkeypatc
         ),
     )
 
-    assert payload is not None
-    assert payload["web_fallback_used"] is True
-    assert service.last_request.allow_external_research is True
-    assert service.last_request.require_official_sources is True
-    assert service.last_request.require_citations is True
-    assert service.last_request.workflow_hint == "giurisprudenza"
+    assert payload is None
+    assert service.last_request is None
 
 
-def test_http_bridge_propaga_badge_fonti_governate_partner_e_riservate(monkeypatch):
+def test_http_bridge_non_forza_il_percorso_guidato_su_fonti_partner_strict(monkeypatch):
     response = LexResponse(
         answer="La fonte richiesta e governata ma richiede credenziali dedicate.",
         citations=[
@@ -205,6 +201,5 @@ def test_http_bridge_propaga_badge_fonti_governate_partner_e_riservate(monkeypat
         ),
     )
 
-    assert payload is not None
-    assert payload["sources"][0]["source_access_label"] == "Fonte partner con credenziali"
-    assert payload["sources"][0]["source_requires_credentials"] is True
+    assert payload is None
+    assert service.last_request is None

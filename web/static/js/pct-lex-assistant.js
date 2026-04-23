@@ -1575,7 +1575,7 @@
         preparedConfidenceValue = Number(prepared && prepared.confidence || 0);
         preparedSources = Array.isArray(prepared && prepared.sources) ? prepared.sources.slice() : [];
         preparedCitations = Array.isArray(prepared && prepared.citations) ? prepared.citations.slice() : [];
-        if ((String(prepared && prepared.query_type || '').trim() === 'social_only' || String(prepared && prepared.query_type || '').trim() === 'direct_answer') && prepared && prepared.answer) {
+        if ((String(prepared && prepared.query_type || '').trim() === 'social_only' || String(prepared && prepared.query_type || '').trim() === 'direct_answer' || String(prepared && prepared.query_type || '').trim() === 'workflow_answer') && prepared && prepared.answer) {
           return {
             answer: String(prepared.answer || '').trim(),
             citations: preparedCitations,

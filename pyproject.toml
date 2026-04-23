@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [tool.ruff]
 line-length = 120
-target-version = "py39"
+target-version = "py312"
 exclude = [
   ".git",
   "__pycache__",
@@ -26,3 +26,13 @@ pretty = true
 warn_unused_configs = true
 ignore_missing_imports = true
 follow_imports = "silent"
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+addopts = "-q --strict-markers --strict-config"
+testpaths = [
+  "tests",
+]
+filterwarnings = [
+  "error::DeprecationWarning",
+]

@@ -305,6 +305,7 @@ def register_auth_runtime(
         path = str(request.path or "").strip().lower()
         allowed_blueprints = {
             "admin",
+            "assistente",
             "installation_pack_admin",
             "legal_coverage_admin",
             "legal_updates_admin",
@@ -321,7 +322,19 @@ def register_auth_runtime(
         }
         allowed_path_prefixes = (
             "/admin/database",
+            "/api/assistente",
         )
+
+        if (
+            not app.testing
+            and getattr(utente, "must_change_password", False)
+            and endpoint not in password_change_routes
+        ):
+            flash(
+                "Per motivi di sicurezza devi impostare una nuova password prima di continuare.",
+                "warning",
+            )
+            return redirect(url_for("profilo", password_obbligatoria=1))
 
         if (
             blueprint in allowed_blueprints

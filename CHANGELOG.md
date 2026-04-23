@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.182.9 - 2026-04-23
+
+- Chiusa la tranche di hardening repository richiesta nel bundle senza deviazioni: `pyproject.toml` riallineato a Python `3.12`, `setup.py` governato dal manifest condiviso, `SECURITY.md` e `CONTRIBUTING.md` riscritti in modo coerente con il prodotto e introdotti `constraints` globali per stabilizzare installazioni locali, CI e deploy.
+- Rafforzata la pipeline GitHub Actions con controllo baseline Python, sincronizzazione packaging, installazione con `constraints`, gate coverage critico al `65%` e ambiente test coerente anche per `E2E smoke` e `Local Signer / PKCS#11`.
+- Corrette le regressioni che facevano fallire la CI reale: `asn1crypto` rientra ora negli extra PDF usati dai job signer, `PYTHONPATH` e packaging sono coerenti nei job smoke, la fixture `admin/database` autentica davvero l'utente nel canale usato dall'app e il bridge HTTP di Lex non forza piu' percorsi guidati quando la richiesta e' di ricerca giuridica o richiede fonti esterne rigorose.
+- La firma visibile su PDF non degrada piu' su timbro generico sotto pytest con warning severi: la fusione pagina usa ora un percorso compatibile con `pypdf` senza innescare deprecazioni trattate come errore in CI.
+
 ## 2.182.8 - 2026-04-22
 
 - Rimesso in sicurezza l'accesso ai dati di studio sui tenant SQLite: se la modalita' `WAL` non e' disponibile sul volume dati, il motore passa automaticamente a una modalita' compatibile invece di far esplodere pagine come `Panoramica studio`, `Fascicolo` e superfici amministrative collegate.

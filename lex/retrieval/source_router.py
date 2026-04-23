@@ -9,6 +9,7 @@ from .sources.giurisprudenza import GiurisprudenzaSource
 from .sources.legal_intelligence import LegalIntelligenceSource
 from .sources.normative import NormativeSource
 from .sources.official_web import OfficialWebSource
+from .sources.operational import OperationalSource
 from .sources.preventivi import PreventiviSource
 from .sources.scadenziario import ScadenziarioSource
 from .sources.telematico import TelematicoSource
@@ -77,9 +78,11 @@ class SourceRouter:
         elif workflow == "economico":
             workflow_sources.extend([PreventiviSource(), ApplicazioniSource()])
         elif workflow == "cabina":
-            workflow_sources.extend([AgendaSource(), ScadenziarioSource(), ApplicazioniSource()])
+            workflow_sources.extend([OperationalSource(), AgendaSource(), ScadenziarioSource(), ApplicazioniSource()])
         elif workflow == "compliance":
             workflow_sources.extend([ComplianceSource(), TemplateAttiSource()])
+        elif workflow == "next_action":
+            workflow_sources.extend([OperationalSource(), AgendaSource(), ScadenziarioSource(), ApplicazioniSource()])
         elif workflow in {"documento", "fascicolo"} and not request.fascicolo_id:
             workflow_sources.extend([DocumentiSource()])
 

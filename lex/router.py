@@ -59,6 +59,23 @@ class LexRouter:
         "controllo",
         "verifica deposito",
     )
+    _CABINA_HINTS = (
+        "cabina",
+        "quadro operativo",
+        "operativo",
+        "priorita",
+        "priorita'",
+        "scadenza",
+        "scadenze",
+        "agenda",
+        "appuntamento",
+        "appuntamenti",
+        "cliente",
+        "clienti",
+        "soggetti",
+        "studio",
+        "promemoria",
+    )
     _FONTI_HINTS = ("fonte", "fonti", "riferimento", "citazione", "link ufficiale")
 
     def resolve_workflow(self, request: LexRequest) -> WorkflowType:
@@ -119,6 +136,8 @@ class LexRouter:
             return "telematico_status"
         if getattr(request, "fascicolo_id", None):
             return "fascicolo"
+        if self._has_any(text, self._CABINA_HINTS):
+            return "cabina"
         return "question_answering"
 
     @staticmethod

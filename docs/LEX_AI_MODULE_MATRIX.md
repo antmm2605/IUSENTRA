@@ -26,6 +26,24 @@ Sul dominio `Fascicoli` Lex deve leggere la stessa struttura che l'utente vede n
 
 Regola operativa: sui fascicoli aperti non sono ammessi cap rigidi come `limit=8` sul caricamento documentale del RAG. Se servono limiti per ranking o presentazione, devono vivere a valle dell'indicizzazione completa e non nel caricamento del contesto.
 
+## Presidio studio e RAG per compiti
+
+Lex non deve lavorare su un unico indice indistinto dello studio. Il contesto strutturato deve essere separato per compito e alimentato dai moduli deterministici originali del gestionale:
+
+- `studio_operativo`
+- `fascicolo_intelligence`
+- `conformita_fascicolo`
+- `economico`
+
+Regola operativa: queste sezioni non vanno ricostruite con prompt o deduzioni se esiste gia' un modulo specialistico che conosce il dominio. Lex deve leggere e riusare:
+
+- `WorkspaceIntelligenteService` per cabina, priorita', scadenze, agenda e fascicoli attenzionati
+- `build_fascicolo_compliance_summary(...)` per controllo conformita', documenti mancanti, gate e prossimo passo
+- moduli economici (`preventivi`, `conferimenti`, `fatturazione`) per stato economico della pratica e dello studio
+- anagrafiche reali (`clienti`, `soggetti`, `parti_fascicolo`) per cliente, assistiti, controparti e soggetti collegati
+
+Regola finale: se un evento o un dato e' gia' strutturato nel gestionale, Lex deve riceverlo nel proprio `structured_context` e nel retrieval dedicato, non cercarlo solo nel testo libero dei documenti.
+
 ## Matrice
 
 | Modulo | Ruolo | Tipo | Input | Output | Eventi prodotti | Eventi consumati | Priorita' |

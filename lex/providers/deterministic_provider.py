@@ -29,6 +29,11 @@ def _context_section(context: Any, key: str) -> Any:
     return {}
 
 
+def _context_dict(context: Any, key: str) -> dict[str, Any]:
+    section = _context_section(context, key)
+    return dict(section or {}) if isinstance(section, dict) else {}
+
+
 def _section_rows(context: Any, key: str) -> list[dict[str, Any]]:
     sezioni = _context_section(context, "fascicolo_sezioni") or {}
     if key == "documenti_fascicolo":
@@ -128,10 +133,22 @@ def _format_dataora_italiana(value: Any) -> str:
     return _format_data_italiana(text)
 
 
+def _format_euro(value: Any) -> str:
+    try:
+        amount = float(value or 0.0)
+    except Exception:
+        amount = 0.0
+    formatted = f"{amount:,.2f}"
+    formatted = formatted.replace(",", "X").replace(".", ",").replace("X", ".")
+    return f"EUR {formatted}"
+
+
 def _fascicolo_text(question: str, context: Any, title: str, summary: str) -> str:
     fascicolo = _context_section(context, "fascicolo") or {}
     documenti = list(_context_section(context, "documenti") or [])
     fascicolo_sezioni = dict(_context_section(context, "fascicolo_sezioni") or {})
+    fascicolo_intelligence = _context_dict(context, "fascicolo_intelligence")
+    conformita_fascicolo = _context_dict(context, "conformita_fascicolo")
     attivita_processuali = _section_rows(context, "attivita_processuali")
     documenti_fascicolo = _section_rows(context, "documenti_fascicolo")
     udienze_scadenze = _section_rows(context, "udienze_scadenze")
@@ -215,6 +232,22 @@ def _fascicolo_text(question: str, context: Any, title: str, summary: str) -> st
             ),
         ]
         lines.extend(line for line in section_lines if line)
+    if fascicolo_intelligence:
+        presidio = dict(fascicolo_intelligence.get("presidio") or {})
+        if str(presidio.get("summary") or "").strip():
+            lines.append(f"Presidio pratica: {presidio.get('summary')}.")
+        if list(fascicolo_intelligence.get("giurisprudenza") or []):
+            lines.append(
+                f"Giurisprudenza collegata: {len(list(fascicolo_intelligence.get('giurisprudenza') or []))} riferimenti utili."
+            )
+    if conformita_fascicolo:
+        general = dict(conformita_fascicolo.get("general") or {})
+        if general:
+            lines.append(
+                "Conformita': "
+                f"{conformita_fascicolo.get('readiness_label') or general.get('label') or 'Da verificare'} "
+                f"({int(general.get('blocking_count') or 0)} blocchi, {int(general.get('warning_count') or 0)} avvisi)."
+            )
 
     prossima_scadenza = next(
         (
@@ -249,7 +282,12 @@ def _fascicolo_text(question: str, context: Any, title: str, summary: str) -> st
         lines.append(f"Attivita' in agenda: {agenda_titolo} ({agenda_data}).")
 
     haystack = str(question or "").lower()
-    if "comunicaz" in haystack and comunicazioni_cancelleria:
+    intelligent_next_actions = [
+        str(item).strip() for item in list(fascicolo_intelligence.get("next_actions") or []) if str(item).strip()
+    ]
+    if intelligent_next_actions:
+        next_step = intelligent_next_actions[0]
+    elif "comunicaz" in haystack and comunicazioni_cancelleria:
         next_step = (
             "rivedere subito l'ultima comunicazione di cancelleria e verificare se apre termini, adempimenti o allegati mancanti."
         )
@@ -275,7 +313,76 @@ def _fascicolo_text(question: str, context: Any, title: str, summary: str) -> st
     return "\n".join(line for line in lines if line)
 
 
-def _economic_text(question: str, title: str, summary: str) -> str:
+def _economic_text(question: str, context: Any, title: str, summary: str) -> str:
+    economico = _context_dict(context, "economico")
+    summary_data = dict(economico.get("summary") or {})
+    if summary_data:
+        scope = str(economico.get("scope") or "studio").strip() or "studio"
+        fascicolo = dict(economico.get("fascicolo") or {})
+        preventivi = list(economico.get("preventivi") or [])
+        conferimenti = list(economico.get("conferimenti") or [])
+        parcelle = list(economico.get("parcelle") or [])
+        best_practice = dict(economico.get("best_practice") or {})
+        lines = []
+        if scope == "fascicolo":
+            numero = str(fascicolo.get("numero") or "").strip()
+            titolo = str(fascicolo.get("titolo") or "").strip()
+            lines.append(
+                f"Presidio economico del fascicolo {numero or 'senza numero'}{f' - {titolo}' if titolo else ''}."
+            )
+        else:
+            lines.append("Presidio economico dello studio disponibile.")
+        lines.append(
+            f"Preventivi {int(summary_data.get('preventivi_count') or 0)}, "
+            f"conferimenti {int(summary_data.get('conferimenti_count') or 0)}, "
+            f"parcelle {int(summary_data.get('parcelle_count') or 0)}."
+        )
+        lines.append(
+            "Valori: "
+            f"preventivato {_format_euro(summary_data.get('totale_preventivato'))}, "
+            f"conferito {_format_euro(summary_data.get('totale_conferito'))}, "
+            f"fatturato {_format_euro(summary_data.get('totale_fatturato'))}, "
+            f"incassato {_format_euro(summary_data.get('totale_incassato'))}, "
+            f"saldo aperto {_format_euro(summary_data.get('saldo_aperto'))}."
+        )
+        if preventivi:
+            first = dict(preventivi[0] or {})
+            lines.append(
+                f"Preventivo principale: {first.get('oggetto') or first.get('numero') or 'n.d.'} "
+                f"(stato {str(first.get('stato') or 'n.d.').lower()}, totale {_format_euro(first.get('totale'))})."
+            )
+        if conferimenti:
+            first = dict(conferimenti[0] or {})
+            lines.append(
+                f"Conferimento: {first.get('oggetto') or first.get('numero') or 'n.d.'} "
+                f"(stato {str(first.get('stato') or 'n.d.').lower()}, compenso {_format_euro(first.get('compenso_pattuito'))})."
+            )
+        if parcelle:
+            first = dict(parcelle[0] or {})
+            lines.append(
+                f"Parcella piu' recente: {first.get('numero') or 'n.d.'} "
+                f"(stato {str(first.get('stato') or 'n.d.').lower()}, totale {_format_euro(first.get('totale'))})."
+            )
+        if best_practice:
+            lines.append(
+                f"Percorso economico collegato: {best_practice.get('label') or best_practice.get('title') or 'n.d.'}."
+            )
+
+        if int(summary_data.get("parcelle_scadute") or 0) > 0:
+            next_step = "sollecitare gli incassi scaduti e riallineare subito le parcelle aperte."
+        elif int(summary_data.get("preventivi_count") or 0) == 0:
+            next_step = "aprire un preventivo guidato collegato alla pratica prima di proseguire."
+        elif int(summary_data.get("conferimenti_count") or 0) == 0:
+            next_step = "formalizzare il conferimento di incarico partendo dal preventivo gia' disponibile."
+        elif int(summary_data.get("parcelle_count") or 0) == 0 and int(summary_data.get("conferimenti_count") or 0) > 0:
+            next_step = "valutare se il fascicolo e' maturo per la prima parcella o per un acconto."
+        elif float(summary_data.get("saldo_aperto") or 0.0) > 0:
+            next_step = "presidiare il saldo aperto e verificare parcelle emesse, incassi e scadenze."
+        else:
+            next_step = "tenere allineati preventivo, conferimento e fatturazione sullo stesso fascicolo."
+        lines.append(f"Prossimo passo consigliato: {next_step}")
+        return "\n".join(line for line in lines if line)
+
     haystack = str(question or "").strip().lower()
     context_line = f"Contesto utile: {title}." if title else ""
     if "preventiv" in haystack:
@@ -329,6 +436,141 @@ def _economic_text(question: str, title: str, summary: str) -> str:
     ).strip()
 
 
+def _operational_text(question: str, context: Any, title: str, summary: str) -> str:
+    studio_operativo = _context_dict(context, "studio_operativo")
+    fascicolo_intelligence = _context_dict(context, "fascicolo_intelligence")
+    fascicolo = _context_dict(context, "fascicolo")
+    studio_summary = dict(studio_operativo.get("summary") or {})
+    domains = dict(studio_operativo.get("domains") or {})
+    actions = list(studio_operativo.get("actions") or [])
+    hot_cases = list(studio_operativo.get("fascicoli_hot") or [])
+    urgent_deadlines = list(studio_operativo.get("urgent_deadlines") or [])
+    upcoming_appointments = list(studio_operativo.get("upcoming_appointments") or [])
+    if fascicolo and fascicolo_intelligence:
+        lines = [
+            f"Cabina operativa del fascicolo {fascicolo.get('numero') or fascicolo.get('id') or 'senza riferimento'}.",
+        ]
+        presidio = dict(fascicolo_intelligence.get("presidio") or {})
+        if str(presidio.get("summary") or "").strip():
+            lines.append(f"Stato operativo: {presidio.get('summary')}.")
+        if fascicolo_intelligence.get("scadenze_scadute"):
+            first = dict(fascicolo_intelligence.get("scadenze_scadute")[0] or {})
+            lines.append(
+                f"Scadenza scaduta da riallineare: {first.get('titolo') or 'n.d.'} ({_format_data_italiana(first.get('data'))})."
+            )
+        elif fascicolo_intelligence.get("scadenze"):
+            first = dict(fascicolo_intelligence.get("scadenze")[0] or {})
+            lines.append(
+                f"Prossima scadenza: {first.get('titolo') or 'n.d.'} ({_format_data_italiana(first.get('data'))})."
+            )
+        if fascicolo_intelligence.get("appuntamenti"):
+            first = dict(fascicolo_intelligence.get("appuntamenti")[0] or {})
+            lines.append(
+                f"Appuntamento o udienza: {first.get('titolo') or 'n.d.'} ({_format_dataora_italiana(first.get('data_ora'))})."
+            )
+        next_actions = [str(item).strip() for item in list(fascicolo_intelligence.get("next_actions") or []) if str(item).strip()]
+        if next_actions:
+            lines.append(f"Prossimo passo consigliato: {next_actions[0]}")
+        return "\n".join(line for line in lines if line)
+
+    lines = ["Cabina operativa dello studio aggiornata."]
+    if studio_summary:
+        lines.append(
+            f"Oggi abbiamo {int(studio_summary.get('scadenze_urgenti') or 0)} scadenze urgenti, "
+            f"{int(studio_summary.get('appuntamenti_orizzonte') or 0)} appuntamenti in orizzonte e "
+            f"{int(studio_summary.get('fascicoli_attenzionati') or 0)} fascicoli attenzionati."
+        )
+    if domains:
+        lines.append(
+            "Copertura studio: "
+            f"{int((domains.get('clienti') or {}).get('total') or 0)} clienti, "
+            f"{int((domains.get('soggetti') or {}).get('total') or 0)} soggetti, "
+            f"{int((domains.get('fascicoli') or {}).get('total') or 0)} fascicoli, "
+            f"{int((domains.get('preventivi') or {}).get('total') or 0)} preventivi, "
+            f"{int((domains.get('parcelle') or {}).get('total') or 0)} parcelle."
+        )
+    if actions:
+        first = dict(actions[0] or {})
+        lines.append(
+            f"Priorita' corrente: {first.get('title') or 'n.d.'}. {first.get('description') or ''}".strip()
+        )
+    elif urgent_deadlines:
+        first = dict(urgent_deadlines[0] or {})
+        lines.append(
+            f"Termine da presidiare subito: {first.get('titolo') or 'n.d.'} ({_format_data_italiana(first.get('data'))})."
+        )
+    elif hot_cases:
+        first = dict(hot_cases[0] or {})
+        lines.append(
+            f"Fascicolo da attenzionare: {first.get('titolo') or first.get('numero') or 'n.d.'}."
+        )
+    elif upcoming_appointments:
+        first = dict(upcoming_appointments[0] or {})
+        lines.append(
+            f"Prossimo impegno: {first.get('titolo') or 'n.d.'} ({_format_dataora_italiana(first.get('data_ora'))})."
+        )
+    elif title or summary:
+        lines.append(f"Evidenza principale: {title or 'n.d.'}. {summary}".strip())
+    return "\n".join(line for line in lines if line)
+
+
+def _compliance_text(question: str, context: Any, title: str, summary: str) -> str:
+    compliance = _context_dict(context, "conformita_fascicolo")
+    if compliance:
+        general = dict(compliance.get("general") or {})
+        sections = dict(compliance.get("sections") or {})
+        lines = [
+            f"Responsabile di conformita': {compliance.get('readiness_label') or compliance.get('summary') or 'verifica disponibile'}.",
+        ]
+        if general:
+            lines.append(
+                f"Stato {str(general.get('label') or 'Da verificare').lower()}: "
+                f"punteggio {int(general.get('score') or 0)}/100, "
+                f"blocchi {int(general.get('blocking_count') or 0)}, "
+                f"avvisi {int(general.get('warning_count') or 0)}."
+            )
+        if sections:
+            section_parts = []
+            for key in ("processuale", "documentale", "tecnico_pst", "redazionale"):
+                section = dict(sections.get(key) or {})
+                label = str(section.get("label") or key).strip()
+                state = str(section.get("state") or "ok").strip().lower()
+                if not label:
+                    continue
+                section_parts.append(f"{label}: {state}")
+            if section_parts:
+                lines.append("Aree controllate: " + "; ".join(section_parts) + ".")
+        blocking = [str(item.get("title") or "").strip() for item in list(compliance.get("blocking_issues") or []) if str(item.get("title") or "").strip()]
+        warning = [str(item.get("title") or "").strip() for item in list(compliance.get("warning_issues") or []) if str(item.get("title") or "").strip()]
+        missing_docs = [
+            str(item.get("label") or item.get("key") or "").strip()
+            for item in list(compliance.get("missing_documents") or [])
+            if str(item.get("label") or item.get("key") or "").strip()
+        ]
+        if blocking:
+            lines.append("Blocchi principali: " + "; ".join(blocking[:2]) + ".")
+        elif warning:
+            lines.append("Verifiche aperte: " + "; ".join(warning[:2]) + ".")
+        if missing_docs:
+            lines.append("Documenti richiesti mancanti: " + ", ".join(missing_docs[:3]) + ".")
+        prepare_gate = dict((compliance.get("action_gates") or {}).get("prepare_deposit") or {})
+        if prepare_gate.get("applicable"):
+            status = "pronto" if prepare_gate.get("allowed") else "non pronto"
+            reason = str(prepare_gate.get("reason") or "").strip()
+            lines.append(f"Pre-deposito: {status}. {reason}".strip())
+        next_steps = [str(item).strip() for item in list(compliance.get("next_steps") or []) if str(item).strip()]
+        if next_steps:
+            lines.append(f"Prossimo passo consigliato: {next_steps[0]}")
+        return "\n".join(line for line in lines if line)
+    return (
+        "Esito operativo governato\n"
+        f"- Richiesta: {question or 'non specificata'}\n"
+        f"- Evidenza principale: {title or 'non disponibile'}\n"
+        f"- Osservazione: {summary}\n"
+        "- Azione suggerita: eseguire il controllo tecnico o la verifica del fascicolo prima del passo successivo."
+    )
+
+
 class DeterministicProvider(BaseProvider):
     provider_name = "deterministic"
 
@@ -341,25 +583,13 @@ class DeterministicProvider(BaseProvider):
         q = str(getattr(request, "query", "") or "").strip()
 
         if workflow in {"next_action", "cabina"}:
-            text = (
-                "Quadro operativo sintetico\n"
-                f"- Richiesta: {q or 'non specificata'}\n"
-                f"- Evidenza principale: {title or 'non disponibile'}\n"
-                f"- Sintesi: {summary}\n"
-                "- Azione suggerita: aprire il modulo contestuale e verificare le criticita prima di proseguire."
-            )
+            text = _operational_text(q, context, title, summary)
         elif workflow in {"economico"}:
-            text = _economic_text(q, title, summary)
+            text = _economic_text(q, context, title, summary)
         elif workflow in {"fascicolo"}:
             text = _fascicolo_text(q, context, title, summary)
         elif workflow in {"telematico_status", "compliance"}:
-            text = (
-                "Esito operativo governato\n"
-                f"- Richiesta: {q or 'non specificata'}\n"
-                f"- Evidenza principale: {title or 'non disponibile'}\n"
-                f"- Osservazione: {summary}\n"
-                "- Azione suggerita: eseguire il controllo tecnico o la verifica del fascicolo prima del passo successivo."
-            )
+            text = _compliance_text(q, context, title, summary)
         else:
             text = (
                 f"Risposta deterministica per workflow '{workflow}'.\n"

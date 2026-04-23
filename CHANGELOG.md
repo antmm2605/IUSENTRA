@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.182.14 - 2026-04-23
+
+- Lex AI usa ora contesti strutturati reali per `studio_operativo`, `fascicolo_intelligence`, `conformita_fascicolo` ed `economico`, riusando direttamente `WorkspaceIntelligenteService`, `Responsabile di conformita'`, `preventivi`, `conferimenti` e `fatturazione` invece di limitarsi a riepiloghi testuali fragili.
+- Il retrieval applicativo di Lex espone adesso sorgenti operative e di compliance governate: le risposte di `cabina`, `next_action`, `economico` e `compliance` nascono da dati runtime veri dello studio e non da placeholder generici.
+- Corretto anche il contesto anagrafico e agenda del fascicolo: Lex risolve finalmente cliente e parti processuali dal fascicolo aperto e aggancia appuntamenti collegati anche tramite `id_cliente`, numero o `RG`, evitando vuoti artificiali nel RAG.
+- Rafforzato il provider deterministico con risposte professionali e task-aware su cabina operativa, presidio economico e conformita' del fascicolo, con nuovi test di regressione che bloccano il ritorno dei vecchi vuoti di contesto.
+
 ## 2.182.13 - 2026-04-23
 
 - Lex AI non tronca piu' il contesto documentale del fascicolo a 8 elementi: `load_document_context` e il retrieval documentale leggono ora tutto l'archivio del fascicolo aperto, cosi' pratiche con decine di allegati non perdono piu' contesto nel RAG.

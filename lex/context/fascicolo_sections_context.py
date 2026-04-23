@@ -104,11 +104,20 @@ def _serialize_appuntamento(appuntamento) -> dict[str, Any]:
     }
 
 
-def _agenda_fascicolo_rows(target_id: str) -> list[Any]:
+def _agenda_fascicolo_rows(target_id: str, fascicolo) -> list[Any]:
+    keys = {
+        _clean_spaces(target_id).lower(),
+        _clean_spaces(getattr(fascicolo, "id_cliente", "")).lower(),
+        _clean_spaces(getattr(fascicolo, "numero", "")).lower(),
+        _clean_spaces(getattr(fascicolo, "numero_rg", "")).lower(),
+        _clean_spaces(getattr(fascicolo, "rg_completo", "")).lower(),
+    }
+    keys.discard("")
     rows: list[Any] = []
     for appuntamento in get_agenda().tutti():
-        procedimento = _clean_spaces(getattr(appuntamento, "procedimento", ""))
-        if procedimento != target_id:
+        procedimento = _clean_spaces(getattr(appuntamento, "procedimento", "")).lower()
+        id_cliente = _clean_spaces(getattr(appuntamento, "id_cliente", "")).lower()
+        if keys and procedimento not in keys and id_cliente not in keys:
             continue
         rows.append(appuntamento)
     return rows
@@ -139,7 +148,7 @@ def load_fascicolo_sections_context(
         return {}
 
     documenti_rows = list(documenti or load_document_context(pratica_id=target_id, fascicolo_id=target_id, limit=None))
-    agenda_rows = _agenda_fascicolo_rows(target_id)
+    agenda_rows = _agenda_fascicolo_rows(target_id, fascicolo)
     scadenze_rows = _scadenze_fascicolo_rows(target_id)
     workspace = build_fascicolo_workspace(
         fascicolo,

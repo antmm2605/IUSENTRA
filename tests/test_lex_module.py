@@ -4,6 +4,8 @@ from pathlib import Path
 from lex.contracts import LexRequest
 from lex.context.builder import LexContextBuilder
 from lex.context.document_context import load_document_context
+from lex.providers.deterministic_provider import DeterministicProvider
+from lex.retrieval.sources.compliance import ComplianceSource
 from lex.context.studio_context import build_lex_studio_context
 from lex.memory.conversation_state import (
     messages_with_effective_question,
@@ -11,7 +13,11 @@ from lex.memory.conversation_state import (
 )
 from lex.retrieval.documenti import search_document_sources
 from lex.retrieval.fascicoli import search_fascicolo_sources
+from pct.clienti import GestioneClienti, Indirizzo, Recapiti, TipoCliente
 from pct.fascicoli import EsitoDepositoPCT, GestioneFascicoli, TipoAttivita, TipoDocumento, TipoFascicolo
+from pct.fatturazione import GestioneFatturazione, StatoParcella, VoceParcella
+from pct.preventivi import GestionePreventivi, TipoVoce, VocePreventivo
+from pct.soggetti import GestioneSoggetti, RuoloSoggetto, TipoSoggetto
 from web.app import create_app
 
 
@@ -79,6 +85,7 @@ def _cfg_web(tmp_path: Path) -> dict:
         "FASCICOLI_DOCS": str(tmp_path / "docs"),
         "FASCICOLI_ARCH": str(tmp_path / "arch"),
         "AGENDA_DB": str(tmp_path / "agenda.json"),
+        "CALENDAR_SYNC_DB": str(tmp_path / "calendar_sync.json"),
         "SCADENZIARIO_DB": str(tmp_path / "scadenze.json"),
         "MESSAGGI_DB": str(tmp_path / "messaggi.json"),
         "EMAIL_CASELLA_DB": str(tmp_path / "email" / "casella.json"),
@@ -93,12 +100,14 @@ def _cfg_web(tmp_path: Path) -> dict:
         "WORKSPACE_INTELLIGENCE_DB": str(tmp_path / "intelligence" / "workspace_intelligence.json"),
         "TEMPLATE_ATTI_DB": str(tmp_path / "template_atti" / "templates.json"),
         "TEMPLATE_ATTI_PREFS_DB": str(tmp_path / "template_atti" / "editor_layout.json"),
+        "REDACTION_ASSISTANT_DB": str(tmp_path / "intelligence" / "assistente_redazionale.json"),
         "PREVENTIVI_DB": str(tmp_path / "preventivi" / "preventivi.json"),
         "FATTURAZIONE_DB": str(tmp_path / "fatturazione" / "parcelle.json"),
         "LOCAL_AI_DB": str(tmp_path / "intelligence" / "local_ai.db"),
         "LOCAL_AI_POLICY": str(REPO_ROOT / "config" / "ai-policy.json"),
         "LOCAL_AI_MODELS_DIR": str(tmp_path / "intelligence" / "models"),
         "STUDIO_CONFIG": str(tmp_path / "config" / "studio.json"),
+        "UFFICI_GIUDIZIARI_DB": str(tmp_path / "uffici" / "uffici_giudiziari.json"),
         "PDP_PENALE_DB": str(tmp_path / "penale" / "pdp_penale.db"),
         "TELEMATICO_DB": str(tmp_path / "telematico" / "workflow.db"),
         "PORTALE_DB": str(tmp_path / "portale" / "portali.json"),
@@ -308,6 +317,136 @@ def _seed_lex_fascicolo_workspace(tmp_path: Path) -> tuple[object, str]:
     return app, fascicolo.id
 
 
+def _seed_lex_operational_runtime(tmp_path: Path) -> tuple[object, str]:
+    from pct.agenda import TipoAppuntamento
+    from pct.scadenziario import TipoTermine
+    from web.helpers import get_agenda, get_scadenziario
+
+    cfg = _cfg_web(tmp_path)
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    app = create_app(cfg)
+
+    clienti = GestioneClienti(db_path=cfg["CLIENTI_DB"])
+    cliente = clienti.nuovo(
+        TipoCliente.PERSONA_FISICA,
+        nome="Mario",
+        cognome="Rossi",
+        codice_fiscale="RSSMRA80A01H501Z",
+    )
+    clienti.aggiorna(
+        cliente.id,
+        indirizzo_residenza=Indirizzo(via="Via Roma 12", comune="Milano"),
+        recapiti=Recapiti(email="mario.rossi@example.it"),
+    )
+
+    fascicoli = GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+    )
+    fascicolo = fascicoli.nuovo(
+        "RG 410/2026",
+        TipoFascicolo.CIVILE,
+        id_cliente=cliente.id,
+        nome_cliente=cliente.nome_completo,
+        tribunale="Tribunale di Milano",
+        numero_rg="410",
+        anno_rg=2026,
+        controparte="Beta S.r.l.",
+        oggetto="Atto di citazione per recupero crediti",
+        data_prima_udienza="2026-06-10",
+        data_notifica_citazione="2026-04-03",
+    )
+    fascicolo.avvocato_referente = "Avv. Lex"
+    fascicoli.aggiungi_documento(
+        fascicolo.id,
+        "atto_citazione.pdf",
+        TipoDocumento.ATTO_GIUDIZIARIO,
+        b"%PDF-1.4\n%%EOF",
+        caricato_da="admin",
+        data_documento="2026-04-02",
+    )
+    fascicoli._salva()
+
+    soggetti = GestioneSoggetti(
+        soggetti_path=cfg["SOGGETTI_DB"],
+        parti_path=cfg["SOGGETTI_PARTI_DB"],
+    )
+    assistito = soggetti.crea(
+        TipoSoggetto.PERSONA_FISICA,
+        nome="Mario",
+        cognome="Rossi",
+        codice_fiscale="RSSMRA80A01H501Z",
+        id_cliente=cliente.id,
+    )
+    controparte = soggetti.crea(
+        TipoSoggetto.PERSONA_GIURIDICA,
+        ragione_sociale="Beta S.r.l.",
+        partita_iva="01234567890",
+    )
+    soggetti.aggiungi_parte(fascicolo.id, assistito.id, RuoloSoggetto.ASSISTITO, note="Parte attrice")
+    soggetti.aggiungi_parte(fascicolo.id, controparte.id, RuoloSoggetto.CONTROPARTE, note="Controparte convenuta")
+
+    preventivi = GestionePreventivi(cfg["PREVENTIVI_DB"])
+    preventivo = preventivi.crea_preventivo(
+        id_cliente=cliente.id,
+        id_fascicolo=fascicolo.id,
+        oggetto="Atto di citazione recupero crediti",
+        voci=[VocePreventivo(descrizione="Compenso introduttivo", importo=1200.0, tipo=TipoVoce.ONORARIO)],
+        creato_da="admin",
+        id_pratica="atto_citazione",
+        area_pratica="Civile",
+        tipo_compenso="Per fasi processuali (D.M. 55/2014)",
+    )
+    preventivi.crea_conferimento(
+        id_cliente=cliente.id,
+        id_preventivo=preventivo.id,
+        id_fascicolo=fascicolo.id,
+        oggetto="Conferimento incarico recupero crediti",
+        avvocato_referente="Avv. Lex",
+        creato_da="admin",
+        compenso_pattuito=preventivo.totale,
+        id_pratica="atto_citazione",
+        area_pratica="Civile",
+        tipo_compenso="Per fasi processuali (D.M. 55/2014)",
+    )
+
+    fatturazione = GestioneFatturazione(cfg["FATTURAZIONE_DB"])
+    parcella = fatturazione.crea(
+        id_cliente=cliente.id,
+        id_fascicolo=fascicolo.id,
+        id_preventivo=preventivo.id,
+        creato_da="admin",
+        data_scadenza="2026-05-20",
+        voci=[VoceParcella(descrizione="Acconto professionale", prezzo_unitario=600.0)],
+        id_pratica="atto_citazione",
+        area_pratica="Civile",
+    )
+    fatturazione.cambia_stato(parcella.id, StatoParcella.EMESSA)
+
+    with app.app_context():
+        procedimento = getattr(fascicolo, "rg_completo", "") or f"{fascicolo.numero_rg}/{fascicolo.anno_rg}"
+        get_agenda().aggiungi(
+            "Udienza comparizione parti",
+            TipoAppuntamento.UDIENZA,
+            "2026-06-10T09:30:00",
+            procedimento=procedimento,
+            id_cliente=cliente.id,
+            tribunale="Tribunale di Milano",
+            luogo="Aula 4",
+            note="Preparare fascicolo e note finali",
+        )
+        get_scadenziario().nuova(
+            titolo="Deposita prova notifica",
+            tipo=TipoTermine.DEPOSITO_MEMORIA,
+            data_scadenza="2026-05-18",
+            id_fascicolo=fascicolo.id,
+            descrizione="Produzione prova notificatoria",
+        )
+
+    return app, fascicolo.id
+
+
 def test_lex_document_context_non_taglia_fascicolo_con_piu_di_otto_documenti(tmp_path: Path):
     _write_studio_config(tmp_path / "config" / "studio.json")
     app = create_app(_cfg_web(tmp_path))
@@ -404,3 +543,71 @@ def test_lex_studio_context_espone_dashboard_motori_legali(tmp_path: Path):
     )
     assert payload["legal_dashboard_headline"]["motori_attivi"] >= 1
     assert payload["legal_dashboard_headline"]["riferimenti_normativi"] >= 8
+
+
+def test_lex_anagrafica_context_risolve_cliente_e_soggetti_del_fascicolo(tmp_path: Path):
+    app, fascicolo_id = _seed_lex_operational_runtime(tmp_path)
+    request = LexRequest(
+        tenant_id="tenant-test",
+        user_id="admin",
+        session_id="sess-anagrafica",
+        query="chi sono cliente e parti del fascicolo",
+        fascicolo_id=fascicolo_id,
+    )
+
+    with app.app_context():
+        context = LexContextBuilder().build_request_context(request, "fascicolo")
+
+    assert context["anagrafica"]["clienti"]
+    assert context["anagrafica"]["clienti"][0]["cf"] == "RSSMRA80A01H501Z"
+    assert context["anagrafica"]["soggetti"]
+    assert {row["ruolo"] for row in context["anagrafica"]["soggetti"]} >= {"ASSISTITO", "CONTROPARTE"}
+
+
+def test_lex_context_builder_aggrega_workspace_conformita_ed_economico(tmp_path: Path):
+    app, fascicolo_id = _seed_lex_operational_runtime(tmp_path)
+    request = LexRequest(
+        tenant_id="tenant-test",
+        user_id="admin",
+        session_id="sess-operativo",
+        query="fammi il quadro operativo completo del fascicolo con economico e conformita",
+        fascicolo_id=fascicolo_id,
+    )
+
+    with app.app_context():
+        context = LexContextBuilder().build_request_context(request, "cabina")
+
+    assert context["agenda"]
+    assert context["studio_operativo"]["domains"]["preventivi"]["total"] == 1
+    assert context["economico"]["scope"] == "fascicolo"
+    assert context["economico"]["summary"]["parcelle_count"] == 1
+    assert context["fascicolo_intelligence"]["next_actions"]
+    assert context["conformita_fascicolo"]["available"] is True
+    assert context["conformita_fascicolo"]["missing_documents"]
+
+
+def test_lex_compliance_source_e_provider_usano_dati_reali_del_fascicolo(tmp_path: Path):
+    app, fascicolo_id = _seed_lex_operational_runtime(tmp_path)
+    request = LexRequest(
+        tenant_id="tenant-test",
+        user_id="admin",
+        session_id="sess-compliance",
+        query="il fascicolo e conforme per il deposito?",
+        fascicolo_id=fascicolo_id,
+    )
+
+    with app.app_context():
+        context = LexContextBuilder().build_request_context(request, "compliance")
+        evidence_items = ComplianceSource().search([request.query], request, context)
+        draft = DeterministicProvider().generate(
+            request=request,
+            context=context,
+            evidence={"items": evidence_items},
+            workflow="compliance",
+        )
+
+    assert evidence_items
+    assert evidence_items[0].metadata["authority"] == "responsabile_conformita"
+    assert "Responsabile di conformita'" in draft.text
+    assert "Pre-deposito" in draft.text
+    assert "procura" in draft.text.lower() or "notifica" in draft.text.lower()

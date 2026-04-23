@@ -10,6 +10,12 @@ from .anagrafica_context import load_anagrafica_context
 from .document_context import load_document_context
 from .fascicolo_context import load_fascicolo_context
 from .fascicolo_sections_context import load_fascicolo_sections_context
+from .operational_context import (
+    load_economic_context,
+    load_fascicolo_compliance_context,
+    load_fascicolo_intelligence_context,
+    load_studio_operational_context,
+)
 from .permissions_context import build_permissions_context
 from .runtime_context import build_runtime_context
 from .scadenze_context import load_scadenze_context
@@ -31,6 +37,7 @@ class LexContextBuilder:
 
     def build_request_context(self, request, workflow: str) -> dict[str, Any]:
         pratica_id = str(request.fascicolo_id or "").strip()
+        question = str(getattr(request, "query", "") or "").strip()
         sanitized = self._privacy_guard.sanitize_sections(
             {
                 "workflow": workflow,
@@ -41,6 +48,18 @@ class LexContextBuilder:
                 "runtime": build_runtime_context(request),
                 "agenda": self._safe_section(load_agenda_context, fallback=[], pratica_id=pratica_id),
                 "scadenziario": self._safe_section(load_scadenze_context, fallback=[], pratica_id=pratica_id),
+                "studio_operativo": self._safe_section(
+                    load_studio_operational_context,
+                    fallback={},
+                    question=question,
+                ),
+                "economico": self._safe_section(
+                    load_economic_context,
+                    fallback={},
+                    question=question,
+                    pratica_id=pratica_id,
+                    fascicolo_id=str(request.fascicolo_id or "").strip(),
+                ),
                 "telematico": build_telematico_context(request),
             }
         )
@@ -64,6 +83,18 @@ class LexContextBuilder:
                 pratica_id=pratica_id,
                 fascicolo_id=str(request.fascicolo_id or "").strip(),
                 documenti=documenti_context,
+            )
+            sanitized["fascicolo_intelligence"] = self._safe_section(
+                load_fascicolo_intelligence_context,
+                fallback={},
+                pratica_id=pratica_id,
+                fascicolo_id=str(request.fascicolo_id or "").strip(),
+            )
+            sanitized["conformita_fascicolo"] = self._safe_section(
+                load_fascicolo_compliance_context,
+                fallback={},
+                pratica_id=pratica_id,
+                fascicolo_id=str(request.fascicolo_id or "").strip(),
             )
             sanitized["anagrafica"] = self._safe_section(
                 load_anagrafica_context,
@@ -112,6 +143,30 @@ class LexContextBuilder:
                     pratica_id=pratica_id,
                     fascicolo_id=fascicolo_id,
                     documenti=documenti_context,
+                ),
+                "studio_operativo": self._safe_section(
+                    load_studio_operational_context,
+                    fallback={},
+                    question=effective_question,
+                ),
+                "economico": self._safe_section(
+                    load_economic_context,
+                    fallback={},
+                    question=effective_question,
+                    pratica_id=pratica_id,
+                    fascicolo_id=fascicolo_id,
+                ),
+                "fascicolo_intelligence": self._safe_section(
+                    load_fascicolo_intelligence_context,
+                    fallback={},
+                    pratica_id=pratica_id,
+                    fascicolo_id=fascicolo_id,
+                ),
+                "conformita_fascicolo": self._safe_section(
+                    load_fascicolo_compliance_context,
+                    fallback={},
+                    pratica_id=pratica_id,
+                    fascicolo_id=fascicolo_id,
                 ),
                 "agenda": self._safe_section(load_agenda_context, fallback=[], pratica_id=pratica_id),
                 "scadenze": self._safe_section(load_scadenze_context, fallback=[], pratica_id=pratica_id),

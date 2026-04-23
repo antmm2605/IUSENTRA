@@ -32,6 +32,9 @@ Chiudere una release di IUSENTRA significa allineare codice, documentazione, CI,
 
 - il lavoro confluisce sul branch di sviluppo corrente
 - lo stesso commit va sincronizzato anche sul branch gemello remoto
+- `scripts/repo_hygiene.ps1` installa in automatico `core.hooksPath=.githooks` e registra il repository come `safe.directory`, cosi' il bootstrap locale non dipende piu' da interventi manuali ripetuti
+- gli hook versionati in `.githooks/` riallineano i due branch locali ammessi dopo `commit`, `checkout`, `merge` e `rewrite`, evitando divergenze locali che poi riaprono gli stessi conflitti
+- il workflow `.github/workflows/sync-claude-to-codex.yml` specchia automaticamente `Codex/legal-electronic-filing-kIxcV` e `claude/legal-electronic-filing-kIxcV` in entrambe le direzioni dopo ogni push
 - non lasciare release solo in locale
 - prima di chiudere, eseguire `scripts/repo_hygiene.ps1`
 

@@ -7,10 +7,12 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from packaging_manifest import extras_requirements, read_version, runtime_requirements
 
+PACKAGE_VERSION = read_version()
+
 
 setup(
     name="pct-studio-legale",
-    version=read_version(),
+    version=PACKAGE_VERSION,
     description="IUSENTRA: gestionale web modulare per studi legali con PCT, Lex locale e servizi telematici",
     packages=find_packages(),
     include_package_data=True,

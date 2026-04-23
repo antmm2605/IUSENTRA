@@ -323,6 +323,8 @@ Per il percorso completo vedi [docs/DEMO_STUDIO_REALE.md](docs/DEMO_STUDIO_REALE
 
 La CI non si limita più alla sola sincronizzazione branch. Il workflow principale applicativo è `.github/workflows/ci.yml` e copre i push in modo generico, senza dipendere da due branch hardcoded.
 
+Il mirror dei due branch gemelli ammessi è ora separato dalla CI applicativa: `.github/workflows/sync-claude-to-codex.yml` riallinea automaticamente `Codex/legal-electronic-filing-kIxcV` e `claude/legal-electronic-filing-kIxcV` in entrambe le direzioni, mentre `scripts/repo_hygiene.ps1` installa i hook versionati in `.githooks/` per mantenere coerenti anche i branch locali.
+
 La pipeline applicativa esegue:
 
 - governance repo e modularizzazione (`Governance repo`)

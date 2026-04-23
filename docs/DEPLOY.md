@@ -125,9 +125,13 @@ Lo script riallinea:
 - worktree
 - branch ammessi
 - branch remoti sincronizzati
+- installazione automatica di `core.hooksPath=.githooks`
+- registrazione del repository come `safe.directory` per evitare il blocco Git `dubious ownership`
 - cache Python locali
 - `.pytest_cache`, `.ruff_cache`, `tmp/`
 - artefatti runtime locali transitori come `intelligence/downloads/` e `portale/import_log.json`
+
+Dopo il primo bootstrap, gli hook versionati in `.githooks/` mantengono allineati anche i due branch locali ammessi dopo `commit`, `checkout`, `merge` e `rewrite`, mentre il workflow `.github/workflows/sync-claude-to-codex.yml` specchia automaticamente il push verso il branch gemello remoto.
 
 ## Artefatti che non devono tornare in repo
 

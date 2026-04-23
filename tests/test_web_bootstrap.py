@@ -723,10 +723,18 @@ def test_bootstrap_pubblico_resta_allineato_a_password_temporanee_e_ci_reale():
     env_example = (REPO_ROOT / ".env.example").read_text(encoding="utf-8")
     readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
     ci_workflow = (REPO_ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
+    sync_workflow = (REPO_ROOT / ".github/workflows/sync-claude-to-codex.yml").read_text(encoding="utf-8")
     perf_workflow = (REPO_ROOT / ".github/workflows/performance-nightly.yml").read_text(encoding="utf-8")
     codeql_workflow = (REPO_ROOT / ".github/workflows/codeql.yml").read_text(encoding="utf-8")
     dependency_review = (REPO_ROOT / ".github/workflows/dependency-review.yml").read_text(encoding="utf-8")
     security_workflow = (REPO_ROOT / ".github/workflows/security-supply-chain.yml").read_text(encoding="utf-8")
+    repo_hygiene = (REPO_ROOT / "scripts/repo_hygiene.ps1").read_text(encoding="utf-8")
+    autosync_script = (REPO_ROOT / "scripts/git_branch_autosync.ps1").read_text(encoding="utf-8")
+    hook_runner = (REPO_ROOT / ".githooks/_run_powershell_hook.sh").read_text(encoding="utf-8")
+    post_commit = (REPO_ROOT / ".githooks/post-commit").read_text(encoding="utf-8")
+    post_checkout = (REPO_ROOT / ".githooks/post-checkout").read_text(encoding="utf-8")
+    post_merge = (REPO_ROOT / ".githooks/post-merge").read_text(encoding="utf-8")
+    post_rewrite = (REPO_ROOT / ".githooks/post-rewrite").read_text(encoding="utf-8")
 
     assert "admin / admin" not in compose
     assert "admin / admin" not in readme
@@ -737,6 +745,8 @@ def test_bootstrap_pubblico_resta_allineato_a_password_temporanee_e_ci_reale():
     assert "INSERISCI_UNA_CHIAVE_CASUALE" not in env_example
     assert "workflow principale applicativo è `.github/workflows/ci.yml`" in readme
     assert "github.com/antmm2605/IUSENTRA/actions/workflows/ci.yml" in readme
+    assert ".github/workflows/sync-claude-to-codex.yml" in readme
+    assert ".githooks/" in readme
     assert "name: CI" in ci_workflow
     assert "name: Governance repo" in ci_workflow
     assert "python tools/check_repo_governance.py" in ci_workflow
@@ -747,6 +757,20 @@ def test_bootstrap_pubblico_resta_allineato_a_password_temporanee_e_ci_reale():
     assert "tests/test_storage_strategy.py" in ci_workflow
     assert "tests/test_observability_runtime.py" in ci_workflow
     assert "tests/test_ocr_worker.py" in ci_workflow
+    assert "name: Sync Twin Branches" in sync_workflow
+    assert '      - "Codex/legal-electronic-filing-kIxcV"' in sync_workflow
+    assert '      - "claude/legal-electronic-filing-kIxcV"' in sync_workflow
+    assert 'target="claude/legal-electronic-filing-kIxcV"' in sync_workflow
+    assert 'target="Codex/legal-electronic-filing-kIxcV"' in sync_workflow
+    assert 'git push origin "HEAD:refs/heads/${{ steps.branches.outputs.target }}" --force' in sync_workflow
+    assert "core.hooksPath .githooks" in repo_hygiene
+    assert "safe.directory" in repo_hygiene
+    assert "git_branch_autosync.ps1" in hook_runner
+    assert "branch -f $branch $currentHead" in autosync_script
+    assert 'sh "$script_dir/_run_powershell_hook.sh" post-commit "$@"' in post_commit
+    assert 'sh "$script_dir/_run_powershell_hook.sh" post-checkout "$@"' in post_checkout
+    assert 'sh "$script_dir/_run_powershell_hook.sh" post-merge "$@"' in post_merge
+    assert 'sh "$script_dir/_run_powershell_hook.sh" post-rewrite "$@"' in post_rewrite
     assert "name: Performance Nightly" in perf_workflow
     assert "tools/performance_smoke.py --strict" in perf_workflow
     assert "name: CodeQL" in codeql_workflow

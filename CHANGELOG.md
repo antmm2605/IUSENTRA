@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.182.12 - 2026-04-23
+
+- Resa stabile la disciplina dei due branch gemelli: il workflow `.github/workflows/sync-claude-to-codex.yml` specchia ora automaticamente sia `Codex/legal-electronic-filing-kIxcV` verso `claude/legal-electronic-filing-kIxcV` sia il percorso inverso, evitando riallineamenti manuali ripetuti dopo ogni push.
+- Introdotti hook Git versionati in `.githooks/` con autosync locale dei branch ammessi dopo `commit`, `checkout`, `merge` e `rewrite`, cosi' i due branch locali non divergono piu' tra loro durante il lavoro quotidiano.
+- `scripts/repo_hygiene.ps1` esegue ora anche il bootstrap di `safe.directory`, installa `core.hooksPath=.githooks` e ripulisce le configurazioni branch orfane, mentre i test di governance controllano esplicitamente questi guardrail per impedire regressioni future.
+
 ## 2.182.11 - 2026-04-23
 
 - Riallineato il motore di autenticazione e i runtime tenant-aware per evitare regressioni nei test completi: i permessi di piattaforma restano segregati, i tenant caricati da archivio SQL recuperano correttamente lo `slug` di studio e il layout base non va piu' in errore quando la pagina espone configurazioni locali.

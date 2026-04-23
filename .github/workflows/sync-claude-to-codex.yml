@@ -1,8 +1,9 @@
-name: Sync Claude To Codex
+name: Sync Twin Branches
 
 on:
   push:
     branches:
+      - "Codex/legal-electronic-filing-kIxcV"
       - "claude/legal-electronic-filing-kIxcV"
   workflow_dispatch:
 
@@ -10,19 +11,40 @@ permissions:
   contents: write
 
 jobs:
-  sync-codex-branch:
+  sync-peer-branch:
     runs-on: ubuntu-latest
     steps:
+      - name: Determine source and target branch
+        id: branches
+        shell: bash
+        run: |
+          source="${GITHUB_REF_NAME}"
+          case "$source" in
+            "Codex/legal-electronic-filing-kIxcV")
+              target="claude/legal-electronic-filing-kIxcV"
+              ;;
+            "claude/legal-electronic-filing-kIxcV")
+              target="Codex/legal-electronic-filing-kIxcV"
+              ;;
+            *)
+              echo "Branch non supportato: $source" >&2
+              exit 1
+              ;;
+          esac
+          echo "source=$source" >> "$GITHUB_OUTPUT"
+          echo "target=$target" >> "$GITHUB_OUTPUT"
+
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          ref: ${{ steps.branches.outputs.source }}
 
       - name: Configure git identity
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-      - name: Mirror Claude branch into Codex branch
+      - name: Mirror source branch into twin branch
         run: |
-          git push origin HEAD:refs/heads/Codex/legal-electronic-filing-kIxcV --force
+          git push origin "HEAD:refs/heads/${{ steps.branches.outputs.target }}" --force

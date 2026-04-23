@@ -564,6 +564,57 @@ def main() -> int:
         failures,
     )
 
+    sync_workflow = _read_text(".github/workflows/sync-claude-to-codex.yml")
+    for snippet in (
+        "name: Sync Twin Branches",
+        '      - "Codex/legal-electronic-filing-kIxcV"',
+        '      - "claude/legal-electronic-filing-kIxcV"',
+        'target="claude/legal-electronic-filing-kIxcV"',
+        'target="Codex/legal-electronic-filing-kIxcV"',
+        'git push origin "HEAD:refs/heads/${{ steps.branches.outputs.target }}" --force',
+    ):
+        _check(
+            snippet in sync_workflow,
+            f"Workflow sync branch gemelli incompleto: manca '{snippet}'.",
+            failures,
+        )
+
+    repo_hygiene = _read_text("scripts/repo_hygiene.ps1")
+    autosync_script = _read_text("scripts/git_branch_autosync.ps1")
+    hook_runner = _read_text(".githooks/_run_powershell_hook.sh")
+    post_commit = _read_text(".githooks/post-commit")
+    post_checkout = _read_text(".githooks/post-checkout")
+    post_merge = _read_text(".githooks/post-merge")
+    post_rewrite = _read_text(".githooks/post-rewrite")
+
+    for snippet in (
+        "core.hooksPath .githooks",
+        "safe.directory",
+    ):
+        _check(snippet in repo_hygiene, f"Repo hygiene incompleto: manca '{snippet}'.", failures)
+
+    _check(
+        "branch -f $branch $currentHead" in autosync_script,
+        "Autosync locale branch non riallinea il branch gemello su HEAD.",
+        failures,
+    )
+    _check(
+        "git_branch_autosync.ps1" in hook_runner,
+        "Runner hook non richiama lo script di autosync branch.",
+        failures,
+    )
+    for content, hook_name in (
+        (post_commit, "post-commit"),
+        (post_checkout, "post-checkout"),
+        (post_merge, "post-merge"),
+        (post_rewrite, "post-rewrite"),
+    ):
+        _check(
+            f'sh "$script_dir/_run_powershell_hook.sh" {hook_name} "$@"' in content,
+            f"Hook {hook_name} non instrada l'autosync locale.",
+            failures,
+        )
+
     performance_workflow = _read_text(".github/workflows/performance-nightly.yml")
     for snippet in (
         "name: Performance Nightly",
@@ -607,6 +658,8 @@ def main() -> int:
     _check("ocr-worker" in readme, "README non documenta il worker dedicato OCR.", failures)
     _check("/admin/osservabilita" in readme, "README non documenta la pagina di osservabilita'.", failures)
     _check("CodeQL" in readme, "README non documenta i workflow DevSecOps.", failures)
+    _check(".github/workflows/sync-claude-to-codex.yml" in readme, "README non documenta il mirror dei branch gemelli.", failures)
+    _check(".githooks/" in readme, "README non documenta i hook locali versionati.", failures)
     _check(
         "github.com/antmm2605/IUSENTRA/actions/workflows/ci.yml" in readme,
         "README non collega la vista live del workflow CI.",

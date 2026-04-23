@@ -10,6 +10,41 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
+function Ensure-SafeDirectory {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$RepoPath
+    )
+
+    $normalized = [System.IO.Path]::GetFullPath($RepoPath).TrimEnd('\')
+    $safeDirectories = @(git config --global --get-all safe.directory 2>$null)
+    foreach ($entry in $safeDirectories) {
+        $candidate = $entry.Trim()
+        if (-not $candidate) {
+            continue
+        }
+        if ($candidate -eq "*") {
+            return
+        }
+        try {
+            if ([System.IO.Path]::GetFullPath($candidate).TrimEnd('\') -eq $normalized) {
+                return
+            }
+        }
+        catch {
+            if ($candidate.TrimEnd('\') -eq $normalized) {
+                return
+            }
+        }
+    }
+
+    Write-Host "Registro safe.directory git: $normalized"
+    & git config --global --add safe.directory $normalized
+    if ($LASTEXITCODE -ne 0) {
+        throw "Git command failed: git config --global --add safe.directory $normalized"
+    }
+}
+
 function Invoke-Git {
     param(
         [Parameter(ValueFromRemainingArguments = $true)]
@@ -22,12 +57,47 @@ function Invoke-Git {
     }
 }
 
-$repoRoot = (git rev-parse --show-toplevel).Trim()
+function Get-GitOutput {
+    param(
+        [Parameter(ValueFromRemainingArguments = $true)]
+        [string[]]$Args
+    )
+
+    $output = & git @Args 2>$null
+    if ($null -eq $output) {
+        return ""
+    }
+    return ($output -join "`n").Trim()
+}
+
+$repoRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot ".."))
+Ensure-SafeDirectory -RepoPath $repoRoot
+Set-Location $repoRoot
+$repoRoot = Get-GitOutput rev-parse --show-toplevel
 if (-not $repoRoot) {
     throw "Repository root non trovato."
 }
 
 Set-Location $repoRoot
+
+function Install-RepoHooks {
+    param(
+        [string]$RootPath
+    )
+
+    $hooksDir = Join-Path $RootPath ".githooks"
+    if (-not (Test-Path $hooksDir)) {
+        throw "Directory hook non trovata: $hooksDir"
+    }
+
+    $currentHooksPath = Get-GitOutput config --local --get core.hooksPath
+    if ($currentHooksPath -eq ".githooks") {
+        return
+    }
+
+    Write-Host "Configuro core.hooksPath -> .githooks"
+    Invoke-Git config --local core.hooksPath .githooks
+}
 
 function Remove-GeneratedArtifacts {
     param(
@@ -83,7 +153,33 @@ function Remove-GeneratedArtifacts {
         }
 }
 
-$currentBranch = (git branch --show-current).Trim()
+function Remove-ExtraBranchConfig {
+    param(
+        [string[]]$AllowedNames
+    )
+
+    Write-Host "`n== Rimuove configurazioni branch extra ==" -ForegroundColor Cyan
+    $branchKeys = @(git config --local --name-only --get-regexp "^branch\\..+\\.(remote|merge|vscode-merge-base)$" 2>$null)
+    $branchSections = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
+    foreach ($key in $branchKeys) {
+        if ($key -match '^branch\.(.+)\.(remote|merge|vscode-merge-base)$') {
+            [void]$branchSections.Add($Matches[1])
+        }
+    }
+
+    foreach ($section in $branchSections) {
+        if ($AllowedNames -contains $section) {
+            continue
+        }
+        Write-Host "Elimino config branch: $section"
+        & git config --local --remove-section "branch.$section" 2>$null
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host "Config branch gia' assente: $section"
+        }
+    }
+}
+
+$currentBranch = Get-GitOutput branch --show-current
 if (-not $currentBranch) {
     throw "HEAD detached non supportato: esegui lo script da uno dei branch ammessi."
 }
@@ -94,6 +190,8 @@ if ($AllowedBranches -notcontains $currentBranch) {
 
 Write-Host "== Repo root ==" -ForegroundColor Cyan
 Write-Host $repoRoot
+
+Install-RepoHooks -RootPath $repoRoot
 
 Write-Host "`n== Fetch/prune ==" -ForegroundColor Cyan
 Invoke-Git fetch --prune $RemoteName
@@ -138,6 +236,7 @@ foreach ($branch in $localBranches) {
     Write-Host "Elimino branch locale: $name"
     Invoke-Git branch -D $name
 }
+Remove-ExtraBranchConfig -AllowedNames $AllowedBranches
 
 if ($DeleteRemoteExtras) {
     Write-Host "`n== Rimuove branch remoti extra ==" -ForegroundColor Cyan

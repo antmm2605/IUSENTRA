@@ -6,6 +6,7 @@ import threading
 import time
 from pathlib import Path
 
+from pct.fascicoli import GestioneFascicoli, TipoDocumento, TipoFascicolo
 from pct.ocr_jobs import OCRJobStore
 from pct.ocr_worker import serve_ocr_worker
 from web.services.ocr_runtime import build_ocr_runtime
@@ -40,11 +41,25 @@ def test_ocr_worker_processa_job_e_marca_completato(tmp_path: Path, monkeypatch)
     documento.parent.mkdir(parents=True, exist_ok=True)
     documento.write_bytes(b"pdf-bytes")
 
+    fascicoli_db = tmp_path / "fascicoli" / "fascicoli.json"
+    gf = GestioneFascicoli(
+        db_path=str(fascicoli_db),
+        documents_dir=str(tmp_path / "fascicoli" / "documenti"),
+        archive_dir=str(tmp_path / "fascicoli" / "archivio"),
+    )
+    fascicolo = gf.nuovo(titolo="RG 1025/2024", tipo=TipoFascicolo.CIVILE)
+    doc = gf.aggiungi_documento(
+        fascicolo.id,
+        "atto.pdf",
+        TipoDocumento.ATTO_GIUDIZIARIO,
+        b"pdf-bytes",
+    )
+
     store.enqueue(
         percorso=str(documento),
         hash_sha256="hash-doc-ocr",
-        id_fasc="FASC2",
-        id_doc="DOC2",
+        id_fasc=fascicolo.id,
+        id_doc=doc.id,
         nome_doc="atto.pdf",
         tipo_doc="ATTO",
         index_path=str(index_path),
@@ -53,6 +68,9 @@ def test_ocr_worker_processa_job_e_marca_completato(tmp_path: Path, monkeypatch)
     monkeypatch.setattr("pct.ocr_worker.ocr_estrai_testo", lambda payload, nome: "Testo OCR di prova")
     os.environ["PCT_OCR_QUEUE_DB"] = str(queue_db)
     os.environ["PCT_OCR_WORKERS"] = "1"
+    os.environ["PCT_FASCICOLI_DB"] = str(fascicoli_db)
+    os.environ["PCT_FASCICOLI_DOCS"] = str(tmp_path / "fascicoli" / "documenti")
+    os.environ["PCT_FASCICOLI_ARCH"] = str(tmp_path / "fascicoli" / "archivio")
 
     stop_event = threading.Event()
     worker_thread = threading.Thread(target=serve_ocr_worker, kwargs={"stop_event": stop_event}, daemon=True)
@@ -70,10 +88,21 @@ def test_ocr_worker_processa_job_e_marca_completato(tmp_path: Path, monkeypatch)
     worker_thread.join(timeout=5)
     os.environ.pop("PCT_OCR_QUEUE_DB", None)
     os.environ.pop("PCT_OCR_WORKERS", None)
+    os.environ.pop("PCT_FASCICOLI_DB", None)
+    os.environ.pop("PCT_FASCICOLI_DOCS", None)
+    os.environ.pop("PCT_FASCICOLI_ARCH", None)
 
     assert snapshot["completati"] >= 1
     assert snapshot["in_coda"] == 0
     assert snapshot["errori"] == 0
+    gf_reload = GestioneFascicoli(
+        db_path=str(fascicoli_db),
+        documents_dir=str(tmp_path / "fascicoli" / "documenti"),
+        archive_dir=str(tmp_path / "fascicoli" / "archivio"),
+    )
+    fascicolo_reload = gf_reload.get(fascicolo.id)
+    assert fascicolo_reload is not None
+    assert next(item for item in fascicolo_reload.documenti if item.id == doc.id).ocr_estratto is True
 
 
 def test_ocr_job_store_fallback_su_delete_quando_wal_non_disponibile(monkeypatch, tmp_path: Path):

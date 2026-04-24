@@ -81,6 +81,13 @@ def _pec_state_path() -> str:
     )
 
 
+def _get_fascicoli():
+    """Ritorna il repository fascicoli tenant-aware con tutti i path runtime."""
+    from web.helpers import get_fascicoli
+
+    return get_fascicoli()
+
+
 def _audit(azione: str, dettagli: str = ""):
     try:
         from pct.auth import GestioneUtenti
@@ -373,9 +380,8 @@ def sincronizza():
         auto_summary = {"aggiornati": 0, "non_abbinati": 0, "errori": 0, "totale": 0, "pst_in_attesa": 0}
         if pec_cfg and getattr(pec_cfg, "imap_host", ""):
             from pct.email_client import sincronizza_pec_e_fascicoli
-            from pct.fascicoli import GestioneFascicoli
 
-            gf = GestioneFascicoli(db_path=current_app.config.get("FASCICOLI_DB", "./fascicoli/fascicoli.json"))
+            gf = _get_fascicoli()
             workflow = sincronizza_pec_e_fascicoli(
                 gestione_email=ge,
                 gestione_fascicoli=gf,
@@ -440,9 +446,8 @@ def auto_esiti():
     comm_report = {"trovati": 0, "associati": 0, "duplicati": 0, "errori": 0}
     try:
         from pct.email_client import aggiorna_comunicazioni_cancelleria_da_email
-        from pct.fascicoli import GestioneFascicoli
 
-        gf = GestioneFascicoli(db_path=current_app.config.get("FASCICOLI_DB", "./fascicoli/fascicoli.json"))
+        gf = _get_fascicoli()
         comm_report = aggiorna_comunicazioni_cancelleria_da_email(ge, gf)
     except Exception as exc:
         log.append(f"Errore comunicazioni cancelleria: {exc}")
@@ -594,9 +599,7 @@ def _auto_esiti(ge) -> list:
     """Aggiorna gli EsitoDepositoPCT nei fascicoli dalle email PST."""
     try:
         from pct.email_client import aggiorna_esiti_da_email
-        from pct.fascicoli import GestioneFascicoli
-        db_path = current_app.config.get("FASCICOLI_DB", "./fascicoli/fascicoli.json")
-        gf = GestioneFascicoli(db_path=db_path)
+        gf = _get_fascicoli()
         return aggiorna_esiti_da_email(ge, gf)
     except Exception as exc:
         return [f"Errore auto-esiti: {exc}"]

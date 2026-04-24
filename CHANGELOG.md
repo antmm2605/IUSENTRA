@@ -1,5 +1,18 @@
 # Changelog
 
+## 2.182.21 - 2026-04-24
+
+- Corretta la riconciliazione dei documenti PST gia' importati: il backfill non usa piu' un match lasco su `PORTALE_TELEMATICO`, ripara i documenti agganciandoli a `id_documento`, `id_cat`, `id_repeatto`, `msg_id`, nome originario e riferimento `pst:...` corretti, senza spalmare nome e metadati di una busta su tutte le altre.
+- Il governo documentale compila automaticamente data, tag, classificazione, tipo atto e note con data italiana; i documenti gia' elaborati via OCR vengono contati anche dalla cache indicizzata e il worker marca il documento del fascicolo come OCR completato.
+- Chiusi i fallback runtime che riaprivano `Permission denied` su PEC/email e import portale: `GestioneFascicoli` deriva cartelle scrivibili dal DB quando necessario e i runtime usano sempre path tenant-aware per documenti e archivio.
+
+## 2.182.20 - 2026-04-24
+
+- Corretta la regressione dello Step 7 del wizard di acquisizione portale: il log import finale non usa piu' un fallback relativo al repository che in Docker/Railway poteva finire in un path non scrivibile (`portale/import_log.json`), ma resta allineato al data root del portale.
+- Il bootstrap runtime ancora insieme `PORTALE_DB`, `PORTALE_UPLOADS` e `PORTALE_IMPORT_LOG_DB`, cosi' se il portale usa `/data/portale/...` anche il log di acquisizione segue automaticamente lo stesso albero persistente e scrivibile.
+- Per PST il download predefinito usa ora la copia di consultazione del portale con annotazioni ministeriali, non l'originale firmato del repository, sia nel wizard di acquisizione sia nel modal `Naviga PST`, con fallback server-side coerente anche se l'opzione non viene inviata.
+- L'import PST riconcilia i file usando `id_documento`, `id_cat`, `id_repeatto`, `msg_id` e fallback nome+deposito, cosi' upload manuali, ZIP e download browser ereditano i metadati ufficiali del fascicolo e popolano automaticamente `Data`, `Tag`, classificazione e sezione di appartenenza nella UI.
+
 ## 2.182.18 - 2026-04-24
 
 - Corretta una regressione nella schermata `Impostazioni -> Firma Digitale`: se l'avvocato sceglie `Token USB (Aruba Key)` il pannello non marca piu' come errore il fatto che il container remoto non veda libreria o token, perche' quel controllo appartiene al `Local Signer` sul PC locale.

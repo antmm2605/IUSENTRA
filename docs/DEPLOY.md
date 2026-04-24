@@ -129,7 +129,7 @@ Lo script riallinea:
 - registrazione del repository come `safe.directory` per evitare il blocco Git `dubious ownership`
 - cache Python locali
 - `.pytest_cache`, `.ruff_cache`, `tmp/`
-- artefatti runtime locali transitori come `intelligence/downloads/` e `portale/import_log.json`
+- artefatti runtime locali transitori come `intelligence/downloads/` e `data/portale/import_log.json` (oppure `/data/portale/import_log.json` nel container)
 
 Dopo il primo bootstrap, gli hook versionati in `.githooks/` mantengono allineati anche i due branch locali ammessi dopo `commit`, `checkout`, `merge` e `rewrite`, mentre il workflow `.github/workflows/sync-claude-to-codex.yml` specchia automaticamente il push verso il branch gemello remoto.
 

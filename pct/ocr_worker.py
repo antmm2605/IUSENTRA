@@ -11,6 +11,7 @@ from time import sleep
 from typing import Any
 
 from pct.ocr import estrai_testo as ocr_estrai_testo
+from pct.fascicoli import GestioneFascicoli
 from pct.ocr_jobs import OCRJobStore, default_ocr_queue_db
 from pct.search_index import IndiceRicerca
 from web.services.document_crypto import decrypt_doc
@@ -19,12 +20,37 @@ from web.services.document_crypto import decrypt_doc
 logger = logging.getLogger("pct.ocr_worker")
 
 
-def _queue_db_path() -> str:
-    explicit = str(os.getenv("PCT_OCR_QUEUE_DB", "")).strip()
+def _queue_db_path(explicit: str = "") -> str:
+    explicit = str(explicit or os.getenv("PCT_OCR_QUEUE_DB", "")).strip()
     if explicit:
         return explicit
     search_index = str(os.getenv("PCT_SEARCH_INDEX", "./search/index.db")).strip()
     return default_ocr_queue_db(search_index)
+
+
+def _mark_document_ocr_extracted(job) -> None:
+    db_path = str(os.getenv("PCT_FASCICOLI_DB", "")).strip()
+    if not db_path:
+        return
+    docs_dir = str(
+        os.getenv("PCT_FASCICOLI_DOCS", str(Path(db_path).resolve().parent / "documenti"))
+    ).strip()
+    archive_dir = str(
+        os.getenv("PCT_FASCICOLI_ARCH", str(Path(db_path).resolve().parent / "archivio"))
+    ).strip()
+    try:
+        GestioneFascicoli(
+            db_path=db_path,
+            documents_dir=docs_dir,
+            archive_dir=archive_dir,
+        ).segna_ocr_estratto(job.id_fasc, job.id_doc)
+    except Exception as exc:
+        logger.warning(
+            "OCR completato ma impossibile marcare il documento %s/%s sul fascicolo: %s",
+            job.id_fasc,
+            job.id_doc,
+            exc,
+        )
 
 
 def _process_job(store: OCRJobStore, worker_id: str, stop_event: threading.Event) -> None:
@@ -43,14 +69,15 @@ def _process_job(store: OCRJobStore, worker_id: str, stop_event: threading.Event
                 idx.set_ocr_cache(job.hash_sha256, testo)
             if testo:
                 idx.indicizza_documento(job.id_fasc, job.id_doc, job.nome_doc, testo, job.tipo_doc)
+                _mark_document_ocr_extracted(job)
             store.complete(job.id)
         except Exception as exc:
             logger.warning("Errore OCR su job %s (%s/%s): %s", job.id, job.id_fasc, job.id_doc, exc)
             store.fail(job.id, str(exc))
 
 
-def serve_ocr_worker(*, stop_event: threading.Event | None = None) -> int:
-    queue_db_path = _queue_db_path()
+def serve_ocr_worker(*, stop_event: threading.Event | None = None, queue_db_path: str | None = None) -> int:
+    queue_db_path = _queue_db_path(queue_db_path or "")
     workers = max(1, int(os.getenv("PCT_OCR_WORKERS", "2") or "2"))
     shutdown_event = stop_event or threading.Event()
     store = OCRJobStore(queue_db_path)

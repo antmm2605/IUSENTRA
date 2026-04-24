@@ -165,15 +165,19 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
         os.getenv("PCT_API_V1_ALLOWED_ORIGINS", ""),
     )
     app.config["STUDIO_NOME"] = os.getenv("PCT_STUDIO_NOME", "IUSENTRA")
-    app.config["PORTALE_DB"] = cfg.get(
-        "PORTALE_DB", os.getenv("PCT_PORTALE_DB", "./portale/portali.json")
+    default_portale_db = os.getenv(
+        "PCT_PORTALE_DB",
+        _data_peer_path(app.config["CLIENTI_DB"], "portale", "portali.json"),
     )
+    app.config["PORTALE_DB"] = cfg.get("PORTALE_DB", default_portale_db)
+    portale_root = Path(app.config["PORTALE_DB"]).parent
     app.config["PORTALE_UPLOADS"] = cfg.get(
-        "PORTALE_UPLOADS", os.getenv("PCT_PORTALE_UPLOADS", "./portale/uploads")
+        "PORTALE_UPLOADS",
+        os.getenv("PCT_PORTALE_UPLOADS", str(portale_root / "uploads")),
     )
     app.config["PORTALE_IMPORT_LOG_DB"] = cfg.get(
         "PORTALE_IMPORT_LOG_DB",
-        os.getenv("PCT_PORTALE_IMPORT_LOG_DB", "./portale/import_log.json"),
+        os.getenv("PCT_PORTALE_IMPORT_LOG_DB", str(portale_root / "import_log.json")),
     )
     app.config["FATTURAZIONE_DB"] = cfg.get(
         "FATTURAZIONE_DB", os.getenv("PCT_FATTURAZIONE_DB", "./fatturazione/parcelle.json")

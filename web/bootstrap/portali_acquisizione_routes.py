@@ -125,7 +125,7 @@ def register_portali_acquisizione_routes(
             preview = dict(data.get("preview") or {})
             if not selection or not preview:
                 raise ValueError("Selezione o anteprima mancanti.")
-            options = _coerce_import_options(dict(data.get("options") or {}))
+            options = _coerce_import_options(dict(data.get("options") or {}), portale=portale)
             mapping = _coerce_mapping(dict(data.get("mapping") or {}))
             analysis = _analyze_portale_import(portale, selection, preview, options, mapping)
             return jsonify({"ok": True, "analysis": analysis})
@@ -142,7 +142,7 @@ def register_portali_acquisizione_routes(
             preview = dict(data.get("preview") or {})
             if not selection or not preview:
                 raise ValueError("Selezione o anteprima mancanti.")
-            options = _coerce_import_options(dict(data.get("options") or {}))
+            options = _coerce_import_options(dict(data.get("options") or {}), portale=portale)
             mapping = _coerce_mapping(dict(data.get("mapping") or {}))
             downloaded_files_raw = data.get("downloaded_files")
             downloaded_files = downloaded_files_raw if isinstance(downloaded_files_raw, list) else []

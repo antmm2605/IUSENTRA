@@ -26,6 +26,21 @@ def normalize_document_tags(raw: str | list[str] | tuple[str, ...] | None) -> li
     return normalized
 
 
+def _document_has_ocr(doc: Any, indice: Any | None = None) -> bool:
+    if getattr(doc, "ocr_estratto", False):
+        return True
+    getter = getattr(indice, "get_ocr_cache", None)
+    if indice is None or not callable(getter):
+        return False
+    hash_sha256 = str(getattr(doc, "hash_sha256", "") or "").strip()
+    if not hash_sha256:
+        return False
+    try:
+        return bool(str(getter(hash_sha256) or "").strip())
+    except Exception:
+        return False
+
+
 def build_document_management_summary(
     fascicolo: Any,
     *,
@@ -47,7 +62,7 @@ def build_document_management_summary(
         latest_versions += len(getattr(doc, "versioni", []) or [])
         if getattr(doc, "firmato_digitalmente", False):
             signed += 1
-        if getattr(doc, "ocr_estratto", False):
+        if _document_has_ocr(doc, indice):
             ocr_ready += 1
         if getattr(doc, "id_deposito_pct", ""):
             portale += 1
@@ -91,7 +106,7 @@ def build_document_management_summary(
             )
         elif any(not normalize_document_tags(getattr(doc, "tags", [])) for doc in documenti[:10]):
             next_action = "Completa i tag dei documenti principali per migliorare ricerca e filtro."
-        elif any(not getattr(doc, "ocr_estratto", False) and doc.nome.lower().endswith(".pdf") for doc in documenti):
+        elif any(not _document_has_ocr(doc, indice) and doc.nome.lower().endswith(".pdf") for doc in documenti):
             next_action = "Completa l'indicizzazione OCR dei PDF piu' rilevanti."
         else:
             next_action = "Il dossier documentale e' ordinato: continua con versioni e review."

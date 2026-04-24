@@ -641,11 +641,15 @@ def test_email_sync_route_espone_warning_e_sync_errore(tmp_path, monkeypatch):
         password="segreta",
         use_ssl=True,
     )
+    osservato = {}
 
     monkeypatch.setattr("web.blueprints.email_client._get_config_pec", lambda: pec_cfg)
     monkeypatch.setattr("web.blueprints.email_client._get_config_email", lambda: None)
 
     def _fake_sync_workflow(gestione_email, gestione_fascicoli, config_pec, **kwargs):
+        osservato["db_path"] = str(gestione_fascicoli.db_path)
+        osservato["documents_dir"] = str(gestione_fascicoli.documents_dir)
+        osservato["archive_dir"] = str(gestione_fascicoli.archive_dir)
         return {
             "sync": {
                 "nuove": 0,
@@ -669,6 +673,49 @@ def test_email_sync_route_espone_warning_e_sync_errore(tmp_path, monkeypatch):
     assert data["warning"] is True
     assert "Sincronizzazione IMAP non completata" in data["messaggio"]
     assert "Connessione IMAP non completata entro 15 secondi" in data["sync_errore"]
+    assert osservato["db_path"] == cfg["FASCICOLI_DB"]
+    assert osservato["documents_dir"] == cfg["FASCICOLI_DOCS"]
+    assert osservato["archive_dir"] == cfg["FASCICOLI_ARCH"]
+
+
+def test_email_auto_esiti_route_usa_runtime_fascicoli_e_non_genera_warning_spurio(tmp_path, monkeypatch):
+    from web.app import create_app
+
+    cfg = _cfg_web(tmp_path)
+    osservato = {}
+
+    def _fake_aggiorna_esiti(gestione_email, gestione_fascicoli):
+        osservato["db_path"] = str(gestione_fascicoli.db_path)
+        osservato["documents_dir"] = str(gestione_fascicoli.documents_dir)
+        osservato["archive_dir"] = str(gestione_fascicoli.archive_dir)
+        return []
+
+    def _fake_aggiorna_comunicazioni(gestione_email, gestione_fascicoli):
+        osservato["comm_documents_dir"] = str(gestione_fascicoli.documents_dir)
+        osservato["comm_archive_dir"] = str(gestione_fascicoli.archive_dir)
+        return {"trovati": 0, "associati": 0, "duplicati": 0, "errori": 0}
+
+    monkeypatch.setattr("pct.email_client.aggiorna_esiti_da_email", _fake_aggiorna_esiti)
+    monkeypatch.setattr(
+        "pct.email_client.aggiorna_comunicazioni_cancelleria_da_email",
+        _fake_aggiorna_comunicazioni,
+    )
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        _autentica_admin_session(app, client, cfg)
+        response = client.post("/email/auto-esiti", follow_redirects=True)
+
+    data = response.get_json()
+    assert response.status_code == 200
+    assert data["ok"] is True
+    assert data["warning"] is False
+    assert "Alcune comunicazioni non sono state elaborate completamente." not in data["messaggio"]
+    assert osservato["db_path"] == cfg["FASCICOLI_DB"]
+    assert osservato["documents_dir"] == cfg["FASCICOLI_DOCS"]
+    assert osservato["archive_dir"] == cfg["FASCICOLI_ARCH"]
+    assert osservato["comm_documents_dir"] == cfg["FASCICOLI_DOCS"]
+    assert osservato["comm_archive_dir"] == cfg["FASCICOLI_ARCH"]
 
 
 def test_sincronizza_imap_usa_timeout_e_restituisce_errore_chiaro(tmp_path, monkeypatch):

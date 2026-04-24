@@ -124,6 +124,7 @@ function Remove-GeneratedArtifacts {
         "intelligence/local_ai.db",
         "intelligence/giurisprudenza.json",
         "portale/import_log.json",
+        "data/portale/import_log.json",
         "pct.zip"
     )
     foreach ($relative in $transientFiles) {

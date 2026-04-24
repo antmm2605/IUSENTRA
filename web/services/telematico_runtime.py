@@ -738,6 +738,147 @@ def build_telematico_runtime(
     def _preview_richiede_file_portale(options: dict[str, bool]) -> bool:
         return bool(options.get("importa_documenti") or options.get("importa_provvedimenti"))
 
+    def _portale_document_identifier_values(row: dict[str, Any] | None) -> set[str]:
+        values: set[str] = set()
+        payload = dict(row or {})
+        raw_candidates = payload.get("id_documento_candidates")
+        if isinstance(raw_candidates, (list, tuple, set)):
+            for candidate in raw_candidates:
+                text = str(candidate or "").strip()
+                if text and not text.startswith("#"):
+                    values.add(text)
+        for value in (
+            payload.get("id_documento"),
+            payload.get("id_documento_portale"),
+            payload.get("id_cat"),
+            payload.get("id_repeatto"),
+            payload.get("msg_id"),
+            payload.get("numero_documento"),
+            payload.get("id_doc_mittente"),
+        ):
+            text = str(value or "").strip()
+            if text and not text.startswith("#"):
+                values.add(text)
+        return values
+
+    def _portale_document_deposito_value(row: dict[str, Any] | None) -> str:
+        payload = dict(row or {})
+        return str(
+            payload.get("id_deposito_esterno")
+            or payload.get("id_deposito")
+            or payload.get("id_deposito_pct")
+            or ""
+        ).strip()
+
+    def _portale_document_name_key(row: dict[str, Any] | None) -> str:
+        payload = dict(row or {})
+        return _normalizza_nome_match_portale(
+            str(
+                payload.get("nome")
+                or payload.get("nome_documento")
+                or payload.get("nome_file_originale")
+                or ""
+            ).strip()
+        )
+
+    def _portale_document_matches_preview(item: dict[str, Any], preview_doc: dict[str, Any]) -> bool:
+        item_ids = _portale_document_identifier_values(item)
+        preview_ids = _portale_document_identifier_values(preview_doc)
+        if item_ids and preview_ids and item_ids.intersection(preview_ids):
+            return True
+        item_name = _portale_document_name_key(item)
+        preview_name = _portale_document_name_key(preview_doc)
+        if not item_name or not preview_name or item_name != preview_name:
+            return False
+        item_dep = _portale_document_deposito_value(item)
+        preview_dep = _portale_document_deposito_value(preview_doc)
+        if item_dep and preview_dep and item_dep != preview_dep:
+            return False
+        return True
+
+    def _merge_preview_metadata_into_portale_items(
+        decoded_items: list[dict[str, Any]],
+        preview_docs: list[dict[str, Any]],
+    ) -> list[dict[str, Any]]:
+        merged_items: list[dict[str, Any]] = []
+        for item in decoded_items:
+            match = next(
+                (preview_doc for preview_doc in preview_docs if _portale_document_matches_preview(item, preview_doc)),
+                None,
+            )
+            if not match:
+                merged_items.append(dict(item))
+                continue
+            merged = dict(match)
+            merged.update(item)
+            merged["id_documento_portale"] = str(
+                item.get("id_documento_portale")
+                or match.get("id_documento_portale")
+                or match.get("id_documento")
+                or item.get("id_documento")
+                or ""
+            ).strip()
+            merged["id_cat"] = str(item.get("id_cat") or match.get("id_cat") or "").strip()
+            merged["id_repeatto"] = str(item.get("id_repeatto") or match.get("id_repeatto") or "").strip()
+            merged["msg_id"] = str(item.get("msg_id") or match.get("msg_id") or "").strip()
+            merged["id_deposito_esterno"] = str(
+                item.get("id_deposito_esterno")
+                or match.get("id_deposito_esterno")
+                or match.get("id_deposito")
+                or ""
+            ).strip()
+            merged["id_deposito_pct"] = str(item.get("id_deposito_pct") or match.get("id_deposito_pct") or "").strip()
+            merged["tipo_atto"] = str(item.get("tipo_atto") or match.get("tipo_atto") or "").strip()
+            merged["tipo"] = str(item.get("tipo") or match.get("tipo") or "").strip()
+            merged["mittente"] = str(item.get("mittente") or match.get("mittente") or "").strip()
+            merged["servizio_portale"] = str(item.get("servizio_portale") or match.get("servizio_portale") or "").strip()
+            prefer_preview_date = not _portale_document_identifier_values(item)
+            merged["data_documento"] = str(
+                (
+                    match.get("data_documento")
+                    or match.get("data_deposito")
+                    or item.get("data_documento")
+                )
+                if prefer_preview_date
+                else (
+                    item.get("data_documento")
+                    or match.get("data_documento")
+                    or match.get("data_deposito")
+                )
+                or ""
+            ).strip()
+            merged_items.append(merged)
+        return merged_items
+
+    def _filter_portale_items_by_preview_selection(
+        decoded_items: list[dict[str, Any]],
+        preview_docs: list[dict[str, Any]],
+    ) -> list[dict[str, Any]]:
+        if not preview_docs:
+            return list(decoded_items)
+        return [
+            item
+            for item in decoded_items
+            if any(_portale_document_matches_preview(item, preview_doc) for preview_doc in preview_docs)
+        ]
+
+    def _apply_portale_download_mode_to_items(
+        decoded_items: list[dict[str, Any]],
+        *,
+        original: bool,
+    ) -> list[dict[str, Any]]:
+        modalita_default = "originale" if original else "copia"
+        patched: list[dict[str, Any]] = []
+        for item in decoded_items:
+            row = dict(item)
+            modalita = str(row.get("modalita_documento_portale") or "").strip().lower()
+            if modalita not in {"originale", "copia"}:
+                row["modalita_documento_portale"] = modalita_default
+            if row.get("original_documento_portale") is None:
+                row["original_documento_portale"] = bool(original)
+            patched.append(row)
+        return patched
+
     def _filter_portale_preview_by_options(preview: dict[str, Any], options: dict[str, bool]) -> dict[str, Any]:
         view = dict(preview or {})
         docs = _normalize_portale_documents(list(view.get("documenti") or []))
@@ -972,12 +1113,15 @@ def build_telematico_runtime(
         )
         return updated
 
-    def _coerce_import_options(data: dict[str, Any]) -> dict[str, bool]:
+    def _coerce_import_options(data: dict[str, Any], portale: str = "") -> dict[str, bool]:
         def _b(key: str, default: bool = False) -> bool:
             value = data.get(key, default)
             if isinstance(value, bool):
                 return value
             return str(value or "").strip().lower() in {"1", "true", "yes", "si", "s", "on"}
+
+        portale_key = str(portale or data.get("portale") or "").strip().lower()
+        default_originale_portale = False if portale_key == "pst" else True
 
         return {
             "importa_dati_pratica": _b("importa_dati_pratica", True),
@@ -996,7 +1140,7 @@ def build_telematico_runtime(
             "non_toccare_note_interne": _b("non_toccare_note_interne", True),
             "non_duplicare_documenti": _b("non_duplicare_documenti", True),
             "conserva_log_origine_pst": _b("conserva_log_origine_pst", True),
-            "scarica_originale_portale": _b("scarica_originale_portale", True),
+            "scarica_originale_portale": _b("scarica_originale_portale", default_originale_portale),
             "mantieni_albero_originale": _b("mantieni_albero_originale", False),
         }
 
@@ -1571,11 +1715,7 @@ def build_telematico_runtime(
         files = list(downloaded_files or [])
         counts = preview_for_files.get("counts") or {}
         documenti_attesi = int(counts.get("documenti", 0) or 0)
-        selected_doc_ids = {
-            str(doc.get("id_documento") or "").strip()
-            for doc in list(preview_for_files.get("documenti") or [])
-            if str(doc.get("id_documento") or "").strip()
-        }
+        selected_preview_docs = list(preview_for_files.get("documenti") or [])
         decoded_items: list[dict[str, Any]] = []
         if importa_file_portale and portale == "pst" and documenti_attesi > 0:
             if not files:
@@ -1584,12 +1724,12 @@ def build_telematico_runtime(
                     "Riprova l'acquisizione con download batch attivo."
                 )
             decoded_items = _decode_portale_downloaded_items(files)
-            if selected_doc_ids:
-                decoded_items = [
-                    item
-                    for item in decoded_items
-                    if str(item.get("id_documento_portale") or "").strip() in selected_doc_ids
-                ]
+            decoded_items = _merge_preview_metadata_into_portale_items(decoded_items, selected_preview_docs)
+            decoded_items = _filter_portale_items_by_preview_selection(decoded_items, selected_preview_docs)
+            decoded_items = _apply_portale_download_mode_to_items(
+                decoded_items,
+                original=bool(options.get("scarica_originale_portale", True)),
+            )
             if not decoded_items:
                 raise ValueError("Il lotto scaricato dal portale non contiene file importabili.")
 
@@ -1727,12 +1867,12 @@ def build_telematico_runtime(
                     raise ValueError("Fascicolo importato non trovato durante l'acquisizione documenti.")
                 if not decoded_items:
                     decoded_items = _decode_portale_downloaded_items(files)
-                    if selected_doc_ids:
-                        decoded_items = [
-                            item
-                            for item in decoded_items
-                            if str(item.get("id_documento_portale") or "").strip() in selected_doc_ids
-                        ]
+                    decoded_items = _merge_preview_metadata_into_portale_items(decoded_items, selected_preview_docs)
+                    decoded_items = _filter_portale_items_by_preview_selection(decoded_items, selected_preview_docs)
+                    decoded_items = _apply_portale_download_mode_to_items(
+                        decoded_items,
+                        original=bool(options.get("scarica_originale_portale", True)),
+                    )
                 if not decoded_items:
                     raise ValueError("Il lotto scaricato dal portale non contiene file importabili.")
                 if options.get("mantieni_albero_originale"):

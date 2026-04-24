@@ -1332,6 +1332,54 @@ def build_fascicoli_runtime(
             return "comunicazioni"
         return "atti"
 
+    def _sezione_portale_label_server(item: dict) -> str:
+        labels = {
+            "atti": "Attivita processuali",
+            "udienze": "Udienze e scadenze",
+            "provvedimenti": "Provvedimenti",
+            "comunicazioni": "Comunicazioni di cancelleria",
+            "istanze": "Istanze",
+        }
+        return labels.get(_sezione_portale_server(item), "Attivita processuali")
+
+    def _portale_document_tags(item: dict) -> list[str]:
+        raw_tags: list[str] = [
+            _sezione_portale_label_server(item),
+            str(item.get("tipo_atto") or "").strip(),
+            str(item.get("tipo") or "").strip().replace("_", " ").title(),
+        ]
+        mittente = str(item.get("mittente") or "").strip().lower()
+        if "cancelleria" in mittente:
+            raw_tags.append("Cancelleria")
+        modalita = str(item.get("modalita_documento_portale") or "").strip().lower()
+        if modalita == "copia":
+            raw_tags.append("Copia di consultazione")
+        elif modalita == "originale":
+            raw_tags.append("Originale firmato")
+        normalized: list[str] = []
+        seen: set[str] = set()
+        for raw_tag in raw_tags:
+            tag = str(raw_tag or "").strip()
+            if not tag:
+                continue
+            key = tag.casefold()
+            if key in seen:
+                continue
+            seen.add(key)
+            normalized.append(tag)
+        return normalized
+
+    def _portale_data_documento_item(item: dict) -> str:
+        for value in (
+            item.get("data_documento"),
+            item.get("data_deposito"),
+            item.get("data_deposito_portale"),
+        ):
+            text = str(value or "").strip()
+            if text:
+                return text
+        return date.today().isoformat()
+
     def _scrivi_file_univoco(destinazione: Path, payload: bytes) -> Path:
         destinazione.parent.mkdir(parents=True, exist_ok=True)
         candidato = destinazione
@@ -1403,12 +1451,20 @@ def build_fascicoli_runtime(
                 item["msg_id"] = str((file_item or {}).get("msg_id") or "").strip()
                 item["content_type"] = str((file_item or {}).get("content_type") or "").strip()
                 item["nome_file_originale"] = str((file_item or {}).get("nome_file_originale") or "").strip()
-                original_documento_portale = bool((file_item or {}).get("original_documento_portale", True))
-                item["original_documento_portale"] = original_documento_portale
-                item["modalita_documento_portale"] = (
-                    str((file_item or {}).get("modalita_documento_portale") or "").strip()
-                    or ("originale" if original_documento_portale else "copia")
+                has_modalita_portale = any(
+                    key in (file_item or {})
+                    for key in ("original_documento_portale", "modalita_documento_portale")
                 )
+                if has_modalita_portale:
+                    original_documento_portale = bool((file_item or {}).get("original_documento_portale", True))
+                    item["original_documento_portale"] = original_documento_portale
+                    item["modalita_documento_portale"] = (
+                        str((file_item or {}).get("modalita_documento_portale") or "").strip()
+                        or ("originale" if original_documento_portale else "copia")
+                    )
+                else:
+                    item["original_documento_portale"] = None
+                    item["modalita_documento_portale"] = ""
             items.extend(espansi)
         return items
 
@@ -1751,7 +1807,7 @@ def build_fascicoli_runtime(
                 documenti_creati.append({"doc": doc_esistente, "item": item})
                 continue
             tipo_doc = _tipo_documento_da_item_portale(item)
-            note_doc = [f"Importato da {fonte} il {date.today().isoformat()}"]
+            note_doc = [f"Importato da {fonte} il {date.today().strftime('%d/%m/%Y')}"]
             if note_importazione:
                 note_doc.append(note_importazione)
             origine = (item.get("origine", "") or "").strip()
@@ -1760,6 +1816,7 @@ def build_fascicoli_runtime(
             tipo_atto = str(item.get("tipo_atto") or item.get("tipo") or "").strip()
             if tipo_atto:
                 note_doc.append(f"Tipo atto portale: {tipo_atto}")
+            data_documento = _portale_data_documento_item(item)
             doc = _salva_documento_fascicolo(
                 gf=gf,
                 id_fasc=fasc.id,
@@ -1767,7 +1824,8 @@ def build_fascicoli_runtime(
                 raw=payload,
                 tipo_doc=tipo_doc,
                 note=" | ".join(note_doc),
-                data_documento=item.get("data_documento", "") or date.today().isoformat(),
+                tags=_portale_document_tags(item),
+                data_documento=data_documento,
                 firmato=nome.lower().endswith(".p7m"),
                 caricato_da=u.username if u else "",
                 fonte_documento="PORTALE_TELEMATICO",
@@ -1777,7 +1835,7 @@ def build_fascicoli_runtime(
                 tipo_atto_portale=str(item.get("tipo_atto") or item.get("tipo") or "").strip(),
                 servizio_portale=str(item.get("servizio_portale") or "").strip(),
                 mittente_portale=str(item.get("mittente") or "").strip(),
-                data_deposito_portale=str(item.get("data_documento") or "").strip(),
+                data_deposito_portale=data_documento,
                 id_documento_portale=str(item.get("id_documento_portale") or item.get("id_documento") or "").strip(),
                 id_cat_portale=str(item.get("id_cat") or "").strip(),
                 id_repeatto_portale=str(item.get("id_repeatto") or "").strip(),

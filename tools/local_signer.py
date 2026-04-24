@@ -4558,6 +4558,7 @@ def _pst_download_documento_payload(
     prefer_cookie_only: bool = False,
 ) -> dict:
     servizio = _pst_servizio_proxy(base_url)
+    document_id_output = str(id_documento or id_cat or id_repeatto or "").strip()
     url_documenti = _pst_url_documenti(base_url)
     extra_headers: list[str] = []
     soap_action = ""
@@ -4652,7 +4653,7 @@ def _pst_download_documento_payload(
     if not nome_finale:
         nome_finale = str(profilo.get("nome_file_originale") or "").strip()
     if not nome_finale:
-        nome_finale = f"documento_{id_documento}"
+        nome_finale = f"documento_{document_id_output or 'pst'}"
     if _looks_like_pkcs7_signed(parsed["content"], parsed.get("content_type", ""), nome_finale):
         if not nome_finale.lower().endswith(".p7m"):
             nome_finale += ".p7m"
@@ -4663,7 +4664,7 @@ def _pst_download_documento_payload(
         "nome": nome_finale,
         "contenuto_b64": base64.b64encode(parsed["content"]).decode("ascii"),
         "content_type": parsed.get("content_type") or "application/octet-stream",
-        "id_documento_portale": id_documento,
+        "id_documento_portale": document_id_output,
         "id_cat": id_cat or str(profilo.get("id_cat") or "").strip(),
         "id_repeatto": str(id_repeatto or profilo.get("id_repeatto") or "").strip(),
         "msg_id": str(msg_id or profilo.get("msg_id") or "").strip(),
@@ -4685,11 +4686,18 @@ def _assemble_download_file_payload(
     original: bool = True,
 ) -> dict:
     """Costruisce il payload file da una risposta PST parsed."""
+    document_id_output = str(
+        id_documento
+        or item.get("id_cat")
+        or item.get("id_repeatto")
+        or item.get("msg_id")
+        or ""
+    ).strip()
     nome_finale = str(parsed.get("filename") or "").strip()
     if not nome_finale:
         nome_finale = (nome_documento or "").strip()
     if not nome_finale:
-        nome_finale = f"documento_{id_documento}"
+        nome_finale = f"documento_{document_id_output or 'pst'}"
     if _looks_like_pkcs7_signed(parsed["content"], parsed.get("content_type", ""), nome_finale):
         if not nome_finale.lower().endswith(".p7m"):
             nome_finale += ".p7m"
@@ -4699,7 +4707,7 @@ def _assemble_download_file_payload(
         "nome": nome_finale,
         "contenuto_b64": base64.b64encode(parsed["content"]).decode("ascii"),
         "content_type": parsed.get("content_type") or "application/octet-stream",
-        "id_documento_portale": id_documento,
+        "id_documento_portale": document_id_output,
         "id_cat": str(item.get("id_cat") or "").strip(),
         "id_repeatto": str(item.get("id_repeatto") or "").strip(),
         "msg_id": str(item.get("msg_id") or "").strip(),
@@ -4708,7 +4716,7 @@ def _assemble_download_file_payload(
         "original_documento_portale": bool(original),
         "modalita_documento_portale": "originale" if original else "copia",
         "servizio_portale": "DocumentiFascicolo",
-        "origine": f"pst:{_pst_servizio_proxy(base_url) or 'download'}:{id_documento}",
+        "origine": f"pst:{_pst_servizio_proxy(base_url) or 'download'}:{document_id_output or 'documento'}",
         "id_deposito_esterno": str(item.get("id_deposito_esterno") or "").strip(),
         "id_deposito_pct": str(item.get("id_deposito_pct") or "").strip(),
         "tipo_atto": str(item.get("tipo_atto") or "").strip(),
@@ -4733,6 +4741,12 @@ def _pst_document_id_candidates(item: dict) -> list[str]:
         if candidate and not candidate.startswith("#") and candidate not in candidates:
             candidates.append(candidate)
     return candidates
+
+
+def _pst_primary_document_id(item: Optional[dict]) -> str:
+    for candidate in _pst_document_id_candidates(dict(item or {})):
+        return candidate
+    return ""
 
 
 def _pst_download_documenti_batch_payloads(
@@ -4785,10 +4799,11 @@ def _pst_download_documenti_batch_payloads(
             for i, raw in enumerate(documenti):
                 if not isinstance(raw, dict):
                     continue
-                id_doc = str(raw.get("id_documento") or raw.get("id_documento_portale") or "").strip()
-                if not id_doc:
+                id_doc = _pst_primary_document_id(raw)
+                id_cat = _pst_effective_id_cat(raw, id_doc)
+                if not id_doc and not id_cat:
                     continue
-                miss_cat = not _pst_effective_id_cat(raw, id_doc)
+                miss_cat = not id_cat
                 miss_meta = not str(raw.get("nome_documento") or raw.get("nome") or "").strip()
                 if miss_cat or (servizio == "JPW_SIECIC" and miss_meta):
                     need_prof.append(i)
@@ -4879,22 +4894,19 @@ def _pst_download_documenti_batch_payloads(
 
         for raw in documenti:
             item = raw if isinstance(raw, dict) else {}
-            id_doc = str(item.get("id_documento") or item.get("id_documento_portale") or "").strip()
+            id_doc = _pst_primary_document_id(item)
+            id_cat = _pst_effective_id_cat(item, id_doc)
+            id_output = id_doc or id_cat or str(item.get("id_repeatto") or "").strip()
             nome_doc = str(item.get("nome_documento") or item.get("nome") or "").strip()
-            if not id_doc:
-                failures.append({"id_documento": "", "nome_documento": nome_doc,
-                                  "errore": "Identificativo documento mancante nel lotto PST."})
-                continue
             try:
                 if servizio == "JPW_SIGP":
-                    id_repeatto = str(item.get("id_repeatto") or id_doc).strip()
+                    id_repeatto = str(item.get("id_repeatto") or id_doc or id_cat).strip()
                     if not id_repeatto:
                         raise RuntimeError("idRepeatTo mancante nel lotto Cassazione.")
                     soap_body = _soap_sigp_download_body(id_repeatto)
                     soap_action = "downloadAtto"
                     extra_h: list[str] = []
                 elif servizio == "JPW_SICID":
-                    id_cat = _pst_effective_id_cat(item, id_doc)
                     if not id_cat:
                         if allow_single_fallback:
                             # Per il lotto singolo mantieni il fallback puntuale.
@@ -4902,7 +4914,7 @@ def _pst_download_documenti_batch_payloads(
                                 _pst_download_documento_payload(
                                     base_url=base_url,
                                     codice_ufficio=codice_ufficio,
-                                    id_documento=id_doc,
+                                    id_documento=id_doc or id_cat or str(item.get("id_repeatto") or "").strip(),
                                     nome_documento=nome_doc,
                                     cert_thumbprint=cert_thumbprint,
                                     cf_avvocato=cf_avvocato,
@@ -4939,6 +4951,8 @@ def _pst_download_documenti_batch_payloads(
                     soap_action = ""
                     extra_h = extra_base
                 elif servizio == "JPW_SIECIC":
+                    if not id_doc:
+                        raise RuntimeError("idDoc mancante nel lotto SIECIC.")
                     soap_body = _soap_bea_siecic_body(
                         "downloadDocumento",
                         [("idDoc", id_doc), ("original", "true" if original else "false")],
@@ -4956,9 +4970,9 @@ def _pst_download_documenti_batch_payloads(
                     "extra_headers": extra_h,
                     "cookie_file": cookie_file,
                 })
-                dl_meta.append({"id_documento": id_doc, "nome_documento": nome_doc, "item": item})
+                dl_meta.append({"id_documento": id_output, "nome_documento": nome_doc, "item": item})
             except Exception as e:
-                failures.append({"id_documento": id_doc, "nome_documento": nome_doc, "errore": str(e)})
+                failures.append({"id_documento": id_output, "nome_documento": nome_doc, "errore": str(e)})
 
         if not dl_reqs:
             return {

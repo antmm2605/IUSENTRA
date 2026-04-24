@@ -76,6 +76,7 @@ services:
       PCT_PRIVACY_DB:       /data/privacy/registro.json
       PCT_PORTALE_DB:       /data/portale/portali.json
       PCT_PORTALE_UPLOADS:  /data/portale/uploads
+      PCT_PORTALE_IMPORT_LOG_DB: /data/portale/import_log.json
       PCT_FATTURAZIONE_DB:  /data/fatturazione/parcelle.json
       PCT_GIURISPRUDENZA_DB: /data/intelligence/giurisprudenza.json
       PCT_NOTIFICHE_LOG:    /data/notifiche/log.json

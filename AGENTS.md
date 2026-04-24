@@ -134,6 +134,7 @@ Regola finale: **non dichiarare mai conclusa una funzione se e' stata completata
 **Qualsiasi implementazione che coinvolga i portali telematici (PST/polisWeb, PDP, PAT) deve sempre rispettare le regole impartite dal Portale Servizi Telematici del Ministero della Giustizia.**
 
 Regole chiave:
+- **Artefatti runtime dei portali solo su storage scrivibile**: upload, staging, import log e cache operative dei portali devono vivere sempre nel data root scrivibile dello studio (`./data/...`, `/data/...` o percorso tenant equivalente), mai in path repository/code-only come `./portale/` quando l'app gira in Docker, Railway o altro runtime hosted.
 - **Vista documenti a buste (accordion)**: i documenti vanno sempre raggruppati per `id_deposito` — stessa UX per PST/polisWeb, PDP e PAT. Ogni busta è un accordion collassabile con i file della busta dentro.
 - **Download non autonomo**: il gestionale mostra l'elenco degli atti ma non può scaricare documenti in autonomia — il download richiede sessione autenticata via browser sul portale ufficiale.
   - PST → `pst.giustizia.it` (autenticazione: CNS/CIE/SPID)
@@ -142,6 +143,11 @@ Regole chiave:
 - **Campi obbligatori nei modelli documento**: ogni `DocumentoXxx` (PST, PDP, PAT) deve avere `id_deposito` e `tipo_atto` per supportare la vista a buste.
 - **Logica di raggruppamento nelle route**: le route `*/documenti` devono sempre costruire la lista `depositi` (dict con `id_deposito`, `tipo_atto`, `data_deposito`, `mittente`, `documenti[]`) ordinata per data decrescente, e passare sia `documenti` (lista flat) sia `depositi` (lista raggruppata) al template.
 - **Fallback chiave raggruppamento**: se `id_deposito` è vuoto, usare `f"__{data_deposito}__{mittente}"` come chiave di raggruppamento.
+- **PST consultazione copia come default**: nei flussi PST/polisWeb il download predefinito deve usare la copia di consultazione del portale con annotazioni ministeriali visibili; l'originale firmato del repository resta opzionale e non può tornare default né nel wizard né nei modali `Naviga PST` né nei fallback server-side.
+- **Matching import PST senza dipendere da un solo id**: l'acquisizione file PST deve riconciliare sempre i documenti usando `id_documento`, `id_cat`, `id_repeatto`, `msg_id`, candidati equivalenti e fallback nome normalizzato + deposito, così anche upload manuali, ZIP e download browser vengono riallineati al catalogo ufficiale.
+- **Metadati automatici obbligatori dopo import PST**: ogni documento importato dal portale deve compilare automaticamente `data_documento`, `data_deposito_portale`, classificazione ufficiale, tipo atto, sezione di appartenenza e `tags`, e questi valori devono risultare subito visibili nella UI del fascicolo senza data/tag vuoti.
+- **Divieto di match lasco sui documenti portale**: un documento non può mai essere riallineato a un deposito solo perché `fonte_documento == PORTALE_TELEMATICO`; il match deve richiedere identificativi portale coerenti o nome originario normalizzato compatibile con la singola busta.
+- **Factory fascicoli obbligatoria nei runtime**: route, blueprint, worker, scheduler e job asincroni non devono istanziare `GestioneFascicoli` con il solo `db_path`; bisogna usare `get_fascicoli()` oppure passare sempre insieme `db_path`, `documents_dir` e `archive_dir` tenant-aware/runtime-aware, altrimenti si riaprono regressioni `Permission denied` sui path repo-relative `fascicoli/`.
 
 ## Script di simulazione e test — Riferimento rapido
 

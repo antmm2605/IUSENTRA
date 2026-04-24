@@ -45,6 +45,14 @@ def fascicolo_base(gf):
     )
 
 
+def test_gestione_fascicoli_deriva_documenti_e_archivio_dal_db_path_quando_non_specificati(tmp_path):
+    db_path = tmp_path / "tenant-demo" / "fascicoli.json"
+    gf = GestioneFascicoli(db_path=str(db_path))
+
+    assert gf.documents_dir == db_path.parent / "documenti"
+    assert gf.archive_dir == db_path.parent / "archivio"
+
+
 # ------------------------------------------------------------------ CRUD
 
 def test_crea_fascicolo(fascicolo_base):
@@ -357,6 +365,161 @@ def test_sincronizza_deposito_portale_riusa_lotto_generico_e_compila_metadati(gf
     assert doc1_reload.id_documento_portale == "DOC-001"
     assert doc2_reload.classificazione_portale == "ALLEGATO"
     assert doc2_reload.id_documento_portale == "DOC-002"
+
+
+def test_riconcilia_documenti_portale_ripara_match_ambiguo_e_normalizza_note(gf, fascicolo_base):
+    dep_citazione = gf.sincronizza_deposito_portale(
+        fascicolo_base.id,
+        fonte="PST",
+        id_deposito_esterno="DEP-CIT-001",
+        tipo_atto="Citazione",
+        data_deposito="2024-09-05",
+        mittente="avv.rossi@example.pec.it",
+        documenti_portale=[
+            {
+                "id_documento": "28139218",
+                "id_cat": "28139218",
+                "nome": "Citazione_28139218.pdf",
+                "tipo": "Citazione",
+                "data_deposito": "2024-09-05",
+                "mittente": "avv.rossi@example.pec.it",
+                "dimensione_bytes": 470000,
+                "disponibile": True,
+                "id_deposito": "DEP-CIT-001",
+                "tipo_atto": "Citazione",
+            }
+        ],
+        registrato_da="admin",
+        servizio_portale="DocumentiFascicolo",
+    )
+    dep_verbale = gf.sincronizza_deposito_portale(
+        fascicolo_base.id,
+        fonte="PST",
+        id_deposito_esterno="DEP-VERB-001",
+        tipo_atto="Verbale udienza",
+        data_deposito="2025-11-11",
+        mittente="cancelleria@tribunale.palmi.giustiziapec.it",
+        documenti_portale=[
+            {
+                "id_documento": "32970605",
+                "id_cat": "32970605",
+                "nome": "VerbaleUdienza_32970605.pdf",
+                "tipo": "VerbaleUdienza",
+                "data_deposito": "2025-11-11",
+                "mittente": "cancelleria@tribunale.palmi.giustiziapec.it",
+                "dimensione_bytes": 104000,
+                "disponibile": True,
+                "id_deposito": "DEP-VERB-001",
+                "tipo_atto": "Verbale udienza",
+            }
+        ],
+        registrato_da="admin",
+        servizio_portale="DocumentiFascicolo",
+    )
+    dep_sentenza = gf.sincronizza_deposito_portale(
+        fascicolo_base.id,
+        fonte="PST",
+        id_deposito_esterno="DEP-SENT-001",
+        tipo_atto="Sentenza definitiva",
+        data_deposito="2026-01-08",
+        mittente="cancelleria@tribunale.palmi.giustiziapec.it",
+        documenti_portale=[
+            {
+                "id_documento": "33581101",
+                "id_cat": "33581101",
+                "nome": "SentenzaDefinitiva_33581101.pdf",
+                "tipo": "SentenzaDefinitiva",
+                "data_deposito": "2026-01-08",
+                "mittente": "cancelleria@tribunale.palmi.giustiziapec.it",
+                "dimensione_bytes": 293000,
+                "disponibile": True,
+                "id_deposito": "DEP-SENT-001",
+                "tipo_atto": "Sentenza definitiva",
+            }
+        ],
+        registrato_da="admin",
+        servizio_portale="DocumentiFascicolo",
+    )
+
+    doc_citazione = gf.aggiungi_documento(
+        fascicolo_base.id,
+        "Citazione_28139218.pdf",
+        TipoDocumento.CITAZIONE,
+        b"citazione",
+        note="Importato da PolisWeb / PST il 2026-04-24 | Origine: pst:JPW_SICID:28139218 | Tipo atto portale: Citazione",
+        data_documento="2026-04-24",
+        fonte_documento="PORTALE_TELEMATICO",
+        nome_originale="pst:JPW_SICID:28139218",
+        nome_portale="Citazione_28139218.pdf",
+        classificazione_portale="Citazione",
+        tipo_atto_portale="Citazione",
+        id_documento_portale="28139218",
+        id_cat_portale="28139218",
+        id_deposito_pct=dep_citazione.id,
+    )
+    doc_verbale = gf.aggiungi_documento(
+        fascicolo_base.id,
+        "Citazione_28139218.pdf",
+        TipoDocumento.VERBALE,
+        b"verbale",
+        note="Importato da PolisWeb / PST il 2026-04-24 | Origine: pst:JPW_SICID:32970605 | Tipo atto portale: VerbaleUdienza",
+        data_documento="2026-04-24",
+        fonte_documento="PORTALE_TELEMATICO",
+        nome_originale="pst:JPW_SICID:32970605",
+        nome_portale="Citazione_28139218.pdf",
+        classificazione_portale="Citazione",
+        tipo_atto_portale="Citazione",
+        id_documento_portale="28139218",
+        id_cat_portale="28139218",
+        id_deposito_pct=dep_citazione.id,
+    )
+    doc_sentenza = gf.aggiungi_documento(
+        fascicolo_base.id,
+        "Citazione_28139218.pdf",
+        TipoDocumento.SENTENZA,
+        b"sentenza",
+        note="Importato da PolisWeb / PST il 2026-04-24 | Origine: SentenzaDefinitiva_33581101.pdf.p7m | Tipo atto portale: SentenzaDefinitiva",
+        data_documento="2026-04-24",
+        fonte_documento="PORTALE_TELEMATICO",
+        nome_originale="SentenzaDefinitiva_33581101.pdf.p7m",
+        nome_portale="Citazione_28139218.pdf",
+        classificazione_portale="Citazione",
+        tipo_atto_portale="Citazione",
+        id_documento_portale="28139218",
+        id_cat_portale="28139218",
+        id_deposito_pct=dep_citazione.id,
+    )
+
+    esito = gf.riconcilia_documenti_portale(fascicolo_base.id)
+
+    assert esito["documenti_allineati"] == 3
+    assert esito["depositi_toccati"] == 3
+
+    fascicolo_reload = gf.get(fascicolo_base.id)
+    assert fascicolo_reload is not None
+    by_id = {doc.id: doc for doc in fascicolo_reload.documenti}
+
+    doc_verbale_reload = by_id[doc_verbale.id]
+    assert doc_verbale_reload.id_deposito_pct == dep_verbale.id
+    assert doc_verbale_reload.nome == "VerbaleUdienza_32970605.pdf"
+    assert doc_verbale_reload.classificazione_portale == "VerbaleUdienza"
+    assert doc_verbale_reload.tipo_atto_portale == "Verbale udienza"
+    assert doc_verbale_reload.data_documento == "2025-11-11"
+    assert "Documenti fascicolo" in doc_verbale_reload.tags
+    assert "VerbaleUdienza" in doc_verbale_reload.tags
+    assert "Cancelleria" in doc_verbale_reload.tags
+    assert "24/04/2026" in doc_verbale_reload.note
+
+    doc_sentenza_reload = by_id[doc_sentenza.id]
+    assert doc_sentenza_reload.id_deposito_pct == dep_sentenza.id
+    assert doc_sentenza_reload.nome == "SentenzaDefinitiva_33581101.pdf"
+    assert doc_sentenza_reload.classificazione_portale == "SentenzaDefinitiva"
+    assert doc_sentenza_reload.tipo_atto_portale == "Sentenza definitiva"
+    assert doc_sentenza_reload.data_documento == "2026-01-08"
+
+    doc_citazione_reload = by_id[doc_citazione.id]
+    assert doc_citazione_reload.id_deposito_pct == dep_citazione.id
+    assert "24/04/2026" in doc_citazione_reload.note
 
 
 def test_normalizza_stato_deposito_pct_migra_legacy():

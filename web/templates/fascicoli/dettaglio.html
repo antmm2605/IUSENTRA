@@ -3344,6 +3344,9 @@
               Acquisisci intero fascicolo
             </button>
           </div>
+          <div class="small text-muted flex-grow-1">
+            Per PST IUSENTRA acquisisce di default la copia di consultazione del portale con annotazioni ministeriali visibili.
+          </div>
           <button type="button" class="btn btn-light btn-sm" data-bs-dismiss="modal">Chiudi</button>
         </div>
       </form>
@@ -5128,7 +5131,7 @@ window._PST_PRESERVE_TREE = {{ 'true' if preserve_pst_tree else 'false' }};
             id_deposito_esterno: item.id_deposito_esterno || '',
             id_deposito_pct: item.id_deposito_pct || '',
             tipo_atto: item.tipo_atto || '',
-            original: true
+            original: false
           };
         })
       })

@@ -110,6 +110,7 @@ tmp_local_signer_*.out.log
 /intelligence/giurisprudenza.json
 /intelligence/local_ai.db
 /portale/import_log.json
+/data/portale/import_log.json
 /tmp/
 /studio.db
 /pct.zip

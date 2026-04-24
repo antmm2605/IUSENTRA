@@ -182,6 +182,19 @@ def test_create_app_applies_runtime_overrides_and_registers_blueprints(tmp_path:
     assert "PCT_SCHEDULER" not in app.config
 
 
+def test_create_app_portale_runtime_paths_seguono_data_root(tmp_path: Path):
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    cfg = _cfg_web(tmp_path)
+    cfg.pop("PORTALE_DB")
+    cfg.pop("PORTALE_UPLOADS")
+
+    app = create_app(cfg)
+
+    assert Path(app.config["PORTALE_DB"]) == tmp_path / "portale" / "portali.json"
+    assert Path(app.config["PORTALE_UPLOADS"]) == tmp_path / "portale" / "uploads"
+    assert Path(app.config["PORTALE_IMPORT_LOG_DB"]) == tmp_path / "portale" / "import_log.json"
+
+
 def test_create_app_scheduler_only_costruisce_worker_senza_blueprint(tmp_path: Path):
     _write_studio_config(tmp_path / "config" / "studio.json")
     app = create_app({**_cfg_web(tmp_path), "SCHEDULER_ONLY": True})

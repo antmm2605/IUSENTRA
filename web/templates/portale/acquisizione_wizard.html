@@ -199,7 +199,7 @@
       <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-3"><div><h2 class="h5 mb-1">Step 7 — Importazione finale</h2><p class="text-muted mb-0">Conferma l’acquisizione, importa i file reali e apri subito il quadro della pratica importata.</p></div><button class="btn btn-{{ spec.color }}" type="button" id="awImport">Importa</button></div>
       <div class="aw-box bg-light-subtle mb-3">
         <div class="form-check form-switch mb-3">
-          <input class="form-check-input" type="checkbox" id="scarica_originale_portale" checked>
+          <input class="form-check-input" type="checkbox" id="scarica_originale_portale" {% if wizard_portale != 'pst' %}checked{% endif %}>
           <label class="form-check-label fw-semibold" for="scarica_originale_portale">
             {% if wizard_portale == 'pat' %}
             Raccogli i file gia scaricati dal Portale dell'Avvocato
@@ -1158,13 +1158,9 @@ function awCurrentDownloadKey() {
   const selectionKey = String(AW_STATE.selection?.external_id || '').trim();
   const options = awCurrentOptions();
   const docs = awSelectedPreviewDocuments().map(item => ({
-    id_documento: item.id_documento || item.id_documento_portale || '',
-    id_cat: item.id_cat || '',
-    id_repeatto: item.id_repeatto || '',
-    msg_id: item.msg_id || '',
+    ids: awDocumentIdentifierValues(item),
     id_deposito: item.id_deposito || item.id_deposito_esterno || item.id_deposito_pct || '',
     nome: item.nome || item.nome_documento || '',
-    candidates: Array.isArray(item.id_documento_candidates) ? item.id_documento_candidates : [],
   }));
   return JSON.stringify({ selectionKey, original: !!options.scarica_originale_portale, docs });
 }
@@ -1175,6 +1171,10 @@ function awExpectedDownloadDocuments() {
     id_deposito_pct: item.id_deposito_pct || '',
     tipo_atto: item.tipo_atto || '',
     id_documento_portale: item.id_documento || item.id_documento_portale || '',
+    id_cat: item.id_cat || '',
+    id_repeatto: item.id_repeatto || '',
+    msg_id: item.msg_id || '',
+    id_documento_candidates: awDocumentIdentifierValues(item),
     data_deposito: item.data_deposito || item.data_documento || '',
   })).filter(item => item.nome);
 }
@@ -1207,6 +1207,31 @@ function awDocumentPortalIdLine(doc) {
   if (!rows.length) rows.push('ID portale non disponibili');
   return `<div class="small text-muted mt-1">${rows.map(awEscape).join('<br>')}</div>`;
 }
+function awDocumentIdentifierValues(item) {
+  const values = [];
+  const raw = item || {};
+  const append = (value) => {
+    const text = String(value || '').trim();
+    if (!text || text.startsWith('#') || values.includes(text)) return;
+    values.push(text);
+  };
+  if (Array.isArray(raw.id_documento_candidates)) {
+    raw.id_documento_candidates.forEach(append);
+  }
+  [
+    raw.id_documento,
+    raw.id_documento_portale,
+    raw.id_cat,
+    raw.id_repeatto,
+    raw.msg_id,
+    raw.numero_documento,
+    raw.id_doc_mittente,
+  ].forEach(append);
+  return values;
+}
+function awHasPortalDocumentIdentifier(item) {
+  return awDocumentIdentifierValues(item).length > 0;
+}
 async function awPstDownloadSelectionViaLocalSigner(retry = true) {
   const tribunale = String(AW_STATE.selection?.ufficio_codice || '').trim();
   await awEnsurePstPortalSession(tribunale);
@@ -1231,7 +1256,7 @@ async function awPstDownloadSelectionViaLocalSigner(retry = true) {
       tipo: item.tipo || '',
       original: scaricaOriginale,
     }))
-    .filter(item => item.id_documento);
+    .filter(item => awHasPortalDocumentIdentifier(item));
   if (!documents.length) {
     throw new Error('Il fascicolo selezionato non espone identificativi validi per il download dei documenti.');
   }
@@ -1912,7 +1937,7 @@ function awCurrentOptions() {
     non_toccare_note_interne: awSelectionValue('non_toccare_note_interne', true),
     non_duplicare_documenti: awSelectionValue('non_duplicare_documenti', true),
     conserva_log_origine_pst: awSelectionValue('conserva_log_origine_pst', true),
-    scarica_originale_portale: awSelectionValue('scarica_originale_portale', true),
+    scarica_originale_portale: awSelectionValue('scarica_originale_portale', AW_BOOT.portale === 'pst' ? false : true),
     mantieni_albero_originale: awSelectionValue('mantieni_albero_originale', false),
   };
 }

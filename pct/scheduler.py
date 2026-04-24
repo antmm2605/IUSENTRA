@@ -608,7 +608,11 @@ def start_scheduler(app):
                 if not os.path.exists(fascicoli_db):
                     return
 
-                gf = GestioneFascicoli(db_path=fascicoli_db)
+                gf = GestioneFascicoli(
+                    db_path=fascicoli_db,
+                    documents_dir=app.config.get("FASCICOLI_DOCS", "./fascicoli/documenti"),
+                    archive_dir=app.config.get("FASCICOLI_ARCH", "./fascicoli/archivio"),
+                )
 
                 # Recupera configurazione PEC studio
                 config_pec = None
@@ -685,7 +689,11 @@ def start_scheduler(app):
                 if not config_pec:
                     return
 
-                gf = GestioneFascicoli(db_path=fascicoli_db)
+                gf = GestioneFascicoli(
+                    db_path=fascicoli_db,
+                    documents_dir=app.config.get("FASCICOLI_DOCS", "./fascicoli/documenti"),
+                    archive_dir=app.config.get("FASCICOLI_ARCH", "./fascicoli/archivio"),
+                )
                 import os as _os
                 state_path = _os.path.join(
                     _os.path.dirname(_os.path.abspath(fascicoli_db)),

@@ -98,7 +98,6 @@ def register_sync_runtime_routes(
                 riassunto_auto_esiti,
                 sincronizza_pec_e_fascicoli,
             )
-            from pct.fascicoli import GestioneFascicoli
 
             utente = _current_user()
             if not utente or not utente.ha_permesso("fascicoli.scrivi"):
@@ -135,7 +134,7 @@ def register_sync_runtime_routes(
                     }
                 )
 
-            gf = GestioneFascicoli(db_path=fascicoli_db)
+            gf = get_fascicoli()
             ge = GestioneEmailRicevute(
                 db_path=app.config.get(
                     "EMAIL_CASELLA_DB",
@@ -146,14 +145,16 @@ def register_sync_runtime_routes(
                 os.path.dirname(os.path.abspath(fascicoli_db)),
                 "pec_cancelleria_state.json",
             )
-            workflow = sincronizza_pec_e_fascicoli(
-                gestione_email=ge,
-                gestione_fascicoli=gf,
-                config_pec=config_pec,
-                fascicolo_id=fascicolo_id or None,
-                state_path=state_path,
-                limite=100,
-            )
+            workflow_kwargs = {
+                "gestione_email": ge,
+                "gestione_fascicoli": gf,
+                "config_pec": config_pec,
+                "state_path": state_path,
+                "limite": 100,
+            }
+            if fascicolo_id:
+                workflow_kwargs["fascicolo_id"] = fascicolo_id
+            workflow = sincronizza_pec_e_fascicoli(**workflow_kwargs)
             sync_result = workflow.get("sync", {}) or {}
             auto_log = workflow.get("auto_esiti", []) or []
             auto_summary = riassunto_auto_esiti(auto_log)

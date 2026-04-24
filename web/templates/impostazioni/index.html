@@ -335,8 +335,10 @@
 {% if tab_attivo == 'firma' %}
 {% set backend_scelto = cfg.firma.backend_preferito_normalizzato %}
 {% set backend_effettivo = cfg.firma.backend_firma_effettivo_safe %}
+{% set backend_operativo = cfg.firma.backend_firma_operativo_safe %}
 {% set backend_errore = cfg.firma.backend_firma_errore %}
-{% set fmt = backend_scelto if backend_scelto != 'auto' else (backend_effettivo if backend_effettivo != 'nessuno' else 'pkcs11') %}
+{% set pkcs11_canale_locale = cfg.firma.pkcs11_canale_locale %}
+{% set fmt = backend_scelto if backend_scelto != 'auto' else (backend_operativo if backend_operativo != 'nessuno' else 'pkcs11') %}
 
 <div class="card border-0 shadow-sm" style="border-radius:18px;">
   <div class="card-body p-4">
@@ -349,16 +351,23 @@
           Configura il certificato per firmare gli atti e i depositi telematici.
         </p>
       </div>
-      {% if backend_errore %}
+      {% if pkcs11_canale_locale %}
+      <span class="badge bg-info text-dark"><i class="bi bi-pc-display-horizontal me-1"></i>Configurazione guidata</span>
+      {% elif backend_errore %}
       <span class="badge bg-warning text-dark"><i class="bi bi-exclamation-triangle me-1"></i>Da configurare</span>
-      {% elif backend_effettivo != 'nessuno' %}
+      {% elif backend_operativo != 'nessuno' %}
       <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Configurata</span>
       {% else %}
       <span class="badge bg-secondary"><i class="bi bi-dash-circle me-1"></i>Non configurata</span>
       {% endif %}
     </div>
 
-    {% if backend_errore %}
+    {% if pkcs11_canale_locale %}
+    <div class="alert alert-info py-2 small mb-3 d-flex align-items-center gap-2">
+      <i class="bi bi-info-circle-fill flex-shrink-0"></i>
+      <span>Token USB selezionato. La verifica reale di libreria, token e certificato avviene tramite Local Signer sul PC locale, non nel server remoto. Usa “Verifica token collegato” da questo computer per il controllo effettivo.</span>
+    </div>
+    {% elif backend_errore %}
     <div class="alert alert-warning py-2 small mb-3 d-flex align-items-center gap-2">
       <i class="bi bi-exclamation-triangle-fill flex-shrink-0"></i>
       <span>{{ backend_errore }}</span>

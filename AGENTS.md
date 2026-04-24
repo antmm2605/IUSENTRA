@@ -259,6 +259,26 @@ python -m pytest tests/ -v
   - altri host/server → guida chiara e non bloccante, senza installazioni opache dal browser
 - Il gestionale deve continuare a funzionare anche se il runtime AI non è disponibile: nessuna funzione core di fascicoli, agenda, documenti o scadenziario deve bloccarsi per assenza di Ollama.
 
+## Local Signer / PKCS#11 — REGOLA OBBLIGATORIA
+
+- **PKCS#11 server-side e Local Signer browser-locale non sono la stessa cosa** e non vanno mai confusi.
+- Se l'utente seleziona `Token USB (Aruba Key)` in UI, il sistema deve distinguere sempre:
+  - **backend server-side**: libreria/token visibili al processo Python o al container;
+  - **canale operativo locale**: `Local Signer` attivo sul PC dell'avvocato tramite `http://127.0.0.1:27272`.
+- In ambiente cloud/hosted (`Railway`, server remoto, container Linux), **l'assenza della libreria PKCS#11 nel server non può essere mostrata come errore di configurazione finale** se il flusso previsto è `Local Signer` sul dispositivo cliente.
+- Le schermate `Impostazioni -> Firma Digitale`, `polisWeb`, `PDP`, `PAT`, `PTT/SIGIT` e ogni wizard telematico devono:
+  - trattare `pkcs11` come **canale locale/browser-guided** quando la scelta dell'utente è il token USB;
+  - evitare fallback silenziosi a `demo` solo perché il container non vede il token;
+  - mostrare messaggi chiari del tipo: il controllo reale avviene sul PC locale tramite `Local Signer`.
+- **Divieto di verificare il token USB interrogando il server remoto** quando il controllo corretto è lato client.
+  - Il pulsante `Verifica token collegato` deve usare il `Local Signer` locale (`127.0.0.1:27272`) dal browser.
+  - Gli endpoint server `/api/firma/pkcs11/*` restano validi solo per casi realmente server-side o per diagnostica specifica, non come fonte unica dello stato UI in produzione hosted.
+- Ogni modifica a firma digitale, PST/polisWeb, PDP, PAT, PTT o pagina impostazioni firma deve includere **test di regressione espliciti** su:
+  - scelta `pkcs11` senza libreria disponibile nel container;
+  - assenza del falso messaggio `PKCS#11 selezionato ma libreria/token non disponibili` nella UI quando il canale corretto è `Local Signer`;
+  - script/browser che verificano il `Local Signer` locale e non il server remoto;
+  - status telematico che resta `pkcs11/browser-guided` e non ricade in `demo` per errore.
+
 ## Railway CLI — REGOLA OBBLIGATORIA
 
 - L'ambiente di lavoro è abilitato anche alla **Railway CLI** con login valido.

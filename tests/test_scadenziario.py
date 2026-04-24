@@ -420,6 +420,9 @@ def test_scadenza_avanzata_persistita_salva_trace_e_date(gs):
 def _cfg_web(tmp_path):
     return {
         "TESTING": True,
+        "MULTI_TENANT": False,
+        "BOOTSTRAP_ADMIN_PASSWORD": "admin",
+        "STORAGE_MODE_DEFAULT": "json",
         "AUTH_DB": str(tmp_path / "utenti.json"),
         "AUDIT_DB": str(tmp_path / "audit.json"),
         "CLIENTI_DB": str(tmp_path / "clienti.json"),
@@ -444,7 +447,12 @@ def _cfg_web(tmp_path):
 
 def test_route_calcola_termine_avanzato_restituisce_trace(tmp_path):
     cfg = _cfg_web(tmp_path)
-    GestioneUtenti(db_path=cfg["AUTH_DB"], audit_path=cfg["AUDIT_DB"], secret_key="test")
+    GestioneUtenti(
+        db_path=cfg["AUTH_DB"],
+        audit_path=cfg["AUDIT_DB"],
+        secret_key="test",
+        bootstrap_admin_password="admin",
+    )
     app = create_app(cfg)
     client = app.test_client()
     login = client.post("/login", data={"username": "admin", "password": "admin"}, follow_redirects=True)
@@ -473,7 +481,12 @@ def test_route_calcola_termine_avanzato_restituisce_trace(tmp_path):
 
 def test_route_nuova_scadenza_avanzata_salva_note(tmp_path):
     cfg = _cfg_web(tmp_path)
-    GestioneUtenti(db_path=cfg["AUTH_DB"], audit_path=cfg["AUDIT_DB"], secret_key="test")
+    GestioneUtenti(
+        db_path=cfg["AUTH_DB"],
+        audit_path=cfg["AUDIT_DB"],
+        secret_key="test",
+        bootstrap_admin_password="admin",
+    )
     app = create_app(cfg)
     client = app.test_client()
     login = client.post("/login", data={"username": "admin", "password": "admin"}, follow_redirects=True)
@@ -502,7 +515,12 @@ def test_route_nuova_scadenza_avanzata_salva_note(tmp_path):
 
 def test_route_modifica_manuale_azzera_metadati_calcolo_avanzato(tmp_path):
     cfg = _cfg_web(tmp_path)
-    GestioneUtenti(db_path=cfg["AUTH_DB"], audit_path=cfg["AUDIT_DB"], secret_key="test")
+    GestioneUtenti(
+        db_path=cfg["AUTH_DB"],
+        audit_path=cfg["AUDIT_DB"],
+        secret_key="test",
+        bootstrap_admin_password="admin",
+    )
     gs = GestioneScadenziario(db_path=cfg["SCADENZIARIO_DB"])
     sc = gs.nuova(
         titolo="Termine da ripulire",
@@ -552,7 +570,12 @@ def test_route_modifica_manuale_azzera_metadati_calcolo_avanzato(tmp_path):
 
 def test_route_scadenziario_filtra_avanzate_e_operative(tmp_path):
     cfg = _cfg_web(tmp_path)
-    GestioneUtenti(db_path=cfg["AUTH_DB"], audit_path=cfg["AUDIT_DB"], secret_key="test")
+    GestioneUtenti(
+        db_path=cfg["AUTH_DB"],
+        audit_path=cfg["AUDIT_DB"],
+        secret_key="test",
+        bootstrap_admin_password="admin",
+    )
     gs = GestioneScadenziario(db_path=cfg["SCADENZIARIO_DB"])
     gs.nuova(
         titolo="Termine avanzato",
@@ -585,7 +608,12 @@ def test_route_scadenziario_filtra_avanzate_e_operative(tmp_path):
 
 def test_dettaglio_scadenza_mostra_studio_e_contesto(tmp_path):
     cfg = _cfg_web(tmp_path)
-    GestioneUtenti(db_path=cfg["AUTH_DB"], audit_path=cfg["AUDIT_DB"], secret_key="test")
+    GestioneUtenti(
+        db_path=cfg["AUTH_DB"],
+        audit_path=cfg["AUDIT_DB"],
+        secret_key="test",
+        bootstrap_admin_password="admin",
+    )
     GestioneConfigStudio(config_path=cfg["STUDIO_CONFIG"]).aggiorna_sezione(
         "studio",
         {

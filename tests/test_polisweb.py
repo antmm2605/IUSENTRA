@@ -3009,6 +3009,50 @@ def test_api_acquisizione_status_portale_p12_non_forza_browser_only(tmp_path):
     assert data["status"]["environment_label"] == "Produzione guidata"
 
 
+def test_api_acquisizione_status_pst_usa_local_signer_anche_senza_libreria_server(tmp_path):
+    from pct.auth import GestioneUtenti, RuoloUtente
+    from web.app import create_app
+
+    cfg = _cfg_web(tmp_path)
+    studio_cfg = tmp_path / "config" / "studio.json"
+
+    gs = GestioneConfigStudio(str(studio_cfg))
+    studio = gs.config
+    studio.firma.backend_preferito = "pkcs11"
+    studio.firma.cf_avvocato = "RSSMRA80A01H501Z"
+    gs.aggiorna(studio)
+
+    gu = GestioneUtenti(
+        db_path=cfg["AUTH_DB"],
+        audit_path=cfg["AUDIT_DB"],
+        secret_key="test",
+    )
+    gu.crea(
+        username="avvocato",
+        password="Avv12345!",
+        ruolo=RuoloUtente.AVVOCATO,
+        email="avvocato@example.com",
+    )
+
+    app = create_app({**cfg, "STUDIO_CONFIG": str(studio_cfg)})
+    with app.test_client() as client:
+        client.post(
+            "/login",
+            data={"username": "avvocato", "password": "Avv12345!"},
+            follow_redirects=True,
+        )
+        response = client.get("/api/portali/pst/acquisizione/status", follow_redirects=True)
+
+    data = response.get_json()
+    assert response.status_code == 200
+    assert data["ok"] is True
+    assert data["status"]["auth_mode"] == "pkcs11"
+    assert data["status"]["pkcs11_mode"] is True
+    assert data["status"]["demo_mode"] is False
+    assert data["status"]["status_text"] == "Accesso via Local Signer / Aruba Key"
+    assert data["status"]["environment_label"] == "Produzione guidata via browser locale"
+
+
 def test_api_acquisizione_status_pat_forza_browser_ufficiale(tmp_path):
     from pct.auth import GestioneUtenti, RuoloUtente
     from web.app import create_app

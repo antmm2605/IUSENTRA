@@ -1,5 +1,18 @@
 # Changelog
 
+## 2.182.18 - 2026-04-24
+
+- Corretta una regressione nella schermata `Impostazioni -> Firma Digitale`: se l'avvocato sceglie `Token USB (Aruba Key)` il pannello non marca piu' come errore il fatto che il container remoto non veda libreria o token, perche' quel controllo appartiene al `Local Signer` sul PC locale.
+- Introdotto un canale operativo esplicito per `PKCS#11 via Local Signer`, riusato dal runtime telematico per non ricadere piu' in modalita demo quando l'utente ha selezionato il token USB ma la verifica reale deve avvenire dal browser desktop.
+- Il pulsante `Verifica token collegato` non interroga piu' il server Railway: controlla direttamente `http://127.0.0.1:27272/ping`, quindi restituisce lo stato reale del `Local Signer` e del token sul computer dell'avvocato.
+- Aggiunti test di regressione sul canale operativo PKCS#11, sul rendering della pagina impostazioni firma e sullo script JS che deve verificare il `Local Signer` locale invece dell'endpoint server.
+
+## 2.182.17 - 2026-04-24
+
+- Integrati sulla linea principale i fix ancora utili della PR remota rimasta indietro rispetto ai branch ufficiali: i test di bootstrap runtime ora dichiarano in modo esplicito il contesto single-tenant o JSON quando dipendono da quei default, cosi' non tornano flaky al variare della configurazione di ambiente.
+- Corretto il test dell'editor atti che puntava a un path Windows hardcoded fuori repository: ora risolve i template dalla root reale del progetto, quindi la suite resta portabile e non si rompe quando il clone vive in una cartella diversa.
+- Snellito il manager utenti root nei test di strategia storage evitando il passaggio del backend studio fuori contesto request, cosi' il riallineamento del branch `claude/fix-legal-filing-issues-eW926` sulla testa corrente entra senza trascinarsi assunzioni obsolete.
+
 ## 2.182.16 - 2026-04-24
 
 - Corretta una regressione runtime del dettaglio fascicolo emersa nel container Python 3.12: il worker non va piu' in crash durante il boot per una forward reference tipizzata nel merge del catalogo portale, quindi il fix sul governo documentale e' ora davvero servito in app e non solo coperto dai test locali.

@@ -11,6 +11,8 @@ def _cfg_web(tmp_path):
     os.makedirs(str(tmp_path / "backup"), exist_ok=True)
     return {
         "TESTING": True,
+        "MULTI_TENANT": False,
+        "BOOTSTRAP_ADMIN_PASSWORD": "admin",
         "AUTH_DB": str(tmp_path / "utenti.json"),
         "AUDIT_DB": str(tmp_path / "audit.json"),
         "CLIENTI_DB": str(tmp_path / "clienti.json"),

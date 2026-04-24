@@ -65,7 +65,7 @@ def build_telematico_runtime(
         try:
             cfg = get_config_studio().config.firma
             preferito = getattr(cfg, "backend_preferito_normalizzato", "auto")
-            fmt = getattr(cfg, "backend_firma_effettivo_safe", "nessuno")
+            fmt = getattr(cfg, "backend_firma_operativo_safe", "nessuno")
             if fmt == "pkcs11":
                 # Token USB: la chiave privata non è esportabile e non è accessibile
                 # dal container Linux su Windows → autenticazione PST solo via browser
@@ -1912,7 +1912,7 @@ def build_telematico_runtime(
             "spec": spec,
             "avvocato": str(getattr(cfg.studio, "nome_avvocato", "") or getattr(g.utente_corrente, "username", "") or "").strip(),
             "codice_fiscale_avvocato": str(getattr(firma_cfg, "cf_avvocato", "") or getattr(cfg.studio, "codice_fiscale_avvocato", "") or "").strip().upper(),
-            "backend_firma": str(getattr(firma_cfg, "backend_firma_effettivo_safe", "nessuno") or "").strip(),
+            "backend_firma": str(getattr(firma_cfg, "backend_firma_operativo_safe", "nessuno") or "").strip(),
             "auth_mode": auth_mode,
             "demo_mode": demo_mode,
             "pkcs11_mode": pkcs11_mode,

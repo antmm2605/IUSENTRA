@@ -227,6 +227,27 @@ class ConfigFirma:
             return "nessuno"
 
     @property
+    def pkcs11_canale_locale(self) -> bool:
+        """True quando l'utente ha scelto il token USB ma la verifica reale avviene via Local Signer sul PC."""
+        return self.backend_preferito_normalizzato == "pkcs11" and not self.pkcs11_configurato
+
+    @property
+    def backend_firma_operativo_safe(self) -> str:
+        """
+        Restituisce il canale operativo disponibile per la UI e i portali browser-guided.
+
+        Per PKCS#11 distinguiamo il backend server-side dal flusso Local Signer:
+        il container puo' non vedere libreria/token, ma il canale locale sul PC
+        dell'avvocato resta comunque valido per la consultazione e la firma guidata.
+        """
+        backend = self.backend_firma_effettivo_safe
+        if backend != "nessuno":
+            return backend
+        if self.pkcs11_canale_locale:
+            return "pkcs11"
+        return "nessuno"
+
+    @property
     def backend_firma_errore(self) -> str:
         try:
             self.backend_firma_effettivo

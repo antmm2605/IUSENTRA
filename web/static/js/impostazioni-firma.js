@@ -1,4 +1,19 @@
 (function () {
+  const LOCAL_SIGNER_BASE = 'http://127.0.0.1:27272';
+
+  function fetchJsonWithTimeout(url, timeoutMs) {
+    const controller = new AbortController();
+    const timer = window.setTimeout(function () {
+      controller.abort();
+    }, timeoutMs);
+    return fetch(url, {
+      headers: { 'X-Requested-With': 'XMLHttpRequest' },
+      signal: controller.signal,
+    }).finally(function () {
+      window.clearTimeout(timer);
+    });
+  }
+
   function scegliModalita(formato) {
     document.querySelectorAll('input[name="firma_formato"]').forEach(function (radio) {
       radio.checked = radio.value === formato;
@@ -74,14 +89,12 @@
     bottone.disabled = true;
     risultato.innerHTML = '<span class="text-muted"><i class="bi bi-hourglass-split me-1"></i>Verifica in corso...</span>';
 
-    fetch('/api/firma/pkcs11/status', {
-      headers: { 'X-Requested-With': 'XMLHttpRequest' },
-    })
+    fetchJsonWithTimeout(LOCAL_SIGNER_BASE + '/ping', 4000)
       .then(function (response) {
         return response.json();
       })
       .then(function (payload) {
-        if (payload.disponibile && Array.isArray(payload.token) && payload.token.length > 0) {
+        if (payload.ok && Array.isArray(payload.token) && payload.token.length > 0) {
           const token = payload.token[0];
           risultato.innerHTML =
             '<span class="text-success"><i class="bi bi-check-circle-fill me-1"></i>Token rilevato: <strong>' +
@@ -90,19 +103,28 @@
           return;
         }
 
-        if (payload.disponibile) {
+        if (payload.ok) {
+          const nota = payload.errore_token || payload.errore_libreria || payload.nota_riavvio_signer;
           risultato.innerHTML =
-            '<span class="text-warning"><i class="bi bi-exclamation-triangle me-1"></i>Nessun token inserito. Collega il dispositivo e riprova.</span>';
+            '<span class="text-warning"><i class="bi bi-exclamation-triangle me-1"></i>' +
+            (nota || 'Local Signer attivo ma token non ancora disponibile. Collega il dispositivo e riprova.') +
+            '</span>';
           return;
         }
 
         risultato.innerHTML =
           '<span class="text-danger"><i class="bi bi-x-circle me-1"></i>' +
-          (payload.messaggio || 'Il driver PKCS#11 non e\' disponibile.') +
+          (payload.errore_libreria || payload.messaggio || 'Local Signer non pronto su questo PC.') +
           '</span>';
       })
       .catch(function (errore) {
-        risultato.innerHTML = '<span class="text-danger">Errore: ' + errore + '</span>';
+        const dettaglio = errore && errore.name === 'AbortError'
+          ? 'Timeout di collegamento al Local Signer.'
+          : 'Local Signer non raggiungibile su questo PC.';
+        risultato.innerHTML =
+          '<span class="text-danger"><i class="bi bi-x-circle me-1"></i>' +
+          dettaglio +
+          ' Avvialo o installalo con il pacchetto qui sopra e riprova.</span>';
       })
       .finally(function () {
         bottone.disabled = false;

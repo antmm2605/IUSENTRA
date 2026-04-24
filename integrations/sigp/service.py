@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from .config import SIGP_AMBIENTI, SIGP_MODULE_NAME, SIGP_MODULE_SUBTITLE, SIGP_OFFICIAL_SOURCES
 from .predeposito import check_sigp_predeposito
+from .sync_service import get_sigp_sync_status
 from .validator import validate_sigp_xml
 from .xml_builder import build_sigp_xml
 from .xsd_loader import sigp_schema_status
@@ -17,6 +18,7 @@ def get_sigp_status() -> dict:
         "ambienti": SIGP_AMBIENTI,
         "sources": SIGP_OFFICIAL_SOURCES,
         "stati": SIGP_STATI_DEPOSITO,
+        "sync": get_sigp_sync_status(),
     }
 
 

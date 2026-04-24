@@ -140,6 +140,8 @@ Regole chiave:
   - PST → `pst.giustizia.it` (autenticazione: CNS/CIE/SPID)
   - PDP → `appweb.giustizia.it` (autenticazione: CNS/CIE)
   - PAT → `giustizia-amministrativa.it/pac` (autenticazione: CNS/CIE/SPID)
+- **Divieto assoluto di scraping HTML dei portali**: PST/polisWeb, SIGP/GDP, PDP, PAT e PTT non devono essere interrogati leggendo pagine HTML come `sigp_infofascicolo.wp` o sessioni browser "nascoste". Le pagine ufficiali possono essere aperte all'utente per consultazione assistita, ma i dati importati nel gestionale devono arrivare da servizi autorizzati PST/PdA/Model Office, da Local Connector sul PC dello studio o da file reali scaricati/importati dall'utente.
+- **Sincronizzazione fascicolo telematico autorizzata**: per SIGP/Giudice di Pace il modulo corretto e' `Sincronizzazione fascicolo telematico`, non una scorciatoia HTML. Il flusso deve essere `IUSENTRA -> Local Connector/Signer -> CNS/smart card -> PST o Punto di Accesso autorizzato -> servizi consultazione fascicolo -> normalizzazione -> UI`, senza salvare PIN, username/password portale o credenziali nel cloud.
 - **Campi obbligatori nei modelli documento**: ogni `DocumentoXxx` (PST, PDP, PAT) deve avere `id_deposito` e `tipo_atto` per supportare la vista a buste.
 - **Logica di raggruppamento nelle route**: le route `*/documenti` devono sempre costruire la lista `depositi` (dict con `id_deposito`, `tipo_atto`, `data_deposito`, `mittente`, `documenti[]`) ordinata per data decrescente, e passare sia `documenti` (lista flat) sia `depositi` (lista raggruppata) al template.
 - **Fallback chiave raggruppamento**: se `id_deposito` è vuoto, usare `f"__{data_deposito}__{mittente}"` come chiave di raggruppamento.

@@ -352,6 +352,27 @@ def test_preflight_auth_timeout_non_blocca_la_ricerca_reale():
     assert "non blocca la ricerca reale" in esito["warning"].lower()
 
 
+def test_preflight_auth_timeout_expired_non_diventa_errore_500():
+    module = _load_local_signer()
+
+    orig_run = module.subprocess.run
+    try:
+        def _fake_run(cmd, capture_output, text, timeout, encoding, errors):
+            raise module.subprocess.TimeoutExpired(cmd, timeout)
+
+        module.subprocess.run = _fake_run
+        esito = module._pst_preflight_auth_curl(
+            "https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SIGP",
+            cert_thumbprint="AABBCC11",
+        )
+    finally:
+        module.subprocess.run = orig_run
+
+    assert esito["ok"] is True
+    assert esito["http_code"] is None
+    assert "non blocca la ricerca reale" in esito["warning"].lower()
+
+
 def test_messaggio_timeout_usa_il_timeout_reale_della_ricerca():
     module = _load_local_signer()
 
@@ -1286,74 +1307,23 @@ def test_sigp_fallback_collega_scheda_ufficiale_gdp():
     assert fascicolo["anno_rg"] == 2023
     assert fascicolo["registro_portale"] == "GDP"
     assert fascicolo["verifica_browser_ufficiale"] is True
+    assert fascicolo["sincronizzazione_autorizzata"] == "richiede_servizio_pst_pda_o_model_office"
+    assert fascicolo["download_autonomo"] is False
+    assert "scraping HTML" in fascicolo["messaggio_operativo"]
     assert "sigp_infofascicolo.wp" in fascicolo["portale_url"]
     assert "ufficioRicerca=0800570152" in fascicolo["portale_url"]
     assert "registroRicerca=GDP" in fascicolo["portale_url"]
     assert "pa=%5BMNTRRT64L01L063H%5D" in fascicolo["portale_url"]
 
 
-def test_parse_sigp_info_fascicolo_html_popola_dati_parti_e_legali():
+def test_sigp_fallback_non_contiene_scraping_html():
     module = _load_local_signer()
+    source = Path(module.__file__).read_text(encoding="utf-8")
 
-    html = """
-    <html><body>
-      <table>
-        <tr><td>Atto introduttivo</td><td>Citazione</td></tr>
-        <tr><td>Rito</td><td>RITO ORDINARIO</td></tr>
-        <tr><td>Ruolo</td><td>GENERALE DEGLI AFFARI CIVILI CONTENZIOSI</td></tr>
-        <tr><td>Materia</td><td>Responsabilita extracontrattuale</td></tr>
-        <tr><td>Oggetto</td><td>Azioni di competenza del Giudice di Pace in materia di risarcimento danno</td></tr>
-        <tr><td>Giudice</td><td>CARUSO GIUSEPPE</td></tr>
-        <tr><td>Sezione</td><td>SEZIONE UNICA PALMI</td></tr>
-        <tr><td>Data iscrizione</td><td>23/02/2023</td></tr>
-        <tr><td>Data ultima udienza</td><td>19/04/2023 12:00</td></tr>
-        <tr><td>Stato</td><td>PROCEDIMENTO DEFINITO</td></tr>
-      </table>
-      <h3>Parti legali</h3>
-      <table>
-        <tr><td>Attore principale</td><td>ROBERTINO ALESSI rappresentato da MONTAGNESE ROBERTO</td></tr>
-        <tr><td>Convenuto principale</td><td>ZURICH ASS.NI rappresentato da FOTI ALFREDO</td></tr>
-      </table>
-    </body></html>
-    """
-
-    info = module._parse_sigp_info_fascicolo_html(html)
-    fascicolo = module._sigp_merge_info_fascicolo(
-        module._sigp_fascicolo_fallback(
-            codice_ufficio="0800570152",
-            numero_rg="466",
-            anno_rg=2023,
-            cf_avvocato="MNTRRT64L01L063H",
-        ),
-        info,
-    )
-
-    assert info["atto_introduttivo"] == "Citazione"
-    assert info["rito"] == "RITO ORDINARIO"
-    assert fascicolo["ruolo"] == "GENERALE DEGLI AFFARI CIVILI CONTENZIOSI"
-    assert fascicolo["oggetto"].startswith("Azioni di competenza")
-    assert fascicolo["giudice"] == "CARUSO GIUSEPPE"
-    assert fascicolo["data_udienza"] == "19/04/2023 12:00"
-    assert fascicolo["parti"] == ["ROBERTINO ALESSI"]
-    assert fascicolo["controparti"] == ["ZURICH ASS.NI"]
-    assert fascicolo["difensori"] == ["MONTAGNESE ROBERTO", "FOTI ALFREDO"]
-    assert fascicolo["scheda_ufficiale_letta"] is True
-
-
-def test_sigp_login_html_non_viene_scambiato_per_scheda_letta():
-    module = _load_local_signer()
-
-    login_html = """
-    <html>
-      <head><title>Portale Servizi Telematici. Login</title></head>
-      <body><div class="logIn"><a href="/PST/it/pst_intr.wp">Login</a></div></body>
-    </html>
-    """
-
-    info = module._parse_sigp_info_fascicolo_html(login_html)
-
-    assert module._sigp_html_richiede_login(login_html) is True
-    assert module._sigp_info_has_content(info) is False
+    assert "_parse_sigp_info_fascicolo_html" not in source
+    assert "_http_get_pst_session" not in source
+    assert "_http_get_curl_raw" not in source
+    assert "_arricchisci_sigp_fallback_con_scheda" not in source
 
 
 def test_parse_qbuilder_fascicoli_xml():

@@ -8,7 +8,7 @@ La repo oggi non è più solo un tool CLI per il Processo Civile Telematico: con
 
 - Gestione fascicoli, clienti, soggetti, agenda e scadenziario.
 - Deposito telematico civile, penale e dashboard servizi telematici.
-- Modulo separato `Integrazione SIGP - Giudice di Pace` per generazione XML, predeposito e validazione XSD ufficiale prima di qualsiasi busta o invio.
+- Modulo separato `Integrazione SIGP - Giudice di Pace` per generazione XML, predeposito, validazione XSD ufficiale e sincronizzazione fascicolo telematico tramite soli canali autorizzati PST/PdA/Model Office o Local Connector, senza scraping HTML.
 - Workflow completo `cliente -> preventivo -> conferimento -> fascicolo -> attivita' -> parcella -> incasso`.
 - Wizard preventivi e console tariffaria ora usano davvero il tariffario corretto per fase: `D.M. 55/2014` per i giudiziali, `Tabella A25` per lo stragiudiziale e `Tabella A27` per mediazione / negoziazione assistita, con checkbox fiscali che incidono davvero sul totale.
 - Nei casi di mediazione civile / commerciale il preventivo e il tariffario possono includere anche i costi organismo ex `D.M. 24 ottobre 2023, n. 150` (artt. 28, 30, 31 e Tabella A), distinguendo volontaria / obbligatoria-demandata, esito del primo incontro o degli incontri successivi e maggiorazione art. 31, comma 3.

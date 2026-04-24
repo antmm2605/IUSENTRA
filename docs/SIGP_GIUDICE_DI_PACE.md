@@ -18,8 +18,32 @@ La nota ufficiale indica `Professionista.xsd` versione 2.0 e il nuovo atto CTU p
 - `integrations/sigp/predeposito.py`: controlli minimi di predeposito.
 - `integrations/sigp/service.py`: orchestrazione `dati -> XML -> XSD`.
 - `integrations/sigp/routes.py`: UI `/sigp` e API `/sigp/depositi/prepara`.
+- `integrations/sigp/sync_mapper.py`: normalizzazione di payload reali autorizzati PST/PdA/Local Connector.
+- `integrations/sigp/sync_repository.py`: persistenza SQLite dello snapshot completo del fascicolo SIGP.
+- `integrations/sigp/sync_service.py`: importazione controllata dei dati autorizzati nel repository.
+- `integrations/sigp/sync_policy.py`: policy pubblica che vieta scraping HTML, PIN salvato e credenziali cloud.
 
 La prima tranche non invia al Ministero e non genera busta: blocca correttamente su `SIGP_XSD_MANCANTE` finche' lo XSD ufficiale non e' presente in locale.
+
+## Sincronizzazione fascicolo telematico
+
+La sincronizzazione fascicolo SIGP importa solo payload reali ottenuti tramite canali autorizzati:
+
+- PST pubblico con sessione ufficiale e autenticazione forte.
+- Punto di Accesso autorizzato.
+- Model Office SIGP per test software house.
+- Local Connector/Signer sul PC dello studio, con token CNS/smart card e sessione temporanea.
+
+Il gestionale non effettua scraping HTML di pagine come `sigp_infofascicolo.wp`, non salva PIN, non salva credenziali del portale nel cloud e non esegue download massivo non presidiato.
+
+Endpoint applicativi:
+
+```text
+GET  /sigp/sync/status
+POST /sigp/sync/importa-payload
+```
+
+`POST /sigp/sync/importa-payload` accetta un payload JSON reale gia' ottenuto dal canale autorizzato e lo salva come snapshot completo: fascicolo, parti, eventi, udienze, documenti, provvedimenti e comunicazioni. Non usa fixture e non applica limiti fissi sul numero di documenti.
 
 ## Installazione XSD
 
@@ -46,7 +70,7 @@ pct/sql/20260424_sigp_repository.sql
 pct/sql/20260424_sigp_repository_postgres.sql
 ```
 
-Coprono versioni schema, uffici SIGP, depositi, allegati e validazioni. Il runtime iniziale e' stateless per la sola validazione, ma il dominio persistente e' gia' predisposto per SQLite e PostgreSQL.
+Coprono versioni schema, uffici SIGP, depositi, allegati, validazioni e snapshot di sincronizzazione fascicolo. Il runtime iniziale di validazione resta stateless, mentre la sincronizzazione autorizzata persiste i dati completi su SQLite e ha schema PostgreSQL allineato.
 
 ## Prossime tranche
 

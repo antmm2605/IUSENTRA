@@ -60,6 +60,129 @@ CREATE TABLE IF NOT EXISTS sigp_validazioni (
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS sigp_sync_fascicoli (
+    id BIGSERIAL PRIMARY KEY,
+    sigp_uid TEXT NOT NULL UNIQUE,
+    fascicolo_locale_id TEXT,
+    ufficio_codice TEXT,
+    ufficio TEXT,
+    registro TEXT NOT NULL DEFAULT 'GDP',
+    numero_rg TEXT,
+    anno_rg TEXT,
+    atto_introduttivo TEXT,
+    rito TEXT,
+    ruolo TEXT,
+    materia TEXT,
+    oggetto TEXT,
+    giudice TEXT,
+    sezione TEXT,
+    stato TEXT,
+    data_iscrizione TEXT,
+    data_prima_comparizione TEXT,
+    data_ultima_udienza TEXT,
+    hash_snapshot TEXT NOT NULL,
+    raw_json JSONB,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS sigp_sync_parti (
+    id BIGSERIAL PRIMARY KEY,
+    sigp_fascicolo_id BIGINT NOT NULL REFERENCES sigp_sync_fascicoli(id) ON DELETE CASCADE,
+    ruolo TEXT,
+    tipo TEXT,
+    nome TEXT,
+    cognome TEXT,
+    denominazione TEXT,
+    codice_fiscale TEXT,
+    partita_iva TEXT,
+    difensore TEXT,
+    raw_json JSONB,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS sigp_sync_eventi (
+    id BIGSERIAL PRIMARY KEY,
+    sigp_fascicolo_id BIGINT NOT NULL REFERENCES sigp_sync_fascicoli(id) ON DELETE CASCADE,
+    evento_uid TEXT,
+    tipo_evento TEXT,
+    descrizione TEXT,
+    data_evento TEXT,
+    data_udienza TEXT,
+    esito TEXT,
+    raw_json JSONB,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS sigp_sync_udienze (
+    id BIGSERIAL PRIMARY KEY,
+    sigp_fascicolo_id BIGINT NOT NULL REFERENCES sigp_sync_fascicoli(id) ON DELETE CASCADE,
+    udienza_uid TEXT,
+    data_udienza TEXT,
+    ora TEXT,
+    tipo TEXT,
+    descrizione TEXT,
+    esito TEXT,
+    raw_json JSONB,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS sigp_sync_documenti (
+    id BIGSERIAL PRIMARY KEY,
+    sigp_fascicolo_id BIGINT NOT NULL REFERENCES sigp_sync_fascicoli(id) ON DELETE CASCADE,
+    documento_uid TEXT,
+    id_deposito TEXT,
+    id_repeatto TEXT,
+    nome_file TEXT,
+    nome_originario TEXT,
+    sezione TEXT,
+    classificazione TEXT,
+    tipo_atto TEXT,
+    data_deposito TEXT,
+    data_documento TEXT,
+    depositante TEXT,
+    mime_type TEXT,
+    dimensione_bytes INTEGER DEFAULT 0,
+    scaricabile INTEGER DEFAULT 1 CHECK (scaricabile IN (0,1)),
+    path_locale TEXT,
+    sha256 TEXT,
+    tags_json JSONB,
+    raw_json JSONB,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS sigp_sync_comunicazioni (
+    id BIGSERIAL PRIMARY KEY,
+    sigp_fascicolo_id BIGINT NOT NULL REFERENCES sigp_sync_fascicoli(id) ON DELETE CASCADE,
+    comunicazione_uid TEXT,
+    tipo TEXT,
+    oggetto TEXT,
+    data_comunicazione TEXT,
+    mittente TEXT,
+    destinatario TEXT,
+    raw_json JSONB,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS sigp_sync_log (
+    id BIGSERIAL PRIMARY KEY,
+    sigp_fascicolo_id BIGINT REFERENCES sigp_sync_fascicoli(id) ON DELETE SET NULL,
+    azione TEXT NOT NULL,
+    esito TEXT NOT NULL,
+    messaggio TEXT,
+    dettagli_json JSONB,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_sigp_sync_fascicoli_rg
+    ON sigp_sync_fascicoli (registro, anno_rg, numero_rg, ufficio_codice);
+CREATE INDEX IF NOT EXISTS idx_sigp_sync_documenti_fascicolo
+    ON sigp_sync_documenti (sigp_fascicolo_id, documento_uid);
+CREATE INDEX IF NOT EXISTS idx_sigp_sync_eventi_fascicolo
+    ON sigp_sync_eventi (sigp_fascicolo_id, data_evento);
+CREATE INDEX IF NOT EXISTS idx_sigp_sync_udienze_fascicolo
+    ON sigp_sync_udienze (sigp_fascicolo_id, data_udienza);
+
 INSERT INTO sigp_schema_versions (
     version,
     descrizione,

@@ -5,9 +5,14 @@ from __future__ import annotations
 import json
 from functools import wraps
 
-from flask import Blueprint, g, jsonify, redirect, render_template, request, url_for
+from flask import Blueprint, current_app, g, jsonify, redirect, render_template, request, url_for
 
 from .service import get_sigp_status, prepara_deposito_sigp
+from .sync_service import (
+    get_sigp_sync_status,
+    import_authorized_sigp_payload,
+    resolve_sigp_sync_db_path,
+)
 
 sigp_bp = Blueprint("sigp", __name__, url_prefix="/sigp")
 
@@ -76,6 +81,29 @@ def index_post():
 @_richiedi_login
 def status():
     return jsonify({"ok": True, "status": get_sigp_status()})
+
+
+@sigp_bp.get("/sync/status")
+@_richiedi_login
+def sync_status():
+    return jsonify(get_sigp_sync_status())
+
+
+@sigp_bp.post("/sync/importa-payload")
+@_richiedi_login
+def sync_importa_payload():
+    try:
+        data = request.get_json(silent=True) or {}
+        raw_payload = data.get("payload") or data.get("raw_payload") or data
+        result = import_authorized_sigp_payload(
+            raw_payload=raw_payload,
+            db_path=resolve_sigp_sync_db_path(current_app.config),
+            fascicolo_locale_id=(data.get("fascicolo_locale_id") or data.get("fascicoloLocaleId")),
+        )
+        return jsonify(result)
+    except Exception as exc:
+        current_app.logger.exception("Errore import payload SIGP autorizzato: %s", exc)
+        return jsonify({"ok": False, "errore": str(exc)}), 400
 
 
 @sigp_bp.post("/depositi/prepara")

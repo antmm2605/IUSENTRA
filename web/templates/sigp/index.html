@@ -54,6 +54,33 @@
   </div>
 </div>
 
+<div class="card shadow-sm border-0 rounded-4 mb-4">
+  <div class="card-body">
+    <div class="d-flex flex-wrap justify-content-between gap-3">
+      <div>
+        <div class="small text-muted text-uppercase fw-semibold mb-1">Sincronizzazione fascicolo telematico</div>
+        <h2 class="h5 mb-2">{{ status.sync.policy.nome }}</h2>
+        <p class="text-muted mb-0">{{ status.sync.policy.note }}</p>
+      </div>
+      <div class="text-end">
+        <span class="badge text-bg-success rounded-pill">Canale autorizzato</span>
+        <span class="badge text-bg-light border rounded-pill">Nessuno scraping HTML</span>
+        <span class="badge text-bg-light border rounded-pill">PIN non salvato</span>
+      </div>
+    </div>
+    <div class="row g-3 mt-3">
+      {% for channel in status.sync.policy.canali %}
+      <div class="col-md-4">
+        <div class="border rounded-4 p-3 h-100">
+          <div class="fw-semibold">{{ channel.label }}</div>
+          <div class="small text-muted">{{ channel.descrizione }}</div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
 <div class="row g-4">
   <div class="col-xl-5">
     <div class="card shadow-sm border-0 rounded-4">

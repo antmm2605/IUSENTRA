@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.184.2 - 2026-04-25
+
+- Rimosso il fallback di lettura HTML della scheda SIGP/Giudice di Pace: IUSENTRA non effettua scraping di `sigp_infofascicolo.wp` e richiede dati ottenuti tramite PST/PdA/Model Office o Local Connector autorizzato.
+- Aggiunta la sincronizzazione fascicolo telematico SIGP con mapper, repository SQLite/PostgreSQL, policy anti-scraping, endpoint `/sigp/sync/status` e `/sigp/sync/importa-payload`, senza fixture come sorgente dati.
+- Persistiti snapshot completi del fascicolo SIGP: fascicolo, parti, eventi, udienze, documenti, provvedimenti e comunicazioni, con test anti-regressione su piu' di 8 documenti.
+
 ## 2.184.1 - 2026-04-25
 
 - Arricchito il fallback SIGP/Giudice di Pace: quando il web service non espone righe, il Local Signer legge la scheda ufficiale autenticata `sigp_infofascicolo.wp` e popola in UI rito, materia, oggetto, giudice, stato, udienze, parti e difensori invece di mostrare una pratica vuota.

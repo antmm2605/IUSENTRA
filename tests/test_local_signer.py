@@ -4,6 +4,7 @@ import base64
 import io
 import importlib.util
 import os
+import re
 import sys
 from pathlib import Path
 from types import SimpleNamespace
@@ -1167,6 +1168,11 @@ def test_costruisce_body_qbuilder_ricerca_per_tipo():
     assert '<execute xmlns="urn:CONS-SICC-BE">' in xml
     assert "<name>RicercaInformazioniFascicoloPerTipo</name>" in xml
     assert '<value name="tipo" type="string">RGN</value>' in xml
+    assert '<value name="annoRuolo" type="long">2024</value>' in xml
+    assert '<value name="numeroRuolo" type="string">1025</value>' in xml
+    assert re.search(r'<value name="subProc" type="string"\s*/>|<value name="subProc" type="string"></value>', xml)
+    assert 'name="anno" type="string"' not in xml
+    assert 'name="numero" type="integer"' not in xml
     assert '<entry property="ANNORUOLO, NUMERORUOLO" mode="asc"/>' in xml
 
 

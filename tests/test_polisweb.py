@@ -98,6 +98,9 @@ def test_polisweb_costruisce_body_qbuilder_ricerca_per_tipo():
     assert '<execute xmlns="urn:CONS-SICC-BE">' in xml
     assert "<name>RicercaInformazioniFascicoloPerTipo</name>" in xml
     assert '<value name="tipo" type="string">RGN</value>' in xml
+    assert '<value name="annoRuolo" type="long">2024</value>' in xml
+    assert '<value name="numeroRuolo" type="string">1025</value>' in xml
+    assert '<value name="subProc" type="string"></value>' in xml
 
 
 def test_polisweb_parse_qbuilder_fascicoli_xml():
@@ -3296,6 +3299,7 @@ def test_portale_acquisizione_wizard_renderizza_javascript_valido(tmp_path):
             follow_redirects=True,
         )
         for route in (
+            "/portali/pst/acquisizione",
             "/portali/pdp/acquisizione",
             "/portali/pat/acquisizione",
             "/portali/ptt/acquisizione",
@@ -3501,6 +3505,61 @@ def test_api_acquisizione_search_portali_p12_usa_backend_server(tmp_path, monkey
     assert ptt_data["ok"] is False
     assert "PTT / SIGIT" in ptt_data["errore"]
     assert "Telecontenzioso" in ptt_data["errore"]
+
+
+def test_api_acquisizione_search_pst_subpro_restituisce_messaggio_operativo(tmp_path, monkeypatch):
+    from pct.auth import GestioneUtenti, RuoloUtente
+    import pct.polisWeb as polisweb_module
+    from web.app import create_app
+
+    cfg = _cfg_web(tmp_path)
+    studio_cfg = tmp_path / "config" / "studio.json"
+    p12_path = tmp_path / "firma-test.p12"
+    p12_path.write_bytes(b"fake-p12")
+
+    gs = GestioneConfigStudio(str(studio_cfg))
+    studio = gs.config
+    studio.firma.p12_path = str(p12_path)
+    studio.firma.backend_preferito = "p12"
+    studio.firma.cf_avvocato = "RSSMRA80A01H501Z"
+    gs.aggiorna(studio)
+
+    gu = GestioneUtenti(
+        db_path=cfg["AUTH_DB"],
+        audit_path=cfg["AUDIT_DB"],
+        secret_key="test",
+    )
+    gu.crea(
+        username="avvocato",
+        password="Avv12345!",
+        ruolo=RuoloUtente.AVVOCATO,
+        email="avvocato@example.com",
+    )
+
+    class _FakePstClient:
+        def ricerca_fascicoli(self, **kwargs):
+            raise ConnectionError("Il PST ha restituito una SOAP Fault: SUBPRO | SOAP-ENV:Client")
+
+    monkeypatch.setattr(polisweb_module, "crea_client", lambda demo=False: _FakePstClient())
+
+    app = create_app({**cfg, "STUDIO_CONFIG": str(studio_cfg)})
+    with app.test_client() as client:
+        client.post(
+            "/login",
+            data={"username": "avvocato", "password": "Avv12345!"},
+            follow_redirects=True,
+        )
+        response = client.post(
+            "/api/portali/pst/acquisizione/search",
+            json={"ufficio_codice": "0910401", "numero": "466", "anno": "2023"},
+            follow_redirects=True,
+        )
+
+    data = response.get_json()
+    assert response.status_code == 200
+    assert data["ok"] is False
+    assert "sotto-procedimento" in data["errore"]
+    assert "SOAP-ENV" not in data["errore"]
 
 
 def test_api_portale_acquisizione_analyze_manual_mode_non_blocca_parti_mancanti(tmp_path):

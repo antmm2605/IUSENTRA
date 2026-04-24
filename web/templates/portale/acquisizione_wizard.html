@@ -570,6 +570,7 @@ function awCurrentQuery() {
 }
 function awOfficialPortalUrl() {
   const urls = {
+    pst: 'https://pst.giustizia.it/PST/it/services.page',
     pdp: 'https://pst.giustizia.it/PST/it/services.page',
     pat: 'https://www.giustizia-amministrativa.it/portale-avvocato',
     ptt: 'https://sigit.giustiziatributaria.gov.it/Sigit/index.do',
@@ -621,10 +622,26 @@ function awBuildPortaleError(data, fallbackMessage) {
   error.portaleUrl = String(data?.portale_url || '').trim();
   return error;
 }
+function awErrorMessage(err) {
+  return String(err?.message || err || 'Operazione non riuscita');
+}
+function awPstRecoverableSearchError(err) {
+  if (AW_BOOT.portale !== 'pst') return false;
+  const text = awErrorMessage(err).toLowerCase();
+  if (!text) return false;
+  const markers = [
+    'subpro',
+    'sotto-procedimento',
+    'soap fault',
+    'soap-env:client',
+    'richiesta soap',
+  ];
+  return markers.some(marker => text.includes(marker));
+}
 function awPortaleBrowserOnlyError(err) {
   if (AW_BOOT.portale === 'pst') return false;
   if (err?.manualRequired) return true;
-  const text = String(err?.message || err || '').toLowerCase();
+  const text = awErrorMessage(err).toLowerCase();
   if (!text) return false;
   const markers = [
     'appweb.giustizia.it',
@@ -773,7 +790,7 @@ function awRenderManualSearchFallback(query, err) {
   const canManual = awCanBuildManualSelection(query);
   const guided = awGuidedBrowserAssistInfo(query);
   const title = err?.manualTitle || guided.title;
-  const reason = err?.manualReason || guided.reason || String(err?.message || err || '');
+  const reason = err?.manualReason || (awPstRecoverableSearchError(err) ? awErrorMessage(err) : (guided.reason || awErrorMessage(err)));
   const portaleUrl = err?.portaleUrl || guided.portaleUrl || awOfficialPortalUrl();
   meta.textContent = canManual
     ? (err?.assistedMetaReady || guided.metaReady)
@@ -1690,7 +1707,7 @@ async function awRunSearch() {
     AW_STATE.preview = null;
     AW_STATE.analysis = null;
     AW_STATE.importResult = null;
-    if (awPortaleBrowserOnlyError(err)) {
+    if (awPortaleBrowserOnlyError(err) || awPstRecoverableSearchError(err)) {
       awRenderPreview();
       awRenderSelectionOptions();
       awRenderAnalysis();
@@ -1699,7 +1716,7 @@ async function awRunSearch() {
       return;
     }
     meta.textContent = 'Ricerca non riuscita';
-    root.innerHTML = `<div class="alert alert-danger rounded-4 mb-0">${awEscape(String(err))}</div>`;
+    root.innerHTML = `<div class="alert alert-danger rounded-4 mb-0">${awEscape(awErrorMessage(err))}</div>`;
   }
 }
 function awRenderResults() {

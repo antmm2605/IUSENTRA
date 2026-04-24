@@ -89,6 +89,18 @@ def describe_portale_runtime_error(portale: str, *, operation: str, exc: Excepti
             f"{label}: la {action} non ha risposto entro il tempo operativo atteso. "
             "Verifica rete, disponibilita' del canale ufficiale o credenziali e riprova."
         )
+    if "subpro" in lowered or "sotto-procedimento" in lowered:
+        return (
+            f"{label}: il portale richiede il sotto-procedimento/registro corretto della pratica. "
+            "IUSENTRA prosegue con l'acquisizione assistita: verifica ufficio, RG e anno sul portale "
+            "ufficiale e completa il collegamento guidato senza perdere i dati gia inseriti."
+        )
+    if "soap fault" in lowered or "soap-env:client" in lowered:
+        return (
+            f"{label}: il portale ha respinto la richiesta SOAP. Verifica ufficio, RG, anno e canale "
+            "autenticato; se il fascicolo e' visibile nel portale ufficiale, prosegui con acquisizione "
+            "assistita e import dei file gia scaricati."
+        )
     if message:
         return f"{label}: {message}"
     return f"{label}: canale temporaneamente non disponibile."

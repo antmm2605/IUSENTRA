@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-HACS Local Signer - v1.6.9
+IUSENTRA Local Signer - v1.6.9
 
 Servizio HTTP locale (localhost:27272) che firma documenti con smart card e token CNS/CIE
 (o qualsiasi token PKCS#11) e consente l'accesso autenticato al PST.
@@ -23,8 +23,8 @@ API:
     POST /ai/bootstrap           → provisioning runtime Ollama e modelli locali
     POST /ai/chat                → prompt locale inoltrato a Ollama
     POST /ai/chat/stream         → risposta streaming locale da Ollama
-    POST /ai/rag/query           → risposta locale su contesto RAG preparato da HACS
-    POST /ai/rag/query/stream    → risposta streaming locale su contesto RAG preparato da HACS
+    POST /ai/rag/query           → risposta locale su contesto RAG preparato da IUSENTRA
+    POST /ai/rag/query/stream    → risposta streaming locale su contesto RAG preparato da IUSENTRA
     POST /ai/embed               → embeddings locali inoltrati a Ollama
     POST /firma                  → firma documento CAdES-BES
     POST /firma-batch            → firma più documenti con una sola sessione PIN
@@ -43,7 +43,7 @@ API:
 Note sicurezza:
     - Ascolta SOLO su 127.0.0.1 (non accessibile da rete)
     - CORS abilitato per origini localhost/127.0.0.1 e per il dominio
-      ufficiale HACS https://studio-legale-pct-production.up.railway.app
+      ufficiale IUSENTRA https://studio-legale-pct-production.up.railway.app
     - Il PIN viene usato solo per la firma, mai salvato né loggato
     - La selezione certificato usa la dialog nativa Windows: il PIN
       è gestito dal sistema operativo durante la sessione TLS
@@ -96,9 +96,18 @@ except Exception:
     build_attachment_prompt_block = None  # type: ignore[assignment]
     parse_attachment_payloads = None  # type: ignore[assignment]
 
+from local_signer_mod.ai_handlers import LocalAiHandlerFacade
+from local_signer_mod.security import (
+    build_allowed_origins,
+    is_allowed_origin,
+    is_loopback_origin,
+    normalize_origin,
+)
+from local_signer_mod.server_bootstrap import print_startup_banner
+
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.6.9"
+VERSION = "1.6.10"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
@@ -311,7 +320,7 @@ def _get_local_ai_bridge():
         if LocalAiHostBridge is None:
             raise RuntimeError(
                 "Bridge AI locale non disponibile in questo pacchetto del Local Signer. "
-                "Aggiorna il Local Signer dall'area impostazioni di HACS."
+                "Aggiorna il Local Signer dall'area impostazioni di IUSENTRA."
             )
         _local_ai_bridge_instance = LocalAiHostBridge(root_dir=_THIS_DIR)
     return _local_ai_bridge_instance
@@ -595,43 +604,19 @@ def _risolvi_codice_commissione_ptt_runtime(valore: str) -> str:
 
 
 def _normalizza_origin(origin: str) -> str:
-    """Restituisce un'origin canonicale per i controlli CORS."""
-    origin = (origin or "").strip().rstrip("/")
-    if not origin:
-        return ""
-    parsed = urlparse(origin)
-    if parsed.scheme not in ("http", "https") or not parsed.hostname:
-        return ""
-    host = parsed.hostname.lower()
-    port = parsed.port
-    default_port = 80 if parsed.scheme == "http" else 443
-    if port and port != default_port:
-        return f"{parsed.scheme}://{host}:{port}"
-    return f"{parsed.scheme}://{host}"
+    return normalize_origin(origin)
 
 
 def _origin_loopback(origin: str) -> bool:
-    parsed = urlparse((origin or "").strip())
-    if parsed.scheme not in ("http", "https") or not parsed.hostname:
-        return False
-    return parsed.hostname.lower() in _LOCALHOST_ORIGIN_HOSTS
+    return is_loopback_origin(origin)
 
 
 def _origini_hacs_consentite() -> set[str]:
-    origini: set[str] = set()
-    for chunk in re.split(r"[,\s;]+", LOCAL_SIGNER_ALLOWED_ORIGINS or ""):
-        origin = _normalizza_origin(chunk)
-        if origin:
-            origini.add(origin)
-    return origini
+    return build_allowed_origins(LOCAL_SIGNER_ALLOWED_ORIGINS)
 
 
 def _origin_cors_consentita(origin: str) -> bool:
-    if not origin:
-        return True
-    if _origin_loopback(origin):
-        return True
-    return _normalizza_origin(origin) in _origini_hacs_consentite()
+    return is_allowed_origin(origin, LOCAL_SIGNER_ALLOWED_ORIGINS)
 
 
 def _risolvi_base_pst_da_snapshot(codice_o_nome: str) -> str:
@@ -1404,7 +1389,7 @@ def _windows_seleziona_cert() -> Optional[dict]:
         cert_ctx = cryptui.CryptUIDlgSelectCertificateFromStore(
             h_store,
             None,
-            "HACS - Seleziona certificato PST",
+            "IUSENTRA - Seleziona certificato PST",
             "Seleziona il certificato di autenticazione web per il PST "
             "(smart card o token CNS/CIE).",
             0,
@@ -2289,12 +2274,12 @@ def _pst_endpoint_configurato_e_legacy(url: Optional[str] = None) -> bool:
 
 def _messaggio_endpoint_pst_legacy() -> str:
     return (
-        "L'endpoint PST predefinito di HACS punta ancora a wspa.giustizia.it, "
+        "L'endpoint PST predefinito di IUSENTRA punta ancora a wspa.giustizia.it, "
         "ma questo host al 29 marzo 2026 non risulta più pubblicato nel DNS pubblico.\n"
         "I proxy PST oggi documentati dal Ministero sono:\n"
         f"  - {_PST_PROXY_PDA_URL}\n"
         f"  - {_PST_PROXY_SH_URL}\n"
-        "Con il registro uffici aggiornato HACS prova a comporre automaticamente "
+        "Con il registro uffici aggiornato IUSENTRA prova a comporre automaticamente "
         "il proxy corretto; se l'ufficio non ha metadati PST configurare "
         "PCT_PST_BASE_URL con l'URL completo del proxy fornito dal proprio PdA/software house.\n"
         "Verifica rapida:\n"
@@ -2470,7 +2455,7 @@ def _messaggio_dns_endpoint_portale(url: str) -> str:
         )
     if "www.ptt.mef.gov.it" in host:
         return (
-            "Il PC sta ancora puntando al vecchio host PTT www.ptt.mef.gov.it, non piu' usato da HACS.\n"
+            "Il PC sta ancora puntando al vecchio host PTT www.ptt.mef.gov.it, non piu' usato da IUSENTRA.\n"
             "Aggiornare o reinstallare il Local Signer piu' recente: il default corretto e' https://sigit.finanze.it/ptt.\n"
             "In alternativa impostare esplicitamente PCT_SIGIT_BASE_URL."
         )
@@ -2520,19 +2505,19 @@ def _portale_browser_assist_payload(portale: str, phase: str) -> dict[str, Any]:
         errore = (
             "Consultazione via browser ufficiale: per PDP la "
             f"{phase_label} viene completata dal PST nel browser. "
-            "HACS puo' proseguire con l'acquisizione assistita."
+            "IUSENTRA puo' proseguire con l'acquisizione assistita."
         )
     elif portale_norm == "pat":
         errore = (
             "Consultazione via browser ufficiale: per PAT la "
             f"{phase_label} viene completata dal Portale Avvocato nel browser. "
-            "HACS puo' proseguire con l'acquisizione assistita."
+            "IUSENTRA puo' proseguire con l'acquisizione assistita."
         )
     else:
         errore = (
             "Consultazione via browser ufficiale: per PTT/SIGIT il "
             f"{phase_label} viene completato nel browser ufficiale. "
-            "HACS puo' proseguire con l'acquisizione assistita."
+            "IUSENTRA puo' proseguire con l'acquisizione assistita."
         )
     return {
         "ok": False,
@@ -2553,16 +2538,16 @@ def _messaggio_endpoint_browser_guidato(portale: str, error: Exception | str) ->
     portale_norm = str(portale or "").strip().lower()
     if portale_norm == "pdp":
         return (
-            "Consultazione via browser ufficiale: apri il Portale Deposito atti Penali dall'area servizi del PST e usa l'inserimento manuale assistito di HACS.\n"
+            "Consultazione via browser ufficiale: apri il Portale Deposito atti Penali dall'area servizi del PST e usa l'inserimento manuale assistito di IUSENTRA.\n"
             f"Dettaglio tecnico: {text}"
         )
     if portale_norm == "pat":
         return (
-            "Consultazione via browser ufficiale: apri la pagina ufficiale del Processo Amministrativo Telematico e accedi al Portale Avvocato, poi usa l'inserimento manuale assistito di HACS.\n"
+            "Consultazione via browser ufficiale: apri la pagina ufficiale del Processo Amministrativo Telematico e accedi al Portale Avvocato, poi usa l'inserimento manuale assistito di IUSENTRA.\n"
             f"Dettaglio tecnico: {text}"
         )
     return (
-        "Consultazione via browser ufficiale: apri la pagina ufficiale del Processo Tributario Telematico (PTT/SIGIT) e prosegui con l'inserimento manuale assistito di HACS.\n"
+        "Consultazione via browser ufficiale: apri la pagina ufficiale del Processo Tributario Telematico (PTT/SIGIT) e prosegui con l'inserimento manuale assistito di IUSENTRA.\n"
         f"Dettaglio tecnico: {text}"
     )
 
@@ -2582,7 +2567,7 @@ def _portale_manual_required_payload(portale: str, error: Exception | str, phase
         "manual_title": "Consultazione via browser ufficiale",
         "manual_reason": (
             "Il canale WSDL diretto non e' disponibile su questo PC. "
-            "HACS puo' comunque proseguire con l'acquisizione assistita manuale."
+            "IUSENTRA puo' comunque proseguire con l'acquisizione assistita manuale."
         ),
         "portale_url": _portale_browser_url(portale),
     }
@@ -3904,7 +3889,7 @@ def _soap_qbuilder_execute_body(
     values_xml = "".join(
         f'<value name="{_esc(name)}" type="{_esc(value_type)}">{_esc(str(value))}</value>'
         for name, value_type, value in values
-        if value not in ("", None)
+        if value not in ("", None) or name == "subProc"
     )
     order_xml = ""
     if order_entries:
@@ -3947,10 +3932,11 @@ def _soap_ricerca_fascicoli_body(base_url: str, codice_ufficio: str, numero_rg: 
                 namespace,
                 "RicercaInformazioniFascicoloPerTipo",
                 [
-                    ("idUfficio", "string", codice_ufficio),
                     ("tipo", "string", "RGN"),
-                    ("numero", "integer", numero_value),
-                    ("anno", "string", str(anno_rg)),
+                    ("idUfficio", "string", codice_ufficio),
+                    ("annoRuolo", "long", str(anno_rg)),
+                    ("numeroRuolo", "string", numero_value),
+                    ("subProc", "string", ""),
                 ],
                 role="AVV",
                 group=codice_ufficio,
@@ -3966,7 +3952,11 @@ def _soap_ricerca_fascicoli_body(base_url: str, codice_ufficio: str, numero_rg: 
             "RicercaInformazioniFascicoloPerPartiGiudiceDate",
             [
                 ("idUfficio", "string", codice_ufficio),
-                ("parte", "string", parte),
+                ("cognomeNome", "string", parte),
+                ("codiceFiscale", "string", _estrai_codice_fiscale_testo(cf_parte or "").upper()),
+                ("giudice", "string", ""),
+                ("dataRuoloDa", "string", ""),
+                ("dataRuoloA", "string", ""),
             ],
             role="AVV",
             group=codice_ufficio,
@@ -4007,11 +3997,10 @@ def _soap_documenti_body(base_url: str, codice_ufficio: str, numero_rg: str,
         numero_value = str(int(str(numero_rg).strip())) if str(numero_rg).strip().isdigit() else str(numero_rg).strip()
         values = [
             ("idUfficio", "string", codice_ufficio),
-            ("anno", "string", str(anno_rg)),
-            ("numero", "string", numero_value),
+            ("annoRuolo", "long", str(anno_rg)),
+            ("numeroRuolo", "string", numero_value),
+            ("subProc", "string", sub_procedimento or ""),
         ]
-        if sub_procedimento:
-            values.append(("subpro", "string", sub_procedimento))
         return _soap_qbuilder_execute_body(
             namespace,
             "DocumentiFascicolo",
@@ -4044,13 +4033,12 @@ def _soap_profilo_fascicolo_body(base_url: str, codice_ufficio: str, numero_rg: 
     numero_value = str(int(str(numero_rg).strip())) if str(numero_rg).strip().isdigit() else str(numero_rg).strip()
     values = [
         ("idUfficio", "string", codice_ufficio),
-        ("anno", "string", str(anno_rg)),
-        ("numero", "string", numero_value),
+        ("annoRuolo", "long", str(anno_rg)),
+        ("numeroRuolo", "string", numero_value),
+        ("subProc", "string", sub_procedimento or ""),
         ("fascPrecedente", "boolean", "false"),
         ("scadTermini", "boolean", "false"),
     ]
-    if sub_procedimento:
-        values.append(("subpro", "string", sub_procedimento))
     return _soap_qbuilder_execute_body(
         namespace,
         "ProfiloFascicolo",
@@ -4573,6 +4561,7 @@ def _pst_download_documento_payload(
     prefer_cookie_only: bool = False,
 ) -> dict:
     servizio = _pst_servizio_proxy(base_url)
+    document_id_output = str(id_documento or id_cat or id_repeatto or "").strip()
     url_documenti = _pst_url_documenti(base_url)
     extra_headers: list[str] = []
     soap_action = ""
@@ -4667,7 +4656,7 @@ def _pst_download_documento_payload(
     if not nome_finale:
         nome_finale = str(profilo.get("nome_file_originale") or "").strip()
     if not nome_finale:
-        nome_finale = f"documento_{id_documento}"
+        nome_finale = f"documento_{document_id_output or 'pst'}"
     if _looks_like_pkcs7_signed(parsed["content"], parsed.get("content_type", ""), nome_finale):
         if not nome_finale.lower().endswith(".p7m"):
             nome_finale += ".p7m"
@@ -4678,7 +4667,7 @@ def _pst_download_documento_payload(
         "nome": nome_finale,
         "contenuto_b64": base64.b64encode(parsed["content"]).decode("ascii"),
         "content_type": parsed.get("content_type") or "application/octet-stream",
-        "id_documento_portale": id_documento,
+        "id_documento_portale": document_id_output,
         "id_cat": id_cat or str(profilo.get("id_cat") or "").strip(),
         "id_repeatto": str(id_repeatto or profilo.get("id_repeatto") or "").strip(),
         "msg_id": str(msg_id or profilo.get("msg_id") or "").strip(),
@@ -4700,11 +4689,18 @@ def _assemble_download_file_payload(
     original: bool = True,
 ) -> dict:
     """Costruisce il payload file da una risposta PST parsed."""
+    document_id_output = str(
+        id_documento
+        or item.get("id_cat")
+        or item.get("id_repeatto")
+        or item.get("msg_id")
+        or ""
+    ).strip()
     nome_finale = str(parsed.get("filename") or "").strip()
     if not nome_finale:
         nome_finale = (nome_documento or "").strip()
     if not nome_finale:
-        nome_finale = f"documento_{id_documento}"
+        nome_finale = f"documento_{document_id_output or 'pst'}"
     if _looks_like_pkcs7_signed(parsed["content"], parsed.get("content_type", ""), nome_finale):
         if not nome_finale.lower().endswith(".p7m"):
             nome_finale += ".p7m"
@@ -4714,7 +4710,7 @@ def _assemble_download_file_payload(
         "nome": nome_finale,
         "contenuto_b64": base64.b64encode(parsed["content"]).decode("ascii"),
         "content_type": parsed.get("content_type") or "application/octet-stream",
-        "id_documento_portale": id_documento,
+        "id_documento_portale": document_id_output,
         "id_cat": str(item.get("id_cat") or "").strip(),
         "id_repeatto": str(item.get("id_repeatto") or "").strip(),
         "msg_id": str(item.get("msg_id") or "").strip(),
@@ -4723,7 +4719,7 @@ def _assemble_download_file_payload(
         "original_documento_portale": bool(original),
         "modalita_documento_portale": "originale" if original else "copia",
         "servizio_portale": "DocumentiFascicolo",
-        "origine": f"pst:{_pst_servizio_proxy(base_url) or 'download'}:{id_documento}",
+        "origine": f"pst:{_pst_servizio_proxy(base_url) or 'download'}:{document_id_output or 'documento'}",
         "id_deposito_esterno": str(item.get("id_deposito_esterno") or "").strip(),
         "id_deposito_pct": str(item.get("id_deposito_pct") or "").strip(),
         "tipo_atto": str(item.get("tipo_atto") or "").strip(),
@@ -4748,6 +4744,12 @@ def _pst_document_id_candidates(item: dict) -> list[str]:
         if candidate and not candidate.startswith("#") and candidate not in candidates:
             candidates.append(candidate)
     return candidates
+
+
+def _pst_primary_document_id(item: Optional[dict]) -> str:
+    for candidate in _pst_document_id_candidates(dict(item or {})):
+        return candidate
+    return ""
 
 
 def _pst_download_documenti_batch_payloads(
@@ -4800,10 +4802,11 @@ def _pst_download_documenti_batch_payloads(
             for i, raw in enumerate(documenti):
                 if not isinstance(raw, dict):
                     continue
-                id_doc = str(raw.get("id_documento") or raw.get("id_documento_portale") or "").strip()
-                if not id_doc:
+                id_doc = _pst_primary_document_id(raw)
+                id_cat = _pst_effective_id_cat(raw, id_doc)
+                if not id_doc and not id_cat:
                     continue
-                miss_cat = not _pst_effective_id_cat(raw, id_doc)
+                miss_cat = not id_cat
                 miss_meta = not str(raw.get("nome_documento") or raw.get("nome") or "").strip()
                 if miss_cat or (servizio == "JPW_SIECIC" and miss_meta):
                     need_prof.append(i)
@@ -4894,22 +4897,19 @@ def _pst_download_documenti_batch_payloads(
 
         for raw in documenti:
             item = raw if isinstance(raw, dict) else {}
-            id_doc = str(item.get("id_documento") or item.get("id_documento_portale") or "").strip()
+            id_doc = _pst_primary_document_id(item)
+            id_cat = _pst_effective_id_cat(item, id_doc)
+            id_output = id_doc or id_cat or str(item.get("id_repeatto") or "").strip()
             nome_doc = str(item.get("nome_documento") or item.get("nome") or "").strip()
-            if not id_doc:
-                failures.append({"id_documento": "", "nome_documento": nome_doc,
-                                  "errore": "Identificativo documento mancante nel lotto PST."})
-                continue
             try:
                 if servizio == "JPW_SIGP":
-                    id_repeatto = str(item.get("id_repeatto") or id_doc).strip()
+                    id_repeatto = str(item.get("id_repeatto") or id_doc or id_cat).strip()
                     if not id_repeatto:
                         raise RuntimeError("idRepeatTo mancante nel lotto Cassazione.")
                     soap_body = _soap_sigp_download_body(id_repeatto)
                     soap_action = "downloadAtto"
                     extra_h: list[str] = []
                 elif servizio == "JPW_SICID":
-                    id_cat = _pst_effective_id_cat(item, id_doc)
                     if not id_cat:
                         if allow_single_fallback:
                             # Per il lotto singolo mantieni il fallback puntuale.
@@ -4917,7 +4917,7 @@ def _pst_download_documenti_batch_payloads(
                                 _pst_download_documento_payload(
                                     base_url=base_url,
                                     codice_ufficio=codice_ufficio,
-                                    id_documento=id_doc,
+                                    id_documento=id_doc or id_cat or str(item.get("id_repeatto") or "").strip(),
                                     nome_documento=nome_doc,
                                     cert_thumbprint=cert_thumbprint,
                                     cf_avvocato=cf_avvocato,
@@ -4954,6 +4954,8 @@ def _pst_download_documenti_batch_payloads(
                     soap_action = ""
                     extra_h = extra_base
                 elif servizio == "JPW_SIECIC":
+                    if not id_doc:
+                        raise RuntimeError("idDoc mancante nel lotto SIECIC.")
                     soap_body = _soap_bea_siecic_body(
                         "downloadDocumento",
                         [("idDoc", id_doc), ("original", "true" if original else "false")],
@@ -4971,9 +4973,9 @@ def _pst_download_documenti_batch_payloads(
                     "extra_headers": extra_h,
                     "cookie_file": cookie_file,
                 })
-                dl_meta.append({"id_documento": id_doc, "nome_documento": nome_doc, "item": item})
+                dl_meta.append({"id_documento": id_output, "nome_documento": nome_doc, "item": item})
             except Exception as e:
-                failures.append({"id_documento": id_doc, "nome_documento": nome_doc, "errore": str(e)})
+                failures.append({"id_documento": id_output, "nome_documento": nome_doc, "errore": str(e)})
 
         if not dl_reqs:
             return {
@@ -5146,11 +5148,11 @@ class _Handler(BaseHTTPRequestHandler):
     # Chiude ogni risposta: evita keep-alive pendenti dal browser.
     protocol_version = "HTTP/1.0"
 
-    def log_message(self, fmt, *args):  # noqa: override
+    def log_message(self, fmt, *args):
         log.debug("[%s] %s", self.address_string(), fmt % args)
 
     def _cors_ok(self) -> bool:
-        """Verifica che l'origine sia localhost o una origin HACS esplicitamente fidata."""
+        """Verifica che l'origine sia localhost o una origin IUSENTRA esplicitamente fidata."""
         origin = self.headers.get("Origin", "")
         return _origin_cors_consentita(origin)
 
@@ -5264,6 +5266,18 @@ class _Handler(BaseHTTPRequestHandler):
             "prompt": str(payload.get("prompt") or "").strip(),
         }
 
+    def _ai_facade(self) -> LocalAiHandlerFacade:
+        return LocalAiHandlerFacade(
+            get_bridge=_get_local_ai_bridge,
+            request_payload_factory=self._local_ai_request_payload,
+            read_json=self._read_json,
+            send_json=self._send_json,
+            stream_sse=self._stream_sse,
+            logger=log,
+            parse_attachment_payloads=parse_attachment_payloads,
+            build_attachment_prompt_block=build_attachment_prompt_block,
+        )
+
     def do_OPTIONS(self):  # noqa: N802
         self.send_response(204)
         self._add_cors()
@@ -5367,123 +5381,28 @@ class _Handler(BaseHTTPRequestHandler):
     # ── Handlers ────────────────────────────────────────────────────────────────
 
     def _ai_status(self):
-        try:
-            bridge = _get_local_ai_bridge()
-            payload = bridge.health_snapshot(self._local_ai_request_payload())
-            self._send_json(payload)
-        except Exception as e:
-            log.error("Errore AI status locale: %s", e)
-            self._send_json({"ok": False, "errore": str(e)}, 500)
+        self._ai_facade().status()
 
     def _ai_bootstrap(self):
-        try:
-            data = self._read_json()
-            bridge = _get_local_ai_bridge()
-            payload = bridge.bootstrap_runtime(
-                self._local_ai_request_payload(data),
-                force=_coerce_bool(data.get("force"), False),
-            )
-            self._send_json(payload)
-        except Exception as e:
-            log.error("Errore AI bootstrap locale: %s", e)
-            self._send_json({"ok": False, "errore": str(e)}, 500)
+        self._ai_facade().bootstrap()
 
     def _ai_attachments_parse(self):
-        if parse_attachment_payloads is None or build_attachment_prompt_block is None:
-            self._send_json(
-                {"ok": False, "errore": "Parser documentale locale non disponibile sul companion."},
-                500,
-            )
-            return
-        try:
-            data = self._read_json()
-            attachments, errors = parse_attachment_payloads(data.get("files") or [])
-            self._send_json(
-                {
-                    "ok": True,
-                    "attachments": attachments,
-                    "errors": errors,
-                    "prompt_block": build_attachment_prompt_block(attachments),
-                }
-            )
-        except Exception as e:
-            log.error("Errore parsing documenti Lex locale: %s", e)
-            self._send_json({"ok": False, "errore": str(e)}, 500)
+        self._ai_facade().attachments_parse()
 
     def _ai_chat(self):
-        data = self._local_ai_request_payload()
-        prompt = str(data.get("prompt") or "").strip()
-        if not prompt:
-            self._send_json({"ok": False, "errore": "Prompt mancante."}, 400)
-            return
-        try:
-            bridge = _get_local_ai_bridge()
-            payload = bridge.chat(prompt, data)
-            self._send_json(payload)
-        except Exception as e:
-            log.error("Errore AI chat locale: %s", e)
-            self._send_json({"ok": False, "errore": str(e)}, 500)
+        self._ai_facade().chat()
 
     def _ai_chat_stream(self):
-        data = self._local_ai_request_payload()
-        prompt = str(data.get("prompt") or "").strip()
-        if not prompt:
-            self._send_json({"ok": False, "errore": "Prompt mancante."}, 400)
-            return
-        try:
-            bridge = _get_local_ai_bridge()
-            self._stream_sse(bridge.chat_stream(prompt, data))
-        except Exception as e:
-            log.error("Errore AI chat streaming locale: %s", e)
-            self._send_json({"ok": False, "errore": str(e)}, 500)
+        self._ai_facade().chat_stream()
 
     def _ai_rag_query(self):
-        data = self._read_json()
-        question = str(data.get("question") or "").strip()
-        prompt = str(data.get("prompt") or "").strip()
-        if not question and not prompt:
-            self._send_json({"ok": False, "errore": "Domanda mancante."}, 400)
-            return
-        try:
-            bridge = _get_local_ai_bridge()
-            payload = bridge.rag_query({**self._local_ai_request_payload(data), **data})
-            self._send_json(payload)
-        except Exception as e:
-            log.error("Errore AI rag query locale: %s", e)
-            self._send_json({"ok": False, "errore": str(e)}, 500)
+        self._ai_facade().rag_query()
 
     def _ai_rag_query_stream(self):
-        data = self._read_json()
-        question = str(data.get("question") or "").strip()
-        prompt = str(data.get("prompt") or "").strip()
-        if not question and not prompt:
-            self._send_json({"ok": False, "errore": "Domanda mancante."}, 400)
-            return
-        try:
-            bridge = _get_local_ai_bridge()
-            self._stream_sse(bridge.rag_query_stream({**self._local_ai_request_payload(data), **data}))
-        except Exception as e:
-            log.error("Errore AI rag query streaming locale: %s", e)
-            self._send_json({"ok": False, "errore": str(e)}, 500)
+        self._ai_facade().rag_query_stream()
 
     def _ai_embed(self):
-        raw_body = self._read_json()
-        data = self._local_ai_request_payload(raw_body)
-        raw_inputs = raw_body.get("inputs")
-        if not isinstance(raw_inputs, list) or not raw_inputs:
-            prompt = str(data.get("prompt") or "").strip()
-            raw_inputs = [prompt] if prompt else []
-        inputs = [str(value or "").strip() for value in raw_inputs if str(value or "").strip()]
-        if not inputs:
-            self._send_json({"ok": False, "errore": "Testo da indicizzare mancante."}, 400)
-            return
-        try:
-            bridge = _get_local_ai_bridge()
-            payload = bridge.embed(inputs, data)
-            self._send_json(payload)
-        except Exception as e:
-            log.error("Errore AI embed locale: %s", e)
-            self._send_json({"ok": False, "errore": str(e)}, 500)
+        self._ai_facade().embed()
 
     def _ping(self):
         lib = _trova_libreria()
@@ -5561,7 +5480,7 @@ class _Handler(BaseHTTPRequestHandler):
                         resp["nota_riavvio_signer"] = (
                             "Il token Aruba e' stato rilevato da un controllo fresco, "
                             "ma il processo Local Signer attivo non e' piu' allineato. "
-                            "Riavvia il Local Signer da HACS e riprova."
+                            "Riavvia il Local Signer da IUSENTRA e riprova."
                         )
             except Exception as e:
                 resp["errore_token"] = f"Errore inatteso: {e}"
@@ -5792,7 +5711,7 @@ class _Handler(BaseHTTPRequestHandler):
     def _pst_status(self):
         """
         Verifica raggiungibilità PST.
-        Controlla il portale PST, i proxy documentati e l'endpoint configurato in HACS.
+        Controlla il portale PST, i proxy documentati e l'endpoint configurato in IUSENTRA.
         """
         null_dev = "NUL" if sys.platform == "win32" else "/dev/null"
         risultati = {}
@@ -6801,7 +6720,7 @@ def main():
     import argparse
 
     parser = argparse.ArgumentParser(
-        description="HACS Local Signer — firma documenti con smart card e token CNS/CIE",
+        description="IUSENTRA Local Signer — firma documenti con smart card e token CNS/CIE",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Esempi:
@@ -6824,38 +6743,15 @@ Esempi:
 
     server = _ThreadingLocalSignerServer(("127.0.0.1", args.port), _Handler)
 
-    print("=" * 60)
-    print(f"  HACS Local Signer v{VERSION}")
-    print(f"  In ascolto su  http://127.0.0.1:{args.port}")
-    print(f"  Piattaforma:   {sys.platform}")
-    print("=" * 60)
-
     lib = _trova_libreria()
-    if lib:
-        print(f"  Libreria PKCS#11 : {lib}")
-        try:
-            tokens = _info_token(lib)
-            if tokens:
-                for tok in tokens:
-                    label = tok.get("label") or tok.get("manufacturer") or "Token"
-                    print(f"  Token trovato    : {label} (slot {tok['slot_id']})")
-            else:
-                print("  Token            : libreria OK — inserire smart card/token")
-        except RuntimeError as e:
-            # Messaggio di errore su più righe → prima riga in console
-            print(f"  AVVISO token     : {str(e).splitlines()[0]}")
-        except Exception as e:
-            print(f"  AVVISO token     : {e}")
-    else:
-        print("  AVVISO: Libreria PKCS#11 non trovata.")
-        print("  → Verificare che il middleware PKCS#11 del dispositivo sia installato.")
-        print("  → Oppure impostare: set PCT_PKCS11_LIBRARY=C:\\percorso\\bit4xpki.dll")
-        print(f"  → Diagnostica completa: http://127.0.0.1:{args.port}/diagnosi")
-
-    if _curl_disponibile():
-        print(f"  curl             : disponibile (PST abilitato)")
-    else:
-        print("  AVVISO: curl non trovato nel PATH (PST non disponibile)")
+    print_startup_banner(
+        version=VERSION,
+        port=args.port,
+        platform_name=sys.platform,
+        lib_path=lib,
+        curl_available=_curl_disponibile(),
+        token_info_fetcher=lambda lib_path: _info_token(lib_path),
+    )
 
     if _pst_endpoint_configurato_e_legacy():
         print("  AVVISO PST       : endpoint legacy wspa.giustizia.it configurato")

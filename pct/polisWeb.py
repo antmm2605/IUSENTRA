@@ -1967,6 +1967,7 @@ class ClientPolisWeb:
                     ('idUfficio', 'string', codice_ufficio),
                     ('annoRuolo', 'long', anno_rg),
                     ('numeroRuolo', 'string', numero_rg),
+                    ('subProc', 'string', ''),
                 ],
                 order_by='ANNORUOLO, NUMERORUOLO',
             )
@@ -2500,4 +2501,3 @@ def crea_client(
         "Opzione B — PEM:     impostare PCT_FIRMA_CERT e PCT_FIRMA_KEY nel file .env\n"
         "In alternativa configurare i percorsi in Impostazioni → Firma Digitale."
     )
-

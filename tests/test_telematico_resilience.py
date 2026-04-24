@@ -41,3 +41,16 @@ def test_portale_breaker_snapshots_espone_chiavi_attese():
     snapshots = portale_breaker_snapshots()
     assert "pst:search" in snapshots
     assert "pdp:preview" in snapshots
+
+
+def test_pst_subpro_viene_spiegato_senza_esporre_fault_tecnica():
+    message = describe_portale_runtime_error(
+        "pst",
+        operation="search",
+        exc=ConnectionError("Il PST ha restituito una SOAP Fault: SUBPRO | SOAP-ENV:Client"),
+    )
+
+    assert "PST / PolisWeb" in message
+    assert "sotto-procedimento" in message
+    assert "acquisizione assistita" in message
+    assert "SOAP-ENV" not in message

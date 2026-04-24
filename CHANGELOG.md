@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.183.2 - 2026-04-24
+
+- Rafforzato il resolver PST/JPW degli uffici giudiziari: la cache si autoripara se perde metadati ministeriali, il Giudice di Pace di Palmi risolve correttamente su `JPW_SIGP` e la ricerca QBuilder invia sempre `subProc`.
+- Aggiunto controllo giornaliero governato delle fonti ufficiali uffici con report JSON e Markdown leggibile, validazione del resolver PST e autoriparazione automatica prima del salvataggio.
+- Allineato il Local Signer 1.6.10 al payload QBuilder server-side e reso il wizard PST resiliente alle SOAP Fault `SUBPRO`, mostrando acquisizione assistita invece di errore tecnico bloccante.
+
 ## 2.183.1 - 2026-04-24
 
 - Reso il catalogo master una vista navigabile e ricercabile in `/template-atti/catalogo`: tab dedicata `Master professionale`, filtri per gruppo, conteggio dinamico e 420 card reali con ID, canale telematico e azione `Genera dal master`.

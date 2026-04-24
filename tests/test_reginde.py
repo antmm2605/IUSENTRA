@@ -6,10 +6,14 @@ from pct.reginde import ClientReGINde
 from pct.uffici_giudiziari import (
     GestoreUfficiGiudiziari,
     _build_bundle_completo,
+    _uffici_hash,
     risolvi_codice_ministero,
     risolvi_base_pst,
+    risolvi_servizio_pst,
     risolvi_ufficio,
+    valida_resolver_pst,
 )
+from pct.polisWeb import _pst_namespace_qbuilder
 
 
 @pytest.fixture
@@ -94,11 +98,32 @@ def test_risoluzione_pst_palmi_usa_gl_e_servizio():
     )
 
 
+def test_risoluzione_pst_gdp_palmi_usa_sigp():
+    assert risolvi_codice_ministero("0910401") == "0800570152"
+    assert risolvi_servizio_pst("0910401") == "JPW_SIGP"
+    base = risolvi_base_pst("0910401", base_url="https://ext.processotelematico.giustizia.it")
+    assert base == "https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SIGP"
+    assert _pst_namespace_qbuilder(base) == "urn:CONS-SIGP-BE"
+
+
 def test_risoluzione_pst_cassazione_usa_proxy_cassci():
     assert risolvi_codice_ministero("9990000") == "80417740588"
     assert risolvi_base_pst("9990000", base_url="https://ext.processotelematico.giustizia.it") == (
         "https://ext.processotelematico.giustizia.it/pda/pycons/GLCC/JPW_CASSCI"
     )
+
+
+def test_resolver_pst_tutti_gli_uffici_jpw_hanno_base_namespace():
+    bundle = _build_bundle_completo()
+    report = valida_resolver_pst(bundle)
+
+    assert report["ok"] is True
+    assert report["n_uffici_jpw"] > 300
+    for ufficio in bundle:
+        if not any(str(s).startswith("JPW_") for s in (ufficio.get("servizi_ministero") or [])):
+            continue
+        base = risolvi_base_pst(ufficio["codice"], base_url="https://ext.processotelematico.giustizia.it")
+        assert _pst_namespace_qbuilder(base), ufficio["codice"]
 
 
 def test_cache_bundle_legacy_viene_rigenerata_se_il_bundle_cambia(tmp_path):
@@ -162,6 +187,42 @@ def test_cache_remota_legacy_viene_rigenerata_se_bundle_hash_diverso(tmp_path):
     palmi = next(u for u in uffici if u.get("codice") == "0910011")
 
     assert palmi["distretto"] == "Reggio di Calabria"
+
+
+def test_cache_uffici_rigenera_metadati_pst_mancanti_anche_con_hash_corrente(tmp_path):
+    bundle = _build_bundle_completo()
+    cache_path = tmp_path / "uffici_giudiziari.json"
+    cache_legacy = []
+    for ufficio in bundle:
+        item = dict(ufficio)
+        if item.get("codice") == "0910401":
+            for key in ("codice_ministero", "codice_gl", "servizi_ministero", "servizio_pst_predefinito"):
+                item.pop(key, None)
+        cache_legacy.append(item)
+    cache_path.write_text(
+        json.dumps(
+            {
+                "sorgente": "remoto:pst_public",
+                "aggiornato_il": "2026-04-24T08:00:00",
+                "n_uffici": len(cache_legacy),
+                "bundle_hash": _uffici_hash(bundle),
+                "uffici": cache_legacy,
+            },
+            ensure_ascii=False,
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+
+    gestore = GestoreUfficiGiudiziari(str(cache_path))
+    uffici = gestore.carica()
+    gdp_palmi = next(u for u in uffici if u.get("codice") == "0910401")
+    saved = json.loads(cache_path.read_text(encoding="utf-8"))
+
+    assert gdp_palmi["codice_ministero"] == "0800570152"
+    assert gdp_palmi["codice_gl"] == "GLRC"
+    assert gdp_palmi["servizio_pst_predefinito"] == "JPW_SIGP"
+    assert saved["pst_resolver"]["ok"] is True
 
 
 def test_gestore_cerca_supporta_filtri_procura_generale_e_limite():

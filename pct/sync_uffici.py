@@ -50,6 +50,23 @@ _IPA_API_URL   = "https://indicepa.gov.it/ipa-dati/api/v1/enti"
 # Parole chiave IPA per categoria uffici giudiziari
 _IPA_CODICI_CATEGORIA = ["GIUSTIZIA", "AM_GIUSTIZIA"]
 
+FONTI_UFFICIALI_UFFICI = [
+    {"id": "pst", "nome": "PST Ministero della Giustizia", "url": _PST_URL, "tipo": "REST"},
+    {
+        "id": "giustizia_amm",
+        "nome": "Giustizia Amministrativa - sedi TAR",
+        "url": _GA_SEDI_URL,
+        "tipo": "HTML",
+    },
+    {
+        "id": "giustizia_tributaria",
+        "nome": "Giustizia Tributaria - corti tributarie",
+        "url": _GT_SEDI_URL,
+        "tipo": "HTML",
+    },
+    {"id": "ipa", "nome": "IndicePA - PEC enti giustizia", "url": _IPA_API_URL, "tipo": "REST"},
+]
+
 # ---------------------------------------------------------------- helpers
 
 def _slug(s: str) -> str:
@@ -397,6 +414,74 @@ def _merge_uffici(base: List[Dict], aggiornamenti: List[Dict]) -> tuple[List[Dic
     return base, n_aggiornati, n_aggiunti
 
 
+def _render_report_markdown(report: Dict) -> str:
+    resolver = report.get("resolver_pst") or {}
+    autoriparazione = report.get("autoriparazione") or {}
+    lines = [
+        "# Report aggiornamento uffici giudiziari",
+        "",
+        f"- Eseguito il: {report.get('sync_il') or 'n.d.'}",
+        f"- Esito: {'OK' if report.get('ok') else 'ERRORE'}",
+        f"- Uffici prima: {report.get('n_totale_pre', 0)}",
+        f"- Uffici dopo: {report.get('n_totale_post', 0)}",
+        f"- Nuovi uffici: {report.get('n_nuovi', 0)}",
+        f"- PEC aggiornate: {report.get('n_pec_aggiornate', 0)}",
+        "",
+        "## Fonti ufficiali monitorate",
+    ]
+    for fonte in report.get("fonti_memorizzate") or []:
+        lines.append(f"- {fonte.get('nome')} ({fonte.get('tipo')}): {fonte.get('url')}")
+    lines.extend(["", "## Esito fonti"])
+    for fonte, stato in sorted((report.get("fonti") or {}).items()):
+        esito = "OK" if stato.get("ok") else "non disponibile"
+        dettagli = []
+        for key in ("n_remoti", "n_aggiornati", "n_nuovi", "n_pec_aggiornate"):
+            if key in stato:
+                dettagli.append(f"{key}={stato.get(key)}")
+        motivo = stato.get("motivo") or stato.get("errore")
+        if motivo:
+            dettagli.append(f"motivo={motivo}")
+        suffix = f" ({', '.join(dettagli)})" if dettagli else ""
+        lines.append(f"- {fonte}: {esito}{suffix}")
+    lines.extend(
+        [
+            "",
+            "## Resolver PST / JPW",
+            f"- Stato: {'OK' if resolver.get('ok') else 'DA VERIFICARE'}",
+            f"- Uffici JPW controllati: {resolver.get('n_uffici_jpw', 0)}",
+            f"- Problemi: {resolver.get('n_problemi', 0)}",
+            f"- Per servizio: {json.dumps(resolver.get('per_servizio') or {}, ensure_ascii=False)}",
+            "",
+            "## Autoriparazione",
+            f"- Eseguita: {'si' if autoriparazione.get('eseguita') else 'no'}",
+            f"- Motivo: {autoriparazione.get('motivo') or 'nessun intervento richiesto'}",
+        ]
+    )
+    problemi = resolver.get("problemi") or []
+    if problemi:
+        lines.extend(["", "## Problemi rilevati"])
+        for item in problemi[:20]:
+            lines.append(
+                f"- {item.get('codice') or 'n.d.'} - {item.get('nome') or 'n.d.'}: "
+                f"{'; '.join(item.get('problemi') or [])}"
+            )
+    if report.get("errore"):
+        lines.extend(["", "## Errore", str(report.get("errore"))])
+    return "\n".join(lines) + "\n"
+
+
+def _salva_report(cache_path: str, report: Dict) -> None:
+    from pathlib import Path
+
+    rp = Path(cache_path).parent / "sync_report.json"
+    md = Path(cache_path).parent / "sync_report.md"
+    rp.parent.mkdir(parents=True, exist_ok=True)
+    report["report_json_path"] = str(rp)
+    report["report_markdown_path"] = str(md)
+    rp.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
+    md.write_text(_render_report_markdown(report), encoding="utf-8")
+
+
 def esegui_sync_completo(
     cache_path: str,
     forza: bool = False,
@@ -413,16 +498,24 @@ def esegui_sync_completo(
 
     Restituisce un dict con il report di sync.
     """
-    from pct.uffici_giudiziari import get_gestore
+    from pct.uffici_giudiziari import (
+        _applica_riferimenti_ministero,
+        _build_bundle_completo,
+        get_gestore,
+        valida_resolver_pst,
+    )
 
     ts = datetime.now().isoformat(timespec="seconds")
     report: Dict = {
         "sync_il":       ts,
         "fonti":         {},
+        "fonti_memorizzate": FONTI_UFFICIALI_UFFICI,
         "n_pec_aggiornate": 0,
         "n_nuovi":       0,
         "n_totale_pre":  0,
         "n_totale_post": 0,
+        "resolver_pst":  {},
+        "autoriparazione": {"eseguita": False, "motivo": ""},
         "ok":            True,
         "errore":        None,
     }
@@ -470,6 +563,19 @@ def esegui_sync_completo(
         report["fonti"]["ipa"] = {"ok": True, "n_pec_aggiornate": n_ipa}
         report["n_pec_aggiornate"] += n_ipa
 
+        # ---- Metadati ministeriali e validazione resolver PST ----
+        uffici = _applica_riferimenti_ministero(uffici)
+        resolver_report = valida_resolver_pst(uffici)
+        report["resolver_pst"] = resolver_report
+        if not resolver_report.get("ok"):
+            log.warning("[sync] Resolver PST non valido dopo sync: ripristino bundle ministeriale governato.")
+            uffici = _build_bundle_completo()
+            report["autoriparazione"] = {
+                "eseguita": True,
+                "motivo": "resolver PST/JPW incompleto dopo merge fonti remote",
+            }
+            report["resolver_pst"] = valida_resolver_pst(uffici)
+
         # ---- Salva ----
         report["n_totale_post"] = len(uffici)
         gestore._salva(uffici, sorgente="sync_multi")
@@ -487,10 +593,7 @@ def esegui_sync_completo(
 
     # Salva report accanto alla cache
     try:
-        from pathlib import Path
-        rp = Path(cache_path).parent / "sync_report.json"
-        rp.parent.mkdir(parents=True, exist_ok=True)
-        rp.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
+        _salva_report(cache_path, report)
     except Exception as exc:
         log.warning("[sync] Salvataggio report fallito: %s", exc)
 
@@ -504,6 +607,11 @@ def carica_ultimo_report(cache_path: str) -> Optional[Dict]:
     if not rp.exists():
         return None
     try:
-        return json.loads(rp.read_text(encoding="utf-8"))
+        report = json.loads(rp.read_text(encoding="utf-8"))
+        md = Path(cache_path).parent / "sync_report.md"
+        if md.exists():
+            report["report_markdown_path"] = str(md)
+            report["report_markdown"] = md.read_text(encoding="utf-8")
+        return report
     except Exception:
         return None

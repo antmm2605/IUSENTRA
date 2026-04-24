@@ -55,6 +55,13 @@ _PST_SERVIZI_DEFAULT = ("JPW_SICID", "JPW_SIECIC", "JPW_SIGP", "JPW_CASSCI", "JP
 _PST_SERVIZI_ALIAS = {
     "JPW_CASS": "JPW_CASSCI",
 }
+_PST_QBUILDER_NAMESPACES = {
+    "JPW_SICID": "urn:CONS-SICC-BE",
+    "JPW_SIECIC": "urn:CONS-SIECIC-BE",
+    "JPW_SIGP": "urn:CONS-SIGP-BE",
+    "JPW_CASSCI": "urn:CONS-CASSCI",
+    "JPW_CASSPE": "urn:CONS-CASSPE",
+}
 
 # ---------------------------------------------------------------- tipi
 
@@ -109,6 +116,34 @@ def _normalizza_servizio_pst_name(servizio: str) -> str:
     if not valore:
         return ""
     return _PST_SERVIZI_ALIAS.get(valore, valore)
+
+
+def _servizi_jpw(ufficio: dict) -> set[str]:
+    return {
+        _normalizza_servizio_pst_name(servizio)
+        for servizio in (ufficio.get("servizi_ministero") or [])
+        if _normalizza_servizio_pst_name(servizio).startswith("JPW_")
+    }
+
+
+def _cache_pst_metadata_non_allineata(cache_uffici: list[dict], bundle_uffici: list[dict]) -> bool:
+    """Verifica che la cache conservi i metadati ministeriali usati dal resolver PST."""
+    cache_idx = {u.get("codice"): u for u in cache_uffici if u.get("codice")}
+    for bundle in bundle_uffici:
+        codice = bundle.get("codice")
+        bundle_services = _servizi_jpw(bundle)
+        if not codice or not bundle_services:
+            continue
+        cached = cache_idx.get(codice)
+        if not cached:
+            return True
+        for chiave in ("codice_ministero", "codice_gl", "servizio_pst_predefinito"):
+            valore_bundle = str(bundle.get(chiave) or "").strip()
+            if valore_bundle and str(cached.get(chiave) or "").strip() != valore_bundle:
+                return True
+        if not bundle_services.issubset(_servizi_jpw(cached)):
+            return True
+    return False
 
 
 @lru_cache(maxsize=1)
@@ -1069,7 +1104,16 @@ class GestoreUfficiGiudiziari:
             da_file is not None
             and meta.get("bundle_hash") != bundle_hash
         )
-        if da_file and len(da_file) >= len(bundle) and not cache_non_allineata_al_bundle:
+        cache_pst_non_allineata = (
+            da_file is not None
+            and _cache_pst_metadata_non_allineata(da_file, bundle)
+        )
+        if (
+            da_file
+            and len(da_file) >= len(bundle)
+            and not cache_non_allineata_al_bundle
+            and not cache_pst_non_allineata
+        ):
             # La cache è completa o più aggiornata del bundle → usala
             self._mem = da_file
         else:
@@ -1081,6 +1125,10 @@ class GestoreUfficiGiudiziari:
                         meta.get("bundle_hash", "—"),
                         bundle_hash,
                         meta.get("sorgente", "—"),
+                    )
+                elif cache_pst_non_allineata:
+                    log.info(
+                        "Auto-upgrade cache uffici: metadati PST/JPW non allineati al bundle ministeriale -> rigenero"
                     )
                 else:
                     log.info(
@@ -1194,6 +1242,7 @@ class GestoreUfficiGiudiziari:
                 "cache_path":     str(self.cache_path),
                 "ttl_giorni":     _TTL_GIORNI,
                 "scaduta":        self._cache_scaduta(),
+                "pst_resolver":   meta.get("pst_resolver") or valida_resolver_pst(uffici),
             }
         bundle = _build_bundle_completo()
         return {
@@ -1244,7 +1293,16 @@ class GestoreUfficiGiudiziari:
                     data = resp.json()
                     uffici = self._normalizza_risposta(data)
                     if uffici:
-                        self._salva(uffici, sorgente=f"remoto:{nome_fonte}")
+                        sorgente = f"remoto:{nome_fonte}"
+                        bundle = _build_bundle_completo()
+                        if _cache_pst_metadata_non_allineata(uffici, bundle):
+                            log.warning(
+                                "Aggiornamento da %s privo di metadati PST completi: uso bundle ministeriale autoriparato.",
+                                nome_fonte,
+                            )
+                            uffici = bundle
+                            sorgente = f"{sorgente}:autoriparato_bundle"
+                        self._salva(uffici, sorgente=sorgente)
                         self._mem = uffici
                         n = len(uffici)
                         log.info("Aggiornamento riuscito: %d uffici da %s", n, nome_fonte)
@@ -1425,11 +1483,13 @@ class GestoreUfficiGiudiziari:
     def _salva(self, uffici: list[dict], sorgente: str = "bundle") -> None:
         try:
             self.cache_path.parent.mkdir(parents=True, exist_ok=True)
+            uffici = _applica_riferimenti_ministero(list(uffici))
             payload = {
                 "sorgente":      sorgente,
                 "aggiornato_il": datetime.now().isoformat(timespec="seconds"),
                 "n_uffici":      len(uffici),
                 "bundle_hash":   _uffici_hash(_build_bundle_completo()),
+                "pst_resolver":  valida_resolver_pst(uffici),
                 "uffici":        uffici,
             }
             self.cache_path.write_text(
@@ -1447,7 +1507,7 @@ class GestoreUfficiGiudiziari:
         """
         # Formato bundle interno: {"uffici": [...]}
         if isinstance(data, dict) and "uffici" in data:
-            return data["uffici"]
+            return _applica_riferimenti_ministero(data["uffici"])
         # Lista diretta
         if isinstance(data, list):
             result = []
@@ -1464,7 +1524,7 @@ class GestoreUfficiGiudiziari:
                 }
                 if uff["nome"]:
                     result.append(uff)
-            return result
+            return _applica_riferimenti_ministero(result)
         return []
 
 
@@ -1645,6 +1705,54 @@ def risolvi_base_pst(
     if not root or root.startswith(_PST_LEGACY_BASE):
         root = (os.getenv("PCT_PST_PROXY_ROOT", "") or _PST_PROXY_SH_URL).strip().rstrip("/")
     return f"{root}/pda/pycons/{codice_gl}/{servizio}"
+
+
+def valida_resolver_pst(uffici: list[dict] | None = None) -> dict:
+    """Controlla che tutti gli uffici JPW abbiano resolver PST completo."""
+    rows = uffici if uffici is not None else _build_bundle_completo()
+    problemi: list[dict] = []
+    per_servizio: dict[str, int] = {}
+    n_jpw = 0
+
+    for ufficio in rows:
+        servizi = sorted(_servizi_jpw(ufficio))
+        if not servizi:
+            continue
+        n_jpw += 1
+        codice = str(ufficio.get("codice") or "").strip()
+        nome = str(ufficio.get("nome") or "").strip()
+        codice_ministero = str(ufficio.get("codice_ministero") or "").strip()
+        codice_gl = str(ufficio.get("codice_gl") or "").strip()
+        preferito = _normalizza_servizio_pst_name(ufficio.get("servizio_pst_predefinito") or "")
+        servizio = preferito if preferito in servizi else servizi[0]
+        per_servizio[servizio] = per_servizio.get(servizio, 0) + 1
+
+        issue: list[str] = []
+        if not codice_ministero:
+            issue.append("codice_ministero mancante")
+        if not codice_gl:
+            issue.append("codice_gl mancante")
+        if not servizio:
+            issue.append("servizio JPW mancante")
+        if servizio and servizio not in _PST_QBUILDER_NAMESPACES:
+            issue.append(f"namespace qbuilder non mappato per {servizio}")
+        if issue:
+            problemi.append(
+                {
+                    "codice": codice,
+                    "nome": nome,
+                    "servizio": servizio,
+                    "problemi": issue,
+                }
+            )
+
+    return {
+        "ok": not problemi,
+        "n_uffici_jpw": n_jpw,
+        "per_servizio": dict(sorted(per_servizio.items())),
+        "n_problemi": len(problemi),
+        "problemi": problemi[:50],
+    }
 
 
 # ================================================================ singleton

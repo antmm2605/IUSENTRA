@@ -30,6 +30,18 @@ def _scheduler_bootstrap_allowed(app) -> bool:
     ) or _flag_enabled(os.environ.get("PCT_ALLOW_INLINE_SCHEDULER"))
 
 
+def _parse_hhmm(value: object, default: str) -> tuple[int, int]:
+    raw = str(value or default).strip()
+    try:
+        hour, minute = map(int, raw.split(":", 1))
+        if 0 <= hour <= 23 and 0 <= minute <= 59:
+            return hour, minute
+    except (TypeError, ValueError):
+        pass
+    default_hour, default_minute = map(int, default.split(":", 1))
+    return default_hour, default_minute
+
+
 def start_scheduler(app):
     """
     Avvia lo scheduler APScheduler in background.
@@ -65,10 +77,7 @@ def start_scheduler(app):
 
     # ---- Backup giornaliero ----
     ora_backup = app.config.get("BACKUP_ORA", os.getenv("PCT_BACKUP_ORA", "02:00"))
-    try:
-        h, m = map(int, ora_backup.split(":"))
-    except (ValueError, AttributeError):
-        h, m = 2, 0
+    h, m = _parse_hhmm(ora_backup, "02:00")
 
     @scheduler.scheduled_job(CronTrigger(hour=h, minute=m), id="backup_giornaliero")
     def _backup():
@@ -97,10 +106,7 @@ def start_scheduler(app):
 
     # ---- Promemoria WhatsApp appuntamenti domani (ogni giorno alle 18:00) ----
     wa_ora = app.config.get("WA_REMINDER_ORA", os.getenv("PCT_WA_REMINDER_ORA", "18:00"))
-    try:
-        wh, wm = map(int, wa_ora.split(":"))
-    except (ValueError, AttributeError):
-        wh, wm = 18, 0
+    wh, wm = _parse_hhmm(wa_ora, "18:00")
 
     @scheduler.scheduled_job(CronTrigger(hour=wh, minute=wm), id="wa_reminder")
     def _wa_reminder():
@@ -150,20 +156,27 @@ def start_scheduler(app):
 
     # ---- Sync uffici giudiziari da fonti ufficiali (ogni giorno alle 03:30) ----
     # Fonti: PST MinGiust, giustizia-amministrativa.it, giustiziatributaria.gov.it, IPA PEC
-    @scheduler.scheduled_job(CronTrigger(hour=3, minute=30), id="sync_uffici")
+    sync_uffici_ora = app.config.get("UFFICI_SYNC_ORA", os.getenv("PCT_UFFICI_SYNC_ORA", "03:30"))
+    uh, um = _parse_hhmm(sync_uffici_ora, "03:30")
+
+    @scheduler.scheduled_job(CronTrigger(hour=uh, minute=um), id="sync_uffici")
     def _sync_uffici():
         with app.app_context():
             try:
                 from pct.sync_uffici import esegui_sync_completo
-                cache_path = os.getenv("PCT_UFFICI_DB", "/data/uffici/uffici_giudiziari.json")
+                cache_path = (
+                    app.config.get("UFFICI_GIUDIZIARI_DB")
+                    or os.getenv("PCT_UFFICI_DB", "/data/uffici/uffici_giudiziari.json")
+                )
                 report = esegui_sync_completo(cache_path)
                 if report.get("ok"):
                     logger.info(
-                        "[scheduler] Sync uffici completato: %d totali, "
-                        "+%d nuovi, %d PEC aggiornate",
+                        "[scheduler] Sync uffici completato: %d totali, +%d nuovi, %d PEC aggiornate, resolver PST=%s, report=%s",
                         report.get("n_totale_post", 0),
                         report.get("n_nuovi", 0),
                         report.get("n_pec_aggiornate", 0),
+                        "ok" if (report.get("resolver_pst") or {}).get("ok") else "da_verificare",
+                        report.get("report_markdown_path") or "n.d.",
                     )
                     # Log warning per ogni fonte fallita
                     for fonte, stato in report.get("fonti", {}).items():

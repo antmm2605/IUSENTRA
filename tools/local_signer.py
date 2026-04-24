@@ -107,7 +107,7 @@ from local_signer_mod.server_bootstrap import print_startup_banner
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.6.9"
+VERSION = "1.6.10"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
@@ -3889,7 +3889,7 @@ def _soap_qbuilder_execute_body(
     values_xml = "".join(
         f'<value name="{_esc(name)}" type="{_esc(value_type)}">{_esc(str(value))}</value>'
         for name, value_type, value in values
-        if value not in ("", None)
+        if value not in ("", None) or name == "subProc"
     )
     order_xml = ""
     if order_entries:
@@ -3932,10 +3932,11 @@ def _soap_ricerca_fascicoli_body(base_url: str, codice_ufficio: str, numero_rg: 
                 namespace,
                 "RicercaInformazioniFascicoloPerTipo",
                 [
-                    ("idUfficio", "string", codice_ufficio),
                     ("tipo", "string", "RGN"),
-                    ("numero", "integer", numero_value),
-                    ("anno", "string", str(anno_rg)),
+                    ("idUfficio", "string", codice_ufficio),
+                    ("annoRuolo", "long", str(anno_rg)),
+                    ("numeroRuolo", "string", numero_value),
+                    ("subProc", "string", ""),
                 ],
                 role="AVV",
                 group=codice_ufficio,
@@ -3951,7 +3952,11 @@ def _soap_ricerca_fascicoli_body(base_url: str, codice_ufficio: str, numero_rg: 
             "RicercaInformazioniFascicoloPerPartiGiudiceDate",
             [
                 ("idUfficio", "string", codice_ufficio),
-                ("parte", "string", parte),
+                ("cognomeNome", "string", parte),
+                ("codiceFiscale", "string", _estrai_codice_fiscale_testo(cf_parte or "").upper()),
+                ("giudice", "string", ""),
+                ("dataRuoloDa", "string", ""),
+                ("dataRuoloA", "string", ""),
             ],
             role="AVV",
             group=codice_ufficio,
@@ -3992,11 +3997,10 @@ def _soap_documenti_body(base_url: str, codice_ufficio: str, numero_rg: str,
         numero_value = str(int(str(numero_rg).strip())) if str(numero_rg).strip().isdigit() else str(numero_rg).strip()
         values = [
             ("idUfficio", "string", codice_ufficio),
-            ("anno", "string", str(anno_rg)),
-            ("numero", "string", numero_value),
+            ("annoRuolo", "long", str(anno_rg)),
+            ("numeroRuolo", "string", numero_value),
+            ("subProc", "string", sub_procedimento or ""),
         ]
-        if sub_procedimento:
-            values.append(("subpro", "string", sub_procedimento))
         return _soap_qbuilder_execute_body(
             namespace,
             "DocumentiFascicolo",
@@ -4029,13 +4033,12 @@ def _soap_profilo_fascicolo_body(base_url: str, codice_ufficio: str, numero_rg: 
     numero_value = str(int(str(numero_rg).strip())) if str(numero_rg).strip().isdigit() else str(numero_rg).strip()
     values = [
         ("idUfficio", "string", codice_ufficio),
-        ("anno", "string", str(anno_rg)),
-        ("numero", "string", numero_value),
+        ("annoRuolo", "long", str(anno_rg)),
+        ("numeroRuolo", "string", numero_value),
+        ("subProc", "string", sub_procedimento or ""),
         ("fascPrecedente", "boolean", "false"),
         ("scadTermini", "boolean", "false"),
     ]
-    if sub_procedimento:
-        values.append(("subpro", "string", sub_procedimento))
     return _soap_qbuilder_execute_body(
         namespace,
         "ProfiloFascicolo",
@@ -5145,7 +5148,7 @@ class _Handler(BaseHTTPRequestHandler):
     # Chiude ogni risposta: evita keep-alive pendenti dal browser.
     protocol_version = "HTTP/1.0"
 
-    def log_message(self, fmt, *args):  # noqa: override
+    def log_message(self, fmt, *args):
         log.debug("[%s] %s", self.address_string(), fmt % args)
 
     def _cors_ok(self) -> bool:

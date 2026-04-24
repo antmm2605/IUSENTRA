@@ -98,7 +98,9 @@ def register_reference_lookup_routes(
         try:
             from pct.uffici_giudiziari import get_gestore
 
-            cache_path = os.getenv("PCT_UFFICI_DB", "/data/uffici/uffici_giudiziari.json")
+            cache_path = app.config.get("UFFICI_GIUDIZIARI_DB") or os.getenv(
+                "PCT_UFFICI_DB", "/data/uffici/uffici_giudiziari.json"
+            )
             report = get_gestore(cache_path).verifica_variazioni()
             audit(
                 "uffici.verifica_variazioni",
@@ -120,7 +122,9 @@ def register_reference_lookup_routes(
         try:
             from pct.sync_uffici import carica_ultimo_report
 
-            cache_path = os.getenv("PCT_UFFICI_DB", "/data/uffici/uffici_giudiziari.json")
+            cache_path = app.config.get("UFFICI_GIUDIZIARI_DB") or os.getenv(
+                "PCT_UFFICI_DB", "/data/uffici/uffici_giudiziari.json"
+            )
             report = carica_ultimo_report(cache_path)
             if report is None:
                 return jsonify({"ok": False, "errore": "Nessun sync eseguito ancora"})
@@ -138,7 +142,9 @@ def register_reference_lookup_routes(
         try:
             from pct.sync_uffici import esegui_sync_completo
 
-            cache_path = os.getenv("PCT_UFFICI_DB", "/data/uffici/uffici_giudiziari.json")
+            cache_path = app.config.get("UFFICI_GIUDIZIARI_DB") or os.getenv(
+                "PCT_UFFICI_DB", "/data/uffici/uffici_giudiziari.json"
+            )
             report = esegui_sync_completo(cache_path)
             audit(
                 "uffici.sync_eseguito",

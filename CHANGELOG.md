@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.182.24 - 2026-04-24
+
+- Corretto il fallback di riconciliazione tenant su volumi Docker/Windows: quando il filesystem non consente di preservare timestamp/permessi con `copy2`, IUSENTRA copia comunque il contenuto applicativo senza generare errori di avvio su `tenant_user_directory`.
+
+## 2.182.23 - 2026-04-24
+
+- Rafforzato il recupero degli allegati PEC storici: le email gia' salvate con allegati senza file vengono rimesse nella coda IMAP anche se non sono tra gli ultimi messaggi sincronizzati, cosi' comunicazioni precedenti come quelle del 09/04/2026 non restano bloccate dal limite operativo degli ultimi messaggi.
+
 ## 2.182.22 - 2026-04-24
 
 - Corretta la regressione degli allegati PEC storici: se un messaggio era gia' presente nello storico ma gli allegati avevano solo metadati e nessun file salvato, la sincronizzazione IMAP ora recupera nuovamente il messaggio e salva fisicamente gli allegati mancanti.

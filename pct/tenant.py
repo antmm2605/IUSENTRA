@@ -1017,14 +1017,24 @@ class GestioneTenant:
             return False
         return not cls._path_has_data(destination)
 
-    @staticmethod
-    def _copy_seed_path(source: Path, destination: Path) -> str:
+    @classmethod
+    def _copy_seed_path(cls, source: Path, destination: Path) -> str:
         destination.parent.mkdir(parents=True, exist_ok=True)
         if source.is_dir():
-            shutil.copytree(source, destination, dirs_exist_ok=True)
+            cls._merge_directory_tree(source, destination)
         else:
-            shutil.copy2(source, destination)
+            cls._copy_file_with_metadata_fallback(source, destination)
         return str(destination)
+
+    @staticmethod
+    def _copy_file_with_metadata_fallback(source: Path, destination: Path) -> None:
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            shutil.copy2(source, destination)
+        except PermissionError:
+            # Alcuni volume Docker/Windows non consentono copystat/utime:
+            # il dato applicativo conta piu' dei metadati filesystem.
+            shutil.copyfile(source, destination)
 
     @classmethod
     def _merge_directory_tree(cls, source_dir: Path, destination_dir: Path) -> int:
@@ -1037,7 +1047,7 @@ class GestioneTenant:
             if not cls._path_needs_seed(source, destination):
                 continue
             destination.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(source, destination)
+            cls._copy_file_with_metadata_fallback(source, destination)
             copied += 1
         return copied
 

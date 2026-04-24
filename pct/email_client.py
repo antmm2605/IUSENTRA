@@ -453,8 +453,20 @@ class GestioneEmailRicevute:
                     if not data or not data[0]:
                         continue
 
-                    uid_list = data[0].decode().split()
-                    uid_list = uid_list[-limite:]  # ultimi N
+                    uid_list_all = data[0].decode().split()
+                    uid_list = uid_list_all[-limite:]  # ultimi N
+
+                    # Le PEC storiche gia' presenti ma senza file allegati non devono
+                    # restare fuori solo perche' non sono tra gli ultimi messaggi.
+                    prefix_cartella = f"{cartella_imap}:"
+                    uid_da_riparare = [
+                        uid_key.split(":", 1)[1]
+                        for uid_key, em_storica in email_per_uid.items()
+                        if uid_key.startswith(prefix_cartella)
+                        and uid_key.split(":", 1)[1] in uid_list_all
+                        and self._email_ha_allegati_da_salvare(em_storica)
+                    ]
+                    uid_list = list(dict.fromkeys(uid_list + uid_da_riparare))
 
                     for uid in reversed(uid_list):
                         uid_str = f"{cartella_imap}:{uid}"

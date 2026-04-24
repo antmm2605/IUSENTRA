@@ -603,6 +603,36 @@ def test_reconcile_storage_aliases_semina_dati_dal_percorso_slug_al_storage_key(
     assert (storage_dir / "fascicoli" / "documenti" / "CASE01" / "atto.pdf").exists()
 
 
+def test_reconcile_storage_aliases_copia_payload_se_copy2_fallisce_su_metadati(
+    tmp_path: Path,
+    monkeypatch,
+):
+    registry = tmp_path / "tenants.json"
+    tm = GestioneTenant(str(registry))
+    studio = tm.crea("Studio Antonella", "antonella-mammola", db_config={"mode": "JSON"})
+    tm.aggiorna(studio.slug, storage_key="tenant-legacy")
+
+    slug_dir = tmp_path / "tenants" / "antonella-mammola"
+    storage_dir = tmp_path / "tenants" / "tenant-legacy"
+    (slug_dir / "clienti").mkdir(parents=True, exist_ok=True)
+    (slug_dir / "clienti" / "anagrafica.json").write_text(
+        json.dumps({"c1": {"nome": "Cliente storico"}}, ensure_ascii=False),
+        encoding="utf-8",
+    )
+
+    def _copy2_permission_denied(source, destination):
+        raise PermissionError("[Errno 1] Operation not permitted")
+
+    monkeypatch.setattr("pct.tenant.shutil.copy2", _copy2_permission_denied)
+
+    report = tm.reconcile_storage_aliases(studio.slug)
+
+    assert report["copied_files"]
+    assert json.loads((storage_dir / "clienti" / "anagrafica.json").read_text(encoding="utf-8")) == {
+        "c1": {"nome": "Cliente storico"}
+    }
+
+
 def test_aggiorna_tenant_funziona_anche_con_registry_indicizzato_per_id(tmp_path: Path):
     registry = tmp_path / "tenants.json"
     legacy_id = "6b4fde33-a390-454c-b981-1492c1f15633"

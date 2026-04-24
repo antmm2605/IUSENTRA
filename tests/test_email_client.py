@@ -186,6 +186,19 @@ def test_sincronizza_imap_ripara_allegati_storici_senza_file(tmp_path, monkeypat
             ],
         )
     )
+    for seq in ("100", "101"):
+        ge.aggiungi(
+            EmailRicevuta(
+                id=f"MAIL-RECENTE-{seq}",
+                cartella="INBOX",
+                stato=StatoEmail.LETTA,
+                mittente="ufficio@example.test",
+                oggetto=f"Email gia salvata {seq}",
+                data="2026-04-24T09:00:00",
+                corpo_testo="Messaggio recente gia completo.",
+                uid_imap=f"INBOX:{seq}",
+            )
+        )
 
     msg = EmailMessage()
     msg["Subject"] = "POSTA CERTIFICATA: [0030458-2026] Verbale di contestazione"
@@ -208,7 +221,7 @@ def test_sincronizza_imap_ripara_allegati_storici_senza_file(tmp_path, monkeypat
             return "OK", [b"1"]
 
         def search(self, charset, criteria):
-            return "OK", [b"42"]
+            return "OK", [b"1 2 42 100 101"]
 
         def fetch(self, uid, query):
             assert uid == "42"
@@ -226,7 +239,7 @@ def test_sincronizza_imap_ripara_allegati_storici_senza_file(tmp_path, monkeypat
         password="segreta",
         use_ssl=True,
         cartelle_imap=["INBOX"],
-        limite=100,
+        limite=2,
     )
 
     assert report["nuove"] == 0

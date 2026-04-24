@@ -3380,6 +3380,10 @@ def test_portale_wizard_mappa_fallback_sigp_come_manuale_assistita():
 
     assert "row.verifica_browser_ufficiale" in template
     assert "row.portale_url" in template
+    assert "row.controparti" in template
+    assert "parti_dettaglio" in template
+    assert "awSplitPeople(query.assistito)" in template
+    assert "awSplitPeople(query.controparte)" in template
     assert "awMarkSelectionManual(mapped" in template
 
 

@@ -932,6 +932,15 @@ async function awPstSearchViaLocalSigner(query, retry = true) {
     awRememberPstSession(data, tribunale);
     return (data.fascicoli || []).map(row => {
       const manualMode = !!(row.manual_mode || row.verifica_browser_ufficiale || row.portale_url);
+      const partiDettaglio = Array.isArray(row.parti_dettaglio) ? row.parti_dettaglio : [];
+      const contropartiDaRuolo = partiDettaglio
+        .filter(item => /convenuto|resistente|controparte/i.test(String(item.tipo || '')))
+        .map(item => String(item.nome || '').trim())
+        .filter(Boolean);
+      const partiDaRuolo = partiDettaglio
+        .filter(item => !/convenuto|resistente|controparte/i.test(String(item.tipo || '')))
+        .map(item => String(item.nome || '').trim())
+        .filter(Boolean);
       const mapped = {
         external_id: `${row.codice_ufficio || tribunale}:${row.numero_rg}:${row.anno_rg}:${row.ruolo || ''}`,
         id_fascicolo: row.id_fascicolo || '',
@@ -943,9 +952,9 @@ async function awPstSearchViaLocalSigner(query, retry = true) {
         sub_procedimento: row.sub_procedimento || '',
         sezione: row.sezione || '',
         stato: row.stato || '',
-        oggetto: row.oggetto || '',
-        parti: Array.isArray(row.parti) ? row.parti : [],
-        controparti: [],
+        oggetto: row.oggetto || query.oggetto || '',
+        parti: Array.isArray(row.parti) && row.parti.length ? row.parti : (partiDaRuolo.length ? partiDaRuolo : awSplitPeople(query.assistito)),
+        controparti: Array.isArray(row.controparti) && row.controparti.length ? row.controparti : (contropartiDaRuolo.length ? contropartiDaRuolo : awSplitPeople(query.controparte)),
         ultima_attivita: row.data_udienza || row.data_iscrizione || '',
         payload: row,
       };

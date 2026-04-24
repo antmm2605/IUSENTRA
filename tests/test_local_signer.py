@@ -4,7 +4,6 @@ import base64
 import io
 import importlib.util
 import os
-import re
 import sys
 from pathlib import Path
 from types import SimpleNamespace
@@ -1291,6 +1290,70 @@ def test_sigp_fallback_collega_scheda_ufficiale_gdp():
     assert "ufficioRicerca=0800570152" in fascicolo["portale_url"]
     assert "registroRicerca=GDP" in fascicolo["portale_url"]
     assert "pa=%5BMNTRRT64L01L063H%5D" in fascicolo["portale_url"]
+
+
+def test_parse_sigp_info_fascicolo_html_popola_dati_parti_e_legali():
+    module = _load_local_signer()
+
+    html = """
+    <html><body>
+      <table>
+        <tr><td>Atto introduttivo</td><td>Citazione</td></tr>
+        <tr><td>Rito</td><td>RITO ORDINARIO</td></tr>
+        <tr><td>Ruolo</td><td>GENERALE DEGLI AFFARI CIVILI CONTENZIOSI</td></tr>
+        <tr><td>Materia</td><td>Responsabilita extracontrattuale</td></tr>
+        <tr><td>Oggetto</td><td>Azioni di competenza del Giudice di Pace in materia di risarcimento danno</td></tr>
+        <tr><td>Giudice</td><td>CARUSO GIUSEPPE</td></tr>
+        <tr><td>Sezione</td><td>SEZIONE UNICA PALMI</td></tr>
+        <tr><td>Data iscrizione</td><td>23/02/2023</td></tr>
+        <tr><td>Data ultima udienza</td><td>19/04/2023 12:00</td></tr>
+        <tr><td>Stato</td><td>PROCEDIMENTO DEFINITO</td></tr>
+      </table>
+      <h3>Parti legali</h3>
+      <table>
+        <tr><td>Attore principale</td><td>ROBERTINO ALESSI rappresentato da MONTAGNESE ROBERTO</td></tr>
+        <tr><td>Convenuto principale</td><td>ZURICH ASS.NI rappresentato da FOTI ALFREDO</td></tr>
+      </table>
+    </body></html>
+    """
+
+    info = module._parse_sigp_info_fascicolo_html(html)
+    fascicolo = module._sigp_merge_info_fascicolo(
+        module._sigp_fascicolo_fallback(
+            codice_ufficio="0800570152",
+            numero_rg="466",
+            anno_rg=2023,
+            cf_avvocato="MNTRRT64L01L063H",
+        ),
+        info,
+    )
+
+    assert info["atto_introduttivo"] == "Citazione"
+    assert info["rito"] == "RITO ORDINARIO"
+    assert fascicolo["ruolo"] == "GENERALE DEGLI AFFARI CIVILI CONTENZIOSI"
+    assert fascicolo["oggetto"].startswith("Azioni di competenza")
+    assert fascicolo["giudice"] == "CARUSO GIUSEPPE"
+    assert fascicolo["data_udienza"] == "19/04/2023 12:00"
+    assert fascicolo["parti"] == ["ROBERTINO ALESSI"]
+    assert fascicolo["controparti"] == ["ZURICH ASS.NI"]
+    assert fascicolo["difensori"] == ["MONTAGNESE ROBERTO", "FOTI ALFREDO"]
+    assert fascicolo["scheda_ufficiale_letta"] is True
+
+
+def test_sigp_login_html_non_viene_scambiato_per_scheda_letta():
+    module = _load_local_signer()
+
+    login_html = """
+    <html>
+      <head><title>Portale Servizi Telematici. Login</title></head>
+      <body><div class="logIn"><a href="/PST/it/pst_intr.wp">Login</a></div></body>
+    </html>
+    """
+
+    info = module._parse_sigp_info_fascicolo_html(login_html)
+
+    assert module._sigp_html_richiede_login(login_html) is True
+    assert module._sigp_info_has_content(info) is False
 
 
 def test_parse_qbuilder_fascicoli_xml():

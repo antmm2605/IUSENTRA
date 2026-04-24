@@ -52,6 +52,7 @@ from __future__ import annotations
 
 import base64
 import hashlib
+from html import unescape as _html_unescape
 import json
 import logging
 import os
@@ -107,7 +108,7 @@ from local_signer_mod.server_bootstrap import print_startup_banner  # noqa: E402
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.6.12"
+VERSION = "1.6.13"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
@@ -2374,6 +2375,260 @@ def _sigp_fascicolo_fallback(
     }
 
 
+def _sigp_norm_label(value: str) -> str:
+    text = unicodedata.normalize("NFKD", str(value or ""))
+    text = "".join(ch for ch in text if not unicodedata.combining(ch))
+    return re.sub(r"[^a-z0-9]+", " ", text.lower()).strip()
+
+
+def _sigp_html_lines(html_text: str) -> list[str]:
+    text = re.sub(r"(?is)<(script|style).*?</\1>", " ", str(html_text or ""))
+    text = re.sub(r"(?i)<br\s*/?>", "\n", text)
+    text = re.sub(r"(?i)</(tr|p|div|li|h[1-6]|td|th)>", "\n", text)
+    text = re.sub(r"(?s)<[^>]+>", " ", text)
+    text = _html_unescape(text).replace("\xa0", " ")
+    return [
+        re.sub(r"\s+", " ", line).strip(" :\t\r\n")
+        for line in text.splitlines()
+        if re.sub(r"\s+", " ", line).strip(" :\t\r\n")
+    ]
+
+
+def _sigp_extract_label_values(lines: list[str], labels: list[str]) -> dict[str, str]:
+    label_norm = {_sigp_norm_label(label): label for label in labels}
+    values: dict[str, str] = {}
+
+    def _is_label(line: str) -> bool:
+        return _sigp_norm_label(line) in label_norm
+
+    for idx, line in enumerate(lines):
+        norm_line = _sigp_norm_label(line)
+        if norm_line in label_norm:
+            next_value = ""
+            for candidate in lines[idx + 1 : idx + 5]:
+                if _is_label(candidate):
+                    break
+                next_value = candidate.strip()
+                if next_value:
+                    break
+            values[label_norm[norm_line]] = next_value
+            continue
+        for _norm_label, label in label_norm.items():
+            if line.startswith(label + " ") or line.startswith(label + ":"):
+                raw_value = line[len(label) :].strip(" :-")
+                if raw_value:
+                    values[label] = raw_value
+                break
+    return values
+
+
+def _sigp_parse_parti_legali(lines: list[str]) -> tuple[list[str], list[str], list[dict], list[str]]:
+    role_labels = [
+        "Attore principale",
+        "Convenuto principale",
+        "Ricorrente principale",
+        "Resistente principale",
+        "Parte assistita",
+        "Controparte",
+    ]
+    role_norm = {_sigp_norm_label(role): role for role in role_labels}
+    parti: list[str] = []
+    controparti: list[str] = []
+    dettaglio: list[dict] = []
+    difensori: list[str] = []
+
+    for idx, line in enumerate(lines):
+        norm_line = _sigp_norm_label(line)
+        role = role_norm.get(norm_line)
+        value = ""
+        if role:
+            value = lines[idx + 1].strip() if idx + 1 < len(lines) else ""
+        else:
+            for _norm_role, role_label in role_norm.items():
+                if line.startswith(role_label + " ") or line.startswith(role_label + ":"):
+                    role = role_label
+                    value = line[len(role_label) :].strip(" :-")
+                    break
+        if not role or not value:
+            continue
+
+        chunks = re.split(r"\brappresentat[oa]\s+da\b", value, maxsplit=1, flags=re.I)
+        nome = re.sub(r"\s+", " ", chunks[0]).strip(" -")
+        avvocato = re.sub(r"\s+", " ", chunks[1]).strip(" -") if len(chunks) > 1 else ""
+        if not nome:
+            continue
+        role_key = _sigp_norm_label(role)
+        if any(token in role_key for token in ("convenuto", "resistente", "controparte")):
+            if nome not in controparti:
+                controparti.append(nome)
+        elif nome not in parti:
+            parti.append(nome)
+        if avvocato and avvocato not in difensori:
+            difensori.append(avvocato)
+        dettaglio.append({
+            "nome": nome,
+            "tipo": role,
+            "avvocato": avvocato,
+            "codice_fiscale": "",
+            "cf_avvocato": "",
+        })
+    return parti, controparti, dettaglio, difensori
+
+
+def _parse_sigp_info_fascicolo_html(html_text: str) -> dict:
+    """Estrae i dati leggibili dalla scheda ufficiale SIGP del PST."""
+    lines = _sigp_html_lines(html_text)
+    if not lines:
+        return {}
+    labels = [
+        "Atto introduttivo",
+        "Rito",
+        "Costituzione in giudizio",
+        "Ruolo",
+        "Materia",
+        "Oggetto",
+        "Grado",
+        "Giudice",
+        "Sezione",
+        "Data iscrizione",
+        "Data prima comparizione",
+        "Data ultima udienza",
+        "Stato",
+        "Trascrizione",
+        "Sezionale",
+        "Numero/Anno",
+    ]
+    values = _sigp_extract_label_values(lines, labels)
+    parti, controparti, parti_dettaglio, difensori = _sigp_parse_parti_legali(lines)
+    return {
+        "atto_introduttivo": values.get("Atto introduttivo", ""),
+        "rito": values.get("Rito", ""),
+        "costituzione_giudizio": values.get("Costituzione in giudizio", ""),
+        "ruolo": values.get("Ruolo", ""),
+        "materia": values.get("Materia", ""),
+        "oggetto": values.get("Oggetto", ""),
+        "grado": values.get("Grado", ""),
+        "giudice": values.get("Giudice", ""),
+        "sezione": values.get("Sezione", ""),
+        "data_iscrizione": values.get("Data iscrizione", ""),
+        "data_prima_comparizione": values.get("Data prima comparizione", ""),
+        "data_udienza": values.get("Data ultima udienza", ""),
+        "stato": values.get("Stato", ""),
+        "trascrizione": values.get("Trascrizione", ""),
+        "sezionale": values.get("Sezionale", ""),
+        "campione_civile": values.get("Numero/Anno", ""),
+        "parti": parti,
+        "controparti": controparti,
+        "parti_dettaglio": parti_dettaglio,
+        "difensori": difensori,
+    }
+
+
+def _sigp_merge_info_fascicolo(fascicolo: dict, info: dict) -> dict:
+    if not _sigp_info_has_content(info):
+        return fascicolo
+    merged = dict(fascicolo or {})
+    payload_note = dict(merged.get("dettaglio_sigp") or {})
+    payload_note.update({k: v for k, v in info.items() if v not in ("", [], None)})
+    merged["dettaglio_sigp"] = payload_note
+    for key in ("stato", "oggetto", "sezione", "giudice", "data_iscrizione", "data_udienza"):
+        if info.get(key):
+            merged[key] = info[key]
+    if info.get("ruolo"):
+        merged["ruolo"] = info["ruolo"]
+    if info.get("parti"):
+        merged["parti"] = list(info["parti"])
+    if info.get("controparti"):
+        merged["controparti"] = list(info["controparti"])
+    if info.get("parti_dettaglio"):
+        merged["parti_dettaglio"] = list(info["parti_dettaglio"])
+    if info.get("difensori"):
+        merged["difensori"] = list(info["difensori"])
+    merged["scheda_ufficiale_letta"] = True
+    merged["messaggio_operativo"] = (
+        "Scheda SIGP letta dal portale ufficiale autenticato. "
+        "Per documenti e allegati continua con il download/import guidato dal PST."
+    )
+    return merged
+
+
+def _sigp_info_has_content(info: dict) -> bool:
+    if not info:
+        return False
+    for key in (
+        "atto_introduttivo",
+        "rito",
+        "ruolo",
+        "materia",
+        "oggetto",
+        "giudice",
+        "sezione",
+        "data_iscrizione",
+        "data_udienza",
+        "stato",
+    ):
+        if str(info.get(key) or "").strip():
+            return True
+    return bool(info.get("parti") or info.get("controparti") or info.get("parti_dettaglio"))
+
+
+def _sigp_html_richiede_login(html_text: str) -> bool:
+    text = str(html_text or "").lower()
+    return (
+        "portale servizi telematici. login" in text
+        or "/pst/it/pst_intr.wp" in text
+        or "class=\"login\"" in text
+        or ">login<" in text
+    )
+
+
+def _arricchisci_sigp_fallback_con_scheda(
+    fascicolo: dict,
+    *,
+    cert_thumbprint: str,
+    cf_avvocato: str,
+    cookie_file: str,
+    prefer_cookie_only: bool,
+) -> dict:
+    url = str((fascicolo or {}).get("portale_url") or "").strip()
+    if not url:
+        return fascicolo
+    try:
+        html_text = _http_get_pst_session(
+            url=url,
+            cert_thumbprint=cert_thumbprint,
+            extra_headers=([f"X-WASP-User: {cf_avvocato}"] if cf_avvocato else []),
+            cookie_file=cookie_file,
+            prefer_cookie_only=prefer_cookie_only,
+        )
+        info = _parse_sigp_info_fascicolo_html(html_text)
+        if not _sigp_info_has_content(info):
+            enriched = dict(fascicolo or {})
+            reason = (
+                "La scheda ufficiale SIGP ha richiesto un login browser separato: "
+                "il Local Signer non puo' riusare automaticamente i cookie della finestra PST gia aperta."
+                if _sigp_html_richiede_login(html_text)
+                else "La scheda ufficiale SIGP non contiene campi strutturati leggibili dal Local Signer."
+            )
+            enriched["scheda_ufficiale_letta"] = False
+            enriched["scheda_ufficiale_login_richiesto"] = _sigp_html_richiede_login(html_text)
+            enriched["messaggio_operativo"] = (
+                f"{reason} Apri la scheda ufficiale dal pulsante del wizard e importa i file scaricati dal PST."
+            )
+            enriched["motivo_fallback"] = " | ".join(
+                part for part in [str(enriched.get("motivo_fallback") or ""), reason] if part
+            )
+            return enriched
+        return _sigp_merge_info_fascicolo(fascicolo, info)
+    except Exception as exc:
+        log.warning("SIGP scheda ufficiale non leggibile: %s", exc)
+        enriched = dict(fascicolo or {})
+        enriched["motivo_fallback"] = " | ".join(
+            part for part in [str(enriched.get("motivo_fallback") or ""), f"Scheda ufficiale non leggibile: {exc}"] if part
+        )
+        return enriched
+
+
 def _pst_usa_qbuilder(base_url: str) -> bool:
     return bool(_pst_namespace_qbuilder(base_url))
 
@@ -3170,6 +3425,79 @@ def _soap_call_curl_raw(url: str, soap_body: str,
             pass
 
 
+def _http_get_curl_raw(
+    url: str,
+    *,
+    cert_thumbprint: Optional[str] = None,
+    pkcs11_uri: Optional[str] = None,
+    extra_headers: Optional[list[str]] = None,
+    cookie_file: Optional[str] = None,
+) -> tuple[bytes, str]:
+    """Esegue una GET autenticata PST riusando certificato e cookie del Local Signer."""
+    with tempfile.NamedTemporaryFile(
+        mode="w", suffix=".hdr", delete=False, encoding="utf-8"
+    ) as f_hdr:
+        header_file = f_hdr.name
+
+    try:
+        cmd = [
+            "curl", "-s", "-S",
+            "--max-time", str(PST_SOAP_MAX_TIME),
+            "--connect-timeout", str(PST_SOAP_CONNECT_TIMEOUT),
+            "--location",
+            "--dump-header", header_file,
+            "-X", "GET",
+        ]
+        for header in extra_headers or []:
+            cmd.extend(["-H", header])
+        if cookie_file:
+            cookie_path = _ensure_cookie_file(cookie_file)
+            cmd.extend(["--cookie", cookie_path, "--cookie-jar", cookie_path])
+
+        if sys.platform == "win32":
+            if cert_thumbprint:
+                cmd.extend(["--cert", _format_windows_cert_spec(cert_thumbprint)])
+            cmd.append("--ssl-no-revoke")
+        elif pkcs11_uri:
+            cmd.extend([
+                "--engine", "pkcs11",
+                "--key-type", "ENG",
+                "--key", pkcs11_uri,
+                "--cert-type", "ENG",
+                "--cert", pkcs11_uri,
+            ])
+
+        cmd.append(url)
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            timeout=PST_SOAP_MAX_TIME + 10,
+        )
+        if result.returncode != 0:
+            raise RuntimeError(
+                _curl_errore_leggibile(
+                    result.returncode,
+                    result.stderr.decode("utf-8", "replace"),
+                    url,
+                    timeout_sec=PST_SOAP_MAX_TIME,
+                )
+            )
+        headers_text = Path(header_file).read_text(encoding="utf-8", errors="replace")
+        status_code = _http_status_from_headers(headers_text)
+        content_type = _http_header_value(headers_text, "Content-Type")
+        body_text = result.stdout.decode("utf-8", "replace")
+        if status_code and status_code >= 400:
+            raise RuntimeError(
+                _http_errore_leggibile(status_code, body_text, url, content_type)
+            )
+        return result.stdout, headers_text
+    finally:
+        try:
+            os.unlink(header_file)
+        except OSError:
+            pass
+
+
 def _soap_call_curl_batch_raw(
     requests: list[dict],
     cert_thumbprint: Optional[str] = None,
@@ -3720,6 +4048,38 @@ def _soap_call_pst_session_raw(
                 "PST host %s (raw): cookie-only rifiutato, future chiamate"
                 " useranno direttamente il certificato.", host
             )
+    return _run(cert_thumbprint)
+
+
+def _http_get_pst_session(
+    *,
+    url: str,
+    cert_thumbprint: Optional[str] = None,
+    extra_headers: Optional[list[str]] = None,
+    cookie_file: Optional[str] = None,
+    prefer_cookie_only: bool = False,
+) -> str:
+    """GET autenticata PST con la stessa strategia cookie/certificato delle SOAP."""
+    host = _pst_host(url)
+
+    def _run(cert_value: Optional[str]) -> str:
+        body, _headers = _http_get_curl_raw(
+            url=url,
+            cert_thumbprint=cert_value,
+            extra_headers=extra_headers,
+            cookie_file=cookie_file,
+        )
+        return body.decode("utf-8", "replace")
+
+    if prefer_cookie_only and cookie_file and host not in _mTLS_required_hosts:
+        try:
+            return _run(None)
+        except Exception as e:
+            if not _pst_cookie_retry_requires_cert(e):
+                raise
+            with _mTLS_required_lock:
+                _mTLS_required_hosts.add(host)
+            log.info("PST host %s: GET cookie-only rifiutata, uso certificato.", host)
     return _run(cert_thumbprint)
 
 
@@ -6180,13 +6540,20 @@ class _Handler(BaseHTTPRequestHandler):
                 log.warning("SIGP ricerca esatta in fallback guidato: %s", fallback_motivo)
                 fascicoli = []
             if is_sigp_exact and not fascicoli:
+                fallback = _sigp_fascicolo_fallback(
+                    codice_ufficio=codice_pst,
+                    numero_rg=str(data.get("numero_rg") or ""),
+                    anno_rg=str(data.get("anno_rg") or ""),
+                    cf_avvocato=cf_avvocato,
+                    motivo=fallback_motivo or "Il web service SIGP non ha restituito righe per la ricerca esatta.",
+                )
                 fascicoli = [
-                    _sigp_fascicolo_fallback(
-                        codice_ufficio=codice_pst,
-                        numero_rg=str(data.get("numero_rg") or ""),
-                        anno_rg=str(data.get("anno_rg") or ""),
+                    _arricchisci_sigp_fallback_con_scheda(
+                        fallback,
+                        cert_thumbprint=cert_thumbprint,
                         cf_avvocato=cf_avvocato,
-                        motivo=fallback_motivo or "Il web service SIGP non ha restituito righe per la ricerca esatta.",
+                        cookie_file=cookie_file,
+                        prefer_cookie_only=prefer_cookie_only,
                     )
                 ]
             if _pst_namespace_qbuilder(base_url) and not (data.get("numero_rg") and data.get("anno_rg")):

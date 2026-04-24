@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.184.1 - 2026-04-25
+
+- Arricchito il fallback SIGP/Giudice di Pace: quando il web service non espone righe, il Local Signer legge la scheda ufficiale autenticata `sigp_infofascicolo.wp` e popola in UI rito, materia, oggetto, giudice, stato, udienze, parti e difensori invece di mostrare una pratica vuota.
+- Corretto il mapping del wizard PST per mantenere anche le controparti provenienti dalla scheda SIGP, con test anti-regressione sul fascicolo GDP `466/2023`.
+
 ## 2.184.0 - 2026-04-24
 
 - Corretto il canale PST SIGP/Giudice di Pace: le ricerche esatte usano il registro `GDP`, il parametro `subpro` minuscolo richiesto dal proxy e un fallback operativo verso la scheda ufficiale autenticata quando il web service non espone righe.

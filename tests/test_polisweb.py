@@ -1211,6 +1211,7 @@ def test_dettaglio_fascicolo_mostra_download_ufficiale_portale(tmp_path):
     assert "/pst/download-documenti-batch" in body
     assert "copia di consultazione del portale con annotazioni ministeriali visibili" in body
     assert "original: false" in body
+    assert "scarica_originale_portale: false" in body
 
 
 def test_dettaglio_fascicolo_segna_documento_portale_gia_importato(tmp_path):
@@ -4274,6 +4275,7 @@ def test_api_portale_acquisizione_import_pst_importa_file_reali_e_salva_albero(t
     assert data["ok"] is True
     assert data["result"]["summary"]["documenti"] == 1
     assert data["result"]["summary"]["albero_originale_salvato"] is True
+    assert data["result"]["summary"]["modalita_documento_portale"] == "copia"
 
     gestione_fascicoli_reload = GestioneFascicoli(
         db_path=cfg["FASCICOLI_DB"],
@@ -4291,6 +4293,7 @@ def test_api_portale_acquisizione_import_pst_importa_file_reali_e_salva_albero(t
     assert doc.tipo == TipoDocumento.VERBALE
     assert doc.data_documento == "2025-01-21"
     assert doc.data_deposito_portale == "2025-01-21"
+    assert "Copia di consultazione" in doc.tags
     assert "Udienze e scadenze" in doc.tags
     assert "VerbaleUdienza" in doc.tags
     assert re.search(r"Importato da PolisWeb / PST il \d{2}/\d{2}/\d{4}", doc.note or "")

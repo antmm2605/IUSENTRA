@@ -111,10 +111,10 @@ def _serialize_hot_case(row: dict[str, Any]) -> dict[str, Any]:
         "tribunale": _clean(row.get("tribunale")),
         "stato": _clean(row.get("stato")),
         "score": int(row.get("score") or 0),
-        "azioni": [str(item).strip() for item in list(row.get("azioni") or []) if str(item).strip()][:3],
-        "scadenze": [_serialize_deadline(item) for item in list(row.get("scadenze") or [])[:3]],
-        "scadenze_scadute": [_serialize_deadline(item) for item in list(row.get("scadenze_scadute") or [])[:2]],
-        "appuntamenti": [_serialize_appointment(item) for item in list(row.get("appuntamenti") or [])[:2]],
+        "azioni": [str(item).strip() for item in list(row.get("azioni") or []) if str(item).strip()],
+        "scadenze": [_serialize_deadline(item) for item in list(row.get("scadenze") or [])],
+        "scadenze_scadute": [_serialize_deadline(item) for item in list(row.get("scadenze_scadute") or [])],
+        "appuntamenti": [_serialize_appointment(item) for item in list(row.get("appuntamenti") or [])],
         "giurisprudenza_count": len(list(row.get("giurisprudenza") or [])),
         "provvedimenti_count": len(list(row.get("provvedimenti") or [])),
         "presidio": {
@@ -146,10 +146,10 @@ def _serialize_documentale(documentale: dict[str, Any]) -> dict[str, Any]:
         "documenti_portale_mancanti": int(documentale.get("documenti_portale_mancanti") or 0),
         "metadati_mancanti": [
             _clean(getattr(doc, "nome_portale", "") or getattr(doc, "nome", ""))
-            for doc in list(documentale.get("metadati_mancanti") or [])[:5]
+            for doc in list(documentale.get("metadati_mancanti") or [])
             if _clean(getattr(doc, "nome_portale", "") or getattr(doc, "nome", ""))
         ],
-        "provvedimenti": [dict(item) for item in list(documentale.get("provvedimenti") or [])[:5]],
+        "provvedimenti": [dict(item) for item in list(documentale.get("provvedimenti") or [])],
         "ha_provvedimento_finale": bool(documentale.get("ha_provvedimento_finale")),
     }
 
@@ -266,12 +266,12 @@ def load_studio_operational_context(*, question: str = "", horizon_days: int = 1
         "question": _clean(question),
         "generated_at": _clean(overview.get("generated_at")),
         "summary": dict(overview.get("summary") or {}),
-        "actions": [dict(item) for item in list(overview.get("actions") or [])[:6]],
-        "urgent_deadlines": [_serialize_deadline(item) for item in list(overview.get("urgent_deadlines") or [])[:6]],
-        "upcoming_deadlines": [_serialize_deadline(item) for item in list(overview.get("upcoming_deadlines") or [])[:8]],
-        "upcoming_appointments": [_serialize_appointment(item) for item in list(overview.get("upcoming_appointments") or [])[:8]],
-        "fascicoli_hot": [_serialize_hot_case(item) for item in list(overview.get("fascicoli_hot") or [])[:8]],
-        "sync_profiles": [dict(item) for item in list(overview.get("sync_profiles") or [])[:6]],
+        "actions": [dict(item) for item in list(overview.get("actions") or [])],
+        "urgent_deadlines": [_serialize_deadline(item) for item in list(overview.get("urgent_deadlines") or [])],
+        "upcoming_deadlines": [_serialize_deadline(item) for item in list(overview.get("upcoming_deadlines") or [])],
+        "upcoming_appointments": [_serialize_appointment(item) for item in list(overview.get("upcoming_appointments") or [])],
+        "fascicoli_hot": [_serialize_hot_case(item) for item in list(overview.get("fascicoli_hot") or [])],
+        "sync_profiles": [dict(item) for item in list(overview.get("sync_profiles") or [])],
         "domains": {
             "clienti": {"total": len(clienti)},
             "soggetti": {"total": len(soggetti)},
@@ -327,9 +327,9 @@ def load_fascicolo_intelligence_context(*, pratica_id: str = "", fascicolo_id: s
         "next_actions": [str(item).strip() for item in list(quadro.get("next_actions") or []) if str(item).strip()][:4],
         "scadenze": [_serialize_deadline(item) for item in list(quadro.get("scadenze") or [])[:4]],
         "scadenze_scadute": [_serialize_deadline(item) for item in list(quadro.get("scadenze_scadute") or [])[:4]],
-        "appuntamenti": [_serialize_appointment(item) for item in list(quadro.get("appuntamenti") or [])[:4]],
-        "giurisprudenza": [_serialize_giurisprudenza(item) for item in list(quadro.get("giurisprudenza") or [])[:5]],
-        "provvedimenti": [dict(item) for item in list(quadro.get("provvedimenti") or [])[:5]],
+        "appuntamenti": [_serialize_appointment(item) for item in list(quadro.get("appuntamenti") or [])],
+        "giurisprudenza": [_serialize_giurisprudenza(item) for item in list(quadro.get("giurisprudenza") or [])],
+        "provvedimenti": [dict(item) for item in list(quadro.get("provvedimenti") or [])],
         "presidio": presidio,
         "office_sources": list(quadro.get("office_sources") or []),
     }
@@ -452,9 +452,9 @@ def load_economic_context(
             "totale_incassato": totale_incassato,
             "saldo_aperto": round(max(totale_fatturato - totale_incassato, 0.0), 2),
         },
-        "preventivi": [_serialize_preventivo(item) for item in preventivi[:6]],
-        "conferimenti": [_serialize_conferimento(item) for item in conferimenti[:6]],
-        "parcelle": [_serialize_parcella(item) for item in parcelle[:6]],
+        "preventivi": [_serialize_preventivo(item) for item in preventivi],
+        "conferimenti": [_serialize_conferimento(item) for item in conferimenti],
+        "parcelle": [_serialize_parcella(item) for item in parcelle],
         "best_preventivo": dict(best_runtime.get("best_preventivo") or {}),
         "best_practice": dict(best_practice.get("best_practice") or {}),
     }

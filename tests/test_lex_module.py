@@ -5,7 +5,10 @@ from lex.contracts import LexRequest
 from lex.context.builder import LexContextBuilder
 from lex.context.document_context import load_document_context
 from lex.providers.deterministic_provider import DeterministicProvider
+from lex.retrieval.orchestrator import RetrievalOrchestrator
 from lex.retrieval.sources.compliance import ComplianceSource
+from lex.retrieval.sources.agenda import AgendaSource
+from lex.retrieval.sources.scadenziario import ScadenziarioSource
 from lex.context.studio_context import build_lex_studio_context
 from lex.memory.conversation_state import (
     messages_with_effective_question,
@@ -525,9 +528,73 @@ def test_lex_retrieval_fascicolo_esporta_sommari_sezioni_e_tutti_i_documenti(tmp
         )
 
     section_titles = {row.title for row in fascicolo_sources}
-    assert len(document_evidence) == 2
+    assert len([row for row in document_evidence if row.source_type == "documento"]) == 2
+    assert any(row.source_type == "documento_manifesto" for row in document_evidence)
     assert "Comunicazioni di cancelleria" in section_titles
     assert "Istanze" in section_titles
+
+
+def test_lex_retrieval_fascicolo_non_taglia_sezioni_estese():
+    context = {
+        "fascicolo_sezioni": {
+            "counts": {
+                "documenti": 12,
+                "attivita": 7,
+                "udienze_scadenze": 6,
+                "comunicazioni": 5,
+                "istanze": 4,
+            },
+            "documenti_fascicolo": [
+                {"id": f"DOC-{idx}", "nome": f"Documento {idx}", "tipo": "ALLEGATO", "data_documento": f"2026-04-{idx:02d}"}
+                for idx in range(1, 13)
+            ],
+            "attivita_processuali": [
+                {"id": f"ATT-{idx}", "titolo": f"Attivita processuale {idx}", "data": f"2026-03-{idx:02d}"}
+                for idx in range(1, 8)
+            ],
+            "udienze_scadenze": [
+                {"id": f"UD-{idx}", "titolo": f"Udienza o scadenza {idx}", "data_ora": f"2026-05-{idx:02d}T10:00:00"}
+                for idx in range(1, 7)
+            ],
+            "comunicazioni_cancelleria": [
+                {"id": f"COM-{idx}", "titolo": f"Comunicazione cancelleria {idx}", "data": f"2026-02-{idx:02d}"}
+                for idx in range(1, 6)
+            ],
+            "istanze": [
+                {"id": f"IST-{idx}", "titolo": f"Istanza {idx}", "data": f"2026-01-{idx:02d}"}
+                for idx in range(1, 5)
+            ],
+        }
+    }
+
+    sources = search_fascicolo_sources("FASC-ESTESO", "fammi il quadro completo del fascicolo", context)
+
+    document_items = [row for row in sources if row.source_type == "fascicolo_documenti_fascicolo"]
+    assert len(document_items) == 12
+    assert any(row.title == "Documento 12" for row in document_items)
+    summary = next(row for row in sources if row.source_type == "sezione_fascicolo" and row.metadata["section"] == "documenti_fascicolo")
+    assert "Documento 12" in summary.excerpt
+
+
+def test_lex_sources_agenda_scadenziario_non_tagliano_a_tre():
+    agenda_rows = [{"titolo": f"Udienza {idx}", "descrizione": "Discussione"} for idx in range(1, 7)]
+    scadenze_rows = [{"titolo": f"Scadenza {idx}", "descrizione": "Deposito"} for idx in range(1, 7)]
+
+    agenda_sources = AgendaSource().search([], None, {"agenda": agenda_rows})
+    scadenze_sources = ScadenziarioSource().search([], None, {"scadenziario": scadenze_rows})
+
+    assert len(agenda_sources) == 6
+    assert len(scadenze_sources) == 6
+    assert agenda_sources[-1].title == "Udienza 6"
+    assert scadenze_sources[-1].title == "Scadenza 6"
+
+
+def test_lex_orchestrator_usa_budget_esteso_per_fascicoli():
+    orchestrator = RetrievalOrchestrator()
+
+    assert orchestrator._selection_limit("fascicolo") == 48
+    assert orchestrator._selection_limit("documento") == 48
+    assert orchestrator._selection_limit("general") == 12
 
 
 def test_lex_studio_context_espone_dashboard_motori_legali(tmp_path: Path):

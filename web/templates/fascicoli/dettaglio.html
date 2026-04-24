@@ -5084,6 +5084,7 @@ window._PST_PRESERVE_TREE = {{ 'true' if preserve_pst_tree else 'false' }};
       body: JSON.stringify({
         note_importazione: noteImportazione(noteDefault),
         mantieni_albero_originale: !!(options && options.preserveOriginalTree),
+        scarica_originale_portale: false,
         files: files || []
       })
     });
@@ -5120,6 +5121,7 @@ window._PST_PRESERVE_TREE = {{ 'true' if preserve_pst_tree else 'false' }};
         numero_rg: _PST_FASCICOLO_CONTEXT.numero_rg,
         anno_rg: _PST_FASCICOLO_CONTEXT.anno_rg,
         preflight_auth: true,
+        original: false,
         documents: (items || []).map(function (item) {
           return {
             id_documento: item.id_documento_portale || item.id_documento || '',

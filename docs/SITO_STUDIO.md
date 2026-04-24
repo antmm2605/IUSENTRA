@@ -10,6 +10,7 @@ Il modulo nasce per essere:
 - governabile da UI
 - pubblicabile solo quando lo studio lo decide
 - coerente con agenda, update intelligence, strumenti legali e applicazioni gia' presenti nel gestionale
+- pronto per il supporto Lex Gateway: i contenuti del sito possono essere preparati con prompt e policy locali, senza inviare dati sensibili dello studio a provider esterni non autorizzati
 
 ## Superfici ufficiali
 

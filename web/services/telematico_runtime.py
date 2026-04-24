@@ -1121,7 +1121,7 @@ def build_telematico_runtime(
             return str(value or "").strip().lower() in {"1", "true", "yes", "si", "s", "on"}
 
         portale_key = str(portale or data.get("portale") or "").strip().lower()
-        default_originale_portale = False if portale_key == "pst" else True
+        default_originale_portale = _default_scarica_originale_portale(portale_key)
 
         return {
             "importa_dati_pratica": _b("importa_dati_pratica", True),
@@ -1143,6 +1143,17 @@ def build_telematico_runtime(
             "scarica_originale_portale": _b("scarica_originale_portale", default_originale_portale),
             "mantieni_albero_originale": _b("mantieni_albero_originale", False),
         }
+
+    def _default_scarica_originale_portale(portale: str = "") -> bool:
+        return str(portale or "").strip().lower() != "pst"
+
+    def _scarica_originale_portale_enabled(options: dict[str, Any], portale: str = "") -> bool:
+        return bool(
+            dict(options or {}).get(
+                "scarica_originale_portale",
+                _default_scarica_originale_portale(portale),
+            )
+        )
 
     def _coerce_mapping(data: dict[str, Any]) -> dict[str, str]:
         return {
@@ -1705,6 +1716,8 @@ def build_telematico_runtime(
         downloaded_files: list[dict[str, Any]] | None = None,
     ) -> dict[str, Any]:
         user_name = getattr(getattr(g, "utente_corrente", None), "username", "") or ""
+        options = _coerce_import_options(dict(options or {}), portale=portale)
+        scarica_originale_portale = _scarica_originale_portale_enabled(options, portale)
         selection_dc = _selection_to_fascicolo_dataclass(portale, selection)
         analysis = _analyze_portale_import(portale, selection, preview, options, mapping)
         if analysis["blockers"]:
@@ -1728,7 +1741,7 @@ def build_telematico_runtime(
             decoded_items = _filter_portale_items_by_preview_selection(decoded_items, selected_preview_docs)
             decoded_items = _apply_portale_download_mode_to_items(
                 decoded_items,
-                original=bool(options.get("scarica_originale_portale", True)),
+                original=scarica_originale_portale,
             )
             if not decoded_items:
                 raise ValueError("Il lotto scaricato dal portale non contiene file importabili.")
@@ -1871,7 +1884,7 @@ def build_telematico_runtime(
                     decoded_items = _filter_portale_items_by_preview_selection(decoded_items, selected_preview_docs)
                     decoded_items = _apply_portale_download_mode_to_items(
                         decoded_items,
-                        original=bool(options.get("scarica_originale_portale", True)),
+                        original=scarica_originale_portale,
                     )
                 if not decoded_items:
                     raise ValueError("Il lotto scaricato dal portale non contiene file importabili.")
@@ -1956,7 +1969,7 @@ def build_telematico_runtime(
                 "eventi_generati": udienza_result["attivita"],
                 "conflitti_risolti": len(analysis["warnings"]),
                 "lotto_generico": str(import_result.get("lotto_generico") or ""),
-                "modalita_documento_portale": "originale" if options.get("scarica_originale_portale", True) else "copia",
+                "modalita_documento_portale": "originale" if scarica_originale_portale else "copia",
                 "albero_originale_salvato": bool(albero_originale_salvato),
             },
         }

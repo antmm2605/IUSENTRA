@@ -1889,7 +1889,34 @@ class LocalAIService:
                 )
         return results
 
-    def embed_pending_chunks(self, *, limit: int = 100) -> dict[str, Any]:
+    def _pending_chunks_count(
+        self,
+        conn: sqlite3.Connection,
+        *,
+        practice_id: str | None = None,
+        document_id: str | None = None,
+    ) -> int:
+        conditions = ["embedding_state = 'pending'"]
+        params: list[Any] = []
+        if practice_id:
+            conditions.append("practice_id = ?")
+            params.append(practice_id)
+        if document_id:
+            conditions.append("document_id = ?")
+            params.append(document_id)
+        row = conn.execute(
+            f"SELECT COUNT(*) AS total FROM rag_chunks WHERE {' AND '.join(conditions)}",
+            params,
+        ).fetchone()
+        return int(row["total"] or 0) if row else 0
+
+    def embed_pending_chunks(
+        self,
+        *,
+        limit: int = 100,
+        practice_id: str | None = None,
+        document_id: str | None = None,
+    ) -> dict[str, Any]:
         bootstrap = self.bootstrap_runtime()
         if bootstrap.get("status") != "ready":
             return {"status": bootstrap.get("status"), "embedded": 0, "error": bootstrap.get("error")}
@@ -1899,32 +1926,40 @@ class LocalAIService:
         settings = self._load_settings()
         client = self._ollama_client(settings)
         with self._connect() as conn:
+            conditions = ["embedding_state = 'pending'"]
+            params: list[Any] = []
+            if practice_id:
+                conditions.append("practice_id = ?")
+                params.append(practice_id)
+            if document_id:
+                conditions.append("document_id = ?")
+                params.append(document_id)
+            params.append(limit)
             rows = [
                 dict(row)
                 for row in conn.execute(
-                    """
-                    SELECT id, text
+                    f"""
+                    SELECT id, document_id, text
                     FROM rag_chunks
-                    WHERE embedding_state = 'pending'
+                    WHERE {' AND '.join(conditions)}
                     ORDER BY created_at ASC
                     LIMIT ?
                     """,
-                    (limit,),
+                    params,
                 ).fetchall()
             ]
             if not rows:
-                return {"status": "ready", "embedded": 0, "vector_dimensions": None}
+                return {
+                    "status": "ready",
+                    "embedded": 0,
+                    "vector_dimensions": None,
+                    "pending_remaining": 0,
+                }
             embed_result = client.embed_texts(str(embed_model), [str(row["text"] or "") for row in rows])
             vectors = embed_result.get("embeddings") or []
             if len(vectors) != len(rows):
                 raise ValueError("Numero embeddings diverso dai chunk in pending")
             touched_documents: set[str] = set()
-            id_to_document: dict[str, str] = {}
-            for row in conn.execute(
-                "SELECT id, document_id FROM rag_chunks WHERE id IN ({})".format(",".join("?" for _ in rows)),
-                tuple(item["id"] for item in rows),
-            ).fetchall():
-                id_to_document[str(row["id"])] = str(row["document_id"])
             for idx, row in enumerate(rows):
                 vector = vectors[idx]
                 conn.execute(
@@ -1935,30 +1970,82 @@ class LocalAIService:
                     """,
                     (json.dumps(vector), len(vector), _now_iso(), row["id"]),
                 )
-                if id_to_document.get(str(row["id"])):
-                    touched_documents.add(id_to_document[str(row["id"])])
-            for document_id in touched_documents:
+                if row.get("document_id"):
+                    touched_documents.add(str(row["document_id"]))
+            for touched_document_id in touched_documents:
                 count_row = conn.execute(
                     "SELECT COUNT(*) AS total FROM rag_chunks WHERE document_id = ?",
-                    (document_id,),
+                    (touched_document_id,),
                 ).fetchone()
                 conn.execute(
                     "UPDATE rag_documents SET chunk_count = ?, last_indexed_at = ?, updated_at = ? WHERE id = ?",
-                    (int(count_row["total"] or 0), _now_iso(), _now_iso(), document_id),
+                    (int(count_row["total"] or 0), _now_iso(), _now_iso(), touched_document_id),
                 )
             conn.commit()
             return {
                 "status": "ready",
                 "embedded": len(rows),
                 "vector_dimensions": len(vectors[0]) if vectors else None,
+                "pending_remaining": self._pending_chunks_count(
+                    conn,
+                    practice_id=practice_id,
+                    document_id=document_id,
+                ),
                 "load_duration_ms": embed_result.get("load_duration"),
                 "prompt_eval_count": embed_result.get("prompt_eval_count"),
                 "eval_count": embed_result.get("eval_count"),
             }
 
+    def embed_all_pending_chunks(
+        self,
+        *,
+        practice_id: str | None = None,
+        document_id: str | None = None,
+        batch_size: int = 200,
+        max_batches: int = 1000,
+    ) -> dict[str, Any]:
+        total_embedded = 0
+        batches = 0
+        vector_dimensions = None
+        last_payload: dict[str, Any] = {"status": "ready", "embedded": 0}
+        for _ in range(max_batches):
+            payload = self.embed_pending_chunks(
+                limit=batch_size,
+                practice_id=practice_id,
+                document_id=document_id,
+            )
+            last_payload = dict(payload)
+            status = str(payload.get("status") or "")
+            if status != "ready":
+                return {
+                    **last_payload,
+                    "embedded_total": total_embedded,
+                    "batches": batches,
+                }
+            embedded = int(payload.get("embedded") or 0)
+            if embedded <= 0:
+                break
+            total_embedded += embedded
+            batches += 1
+            vector_dimensions = payload.get("vector_dimensions") or vector_dimensions
+            if int(payload.get("pending_remaining") or 0) <= 0:
+                break
+        return {
+            "status": "ready",
+            "embedded": total_embedded,
+            "embedded_total": total_embedded,
+            "batches": batches,
+            "vector_dimensions": vector_dimensions,
+            "pending_remaining": int(last_payload.get("pending_remaining") or 0),
+        }
+
     def reindex_fascicolo(self, fascicolo: Any, documents_dir: str, *, force: bool = False) -> dict[str, Any]:
         doc_result = self.index_fascicolo_documents(fascicolo, documents_dir, force=force)
-        embed_result = self.embed_pending_chunks(limit=200)
+        embed_result = self.embed_all_pending_chunks(
+            practice_id=str(getattr(fascicolo, "id", "")) or None,
+            batch_size=200,
+            max_batches=1000,
+        )
         return {
             "documents": doc_result,
             "embeddings": embed_result,
@@ -2159,9 +2246,13 @@ class LocalAIService:
             conn.commit()
             return self._cache_set(self._retrieval_cache, cache_key, ordered)
 
+    def _fascicolo_rag_top_k(self, fascicolo: Any) -> int:
+        document_count = len(list(getattr(fascicolo, "documenti", []) or []))
+        return max(24, min(160, max(document_count, 1) * 4))
+
     def _summarize_scadenze(self, scadenze: Iterable[Any]) -> list[str]:
         rows: list[str] = []
-        for item in list(scadenze or [])[:8]:
+        for item in list(scadenze or []):
             titolo = _clean_spaces(getattr(item, "titolo", "") or getattr(item, "descrizione", ""))
             data = getattr(item, "data_scadenza", "") or getattr(item, "data", "")
             stato = getattr(item, "stato", "")
@@ -2170,7 +2261,7 @@ class LocalAIService:
 
     def _summarize_apps(self, apps: Iterable[Any]) -> list[str]:
         rows: list[str] = []
-        for item in list(apps or [])[:8]:
+        for item in list(apps or []):
             titolo = _clean_spaces(getattr(item, "titolo", "") or getattr(item, "descrizione", ""))
             data = getattr(item, "data_ora", "") or getattr(item, "data", "")
             luogo = _clean_spaces(getattr(item, "luogo", ""))
@@ -2179,6 +2270,86 @@ class LocalAIService:
                 label += f" · {luogo}"
             rows.append(label)
         return rows
+
+    def _summarize_documenti(self, fascicolo: Any) -> list[str]:
+        rows: list[str] = []
+        for index, doc in enumerate(list(getattr(fascicolo, "documenti", []) or []), start=1):
+            nome = _clean_spaces(getattr(doc, "nome", "") or getattr(doc, "titolo", "")) or "Documento"
+            tipo = getattr(getattr(doc, "tipo", ""), "value", getattr(doc, "tipo", ""))
+            data = _clean_spaces(getattr(doc, "data_documento", "") or getattr(doc, "data_caricamento", ""))
+            deposito = _clean_spaces(getattr(doc, "id_deposito_pct", ""))
+            bits = [f"- {index}. {nome}", f"tipo {tipo or 'n.d.'}"]
+            if data:
+                bits.append(f"data {data}")
+            if deposito:
+                bits.append(f"deposito {deposito}")
+            rows.append(" · ".join(bits))
+        return rows
+
+    def _workspace_row_label(self, item: Any) -> str:
+        if isinstance(item, dict):
+            fields = [
+                item.get("titolo"),
+                item.get("title"),
+                item.get("nome"),
+                item.get("tipo_atto"),
+                item.get("tipo"),
+                item.get("descrizione"),
+                item.get("note"),
+                item.get("data"),
+                item.get("data_ora"),
+                item.get("timestamp"),
+            ]
+        else:
+            tipo = getattr(getattr(item, "tipo", ""), "value", getattr(item, "tipo", ""))
+            fields = [
+                getattr(item, "titolo", ""),
+                getattr(item, "nome", ""),
+                getattr(item, "tipo_atto", ""),
+                tipo,
+                getattr(item, "descrizione", ""),
+                getattr(item, "note", ""),
+                getattr(item, "data", ""),
+                getattr(item, "data_ora", ""),
+                getattr(item, "timestamp", ""),
+            ]
+        return " · ".join(_unique_strings(fields))
+
+    def _workspace_section_lines(self, label: str, rows: Iterable[Any]) -> list[str]:
+        items = list(rows or [])
+        if not items:
+            return []
+        lines = [f"{label} ({len(items)}):"]
+        for index, item in enumerate(items, start=1):
+            summary = self._workspace_row_label(item)
+            if summary:
+                lines.append(f"- {index}. {summary}")
+        return lines
+
+    def _workspace_inventory_lines(self, workspace: dict[str, Any] | None) -> list[str]:
+        if not workspace:
+            return []
+        lines: list[str] = []
+        counts = dict(workspace.get("counts") or {})
+        if counts:
+            lines.append(
+                "Conteggi sezioni fascicolo: "
+                + ", ".join(f"{key}={value}" for key, value in counts.items())
+            )
+        section_map = [
+            ("Attivita processuali", workspace.get("attivita_processuali") or []),
+            ("Udienze da attivita", workspace.get("udienze_attivita") or []),
+            ("Provvedimenti/udienze da depositi", workspace.get("udienze_depositi") or []),
+            ("Scadenze fascicolo", workspace.get("scadenze") or []),
+            ("Appuntamenti/udienze agenda", workspace.get("appuntamenti") or []),
+            ("Comunicazioni cancelleria da attivita", workspace.get("comunicazioni_attivita") or []),
+            ("Comunicazioni cancelleria da depositi", workspace.get("comunicazioni_depositi") or []),
+            ("Istanze da documenti", workspace.get("istanze_documenti") or []),
+            ("Istanze da depositi", workspace.get("istanze_depositi") or []),
+        ]
+        for label, rows in section_map:
+            lines.extend(self._workspace_section_lines(label, rows))
+        return lines
 
     def _structured_response_requirements(self) -> list[str]:
         return [
@@ -2210,17 +2381,19 @@ class LocalAIService:
         if cached is not None:
             return cached
         documenti = list(getattr(fascicolo, "documenti", []) or [])
+        scadenze_rows = list(scadenze or [])
+        apps_rows = list(apps or [])
         risks: list[str] = []
         missing: list[str] = []
         if not documenti:
             missing.append("Mancano documenti indicizzati o allegati leggibili nel fascicolo.")
-        if not list(scadenze or []):
+        if not scadenze_rows:
             missing.append("Non risultano scadenze presidiate nel fascicolo.")
-        if not list(apps or []):
+        if not apps_rows:
             missing.append("Non risultano appuntamenti o udienze collegati.")
         if not list((intelligenza or {}).get("giurisprudenza") or []):
             risks.append("Manca ancora una giurisprudenza mirata da collegare alla strategia difensiva.")
-        for item in list(scadenze or [])[:3]:
+        for item in scadenze_rows:
             titolo = _clean_spaces(getattr(item, "titolo", ""))
             giorni = getattr(item, "giorni_alla_scadenza", None)
             if giorni is not None and giorni <= 3:
@@ -2229,7 +2402,7 @@ class LocalAIService:
             "generated_at": _now_iso(),
             "documenti_chiave": [
                 _clean_spaces(getattr(doc, "nome", "") or getattr(doc, "titolo", ""))
-                for doc in documenti[:4]
+                for doc in documenti
                 if _clean_spaces(getattr(doc, "nome", "") or getattr(doc, "titolo", ""))
             ],
             "rischi_aperti": _unique_strings(risks),
@@ -2238,7 +2411,7 @@ class LocalAIService:
                 list((intelligenza or {}).get("next_actions") or [])
                 + list((workspace or {}).get("prossime_azioni") or [])
                 + list((workspace or {}).get("azioni") or [])
-            )[:4],
+            ),
         }
         return self._cache_set(self._snapshot_cache, snapshot_key, snapshot)
 
@@ -2307,20 +2480,28 @@ class LocalAIService:
             f"Stato: {getattr(getattr(fascicolo, 'stato', ''), 'value', getattr(fascicolo, 'stato', ''))}",
             f"Tipo: {getattr(getattr(fascicolo, 'tipo', ''), 'value', getattr(fascicolo, 'tipo', ''))}",
         ]
+        document_lines = self._summarize_documenti(fascicolo)
+        if document_lines:
+            fascicolo_lines.append(f"Inventario documenti fascicolo ({len(document_lines)}):")
+            fascicolo_lines.extend(document_lines)
         if workspace:
             prossime = workspace.get("prossime_azioni") or workspace.get("azioni") or []
             if prossime:
                 fascicolo_lines.append("Azioni operative:")
-                fascicolo_lines.extend(f"- {str(item)}" for item in prossime[:6])
+                fascicolo_lines.extend(f"- {str(item)}" for item in prossime)
+            workspace_inventory = self._workspace_inventory_lines(workspace)
+            if workspace_inventory:
+                fascicolo_lines.append("Inventario sezioni del fascicolo:")
+                fascicolo_lines.extend(workspace_inventory)
         if intelligenza:
             evidenze = intelligenza.get("evidenze") or intelligenza.get("alert") or []
             if evidenze:
                 fascicolo_lines.append("Alert intelligenti:")
-                fascicolo_lines.extend(f"- {str(item)}" for item in evidenze[:6])
+                fascicolo_lines.extend(f"- {str(item)}" for item in evidenze)
             giuri = intelligenza.get("giurisprudenza_suggerita") or intelligenza.get("giurisprudenza") or []
             if giuri:
                 fascicolo_lines.append("Giurisprudenza suggerita:")
-                for row in giuri[:5]:
+                for row in giuri:
                     fascicolo_lines.append(
                         f"- {row.get('autorita') or row.get('authority') or 'Giurisprudenza'} · "
                         f"{row.get('numero') or row.get('decision_number') or ''} · "
@@ -2388,8 +2569,15 @@ class LocalAIService:
         settings = self._load_settings()
         should_index = settings.auto_index_documents if auto_index is None else bool(auto_index)
         indexing = None
+        embedding = None
+        practice_id = str(getattr(fascicolo, "id", ""))
         if should_index:
             indexing = self.index_fascicolo_documents(fascicolo, documents_dir)
+            embedding = self.embed_all_pending_chunks(
+                practice_id=practice_id or None,
+                batch_size=200,
+                max_batches=1000,
+            )
         snapshot = self._fascicolo_snapshot(
             fascicolo=fascicolo,
             workspace=workspace,
@@ -2397,7 +2585,11 @@ class LocalAIService:
             apps=apps or [],
             scadenze=scadenze or [],
         )
-        rag_rows = self.hybrid_search(question, practice_id=str(getattr(fascicolo, "id", "")), top_k=8)
+        rag_rows = self.hybrid_search(
+            question,
+            practice_id=practice_id,
+            top_k=self._fascicolo_rag_top_k(fascicolo),
+        )
         prompt = self._prompt_for_fascicolo(
             fascicolo=fascicolo,
             question=question,
@@ -2416,6 +2608,7 @@ class LocalAIService:
             "sources": rag_rows,
             "citations": [row.get("citation") for row in rag_rows if row.get("citation")],
             "indexing": indexing,
+            "embedding": embedding,
             "snapshot": snapshot,
         }
 
@@ -2480,7 +2673,7 @@ class LocalAIService:
         question: str,
         overview: dict[str, Any],
     ) -> dict[str, Any]:
-        rag_rows = self.hybrid_search(question, top_k=8)
+        rag_rows = self.hybrid_search(question, top_k=24)
         snapshot = self._workspace_snapshot(overview)
         prompt = self._prompt_for_workspace(
             question=question,
@@ -2540,6 +2733,7 @@ class LocalAIService:
             "citations": prepared.get("citations") or [],
             "runtime": runtime,
             "indexing": prepared.get("indexing"),
+            "embedding": prepared.get("embedding"),
         }
 
     def ask_fascicolo(
@@ -2575,7 +2769,12 @@ class LocalAIService:
             intelligenza=intelligenza,
             auto_index=auto_index,
         )
-        self.embed_pending_chunks(limit=200)
+        if not prepared.get("embedding"):
+            self.embed_all_pending_chunks(
+                practice_id=str(getattr(fascicolo, "id", "")) or None,
+                batch_size=200,
+                max_batches=1000,
+            )
         return self._complete_prepared_query(prepared=prepared, runtime=bootstrap, keep_alive=settings.keep_alive)
 
     def ask_workspace(
@@ -2606,14 +2805,14 @@ class LocalAIService:
         error_total = 0
         if fascicoli_gestore and documents_dir and self._load_settings().auto_index_documents:
             try:
-                fascicoli = list(fascicoli_gestore.tutti())[:10]
+                fascicoli = list(fascicoli_gestore.tutti())
                 for fascicolo in fascicoli:
-                    outcome = self.index_fascicolo_documents(fascicolo, documents_dir, limit=12)
+                    outcome = self.index_fascicolo_documents(fascicolo, documents_dir)
                     indexed_total += int(outcome.get("indexed") or 0)
                     error_total += len(outcome.get("errors") or [])
             except Exception as exc:
                 return {"status": "error", "error": str(exc)}
-        embeddings = self.embed_pending_chunks(limit=250)
+        embeddings = self.embed_all_pending_chunks(batch_size=250, max_batches=1000)
         return {
             "status": "ready",
             "indexed": indexed_total,

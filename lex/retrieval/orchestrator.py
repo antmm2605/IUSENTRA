@@ -109,6 +109,13 @@ class RetrievalOrchestrator:
             return strong_count >= 2
         return strong_count >= 1
 
+    def _selection_limit(self, workflow: str) -> int:
+        if workflow in {"fascicolo", "udienza", "documento", "telematico_status", "compliance"}:
+            return 48
+        if workflow in {"cabina", "next_action"}:
+            return 24
+        return 12
+
     def collect(self, request, context, workflow: str):
         cache_disabled = bool((getattr(request, "metadata", {}) or {}).get("disable_retrieval_cache"))
         cache_key = self.retrieval_cache.build_key(request, context, workflow)
@@ -170,7 +177,7 @@ class RetrievalOrchestrator:
         results = deduplicate_evidence(results)
         results = rank_evidence(results, request, workflow)
 
-        selected = results[:12]
+        selected = results[: self._selection_limit(workflow)]
         citations = build_citations(selected)
         evidence_pack_obj = self.research_service.build_evidence_pack(
             request,

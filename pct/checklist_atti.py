@@ -1553,7 +1553,7 @@ def _normalizza_template_curato(template: TemplateAtto) -> TemplateAtto:
 
 def _mappa_canale_template(canale_template: str) -> str:
     raw = (canale_template or "").strip().upper()
-    if raw == "PCT":
+    if raw in {"PCT", "PST", "PST_GDP", "PST_CONCORSUALE"}:
         return "PCT_TELEMATICO"
     if raw == "PDP":
         return "PDP_PENALE"

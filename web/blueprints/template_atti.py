@@ -446,6 +446,7 @@ def scheda(id_template: str):
 def catalogo():
     from pct.compilatore_atti import MODELS, AREA_LABELS, AREA_ORDINE, get_essential_docs
     from pct.motore_preventivo import catalogo_wizard
+    from pct.template_atti_master_catalog import catalogo_master_stats, load_split_catalogs
 
     # Raggruppa i modelli del compilatore per area con metadati
     area_groups: list[dict] = []
@@ -494,11 +495,30 @@ def catalogo():
                     "modelli_atti": modelli_atti,
                 })
 
+    split_catalogs = load_split_catalogs()
+    group_labels = {
+        "core": "Core processuale e civile",
+        "advanced": "Studio generalista evoluto",
+        "specialist": "Riti e portali specialistici",
+        "studio_interno": "Atti interni di studio",
+    }
+    master_catalog_groups = [
+        {
+            "key": key,
+            "label": group_labels.get(key, key.replace("_", " ").title()),
+            "count": int(payload.get("totale_template") or 0),
+            "templates": list(payload.get("template") or []),
+        }
+        for key, payload in split_catalogs.items()
+    ]
+
     return render_template(
         "template_atti/catalogo.html",
         area_groups=area_groups,
         catalogo_flat=catalogo_flat,
         wizard_tipologie=wizard_tipologie,
+        master_catalog_stats=catalogo_master_stats(),
+        master_catalog_groups=master_catalog_groups,
         oggi=date.today(),
     )
 

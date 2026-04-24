@@ -91,9 +91,16 @@ def _describe_section_row(row: dict[str, Any]) -> str:
 def _section_line(label: str, rows: list[dict[str, Any]], count: int) -> str:
     if count <= 0:
         return ""
-    preview = _describe_section_row(rows[0]) if rows else ""
-    if preview:
-        return f"{label}: {count} voci; ultima o prossima rilevante {preview}."
+    previews = [
+        _describe_section_row(row)
+        for row in rows[:5]
+        if _describe_section_row(row)
+    ]
+    if previews:
+        suffix = ""
+        if count > len(previews):
+            suffix = f" + {count - len(previews)} altre voci censite"
+        return f"{label}: {count} voci; campione controllato: {'; '.join(previews)}{suffix}."
     return f"{label}: {count} voci."
 
 

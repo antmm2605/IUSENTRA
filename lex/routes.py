@@ -34,6 +34,11 @@ def register_routes(
         return payload, status
 
     @guard
+    def assistente_gateway_stato():
+        payload, status = service.gateway_status()
+        return payload, status
+
+    @guard
     def assistente_context():
         payload, status = service.context(
             user=g.get("utente_corrente"),
@@ -71,6 +76,7 @@ def register_routes(
 
     bp.add_url_rule("/lex", view_func=lex_chat_page, methods=["GET"])
     bp.add_url_rule("/api/assistente/stato", view_func=assistente_stato, methods=["GET"])
+    bp.add_url_rule("/api/assistente/gateway/stato", view_func=assistente_gateway_stato, methods=["GET"])
     bp.add_url_rule("/api/assistente/context", view_func=assistente_context, methods=["POST"])
     bp.add_url_rule("/api/assistente/warmup", view_func=assistente_warmup, methods=["POST"])
     bp.add_url_rule("/api/assistente/attachments", view_func=assistente_attachments, methods=["POST"])

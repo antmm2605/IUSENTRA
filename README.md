@@ -16,7 +16,7 @@ La repo oggi non è più solo un tool CLI per il Processo Civile Telematico: con
 - Fatturazione, pagamenti, saldo cliente e KPI economici per studio, cliente e fascicolo.
 - Fascicolo con `cabina operativa` a tab: quadro intelligente, workflow `fascicolo -> incasso`, controllo economico, governo documentale e conformita' deposito nella stessa vista.
 - Il `Quadro intelligente fascicolo` non usa piu' avanzamenti statici: valuta davvero documenti, classificazioni portale, scadenze rispetto a oggi, provvedimenti presenti e coerenza dello stato, mentre la PEC/auto-esiti associa i messaggi usando `RG + nominativo cliente/controparte + tribunale`.
-- Template atti, Checklist Atti professionale e workspace legali allineati sullo stesso catalogo operativo per aree, branche e sottobranche.
+- Template atti, Checklist Atti professionale e workspace legali allineati sullo stesso catalogo operativo per aree, branche e sottobranche, con catalogo master versionato da 420 template e split `core`, `advanced`, `specialist`, `studio_interno`.
 - `Applicazioni` e' ora una cabina applicativa vera: moduli economici, telematici, template, lookup, utility e rassegna si aprono nello stesso workspace coerente invece di limitarsi a rinviare a link esterni o schede descrittive.
 - Giurisprudenza, legal intelligence, repository strutturati per Lex.
 - Motore `Update Intelligence` per monitoraggio normativo, giurisprudenziale e di prassi con area di acquisizione, coda revisioni e pagina news giuridiche strutturate.
@@ -28,6 +28,7 @@ La repo oggi non è più solo un tool CLI per il Processo Civile Telematico: con
 - Workspace/applicazioni, portali di acquisizione, privacy e audit.
 - Registro audit storico spiegabile: se un fascicolo e' stato migrato, ricreato o rimosso, la UI segnala se l'evento e' attivo, riconciliato verso il fascicolo corrente oppure solo storico.
 - Runtime AI locale con Lex come strato linguistico sopra motori deterministici.
+- Lex espone anche un gateway provider local-first con privacy guard: i dati sensibili restano sui runtime locali e gli esterni sono utilizzabili solo con policy esplicita.
 - Lex usa ora fast-path deterministici per i casi operativi, fallback automatico a fonti ufficiali quando il retrieval interno non basta, cache TTL tenant-aware sul retrieval e guardrail che degradano o bloccano le risposte legali senza riferimenti verificati, esponendo sempre `official_sources`, `coverage_gaps`, `fallback_triggered`, `retrieval_cache` e confronto fonti nella risposta finale.
 - Il catalogo fonti di Lex distingue ora anche `fonte aperta`, `fonte con registrazione`, `fonte partner`, `fonte riservata` e `portale istituzionale`, cosi' le risposte spiegano quando il fallback web pubblico basta davvero e quando invece servono credenziali, convenzioni o accessi dedicati dello studio.
 - Il widget chat di Lex non lascia piu' le richieste operative a prompt generici: `preventivo`, `tariffario`, `fatturazione`, `telematico`, `fascicolo` e `ricerca legale` passano dal bounded workflow anche dalla UI, con contesto studio completo e fallback web ufficiale quando il contesto interno non basta.
@@ -62,8 +63,10 @@ Per una mappa più completa vedi [docs/ARCHITETTURA.md](docs/ARCHITETTURA.md).
 Per il workspace applicazioni vedi anche [docs/APPLICAZIONI_WORKSPACE.md](docs/APPLICAZIONI_WORKSPACE.md).
 Per la separazione ferrea tra `Product Pack`, `Studio Local Pack` e `Update Pack` vedi [docs/PACK_ARCHITECTURE.md](docs/PACK_ARCHITECTURE.md).
 Per hardening, observability e source policy vedi anche [docs/OBSERVABILITY_AUDIT_PRODUCT.md](docs/OBSERVABILITY_AUDIT_PRODUCT.md) e [docs/LEX_SOURCE_POLICY_SYSTEM.md](docs/LEX_SOURCE_POLICY_SYSTEM.md).
+Per il gateway provider di Lex vedi [docs/LEX_GATEWAY.md](docs/LEX_GATEWAY.md).
 Per l'assistenza remota cliente vedi [docs/ASSISTENZA_REMOTA.md](docs/ASSISTENZA_REMOTA.md).
 Per il modulo `Sito Studio` vedi [docs/SITO_STUDIO.md](docs/SITO_STUDIO.md).
+Per il catalogo master dei template atti vedi [docs/TEMPLATE_ATTI_CATALOGO_MASTER.md](docs/TEMPLATE_ATTI_CATALOGO_MASTER.md).
 
 ## Packaging e deploy coerenti
 

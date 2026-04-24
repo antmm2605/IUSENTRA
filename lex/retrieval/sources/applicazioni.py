@@ -11,8 +11,8 @@ class ApplicazioniSource:
     source_name = "applicazioni"
 
     def search(self, queries, request, context):
-        route = get_applicazioni_repository().resolve_workspace_for_request(queries[0] if queries else request.query, limit=3)
-        rows = list(route.get("candidate_apps") or [])[:3]
+        route = get_applicazioni_repository().resolve_workspace_for_request(queries[0] if queries else request.query, limit=50)
+        rows = list(route.get("candidate_apps") or [])
         return [
             row_to_evidence(
                 {

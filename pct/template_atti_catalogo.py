@@ -1424,6 +1424,9 @@ def build_builtin_templates() -> list[dict[str, Any]]:
             if binding:
                 item["link_compilatore_code"] = binding["compiler_code"]
         templates.append(item)
+    from pct.template_atti_master_catalog import build_master_builtin_templates
+
+    templates.extend(build_master_builtin_templates(order_offset=len(templates) + 1))
     return templates
 
 BUILTIN_TEMPLATE_SPECS.extend(

@@ -89,6 +89,8 @@ Lex ora ha una casa applicativa dedicata:
   wiring runtime del modulo: login Flask, runtime Ollama, export documento e contesto studio entrano in Lex da qui senza dipendere direttamente dal lato `web/`
 - `providers/local_ai_service.py`, `providers/ollama_runtime.py`, `providers/health.py`
   owner del servizio AI locale, della risoluzione runtime Ollama e della salute provider; i wrapper in `web/services/` restano solo facciate legacy
+- `gateway/`
+  instradamento provider local-first, privacy guard, fallback e diagnostica senza leakage di chiavi API
 - `formatting/document_export.py`, `guards/legal_reference_guard.py`, `memory/web_execution.py`
   proprietari del bridge operativo prima disperso in `web/services/assistente_*`
 - `routes.py`
@@ -221,6 +223,7 @@ Lex usa repository strutturati derivati dalla repo, non codice grezzo:
 - giurisprudenza
 - telematico
 - template atti
+- catalogo master template atti versionato
 - preventivi
 
 Il routing deve restare deterministico; il modello serve a spiegare bene, non a decidere da solo cosa è vero.

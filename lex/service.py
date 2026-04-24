@@ -48,6 +48,32 @@ class LexService:
     def stato(self) -> tuple[dict[str, Any], int]:
         return self._orchestrator().status_payload()
 
+    def gateway_status(self) -> tuple[dict[str, Any], int]:
+        from lex.gateway.config import GatewayConfig
+
+        config = GatewayConfig.from_env()
+        providers = [
+            {
+                "name": name,
+                "kind": provider.kind,
+                "is_local": provider.is_local,
+                "enabled": provider.enabled,
+                "default_model": provider.default_model,
+                "base_url": provider.base_url,
+                "has_api_key": bool(provider.api_key),
+            }
+            for name, provider in sorted(config.providers.items())
+        ]
+        return {
+            "ok": True,
+            "mode": config.mode,
+            "external_allowed": config.external_allowed,
+            "default_provider": config.default_provider,
+            "default_model": config.default_model,
+            "providers": providers,
+            "privacy_policy": "I contenuti sensibili restano su provider locali; gli esterni richiedono consenso e policy esplicita.",
+        }, 200
+
     def context(self, *, user, studio, data: dict[str, Any]) -> tuple[dict[str, Any], int]:
         return self._orchestrator().build_context_response(user=user, studio=studio, data=data)
 

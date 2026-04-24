@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.183.0 - 2026-04-24
+
+- Integrato il catalogo master versionato dei template atti con 420 modelli e split governati `core`, `advanced`, `specialist` e `studio_interno`, esposti nel catalogo `/template-atti/catalogo` e collegati al runtime builtin senza perdere compatibilita' con i modelli storici.
+- Aggiunto il gateway provider di Lex con policy local-first, stato diagnostico via API e guardrail privacy, cosi' i provider esterni restano separati dai dati sensibili e attivabili solo con configurazione esplicita.
+- Rimosso il collo di bottiglia del fascicolo in Lex AI e Assistente locale: sezioni, documenti, agenda, scadenze, cancelleria e istanze non vengono piu' tagliati a 1/3/8 elementi; la reindicizzazione embedda tutti i chunk pending del fascicolo e il prompt riceve inventari completi con budget RAG dinamico.
+- Rafforzato il download PST in modalita copia di consultazione: wizard, dettaglio fascicolo e server mantengono `scarica_originale_portale=false` per PST anche se il payload non invia l'opzione, con test anti-regressione sul percorso secondario `Naviga PST`.
+
 ## 2.182.24 - 2026-04-24
 
 - Corretto il fallback di riconciliazione tenant su volumi Docker/Windows: quando il filesystem non consente di preservare timestamp/permessi con `copy2`, IUSENTRA copia comunque il contenuto applicativo senza generare errori di avvio su `tenant_user_directory`.

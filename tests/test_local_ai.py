@@ -236,6 +236,97 @@ def test_local_ai_index_and_hybrid_search(tmp_path: Path, monkeypatch):
     assert "Atto di opposizione" in results[0]["citation"]
 
 
+def test_local_ai_embed_all_pending_chunks_elabora_tutto_il_fascicolo(tmp_path: Path, monkeypatch):
+    service = _service(tmp_path)
+    for index in range(3):
+        document_path = tmp_path / f"atto-{index + 1}.txt"
+        document_path.write_text(
+            f"TRIBUNALE DI PALERMO\nDocumento {index + 1} del fascicolo esteso.",
+            encoding="utf-8",
+        )
+        indexed = service.index_file(
+            source_type="fascicolo_documento",
+            source_id=f"DOC-{index + 1}",
+            practice_id="FASC-1",
+            file_path=str(document_path),
+            title=f"Documento {index + 1}",
+        )
+        assert indexed["status"] == "indexed"
+
+    class DummyClient:
+        def embed_texts(self, model_name, inputs):
+            return {"embeddings": [[1.0, 0.0] for _ in inputs], "load_duration": 1, "prompt_eval_count": len(inputs)}
+
+    monkeypatch.setattr(service, "bootstrap_runtime", lambda force=False: {"status": "ready", "embed_model": "embeddinggemma:300m"})
+    monkeypatch.setattr(service, "_ollama_client", lambda settings=None: DummyClient())
+    monkeypatch.setattr(service, "_active_model", lambda role: "embeddinggemma:300m" if role == "embed" else "gemma3:1b")
+
+    embedded = service.embed_all_pending_chunks(practice_id="FASC-1", batch_size=1, max_batches=10)
+
+    assert embedded["embedded_total"] >= 3
+    assert embedded["batches"] >= 3
+    assert embedded["pending_remaining"] == 0
+
+
+def test_prepare_fascicolo_query_include_inventari_completi_e_top_k_dinamico(tmp_path: Path, monkeypatch):
+    service = _service(tmp_path)
+    captured: dict[str, int] = {}
+
+    monkeypatch.setattr(service, "index_fascicolo_documents", lambda *args, **kwargs: {"indexed": 0, "skipped": 12, "unsupported": 0, "errors": []})
+    monkeypatch.setattr(service, "embed_all_pending_chunks", lambda *args, **kwargs: {"status": "ready", "embedded_total": 0, "pending_remaining": 0})
+
+    def fake_hybrid_search(query, *, practice_id=None, document_id=None, top_k=8):
+        captured["top_k"] = top_k
+        return []
+
+    monkeypatch.setattr(service, "hybrid_search", fake_hybrid_search)
+    docs = [
+        SimpleNamespace(
+            id=f"DOC-{index}",
+            nome=f"Documento {index}.pdf",
+            titolo="",
+            tipo=SimpleNamespace(value="ALLEGATO"),
+            data_documento=f"2026-04-{index:02d}",
+            data_caricamento="",
+            id_deposito_pct=f"DEP-{index}",
+        )
+        for index in range(1, 13)
+    ]
+    fascicolo = SimpleNamespace(
+        id="FASC-2",
+        titolo="Fascicolo esteso",
+        oggetto="Lettura completa del fascicolo",
+        tribunale="Tribunale di Palmi",
+        numero_rg="1025",
+        anno_rg=2024,
+        controparte="Controparte",
+        stato=SimpleNamespace(value="APERTO"),
+        tipo=SimpleNamespace(value="CIVILE"),
+        documenti=docs,
+    )
+
+    prepared = service.prepare_fascicolo_query(
+        fascicolo=fascicolo,
+        documents_dir=str(tmp_path / "docs"),
+        question="Leggi tutto il fascicolo",
+        apps=[SimpleNamespace(titolo="Udienza istruttoria", data_ora="2026-05-10T10:00:00", luogo="Aula 1")],
+        scadenze=[SimpleNamespace(titolo="Termine note", data_scadenza="2026-05-08", stato="APERTO")],
+        workspace={
+            "counts": {"documenti": 12, "attivita": 2, "udienze_scadenze": 2, "comunicazioni": 1, "istanze": 1},
+            "attivita_processuali": [SimpleNamespace(titolo="Deposito comparsa", data="2026-04-01")],
+            "comunicazioni_depositi": [SimpleNamespace(tipo_atto="Comunicazione cancelleria", timestamp="2026-04-02")],
+            "istanze_documenti": [SimpleNamespace(nome="Istanza rinvio.pdf", data_documento="2026-04-03")],
+        },
+        intelligenza={},
+    )
+
+    assert captured["top_k"] == 48
+    assert "Inventario documenti fascicolo (12):" in prepared["prompt"]
+    assert "Documento 12.pdf" in prepared["prompt"]
+    assert "Inventario sezioni del fascicolo:" in prepared["prompt"]
+    assert "Comunicazioni cancelleria da depositi (1):" in prepared["prompt"]
+
+
 def test_local_ai_index_file_supporta_p7m_con_payload_estratto(tmp_path: Path, monkeypatch):
     service = _service(tmp_path)
     document_path = tmp_path / "memoria.pdf.p7m"

@@ -84,6 +84,27 @@ def _preview_error_html(scarica_url: str) -> tuple[str, int, dict[str, str]]:
     return html, 200, {"Content-Type": "text/html; charset=utf-8"}
 
 
+def _payload_bool(value: Any, default: bool = False) -> bool:
+    if value is None:
+        return default
+    if isinstance(value, bool):
+        return value
+    return str(value or "").strip().lower() in {"1", "true", "yes", "si", "s", "on"}
+
+
+def _applica_modalita_portale(items: list[dict[str, Any]], *, scarica_originale: bool) -> list[dict[str, Any]]:
+    modalita = "originale" if scarica_originale else "copia"
+    patched: list[dict[str, Any]] = []
+    for item in items:
+        row = dict(item)
+        if not str(row.get("modalita_documento_portale") or "").strip():
+            row["modalita_documento_portale"] = modalita
+        if row.get("original_documento_portale") is None:
+            row["original_documento_portale"] = bool(scarica_originale)
+        patched.append(row)
+    return patched
+
+
 def register_fascicoli_document_routes(
     app: Flask,
     *,
@@ -181,13 +202,8 @@ def register_fascicoli_document_routes(
 
         fonte = portale_ufficiale_label(fascicolo)
         note_importazione = (request.form.get("note_importazione", "") or "").strip()
-        mantieni_albero_originale = str(request.form.get("mantieni_albero_originale") or "").strip().lower() in {
-            "1",
-            "true",
-            "on",
-            "si",
-            "yes",
-        }
+        mantieni_albero_originale = _payload_bool(request.form.get("mantieni_albero_originale"), False)
+        scarica_originale_portale = _payload_bool(request.form.get("scarica_originale_portale"), False)
         uploaded_items: list[dict[str, Any]] = []
 
         for storage in request.files.getlist("files"):
@@ -211,7 +227,10 @@ def register_fascicoli_document_routes(
         if usa_staging:
             staging_items, staging_dir = leggi_staging_documenti_portale(fascicolo)
 
-        items = uploaded_items or staging_items
+        items = _applica_modalita_portale(
+            uploaded_items or staging_items,
+            scarica_originale=scarica_originale_portale,
+        )
         if not items:
             flash(
                 f"Nessun file ufficiale trovato. Seleziona i download del {fonte} oppure riprova dopo averli copiati nella inbox tecnica del fascicolo.",
@@ -260,7 +279,11 @@ def register_fascicoli_document_routes(
             data = request.get_json(silent=True) or {}
             note_importazione = (data.get("note_importazione", "") or "").strip()
             mantieni_albero_originale = bool(data.get("mantieni_albero_originale"))
-            items = decode_portale_downloaded_items(data.get("files") or [])
+            scarica_originale_portale = _payload_bool(data.get("scarica_originale_portale"), False)
+            items = _applica_modalita_portale(
+                decode_portale_downloaded_items(data.get("files") or []),
+                scarica_originale=scarica_originale_portale,
+            )
 
             if not items:
                 return jsonify({"ok": False, "errore": "Nessun file valido ricevuto dal Local Signer."}), 200

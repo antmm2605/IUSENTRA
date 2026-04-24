@@ -1,0 +1,1199 @@
+{
+  "suite": "Suite professionale completa template atti IUSENTRA",
+  "versione": "1.1.0",
+  "gruppo": "Atti interni di studio",
+  "totale_template": 20,
+  "moduli": [
+    {
+      "codice": "STD",
+      "nome": "Atti interni di studio",
+      "file": "22_studio_interno.json",
+      "conteggio": 20
+    }
+  ],
+  "template": [
+    {
+      "id": "STD_001",
+      "slug": "conferimento-di-incarico",
+      "titolo": "Conferimento di incarico",
+      "famiglia": "Atti interni di studio",
+      "area": "Interno studio",
+      "macro_area": "Gestione studio",
+      "sottobranca": "Operatività interna",
+      "procedimento": "Atti interni di studio",
+      "fase": "standard",
+      "autorita": "Nessuna",
+      "rito": "Interno",
+      "canale_telematico": "NESSUNO",
+      "depositabile": false,
+      "priorita": "core",
+      "tags": [
+        "std",
+        "nessuno",
+        "interno",
+        "std_001"
+      ],
+      "campi_precompila": [
+        "cliente",
+        "difensore",
+        "pratica",
+        "fase",
+        "data_atto"
+      ],
+      "blocchi_guidati": [
+        "Intestazione",
+        "Cliente",
+        "Oggetto",
+        "Premesse",
+        "Contenuti",
+        "Checklist",
+        "Allegati",
+        "Firma"
+      ],
+      "varianti": [
+        "standard"
+      ],
+      "allegati_essenziali": [
+        "documenti a sostegno",
+        "procura ove necessaria",
+        "prova notifiche se richieste"
+      ],
+      "checklist_conformita": [
+        "anagrafica parti verificata",
+        "competenza/autorità verificata",
+        "allegati essenziali presenti",
+        "richieste finali coerenti"
+      ],
+      "note_operative": [
+        "Adattare sempre il modello al caso concreto e alla strategia processuale."
+      ],
+      "versione": "1.1.0",
+      "stato": "draft_professionale",
+      "ordinamento": 1
+    },
+    {
+      "id": "STD_002",
+      "slug": "preventivo-professionale",
+      "titolo": "Preventivo professionale",
+      "famiglia": "Atti interni di studio",
+      "area": "Interno studio",
+      "macro_area": "Gestione studio",
+      "sottobranca": "Operatività interna",
+      "procedimento": "Atti interni di studio",
+      "fase": "standard",
+      "autorita": "Nessuna",
+      "rito": "Interno",
+      "canale_telematico": "NESSUNO",
+      "depositabile": false,
+      "priorita": "core",
+      "tags": [
+        "std",
+        "nessuno",
+        "interno",
+        "std_002"
+      ],
+      "campi_precompila": [
+        "cliente",
+        "difensore",
+        "pratica",
+        "fase",
+        "data_atto"
+      ],
+      "blocchi_guidati": [
+        "Intestazione",
+        "Cliente",
+        "Oggetto",
+        "Premesse",
+        "Contenuti",
+        "Checklist",
+        "Allegati",
+        "Firma"
+      ],
+      "varianti": [
+        "standard"
+      ],
+      "allegati_essenziali": [
+        "documenti a sostegno",
+        "procura ove necessaria",
+        "prova notifiche se richieste"
+      ],
+      "checklist_conformita": [
+        "anagrafica parti verificata",
+        "competenza/autorità verificata",
+        "allegati essenziali presenti",
+        "richieste finali coerenti"
+      ],
+      "note_operative": [
+        "Adattare sempre il modello al caso concreto e alla strategia processuale."
+      ],
+      "versione": "1.1.0",
+      "stato": "draft_professionale",
+      "ordinamento": 2
+    },
+    {
+      "id": "STD_003",
+      "slug": "accettazione-del-preventivo",
+      "titolo": "Accettazione del preventivo",
+      "famiglia": "Atti interni di studio",
+      "area": "Interno studio",
+      "macro_area": "Gestione studio",
+      "sottobranca": "Operatività interna",
+      "procedimento": "Atti interni di studio",
+      "fase": "standard",
+      "autorita": "Nessuna",
+      "rito": "Interno",
+      "canale_telematico": "NESSUNO",
+      "depositabile": false,
+      "priorita": "core",
+      "tags": [
+        "std",
+        "nessuno",
+        "interno",
+        "std_003"
+      ],
+      "campi_precompila": [
+        "cliente",
+        "difensore",
+        "pratica",
+        "fase",
+        "data_atto"
+      ],
+      "blocchi_guidati": [
+        "Intestazione",
+        "Cliente",
+        "Oggetto",
+        "Premesse",
+        "Contenuti",
+        "Checklist",
+        "Allegati",
+        "Firma"
+      ],
+      "varianti": [
+        "standard"
+      ],
+      "allegati_essenziali": [
+        "documenti a sostegno",
+        "procura ove necessaria",
+        "prova notifiche se richieste"
+      ],
+      "checklist_conformita": [
+        "anagrafica parti verificata",
+        "competenza/autorità verificata",
+        "allegati essenziali presenti",
+        "richieste finali coerenti"
+      ],
+      "note_operative": [
+        "Adattare sempre il modello al caso concreto e alla strategia processuale."
+      ],
+      "versione": "1.1.0",
+      "stato": "draft_professionale",
+      "ordinamento": 3
+    },
+    {
+      "id": "STD_004",
+      "slug": "procura-alle-liti",
+      "titolo": "Procura alle liti",
+      "famiglia": "Atti interni di studio",
+      "area": "Interno studio",
+      "macro_area": "Gestione studio",
+      "sottobranca": "Operatività interna",
+      "procedimento": "Atti interni di studio",
+      "fase": "standard",
+      "autorita": "Nessuna",
+      "rito": "Interno",
+      "canale_telematico": "NESSUNO",
+      "depositabile": false,
+      "priorita": "core",
+      "tags": [
+        "std",
+        "nessuno",
+        "interno",
+        "std_004"
+      ],
+      "campi_precompila": [
+        "cliente",
+        "difensore",
+        "pratica",
+        "fase",
+        "data_atto"
+      ],
+      "blocchi_guidati": [
+        "Intestazione",
+        "Cliente",
+        "Oggetto",
+        "Premesse",
+        "Contenuti",
+        "Checklist",
+        "Allegati",
+        "Firma"
+      ],
+      "varianti": [
+        "standard"
+      ],
+      "allegati_essenziali": [
+        "documenti a sostegno",
+        "procura ove necessaria",
+        "prova notifiche se richieste"
+      ],
+      "checklist_conformita": [
+        "anagrafica parti verificata",
+        "competenza/autorità verificata",
+        "allegati essenziali presenti",
+        "richieste finali coerenti"
+      ],
+      "note_operative": [
+        "Adattare sempre il modello al caso concreto e alla strategia processuale."
+      ],
+      "versione": "1.1.0",
+      "stato": "draft_professionale",
+      "ordinamento": 4
+    },
+    {
+      "id": "STD_005",
+      "slug": "scheda-raccolta-documenti",
+      "titolo": "Scheda raccolta documenti",
+      "famiglia": "Atti interni di studio",
+      "area": "Interno studio",
+      "macro_area": "Gestione studio",
+      "sottobranca": "Operatività interna",
+      "procedimento": "Atti interni di studio",
+      "fase": "standard",
+      "autorita": "Nessuna",
+      "rito": "Interno",
+      "canale_telematico": "NESSUNO",
+      "depositabile": false,
+      "priorita": "core",
+      "tags": [
+        "std",
+        "nessuno",
+        "interno",
+        "std_005"
+      ],
+      "campi_precompila": [
+        "cliente",
+        "difensore",
+        "pratica",
+        "fase",
+        "data_atto"
+      ],
+      "blocchi_guidati": [
+        "Intestazione",
+        "Cliente",
+        "Oggetto",
+        "Premesse",
+        "Contenuti",
+        "Checklist",
+        "Allegati",
+        "Firma"
+      ],
+      "varianti": [
+        "standard"
+      ],
+      "allegati_essenziali": [
+        "documenti a sostegno",
+        "procura ove necessaria",
+        "prova notifiche se richieste"
+      ],
+      "checklist_conformita": [
+        "anagrafica parti verificata",
+        "competenza/autorità verificata",
+        "allegati essenziali presenti",
+        "richieste finali coerenti"
+      ],
+      "note_operative": [
+        "Adattare sempre il modello al caso concreto e alla strategia processuale."
+      ],
+      "versione": "1.1.0",
+      "stato": "draft_professionale",
+      "ordinamento": 5
+    },
+    {
+      "id": "STD_006",
+      "slug": "checklist-pre-azione",
+      "titolo": "Checklist pre-azione",
+      "famiglia": "Atti interni di studio",
+      "area": "Interno studio",
+      "macro_area": "Gestione studio",
+      "sottobranca": "Operatività interna",
+      "procedimento": "Atti interni di studio",
+      "fase": "standard",
+      "autorita": "Nessuna",
+      "rito": "Interno",
+      "canale_telematico": "NESSUNO",
+      "depositabile": false,
+      "priorita": "core",
+      "tags": [
+        "std",
+        "nessuno",
+        "interno",
+        "std_006"
+      ],
+      "campi_precompila": [
+        "cliente",
+        "difensore",
+        "pratica",
+        "fase",
+        "data_atto"
+      ],
+      "blocchi_guidati": [
+        "Intestazione",
+        "Cliente",
+        "Oggetto",
+        "Premesse",
+        "Contenuti",
+        "Checklist",
+        "Allegati",
+        "Firma"
+      ],
+      "varianti": [
+        "standard"
+      ],
+      "allegati_essenziali": [
+        "documenti a sostegno",
+        "procura ove necessaria",
+        "prova notifiche se richieste"
+      ],
+      "checklist_conformita": [
+        "anagrafica parti verificata",
+        "competenza/autorità verificata",
+        "allegati essenziali presenti",
+        "richieste finali coerenti"
+      ],
+      "note_operative": [
+        "Adattare sempre il modello al caso concreto e alla strategia processuale."
+      ],
+      "versione": "1.1.0",
+      "stato": "draft_professionale",
+      "ordinamento": 6
+    },
+    {
+      "id": "STD_007",
+      "slug": "lettera-al-cliente-sullo-stato-pratica",
+      "titolo": "Lettera al cliente sullo stato pratica",
+      "famiglia": "Atti interni di studio",
+      "area": "Interno studio",
+      "macro_area": "Gestione studio",
+      "sottobranca": "Operatività interna",
+      "procedimento": "Atti interni di studio",
+      "fase": "standard",
+      "autorita": "Nessuna",
+      "rito": "Interno",
+      "canale_telematico": "NESSUNO",
+      "depositabile": false,
+      "priorita": "professional",
+      "tags": [
+        "std",
+        "nessuno",
+        "interno",
+        "std_007"
+      ],
+      "campi_precompila": [
+        "cliente",
+        "difensore",
+        "pratica",
+        "fase",
+        "data_atto"
+      ],
+      "blocchi_guidati": [
+        "Intestazione",
+        "Cliente",
+        "Oggetto",
+        "Premesse",
+        "Contenuti",
+        "Checklist",
+        "Allegati",
+        "Firma"
+      ],
+      "varianti": [
+        "standard"
+      ],
+      "allegati_essenziali": [
+        "documenti a sostegno",
+        "procura ove necessaria",
+        "prova notifiche se richieste"
+      ],
+      "checklist_conformita": [
+        "anagrafica parti verificata",
+        "competenza/autorità verificata",
+        "allegati essenziali presenti",
+        "richieste finali coerenti"
+      ],
+      "note_operative": [
+        "Adattare sempre il modello al caso concreto e alla strategia processuale."
+      ],
+      "versione": "1.1.0",
+      "stato": "draft_professionale",
+      "ordinamento": 7
+    },
+    {
+      "id": "STD_008",
+      "slug": "sollecito-integrazione-documenti",
+      "titolo": "Sollecito integrazione documenti",
+      "famiglia": "Atti interni di studio",
+      "area": "Interno studio",
+      "macro_area": "Gestione studio",
+      "sottobranca": "Operatività interna",
+      "procedimento": "Atti interni di studio",
+      "fase": "standard",
+      "autorita": "Nessuna",
+      "rito": "Interno",
+      "canale_telematico": "NESSUNO",
+      "depositabile": false,
+      "priorita": "professional",
+      "tags": [
+        "std",
+        "nessuno",
+        "interno",
+        "std_008"
+      ],
+      "campi_precompila": [
+        "cliente",
+        "difensore",
+        "pratica",
+        "fase",
+        "data_atto"
+      ],
+      "blocchi_guidati": [
+        "Intestazione",
+        "Cliente",
+        "Oggetto",
+        "Premesse",
+        "Contenuti",
+        "Checklist",
+        "Allegati",
+        "Firma"
+      ],
+      "varianti": [
+        "standard"
+      ],
+      "allegati_essenziali": [
+        "documenti contrattuali",
+        "corrispondenza",
+        "documenti di supporto"
+      ],
+      "checklist_conformita": [
+        "anagrafica parti verificata",
+        "competenza/autorità verificata",
+        "allegati essenziali presenti",
+        "richieste finali coerenti"
+      ],
+      "note_operative": [
+        "Adattare sempre il modello al caso concreto e alla strategia processuale."
+      ],
+      "versione": "1.1.0",
+      "stato": "draft_professionale",
+      "ordinamento": 8
+    },
+    {
+      "id": "STD_009",
+      "slug": "lettera-di-rinuncia-all-incarico",
+      "titolo": "Lettera di rinuncia all'incarico",
+      "famiglia": "Atti interni di studio",
+      "area": "Interno studio",
+      "macro_area": "Gestione studio",
+      "sottobranca": "Operatività interna",
+      "procedimento": "Atti interni di studio",
+      "fase": "standard",
+      "autorita": "Nessuna",
+      "rito": "Interno",
+      "canale_telematico": "NESSUNO",
+      "depositabile": false,
+      "priorita": "professional",
+      "tags": [
+        "std",
+        "nessuno",
+        "interno",
+        "std_009"
+      ],
+      "campi_precompila": [
+        "cliente",
+        "difensore",
+        "pratica",
+        "fase",
+        "data_atto"
+      ],
+      "blocchi_guidati": [
+        "Intestazione",
+        "Cliente",
+        "Oggetto",
+        "Premesse",
+        "Contenuti",
+        "Checklist",
+        "Allegati",
+        "Firma"
+      ],
+      "varianti": [
+        "standard"
+      ],
+      "allegati_essenziali": [
+        "documenti a sostegno",
+        "procura ove necessaria",
+        "prova notifiche se richieste"
+      ],
+      "checklist_conformita": [
+        "anagrafica parti verificata",
+        "competenza/autorità verificata",
+        "allegati essenziali presenti",
+        "richieste finali coerenti"
+      ],
+      "note_operative": [
+        "Adattare sempre il modello al caso concreto e alla strategia processuale."
+      ],
+      "versione": "1.1.0",
+      "stato": "draft_professionale",
+      "ordinamento": 9
+    },
+    {
+      "id": "STD_010",
+      "slug": "lettera-di-revoca-del-mandato",
+      "titolo": "Lettera di revoca del mandato",
+      "famiglia": "Atti interni di studio",
+      "area": "Interno studio",
+      "macro_area": "Gestione studio",
+      "sottobranca": "Operatività interna",
+      "procedimento": "Atti interni di studio",
+      "fase": "standard",
+      "autorita": "Nessuna",
+      "rito": "Interno",
+      "canale_telematico": "NESSUNO",
+      "depositabile": false,
+      "priorita": "professional",
+      "tags": [
+        "std",
+        "nessuno",
+        "interno",
+        "std_010"
+      ],
+      "campi_precompila": [
+        "cliente",
+        "difensore",
+        "pratica",
+        "fase",
+        "data_atto"
+      ],
+      "blocchi_guidati": [
+        "Intestazione",
+        "Cliente",
+        "Oggetto",
+        "Premesse",
+        "Contenuti",
+        "Checklist",
+        "Allegati",
+        "Firma"
+      ],
+      "varianti": [
+        "standard"
+      ],
+      "allegati_essenziali": [
+        "documenti a sostegno",
+        "procura ove necessaria",
+        "prova notifiche se richieste"
+      ],
+      "checklist_conformita": [
+        "anagrafica parti verificata",
+        "competenza/autorità verificata",
+        "allegati essenziali presenti",
+        "richieste finali coerenti"
+      ],
+      "note_operative": [
+        "Adattare sempre il modello al caso concreto e alla strategia processuale."
+      ],
+      "versione": "1.1.0",
+      "stato": "draft_professionale",
+      "ordinamento": 10
+    },
+    {
+      "id": "STD_011",
+      "slug": "informativa-privacy-cliente",
+      "titolo": "Informativa privacy cliente",
+      "famiglia": "Atti interni di studio",
+      "area": "Interno studio",
+      "macro_area": "Gestione studio",
+      "sottobranca": "Operatività interna",
+      "procedimento": "Atti interni di studio",
+      "fase": "standard",
+      "autorita": "Nessuna",
+      "rito": "Interno",
+      "canale_telematico": "NESSUNO",
+      "depositabile": false,
+      "priorita": "professional",
+      "tags": [
+        "std",
+        "nessuno",
+        "interno",
+        "privacy",
+        "std_011"
+      ],
+      "campi_precompila": [
+        "cliente",
+        "difensore",
+        "pratica",
+        "fase",
+        "data_atto"
+      ],
+      "blocchi_guidati": [
+        "Intestazione",
+        "Cliente",
+        "Oggetto",
+        "Premesse",
+        "Contenuti",
+        "Checklist",
+        "Allegati",
+        "Firma"
+      ],
+      "varianti": [
+        "standard"
+      ],
+      "allegati_essenziali": [
+        "istanza precedente o evidenze",
+        "screenshot o log",
+        "documenti identificativi"
+      ],
+      "checklist_conformita": [
+        "anagrafica parti verificata",
+        "competenza/autorità verificata",
+        "allegati essenziali presenti",
+        "richieste finali coerenti"
+      ],
+      "note_operative": [
+        "Adattare sempre il modello al caso concreto e alla strategia processuale."
+      ],
+      "versione": "1.1.0",
+      "stato": "draft_professionale",
+      "ordinamento": 11
+    },
+    {
+      "id": "STD_012",
+      "slug": "informativa-costi-e-rischi",
+      "titolo": "Informativa costi e rischi",
+      "famiglia": "Atti interni di studio",
+      "area": "Interno studio",
+      "macro_area": "Gestione studio",
+      "sottobranca": "Operatività interna",
+      "procedimento": "Atti interni di studio",
+      "fase": "standard",
+      "autorita": "Nessuna",
+      "rito": "Interno",
+      "canale_telematico": "NESSUNO",
+      "depositabile": false,
+      "priorita": "professional",
+      "tags": [
+        "std",
+        "nessuno",
+        "interno",
+        "std_012"
+      ],
+      "campi_precompila": [
+        "cliente",
+        "difensore",
+        "pratica",
+        "fase",
+        "data_atto"
+      ],
+      "blocchi_guidati": [
+        "Intestazione",
+        "Cliente",
+        "Oggetto",
+        "Premesse",
+        "Contenuti",
+        "Checklist",
+        "Allegati",
+        "Firma"
+      ],
+      "varianti": [
+        "standard"
+      ],
+      "allegati_essenziali": [
+        "documenti a sostegno",
+        "procura ove necessaria",
+        "prova notifiche se richieste"
+      ],
+      "checklist_conformita": [
+        "anagrafica parti verificata",
+        "competenza/autorità verificata",
+        "allegati essenziali presenti",
+        "richieste finali coerenti"
+      ],
+      "note_operative": [
+        "Adattare sempre il modello al caso concreto e alla strategia processuale."
+      ],
+      "versione": "1.1.0",
+      "stato": "draft_professionale",
+      "ordinamento": 12
+    },
+    {
+      "id": "STD_013",
+      "slug": "piano-attivita-pratica",
+      "titolo": "Piano attività pratica",
+      "famiglia": "Atti interni di studio",
+      "area": "Interno studio",
+      "macro_area": "Gestione studio",
+      "sottobranca": "Operatività interna",
+      "procedimento": "Atti interni di studio",
+      "fase": "standard",
+      "autorita": "Nessuna",
+      "rito": "Interno",
+      "canale_telematico": "NESSUNO",
+      "depositabile": false,
+      "priorita": "professional",
+      "tags": [
+        "std",
+        "nessuno",
+        "interno",
+        "std_013"
+      ],
+      "campi_precompila": [
+        "cliente",
+        "difensore",
+        "pratica",
+        "fase",
+        "data_atto"
+      ],
+      "blocchi_guidati": [
+        "Intestazione",
+        "Cliente",
+        "Oggetto",
+        "Premesse",
+        "Contenuti",
+        "Checklist",
+        "Allegati",
+        "Firma"
+      ],
+      "varianti": [
+        "standard"
+      ],
+      "allegati_essenziali": [
+        "documenti a sostegno",
+        "procura ove necessaria",
+        "prova notifiche se richieste"
+      ],
+      "checklist_conformita": [
+        "anagrafica parti verificata",
+        "competenza/autorità verificata",
+        "allegati essenziali presenti",
+        "richieste finali coerenti"
+      ],
+      "note_operative": [
+        "Adattare sempre il modello al caso concreto e alla strategia processuale."
+      ],
+      "versione": "1.1.0",
+      "stato": "draft_professionale",
+      "ordinamento": 13
+    },
+    {
+      "id": "STD_014",
+      "slug": "verbale-riunione-cliente",
+      "titolo": "Verbale riunione cliente",
+      "famiglia": "Atti interni di studio",
+      "area": "Interno studio",
+      "macro_area": "Gestione studio",
+      "sottobranca": "Operatività interna",
+      "procedimento": "Atti interni di studio",
+      "fase": "standard",
+      "autorita": "Nessuna",
+      "rito": "Interno",
+      "canale_telematico": "NESSUNO",
+      "depositabile": false,
+      "priorita": "advanced",
+      "tags": [
+        "std",
+        "nessuno",
+        "interno",
+        "std_014"
+      ],
+      "campi_precompila": [
+        "cliente",
+        "difensore",
+        "pratica",
+        "fase",
+        "data_atto"
+      ],
+      "blocchi_guidati": [
+        "Intestazione",
+        "Cliente",
+        "Oggetto",
+        "Premesse",
+        "Contenuti",
+        "Checklist",
+        "Allegati",
+        "Firma"
+      ],
+      "varianti": [
+        "standard"
+      ],
+      "allegati_essenziali": [
+        "documenti a sostegno",
+        "procura ove necessaria",
+        "prova notifiche se richieste"
+      ],
+      "checklist_conformita": [
+        "anagrafica parti verificata",
+        "competenza/autorità verificata",
+        "allegati essenziali presenti",
+        "richieste finali coerenti"
+      ],
+      "note_operative": [
+        "Adattare sempre il modello al caso concreto e alla strategia processuale."
+      ],
+      "versione": "1.1.0",
+      "stato": "draft_professionale",
+      "ordinamento": 14
+    },
+    {
+      "id": "STD_015",
+      "slug": "chiusura-pratica-con-esito",
+      "titolo": "Chiusura pratica con esito",
+      "famiglia": "Atti interni di studio",
+      "area": "Interno studio",
+      "macro_area": "Gestione studio",
+      "sottobranca": "Operatività interna",
+      "procedimento": "Atti interni di studio",
+      "fase": "standard",
+      "autorita": "Nessuna",
+      "rito": "Interno",
+      "canale_telematico": "NESSUNO",
+      "depositabile": false,
+      "priorita": "advanced",
+      "tags": [
+        "std",
+        "nessuno",
+        "interno",
+        "std_015"
+      ],
+      "campi_precompila": [
+        "cliente",
+        "difensore",
+        "pratica",
+        "fase",
+        "data_atto"
+      ],
+      "blocchi_guidati": [
+        "Intestazione",
+        "Cliente",
+        "Oggetto",
+        "Premesse",
+        "Contenuti",
+        "Checklist",
+        "Allegati",
+        "Firma"
+      ],
+      "varianti": [
+        "standard"
+      ],
+      "allegati_essenziali": [
+        "documenti a sostegno",
+        "procura ove necessaria",
+        "prova notifiche se richieste"
+      ],
+      "checklist_conformita": [
+        "anagrafica parti verificata",
+        "competenza/autorità verificata",
+        "allegati essenziali presenti",
+        "richieste finali coerenti"
+      ],
+      "note_operative": [
+        "Adattare sempre il modello al caso concreto e alla strategia processuale."
+      ],
+      "versione": "1.1.0",
+      "stato": "draft_professionale",
+      "ordinamento": 15
+    },
+    {
+      "id": "STD_016",
+      "slug": "sollecito-pagamento-parcella",
+      "titolo": "Sollecito pagamento parcella",
+      "famiglia": "Atti interni di studio",
+      "area": "Interno studio",
+      "macro_area": "Gestione studio",
+      "sottobranca": "Operatività interna",
+      "procedimento": "Atti interni di studio",
+      "fase": "standard",
+      "autorita": "Nessuna",
+      "rito": "Interno",
+      "canale_telematico": "NESSUNO",
+      "depositabile": false,
+      "priorita": "advanced",
+      "tags": [
+        "std",
+        "nessuno",
+        "interno",
+        "std_016"
+      ],
+      "campi_precompila": [
+        "cliente",
+        "difensore",
+        "pratica",
+        "fase",
+        "data_atto"
+      ],
+      "blocchi_guidati": [
+        "Intestazione",
+        "Cliente",
+        "Oggetto",
+        "Premesse",
+        "Contenuti",
+        "Checklist",
+        "Allegati",
+        "Firma"
+      ],
+      "varianti": [
+        "standard"
+      ],
+      "allegati_essenziali": [
+        "documenti contrattuali",
+        "corrispondenza",
+        "documenti di supporto"
+      ],
+      "checklist_conformita": [
+        "anagrafica parti verificata",
+        "competenza/autorità verificata",
+        "allegati essenziali presenti",
+        "richieste finali coerenti"
+      ],
+      "note_operative": [
+        "Adattare sempre il modello al caso concreto e alla strategia processuale."
+      ],
+      "versione": "1.1.0",
+      "stato": "draft_professionale",
+      "ordinamento": 16
+    },
+    {
+      "id": "STD_017",
+      "slug": "messa-in-mora-parcella",
+      "titolo": "Messa in mora parcella",
+      "famiglia": "Atti interni di studio",
+      "area": "Interno studio",
+      "macro_area": "Gestione studio",
+      "sottobranca": "Operatività interna",
+      "procedimento": "Atti interni di studio",
+      "fase": "standard",
+      "autorita": "Nessuna",
+      "rito": "Interno",
+      "canale_telematico": "NESSUNO",
+      "depositabile": false,
+      "priorita": "advanced",
+      "tags": [
+        "std",
+        "nessuno",
+        "interno",
+        "std_017"
+      ],
+      "campi_precompila": [
+        "cliente",
+        "difensore",
+        "pratica",
+        "fase",
+        "data_atto"
+      ],
+      "blocchi_guidati": [
+        "Intestazione",
+        "Cliente",
+        "Oggetto",
+        "Premesse",
+        "Contenuti",
+        "Checklist",
+        "Allegati",
+        "Firma"
+      ],
+      "varianti": [
+        "semplice",
+        "con termine finale",
+        "con allegati richiamati"
+      ],
+      "allegati_essenziali": [
+        "documenti contrattuali",
+        "corrispondenza",
+        "documenti di supporto"
+      ],
+      "checklist_conformita": [
+        "anagrafica parti verificata",
+        "competenza/autorità verificata",
+        "allegati essenziali presenti",
+        "richieste finali coerenti"
+      ],
+      "note_operative": [
+        "Adattare sempre il modello al caso concreto e alla strategia processuale."
+      ],
+      "versione": "1.1.0",
+      "stato": "draft_professionale",
+      "ordinamento": 17
+    },
+    {
+      "id": "STD_018",
+      "slug": "accordo-saldo-parcella",
+      "titolo": "Accordo saldo parcella",
+      "famiglia": "Atti interni di studio",
+      "area": "Interno studio",
+      "macro_area": "Gestione studio",
+      "sottobranca": "Operatività interna",
+      "procedimento": "Atti interni di studio",
+      "fase": "standard",
+      "autorita": "Nessuna",
+      "rito": "Interno",
+      "canale_telematico": "NESSUNO",
+      "depositabile": false,
+      "priorita": "advanced",
+      "tags": [
+        "std",
+        "nessuno",
+        "interno",
+        "std_018"
+      ],
+      "campi_precompila": [
+        "cliente",
+        "difensore",
+        "pratica",
+        "fase",
+        "data_atto"
+      ],
+      "blocchi_guidati": [
+        "Intestazione",
+        "Cliente",
+        "Oggetto",
+        "Premesse",
+        "Contenuti",
+        "Checklist",
+        "Allegati",
+        "Firma"
+      ],
+      "varianti": [
+        "standard"
+      ],
+      "allegati_essenziali": [
+        "documenti a sostegno",
+        "procura ove necessaria",
+        "prova notifiche se richieste"
+      ],
+      "checklist_conformita": [
+        "anagrafica parti verificata",
+        "competenza/autorità verificata",
+        "allegati essenziali presenti",
+        "richieste finali coerenti"
+      ],
+      "note_operative": [
+        "Adattare sempre il modello al caso concreto e alla strategia processuale."
+      ],
+      "versione": "1.1.0",
+      "stato": "draft_professionale",
+      "ordinamento": 18
+    },
+    {
+      "id": "STD_019",
+      "slug": "nota-proforma",
+      "titolo": "Nota proforma",
+      "famiglia": "Atti interni di studio",
+      "area": "Interno studio",
+      "macro_area": "Gestione studio",
+      "sottobranca": "Operatività interna",
+      "procedimento": "Atti interni di studio",
+      "fase": "standard",
+      "autorita": "Nessuna",
+      "rito": "Interno",
+      "canale_telematico": "NESSUNO",
+      "depositabile": false,
+      "priorita": "advanced",
+      "tags": [
+        "std",
+        "nessuno",
+        "interno",
+        "std_019"
+      ],
+      "campi_precompila": [
+        "cliente",
+        "difensore",
+        "pratica",
+        "fase",
+        "data_atto"
+      ],
+      "blocchi_guidati": [
+        "Intestazione",
+        "Cliente",
+        "Oggetto",
+        "Premesse",
+        "Contenuti",
+        "Checklist",
+        "Allegati",
+        "Firma"
+      ],
+      "varianti": [
+        "standard"
+      ],
+      "allegati_essenziali": [
+        "documenti a sostegno",
+        "procura ove necessaria",
+        "prova notifiche se richieste"
+      ],
+      "checklist_conformita": [
+        "anagrafica parti verificata",
+        "competenza/autorità verificata",
+        "allegati essenziali presenti",
+        "richieste finali coerenti"
+      ],
+      "note_operative": [
+        "Adattare sempre il modello al caso concreto e alla strategia processuale."
+      ],
+      "versione": "1.1.0",
+      "stato": "draft_professionale",
+      "ordinamento": 19
+    },
+    {
+      "id": "STD_020",
+      "slug": "richiesta-fondo-spese",
+      "titolo": "Richiesta fondo spese",
+      "famiglia": "Atti interni di studio",
+      "area": "Interno studio",
+      "macro_area": "Gestione studio",
+      "sottobranca": "Operatività interna",
+      "procedimento": "Atti interni di studio",
+      "fase": "standard",
+      "autorita": "Nessuna",
+      "rito": "Interno",
+      "canale_telematico": "NESSUNO",
+      "depositabile": false,
+      "priorita": "advanced",
+      "tags": [
+        "std",
+        "nessuno",
+        "interno",
+        "std_020"
+      ],
+      "campi_precompila": [
+        "cliente",
+        "difensore",
+        "pratica",
+        "fase",
+        "data_atto"
+      ],
+      "blocchi_guidati": [
+        "Intestazione",
+        "Cliente",
+        "Oggetto",
+        "Premesse",
+        "Contenuti",
+        "Checklist",
+        "Allegati",
+        "Firma"
+      ],
+      "varianti": [
+        "standard"
+      ],
+      "allegati_essenziali": [
+        "documenti a sostegno",
+        "procura ove necessaria",
+        "prova notifiche se richieste"
+      ],
+      "checklist_conformita": [
+        "anagrafica parti verificata",
+        "competenza/autorità verificata",
+        "allegati essenziali presenti",
+        "richieste finali coerenti"
+      ],
+      "note_operative": [
+        "Adattare sempre il modello al caso concreto e alla strategia processuale."
+      ],
+      "versione": "1.1.0",
+      "stato": "draft_professionale",
+      "ordinamento": 20
+    }
+  ]
+}

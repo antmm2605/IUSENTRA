@@ -70,6 +70,35 @@ def _row_excerpt(row: dict[str, Any]) -> str:
     return ". ".join(part for part in parts if part)
 
 
+def _query_tokens(query: str) -> list[str]:
+    tokens: list[str] = []
+    for token in query.replace("/", " ").replace("-", " ").split():
+        cleaned = _clean(token).lower()
+        if len(cleaned) < 3:
+            continue
+        if cleaned not in tokens:
+            tokens.append(cleaned)
+    return tokens
+
+
+def _row_matches_query(row: dict[str, Any], query: str) -> bool:
+    tokens = _query_tokens(query)
+    if not tokens:
+        return False
+    haystack = f"{_row_title(row)} {_row_excerpt(row)}".lower()
+    return any(token in haystack for token in tokens)
+
+
+def _section_inventory(items: list[dict[str, Any]]) -> str:
+    rows: list[str] = []
+    for index, row in enumerate(items, start=1):
+        excerpt = _row_excerpt(row) or _row_title(row)
+        if not excerpt:
+            continue
+        rows.append(f"{index}. {excerpt}")
+    return " ".join(rows)
+
+
 def _query_matches_section(section_key: str, query: str) -> bool:
     if not query:
         return False
@@ -88,9 +117,9 @@ def _section_summary_source(
         return None
     title = _SECTION_LABELS.get(section_key, section_key.replace("_", " ").title())
     excerpt = f"{title}: {count} elementi censiti nel fascicolo."
-    preview = next((_row_excerpt(row) for row in items if _row_excerpt(row)), "")
-    if preview:
-        excerpt += f" Ultimo elemento utile: {preview}."
+    inventory = _section_inventory(items)
+    if inventory:
+        excerpt += f" Inventario completo: {inventory}"
     score = 0.62
     if _query_matches_section(section_key, query):
         score = 0.86
@@ -111,15 +140,14 @@ def _section_item_sources(
     query: str,
 ) -> list[LexSource]:
     results: list[LexSource] = []
-    wanted = []
+    wanted: list[dict[str, Any]] = []
     if query:
         for row in items:
-            haystack = f"{_row_title(row)} {_row_excerpt(row)}".lower()
-            if query in haystack:
+            if _row_matches_query(row, query):
                 wanted.append(row)
     if not wanted:
-        wanted = list(items[:1]) if items else []
-    for row in wanted[:3]:
+        wanted = list(items)
+    for row in wanted:
         title = _row_title(row)
         excerpt = _row_excerpt(row)
         if not title and not excerpt:
@@ -144,7 +172,10 @@ def search_fascicolo_sources(pratica_id: str, message: str, context: dict[str, A
     fascicolo_sections = dict(structured.get("fascicolo_sezioni") or {})
 
     if pratica_id:
-        fascicolo = get_fascicoli().get(pratica_id)
+        try:
+            fascicolo = get_fascicoli().get(pratica_id)
+        except Exception:
+            fascicolo = None
         if fascicolo:
             excerpt = (
                 f"Fascicolo {fascicolo.numero}: {fascicolo.titolo}. "
@@ -162,7 +193,7 @@ def search_fascicolo_sources(pratica_id: str, message: str, context: dict[str, A
             )
 
     counts = dict(fascicolo_sections.get("counts") or {})
-    for section_key, title in _SECTION_LABELS.items():
+    for section_key, _title in _SECTION_LABELS.items():
         items = list(
             fascicolo_sections.get(section_key)
             or (structured.get("documenti") if section_key == "documenti_fascicolo" else [])
@@ -181,7 +212,7 @@ def search_fascicolo_sources(pratica_id: str, message: str, context: dict[str, A
         rows.extend(_section_item_sources(section_key=section_key, items=items, query=query))
 
     if not fascicolo_sections:
-        for row in list(structured.get("documenti") or [])[:3]:
+        for row in list(structured.get("documenti") or []):
             rows.append(
                 LexSource(
                     source_type="documento_fascicolo",

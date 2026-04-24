@@ -1,0 +1,5873 @@
+{
+  "suite": "Suite professionale completa template atti IUSENTRA",
+  "versione": "1.1.0",
+  "gruppo": "Specialist portali e riti verticali",
+  "totale_template": 92,
+  "moduli": [
+    {
+      "codice": "PEN",
+      "nome": "Penale",
+      "file": "17_penale.json",
+      "conteggio": 25
+    },
+    {
+      "codice": "TRI",
+      "nome": "Tributario",
+      "file": "18_tributario.json",
+      "conteggio": 20
+    },
+    {
+      "codice": "AMM",
+      "nome": "Amministrativo",
+      "file": "19_amministrativo.json",
+      "conteggio": 18
+    },
+    {
+      "codice": "ADR",
+      "nome": "ADR, mediazione, negoziazione, arbitrato",
+      "file": "20_adr_mediazione_negoziazione_arbitrato.json",
+      "conteggio": 14
+    },
+    {
+      "codice": "CONC",
+      "nome": "Procedure concorsuali e crisi",
+      "file": "21_concorsuale_crisi.json",
+      "conteggio": 15
+    }
+  ],
+  "template": [
+    {
+      "id": "PEN_001",
+      "slug": "nomina-del-difensore",
+      "titolo": "Nomina del difensore",
+      "famiglia": "Penale",
+      "area": "Giudiziale",
+      "macro_area": "Diritto penale",
+      "sottobranca": "Difesa penale e persona offesa",
+      "procedimento": "Penale",
+      "fase": "standard",
+      "autorita": "Procura / Tribunale Penale / Corte d'Appello",
+      "rito": "Penale",
+      "canale_telematico": "PDP",
+      "depositabile": true,
+      "priorita": "core",
+      "tags": [
+        "pen",
+        "pdp",
+        "penale",
+        "pen_001"
+      ],
+      "campi_precompila": [
+        "assistito",
+        "controparte",
+        "difensore",
+        "ufficio_giudiziario",
+        "procedimento_penale",
+        "data_atto"
+      ],
+      "blocchi_guidati": [
+        "Intestazione",
+        "Parti",
+        "Premesse",
+        "Fatti",
+        "Diritto",
+        "Richieste",
+        "Allegati",
+        "Firma"
+      ],
+      "varianti": [
+        "standard"
+      ],
+      "allegati_essenziali": [
+        "documenti a sostegno",
+        "procura ove necessaria",
+        "prova notifiche se richieste"
+      ],
+      "checklist_conformita": [
+        "anagrafica parti verificata",
+        "competenza/autorità verificata",
+        "allegati essenziali presenti",
+        "richieste finali coerenti",
+        "formato deposito verificato",
+        "dati fascicolo o procedimento controllati"
+      ],
+      "note_operative": [
+        "Verificare il canale telematico PDP e l'ufficio competente prima del deposito."
+      ],
+      "versione": "1.1.0",
+      "stato": "draft_professionale",
+      "ordinamento": 1
+    },
+    {
+      "id": "TRI_001",
+      "slug": "ricorso-tributario",
+      "titolo": "Ricorso tributario",
+      "famiglia": "Tributario",
+      "area": "Giudiziale",
+      "macro_area": "Diritto tributario",
+      "sottobranca": "Contenzioso tributario",
+      "procedimento": "Tributario",
+      "fase": "standard",
+      "autorita": "Corte di Giustizia Tributaria",
+      "rito": "Tributario",
+      "canale_telematico": "PTT",
+      "depositabile": true,
+      "priorita": "core",
+      "tags": [
+        "tri",
+        "ptt",
+        "tributario",
+        "ricorso",
+        "tri_001"
+      ],
+      "campi_precompila": [
+        "cliente",
+        "ente_impositore",
+        "difensore",
+        "atto_impugnato",
+        "tributo",
+        "data_atto"
+      ],
+      "blocchi_guidati": [
+        "Intestazione",
+        "Parti",
+        "Atto impugnato",
+        "Fatti",
+        "Diritto",
+        "Richieste",
+        "Allegati",
+        "Firma"
+      ],
+      "varianti": [
+        "base",
+        "con urgenza",
+        "con richiesta spese"
+      ],
+      "allegati_essenziali": [
+        "atto impugnato",
+        "prova notifiche",
+        "procura",
+        "documenti fiscali"
+      ],
+      "checklist_conformita": [
+        "anagrafica parti verificata",
+        "competenza/autorità verificata",
+        "allegati essenziali presenti",
+        "richieste finali coerenti",
+        "formato deposito verificato",
+        "dati fascicolo o procedimento controllati"
+      ],
+      "note_operative": [
+        "Verificare il canale telematico PTT e l'ufficio competente prima del deposito.",
+        "Validare termini di impugnazione e allegare l'atto impugnato con relata o prova di notifica."
+      ],
+      "versione": "1.1.0",
+      "stato": "draft_professionale",
+      "ordinamento": 1
+    },
+    {
+      "id": "AMM_001",
+      "slug": "ricorso-al-tar",
+      "titolo": "Ricorso al TAR",
+      "famiglia": "Amministrativo",
+      "area": "Giudiziale",
+      "macro_area": "Diritto amministrativo",
+      "sottobranca": "PAT e contenzioso amministrativo",
+      "procedimento": "Amministrativo",
+      "fase": "standard",
+      "autorita": "TAR / Consiglio di Stato",
+      "rito": "Amministrativo",
+      "canale_telematico": "PAT",
+      "depositabile": true,
+      "priorita": "core",
+      "tags": [
+        "amm",
+        "pat",
+        "amministrativo",
+        "ricorso",
+        "amm_001"
+      ],
+      "campi_precompila": [
+        "cliente",
+        "amministrazione",
+        "difensore",
+        "provvedimento",
+        "ufficio_giudiziario",
+        "data_atto"
+      ],
+      "blocchi_guidati": [
+        "Intestazione",
+        "Parti",
+        "Provvedimento impugnato",
+        "Fatti",
+        "Diritto",
+        "Richieste",
+        "Allegati",
+        "Firma"
+      ],
+      "varianti": [
+        "base",
+        "con urgenza",
+        "con richiesta spese"
+      ],
+      "allegati_essenziali": [
+        "provvedimento impugnato",
+        "documenti amministrativi",
+        "procura",
+        "prova notifiche"
+      ],
+      "checklist_conformita": [
+        "anagrafica parti verificata",
+        "competenza/autorità verificata",
+        "allegati essenziali presenti",
+        "richieste finali coerenti",
+        "formato deposito verificato",
+        "dati fascicolo o procedimento controllati"
+      ],
+      "note_operative": [
+        "Verificare il canale telematico PAT e l'ufficio competente prima del deposito."
+      ],
+      "versione": "1.1.0",
+      "stato": "draft_professionale",
+      "ordinamento": 1
+    },
+    {
+      "id": "ADR_001",
+      "slug": "invito-alla-mediazione",
+      "titolo": "Invito alla mediazione",
+      "famiglia": "ADR, mediazione, negoziazione, arbitrato",
+      "area": "Stragiudiziale",
+      "macro_area": "ADR",
+      "sottobranca": "Mediazione e arbitrato",
+      "procedimento": "ADR, mediazione, negoziazione, arbitrato",
+      "fase": "standard",
+      "autorita": "Organismo ADR / Nessuna",
+      "rito": "ADR",
+      "canale_telematico": "NESSUNO",
+      "depositabile": false,
+      "priorita": "core",
+      "tags": [
+        "adr",
+        "nessuno",
+        "mediazione",
+        "adr_001"
+      ],
+      "campi_precompila": [
+        "cliente",
+        "controparte",
+        "difensore",
+        "controversia",
+        "organismo",
+        "data_atto"
+      ],
+      "blocchi_guidati": [
+        "Intestazione",
+        "Parti",
+        "Oggetto",
+        "Fatti",
+        "Richieste",
+        "Proposte",
+        "Allegati",
+        "Firma"
+      ],
+      "varianti": [
+        "standard"
+      ],
+      "allegati_essenziali": [
+        "documenti a sostegno",
+        "procura ove necessaria",
+        "prova notifiche se richieste"
+      ],
+      "checklist_conformita": [
+        "anagrafica parti verificata",
+        "competenza/autorità verificata",
+        "allegati essenziali presenti",
+        "richieste finali coerenti"
+      ],
+      "note_operative": [
+        "Adattare sempre il modello al caso concreto e alla strategia processuale."
+      ],
+      "versione": "1.1.0",
+      "stato": "draft_professionale",
+      "ordinamento": 1
+    },
+    {
+      "id": "CONC_001",
+      "slug": "domanda-di-insinuazione-al-passivo",
+      "titolo": "Domanda di insinuazione al passivo",
+      "famiglia": "Procedure concorsuali e crisi",
+      "area": "Giudiziale",
+      "macro_area": "Crisi d'impresa e insolvenza",
+      "sottobranca": "Concorsuale",
+      "procedimento": "Procedure concorsuali e crisi",
+      "fase": "standard",
+      "autorita": "Tribunale / Giudice Delegato",
+      "rito": "Concorsuale",
+      "canale_telematico": "PST_CONCORSUALE",
+      "depositabile": true,
+      "priorita": "core",
+      "tags": [
+        "conc",
+        "pst",
+        "concorsuale",
+        "passivo",
+        "pst_concorsuale",
+        "conc_001"
+      ],
+      "campi_precompila": [
+        "cliente",
+        "procedura",
+        "difensore",
+        "ufficio_giudiziario",
+        "credito",
+        "data_atto"
+      ],
+      "blocchi_guidati": [
+        "Intestazione",
+        "Soggetti",
+        "Titolo del credito",
+        "Fatti",
+        "Diritto",
+        "Richieste",
+        "Allegati",
+        "Firma"
+      ],
+      "varianti": [
+        "standard"
+      ],
+      "allegati_essenziali": [
+        "documenti a sostegno",
+        "procura ove necessaria",
+        "prova notifiche se richieste"
+      ],
+      "checklist_conformita": [
+        "anagrafica parti verificata",
+        "competenza/autorità verificata",
+        "allegati essenziali presenti",
+        "richieste finali coerenti",
+        "formato deposito verificato",
+        "dati fascicolo o procedimento controllati"
+      ],
+      "note_operative": [
+        "Verificare il canale telematico PST e l'ufficio competente prima del deposito."
+      ],
+      "versione": "1.1.0",
+      "stato": "draft_professionale",
+      "ordinamento": 1
+    },
+    {
+      "id": "PEN_002",
+      "slug": "revoca-o-rinuncia-al-mandato",
+      "titolo": "Revoca o rinuncia al mandato",
+      "famiglia": "Penale",
+      "area": "Giudiziale",
+      "macro_area": "Diritto penale",
+      "sottobranca": "Difesa penale e persona offesa",
+      "procedimento": "Penale",
+      "fase": "standard",
+      "autorita": "Procura / Tribunale Penale / Corte d'Appello",
+      "rito": "Penale",
+      "canale_telematico": "PDP",
+      "depositabile": true,
+      "priorita": "core",
+      "tags": [
+        "pen",
+        "pdp",
+        "penale",
+        "pen_002"
+      ],
+      "campi_precompila": [
+        "assistito",
+        "controparte",
+        "difensore",
+        "ufficio_giudiziario",
+        "procedimento_penale",
+        "data_atto"
+      ],
+      "blocchi_guidati": [
+        "Intestazione",
+        "Parti",
+        "Premesse",
+        "Fatti",
+        "Diritto",
+        "Richieste",
+        "Allegati",
+        "Firma"
+      ],
+      "varianti": [
+        "standard"
+      ],
+      "allegati_essenziali": [
+        "documenti a sostegno",
+        "procura ove necessaria",
+        "prova notifiche se richieste"
+      ],
+      "checklist_conformita": [
+        "anagrafica parti verificata",
+        "competenza/autorità verificata",
+        "allegati essenziali presenti",
+        "richieste finali coerenti",
+        "formato deposito verificato",
+        "dati fascicolo o procedimento controllati"
+      ],
+      "note_operative": [
+        "Verificare il canale telematico PDP e l'ufficio competente prima del deposito."
+      ],
+      "versione": "1.1.0",
+      "stato": "draft_professionale",
+      "ordinamento": 2
+    },
+    {
+      "id": "TRI_002",
+      "slug": "reclamo-mediazione-tributaria",
+      "titolo": "Reclamo-mediazione tributaria",
+      "famiglia": "Tributario",
+      "area": "Giudiziale",
+      "macro_area": "Diritto tributario",
+      "sottobranca": "Contenzioso tributario",
+      "procedimento": "Tributario",
+      "fase": "standard",
+      "autorita": "Corte di Giustizia Tributaria",
+      "rito": "Tributario",
+      "canale_telematico": "PTT",
+      "depositabile": true,
+      "priorita": "core",
+      "tags": [
+        "tri",
+        "ptt",
+        "tributario",
+        "mediazione",
+        "tri_002"
+      ],
+      "campi_precompila": [
+        "cliente",
+        "ente_impositore",
+        "difensore",
+        "atto_impugnato",
+        "tributo",
+        "data_atto"
+      ],
+      "blocchi_guidati": [
+        "Intestazione",
+        "Parti",
+        "Atto impugnato",
+        "Fatti",
+        "Diritto",
+        "Richieste",
+        "Allegati",
+        "Firma"
+      ],
+      "varianti": [
+        "standard"
+      ],
+      "allegati_essenziali": [
+        "atto impugnato",
+        "prova notifiche",
+        "procura",
+        "documenti fiscali"
+      ],
+      "checklist_conformita": [
+        "anagrafica parti verificata",
+        "competenza/autorità verificata",
+        "allegati essenziali presenti",
+        "richieste finali coerenti",
+        "formato deposito verificato",
+        "dati fascicolo o procedimento controllati"
+      ],
+      "note_operative": [
+        "Verificare il canale telematico PTT e l'ufficio competente prima del deposito."
+      ],
+      "versione": "1.1.0",
+      "stato": "draft_professionale",
+      "ordinamento": 2
+    },
+    {
+      "id": "AMM_002",
+      "slug": "motivi-aggiunti",
+      "titolo": "Motivi aggiunti",
+      "famiglia": "Amministrativo",
+      "area": "Giudiziale",
+      "macro_area": "Diritto amministrativo",
+      "sottobranca": "PAT e contenzioso amministrativo",
+      "procedimento": "Amministrativo",
+      "fase": "standard",
+      "autorita": "TAR / Consiglio di Stato",
+      "rito": "Amministrativo",
+      "canale_telematico": "PAT",
+      "depositabile": true,
+      "priorita": "core",
+      "tags": [
+        "amm",
+        "pat",
+        "amministrativo",
+        "amm_002"
+      ],
+      "campi_precompila": [
+        "cliente",
+        "amministrazione",
+        "difensore",
+        "provvedimento",
+        "ufficio_giudiziario",
+        "data_atto"
+      ],
+      "blocchi_guidati": [
+        "Intestazione",
+        "Parti",
+        "Provvedimento impugnato",
+        "Fatti",
+        "Diritto",
+        "Richieste",
+        "Allegati",
+        "Firma"
+      ],
+      "varianti": [
+        "standard"
+      ],
+      "allegati_essenziali": [
+        "documenti a sostegno",
+        "procura ove necessaria",
+        "prova notifiche se richieste"
+      ],
+      "checklist_conformita": [
+        "anagrafica parti verificata",
+        "competenza/autorità verificata",
+        "allegati essenziali presenti",
+        "richieste finali coerenti",
+        "formato deposito verificato",
+        "dati fascicolo o procedimento controllati"
+      ],
+      "note_operative": [
+        "Verificare il canale telematico PAT e l'ufficio competente prima del deposito."
+      ],
+      "versione": "1.1.0",
+      "stato": "draft_professionale",
+      "ordinamento": 2
+    },
+    {
+      "id": "ADR_002",
+      "slug": "istanza-di-mediazione",
+      "titolo": "Istanza di mediazione",
+      "famiglia": "ADR, mediazione, negoziazione, arbitrato",
+      "area": "Stragiudiziale",
+      "macro_area": "ADR",
+      "sottobranca": "Mediazione e arbitrato",
+      "procedimento": "ADR, mediazione, negoziazione, arbitrato",
+      "fase": "standard",
+      "autorita": "Organismo ADR / Nessuna",
+      "rito": "ADR",
+      "canale_telematico": "NESSUNO",
+      "depositabile": false,
+      "priorita": "core",
+      "tags": [
+        "adr",
+        "nessuno",
+        "istanza",
+        "mediazione",
+        "adr_002"
+      ],
+      "campi_precompila": [
+        "cliente",
+        "controparte",
+        "difensore",
+        "controversia",
+        "organismo",
+        "data_atto"
+      ],
+      "blocchi_guidati": [
+        "Intestazione",
+        "Parti",
+        "Oggetto",
+        "Fatti",
+        "Richieste",
+        "Proposte",
+        "Allegati",
+        "Firma"
+      ],
+      "varianti": [
+        "semplice",
+        "urgente"
+      ],
+      "allegati_essenziali": [
+        "documenti a sostegno",
+        "procura ove necessaria",
+        "prova notifiche se richieste"
+      ],
+      "checklist_conformita": [
+        "anagrafica parti verificata",
+        "competenza/autorità verificata",
+        "allegati essenziali presenti",
+        "richieste finali coerenti"
+      ],
+      "note_operative": [
+        "Adattare sempre il modello al caso concreto e alla strategia processuale."
+      ],
+      "versione": "1.1.0",
+      "stato": "draft_professionale",
+      "ordinamento": 2
+    },
+    {
+      "id": "CONC_002",
+      "slug": "domanda-tardiva-di-insinuazione",
+      "titolo": "Domanda tardiva di insinuazione",
+      "famiglia": "Procedure concorsuali e crisi",
+      "area": "Giudiziale",
+      "macro_area": "Crisi d'impresa e insolvenza",
+      "sottobranca": "Concorsuale",
+      "procedimento": "Procedure concorsuali e crisi",
+      "fase": "standard",
+      "autorita": "Tribunale / Giudice Delegato",
+      "rito": "Concorsuale",
+      "canale_telematico": "PST_CONCORSUALE",
+      "depositabile": true,
+      "priorita": "core",
+      "tags": [
+        "conc",
+        "pst",
+        "concorsuale",
+        "pst_concorsuale",
+        "conc_002"
+      ],
+      "campi_precompila": [
+        "cliente",
+        "procedura",
+        "difensore",
+        "ufficio_giudiziario",
+        "credito",
+        "data_atto"
+      ],
+      "blocchi_guidati": [
+        "Intestazione",
+        "Soggetti",
+        "Titolo del credito",
+        "Fatti",
+        "Diritto",
+        "Richieste",
+        "Allegati",
+        "Firma"
+      ],
+      "varianti": [
+        "standard"
+      ],
+      "allegati_essenziali": [
+        "documenti a sostegno",
+        "procura ove necessaria",
+        "prova notifiche se richieste"
+      ],
+      "checklist_conformita": [
+        "anagrafica parti verificata",
+        "competenza/autorità verificata",
+        "allegati essenziali presenti",
+        "richieste finali coerenti",
+        "formato deposito verificato",
+        "dati fascicolo o procedimento controllati"
+      ],
+      "note_operative": [
+        "Verificare il canale telematico PST e l'ufficio competente prima del deposito."
+      ],
+      "versione": "1.1.0",
+      "stato": "draft_professionale",
+      "ordinamento": 2
+    },
+    {
+      "id": "PEN_003",
+      "slug": "memoria-difensiva-ex-art-121-c-p-p",
+      "titolo": "Memoria difensiva ex art. 121 c.p.p.",
+      "famiglia": "Penale",
+      "area": "Giudiziale",
+      "macro_area": "Diritto penale",
+      "sottobranca": "Difesa penale e persona offesa",
+      "procedimento": "Penale",
+      "fase": "standard",
+      "autorita": "Procura / Tribunale Penale / Corte d'Appello",
+      "rito": "Penale",
+      "canale_telematico": "PDP",
+      "depositabile": true,
+      "priorita": "core",
+      "tags": [
+        "pen",
+        "pdp",
+        "penale",
+        "memoria",
+        "pen_003"
+      ],
+      "campi_precompila": [
+        "assistito",
+        "controparte",
+        "difensore",
+        "ufficio_giudiziario",
+        "procedimento_penale",
+        "data_atto"
+      ],
+      "blocchi_guidati": [
+        "Intestazione",
+        "Parti",
+        "Premesse",
+        "Fatti",
+        "Diritto",
+        "Richieste",
+        "Allegati",
+        "Firma"
+      ],
+      "varianti": [
+        "standard"
+      ],
+      "allegati_essenziali": [
+        "documenti a sostegno",
+        "procura ove necessaria",
+        "prova notifiche se richieste"
+      ],
+      "checklist_conformita": [
+        "anagrafica parti verificata",
+        "competenza/autorità verificata",
+        "allegati essenziali presenti",
+        "richieste finali coerenti",
+        "formato deposito verificato",
+        "dati fascicolo o procedimento controllati"
+      ],
+      "note_operative": [
+        "Verificare il canale telematico PDP e l'ufficio competente prima del deposito."
+      ],
+      "versione": "1.1.0",
+      "stato": "draft_professionale",
+      "ordinamento": 3
+    },
+    {
+      "id": "TRI_003",
+      "slug": "appello-tributario",
+      "titolo": "Appello tributario",
+      "famiglia": "Tributario",
+      "area": "Giudiziale",
+      "macro_area": "Diritto tributario",
+      "sottobranca": "Contenzioso tributario",
+      "procedimento": "Tributario",
+      "fase": "standard",
+      "autorita": "Corte di Giustizia Tributaria",
+      "rito": "Tributario",
+      "canale_telematico": "PTT",
+      "depositabile": true,
+      "priorita": "core",
+      "tags": [
+        "tri",
+        "ptt",
+        "tributario",
+        "appello",
+        "tri_003"
+      ],
+      "campi_precompila": [
+        "cliente",
+        "ente_impositore",
+        "difensore",
+        "atto_impugnato",
+        "tributo",
+        "data_atto"
+      ],
+      "blocchi_guidati": [
+        "Intestazione",
+        "Parti",
+        "Atto impugnato",
+        "Fatti",
+        "Diritto",
+        "Richieste",
+        "Allegati",
+        "Firma"
+      ],
+      "varianti": [
+        "principale",
+        "incidentale"
+      ],
+      "allegati_essenziali": [
+        "atto impugnato",
+        "prova notifiche",
+        "procura",
+        "documenti fiscali"
+      ],
+      "checklist_conformita": [
+        "anagrafica parti verificata",
+        "competenza/autorità verificata",
+        "allegati essenziali presenti",
+        "richieste finali coerenti",
+        "formato deposito verificato",
+        "dati fascicolo o procedimento controllati"
+      ],
+      "note_operative": [
+        "Verificare il canale telematico PTT e l'ufficio competente prima del deposito."
+      ],
+      "versione": "1.1.0",
+      "stato": "draft_professionale",
+      "ordinamento": 3
+    },
+    {
+      "id": "AMM_003",
+      "slug": "ricorso-incidentale",
+      "titolo": "Ricorso incidentale",
+      "famiglia": "Amministrativo",
+      "area": "Giudiziale",
+      "macro_area": "Diritto amministrativo",
+      "sottobranca": "PAT e contenzioso amministrativo",
+      "procedimento": "Amministrativo",
+      "fase": "standard",
+      "autorita": "TAR / Consiglio di Stato",
+      "rito": "Amministrativo",
+      "canale_telematico": "PAT",
+      "depositabile": true,
+      "priorita": "core",
+      "tags": [
+        "amm",
+        "pat",
+        "amministrativo",
+        "ricorso",
+        "amm_003"
+      ],
+      "campi_precompila": [
+        "cliente",
+        "amministrazione",
+        "difensore",
+        "provvedimento",
+        "ufficio_giudiziario",
+        "data_atto"
+      ],
+      "blocchi_guidati": [
+        "Intestazione",
+        "Parti",
+        "Provvedimento impugnato",
+        "Fatti",
+        "Diritto",
+        "Richieste",
+        "Allegati",
+        "Firma"
+      ],
+      "varianti": [
+        "base",
+        "con urgenza",
+        "con richiesta spese"
+      ],
+      "allegati_essenziali": [
+        "documenti a sostegno",
+        "procura ove necessaria",
+        "prova notifiche se richieste"
+      ],
+      "checklist_conformita": [
+        "anagrafica parti verificata",
+        "competenza/autorità verificata",
+        "allegati essenziali presenti",
+        "richieste finali coerenti",
+        "formato deposito verificato",
+        "dati fascicolo o procedimento controllati"
+      ],
+      "note_operative": [
+        "Verificare il canale telematico PAT e l'ufficio competente prima del deposito."
+      ],
+      "versione": "1.1.0",
+      "stato": "draft_professionale",
+      "ordinamento": 3
+    },
+    {
+      "id": "ADR_003",
+      "slug": "adesione-alla-mediazione",
+      "titolo": "Adesione alla mediazione",
+      "famiglia": "ADR, mediazione, negoziazione, arbitrato",
+      "area": "Stragiudiziale",
+      "macro_area": "ADR",
+      "sottobranca": "Mediazione e arbitrato",
+      "procedimento": "ADR, mediazione, negoziazione, arbitrato",
+      "fase": "standard",
+      "autorita": "Organismo ADR / Nessuna",
+      "rito": "ADR",
+      "canale_telematico": "NESSUNO",
+      "depositabile": false,
+      "priorita": "core",
+      "tags": [
+        "adr",
+        "nessuno",
+        "mediazione",
+        "adr_003"
+      ],
+      "campi_precompila": [
+        "cliente",
+        "controparte",
+        "difensore",
+        "controversia",
+        "organismo",
+        "data_atto"
+      ],
+      "blocchi_guidati": [
+        "Intestazione",
+        "Parti",
+        "Oggetto",
+        "Fatti",
+        "Richieste",
+        "Proposte",
+        "Allegati",
+        "Firma"
+      ],
+      "varianti": [
+        "standard"
+      ],
+      "allegati_essenziali": [
+        "documenti a sostegno",
+        "procura ove necessaria",
+        "prova notifiche se richieste"
+      ],
+      "checklist_conformita": [
+        "anagrafica parti verificata",
+        "competenza/autorità verificata",
+        "allegati essenziali presenti",
+        "richieste finali coerenti"
+      ],
+      "note_operative": [
+        "Adattare sempre il modello al caso concreto e alla strategia processuale."
+      ],
+      "versione": "1.1.0",
+      "stato": "draft_professionale",
+      "ordinamento": 3
+    },
+    {
+      "id": "CONC_003",
+      "slug": "opposizione-allo-stato-passivo",
+      "titolo": "Opposizione allo stato passivo",
+      "famiglia": "Procedure concorsuali e crisi",
+      "area": "Giudiziale",
+      "macro_area": "Crisi d'impresa e insolvenza",
+      "sottobranca": "Concorsuale",
+      "procedimento": "Procedure concorsuali e crisi",
+      "fase": "standard",
+      "autorita": "Tribunale / Giudice Delegato",
+      "rito": "Concorsuale",
+      "canale_telematico": "PST_CONCORSUALE",
+      "depositabile": true,
+      "priorita": "core",
+      "tags": [
+        "conc",
+        "pst",
+        "concorsuale",
+        "opposizione",
+        "passivo",
+        "pst_concorsuale",
+        "conc_003"
+      ],
+      "campi_precompila": [
+        "cliente",
+        "procedura",
+        "difensore",
+        "ufficio_giudiziario",
+        "credito",
+        "data_atto"
+      ],
+      "blocchi_guidati": [
+        "Intestazione",
+        "Soggetti",
+        "Titolo del credito",
+        "Fatti",
+        "Diritto",
+        "Richieste",
+        "Allegati",
+        "Firma"
+      ],
+      "varianti": [
+        "standard"
+      ],
+      "allegati_essenziali": [
+        "documenti a sostegno",
+        "procura ove necessaria",
+        "prova notifiche se richieste"
+      ],
+      "checklist_conformita": [
+        "anagrafica parti verificata",
+        "competenza/autorità verificata",
+        "allegati essenziali presenti",
+        "richieste finali coerenti",
+        "formato deposito verificato",
+        "dati fascicolo o procedimento controllati"
+      ],
+      "note_operative": [
+        "Verificare il canale telematico PST e l'ufficio competente prima del deposito."
+      ],
+      "versione": "1.1.0",
+      "stato": "draft_professionale",
+      "ordinamento": 3
+    },
+    {
+      "id": "PEN_004",
+      "slug": "istanza-di-rinvio-udienza",
+      "titolo": "Istanza di rinvio udienza",
+      "famiglia": "Penale",
+      "area": "Giudiziale",
+      "macro_area": "Diritto penale",
+      "sottobranca": "Difesa penale e persona offesa",
+      "procedimento": "Penale",
+      "fase": "standard",
+      "autorita": "Procura / Tribunale Penale / Corte d'Appello",
+      "rito": "Penale",
+      "canale_telematico": "PDP",
+      "depositabile": true,
+      "priorita": "core",
+      "tags": [
+        "pen",
+        "pdp",
+        "penale",
+        "istanza",
+        "pen_004"
+      ],
+      "campi_precompila": [
+        "assistito",
+        "controparte",
+        "difensore",
+        "ufficio_giudiziario",
+        "procedimento_penale",
+        "data_atto"
+      ],
+      "blocchi_guidati": [
+        "Intestazione",
+        "Parti",
+        "Premesse",
+        "Fatti",
+        "Diritto",
+        "Richieste",
+        "Allegati",
+        "Firma"
+      ],
+      "varianti": [
+        "semplice",
+        "urgente"
+      ],
+      "allegati_essenziali": [
+        "documenti a sostegno",
+        "procura ove necessaria",
+        "prova notifiche se richieste"
+      ],
+      "checklist_conformita": [
+        "anagrafica parti verificata",
+        "competenza/autorità verificata",
+        "allegati essenziali presenti",
+        "richieste finali coerenti",
+        "formato deposito verificato",
+        "dati fascicolo o procedimento controllati"
+      ],
+      "note_operative": [
+        "Verificare il canale telematico PDP e l'ufficio competente prima del deposito."
+      ],
+      "versione": "1.1.0",
+      "stato": "draft_professionale",
+      "ordinamento": 4
+    },
+    {
+      "id": "TRI_004",
+      "slug": "controdeduzioni",
+      "titolo": "Controdeduzioni",
+      "famiglia": "Tributario",
+      "area": "Giudiziale",
+      "macro_area": "Diritto tributario",
+      "sottobranca": "Contenzioso tributario",
+      "procedimento": "Tributario",
+      "fase": "standard",
+      "autorita": "Corte di Giustizia Tributaria",
+      "rito": "Tributario",
+      "canale_telematico": "PTT",
+      "depositabile": true,
+      "priorita": "core",
+      "tags": [
+        "tri",
+        "ptt",
+        "tributario",
+        "tri_004"
+      ],
+      "campi_precompila": [
+        "cliente",
+        "ente_impositore",
+        "difensore",
+        "atto_impugnato",
+        "tributo",
+        "data_atto"
+      ],
+      "blocchi_guidati": [
+        "Intestazione",
+        "Parti",
+        "Atto impugnato",
+        "Fatti",
+        "Diritto",
+        "Richieste",
+        "Allegati",
+        "Firma"
+      ],
+      "varianti": [
+        "standard"
+      ],
+      "allegati_essenziali": [
+        "documenti a sostegno",
+        "procura ove necessaria",
+        "prova notifiche se richieste"
+      ],
+      "checklist_conformita": [
+        "anagrafica parti verificata",
+        "competenza/autorità verificata",
+        "allegati essenziali presenti",
+        "richieste finali coerenti",
+        "formato deposito verificato",
+        "dati fascicolo o procedimento controllati"
+      ],
+      "note_operative": [
+        "Verificare il canale telematico PTT e l'ufficio competente prima del deposito."
+      ],
+      "versione": "1.1.0",
+      "stato": "draft_professionale",
+      "ordinamento": 4
+    },
+    {
+      "id": "AMM_004",
+      "slug": "domanda-cautelare",
+      "titolo": "Domanda cautelare",
+      "famiglia": "Amministrativo",
+      "area": "Giudiziale",
+      "macro_area": "Diritto amministrativo",
+      "sottobranca": "PAT e contenzioso amministrativo",
+      "procedimento": "Amministrativo",
+      "fase": "standard",
+      "autorita": "TAR / Consiglio di Stato",
+      "rito": "Amministrativo",
+      "canale_telematico": "PAT",
+      "depositabile": true,
+      "priorita": "core",
+      "tags": [
+        "amm",
+        "pat",
+        "amministrativo",
+        "amm_004"
+      ],
+      "campi_precompila": [
+        "cliente",
+        "amministrazione",
+        "difensore",
+        "provvedimento",
+        "ufficio_giudiziario",
+        "data_atto"
+      ],
+      "blocchi_guidati": [
+        "Intestazione",
+        "Parti",
+        "Provvedimento impugnato",
+        "Fatti",
+        "Diritto",
+        "Richieste",
+        "Allegati",
+        "Firma"
+      ],
+      "varianti": [
+        "standard"
+      ],
+      "allegati_essenziali": [
+        "documenti a sostegno",
+        "procura ove necessaria",
+        "prova notifiche se richieste"
+      ],
+      "checklist_conformita": [
+        "anagrafica parti verificata",
+        "competenza/autorità verificata",
+        "allegati essenziali presenti",
+        "richieste finali coerenti",
+        "formato deposito verificato",
+        "dati fascicolo o procedimento controllati"
+      ],
+      "note_operative": [
+        "Verificare il canale telematico PAT e l'ufficio competente prima del deposito."
+      ],
+      "versione": "1.1.0",
+      "stato": "draft_professionale",
+      "ordinamento": 4
+    },
+    {
+      "id": "ADR_004",
+      "slug": "verbale-di-accordo",
+      "titolo": "Verbale di accordo",
+      "famiglia": "ADR, mediazione, negoziazione, arbitrato",
+      "area": "Stragiudiziale",
+      "macro_area": "ADR",
+      "sottobranca": "Mediazione e arbitrato",
+      "procedimento": "ADR, mediazione, negoziazione, arbitrato",
+      "fase": "standard",
+      "autorita": "Organismo ADR / Nessuna",
+      "rito": "ADR",
+      "canale_telematico": "NESSUNO",
+      "depositabile": false,
+      "priorita": "core",
+      "tags": [
+        "adr",
+        "nessuno",
+        "adr_004"
+      ],
+      "campi_precompila": [
+        "cliente",
+        "controparte",
+        "difensore",
+        "controversia",
+        "organismo",
+        "data_atto"
+      ],
+      "blocchi_guidati": [
+        "Intestazione",
+        "Parti",
+        "Oggetto",
+        "Fatti",
+        "Richieste",
+        "Proposte",
+        "Allegati",
+        "Firma"
+      ],
+      "varianti": [
+        "standard"
+      ],
+      "allegati_essenziali": [
+        "documenti a sostegno",
+        "procura ove necessaria",
+        "prova notifiche se richieste"
+      ],
+      "checklist_conformita": [
+        "anagrafica parti verificata",
+        "competenza/autorità verificata",
+        "allegati essenziali presenti",
+        "richieste finali coerenti"
+      ],
+      "note_operative": [
+        "Adattare sempre il modello al caso concreto e alla strategia processuale."
+      ],
+      "versione": "1.1.0",
+      "stato": "draft_professionale",
+      "ordinamento": 4
+    },
+    {
+      "id": "CONC_004",
+      "slug": "istanza-di-rivendica",
+      "titolo": "Istanza di rivendica",
+      "famiglia": "Procedure concorsuali e crisi",
+      "area": "Giudiziale",
+      "macro_area": "Crisi d'impresa e insolvenza",
+      "sottobranca": "Concorsuale",
+      "procedimento": "Procedure concorsuali e crisi",
+      "fase": "standard",
+      "autorita": "Tribunale / Giudice Delegato",
+      "rito": "Concorsuale",
+      "canale_telematico": "PST_CONCORSUALE",
+      "depositabile": true,
+      "priorita": "core",
+      "tags": [
+        "conc",
+        "pst",
+        "concorsuale",
+        "istanza",
+        "pst_concorsuale",
+        "conc_004"
+      ],
+      "campi_precompila": [
+        "cliente",
+        "procedura",
+        "difensore",
+        "ufficio_giudiziario",
+        "credito",
+        "data_atto"
+      ],
+      "blocchi_guidati": [
+        "Intestazione",
+        "Soggetti",
+        "Titolo del credito",
+        "Fatti",
+        "Diritto",
+        "Richieste",
+        "Allegati",
+        "Firma"
+      ],
+      "varianti": [
+        "semplice",
+        "urgente"
+      ],
+      "allegati_essenziali": [
+        "documenti a sostegno",
+        "procura ove necessaria",
+        "prova notifiche se richieste"
+      ],
+      "checklist_conformita": [
+        "anagrafica parti verificata",
+        "competenza/autorità verificata",
+        "allegati essenziali presenti",
+        "richieste finali coerenti",
+        "formato deposito verificato",
+        "dati fascicolo o procedimento controllati"
+      ],
+      "note_operative": [
+        "Verificare il canale telematico PST e l'ufficio competente prima del deposito."
+      ],
+      "versione": "1.1.0",
+      "stato": "draft_professionale",
+      "ordinamento": 4
+    },
+    {
+      "id": "PEN_005",
+      "slug": "istanza-di-legittimo-impedimento",
+      "titolo": "Istanza di legittimo impedimento",
+      "famiglia": "Penale",
+      "area": "Giudiziale",
+      "macro_area": "Diritto penale",
+      "sottobranca": "Difesa penale e persona offesa",
+      "procedimento": "Penale",
+      "fase": "standard",
+      "autorita": "Procura / Tribunale Penale / Corte d'Appello",
+      "rito": "Penale",
+      "canale_telematico": "PDP",
+      "depositabile": true,
+      "priorita": "core",
+      "tags": [
+        "pen",
+        "pdp",
+        "penale",
+        "istanza",
+        "pen_005"
+      ],
+      "campi_precompila": [
+        "assistito",
+        "controparte",
+        "difensore",
+        "ufficio_giudiziario",
+        "procedimento_penale",
+        "data_atto"
+      ],
+      "blocchi_guidati": [
+        "Intestazione",
+        "Parti",
+        "Premesse",
+        "Fatti",
+        "Diritto",
+        "Richieste",
+        "Allegati",
+        "Firma"
+      ],
+      "varianti": [
+        "semplice",
+        "urgente"
+      ],
+      "allegati_essenziali": [
+        "documenti a sostegno",
+        "procura ove necessaria",
+        "prova notifiche se richieste"
+      ],
+      "checklist_conformita": [
+        "anagrafica parti verificata",
+        "competenza/autorità verificata",
+        "allegati essenziali presenti",
+        "richieste finali coerenti",
+        "formato deposito verificato",
+        "dati fascicolo o procedimento controllati"
+      ],
+      "note_operative": [
+        "Verificare il canale telematico PDP e l'ufficio competente prima del deposito."
+      ],
+      "versione": "1.1.0",
+      "stato": "draft_professionale",
+      "ordinamento": 5
+    },
+    {
+      "id": "TRI_005",
+      "slug": "memoria-illustrativa-tributaria",
+      "titolo": "Memoria illustrativa tributaria",
+      "famiglia": "Tributario",
+      "area": "Giudiziale",
+      "macro_area": "Diritto tributario",
+      "sottobranca": "Contenzioso tributario",
+      "procedimento": "Tributario",
+      "fase": "standard",
+      "autorita": "Corte di Giustizia Tributaria",
+      "rito": "Tributario",
+      "canale_telematico": "PTT",
+      "depositabile": true,
+      "priorita": "core",
+      "tags": [
+        "tri",
+        "ptt",
+        "tributario",
+        "memoria",
+        "tri_005"
+      ],
+      "campi_precompila": [
+        "cliente",
+        "ente_impositore",
+        "difensore",
+        "atto_impugnato",
+        "tributo",
+        "data_atto"
+      ],
+      "blocchi_guidati": [
+        "Intestazione",
+        "Parti",
+        "Atto impugnato",
+        "Fatti",
+        "Diritto",
+        "Richieste",
+        "Allegati",
+        "Firma"
+      ],
+      "varianti": [
+        "standard"
+      ],
+      "allegati_essenziali": [
+        "atto impugnato",
+        "prova notifiche",
+        "procura",
+        "documenti fiscali"
+      ],
+      "checklist_conformita": [
+        "anagrafica parti verificata",
+        "competenza/autorità verificata",
+        "allegati essenziali presenti",
+        "richieste finali coerenti",
+        "formato deposito verificato",
+        "dati fascicolo o procedimento controllati"
+      ],
+      "note_operative": [
+        "Verificare il canale telematico PTT e l'ufficio competente prima del deposito."
+      ],
+      "versione": "1.1.0",
+      "stato": "draft_professionale",
+      "ordinamento": 5
+    },
+    {
+      "id": "AMM_005",
+      "slug": "memoria-difensiva-amministrativa",
+      "titolo": "Memoria difensiva amministrativa",
+      "famiglia": "Amministrativo",
+      "area": "Giudiziale",
+      "macro_area": "Diritto amministrativo",
+      "sottobranca": "PAT e contenzioso amministrativo",
+      "procedimento": "Amministrativo",
+      "fase": "standard",
+      "autorita": "TAR / Consiglio di Stato",
+      "rito": "Amministrativo",
+      "canale_telematico": "PAT",
+      "depositabile": true,
+      "priorita": "core",
+      "tags": [
+        "amm",
+        "pat",
+        "amministrativo",
+        "memoria",
+        "amm_005"
+      ],
+      "campi_precompila": [
+        "cliente",
+        "amministrazione",
+        "difensore",
+        "provvedimento",
+        "ufficio_giudiziario",
+        "data_atto"
+      ],
+      "blocchi_guidati": [
+        "Intestazione",
+        "Parti",
+        "Provvedimento impugnato",
+        "Fatti",
+        "Diritto",
+        "Richieste",
+        "Allegati",
+        "Firma"
+      ],
+      "varianti": [
+        "standard"
+      ],
+      "allegati_essenziali": [
+        "provvedimento impugnato",
+        "documenti amministrativi",
+        "procura",
+        "prova notifiche"
+      ],
+      "checklist_conformita": [
+        "anagrafica parti verificata",
+        "competenza/autorità verificata",
+        "allegati essenziali presenti",
+        "richieste finali coerenti",
+        "formato deposito verificato",
+        "dati fascicolo o procedimento controllati"
+      ],
+      "note_operative": [
+        "Verificare il canale telematico PAT e l'ufficio competente prima del deposito."
+      ],
+      "versione": "1.1.0",
+      "stato": "draft_professionale",
+      "ordinamento": 5
+    },
+    {
+      "id": "ADR_005",
+      "slug": "verbale-di-mancato-accordo",
+      "titolo": "Verbale di mancato accordo",
+      "famiglia": "ADR, mediazione, negoziazione, arbitrato",
+      "area": "Stragiudiziale",
+      "macro_area": "ADR",
+      "sottobranca": "Mediazione e arbitrato",
+      "procedimento": "ADR, mediazione, negoziazione, arbitrato",
+      "fase": "standard",
+      "autorita": "Organismo ADR / Nessuna",
+      "rito": "ADR",
+      "canale_telematico": "NESSUNO",
+      "depositabile": false,
+      "priorita": "core",
+      "tags": [
+        "adr",
+        "nessuno",
+        "adr_005"
+      ],
+      "campi_precompila": [
+        "cliente",
+        "controparte",
+        "difensore",
+        "controversia",
+        "organismo",
+        "data_atto"
+      ],
+      "blocchi_guidati": [
+        "Intestazione",
+        "Parti",
+        "Oggetto",
+        "Fatti",
+        "Richieste",
+        "Proposte",
+        "Allegati",
+        "Firma"
+      ],
+      "varianti": [
+        "standard"
+      ],
+      "allegati_essenziali": [
+        "documenti a sostegno",
+        "procura ove necessaria",
+        "prova notifiche se richieste"
+      ],
+      "checklist_conformita": [
+        "anagrafica parti verificata",
+        "competenza/autorità verificata",
+        "allegati essenziali presenti",
+        "richieste finali coerenti"
+      ],
+      "note_operative": [
+        "Adattare sempre il modello al caso concreto e alla strategia processuale."
+      ],
+      "versione": "1.1.0",
+      "stato": "draft_professionale",
+      "ordinamento": 5
+    },
+    {
+      "id": "CONC_005",
+      "slug": "istanza-di-restituzione",
+      "titolo": "Istanza di restituzione",
+      "famiglia": "Procedure concorsuali e crisi",
+      "area": "Giudiziale",
+      "macro_area": "Crisi d'impresa e insolvenza",
+      "sottobranca": "Concorsuale",
+      "procedimento": "Procedure concorsuali e crisi",
+      "fase": "standard",
+      "autorita": "Tribunale / Giudice Delegato",
+      "rito": "Concorsuale",
+      "canale_telematico": "PST_CONCORSUALE",
+      "depositabile": true,
+      "priorita": "core",
+      "tags": [
+        "conc",
+        "pst",
+        "concorsuale",
+        "istanza",
+        "pst_concorsuale",
+        "conc_005"
+      ],
+      "campi_precompila": [
+        "cliente",
+        "procedura",
+        "difensore",
+        "ufficio_giudiziario",
+        "credito",
+        "data_atto"
+      ],
+      "blocchi_guidati": [
+        "Intestazione",
+        "Soggetti",
+        "Titolo del credito",
+        "Fatti",
+        "Diritto",
+        "Richieste",
+        "Allegati",
+        "Firma"
+      ],
+      "varianti": [
+        "semplice",
+        "urgente"
+      ],
+      "allegati_essenziali": [
+        "documenti a sostegno",
+        "procura ove necessaria",
+        "prova notifiche se richieste"
+      ],
+      "checklist_conformita": [
+        "anagrafica parti verificata",
+        "competenza/autorità verificata",
+        "allegati essenziali presenti",
+        "richieste finali coerenti",
+        "formato deposito verificato",
+        "dati fascicolo o procedimento controllati"
+      ],
+      "note_operative": [
+        "Verificare il canale telematico PST e l'ufficio competente prima del deposito."
+      ],
+      "versione": "1.1.0",
+      "stato": "draft_professionale",
+      "ordinamento": 5
+    },
+    {
+      "id": "PEN_006",
+      "slug": "lista-testi",
+      "titolo": "Lista testi",
+      "famiglia": "Penale",
+      "area": "Giudiziale",
+      "macro_area": "Diritto penale",
+      "sottobranca": "Difesa penale e persona offesa",
+      "procedimento": "Penale",
+      "fase": "standard",
+      "autorita": "Procura / Tribunale Penale / Corte d'Appello",
+      "rito": "Penale",
+      "canale_telematico": "PDP",
+      "depositabile": true,
+      "priorita": "core",
+      "tags": [
+        "pen",
+        "pdp",
+        "penale",
+        "pen_006"
+      ],
+      "campi_precompila": [
+        "assistito",
+        "controparte",
+        "difensore",
+        "ufficio_giudiziario",
+        "procedimento_penale",
+        "data_atto"
+      ],
+      "blocchi_guidati": [
+        "Intestazione",
+        "Parti",
+        "Premesse",
+        "Fatti",
+        "Diritto",
+        "Richieste",
+        "Allegati",
+        "Firma"
+      ],
+      "varianti": [
+        "standard"
+      ],
+      "allegati_essenziali": [
+        "documenti a sostegno",
+        "procura ove necessaria",
+        "prova notifiche se richieste"
+      ],
+      "checklist_conformita": [
+        "anagrafica parti verificata",
+        "competenza/autorità verificata",
+        "allegati essenziali presenti",
+        "richieste finali coerenti",
+        "formato deposito verificato",
+        "dati fascicolo o procedimento controllati"
+      ],
+      "note_operative": [
+        "Verificare il canale telematico PDP e l'ufficio competente prima del deposito."
+      ],
+      "versione": "1.1.0",
+      "stato": "draft_professionale",
+      "ordinamento": 6
+    },
+    {
+      "id": "TRI_006",
+      "slug": "istanza-di-sospensione-dell-esecutivita-dell-atto",
+      "titolo": "Istanza di sospensione dell'esecutività dell'atto",
+      "famiglia": "Tributario",
+      "area": "Giudiziale",
+      "macro_area": "Diritto tributario",
+      "sottobranca": "Contenzioso tributario",
+      "procedimento": "Tributario",
+      "fase": "standard",
+      "autorita": "Corte di Giustizia Tributaria",
+      "rito": "Tributario",
+      "canale_telematico": "PTT",
+      "depositabile": true,
+      "priorita": "core",
+      "tags": [
+        "tri",
+        "ptt",
+        "tributario",
+        "istanza",
+        "tri_006"
+      ],
+      "campi_precompila": [
+        "cliente",
+        "ente_impositore",
+        "difensore",
+        "atto_impugnato",
+        "tributo",
+        "data_atto"
+      ],
+      "blocchi_guidati": [
+        "Intestazione",
+        "Parti",
+        "Atto impugnato",
+        "Fatti",
+        "Diritto",
+        "Richieste",
+        "Allegati",
+        "Firma"
+      ],
+      "varianti": [
+        "semplice",
+        "urgente"
+      ],
+      "allegati_essenziali": [
+        "documenti a sostegno",
+        "procura ove necessaria",
+        "prova notifiche se richieste"
+      ],
+      "checklist_conformita": [
+        "anagrafica parti verificata",
+        "competenza/autorità verificata",
+        "allegati essenziali presenti",
+        "richieste finali coerenti",
+        "formato deposito verificato",
+        "dati fascicolo o procedimento controllati"
+      ],
+      "note_operative": [
+        "Verificare il canale telematico PTT e l'ufficio competente prima del deposito."
+      ],
+      "versione": "1.1.0",
+      "stato": "draft_professionale",
+      "ordinamento": 6
+    },
+    {
+      "id": "AMM_006",
+      "slug": "replica-amministrativa",
+      "titolo": "Replica amministrativa",
+      "famiglia": "Amministrativo",
+      "area": "Giudiziale",
+      "macro_area": "Diritto amministrativo",
+      "sottobranca": "PAT e contenzioso amministrativo",
+      "procedimento": "Amministrativo",
+      "fase": "standard",
+      "autorita": "TAR / Consiglio di Stato",
+      "rito": "Amministrativo",
+      "canale_telematico": "PAT",
+      "depositabile": true,
+      "priorita": "core",
+      "tags": [
+        "amm",
+        "pat",
+        "amministrativo",
+        "amm_006"
+      ],
+      "campi_precompila": [
+        "cliente",
+        "amministrazione",
+        "difensore",
+        "provvedimento",
+        "ufficio_giudiziario",
+        "data_atto"
+      ],
+      "blocchi_guidati": [
+        "Intestazione",
+        "Parti",
+        "Provvedimento impugnato",
+        "Fatti",
+        "Diritto",
+        "Richieste",
+        "Allegati",
+        "Firma"
+      ],
+      "varianti": [
+        "standard"
+      ],
+      "allegati_essenziali": [
+        "provvedimento impugnato",
+        "documenti amministrativi",
+        "procura",
+        "prova notifiche"
+      ],
+      "checklist_conformita": [
+        "anagrafica parti verificata",
+        "competenza/autorità verificata",
+        "allegati essenziali presenti",
+        "richieste finali coerenti",
+        "formato deposito verificato",
+        "dati fascicolo o procedimento controllati"
+      ],
+      "note_operative": [
+        "Verificare il canale telematico PAT e l'ufficio competente prima del deposito."
+      ],
+      "versione": "1.1.0",
+      "stato": "draft_professionale",
+      "ordinamento": 6
+    },
+    {
+      "id": "ADR_006",
+      "slug": "invito-a-negoziazione-assistita",
+      "titolo": "Invito a negoziazione assistita",
+      "famiglia": "ADR, mediazione, negoziazione, arbitrato",
+      "area": "Stragiudiziale",
+      "macro_area": "ADR",
+      "sottobranca": "Mediazione e arbitrato",
+      "procedimento": "ADR, mediazione, negoziazione, arbitrato",
+      "fase": "standard",
+      "autorita": "Organismo ADR / Nessuna",
+      "rito": "ADR",
+      "canale_telematico": "NESSUNO",
+      "depositabile": false,
+      "priorita": "core",
+      "tags": [
+        "adr",
+        "nessuno",
+        "negoziazione",
+        "adr_006"
+      ],
+      "campi_precompila": [
+        "cliente",
+        "controparte",
+        "difensore",
+        "controversia",
+        "organismo",
+        "data_atto"
+      ],
+      "blocchi_guidati": [
+        "Intestazione",
+        "Parti",
+        "Oggetto",
+        "Fatti",
+        "Richieste",
+        "Proposte",
+        "Allegati",
+        "Firma"
+      ],
+      "varianti": [
+        "standard"
+      ],
+      "allegati_essenziali": [
+        "documenti a sostegno",
+        "procura ove necessaria",
+        "prova notifiche se richieste"
+      ],
+      "checklist_conformita": [
+        "anagrafica parti verificata",
+        "competenza/autorità verificata",
+        "allegati essenziali presenti",
+        "richieste finali coerenti"
+      ],
+      "note_operative": [
+        "Adattare sempre il modello al caso concreto e alla strategia processuale."
+      ],
+      "versione": "1.1.0",
+      "stato": "draft_professionale",
+      "ordinamento": 6
+    },
+    {
+      "id": "CONC_006",
+      "slug": "domanda-di-ammissione-di-credito-privilegiato",
+      "titolo": "Domanda di ammissione di credito privilegiato",
+      "famiglia": "Procedure concorsuali e crisi",
+      "area": "Giudiziale",
+      "macro_area": "Crisi d'impresa e insolvenza",
+      "sottobranca": "Concorsuale",
+      "procedimento": "Procedure concorsuali e crisi",
+      "fase": "standard",
+      "autorita": "Tribunale / Giudice Delegato",
+      "rito": "Concorsuale",
+      "canale_telematico": "PST_CONCORSUALE",
+      "depositabile": true,
+      "priorita": "core",
+      "tags": [
+        "conc",
+        "pst",
+        "concorsuale",
+        "pst_concorsuale",
+        "conc_006"
+      ],
+      "campi_precompila": [
+        "cliente",
+        "procedura",
+        "difensore",
+        "ufficio_giudiziario",
+        "credito",
+        "data_atto"
+      ],
+      "blocchi_guidati": [
+        "Intestazione",
+        "Soggetti",
+        "Titolo del credito",
+        "Fatti",
+        "Diritto",
+        "Richieste",
+        "Allegati",
+        "Firma"
+      ],
+      "varianti": [
+        "standard"
+      ],
+      "allegati_essenziali": [
+        "documenti a sostegno",
+        "procura ove necessaria",
+        "prova notifiche se richieste"
+      ],
+      "checklist_conformita": [
+        "anagrafica parti verificata",
+        "competenza/autorità verificata",
+        "allegati essenziali presenti",
+        "richieste finali coerenti",
+        "formato deposito verificato",
+        "dati fascicolo o procedimento controllati"
+      ],
+      "note_operative": [
+        "Verificare il canale telematico PST e l'ufficio competente prima del deposito."
+      ],
+      "versione": "1.1.0",
+      "stato": "draft_professionale",
+      "ordinamento": 6
+    },
+    {
+      "id": "PEN_007",
+      "slug": "opposizione-a-decreto-penale",
+      "titolo": "Opposizione a decreto penale",
+      "famiglia": "Penale",
+      "area": "Giudiziale",
+      "macro_area": "Diritto penale",
+      "sottobranca": "Difesa penale e persona offesa",
+      "procedimento": "Penale",
+      "fase": "standard",
+      "autorita": "Procura / Tribunale Penale / Corte d'Appello",
+      "rito": "Penale",
+      "canale_telematico": "PDP",
+      "depositabile": true,
+      "priorita": "core",
+      "tags": [
+        "pen",
+        "pdp",
+        "penale",
+        "opposizione",
+        "pen_007"
+      ],
+      "campi_precompila": [
+        "assistito",
+        "controparte",
+        "difensore",
+        "ufficio_giudiziario",
+        "procedimento_penale",
+        "data_atto"
+      ],
+      "blocchi_guidati": [
+        "Intestazione",
+        "Parti",
+        "Premesse",
+        "Fatti",
+        "Diritto",
+        "Richieste",
+        "Allegati",
+        "Firma"
+      ],
+      "varianti": [
+        "standard"
+      ],
+      "allegati_essenziali": [
+        "documenti prova",
+        "eventuali referti o verbali",
+        "procura se necessaria",
+        "deleghe"
+      ],
+      "checklist_conformita": [
+        "anagrafica parti verificata",
+        "competenza/autorità verificata",
+        "allegati essenziali presenti",
+        "richieste finali coerenti",
+        "formato deposito verificato",
+        "dati fascicolo o procedimento controllati"
+      ],
+      "note_operative": [
+        "Verificare il canale telematico PDP e l'ufficio competente prima del deposito."
+      ],
+      "versione": "1.1.0",
+      "stato": "draft_professionale",
+      "ordinamento": 7
+    },
+    {
+      "id": "TRI_007",
+      "slug": "istanza-di-trattazione-in-pubblica-udienza",
+      "titolo": "Istanza di trattazione in pubblica udienza",
+      "famiglia": "Tributario",
+      "area": "Giudiziale",
+      "macro_area": "Diritto tributario",
+      "sottobranca": "Contenzioso tributario",
+      "procedimento": "Tributario",
+      "fase": "standard",
+      "autorita": "Corte di Giustizia Tributaria",
+      "rito": "Tributario",
+      "canale_telematico": "PTT",
+      "depositabile": true,
+      "priorita": "professional",
+      "tags": [
+        "tri",
+        "ptt",
+        "tributario",
+        "istanza",
+        "tri_007"
+      ],
+      "campi_precompila": [
+        "cliente",
+        "ente_impositore",
+        "difensore",
+        "atto_impugnato",
+        "tributo",
+        "data_atto"
+      ],
+      "blocchi_guidati": [
+        "Intestazione",
+        "Parti",
+        "Atto impugnato",
+        "Fatti",
+        "Diritto",
+        "Richieste",
+        "Allegati",
+        "Firma"
+      ],
+      "varianti": [
+        "semplice",
+        "urgente"
+      ],
+      "allegati_essenziali": [
+        "documenti a sostegno",
+        "procura ove necessaria",
+        "prova notifiche se richieste"
+      ],
+      "checklist_conformita": [
+        "anagrafica parti verificata",
+        "competenza/autorità verificata",
+        "allegati essenziali presenti",
+        "richieste finali coerenti",
+        "formato deposito verificato",
+        "dati fascicolo o procedimento controllati"
+      ],
+      "note_operative": [
+        "Verificare il canale telematico PTT e l'ufficio competente prima del deposito."
+      ],
+      "versione": "1.1.0",
+      "stato": "draft_professionale",
+      "ordinamento": 7
+    },
+    {
+      "id": "AMM_007",
+      "slug": "istanza-di-prelievo",
+      "titolo": "Istanza di prelievo",
+      "famiglia": "Amministrativo",
+      "area": "Giudiziale",
+      "macro_area": "Diritto amministrativo",
+      "sottobranca": "PAT e contenzioso amministrativo",
+      "procedimento": "Amministrativo",
+      "fase": "standard",
+      "autorita": "TAR / Consiglio di Stato",
+      "rito": "Amministrativo",
+      "canale_telematico": "PAT",
+      "depositabile": true,
+      "priorita": "professional",
+      "tags": [
+        "amm",
+        "pat",
+        "amministrativo",
+        "istanza",
+        "amm_007"
+      ],
+      "campi_precompila": [
+        "cliente",
+        "amministrazione",
+        "difensore",
+        "provvedimento",
+        "ufficio_giudiziario",
+        "data_atto"
+      ],
+      "blocchi_guidati": [
+        "Intestazione",
+        "Parti",
+        "Provvedimento impugnato",
+        "Fatti",
+        "Diritto",
+        "Richieste",
+        "Allegati",
+        "Firma"
+      ],
+      "varianti": [
+        "semplice",
+        "urgente"
+      ],
+      "allegati_essenziali": [
+        "documenti a sostegno",
+        "procura ove necessaria",
+        "prova notifiche se richieste"
+      ],
+      "checklist_conformita": [
+        "anagrafica parti verificata",
+        "competenza/autorità verificata",
+        "allegati essenziali presenti",
+        "richieste finali coerenti",
+        "formato deposito verificato",
+        "dati fascicolo o procedimento controllati"
+      ],
+      "note_operative": [
+        "Verificare il canale telematico PAT e l'ufficio competente prima del deposito."
+      ],
+      "versione": "1.1.0",
+      "stato": "draft_professionale",
+      "ordinamento": 7
+    },
+    {
+      "id": "ADR_007",
+      "slug": "accordo-di-negoziazione-assistita",
+      "titolo": "Accordo di negoziazione assistita",
+      "famiglia": "ADR, mediazione, negoziazione, arbitrato",
+      "area": "Stragiudiziale",
+      "macro_area": "ADR",
+      "sottobranca": "Mediazione e arbitrato",
+      "procedimento": "ADR, mediazione, negoziazione, arbitrato",
+      "fase": "standard",
+      "autorita": "Organismo ADR / Nessuna",
+      "rito": "ADR",
+      "canale_telematico": "NESSUNO",
+      "depositabile": false,
+      "priorita": "professional",
+      "tags": [
+        "adr",
+        "nessuno",
+        "negoziazione",
+        "adr_007"
+      ],
+      "campi_precompila": [
+        "cliente",
+        "controparte",
+        "difensore",
+        "controversia",
+        "organismo",
+        "data_atto"
+      ],
+      "blocchi_guidati": [
+        "Intestazione",
+        "Parti",
+        "Oggetto",
+        "Fatti",
+        "Richieste",
+        "Proposte",
+        "Allegati",
+        "Firma"
+      ],
+      "varianti": [
+        "standard"
+      ],
+      "allegati_essenziali": [
+        "documenti a sostegno",
+        "procura ove necessaria",
+        "prova notifiche se richieste"
+      ],
+      "checklist_conformita": [
+        "anagrafica parti verificata",
+        "competenza/autorità verificata",
+        "allegati essenziali presenti",
+        "richieste finali coerenti"
+      ],
+      "note_operative": [
+        "Adattare sempre il modello al caso concreto e alla strategia processuale."
+      ],
+      "versione": "1.1.0",
+      "stato": "draft_professionale",
+      "ordinamento": 7
+    },
+    {
+      "id": "CONC_007",
+      "slug": "ricorso-per-liquidazione-controllata",
+      "titolo": "Ricorso per liquidazione controllata",
+      "famiglia": "Procedure concorsuali e crisi",
+      "area": "Giudiziale",
+      "macro_area": "Crisi d'impresa e insolvenza",
+      "sottobranca": "Concorsuale",
+      "procedimento": "Procedure concorsuali e crisi",
+      "fase": "standard",
+      "autorita": "Tribunale / Giudice Delegato",
+      "rito": "Concorsuale",
+      "canale_telematico": "PST_CONCORSUALE",
+      "depositabile": true,
+      "priorita": "professional",
+      "tags": [
+        "conc",
+        "pst",
+        "concorsuale",
+        "ricorso",
+        "pst_concorsuale",
+        "conc_007"
+      ],
+      "campi_precompila": [
+        "cliente",
+        "procedura",
+        "difensore",
+        "ufficio_giudiziario",
+        "credito",
+        "data_atto"
+      ],
+      "blocchi_guidati": [
+        "Intestazione",
+        "Soggetti",
+        "Titolo del credito",
+        "Fatti",
+        "Diritto",
+        "Richieste",
+        "Allegati",
+        "Firma"
+      ],
+      "varianti": [
+        "base",
+        "con urgenza",
+        "con richiesta spese"
+      ],
+      "allegati_essenziali": [
+        "documenti a sostegno",
+        "procura ove necessaria",
+        "prova notifiche se richieste"
+      ],
+      "checklist_conformita": [
+        "anagrafica parti verificata",
+        "competenza/autorità verificata",
+        "allegati essenziali presenti",
+        "richieste finali coerenti",
+        "formato deposito verificato",
+        "dati fascicolo o procedimento controllati"
+      ],
+      "note_operative": [
+        "Verificare il canale telematico PST e l'ufficio competente prima del deposito."
+      ],
+      "versione": "1.1.0",
+      "stato": "draft_professionale",
+      "ordinamento": 7
+    },
+    {
+      "id": "PEN_008",
+      "slug": "opposizione-alla-richiesta-di-archiviazione",
+      "titolo": "Opposizione alla richiesta di archiviazione",
+      "famiglia": "Penale",
+      "area": "Giudiziale",
+      "macro_area": "Diritto penale",
+      "sottobranca": "Difesa penale e persona offesa",
+      "procedimento": "Penale",
+      "fase": "standard",
+      "autorita": "Procura / Tribunale Penale / Corte d'Appello",
+      "rito": "Penale",
+      "canale_telematico": "PDP",
+      "depositabile": false,
+      "priorita": "core",
+      "tags": [
+        "pen",
+        "pdp",
+        "penale",
+        "opposizione",
+        "pen_008"
+      ],
+      "campi_precompila": [
+        "assistito",
+        "controparte",
+        "difensore",
+        "ufficio_giudiziario",
+        "procedimento_penale",
+        "data_atto"
+      ],
+      "blocchi_guidati": [
+        "Intestazione",
+        "Parti",
+        "Premesse",
+        "Fatti",
+        "Diritto",
+        "Richieste",
+        "Allegati",
+        "Firma"
+      ],
+      "varianti": [
+        "standard"
+      ],
+      "allegati_essenziali": [
+        "documenti a sostegno",
+        "procura ove necessaria",
+        "prova notifiche se richieste"
+      ],
+      "checklist_conformita": [
+        "anagrafica parti verificata",
+        "competenza/autorità verificata",
+        "allegati essenziali presenti",
+        "richieste finali coerenti"
+      ],
+      "note_operative": [
+        "Adattare sempre il modello al caso concreto e alla strategia processuale."
+      ],
+      "versione": "1.1.0",
+      "stato": "draft_professionale",
+      "ordinamento": 8
+    },
+    {
+      "id": "TRI_008",
+      "slug": "istanza-di-rinvio",
+      "titolo": "Istanza di rinvio",
+      "famiglia": "Tributario",
+      "area": "Giudiziale",
+      "macro_area": "Diritto tributario",
+      "sottobranca": "Contenzioso tributario",
+      "procedimento": "Tributario",
+      "fase": "standard",
+      "autorita": "Corte di Giustizia Tributaria",
+      "rito": "Tributario",
+      "canale_telematico": "PTT",
+      "depositabile": true,
+      "priorita": "professional",
+      "tags": [
+        "tri",
+        "ptt",
+        "tributario",
+        "istanza",
+        "tri_008"
+      ],
+      "campi_precompila": [
+        "cliente",
+        "ente_impositore",
+        "difensore",
+        "atto_impugnato",
+        "tributo",
+        "data_atto"
+      ],
+      "blocchi_guidati": [
+        "Intestazione",
+        "Parti",
+        "Atto impugnato",
+        "Fatti",
+        "Diritto",
+        "Richieste",
+        "Allegati",
+        "Firma"
+      ],
+      "varianti": [
+        "semplice",
+        "urgente"
+      ],
+      "allegati_essenziali": [
+        "documenti a sostegno",
+        "procura ove necessaria",
+        "prova notifiche se richieste"
+      ],
+      "checklist_conformita": [
+        "anagrafica parti verificata",
+        "competenza/autorità verificata",
+        "allegati essenziali presenti",
+        "richieste finali coerenti",
+        "formato deposito verificato",
+        "dati fascicolo o procedimento controllati"
+      ],
+      "note_operative": [
+        "Verificare il canale telematico PTT e l'ufficio competente prima del deposito."
+      ],
+      "versione": "1.1.0",
+      "stato": "draft_professionale",
+      "ordinamento": 8
+    },
+    {
+      "id": "AMM_008",
+      "slug": "istanza-di-accesso-al-fascicolo",
+      "titolo": "Istanza di accesso al fascicolo",
+      "famiglia": "Amministrativo",
+      "area": "Giudiziale",
+      "macro_area": "Diritto amministrativo",
+      "sottobranca": "PAT e contenzioso amministrativo",
+      "procedimento": "Amministrativo",
+      "fase": "standard",
+      "autorita": "TAR / Consiglio di Stato",
+      "rito": "Amministrativo",
+      "canale_telematico": "PAT",
+      "depositabile": true,
+      "priorita": "professional",
+      "tags": [
+        "amm",
+        "pat",
+        "amministrativo",
+        "istanza",
+        "amm_008"
+      ],
+      "campi_precompila": [
+        "cliente",
+        "amministrazione",
+        "difensore",
+        "provvedimento",
+        "ufficio_giudiziario",
+        "data_atto"
+      ],
+      "blocchi_guidati": [
+        "Intestazione",
+        "Parti",
+        "Provvedimento impugnato",
+        "Fatti",
+        "Diritto",
+        "Richieste",
+        "Allegati",
+        "Firma"
+      ],
+      "varianti": [
+        "semplice",
+        "urgente"
+      ],
+      "allegati_essenziali": [
+        "documenti a sostegno",
+        "procura ove necessaria",
+        "prova notifiche se richieste"
+      ],
+      "checklist_conformita": [
+        "anagrafica parti verificata",
+        "competenza/autorità verificata",
+        "allegati essenziali presenti",
+        "richieste finali coerenti",
+        "formato deposito verificato",
+        "dati fascicolo o procedimento controllati"
+      ],
+      "note_operative": [
+        "Verificare il canale telematico PAT e l'ufficio competente prima del deposito."
+      ],
+      "versione": "1.1.0",
+      "stato": "draft_professionale",
+      "ordinamento": 8
+    },
+    {
+      "id": "ADR_008",
+      "slug": "diniego-a-negoziazione",
+      "titolo": "Diniego a negoziazione",
+      "famiglia": "ADR, mediazione, negoziazione, arbitrato",
+      "area": "Stragiudiziale",
+      "macro_area": "ADR",
+      "sottobranca": "Mediazione e arbitrato",
+      "procedimento": "ADR, mediazione, negoziazione, arbitrato",
+      "fase": "standard",
+      "autorita": "Organismo ADR / Nessuna",
+      "rito": "ADR",
+      "canale_telematico": "NESSUNO",
+      "depositabile": false,
+      "priorita": "professional",
+      "tags": [
+        "adr",
+        "nessuno",
+        "negoziazione",
+        "adr_008"
+      ],
+      "campi_precompila": [
+        "cliente",
+        "controparte",
+        "difensore",
+        "controversia",
+        "organismo",
+        "data_atto"
+      ],
+      "blocchi_guidati": [
+        "Intestazione",
+        "Parti",
+        "Oggetto",
+        "Fatti",
+        "Richieste",
+        "Proposte",
+        "Allegati",
+        "Firma"
+      ],
+      "varianti": [
+        "standard"
+      ],
+      "allegati_essenziali": [
+        "documenti a sostegno",
+        "procura ove necessaria",
+        "prova notifiche se richieste"
+      ],
+      "checklist_conformita": [
+        "anagrafica parti verificata",
+        "competenza/autorità verificata",
+        "allegati essenziali presenti",
+        "richieste finali coerenti"
+      ],
+      "note_operative": [
+        "Adattare sempre il modello al caso concreto e alla strategia processuale."
+      ],
+      "versione": "1.1.0",
+      "stato": "draft_professionale",
+      "ordinamento": 8
+    },
+    {
+      "id": "CONC_008",
+      "slug": "istanza-al-curatore",
+      "titolo": "Istanza al curatore",
+      "famiglia": "Procedure concorsuali e crisi",
+      "area": "Giudiziale",
+      "macro_area": "Crisi d'impresa e insolvenza",
+      "sottobranca": "Concorsuale",
+      "procedimento": "Procedure concorsuali e crisi",
+      "fase": "standard",
+      "autorita": "Tribunale / Giudice Delegato",
+      "rito": "Concorsuale",
+      "canale_telematico": "PST_CONCORSUALE",
+      "depositabile": true,
+      "priorita": "professional",
+      "tags": [
+        "conc",
+        "pst",
+        "concorsuale",
+        "istanza",
+        "pst_concorsuale",
+        "conc_008"
+      ],
+      "campi_precompila": [
+        "cliente",
+        "procedura",
+        "difensore",
+        "ufficio_giudiziario",
+        "credito",
+        "data_atto"
+      ],
+      "blocchi_guidati": [
+        "Intestazione",
+        "Soggetti",
+        "Titolo del credito",
+        "Fatti",
+        "Diritto",
+        "Richieste",
+        "Allegati",
+        "Firma"
+      ],
+      "varianti": [
+        "semplice",
+        "urgente"
+      ],
+      "allegati_essenziali": [
+        "documenti a sostegno",
+        "procura ove necessaria",
+        "prova notifiche se richieste"
+      ],
+      "checklist_conformita": [
+        "anagrafica parti verificata",
+        "competenza/autorità verificata",
+        "allegati essenziali presenti",
+        "richieste finali coerenti",
+        "formato deposito verificato",
+        "dati fascicolo o procedimento controllati"
+      ],
+      "note_operative": [
+        "Verificare il canale telematico PST e l'ufficio competente prima del deposito."
+      ],
+      "versione": "1.1.0",
+      "stato": "draft_professionale",
+      "ordinamento": 8
+    },
+    {
+      "id": "PEN_009",
+      "slug": "querela",
+      "titolo": "Querela",
+      "famiglia": "Penale",
+      "area": "Giudiziale",
+      "macro_area": "Diritto penale",
+      "sottobranca": "Difesa penale e persona offesa",
+      "procedimento": "Penale",
+      "fase": "standard",
+      "autorita": "Procura / Tribunale Penale / Corte d'Appello",
+      "rito": "Penale",
+      "canale_telematico": "PDP",
+      "depositabile": true,
+      "priorita": "professional",
+      "tags": [
+        "pen",
+        "pdp",
+        "penale",
+        "querela",
+        "pen_009"
+      ],
+      "campi_precompila": [
+        "assistito",
+        "controparte",
+        "difensore",
+        "ufficio_giudiziario",
+        "procedimento_penale",
+        "data_atto"
+      ],
+      "blocchi_guidati": [
+        "Intestazione",
+        "Parti",
+        "Premesse",
+        "Fatti",
+        "Diritto",
+        "Richieste",
+        "Allegati",
+        "Firma"
+      ],
+      "varianti": [
+        "standard"
+      ],
+      "allegati_essenziali": [
+        "documenti prova",
+        "eventuali referti o verbali",
+        "procura se necessaria",
+        "deleghe"
+      ],
+      "checklist_conformita": [
+        "anagrafica parti verificata",
+        "competenza/autorità verificata",
+        "allegati essenziali presenti",
+        "richieste finali coerenti",
+        "formato deposito verificato",
+        "dati fascicolo o procedimento controllati"
+      ],
+      "note_operative": [
+        "Verificare il canale telematico PDP e l'ufficio competente prima del deposito."
+      ],
+      "versione": "1.1.0",
+      "stato": "draft_professionale",
+      "ordinamento": 9
+    },
+    {
+      "id": "TRI_009",
+      "slug": "nota-di-deposito-documenti",
+      "titolo": "Nota di deposito documenti",
+      "famiglia": "Tributario",
+      "area": "Giudiziale",
+      "macro_area": "Diritto tributario",
+      "sottobranca": "Contenzioso tributario",
+      "procedimento": "Tributario",
+      "fase": "standard",
+      "autorita": "Corte di Giustizia Tributaria",
+      "rito": "Tributario",
+      "canale_telematico": "PTT",
+      "depositabile": true,
+      "priorita": "professional",
+      "tags": [
+        "tri",
+        "ptt",
+        "tributario",
+        "tri_009"
+      ],
+      "campi_precompila": [
+        "cliente",
+        "ente_impositore",
+        "difensore",
+        "atto_impugnato",
+        "tributo",
+        "data_atto"
+      ],
+      "blocchi_guidati": [
+        "Intestazione",
+        "Parti",
+        "Atto impugnato",
+        "Fatti",
+        "Diritto",
+        "Richieste",
+        "Allegati",
+        "Firma"
+      ],
+      "varianti": [
+        "standard"
+      ],
+      "allegati_essenziali": [
+        "documenti a sostegno",
+        "procura ove necessaria",
+        "prova notifiche se richieste"
+      ],
+      "checklist_conformita": [
+        "anagrafica parti verificata",
+        "competenza/autorità verificata",
+        "allegati essenziali presenti",
+        "richieste finali coerenti",
+        "formato deposito verificato",
+        "dati fascicolo o procedimento controllati"
+      ],
+      "note_operative": [
+        "Verificare il canale telematico PTT e l'ufficio competente prima del deposito."
+      ],
+      "versione": "1.1.0",
+      "stato": "draft_professionale",
+      "ordinamento": 9
+    },
+    {
+      "id": "AMM_009",
+      "slug": "ricorso-per-accesso-agli-atti",
+      "titolo": "Ricorso per accesso agli atti",
+      "famiglia": "Amministrativo",
+      "area": "Giudiziale",
+      "macro_area": "Diritto amministrativo",
+      "sottobranca": "PAT e contenzioso amministrativo",
+      "procedimento": "Amministrativo",
+      "fase": "standard",
+      "autorita": "TAR / Consiglio di Stato",
+      "rito": "Amministrativo",
+      "canale_telematico": "PAT",
+      "depositabile": true,
+      "priorita": "professional",
+      "tags": [
+        "amm",
+        "pat",
+        "amministrativo",
+        "ricorso",
+        "amm_009"
+      ],
+      "campi_precompila": [
+        "cliente",
+        "amministrazione",
+        "difensore",
+        "provvedimento",
+        "ufficio_giudiziario",
+        "data_atto"
+      ],
+      "blocchi_guidati": [
+        "Intestazione",
+        "Parti",
+        "Provvedimento impugnato",
+        "Fatti",
+        "Diritto",
+        "Richieste",
+        "Allegati",
+        "Firma"
+      ],
+      "varianti": [
+        "base",
+        "con urgenza",
+        "con richiesta spese"
+      ],
+      "allegati_essenziali": [
+        "documenti a sostegno",
+        "procura ove necessaria",
+        "prova notifiche se richieste"
+      ],
+      "checklist_conformita": [
+        "anagrafica parti verificata",
+        "competenza/autorità verificata",
+        "allegati essenziali presenti",
+        "richieste finali coerenti",
+        "formato deposito verificato",
+        "dati fascicolo o procedimento controllati"
+      ],
+      "note_operative": [
+        "Verificare il canale telematico PAT e l'ufficio competente prima del deposito."
+      ],
+      "versione": "1.1.0",
+      "stato": "draft_professionale",
+      "ordinamento": 9
+    },
+    {
+      "id": "ADR_009",
+      "slug": "clausola-compromissoria-standard",
+      "titolo": "Clausola compromissoria standard",
+      "famiglia": "ADR, mediazione, negoziazione, arbitrato",
+      "area": "Stragiudiziale",
+      "macro_area": "ADR",
+      "sottobranca": "Mediazione e arbitrato",
+      "procedimento": "ADR, mediazione, negoziazione, arbitrato",
+      "fase": "standard",
+      "autorita": "Organismo ADR / Nessuna",
+      "rito": "ADR",
+      "canale_telematico": "NESSUNO",
+      "depositabile": false,
+      "priorita": "professional",
+      "tags": [
+        "adr",
+        "nessuno",
+        "adr_009"
+      ],
+      "campi_precompila": [
+        "cliente",
+        "controparte",
+        "difensore",
+        "controversia",
+        "organismo",
+        "data_atto"
+      ],
+      "blocchi_guidati": [
+        "Intestazione",
+        "Parti",
+        "Oggetto",
+        "Fatti",
+        "Richieste",
+        "Proposte",
+        "Allegati",
+        "Firma"
+      ],
+      "varianti": [
+        "standard"
+      ],
+      "allegati_essenziali": [
+        "documenti a sostegno",
+        "procura ove necessaria",
+        "prova notifiche se richieste"
+      ],
+      "checklist_conformita": [
+        "anagrafica parti verificata",
+        "competenza/autorità verificata",
+        "allegati essenziali presenti",
+        "richieste finali coerenti"
+      ],
+      "note_operative": [
+        "Adattare sempre il modello al caso concreto e alla strategia processuale."
+      ],
+      "versione": "1.1.0",
+      "stato": "draft_professionale",
+      "ordinamento": 9
+    },
+    {
+      "id": "CONC_009",
+      "slug": "reclamo-contro-provvedimento-del-giudice-delegato",
+      "titolo": "Reclamo contro provvedimento del giudice delegato",
+      "famiglia": "Procedure concorsuali e crisi",
+      "area": "Giudiziale",
+      "macro_area": "Crisi d'impresa e insolvenza",
+      "sottobranca": "Concorsuale",
+      "procedimento": "Procedure concorsuali e crisi",
+      "fase": "standard",
+      "autorita": "Tribunale / Giudice Delegato",
+      "rito": "Concorsuale",
+      "canale_telematico": "PST_CONCORSUALE",
+      "depositabile": true,
+      "priorita": "professional",
+      "tags": [
+        "conc",
+        "pst",
+        "concorsuale",
+        "pst_concorsuale",
+        "conc_009"
+      ],
+      "campi_precompila": [
+        "cliente",
+        "procedura",
+        "difensore",
+        "ufficio_giudiziario",
+        "credito",
+        "data_atto"
+      ],
+      "blocchi_guidati": [
+        "Intestazione",
+        "Soggetti",
+        "Titolo del credito",
+        "Fatti",
+        "Diritto",
+        "Richieste",
+        "Allegati",
+        "Firma"
+      ],
+      "varianti": [
+        "standard"
+      ],
+      "allegati_essenziali": [
+        "documenti a sostegno",
+        "procura ove necessaria",
+        "prova notifiche se richieste"
+      ],
+      "checklist_conformita": [
+        "anagrafica parti verificata",
+        "competenza/autorità verificata",
+        "allegati essenziali presenti",
+        "richieste finali coerenti",
+        "formato deposito verificato",
+        "dati fascicolo o procedimento controllati"
+      ],
+      "note_operative": [
+        "Verificare il canale telematico PST e l'ufficio competente prima del deposito."
+      ],
+      "versione": "1.1.0",
+      "stato": "draft_professionale",
+      "ordinamento": 9
+    },
+    {
+      "id": "PEN_010",
+      "slug": "denuncia-querela",
+      "titolo": "Denuncia-querela",
+      "famiglia": "Penale",
+      "area": "Giudiziale",
+      "macro_area": "Diritto penale",
+      "sottobranca": "Difesa penale e persona offesa",
+      "procedimento": "Penale",
+      "fase": "standard",
+      "autorita": "Procura / Tribunale Penale / Corte d'Appello",
+      "rito": "Penale",
+      "canale_telematico": "PDP",
+      "depositabile": true,
+      "priorita": "professional",
+      "tags": [
+        "pen",
+        "pdp",
+        "penale",
+        "querela",
+        "pen_010"
+      ],
+      "campi_precompila": [
+        "assistito",
+        "controparte",
+        "difensore",
+        "ufficio_giudiziario",
+        "procedimento_penale",
+        "data_atto"
+      ],
+      "blocchi_guidati": [
+        "Intestazione",
+        "Parti",
+        "Premesse",
+        "Fatti",
+        "Diritto",
+        "Richieste",
+        "Allegati",
+        "Firma"
+      ],
+      "varianti": [
+        "standard"
+      ],
+      "allegati_essenziali": [
+        "documenti prova",
+        "eventuali referti o verbali",
+        "procura se necessaria",
+        "deleghe"
+      ],
+      "checklist_conformita": [
+        "anagrafica parti verificata",
+        "competenza/autorità verificata",
+        "allegati essenziali presenti",
+        "richieste finali coerenti",
+        "formato deposito verificato",
+        "dati fascicolo o procedimento controllati"
+      ],
+      "note_operative": [
+        "Verificare il canale telematico PDP e l'ufficio competente prima del deposito."
+      ],
+      "versione": "1.1.0",
+      "stato": "draft_professionale",
+      "ordinamento": 10
+    },
+    {
+      "id": "TRI_010",
+      "slug": "motivi-aggiunti",
+      "titolo": "Motivi aggiunti",
+      "famiglia": "Tributario",
+      "area": "Giudiziale",
+      "macro_area": "Diritto tributario",
+      "sottobranca": "Contenzioso tributario",
+      "procedimento": "Tributario",
+      "fase": "standard",
+      "autorita": "Corte di Giustizia Tributaria",
+      "rito": "Tributario",
+      "canale_telematico": "PTT",
+      "depositabile": true,
+      "priorita": "professional",
+      "tags": [
+        "tri",
+        "ptt",
+        "tributario",
+        "tri_010"
+      ],
+      "campi_precompila": [
+        "cliente",
+        "ente_impositore",
+        "difensore",
+        "atto_impugnato",
+        "tributo",
+        "data_atto"
+      ],
+      "blocchi_guidati": [
+        "Intestazione",
+        "Parti",
+        "Atto impugnato",
+        "Fatti",
+        "Diritto",
+        "Richieste",
+        "Allegati",
+        "Firma"
+      ],
+      "varianti": [
+        "standard"
+      ],
+      "allegati_essenziali": [
+        "documenti a sostegno",
+        "procura ove necessaria",
+        "prova notifiche se richieste"
+      ],
+      "checklist_conformita": [
+        "anagrafica parti verificata",
+        "competenza/autorità verificata",
+        "allegati essenziali presenti",
+        "richieste finali coerenti",
+        "formato deposito verificato",
+        "dati fascicolo o procedimento controllati"
+      ],
+      "note_operative": [
+        "Verificare il canale telematico PTT e l'ufficio competente prima del deposito."
+      ],
+      "versione": "1.1.0",
+      "stato": "draft_professionale",
+      "ordinamento": 10
+    },
+    {
+      "id": "AMM_010",
+      "slug": "ricorso-per-silenzio-inadempimento",
+      "titolo": "Ricorso per silenzio-inadempimento",
+      "famiglia": "Amministrativo",
+      "area": "Giudiziale",
+      "macro_area": "Diritto amministrativo",
+      "sottobranca": "PAT e contenzioso amministrativo",
+      "procedimento": "Amministrativo",
+      "fase": "standard",
+      "autorita": "TAR / Consiglio di Stato",
+      "rito": "Amministrativo",
+      "canale_telematico": "PAT",
+      "depositabile": true,
+      "priorita": "professional",
+      "tags": [
+        "amm",
+        "pat",
+        "amministrativo",
+        "ricorso",
+        "amm_010"
+      ],
+      "campi_precompila": [
+        "cliente",
+        "amministrazione",
+        "difensore",
+        "provvedimento",
+        "ufficio_giudiziario",
+        "data_atto"
+      ],
+      "blocchi_guidati": [
+        "Intestazione",
+        "Parti",
+        "Provvedimento impugnato",
+        "Fatti",
+        "Diritto",
+        "Richieste",
+        "Allegati",
+        "Firma"
+      ],
+      "varianti": [
+        "base",
+        "con urgenza",
+        "con richiesta spese"
+      ],
+      "allegati_essenziali": [
+        "documenti a sostegno",
+        "procura ove necessaria",
+        "prova notifiche se richieste"
+      ],
+      "checklist_conformita": [
+        "anagrafica parti verificata",
+        "competenza/autorità verificata",
+        "allegati essenziali presenti",
+        "richieste finali coerenti",
+        "formato deposito verificato",
+        "dati fascicolo o procedimento controllati"
+      ],
+      "note_operative": [
+        "Verificare il canale telematico PAT e l'ufficio competente prima del deposito."
+      ],
+      "versione": "1.1.0",
+      "stato": "draft_professionale",
+      "ordinamento": 10
+    },
+    {
+      "id": "ADR_010",
+      "slug": "domanda-di-arbitrato",
+      "titolo": "Domanda di arbitrato",
+      "famiglia": "ADR, mediazione, negoziazione, arbitrato",
+      "area": "Stragiudiziale",
+      "macro_area": "ADR",
+      "sottobranca": "Mediazione e arbitrato",
+      "procedimento": "ADR, mediazione, negoziazione, arbitrato",
+      "fase": "standard",
+      "autorita": "Organismo ADR / Nessuna",
+      "rito": "ADR",
+      "canale_telematico": "NESSUNO",
+      "depositabile": false,
+      "priorita": "advanced",
+      "tags": [
+        "adr",
+        "nessuno",
+        "arbitrato",
+        "adr_010"
+      ],
+      "campi_precompila": [
+        "cliente",
+        "controparte",
+        "difensore",
+        "controversia",
+        "organismo",
+        "data_atto"
+      ],
+      "blocchi_guidati": [
+        "Intestazione",
+        "Parti",
+        "Oggetto",
+        "Fatti",
+        "Richieste",
+        "Proposte",
+        "Allegati",
+        "Firma"
+      ],
+      "varianti": [
+        "standard"
+      ],
+      "allegati_essenziali": [
+        "documenti a sostegno",
+        "procura ove necessaria",
+        "prova notifiche se richieste"
+      ],
+      "checklist_conformita": [
+        "anagrafica parti verificata",
+        "competenza/autorità verificata",
+        "allegati essenziali presenti",
+        "richieste finali coerenti"
+      ],
+      "note_operative": [
+        "Adattare sempre il modello al caso concreto e alla strategia processuale."
+      ],
+      "versione": "1.1.0",
+      "stato": "draft_professionale",
+      "ordinamento": 10
+    },
+    {
+      "id": "CONC_010",
+      "slug": "domanda-di-esdebitazione",
+      "titolo": "Domanda di esdebitazione",
+      "famiglia": "Procedure concorsuali e crisi",
+      "area": "Giudiziale",
+      "macro_area": "Crisi d'impresa e insolvenza",
+      "sottobranca": "Concorsuale",
+      "procedimento": "Procedure concorsuali e crisi",
+      "fase": "standard",
+      "autorita": "Tribunale / Giudice Delegato",
+      "rito": "Concorsuale",
+      "canale_telematico": "PST_CONCORSUALE",
+      "depositabile": true,
+      "priorita": "professional",
+      "tags": [
+        "conc",
+        "pst",
+        "concorsuale",
+        "pst_concorsuale",
+        "conc_010"
+      ],
+      "campi_precompila": [
+        "cliente",
+        "procedura",
+        "difensore",
+        "ufficio_giudiziario",
+        "credito",
+        "data_atto"
+      ],
+      "blocchi_guidati": [
+        "Intestazione",
+        "Soggetti",
+        "Titolo del credito",
+        "Fatti",
+        "Diritto",
+        "Richieste",
+        "Allegati",
+        "Firma"
+      ],
+      "varianti": [
+        "standard"
+      ],
+      "allegati_essenziali": [
+        "documenti a sostegno",
+        "procura ove necessaria",
+        "prova notifiche se richieste"
+      ],
+      "checklist_conformita": [
+        "anagrafica parti verificata",
+        "competenza/autorità verificata",
+        "allegati essenziali presenti",
+        "richieste finali coerenti",
+        "formato deposito verificato",
+        "dati fascicolo o procedimento controllati"
+      ],
+      "note_operative": [
+        "Verificare il canale telematico PST e l'ufficio competente prima del deposito."
+      ],
+      "versione": "1.1.0",
+      "stato": "draft_professionale",
+      "ordinamento": 10
+    },
+    {
+      "id": "PEN_011",
+      "slug": "remissione-di-querela",
+      "titolo": "Remissione di querela",
+      "famiglia": "Penale",
+      "area": "Giudiziale",
+      "macro_area": "Diritto penale",
+      "sottobranca": "Difesa penale e persona offesa",
+      "procedimento": "Penale",
+      "fase": "standard",
+      "autorita": "Procura / Tribunale Penale / Corte d'Appello",
+      "rito": "Penale",
+      "canale_telematico": "PDP",
+      "depositabile": true,
+      "priorita": "professional",
+      "tags": [
+        "pen",
+        "pdp",
+        "penale",
+        "querela",
+        "pen_011"
+      ],
+      "campi_precompila": [
+        "assistito",
+        "controparte",
+        "difensore",
+        "ufficio_giudiziario",
+        "procedimento_penale",
+        "data_atto"
+      ],
+      "blocchi_guidati": [
+        "Intestazione",
+        "Parti",
+        "Premesse",
+        "Fatti",
+        "Diritto",
+        "Richieste",
+        "Allegati",
+        "Firma"
+      ],
+      "varianti": [
+        "standard"
+      ],
+      "allegati_essenziali": [
+        "documenti prova",
+        "eventuali referti o verbali",
+        "procura se necessaria",
+        "deleghe"
+      ],
+      "checklist_conformita": [
+        "anagrafica parti verificata",
+        "competenza/autorità verificata",
+        "allegati essenziali presenti",
+        "richieste finali coerenti",
+        "formato deposito verificato",
+        "dati fascicolo o procedimento controllati"
+      ],
+      "note_operative": [
+        "Verificare il canale telematico PDP e l'ufficio competente prima del deposito."
+      ],
+      "versione": "1.1.0",
+      "stato": "draft_professionale",
+      "ordinamento": 11
+    },
+    {
+      "id": "TRI_011",
+      "slug": "ricorso-contro-cartella",
+      "titolo": "Ricorso contro cartella",
+      "famiglia": "Tributario",
+      "area": "Giudiziale",
+      "macro_area": "Diritto tributario",
+      "sottobranca": "Contenzioso tributario",
+      "procedimento": "Tributario",
+      "fase": "standard",
+      "autorita": "Corte di Giustizia Tributaria",
+      "rito": "Tributario",
+      "canale_telematico": "PTT",
+      "depositabile": true,
+      "priorita": "professional",
+      "tags": [
+        "tri",
+        "ptt",
+        "tributario",
+        "ricorso",
+        "tri_011"
+      ],
+      "campi_precompila": [
+        "cliente",
+        "ente_impositore",
+        "difensore",
+        "atto_impugnato",
+        "tributo",
+        "data_atto"
+      ],
+      "blocchi_guidati": [
+        "Intestazione",
+        "Parti",
+        "Atto impugnato",
+        "Fatti",
+        "Diritto",
+        "Richieste",
+        "Allegati",
+        "Firma"
+      ],
+      "varianti": [
+        "base",
+        "con urgenza",
+        "con richiesta spese"
+      ],
+      "allegati_essenziali": [
+        "atto impugnato",
+        "prova notifiche",
+        "procura",
+        "documenti fiscali"
+      ],
+      "checklist_conformita": [
+        "anagrafica parti verificata",
+        "competenza/autorità verificata",
+        "allegati essenziali presenti",
+        "richieste finali coerenti",
+        "formato deposito verificato",
+        "dati fascicolo o procedimento controllati"
+      ],
+      "note_operative": [
+        "Verificare il canale telematico PTT e l'ufficio competente prima del deposito."
+      ],
+      "versione": "1.1.0",
+      "stato": "draft_professionale",
+      "ordinamento": 11
+    },
+    {
+      "id": "AMM_011",
+      "slug": "appello-al-consiglio-di-stato",
+      "titolo": "Appello al Consiglio di Stato",
+      "famiglia": "Amministrativo",
+      "area": "Giudiziale",
+      "macro_area": "Diritto amministrativo",
+      "sottobranca": "PAT e contenzioso amministrativo",
+      "procedimento": "Amministrativo",
+      "fase": "standard",
+      "autorita": "TAR / Consiglio di Stato",
+      "rito": "Amministrativo",
+      "canale_telematico": "PAT",
+      "depositabile": true,
+      "priorita": "professional",
+      "tags": [
+        "amm",
+        "pat",
+        "amministrativo",
+        "appello",
+        "amm_011"
+      ],
+      "campi_precompila": [
+        "cliente",
+        "amministrazione",
+        "difensore",
+        "provvedimento",
+        "ufficio_giudiziario",
+        "data_atto"
+      ],
+      "blocchi_guidati": [
+        "Intestazione",
+        "Parti",
+        "Provvedimento impugnato",
+        "Fatti",
+        "Diritto",
+        "Richieste",
+        "Allegati",
+        "Firma"
+      ],
+      "varianti": [
+        "principale",
+        "incidentale"
+      ],
+      "allegati_essenziali": [
+        "documenti a sostegno",
+        "procura ove necessaria",
+        "prova notifiche se richieste"
+      ],
+      "checklist_conformita": [
+        "anagrafica parti verificata",
+        "competenza/autorità verificata",
+        "allegati essenziali presenti",
+        "richieste finali coerenti",
+        "formato deposito verificato",
+        "dati fascicolo o procedimento controllati"
+      ],
+      "note_operative": [
+        "Verificare il canale telematico PAT e l'ufficio competente prima del deposito."
+      ],
+      "versione": "1.1.0",
+      "stato": "draft_professionale",
+      "ordinamento": 11
+    },
+    {
+      "id": "ADR_011",
+      "slug": "nomina-arbitro",
+      "titolo": "Nomina arbitro",
+      "famiglia": "ADR, mediazione, negoziazione, arbitrato",
+      "area": "Stragiudiziale",
+      "macro_area": "ADR",
+      "sottobranca": "Mediazione e arbitrato",
+      "procedimento": "ADR, mediazione, negoziazione, arbitrato",
+      "fase": "standard",
+      "autorita": "Organismo ADR / Nessuna",
+      "rito": "ADR",
+      "canale_telematico": "NESSUNO",
+      "depositabile": false,
+      "priorita": "advanced",
+      "tags": [
+        "adr",
+        "nessuno",
+        "adr_011"
+      ],
+      "campi_precompila": [
+        "cliente",
+        "controparte",
+        "difensore",
+        "controversia",
+        "organismo",
+        "data_atto"
+      ],
+      "blocchi_guidati": [
+        "Intestazione",
+        "Parti",
+        "Oggetto",
+        "Fatti",
+        "Richieste",
+        "Proposte",
+        "Allegati",
+        "Firma"
+      ],
+      "varianti": [
+        "standard"
+      ],
+      "allegati_essenziali": [
+        "documenti a sostegno",
+        "procura ove necessaria",
+        "prova notifiche se richieste"
+      ],
+      "checklist_conformita": [
+        "anagrafica parti verificata",
+        "competenza/autorità verificata",
+        "allegati essenziali presenti",
+        "richieste finali coerenti"
+      ],
+      "note_operative": [
+        "Adattare sempre il modello al caso concreto e alla strategia processuale."
+      ],
+      "versione": "1.1.0",
+      "stato": "draft_professionale",
+      "ordinamento": 11
+    },
+    {
+      "id": "CONC_011",
+      "slug": "domanda-di-concordato-minore",
+      "titolo": "Domanda di concordato minore",
+      "famiglia": "Procedure concorsuali e crisi",
+      "area": "Giudiziale",
+      "macro_area": "Crisi d'impresa e insolvenza",
+      "sottobranca": "Concorsuale",
+      "procedimento": "Procedure concorsuali e crisi",
+      "fase": "standard",
+      "autorita": "Tribunale / Giudice Delegato",
+      "rito": "Concorsuale",
+      "canale_telematico": "PST_CONCORSUALE",
+      "depositabile": true,
+      "priorita": "specialist",
+      "tags": [
+        "conc",
+        "pst",
+        "concorsuale",
+        "pst_concorsuale",
+        "conc_011"
+      ],
+      "campi_precompila": [
+        "cliente",
+        "procedura",
+        "difensore",
+        "ufficio_giudiziario",
+        "credito",
+        "data_atto"
+      ],
+      "blocchi_guidati": [
+        "Intestazione",
+        "Soggetti",
+        "Titolo del credito",
+        "Fatti",
+        "Diritto",
+        "Richieste",
+        "Allegati",
+        "Firma"
+      ],
+      "varianti": [
+        "standard"
+      ],
+      "allegati_essenziali": [
+        "documenti a sostegno",
+        "procura ove necessaria",
+        "prova notifiche se richieste"
+      ],
+      "checklist_conformita": [
+        "anagrafica parti verificata",
+        "competenza/autorità verificata",
+        "allegati essenziali presenti",
+        "richieste finali coerenti",
+        "formato deposito verificato",
+        "dati fascicolo o procedimento controllati"
+      ],
+      "note_operative": [
+        "Verificare il canale telematico PST e l'ufficio competente prima del deposito."
+      ],
+      "versione": "1.1.0",
+      "stato": "draft_professionale",
+      "ordinamento": 11
+    },
+    {
+      "id": "PEN_012",
+      "slug": "costituzione-di-parte-civile",
+      "titolo": "Costituzione di parte civile",
+      "famiglia": "Penale",
+      "area": "Giudiziale",
+      "macro_area": "Diritto penale",
+      "sottobranca": "Difesa penale e persona offesa",
+      "procedimento": "Penale",
+      "fase": "standard",
+      "autorita": "Procura / Tribunale Penale / Corte d'Appello",
+      "rito": "Penale",
+      "canale_telematico": "PDP",
+      "depositabile": true,
+      "priorita": "professional",
+      "tags": [
+        "pen",
+        "pdp",
+        "penale",
+        "pen_012"
+      ],
+      "campi_precompila": [
+        "assistito",
+        "controparte",
+        "difensore",
+        "ufficio_giudiziario",
+        "procedimento_penale",
+        "data_atto"
+      ],
+      "blocchi_guidati": [
+        "Intestazione",
+        "Parti",
+        "Premesse",
+        "Fatti",
+        "Diritto",
+        "Richieste",
+        "Allegati",
+        "Firma"
+      ],
+      "varianti": [
+        "standard"
+      ],
+      "allegati_essenziali": [
+        "documenti a sostegno",
+        "procura ove necessaria",
+        "prova notifiche se richieste"
+      ],
+      "checklist_conformita": [
+        "anagrafica parti verificata",
+        "competenza/autorità verificata",
+        "allegati essenziali presenti",
+        "richieste finali coerenti",
+        "formato deposito verificato",
+        "dati fascicolo o procedimento controllati"
+      ],
+      "note_operative": [
+        "Verificare il canale telematico PDP e l'ufficio competente prima del deposito."
+      ],
+      "versione": "1.1.0",
+      "stato": "draft_professionale",
+      "ordinamento": 12
+    },
+    {
+      "id": "TRI_012",
+      "slug": "ricorso-contro-intimazione",
+      "titolo": "Ricorso contro intimazione",
+      "famiglia": "Tributario",
+      "area": "Giudiziale",
+      "macro_area": "Diritto tributario",
+      "sottobranca": "Contenzioso tributario",
+      "procedimento": "Tributario",
+      "fase": "standard",
+      "autorita": "Corte di Giustizia Tributaria",
+      "rito": "Tributario",
+      "canale_telematico": "PTT",
+      "depositabile": true,
+      "priorita": "professional",
+      "tags": [
+        "tri",
+        "ptt",
+        "tributario",
+        "ricorso",
+        "tri_012"
+      ],
+      "campi_precompila": [
+        "cliente",
+        "ente_impositore",
+        "difensore",
+        "atto_impugnato",
+        "tributo",
+        "data_atto"
+      ],
+      "blocchi_guidati": [
+        "Intestazione",
+        "Parti",
+        "Atto impugnato",
+        "Fatti",
+        "Diritto",
+        "Richieste",
+        "Allegati",
+        "Firma"
+      ],
+      "varianti": [
+        "base",
+        "con urgenza",
+        "con richiesta spese"
+      ],
+      "allegati_essenziali": [
+        "documenti a sostegno",
+        "procura ove necessaria",
+        "prova notifiche se richieste"
+      ],
+      "checklist_conformita": [
+        "anagrafica parti verificata",
+        "competenza/autorità verificata",
+        "allegati essenziali presenti",
+        "richieste finali coerenti",
+        "formato deposito verificato",
+        "dati fascicolo o procedimento controllati"
+      ],
+      "note_operative": [
+        "Verificare il canale telematico PTT e l'ufficio competente prima del deposito."
+      ],
+      "versione": "1.1.0",
+      "stato": "draft_professionale",
+      "ordinamento": 12
+    },
+    {
+      "id": "AMM_012",
+      "slug": "opposizione-a-decreto",
+      "titolo": "Opposizione a decreto",
+      "famiglia": "Amministrativo",
+      "area": "Giudiziale",
+      "macro_area": "Diritto amministrativo",
+      "sottobranca": "PAT e contenzioso amministrativo",
+      "procedimento": "Amministrativo",
+      "fase": "standard",
+      "autorita": "TAR / Consiglio di Stato",
+      "rito": "Amministrativo",
+      "canale_telematico": "PAT",
+      "depositabile": true,
+      "priorita": "professional",
+      "tags": [
+        "amm",
+        "pat",
+        "amministrativo",
+        "opposizione",
+        "amm_012"
+      ],
+      "campi_precompila": [
+        "cliente",
+        "amministrazione",
+        "difensore",
+        "provvedimento",
+        "ufficio_giudiziario",
+        "data_atto"
+      ],
+      "blocchi_guidati": [
+        "Intestazione",
+        "Parti",
+        "Provvedimento impugnato",
+        "Fatti",
+        "Diritto",
+        "Richieste",
+        "Allegati",
+        "Firma"
+      ],
+      "varianti": [
+        "standard"
+      ],
+      "allegati_essenziali": [
+        "documenti a sostegno",
+        "procura ove necessaria",
+        "prova notifiche se richieste"
+      ],
+      "checklist_conformita": [
+        "anagrafica parti verificata",
+        "competenza/autorità verificata",
+        "allegati essenziali presenti",
+        "richieste finali coerenti",
+        "formato deposito verificato",
+        "dati fascicolo o procedimento controllati"
+      ],
+      "note_operative": [
+        "Verificare il canale telematico PAT e l'ufficio competente prima del deposito."
+      ],
+      "versione": "1.1.0",
+      "stato": "draft_professionale",
+      "ordinamento": 12
+    },
+    {
+      "id": "ADR_012",
+      "slug": "comparsa-nel-procedimento-arbitrale",
+      "titolo": "Comparsa nel procedimento arbitrale",
+      "famiglia": "ADR, mediazione, negoziazione, arbitrato",
+      "area": "Stragiudiziale",
+      "macro_area": "ADR",
+      "sottobranca": "Mediazione e arbitrato",
+      "procedimento": "ADR, mediazione, negoziazione, arbitrato",
+      "fase": "standard",
+      "autorita": "Organismo ADR / Nessuna",
+      "rito": "ADR",
+      "canale_telematico": "NESSUNO",
+      "depositabile": false,
+      "priorita": "advanced",
+      "tags": [
+        "adr",
+        "nessuno",
+        "comparsa",
+        "adr_012"
+      ],
+      "campi_precompila": [
+        "cliente",
+        "controparte",
+        "difensore",
+        "controversia",
+        "organismo",
+        "data_atto"
+      ],
+      "blocchi_guidati": [
+        "Intestazione",
+        "Parti",
+        "Oggetto",
+        "Fatti",
+        "Richieste",
+        "Proposte",
+        "Allegati",
+        "Firma"
+      ],
+      "varianti": [
+        "standard"
+      ],
+      "allegati_essenziali": [
+        "documenti a sostegno",
+        "procura ove necessaria",
+        "prova notifiche se richieste"
+      ],
+      "checklist_conformita": [
+        "anagrafica parti verificata",
+        "competenza/autorità verificata",
+        "allegati essenziali presenti",
+        "richieste finali coerenti"
+      ],
+      "note_operative": [
+        "Adattare sempre il modello al caso concreto e alla strategia processuale."
+      ],
+      "versione": "1.1.0",
+      "stato": "draft_professionale",
+      "ordinamento": 12
+    },
+    {
+      "id": "CONC_012",
+      "slug": "domanda-del-consumatore",
+      "titolo": "Domanda del consumatore",
+      "famiglia": "Procedure concorsuali e crisi",
+      "area": "Giudiziale",
+      "macro_area": "Crisi d'impresa e insolvenza",
+      "sottobranca": "Concorsuale",
+      "procedimento": "Procedure concorsuali e crisi",
+      "fase": "standard",
+      "autorita": "Tribunale / Giudice Delegato",
+      "rito": "Concorsuale",
+      "canale_telematico": "PST_CONCORSUALE",
+      "depositabile": true,
+      "priorita": "specialist",
+      "tags": [
+        "conc",
+        "pst",
+        "concorsuale",
+        "pst_concorsuale",
+        "conc_012"
+      ],
+      "campi_precompila": [
+        "cliente",
+        "procedura",
+        "difensore",
+        "ufficio_giudiziario",
+        "credito",
+        "data_atto"
+      ],
+      "blocchi_guidati": [
+        "Intestazione",
+        "Soggetti",
+        "Titolo del credito",
+        "Fatti",
+        "Diritto",
+        "Richieste",
+        "Allegati",
+        "Firma"
+      ],
+      "varianti": [
+        "standard"
+      ],
+      "allegati_essenziali": [
+        "documenti a sostegno",
+        "procura ove necessaria",
+        "prova notifiche se richieste"
+      ],
+      "checklist_conformita": [
+        "anagrafica parti verificata",
+        "competenza/autorità verificata",
+        "allegati essenziali presenti",
+        "richieste finali coerenti",
+        "formato deposito verificato",
+        "dati fascicolo o procedimento controllati"
+      ],
+      "note_operative": [
+        "Verificare il canale telematico PST e l'ufficio competente prima del deposito."
+      ],
+      "versione": "1.1.0",
+      "stato": "draft_professionale",
+      "ordinamento": 12
+    },
+    {
+      "id": "PEN_013",
+      "slug": "istanza-di-dissequestro",
+      "titolo": "Istanza di dissequestro",
+      "famiglia": "Penale",
+      "area": "Giudiziale",
+      "macro_area": "Diritto penale",
+      "sottobranca": "Difesa penale e persona offesa",
+      "procedimento": "Penale",
+      "fase": "standard",
+      "autorita": "Procura / Tribunale Penale / Corte d'Appello",
+      "rito": "Penale",
+      "canale_telematico": "PDP",
+      "depositabile": true,
+      "priorita": "professional",
+      "tags": [
+        "pen",
+        "pdp",
+        "penale",
+        "istanza",
+        "pen_013"
+      ],
+      "campi_precompila": [
+        "assistito",
+        "controparte",
+        "difensore",
+        "ufficio_giudiziario",
+        "procedimento_penale",
+        "data_atto"
+      ],
+      "blocchi_guidati": [
+        "Intestazione",
+        "Parti",
+        "Premesse",
+        "Fatti",
+        "Diritto",
+        "Richieste",
+        "Allegati",
+        "Firma"
+      ],
+      "varianti": [
+        "semplice",
+        "urgente"
+      ],
+      "allegati_essenziali": [
+        "documenti a sostegno",
+        "procura ove necessaria",
+        "prova notifiche se richieste"
+      ],
+      "checklist_conformita": [
+        "anagrafica parti verificata",
+        "competenza/autorità verificata",
+        "allegati essenziali presenti",
+        "richieste finali coerenti",
+        "formato deposito verificato",
+        "dati fascicolo o procedimento controllati"
+      ],
+      "note_operative": [
+        "Verificare il canale telematico PDP e l'ufficio competente prima del deposito."
+      ],
+      "versione": "1.1.0",
+      "stato": "draft_professionale",
+      "ordinamento": 13
+    },
+    {
+      "id": "TRI_013",
+      "slug": "ricorso-contro-fermo",
+      "titolo": "Ricorso contro fermo",
+      "famiglia": "Tributario",
+      "area": "Giudiziale",
+      "macro_area": "Diritto tributario",
+      "sottobranca": "Contenzioso tributario",
+      "procedimento": "Tributario",
+      "fase": "standard",
+      "autorita": "Corte di Giustizia Tributaria",
+      "rito": "Tributario",
+      "canale_telematico": "PTT",
+      "depositabile": true,
+      "priorita": "professional",
+      "tags": [
+        "tri",
+        "ptt",
+        "tributario",
+        "ricorso",
+        "tri_013"
+      ],
+      "campi_precompila": [
+        "cliente",
+        "ente_impositore",
+        "difensore",
+        "atto_impugnato",
+        "tributo",
+        "data_atto"
+      ],
+      "blocchi_guidati": [
+        "Intestazione",
+        "Parti",
+        "Atto impugnato",
+        "Fatti",
+        "Diritto",
+        "Richieste",
+        "Allegati",
+        "Firma"
+      ],
+      "varianti": [
+        "base",
+        "con urgenza",
+        "con richiesta spese"
+      ],
+      "allegati_essenziali": [
+        "documenti a sostegno",
+        "procura ove necessaria",
+        "prova notifiche se richieste"
+      ],
+      "checklist_conformita": [
+        "anagrafica parti verificata",
+        "competenza/autorità verificata",
+        "allegati essenziali presenti",
+        "richieste finali coerenti",
+        "formato deposito verificato",
+        "dati fascicolo o procedimento controllati"
+      ],
+      "note_operative": [
+        "Verificare il canale telematico PTT e l'ufficio competente prima del deposito."
+      ],
+      "versione": "1.1.0",
+      "stato": "draft_professionale",
+      "ordinamento": 13
+    },
+    {
+      "id": "AMM_013",
+      "slug": "ricorso-per-ottemperanza",
+      "titolo": "Ricorso per ottemperanza",
+      "famiglia": "Amministrativo",
+      "area": "Giudiziale",
+      "macro_area": "Diritto amministrativo",
+      "sottobranca": "PAT e contenzioso amministrativo",
+      "procedimento": "Amministrativo",
+      "fase": "standard",
+      "autorita": "TAR / Consiglio di Stato",
+      "rito": "Amministrativo",
+      "canale_telematico": "PAT",
+      "depositabile": true,
+      "priorita": "advanced",
+      "tags": [
+        "amm",
+        "pat",
+        "amministrativo",
+        "ricorso",
+        "amm_013"
+      ],
+      "campi_precompila": [
+        "cliente",
+        "amministrazione",
+        "difensore",
+        "provvedimento",
+        "ufficio_giudiziario",
+        "data_atto"
+      ],
+      "blocchi_guidati": [
+        "Intestazione",
+        "Parti",
+        "Provvedimento impugnato",
+        "Fatti",
+        "Diritto",
+        "Richieste",
+        "Allegati",
+        "Firma"
+      ],
+      "varianti": [
+        "base",
+        "con urgenza",
+        "con richiesta spese"
+      ],
+      "allegati_essenziali": [
+        "documenti a sostegno",
+        "procura ove necessaria",
+        "prova notifiche se richieste"
+      ],
+      "checklist_conformita": [
+        "anagrafica parti verificata",
+        "competenza/autorità verificata",
+        "allegati essenziali presenti",
+        "richieste finali coerenti",
+        "formato deposito verificato",
+        "dati fascicolo o procedimento controllati"
+      ],
+      "note_operative": [
+        "Verificare il canale telematico PAT e l'ufficio competente prima del deposito."
+      ],
+      "versione": "1.1.0",
+      "stato": "draft_professionale",
+      "ordinamento": 13
+    },
+    {
+      "id": "ADR_013",
+      "slug": "memoria-arbitrale",
+      "titolo": "Memoria arbitrale",
+      "famiglia": "ADR, mediazione, negoziazione, arbitrato",
+      "area": "Stragiudiziale",
+      "macro_area": "ADR",
+      "sottobranca": "Mediazione e arbitrato",
+      "procedimento": "ADR, mediazione, negoziazione, arbitrato",
+      "fase": "standard",
+      "autorita": "Organismo ADR / Nessuna",
+      "rito": "ADR",
+      "canale_telematico": "NESSUNO",
+      "depositabile": false,
+      "priorita": "advanced",
+      "tags": [
+        "adr",
+        "nessuno",
+        "memoria",
+        "adr_013"
+      ],
+      "campi_precompila": [
+        "cliente",
+        "controparte",
+        "difensore",
+        "controversia",
+        "organismo",
+        "data_atto"
+      ],
+      "blocchi_guidati": [
+        "Intestazione",
+        "Parti",
+        "Oggetto",
+        "Fatti",
+        "Richieste",
+        "Proposte",
+        "Allegati",
+        "Firma"
+      ],
+      "varianti": [
+        "standard"
+      ],
+      "allegati_essenziali": [
+        "documenti a sostegno",
+        "procura ove necessaria",
+        "prova notifiche se richieste"
+      ],
+      "checklist_conformita": [
+        "anagrafica parti verificata",
+        "competenza/autorità verificata",
+        "allegati essenziali presenti",
+        "richieste finali coerenti"
+      ],
+      "note_operative": [
+        "Adattare sempre il modello al caso concreto e alla strategia processuale."
+      ],
+      "versione": "1.1.0",
+      "stato": "draft_professionale",
+      "ordinamento": 13
+    },
+    {
+      "id": "CONC_013",
+      "slug": "osservazioni-al-piano",
+      "titolo": "Osservazioni al piano",
+      "famiglia": "Procedure concorsuali e crisi",
+      "area": "Giudiziale",
+      "macro_area": "Crisi d'impresa e insolvenza",
+      "sottobranca": "Concorsuale",
+      "procedimento": "Procedure concorsuali e crisi",
+      "fase": "standard",
+      "autorita": "Tribunale / Giudice Delegato",
+      "rito": "Concorsuale",
+      "canale_telematico": "PST_CONCORSUALE",
+      "depositabile": true,
+      "priorita": "specialist",
+      "tags": [
+        "conc",
+        "pst",
+        "concorsuale",
+        "pst_concorsuale",
+        "conc_013"
+      ],
+      "campi_precompila": [
+        "cliente",
+        "procedura",
+        "difensore",
+        "ufficio_giudiziario",
+        "credito",
+        "data_atto"
+      ],
+      "blocchi_guidati": [
+        "Intestazione",
+        "Soggetti",
+        "Titolo del credito",
+        "Fatti",
+        "Diritto",
+        "Richieste",
+        "Allegati",
+        "Firma"
+      ],
+      "varianti": [
+        "standard"
+      ],
+      "allegati_essenziali": [
+        "documenti a sostegno",
+        "procura ove necessaria",
+        "prova notifiche se richieste"
+      ],
+      "checklist_conformita": [
+        "anagrafica parti verificata",
+        "competenza/autorità verificata",
+        "allegati essenziali presenti",
+        "richieste finali coerenti",
+        "formato deposito verificato",
+        "dati fascicolo o procedimento controllati"
+      ],
+      "note_operative": [
+        "Verificare il canale telematico PST e l'ufficio competente prima del deposito."
+      ],
+      "versione": "1.1.0",
+      "stato": "draft_professionale",
+      "ordinamento": 13
+    },
+    {
+      "id": "PEN_014",
+      "slug": "istanza-di-restituzione-di-beni-sequestrati",
+      "titolo": "Istanza di restituzione di beni sequestrati",
+      "famiglia": "Penale",
+      "area": "Giudiziale",
+      "macro_area": "Diritto penale",
+      "sottobranca": "Difesa penale e persona offesa",
+      "procedimento": "Penale",
+      "fase": "standard",
+      "autorita": "Procura / Tribunale Penale / Corte d'Appello",
+      "rito": "Penale",
+      "canale_telematico": "PDP",
+      "depositabile": true,
+      "priorita": "professional",
+      "tags": [
+        "pen",
+        "pdp",
+        "penale",
+        "istanza",
+        "pen_014"
+      ],
+      "campi_precompila": [
+        "assistito",
+        "controparte",
+        "difensore",
+        "ufficio_giudiziario",
+        "procedimento_penale",
+        "data_atto"
+      ],
+      "blocchi_guidati": [
+        "Intestazione",
+        "Parti",
+        "Premesse",
+        "Fatti",
+        "Diritto",
+        "Richieste",
+        "Allegati",
+        "Firma"
+      ],
+      "varianti": [
+        "semplice",
+        "urgente"
+      ],
+      "allegati_essenziali": [
+        "documenti a sostegno",
+        "procura ove necessaria",
+        "prova notifiche se richieste"
+      ],
+      "checklist_conformita": [
+        "anagrafica parti verificata",
+        "competenza/autorità verificata",
+        "allegati essenziali presenti",
+        "richieste finali coerenti",
+        "formato deposito verificato",
+        "dati fascicolo o procedimento controllati"
+      ],
+      "note_operative": [
+        "Verificare il canale telematico PDP e l'ufficio competente prima del deposito."
+      ],
+      "versione": "1.1.0",
+      "stato": "draft_professionale",
+      "ordinamento": 14
+    },
+    {
+      "id": "TRI_014",
+      "slug": "ricorso-contro-ipoteca",
+      "titolo": "Ricorso contro ipoteca",
+      "famiglia": "Tributario",
+      "area": "Giudiziale",
+      "macro_area": "Diritto tributario",
+      "sottobranca": "Contenzioso tributario",
+      "procedimento": "Tributario",
+      "fase": "standard",
+      "autorita": "Corte di Giustizia Tributaria",
+      "rito": "Tributario",
+      "canale_telematico": "PTT",
+      "depositabile": true,
+      "priorita": "advanced",
+      "tags": [
+        "tri",
+        "ptt",
+        "tributario",
+        "ricorso",
+        "tri_014"
+      ],
+      "campi_precompila": [
+        "cliente",
+        "ente_impositore",
+        "difensore",
+        "atto_impugnato",
+        "tributo",
+        "data_atto"
+      ],
+      "blocchi_guidati": [
+        "Intestazione",
+        "Parti",
+        "Atto impugnato",
+        "Fatti",
+        "Diritto",
+        "Richieste",
+        "Allegati",
+        "Firma"
+      ],
+      "varianti": [
+        "base",
+        "con urgenza",
+        "con richiesta spese"
+      ],
+      "allegati_essenziali": [
+        "documenti a sostegno",
+        "procura ove necessaria",
+        "prova notifiche se richieste"
+      ],
+      "checklist_conformita": [
+        "anagrafica parti verificata",
+        "competenza/autorità verificata",
+        "allegati essenziali presenti",
+        "richieste finali coerenti",
+        "formato deposito verificato",
+        "dati fascicolo o procedimento controllati"
+      ],
+      "note_operative": [
+        "Verificare il canale telematico PTT e l'ufficio competente prima del deposito."
+      ],
+      "versione": "1.1.0",
+      "stato": "draft_professionale",
+      "ordinamento": 14
+    },
+    {
+      "id": "AMM_014",
+      "slug": "ricorso-in-materia-di-appalti-pubblici",
+      "titolo": "Ricorso in materia di appalti pubblici",
+      "famiglia": "Amministrativo",
+      "area": "Giudiziale",
+      "macro_area": "Diritto amministrativo",
+      "sottobranca": "PAT e contenzioso amministrativo",
+      "procedimento": "Amministrativo",
+      "fase": "standard",
+      "autorita": "TAR / Consiglio di Stato",
+      "rito": "Amministrativo",
+      "canale_telematico": "PAT",
+      "depositabile": true,
+      "priorita": "advanced",
+      "tags": [
+        "amm",
+        "pat",
+        "amministrativo",
+        "ricorso",
+        "amm_014"
+      ],
+      "campi_precompila": [
+        "cliente",
+        "amministrazione",
+        "difensore",
+        "provvedimento",
+        "ufficio_giudiziario",
+        "data_atto"
+      ],
+      "blocchi_guidati": [
+        "Intestazione",
+        "Parti",
+        "Provvedimento impugnato",
+        "Fatti",
+        "Diritto",
+        "Richieste",
+        "Allegati",
+        "Firma"
+      ],
+      "varianti": [
+        "base",
+        "con urgenza",
+        "con richiesta spese"
+      ],
+      "allegati_essenziali": [
+        "documenti a sostegno",
+        "procura ove necessaria",
+        "prova notifiche se richieste"
+      ],
+      "checklist_conformita": [
+        "anagrafica parti verificata",
+        "competenza/autorità verificata",
+        "allegati essenziali presenti",
+        "richieste finali coerenti",
+        "formato deposito verificato",
+        "dati fascicolo o procedimento controllati"
+      ],
+      "note_operative": [
+        "Verificare il canale telematico PAT e l'ufficio competente prima del deposito."
+      ],
+      "versione": "1.1.0",
+      "stato": "draft_professionale",
+      "ordinamento": 14
+    },
+    {
+      "id": "ADR_014",
+      "slug": "accordo-transattivo-finale",
+      "titolo": "Accordo transattivo finale",
+      "famiglia": "ADR, mediazione, negoziazione, arbitrato",
+      "area": "Stragiudiziale",
+      "macro_area": "ADR",
+      "sottobranca": "Mediazione e arbitrato",
+      "procedimento": "ADR, mediazione, negoziazione, arbitrato",
+      "fase": "standard",
+      "autorita": "Organismo ADR / Nessuna",
+      "rito": "ADR",
+      "canale_telematico": "NESSUNO",
+      "depositabile": false,
+      "priorita": "advanced",
+      "tags": [
+        "adr",
+        "nessuno",
+        "adr_014"
+      ],
+      "campi_precompila": [
+        "cliente",
+        "controparte",
+        "difensore",
+        "controversia",
+        "organismo",
+        "data_atto"
+      ],
+      "blocchi_guidati": [
+        "Intestazione",
+        "Parti",
+        "Oggetto",
+        "Fatti",
+        "Richieste",
+        "Proposte",
+        "Allegati",
+        "Firma"
+      ],
+      "varianti": [
+        "standard"
+      ],
+      "allegati_essenziali": [
+        "documenti a sostegno",
+        "procura ove necessaria",
+        "prova notifiche se richieste"
+      ],
+      "checklist_conformita": [
+        "anagrafica parti verificata",
+        "competenza/autorità verificata",
+        "allegati essenziali presenti",
+        "richieste finali coerenti"
+      ],
+      "note_operative": [
+        "Adattare sempre il modello al caso concreto e alla strategia processuale."
+      ],
+      "versione": "1.1.0",
+      "stato": "draft_professionale",
+      "ordinamento": 14
+    },
+    {
+      "id": "CONC_014",
+      "slug": "memoria-dei-creditori",
+      "titolo": "Memoria dei creditori",
+      "famiglia": "Procedure concorsuali e crisi",
+      "area": "Giudiziale",
+      "macro_area": "Crisi d'impresa e insolvenza",
+      "sottobranca": "Concorsuale",
+      "procedimento": "Procedure concorsuali e crisi",
+      "fase": "standard",
+      "autorita": "Tribunale / Giudice Delegato",
+      "rito": "Concorsuale",
+      "canale_telematico": "PST_CONCORSUALE",
+      "depositabile": true,
+      "priorita": "specialist",
+      "tags": [
+        "conc",
+        "pst",
+        "concorsuale",
+        "memoria",
+        "pst_concorsuale",
+        "conc_014"
+      ],
+      "campi_precompila": [
+        "cliente",
+        "procedura",
+        "difensore",
+        "ufficio_giudiziario",
+        "credito",
+        "data_atto"
+      ],
+      "blocchi_guidati": [
+        "Intestazione",
+        "Soggetti",
+        "Titolo del credito",
+        "Fatti",
+        "Diritto",
+        "Richieste",
+        "Allegati",
+        "Firma"
+      ],
+      "varianti": [
+        "standard"
+      ],
+      "allegati_essenziali": [
+        "documenti a sostegno",
+        "procura ove necessaria",
+        "prova notifiche se richieste"
+      ],
+      "checklist_conformita": [
+        "anagrafica parti verificata",
+        "competenza/autorità verificata",
+        "allegati essenziali presenti",
+        "richieste finali coerenti",
+        "formato deposito verificato",
+        "dati fascicolo o procedimento controllati"
+      ],
+      "note_operative": [
+        "Verificare il canale telematico PST e l'ufficio competente prima del deposito."
+      ],
+      "versione": "1.1.0",
+      "stato": "draft_professionale",
+      "ordinamento": 14
+    },
+    {
+      "id": "PEN_015",
+      "slug": "istanza-di-copie-atti",
+      "titolo": "Istanza di copie atti",
+      "famiglia": "Penale",
+      "area": "Giudiziale",
+      "macro_area": "Diritto penale",
+      "sottobranca": "Difesa penale e persona offesa",
+      "procedimento": "Penale",
+      "fase": "standard",
+      "autorita": "Procura / Tribunale Penale / Corte d'Appello",
+      "rito": "Penale",
+      "canale_telematico": "PDP",
+      "depositabile": true,
+      "priorita": "professional",
+      "tags": [
+        "pen",
+        "pdp",
+        "penale",
+        "istanza",
+        "pen_015"
+      ],
+      "campi_precompila": [
+        "assistito",
+        "controparte",
+        "difensore",
+        "ufficio_giudiziario",
+        "procedimento_penale",
+        "data_atto"
+      ],
+      "blocchi_guidati": [
+        "Intestazione",
+        "Parti",
+        "Premesse",
+        "Fatti",
+        "Diritto",
+        "Richieste",
+        "Allegati",
+        "Firma"
+      ],
+      "varianti": [
+        "semplice",
+        "urgente"
+      ],
+      "allegati_essenziali": [
+        "documenti a sostegno",
+        "procura ove necessaria",
+        "prova notifiche se richieste"
+      ],
+      "checklist_conformita": [
+        "anagrafica parti verificata",
+        "competenza/autorità verificata",
+        "allegati essenziali presenti",
+        "richieste finali coerenti",
+        "formato deposito verificato",
+        "dati fascicolo o procedimento controllati"
+      ],
+      "note_operative": [
+        "Verificare il canale telematico PDP e l'ufficio competente prima del deposito."
+      ],
+      "versione": "1.1.0",
+      "stato": "draft_professionale",
+      "ordinamento": 15
+    },
+    {
+      "id": "TRI_015",
+      "slug": "ricorso-imu",
+      "titolo": "Ricorso IMU",
+      "famiglia": "Tributario",
+      "area": "Giudiziale",
+      "macro_area": "Diritto tributario",
+      "sottobranca": "Contenzioso tributario",
+      "procedimento": "Tributario",
+      "fase": "standard",
+      "autorita": "Corte di Giustizia Tributaria",
+      "rito": "Tributario",
+      "canale_telematico": "PTT",
+      "depositabile": true,
+      "priorita": "advanced",
+      "tags": [
+        "tri",
+        "ptt",
+        "tributario",
+        "ricorso",
+        "tri_015"
+      ],
+      "campi_precompila": [
+        "cliente",
+        "ente_impositore",
+        "difensore",
+        "atto_impugnato",
+        "tributo",
+        "data_atto"
+      ],
+      "blocchi_guidati": [
+        "Intestazione",
+        "Parti",
+        "Atto impugnato",
+        "Fatti",
+        "Diritto",
+        "Richieste",
+        "Allegati",
+        "Firma"
+      ],
+      "varianti": [
+        "base",
+        "con urgenza",
+        "con richiesta spese"
+      ],
+      "allegati_essenziali": [
+        "documenti a sostegno",
+        "procura ove necessaria",
+        "prova notifiche se richieste"
+      ],
+      "checklist_conformita": [
+        "anagrafica parti verificata",
+        "competenza/autorità verificata",
+        "allegati essenziali presenti",
+        "richieste finali coerenti",
+        "formato deposito verificato",
+        "dati fascicolo o procedimento controllati"
+      ],
+      "note_operative": [
+        "Verificare il canale telematico PTT e l'ufficio competente prima del deposito."
+      ],
+      "versione": "1.1.0",
+      "stato": "draft_professionale",
+      "ordinamento": 15
+    },
+    {
+      "id": "AMM_015",
+      "slug": "ricorso-per-esclusione-da-gara",
+      "titolo": "Ricorso per esclusione da gara",
+      "famiglia": "Amministrativo",
+      "area": "Giudiziale",
+      "macro_area": "Diritto amministrativo",
+      "sottobranca": "PAT e contenzioso amministrativo",
+      "procedimento": "Amministrativo",
+      "fase": "standard",
+      "autorita": "TAR / Consiglio di Stato",
+      "rito": "Amministrativo",
+      "canale_telematico": "PAT",
+      "depositabile": true,
+      "priorita": "advanced",
+      "tags": [
+        "amm",
+        "pat",
+        "amministrativo",
+        "ricorso",
+        "amm_015"
+      ],
+      "campi_precompila": [
+        "cliente",
+        "amministrazione",
+        "difensore",
+        "provvedimento",
+        "ufficio_giudiziario",
+        "data_atto"
+      ],
+      "blocchi_guidati": [
+        "Intestazione",
+        "Parti",
+        "Provvedimento impugnato",
+        "Fatti",
+        "Diritto",
+        "Richieste",
+        "Allegati",
+        "Firma"
+      ],
+      "varianti": [
+        "base",
+        "con urgenza",
+        "con richiesta spese"
+      ],
+      "allegati_essenziali": [
+        "provvedimento impugnato",
+        "documenti amministrativi",
+        "procura",
+        "prova notifiche"
+      ],
+      "checklist_conformita": [
+        "anagrafica parti verificata",
+        "competenza/autorità verificata",
+        "allegati essenziali presenti",
+        "richieste finali coerenti",
+        "formato deposito verificato",
+        "dati fascicolo o procedimento controllati"
+      ],
+      "note_operative": [
+        "Verificare il canale telematico PAT e l'ufficio competente prima del deposito."
+      ],
+      "versione": "1.1.0",
+      "stato": "draft_professionale",
+      "ordinamento": 15
+    },
+    {
+      "id": "CONC_015",
+      "slug": "istanza-di-autorizzazione-ad-atti-del-liquidatore",
+      "titolo": "Istanza di autorizzazione ad atti del liquidatore",
+      "famiglia": "Procedure concorsuali e crisi",
+      "area": "Giudiziale",
+      "macro_area": "Crisi d'impresa e insolvenza",
+      "sottobranca": "Concorsuale",
+      "procedimento": "Procedure concorsuali e crisi",
+      "fase": "standard",
+      "autorita": "Tribunale / Giudice Delegato",
+      "rito": "Concorsuale",
+      "canale_telematico": "PST_CONCORSUALE",
+      "depositabile": true,
+      "priorita": "specialist",
+      "tags": [
+        "conc",
+        "pst",
+        "concorsuale",
+        "istanza",
+        "pst_concorsuale",
+        "conc_015"
+      ],
+      "campi_precompila": [
+        "cliente",
+        "procedura",
+        "difensore",
+        "ufficio_giudiziario",
+        "credito",
+        "data_atto"
+      ],
+      "blocchi_guidati": [
+        "Intestazione",
+        "Soggetti",
+        "Titolo del credito",
+        "Fatti",
+        "Diritto",
+        "Richieste",
+        "Allegati",
+        "Firma"
+      ],
+      "varianti": [
+        "semplice",
+        "urgente"
+      ],
+      "allegati_essenziali": [
+        "documenti a sostegno",
+        "procura ove necessaria",
+        "prova notifiche se richieste"
+      ],
+      "checklist_conformita": [
+        "anagrafica parti verificata",
+        "competenza/autorità verificata",
+        "allegati essenziali presenti",
+        "richieste finali coerenti",
+        "formato deposito verificato",
+        "dati fascicolo o procedimento controllati"
+      ],
+      "note_operative": [
+        "Verificare il canale telematico PST e l'ufficio competente prima del deposito."
+      ],
+      "versione": "1.1.0",
+      "stato": "draft_professionale",
+      "ordinamento": 15
+    },
+    {
+      "id": "PEN_016",
+      "slug": "istanza-di-accesso-al-fascicolo",
+      "titolo": "Istanza di accesso al fascicolo",
+      "famiglia": "Penale",
+      "area": "Giudiziale",
+      "macro_area": "Diritto penale",
+      "sottobranca": "Difesa penale e persona offesa",
+      "procedimento": "Penale",
+      "fase": "standard",
+      "autorita": "Procura / Tribunale Penale / Corte d'Appello",
+      "rito": "Penale",
+      "canale_telematico": "PDP",
+      "depositabile": true,
+      "priorita": "professional",
+      "tags": [
+        "pen",
+        "pdp",
+        "penale",
+        "istanza",
+        "pen_016"
+      ],
+      "campi_precompila": [
+        "assistito",
+        "controparte",
+        "difensore",
+        "ufficio_giudiziario",
+        "procedimento_penale",
+        "data_atto"
+      ],
+      "blocchi_guidati": [
+        "Intestazione",
+        "Parti",
+        "Premesse",
+        "Fatti",
+        "Diritto",
+        "Richieste",
+        "Allegati",
+        "Firma"
+      ],
+      "varianti": [
+        "semplice",
+        "urgente"
+      ],
+      "allegati_essenziali": [
+        "documenti a sostegno",
+        "procura ove necessaria",
+        "prova notifiche se richieste"
+      ],
+      "checklist_conformita": [
+        "anagrafica parti verificata",
+        "competenza/autorità verificata",
+        "allegati essenziali presenti",
+        "richieste finali coerenti",
+        "formato deposito verificato",
+        "dati fascicolo o procedimento controllati"
+      ],
+      "note_operative": [
+        "Verificare il canale telematico PDP e l'ufficio competente prima del deposito."
+      ],
+      "versione": "1.1.0",
+      "stato": "draft_professionale",
+      "ordinamento": 16
+    },
+    {
+      "id": "TRI_016",
+      "slug": "ricorso-tari",
+      "titolo": "Ricorso TARI",
+      "famiglia": "Tributario",
+      "area": "Giudiziale",
+      "macro_area": "Diritto tributario",
+      "sottobranca": "Contenzioso tributario",
+      "procedimento": "Tributario",
+      "fase": "standard",
+      "autorita": "Corte di Giustizia Tributaria",
+      "rito": "Tributario",
+      "canale_telematico": "PTT",
+      "depositabile": true,
+      "priorita": "advanced",
+      "tags": [
+        "tri",
+        "ptt",
+        "tributario",
+        "ricorso",
+        "tri_016"
+      ],
+      "campi_precompila": [
+        "cliente",
+        "ente_impositore",
+        "difensore",
+        "atto_impugnato",
+        "tributo",
+        "data_atto"
+      ],
+      "blocchi_guidati": [
+        "Intestazione",
+        "Parti",
+        "Atto impugnato",
+        "Fatti",
+        "Diritto",
+        "Richieste",
+        "Allegati",
+        "Firma"
+      ],
+      "varianti": [
+        "base",
+        "con urgenza",
+        "con richiesta spese"
+      ],
+      "allegati_essenziali": [
+        "documenti a sostegno",
+        "procura ove necessaria",
+        "prova notifiche se richieste"
+      ],
+      "checklist_conformita": [
+        "anagrafica parti verificata",
+        "competenza/autorità verificata",
+        "allegati essenziali presenti",
+        "richieste finali coerenti",
+        "formato deposito verificato",
+        "dati fascicolo o procedimento controllati"
+      ],
+      "note_operative": [
+        "Verificare il canale telematico PTT e l'ufficio competente prima del deposito."
+      ],
+      "versione": "1.1.0",
+      "stato": "draft_professionale",
+      "ordinamento": 16
+    },
+    {
+      "id": "AMM_016",
+      "slug": "ricorso-per-revoca-o-annullamento-di-concessione",
+      "titolo": "Ricorso per revoca o annullamento di concessione",
+      "famiglia": "Amministrativo",
+      "area": "Giudiziale",
+      "macro_area": "Diritto amministrativo",
+      "sottobranca": "PAT e contenzioso amministrativo",
+      "procedimento": "Amministrativo",
+      "fase": "standard",
+      "autorita": "TAR / Consiglio di Stato",
+      "rito": "Amministrativo",
+      "canale_telematico": "PAT",
+      "depositabile": true,
+      "priorita": "advanced",
+      "tags": [
+        "amm",
+        "pat",
+        "amministrativo",
+        "ricorso",
+        "amm_016"
+      ],
+      "campi_precompila": [
+        "cliente",
+        "amministrazione",
+        "difensore",
+        "provvedimento",
+        "ufficio_giudiziario",
+        "data_atto"
+      ],
+      "blocchi_guidati": [
+        "Intestazione",
+        "Parti",
+        "Provvedimento impugnato",
+        "Fatti",
+        "Diritto",
+        "Richieste",
+        "Allegati",
+        "Firma"
+      ],
+      "varianti": [
+        "base",
+        "con urgenza",
+        "con richiesta spese"
+      ],
+      "allegati_essenziali": [
+        "documenti a sostegno",
+        "procura ove necessaria",
+        "prova notifiche se richieste"
+      ],
+      "checklist_conformita": [
+        "anagrafica parti verificata",
+        "competenza/autorità verificata",
+        "allegati essenziali presenti",
+        "richieste finali coerenti",
+        "formato deposito verificato",
+        "dati fascicolo o procedimento controllati"
+      ],
+      "note_operative": [
+        "Verificare il canale telematico PAT e l'ufficio competente prima del deposito."
+      ],
+      "versione": "1.1.0",
+      "stato": "draft_professionale",
+      "ordinamento": 16
+    },
+    {
+      "id": "PEN_017",
+      "slug": "istanza-di-incidente-probatorio",
+      "titolo": "Istanza di incidente probatorio",
+      "famiglia": "Penale",
+      "area": "Giudiziale",
+      "macro_area": "Diritto penale",
+      "sottobranca": "Difesa penale e persona offesa",
+      "procedimento": "Penale",
+      "fase": "standard",
+      "autorita": "Procura / Tribunale Penale / Corte d'Appello",
+      "rito": "Penale",
+      "canale_telematico": "PDP",
+      "depositabile": true,
+      "priorita": "advanced",
+      "tags": [
+        "pen",
+        "pdp",
+        "penale",
+        "istanza",
+        "pen_017"
+      ],
+      "campi_precompila": [
+        "assistito",
+        "controparte",
+        "difensore",
+        "ufficio_giudiziario",
+        "procedimento_penale",
+        "data_atto"
+      ],
+      "blocchi_guidati": [
+        "Intestazione",
+        "Parti",
+        "Premesse",
+        "Fatti",
+        "Diritto",
+        "Richieste",
+        "Allegati",
+        "Firma"
+      ],
+      "varianti": [
+        "semplice",
+        "urgente"
+      ],
+      "allegati_essenziali": [
+        "documenti a sostegno",
+        "procura ove necessaria",
+        "prova notifiche se richieste"
+      ],
+      "checklist_conformita": [
+        "anagrafica parti verificata",
+        "competenza/autorità verificata",
+        "allegati essenziali presenti",
+        "richieste finali coerenti",
+        "formato deposito verificato",
+        "dati fascicolo o procedimento controllati"
+      ],
+      "note_operative": [
+        "Verificare il canale telematico PDP e l'ufficio competente prima del deposito."
+      ],
+      "versione": "1.1.0",
+      "stato": "draft_professionale",
+      "ordinamento": 17
+    },
+    {
+      "id": "TRI_017",
+      "slug": "ricorso-su-tributi-locali",
+      "titolo": "Ricorso su tributi locali",
+      "famiglia": "Tributario",
+      "area": "Giudiziale",
+      "macro_area": "Diritto tributario",
+      "sottobranca": "Contenzioso tributario",
+      "procedimento": "Tributario",
+      "fase": "standard",
+      "autorita": "Corte di Giustizia Tributaria",
+      "rito": "Tributario",
+      "canale_telematico": "PTT",
+      "depositabile": true,
+      "priorita": "advanced",
+      "tags": [
+        "tri",
+        "ptt",
+        "tributario",
+        "ricorso",
+        "tri_017"
+      ],
+      "campi_precompila": [
+        "cliente",
+        "ente_impositore",
+        "difensore",
+        "atto_impugnato",
+        "tributo",
+        "data_atto"
+      ],
+      "blocchi_guidati": [
+        "Intestazione",
+        "Parti",
+        "Atto impugnato",
+        "Fatti",
+        "Diritto",
+        "Richieste",
+        "Allegati",
+        "Firma"
+      ],
+      "varianti": [
+        "base",
+        "con urgenza",
+        "con richiesta spese"
+      ],
+      "allegati_essenziali": [
+        "atto impugnato",
+        "prova notifiche",
+        "procura",
+        "documenti fiscali"
+      ],
+      "checklist_conformita": [
+        "anagrafica parti verificata",
+        "competenza/autorità verificata",
+        "allegati essenziali presenti",
+        "richieste finali coerenti",
+        "formato deposito verificato",
+        "dati fascicolo o procedimento controllati"
+      ],
+      "note_operative": [
+        "Verificare il canale telematico PTT e l'ufficio competente prima del deposito."
+      ],
+      "versione": "1.1.0",
+      "stato": "draft_professionale",
+      "ordinamento": 17
+    },
+    {
+      "id": "AMM_017",
+      "slug": "ricorso-per-sanzioni-amministrative-di-settore",
+      "titolo": "Ricorso per sanzioni amministrative di settore",
+      "famiglia": "Amministrativo",
+      "area": "Giudiziale",
+      "macro_area": "Diritto amministrativo",
+      "sottobranca": "PAT e contenzioso amministrativo",
+      "procedimento": "Amministrativo",
+      "fase": "standard",
+      "autorita": "TAR / Consiglio di Stato",
+      "rito": "Amministrativo",
+      "canale_telematico": "PAT",
+      "depositabile": true,
+      "priorita": "advanced",
+      "tags": [
+        "amm",
+        "pat",
+        "amministrativo",
+        "ricorso",
+        "amm_017"
+      ],
+      "campi_precompila": [
+        "cliente",
+        "amministrazione",
+        "difensore",
+        "provvedimento",
+        "ufficio_giudiziario",
+        "data_atto"
+      ],
+      "blocchi_guidati": [
+        "Intestazione",
+        "Parti",
+        "Provvedimento impugnato",
+        "Fatti",
+        "Diritto",
+        "Richieste",
+        "Allegati",
+        "Firma"
+      ],
+      "varianti": [
+        "base",
+        "con urgenza",
+        "con richiesta spese"
+      ],
+      "allegati_essenziali": [
+        "provvedimento impugnato",
+        "documenti amministrativi",
+        "procura",
+        "prova notifiche"
+      ],
+      "checklist_conformita": [
+        "anagrafica parti verificata",
+        "competenza/autorità verificata",
+        "allegati essenziali presenti",
+        "richieste finali coerenti",
+        "formato deposito verificato",
+        "dati fascicolo o procedimento controllati"
+      ],
+      "note_operative": [
+        "Verificare il canale telematico PAT e l'ufficio competente prima del deposito."
+      ],
+      "versione": "1.1.0",
+      "stato": "draft_professionale",
+      "ordinamento": 17
+    },
+    {
+      "id": "PEN_018",
+      "slug": "atto-di-appello-penale",
+      "titolo": "Atto di appello penale",
+      "famiglia": "Penale",
+      "area": "Giudiziale",
+      "macro_area": "Diritto penale",
+      "sottobranca": "Difesa penale e persona offesa",
+      "procedimento": "Penale",
+      "fase": "standard",
+      "autorita": "Procura / Tribunale Penale / Corte d'Appello",
+      "rito": "Penale",
+      "canale_telematico": "PDP",
+      "depositabile": true,
+      "priorita": "advanced",
+      "tags": [
+        "pen",
+        "pdp",
+        "penale",
+        "appello",
+        "pen_018"
+      ],
+      "campi_precompila": [
+        "assistito",
+        "controparte",
+        "difensore",
+        "ufficio_giudiziario",
+        "procedimento_penale",
+        "data_atto"
+      ],
+      "blocchi_guidati": [
+        "Intestazione",
+        "Parti",
+        "Premesse",
+        "Fatti",
+        "Diritto",
+        "Richieste",
+        "Allegati",
+        "Firma"
+      ],
+      "varianti": [
+        "principale",
+        "incidentale"
+      ],
+      "allegati_essenziali": [
+        "documenti prova",
+        "eventuali referti o verbali",
+        "procura se necessaria",
+        "deleghe"
+      ],
+      "checklist_conformita": [
+        "anagrafica parti verificata",
+        "competenza/autorità verificata",
+        "allegati essenziali presenti",
+        "richieste finali coerenti",
+        "formato deposito verificato",
+        "dati fascicolo o procedimento controllati"
+      ],
+      "note_operative": [
+        "Verificare il canale telematico PDP e l'ufficio competente prima del deposito."
+      ],
+      "versione": "1.1.0",
+      "stato": "draft_professionale",
+      "ordinamento": 18
+    },
+    {
+      "id": "TRI_018",
+      "slug": "ricorso-contro-avviso-di-accertamento",
+      "titolo": "Ricorso contro avviso di accertamento",
+      "famiglia": "Tributario",
+      "area": "Giudiziale",
+      "macro_area": "Diritto tributario",
+      "sottobranca": "Contenzioso tributario",
+      "procedimento": "Tributario",
+      "fase": "standard",
+      "autorita": "Corte di Giustizia Tributaria",
+      "rito": "Tributario",
+      "canale_telematico": "PTT",
+      "depositabile": true,
+      "priorita": "advanced",
+      "tags": [
+        "tri",
+        "ptt",
+        "tributario",
+        "ricorso",
+        "tri_018"
+      ],
+      "campi_precompila": [
+        "cliente",
+        "ente_impositore",
+        "difensore",
+        "atto_impugnato",
+        "tributo",
+        "data_atto"
+      ],
+      "blocchi_guidati": [
+        "Intestazione",
+        "Parti",
+        "Atto impugnato",
+        "Fatti",
+        "Diritto",
+        "Richieste",
+        "Allegati",
+        "Firma"
+      ],
+      "varianti": [
+        "base",
+        "con urgenza",
+        "con richiesta spese"
+      ],
+      "allegati_essenziali": [
+        "atto impugnato",
+        "prova notifiche",
+        "procura",
+        "documenti fiscali"
+      ],
+      "checklist_conformita": [
+        "anagrafica parti verificata",
+        "competenza/autorità verificata",
+        "allegati essenziali presenti",
+        "richieste finali coerenti",
+        "formato deposito verificato",
+        "dati fascicolo o procedimento controllati"
+      ],
+      "note_operative": [
+        "Verificare il canale telematico PTT e l'ufficio competente prima del deposito."
+      ],
+      "versione": "1.1.0",
+      "stato": "draft_professionale",
+      "ordinamento": 18
+    },
+    {
+      "id": "AMM_018",
+      "slug": "istanza-di-oscuramento-dati",
+      "titolo": "Istanza di oscuramento dati",
+      "famiglia": "Amministrativo",
+      "area": "Giudiziale",
+      "macro_area": "Diritto amministrativo",
+      "sottobranca": "PAT e contenzioso amministrativo",
+      "procedimento": "Amministrativo",
+      "fase": "standard",
+      "autorita": "TAR / Consiglio di Stato",
+      "rito": "Amministrativo",
+      "canale_telematico": "PAT",
+      "depositabile": true,
+      "priorita": "advanced",
+      "tags": [
+        "amm",
+        "pat",
+        "amministrativo",
+        "istanza",
+        "amm_018"
+      ],
+      "campi_precompila": [
+        "cliente",
+        "amministrazione",
+        "difensore",
+        "provvedimento",
+        "ufficio_giudiziario",
+        "data_atto"
+      ],
+      "blocchi_guidati": [
+        "Intestazione",
+        "Parti",
+        "Provvedimento impugnato",
+        "Fatti",
+        "Diritto",
+        "Richieste",
+        "Allegati",
+        "Firma"
+      ],
+      "varianti": [
+        "semplice",
+        "urgente"
+      ],
+      "allegati_essenziali": [
+        "documenti a sostegno",
+        "procura ove necessaria",
+        "prova notifiche se richieste"
+      ],
+      "checklist_conformita": [
+        "anagrafica parti verificata",
+        "competenza/autorità verificata",
+        "allegati essenziali presenti",
+        "richieste finali coerenti",
+        "formato deposito verificato",
+        "dati fascicolo o procedimento controllati"
+      ],
+      "note_operative": [
+        "Verificare il canale telematico PAT e l'ufficio competente prima del deposito."
+      ],
+      "versione": "1.1.0",
+      "stato": "draft_professionale",
+      "ordinamento": 18
+    },
+    {
+      "id": "PEN_019",
+      "slug": "ricorso-per-cassazione-penale",
+      "titolo": "Ricorso per cassazione penale",
+      "famiglia": "Penale",
+      "area": "Giudiziale",
+      "macro_area": "Diritto penale",
+      "sottobranca": "Difesa penale e persona offesa",
+      "procedimento": "Penale",
+      "fase": "standard",
+      "autorita": "Procura / Tribunale Penale / Corte d'Appello",
+      "rito": "Penale",
+      "canale_telematico": "PDP",
+      "depositabile": true,
+      "priorita": "advanced",
+      "tags": [
+        "pen",
+        "pdp",
+        "penale",
+        "ricorso",
+        "cassazione",
+        "pen_019"
+      ],
+      "campi_precompila": [
+        "assistito",
+        "controparte",
+        "difensore",
+        "ufficio_giudiziario",
+        "procedimento_penale",
+        "data_atto"
+      ],
+      "blocchi_guidati": [
+        "Intestazione",
+        "Parti",
+        "Premesse",
+        "Fatti",
+        "Diritto",
+        "Richieste",
+        "Allegati",
+        "Firma"
+      ],
+      "varianti": [
+        "base",
+        "con urgenza",
+        "con richiesta spese"
+      ],
+      "allegati_essenziali": [
+        "documenti prova",
+        "eventuali referti o verbali",
+        "procura se necessaria",
+        "deleghe"
+      ],
+      "checklist_conformita": [
+        "anagrafica parti verificata",
+        "competenza/autorità verificata",
+        "allegati essenziali presenti",
+        "richieste finali coerenti",
+        "formato deposito verificato",
+        "dati fascicolo o procedimento controllati"
+      ],
+      "note_operative": [
+        "Verificare il canale telematico PDP e l'ufficio competente prima del deposito."
+      ],
+      "versione": "1.1.0",
+      "stato": "draft_professionale",
+      "ordinamento": 19
+    },
+    {
+      "id": "TRI_019",
+      "slug": "ricorso-contro-diniego-di-rimborso",
+      "titolo": "Ricorso contro diniego di rimborso",
+      "famiglia": "Tributario",
+      "area": "Giudiziale",
+      "macro_area": "Diritto tributario",
+      "sottobranca": "Contenzioso tributario",
+      "procedimento": "Tributario",
+      "fase": "standard",
+      "autorita": "Corte di Giustizia Tributaria",
+      "rito": "Tributario",
+      "canale_telematico": "PTT",
+      "depositabile": false,
+      "priorita": "advanced",
+      "tags": [
+        "tri",
+        "ptt",
+        "tributario",
+        "ricorso",
+        "tri_019"
+      ],
+      "campi_precompila": [
+        "cliente",
+        "ente_impositore",
+        "difensore",
+        "atto_impugnato",
+        "tributo",
+        "data_atto"
+      ],
+      "blocchi_guidati": [
+        "Intestazione",
+        "Parti",
+        "Atto impugnato",
+        "Fatti",
+        "Diritto",
+        "Richieste",
+        "Allegati",
+        "Firma"
+      ],
+      "varianti": [
+        "base",
+        "con urgenza",
+        "con richiesta spese"
+      ],
+      "allegati_essenziali": [
+        "documenti a sostegno",
+        "procura ove necessaria",
+        "prova notifiche se richieste"
+      ],
+      "checklist_conformita": [
+        "anagrafica parti verificata",
+        "competenza/autorità verificata",
+        "allegati essenziali presenti",
+        "richieste finali coerenti"
+      ],
+      "note_operative": [
+        "Adattare sempre il modello al caso concreto e alla strategia processuale."
+      ],
+      "versione": "1.1.0",
+      "stato": "draft_professionale",
+      "ordinamento": 19
+    },
+    {
+      "id": "PEN_020",
+      "slug": "istanza-per-misure-alternative",
+      "titolo": "Istanza per misure alternative",
+      "famiglia": "Penale",
+      "area": "Giudiziale",
+      "macro_area": "Diritto penale",
+      "sottobranca": "Difesa penale e persona offesa",
+      "procedimento": "Penale",
+      "fase": "standard",
+      "autorita": "Procura / Tribunale Penale / Corte d'Appello",
+      "rito": "Penale",
+      "canale_telematico": "PDP",
+      "depositabile": true,
+      "priorita": "advanced",
+      "tags": [
+        "pen",
+        "pdp",
+        "penale",
+        "istanza",
+        "pen_020"
+      ],
+      "campi_precompila": [
+        "assistito",
+        "controparte",
+        "difensore",
+        "ufficio_giudiziario",
+        "procedimento_penale",
+        "data_atto"
+      ],
+      "blocchi_guidati": [
+        "Intestazione",
+        "Parti",
+        "Premesse",
+        "Fatti",
+        "Diritto",
+        "Richieste",
+        "Allegati",
+        "Firma"
+      ],
+      "varianti": [
+        "semplice",
+        "urgente"
+      ],
+      "allegati_essenziali": [
+        "documenti a sostegno",
+        "procura ove necessaria",
+        "prova notifiche se richieste"
+      ],
+      "checklist_conformita": [
+        "anagrafica parti verificata",
+        "competenza/autorità verificata",
+        "allegati essenziali presenti",
+        "richieste finali coerenti",
+        "formato deposito verificato",
+        "dati fascicolo o procedimento controllati"
+      ],
+      "note_operative": [
+        "Verificare il canale telematico PDP e l'ufficio competente prima del deposito."
+      ],
+      "versione": "1.1.0",
+      "stato": "draft_professionale",
+      "ordinamento": 20
+    },
+    {
+      "id": "TRI_020",
+      "slug": "istanza-di-conciliazione-tributaria",
+      "titolo": "Istanza di conciliazione tributaria",
+      "famiglia": "Tributario",
+      "area": "Giudiziale",
+      "macro_area": "Diritto tributario",
+      "sottobranca": "Contenzioso tributario",
+      "procedimento": "Tributario",
+      "fase": "standard",
+      "autorita": "Corte di Giustizia Tributaria",
+      "rito": "Tributario",
+      "canale_telematico": "PTT",
+      "depositabile": true,
+      "priorita": "advanced",
+      "tags": [
+        "tri",
+        "ptt",
+        "tributario",
+        "istanza",
+        "tri_020"
+      ],
+      "campi_precompila": [
+        "cliente",
+        "ente_impositore",
+        "difensore",
+        "atto_impugnato",
+        "tributo",
+        "data_atto"
+      ],
+      "blocchi_guidati": [
+        "Intestazione",
+        "Parti",
+        "Atto impugnato",
+        "Fatti",
+        "Diritto",
+        "Richieste",
+        "Allegati",
+        "Firma"
+      ],
+      "varianti": [
+        "semplice",
+        "urgente"
+      ],
+      "allegati_essenziali": [
+        "atto impugnato",
+        "prova notifiche",
+        "procura",
+        "documenti fiscali"
+      ],
+      "checklist_conformita": [
+        "anagrafica parti verificata",
+        "competenza/autorità verificata",
+        "allegati essenziali presenti",
+        "richieste finali coerenti",
+        "formato deposito verificato",
+        "dati fascicolo o procedimento controllati"
+      ],
+      "note_operative": [
+        "Verificare il canale telematico PTT e l'ufficio competente prima del deposito."
+      ],
+      "versione": "1.1.0",
+      "stato": "draft_professionale",
+      "ordinamento": 20
+    },
+    {
+      "id": "PEN_021",
+      "slug": "istanza-di-sospensione-dell-ordine-di-esecuzione",
+      "titolo": "Istanza di sospensione dell'ordine di esecuzione",
+      "famiglia": "Penale",
+      "area": "Giudiziale",
+      "macro_area": "Diritto penale",
+      "sottobranca": "Difesa penale e persona offesa",
+      "procedimento": "Penale",
+      "fase": "standard",
+      "autorita": "Procura / Tribunale Penale / Corte d'Appello",
+      "rito": "Penale",
+      "canale_telematico": "PDP",
+      "depositabile": true,
+      "priorita": "advanced",
+      "tags": [
+        "pen",
+        "pdp",
+        "penale",
+        "istanza",
+        "pen_021"
+      ],
+      "campi_precompila": [
+        "assistito",
+        "controparte",
+        "difensore",
+        "ufficio_giudiziario",
+        "procedimento_penale",
+        "data_atto"
+      ],
+      "blocchi_guidati": [
+        "Intestazione",
+        "Parti",
+        "Premesse",
+        "Fatti",
+        "Diritto",
+        "Richieste",
+        "Allegati",
+        "Firma"
+      ],
+      "varianti": [
+        "semplice",
+        "urgente"
+      ],
+      "allegati_essenziali": [
+        "documenti a sostegno",
+        "procura ove necessaria",
+        "prova notifiche se richieste"
+      ],
+      "checklist_conformita": [
+        "anagrafica parti verificata",
+        "competenza/autorità verificata",
+        "allegati essenziali presenti",
+        "richieste finali coerenti",
+        "formato deposito verificato",
+        "dati fascicolo o procedimento controllati"
+      ],
+      "note_operative": [
+        "Verificare il canale telematico PDP e l'ufficio competente prima del deposito."
+      ],
+      "versione": "1.1.0",
+      "stato": "draft_professionale",
+      "ordinamento": 21
+    },
+    {
+      "id": "PEN_022",
+      "slug": "istanza-di-revoca-di-misura-cautelare",
+      "titolo": "Istanza di revoca di misura cautelare",
+      "famiglia": "Penale",
+      "area": "Giudiziale",
+      "macro_area": "Diritto penale",
+      "sottobranca": "Difesa penale e persona offesa",
+      "procedimento": "Penale",
+      "fase": "standard",
+      "autorita": "Procura / Tribunale Penale / Corte d'Appello",
+      "rito": "Penale",
+      "canale_telematico": "PDP",
+      "depositabile": true,
+      "priorita": "advanced",
+      "tags": [
+        "pen",
+        "pdp",
+        "penale",
+        "istanza",
+        "pen_022"
+      ],
+      "campi_precompila": [
+        "assistito",
+        "controparte",
+        "difensore",
+        "ufficio_giudiziario",
+        "procedimento_penale",
+        "data_atto"
+      ],
+      "blocchi_guidati": [
+        "Intestazione",
+        "Parti",
+        "Premesse",
+        "Fatti",
+        "Diritto",
+        "Richieste",
+        "Allegati",
+        "Firma"
+      ],
+      "varianti": [
+        "semplice",
+        "urgente"
+      ],
+      "allegati_essenziali": [
+        "documenti a sostegno",
+        "procura ove necessaria",
+        "prova notifiche se richieste"
+      ],
+      "checklist_conformita": [
+        "anagrafica parti verificata",
+        "competenza/autorità verificata",
+        "allegati essenziali presenti",
+        "richieste finali coerenti",
+        "formato deposito verificato",
+        "dati fascicolo o procedimento controllati"
+      ],
+      "note_operative": [
+        "Verificare il canale telematico PDP e l'ufficio competente prima del deposito."
+      ],
+      "versione": "1.1.0",
+      "stato": "draft_professionale",
+      "ordinamento": 22
+    },
+    {
+      "id": "PEN_023",
+      "slug": "istanza-di-sostituzione-di-misura-cautelare",
+      "titolo": "Istanza di sostituzione di misura cautelare",
+      "famiglia": "Penale",
+      "area": "Giudiziale",
+      "macro_area": "Diritto penale",
+      "sottobranca": "Difesa penale e persona offesa",
+      "procedimento": "Penale",
+      "fase": "standard",
+      "autorita": "Procura / Tribunale Penale / Corte d'Appello",
+      "rito": "Penale",
+      "canale_telematico": "PDP",
+      "depositabile": true,
+      "priorita": "advanced",
+      "tags": [
+        "pen",
+        "pdp",
+        "penale",
+        "istanza",
+        "pen_023"
+      ],
+      "campi_precompila": [
+        "assistito",
+        "controparte",
+        "difensore",
+        "ufficio_giudiziario",
+        "procedimento_penale",
+        "data_atto"
+      ],
+      "blocchi_guidati": [
+        "Intestazione",
+        "Parti",
+        "Premesse",
+        "Fatti",
+        "Diritto",
+        "Richieste",
+        "Allegati",
+        "Firma"
+      ],
+      "varianti": [
+        "semplice",
+        "urgente"
+      ],
+      "allegati_essenziali": [
+        "documenti a sostegno",
+        "procura ove necessaria",
+        "prova notifiche se richieste"
+      ],
+      "checklist_conformita": [
+        "anagrafica parti verificata",
+        "competenza/autorità verificata",
+        "allegati essenziali presenti",
+        "richieste finali coerenti",
+        "formato deposito verificato",
+        "dati fascicolo o procedimento controllati"
+      ],
+      "note_operative": [
+        "Verificare il canale telematico PDP e l'ufficio competente prima del deposito."
+      ],
+      "versione": "1.1.0",
+      "stato": "draft_professionale",
+      "ordinamento": 23
+    },
+    {
+      "id": "PEN_024",
+      "slug": "memoria-per-udienza-preliminare",
+      "titolo": "Memoria per udienza preliminare",
+      "famiglia": "Penale",
+      "area": "Giudiziale",
+      "macro_area": "Diritto penale",
+      "sottobranca": "Difesa penale e persona offesa",
+      "procedimento": "Penale",
+      "fase": "standard",
+      "autorita": "Procura / Tribunale Penale / Corte d'Appello",
+      "rito": "Penale",
+      "canale_telematico": "PDP",
+      "depositabile": true,
+      "priorita": "advanced",
+      "tags": [
+        "pen",
+        "pdp",
+        "penale",
+        "memoria",
+        "pen_024"
+      ],
+      "campi_precompila": [
+        "assistito",
+        "controparte",
+        "difensore",
+        "ufficio_giudiziario",
+        "procedimento_penale",
+        "data_atto"
+      ],
+      "blocchi_guidati": [
+        "Intestazione",
+        "Parti",
+        "Premesse",
+        "Fatti",
+        "Diritto",
+        "Richieste",
+        "Allegati",
+        "Firma"
+      ],
+      "varianti": [
+        "standard"
+      ],
+      "allegati_essenziali": [
+        "documenti a sostegno",
+        "procura ove necessaria",
+        "prova notifiche se richieste"
+      ],
+      "checklist_conformita": [
+        "anagrafica parti verificata",
+        "competenza/autorità verificata",
+        "allegati essenziali presenti",
+        "richieste finali coerenti",
+        "formato deposito verificato",
+        "dati fascicolo o procedimento controllati"
+      ],
+      "note_operative": [
+        "Verificare il canale telematico PDP e l'ufficio competente prima del deposito."
+      ],
+      "versione": "1.1.0",
+      "stato": "draft_professionale",
+      "ordinamento": 24
+    },
+    {
+      "id": "PEN_025",
+      "slug": "eccezioni-preliminari",
+      "titolo": "Eccezioni preliminari",
+      "famiglia": "Penale",
+      "area": "Giudiziale",
+      "macro_area": "Diritto penale",
+      "sottobranca": "Difesa penale e persona offesa",
+      "procedimento": "Penale",
+      "fase": "standard",
+      "autorita": "Procura / Tribunale Penale / Corte d'Appello",
+      "rito": "Penale",
+      "canale_telematico": "PDP",
+      "depositabile": true,
+      "priorita": "advanced",
+      "tags": [
+        "pen",
+        "pdp",
+        "penale",
+        "pen_025"
+      ],
+      "campi_precompila": [
+        "assistito",
+        "controparte",
+        "difensore",
+        "ufficio_giudiziario",
+        "procedimento_penale",
+        "data_atto"
+      ],
+      "blocchi_guidati": [
+        "Intestazione",
+        "Parti",
+        "Premesse",
+        "Fatti",
+        "Diritto",
+        "Richieste",
+        "Allegati",
+        "Firma"
+      ],
+      "varianti": [
+        "standard"
+      ],
+      "allegati_essenziali": [
+        "documenti a sostegno",
+        "procura ove necessaria",
+        "prova notifiche se richieste"
+      ],
+      "checklist_conformita": [
+        "anagrafica parti verificata",
+        "competenza/autorità verificata",
+        "allegati essenziali presenti",
+        "richieste finali coerenti",
+        "formato deposito verificato",
+        "dati fascicolo o procedimento controllati"
+      ],
+      "note_operative": [
+        "Verificare il canale telematico PDP e l'ufficio competente prima del deposito."
+      ],
+      "versione": "1.1.0",
+      "stato": "draft_professionale",
+      "ordinamento": 25
+    }
+  ]
+}

@@ -44,12 +44,12 @@ La superficie `/checklist` e' il catalogo operativo degli atti con:
 
 ## Template inclusi
 
-La release `2.176.0` porta il catalogo a `318` checklist operative:
+La release `2.183.0` porta il catalogo a `738` checklist operative:
 
 - `30` checklist curate ad alta densita' operativa
-- `288` checklist derivate dal catalogo built-in di `Template Atti`
-- copertura completa `288/288` del catalogo professionale
-- copertura completa `25/25` di aree, branche e sottobranche presenti nel catalogo template
+- `708` checklist derivate dal catalogo built-in di `Template Atti`, incluso il catalogo master versionato da `420` template
+- copertura completa `708/708` del catalogo professionale runtime
+- copertura completa delle aree, branche e sottobranche presenti nel catalogo template
 
 Le checklist ora coprono anche i rami che mancavano in modo evidente rispetto a `/template-atti`, per esempio:
 
@@ -60,6 +60,7 @@ Le checklist ora coprono anche i rami che mancavano in modo evidente rispetto a 
 - immigrazione e cittadinanza
 - workflow misti di studio, pareri e atti esterni
 - tutte le varianti built-in del workspace atti professionale
+- canali master distinti `PST`, `PST_GDP`, `PST_CONCORSUALE`, `PDP`, `PAT`, `PTT` e `NESSUNO`
 
 ## Verifiche minime
 

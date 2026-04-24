@@ -394,7 +394,10 @@
       <div>
         <div class="cat-kicker">Compilatore Atti</div>
         <h1 class="cat-title">Catalogo Atti</h1>
-        <p class="cat-sub">Tutti i modelli strutturati per area giuridica. Seleziona il tipo di atto e avvia il compilatore guidato.</p>
+        <p class="cat-sub">
+          Tutti i modelli strutturati per area giuridica. Il catalogo master versionato alimenta Lex AI,
+          il workspace atti e i canali reali PST, PDP, PAT e PTT senza dipendere dagli ZIP esterni.
+        </p>
       </div>
     </div>
     <div class="cat-hero-actions">
@@ -433,6 +436,40 @@
   </div>
 
   {# ── VIEW: modelli ── #}
+  <section class="cat-area-section">
+    <div class="cat-section-label">Catalogo master versionato</div>
+    <div class="cat-grid">
+      <div class="cat-card">
+        <div class="cat-card-name">Suite professionale completa</div>
+        <div class="cat-card-meta">
+          <code class="cat-card-code">v{{ master_catalog_stats.versione }}</code>
+        </div>
+        <div class="cat-card-docs">
+          <ul class="cat-card-docs-list">
+            <li>{{ master_catalog_stats.totale_template }} template master</li>
+            <li>{{ master_catalog_stats.moduli }} moduli professionali</li>
+            <li>{{ master_catalog_stats.canali|length }} canali telematici governati</li>
+          </ul>
+        </div>
+      </div>
+      {% for group in master_catalog_groups %}
+      <div class="cat-card">
+        <div class="cat-card-name">{{ group.label }}</div>
+        <div>
+          <span class="cat-card-area-badge">{{ group.count }} template</span>
+        </div>
+        <div class="cat-card-docs">
+          <ul class="cat-card-docs-list">
+            {% for t in group.templates[:3] %}
+            <li><code>{{ t.id }}</code> {{ t.titolo }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+
   <div id="viewModelli">
     {% for grp in area_groups %}
     <div class="cat-area-section mb-4" data-area="{{ grp.area_key }}" id="area-{{ grp.area_key }}">
@@ -504,6 +541,62 @@
   </div>
 
   {# ── VIEW: da pratica ── #}
+  <section class="cat-area-section mt-3" id="viewMasterCatalog">
+    <div class="cat-section-label">Template master pronti per il workspace</div>
+    {% for group in master_catalog_groups %}
+    <div class="mb-4">
+      <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
+        <h2 class="h6 mb-0 text-primary">{{ group.label }}</h2>
+        <span class="cat-count-badge">{{ group.count }} template</span>
+      </div>
+      <div class="cat-grid">
+        {% for t in group.templates %}
+        <article class="cat-card" data-code="{{ t.id }}" data-name="{{ t.titolo|lower }}" data-area="{{ t.macro_area }}">
+          <div class="cat-card-top">
+            <div class="cat-card-icon">
+              {% if t.canale_telematico == 'PDP' %}
+              <i class="bi bi-shield-exclamation"></i>
+              {% elif t.canale_telematico == 'PAT' %}
+              <i class="bi bi-bank"></i>
+              {% elif t.canale_telematico == 'PTT' %}
+              <i class="bi bi-receipt-cutoff"></i>
+              {% elif t.canale_telematico == 'NESSUNO' %}
+              <i class="bi bi-folder-check"></i>
+              {% else %}
+              <i class="bi bi-file-earmark-text"></i>
+              {% endif %}
+            </div>
+            <div class="cat-card-meta">
+              <div class="cat-card-name">{{ t.titolo }}</div>
+              <code class="cat-card-code">{{ t.id }}</code>
+            </div>
+          </div>
+          <div>
+            <span class="cat-card-area-badge">{{ t.famiglia }}</span>
+            <span class="cat-card-area-badge ms-1">{{ t.canale_telematico }}</span>
+          </div>
+          <div class="cat-card-docs">
+            <div class="cat-card-docs-title">
+              <i class="bi bi-check2-circle" style="font-size:.72rem;"></i>Conformità
+            </div>
+            <ul class="cat-card-docs-list">
+              {% for check in t.checklist_conformita[:2] %}
+              <li>{{ check }}</li>
+              {% endfor %}
+            </ul>
+          </div>
+          <div class="cat-card-footer">
+            <a href="{{ url_for('template_atti.usa', id_template=t.id) }}" class="btn btn-sm btn-outline-primary btn-compile">
+              <i class="bi bi-magic me-1"></i>Genera dal master
+            </a>
+          </div>
+        </article>
+        {% endfor %}
+      </div>
+    </div>
+    {% endfor %}
+  </section>
+
   <div id="viewPratiche" style="display:none;">
     {% if wizard_tipologie %}
     <div class="mb-3">
@@ -549,6 +642,7 @@
   /* ── View switch ── */
   const viewModelli  = document.getElementById('viewModelli');
   const viewPratiche = document.getElementById('viewPratiche');
+  const viewMasterCatalog = document.getElementById('viewMasterCatalog');
   const toolbar      = document.querySelector('.cat-toolbar');
 
   document.querySelectorAll('.cat-tab-pill').forEach(btn => {
@@ -559,10 +653,12 @@
       if (view === 'pratiche') {
         viewModelli.style.display  = 'none';
         viewPratiche.style.display = '';
+        if (viewMasterCatalog) { viewMasterCatalog.style.display = 'none'; }
         toolbar.style.display      = 'none';
       } else {
         viewModelli.style.display  = '';
         viewPratiche.style.display = 'none';
+        if (viewMasterCatalog) { viewMasterCatalog.style.display = ''; }
         toolbar.style.display      = '';
       }
     });

@@ -7,6 +7,15 @@ from pathlib import Path
 from flask import Flask, Response, redirect, send_file
 
 
+_LOCAL_SIGNER_MOD_FILES = {
+    "__init__.py",
+    "ai_cache.py",
+    "ai_handlers.py",
+    "security.py",
+    "server_bootstrap.py",
+}
+
+
 def register_telematico_local_signer_routes(
     app: Flask,
     *,
@@ -91,6 +100,24 @@ def register_telematico_local_signer_routes(
                 helper_path,
                 as_attachment=True,
                 download_name=local_signer_visible_signature_python_name(),
+                mimetype="text/x-python",
+            )
+        except Exception as exc:
+            return str(exc), 500
+
+    @app.route("/polisWeb/local-signer/download/local-signer-mod/<path:filename>")
+    def polis_local_signer_mod_download(filename: str):
+        try:
+            requested = Path(filename).name
+            if requested != filename or requested not in _LOCAL_SIGNER_MOD_FILES:
+                return "File non consentito", 404
+            module_path = Path(__file__).resolve().parents[2] / "local_signer_mod" / requested
+            if not module_path.exists():
+                return "Modulo Local Signer non trovato", 404
+            return send_file(
+                module_path,
+                as_attachment=True,
+                download_name=requested,
                 mimetype="text/x-python",
             )
         except Exception as exc:

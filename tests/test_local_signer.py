@@ -463,6 +463,12 @@ def test_ai_status_bridge_locale_restituisce_snapshot():
         def _local_ai_request_payload(self, payload_override=None):
             return module._Handler._local_ai_request_payload(self, payload_override)
 
+        def _stream_sse(self, iterable):
+            captured["stream"] = iterable
+
+        def _ai_facade(self):
+            return module._Handler._ai_facade(self)
+
         def _send_json(self, data, status=200):
             captured["data"] = data
             captured["status"] = status
@@ -533,6 +539,12 @@ def test_ai_bootstrap_bridge_locale_usa_force_e_payload():
         def _local_ai_request_payload(self, payload_override=None):
             return module._Handler._local_ai_request_payload(self, payload_override)
 
+        def _stream_sse(self, iterable):
+            captured["stream"] = iterable
+
+        def _ai_facade(self):
+            return module._Handler._ai_facade(self)
+
         def _send_json(self, data, status=200):
             captured["data"] = data
             captured["status"] = status
@@ -561,9 +573,23 @@ def test_ai_attachments_parse_locale_restituisce_documenti_normalizzati():
 
     class _FakeHandler:
         headers = {}
+        command = "POST"
+        path = "/ai/attachments/parse"
 
         def _read_json(self):
             return {"files": [payload_file]}
+
+        def _query_params(self):
+            return {}
+
+        def _local_ai_request_payload(self, payload_override=None):
+            return module._Handler._local_ai_request_payload(self, payload_override)
+
+        def _stream_sse(self, iterable):
+            captured["stream"] = iterable
+
+        def _ai_facade(self):
+            return module._Handler._ai_facade(self)
 
         def _send_json(self, data, status=200):
             captured["data"] = data
@@ -610,6 +636,12 @@ def test_ai_rag_query_bridge_locale_inoltra_prompt_e_fonti():
 
         def _local_ai_request_payload(self, payload_override=None):
             return module._Handler._local_ai_request_payload(self, payload_override)
+
+        def _stream_sse(self, iterable):
+            captured["stream"] = iterable
+
+        def _ai_facade(self):
+            return module._Handler._ai_facade(self)
 
         def _send_json(self, data, status=200):
             captured["data"] = data
@@ -1168,12 +1200,50 @@ def test_costruisce_body_qbuilder_ricerca_per_tipo():
     assert '<execute xmlns="urn:CONS-SICC-BE">' in xml
     assert "<name>RicercaInformazioniFascicoloPerTipo</name>" in xml
     assert '<value name="tipo" type="string">RGN</value>' in xml
-    assert '<value name="annoRuolo" type="long">2024</value>' in xml
-    assert '<value name="numeroRuolo" type="string">1025</value>' in xml
-    assert re.search(r'<value name="subProc" type="string"\s*/>|<value name="subProc" type="string"></value>', xml)
-    assert 'name="anno" type="string"' not in xml
-    assert 'name="numero" type="integer"' not in xml
+    assert '<value name="anno" type="string">2024</value>' in xml
+    assert '<value name="numero" type="integer">1025</value>' in xml
+    assert 'name="subProc"' not in xml
+    assert 'name="annoRuolo"' not in xml
+    assert 'name="numeroRuolo"' not in xml
+    assert 'name="subpro"' not in xml
     assert '<entry property="ANNORUOLO, NUMERORUOLO" mode="asc"/>' in xml
+
+
+def test_qbuilder_documenti_e_profilo_usano_parametri_pst_live():
+    module = _load_local_signer()
+    base_url = "https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SICID"
+
+    documenti_xml = module._soap_documenti_body(
+        base_url=base_url,
+        codice_ufficio="0800570094",
+        numero_rg="1025",
+        anno_rg=2024,
+        sub_procedimento="",
+    )
+    profilo_xml = module._soap_profilo_fascicolo_body(
+        base_url=base_url,
+        codice_ufficio="0800570094",
+        numero_rg="1025",
+        anno_rg=2024,
+        sub_procedimento="",
+    )
+    documenti_subproc_xml = module._soap_documenti_body(
+        base_url=base_url,
+        codice_ufficio="0800570094",
+        numero_rg="1025",
+        anno_rg=2024,
+        sub_procedimento="1",
+    )
+
+    for xml in (documenti_xml, profilo_xml):
+        assert '<value name="anno" type="string">2024</value>' in xml
+        assert '<value name="numero" type="string">1025</value>' in xml
+        assert 'name="subProc"' not in xml
+        assert 'name="annoRuolo"' not in xml
+        assert 'name="numeroRuolo"' not in xml
+        assert 'name="subpro"' not in xml
+    assert '<value name="subProc" type="string">1</value>' in documenti_subproc_xml
+    assert 'name="subpro"' not in documenti_subproc_xml
 
 
 def test_parse_qbuilder_fascicoli_xml():
@@ -1599,6 +1669,7 @@ def test_installer_local_signer_e_scaricabile_senza_login(tmp_path):
     assert f"IUSENTRA Local Signer v{version}" in body
     assert "Invoke-WebRequest" in body
     assert "/polisWeb/local-signer/download" in body
+    assert "/polisWeb/local-signer/download/local-signer-mod/ai_handlers.py" in body
     assert "hacs-local-signer" in body
     assert "127.0.0.1:27272/ping" in body
     assert "zeep" in body
@@ -1729,6 +1800,21 @@ def test_download_visible_signature_local_signer_e_pubblico(tmp_path):
     assert "Firmato digitalmente da" in body
 
 
+def test_download_moduli_local_signer_e_pubblico(tmp_path):
+    from web.app import create_app
+
+    app = create_app(_cfg_web(tmp_path))
+    with app.test_client() as c:
+        r = c.get("/polisWeb/local-signer/download/local-signer-mod/ai_handlers.py")
+        forbidden = c.get("/polisWeb/local-signer/download/local-signer-mod/../local_signer.py")
+
+    assert r.status_code == 200
+    assert "attachment" in r.headers.get("Content-Disposition", "")
+    assert "ai_handlers.py" in r.headers.get("Content-Disposition", "")
+    assert "class LocalAiHandlerFacade" in r.data.decode("utf-8")
+    assert forbidden.status_code == 404
+
+
 def test_installer_local_signer_windows_setup_route_e_pubblica(tmp_path):
     from web.app import create_app
 
@@ -1781,6 +1867,7 @@ def test_installer_local_signer_macos_e_pubblico(tmp_path):
     assert "LaunchAgents" in body
     assert "/polisWeb/local-signer/download" in body
     assert "/polisWeb/local-signer/download/visible-signature" in body
+    assert "/polisWeb/local-signer/download/local-signer-mod/ai_handlers.py" in body
     assert "zeep" in body
 
 
@@ -1801,6 +1888,7 @@ def test_installer_local_signer_linux_e_pubblico(tmp_path):
     assert "systemd/user" in body
     assert "/polisWeb/local-signer/download" in body
     assert "/polisWeb/local-signer/download/visible-signature" in body
+    assert "/polisWeb/local-signer/download/local-signer-mod/ai_handlers.py" in body
     assert "zeep" in body
 
 

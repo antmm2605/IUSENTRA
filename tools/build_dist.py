@@ -41,6 +41,7 @@ LEX_CONTEXT_PY = TOOLS_DIR / "lex_document_context.py"
 REQS_TXT       = TOOLS_DIR / "requirements_local_signer.txt"
 INSTALL_PS1    = TOOLS_DIR / "installa_local_signer_locale.ps1"
 UFFICI_JSON    = REPO_DIR / "pct" / "data" / "uffici_ministero.json"
+LOCAL_SIGNER_MOD_DIR = REPO_DIR / "local_signer_mod"
 VISIBLE_SIGNATURE_PY = REPO_DIR / "visible_signature.py"
 IEXPRESS_STUB  = TOOLS_DIR / "iexpress_stub.bin"
 WINDOWS_NATIVE_BUILDER = TOOLS_DIR / "build_local_signer_windows_exe.ps1"
@@ -62,6 +63,39 @@ def _version() -> str:
     if not m:
         raise ValueError("VERSION non trovata in local_signer.py")
     return m.group(1)
+
+
+def _local_signer_mod_files() -> list[Path]:
+    if not LOCAL_SIGNER_MOD_DIR.exists():
+        raise FileNotFoundError(f"Modulo Local Signer non trovato: {LOCAL_SIGNER_MOD_DIR}")
+    files = sorted(LOCAL_SIGNER_MOD_DIR.glob("*.py"))
+    required = {"__init__.py", "ai_cache.py", "ai_handlers.py", "security.py", "server_bootstrap.py"}
+    found = {path.name for path in files}
+    missing = sorted(required - found)
+    if missing:
+        raise FileNotFoundError(
+            "Modulo Local Signer incompleto: "
+            + ", ".join(f"local_signer_mod/{name}" for name in missing)
+        )
+    return files
+
+
+def _local_signer_mod_cab_files() -> list[tuple[str, bytes]]:
+    return [
+        (f"local_signer_mod__{path.name}", path.read_bytes())
+        for path in _local_signer_mod_files()
+    ]
+
+
+def _local_signer_mod_download_lines(target_expr: str) -> str:
+    lines = []
+    for path in _local_signer_mod_files():
+        name = path.name
+        lines.append(
+            f'curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/{name}" '
+            f'-o "{target_expr}/{name}"'
+        )
+    return "\n".join(lines)
 
 
 def _dos_datetime() -> tuple[int, int]:
@@ -221,6 +255,7 @@ def build_windows_exe(version: str) -> bytes:
         ("uffici_ministero.json",            UFFICI_JSON.read_bytes()),
         ("local_signer_release.txt",         release_txt),
     ]
+    files.extend(_local_signer_mod_cab_files())
 
     cab = _build_cab(files)
     return stub + cab
@@ -274,6 +309,7 @@ def build_macos_command(version: str, base_url: str) -> str:
         VERSION="{version}"
         DIR="$HOME/Library/Application Support/HACS/LocalSigner"
         DATA_DIR="$DIR/data"
+        MOD_DIR="$DIR/local_signer_mod"
         VENV="$DIR/.venv"
         PY="$VENV/bin/python3"
         PLIST="$HOME/Library/LaunchAgents/it.hacs.local-signer.plist"
@@ -281,7 +317,7 @@ def build_macos_command(version: str, base_url: str) -> str:
         echo "IUSENTRA Local Signer v$VERSION - Installazione macOS"
         echo "Scarico da: $BASE_URL"
 
-        mkdir -p "$DIR" "$DATA_DIR" "$(dirname "$PLIST")"
+        mkdir -p "$DIR" "$DATA_DIR" "$MOD_DIR" "$(dirname "$PLIST")"
 
         if ! command -v python3 >/dev/null 2>&1; then
           echo "Python 3 non trovato. Scaricarlo da https://python.org"
@@ -293,6 +329,7 @@ curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-ai-bridge" -o "$DIR/l
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/lex-document-context" -o "$DIR/lex_document_context.py"
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/visible-signature" -o "$DIR/visible_signature.py"
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/uffici" -o "$DATA_DIR/uffici_ministero.json"
+{_local_signer_mod_download_lines("$MOD_DIR")}
         python3 -m venv "$VENV"
         "$PY" -m pip install --quiet --upgrade pip
         "$PY" -m pip install --quiet python-pkcs11 asn1crypto cryptography zeep pdfplumber mammoth pypdf
@@ -343,6 +380,7 @@ def build_linux_run(version: str, base_url: str) -> str:
         VERSION="{version}"
         DIR="${{XDG_DATA_HOME:-$HOME/.local/share}}/hacs/local-signer"
         DATA_DIR="$DIR/data"
+        MOD_DIR="$DIR/local_signer_mod"
         VENV="$DIR/.venv"
         PY="$VENV/bin/python"
         SERVICE_DIR="${{XDG_CONFIG_HOME:-$HOME/.config}}/systemd/user"
@@ -351,7 +389,7 @@ def build_linux_run(version: str, base_url: str) -> str:
         echo "IUSENTRA Local Signer v$VERSION - Installazione Linux"
         echo "Scarico da: $BASE_URL"
 
-        mkdir -p "$DIR" "$DATA_DIR" "$SERVICE_DIR"
+        mkdir -p "$DIR" "$DATA_DIR" "$MOD_DIR" "$SERVICE_DIR"
 
         if ! command -v python3 >/dev/null 2>&1; then
           echo "Python 3 non trovato. Installarlo con il gestore pacchetti della distribuzione."
@@ -363,6 +401,7 @@ curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-ai-bridge" -o "$DIR/l
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/lex-document-context" -o "$DIR/lex_document_context.py"
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/visible-signature" -o "$DIR/visible_signature.py"
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/uffici" -o "$DATA_DIR/uffici_ministero.json"
+{_local_signer_mod_download_lines("$MOD_DIR")}
         python3 -m venv "$VENV"
         "$PY" -m pip install --quiet --upgrade pip
         "$PY" -m pip install --quiet python-pkcs11 asn1crypto cryptography zeep pdfplumber mammoth pypdf
@@ -429,6 +468,12 @@ def write_windows_support_files(dist_dir: Path) -> list[Path]:
         target = dist_dir / target_name
         shutil.copyfile(source, target)
         copied.append(target)
+    module_dir = dist_dir / "local_signer_mod"
+    module_dir.mkdir(exist_ok=True)
+    for source in _local_signer_mod_files():
+        target = module_dir / source.name
+        shutil.copyfile(source, target)
+        copied.append(target)
     return copied
 
 
@@ -448,7 +493,7 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    for path in [LS_PY, REQS_TXT, INSTALL_PS1, UFFICI_JSON, VISIBLE_SIGNATURE_PY]:
+    for path in [LS_PY, REQS_TXT, INSTALL_PS1, UFFICI_JSON, VISIBLE_SIGNATURE_PY, LOCAL_SIGNER_MOD_DIR]:
         if not path.exists():
             print(f"ERRORE: file sorgente non trovato: {path}", file=sys.stderr)
             sys.exit(1)

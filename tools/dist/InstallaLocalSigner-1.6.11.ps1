@@ -1,3 +1,7 @@
+# IUSENTRA Local Signer Setup v1.6.11
+# Pacchetto generato il 2026-04-24 22:42:44
+# Punto ufficiale download: https://studio-legale-pct-production.up.railway.app/impostazioni?tab=firma
+
 # IUSENTRA Local Signer - Installazione locale Windows
 # Usa i file gia' presenti nella cartella tools e configura l'avvio automatico.
 # Se Python non e' installato, scarica automaticamente Python portatile.

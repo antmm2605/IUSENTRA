@@ -988,6 +988,7 @@ def test_local_signer_distribution_include_bridge_ai(tmp_path: Path):
         bridge = client.get("/polisWeb/local-signer/download/local-ai-bridge")
         lex_context = client.get("/polisWeb/local-signer/download/lex-document-context")
         visible_signature = client.get("/polisWeb/local-signer/download/visible-signature")
+        ai_handlers = client.get("/polisWeb/local-signer/download/local-signer-mod/ai_handlers.py")
 
     assert bridge.status_code == 200
     bridge_source = bridge.get_data(as_text=True)
@@ -998,6 +999,8 @@ def test_local_signer_distribution_include_bridge_ai(tmp_path: Path):
     assert "build_attachment_prompt_block" in lex_context.get_data(as_text=True)
     assert visible_signature.status_code == 200
     assert "apply_visible_signature_stamp" in visible_signature.get_data(as_text=True)
+    assert ai_handlers.status_code == 200
+    assert "class LocalAiHandlerFacade" in ai_handlers.get_data(as_text=True)
 
     build_dist = (REPO_ROOT / "tools/build_dist.py").read_text(encoding="utf-8")
     build_windows = (REPO_ROOT / "tools/build_local_signer_windows_exe.ps1").read_text(encoding="utf-8")
@@ -1006,15 +1009,19 @@ def test_local_signer_distribution_include_bridge_ai(tmp_path: Path):
 
     assert "local_ai_host_bridge.py" in build_dist
     assert "lex_document_context.py" in build_dist
+    assert "local_signer_mod" in build_dist
     assert "local_ai_host_bridge.py" in build_windows
     assert "lex_document_context.py" in build_windows
     assert "visible_signature.py" in build_windows
+    assert "local_signer_mod__ai_handlers.py" in build_windows
     assert "local_ai_host_bridge.py" in installer
     assert "lex_document_context.py" in installer
     assert "visible_signature.py" in installer
+    assert "Copy-LocalSignerModule" in installer
     assert "/polisWeb/local-signer/download/local-ai-bridge" in signer_routes
     assert "/polisWeb/local-signer/download/lex-document-context" in signer_routes
     assert "/polisWeb/local-signer/download/visible-signature" in signer_routes
+    assert "/polisWeb/local-signer/download/local-signer-mod/<path:filename>" in signer_routes
 
 
 def test_notifiche_whatsapp_usa_js_esterno_e_date_localizzate():

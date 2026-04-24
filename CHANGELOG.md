@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.183.3 - 2026-04-24
+
+- Corretta la regressione dell'installer Local Signer 1.6.10: i pacchetti Windows/macOS/Linux e i download online includono ora il modulo interno `local_signer_mod`, evitando il crash `ModuleNotFoundError` all'avvio su `127.0.0.1:27272`.
+- Riallineato il payload QBuilder PST live: la ricerca per RG usa i parametri `anno`/`numero`, non invia piu' `subProc` vuoto sui registri che lo respingono, e mantiene `subProc` solo quando esiste un sotto-procedimento reale.
+- Aggiunta una matrice di regressione sui canali telematici: PST `SICID`, `SIECIC`, `SIGP`, `CASSCI`, `CASSPE`, piu' PDP, PAT e PTT/SIGIT in ricerca/documenti.
+- Aggiunti controlli di packaging per impedire che i moduli interni del Local Signer vengano esclusi nuovamente dagli installer o dalle route pubbliche di download.
+
 ## 2.183.2 - 2026-04-24
 
 - Rafforzato il resolver PST/JPW degli uffici giudiziari: la cache si autoripara se perde metadati ministeriali, il Giudice di Pace di Palmi risolve correttamente su `JPW_SIGP` e la ricerca QBuilder invia sempre `subProc`.

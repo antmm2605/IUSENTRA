@@ -98,9 +98,35 @@ def test_polisweb_costruisce_body_qbuilder_ricerca_per_tipo():
     assert '<execute xmlns="urn:CONS-SICC-BE">' in xml
     assert "<name>RicercaInformazioniFascicoloPerTipo</name>" in xml
     assert '<value name="tipo" type="string">RGN</value>' in xml
-    assert '<value name="annoRuolo" type="long">2024</value>' in xml
-    assert '<value name="numeroRuolo" type="string">1025</value>' in xml
-    assert '<value name="subProc" type="string"></value>' in xml
+    assert '<value name="anno" type="string">2024</value>' in xml
+    assert '<value name="numero" type="integer">1025</value>' in xml
+    assert 'name="subProc"' not in xml
+    assert 'name="annoRuolo"' not in xml
+    assert 'name="numeroRuolo"' not in xml
+    assert 'name="subpro"' not in xml
+
+
+def test_polisweb_qbuilder_documenti_e_profilo_usano_parametri_pst_live():
+    client = _client()
+    base = "https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SICID"
+    fascicolo = FascicoloPolisWeb(
+        numero_rg="1025",
+        anno_rg=2024,
+        ruolo="CIVILE_COGNIZIONE",
+        stato="PENDENTE",
+        oggetto="Vendita di cose immobili",
+    )
+
+    documenti_xml = client._soap_documenti_qbuilder(base, "0800570094", "1025", 2024)
+    profilo_xml = client._soap_profilo_fascicolo_qbuilder(base, "0800570094", fascicolo)
+
+    for xml in (documenti_xml, profilo_xml):
+        assert '<value name="anno" type="string">2024</value>' in xml
+        assert '<value name="numero" type="string">1025</value>' in xml
+        assert 'name="subProc"' not in xml
+        assert 'name="annoRuolo"' not in xml
+        assert 'name="numeroRuolo"' not in xml
+        assert 'name="subpro"' not in xml
 
 
 def test_polisweb_parse_qbuilder_fascicoli_xml():

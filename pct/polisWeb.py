@@ -1936,6 +1936,7 @@ class ClientPolisWeb:
         valori = ''.join(
             f'<value name="{k}" type="{tipo}">{"" if v is None else v}</value>'
             for k, tipo, v in values
+            if not (k == 'subProc' and v in ('', None))
         )
         order_xml = f'<orderBy><entry property="{order_by}" mode="asc"/></orderBy>' if order_by else '<orderBy/>'
         body = (
@@ -1963,11 +1964,10 @@ class ClientPolisWeb:
                 codice_ufficio,
                 'RicercaInformazioniFascicoloPerTipo',
                 [
-                    ('tipo', 'string', 'RGN'),
                     ('idUfficio', 'string', codice_ufficio),
-                    ('annoRuolo', 'long', anno_rg),
-                    ('numeroRuolo', 'string', numero_rg),
-                    ('subProc', 'string', ''),
+                    ('tipo', 'string', 'RGN'),
+                    ('numero', 'integer', numero_rg),
+                    ('anno', 'string', anno_rg),
                 ],
                 order_by='ANNORUOLO, NUMERORUOLO',
             )
@@ -1994,9 +1994,8 @@ class ClientPolisWeb:
             'DocumentiFascicolo',
             [
                 ('idUfficio', 'string', codice_ufficio),
-                ('annoRuolo', 'long', anno_rg),
-                ('numeroRuolo', 'string', numero_rg),
-                ('subProc', 'string', ''),
+                ('anno', 'string', anno_rg),
+                ('numero', 'string', numero_rg),
             ],
         )
 
@@ -2007,9 +2006,8 @@ class ClientPolisWeb:
             'ProfiloFascicolo',
             [
                 ('idUfficio', 'string', codice_ufficio),
-                ('annoRuolo', 'long', fascicolo.anno_rg),
-                ('numeroRuolo', 'string', fascicolo.numero_rg),
-                ('subProc', 'string', ''),
+                ('anno', 'string', fascicolo.anno_rg),
+                ('numero', 'string', fascicolo.numero_rg),
             ],
         )
 

@@ -14,6 +14,7 @@ $buildDir = Join-Path $toolsDir ".iexpress-build"
 $iexpressExe = Join-Path $env:SystemRoot "System32\iexpress.exe"
 $localSignerPy = Join-Path $toolsDir "local_signer.py"
 $visibleSignaturePy = Join-Path $repoDir "visible_signature.py"
+$localSignerModDir = Join-Path $repoDir "local_signer_mod"
 $ufficiJson = Join-Path $repoDir "pct\data\uffici_ministero.json"
 $baseUrl = "https://studio-legale-pct-production.up.railway.app"
 $downloadPage = "$baseUrl/impostazioni?tab=firma"
@@ -34,6 +35,9 @@ if (-not (Test-Path $localSignerPy)) {
 }
 if (-not (Test-Path $visibleSignaturePy)) {
     throw "File firma visibile non trovato: $visibleSignaturePy"
+}
+if (-not (Test-Path $localSignerModDir)) {
+    throw "Modulo Local Signer non trovato: $localSignerModDir"
 }
 
 $sourceText = [System.IO.File]::ReadAllText($localSignerPy)
@@ -78,6 +82,21 @@ Copy-Item (Join-Path $toolsDir "lex_document_context.py") $buildDir -Force
 Copy-Item $visibleSignaturePy $buildDir -Force
 Copy-Item (Join-Path $toolsDir "requirements_local_signer.txt") $buildDir -Force
 Copy-Item $ufficiJson $buildDir -Force
+
+$moduleFiles = @(
+    "__init__.py",
+    "ai_cache.py",
+    "ai_handlers.py",
+    "security.py",
+    "server_bootstrap.py"
+)
+foreach ($moduleFile in $moduleFiles) {
+    $source = Join-Path $localSignerModDir $moduleFile
+    if (-not (Test-Path $source)) {
+        throw "Modulo Local Signer incompleto: local_signer_mod\$moduleFile"
+    }
+    Copy-Item $source (Join-Path $buildDir ("local_signer_mod__" + $moduleFile)) -Force
+}
 
 $releaseText = @"
 IUSENTRA Local Signer
@@ -127,6 +146,11 @@ SourceFiles0=$escapedSource
 %FILE5%=
 %FILE6%=
 %FILE7%=
+%FILE8%=
+%FILE9%=
+%FILE10%=
+%FILE11%=
+%FILE12%=
 [Strings]
 FILE0=installa_local_signer_locale.ps1
 FILE1=local_signer.py
@@ -136,6 +160,11 @@ FILE4=visible_signature.py
 FILE5=requirements_local_signer.txt
 FILE6=uffici_ministero.json
 FILE7=local_signer_release.txt
+FILE8=local_signer_mod____init__.py
+FILE9=local_signer_mod__ai_cache.py
+FILE10=local_signer_mod__ai_handlers.py
+FILE11=local_signer_mod__security.py
+FILE12=local_signer_mod__server_bootstrap.py
 "@
 
 Set-Content -Path $sedFile -Value $sed -Encoding ASCII
@@ -160,6 +189,7 @@ ALLOWED_ORIGINS="__ALLOWED_ORIGINS__"
 VERSION="__VERSION__"
 DIR="$HOME/Library/Application Support/HACS/LocalSigner"
 DATA_DIR="$DIR/data"
+MOD_DIR="$DIR/local_signer_mod"
 VENV="$DIR/.venv"
 PY="$VENV/bin/python3"
 PLIST="$HOME/Library/LaunchAgents/it.hacs.local-signer.plist"
@@ -167,7 +197,7 @@ PLIST="$HOME/Library/LaunchAgents/it.hacs.local-signer.plist"
 echo "IUSENTRA Local Signer v$VERSION - Installazione macOS"
 echo "Punto ufficiale download: __DOWNLOAD_PAGE__"
 
-mkdir -p "$DIR" "$DATA_DIR" "$(dirname "$PLIST")"
+mkdir -p "$DIR" "$DATA_DIR" "$MOD_DIR" "$(dirname "$PLIST")"
 
 if ! command -v python3 >/dev/null 2>&1; then
   echo "Python 3 non trovato. Installarlo prima da https://python.org"
@@ -180,6 +210,11 @@ curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-ai-bridge" -o "$DIR/l
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/lex-document-context" -o "$DIR/lex_document_context.py"
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/visible-signature" -o "$DIR/visible_signature.py"
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/uffici" -o "$DATA_DIR/uffici_ministero.json"
+curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/__init__.py" -o "$MOD_DIR/__init__.py"
+curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/ai_cache.py" -o "$MOD_DIR/ai_cache.py"
+curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/ai_handlers.py" -o "$MOD_DIR/ai_handlers.py"
+curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/security.py" -o "$MOD_DIR/security.py"
+curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/server_bootstrap.py" -o "$MOD_DIR/server_bootstrap.py"
 python3 -m venv "$VENV"
 "$PY" -m pip install --quiet --upgrade pip
 "$PY" -m pip install --quiet python-pkcs11 asn1crypto cryptography zeep pdfplumber mammoth pypdf
@@ -239,6 +274,7 @@ ALLOWED_ORIGINS="__ALLOWED_ORIGINS__"
 VERSION="__VERSION__"
 DIR="${XDG_DATA_HOME:-$HOME/.local/share}/hacs/local-signer"
 DATA_DIR="$DIR/data"
+MOD_DIR="$DIR/local_signer_mod"
 VENV="$DIR/.venv"
 PY="$VENV/bin/python"
 SERVICE_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user"
@@ -247,7 +283,7 @@ SERVICE="$SERVICE_DIR/hacs-local-signer.service"
 echo "IUSENTRA Local Signer v$VERSION - Installazione Linux"
 echo "Punto ufficiale download: __DOWNLOAD_PAGE__"
 
-mkdir -p "$DIR" "$DATA_DIR" "$SERVICE_DIR"
+mkdir -p "$DIR" "$DATA_DIR" "$MOD_DIR" "$SERVICE_DIR"
 
 if ! command -v python3 >/dev/null 2>&1; then
   echo "Python 3 non trovato. Installarlo prima con il gestore pacchetti della distribuzione."
@@ -260,6 +296,11 @@ curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-ai-bridge" -o "$DIR/l
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/lex-document-context" -o "$DIR/lex_document_context.py"
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/visible-signature" -o "$DIR/visible_signature.py"
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/uffici" -o "$DATA_DIR/uffici_ministero.json"
+curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/__init__.py" -o "$MOD_DIR/__init__.py"
+curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/ai_cache.py" -o "$MOD_DIR/ai_cache.py"
+curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/ai_handlers.py" -o "$MOD_DIR/ai_handlers.py"
+curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/security.py" -o "$MOD_DIR/security.py"
+curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/server_bootstrap.py" -o "$MOD_DIR/server_bootstrap.py"
 python3 -m venv "$VENV"
 "$PY" -m pip install --quiet --upgrade pip
 "$PY" -m pip install --quiet python-pkcs11 asn1crypto cryptography zeep pdfplumber mammoth pypdf

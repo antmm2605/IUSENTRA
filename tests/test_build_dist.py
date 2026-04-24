@@ -42,6 +42,7 @@ def test_build_windows_ps1_include_versione_e_script_originale():
     assert "Find-PythonCommand" in contenuto
     assert "FORCE_RESTART" in contenuto
     assert "hacs-local-signer://restart" in contenuto
+    assert "/polisWeb/local-signer/download/local-signer-mod/" in contenuto
     assert "Get-NetTCPConnection -LocalAddress 127.0.0.1 -LocalPort 27272" in contenuto
 
 
@@ -52,14 +53,18 @@ def test_write_windows_support_files_copia_i_file_necessari(monkeypatch, tmp_pat
     visible_signature = tmp_path / "visible_signature.py"
     reqs = tmp_path / "requirements_local_signer.txt"
     uffici = tmp_path / "uffici_ministero.json"
+    module_dir = tmp_path / "local_signer_mod"
     dist = tmp_path / "dist"
     dist.mkdir()
+    module_dir.mkdir()
     ls_py.write_text("VERSION = '1.5.16'\n", encoding="utf-8")
     ai_bridge.write_text("def bridge():\n    return 'ok'\n", encoding="utf-8")
     lex_context.write_text("def parse_document():\n    return []\n", encoding="utf-8")
     visible_signature.write_text("def apply_visible_signature_stamp(data):\n    return data\n", encoding="utf-8")
     reqs.write_text("cryptography\n", encoding="utf-8")
     uffici.write_text('{"uffici":[]}', encoding="utf-8")
+    for name in ["__init__.py", "ai_cache.py", "ai_handlers.py", "security.py", "server_bootstrap.py"]:
+        (module_dir / name).write_text(f"# {name}\n", encoding="utf-8")
 
     monkeypatch.setattr(build_dist, "LS_PY", ls_py)
     monkeypatch.setattr(build_dist, "AI_BRIDGE_PY", ai_bridge)
@@ -67,10 +72,11 @@ def test_write_windows_support_files_copia_i_file_necessari(monkeypatch, tmp_pat
     monkeypatch.setattr(build_dist, "VISIBLE_SIGNATURE_PY", visible_signature)
     monkeypatch.setattr(build_dist, "REQS_TXT", reqs)
     monkeypatch.setattr(build_dist, "UFFICI_JSON", uffici)
+    monkeypatch.setattr(build_dist, "LOCAL_SIGNER_MOD_DIR", module_dir)
 
     copied = build_dist.write_windows_support_files(dist)
 
-    assert [path.name for path in copied] == [
+    assert [path.name for path in copied[:6]] == [
         "local_signer.py",
         "local_ai_host_bridge.py",
         "lex_document_context.py",
@@ -78,12 +84,20 @@ def test_write_windows_support_files_copia_i_file_necessari(monkeypatch, tmp_pat
         "requirements_local_signer.txt",
         "uffici_ministero.json",
     ]
+    assert {path.name for path in copied[6:]} == {
+        "__init__.py",
+        "ai_cache.py",
+        "ai_handlers.py",
+        "security.py",
+        "server_bootstrap.py",
+    }
     assert (dist / "local_signer.py").read_text(encoding="utf-8") == "VERSION = '1.5.16'\n"
     assert (dist / "local_ai_host_bridge.py").read_text(encoding="utf-8") == "def bridge():\n    return 'ok'\n"
     assert (dist / "lex_document_context.py").read_text(encoding="utf-8") == "def parse_document():\n    return []\n"
     assert (dist / "visible_signature.py").read_text(encoding="utf-8") == "def apply_visible_signature_stamp(data):\n    return data\n"
     assert (dist / "requirements_local_signer.txt").read_text(encoding="utf-8") == "cryptography\n"
     assert (dist / "uffici_ministero.json").read_text(encoding="utf-8") == '{"uffici":[]}'
+    assert (dist / "local_signer_mod" / "ai_handlers.py").read_text(encoding="utf-8") == "# ai_handlers.py\n"
 
 
 def test_installer_powershell_non_ha_errori_di_parse():

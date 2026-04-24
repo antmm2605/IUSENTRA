@@ -111,7 +111,7 @@ class EmailRicevuta:
     corpo_testo: str    = ""
     corpo_html: str     = ""
 
-    # Allegati (solo nomi/dimensioni, non storicizziamo i file)
+    # Allegati PEC salvati localmente con percorso relativo protetto.
     allegati: List[Dict] = field(default_factory=list)  # [{nome, size, mime}]
 
     # Metadati
@@ -237,6 +237,42 @@ class GestioneEmailRicevute:
         if not percorso.exists() or not percorso.is_file():
             return None
         return percorso
+
+    def _percorso_allegato_da_info(self, info: dict) -> Path | None:
+        percorso_rel = str((info or {}).get("percorso_rel", "") or "").strip().replace("\\", "/")
+        if not percorso_rel:
+            return None
+        percorso = (self.attachments_dir / Path(percorso_rel)).resolve()
+        root = self.attachments_dir.resolve()
+        try:
+            percorso.relative_to(root)
+        except ValueError:
+            return None
+        if not percorso.exists() or not percorso.is_file():
+            return None
+        return percorso
+
+    def _allegato_salvato(self, info: dict) -> bool:
+        return self._percorso_allegato_da_info(info) is not None
+
+    def _email_ha_allegati_da_salvare(self, em: EmailRicevuta) -> bool:
+        allegati = list(getattr(em, "allegati", []) or [])
+        return any(not self._allegato_salvato(info) for info in allegati)
+
+    def _merge_allegati_salvati(self, target: EmailRicevuta, parsed: EmailRicevuta) -> int:
+        vecchi_salvati = sum(1 for info in (target.allegati or []) if self._allegato_salvato(info))
+        nuovi_salvati = sum(1 for info in (parsed.allegati or []) if self._allegato_salvato(info))
+        if not nuovi_salvati:
+            return 0
+
+        target.allegati = list(parsed.allegati or [])
+        if not target.corpo_testo and parsed.corpo_testo:
+            target.corpo_testo = parsed.corpo_testo
+        if not target.corpo_html and parsed.corpo_html:
+            target.corpo_html = parsed.corpo_html
+        if not target.message_id and parsed.message_id:
+            target.message_id = parsed.message_id
+        return max(0, nuovi_salvati - vecchi_salvati)
 
     # ---- Query ----
 
@@ -378,9 +414,9 @@ class GestioneEmailRicevute:
         Scarica le email più recenti via IMAP e le salva nel database locale.
 
         Returns:
-            {"nuove": int, "errori": int, "pst_trovate": int, "errore": str}
+            {"nuove": int, "errori": int, "pst_trovate": int, "allegati_salvati": int, "errore": str}
         """
-        risultato = {"nuove": 0, "errori": 0, "pst_trovate": 0, "errore": ""}
+        risultato = {"nuove": 0, "errori": 0, "pst_trovate": 0, "allegati_salvati": 0, "errore": ""}
         cartelle_imap = cartelle_imap or ["INBOX"]
         timeout_s = resolve_imap_timeout_seconds(timeout_seconds)
 
@@ -403,7 +439,7 @@ class GestioneEmailRicevute:
             return risultato
 
         db = self._carica()
-        uid_esistenti = {e.uid_imap for e in db.values() if e.uid_imap}
+        email_per_uid = {e.uid_imap: e for e in db.values() if e.uid_imap}
 
         try:
             for cartella_imap in cartelle_imap:
@@ -422,7 +458,11 @@ class GestioneEmailRicevute:
 
                     for uid in reversed(uid_list):
                         uid_str = f"{cartella_imap}:{uid}"
-                        if uid_str in uid_esistenti:
+                        email_esistente = email_per_uid.get(uid_str)
+                        ripara_allegati = bool(
+                            email_esistente and self._email_ha_allegati_da_salvare(email_esistente)
+                        )
+                        if email_esistente and not ripara_allegati:
                             continue
 
                         try:
@@ -435,14 +475,24 @@ class GestioneEmailRicevute:
                                 continue
 
                             parsed = email.message_from_bytes(raw)
-                            em = self._parse_message(parsed, uid_str, cartella_imap)
+                            em = self._parse_message(
+                                parsed,
+                                uid_str,
+                                cartella_imap,
+                                email_id=email_esistente.id if email_esistente else None,
+                            )
                             if em:
-                                # Auto-rileva risposte PST
-                                self._analizza_pst(em)
-                                db[em.id] = em
-                                risultato["nuove"] += 1
-                                if em.e_pst:
-                                    risultato["pst_trovate"] += 1
+                                if email_esistente:
+                                    salvati = self._merge_allegati_salvati(email_esistente, em)
+                                    risultato["allegati_salvati"] += salvati
+                                else:
+                                    # Auto-rileva risposte PST
+                                    self._analizza_pst(em)
+                                    db[em.id] = em
+                                    email_per_uid[uid_str] = em
+                                    risultato["nuove"] += 1
+                                    if em.e_pst:
+                                        risultato["pst_trovate"] += 1
                         except Exception:
                             risultato["errori"] += 1
 
@@ -511,11 +561,16 @@ class GestioneEmailRicevute:
         return " ".join(decoded).strip()
 
     def _parse_message(
-        self, msg: email.message.Message, uid_str: str, cartella_imap: str
+        self,
+        msg: email.message.Message,
+        uid_str: str,
+        cartella_imap: str,
+        *,
+        email_id: str | None = None,
     ) -> Optional[EmailRicevuta]:
         """Converte un messaggio IMAP in EmailRicevuta."""
         try:
-            em_id = uuid.uuid4().hex
+            em_id = email_id or uuid.uuid4().hex
             oggetto = self._decode_header_val(msg.get("Subject", ""))
             mittente_raw = self._decode_header_val(msg.get("From", ""))
             destinatari  = self._decode_header_val(msg.get("To", ""))

@@ -200,7 +200,12 @@ def allegato(id_email: str, indice_allegato: int):
         abort(404)
     info = (em.allegati or [])[indice_allegato]
     nome_download = info.get("nome") or info.get("nome_file") or percorso.name
-    mimetype = info.get("mime") or mimetypes.guess_type(nome_download)[0] or "application/octet-stream"
+    mime_salvato = str(info.get("mime") or "").strip()
+    mime_da_nome = mimetypes.guess_type(nome_download)[0] or ""
+    if mime_salvato in {"", "application/octet-stream", "binary/octet-stream"} and mime_da_nome:
+        mimetype = mime_da_nome
+    else:
+        mimetype = mime_salvato or mime_da_nome or "application/octet-stream"
     if request.args.get("download") != "1" and mimetype == "message/rfc822":
         mimetype = "text/plain; charset=utf-8"
     return send_file(
@@ -423,6 +428,7 @@ def sincronizza():
             "messaggio": messaggio,
             "nuove": ris.get("nuove", 0),
             "pst_trovate": ris.get("pst_trovate", 0),
+            "allegati_salvati": ris.get("allegati_salvati", 0),
             "esiti_aggiornati": auto_summary["aggiornati"],
             "non_abbinati": auto_summary["non_abbinati"],
             "pst_in_attesa": auto_summary["pst_in_attesa"],

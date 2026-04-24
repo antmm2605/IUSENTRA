@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.182.22 - 2026-04-24
+
+- Corretta la regressione degli allegati PEC storici: se un messaggio era gia' presente nello storico ma gli allegati avevano solo metadati e nessun file salvato, la sincronizzazione IMAP ora recupera nuovamente il messaggio e salva fisicamente gli allegati mancanti.
+- La vista email non blocca piu' i PDF PEC etichettati dal provider come `application/octet-stream`: l'estensione `.pdf` viene riconosciuta come PDF visualizzabile, mentre XML/EML restano consultabili e firme tecniche come `.p7s` restano scaricabili.
+- Aggiunti guardrail e test di regressione per impedire che gli allegati PEC tornino a essere solo nomi/dimensioni nel JSON senza `percorso_rel` valido.
+
 ## 2.182.21 - 2026-04-24
 
 - Corretta la riconciliazione dei documenti PST gia' importati: il backfill non usa piu' un match lasco su `PORTALE_TELEMATICO`, ripara i documenti agganciandoli a `id_documento`, `id_cat`, `id_repeatto`, `msg_id`, nome originario e riferimento `pst:...` corretti, senza spalmare nome e metadati di una busta su tutte le altre.

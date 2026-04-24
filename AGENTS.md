@@ -245,6 +245,13 @@ python -m pytest tests/ -v
 - Tutte le date/ore **esposte in UI** devono usare formati italiani tramite i filtri template condivisi (`fmt_data`, `fmt_dataora`, `fmt_data_estesa`, ecc.), non `strftime('%B')` o `strftime('%A')` direttamente nei template.
 - Eccezione consentita: i valori tecnici per campi HTML `type=\"date\"`, `datetime-local`, attributi `data-*`, API o payload macchina possono restare in formato ISO.
 
+## PEC/email — REGOLA OBBLIGATORIA SUGLI ALLEGATI
+
+- Ogni sincronizzazione IMAP/PEC deve salvare fisicamente gli allegati sotto la cartella runtime della casella, non solo nome, dimensione e MIME nel JSON.
+- Se una email e' gia' presente nello storico ma contiene allegati senza `percorso_rel` valido, la sincronizzazione non deve saltarla: deve recuperare nuovamente il messaggio IMAP e riparare gli allegati mancanti.
+- Gli allegati PEC con MIME generico `application/octet-stream` devono essere trattati in UI in base all'estensione quando sicuro: `.pdf` va aperto come PDF, `.xml` come XML; la firma `.p7s/.p7m` resta scaricabile come file tecnico.
+- La UI non deve lasciare l'utente bloccato su "allegato storico non ancora salvato" dopo un aggiornamento riuscito della casella: aggiungere sempre test che simulino email storiche con allegati metadati ma file assente.
+
 ## SCSS e UI responsive — REGOLA OBBLIGATORIA
 
 - I nuovi stili UI non vanno inseriti nei template con blocchi `<style>` o con accumulo di `style="..."`, salvo casi eccezionali strettamente tecnici.

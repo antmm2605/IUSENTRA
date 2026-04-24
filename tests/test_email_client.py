@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import sys
 from datetime import datetime
+from email.message import EmailMessage
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -131,7 +132,7 @@ def test_email_dettaglio_visualizza_e_scarica_allegato_salvato(tmp_path):
         corpo_testo="Contiene una ricevuta allegata.",
         allegati=[{
             "nome": "ricevuta.pdf",
-            "mime": "application/pdf",
+            "mime": "application/octet-stream",
             "size": 18,
             "percorso_rel": "MAIL-ATT-1/ricevuta.pdf",
             "nome_file": "ricevuta.pdf",
@@ -155,10 +156,89 @@ def test_email_dettaglio_visualizza_e_scarica_allegato_salvato(tmp_path):
         inline = client.get("/email/messaggio/MAIL-ATT-1/allegato/0")
         assert inline.status_code == 200
         assert inline.data == contenuto
+        assert inline.headers.get("Content-Type", "").lower().startswith("application/pdf")
 
         download = client.get("/email/messaggio/MAIL-ATT-1/allegato/0?download=1")
         assert download.status_code == 200
         assert "attachment" in download.headers.get("Content-Disposition", "").lower()
+
+
+def test_sincronizza_imap_ripara_allegati_storici_senza_file(tmp_path, monkeypatch):
+    import pct.email_client as email_runtime
+
+    ge = GestioneEmailRicevute(str(tmp_path / "casella.json"))
+    ge.aggiungi(
+        EmailRicevuta(
+            id="MAIL-STORICA-PEC",
+            cartella="INBOX",
+            stato=StatoEmail.LETTA,
+            mittente="posta-certificata@pec.aruba.it",
+            mittente_nome="Per conto di: protocollo@pec.cittametropolitana.rc.it",
+            destinatari="studio@example.pec.it",
+            oggetto="POSTA CERTIFICATA: [0030458-2026] Verbale di contestazione",
+            data="2026-04-09T17:51:00+02:00",
+            corpo_testo="PEC importata prima del salvataggio fisico allegati.",
+            uid_imap="INBOX:42",
+            allegati=[
+                {"nome": "30458.pdf", "mime": "application/octet-stream", "size": 356352},
+                {"nome": "Segnatura.xml", "mime": "application/octet-stream", "size": 3072},
+                {"nome": "smime.p7s", "mime": "application/pkcs7-signature", "size": 7168},
+            ],
+        )
+    )
+
+    msg = EmailMessage()
+    msg["Subject"] = "POSTA CERTIFICATA: [0030458-2026] Verbale di contestazione"
+    msg["From"] = "Per conto di: protocollo@pec.cittametropolitana.rc.it <posta-certificata@pec.aruba.it>"
+    msg["To"] = "studio@example.pec.it"
+    msg["Date"] = "Thu, 09 Apr 2026 17:51:00 +0200"
+    msg["Message-ID"] = "<pec-30458@example.test>"
+    msg.set_content("Comunicazione PEC con tre allegati.")
+    msg.add_attachment(b"%PDF-1.4\nverbale\n", maintype="application", subtype="octet-stream", filename="30458.pdf")
+    msg.add_attachment(b"<Segnatura>ok</Segnatura>", maintype="application", subtype="octet-stream", filename="Segnatura.xml")
+    msg.add_attachment(b"firma", maintype="application", subtype="pkcs7-signature", filename="smime.p7s")
+    raw_message = msg.as_bytes()
+
+    class _FakeIMAP:
+        def login(self, username, password):
+            return "OK", []
+
+        def select(self, mailbox, readonly=True):
+            assert mailbox == "INBOX"
+            return "OK", [b"1"]
+
+        def search(self, charset, criteria):
+            return "OK", [b"42"]
+
+        def fetch(self, uid, query):
+            assert uid == "42"
+            return "OK", [(b"42 (RFC822)", raw_message)]
+
+        def logout(self):
+            return "OK", []
+
+    monkeypatch.setattr(email_runtime.imaplib, "IMAP4_SSL", lambda *a, **k: _FakeIMAP())
+
+    report = ge.sincronizza_imap(
+        imap_host="imaps.pec.aruba.it",
+        imap_port=993,
+        username="studio@example.pec.it",
+        password="segreta",
+        use_ssl=True,
+        cartelle_imap=["INBOX"],
+        limite=100,
+    )
+
+    assert report["nuove"] == 0
+    assert report["allegati_salvati"] == 3
+
+    ge_reload = GestioneEmailRicevute(str(tmp_path / "casella.json"))
+    em = ge_reload.get("MAIL-STORICA-PEC")
+    assert em is not None
+    assert [a["nome"] for a in em.allegati] == ["30458.pdf", "Segnatura.xml", "smime.p7s"]
+    for idx in range(3):
+        assert ge_reload.percorso_allegato(em, idx) is not None
+    assert ge_reload.percorso_allegato(em, 0).read_bytes().startswith(b"%PDF")
 
 
 def test_email_dettaglio_visualizza_anche_xml_ed_eml(tmp_path):

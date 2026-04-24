@@ -352,12 +352,13 @@ document.getElementById('btnSync')?.addEventListener('click', function () {
         let msg = d.messaggio || 'Sincronizzazione completata.';
         if (d.nuove > 0)                      msg += ` | ${d.nuove} nuova/e`;
         if (d.pst_trovate > 0)                msg += ` | ${d.pst_trovate} PST`;
+        if ((d.allegati_salvati||0) > 0)      msg += ` | ${d.allegati_salvati} allegato/i recuperati`;
         if (d.esiti_aggiornati > 0)           msg += ` | ${d.esiti_aggiornati} esiti`;
         if (d.non_abbinati > 0)               msg += ` | ${d.non_abbinati} in attesa`;
         if ((d.comunicazioni_cancelleria||0) > 0) msg += ` | ${d.comunicazioni_cancelleria} comunicazioni`;
         if (d.sync_errore)                    msg += ` | ${d.sync_errore}`;
         _toast(d.warning ? 'warning' : 'success', msg);
-        if (d.nuove > 0 || d.esiti_aggiornati > 0 || (d.comunicazioni_cancelleria||0) > 0) setTimeout(() => location.reload(), 1800);
+        if (d.nuove > 0 || (d.allegati_salvati||0) > 0 || d.esiti_aggiornati > 0 || (d.comunicazioni_cancelleria||0) > 0) setTimeout(() => location.reload(), 1800);
       } else _toast('danger', d.errore || 'Errore sincronizzazione');
     })
     .catch((error) => _toast('danger', error?.message || 'Errore di rete'))

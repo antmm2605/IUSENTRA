@@ -105,6 +105,7 @@
         or mime == 'application/pdf'
         or mime.startswith('text/')
         or mime in ['application/xml', 'text/xml', 'message/rfc822']
+        or nome_lower.endswith('.pdf')
         or nome_lower.endswith('.xml')
         or nome_lower.endswith('.eml')
         or nome_lower.endswith('.txt')

@@ -496,6 +496,46 @@ class TelematicoWorkflowRepository:
         )
         return [_row_to_dict(row) or {} for row in rows]
 
+    def list_documents_for_practice(
+        self,
+        practice_id: str,
+        *,
+        service_code: str | None = None,
+        source_type: str | None = None,
+    ) -> list[dict[str, Any]]:
+        clauses = ["tc.practice_id = ?"]
+        params: list[Any] = [practice_id]
+        if service_code:
+            clauses.append("tc.service_code = ?")
+            params.append(service_code)
+        if source_type:
+            clauses.append("td.source_type = ?")
+            params.append(source_type)
+        rows = self._fetchall(
+            """
+            SELECT
+                td.*,
+                tc.practice_id,
+                tc.service_code,
+                tc.channel_family,
+                tc.portal_case_ref,
+                tc.office_name,
+                tc.native_status,
+                tc.internal_status
+            FROM telematic_documents td
+            JOIN telematic_cases tc ON tc.id = td.telematic_case_id
+            WHERE """
+            + " AND ".join(clauses)
+            + """
+            ORDER BY
+                COALESCE(td.data_deposito, td.portal_document_date, td.created_at) DESC,
+                td.title ASC,
+                td.id ASC
+            """,
+            params,
+        )
+        return [_row_to_dict(row) or {} for row in rows]
+
     def list_recent_events(self, *, limit: int = 25) -> list[dict[str, Any]]:
         rows = self._fetchall(
             """

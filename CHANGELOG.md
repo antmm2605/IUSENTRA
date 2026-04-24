@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.182.16 - 2026-04-24
+
+- Corretta una regressione runtime del dettaglio fascicolo emersa nel container Python 3.12: il worker non va piu' in crash durante il boot per una forward reference tipizzata nel merge del catalogo portale, quindi il fix sul governo documentale e' ora davvero servito in app e non solo coperto dai test locali.
+
+## 2.182.15 - 2026-04-24
+
+- Il governo documentale del fascicolo compila ora automaticamente i metadati ufficiali dei documenti portale anche quando i file erano gia' presenti localmente: il dettaglio fascicolo riallinea il catalogo dal core telematico e popola deposito, classificazione e riferimenti documento senza intervento manuale.
+- `sincronizza_deposito_portale` non duplica piu' i lotti generici creati in precedenza quando arriva il catalogo ufficiale: riconosce i documenti gia' agganciati per overlap forte su nomi e riferimenti, riusa il deposito locale corretto e arricchisce i documenti collegati.
+- Il flusso di import dei file portale evita di creare nuovi vuoti di metadati: quando il download include gia' identificativi e classificazione, i documenti sfusi vengono convertiti direttamente in depositi ufficiali con collegamento e metadati completi invece di restare in un lotto cieco.
+- Aggiunti test di regressione su deposito generico riassorbito dal catalogo ufficiale, backfill automatico dal core telematico nella pagina fascicolo, riepilogo documentale e wiring bootstrap, cosi' il contatore `Da riallineare` non torna piu' a salire per questi casi.
+
 ## 2.182.14 - 2026-04-23
 
 - Lex AI usa ora contesti strutturati reali per `studio_operativo`, `fascicolo_intelligence`, `conformita_fascicolo` ed `economico`, riusando direttamente `WorkspaceIntelligenteService`, `Responsabile di conformita'`, `preventivi`, `conferimenti` e `fatturazione` invece di limitarsi a riepiloghi testuali fragili.

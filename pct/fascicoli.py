@@ -16,7 +16,7 @@ import re
 import shutil
 from datetime import date, datetime
 from pathlib import Path
-from typing import Optional, List
+from typing import Any, Optional, List
 from dataclasses import dataclass, field, asdict
 from enum import Enum
 
@@ -371,6 +371,42 @@ def _documento_portale_payload(dep: "EsitoDepositoPCT", item: dict | None) -> di
         "id_repeatto_portale": str(row.get("id_repeatto") or "").strip(),
         "msg_id_portale": str(row.get("msg_id") or "").strip(),
     }
+
+
+def _documento_portale_nome_keys(nome: str) -> set[str]:
+    key = _normalizza_nome_documento_match(nome)
+    return {key} if key else set()
+
+
+def _documento_portale_ref_keys(item: dict[str, Any] | None) -> set[str]:
+    row = dict(item or {})
+    refs: set[str] = set()
+    for field_name in ("id_documento", "id_cat", "id_repeatto", "msg_id"):
+        value = str(row.get(field_name) or "").strip()
+        if value:
+            refs.add(value)
+    return refs
+
+
+def _documento_locale_nome_keys(doc: "Documento") -> set[str]:
+    keys: set[str] = set()
+    for value in (getattr(doc, "nome", ""), getattr(doc, "nome_originale", ""), getattr(doc, "nome_portale", "")):
+        keys.update(_documento_portale_nome_keys(str(value or "")))
+    return keys
+
+
+def _documento_locale_ref_keys(doc: "Documento") -> set[str]:
+    refs: set[str] = set()
+    for value in (
+        getattr(doc, "id_documento_portale", ""),
+        getattr(doc, "id_cat_portale", ""),
+        getattr(doc, "id_repeatto_portale", ""),
+        getattr(doc, "msg_id_portale", ""),
+    ):
+        current = str(value or "").strip()
+        if current:
+            refs.add(current)
+    return refs
 
 
 def _migra_payload_depositi_pct(payload_fascicolo: dict) -> bool:
@@ -1103,6 +1139,78 @@ class GestioneFascicoli:
             changed = True
         return changed
 
+    @staticmethod
+    def _trova_deposito_portale_da_overlap(
+        fascicolo: Fascicolo,
+        *,
+        id_deposito_esterno: str,
+        documenti_portale: list[dict],
+        tipo_atto: str = "",
+    ) -> Optional["EsitoDepositoPCT"]:
+        incoming_name_keys = {
+            key
+            for item in documenti_portale
+            for key in _documento_portale_nome_keys(str((item or {}).get("nome") or ""))
+        }
+        incoming_ref_keys = {
+            ref
+            for item in documenti_portale
+            for ref in _documento_portale_ref_keys(item)
+        }
+        if not incoming_name_keys and not incoming_ref_keys:
+            return None
+
+        candidates: list[tuple[tuple[int, int, int, int, int, int], EsitoDepositoPCT]] = []
+        normalized_tipo = str(tipo_atto or "").strip().casefold()
+        for dep in fascicolo.depositi_pct:
+            dep_esterno = str(getattr(dep, "id_deposito_esterno", "") or "").strip()
+            if dep_esterno == id_deposito_esterno and dep_esterno:
+                return dep
+            if dep_esterno and dep_esterno != id_deposito_esterno:
+                continue
+
+            docs_locali = [
+                doc
+                for doc in fascicolo.documenti
+                if doc.id_deposito_pct == dep.id or doc.id in (dep.documenti_ids or [])
+            ]
+            if not docs_locali:
+                continue
+
+            local_name_keys = {
+                key
+                for doc in docs_locali
+                for key in _documento_locale_nome_keys(doc)
+            }
+            local_ref_keys = {
+                ref
+                for doc in docs_locali
+                for ref in _documento_locale_ref_keys(doc)
+            }
+            overlap_refs = len(local_ref_keys & incoming_ref_keys)
+            overlap_names = len(local_name_keys & incoming_name_keys)
+            if overlap_refs == 0 and overlap_names == 0:
+                continue
+
+            score = (
+                overlap_refs,
+                overlap_names,
+                1 if len(docs_locali) == len(documenti_portale) and documenti_portale else 0,
+                1 if normalized_tipo and str(getattr(dep, "tipo_atto", "") or "").strip().casefold() == normalized_tipo else 0,
+                1 if not getattr(dep, "documenti_portale", None) else 0,
+                len(docs_locali),
+            )
+            candidates.append((score, dep))
+
+        if not candidates:
+            return None
+        candidates.sort(key=lambda item: item[0], reverse=True)
+        best_score = candidates[0][0]
+        best = [dep for score, dep in candidates if score == best_score]
+        if len(best) != 1:
+            return None
+        return best[0]
+
     def riconcilia_documenti_portale(self, id_fasc: str) -> dict[str, int]:
         f = self._get_o_errore(id_fasc)
         aggiornati = 0
@@ -1472,6 +1580,13 @@ class GestioneFascicoli:
             ),
             None,
         )
+        if dep is None and documenti_norm:
+            dep = self._trova_deposito_portale_da_overlap(
+                f,
+                id_deposito_esterno=chiave_portale,
+                documenti_portale=documenti_norm,
+                tipo_atto=tipo_atto,
+            )
 
         if dep:
             dep.stato = _normalizza_stato_deposito_pct(stato or dep.stato)

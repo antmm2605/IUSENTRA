@@ -14,6 +14,7 @@ from pct.fascicoli import EsitoAttivita, StatoFascicolo, TipoAttivita, TipoDocum
 from pct.reginde import ClientReGINde
 from pct.soggetti import RuoloSoggetto
 from pct.workflow_pipeline import build_fascicolo_workflow_pipeline
+from web.services.telematico_document_catalog import sync_official_catalog_on_fascicolo
 
 
 def register_fascicoli_core_routes(
@@ -27,6 +28,7 @@ def register_fascicoli_core_routes(
     get_timesheet: Callable[[], Any],
     get_preventivi: Callable[[], Any],
     get_fatturazione: Callable[[], Any],
+    get_telematico: Callable[[], Any],
     get_indice: Callable[[], Any],
     get_workspace_intelligente: Callable[[], Any],
     get_config_studio: Callable[[], Any],
@@ -217,8 +219,13 @@ def register_fascicoli_core_routes(
         if not fascicolo:
             flash("Fascicolo non trovato.", "warning")
             return redirect(url_for("lista_fascicoli"))
+        catalog_sync_report = sync_official_catalog_on_fascicolo(
+            gestore_fascicoli=gestore_fascicoli,
+            repo_telematico=get_telematico(),
+            id_fasc=id_fasc,
+        )
         repair_report = gestore_fascicoli.riconcilia_documenti_portale(id_fasc)
-        if repair_report.get("documenti_allineati"):
+        if catalog_sync_report.get("depositi_allineati") or repair_report.get("documenti_allineati"):
             fascicolo = gestore_fascicoli.get(id_fasc)
 
         cliente = get_clienti().get(fascicolo.id_cliente) if fascicolo.id_cliente else None

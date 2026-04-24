@@ -34,6 +34,7 @@ from pct.polisWeb import (
     _pst_namespace_qbuilder,
 )
 from pct.soggetti import GestioneSoggetti
+from pct.telematico_workflow import TelematicoWorkflowRepository
 
 
 def _client() -> ClientPolisWeb:
@@ -2128,6 +2129,111 @@ def test_dettaglio_fascicolo_mostra_metadati_documentali_importati_da_polisweb(t
     assert "memoria_conclusionale.pdf.p7m" in body
     assert "documenti ufficiali" in body
     assert "Nessuna comunicazione di cancelleria" in body
+
+
+def test_dettaglio_fascicolo_backfilla_metadati_documentali_dal_core_telematico(tmp_path):
+    from pct.auth import GestioneUtenti, RuoloUtente
+    from web.app import create_app
+
+    cfg = _cfg_web(tmp_path)
+    gu = GestioneUtenti(
+        db_path=cfg["AUTH_DB"],
+        audit_path=cfg["AUDIT_DB"],
+        secret_key="test",
+    )
+    gu.crea(
+        username="avvocato",
+        password="Avv12345!",
+        ruolo=RuoloUtente.AVVOCATO,
+        email="avvocato@example.com",
+    )
+
+    gestione_fascicoli = GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+    )
+    fascicolo = gestione_fascicoli.nuovo(
+        titolo="RG 1025/2024",
+        tipo=TipoFascicolo.CIVILE,
+        tribunale="Tribunale di Palmi",
+        numero_rg="1025",
+        anno_rg=2024,
+        source="PST",
+        note="Importato da PolisWeb il 2026-03-29",
+    )
+    doc = gestione_fascicoli.aggiungi_documento(
+        fascicolo.id,
+        "SentenzaDefinitiva_33581101.pdf",
+        TipoDocumento.SENTENZA,
+        b"sentenza",
+    )
+    gestione_fascicoli.registra_import_documenti_portale(
+        id_fasc=fascicolo.id,
+        fonte="PolisWeb / PST",
+        documenti_ids=[doc.id],
+        tipo_atto="Documenti ufficiali PolisWeb",
+        note="Lotto locale in attesa di catalogo ufficiale",
+        registrato_da="admin",
+    )
+
+    repo = TelematicoWorkflowRepository(cfg["TELEMATICO_DB"])
+    case = repo.upsert_case(
+        practice_id=fascicolo.id,
+        channel_family="ministero",
+        service_code="polisweb_consultazione",
+        office_name="Tribunale di Palmi",
+        register_type="RGN",
+        register_number="1025",
+        register_year=2024,
+        subject_name="Montagnese Elisabetta",
+        counsel_name="Avv. Demo",
+        counsel_cf="MNTRRT64L01L063H",
+        portal_case_ref="PALMI-1025-2024",
+        internal_status="download_available",
+    )
+    repo.upsert_document(
+        str(case["id"]),
+        document_role="judgment",
+        document_category="SentenzaDefinitiva",
+        title="SentenzaDefinitiva_33581101.pdf",
+        original_filename="SentenzaDefinitiva_33581101.pdf",
+        source_type="portal",
+        portal_document_ref="DOC-001",
+        id_deposito="DEP-PORTALE-001",
+        tipo_atto="Sentenza definitiva",
+        data_deposito="2026-01-08",
+        mittente="GIOVANNELLA MARIA ELENA",
+    )
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        client.post(
+            "/login",
+            data={"username": "avvocato", "password": "Avv12345!"},
+            follow_redirects=True,
+        )
+        response = client.get(f"/fascicoli/{fascicolo.id}?focus=documenti")
+
+    body = response.data.decode("utf-8")
+    assert response.status_code == 200
+    assert "Metadati portale 1" in body
+    assert "Da riallineare" not in body
+    assert "Classificazione: SentenzaDefinitiva" in body
+
+    gestione_fascicoli_reload = GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+    )
+    fascicolo_reload = gestione_fascicoli_reload.get(fascicolo.id)
+    assert fascicolo_reload is not None
+    assert len(fascicolo_reload.depositi_pct) == 1
+    assert fascicolo_reload.depositi_pct[0].id_deposito_esterno == "DEP-PORTALE-001"
+    doc_reload = fascicolo_reload.documenti[0]
+    assert doc_reload.classificazione_portale == "SentenzaDefinitiva"
+    assert doc_reload.tipo_atto_portale == "Sentenza definitiva"
+    assert doc_reload.id_documento_portale == "DOC-001"
 
 
 def test_sync_polisweb_riallinea_anagrafiche_persona_fisica_con_nome_misto(tmp_path):

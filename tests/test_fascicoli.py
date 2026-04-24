@@ -284,6 +284,81 @@ def test_registra_import_documenti_portale_collega_documenti_e_attivita(gf, fasc
     )
 
 
+def test_sincronizza_deposito_portale_riusa_lotto_generico_e_compila_metadati(gf, fascicolo_base):
+    doc1 = gf.aggiungi_documento(
+        fascicolo_base.id,
+        "SentenzaDefinitiva_33581101.pdf",
+        TipoDocumento.SENTENZA,
+        b"sentenza",
+    )
+    doc2 = gf.aggiungi_documento(
+        fascicolo_base.id,
+        "Relata_33581101.pdf",
+        TipoDocumento.ALLEGATO,
+        b"relata",
+    )
+
+    lotto = gf.registra_import_documenti_portale(
+        id_fasc=fascicolo_base.id,
+        fonte="PolisWeb / PST",
+        documenti_ids=[doc1.id, doc2.id],
+        tipo_atto="Documenti ufficiali PolisWeb",
+        note="Lotto locale da catalogare",
+        registrato_da="admin",
+    )
+
+    esito = gf.sincronizza_deposito_portale(
+        fascicolo_base.id,
+        fonte="PST",
+        id_deposito_esterno="DEP-PORTALE-001",
+        tipo_atto="Sentenza definitiva",
+        data_deposito="2026-01-08",
+        mittente="cancelleria@tribunale.palmi.giustiziapec.it",
+        documenti_portale=[
+            {
+                "id_documento": "DOC-001",
+                "nome": "SentenzaDefinitiva_33581101.pdf",
+                "tipo": "SentenzaDefinitiva",
+                "data_deposito": "2026-01-08",
+                "mittente": "cancelleria@tribunale.palmi.giustiziapec.it",
+                "dimensione_bytes": 12000,
+                "disponibile": True,
+                "id_deposito": "DEP-PORTALE-001",
+                "tipo_atto": "Sentenza definitiva",
+            },
+            {
+                "id_documento": "DOC-002",
+                "nome": "Relata_33581101.pdf",
+                "tipo": "ALLEGATO",
+                "data_deposito": "2026-01-08",
+                "mittente": "cancelleria@tribunale.palmi.giustiziapec.it",
+                "dimensione_bytes": 8000,
+                "disponibile": True,
+                "id_deposito": "DEP-PORTALE-001",
+                "tipo_atto": "Sentenza definitiva",
+            },
+        ],
+        registrato_da="admin",
+        servizio_portale="DocumentiFascicolo",
+    )
+
+    fascicolo = gf.get(fascicolo_base.id)
+    assert fascicolo is not None
+    assert len(fascicolo.depositi_pct) == 1
+    assert esito.id == lotto.id
+    assert fascicolo.depositi_pct[0].id_deposito_esterno == "DEP-PORTALE-001"
+    assert len(fascicolo.depositi_pct[0].documenti_portale) == 2
+
+    doc1_reload = next(item for item in fascicolo.documenti if item.id == doc1.id)
+    doc2_reload = next(item for item in fascicolo.documenti if item.id == doc2.id)
+    assert doc1_reload.id_deposito_pct == lotto.id
+    assert doc1_reload.classificazione_portale == "SentenzaDefinitiva"
+    assert doc1_reload.tipo_atto_portale == "Sentenza definitiva"
+    assert doc1_reload.id_documento_portale == "DOC-001"
+    assert doc2_reload.classificazione_portale == "ALLEGATO"
+    assert doc2_reload.id_documento_portale == "DOC-002"
+
+
 def test_normalizza_stato_deposito_pct_migra_legacy():
     assert normalizza_stato_deposito_pct("accettato") == "ACCETTATO_PEC"
     assert normalizza_stato_deposito_pct("RIFIUTATO") == "RIFIUTATO_CANCELLERIA"

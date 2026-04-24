@@ -1697,6 +1697,27 @@ def build_fascicoli_runtime(
             return exact[0]
         return None
 
+    def _documento_portale_payload_da_item(
+        item: dict,
+        *,
+        id_deposito_esterno: str,
+        doc_locale: Documento | None = None,
+    ) -> dict[str, object]:
+        return {
+            "id_documento": str(item.get("id_documento_portale") or item.get("id_documento") or item.get("id_cat") or "").strip(),
+            "id_cat": str(item.get("id_cat") or item.get("id_documento_portale") or "").strip(),
+            "id_repeatto": str(item.get("id_repeatto") or "").strip(),
+            "msg_id": str(item.get("msg_id") or "").strip(),
+            "nome": str(item.get("nome") or item.get("nome_file_originale") or "").strip(),
+            "tipo": str(item.get("tipo") or "").strip(),
+            "data_deposito": str(item.get("data_documento") or item.get("data_deposito") or "").strip(),
+            "mittente": str(item.get("mittente") or "").strip(),
+            "dimensione_bytes": int((doc_locale.dimensione_bytes if doc_locale else 0) or 0),
+            "disponibile": True,
+            "id_deposito": id_deposito_esterno,
+            "tipo_atto": str(item.get("tipo_atto") or item.get("tipo") or "").strip(),
+        }
+
     def _importa_documenti_portale_items(
         *,
         gf: GestioneFascicoli,
@@ -1770,19 +1791,22 @@ def build_fascicoli_runtime(
 
         catalogo = _catalogo_documenti_portale_fascicolo(fasc)
         docs_per_deposito: dict[str, list[str]] = {}
-        documenti_sfusi: list[str] = []
+        documenti_sfusi: list[dict] = []
         for entry in documenti_creati:
             match = _match_catalogo_documento_portale(fasc, entry["item"], catalogo)
             if match and match["id_deposito_pct"]:
                 docs_per_deposito.setdefault(match["id_deposito_pct"], []).append(entry["doc"].id)
             else:
-                documenti_sfusi.append(entry["doc"].id)
+                documenti_sfusi.append(entry)
 
         depositi_agganciati: list[str] = []
         for dep_id, doc_ids in docs_per_deposito.items():
             dep = next((row for row in fasc.depositi_pct if row.id == dep_id), None)
             if not dep:
-                documenti_sfusi.extend(doc_ids)
+                for doc_id in doc_ids:
+                    entry = next((row for row in documenti_creati if row["doc"].id == doc_id), None)
+                    if entry:
+                        documenti_sfusi.append(entry)
                 continue
             descrizione_link = (
                 f"{len(doc_ids)} file ufficiali acquisiti localmente da {fonte}."
@@ -1807,37 +1831,122 @@ def build_fascicoli_runtime(
                 except Exception:
                     pec_tribunale = ""
 
-            docs_creati_index = {entry["doc"].id: entry["doc"] for entry in documenti_creati}
-            principali = [
-                docs_creati_index[doc_id].nome
-                for doc_id in documenti_sfusi
-                if docs_creati_index[doc_id].tipo
-                in {
-                    TipoDocumento.ATTO_GIUDIZIARIO,
-                    TipoDocumento.RICORSO,
-                    TipoDocumento.CITAZIONE,
-                    TipoDocumento.COMPARSA,
-                    TipoDocumento.MEMORIA,
-                    TipoDocumento.SENTENZA,
-                    TipoDocumento.ORDINANZA,
-                    TipoDocumento.DECRETO,
-                }
-            ]
-            principale = principali[0] if principali else docs_creati_index[documenti_sfusi[0]].nome
-            descrizione_lotto = (
-                f"{len(documenti_sfusi)} documenti ufficiali acquisiti da {fonte}."
-                + (f" {note_importazione}" if note_importazione else "")
-            ).strip()
-            deposito_generico = gf.registra_import_documenti_portale(
-                id_fasc=fasc.id,
-                fonte=fonte,
-                documenti_ids=documenti_sfusi,
-                tipo_atto=_tipo_lotto_portale(fasc),
-                note=descrizione_lotto,
-                registrato_da=u.username if u else "",
-                pec_destinatario=pec_tribunale,
-                nome_atto_principale=principale,
-            )
+            depositi_sfusi: dict[str, dict[str, object]] = {}
+            documenti_senza_catalogo: list[dict] = []
+            for entry in documenti_sfusi:
+                item = dict(entry["item"] or {})
+                dep_key = (
+                    str(item.get("id_deposito_esterno") or item.get("id_deposito") or "").strip()
+                    or (
+                        f"__{str(item.get('data_documento') or item.get('data_deposito') or '').strip()}__"
+                        f"{str(item.get('mittente') or item.get('tipo_atto') or item.get('tipo') or '').strip()}"
+                    )
+                )
+                has_official_metadata = any(
+                    str(item.get(field_name) or "").strip()
+                    for field_name in ("id_documento_portale", "id_documento", "id_cat", "msg_id", "tipo_atto", "tipo", "mittente")
+                )
+                if not dep_key or not has_official_metadata:
+                    documenti_senza_catalogo.append(entry)
+                    continue
+                group = depositi_sfusi.setdefault(
+                    dep_key,
+                    {
+                        "tipo_atto": str(item.get("tipo_atto") or item.get("tipo") or _tipo_lotto_portale(fasc)).strip(),
+                        "data_deposito": str(item.get("data_documento") or item.get("data_deposito") or "").strip(),
+                        "mittente": str(item.get("mittente") or "").strip(),
+                        "documenti_portale": [],
+                        "doc_ids": [],
+                    },
+                )
+                if not group["tipo_atto"] and str(item.get("tipo_atto") or item.get("tipo") or "").strip():
+                    group["tipo_atto"] = str(item.get("tipo_atto") or item.get("tipo") or "").strip()
+                if not group["data_deposito"] and str(item.get("data_documento") or item.get("data_deposito") or "").strip():
+                    group["data_deposito"] = str(item.get("data_documento") or item.get("data_deposito") or "").strip()
+                if not group["mittente"] and str(item.get("mittente") or "").strip():
+                    group["mittente"] = str(item.get("mittente") or "").strip()
+                group["documenti_portale"].append(
+                    _documento_portale_payload_da_item(
+                        item,
+                        id_deposito_esterno=dep_key,
+                        doc_locale=entry["doc"],
+                    )
+                )
+                group["doc_ids"].append(entry["doc"].id)
+
+            for dep_key, payload in depositi_sfusi.items():
+                documenti_portale = list(payload.get("documenti_portale") or [])
+                doc_ids = list(payload.get("doc_ids") or [])
+                if not documenti_portale or not doc_ids:
+                    continue
+                principale = next(
+                    (
+                        row["nome"]
+                        for row in documenti_portale
+                        if str(row.get("tipo_atto") or "").strip()
+                    ),
+                    str(documenti_portale[0].get("nome") or ""),
+                )
+                descrizione_link = (
+                    f"{len(doc_ids)} file ufficiali acquisiti localmente da {fonte}."
+                    + (f" {note_importazione}" if note_importazione else "")
+                ).strip()
+                deposito = gf.sincronizza_deposito_portale(
+                    fasc.id,
+                    fonte=fonte,
+                    id_deposito_esterno=dep_key,
+                    tipo_atto=str(payload.get("tipo_atto") or _tipo_lotto_portale(fasc)).strip(),
+                    data_deposito=str(payload.get("data_deposito") or "").strip(),
+                    mittente=str(payload.get("mittente") or "").strip(),
+                    documenti_portale=documenti_portale,
+                    registrato_da=u.username if u else "",
+                    note=descrizione_link,
+                    nome_atto_principale=principale,
+                    stato="IMPORTATO_DA_PORTALE",
+                    servizio_portale=str(documenti_portale[0].get("servizio_portale") or "DocumentiFascicolo"),
+                )
+                gf.collega_documenti_a_deposito_portale(
+                    fasc.id,
+                    deposito.id,
+                    doc_ids,
+                    note=descrizione_link,
+                    registrato_da=u.username if u else "",
+                )
+                depositi_agganciati.append(deposito.id)
+
+            if documenti_senza_catalogo:
+                docs_creati_index = {entry["doc"].id: entry["doc"] for entry in documenti_senza_catalogo}
+                doc_ids_generici = list(docs_creati_index.keys())
+                principali = [
+                    docs_creati_index[doc_id].nome
+                    for doc_id in doc_ids_generici
+                    if docs_creati_index[doc_id].tipo
+                    in {
+                        TipoDocumento.ATTO_GIUDIZIARIO,
+                        TipoDocumento.RICORSO,
+                        TipoDocumento.CITAZIONE,
+                        TipoDocumento.COMPARSA,
+                        TipoDocumento.MEMORIA,
+                        TipoDocumento.SENTENZA,
+                        TipoDocumento.ORDINANZA,
+                        TipoDocumento.DECRETO,
+                    }
+                ]
+                principale = principali[0] if principali else docs_creati_index[doc_ids_generici[0]].nome
+                descrizione_lotto = (
+                    f"{len(doc_ids_generici)} documenti ufficiali acquisiti da {fonte}."
+                    + (f" {note_importazione}" if note_importazione else "")
+                ).strip()
+                deposito_generico = gf.registra_import_documenti_portale(
+                    id_fasc=fasc.id,
+                    fonte=fonte,
+                    documenti_ids=doc_ids_generici,
+                    tipo_atto=_tipo_lotto_portale(fasc),
+                    note=descrizione_lotto,
+                    registrato_da=u.username if u else "",
+                    pec_destinatario=pec_tribunale,
+                    nome_atto_principale=principale,
+                )
 
         staging_archived = ""
         if usa_staging and staging_dir is not None:

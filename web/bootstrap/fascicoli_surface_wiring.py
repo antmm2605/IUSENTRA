@@ -109,6 +109,7 @@ def register_fascicoli_surfaces(
         get_timesheet=core["get_timesheet"],
         get_preventivi=core["get_preventivi"],
         get_fatturazione=core["get_fatturazione"],
+        get_telematico=core["get_telematico"],
         get_indice=core["get_indice"],
         get_workspace_intelligente=core["get_workspace_intelligente"],
         get_config_studio=core["get_config_studio"],

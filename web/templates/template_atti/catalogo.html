@@ -147,6 +147,9 @@
     border-color: rgba(13,110,253,.4);
     color: var(--bs-primary);
   }
+  .cat-chip-row[data-hidden="true"] {
+    display: none;
+  }
 
   /* Tab switch */
   .cat-tab-switch {
@@ -361,6 +364,14 @@
     flex-wrap: wrap;
     gap: .4rem;
   }
+  .cat-master-toolbar-note {
+    color: var(--bs-secondary-color);
+    font-size: .82rem;
+    line-height: 1.35;
+  }
+  .cat-master-section[data-hidden="true"] {
+    display: none;
+  }
 
   /* Mobile tweaks */
   @media (max-width: 576px) {
@@ -408,6 +419,9 @@
         <button type="button" class="cat-tab-pill" data-view="pratiche">
           <i class="bi bi-diagram-2 me-1"></i>Da pratica
         </button>
+        <button type="button" class="cat-tab-pill" data-view="master">
+          <i class="bi bi-stars me-1"></i>Master professionale
+        </button>
       </div>
       <a href="{{ url_for('template_atti.lista') }}" class="btn btn-sm btn-outline-secondary">
         <i class="bi bi-arrow-left me-1"></i>Template
@@ -420,11 +434,11 @@
     <div class="cat-toolbar-search">
       <div class="cat-search-wrap">
         <i class="bi bi-search"></i>
-        <input type="search" id="catSearch" class="cat-search-input form-control" placeholder="Cerca atto…" autocomplete="off">
+        <input type="search" id="catSearch" class="cat-search-input form-control" placeholder="Cerca atto, ID, rito o canale…" autocomplete="off">
       </div>
       <span class="cat-count-badge" id="catCount">{{ catalogo_flat|length }} modelli</span>
     </div>
-    <div class="cat-chip-row" id="catAreaChips">
+    <div class="cat-chip-row" id="catAreaChipsLegacy">
       <button type="button" class="cat-chip active" data-area="ALL">Tutte le aree</button>
       {% for grp in area_groups %}
       <button type="button" class="cat-chip" data-area="{{ grp.area_key }}">
@@ -432,6 +446,16 @@
         <span style="font-size:.7rem;opacity:.65;font-weight:500;margin-left:.2rem;">({{ grp.modelli|length }})</span>
       </button>
       {% endfor %}
+    </div>
+    <div class="cat-chip-row" id="catAreaChipsMaster" data-hidden="true">
+      <button type="button" class="cat-chip active" data-master-group="ALL">Tutto il master</button>
+      {% for group in master_catalog_groups %}
+      <button type="button" class="cat-chip" data-master-group="{{ group.key }}">
+        {{ group.label }}
+        <span style="font-size:.7rem;opacity:.65;font-weight:500;margin-left:.2rem;">({{ group.count }})</span>
+      </button>
+      {% endfor %}
+      <span class="cat-master-toolbar-note">Catalogo versionato: ID coerenti, canale telematico, checklist e varianti sono visibili e ricercabili.</span>
     </div>
   </div>
 
@@ -541,17 +565,17 @@
   </div>
 
   {# ── VIEW: da pratica ── #}
-  <section class="cat-area-section mt-3" id="viewMasterCatalog">
+  <section class="cat-area-section mt-3" id="viewMasterCatalog" style="display:none;">
     <div class="cat-section-label">Template master pronti per il workspace</div>
     {% for group in master_catalog_groups %}
-    <div class="mb-4">
+    <div class="mb-4 cat-master-section" data-master-group-section="{{ group.key }}">
       <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
         <h2 class="h6 mb-0 text-primary">{{ group.label }}</h2>
         <span class="cat-count-badge">{{ group.count }} template</span>
       </div>
       <div class="cat-grid">
         {% for t in group.templates %}
-        <article class="cat-card" data-code="{{ t.id }}" data-name="{{ t.titolo|lower }}" data-area="{{ t.macro_area }}">
+        <article class="cat-card" data-master-card="true" data-master-group="{{ group.key }}" data-code="{{ t.id }}" data-name="{{ t.titolo|lower }}" data-area="{{ t.macro_area|lower }}" data-channel="{{ t.canale_telematico|lower }}" data-family="{{ t.famiglia|lower }}" data-tags="{{ (t.tags or [])|join(' ')|lower }}">
           <div class="cat-card-top">
             <div class="cat-card-icon">
               {% if t.canale_telematico == 'PDP' %}
@@ -595,6 +619,11 @@
       </div>
     </div>
     {% endfor %}
+    <div id="masterEmptyState" class="cat-empty" style="display:none;">
+      <div class="cat-empty-icon"><i class="bi bi-search"></i></div>
+      <div class="fw-semibold mb-1">Nessun template master trovato</div>
+      <div class="small">Prova con un ID come CIV_ORD_001, un canale come PST o una parola del titolo.</div>
+    </div>
   </section>
 
   <div id="viewPratiche" style="display:none;">
@@ -638,46 +667,79 @@
   'use strict';
 
   const CATALOGO_FLAT = {{ catalogo_flat | tojson }};
+  const MASTER_TOTAL = {{ master_catalog_stats.totale_template|int }};
 
   /* ── View switch ── */
   const viewModelli  = document.getElementById('viewModelli');
   const viewPratiche = document.getElementById('viewPratiche');
   const viewMasterCatalog = document.getElementById('viewMasterCatalog');
   const toolbar      = document.querySelector('.cat-toolbar');
+  const legacyChips  = document.getElementById('catAreaChipsLegacy');
+  const masterChips  = document.getElementById('catAreaChipsMaster');
+  const searchEl     = document.getElementById('catSearch');
+  let currentView = 'modelli';
 
   document.querySelectorAll('.cat-tab-pill').forEach(btn => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('.cat-tab-pill').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
-      const view = btn.dataset.view;
-      if (view === 'pratiche') {
+      currentView = btn.dataset.view || 'modelli';
+      if (searchEl) { searchEl.value = ''; }
+      if (currentView === 'pratiche') {
         viewModelli.style.display  = 'none';
         viewPratiche.style.display = '';
         if (viewMasterCatalog) { viewMasterCatalog.style.display = 'none'; }
         toolbar.style.display      = 'none';
-      } else {
-        viewModelli.style.display  = '';
+      } else if (currentView === 'master') {
+        viewModelli.style.display  = 'none';
         viewPratiche.style.display = 'none';
         if (viewMasterCatalog) { viewMasterCatalog.style.display = ''; }
         toolbar.style.display      = '';
+        if (legacyChips) { legacyChips.setAttribute('data-hidden', 'true'); }
+        if (masterChips) { masterChips.removeAttribute('data-hidden'); }
+        applyMasterFilters();
+      } else {
+        viewModelli.style.display  = '';
+        viewPratiche.style.display = 'none';
+        if (viewMasterCatalog) { viewMasterCatalog.style.display = 'none'; }
+        toolbar.style.display      = '';
+        if (legacyChips) { legacyChips.removeAttribute('data-hidden'); }
+        if (masterChips) { masterChips.setAttribute('data-hidden', 'true'); }
+        applyFilters();
       }
     });
   });
 
   /* ── Area chips ── */
   let currentArea = 'ALL';
+  let currentMasterGroup = 'ALL';
 
-  document.querySelectorAll('#catAreaChips .cat-chip').forEach(chip => {
+  document.querySelectorAll('#catAreaChipsLegacy .cat-chip').forEach(chip => {
     chip.addEventListener('click', () => {
-      document.querySelectorAll('#catAreaChips .cat-chip').forEach(c => c.classList.remove('active'));
+      document.querySelectorAll('#catAreaChipsLegacy .cat-chip').forEach(c => c.classList.remove('active'));
       chip.classList.add('active');
       currentArea = chip.dataset.area;
       applyFilters();
     });
   });
 
+  document.querySelectorAll('#catAreaChipsMaster .cat-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      document.querySelectorAll('#catAreaChipsMaster .cat-chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      currentMasterGroup = chip.dataset.masterGroup || 'ALL';
+      applyMasterFilters();
+    });
+  });
+
   /* ── Search ── */
-  document.getElementById('catSearch').addEventListener('input', applyFilters);
+  searchEl.addEventListener('input', () => {
+    if (currentView === 'master') {
+      applyMasterFilters();
+    } else {
+      applyFilters();
+    }
+  });
 
   function applyFilters() {
     const q = (document.getElementById('catSearch').value || '').trim().toLowerCase();
@@ -720,6 +782,48 @@
     document.getElementById('catEmptyState').style.display = visible === 0 ? '' : 'none';
   }
 
+  function applyMasterFilters() {
+    const q = (searchEl.value || '').trim().toLowerCase();
+    let visible = 0;
+    let groupTotal = 0;
+
+    document.querySelectorAll('#viewMasterCatalog .cat-master-section').forEach(section => {
+      const groupKey = section.dataset.masterGroupSection || '';
+      const groupAllowed = currentMasterGroup === 'ALL' || currentMasterGroup === groupKey;
+      let areaVisible = 0;
+      let areaTotal = 0;
+
+      section.querySelectorAll('[data-master-card="true"]').forEach(card => {
+        const searchText = [
+          card.dataset.name || '',
+          card.dataset.code || '',
+          card.dataset.channel || '',
+          card.dataset.family || '',
+          card.dataset.area || '',
+          card.dataset.tags || '',
+        ].join(' ').toLowerCase();
+        const match = groupAllowed && (!q || searchText.includes(q));
+        card.style.display = match ? '' : 'none';
+        if (groupAllowed) { areaTotal++; }
+        if (match) { areaVisible++; visible++; }
+      });
+
+      groupTotal += areaTotal;
+      if (!groupAllowed || areaVisible === 0) {
+        section.setAttribute('data-hidden', 'true');
+      } else {
+        section.removeAttribute('data-hidden');
+      }
+    });
+
+    const total = currentMasterGroup === 'ALL' ? MASTER_TOTAL : groupTotal;
+    const countEl = document.getElementById('catCount');
+    countEl.textContent = q
+      ? `${visible} su ${total} template master`
+      : `${total} template master`;
+    document.getElementById('masterEmptyState').style.display = visible === 0 ? '' : 'none';
+  }
+
   /* ── Pratica search ── */
   const praticaSearchEl = document.getElementById('praticaSearch');
   if (praticaSearchEl) {
@@ -733,6 +837,9 @@
   }
 
   /* Initial count */
+  if (viewMasterCatalog) { viewMasterCatalog.style.display = 'none'; }
+  if (legacyChips) { legacyChips.removeAttribute('data-hidden'); }
+  if (masterChips) { masterChips.setAttribute('data-hidden', 'true'); }
   applyFilters();
 }());
 </script>

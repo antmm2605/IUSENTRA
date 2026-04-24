@@ -37,6 +37,15 @@ Il campo `canale_telematico` distingue il canale operativo reale:
 - `PTT`: tributario
 - `NESSUNO`: atti interni o stragiudiziali non depositabili
 
+## Esposizione UI
+
+La route `/template-atti/catalogo` deve mostrare il master come superficie autonoma, non solo come riepilogo:
+
+- tab `Master professionale` sempre visibile accanto a `Per modello` e `Da pratica`;
+- ricerca per titolo, ID, area, famiglia, tag e canale telematico;
+- filtri per gruppi `core`, `advanced`, `specialist`, `studio_interno`;
+- 420 card reali con pulsante `Genera dal master` collegato all'ID governato del template.
+
 ## Guardrail
 
 I test in `tests/test_template_atti_master_catalog.py` verificano che:
@@ -45,4 +54,4 @@ I test in `tests/test_template_atti_master_catalog.py` verificano che:
 - tutti i template abbiano lo schema obbligatorio;
 - gli split sommino il totale master;
 - il workspace `Template Atti` importi il master senza perdere i template legacy con compilatore guidato;
-- la route `/template-atti/catalogo` esponga il master all'utente.
+- la route `/template-atti/catalogo` esponga tutte le 420 card master all'utente.

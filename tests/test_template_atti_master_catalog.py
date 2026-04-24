@@ -95,7 +95,12 @@ def test_catalogo_template_route_mostra_master_versionato(tmp_path: Path):
     html = response.get_data(as_text=True)
     assert "Catalogo master versionato" in html
     assert "420 template master" in html
+    assert "Master professionale" in html
+    assert 'id="viewMasterCatalog"' in html
+    assert html.count('<article class="cat-card" data-master-card="true"') == 420
     assert "CIV_ORD_001" in html
+    assert "/template-atti/CIV_ORD_001/usa" in html
+    assert "Genera dal master" in html
     assert "PST_GDP" in html
     assert "PST_CONCORSUALE" in html
 

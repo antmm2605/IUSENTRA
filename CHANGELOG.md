@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.183.1 - 2026-04-24
+
+- Reso il catalogo master una vista navigabile e ricercabile in `/template-atti/catalogo`: tab dedicata `Master professionale`, filtri per gruppo, conteggio dinamico e 420 card reali con ID, canale telematico e azione `Genera dal master`.
+
 ## 2.183.0 - 2026-04-24
 
 - Integrato il catalogo master versionato dei template atti con 420 modelli e split governati `core`, `advanced`, `specialist` e `studio_interno`, esposti nel catalogo `/template-atti/catalogo` e collegati al runtime builtin senza perdere compatibilita' con i modelli storici.

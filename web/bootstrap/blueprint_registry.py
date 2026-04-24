@@ -68,6 +68,7 @@ BLUEPRINT_REGISTRY: tuple[BlueprintRegistration, ...] = (
     BlueprintRegistration("assistente", "web.blueprints.assistente", "assistente", ""),
     BlueprintRegistration("preventivi", "web.blueprints.preventivi", "preventivi", "/preventivi"),
     BlueprintRegistration("strumenti_legali", "web.blueprints.strumenti_legali", "strumenti_legali", "/strumenti-legali"),
+    BlueprintRegistration("sigp", "integrations.sigp.routes", "sigp_bp", "/sigp"),
     BlueprintRegistration("applicazioni", "web.blueprints.applicazioni", "applicazioni", "/applicazioni"),
     BlueprintRegistration("wizard_pro", "web.blueprints.wizard_pro", "wizard_pro_bp", "/wizard-pro"),
 )

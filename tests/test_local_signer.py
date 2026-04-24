@@ -1246,6 +1246,53 @@ def test_qbuilder_documenti_e_profilo_usano_parametri_pst_live():
     assert 'name="subpro"' not in documenti_subproc_xml
 
 
+def test_qbuilder_sigp_usa_registro_gdp_e_subpro_minuscolo():
+    module = _load_local_signer()
+    base_url = "https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SIGP"
+
+    ricerca_xml = module._soap_ricerca_fascicoli_body(
+        base_url=base_url,
+        codice_ufficio="0800570152",
+        numero_rg="466",
+        anno_rg=2023,
+        cf_avvocato="MNTRRT64L01L063H",
+    )
+    documenti_xml = module._soap_documenti_body(
+        base_url=base_url,
+        codice_ufficio="0800570152",
+        numero_rg="466",
+        anno_rg=2023,
+        sub_procedimento="",
+    )
+
+    assert '<value name="tipo" type="string">GDP</value>' in ricerca_xml
+    assert '<value name="subpro" type="string">0</value>' in ricerca_xml
+    assert '<value name="subpro" type="string">0</value>' in documenti_xml
+    assert 'name="subProc"' not in ricerca_xml
+    assert 'name="subProc"' not in documenti_xml
+
+
+def test_sigp_fallback_collega_scheda_ufficiale_gdp():
+    module = _load_local_signer()
+
+    fascicolo = module._sigp_fascicolo_fallback(
+        codice_ufficio="0800570152",
+        numero_rg="466",
+        anno_rg=2023,
+        cf_avvocato="MNTRRT64L01L063H",
+        motivo="SUBPRO",
+    )
+
+    assert fascicolo["numero_rg"] == "466"
+    assert fascicolo["anno_rg"] == 2023
+    assert fascicolo["registro_portale"] == "GDP"
+    assert fascicolo["verifica_browser_ufficiale"] is True
+    assert "sigp_infofascicolo.wp" in fascicolo["portale_url"]
+    assert "ufficioRicerca=0800570152" in fascicolo["portale_url"]
+    assert "registroRicerca=GDP" in fascicolo["portale_url"]
+    assert "pa=%5BMNTRRT64L01L063H%5D" in fascicolo["portale_url"]
+
+
 def test_parse_qbuilder_fascicoli_xml():
     module = _load_local_signer()
 

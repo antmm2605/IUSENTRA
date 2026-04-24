@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.184.0 - 2026-04-24
+
+- Corretto il canale PST SIGP/Giudice di Pace: le ricerche esatte usano il registro `GDP`, il parametro `subpro` minuscolo richiesto dal proxy e un fallback operativo verso la scheda ufficiale autenticata quando il web service non espone righe.
+- Allineata la matrice test portali per impedire regressioni su `JPW_SIGP`, `SUBPRO` e resolver uffici Giudice di Pace.
+- Introdotto il modulo separato `Integrazione SIGP - Giudice di Pace` con registry XSD 2024-08-27, loader, validatore, builder XML, controlli di predeposito, API Flask e pagina UI dedicata.
+- Aggiunti schemi SQL SQLite/PostgreSQL per versioni XSD, uffici, depositi, allegati e validazioni SIGP, mantenendo il primo rilascio su generazione XML e validazione senza invio ministeriale.
+
 ## 2.183.3 - 2026-04-24
 
 - Corretta la regressione dell'installer Local Signer 1.6.10: i pacchetti Windows/macOS/Linux e i download online includono ora il modulo interno `local_signer_mod`, evitando il crash `ModuleNotFoundError` all'avvio su `127.0.0.1:27272`.

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-IUSENTRA Local Signer - v1.6.9
+IUSENTRA Local Signer - v1.6.12
 
 Servizio HTTP locale (localhost:27272) che firma documenti con smart card e token CNS/CIE
 (o qualsiasi token PKCS#11) e consente l'accesso autenticato al PST.
@@ -69,7 +69,7 @@ from datetime import UTC, date, datetime, timedelta
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any, Dict, Optional
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import parse_qs, urlencode, urlparse
 
 _THIS_DIR = Path(__file__).resolve().parent
 _REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -96,18 +96,18 @@ except Exception:
     build_attachment_prompt_block = None  # type: ignore[assignment]
     parse_attachment_payloads = None  # type: ignore[assignment]
 
-from local_signer_mod.ai_handlers import LocalAiHandlerFacade
-from local_signer_mod.security import (
+from local_signer_mod.ai_handlers import LocalAiHandlerFacade  # noqa: E402
+from local_signer_mod.security import (  # noqa: E402
     build_allowed_origins,
     is_allowed_origin,
     is_loopback_origin,
     normalize_origin,
 )
-from local_signer_mod.server_bootstrap import print_startup_banner
+from local_signer_mod.server_bootstrap import print_startup_banner  # noqa: E402
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.6.11"
+VERSION = "1.6.12"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
@@ -2296,6 +2296,84 @@ def _pst_namespace_qbuilder(base_url: str) -> str:
     return _PST_QBUILDER_NAMESPACES.get(_pst_servizio_proxy(base_url), "")
 
 
+def _pst_servizio_sigp(base_url: str) -> bool:
+    return _pst_servizio_proxy(base_url) == "JPW_SIGP"
+
+
+def _pst_tipo_ricerca_qbuilder(base_url: str) -> str:
+    # Il Giudice di Pace passa dal registro SIGP/GDP: il tipo RGN dei registri
+    # civili ordinari provoca Fault SUBPRO o ricerche vuote su questo canale.
+    return "GDP" if _pst_servizio_sigp(base_url) else "RGN"
+
+
+def _pst_subpro_sigp(sub_procedimento: str = "") -> str:
+    return (sub_procedimento or "").strip() or "0"
+
+
+def _sigp_info_fascicolo_url(
+    *,
+    codice_ufficio: str,
+    numero_rg: str,
+    anno_rg: int | str,
+    cf_avvocato: str = "",
+) -> str:
+    params = {
+        "ufficioRicerca": str(codice_ufficio or "").strip(),
+        "ruoloRicerca": "AVV@AVV",
+        "numero": str(numero_rg or "").strip(),
+        "anno": str(anno_rg or "").strip(),
+        "registroRicerca": "GDP",
+    }
+    cf_clean = _estrai_codice_fiscale_testo(cf_avvocato or "")
+    if cf_clean:
+        params["pa"] = f"[{cf_clean}]"
+    return f"https://servizipst.giustizia.it/PST/it/sigp_infofascicolo.wp?{urlencode(params)}"
+
+
+def _sigp_fascicolo_fallback(
+    *,
+    codice_ufficio: str,
+    numero_rg: str,
+    anno_rg: int | str,
+    cf_avvocato: str = "",
+    motivo: str = "",
+) -> dict:
+    ufficio = _risolvi_ufficio_da_snapshot(codice_ufficio)
+    nome_ufficio = str((ufficio or {}).get("nome") or "").strip()
+    return {
+        "id_fascicolo": "",
+        "numero_rg": str(numero_rg or "").strip(),
+        "anno_rg": int(str(anno_rg or 0) or 0),
+        "ruolo": "GDP",
+        "stato": "DA VERIFICARE SUL PORTALE UFFICIALE",
+        "oggetto": "Scheda SIGP disponibile nel portale ufficiale autenticato",
+        "sezione": "",
+        "giudice": "",
+        "data_iscrizione": "",
+        "data_udienza": "",
+        "codice_ufficio": str(codice_ufficio or "").strip(),
+        "nome_ufficio": nome_ufficio,
+        "sub_procedimento": _pst_subpro_sigp(),
+        "parti": [],
+        "parti_dettaglio": [],
+        "registro_portale": "GDP",
+        "canale_telematico": "PST/SIGP",
+        "portale_url": _sigp_info_fascicolo_url(
+            codice_ufficio=codice_ufficio,
+            numero_rg=str(numero_rg or "").strip(),
+            anno_rg=anno_rg,
+            cf_avvocato=cf_avvocato,
+        ),
+        "verifica_browser_ufficiale": True,
+        "messaggio_operativo": (
+            "Il fascicolo e' su SIGP/Giudice di Pace. Se il web service non "
+            "espone la scheda completa, apri la scheda ufficiale con la sessione "
+            "autenticata del PST e prosegui con l'acquisizione guidata."
+        ),
+        "motivo_fallback": motivo,
+    }
+
+
 def _pst_usa_qbuilder(base_url: str) -> bool:
     return bool(_pst_namespace_qbuilder(base_url))
 
@@ -3928,15 +4006,18 @@ def _soap_ricerca_fascicoli_body(base_url: str, codice_ufficio: str, numero_rg: 
     if namespace:
         if numero_rg and anno_rg:
             numero_value = str(int(str(numero_rg).strip())) if str(numero_rg).strip().isdigit() else str(numero_rg).strip()
+            values = [
+                ("idUfficio", "string", codice_ufficio),
+                ("tipo", "string", _pst_tipo_ricerca_qbuilder(base_url)),
+                ("numero", "integer", numero_value),
+                ("anno", "string", str(anno_rg)),
+            ]
+            if _pst_servizio_sigp(base_url):
+                values.append(("subpro", "string", _pst_subpro_sigp()))
             return _soap_qbuilder_execute_body(
                 namespace,
                 "RicercaInformazioniFascicoloPerTipo",
-                [
-                    ("idUfficio", "string", codice_ufficio),
-                    ("tipo", "string", "RGN"),
-                    ("numero", "integer", numero_value),
-                    ("anno", "string", str(anno_rg)),
-                ],
+                values,
                 role="AVV",
                 group=codice_ufficio,
                 order_entries=[("ANNORUOLO, NUMERORUOLO", "asc")],
@@ -3999,7 +4080,9 @@ def _soap_documenti_body(base_url: str, codice_ufficio: str, numero_rg: str,
             ("anno", "string", str(anno_rg)),
             ("numero", "string", numero_value),
         ]
-        if sub_procedimento:
+        if _pst_servizio_sigp(base_url):
+            values.append(("subpro", "string", _pst_subpro_sigp(sub_procedimento)))
+        elif sub_procedimento:
             values.append(("subProc", "string", sub_procedimento))
         return _soap_qbuilder_execute_body(
             namespace,
@@ -4038,7 +4121,9 @@ def _soap_profilo_fascicolo_body(base_url: str, codice_ufficio: str, numero_rg: 
         ("fascPrecedente", "boolean", "false"),
         ("scadTermini", "boolean", "false"),
     ]
-    if sub_procedimento:
+    if _pst_servizio_sigp(base_url):
+        values.append(("subpro", "string", _pst_subpro_sigp(sub_procedimento)))
+    elif sub_procedimento:
         values.append(("subProc", "string", sub_procedimento))
     return _soap_qbuilder_execute_body(
         namespace,
@@ -6068,18 +6153,42 @@ class _Handler(BaseHTTPRequestHandler):
                 cf_avvocato=cf_avvocato,
             )
             extra_headers = [f"X-WASP-User: {cf_avvocato}"] if _pst_namespace_qbuilder(base_url) else []
-            xml_resp = _soap_call_pst_session(
-                url=url_ricerca,
-                soap_body=soap,
-                cert_thumbprint=cert_thumbprint,
-                extra_headers=extra_headers,
-                cookie_file=cookie_file,
-                prefer_cookie_only=prefer_cookie_only,
+            is_sigp_exact = (
+                _pst_servizio_sigp(base_url)
+                and bool(data.get("numero_rg"))
+                and bool(data.get("anno_rg"))
             )
-            fault = _estrai_fault_soap(xml_resp)
-            if fault:
-                raise RuntimeError(f"Il PST ha restituito una SOAP Fault: {fault}")
-            fascicoli = _parse_fascicoli_xml(xml_resp)
+            xml_resp = ""
+            fallback_motivo = ""
+            try:
+                xml_resp = _soap_call_pst_session(
+                    url=url_ricerca,
+                    soap_body=soap,
+                    cert_thumbprint=cert_thumbprint,
+                    extra_headers=extra_headers,
+                    cookie_file=cookie_file,
+                    prefer_cookie_only=prefer_cookie_only,
+                )
+                fault = _estrai_fault_soap(xml_resp)
+                if fault:
+                    raise RuntimeError(f"Il PST ha restituito una SOAP Fault: {fault}")
+                fascicoli = _parse_fascicoli_xml(xml_resp)
+            except Exception as pst_error:
+                if not is_sigp_exact:
+                    raise
+                fallback_motivo = str(pst_error)
+                log.warning("SIGP ricerca esatta in fallback guidato: %s", fallback_motivo)
+                fascicoli = []
+            if is_sigp_exact and not fascicoli:
+                fascicoli = [
+                    _sigp_fascicolo_fallback(
+                        codice_ufficio=codice_pst,
+                        numero_rg=str(data.get("numero_rg") or ""),
+                        anno_rg=str(data.get("anno_rg") or ""),
+                        cf_avvocato=cf_avvocato,
+                        motivo=fallback_motivo or "Il web service SIGP non ha restituito righe per la ricerca esatta.",
+                    )
+                ]
             if _pst_namespace_qbuilder(base_url) and not (data.get("numero_rg") and data.get("anno_rg")):
                 fascicoli = [
                     fascicolo for fascicolo in fascicoli

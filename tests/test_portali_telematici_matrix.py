@@ -68,12 +68,20 @@ def test_pst_qbuilder_matrix_servizi_ufficiali(servizio, distretto, namespace):
 
     for xml in (ricerca_xml, documenti_xml, profilo_xml):
         assert 'name="subProc"' not in xml
-        assert 'name="subpro"' not in xml
         assert 'name="annoRuolo"' not in xml
         assert 'name="numeroRuolo"' not in xml
 
-    assert '<value name="subProc" type="string">1</value>' in documenti_subproc_xml
-    assert 'name="subpro"' not in documenti_subproc_xml
+    if servizio == "JPW_SIGP":
+        assert '<value name="tipo" type="string">GDP</value>' in ricerca_xml
+        for xml in (ricerca_xml, documenti_xml, profilo_xml):
+            assert '<value name="subpro" type="string">0</value>' in xml
+        assert '<value name="subpro" type="string">1</value>' in documenti_subproc_xml
+        assert 'name="subProc"' not in documenti_subproc_xml
+    else:
+        for xml in (ricerca_xml, documenti_xml, profilo_xml):
+            assert 'name="subpro"' not in xml
+        assert '<value name="subProc" type="string">1</value>' in documenti_subproc_xml
+        assert 'name="subpro"' not in documenti_subproc_xml
 
 
 def test_pst_resolver_matrix_uffici_chiave():

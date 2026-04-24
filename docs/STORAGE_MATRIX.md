@@ -28,6 +28,7 @@ Legenda:
 | Motori legali | Update Intelligence, news e archivio normativo assistito | R/W | R/W | R/W | parita' completa | Wave 5 - intelligence | repository SQL/PostgreSQL dedicato, JSON solo come export amministrativo |
 | Motori legali | Coverage AI, gap queue, draft v2 e publish SQL | - | R/W | R/W | parita' completa | Wave 5 - intelligence | pipeline SQL reale su `studio.db` o PostgreSQL tenant-aware, senza fallback fittizi |
 | Telematico | PST, PDP, PAT e PTT/SIGIT | R/W | R/W | R/W | parita' completa | Wave 3 - workspace professionali | metadati e repository su SQL/PostgreSQL, file e buste sempre su filesystem tenant |
+| Telematico | SIGP - Giudice di Pace | - | R/W | R/W | schema predisposto, runtime iniziale stateless | Wave 3 - workspace professionali | validazione XML/XSD senza fallback JSON; file XSD e future buste su filesystem tenant |
 | Cabina intelligente | Workspace intelligence e cockpit | R/W | R/W | R/W | parita' completa | Wave 5 - intelligence | snapshot SQL/PostgreSQL con JSON come export derivato |
 | Piattaforma | Assistenza remota cliente e audit sessioni | - | R/W | R/W | parita' completa | Wave piattaforma | repository SQL/PostgreSQL dedicato, nessun fallback invisibile |
 | Web pubblico studio | Sito Studio, pagine, articoli, sedi, contatti e prenotazioni | - | R/W | R/W | parita' completa | Wave web studio | repository SQL/PostgreSQL dedicato; asset su filesystem tenant; sezioni pubbliche opzionali governate da flag |

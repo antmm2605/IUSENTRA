@@ -129,6 +129,27 @@ def test_polisweb_qbuilder_documenti_e_profilo_usano_parametri_pst_live():
         assert 'name="subpro"' not in xml
 
 
+def test_polisweb_qbuilder_sigp_usa_registro_gdp_e_subpro_minuscolo():
+    client = _client()
+    base = "https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SIGP"
+    fascicolo = FascicoloPolisWeb(
+        numero_rg="466",
+        anno_rg=2023,
+        ruolo="GDP",
+        stato="DEFINITO",
+        oggetto="Responsabilita extracontrattuale",
+    )
+
+    ricerca_xml = client._soap_ricerca_fascicoli_qbuilder(base, "0800570152", "466", 2023, None, None)
+    documenti_xml = client._soap_documenti_qbuilder(base, "0800570152", "466", 2023)
+    profilo_xml = client._soap_profilo_fascicolo_qbuilder(base, "0800570152", fascicolo)
+
+    assert '<value name="tipo" type="string">GDP</value>' in ricerca_xml
+    for xml in (ricerca_xml, documenti_xml, profilo_xml):
+        assert '<value name="subpro" type="string">0</value>' in xml
+        assert 'name="subProc"' not in xml
+
+
 def test_polisweb_parse_qbuilder_fascicoli_xml():
     client = _client()
 
@@ -3350,6 +3371,16 @@ def test_portale_acquisizione_wizard_renderizza_javascript_valido(tmp_path):
                     os.unlink(script_path)
                 except OSError:
                     pass
+
+
+def test_portale_wizard_mappa_fallback_sigp_come_manuale_assistita():
+    template = (Path(__file__).resolve().parents[1] / "web" / "templates" / "portale" / "acquisizione_wizard.html").read_text(
+        encoding="utf-8"
+    )
+
+    assert "row.verifica_browser_ufficiale" in template
+    assert "row.portale_url" in template
+    assert "awMarkSelectionManual(mapped" in template
 
 
 def test_route_pat_ricerca_reindirizza_al_wizard_guidato(tmp_path):

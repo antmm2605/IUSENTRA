@@ -26,7 +26,6 @@ from __future__ import annotations
 
 import os
 import re
-import ssl
 import tempfile
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass, field
@@ -85,6 +84,18 @@ def _pst_servizio_proxy(base_url: str) -> str:
 
 def _pst_namespace_qbuilder(base_url: str) -> str:
     return _PST_QBUILDER_NAMESPACES.get(_pst_servizio_proxy(base_url), "")
+
+
+def _pst_servizio_sigp(base_url: str) -> bool:
+    return _pst_servizio_proxy(base_url) == "JPW_SIGP"
+
+
+def _pst_tipo_ricerca_qbuilder(base_url: str) -> str:
+    return "GDP" if _pst_servizio_sigp(base_url) else "RGN"
+
+
+def _pst_subpro_sigp(sub_procedimento: str = "") -> str:
+    return (sub_procedimento or "").strip() or "0"
 
 
 def _pst_usa_qbuilder(base_url: str) -> bool:
@@ -235,6 +246,7 @@ def _map_qbuilder_fascicolo(row: Dict[str, Any]) -> FascicoloPolisWeb:
         parti_dettaglio=parti_dettaglio,
         codice_ufficio=codice_ufficio,
         nome_ufficio=(ufficio or {}).get("nome", "") if isinstance(ufficio, dict) else "",
+        sub_procedimento=str(row.get("SUBPROCEDIMENTO") or "").strip(),
         note="",
     )
 
@@ -423,6 +435,7 @@ class FascicoloPolisWeb:
     note: str = ""
     codice_ufficio: str = ""    # codice MinGiust del tribunale
     nome_ufficio: str = ""
+    sub_procedimento: str = ""
 
 
 @dataclass
@@ -1965,10 +1978,11 @@ class ClientPolisWeb:
                 'RicercaInformazioniFascicoloPerTipo',
                 [
                     ('idUfficio', 'string', codice_ufficio),
-                    ('tipo', 'string', 'RGN'),
+                    ('tipo', 'string', _pst_tipo_ricerca_qbuilder(base_pst)),
                     ('numero', 'integer', numero_rg),
                     ('anno', 'string', anno_rg),
-                ],
+                ]
+                + ([('subpro', 'string', _pst_subpro_sigp())] if _pst_servizio_sigp(base_pst) else []),
                 order_by='ANNORUOLO, NUMERORUOLO',
             )
 
@@ -1996,7 +2010,8 @@ class ClientPolisWeb:
                 ('idUfficio', 'string', codice_ufficio),
                 ('anno', 'string', anno_rg),
                 ('numero', 'string', numero_rg),
-            ],
+            ]
+            + ([('subpro', 'string', _pst_subpro_sigp())] if _pst_servizio_sigp(base_pst) else []),
         )
 
     def _soap_profilo_fascicolo_qbuilder(self, base_pst: str, codice_ufficio: str, fascicolo: FascicoloPolisWeb) -> str:
@@ -2008,7 +2023,8 @@ class ClientPolisWeb:
                 ('idUfficio', 'string', codice_ufficio),
                 ('anno', 'string', fascicolo.anno_rg),
                 ('numero', 'string', fascicolo.numero_rg),
-            ],
+            ]
+            + ([('subpro', 'string', _pst_subpro_sigp(fascicolo.sub_procedimento))] if _pst_servizio_sigp(base_pst) else []),
         )
 
     def _risolvi_codice_ufficio(self, nome_o_codice: str) -> str:

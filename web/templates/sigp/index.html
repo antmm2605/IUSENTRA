@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+{% block title %}Integrazione SIGP - Giudice di Pace{% endblock %}
+{% block pct_modulo %}sigp{% endblock %}
+
+{% block content %}
+<div class="ds-ph mb-4">
+  <div class="ds-ph-icon"><i class="bi bi-bank"></i></div>
+  <div class="ds-ph-body">
+    <h1 class="ds-ph-title">{{ status.module_name }}</h1>
+    <p class="ds-ph-sub">{{ status.subtitle }}</p>
+  </div>
+</div>
+
+<div class="row g-4 mb-4">
+  <div class="col-lg-4">
+    <div class="card h-100 shadow-sm border-0 rounded-4">
+      <div class="card-body">
+        <div class="small text-muted text-uppercase fw-semibold mb-2">Versione XSD attiva</div>
+        <div class="h5 mb-1">{{ status.schema.label }}</div>
+        <div class="small text-muted mb-3">File principale: <code>{{ status.schema.main_xsd }}</code></div>
+        {% if status.schema.available %}
+        <span class="badge text-bg-success">XSD disponibile</span>
+        {% else %}
+        <span class="badge text-bg-warning">XSD da installare</span>
+        {% endif %}
+        <div class="small text-break text-muted mt-3">{{ status.schema.xsd_path }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-4">
+    <div class="card h-100 shadow-sm border-0 rounded-4">
+      <div class="card-body">
+        <div class="small text-muted text-uppercase fw-semibold mb-2">Ambienti</div>
+        {% for key, env in status.ambienti.items() %}
+        <div class="d-flex justify-content-between border-bottom py-2">
+          <span>{{ env.label }}</span>
+          <span class="badge text-bg-light border">{{ key }}</span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-4">
+    <div class="card h-100 shadow-sm border-0 rounded-4">
+      <div class="card-body">
+        <div class="small text-muted text-uppercase fw-semibold mb-2">Fonti ufficiali</div>
+        {% for source in status.sources %}
+        <a class="btn btn-sm btn-outline-secondary mb-2 w-100 text-start" href="{{ source.url }}" target="_blank" rel="noopener">
+          <i class="bi bi-box-arrow-up-right me-1"></i>{{ source.label }}
+        </a>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4">
+  <div class="col-xl-5">
+    <div class="card shadow-sm border-0 rounded-4">
+      <div class="card-body">
+        <h2 class="h5 mb-3">Nuovo deposito SIGP</h2>
+        <form method="post">
+          <div class="mb-3">
+            <label class="form-label">Ufficio Giudice di Pace</label>
+            <input class="form-control" name="ufficio" value="{{ form_state.ufficio or '' }}" placeholder="Es. Ufficio del Giudice di Pace di Palmi">
+          </div>
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">Ambiente</label>
+              <select class="form-select" name="ambiente">
+                {% for key, env in status.ambienti.items() %}
+                <option value="{{ key }}" {{ 'selected' if (form_state.ambiente or 'produzione') == key }}>{{ env.label }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Procedimento</label>
+              <input class="form-control" name="procedimento" value="{{ form_state.procedimento or '' }}" placeholder="RITO ORDINARIO">
+            </div>
+          </div>
+          <div class="mt-3">
+            <label class="form-label">Tipo atto</label>
+            <input class="form-control" name="tipo_atto" value="{{ form_state.tipo_atto or '' }}" placeholder="Citazione, CTU, istanza...">
+          </div>
+          <div class="row g-3 mt-1">
+            <div class="col-md-4">
+              <label class="form-label">Difensore</label>
+              <input class="form-control" name="difensore_nome" value="{{ (form_state.difensore or {}).get('nome', '') }}" placeholder="Nome avvocato">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Codice fiscale</label>
+              <input class="form-control" name="difensore_cf" value="{{ (form_state.difensore or {}).get('codice_fiscale', '') }}" placeholder="CF difensore">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">PEC</label>
+              <input class="form-control" name="difensore_pec" value="{{ (form_state.difensore or {}).get('pec', '') }}" placeholder="PEC difensore">
+            </div>
+          </div>
+          <div class="mt-3">
+            <label class="form-label">Parti JSON</label>
+            <textarea class="form-control font-monospace" name="parti_json" rows="4">[{ "ruolo": "Attore", "nome": "", "codice_fiscale": "" }]</textarea>
+          </div>
+          <div class="mt-3">
+            <label class="form-label">Allegati JSON</label>
+            <textarea class="form-control font-monospace" name="allegati_json" rows="4">[]</textarea>
+          </div>
+          <button class="btn btn-primary mt-3" type="submit">
+            <i class="bi bi-filetype-xml me-1"></i>Genera XML e valida XSD
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+  <div class="col-xl-7">
+    <div class="card shadow-sm border-0 rounded-4 h-100">
+      <div class="card-body">
+        <h2 class="h5 mb-3">Esito controlli</h2>
+        {% if not result %}
+        <div class="alert alert-info rounded-4">
+          Compila i dati minimi e avvia la validazione. La prima tranche non invia nulla al Ministero: genera XML, esegue predeposito e valida contro XSD ufficiale se installato.
+        </div>
+        {% else %}
+        <div class="alert {{ 'alert-success' if result.ok else 'alert-warning' }} rounded-4">
+          <div class="fw-semibold">Fase: {{ result.fase }}</div>
+          <div>Stato: {{ status.stati.get(result.stato, result.stato) }}</div>
+        </div>
+        {% if result.errors %}
+        <div class="mb-3">
+          <div class="fw-semibold mb-2">Errori</div>
+          {% for error in result.errors %}
+          <div class="border rounded-3 p-2 mb-2 small">{{ error.message if error is mapping else error }}</div>
+          {% endfor %}
+        </div>
+        {% endif %}
+        {% if result.warnings %}
+        <div class="mb-3">
+          <div class="fw-semibold mb-2">Avvisi</div>
+          {% for warning in result.warnings %}
+          <div class="border rounded-3 p-2 mb-2 small text-muted">{{ warning }}</div>
+          {% endfor %}
+        </div>
+        {% endif %}
+        {% if result.xml %}
+        <div class="fw-semibold mb-2">XML generato</div>
+        <pre class="bg-light border rounded-4 p-3 small overflow-auto"><code>{{ result.xml }}</code></pre>
+        {% endif %}
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

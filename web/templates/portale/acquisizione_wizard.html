@@ -930,23 +930,29 @@ async function awPstSearchViaLocalSigner(query, retry = true) {
     });
     if (!data.ok) throw new Error(data.errore || 'Ricerca PST non riuscita');
     awRememberPstSession(data, tribunale);
-    return (data.fascicoli || []).map(row => ({
-      external_id: `${row.codice_ufficio || tribunale}:${row.numero_rg}:${row.anno_rg}:${row.ruolo || ''}`,
-      id_fascicolo: row.id_fascicolo || '',
-      numero: row.numero_rg || '',
-      anno: Number(row.anno_rg || 0),
-      ufficio_codice: row.codice_ufficio || tribunale || '',
-      ufficio_nome: row.nome_ufficio || document.getElementById('awOfficeInput').value || '',
-      procedimento: row.ruolo || '',
-      sub_procedimento: row.sub_procedimento || '',
-      sezione: row.sezione || '',
-      stato: row.stato || '',
-      oggetto: row.oggetto || '',
-      parti: Array.isArray(row.parti) ? row.parti : [],
-      controparti: [],
-      ultima_attivita: row.data_udienza || row.data_iscrizione || '',
-      payload: row,
-    }));
+    return (data.fascicoli || []).map(row => {
+      const manualMode = !!(row.manual_mode || row.verifica_browser_ufficiale || row.portale_url);
+      const mapped = {
+        external_id: `${row.codice_ufficio || tribunale}:${row.numero_rg}:${row.anno_rg}:${row.ruolo || ''}`,
+        id_fascicolo: row.id_fascicolo || '',
+        numero: row.numero_rg || '',
+        anno: Number(row.anno_rg || 0),
+        ufficio_codice: row.codice_ufficio || tribunale || '',
+        ufficio_nome: row.nome_ufficio || document.getElementById('awOfficeInput').value || '',
+        procedimento: row.ruolo || '',
+        sub_procedimento: row.sub_procedimento || '',
+        sezione: row.sezione || '',
+        stato: row.stato || '',
+        oggetto: row.oggetto || '',
+        parti: Array.isArray(row.parti) ? row.parti : [],
+        controparti: [],
+        ultima_attivita: row.data_udienza || row.data_iscrizione || '',
+        payload: row,
+      };
+      return manualMode
+        ? awMarkSelectionManual(mapped, row.messaggio_operativo || row.motivo_fallback || '', row.portale_url || '')
+        : mapped;
+    });
   } catch (err) {
     if (retry && awIsPstSessionExpiredError(err)) {
       awClearPstSession();

@@ -66,8 +66,14 @@ def _tenant_manager() -> GestioneTenant:
 
 def _richiedi_superadmin():
     u = getattr(g, "utente_corrente", None)
-    if not u or not u.is_superadmin:
+    if not u:
         abort(403)
+    if u.is_superadmin:
+        return
+    # In modalità single-tenant AMMINISTRATORE ha accesso completo al pannello admin
+    if not current_app.config.get("MULTI_TENANT") and u.ruolo.value == "AMMINISTRATORE":
+        return
+    abort(403)
 
 
 def _utenti_tenant(slug: str) -> GestioneUtenti:

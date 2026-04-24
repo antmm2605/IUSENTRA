@@ -19,6 +19,7 @@ from web.app import create_app
 def _cfg_web(tmp_path):
     return {
         "TESTING": True,
+        "MULTI_TENANT": False,
         "AUTH_DB": str(tmp_path / "utenti.json"),
         "AUDIT_DB": str(tmp_path / "audit.json"),
         "CLIENTI_DB": str(tmp_path / "clienti.json"),
@@ -202,8 +203,9 @@ def test_template_custom_rende_disponibili_soggetti_e_parti_fascicolo(tmp_path):
 
 
 def test_script_editor_template_atti_non_contiene_js_rotto():
-    editor_assets = Path("D:/legale/hacs/web/templates/template_atti/_editor_assets.html").read_text(encoding="utf-8")
-    base_template = Path("D:/legale/hacs/web/templates/base.html").read_text(encoding="utf-8")
+    _root = Path(__file__).resolve().parents[1]
+    editor_assets = (_root / "web/templates/template_atti/_editor_assets.html").read_text(encoding="utf-8")
+    base_template = (_root / "web/templates/base.html").read_text(encoding="utf-8")
 
     assert "setFeedback('Inquadra il documento e scatta quando l'immagine e nitida.'" not in editor_assets
     assert "setFeedback(\"Inquadra il documento e scatta quando l'immagine e nitida.\", 'info');" in editor_assets

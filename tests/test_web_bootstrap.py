@@ -74,6 +74,8 @@ def _cfg_web(tmp_path: Path) -> dict:
     return {
         "TESTING": True,
         "SECRET_KEY": "test",
+        "MULTI_TENANT": False,
+        "BOOTSTRAP_ADMIN_PASSWORD": "admin",
         "AUTH_DB": str(tmp_path / "auth" / "utenti.json"),
         "AUDIT_DB": str(tmp_path / "auth" / "audit.json"),
         "BOOTSTRAP_ADMIN_PASSWORD": "admin",
@@ -1447,7 +1449,8 @@ def test_assistente_chat_usa_runtime_ollama_risolto(monkeypatch, tmp_path: Path)
 
 def test_audit_log_riconcilia_eventi_storici_con_fascicolo_corrente(tmp_path: Path):
     _write_studio_config(tmp_path / "config" / "studio.json")
-    app = create_app(_cfg_web(tmp_path))
+    # Usa JSON come backend per allineare oggetti standalone e route Flask
+    app = create_app({**_cfg_web(tmp_path), "STORAGE_MODE_DEFAULT": "json"})
 
     fascicoli = GestioneFascicoli(
         db_path=app.config["FASCICOLI_DB"],
@@ -1471,7 +1474,6 @@ def test_audit_log_riconcilia_eventi_storici_con_fascicolo_corrente(tmp_path: Pa
         db_path=app.config["AUTH_DB"],
         audit_path=app.config["AUDIT_DB"],
         secret_key=app.secret_key,
-        crea_admin_se_vuoto=False,
         bootstrap_admin_password="admin",
     )
     admin = utenti.autentica("admin", "admin")

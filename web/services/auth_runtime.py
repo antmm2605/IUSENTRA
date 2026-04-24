@@ -28,6 +28,8 @@ def register_auth_runtime(
         "login_2fa",
         "static",
         "logout",
+        "service_worker",
+        "offline",
         "admin.esci_impersonazione",
         "polis_local_signer_download",
         "polis_local_ai_bridge_download",

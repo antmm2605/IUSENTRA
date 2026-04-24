@@ -16,6 +16,7 @@ def _cfg_web(tmp_path: Path) -> dict:
     return {
         "TESTING": True,
         "SECRET_KEY": "test",
+        "MULTI_TENANT": False,
         "AUTH_DB": str(tmp_path / "utenti.json"),
         "AUDIT_DB": str(tmp_path / "audit.json"),
         "CLIENTI_DB": str(tmp_path / "clienti.json"),

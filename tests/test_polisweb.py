@@ -129,7 +129,7 @@ def test_polisweb_qbuilder_documenti_e_profilo_usano_parametri_pst_live():
         assert 'name="subpro"' not in xml
 
 
-def test_polisweb_qbuilder_sigp_usa_registro_gdp_e_subpro_minuscolo():
+def test_polisweb_qbuilder_sigp_usa_registro_gdp_senza_subpro_implicito():
     client = _client()
     base = "https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SIGP"
     fascicolo = FascicoloPolisWeb(
@@ -146,7 +146,7 @@ def test_polisweb_qbuilder_sigp_usa_registro_gdp_e_subpro_minuscolo():
 
     assert '<value name="tipo" type="string">GDP</value>' in ricerca_xml
     for xml in (ricerca_xml, documenti_xml, profilo_xml):
-        assert '<value name="subpro" type="string">0</value>' in xml
+        assert 'name="subpro"' not in xml
         assert 'name="subProc"' not in xml
 
 

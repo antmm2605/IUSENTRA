@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.184.5 - 2026-04-25
+
+- Corretto il connettore reale SIGP/Giudice di Pace: `subpro` non viene piu' forzato a `0` quando non indicato, evitando risultati vuoti su RG GDP come Palmi `466/2023`.
+- Aggiunta la lettura ufficiale `ricercaAtti`/`estraiProfiloDocumento` per arricchire i documenti SIGP con tutti gli identificativi disponibili, nome originario, busta, dimensione e metadati del profilo.
+- Aggiunto merge deduplicato tra QueryBuilder e profili SIGP: il test reale su Palmi `466/2023` passa da 27 righe QueryBuilder a 34 documenti ufficiali unici.
+- Ripristinata la sincronizzazione della controparte nell'import PolisWeb quando il soggetto e' una persona giuridica con identificativo a 11 cifre.
+- Aggiornati i test Local Signer per bloccare la regressione su `subpro`, parsing `ricercaAtti`, nomi originari e merge dei profili SIGP.
+
 ## 2.184.4 - 2026-04-25
 
 - Reso lo Step 3 del wizard PST/PolisWeb resiliente agli errori di preview: timeout, SOAP Fault, Local Signer non raggiungibile e circuito aperto non bloccano piu' l'acquisizione ma attivano il fallback assistito con dati RG/ufficio/parti.

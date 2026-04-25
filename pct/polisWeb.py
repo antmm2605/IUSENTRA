@@ -95,7 +95,7 @@ def _pst_tipo_ricerca_qbuilder(base_url: str) -> str:
 
 
 def _pst_subpro_sigp(sub_procedimento: str = "") -> str:
-    return (sub_procedimento or "").strip() or "0"
+    return (sub_procedimento or "").strip()
 
 
 def _pst_usa_qbuilder(base_url: str) -> bool:
@@ -659,16 +659,19 @@ def _iter_parti_pst(
 ) -> List[Dict[str, str]]:
     parti: List[Dict[str, str]] = []
     visti: set[tuple[str, str]] = set()
+    nomi_visti: set[str] = set()
 
     for dettaglio in dettagli or []:
         nome = re.sub(r"\s+", " ", (dettaglio.get("nome") or "").strip())
         cf = (dettaglio.get("codice_fiscale") or "").strip().upper()
         if not nome:
             continue
+        nome_norm = _nome_normalizzato(nome)
         chiave = (_nome_normalizzato(nome), cf)
         if chiave in visti:
             continue
         visti.add(chiave)
+        nomi_visti.add(nome_norm)
         parti.append(
             {
                 "nome": nome,
@@ -685,10 +688,14 @@ def _iter_parti_pst(
         nome = re.sub(r"\s+", " ", (nome_raw or "").strip())
         if not nome:
             continue
+        nome_norm = _nome_normalizzato(nome)
+        if nome_norm in nomi_visti:
+            continue
         chiave = (_nome_normalizzato(nome), "")
         if chiave in visti:
             continue
         visti.add(chiave)
+        nomi_visti.add(nome_norm)
         parti.append(
             {
                 "nome": nome,
@@ -702,6 +709,13 @@ def _iter_parti_pst(
         )
 
     return parti
+
+
+def _identificativi_fiscali_pst(nome: str, codice_fiscale: str = "") -> tuple[str, str]:
+    identificativo = (codice_fiscale or "").strip().upper()
+    if _is_persona_giuridica(nome) and re.fullmatch(r"\d{11}", identificativo):
+        return "", identificativo
+    return identificativo, ""
 
 
 def _cerca_cliente_pst(gestione_clienti, nome: str, codice_fiscale: str = ""):
@@ -738,10 +752,12 @@ def _crea_cliente_pst(
     codice_fiscale = (codice_fiscale or "").strip().upper()
 
     if _is_persona_giuridica(nome):
+        cf_cliente, piva_cliente = _identificativi_fiscali_pst(nome, codice_fiscale)
         return gestione_clienti.nuovo(
             tipo=TipoCliente.PERSONA_GIURIDICA,
             ragione_sociale=nome,
-            codice_fiscale=codice_fiscale,
+            codice_fiscale=cf_cliente,
+            partita_iva=piva_cliente,
             stato=StatoCliente.POTENZIALE,
             note=nota_auto,
         )
@@ -803,10 +819,12 @@ def _crea_soggetto_pst(
     codice_fiscale = (codice_fiscale or "").strip().upper()
 
     if _is_persona_giuridica(nome):
+        cf_soggetto, piva_soggetto = _identificativi_fiscali_pst(nome, codice_fiscale)
         return gestione_soggetti.crea(
             TipoSoggetto.PERSONA_GIURIDICA,
             ragione_sociale=nome,
-            codice_fiscale=codice_fiscale,
+            codice_fiscale=cf_soggetto,
+            partita_iva=piva_soggetto,
             id_cliente=id_cliente,
             note=note,
         )
@@ -845,10 +863,13 @@ def _allinea_cliente_pst(
     updates: Dict[str, str] = {}
 
     if cliente.tipo == TipoCliente.PERSONA_GIURIDICA or _is_persona_giuridica(nome):
+        cf_cliente, piva_cliente = _identificativi_fiscali_pst(nome, codice_fiscale)
         if nome and not getattr(cliente, "ragione_sociale", ""):
             updates["ragione_sociale"] = nome
-        if codice_fiscale and not getattr(cliente, "codice_fiscale", ""):
-            updates["codice_fiscale"] = codice_fiscale
+        if cf_cliente and not getattr(cliente, "codice_fiscale", ""):
+            updates["codice_fiscale"] = cf_cliente
+        if piva_cliente and not getattr(cliente, "partita_iva", ""):
+            updates["partita_iva"] = piva_cliente
     else:
         cognome, nome_pf = _split_nome_cognome(
             nome,
@@ -887,10 +908,13 @@ def _allinea_soggetto_pst(
     updates: Dict[str, str] = {}
 
     if soggetto.tipo == TipoSoggetto.PERSONA_GIURIDICA or _is_persona_giuridica(nome):
+        cf_soggetto, piva_soggetto = _identificativi_fiscali_pst(nome, codice_fiscale)
         if nome and not getattr(soggetto, "ragione_sociale", ""):
             updates["ragione_sociale"] = nome
-        if codice_fiscale and not getattr(soggetto, "codice_fiscale", ""):
-            updates["codice_fiscale"] = codice_fiscale
+        if cf_soggetto and not getattr(soggetto, "codice_fiscale", ""):
+            updates["codice_fiscale"] = cf_soggetto
+        if piva_soggetto and not getattr(soggetto, "partita_iva", ""):
+            updates["partita_iva"] = piva_soggetto
     else:
         cognome, nome_pf = _split_nome_cognome(
             nome,
@@ -1949,7 +1973,7 @@ class ClientPolisWeb:
         valori = ''.join(
             f'<value name="{k}" type="{tipo}">{"" if v is None else v}</value>'
             for k, tipo, v in values
-            if not (k == 'subProc' and v in ('', None))
+            if not (k in {'subProc', 'subpro'} and v in ('', None))
         )
         order_xml = f'<orderBy><entry property="{order_by}" mode="asc"/></orderBy>' if order_by else '<orderBy/>'
         body = (
@@ -1981,8 +2005,7 @@ class ClientPolisWeb:
                     ('tipo', 'string', _pst_tipo_ricerca_qbuilder(base_pst)),
                     ('numero', 'integer', numero_rg),
                     ('anno', 'string', anno_rg),
-                ]
-                + ([('subpro', 'string', _pst_subpro_sigp())] if _pst_servizio_sigp(base_pst) else []),
+                ],
                 order_by='ANNORUOLO, NUMERORUOLO',
             )
 
@@ -2010,8 +2033,7 @@ class ClientPolisWeb:
                 ('idUfficio', 'string', codice_ufficio),
                 ('anno', 'string', anno_rg),
                 ('numero', 'string', numero_rg),
-            ]
-            + ([('subpro', 'string', _pst_subpro_sigp())] if _pst_servizio_sigp(base_pst) else []),
+            ],
         )
 
     def _soap_profilo_fascicolo_qbuilder(self, base_pst: str, codice_ufficio: str, fascicolo: FascicoloPolisWeb) -> str:
@@ -2024,7 +2046,11 @@ class ClientPolisWeb:
                 ('anno', 'string', fascicolo.anno_rg),
                 ('numero', 'string', fascicolo.numero_rg),
             ]
-            + ([('subpro', 'string', _pst_subpro_sigp(fascicolo.sub_procedimento))] if _pst_servizio_sigp(base_pst) else []),
+            + (
+                [('subpro', 'string', _pst_subpro_sigp(fascicolo.sub_procedimento))]
+                if _pst_servizio_sigp(base_pst) and _pst_subpro_sigp(fascicolo.sub_procedimento)
+                else []
+            ),
         )
 
     def _risolvi_codice_ufficio(self, nome_o_codice: str) -> str:

@@ -1266,7 +1266,7 @@ def test_qbuilder_documenti_e_profilo_usano_parametri_pst_live():
     assert 'name="subpro"' not in documenti_subproc_xml
 
 
-def test_qbuilder_sigp_usa_registro_gdp_e_subpro_minuscolo():
+def test_qbuilder_sigp_usa_registro_gdp_senza_subpro_implicito():
     module = _load_local_signer()
     base_url = "https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SIGP"
 
@@ -1286,10 +1286,58 @@ def test_qbuilder_sigp_usa_registro_gdp_e_subpro_minuscolo():
     )
 
     assert '<value name="tipo" type="string">GDP</value>' in ricerca_xml
-    assert '<value name="subpro" type="string">0</value>' in ricerca_xml
-    assert '<value name="subpro" type="string">0</value>' in documenti_xml
+    assert 'name="subpro"' not in ricerca_xml
+    assert 'name="subpro"' not in documenti_xml
     assert 'name="subProc"' not in ricerca_xml
     assert 'name="subProc"' not in documenti_xml
+
+
+def test_qbuilder_sigp_usa_subpro_solo_se_esplicito():
+    module = _load_local_signer()
+    base_url = "https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SIGP"
+
+    ricerca_xml = module._soap_ricerca_fascicoli_body(
+        base_url=base_url,
+        codice_ufficio="0800570152",
+        numero_rg="466",
+        anno_rg=2023,
+        cf_avvocato="MNTRRT64L01L063H",
+        sub_procedimento="1",
+    )
+    documenti_xml = module._soap_documenti_body(
+        base_url=base_url,
+        codice_ufficio="0800570152",
+        numero_rg="466",
+        anno_rg=2023,
+        sub_procedimento="1",
+    )
+
+    assert '<value name="subpro" type="string">1</value>' in ricerca_xml
+    assert '<value name="subpro" type="integer">1</value>' in documenti_xml
+    assert 'name="subProc"' not in ricerca_xml
+    assert 'name="subProc"' not in documenti_xml
+
+
+def test_sigp_ricerca_atti_body_e_parser_ids():
+    module = _load_local_signer()
+
+    body = module._soap_sigp_ricerca_atti_body("0800570152", "466", 2023)
+
+    assert 'InvocationDomain name="JPW" role="AVV" group="0800570152"' in body
+    assert '<y:ricercaAtti xmlns:y="urn:sigp-consultazioneDocumenti">' in body
+    assert "<numRuolo>466</numRuolo>" in body
+    assert "<annoRuolo>2023</annoRuolo>" in body
+
+    xml = """<?xml version='1.0' encoding='UTF-8'?>
+<SOAP-ENV:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/">
+<SOAP-ENV:Body>
+<ns1:ricercaAttiResponse xmlns:ns1="urn:sigp-consultazioneDocumenti">
+  <return><item>3080731</item><item>3080731</item><item>3073476</item></return>
+</ns1:ricercaAttiResponse>
+</SOAP-ENV:Body>
+</SOAP-ENV:Envelope>"""
+
+    assert module._parse_sigp_ricerca_atti_ids(xml) == ["3080731", "3073476"]
 
 
 def test_sigp_fallback_collega_scheda_ufficiale_gdp():
@@ -1465,6 +1513,75 @@ def test_parse_qbuilder_documenti_xml_supporta_piu_return():
 
     assert len(documenti) == 2
     assert {doc["id_documento"] for doc in documenti} == {"33581101", "33581102"}
+
+
+def test_parse_profilo_documento_sigp_preserva_nome_originale_e_metadati():
+    module = _load_local_signer()
+
+    xml = """<?xml version='1.0' encoding='UTF-8'?>
+<SOAP-ENV:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/">
+<SOAP-ENV:Body>
+<ns1:estraiProfiloDocumentoResponse xmlns:ns1="urn:BEAFascicoloInformatico-distr">
+  <return>
+    <codFiscMittente>CRSGPP63P29I725M</codFiscMittente>
+    <codiceUfficio>0800570152</codiceUfficio>
+    <dataDeposito>2026-03-10T12:11:05Z</dataDeposito>
+    <idDocumento>3080731</idDocumento>
+    <idBusta>3080730</idBusta>
+    <idCat>3080731</idCat>
+    <nomeFileOriginale>depositoMinutaSentenzaSemplificata.pdf</nomeFileOriginale>
+    <dimensioneFile>179738</dimensioneFile>
+    <tipoMIME>application/pdf</tipoMIME>
+    <tipoOggetto><descrizione>Documento</descrizione></tipoOggetto>
+  </return>
+</ns1:estraiProfiloDocumentoResponse>
+</SOAP-ENV:Body>
+</SOAP-ENV:Envelope>"""
+
+    profilo = module._parse_profilo_documento_xml(xml)
+    documento = module._documento_da_profilo_sigp(profilo, "3080731")
+
+    assert profilo["nome_file_originale"] == "depositoMinutaSentenzaSemplificata.pdf"
+    assert profilo["data_documento"] == "2026-03-10"
+    assert profilo["dimensione_bytes"] == 179738
+    assert documento["nome"] == "depositoMinutaSentenzaSemplificata.pdf"
+    assert documento["id_deposito"] == "3080730"
+    assert documento["id_cat"] == "3080731"
+
+
+def test_sigp_merge_profili_arricchisce_lista_qbuilder_senza_duplicare():
+    module = _load_local_signer()
+
+    base = [{
+        "id_documento": "3080731",
+        "id_cat": "3080731",
+        "nome": "Sentenza_3080731.pdf",
+        "id_documento_candidates": ["3080731"],
+    }, {
+        "id_documento": "3080731",
+        "id_cat": "3080731",
+        "nome": "Sentenza_3080731_DUPLICATO.pdf",
+        "id_documento_candidates": ["3080731"],
+    }]
+    profili = [{
+        "id_documento": "3080731",
+        "id_cat": "3080731",
+        "nome": "depositoMinutaSentenzaSemplificata.pdf",
+        "dimensione_bytes": 179738,
+        "id_deposito": "3080730",
+    }, {
+        "id_documento": "3073476",
+        "id_cat": "3073476",
+        "nome": "MEMORIA_CONCLUSIVA_ZURICH.pdf.p7m",
+        "id_documento_candidates": ["3073476"],
+    }]
+
+    merged = module._sigp_merge_documenti_con_profili(base, profili)
+
+    assert len(merged) == 2
+    assert merged[0]["nome"] == "depositoMinutaSentenzaSemplificata.pdf"
+    assert merged[0]["dimensione_bytes"] == 179738
+    assert merged[1]["id_documento"] == "3073476"
 
 
 def test_map_qbuilder_documento_preserva_candidati_identificativo():

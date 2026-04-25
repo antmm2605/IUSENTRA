@@ -1,25 +1,44 @@
 {% extends "base.html" %}
 {% block title %}SIGP - Fascicolo Giudice di Pace{% endblock %}
 {% block content %}
-<link rel="stylesheet" href="{{ url_for('sigp_sync.static', filename='sigp_sync.css') }}">
-
-<div class="sigp-shell" data-api-base="{{ url_for('sigp_sync.index')[:-1] if url_for('sigp_sync.index').endswith('/') else url_for('sigp_sync.index') }}">
+<div class="sigp-shell"
+     data-api-base="{{ url_for('sigp_sync.index')[:-1] if url_for('sigp_sync.index').endswith('/') else url_for('sigp_sync.index') }}"
+     data-fascicolo-base-url="/fascicoli/">
   <div class="sigp-hero">
     <div>
-      <p class="sigp-kicker">Telematico - SIGP</p>
-      <h1>Fascicolo Giudice di Pace</h1>
-      <p>Visualizza pratica, parti, eventi e soprattutto il catalogo documenti importato da Local Connector, PST/PdA o acquisizione assistita.</p>
+      <p class="sigp-kicker">SIGP - Giudice di Pace</p>
+      <h1>Scarica e importa il fascicolo in un'unica pagina</h1>
+      <p>Seleziona la pratica, acquisisci catalogo e documenti dal canale autorizzato, poi apri il fascicolo IUSENTRA gia' aggiornato.</p>
     </div>
     <div class="sigp-actions">
       <span id="sigpAdapterStatus" class="sigp-status sigp-status--idle">Adapter non verificato</span>
-      <button id="btnEnsureSchema" class="btn btn-outline-primary">Prepara DB</button>
-      <button id="btnPreflight" class="btn btn-primary">Verifica Local Connector</button>
+      <button id="btnPreflight" class="btn btn-primary">Verifica collegamento locale</button>
+      <button id="btnEnsureSchema" class="btn btn-outline-primary">Prepara archivio</button>
     </div>
+  </div>
+
+  <div class="sigp-flow" aria-label="Flusso guidato SIGP">
+    <article>
+      <strong>1. Collega</strong>
+      <span>Local Signer/Connector sul PC dello studio.</span>
+    </article>
+    <article>
+      <strong>2. Seleziona</strong>
+      <span>Apri la pratica importata o incolla dati autorizzati.</span>
+    </article>
+    <article>
+      <strong>3. Scarica</strong>
+      <span>Default: copia ministeriale con annotazioni visibili.</span>
+    </article>
+    <article>
+      <strong>4. Apri</strong>
+      <span>Tutto finisce nel fascicolo IUSENTRA.</span>
+    </article>
   </div>
 
   <div class="sigp-grid-main">
     <aside class="sigp-panel">
-      <h2>Fascicoli importati</h2>
+      <h2>Fascicolo da lavorare</h2>
       <div class="sigp-inline">
         <input id="localFilter" class="form-control" placeholder="Filtra per RG, ufficio, giudice, oggetto">
         <button id="btnRefresh" class="btn btn-outline-secondary">Aggiorna</button>
@@ -27,19 +46,19 @@
       <p id="localCount" class="sigp-muted">Nessun dato caricato</p>
       <div id="fascicoliList" class="sigp-list"></div>
 
-      <hr>
-
-      <h2>Importa payload pratica</h2>
-      <p class="sigp-muted">Usalo quando hai un JSON autorizzato con dati fascicolo/parti/eventi/documenti.</p>
-      <input id="fascicoloLocaleId" class="form-control mb-2" placeholder="ID fascicolo locale opzionale">
-      <textarea id="payloadJson" class="form-control sigp-textarea" placeholder='{"fascicolo": {"rg": "466/2023", "ufficio": "Giudice di Pace - Palmi"}}'></textarea>
-      <button id="btnImportPayload" class="btn btn-primary w-100 mt-2">Importa payload reale</button>
+      <details class="sigp-advanced mt-3">
+        <summary>Importazione avanzata da dati autorizzati</summary>
+        <p class="sigp-muted">Solo quando il Local Connector o il Punto di Accesso consegna un file dati gia' autorizzato.</p>
+        <input id="fascicoloLocaleId" class="form-control mb-2" placeholder="ID fascicolo IUSENTRA opzionale">
+        <textarea id="payloadJson" class="form-control sigp-textarea" placeholder='{"fascicolo": {"rg": "466/2023", "ufficio": "Giudice di Pace - Palmi"}}'></textarea>
+        <button id="btnImportPayload" class="btn btn-primary w-100 mt-2">Importa dati pratica</button>
+      </details>
     </aside>
 
     <main class="sigp-panel sigp-detail">
       <section id="emptyState" class="sigp-empty">
-        <h2>Apri un fascicolo SIGP</h2>
-        <p>Se la pratica e' gia' stata importata ma mancano i documenti, aprila e usa "Importa catalogo documenti".</p>
+        <h2>Seleziona una pratica</h2>
+        <p>Da qui lavori tutto il fascicolo SIGP in una sola schermata: catalogo, documenti, eventi, udienze e apertura finale nel gestionale.</p>
       </section>
 
       <section id="caseDetail" hidden>
@@ -50,10 +69,13 @@
             <p id="detailSubtitle" class="sigp-muted">-</p>
           </div>
           <div class="sigp-actions sigp-actions--wrap">
-            <button id="btnPreviewDocs" class="btn btn-outline-primary">Anteprima documenti via Local Connector</button>
-            <button id="btnDownloadSelected" class="btn btn-primary">Scarica copia ministeriale</button>
-            <button id="btnDownloadNew" class="btn btn-outline-secondary">Scarica nuovi come copia</button>
-            <button id="btnDownloadDuplicateSelected" class="btn btn-outline-danger">Scarica duplicato senza coccarda</button>
+            <button id="btnPreviewDocs" class="btn btn-outline-primary">Acquisisci catalogo</button>
+            <button id="btnSelectAllVisible" class="btn btn-outline-secondary">Seleziona tutto</button>
+            <button id="btnDownloadSelected" class="btn btn-primary">Scarica copie ministeriali</button>
+            <button id="btnDownloadNew" class="btn btn-outline-secondary">Scarica nuovi</button>
+            <button id="btnSyncToFascicolo" class="btn btn-success">Aggiorna fascicolo IUSENTRA</button>
+            <a id="btnOpenLocalFascicolo" class="btn btn-outline-success" href="#" hidden>Apri nel fascicolo</a>
+            <button id="btnDownloadDuplicateSelected" class="btn btn-outline-danger">Duplicato senza coccarda</button>
           </div>
         </div>
 
@@ -62,6 +84,7 @@
           <div><span>Stato</span><strong id="sumStato">-</strong></div>
           <div><span>Giudice</span><strong id="sumGiudice">-</strong></div>
           <div><span>Ultima sync</span><strong id="sumSync">-</strong></div>
+          <div><span>Fascicolo IUSENTRA</span><strong id="sumFascicoloGestionale">Da collegare</strong></div>
         </div>
 
         <div class="sigp-tabs" role="tablist">
@@ -74,6 +97,9 @@
         </div>
 
         <section id="tab-documenti" class="sigp-tab-panel">
+          <div class="sigp-ministerial-note">
+            <strong>Modalita' predefinita:</strong> copia di consultazione/copia informatica con annotazioni ministeriali. Il duplicato senza coccarda e' disponibile solo con scelta esplicita.
+          </div>
           <div class="sigp-doc-toolbar">
             <input id="documentFilter" class="form-control" placeholder="Cerca documento, tipo atto, depositante, UID">
             <button id="btnToggleCatalogImport" class="btn btn-outline-secondary">Importa catalogo JSON</button>

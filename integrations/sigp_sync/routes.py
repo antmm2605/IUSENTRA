@@ -27,6 +27,7 @@ from integrations.sigp.sync_service import (
 )
 
 from .document_repository import SigpDocumentRepository
+from .fascicolo_bridge import sincronizza_sigp_con_fascicolo
 from .local_connector_client import LocalConnectorError, SigpLocalConnectorClient
 
 
@@ -137,7 +138,7 @@ def api_search():
             "items": [],
             "message": (
                 "Ricerca remota non eseguita dal server cloud. Usa il Local Connector/PST/PdA autorizzato "
-                "oppure importa un payload reale."
+                "oppure importa un file dati reale."
             ),
         }
     )
@@ -151,7 +152,7 @@ def api_sync():
             "ok": False,
             "message": (
                 "Sincronizzazione diretta disponibile solo tramite adapter PST/PdA/Model Office autorizzato. "
-                "Importa un payload reale o collega il Local Connector."
+                "Importa un file dati reale o collega il Local Connector."
             ),
         }
     ), 400
@@ -168,10 +169,10 @@ def api_importa_payload():
             db_path=resolve_sigp_sync_db_path(current_app.config),
             fascicolo_locale_id=data.get("fascicolo_locale_id") or data.get("fascicoloLocaleId"),
         )
-        result["message"] = "Payload reale autorizzato importato."
+        result["message"] = "File dati reale autorizzato importato."
         return jsonify(result)
     except Exception as exc:  # pragma: no cover - route guard
-        current_app.logger.exception("Errore import payload SIGP Sync: %s", exc)
+        current_app.logger.exception("Errore import dati SIGP Sync: %s", exc)
         return jsonify({"ok": False, "message": str(exc)}), 400
 
 
@@ -198,6 +199,39 @@ def api_documenti(sigp_fascicolo_id: int):
         documents = _document_repo().list_documents(sigp_fascicolo_id)
         return jsonify({"ok": True, "items": documents, "count": len(documents)})
     except Exception as exc:
+        return jsonify({"ok": False, "message": str(exc)}), 400
+
+
+@sigp_sync_bp.post("/api/fascicoli/<int:sigp_fascicolo_id>/porta-nel-fascicolo")
+@_richiedi_login
+def api_porta_nel_fascicolo(sigp_fascicolo_id: int):
+    """Allinea lo snapshot SIGP con il fascicolo IUSENTRA visibile nella UI ordinaria."""
+    try:
+        repo = _repo()
+        snapshot = repo.get_snapshot(sigp_fascicolo_id)
+        if not snapshot:
+            return jsonify({"ok": False, "message": "Fascicolo SIGP non trovato."}), 404
+        documents = _document_repo().list_documents(sigp_fascicolo_id)
+        snapshot["documenti"] = documents
+        sync_result = sincronizza_sigp_con_fascicolo(
+            snapshot=snapshot,
+            documenti=documents,
+            storage_root=_storage_root(),
+            registrato_da=str(getattr(g.get("utente_corrente"), "username", "") or "IUSENTRA"),
+        )
+        repo.set_fascicolo_locale_id(sigp_fascicolo_id, sync_result["fascicolo_locale_id"])
+        refreshed = repo.get_snapshot(sigp_fascicolo_id) or snapshot
+        return jsonify(
+            {
+                "ok": True,
+                "message": "Fascicolo IUSENTRA aggiornato.",
+                "sigp_fascicolo_id": sigp_fascicolo_id,
+                "snapshot": refreshed,
+                **sync_result,
+            }
+        )
+    except Exception as exc:
+        current_app.logger.exception("Errore allineamento SIGP -> fascicolo IUSENTRA: %s", exc)
         return jsonify({"ok": False, "message": str(exc)}), 400
 
 

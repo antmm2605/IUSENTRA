@@ -1,0 +1,410 @@
+.sigp-shell {
+  max-width: 1500px;
+  margin: 0 auto;
+  padding: 1.25rem;
+}
+
+.sigp-hero,
+.sigp-panel,
+.sigp-flow article {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 22px;
+  box-shadow: 0 14px 40px rgba(15, 23, 42, 0.06);
+}
+
+.sigp-hero {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.35rem;
+  margin-bottom: 1rem;
+  background:
+    radial-gradient(circle at 100% 0, rgba(37, 99, 235, 0.14), transparent 34%),
+    linear-gradient(135deg, #ffffff, #f8fbff);
+}
+
+.sigp-hero h1,
+.sigp-detail h2 {
+  margin: 0 0 .35rem;
+  color: #111827;
+}
+
+.sigp-kicker {
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  font-size: .76rem;
+  color: #2563eb;
+  font-weight: 800;
+  margin-bottom: .35rem;
+}
+
+.sigp-muted {
+  color: #6b7280;
+}
+
+.sigp-actions {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+}
+
+.sigp-actions--wrap {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.sigp-status {
+  border-radius: 999px;
+  padding: .35rem .7rem;
+  font-size: .82rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.sigp-status--idle {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.sigp-status--ok {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.sigp-status--warn {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.sigp-flow {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: .75rem;
+  margin-bottom: 1rem;
+}
+
+.sigp-flow article {
+  padding: .85rem .95rem;
+  min-height: 96px;
+  display: grid;
+  align-content: start;
+  gap: .32rem;
+  background: linear-gradient(180deg, #fff, #f8fafc);
+}
+
+.sigp-flow strong {
+  color: #111827;
+  font-weight: 800;
+}
+
+.sigp-flow span {
+  color: #64748b;
+  font-size: .88rem;
+}
+
+.sigp-grid-main {
+  display: grid;
+  grid-template-columns: minmax(320px, 420px) 1fr;
+  gap: 1rem;
+  align-items: start;
+}
+
+.sigp-panel {
+  padding: 1rem;
+}
+
+.sigp-inline,
+.sigp-doc-toolbar,
+.sigp-list-actions {
+  display: flex;
+  gap: .5rem;
+  align-items: center;
+}
+
+.sigp-inline,
+.sigp-doc-toolbar {
+  margin-bottom: .75rem;
+}
+
+.sigp-advanced {
+  border-top: 1px solid #e5e7eb;
+  padding-top: .85rem;
+}
+
+.sigp-advanced summary {
+  cursor: pointer;
+  color: #1d4ed8;
+  font-weight: 800;
+}
+
+.sigp-textarea {
+  min-height: 145px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: .86rem;
+}
+
+.sigp-list {
+  display: grid;
+  gap: .6rem;
+}
+
+.sigp-list-item {
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: .75rem;
+  background: #f8fafc;
+}
+
+.sigp-list-item.is-active {
+  border-color: #2563eb;
+  background: #eff6ff;
+}
+
+.sigp-list-title {
+  font-weight: 800;
+  color: #111827;
+}
+
+.sigp-list-meta {
+  color: #6b7280;
+  font-size: .86rem;
+}
+
+.sigp-list-meta--ok {
+  color: #047857;
+  font-weight: 700;
+}
+
+.sigp-list-actions {
+  flex-wrap: wrap;
+  margin-top: .6rem;
+}
+
+.sigp-empty {
+  min-height: 360px;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  color: #6b7280;
+}
+
+.sigp-detail-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.sigp-summary {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: .75rem;
+  margin-bottom: 1rem;
+}
+
+.sigp-summary div {
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: .75rem;
+  background: #f9fafb;
+}
+
+.sigp-summary span {
+  display: block;
+  color: #6b7280;
+  font-size: .78rem;
+}
+
+.sigp-summary strong {
+  display: block;
+  color: #111827;
+  margin-top: .15rem;
+}
+
+.sigp-tabs {
+  display: flex;
+  gap: .4rem;
+  overflow-x: auto;
+  border-bottom: 1px solid #e5e7eb;
+  margin-bottom: .9rem;
+}
+
+.sigp-tab {
+  border: 0;
+  background: transparent;
+  padding: .75rem .8rem;
+  border-bottom: 3px solid transparent;
+  color: #4b5563;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.sigp-tab.is-active {
+  color: #2563eb;
+  border-bottom-color: #2563eb;
+}
+
+.sigp-tab span {
+  background: #eef2ff;
+  color: #1d4ed8;
+  border-radius: 999px;
+  padding: .1rem .42rem;
+  font-size: .72rem;
+}
+
+.sigp-ministerial-note,
+.sigp-catalog-box {
+  background: #f8fafc;
+  border: 1px dashed #94a3b8;
+  border-radius: 16px;
+  padding: .9rem;
+  margin: .75rem 0;
+}
+
+.sigp-ministerial-note {
+  border-style: solid;
+  border-color: #bfdbfe;
+  background: #eff6ff;
+  color: #1e3a8a;
+}
+
+.sigp-table-wrap {
+  overflow-x: auto;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+}
+
+.sigp-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 900px;
+}
+
+.sigp-table th,
+.sigp-table td {
+  padding: .7rem;
+  border-bottom: 1px solid #e5e7eb;
+  vertical-align: top;
+}
+
+.sigp-table th {
+  background: #f8fafc;
+  color: #374151;
+  font-size: .82rem;
+  text-transform: uppercase;
+  letter-spacing: .03em;
+}
+
+.sigp-table tr:last-child td {
+  border-bottom: 0;
+}
+
+.sigp-doc-name {
+  font-weight: 800;
+  color: #111827;
+}
+
+.sigp-doc-uid {
+  font-size: .76rem;
+  color: #6b7280;
+}
+
+.sigp-badge {
+  display: inline-block;
+  border-radius: 999px;
+  padding: .2rem .55rem;
+  font-size: .75rem;
+  font-weight: 800;
+}
+
+.sigp-badge--ok {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.sigp-badge--todo {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.sigp-timeline {
+  display: grid;
+  gap: .75rem;
+}
+
+.sigp-timeline-item {
+  border-left: 3px solid #2563eb;
+  padding: .25rem .8rem;
+  background: #f8fafc;
+  border-radius: 0 12px 12px 0;
+}
+
+.sigp-toast-host {
+  position: fixed;
+  right: 1rem;
+  bottom: 1rem;
+  display: grid;
+  gap: .5rem;
+  z-index: 2000;
+}
+
+.sigp-toast {
+  background: #111827;
+  color: #fff;
+  padding: .75rem .9rem;
+  border-radius: 14px;
+  box-shadow: 0 14px 35px rgba(0, 0, 0, .18);
+  max-width: 420px;
+}
+
+.sigp-toast--ok {
+  background: #14532d;
+}
+
+.sigp-toast--warn {
+  background: #92400e;
+}
+
+.sigp-toast--error {
+  background: #991b1b;
+}
+
+@media (max-width: 1050px) {
+  .sigp-grid-main,
+  .sigp-flow {
+    grid-template-columns: 1fr;
+  }
+
+  .sigp-hero,
+  .sigp-detail-head {
+    flex-direction: column;
+  }
+
+  .sigp-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 620px) {
+  .sigp-shell {
+    padding: .85rem;
+  }
+
+  .sigp-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .sigp-inline,
+  .sigp-doc-toolbar,
+  .sigp-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .sigp-actions > *,
+  .sigp-list-actions > * {
+    width: 100%;
+  }
+}

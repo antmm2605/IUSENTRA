@@ -691,3 +691,97 @@ a:hover > .wi-fascicolo {
     --bs-gutter-y: 0.8rem;
   }
 }
+
+@media (max-width: #{v.$bp-md - 0.02px}) {
+  .workspace-page .wi-hero {
+    display: block;
+    grid-template-columns: none;
+    width: 100%;
+  }
+
+  .workspace-page .wi-hero > .d-flex {
+    display: flex !important;
+    flex-direction: column;
+    min-width: 0;
+    width: 100%;
+  }
+
+  .workspace-page .wi-hero .pe-xl-4,
+  .workspace-page .wi-hero-copy {
+    min-width: 0;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .workspace-page .wi-chip {
+    max-width: 100%;
+    white-space: normal;
+  }
+
+  .workspace-page .wi-hero h1,
+  .workspace-page .wi-hero .h2 {
+    word-break: normal;
+    overflow-wrap: normal;
+  }
+
+  .anagrafica-soggetti-page .ds-search-bar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    overflow: visible;
+    width: 100%;
+  }
+
+  .anagrafica-soggetti-page .ds-search-input,
+  .anagrafica-soggetti-page .soggetti-filter-select,
+  .anagrafica-soggetti-page .ds-search-bar .ds-btn,
+  .anagrafica-soggetti-page .ds-search-bar .btn {
+    min-width: 0;
+    width: 100%;
+    max-width: 100%;
+  }
+}
+
+@media (max-width: #{v.$bp-sm - 0.02px}) {
+  #sezione-demo-studio.dashboard-card.h-100 {
+    height: auto !important;
+    min-height: 0;
+  }
+
+  #sezione-demo-studio .card-body {
+    padding-bottom: 0.85rem !important;
+  }
+
+  #sezione-demo-studio .dashboard-operational-list {
+    display: grid;
+    gap: 0.5rem;
+  }
+
+  #sezione-demo-studio .dashboard-operational-item {
+    min-height: 0;
+    align-items: flex-start;
+  }
+
+  .anagrafica-soggetti-page {
+    overflow-x: hidden;
+    padding-inline: 0.75rem;
+  }
+
+  .anagrafica-soggetti-page .ds-ph {
+    display: flex;
+    grid-template-columns: none;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .anagrafica-soggetti-page .ds-ph-actions .ds-btn,
+  .anagrafica-soggetti-page .ds-ph-actions .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .anagrafica-soggetti-page .ds-stats {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    overflow: visible;
+  }
+}

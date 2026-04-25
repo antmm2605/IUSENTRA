@@ -66,7 +66,7 @@
     </a>
     <a href="{{ url_for('workspace_intelligente') }}"
        class="nav-link sb-link sb-top {% if request.endpoint == 'workspace_intelligente' %}active{% endif %}">
-      <i class="bi bi-stars"></i><span class="sb-txt">Cabina Intelligente</span>
+      <i class="bi bi-stars"></i><span class="sb-txt">Attività Studio</span>
     </a>
     <a href="{{ url_for('cerca') }}"
        class="nav-link sb-link sb-top {% if request.endpoint == 'cerca' %}active{% endif %}">
@@ -477,8 +477,8 @@
       <i class="bi bi-calendar3"></i>{{ oggi|fmt_data }}
     </span>
     <a href="{{ url_for('workspace_intelligente') }}" class="btn btn-sm btn-outline-primary d-none d-md-inline-flex"
-       title="Cabina intelligente">
-      <i class="bi bi-stars"></i><span class="d-none d-md-inline ms-1">Cabina</span>
+       title="Attività Studio">
+      <i class="bi bi-stars"></i><span class="d-none d-md-inline ms-1">Studio</span>
     </a>
     <a href="{{ url_for('scadenziario') }}" class="btn btn-sm btn-outline-danger position-relative"
        title="Scadenziario - scadenze entro 7 giorni" id="btn-scadenziario-nav">

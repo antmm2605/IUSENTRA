@@ -1,6 +1,7 @@
 (() => {
   const root = document.querySelector('.sigp-shell');
   const API_BASE = (root?.dataset.apiBase || '/sigp-sync').replace(/\/$/, '');
+  const FASCICOLO_BASE_URL = (root?.dataset.fascicoloBaseUrl || '/fascicoli/').replace(/\/?$/, '/');
   const LOCAL_SIGNER_URL = (root?.dataset.localSignerUrl || 'http://127.0.0.1:27272').replace(/\/$/, '');
   const PST_SESSION_STORAGE_KEY = 'iusentra.sigp.pstSessionId';
   const state = {
@@ -29,6 +30,11 @@
   function compact(value, fallback = '-') {
     const text = String(value ?? '').trim();
     return text || fallback;
+  }
+
+  function fascicoloUrl(id) {
+    const localId = String(id || '').trim();
+    return localId ? `${FASCICOLO_BASE_URL}${encodeURIComponent(localId)}#sezione-documenti-fascicolo` : '#';
   }
 
   function formatDate(value) {
@@ -217,7 +223,7 @@
     if (!el) return;
     el.classList.remove('sigp-status--idle', 'sigp-status--ok', 'sigp-status--warn');
     el.classList.add(result?.ok ? 'sigp-status--ok' : 'sigp-status--warn');
-    el.textContent = result?.adapter === 'local_connector' ? 'Local Connector raggiungibile' : 'Catalogo/payload autorizzato';
+    el.textContent = result?.adapter === 'local_connector' ? 'Collegamento locale raggiungibile' : 'Dati autorizzati pronti';
   }
 
   async function health() {
@@ -225,22 +231,22 @@
     setAdapterStatus(result);
   }
 
-  async function ensureSchema() {
+  async function ensureSchema(options = {}) {
     const result = await api('/api/schema/ensure', { method: 'POST' });
-    toast('Database pronto', result.message || 'Schema verificato.');
-    await refreshLocalCases();
+    if (!options.silent) toast('Archivio pronto', result.message || 'Schema verificato.');
+    await refreshLocalCases({ autoOpenFirst: Boolean(options.autoOpenFirst) });
   }
 
   async function preflight() {
     const result = await localSignerApi('/ping', null, 15000);
     setAdapterStatus({ ok: true, adapter: 'local_connector' });
-    toast('Local Signer raggiungibile', result.version ? `Versione ${result.version}.` : 'Controllo locale completato.');
+    toast('Collegamento locale pronto', result.version ? `Versione ${result.version}.` : 'Controllo locale completato.');
   }
 
   async function importPayload() {
     const rawText = $('payloadJson')?.value?.trim();
     if (!rawText) {
-      toast('Payload mancante', 'Incolla il JSON reale ricevuto dal canale autorizzato.', 'warn');
+      toast('Dati mancanti', 'Incolla il file dati reale ricevuto dal canale autorizzato.', 'warn');
       return;
     }
     let payload;
@@ -257,7 +263,7 @@
         fascicolo_locale_id: $('fascicoloLocaleId')?.value?.trim() || null,
       }),
     });
-    toast('Payload importato', `${result.conteggi?.documenti || 0} documenti nel payload.`);
+    toast('Dati pratica importati', `${result.conteggi?.documenti || 0} documenti censiti.`);
     await refreshLocalCases();
     if (result.sigp_fascicolo_id) await openSnapshot(result.sigp_fascicolo_id);
   }
@@ -293,13 +299,18 @@
     }
     box.innerHTML = state.filteredCases.map((f) => {
       const rg = `${compact(f.registro, 'GDP')} ${compact(f.numero_rg)}/${compact(f.anno_rg)}`;
+      const localId = compact(f.fascicolo_locale_id, '');
       return `
         <article class="sigp-list-item ${String(state.currentCaseId) === String(f.id) ? 'is-active' : ''}">
           <div class="sigp-list-title">${escapeHtml(rg)}</div>
           <div>${escapeHtml(compact(f.ufficio))}</div>
           <div class="sigp-list-meta">${escapeHtml(compact(f.oggetto, 'Oggetto non disponibile'))}</div>
           <div class="sigp-list-meta">Ultima sync: ${escapeHtml(formatDate(f.updated_at))}</div>
-          <button class="btn btn-sm btn-outline-primary mt-2 js-open-case" data-id="${escapeHtml(f.id)}">Apri</button>
+          ${localId ? `<div class="sigp-list-meta sigp-list-meta--ok">Collegato al fascicolo ${escapeHtml(localId)}</div>` : ''}
+          <div class="sigp-list-actions">
+            <button class="btn btn-sm btn-outline-primary js-open-case" data-id="${escapeHtml(f.id)}">Lavora fascicolo</button>
+            ${localId ? `<a class="btn btn-sm btn-outline-success" href="${fascicoloUrl(localId)}">Apri IUSENTRA</a>` : ''}
+          </div>
         </article>
       `;
     }).join('');
@@ -328,6 +339,27 @@
     }
   }
 
+  async function syncToFascicolo(options = {}) {
+    if (!state.currentCaseId) return null;
+    const result = await api(`/api/fascicoli/${encodeURIComponent(state.currentCaseId)}/porta-nel-fascicolo`, {
+      method: 'POST',
+      body: JSON.stringify({ apri_sezione: 'documenti' }),
+    });
+    const f = state.currentSnapshot?.fascicolo;
+    if (f && result.fascicolo_locale_id) {
+      f.fascicolo_locale_id = result.fascicolo_locale_id;
+    }
+    await refreshLocalCases();
+    if (!options.silent) {
+      toast(
+        'Fascicolo IUSENTRA aggiornato',
+        `${result.documenti_catalogati || 0} documenti catalogati, ${result.file_importati || 0} file importati.`
+      );
+    }
+    renderSnapshot();
+    return result;
+  }
+
   function renderSnapshot() {
     const snapshot = state.currentSnapshot;
     if (!snapshot) return;
@@ -341,6 +373,15 @@
     $('sumStato').textContent = compact(f.stato);
     $('sumGiudice').textContent = compact(f.giudice);
     $('sumSync').textContent = formatDate(f.updated_at);
+    const localId = compact(f.fascicolo_locale_id, '');
+    const localLabel = localId ? localId : 'Da collegare';
+    const localSummary = $('sumFascicoloGestionale');
+    if (localSummary) localSummary.textContent = localLabel;
+    const openButton = $('btnOpenLocalFascicolo');
+    if (openButton) {
+      openButton.hidden = !localId;
+      openButton.href = fascicoloUrl(localId);
+    }
     setCount('countDocumenti', snapshot.documenti?.length || 0);
     setCount('countEventi', snapshot.eventi?.length || 0);
     setCount('countUdienze', snapshot.udienze?.length || 0);
@@ -380,14 +421,15 @@
     });
     setCount('countDocumenti', state.currentSnapshot?.documenti?.length || 0);
     if (!docs.length) {
-      box.innerHTML = '<div class="p-3 sigp-muted">Nessun documento da mostrare. Usa "Anteprima documenti via Local Connector" o "Importa catalogo JSON".</div>';
+      box.innerHTML = '<div class="p-3 sigp-muted">Nessun documento ancora acquisito. Usa "Acquisisci catalogo" oppure l\'importazione avanzata se hai un file dati autorizzato.</div>';
       return;
     }
+    const allVisibleSelected = docs.every((d) => state.selectedDocs.has(Number(d.id)));
     box.innerHTML = `
       <table class="sigp-table">
         <thead>
           <tr>
-            <th><input type="checkbox" id="selectAllDocs"></th>
+            <th><input type="checkbox" id="selectAllDocs" ${allVisibleSelected ? 'checked' : ''}></th>
             <th>Documento</th>
             <th>Classificazione</th>
             <th>Data</th>
@@ -440,6 +482,18 @@
     qsa('.js-attach-file', box).forEach((input) => {
       input.addEventListener('change', () => attachLocalFile(input.dataset.id, input.files?.[0]).catch(showError));
     });
+  }
+
+  function selectAllVisibleDocuments() {
+    const term = state.documentFilter.trim().toLowerCase();
+    (state.currentSnapshot?.documenti || []).forEach((d) => {
+      const haystack = [d.tipo_atto, d.nome_file, d.classificazione, d.depositante, d.documento_uid, d.sezione]
+        .join(' ')
+        .toLowerCase();
+      if (!term || haystack.includes(term)) state.selectedDocs.add(Number(d.id));
+    });
+    renderDocuments();
+    toast('Documenti selezionati', `${state.selectedDocs.size} documento/i pronti per il download.`);
   }
 
   function renderTimeline(id, rows, titleKey, bodyKey, dateKey) {
@@ -513,6 +567,7 @@
     toast('Catalogo acquisito', result.message || `${result.total || 0} documenti.`);
     if (result.documents && state.currentSnapshot) state.currentSnapshot.documenti = result.documents;
     await refreshDocuments();
+    await syncToFascicolo({ silent: true });
     renderSnapshot();
   }
 
@@ -536,6 +591,7 @@
     });
     toast('Catalogo documenti importato', `${result.inserted || 0} nuovi, ${result.updated || 0} aggiornati.`);
     if (result.documents && state.currentSnapshot) state.currentSnapshot.documenti = result.documents;
+    await syncToFascicolo({ silent: true });
     renderSnapshot();
   }
 
@@ -623,6 +679,7 @@
       savedCount += 1;
     }
     await refreshDocuments();
+    await syncToFascicolo({ silent: true });
     toast('Download documenti', `Salvati ${savedCount} documenti. Errori: ${errors.length}.`, errors.length ? 'warn' : 'ok');
     renderSnapshot();
   }
@@ -637,6 +694,7 @@
     });
     toast('File collegato', result.message || 'Documento aggiornato.');
     if (result.documents && state.currentSnapshot) state.currentSnapshot.documenti = result.documents;
+    await syncToFascicolo({ silent: true });
     renderSnapshot();
   }
 
@@ -651,6 +709,8 @@
     $('btnImportPayload')?.addEventListener('click', (event) => withBusy(event.currentTarget, importPayload).catch(showError));
     $('btnRefresh')?.addEventListener('click', (event) => withBusy(event.currentTarget, refreshLocalCases).catch(showError));
     $('btnPreviewDocs')?.addEventListener('click', (event) => withBusy(event.currentTarget, previewDocumentsFromConnector).catch(showError));
+    $('btnSelectAllVisible')?.addEventListener('click', selectAllVisibleDocuments);
+    $('btnSyncToFascicolo')?.addEventListener('click', (event) => withBusy(event.currentTarget, syncToFascicolo).catch(showError));
     $('btnImportDocumentCatalog')?.addEventListener('click', (event) => withBusy(event.currentTarget, importDocumentCatalog).catch(showError));
     $('btnDownloadSelected')?.addEventListener('click', (event) => withBusy(event.currentTarget, () => downloadDocuments('selected', false)).catch(showError));
     $('btnDownloadNew')?.addEventListener('click', (event) => withBusy(event.currentTarget, () => downloadDocuments('new_only', false)).catch(showError));
@@ -673,6 +733,6 @@
   document.addEventListener('DOMContentLoaded', () => {
     bindEvents();
     health().catch(() => {});
-    refreshLocalCases({ autoOpenFirst: true }).catch(() => {});
+    ensureSchema({ silent: true, autoOpenFirst: true }).catch(() => refreshLocalCases({ autoOpenFirst: true }).catch(() => {}));
   });
 })();

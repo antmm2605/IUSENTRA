@@ -142,6 +142,19 @@ class SigpSyncRepository:
             ).fetchall()
         return [dict(row) for row in rows]
 
+    def set_fascicolo_locale_id(self, sigp_fascicolo_id: int, fascicolo_locale_id: str) -> None:
+        self.ensure_schema()
+        with sqlite3.connect(self.db_path) as conn:
+            conn.execute(
+                """
+                UPDATE sigp_sync_fascicoli
+                SET fascicolo_locale_id = ?, updated_at = CURRENT_TIMESTAMP
+                WHERE id = ?
+                """,
+                (str(fascicolo_locale_id or "").strip(), int(sigp_fascicolo_id)),
+            )
+            conn.commit()
+
     def _replace_children(self, conn: sqlite3.Connection, fascicolo_id: int, normalized: dict) -> None:
         for table in (
             "sigp_sync_parti",

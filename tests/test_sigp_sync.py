@@ -15,6 +15,7 @@ from integrations.sigp.sync_service import import_authorized_sigp_payload
 from integrations.sigp_sync.document_catalog import normalize_document_catalog
 from integrations.sigp_sync.local_connector_client import _case_to_pst_payload
 from integrations.sigp_sync.routes import sigp_sync_bp
+from pct.fascicoli import GestioneFascicoli
 
 
 def _payload_reale_gdp_palmi(documenti: int = 16) -> dict:
@@ -120,9 +121,14 @@ def test_sigp_sync_visibile_nel_menu_e_apre_primo_fascicolo_importato():
 
     assert "url_for('sigp_sync.index')" in base
     assert "SIGP - Giudice di Pace" in base
+    assert "Attività Studio" in base
     assert "autoOpenFirst: true" in js
-    assert "Scarica copia ministeriale" in (root / "integrations" / "sigp_sync" / "templates" / "sigp_sync.html").read_text(encoding="utf-8")
-    assert "Scarica duplicato senza coccarda" in (root / "integrations" / "sigp_sync" / "templates" / "sigp_sync.html").read_text(encoding="utf-8")
+    template = (root / "integrations" / "sigp_sync" / "templates" / "sigp_sync.html").read_text(encoding="utf-8")
+    assert "Scarica e importa il fascicolo in un'unica pagina" in template
+    assert "Scarica copie ministeriali" in template
+    assert "Duplicato senza coccarda" in template
+    assert "btnSyncToFascicolo" in template
+    assert "porta-nel-fascicolo" in js
     assert "downloadDocuments('selected', false)" in js
     assert "downloadDocuments('selected', true)" in js
     assert "original: Boolean(original)" in js
@@ -232,7 +238,8 @@ def test_sigp_sync_ui_patch_usa_payload_reale_e_non_fixture(tmp_path):
     page = client.get("/sigp-sync/")
     assert page.status_code == 200
     html = page.get_data(as_text=True)
-    assert "Importa payload reale" in html
+    assert "Scarica e importa il fascicolo in un'unica pagina" in html
+    assert "Importa dati pratica" in html
     assert "Import test" not in html
     assert "fixture" not in html.lower()
 
@@ -467,9 +474,11 @@ def test_sigp_sync_salva_download_browser_dal_local_signer_locale(tmp_path):
     app.register_blueprint(sigp_sync_bp)
     client = app.test_client()
 
+    payload_base = _payload_reale_gdp_palmi(documenti=0)
+    payload_base["provvedimenti"] = []
     imported = client.post(
         "/sigp-sync/api/fascicoli/importa-payload",
-        json={"payload": _payload_reale_gdp_palmi(documenti=0)},
+        json={"payload": payload_base},
     ).get_json()
     fascicolo_id = imported["sigp_fascicolo_id"]
     catalog = client.post(
@@ -508,6 +517,80 @@ def test_sigp_sync_salva_download_browser_dal_local_signer_locale(tmp_path):
     file_response = client.get(f"/sigp-sync/api/fascicoli/{fascicolo_id}/documenti/{document_id}/file")
     assert file_response.status_code == 200
     assert b"SIGP browser locale" in file_response.data
+
+
+def test_sigp_sync_porta_catalogo_e_file_nel_fascicolo_iusentra(tmp_path):
+    app = Flask(__name__)
+    app.secret_key = "test"
+    app.config["SIGP_SYNC_DB_PATH"] = str(tmp_path / "sigp_sync.db")
+    app.config["SIGP_SYNC_STORAGE_DIR"] = str(tmp_path / "storage")
+    app.config["FASCICOLI_DB"] = str(tmp_path / "fascicoli.json")
+    app.config["FASCICOLI_DOCS"] = str(tmp_path / "fascicoli")
+    app.config["FASCICOLI_ARCH"] = str(tmp_path / "archivio")
+
+    @app.before_request
+    def _login_test_user():
+        g.utente_corrente = object()
+
+    app.register_blueprint(sigp_sync_bp)
+    client = app.test_client()
+
+    payload_base = _payload_reale_gdp_palmi(documenti=0)
+    payload_base["provvedimenti"] = []
+    imported = client.post(
+        "/sigp-sync/api/fascicoli/importa-payload",
+        json={"payload": payload_base},
+    ).get_json()
+    fascicolo_id = imported["sigp_fascicolo_id"]
+    catalog = client.post(
+        f"/sigp-sync/api/fascicoli/{fascicolo_id}/documenti/importa-catalogo",
+        json={
+            "catalogo": {
+                "documenti": [
+                    {
+                        "idDocumento": "JPW_SICID:466-2023-001",
+                        "idDeposito": "DEP-SIGP-001",
+                        "nomeFile": "verbale_udienza.pdf",
+                        "tipoAtto": "VerbaleUdienza",
+                        "classificazione": "Verbale",
+                        "dataDeposito": "19/04/2023",
+                        "depositante": "Cancelleria GDP Palmi",
+                    }
+                ]
+            }
+        },
+    ).get_json()
+    document_id = catalog["documents"][0]["id"]
+    client.post(
+        f"/sigp-sync/api/fascicoli/{fascicolo_id}/documenti/{document_id}/salva-download-browser",
+        json={
+            "nome": "verbale_udienza.pdf",
+            "content_type": "application/pdf",
+            "contenuto_b64": base64.b64encode(b"%PDF-1.4\nSIGP finale\n").decode("ascii"),
+            "id_documento_portale": "JPW_SICID:466-2023-001",
+        },
+    )
+
+    response = client.post(f"/sigp-sync/api/fascicoli/{fascicolo_id}/porta-nel-fascicolo")
+    payload = response.get_json()
+
+    assert response.status_code == 200
+    assert payload["ok"] is True
+    assert payload["fascicolo_locale_id"]
+    assert payload["fascicolo_url"].endswith("#sezione-documenti-fascicolo")
+    assert payload["documenti_catalogati"] == 1
+    assert payload["file_importati"] == 1
+
+    fascicoli = GestioneFascicoli(
+        db_path=app.config["FASCICOLI_DB"],
+        documents_dir=app.config["FASCICOLI_DOCS"],
+        archive_dir=app.config["FASCICOLI_ARCH"],
+    )
+    fascicolo = fascicoli.get(payload["fascicolo_locale_id"])
+    assert fascicolo is not None
+    assert fascicolo.documenti_count == 1
+    assert fascicolo.depositi_pct
+    assert fascicolo.depositi_pct[0].documenti_portale[0]["id_documento"] == "JPW_SICID:466-2023-001"
 
 
 def test_sigp_sync_download_duplicato_passa_original_true_al_local_signer(tmp_path, monkeypatch):

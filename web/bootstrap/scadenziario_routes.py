@@ -591,6 +591,7 @@ def register_scadenziario_routes(
     @app.route("/scadenziario/<id_sc>/elimina", methods=["POST"])
     def elimina_scadenza(id_sc):
         gs = get_scadenziario()
+        next_url = str(request.form.get("next") or "").strip()
         try:
             gs.elimina(id_sc)
             audit("scadenziario.elimina", "scadenza", id_sc)
@@ -598,6 +599,8 @@ def register_scadenziario_routes(
             sync_pubblica("elimina", "scadenze", id_sc)
         except ValueError as e:
             flash(str(e), "danger")
+        if next_url:
+            return redirect(next_url)
         return redirect(url_for("scadenziario"))
 
     @app.route("/scadenziario/calcola-termine", methods=["POST"])

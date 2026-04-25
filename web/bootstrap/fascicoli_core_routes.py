@@ -47,6 +47,12 @@ def register_fascicoli_core_routes(
 ) -> None:
     """Register the remaining core fascicoli routes."""
 
+    def _redirect_to_fascicolo_section(id_fasc: str, default_section: str = "sezione-attivita-processuali"):
+        section = str(request.form.get("next_section") or default_section).strip().lstrip("#")
+        if not section.startswith("sezione-"):
+            section = default_section
+        return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc) + f"#{section}")
+
     @app.route("/fascicoli")
     def lista_fascicoli():
         gestore_fascicoli = get_fascicoli()
@@ -375,10 +381,10 @@ def register_fascicoli_core_routes(
                 avvocato=form.get("avvocato", ""),
                 id_appuntamento=form.get("id_appuntamento", ""),
             )
-            flash("Attivita aggiunta.", "success")
+            flash("Attivita' aggiunta.", "success")
         except (ValueError, KeyError) as exc:
             flash(str(exc), "danger")
-        return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
+        return _redirect_to_fascicolo_section(id_fasc)
 
     @app.route("/fascicoli/<id_fasc>/attivita/<id_att>/esito", methods=["POST"])
     def aggiorna_esito_attivita(id_fasc: str, id_att: str):
@@ -392,4 +398,13 @@ def register_fascicoli_core_routes(
             flash("Esito aggiornato.", "success")
         except (ValueError, KeyError) as exc:
             flash(str(exc), "danger")
-        return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
+        return _redirect_to_fascicolo_section(id_fasc)
+
+    @app.route("/fascicoli/<id_fasc>/attivita/<id_att>/elimina", methods=["POST"])
+    def elimina_attivita_fascicolo(id_fasc: str, id_att: str):
+        try:
+            get_fascicoli().rimuovi_attivita(id_fasc, id_att)
+            flash("Attivita' rimossa dal fascicolo.", "success")
+        except (ValueError, KeyError) as exc:
+            flash(str(exc), "danger")
+        return _redirect_to_fascicolo_section(id_fasc)

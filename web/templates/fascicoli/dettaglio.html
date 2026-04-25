@@ -366,8 +366,7 @@
                           {% endif %}
                           {# Elimina #}
                           <form method="post" class="d-inline"
-                                action="{{ url_for('elimina_documento', id_fasc=fascicolo.id, id_doc=pdoc.local_doc_id) }}"
-                                onsubmit="return confirm('Eliminare il documento dal fascicolo?')">
+                                action="{{ url_for('elimina_documento', id_fasc=fascicolo.id, id_doc=pdoc.local_doc_id) }}">
                             <button class="btn btn-outline-danger btn-sm" title="Elimina">
                               <i class="bi bi-trash"></i>
                             </button>
@@ -523,6 +522,24 @@
                 <span class="badge text-bg-{{ att_esito_tone }}">
                   {{ att.esito.value.replace('_',' ') }}
                 </span>
+                <button class="btn btn-sm btn-outline-primary" title="Visualizza attività"
+                        data-bs-toggle="modal"
+                        data-bs-target="#modalDettaglioAttivita{{ att.id }}">
+                  <i class="bi bi-eye"></i>
+                </button>
+                <form method="post"
+                      class="d-inline"
+                      action="{{ url_for('elimina_attivita_fascicolo', id_fasc=fascicolo.id, id_att=att.id) }}"
+                      data-confirm-submit="true"
+                      data-confirm-title="Elimina attività"
+                      data-confirm-message="Vuoi eliminare questa attività processuale dal fascicolo? L'operazione non potra' essere annullata."
+                      data-confirm-confirm-label="Elimina attività"
+                      data-confirm-variant="danger">
+                  <input type="hidden" name="next_section" value="sezione-attivita-processuali">
+                  <button class="btn btn-sm btn-outline-danger" title="Elimina attività">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </form>
                 {# Azioni documento #}
                 {% if att_docs %}
                 {%- set _first_doc = att_docs[0] %}
@@ -545,8 +562,7 @@
                   <i class="bi bi-download"></i>
                 </a>
                 <form method="post" class="d-inline"
-                      action="{{ url_for('elimina_documento', id_fasc=fascicolo.id, id_doc=_first_doc.id) }}"
-                      onsubmit="return confirm('Eliminare il documento?')">
+                      action="{{ url_for('elimina_documento', id_fasc=fascicolo.id, id_doc=_first_doc.id) }}">
                   <button class="btn btn-outline-danger btn-sm" title="Elimina">
                     <i class="bi bi-trash"></i>
                   </button>
@@ -571,8 +587,7 @@
                   <i class="bi bi-download"></i>
                 </a>
                 <form method="post" class="d-inline"
-                      action="{{ url_for('elimina_documento', id_fasc=fascicolo.id, id_doc=att_single_doc.id) }}"
-                      onsubmit="return confirm('Eliminare il documento?')">
+                      action="{{ url_for('elimina_documento', id_fasc=fascicolo.id, id_doc=att_single_doc.id) }}">
                   <button class="btn btn-outline-danger btn-sm" title="Elimina">
                     <i class="bi bi-trash"></i>
                   </button>
@@ -724,6 +739,31 @@
         </div>
       </div>
       {% include "components/document_management_summary.html" %}
+      {% if fascicolo.documenti %}
+      <div class="card-body py-2 border-bottom bg-white">
+        <div class="d-flex flex-wrap align-items-center gap-2 small">
+          <button type="button" class="btn btn-sm btn-outline-secondary" id="docBulkToggle">
+            <i class="bi bi-check2-square me-1"></i>Seleziona tutti
+          </button>
+          <form method="post"
+                action="{{ url_for('elimina_documenti_multipli', id_fasc=fascicolo.id) }}"
+                id="docBulkDeleteForm"
+                class="d-inline"
+                data-confirm-submit="true"
+                data-confirm-title="Elimina documenti selezionati"
+                data-confirm-message="Vuoi eliminare i documenti selezionati dal fascicolo? L'operazione non potra' essere annullata."
+                data-confirm-confirm-label="Elimina selezionati"
+                data-confirm-variant="danger">
+            <input type="hidden" name="documenti_ids" id="docBulkIds">
+            <input type="hidden" name="next_section" value="sezione-documenti-fascicolo">
+            <button type="submit" class="btn btn-sm btn-outline-danger" id="docBulkDeleteBtn" disabled>
+              <i class="bi bi-trash3 me-1"></i>Elimina selezionati
+            </button>
+          </form>
+          <span class="text-muted" id="docBulkCount">Nessun documento selezionato</span>
+        </div>
+      </div>
+      {% endif %}
       <div class="card-body p-0">
         {% if fascicolo.documenti %}
 
@@ -747,7 +787,12 @@
         {% endif %}
         <tr>
           <td data-label="Nome" style="min-width:0">
-            <div style="min-width:0;word-break:break-word;overflow-wrap:anywhere">
+            <div class="d-flex align-items-start gap-2" style="min-width:0;word-break:break-word;overflow-wrap:anywhere">
+              <input class="form-check-input js-doc-select mt-1 flex-shrink-0"
+                     type="checkbox"
+                     value="{{ doc.id }}"
+                     aria-label="Seleziona {{ nome_ufficiale }}">
+              <div class="flex-grow-1 min-width-0">
               {% if visualizzabile %}
               <a href="#" class="text-decoration-none fw-semibold"
                  data-doc-nome="{{ doc.nome }}"
@@ -955,6 +1000,7 @@
                 </form>
               </div>
             </div>
+            </div>
           </td>
           <td data-label="Tipo" data-mob-hide>
             <span class="badge bg-light text-dark border" style="font-size:.68rem">
@@ -1003,13 +1049,13 @@
               
               {# Firma #}
               {% if not doc.firmato_digitalmente %}
-              <button type="button" class="btn btn-outline-success btn-sm" title="Firma per deposito"
+              <button type="button" class="btn btn-outline-success btn-sm" title="Firma digitale"
                       data-doc-id="{{ doc.id }}"
                       data-doc-nome="{{ doc.nome }}"
                       data-scarica-url="{{ url_for('scarica_documento', id_fasc=fascicolo.id, id_doc=doc.id) }}"
                       data-firma-url="{{ url_for('firma_documento', id_fasc=fascicolo.id, id_doc=doc.id) }}"
                       onclick="apriFirma(this)">
-                <i class="bi bi-pen"></i>
+                <i class="bi bi-vector-pen"></i>
               </button>
               {% endif %}
               
@@ -1038,8 +1084,7 @@
               
               {# Elimina #}
               <form method="post"
-                    action="{{ url_for('elimina_documento', id_fasc=fascicolo.id, id_doc=doc.id) }}"
-                    onsubmit="return confirm('Eliminare il documento?')">
+                    action="{{ url_for('elimina_documento', id_fasc=fascicolo.id, id_doc=doc.id) }}">
                 <button class="btn btn-outline-danger btn-sm" title="Elimina">
                   <i class="bi bi-trash"></i>
                 </button>
@@ -1263,8 +1308,7 @@
                     <i class="bi bi-download"></i>
                   </a>
                   <form method="post" class="d-inline"
-                        action="{{ url_for('elimina_documento', id_fasc=fascicolo.id, id_doc=_udoc.id) }}"
-                        onsubmit="return confirm('Eliminare il documento?')">
+                        action="{{ url_for('elimina_documento', id_fasc=fascicolo.id, id_doc=_udoc.id) }}">
                     <button class="btn btn-outline-danger btn-sm" title="Elimina">
                       <i class="bi bi-trash"></i>
                     </button>
@@ -1278,6 +1322,26 @@
               <div class="text-end">
                 <span class="badge bg-light text-dark border">{{ att.tipo.value.replace('_',' ') }}</span>
                 <div class="text-muted mt-1">{{ att.data|fmt_data }}</div>
+                <div class="d-flex justify-content-end gap-1 mt-2">
+                  <button class="btn btn-sm btn-outline-primary" title="Visualizza udienza"
+                          data-bs-toggle="modal"
+                          data-bs-target="#modalDettaglioAttivita{{ att.id }}">
+                    <i class="bi bi-eye"></i>
+                  </button>
+                  <form method="post"
+                        class="d-inline"
+                        action="{{ url_for('elimina_attivita_fascicolo', id_fasc=fascicolo.id, id_att=att.id) }}"
+                        data-confirm-submit="true"
+                        data-confirm-title="Elimina udienza"
+                        data-confirm-message="Vuoi eliminare questa udienza dal fascicolo? L'operazione non potra' essere annullata."
+                        data-confirm-confirm-label="Elimina udienza"
+                        data-confirm-variant="danger">
+                    <input type="hidden" name="next_section" value="sezione-udienze-scadenze">
+                    <button class="btn btn-sm btn-outline-danger" title="Elimina udienza">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </form>
+                </div>
               </div>
             </div>
           </div>
@@ -1324,8 +1388,7 @@
                   <i class="bi bi-download"></i>
                 </a>
                 <form method="post" class="d-inline"
-                      action="{{ url_for('elimina_documento', id_fasc=fascicolo.id, id_doc=_uddoc0.id) }}"
-                      onsubmit="return confirm('Eliminare il documento?')">
+                      action="{{ url_for('elimina_documento', id_fasc=fascicolo.id, id_doc=_uddoc0.id) }}">
                   <button class="btn btn-outline-danger btn-sm" title="Elimina">
                     <i class="bi bi-trash"></i>
                   </button>
@@ -1351,6 +1414,26 @@
                   {{ sc.stato.value.replace('_',' ') }}
                 </span>
                 <div class="text-muted mt-1">{{ sc.data_scadenza|fmt_data }}</div>
+                <div class="d-flex justify-content-end gap-1 mt-2">
+                  <a href="{{ url_for('dettaglio_scadenza', id_sc=sc.id) }}"
+                     class="btn btn-sm btn-outline-primary"
+                     title="Visualizza scadenza">
+                    <i class="bi bi-eye"></i>
+                  </a>
+                  <form method="post"
+                        class="d-inline"
+                        action="{{ url_for('elimina_scadenza', id_sc=sc.id) }}"
+                        data-confirm-submit="true"
+                        data-confirm-title="Elimina scadenza"
+                        data-confirm-message="Vuoi eliminare questa scadenza dal fascicolo? L'operazione non potra' essere annullata."
+                        data-confirm-confirm-label="Elimina scadenza"
+                        data-confirm-variant="danger">
+                    <input type="hidden" name="next" value="{{ url_for('dettaglio_fascicolo', id_fasc=fascicolo.id) }}#sezione-udienze-scadenze">
+                    <button class="btn btn-sm btn-outline-danger" title="Elimina scadenza">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </form>
+                </div>
               </div>
             </div>
           </div>
@@ -1560,8 +1643,7 @@
                     <i class="bi bi-download"></i>
                   </a>
                   <form method="post" class="d-inline"
-                        action="{{ url_for('elimina_documento', id_fasc=fascicolo.id, id_doc=_cdoc.id) }}"
-                        onsubmit="return confirm('Eliminare il documento?')">
+                        action="{{ url_for('elimina_documento', id_fasc=fascicolo.id, id_doc=_cdoc.id) }}">
                     <button class="btn btn-outline-danger btn-sm" title="Elimina">
                       <i class="bi bi-trash"></i>
                     </button>
@@ -1909,8 +1991,7 @@
                               {% endif %}
                               {# Elimina #}
                               <form method="post" class="d-inline"
-                                    action="{{ url_for('elimina_documento', id_fasc=fascicolo.id, id_doc=ddoc.id) }}"
-                                    onsubmit="return confirm('Eliminare il documento?')">
+                                    action="{{ url_for('elimina_documento', id_fasc=fascicolo.id, id_doc=ddoc.id) }}">
                                 <button class="btn btn-outline-danger btn-sm py-0 px-1" title="Elimina" style="font-size:.7rem">
                                   <i class="bi bi-trash"></i>
                                 </button>
@@ -2043,8 +2124,7 @@
                               {% endif %}
                               {# Elimina #}
                               <form method="post" class="d-inline"
-                                    action="{{ url_for('elimina_documento', id_fasc=fascicolo.id, id_doc=pdoc.local_doc_id) }}"
-                                    onsubmit="return confirm('Eliminare il documento dal fascicolo?')">
+                                    action="{{ url_for('elimina_documento', id_fasc=fascicolo.id, id_doc=pdoc.local_doc_id) }}">
                                 <button class="btn btn-outline-danger btn-sm" title="Elimina">
                                   <i class="bi bi-trash"></i>
                                 </button>
@@ -2223,8 +2303,7 @@
                   <i class="bi bi-download"></i>
                 </a>
                 <form method="post" class="d-inline"
-                      action="{{ url_for('elimina_documento', id_fasc=fascicolo.id, id_doc=doc.id) }}"
-                      onsubmit="return confirm('Eliminare il documento?')">
+                      action="{{ url_for('elimina_documento', id_fasc=fascicolo.id, id_doc=doc.id) }}">
                   <button class="btn btn-outline-danger btn-sm" title="Elimina">
                     <i class="bi bi-trash"></i>
                   </button>
@@ -2276,8 +2355,7 @@
                   <i class="bi bi-download"></i>
                 </a>
                 <form method="post" class="d-inline"
-                      action="{{ url_for('elimina_documento', id_fasc=fascicolo.id, id_doc=_idoc0.id) }}"
-                      onsubmit="return confirm('Eliminare il documento?')">
+                      action="{{ url_for('elimina_documento', id_fasc=fascicolo.id, id_doc=_idoc0.id) }}">
                   <button class="btn btn-outline-danger btn-sm" title="Elimina">
                     <i class="bi bi-trash"></i>
                   </button>
@@ -3801,6 +3879,65 @@
 
 {# Modals esito per ogni attività #}
 {% for att in fascicolo.attivita %}
+<div class="modal fade" id="modalDettaglioAttivita{{ att.id }}" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div>
+          <h5 class="modal-title mb-1">Dettaglio attività</h5>
+          <div class="small text-muted">{{ att.titolo }}</div>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Chiudi"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row g-3 small">
+          <div class="col-md-4">
+            <div class="text-muted">Tipo</div>
+            <div class="fw-semibold">{{ att.tipo.value.replace('_',' ') }}</div>
+          </div>
+          <div class="col-md-4">
+            <div class="text-muted">Data</div>
+            <div class="fw-semibold">{{ att.data|fmt_data }}</div>
+          </div>
+          <div class="col-md-4">
+            <div class="text-muted">Esito</div>
+            <div class="fw-semibold">{{ att.esito.value.replace('_',' ') }}</div>
+          </div>
+          {% if att.luogo %}
+          <div class="col-md-6">
+            <div class="text-muted">Luogo</div>
+            <div class="fw-semibold">{{ att.luogo }}</div>
+          </div>
+          {% endif %}
+          {% if att.avvocato %}
+          <div class="col-md-6">
+            <div class="text-muted">Avvocato</div>
+            <div class="fw-semibold">{{ att.avvocato }}</div>
+          </div>
+          {% endif %}
+          {% if att.descrizione %}
+          <div class="col-12">
+            <div class="text-muted">Descrizione</div>
+            <div class="fw-semibold text-break">{{ att.descrizione }}</div>
+          </div>
+          {% endif %}
+          {% if att.note %}
+          <div class="col-12">
+            <div class="text-muted">Note</div>
+            <div class="fw-semibold text-break">{{ att.note }}</div>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Chiudi</button>
+        <button type="button" class="btn btn-primary" data-bs-target="#modalEsito{{ att.id }}" data-bs-toggle="modal">
+          <i class="bi bi-pencil-square me-1"></i>Modifica esito
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
 <div class="modal fade" id="modalEsito{{ att.id }}" tabindex="-1">
   <div class="modal-dialog">
     <div class="modal-content">
@@ -3830,6 +3967,28 @@
   </div>
 </div>
 {% endfor %}
+
+<div class="modal fade" id="modalConfermaAzioneFascicolo" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="modalConfermaAzioneFascicoloTitolo">Conferma operazione</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Chiudi"></button>
+      </div>
+      <div class="modal-body">
+        <p class="mb-0" id="modalConfermaAzioneFascicoloMessaggio">
+          Vuoi procedere con questa operazione?
+        </p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annulla</button>
+        <button type="button" class="btn btn-danger" id="modalConfermaAzioneFascicoloConferma">
+          Conferma
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
 
 {# Modal: aggiungi parte processuale #}
 <div class="modal fade" id="modalAggiungiParte" tabindex="-1">
@@ -5826,7 +5985,120 @@ function _activateFascicoloCockpitTab(targetSelector) {
   }, 80);
 }
 
+function _fascicoloClosestSectionId(element, fallback) {
+  const section = element?.closest?.('[id^="sezione-"]');
+  return section?.id || fallback || 'sezione-documenti-fascicolo';
+}
+
+function _ensureHiddenInput(form, name, value) {
+  let input = form.querySelector(`input[name="${name}"]`);
+  if (!input) {
+    input = document.createElement('input');
+    input.type = 'hidden';
+    input.name = name;
+    form.appendChild(input);
+  }
+  input.value = value;
+  return input;
+}
+
+function _prepareFascicoloDeleteForms() {
+  document.querySelectorAll('form').forEach(function(form) {
+    const action = form.getAttribute('action') || '';
+    const inlineConfirm = form.getAttribute('onsubmit') || '';
+    if (!action.includes('/documenti/') || !action.includes('/elimina')) return;
+    form.removeAttribute('onsubmit');
+    form.onsubmit = null;
+    form.dataset.confirmSubmit = form.dataset.confirmSubmit || 'true';
+    form.dataset.confirmTitle = form.dataset.confirmTitle || 'Elimina documento';
+    form.dataset.confirmMessage = form.dataset.confirmMessage || "Vuoi eliminare questo documento dal fascicolo? L'operazione non potra' essere annullata.";
+    form.dataset.confirmConfirmLabel = form.dataset.confirmConfirmLabel || 'Elimina documento';
+    form.dataset.confirmVariant = form.dataset.confirmVariant || 'danger';
+    _ensureHiddenInput(form, 'next_section', _fascicoloClosestSectionId(form, 'sezione-documenti-fascicolo'));
+    if (inlineConfirm && inlineConfirm.includes('documento dal fascicolo')) {
+      form.dataset.confirmMessage = "Vuoi eliminare questo documento dal fascicolo? L'operazione non potra' essere annullata.";
+    }
+  });
+}
+
+function _initFascicoloConfirmModal() {
+  const modalEl = document.getElementById('modalConfermaAzioneFascicolo');
+  const confirmBtn = document.getElementById('modalConfermaAzioneFascicoloConferma');
+  const titleEl = document.getElementById('modalConfermaAzioneFascicoloTitolo');
+  const messageEl = document.getElementById('modalConfermaAzioneFascicoloMessaggio');
+  if (!modalEl || !confirmBtn || !titleEl || !messageEl || !window.bootstrap?.Modal) return;
+  const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+  let pendingForm = null;
+
+  document.addEventListener('submit', function(event) {
+    const form = event.target;
+    if (!(form instanceof HTMLFormElement)) return;
+    if (form.dataset.confirmSubmit !== 'true' || form.dataset.confirmed === 'true') return;
+    event.preventDefault();
+    pendingForm = form;
+    titleEl.textContent = form.dataset.confirmTitle || 'Conferma operazione';
+    messageEl.textContent = form.dataset.confirmMessage || 'Vuoi procedere con questa operazione?';
+    confirmBtn.textContent = form.dataset.confirmConfirmLabel || 'Conferma';
+    confirmBtn.className = 'btn btn-' + (form.dataset.confirmVariant || 'danger');
+    modal.show();
+  });
+
+  confirmBtn.addEventListener('click', function() {
+    if (!pendingForm) return;
+    pendingForm.dataset.confirmed = 'true';
+    modal.hide();
+    pendingForm.submit();
+    pendingForm = null;
+  });
+
+  modalEl.addEventListener('hidden.bs.modal', function() {
+    if (pendingForm) {
+      pendingForm.dataset.confirmed = '';
+    }
+  });
+}
+
+function _initDocumentBulkActions() {
+  const checks = Array.from(document.querySelectorAll('.js-doc-select'));
+  const toggle = document.getElementById('docBulkToggle');
+  const form = document.getElementById('docBulkDeleteForm');
+  const idsInput = document.getElementById('docBulkIds');
+  const deleteBtn = document.getElementById('docBulkDeleteBtn');
+  const countEl = document.getElementById('docBulkCount');
+  if (!checks.length || !form || !idsInput || !deleteBtn || !countEl) return;
+
+  function selectedIds() {
+    return checks.filter((check) => check.checked).map((check) => check.value);
+  }
+
+  function syncBulkState() {
+    const ids = selectedIds();
+    idsInput.value = ids.join(',');
+    deleteBtn.disabled = ids.length === 0;
+    countEl.textContent = ids.length
+      ? `${ids.length} document${ids.length === 1 ? 'o' : 'i'} selezionat${ids.length === 1 ? 'o' : 'i'}`
+      : 'Nessun documento selezionato';
+    if (toggle) {
+      toggle.innerHTML = checks.every((check) => check.checked)
+        ? '<i class="bi bi-square me-1"></i>Deseleziona tutti'
+        : '<i class="bi bi-check2-square me-1"></i>Seleziona tutti';
+    }
+  }
+
+  checks.forEach((check) => check.addEventListener('change', syncBulkState));
+  toggle?.addEventListener('click', function() {
+    const shouldSelect = !checks.every((check) => check.checked);
+    checks.forEach((check) => { check.checked = shouldSelect; });
+    syncBulkState();
+  });
+  form.addEventListener('submit', syncBulkState);
+  syncBulkState();
+}
+
 document.addEventListener('DOMContentLoaded', function() {
+  _prepareFascicoloDeleteForms();
+  _initFascicoloConfirmModal();
+  _initDocumentBulkActions();
   document.querySelectorAll('.section-collapse-trigger[data-bs-target]').forEach(function(trigger) {
     const selector = trigger.getAttribute('data-bs-target');
     const target = selector ? document.querySelector(selector) : null;

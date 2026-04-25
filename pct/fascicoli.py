@@ -1924,6 +1924,23 @@ class GestioneFascicoli:
         self._salva()
         return att
 
+    def rimuovi_attivita(self, id_fasc: str, id_att: str) -> None:
+        """Rimuove un'attivita' processuale mantenendo aggiornato il fascicolo."""
+        f = self._get_o_errore(id_fasc)
+        att = next((a for a in f.attivita if a.id == id_att), None)
+        if not att:
+            raise KeyError(f"Attivita' '{id_att}' non trovata.")
+        f.attivita = [a for a in f.attivita if a.id != id_att]
+        if att.tipo == TipoAttivita.UDIENZA:
+            udienze_future = sorted(
+                a.data
+                for a in f.attivita
+                if a.tipo == TipoAttivita.UDIENZA and a.data and a.data >= date.today().isoformat()
+            )
+            f.data_prossima_udienza = udienze_future[0] if udienze_future else ""
+        f.modificato_il = datetime.now().isoformat()
+        self._salva()
+
     # ---------------------------------------------------------------- Archivio
 
     def definisci(

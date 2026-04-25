@@ -129,6 +129,12 @@ def register_fascicoli_document_routes(
 ) -> None:
     """Register fascicolo document upload, preview, import, and download routes."""
 
+    def _redirect_to_documenti_section(id_fasc: str):
+        section = str(request.form.get("next_section") or "sezione-documenti-fascicolo").strip().lstrip("#")
+        if not section.startswith("sezione-"):
+            section = "sezione-documenti-fascicolo"
+        return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc) + f"#{section}")
+
     @app.route("/fascicoli/<id_fasc>/documenti/carica", methods=["POST"])
     def carica_documento(id_fasc):
         gestore_fascicoli = get_fascicoli()
@@ -445,7 +451,40 @@ def register_fascicoli_document_routes(
     def elimina_documento(id_fasc, id_doc):
         try:
             get_fascicoli().rimuovi_documento(id_fasc, id_doc)
-            flash("Documento eliminato.", "success")
+            flash("Documento eliminato dal fascicolo.", "success")
         except KeyError as exc:
             flash(str(exc), "danger")
-        return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
+        return _redirect_to_documenti_section(id_fasc)
+
+    @app.route("/fascicoli/<id_fasc>/documenti/elimina-multipla", methods=["POST"])
+    def elimina_documenti_multipli(id_fasc):
+        ids_raw = str(request.form.get("documenti_ids") or "").strip()
+        ids_doc = [item.strip() for item in ids_raw.split(",") if item.strip()]
+        if not ids_doc:
+            flash("Seleziona almeno un documento da eliminare.", "warning")
+            return _redirect_to_documenti_section(id_fasc)
+
+        gestore_fascicoli = get_fascicoli()
+        rimossi = 0
+        errori: list[str] = []
+        for id_doc in dict.fromkeys(ids_doc):
+            try:
+                gestore_fascicoli.rimuovi_documento(id_fasc, id_doc)
+                rimossi += 1
+            except KeyError as exc:
+                errori.append(str(exc))
+
+        if rimossi:
+            audit(
+                "fascicoli.documento.elimina_multipla",
+                "fascicolo",
+                id_fasc,
+                dettagli=f"{rimossi} documenti",
+            )
+            flash(
+                f"{rimossi} document{'o' if rimossi == 1 else 'i'} eliminat{'o' if rimossi == 1 else 'i'} dal fascicolo.",
+                "success",
+            )
+        if errori:
+            flash("Alcuni documenti non sono stati eliminati: " + "; ".join(errori[:3]), "warning")
+        return _redirect_to_documenti_section(id_fasc)

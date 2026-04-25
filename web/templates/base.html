@@ -597,7 +597,7 @@
       } %}
       {% for cat, msg in messages %}
         {% set meta = flash_meta.get(cat, flash_meta['info']) %}
-        <div class="ui-feedback ui-feedback--{{ meta.tone }}" role="alert">
+        <div class="ui-feedback ui-feedback--{{ meta.tone }} alert mb-0" role="alert">
           <div class="ui-feedback__icon">
             <i class="bi bi-{{ meta.icon }}"></i>
           </div>

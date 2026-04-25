@@ -29,6 +29,19 @@
 {% set hero_next_step = (rc.next_step.title if rc and rc.next_step else '') or (smart_actions[0] if smart_actions else '') or (fascicolo_pipeline.next_action if fascicolo_pipeline else '') or (economic_dashboard.next_action if economic_dashboard else '') or "Presidia il fascicolo con la cabina operativa e chiudi il ciclo fino all'incasso." %}
 
 <div class="card shadow-sm fascicolo-cockpit mb-3" id="sezione-cabina-fascicolo" style="scroll-margin-top:1rem">
+  <div class="card-header fw-semibold d-flex justify-content-between align-items-center gap-2 flex-wrap">
+    <button class="btn btn-link p-0 text-decoration-none text-dark fw-semibold d-inline-flex align-items-center gap-2 section-collapse-trigger"
+            type="button"
+            data-bs-toggle="collapse"
+            data-bs-target="#collapse-sezione-cabina-fascicolo"
+            aria-expanded="true"
+            aria-controls="collapse-sezione-cabina-fascicolo">
+      <span><i class="bi bi-stars me-2 text-primary"></i>Cabina fascicolo</span>
+      <i class="bi bi-chevron-up small"></i>
+    </button>
+    <span class="badge bg-light text-dark border">Regia operativa</span>
+  </div>
+  <div class="collapse show" id="collapse-sezione-cabina-fascicolo">
   <div class="card-body">
     <div class="fascicolo-cockpit__hero">
       <div class="fascicolo-cockpit__hero-copy">
@@ -317,5 +330,6 @@
         </div>
       </div>
     </div>
+  </div>
   </div>
 </div>

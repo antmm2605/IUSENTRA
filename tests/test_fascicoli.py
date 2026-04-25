@@ -255,7 +255,7 @@ def test_zip_include_documenti(gf, fascicolo_base):
     assert any("sentenza.pdf" in n for n in nomi)
 
 
-def test_registra_import_documenti_portale_collega_documenti_e_attivita(gf, fascicolo_base):
+def test_registra_import_documenti_portale_collega_documenti_senza_attivita(gf, fascicolo_base):
     doc1 = gf.aggiungi_documento(
         fascicolo_base.id,
         "sentenza.pdf",
@@ -286,7 +286,7 @@ def test_registra_import_documenti_portale_collega_documenti_e_attivita(gf, fasc
     assert fascicolo.depositi_pct[0].servizio_portale == "DocumentiFascicolo"
     assert fascicolo.documenti[0].id_deposito_pct == esito.id
     assert fascicolo.documenti[1].id_deposito_pct == esito.id
-    assert any(
+    assert not any(
         att.tipo == TipoAttivita.CONSULTAZIONE and att.id_deposito_pct == esito.id
         for att in fascicolo.attivita
     )
@@ -651,7 +651,7 @@ def test_collega_documenti_a_deposito_portale_aggancia_file_locali_al_deposito_u
     )
 
 
-def test_sincronizza_deposito_portale_registra_metadati_e_attivita(gf, fascicolo_base):
+def test_sincronizza_deposito_portale_registra_metadati_senza_attivita_documenti(gf, fascicolo_base):
     esito = gf.sincronizza_deposito_portale(
         fascicolo_base.id,
         fonte="PolisWeb / PST",
@@ -695,7 +695,7 @@ def test_sincronizza_deposito_portale_registra_metadati_e_attivita(gf, fascicolo
     assert len(esito.documenti_portale) == 2
     assert esito.documenti_portale[1]["disponibile"] is True
     assert len(fascicolo.depositi_pct) == 1
-    assert any(
+    assert not any(
         att.id_deposito_pct == esito.id and att.tipo == TipoAttivita.DEPOSITO_ATTI
         for att in fascicolo.attivita
     )
@@ -767,7 +767,7 @@ def test_sincronizza_deposito_portale_aggiorna_senza_duplicare(gf, fascicolo_bas
     assert esito_aggiornato.servizio_portale == "DocumentiFascicolo"
     assert len(esito_aggiornato.documenti_portale) == 2
     assert esito_aggiornato.documenti_portale[0]["nome"] in {"dispositivo.pdf", "sentenza.pdf"}
-    assert len([att for att in fascicolo.attivita if att.id_deposito_pct == esito_aggiornato.id]) == 1
+    assert len([att for att in fascicolo.attivita if att.id_deposito_pct == esito_aggiornato.id]) == 0
 
 
 def test_riconcilia_documenti_portale_allinea_nome_e_metadati(gf, fascicolo_base):

@@ -1731,20 +1731,14 @@ def build_telematico_runtime(
         selected_preview_docs = list(preview_for_files.get("documenti") or [])
         decoded_items: list[dict[str, Any]] = []
         if importa_file_portale and portale == "pst" and documenti_attesi > 0:
-            if not files:
-                raise ValueError(
-                    "Hai scelto di importare i documenti, ma il wizard non ha ricevuto alcun file scaricato dal portale. "
-                    "Riprova l'acquisizione con download batch attivo."
+            if files:
+                decoded_items = _decode_portale_downloaded_items(files)
+                decoded_items = _merge_preview_metadata_into_portale_items(decoded_items, selected_preview_docs)
+                decoded_items = _filter_portale_items_by_preview_selection(decoded_items, selected_preview_docs)
+                decoded_items = _apply_portale_download_mode_to_items(
+                    decoded_items,
+                    original=scarica_originale_portale,
                 )
-            decoded_items = _decode_portale_downloaded_items(files)
-            decoded_items = _merge_preview_metadata_into_portale_items(decoded_items, selected_preview_docs)
-            decoded_items = _filter_portale_items_by_preview_selection(decoded_items, selected_preview_docs)
-            decoded_items = _apply_portale_download_mode_to_items(
-                decoded_items,
-                original=scarica_originale_portale,
-            )
-            if not decoded_items:
-                raise ValueError("Il lotto scaricato dal portale non contiene file importabili.")
 
         log_id = _append_portale_import_log(
             {
@@ -1872,8 +1866,14 @@ def build_telematico_runtime(
             "staging_archived": "",
         }
         albero_originale_salvato = ""
+        catalogo_depositi_synced = 0
         if importa_file_portale:
-            _sync_portale_metadata_on_fascicolo(portale, id_fasc, preview_for_files, registrato_da=user_name)
+            catalogo_depositi_synced = _sync_portale_metadata_on_fascicolo(
+                portale,
+                id_fasc,
+                preview_for_files,
+                registrato_da=user_name,
+            )
             if files:
                 fasc_import = gf.get(id_fasc)
                 if not fasc_import:
@@ -1895,11 +1895,6 @@ def build_telematico_runtime(
                     fasc=fasc_import,
                     items=decoded_items,
                     note_importazione=f"Acquisizione guidata da {_portale_source_name(portale)}",
-                )
-            elif portale == "pst" and documenti_attesi > 0:
-                raise ValueError(
-                    "Hai scelto di importare i documenti, ma il wizard non ha ricevuto alcun file scaricato dal portale. "
-                    "Riprova l'acquisizione con download batch attivo."
                 )
 
         udienza_result = _sync_udienza_e_scadenza(
@@ -1963,13 +1958,16 @@ def build_telematico_runtime(
                 "numero_pratica": getattr(fasc, "numero", ""),
                 "titolo": getattr(fasc, "titolo", ""),
                 "documenti": int(import_result.get("documenti_importati", 0) or 0),
+                "documenti_catalogo": documenti_attesi,
                 "depositi": len(import_result.get("depositi_agganciati") or [])
+                or catalogo_depositi_synced
                 or int(preview.get("counts", {}).get("depositi", 0) or 0),
                 "scadenze_generate": udienza_result["scadenze"],
                 "eventi_generati": udienza_result["attivita"],
                 "conflitti_risolti": len(analysis["warnings"]),
                 "lotto_generico": str(import_result.get("lotto_generico") or ""),
                 "modalita_documento_portale": "originale" if scarica_originale_portale else "copia",
+                "catalogo_solo_metadati": bool(importa_file_portale and documenti_attesi > 0 and not files),
                 "albero_originale_salvato": bool(albero_originale_salvato),
             },
         }

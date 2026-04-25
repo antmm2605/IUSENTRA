@@ -3177,6 +3177,91 @@ def test_api_acquisizione_preview_pst_local_signer_non_apre_circuito_preview(tmp
     assert snapshot["failure_count"] == 0
 
 
+def test_api_acquisizione_preview_pst_accetta_documenti_da_browser_locale(tmp_path):
+    from pct.auth import GestioneUtenti, RuoloUtente
+    from web.app import create_app
+
+    cfg = _cfg_web(tmp_path)
+    studio_cfg = tmp_path / "config" / "studio.json"
+
+    gs = GestioneConfigStudio(str(studio_cfg))
+    studio = gs.config
+    studio.firma.backend_preferito = "pkcs11"
+    studio.firma.cf_avvocato = "RSSMRA80A01H501Z"
+    gs.aggiorna(studio)
+
+    gu = GestioneUtenti(
+        db_path=cfg["AUTH_DB"],
+        audit_path=cfg["AUDIT_DB"],
+        secret_key="test",
+    )
+    gu.crea(
+        username="avvocato",
+        password="Avv12345!",
+        ruolo=RuoloUtente.AVVOCATO,
+        email="avvocato@example.com",
+    )
+
+    app = create_app({**cfg, "STUDIO_CONFIG": str(studio_cfg)})
+    with app.test_client() as client:
+        client.post(
+            "/login",
+            data={"username": "avvocato", "password": "Avv12345!"},
+            follow_redirects=True,
+        )
+        response = client.post(
+            "/api/portali/pst/acquisizione/preview",
+            json={
+                "selection": {
+                    "external_id": "0800570152:466:2023:GDP",
+                    "numero": "466",
+                    "anno": 2023,
+                    "ufficio_codice": "0800570152",
+                    "ufficio_nome": "Ufficio del Giudice di Pace di Palmi",
+                    "procedimento": "GDP",
+                    "manual_mode": True,
+                    "parti": ["ALESSI ROBERTINO"],
+                    "controparti": ["ZURICH ASS.NI"],
+                    "payload": {
+                        "numero_rg": "466",
+                        "anno_rg": 2023,
+                        "ruolo": "GDP",
+                        "registro_portale": "GDP",
+                        "data_iscrizione": "2023-02-23",
+                        "data_udienza": "2023-03-01",
+                    },
+                },
+                "documenti": [
+                    {
+                        "id_documento": "DOC-001",
+                        "id_deposito": "DEP-001",
+                        "nome": "atto introduttivo.pdf",
+                        "tipo_atto": "Atto introduttivo",
+                        "data_deposito": "2023-02-23",
+                        "mittente": "MONTAGNESE ROBERTO",
+                    },
+                    {
+                        "id_documento": "DOC-002",
+                        "id_deposito": "DEP-002",
+                        "nome": "verbale udienza.pdf",
+                        "tipo_atto": "Verbale",
+                        "data_deposito": "2023-03-01",
+                        "mittente": "Cancelleria GDP",
+                    },
+                ],
+            },
+            follow_redirects=True,
+        )
+
+    data = response.get_json()
+    assert response.status_code == 200
+    assert data["ok"] is True
+    assert data["preview"]["counts"]["documenti"] == 2
+    assert data["preview"]["counts"]["depositi"] == 2
+    assert data["preview"]["identity"]["data_iscrizione"] == "2023-02-23"
+    assert data["preview"]["documenti"][0]["nome"] in {"atto introduttivo.pdf", "verbale udienza.pdf"}
+
+
 def test_acquisizione_wizard_pst_preview_error_usa_fallback_assistito():
     template = (Path(__file__).resolve().parents[1] / "web" / "templates" / "portale" / "acquisizione_wizard.html").read_text(encoding="utf-8")
 
@@ -3185,6 +3270,23 @@ def test_acquisizione_wizard_pst_preview_error_usa_fallback_assistito():
     assert "awPortaleBrowserOnlyError(err) || awPstRecoverablePreviewError(err)" in template
     assert "awBuildManualSelection(query, reason, portaleUrl)" in template
     assert "PST/SIGP" in template
+
+
+def test_acquisizione_wizard_pst_carica_documenti_local_signer_anche_in_modalita_assistita():
+    template = (Path(__file__).resolve().parents[1] / "web" / "templates" / "portale" / "acquisizione_wizard.html").read_text(encoding="utf-8")
+
+    assert 'id="awLoadDocuments"' in template
+    assert "Carica documenti dal Local Signer" in template
+    assert "function awCanPreviewPstViaBrowser" in template
+    assert "function awShouldLoadPreviewViaLocalSigner" in template
+    assert "if (awCanPreviewPstViaBrowser(selection)) return true;" in template
+    assert "return !selection?.manual_mode && awShouldUseLocalSigner();" in template
+    assert "payload.documenti = await awPreviewViaLocalSigner(selection)" in template
+    assert "document.getElementById('awLoadDocuments').addEventListener('click', awLoadDocumentsFromLocalSigner)" in template
+    assert "collection_mode: 'catalog-only'" in template
+    assert "Procedo comunque salvando nel fascicolo il catalogo ufficiale" in template
+    assert "awFormatDate(identity.data_iscrizione)" in template
+    assert "awEscape(dep.data_deposito || 'n.d.')" not in template
 
 
 def test_api_acquisizione_status_pat_forza_browser_ufficiale(tmp_path):
@@ -4511,7 +4613,7 @@ def test_api_portale_acquisizione_import_pst_importa_file_reali_e_salva_albero(t
     )
 
 
-def test_api_portale_acquisizione_import_pst_blocca_import_se_i_file_non_arrivano(tmp_path):
+def test_api_portale_acquisizione_import_pst_salva_catalogo_anche_senza_file(tmp_path):
     from pct.auth import GestioneUtenti, RuoloUtente
     from web.app import create_app
 
@@ -4666,8 +4768,11 @@ def test_api_portale_acquisizione_import_pst_blocca_import_se_i_file_non_arrivan
 
     data = response.get_json()
     assert response.status_code == 200
-    assert data["ok"] is False
-    assert "wizard non ha ricevuto alcun file" in data["errore"]
+    assert data["ok"] is True
+    assert data["result"]["summary"]["documenti"] == 0
+    assert data["result"]["summary"]["documenti_catalogo"] == 1
+    assert data["result"]["summary"]["depositi"] == 1
+    assert data["result"]["summary"]["catalogo_solo_metadati"] is True
 
     gestione_fascicoli_reload = GestioneFascicoli(
         db_path=cfg["FASCICOLI_DB"],
@@ -4677,7 +4782,11 @@ def test_api_portale_acquisizione_import_pst_blocca_import_se_i_file_non_arrivan
     fascicolo_reload = gestione_fascicoli_reload.get(fascicolo.id)
     assert fascicolo_reload is not None
     assert len(fascicolo_reload.documenti) == 0
-    assert len(fascicolo_reload.depositi_pct) == 0
+    assert len(fascicolo_reload.depositi_pct) == 1
+    assert fascicolo_reload.depositi_pct[0].documenti_portale
+    assert fascicolo_reload.depositi_pct[0].documenti_portale[0]["id_documento"] == "DOC-VERBALE-1"
+    assert fascicolo_reload.depositi_pct[0].documenti_portale[0]["tipo_atto"] == "VerbaleUdienza"
+    assert fascicolo_reload.depositi_pct[0].servizio_portale == "DocumentiFascicolo"
 
 
 def test_api_portale_acquisizione_import_pst_arricchisce_file_locali_con_metadati_preview(tmp_path):

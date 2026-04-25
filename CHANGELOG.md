@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.184.11 - 2026-04-25
+
+- Reso esplicito il catalogo JSON del fascicolo PST/SIGP come prima fase stabile dell'acquisizione: buste, documenti, identificativi portale, tipo atto, mittente e date vengono salvati anche quando il download fisico dei file non riesce nella stessa sessione.
+- Collegato nello Step 3 il pulsante reale `Carica documenti dal Local Signer`, disponibile anche nel fallback assistito, cosi' Palmi `466/2023` puo' leggere il catalogo documenti dal browser locale senza restare fermo su `Documenti: 0`.
+- Corrette le date esposte nel wizard PST/SIGP in formato italiano e aggiunto il riepilogo finale `Documenti catalogati`, distinto da `Documenti importati`, per non confondere il catalogo ufficiale con i file fisici gia' presenti nello storage.
+
 ## 2.184.10 - 2026-04-25
 
 - Reso visibile il modulo `SIGP - Giudice di Pace` nel menu `PCT / Telematico` e aperto automaticamente il primo fascicolo importato, cosi' il catalogo Palmi `466/2023` non resta nascosto dietro un URL tecnico.

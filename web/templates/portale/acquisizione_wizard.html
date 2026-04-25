@@ -165,7 +165,7 @@
     </div></div></section>
 
     <section class="aw-pane" data-step="3"><div class="card shadow-sm border-0"><div class="card-body p-4">
-      <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-3"><div><h2 class="h5 mb-1">Step 3 — Anteprima dati trovati</h2><p class="text-muted mb-0">Controlla dati fascicolo, parti, eventi e documenti disponibili.</p></div><button class="btn btn-{{ spec.color }}" type="button" id="awGoSelection">Continua</button></div>
+      <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-3"><div><h2 class="h5 mb-1">Step 3 — Anteprima dati trovati</h2><p class="text-muted mb-0">Controlla dati fascicolo, parti, eventi e documenti disponibili.</p></div><div class="d-flex flex-wrap gap-2"><button class="btn btn-outline-{{ spec.color }} d-none" type="button" id="awLoadDocuments"><i class="bi bi-cloud-arrow-down me-1"></i>Carica documenti dal Local Signer</button><button class="btn btn-{{ spec.color }}" type="button" id="awGoSelection">Continua</button></div></div>
       <ul class="nav nav-pills gap-2 mb-3" id="awPreviewTabs"></ul>
       <div id="awPreview"></div>
     </div></div></section>
@@ -714,6 +714,45 @@ function awDefaultManualProcedimento() {
 function awCanBuildManualSelection(query) {
   return !!(String(query?.ufficio_codice || '').trim() && String(query?.numero || '').trim() && String(query?.anno || '').trim());
 }
+function awCanPreviewPstViaBrowser(selection) {
+  if (AW_BOOT.portale !== 'pst' || AW_STATE.status?.demo_mode) return false;
+  return !!(
+    String(selection?.ufficio_codice || '').trim()
+    && String(selection?.numero || '').trim()
+    && String(selection?.anno || '').trim()
+  );
+}
+function awShouldLoadPreviewViaLocalSigner(selection, options = {}) {
+  if (options.skipLocalPreview || Array.isArray(options.documenti)) return false;
+  if (awCanPreviewPstViaBrowser(selection)) return true;
+  return !selection?.manual_mode && awShouldUseLocalSigner();
+}
+function awClearManualSelection(selection) {
+  const payload = { ...(selection?.payload || {}) };
+  payload.manual_mode = false;
+  payload.manual_reason = '';
+  return {
+    ...(selection || {}),
+    manual_mode: false,
+    manual_reason: '',
+    manual_portale_url: '',
+    payload,
+  };
+}
+function awStoreSelection(index, selection) {
+  if (Number.isInteger(index) && index >= 0) {
+    AW_STATE.results[index] = selection;
+  }
+  AW_STATE.selection = selection;
+  return selection;
+}
+function awRenderDocumentLoadButton() {
+  const btn = document.getElementById('awLoadDocuments');
+  if (!btn) return;
+  const visible = awCanPreviewPstViaBrowser(AW_STATE.selection);
+  btn.classList.toggle('d-none', !visible);
+  btn.disabled = !visible;
+}
 function awMarkSelectionManual(selection, reason = '', portaleUrl = '') {
   const payload = { ...(selection?.payload || {}) };
   payload.manual_mode = true;
@@ -832,6 +871,9 @@ function awManualNoticeHtml() {
   if (!selection.manual_mode) return '';
   const portaleUrl = selection.manual_portale_url || awOfficialPortalUrl();
   const reason = String(selection.manual_reason || '').trim();
+  const pstDocumentAction = AW_BOOT.portale === 'pst' && awCanPreviewPstViaBrowser(selection)
+    ? '<div class="mt-3"><button type="button" class="btn btn-sm btn-warning" data-aw-load-documents><i class="bi bi-cloud-arrow-down me-1"></i>Carica ora i documenti dal Local Signer</button></div>'
+    : '';
   const body = AW_BOOT.portale === 'pat'
     ? "IUSENTRA continua con i dati di RG, ufficio e parti gia' inseriti. Documenti, ricevute, provvedimenti ed esiti PAT si completano importando i file gia scaricati dal Portale dell'Avvocato."
     : (AW_BOOT.portale === 'ptt'
@@ -844,6 +886,7 @@ function awManualNoticeHtml() {
       <div class="fw-semibold">Acquisizione assistita via browser ufficiale</div>
       <div class="small mt-1">${body}</div>
       ${portaleUrl ? `<div class="small mt-2"><a href="${awEscape(portaleUrl)}" target="_blank" rel="noopener">Apri portale ufficiale</a></div>` : ''}
+      ${pstDocumentAction}
       ${reason ? `<div class="small text-muted mt-2">${awEscape(reason)}</div>` : ''}
     </div>`;
 }
@@ -1831,9 +1874,9 @@ function awRenderResults() {
   root.querySelectorAll('[data-aw-select]').forEach(btn => btn.addEventListener('click', () => awSelectResult(Number(btn.dataset.awSelect), true)));
 }
 async function awSelectResult(index, jumpPreview, options = {}) {
-  const selection = AW_STATE.results[index];
+  let selection = AW_STATE.results[index];
   if (!selection) return;
-  AW_STATE.selection = selection;
+  awStoreSelection(index, selection);
   AW_STATE.preview = null;
   AW_STATE.analysis = null;
   AW_STATE.importResult = null;
@@ -1850,15 +1893,20 @@ async function awSelectResult(index, jumpPreview, options = {}) {
     const payload = { selection };
     if (Array.isArray(options.documenti)) {
       payload.documenti = options.documenti;
-    } else if (!options.skipLocalPreview && !selection.manual_mode && awShouldUseLocalSigner()) {
+    } else if (awShouldLoadPreviewViaLocalSigner(selection, options)) {
       await awEnsureLocalSignerReachable({ light: true });
       payload.documenti = await awPreviewViaLocalSigner(selection);
+    }
+    if (AW_BOOT.portale === 'pst' && Array.isArray(payload.documenti) && payload.documenti.length) {
+      selection = awStoreSelection(index, awClearManualSelection(selection));
+      payload.selection = selection;
     }
     const data = await awJson(AW_BOOT.previewUrl, { method: 'POST', body: JSON.stringify(payload) });
     if (!data.ok) throw awBuildPortaleError(data, 'Anteprima non disponibile');
     AW_STATE.preview = data.preview || null;
     awRenderResults();
     awRenderPreview();
+    awPostProcessPreviewDom();
     awRenderSelectionOptions();
     awRenderAnalysis();
     awRenderSidebar();
@@ -1867,6 +1915,32 @@ async function awSelectResult(index, jumpPreview, options = {}) {
   } catch (err) {
     if (awPortaleBrowserOnlyError(err) || awPstRecoverablePreviewError(err)) {
       try {
+        if (awCanPreviewPstViaBrowser(selection)) {
+          try {
+            await awEnsureLocalSignerReachable({ light: true });
+            const browserDocuments = await awPreviewViaLocalSigner(selection);
+            if (Array.isArray(browserDocuments) && browserDocuments.length) {
+              selection = awStoreSelection(index, awClearManualSelection(selection));
+              const recovered = await awJson(AW_BOOT.previewUrl, {
+                method: 'POST',
+                body: JSON.stringify({ selection, documenti: browserDocuments }),
+              });
+              if (!recovered.ok) throw new Error(recovered.errore || 'Anteprima non disponibile');
+              AW_STATE.preview = recovered.preview || null;
+              AW_STATE.previewTab = 'documenti';
+              awRenderResults();
+              awRenderPreview();
+              awPostProcessPreviewDom();
+              awRenderSelectionOptions();
+              awRenderAnalysis();
+              awRenderSidebar();
+              await awWarmAnalysis();
+              if (jumpPreview) awGoStep(3);
+              return;
+            }
+          } catch (_) {
+          }
+        }
         const manualSelection = awMarkSelectionManual(
           selection,
           err?.manualReason || String(err),
@@ -1882,6 +1956,7 @@ async function awSelectResult(index, jumpPreview, options = {}) {
         AW_STATE.preview = fallback.preview || null;
         awRenderResults();
         awRenderPreview();
+        awPostProcessPreviewDom();
         awRenderSelectionOptions();
         awRenderAnalysis();
         awRenderSidebar();
@@ -1899,6 +1974,7 @@ async function awSelectResult(index, jumpPreview, options = {}) {
 function awRenderPreview() {
   const tabs = document.getElementById('awPreviewTabs');
   const root = document.getElementById('awPreview');
+  awRenderDocumentLoadButton();
   if (!AW_STATE.preview) {
     tabs.innerHTML = '';
     root.innerHTML = '<div class="aw-box text-muted">Seleziona un risultato per vedere dati fascicolo, parti, eventi e documenti prima di importare.</div>';
@@ -1919,9 +1995,9 @@ function awRenderPreview() {
     root.innerHTML = `${manualNotice}
       <div class="row g-3">
         <div class="col-md-6"><div class="aw-box h-100"><div class="small text-muted">Identita pratica</div><div class="fw-semibold">RG ${awEscape(identity.numero)}/${awEscape(identity.anno)}</div><div class="small text-muted mt-1">${awEscape(identity.ufficio_nome || identity.ufficio_codice || 'Ufficio non disponibile')}</div>${identity.id_fascicolo ? `<div class="small text-muted mt-1">ID fascicolo PST: ${awEscape(identity.id_fascicolo)}</div>` : ''}</div></div>
-        <div class="col-md-6"><div class="aw-box h-100"><div class="small text-muted">Procedimento</div><div class="fw-semibold">${awEscape(identity.procedimento || 'Non indicato')}</div><div class="small text-muted mt-1">${awEscape(identity.stato || 'Stato non disponibile')}${identity.sub_procedimento ? ` · Sub-procedimento ${awEscape(identity.sub_procedimento)}` : ''}</div></div></div>
+        <div class="col-md-6"><div class="aw-box h-100"><div class="small text-muted">Procedimento</div><div class="fw-semibold">${awEscape(identity.procedimento || 'Non indicato')}</div><div class="small text-muted mt-1">Stato: ${awEscape(awFormatStatus(identity.stato))}${identity.sub_procedimento ? ` · Sub-procedimento ${awEscape(identity.sub_procedimento)}` : ''}</div></div></div>
         <div class="col-md-6"><div class="aw-box h-100"><div class="small text-muted">Oggetto</div><div class="fw-semibold">${awEscape(identity.oggetto || 'Oggetto non disponibile')}</div></div></div>
-        <div class="col-md-6"><div class="aw-box h-100"><div class="small text-muted">Timeline minima</div><div class="small">Iscrizione: ${awEscape(identity.data_iscrizione || 'n.d.')}<br>Ultima attivita: ${awEscape(identity.ultima_attivita || 'n.d.')}<br>Prossima udienza: ${awEscape(identity.data_udienza || 'n.d.')}</div></div></div>
+        <div class="col-md-6"><div class="aw-box h-100"><div class="small text-muted">Timeline minima</div><div class="small">Iscrizione: ${awEscape(awFormatDate(identity.data_iscrizione))}<br>Ultima attivita: ${awEscape(awFormatDate(identity.ultima_attivita))}<br>Prossima udienza: ${awEscape(awFormatDate(identity.data_udienza))}</div></div></div>
       </div>`;
     return;
   }
@@ -1940,7 +2016,7 @@ function awRenderPreview() {
         ${(preview.eventi || []).length ? (preview.eventi || []).map(ev => `
           <div class="d-flex justify-content-between align-items-start gap-3 border-bottom py-2">
             <div><div class="fw-semibold">${awEscape(ev.label)}</div><div class="small text-muted">${awEscape(ev.tipo || 'evento')}</div></div>
-            <div class="small">${awEscape(ev.data || 'n.d.')}</div>
+            <div class="small">${awEscape(awFormatDate(ev.data))}</div>
           </div>`).join('') : '<div class="text-muted small">Nessun evento strutturato disponibile.</div>'}
       </div>`;
     return;
@@ -1950,12 +2026,78 @@ function awRenderPreview() {
       ${(preview.depositi || []).length ? preview.depositi.map(dep => `
         <div class="aw-box">
           <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap mb-2">
-            <div><div class="fw-semibold">${awEscape(dep.tipo_atto || dep.id_deposito || 'Deposito')}</div><div class="small text-muted">${awEscape(dep.data_deposito || 'n.d.')} ${dep.mittente ? `- ${awEscape(dep.mittente)}` : ''}</div></div>
+            <div><div class="fw-semibold">${awEscape(dep.tipo_atto || dep.id_deposito || 'Deposito')}</div><div class="small text-muted">${awEscape(awFormatDate(dep.data_deposito))}${dep.mittente ? ` - ${awEscape(dep.mittente)}` : ''}</div></div>
             <span class="badge text-bg-light border">${(dep.documenti || []).length} file</span>
           </div>
           <div class="small">${(dep.documenti || []).map(doc => `<div class="d-flex justify-content-between gap-2 py-1 border-top"><div class="flex-grow-1"><div>${awEscape(doc.nome || doc.id_documento)}</div>${awDocumentPortalIdLine(doc)}</div><span class="text-muted text-end">${awEscape(doc.tipo_atto || doc.tipo || '')}</span></div>`).join('')}</div>
         </div>`).join('') : '<div class="aw-box text-muted">Nessun documento disponibile dal portale per questo fascicolo.</div>'}
     </div>`;
+}
+async function awLoadDocumentsFromLocalSigner() {
+  const btn = document.getElementById('awLoadDocuments');
+  const selection = AW_STATE.selection;
+  if (!awCanPreviewPstViaBrowser(selection)) {
+    alert('Seleziona prima un fascicolo PST/SIGP con ufficio, numero e anno.');
+    return;
+  }
+  const oldHtml = btn?.innerHTML || '';
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Carico documenti...';
+  }
+  document.getElementById('awPreview').insertAdjacentHTML(
+    'afterbegin',
+    '<div class="alert alert-info rounded-4 mb-3" id="awDocumentLoadInfo">Sto leggendo il catalogo documenti dal Local Signer locale...</div>',
+  );
+  try {
+    if (!AW_STATE.status.demo_mode) await awRefreshStatus({ force: true, probeSigner: true, light: true });
+    await awEnsureLocalSignerReachable({ light: true });
+    const documenti = await awPreviewViaLocalSigner(selection);
+    const currentIndex = AW_STATE.results.findIndex(row => row.external_id === selection.external_id);
+    let cleanSelection = selection;
+    if (Array.isArray(documenti) && documenti.length) {
+      cleanSelection = awClearManualSelection(selection);
+      awStoreSelection(currentIndex, cleanSelection);
+    }
+    const data = await awJson(AW_BOOT.previewUrl, {
+      method: 'POST',
+      body: JSON.stringify({ selection: cleanSelection, documenti: Array.isArray(documenti) ? documenti : [] }),
+    });
+    if (!data.ok) throw awBuildPortaleError(data, 'Anteprima documenti non disponibile');
+    AW_STATE.preview = data.preview || null;
+    AW_STATE.previewTab = 'documenti';
+    AW_STATE.analysis = null;
+    awRenderResults();
+    awRenderPreview();
+    awPostProcessPreviewDom();
+    awRenderSelectionOptions();
+    awRenderAnalysis();
+    awRenderSidebar();
+    await awWarmAnalysis();
+    if (!Array.isArray(documenti) || !documenti.length) {
+      document.getElementById('awPreview').insertAdjacentHTML(
+        'afterbegin',
+        '<div class="alert alert-warning rounded-4 mb-3">Il Local Signer ha risposto, ma non ha restituito documenti per questo fascicolo. Verifica la sessione PST/SIGP nel browser ufficiale e riprova.</div>',
+      );
+    }
+  } catch (err) {
+    const box = document.getElementById('awDocumentLoadInfo');
+    if (box) {
+      box.className = 'alert alert-warning rounded-4 mb-3';
+      box.innerHTML = `Caricamento documenti non riuscito: ${awEscape(awErrorMessage(err))}`;
+    } else {
+      document.getElementById('awPreview').insertAdjacentHTML(
+        'afterbegin',
+        `<div class="alert alert-warning rounded-4 mb-3">Caricamento documenti non riuscito: ${awEscape(awErrorMessage(err))}</div>`,
+      );
+    }
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = oldHtml || '<i class="bi bi-cloud-arrow-down me-1"></i>Carica documenti dal Local Signer';
+      awRenderDocumentLoadButton();
+    }
+  }
 }
 function awSelectionValue(id, fallback) {
   const el = document.getElementById(id);
@@ -2181,8 +2323,9 @@ async function awStartImport() {
   let downloadedFiles = Array.isArray(AW_STATE.downloadedFiles) ? AW_STATE.downloadedFiles : [];
   const manualUploadedFiles = Array.isArray(AW_STATE.manualUploadedFiles) ? AW_STATE.manualUploadedFiles : [];
   let downloadSummary = null;
+  let selectedDocsCount = 0;
   try {
-    const selectedDocsCount = awSelectedPreviewDocuments(options).length;
+    selectedDocsCount = awSelectedPreviewDocuments(options).length;
     if (manualUploadedFiles.length && awShouldImportPortalFiles(options) && selectedDocsCount > 0) {
       downloadedFiles = manualUploadedFiles;
       downloadSummary = {
@@ -2218,9 +2361,22 @@ async function awStartImport() {
     }
   } catch (err) {
     awHideDownloadProgress();
-    importBtn.disabled = false;
-    state.innerHTML = `<span class="text-danger"><i class="bi bi-x-circle me-1"></i>${awEscape(String(err))}</span>`;
-    return;
+    if (AW_BOOT.portale === 'pst' && awShouldImportPortalFiles(options) && selectedDocsCount > 0) {
+      downloadedFiles = [];
+      downloadSummary = {
+        ok: false,
+        files: [],
+        failures: [{ errore: awErrorMessage(err) }],
+        documenti_richiesti: selectedDocsCount,
+        documenti_scaricati: 0,
+        collection_mode: 'catalog-only',
+      };
+      state.innerHTML = `<span class="text-warning"><i class="bi bi-exclamation-triangle me-1"></i>Download file non completato: ${awEscape(awErrorMessage(err))}</span><br><small class="text-muted">Procedo comunque salvando nel fascicolo il catalogo ufficiale dei documenti e delle buste.</small>`;
+    } else {
+      importBtn.disabled = false;
+      state.innerHTML = `<span class="text-danger"><i class="bi bi-x-circle me-1"></i>${awEscape(awErrorMessage(err))}</span>`;
+      return;
+    }
   }
   state.innerHTML = (state.innerHTML.includes('alert-') ? state.innerHTML : state.innerHTML) + (downloadSummary ? '' : '') + '<br><small class="text-muted">Registrazione nel gestionale in corso...</small>';
   const data = await awJson(AW_BOOT.importUrl, {
@@ -2245,6 +2401,7 @@ async function awStartImport() {
   const collectionMode = String(downloadSummary?.collection_mode || '').toLowerCase();
   const usedBrowserDownloads = collectionMode === 'browser-downloads';
   const usedManualUploads = collectionMode === 'manual-upload';
+  const usedCatalogOnly = collectionMode === 'catalog-only' || !!summary.catalogo_solo_metadati;
   state.innerHTML = `
     <div class="alert alert-success rounded-4 mb-0">
       <div class="fw-semibold mb-1"><i class="bi bi-check-circle-fill me-1"></i>${
@@ -2254,14 +2411,15 @@ async function awStartImport() {
       }</div>
       <div class="small">
         Documenti importati: ${awEscape(summary.documenti || 0)} ·
+        Documenti catalogati: ${awEscape(summary.documenti_catalogo || AW_STATE.preview?.counts?.documenti || 0)} ·
         Depositi censiti: ${awEscape(summary.depositi || 0)} ·
         Eventi generati: ${awEscape(summary.eventi_generati || 0)} ·
         Scadenze generate: ${awEscape(summary.scadenze_generate || 0)} ·
         Conflitti risolti: ${awEscape(summary.conflitti_risolti || 0)}
       </div>
-      ${downloadSummary && !usedBrowserDownloads ? `<div class="small mt-1">Modalita documenti PST: ${awEscape(summary.modalita_documento_portale === 'copia' ? 'copia portale con annotazioni ministeriali' : 'originale firmato del repository')}</div>` : ''}
-      ${downloadSummary ? `<div class="small mt-1">${awEscape(downloadSummary.documenti_scaricati || 0)} ${usedManualUploads ? 'file caricati manualmente dal tuo computer' : (usedBrowserDownloads ? 'file locali raccolti dai download del browser ufficiale' : 'allegati scaricati dal portale e ripartiti nelle sezioni del fascicolo')}${failureCount ? ` · <span class="text-warning">${awEscape(failureCount)} download da verificare</span>` : ''}.</div>` : ''}
-      ${downloadSummary ? `<div class="small mt-1 text-muted">${usedManualUploads ? 'Nel fascicolo trovi i file che hai selezionato manualmente, piu il catalogo ufficiale dei documenti del portale per i collegamenti a buste e controlli.' : (usedBrowserDownloads ? (AW_BOOT.portale === 'pat' ? "Nel fascicolo PAT interno trovi catalogo ufficiale, ricevute e file gia scaricati dal Portale dell'Avvocato, senza lettura live diretta da SIGA." : 'Nel fascicolo trovi il catalogo ufficiale del portale e i file gia scaricati nel browser, senza nuovi download automatici dal gestionale.') : "Nel fascicolo vedrai sempre il catalogo ufficiale dei documenti del portale. L'opzione dell'albero tecnico salva solo una copia tecnica separata, non cambia questa vista.")}</div>` : ''}
+      ${downloadSummary && !usedBrowserDownloads && !usedCatalogOnly ? `<div class="small mt-1">Modalita documenti PST: ${awEscape(summary.modalita_documento_portale === 'copia' ? 'copia portale con annotazioni ministeriali' : 'originale firmato del repository')}</div>` : ''}
+      ${downloadSummary ? `<div class="small mt-1">${usedCatalogOnly ? 'Catalogo ufficiale salvato senza file fisici in questa sessione' : `${awEscape(downloadSummary.documenti_scaricati || 0)} ${usedManualUploads ? 'file caricati manualmente dal tuo computer' : (usedBrowserDownloads ? 'file locali raccolti dai download del browser ufficiale' : 'allegati scaricati dal portale e ripartiti nelle sezioni del fascicolo')}`}${failureCount ? ` · <span class="text-warning">${awEscape(failureCount)} download da verificare</span>` : ''}.</div>` : ''}
+      ${downloadSummary ? `<div class="small mt-1 text-muted">${usedCatalogOnly ? 'Nel fascicolo trovi subito buste, classificazioni, date, mittenti e nomi dei documenti. I file fisici potranno essere acquisiti dal Local Signer o dai download del browser ufficiale senza perdere il catalogo.' : (usedManualUploads ? 'Nel fascicolo trovi i file che hai selezionato manualmente, piu il catalogo ufficiale dei documenti del portale per i collegamenti a buste e controlli.' : (usedBrowserDownloads ? (AW_BOOT.portale === 'pat' ? "Nel fascicolo PAT interno trovi catalogo ufficiale, ricevute e file gia scaricati dal Portale dell'Avvocato, senza lettura live diretta da SIGA." : 'Nel fascicolo trovi il catalogo ufficiale del portale e i file gia scaricati nel browser, senza nuovi download automatici dal gestionale.') : "Nel fascicolo vedrai sempre il catalogo ufficiale dei documenti del portale. L'opzione dell'albero tecnico salva solo una copia tecnica separata, non cambia questa vista."))}</div>` : ''}
       ${summary.albero_originale_salvato ? `<div class="small mt-1">${AW_BOOT.portale === 'pat' ? "Archivio tecnico dell'import PAT archiviato." : 'Albero tecnico originale del portale archiviato.'}</div>` : ''}
       <div class="small mt-1 text-muted">Import log ${awEscape(AW_STATE.importResult?.import_log_id || '')}</div>
     </div>`;
@@ -2288,6 +2446,7 @@ function awRenderSidebar() {
   const list = document.getElementById('awSidebarList');
   const pills = document.getElementById('awSidebarPills');
   const note = document.getElementById('awSidebarNote');
+  awRenderDocumentLoadButton();
   if (!AW_STATE.selection) {
     list.innerHTML = '<li class="text-muted">Nessun fascicolo selezionato.</li>';
     pills.innerHTML = '';
@@ -2449,6 +2608,13 @@ document.getElementById('awTest').addEventListener('click', async () => {
   document.getElementById('awGoSelection').addEventListener('click', () => {
     if (!AW_STATE.preview) return alert('Apri prima l’anteprima del fascicolo corretto.');
     awGoStep(4);
+  });
+  document.getElementById('awLoadDocuments').addEventListener('click', awLoadDocumentsFromLocalSigner);
+  document.addEventListener('click', event => {
+    const trigger = event.target.closest('[data-aw-load-documents]');
+    if (!trigger) return;
+    event.preventDefault();
+    awLoadDocumentsFromLocalSigner();
   });
   document.getElementById('awGoMapping').addEventListener('click', async () => {
     if (!AW_STATE.preview) return alert('Apri prima l’anteprima del fascicolo corretto.');

@@ -630,7 +630,7 @@ def test_route_importa_documenti_portale_salva_documenti_e_deposito(tmp_path):
     assert fascicolo_reload.depositi_pct[0].stato == "IMPORTATO_DA_PORTALE"
     assert fascicolo_reload.depositi_pct[0].tipo_atto == "Acquisizione documenti PolisWeb"
     assert len(fascicolo_reload.depositi_pct[0].documenti_ids) == 2
-    assert any(att.tipo.value == "CONSULTAZIONE" for att in fascicolo_reload.attivita)
+    assert not any(att.tipo.value == "CONSULTAZIONE" for att in fascicolo_reload.attivita)
 
 
 def test_route_importa_documenti_portale_usa_inbox_temporanea(tmp_path):
@@ -800,7 +800,7 @@ def test_api_importa_documenti_portale_aggancia_file_al_deposito_ufficiale(tmp_p
     assert fascicolo_reload.depositi_pct[0].documenti_ids == [fascicolo_reload.documenti[0].id]
     assert fascicolo_reload.documenti[0].id_deposito_pct == deposito.id
     assert fascicolo_reload.depositi_pct[0].servizio_portale == "DocumentiFascicolo"
-    assert len(fascicolo_reload.attivita) == 1
+    assert len(fascicolo_reload.attivita) == 0
     assert fascicolo_reload.depositi_pct[0].documenti_portale[0]["id_repeatto"] == "ATTO-SIGP-900"
     assert fascicolo_reload.depositi_pct[0].documenti_portale[0]["msg_id"] == "PEC-MSG-900"
 
@@ -982,7 +982,7 @@ def test_route_importa_documenti_portale_aggancia_upload_al_deposito_ufficiale(t
     assert fascicolo_reload.depositi_pct[0].documenti_ids == [fascicolo_reload.documenti[0].id]
     assert fascicolo_reload.documenti[0].id_deposito_pct == deposito.id
     assert fascicolo_reload.depositi_pct[0].servizio_portale == "DocumentiFascicolo"
-    assert len(fascicolo_reload.attivita) == 1
+    assert len(fascicolo_reload.attivita) == 0
 
 
 def test_route_documenti_polisweb_consente_vista_completa_delle_buste(tmp_path):
@@ -1256,12 +1256,13 @@ def test_dettaglio_fascicolo_mostra_download_ufficiale_portale(tmp_path):
     assert "Scarica + importa selezionati" in body
     assert "Acquisisci intero fascicolo" in body
     assert "Conserva anche l'albero tecnico originale del portale" in body
+    assert "Scarica duplicato/originale senza coccarda ministeriale" in body
     assert "Acquisisci fascicolo" not in body
     assert "_PST_NAV_ITEMS" in body
     assert "/pst/download-documenti-batch" in body
     assert "copia di consultazione del portale con annotazioni ministeriali visibili" in body
-    assert "original: false" in body
-    assert "scarica_originale_portale: false" in body
+    assert "original: scaricaDuplicatoOriginale()" in body
+    assert "scarica_originale_portale: scaricaDuplicatoOriginale()" in body
 
 
 def test_dettaglio_fascicolo_segna_documento_portale_gia_importato(tmp_path):
@@ -1453,6 +1454,8 @@ def test_dettaglio_fascicolo_non_mescola_documenti_portale_con_comunicazioni(tmp
     assert response.status_code == 200
     assert "documenti ufficiali" in body
     assert "Documenti fascicolo" in body
+    assert re.search(r"Documenti fascicolo\s*<span[^>]*>\s*1\s*</span>", body)
+    assert re.search(r"Attività processuali\s*<span[^>]*>\s*0\s*</span>", body)
     assert "nella sezione <strong>Comunicazioni di cancelleria</strong>" not in body
     assert "Nessuna comunicazione di cancelleria" in body
 
@@ -2979,6 +2982,8 @@ def test_route_wizard_acquisizione_portali_renderizza_step_guida(tmp_path):
             if portale == "pst":
                 assert "scarica_originale_portale: awSelectionValue('scarica_originale_portale', AW_BOOT.portale === 'pst' ? false : true)" in body
                 assert 'id="scarica_originale_portale" checked' not in body
+                assert "Scarica duplicato/originale senza coccarda ministeriale" in body
+                assert "Default PST: copia di consultazione/copia informatica con annotazioni ministeriali" in body
         manual_response = client.get("/portali/pat/acquisizione?focus=manual-upload", follow_redirects=True)
         manual_body = manual_response.data.decode("utf-8")
         assert manual_response.status_code == 200
@@ -4969,7 +4974,8 @@ def test_api_portale_acquisizione_import_pst_arricchisce_file_locali_con_metadat
     assert doc.id_documento_portale == "DOC-CITAZIONE-1"
     assert doc.id_cat_portale == "CAT-CIT-001"
     assert doc.classificazione_portale == "ATTO PRINCIPALE"
-    assert "Attivita processuali" in doc.tags
+    assert "Documenti fascicolo" in doc.tags
+    assert "Attivita processuali" not in doc.tags
     assert "Citazione" in doc.tags
     assert "Atto Principale" in doc.tags
     assert "Copia di consultazione" in doc.tags

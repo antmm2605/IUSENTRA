@@ -1582,17 +1582,6 @@ class GestioneFascicoli:
             if doc.id in doc_ids:
                 doc.id_deposito_pct = esito.id
 
-        att = AttivitaProcessuale(
-            id=uuid.uuid4().hex[:8].upper(),
-            tipo=TipoAttivita.CONSULTAZIONE,
-            data=date.today().isoformat(),
-            titolo=f"Acquisizione file ufficiali — {fonte}",
-            descrizione=f"{len(documenti_ids)} documenti importati. {descrizione}",
-            esito=EsitoAttivita.NON_APPLICABILE,
-            id_deposito_pct=esito.id,
-            avvocato=registrato_da,
-        )
-        f.attivita.append(att)
         f.modificato_il = datetime.now().isoformat()
         self._salva()
         return esito
@@ -1808,20 +1797,21 @@ class GestioneFascicoli:
         )
         f.depositi_pct.append(dep)
 
-        att = AttivitaProcessuale(
-            id=uuid.uuid4().hex[:8].upper(),
-            tipo=_tipo_attivita_portale(dep.tipo_atto, documenti_norm),
-            data=(data_deposito or date.today().isoformat()),
-            titolo=f"Deposito da portale — {dep.tipo_atto}",
-            descrizione=(
-                f"{len(documenti_norm)} documenti censiti da {fonte}."
-                + (f" Mittente: {mittente}." if mittente else "")
-            ).strip(),
-            esito=EsitoAttivita.NON_APPLICABILE,
-            id_deposito_pct=dep.id,
-            avvocato=registrato_da,
-        )
-        f.attivita.append(att)
+        if str(servizio_portale or "").strip() != SERVIZIO_PST_DOCUMENTI_FASCICOLO:
+            att = AttivitaProcessuale(
+                id=uuid.uuid4().hex[:8].upper(),
+                tipo=_tipo_attivita_portale(dep.tipo_atto, documenti_norm),
+                data=(data_deposito or date.today().isoformat()),
+                titolo=f"Deposito da portale — {dep.tipo_atto}",
+                descrizione=(
+                    f"{len(documenti_norm)} documenti censiti da {fonte}."
+                    + (f" Mittente: {mittente}." if mittente else "")
+                ).strip(),
+                esito=EsitoAttivita.NON_APPLICABILE,
+                id_deposito_pct=dep.id,
+                avvocato=registrato_da,
+            )
+            f.attivita.append(att)
         f.modificato_il = datetime.now().isoformat()
         self._salva()
         return dep

@@ -7,6 +7,7 @@ from typing import Any, Optional
 from pct.fascicoli import Fascicolo, TipoAttivita, TipoDocumento
 from pct.pst_servizi_catalogo import (
     SEZIONE_COMUNICAZIONI_CANCELLERIA,
+    SEZIONE_DOCUMENTI_FASCICOLO,
     SEZIONE_ISTANZE,
     SEZIONE_UDIENZE_SCADENZE,
     sezione_fascicolo_da_servizio_pst,
@@ -78,8 +79,9 @@ def deposito_ha_ricevute(dep: Any) -> bool:
 
 
 def deposito_is_istanza(dep: Any) -> bool:
-    if deposito_sezione_portale(dep) == SEZIONE_ISTANZE:
-        return True
+    sezione_portale = deposito_sezione_portale(dep)
+    if sezione_portale:
+        return sezione_portale == SEZIONE_ISTANZE
     testo = fascicolo_text(
         getattr(dep, "tipo_atto", ""),
         getattr(dep, "messaggio", ""),
@@ -90,8 +92,9 @@ def deposito_is_istanza(dep: Any) -> bool:
 
 
 def deposito_is_udienza_scadenza(dep: Any) -> bool:
-    if deposito_sezione_portale(dep) == SEZIONE_UDIENZE_SCADENZE:
-        return True
+    sezione_portale = deposito_sezione_portale(dep)
+    if sezione_portale:
+        return sezione_portale == SEZIONE_UDIENZE_SCADENZE
     testo = fascicolo_text(
         getattr(dep, "tipo_atto", ""),
         getattr(dep, "note", ""),
@@ -120,6 +123,11 @@ def deposito_is_comunicazione(dep: Any) -> bool:
     }
 
 
+def deposito_is_catalogo_documenti(dep: Any) -> bool:
+    """True per i depositi PST/SIGP che rappresentano il catalogo documentale."""
+    return deposito_sezione_portale(dep) == SEZIONE_DOCUMENTI_FASCICOLO
+
+
 def build_fascicolo_workspace(
     fasc: Fascicolo,
     *,
@@ -131,9 +139,34 @@ def build_fascicolo_workspace(
     depositi = list(getattr(fasc, "depositi_pct", []) or [])
     appuntamenti = list(apps or [])
     termini = list(scadenze or [])
+    depositi_documentali = [dep for dep in depositi if deposito_is_catalogo_documenti(dep)]
+    depositi_documentali_ids = {
+        str(getattr(dep, "id", "") or "").strip()
+        for dep in depositi_documentali
+        if str(getattr(dep, "id", "") or "").strip()
+    }
+    documenti_portale_catalogo = sum(len(getattr(dep, "documenti_portale", []) or []) for dep in depositi_documentali)
+    documenti_portale_importati_da_deposito = {
+        str(doc_id or "").strip()
+        for dep in depositi_documentali
+        for doc_id in (getattr(dep, "documenti_ids", []) or [])
+        if str(doc_id or "").strip()
+    }
+    documenti_portale_importati_da_documenti = {
+        str(getattr(doc, "id", "") or "").strip()
+        for doc in documenti
+        if str(getattr(doc, "id_deposito_pct", "") or "").strip() in depositi_documentali_ids
+        and str(getattr(doc, "id", "") or "").strip()
+    }
+    documenti_portale_importati = min(
+        documenti_portale_catalogo,
+        len(documenti_portale_importati_da_deposito | documenti_portale_importati_da_documenti),
+    )
+    documenti_portale_solo_catalogo = max(documenti_portale_catalogo - documenti_portale_importati, 0)
+    documenti_totali_governati = len(documenti) + documenti_portale_solo_catalogo
 
     documenti_buckets = {
-        "all": len(documenti),
+        "all": documenti_totali_governati,
         "atti_principali": 0,
         "allegati": 0,
         "ricevute": 0,
@@ -148,10 +181,22 @@ def build_fascicolo_workspace(
     attivita_processuali = [
         att
         for att in attivita
-        if att.tipo not in _ATTIVITA_UDIENZE_SCADENZE and att.tipo != TipoAttivita.COMUNICAZIONE_CANCELLERIA
+        if str(getattr(att, "id_deposito_pct", "") or "").strip() not in depositi_documentali_ids
+        and att.tipo not in _ATTIVITA_UDIENZE_SCADENZE
+        and att.tipo != TipoAttivita.COMUNICAZIONE_CANCELLERIA
     ]
-    udienze_attivita = [att for att in attivita if att.tipo in _ATTIVITA_UDIENZE_SCADENZE]
-    comunicazioni_attivita = [att for att in attivita if att.tipo == TipoAttivita.COMUNICAZIONE_CANCELLERIA]
+    udienze_attivita = [
+        att
+        for att in attivita
+        if str(getattr(att, "id_deposito_pct", "") or "").strip() not in depositi_documentali_ids
+        and att.tipo in _ATTIVITA_UDIENZE_SCADENZE
+    ]
+    comunicazioni_attivita = [
+        att
+        for att in attivita
+        if str(getattr(att, "id_deposito_pct", "") or "").strip() not in depositi_documentali_ids
+        and att.tipo == TipoAttivita.COMUNICAZIONE_CANCELLERIA
+    ]
     istanze_documenti = [doc for doc in documenti if documento_is_istanza(doc)]
     istanze_depositi = [dep for dep in depositi if deposito_is_istanza(dep)]
     comunicazioni_depositi = [
@@ -174,7 +219,10 @@ def build_fascicolo_workspace(
     return {
         "counts": {
             "profilo": 1,
-            "documenti": len(documenti),
+            "documenti": documenti_totali_governati,
+            "documenti_fisici": len(documenti),
+            "documenti_catalogo_portale": documenti_portale_catalogo,
+            "documenti_solo_catalogo_portale": documenti_portale_solo_catalogo,
             "attivita": len(attivita_processuali),
             "udienze_scadenze": len(udienze_attivita) + len(udienze_depositi) + len(termini) + len(appuntamenti),
             "comunicazioni": len(comunicazioni_attivita) + len(comunicazioni_depositi),
@@ -195,6 +243,7 @@ def build_fascicolo_workspace(
 
 __all__ = [
     "build_fascicolo_workspace",
+    "deposito_is_catalogo_documenti",
     "deposito_is_comunicazione",
     "deposito_is_istanza",
     "deposito_is_udienza_scadenza",

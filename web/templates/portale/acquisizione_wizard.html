@@ -203,6 +203,8 @@
           <label class="form-check-label fw-semibold" for="scarica_originale_portale">
             {% if wizard_portale == 'pat' %}
             Raccogli i file gia scaricati dal Portale dell'Avvocato
+            {% elif wizard_portale == 'pst' %}
+            Scarica duplicato/originale senza coccarda ministeriale
             {% else %}
             Scarica l'originale firmato presente nel repository del portale
             {% endif %}
@@ -211,10 +213,18 @@
         <div class="small text-muted mb-3">
           {% if wizard_portale == 'pat' %}
           Se attivo, IUSENTRA verifica nei download locali del browser i file gia consultati o scaricati dal Portale dell'Avvocato e li aggancia al fascicolo interno. Se disattivo, il gestionale importa solo dati, ricevute e catalogo del fascicolo senza cercare i file locali.
+          {% elif wizard_portale == 'pst' %}
+          Lascia disattivo per acquisire la copia di consultazione/copia informatica con annotazioni ministeriali visibili. Attivalo solo se vuoi esplicitamente il duplicato o l'originale senza coccarda.
           {% else %}
           Se attivo, per CAdES il PST restituisce il file firmato <code>.p7m</code> e per PAdES il documento firmato cosi com'e nel repository. Se disattivo, il portale restituisce la copia di consultazione con coccardina o informazioni blu secondo le regole ministeriali.
           {% endif %}
         </div>
+        {% if wizard_portale == 'pst' %}
+        <div class="alert alert-info py-2 small mb-3">
+          <i class="bi bi-info-circle me-1"></i>
+          Default PST: copia di consultazione/copia informatica con annotazioni ministeriali. Il duplicato senza coccarda richiede questa scelta esplicita.
+        </div>
+        {% endif %}
         <hr class="my-3">
         <div class="form-check form-switch">
           <input class="form-check-input" type="checkbox" id="mantieni_albero_originale">
@@ -1622,6 +1632,7 @@ function awReadFileAsBase64(file) {
 async function awCollectManualUploadFiles(fileList) {
   const files = Array.from(fileList || []).filter(file => file && file.name);
   const collected = [];
+  const manualOriginale = !!awCurrentOptions().scarica_originale_portale;
   for (const file of files) {
     const contenuto_b64 = await awReadFileAsBase64(file);
     const origineRelativa = String(file.webkitRelativePath || '').trim();
@@ -1637,8 +1648,8 @@ async function awCollectManualUploadFiles(fileList) {
       id_deposito_pct: '',
       tipo_atto: '',
       tipo: '',
-      original_documento_portale: true,
-      modalita_documento_portale: 'upload-manuale',
+      original_documento_portale: manualOriginale,
+      modalita_documento_portale: manualOriginale ? 'originale' : 'copia',
     });
   }
   return collected;

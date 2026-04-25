@@ -373,6 +373,30 @@
                             </button>
                           </form>
                         </div>
+                        {% else %}
+                        <div class="d-flex gap-1 flex-wrap align-items-center">
+                          <span class="badge text-bg-secondary">NON APPLICABILE</span>
+                          <button type="button" class="btn btn-outline-secondary btn-sm" title="Anteprima disponibile dopo acquisizione" disabled>
+                            <i class="bi bi-eye"></i>
+                          </button>
+                          <button type="button"
+                                  class="btn btn-outline-primary btn-sm"
+                                  title="Scarica e importa questo documento dal PST"
+                                  data-pst-acquire-one
+                                  data-pst-key="{{ (pdoc.id_documento_portale or pdoc.nome) ~ '::' ~ (pdoc.id_deposito_pct or pdoc.id_deposito_esterno) ~ '::' ~ (pdoc.data_documento or pdoc.data_deposito) }}">
+                            <i class="bi bi-download"></i>
+                          </button>
+                          <button type="button" class="btn btn-outline-danger btn-sm" title="Il documento non è ancora salvato nel fascicolo" disabled>
+                            <i class="bi bi-trash"></i>
+                          </button>
+                          <button type="button"
+                                  class="btn btn-outline-secondary btn-sm"
+                                  title="Apri Naviga PST"
+                                  data-bs-toggle="modal"
+                                  data-bs-target="#modalNavigaPst">
+                            <i class="bi bi-pencil-square"></i>
+                          </button>
+                        </div>
                         {% endif %}
                       </div>
                     </div>
@@ -627,7 +651,7 @@
         <span class="text-nowrap">
           <i class="bi bi-paperclip me-2 text-primary"></i>
           Documenti fascicolo
-          <span class="badge bg-primary rounded-pill ms-1">{{ fascicolo.documenti|length }}</span>
+          <span class="badge bg-primary rounded-pill ms-1">{{ WFC.documenti or 0 }}</span>
         </span>
         <i class="bi bi-chevron-down small"></i>
         </button>
@@ -2026,6 +2050,30 @@
                                 </button>
                               </form>
                             </div>
+                            {% else %}
+                            <div class="d-flex gap-1 flex-wrap mt-2 align-items-center">
+                              <span class="badge text-bg-secondary">NON APPLICABILE</span>
+                              <button type="button" class="btn btn-outline-secondary btn-sm" title="Anteprima disponibile dopo acquisizione" disabled>
+                                <i class="bi bi-eye"></i>
+                              </button>
+                              <button type="button"
+                                      class="btn btn-outline-primary btn-sm"
+                                      title="Scarica e importa questo documento dal PST"
+                                      data-pst-acquire-one
+                                      data-pst-key="{{ (pdoc.id_documento_portale or pdoc.nome) ~ '::' ~ (pdoc.id_deposito_pct or pdoc.id_deposito_esterno) ~ '::' ~ (pdoc.data_documento or pdoc.data_deposito) }}">
+                                <i class="bi bi-download"></i>
+                              </button>
+                              <button type="button" class="btn btn-outline-danger btn-sm" title="Il documento non è ancora salvato nel fascicolo" disabled>
+                                <i class="bi bi-trash"></i>
+                              </button>
+                              <button type="button"
+                                      class="btn btn-outline-secondary btn-sm"
+                                      title="Apri Naviga PST"
+                                      data-bs-toggle="modal"
+                                      data-bs-target="#modalNavigaPst">
+                                <i class="bi bi-pencil-square"></i>
+                              </button>
+                            </div>
                             {% endif %}
                           </div>
                         </div>
@@ -3224,6 +3272,7 @@
               <label class="form-label fw-semibold">Sezione</label>
               <select class="form-select" id="pstNavSection">
                 <option value="">Tutte le sezioni</option>
+                <option value="documenti">Documenti fascicolo</option>
                 <option value="udienze">Udienze / verbali</option>
                 <option value="provvedimenti">Provvedimenti</option>
                 <option value="atti">Atti / documenti</option>
@@ -3263,6 +3312,14 @@
             <input class="form-check-input" type="checkbox" id="pstPreserveOriginalTree">
             <label class="form-check-label" for="pstPreserveOriginalTree">
               Conserva anche l'albero tecnico originale del portale nell'archivio locale
+            </label>
+          </div>
+
+          <div class="form-check form-switch small flex-shrink-0">
+            <input class="form-check-input" type="checkbox" id="pstDownloadOriginalDuplicate">
+            <label class="form-check-label" for="pstDownloadOriginalDuplicate">
+              Scarica duplicato/originale senza coccarda ministeriale
+              <span class="text-muted">(scelta esplicita: di default resta la copia di consultazione con annotazioni)</span>
             </label>
           </div>
 
@@ -4782,6 +4839,11 @@ function buildPstNavKey(item) {
 }
 
 function sezionePstDaCatalogoItem(item) {
+  const servizio = String(item.servizio_portale || '').trim();
+  if (servizio === 'DocumentiFascicolo') return 'documenti';
+  if (servizio === 'RicercaScadenze') return 'udienze';
+  if (servizio === 'ComunicazioneCancelleria' || servizio === 'DettaglioComunicazione' || servizio === 'NotificheDaRitirare') return 'comunicazioni';
+  if (servizio === 'DettaglioIstanze') return 'istanze';
   const tipoAtto = String(item.tipo_atto || item.tipo || '').toLowerCase();
   const nome = String(item.nome || item.nome_documento || '').toLowerCase();
   const msgId = String(item.msg_id || '').trim().toLowerCase();
@@ -4810,7 +4872,7 @@ function sezionePstDaCatalogoItem(item) {
     testo.includes('comunicazione') ||
     testo.includes('pec')
   ) return 'comunicazioni';
-  return 'atti';
+  return 'documenti';
 }
 
 window._PST_NAV_ITEMS = (_PORTALE_DOCS_CATALOG || []).map(function (item) {
@@ -4821,6 +4883,7 @@ window._PST_NAV_ITEMS = (_PORTALE_DOCS_CATALOG || []).map(function (item) {
     nome: item.nome || item.nome_documento || '',
     tipo_atto: item.tipo_atto || item.tipo || '',
     tipo: item.tipo || '',
+    servizio_portale: item.servizio_portale || '',
     data_documento: item.data_documento || item.data_deposito || '',
     data_deposito: item.data_deposito || item.data_documento || '',
     mittente: item.mittente || '',
@@ -4852,6 +4915,7 @@ window._PST_PRESERVE_TREE = {{ 'true' if preserve_pst_tree else 'false' }};
   const counter = document.getElementById('pstNavCounter');
   const noteInput = document.querySelector('#modalNavigaPst input[name="note_importazione"]');
   const preserveOriginalTreeInput = document.getElementById('pstPreserveOriginalTree');
+  const originalDuplicateInput = document.getElementById('pstDownloadOriginalDuplicate');
   const btnAcquireAllHeader = document.getElementById('btnPstAcquireAllHeader');
   const btnDownloadAll = document.getElementById('pstDownloadAll');
   const btnDownloadSelected = document.getElementById('pstDownloadSelected');
@@ -4883,6 +4947,7 @@ window._PST_PRESERVE_TREE = {{ 'true' if preserve_pst_tree else 'false' }};
   const stagedFiles = new Map();
   const selectedKeys = new Set();
   const labels = {
+    documenti: 'Documenti fascicolo',
     udienze: 'Udienze / verbali',
     provvedimenti: 'Provvedimenti',
     atti: 'Atti / documenti',
@@ -5068,6 +5133,10 @@ window._PST_PRESERVE_TREE = {{ 'true' if preserve_pst_tree else 'false' }};
     return !!(preserveOriginalTreeInput && preserveOriginalTreeInput.checked);
   }
 
+  function scaricaDuplicatoOriginale() {
+    return !!(originalDuplicateInput && originalDuplicateInput.checked);
+  }
+
   function stageFiles(files) {
     (files || []).forEach(function (file) {
       stagedFiles.set(buildPstNavKey(file), file);
@@ -5084,7 +5153,7 @@ window._PST_PRESERVE_TREE = {{ 'true' if preserve_pst_tree else 'false' }};
       body: JSON.stringify({
         note_importazione: noteImportazione(noteDefault),
         mantieni_albero_originale: !!(options && options.preserveOriginalTree),
-        scarica_originale_portale: false,
+        scarica_originale_portale: scaricaDuplicatoOriginale(),
         files: files || []
       })
     });
@@ -5121,7 +5190,7 @@ window._PST_PRESERVE_TREE = {{ 'true' if preserve_pst_tree else 'false' }};
         numero_rg: _PST_FASCICOLO_CONTEXT.numero_rg,
         anno_rg: _PST_FASCICOLO_CONTEXT.anno_rg,
         preflight_auth: true,
-        original: false,
+        original: scaricaDuplicatoOriginale(),
         documents: (items || []).map(function (item) {
           return {
             id_documento: item.id_documento_portale || item.id_documento || '',
@@ -5133,7 +5202,7 @@ window._PST_PRESERVE_TREE = {{ 'true' if preserve_pst_tree else 'false' }};
             id_deposito_esterno: item.id_deposito_esterno || '',
             id_deposito_pct: item.id_deposito_pct || '',
             tipo_atto: item.tipo_atto || '',
-            original: false
+            original: scaricaDuplicatoOriginale()
           };
         })
       })
@@ -5418,6 +5487,33 @@ window._PST_PRESERVE_TREE = {{ 'true' if preserve_pst_tree else 'false' }};
       }, 180);
     });
   }
+
+  document.addEventListener('click', function (event) {
+    const button = event.target.closest('[data-pst-acquire-one]');
+    if (!button) return;
+    event.preventDefault();
+    const key = button.getAttribute('data-pst-key') || '';
+    const item = (window._PST_NAV_ITEMS || []).find(function (row) {
+      return row.key === key;
+    });
+    if (!item) {
+      const modalInstance = bootstrap.Modal.getOrCreateInstance(modal);
+      modalInstance.show();
+      setStatus('Documento non riallineato automaticamente: selezionalo dal catalogo PST e premi Scarica + importa selezionati.', 'danger');
+      return;
+    }
+    selectedKeys.clear();
+    selectedKeys.add(item.key);
+    const modalInstance = bootstrap.Modal.getOrCreateInstance(modal);
+    modalInstance.show();
+    renderPstTree(filteredPstItems());
+    setStatus('Documento selezionato. Avvio scarica + importa con copia di consultazione ministeriale.', 'info');
+    window.setTimeout(function () {
+      if (btnDownloadImportSelected) {
+        btnDownloadImportSelected.click();
+      }
+    }, 250);
+  });
 
   modal.addEventListener('shown.bs.modal', initNavigator);
   initNavigator();

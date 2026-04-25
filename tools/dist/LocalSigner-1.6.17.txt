@@ -1,0 +1,5 @@
+IUSENTRA Local Signer
+Versione: 1.6.17
+Pacchetto generato: 2026-04-25 18:23:12
+Piattaforme generate contestualmente: Windows, macOS, Linux
+Punto ufficiale download: https://studio-legale-pct-production.up.railway.app/impostazioni?tab=firma

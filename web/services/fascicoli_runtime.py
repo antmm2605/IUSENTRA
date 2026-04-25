@@ -22,6 +22,13 @@ from pct.fascicolo_workspace import (
     build_fascicolo_workspace as _shared_build_fascicolo_workspace,
     fascicolo_text as _shared_fascicolo_text,
 )
+from pct.pst_servizi_catalogo import (
+    SEZIONE_COMUNICAZIONI_CANCELLERIA,
+    SEZIONE_DOCUMENTI_FASCICOLO,
+    SEZIONE_ISTANZE,
+    SEZIONE_UDIENZE_SCADENZE,
+    sezione_fascicolo_da_servizio_pst,
+)
 from pct.reginde import ClientReGINde
 
 
@@ -1311,6 +1318,15 @@ def build_fascicoli_runtime(
         return testo or fallback
 
     def _sezione_portale_server(item: dict) -> str:
+        sezione_servizio = sezione_fascicolo_da_servizio_pst(str(item.get("servizio_portale") or "").strip())
+        if sezione_servizio == SEZIONE_DOCUMENTI_FASCICOLO:
+            return "documenti"
+        if sezione_servizio == SEZIONE_UDIENZE_SCADENZE:
+            return "udienze"
+        if sezione_servizio == SEZIONE_COMUNICAZIONI_CANCELLERIA:
+            return "comunicazioni"
+        if sezione_servizio == SEZIONE_ISTANZE:
+            return "istanze"
         tipo_atto = str(item.get("tipo_atto") or item.get("tipo") or "").lower()
         nome = str(item.get("nome") or item.get("nome_documento") or "").lower()
         testo = " ".join(part for part in (tipo_atto, nome) if part)
@@ -1334,13 +1350,14 @@ def build_fascicoli_runtime(
 
     def _sezione_portale_label_server(item: dict) -> str:
         labels = {
-            "atti": "Attivita processuali",
+            "atti": "Documenti fascicolo",
+            "documenti": "Documenti fascicolo",
             "udienze": "Udienze e scadenze",
             "provvedimenti": "Provvedimenti",
             "comunicazioni": "Comunicazioni di cancelleria",
             "istanze": "Istanze",
         }
-        return labels.get(_sezione_portale_server(item), "Attivita processuali")
+        return labels.get(_sezione_portale_server(item), "Documenti fascicolo")
 
     def _portale_document_tags(item: dict) -> list[str]:
         raw_tags: list[str] = [
@@ -1684,6 +1701,11 @@ def build_fascicoli_runtime(
                     "nome": nome,
                     "tipo": str((pdoc or {}).get("tipo") or "Documento").strip(),
                     "mittente": str((pdoc or {}).get("mittente") or "").strip(),
+                    "servizio_portale": str(
+                        (pdoc or {}).get("servizio_portale")
+                        or getattr(dep, "servizio_portale", "")
+                        or ""
+                    ).strip(),
                     "dimensione_bytes": int((pdoc or {}).get("dimensione_bytes") or 0),
                     "disponibile": bool((pdoc or {}).get("disponibile", True)),
                     "key": key,

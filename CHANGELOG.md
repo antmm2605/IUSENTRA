@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.184.12 - 2026-04-25
+
+- Corretto il workspace del fascicolo per trattare i depositi PST/SIGP `DocumentiFascicolo` come governo documentale: non vengono piu' contati in `Attività processuali`, `Udienze` o `Istanze` per semplici parole chiave come verbale/decreto/istanza.
+- Allineata la sezione `Documenti fascicolo` al catalogo ufficiale del portale: badge, bucket, metadati, tag e azioni restano nello stesso contenitore anche quando il file fisico non e' ancora stato salvato localmente.
+- Reso esplicito in wizard e `Naviga PST` il default ministeriale: copia di consultazione/copia informatica con annotazioni visibili; il duplicato/originale senza coccarda e' disponibile solo tramite scelta manuale.
+- Aggiornato il Local Signer a `1.6.17` rendendo difensiva la lettura del flag `original`: valori vuoti o falsi restano sempre `copia`, evitando ricadute involontarie sull'originale senza annotazioni.
+
 ## 2.184.11 - 2026-04-25
 
 - Reso esplicito il catalogo JSON del fascicolo PST/SIGP come prima fase stabile dell'acquisizione: buste, documenti, identificativi portale, tipo atto, mittente e date vengono salvati anche quando il download fisico dei file non riesce nella stessa sessione.

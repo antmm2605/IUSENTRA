@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-IUSENTRA Local Signer - v1.6.15
+IUSENTRA Local Signer - v1.6.17
 
 Servizio HTTP locale (localhost:27272) che firma documenti con smart card e token CNS/CIE
 (o qualsiasi token PKCS#11) e consente l'accesso autenticato al PST.
@@ -107,7 +107,7 @@ from local_signer_mod.server_bootstrap import print_startup_banner  # noqa: E402
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.6.16"
+VERSION = "1.6.17"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
@@ -6967,7 +6967,7 @@ class _Handler(BaseHTTPRequestHandler):
                 original=(
                     data.get("original", False)
                     if isinstance(data.get("original", False), bool)
-                    else str(data.get("original", False)).strip().lower() not in {"0", "false", "no", "off"}
+                    else str(data.get("original", False)).strip().lower() not in {"", "0", "false", "no", "off"}
                 ),
                 cookie_file=cookie_file,
                 prefer_cookie_only=prefer_cookie_only,
@@ -7062,7 +7062,7 @@ class _Handler(BaseHTTPRequestHandler):
                 original=(
                     data.get("original", False)
                     if isinstance(data.get("original", False), bool)
-                    else str(data.get("original", False)).strip().lower() not in {"0", "false", "no", "off"}
+                    else str(data.get("original", False)).strip().lower() not in {"", "0", "false", "no", "off"}
                 ),
             )
             if session_entry:

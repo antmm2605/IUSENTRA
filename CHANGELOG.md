@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.184.6 - 2026-04-25
+
+- Aggiunti test Lex AI sul provider deterministico per bloccare regressioni su inventario completo del fascicolo, sezioni documentali, flussi economici, cabina operativa e responsabile di conformita'.
+- Aggiunti test sul routing sociale/follow-up di Lex dentro la suite conteggiata dalla CI, mantenendo la risposta professionale senza perdere contesto operativo.
+- Ripristinato il gate GitHub `Coverage moduli critici`: la copertura passa da 63,03% a 66,25% senza abbassare la soglia del 65%.
+
 ## 2.184.5 - 2026-04-25
 
 - Corretto il connettore reale SIGP/Giudice di Pace: `subpro` non viene piu' forzato a `0` quando non indicato, evitando risultati vuoti su RG GDP come Palmi `466/2023`.

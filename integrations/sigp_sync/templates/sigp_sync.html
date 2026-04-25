@@ -1,118 +1,103 @@
-<!doctype html>
-<html lang="it">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>SIGP - Fascicolo Giudice di Pace</title>
-  <link rel="stylesheet" href="{{ url_for('sigp_sync.static', filename='sigp_sync.css') }}">
-</head>
-<body>
-  <main class="sigp-shell" data-api-base="/sigp-sync">
-    <header class="sigp-topbar">
-      <div>
-        <span class="sigp-kicker">Telematico - SIGP</span>
-        <h1>Fascicolo Giudice di Pace</h1>
-        <p>Importa e consulta snapshot reali ottenuti tramite Local Connector, PST/PdA autorizzato o Model Office SIGP.</p>
+{% extends "base.html" %}
+{% block title %}SIGP - Fascicolo Giudice di Pace{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="{{ url_for('sigp_sync.static', filename='sigp_sync.css') }}">
+
+<div class="sigp-shell" data-api-base="{{ url_for('sigp_sync.index')[:-1] if url_for('sigp_sync.index').endswith('/') else url_for('sigp_sync.index') }}">
+  <div class="sigp-hero">
+    <div>
+      <p class="sigp-kicker">Telematico - SIGP</p>
+      <h1>Fascicolo Giudice di Pace</h1>
+      <p>Visualizza pratica, parti, eventi e soprattutto il catalogo documenti importato da Local Connector, PST/PdA o acquisizione assistita.</p>
+    </div>
+    <div class="sigp-actions">
+      <span id="sigpAdapterStatus" class="sigp-status sigp-status--idle">Adapter non verificato</span>
+      <button id="btnEnsureSchema" class="btn btn-outline-primary">Prepara DB</button>
+      <button id="btnPreflight" class="btn btn-primary">Verifica Local Connector</button>
+    </div>
+  </div>
+
+  <div class="sigp-grid-main">
+    <aside class="sigp-panel">
+      <h2>Fascicoli importati</h2>
+      <div class="sigp-inline">
+        <input id="localFilter" class="form-control" placeholder="Filtra per RG, ufficio, giudice, oggetto">
+        <button id="btnRefresh" class="btn btn-outline-secondary">Aggiorna</button>
       </div>
-      <div class="sigp-actions">
-        <span id="sigpAdapterStatus" class="sigp-status sigp-status--idle">Adapter non verificato</span>
-        <button id="btnHealth" class="sigp-btn sigp-btn--ghost" type="button">Stato</button>
-        <button id="btnEnsureSchema" class="sigp-btn sigp-btn--ghost" type="button">Prepara DB</button>
-        <button id="btnPreflight" class="sigp-btn sigp-btn--primary" type="button">Verifica token</button>
-      </div>
-    </header>
+      <p id="localCount" class="sigp-muted">Nessun dato caricato</p>
+      <div id="fascicoliList" class="sigp-list"></div>
 
-    <section class="sigp-notice">
-      <strong>Regola operativa:</strong>
-      questa UI non usa dati dimostrativi, non salva PIN e non fa scraping HTML. Incolla qui solo payload reali esportati dal canale autorizzato.
-    </section>
+      <hr>
 
-    <section class="sigp-layout">
-      <aside class="sigp-sidebar">
-        <section class="sigp-panel">
-          <h2>Importa payload reale</h2>
-          <p>Il JSON deve contenere fascicolo, parti, eventi, udienze, documenti e comunicazioni ricevuti da Local Connector/PST/PdA.</p>
-          <label class="sigp-label">
-            ID fascicolo locale opzionale
-            <input id="fascicoloLocaleId" placeholder="Es. 0D4A4802">
-          </label>
-          <label class="sigp-label">
-            Payload JSON autorizzato
-            <textarea id="payloadJson" rows="12" spellcheck="false" placeholder='{"fascicolo":{"ufficio":"Ufficio del Giudice di Pace di Palmi","registro":"GDP","numero_rg":"466","anno_rg":"2023"},"documenti":[]}'></textarea>
-          </label>
-          <button id="btnImportPayload" class="sigp-btn sigp-btn--primary" type="button">Importa payload reale</button>
-        </section>
+      <h2>Importa payload pratica</h2>
+      <p class="sigp-muted">Usalo quando hai un JSON autorizzato con dati fascicolo/parti/eventi/documenti.</p>
+      <input id="fascicoloLocaleId" class="form-control mb-2" placeholder="ID fascicolo locale opzionale">
+      <textarea id="payloadJson" class="form-control sigp-textarea" placeholder='{"fascicolo": {"rg": "466/2023", "ufficio": "Giudice di Pace - Palmi"}}'></textarea>
+      <button id="btnImportPayload" class="btn btn-primary w-100 mt-2">Importa payload reale</button>
+    </aside>
 
-        <section class="sigp-panel">
-          <div class="sigp-panel-title">
-            <div>
-              <h2>Fascicoli importati</h2>
-              <p id="localCount">Nessun dato caricato</p>
-            </div>
-            <button id="btnRefresh" class="sigp-icon-btn" type="button" title="Aggiorna elenco">Aggiorna</button>
-          </div>
-          <input id="localFilter" class="sigp-filter" placeholder="Filtra per ufficio, RG, oggetto..." autocomplete="off">
-          <div id="fascicoliList" class="sigp-case-list" aria-live="polite"></div>
-        </section>
-      </aside>
-
-      <section class="sigp-main">
-        <section id="emptyState" class="sigp-empty-state">
-          <div class="sigp-empty-icon">§</div>
-          <h2>Apri un fascicolo SIGP</h2>
-          <p>Importa un payload reale autorizzato oppure apri uno snapshot gia' presente.</p>
-        </section>
-
-        <section id="caseDetail" class="sigp-detail" hidden>
-          <div class="sigp-detail-hero">
-            <div>
-              <span class="sigp-badge">SIGP - Giudice di Pace</span>
-              <h2 id="detailTitle">-</h2>
-              <p id="detailSubtitle">-</p>
-            </div>
-            <div class="sigp-actions">
-              <button id="btnDownloadNew" class="sigp-btn sigp-btn--ghost" type="button">Download tramite Local Connector</button>
-            </div>
-          </div>
-
-          <div class="sigp-summary-grid">
-            <article><span>RG</span><strong id="sumRg">-</strong></article>
-            <article><span>Stato</span><strong id="sumStato">-</strong></article>
-            <article><span>Giudice</span><strong id="sumGiudice">-</strong></article>
-            <article><span>Ultima sync</span><strong id="sumSync">-</strong></article>
-          </div>
-
-          <nav class="sigp-tabs" aria-label="Sezioni fascicolo">
-            <button class="sigp-tab is-active" data-tab="documenti" type="button">Documenti <span id="countDocumenti">0</span></button>
-            <button class="sigp-tab" data-tab="eventi" type="button">Eventi <span id="countEventi">0</span></button>
-            <button class="sigp-tab" data-tab="udienze" type="button">Udienze <span id="countUdienze">0</span></button>
-            <button class="sigp-tab" data-tab="parti" type="button">Parti <span id="countParti">0</span></button>
-            <button class="sigp-tab" data-tab="comunicazioni" type="button">Comunicazioni <span id="countComunicazioni">0</span></button>
-            <button class="sigp-tab" data-tab="log" type="button">Log <span id="countLog">0</span></button>
-          </nav>
-
-          <section id="tab-documenti" class="sigp-tab-panel">
-            <div class="sigp-table-toolbar">
-              <div>
-                <h3>Documenti fascicolo</h3>
-                <p>Atti, provvedimenti, verbali e allegati normalizzati dal payload reale.</p>
-              </div>
-              <input id="documentFilter" class="sigp-filter sigp-filter--small" placeholder="Filtra documenti..." autocomplete="off">
-            </div>
-            <div id="documentsTable" class="sigp-table-wrap"></div>
-          </section>
-
-          <section id="tab-eventi" class="sigp-tab-panel" hidden><div id="eventsTimeline" class="sigp-timeline"></div></section>
-          <section id="tab-udienze" class="sigp-tab-panel" hidden><div id="udienzeTimeline" class="sigp-timeline"></div></section>
-          <section id="tab-parti" class="sigp-tab-panel" hidden><div id="partiTable" class="sigp-table-wrap"></div></section>
-          <section id="tab-comunicazioni" class="sigp-tab-panel" hidden><div id="comunicazioniTable" class="sigp-table-wrap"></div></section>
-          <section id="tab-log" class="sigp-tab-panel" hidden><div id="syncLogTable" class="sigp-table-wrap"></div></section>
-        </section>
+    <main class="sigp-panel sigp-detail">
+      <section id="emptyState" class="sigp-empty">
+        <h2>Apri un fascicolo SIGP</h2>
+        <p>Se la pratica e' gia' stata importata ma mancano i documenti, aprila e usa "Importa catalogo documenti".</p>
       </section>
-    </section>
-  </main>
 
-  <div id="toastHost" class="sigp-toasts" aria-live="polite"></div>
-  <script src="{{ url_for('sigp_sync.static', filename='sigp_sync.js') }}"></script>
-</body>
-</html>
+      <section id="caseDetail" hidden>
+        <div class="sigp-detail-head">
+          <div>
+            <p class="sigp-kicker">SIGP - Giudice di Pace</p>
+            <h2 id="detailTitle">-</h2>
+            <p id="detailSubtitle" class="sigp-muted">-</p>
+          </div>
+          <div class="sigp-actions sigp-actions--wrap">
+            <button id="btnPreviewDocs" class="btn btn-outline-primary">Anteprima documenti via Local Connector</button>
+            <button id="btnDownloadSelected" class="btn btn-primary">Scarica selezionati</button>
+            <button id="btnDownloadNew" class="btn btn-outline-secondary">Scarica nuovi</button>
+          </div>
+        </div>
+
+        <div class="sigp-summary">
+          <div><span>RG</span><strong id="sumRg">-</strong></div>
+          <div><span>Stato</span><strong id="sumStato">-</strong></div>
+          <div><span>Giudice</span><strong id="sumGiudice">-</strong></div>
+          <div><span>Ultima sync</span><strong id="sumSync">-</strong></div>
+        </div>
+
+        <div class="sigp-tabs" role="tablist">
+          <button class="sigp-tab is-active" data-tab="documenti">Documenti <span id="countDocumenti">0</span></button>
+          <button class="sigp-tab" data-tab="eventi">Eventi <span id="countEventi">0</span></button>
+          <button class="sigp-tab" data-tab="udienze">Udienze <span id="countUdienze">0</span></button>
+          <button class="sigp-tab" data-tab="parti">Parti <span id="countParti">0</span></button>
+          <button class="sigp-tab" data-tab="comunicazioni">Comunicazioni <span id="countComunicazioni">0</span></button>
+          <button class="sigp-tab" data-tab="log">Log <span id="countLog">0</span></button>
+        </div>
+
+        <section id="tab-documenti" class="sigp-tab-panel">
+          <div class="sigp-doc-toolbar">
+            <input id="documentFilter" class="form-control" placeholder="Cerca documento, tipo atto, depositante, UID">
+            <button id="btnToggleCatalogImport" class="btn btn-outline-secondary">Importa catalogo JSON</button>
+          </div>
+
+          <div id="catalogImportBox" class="sigp-catalog-box" hidden>
+            <h3>Catalogo documenti da Local Connector / acquisizione assistita</h3>
+            <p class="sigp-muted">Incolla qui l'elenco documenti restituito dal canale autorizzato. Non incollare password o PIN.</p>
+            <textarea id="documentCatalogJson" class="form-control sigp-textarea" placeholder='{"documenti": [{"idDocumento": "DOC-1", "nomeFile": "verbale.pdf", "tipoAtto": "Verbale", "dataDeposito": "2023-03-01"}]}'></textarea>
+            <button id="btnImportDocumentCatalog" class="btn btn-primary mt-2">Importa catalogo documenti</button>
+          </div>
+
+          <div id="documentsTable" class="sigp-table-wrap"></div>
+        </section>
+
+        <section id="tab-eventi" class="sigp-tab-panel" hidden><div id="eventsTimeline"></div></section>
+        <section id="tab-udienze" class="sigp-tab-panel" hidden><div id="udienzeTimeline"></div></section>
+        <section id="tab-parti" class="sigp-tab-panel" hidden><div id="partiTable" class="sigp-table-wrap"></div></section>
+        <section id="tab-comunicazioni" class="sigp-tab-panel" hidden><div id="comunicazioniTable"></div></section>
+        <section id="tab-log" class="sigp-tab-panel" hidden><div id="syncLogTable" class="sigp-table-wrap"></div></section>
+      </section>
+    </main>
+  </div>
+</div>
+
+<div id="toastHost" class="sigp-toast-host"></div>
+<script src="{{ url_for('sigp_sync.static', filename='sigp_sync.js') }}"></script>
+{% endblock %}

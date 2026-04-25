@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.184.8 - 2026-04-25
+
+- Collegata la UI `/sigp-sync/` al catalogo documenti persistente: anteprima Local Signer, import catalogo JSON, download selezionati/nuovi, collegamento file locale e apertura del documento salvato.
+- Adattato il client SIGP agli endpoint reali del Local Signer (`/pst/documenti`, `/pst/download-documento`) invece degli endpoint scaffold `/sigp/documenti/*`, mantenendo `original=false` come default per la copia informatica/consultazione.
+- Aggiunti test mirati su catalogo da 34 documenti senza tagli, preview Local Signer e salvataggio fisico dei PDF nello storage runtime `data/sigp_documents`.
+
 ## 2.184.7 - 2026-04-25
 
 - Corretto il setup dei test admin di osservabilita' avviando le rotte protette in modalita' multi-tenant, cosi' `admin/admin` viene riallineato a SUPERADMIN di piattaforma senza indebolire i guardrail RBAC.

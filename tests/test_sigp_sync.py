@@ -3,12 +3,14 @@ from __future__ import annotations
 import sqlite3
 
 from flask import Flask, g
+from jinja2 import ChoiceLoader, DictLoader
 
 from integrations.sigp.routes import sigp_bp
 from integrations.sigp.sync_mapper import normalize_sigp_sync_payload
 from integrations.sigp.sync_policy import get_sigp_sync_policy
 from integrations.sigp.sync_repository import SigpSyncRepository
 from integrations.sigp.sync_service import import_authorized_sigp_payload
+from integrations.sigp_sync.document_catalog import normalize_document_catalog
 from integrations.sigp_sync.routes import sigp_sync_bp
 
 
@@ -166,9 +168,15 @@ def test_sigp_sync_route_importa_payload_autorizzato(tmp_path):
 
 
 def test_sigp_sync_ui_patch_usa_payload_reale_e_non_fixture(tmp_path):
-    app = Flask(__name__)
+    app = Flask(__name__, template_folder="../web/templates")
     app.secret_key = "test"
     app.config["SIGP_SYNC_DB_PATH"] = str(tmp_path / "sigp_sync.db")
+    app.jinja_loader = ChoiceLoader(
+        [
+            DictLoader({"base.html": "{% block title %}{% endblock %}{% block content %}{% endblock %}"}),
+            app.jinja_loader,
+        ]
+    )
 
     @app.before_request
     def _login_test_user():
@@ -213,3 +221,135 @@ def test_sigp_sync_ui_patch_usa_payload_reale_e_non_fixture(tmp_path):
 
     missing_fixture = client.post("/sigp-sync/api/fascicoli/importa-fixture")
     assert missing_fixture.status_code == 404
+
+
+def test_sigp_sync_catalogo_documenti_non_taglia_oltre_otto(tmp_path):
+    app = Flask(__name__)
+    app.secret_key = "test"
+    app.config["SIGP_SYNC_DB_PATH"] = str(tmp_path / "sigp_sync.db")
+
+    @app.before_request
+    def _login_test_user():
+        g.utente_corrente = object()
+
+    app.register_blueprint(sigp_sync_bp)
+    client = app.test_client()
+
+    imported = client.post(
+        "/sigp-sync/api/fascicoli/importa-payload",
+        json={
+            "fascicolo_locale_id": "FASC-466-2023",
+            "payload": _payload_reale_gdp_palmi(documenti=0),
+        },
+    ).get_json()
+    fascicolo_id = imported["sigp_fascicolo_id"]
+    catalogo = {
+        "documenti": [
+            {
+                "idDocumento": f"SIGP-DOC-{idx:03d}",
+                "idDeposito": f"DEP-{idx:03d}",
+                "nomeFile": f"documento_sigp_{idx:03d}.pdf",
+                "tipoAtto": "Verbale" if idx % 2 else "Atto",
+                "dataDeposito": "2023-04-19",
+                "depositante": "MONTAGNESE ROBERTO",
+            }
+            for idx in range(1, 35)
+        ]
+    }
+
+    normalized = normalize_document_catalog(catalogo)
+    assert len(normalized) == 34
+
+    response = client.post(
+        f"/sigp-sync/api/fascicoli/{fascicolo_id}/documenti/importa-catalogo",
+        json={"catalogo": catalogo, "source": "test_catalogo_34"},
+    )
+    payload = response.get_json()
+
+    assert response.status_code == 200
+    assert payload["ok"] is True
+    assert payload["total"] == 34
+    assert len(payload["documents"]) == 35
+
+    list_response = client.get(f"/sigp-sync/api/fascicoli/{fascicolo_id}/documenti")
+    listed = list_response.get_json()
+    assert listed["count"] == 35
+
+
+def test_sigp_sync_local_connector_preview_e_download_salva_file(tmp_path, monkeypatch):
+    app = Flask(__name__)
+    app.secret_key = "test"
+    app.config["SIGP_SYNC_DB_PATH"] = str(tmp_path / "sigp_sync.db")
+    app.config["SIGP_SYNC_STORAGE_DIR"] = str(tmp_path / "storage")
+
+    @app.before_request
+    def _login_test_user():
+        g.utente_corrente = object()
+
+    app.register_blueprint(sigp_sync_bp)
+    client = app.test_client()
+
+    imported = client.post(
+        "/sigp-sync/api/fascicoli/importa-payload",
+        json={
+            "fascicolo_locale_id": "FASC-466-2023",
+            "payload": _payload_reale_gdp_palmi(documenti=0),
+        },
+    ).get_json()
+    fascicolo_id = imported["sigp_fascicolo_id"]
+
+    class FakeLocalConnectorClient:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def preview_documents(self, case_payload):
+            assert case_payload["ufficio_codice"] == "0800570152"
+            assert case_payload["numero_rg"] == "466"
+            assert case_payload["anno_rg"] == "2023"
+            return {
+                "documenti": [
+                    {
+                        "idDocumento": "JPW_SICID:466-2023-001",
+                        "idDeposito": "DEP-001",
+                        "nomeFile": "verbale_udienza.pdf",
+                        "tipoAtto": "VerbaleUdienza",
+                        "classificazione": "Verbale",
+                        "dataDeposito": "19/04/2023",
+                        "depositante": "Cancelleria GDP Palmi",
+                        "mimeType": "application/pdf",
+                        "dimensioneBytes": 18,
+                    }
+                ]
+            }
+
+        def download_document(self, document_payload):
+            assert document_payload["original"] is False
+            assert document_payload["fascicolo"]["numero_rg"] == "466"
+            assert document_payload["documento"]["documento_uid"] == "JPW_SICID:466-2023-001"
+            return b"%PDF-1.4\nSIGP test\n", "verbale_udienza.pdf", "application/pdf"
+
+    monkeypatch.setattr("integrations.sigp_sync.routes.SigpLocalConnectorClient", FakeLocalConnectorClient)
+
+    preview = client.post(f"/sigp-sync/api/fascicoli/{fascicolo_id}/documenti/preview-local-connector")
+    assert preview.status_code == 200
+    preview_payload = preview.get_json()
+    assert preview_payload["ok"] is True
+    assert preview_payload["total"] == 1
+
+    docs_response = client.get(f"/sigp-sync/api/fascicoli/{fascicolo_id}/documenti")
+    docs = docs_response.get_json()["items"]
+    document = next(item for item in docs if item["documento_uid"] == "JPW_SICID:466-2023-001")
+    assert document["path_locale"] in ("", None)
+
+    download = client.post(
+        f"/sigp-sync/api/fascicoli/{fascicolo_id}/documenti/download-local-connector",
+        json={"document_ids": [document["id"]]},
+    )
+    download_payload = download.get_json()
+    assert download.status_code == 200
+    assert download_payload["ok"] is True
+    assert download_payload["downloaded"][0]["path_locale"].startswith("sigp/")
+
+    file_response = client.get(f"/sigp-sync/api/fascicoli/{fascicolo_id}/documenti/{document['id']}/file")
+    assert file_response.status_code == 200
+    assert b"SIGP test" in file_response.data

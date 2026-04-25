@@ -9,6 +9,8 @@ Il flusso SIGP/PST usa due livelli separati:
 
 La UI `/sigp-sync/` legge prima il catalogo, poi abilita `Apri` solo quando il record ha `path_locale` valorizzato. Un documento presente nel catalogo ma non ancora salvato resta visibile, ma non viene dichiarato scaricato.
 
+Il match non deduplica documenti che hanno stesso nome e stessa data ma ID portale diverso. Questo caso esiste nei cataloghi SIGP reali, ad esempio per piu' `comunicazione.txt` nella stessa giornata.
+
 ## Canale Local Signer
 
 La patch non usa scraping HTML e non interroga il portale dal server cloud. Il server parla con il Local Signer locale sul PC dello studio.
@@ -30,4 +32,4 @@ python -m pytest tests/test_sigp_sync.py tests/test_sigp_integration.py -q
 python -m ruff check integrations/sigp_sync tests/test_sigp_sync.py
 ```
 
-I test verificano un catalogo da 34 documenti, preview via Local Signer, download con `original=false`, salvataggio fisico e apertura del PDF dalla route UI.
+I test verificano un catalogo da 34 documenti, preview via Local Signer, download con `original=false`, salvataggio fisico, apertura del PDF dalla route UI e mancata deduplica di documenti con identificativi portale diversi.

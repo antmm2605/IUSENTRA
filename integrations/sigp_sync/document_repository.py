@@ -241,7 +241,7 @@ class SigpDocumentRepository:
     def _find_existing_document(self, conn: sqlite3.Connection, fascicolo_id: int, item: dict[str, Any]) -> sqlite3.Row | None:
         uid = item.get("documento_uid") or ""
         if uid:
-            row = conn.execute(
+            return conn.execute(
                 """
                 SELECT * FROM sigp_sync_documenti
                 WHERE sigp_fascicolo_id = ? AND documento_uid = ?
@@ -249,18 +249,19 @@ class SigpDocumentRepository:
                 """,
                 (fascicolo_id, uid),
             ).fetchone()
-            if row:
-                return row
+        id_deposito = item.get("id_deposito") or ""
+        if not id_deposito:
+            return None
         return conn.execute(
             """
             SELECT * FROM sigp_sync_documenti
             WHERE sigp_fascicolo_id = ?
+              AND COALESCE(id_deposito, '') = ?
               AND COALESCE(nome_file, '') = ?
-              AND COALESCE(data_deposito, '') = ?
               AND COALESCE(tipo_atto, '') = ?
             LIMIT 1
             """,
-            (fascicolo_id, item.get("nome_file", ""), item.get("data_deposito", ""), item.get("tipo_atto", "")),
+            (fascicolo_id, id_deposito, item.get("nome_file", ""), item.get("tipo_atto", "")),
         ).fetchone()
 
     def _insert_document(self, conn: sqlite3.Connection, fascicolo_id: int, item: dict[str, Any]) -> None:

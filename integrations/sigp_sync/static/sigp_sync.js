@@ -30,7 +30,19 @@
 
   function formatDate(value) {
     if (!value) return '-';
-    const raw = String(value);
+    const raw = String(value).trim();
+    const italianMatch = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:[ T](\d{1,2}):(\d{2})(?::(\d{2})(?:\.\d+)?)?)?/);
+    if (italianMatch) {
+      const [, day, month, year, hour, minute] = italianMatch;
+      const datePart = `${day.padStart(2, '0')}/${month.padStart(2, '0')}/${year}`;
+      return hour && minute ? `${datePart} ${hour.padStart(2, '0')}:${minute}` : datePart;
+    }
+    const isoMatch = raw.match(/^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{1,2}):(\d{2})(?::(\d{2})(?:\.\d+)?)?)?/);
+    if (isoMatch) {
+      const [, year, month, day, hour, minute] = isoMatch;
+      const datePart = `${day}/${month}/${year}`;
+      return hour && minute ? `${datePart} ${hour.padStart(2, '0')}:${minute}` : datePart;
+    }
     const parsed = new Date(raw);
     if (Number.isNaN(parsed.getTime())) return raw;
     return parsed.toLocaleString('it-IT', {

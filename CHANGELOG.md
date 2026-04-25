@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.184.9 - 2026-04-25
+
+- Corretto il riallineamento reale del catalogo SIGP: documenti con stesso nome/data ma identificativi portale diversi non vengono piu' deduplicati, cosi' Palmi `466/2023` resta a 34 documenti visibili.
+- Aggiornata la formattazione date della UI SIGP Sync per mostrare anche date ISO `YYYY-MM-DD` e date PST `gg/mm/aaaa HH:mm:ss.SSS` in formato italiano.
+- Aggiunto test anti-regressione su `comunicazione.txt` duplicata per nome/data ma distinta per ID portale.
+
 ## 2.184.8 - 2026-04-25
 
 - Collegata la UI `/sigp-sync/` al catalogo documenti persistente: anteprima Local Signer, import catalogo JSON, download selezionati/nuovi, collegamento file locale e apertura del documento salvato.

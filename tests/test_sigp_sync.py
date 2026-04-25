@@ -276,6 +276,61 @@ def test_sigp_sync_catalogo_documenti_non_taglia_oltre_otto(tmp_path):
     assert listed["count"] == 35
 
 
+def test_sigp_sync_catalogo_non_deduplica_id_portale_diversi_stesso_nome_data(tmp_path):
+    app = Flask(__name__)
+    app.secret_key = "test"
+    app.config["SIGP_SYNC_DB_PATH"] = str(tmp_path / "sigp_sync.db")
+
+    @app.before_request
+    def _login_test_user():
+        g.utente_corrente = object()
+
+    app.register_blueprint(sigp_sync_bp)
+    client = app.test_client()
+    payload_base = _payload_reale_gdp_palmi(documenti=0)
+    payload_base["provvedimenti"] = []
+
+    imported = client.post(
+        "/sigp-sync/api/fascicoli/importa-payload",
+        json={
+            "fascicolo_locale_id": "FASC-466-2023",
+            "payload": payload_base,
+        },
+    ).get_json()
+    fascicolo_id = imported["sigp_fascicolo_id"]
+    catalogo = {
+        "documenti": [
+            {
+                "id_documento": "3084012",
+                "id_cat": "3084012",
+                "nome": "comunicazione.txt",
+                "tipo": "Documento",
+                "data_deposito": "2026-03-10",
+            },
+            {
+                "id_documento": "3084003",
+                "id_cat": "3084003",
+                "nome": "comunicazione.txt",
+                "tipo": "Documento",
+                "data_deposito": "2026-03-10",
+            },
+        ]
+    }
+
+    response = client.post(
+        f"/sigp-sync/api/fascicoli/{fascicolo_id}/documenti/importa-catalogo",
+        json={"catalogo": catalogo, "source": "test_id_portale_distinti"},
+    )
+    payload = response.get_json()
+    uids = {document["documento_uid"] for document in payload["documents"]}
+
+    assert response.status_code == 200
+    assert payload["ok"] is True
+    assert payload["total"] == 2
+    assert len(payload["documents"]) == 2
+    assert {"3084012", "3084003"} <= uids
+
+
 def test_sigp_sync_local_connector_preview_e_download_salva_file(tmp_path, monkeypatch):
     app = Flask(__name__)
     app.secret_key = "test"

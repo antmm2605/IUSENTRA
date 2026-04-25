@@ -9,6 +9,7 @@ from integrations.sigp.sync_mapper import normalize_sigp_sync_payload
 from integrations.sigp.sync_policy import get_sigp_sync_policy
 from integrations.sigp.sync_repository import SigpSyncRepository
 from integrations.sigp.sync_service import import_authorized_sigp_payload
+from integrations.sigp_sync.routes import sigp_sync_bp
 
 
 def _payload_reale_gdp_palmi(documenti: int = 16) -> dict:
@@ -162,3 +163,53 @@ def test_sigp_sync_route_importa_payload_autorizzato(tmp_path):
     assert response.status_code == 200
     assert payload["ok"] is True
     assert payload["conteggi"]["documenti"] == 13
+
+
+def test_sigp_sync_ui_patch_usa_payload_reale_e_non_fixture(tmp_path):
+    app = Flask(__name__)
+    app.secret_key = "test"
+    app.config["SIGP_SYNC_DB_PATH"] = str(tmp_path / "sigp_sync.db")
+
+    @app.before_request
+    def _login_test_user():
+        g.utente_corrente = object()
+
+    app.register_blueprint(sigp_sync_bp)
+    client = app.test_client()
+
+    page = client.get("/sigp-sync/")
+    assert page.status_code == 200
+    html = page.get_data(as_text=True)
+    assert "Importa payload reale" in html
+    assert "Import test" not in html
+    assert "fixture" not in html.lower()
+
+    schema_response = client.post("/sigp-sync/api/schema/ensure")
+    assert schema_response.status_code == 200
+    assert schema_response.get_json()["ok"] is True
+
+    import_response = client.post(
+        "/sigp-sync/api/fascicoli/importa-payload",
+        json={
+            "fascicolo_locale_id": "FASC-466-2023",
+            "payload": _payload_reale_gdp_palmi(documenti=9),
+        },
+    )
+    imported = import_response.get_json()
+    assert import_response.status_code == 200
+    assert imported["ok"] is True
+    assert imported["conteggi"]["documenti"] == 10
+
+    list_response = client.get("/sigp-sync/api/fascicoli")
+    items = list_response.get_json()["items"]
+    assert len(items) == 1
+    assert items[0]["numero_rg"] == "466"
+
+    snapshot_response = client.get(f"/sigp-sync/api/fascicoli/{imported['sigp_fascicolo_id']}")
+    snapshot = snapshot_response.get_json()["snapshot"]
+    assert len(snapshot["documenti"]) == 10
+    assert len(snapshot["udienze"]) == 4
+    assert len(snapshot["log"]) == 1
+
+    missing_fixture = client.post("/sigp-sync/api/fascicoli/importa-fixture")
+    assert missing_fixture.status_code == 404

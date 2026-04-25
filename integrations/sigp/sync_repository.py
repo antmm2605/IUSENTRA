@@ -120,7 +120,27 @@ class SigpSyncRepository:
                 "udienze": self._fetch_children(conn, "sigp_sync_udienze", sigp_fascicolo_id),
                 "documenti": self._fetch_children(conn, "sigp_sync_documenti", sigp_fascicolo_id),
                 "comunicazioni": self._fetch_children(conn, "sigp_sync_comunicazioni", sigp_fascicolo_id),
+                "log": self._fetch_children(conn, "sigp_sync_log", sigp_fascicolo_id),
             }
+
+    def list_fascicoli(self, limit: int = 100) -> list[dict]:
+        self.ensure_schema()
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            rows = conn.execute(
+                """
+                SELECT
+                    id, sigp_uid, fascicolo_locale_id, ufficio_codice, ufficio,
+                    registro, numero_rg, anno_rg, oggetto, giudice, sezione,
+                    stato, data_iscrizione, data_ultima_udienza, hash_snapshot,
+                    created_at, updated_at
+                FROM sigp_sync_fascicoli
+                ORDER BY updated_at DESC, id DESC
+                LIMIT ?
+                """,
+                (max(1, min(int(limit or 100), 500)),),
+            ).fetchall()
+        return [dict(row) for row in rows]
 
     def _replace_children(self, conn: sqlite3.Connection, fascicolo_id: int, normalized: dict) -> None:
         for table in (

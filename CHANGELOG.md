@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.184.3 - 2026-04-25
+
+- Integrata la nuova UI `/sigp-sync/` per consultare snapshot SIGP reali con layout dedicato a fascicolo, documenti, eventi, udienze, parti, comunicazioni e log.
+- Collegata la UI al repository SIGP autorizzato gia' esistente, rimuovendo il flusso demo `Import test`/fixture previsto dallo scaffold esterno.
+- Aggiunti test di route e snapshot per garantire che la pagina lavori su payload reali e non esponga endpoint demo.
+
 ## 2.184.2 - 2026-04-25
 
 - Rimosso il fallback di lettura HTML della scheda SIGP/Giudice di Pace: IUSENTRA non effettua scraping di `sigp_infofascicolo.wp` e richiede dati ottenuti tramite PST/PdA/Model Office o Local Connector autorizzato.

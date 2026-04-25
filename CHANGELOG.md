@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.184.10 - 2026-04-25
+
+- Reso visibile il modulo `SIGP - Giudice di Pace` nel menu `PCT / Telematico` e aperto automaticamente il primo fascicolo importato, cosi' il catalogo Palmi `466/2023` non resta nascosto dietro un URL tecnico.
+- Corretto il client SIGP per riusare `pst_session_id`, certificato e codice fiscale salvati nel payload raw del fascicolo, evitando nuove sessioni inutili tra catalogo e download.
+- Collegati i pulsanti SIGP al Local Signer del browser (`127.0.0.1:27272`) e al salvataggio server `salva-download-browser`, cosi' Railway non prova piu' a chiamare il localhost del server cloud.
+- Memorizzato `pst_session_id` in `sessionStorage` per la sola sessione browser: il PIN non viene salvato, ma le chiamate successive riusano la sessione PST finche' la finestra resta aperta.
+- Aggiunto timeout dedicato ai download reali PST/SIGP (`HACS_SIGNER_PST_DOWNLOAD_MAX_TIME`, default 300s) per non troncare `downloadAtto` dopo 90 secondi.
+- Bloccato il default su copia di consultazione/copia informatica ministeriale (`original=false`) anche nel Local Signer; il duplicato senza coccarda e' ora una scelta esplicita con pulsante dedicato.
+- Aggiornato il Local Signer a `1.6.16` e aggiunti test sul riuso sessione, sul timeout download e sul passaggio reale del flag duplicato fino al backend.
+
 ## 2.184.9 - 2026-04-25
 
 - Corretto il riallineamento reale del catalogo SIGP: documenti con stesso nome/data ma identificativi portale diversi non vengono piu' deduplicati, cosi' Palmi `466/2023` resta a 34 documenti visibili.

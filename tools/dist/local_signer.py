@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-IUSENTRA Local Signer - v1.6.14
+IUSENTRA Local Signer - v1.6.15
 
 Servizio HTTP locale (localhost:27272) che firma documenti con smart card e token CNS/CIE
 (o qualsiasi token PKCS#11) e consente l'accesso autenticato al PST.
@@ -107,10 +107,12 @@ from local_signer_mod.server_bootstrap import print_startup_banner  # noqa: E402
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.6.14"
+VERSION = "1.6.16"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
+PST_DOWNLOAD_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_DOWNLOAD_MAX_TIME", "300"))
+PST_DOWNLOAD_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_DOWNLOAD_CONNECT_TIMEOUT", str(PST_SOAP_CONNECT_TIMEOUT)))
 PST_PREFLIGHT_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_PREFLIGHT_MAX_TIME", "30"))
 PST_PREFLIGHT_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_PREFLIGHT_CONNECT_TIMEOUT", "10"))
 PIN_SESSION_TTL_SECONDS = max(int(os.getenv("HACS_SIGNER_PIN_SESSION_TTL", "900")), 60)
@@ -2307,7 +2309,7 @@ def _pst_tipo_ricerca_qbuilder(base_url: str) -> str:
 
 
 def _pst_subpro_sigp(sub_procedimento: str = "") -> str:
-    return (sub_procedimento or "").strip() or "0"
+    return (sub_procedimento or "").strip()
 
 
 def _sigp_info_fascicolo_url(
@@ -3067,7 +3069,9 @@ def _soap_call_curl_raw(url: str, soap_body: str,
                         extra_headers: Optional[list[str]] = None,
                         soap_action: Optional[str] = "",
                         content_type: str = "text/xml; charset=utf-8",
-                        cookie_file: Optional[str] = None) -> tuple[bytes, str]:
+                        cookie_file: Optional[str] = None,
+                        max_time: Optional[int] = None,
+                        connect_timeout: Optional[int] = None) -> tuple[bytes, str]:
     """
     Esegue una chiamata SOAP usando curl.
 
@@ -3080,6 +3084,9 @@ def _soap_call_curl_raw(url: str, soap_body: str,
     Su Linux:
       - curl con OpenSSL + PKCS#11 engine (richiede engine pkcs11 installato)
     """
+    effective_max_time = int(max_time or PST_SOAP_MAX_TIME)
+    effective_connect_timeout = int(connect_timeout or PST_SOAP_CONNECT_TIMEOUT)
+
     with tempfile.NamedTemporaryFile(
         mode="w", suffix=".xml", delete=False, encoding="utf-8"
     ) as f:
@@ -3093,8 +3100,8 @@ def _soap_call_curl_raw(url: str, soap_body: str,
     try:
         cmd = [
             "curl", "-s", "-S",
-            "--max-time", str(PST_SOAP_MAX_TIME),
-            "--connect-timeout", str(PST_SOAP_CONNECT_TIMEOUT),
+            "--max-time", str(effective_max_time),
+            "--connect-timeout", str(effective_connect_timeout),
             "--location",
             "--dump-header", header_file,
             "-X", "POST",
@@ -3130,7 +3137,7 @@ def _soap_call_curl_raw(url: str, soap_body: str,
 
         result = subprocess.run(
             cmd, capture_output=True,
-            timeout=PST_SOAP_MAX_TIME + 10
+            timeout=effective_max_time + 10
         )
 
         if result.returncode != 0:
@@ -3139,7 +3146,7 @@ def _soap_call_curl_raw(url: str, soap_body: str,
                     result.returncode,
                     result.stderr.decode("utf-8", "replace"),
                     url,
-                    timeout_sec=PST_SOAP_MAX_TIME,
+                    timeout_sec=effective_max_time,
                 )
             )
 
@@ -3203,6 +3210,8 @@ def _soap_call_curl_batch_raw(
             extra_headers=r.get("extra_headers"),
             soap_action=r.get("soap_action", ""),
             cookie_file=r.get("cookie_file"),
+            max_time=r.get("max_time"),
+            connect_timeout=r.get("connect_timeout"),
         )]
 
     tmp_files: list[str] = []
@@ -3232,6 +3241,8 @@ def _soap_call_curl_batch_raw(
                 "soap_action": req.get("soap_action") or "",
                 "extra_headers": list(req.get("extra_headers") or []),
                 "cookie_file": str(req.get("cookie_file") or ""),
+                "max_time": int(req.get("max_time") or PST_SOAP_MAX_TIME),
+                "connect_timeout": int(req.get("connect_timeout") or PST_SOAP_CONNECT_TIMEOUT),
             })
 
         def _qp(p: str) -> str:
@@ -3261,8 +3272,8 @@ def _soap_call_curl_batch_raw(
                 f'data = "@{_qp(t["body_file"])}"',
                 f'output = "{_qp(t["resp_file"])}"',
                 f'dump-header = "{_qp(t["hdr_file"])}"',
-                f"max-time = {PST_SOAP_MAX_TIME}",
-                f"connect-timeout = {PST_SOAP_CONNECT_TIMEOUT}",
+                f'max-time = {t["max_time"]}',
+                f'connect-timeout = {t["connect_timeout"]}',
                 "location",
             ]
             if t["cookie_file"]:
@@ -3297,7 +3308,7 @@ def _soap_call_curl_batch_raw(
         result = subprocess.run(
             ["curl", "-s", "-S", "-K", cfg_file],
             capture_output=True,
-            timeout=(PST_SOAP_MAX_TIME + 10) * len(requests),
+            timeout=sum((int(t["max_time"]) + 10) for t in transfers),
         )
         if result.returncode != 0:
             raise RuntimeError(
@@ -3305,7 +3316,7 @@ def _soap_call_curl_batch_raw(
                     result.returncode,
                     result.stderr.decode("utf-8", "replace"),
                     transfers[0]["url"],
-                    timeout_sec=PST_SOAP_MAX_TIME,
+                    timeout_sec=max(int(t["max_time"]) for t in transfers),
                 )
             )
 
@@ -3363,6 +3374,8 @@ def _soap_call_curl_batch_raw_best_effort(
                 extra_headers=req.get("extra_headers"),
                 soap_action=req.get("soap_action", ""),
                 cookie_file=req.get("cookie_file"),
+                max_time=req.get("max_time"),
+                connect_timeout=req.get("connect_timeout"),
             )
             body_text = body_bytes.decode("utf-8", "replace")
             fault = _estrai_fault_soap(body_text)
@@ -3414,6 +3427,8 @@ def _soap_call_curl_batch_raw_best_effort(
                 "soap_action": req.get("soap_action") or "",
                 "extra_headers": list(req.get("extra_headers") or []),
                 "cookie_file": str(req.get("cookie_file") or ""),
+                "max_time": int(req.get("max_time") or PST_SOAP_MAX_TIME),
+                "connect_timeout": int(req.get("connect_timeout") or PST_SOAP_CONNECT_TIMEOUT),
             })
 
         def _qp(p: str) -> str:
@@ -3442,8 +3457,8 @@ def _soap_call_curl_batch_raw_best_effort(
                 f'data = "@{_qp(t["body_file"])}"',
                 f'output = "{_qp(t["resp_file"])}"',
                 f'dump-header = "{_qp(t["hdr_file"])}"',
-                f"max-time = {PST_SOAP_MAX_TIME}",
-                f"connect-timeout = {PST_SOAP_CONNECT_TIMEOUT}",
+                f'max-time = {t["max_time"]}',
+                f'connect-timeout = {t["connect_timeout"]}',
                 "location",
             ]
             if t["cookie_file"]:
@@ -3473,7 +3488,7 @@ def _soap_call_curl_batch_raw_best_effort(
         result = subprocess.run(
             ["curl", "-s", "-S", "-K", cfg_file],
             capture_output=True,
-            timeout=(PST_SOAP_MAX_TIME + 10) * len(requests),
+            timeout=sum((int(t["max_time"]) + 10) for t in transfers),
         )
         if result.returncode != 0:
             raise RuntimeError(
@@ -3481,7 +3496,7 @@ def _soap_call_curl_batch_raw_best_effort(
                     result.returncode,
                     result.stderr.decode("utf-8", "replace"),
                     transfers[0]["url"],
-                    timeout_sec=PST_SOAP_MAX_TIME,
+                    timeout_sec=max(int(t["max_time"]) for t in transfers),
                 )
             )
 
@@ -3535,7 +3550,9 @@ def _soap_call_curl(url: str, soap_body: str,
                     pkcs11_uri: Optional[str] = None,
                     extra_headers: Optional[list[str]] = None,
                     soap_action: Optional[str] = "",
-                    cookie_file: Optional[str] = None) -> str:
+                    cookie_file: Optional[str] = None,
+                    max_time: Optional[int] = None,
+                    connect_timeout: Optional[int] = None) -> str:
     body_bytes, _headers = _soap_call_curl_raw(
         url=url,
         soap_body=soap_body,
@@ -3544,6 +3561,8 @@ def _soap_call_curl(url: str, soap_body: str,
         extra_headers=extra_headers,
         soap_action=soap_action,
         cookie_file=cookie_file,
+        max_time=max_time,
+        connect_timeout=connect_timeout,
     )
     return body_bytes.decode("utf-8", "replace")
 
@@ -3642,6 +3661,8 @@ def _soap_call_pst_session(
     soap_action: str = "",
     cookie_file: Optional[str] = None,
     prefer_cookie_only: bool = False,
+    max_time: Optional[int] = None,
+    connect_timeout: Optional[int] = None,
 ) -> str:
     """
     Riusa prima l'eventuale sessione HTTP del portale (cookie_file) e solo in
@@ -3664,6 +3685,8 @@ def _soap_call_pst_session(
             extra_headers=extra_headers,
             soap_action=soap_action,
             cookie_file=cookie_file,
+            max_time=max_time,
+            connect_timeout=connect_timeout,
         )
 
     if prefer_cookie_only and cookie_file and host not in _mTLS_required_hosts:
@@ -3696,6 +3719,8 @@ def _soap_call_pst_session_raw(
     soap_action: str = "",
     cookie_file: Optional[str] = None,
     prefer_cookie_only: bool = False,
+    max_time: Optional[int] = None,
+    connect_timeout: Optional[int] = None,
 ) -> tuple[bytes, str]:
     """Versione raw (bytes) di _soap_call_pst_session — stessa logica mTLS."""
     host = _pst_host(url)
@@ -3708,6 +3733,8 @@ def _soap_call_pst_session_raw(
             extra_headers=extra_headers,
             soap_action=soap_action,
             cookie_file=cookie_file,
+            max_time=max_time,
+            connect_timeout=connect_timeout,
         )
 
     if prefer_cookie_only and cookie_file and host not in _mTLS_required_hosts:
@@ -4013,7 +4040,8 @@ def _soap_ricerca_fascicoli_body(base_url: str, codice_ufficio: str, numero_rg: 
                                   anno_rg: Optional[int] = None,
                                   nome_parte: Optional[str] = None,
                                   cf_parte: Optional[str] = None,
-                                  cf_avvocato: str = "") -> str:
+                                  cf_avvocato: str = "",
+                                  sub_procedimento: str = "") -> str:
     """Costruisce il body SOAP per RicercaFascicoliRegistro o qbuilder SICID."""
     namespace = _pst_namespace_qbuilder(base_url)
     if namespace:
@@ -4026,7 +4054,9 @@ def _soap_ricerca_fascicoli_body(base_url: str, codice_ufficio: str, numero_rg: 
                 ("anno", "string", str(anno_rg)),
             ]
             if _pst_servizio_sigp(base_url):
-                values.append(("subpro", "string", _pst_subpro_sigp()))
+                sigp_subpro = _pst_subpro_sigp(sub_procedimento)
+                if sigp_subpro:
+                    values.append(("subpro", "string", sigp_subpro))
             return _soap_qbuilder_execute_body(
                 namespace,
                 "RicercaInformazioniFascicoloPerTipo",
@@ -4094,7 +4124,9 @@ def _soap_documenti_body(base_url: str, codice_ufficio: str, numero_rg: str,
             ("numero", "string", numero_value),
         ]
         if _pst_servizio_sigp(base_url):
-            values.append(("subpro", "string", _pst_subpro_sigp(sub_procedimento)))
+            sigp_subpro = _pst_subpro_sigp(sub_procedimento)
+            if sigp_subpro:
+                values.append(("subpro", "integer", sigp_subpro))
         elif sub_procedimento:
             values.append(("subProc", "string", sub_procedimento))
         return _soap_qbuilder_execute_body(
@@ -4118,7 +4150,23 @@ def _soap_documenti_body(base_url: str, codice_ufficio: str, numero_rg: str,
       <annoRG>{anno_rg}</annoRG>
     </pst:consultazioneDocumentiRequest>
   </soapenv:Body>
-</soapenv:Envelope>"""
+    </soapenv:Envelope>"""
+
+
+def _soap_sigp_ricerca_atti_body(codice_ufficio: str, numero_rg: str, anno_rg: int) -> str:
+    body_inner = f"""
+    <y:ricercaAtti xmlns:y="urn:sigp-consultazioneDocumenti">
+      <inputRA>
+        <numRuolo>{_esc(str(numero_rg).strip())}</numRuolo>
+        <annoRuolo>{_esc(str(anno_rg).strip())}</annoRuolo>
+      </inputRA>
+    </y:ricercaAtti>"""
+    return _soap_qbuilder_envelope(
+        "urn:sigp-consultazioneDocumenti",
+        body_inner,
+        role="AVV",
+        group=codice_ufficio,
+    )
 
 
 def _soap_profilo_fascicolo_body(base_url: str, codice_ufficio: str, numero_rg: str,
@@ -4135,7 +4183,9 @@ def _soap_profilo_fascicolo_body(base_url: str, codice_ufficio: str, numero_rg: 
         ("scadTermini", "boolean", "false"),
     ]
     if _pst_servizio_sigp(base_url):
-        values.append(("subpro", "string", _pst_subpro_sigp(sub_procedimento)))
+        sigp_subpro = _pst_subpro_sigp(sub_procedimento)
+        if sigp_subpro:
+            values.append(("subpro", "string", sigp_subpro))
     elif sub_procedimento:
         values.append(("subProc", "string", sub_procedimento))
     return _soap_qbuilder_execute_body(
@@ -4454,6 +4504,20 @@ def _parse_documenti_xml(xml_str: str) -> list[dict]:
         return []
 
 
+def _parse_sigp_ricerca_atti_ids(xml_str: str) -> list[str]:
+    try:
+        root = _strip_namespaces(ET.fromstring(_normalizza_xml_pst(xml_str)))
+        ids: list[str] = []
+        for item in root.findall(".//item"):
+            value = (item.text or "").strip()
+            if value and value not in ids:
+                ids.append(value)
+        return ids
+    except Exception as e:
+        log.warning("_parse_sigp_ricerca_atti_ids: %s", e)
+        return []
+
+
 def _parse_profilo_documento_xml(xml_str: str) -> dict:
     try:
         root = _strip_namespaces(ET.fromstring(_normalizza_xml_pst(xml_str)))
@@ -4462,11 +4526,21 @@ def _parse_profilo_documento_xml(xml_str: str) -> dict:
             el = root.find(path)
             return (el.text or "").strip() if el is not None and el.text else ""
 
+        def _first(*paths: str) -> str:
+            for path in paths:
+                value = _text(path)
+                if value:
+                    return value
+            return ""
+
         data_deposito = _normalizza_data_pst(
-            _text(".//dataDeposito")
-            or _text(".//dataCreazione")
-            or _text(".//dataAggiornamentoFascicolo")
+            _first(".//dataDeposito", ".//dataCreazione", ".//dataAggiornamentoFascicolo")
         )
+        dimensione = 0
+        try:
+            dimensione = int(_first(".//dimensioneFile", ".//dimensione") or 0)
+        except ValueError:
+            dimensione = 0
         return {
             "id_documento": _text(".//idDocumento"),
             "id_cat": _text(".//idCat"),
@@ -4476,10 +4550,56 @@ def _parse_profilo_documento_xml(xml_str: str) -> dict:
             "nome_file_originale": _text(".//nomeFileOriginale"),
             "codice_ufficio": _text(".//codiceUfficio"),
             "data_documento": data_deposito,
+            "data_deposito": data_deposito,
+            "tipo": _first(".//datiSGR/tipoAtto/descrizione", ".//tipoOggetto/descrizione"),
+            "tipo_atto": _first(".//datiSGR/tipoAtto/descrizione", ".//tipoOggetto/descrizione"),
+            "mittente": _first(".//utentePubblicatore/cognome", ".//codFiscMittente", ".//autoreVersione"),
+            "id_deposito": _text(".//idBusta"),
+            "id_fascicolo": _text(".//idFascicolo"),
+            "dimensione_bytes": dimensione,
+            "tipo_mime": _text(".//tipoMIME"),
         }
     except Exception as e:
         log.warning("_parse_profilo_documento_xml: %s", e)
         return {}
+
+
+def _documento_da_profilo_sigp(profilo: dict, id_doc: str) -> dict:
+    document_id = str(profilo.get("id_documento") or id_doc or "").strip()
+    id_cat = str(profilo.get("id_cat") or document_id).strip()
+    nome_originale = str(profilo.get("nome_file_originale") or "").strip()
+    tipo = _qbuilder_tipo_documento(str(profilo.get("tipo_atto") or profilo.get("tipo") or "Documento"))
+    if nome_originale:
+        nome = nome_originale
+    elif document_id:
+        nome = f"{tipo}_{document_id}.pdf"
+    else:
+        nome = tipo
+    id_documento_candidates: list[str] = []
+    for candidate in (document_id, id_cat, str(profilo.get("id_repeatto") or "").strip()):
+        if candidate and candidate not in id_documento_candidates:
+            id_documento_candidates.append(candidate)
+    return {
+        "id_documento": document_id,
+        "nome": nome,
+        "tipo": tipo,
+        "data_deposito": str(profilo.get("data_deposito") or profilo.get("data_documento") or "").strip(),
+        "mittente": str(profilo.get("mittente") or "").strip(),
+        "dimensione_bytes": int(profilo.get("dimensione_bytes") or 0),
+        "id_deposito": str(profilo.get("id_deposito") or "").strip(),
+        "tipo_atto": tipo,
+        "disponibile": True,
+        "stato": "depositato",
+        "sub_procedimento": "",
+        "numero_documento": document_id,
+        "id_doc_mittente": "",
+        "id_repeatto": str(profilo.get("id_repeatto") or "").strip(),
+        "msg_id": str(profilo.get("msg_id") or "").strip(),
+        "id_cat": id_cat,
+        "content_type": str(profilo.get("tipo_mime") or "").strip(),
+        "id_documento_candidates": id_documento_candidates,
+        "fonte_catalogo": "sigp_ricerca_atti",
+    }
 
 
 def _pst_effective_id_cat(item: Optional[dict], id_documento: str = "") -> str:
@@ -4655,7 +4775,7 @@ def _pst_download_documento_payload(
     id_repeatto: str = "",
     msg_id: str = "",
     data_documento: str = "",
-    original: bool = True,
+    original: bool = False,
     cookie_file: Optional[str] = None,
     prefer_cookie_only: bool = False,
 ) -> dict:
@@ -4745,6 +4865,8 @@ def _pst_download_documento_payload(
         soap_action=soap_action,
         cookie_file=cookie_file,
         prefer_cookie_only=prefer_cookie_only,
+        max_time=PST_DOWNLOAD_MAX_TIME,
+        connect_timeout=PST_DOWNLOAD_CONNECT_TIMEOUT,
     )
     content_type = _http_header_value(headers_text, "Content-Type")
     parsed = _parse_download_documento_response(body_bytes, content_type)
@@ -4785,7 +4907,7 @@ def _assemble_download_file_payload(
     nome_documento: str,
     base_url: str,
     *,
-    original: bool = True,
+    original: bool = False,
 ) -> dict:
     """Costruisce il payload file da una risposta PST parsed."""
     document_id_output = str(
@@ -4851,6 +4973,138 @@ def _pst_primary_document_id(item: Optional[dict]) -> str:
     return ""
 
 
+def _sigp_document_merge_candidates(item: dict) -> list[str]:
+    candidates = _pst_document_id_candidates(item)
+    for field in ("id_cat", "id_repeatto", "msg_id"):
+        candidate = str(item.get(field) or "").strip()
+        if candidate and not candidate.startswith("#") and candidate not in candidates:
+            candidates.append(candidate)
+    return candidates
+
+
+def _sigp_merge_documenti_con_profili(documenti: list[dict], profili: list[dict]) -> list[dict]:
+    merged: list[dict] = []
+    index: dict[str, dict] = {}
+    for doc in documenti or []:
+        doc_copy = dict(doc)
+        candidates = _sigp_document_merge_candidates(doc_copy)
+        target = next((index[candidate] for candidate in candidates if candidate in index), None)
+        if target is not None:
+            for key, value in doc_copy.items():
+                if key == "id_documento_candidates":
+                    continue
+                if target.get(key) in ("", None, 0) and value not in ("", None, 0):
+                    target[key] = value
+            target.setdefault("id_documento_candidates", [])
+            for candidate in candidates:
+                if candidate and candidate not in target["id_documento_candidates"]:
+                    target["id_documento_candidates"].append(candidate)
+                    index.setdefault(candidate, target)
+            continue
+        merged.append(doc_copy)
+        doc_copy.setdefault("id_documento_candidates", [])
+        for candidate in candidates:
+            if candidate and candidate not in doc_copy["id_documento_candidates"]:
+                doc_copy["id_documento_candidates"].append(candidate)
+            index.setdefault(candidate, doc_copy)
+
+    for profilo_doc in profili or []:
+        candidates = _sigp_document_merge_candidates(profilo_doc)
+        target = next((index[candidate] for candidate in candidates if candidate in index), None)
+        if target is None:
+            merged.append(dict(profilo_doc))
+            for candidate in candidates:
+                index.setdefault(candidate, merged[-1])
+            continue
+        nome_originale = str(profilo_doc.get("nome") or "").strip()
+        if nome_originale:
+            target["nome"] = nome_originale
+            target["nome_file_originale"] = nome_originale
+        for campo in (
+            "dimensione_bytes",
+            "id_deposito",
+            "id_cat",
+            "id_repeatto",
+            "msg_id",
+            "content_type",
+            "fonte_catalogo",
+        ):
+            value = profilo_doc.get(campo)
+            if value not in ("", None, 0):
+                target[campo] = value
+        target.setdefault("id_documento_candidates", [])
+        for candidate in candidates:
+            if candidate and candidate not in target["id_documento_candidates"]:
+                target["id_documento_candidates"].append(candidate)
+    return merged
+
+
+def _sigp_documenti_da_ricerca_atti(
+    *,
+    base_url: str,
+    codice_ufficio: str,
+    numero_rg: str,
+    anno_rg: int,
+    cf_avvocato: str,
+    cert_thumbprint: str,
+    cookie_file: str = "",
+    prefer_cookie_only: bool = False,
+) -> list[dict]:
+    url_documenti = _pst_url_documenti(base_url)
+    headers = [f"X-WASP-User: {cf_avvocato}"] if cf_avvocato else []
+    xml_ids = _soap_call_pst_session(
+        url=url_documenti,
+        soap_body=_soap_sigp_ricerca_atti_body(codice_ufficio, numero_rg, anno_rg),
+        cert_thumbprint=cert_thumbprint,
+        extra_headers=headers,
+        soap_action="ricercaAtti",
+        cookie_file=cookie_file,
+        prefer_cookie_only=prefer_cookie_only,
+    )
+    fault = _estrai_fault_soap(xml_ids)
+    if fault:
+        raise RuntimeError(f"Il PST ha restituito una SOAP Fault: {fault}")
+    ids = _parse_sigp_ricerca_atti_ids(xml_ids)
+    if not ids:
+        return []
+
+    requests = [
+        {
+            "url": url_documenti,
+            "soap_body": _soap_bea_sicid_body(
+                "estraiProfiloDocumento",
+                [
+                    ("idUtenteCorrente", cf_avvocato),
+                    ("idDoc", id_doc),
+                    ("registro", "GDP"),
+                    ("ruoloApplicativo", "AVV"),
+                ],
+                group=codice_ufficio,
+            ),
+            "extra_headers": headers,
+            "soap_action": "",
+        }
+        for id_doc in ids
+    ]
+    results = _soap_call_pst_session_batch_raw_best_effort(
+        requests,
+        cert_thumbprint=cert_thumbprint,
+        cookie_file=cookie_file,
+        prefer_cookie_only=prefer_cookie_only,
+    )
+    documenti: list[dict] = []
+    for id_doc, result in zip(ids, results):
+        if result.get("error"):
+            log.debug("Profilo documento SIGP %s non importato: %s", id_doc, result["error"])
+            continue
+        xml = (result.get("body_bytes") or b"").decode("utf-8", "replace")
+        profilo = _parse_profilo_documento_xml(xml)
+        if not profilo:
+            continue
+        documenti.append(_documento_da_profilo_sigp(profilo, id_doc))
+    return documenti
+
+
 def _pst_download_documenti_batch_payloads(
     *,
     base_url: str,
@@ -4860,7 +5114,7 @@ def _pst_download_documenti_batch_payloads(
     documenti: list[dict],
     do_preflight: bool = True,
     cookie_file: Optional[str] = None,
-    original: bool = True,
+    original: bool = False,
 ) -> dict:
     """
     Scarica N documenti PST con UN SOLO processo curl per l'intero batch.
@@ -5071,6 +5325,8 @@ def _pst_download_documenti_batch_payloads(
                     "soap_action": soap_action,
                     "extra_headers": extra_h,
                     "cookie_file": cookie_file,
+                    "max_time": PST_DOWNLOAD_MAX_TIME,
+                    "connect_timeout": PST_DOWNLOAD_CONNECT_TIMEOUT,
                 })
                 dl_meta.append({"id_documento": id_output, "nome_documento": nome_doc, "item": item})
             except Exception as e:
@@ -5124,6 +5380,8 @@ def _pst_download_documenti_batch_payloads(
                         extra_headers=req.get("extra_headers"),
                         soap_action=req.get("soap_action", ""),
                         cookie_file=req.get("cookie_file"),
+                        max_time=req.get("max_time"),
+                        connect_timeout=req.get("connect_timeout"),
                     )
                     ct = _http_header_value(hdr_text, "Content-Type")
                     parsed = _parse_download_documento_response(body_bytes, ct)
@@ -6164,6 +6422,7 @@ class _Handler(BaseHTTPRequestHandler):
                 nome_parte=data.get("nome_parte") or None,
                 cf_parte=data.get("cf_parte") or None,
                 cf_avvocato=cf_avvocato,
+                sub_procedimento=str(data.get("sub_procedimento") or data.get("subpro") or "").strip(),
             )
             extra_headers = [f"X-WASP-User: {cf_avvocato}"] if _pst_namespace_qbuilder(base_url) else []
             is_sigp_exact = (
@@ -6322,6 +6581,21 @@ class _Handler(BaseHTTPRequestHandler):
             if fault:
                 raise RuntimeError(f"Il PST ha restituito una SOAP Fault: {fault}")
             documenti = _parse_documenti_xml(xml_resp)
+            if _pst_servizio_sigp(base_url):
+                try:
+                    profili_sigp = _sigp_documenti_da_ricerca_atti(
+                        base_url=base_url,
+                        codice_ufficio=codice_pst,
+                        numero_rg=rg,
+                        anno_rg=anno,
+                        cf_avvocato=cf_avvocato,
+                        cert_thumbprint=cert_thumbprint,
+                        cookie_file=cookie_file,
+                        prefer_cookie_only=prefer_cookie_only,
+                    )
+                    documenti = _sigp_merge_documenti_con_profili(documenti, profili_sigp)
+                except Exception as sigp_error:
+                    log.warning("Arricchimento documenti SIGP ricercaAtti fallito: %s", sigp_error)
             if session_entry:
                 _update_pst_session(
                     session_entry["session_id"],
@@ -6691,9 +6965,9 @@ class _Handler(BaseHTTPRequestHandler):
                 msg_id=str(data.get("msg_id") or "").strip(),
                 data_documento=str(data.get("data_documento") or "").strip(),
                 original=(
-                    data.get("original", True)
-                    if isinstance(data.get("original", True), bool)
-                    else str(data.get("original", True)).strip().lower() not in {"0", "false", "no", "off"}
+                    data.get("original", False)
+                    if isinstance(data.get("original", False), bool)
+                    else str(data.get("original", False)).strip().lower() not in {"0", "false", "no", "off"}
                 ),
                 cookie_file=cookie_file,
                 prefer_cookie_only=prefer_cookie_only,
@@ -6786,9 +7060,9 @@ class _Handler(BaseHTTPRequestHandler):
                 do_preflight=False,
                 cookie_file=str((session_entry or {}).get("cookie_file") or ""),
                 original=(
-                    data.get("original", True)
-                    if isinstance(data.get("original", True), bool)
-                    else str(data.get("original", True)).strip().lower() not in {"0", "false", "no", "off"}
+                    data.get("original", False)
+                    if isinstance(data.get("original", False), bool)
+                    else str(data.get("original", False)).strip().lower() not in {"0", "false", "no", "off"}
                 ),
             )
             if session_entry:

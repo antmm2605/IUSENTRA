@@ -1,6 +1,7 @@
 """UI e API SIGP Sync con catalogo documenti operativo."""
 from __future__ import annotations
 
+import base64
 import tempfile
 from functools import wraps
 from pathlib import Path
@@ -247,7 +248,7 @@ def api_preview_documenti_local_connector(sigp_fascicolo_id: int):
         ), 400
 
 
-def _download_document_ids(sigp_fascicolo_id: int, document_ids: list[int]):
+def _download_document_ids(sigp_fascicolo_id: int, document_ids: list[int], *, original: bool = False):
     if not document_ids:
         return {"ok": False, "message": "Nessun documento selezionato."}, 400
 
@@ -283,7 +284,7 @@ def _download_document_ids(sigp_fascicolo_id: int, document_ids: list[int]):
                     "documento_id": document_id,
                     "fascicolo": fascicolo_payload,
                     "documento": document,
-                    "original": False,
+                    "original": bool(original),
                 }
             )
             saved = repo.set_downloaded_file(sigp_fascicolo_id, document_id, storage_root, filename, content, mime_type)
@@ -309,8 +310,51 @@ def _download_document_ids(sigp_fascicolo_id: int, document_ids: list[int]):
 def api_download_documenti_local_connector(sigp_fascicolo_id: int):
     data = request.get_json(silent=True) or {}
     document_ids = [int(value) for value in data.get("document_ids", []) if str(value).isdigit()]
-    payload, status_code = _download_document_ids(sigp_fascicolo_id, document_ids)
+    original = data.get("original", False)
+    if not isinstance(original, bool):
+        original = str(original).strip().lower() in {"1", "true", "yes", "on"}
+    payload, status_code = _download_document_ids(sigp_fascicolo_id, document_ids, original=original)
     return jsonify(payload), status_code
+
+
+@sigp_sync_bp.post("/api/fascicoli/<int:sigp_fascicolo_id>/documenti/<int:documento_id>/salva-download-browser")
+@_richiedi_login
+def api_salva_download_browser(sigp_fascicolo_id: int, documento_id: int):
+    """Salva un file ottenuto dal Local Signer chiamato direttamente dal browser.
+
+    In produzione Railway il server non puo' raggiungere `127.0.0.1` del PC
+    dell'avvocato; il browser invece si'. Questa route persiste solo il file
+    gia' restituito dal Local Signer locale, senza ricevere PIN o credenziali.
+    """
+    try:
+        data = request.get_json(silent=True) or {}
+        content_b64 = str(
+            data.get("contenuto_b64")
+            or data.get("content_base64")
+            or data.get("file_base64")
+            or ""
+        ).strip()
+        if not content_b64:
+            return jsonify({"ok": False, "message": "Contenuto file mancante dal Local Signer."}), 400
+        try:
+            content = base64.b64decode(content_b64)
+        except Exception as exc:
+            return jsonify({"ok": False, "message": f"Contenuto file non decodificabile: {exc}"}), 400
+        filename = str(data.get("nome") or data.get("filename") or data.get("nome_file") or "").strip()
+        mime_type = str(data.get("content_type") or data.get("mime_type") or "application/octet-stream").strip()
+        saved = _document_repo().set_downloaded_file(
+            sigp_fascicolo_id,
+            documento_id,
+            _storage_root(),
+            filename,
+            content,
+            mime_type,
+        )
+        documents = _document_repo().list_documents(sigp_fascicolo_id)
+        return jsonify({"ok": True, "saved": saved, "documents": documents, "message": "Documento salvato dal Local Signer locale."})
+    except Exception as exc:
+        current_app.logger.exception("Errore salvataggio download browser SIGP: %s", exc)
+        return jsonify({"ok": False, "message": str(exc)}), 400
 
 
 @sigp_sync_bp.post("/api/fascicoli/<int:sigp_fascicolo_id>/documenti/<int:documento_id>/allega-file")
@@ -349,5 +393,8 @@ def api_download(sigp_fascicolo_id: int):
     if not document_ids and data.get("mode") == "new_only":
         docs = _document_repo().list_documents(sigp_fascicolo_id)
         document_ids = [int(doc["id"]) for doc in docs if doc.get("scaricabile") and not doc.get("path_locale")]
-    payload, status_code = _download_document_ids(sigp_fascicolo_id, document_ids)
+    original = data.get("original", False)
+    if not isinstance(original, bool):
+        original = str(original).strip().lower() in {"1", "true", "yes", "on"}
+    payload, status_code = _download_document_ids(sigp_fascicolo_id, document_ids, original=original)
     return jsonify(payload), status_code

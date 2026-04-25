@@ -2916,8 +2916,53 @@ def test_download_documenti_batch_rispetta_original_false_sicid():
     assert len(calls["batch"]) == 1
     assert "<idCat>33581101</idCat>" in calls["batch"][0]["soap_body"]
     assert "<original>false</original>" in calls["batch"][0]["soap_body"]
+    assert calls["batch"][0]["max_time"] == module.PST_DOWNLOAD_MAX_TIME
+    assert calls["batch"][0]["connect_timeout"] == module.PST_DOWNLOAD_CONNECT_TIMEOUT
     assert esito["files"][0]["original_documento_portale"] is False
     assert esito["files"][0]["modalita_documento_portale"] == "copia"
+
+
+def test_download_documento_sigp_usa_timeout_lungo_e_copia_di_default():
+    module = _load_local_signer()
+
+    orig_raw = module._soap_call_pst_session_raw
+    calls = {}
+
+    try:
+        def _fake_raw(**kwargs):
+            calls.update(kwargs)
+            body = (
+                b"--abc123\r\n"
+                b"Content-Type: text/xml\r\n"
+                b"Content-Transfer-Encoding: 7bit\r\n\r\n"
+                b"<?xml version='1.0' encoding='UTF-8'?><SOAP-ENV:Envelope xmlns:SOAP-ENV='http://schemas.xmlsoap.org/soap/envelope/'>"
+                b"<SOAP-ENV:Body><downloadAttoResponse><return href='cid:test-doc-1'/></downloadAttoResponse></SOAP-ENV:Body></SOAP-ENV:Envelope>\r\n"
+                b"--abc123\r\n"
+                b"Content-Type: application/pdf\r\n"
+                b"Content-Transfer-Encoding: base64\r\n"
+                b"Content-ID: <test-doc-1>\r\n\r\n"
+                b"JVBERi0xLjcK\r\n"
+                b"--abc123--\r\n"
+            )
+            return body, 'Content-Type: multipart/related; boundary="abc123"'
+
+        module._soap_call_pst_session_raw = _fake_raw
+        esito = module._pst_download_documento_payload(
+            base_url="https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SIGP",
+            codice_ufficio="0800570152",
+            id_documento="3080760",
+            nome_documento="decretoLiquidazioneCTU.pdf",
+            cert_thumbprint="AABBCC11",
+            cf_avvocato="RSSMRA80A01H501Z",
+        )
+    finally:
+        module._soap_call_pst_session_raw = orig_raw
+
+    assert calls["soap_action"] == "downloadAtto"
+    assert calls["max_time"] == module.PST_DOWNLOAD_MAX_TIME
+    assert calls["connect_timeout"] == module.PST_DOWNLOAD_CONNECT_TIMEOUT
+    assert esito["original_documento_portale"] is False
+    assert esito["modalita_documento_portale"] == "copia"
 
 
 def test_download_documenti_batch_best_effort_non_azzera_lotto_se_un_profilo_fallisce():

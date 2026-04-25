@@ -1,6 +1,8 @@
 (() => {
   const root = document.querySelector('.sigp-shell');
   const API_BASE = (root?.dataset.apiBase || '/sigp-sync').replace(/\/$/, '');
+  const LOCAL_SIGNER_URL = (root?.dataset.localSignerUrl || 'http://127.0.0.1:27272').replace(/\/$/, '');
+  const PST_SESSION_STORAGE_KEY = 'iusentra.sigp.pstSessionId';
   const state = {
     localCases: [],
     filteredCases: [],
@@ -9,6 +11,7 @@
     activeTab: 'documenti',
     documentFilter: '',
     selectedDocs: new Set(),
+    pstSessionId: window.sessionStorage?.getItem(PST_SESSION_STORAGE_KEY) || '',
   };
 
   const $ = (id) => document.getElementById(id);
@@ -110,6 +113,105 @@
     return json;
   }
 
+  function parseRaw(value) {
+    if (!value) return {};
+    if (typeof value === 'object') return value;
+    try {
+      const parsed = JSON.parse(String(value));
+      return parsed && typeof parsed === 'object' ? parsed : {};
+    } catch (_) {
+      return {};
+    }
+  }
+
+  function pick(...values) {
+    for (const value of values) {
+      if (value !== undefined && value !== null && String(value).trim() !== '') {
+        return String(value).trim();
+      }
+    }
+    return '';
+  }
+
+  function normalizeCf(value) {
+    const text = pick(value);
+    return text.startsWith('[') && text.endsWith(']') ? text.slice(1, -1).trim() : text;
+  }
+
+  function buildPstCasePayload() {
+    const fascicolo = state.currentSnapshot?.fascicolo || {};
+    const raw = parseRaw(fascicolo.raw_json || fascicolo.raw);
+    const rawCase = raw.fascicolo && typeof raw.fascicolo === 'object' ? raw.fascicolo : {};
+    const payload = {
+      codice_ufficio: pick(fascicolo.ufficio_codice, rawCase.ufficio_codice, rawCase.codice_ufficio, raw.ufficio_codice, raw.codice_ufficio),
+      numero_rg: pick(fascicolo.numero_rg, rawCase.numero_rg, rawCase.numero, raw.numero_rg, raw.numero),
+      anno_rg: pick(fascicolo.anno_rg, rawCase.anno_rg, rawCase.anno, raw.anno_rg, raw.anno),
+      cf_avvocato: normalizeCf(pick(fascicolo.cf_avvocato, rawCase.cf_avvocato, rawCase.codice_fiscale_avvocato, rawCase.pa, raw.cf_avvocato, raw.pa)),
+      cert_thumbprint: pick(fascicolo.cert_thumbprint, rawCase.cert_thumbprint, rawCase.thumbprint, raw.cert_thumbprint, raw.thumbprint),
+      pst_session_id: pick(state.pstSessionId, fascicolo.pst_session_id, rawCase.pst_session_id, raw.pst_session_id),
+    };
+    return Object.fromEntries(Object.entries(payload).filter(([, value]) => value));
+  }
+
+  function buildPstDocumentPayload(document) {
+    const raw = parseRaw(document.raw_json || document.raw);
+    const payload = {
+      id_documento: pick(
+        document.documento_uid,
+        document.id_documento,
+        document.id_documento_portale,
+        raw.id_documento,
+        raw.idDocumento,
+        raw.id_documento_portale,
+        raw.id_cat,
+        raw.idCat,
+        document.id_cat,
+      ),
+      nome_documento: pick(document.nome_file, document.nome, raw.nomeFile, raw.nome_file, raw.nome, raw.filename),
+      id_cat: pick(document.id_cat, raw.id_cat, raw.idCat),
+      id_repeatto: pick(document.id_repeatto, raw.id_repeatto, raw.idRepeatTo, raw.IDREPEATTO, raw.repeatTo),
+      msg_id: pick(document.msg_id, raw.msg_id, raw.msgId),
+      data_documento: pick(document.data_documento, document.data_deposito, raw.dataDocumento, raw.dataDeposito, raw.data),
+      id_deposito_esterno: pick(document.id_deposito, raw.idDeposito, raw.id_deposito, raw.idBusta),
+      tipo_atto: pick(document.tipo_atto, raw.tipoAtto, raw.tipo_atto, raw.tipo),
+    };
+    return Object.fromEntries(Object.entries(payload).filter(([, value]) => value));
+  }
+
+  async function localSignerApi(path, payload, timeoutMs = 45000) {
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const response = await fetch(`${LOCAL_SIGNER_URL}${path}`, {
+        method: payload ? 'POST' : 'GET',
+        headers: payload ? { 'Content-Type': 'application/json' } : {},
+        body: payload ? JSON.stringify(payload) : undefined,
+        signal: controller.signal,
+      });
+      let json = null;
+      try {
+        json = await response.json();
+      } catch (_) {
+        json = { ok: false, errore: 'Risposta non JSON dal Local Signer.' };
+      }
+      if (!response.ok || json.ok === false) {
+        throw new Error(json.errore || json.error || json.message || `Errore Local Signer ${response.status}`);
+      }
+      if (json.pst_session_id) {
+        state.pstSessionId = json.pst_session_id;
+        window.sessionStorage?.setItem(PST_SESSION_STORAGE_KEY, json.pst_session_id);
+      }
+      return json;
+    } catch (error) {
+      if (error?.name === 'AbortError') {
+        throw new Error('Timeout del Local Signer locale. Verifica che sia avviato e riprova.');
+      }
+      throw error;
+    } finally {
+      window.clearTimeout(timeout);
+    }
+  }
+
   function setAdapterStatus(result) {
     const el = $('sigpAdapterStatus');
     if (!el) return;
@@ -130,9 +232,9 @@
   }
 
   async function preflight() {
-    const result = await api('/api/preflight', { method: 'POST' });
-    setAdapterStatus(result);
-    toast('Preflight completato', result.message || 'Controllo locale completato.');
+    const result = await localSignerApi('/ping', null, 15000);
+    setAdapterStatus({ ok: true, adapter: 'local_connector' });
+    toast('Local Signer raggiungibile', result.version ? `Versione ${result.version}.` : 'Controllo locale completato.');
   }
 
   async function importPayload() {
@@ -160,10 +262,13 @@
     if (result.sigp_fascicolo_id) await openSnapshot(result.sigp_fascicolo_id);
   }
 
-  async function refreshLocalCases() {
+  async function refreshLocalCases(options = {}) {
     const result = await api('/api/fascicoli?limit=200');
     state.localCases = result.items || [];
     applyLocalFilter();
+    if (options.autoOpenFirst && !state.currentCaseId && state.filteredCases.length) {
+      await openSnapshot(state.filteredCases[0].id);
+    }
   }
 
   function applyLocalFilter() {
@@ -400,9 +505,10 @@
 
   async function previewDocumentsFromConnector() {
     if (!state.currentCaseId) return;
-    const result = await api(`/api/fascicoli/${encodeURIComponent(state.currentCaseId)}/documenti/preview-local-connector`, {
+    const catalog = await localSignerApi('/pst/documenti', buildPstCasePayload(), 120000);
+    const result = await api(`/api/fascicoli/${encodeURIComponent(state.currentCaseId)}/documenti/importa-catalogo`, {
       method: 'POST',
-      body: JSON.stringify({}),
+      body: JSON.stringify({ catalogo: catalog, source: 'local_connector_browser' }),
     });
     toast('Catalogo acquisito', result.message || `${result.total || 0} documenti.`);
     if (result.documents && state.currentSnapshot) state.currentSnapshot.documenti = result.documents;
@@ -433,19 +539,91 @@
     renderSnapshot();
   }
 
-  async function downloadDocuments(mode = 'selected') {
+  function portalCandidates(document) {
+    const raw = parseRaw(document.raw_json || document.raw);
+    return [
+      document.documento_uid,
+      document.id_documento,
+      document.id_documento_portale,
+      document.id_cat,
+      document.id_repeatto,
+      document.msg_id,
+      raw.id_documento,
+      raw.idDocumento,
+      raw.id_cat,
+      raw.idCat,
+      raw.id_repeatto,
+      raw.idRepeatTo,
+      raw.msg_id,
+      raw.msgId,
+    ].map((value) => String(value || '').trim()).filter(Boolean);
+  }
+
+  function resolveDownloadedDocument(filePayload, selectedDocuments, usedIds) {
+    const fileIds = [
+      filePayload.id_documento_portale,
+      filePayload.id_documento,
+      filePayload.id_cat,
+      filePayload.id_repeatto,
+      filePayload.msg_id,
+    ].map((value) => String(value || '').trim()).filter(Boolean);
+    for (const doc of selectedDocuments) {
+      if (usedIds.has(Number(doc.id))) continue;
+      const candidates = portalCandidates(doc);
+      if (fileIds.some((id) => candidates.includes(id))) return doc;
+    }
+    return selectedDocuments.find((doc) => !usedIds.has(Number(doc.id))) || null;
+  }
+
+  async function saveBrowserDownload(documentId, filePayload) {
+    const result = await api(`/api/fascicoli/${encodeURIComponent(state.currentCaseId)}/documenti/${encodeURIComponent(documentId)}/salva-download-browser`, {
+      method: 'POST',
+      body: JSON.stringify(filePayload),
+    });
+    if (result.documents && state.currentSnapshot) state.currentSnapshot.documenti = result.documents;
+    return result;
+  }
+
+  async function downloadDocuments(mode = 'selected', original = false) {
     if (!state.currentCaseId) return;
     const ids = mode === 'new_only' ? [] : Array.from(state.selectedDocs);
     if (mode !== 'new_only' && !ids.length) {
       toast('Nessun documento selezionato', 'Seleziona almeno un documento dal catalogo.', 'warn');
       return;
     }
-    const result = await api(`/api/fascicoli/${encodeURIComponent(state.currentCaseId)}/documenti/download-local-connector`, {
-      method: 'POST',
-      body: JSON.stringify({ document_ids: mode === 'new_only' ? (state.currentSnapshot?.documenti || []).filter((d) => d.scaricabile && !d.path_locale).map((d) => d.id) : ids }),
-    });
-    toast('Download documenti', result.message || 'Operazione completata.', result.errors?.length ? 'warn' : 'ok');
-    if (result.documents && state.currentSnapshot) state.currentSnapshot.documenti = result.documents;
+    const selectedIds = mode === 'new_only'
+      ? (state.currentSnapshot?.documenti || []).filter((d) => d.scaricabile && !d.path_locale).map((d) => Number(d.id))
+      : ids.map((id) => Number(id));
+    const selectedDocuments = (state.currentSnapshot?.documenti || []).filter((doc) => selectedIds.includes(Number(doc.id)));
+    if (!selectedDocuments.length) {
+      toast('Nessun documento da scaricare', 'Non ci sono documenti nuovi o selezionati.', 'warn');
+      return;
+    }
+    const requestPayload = {
+      ...buildPstCasePayload(),
+      documents: selectedDocuments.map(buildPstDocumentPayload),
+      original: Boolean(original),
+    };
+    const signerResult = selectedDocuments.length > 1
+      ? await localSignerApi('/pst/download-documenti-batch', requestPayload, 360000)
+      : await localSignerApi('/pst/download-documento', {
+        ...buildPstCasePayload(),
+        ...buildPstDocumentPayload(selectedDocuments[0]),
+        original: Boolean(original),
+      }, 360000);
+    const files = signerResult.files || (signerResult.file ? [signerResult.file] : []);
+    const errors = signerResult.failures || [];
+    const used = new Set();
+    let savedCount = 0;
+    for (const filePayload of files) {
+      const doc = resolveDownloadedDocument(filePayload, selectedDocuments, used);
+      if (!doc) continue;
+      used.add(Number(doc.id));
+      await saveBrowserDownload(doc.id, filePayload);
+      savedCount += 1;
+    }
+    await refreshDocuments();
+    toast('Download documenti', `Salvati ${savedCount} documenti. Errori: ${errors.length}.`, errors.length ? 'warn' : 'ok');
     renderSnapshot();
   }
 
@@ -474,8 +652,9 @@
     $('btnRefresh')?.addEventListener('click', (event) => withBusy(event.currentTarget, refreshLocalCases).catch(showError));
     $('btnPreviewDocs')?.addEventListener('click', (event) => withBusy(event.currentTarget, previewDocumentsFromConnector).catch(showError));
     $('btnImportDocumentCatalog')?.addEventListener('click', (event) => withBusy(event.currentTarget, importDocumentCatalog).catch(showError));
-    $('btnDownloadSelected')?.addEventListener('click', (event) => withBusy(event.currentTarget, () => downloadDocuments('selected')).catch(showError));
-    $('btnDownloadNew')?.addEventListener('click', (event) => withBusy(event.currentTarget, () => downloadDocuments('new_only')).catch(showError));
+    $('btnDownloadSelected')?.addEventListener('click', (event) => withBusy(event.currentTarget, () => downloadDocuments('selected', false)).catch(showError));
+    $('btnDownloadNew')?.addEventListener('click', (event) => withBusy(event.currentTarget, () => downloadDocuments('new_only', false)).catch(showError));
+    $('btnDownloadDuplicateSelected')?.addEventListener('click', (event) => withBusy(event.currentTarget, () => downloadDocuments('selected', true)).catch(showError));
     $('btnToggleCatalogImport')?.addEventListener('click', () => {
       const box = $('catalogImportBox');
       if (box) box.hidden = !box.hidden;
@@ -494,6 +673,6 @@
   document.addEventListener('DOMContentLoaded', () => {
     bindEvents();
     health().catch(() => {});
-    refreshLocalCases().catch(() => {});
+    refreshLocalCases({ autoOpenFirst: true }).catch(() => {});
   });
 })();

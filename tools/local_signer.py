@@ -107,10 +107,12 @@ from local_signer_mod.server_bootstrap import print_startup_banner  # noqa: E402
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.6.15"
+VERSION = "1.6.16"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
+PST_DOWNLOAD_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_DOWNLOAD_MAX_TIME", "300"))
+PST_DOWNLOAD_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_DOWNLOAD_CONNECT_TIMEOUT", str(PST_SOAP_CONNECT_TIMEOUT)))
 PST_PREFLIGHT_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_PREFLIGHT_MAX_TIME", "30"))
 PST_PREFLIGHT_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_PREFLIGHT_CONNECT_TIMEOUT", "10"))
 PIN_SESSION_TTL_SECONDS = max(int(os.getenv("HACS_SIGNER_PIN_SESSION_TTL", "900")), 60)
@@ -3067,7 +3069,9 @@ def _soap_call_curl_raw(url: str, soap_body: str,
                         extra_headers: Optional[list[str]] = None,
                         soap_action: Optional[str] = "",
                         content_type: str = "text/xml; charset=utf-8",
-                        cookie_file: Optional[str] = None) -> tuple[bytes, str]:
+                        cookie_file: Optional[str] = None,
+                        max_time: Optional[int] = None,
+                        connect_timeout: Optional[int] = None) -> tuple[bytes, str]:
     """
     Esegue una chiamata SOAP usando curl.
 
@@ -3080,6 +3084,9 @@ def _soap_call_curl_raw(url: str, soap_body: str,
     Su Linux:
       - curl con OpenSSL + PKCS#11 engine (richiede engine pkcs11 installato)
     """
+    effective_max_time = int(max_time or PST_SOAP_MAX_TIME)
+    effective_connect_timeout = int(connect_timeout or PST_SOAP_CONNECT_TIMEOUT)
+
     with tempfile.NamedTemporaryFile(
         mode="w", suffix=".xml", delete=False, encoding="utf-8"
     ) as f:
@@ -3093,8 +3100,8 @@ def _soap_call_curl_raw(url: str, soap_body: str,
     try:
         cmd = [
             "curl", "-s", "-S",
-            "--max-time", str(PST_SOAP_MAX_TIME),
-            "--connect-timeout", str(PST_SOAP_CONNECT_TIMEOUT),
+            "--max-time", str(effective_max_time),
+            "--connect-timeout", str(effective_connect_timeout),
             "--location",
             "--dump-header", header_file,
             "-X", "POST",
@@ -3130,7 +3137,7 @@ def _soap_call_curl_raw(url: str, soap_body: str,
 
         result = subprocess.run(
             cmd, capture_output=True,
-            timeout=PST_SOAP_MAX_TIME + 10
+            timeout=effective_max_time + 10
         )
 
         if result.returncode != 0:
@@ -3139,7 +3146,7 @@ def _soap_call_curl_raw(url: str, soap_body: str,
                     result.returncode,
                     result.stderr.decode("utf-8", "replace"),
                     url,
-                    timeout_sec=PST_SOAP_MAX_TIME,
+                    timeout_sec=effective_max_time,
                 )
             )
 
@@ -3203,6 +3210,8 @@ def _soap_call_curl_batch_raw(
             extra_headers=r.get("extra_headers"),
             soap_action=r.get("soap_action", ""),
             cookie_file=r.get("cookie_file"),
+            max_time=r.get("max_time"),
+            connect_timeout=r.get("connect_timeout"),
         )]
 
     tmp_files: list[str] = []
@@ -3232,6 +3241,8 @@ def _soap_call_curl_batch_raw(
                 "soap_action": req.get("soap_action") or "",
                 "extra_headers": list(req.get("extra_headers") or []),
                 "cookie_file": str(req.get("cookie_file") or ""),
+                "max_time": int(req.get("max_time") or PST_SOAP_MAX_TIME),
+                "connect_timeout": int(req.get("connect_timeout") or PST_SOAP_CONNECT_TIMEOUT),
             })
 
         def _qp(p: str) -> str:
@@ -3261,8 +3272,8 @@ def _soap_call_curl_batch_raw(
                 f'data = "@{_qp(t["body_file"])}"',
                 f'output = "{_qp(t["resp_file"])}"',
                 f'dump-header = "{_qp(t["hdr_file"])}"',
-                f"max-time = {PST_SOAP_MAX_TIME}",
-                f"connect-timeout = {PST_SOAP_CONNECT_TIMEOUT}",
+                f'max-time = {t["max_time"]}',
+                f'connect-timeout = {t["connect_timeout"]}',
                 "location",
             ]
             if t["cookie_file"]:
@@ -3297,7 +3308,7 @@ def _soap_call_curl_batch_raw(
         result = subprocess.run(
             ["curl", "-s", "-S", "-K", cfg_file],
             capture_output=True,
-            timeout=(PST_SOAP_MAX_TIME + 10) * len(requests),
+            timeout=sum((int(t["max_time"]) + 10) for t in transfers),
         )
         if result.returncode != 0:
             raise RuntimeError(
@@ -3305,7 +3316,7 @@ def _soap_call_curl_batch_raw(
                     result.returncode,
                     result.stderr.decode("utf-8", "replace"),
                     transfers[0]["url"],
-                    timeout_sec=PST_SOAP_MAX_TIME,
+                    timeout_sec=max(int(t["max_time"]) for t in transfers),
                 )
             )
 
@@ -3363,6 +3374,8 @@ def _soap_call_curl_batch_raw_best_effort(
                 extra_headers=req.get("extra_headers"),
                 soap_action=req.get("soap_action", ""),
                 cookie_file=req.get("cookie_file"),
+                max_time=req.get("max_time"),
+                connect_timeout=req.get("connect_timeout"),
             )
             body_text = body_bytes.decode("utf-8", "replace")
             fault = _estrai_fault_soap(body_text)
@@ -3414,6 +3427,8 @@ def _soap_call_curl_batch_raw_best_effort(
                 "soap_action": req.get("soap_action") or "",
                 "extra_headers": list(req.get("extra_headers") or []),
                 "cookie_file": str(req.get("cookie_file") or ""),
+                "max_time": int(req.get("max_time") or PST_SOAP_MAX_TIME),
+                "connect_timeout": int(req.get("connect_timeout") or PST_SOAP_CONNECT_TIMEOUT),
             })
 
         def _qp(p: str) -> str:
@@ -3442,8 +3457,8 @@ def _soap_call_curl_batch_raw_best_effort(
                 f'data = "@{_qp(t["body_file"])}"',
                 f'output = "{_qp(t["resp_file"])}"',
                 f'dump-header = "{_qp(t["hdr_file"])}"',
-                f"max-time = {PST_SOAP_MAX_TIME}",
-                f"connect-timeout = {PST_SOAP_CONNECT_TIMEOUT}",
+                f'max-time = {t["max_time"]}',
+                f'connect-timeout = {t["connect_timeout"]}',
                 "location",
             ]
             if t["cookie_file"]:
@@ -3473,7 +3488,7 @@ def _soap_call_curl_batch_raw_best_effort(
         result = subprocess.run(
             ["curl", "-s", "-S", "-K", cfg_file],
             capture_output=True,
-            timeout=(PST_SOAP_MAX_TIME + 10) * len(requests),
+            timeout=sum((int(t["max_time"]) + 10) for t in transfers),
         )
         if result.returncode != 0:
             raise RuntimeError(
@@ -3481,7 +3496,7 @@ def _soap_call_curl_batch_raw_best_effort(
                     result.returncode,
                     result.stderr.decode("utf-8", "replace"),
                     transfers[0]["url"],
-                    timeout_sec=PST_SOAP_MAX_TIME,
+                    timeout_sec=max(int(t["max_time"]) for t in transfers),
                 )
             )
 
@@ -3535,7 +3550,9 @@ def _soap_call_curl(url: str, soap_body: str,
                     pkcs11_uri: Optional[str] = None,
                     extra_headers: Optional[list[str]] = None,
                     soap_action: Optional[str] = "",
-                    cookie_file: Optional[str] = None) -> str:
+                    cookie_file: Optional[str] = None,
+                    max_time: Optional[int] = None,
+                    connect_timeout: Optional[int] = None) -> str:
     body_bytes, _headers = _soap_call_curl_raw(
         url=url,
         soap_body=soap_body,
@@ -3544,6 +3561,8 @@ def _soap_call_curl(url: str, soap_body: str,
         extra_headers=extra_headers,
         soap_action=soap_action,
         cookie_file=cookie_file,
+        max_time=max_time,
+        connect_timeout=connect_timeout,
     )
     return body_bytes.decode("utf-8", "replace")
 
@@ -3642,6 +3661,8 @@ def _soap_call_pst_session(
     soap_action: str = "",
     cookie_file: Optional[str] = None,
     prefer_cookie_only: bool = False,
+    max_time: Optional[int] = None,
+    connect_timeout: Optional[int] = None,
 ) -> str:
     """
     Riusa prima l'eventuale sessione HTTP del portale (cookie_file) e solo in
@@ -3664,6 +3685,8 @@ def _soap_call_pst_session(
             extra_headers=extra_headers,
             soap_action=soap_action,
             cookie_file=cookie_file,
+            max_time=max_time,
+            connect_timeout=connect_timeout,
         )
 
     if prefer_cookie_only and cookie_file and host not in _mTLS_required_hosts:
@@ -3696,6 +3719,8 @@ def _soap_call_pst_session_raw(
     soap_action: str = "",
     cookie_file: Optional[str] = None,
     prefer_cookie_only: bool = False,
+    max_time: Optional[int] = None,
+    connect_timeout: Optional[int] = None,
 ) -> tuple[bytes, str]:
     """Versione raw (bytes) di _soap_call_pst_session — stessa logica mTLS."""
     host = _pst_host(url)
@@ -3708,6 +3733,8 @@ def _soap_call_pst_session_raw(
             extra_headers=extra_headers,
             soap_action=soap_action,
             cookie_file=cookie_file,
+            max_time=max_time,
+            connect_timeout=connect_timeout,
         )
 
     if prefer_cookie_only and cookie_file and host not in _mTLS_required_hosts:
@@ -4748,7 +4775,7 @@ def _pst_download_documento_payload(
     id_repeatto: str = "",
     msg_id: str = "",
     data_documento: str = "",
-    original: bool = True,
+    original: bool = False,
     cookie_file: Optional[str] = None,
     prefer_cookie_only: bool = False,
 ) -> dict:
@@ -4838,6 +4865,8 @@ def _pst_download_documento_payload(
         soap_action=soap_action,
         cookie_file=cookie_file,
         prefer_cookie_only=prefer_cookie_only,
+        max_time=PST_DOWNLOAD_MAX_TIME,
+        connect_timeout=PST_DOWNLOAD_CONNECT_TIMEOUT,
     )
     content_type = _http_header_value(headers_text, "Content-Type")
     parsed = _parse_download_documento_response(body_bytes, content_type)
@@ -4878,7 +4907,7 @@ def _assemble_download_file_payload(
     nome_documento: str,
     base_url: str,
     *,
-    original: bool = True,
+    original: bool = False,
 ) -> dict:
     """Costruisce il payload file da una risposta PST parsed."""
     document_id_output = str(
@@ -5085,7 +5114,7 @@ def _pst_download_documenti_batch_payloads(
     documenti: list[dict],
     do_preflight: bool = True,
     cookie_file: Optional[str] = None,
-    original: bool = True,
+    original: bool = False,
 ) -> dict:
     """
     Scarica N documenti PST con UN SOLO processo curl per l'intero batch.
@@ -5296,6 +5325,8 @@ def _pst_download_documenti_batch_payloads(
                     "soap_action": soap_action,
                     "extra_headers": extra_h,
                     "cookie_file": cookie_file,
+                    "max_time": PST_DOWNLOAD_MAX_TIME,
+                    "connect_timeout": PST_DOWNLOAD_CONNECT_TIMEOUT,
                 })
                 dl_meta.append({"id_documento": id_output, "nome_documento": nome_doc, "item": item})
             except Exception as e:
@@ -5349,6 +5380,8 @@ def _pst_download_documenti_batch_payloads(
                         extra_headers=req.get("extra_headers"),
                         soap_action=req.get("soap_action", ""),
                         cookie_file=req.get("cookie_file"),
+                        max_time=req.get("max_time"),
+                        connect_timeout=req.get("connect_timeout"),
                     )
                     ct = _http_header_value(hdr_text, "Content-Type")
                     parsed = _parse_download_documento_response(body_bytes, ct)
@@ -6932,9 +6965,9 @@ class _Handler(BaseHTTPRequestHandler):
                 msg_id=str(data.get("msg_id") or "").strip(),
                 data_documento=str(data.get("data_documento") or "").strip(),
                 original=(
-                    data.get("original", True)
-                    if isinstance(data.get("original", True), bool)
-                    else str(data.get("original", True)).strip().lower() not in {"0", "false", "no", "off"}
+                    data.get("original", False)
+                    if isinstance(data.get("original", False), bool)
+                    else str(data.get("original", False)).strip().lower() not in {"0", "false", "no", "off"}
                 ),
                 cookie_file=cookie_file,
                 prefer_cookie_only=prefer_cookie_only,
@@ -7027,9 +7060,9 @@ class _Handler(BaseHTTPRequestHandler):
                 do_preflight=False,
                 cookie_file=str((session_entry or {}).get("cookie_file") or ""),
                 original=(
-                    data.get("original", True)
-                    if isinstance(data.get("original", True), bool)
-                    else str(data.get("original", True)).strip().lower() not in {"0", "false", "no", "off"}
+                    data.get("original", False)
+                    if isinstance(data.get("original", False), bool)
+                    else str(data.get("original", False)).strip().lower() not in {"0", "false", "no", "off"}
                 ),
             )
             if session_entry:

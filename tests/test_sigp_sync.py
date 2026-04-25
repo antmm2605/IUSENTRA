@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import base64
 import sqlite3
+from pathlib import Path
 
 from flask import Flask, g
 from jinja2 import ChoiceLoader, DictLoader
@@ -11,6 +13,7 @@ from integrations.sigp.sync_policy import get_sigp_sync_policy
 from integrations.sigp.sync_repository import SigpSyncRepository
 from integrations.sigp.sync_service import import_authorized_sigp_payload
 from integrations.sigp_sync.document_catalog import normalize_document_catalog
+from integrations.sigp_sync.local_connector_client import _case_to_pst_payload
 from integrations.sigp_sync.routes import sigp_sync_bp
 
 
@@ -87,6 +90,47 @@ def _payload_reale_gdp_palmi(documenti: int = 16) -> dict:
             }
         ],
     }
+
+
+def test_local_connector_payload_riusa_sessione_pst_salvata_nel_raw_fascicolo():
+    payload = _case_to_pst_payload(
+        {
+            "ufficio_codice": "0800570152",
+            "numero_rg": "466",
+            "anno_rg": "2023",
+            "raw_json": {
+                "fascicolo": {
+                    "cf_avvocato": "MNTRRT64L01L063H",
+                    "cert_thumbprint": "5667CF777E982420635AC6D0499D42C04C20C4EE",
+                    "pst_session_id": "SESSIONE-PST-REALE",
+                }
+            },
+        }
+    )
+
+    assert payload["cf_avvocato"] == "MNTRRT64L01L063H"
+    assert payload["cert_thumbprint"] == "5667CF777E982420635AC6D0499D42C04C20C4EE"
+    assert payload["pst_session_id"] == "SESSIONE-PST-REALE"
+
+
+def test_sigp_sync_visibile_nel_menu_e_apre_primo_fascicolo_importato():
+    root = Path(__file__).resolve().parents[1]
+    base = (root / "web" / "templates" / "base.html").read_text(encoding="utf-8")
+    js = (root / "integrations" / "sigp_sync" / "static" / "sigp_sync.js").read_text(encoding="utf-8")
+
+    assert "url_for('sigp_sync.index')" in base
+    assert "SIGP - Giudice di Pace" in base
+    assert "autoOpenFirst: true" in js
+    assert "Scarica copia ministeriale" in (root / "integrations" / "sigp_sync" / "templates" / "sigp_sync.html").read_text(encoding="utf-8")
+    assert "Scarica duplicato senza coccarda" in (root / "integrations" / "sigp_sync" / "templates" / "sigp_sync.html").read_text(encoding="utf-8")
+    assert "downloadDocuments('selected', false)" in js
+    assert "downloadDocuments('selected', true)" in js
+    assert "original: Boolean(original)" in js
+    assert "localSignerApi('/ping', null" in js
+    assert "localSignerApi('/pst/download-documento'" in js
+    assert "salva-download-browser" in js
+    assert "sessionStorage?.setItem(PST_SESSION_STORAGE_KEY" in js
+    assert "downloadDocumentsViaServer" not in js
 
 
 def test_sigp_sync_policy_vieta_scraping_e_pin_salvato():
@@ -408,3 +452,116 @@ def test_sigp_sync_local_connector_preview_e_download_salva_file(tmp_path, monke
     file_response = client.get(f"/sigp-sync/api/fascicoli/{fascicolo_id}/documenti/{document['id']}/file")
     assert file_response.status_code == 200
     assert b"SIGP test" in file_response.data
+
+
+def test_sigp_sync_salva_download_browser_dal_local_signer_locale(tmp_path):
+    app = Flask(__name__)
+    app.secret_key = "test"
+    app.config["SIGP_SYNC_DB_PATH"] = str(tmp_path / "sigp_sync.db")
+    app.config["SIGP_SYNC_STORAGE_DIR"] = str(tmp_path / "storage")
+
+    @app.before_request
+    def _login_test_user():
+        g.utente_corrente = object()
+
+    app.register_blueprint(sigp_sync_bp)
+    client = app.test_client()
+
+    imported = client.post(
+        "/sigp-sync/api/fascicoli/importa-payload",
+        json={"payload": _payload_reale_gdp_palmi(documenti=0)},
+    ).get_json()
+    fascicolo_id = imported["sigp_fascicolo_id"]
+    catalog = client.post(
+        f"/sigp-sync/api/fascicoli/{fascicolo_id}/documenti/importa-catalogo",
+        json={
+            "catalogo": {
+                "documenti": [
+                    {
+                        "idDocumento": "3080760",
+                        "nomeFile": "decretoLiquidazioneCTU.pdf",
+                        "tipoAtto": "Decreto",
+                        "dataDeposito": "10/03/2026",
+                        "scaricabile": True,
+                    }
+                ]
+            }
+        },
+    ).get_json()
+    document_id = catalog["documents"][0]["id"]
+
+    response = client.post(
+        f"/sigp-sync/api/fascicoli/{fascicolo_id}/documenti/{document_id}/salva-download-browser",
+        json={
+            "nome": "decretoLiquidazioneCTU.pdf",
+            "content_type": "application/pdf",
+            "contenuto_b64": base64.b64encode(b"%PDF-1.4\nSIGP browser locale\n").decode("ascii"),
+            "id_documento_portale": "3080760",
+        },
+    )
+    payload = response.get_json()
+
+    assert response.status_code == 200
+    assert payload["ok"] is True
+    assert payload["saved"]["path_locale"].startswith("sigp/")
+
+    file_response = client.get(f"/sigp-sync/api/fascicoli/{fascicolo_id}/documenti/{document_id}/file")
+    assert file_response.status_code == 200
+    assert b"SIGP browser locale" in file_response.data
+
+
+def test_sigp_sync_download_duplicato_passa_original_true_al_local_signer(tmp_path, monkeypatch):
+    app = Flask(__name__)
+    app.secret_key = "test"
+    app.config["SIGP_SYNC_DB_PATH"] = str(tmp_path / "sigp_sync.db")
+    app.config["SIGP_SYNC_STORAGE_DIR"] = str(tmp_path / "storage")
+
+    @app.before_request
+    def _login_test_user():
+        g.utente_corrente = object()
+
+    app.register_blueprint(sigp_sync_bp)
+    client = app.test_client()
+
+    imported = client.post(
+        "/sigp-sync/api/fascicoli/importa-payload",
+        json={"payload": _payload_reale_gdp_palmi(documenti=0)},
+    ).get_json()
+    fascicolo_id = imported["sigp_fascicolo_id"]
+    catalog = client.post(
+        f"/sigp-sync/api/fascicoli/{fascicolo_id}/documenti/importa-catalogo",
+        json={
+            "catalogo": {
+                "documenti": [
+                    {
+                        "idDocumento": "3080760",
+                        "nomeFile": "decretoLiquidazioneCTU.pdf",
+                        "tipoAtto": "Decreto",
+                        "dataDeposito": "10/03/2026",
+                        "scaricabile": True,
+                    }
+                ]
+            }
+        },
+    ).get_json()
+    document_id = catalog["documents"][0]["id"]
+    seen = {}
+
+    class FakeLocalConnectorClient:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def download_document(self, document_payload):
+            seen["original"] = document_payload["original"]
+            return b"%PDF-1.4\nDuplicato SIGP test\n", "decretoLiquidazioneCTU.pdf", "application/pdf"
+
+    monkeypatch.setattr("integrations.sigp_sync.routes.SigpLocalConnectorClient", FakeLocalConnectorClient)
+
+    response = client.post(
+        f"/sigp-sync/api/fascicoli/{fascicolo_id}/documenti/download-local-connector",
+        json={"document_ids": [document_id], "original": True},
+    )
+
+    assert response.status_code == 200
+    assert response.get_json()["ok"] is True
+    assert seen["original"] is True

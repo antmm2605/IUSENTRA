@@ -125,6 +125,7 @@ class SigpLocalConnectorClient:
 
 def _case_to_pst_payload(case_payload: dict[str, Any]) -> dict[str, Any]:
     raw = _raw_dict(case_payload)
+    raw_case = raw.get("fascicolo") if isinstance(raw.get("fascicolo"), dict) else {}
     numero_rg = _first(case_payload, raw, "numero_rg", "numero", "numeroRG", "rg_numero")
     anno_rg = _first(case_payload, raw, "anno_rg", "anno", "annoRG", "rg_anno")
     if not numero_rg or not anno_rg:
@@ -151,9 +152,11 @@ def _case_to_pst_payload(case_payload: dict[str, Any]) -> dict[str, Any]:
         "codice_ufficio": codice_ufficio,
         "numero_rg": numero_rg,
         "anno_rg": anno_rg,
-        "cf_avvocato": _normalize_cf(_first(case_payload, raw, "cf_avvocato", "codice_fiscale_avvocato", "cfAvvocato", "pa")),
-        "cert_thumbprint": _first(case_payload, raw, "cert_thumbprint", "certThumbprint", "thumbprint"),
-        "pst_session_id": _first(case_payload, raw, "pst_session_id", "pstSessionId"),
+        "cf_avvocato": _normalize_cf(
+            _first(case_payload, raw_case, raw, "cf_avvocato", "codice_fiscale_avvocato", "cfAvvocato", "pa")
+        ),
+        "cert_thumbprint": _first(case_payload, raw_case, raw, "cert_thumbprint", "certThumbprint", "thumbprint"),
+        "pst_session_id": _first(case_payload, raw_case, raw, "pst_session_id", "pstSessionId"),
     }
     return {key: value for key, value in payload.items() if value}
 

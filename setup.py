@@ -10,7 +10,7 @@ from packaging_manifest import extras_requirements, read_version, runtime_requir
 
 setup(
     name="pct-studio-legale",
-    # Versione applicativa 2.184.6, letta dalla source of truth pct.__init__
+    # Versione applicativa 2.184.7, letta dalla source of truth pct.__init__
     version=read_version(),
     description="IUSENTRA: gestionale web modulare per studi legali con PCT, Lex locale e servizi telematici",
     packages=find_packages(),

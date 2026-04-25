@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.184.7 - 2026-04-25
+
+- Corretto il setup dei test admin di osservabilita' avviando le rotte protette in modalita' multi-tenant, cosi' `admin/admin` viene riallineato a SUPERADMIN di piattaforma senza indebolire i guardrail RBAC.
+- Ripristinato il job GitHub `Pytest core`: la suite locale mirata di osservabilita' passa 8/8 e il blocco core passa 375/375.
+
 ## 2.184.6 - 2026-04-25
 
 - Aggiunti test Lex AI sul provider deterministico per bloccare regressioni su inventario completo del fascicolo, sezioni documentali, flussi economici, cabina operativa e responsabile di conformita'.

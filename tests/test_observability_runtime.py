@@ -5,6 +5,12 @@ from tests.test_web_bootstrap import _cfg_web, _write_studio_config
 from web.app import create_app
 
 
+def _cfg_web_superadmin(tmp_path):
+    cfg = _cfg_web(tmp_path)
+    cfg["MULTI_TENANT"] = True
+    return cfg
+
+
 def test_runtime_metrics_endpoint_restituisce_payload_strutturato(tmp_path):
     _write_studio_config(tmp_path / "config" / "studio.json")
     app = create_app(_cfg_web(tmp_path))
@@ -85,7 +91,7 @@ def test_runtime_metrics_endpoint_segnala_degradi_e_rimedi(tmp_path, monkeypatch
 
 def test_admin_osservabilita_page_e_accessibile_al_superadmin(tmp_path):
     _write_studio_config(tmp_path / "config" / "studio.json")
-    app = create_app(_cfg_web(tmp_path))
+    app = create_app(_cfg_web_superadmin(tmp_path))
 
     with app.test_client() as client:
         client.get("/login")
@@ -102,7 +108,7 @@ def test_admin_osservabilita_page_e_accessibile_al_superadmin(tmp_path):
 
 def test_admin_osservabilita_page_mostra_alert_operativi(tmp_path, monkeypatch):
     _write_studio_config(tmp_path / "config" / "studio.json")
-    app = create_app(_cfg_web(tmp_path))
+    app = create_app(_cfg_web_superadmin(tmp_path))
 
     class _FailingLocalAi:
         def monitoring_snapshot(self):
@@ -133,7 +139,7 @@ def test_admin_osservabilita_page_mostra_alert_operativi(tmp_path, monkeypatch):
 
 def test_admin_system_health_restituisce_json_azionabile(tmp_path):
     _write_studio_config(tmp_path / "config" / "studio.json")
-    app = create_app(_cfg_web(tmp_path))
+    app = create_app(_cfg_web_superadmin(tmp_path))
 
     with app.test_client() as client:
         client.post("/login", data={"username": "admin", "password": "admin"}, follow_redirects=True)
@@ -154,7 +160,7 @@ def test_admin_system_health_restituisce_json_azionabile(tmp_path):
 
 def test_admin_system_health_traduce_alert_in_azioni(tmp_path, monkeypatch):
     _write_studio_config(tmp_path / "config" / "studio.json")
-    app = create_app(_cfg_web(tmp_path))
+    app = create_app(_cfg_web_superadmin(tmp_path))
 
     class _FailingLocalAi:
         def monitoring_snapshot(self):

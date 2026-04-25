@@ -134,6 +134,29 @@ def deposito_is_catalogo_documenti(dep: Any) -> bool:
     return has_documenti_portale and (servizio in portali_documentali or fonte in portali_documentali)
 
 
+def _documento_portale_identity(dep: Any, pdoc: Any) -> str:
+    item = pdoc if isinstance(pdoc, dict) else {}
+    dep_id = str(getattr(dep, "id", "") or item.get("id_deposito") or "").strip()
+    for field in ("id_documento", "id_cat", "id_repeatto", "msg_id"):
+        value = str(item.get(field) or "").strip()
+        if value:
+            return f"{field}::{value}"
+    nome = str(item.get("nome") or "").strip().casefold()
+    tipo = str(item.get("tipo") or item.get("tipo_atto") or "").strip().casefold()
+    return f"{dep_id}::nome::{nome}::{tipo}"
+
+
+def _count_documenti_portale_unici(depositi: list[Any]) -> int:
+    keys = {
+        key
+        for dep in depositi
+        for item in (getattr(dep, "documenti_portale", []) or [])
+        for key in [_documento_portale_identity(dep, item)]
+        if key and not key.endswith("::nome::::")
+    }
+    return len(keys)
+
+
 def build_fascicolo_workspace(
     fasc: Fascicolo,
     *,
@@ -151,7 +174,7 @@ def build_fascicolo_workspace(
         for dep in depositi_documentali
         if str(getattr(dep, "id", "") or "").strip()
     }
-    documenti_portale_catalogo = sum(len(getattr(dep, "documenti_portale", []) or []) for dep in depositi_documentali)
+    documenti_portale_catalogo = _count_documenti_portale_unici(depositi_documentali)
     documenti_portale_importati_da_deposito = {
         str(doc_id or "").strip()
         for dep in depositi_documentali
@@ -172,7 +195,7 @@ def build_fascicolo_workspace(
     documenti_totali_governati = len(documenti) + documenti_portale_solo_catalogo
 
     documenti_buckets = {
-        "all": documenti_totali_governati,
+        "all": len(documenti),
         "atti_principali": 0,
         "allegati": 0,
         "ricevute": 0,
@@ -225,7 +248,8 @@ def build_fascicolo_workspace(
     return {
         "counts": {
             "profilo": 1,
-            "documenti": documenti_totali_governati,
+            "documenti": len(documenti),
+            "documenti_governati": documenti_totali_governati,
             "documenti_fisici": len(documenti),
             "documenti_catalogo_portale": documenti_portale_catalogo,
             "documenti_solo_catalogo_portale": documenti_portale_solo_catalogo,

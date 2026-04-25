@@ -1697,11 +1697,20 @@ class GestioneFascicoli:
             for lista in liste:
                 for item in lista or []:
                     row = _normalizza_doc_portale(item)
-                    chiave = (
-                        row.get("id_documento") or "",
-                        (row.get("nome") or "").upper(),
-                        row.get("data_deposito") or "",
-                    )
+                    if row.get("id_documento"):
+                        chiave = ("id_documento", row.get("id_documento") or "", "")
+                    elif row.get("id_cat"):
+                        chiave = ("id_cat", row.get("id_cat") or "", "")
+                    elif row.get("id_repeatto"):
+                        chiave = ("id_repeatto", row.get("id_repeatto") or "", "")
+                    elif row.get("msg_id"):
+                        chiave = ("msg_id", row.get("msg_id") or "", "")
+                    else:
+                        chiave = (
+                            "nome",
+                            (row.get("nome") or "").upper(),
+                            (row.get("tipo") or row.get("tipo_atto") or "").upper(),
+                        )
                     if chiave in visti:
                         continue
                     visti.add(chiave)

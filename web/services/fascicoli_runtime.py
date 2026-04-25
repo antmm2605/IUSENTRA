@@ -1671,6 +1671,7 @@ def build_fascicoli_runtime(
             documenti_locali_per_deposito.setdefault(dep_id, {}).setdefault(key, []).append(doc)
 
         catalogo: list[dict] = []
+        visti_portale: set[tuple[str, str, str, str]] = set()
         for dep in fasc.depositi_pct or []:
             imported_docs = documenti_locali_per_deposito.get(dep.id, {})
             for pdoc in getattr(dep, "documenti_portale", []) or []:
@@ -1678,6 +1679,28 @@ def build_fascicoli_runtime(
                 key = _normalizza_nome_match_portale(nome)
                 if not nome or not key:
                     continue
+                portal_id = str((pdoc or {}).get("id_documento") or "").strip()
+                id_cat = str((pdoc or {}).get("id_cat") or "").strip()
+                id_repeatto = str((pdoc or {}).get("id_repeatto") or "").strip()
+                msg_id = str((pdoc or {}).get("msg_id") or "").strip()
+                if portal_id:
+                    identity = ("id_documento", portal_id, "", "")
+                elif id_cat:
+                    identity = ("id_cat", id_cat, "", "")
+                elif id_repeatto:
+                    identity = ("id_repeatto", id_repeatto, "", "")
+                elif msg_id:
+                    identity = ("msg_id", msg_id, "", "")
+                else:
+                    identity = (
+                        str(dep.id or ""),
+                        "nome",
+                        key,
+                        str((pdoc or {}).get("tipo") or getattr(dep, "tipo_atto", "") or "").strip().casefold(),
+                    )
+                if identity in visti_portale:
+                    continue
+                visti_portale.add(identity)
                 docs_locali = list(imported_docs.get(key, []))
                 docs_locali.sort(
                     key=lambda row: (
@@ -1692,10 +1715,10 @@ def build_fascicoli_runtime(
                     "id_deposito_pct": dep.id,
                     "id_deposito_esterno": str(getattr(dep, "id_deposito_esterno", "") or "").strip(),
                     "tipo_atto": str((pdoc or {}).get("tipo_atto") or getattr(dep, "tipo_atto", "") or "").strip(),
-                    "id_documento_portale": str((pdoc or {}).get("id_documento") or "").strip(),
-                    "id_cat": str((pdoc or {}).get("id_cat") or "").strip(),
-                    "id_repeatto": str((pdoc or {}).get("id_repeatto") or "").strip(),
-                    "msg_id": str((pdoc or {}).get("msg_id") or "").strip(),
+                    "id_documento_portale": portal_id,
+                    "id_cat": id_cat,
+                    "id_repeatto": id_repeatto,
+                    "msg_id": msg_id,
                     "data_documento": str((pdoc or {}).get("data_deposito") or "").strip(),
                     "data_deposito": str((pdoc or {}).get("data_deposito") or "").strip(),
                     "nome": nome,

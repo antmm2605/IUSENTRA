@@ -41,6 +41,34 @@ def _document_has_ocr(doc: Any, indice: Any | None = None) -> bool:
         return False
 
 
+def _documento_portale_identity(dep: Any, item: dict[str, Any]) -> str:
+    for field in ("id_documento", "id_cat", "id_repeatto", "msg_id"):
+        value = str((item or {}).get(field) or "").strip()
+        if value:
+            return f"{field}::{value}"
+    dep_id = str(getattr(dep, "id", "") or (item or {}).get("id_deposito") or "").strip()
+    nome = str((item or {}).get("nome") or "").strip().casefold()
+    tipo = str((item or {}).get("tipo") or (item or {}).get("tipo_atto") or "").strip().casefold()
+    return f"{dep_id}::nome::{nome}::{tipo}"
+
+
+def _catalogo_portale_metadata_stats(fascicolo: Any) -> dict[str, int]:
+    visti: set[str] = set()
+    classificati = 0
+    for dep in getattr(fascicolo, "depositi_pct", []) or []:
+        for item in getattr(dep, "documenti_portale", []) or []:
+            key = _documento_portale_identity(dep, item if isinstance(item, dict) else {})
+            if not key or key in visti or key.endswith("::nome::::"):
+                continue
+            visti.add(key)
+            if any(
+                str((item or {}).get(field_name) or "").strip()
+                for field_name in ("id_documento", "id_cat", "id_repeatto", "msg_id", "tipo", "tipo_atto", "nome")
+            ):
+                classificati += 1
+    return {"totale": len(visti), "classificati": classificati}
+
+
 def build_document_management_summary(
     fascicolo: Any,
     *,
@@ -55,6 +83,7 @@ def build_document_management_summary(
     portale = 0
     portale_classificati = 0
     portale_senza_metadati = 0
+    catalogo_portale = _catalogo_portale_metadata_stats(fascicolo)
     for doc in documenti:
         tags = normalize_document_tags(getattr(doc, "tags", []))
         for tag in tags:
@@ -97,7 +126,12 @@ def build_document_management_summary(
             )
 
     next_action = "Carica il primo documento del fascicolo."
-    if documenti:
+    if not documenti and catalogo_portale["totale"]:
+        next_action = (
+            f"Acquisisci i file ufficiali: sono presenti {catalogo_portale['totale']} "
+            "metadati del catalogo portale, ma nessun file salvato nel fascicolo."
+        )
+    elif documenti:
         if portale_senza_metadati:
             next_action = (
                 f"Allinea {portale_senza_metadati} document"
@@ -127,8 +161,9 @@ def build_document_management_summary(
             "taggati": sum(1 for doc in documenti if normalize_document_tags(getattr(doc, "tags", []))),
             "versioni": latest_versions,
             "dal_portale": portale,
-            "portale_classificati": portale_classificati,
+            "portale_classificati": max(portale_classificati, catalogo_portale["classificati"]),
             "portale_senza_metadati": portale_senza_metadati,
+            "catalogo_portale": catalogo_portale["totale"],
         },
         "tag_cloud": [{"label": tag, "count": count} for tag, count in tags_counter.most_common(12)],
         "recenti": recenti,

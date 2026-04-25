@@ -6,6 +6,8 @@ from pathlib import Path
 import pytest
 
 from pct.auth import GestioneUtenti, RuoloUtente
+from pct.document_management import build_document_management_summary
+from pct.fascicolo_workspace import build_fascicolo_workspace
 from pct.fascicoli import GestioneFascicoli, TipoAttivita, TipoDocumento, TipoFascicolo
 
 
@@ -185,3 +187,67 @@ def test_elimina_attivita_resta_nella_sezione_operativa(fascicolo_ux):
         documents_dir=cfg["FASCICOLI_DOCS"],
         archive_dir=cfg["FASCICOLI_ARCH"],
     ).get(fascicolo.id).attivita
+
+
+def test_catalogo_portale_non_viene_contato_come_documento_acquisito(fascicolo_ux):
+    from web.app import create_app
+
+    cfg, fascicolo = fascicolo_ux
+    gf = GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+    )
+    documento_portale = {
+        "id_documento": "32970605",
+        "nome": "VerbaleUdienza_32970605.pdf",
+        "tipo": "VerbaleUdienza",
+        "data_deposito": "2026-04-25T16:55:42",
+        "mittente": "Cancelleria",
+        "dimensione_bytes": 104000,
+    }
+    gf.sincronizza_deposito_portale(
+        fascicolo.id,
+        fonte="POLISWEB",
+        id_deposito_esterno="pst:JPW_SICID:32970605-A",
+        tipo_atto="VerbaleUdienza",
+        data_deposito="2026-04-25T16:55:42",
+        mittente="Cancelleria",
+        servizio_portale="PST",
+        documenti_portale=[documento_portale],
+    )
+    gf.sincronizza_deposito_portale(
+        fascicolo.id,
+        fonte="POLISWEB",
+        id_deposito_esterno="pst:JPW_SICID:32970605-B",
+        tipo_atto="VerbaleUdienza",
+        data_deposito="25/04/2026 16:55",
+        mittente="Cancelleria",
+        servizio_portale="PST",
+        documenti_portale=[{**documento_portale, "data_deposito": "25/04/2026 16:55"}],
+    )
+
+    aggiornato = gf.get(fascicolo.id)
+    workspace = build_fascicolo_workspace(aggiornato)
+    document_management = build_document_management_summary(aggiornato)
+    assert workspace["counts"]["documenti"] == 0
+    assert workspace["counts"]["documenti_catalogo_portale"] == 1
+    assert workspace["counts"]["documenti_governati"] == 1
+    assert document_management["stats"]["catalogo_portale"] == 1
+    assert document_management["stats"]["portale_classificati"] == 1
+    assert "metadati del catalogo portale" in document_management["next_action"]
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        _login(client)
+        response = client.get(f"/fascicoli/{fascicolo.id}")
+
+    body = response.data.decode("utf-8")
+    assert response.status_code == 200
+    assert "Nessun documento caricato" in body
+    assert "Non sono file salvati nel fascicolo" in body
+    assert "Catalogo portale 1" in body
+    assert "1 metadato" in body
+    assert "Metadati portale 1" in body
+    assert "0/1 file acquisiti" in body
+    assert "2 metadati" not in body

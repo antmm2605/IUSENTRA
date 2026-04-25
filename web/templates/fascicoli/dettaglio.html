@@ -16,6 +16,13 @@
     {% set ns_portale.depositi = ns_portale.depositi + 1 %}
   {% endif %}
 {% endfor %}
+{% set portale_catalogo = portale_documenti_catalogo|default([]) %}
+{% set portale_catalogo_count = portale_catalogo|length %}
+{% if portale_catalogo_count == 0 and ns_portale.documenti %}
+  {% set portale_catalogo_count = ns_portale.documenti %}
+{% endif %}
+{% set portale_acquisiti_count = portale_catalogo|selectattr('gia_importato')|list|length %}
+{% set documenti_acquisiti_count = fascicolo.documenti|length %}
 
 {% block content %}
 
@@ -88,7 +95,7 @@
       </a>
       <a href="#sezione-documenti-fascicolo" class="btn btn-sm btn-outline-primary">
         <i class="bi bi-paperclip me-1"></i>Documenti
-        <span class="badge text-bg-primary ms-1">{{ WFC.documenti or 0 }}</span>
+        <span class="badge text-bg-primary ms-1">{{ documenti_acquisiti_count }}</span>
       </a>
       <a href="#sezione-attivita-processuali" class="btn btn-sm btn-outline-primary">
         <i class="bi bi-list-check me-1"></i>Attivita
@@ -247,17 +254,17 @@
                     data-bs-target="#collapse-documenti-portale-telematico"
                     aria-expanded="false"
                     aria-controls="collapse-documenti-portale-telematico">
-              <span><i class="bi bi-collection me-1"></i>Documenti dal portale telematico</span>
+              <span><i class="bi bi-collection me-1"></i>Catalogo portale telematico</span>
               <i class="bi bi-chevron-down small"></i>
             </button>
             <span class="badge bg-light text-dark border">
-              {{ ns_portale.documenti }} document{% if ns_portale.documenti == 1 %}o{% else %}i{% endif %} ·
-              {{ (portale_documenti_catalogo | selectattr('gia_importato') | list | length) }}/{{ ns_portale.documenti }} acquisiti
+              {{ portale_catalogo_count }} metadat{% if portale_catalogo_count == 1 %}o{% else %}i{% endif %} ·
+              {{ portale_acquisiti_count }}/{{ portale_catalogo_count }} file acquisiti
             </span>
           </div>
           <div class="collapse" id="collapse-documenti-portale-telematico">
           <div class="px-3 py-2 border-bottom small text-muted">
-            I documenti importati vengono collegati a questa pratica. L'opzione "copia originale dal portale" salva invece una copia separata senza modificare questo elenco.
+            Questo elenco contiene solo metadati ufficiali del portale. Nessun file viene scaricato da qui finche' non avvii una acquisizione. Il default resta la copia di consultazione con annotazioni ministeriali; duplicato/originale solo su scelta esplicita.
           </div>
           <div class="accordion accordion-flush" id="accDocumentiPortale">
             {% for dep_id, dep_docs_catalogo in (portale_documenti_per_deposito or {}).items() %}
@@ -518,8 +525,8 @@
                 </div>
               </div>
 
-              <div class="d-flex align-items-center gap-2 flex-shrink-0 flex-wrap">
-                <span class="badge text-bg-{{ att_esito_tone }}">
+              <div class="fascicolo-row-actions">
+                <span class="badge text-bg-{{ att_esito_tone }} fascicolo-status-badge">
                   {{ att.esito.value.replace('_',' ') }}
                 </span>
                 <button class="btn btn-sm btn-outline-primary" title="Visualizza attività"
@@ -666,11 +673,14 @@
         <span class="text-nowrap">
           <i class="bi bi-paperclip me-2 text-primary"></i>
           Documenti fascicolo
-          <span class="badge bg-primary rounded-pill ms-1">{{ WFC.documenti or 0 }}</span>
+          <span class="badge bg-primary rounded-pill ms-1">{{ documenti_acquisiti_count }}</span>
+          {% if portale_catalogo_count %}
+          <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle ms-1">Catalogo portale {{ portale_catalogo_count }}</span>
+          {% endif %}
         </span>
         <i class="bi bi-chevron-down small"></i>
         </button>
-        <div class="d-flex gap-2 flex-wrap">
+        <div class="fascicolo-section-actions">
             <a href="#collegamenti-rapidi-fascicolo" class="btn btn-sm btn-outline-secondary flex-shrink-0">
               <i class="bi bi-arrow-up-circle me-1"></i><span class="d-none d-sm-inline">Collegamenti rapidi</span><span class="d-sm-none">Su</span>
             </a>
@@ -731,7 +741,10 @@
       <div class="collapse" id="collapse-sezione-documenti-fascicolo">
       <div class="card-body py-2 border-bottom bg-light-subtle small">
         <div class="d-flex flex-wrap gap-2">
-          <span class="badge bg-light text-dark border">Tutti {{ WFS.documenti_buckets.all or 0 }}</span>
+          <span class="badge bg-light text-dark border">Tutti {{ documenti_acquisiti_count }}</span>
+          {% if portale_catalogo_count %}
+          <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle">Catalogo portale {{ portale_catalogo_count }}</span>
+          {% endif %}
           <span class="badge bg-light text-dark border">Atti principali {{ WFS.documenti_buckets.atti_principali or 0 }}</span>
           <span class="badge bg-light text-dark border">Allegati {{ WFS.documenti_buckets.allegati or 0 }}</span>
           <span class="badge bg-light text-dark border">Ricevute {{ WFS.documenti_buckets.ricevute or 0 }}</span>
@@ -1195,11 +1208,12 @@
         {% else %}
         <div class="text-muted text-center py-4 small">
           <div>Nessun documento caricato</div>
-          {% if ns_portale.documenti %}
+          {% if portale_catalogo_count %}
           <div class="mt-2">
-            Sono gia' censiti <strong>{{ ns_portale.documenti }}</strong> documenti ufficiali
-            del fascicolo telematico in <strong>{{ ns_portale.depositi }}</strong>
+            Sono presenti <strong>{{ portale_catalogo_count }}</strong> metadati ufficiali
+            del catalogo telematico in <strong>{{ ns_portale.depositi }}</strong>
             deposit{% if ns_portale.depositi == 1 %}o{% else %}i{% endif %} portale.
+            Non sono file salvati nel fascicolo: diventano documenti visibili solo dopo l'acquisizione.
           </div>
           <div class="mt-1">
             {% if show_pst_navigation %}
@@ -1226,6 +1240,35 @@
             <a href="{{ url_for('pdp_penale_workspace', id_fasc=fascicolo.id) }}" class="btn btn-sm btn-outline-danger">
               <i class="bi bi-shield-lock me-1"></i>Apri workflow PDP
             </a>
+          </div>
+          {% endif %}
+          {% if portale_documenti_per_deposito %}
+          <div class="portal-catalog-preview mt-3 text-start">
+            <div class="portal-catalog-preview__header">
+              <span><i class="bi bi-collection me-1"></i>Catalogo PST disponibile</span>
+              <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle">Solo metadati</span>
+            </div>
+            <div class="portal-catalog-preview__body">
+              <div class="list-group list-group-flush">
+                {% for dep_id, dep_docs_catalogo in (portale_documenti_per_deposito or {}).items() %}
+                  {% for pdoc in dep_docs_catalogo %}
+                  <div class="list-group-item d-flex justify-content-between align-items-start gap-3">
+                    <div class="flex-grow-1">
+                      <div class="fw-semibold text-break">{{ pdoc.nome or 'Documento ufficiale' }}</div>
+                      <div class="small text-muted">
+                        {{ pdoc.tipo or 'Documento' }}
+                        {% if pdoc.data_deposito %} · {{ pdoc.data_deposito|fmt_data }}{% endif %}
+                        {% if pdoc.mittente %} · {{ pdoc.mittente }}{% endif %}
+                      </div>
+                    </div>
+                    <span class="badge bg-light text-dark border flex-shrink-0">
+                      {% if pdoc.gia_importato %}Acquisito{% else %}Da acquisire{% endif %}
+                    </span>
+                  </div>
+                  {% endfor %}
+                {% endfor %}
+              </div>
+            </div>
           </div>
           {% endif %}
           {% elif 'Importato da PolisWeb' in (fascicolo.note or '') %}
@@ -1319,10 +1362,10 @@
                 </div>
                 {% endif %}
               </div>
-              <div class="text-end">
-                <span class="badge bg-light text-dark border">{{ att.tipo.value.replace('_',' ') }}</span>
+              <div class="fascicolo-row-actions fascicolo-row-actions--stack">
+                <span class="badge bg-light text-dark border fascicolo-status-badge">{{ att.tipo.value.replace('_',' ') }}</span>
                 <div class="text-muted mt-1">{{ att.data|fmt_data }}</div>
-                <div class="d-flex justify-content-end gap-1 mt-2">
+                <div class="fascicolo-mini-actions mt-2">
                   <button class="btn btn-sm btn-outline-primary" title="Visualizza udienza"
                           data-bs-toggle="modal"
                           data-bs-target="#modalDettaglioAttivita{{ att.id }}">

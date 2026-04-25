@@ -127,6 +127,16 @@ def query_ollama(base_url: str, model: str, prompt: str, *, timeout: int = 120) 
     return json.loads(content)
 
 
+def _is_valid_spec_payload(spec: Any) -> bool:
+    if not isinstance(spec, dict):
+        return False
+    if not isinstance(spec.get("procedure"), dict):
+        return False
+    if not isinstance(spec.get("subbranch_profile"), dict):
+        return False
+    return True
+
+
 def fallback_spec(subbranch_code: str, gap_type: str, examples: list[dict[str, Any]]) -> dict[str, Any]:
     example = examples[0] if examples else {}
     proc_code = str(example.get("code") or f"PROC_AUTO_{subbranch_code[:32]}")
@@ -246,7 +256,7 @@ class CoverageAutofillEngine:
         except Exception:
             spec = fallback_spec(subbranch_code, str(gap["gap_type"]), examples)
 
-        if not isinstance(spec, dict) or "procedure" not in spec:
+        if not _is_valid_spec_payload(spec):
             spec = fallback_spec(subbranch_code, str(gap["gap_type"]), examples)
 
         spec = apply_presets(spec, self.presets)

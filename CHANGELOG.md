@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.184.14 - 2026-04-25
+
+- Reso Lex AI piu' professionale nel flusso reale delle risposte finali: ogni risposta passa da `AnswerBuilder` e viene strutturata con sintesi, quadro verificato, qualita', limiti e prossime azioni.
+- Aggiunti metadati `professional_answer` per audit, UI e controllo qualita', con indicazione di revisione professionale quando mancano evidenze o il rischio e' alto.
+- Rafforzata la copertura AI: in single-studio l'amministratore locale puo' usare il pannello copertura AI, mentre in multi-tenant resta richiesto il SUPERADMIN.
+- Reso difensivo il generatore copertura AI quando l'LLM locale restituisce JSON semanticamente non valido, ricadendo su fallback prudente invece di produrre draft rotti.
+- Stabilizzati i test della copertura AI: in `TESTING` non vengono effettuate chiamate live a Ollama salvo opt-in esplicito.
+- Aggiunti test anti-regressione sulle risposte professionali di fascicolo e ricerca normativa incompleta.
+
 ## 2.184.13 - 2026-04-25
 
 - Aggiunto l'ingresso unico `importa-payload` per PST/PDP/PAT/PTT: payload autorizzati da Local Connector, PdA, Model Office o file JSON manuali vengono normalizzati e importati nel fascicolo IUSENTRA.

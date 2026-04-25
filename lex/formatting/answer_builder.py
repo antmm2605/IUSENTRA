@@ -9,6 +9,7 @@ from lex.domain.confidence import compute_confidence
 from lex.schemas import LexGroundingResult
 
 from .citations import build_citations
+from .professional_answer import ProfessionalAnswerComposer
 from .sections import build_sections
 
 
@@ -104,10 +105,30 @@ class AnswerBuilder:
         elif partner_registry_sources or credentialed_registry_sources:
             next_actions.append("Per le fonti partner, verifica credenziali e abilitazioni prima di chiudere il parere")
 
+        professional = ProfessionalAnswerComposer().compose(
+            request=request,
+            context=dict(context or {}),
+            workflow=workflow,
+            draft_text=str(getattr(draft, "text", "") or "").strip(),
+            risk_level=str(getattr(verdict, "risk_level", "low") or "low"),
+            confidence=confidence,
+            answer_mode=answer_mode,
+            evidence_count=evidence_count,
+            official_sources=official_sources,
+            trusted_sources=trusted_sources,
+            considered_sources=considered_sources,
+            missing_evidence=missing_evidence,
+            evidence_sufficient=evidence_sufficient,
+            fallback_triggered=fallback_triggered,
+            existing_next_actions=next_actions,
+        )
+        next_actions = self._unique_strings([*next_actions, *professional.next_actions])
+        warnings = self._unique_strings([*list(getattr(verdict, "warnings", []) or []), *professional.warnings])
+
         return WorkflowLexResponse(
-            answer=str(getattr(draft, "text", "") or "").strip(),
+            answer=professional.answer,
             citations=citations,
-            warnings=list(getattr(verdict, "warnings", []) or []),
+            warnings=warnings,
             next_actions=next_actions,
             risk_level=str(getattr(verdict, "risk_level", "low") or "low"),
             legal_basis=(official_sources or trusted_sources) if strict_workflow else [],
@@ -143,6 +164,7 @@ class AnswerBuilder:
                 "credentialed_sources": credentialed_registry_sources,
                 "confidence": confidence,
                 "answer_mode": answer_mode,
+                "professional_answer": professional.metadata,
             },
         )
 
@@ -174,3 +196,17 @@ class AnswerBuilder:
             "citations": build_citations(sources),
             "actions": sections["actions"],
         }
+
+    def _unique_strings(self, values: list[str]) -> list[str]:
+        seen: set[str] = set()
+        result: list[str] = []
+        for value in values:
+            clean = str(value or "").strip()
+            if not clean:
+                continue
+            key = clean.lower()
+            if key in seen:
+                continue
+            seen.add(key)
+            result.append(clean)
+        return result

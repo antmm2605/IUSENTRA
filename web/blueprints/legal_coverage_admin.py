@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+from functools import wraps
 from typing import Any
 
-from flask import Blueprint, flash, jsonify, redirect, render_template, request, url_for, current_app
+from flask import Blueprint, abort, flash, g, jsonify, redirect, render_template, request, url_for, current_app
 
+from pct.auth import RuoloUtente
 from pct.legal_coverage_pipeline import (
     approve_draft,
     build_dashboard_payload,
@@ -14,7 +16,6 @@ from pct.legal_coverage_pipeline import (
     save_draft,
 )
 from pct.legal_taxonomy_sql_generator import generate_sql
-from web.blueprints.admin import superadmin_required
 from web.services.legal_coverage_surface import build_generator, build_repository, build_legal_coverage_surface, run_action
 
 
@@ -23,6 +24,24 @@ legal_coverage_admin = Blueprint(
     __name__,
     url_prefix="/admin/copertura-ai",
 )
+
+
+def coverage_admin_required(fn):
+    """Consente SUPERADMIN oppure admin locale quando il runtime non e' multi-tenant."""
+
+    @wraps(fn)
+    def wrapper(*args, **kwargs):
+        user = getattr(g, "utente_corrente", None)
+        if not user:
+            abort(403)
+        if getattr(user, "is_superadmin", False):
+            return fn(*args, **kwargs)
+        multi_tenant = bool(current_app.config.get("MULTI_TENANT") or getattr(g, "multi_tenant_enabled", False))
+        if not multi_tenant and getattr(user, "ruolo", None) == RuoloUtente.AMMINISTRATORE:
+            return fn(*args, **kwargs)
+        abort(403)
+
+    return wrapper
 
 
 def _json_error(message: str, *, status: int = 200):
@@ -50,7 +69,7 @@ def _review_payload(required_reason: bool = False) -> tuple[dict[str, Any], str,
 
 @legal_coverage_admin.get("")
 @legal_coverage_admin.get("/")
-@superadmin_required
+@coverage_admin_required
 def dashboard():
     tenant_slug = _selected_tenant_slug()
     payload = build_legal_coverage_surface(tenant_slug=tenant_slug)
@@ -62,7 +81,7 @@ def dashboard():
 
 
 @legal_coverage_admin.post("/esegui/<string:action>")
-@superadmin_required
+@coverage_admin_required
 def execute_action(action: str):
     tenant_slug = _selected_tenant_slug()
     try:
@@ -88,7 +107,7 @@ def execute_action(action: str):
 
 
 @legal_coverage_admin.get("/review")
-@superadmin_required
+@coverage_admin_required
 def review_page():
     tenant_slug = _selected_tenant_slug()
     return render_template(
@@ -98,7 +117,7 @@ def review_page():
 
 
 @legal_coverage_admin.get("/api/drafts")
-@superadmin_required
+@coverage_admin_required
 def api_drafts():
     try:
         repository = build_repository(tenant_slug=_selected_tenant_slug())
@@ -111,7 +130,7 @@ def api_drafts():
 
 
 @legal_coverage_admin.get("/api/drafts/<int:draft_id>")
-@superadmin_required
+@coverage_admin_required
 def api_draft_detail(draft_id: int):
     try:
         repository = build_repository(tenant_slug=_selected_tenant_slug())
@@ -149,7 +168,7 @@ def api_draft_detail(draft_id: int):
 
 
 @legal_coverage_admin.post("/api/drafts/<int:draft_id>/save")
-@superadmin_required
+@coverage_admin_required
 def api_draft_save(draft_id: int):
     try:
         body = request.get_json(force=True) or {}
@@ -171,7 +190,7 @@ def api_draft_save(draft_id: int):
 
 
 @legal_coverage_admin.post("/api/drafts/<int:draft_id>/approve")
-@superadmin_required
+@coverage_admin_required
 def api_draft_approve(draft_id: int):
     try:
         body, reviewer, review_reason, review_signature = _review_payload(required_reason=True)
@@ -190,7 +209,7 @@ def api_draft_approve(draft_id: int):
 
 
 @legal_coverage_admin.post("/api/drafts/<int:draft_id>/reject")
-@superadmin_required
+@coverage_admin_required
 def api_draft_reject(draft_id: int):
     try:
         body, reviewer, review_reason, review_signature = _review_payload(required_reason=True)
@@ -209,7 +228,7 @@ def api_draft_reject(draft_id: int):
 
 
 @legal_coverage_admin.post("/api/drafts/<int:draft_id>/publish")
-@superadmin_required
+@coverage_admin_required
 def api_draft_publish(draft_id: int):
     try:
         body, reviewer, review_reason, review_signature = _review_payload(required_reason=False)
@@ -233,7 +252,7 @@ def api_draft_publish(draft_id: int):
 
 
 @legal_coverage_admin.get("/api/drafts/<int:draft_id>/sql")
-@superadmin_required
+@coverage_admin_required
 def api_draft_sql(draft_id: int):
     try:
         repository = build_repository(tenant_slug=_selected_tenant_slug())
@@ -247,7 +266,7 @@ def api_draft_sql(draft_id: int):
 
 
 @legal_coverage_admin.post("/api/pipeline/genera")
-@superadmin_required
+@coverage_admin_required
 def api_generate_pipeline():
     try:
         tenant_slug = _selected_tenant_slug()

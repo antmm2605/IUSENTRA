@@ -313,8 +313,11 @@ def build_repository(
 
 def build_generator(app: Any | None = None) -> CoverageAutofillEngine:
     runtime_app, source = _runtime_app_and_config(app)
+    ollama_url = str(source.get("LOCAL_AI_BASE_URL") or source.get("PCT_LOCAL_AI_BASE_URL") or "").strip()
+    if source.get("TESTING") and not source.get("LEGAL_COVERAGE_ENABLE_LIVE_AI_TESTS"):
+        ollama_url = ""
     return CoverageAutofillEngine(
-        ollama_url=str(source.get("LOCAL_AI_BASE_URL") or source.get("PCT_LOCAL_AI_BASE_URL") or "").strip(),
+        ollama_url=ollama_url,
         ollama_model=str(source.get("LOCAL_AI_CHAT_MODEL") or source.get("OLLAMA_MODEL") or "mistral").strip(),
         presets=load_presets(),
     )

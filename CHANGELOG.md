@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.184.4 - 2026-04-25
+
+- Reso lo Step 3 del wizard PST/PolisWeb resiliente agli errori di preview: timeout, SOAP Fault, Local Signer non raggiungibile e circuito aperto non bloccano piu' l'acquisizione ma attivano il fallback assistito con dati RG/ufficio/parti.
+- Spostati i percorsi browser/Local Signer fuori dal circuit breaker server-side, cosi' una scelta operativa locale non viene trattata come errore ripetuto del portale.
+- Aggiunti test anti-regressione per verificare che la preview PST via Local Signer non apra `portale:pst:preview` e che il template agganci il fallback assistito.
+
 ## 2.184.3 - 2026-04-25
 
 - Integrata la nuova UI `/sigp-sync/` per consultare snapshot SIGP reali con layout dedicato a fascicolo, documenti, eventi, udienze, parti, comunicazioni e log.

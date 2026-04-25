@@ -591,6 +591,10 @@ function awGuidedBrowserAssistInfo(query = null) {
   };
   if (AW_BOOT.portale === 'pdp') {
     info.reason = "Il Portale Deposito atti Penali usa l'area riservata PST nel browser ufficiale." + commonSuffix;
+  } else if (AW_BOOT.portale === 'pst') {
+    info.reason = "PST / PolisWeb e SIGP Giudice di Pace richiedono una sessione autenticata locale. IUSENTRA usa il Local Signer quando disponibile e, se l'anteprima non risponde, continua senza bloccare l'acquisizione." + commonSuffix;
+    info.metaReady = 'PST / PolisWeb: puoi proseguire con acquisizione assistita e completare documenti/eventi dal portale ufficiale.';
+    info.metaMissing = 'Compila ufficio, numero e anno per continuare con acquisizione PST assistita.';
   } else if (AW_BOOT.portale === 'pat') {
     info.reason = "Il Processo Amministrativo Telematico usa il Portale dell'Avvocato ufficiale: IUSENTRA prepara il fascicolo interno e rinvia consultazione e deposito Form Web al browser autenticato." + commonSuffix;
     info.metaReady = "Portale dell'Avvocato pronto: puoi proseguire con fascicolo PAT interno e import guidato.";
@@ -635,6 +639,39 @@ function awPstRecoverableSearchError(err) {
     'soap fault',
     'soap-env:client',
     'richiesta soap',
+    'temporaneamente sospeso',
+    'errori ripetuti',
+    'local signer',
+    'browser locale',
+    'canale ufficiale',
+    'timeout',
+    'timed out',
+    'ricerca pst',
+    'non raggiungibile',
+  ];
+  return markers.some(marker => text.includes(marker));
+}
+function awPstRecoverablePreviewError(err) {
+  if (AW_BOOT.portale !== 'pst') return false;
+  if (err?.manualRequired) return true;
+  const text = awErrorMessage(err).toLowerCase();
+  if (!text) return false;
+  const markers = [
+    'temporaneamente sospeso',
+    'errori ripetuti',
+    'local signer',
+    'browser locale',
+    'canale ufficiale',
+    'timeout',
+    'timed out',
+    'subpro',
+    'sotto-procedimento',
+    'soap fault',
+    'soap-env:client',
+    'richiesta soap',
+    'anteprima documenti pst',
+    'consultazione pst',
+    'non raggiungibile',
   ];
   return markers.some(marker => text.includes(marker));
 }
@@ -667,6 +704,10 @@ function awSplitPeople(value) {
 function awDefaultManualProcedimento() {
   const quick = String(AW_STATE.quick || '').trim();
   if (quick) return quick.toUpperCase();
+  if (AW_BOOT.portale === 'pst') {
+    const office = String(document.getElementById('awOfficeInput')?.value || '').toLowerCase();
+    return office.includes('giudice di pace') || office.includes('gdp') ? 'GDP' : 'RGN';
+  }
   if (AW_BOOT.portale === 'pdp') return 'RGNR';
   return 'RICORSO';
 }
@@ -707,7 +748,27 @@ function awBuildManualSelection(query, reason = '', portaleUrl = '') {
     ultima_attivita: '',
     payload: {},
   };
-  if (AW_BOOT.portale === 'pdp') {
+  if (AW_BOOT.portale === 'pst') {
+    const registro = procedimento === 'GDP' ? 'GDP' : 'RGN';
+    base.payload = {
+      numero_rg: base.numero,
+      anno_rg: base.anno,
+      ruolo: procedimento,
+      registro_portale: registro,
+      canale_telematico: registro === 'GDP' ? 'PST/SIGP' : 'PST/PolisWeb',
+      stato: base.stato,
+      oggetto: query.oggetto || '',
+      sezione: '',
+      giudice: '',
+      data_iscrizione: '',
+      data_udienza: '',
+      parti,
+      controparti,
+      codice_ufficio: base.ufficio_codice,
+      nome_ufficio: base.ufficio_nome,
+      note: 'Acquisizione assistita manualmente dal PST / PolisWeb ufficiale.',
+    };
+  } else if (AW_BOOT.portale === 'pdp') {
     base.payload = {
       numero_rg: base.numero,
       anno_rg: base.anno,
@@ -775,7 +836,9 @@ function awManualNoticeHtml() {
     ? "IUSENTRA continua con i dati di RG, ufficio e parti gia' inseriti. Documenti, ricevute, provvedimenti ed esiti PAT si completano importando i file gia scaricati dal Portale dell'Avvocato."
     : (AW_BOOT.portale === 'ptt'
       ? "IUSENTRA continua con i dati di RG, ufficio e parti gia' inseriti. Consultazione del fascicolo, Telecontenzioso, accesso temporaneo e download del fascicolo processuale si completano nel portale ufficiale PTT / SIGIT; poi importi nel gestionale file, ricevute, provvedimenti ed esiti."
-      : "IUSENTRA continua con i dati di RG, ufficio e parti gia' inseriti. Documenti, eventi e catalogo di deposito possono essere completati dal portale ufficiale dopo l'importazione.");
+      : (AW_BOOT.portale === 'pst'
+        ? "IUSENTRA continua con i dati di RG, ufficio e parti gia' inseriti. Se la preview PST/SIGP non risponde, puoi importare subito la pratica e poi completare documenti, eventi e catalogo depositi dai file scaricati o dal Local Signer."
+        : "IUSENTRA continua con i dati di RG, ufficio e parti gia' inseriti. Documenti, eventi e catalogo di deposito possono essere completati dal portale ufficiale dopo l'importazione."));
   return `
     <div class="alert alert-warning rounded-4 mb-3">
       <div class="fw-semibold">Acquisizione assistita via browser ufficiale</div>
@@ -1792,7 +1855,7 @@ async function awSelectResult(index, jumpPreview, options = {}) {
       payload.documenti = await awPreviewViaLocalSigner(selection);
     }
     const data = await awJson(AW_BOOT.previewUrl, { method: 'POST', body: JSON.stringify(payload) });
-    if (!data.ok) throw new Error(data.errore || 'Anteprima non disponibile');
+    if (!data.ok) throw awBuildPortaleError(data, 'Anteprima non disponibile');
     AW_STATE.preview = data.preview || null;
     awRenderResults();
     awRenderPreview();
@@ -1802,7 +1865,7 @@ async function awSelectResult(index, jumpPreview, options = {}) {
     await awWarmAnalysis();
     if (jumpPreview) awGoStep(3);
   } catch (err) {
-    if (awPortaleBrowserOnlyError(err)) {
+    if (awPortaleBrowserOnlyError(err) || awPstRecoverablePreviewError(err)) {
       try {
         const manualSelection = awMarkSelectionManual(
           selection,
@@ -1826,7 +1889,7 @@ async function awSelectResult(index, jumpPreview, options = {}) {
         if (jumpPreview) awGoStep(3);
         return;
       } catch (fallbackErr) {
-        document.getElementById('awPreview').innerHTML = `<div class="alert alert-danger rounded-4 mb-0">${awEscape(String(fallbackErr))}</div>`;
+        document.getElementById('awPreview').innerHTML = `<div class="alert alert-warning rounded-4 mb-0">${awEscape(String(fallbackErr))}</div>`;
         return;
       }
     }

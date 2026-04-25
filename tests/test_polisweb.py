@@ -3109,6 +3109,84 @@ def test_api_acquisizione_status_pst_usa_local_signer_anche_senza_libreria_serve
     assert data["status"]["environment_label"] == "Produzione guidata via browser locale"
 
 
+def test_api_acquisizione_preview_pst_local_signer_non_apre_circuito_preview(tmp_path):
+    from pct.auth import GestioneUtenti, RuoloUtente
+    from pct.runtime_resilience import clear_runtime_circuit_breakers
+    from web.app import create_app
+    from web.services.telematico_resilience import get_portale_circuit_breaker
+
+    cfg = _cfg_web(tmp_path)
+    studio_cfg = tmp_path / "config" / "studio.json"
+
+    gs = GestioneConfigStudio(str(studio_cfg))
+    studio = gs.config
+    studio.firma.backend_preferito = "pkcs11"
+    studio.firma.cf_avvocato = "RSSMRA80A01H501Z"
+    gs.aggiorna(studio)
+
+    gu = GestioneUtenti(
+        db_path=cfg["AUTH_DB"],
+        audit_path=cfg["AUDIT_DB"],
+        secret_key="test",
+    )
+    gu.crea(
+        username="avvocato",
+        password="Avv12345!",
+        ruolo=RuoloUtente.AVVOCATO,
+        email="avvocato@example.com",
+    )
+
+    clear_runtime_circuit_breakers("portale:pst:preview")
+    app = create_app({**cfg, "STUDIO_CONFIG": str(studio_cfg)})
+    with app.test_client() as client:
+        client.post(
+            "/login",
+            data={"username": "avvocato", "password": "Avv12345!"},
+            follow_redirects=True,
+        )
+        response = client.post(
+            "/api/portali/pst/acquisizione/preview",
+            json={
+                "selection": {
+                    "external_id": "0800570152:466:2023:GDP",
+                    "numero": "466",
+                    "anno": 2023,
+                    "ufficio_codice": "0800570152",
+                    "ufficio_nome": "Ufficio del Giudice di Pace di Palmi",
+                    "procedimento": "GDP",
+                    "parti": ["ALESSI ROBERTINO"],
+                    "controparti": ["ZURICH ASS.NI"],
+                    "payload": {
+                        "numero_rg": "466",
+                        "anno_rg": 2023,
+                        "ruolo": "GDP",
+                        "registro_portale": "GDP",
+                    },
+                }
+            },
+            follow_redirects=True,
+        )
+
+    data = response.get_json()
+    snapshot = get_portale_circuit_breaker("pst", operation="preview").snapshot()
+    assert response.status_code == 200
+    assert data["ok"] is False
+    assert "Local Signer del browser" in data["errore"]
+    assert "temporaneamente sospeso" not in data["errore"]
+    assert snapshot["open"] is False
+    assert snapshot["failure_count"] == 0
+
+
+def test_acquisizione_wizard_pst_preview_error_usa_fallback_assistito():
+    template = (Path(__file__).resolve().parents[1] / "web" / "templates" / "portale" / "acquisizione_wizard.html").read_text(encoding="utf-8")
+
+    assert "function awPstRecoverablePreviewError" in template
+    assert "temporaneamente sospeso" in template
+    assert "awPortaleBrowserOnlyError(err) || awPstRecoverablePreviewError(err)" in template
+    assert "awBuildManualSelection(query, reason, portaleUrl)" in template
+    assert "PST/SIGP" in template
+
+
 def test_api_acquisizione_status_pat_forza_browser_ufficiale(tmp_path):
     from pct.auth import GestioneUtenti, RuoloUtente
     from web.app import create_app

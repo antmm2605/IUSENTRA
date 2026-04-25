@@ -2090,11 +2090,30 @@ def build_telematico_runtime(
         stato_filter = str(query.get("stato") or "").strip().lower()
         quick = str(query.get("quick_filter") or "").strip().lower()
 
+        # I canali browser/Local Signer sono un percorso operativo previsto,
+        # non un guasto runtime: non devono consumare il circuit breaker.
+        if portale == "pst" and _portale_local_channel_enabled(portale):
+            raise ValueError("Per PST / PolisWeb la ricerca guidata usa il Local Signer dal browser.")
+        if portale == "pdp" and _portale_browser_channel_required(portale):
+            raise ValueError(_portale_browser_guided_message(portale))
+        if portale == "pdp" and _portale_usa_local_signer(portale):
+            raise ValueError("Per PDP Penale la ricerca guidata usa il Local Signer dal browser.")
+        if portale == "pat":
+            raise ValueError(
+                "Per PAT l'acquisizione guidata non promette una ricerca live diretta da SIGA. "
+                "Apri il Portale dell'Avvocato ufficiale dal browser e usa IUSENTRA per il fascicolo interno, "
+                "le ricevute e l'import guidato dei file gia scaricati."
+            )
+        if portale not in {"pst", "pdp"}:
+            raise ValueError(
+                "Per PTT / SIGIT l'acquisizione guidata non promette una ricerca live diretta del fascicolo. "
+                "Apri il portale ufficiale o Telecontenzioso nel browser, consulta il fascicolo processuale e "
+                "poi usa IUSENTRA per il fascicolo tributario interno e per l'import guidato dei file gia scaricati."
+            )
+
         try:
             def _perform_search():
                 if portale == "pst":
-                    if _portale_local_channel_enabled(portale):
-                        raise ValueError("Per PST la ricerca guidata usa il Local Signer dal browser.")
                     from pct.polisWeb import crea_client
 
                     ufficio = str(query.get("ufficio_codice") or "").strip()
@@ -2108,10 +2127,6 @@ def build_telematico_runtime(
                         codice_fiscale_parte=cf,
                     )
                 if portale == "pdp":
-                    if _portale_browser_channel_required(portale):
-                        raise ValueError(_portale_browser_guided_message(portale))
-                    if _portale_usa_local_signer(portale):
-                        raise ValueError("Per PDP Penale la ricerca guidata usa il Local Signer dal browser.")
                     from pct.pdp import crea_client_pdp
 
                     ufficio = str(query.get("ufficio_codice") or "").strip()
@@ -2124,17 +2139,7 @@ def build_telematico_runtime(
                         nome_imputato=assistito,
                         tipo_registro=str(query.get("registro") or "").strip() or None,
                     )
-                if portale == "pat":
-                    raise ValueError(
-                        "Per PAT l'acquisizione guidata non promette una ricerca live diretta da SIGA. "
-                        "Apri il Portale dell'Avvocato ufficiale dal browser e usa IUSENTRA per il fascicolo interno, "
-                        "le ricevute e l'import guidato dei file gia scaricati."
-                    )
-                raise ValueError(
-                    "Per PTT / SIGIT l'acquisizione guidata non promette una ricerca live diretta del fascicolo. "
-                    "Apri il portale ufficiale o Telecontenzioso nel browser, consulta il fascicolo processuale e "
-                    "poi usa IUSENTRA per il fascicolo tributario interno e per l'import guidato dei file gia scaricati."
-                )
+                return []
 
             fascicoli = run_portale_runtime_operation(
                 portale,
@@ -2162,11 +2167,30 @@ def build_telematico_runtime(
 
     def _preview_documenti_portale_server(portale: str, selection: dict[str, Any]) -> list[dict]:
         portale = (portale or "").strip().lower()
+        # Come per la ricerca, un canale locale/browser-guided non e' un
+        # errore ripetuto del runtime server: evita falsi "sospeso 60s".
+        if portale == "pst" and _portale_local_channel_enabled(portale):
+            raise ValueError("Anteprima documenti PST via Local Signer del browser richiesta.")
+        if portale == "pdp" and _portale_browser_channel_required(portale):
+            raise ValueError(_portale_browser_guided_message(portale))
+        if portale == "pdp" and _portale_usa_local_signer(portale):
+            raise ValueError("Anteprima documenti PDP via Local Signer del browser richiesta.")
+        if portale == "pat":
+            raise ValueError(
+                "Per PAT la consultazione del fascicolo si completa nel Portale dell'Avvocato ufficiale. "
+                "In IUSENTRA puoi continuare con il fascicolo PAT interno e con l'import guidato di documenti, "
+                "provvedimenti e ricevute gia scaricati dal portale."
+            )
+        if portale not in {"pst", "pdp"}:
+            raise ValueError(
+                "Per PTT / SIGIT la consultazione del fascicolo si completa nel portale ufficiale e nei servizi "
+                "collegati, come Telecontenzioso. In IUSENTRA prosegui con il fascicolo tributario interno e con "
+                "l'import guidato di documenti, ricevute, provvedimenti ed esiti gia scaricati."
+            )
+
         try:
             def _perform_preview():
                 if portale == "pst":
-                    if _portale_local_channel_enabled(portale):
-                        raise ValueError("Anteprima documenti PST via browser locale richiesta.")
                     from pct.polisWeb import crea_client
 
                     return crea_client(demo=_portale_demo_mode(portale)).consulta_documenti(
@@ -2175,10 +2199,6 @@ def build_telematico_runtime(
                         int(selection.get("anno") or 0),
                     )
                 if portale == "pdp":
-                    if _portale_browser_channel_required(portale):
-                        raise ValueError(_portale_browser_guided_message(portale))
-                    if _portale_usa_local_signer(portale):
-                        raise ValueError("Anteprima documenti PDP via browser locale richiesta.")
                     from pct.pdp import crea_client_pdp
 
                     return crea_client_pdp(demo=_portale_demo_mode(portale)).consulta_documenti(
@@ -2186,17 +2206,7 @@ def build_telematico_runtime(
                         str(selection.get("numero") or "").strip(),
                         int(selection.get("anno") or 0),
                     )
-                if portale == "pat":
-                    raise ValueError(
-                        "Per PAT la consultazione del fascicolo si completa nel Portale dell'Avvocato ufficiale. "
-                        "In IUSENTRA puoi continuare con il fascicolo PAT interno e con l'import guidato di documenti, "
-                        "provvedimenti e ricevute gia scaricati dal portale."
-                    )
-                raise ValueError(
-                    "Per PTT / SIGIT la consultazione del fascicolo si completa nel portale ufficiale e nei servizi "
-                    "collegati, come Telecontenzioso. In IUSENTRA prosegui con il fascicolo tributario interno e con "
-                    "l'import guidato di documenti, ricevute, provvedimenti ed esiti gia scaricati."
-                )
+                return []
 
             docs = run_portale_runtime_operation(
                 portale,

@@ -22,6 +22,7 @@ def register_portali_acquisizione_routes(
     _coerce_import_options: Callable[[dict[str, Any]], dict[str, Any]],
     _coerce_mapping: Callable[[dict[str, Any]], dict[str, Any]],
     _analyze_portale_import: Callable[[str, dict[str, Any], dict[str, Any], dict[str, Any], dict[str, Any]], dict[str, Any]],
+    _normalize_authorized_portale_payload: Callable[[str, dict[str, Any]], dict[str, Any]],
     _importa_o_collega_fascicolo_portale: Callable[..., dict[str, Any]],
 ) -> None:
     """Register guided acquisition routes for PST, PDP, PAT, and PTT."""
@@ -157,4 +158,37 @@ def register_portali_acquisizione_routes(
             return jsonify({"ok": True, "result": result, **result})
         except Exception as e:
             app.logger.exception("Errore api_portale_acquisizione_import(%s): %s", portale, e)
+            return jsonify({"ok": False, "errore": str(e)}), 200
+
+    @app.route("/api/portali/<portale>/acquisizione/importa-payload", methods=["POST"])
+    def api_portale_acquisizione_importa_payload(portale: str):
+        try:
+            _spec_portale_acquisizione(portale)
+            data = request.get_json(silent=True) or {}
+            raw_payload = data.get("payload") or data.get("raw_payload") or data
+            normalized = _normalize_authorized_portale_payload(portale, dict(raw_payload or {}))
+            selection = dict(normalized.get("selection") or {})
+            preview = dict(normalized.get("preview") or {})
+            if not selection or not preview:
+                raise ValueError("Payload autorizzato non riconoscibile.")
+            options = _coerce_import_options(dict(data.get("options") or {}), portale=portale)
+            mapping_raw = dict(data.get("mapping") or {})
+            fascicolo_locale_id = str(data.get("fascicolo_locale_id") or "").strip()
+            if fascicolo_locale_id and not mapping_raw.get("target_fascicolo_id"):
+                mapping_raw["mode"] = "update_existing"
+                mapping_raw["target_fascicolo_id"] = fascicolo_locale_id
+            mapping = _coerce_mapping(mapping_raw)
+            downloaded_files_raw = data.get("downloaded_files")
+            downloaded_files = downloaded_files_raw if isinstance(downloaded_files_raw, list) else []
+            result = _importa_o_collega_fascicolo_portale(
+                portale,
+                selection,
+                preview,
+                options,
+                mapping,
+                downloaded_files=downloaded_files,
+            )
+            return jsonify({"ok": True, "normalized": normalized, "result": result, **result})
+        except Exception as e:
+            app.logger.exception("Errore api_portale_acquisizione_importa_payload(%s): %s", portale, e)
             return jsonify({"ok": False, "errore": str(e)}), 200

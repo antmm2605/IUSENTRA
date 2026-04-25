@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import hashlib
 from datetime import date, datetime
 from pathlib import Path
 from typing import Any, Optional
@@ -12,7 +13,14 @@ from typing import Any, Optional
 from flask import Flask, g, url_for
 
 from pct.fascicoli import Fascicolo, TipoAttivita, stato_fascicolo_da_descrizione_portale
+from pct.pst_servizi_catalogo import (
+    SERVIZIO_PST_COMUNICAZIONE_CANCELLERIA,
+    SERVIZIO_PST_DETTAGLIO_ISTANZE,
+    SERVIZIO_PST_DOCUMENTI_FASCICOLO,
+    SERVIZIO_PST_RICERCA_SCADENZE,
+)
 from pct.scadenziario import TipoTermine
+from web.services.portale_payload_normalizer import normalize_authorized_portale_payload
 from web.services.telematico_resilience import (
     describe_portale_runtime_error,
     run_portale_runtime_operation,
@@ -430,6 +438,10 @@ def build_telematico_runtime(
                     "numero_documento": str(item.get("numero_documento") or "").strip(),
                     "id_doc_mittente": str(item.get("id_doc_mittente") or "").strip(),
                     "id_documento_candidates": candidates,
+                    "servizio_portale": str(item.get("servizio_portale") or "").strip()
+                    or SERVIZIO_PST_DOCUMENTI_FASCICOLO,
+                    "sezione_portale": str(item.get("sezione_portale") or "").strip(),
+                    "data_documento": str(item.get("data_documento") or "").strip(),
                 }
             )
         rows.sort(
@@ -483,9 +495,12 @@ def build_telematico_runtime(
                     "tipo_atto": doc.get("tipo_atto") or doc.get("tipo") or "Deposito",
                     "data_deposito": doc.get("data_deposito") or "",
                     "mittente": doc.get("mittente") or "",
+                    "servizio_portale": doc.get("servizio_portale") or SERVIZIO_PST_DOCUMENTI_FASCICOLO,
                     "documenti": [],
                 },
             )
+            if doc.get("servizio_portale") and not group.get("servizio_portale"):
+                group["servizio_portale"] = doc.get("servizio_portale")
             group["documenti"].append(doc)
         return list(gruppi.values())
 
@@ -660,6 +675,39 @@ def build_telematico_runtime(
                     continue
             return (0, datetime.min)
 
+        def _date_only(raw: Any) -> str:
+            value = _clean(raw)
+            if not value:
+                return ""
+            for fmt in (
+                "%Y-%m-%dT%H:%M:%S.%f",
+                "%Y-%m-%dT%H:%M:%S",
+                "%Y-%m-%d %H:%M:%S.%f",
+                "%Y-%m-%d %H:%M:%S",
+                "%d/%m/%Y %H:%M:%S.%f",
+                "%d/%m/%Y %H:%M:%S",
+                "%d/%m/%Y %H:%M",
+                "%Y-%m-%d",
+                "%d/%m/%Y",
+                "%d-%m-%Y",
+            ):
+                try:
+                    return datetime.strptime(value, fmt).strftime("%Y-%m-%d")
+                except ValueError:
+                    continue
+            return value[:10] if len(value) >= 10 else value
+
+        def _as_list(value: Any) -> list[dict[str, Any]]:
+            if isinstance(value, list):
+                return [dict(row) for row in value if isinstance(row, dict)]
+            return []
+
+        structured_eventi = _as_list(payload.get("eventi"))
+        structured_udienze = _as_list(payload.get("udienze"))
+        structured_comunicazioni = _as_list(payload.get("comunicazioni"))
+        structured_istanze = _as_list(payload.get("istanze"))
+        structured_depositi = _as_list(payload.get("depositi_telematici") or payload.get("depositi"))
+
         provvedimenti_count = sum(
             1
             for doc in docs
@@ -697,6 +745,70 @@ def build_telematico_runtime(
             eventi.append({"label": "Iscrizione / deposito originario", "data": data_iscrizione, "tipo": "iscrizione"})
         if data_udienza:
             eventi.append({"label": "Udienza rilevata", "data": data_udienza, "tipo": "udienza"})
+        for row in structured_eventi:
+            label = _first_value(row.get("tipo_evento"), row.get("descrizione"), "Evento da portale")
+            data = _date_only(row.get("data_evento") or row.get("data"))
+            key = (label.lower(), data, _clean(row.get("evento_uid")))
+            if not any(
+                (str(ev.get("label") or "").lower(), str(ev.get("data") or ""), str(ev.get("evento_uid") or "")) == key
+                for ev in eventi
+            ):
+                eventi.append(
+                    {
+                        "label": label,
+                        "data": data,
+                        "tipo": _first_value(row.get("tipo_evento"), "evento"),
+                        "descrizione": _first_value(row.get("descrizione"), row.get("esito")),
+                        "evento_uid": _clean(row.get("evento_uid")),
+                    }
+                )
+        udienze = [
+            {
+                "label": _first_value(row.get("tipo"), row.get("descrizione"), "Udienza"),
+                "data": _date_only(row.get("data_udienza") or row.get("data")),
+                "ora": _clean(row.get("ora")),
+                "tipo": _first_value(row.get("tipo"), "udienza"),
+                "descrizione": _first_value(row.get("descrizione"), row.get("esito")),
+                "giudice": _clean(row.get("giudice")),
+                "udienza_uid": _clean(row.get("udienza_uid")),
+            }
+            for row in structured_udienze
+            if _date_only(row.get("data_udienza") or row.get("data"))
+        ]
+        comunicazioni = [
+            {
+                "id": _clean(row.get("comunicazione_uid")),
+                "tipo": _first_value(row.get("tipo"), "Comunicazione"),
+                "oggetto": _first_value(row.get("oggetto"), row.get("tipo"), "Comunicazione di cancelleria"),
+                "data": _date_only(row.get("data_comunicazione") or row.get("data")),
+                "mittente": _clean(row.get("mittente")),
+                "destinatario": _clean(row.get("destinatario")),
+                "stato": _clean(row.get("stato")),
+            }
+            for row in structured_comunicazioni
+        ]
+        istanze = [
+            {
+                "id": _clean(row.get("evento_uid") or row.get("id")),
+                "tipo": _first_value(row.get("tipo_evento"), row.get("tipo"), "Istanza"),
+                "oggetto": _first_value(row.get("descrizione"), row.get("oggetto"), row.get("tipo_evento"), "Istanza"),
+                "data": _date_only(row.get("data_evento") or row.get("data")),
+                "stato": _clean(row.get("esito") or row.get("stato")),
+            }
+            for row in structured_istanze
+        ]
+        depositi_telematici = [
+            {
+                "id": _clean(row.get("deposito_uid") or row.get("id")),
+                "tipo_atto": _first_value(row.get("tipo_atto"), row.get("atto_principale"), "Deposito telematico"),
+                "data": _date_only(row.get("data_invio") or row.get("data_esito") or row.get("data")),
+                "stato": _clean(row.get("stato")),
+                "mittente": _clean(row.get("mittente")),
+                "messaggio": _clean(row.get("messaggio_esito")),
+                "servizio_portale": _clean(row.get("servizio_portale")),
+            }
+            for row in structured_depositi
+        ]
         return {
             "identity": {
                 "id_fascicolo": _first_value(selection.get("id_fascicolo"), payload.get("id_fascicolo")),
@@ -717,17 +829,23 @@ def build_telematico_runtime(
             "controparti": list(selection.get("controparti") or []),
             "difensori": [x for x in list(payload.get("difensori") or []) if str(x).strip()],
             "eventi": eventi,
+            "udienze": udienze,
+            "comunicazioni": comunicazioni,
+            "istanze": istanze,
+            "depositi_telematici": depositi_telematici,
             "documenti": docs,
             "depositi": depositi,
             "counts": {
                 "parti": len(list(selection.get("parti") or [])) + len(list(selection.get("controparti") or [])),
                 "difensori": len(list(payload.get("difensori") or [])),
                 "eventi": len(eventi),
-                "udienze": 1 if data_udienza else 0,
+                "udienze": len(udienze) or (1 if data_udienza else 0),
                 "documenti": len(docs),
                 "provvedimenti": provvedimenti_count,
                 "depositi": len(depositi),
-                "esiti": len(depositi),
+                "esiti": len(depositi) + len(depositi_telematici),
+                "comunicazioni": len(comunicazioni),
+                "istanze": len(istanze),
             },
         }
 
@@ -1385,6 +1503,11 @@ def build_telematico_runtime(
             docs = list(deposito.get("documenti") or [])
             if not docs:
                 continue
+            servizio_portale = str(deposito.get("servizio_portale") or "").strip()
+            if not servizio_portale:
+                servizio_portale = str((docs[0] or {}).get("servizio_portale") or "").strip()
+            if not servizio_portale:
+                servizio_portale = SERVIZIO_PST_DOCUMENTI_FASCICOLO
             gf.sincronizza_deposito_portale(
                 id_fasc,
                 fonte=_portale_source_name(portale),
@@ -1397,7 +1520,7 @@ def build_telematico_runtime(
                 note=f"Catalogo ufficiale importato da {_portale_source_name(portale)}",
                 nome_atto_principale=str((docs[0] or {}).get("nome") or "").strip(),
                 stato="IMPORTATO_DA_PORTALE",
-                servizio_portale="DocumentiFascicolo",
+                servizio_portale=servizio_portale,
             )
             synced += 1
         return synced
@@ -1446,6 +1569,207 @@ def build_telematico_runtime(
                     id_utente_responsabile=getattr(g.utente_corrente, "id", "") if getattr(g, "utente_corrente", None) else "",
                 )
                 created["scadenze"] += 1
+        return created
+
+    def _normalize_authorized_portale_payload(
+        portale: str,
+        raw_payload: dict[str, Any],
+    ) -> dict[str, Any]:
+        bundle = normalize_authorized_portale_payload(portale, raw_payload)
+        selection = dict(bundle.get("selection") or {})
+        documenti = list(bundle.get("documenti") or [])
+        preview = _build_portale_preview(portale, selection, documenti)
+        return {
+            "selection": selection,
+            "preview": preview,
+            "documenti": documenti,
+            "raw_payload": dict(bundle.get("raw_payload") or {}),
+        }
+
+    def _sync_portale_structured_sections(
+        portale: str,
+        id_fasc: str,
+        preview: dict[str, Any],
+        options: dict[str, bool],
+        *,
+        avvocato: str = "",
+    ) -> dict[str, int]:
+        gf = get_fascicoli()
+        gs = get_scadenziario()
+        fasc = gf.get(id_fasc)
+        if not fasc:
+            return {"attivita": 0, "scadenze": 0, "comunicazioni": 0, "istanze": 0, "depositi": 0}
+
+        created = {"attivita": 0, "scadenze": 0, "comunicazioni": 0, "istanze": 0, "depositi": 0}
+
+        def _clean(value: Any) -> str:
+            return str(value or "").strip()
+
+        def _date_value(value: Any) -> str:
+            text = _clean(value)
+            if not text:
+                return date.today().isoformat()
+            for fmt in (
+                "%Y-%m-%dT%H:%M:%S.%f",
+                "%Y-%m-%dT%H:%M:%S",
+                "%Y-%m-%d %H:%M:%S",
+                "%d/%m/%Y %H:%M:%S",
+                "%d/%m/%Y %H:%M",
+                "%Y-%m-%d",
+                "%d/%m/%Y",
+                "%d-%m-%Y",
+            ):
+                try:
+                    return datetime.strptime(text, fmt).strftime("%Y-%m-%d")
+                except ValueError:
+                    continue
+            return text[:10] if len(text) >= 10 else text
+
+        def _activity_type(tipo: str, titolo: str = "") -> TipoAttivita:
+            text = f"{tipo} {titolo}".lower()
+            if "udienz" in text:
+                return TipoAttivita.UDIENZA
+            if "iscrizion" in text or "deposito originario" in text:
+                return TipoAttivita.ISCRIZIONE_A_RUOLO
+            if "comunic" in text or "canceller" in text or "notific" in text:
+                return TipoAttivita.COMUNICAZIONE_CANCELLERIA
+            if "sentenz" in text or "ordinanz" in text or "decret" in text or "provved" in text:
+                return TipoAttivita.PROVVEDIMENTO
+            if "rinvio" in text:
+                return TipoAttivita.RINVIO
+            if "scadenz" in text or "termine" in text:
+                return TipoAttivita.TERMINE_SCADENZA
+            if "deposit" in text or "istan" in text:
+                return TipoAttivita.DEPOSITO_ATTI
+            return TipoAttivita.ALTRO
+
+        def _activity_exists(tipo: TipoAttivita, data: str, titolo: str) -> bool:
+            normalized = re.sub(r"\s+", " ", titolo.lower()).strip()
+            return any(
+                att.tipo == tipo
+                and str(att.data or "") == data
+                and re.sub(r"\s+", " ", str(att.titolo or "").lower()).strip() == normalized
+                for att in list(getattr(fasc, "attivita", []) or [])
+            )
+
+        def _add_activity(tipo: TipoAttivita, data: str, titolo: str, descrizione: str = "") -> bool:
+            data = _date_value(data)
+            titolo = titolo or "Evento da portale"
+            if _activity_exists(tipo, data, titolo):
+                return False
+            gf.aggiungi_attivita(
+                id_fasc,
+                tipo=tipo,
+                data=data,
+                titolo=titolo,
+                descrizione=descrizione,
+                avvocato=avvocato,
+            )
+            created["attivita"] += 1
+            return True
+
+        if options.get("importa_eventi", True):
+            for event in list(preview.get("eventi") or []):
+                tipo_text = _clean(event.get("tipo"))
+                titolo = _clean(event.get("label") or event.get("descrizione")) or "Evento da portale"
+                tipo_attivita = _activity_type(tipo_text, titolo)
+                if tipo_attivita == TipoAttivita.UDIENZA and preview.get("udienze"):
+                    continue
+                _add_activity(
+                    tipo_attivita,
+                    _clean(event.get("data")),
+                    titolo,
+                    _clean(event.get("descrizione")),
+                )
+
+        if options.get("importa_udienze", True):
+            udienze = list(preview.get("udienze") or [])
+            for udienza in udienze:
+                data_udienza = _date_value(udienza.get("data") or udienza.get("data_udienza"))
+                ora = _clean(udienza.get("ora"))
+                titolo = _clean(udienza.get("label") or udienza.get("tipo")) or "Udienza da portale"
+                descrizione = _clean(udienza.get("descrizione"))
+                if ora:
+                    descrizione = " ".join(part for part in (descrizione, f"Ora: {ora}") if part)
+                if _add_activity(TipoAttivita.UDIENZA, data_udienza, titolo, descrizione):
+                    pass
+                if options.get("importa_scadenze", False):
+                    exists = [
+                        sc for sc in gs.tutte(id_fascicolo=id_fasc, solo_aperte=False)
+                        if sc.data_scadenza == data_udienza and "udienza" in sc.titolo.lower()
+                    ]
+                    if not exists:
+                        gs.nuova(
+                            titolo=titolo,
+                            tipo=TipoTermine.UDIENZA,
+                            data_scadenza=data_udienza,
+                            id_fascicolo=id_fasc,
+                            descrizione=descrizione or f"Scadenza generata da sincronizzazione {_portale_source_name(portale)}",
+                            id_utente_responsabile=getattr(g.utente_corrente, "id", "") if getattr(g, "utente_corrente", None) else "",
+                        )
+                        created["scadenze"] += 1
+
+        if options.get("importa_esiti_telematici", True):
+            for row in list(preview.get("comunicazioni") or []):
+                title = _clean(row.get("oggetto") or row.get("tipo")) or "Comunicazione di cancelleria"
+                title_hash = hashlib.sha1(title.encode("utf-8", errors="ignore")).hexdigest()[:12]
+                ext_id = _clean(row.get("id")) or f"COM:{_date_value(row.get('data'))}:{title_hash}"
+                gf.sincronizza_deposito_portale(
+                    id_fasc,
+                    fonte=_portale_source_name(portale),
+                    id_deposito_esterno=ext_id,
+                    tipo_atto=title,
+                    data_deposito=_date_value(row.get("data")),
+                    mittente=_clean(row.get("mittente")),
+                    documenti_portale=[],
+                    registrato_da=avvocato,
+                    note=_clean(row.get("stato")) or f"Comunicazione importata da {_portale_source_name(portale)}.",
+                    nome_atto_principale=title,
+                    stato="IMPORTATO_DA_PORTALE",
+                    servizio_portale=SERVIZIO_PST_COMUNICAZIONE_CANCELLERIA,
+                )
+                created["comunicazioni"] += 1
+
+        if options.get("importa_cronologia_depositi", True):
+            for row in list(preview.get("istanze") or []):
+                title = _clean(row.get("oggetto") or row.get("tipo")) or "Istanza"
+                title_hash = hashlib.sha1(title.encode("utf-8", errors="ignore")).hexdigest()[:12]
+                ext_id = _clean(row.get("id")) or f"IST:{_date_value(row.get('data'))}:{title_hash}"
+                gf.sincronizza_deposito_portale(
+                    id_fasc,
+                    fonte=_portale_source_name(portale),
+                    id_deposito_esterno=ext_id,
+                    tipo_atto=title,
+                    data_deposito=_date_value(row.get("data")),
+                    mittente=_portale_source_name(portale),
+                    documenti_portale=[],
+                    registrato_da=avvocato,
+                    note=_clean(row.get("stato")) or f"Istanza importata da {_portale_source_name(portale)}.",
+                    nome_atto_principale=title,
+                    stato="IMPORTATO_DA_PORTALE",
+                    servizio_portale=SERVIZIO_PST_DETTAGLIO_ISTANZE,
+                )
+                created["istanze"] += 1
+            for row in list(preview.get("depositi_telematici") or []):
+                title = _clean(row.get("tipo_atto")) or "Deposito telematico"
+                title_hash = hashlib.sha1(title.encode("utf-8", errors="ignore")).hexdigest()[:12]
+                ext_id = _clean(row.get("id")) or f"DEP:{_date_value(row.get('data'))}:{title_hash}"
+                gf.sincronizza_deposito_portale(
+                    id_fasc,
+                    fonte=_portale_source_name(portale),
+                    id_deposito_esterno=ext_id,
+                    tipo_atto=title,
+                    data_deposito=_date_value(row.get("data")),
+                    mittente=_clean(row.get("mittente")) or _portale_source_name(portale),
+                    documenti_portale=[],
+                    registrato_da=avvocato,
+                    note=_clean(row.get("messaggio") or row.get("stato")) or f"Deposito importato da {_portale_source_name(portale)}.",
+                    nome_atto_principale=title,
+                    stato="IMPORTATO_DA_PORTALE",
+                    servizio_portale=_clean(row.get("servizio_portale")),
+                )
+                created["depositi"] += 1
+
         return created
 
     def _update_fascicolo_sync_metadata(
@@ -1904,6 +2228,13 @@ def build_telematico_runtime(
             crea_scadenza=options.get("importa_scadenze", False),
             avvocato=user_name,
         )
+        structured_result = _sync_portale_structured_sections(
+            portale,
+            id_fasc,
+            preview,
+            options,
+            avvocato=user_name,
+        )
 
         _update_fascicolo_sync_metadata(
             id_fasc,
@@ -1962,8 +2293,11 @@ def build_telematico_runtime(
                 "depositi": len(import_result.get("depositi_agganciati") or [])
                 or catalogo_depositi_synced
                 or int(preview.get("counts", {}).get("depositi", 0) or 0),
-                "scadenze_generate": udienza_result["scadenze"],
-                "eventi_generati": udienza_result["attivita"],
+                "scadenze_generate": udienza_result["scadenze"] + structured_result["scadenze"],
+                "eventi_generati": udienza_result["attivita"] + structured_result["attivita"],
+                "comunicazioni_generate": structured_result["comunicazioni"],
+                "istanze_generate": structured_result["istanze"],
+                "depositi_telematici_generati": structured_result["depositi"],
                 "conflitti_risolti": len(analysis["warnings"]),
                 "lotto_generico": str(import_result.get("lotto_generico") or ""),
                 "modalita_documento_portale": "originale" if scarica_originale_portale else "copia",
@@ -2697,6 +3031,7 @@ read -r -p "Premi Invio per chiudere..." _
         "coerce_import_options": _coerce_import_options,
         "coerce_mapping": _coerce_mapping,
         "analyze_portale_import": _analyze_portale_import,
+        "normalize_authorized_portale_payload": _normalize_authorized_portale_payload,
         "importa_o_collega_fascicolo_portale": _importa_o_collega_fascicolo_portale,
         "backfill_telematico_from_existing_fascicoli": _backfill_telematico_from_existing_fascicoli,
         "telematico_dashboard_warning_message": _telematico_dashboard_warning_message,

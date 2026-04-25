@@ -74,8 +74,8 @@ def test_pst_qbuilder_matrix_servizi_ufficiali(servizio, distretto, namespace):
     if servizio == "JPW_SIGP":
         assert '<value name="tipo" type="string">GDP</value>' in ricerca_xml
         for xml in (ricerca_xml, documenti_xml, profilo_xml):
-            assert '<value name="subpro" type="string">0</value>' in xml
-        assert '<value name="subpro" type="string">1</value>' in documenti_subproc_xml
+            assert 'name="subpro"' not in xml
+        assert '<value name="subpro" type="integer">1</value>' in documenti_subproc_xml
         assert 'name="subProc"' not in documenti_subproc_xml
     else:
         for xml in (ricerca_xml, documenti_xml, profilo_xml):
@@ -102,9 +102,9 @@ def test_pst_resolver_matrix_uffici_chiave():
 def test_portali_browser_assist_matrix_url_ufficiali():
     module = _load_local_signer()
     expected = {
-        "pdp": "https://pst.giustizia.it/PST/it/services.page",
+        "pdp": "https://appweb.giustizia.it/snt",
         "pat": "https://www.giustizia-amministrativa.it/portale-avvocato",
-        "ptt": "https://sigit.finanze.it/NIRWeb/login.jsp",
+        "ptt": "https://sigit.giustiziatributaria.gov.it/Sigit/index.do",
     }
 
     for portale, url in expected.items():

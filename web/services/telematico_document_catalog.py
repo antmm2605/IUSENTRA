@@ -14,9 +14,9 @@ _SERVICE_SOURCE_LABEL = {
 
 _SERVICE_DOCUMENT_LABEL = {
     "polisweb_consultazione": "DocumentiFascicolo",
-    "pdp_penale": "PDP",
-    "pat_siga": "PAT",
-    "ptt_sigit": "PTT",
+    "pdp_penale": "DocumentiFascicolo",
+    "pat_siga": "DocumentiFascicolo",
+    "ptt_sigit": "DocumentiFascicolo",
 }
 
 

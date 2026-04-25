@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.184.13 - 2026-04-25
+
+- Aggiunto l'ingresso unico `importa-payload` per PST/PDP/PAT/PTT: payload autorizzati da Local Connector, PdA, Model Office o file JSON manuali vengono normalizzati e importati nel fascicolo IUSENTRA.
+- Collegato il wizard di acquisizione all'upload `.json` autorizzato oltre a ZIP, PDF, P7M, EML, MSG e cartelle scaricate dal portale ufficiale.
+- Smistati i dati dei portali nelle sezioni reali della UI fascicolo: documenti, attivita processuali, udienze/scadenze, comunicazioni di cancelleria e istanze.
+- Corretto il riallineamento del catalogo documentale PAT/PDP/PTT: i documenti ufficiali restano `DocumentiFascicolo` e non vengono riclassificati come servizio `PAT`, `PDP` o `PTT`.
+- Allineato il Local Signer `1.6.18` agli URL browser ufficiali usati dal wizard, inclusi PDP su `appweb.giustizia.it/snt` e PTT/SIGIT su `sigit.giustiziatributaria.gov.it`.
+- Documentato il flusso guidato dei portali e aggiunti test di regressione end-to-end su PDP, PAT e PTT fino alla UI del fascicolo.
+
 ## 2.184.12 - 2026-04-25
 
 - Corretto il workspace del fascicolo per trattare i depositi PST/SIGP `DocumentiFascicolo` come governo documentale: non vengono piu' contati in `Attività processuali`, `Udienze` o `Istanze` per semplici parole chiave come verbale/decreto/istanza.

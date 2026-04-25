@@ -4599,7 +4599,8 @@ def test_api_portale_acquisizione_import_pst_importa_file_reali_e_salva_albero(t
     assert doc.data_documento == "2025-01-21"
     assert doc.data_deposito_portale == "2025-01-21"
     assert "Copia di consultazione" in doc.tags
-    assert "Udienze e scadenze" in doc.tags
+    assert "Documenti fascicolo" in doc.tags
+    assert "VerbaleUdienza" in doc.tags
     assert "VerbaleUdienza" in doc.tags
     assert re.search(r"Importato da PolisWeb / PST il \d{2}/\d{2}/\d{4}", doc.note or "")
     assert fascicolo_reload.depositi_pct[0].documenti_ids == [doc.id]

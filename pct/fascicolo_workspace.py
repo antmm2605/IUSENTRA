@@ -125,7 +125,13 @@ def deposito_is_comunicazione(dep: Any) -> bool:
 
 def deposito_is_catalogo_documenti(dep: Any) -> bool:
     """True per i depositi PST/SIGP che rappresentano il catalogo documentale."""
-    return deposito_sezione_portale(dep) == SEZIONE_DOCUMENTI_FASCICOLO
+    if deposito_sezione_portale(dep) == SEZIONE_DOCUMENTI_FASCICOLO:
+        return True
+    servizio = deposito_servizio_portale(dep).upper()
+    fonte = str(getattr(dep, "fonte_portale", "") or "").strip().upper()
+    has_documenti_portale = bool(getattr(dep, "documenti_portale", []) or [])
+    portali_documentali = {"PST", "POLISWEB", "PDP", "PAT", "PTT", "SIGIT"}
+    return has_documenti_portale and (servizio in portali_documentali or fonte in portali_documentali)
 
 
 def build_fascicolo_workspace(

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-IUSENTRA Local Signer - v1.6.15
+IUSENTRA Local Signer - v1.6.18
 
 Servizio HTTP locale (localhost:27272) che firma documenti con smart card e token CNS/CIE
 (o qualsiasi token PKCS#11) e consente l'accesso autenticato al PST.
@@ -107,7 +107,7 @@ from local_signer_mod.server_bootstrap import print_startup_banner  # noqa: E402
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.6.16"
+VERSION = "1.6.18"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
@@ -2559,11 +2559,11 @@ def _messaggio_dns_endpoint_portale(url: str) -> str:
 def _portale_browser_url(portale: str) -> str:
     portale_norm = str(portale or "").strip().lower()
     if portale_norm == "pdp":
-        return "https://pst.giustizia.it/PST/it/services.page"
+        return "https://appweb.giustizia.it/snt"
     if portale_norm == "pat":
         return "https://www.giustizia-amministrativa.it/portale-avvocato"
     if portale_norm == "ptt":
-        return "https://sigit.finanze.it/NIRWeb/login.jsp"
+        return "https://sigit.giustiziatributaria.gov.it/Sigit/index.do"
     return ""
 
 
@@ -2588,7 +2588,7 @@ def _portale_browser_assist_payload(portale: str, phase: str) -> dict[str, Any]:
     if portale_norm == "pdp":
         errore = (
             "Consultazione via browser ufficiale: per PDP la "
-            f"{phase_label} viene completata dal PST nel browser. "
+            f"{phase_label} viene completata dal Portale Deposito atti Penali nel browser. "
             "IUSENTRA puo' proseguire con l'acquisizione assistita."
         )
     elif portale_norm == "pat":
@@ -2622,7 +2622,7 @@ def _messaggio_endpoint_browser_guidato(portale: str, error: Exception | str) ->
     portale_norm = str(portale or "").strip().lower()
     if portale_norm == "pdp":
         return (
-            "Consultazione via browser ufficiale: apri il Portale Deposito atti Penali dall'area servizi del PST e usa l'inserimento manuale assistito di IUSENTRA.\n"
+            "Consultazione via browser ufficiale: apri il Portale Deposito atti Penali e usa l'inserimento manuale assistito di IUSENTRA.\n"
             f"Dettaglio tecnico: {text}"
         )
     if portale_norm == "pat":
@@ -6967,7 +6967,7 @@ class _Handler(BaseHTTPRequestHandler):
                 original=(
                     data.get("original", False)
                     if isinstance(data.get("original", False), bool)
-                    else str(data.get("original", False)).strip().lower() not in {"0", "false", "no", "off"}
+                    else str(data.get("original", False)).strip().lower() not in {"", "0", "false", "no", "off"}
                 ),
                 cookie_file=cookie_file,
                 prefer_cookie_only=prefer_cookie_only,
@@ -7062,7 +7062,7 @@ class _Handler(BaseHTTPRequestHandler):
                 original=(
                     data.get("original", False)
                     if isinstance(data.get("original", False), bool)
-                    else str(data.get("original", False)).strip().lower() not in {"0", "false", "no", "off"}
+                    else str(data.get("original", False)).strip().lower() not in {"", "0", "false", "no", "off"}
                 ),
             )
             if session_entry:

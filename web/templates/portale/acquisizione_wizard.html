@@ -205,8 +205,12 @@
             Raccogli i file gia scaricati dal Portale dell'Avvocato
             {% elif wizard_portale == 'pst' %}
             Scarica duplicato/originale senza coccarda ministeriale
+            {% elif wizard_portale == 'pdp' %}
+            Raccogli i file gia scaricati dal PDP Penale
+            {% elif wizard_portale == 'ptt' %}
+            Raccogli i file gia scaricati da PTT / SIGIT
             {% else %}
-            Scarica l'originale firmato presente nel repository del portale
+            Raccogli i file gia scaricati dal portale ufficiale
             {% endif %}
           </label>
         </div>
@@ -215,8 +219,12 @@
           Se attivo, IUSENTRA verifica nei download locali del browser i file gia consultati o scaricati dal Portale dell'Avvocato e li aggancia al fascicolo interno. Se disattivo, il gestionale importa solo dati, ricevute e catalogo del fascicolo senza cercare i file locali.
           {% elif wizard_portale == 'pst' %}
           Lascia disattivo per acquisire la copia di consultazione/copia informatica con annotazioni ministeriali visibili. Attivalo solo se vuoi esplicitamente il duplicato o l'originale senza coccarda.
+          {% elif wizard_portale == 'pdp' %}
+          Se attivo, IUSENTRA usa i file gia scaricati dal PDP Penale nel browser locale e li collega al fascicolo penale interno. Se il portale non espone una lettura live, il software ti accompagna al portale ufficiale e poi importa qui file, ricevute, atti ed esiti.
+          {% elif wizard_portale == 'ptt' %}
+          Se attivo, IUSENTRA usa i file gia scaricati da PTT / SIGIT o Telecontenzioso e li collega al fascicolo tributario interno. Se il portale non espone una lettura live, il software ti guida fino al download ufficiale e poi importa qui il fascicolo.
           {% else %}
-          Se attivo, per CAdES il PST restituisce il file firmato <code>.p7m</code> e per PAdES il documento firmato cosi com'e nel repository. Se disattivo, il portale restituisce la copia di consultazione con coccardina o informazioni blu secondo le regole ministeriali.
+          Se attivo, IUSENTRA prova a raccogliere i file gia scaricati dal browser ufficiale e li collega al fascicolo interno.
           {% endif %}
         </div>
         {% if wizard_portale == 'pst' %}
@@ -252,7 +260,7 @@
             </div>
             <div class="small text-muted">
               Se hai gia scaricato il fascicolo dal portale ufficiale, puoi selezionare qui i file reali.
-              IUSENTRA usera questi file come fonte prioritaria per l'importazione e per il collegamento alle buste del fascicolo interno.
+              Puoi allegare anche un JSON autorizzato prodotto da Local Connector, PdA o Model Office: IUSENTRA lo normalizza e lo porta direttamente nella UI del fascicolo.
             </div>
           </div>
           <button class="btn btn-sm btn-outline-secondary" type="button" id="awManualUploadClear">
@@ -262,8 +270,8 @@
         <div class="row g-3">
           <div class="col-lg-6">
             <label class="form-label fw-semibold" for="awManualUploadFiles">File o ZIP scaricati</label>
-            <input class="form-control" id="awManualUploadFiles" type="file" multiple accept=".zip,.pdf,.p7m,.eml,.msg,.xml,.html,.htm,.txt">
-            <div class="form-text">Puoi scegliere piu file insieme oppure un archivio ZIP del fascicolo.</div>
+            <input class="form-control" id="awManualUploadFiles" type="file" multiple accept=".zip,.pdf,.p7m,.eml,.msg,.xml,.json,.html,.htm,.txt">
+            <div class="form-text">Puoi scegliere piu file insieme, un archivio ZIP oppure un payload JSON autorizzato.</div>
           </div>
           <div class="col-lg-6">
             <label class="form-label fw-semibold" for="awManualUploadFolder">Cartella scaricata</label>
@@ -309,6 +317,7 @@ const AW_BOOT = {{ {
   "previewUrl": url_for('api_portale_acquisizione_preview', portale=wizard_portale),
   "analyzeUrl": url_for('api_portale_acquisizione_analyze', portale=wizard_portale),
   "importUrl": url_for('api_portale_acquisizione_import', portale=wizard_portale),
+  "importPayloadUrl": url_for('api_portale_acquisizione_importa_payload', portale=wizard_portale),
   "linkedFascicolo": ({
     "id": linked_fascicolo.id,
     "numero": linked_fascicolo.numero or linked_fascicolo.numero_rg or linked_fascicolo.rg_completo or linked_fascicolo.id,
@@ -333,6 +342,7 @@ const AW_STATE = {
   previewTab:'dati',
   downloadedFiles:[],
   manualUploadedFiles:[],
+  manualAuthorizedPayload:null,
   downloadSummary:null,
   downloadCacheKey:'',
   downloadWarning:null,
@@ -581,7 +591,7 @@ function awCurrentQuery() {
 function awOfficialPortalUrl() {
   const urls = {
     pst: 'https://pst.giustizia.it/PST/it/services.page',
-    pdp: 'https://pst.giustizia.it/PST/it/services.page',
+    pdp: 'https://appweb.giustizia.it/snt',
     pat: 'https://www.giustizia-amministrativa.it/portale-avvocato',
     ptt: 'https://sigit.giustiziatributaria.gov.it/Sigit/index.do',
   };
@@ -1629,17 +1639,34 @@ function awReadFileAsBase64(file) {
     reader.readAsDataURL(file);
   });
 }
+function awReadFileAsText(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error(`Impossibile leggere il file ${file?.name || ''}`));
+    reader.onload = () => resolve(String(reader.result || ''));
+    reader.readAsText(file);
+  });
+}
 async function awCollectManualUploadFiles(fileList) {
   const files = Array.from(fileList || []).filter(file => file && file.name);
   const collected = [];
   const manualOriginale = !!awCurrentOptions().scarica_originale_portale;
   for (const file of files) {
     const contenuto_b64 = await awReadFileAsBase64(file);
+    let payload_json = null;
+    if (/\.json$/i.test(file.name || '')) {
+      try {
+        payload_json = JSON.parse(await awReadFileAsText(file));
+      } catch (err) {
+        throw new Error(`Payload JSON non valido (${file.name}): ${awErrorMessage(err)}`);
+      }
+    }
     const origineRelativa = String(file.webkitRelativePath || '').trim();
     collected.push({
       nome: file.name,
       nome_file_originale: file.name,
       contenuto_b64,
+      payload_json,
       origine: origineRelativa ? `upload-cartella:${origineRelativa}` : `upload:${file.name}`,
       data_documento: awIsoDateFromTimestamp(file.lastModified) || '',
       content_type: String(file.type || '').trim(),
@@ -1654,6 +1681,17 @@ async function awCollectManualUploadFiles(fileList) {
   }
   return collected;
 }
+function awFindManualAuthorizedPayload(files) {
+  const rows = Array.isArray(files) ? files : [];
+  for (const file of rows) {
+    const payload = file?.payload_json;
+    if (!payload || typeof payload !== 'object') continue;
+    if (payload.payload || payload.raw_payload || payload.fascicolo || payload.selection || payload.procedimento || payload.ricorso || payload.controversia) {
+      return payload.payload || payload.raw_payload || payload;
+    }
+  }
+  return null;
+}
 function awRenderManualUploadSummary() {
   const summary = document.getElementById('awManualUploadSummary');
   if (!summary) return;
@@ -1664,7 +1702,10 @@ function awRenderManualUploadSummary() {
   }
   const preview = files.slice(0, 4).map(file => awEscape(file.nome || file.nome_file_originale || 'documento')).join(' · ');
   const extra = files.length > 4 ? ` <span class="text-muted">(+${files.length - 4} altri)</span>` : '';
-  summary.innerHTML = `<span class="text-success"><i class="bi bi-check-circle me-1"></i>${files.length} file pronti per l'importazione manuale.</span><br><span>${preview}${extra}</span>`;
+  const hasPayload = !!AW_STATE.manualAuthorizedPayload;
+  const importBtn = document.getElementById('awImport');
+  if (hasPayload && importBtn) importBtn.disabled = false;
+  summary.innerHTML = `<span class="text-success"><i class="bi bi-check-circle me-1"></i>${files.length} file pronti per l'importazione manuale${hasPayload ? ' con payload autorizzato' : ''}.</span><br><span>${preview}${extra}</span>${hasPayload ? '<br><span class="text-muted">Il JSON autorizzato verra normalizzato e importato direttamente nella UI del fascicolo.</span>' : ''}`;
 }
 async function awSetManualUploadFiles(fileList) {
   const summary = document.getElementById('awManualUploadSummary');
@@ -1673,6 +1714,7 @@ async function awSetManualUploadFiles(fileList) {
   }
   try {
     AW_STATE.manualUploadedFiles = await awCollectManualUploadFiles(fileList);
+    AW_STATE.manualAuthorizedPayload = awFindManualAuthorizedPayload(AW_STATE.manualUploadedFiles);
     AW_STATE.downloadedFiles = [];
     AW_STATE.downloadSummary = null;
     AW_STATE.downloadCacheKey = '';
@@ -1681,6 +1723,7 @@ async function awSetManualUploadFiles(fileList) {
     awRenderSidebar();
   } catch (err) {
     AW_STATE.manualUploadedFiles = [];
+    AW_STATE.manualAuthorizedPayload = null;
     awRenderManualUploadSummary();
     awRenderSidebar();
     if (summary) {
@@ -1690,6 +1733,7 @@ async function awSetManualUploadFiles(fileList) {
 }
 function awClearManualUploadFiles() {
   AW_STATE.manualUploadedFiles = [];
+  AW_STATE.manualAuthorizedPayload = null;
   const fileInput = document.getElementById('awManualUploadFiles');
   const folderInput = document.getElementById('awManualUploadFolder');
   if (fileInput) fileInput.value = '';
@@ -2315,11 +2359,12 @@ function awRenderAnalysis() {
   importBtn.disabled = !canImport;
 }
 async function awStartImport() {
-  if (!AW_STATE.selection || !AW_STATE.preview) {
+  const manualAuthorizedPayload = AW_STATE.manualAuthorizedPayload || null;
+  if ((!AW_STATE.selection || !AW_STATE.preview) && !manualAuthorizedPayload) {
     alert('Completa ricerca, anteprima e verifica prima dell’importazione.');
     return;
   }
-  if ((AW_STATE.analysis?.blockers || []).length) {
+  if (!manualAuthorizedPayload && (AW_STATE.analysis?.blockers || []).length) {
     alert('Sono presenti blocchi da risolvere prima dell’importazione.');
     return;
   }
@@ -2333,10 +2378,13 @@ async function awStartImport() {
   const options = awCurrentOptions();
   let downloadedFiles = Array.isArray(AW_STATE.downloadedFiles) ? AW_STATE.downloadedFiles : [];
   const manualUploadedFiles = Array.isArray(AW_STATE.manualUploadedFiles) ? AW_STATE.manualUploadedFiles : [];
+  if (manualAuthorizedPayload && manualUploadedFiles.length) {
+    downloadedFiles = manualUploadedFiles.filter(file => !file.payload_json);
+  }
   let downloadSummary = null;
   let selectedDocsCount = 0;
   try {
-    selectedDocsCount = awSelectedPreviewDocuments(options).length;
+    selectedDocsCount = AW_STATE.preview ? awSelectedPreviewDocuments(options).length : 0;
     if (manualUploadedFiles.length && awShouldImportPortalFiles(options) && selectedDocsCount > 0) {
       downloadedFiles = manualUploadedFiles;
       downloadSummary = {
@@ -2390,15 +2438,28 @@ async function awStartImport() {
     }
   }
   state.innerHTML = (state.innerHTML.includes('alert-') ? state.innerHTML : state.innerHTML) + (downloadSummary ? '' : '') + '<br><small class="text-muted">Registrazione nel gestionale in corso...</small>';
-  const data = await awJson(AW_BOOT.importUrl, {
+  const importUrl = manualAuthorizedPayload ? AW_BOOT.importPayloadUrl : AW_BOOT.importUrl;
+  const importBody = manualAuthorizedPayload
+    ? {
+        payload: manualAuthorizedPayload,
+        options,
+        mapping: awCurrentMapping(),
+        fascicolo_locale_id: awCurrentMapping().target_fascicolo_id || AW_BOOT.initialMapping?.target_fascicolo_id || '',
+        downloaded_files: downloadedFiles,
+      }
+    : {
+        selection: AW_STATE.selection,
+        preview: AW_STATE.preview,
+        options,
+        mapping: awCurrentMapping(),
+        downloaded_files: downloadedFiles,
+      };
+  if (manualAuthorizedPayload) {
+    state.innerHTML = 'Normalizzazione del payload autorizzato e importazione nel fascicolo in corso...<br><small class="text-muted">Il contenuto verra smistato in documenti, attivita, udienze, comunicazioni e istanze.</small>';
+  }
+  const data = await awJson(importUrl, {
     method: 'POST',
-    body: JSON.stringify({
-      selection: AW_STATE.selection,
-      preview: AW_STATE.preview,
-      options,
-      mapping: awCurrentMapping(),
-      downloaded_files: downloadedFiles,
-    }),
+    body: JSON.stringify(importBody),
   });
   importBtn.disabled = false;
   awHideDownloadProgress();
@@ -2445,8 +2506,10 @@ async function awStartImport() {
   awRenderSidebar();
 }
 function awSidebarPortalModeLabel(options) {
-  if (AW_BOOT.portale === 'pat') {
-    return options.scarica_originale_portale ? 'Import file browser PAT' : 'Solo fascicolo interno PAT';
+  if (AW_BOOT.portale !== 'pst') {
+    const labels = { pat: 'PAT', pdp: 'PDP', ptt: 'PTT / SIGIT' };
+    const label = labels[AW_BOOT.portale] || AW_BOOT.spec.label || 'portale';
+    return options.scarica_originale_portale ? `Import file browser ${label}` : `Solo fascicolo interno ${label}`;
   }
   return options.scarica_originale_portale ? 'Originale firmato' : 'Copia portale';
 }

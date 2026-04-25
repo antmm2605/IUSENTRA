@@ -9,6 +9,7 @@ La repo oggi non è più solo un tool CLI per il Processo Civile Telematico: con
 - Gestione fascicoli, clienti, soggetti, agenda e scadenziario.
 - Deposito telematico civile, penale e dashboard servizi telematici.
 - Modulo separato `Integrazione SIGP - Giudice di Pace` per generazione XML, predeposito, validazione XSD ufficiale e UI `/sigp-sync/` di sincronizzazione fascicolo telematico tramite soli canali autorizzati PST/PdA/Model Office o Local Connector, senza scraping HTML.
+- Acquisizione guidata dei portali PST/SIGP, PDP, PAT e PTT/SIGIT: se il canale tecnico non consente lettura diretta, IUSENTRA accompagna l'utente al portale ufficiale, importa file/ZIP/cartelle o payload JSON autorizzati e smista tutto nelle sezioni reali del fascicolo (`Documenti`, `Attivita`, `Udienze`, `Comunicazioni`, `Istanze`).
 - Workflow completo `cliente -> preventivo -> conferimento -> fascicolo -> attivita' -> parcella -> incasso`.
 - Wizard preventivi e console tariffaria ora usano davvero il tariffario corretto per fase: `D.M. 55/2014` per i giudiziali, `Tabella A25` per lo stragiudiziale e `Tabella A27` per mediazione / negoziazione assistita, con checkbox fiscali che incidono davvero sul totale.
 - Nei casi di mediazione civile / commerciale il preventivo e il tariffario possono includere anche i costi organismo ex `D.M. 24 ottobre 2023, n. 150` (artt. 28, 30, 31 e Tabella A), distinguendo volontaria / obbligatoria-demandata, esito del primo incontro o degli incontri successivi e maggiorazione art. 31, comma 3.
@@ -69,6 +70,7 @@ Per l'assistenza remota cliente vedi [docs/ASSISTENZA_REMOTA.md](docs/ASSISTENZA
 Per il modulo `Sito Studio` vedi [docs/SITO_STUDIO.md](docs/SITO_STUDIO.md).
 Per il catalogo master dei template atti vedi [docs/TEMPLATE_ATTI_CATALOGO_MASTER.md](docs/TEMPLATE_ATTI_CATALOGO_MASTER.md).
 Per il modulo SIGP Giudice di Pace vedi [docs/SIGP_GIUDICE_DI_PACE.md](docs/SIGP_GIUDICE_DI_PACE.md).
+Per l'acquisizione guidata dei portali vedi [docs/PORTALI_ACQUISIZIONE_GUIDATA.md](docs/PORTALI_ACQUISIZIONE_GUIDATA.md).
 
 ## Packaging e deploy coerenti
 

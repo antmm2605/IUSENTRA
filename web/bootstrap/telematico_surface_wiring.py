@@ -33,6 +33,7 @@ def register_telematico_surfaces(
         _coerce_import_options=telematico["coerce_import_options"],
         _coerce_mapping=telematico["coerce_mapping"],
         _analyze_portale_import=telematico["analyze_portale_import"],
+        _normalize_authorized_portale_payload=telematico["normalize_authorized_portale_payload"],
         _importa_o_collega_fascicolo_portale=telematico["importa_o_collega_fascicolo_portale"],
     )
     register_telematico_dashboard_routes(

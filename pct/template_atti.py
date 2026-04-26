@@ -215,6 +215,38 @@ class TemplateAtto:
 
 BUILTIN_TEMPLATES: List[Dict[str, Any]] = build_builtin_templates()
 
+# Fallback compiler per template built-in privi di link_compilatore_code.
+# Usato da _inserisci_builtin() per aggiornare template stale salvati
+# in volumi Railway da versioni precedenti del codice.
+_AREA_COMPILER_FALLBACK: Dict[str, str] = {
+    "Civile": "CIV_MEM_001",
+    "Stragiudiziale": "STR_COM_001",
+    "Penale": "PEN_MEM_001",
+    "Amministrativo": "AMM_MEM_001",
+    "Tributario": "TRIB_IST_001",
+    "Famiglia e Persone": "FAM_MEMO_001",
+    "Lavoro e Previdenza": "LAV_MEM_001",
+    "Societario": "SOC_MEM_001",
+    "Immigrazione e cittadinanza": "IMM_PROT_001",
+}
+
+_CATEGORIA_COMPILER_FALLBACK: Dict[str, str] = {
+    "Procure, nomine e deleghe": "CIV_PROCBASE_001",
+    "Civile ordinario": "CIV_MEM_001",
+    "Monitorio e cautelare": "CIV_RCAUT_001",
+    "Impugnazioni civili": "CIV_APP_001",
+    "Esecuzioni": "CIV_OPESE_001",
+    "Famiglia e volontaria giurisdizione": "FAM_MEMO_001",
+    "Lavoro e previdenza": "LAV_MEM_001",
+    "Penale": "PEN_MEM_001",
+    "Amministrativo": "AMM_MEM_001",
+    "Tributario": "TRIB_IST_001",
+    "Societario": "SOC_MEM_001",
+    "Immigrazione e cittadinanza": "IMM_PROT_001",
+    "UNEP e notificazioni": "CIV_NOTIFBASE_001",
+    "Stragiudiziale collegato": "STR_COM_001",
+}
+
 
 # ================================================================ Gestore
 
@@ -260,9 +292,25 @@ class GestioneTemplateAtti:
             json.dump(da_salvare, f, ensure_ascii=False, indent=2)
 
     def _inserisci_builtin(self):
+        # Aggiorna SEMPRE i template built-in correnti (non solo i nuovi):
+        # garantisce che link_compilatore_code e tutti i metadati siano freschi
+        # dopo ogni deploy, anche se gli ID erano gia presenti (es. da JSON stale).
         for t in BUILTIN_TEMPLATES:
-            if t["id"] not in self._templates:
-                self._templates[t["id"]] = TemplateAtto.from_dict(t)
+            self._templates[t["id"]] = TemplateAtto.from_dict(t)
+
+        # Assegna un fallback compiler a template built-in stale (salvati in JSON
+        # da versioni precedenti del codice) che non hanno link_compilatore_code.
+        for tmpl in self._templates.values():
+            if not tmpl.builtin or tmpl.link_compilatore_code:
+                continue
+            area = tmpl.area or ""
+            categoria = tmpl.categoria or ""
+            fallback = (
+                _AREA_COMPILER_FALLBACK.get(area)
+                or _CATEGORIA_COMPILER_FALLBACK.get(categoria)
+                or "CIV_MEM_001"
+            )
+            tmpl.link_compilatore_code = fallback
 
     def _sync_repository(self):
         self._repository.synchronize_templates(self.tutti())

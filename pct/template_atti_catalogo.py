@@ -455,6 +455,43 @@ def _copy_fields(*names: str) -> list[dict[str, Any]]:
     return [deepcopy(FIELD_LIBRARY[name]) for name in names]
 
 
+# Fallback compiler per template manuali senza link esplicito o match per titolo.
+_FAMILY_COMPILER_FALLBACK: dict[str, str] = {
+    "procura": "CIV_PROCBASE_001",
+    "mandato_speciale": "CIV_PROCBASE_001",
+    "nomina_domiciliatario": "CIV_PROCBASE_001",
+    "revoca_mandato": "CIV_PROCBASE_001",
+    "rinuncia_mandato": "CIV_PROCBASE_001",
+    "elezione_domicilio": "CIV_PROCBASE_001",
+    "notifica": "CIV_NOTIFBASE_001",
+    "civile_processuale": "CIV_MEM_001",
+    "civile_intro": "CIV_CIT_001",
+    "monitorio_cautelare": "CIV_RCAUT_001",
+    "impugnazione_civile": "CIV_APP_001",
+    "esecuzione": "CIV_OPESE_001",
+    "stragiudiziale": "STR_COM_001",
+    "famiglia": "FAM_MEMO_001",
+    "lavoro": "LAV_RIC_001",
+    "penale": "PEN_MEM_001",
+    "amministrativo": "AMM_MEM_001",
+    "tributario": "TRIB_RIC_001",
+    "societario": "SOC_MEM_001",
+    "immigrazione": "IMM_PROT_001",
+}
+
+_AREA_COMPILER_FALLBACK_BUILD: dict[str, str] = {
+    "Civile": "CIV_MEM_001",
+    "Stragiudiziale": "STR_COM_001",
+    "Penale": "PEN_MEM_001",
+    "Amministrativo": "AMM_MEM_001",
+    "Tributario": "TRIB_IST_001",
+    "Famiglia e Persone": "FAM_MEMO_001",
+    "Lavoro e Previdenza": "LAV_MEM_001",
+    "Societario": "SOC_MEM_001",
+    "Immigrazione e cittadinanza": "IMM_PROT_001",
+}
+
+
 def _keywords_for(spec: dict[str, Any]) -> list[str]:
     base = [spec.get("area", ""), spec.get("branca", ""), spec.get("sottobranca", ""), spec.get("titolo", "")]
     extras = spec.get("varianti", []) or []
@@ -1423,6 +1460,12 @@ def build_builtin_templates() -> list[dict[str, Any]]:
             binding = compiler_links.get(item["titolo"])
             if binding:
                 item["link_compilatore_code"] = binding["compiler_code"]
+        if not item.get("link_compilatore_code"):
+            item["link_compilatore_code"] = (
+                _FAMILY_COMPILER_FALLBACK.get(family)
+                or _AREA_COMPILER_FALLBACK_BUILD.get(item.get("area", ""))
+                or "CIV_MEM_001"
+            )
         templates.append(item)
     from pct.template_atti_master_catalog import build_master_builtin_templates
 

@@ -1,0 +1,26 @@
+{
+  "collections": [
+    "Codici",
+    "Testi Unici",
+    "Decreti Legislativi",
+    "DPR",
+    "DPCM",
+    "DL e leggi di conversione",
+    "Regolamenti ministeriali",
+    "Regolamenti governativi",
+    "Regolamenti di delegificazione",
+    "Leggi costituzionali",
+    "Leggi finanziarie e di bilancio",
+    "Leggi di ratifica",
+    "Leggi delega e relativi provvedimenti delegati",
+    "Leggi di delegazione europea"
+  ],
+  "excluded_by_default": [
+    "Atti normativi abrogati (in originale)",
+    "DL decaduti",
+    "DL proroghe",
+    "Regi decreti",
+    "Regi decreti legislativi",
+    "Decreti legislativi luogotenenziali"
+  ]
+}

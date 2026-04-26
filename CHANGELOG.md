@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.186.0 - 2026-04-26
+
+- Integrato il `Centro Fonti Ufficiali Lex` con registry fonti, SQLite governato, export JSONL e retrieval dedicato per Lex AI.
+- Aggiunti client e CLI Normattiva per elenco collezioni, download ZIP/XML tramite API Open Data, import XML, classificazione materie legali e indicizzazione in `normative_*`.
+- Aggiunto connettore Gazzetta Ufficiale per ultimi 30 giorni della Serie Generale, conversione URL `pdfPaginato -> downloadPdf`, estrazione testo PDF, classificazione e salvataggio in `official_*`.
+- Predisposte fonti disabilitate per Ministero Giustizia, PST/PCT, PAT/SIGA, PTT/SIGIT, PDP, CNF, Agenzia Entrate, Garante Privacy, EUR-Lex, ANAC, INPS, INAIL, Banca d'Italia, AGCM, AGCOM, IPA, INI-PEC, INAD e fonti locali di studio.
+- Aggiunti test su client Normattiva, importer XML/ZIP, connettore Gazzetta, registry, schema SQLite e assenza di credenziali nella configurazione.
+
 ## 2.185.0 - 2026-04-26
 
 - Integrato il `Compenso a tempo` ex art. 22-bis D.M. 55/2014 nel flusso esistente `cliente -> preventivo -> conferimento -> fascicolo -> attivita' -> parcella -> incasso`.

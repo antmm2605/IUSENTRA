@@ -1,0 +1,275 @@
+{
+  "version": "1.0",
+  "note": "Configurazione del Centro Fonti Ufficiali Lex. Verificare sempre condizioni d'uso, licenze e limiti tecnici delle fonti ufficiali. Non inserire credenziali o sessioni private.",
+  "sources": [
+    {
+      "id": "normattiva",
+      "name": "Normattiva",
+      "enabled": true,
+      "priority": 100,
+      "connector": "normattiva_collection",
+      "type": "normativa_consolidata",
+      "refresh": "weekly",
+      "base_url": "https://api.normattiva.it/",
+      "topics": ["normativa", "codici", "testi unici"],
+      "settings": {
+        "collections": ["Codici", "Testi Unici"],
+        "formato": "XML",
+        "vigenza": "ORIGINALE",
+        "download_enabled": false,
+        "note": "Per download massivo usare tools/normattiva_multi_sync.py con rate limit e manifest."
+      }
+    },
+    {
+      "id": "gazzetta_ufficiale",
+      "name": "Gazzetta Ufficiale",
+      "enabled": true,
+      "priority": 95,
+      "connector": "gazzetta_ufficiale",
+      "type": "novita_normativa",
+      "refresh": "daily",
+      "base_url": "https://www.gazzettaufficiale.it/",
+      "topics": ["novita_normativa", "gazzetta_ufficiale", "leggi", "decreti", "regolamenti"],
+      "settings": {
+        "series_pages": [
+          {
+            "id": "serie_generale",
+            "name": "Serie Generale - ultimi 30 giorni",
+            "url": "https://www.gazzettaufficiale.it/30giorni/serie_generale",
+            "tipo_serie": "SG"
+          }
+        ],
+        "max_issues": 5,
+        "only_tipo_serie": ["SG"]
+      }
+    },
+    {
+      "id": "ministero_giustizia",
+      "name": "Ministero della Giustizia",
+      "enabled": false,
+      "priority": 80,
+      "connector": "static_urls",
+      "type": "fonte_istituzionale",
+      "refresh": "manual",
+      "base_url": "https://www.giustizia.it/",
+      "topics": ["giustizia", "processo telematico"],
+      "settings": {"urls": []}
+    },
+    {
+      "id": "pst_pct",
+      "name": "Portale Servizi Telematici / PCT",
+      "enabled": false,
+      "priority": 78,
+      "connector": "static_urls",
+      "type": "processo_telematico",
+      "refresh": "manual",
+      "base_url": "https://pst.giustizia.it/",
+      "topics": ["PCT", "deposito telematico", "firma digitale"],
+      "settings": {"urls": []}
+    },
+    {
+      "id": "pat_siga",
+      "name": "PAT / SIGA Amministrativo",
+      "enabled": false,
+      "priority": 74,
+      "connector": "static_urls",
+      "type": "processo_telematico",
+      "refresh": "manual",
+      "base_url": "https://www.giustizia-amministrativa.it/",
+      "topics": ["amministrativo", "PAT", "SIGA"],
+      "settings": {"urls": []}
+    },
+    {
+      "id": "ptt_sigit",
+      "name": "PTT / SIGIT Tributario",
+      "enabled": false,
+      "priority": 72,
+      "connector": "static_urls",
+      "type": "processo_telematico",
+      "refresh": "manual",
+      "base_url": "",
+      "topics": ["tributario", "PTT", "SIGIT"],
+      "settings": {"urls": []}
+    },
+    {
+      "id": "pdp_penale",
+      "name": "PDP Penale",
+      "enabled": false,
+      "priority": 70,
+      "connector": "static_urls",
+      "type": "processo_telematico",
+      "refresh": "manual",
+      "base_url": "",
+      "topics": ["penale", "PDP"],
+      "settings": {"urls": []}
+    },
+    {
+      "id": "cnf",
+      "name": "Consiglio Nazionale Forense",
+      "enabled": false,
+      "priority": 68,
+      "connector": "static_urls",
+      "type": "fonte_forense",
+      "refresh": "manual",
+      "base_url": "https://www.consiglionazionaleforense.it/",
+      "topics": ["forense/deontologia", "compensi/parametri forensi"],
+      "settings": {"urls": []}
+    },
+    {
+      "id": "agenzia_entrate",
+      "name": "Agenzia delle Entrate",
+      "enabled": false,
+      "priority": 66,
+      "connector": "static_urls",
+      "type": "fonte_fiscale",
+      "refresh": "manual",
+      "base_url": "https://www.agenziaentrate.gov.it/",
+      "topics": ["tributario", "fatturazione"],
+      "settings": {"urls": []}
+    },
+    {
+      "id": "garante_privacy",
+      "name": "Garante Privacy",
+      "enabled": false,
+      "priority": 64,
+      "connector": "static_urls",
+      "type": "authority",
+      "refresh": "manual",
+      "base_url": "https://www.garanteprivacy.it/",
+      "topics": ["privacy"],
+      "settings": {"urls": []}
+    },
+    {
+      "id": "eurlex",
+      "name": "EUR-Lex",
+      "enabled": false,
+      "priority": 62,
+      "connector": "static_urls",
+      "type": "fonte_europea",
+      "refresh": "manual",
+      "base_url": "https://eur-lex.europa.eu/",
+      "topics": ["diritto europeo"],
+      "settings": {"urls": []}
+    },
+    {
+      "id": "anac",
+      "name": "ANAC",
+      "enabled": false,
+      "priority": 58,
+      "connector": "static_urls",
+      "type": "authority",
+      "refresh": "manual",
+      "base_url": "https://www.anticorruzione.it/",
+      "topics": ["appalti", "anticorruzione"],
+      "settings": {"urls": []}
+    },
+    {
+      "id": "inps",
+      "name": "INPS",
+      "enabled": false,
+      "priority": 56,
+      "connector": "static_urls",
+      "type": "ente",
+      "refresh": "manual",
+      "base_url": "https://www.inps.it/",
+      "topics": ["previdenza", "lavoro"],
+      "settings": {"urls": []}
+    },
+    {
+      "id": "inail",
+      "name": "INAIL",
+      "enabled": false,
+      "priority": 54,
+      "connector": "static_urls",
+      "type": "ente",
+      "refresh": "manual",
+      "base_url": "https://www.inail.it/",
+      "topics": ["previdenza", "lavoro"],
+      "settings": {"urls": []}
+    },
+    {
+      "id": "banca_italia",
+      "name": "Banca d'Italia",
+      "enabled": false,
+      "priority": 52,
+      "connector": "static_urls",
+      "type": "authority",
+      "refresh": "manual",
+      "base_url": "https://www.bancaditalia.it/",
+      "topics": ["bancario"],
+      "settings": {"urls": []}
+    },
+    {
+      "id": "agcm",
+      "name": "AGCM",
+      "enabled": false,
+      "priority": 50,
+      "connector": "static_urls",
+      "type": "authority",
+      "refresh": "manual",
+      "base_url": "https://www.agcm.it/",
+      "topics": ["consumatori", "concorrenza"],
+      "settings": {"urls": []}
+    },
+    {
+      "id": "agcom",
+      "name": "AGCOM",
+      "enabled": false,
+      "priority": 48,
+      "connector": "static_urls",
+      "type": "authority",
+      "refresh": "manual",
+      "base_url": "https://www.agcom.it/",
+      "topics": ["comunicazioni", "consumatori"],
+      "settings": {"urls": []}
+    },
+    {
+      "id": "ipa",
+      "name": "IndicePA",
+      "enabled": false,
+      "priority": 46,
+      "connector": "static_urls",
+      "type": "registro_pubblico",
+      "refresh": "manual",
+      "base_url": "https://indicepa.gov.it/",
+      "topics": ["pubblica amministrazione", "PEC/notifiche"],
+      "settings": {"urls": []}
+    },
+    {
+      "id": "inipec",
+      "name": "INI-PEC",
+      "enabled": false,
+      "priority": 44,
+      "connector": "static_urls",
+      "type": "registro_pubblico",
+      "refresh": "manual",
+      "base_url": "https://www.inipec.gov.it/",
+      "topics": ["PEC/notifiche"],
+      "settings": {"urls": []}
+    },
+    {
+      "id": "inad",
+      "name": "INAD",
+      "enabled": false,
+      "priority": 42,
+      "connector": "static_urls",
+      "type": "registro_pubblico",
+      "refresh": "manual",
+      "base_url": "https://domiciliodigitale.gov.it/",
+      "topics": ["domicilio digitale", "PEC/notifiche"],
+      "settings": {"urls": []}
+    },
+    {
+      "id": "fonti_studio_locali",
+      "name": "Fonti studio locali",
+      "enabled": false,
+      "priority": 30,
+      "connector": "static_urls",
+      "type": "fonte_locale",
+      "refresh": "manual",
+      "base_url": "",
+      "topics": ["fonti interne studio"],
+      "settings": {"urls": []}
+    }
+  ]
+}

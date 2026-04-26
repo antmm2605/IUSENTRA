@@ -1,0 +1,8 @@
+requests>=2.31.0
+beautifulsoup4>=4.12.0
+lxml>=5.0.0
+feedparser>=6.0.11
+python-dateutil>=2.9.0
+pypdf>=4.0.0
+# Solo per cattura endpoint stile browser/F12:
+# playwright>=1.44.0

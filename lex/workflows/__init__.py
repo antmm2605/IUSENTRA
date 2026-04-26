@@ -3,6 +3,7 @@
 from .atto_workflow import AttoWorkflow
 from .chat_workflow import ChatWorkflow
 from .fascicolo_workflow import FascicoloWorkflow
+from .giurisprudenza_workflow import GiurisprudenzaWorkflow
 from .intelligence_workflow import IntelligenceWorkflow
 from .next_action_workflow import NextActionWorkflow
 from .telematico_workflow import TelematicoWorkflow
@@ -14,6 +15,8 @@ WORKFLOW_REGISTRY = {
     "atto": AttoWorkflow,
     "udienza": UdienzaWorkflow,
     "fascicolo": FascicoloWorkflow,
+    "giurisprudenza": GiurisprudenzaWorkflow,
+    "research_giurisprudenza": GiurisprudenzaWorkflow,
     "telematico": TelematicoWorkflow,
     "next_action": NextActionWorkflow,
     "intelligence": IntelligenceWorkflow,
@@ -34,6 +37,7 @@ __all__ = [
     "AttoWorkflow",
     "ChatWorkflow",
     "FascicoloWorkflow",
+    "GiurisprudenzaWorkflow",
     "IntelligenceWorkflow",
     "NextActionWorkflow",
     "TelematicoWorkflow",

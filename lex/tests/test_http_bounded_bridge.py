@@ -104,14 +104,14 @@ def test_http_bridge_non_aggiunge_fonti_legali_di_comodo_su_workflow_economico(m
     assert payload["sources"] == []
 
 
-def test_http_bridge_non_attiva_il_percorso_guidato_su_ricerca_web_strict(monkeypatch):
+def test_http_bridge_attiva_il_percorso_bounded_su_giurisprudenza_strict(monkeypatch):
     response = LexResponse(
         answer="Ho trovato una base normativa ufficiale sufficiente per partire.",
         citations=[],
         confidence=0.78,
         answer_mode="grounded",
         metadata={
-            "workflow": "normativa",
+            "workflow": "giurisprudenza",
             "provider": "ollama",
             "fallback_triggered": True,
         },
@@ -141,11 +141,14 @@ def test_http_bridge_non_attiva_il_percorso_guidato_su_ricerca_web_strict(monkey
         ),
     )
 
-    assert payload is None
-    assert service.last_request is None
+    assert payload is not None
+    assert payload["workflow"] == "giurisprudenza"
+    assert service.last_request is not None
+    assert service.last_request.intent == "research_giurisprudenza"
+    assert service.last_request.workflow_hint == "giurisprudenza"
 
 
-def test_http_bridge_non_forza_il_percorso_guidato_su_fonti_partner_strict(monkeypatch):
+def test_http_bridge_attiva_il_percorso_bounded_su_normativa_strict(monkeypatch):
     response = LexResponse(
         answer="La fonte richiesta e governata ma richiede credenziali dedicate.",
         citations=[
@@ -201,5 +204,7 @@ def test_http_bridge_non_forza_il_percorso_guidato_su_fonti_partner_strict(monke
         ),
     )
 
-    assert payload is None
-    assert service.last_request is None
+    assert payload is not None
+    assert service.last_request is not None
+    assert service.last_request.intent == "research_normativa"
+    assert service.last_request.workflow_hint == "normativa"

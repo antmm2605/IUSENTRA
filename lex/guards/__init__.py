@@ -1,6 +1,7 @@
 """Guard rail del modulo Lex."""
 
 from .authorization import AuthorizationGuard
+from .case_law_answer_guard import CaseLawAnswerGuard
 from .citation_guard import CitationGuard
 from .grounding import GroundingGuard
 from .hallucination_guard import HallucinationGuard
@@ -16,6 +17,7 @@ from .tenant_guard import TenantGuard
 
 __all__ = [
     "AuthorizationGuard",
+    "CaseLawAnswerGuard",
     "CitationGuard",
     "GuardOrchestrator",
     "GroundingGuard",

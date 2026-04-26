@@ -55,6 +55,9 @@ class AnswerBuilder:
         compared_sources = list((evidence or {}).get("source_comparison") or evidence_pack.get("compared_sources") or [])
         fallback_triggered = bool((evidence or {}).get("fallback_triggered") or evidence_pack.get("fallback_triggered"))
         evidence_sufficient = bool((evidence or {}).get("evidence_sufficient") or evidence_pack.get("sufficient"))
+        draft_metadata = dict(getattr(draft, "metadata", {}) or {})
+        case_law_warnings = list(draft_metadata.get("case_law_warnings") or [])
+        case_law_fallback_used = bool(draft_metadata.get("case_law_fallback_used"))
         retrieval_cache = dict((evidence or {}).get("cache") or {})
         requested_registry_sources = list(evidence_pack.get("metadata", {}).get("source_registry_requested") or [])
         restricted_registry_sources = list(evidence_pack.get("metadata", {}).get("source_registry_restricted") or [])
@@ -80,6 +83,10 @@ class AnswerBuilder:
             confidence -= min(0.2, len(missing_evidence) * 0.05)
         if str(getattr(verdict, "risk_level", "low") or "low") in {"high", "critical"}:
             confidence -= 0.1
+        if workflow == "giurisprudenza" and case_law_fallback_used:
+            confidence = min(confidence, 0.68)
+        elif workflow == "giurisprudenza" and case_law_warnings:
+            confidence = min(confidence, 0.74)
         if not strict_workflow:
             if evidence_sufficient and evidence_count:
                 confidence = max(confidence, 0.82 if workflow == "economico" else 0.72)
@@ -123,7 +130,9 @@ class AnswerBuilder:
             existing_next_actions=next_actions,
         )
         next_actions = self._unique_strings([*next_actions, *professional.next_actions])
-        warnings = self._unique_strings([*list(getattr(verdict, "warnings", []) or []), *professional.warnings])
+        warnings = self._unique_strings(
+            [*list(getattr(verdict, "warnings", []) or []), *case_law_warnings, *professional.warnings]
+        )
 
         return WorkflowLexResponse(
             answer=professional.answer,
@@ -150,6 +159,9 @@ class AnswerBuilder:
             metadata={
                 "workflow": workflow,
                 "provider": str(getattr(draft, "metadata", {}).get("provider") or ""),
+                "case_law_guard_applied": bool(draft_metadata.get("case_law_guard_applied")),
+                "case_law_fallback_used": case_law_fallback_used,
+                "case_law_warnings": case_law_warnings,
                 "evidence_count": evidence_count,
                 "official_sources": official_sources,
                 "trusted_sources": trusted_sources,

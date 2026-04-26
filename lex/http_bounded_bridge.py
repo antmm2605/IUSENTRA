@@ -20,13 +20,13 @@ _REQUEST_PROFILE_INTENTS = {
 }
 _UNBOUNDED_PROFILE_INTENTS = {
     "checklist_operativa",
-    "giurisprudenza",
-    "normativa",
     "pratica_procedura",
     "sintesi_fascicolo",
 }
 _STRICT_OFFICIAL_INTENTS = {"giurisprudenza", "normativa", "pratica_procedura"}
 _STRICT_SOURCE_WORKFLOWS = {"normativa", "giurisprudenza", "prassi", "research", "fonti"}
+_LEGAL_BOUNDED_PROFILE_INTENTS = {"giurisprudenza", "normativa"}
+_LEGAL_BOUNDED_FOCUS_TOPICS = {"ricerca_legale", "archivio_sentenze", "sentenze_civili", "sentenze_web"}
 
 
 def _clean_spaces(value: Any) -> str:
@@ -120,12 +120,18 @@ def _should_use_bounded_workflow(
         return False
     profile_intent = _clean_spaces(request_profile.get("intent"))
     focus_topic = _clean_spaces(studio_context.get("focus_topic"))
-    source_mode = _clean_spaces(studio_context.get("source_mode"))
-    if (
-        source_mode == "strict"
-        or profile_intent in _UNBOUNDED_PROFILE_INTENTS
-        or bool(studio_context.get("web_execution_requested"))
-    ):
+    source_mode = _clean_spaces(studio_context.get("source_mode") or request_profile.get("source_mode"))
+    legal_request = profile_intent in _LEGAL_BOUNDED_PROFILE_INTENTS or focus_topic in _LEGAL_BOUNDED_FOCUS_TOPICS
+    legal_bounded_request = (
+        legal_request
+        and (
+            source_mode == "strict"
+            or bool(studio_context.get("web_execution_requested"))
+        )
+    )
+    if legal_bounded_request:
+        return True
+    if profile_intent in _UNBOUNDED_PROFILE_INTENTS or bool(studio_context.get("web_execution_requested")):
         return False
     return (
         profile_intent in _REQUEST_PROFILE_INTENTS

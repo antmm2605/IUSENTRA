@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.188.1 - 2026-04-26
+
+- Aggiunto il workflow Lex `giurisprudenza` con prompt dedicato all'analisi di sentenze, massime e pronunce, senza aperture conversazionali generiche.
+- Corretto il bridge bounded: richieste giurisprudenziali e normative in modalita' `strict` passano ora dal workflow forte anche quando arrivano da ricerca legale o fonti ufficiali.
+- Introdotto l'interprete `case_law_interpreter`, che normalizza evidenze e metadati delle sentenze e costruisce blocchi strutturati con pronuncia, organo, norme, questione, dispositivo, principio e fonti.
+- Aggiunta la guardia anti-risposta-generica per giurisprudenza: se Ollama risponde con frasi non pertinenti, Lex usa un fallback deterministico basato sulle evidenze e abbassa la confidence.
+- Arricchito il retrieval giurisprudenziale con metadati utili a Lex, inclusi URL ufficiali, numero, anno, organo, norme citate, questione, dispositivo, principio e massima.
+- Aggiunti test su routing Corte costituzionale, bounded workflow strict, interprete sentenze, guardia anti-generica e fallback del provider Ollama.
+
 ## 2.188.0 - 2026-04-26
 
 - Aggiunta la nuova `Ricerca Studio` globale, con indice centrale tenant-aware `global_search_index`, SQLite FTS5 quando disponibile e fallback compatibile.

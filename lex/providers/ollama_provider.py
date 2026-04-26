@@ -186,10 +186,27 @@ class OllamaProvider(BaseProvider):
         system_prompt = _build_system_prompt(workflow or "chat", context)
         evidence_text = _format_evidence(evidence)
         context_text = _format_context(context)
+        evidence_items = _evidence_items(evidence)
+        case_law_rows: list[Any] = []
+        case_law_block = ""
+        if (workflow or "") == "giurisprudenza":
+            try:
+                from lex.reasoning.case_law_interpreter import (
+                    build_case_law_context,
+                    build_case_law_prompt_block,
+                )
+
+                case_law_rows = build_case_law_context(evidence_items)
+                case_law_block = build_case_law_prompt_block(evidence_items)
+            except Exception:
+                case_law_rows = []
+                case_law_block = ""
 
         user_sections: list[str] = []
         if context_text:
             user_sections.append(f"Contesto sessione:\n{context_text}")
+        if case_law_block:
+            user_sections.append(case_law_block)
         if evidence_text:
             user_sections.append(f"Evidenze rilevanti:\n{evidence_text}")
         query = str(getattr(request, "query", "") or "").strip()
@@ -227,6 +244,19 @@ class OllamaProvider(BaseProvider):
             if _looks_like_meta_response(text):
                 metadata["status"] = "fallback_meta"
                 metadata["meta_response_filtered"] = True
+                if (workflow or "") == "giurisprudenza":
+                    try:
+                        from lex.reasoning.case_law_interpreter import build_deterministic_case_law_answer
+
+                        metadata["case_law_guard_applied"] = True
+                        metadata["case_law_fallback_used"] = True
+                        metadata["case_law_warnings"] = ["Risposta meta/generica filtrata."]
+                        return ProviderDraft(
+                            text=build_deterministic_case_law_answer(case_law_rows or evidence_items),
+                            metadata=metadata,
+                        )
+                    except Exception:
+                        pass
                 if (workflow or "") in {"normativa", "giurisprudenza", "prassi", "research", "fonti"}:
                     return ProviderDraft(
                         text=_strict_legal_fallback(workflow or "chat"),
@@ -243,6 +273,22 @@ class OllamaProvider(BaseProvider):
                     "meta_response_filtered": True,
                 }
                 return draft
+            if (workflow or "") == "giurisprudenza":
+                try:
+                    from lex.guards.case_law_answer_guard import CaseLawAnswerGuard
+                    from lex.reasoning.case_law_interpreter import build_deterministic_case_law_answer
+
+                    allowed, warnings = CaseLawAnswerGuard().evaluate(text, evidence_items)
+                    if warnings:
+                        metadata["case_law_guard_applied"] = True
+                        metadata["case_law_warnings"] = warnings
+                    if not allowed:
+                        text = build_deterministic_case_law_answer(case_law_rows or evidence_items)
+                        metadata["case_law_fallback_used"] = True
+                    else:
+                        metadata["case_law_fallback_used"] = False
+                except Exception:
+                    pass
             metadata["status"] = "ok"
             return ProviderDraft(text=text, metadata=metadata)
         except Exception as exc:

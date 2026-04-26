@@ -69,6 +69,7 @@ Per la separazione ferrea tra `Product Pack`, `Studio Local Pack` e `Update Pack
 Per hardening, observability e source policy vedi anche [docs/OBSERVABILITY_AUDIT_PRODUCT.md](docs/OBSERVABILITY_AUDIT_PRODUCT.md) e [docs/LEX_SOURCE_POLICY_SYSTEM.md](docs/LEX_SOURCE_POLICY_SYSTEM.md).
 Per il gateway provider di Lex vedi [docs/LEX_GATEWAY.md](docs/LEX_GATEWAY.md).
 Per il Centro Fonti Ufficiali Lex vedi [docs/CENTRO_FONTI_UFFICIALI_LEX.md](docs/CENTRO_FONTI_UFFICIALI_LEX.md).
+Per il workflow giurisprudenziale di Lex vedi [docs/LEX_GIURISPRUDENZA.md](docs/LEX_GIURISPRUDENZA.md).
 Per l'assistenza remota cliente vedi [docs/ASSISTENZA_REMOTA.md](docs/ASSISTENZA_REMOTA.md).
 Per il modulo `Sito Studio` vedi [docs/SITO_STUDIO.md](docs/SITO_STUDIO.md).
 Per la `Ricerca Studio` globale vedi [docs/RICERCA_STUDIO.md](docs/RICERCA_STUDIO.md).

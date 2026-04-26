@@ -26,9 +26,11 @@ def test_ollama_provider_non_si_rompe_con_payload_senza_evidenze(monkeypatch):
         workflow="giurisprudenza",
     )
 
-    assert "fallback web" in draft.text.lower()
+    assert "Pronuncia individuata" in draft.text
+    assert "Nessuna fonte giurisprudenziale strutturata disponibile" in draft.text
     assert draft.metadata["status"] == "ok"
     assert draft.metadata["evidence_count"] == 0
+    assert draft.metadata["case_law_fallback_used"] is True
 
 
 def test_ollama_provider_filtra_risposte_meta_su_fascicolo(monkeypatch):
@@ -100,6 +102,8 @@ def test_ollama_provider_filtra_risposte_meta_su_giurisprudenza(monkeypatch):
         workflow="giurisprudenza",
     )
 
-    assert "base verificata sufficiente" in draft.text
+    assert "Pronuncia individuata" in draft.text
+    assert "Nessuna fonte giurisprudenziale strutturata disponibile" in draft.text
     assert draft.metadata["status"] == "fallback_meta"
     assert draft.metadata["meta_response_filtered"] is True
+    assert draft.metadata["case_law_fallback_used"] is True

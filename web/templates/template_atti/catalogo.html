@@ -3,843 +3,573 @@
 {% block pct_modulo %}template_atti{% endblock %}
 
 {% block content %}
-<style>
-  .cat-page {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-  }
-  .cat-hero {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 1rem 1.5rem;
-    padding: 1.35rem 1.5rem;
-    border: 1px solid rgba(15, 23, 42, .08);
-    border-radius: 1.35rem;
-    background: linear-gradient(180deg, rgba(255,255,255,.98) 0%, rgba(246,249,255,.96) 100%);
-    box-shadow: 0 .75rem 2rem rgba(15, 23, 42, .05);
-  }
-  .cat-hero-main {
-    display: flex;
-    align-items: flex-start;
-    gap: 1rem;
-    min-width: 0;
-    flex: 1 1 24rem;
-  }
-  .cat-hero-icon {
-    width: 3.25rem;
-    height: 3.25rem;
-    border-radius: 1rem;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(13, 110, 253, .08);
-    color: var(--bs-primary);
-    font-size: 1.25rem;
-    flex: 0 0 auto;
-  }
-  .cat-kicker {
-    font-size: .76rem;
-    text-transform: uppercase;
-    letter-spacing: .08em;
-    color: var(--bs-secondary-color);
-    font-weight: 700;
-  }
-  .cat-title {
-    margin: .1rem 0 .35rem;
-    font-size: clamp(1.65rem, 2vw, 2.2rem);
-    line-height: 1.05;
-    font-weight: 700;
-    color: #1f3557;
-  }
-  .cat-sub {
-    margin: 0;
-    color: var(--bs-secondary-color);
-    max-width: 48rem;
-    font-size: .97rem;
-  }
-  .cat-hero-actions {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: flex-end;
-    gap: .75rem;
-  }
-
-  /* Toolbar */
-  .cat-toolbar {
-    padding: 1rem 1.1rem 1.1rem;
-    border: 1px solid rgba(15, 23, 42, .08);
-    border-radius: 1.1rem;
-    background: rgba(252, 253, 255, .96);
-    box-shadow: 0 .65rem 1.7rem rgba(15, 23, 42, .05);
-    display: flex;
-    flex-direction: column;
-    gap: .75rem;
-  }
-  .cat-toolbar-search {
-    display: flex;
-    align-items: center;
-    gap: .75rem;
-    flex-wrap: wrap;
-  }
-  .cat-search-wrap {
-    flex: 1 1 18rem;
-    max-width: 34rem;
-    position: relative;
-  }
-  .cat-search-wrap .bi-search {
-    position: absolute;
-    left: .85rem;
-    top: 50%;
-    transform: translateY(-50%);
-    color: var(--bs-secondary-color);
-    pointer-events: none;
-  }
-  .cat-search-input {
-    padding-left: 2.5rem;
-    border-radius: 999px;
-    border: 1px solid rgba(15, 23, 42, .15);
-    height: 2.65rem;
-    font-size: .95rem;
-    width: 100%;
-  }
-  .cat-search-input:focus {
-    border-color: rgba(13, 110, 253, .5);
-    box-shadow: 0 0 0 3px rgba(13, 110, 253, .1);
-    outline: none;
-  }
-  .cat-count-badge {
-    border-radius: 999px;
-    background: rgba(13, 110, 253, .08);
-    color: var(--bs-primary);
-    font-size: .78rem;
-    font-weight: 700;
-    padding: .3rem .7rem;
-    white-space: nowrap;
-  }
-  .cat-chip-row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: .5rem;
-  }
-  .cat-chip {
-    border-radius: 999px;
-    border: 1px solid rgba(13, 110, 253, .2);
-    background: #fff;
-    color: #4a5e7a;
-    font-size: .84rem;
-    padding: .4rem .9rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background .15s, border-color .15s, color .15s;
-    line-height: 1.25;
-  }
-  .cat-chip:hover {
-    background: rgba(13,110,253,.06);
-    border-color: rgba(13,110,253,.3);
-    color: var(--bs-primary);
-  }
-  .cat-chip.active {
-    background: rgba(13,110,253,.1);
-    border-color: rgba(13,110,253,.4);
-    color: var(--bs-primary);
-  }
-  .cat-chip-row[data-hidden="true"] {
-    display: none;
-  }
-
-  /* Tab switch */
-  .cat-tab-switch {
-    display: inline-flex;
-    align-items: center;
-    gap: .3rem;
-    padding: .3rem;
-    border-radius: 999px;
-    border: 1px solid rgba(15, 23, 42, .08);
-    background: rgba(255,255,255,.92);
-  }
-  .cat-tab-pill {
-    border: 0;
-    background: transparent;
-    color: #51627f;
-    font-size: .88rem;
-    line-height: 1;
-    padding: .5rem .85rem;
-    border-radius: 999px;
-    font-weight: 600;
-    text-decoration: none;
-    cursor: pointer;
-    transition: background .15s, color .15s, box-shadow .15s;
-  }
-  .cat-tab-pill.active {
-    background: #1f6fff;
-    color: #fff;
-    box-shadow: 0 .5rem 1.2rem rgba(31, 111, 255, .2);
-  }
-
-  /* Section label */
-  .cat-section-label {
-    font-size: .76rem;
-    text-transform: uppercase;
-    letter-spacing: .08em;
-    color: var(--bs-secondary-color);
-    font-weight: 700;
-    margin-bottom: .6rem;
-  }
-
-  /* Model cards grid */
-  .cat-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
-    gap: .9rem;
-  }
-  .cat-card {
-    border: 1px solid rgba(15, 23, 42, .08);
-    border-radius: 1.15rem;
-    background: #fff;
-    box-shadow: 0 .5rem 1.6rem rgba(15, 23, 42, .04);
-    padding: 1rem 1rem .9rem;
-    display: flex;
-    flex-direction: column;
-    gap: .55rem;
-    transition: box-shadow .15s, transform .15s;
-  }
-  .cat-card:hover {
-    box-shadow: 0 .9rem 2rem rgba(15, 23, 42, .09);
-    transform: translateY(-2px);
-  }
-  .cat-card-top {
-    display: flex;
-    align-items: flex-start;
-    gap: .65rem;
-  }
-  .cat-card-icon {
-    width: 2.4rem;
-    height: 2.4rem;
-    border-radius: .75rem;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(13, 110, 253, .08);
-    color: var(--bs-primary);
-    font-size: 1.05rem;
-    flex: 0 0 auto;
-  }
-  .cat-card-meta {
-    min-width: 0;
-  }
-  .cat-card-name {
-    font-weight: 700;
-    font-size: .92rem;
-    color: #1f3557;
-    line-height: 1.3;
-    margin-bottom: .15rem;
-  }
-  .cat-card-code {
-    display: inline-block;
-    font-size: .62rem;
-    font-weight: 600;
-    letter-spacing: .05em;
-    padding: .12rem .45rem;
-    border-radius: .4rem;
-    background: #f0f4ff;
-    color: #4a6fa5;
-    border: 1px solid rgba(13,110,253,.12);
-    font-family: monospace;
-  }
-  .cat-card-area-badge {
-    font-size: .7rem;
-    font-weight: 600;
-    padding: .2rem .55rem;
-    border-radius: 999px;
-    color: var(--bs-secondary-color);
-    background: rgba(15, 23, 42, .05);
-    border: 1px solid rgba(15, 23, 42, .08);
-    display: inline-block;
-  }
-  .cat-card-footer {
-    margin-top: auto;
-    padding-top: .3rem;
-  }
-  .cat-card .btn-compile {
-    width: 100%;
-    border-radius: .85rem;
-    font-size: .88rem;
-    font-weight: 600;
-    padding: .5rem;
-  }
-  .cat-card-docs {
-    border-top: 1px solid rgba(15,23,42,.06);
-    padding-top: .5rem;
-    margin-top: .1rem;
-  }
-  .cat-card-docs-title {
-    font-size: .67rem;
-    text-transform: uppercase;
-    letter-spacing: .07em;
-    color: var(--bs-secondary-color);
-    font-weight: 700;
-    margin-bottom: .3rem;
-    display: flex;
-    align-items: center;
-    gap: .3rem;
-  }
-  .cat-card-docs-list {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    display: flex;
-    flex-direction: column;
-    gap: .22rem;
-  }
-  .cat-card-docs-list li {
-    font-size: .78rem;
-    color: #4a5e7a;
-    line-height: 1.35;
-    display: flex;
-    align-items: flex-start;
-    gap: .35rem;
-  }
-  .cat-card-docs-list li::before {
-    content: "";
-    display: inline-block;
-    width: .32rem;
-    height: .32rem;
-    border-radius: 50%;
-    background: rgba(13,110,253,.45);
-    flex: 0 0 auto;
-    margin-top: .42rem;
-  }
-
-  /* Empty state */
-  .cat-empty {
-    text-align: center;
-    padding: 3rem 1rem;
-    color: var(--bs-secondary-color);
-  }
-  .cat-empty-icon {
-    font-size: 2.5rem;
-    opacity: .35;
-    margin-bottom: .75rem;
-  }
-
-  /* Area section */
-  .cat-area-section {
-    display: flex;
-    flex-direction: column;
-    gap: .75rem;
-  }
-  .cat-area-section[data-hidden="true"] {
-    display: none;
-  }
-
-  /* From-practice section */
-  .cat-pratica-card {
-    border: 1px solid rgba(15, 23, 42, .08);
-    border-radius: 1rem;
-    background: #fff;
-    box-shadow: 0 .4rem 1.2rem rgba(15, 23, 42, .04);
-    padding: .85rem 1rem;
-    display: flex;
-    flex-direction: column;
-    gap: .5rem;
-  }
-  .cat-pratica-title {
-    font-weight: 700;
-    font-size: .9rem;
-    color: #1f3557;
-  }
-  .cat-pratica-area {
-    font-size: .72rem;
-    color: var(--bs-secondary-color);
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: .07em;
-  }
-  .cat-pratica-links {
-    display: flex;
-    flex-wrap: wrap;
-    gap: .4rem;
-  }
-  .cat-master-toolbar-note {
-    color: var(--bs-secondary-color);
-    font-size: .82rem;
-    line-height: 1.35;
-  }
-  .cat-master-section[data-hidden="true"] {
-    display: none;
-  }
-
-  /* Mobile tweaks */
-  @media (max-width: 576px) {
-    .cat-chip-row {
-      flex-wrap: nowrap;
-      overflow-x: auto;
-      padding-bottom: .2rem;
-    }
-    .cat-chip-row > * {
-      flex: 0 0 auto;
-    }
-    .cat-grid {
-      grid-template-columns: 1fr 1fr;
-    }
-  }
-  @media (max-width: 420px) {
-    .cat-grid {
-      grid-template-columns: 1fr;
-    }
-  }
-</style>
-
-<div class="cat-page">
-
-  {# ── Hero ── #}
-  <div class="cat-hero">
+<div class="cat-page template-catalog-page">
+  <section class="cat-hero cat-suite-hero" aria-labelledby="catalogo-atti-title">
     <div class="cat-hero-main">
-      <div class="cat-hero-icon">
+      <div class="cat-hero-icon" aria-hidden="true">
         <i class="bi bi-journals"></i>
       </div>
       <div>
-        <div class="cat-kicker">Compilatore Atti</div>
-        <h1 class="cat-title">Catalogo Atti</h1>
+        <div class="cat-kicker">Compilatore atti</div>
+        <h1 class="cat-title" id="catalogo-atti-title">Catalogo Atti</h1>
         <p class="cat-sub">
-          Tutti i modelli strutturati per area giuridica. Il catalogo master versionato alimenta Lex AI,
-          il workspace atti e i canali reali PST, PDP, PAT e PTT senza dipendere dagli ZIP esterni.
+          Suite professionale completa integrata nel catalogo: ricerca, compilazione guidata,
+          regole di deposito versionate e pre-verifica conformita per ogni portale.
         </p>
+        <div class="cat-badge-row" aria-label="Capacita catalogo">
+          {% for badge in suite_summary.badges %}
+          <span class="cat-capability-badge">{{ badge }}</span>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+    <div class="cat-suite-panel" aria-label="Riepilogo suite professionale">
+      <div class="cat-suite-title">{{ suite_summary.titolo }}</div>
+      <div class="cat-suite-version">{{ suite_summary.versione }}</div>
+      <div class="cat-suite-inline-summary">
+        {{ suite_summary.totale_template }} template master -
+        {{ suite_summary.moduli_professionali }} moduli professionali -
+        {{ suite_summary.canali_governati }} canali telematici governati
+      </div>
+      <div class="cat-suite-metrics">
+        <div><strong>{{ suite_summary.totale_template }}</strong><span>template master</span></div>
+        <div><strong>{{ suite_summary.moduli_professionali }}</strong><span>moduli professionali</span></div>
+        <div><strong>{{ suite_summary.canali_governati }}</strong><span>canali telematici</span></div>
       </div>
     </div>
     <div class="cat-hero-actions">
-      <div class="cat-tab-switch">
-        <button type="button" class="cat-tab-pill active" data-view="modelli">
-          <i class="bi bi-grid-3x3-gap me-1"></i>Per modello
+      <div class="cat-tab-switch" role="tablist" aria-label="Viste catalogo">
+        <button type="button" class="cat-tab-pill active" data-view="catalogo" role="tab" aria-selected="true">
+          <i class="bi bi-grid-3x3-gap me-1"></i>Catalogo completo
         </button>
-        <button type="button" class="cat-tab-pill" data-view="pratiche">
+        <button type="button" class="cat-tab-pill" data-view="pratiche" role="tab" aria-selected="false">
           <i class="bi bi-diagram-2 me-1"></i>Da pratica
-        </button>
-        <button type="button" class="cat-tab-pill" data-view="master">
-          <i class="bi bi-stars me-1"></i>Master professionale
         </button>
       </div>
       <a href="{{ url_for('template_atti.lista') }}" class="btn btn-sm btn-outline-secondary">
-        <i class="bi bi-arrow-left me-1"></i>Template
+        <i class="bi bi-arrow-left me-1"></i>Template salvati
       </a>
     </div>
-  </div>
+  </section>
 
-  {# ── Toolbar ── #}
-  <div class="cat-toolbar">
+  <section class="cat-suite-groups" aria-label="Sezioni suite professionale">
+    {% for group in suite_groups %}
+    <article class="cat-suite-group-card" data-suite-jump="{{ group.label }}">
+      <div class="cat-suite-group-count">{{ group.count }} template</div>
+      <h2>{{ group.label }}</h2>
+      <ul>
+        {% for t in group.examples %}
+        <li><code>{{ t.codice }}</code> {{ t.titolo }}</li>
+        {% endfor %}
+      </ul>
+    </article>
+    {% endfor %}
+  </section>
+
+  <section class="cat-toolbar" id="catalogToolbar" aria-label="Filtri catalogo template">
     <div class="cat-toolbar-search">
+      <label class="visually-hidden" for="catSearch">Ricerca libera nel catalogo atti</label>
       <div class="cat-search-wrap">
-        <i class="bi bi-search"></i>
-        <input type="search" id="catSearch" class="cat-search-input form-control" placeholder="Cerca atto, ID, rito o canale…" autocomplete="off">
+        <i class="bi bi-search" aria-hidden="true"></i>
+        <input type="search" id="catSearch" class="cat-search-input form-control" placeholder="Cerca codice, titolo, rito, portale, allegato..." autocomplete="off">
       </div>
-      <span class="cat-count-badge" id="catCount">{{ catalogo_flat|length }} modelli</span>
-    </div>
-    <div class="cat-chip-row" id="catAreaChipsLegacy">
-      <button type="button" class="cat-chip active" data-area="ALL">Tutte le aree</button>
-      {% for grp in area_groups %}
-      <button type="button" class="cat-chip" data-area="{{ grp.area_key }}">
-        {{ grp.area_label }}
-        <span style="font-size:.7rem;opacity:.65;font-weight:500;margin-left:.2rem;">({{ grp.modelli|length }})</span>
+      <span class="cat-count-badge" id="catCount">{{ suite_summary.totale_template }} template master</span>
+      <button type="button" class="btn btn-sm btn-outline-secondary" id="catResetFilters">
+        <i class="bi bi-arrow-counterclockwise me-1"></i>Reset filtri
       </button>
-      {% endfor %}
     </div>
-    <div class="cat-chip-row" id="catAreaChipsMaster" data-hidden="true">
-      <button type="button" class="cat-chip active" data-master-group="ALL">Tutto il master</button>
-      {% for group in master_catalog_groups %}
-      <button type="button" class="cat-chip" data-master-group="{{ group.key }}">
-        {{ group.label }}
-        <span style="font-size:.7rem;opacity:.65;font-weight:500;margin-left:.2rem;">({{ group.count }})</span>
-      </button>
-      {% endfor %}
-      <span class="cat-master-toolbar-note">Catalogo versionato: ID coerenti, canale telematico, checklist e varianti sono visibili e ricercabili.</span>
-    </div>
-  </div>
 
-  {# ── VIEW: modelli ── #}
-  <section class="cat-area-section">
-    <div class="cat-section-label">Catalogo master versionato</div>
-    <div class="cat-grid">
-      <div class="cat-card">
-        <div class="cat-card-name">Suite professionale completa</div>
-        <div class="cat-card-meta">
-          <code class="cat-card-code">v{{ master_catalog_stats.versione }}</code>
+    <div class="cat-chip-row" id="catQuickFilters" aria-label="Filtri rapidi">
+      {% for chip in quick_filters %}
+      <button type="button" class="cat-chip" data-filter-field="{{ chip.field }}" data-filter-value="{{ chip.value }}">
+        {{ chip.label }}
+      </button>
+      {% endfor %}
+    </div>
+
+    <div class="cat-filter-grid">
+      {% set filter_labels = {
+        'materia': 'Materia',
+        'area': 'Area',
+        'macro_area': 'Macro-area',
+        'sottobranca': 'Sottobranca',
+        'categoria_suite': 'Categoria suite',
+        'portale_deposito': 'Portale deposito',
+        'canale_deposito': 'Canale deposito',
+        'rito': 'Rito',
+        'fase': 'Fase',
+        'procedimento': 'Procedimento',
+        'tipo_atto': 'Tipologia atto',
+        'natura_atto': 'Natura atto',
+        'stato': 'Stato template'
+      } %}
+      {% for key, label in filter_labels.items() %}
+      <label class="cat-filter-field">
+        <span>{{ label }}</span>
+        <select class="form-select form-select-sm" data-catalog-filter="{{ key }}">
+          <option value="">Tutti</option>
+          {% for value in template_filters.get(key, []) %}
+          <option value="{{ value }}">{{ value }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      {% endfor %}
+      <label class="cat-filter-field">
+        <span>Deposito telematico</span>
+        <select class="form-select form-select-sm" data-catalog-filter="depositabile">
+          <option value="">Tutti</option>
+          <option value="true">Depositabile</option>
+          <option value="false">Non depositabile</option>
+        </select>
+      </label>
+      <label class="cat-filter-field">
+        <span>Firma digitale</span>
+        <select class="form-select form-select-sm" data-catalog-filter="richiede_firma_digitale">
+          <option value="">Tutti</option>
+          <option value="true">Obbligatoria</option>
+          <option value="false">Non obbligatoria</option>
+        </select>
+      </label>
+      <label class="cat-filter-field">
+        <span>PDF/A</span>
+        <select class="form-select form-select-sm" data-catalog-filter="richiede_pdfa">
+          <option value="">Tutti</option>
+          <option value="true">Obbligatorio</option>
+          <option value="false">Non obbligatorio</option>
+        </select>
+      </label>
+      <label class="cat-filter-field">
+        <span>DatiAtto.xml</span>
+        <select class="form-select form-select-sm" data-catalog-filter="richiede_dati_atto_xml">
+          <option value="">Tutti</option>
+          <option value="true">Richiesto</option>
+          <option value="false">Non richiesto</option>
+        </select>
+      </label>
+      <label class="cat-filter-field">
+        <span>Allegati</span>
+        <select class="form-select form-select-sm" data-catalog-filter="has_allegati">
+          <option value="">Tutti</option>
+          <option value="true">Con allegati obbligatori</option>
+          <option value="false">Senza allegati obbligatori</option>
+        </select>
+      </label>
+      <label class="cat-filter-field">
+        <span>Contributo / diritti</span>
+        <select class="form-select form-select-sm" data-catalog-filter="richiede_contributo_unificato">
+          <option value="">Tutti</option>
+          <option value="true">Richiesto</option>
+          <option value="false">Non richiesto</option>
+        </select>
+      </label>
+      <label class="cat-filter-field">
+        <span>Marca da bollo</span>
+        <select class="form-select form-select-sm" data-catalog-filter="richiede_marca_bollo">
+          <option value="">Tutti</option>
+          <option value="true">Richiesta</option>
+          <option value="false">Non richiesta</option>
+        </select>
+      </label>
+      <label class="cat-filter-field">
+        <span>Conformita</span>
+        <select class="form-select form-select-sm" data-catalog-filter="controlli_completi">
+          <option value="">Tutti</option>
+          <option value="true">Controlli completi</option>
+        </select>
+      </label>
+    </div>
+  </section>
+
+  <section id="viewCatalogo" aria-label="Template suite professionale">
+    <div class="cat-grid cat-template-grid" id="catTemplateGrid">
+      {% for t in template_suite %}
+      <article
+        class="cat-card cat-template-card"
+        data-template-card="true"
+        data-code="{{ t.codice }}"
+        data-search="{{ t.search_text }}"
+        data-materia="{{ t.materia }}"
+        data-area="{{ t.area }}"
+        data-macro_area="{{ t.macro_area }}"
+        data-sottobranca="{{ t.sottobranca }}"
+        data-procedimento="{{ t.procedimento }}"
+        data-rito="{{ t.rito }}"
+        data-fase="{{ t.fase }}"
+        data-tipo_atto="{{ t.tipo_atto }}"
+        data-categoria_suite="{{ t.categoria_suite_label }}"
+        data-canale_deposito="{{ t.canale_deposito }}"
+        data-portale_deposito="{{ t.portale_deposito }}"
+        data-stato="{{ t.stato }}"
+        data-natura_atto="{{ t.natura_atto }}"
+        data-depositabile="{{ 'true' if t.depositabile else 'false' }}"
+        data-richiede_firma_digitale="{{ 'true' if t.richiede_firma_digitale else 'false' }}"
+        data-richiede_pdfa="{{ 'true' if t.richiede_pdfa else 'false' }}"
+        data-richiede_dati_atto_xml="{{ 'true' if t.richiede_dati_atto_xml else 'false' }}"
+        data-richiede_contributo_unificato="{{ 'true' if t.richiede_contributo_unificato else 'false' }}"
+        data-richiede_marca_bollo="{{ 'true' if t.richiede_marca_bollo else 'false' }}"
+        data-has_allegati="{{ 'true' if t.allegati_obbligatori else 'false' }}"
+        data-controlli_completi="{{ 'true' if t.controlli_completi else 'false' }}"
+      >
+        <div class="cat-card-top">
+          <div class="cat-card-icon" aria-hidden="true">
+            {% if t.canale_deposito == 'PDP' %}
+            <i class="bi bi-shield-exclamation"></i>
+            {% elif t.canale_deposito == 'PAT' %}
+            <i class="bi bi-bank"></i>
+            {% elif t.canale_deposito == 'PTT' %}
+            <i class="bi bi-receipt-cutoff"></i>
+            {% elif t.canale_deposito == 'NESSUNO' %}
+            <i class="bi bi-folder-check"></i>
+            {% elif t.canale_deposito == 'PST_GDP' %}
+            <i class="bi bi-building-check"></i>
+            {% else %}
+            <i class="bi bi-file-earmark-text"></i>
+            {% endif %}
+          </div>
+          <div class="cat-card-meta">
+            <code class="cat-card-code">{{ t.codice }}</code>
+            <h3 class="cat-card-name">{{ t.titolo }}</h3>
+            <p class="cat-card-description">{{ t.descrizione }}</p>
+          </div>
         </div>
+
+        <div class="cat-card-badges">
+          <span class="cat-card-area-badge">{{ t.categoria_suite_label }}</span>
+          <span class="cat-card-area-badge">{{ t.materia }}</span>
+          <span class="cat-card-area-badge">{{ t.rito }}</span>
+          <span class="cat-card-area-badge">{{ t.portale_deposito }}</span>
+        </div>
+
+        <dl class="cat-template-meta">
+          <div><dt>Procedimento</dt><dd>{{ t.procedimento }}</dd></div>
+          <div><dt>Fase</dt><dd>{{ t.fase }}</dd></div>
+          <div><dt>Tipo atto</dt><dd>{{ t.tipo_atto }}</dd></div>
+          <div><dt>Stato</dt><dd>{{ t.stato|replace('_', ' ')|title }}</dd></div>
+        </dl>
+
+        <div class="cat-card-badges cat-requirement-row">
+          {% if t.richiede_pdfa %}<span class="cat-requirement-badge">PDF/A</span>{% endif %}
+          {% if t.richiede_firma_digitale %}<span class="cat-requirement-badge">Firma digitale</span>{% endif %}
+          {% if t.richiede_dati_atto_xml %}<span class="cat-requirement-badge">DatiAtto.xml</span>{% endif %}
+          {% if t.richiede_contributo_unificato %}<span class="cat-requirement-badge">Contributo</span>{% endif %}
+          {% if not t.depositabile %}<span class="cat-requirement-badge cat-requirement-neutral">Nessun deposito</span>{% endif %}
+        </div>
+
         <div class="cat-card-docs">
+          <div class="cat-card-docs-title">
+            <i class="bi bi-check2-circle" aria-hidden="true"></i>
+            Controlli deposito disponibili: {{ t.controlli_deposito_disponibili }}
+          </div>
           <ul class="cat-card-docs-list">
-            <li>{{ master_catalog_stats.totale_template }} template master</li>
-            <li>{{ master_catalog_stats.moduli }} moduli professionali</li>
-            <li>{{ master_catalog_stats.canali|length }} canali telematici governati</li>
-          </ul>
-        </div>
-      </div>
-      {% for group in master_catalog_groups %}
-      <div class="cat-card">
-        <div class="cat-card-name">{{ group.label }}</div>
-        <div>
-          <span class="cat-card-area-badge">{{ group.count }} template</span>
-        </div>
-        <div class="cat-card-docs">
-          <ul class="cat-card-docs-list">
-            {% for t in group.templates[:3] %}
-            <li><code>{{ t.id }}</code> {{ t.titolo }}</li>
+            {% for check in t.controlli_conformita_dettaglio[:3] %}
+            <li>{{ check.label }}</li>
             {% endfor %}
           </ul>
         </div>
-      </div>
+
+        <div class="cat-card-docs cat-card-docs-compact">
+          <div class="cat-card-docs-title">
+            <i class="bi bi-paperclip" aria-hidden="true"></i>Allegati obbligatori
+          </div>
+          {% if t.allegati_obbligatori %}
+          <ul class="cat-inline-list">
+            {% for allegato in t.allegati_obbligatori[:3] %}
+            <li>{{ allegato }}</li>
+            {% endfor %}
+          </ul>
+          {% else %}
+          <p class="cat-muted">Nessun allegato obbligatorio configurato.</p>
+          {% endif %}
+        </div>
+
+        <div class="cat-card-docs cat-card-docs-compact">
+          <div class="cat-card-docs-title">
+            <i class="bi bi-ui-checks-grid" aria-hidden="true"></i>Dati obbligatori
+          </div>
+          {% if t.dati_obbligatori %}
+          <ul class="cat-inline-list">
+            {% for dato in t.dati_obbligatori[:4] %}
+            <li>{{ dato|replace('_', ' ') }}</li>
+            {% endfor %}
+          </ul>
+          {% else %}
+          <p class="cat-muted">Dati minimi generali del template.</p>
+          {% endif %}
+        </div>
+
+        <div class="cat-card-footer cat-card-actions">
+          <a href="{{ url_for('template_atti.usa', id_template=t.codice) }}" class="btn btn-sm btn-primary">
+            <i class="bi bi-magic me-1"></i>Compila
+          </a>
+          <a href="{{ url_for('template_atti.scheda', id_template=t.codice) }}" class="btn btn-sm btn-outline-secondary">
+            <i class="bi bi-eye me-1"></i>Anteprima
+          </a>
+          <button type="button" class="btn btn-sm btn-outline-success" data-compliance-url="{{ url_for('template_atti.template_compliance', codice=t.codice) }}">
+            <i class="bi bi-shield-check me-1"></i>Verifica deposito
+          </button>
+          <button type="button" class="btn btn-sm btn-outline-primary" data-compliance-url="{{ url_for('template_atti.template_compliance', codice=t.codice) }}" data-detail-mode="normativa">
+            <i class="bi bi-journal-text me-1"></i>Dettagli normativa
+          </button>
+          <form method="post" action="{{ url_for('template_atti.clona', id_template=t.codice) }}">
+            <button type="submit" class="btn btn-sm btn-outline-secondary">
+              <i class="bi bi-files me-1"></i>Duplica
+            </button>
+          </form>
+        </div>
+      </article>
       {% endfor %}
     </div>
-  </section>
 
-  <div id="viewModelli">
-    {% for grp in area_groups %}
-    <div class="cat-area-section mb-4" data-area="{{ grp.area_key }}" id="area-{{ grp.area_key }}">
-      <div class="cat-section-label">{{ grp.area_label }}</div>
-      <div class="cat-grid" id="grid-{{ grp.area_key }}">
-        {% for m in grp.modelli %}
-        <div class="cat-card" data-code="{{ m.code }}" data-name="{{ m.name|lower }}" data-area="{{ grp.area_key }}">
-          <div class="cat-card-top">
-            <div class="cat-card-icon">
-              {% if grp.area_key == 'PENALE' %}
-              <i class="bi bi-shield-exclamation"></i>
-              {% elif grp.area_key == 'FAMIGLIA' %}
-              <i class="bi bi-people"></i>
-              {% elif grp.area_key == 'LAVORO' %}
-              <i class="bi bi-briefcase"></i>
-              {% elif grp.area_key == 'SOCIETARIO' %}
-              <i class="bi bi-building"></i>
-              {% elif grp.area_key == 'IMMIGRAZIONE' %}
-              <i class="bi bi-globe-americas"></i>
-              {% elif grp.area_key == 'TRIBUTARIO' %}
-              <i class="bi bi-calculator"></i>
-              {% elif grp.area_key == 'AMMINISTRATIVO' %}
-              <i class="bi bi-bank"></i>
-              {% elif grp.area_key == 'STRAGIUDIZIALE' %}
-              <i class="bi bi-chat-square-text"></i>
-              {% else %}
-              <i class="bi bi-file-earmark-text"></i>
-              {% endif %}
-            </div>
-            <div class="cat-card-meta">
-              <div class="cat-card-name">{{ m.name }}</div>
-              <code class="cat-card-code">{{ m.code }}</code>
-            </div>
-          </div>
-          <div>
-            <span class="cat-card-area-badge">{{ grp.area_label }}</span>
-            {% if m.required_extra_fields is defined and m.required_extra_fields %}
-            <span class="cat-card-area-badge ms-1">{{ m.required_extra_fields|length }} campi</span>
-            {% endif %}
-          </div>
-          {% if m.essential_docs %}
-          <div class="cat-card-docs">
-            <div class="cat-card-docs-title">
-              <i class="bi bi-paperclip" style="font-size:.72rem;"></i>Documenti essenziali
-            </div>
-            <ul class="cat-card-docs-list">
-              {% for doc in m.essential_docs %}
-              <li>{{ doc }}</li>
-              {% endfor %}
-            </ul>
-          </div>
-          {% endif %}
-          <div class="cat-card-footer">
-            <a href="{{ url_for('template_atti.compila', model_code=m.code) }}" class="btn btn-sm btn-primary btn-compile">
-              <i class="bi bi-play-circle me-1"></i>Compila atto
-            </a>
-          </div>
-        </div>
-        {% endfor %}
-      </div>
-    </div>
-    {% endfor %}
-
-    <div id="catEmptyState" class="cat-empty" style="display:none;">
+    <div id="catEmptyState" class="cat-empty" hidden>
       <div class="cat-empty-icon"><i class="bi bi-search"></i></div>
-      <div class="fw-semibold mb-1">Nessun atto trovato</div>
-      <div class="small">Prova con una parola chiave diversa o rimuovi il filtro area.</div>
-    </div>
-  </div>
-
-  {# ── VIEW: da pratica ── #}
-  <section class="cat-area-section mt-3" id="viewMasterCatalog" style="display:none;">
-    <div class="cat-section-label">Template master pronti per il workspace</div>
-    {% for group in master_catalog_groups %}
-    <div class="mb-4 cat-master-section" data-master-group-section="{{ group.key }}">
-      <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
-        <h2 class="h6 mb-0 text-primary">{{ group.label }}</h2>
-        <span class="cat-count-badge">{{ group.count }} template</span>
-      </div>
-      <div class="cat-grid">
-        {% for t in group.templates %}
-        <article class="cat-card" data-master-card="true" data-master-group="{{ group.key }}" data-code="{{ t.id }}" data-name="{{ t.titolo|lower }}" data-area="{{ t.macro_area|lower }}" data-channel="{{ t.canale_telematico|lower }}" data-family="{{ t.famiglia|lower }}" data-tags="{{ (t.tags or [])|join(' ')|lower }}">
-          <div class="cat-card-top">
-            <div class="cat-card-icon">
-              {% if t.canale_telematico == 'PDP' %}
-              <i class="bi bi-shield-exclamation"></i>
-              {% elif t.canale_telematico == 'PAT' %}
-              <i class="bi bi-bank"></i>
-              {% elif t.canale_telematico == 'PTT' %}
-              <i class="bi bi-receipt-cutoff"></i>
-              {% elif t.canale_telematico == 'NESSUNO' %}
-              <i class="bi bi-folder-check"></i>
-              {% else %}
-              <i class="bi bi-file-earmark-text"></i>
-              {% endif %}
-            </div>
-            <div class="cat-card-meta">
-              <div class="cat-card-name">{{ t.titolo }}</div>
-              <code class="cat-card-code">{{ t.id }}</code>
-            </div>
-          </div>
-          <div>
-            <span class="cat-card-area-badge">{{ t.famiglia }}</span>
-            <span class="cat-card-area-badge ms-1">{{ t.canale_telematico }}</span>
-          </div>
-          <div class="cat-card-docs">
-            <div class="cat-card-docs-title">
-              <i class="bi bi-check2-circle" style="font-size:.72rem;"></i>Conformità
-            </div>
-            <ul class="cat-card-docs-list">
-              {% for check in t.checklist_conformita[:2] %}
-              <li>{{ check }}</li>
-              {% endfor %}
-            </ul>
-          </div>
-          <div class="cat-card-footer">
-            <a href="{{ url_for('template_atti.usa', id_template=t.id) }}" class="btn btn-sm btn-outline-primary btn-compile">
-              <i class="bi bi-magic me-1"></i>Genera dal master
-            </a>
-          </div>
-        </article>
-        {% endfor %}
-      </div>
-    </div>
-    {% endfor %}
-    <div id="masterEmptyState" class="cat-empty" style="display:none;">
-      <div class="cat-empty-icon"><i class="bi bi-search"></i></div>
-      <div class="fw-semibold mb-1">Nessun template master trovato</div>
-      <div class="small">Prova con un ID come CIV_ORD_001, un canale come PST o una parola del titolo.</div>
+      <div class="fw-semibold mb-1">Nessun template trovato</div>
+      <div class="small">Riduci i filtri oppure cerca per codice, materia, rito o portale.</div>
     </div>
   </section>
 
-  <div id="viewPratiche" style="display:none;">
+  <section id="viewPratiche" class="cat-pratiche-view" hidden aria-label="Compilazione da pratica">
     {% if wizard_tipologie %}
-    <div class="mb-3">
-      <div class="cat-search-wrap" style="max-width:28rem;">
-        <i class="bi bi-search"></i>
-        <input type="search" id="praticaSearch" class="cat-search-input form-control" placeholder="Cerca pratica…" autocomplete="off">
+    <div class="cat-pratica-toolbar">
+      <label class="visually-hidden" for="praticaSearch">Cerca pratica</label>
+      <div class="cat-search-wrap">
+        <i class="bi bi-search" aria-hidden="true"></i>
+        <input type="search" id="praticaSearch" class="cat-search-input form-control" placeholder="Cerca pratica, materia o tipologia..." autocomplete="off">
       </div>
     </div>
     <div class="cat-grid" id="praticaGrid">
       {% for tip in wizard_tipologie %}
-      <div class="cat-pratica-card" data-pratica-name="{{ tip.label|lower }}" data-pratica-area="{{ tip.area }}">
+      <article class="cat-pratica-card" data-pratica-name="{{ tip.label|lower }}" data-pratica-area="{{ tip.area|lower }}">
         <div class="cat-pratica-area">{{ tip.area.replace('_', ' ').title() }}</div>
         <div class="cat-pratica-title">{{ tip.label }}</div>
         <div class="cat-pratica-links">
           {% for mo in tip.modelli_atti %}
-          <a href="{{ url_for('template_atti.compila', model_code=mo.code) }}"
-             class="btn btn-sm btn-outline-primary"
-             title="{{ mo.name }}">
+          <a href="{{ url_for('template_atti.compila', model_code=mo.code) }}" class="btn btn-sm btn-outline-primary" title="{{ mo.name }}">
             <i class="bi bi-play-circle me-1"></i>{{ mo.name }}
           </a>
           {% endfor %}
         </div>
-      </div>
+      </article>
       {% endfor %}
     </div>
     {% else %}
     <div class="cat-empty">
       <div class="cat-empty-icon"><i class="bi bi-diagram-2"></i></div>
-      <div class="fw-semibold mb-1">Nessun mapping pratica → atti disponibile</div>
-      <div class="small">I modelli compilatore non sono ancora collegati alle tipologie del wizard preventivi.</div>
+      <div class="fw-semibold mb-1">Nessun collegamento pratica disponibile</div>
+      <div class="small">I modelli del compilatore non sono ancora collegati alle tipologie del wizard preventivi.</div>
     </div>
     {% endif %}
-  </div>
+  </section>
+</div>
 
-</div>{# /cat-page #}
+<div class="modal fade" id="templateComplianceModal" tabindex="-1" aria-labelledby="templateComplianceTitle" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div>
+          <div class="cat-kicker">Pre-verifica conformita</div>
+          <h2 class="modal-title h5" id="templateComplianceTitle">Controlli deposito</h2>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Chiudi"></button>
+      </div>
+      <div class="modal-body" id="templateComplianceBody">
+        <div class="text-muted">Seleziona un template per visualizzare i controlli.</div>
+      </div>
+    </div>
+  </div>
+</div>
 
 <script>
 (function () {
   'use strict';
 
-  const CATALOGO_FLAT = {{ catalogo_flat | tojson }};
-  const MASTER_TOTAL = {{ master_catalog_stats.totale_template|int }};
-
-  /* ── View switch ── */
-  const viewModelli  = document.getElementById('viewModelli');
+  const totalTemplates = {{ suite_summary.totale_template|int }};
+  const viewCatalogo = document.getElementById('viewCatalogo');
   const viewPratiche = document.getElementById('viewPratiche');
-  const viewMasterCatalog = document.getElementById('viewMasterCatalog');
-  const toolbar      = document.querySelector('.cat-toolbar');
-  const legacyChips  = document.getElementById('catAreaChipsLegacy');
-  const masterChips  = document.getElementById('catAreaChipsMaster');
-  const searchEl     = document.getElementById('catSearch');
-  let currentView = 'modelli';
+  const toolbar = document.getElementById('catalogToolbar');
+  const searchEl = document.getElementById('catSearch');
+  const countEl = document.getElementById('catCount');
+  const emptyState = document.getElementById('catEmptyState');
+  const cards = Array.from(document.querySelectorAll('[data-template-card="true"]'));
+  const filterSelects = Array.from(document.querySelectorAll('[data-catalog-filter]'));
+  let activeQuick = null;
+  let debounceTimer = null;
 
-  document.querySelectorAll('.cat-tab-pill').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.cat-tab-pill').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      currentView = btn.dataset.view || 'modelli';
-      if (searchEl) { searchEl.value = ''; }
-      if (currentView === 'pratiche') {
-        viewModelli.style.display  = 'none';
-        viewPratiche.style.display = '';
-        if (viewMasterCatalog) { viewMasterCatalog.style.display = 'none'; }
-        toolbar.style.display      = 'none';
-      } else if (currentView === 'master') {
-        viewModelli.style.display  = 'none';
-        viewPratiche.style.display = 'none';
-        if (viewMasterCatalog) { viewMasterCatalog.style.display = ''; }
-        toolbar.style.display      = '';
-        if (legacyChips) { legacyChips.setAttribute('data-hidden', 'true'); }
-        if (masterChips) { masterChips.removeAttribute('data-hidden'); }
-        applyMasterFilters();
-      } else {
-        viewModelli.style.display  = '';
-        viewPratiche.style.display = 'none';
-        if (viewMasterCatalog) { viewMasterCatalog.style.display = 'none'; }
-        toolbar.style.display      = '';
-        if (legacyChips) { legacyChips.removeAttribute('data-hidden'); }
-        if (masterChips) { masterChips.setAttribute('data-hidden', 'true'); }
+  function normalize(value) {
+    return (value || '').toString().trim().toLowerCase();
+  }
+
+  function matchesBoolean(cardValue, filterValue) {
+    if (!filterValue) return true;
+    return cardValue === filterValue;
+  }
+
+  function matchesFilters(card) {
+    const query = normalize(searchEl.value);
+    if (query && !normalize(card.dataset.search).includes(query)) {
+      return false;
+    }
+    return filterSelects.every(select => {
+      const key = select.dataset.catalogFilter;
+      const value = select.value;
+      if (!value) return true;
+      const cardValue = card.dataset[key] || '';
+      if (['depositabile', 'richiede_firma_digitale', 'richiede_pdfa', 'richiede_dati_atto_xml', 'richiede_contributo_unificato', 'richiede_marca_bollo', 'has_allegati', 'controlli_completi'].includes(key)) {
+        return matchesBoolean(cardValue, value);
+      }
+      return cardValue === value;
+    });
+  }
+
+  function applyFilters() {
+    let visible = 0;
+    cards.forEach(card => {
+      const match = matchesFilters(card);
+      card.hidden = !match;
+      if (match) visible += 1;
+    });
+    countEl.textContent = visible === totalTemplates
+      ? `${totalTemplates} template master`
+      : `${visible} su ${totalTemplates} template master`;
+    emptyState.hidden = visible !== 0;
+  }
+
+  function debouncedApplyFilters() {
+    window.clearTimeout(debounceTimer);
+    debounceTimer = window.setTimeout(applyFilters, 120);
+  }
+
+  function setFilter(field, value) {
+    if (field === 'query') {
+      searchEl.value = value;
+      return;
+    }
+    const select = filterSelects.find(item => item.dataset.catalogFilter === field);
+    if (select) {
+      select.value = value;
+    }
+  }
+
+  document.querySelectorAll('.cat-tab-pill').forEach(button => {
+    button.addEventListener('click', () => {
+      document.querySelectorAll('.cat-tab-pill').forEach(item => {
+        item.classList.toggle('active', item === button);
+        item.setAttribute('aria-selected', item === button ? 'true' : 'false');
+      });
+      const view = button.dataset.view || 'catalogo';
+      const showPratiche = view === 'pratiche';
+      viewCatalogo.hidden = showPratiche;
+      viewPratiche.hidden = !showPratiche;
+      toolbar.hidden = showPratiche;
+      if (!showPratiche) {
         applyFilters();
       }
     });
   });
 
-  /* ── Area chips ── */
-  let currentArea = 'ALL';
-  let currentMasterGroup = 'ALL';
+  filterSelects.forEach(select => select.addEventListener('change', () => {
+    activeQuick = null;
+    document.querySelectorAll('#catQuickFilters .cat-chip').forEach(chip => chip.classList.remove('active'));
+    applyFilters();
+  }));
 
-  document.querySelectorAll('#catAreaChipsLegacy .cat-chip').forEach(chip => {
-    chip.addEventListener('click', () => {
-      document.querySelectorAll('#catAreaChipsLegacy .cat-chip').forEach(c => c.classList.remove('active'));
-      chip.classList.add('active');
-      currentArea = chip.dataset.area;
-      applyFilters();
+  if (searchEl) {
+    searchEl.addEventListener('input', () => {
+      activeQuick = null;
+      document.querySelectorAll('#catQuickFilters .cat-chip').forEach(chip => chip.classList.remove('active'));
+      debouncedApplyFilters();
     });
-  });
-
-  document.querySelectorAll('#catAreaChipsMaster .cat-chip').forEach(chip => {
-    chip.addEventListener('click', () => {
-      document.querySelectorAll('#catAreaChipsMaster .cat-chip').forEach(c => c.classList.remove('active'));
-      chip.classList.add('active');
-      currentMasterGroup = chip.dataset.masterGroup || 'ALL';
-      applyMasterFilters();
-    });
-  });
-
-  /* ── Search ── */
-  searchEl.addEventListener('input', () => {
-    if (currentView === 'master') {
-      applyMasterFilters();
-    } else {
-      applyFilters();
-    }
-  });
-
-  function applyFilters() {
-    const q = (document.getElementById('catSearch').value || '').trim().toLowerCase();
-    let visible = 0;
-
-    // Show/hide area sections
-    document.querySelectorAll('#viewModelli .cat-area-section').forEach(section => {
-      const areaKey = section.dataset.area;
-      if (currentArea !== 'ALL' && currentArea !== areaKey) {
-        section.setAttribute('data-hidden', 'true');
-        return;
-      }
-      section.removeAttribute('data-hidden');
-
-      // Filter cards within this area
-      let areaVisible = 0;
-      section.querySelectorAll('.cat-card').forEach(card => {
-        const name = card.dataset.name || '';
-        const code = (card.dataset.code || '').toLowerCase();
-        const match = !q || name.includes(q) || code.includes(q);
-        card.style.display = match ? '' : 'none';
-        if (match) { areaVisible++; visible++; }
-      });
-
-      // Hide empty area sections when searching
-      if (q && areaVisible === 0) {
-        section.setAttribute('data-hidden', 'true');
-      }
-    });
-
-    // Update count badge
-    const total = currentArea === 'ALL' ? CATALOGO_FLAT.length
-      : CATALOGO_FLAT.filter(m => m.area === currentArea).length;
-    const countEl = document.getElementById('catCount');
-    countEl.textContent = q
-      ? `${visible} su ${total} modelli`
-      : `${total} modelli`;
-
-    // Empty state
-    document.getElementById('catEmptyState').style.display = visible === 0 ? '' : 'none';
   }
 
-  function applyMasterFilters() {
-    const q = (searchEl.value || '').trim().toLowerCase();
-    let visible = 0;
-    let groupTotal = 0;
-
-    document.querySelectorAll('#viewMasterCatalog .cat-master-section').forEach(section => {
-      const groupKey = section.dataset.masterGroupSection || '';
-      const groupAllowed = currentMasterGroup === 'ALL' || currentMasterGroup === groupKey;
-      let areaVisible = 0;
-      let areaTotal = 0;
-
-      section.querySelectorAll('[data-master-card="true"]').forEach(card => {
-        const searchText = [
-          card.dataset.name || '',
-          card.dataset.code || '',
-          card.dataset.channel || '',
-          card.dataset.family || '',
-          card.dataset.area || '',
-          card.dataset.tags || '',
-        ].join(' ').toLowerCase();
-        const match = groupAllowed && (!q || searchText.includes(q));
-        card.style.display = match ? '' : 'none';
-        if (groupAllowed) { areaTotal++; }
-        if (match) { areaVisible++; visible++; }
-      });
-
-      groupTotal += areaTotal;
-      if (!groupAllowed || areaVisible === 0) {
-        section.setAttribute('data-hidden', 'true');
+  document.querySelectorAll('#catQuickFilters .cat-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      const sameChip = activeQuick === chip;
+      document.querySelectorAll('#catQuickFilters .cat-chip').forEach(item => item.classList.remove('active'));
+      if (sameChip) {
+        activeQuick = null;
+        filterSelects.forEach(select => { select.value = ''; });
+        searchEl.value = '';
       } else {
-        section.removeAttribute('data-hidden');
+        activeQuick = chip;
+        filterSelects.forEach(select => { select.value = ''; });
+        searchEl.value = '';
+        chip.classList.add('active');
+        setFilter(chip.dataset.filterField, chip.dataset.filterValue);
       }
+      applyFilters();
     });
+  });
 
-    const total = currentMasterGroup === 'ALL' ? MASTER_TOTAL : groupTotal;
-    const countEl = document.getElementById('catCount');
-    countEl.textContent = q
-      ? `${visible} su ${total} template master`
-      : `${total} template master`;
-    document.getElementById('masterEmptyState').style.display = visible === 0 ? '' : 'none';
-  }
+  document.getElementById('catResetFilters').addEventListener('click', () => {
+    activeQuick = null;
+    searchEl.value = '';
+    filterSelects.forEach(select => { select.value = ''; });
+    document.querySelectorAll('#catQuickFilters .cat-chip').forEach(chip => chip.classList.remove('active'));
+    applyFilters();
+  });
 
-  /* ── Pratica search ── */
   const praticaSearchEl = document.getElementById('praticaSearch');
   if (praticaSearchEl) {
     praticaSearchEl.addEventListener('input', () => {
-      const q = (praticaSearchEl.value || '').trim().toLowerCase();
+      const q = normalize(praticaSearchEl.value);
       document.querySelectorAll('#praticaGrid .cat-pratica-card').forEach(card => {
-        const name = card.dataset.praticaName || '';
-        card.style.display = (!q || name.includes(q)) ? '' : 'none';
+        const text = `${card.dataset.praticaName || ''} ${card.dataset.praticaArea || ''}`;
+        card.hidden = Boolean(q && !normalize(text).includes(q));
       });
     });
   }
 
-  /* Initial count */
-  if (viewMasterCatalog) { viewMasterCatalog.style.display = 'none'; }
-  if (legacyChips) { legacyChips.removeAttribute('data-hidden'); }
-  if (masterChips) { masterChips.setAttribute('data-hidden', 'true'); }
+  function renderCompliance(payload) {
+    const body = document.getElementById('templateComplianceBody');
+    const controls = payload.controlli || [];
+    body.innerHTML = `
+      <div class="cat-compliance-head">
+        <div>
+          <div class="cat-card-code">${payload.codice}</div>
+          <h3>${payload.titolo}</h3>
+          <p>${payload.portale_deposito} · regole ${payload.ruleset_version}</p>
+        </div>
+        <span class="cat-count-badge">${controls.length} controlli</span>
+      </div>
+      <div class="cat-compliance-list">
+        ${controls.map(rule => `
+          <article class="cat-compliance-rule">
+            <div class="cat-compliance-rule-title">
+              <strong>${rule.label}</strong>
+              <span>${rule.severita}${rule.blocca_deposito ? ' · bloccante' : ''}</span>
+            </div>
+            <p>${rule.messaggio_utente || ''}</p>
+            <dl>
+              <div><dt>Fonte</dt><dd>${rule.fonte_normativa || 'Regola configurabile'}</dd></div>
+              <div><dt>Versione</dt><dd>${rule.versione_regola || ''}</dd></div>
+              <div><dt>Aggiornamento</dt><dd>${rule.data_ultimo_aggiornamento || ''}</dd></div>
+            </dl>
+            <small>${rule.suggerimento_correzione || ''}</small>
+          </article>
+        `).join('')}
+      </div>
+    `;
+    body.innerHTML = body.innerHTML.replaceAll('Â·', '-');
+  }
+
+  document.querySelectorAll('[data-compliance-url]').forEach(button => {
+    button.addEventListener('click', async () => {
+      const modalEl = document.getElementById('templateComplianceModal');
+      const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+      document.getElementById('templateComplianceBody').innerHTML = '<div class="text-muted">Carico controlli...</div>';
+      modal.show();
+      try {
+        const response = await fetch(button.dataset.complianceUrl, {headers: {'Accept': 'application/json'}});
+        const payload = await response.json();
+        if (!response.ok || !payload.ok) {
+          throw new Error(payload.errore || 'Controlli non disponibili.');
+        }
+        renderCompliance(payload);
+      } catch (error) {
+        document.getElementById('templateComplianceBody').innerHTML = `<div class="alert alert-warning mb-0">${error.message}</div>`;
+      }
+    });
+  });
+
   applyFilters();
 }());
 </script>

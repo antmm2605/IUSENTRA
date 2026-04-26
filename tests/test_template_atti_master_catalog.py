@@ -9,6 +9,7 @@ from pct.template_atti_master_catalog import (
     load_catalogo_master,
     load_split_catalogs,
 )
+from pct.template_catalog_service import build_template_catalog_page_context, get_template_catalog_item
 from web.app import create_app
 
 
@@ -93,16 +94,42 @@ def test_catalogo_template_route_mostra_master_versionato(tmp_path: Path):
 
     assert response.status_code == 200
     html = response.get_data(as_text=True)
-    assert "Catalogo master versionato" in html
+    assert "Suite professionale completa" in html
     assert "420 template master" in html
-    assert "Master professionale" in html
-    assert 'id="viewMasterCatalog"' in html
-    assert html.count('<article class="cat-card" data-master-card="true"') == 420
-    assert "CIV_ORD_001" in html
+    assert "22 moduli professionali" in html
+    assert "7 canali telematici" in html
+    assert "Compilatore atti" in html
+    assert "Controlli deposito" in html
+    assert "Pre-verifica conformita" in html
+    assert "Master professionale" not in html
+    assert 'id="viewMasterCatalog"' not in html
+    assert 'data-master-card="true"' not in html
+    assert html.count('class="cat-card cat-template-card"') == 420
+    for codice in [
+        "CIV_ORD_001",
+        "GDP_001",
+        "MON_001",
+        "FAM_001",
+        "VGS_001",
+        "LOC_001",
+        "PEN_001",
+        "TRI_001",
+        "AMM_001",
+        "STD_001",
+        "STD_002",
+        "STD_003",
+    ]:
+        assert codice in html
     assert "/template-atti/CIV_ORD_001/usa" in html
-    assert "Genera dal master" in html
+    assert "Compila" in html
+    assert "Verifica deposito" in html
+    assert "Dettagli normativa" in html
     assert "PST_GDP" in html
-    assert "PST_CONCORSUALE" in html
+    assert "PST / Procedure concorsuali" in html
+    assert 'data-catalog-filter="materia"' in html
+    assert 'data-catalog-filter="portale_deposito"' in html
+    assert 'data-catalog-filter="categoria_suite"' in html
+    assert 'data-catalog-filter="richiede_pdfa"' in html
 
 
 def test_catalogo_master_stats_espone_file_e_gruppi():
@@ -112,3 +139,102 @@ def test_catalogo_master_stats_espone_file_e_gruppi():
     assert stats["gruppi"] == {"advanced": 186, "core": 122, "specialist": 92, "studio_interno": 20}
     assert stats["canali"]["PDP"] == 25
     assert stats["canali"]["PST_GDP"] == 16
+
+
+def test_catalogo_service_arricchisce_template_e_filtri():
+    context = build_template_catalog_page_context()
+    template_ids = {item["codice"] for item in context["template_suite"]}
+
+    assert context["suite_summary"]["titolo"] == "Suite professionale completa"
+    assert context["suite_summary"]["versione"] == "v1.1.0"
+    assert context["suite_summary"]["totale_template"] == 420
+    assert context["suite_summary"]["moduli_professionali"] == 22
+    assert context["suite_summary"]["canali_governati"] == 7
+    assert len(context["suite_groups"]) == 4
+    assert {"materia", "categoria_suite", "portale_deposito", "canale_deposito", "rito", "fase", "stato"} <= set(context["template_filters"])
+    assert {
+        "CIV_ORD_001",
+        "GDP_001",
+        "MON_001",
+        "FAM_001",
+        "VGS_001",
+        "LOC_001",
+        "PEN_001",
+        "TRI_001",
+        "AMM_001",
+        "STD_001",
+        "STD_002",
+        "STD_003",
+    } <= template_ids
+
+    civile = get_template_catalog_item("CIV_ORD_001")
+    assert civile
+    assert civile["portale_deposito"] == "PST / PCT Civile"
+    assert civile["richiede_pdfa"] is True
+    assert civile["richiede_firma_digitale"] is True
+    assert civile["richiede_dati_atto_xml"] is True
+    assert civile["controlli_deposito_disponibili"] > 0
+
+
+def test_catalogo_endpoint_data_filters_e_compliance(tmp_path: Path):
+    cfg = {
+        "TESTING": True,
+        "AUTH_DB": str(tmp_path / "utenti.json"),
+        "AUDIT_DB": str(tmp_path / "audit.json"),
+        "CLIENTI_DB": str(tmp_path / "clienti.json"),
+        "CONDIVISIONI_DB": str(tmp_path / "condivisioni.json"),
+        "FASCICOLI_DB": str(tmp_path / "fascicoli.json"),
+        "FASCICOLI_DOCS": str(tmp_path / "docs"),
+        "FASCICOLI_ARCH": str(tmp_path / "arch"),
+        "AGENDA_DB": str(tmp_path / "agenda.json"),
+        "SCADENZIARIO_DB": str(tmp_path / "scadenze.json"),
+        "MESSAGGI_DB": str(tmp_path / "messaggi.json"),
+        "SEARCH_INDEX": str(tmp_path / "search.db"),
+        "SOGGETTI_DB": str(tmp_path / "soggetti.json"),
+        "SOGGETTI_PARTI_DB": str(tmp_path / "parti.json"),
+        "PST_IMPORT_DIR": str(tmp_path / "pst_import"),
+        "VALIDATION_RUNS_DB": str(tmp_path / "validation_runs.json"),
+        "REDACTION_ASSISTANT_DB": str(tmp_path / "assistente_redazionale.json"),
+        "TEMPLATE_ATTI_DB": str(tmp_path / "template_atti" / "templates.json"),
+        "TEMPLATE_ATTI_PREFS_DB": str(tmp_path / "template_atti" / "editor_layout.json"),
+    }
+    GestioneUtenti(db_path=cfg["AUTH_DB"], audit_path=cfg["AUDIT_DB"], secret_key="test").crea(
+        username="avvocato",
+        password="Avv12345!",
+        ruolo=RuoloUtente.AVVOCATO,
+        email="avvocato@example.com",
+    )
+    app = create_app(cfg)
+
+    with app.test_client() as client:
+        client.post("/login", data={"username": "avvocato", "password": "Avv12345!"})
+        data_response = client.get("/template-atti/catalogo/data")
+        filters_response = client.get("/template-atti/catalogo/filters")
+        compliance_response = client.get("/template-atti/PEN_001/compliance")
+        verify_response = client.post("/template-atti/TRI_001/verifica-deposito", json={"dati": {}, "allegati": {}})
+
+    assert data_response.status_code == 200
+    data_payload = data_response.get_json()
+    assert data_payload["ok"] is True
+    assert data_payload["suite"]["totale_template"] == 420
+    assert len(data_payload["templates"]) == 420
+    assert "Diritto civile" in data_payload["filters"]["materia"]
+    assert "PDP Penale" in data_payload["filters"]["portale_deposito"]
+
+    assert filters_response.status_code == 200
+    filters_payload = filters_response.get_json()
+    assert filters_payload["ok"] is True
+    assert any(chip["label"] == "PDF/A obbligatorio" for chip in filters_payload["quick_filters"])
+
+    assert compliance_response.status_code == 200
+    compliance_payload = compliance_response.get_json()
+    assert compliance_payload["ok"] is True
+    assert compliance_payload["canale_deposito"] == "PDP"
+    assert compliance_payload["portale_deposito"] == "PDP Penale"
+    assert compliance_payload["controlli"]
+
+    assert verify_response.status_code == 200
+    verify_payload = verify_response.get_json()
+    assert verify_payload["codice"] == "TRI_001"
+    assert verify_payload["canale_deposito"] == "PTT"
+    assert verify_payload["ruleset_version"]

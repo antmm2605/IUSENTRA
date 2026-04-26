@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.184.21 - 2026-04-26
+
+- Integrata la Suite professionale completa direttamente in `/template-atti/catalogo`, senza nuovo tab o pagina separata `Master professionale`.
+- Aggiunti riepilogo v1.1.0, 420 template master, 22 moduli professionali e 7 canali telematici governati nella stessa pagina del catalogo atti.
+- Estesi filtri, chip rapidi e card template con materia, categoria suite, rito, fase, canale/portale, stato, PDF/A, firma digitale, DatiAtto.xml, allegati, contributo e controlli conformita.
+- Aggiunti servizi ed endpoint per dati catalogo, filtri e controlli deposito versionati per PST/PCT, SIGP/Giudice di Pace, PAT/SIGA, PTT/SIGIT, PDP, PEC e atti interni.
+- Raffinata la selezione dei template repository: una corrispondenza esatta del titolo prevale sulle varianti piu' specifiche, evitando scelte errate nel compilatore.
+- Aggiunti test anti-regressione per bloccare presenza dei template richiesti, conteggi 420/22/7, assenza del tab separato e funzionamento endpoint compliance.
+
 ## 2.184.14 - 2026-04-25
 
 - Reso Lex AI piu' professionale nel flusso reale delle risposte finali: ogni risposta passa da `AnswerBuilder` e viene strutturata con sintesi, quadro verificato, qualita', limiti e prossime azioni.

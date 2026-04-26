@@ -705,7 +705,10 @@ class GestioneTemplateRepository:
         )
         score = 0
         reasons: list[str] = []
-        if query and query in title:
+        if query and query == title:
+            score += 80
+            reasons.append("titolo_esatto")
+        elif query and query in title:
             score += 45
             reasons.append("titolo")
         if query and query in search_text and "contenuto" not in reasons:

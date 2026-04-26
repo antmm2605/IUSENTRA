@@ -445,8 +445,7 @@ def scheda(id_template: str):
 @_richiedi_login
 def catalogo():
     from pct.compilatore_atti import MODELS, AREA_LABELS, AREA_ORDINE, get_essential_docs
-    from pct.motore_preventivo import catalogo_wizard
-    from pct.template_atti_master_catalog import catalogo_master_stats, load_split_catalogs
+    from pct.template_catalog_service import build_template_catalog_page_context
 
     # Raggruppa i modelli del compilatore per area con metadati
     area_groups: list[dict] = []
@@ -495,32 +494,72 @@ def catalogo():
                     "modelli_atti": modelli_atti,
                 })
 
-    split_catalogs = load_split_catalogs()
-    group_labels = {
-        "core": "Core processuale e civile",
-        "advanced": "Studio generalista evoluto",
-        "specialist": "Riti e portali specialistici",
-        "studio_interno": "Atti interni di studio",
-    }
-    master_catalog_groups = [
-        {
-            "key": key,
-            "label": group_labels.get(key, key.replace("_", " ").title()),
-            "count": int(payload.get("totale_template") or 0),
-            "templates": list(payload.get("template") or []),
-        }
-        for key, payload in split_catalogs.items()
-    ]
+    catalog_context = build_template_catalog_page_context()
 
     return render_template(
         "template_atti/catalogo.html",
         area_groups=area_groups,
         catalogo_flat=catalogo_flat,
         wizard_tipologie=wizard_tipologie,
-        master_catalog_stats=catalogo_master_stats(),
-        master_catalog_groups=master_catalog_groups,
+        **catalog_context,
         oggi=date.today(),
     )
+
+
+@template_atti.route("/catalogo/data", methods=["GET"])
+@_richiedi_login
+def catalogo_data():
+    from pct.template_catalog_service import build_template_catalog_page_context
+
+    context = build_template_catalog_page_context()
+    return jsonify(
+        {
+            "ok": True,
+            "suite": context["suite_summary"],
+            "templates": context["template_suite"],
+            "filters": context["template_filters"],
+        }
+    )
+
+
+@template_atti.route("/catalogo/filters", methods=["GET"])
+@_richiedi_login
+def catalogo_filters():
+    from pct.template_catalog_service import build_template_catalog_page_context
+
+    context = build_template_catalog_page_context()
+    return jsonify({"ok": True, "filters": context["template_filters"], "quick_filters": context["quick_filters"]})
+
+
+@template_atti.route("/<codice>/compliance", methods=["GET"])
+@_richiedi_login
+def template_compliance(codice: str):
+    from pct.template_catalog_service import get_template_catalog_item
+
+    item = get_template_catalog_item(codice)
+    if not item:
+        return jsonify({"ok": False, "errore": "Template non trovato."}), 404
+    return jsonify(
+        {
+            "ok": True,
+            "codice": item["codice"],
+            "titolo": item["titolo"],
+            "canale_deposito": item["canale_deposito"],
+            "portale_deposito": item["portale_deposito"],
+            "ruleset_version": item["compliance_summary"]["ruleset_version"],
+            "controlli": item["controlli_conformita_dettaglio"],
+        }
+    )
+
+
+@template_atti.route("/<codice>/verifica-deposito", methods=["POST"])
+@_richiedi_login
+def verifica_deposito_template(codice: str):
+    from pct.template_catalog_service import verifica_deposito_template as _verifica
+
+    payload = request.get_json(silent=True) or {}
+    result = _verifica(codice, payload)
+    return jsonify(result), 200 if result.get("ok") or result.get("codice") else 404
 
 
 @template_atti.route("/api/modelli-per-pratica/<id_pratica>", methods=["GET"])

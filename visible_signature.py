@@ -311,13 +311,6 @@ def apply_visible_signature_stamp(
                 overlay = canvas.Canvas(overlay_buffer, pagesize=(width, height))
 
                 muted = Color(0.23, 0.23, 0.23)
-                _clear_visible_signature_zones(
-                    overlay,
-                    width=width,
-                    height=height,
-                    mode=resolved_mode,
-                    layout=layout,
-                )
                 if resolved_mode in {VISIBLE_SIGNATURE_MODE_BASSO_SINISTRA, VISIBLE_SIGNATURE_MODE_BASSO_DESTRA}:
                     _draw_visible_signature_bottom_text(
                         overlay,
@@ -509,12 +502,19 @@ def _build_visible_signature_side_text(
     date_value = format_visible_signature_datetime(data_firma)
     place_value = str(luogo or "").strip()
 
+    issuer_value = str(issuer or "").strip()
+    serial_value = str(serial or "").strip()
+
     if signer_name:
-        segments.append(f"Firmato da: {signer_name}")
+        segments.append(f"Firmato Da: {signer_name}")
     if date_value:
         segments.append(f"Data e ora firma: {date_value}")
     if place_value:
         segments.append(f"Luogo firma: {place_value.upper()}")
+    if issuer_value:
+        segments.append(f"Emesso Da: {issuer_value}")
+    if serial_value:
+        segments.append(f"Seriale: {serial_value}")
     return " | ".join(segment for segment in segments if segment.strip())
 
 
@@ -536,7 +536,7 @@ def _build_visible_signature_bottom_lines(
 
     first_line = "Per autentica e sottoscrizione"
 
-    second_line = "Firmato da:"
+    second_line = "Firmato Da:"
     if signer_name:
         second_line = f"{second_line} {signer_name}"
     if date_value:

@@ -101,9 +101,11 @@ def test_apply_visible_signature_stamp_adds_vertical_mark_and_metadata():
     text = "\n".join(page.extract_text() or "" for page in reader.pages)
     metadata = reader.metadata or {}
 
-    assert "Firmato da: AVV. ANTONIO MAMMOLA" in text
+    assert "Firmato Da: AVV. ANTONIO MAMMOLA" in text
     assert "Data e ora firma: 14/04/2026 alle ore 11:32" in text
     assert "Luogo firma: REGGIO CALABRIA" in text
+    assert "Emesso Da: ArubaPEC per firma qualificata" in text
+    # il seriale può essere troncato nel testo laterale stretto; verificato nei metadati
     assert "ArubaPEC per firma qualificata" in str(metadata.get(VISIBLE_SIGNATURE_METADATA_KEY, ""))
     assert "123ABC" in str(metadata.get(VISIBLE_SIGNATURE_METADATA_KEY, ""))
 
@@ -121,7 +123,7 @@ def test_apply_visible_signature_stamp_supporta_modalita_basso_destra():
     text = "\n".join(page.extract_text() or "" for page in reader.pages)
 
     assert "Per autentica e sottoscrizione" in text
-    assert "Firmato da: AVV. ANTONIO MAMMOLA" in text
+    assert "Firmato Da: AVV. ANTONIO MAMMOLA" in text
     assert "in data 14/04/2026 ore 11:32" in text
     assert "Luogo: Reggio Calabria" in text
 
@@ -141,7 +143,7 @@ def test_apply_visible_signature_stamp_supporta_modalita_basso_sinistra():
 
     assert stamped.startswith(b"%PDF")
     assert "Per autentica e sottoscrizione" in text
-    assert "Firmato da: AVV. ANTONIO MAMMOLA" in text
+    assert "Firmato Da: AVV. ANTONIO MAMMOLA" in text
     assert "in data 14/04/2026 ore 11:32" in text
     assert str(metadata.get(VISIBLE_SIGNATURE_METADATA_KEY, ""))
 
@@ -158,7 +160,7 @@ def test_apply_visible_signature_stamp_modalita_laterale_aggiunge_prefisso_avv()
     reader = PdfReader(io.BytesIO(stamped))
     text = "\n".join(page.extract_text() or "" for page in reader.pages)
 
-    assert "Firmato da: AVV. ANTONIO MAMMOLA" in text
+    assert "Firmato Da: AVV. ANTONIO MAMMOLA" in text
 
 
 def test_visible_signature_side_text_espone_tutto_su_unica_riga_verticale():
@@ -170,9 +172,10 @@ def test_visible_signature_side_text_espone_tutto_su_unica_riga_verticale():
     )
 
     assert side_text == (
-        "Firmato da: AVV. ANTONIO MAMMOLA | "
+        "Firmato Da: AVV. ANTONIO MAMMOLA | "
         "Data e ora firma: 14/04/2026 alle ore 11:32 | "
-        "Luogo firma: REGGIO CALABRIA"
+        "Luogo firma: REGGIO CALABRIA | "
+        "Emesso Da: ArubaPEC EU Authentication Certificates CA G1"
     )
 
 
@@ -243,7 +246,7 @@ def test_bottom_right_signature_draws_colored_seal(monkeypatch):
 
     assert len(overlay.drawn) >= 2
     assert overlay.drawn[0][2] == "Per autentica e sottoscrizione"
-    assert "Firmato da: AVV. ANTONIO MAMMOLA" in overlay.drawn[1][2]
+    assert "Firmato Da: AVV. ANTONIO MAMMOLA" in overlay.drawn[1][2]
     assert "in data 14/04/2026 ore 11:32" in overlay.drawn[1][2]
     assert seal_calls
     assert seal_calls[0]["anchor_x"] < 595.0 - 28.35
@@ -399,7 +402,7 @@ def test_apply_visible_signature_stamp_supporta_modalita_basso_sinistra():
     text = "\n".join(page.extract_text() or "" for page in reader.pages)
 
     assert "Per autentica e sottoscrizione" in text
-    assert "Firmato da: AVV. ANTONIO MAMMOLA" in text
+    assert "Firmato Da: AVV. ANTONIO MAMMOLA" in text
     assert "in data 14/04/2026 ore 11:32" in text
     assert "Luogo: Reggio Calabria" in text
 
@@ -468,7 +471,7 @@ def test_bottom_left_signature_draws_on_left_side(monkeypatch):
 
     assert len(overlay.drawn) >= 2
     assert overlay.drawn[0][2] == "Per autentica e sottoscrizione"
-    assert "Firmato da: AVV. ANTONIO MAMMOLA" in overlay.drawn[1][2]
+    assert "Firmato Da: AVV. ANTONIO MAMMOLA" in overlay.drawn[1][2]
     # text x position should be at left side (less than half the page width)
     assert overlay.drawn[0][0] < 595.0 / 2
     assert seal_calls

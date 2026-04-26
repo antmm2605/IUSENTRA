@@ -12,6 +12,7 @@ from visible_signature import (
     VISIBLE_SIGNATURE_MODE_BASSO_SINISTRA,
     VISIBLE_SIGNATURE_MODE_LATERALE,
     _build_visible_signature_side_text,
+    _draw_visible_signature_bottom_left_text,
     _draw_visible_signature_bottom_right_text,
     _draw_visible_signature_seal,
     apply_visible_signature_stamp,
@@ -318,3 +319,158 @@ def test_resolve_visible_signature_place_fallback_to_address_when_city_missing()
         )
         == "Taurianova"
     )
+
+
+# ── nuovi test: basso_sinistra, aliases, layout, no-duplication ────────────
+
+
+def test_normalize_visible_signature_mode_accetta_alias_bottom_left():
+    assert normalize_visible_signature_mode("bottom_left") == VISIBLE_SIGNATURE_MODE_BASSO_SINISTRA
+    assert normalize_visible_signature_mode("sinistra") == VISIBLE_SIGNATURE_MODE_BASSO_SINISTRA
+    assert normalize_visible_signature_mode("basso_sinistra") == VISIBLE_SIGNATURE_MODE_BASSO_SINISTRA
+
+
+def test_normalize_visible_signature_mode_accetta_alias_bottom_right():
+    assert normalize_visible_signature_mode("bottom_right") == VISIBLE_SIGNATURE_MODE_BASSO_DESTRA
+    assert normalize_visible_signature_mode("destra") == VISIBLE_SIGNATURE_MODE_BASSO_DESTRA
+
+
+def test_normalize_visible_signature_mode_accetta_alias_laterale():
+    assert normalize_visible_signature_mode("side") == VISIBLE_SIGNATURE_MODE_LATERALE
+    assert normalize_visible_signature_mode("lateral") == VISIBLE_SIGNATURE_MODE_LATERALE
+
+
+def test_normalize_visible_signature_mode_fallback_sconosciuto():
+    assert normalize_visible_signature_mode("unknown_mode") == VISIBLE_SIGNATURE_MODE_LATERALE
+    assert normalize_visible_signature_mode("") == VISIBLE_SIGNATURE_MODE_LATERALE
+    assert normalize_visible_signature_mode(None) == VISIBLE_SIGNATURE_MODE_LATERALE
+
+
+def test_compute_visible_signature_layout_basso_destra_posiziona_a_destra():
+    layout = compute_visible_signature_layout(
+        width=595.0,
+        height=842.0,
+        mode=VISIBLE_SIGNATURE_MODE_BASSO_DESTRA,
+    )
+    assert layout["mode"] == VISIBLE_SIGNATURE_MODE_BASSO_DESTRA
+    assert layout["x"] + layout["box_width"] <= 595.0
+    # right edge is within right margin
+    right_edge = layout["x"] + layout["box_width"]
+    assert right_edge > 595.0 * 0.8
+
+
+def test_compute_visible_signature_layout_basso_sinistra_posiziona_a_sinistra():
+    layout = compute_visible_signature_layout(
+        width=595.0,
+        height=842.0,
+        mode=VISIBLE_SIGNATURE_MODE_BASSO_SINISTRA,
+    )
+    assert layout["mode"] == VISIBLE_SIGNATURE_MODE_BASSO_SINISTRA
+    assert layout["x"] < 595.0 / 2
+    assert layout["x"] + layout["box_width"] <= 595.0
+
+
+def test_compute_visible_signature_layout_usa_dimensioni_pagina_non_a4():
+    layout_small = compute_visible_signature_layout(
+        width=400.0,
+        height=600.0,
+        mode=VISIBLE_SIGNATURE_MODE_BASSO_DESTRA,
+    )
+    layout_large = compute_visible_signature_layout(
+        width=800.0,
+        height=1200.0,
+        mode=VISIBLE_SIGNATURE_MODE_BASSO_DESTRA,
+    )
+    assert layout_small["x"] != layout_large["x"]
+    assert layout_small["x"] + layout_small["box_width"] <= 400.0
+    assert layout_large["x"] + layout_large["box_width"] <= 800.0
+
+
+def test_apply_visible_signature_stamp_supporta_modalita_basso_sinistra():
+    stamped = apply_visible_signature_stamp(
+        _make_pdf_bytes(),
+        intestatario="Avv. Antonio Mammola",
+        data_firma="2026-04-14T11:32:00+02:00",
+        luogo="Reggio Calabria",
+        mode=VISIBLE_SIGNATURE_MODE_BASSO_SINISTRA,
+    )
+
+    reader = PdfReader(io.BytesIO(stamped))
+    text = "\n".join(page.extract_text() or "" for page in reader.pages)
+
+    assert "Per autentica e sottoscrizione" in text
+    assert "Firmato da: AVV. ANTONIO MAMMOLA" in text
+    assert "in data 14/04/2026 ore 11:32" in text
+    assert "Luogo: Reggio Calabria" in text
+
+
+def test_apply_visible_signature_stamp_no_duplicazione_stampa_successiva():
+    first = apply_visible_signature_stamp(
+        _make_pdf_bytes(),
+        intestatario="Avv. Antonio Mammola",
+        data_firma="2026-04-14T11:32:00+02:00",
+        luogo="Reggio Calabria",
+        mode=VISIBLE_SIGNATURE_MODE_BASSO_SINISTRA,
+    )
+    second = apply_visible_signature_stamp(
+        first,
+        intestatario="Avv. Antonio Mammola",
+        data_firma="2026-04-14T11:32:00+02:00",
+        luogo="Reggio Calabria",
+        mode=VISIBLE_SIGNATURE_MODE_BASSO_SINISTRA,
+    )
+
+    reader = PdfReader(io.BytesIO(second))
+    text = "\n".join(page.extract_text() or "" for page in reader.pages)
+    assert text.count("Per autentica e sottoscrizione") <= 2
+
+
+def test_bottom_left_signature_draws_on_left_side(monkeypatch):
+    seal_calls = []
+
+    class _FakeOverlay:
+        def __init__(self):
+            self.drawn = []
+
+        def saveState(self):
+            return None
+
+        def restoreState(self):
+            return None
+
+        def setFillColor(self, _value):
+            return None
+
+        def setFont(self, _name, _size):
+            return None
+
+        def drawString(self, x, y, text):
+            self.drawn.append((x, y, text))
+
+        def stringWidth(self, text, _font_name, _font_size):
+            return float(len(text) * 5)
+
+    def _fake_draw_seal(overlay, *, anchor_x, anchor_y, scale=1.0):
+        seal_calls.append({"anchor_x": anchor_x, "anchor_y": anchor_y})
+
+    monkeypatch.setattr("visible_signature._draw_visible_signature_seal", _fake_draw_seal)
+
+    overlay = _FakeOverlay()
+    _draw_visible_signature_bottom_left_text(
+        overlay,
+        width=595.0,
+        height=842.0,
+        color=None,
+        intestatario="Antonio Mammola",
+        data_firma="2026-04-14T09:32:00+00:00",
+        luogo="Reggio Calabria",
+    )
+
+    assert len(overlay.drawn) >= 2
+    assert overlay.drawn[0][2] == "Per autentica e sottoscrizione"
+    assert "Firmato da: AVV. ANTONIO MAMMOLA" in overlay.drawn[1][2]
+    # text x position should be at left side (less than half the page width)
+    assert overlay.drawn[0][0] < 595.0 / 2
+    assert seal_calls
+    # for left-aligned layout, seal is to the left of the text start (seal before text)
+    assert seal_calls[0]["anchor_x"] < overlay.drawn[0][0]

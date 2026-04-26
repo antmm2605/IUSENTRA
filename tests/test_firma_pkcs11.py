@@ -129,6 +129,57 @@ def test_salva_documento_firmato_pkcs11_pdf_usa_cades_contenente_pdf(tmp_path, m
     assert captured["visible_signature_place"] == "Taurianova"
 
 
+def test_prepare_pdf_usa_get_cert_non_self_cert(monkeypatch):
+    from datetime import UTC, timedelta
+
+    from cryptography import x509
+    from cryptography.hazmat.primitives import hashes, serialization
+    from cryptography.hazmat.primitives.asymmetric import rsa
+    from cryptography.x509.oid import NameOID
+
+    key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    subject = issuer = x509.Name([
+        x509.NameAttribute(NameOID.COUNTRY_NAME, "IT"),
+        x509.NameAttribute(NameOID.COMMON_NAME, "Avv. Test PKCS11"),
+    ])
+    cert = (
+        x509.CertificateBuilder()
+        .subject_name(subject)
+        .issuer_name(issuer)
+        .public_key(key.public_key())
+        .serial_number(x509.random_serial_number())
+        .not_valid_before(datetime.now(UTC) - timedelta(days=1))
+        .not_valid_after(datetime.now(UTC) + timedelta(days=30))
+        .sign(key, hashes.SHA256())
+    )
+
+    signer = object.__new__(firma_pkcs11.FirmaPKCS11)
+    signer._certificate = cert
+    signer._cert_der = cert.public_bytes(serialization.Encoding.DER)
+    signer._lib = None
+    signer._session = None
+
+    captured = {}
+
+    def _fake_prepare(doc, *, intestatario="", data_firma=None, luogo="", issuer="", serial="", mode="laterale"):
+        captured["called"] = True
+        captured["issuer"] = issuer
+        captured["serial"] = serial
+        return doc
+
+    monkeypatch.setattr("visible_signature.prepare_document_for_signature", _fake_prepare)
+    import visible_signature as _vs
+    monkeypatch.setattr(_vs, "prepare_document_for_signature", _fake_prepare)
+    import pct.firma_pkcs11 as _pk
+    monkeypatch.setattr(_pk, "prepare_document_for_signature", _fake_prepare)
+
+    pdf = b"%PDF-1.4\nstub\n%%EOF"
+    result = signer._prepare_pdf_for_visible_signature(pdf, visible_signature_mode="basso_sinistra")
+
+    assert result == pdf
+    assert captured.get("called") is True
+
+
 def test_salva_documento_firmato_standard_pdf_usa_cades_contenente_pdf(tmp_path, monkeypatch):
     signer = object.__new__(FirmaDigitale)
     captured = {}

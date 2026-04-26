@@ -743,6 +743,33 @@ def _draw_visible_signature_bottom_right_text(
     )
 
 
+def _draw_visible_signature_bottom_left_text(
+    overlay,
+    *,
+    width: float,
+    height: float,
+    color,
+    intestatario: str = "",
+    data_firma: Any = None,
+    luogo: str = "",
+) -> None:
+    """Wrapper retrocompatibile per test e chiamanti legacy."""
+    return _draw_visible_signature_bottom_text(
+        overlay,
+        width=width,
+        height=height,
+        layout=compute_visible_signature_layout(
+            width=width,
+            height=height,
+            mode=VISIBLE_SIGNATURE_MODE_BASSO_SINISTRA,
+        ),
+        color=color,
+        intestatario=intestatario,
+        data_firma=data_firma,
+        luogo=luogo,
+    )
+
+
 def _draw_visible_signature_seal(
     overlay,
     *,

@@ -16,7 +16,7 @@ def register_portali_acquisizione_routes(
     _spec_portale_acquisizione: Callable[[str], dict[str, Any]],
     _pdp_penale_workspace_url_for_fascicolo: Callable[[str], str],
     _build_access_status_payload: Callable[[str], dict[str, Any]],
-    _search_fascicoli_portale_server: Callable[[str, dict[str, Any]], list[dict[str, Any]]],
+    _search_fascicoli_portale_server: Callable[[str, dict[str, Any]], Any],
     _preview_documenti_portale_server: Callable[[str, dict[str, Any]], list[dict[str, Any]]],
     _build_portale_preview: Callable[[str, dict[str, Any], list[dict[str, Any]]], dict[str, Any]],
     _coerce_import_options: Callable[[dict[str, Any]], dict[str, Any]],
@@ -94,8 +94,14 @@ def register_portali_acquisizione_routes(
         try:
             _spec_portale_acquisizione(portale)
             data = request.get_json(silent=True) or {}
-            risultati = _search_fascicoli_portale_server(portale, data)
-            return jsonify({"ok": True, "results": risultati})
+            search_result = _search_fascicoli_portale_server(portale, data)
+            if isinstance(search_result, dict):
+                risultati = search_result.get("results") or search_result.get("fascicoli") or []
+                pst_session = search_result.get("pst_session") or data.get("pst_session") or {}
+            else:
+                risultati = search_result
+                pst_session = data.get("pst_session") or {}
+            return jsonify({"ok": True, "results": risultati, "pst_session": pst_session})
         except Exception as e:
             app.logger.exception("Errore api_portale_acquisizione_search(%s): %s", portale, e)
             return jsonify({"ok": False, "errore": str(e), "results": []}), 200
@@ -108,11 +114,15 @@ def register_portali_acquisizione_routes(
             selection = dict(data.get("selection") or {})
             if not selection:
                 raise ValueError("Fascicolo non selezionato.")
+            if isinstance(data.get("pst_session"), dict):
+                selection["pst_session"] = data.get("pst_session")
+            if isinstance(data.get("snapshot"), dict):
+                selection["snapshot"] = data.get("snapshot")
             documenti = data.get("documenti")
             if not isinstance(documenti, list):
                 documenti = _preview_documenti_portale_server(portale, selection)
             preview = _build_portale_preview(portale, selection, documenti)
-            return jsonify({"ok": True, "preview": preview})
+            return jsonify({"ok": True, "preview": preview, "pst_session": data.get("pst_session") or {}})
         except Exception as e:
             app.logger.exception("Errore api_portale_acquisizione_preview(%s): %s", portale, e)
             return jsonify({"ok": False, "errore": str(e), "preview": {}}), 200
@@ -155,7 +165,7 @@ def register_portali_acquisizione_routes(
                 mapping,
                 downloaded_files=downloaded_files,
             )
-            return jsonify({"ok": True, "result": result, **result})
+            return jsonify({"ok": True, "result": result, "pst_session": data.get("pst_session") or {}, **result})
         except Exception as e:
             app.logger.exception("Errore api_portale_acquisizione_import(%s): %s", portale, e)
             return jsonify({"ok": False, "errore": str(e)}), 200

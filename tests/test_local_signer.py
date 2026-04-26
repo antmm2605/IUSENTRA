@@ -8,6 +8,8 @@ import sys
 from pathlib import Path
 from types import SimpleNamespace
 
+import pytest
+
 
 def _load_local_signer():
     root = Path(__file__).resolve().parents[1]
@@ -27,6 +29,93 @@ def _load_local_ai_host_bridge():
     assert spec and spec.loader
     spec.loader.exec_module(module)
     return module
+
+
+def test_pst_session_manager_riusa_view_e_separa_import():
+    module = _load_local_signer()
+    module._pst_session_cache.clear()
+    try:
+        view = module._get_or_create_pst_session(
+            cert_thumbprint="CERT-123",
+            tribunale="0800570152",
+            base_url="https://ext.processotelematico.giustizia.it",
+            cf_avvocato="RSSMRA80A01H501Z",
+            purpose="view",
+            cert_key="CERT-123",
+        )
+        reused = module._get_or_create_pst_session(
+            session_id=view["session_id"],
+            cert_thumbprint="CERT-123",
+            tribunale="0800570152",
+            base_url="https://ext.processotelematico.giustizia.it",
+            cf_avvocato="RSSMRA80A01H501Z",
+            purpose="view",
+            cert_key="CERT-123",
+        )
+        import_session = module._get_or_create_pst_session(
+            session_id=view["session_id"],
+            cert_thumbprint="CERT-123",
+            tribunale="0800570152",
+            base_url="https://ext.processotelematico.giustizia.it",
+            cf_avvocato="RSSMRA80A01H501Z",
+            purpose="import",
+            cert_key="CERT-123",
+        )
+
+        assert reused["session_id"] == view["session_id"]
+        assert import_session["session_id"] != view["session_id"]
+        assert view["purpose"] == "view"
+        assert import_session["purpose"] == "import"
+        assert Path(view["cookie_file"]).exists()
+        assert hasattr(module._pst_session_cache[view["session_id"]]["lock"], "acquire")
+        assert not any("pin" in key.lower() for key in module._pst_session_cache[view["session_id"]])
+    finally:
+        for session_id in list(module._pst_session_cache):
+            module._drop_pst_session(session_id)
+
+
+def test_pst_session_manager_scaduta_restituisce_errore_controllato():
+    module = _load_local_signer()
+    module._pst_session_cache.clear()
+    try:
+        session = module._get_or_create_pst_session(
+            cert_thumbprint="CERT-EXPIRED",
+            tribunale="0800570152",
+            base_url="https://ext.processotelematico.giustizia.it",
+            cf_avvocato="RSSMRA80A01H501Z",
+            purpose="view",
+        )
+        module._pst_session_cache[session["session_id"]]["expires_at"] = (
+            module._utcnow_naive() - module.timedelta(seconds=1)
+        )
+        with pytest.raises(RuntimeError, match="session_expired"):
+            module._get_or_create_pst_session(
+                session_id=session["session_id"],
+                cert_thumbprint="CERT-EXPIRED",
+                tribunale="0800570152",
+                base_url="https://ext.processotelematico.giustizia.it",
+                cf_avvocato="RSSMRA80A01H501Z",
+                purpose="view",
+            )
+    finally:
+        for session_id in list(module._pst_session_cache):
+            module._drop_pst_session(session_id)
+
+
+def test_wizard_pst_usa_snapshot_unico_e_sessioni_distinte():
+    root = Path(__file__).resolve().parents[1]
+    template = (root / "web" / "templates" / "portale" / "acquisizione_wizard.html").read_text(
+        encoding="utf-8"
+    )
+    signer = (root / "tools" / "local_signer.py").read_text(encoding="utf-8")
+
+    assert "/pst/fascicolo-snapshot" in signer
+    assert "/pst/fascicolo-snapshot" in template
+    assert "AW_PST_SNAPSHOT_PROMISE" in template
+    assert "AW_PST_IMPORT_SESSION" in template
+    assert "purpose: 'view'" in template
+    assert "purpose: 'import'" in template
+    assert "`${AW_PST_LS_BASE}/pst/documenti`" not in template
 
 
 def _local_signer_version():

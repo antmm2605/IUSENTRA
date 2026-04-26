@@ -346,12 +346,16 @@ const AW_STATE = {
   downloadSummary:null,
   downloadCacheKey:'',
   downloadWarning:null,
+  pstSnapshot:null,
 };
 let AW_PST_CERT = null;
 let AW_PST_SESSION = null;
+let AW_PST_IMPORT_SESSION = null;
 let AW_STATUS_REFRESH_PROMISE = null;
 let AW_CERT_SELECT_PROMISE = null;
 let AW_PST_SESSION_PROMISE = null;
+let AW_PST_IMPORT_SESSION_PROMISE = null;
+let AW_PST_SNAPSHOT_PROMISE = null;
 let AW_ACCESS_BUSY = false;
 let AW_ACTIONS_BOUND = false;
 const AW_STEPS = [
@@ -366,6 +370,7 @@ const AW_STEPS = [
 const AW_PST_LS_BASE = 'http://127.0.0.1:27272';
 const AW_PST_CERT_KEY = `hacs-aw-pst-cert-${AW_BOOT.portale}`;
 const AW_PST_SESSION_KEY = `hacs-aw-pst-session-${AW_BOOT.portale}`;
+const AW_PST_IMPORT_SESSION_KEY = `hacs-aw-pst-import-session-${AW_BOOT.portale}`;
 function awJson(url, options = {}) {
   return fetch(url, { headers: { 'Content-Type': 'application/json', ...(options.headers || {}) }, ...options }).then(r => r.json());
 }
@@ -453,18 +458,17 @@ function awLoadPstCert() {
 function awLoadPstSession() {
   try {
     const saved = JSON.parse(sessionStorage.getItem(AW_PST_SESSION_KEY) || 'null');
-    if (!saved || !saved.session_id) {
-      AW_PST_SESSION = null;
-      return;
-    }
-    if (saved.expires_at && Number(saved.expires_at) < Date.now()) {
-      sessionStorage.removeItem(AW_PST_SESSION_KEY);
-      AW_PST_SESSION = null;
-      return;
-    }
-    AW_PST_SESSION = saved;
+    AW_PST_SESSION = saved && saved.session_id && (!saved.expires_at || Number(saved.expires_at) >= Date.now()) ? saved : null;
+    if (!AW_PST_SESSION) sessionStorage.removeItem(AW_PST_SESSION_KEY);
   } catch (_) {
     AW_PST_SESSION = null;
+  }
+  try {
+    const savedImport = JSON.parse(sessionStorage.getItem(AW_PST_IMPORT_SESSION_KEY) || 'null');
+    AW_PST_IMPORT_SESSION = savedImport && savedImport.session_id && (!savedImport.expires_at || Number(savedImport.expires_at) >= Date.now()) ? savedImport : null;
+    if (!AW_PST_IMPORT_SESSION) sessionStorage.removeItem(AW_PST_IMPORT_SESSION_KEY);
+  } catch (_) {
+    AW_PST_IMPORT_SESSION = null;
   }
 }
 function awSavePstCert(cert) {
@@ -475,18 +479,33 @@ function awSavePstCert(cert) {
     else sessionStorage.removeItem(AW_PST_CERT_KEY);
   } catch (_) {}
   const currentThumb = String(AW_PST_CERT?.thumbprint || '').toUpperCase();
-  if (previousThumb && currentThumb && previousThumb !== currentThumb) awClearPstSession();
+  if (previousThumb && currentThumb && previousThumb !== currentThumb) awClearPstSession('all');
 }
-function awSavePstSession(session) {
-  AW_PST_SESSION = session || null;
+function awGetPstSessionByPurpose(purpose = 'view') {
+  return purpose === 'import' ? AW_PST_IMPORT_SESSION : AW_PST_SESSION;
+}
+function awSavePstSession(session, purpose = 'view') {
+  const isImport = purpose === 'import';
+  if (isImport) AW_PST_IMPORT_SESSION = session || null;
+  else AW_PST_SESSION = session || null;
   try {
-    if (AW_PST_SESSION) sessionStorage.setItem(AW_PST_SESSION_KEY, JSON.stringify(AW_PST_SESSION));
-    else sessionStorage.removeItem(AW_PST_SESSION_KEY);
+    const key = isImport ? AW_PST_IMPORT_SESSION_KEY : AW_PST_SESSION_KEY;
+    const value = isImport ? AW_PST_IMPORT_SESSION : AW_PST_SESSION;
+    if (value) sessionStorage.setItem(key, JSON.stringify(value));
+    else sessionStorage.removeItem(key);
   } catch (_) {}
 }
-function awClearPstSession() {
-  AW_PST_SESSION_PROMISE = null;
-  awSavePstSession(null);
+function awClearPstSession(purpose = 'all') {
+  if (purpose === 'all' || purpose === 'view') {
+    AW_PST_SESSION_PROMISE = null;
+    AW_PST_SNAPSHOT_PROMISE = null;
+    AW_STATE.pstSnapshot = null;
+    awSavePstSession(null, 'view');
+  }
+  if (purpose === 'all' || purpose === 'import') {
+    AW_PST_IMPORT_SESSION_PROMISE = null;
+    awSavePstSession(null, 'import');
+  }
 }
 function awLocalSignerPortaleLabel() {
   return AW_BOOT.portale === 'pst' ? 'PST' : (AW_BOOT.spec?.label || 'portale');
@@ -498,64 +517,85 @@ function awSetAccessBusy(busy) {
     if (btn) btn.disabled = AW_ACCESS_BUSY;
   });
 }
-function awRememberPstSession(data, tribunale) {
+function awRememberPstSession(data, tribunale, purpose = 'view') {
   const sid = String(data?.pst_session_id || '').trim();
   if (!sid) return null;
   const ttl = Number(data?.pst_session_ttl_seconds || 900);
+  const normalizedPurpose = String(data?.pst_session_purpose || purpose || 'view').trim().toLowerCase() === 'import' ? 'import' : 'view';
   const saved = {
     session_id: sid,
     tribunale: String(tribunale || data?.tribunale || '').trim(),
     cert_thumbprint: String(AW_PST_CERT?.thumbprint || '').trim(),
+    purpose: normalizedPurpose,
     expires_at: Date.now() + (ttl * 1000),
   };
-  awSavePstSession(saved);
+  awSavePstSession(saved, normalizedPurpose);
   return saved;
 }
-function awHasActivePstSession(tribunale) {
-  if (!AW_PST_SESSION?.session_id) return false;
-  if (AW_PST_SESSION.expires_at && Number(AW_PST_SESSION.expires_at) < Date.now()) {
-    awClearPstSession();
+function awHasActivePstSession(tribunale, purpose = 'view') {
+  const session = awGetPstSessionByPurpose(purpose);
+  if (!session?.session_id) return false;
+  if (session.expires_at && Number(session.expires_at) < Date.now()) {
+    awClearPstSession(purpose);
     return false;
   }
-  const sessionThumb = String(AW_PST_SESSION.cert_thumbprint || '').toUpperCase();
+  const sessionThumb = String(session.cert_thumbprint || '').toUpperCase();
   const currentThumb = String(AW_PST_CERT?.thumbprint || '').toUpperCase();
   if (sessionThumb && currentThumb && sessionThumb !== currentThumb) {
-    awClearPstSession();
+    awClearPstSession(purpose);
     return false;
   }
   const wantedTribunale = String(tribunale || '').trim();
-  const sessionTribunale = String(AW_PST_SESSION.tribunale || '').trim();
+  const sessionTribunale = String(session.tribunale || '').trim();
   if (wantedTribunale && sessionTribunale && sessionTribunale !== wantedTribunale) return false;
   return true;
 }
+function awCurrentPstSessionPayload() {
+  return {
+    view_session_id: AW_PST_SESSION?.session_id || '',
+    import_session_id: AW_PST_IMPORT_SESSION?.session_id || '',
+    view_expires_at: AW_PST_SESSION?.expires_at || null,
+    import_expires_at: AW_PST_IMPORT_SESSION?.expires_at || null,
+    cert_key: AW_PST_CERT?.thumbprint || '',
+  };
+}
 function awIsPstSessionExpiredError(err) {
   const text = String(err || '');
-  return text.includes('Sessione accesso PST scaduta') || text.includes('riaprire il canale autenticato');
+  return text.includes('session_expired') || text.includes('Sessione accesso PST scaduta') || text.includes('riaprire il canale autenticato');
 }
-async function awEnsurePstPortalSession(tribunale, { force = false } = {}) {
+async function awEnsurePstPortalSession(tribunale, { force = false, purpose = 'view' } = {}) {
   const ufficio = String(tribunale || '').trim();
   if (!ufficio) throw new Error('Seleziona prima l’ufficio giudiziario del fascicolo.');
   if (!AW_PST_CERT) await awEnsurePstCertReady();
-  if (!force && awHasActivePstSession(ufficio)) return AW_PST_SESSION;
-  if (!force && AW_PST_SESSION_PROMISE) return AW_PST_SESSION_PROMISE;
-  AW_PST_SESSION_PROMISE = (async () => {
+  const normalizedPurpose = purpose === 'import' ? 'import' : 'view';
+  const currentSession = awGetPstSessionByPurpose(normalizedPurpose);
+  if (!force && awHasActivePstSession(ufficio, normalizedPurpose)) return currentSession;
+  const activePromise = normalizedPurpose === 'import' ? AW_PST_IMPORT_SESSION_PROMISE : AW_PST_SESSION_PROMISE;
+  if (!force && activePromise) return activePromise;
+  const promise = (async () => {
     const data = await awJson(`${AW_PST_LS_BASE}/pst/preflight-auth`, {
       method: 'POST',
       body: JSON.stringify({
         tribunale: ufficio,
         cf_avvocato: AW_STATE.status.codice_fiscale_avvocato || '',
         cert_thumbprint: AW_PST_CERT?.thumbprint || null,
-        pst_session_id: !force && AW_PST_SESSION?.session_id ? AW_PST_SESSION.session_id : '',
+        cert_key: AW_PST_CERT?.thumbprint || '',
+        purpose: normalizedPurpose,
+        pst_session_id: !force && currentSession?.session_id ? currentSession.session_id : '',
         force_auth: !!force,
+        force_new: !!force,
       }),
     });
     if (!data.ok) throw new Error(data.errore || 'Apertura sessione PST non riuscita');
-    return awRememberPstSession(data, ufficio) || AW_PST_SESSION;
+    return awRememberPstSession(data, ufficio, normalizedPurpose) || awGetPstSessionByPurpose(normalizedPurpose);
   })();
+  if (normalizedPurpose === 'import') AW_PST_IMPORT_SESSION_PROMISE = promise;
+  else AW_PST_SESSION_PROMISE = promise;
   try {
-    return await AW_PST_SESSION_PROMISE;
+    return await promise;
   } finally {
-    AW_PST_SESSION_PROMISE = null;
+    if (normalizedPurpose === 'import') AW_PST_IMPORT_SESSION_PROMISE = null;
+    else AW_PST_SESSION_PROMISE = null;
   }
 }
 function awGoStep(step) {
@@ -760,6 +800,12 @@ function awClearManualSelection(selection) {
   };
 }
 function awStoreSelection(index, selection) {
+  const previousKey = String(AW_STATE.selection?.external_id || '').trim();
+  const nextKey = String(selection?.external_id || '').trim();
+  if (previousKey && nextKey && previousKey !== nextKey) {
+    AW_STATE.pstSnapshot = null;
+    AW_PST_SNAPSHOT_PROMISE = null;
+  }
   if (Number.isInteger(index) && index >= 0) {
     AW_STATE.results[index] = selection;
   }
@@ -1039,7 +1085,7 @@ async function awEnsurePstCertReady({ forceDialog = false } = {}) {
 }
 async function awPstSearchViaLocalSigner(query, retry = true) {
   const tribunale = String(query.ufficio_codice || '').trim();
-  await awEnsurePstPortalSession(tribunale);
+  await awEnsurePstPortalSession(tribunale, { purpose: 'view' });
   try {
     const data = await awJson(`${AW_PST_LS_BASE}/pst/ricerca`, {
       method: 'POST',
@@ -1051,11 +1097,13 @@ async function awPstSearchViaLocalSigner(query, retry = true) {
         cf_parte: query.cf || '',
         cf_avvocato: AW_STATE.status.codice_fiscale_avvocato || '',
         cert_thumbprint: AW_PST_CERT?.thumbprint || null,
+        cert_key: AW_PST_CERT?.thumbprint || '',
+        purpose: 'view',
         pst_session_id: AW_PST_SESSION?.session_id || '',
       }),
     });
     if (!data.ok) throw new Error(data.errore || 'Ricerca PST non riuscita');
-    awRememberPstSession(data, tribunale);
+    awRememberPstSession(data, tribunale, 'view');
     return (data.fascicoli || []).map(row => {
       const manualMode = !!(row.manual_mode || row.verifica_browser_ufficiale || row.portale_url);
       const partiDettaglio = Array.isArray(row.parti_dettaglio) ? row.parti_dettaglio : [];
@@ -1090,7 +1138,7 @@ async function awPstSearchViaLocalSigner(query, retry = true) {
     });
   } catch (err) {
     if (retry && awIsPstSessionExpiredError(err)) {
-      awClearPstSession();
+      awClearPstSession('view');
       return awPstSearchViaLocalSigner(query, false);
     }
     throw err;
@@ -1098,30 +1146,41 @@ async function awPstSearchViaLocalSigner(query, retry = true) {
 }
 async function awPstPreviewViaLocalSigner(selection, retry = true) {
   const tribunale = String(selection?.ufficio_codice || '').trim();
-  await awEnsurePstPortalSession(tribunale);
+  await awEnsurePstPortalSession(tribunale, { purpose: 'view' });
+  if (AW_PST_SNAPSHOT_PROMISE) return AW_PST_SNAPSHOT_PROMISE;
+  if (AW_STATE.pstSnapshot?.documenti?.length) return AW_STATE.pstSnapshot.documenti;
   try {
-    const data = await awJson(`${AW_PST_LS_BASE}/pst/documenti`, {
-      method: 'POST',
-      body: JSON.stringify({
-        codice_ufficio: selection.ufficio_codice,
-        numero_rg: selection.numero,
-        anno_rg: selection.anno,
-        id_fascicolo: selection.id_fascicolo || selection.payload?.id_fascicolo || '',
-        sub_procedimento: selection.sub_procedimento || selection.payload?.sub_procedimento || '',
-        cf_avvocato: AW_STATE.status.codice_fiscale_avvocato || '',
-        cert_thumbprint: AW_PST_CERT?.thumbprint || null,
-        pst_session_id: AW_PST_SESSION?.session_id || '',
-      }),
-    });
-    if (!data.ok) throw new Error(data.errore || 'Anteprima documenti PST non riuscita');
-    awRememberPstSession(data, tribunale);
-    return data.documenti || [];
+    AW_PST_SNAPSHOT_PROMISE = (async () => {
+      const data = await awJson(`${AW_PST_LS_BASE}/pst/fascicolo-snapshot`, {
+        method: 'POST',
+        body: JSON.stringify({
+          selection,
+          codice_ufficio: selection.ufficio_codice,
+          numero_rg: selection.numero,
+          anno_rg: selection.anno,
+          id_fascicolo: selection.id_fascicolo || selection.payload?.id_fascicolo || '',
+          sub_procedimento: selection.sub_procedimento || selection.payload?.sub_procedimento || '',
+          cf_avvocato: AW_STATE.status.codice_fiscale_avvocato || '',
+          cert_thumbprint: AW_PST_CERT?.thumbprint || null,
+          cert_key: AW_PST_CERT?.thumbprint || '',
+          purpose: 'view',
+          pst_session_id: AW_PST_SESSION?.session_id || '',
+        }),
+      });
+      if (!data.ok) throw new Error(data.errore || 'Anteprima documenti PST non riuscita');
+      awRememberPstSession(data, tribunale, 'view');
+      AW_STATE.pstSnapshot = data.snapshot || null;
+      return (data.snapshot?.documenti || data.documenti || []);
+    })();
+    return await AW_PST_SNAPSHOT_PROMISE;
   } catch (err) {
     if (retry && awIsPstSessionExpiredError(err)) {
-      awClearPstSession();
+      awClearPstSession('view');
       return awPstPreviewViaLocalSigner(selection, false);
     }
     throw err;
+  } finally {
+    AW_PST_SNAPSHOT_PROMISE = null;
   }
 }
 function awMapLocalSignerSearchRows(rows, query) {
@@ -1392,7 +1451,7 @@ function awHasPortalDocumentIdentifier(item) {
 }
 async function awPstDownloadSelectionViaLocalSigner(retry = true) {
   const tribunale = String(AW_STATE.selection?.ufficio_codice || '').trim();
-  await awEnsurePstPortalSession(tribunale);
+  await awEnsurePstPortalSession(tribunale, { purpose: 'import' });
   const options = awCurrentOptions();
   const scaricaOriginale = !!options.scarica_originale_portale;
   const previewDocs = awSelectedPreviewDocuments();
@@ -1425,18 +1484,20 @@ async function awPstDownloadSelectionViaLocalSigner(retry = true) {
         tribunale,
         cf_avvocato: AW_STATE.status.codice_fiscale_avvocato || '',
         cert_thumbprint: AW_PST_CERT?.thumbprint || null,
-        pst_session_id: AW_PST_SESSION?.session_id || '',
+        cert_key: AW_PST_CERT?.thumbprint || '',
+        purpose: 'import',
+        pst_session_id: AW_PST_IMPORT_SESSION?.session_id || '',
         preflight_auth: false,
         original: scaricaOriginale,
         documents,
       }),
     });
     if (!data.ok) throw new Error(data.errore || 'Download batch PST non riuscito');
-    awRememberPstSession(data, tribunale);
+    awRememberPstSession(data, tribunale, 'import');
     return data;
   } catch (err) {
     if (retry && awIsPstSessionExpiredError(err)) {
-      awClearPstSession();
+      awClearPstSession('import');
       return awPstDownloadSelectionViaLocalSigner(false);
     }
     throw err;
@@ -1472,7 +1533,7 @@ function awHideDownloadProgress() {
   if (wrapper) wrapper.style.display = 'none';
 }
 async function awPstDownloadDocumentoSingolo(tribunale, doc, retry = true) {
-  await awEnsurePstPortalSession(tribunale);
+  await awEnsurePstPortalSession(tribunale, { purpose: 'import' });
   const scaricaOriginale = !!awCurrentOptions().scarica_originale_portale;
   try {
     const data = await awJson(`${AW_PST_LS_BASE}/pst/download-documenti-batch`, {
@@ -1481,18 +1542,20 @@ async function awPstDownloadDocumentoSingolo(tribunale, doc, retry = true) {
         tribunale,
         cf_avvocato: AW_STATE.status.codice_fiscale_avvocato || '',
         cert_thumbprint: AW_PST_CERT?.thumbprint || null,
-        pst_session_id: AW_PST_SESSION?.session_id || '',
+        cert_key: AW_PST_CERT?.thumbprint || '',
+        purpose: 'import',
+        pst_session_id: AW_PST_IMPORT_SESSION?.session_id || '',
         preflight_auth: false,
         original: scaricaOriginale,
         documents: [doc],
       }),
     });
-    if (data.pst_session_id) awRememberPstSession(data, tribunale);
+    if (data.pst_session_id) awRememberPstSession(data, tribunale, 'import');
     return data;
   } catch (err) {
     if (retry && awIsPstSessionExpiredError(err)) {
-      awClearPstSession();
-      await awEnsurePstPortalSession(tribunale, { force: true });
+      awClearPstSession('import');
+      await awEnsurePstPortalSession(tribunale, { force: true, purpose: 'import' });
       return awPstDownloadDocumentoSingolo(tribunale, doc, false);
     }
     throw err;
@@ -1805,7 +1868,9 @@ function awRenderAccess() {
   }
   if (status.local_signer_error) note.push(`Local Signer: ${awEscape(status.local_signer_error)}`);
   if (AW_PST_CERT?.soggetto) note.push(`Certificato selezionato: ${awEscape(AW_PST_CERT.soggetto)} (${awEscape(AW_PST_CERT.emittente || '')})`);
-  if (AW_PST_SESSION?.session_id && awHasActivePstSession(AW_PST_SESSION.tribunale || '')) note.push('Sessione PST gia attiva nel browser corrente: il wizard riusera il canale autenticato.');
+  if (AW_PST_SESSION?.session_id && awHasActivePstSession(AW_PST_SESSION.tribunale || '', 'view')) {
+    note.push('Sessione PST di visualizzazione attiva: il PIN non verra richiesto di nuovo durante ricerca, anteprima, selezione, mappatura e verifica.');
+  }
   if (status.last_import_log_id) note.push(`Ultimo import log: ${awEscape(status.last_import_log_id)}`);
   document.getElementById('awAccessNote').innerHTML = note.length ? note.join('<br>') : 'Verifica l\'accesso e continua con la ricerca del fascicolo.';
 }
@@ -1843,6 +1908,7 @@ async function awRunSearch() {
       AW_STATE.preview = null;
       AW_STATE.analysis = null;
       AW_STATE.importResult = null;
+      AW_STATE.pstSnapshot = null;
       awRenderPreview();
       awRenderSelectionOptions();
       awRenderAnalysis();
@@ -1864,6 +1930,7 @@ async function awRunSearch() {
     AW_STATE.preview = null;
     AW_STATE.analysis = null;
     AW_STATE.importResult = null;
+    AW_STATE.pstSnapshot = null;
     awRenderResults();
     awRenderPreview();
     awPostProcessPreviewDom();
@@ -1883,6 +1950,7 @@ async function awRunSearch() {
     AW_STATE.preview = null;
     AW_STATE.analysis = null;
     AW_STATE.importResult = null;
+    AW_STATE.pstSnapshot = null;
     if (awPortaleBrowserOnlyError(err) || awPstRecoverableSearchError(err)) {
       awRenderPreview();
       awRenderSelectionOptions();
@@ -2100,7 +2168,12 @@ async function awApplyLocalSignerDocumentsToPreview(documenti, { tab = 'document
   }
   const data = await awJson(AW_BOOT.previewUrl, {
     method: 'POST',
-    body: JSON.stringify({ selection: cleanSelection, documenti: safeDocuments }),
+    body: JSON.stringify({
+      selection: cleanSelection,
+      documenti: safeDocuments,
+      snapshot: AW_STATE.pstSnapshot || null,
+      pst_session: awCurrentPstSessionPayload(),
+    }),
   });
   if (!data.ok) throw awBuildPortaleError(data, 'Anteprima documenti non disponibile');
   AW_STATE.preview = data.preview || null;
@@ -2146,13 +2219,18 @@ async function awLoadDocumentsFromLocalSigner() {
   }
   document.getElementById('awPreview').insertAdjacentHTML(
     'afterbegin',
-    '<div class="alert alert-info rounded-4 mb-3" id="awDocumentLoadInfo">Sto leggendo il catalogo documenti dal Local Signer locale...</div>',
+    '<div class="alert alert-info rounded-4 mb-3" id="awDocumentLoadInfo">Sto caricando lo snapshot del fascicolo dal Local Signer: catalogo, metadati e sezioni saranno riusati senza reinserire il PIN.</div>',
   );
   try {
     if (!AW_STATE.status.demo_mode) await awRefreshStatus({ force: true, probeSigner: true, light: true });
     await awEnsureLocalSignerReachable({ light: true });
     const documenti = await awPreviewViaLocalSigner(selection);
     await awApplyLocalSignerDocumentsToPreview(documenti, { tab: 'documenti', refreshAnalysis: true });
+    const info = document.getElementById('awDocumentLoadInfo');
+    if (info && Array.isArray(documenti) && documenti.length) {
+      info.className = 'alert alert-success rounded-4 mb-3';
+      info.innerHTML = 'Dati fascicolo caricati in sessione. Puoi navigare tra sezioni, documenti e verifiche senza reinserire il PIN.';
+    }
     if (!Array.isArray(documenti) || !documenti.length) {
       document.getElementById('awPreview').insertAdjacentHTML(
         'afterbegin',
@@ -2425,7 +2503,7 @@ async function awStartImport() {
       };
       state.innerHTML = `<i class="bi bi-check-circle text-success me-1"></i>Upload manuale pronto: ${manualUploadedFiles.length} file selezionati. Importazione in corso...`;
     } else if (AW_BOOT.portale === 'pst' && awShouldImportPortalFiles(options) && selectedDocsCount > 0) {
-      state.innerHTML = 'Apertura sessione PST e scaricamento allegati in corso — inserire il PIN una sola volta se richiesto...';
+      state.innerHTML = 'Per scaricare e importare i documenti reali e richiesta una nuova conferma PIN: verra usata una sola volta per l’intero fascicolo...';
       downloadSummary = await awEnsurePstDownloadedFiles();
       downloadedFiles = Array.isArray(downloadSummary.files) ? downloadSummary.files : [];
       if (AW_STATE.downloadWarning) {
@@ -2469,6 +2547,8 @@ async function awStartImport() {
         mapping: awCurrentMapping(),
         fascicolo_locale_id: awCurrentMapping().target_fascicolo_id || AW_BOOT.initialMapping?.target_fascicolo_id || '',
         downloaded_files: downloadedFiles,
+        pst_session: awCurrentPstSessionPayload(),
+        snapshot: AW_STATE.pstSnapshot || null,
       }
     : {
         selection: AW_STATE.selection,
@@ -2476,6 +2556,8 @@ async function awStartImport() {
         options,
         mapping: awCurrentMapping(),
         downloaded_files: downloadedFiles,
+        pst_session: awCurrentPstSessionPayload(),
+        snapshot: AW_STATE.pstSnapshot || null,
       };
   if (manualAuthorizedPayload) {
     state.innerHTML = 'Normalizzazione del payload autorizzato e importazione nel fascicolo in corso...<br><small class="text-muted">Il contenuto verra smistato in documenti, attivita, udienze, comunicazioni e istanze.</small>';

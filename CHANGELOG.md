@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.184.22 - 2026-04-26
+
+- Stabilizzato il wizard `Importa pratica da PST`: la visualizzazione del fascicolo usa una sola sessione PST `view` riutilizzata tra ricerca, anteprima, selezione, mappatura e verifica.
+- Aggiunto lo snapshot unico Local Signer `/pst/fascicolo-snapshot`, cosi' lo Step 3 carica catalogo, metadati e sezioni in un'unica operazione e gli step successivi non richiamano il PST.
+- Separata la sessione PST di importazione `import`, usata solo allo Step 7 per il download batch dei documenti reali, con lock anti-doppio click e senza salvare il PIN.
+- Aggiornato il Local Signer a `1.6.20` e rigenerati i pacchetti Windows, macOS e Linux in `tools/dist`.
+- Aggiunti test anti-regressione su riuso sessione, scadenza controllata, separazione `view/import`, snapshot unico e wiring del wizard.
+
 ## 2.184.21 - 2026-04-26
 
 - Integrata la Suite professionale completa direttamente in `/template-atti/catalogo`, senza nuovo tab o pagina separata `Master professionale`.

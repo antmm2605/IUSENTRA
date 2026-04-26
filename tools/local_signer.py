@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-IUSENTRA Local Signer - v1.6.19
+IUSENTRA Local Signer - v1.6.20
 
 Servizio HTTP locale (localhost:27272) che firma documenti con smart card e token CNS/CIE
 (o qualsiasi token PKCS#11) e consente l'accesso autenticato al PST.
@@ -31,6 +31,7 @@ API:
     POST /pst/preflight-auth     → verifica certificato + prompt PIN per accesso PST
     POST /pst/ricerca            → ricerca fascicoli PST (curl mTLS Windows)
     POST /pst/documenti          → documenti fascicolo PST (curl mTLS Windows)
+    POST /pst/fascicolo-snapshot → snapshot unico metadati/catalogo fascicolo PST
     POST /pdp/ricerca            → ricerca fascicoli PDP via Aruba Key / Windows cert store
     POST /pdp/documenti          → documenti fascicolo PDP via Aruba Key / Windows cert store
     POST /pat/ricerca            → ricerca fascicoli PAT via Aruba Key / Windows cert store
@@ -107,7 +108,7 @@ from local_signer_mod.server_bootstrap import print_startup_banner  # noqa: E402
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.6.19"
+VERSION = "1.6.20"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
@@ -882,7 +883,8 @@ def _resolve_pst_session_entry(session_id: Optional[str]) -> Optional[dict]:
     if entry:
         return entry
     raise RuntimeError(
-        "Sessione accesso PST scaduta o non disponibile. Esegui di nuovo il test connessione per riaprire il canale autenticato."
+        "session_expired: Sessione accesso PST scaduta o non disponibile. "
+        "Per sicurezza reinserire il PIN una sola volta e riaprire il canale autenticato."
     )
 
 
@@ -1788,6 +1790,42 @@ def _update_pst_session(session_id: str, **updates) -> Optional[dict]:
         return dict(entry)
 
 
+def _pst_datetime_payload(value: Any) -> str:
+    if isinstance(value, datetime):
+        return value.isoformat(timespec="seconds") + "Z"
+    return str(value or "")
+
+
+def _pst_session_response_fields(session_entry: Optional[dict]) -> dict:
+    if not session_entry:
+        return {
+            "pst_session_id": "",
+            "pst_session_ttl_seconds": PST_SESSION_TTL_SECONDS,
+            "pst_session_expires_at": "",
+            "pst_session_purpose": "",
+        }
+    return {
+        "pst_session_id": str(session_entry.get("session_id") or ""),
+        "pst_session_ttl_seconds": PST_SESSION_TTL_SECONDS,
+        "pst_session_expires_at": _pst_datetime_payload(session_entry.get("expires_at")),
+        "pst_session_purpose": str(session_entry.get("purpose") or "view"),
+    }
+
+
+def _pst_session_lock_for(session_entry: Optional[dict]) -> threading.Lock:
+    session_id = str((session_entry or {}).get("session_id") or "").strip()
+    if session_id:
+        with _pst_session_lock:
+            live = _pst_session_cache.get(session_id)
+            if live is not None:
+                lock = live.get("lock")
+                if not hasattr(lock, "acquire"):
+                    lock = threading.Lock()
+                    live["lock"] = lock
+                return lock
+    return threading.Lock()
+
+
 def _create_pst_session(
     *,
     cert_thumbprint: str,
@@ -1795,6 +1833,9 @@ def _create_pst_session(
     base_url: str = "",
     cf_avvocato: str = "",
     cookie_file: Optional[str] = None,
+    purpose: str = "view",
+    cert_key: str = "",
+    cert_preferences: Optional[dict] = None,
 ) -> dict:
     thumbprint = (cert_thumbprint or "").strip()
     if not thumbprint:
@@ -1809,7 +1850,11 @@ def _create_pst_session(
         "tribunale": (tribunale or "").strip(),
         "base_url": (base_url or "").strip(),
         "cf_avvocato": (cf_avvocato or "").strip(),
+        "purpose": (purpose or "view").strip() or "view",
+        "cert_key": (cert_key or cert_thumbprint or "").strip(),
+        "cert_preferences": dict(cert_preferences or {}),
         "cookie_file": _ensure_cookie_file(cookie_file),
+        "lock": threading.Lock(),
         "auth_ready": False,
         "created_at": created_at,
         "last_used_at": created_at,
@@ -1834,6 +1879,49 @@ def _create_pst_session(
     return dict(entry)
 
 
+def _get_or_create_pst_session(
+    *,
+    session_id: str = "",
+    purpose: str = "view",
+    tribunale: str = "",
+    cert_key: str = "",
+    force_new: bool = False,
+    cert_preferences: Optional[dict] = None,
+    base_url: str = "",
+    cf_avvocato: str = "",
+    cert_thumbprint: str = "",
+) -> dict:
+    requested_id = (session_id or "").strip()
+    normalized_purpose = (purpose or "view").strip().lower() or "view"
+    if normalized_purpose not in {"view", "import"}:
+        normalized_purpose = "view"
+
+    if requested_id and not force_new:
+        session_entry = _resolve_pst_session_entry(requested_id)
+        if str(session_entry.get("purpose") or "view").lower() == normalized_purpose:
+            updates = {
+                "tribunale": tribunale,
+                "base_url": base_url,
+                "cf_avvocato": cf_avvocato,
+                "cert_thumbprint": cert_thumbprint,
+                "cert_key": cert_key or cert_thumbprint,
+                "cert_preferences": dict(cert_preferences or {}),
+            }
+            _update_pst_session(session_entry["session_id"], **updates)
+            refreshed = _get_pst_session(session_entry["session_id"])
+            return refreshed or session_entry
+
+    return _create_pst_session(
+        cert_thumbprint=cert_thumbprint or cert_key or "",
+        tribunale=tribunale,
+        base_url=base_url,
+        cf_avvocato=cf_avvocato,
+        purpose=normalized_purpose,
+        cert_key=cert_key or cert_thumbprint or "",
+        cert_preferences=cert_preferences,
+    )
+
+
 def _ensure_pst_session_entry(
     requested_session_id: Optional[str],
     *,
@@ -1841,17 +1929,24 @@ def _ensure_pst_session_entry(
     base_url: str,
     cf_avvocato: str,
     cert_thumbprint: str,
+    purpose: str = "view",
+    force_new: bool = False,
+    cert_key: str = "",
+    cert_preferences: Optional[dict] = None,
 ) -> tuple[dict, bool]:
-    session_entry = _resolve_pst_session_entry(requested_session_id) if requested_session_id else None
-    created = False
-    if not session_entry:
-        session_entry = _create_pst_session(
-            cert_thumbprint=cert_thumbprint or "",
-            tribunale=tribunale,
-            base_url=base_url,
-            cf_avvocato=cf_avvocato,
-        )
-        created = True
+    before_id = (requested_session_id or "").strip()
+    session_entry = _get_or_create_pst_session(
+        session_id=before_id,
+        purpose=purpose,
+        tribunale=tribunale,
+        base_url=base_url,
+        cf_avvocato=cf_avvocato,
+        cert_thumbprint=cert_thumbprint,
+        cert_key=cert_key,
+        cert_preferences=cert_preferences,
+        force_new=force_new,
+    )
+    created = not before_id or before_id != str(session_entry.get("session_id") or "")
     return session_entry, created
 
 
@@ -5681,6 +5776,7 @@ class _Handler(BaseHTTPRequestHandler):
             "/pst/preflight-auth",
             "/pst/ricerca",
             "/pst/documenti",
+            "/pst/fascicolo-snapshot",
             "/pst/download-documenti-batch",
             "/pdp/ricerca",
             "/pdp/documenti",
@@ -5714,6 +5810,8 @@ class _Handler(BaseHTTPRequestHandler):
             self._pst_ricerca()
         elif path == "/pst/documenti":
             self._pst_documenti()
+        elif path == "/pst/fascicolo-snapshot":
+            self._pst_fascicolo_snapshot()
         elif path == "/pdp/ricerca":
             self._pdp_ricerca()
         elif path == "/pdp/documenti":
@@ -6269,7 +6367,7 @@ class _Handler(BaseHTTPRequestHandler):
     def _pst_preflight_auth(self):
         """
         POST /pst/preflight-auth
-        Body: {tribunale, cert_thumbprint?, pst_session_id?}
+        Body: {tribunale, cert_thumbprint?, pst_session_id?, purpose?}
         Response: {ok, http_code, nota, pst_session_id}
         """
         if not _curl_disponibile():
@@ -6286,18 +6384,23 @@ class _Handler(BaseHTTPRequestHandler):
         data = self._read_json()
         tribunale = (data.get("tribunale") or data.get("codice_ufficio") or "").strip()
         requested_session_id = str(data.get("pst_session_id") or "").strip()
+        purpose = str(data.get("purpose") or "view").strip().lower() or "view"
+        if purpose not in {"view", "import"}:
+            purpose = "view"
         session_cleanup_id = requested_session_id
 
         try:
             session_entry = _resolve_pst_session_entry(requested_session_id) if requested_session_id else None
-            if session_entry and not data.get("force_auth"):
+            if session_entry and str(session_entry.get("purpose") or "view").lower() != purpose:
+                session_entry = None
+                session_cleanup_id = ""
+            if session_entry and not data.get("force_auth") and not data.get("force_new"):
                 self._send_json({
                     "ok": True,
                     "tribunale": tribunale or str(session_entry.get("tribunale") or "").strip(),
                     "cached": True,
                     "nota": "Sessione accesso PST gia' attiva nel Local Signer.",
-                    "pst_session_id": session_entry["session_id"],
-                    "pst_session_ttl_seconds": PST_SESSION_TTL_SECONDS,
+                    **_pst_session_response_fields(session_entry),
                 })
                 return
 
@@ -6323,18 +6426,24 @@ class _Handler(BaseHTTPRequestHandler):
                     base_url=base_url,
                     cf_avvocato=cf_avvocato,
                     cert_thumbprint=cert_thumbprint,
+                    purpose=purpose,
+                    force_new=bool(data.get("force_new", False)),
+                    cert_key=str(data.get("cert_key") or cert_thumbprint or ""),
+                    cert_preferences=data.get("cert_preferences") if isinstance(data.get("cert_preferences"), dict) else None,
                 )
                 session_cleanup_id = session_entry["session_id"]
-            esito = _pst_preflight_auth_curl(
-                url=_pst_url_ricerca(base_url),
-                cert_thumbprint=cert_thumbprint,
-                cookie_file=str(session_entry.get("cookie_file") or ""),
-            )
+            with _pst_session_lock_for(session_entry):
+                esito = _pst_preflight_auth_curl(
+                    url=_pst_url_ricerca(base_url),
+                    cert_thumbprint=cert_thumbprint,
+                    cookie_file=str(session_entry.get("cookie_file") or ""),
+                )
             _update_pst_session(
                 session_entry["session_id"],
                 tribunale=tribunale,
                 base_url=base_url,
                 cf_avvocato=cf_avvocato,
+                purpose=purpose,
                 last_http_code=esito.get("http_code"),
                 last_content_type=esito.get("content_type"),
                 auth_ready=True,
@@ -6344,8 +6453,7 @@ class _Handler(BaseHTTPRequestHandler):
                 "tribunale": tribunale,
                 **esito,
                 "cached": False,
-                "pst_session_id": session_entry["session_id"],
-                "pst_session_ttl_seconds": PST_SESSION_TTL_SECONDS,
+                **_pst_session_response_fields(_get_pst_session(session_entry["session_id"], refresh=False) or session_entry),
             })
         except Exception as e:
             if session_cleanup_id:
@@ -6402,17 +6510,21 @@ class _Handler(BaseHTTPRequestHandler):
                 base_url=base_url,
                 cf_avvocato=cf_avvocato,
                 cert_thumbprint=cert_thumbprint,
+                purpose="view",
+                cert_key=str(data.get("cert_key") or cert_thumbprint or ""),
+                cert_preferences=data.get("cert_preferences") if isinstance(data.get("cert_preferences"), dict) else None,
             )
             if session_entry and not cf_avvocato:
                 cf_avvocato = str(session_entry.get("cf_avvocato") or "").strip()
-            session_entry, prefer_cookie_only = _pst_prepare_authenticated_session(
-                session_entry,
-                tribunale=tribunale,
-                base_url=base_url,
-                cf_avvocato=cf_avvocato,
-                cert_thumbprint=cert_thumbprint,
-                force=session_created,
-            )
+            with _pst_session_lock_for(session_entry):
+                session_entry, prefer_cookie_only = _pst_prepare_authenticated_session(
+                    session_entry,
+                    tribunale=tribunale,
+                    base_url=base_url,
+                    cf_avvocato=cf_avvocato,
+                    cert_thumbprint=cert_thumbprint,
+                    force=session_created,
+                )
             cookie_file = str((session_entry or {}).get("cookie_file") or "")
             soap = _soap_ricerca_fascicoli_body(
                 base_url=base_url,
@@ -6491,8 +6603,7 @@ class _Handler(BaseHTTPRequestHandler):
                 "ok": True,
                 "fascicoli": fascicoli,
                 "raw_xml": xml_resp[:2000] if not fascicoli else None,
-                "pst_session_id": str((session_entry or {}).get("session_id") or ""),
-                "pst_session_ttl_seconds": PST_SESSION_TTL_SECONDS,
+                **_pst_session_response_fields(session_entry),
             })
         except Exception as e:
             log.error("Errore PST ricerca: %s", e)
@@ -6548,17 +6659,21 @@ class _Handler(BaseHTTPRequestHandler):
                 base_url=base_url,
                 cf_avvocato=cf_avvocato,
                 cert_thumbprint=cert_thumbprint,
+                purpose="view",
+                cert_key=str(data.get("cert_key") or cert_thumbprint or ""),
+                cert_preferences=data.get("cert_preferences") if isinstance(data.get("cert_preferences"), dict) else None,
             )
             if session_entry and not cf_avvocato:
                 cf_avvocato = str(session_entry.get("cf_avvocato") or "").strip()
-            session_entry, prefer_cookie_only = _pst_prepare_authenticated_session(
-                session_entry,
-                tribunale=codice,
-                base_url=base_url,
-                cf_avvocato=cf_avvocato,
-                cert_thumbprint=cert_thumbprint,
-                force=session_created,
-            )
+            with _pst_session_lock_for(session_entry):
+                session_entry, prefer_cookie_only = _pst_prepare_authenticated_session(
+                    session_entry,
+                    tribunale=codice,
+                    base_url=base_url,
+                    cf_avvocato=cf_avvocato,
+                    cert_thumbprint=cert_thumbprint,
+                    force=session_created,
+                )
             cookie_file = str((session_entry or {}).get("cookie_file") or "")
             soap = _soap_documenti_body(
                 base_url=base_url,
@@ -6608,11 +6723,164 @@ class _Handler(BaseHTTPRequestHandler):
                 "ok": True,
                 "documenti": documenti,
                 "raw_xml": xml_resp[:2000] if not documenti else None,
-                "pst_session_id": str((session_entry or {}).get("session_id") or ""),
-                "pst_session_ttl_seconds": PST_SESSION_TTL_SECONDS,
+                **_pst_session_response_fields(session_entry),
             })
         except Exception as e:
             log.error("Errore PST documenti: %s", e)
+            self._send_json({"ok": False, "errore": str(e)}, 500)
+
+    def _pst_fascicolo_snapshot(self):
+        """
+        POST /pst/fascicolo-snapshot
+        Carica in una sola sessione di visualizzazione il catalogo necessario
+        al wizard: dati pratica e documenti disponibili, senza scaricare file.
+        """
+        if not _curl_disponibile():
+            self._send_json({"ok": False, "errore": "curl non disponibile nel PATH"}, 400)
+            return
+
+        data = self._read_json()
+        selection = data.get("selection") if isinstance(data.get("selection"), dict) else {}
+        codice = str(
+            data.get("codice_ufficio")
+            or data.get("tribunale")
+            or selection.get("ufficio_codice")
+            or ""
+        ).strip()
+        rg = str(data.get("numero_rg") or selection.get("numero") or "").strip()
+        anno = int(data.get("anno_rg") or selection.get("anno") or 0)
+
+        if not (codice and rg and anno):
+            self._send_json({
+                "ok": False,
+                "errore": "Campi obbligatori: codice_ufficio, numero_rg, anno_rg",
+            }, 400)
+            return
+
+        try:
+            base_url = _risolvi_base_pst_runtime(codice)
+            url_documenti = _pst_url_documenti(base_url)
+            codice_pst = _risolvi_codice_ufficio_pst(codice)
+        except Exception as e:
+            self._send_json({"ok": False, "errore": str(e)}, 503)
+            return
+
+        try:
+            requested_session_id = str(data.get("pst_session_id") or "").strip()
+            cert_thumbprint = _require_certificato_pst(data.get("cert_thumbprint"))
+            cf_avvocato = _cf_avvocato_pst(data.get("cf_avvocato", ""), cert_thumbprint)
+            if _pst_namespace_qbuilder(base_url) and not cf_avvocato:
+                raise RuntimeError(
+                    "Impossibile determinare il codice fiscale dell'avvocato dal certificato selezionato.\n"
+                    "Riselezionare il certificato CNS/CIE oppure indicare esplicitamente il codice fiscale."
+                )
+            session_entry, session_created = _ensure_pst_session_entry(
+                requested_session_id,
+                tribunale=codice,
+                base_url=base_url,
+                cf_avvocato=cf_avvocato,
+                cert_thumbprint=cert_thumbprint,
+                purpose="view",
+                cert_key=str(data.get("cert_key") or cert_thumbprint or ""),
+                cert_preferences=data.get("cert_preferences") if isinstance(data.get("cert_preferences"), dict) else None,
+            )
+            if session_entry and not cf_avvocato:
+                cf_avvocato = str(session_entry.get("cf_avvocato") or "").strip()
+
+            with _pst_session_lock_for(session_entry):
+                session_entry, prefer_cookie_only = _pst_prepare_authenticated_session(
+                    session_entry,
+                    tribunale=codice,
+                    base_url=base_url,
+                    cf_avvocato=cf_avvocato,
+                    cert_thumbprint=cert_thumbprint,
+                    force=session_created,
+                )
+                cookie_file = str((session_entry or {}).get("cookie_file") or "")
+                soap = _soap_documenti_body(
+                    base_url=base_url,
+                    codice_ufficio=codice_pst,
+                    numero_rg=rg,
+                    anno_rg=anno,
+                    cf_avvocato=cf_avvocato,
+                    sub_procedimento=str(
+                        data.get("sub_procedimento")
+                        or selection.get("sub_procedimento")
+                        or data.get("subpro")
+                        or ""
+                    ).strip(),
+                )
+                extra_headers = [f"X-WASP-User: {cf_avvocato}"] if _pst_namespace_qbuilder(base_url) else []
+                xml_resp = _soap_call_pst_session(
+                    url=url_documenti,
+                    soap_body=soap,
+                    cert_thumbprint=cert_thumbprint,
+                    extra_headers=extra_headers,
+                    cookie_file=cookie_file,
+                    prefer_cookie_only=prefer_cookie_only,
+                )
+                fault = _estrai_fault_soap(xml_resp)
+                if fault:
+                    raise RuntimeError(f"Il PST ha restituito una SOAP Fault: {fault}")
+                documenti = _parse_documenti_xml(xml_resp)
+                if _pst_servizio_sigp(base_url):
+                    try:
+                        profili_sigp = _sigp_documenti_da_ricerca_atti(
+                            base_url=base_url,
+                            codice_ufficio=codice_pst,
+                            numero_rg=rg,
+                            anno_rg=anno,
+                            cf_avvocato=cf_avvocato,
+                            cert_thumbprint=cert_thumbprint,
+                            cookie_file=cookie_file,
+                            prefer_cookie_only=prefer_cookie_only,
+                        )
+                        documenti = _sigp_merge_documenti_con_profili(documenti, profili_sigp)
+                    except Exception as sigp_error:
+                        log.warning("Arricchimento snapshot SIGP ricercaAtti fallito: %s", sigp_error)
+
+            if session_entry:
+                _update_pst_session(
+                    session_entry["session_id"],
+                    tribunale=codice,
+                    base_url=base_url,
+                    cf_avvocato=cf_avvocato,
+                    auth_ready=True,
+                )
+
+            fascicolo = {
+                "codice_ufficio": codice,
+                "ufficio_codice": codice,
+                "ufficio_nome": selection.get("ufficio_nome") or data.get("ufficio_nome") or "",
+                "numero": rg,
+                "numero_rg": rg,
+                "anno": anno,
+                "anno_rg": anno,
+                "id_fascicolo": selection.get("id_fascicolo") or data.get("id_fascicolo") or "",
+                "procedimento": selection.get("procedimento") or "",
+                "oggetto": selection.get("oggetto") or "",
+                "stato": selection.get("stato") or "",
+                "parti": selection.get("parti") if isinstance(selection.get("parti"), list) else [],
+                "controparti": selection.get("controparti") if isinstance(selection.get("controparti"), list) else [],
+            }
+            snapshot = {
+                "fascicolo": fascicolo,
+                "documenti": documenti,
+                "catalogo": documenti,
+                "depositi": [],
+                "sezioni": {"documenti_fascicolo": documenti},
+                "eventi": [],
+                "parti": fascicolo["parti"],
+            }
+            self._send_json({
+                "ok": True,
+                "snapshot": snapshot,
+                "documenti": documenti,
+                "raw_xml": xml_resp[:2000] if not documenti else None,
+                **_pst_session_response_fields(session_entry),
+            })
+        except Exception as e:
+            log.error("Errore PST snapshot fascicolo: %s", e)
             self._send_json({"ok": False, "errore": str(e)}, 500)
 
     def _pdp_ricerca(self):
@@ -6941,17 +7209,21 @@ class _Handler(BaseHTTPRequestHandler):
                 base_url=base_url,
                 cf_avvocato=cf_avvocato,
                 cert_thumbprint=cert_thumbprint,
+                purpose=str(data.get("purpose") or "import").strip().lower() or "import",
+                cert_key=str(data.get("cert_key") or cert_thumbprint or ""),
+                cert_preferences=data.get("cert_preferences") if isinstance(data.get("cert_preferences"), dict) else None,
             )
             if session_entry and not cf_avvocato:
                 cf_avvocato = str(session_entry.get("cf_avvocato") or "").strip()
-            session_entry, prefer_cookie_only = _pst_prepare_authenticated_session(
-                session_entry,
-                tribunale=tribunale,
-                base_url=base_url,
-                cf_avvocato=cf_avvocato,
-                cert_thumbprint=cert_thumbprint,
-                force=session_created,
-            )
+            with _pst_session_lock_for(session_entry):
+                session_entry, prefer_cookie_only = _pst_prepare_authenticated_session(
+                    session_entry,
+                    tribunale=tribunale,
+                    base_url=base_url,
+                    cf_avvocato=cf_avvocato,
+                    cert_thumbprint=cert_thumbprint,
+                    force=session_created,
+                )
             cookie_file = str((session_entry or {}).get("cookie_file") or "")
             file_payload = _pst_download_documento_payload(
                 base_url=base_url,
@@ -6987,8 +7259,7 @@ class _Handler(BaseHTTPRequestHandler):
             self._send_json({
                 "ok": True,
                 "file": file_payload,
-                "pst_session_id": str((session_entry or {}).get("session_id") or ""),
-                "pst_session_ttl_seconds": PST_SESSION_TTL_SECONDS,
+                **_pst_session_response_fields(session_entry),
             })
         except Exception as e:
             log.error("Errore PST download documento: %s", e)
@@ -7040,31 +7311,35 @@ class _Handler(BaseHTTPRequestHandler):
                 base_url=base_url,
                 cf_avvocato=cf_avvocato,
                 cert_thumbprint=cert_thumbprint,
+                purpose=str(data.get("purpose") or "import").strip().lower() or "import",
+                cert_key=str(data.get("cert_key") or cert_thumbprint or ""),
+                cert_preferences=data.get("cert_preferences") if isinstance(data.get("cert_preferences"), dict) else None,
             )
             if session_entry and not cf_avvocato:
                 cf_avvocato = str(session_entry.get("cf_avvocato") or "").strip()
-            session_entry, _prefer_cookie_only = _pst_prepare_authenticated_session(
-                session_entry,
-                tribunale=tribunale,
-                base_url=base_url,
-                cf_avvocato=cf_avvocato,
-                cert_thumbprint=cert_thumbprint,
-                force=session_created or bool(data.get("preflight_auth", False)),
-            )
-            esito = _pst_download_documenti_batch_payloads(
-                base_url=base_url,
-                codice_ufficio=codice_pst,
-                cert_thumbprint=cert_thumbprint,
-                cf_avvocato=cf_avvocato,
-                documenti=documenti,
-                do_preflight=False,
-                cookie_file=str((session_entry or {}).get("cookie_file") or ""),
-                original=(
-                    data.get("original", False)
-                    if isinstance(data.get("original", False), bool)
-                    else str(data.get("original", False)).strip().lower() not in {"", "0", "false", "no", "off"}
-                ),
-            )
+            with _pst_session_lock_for(session_entry):
+                session_entry, _prefer_cookie_only = _pst_prepare_authenticated_session(
+                    session_entry,
+                    tribunale=tribunale,
+                    base_url=base_url,
+                    cf_avvocato=cf_avvocato,
+                    cert_thumbprint=cert_thumbprint,
+                    force=session_created or bool(data.get("preflight_auth", False)),
+                )
+                esito = _pst_download_documenti_batch_payloads(
+                    base_url=base_url,
+                    codice_ufficio=codice_pst,
+                    cert_thumbprint=cert_thumbprint,
+                    cf_avvocato=cf_avvocato,
+                    documenti=documenti,
+                    do_preflight=False,
+                    cookie_file=str((session_entry or {}).get("cookie_file") or ""),
+                    original=(
+                        data.get("original", False)
+                        if isinstance(data.get("original", False), bool)
+                        else str(data.get("original", False)).strip().lower() not in {"", "0", "false", "no", "off"}
+                    ),
+                )
             if session_entry:
                 _update_pst_session(
                     session_entry["session_id"],
@@ -7073,8 +7348,7 @@ class _Handler(BaseHTTPRequestHandler):
                     cf_avvocato=cf_avvocato,
                     auth_ready=True,
                 )
-                esito["pst_session_id"] = session_entry["session_id"]
-                esito["pst_session_ttl_seconds"] = PST_SESSION_TTL_SECONDS
+                esito.update(_pst_session_response_fields(session_entry))
             self._send_json(esito)
         except Exception as e:
             log.error("Errore PST download batch documenti: %s", e)

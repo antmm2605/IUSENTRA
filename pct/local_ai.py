@@ -2351,16 +2351,66 @@ class LocalAIService:
             lines.extend(self._workspace_section_lines(label, rows))
         return lines
 
+    def _rag_coverage_lines(self, fascicolo: Any, rag_rows: list[dict[str, Any]]) -> list[str]:
+        total_documents = len(list(getattr(fascicolo, "documenti", []) or []))
+        if not rag_rows:
+            return [
+                f"Inventario completo documenti: {total_documents}.",
+                "Estratti RAG selezionati: 0. Se servono fatti documentali, dichiarare il limite senza riempire i vuoti.",
+            ]
+        doc_labels: dict[str, int] = {}
+        for row in rag_rows:
+            label = _clean_spaces(row.get("title") or row.get("document_id") or "Documento")
+            doc_labels[label] = doc_labels.get(label, 0) + 1
+        ordered = sorted(doc_labels.items(), key=lambda item: item[1], reverse=True)
+        preview = ", ".join(f"{label} ({count})" for label, count in ordered[:8])
+        return [
+            f"Inventario completo documenti: {total_documents}.",
+            f"Estratti RAG selezionati: {len(rag_rows)} chunk da {len(doc_labels)} documenti.",
+            f"Documenti piu' richiamati dagli estratti: {preview}.",
+            "Regola: l'inventario dice quali documenti esistono; gli estratti RAG dicono quali passaggi puoi citare testualmente.",
+        ]
+
+    def _compact_citations(self, rag_rows: list[dict[str, Any]], *, max_items: int = 18) -> list[str]:
+        citations: list[str] = []
+        seen: set[tuple[str, str, str, str, str]] = set()
+        for row in rag_rows:
+            citation = _clean_spaces(row.get("citation"))
+            if not citation:
+                continue
+            key = (
+                _clean_spaces(row.get("document_id") or row.get("title") or citation.split(",")[0]).casefold(),
+                _clean_spaces(row.get("page_from")),
+                _clean_spaces(row.get("page_to")),
+                _clean_spaces(row.get("section_type")).casefold(),
+                _clean_spaces(row.get("citation")).split("· chunk", 1)[0].casefold(),
+            )
+            if key in seen:
+                continue
+            seen.add(key)
+            citations.append(citation)
+            if len(citations) >= max_items:
+                break
+        return citations
+
     def _structured_response_requirements(self) -> list[str]:
         return [
-            "Struttura sempre la risposta con queste sezioni e con titoli espliciti:",
-            "1. Fatti rilevanti",
-            "2. Fonti",
-            "3. Warning",
-            "4. Prossimi passi",
-            "Nella sezione 'Fonti' elenca solo fonti davvero usate.",
-            "Nella sezione 'Warning' segnala dati mancanti, verifiche residue e rischi operativi.",
-            "Nella sezione 'Prossimi passi' proponi azioni concrete e ordinate per priorita.",
+            "Schema obbligatorio per l'analisi del fascicolo:",
+            "1. Quadro del fascicolo",
+            "2. Fatti provati dagli atti",
+            "3. Snodi processuali e documentali",
+            "4. Warning operativi",
+            "5. Prossimi passi",
+            "6. Fonti usate",
+            "Regole di qualita' della risposta:",
+            "- Non aprire con frasi meta come 'Ok, ecco', 'Ecco una revisione', 'Spero che sia utile' o simili.",
+            "- Non scrivere placeholder o ipotesi tra parentesi come '(Assumendo che...)', '(Se applicabile)' o '[specificare]'.",
+            "- Ogni fatto processuale deve essere collegato a un documento o dichiarato come dato di inventario non testuale.",
+            "- Se una circostanza non emerge dagli estratti, scrivi 'non emerge dagli estratti disponibili' invece di inventarla.",
+            "- Nella sezione 'Fatti provati dagli atti' usa frasi tipo: 'Da <documento> risulta che ...'.",
+            "- Nella sezione 'Fonti usate' elenca solo le fonti realmente richiamate nella risposta, senza ripetere chunk duplicati.",
+            "- Nella sezione 'Warning operativi' segnala dati mancanti, verifiche residue, incoerenze e rischi processuali.",
+            "- Nella sezione 'Prossimi passi' proponi azioni concrete, ordinate per priorita e collegate al fascicolo.",
         ]
 
     def _fascicolo_snapshot(
@@ -2529,6 +2579,7 @@ class LocalAIService:
                 fascicolo_lines.append("Prossime azioni snapshot:")
                 fascicolo_lines.extend(f"- {item}" for item in snapshot.get("prossime_azioni") or [])
         context = "\n".join(line for line in fascicolo_lines if _clean_spaces(line))
+        rag_coverage = "\n".join(self._rag_coverage_lines(fascicolo, rag_rows))
         rag_context = "\n\n---\n\n".join(
             f"[Fonte {idx + 1}] {row.get('citation')}\n{row.get('text')}"
             for idx, row in enumerate(rag_rows)
@@ -2540,12 +2591,17 @@ class LocalAIService:
                 "Usa solo il contesto fornito. Se il contesto non basta, dichiaralo chiaramente.",
                 "Non inventare norme, date, esiti o documenti mancanti.",
                 "Se citi documenti, usa le citazioni fornite nel contesto.",
+                "La risposta deve sembrare un'analisi di studio, non una bozza generica o una revisione del prompt.",
+                "Non elencare categorie astratte di fonti normative se non sono presenti negli estratti.",
                 "",
                 "Domanda utente:",
                 question.strip(),
                 "",
                 "Contesto fascicolo:",
                 context,
+                "",
+                "Copertura RAG e inventario:",
+                rag_coverage,
                 "",
                 "Contesto documentale RAG:",
                 rag_context,
@@ -2606,7 +2662,7 @@ class LocalAIService:
             "question": question,
             "prompt": prompt,
             "sources": rag_rows,
-            "citations": [row.get("citation") for row in rag_rows if row.get("citation")],
+            "citations": self._compact_citations(rag_rows),
             "indexing": indexing,
             "embedding": embedding,
             "snapshot": snapshot,
@@ -2702,6 +2758,9 @@ class LocalAIService:
         chat_model = str(runtime.get("chat_model") or self._active_model("chat") or "")
         started = time.time()
         response = client.generate(chat_model, str(prepared.get("prompt") or ""), keep_alive=keep_alive)
+        answer = str(response.get("response") or "").strip()
+        if str(prepared.get("query_type") or "") == "fascicolo_ai":
+            answer = self._polish_fascicolo_answer(answer)
         duration_ms = int((time.time() - started) * 1000)
         with self._connect() as conn:
             conn.execute(
@@ -2728,13 +2787,52 @@ class LocalAIService:
         return {
             "ok": True,
             "status": "ready",
-            "answer": str(response.get("response") or "").strip(),
+            "answer": answer,
             "sources": prepared.get("sources") or [],
             "citations": prepared.get("citations") or [],
             "runtime": runtime,
             "indexing": prepared.get("indexing"),
             "embedding": prepared.get("embedding"),
         }
+
+    def _polish_fascicolo_answer(self, answer: str) -> str:
+        text = str(answer or "").strip()
+        if not text:
+            return text
+
+        lines = text.splitlines()
+        while lines and not _clean_spaces(lines[0]):
+            lines.pop(0)
+        if lines and re.match(
+            r"^\s*(ok[,.;:]?\s*)?(ecco|di seguito)\b.*\b(revisione|risposta|struttura|analisi)\b.*$",
+            lines[0],
+            re.IGNORECASE,
+        ):
+            lines.pop(0)
+            while lines and not _clean_spaces(lines[0]):
+                lines.pop(0)
+
+        cleaned = "\n".join(lines).strip()
+        cut_patterns = [
+            r"\n\s*-{3,}\s*\n\s*\*{0,2}Modifiche principali\b",
+            r"\n\s*\*{0,2}Modifiche principali\b",
+            r"\n\s*Spero che\b",
+        ]
+        cut_at: int | None = None
+        for pattern in cut_patterns:
+            match = re.search(pattern, cleaned, flags=re.IGNORECASE)
+            if match and (cut_at is None or match.start() < cut_at):
+                cut_at = match.start()
+        if cut_at is not None:
+            cleaned = cleaned[:cut_at].rstrip()
+
+        filtered_lines = [
+            line
+            for line in cleaned.splitlines()
+            if not re.match(r"^\s*Spero che\b", line, flags=re.IGNORECASE)
+            and not re.match(r"^\s*Come richiesto\b", line, flags=re.IGNORECASE)
+        ]
+        return "\n".join(filtered_lines).strip()
 
     def ask_fascicolo(
         self,

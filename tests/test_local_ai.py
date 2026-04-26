@@ -327,6 +327,77 @@ def test_prepare_fascicolo_query_include_inventari_completi_e_top_k_dinamico(tmp
     assert "Comunicazioni cancelleria da depositi (1):" in prepared["prompt"]
 
 
+def test_prepare_fascicolo_query_impone_analisi_professionale_e_fonti_compatte(tmp_path: Path, monkeypatch):
+    service = _service(tmp_path)
+    monkeypatch.setattr(service, "index_fascicolo_documents", lambda *args, **kwargs: {"indexed": 0, "skipped": 3, "unsupported": 0, "errors": []})
+    monkeypatch.setattr(service, "embed_all_pending_chunks", lambda *args, **kwargs: {"status": "ready", "embedded_total": 0, "pending_remaining": 0})
+
+    def fake_hybrid_search(query, *, practice_id=None, document_id=None, top_k=8):
+        return [
+            {
+                "id": f"chunk-{index}",
+                "document_id": "DOC-CIT",
+                "title": "Citazione_28139218.pdf",
+                "section_type": "corpo",
+                "page_from": 1,
+                "page_to": 16,
+                "text": "Domanda di risoluzione contrattuale e rilascio dell'immobile con richiesta danni.",
+                "citation": f"Citazione_28139218.pdf, pp. 1-16 · corpo · chunk chunk-{index}",
+            }
+            for index in range(1, 8)
+        ] + [
+            {
+                "id": "sentenza-1",
+                "document_id": "DOC-SENT",
+                "title": "SentenzaDefinitiva_33581101.pdf",
+                "section_type": "dispositivo",
+                "page_from": 7,
+                "page_to": 7,
+                "text": "Il dispositivo definisce l'esito della controversia.",
+                "citation": "SentenzaDefinitiva_33581101.pdf, p. 7 · dispositivo · chunk sentenza",
+            }
+        ]
+
+    monkeypatch.setattr(service, "hybrid_search", fake_hybrid_search)
+    fascicolo = SimpleNamespace(
+        id="FASC-PRO",
+        titolo="Montagnese / Stillitano",
+        oggetto="Risoluzione preliminare e restituzione immobile",
+        tribunale="Tribunale di Palmi",
+        numero_rg="1025",
+        anno_rg=2024,
+        controparte="Stillitano Antonella",
+        stato=SimpleNamespace(value="APERTO"),
+        tipo=SimpleNamespace(value="CIVILE"),
+        documenti=[
+            SimpleNamespace(id="DOC-CIT", nome="Citazione_28139218.pdf", titolo="", tipo=SimpleNamespace(value="CITAZIONE"), data_documento="05/09/2024", data_caricamento="", id_deposito_pct="DEP-1"),
+            SimpleNamespace(id="DOC-SENT", nome="SentenzaDefinitiva_33581101.pdf", titolo="", tipo=SimpleNamespace(value="SENTENZA"), data_documento="08/01/2026", data_caricamento="", id_deposito_pct="DEP-2"),
+        ],
+    )
+
+    prepared = service.prepare_fascicolo_query(
+        fascicolo=fascicolo,
+        documents_dir=str(tmp_path / "docs"),
+        question="Analizza il fascicolo e dimmi cosa dobbiamo fare",
+        apps=[],
+        scadenze=[],
+        workspace={"counts": {"documenti": 2, "attivita": 1}},
+        intelligenza={},
+    )
+
+    prompt = prepared["prompt"]
+    assert "Schema obbligatorio per l'analisi del fascicolo:" in prompt
+    assert "1. Quadro del fascicolo" in prompt
+    assert "Fatti provati dagli atti" in prompt
+    assert "Non aprire con frasi meta come 'Ok, ecco'" in prompt
+    assert "non emerge dagli estratti disponibili" in prompt
+    assert "Estratti RAG selezionati: 8 chunk da 2 documenti." in prompt
+    assert prepared["citations"] == [
+        "Citazione_28139218.pdf, pp. 1-16 · corpo · chunk chunk-1",
+        "SentenzaDefinitiva_33581101.pdf, p. 7 · dispositivo · chunk sentenza",
+    ]
+
+
 def test_local_ai_index_file_supporta_p7m_con_payload_estratto(tmp_path: Path, monkeypatch):
     service = _service(tmp_path)
     document_path = tmp_path / "memoria.pdf.p7m"
@@ -570,6 +641,62 @@ def test_local_ai_ask_fascicolo_builds_context_and_returns_answer(tmp_path: Path
     assert "Atto di opposizione" in captured["prompt"]
     assert "Scadenza memoria 183 in arrivo" in captured["prompt"]
     assert result["answer"].startswith("Risposta operativa")
+
+
+def test_local_ai_ask_fascicolo_rimuove_meta_risposta_generica(tmp_path: Path, monkeypatch):
+    service = _service(tmp_path)
+
+    class DummyClient:
+        def generate(self, model_name, prompt, keep_alive="10m"):
+            return {
+                "response": (
+                    "Ok, ecco una revisione della struttura e del contenuto della risposta.\n\n"
+                    "**1. Quadro del fascicolo**\n"
+                    "Da Citazione_28139218.pdf risulta una domanda di risoluzione e rilascio.\n\n"
+                    "---\n\n"
+                    "**Modifiche Principali e Ragionamenti:**\n"
+                    "Ho migliorato la struttura.\n\n"
+                    "Spero che questa revisione sia utile."
+                ),
+                "load_duration": 1,
+                "prompt_eval_count": 4,
+                "eval_count": 12,
+            }
+
+    monkeypatch.setattr(service, "bootstrap_runtime", lambda force=False: {"status": "ready", "chat_model": "gemma3:1b"})
+    monkeypatch.setattr(service, "index_fascicolo_documents", lambda *args, **kwargs: {"indexed": 0, "skipped": 0, "unsupported": 0, "errors": []})
+    monkeypatch.setattr(service, "embed_all_pending_chunks", lambda *args, **kwargs: {"status": "ready", "embedded_total": 0, "pending_remaining": 0})
+    monkeypatch.setattr(service, "hybrid_search", lambda *args, **kwargs: [])
+    monkeypatch.setattr(service, "_ollama_client", lambda settings=None: DummyClient())
+
+    fascicolo = SimpleNamespace(
+        id="F1",
+        titolo="Fascicolo test",
+        oggetto="Risoluzione contratto",
+        tribunale="Tribunale di Palmi",
+        numero_rg="1025",
+        anno_rg=2024,
+        controparte="Stillitano",
+        stato=SimpleNamespace(value="APERTO"),
+        tipo=SimpleNamespace(value="CIVILE"),
+        documenti=[],
+    )
+
+    result = service.ask_fascicolo(
+        fascicolo=fascicolo,
+        documents_dir=str(tmp_path / "docs"),
+        question="Analizza il fascicolo",
+        apps=[],
+        scadenze=[],
+        workspace={},
+        intelligenza={},
+    )
+
+    assert result["ok"] is True
+    assert result["answer"].startswith("**1. Quadro del fascicolo**")
+    assert "Ok, ecco" not in result["answer"]
+    assert "Modifiche Principali" not in result["answer"]
+    assert "Spero che" not in result["answer"]
 
 
 def test_api_local_ai_status_and_fascicolo_ai(tmp_path: Path, monkeypatch):

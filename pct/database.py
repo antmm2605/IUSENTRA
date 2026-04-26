@@ -267,6 +267,13 @@ CREATE TABLE IF NOT EXISTS preventivi_records (
     canale_operativo              TEXT NOT NULL DEFAULT '',
     registro_operativo            TEXT NOT NULL DEFAULT '',
     classificazioni_tassonomiche_json TEXT NOT NULL DEFAULT '[]',
+    criterio_arrotondamento_orario TEXT NOT NULL DEFAULT '',
+    minuti_stimati                INTEGER NOT NULL DEFAULT 0,
+    ore_fatturabili_calcolate     REAL NOT NULL DEFAULT 0,
+    compenso_orario_base          REAL NOT NULL DEFAULT 0,
+    massimale_ore                 REAL NOT NULL DEFAULT 0,
+    soglia_preapprovazione_ore    REAL NOT NULL DEFAULT 0,
+    warning_compenso_orario_json  TEXT NOT NULL DEFAULT '[]',
     totale                        REAL NOT NULL DEFAULT 0,
     accettato_il                  TEXT,
     id_preventivo_precedente      TEXT NOT NULL DEFAULT '',
@@ -297,6 +304,10 @@ CREATE TABLE IF NOT EXISTS conferimenti_records (
     canale_operativo              TEXT NOT NULL DEFAULT '',
     registro_operativo            TEXT NOT NULL DEFAULT '',
     classificazioni_tassonomiche_json TEXT NOT NULL DEFAULT '[]',
+    criterio_arrotondamento_orario TEXT NOT NULL DEFAULT '',
+    massimale_ore                 REAL NOT NULL DEFAULT 0,
+    soglia_preapprovazione_ore    REAL NOT NULL DEFAULT 0,
+    warning_compenso_orario_json  TEXT NOT NULL DEFAULT '[]',
     compenso_pattuito             REAL NOT NULL DEFAULT 0,
     firma_cliente_eseguita        INTEGER NOT NULL DEFAULT 0,
     fascicolo_aperto_il           TEXT,
@@ -1066,6 +1077,17 @@ class GestioneDatabase:
             for ddl in (
                 "ALTER TABLE preventivi_records ADD COLUMN classificazioni_tassonomiche_json TEXT NOT NULL DEFAULT '[]'",
                 "ALTER TABLE conferimenti_records ADD COLUMN classificazioni_tassonomiche_json TEXT NOT NULL DEFAULT '[]'",
+                "ALTER TABLE preventivi_records ADD COLUMN criterio_arrotondamento_orario TEXT NOT NULL DEFAULT ''",
+                "ALTER TABLE preventivi_records ADD COLUMN minuti_stimati INTEGER NOT NULL DEFAULT 0",
+                "ALTER TABLE preventivi_records ADD COLUMN ore_fatturabili_calcolate REAL NOT NULL DEFAULT 0",
+                "ALTER TABLE preventivi_records ADD COLUMN compenso_orario_base REAL NOT NULL DEFAULT 0",
+                "ALTER TABLE preventivi_records ADD COLUMN massimale_ore REAL NOT NULL DEFAULT 0",
+                "ALTER TABLE preventivi_records ADD COLUMN soglia_preapprovazione_ore REAL NOT NULL DEFAULT 0",
+                "ALTER TABLE preventivi_records ADD COLUMN warning_compenso_orario_json TEXT NOT NULL DEFAULT '[]'",
+                "ALTER TABLE conferimenti_records ADD COLUMN criterio_arrotondamento_orario TEXT NOT NULL DEFAULT ''",
+                "ALTER TABLE conferimenti_records ADD COLUMN massimale_ore REAL NOT NULL DEFAULT 0",
+                "ALTER TABLE conferimenti_records ADD COLUMN soglia_preapprovazione_ore REAL NOT NULL DEFAULT 0",
+                "ALTER TABLE conferimenti_records ADD COLUMN warning_compenso_orario_json TEXT NOT NULL DEFAULT '[]'",
             ):
                 try:
                     conn.execute(ddl)
@@ -1322,9 +1344,12 @@ class GestioneDatabase:
                             (preventivo_id, numero, id_cliente, id_fascicolo, data_emissione, data_scadenza,
                              oggetto, stato, workflow_channel, tipo_compenso, tipo_procedimento,
                              area_pratica, id_pratica, procedura_operativa_codice, procedura_operativa_nome,
-                             canale_operativo, registro_operativo, classificazioni_tassonomiche_json, totale, accettato_il,
+                             canale_operativo, registro_operativo, classificazioni_tassonomiche_json,
+                             criterio_arrotondamento_orario, minuti_stimati, ore_fatturabili_calcolate,
+                             compenso_orario_base, massimale_ore, soglia_preapprovazione_ore,
+                             warning_compenso_orario_json, totale, accettato_il,
                              id_preventivo_precedente, token_portale, creato_il, dati_json)
-                            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
                             """,
                             (
                                 preventivo.get("id"),
@@ -1348,6 +1373,13 @@ class GestioneDatabase:
                                     preventivo.get("classificazioni_tassonomiche") or [],
                                     ensure_ascii=False,
                                 ),
+                                preventivo.get("criterio_arrotondamento_orario", ""),
+                                int(preventivo.get("minuti_stimati", 0) or 0),
+                                float(preventivo.get("ore_fatturabili_calcolate", 0.0) or 0.0),
+                                float(preventivo.get("compenso_orario_base", 0.0) or 0.0),
+                                float(preventivo.get("massimale_ore", 0.0) or 0.0),
+                                float(preventivo.get("soglia_preapprovazione_ore", 0.0) or 0.0),
+                                json.dumps(preventivo.get("warning_compenso_orario") or [], ensure_ascii=False),
                                 totale,
                                 preventivo.get("accettato_il", ""),
                                 preventivo.get("id_preventivo_precedente", ""),
@@ -1388,8 +1420,10 @@ class GestioneDatabase:
                              tipo_procedimento, area_pratica, id_pratica, procedura_operativa_codice,
                              procedura_operativa_nome, canale_operativo, registro_operativo,
                              classificazioni_tassonomiche_json,
+                             criterio_arrotondamento_orario, massimale_ore, soglia_preapprovazione_ore,
+                             warning_compenso_orario_json,
                              compenso_pattuito, firma_cliente_eseguita, fascicolo_aperto_il, dati_json)
-                            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
                             """,
                             (
                                 conferimento.get("id"),
@@ -1413,6 +1447,10 @@ class GestioneDatabase:
                                     conferimento.get("classificazioni_tassonomiche") or [],
                                     ensure_ascii=False,
                                 ),
+                                conferimento.get("criterio_arrotondamento_orario", ""),
+                                float(conferimento.get("massimale_ore", 0.0) or 0.0),
+                                float(conferimento.get("soglia_preapprovazione_ore", 0.0) or 0.0),
+                                json.dumps(conferimento.get("warning_compenso_orario") or [], ensure_ascii=False),
                                 float(conferimento.get("compenso_pattuito", 0.0) or 0.0),
                                 1 if conferimento.get("firma_cliente_eseguita") else 0,
                                 conferimento.get("fascicolo_aperto_il", ""),

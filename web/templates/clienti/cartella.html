@@ -808,6 +808,26 @@
                 </div>
                 <div class="fw-bold text-primary">€ {{ "%.2f"|format(p.totale) }}</div>
                 {% if p.note %}<div class="text-muted small mt-1">{{ p.note }}</div>{% endif %}
+                <div class="d-flex flex-wrap gap-1 mt-2">
+                  {% if p.stato.value == 'ACCETTATO' %}
+                  <span class="badge text-bg-success">preventivo accettato</span>
+                  {% endif %}
+                  {% if cliente.stato.value == 'POTENZIALE' %}
+                  <span class="badge text-bg-warning">anagrafica da completare</span>
+                  {% endif %}
+                  <a href="{{ url_for('preventivi.dettaglio_preventivo', id_preventivo=p.id) }}" class="btn btn-sm btn-outline-primary">
+                    Apri preventivo
+                  </a>
+                  <a href="{{ url_for('modifica_cliente', id_cliente=cliente.id, next_url=url_for('preventivi.nuovo_conferimento', id_cliente=cliente.id, id_preventivo=p.id, from_page='cliente')) }}" class="btn btn-sm btn-outline-warning">
+                    Completa anagrafica
+                  </a>
+                  <a href="{{ url_for('preventivi.nuovo_conferimento', id_cliente=cliente.id, id_preventivo=p.id, from_page='cliente') }}" class="btn btn-sm btn-outline-success">
+                    Crea conferimento
+                  </a>
+                  <a href="{{ url_for('preventivi.wizard', id_cliente=cliente.id, from_page='cliente', oggetto=p.oggetto) }}" class="btn btn-sm btn-outline-secondary">
+                    Crea revisione
+                  </a>
+                </div>
                 <div class="d-flex flex-wrap gap-2 mt-2">
                   {% if p.stato.value == 'ACCETTATO' and p.id not in preventivi_con_conferimento %}
                   <a href="{{ url_for('preventivi.nuovo_conferimento', id_cliente=cliente.id) }}?id_preventivo={{ p.id }}&from_page=cliente"

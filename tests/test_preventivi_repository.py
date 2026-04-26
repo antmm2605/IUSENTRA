@@ -6,6 +6,7 @@ from pathlib import Path
 from flask import Flask
 
 from pct.preventivi import GestionePreventivi, TipoVoce, VocePreventivo
+from pct.compensi_a_tempo import COMPENSO_A_TEMPO_CODE
 from web.services.assistente_studio_context import _preventivi_lines
 
 
@@ -86,6 +87,56 @@ def test_preventivi_repository_tracks_conferimento_and_next_actions(tmp_path):
     assert record["next_action"] == "Raccogli la firma del conferimento."
     assert conferimento["next_action"] == "Raccogli la firma cliente sul conferimento."
     assert any("Firma cliente ancora da raccogliere." == item for item in conferimento["warning"])
+
+
+def test_preventivi_repository_salva_campi_compenso_a_tempo_e_conferimento(tmp_path):
+    gestore = _build_gestore(tmp_path)
+    preventivo = gestore.crea_preventivo(
+        id_cliente="cli-tempo",
+        oggetto="Consulenza continuativa a tempo",
+        voci=[VocePreventivo(descrizione="Compenso art. 22-bis", importo=1500.0, tipo=TipoVoce.ONORARIO)],
+        creato_da="avv.rossi",
+        tipo_compenso=COMPENSO_A_TEMPO_CODE,
+        tariffa_oraria=250.0,
+        ore_stimate=5.0,
+        minuti_stimati=45,
+        criterio_arrotondamento_orario="ora_frazione_oltre_30",
+        ore_fatturabili_calcolate=6.0,
+        compenso_orario_base=1500.0,
+        massimale_ore=12.0,
+        soglia_preapprovazione_ore=8.0,
+        attivita_orarie_incluse="studio pratica; riunioni",
+        attivita_orarie_escluse="trasferte",
+        warning_compenso_orario=["Tariffa fuori range solo a scopo test"],
+    )
+
+    payload = gestore.repository_payload()
+    record = next(row for row in payload["preventivi"] if row["preventivo_id"] == preventivo.id)
+
+    assert record["tipo_compenso"] == COMPENSO_A_TEMPO_CODE
+    assert record["criterio_arrotondamento_orario"] == "ora_frazione_oltre_30"
+    assert record["minuti_stimati"] == 45
+    assert record["ore_fatturabili_calcolate"] == 6.0
+    assert record["compenso_orario_base"] == 1500.0
+    assert record["massimale_ore"] == 12.0
+    assert record["soglia_preapprovazione_ore"] == 8.0
+    assert record["warning_compenso_orario"] == ["Tariffa fuori range solo a scopo test"]
+
+    gestore.registra_accettazione_preventivo(
+        preventivo.id,
+        workflow_channel="STUDIO",
+        via="FIRMA_CARTACEA",
+        auto_crea_conferimento=True,
+        avvocato_referente="Avv. Rossi",
+    )
+    payload = gestore.repository_payload()
+    conferimento = next(row for row in payload["conferimenti"] if row["id_preventivo"] == preventivo.id)
+
+    assert conferimento["tipo_compenso"] == COMPENSO_A_TEMPO_CODE
+    assert conferimento["criterio_arrotondamento_orario"] == "ora_frazione_oltre_30"
+    assert conferimento["massimale_ore"] == 12.0
+    assert conferimento["soglia_preapprovazione_ore"] == 8.0
+    assert conferimento["warning_compenso_orario"] == ["Tariffa fuori range solo a scopo test"]
 
 
 def test_preventivi_lines_expose_repository_context_for_lex(tmp_path):

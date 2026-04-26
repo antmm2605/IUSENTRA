@@ -1065,6 +1065,49 @@
                        value="{{ cliente_sel.avvocato_referente if cliente_sel and cliente_sel.avvocato_referente else '' }}"
                        placeholder="Avv. referente">
               </div>
+              <div class="col-12" id="cardWizardCompensoTempo" style="display:none">
+                <div class="border rounded-4 bg-info-subtle p-3">
+                  <div class="d-flex flex-wrap justify-content-between gap-2 mb-2">
+                    <div>
+                      <div class="fw-semibold"><i class="bi bi-clock-history me-1"></i>Compenso a tempo ex art. 22-bis D.M. 55/2014</div>
+                      <div class="small text-muted">Parametro indicativo: EUR 200-500 per ora o frazione superiore a 30 minuti. Richiede pattuizione espressa con il cliente.</div>
+                    </div>
+                    <span class="badge bg-info text-dark align-self-start">accordo scritto consigliato</span>
+                  </div>
+                  <div class="row g-2">
+                    <div class="col-md-3">
+                      <label class="form-label fw-semibold">Minuti stimati</label>
+                      <input type="number" name="minuti_stimati" id="inpMinutiStimati" class="form-control" min="0" step="1" value="0">
+                    </div>
+                    <div class="col-md-3">
+                      <label class="form-label fw-semibold">Criterio</label>
+                      <select name="criterio_arrotondamento_orario" id="selCriterioOrario" class="form-select">
+                        <option value="ora_frazione_oltre_30" selected>Ora/frazione oltre 30 minuti</option>
+                        <option value="effettivo_minuti">Tempo effettivo</option>
+                        <option value="scatti_15">Scatti 15 minuti</option>
+                        <option value="scatti_30">Scatti 30 minuti</option>
+                      </select>
+                    </div>
+                    <div class="col-md-3">
+                      <label class="form-label fw-semibold">Massimale ore</label>
+                      <input type="number" name="massimale_ore" id="inpMassimaleOre" class="form-control" min="0" step="0.5" placeholder="0 = non impostato">
+                    </div>
+                    <div class="col-md-3">
+                      <label class="form-label fw-semibold">Soglia preapprovazione</label>
+                      <input type="number" name="soglia_preapprovazione_ore" id="inpSogliaOre" class="form-control" min="0" step="0.5" placeholder="0 = non impostata">
+                    </div>
+                    <div class="col-md-6">
+                      <label class="form-label fw-semibold">Attivita incluse</label>
+                      <textarea name="attivita_orarie_incluse" id="txtAttivitaIncluse" class="form-control" rows="2" placeholder="Studio atti, incontri, redazione, telefonate operative"></textarea>
+                    </div>
+                    <div class="col-md-6">
+                      <label class="form-label fw-semibold">Attivita escluse</label>
+                      <textarea name="attivita_orarie_escluse" id="txtAttivitaEscluse" class="form-control" rows="2" placeholder="Trasferte, anticipazioni, domiciliazioni, spese vive"></textarea>
+                    </div>
+                  </div>
+                  <div class="small mt-2" id="wizardCompensoTempoPreview">La preview si aggiorna appena inserisci tariffa e tempo stimato.</div>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -1345,6 +1388,9 @@
               <div class="small text-muted">Totale</div>
               <div class="value" id="kpiTotale">€ 0,00</div>
             </div>
+          </div>
+          <div class="border rounded-3 bg-light p-2 small" id="summaryCompensoTempo" style="display:none">
+            Compenso a tempo non ancora calcolato.
           </div>
           <div class="accordion prev-summary-accordion" id="summaryAccordion">
             <div class="accordion-item">
@@ -2289,8 +2335,78 @@ function normalizeCompensoType(value) {
   const raw = String(value || '').toLowerCase();
   if (raw.includes('unico')) return 'Compenso unico';
   if (raw.includes('fisso')) return 'Compenso fisso';
-  if (raw.includes('orario')) return 'Compenso orario';
+  if (raw.includes('orario') || raw.includes('tempo') || raw.includes('a ore') || raw.includes('compenso_a_tempo_dm55_art22bis')) return 'Compenso orario';
   return 'Per fasi processuali';
+}
+
+function isCompensoATempoTipologia(value) {
+  const raw = String(value || '').toLowerCase();
+  return raw.includes('orario')
+    || raw.includes('tempo')
+    || raw.includes('a ore')
+    || raw.includes('compenso_a_tempo_dm55_art22bis');
+}
+
+function oreFatturabiliArt22Bis(totalMinutes, criterio) {
+  if (totalMinutes <= 0) return 0;
+  if (criterio === 'effettivo_minuti') return totalMinutes / 60;
+  if (criterio === 'scatti_15') return Math.ceil(totalMinutes / 15) * 15 / 60;
+  if (criterio === 'scatti_30') return Math.ceil(totalMinutes / 30) * 30 / 60;
+  const oreIntere = Math.floor(totalMinutes / 60);
+  const resto = totalMinutes % 60;
+  return oreIntere + (resto > 30 ? 1 : 0);
+}
+
+function currentCompensoATempoPayload() {
+  const tariffa = parseLocaleNumber(document.getElementById('inpTariffaOraria')?.value || 0);
+  const ore = parseLocaleNumber(document.getElementById('inpOreStimate')?.value || 0);
+  const minutiExtra = parseInt(document.getElementById('inpMinutiStimati')?.value || '0', 10) || 0;
+  const criterio = document.getElementById('selCriterioOrario')?.value || 'ora_frazione_oltre_30';
+  const totalMinutes = Math.max(0, Math.round(ore * 60) + Math.max(0, minutiExtra));
+  const oreFatturabili = oreFatturabiliArt22Bis(totalMinutes, criterio);
+  const warnings = [];
+  if (tariffa > 0 && tariffa < 200) warnings.push('Tariffa sotto il parametro indicativo di EUR 200/ora.');
+  if (tariffa > 500) warnings.push('Tariffa sopra il parametro indicativo di EUR 500/ora.');
+  return {
+    source: 'COMPENSO_A_TEMPO_DM55_ART22BIS',
+    source_label: 'Compenso a tempo ex art. 22-bis D.M. 55/2014',
+    fonte_normativa: 'Art. 22-bis D.M. 55/2014, introdotto dal D.M. 147/2022',
+    tariffa_oraria: tariffa,
+    totale_minuti: totalMinutes,
+    ore_fatturabili: oreFatturabili,
+    criterio_arrotondamento: criterio,
+    compenso_base: tariffa * oreFatturabili,
+    warnings,
+  };
+}
+
+function syncCompensoTempoUi() {
+  const attivo = isCompensoATempoTipologia(tipologiaCorrente?.tipo_compenso_default || document.getElementById('inpTipoCompenso')?.value || '');
+  const card = document.getElementById('cardWizardCompensoTempo');
+  const summary = document.getElementById('summaryCompensoTempo');
+  if (card) card.style.display = attivo ? '' : 'none';
+  if (!summary) return;
+  if (!attivo) {
+    summary.style.display = 'none';
+    return;
+  }
+  const payload = currentCompensoATempoPayload();
+  const valid = payload.tariffa_oraria > 0 && payload.totale_minuti > 0;
+  summary.style.display = '';
+  summary.innerHTML = valid ? `
+    <div class="fw-semibold mb-1">Compenso a tempo art. 22-bis</div>
+    <div>Tariffa: ${money(payload.tariffa_oraria)} / ora</div>
+    <div>Tempo: ${payload.totale_minuti.toLocaleString('it-IT')} minuti - ${payload.ore_fatturabili.toLocaleString('it-IT')} ore fatturabili</div>
+    <div>Criterio: ${escapeHtml(payload.criterio_arrotondamento)}</div>
+    <div class="fw-semibold">Base: ${money(payload.compenso_base)}</div>
+    ${payload.warnings.length ? `<div class="text-warning mt-1">${escapeHtml(payload.warnings.join(' '))}</div>` : '<div class="text-success mt-1">Parametro nel range indicativo EUR 200-500.</div>'}
+  ` : 'Compenso a tempo: inserisci tariffa e ore/minuti stimati.';
+  const preview = document.getElementById('wizardCompensoTempoPreview');
+  if (preview) {
+    preview.innerHTML = valid
+      ? `Ore fatturabili: <b>${payload.ore_fatturabili.toLocaleString('it-IT')}</b> - Compenso base: <b>${money(payload.compenso_base)}</b>${payload.warnings.length ? `<div class="text-warning">${escapeHtml(payload.warnings.join(' '))}</div>` : ''}`
+      : 'La preview si aggiorna appena inserisci tariffa e tempo stimato.';
+  }
 }
 
 function matchesCompensoFilter(item) {
@@ -2605,6 +2721,7 @@ function resetTipologiaSelection() {
   document.getElementById('inpRegistroOperativo').value = '';
   document.getElementById('inpTipoCompenso').value = '';
   document.getElementById('inpTipoProcedimento').value = '';
+  syncCompensoTempoUi();
   renderTipologie();
   renderSchedaTipologia();
   renderFasi();
@@ -3020,6 +3137,7 @@ function selezionaTipologia(idTipologia, { autoAdvance = false } = {}) {
   document.getElementById('inpAreaPratica').value = tipologiaCorrente.area || areaCorrente;
   document.getElementById('inpTipoCompenso').value = tipologiaCorrente.tipo_compenso_default;
   document.getElementById('inpTipoProcedimento').value = tipologiaCorrente.label;
+  syncCompensoTempoUi();
   applyTaxonomyFromPractice(tipologiaCorrente);
   const selRegolaTariffaria = document.getElementById('selRegolaTariffaria');
   const selGrado = document.getElementById('selGrado');
@@ -3519,6 +3637,24 @@ function applyWizardPrefill() {
   if (WIZARD_PREFILL.ore_stimate) {
     document.getElementById('inpOreStimate').value = WIZARD_PREFILL.ore_stimate;
   }
+  if (WIZARD_PREFILL.minuti_stimati) {
+    document.getElementById('inpMinutiStimati').value = WIZARD_PREFILL.minuti_stimati;
+  }
+  if (WIZARD_PREFILL.criterio_arrotondamento_orario) {
+    document.getElementById('selCriterioOrario').value = WIZARD_PREFILL.criterio_arrotondamento_orario;
+  }
+  if (WIZARD_PREFILL.massimale_ore) {
+    document.getElementById('inpMassimaleOre').value = WIZARD_PREFILL.massimale_ore;
+  }
+  if (WIZARD_PREFILL.soglia_preapprovazione_ore) {
+    document.getElementById('inpSogliaOre').value = WIZARD_PREFILL.soglia_preapprovazione_ore;
+  }
+  if (WIZARD_PREFILL.attivita_orarie_incluse) {
+    document.getElementById('txtAttivitaIncluse').value = WIZARD_PREFILL.attivita_orarie_incluse;
+  }
+  if (WIZARD_PREFILL.attivita_orarie_escluse) {
+    document.getElementById('txtAttivitaEscluse').value = WIZARD_PREFILL.attivita_orarie_escluse;
+  }
   if (WIZARD_PREFILL.anticipazioni) {
     document.getElementById('inpAnticipazioni').value = WIZARD_PREFILL.anticipazioni;
   }
@@ -3591,6 +3727,7 @@ function applyWizardPrefill() {
   prefillApplicato = true;
   syncTipoProcedimentoHidden();
   syncClassificazioniTassonomicheHidden();
+  syncCompensoTempoUi();
   recalcTotals();
 
   if (WIZARD_PREFILL.auto_calcola && tipologiaCorrente) {
@@ -3884,6 +4021,7 @@ function buildEconomicLogPayload() {
       ...(tipologiaCorrente?.tassonomia_sources || []),
       ...classificazioniExtra.flatMap((row) => getTipologiaById(row.tipologia_pratica_id)?.tassonomia_sources || []),
     ]).map((row) => `${row.title || ''}${row.article ? ' — ' + row.article : ''}`.trim()),
+    compenso_a_tempo: isCompensoATempoTipologia(document.getElementById('inpTipoCompenso').value || '') ? currentCompensoATempoPayload() : {},
     risultato: ultimoCalcolo || {},
   };
 }
@@ -3974,13 +4112,20 @@ function renderRisultato(data) {
 }
 
 function renderRisultatoOrario() {
-  const tariffa = parseLocaleNumber(document.getElementById('inpTariffaOraria').value || 0);
-  const ore = parseLocaleNumber(document.getElementById('inpOreStimate').value || 0);
-  const imponibile = tariffa * ore;
+  const payload = currentCompensoATempoPayload();
+  const tariffa = payload.tariffa_oraria;
+  const ore = payload.ore_fatturabili;
+  const imponibile = payload.compenso_base;
   setAnticipazioniExtra('spese-generali-main', 0);
-  ultimoCalcolo = { onorario_base: imponibile, totale: imponibile, scaglione: 'Compenso orario pattuito' };
+  ultimoCalcolo = {
+    onorario_base: imponibile,
+    totale: imponibile,
+    scaglione: 'Compenso a tempo art. 22-bis D.M. 55/2014',
+    compenso_a_tempo: payload,
+  };
   document.getElementById('kpiCompenso').textContent = money(imponibile);
-  upsertVocePrincipale(`Compenso orario per ${tipologiaCorrente.label} (${ore.toLocaleString('it-IT')} ore x ${money(tariffa)})`, imponibile);
+  upsertVocePrincipale(`Compenso a tempo ex art. 22-bis D.M. 55/2014 per ${tipologiaCorrente.label} (${ore.toLocaleString('it-IT')} ore fatturabili x ${money(tariffa)})`, imponibile);
+  syncCompensoTempoUi();
   recalcTotals();
   setWizardStep('wizardStep4Collapse', true);
   scrollWizardSection('wizardStep4Collapse');
@@ -4090,13 +4235,12 @@ async function calcolaPreventivo(options = {}) {
     scrollToWizardStatus();
     return false;
   }
-  const tipoCompenso = (tipologiaCorrente.tipo_compenso_default || '').toLowerCase();
-  if (tipoCompenso.includes('orario')) {
-    const tariffa = parseLocaleNumber(document.getElementById('inpTariffaOraria').value || 0);
-    const ore = parseLocaleNumber(document.getElementById('inpOreStimate').value || 0);
-    if (tariffa > 0 && ore > 0) {
+  const tipoCompenso = tipologiaCorrente.tipo_compenso_default || '';
+  if (isCompensoATempoTipologia(tipoCompenso)) {
+    const payload = currentCompensoATempoPayload();
+    if (payload.tariffa_oraria > 0 && payload.totale_minuti > 0) {
       renderRisultatoOrario();
-      setWizardStatus('success', 'Bozza aggiornata con il compenso orario pattuito.', { autoHideMs: 2800 });
+      setWizardStatus('success', 'Bozza aggiornata con il compenso a tempo art. 22-bis.', { autoHideMs: 2800 });
       return true;
     }
   }
@@ -4273,6 +4417,16 @@ document.addEventListener('DOMContentLoaded', async () => {
   bindLocalizedMoneyField('inpValore');
   bindLocalizedMoneyField('inpTariffaOraria');
   bindLocalizedMoneyField('inpAnticipazioni');
+  ['inpTariffaOraria', 'inpOreStimate', 'inpMinutiStimati', 'selCriterioOrario', 'inpMassimaleOre', 'inpSogliaOre'].forEach((id) => {
+    const node = document.getElementById(id);
+    if (!node) return;
+    const handler = () => {
+      syncCompensoTempoUi();
+      syncCalcoloHiddenFields();
+    };
+    node.addEventListener('input', handler);
+    node.addEventListener('change', handler);
+  });
   document.getElementById('wizardStep2Collapse').addEventListener('shown.bs.collapse', syncTipologiaToolbarPin);
   document.getElementById('wizardStep2Collapse').addEventListener('hidden.bs.collapse', resetTipologiaToolbarPin);
   document.getElementById('main')?.addEventListener('scroll', syncTipologiaToolbarPin, { passive: true });

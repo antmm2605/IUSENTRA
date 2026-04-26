@@ -79,6 +79,17 @@ def _contesto_parcella_da_preventivo(preventivo) -> str:
     data.setdefault("tipo_procedimento", preventivo.tipo_procedimento)
     data.setdefault("valore_controversia", preventivo.valore_controversia)
     data.setdefault("complessita", preventivo.complessita)
+    if not isinstance(data.get("compenso_a_tempo"), dict) or not data.get("compenso_a_tempo"):
+        if str(getattr(preventivo, "tipo_compenso", "") or "").strip() == "COMPENSO_A_TEMPO_DM55_ART22BIS":
+            data["compenso_a_tempo"] = {
+                "source": "COMPENSO_A_TEMPO_DM55_ART22BIS",
+                "source_label": "Compenso a tempo ex art. 22-bis D.M. 55/2014",
+                "tariffa_oraria": float(getattr(preventivo, "tariffa_oraria", 0.0) or 0.0),
+                "ore_fatturabili": float(getattr(preventivo, "ore_fatturabili_calcolate", 0.0) or 0.0),
+                "criterio_arrotondamento": getattr(preventivo, "criterio_arrotondamento_orario", ""),
+                "compenso_base": float(getattr(preventivo, "compenso_orario_base", 0.0) or 0.0),
+                "warnings": list(getattr(preventivo, "warning_compenso_orario", []) or []),
+            }
     return dump_log_calcolo(data)
 
 

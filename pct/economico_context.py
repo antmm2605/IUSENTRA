@@ -198,6 +198,7 @@ def costruisci_contesto_economico(
     riferimenti_tassonomia: Optional[Iterable[Any]] = None,
     classificazioni_tassonomiche: Optional[Iterable[Dict[str, Any]]] = None,
     audit_tariffario: Optional[Dict[str, Any]] = None,
+    compenso_a_tempo: Optional[dict] = None,
 ) -> Dict[str, Any]:
     audit = _resolve_tariffario_audit(
         rule_code=regola_tariffaria_code,
@@ -296,6 +297,7 @@ def costruisci_contesto_economico(
         "riferimenti_tassonomia": _compact_refs(riferimenti_tassonomia or []),
         "classificazioni_tassonomiche": classificazioni_norm,
         "audit_tariffario": audit,
+        "compenso_a_tempo": dict(compenso_a_tempo or {}),
     }
 
 
@@ -306,6 +308,7 @@ def riepilogo_contesto_economico(raw: Any) -> Dict[str, Any]:
 
     adr = data.get("adr") or {}
     result = data.get("risultato") or {}
+    compenso_a_tempo = data.get("compenso_a_tempo") if isinstance(data.get("compenso_a_tempo"), dict) else {}
     riferimenti = [row for row in data.get("riferimenti_normativi", []) if row][:4]
     audit = _compact_tariffario_audit(data.get("audit_tariffario"))
     return {
@@ -356,6 +359,16 @@ def riepilogo_contesto_economico(raw: Any) -> Dict[str, Any]:
         "totale": round(_safe_float(result.get("totale")), 2),
         "nota": str(result.get("nota") or result.get("note") or "").strip(),
         "audit_tariffario": audit,
+        "compenso_a_tempo": {
+            "source": str(compenso_a_tempo.get("source") or "").strip(),
+            "source_label": str(compenso_a_tempo.get("source_label") or "").strip(),
+            "fonte_normativa": str(compenso_a_tempo.get("fonte_normativa") or "").strip(),
+            "tariffa_oraria": round(_safe_float(compenso_a_tempo.get("tariffa_oraria")), 2),
+            "ore_fatturabili": round(_safe_float(compenso_a_tempo.get("ore_fatturabili")), 4),
+            "criterio_arrotondamento": str(compenso_a_tempo.get("criterio_arrotondamento") or "").strip(),
+            "compenso_base": round(_safe_float(compenso_a_tempo.get("compenso_base")), 2),
+            "warnings": list(compenso_a_tempo.get("warnings") or []),
+        } if compenso_a_tempo else {},
     }
 
 

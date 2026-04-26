@@ -107,6 +107,72 @@ def test_piva_non_valida_blocca_creazione(gc):
         )
 
 
+def test_cliente_rapido_persona_fisica_resta_potenziale_e_riusa_cf(gc):
+    cliente, creato = gc.crea_o_recupera_potenziale(
+        tipo=TipoCliente.PERSONA_FISICA,
+        nome="Roberto",
+        cognome="Alessi",
+        codice_fiscale="LSSRRT80A01H501U",
+        provenienza="Preventivo guidato",
+        note="Anagrafica essenziale creata dal preventivo guidato.",
+    )
+
+    assert creato is True
+    assert cliente.stato == StatoCliente.POTENZIALE
+    assert cliente.provenienza == "Preventivo guidato"
+    assert cliente.profilo_minimo_per_preventivo is True
+    assert cliente.profilo_completo_per_conferimento is False
+
+    stesso_cliente, creato = gc.crea_o_recupera_potenziale(
+        tipo=TipoCliente.PERSONA_FISICA,
+        nome="Roberto",
+        cognome="Alessi",
+        codice_fiscale="lssrrt80a01h501u",
+    )
+
+    assert creato is False
+    assert stesso_cliente.id == cliente.id
+    assert len(gc.tutti()) == 1
+
+
+def test_cliente_rapido_persona_giuridica_resta_potenziale_e_riusa_piva(gc):
+    cliente, creato = gc.crea_o_recupera_potenziale(
+        tipo=TipoCliente.PERSONA_GIURIDICA,
+        ragione_sociale="Zurich Ass.ni",
+        partita_iva="12345678901",
+        provenienza="Preventivo guidato",
+    )
+
+    assert creato is True
+    assert cliente.stato == StatoCliente.POTENZIALE
+    assert cliente.profilo_minimo_per_preventivo is True
+    assert cliente.profilo_completo_per_conferimento is False
+
+    stesso_cliente, creato = gc.crea_o_recupera_potenziale(
+        tipo=TipoCliente.PERSONA_GIURIDICA,
+        ragione_sociale="Zurich Ass.ni",
+        partita_iva="12345678901",
+    )
+
+    assert creato is False
+    assert stesso_cliente.id == cliente.id
+    assert len(gc.tutti()) == 1
+
+
+def test_cliente_rapido_blocca_dati_minimi_mancanti(gc):
+    with pytest.raises(ValueError, match="codice fiscale"):
+        gc.crea_o_recupera_potenziale(
+            tipo=TipoCliente.PERSONA_FISICA,
+            nome="Roberto",
+            cognome="Alessi",
+        )
+    with pytest.raises(ValueError, match="partita IVA oppure codice fiscale"):
+        gc.crea_o_recupera_potenziale(
+            tipo=TipoCliente.PERSONA_GIURIDICA,
+            ragione_sociale="Societa test",
+        )
+
+
 def test_pf_senza_nome_errore(gc):
     with pytest.raises(ValueError, match="Nome o cognome"):
         gc.nuovo(tipo=TipoCliente.PERSONA_FISICA)

@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.185.0 - 2026-04-26
+
+- Integrato il `Compenso a tempo` ex art. 22-bis D.M. 55/2014 nel flusso esistente `cliente -> preventivo -> conferimento -> fascicolo -> attivita' -> parcella -> incasso`.
+- Aggiunto il motore puro `pct.compensi_a_tempo` con normalizzazione alias, arrotondamenti a minuti/scatti/frazione oltre 30 minuti, range indicativo 200-500 euro/h come warning e blocchi su tariffa o tempo non validi.
+- Estesi preventivi, wizard, dettaglio, conferimento incarico, repository SQL/SQLite/PostgreSQL, log economico e fatturazione per conservare tariffa, minuti, ore fatturabili, criterio, soglie, massimali, attivita incluse/escluse e warning art. 22-bis.
+- Rafforzato il cliente rapido del wizard: resta `Cliente potenziale`, viene riutilizzato per CF/P.IVA, consente il preventivo richiamabile e blocca il conferimento finche' l'anagrafica non e' completa.
+- Aggiunti test su calcolo art. 22-bis, salvataggio repository, ereditarieta' conferimento, cliente rapido potenziale e regressioni preventivi/tariffario/fatturazione.
+
 ## 2.184.24 - 2026-04-26
 
 - Aggiunta la modalità ufficiale `basso_sinistra` per la firma visibile PDF, con alias normalizzati e layout calcolato sulle dimensioni reali della pagina.

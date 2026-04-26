@@ -4,6 +4,9 @@
 
 {% block content %}
 {% set badge = {'BOZZA':'secondary','APERTO':'secondary','INVIATO':'primary','ACCETTATO':'success','CONVERTITO':'success','RIFIUTATO':'danger','SCADUTO':'warning','REVISIONATO':'dark'} %}
+{% set tipo_compenso_norm = (p.tipo_compenso or '')|lower %}
+{% set is_compenso_tempo = p.tipo_compenso == 'COMPENSO_A_TEMPO_DM55_ART22BIS' or 'orario' in tipo_compenso_norm or 'tempo' in tipo_compenso_norm %}
+{% set compenso_tempo_summary = calc_summary.compenso_a_tempo if calc_summary and calc_summary.compenso_a_tempo else {} %}
 
 <div class="ds-ph">
   <div class="ds-ph-icon"><i class="bi bi-file-earmark-text"></i></div>
@@ -229,6 +232,26 @@
             {% endif %}
           </div>
           {% endif %}
+          {% if is_compenso_tempo %}
+          <div class="col-12">
+            <div class="alert alert-info py-2 mb-0 small">
+              <div class="fw-semibold mb-1">Compenso a tempo ex art. 22-bis D.M. 55/2014</div>
+              <div class="row g-2">
+                <div class="col-md-4"><span class="text-muted">Fonte:</span> Art. 22-bis D.M. 55/2014, introdotto dal D.M. 147/2022</div>
+                <div class="col-md-4"><span class="text-muted">Criterio:</span> {{ p.criterio_arrotondamento_orario or compenso_tempo_summary.criterio_arrotondamento or 'ora_frazione_oltre_30' }}</div>
+                <div class="col-md-4"><span class="text-muted">Ore fatturabili:</span> {{ p.ore_fatturabili_calcolate or compenso_tempo_summary.ore_fatturabili or '-' }}</div>
+                <div class="col-md-4"><span class="text-muted">Compenso base:</span> EUR {{ "%.2f"|format(p.compenso_orario_base or compenso_tempo_summary.compenso_base or 0) }}</div>
+                <div class="col-md-4"><span class="text-muted">Massimale ore:</span> {{ p.massimale_ore or '-' }}</div>
+                <div class="col-md-4"><span class="text-muted">Soglia preapprovazione:</span> {{ p.soglia_preapprovazione_ore or '-' }}</div>
+                {% if p.attivita_orarie_incluse %}<div class="col-md-6"><span class="text-muted">Attivita incluse:</span> {{ p.attivita_orarie_incluse }}</div>{% endif %}
+                {% if p.attivita_orarie_escluse %}<div class="col-md-6"><span class="text-muted">Attivita escluse:</span> {{ p.attivita_orarie_escluse }}</div>{% endif %}
+              </div>
+              {% if p.warning_compenso_orario %}
+              <div class="text-warning mt-2">{{ p.warning_compenso_orario|join(' ') }}</div>
+              {% endif %}
+            </div>
+          </div>
+          {% endif %}
           {% if p.complessita %}
           <div class="col-12">
             <span class="text-muted small">Complessità:</span>
@@ -430,6 +453,20 @@
             {% endif %}
             {{ calc_summary.audit_tariffario.compliance_note }}
           </div>
+        </div>
+        {% endif %}
+        {% if calc_summary.compenso_a_tempo %}
+        <div class="alert alert-info border mt-3 mb-2 py-2 small">
+          <div class="fw-semibold mb-1">Log compenso a tempo</div>
+          <div class="row g-2">
+            <div class="col-md-3"><span class="text-muted">Tariffa:</span> EUR {{ "%.2f"|format(calc_summary.compenso_a_tempo.tariffa_oraria or 0) }}/ora</div>
+            <div class="col-md-3"><span class="text-muted">Ore fatturabili:</span> {{ calc_summary.compenso_a_tempo.ore_fatturabili or '-' }}</div>
+            <div class="col-md-3"><span class="text-muted">Criterio:</span> {{ calc_summary.compenso_a_tempo.criterio_arrotondamento or '-' }}</div>
+            <div class="col-md-3"><span class="text-muted">Base:</span> EUR {{ "%.2f"|format(calc_summary.compenso_a_tempo.compenso_base or 0) }}</div>
+          </div>
+          {% if calc_summary.compenso_a_tempo.warnings %}
+          <div class="text-warning mt-1">{{ calc_summary.compenso_a_tempo.warnings|join(' ') }}</div>
+          {% endif %}
         </div>
         {% endif %}
         {% if calc_summary.adr_enabled or calc_summary.variazioni_fasi %}

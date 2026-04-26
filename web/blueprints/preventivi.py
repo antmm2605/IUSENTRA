@@ -22,6 +22,13 @@ from pct.economico_context import (
     riepilogo_contesto_economico,
     sincronizza_contesto_economico,
 )
+from pct.compensi_a_tempo import (
+    COMPENSO_A_TEMPO_CODE,
+    calcola_compenso_a_tempo_art22bis,
+    descrizione_voce_compenso_a_tempo,
+    is_compenso_a_tempo,
+    normalizza_tipo_compenso,
+)
 from pct.preventivi import (
     CLAUSOLA_CONTROVERSIE_TUTELA_CLIENTE,
     _normalizza_classificazioni_tassonomiche,
@@ -215,7 +222,86 @@ def _flag_from_form(form, key: str, default: bool = False) -> bool:
     return default
 
 
-def _contesto_log_wizard_da_form(form) -> str:
+def _parse_intero(value, default: int = 0) -> int:
+    try:
+        return int(float(str(value or "").replace(",", ".").strip() or default))
+    except (TypeError, ValueError):
+        return default
+
+
+def _compenso_a_tempo_da_form(form) -> tuple[str, dict]:
+    tipo_compenso = normalizza_tipo_compenso(form.get("tipo_compenso", ""))
+    if not is_compenso_a_tempo(tipo_compenso):
+        return tipo_compenso, {}
+    payload = calcola_compenso_a_tempo_art22bis(
+        tariffa_oraria=_parse_numero(form.get("tariffa_oraria"), 0.0),
+        ore_stimate=_parse_numero(form.get("ore_stimate"), 0.0),
+        minuti_stimati=_parse_intero(form.get("minuti_stimati"), 0),
+        criterio_arrotondamento=form.get("criterio_arrotondamento_orario", "").strip()
+        or "ora_frazione_oltre_30",
+        massimale_ore=_parse_numero(form.get("massimale_ore"), 0.0),
+        soglia_preapprovazione_ore=_parse_numero(form.get("soglia_preapprovazione_ore"), 0.0),
+    )
+    return COMPENSO_A_TEMPO_CODE, payload
+
+
+def _aggiungi_voce_compenso_a_tempo(voci: list, payload: dict) -> None:
+    if not payload or payload.get("errors"):
+        return
+    from pct.preventivi import TipoVoce, VocePreventivo
+
+    marker = "art. 22-bis"
+    if any(marker in str(getattr(voce, "descrizione", "") or "").lower() for voce in voci):
+        return
+    voci.append(
+        VocePreventivo(
+            descrizione=descrizione_voce_compenso_a_tempo(payload),
+            importo=float(payload.get("compenso_base") or 0.0),
+            tipo=TipoVoce.ONORARIO,
+        )
+    )
+
+
+def _sincronizza_log_compenso_a_tempo(raw_log: str, form, compenso_a_tempo: dict) -> str:
+    data = sincronizza_contesto_economico(raw_log)
+    if not data:
+        data = costruisci_contesto_economico(
+            source="preventivo_guidato",
+            source_label="Preventivo guidato",
+            oggetto=form.get("oggetto", "").strip(),
+            tipo_compenso=normalizza_tipo_compenso(form.get("tipo_compenso", "")),
+            tipo_procedimento=form.get("tipo_procedimento", "").strip(),
+            valore_controversia=form.get("valore_controversia", "0"),
+            applica_cpa=_flag_from_form(form, "applica_cassa", default=True),
+            applica_iva=_flag_from_form(form, "applica_iva", default=True),
+            anticipazioni_art15=_parse_numero(form.get("anticipazioni_art15"), 0.0),
+        )
+    if compenso_a_tempo:
+        data["compenso_a_tempo"] = dict(compenso_a_tempo)
+    return dump_log_calcolo(data)
+
+
+def _arricchisci_log_cliente_anagrafico(raw_log: str, cliente) -> str:
+    data = sincronizza_contesto_economico(raw_log)
+    if not data or not cliente:
+        return raw_log
+    data["cliente_stato_anagrafico"] = str(
+        getattr(getattr(cliente, "stato", ""), "value", getattr(cliente, "stato", ""))
+        or ""
+    )
+    data["cliente_profilo_minimo_per_preventivo"] = bool(
+        getattr(cliente, "profilo_minimo_per_preventivo", False)
+    )
+    data["cliente_profilo_completo_per_conferimento"] = bool(
+        getattr(cliente, "profilo_completo_per_conferimento", False)
+    )
+    data["cliente_campi_mancanti_per_conferimento"] = list(
+        getattr(cliente, "campi_mancanti_per_conferimento", []) or []
+    )
+    return dump_log_calcolo(data)
+
+
+def _contesto_log_wizard_da_form(form, compenso_a_tempo: dict | None = None) -> str:
     raw = (form.get("log_calcolo", "") or "").strip()
     parsed = sincronizza_contesto_economico(raw)
     riferimenti_tassonomia = []
@@ -235,6 +321,8 @@ def _contesto_log_wizard_da_form(form) -> str:
         if classificazioni_tassonomiche:
             parsed["classificazioni_tassonomiche"] = classificazioni_tassonomiche
         parsed["anticipazioni_art15"] = anticipazioni_totali
+        if compenso_a_tempo:
+            parsed["compenso_a_tempo"] = dict(compenso_a_tempo)
         return dump_log_calcolo(parsed)
     return dump_log_calcolo(
         costruisci_contesto_economico(
@@ -254,7 +342,7 @@ def _contesto_log_wizard_da_form(form) -> str:
             copertura_operativa=form.get("copertura_operativa", "").strip(),
             canale_operativo=form.get("canale_operativo", "").strip(),
             registro_operativo=form.get("registro_operativo", "").strip(),
-            tipo_compenso=form.get("tipo_compenso", "").strip(),
+            tipo_compenso=normalizza_tipo_compenso(form.get("tipo_compenso", "")),
             tipo_procedimento=form.get("tipo_procedimento", "").strip(),
             grado_sede=form.get("grado_sede", "").strip(),
             regola_tariffaria=form.get("regola_tariffaria", "").strip(),
@@ -270,6 +358,7 @@ def _contesto_log_wizard_da_form(form) -> str:
             adr_accordo=_flag_from_form(form, "adr_accordo"),
             riferimenti_tassonomia=riferimenti_tassonomia,
             classificazioni_tassonomiche=classificazioni_tassonomiche,
+            compenso_a_tempo=compenso_a_tempo,
         )
     )
 
@@ -365,6 +454,7 @@ def lista():
     anno = int(request.args.get("anno", date.today().year))
     stato_filtro = request.args.get("stato", "")
     cliente_filtro = request.args.get("id_cliente", "")
+    filtro_rapido = request.args.get("filtro", "")
 
     tutti_prev = gp.tutti_preventivi()
     tutti_conf = gp.tutti_conferimenti()
@@ -372,14 +462,33 @@ def lista():
     prev_anno = [p for p in tutti_prev if p.data_emissione.startswith(str(anno))]
     conf_anno = [c for c in tutti_conf if c.data_incarico.startswith(str(anno))]
 
+    clienti_map = {c.id: c for c in get_clienti().tutti()}
+    ids_preventivi_con_conferimento = {c.id_preventivo for c in tutti_conf if c.id_preventivo}
+
     if stato_filtro:
         prev_anno = [p for p in prev_anno if p.stato.value == stato_filtro]
         conf_anno = [c for c in conf_anno if c.stato.value == stato_filtro]
     if cliente_filtro:
         prev_anno = [p for p in prev_anno if p.id_cliente == cliente_filtro]
         conf_anno = [c for c in conf_anno if c.id_cliente == cliente_filtro]
-
-    clienti_map = {c.id: c for c in get_clienti().tutti()}
+    if filtro_rapido == "bozze":
+        prev_anno = [p for p in prev_anno if p.stato.value in {"BOZZA", "IN_CALCOLO", "GENERATO"}]
+    elif filtro_rapido == "inviati":
+        prev_anno = [p for p in prev_anno if p.stato.value in {"INVIATO", "APERTO"}]
+    elif filtro_rapido == "accettati":
+        prev_anno = [p for p in prev_anno if p.stato.value == "ACCETTATO"]
+    elif filtro_rapido == "da_completare_anagrafica":
+        prev_anno = [
+            p for p in prev_anno
+            if _cliente_da_completare(clienti_map.get(p.id_cliente))
+        ]
+    elif filtro_rapido == "clienti_potenziali":
+        prev_anno = [
+            p for p in prev_anno
+            if str(getattr(clienti_map.get(p.id_cliente), "stato", "")).endswith("POTENZIALE")
+        ]
+    elif filtro_rapido == "senza_conferimento":
+        prev_anno = [p for p in prev_anno if p.id not in ids_preventivi_con_conferimento]
 
     anni_disponibili = sorted({
         int(p.data_emissione[:4]) for p in tutti_prev
@@ -397,6 +506,8 @@ def lista():
         anni_disponibili=anni_disponibili,
         stato_filtro=stato_filtro,
         cliente_filtro=cliente_filtro,
+        filtro_rapido=filtro_rapido,
+        ids_preventivi_con_conferimento=ids_preventivi_con_conferimento,
         oggi=date.today(),
     )
 
@@ -418,6 +529,7 @@ def nuovo_preventivo(id_cliente: str = ""):
         if not id_cliente:
             flash("Seleziona un cliente.", "danger")
             return redirect(request.url)
+        cliente_corrente = gc.get(id_cliente)
 
         oggetto = f.get("oggetto", "").strip()
         if not oggetto:
@@ -442,15 +554,30 @@ def nuovo_preventivo(id_cliente: str = ""):
             except (ValueError, TypeError):
                 pass
 
+        valore_controversia = _parse_numero(f.get("valore_controversia"), 0.0)
+        tariffa_oraria = _parse_numero(f.get("tariffa_oraria"), 0.0)
+        ore_stimate = _parse_numero(f.get("ore_stimate"), 0.0)
+        tipo_compenso, compenso_a_tempo = _compenso_a_tempo_da_form(f)
+        if compenso_a_tempo.get("errors"):
+            flash(" ".join(compenso_a_tempo["errors"]), "danger")
+            return redirect(request.url)
+        _aggiungi_voce_compenso_a_tempo(voci, compenso_a_tempo)
+
         if not voci:
             flash("Aggiungi almeno una voce.", "danger")
             return redirect(request.url)
 
-        valore_controversia = _parse_numero(f.get("valore_controversia"), 0.0)
-        tariffa_oraria = _parse_numero(f.get("tariffa_oraria"), 0.0)
-        ore_stimate = _parse_numero(f.get("ore_stimate"), 0.0)
+        if compenso_a_tempo.get("warnings"):
+            for warning in compenso_a_tempo["warnings"]:
+                flash(warning, "warning")
 
         cfg = current_app.config
+        log_calcolo = _sincronizza_log_compenso_a_tempo(
+            f.get("log_calcolo", ""),
+            f,
+            compenso_a_tempo,
+        )
+        log_calcolo = _arricchisci_log_cliente_anagrafico(log_calcolo, gc.get(id_cliente))
         p = gp.crea_preventivo(
             id_cliente=id_cliente,
             oggetto=oggetto,
@@ -463,12 +590,23 @@ def nuovo_preventivo(id_cliente: str = ""):
             applica_iva=bool(f.get("applica_iva")),
             anticipazioni_art15=_parse_numero(f.get("anticipazioni_art15"), 0.0),
             note=f.get("note", "").strip(),
-            tipo_compenso=f.get("tipo_compenso", "").strip(),
+            tipo_compenso=tipo_compenso,
             tipo_procedimento=f.get("tipo_procedimento", "").strip(),
             valore_controversia=valore_controversia,
             tariffa_oraria=tariffa_oraria,
             ore_stimate=ore_stimate,
+            criterio_arrotondamento_orario=f.get("criterio_arrotondamento_orario", "").strip() or "ora_frazione_oltre_30",
+            minuti_stimati=_parse_intero(f.get("minuti_stimati"), 0),
+            ore_fatturabili_calcolate=float(compenso_a_tempo.get("ore_fatturabili") or 0.0),
+            compenso_orario_base=float(compenso_a_tempo.get("compenso_base") or 0.0),
+            massimale_ore=_parse_numero(f.get("massimale_ore"), 0.0),
+            soglia_preapprovazione_ore=_parse_numero(f.get("soglia_preapprovazione_ore"), 0.0),
+            richiede_consenso_superamento_soglia=True,
+            attivita_orarie_incluse=f.get("attivita_orarie_incluse", "").strip(),
+            attivita_orarie_escluse=f.get("attivita_orarie_escluse", "").strip(),
+            warning_compenso_orario=list(compenso_a_tempo.get("warnings") or []),
             complessita=f.get("complessita", "").strip(),
+            log_calcolo=log_calcolo,
             studio_piva=cfg.get("STUDIO_PIVA", ""),
             studio_cf=cfg.get("STUDIO_CF", ""),
             studio_indirizzo=cfg.get("STUDIO_INDIRIZZO", ""),
@@ -653,6 +791,25 @@ def workflow_accetta_studio(id_preventivo: str):
         gp.cambia_stato_preventivo(id_preventivo, StatoPreventivo.ACCETTATO)
         flash("Preventivo già accettato: il conferimento è pronto per la firma cliente.", "success")
         return redirect(url_for("preventivi.dettaglio_conferimento", id_conferimento=conferimento_esistente.id))
+    if _cliente_da_completare(cliente):
+        gp.cambia_stato_preventivo(id_preventivo, StatoPreventivo.ACCETTATO)
+        missing = ", ".join(_campi_cliente_mancanti(cliente)) or "dati anagrafici obbligatori"
+        flash(
+            "Preventivo accettato, ma il conferimento e' sospeso: completa prima l'anagrafica cliente. "
+            f"Campi mancanti: {missing}.",
+            "warning",
+        )
+        return redirect(
+            _url_completa_cliente(
+                p.id_cliente,
+                next_url=url_for(
+                    "preventivi.nuovo_conferimento",
+                    id_cliente=p.id_cliente,
+                    id_preventivo=id_preventivo,
+                    from_page="preventivo",
+                ),
+            )
+        )
 
     _, conferimento = gp.registra_accettazione_preventivo(
         id_preventivo,
@@ -738,6 +895,18 @@ def nuovo_conferimento(id_cliente: str = ""):
         id_preventivo = f.get("id_preventivo", "").strip()
         id_fascicolo = f.get("id_fascicolo", "").strip()
         apri_fascicolo_guidato = bool(f.get("apri_fascicolo_guidato")) and not id_fascicolo
+        from pct.clienti import StatoCliente
+
+        if (
+            cliente_corrente
+            and getattr(cliente_corrente, "stato", None) == StatoCliente.POTENZIALE
+            and getattr(cliente_corrente, "profilo_completo_per_conferimento", False)
+        ):
+            note_cliente = str(getattr(cliente_corrente, "note", "") or "").strip()
+            nota_conversione = "Cliente convertito da POTENZIALE ad ATTIVO in fase di conferimento incarico."
+            if nota_conversione not in note_cliente:
+                note_cliente = f"{note_cliente}\n{nota_conversione}".strip()
+            gc.aggiorna(id_cliente, stato=StatoCliente.ATTIVO, note=note_cliente)
 
         cfg = current_app.config
         c = gp.crea_conferimento(
@@ -757,6 +926,13 @@ def nuovo_conferimento(id_cliente: str = ""):
             tipo_compenso=f.get("tipo_compenso", "").strip(),
             tipo_procedimento=f.get("tipo_procedimento", "").strip(),
             tariffa_oraria=tariffa_oraria_c,
+            criterio_arrotondamento_orario=f.get("criterio_arrotondamento_orario", "").strip() or "ora_frazione_oltre_30",
+            massimale_ore=_parse_numero(f.get("massimale_ore"), 0.0),
+            soglia_preapprovazione_ore=_parse_numero(f.get("soglia_preapprovazione_ore"), 0.0),
+            richiede_consenso_superamento_soglia=True,
+            attivita_orarie_incluse=f.get("attivita_orarie_incluse", "").strip(),
+            attivita_orarie_escluse=f.get("attivita_orarie_escluse", "").strip(),
+            warning_compenso_orario=[],
             patto_palmario=bool(f.get("patto_palmario")),
             quota_palmario_pct=quota_palmario,
             informativa_art13_resa=bool(f.get("informativa_art13_resa")),
@@ -1275,6 +1451,12 @@ def wizard():
         "anticipazioni": request.args.get("anticipazioni", "").strip(),
         "tariffa_oraria": request.args.get("tariffa_oraria", "").strip(),
         "ore_stimate": request.args.get("ore_stimate", "").strip(),
+        "minuti_stimati": request.args.get("minuti_stimati", "").strip(),
+        "criterio_arrotondamento_orario": request.args.get("criterio_arrotondamento_orario", "").strip(),
+        "massimale_ore": request.args.get("massimale_ore", "").strip(),
+        "soglia_preapprovazione_ore": request.args.get("soglia_preapprovazione_ore", "").strip(),
+        "attivita_orarie_incluse": request.args.get("attivita_orarie_incluse", "").strip(),
+        "attivita_orarie_escluse": request.args.get("attivita_orarie_escluse", "").strip(),
         "oggetto": request.args.get("oggetto", "").strip(),
         "note": request.args.get("note", "").strip(),
         "accessori": [],
@@ -1591,17 +1773,25 @@ def wizard_genera():
         except (ValueError, TypeError):
             pass
 
-    if not voci:
-        flash("Aggiungi almeno una voce al preventivo.", "danger")
-        return redirect(url_for("preventivi.wizard"))
-
     valore_controversia = _parse_numero(f.get("valore_controversia"), 0.0)
     tariffa_oraria = _parse_numero(f.get("tariffa_oraria"), 0.0)
     ore_stimate = _parse_numero(f.get("ore_stimate"), 0.0)
     anticipazioni = _anticipazioni_totali_wizard(f)
+    tipo_compenso, compenso_a_tempo = _compenso_a_tempo_da_form(f)
+    if compenso_a_tempo.get("errors"):
+        flash(" ".join(compenso_a_tempo["errors"]), "danger")
+        return redirect(url_for("preventivi.wizard"))
+    _aggiungi_voce_compenso_a_tempo(voci, compenso_a_tempo)
+
+    if not voci:
+        flash("Aggiungi almeno una voce al preventivo.", "danger")
+        return redirect(url_for("preventivi.wizard"))
+    for warning in compenso_a_tempo.get("warnings") or []:
+        flash(warning, "warning")
 
     cfg = current_app.config
-    log_calcolo = _contesto_log_wizard_da_form(f)
+    log_calcolo = _contesto_log_wizard_da_form(f, compenso_a_tempo)
+    log_calcolo = _arricchisci_log_cliente_anagrafico(log_calcolo, get_clienti().get(id_cliente))
     raw_fonti_tassonomia = (f.get("fonti_tassonomia_json", "") or "").strip()
     try:
         fonti_tassonomia = json.loads(raw_fonti_tassonomia) if raw_fonti_tassonomia else []
@@ -1633,11 +1823,21 @@ def wizard_genera():
         procedura_operativa_codice=f.get("procedura_operativa_codice", "").strip(),
         fonti_tassonomia=fonti_tassonomia,
         classificazioni_tassonomiche=classificazioni_tassonomiche,
-        tipo_compenso=f.get("tipo_compenso", "").strip(),
+        tipo_compenso=tipo_compenso,
         tipo_procedimento=f.get("tipo_procedimento", "").strip(),
         valore_controversia=valore_controversia,
         tariffa_oraria=tariffa_oraria,
         ore_stimate=ore_stimate,
+        criterio_arrotondamento_orario=f.get("criterio_arrotondamento_orario", "").strip() or "ora_frazione_oltre_30",
+        minuti_stimati=_parse_intero(f.get("minuti_stimati"), 0),
+        ore_fatturabili_calcolate=float(compenso_a_tempo.get("ore_fatturabili") or 0.0),
+        compenso_orario_base=float(compenso_a_tempo.get("compenso_base") or 0.0),
+        massimale_ore=_parse_numero(f.get("massimale_ore"), 0.0),
+        soglia_preapprovazione_ore=_parse_numero(f.get("soglia_preapprovazione_ore"), 0.0),
+        richiede_consenso_superamento_soglia=True,
+        attivita_orarie_incluse=f.get("attivita_orarie_incluse", "").strip(),
+        attivita_orarie_escluse=f.get("attivita_orarie_escluse", "").strip(),
+        warning_compenso_orario=list(compenso_a_tempo.get("warnings") or []),
         complessita=f.get("complessita", "").strip(),
         log_calcolo=log_calcolo,
         studio_piva=cfg.get("STUDIO_PIVA", ""),
@@ -1664,6 +1864,19 @@ def wizard_genera():
 
     # Conferimento immediato?
     if _flag_from_form(f, "genera_conferimento"):
+        cliente_corrente = get_clienti().get(id_cliente)
+        if _cliente_da_completare(cliente_corrente):
+            flash(
+                "Preventivo creato. Prima del conferimento completa l'anagrafica cliente: "
+                + ", ".join(_campi_cliente_mancanti(cliente_corrente)),
+                "warning",
+            )
+            return redirect(
+                _url_completa_cliente(
+                    id_cliente,
+                    next_url=url_for("preventivi.nuovo_conferimento", id_cliente=id_cliente, id_preventivo=p.id, from_page="preventivo"),
+                )
+            )
         conferimento = None
         avvocato = f.get("avvocato_referente", "").strip() or cfg.get("STUDIO_NOME", "Studio Legale")
         try:
@@ -1687,8 +1900,16 @@ def wizard_genera():
             procedura_operativa_codice=f.get("procedura_operativa_codice", "").strip(),
             fonti_tassonomia=fonti_tassonomia,
             classificazioni_tassonomiche=classificazioni_tassonomiche,
-            tipo_compenso=f.get("tipo_compenso", "").strip(),
+            tipo_compenso=tipo_compenso,
             tipo_procedimento=f.get("tipo_procedimento", "").strip(),
+            tariffa_oraria=tariffa_oraria,
+            criterio_arrotondamento_orario=f.get("criterio_arrotondamento_orario", "").strip() or "ora_frazione_oltre_30",
+            massimale_ore=_parse_numero(f.get("massimale_ore"), 0.0),
+            soglia_preapprovazione_ore=_parse_numero(f.get("soglia_preapprovazione_ore"), 0.0),
+            richiede_consenso_superamento_soglia=True,
+            attivita_orarie_incluse=f.get("attivita_orarie_incluse", "").strip(),
+            attivita_orarie_escluse=f.get("attivita_orarie_escluse", "").strip(),
+            warning_compenso_orario=list(compenso_a_tempo.get("warnings") or []),
             informativa_art13_resa=_flag_from_form(f, "informativa_art13_resa"),
             clausola_adr_resa=_flag_from_form(f, "clausola_adr_resa"),
             clausola_controversie_attiva=_flag_from_form(f, "clausola_controversie_attiva"),
@@ -2131,17 +2352,27 @@ def _genera_pdf_conferimento(c, cliente, fascicolo, preventivo, config) -> io.By
 
     # Compenso
     if c.compenso_pattuito > 0:
-        if c.tipo_compenso and "orari" in c.tipo_compenso.lower() and c.tariffa_oraria > 0:
+        if is_compenso_a_tempo(c.tipo_compenso) and c.tariffa_oraria > 0:
+            criterio = c.criterio_arrotondamento_orario or "ora_frazione_oltre_30"
+            incluse = escape(c.attivita_orarie_incluse or "attivita professionali necessarie allo svolgimento dell'incarico")
+            escluse = escape(c.attivita_orarie_escluse or "spese vive, anticipazioni e attivita non espressamente incluse")
+            soglia = f"{c.soglia_preapprovazione_ore:g} ore" if c.soglia_preapprovazione_ore else "la soglia concordata"
+            massimale = f"{c.massimale_ore:g} ore" if c.massimale_ore else "il massimale concordato"
             story.append(Paragraph(
-                f"Il compenso professionale concordato è a <b>tariffa oraria di € {c.tariffa_oraria:,.2f}/ora</b> "
-                f"(oltre Cassa Forense 4% ed IVA 22%), con importo base indicativo di "
-                f"<b>€ {c.compenso_pattuito:,.2f}</b>.",
+                "Le parti pattuiscono espressamente che il compenso professionale sia determinato a tempo, "
+                "ai sensi dell'art. 22-bis D.M. 55/2014, sulla base della tariffa oraria di "
+                f"<b>EUR {c.tariffa_oraria:,.2f}/ora</b>, oltre accessori di legge. "
+                f"Il tempo e computato secondo il seguente criterio: <b>{escape(criterio)}</b>. "
+                f"Sono incluse le seguenti attivita: {incluse}. Sono escluse: {escluse}. "
+                f"Oltre la soglia di {soglia} o oltre il massimale di {massimale} sara richiesta preventiva "
+                "approvazione del cliente, salvo urgenze motivate. "
+                f"L'importo base indicativo dell'incarico e <b>EUR {c.compenso_pattuito:,.2f}</b>.",
                 style_just))
         else:
             story.append(Paragraph(
-                f"Il compenso professionale concordato per la prestazione è pari a "
-                f"<b>€ {c.compenso_pattuito:,.2f}</b> (oltre Cassa Forense 4% ed IVA 22%), "
-                f"salvo adeguamento in ragione della complessità e dello sviluppo della pratica.",
+                f"Il compenso professionale concordato per la prestazione e pari a "
+                f"<b>EUR {c.compenso_pattuito:,.2f}</b> (oltre Cassa Forense 4% ed IVA 22%), "
+                f"salvo adeguamento in ragione della complessita e dello sviluppo della pratica.",
                 style_just))
     else:
         story.append(Paragraph(

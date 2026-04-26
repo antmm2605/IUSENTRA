@@ -111,6 +111,36 @@ _CONFERIMENTO_SECTION_MAP: dict[str, str] = {
     "stato": "Invio / accettazione / conversione",
 }
 
+_COMPENSO_A_TEMPO_PREVENTIVO_FIELDS = {
+    "criterio_arrotondamento_orario",
+    "minuti_stimati",
+    "ore_fatturabili_calcolate",
+    "compenso_orario_base",
+    "massimale_ore",
+    "soglia_preapprovazione_ore",
+    "richiede_consenso_superamento_soglia",
+    "attivita_orarie_incluse",
+    "attivita_orarie_escluse",
+    "warning_compenso_orario",
+}
+_COMPENSO_A_TEMPO_CONFERIMENTO_FIELDS = {
+    "criterio_arrotondamento_orario",
+    "massimale_ore",
+    "soglia_preapprovazione_ore",
+    "richiede_consenso_superamento_soglia",
+    "attivita_orarie_incluse",
+    "attivita_orarie_escluse",
+    "warning_compenso_orario",
+}
+_PREVENTIVO_SECTION_MAP.update({
+    field_name: "Compenso a tempo"
+    for field_name in _COMPENSO_A_TEMPO_PREVENTIVO_FIELDS
+})
+_CONFERIMENTO_SECTION_MAP.update({
+    field_name: "Compenso a tempo"
+    for field_name in _COMPENSO_A_TEMPO_CONFERIMENTO_FIELDS
+})
+
 _FIELD_OVERRIDES: dict[str, dict[str, Any]] = {
     "id_cliente": {
         "label": "Cliente collegato",
@@ -300,6 +330,71 @@ _FIELD_OVERRIDES: dict[str, dict[str, Any]] = {
     },
 }
 
+_FIELD_OVERRIDES.update({
+    "criterio_arrotondamento_orario": {
+        "label": "Criterio arrotondamento orario",
+        "help_text": "Regola pattuita per trasformare minuti e frazioni in ore fatturabili.",
+        "required_runtime": False,
+        "step_key": "voci_economiche",
+    },
+    "minuti_stimati": {
+        "label": "Minuti stimati",
+        "help_text": "Minuti aggiuntivi alla stima ore del compenso a tempo.",
+        "required_runtime": False,
+        "step_key": "voci_economiche",
+    },
+    "ore_fatturabili_calcolate": {
+        "label": "Ore fatturabili calcolate",
+        "help_text": "Ore risultanti dal criterio art. 22-bis D.M. 55/2014.",
+        "required_runtime": False,
+        "step_key": "voci_economiche",
+        "derived": True,
+    },
+    "compenso_orario_base": {
+        "label": "Compenso orario base",
+        "help_text": "Importo base del compenso a tempo prima di CPA, IVA e anticipazioni.",
+        "required_runtime": False,
+        "step_key": "voci_economiche",
+        "derived": True,
+    },
+    "massimale_ore": {
+        "label": "Massimale ore",
+        "help_text": "Tetto pattuito oltre il quale serve approvazione espressa del cliente.",
+        "required_runtime": False,
+        "step_key": "voci_economiche",
+    },
+    "soglia_preapprovazione_ore": {
+        "label": "Soglia preapprovazione ore",
+        "help_text": "Soglia operativa oltre cui chiedere conferma preventiva al cliente.",
+        "required_runtime": False,
+        "step_key": "voci_economiche",
+    },
+    "richiede_consenso_superamento_soglia": {
+        "label": "Consenso oltre soglia",
+        "help_text": "Indica se il superamento della soglia richiede approvazione cliente.",
+        "required_runtime": False,
+        "step_key": "voci_economiche",
+    },
+    "attivita_orarie_incluse": {
+        "label": "Attivita incluse nel compenso a tempo",
+        "help_text": "Attivita comprese nella pattuizione a ore.",
+        "required_runtime": False,
+        "step_key": "voci_economiche",
+    },
+    "attivita_orarie_escluse": {
+        "label": "Attivita escluse dal compenso a tempo",
+        "help_text": "Attivita escluse o da autorizzare separatamente.",
+        "required_runtime": False,
+        "step_key": "voci_economiche",
+    },
+    "warning_compenso_orario": {
+        "label": "Avvisi compenso a tempo",
+        "help_text": "Warning normativi e operativi del calcolo art. 22-bis.",
+        "required_runtime": False,
+        "step_key": "voci_economiche",
+    },
+})
+
 
 def _clean_spaces(value: Any) -> str:
     return " ".join(str(value or "").split()).strip()
@@ -423,7 +518,7 @@ def _build_field_map(model_cls: type[Any], *, scope: str) -> list[dict[str, Any]
                 "section_name": override.get("section_name") or section_map.get(row.name) or "Metadati",
                 "help_text": override.get("help_text") or "",
                 "required_runtime": bool(override.get("required_runtime", False)),
-                "derived": False,
+                "derived": bool(override.get("derived", False)),
                 "source_model": model_cls.__name__,
                 "step_key": override.get("step_key") or "",
                 "enum_values": _enum_values(row.type),
@@ -460,7 +555,7 @@ def _wizard_steps() -> list[dict[str, Any]]:
             "step_key": "voci_economiche",
             "label": "Voci economiche",
             "description": "Completa valore, voci onorari, ore stimate, complessita e accessori economici.",
-            "section_names": ["Voci economiche"],
+            "section_names": ["Voci economiche", "Compenso a tempo"],
             "sort_order": 4,
         },
         {
@@ -868,7 +963,7 @@ def _resolve_wizard_step(
         return "pratica_tassonomia", "Seleziona tipologia pratica e tassonomia."
     if not _clean_spaces(getattr(preventivo, "tipo_compenso", "")):
         return "tipo_compenso", "Definisci il tipo di compenso."
-    if "orari" in tipo_compenso or "orario" in tipo_compenso:
+    if "orari" in tipo_compenso or "orario" in tipo_compenso or "compenso_a_tempo" in tipo_compenso or "compenso a tempo" in tipo_compenso:
         if float(getattr(preventivo, "tariffa_oraria", 0.0) or 0.0) <= 0 or float(getattr(preventivo, "ore_stimate", 0.0) or 0.0) <= 0:
             return "voci_economiche", "Completa tariffa oraria e ore stimate."
     richiede_valore = bool((practice_row or {}).get("richiede_valore"))
@@ -909,7 +1004,7 @@ def _preventivo_missing_fields(preventivo: Any, practice_row: dict[str, Any] | N
     if _clean_spaces(getattr(preventivo, "id_pratica", "")) and not _clean_spaces(getattr(preventivo, "procedura_operativa_nome", "")):
         missing.append("procedura_operativa_nome")
     tipo_compenso = _clean_spaces(getattr(preventivo, "tipo_compenso", "")).lower()
-    if "orari" in tipo_compenso or "orario" in tipo_compenso:
+    if "orari" in tipo_compenso or "orario" in tipo_compenso or "compenso_a_tempo" in tipo_compenso or "compenso a tempo" in tipo_compenso:
         if float(getattr(preventivo, "tariffa_oraria", 0.0) or 0.0) <= 0:
             missing.append("tariffa_oraria")
         if float(getattr(preventivo, "ore_stimate", 0.0) or 0.0) <= 0:
@@ -925,6 +1020,7 @@ def _preventivo_missing_fields(preventivo: Any, practice_row: dict[str, Any] | N
 
 def _preventivo_warnings(preventivo: Any, conferimento: Any | None) -> list[str]:
     warnings: list[str] = []
+    warnings.extend(str(item) for item in (getattr(preventivo, "warning_compenso_orario", []) or []) if item)
     if not list(getattr(preventivo, "piano_pagamenti", []) or []):
         warnings.append("Manca il piano pagamenti.")
     if float(getattr(preventivo, "anticipazioni_art15", 0.0) or 0.0) > 0:
@@ -969,6 +1065,7 @@ def _preventivo_next_action(preventivo: Any, conferimento: Any | None) -> str:
 
 def _conferimento_warnings(conferimento: Any) -> list[str]:
     warnings: list[str] = []
+    warnings.extend(str(item) for item in (getattr(conferimento, "warning_compenso_orario", []) or []) if item)
     if bool(getattr(conferimento, "firma_cliente_richiesta", False)) and not bool(getattr(conferimento, "firma_cliente_eseguita", False)):
         warnings.append("Firma cliente ancora da raccogliere.")
     if bool(getattr(conferimento, "clausola_controversie_attiva", False)) and not _clean_spaces(getattr(conferimento, "clausola_controversie_testo", "")):
@@ -1072,6 +1169,13 @@ def _build_preventivo_record(
         "valore_controversia": float(getattr(preventivo, "valore_controversia", 0.0) or 0.0),
         "tariffa_oraria": float(getattr(preventivo, "tariffa_oraria", 0.0) or 0.0),
         "ore_stimate": float(getattr(preventivo, "ore_stimate", 0.0) or 0.0),
+        "criterio_arrotondamento_orario": _clean_spaces(getattr(preventivo, "criterio_arrotondamento_orario", "")),
+        "minuti_stimati": int(getattr(preventivo, "minuti_stimati", 0) or 0),
+        "ore_fatturabili_calcolate": float(getattr(preventivo, "ore_fatturabili_calcolate", 0.0) or 0.0),
+        "compenso_orario_base": float(getattr(preventivo, "compenso_orario_base", 0.0) or 0.0),
+        "massimale_ore": float(getattr(preventivo, "massimale_ore", 0.0) or 0.0),
+        "soglia_preapprovazione_ore": float(getattr(preventivo, "soglia_preapprovazione_ore", 0.0) or 0.0),
+        "warning_compenso_orario": list(getattr(preventivo, "warning_compenso_orario", []) or []),
         "complessita": _clean_spaces(getattr(preventivo, "complessita", "")),
         "applica_cassa": bool(getattr(preventivo, "applica_cassa", True)),
         "applica_iva": bool(getattr(preventivo, "applica_iva", True)),
@@ -1158,6 +1262,10 @@ def _build_conferimento_record(conferimento: Any) -> dict[str, Any]:
         "canale_operativo": _clean_spaces(getattr(conferimento, "canale_operativo", "")),
         "registro_operativo": _clean_spaces(getattr(conferimento, "registro_operativo", "")),
         "compenso_pattuito": float(getattr(conferimento, "compenso_pattuito", 0.0) or 0.0),
+        "criterio_arrotondamento_orario": _clean_spaces(getattr(conferimento, "criterio_arrotondamento_orario", "")),
+        "massimale_ore": float(getattr(conferimento, "massimale_ore", 0.0) or 0.0),
+        "soglia_preapprovazione_ore": float(getattr(conferimento, "soglia_preapprovazione_ore", 0.0) or 0.0),
+        "warning_compenso_orario": list(getattr(conferimento, "warning_compenso_orario", []) or []),
         "informativa_art13_resa": bool(getattr(conferimento, "informativa_art13_resa", False)),
         "clausola_adr_resa": bool(getattr(conferimento, "clausola_adr_resa", False)),
         "firma_cliente_richiesta": bool(getattr(conferimento, "firma_cliente_richiesta", True)),
@@ -1234,6 +1342,13 @@ class GestionePreventiviRepository:
                     "registro_operativo": "TEXT NOT NULL DEFAULT ''",
                     "classificazioni_tassonomiche_json": "TEXT NOT NULL DEFAULT '[]'",
                     "classificazioni_tassonomiche_count": "INTEGER NOT NULL DEFAULT 0",
+                    "criterio_arrotondamento_orario": "TEXT NOT NULL DEFAULT ''",
+                    "minuti_stimati": "INTEGER NOT NULL DEFAULT 0",
+                    "ore_fatturabili_calcolate": "REAL NOT NULL DEFAULT 0",
+                    "compenso_orario_base": "REAL NOT NULL DEFAULT 0",
+                    "massimale_ore": "REAL NOT NULL DEFAULT 0",
+                    "soglia_preapprovazione_ore": "REAL NOT NULL DEFAULT 0",
+                    "warning_compenso_orario_json": "TEXT NOT NULL DEFAULT '[]'",
                 },
             )
             self._ensure_table_columns(
@@ -1249,6 +1364,10 @@ class GestionePreventiviRepository:
                     "registro_operativo": "TEXT NOT NULL DEFAULT ''",
                     "classificazioni_tassonomiche_json": "TEXT NOT NULL DEFAULT '[]'",
                     "classificazioni_tassonomiche_count": "INTEGER NOT NULL DEFAULT 0",
+                    "criterio_arrotondamento_orario": "TEXT NOT NULL DEFAULT ''",
+                    "massimale_ore": "REAL NOT NULL DEFAULT 0",
+                    "soglia_preapprovazione_ore": "REAL NOT NULL DEFAULT 0",
+                    "warning_compenso_orario_json": "TEXT NOT NULL DEFAULT '[]'",
                 },
             )
             conn.commit()
@@ -1497,6 +1616,9 @@ class GestionePreventiviRepository:
                     "procedura_operativa_codice", "procedura_operativa_nome", "subbranch_operativa_codice",
                     "workflow_operativo_codice", "copertura_operativa", "canale_operativo", "registro_operativo",
                     "valore_controversia", "tariffa_oraria", "ore_stimate", "complessita",
+                    "criterio_arrotondamento_orario", "minuti_stimati", "ore_fatturabili_calcolate",
+                    "compenso_orario_base", "massimale_ore", "soglia_preapprovazione_ore",
+                    "warning_compenso_orario_json",
                     "applica_cassa", "applica_iva", "anticipazioni_art15", "imponibile", "cassa_forense",
                     "base_iva", "iva", "totale", "piano_pagamenti_count", "clausola_controversie_attiva",
                     "clausola_controversie_modello", "token_portale_present", "inviato_cliente_il", "accettato_il",
@@ -1516,7 +1638,15 @@ class GestionePreventiviRepository:
                         row.get("copertura_operativa") or "", row.get("canale_operativo") or "",
                         row.get("registro_operativo") or "", float(row.get("valore_controversia") or 0.0),
                         float(row.get("tariffa_oraria") or 0.0), float(row.get("ore_stimate") or 0.0),
-                        row.get("complessita") or "", 1 if row.get("applica_cassa") else 0,
+                        row.get("complessita") or "",
+                        row.get("criterio_arrotondamento_orario") or "",
+                        int(row.get("minuti_stimati") or 0),
+                        float(row.get("ore_fatturabili_calcolate") or 0.0),
+                        float(row.get("compenso_orario_base") or 0.0),
+                        float(row.get("massimale_ore") or 0.0),
+                        float(row.get("soglia_preapprovazione_ore") or 0.0),
+                        _to_json(row.get("warning_compenso_orario") or []),
+                        1 if row.get("applica_cassa") else 0,
                         1 if row.get("applica_iva") else 0, float(row.get("anticipazioni_art15") or 0.0),
                         float(row.get("imponibile") or 0.0), float(row.get("cassa_forense") or 0.0),
                         float(row.get("base_iva") or 0.0), float(row.get("iva") or 0.0), float(row.get("totale") or 0.0),
@@ -1539,6 +1669,8 @@ class GestionePreventiviRepository:
                     "procedura_operativa_codice", "procedura_operativa_nome", "subbranch_operativa_codice",
                     "workflow_operativo_codice", "copertura_operativa", "canale_operativo", "registro_operativo",
                     "compenso_pattuito", "informativa_art13_resa", "clausola_adr_resa",
+                    "criterio_arrotondamento_orario", "massimale_ore", "soglia_preapprovazione_ore",
+                    "warning_compenso_orario_json",
                     "firma_cliente_richiesta", "firma_cliente_eseguita", "firma_cliente_il", "fascicolo_aperto_il",
                     "clausola_controversie_attiva", "clausola_controversie_modello",
                     "classificazioni_tassonomiche_json", "classificazioni_tassonomiche_count",
@@ -1556,6 +1688,10 @@ class GestionePreventiviRepository:
                         row.get("copertura_operativa") or "", row.get("canale_operativo") or "",
                         row.get("registro_operativo") or "", float(row.get("compenso_pattuito") or 0.0),
                         1 if row.get("informativa_art13_resa") else 0, 1 if row.get("clausola_adr_resa") else 0,
+                        row.get("criterio_arrotondamento_orario") or "",
+                        float(row.get("massimale_ore") or 0.0),
+                        float(row.get("soglia_preapprovazione_ore") or 0.0),
+                        _to_json(row.get("warning_compenso_orario") or []),
                         1 if row.get("firma_cliente_richiesta") else 0, 1 if row.get("firma_cliente_eseguita") else 0,
                         row.get("firma_cliente_il") or "", row.get("fascicolo_aperto_il") or "",
                         1 if row.get("clausola_controversie_attiva") else 0, row.get("clausola_controversie_modello") or "",
@@ -1629,6 +1765,7 @@ class GestionePreventiviRepository:
                         row,
                         "campi_mancanti_json",
                         "warning_json",
+                        "warning_compenso_orario_json",
                         "classificazioni_tassonomiche_json",
                     ),
                     "classificazioni_tassonomiche": json.loads(
@@ -1636,6 +1773,7 @@ class GestionePreventiviRepository:
                     ),
                     "campi_mancanti": json.loads(row["campi_mancanti_json"] or "[]"),
                     "warning": json.loads(row["warning_json"] or "[]"),
+                    "warning_compenso_orario": json.loads(row["warning_compenso_orario_json"] or "[]"),
                 }
                 for row in conn.execute(
                     "SELECT * FROM preventivi_records ORDER BY data_emissione DESC, numero DESC"
@@ -1643,11 +1781,17 @@ class GestionePreventiviRepository:
             ]
             conferimenti = [
                 {
-                    **_drop_keys(row, "warning_json", "classificazioni_tassonomiche_json"),
+                    **_drop_keys(
+                        row,
+                        "warning_json",
+                        "warning_compenso_orario_json",
+                        "classificazioni_tassonomiche_json",
+                    ),
                     "classificazioni_tassonomiche": json.loads(
                         row["classificazioni_tassonomiche_json"] or "[]"
                     ),
                     "warning": json.loads(row["warning_json"] or "[]"),
+                    "warning_compenso_orario": json.loads(row["warning_compenso_orario_json"] or "[]"),
                 }
                 for row in conn.execute(
                     "SELECT * FROM conferimenti_records ORDER BY data_incarico DESC, numero DESC"

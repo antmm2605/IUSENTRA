@@ -148,7 +148,7 @@
                 <small class="text-muted fw-normal">(art. 13 L. 247/2012)</small></label>
               <select name="tipo_compenso" id="selTipoCompenso" class="form-select" onchange="aggiornaUiCompenso()">
                 <option value="Compenso fisso" {{ 'selected' if tipo_compenso_sel == 'Compenso fisso' }}>Compenso fisso</option>
-                <option value="Compenso orario" {{ 'selected' if tipo_compenso_sel == 'Compenso orario' }}>Compenso orario</option>
+                <option value="Compenso orario" {{ 'selected' if tipo_compenso_sel == 'Compenso orario' or tipo_compenso_sel == 'COMPENSO_A_TEMPO_DM55_ART22BIS' }}>Compenso a tempo / orario (art. 22-bis D.M. 55/2014)</option>
                 <option value="Per fasi processuali (D.M. 55/2014)" {{ 'selected' if tipo_compenso_sel == 'Per fasi processuali (D.M. 55/2014)' }}>Per fasi processuali (D.M. 55/2014)</option>
                 <option value="Forfettario onnicomprensivo" {{ 'selected' if tipo_compenso_sel == 'Forfettario onnicomprensivo' }}>Forfettario onnicomprensivo</option>
                 <option value="Misto (fisso + quota sul risultato)" {{ 'selected' if tipo_compenso_sel == 'Misto (fisso + quota sul risultato)' }}>Misto (fisso + quota sul risultato)</option>
@@ -184,6 +184,41 @@
               <input type="number" name="tariffa_oraria" class="form-control"
                      value="{{ preventivo_pre.tariffa_oraria if preventivo_pre and preventivo_pre.tariffa_oraria else '' }}"
                      step="0.01" min="0" placeholder="0.00">
+            </div>
+            <div class="col-12" id="cardCompensoTempo" style="display:none">
+              <div class="alert alert-info py-2 small mb-2">
+                Le parti pattuiscono espressamente il compenso a tempo ex art. 22-bis D.M. 55/2014. Il parametro indicativo e EUR 200-500 per ora o frazione superiore a 30 minuti.
+              </div>
+              <div class="row g-2">
+                <div class="col-md-3">
+                  <label class="form-label">Criterio arrotondamento</label>
+                  <select name="criterio_arrotondamento_orario" class="form-select">
+                    {% set criterio_sel = preventivo_pre.criterio_arrotondamento_orario if preventivo_pre and preventivo_pre.criterio_arrotondamento_orario else 'ora_frazione_oltre_30' %}
+                    <option value="ora_frazione_oltre_30" {{ 'selected' if criterio_sel == 'ora_frazione_oltre_30' }}>Ora/frazione oltre 30 minuti</option>
+                    <option value="effettivo_minuti" {{ 'selected' if criterio_sel == 'effettivo_minuti' }}>Tempo effettivo</option>
+                    <option value="scatti_15" {{ 'selected' if criterio_sel == 'scatti_15' }}>Scatti 15 minuti</option>
+                    <option value="scatti_30" {{ 'selected' if criterio_sel == 'scatti_30' }}>Scatti 30 minuti</option>
+                  </select>
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label">Massimale ore</label>
+                  <input type="number" name="massimale_ore" class="form-control" step="0.5" min="0"
+                         value="{{ preventivo_pre.massimale_ore if preventivo_pre and preventivo_pre.massimale_ore else '' }}">
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label">Soglia preapprovazione</label>
+                  <input type="number" name="soglia_preapprovazione_ore" class="form-control" step="0.5" min="0"
+                         value="{{ preventivo_pre.soglia_preapprovazione_ore if preventivo_pre and preventivo_pre.soglia_preapprovazione_ore else '' }}">
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Attivita incluse</label>
+                  <textarea name="attivita_orarie_incluse" class="form-control" rows="2">{{ preventivo_pre.attivita_orarie_incluse if preventivo_pre else '' }}</textarea>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Attivita escluse</label>
+                  <textarea name="attivita_orarie_escluse" class="form-control" rows="2">{{ preventivo_pre.attivita_orarie_escluse if preventivo_pre else '' }}</textarea>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -372,9 +407,12 @@ const CLAUSOLA_CONTROVERSIE_SOURCES = Object.fromEntries(
 
 function aggiornaUiCompenso() {
   const tipo = document.getElementById('selTipoCompenso').value;
-  const isOrario = tipo === 'Compenso orario';
+  const raw = String(tipo || '').toLowerCase();
+  const isOrario = raw.includes('orario') || raw.includes('tempo') || raw.includes('compenso_a_tempo_dm55_art22bis');
   const isMisto = tipo.includes('Misto');
   document.getElementById('rowTariffaOraria').style.display = isOrario ? '' : 'none';
+  const cardTempo = document.getElementById('cardCompensoTempo');
+  if (cardTempo) cardTempo.style.display = isOrario ? '' : 'none';
   document.getElementById('rowPalmario').style.display = isMisto ? '' : 'none';
   const chkPalm = document.getElementById('chkPalmario');
   if (chkPalm) {

@@ -610,6 +610,8 @@ class GestioneClienti:
 
         if not ragione_sociale.strip():
             raise ValueError("Per il cliente rapido persona giuridica inserisci la ragione sociale.")
+        if not partita_iva and not codice_fiscale:
+            raise ValueError("Per il cliente rapido persona giuridica inserisci partita IVA oppure codice fiscale.")
         if partita_iva and not self.valida_piva(partita_iva):
             raise ValueError("La partita IVA rapida non ha un formato valido.")
         if codice_fiscale and len(codice_fiscale) not in {11, 16}:

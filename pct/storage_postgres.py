@@ -189,6 +189,13 @@ CREATE TABLE IF NOT EXISTS preventivi_records (
     canale_operativo TEXT NOT NULL DEFAULT '',
     registro_operativo TEXT NOT NULL DEFAULT '',
     classificazioni_tassonomiche_json TEXT NOT NULL DEFAULT '[]',
+    criterio_arrotondamento_orario TEXT NOT NULL DEFAULT '',
+    minuti_stimati INTEGER NOT NULL DEFAULT 0,
+    ore_fatturabili_calcolate DOUBLE PRECISION NOT NULL DEFAULT 0,
+    compenso_orario_base DOUBLE PRECISION NOT NULL DEFAULT 0,
+    massimale_ore DOUBLE PRECISION NOT NULL DEFAULT 0,
+    soglia_preapprovazione_ore DOUBLE PRECISION NOT NULL DEFAULT 0,
+    warning_compenso_orario_json TEXT NOT NULL DEFAULT '[]',
     totale DOUBLE PRECISION NOT NULL DEFAULT 0,
     accettato_il TEXT,
     id_preventivo_precedente TEXT NOT NULL DEFAULT '',
@@ -216,6 +223,10 @@ CREATE TABLE IF NOT EXISTS conferimenti_records (
     canale_operativo TEXT NOT NULL DEFAULT '',
     registro_operativo TEXT NOT NULL DEFAULT '',
     classificazioni_tassonomiche_json TEXT NOT NULL DEFAULT '[]',
+    criterio_arrotondamento_orario TEXT NOT NULL DEFAULT '',
+    massimale_ore DOUBLE PRECISION NOT NULL DEFAULT 0,
+    soglia_preapprovazione_ore DOUBLE PRECISION NOT NULL DEFAULT 0,
+    warning_compenso_orario_json TEXT NOT NULL DEFAULT '[]',
     compenso_pattuito DOUBLE PRECISION NOT NULL DEFAULT 0,
     firma_cliente_eseguita INTEGER NOT NULL DEFAULT 0,
     fascicolo_aperto_il TEXT,
@@ -441,6 +452,14 @@ CORE_TABLE_COLUMNS: dict[str, tuple[str, ...]] = {
         "procedura_operativa_nome",
         "canale_operativo",
         "registro_operativo",
+        "classificazioni_tassonomiche_json",
+        "criterio_arrotondamento_orario",
+        "minuti_stimati",
+        "ore_fatturabili_calcolate",
+        "compenso_orario_base",
+        "massimale_ore",
+        "soglia_preapprovazione_ore",
+        "warning_compenso_orario_json",
         "totale",
         "accettato_il",
         "id_preventivo_precedente",
@@ -466,6 +485,11 @@ CORE_TABLE_COLUMNS: dict[str, tuple[str, ...]] = {
         "procedura_operativa_nome",
         "canale_operativo",
         "registro_operativo",
+        "classificazioni_tassonomiche_json",
+        "criterio_arrotondamento_orario",
+        "massimale_ore",
+        "soglia_preapprovazione_ore",
+        "warning_compenso_orario_json",
         "compenso_pattuito",
         "firma_cliente_eseguita",
         "fascicolo_aperto_il",
@@ -656,6 +680,20 @@ class PostgresStudioDB:
                 cur.execute(
                     "ALTER TABLE conferimenti_records ADD COLUMN IF NOT EXISTS classificazioni_tassonomiche_json TEXT NOT NULL DEFAULT '[]'"
                 )
+                for ddl in (
+                    "ALTER TABLE preventivi_records ADD COLUMN IF NOT EXISTS criterio_arrotondamento_orario TEXT NOT NULL DEFAULT ''",
+                    "ALTER TABLE preventivi_records ADD COLUMN IF NOT EXISTS minuti_stimati INTEGER NOT NULL DEFAULT 0",
+                    "ALTER TABLE preventivi_records ADD COLUMN IF NOT EXISTS ore_fatturabili_calcolate DOUBLE PRECISION NOT NULL DEFAULT 0",
+                    "ALTER TABLE preventivi_records ADD COLUMN IF NOT EXISTS compenso_orario_base DOUBLE PRECISION NOT NULL DEFAULT 0",
+                    "ALTER TABLE preventivi_records ADD COLUMN IF NOT EXISTS massimale_ore DOUBLE PRECISION NOT NULL DEFAULT 0",
+                    "ALTER TABLE preventivi_records ADD COLUMN IF NOT EXISTS soglia_preapprovazione_ore DOUBLE PRECISION NOT NULL DEFAULT 0",
+                    "ALTER TABLE preventivi_records ADD COLUMN IF NOT EXISTS warning_compenso_orario_json TEXT NOT NULL DEFAULT '[]'",
+                    "ALTER TABLE conferimenti_records ADD COLUMN IF NOT EXISTS criterio_arrotondamento_orario TEXT NOT NULL DEFAULT ''",
+                    "ALTER TABLE conferimenti_records ADD COLUMN IF NOT EXISTS massimale_ore DOUBLE PRECISION NOT NULL DEFAULT 0",
+                    "ALTER TABLE conferimenti_records ADD COLUMN IF NOT EXISTS soglia_preapprovazione_ore DOUBLE PRECISION NOT NULL DEFAULT 0",
+                    "ALTER TABLE conferimenti_records ADD COLUMN IF NOT EXISTS warning_compenso_orario_json TEXT NOT NULL DEFAULT '[]'",
+                ):
+                    cur.execute(ddl)
                 cur.execute(
                     """
                     INSERT INTO _meta (chiave, valore)

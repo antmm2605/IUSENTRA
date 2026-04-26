@@ -12,6 +12,7 @@ La repo oggi non è più solo un tool CLI per il Processo Civile Telematico: con
 - Acquisizione guidata dei portali PST/SIGP, PDP, PAT e PTT/SIGIT: se il canale tecnico non consente lettura diretta, IUSENTRA accompagna l'utente al portale ufficiale, importa file/ZIP/cartelle o payload JSON autorizzati e smista tutto nelle sezioni reali del fascicolo (`Documenti`, `Attivita`, `Udienze`, `Comunicazioni`, `Istanze`).
 - Workflow completo `cliente -> preventivo -> conferimento -> fascicolo -> attivita' -> parcella -> incasso`.
 - Wizard preventivi e console tariffaria ora usano davvero il tariffario corretto per fase: `D.M. 55/2014` per i giudiziali, `Tabella A25` per lo stragiudiziale e `Tabella A27` per mediazione / negoziazione assistita, con checkbox fiscali che incidono davvero sul totale.
+- Il ramo `Compenso a tempo` e' integrato nello stesso workflow preventivo/conferimento/parcella: applica l'art. 22-bis D.M. 55/2014, gestisce tariffa oraria, minuti, arrotondamento, soglie, warning e clausola di pattuizione espressa senza sostituire il motore ordinario per fasi.
 - Nei casi di mediazione civile / commerciale il preventivo e il tariffario possono includere anche i costi organismo ex `D.M. 24 ottobre 2023, n. 150` (artt. 28, 30, 31 e Tabella A), distinguendo volontaria / obbligatoria-demandata, esito del primo incontro o degli incontri successivi e maggiorazione art. 31, comma 3.
 - Le superfici economiche finali usano ora microcopy coerente, ricalcolo guidato inline e log applicativi leggibili come una storia operativa, senza `alert()` ambigui o stati poco spiegabili.
 - Timesheet operativo con valorizzazione del tempo e generazione parcella dalle attivita' validate.
@@ -26,7 +27,7 @@ La repo oggi non è più solo un tool CLI per il Processo Civile Telematico: con
 - Review `Coverage AI` con audit forte: motivo decisione, firma reviewer, diff tra spec originale e corrente, storico revisioni e publish SQL tracciato.
 - La console `Copertura AI` aggancia automaticamente il backend SQL reale del tenant selezionato: `studio.db` per gli studi `SQLite` oppure PostgreSQL tenant-aware per gli studi cloud o legacy gia' configurati.
 - `Crash test operativo` con simulazione di una giornata reale di studio, repair loop, ticket di riparazione, checklist finale `si/no`, backup blindato completo + incrementale e report persistiti per tenant.
-- Il preventivo guidato puo' creare subito il cliente minimale, gestisce classificazioni tassonomiche ripetibili `area -> macro-area -> sottobranca`, le porta nei repository SQL/PostgreSQL e somma le relative voci di compenso nella bozza economica.
+- Il preventivo guidato puo' creare subito il cliente minimale come `Cliente potenziale`, gestisce classificazioni tassonomiche ripetibili `area -> macro-area -> sottobranca`, le porta nei repository SQL/PostgreSQL e somma le relative voci di compenso nella bozza economica; il conferimento resta bloccato finche' l'anagrafica non e' completa.
 - Workspace/applicazioni, portali di acquisizione, privacy e audit.
 - Registro audit storico spiegabile: se un fascicolo e' stato migrato, ricreato o rimosso, la UI segnala se l'evento e' attivo, riconciliato verso il fascicolo corrente oppure solo storico.
 - Runtime AI locale con Lex come strato linguistico sopra motori deterministici.

@@ -44,7 +44,7 @@ Legenda:
 - `effective_runtime_kind = sqlite` significa che i dati strutturati tenant-aware dello studio stanno lavorando davvero su SQL locale tenant-aware.
 - non esiste fallback silenzioso da PostgreSQL attivo a JSON: il runtime blocca l'operazione e lascia traccia nel log applicativo.
 - documenti, buste telematiche e modelli locali AI restano filesystem-first anche dopo il cutover SQL.
-- i moduli economici condividono lo stesso percorso ufficiale di migrazione `JSON -> SQLite -> PostgreSQL` con report di consistenza.
+- i moduli economici condividono lo stesso percorso ufficiale di migrazione `JSON -> SQLite -> PostgreSQL` con report di consistenza; il compenso a tempo ex art. 22-bis D.M. 55/2014 e' persistito su preventivi, conferimenti, log economico e fatturazione con migrazioni SQLite/PostgreSQL dedicate.
 - anche `Update Intelligence` e `Coverage AI` rientrano nello stesso programma ufficiale di migrazione, con repository SQL locale e replica PostgreSQL tenant-aware.
 - l'`Assistenza remota cliente` e' un dominio di piattaforma: sessioni, eventi, consensi ed escalation vivono nel repository SQL dedicato e non degradano su JSON.
 - `Sito Studio` usa un repository SQL dedicato per tenant, mentre immagini e asset restano su filesystem tenant-aware; `strumenti legali`, `applicazioni` e `news giuridiche strutturate` vengono pubblicati solo quando il flag amministrativo del sito e' attivo.

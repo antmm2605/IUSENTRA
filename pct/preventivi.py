@@ -26,6 +26,7 @@ from pct.preventivi_repository import (
     derive_preventivi_workflow_states_json_path,
 )
 from pct.legal_platform_catalog import build_operational_fields
+from pct.compensi_a_tempo import normalizza_tipo_compenso
 
 
 # ================================================================ Enumerazioni
@@ -348,6 +349,16 @@ class Preventivo:
     valore_controversia:  float = 0.0  # €, 0 = indeterminabile
     tariffa_oraria:       float = 0.0  # €/ora (solo se compenso orario)
     ore_stimate:          float = 0.0  # ore stimate (solo se compenso orario)
+    criterio_arrotondamento_orario: str = "ora_frazione_oltre_30"
+    minuti_stimati: int = 0
+    ore_fatturabili_calcolate: float = 0.0
+    compenso_orario_base: float = 0.0
+    massimale_ore: float = 0.0
+    soglia_preapprovazione_ore: float = 0.0
+    richiede_consenso_superamento_soglia: bool = True
+    attivita_orarie_incluse: str = ""
+    attivita_orarie_escluse: str = ""
+    warning_compenso_orario: List[str] = field(default_factory=list)
     complessita:          str   = ""   # art. 13 co. 5 L. 247/2012
 
     # Piano di pagamento / acconti / rate
@@ -443,6 +454,9 @@ class Preventivo:
         except ValueError:
             d["stato"] = StatoPreventivo.BOZZA
         d["workflow_channel"] = _normalize_workflow_channel(d.get("workflow_channel"))
+        d["tipo_compenso"] = normalizza_tipo_compenso(d.get("tipo_compenso", ""))
+        if not isinstance(d.get("warning_compenso_orario"), list):
+            d["warning_compenso_orario"] = []
         d["clausola_controversie_modello"] = normalizza_modello_clausola_controversie(
             d.get("clausola_controversie_modello")
         )
@@ -501,6 +515,13 @@ class ConferimentoIncarico:
     tipo_compenso:          str   = ""
     tipo_procedimento:      str   = ""
     tariffa_oraria:         float = 0.0
+    criterio_arrotondamento_orario: str = "ora_frazione_oltre_30"
+    massimale_ore: float = 0.0
+    soglia_preapprovazione_ore: float = 0.0
+    richiede_consenso_superamento_soglia: bool = True
+    attivita_orarie_incluse: str = ""
+    attivita_orarie_escluse: str = ""
+    warning_compenso_orario: List[str] = field(default_factory=list)
     patto_palmario:         bool  = False
     quota_palmario_pct:     float = 0.0   # % sul risultato (es. 10.0)
 
@@ -538,6 +559,9 @@ class ConferimentoIncarico:
         d = dict(d)
         d["stato"] = StatoConferimento(d.get("stato", "ATTIVO"))
         d["workflow_channel"] = _normalize_workflow_channel(d.get("workflow_channel"))
+        d["tipo_compenso"] = normalizza_tipo_compenso(d.get("tipo_compenso", ""))
+        if not isinstance(d.get("warning_compenso_orario"), list):
+            d["warning_compenso_orario"] = []
         d["clausola_controversie_modello"] = normalizza_modello_clausola_controversie(
             d.get("clausola_controversie_modello")
         )
@@ -641,8 +665,11 @@ class GestionePreventivi:
                      oggetto, stato, workflow_channel, tipo_compenso, tipo_procedimento,
                      area_pratica, id_pratica, procedura_operativa_codice, procedura_operativa_nome,
                      canale_operativo, registro_operativo, classificazioni_tassonomiche_json,
+                     criterio_arrotondamento_orario, minuti_stimati, ore_fatturabili_calcolate,
+                     compenso_orario_base, massimale_ore, soglia_preapprovazione_ore,
+                     warning_compenso_orario_json,
                      totale, accettato_il, id_preventivo_precedente, token_portale, creato_il, dati_json)
-                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
                     """,
                     (
                         preventivo.id,
@@ -666,6 +693,13 @@ class GestionePreventivi:
                             preventivo.classificazioni_tassonomiche or [],
                             ensure_ascii=False,
                         ),
+                        preventivo.criterio_arrotondamento_orario or "",
+                        int(preventivo.minuti_stimati or 0),
+                        float(preventivo.ore_fatturabili_calcolate or 0.0),
+                        float(preventivo.compenso_orario_base or 0.0),
+                        float(preventivo.massimale_ore or 0.0),
+                        float(preventivo.soglia_preapprovazione_ore or 0.0),
+                        json.dumps(preventivo.warning_compenso_orario or [], ensure_ascii=False),
                         float(preventivo.totale or 0.0),
                         preventivo.accettato_il or "",
                         preventivo.id_preventivo_precedente or "",
@@ -701,9 +735,11 @@ class GestionePreventivi:
                      data_incarico, oggetto, stato, workflow_channel, tipo_compenso,
                      tipo_procedimento, area_pratica, id_pratica, procedura_operativa_codice,
                      procedura_operativa_nome, canale_operativo, registro_operativo,
-                     classificazioni_tassonomiche_json, compenso_pattuito,
+                     classificazioni_tassonomiche_json,
+                     criterio_arrotondamento_orario, massimale_ore, soglia_preapprovazione_ore,
+                     warning_compenso_orario_json, compenso_pattuito,
                      firma_cliente_eseguita, fascicolo_aperto_il, dati_json)
-                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
                     """,
                     (
                         conferimento.id,
@@ -727,6 +763,10 @@ class GestionePreventivi:
                             conferimento.classificazioni_tassonomiche or [],
                             ensure_ascii=False,
                         ),
+                        conferimento.criterio_arrotondamento_orario or "",
+                        float(conferimento.massimale_ore or 0.0),
+                        float(conferimento.soglia_preapprovazione_ore or 0.0),
+                        json.dumps(conferimento.warning_compenso_orario or [], ensure_ascii=False),
                         float(conferimento.compenso_pattuito or 0.0),
                         1 if conferimento.firma_cliente_eseguita else 0,
                         conferimento.fascicolo_aperto_il or "",
@@ -842,6 +882,16 @@ class GestionePreventivi:
                         valore_controversia: float = 0.0,
                         tariffa_oraria:      float = 0.0,
                         ore_stimate:         float = 0.0,
+                        criterio_arrotondamento_orario: str = "ora_frazione_oltre_30",
+                        minuti_stimati: int = 0,
+                        ore_fatturabili_calcolate: float = 0.0,
+                        compenso_orario_base: float = 0.0,
+                        massimale_ore: float = 0.0,
+                        soglia_preapprovazione_ore: float = 0.0,
+                        richiede_consenso_superamento_soglia: bool = True,
+                        attivita_orarie_incluse: str = "",
+                        attivita_orarie_escluse: str = "",
+                        warning_compenso_orario: Optional[List[str]] = None,
                          complessita:         str   = "",
                          log_calcolo:    Optional[str] = None,
                          workflow_channel: str = "STUDIO",
@@ -898,11 +948,21 @@ class GestionePreventivi:
             copertura_operativa=operational_fields.get("copertura_operativa", ""),
             canale_operativo=operational_fields.get("canale_operativo", ""),
             registro_operativo=operational_fields.get("registro_operativo", ""),
-            tipo_compenso=tipo_compenso,
+            tipo_compenso=normalizza_tipo_compenso(tipo_compenso),
             tipo_procedimento=tipo_procedimento,
             valore_controversia=valore_controversia,
             tariffa_oraria=tariffa_oraria,
             ore_stimate=ore_stimate,
+            criterio_arrotondamento_orario=criterio_arrotondamento_orario or "ora_frazione_oltre_30",
+            minuti_stimati=int(minuti_stimati or 0),
+            ore_fatturabili_calcolate=float(ore_fatturabili_calcolate or 0.0),
+            compenso_orario_base=float(compenso_orario_base or 0.0),
+            massimale_ore=float(massimale_ore or 0.0),
+            soglia_preapprovazione_ore=float(soglia_preapprovazione_ore or 0.0),
+            richiede_consenso_superamento_soglia=bool(richiede_consenso_superamento_soglia),
+            attivita_orarie_incluse=attivita_orarie_incluse,
+            attivita_orarie_escluse=attivita_orarie_escluse,
+            warning_compenso_orario=list(warning_compenso_orario or []),
             complessita=complessita,
             log_calcolo=log_calcolo,
             workflow_channel=_normalize_workflow_channel(workflow_channel),
@@ -941,6 +1001,8 @@ class GestionePreventivi:
             if hasattr(p, k):
                 if k == "workflow_channel":
                     v = _normalize_workflow_channel(v)
+                elif k == "tipo_compenso":
+                    v = normalizza_tipo_compenso(v)
                 setattr(p, k, v)
         self._salva_preventivi()
         return p
@@ -1033,6 +1095,13 @@ class GestionePreventivi:
                           tipo_compenso:          str   = "",
                           tipo_procedimento:      str   = "",
                           tariffa_oraria:         float = 0.0,
+                          criterio_arrotondamento_orario: str = "",
+                          massimale_ore: float = 0.0,
+                          soglia_preapprovazione_ore: float = 0.0,
+                          richiede_consenso_superamento_soglia: bool = True,
+                          attivita_orarie_incluse: str = "",
+                          attivita_orarie_escluse: str = "",
+                          warning_compenso_orario: Optional[List[str]] = None,
                           patto_palmario:         bool  = False,
                           quota_palmario_pct:     float = 0.0,
                           informativa_art13_resa: bool  = False,
@@ -1076,6 +1145,19 @@ class GestionePreventivi:
                     tipo_procedimento = preventivo.tipo_procedimento
                 if not tariffa_oraria:
                     tariffa_oraria = preventivo.tariffa_oraria
+                if not criterio_arrotondamento_orario:
+                    criterio_arrotondamento_orario = preventivo.criterio_arrotondamento_orario
+                if not massimale_ore:
+                    massimale_ore = preventivo.massimale_ore
+                if not soglia_preapprovazione_ore:
+                    soglia_preapprovazione_ore = preventivo.soglia_preapprovazione_ore
+                if not attivita_orarie_incluse:
+                    attivita_orarie_incluse = preventivo.attivita_orarie_incluse
+                if not attivita_orarie_escluse:
+                    attivita_orarie_escluse = preventivo.attivita_orarie_escluse
+                if not warning_compenso_orario:
+                    warning_compenso_orario = list(preventivo.warning_compenso_orario or [])
+                richiede_consenso_superamento_soglia = preventivo.richiede_consenso_superamento_soglia
                 if not compenso_pattuito:
                     compenso_pattuito = preventivo.totale
                 if clausola_controversie_attiva is None:
@@ -1137,9 +1219,16 @@ class GestionePreventivi:
             registro_operativo=operational_fields.get("registro_operativo", ""),
             numero_iscrizione_albo=numero_iscrizione_albo,
             ordine_avvocati=ordine_avvocati,
-            tipo_compenso=tipo_compenso,
+            tipo_compenso=normalizza_tipo_compenso(tipo_compenso),
             tipo_procedimento=tipo_procedimento,
             tariffa_oraria=tariffa_oraria,
+            criterio_arrotondamento_orario=criterio_arrotondamento_orario or "ora_frazione_oltre_30",
+            massimale_ore=float(massimale_ore or 0.0),
+            soglia_preapprovazione_ore=float(soglia_preapprovazione_ore or 0.0),
+            richiede_consenso_superamento_soglia=bool(richiede_consenso_superamento_soglia),
+            attivita_orarie_incluse=attivita_orarie_incluse,
+            attivita_orarie_escluse=attivita_orarie_escluse,
+            warning_compenso_orario=list(warning_compenso_orario or []),
             patto_palmario=patto_palmario,
             quota_palmario_pct=quota_palmario_pct,
             informativa_art13_resa=informativa_art13_resa,
@@ -1177,6 +1266,8 @@ class GestionePreventivi:
             if hasattr(c, k):
                 if k == "workflow_channel":
                     v = _normalize_workflow_channel(v)
+                elif k == "tipo_compenso":
+                    v = normalizza_tipo_compenso(v)
                 setattr(c, k, v)
         self._salva_conferimenti()
         return c
@@ -1237,6 +1328,13 @@ class GestionePreventivi:
             tipo_compenso=preventivo.tipo_compenso,
             tipo_procedimento=preventivo.tipo_procedimento,
             tariffa_oraria=preventivo.tariffa_oraria,
+            criterio_arrotondamento_orario=preventivo.criterio_arrotondamento_orario,
+            massimale_ore=preventivo.massimale_ore,
+            soglia_preapprovazione_ore=preventivo.soglia_preapprovazione_ore,
+            richiede_consenso_superamento_soglia=preventivo.richiede_consenso_superamento_soglia,
+            attivita_orarie_incluse=preventivo.attivita_orarie_incluse,
+            attivita_orarie_escluse=preventivo.attivita_orarie_escluse,
+            warning_compenso_orario=list(preventivo.warning_compenso_orario or []),
             informativa_art13_resa=informativa_art13_resa,
             clausola_adr_resa=clausola_adr_resa,
             workflow_channel=workflow_channel or preventivo.workflow_channel,

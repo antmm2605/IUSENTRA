@@ -20,6 +20,7 @@ from enum import Enum
 from typing import Any, Dict, List, Optional
 
 from pct.legal_platform_catalog import build_operational_fields
+from pct.compensi_a_tempo import calcola_compenso_a_tempo_art22bis
 
 
 # ================================================================ Enumerazioni
@@ -68,6 +69,43 @@ class VoceParcella:
             quantita=float(d.get("quantita", 1.0)),
             prezzo_unitario=float(d.get("prezzo_unitario", 0.0)),
         )
+
+
+def crea_voce_parcella_da_attivita_tempo(
+    *,
+    descrizione_attivita: str,
+    minuti: int,
+    tariffa_oraria: float,
+    criterio_arrotondamento: str = "ora_frazione_oltre_30",
+    massimale_ore: float = 0.0,
+    soglia_preapprovazione_ore: float = 0.0,
+) -> dict[str, Any]:
+    """Prepara una voce parcella da timesheet validato senza sovrascrivere voci manuali."""
+    payload = calcola_compenso_a_tempo_art22bis(
+        tariffa_oraria=tariffa_oraria,
+        ore_stimate=0,
+        minuti_stimati=minuti,
+        criterio_arrotondamento=criterio_arrotondamento,
+        massimale_ore=massimale_ore,
+        soglia_preapprovazione_ore=soglia_preapprovazione_ore,
+    )
+    ore = float(payload.get("ore_fatturabili") or 0.0)
+    voce = VoceParcella(
+        descrizione=(
+            f"{descrizione_attivita.strip() or 'Attivita professionale'} - "
+            f"compenso a tempo art. 22-bis D.M. 55/2014, {minuti} minuti, "
+            f"{ore:g} ore fatturabili"
+        ),
+        quantita=ore,
+        prezzo_unitario=float(payload.get("tariffa_oraria") or 0.0),
+    )
+    return {
+        "voce": voce,
+        "calcolo": payload,
+        "warnings": list(payload.get("warnings") or []),
+        "errors": list(payload.get("errors") or []),
+        "richiede_conferma": bool(payload.get("warnings")),
+    }
 
 
 # ================================================================ Parcella

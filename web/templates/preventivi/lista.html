@@ -53,6 +53,7 @@
 {# ── Filtri ── #}
 <form method="get" class="ds-search-bar mb-3">
   <input type="hidden" name="tab" value="{{ tab }}">
+  {% if filtro_rapido %}<input type="hidden" name="filtro" value="{{ filtro_rapido }}">{% endif %}
   <select name="anno" class="form-select form-select-sm" style="max-width:100px" onchange="this.form.submit()">
     {% for a in anni_disponibili %}
     <option value="{{ a }}" {% if a == anno %}selected{% endif %}>{{ a }}</option>
@@ -76,12 +77,32 @@
     <option value="{{ id }}" {% if cliente_filtro == id %}selected{% endif %}>{{ cl.nome_completo }}</option>
     {% endfor %}
   </select>
-  {% if stato_filtro or cliente_filtro %}
+  {% if stato_filtro or cliente_filtro or filtro_rapido %}
   <a href="{{ url_for('preventivi.lista', tab=tab, anno=anno) }}" class="ds-btn ds-btn-ghost">
     <i class="bi bi-x-circle"></i>Reset
   </a>
   {% endif %}
 </form>
+
+{% if tab == 'preventivi' %}
+<div class="d-flex flex-wrap gap-2 mb-3">
+  {% set quick_filters = [
+    ('', 'Tutti'),
+    ('bozze', 'In bozza'),
+    ('inviati', 'Inviati'),
+    ('accettati', 'Accettati'),
+    ('da_completare_anagrafica', 'Da completare anagrafica'),
+    ('clienti_potenziali', 'Clienti potenziali'),
+    ('senza_conferimento', 'Senza conferimento')
+  ] %}
+  {% for key, label in quick_filters %}
+  <a class="btn btn-sm {{ 'btn-primary' if filtro_rapido == key else 'btn-outline-secondary' }}"
+     href="{{ url_for('preventivi.lista', tab=tab, anno=anno, stato=stato_filtro, id_cliente=cliente_filtro, filtro=key) }}">
+    {{ label }}
+  </a>
+  {% endfor %}
+</div>
+{% endif %}
 
 {# ── Tab: Preventivi ── #}
 {% if tab == 'preventivi' %}
@@ -116,17 +137,25 @@
             {% set cl = clienti_map.get(p.id_cliente) %}
             <tr>
               <td data-label="N°"><span class="font-monospace fw-semibold">{{ p.numero }}</span></td>
-              <td data-label="Data" class="d-none d-md-table-cell small text-muted">{{ p.data_emissione }}</td>
+              <td data-label="Data" class="d-none d-md-table-cell small text-muted">{{ p.data_emissione|fmt_data }}</td>
               <td data-label="Cliente">
                 {% if cl %}
                 <a href="{{ url_for('cartella_cliente', id_cliente=p.id_cliente) }}" class="text-decoration-none fw-semibold">
                   {{ cl.nome_completo }}
                 </a>
+                {% if cl.stato.value == 'POTENZIALE' %}
+                <span class="badge text-bg-warning ms-1">Cliente potenziale</span>
+                {% endif %}
                 {% else %}
                 <span class="text-muted">—</span>
                 {% endif %}
               </td>
-              <td data-label="Oggetto" class="text-truncate" style="max-width:220px" title="{{ p.oggetto }}">{{ p.oggetto }}</td>
+              <td data-label="Oggetto" class="text-truncate" style="max-width:220px" title="{{ p.oggetto }}">
+                {{ p.oggetto }}
+                {% if p.id not in ids_preventivi_con_conferimento %}
+                <span class="badge text-bg-light border ms-1">senza conferimento</span>
+                {% endif %}
+              </td>
               <td data-label="Totale" class="text-end fw-semibold">€ {{ "%.2f"|format(p.totale) }}</td>
               <td data-label="Stato">
                 {% set badge = {'BOZZA':'secondary','INVIATO':'primary','ACCETTATO':'success','RIFIUTATO':'danger','SCADUTO':'warning'} %}
@@ -138,6 +167,12 @@
                      class="btn btn-sm btn-outline-primary" title="Dettaglio">
                     <i class="bi bi-eye"></i>
                   </a>
+                  {% if cl and cl.stato.value == 'POTENZIALE' %}
+                  <a href="{{ url_for('modifica_cliente', id_cliente=cl.id, next_url=url_for('preventivi.dettaglio_preventivo', id_preventivo=p.id)) }}"
+                     class="btn btn-sm btn-outline-warning" title="Completa anagrafica">
+                    <i class="bi bi-person-plus"></i>
+                  </a>
+                  {% endif %}
                 </div>
               </td>
             </tr>
@@ -192,7 +227,7 @@
             {% set cl = clienti_map.get(c.id_cliente) %}
             <tr>
               <td data-label="N°"><span class="font-monospace fw-semibold">{{ c.numero }}</span></td>
-              <td data-label="Data" class="d-none d-md-table-cell small text-muted">{{ c.data_incarico }}</td>
+              <td data-label="Data" class="d-none d-md-table-cell small text-muted">{{ c.data_incarico|fmt_data }}</td>
               <td data-label="Cliente">
                 {% if cl %}
                 <a href="{{ url_for('cartella_cliente', id_cliente=c.id_cliente) }}" class="text-decoration-none fw-semibold">

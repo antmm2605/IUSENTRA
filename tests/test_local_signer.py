@@ -1340,6 +1340,16 @@ def test_sigp_ricerca_atti_body_e_parser_ids():
     assert module._parse_sigp_ricerca_atti_ids(xml) == ["3080731", "3073476"]
 
 
+def test_sigp_download_atto_body_include_dominio_invocazione():
+    module = _load_local_signer()
+
+    body = module._soap_sigp_download_body("ATTO-SIGP-001", "0800570152")
+
+    assert 'InvocationDomain name="JPW" role="AVV" group="0800570152"' in body
+    assert '<y:downloadAtto xmlns:y="urn:sigp-consultazioneDocumenti">' in body
+    assert "<idrepeatto>ATTO-SIGP-001</idrepeatto>" in body
+
+
 def test_sigp_fallback_collega_scheda_ufficiale_gdp():
     module = _load_local_signer()
 
@@ -2959,10 +2969,64 @@ def test_download_documento_sigp_usa_timeout_lungo_e_copia_di_default():
         module._soap_call_pst_session_raw = orig_raw
 
     assert calls["soap_action"] == "downloadAtto"
+    assert 'InvocationDomain name="JPW" role="AVV" group="0800570152"' in calls["soap_body"]
+    assert "<idrepeatto>3080760</idrepeatto>" in calls["soap_body"]
     assert calls["max_time"] == module.PST_DOWNLOAD_MAX_TIME
     assert calls["connect_timeout"] == module.PST_DOWNLOAD_CONNECT_TIMEOUT
     assert esito["original_documento_portale"] is False
     assert esito["modalita_documento_portale"] == "copia"
+
+
+def test_download_documenti_batch_sigp_include_dominio_invocazione():
+    module = _load_local_signer()
+
+    orig_batch = module._soap_call_pst_session_batch_raw
+    calls = {"requests": []}
+    try:
+        def _fake_batch(requests, **kwargs):
+            calls["requests"].extend(requests)
+            body = (
+                b"--abc123\r\n"
+                b"Content-Type: text/xml\r\n"
+                b"Content-Transfer-Encoding: 7bit\r\n\r\n"
+                b"<?xml version='1.0' encoding='UTF-8'?><SOAP-ENV:Envelope xmlns:SOAP-ENV='http://schemas.xmlsoap.org/soap/envelope/'>"
+                b"<SOAP-ENV:Body><downloadAttoResponse><return href='cid:test-doc-1'/></downloadAttoResponse></SOAP-ENV:Body></SOAP-ENV:Envelope>\r\n"
+                b"--abc123\r\n"
+                b"Content-Type: application/pdf\r\n"
+                b"Content-Transfer-Encoding: base64\r\n"
+                b"Content-ID: <test-doc-1>\r\n\r\n"
+                b"JVBERi0xLjcK\r\n"
+                b"--abc123--\r\n"
+            )
+            return [(body, 'Content-Type: multipart/related; boundary="abc123"')]
+
+        module._soap_call_pst_session_batch_raw = _fake_batch
+        esito = module._pst_download_documenti_batch_payloads(
+            base_url="https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SIGP",
+            codice_ufficio="0800570152",
+            cert_thumbprint="AABBCC11",
+            cf_avvocato="RSSMRA80A01H501Z",
+            documenti=[
+                {
+                    "id_documento": "3080760",
+                    "nome_documento": "decretoGenerico.pdf",
+                    "id_repeatto": "3080760",
+                }
+            ],
+            do_preflight=False,
+            cookie_file="C:\\temp\\pst.cookies",
+            original=False,
+        )
+    finally:
+        module._soap_call_pst_session_batch_raw = orig_batch
+
+    assert esito["ok"] is True
+    assert esito["documenti_scaricati"] == 1
+    assert len(calls["requests"]) == 1
+    soap_body = calls["requests"][0]["soap_body"]
+    assert 'InvocationDomain name="JPW" role="AVV" group="0800570152"' in soap_body
+    assert "<idrepeatto>3080760</idrepeatto>" in soap_body
+    assert calls["requests"][0]["soap_action"] == "downloadAtto"
 
 
 def test_download_documenti_batch_best_effort_non_azzera_lotto_se_un_profilo_fallisce():
@@ -3557,7 +3621,7 @@ def test_pdp_ricerca_local_signer_dns_restituisce_manual_required():
     assert captured["payload"]["manual_required"] is True
     assert captured["payload"]["manual_phase"] == "ricerca"
     assert captured["payload"]["manual_title"] == "Consultazione via browser ufficiale"
-    assert captured["payload"]["portale_url"] == "https://pst.giustizia.it/PST/it/services.page"
+    assert captured["payload"]["portale_url"] == "https://appweb.giustizia.it/snt"
 
 
 def test_pdp_ricerca_local_signer_browser_assistito_se_wsdl_disabilitato():
@@ -3594,7 +3658,7 @@ def test_pdp_ricerca_local_signer_browser_assistito_se_wsdl_disabilitato():
     assert captured["payload"]["manual_required"] is True
     assert captured["payload"]["manual_title"] == "Consultazione via browser ufficiale"
     assert "Consultazione via browser ufficiale" in captured["payload"]["errore"]
-    assert captured["payload"]["portale_url"] == "https://pst.giustizia.it/PST/it/services.page"
+    assert captured["payload"]["portale_url"] == "https://appweb.giustizia.it/snt"
 
 
 def test_pat_documenti_local_signer_restituisce_documenti_parsati():
@@ -3815,7 +3879,7 @@ def test_ptt_ricerca_local_signer_403_restituisce_manual_required():
     assert captured["payload"]["manual_required"] is True
     assert captured["payload"]["manual_phase"] == "ricerca"
     assert captured["payload"]["manual_title"] == "Consultazione via browser ufficiale"
-    assert captured["payload"]["portale_url"] == "https://sigit.finanze.it/NIRWeb/login.jsp"
+    assert captured["payload"]["portale_url"] == "https://sigit.giustiziatributaria.gov.it/Sigit/index.do"
 
 
 def test_parse_pdp_documenti_response_popola_campi_busta():

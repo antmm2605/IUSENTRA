@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-IUSENTRA Local Signer - v1.6.18
+IUSENTRA Local Signer - v1.6.19
 
 Servizio HTTP locale (localhost:27272) che firma documenti con smart card e token CNS/CIE
 (o qualsiasi token PKCS#11) e consente l'accesso autenticato al PST.
@@ -107,7 +107,7 @@ from local_signer_mod.server_bootstrap import print_startup_banner  # noqa: E402
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.6.18"
+VERSION = "1.6.19"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
@@ -4750,17 +4750,17 @@ def _soap_bea_siecic_body(operation: str, parameters: list[tuple[str, str]]) -> 
 </soapenv:Envelope>"""
 
 
-def _soap_sigp_download_body(id_repeatto: str) -> str:
-    return f"""<?xml version="1.0" encoding="UTF-8"?>
-<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"
-                  xmlns:y="urn:sigp-consultazioneDocumenti">
-  <soapenv:Header/>
-  <soapenv:Body>
-    <y:downloadAtto>
+def _soap_sigp_download_body(id_repeatto: str, codice_ufficio: str) -> str:
+    body_inner = f"""
+    <y:downloadAtto xmlns:y="urn:sigp-consultazioneDocumenti">
       <idrepeatto>{_esc(id_repeatto)}</idrepeatto>
-    </y:downloadAtto>
-  </soapenv:Body>
-</soapenv:Envelope>"""
+    </y:downloadAtto>"""
+    return _soap_qbuilder_envelope(
+        "urn:sigp-consultazioneDocumenti",
+        body_inner,
+        role="AVV",
+        group=codice_ufficio,
+    )
 
 
 def _pst_download_documento_payload(
@@ -4853,7 +4853,7 @@ def _pst_download_documento_payload(
         download_id_repeatto = str(id_repeatto or id_documento).strip()
         if not download_id_repeatto:
             raise RuntimeError("Il servizio Cassazione richiede idRepeatTo per il download dell'atto.")
-        soap_body = _soap_sigp_download_body(download_id_repeatto)
+        soap_body = _soap_sigp_download_body(download_id_repeatto, codice_ufficio)
     else:
         raise RuntimeError(f"Servizio PST non supportato per il download diretto: {servizio or 'sconosciuto'}.")
 
@@ -5259,7 +5259,7 @@ def _pst_download_documenti_batch_payloads(
                     id_repeatto = str(item.get("id_repeatto") or id_doc or id_cat).strip()
                     if not id_repeatto:
                         raise RuntimeError("idRepeatTo mancante nel lotto Cassazione.")
-                    soap_body = _soap_sigp_download_body(id_repeatto)
+                    soap_body = _soap_sigp_download_body(id_repeatto, codice_ufficio)
                     soap_action = "downloadAtto"
                     extra_h: list[str] = []
                 elif servizio == "JPW_SICID":

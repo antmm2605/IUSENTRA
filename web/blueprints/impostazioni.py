@@ -244,6 +244,8 @@ def index():
                     use_ssl=bool(f.get("pec_use_ssl")),
                 )
             elif tab == "firma":
+                from visible_signature import normalize_visible_signature_mode
+
                 pwd = f.get("firma_password", "").strip()
                 key_pwd = f.get("firma_key_pem_password", "").strip()
                 backend_preferito = (f.get("firma_formato") or cfg.firma.backend_preferito or "auto").strip().lower()
@@ -276,6 +278,10 @@ def index():
                     # Comune
                     cf_avvocato=f.get("firma_cf_avvocato", "").strip(),
                     backend_preferito=backend_preferito,
+                    visible_signature_mode=normalize_visible_signature_mode(
+                        f.get("firma_visible_signature_mode")
+                        or getattr(cfg.firma, "visible_signature_mode", "laterale")
+                    ),
                 )
             elif tab == "smtp":
                 pwd = f.get("smtp_password", "").strip()

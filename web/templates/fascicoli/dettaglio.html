@@ -3697,7 +3697,7 @@
         </div>
 
         {# ════ PATH L — Local Signer (Windows / Aruba Key) ════ #}
-        {{ render_firma_visibile_selector('dettaglioFirma', firma_visibile_place) }}
+        {{ render_firma_visibile_selector('dettaglioFirma', firma_visibile_place, firma_visibile_mode|default('laterale')) }}
         <div id="fPathLS" style="display:none">
           <div id="fLsInfo" class="alert alert-success small d-flex gap-2 mb-3">
             <i class="bi bi-usb-symbol flex-shrink-0 mt-1"></i><span></span>

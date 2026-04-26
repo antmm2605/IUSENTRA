@@ -518,6 +518,18 @@
                  value="{{ cfg.firma.cf_avvocato }}" placeholder="RSSMRA80A01H501Z" maxlength="16">
           <div class="form-text">Deve corrispondere al CF nel certificato di firma digitale.</div>
         </div>
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Posizione firma visibile</label>
+          <select name="firma_visible_signature_mode" class="form-select">
+            {% set firma_visibile_mode = cfg.firma.visible_signature_mode|default('laterale') %}
+            <option value="laterale" {{ 'selected' if firma_visibile_mode == 'laterale' }}>Laterale</option>
+            <option value="basso_sinistra" {{ 'selected' if firma_visibile_mode == 'basso_sinistra' }}>In basso a sinistra</option>
+            <option value="basso_destra" {{ 'selected' if firma_visibile_mode == 'basso_destra' }}>In basso a destra</option>
+          </select>
+          <div class="form-text">
+            La firma visibile è una dicitura grafica sul PDF. La validità legale resta nella firma digitale CAdES/PAdES.
+          </div>
+        </div>
       </div>
 
       {# ── Pulsanti ── #}

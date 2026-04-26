@@ -143,6 +143,12 @@ class ConfigFirma:
     # ── Comune a tutti i formati ─────────────────────────────────────────────
     cf_avvocato: str = ""
     backend_preferito: str = "auto"  # auto | pkcs11 | p12 | pem
+    visible_signature_mode: str = "laterale"
+
+    def __post_init__(self) -> None:
+        from visible_signature import normalize_visible_signature_mode
+
+        self.visible_signature_mode = normalize_visible_signature_mode(self.visible_signature_mode)
 
     @property
     def backend_preferito_normalizzato(self) -> str:
@@ -445,6 +451,7 @@ class GestioneConfigStudio:
                 pkcs11_label=os.getenv("PCT_PKCS11_LABEL", ""),
                 cf_avvocato=os.getenv("PCT_CF_AVVOCATO", ""),
                 backend_preferito=os.getenv("PCT_FIRMA_BACKEND", "auto"),
+                visible_signature_mode=os.getenv("PCT_VISIBLE_SIGNATURE_MODE", "laterale"),
             ),
             smtp=ConfigSMTP(
                 host=os.getenv("PCT_SMTP_HOST", ""),
@@ -565,6 +572,10 @@ def risolvi_config_firma_corrente(config_path: str | None = None) -> Dict[str, s
         or getattr(studio, "codice_fiscale_avvocato", "")
         or ""
     ).strip().upper()
+    try:
+        from visible_signature import normalize_visible_signature_mode as _normalizza_firma_visibile
+    except Exception:
+        _normalizza_firma_visibile = lambda value: "laterale"  # type: ignore[assignment]
 
     return {
         "config_path": path,
@@ -577,6 +588,11 @@ def risolvi_config_firma_corrente(config_path: str | None = None) -> Dict[str, s
             "PCT_FIRMA_KEY_PASSWORD",
         ),
         "cf_avvocato": cf_cfg or str(os.getenv("PCT_CF_AVVOCATO", "") or "").strip().upper(),
+        "visible_signature_mode": _normalizza_firma_visibile(
+            getattr(firma, "visible_signature_mode", "")
+            or os.getenv("PCT_VISIBLE_SIGNATURE_MODE", "")
+            or "laterale"
+        ),
     }
 
 

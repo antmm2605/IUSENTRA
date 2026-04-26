@@ -75,6 +75,35 @@ def test_impostazioni_firma_pkcs11_non_mostra_falso_errore_server(tmp_path: Path
     assert "PKCS#11 selezionato ma libreria/token non disponibili." not in html
     assert "Configurazione guidata" in html
     assert "La verifica reale di libreria, token e certificato avviene tramite Local Signer sul PC locale" in html
+    assert 'name="firma_visible_signature_mode"' in html
+    assert "In basso a sinistra" in html
+
+
+def test_impostazioni_firma_salva_posizione_firma_visibile(tmp_path: Path):
+    cfg = _cfg_web(tmp_path)
+    _crea_avvocato(cfg)
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        client.post(
+            "/login",
+            data={"username": "avvocato", "password": "Avv12345!"},
+            follow_redirects=True,
+        )
+        response = client.post(
+            "/impostazioni",
+            data={
+                "_tab": "firma",
+                "firma_formato": "pkcs11",
+                "firma_cf_avvocato": "MNTRRT64L01063H",
+                "firma_visible_signature_mode": "basso_sinistra",
+            },
+            follow_redirects=True,
+        )
+
+    assert response.status_code == 200
+    salvata = GestioneConfigStudio(cfg["STUDIO_CONFIG"]).config
+    assert salvata.firma.visible_signature_mode == "basso_sinistra"
 
 
 def test_script_impostazioni_firma_verifica_local_signer_sul_pc_locale():

@@ -9,13 +9,16 @@ from reportlab.pdfgen import canvas
 from visible_signature import (
     VISIBLE_SIGNATURE_METADATA_KEY,
     VISIBLE_SIGNATURE_MODE_BASSO_DESTRA,
+    VISIBLE_SIGNATURE_MODE_BASSO_SINISTRA,
     VISIBLE_SIGNATURE_MODE_LATERALE,
     _build_visible_signature_side_text,
     _draw_visible_signature_bottom_right_text,
     _draw_visible_signature_seal,
     apply_visible_signature_stamp,
+    compute_visible_signature_layout,
     format_visible_signature_datetime,
     has_visible_signature_stamp,
+    normalize_visible_signature_mode,
     resolve_visible_signature_place,
 )
 
@@ -42,6 +45,41 @@ def test_format_visible_signature_datetime_converte_in_fuso_italiano():
         format_visible_signature_datetime("2026-04-14T09:32:00+00:00")
         == "14/04/2026 alle ore 11:32"
     )
+
+
+def test_normalize_visible_signature_mode_aliases():
+    cases = {
+        "laterale": VISIBLE_SIGNATURE_MODE_LATERALE,
+        "verticale": VISIBLE_SIGNATURE_MODE_LATERALE,
+        "margine-destro": VISIBLE_SIGNATURE_MODE_LATERALE,
+        "basso_sinistra": VISIBLE_SIGNATURE_MODE_BASSO_SINISTRA,
+        "basso-sinistra": VISIBLE_SIGNATURE_MODE_BASSO_SINISTRA,
+        "bottom_left": VISIBLE_SIGNATURE_MODE_BASSO_SINISTRA,
+        "sx": VISIBLE_SIGNATURE_MODE_BASSO_SINISTRA,
+        "basso_destra": VISIBLE_SIGNATURE_MODE_BASSO_DESTRA,
+        "bottom_right": VISIBLE_SIGNATURE_MODE_BASSO_DESTRA,
+        "dx": VISIBLE_SIGNATURE_MODE_BASSO_DESTRA,
+        "valore-non-valido": VISIBLE_SIGNATURE_MODE_LATERALE,
+    }
+
+    for raw, expected in cases.items():
+        assert normalize_visible_signature_mode(raw) == expected
+
+
+def test_compute_visible_signature_layout_non_usa_coordinate_fisse_a4():
+    left = compute_visible_signature_layout(width=842.0, height=595.0, mode="basso_sinistra")
+    right = compute_visible_signature_layout(width=842.0, height=595.0, mode="basso_destra")
+    side = compute_visible_signature_layout(width=420.0, height=640.0, mode="laterale")
+
+    assert left["mode"] == VISIBLE_SIGNATURE_MODE_BASSO_SINISTRA
+    assert right["mode"] == VISIBLE_SIGNATURE_MODE_BASSO_DESTRA
+    assert side["mode"] == VISIBLE_SIGNATURE_MODE_LATERALE
+    assert float(left["x"]) < float(right["x"])
+    for layout, width, height in ((left, 842.0, 595.0), (right, 842.0, 595.0), (side, 420.0, 640.0)):
+        assert 0 <= float(layout["x"]) < width
+        assert 0 <= float(layout["y"]) < height
+        assert float(layout["x"]) + float(layout["box_width"]) <= width + 0.1
+        assert float(layout["y"]) + float(layout["box_height"]) <= height + 0.1
 
 
 def test_apply_visible_signature_stamp_adds_vertical_mark_and_metadata():
@@ -87,6 +125,26 @@ def test_apply_visible_signature_stamp_supporta_modalita_basso_destra():
     assert "Luogo: Reggio Calabria" in text
 
 
+def test_apply_visible_signature_stamp_supporta_modalita_basso_sinistra():
+    stamped = apply_visible_signature_stamp(
+        _make_pdf_bytes(),
+        intestatario="Avv. Antonio Mammola",
+        data_firma="2026-04-14T11:32:00+02:00",
+        luogo="Reggio Calabria",
+        mode=VISIBLE_SIGNATURE_MODE_BASSO_SINISTRA,
+    )
+
+    reader = PdfReader(io.BytesIO(stamped))
+    text = "\n".join(page.extract_text() or "" for page in reader.pages)
+    metadata = reader.metadata or {}
+
+    assert stamped.startswith(b"%PDF")
+    assert "Per autentica e sottoscrizione" in text
+    assert "Firmato da: AVV. ANTONIO MAMMOLA" in text
+    assert "in data 14/04/2026 ore 11:32" in text
+    assert str(metadata.get(VISIBLE_SIGNATURE_METADATA_KEY, ""))
+
+
 def test_apply_visible_signature_stamp_modalita_laterale_aggiunge_prefisso_avv():
     stamped = apply_visible_signature_stamp(
         _make_pdf_bytes(),
@@ -117,7 +175,7 @@ def test_visible_signature_side_text_espone_tutto_su_unica_riga_verticale():
     )
 
 
-def test_apply_visible_signature_stamp_refreshes_existing_stamp_when_mode_changes():
+def test_apply_visible_signature_stamp_non_duplica_timbro_se_gia_presente():
     first = apply_visible_signature_stamp(
         _make_pdf_bytes(),
         intestatario="Avv. Antonio Mammola",
@@ -133,15 +191,7 @@ def test_apply_visible_signature_stamp_refreshes_existing_stamp_when_mode_change
         mode=VISIBLE_SIGNATURE_MODE_BASSO_DESTRA,
     )
 
-    assert second != first
-    reader = PdfReader(io.BytesIO(second))
-    metadata = reader.metadata or {}
-    text = "\n".join(page.extract_text() or "" for page in reader.pages)
-
-    assert "Per autentica e sottoscrizione" in text
-    assert "Firmato da: AVV. ANTONIO MAMMOLA in data 14/04/2026 ore 11:32" in text
-    assert "Luogo: Reggio Calabria" in text
-    assert "14/04/2026 alle ore 11:32" in str(metadata.get(VISIBLE_SIGNATURE_METADATA_KEY, ""))
+    assert second == first
 
 
 def test_bottom_right_signature_draws_colored_seal(monkeypatch):

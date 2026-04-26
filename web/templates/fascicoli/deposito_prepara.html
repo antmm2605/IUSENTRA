@@ -483,7 +483,7 @@
           </div>
         </div>
 
-        {{ render_firma_visibile_selector('depositoFirma', firma_visibile_place) }}
+        {{ render_firma_visibile_selector('depositoFirma', firma_visibile_place, firma_visibile_mode|default('laterale')) }}
 
         {# ════════════ PATH L — Local Signer (Windows / Aruba Key in-device) ════════════ #}
         {# Usa http://localhost:27272 — avviare tools/avvia_local_signer.bat #}

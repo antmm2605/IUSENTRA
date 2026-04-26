@@ -1,19 +1,30 @@
 (function (window, document) {
   const STORAGE_KEY = "hacs.firma_visibile.mode";
   const MODE_LATERALE = "laterale";
+  const MODE_BASSO_SINISTRA = "basso_sinistra";
   const MODE_BASSO_DESTRA = "basso_destra";
-  const VALID_MODES = new Set([MODE_LATERALE, MODE_BASSO_DESTRA]);
+  const VALID_MODES = new Set([MODE_LATERALE, MODE_BASSO_SINISTRA, MODE_BASSO_DESTRA]);
 
   function normalizeMode(value) {
-    const raw = String(value || "").trim().toLowerCase();
+    const raw = String(value || "").trim().toLowerCase().replace(/[-\s]+/g, "_");
+    if (["bottom_left", "left", "sinistra", "sx", "basso_sx"].includes(raw)) {
+      return MODE_BASSO_SINISTRA;
+    }
+    if (["bottom_right", "right", "destra", "dx", "basso_dx"].includes(raw)) {
+      return MODE_BASSO_DESTRA;
+    }
+    if (["side", "verticale", "margine", "margine_destro", "laterale_dx"].includes(raw)) {
+      return MODE_LATERALE;
+    }
     return VALID_MODES.has(raw) ? raw : MODE_LATERALE;
   }
 
-  function loadStoredMode() {
+  function loadStoredMode(defaultMode = MODE_LATERALE) {
     try {
-      return normalizeMode(window.localStorage.getItem(STORAGE_KEY));
+      const stored = window.localStorage.getItem(STORAGE_KEY);
+      return stored ? normalizeMode(stored) : normalizeMode(defaultMode);
     } catch (_) {
-      return MODE_LATERALE;
+      return normalizeMode(defaultMode);
     }
   }
 
@@ -39,7 +50,7 @@
     const groupName = root.dataset.signatureModeName;
     if (!groupName) return;
 
-    syncRoot(root, loadStoredMode());
+    syncRoot(root, loadStoredMode(root.dataset.signatureDefaultMode || MODE_LATERALE));
     root.querySelectorAll(`input[name="${groupName}"]`).forEach((input) => {
       input.addEventListener("change", () => {
         const mode = saveMode(input.value);
@@ -71,7 +82,7 @@
     if (selected) {
       return normalizeMode(selected.value);
     }
-    return loadStoredMode();
+    return loadStoredMode(root?.dataset?.signatureDefaultMode || MODE_LATERALE);
   }
 
   function getSignaturePlace(rootOrSelector) {

@@ -359,6 +359,7 @@ def register_fascicoli_core_routes(
             pdp_penale_summary=pdp_penale_summary_for_fascicolo(fascicolo),
             cfg_firma=cfg_firma,
             firma_visibile_place=luogo_timbro_firma_visibile(),
+            firma_visibile_mode=getattr(cfg_firma, "visible_signature_mode", "laterale"),
             open_pst_nav=open_pst_nav,
             auto_pst_acquire=auto_pst_acquire,
             preserve_pst_tree=preserve_pst_tree,

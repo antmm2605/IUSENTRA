@@ -1523,13 +1523,15 @@ def test_modal_firma_deposito_prevede_riavvio_local_signer():
     assert "spazio limitato IUSENTRA ha sostituito la copia precedente" in deposito
     assert '{% from "components/firma_visibile_selector.html" import render_firma_visibile_selector %}' in dettaglio
     assert '{% from "components/firma_visibile_selector.html" import render_firma_visibile_selector %}' in deposito
-    assert "{{ render_firma_visibile_selector('dettaglioFirma', firma_visibile_place) }}" in dettaglio
-    assert "{{ render_firma_visibile_selector('depositoFirma', firma_visibile_place) }}" in deposito
+    assert "{{ render_firma_visibile_selector('dettaglioFirma', firma_visibile_place, firma_visibile_mode|default('laterale')) }}" in dettaglio
+    assert "{{ render_firma_visibile_selector('depositoFirma', firma_visibile_place, firma_visibile_mode|default('laterale')) }}" in deposito
     assert "/static/js/firma-visibile-mode.js?v={{ app_version }}" in dettaglio
     assert "/static/js/firma-visibile-mode.js?v={{ app_version }}" in deposito
     assert "Laterale verticale" in selector
+    assert "In basso a sinistra" in selector
     assert "In basso a destra" in selector
     assert 'data-signature-place="{{ place }}"' in selector
+    assert 'data-signature-default-mode="{{ mode }}"' in selector
     assert "window.HacsFirmaVisibileMode" in helper_js
     assert "getSelectedMode" in helper_js
     assert "getSignaturePlace" in helper_js

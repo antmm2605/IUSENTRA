@@ -170,8 +170,9 @@ def register_fascicoli_signature_routes(
             id_doc = str(data.get("documento_id") or "").strip()
             pin = data.get("pin", "")
             formato = str(data.get("formato") or "cades").strip().lower()
+            cfg_firma = get_config_studio().config.firma
             visible_signature_mode = normalizza_modalita_firma_visibile(
-                str(data.get("visible_signature_mode") or "laterale").strip()
+                str(data.get("visible_signature_mode") or getattr(cfg_firma, "visible_signature_mode", "laterale")).strip()
             )
             visible_signature_place = str(data.get("visible_signature_place") or luogo_timbro_firma_visibile()).strip()
 
@@ -180,7 +181,6 @@ def register_fascicoli_signature_routes(
             if not pin:
                 return jsonify({"ok": False, "messaggio": "PIN obbligatorio per la firma in-device."}), 400
 
-            cfg_firma = get_config_studio().config.firma
             try:
                 backend_firma = cfg_firma.backend_firma_effettivo
             except (FileNotFoundError, ValueError) as exc:
@@ -310,8 +310,9 @@ def register_fascicoli_signature_routes(
             documento_ids = [str(item).strip() for item in (data.get("documento_ids") or []) if str(item).strip()]
             pin = data.get("pin", "")
             formato = str(data.get("formato") or "cades").strip().lower()
+            cfg_firma = get_config_studio().config.firma
             visible_signature_mode = normalizza_modalita_firma_visibile(
-                str(data.get("visible_signature_mode") or "laterale").strip()
+                str(data.get("visible_signature_mode") or getattr(cfg_firma, "visible_signature_mode", "laterale")).strip()
             )
             visible_signature_place = str(data.get("visible_signature_place") or luogo_timbro_firma_visibile()).strip()
 
@@ -320,7 +321,6 @@ def register_fascicoli_signature_routes(
             if not pin:
                 return jsonify({"ok": False, "messaggio": "PIN obbligatorio per la firma batch in-device."}), 400
 
-            cfg_firma = get_config_studio().config.firma
             try:
                 backend_firma = cfg_firma.backend_firma_effettivo
             except (FileNotFoundError, ValueError) as exc:

@@ -6218,7 +6218,7 @@ class _Handler(BaseHTTPRequestHandler):
     def _firma(self):
         """
         POST /firma
-        Body: {documento: <base64>, pin?: "...", pin_session_id?: "...", slot_id?: 0, visible_signature_mode?: "laterale"|"basso_destra", visible_signature_place?: "Taurianova"}
+        Body: {documento: <base64>, pin?: "...", pin_session_id?: "...", slot_id?: 0, visible_signature_mode?: "laterale"|"basso_sinistra"|"basso_destra", visible_signature_place?: "Taurianova"}
         Response: {ok, firmato_b64, intestatario, scadenza, dimensione}
         """
         lib = _trova_libreria()
@@ -6272,7 +6272,7 @@ class _Handler(BaseHTTPRequestHandler):
     def _firma_batch(self):
         """
         POST /firma-batch
-        Body: {documenti:[{documento:<base64>, nome?}], pin?: "...", pin_session_id?: "...", slot_id?: 0, visible_signature_mode?: "laterale"|"basso_destra", visible_signature_place?: "Taurianova"}
+        Body: {documenti:[{documento:<base64>, nome?}], pin?: "...", pin_session_id?: "...", slot_id?: 0, visible_signature_mode?: "laterale"|"basso_sinistra"|"basso_destra", visible_signature_place?: "Taurianova"}
         Response: {ok, firmati, falliti, risultati:[...], pin_session_id?}
         """
         lib = _trova_libreria()

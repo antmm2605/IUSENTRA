@@ -12,9 +12,11 @@ except Exception:  # pragma: no cover - fallback difensivo
 
 CM_TO_PT = 28.35
 VISIBLE_SIGNATURE_MODE_LATERALE = "laterale"
+VISIBLE_SIGNATURE_MODE_BASSO_SINISTRA = "basso_sinistra"
 VISIBLE_SIGNATURE_MODE_BASSO_DESTRA = "basso_destra"
 VISIBLE_SIGNATURE_MODES = {
     VISIBLE_SIGNATURE_MODE_LATERALE,
+    VISIBLE_SIGNATURE_MODE_BASSO_SINISTRA,
     VISIBLE_SIGNATURE_MODE_BASSO_DESTRA,
 }
 VISIBLE_SIGNATURE_PREFIX = "Firmato digitalmente da"
@@ -24,10 +26,83 @@ ITALY_TIMEZONE = ZoneInfo("Europe/Rome") if ZoneInfo else None
 
 
 def normalize_visible_signature_mode(value: Any) -> str:
-    mode = str(value or "").strip().lower()
-    if mode in VISIBLE_SIGNATURE_MODES:
-        return mode
+    mode = str(value or "").strip().lower().replace("-", "_").replace(" ", "_")
+    aliases = {
+        VISIBLE_SIGNATURE_MODE_LATERALE: {
+            "laterale",
+            "side",
+            "verticale",
+            "margine",
+            "margine_destro",
+            "laterale_dx",
+        },
+        VISIBLE_SIGNATURE_MODE_BASSO_SINISTRA: {
+            "basso_sinistra",
+            "bottom_left",
+            "left",
+            "sinistra",
+            "sx",
+            "basso_sx",
+        },
+        VISIBLE_SIGNATURE_MODE_BASSO_DESTRA: {
+            "basso_destra",
+            "bottom_right",
+            "right",
+            "destra",
+            "dx",
+            "basso_dx",
+        },
+    }
+    for normalized, values in aliases.items():
+        if mode in values:
+            return normalized
     return VISIBLE_SIGNATURE_MODE_LATERALE
+
+
+def compute_visible_signature_layout(
+    *,
+    width: float,
+    height: float,
+    mode: str,
+    margin: float = CM_TO_PT,
+) -> dict[str, float | str | int]:
+    """Calcola coordinate sicure per la firma visibile su pagine di qualsiasi formato."""
+    page_width = max(float(width or 0), 1.0)
+    page_height = max(float(height or 0), 1.0)
+    shortest_side = max(min(page_width, page_height), 1.0)
+    safe_margin = min(max(float(margin or CM_TO_PT), 12.0), max(shortest_side / 4, 12.0))
+    resolved_mode = normalize_visible_signature_mode(mode)
+    available_width = max(page_width - (safe_margin * 2), 1.0)
+    available_height = max(page_height - (safe_margin * 2), 1.0)
+
+    if resolved_mode in {VISIBLE_SIGNATURE_MODE_BASSO_SINISTRA, VISIBLE_SIGNATURE_MODE_BASSO_DESTRA}:
+        box_width = min(440.0, available_width)
+        box_height = min(102.0, available_height)
+        x = safe_margin
+        if resolved_mode == VISIBLE_SIGNATURE_MODE_BASSO_DESTRA:
+            x = max(safe_margin, page_width - box_width - safe_margin)
+        y = safe_margin
+        return {
+            "x": x,
+            "y": y,
+            "box_width": box_width,
+            "box_height": box_height,
+            "align": "left" if resolved_mode == VISIBLE_SIGNATURE_MODE_BASSO_SINISTRA else "right",
+            "rotation": 0,
+            "mode": resolved_mode,
+        }
+
+    side_width = min(max(CM_TO_PT * 1.85, min(42.0, available_width)), available_width)
+    side_height = available_height
+    return {
+        "x": max(safe_margin, page_width - side_width - safe_margin),
+        "y": safe_margin,
+        "box_width": side_width,
+        "box_height": side_height,
+        "align": "left",
+        "rotation": 90,
+        "mode": VISIBLE_SIGNATURE_MODE_LATERALE,
+    }
 
 
 def _normalize_visible_signature_place(value: str = "") -> str:
@@ -184,6 +259,9 @@ def apply_visible_signature_stamp(
     if not pdf_data.startswith(b"%PDF"):
         return pdf_data
 
+    if has_visible_signature_stamp(pdf_data):
+        return pdf_data
+
     stamp_text = build_visible_signature_text(
         intestatario=intestatario,
         data_firma=data_firma,
@@ -203,6 +281,7 @@ def apply_visible_signature_stamp(
         return _apply_visible_signature_stamp_fallback(
             pdf_data,
             stamp_text=stamp_text,
+            mode=resolved_mode,
         )
 
     try:
@@ -219,8 +298,14 @@ def apply_visible_signature_stamp(
         for index in range(page_count):
             page = writer.pages[index]
             if index == last_page_index:
-                width = float(page.mediabox.width)
-                height = float(page.mediabox.height)
+                page_box = getattr(page, "cropbox", None) or page.mediabox
+                width = float(page_box.width)
+                height = float(page_box.height)
+                layout = compute_visible_signature_layout(
+                    width=width,
+                    height=height,
+                    mode=resolved_mode,
+                )
 
                 overlay_buffer = io.BytesIO()
                 overlay = canvas.Canvas(overlay_buffer, pagesize=(width, height))
@@ -230,12 +315,15 @@ def apply_visible_signature_stamp(
                     overlay,
                     width=width,
                     height=height,
+                    mode=resolved_mode,
+                    layout=layout,
                 )
-                if resolved_mode == VISIBLE_SIGNATURE_MODE_BASSO_DESTRA:
-                    _draw_visible_signature_bottom_right_text(
+                if resolved_mode in {VISIBLE_SIGNATURE_MODE_BASSO_SINISTRA, VISIBLE_SIGNATURE_MODE_BASSO_DESTRA}:
+                    _draw_visible_signature_bottom_text(
                         overlay,
                         width=width,
                         height=height,
+                        layout=layout,
                         color=muted,
                         intestatario=signer_name,
                         data_firma=data_firma,
@@ -246,6 +334,7 @@ def apply_visible_signature_stamp(
                         overlay,
                         width=width,
                         height=height,
+                        layout=layout,
                         color=muted,
                         intestatario=signer_name,
                         data_firma=data_firma,
@@ -308,28 +397,34 @@ def _apply_visible_signature_stamp_fallback(
 
         dest_page = page_count - 1
         resolved_mode = normalize_visible_signature_mode(mode)
-        box_width = 280 if resolved_mode == VISIBLE_SIGNATURE_MODE_BASSO_DESTRA else 236
-        box_height = 72 if resolved_mode == VISIBLE_SIGNATURE_MODE_BASSO_DESTRA else 92
         page_width = 595.0
+        page_height = 842.0
         try:
             page_ref, _ = writer.find_page_for_modification(dest_page)
             media_box = page_ref.get_object().get("/MediaBox")
             if media_box and len(media_box) >= 4:
                 page_width = float(media_box[2]) - float(media_box[0])
+                page_height = float(media_box[3]) - float(media_box[1])
         except Exception:
             page_width = 595.0
+            page_height = 842.0
 
-        x_margin = int(CM_TO_PT)
-        y_margin = int(CM_TO_PT)
-        x = max(x_margin, int(page_width - box_width - x_margin))
-        y = y_margin
+        layout = compute_visible_signature_layout(
+            width=page_width,
+            height=page_height,
+            mode=resolved_mode,
+        )
+        box_width = int(float(layout["box_width"]))
+        box_height = int(float(layout["box_height"]))
+        x = int(float(layout["x"]))
+        y = int(float(layout["y"]))
         style = TextStampStyle(
             stamp_text=stamp_text,
             border_width=1,
             border_color=(0.12, 0.31, 0.55),
             text_box_style=TextBoxStyle(
-                font_size=11 if resolved_mode == VISIBLE_SIGNATURE_MODE_BASSO_DESTRA else 10,
-                leading=13 if resolved_mode == VISIBLE_SIGNATURE_MODE_BASSO_DESTRA else 11,
+                font_size=11 if resolved_mode in {VISIBLE_SIGNATURE_MODE_BASSO_SINISTRA, VISIBLE_SIGNATURE_MODE_BASSO_DESTRA} else 9,
+                leading=13 if resolved_mode in {VISIBLE_SIGNATURE_MODE_BASSO_SINISTRA, VISIBLE_SIGNATURE_MODE_BASSO_DESTRA} else 11,
                 text_color=(0.11, 0.16, 0.24),
             ),
         )
@@ -451,36 +546,68 @@ def _build_visible_signature_bottom_lines(
     return first_line, second_line
 
 
+def _fit_text_for_width(overlay, text: str, font_name: str, font_size: float, max_width: float) -> str:
+    value = str(text or "")
+    if not value:
+        return ""
+    try:
+        if overlay.stringWidth(value, font_name, font_size) <= max_width:
+            return value
+        suffix = "..."
+        while value and overlay.stringWidth(value + suffix, font_name, font_size) > max_width:
+            value = value[:-1]
+        return (value.rstrip() + suffix) if value else suffix
+    except Exception:
+        max_chars = max(int(max_width / max(font_size * 0.55, 1)), 8)
+        return value if len(value) <= max_chars else value[: max_chars - 3].rstrip() + "..."
+
+
 def _draw_visible_signature_side_mark(
     overlay,
     *,
     width: float,
     height: float,
     color,
+    layout: dict[str, float | str | int] | None = None,
     intestatario: str = "",
     data_firma: Any = None,
     luogo: str = "",
     issuer: str = "",
 ) -> None:
-    right_margin = CM_TO_PT
-    bottom_margin = CM_TO_PT
     side_text = _build_visible_signature_side_text(
         intestatario=intestatario,
         data_firma=data_firma,
         luogo=luogo,
         issuer=issuer,
     )
+    layout = layout or compute_visible_signature_layout(
+        width=width,
+        height=height,
+        mode=VISIBLE_SIGNATURE_MODE_LATERALE,
+    )
+    text_length = max(float(layout["box_height"]) - 24.0, 40.0)
+    font_name = "Helvetica"
+    font_size = 10.0
+    while font_size > 7.0 and overlay.stringWidth(side_text, font_name, font_size) > text_length:
+        font_size -= 0.5
+    side_text = _fit_text_for_width(overlay, side_text, font_name, font_size, text_length)
+
     overlay.setFillColor(color)
-    overlay.setFont("Helvetica", 10)
+    overlay.setFont(font_name, font_size)
     overlay.saveState()
-    overlay.translate(width - right_margin, bottom_margin)
+    translate_x = min(
+        max(float(layout["x"]) + float(layout["box_width"]) - 10.0, CM_TO_PT),
+        max(width - 10.0, CM_TO_PT),
+    )
+    translate_y = min(max(float(layout["y"]) + 10.0, 10.0), max(height - 10.0, 10.0))
+    overlay.translate(translate_x, translate_y)
     overlay.rotate(90)
     overlay.drawString(0, 0, side_text)
     overlay.restoreState()
     _draw_visible_signature_seal(
         overlay,
-        anchor_x=width - right_margin + 1.5,
-        anchor_y=bottom_margin - 3,
+        anchor_x=min(max(float(layout["x"]) + float(layout["box_width"]) - 14.0, 16.0), max(width - 16.0, 16.0)),
+        anchor_y=min(max(float(layout["y"]) + 16.0, 16.0), max(height - 16.0, 16.0)),
     )
 
 
@@ -489,6 +616,8 @@ def _clear_visible_signature_zones(
     *,
     width: float,
     height: float,
+    mode: str = VISIBLE_SIGNATURE_MODE_LATERALE,
+    layout: dict[str, float | str | int] | None = None,
 ) -> None:
     try:
         from reportlab.lib.colors import Color
@@ -496,38 +625,95 @@ def _clear_visible_signature_zones(
         return
 
     white = Color(1, 1, 1)
-    right_margin = CM_TO_PT
-
-    side_strip_width = CM_TO_PT * 2.05
-    side_strip_x = max(width - side_strip_width, 0)
-    side_strip_y = max((CM_TO_PT * 0.45) - 4, 0)
-    side_strip_height = max(height - side_strip_y - (CM_TO_PT * 0.35), 0)
-
-    bottom_block_width = 440
-    bottom_block_height = 102
-    bottom_block_x = max(width - right_margin - bottom_block_width - 8, CM_TO_PT)
-    bottom_block_y = max((CM_TO_PT * 0.55) - 4, 0)
+    layout = layout or compute_visible_signature_layout(width=width, height=height, mode=mode)
+    pad = 8.0
+    block_x = max(float(layout["x"]) - pad, 0.0)
+    block_y = max(float(layout["y"]) - pad, 0.0)
+    block_width = min(float(layout["box_width"]) + pad * 2, max(width - block_x, 0.0))
+    block_height = min(float(layout["box_height"]) + pad * 2, max(height - block_y, 0.0))
 
     overlay.saveState()
     overlay.setFillColor(white)
     overlay.setStrokeColor(white)
     overlay.rect(
-        side_strip_x,
-        side_strip_y,
-        side_strip_width,
-        side_strip_height,
-        stroke=0,
-        fill=1,
-    )
-    overlay.rect(
-        bottom_block_x,
-        bottom_block_y,
-        bottom_block_width,
-        bottom_block_height,
+        block_x,
+        block_y,
+        block_width,
+        block_height,
         stroke=0,
         fill=1,
     )
     overlay.restoreState()
+
+
+def _draw_visible_signature_bottom_text(
+    overlay,
+    *,
+    width: float,
+    height: float,
+    color,
+    layout: dict[str, float | str | int] | None = None,
+    intestatario: str = "",
+    data_firma: Any = None,
+    luogo: str = "",
+) -> None:
+    layout = layout or compute_visible_signature_layout(
+        width=width,
+        height=height,
+        mode=VISIBLE_SIGNATURE_MODE_BASSO_DESTRA,
+    )
+    align = str(layout.get("align") or "right")
+    font_name = "Helvetica"
+    font_size = 11
+    line_one, line_two = _build_visible_signature_bottom_lines(
+        intestatario=intestatario,
+        data_firma=data_firma,
+        luogo=luogo,
+    )
+    max_text_width = max(float(layout["box_width"]) - (42.0 if align == "left" else 8.0), 80.0)
+    while font_size > 8 and max(
+        overlay.stringWidth(line_one, font_name, font_size),
+        overlay.stringWidth(line_two, font_name, font_size) if line_two else 0,
+    ) > max_text_width:
+        font_size -= 0.5
+    line_one = _fit_text_for_width(overlay, line_one, font_name, font_size, max_text_width)
+    line_two = _fit_text_for_width(overlay, line_two, font_name, font_size, max_text_width)
+
+    overlay.saveState()
+    overlay.setFillColor(color)
+    overlay.setFont(font_name, font_size)
+    baseline_y = float(layout["y"]) + 14.0
+    x_left = float(layout["x"]) + 34.0
+    x_right = min(float(layout["x"]) + float(layout["box_width"]), width - CM_TO_PT)
+    if align == "left":
+        if line_two:
+            overlay.drawString(x_left, baseline_y + 14, line_one)
+            overlay.drawString(x_left, baseline_y, line_two)
+        else:
+            overlay.drawString(x_left, baseline_y + 7, line_one)
+    else:
+        if line_two:
+            overlay.drawRightString(x_right, baseline_y + 14, line_one)
+            overlay.drawRightString(x_right, baseline_y, line_two)
+        else:
+            overlay.drawRightString(x_right, baseline_y + 7, line_one)
+    overlay.restoreState()
+
+    line_one_width = overlay.stringWidth(line_one, font_name, font_size)
+    line_two_width = overlay.stringWidth(line_two, font_name, font_size) if line_two else 0
+    text_width = max(line_one_width, line_two_width)
+    if align == "left":
+        seal_anchor_x = max(float(layout["x"]) + 14.0, 14.0)
+    else:
+        seal_anchor_x = max(x_right - text_width - 18.0, float(layout["x"]) + 14.0)
+    seal_anchor_x = min(seal_anchor_x, max(width - 16.0, 16.0))
+    seal_anchor_y = min(max(float(layout["y"]) + 8.0, 16.0), max(height - 16.0, 16.0))
+    _draw_visible_signature_seal(
+        overlay,
+        anchor_x=seal_anchor_x,
+        anchor_y=seal_anchor_y,
+        scale=1.05,
+    )
 
 
 def _draw_visible_signature_bottom_right_text(
@@ -540,38 +726,20 @@ def _draw_visible_signature_bottom_right_text(
     data_firma: Any = None,
     luogo: str = "",
 ) -> None:
-    del height
-    right_margin = CM_TO_PT
-    bottom_margin = CM_TO_PT
-    font_name = "Helvetica"
-    font_size = 11
-    line_one, line_two = _build_visible_signature_bottom_lines(
+    """Wrapper retrocompatibile per test e chiamanti legacy."""
+    return _draw_visible_signature_bottom_text(
+        overlay,
+        width=width,
+        height=height,
+        layout=compute_visible_signature_layout(
+            width=width,
+            height=height,
+            mode=VISIBLE_SIGNATURE_MODE_BASSO_DESTRA,
+        ),
+        color=color,
         intestatario=intestatario,
         data_firma=data_firma,
         luogo=luogo,
-    )
-
-    overlay.saveState()
-    overlay.setFillColor(color)
-    overlay.setFont(font_name, font_size)
-    baseline_y = bottom_margin + 14
-    if line_two:
-        overlay.drawRightString(width - right_margin, baseline_y + 14, line_one)
-        overlay.drawRightString(width - right_margin, baseline_y, line_two)
-    else:
-        overlay.drawRightString(width - right_margin, baseline_y + 7, line_one)
-    overlay.restoreState()
-
-    line_one_width = overlay.stringWidth(line_one, font_name, font_size)
-    line_two_width = overlay.stringWidth(line_two, font_name, font_size) if line_two else 0
-    text_width = max(line_one_width, line_two_width)
-    seal_anchor_x = max(width - right_margin - text_width - 18, right_margin + 10)
-    seal_anchor_y = bottom_margin + 8
-    _draw_visible_signature_seal(
-        overlay,
-        anchor_x=seal_anchor_x,
-        anchor_y=seal_anchor_y,
-        scale=1.05,
     )
 
 

@@ -1639,15 +1639,19 @@ def build_fascicoli_runtime(
         )
 
         try:
-            studio_cfg = get_config_studio().config.studio
+            config_studio = get_config_studio().config
+            studio_cfg = config_studio.studio
+            firma_cfg = config_studio.firma
         except Exception:
             studio_cfg = None
+            firma_cfg = None
 
         stamped = apply_visible_signature_stamp_from_firme(
             pdf_data,
             firme,
             city=getattr(studio_cfg, "city", "") if studio_cfg else "",
             address=getattr(studio_cfg, "indirizzo", "") if studio_cfg else "",
+            mode=getattr(firma_cfg, "visible_signature_mode", "laterale") if firma_cfg else "laterale",
         )
         if stamped != pdf_data or has_visible_signature_stamp(pdf_data):
             return stamped

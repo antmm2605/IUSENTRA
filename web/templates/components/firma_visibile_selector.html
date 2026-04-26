@@ -1,14 +1,15 @@
-{% macro render_firma_visibile_selector(prefix='firmaVisibile', place='') %}
+{% macro render_firma_visibile_selector(prefix='firmaVisibile', place='', mode='laterale') %}
 <div
   class="alert alert-light border small mb-3"
   id="{{ prefix }}VisibleSignatureRoot"
   data-firma-visibile-root="true"
   data-signature-mode-name="{{ prefix }}_firma_visibile_mode"
   data-signature-place="{{ place }}"
+  data-signature-default-mode="{{ mode }}"
 >
   <div class="fw-semibold mb-1">Modalità firma visibile nel PDF</div>
   <div class="text-muted mb-2">
-    Scegli come mostrare la firma digitale nel documento prima del deposito.
+    Scegli come mostrare la dicitura grafica sul PDF prima del deposito. La validità legale resta nella firma digitale CAdES/PAdES.
   </div>
   <div class="d-grid gap-2">
     <label class="border rounded px-3 py-2 d-flex gap-2 align-items-start">
@@ -18,10 +19,24 @@
         name="{{ prefix }}_firma_visibile_mode"
         value="laterale"
       >
-        <span>
+      <span>
         <span class="fw-semibold d-block">Laterale verticale</span>
         <span class="text-muted">
-          Testo laterale sul margine destro con rientro di circa 1 cm, data e ora in formato italiano, coccarda in basso e corpo 10.
+          Testo laterale sul margine destro, dentro la pagina, con data e ora in formato italiano.
+        </span>
+      </span>
+    </label>
+    <label class="border rounded px-3 py-2 d-flex gap-2 align-items-start">
+      <input
+        class="form-check-input mt-1"
+        type="radio"
+        name="{{ prefix }}_firma_visibile_mode"
+        value="basso_sinistra"
+      >
+      <span>
+        <span class="fw-semibold d-block">In basso a sinistra</span>
+        <span class="text-muted">
+          Testo orizzontale in basso a sinistra, utile quando il margine destro contiene annotazioni o timbri.
         </span>
       </span>
     </label>
@@ -32,16 +47,16 @@
         name="{{ prefix }}_firma_visibile_mode"
         value="basso_destra"
       >
-        <span>
+      <span>
         <span class="fw-semibold d-block">In basso a destra</span>
         <span class="text-muted">
-          Testo orizzontale su due righe in basso a destra con corpo 11 e coccarda a colori.
+          Testo orizzontale su due righe in basso a destra, mantenendo il comportamento precedente.
         </span>
       </span>
     </label>
   </div>
   <div class="form-text mt-2">
-    La preferenza resta salvata su questo browser. Con la firma esterna la resa visibile finale dipende dal software di firma utilizzato.
+    La preferenza predefinita arriva dalle impostazioni firma e può essere cambiata per la sessione corrente.
   </div>
 </div>
 {% endmacro %}

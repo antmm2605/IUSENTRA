@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.184.24 - 2026-04-26
+
+- Aggiunta la modalità ufficiale `basso_sinistra` per la firma visibile PDF, con alias normalizzati e layout calcolato sulle dimensioni reali della pagina.
+- Reso mode-aware il timbro visibile: laterale, basso sinistra e basso destra usano coordinate dedicate, aree di pulizia dedicate e fallback pyHanko coerente senza forzare più il basso destra.
+- Salvata nelle impostazioni studio la posizione predefinita della firma visibile e propagata nei flussi fascicolo/deposito/PKCS#11.
+- Corretto il riferimento PKCS#11 a `self._cert` nella preparazione del timbro visibile, usando il certificato reale ottenuto da `_get_cert()`.
+- Aggiunti test di regressione per normalizzazione, layout, timbro basso sinistra, no duplicazione, configurazione persistente, impostazioni UI e pass-through PKCS#11.
+
 ## 2.184.23 - 2026-04-26
 
 - Ripristinati nella pagina `/template-atti/catalogo` i 192 modelli operativi del compilatore atti, che aprono di nuovo il flusso reale `/template-atti/compila/<codice>`.

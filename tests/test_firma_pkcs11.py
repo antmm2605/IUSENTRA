@@ -158,3 +158,38 @@ def test_salva_documento_firmato_standard_pdf_usa_cades_contenente_pdf(tmp_path,
     assert captured["detached"] is False
     assert captured["visible_signature_mode"] == "basso_destra"
     assert captured["visible_signature_place"] == "Taurianova"
+
+
+def test_pkcs11_prepare_pdf_for_visible_signature_usa_get_cert_senza_self_cert(monkeypatch):
+    signer = object.__new__(firma_pkcs11.FirmaPKCS11)
+    captured = {}
+
+    class _Attr:
+        value = "CA Test"
+
+    class _Issuer:
+        def get_attributes_for_oid(self, _oid):
+            return [_Attr()]
+
+    class _Cert:
+        issuer = _Issuer()
+        subject = _Issuer()
+        serial_number = 0xABC123
+
+    def _fake_prepare(documento, **kwargs):
+        captured.update(kwargs)
+        return documento + b"\n% visible"
+
+    monkeypatch.setattr(firma_pkcs11.FirmaPKCS11, "_get_cert", lambda _self: _Cert())
+    monkeypatch.setattr(firma_pkcs11, "prepare_document_for_signature", _fake_prepare)
+
+    out = signer._prepare_pdf_for_visible_signature(
+        b"%PDF-1.4\nstub\n%%EOF",
+        visible_signature_mode="basso_sinistra",
+        visible_signature_place="Taurianova",
+    )
+
+    assert out.endswith(b"% visible")
+    assert captured["issuer"] == "CA Test"
+    assert captured["serial"] == "ABC123"
+    assert captured["mode"] == "basso_sinistra"

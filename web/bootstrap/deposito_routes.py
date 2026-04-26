@@ -645,7 +645,9 @@ def register_deposito_routes(
             cfg = get_config_studio().config
             pec_configurata = bool(cfg and cfg.pec and cfg.pec.indirizzo and cfg.pec.password)
         except Exception:
+            cfg = None
             pass
+        firma_cfg = getattr(cfg, "firma", None) if cfg else None
 
         return render_template(
             "fascicoli/deposito_prepara.html",
@@ -655,6 +657,7 @@ def register_deposito_routes(
             pdfa_stato=pdfa_stato,
             correction_context=deposito_correction_context(fascicolo),
             firma_visibile_place=luogo_timbro_firma_visibile(),
+            firma_visibile_mode=getattr(firma_cfg, "visible_signature_mode", "laterale"),
             oggi=date.today(),
         )
 

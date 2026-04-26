@@ -546,10 +546,11 @@ class FirmaPKCS11:
             address=os.getenv("PCT_STUDIO_INDIRIZZO", ""),
         )
         issuer_cn = ""
+        cert = self._get_cert()
         try:
             from cryptography.x509.oid import NameOID
 
-            issuer_cn_attrs = self._cert.issuer.get_attributes_for_oid(NameOID.COMMON_NAME)
+            issuer_cn_attrs = cert.issuer.get_attributes_for_oid(NameOID.COMMON_NAME)
             if issuer_cn_attrs:
                 issuer_cn = str(issuer_cn_attrs[0].value or "").strip()
         except Exception:
@@ -560,7 +561,7 @@ class FirmaPKCS11:
             data_firma=datetime.now().astimezone(),
             luogo=luogo,
             issuer=issuer_cn,
-            serial=format(getattr(self._cert, "serial_number", 0), "X"),
+            serial=format(getattr(cert, "serial_number", 0), "X"),
             mode=visible_signature_mode,
         )
 

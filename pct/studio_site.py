@@ -13,6 +13,7 @@ from markupsafe import Markup, escape
 
 from pct.applicazioni_catalogo import applicazioni_primo_piano
 from pct.config_studio import ConfigDatiStudio
+from pct.studio_site_blocks import BLOCK_TYPES_PRO
 from pct.strumenti_legali import GestioneStrumentiLegali
 
 
@@ -27,18 +28,7 @@ RESERVED_PAGE_SLUGS = {
     "assets",
 }
 
-BLOCK_TYPES: list[tuple[str, str]] = [
-    ("hero", "Hero"),
-    ("rich_text", "Testo"),
-    ("services", "Servizi"),
-    ("team", "Professionisti"),
-    ("latest_articles", "Ultimi articoli"),
-    ("faq", "Domande frequenti"),
-    ("cta", "Invito all'azione"),
-    ("contact_form", "Modulo contatti"),
-    ("office_map", "Dove siamo"),
-    ("booking_cta", "Prenotazione"),
-]
+BLOCK_TYPES: list[tuple[str, str]] = BLOCK_TYPES_PRO
 
 WEEKDAY_LABELS = {
     0: "Lunedi",
@@ -250,6 +240,25 @@ def default_site_payload(profile: StudioSiteProfile) -> dict[str, Any]:
         "show_legal_news": False,
         "is_published": False,
         "is_active": True,
+        "theme_template": "classic_legal",
+        "theme_variant": "default",
+        "design_tokens_json": {},
+        "typography_json": {},
+        "layout_json": {},
+        "effects_json": {},
+        "custom_css": "",
+        "cookie_banner_enabled": False,
+        "analytics_enabled": False,
+        "analytics_provider": "",
+        "analytics_id": "",
+        "seo_json": {},
+        "legal_disclaimer": (
+            "Le informazioni pubblicate hanno carattere generale e non sostituiscono "
+            "la consulenza professionale sul caso concreto."
+        ),
+        "privacy_url": "",
+        "cookie_policy_url": "",
+        "accessibility_statement_url": "",
     }
 
 

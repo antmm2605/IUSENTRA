@@ -4,6 +4,8 @@
 
 `Sito Studio` porta dentro IUSENTRA un modulo CMS nativo per ogni tenant, con pubblicazione web, contenuti editoriali, contatti e agenda appuntamenti, senza dipendere da WordPress esterno.
 
+Dal ramo `2.187.0` il modulo e' presentato come `Sito Studio Builder Pro`: ogni studio ha un solo sito operativo tenant-aware anche se gli utenti dello studio sono dieci o piu'. Gli utenti collaborano sullo stesso sito dello studio, non generano siti separati.
+
 Il modulo nasce per essere:
 
 - tenant-aware
@@ -15,12 +17,18 @@ Il modulo nasce per essere:
 ## Superfici ufficiali
 
 - `Studio -> Sito Studio` -> `/sito-studio/`
+- `Studio -> Sito Studio Builder Pro` -> `/sito-studio/builder`
 - `Piattaforma -> Siti studio` -> `/admin/siti-studio/`
 - sito pubblico -> `/web/<public_slug>/`
 
 ## Cosa puo' gestire lo studio
 
 - branding: logo, favicon, palette, claim, footer
+- template grafici: `classic_legal`, `boutique_elegante`, `corporate_premium`, `digital_modern`, `penalista`, `civilista`, `tributario`, `amministrativo`
+- design token: colori, font, scale tipografiche, spaziature, radius, ombre, effetti e CSS controllato
+- builder visuale con blocchi aggiungibili, duplicabili, eliminabili e riordinabili anche da tastiera
+- anteprima responsive desktop, tablet e mobile
+- validazioni SEO, accessibilita', privacy/cookie e contenuti deontologicamente rischiosi
 - pagine a blocchi e home page
 - articoli editoriali
 - servizi dello studio
@@ -86,11 +94,15 @@ Tabelle principali:
 - `site_booking_rule`
 - `site_booking_request`
 - `site_contact_submission`
+- `site_theme_preset`
+- `site_design_revision`
 
 Schema SQL:
 
 - `pct/sql/20260422_studio_site.sql`
 - `pct/sql/20260422_studio_site_postgres.sql`
+- `pct/sql/20260426_studio_site_builder.sql`
+- `pct/sql/20260426_studio_site_builder_postgres.sql`
 
 Asset caricati:
 
@@ -116,3 +128,5 @@ Questa console non sostituisce la gestione editoriale del tenant, ma consente pr
 - pagine opzionali pubbliche governate solo dai flag di impostazione
 - nessuna esposizione automatica di `strumenti legali`, `applicazioni` o `news` senza scelta esplicita dell'amministratore del sito
 - nessun fallback invisibile a JSON quando il repository SQL/PostgreSQL e' attivo
+- un solo record `site_studio` attivo per tenant/studio, indipendentemente dal numero di utenti autenticati
+- analytics caricato solo dopo consenso se abilitato

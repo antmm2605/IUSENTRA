@@ -5,6 +5,7 @@ from functools import wraps
 from flask import Blueprint, flash, jsonify, redirect, render_template, request, url_for
 
 from pct.studio_site import BLOCK_TYPES, WEEKDAY_LABELS, normalize_hex_color
+from pct.studio_site_blocks import block_presets
 from web.services.studio_site_runtime import (
     ALLOWED_SITE_IMAGE_EXTENSIONS,
     approve_booking_request_for_current_site,
@@ -154,6 +155,14 @@ def save_settings():
         "show_legal_tools": _bool_from_form("show_legal_tools"),
         "show_applications": _bool_from_form("show_applications"),
         "show_legal_news": _bool_from_form("show_legal_news"),
+        "cookie_banner_enabled": _bool_from_form("cookie_banner_enabled"),
+        "analytics_enabled": _bool_from_form("analytics_enabled"),
+        "analytics_provider": request.form.get("analytics_provider", ""),
+        "analytics_id": request.form.get("analytics_id", ""),
+        "privacy_url": request.form.get("privacy_url", ""),
+        "cookie_policy_url": request.form.get("cookie_policy_url", ""),
+        "accessibility_statement_url": request.form.get("accessibility_statement_url", ""),
+        "legal_disclaimer": request.form.get("legal_disclaimer", ""),
     }
     updated = repo.save_site(int(site["id"]), payload)
     audit_studio_site_action(
@@ -207,6 +216,7 @@ def _render_content_form(
         item=item or {},
         item_type=item_type,
         block_types=BLOCK_TYPES,
+        block_presets=block_presets(),
     )
 
 

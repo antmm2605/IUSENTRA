@@ -390,3 +390,112 @@ def test_console_superadmin_siti_studio_espone_il_catalogo(tmp_path: Path):
     html = response.get_data(as_text=True)
     assert "Siti Studio" in html
     assert "Studio Sito Test" in html
+
+
+
+def test_sito_studio_builder_pro_template_tokens_e_sito_unico_per_tenant(tmp_path: Path):
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    app = create_app(_cfg_web(tmp_path))
+    studio, tenant_admin = _seed_tenant_admin(app)
+
+    with app.test_client() as client:
+        _login_tenant_admin(client, studio.slug, username=tenant_admin.username)
+        response = client.get("/sito-studio/builder")
+        assert response.status_code == 200
+        html = response.get_data(as_text=True)
+        assert "Sito Studio Builder Pro" in html
+        assert "Classic Legal" in html
+        assert "Un solo sito per studio" in html
+
+        apply_response = client.post(
+            "/sito-studio/builder/applica-template",
+            data={"template_code": "boutique_elegante"},
+            follow_redirects=True,
+        )
+        assert apply_response.status_code == 200
+
+        with app.app_context():
+            repo = studio_site_repository()
+            site = repo.get_site_by_tenant_slug(studio.slug)
+            assert site is not None
+            first_site_id = int(site["id"])
+            assert site["theme_template"] == "boutique_elegante"
+            assert site["design_tokens_json"]["primary"] == "#2b2118"
+            assert len(repo.list_theme_presets()) >= 8
+
+            paths = GestioneTenant(app.config["TENANTS_REGISTRY"]).percorsi_dati(studio.slug)
+            utenti = GestioneUtenti(
+                db_path=paths["AUTH_DB"],
+                audit_path=paths["AUDIT_DB"],
+                secret_key=app.secret_key,
+                crea_admin_se_vuoto=False,
+                studio_db=StudioDB.get(paths["STUDIO_DB"]),
+            )
+            utenti_json = GestioneUtenti(
+                db_path=paths["AUTH_DB"],
+                audit_path=paths["AUDIT_DB"],
+                secret_key=app.secret_key,
+                crea_admin_se_vuoto=False,
+                studio_db=None,
+            )
+            second = utenti.crea(
+                username="studio-admin-2",
+                password="PasswordSicura!123",
+                ruolo=RuoloUtente.AMMINISTRATORE,
+                tenant_slug=studio.slug,
+                must_change_password=False,
+            )
+            utenti_json.importa_utente_esistente(second, tenant_slug=studio.slug, preserve_id=True)
+
+    with app.test_client() as second_client:
+        login = _login_tenant_admin(second_client, studio.slug, username="studio-admin-2")
+        assert login.status_code == 302
+        response = second_client.get("/sito-studio/")
+        assert response.status_code == 200
+
+    with app.app_context():
+        repo = studio_site_repository()
+        site = repo.get_site_by_tenant_slug(studio.slug)
+        assert site is not None
+        assert int(site["id"]) == first_site_id
+        assert len(repo.list_sites(query="Studio Sito Test")) == 1
+
+
+def test_sito_studio_builder_generazione_validazione_e_render_pubblico(tmp_path: Path):
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    app = create_app(_cfg_web(tmp_path))
+    studio, tenant_admin = _seed_tenant_admin(app)
+
+    with app.test_client() as client:
+        _login_tenant_admin(client, studio.slug, username=tenant_admin.username)
+        client.get("/sito-studio/")
+        response = client.post(
+            "/sito-studio/builder/genera-automaticamente",
+            data={"template": "civilista", "site_type": "civile", "style": "sobrio"},
+            follow_redirects=True,
+        )
+        assert response.status_code == 200
+        assert "Blocchi disponibili" in response.get_data(as_text=True)
+
+        validation = client.post("/sito-studio/builder/valida", headers={"Accept": "application/json"})
+        assert validation.status_code == 200
+        payload = validation.get_json()
+        assert payload["ok"] is True
+        assert set(payload["validation"]).issuperset({"seo", "accessibility", "privacy", "deontology"})
+
+        with app.app_context():
+            repo = studio_site_repository()
+            site = repo.get_site_by_tenant_slug(studio.slug)
+            assert site is not None
+            public_slug = str(site["public_slug"])
+            repo.save_site(int(site["id"]), {"is_published": True, "is_active": True})
+
+    with app.test_client() as anonymous_client:
+        home = anonymous_client.get(f"/web/{public_slug}/")
+        assert home.status_code == 200
+        html = home.get_data(as_text=True)
+        assert "schema.org" in html
+        assert "og:title" in html
+        assert "studio-site-nav-toggle" in html
+        assert f"/web/{public_slug}/sitemap.xml" in anonymous_client.get(f"/web/{public_slug}/robots.txt").get_data(as_text=True)
+        assert anonymous_client.get(f"/web/{public_slug}/sitemap.xml").status_code == 200

@@ -19,10 +19,55 @@ from pct.studio_site import (
     slugify,
     truthy,
 )
+from pct.studio_site_blocks import normalize_blocks
+from pct.studio_site_theme import (
+    DEFAULT_THEME_TEMPLATE,
+    list_theme_templates,
+    sanitize_custom_css,
+    theme_snapshot,
+)
 
 
 SCHEMA_STUDIO_SITE_SQL = Path(__file__).with_name("sql") / "20260422_studio_site.sql"
 POSTGRES_SCHEMA_STUDIO_SITE_SQL = Path(__file__).with_name("sql") / "20260422_studio_site_postgres.sql"
+
+SITE_BUILDER_COLUMNS_SQLITE: dict[str, str] = {
+    "theme_template": "TEXT NOT NULL DEFAULT 'classic_legal'",
+    "theme_variant": "TEXT NOT NULL DEFAULT 'default'",
+    "design_tokens_json": "TEXT NOT NULL DEFAULT '{}'",
+    "typography_json": "TEXT NOT NULL DEFAULT '{}'",
+    "layout_json": "TEXT NOT NULL DEFAULT '{}'",
+    "effects_json": "TEXT NOT NULL DEFAULT '{}'",
+    "custom_css": "TEXT NOT NULL DEFAULT ''",
+    "cookie_banner_enabled": "INTEGER NOT NULL DEFAULT 0",
+    "analytics_enabled": "INTEGER NOT NULL DEFAULT 0",
+    "analytics_provider": "TEXT NOT NULL DEFAULT ''",
+    "analytics_id": "TEXT NOT NULL DEFAULT ''",
+    "seo_json": "TEXT NOT NULL DEFAULT '{}'",
+    "legal_disclaimer": "TEXT NOT NULL DEFAULT ''",
+    "privacy_url": "TEXT NOT NULL DEFAULT ''",
+    "cookie_policy_url": "TEXT NOT NULL DEFAULT ''",
+    "accessibility_statement_url": "TEXT NOT NULL DEFAULT ''",
+}
+
+SITE_BUILDER_COLUMNS_POSTGRES: dict[str, str] = {
+    "theme_template": "TEXT NOT NULL DEFAULT 'classic_legal'",
+    "theme_variant": "TEXT NOT NULL DEFAULT 'default'",
+    "design_tokens_json": "JSONB NOT NULL DEFAULT '{}'::jsonb",
+    "typography_json": "JSONB NOT NULL DEFAULT '{}'::jsonb",
+    "layout_json": "JSONB NOT NULL DEFAULT '{}'::jsonb",
+    "effects_json": "JSONB NOT NULL DEFAULT '{}'::jsonb",
+    "custom_css": "TEXT NOT NULL DEFAULT ''",
+    "cookie_banner_enabled": "BOOLEAN NOT NULL DEFAULT FALSE",
+    "analytics_enabled": "BOOLEAN NOT NULL DEFAULT FALSE",
+    "analytics_provider": "TEXT NOT NULL DEFAULT ''",
+    "analytics_id": "TEXT NOT NULL DEFAULT ''",
+    "seo_json": "JSONB NOT NULL DEFAULT '{}'::jsonb",
+    "legal_disclaimer": "TEXT NOT NULL DEFAULT ''",
+    "privacy_url": "TEXT NOT NULL DEFAULT ''",
+    "cookie_policy_url": "TEXT NOT NULL DEFAULT ''",
+    "accessibility_statement_url": "TEXT NOT NULL DEFAULT ''",
+}
 
 
 def _json_dump(value: Any) -> str:
@@ -39,6 +84,21 @@ def _json_load(value: Any, default: Any) -> Any:
         return json.loads(text)
     except Exception:
         return default
+
+
+def _json_column_value(value: Any, default: Any) -> str:
+    if value is None:
+        return _json_dump(default)
+    if isinstance(value, (dict, list)):
+        return _json_dump(value)
+    text = str(value or "").strip()
+    if not text:
+        return _json_dump(default)
+    try:
+        parsed = json.loads(text)
+    except Exception:
+        return _json_dump(default)
+    return _json_dump(parsed)
 
 
 class StudioSiteRepository:
@@ -78,7 +138,110 @@ class StudioSiteRepository:
         )
         with self._connect() as conn:
             conn.executescript(schema)
+            self._ensure_builder_schema(conn)
             conn.commit()
+
+    def _ensure_builder_schema(self, conn: Any) -> None:
+        if self._postgres_backend is not None:
+            for column_name, ddl in SITE_BUILDER_COLUMNS_POSTGRES.items():
+                conn.execute(f"ALTER TABLE site_studio ADD COLUMN IF NOT EXISTS {column_name} {ddl}")
+            conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS site_theme_preset (
+                    id BIGSERIAL PRIMARY KEY,
+                    code TEXT NOT NULL UNIQUE,
+                    name TEXT NOT NULL,
+                    description TEXT NOT NULL DEFAULT '',
+                    category TEXT NOT NULL DEFAULT '',
+                    preview_image_url TEXT NOT NULL DEFAULT '',
+                    tokens_json JSONB NOT NULL DEFAULT '{}'::jsonb,
+                    blocks_seed_json JSONB NOT NULL DEFAULT '[]'::jsonb,
+                    is_builtin BOOLEAN NOT NULL DEFAULT TRUE,
+                    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+                )
+                """
+            )
+            conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS site_design_revision (
+                    id BIGSERIAL PRIMARY KEY,
+                    site_id BIGINT NOT NULL REFERENCES site_studio(id) ON DELETE CASCADE,
+                    label TEXT NOT NULL DEFAULT '',
+                    snapshot_json JSONB NOT NULL DEFAULT '{}'::jsonb,
+                    created_by TEXT NOT NULL DEFAULT '',
+                    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+                )
+                """
+            )
+        else:
+            existing = {row["name"] for row in conn.execute("PRAGMA table_info(site_studio)").fetchall()}
+            for column_name, ddl in SITE_BUILDER_COLUMNS_SQLITE.items():
+                if column_name not in existing:
+                    conn.execute(f"ALTER TABLE site_studio ADD COLUMN {column_name} {ddl}")
+            conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS site_theme_preset (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    code TEXT NOT NULL UNIQUE,
+                    name TEXT NOT NULL,
+                    description TEXT NOT NULL DEFAULT '',
+                    category TEXT NOT NULL DEFAULT '',
+                    preview_image_url TEXT NOT NULL DEFAULT '',
+                    tokens_json TEXT NOT NULL DEFAULT '{}',
+                    blocks_seed_json TEXT NOT NULL DEFAULT '[]',
+                    is_builtin INTEGER NOT NULL DEFAULT 1,
+                    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+                )
+                """
+            )
+            conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS site_design_revision (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    site_id INTEGER NOT NULL,
+                    label TEXT NOT NULL DEFAULT '',
+                    snapshot_json TEXT NOT NULL DEFAULT '{}',
+                    created_by TEXT NOT NULL DEFAULT '',
+                    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (site_id) REFERENCES site_studio(id) ON DELETE CASCADE
+                )
+                """
+            )
+        self._seed_builtin_theme_presets(conn)
+
+    def _seed_builtin_theme_presets(self, conn: Any) -> None:
+        for preset in list_theme_templates():
+            params = (
+                str(preset.get("code") or ""),
+                str(preset.get("name") or ""),
+                str(preset.get("description") or ""),
+                str(preset.get("category") or ""),
+                str(preset.get("preview") or ""),
+                _json_dump(preset.get("tokens") or {}),
+                _json_dump(preset.get("home_blocks") or []),
+                1,
+            )
+            conn.execute(
+                """
+                INSERT INTO site_theme_preset (
+                    code, name, description, category, preview_image_url, tokens_json,
+                    blocks_seed_json, is_builtin, updated_at
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                ON CONFLICT(code) DO UPDATE SET
+                    name = excluded.name,
+                    description = excluded.description,
+                    category = excluded.category,
+                    preview_image_url = excluded.preview_image_url,
+                    tokens_json = excluded.tokens_json,
+                    blocks_seed_json = excluded.blocks_seed_json,
+                    is_builtin = excluded.is_builtin,
+                    updated_at = CURRENT_TIMESTAMP
+                """,
+                params,
+            )
 
     def _row_to_dict(self, row: Any, *, json_fields: tuple[str, ...] = ()) -> dict[str, Any] | None:
         if row is None:
@@ -102,9 +265,24 @@ class StudioSiteRepository:
             "show_applications",
             "show_legal_news",
             "is_published",
+            "cookie_banner_enabled",
+            "analytics_enabled",
         ):
             if key in payload:
                 payload[key] = bool(payload[key])
+        for field in (
+            "design_tokens_json",
+            "typography_json",
+            "layout_json",
+            "effects_json",
+            "seo_json",
+            "tokens_json",
+            "blocks_seed_json",
+            "snapshot_json",
+        ):
+            if field in payload:
+                default = [] if field == "blocks_seed_json" else {}
+                payload[field] = _json_load(payload.get(field), default)
         return payload
 
     def _insert_returning_id(self, conn: Any, sql: str, params: tuple[Any, ...]) -> int:
@@ -370,7 +548,12 @@ class StudioSiteRepository:
                     accent_color = ?, contact_email = ?, contact_phone = ?, whatsapp_number = ?, address = ?,
                     city = ?, province = ?, zip_code = ?, footer_text = ?, facebook_url = ?, instagram_url = ?,
                     linkedin_url = ?, show_legal_tools = ?, show_applications = ?, show_legal_news = ?,
-                    is_published = ?, is_active = ?, updated_at = CURRENT_TIMESTAMP
+                    is_published = ?, is_active = ?, theme_template = ?, theme_variant = ?,
+                    design_tokens_json = ?, typography_json = ?, layout_json = ?, effects_json = ?,
+                    custom_css = ?, cookie_banner_enabled = ?, analytics_enabled = ?,
+                    analytics_provider = ?, analytics_id = ?, seo_json = ?, legal_disclaimer = ?,
+                    privacy_url = ?, cookie_policy_url = ?, accessibility_statement_url = ?,
+                    updated_at = CURRENT_TIMESTAMP
                 WHERE id = ?
                 """,
                 (
@@ -401,11 +584,116 @@ class StudioSiteRepository:
                     1 if truthy(payload.get("show_legal_news", current.get("show_legal_news"))) else 0,
                     1 if truthy(payload.get("is_published", current.get("is_published"))) else 0,
                     0 if payload.get("is_active", current.get("is_active")) is False else 1,
+                    clean_text(payload.get("theme_template") or current.get("theme_template") or DEFAULT_THEME_TEMPLATE),
+                    clean_text(payload.get("theme_variant") or current.get("theme_variant") or "default"),
+                    _json_column_value(
+                        payload.get("design_tokens_json", current.get("design_tokens_json")),
+                        {},
+                    ),
+                    _json_column_value(
+                        payload.get("typography_json", current.get("typography_json")),
+                        {},
+                    ),
+                    _json_column_value(payload.get("layout_json", current.get("layout_json")), {}),
+                    _json_column_value(payload.get("effects_json", current.get("effects_json")), {}),
+                    sanitize_custom_css(payload.get("custom_css", current.get("custom_css"))),
+                    1 if truthy(payload.get("cookie_banner_enabled", current.get("cookie_banner_enabled"))) else 0,
+                    1 if truthy(payload.get("analytics_enabled", current.get("analytics_enabled"))) else 0,
+                    clean_text(payload.get("analytics_provider") or current.get("analytics_provider")),
+                    clean_text(payload.get("analytics_id") or current.get("analytics_id")),
+                    _json_column_value(payload.get("seo_json", current.get("seo_json")), {}),
+                    clean_text(payload.get("legal_disclaimer") or current.get("legal_disclaimer")),
+                    clean_text(payload.get("privacy_url") or current.get("privacy_url")),
+                    clean_text(payload.get("cookie_policy_url") or current.get("cookie_policy_url")),
+                    clean_text(payload.get("accessibility_statement_url") or current.get("accessibility_statement_url")),
                     int(site_id),
                 ),
             )
             conn.commit()
         return self.get_site_by_id(site_id)
+
+    def save_page_blocks(self, site_id: int, page_id: int, blocks: Any) -> dict[str, Any] | None:
+        normalized = normalize_blocks(blocks)
+        with self._connect() as conn:
+            conn.execute(
+                """
+                UPDATE site_page
+                SET body_json = ?, updated_at = CURRENT_TIMESTAMP
+                WHERE id = ? AND site_id = ?
+                """,
+                (_json_dump(normalized), int(page_id), int(site_id)),
+            )
+            conn.commit()
+        return self.get_page(site_id, page_id)
+
+    def list_theme_presets(self) -> list[dict[str, Any]]:
+        with self._connect() as conn:
+            rows = conn.execute(
+                "SELECT * FROM site_theme_preset ORDER BY is_builtin DESC, category ASC, name ASC"
+            ).fetchall()
+        return [self._row_to_dict(row) or {} for row in rows]
+
+    def save_design_revision(
+        self,
+        site_id: int,
+        *,
+        label: str,
+        snapshot: dict[str, Any],
+        created_by: str = "",
+    ) -> dict[str, Any]:
+        with self._connect() as conn:
+            revision_id = self._insert_returning_id(
+                conn,
+                """
+                INSERT INTO site_design_revision (site_id, label, snapshot_json, created_by)
+                VALUES (?, ?, ?, ?)
+                """,
+                (int(site_id), clean_text(label), _json_dump(snapshot), clean_text(created_by)),
+            )
+            conn.commit()
+            row = conn.execute(
+                "SELECT * FROM site_design_revision WHERE id = ? AND site_id = ? LIMIT 1",
+                (int(revision_id), int(site_id)),
+            ).fetchone()
+        return self._row_to_dict(row) or {}
+
+    def list_design_revisions(self, site_id: int, *, limit: int = 20) -> list[dict[str, Any]]:
+        with self._connect() as conn:
+            rows = conn.execute(
+                """
+                SELECT * FROM site_design_revision
+                WHERE site_id = ?
+                ORDER BY created_at DESC, id DESC
+                LIMIT ?
+                """,
+                (int(site_id), int(limit or 20)),
+            ).fetchall()
+        return [self._row_to_dict(row) or {} for row in rows]
+
+    def get_design_revision(self, site_id: int, revision_id: int) -> dict[str, Any] | None:
+        with self._connect() as conn:
+            row = conn.execute(
+                "SELECT * FROM site_design_revision WHERE site_id = ? AND id = ? LIMIT 1",
+                (int(site_id), int(revision_id)),
+            ).fetchone()
+        return self._row_to_dict(row)
+
+    def snapshot_site_design(self, site_id: int) -> dict[str, Any]:
+        site = self.get_site_by_id(site_id) or {}
+        return {
+            "site_id": int(site_id),
+            "theme": theme_snapshot(site),
+            "site": {
+                "theme_template": site.get("theme_template") or DEFAULT_THEME_TEMPLATE,
+                "theme_variant": site.get("theme_variant") or "default",
+                "design_tokens_json": site.get("design_tokens_json") or {},
+                "typography_json": site.get("typography_json") or {},
+                "layout_json": site.get("layout_json") or {},
+                "effects_json": site.get("effects_json") or {},
+                "custom_css": site.get("custom_css") or "",
+            },
+            "pages": self.list_pages(site_id),
+        }
 
     def _list_rows(
         self,

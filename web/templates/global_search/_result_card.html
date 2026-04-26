@@ -1,0 +1,33 @@
+<article class="global-search-result" tabindex="0" data-result-url="{{ item.source_url or item.url }}">
+  <div class="global-search-result-icon">
+    <i class="bi {{ item.icon or item.icona or 'bi-search' }}"></i>
+  </div>
+  <div class="global-search-result-body">
+    <div class="global-search-result-head">
+      <div>
+        <h2>{{ item.title or item.titolo }}</h2>
+        {% if item.subtitle or item.sottotitolo %}
+          <p>{{ item.subtitle or item.sottotitolo }}</p>
+        {% endif %}
+      </div>
+      {% if item.date %}
+        <time>{{ item.date }}</time>
+      {% endif %}
+    </div>
+    {% if item.snippet %}
+      <div class="global-search-snippet">{{ item.snippet|safe }}</div>
+    {% endif %}
+    <div class="global-search-badges">
+      {% for badge in item.badges or [] %}
+        <span>{{ badge }}</span>
+      {% endfor %}
+    </div>
+    <div class="global-search-actions">
+      {% for action in item.actions or [] %}
+        <a class="btn btn-sm {% if loop.first %}btn-primary{% else %}btn-outline-primary{% endif %}" href="{{ action.url }}">
+          {{ action.label }}
+        </a>
+      {% endfor %}
+    </div>
+  </div>
+</article>

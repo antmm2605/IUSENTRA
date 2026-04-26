@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}Ricerca Studio — IUSENTRA{% endblock %}
+{% block page_title %}Ricerca Studio{% endblock %}
+
+{% block content %}
+<div class="global-search-page" data-global-search-page>
+  <section class="global-search-hero">
+    <div>
+      <span class="global-search-eyebrow"><i class="bi bi-search"></i> Ricerca Studio</span>
+      <h1>Trova tutto cio' che serve allo studio</h1>
+      <p>Trova fascicoli, clienti, scadenze, documenti, comunicazioni e attivita in un unico punto.</p>
+    </div>
+    <div class="global-search-stats">
+      <span>{{ stats.total or 0 }} elementi indicizzati</span>
+      <span>{{ "FTS5 attivo" if stats.fts_enabled else "Ricerca compatibile" }}</span>
+    </div>
+  </section>
+
+  <section class="global-search-shell">
+    <div class="global-search-main">
+      <form class="global-search-box" action="{{ url_for('global_search.index') }}" method="get" data-global-search-form>
+        <i class="bi bi-search"></i>
+        <input
+          type="search"
+          name="q"
+          value="{{ q }}"
+          placeholder="Cerca RG, cliente, codice fiscale, documento, scadenza, fattura..."
+          autocomplete="off"
+          autofocus
+          data-global-search-input>
+        <kbd>Ctrl K</kbd>
+      </form>
+
+      {% include "global_search/_filters.html" %}
+
+      <div class="global-search-toolbar">
+        <div>
+          <strong data-global-search-count>{{ payload.total or 0 }}</strong>
+          <span>risultati</span>
+          <span class="text-muted">in {{ payload.took_ms or 0 }} ms</span>
+        </div>
+        <button class="btn btn-outline-primary btn-sm" type="button" data-global-search-reindex>
+          <i class="bi bi-arrow-repeat"></i> Reindicizza
+        </button>
+      </div>
+
+      <div class="global-search-results" data-global-search-results>
+        {% if q and payload.results %}
+          {% for item in payload.results %}
+            {% include "global_search/_result_card.html" %}
+          {% endfor %}
+        {% elif q %}
+          {% include "global_search/_empty_state.html" %}
+        {% else %}
+          {% include "global_search/_empty_state.html" %}
+        {% endif %}
+      </div>
+    </div>
+
+    <aside class="global-search-preview" data-global-search-preview>
+      <div class="global-search-preview-card">
+        <span class="text-muted small text-uppercase fw-semibold">Anteprima</span>
+        <h2>Seleziona un risultato</h2>
+        <p>Usa le frecce per muoverti tra i risultati e Invio per aprire. Da qui puoi accedere subito a fascicolo, cliente, documento o scadenza.</p>
+        <div class="global-search-preview-actions">
+          <button class="btn btn-sm btn-primary" type="button" disabled>Apri</button>
+          <button class="btn btn-sm btn-outline-primary" type="button" disabled>Chiedi a Lex</button>
+        </div>
+      </div>
+    </aside>
+  </section>
+</div>
+<script src="{{ url_for('static', filename='js/global-search.js') }}?v={{ app_version }}" defer></script>
+{% endblock %}

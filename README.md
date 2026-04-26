@@ -71,6 +71,7 @@ Per il gateway provider di Lex vedi [docs/LEX_GATEWAY.md](docs/LEX_GATEWAY.md).
 Per il Centro Fonti Ufficiali Lex vedi [docs/CENTRO_FONTI_UFFICIALI_LEX.md](docs/CENTRO_FONTI_UFFICIALI_LEX.md).
 Per l'assistenza remota cliente vedi [docs/ASSISTENZA_REMOTA.md](docs/ASSISTENZA_REMOTA.md).
 Per il modulo `Sito Studio` vedi [docs/SITO_STUDIO.md](docs/SITO_STUDIO.md).
+Per la `Ricerca Studio` globale vedi [docs/RICERCA_STUDIO.md](docs/RICERCA_STUDIO.md).
 Per il catalogo master dei template atti vedi [docs/TEMPLATE_ATTI_CATALOGO_MASTER.md](docs/TEMPLATE_ATTI_CATALOGO_MASTER.md).
 Per la Suite professionale integrata nel catalogo template atti vedi [docs/template_atti_catalogo_professionale.md](docs/template_atti_catalogo_professionale.md).
 Per il modulo SIGP Giudice di Pace vedi [docs/SIGP_GIUDICE_DI_PACE.md](docs/SIGP_GIUDICE_DI_PACE.md).
@@ -168,6 +169,10 @@ Superfici ufficiali:
 Capacita' coperte:
 
 - logo, favicon, colori e identita' del sito
+- `Sito Studio Builder Pro` con un solo sito per studio/tenant anche se lo studio ha piu' utenti
+- otto modelli grafici professionali, design token, font preset, spaziature, radius, ombre ed effetti
+- editor visuale a blocchi senza scrittura manuale di JSON
+- anteprima desktop/tablet/mobile e validazioni SEO, accessibilita', privacy/cookie e deontologia base
 - pagine a blocchi e menu navigabile
 - articoli e news editoriali
 - servizi, professionisti, sedi, contatti e dove siamo
@@ -181,6 +186,19 @@ Sezioni opzionali pubbliche governate da flag:
 - `News giuridiche strutturate`
 
 Queste sezioni sono disponibili nel prodotto ma restano nascoste sul sito pubblico finche' l'amministratore del sito non le attiva da `Sito Studio -> Impostazioni`.
+
+## Ricerca Studio
+
+`Ricerca Studio` e' la ricerca globale operativa di IUSENTRA:
+
+- pagina principale: `/global-search`
+- API: `/api/global-search`, `/api/global-search/suggest`, `/api/global-search/reindex`
+- indice centrale tenant-aware: `global_search_index`
+- SQLite FTS5 quando disponibile, fallback compatibile e predisposizione PostgreSQL `tsvector/pg_trgm`
+- adapter per fascicoli, clienti, soggetti, agenda, scadenze, documenti, economia, comunicazioni, template atti, depositi e intelligence interna
+- ranking con boost per RG, codici fiscali, email, fascicoli attivi, scadenze imminenti, comunicazioni non lette, documenti ufficiali/firmati e risultati recenti
+
+Lex AI puo' usare la funzione `pct.global_search.service.search_for_lex(...)` come fonte interna verificata per risposte operative sui dati dello studio.
 
 ## Strategia storage per studio
 

@@ -28,6 +28,22 @@ CREATE TABLE IF NOT EXISTS site_studio (
     show_legal_news BOOLEAN NOT NULL DEFAULT FALSE,
     is_published BOOLEAN NOT NULL DEFAULT FALSE,
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    theme_template TEXT NOT NULL DEFAULT 'classic_legal',
+    theme_variant TEXT NOT NULL DEFAULT 'default',
+    design_tokens_json JSONB NOT NULL DEFAULT '{}'::jsonb,
+    typography_json JSONB NOT NULL DEFAULT '{}'::jsonb,
+    layout_json JSONB NOT NULL DEFAULT '{}'::jsonb,
+    effects_json JSONB NOT NULL DEFAULT '{}'::jsonb,
+    custom_css TEXT NOT NULL DEFAULT '',
+    cookie_banner_enabled BOOLEAN NOT NULL DEFAULT FALSE,
+    analytics_enabled BOOLEAN NOT NULL DEFAULT FALSE,
+    analytics_provider TEXT NOT NULL DEFAULT '',
+    analytics_id TEXT NOT NULL DEFAULT '',
+    seo_json JSONB NOT NULL DEFAULT '{}'::jsonb,
+    legal_disclaimer TEXT NOT NULL DEFAULT '',
+    privacy_url TEXT NOT NULL DEFAULT '',
+    cookie_policy_url TEXT NOT NULL DEFAULT '',
+    accessibility_statement_url TEXT NOT NULL DEFAULT '',
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -179,3 +195,28 @@ CREATE TABLE IF NOT EXISTS site_contact_submission (
 );
 
 CREATE INDEX IF NOT EXISTS idx_site_contact_submission_site ON site_contact_submission(site_id, created_at);
+
+CREATE TABLE IF NOT EXISTS site_theme_preset (
+    id BIGSERIAL PRIMARY KEY,
+    code TEXT NOT NULL UNIQUE,
+    name TEXT NOT NULL,
+    description TEXT NOT NULL DEFAULT '',
+    category TEXT NOT NULL DEFAULT '',
+    preview_image_url TEXT NOT NULL DEFAULT '',
+    tokens_json JSONB NOT NULL DEFAULT '{}'::jsonb,
+    blocks_seed_json JSONB NOT NULL DEFAULT '[]'::jsonb,
+    is_builtin BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS site_design_revision (
+    id BIGSERIAL PRIMARY KEY,
+    site_id BIGINT NOT NULL REFERENCES site_studio(id) ON DELETE CASCADE,
+    label TEXT NOT NULL DEFAULT '',
+    snapshot_json JSONB NOT NULL DEFAULT '{}'::jsonb,
+    created_by TEXT NOT NULL DEFAULT '',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_site_design_revision_site ON site_design_revision(site_id, created_at);

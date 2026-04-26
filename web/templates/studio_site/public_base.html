@@ -5,6 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}{{ payload.site.site_title or payload.site.site_name }}{% endblock %}</title>
   <meta name="description" content="{% block description %}{{ payload.site.site_description }}{% endblock %}">
+  <link rel="canonical" href="{{ request.url }}">
+  <meta property="og:title" content="{{ payload.site.site_title or payload.site.site_name }}">
+  <meta property="og:description" content="{{ payload.site.site_description }}">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="{{ request.url }}">
   {% if payload.site.favicon_url %}<link rel="icon" href="{{ payload.site.favicon_url }}">{% endif %}
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
@@ -14,10 +19,32 @@
       --studio-site-primary: {{ payload.site.primary_color or '#1d4ed8' }};
       --studio-site-secondary: {{ payload.site.secondary_color or '#0f172a' }};
       --studio-site-accent: {{ payload.site.accent_color or '#16a34a' }};
+      {{ payload.theme.css_variables|safe if payload.theme else '' }}
     }
+    {{ payload.theme.custom_css|safe if payload.theme and payload.theme.custom_css else '' }}
   </style>
+  <script type="application/ld+json">
+    {{ {
+      "@context": "https://schema.org",
+      "@type": "LegalService",
+      "name": payload.site.site_name,
+      "description": payload.site.site_description,
+      "url": request.url_root.rstrip('/') ~ url_for('studio_site_public.home', public_slug=payload.site.public_slug),
+      "telephone": payload.site.contact_phone,
+      "email": payload.site.contact_email,
+      "address": {
+        "@type": "PostalAddress",
+        "streetAddress": payload.site.address,
+        "addressLocality": payload.site.city,
+        "addressRegion": payload.site.province,
+        "postalCode": payload.site.zip_code,
+        "addressCountry": "IT"
+      }
+    }|tojson }}
+  </script>
 </head>
-<body class="studio-site-public">
+<body class="studio-site-public studio-site-template-{{ payload.theme.template_code if payload.theme else 'classic_legal' }}">
+  <a class="studio-site-skip-link" href="#contenuto-principale">Salta al contenuto principale</a>
   <header class="studio-site-header">
     <div class="container py-3">
       <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
@@ -32,7 +59,10 @@
             <small>{{ payload.site.city }}{% if payload.site.province %} - {{ payload.site.province }}{% endif %}</small>
           </span>
         </a>
-        <nav class="studio-site-nav">
+        <button class="studio-site-nav-toggle" type="button" aria-controls="studioSiteNav" aria-expanded="false">
+          <i class="bi bi-list"></i><span>Menu</span>
+        </button>
+        <nav class="studio-site-nav" id="studioSiteNav">
           <a href="{{ url_for('studio_site_public.home', public_slug=payload.site.public_slug) }}">Home</a>
           {% for page in payload.menu_pages %}
             <a href="{{ url_for('studio_site_public.page_detail', public_slug=payload.site.public_slug, page_slug=page.slug) }}">{{ page.title }}</a>
@@ -58,7 +88,7 @@
     </div>
   </header>
 
-  <main class="pb-5">
+  <main class="pb-5" id="contenuto-principale">
     <div class="container pt-3">
       {% with messages = get_flashed_messages(with_categories=true) %}
         {% for cat, msg in messages %}
@@ -83,11 +113,36 @@
         {% if payload.site.city %}<div>{{ payload.site.city }}{% if payload.site.province %} ({{ payload.site.province }}){% endif %}</div>{% endif %}
         {% if payload.site.contact_phone %}<div>{{ payload.site.contact_phone }}</div>{% endif %}
         {% if payload.site.contact_email %}<div>{{ payload.site.contact_email }}</div>{% endif %}
+        {% if payload.site.privacy_url %}<div><a class="text-white-50" href="{{ payload.site.privacy_url }}">Privacy policy</a></div>{% endif %}
+        {% if payload.site.cookie_policy_url %}<div><a class="text-white-50" href="{{ payload.site.cookie_policy_url }}">Cookie policy</a></div>{% endif %}
+        {% if payload.site.accessibility_statement_url %}<div><a class="text-white-50" href="{{ payload.site.accessibility_statement_url }}">Accessibilita</a></div>{% endif %}
+        {% if payload.site.legal_disclaimer %}<div class="mt-2">{{ payload.site.legal_disclaimer }}</div>{% endif %}
       </div>
     </div>
   </footer>
 
+  {% if payload.site.cookie_banner_enabled %}
+    <div class="studio-site-cookie-banner" data-cookie-banner hidden>
+      <div>
+        <strong>Preferenze cookie</strong>
+        <p class="mb-0">Usiamo solo cookie tecnici. Eventuali analytics vengono caricati solo dopo il consenso.</p>
+      </div>
+      <div class="d-flex gap-2">
+        <button class="btn btn-sm btn-outline-light" type="button" data-cookie-reject>Solo necessari</button>
+        <button class="btn btn-sm btn-light" type="button" data-cookie-accept>Accetta analytics</button>
+      </div>
+    </div>
+  {% endif %}
+
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  {% if payload.site.analytics_enabled and payload.site.analytics_provider and payload.site.analytics_id %}
+    <script type="application/json" id="studioSiteAnalyticsConfig">
+      {{ {
+        "provider": payload.site.analytics_provider,
+        "id": payload.site.analytics_id
+      }|tojson }}
+    </script>
+  {% endif %}
   <script src="{{ url_for('static', filename='js/studio_site_public.js') }}?v={{ app_version }}"></script>
   {% block scripts %}{% endblock %}
 </body>

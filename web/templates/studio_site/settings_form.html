@@ -6,10 +6,13 @@
 <div class="container py-4 studio-site-admin">
   <div class="d-flex justify-content-between align-items-start gap-3 mb-4">
     <div>
-      <h1 class="h3 mb-1">Impostazioni Sito Studio</h1>
-      <p class="text-muted mb-0">Branding, contatti, pubblicazione, logo e attivazione delle sezioni opzionali del sito.</p>
+      <h1 class="h3 mb-1">Impostazioni Sito Studio Builder Pro</h1>
+      <p class="text-muted mb-0">Branding, contatti, pubblicazione, privacy/cookie e attivazione delle sezioni opzionali del sito unico dello studio.</p>
     </div>
-    <a class="btn btn-outline-dark" href="{{ url_for('studio_site.dashboard') }}">Torna alla dashboard</a>
+    <div class="d-flex gap-2">
+      <a class="btn btn-outline-primary" href="{{ url_for('studio_site_builder.builder') }}">Apri Builder Pro</a>
+      <a class="btn btn-outline-dark" href="{{ url_for('studio_site.dashboard') }}">Torna alla dashboard</a>
+    </div>
   </div>
 
   <form method="post" class="studio-site-panel">
@@ -94,6 +97,29 @@
           <label class="form-check-label" for="activeSite">Sito attivo</label>
         </div>
       </div>
+      <div class="col-12"><hr></div>
+      <div class="col-12">
+        <h2 class="h5 mb-1">Privacy, cookie e correttezza informativa</h2>
+        <p class="text-muted small mb-0">Analytics e mappe esterne devono restare governati dal consenso. Il disclaimer evita equivoci sul valore informativo dei contenuti.</p>
+      </div>
+      <div class="col-md-6">
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" id="cookieBannerEnabled" name="cookie_banner_enabled" value="1" {% if site.cookie_banner_enabled %}checked{% endif %}>
+          <label class="form-check-label" for="cookieBannerEnabled">Mostra banner cookie</label>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" id="analyticsEnabled" name="analytics_enabled" value="1" {% if site.analytics_enabled %}checked{% endif %}>
+          <label class="form-check-label" for="analyticsEnabled">Abilita analytics dopo consenso</label>
+        </div>
+      </div>
+      <div class="col-lg-6"><label class="form-label">Provider analytics</label><input class="form-control" name="analytics_provider" value="{{ site.analytics_provider or '' }}" placeholder="es. Matomo, Plausible, GA4"></div>
+      <div class="col-lg-6"><label class="form-label">ID analytics</label><input class="form-control" name="analytics_id" value="{{ site.analytics_id or '' }}"></div>
+      <div class="col-lg-4"><label class="form-label">Privacy URL</label><input class="form-control" name="privacy_url" value="{{ site.privacy_url or '' }}"></div>
+      <div class="col-lg-4"><label class="form-label">Cookie policy URL</label><input class="form-control" name="cookie_policy_url" value="{{ site.cookie_policy_url or '' }}"></div>
+      <div class="col-lg-4"><label class="form-label">Dichiarazione accessibilita URL</label><input class="form-control" name="accessibility_statement_url" value="{{ site.accessibility_statement_url or '' }}"></div>
+      <div class="col-12"><label class="form-label">Disclaimer legale</label><textarea class="form-control" rows="3" name="legal_disclaimer">{{ site.legal_disclaimer or '' }}</textarea></div>
       <div class="col-12"><hr></div>
       <div class="col-md-4">
         <div class="form-check">

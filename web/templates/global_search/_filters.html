@@ -1,0 +1,19 @@
+{% set chips = [
+  ('tutto', 'Tutto', 'bi-grid'),
+  ('fascicoli', 'Fascicoli', 'bi-folder2-open'),
+  ('clienti', 'Clienti', 'bi-person-vcard'),
+  ('scadenze', 'Scadenze', 'bi-alarm'),
+  ('documenti', 'Documenti', 'bi-file-earmark-text'),
+  ('comunicazioni', 'Comunicazioni', 'bi-envelope-paper'),
+  ('economia', 'Economia', 'bi-receipt'),
+  ('telematico', 'Telematico', 'bi-send-check')
+] %}
+<div class="global-search-filters" data-global-search-filters>
+  {% for code, label, icon in chips %}
+    <a class="global-search-chip {% if active_type == code %}is-active{% endif %}"
+       href="{{ url_for('global_search.index', q=q, type=code) }}"
+       data-type="{{ code }}">
+      <i class="bi {{ icon }}"></i>{{ label }}
+    </a>
+  {% endfor %}
+</div>

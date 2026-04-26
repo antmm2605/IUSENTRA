@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from flask import Blueprint, abort, flash, g, jsonify, redirect, render_template, request, send_from_directory, url_for
+from flask import Blueprint, Response, abort, flash, g, jsonify, redirect, render_template, request, send_from_directory, url_for
 
 from web.services.studio_site_runtime import (
     build_public_site_payload,
@@ -44,6 +44,29 @@ def home(public_slug: str):
     if payload.get("home_page") is None:
         abort(404, description="Home page del sito non configurata.")
     return render_template("studio_site/public_home.html", payload=payload, page=payload["home_page"])
+
+
+@studio_site_public.get("/<public_slug>/sitemap.xml")
+def sitemap(public_slug: str):
+    payload = _public_payload_or_404(public_slug)
+    base = request.url_root.rstrip("/")
+    urls = [base + url_for("studio_site_public.home", public_slug=payload["site"]["public_slug"])]
+    for page in payload.get("menu_pages") or []:
+        urls.append(base + url_for("studio_site_public.page_detail", public_slug=payload["site"]["public_slug"], page_slug=page["slug"]))
+    for article in payload.get("articles") or []:
+        urls.append(base + url_for("studio_site_public.article_detail", public_slug=payload["site"]["public_slug"], article_slug=article["slug"]))
+    body = ['<?xml version="1.0" encoding="UTF-8"?>', '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">']
+    body.extend(f"<url><loc>{url}</loc></url>" for url in urls)
+    body.append("</urlset>")
+    return Response("\n".join(body), mimetype="application/xml")
+
+
+@studio_site_public.get("/<public_slug>/robots.txt")
+def robots(public_slug: str):
+    payload = _public_payload_or_404(public_slug)
+    sitemap_url = request.url_root.rstrip("/") + url_for("studio_site_public.sitemap", public_slug=payload["site"]["public_slug"])
+    body = f"User-agent: *\nAllow: /\nSitemap: {sitemap_url}\n"
+    return Response(body, mimetype="text/plain")
 
 
 @studio_site_public.get("/<public_slug>/pagina/<page_slug>")

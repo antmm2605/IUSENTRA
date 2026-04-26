@@ -28,6 +28,22 @@ CREATE TABLE IF NOT EXISTS site_studio (
     show_legal_news INTEGER NOT NULL DEFAULT 0,
     is_published INTEGER NOT NULL DEFAULT 0,
     is_active INTEGER NOT NULL DEFAULT 1,
+    theme_template TEXT NOT NULL DEFAULT 'classic_legal',
+    theme_variant TEXT NOT NULL DEFAULT 'default',
+    design_tokens_json TEXT NOT NULL DEFAULT '{}',
+    typography_json TEXT NOT NULL DEFAULT '{}',
+    layout_json TEXT NOT NULL DEFAULT '{}',
+    effects_json TEXT NOT NULL DEFAULT '{}',
+    custom_css TEXT NOT NULL DEFAULT '',
+    cookie_banner_enabled INTEGER NOT NULL DEFAULT 0,
+    analytics_enabled INTEGER NOT NULL DEFAULT 0,
+    analytics_provider TEXT NOT NULL DEFAULT '',
+    analytics_id TEXT NOT NULL DEFAULT '',
+    seo_json TEXT NOT NULL DEFAULT '{}',
+    legal_disclaimer TEXT NOT NULL DEFAULT '',
+    privacy_url TEXT NOT NULL DEFAULT '',
+    cookie_policy_url TEXT NOT NULL DEFAULT '',
+    accessibility_statement_url TEXT NOT NULL DEFAULT '',
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -189,3 +205,29 @@ CREATE TABLE IF NOT EXISTS site_contact_submission (
 );
 
 CREATE INDEX IF NOT EXISTS idx_site_contact_submission_site ON site_contact_submission(site_id, created_at);
+
+CREATE TABLE IF NOT EXISTS site_theme_preset (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    code TEXT NOT NULL UNIQUE,
+    name TEXT NOT NULL,
+    description TEXT NOT NULL DEFAULT '',
+    category TEXT NOT NULL DEFAULT '',
+    preview_image_url TEXT NOT NULL DEFAULT '',
+    tokens_json TEXT NOT NULL DEFAULT '{}',
+    blocks_seed_json TEXT NOT NULL DEFAULT '[]',
+    is_builtin INTEGER NOT NULL DEFAULT 1,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS site_design_revision (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    site_id INTEGER NOT NULL,
+    label TEXT NOT NULL DEFAULT '',
+    snapshot_json TEXT NOT NULL DEFAULT '{}',
+    created_by TEXT NOT NULL DEFAULT '',
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (site_id) REFERENCES site_studio(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_site_design_revision_site ON site_design_revision(site_id, created_at);

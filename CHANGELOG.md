@@ -1,5 +1,21 @@
 # Changelog
 
+## 2.188.0 - 2026-04-26
+
+- Aggiunta la nuova `Ricerca Studio` globale, con indice centrale tenant-aware `global_search_index`, SQLite FTS5 quando disponibile e fallback compatibile.
+- Introdotti dominio modulare `pct/global_search`, adapter per fascicoli, clienti, soggetti, scadenze, agenda, documenti, preventivi, conferimenti, fatture, pagamenti, comunicazioni, template atti, depositi e intelligence interna.
+- Aggiunti endpoint `/api/global-search`, suggerimenti, reindex completo e reindex per entita', con isolamento tenant, snippet sicuri, ranking operativo e funzione riusabile per Lex AI.
+- Creata la pagina `/global-search` con barra ricerca grande, filtri rapidi, risultati a card, azioni rapide, scorciatoia Ctrl/Cmd+K, debounce, skeleton loading e layout responsive.
+- Aggiunti schema SQLite/PostgreSQL e test su indicizzazione, ranking, filtri, tenant isolation e API JSON.
+
+## 2.187.0 - 2026-04-26
+
+- Trasformato `Sito Studio` in `Sito Studio Builder Pro`, mantenendo le route esistenti e l'invariante di un solo sito per studio/tenant anche con piu' utenti.
+- Aggiunti motore temi, design token, font preset, otto modelli grafici professionali e revisioni design per personalizzare colori, tipografia, spaziature, radius, ombre, privacy e cookie.
+- Sostituito il textarea JSON manuale con un editor visuale a blocchi, palette componenti, riordino accessibile e anteprima responsive desktop/tablet/mobile.
+- Esteso il rendering pubblico con CSS variables, navigazione mobile, footer legale, banner cookie con consenso, Open Graph, schema.org `LegalService`, sitemap e robots.
+- Aggiunti validatori SEO, accessibilita', privacy/cookie e controllo deontologico base, piu' test su builder, sito unico per tenant, generazione automatica e rendering pubblico.
+
 ## 2.186.0 - 2026-04-26
 
 - Integrato il `Centro Fonti Ufficiali Lex` con registry fonti, SQLite governato, export JSONL e retrieval dedicato per Lex AI.

@@ -68,9 +68,9 @@
        class="nav-link sb-link sb-top {% if request.endpoint == 'workspace_intelligente' %}active{% endif %}">
       <i class="bi bi-stars"></i><span class="sb-txt">Attività Studio</span>
     </a>
-    <a href="{{ url_for('cerca') }}"
-       class="nav-link sb-link sb-top {% if request.endpoint == 'cerca' %}active{% endif %}">
-      <i class="bi bi-search"></i><span class="sb-txt">Ricerca globale</span>
+    <a href="{{ url_for('global_search.index') }}"
+       class="nav-link sb-link sb-top {% if request.blueprint == 'global_search' or request.endpoint == 'cerca' %}active{% endif %}">
+      <i class="bi bi-search"></i><span class="sb-txt">Ricerca Studio</span>
     </a>
 
     {# Recenti (solo se presenti) #}
@@ -275,7 +275,7 @@
     </div>
 
     {# ---- Sezione: Studio ---- #}
-    {% set _st = request.blueprint in ('fatturazione','template_atti','statistiche','legal_intelligence','giurisprudenza','notifiche','pagamenti','preventivi','strumenti_legali','applicazioni','studio_site') or request.endpoint in ('tariffario','lista_backup','ripristina_backup') %}
+    {% set _st = request.blueprint in ('fatturazione','template_atti','statistiche','legal_intelligence','giurisprudenza','notifiche','pagamenti','preventivi','strumenti_legali','applicazioni','studio_site','studio_site_builder') or request.endpoint in ('tariffario','lista_backup','ripristina_backup') %}
     <button class="sb-toggle {% if _st %}open{% endif %}"
             data-bs-toggle="collapse" data-bs-target="#sb-studio" aria-expanded="{{ 'true' if _st else 'false' }}">
       <span><i class="bi bi-buildings"></i>Studio</span>
@@ -319,8 +319,8 @@
         <i class="bi bi-grid-3x3-gap"></i><span class="sb-txt">Applicazioni</span>
       </a>
       <a href="{{ url_for('studio_site.dashboard') }}"
-         class="nav-link sb-link {% if request.blueprint == 'studio_site' %}active{% endif %}">
-        <i class="bi bi-globe2"></i><span class="sb-txt">Sito Studio</span>
+         class="nav-link sb-link {% if request.blueprint in ('studio_site','studio_site_builder') %}active{% endif %}">
+        <i class="bi bi-globe2"></i><span class="sb-txt">Sito Studio Builder</span>
       </a>
       <a href="{{ url_for('notifiche.pannello') }}"
          class="nav-link sb-link {% if request.blueprint == 'notifiche' %}active{% endif %}">
@@ -462,12 +462,12 @@
     {% else %}
     {# ---- Ricerca globale ---- #}
     <div id="search-wrap">
-      <form action="{{ url_for('cerca') }}" method="get" class="d-flex" autocomplete="off">
+      <form action="{{ url_for('global_search.index') }}" method="get" class="d-flex" autocomplete="off">
         <div class="input-group input-group-sm">
           <span class="input-group-text bg-white"><i class="bi bi-search text-muted"></i></span>
           <input type="text" id="search-input" name="q"
                  class="form-control border-start-0 ps-0"
-                 placeholder="Cerca fascicoli, clienti..."
+               placeholder="Cerca nello studio..."
                  value="{{ request.args.get('q','') }}">
         </div>
       </form>

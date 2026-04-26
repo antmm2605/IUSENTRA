@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block title %}Anteprima responsive - Sito Studio{% endblock %}
+{% block pct_modulo %}sito_studio{% endblock %}
+{% block content %}
+<div class="container-fluid py-3 studio-site-admin studio-site-preview-page">
+  <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-3">
+    <div>
+      <h1 class="h3 mb-1">Anteprima responsive</h1>
+      <p class="text-muted mb-0">Verifica desktop, tablet e mobile prima della pubblicazione.</p>
+    </div>
+    <a class="btn btn-outline-dark" href="{{ url_for('studio_site_builder.builder') }}">Torna al builder</a>
+  </div>
+  <div class="studio-builder-toolbar mb-3">
+    <div class="btn-group" role="group" aria-label="Formato anteprima">
+      <button class="btn btn-outline-secondary active" type="button" data-preview-size="desktop">Desktop 1440</button>
+      <button class="btn btn-outline-secondary" type="button" data-preview-size="tablet">Tablet 768</button>
+      <button class="btn btn-outline-secondary" type="button" data-preview-size="mobile">Mobile 390</button>
+    </div>
+  </div>
+  <div class="studio-builder-preview-frame is-desktop" data-preview-frame>
+    <iframe src="{{ public_url }}" title="Anteprima responsive sito studio"></iframe>
+  </div>
+</div>
+<script src="{{ url_for('static', filename='js/studio_site_builder.js') }}?v={{ app_version }}"></script>
+{% endblock %}

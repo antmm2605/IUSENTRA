@@ -22,6 +22,7 @@ from pct.studio_site import (
     studio_site_profile_from_config,
     truthy,
 )
+from pct.studio_site_theme import theme_snapshot
 from pct.studio_site_repository import StudioSiteRepository
 from pct.tenant import GestioneTenant
 from web.helpers import get_agenda
@@ -276,6 +277,7 @@ def build_public_site_payload(public_slug: str, *, include_drafts: bool = False)
         "legal_tools": [],
         "applications": [],
         "legal_news": [],
+        "theme": theme_snapshot(site),
     }
     if site.get("show_legal_tools"):
         payload["legal_tools"] = public_legal_tools_catalog(

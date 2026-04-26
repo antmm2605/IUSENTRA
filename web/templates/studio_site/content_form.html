@@ -7,7 +7,7 @@
   <div class="d-flex justify-content-between align-items-start gap-3 mb-4">
     <div>
       <h1 class="h3 mb-1">{{ title }}</h1>
-      <p class="text-muted mb-0">Contenuto editoriale del sito studio con corpo strutturato a blocchi JSON.</p>
+      <p class="text-muted mb-0">Contenuto editoriale del sito studio con blocchi visuali, riordinabili e accessibili.</p>
     </div>
     <a class="btn btn-outline-dark" href="{{ url_for('studio_site.dashboard') }}">Torna alla dashboard</a>
   </div>
@@ -45,13 +45,21 @@
       <div class="col-lg-6"><label class="form-label">Titolo SEO</label><input class="form-control" name="seo_title" value="{{ item.seo_title or '' }}"></div>
       <div class="col-lg-6"><label class="form-label">Descrizione SEO</label><input class="form-control" name="seo_description" value="{{ item.seo_description or '' }}"></div>
       <div class="col-12">
-        <label class="form-label">Blocchi JSON</label>
-        <textarea class="form-control font-monospace" name="body_json" rows="16">{{ (item.body_json if item.body_json is string else item.body_json|tojson(indent=2)) if item.body_json else '[]' }}</textarea>
-        <div class="form-text">
-          Blocchi supportati:
-          {% for value, label in block_types %}
-            <code>{{ value }}</code>{% if not loop.last %}, {% endif %}
-          {% endfor %}.
+        <div class="studio-visual-editor">
+          <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
+            <div>
+              <label class="form-label mb-1">Builder blocchi</label>
+              <div class="form-text">Aggiungi, duplica, elimina e riordina senza scrivere JSON manuale.</div>
+            </div>
+            <a class="btn btn-sm btn-outline-primary" href="{{ url_for('studio_site_builder.builder') }}">Apri Builder Pro</a>
+          </div>
+          <div class="studio-block-palette mb-3">
+            {% for block in block_presets %}
+              <button class="studio-block-chip" type="button" data-block-preset='{{ block.defaults|tojson }}'>{{ block.label }}</button>
+            {% endfor %}
+          </div>
+          <div data-block-editor-list class="studio-block-editor-list"></div>
+          <textarea class="visually-hidden" name="body_json" data-blocks-json-field>{{ (item.body_json if item.body_json is string else item.body_json|tojson(indent=2)) if item.body_json else '[]' }}</textarea>
         </div>
       </div>
       <div class="col-12 d-flex justify-content-end gap-2">
@@ -61,4 +69,5 @@
     </div>
   </form>
 </div>
+<script src="{{ url_for('static', filename='js/studio_site_builder.js') }}?v={{ app_version }}"></script>
 {% endblock %}

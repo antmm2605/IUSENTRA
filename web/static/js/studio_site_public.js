@@ -1,4 +1,52 @@
 (function () {
+  const navToggle = document.querySelector(".studio-site-nav-toggle");
+  const nav = document.getElementById("studioSiteNav");
+  if (navToggle && nav) {
+    navToggle.addEventListener("click", () => {
+      const expanded = navToggle.getAttribute("aria-expanded") === "true";
+      navToggle.setAttribute("aria-expanded", expanded ? "false" : "true");
+      nav.classList.toggle("is-open", !expanded);
+    });
+  }
+
+  const cookieBanner = document.querySelector("[data-cookie-banner]");
+  if (cookieBanner) {
+    const storageKey = "iusentra_site_cookie_consent";
+    const current = window.localStorage.getItem(storageKey);
+    const applyAnalytics = () => {
+      const configNode = document.getElementById("studioSiteAnalyticsConfig");
+      if (!configNode) return;
+      let config = {};
+      try {
+        config = JSON.parse(configNode.textContent || "{}");
+      } catch (_error) {
+        config = {};
+      }
+      if (!config.provider || !config.id) return;
+      window.dispatchEvent(new CustomEvent("studio-site:analytics-consent", { detail: config }));
+    };
+    if (!current) {
+      cookieBanner.hidden = false;
+    } else if (current === "analytics") {
+      applyAnalytics();
+    }
+    const accept = cookieBanner.querySelector("[data-cookie-accept]");
+    const reject = cookieBanner.querySelector("[data-cookie-reject]");
+    if (accept) {
+      accept.addEventListener("click", () => {
+        window.localStorage.setItem(storageKey, "analytics");
+        cookieBanner.hidden = true;
+        applyAnalytics();
+      });
+    }
+    if (reject) {
+      reject.addEventListener("click", () => {
+        window.localStorage.setItem(storageKey, "necessary");
+        cookieBanner.hidden = true;
+      });
+    }
+  }
+
   const officeField = document.getElementById("siteBookingOffice");
   const dateField = document.getElementById("siteBookingDate");
   const timeField = document.getElementById("siteBookingTime");

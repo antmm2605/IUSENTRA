@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+
+{% block title %}Sito Studio Builder Pro{% endblock %}
+{% block pct_modulo %}sito_studio{% endblock %}
+{% block content %}
+<div class="container-fluid py-3 studio-site-admin studio-site-builder">
+  <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
+    <div>
+      <div class="text-muted small">Website Studio Legale</div>
+      <h1 class="h3 mb-1">Sito Studio Builder Pro</h1>
+      <p class="text-muted mb-0">Un solo sito per studio: template, blocchi, SEO, privacy e controlli deontologici governati.</p>
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+      <a class="btn btn-outline-dark" href="{{ payload.public_url }}" target="_blank" rel="noopener">Apri sito pubblico</a>
+      <a class="btn btn-outline-primary" href="{{ url_for('studio_site.dashboard') }}">Dashboard</a>
+      <a class="btn btn-primary" href="{{ url_for('studio_site_builder.preview') }}">Anteprima responsive</a>
+    </div>
+  </div>
+
+  <div class="studio-builder-shell">
+    <aside class="studio-builder-sidebar">
+      <h2 class="h6 text-uppercase text-muted">Template grafici</h2>
+      <div class="studio-template-list">
+        {% for template in payload.templates %}
+          <form method="post" action="{{ url_for('studio_site_builder.apply_template') }}" class="studio-template-card {% if payload.site.theme_template == template.code %}is-active{% endif %}">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+            <input type="hidden" name="template_code" value="{{ template.code }}">
+            <div class="studio-template-preview studio-template-preview--{{ template.code }}"></div>
+            <strong>{{ template.name }}</strong>
+            <span>{{ template.description }}</span>
+            <button class="btn btn-sm btn-outline-primary" type="submit">Usa modello</button>
+          </form>
+        {% endfor %}
+      </div>
+    </aside>
+
+    <section class="studio-builder-canvas">
+      <div class="studio-builder-toolbar">
+        <div>
+          <strong>Canvas responsive</strong>
+          <span class="text-muted small d-block">Desktop, tablet e mobile usano lo stesso sito dello studio.</span>
+        </div>
+        <div class="btn-group" role="group" aria-label="Anteprima responsive">
+          <button class="btn btn-outline-secondary active" type="button" data-preview-size="desktop">Desktop</button>
+          <button class="btn btn-outline-secondary" type="button" data-preview-size="tablet">Tablet</button>
+          <button class="btn btn-outline-secondary" type="button" data-preview-size="mobile">Mobile</button>
+        </div>
+      </div>
+      <div class="studio-builder-preview-frame" data-preview-frame>
+        <iframe src="{{ payload.public_url }}" title="Anteprima sito studio"></iframe>
+      </div>
+    </section>
+
+    <aside class="studio-builder-properties">
+      <form method="post" action="{{ url_for('studio_site_builder.save_design') }}" class="studio-site-panel">
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+        <input type="hidden" name="theme_template" value="{{ payload.site.theme_template or 'classic_legal' }}">
+        <h2 class="h5">Design tokens</h2>
+        <p class="text-muted small">Colori, font, dimensioni, spaziature ed effetti salvati nel database.</p>
+        <div class="row g-2">
+          {% for key, label in [('primary','Primario'),('secondary','Secondario'),('accent','Accento'),('bg','Sfondo'),('surface','Superficie'),('text','Testo')] %}
+            <div class="col-6">
+              <label class="form-label">{{ label }}</label>
+              <input class="form-control form-control-color w-100" name="{{ key }}" type="color" value="{{ payload.theme.tokens.get(key) }}">
+            </div>
+          {% endfor %}
+          <div class="col-12">
+            <label class="form-label">Preset font</label>
+            <select class="form-select" name="font_preset">
+              {% for code, preset in {'system_professional':'System Professional','serif_elegant':'Serif Elegant','modern_sans':'Modern Sans','editorial_legal':'Editorial Legal','compact_business':'Compact Business'}.items() %}
+                <option value="{{ code }}" {% if payload.theme.typography.font_preset == code %}selected{% endif %}>{{ preset }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-6"><label class="form-label">Dimensione base</label><input class="form-control" name="font_size_base" value="{{ payload.theme.tokens.font_size_base }}"></div>
+          <div class="col-6"><label class="form-label">Interlinea</label><input class="form-control" name="line_height" value="{{ payload.theme.tokens.line_height }}"></div>
+          <div class="col-6"><label class="form-label">Animazione</label><select class="form-select" name="animation"><option value="fade-up">Fade up</option><option value="soft-reveal">Soft reveal</option><option value="none">Nessuna</option></select></div>
+          <div class="col-6"><label class="form-label">Velocita</label><input class="form-control" name="animation_speed" value="{{ payload.theme.tokens.animation_speed }}"></div>
+          <div class="col-12"><label class="form-label">CSS personalizzato limitato</label><textarea class="form-control" name="custom_css" rows="4">{{ payload.theme.custom_css }}</textarea></div>
+        </div>
+        <hr>
+        <h3 class="h6">Privacy e cookie</h3>
+        <div class="form-check"><input class="form-check-input" type="checkbox" name="cookie_banner_enabled" value="1" id="cookieBanner" {% if payload.site.cookie_banner_enabled %}checked{% endif %}><label class="form-check-label" for="cookieBanner">Abilita banner cookie</label></div>
+        <div class="form-check"><input class="form-check-input" type="checkbox" name="analytics_enabled" value="1" id="analyticsEnabled" {% if payload.site.analytics_enabled %}checked{% endif %}><label class="form-check-label" for="analyticsEnabled">Abilita analytics solo dopo consenso</label></div>
+        <input class="form-control mt-2" name="analytics_provider" placeholder="Provider analytics" value="{{ payload.site.analytics_provider or '' }}">
+        <input class="form-control mt-2" name="analytics_id" placeholder="ID analytics" value="{{ payload.site.analytics_id or '' }}">
+        <input class="form-control mt-2" name="privacy_url" placeholder="URL privacy policy" value="{{ payload.site.privacy_url or '' }}">
+        <input class="form-control mt-2" name="cookie_policy_url" placeholder="URL cookie policy" value="{{ payload.site.cookie_policy_url or '' }}">
+        <textarea class="form-control mt-2" name="legal_disclaimer" rows="3" placeholder="Disclaimer legale">{{ payload.site.legal_disclaimer or '' }}</textarea>
+        <button class="btn btn-primary w-100 mt-3" type="submit">Salva design</button>
+      </form>
+    </aside>
+  </div>
+
+  <div class="row g-3 mt-3">
+    <div class="col-lg-7">
+      <div class="studio-site-panel">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+          <div>
+            <h2 class="h5 mb-1">Blocchi disponibili</h2>
+            <p class="text-muted mb-0">Usali nelle pagine senza scrivere JSON manuale. Ogni blocco resta modificabile e riordinabile.</p>
+          </div>
+          <form method="post" action="{{ url_for('studio_site_builder.generate_auto') }}">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+            <input type="hidden" name="template" value="{{ payload.site.theme_template or 'classic_legal' }}">
+            <input type="hidden" name="site_type" value="generalista">
+            <input type="hidden" name="style" value="sobrio">
+            <button class="btn btn-success" type="submit">Crea sito automaticamente</button>
+          </form>
+        </div>
+        <div class="studio-block-palette">
+          {% for block in payload.block_presets %}
+            <button class="studio-block-chip" type="button" data-block-preset='{{ block.defaults|tojson }}'>{{ block.label }}</button>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-5">
+      <div class="studio-site-panel">
+        <h2 class="h5">Controlli professionali</h2>
+        {% for group, rows in payload.validation.items() if group != 'generated_at' %}
+          <div class="studio-validation-group">
+            <strong>{{ group|capitalize }}</strong>
+            {% if rows %}
+              {% for row in rows[:4] %}<div class="small text-muted">{{ row.message }}</div>{% endfor %}
+            {% else %}
+              <div class="small text-success">Nessun rilievo immediato.</div>
+            {% endif %}
+          </div>
+        {% endfor %}
+        <form method="post" action="{{ url_for('studio_site_builder.validate_builder') }}" class="mt-3">
+          <button class="btn btn-outline-primary w-100" type="submit">Riesegui validazione</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+<script src="{{ url_for('static', filename='js/studio_site_builder.js') }}?v={{ app_version }}"></script>
+{% endblock %}

@@ -253,7 +253,7 @@ def test_lex_operativo_e_control_tower_renderizzano(tmp_path: Path):
 
     assert page.status_code == 200
     assert "Lex Fascicolo" in page.get_data(as_text=True)
-    assert "Control Tower telematica" in page.get_data(as_text=True)
+    assert "Regia telematica" in page.get_data(as_text=True)
     assert api.get_json()["ok"] is True
     assert "fascicolo" in api.get_json()
     assert telematico.status_code == 200

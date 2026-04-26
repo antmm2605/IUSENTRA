@@ -1,25 +1,25 @@
 {% extends "base.html" %}
 
-{% block title %}Sito Studio Builder Pro{% endblock %}
+{% block title %}Sito Studio{% endblock %}
 {% block pct_modulo %}sito_studio{% endblock %}
 {% block content %}
 <div class="container-fluid py-3 studio-site-admin studio-site-builder">
   <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
     <div>
-      <div class="text-muted small">Website Studio Legale</div>
-      <h1 class="h3 mb-1">Sito Studio Builder Pro</h1>
-      <p class="text-muted mb-0">Un solo sito per studio: template, blocchi, SEO, privacy e controlli deontologici governati.</p>
+      <div class="text-muted small">Sito web dello studio legale</div>
+      <h1 class="h3 mb-1">Sito Studio</h1>
+      <p class="text-muted mb-0">Un solo sito per studio: modelli grafici, blocchi, SEO, privacy e controlli deontologici governati.</p>
     </div>
     <div class="d-flex flex-wrap gap-2">
       <a class="btn btn-outline-dark" href="{{ payload.public_url }}" target="_blank" rel="noopener">Apri sito pubblico</a>
-      <a class="btn btn-outline-primary" href="{{ url_for('studio_site.dashboard') }}">Dashboard</a>
+      <a class="btn btn-outline-primary" href="{{ url_for('studio_site.dashboard') }}">Panoramica</a>
       <a class="btn btn-primary" href="{{ url_for('studio_site_builder.preview') }}">Anteprima responsive</a>
     </div>
   </div>
 
   <div class="studio-builder-shell">
     <aside class="studio-builder-sidebar">
-      <h2 class="h6 text-uppercase text-muted">Template grafici</h2>
+      <h2 class="h6 text-uppercase text-muted">Modelli grafici</h2>
       <div class="studio-template-list">
         {% for template in payload.templates %}
           <form method="post" action="{{ url_for('studio_site_builder.apply_template') }}" class="studio-template-card {% if payload.site.theme_template == template.code %}is-active{% endif %}">
@@ -55,7 +55,7 @@
       <form method="post" action="{{ url_for('studio_site_builder.save_design') }}" class="studio-site-panel">
         <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
         <input type="hidden" name="theme_template" value="{{ payload.site.theme_template or 'classic_legal' }}">
-        <h2 class="h5">Design tokens</h2>
+        <h2 class="h5">Parametri grafici</h2>
         <p class="text-muted small">Colori, font, dimensioni, spaziature ed effetti salvati nel database.</p>
         <div class="row g-2">
           {% for key, label in [('primary','Primario'),('secondary','Secondario'),('accent','Accento'),('bg','Sfondo'),('surface','Superficie'),('text','Testo')] %}

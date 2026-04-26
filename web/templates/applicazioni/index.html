@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Applicazioni operative{% endblock %}
+{% block title %}Strumenti Operativi{% endblock %}
 {% block pct_modulo %}applicazioni{% endblock %}
 
 {% macro hidden_workspace_state() -%}
@@ -112,15 +112,15 @@
           <i class="bi bi-grid-1x2"></i>
           Cabina applicativa unificata
         </div>
-        <h1 class="h2 mb-2">Applicazioni vere nello stesso workspace operativo</h1>
+        <h1 class="h2 mb-2">Strumenti operativi dello studio</h1>
         <p class="text-muted mb-3">
-          Questa superficie non fa piu' da elenco di link. Ogni voce apre il proprio modulo nello stesso workspace,
+          Questa superficie non fa piu' da elenco di link. Ogni voce apre il proprio modulo nella stessa area operativa,
           con contesto fascicolo, input coerenti, risultati leggibili e raccordo con il dominio reale del gestionale.
         </p>
         <div class="apps-hero-badges">
           <span class="apps-hero-badge"><i class="bi bi-grid"></i>{{ stats.totale }} voci censite</span>
           <span class="apps-hero-badge"><i class="bi bi-star"></i>{{ stats.primo_piano }} in primo piano</span>
-          <span class="apps-hero-badge"><i class="bi bi-layers"></i>{{ filtered_stats.totale }} nel workspace attivo</span>
+          <span class="apps-hero-badge"><i class="bi bi-layers"></i>{{ filtered_stats.totale }} nell'area attiva</span>
           <span class="apps-hero-badge"><i class="bi bi-folder2-open"></i>{{ fascicoli|length }} fascicoli disponibili</span>
         </div>
       </div>
@@ -179,10 +179,10 @@
     <div class="apps-kpi">
       <div class="apps-kpi-label">Aree attive</div>
       <div class="apps-kpi-value">{{ stats.sezioni_attive }}</div>
-      <div class="apps-kpi-sub">Famiglie professionali coperte nel workspace.</div>
+      <div class="apps-kpi-sub">Famiglie professionali coperte nell'area operativa.</div>
     </div>
     <div class="apps-kpi">
-      <div class="apps-kpi-label">Workspace filtrato</div>
+      <div class="apps-kpi-label">Area filtrata</div>
       <div class="apps-kpi-value">{{ filtered_stats.totale }}</div>
       <div class="apps-kpi-sub">
         {% if filtri_attivi %}
@@ -198,13 +198,13 @@
     <div class="apps-panel-body">
       <div class="apps-panel-head">
         <div>
-          <h2 class="h4 mb-1">Filtri del workspace</h2>
+          <h2 class="h4 mb-1">Filtri degli strumenti</h2>
           <div class="text-muted">Riduci il perimetro, scegli l'area e apri la voce direttamente nella stessa cabina.</div>
         </div>
       </div>
       <form method="get" class="row g-3 align-items-end">
         <div class="col-xl-4 col-lg-6">
-          <label class="form-label fw-semibold">Ricerca applicazioni</label>
+          <label class="form-label fw-semibold">Ricerca strumenti</label>
           <input type="text" name="q" value="{{ query }}" class="form-control" placeholder="Es. interessi, successioni, notifica PEC, TFR">
         </div>
         <div class="col-xl-2 col-md-6">
@@ -358,7 +358,7 @@
             <div class="apps-panel-body">
               <div class="apps-panel-head mb-3">
                 <div>
-                  <h3 class="h6 mb-1">Template compatibili</h3>
+                  <h3 class="h6 mb-1">Modelli compatibili</h3>
                 </div>
               </div>
               <div class="apps-module-grid">
@@ -605,7 +605,7 @@
         <div class="col-xl-7">
           <div class="apps-panel">
             <div class="apps-panel-body">
-              <h3 class="h6 mb-3">Moduli e template collegati</h3>
+              <h3 class="h6 mb-3">Moduli e modelli collegati</h3>
               <div class="apps-module-grid">
                 {% for item in active_panel.matches %}
                 <article class="apps-module-card">
@@ -665,7 +665,7 @@
           <div class="apps-module-title">{{ item.title }}</div>
           <div class="apps-module-summary">{{ item.summary }}</div>
           <div class="apps-module-actions">
-            <a href="{{ item.workspace_url }}" class="btn btn-sm btn-primary">Apri nel workspace</a>
+            <a href="{{ item.workspace_url }}" class="btn btn-sm btn-primary">Apri nell'area operativa</a>
             <a href="{{ item.target_url }}" class="btn btn-sm btn-outline-secondary">Apri dominio</a>
           </div>
         </article>
@@ -694,7 +694,7 @@
           <div class="apps-module-summary">{{ item.summary }}</div>
           <div class="apps-module-actions">
             <a href="{{ item.workspace_url }}" class="btn btn-sm {{ 'btn-primary' if active_entry and active_entry.id == item.id else 'btn-outline-primary' }}">
-              {{ 'Attiva' if active_entry and active_entry.id == item.id else 'Apri nel workspace' }}
+              {{ 'Attiva' if active_entry and active_entry.id == item.id else "Apri nell'area operativa" }}
             </a>
             <a href="{{ item.target_url }}" class="btn btn-sm btn-outline-secondary">Apri dominio</a>
             <a href="{{ url_for('applicazioni.index', sezione=item.section_id) }}" class="btn btn-sm btn-outline-dark">Area</a>

@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Catalogo Atti{% endblock %}
+{% block title %}Catalogo Atti e Modelli{% endblock %}
 {% block pct_modulo %}template_atti{% endblock %}
 
 {% block content %}
@@ -10,11 +10,11 @@
         <i class="bi bi-journals"></i>
       </div>
       <div>
-        <div class="cat-kicker">Compilatore atti</div>
-        <h1 class="cat-title" id="catalogo-atti-title">Catalogo Atti</h1>
+        <div class="cat-kicker">Redazione guidata</div>
+        <h1 class="cat-title" id="catalogo-atti-title">Catalogo Atti e Modelli</h1>
         <p class="cat-sub">
-          Suite professionale completa integrata nel catalogo: ricerca, compilazione guidata,
-          regole di deposito versionate e pre-verifica conformita per ogni portale.
+          Catalogo professionale per la redazione degli atti: ricerca per materia, procedimento, rito e portale,
+          compilazione guidata, allegati richiesti e controlli di conformità prima del deposito.
         </p>
         <div class="cat-badge-row" aria-label="Capacita catalogo">
           {% for badge in suite_summary.badges %}
@@ -28,13 +28,13 @@
       <div class="cat-suite-version">{{ suite_summary.versione }}</div>
       <div class="cat-suite-inline-summary">
         {{ suite_summary.template_operativi }} modelli operativi funzionanti -
-        {{ suite_summary.totale_template }} template master -
+        {{ suite_summary.totale_template }} modelli del catalogo professionale -
         {{ suite_summary.moduli_professionali }} moduli professionali -
         {{ suite_summary.canali_governati }} canali telematici governati
       </div>
       <div class="cat-suite-metrics">
         <div><strong>{{ suite_summary.template_operativi }}</strong><span>modelli operativi</span></div>
-        <div><strong>{{ suite_summary.totale_template }}</strong><span>template master</span></div>
+        <div><strong>{{ suite_summary.totale_template }}</strong><span>modelli governati</span></div>
         <div><strong>{{ suite_summary.moduli_professionali }}</strong><span>moduli professionali</span></div>
         <div><strong>{{ suite_summary.canali_governati }}</strong><span>canali telematici</span></div>
       </div>
@@ -42,14 +42,14 @@
     <div class="cat-hero-actions">
       <div class="cat-tab-switch" role="tablist" aria-label="Viste catalogo">
         <button type="button" class="cat-tab-pill active" data-view="catalogo" role="tab" aria-selected="true">
-          <i class="bi bi-grid-3x3-gap me-1"></i>Catalogo completo
+          <i class="bi bi-grid-3x3-gap me-1"></i>Tutti gli atti
         </button>
         <button type="button" class="cat-tab-pill" data-view="pratiche" role="tab" aria-selected="false">
-          <i class="bi bi-diagram-2 me-1"></i>Da pratica
+          <i class="bi bi-diagram-2 me-1"></i>Suggeriti dalla pratica
         </button>
       </div>
       <a href="{{ url_for('template_atti.lista') }}" class="btn btn-sm btn-outline-secondary">
-        <i class="bi bi-arrow-left me-1"></i>Template salvati
+        <i class="bi bi-arrow-left me-1"></i>Modelli dello studio
       </a>
     </div>
   </section>
@@ -57,7 +57,7 @@
   <section class="cat-suite-groups" aria-label="Sezioni suite professionale">
     {% for group in suite_groups %}
     <article class="cat-suite-group-card" data-suite-jump="{{ group.label }}">
-      <div class="cat-suite-group-count">{{ group.count }} template</div>
+      <div class="cat-suite-group-count">{{ group.count }} modelli</div>
       <h2>{{ group.label }}</h2>
       <ul>
         {% for t in group.examples %}
@@ -68,7 +68,7 @@
     {% endfor %}
   </section>
 
-  <section class="cat-toolbar" id="catalogToolbar" aria-label="Filtri catalogo template">
+  <section class="cat-toolbar" id="catalogToolbar" aria-label="Filtri catalogo atti e modelli">
     <div class="cat-toolbar-search">
       <label class="visually-hidden" for="catSearch">Ricerca libera nel catalogo atti</label>
       <div class="cat-search-wrap">
@@ -103,7 +103,7 @@
         'procedimento': 'Procedimento',
         'tipo_atto': 'Tipologia atto',
         'natura_atto': 'Natura atto',
-        'stato': 'Stato template',
+        'stato': 'Stato modello',
         'fonte_catalogo': 'Sorgente'
       } %}
       {% for key, label in filter_labels.items() %}
@@ -183,7 +183,7 @@
     </div>
   </section>
 
-  <section id="viewCatalogo" aria-label="Template suite professionale">
+  <section id="viewCatalogo" aria-label="Atti e modelli della suite professionale">
     <div class="cat-grid cat-template-grid" id="catTemplateGrid">
       {% for t in template_suite %}
       <article
@@ -239,9 +239,9 @@
 
         <div class="cat-card-badges">
           {% if t.fonte_catalogo == 'compilatore' %}
-          <span class="cat-card-area-badge">Operativo compilatore</span>
+          <span class="cat-card-area-badge">Modello operativo</span>
           {% else %}
-          <span class="cat-card-area-badge">Catalogo master v1.1.0</span>
+          <span class="cat-card-area-badge">Catalogo professionale v1.1.0</span>
           {% endif %}
           <span class="cat-card-area-badge">{{ t.categoria_suite_label }}</span>
           <span class="cat-card-area-badge">{{ t.materia }}</span>
@@ -302,23 +302,23 @@
             {% endfor %}
           </ul>
           {% else %}
-          <p class="cat-muted">Dati minimi generali del template.</p>
+          <p class="cat-muted">Dati minimi generali del modello.</p>
           {% endif %}
         </div>
 
         <div class="cat-card-footer cat-card-actions">
           {% if t.link_compilatore_code %}
           <a href="{{ url_for('template_atti.compila', model_code=t.link_compilatore_code) }}" class="btn btn-sm btn-primary">
-            <i class="bi bi-play-circle me-1"></i>Compila atto
+            <i class="bi bi-play-circle me-1"></i>Redigi atto
           </a>
           {% else %}
           <a href="{{ url_for('template_atti.usa', id_template=t.codice) }}" class="btn btn-sm btn-primary">
-            <i class="bi bi-magic me-1"></i>Compila
+            <i class="bi bi-magic me-1"></i>Redigi atto
           </a>
           {% endif %}
           {% if t.fonte_catalogo == 'compilatore' %}
           <a href="{{ url_for('template_atti.compila', model_code=t.codice) }}" class="btn btn-sm btn-outline-secondary">
-            <i class="bi bi-eye me-1"></i>Anteprima guidata
+            <i class="bi bi-eye me-1"></i>Anteprima redazionale
           </a>
           {% else %}
           <a href="{{ url_for('template_atti.scheda', id_template=t.codice) }}" class="btn btn-sm btn-outline-secondary">
@@ -326,15 +326,15 @@
           </a>
           {% endif %}
           <button type="button" class="btn btn-sm btn-outline-success" data-compliance-url="{{ url_for('template_atti.template_compliance', codice=t.codice) }}">
-            <i class="bi bi-shield-check me-1"></i>Verifica deposito
+            <i class="bi bi-shield-check me-1"></i>Controlli deposito
           </button>
           <button type="button" class="btn btn-sm btn-outline-primary" data-compliance-url="{{ url_for('template_atti.template_compliance', codice=t.codice) }}" data-detail-mode="normativa">
-            <i class="bi bi-journal-text me-1"></i>Dettagli normativa
+            <i class="bi bi-journal-text me-1"></i>Riferimenti normativi
           </button>
           {% if t.fonte_catalogo != 'compilatore' %}
           <form method="post" action="{{ url_for('template_atti.clona', id_template=t.codice) }}">
             <button type="submit" class="btn btn-sm btn-outline-secondary">
-              <i class="bi bi-files me-1"></i>Duplica
+              <i class="bi bi-files me-1"></i>Copia nel mio studio
             </button>
           </form>
           {% endif %}
@@ -345,12 +345,12 @@
 
     <div id="catEmptyState" class="cat-empty" hidden>
       <div class="cat-empty-icon"><i class="bi bi-search"></i></div>
-      <div class="fw-semibold mb-1">Nessun template trovato</div>
+      <div class="fw-semibold mb-1">Nessun modello trovato</div>
       <div class="small">Riduci i filtri oppure cerca per codice, materia, rito o portale.</div>
     </div>
   </section>
 
-  <section id="viewPratiche" class="cat-pratiche-view" hidden aria-label="Compilazione da pratica">
+  <section id="viewPratiche" class="cat-pratiche-view" hidden aria-label="Redazione suggerita dalla pratica">
     {% if wizard_tipologie %}
     <div class="cat-pratica-toolbar">
       <label class="visually-hidden" for="praticaSearch">Cerca pratica</label>
@@ -378,7 +378,7 @@
     <div class="cat-empty">
       <div class="cat-empty-icon"><i class="bi bi-diagram-2"></i></div>
       <div class="fw-semibold mb-1">Nessun collegamento pratica disponibile</div>
-      <div class="small">I modelli del compilatore non sono ancora collegati alle tipologie del wizard preventivi.</div>
+      <div class="small">I modelli con redazione guidata non sono ancora collegati alle tipologie del wizard preventivi.</div>
     </div>
     {% endif %}
   </section>
@@ -389,13 +389,13 @@
     <div class="modal-content">
       <div class="modal-header">
         <div>
-          <div class="cat-kicker">Pre-verifica conformita</div>
+        <div class="cat-kicker">Pre-verifica conformità</div>
           <h2 class="modal-title h5" id="templateComplianceTitle">Controlli deposito</h2>
         </div>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Chiudi"></button>
       </div>
       <div class="modal-body" id="templateComplianceBody">
-        <div class="text-muted">Seleziona un template per visualizzare i controlli.</div>
+        <div class="text-muted">Seleziona un modello per visualizzare i controlli.</div>
       </div>
     </div>
   </div>
@@ -578,7 +578,7 @@
     button.addEventListener('click', async () => {
       const modalEl = document.getElementById('templateComplianceModal');
       const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
-      document.getElementById('templateComplianceBody').innerHTML = '<div class="text-muted">Carico controlli...</div>';
+      document.getElementById('templateComplianceBody').innerHTML = '<div class="text-muted">Carico i controlli...</div>';
       modal.show();
       try {
         const response = await fetch(button.dataset.complianceUrl, {headers: {'Accept': 'application/json'}});

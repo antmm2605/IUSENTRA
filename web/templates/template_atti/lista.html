@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Workspace Atti{% endblock %}
+{% block title %}Redazione Atti{% endblock %}
 {% block pct_modulo %}template_atti{% endblock %}
 
 {% block content %}
@@ -8,12 +8,12 @@
     <div class="acts-hero-main">
       <div class="acts-hero-icon"><i class="bi bi-file-richtext"></i></div>
       <div class="min-w-0">
-        <div class="acts-kicker">Workspace atti e modelli</div>
-        <h1 class="acts-title">Catalogo built-in con generazione reale</h1>
+        <div class="acts-kicker">Area redazionale dello studio</div>
+        <h1 class="acts-title">Redazione Atti</h1>
         <p class="acts-sub">
           Procure, atti introduttivi, memorie, esecuzioni, famiglia, lavoro, penale, amministrativo, tributario,
           societario, immigrazione, UNEP e stragiudiziale nello stesso spazio operativo, con metadati, controlli e
-          collegamenti al compilatore guidato.
+          collegamenti alla redazione guidata.
         </p>
         {% if featured_templates %}
         <div class="acts-featured">
@@ -29,17 +29,17 @@
     <div class="acts-hero-side">
       <div class="acts-actions">
         <a href="{{ url_for('template_atti.catalogo') }}" class="btn btn-outline-secondary">
-          <i class="bi bi-diagram-3 me-1"></i>Compilatore guidato
+          <i class="bi bi-diagram-3 me-1"></i>Redazione guidata
         </a>
         <a href="{{ url_for('template_atti.nuovo') }}" class="btn btn-primary">
-          <i class="bi bi-plus-lg me-1"></i>Nuovo template
+          <i class="bi bi-plus-lg me-1"></i>Nuovo modello di studio
         </a>
       </div>
       <div class="acts-stat-grid">
-        <div class="acts-stat"><div class="acts-stat-value">{{ stats.totale }}</div><div class="acts-stat-label">modelli built-in</div></div>
-        <div class="acts-stat"><div class="acts-stat-value">{{ stats.con_compilatore }}</div><div class="acts-stat-label">con compilatore</div></div>
-        <div class="acts-stat"><div class="acts-stat-value">{{ stats.collezioni }}</div><div class="acts-stat-label">collezioni verticali</div></div>
-        <div class="acts-stat"><div class="acts-stat-value">{{ stats.custom }}</div><div class="acts-stat-label">template personali</div></div>
+        <div class="acts-stat"><div class="acts-stat-value">{{ stats.totale }}</div><div class="acts-stat-label">modelli di sistema</div></div>
+        <div class="acts-stat"><div class="acts-stat-value">{{ stats.con_compilatore }}</div><div class="acts-stat-label">con redazione guidata</div></div>
+        <div class="acts-stat"><div class="acts-stat-value">{{ stats.collezioni }}</div><div class="acts-stat-label">aree operative</div></div>
+        <div class="acts-stat"><div class="acts-stat-value">{{ stats.custom }}</div><div class="acts-stat-label">modelli dello studio</div></div>
       </div>
     </div>
   </section>
@@ -68,12 +68,12 @@
       </select>
       <label class="acts-toggle">
         <input id="actsCompilerOnly" type="checkbox" class="form-check-input mt-0">
-        Solo modelli con compilatore
+        Solo modelli con redazione guidata
       </label>
     </div>
     <div class="acts-toolbar-row--secondary">
       <div class="acts-pills" id="actsPills">
-        <button type="button" class="acts-pill is-active" data-collection="">Tutte le collezioni</button>
+        <button type="button" class="acts-pill is-active" data-collection="">Tutte le aree operative</button>
         {% for section in workspace_sections %}
         <button type="button" class="acts-pill" data-collection="{{ section.title }}">{{ section.title }}</button>
         {% endfor %}
@@ -108,13 +108,13 @@
       >
         <div class="acts-card-top">
           <div>
-            <div class="acts-card-code">{{ t.codice or 'CUSTOM' }}</div>
+            <div class="acts-card-code">{{ t.codice or 'PERSONALE' }}</div>
             <h3 class="acts-card-title mt-2">{{ t.titolo }}</h3>
           </div>
           {% if t.link_compilatore_code %}
           <span class="badge bg-primary-subtle text-primary border border-primary-subtle">Guidato</span>
           {% else %}
-          <span class="badge bg-light text-dark border">Template</span>
+          <span class="badge bg-light text-dark border">Modello</span>
           {% endif %}
         </div>
         <div class="acts-card-desc">{{ t.descrizione or t.note }}</div>
@@ -136,18 +136,18 @@
         {% endif %}
         <div class="acts-card-footer">
           <a href="{{ url_for('template_atti.usa', id_template=t.id) }}" class="btn btn-sm btn-primary">
-            <i class="bi bi-magic me-1"></i>Genera
+            <i class="bi bi-magic me-1"></i>Crea bozza
           </a>
           <a href="{{ url_for('template_atti.scheda', id_template=t.id) }}" class="btn btn-sm btn-outline-secondary" title="Scheda modello">
             <i class="bi bi-info-circle"></i>
           </a>
           {% if t.link_compilatore_code %}
-          <a href="{{ url_for('template_atti.compila', model_code=t.link_compilatore_code) }}" class="btn btn-sm btn-outline-primary" title="Compilatore guidato">
+          <a href="{{ url_for('template_atti.compila', model_code=t.link_compilatore_code) }}" class="btn btn-sm btn-outline-primary" title="Redazione guidata">
             <i class="bi bi-bezier2"></i>
           </a>
           {% else %}
           <form method="post" action="{{ url_for('template_atti.clona', id_template=t.id) }}">
-            <button type="submit" class="btn btn-sm btn-outline-primary" title="Duplica in libreria personale">
+            <button type="submit" class="btn btn-sm btn-outline-primary" title="Copia nei modelli dello studio">
               <i class="bi bi-copy"></i>
             </button>
           </form>
@@ -163,11 +163,11 @@
   <section class="acts-custom-panel">
     <div class="d-flex align-items-center justify-content-between gap-2 flex-wrap mb-3">
       <div>
-        <div class="acts-kicker">Libreria personale</div>
-        <h2 class="acts-section-title mb-0">Template personalizzati</h2>
+        <div class="acts-kicker">Modelli dello studio</div>
+        <h2 class="acts-section-title mb-0">Modelli personalizzati dello studio</h2>
       </div>
       <a href="{{ url_for('template_atti.nuovo') }}" class="btn btn-sm btn-outline-primary">
-        <i class="bi bi-plus-lg me-1"></i>Nuovo template
+        <i class="bi bi-plus-lg me-1"></i>Nuovo modello di studio
       </a>
     </div>
     <div class="acts-grid" style="grid-template-columns:repeat(auto-fill,minmax(16rem,1fr));">
@@ -175,23 +175,23 @@
       <article class="acts-card">
         <div class="acts-card-top">
           <div>
-            <div class="acts-card-code">{{ t.codice or 'CUSTOM' }}</div>
+            <div class="acts-card-code">{{ t.codice or 'PERSONALE' }}</div>
             <h3 class="acts-card-title mt-2">{{ t.titolo }}</h3>
           </div>
-          <span class="badge bg-light text-dark border">Custom</span>
+          <span class="badge bg-light text-dark border">Personalizzato</span>
         </div>
-        <div class="acts-card-desc">{{ t.note or 'Template personalizzato dello studio.' }}</div>
+        <div class="acts-card-desc">{{ t.note or 'Modello personalizzato dello studio.' }}</div>
         <div class="acts-card-meta">
           <span>{{ t.categoria }}</span>
         </div>
         <div class="acts-card-footer">
           <a href="{{ url_for('template_atti.usa', id_template=t.id) }}" class="btn btn-sm btn-primary">
-            <i class="bi bi-magic me-1"></i>Genera
+            <i class="bi bi-magic me-1"></i>Crea bozza
           </a>
           <a href="{{ url_for('template_atti.modifica', id_template=t.id) }}" class="btn btn-sm btn-outline-secondary" title="Modifica">
             <i class="bi bi-pencil"></i>
           </a>
-          <form method="post" action="{{ url_for('template_atti.elimina', id_template=t.id) }}" onsubmit="return confirm('Eliminare questo template?');">
+          <form method="post" action="{{ url_for('template_atti.elimina', id_template=t.id) }}" onsubmit="return confirm('Eliminare questo modello?');">
             <button type="submit" class="btn btn-sm btn-outline-danger" title="Elimina">
               <i class="bi bi-trash"></i>
             </button>

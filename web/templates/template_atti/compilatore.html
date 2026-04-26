@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Compilatore Atti - {{ model.name }}{% endblock %}
+{% block title %}Redazione guidata - {{ model.name }}{% endblock %}
 
 {% macro render_field(field) %}
   {% set value = form_values.get(field.name, '') %}
@@ -79,7 +79,7 @@
     <i class="bi bi-arrow-left"></i>
   </a>
   <div class="flex-grow-1">
-    <h4 class="mb-0 fw-bold">Compilatore Atti</h4>
+    <h4 class="mb-0 fw-bold">Redazione guidata</h4>
     <div class="text-muted small">{{ model.name }} - {{ model.code }} - {{ model.area }}</div>
   </div>
   <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-2">Wizard guidato</span>
@@ -214,7 +214,7 @@
 
         <div class="d-flex gap-2 mt-4">
           <button type="submit" class="btn btn-primary btn-lg flex-grow-1" id="assist-generate-btn">
-            <i class="bi bi-magic me-2"></i>Genera anteprima atto
+            <i class="bi bi-magic me-2"></i>Crea bozza dell'atto
           </button>
           <a href="{{ url_for('template_atti.lista') }}" class="btn btn-outline-secondary btn-lg">Annulla</a>
         </div>
@@ -495,8 +495,8 @@ function renderAssistant(analysis) {
   if (btn) {
     btn.disabled = blockers.length > 0;
     btn.innerHTML = blockers.length > 0
-      ? '<i class="bi bi-shield-exclamation me-2"></i>Risolvi i blocchi prima di generare'
-      : '<i class="bi bi-magic me-2"></i>Genera anteprima atto';
+      ? '<i class="bi bi-shield-exclamation me-2"></i>Risolvi i blocchi prima di creare la bozza'
+      : '<i class="bi bi-magic me-2"></i>Crea bozza atto';
   }
 }
 

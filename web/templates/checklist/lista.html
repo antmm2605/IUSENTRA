@@ -1,6 +1,6 @@
 {% extends "base.html" %}
-{% block title %}Checklist Atti{% endblock %}
-{% block page_title %}Checklist Atti{% endblock %}
+{% block title %}Controlli Atti{% endblock %}
+{% block page_title %}Controlli Atti{% endblock %}
 
 {% block content %}
 <div class="checklist-page checklist-page--catalogo">
@@ -9,17 +9,17 @@
       <div class="d-flex flex-column flex-xl-row align-items-xl-center justify-content-between gap-4">
         <div class="checklist-hero__copy">
           <span class="checklist-eyebrow">Preparazione atti</span>
-          <h1 class="checklist-hero__title mb-2">Checklist Atti professionale per aree, branche e sottobranche</h1>
+          <h1 class="checklist-hero__title mb-2">Controlli Atti professionali per aree, branche e sottobranche</h1>
           <p class="checklist-hero__text mb-0">
-            Struttura cartelle, controllo finale e catalogo operativo completo allineato al workspace
-            Template Atti per civile, lavoro, famiglia, penale, amministrativo, tributario, societario,
+            Struttura cartelle, controllo finale e catalogo operativo completo allineato alla Redazione Atti
+            per civile, lavoro, famiglia, penale, amministrativo, tributario, societario,
             immigrazione e stragiudiziale.
           </p>
         </div>
         <div class="checklist-hero__summary">
           <div class="checklist-stat">
             <span class="checklist-stat__value">{{ totale_template }}</span>
-            <span class="checklist-stat__label">Template visibili</span>
+            <span class="checklist-stat__label">Modelli visibili</span>
           </div>
           <div class="checklist-stat">
             <span class="checklist-stat__value">{{ totale_aree }}</span>
@@ -73,7 +73,7 @@
         </div>
       </form>
       <div class="checklist-toolbar__note mt-3">
-        Sono disponibili {{ totale_template }} template sulla selezione corrente
+        Sono disponibili {{ totale_template }} modelli sulla selezione corrente
         {% if totale_template != totale_template_completo %}
         su {{ totale_template_completo }} totali.
         {% else %}
@@ -83,9 +83,9 @@
       <div class="row g-2 mt-2">
         <div class="col-lg-6">
           <div class="small text-muted">
-            Copertura Template Atti:
+            Copertura Redazione Atti:
             <strong>{{ copertura_template_atti.template_coperti }}/{{ copertura_template_atti.template_totali }}</strong>
-            template professionali presenti anche in Checklist Atti.
+            modelli professionali presenti anche nei Controlli Atti.
           </div>
         </div>
         <div class="col-lg-6">
@@ -103,9 +103,9 @@
   <section class="checklist-empty card border-0 shadow-sm mt-3">
     <div class="card-body p-4 text-center">
       <div class="checklist-empty__icon mb-3"><i class="bi bi-search"></i></div>
-      <h2 class="h5 mb-2">Nessun template trovato</h2>
+      <h2 class="h5 mb-2">Nessun modello trovato</h2>
       <p class="text-muted mb-0">
-        Cambia ricerca o area operativa per rivedere tutto il catalogo delle checklist atti.
+        Cambia ricerca o area operativa per rivedere tutto il catalogo dei controlli atti.
       </p>
     </div>
   </section>
@@ -127,7 +127,7 @@
           </div>
         </div>
         <div class="checklist-area__metrics">
-          <span class="badge text-bg-light border">{{ area.template_count }} template</span>
+          <span class="badge text-bg-light border">{{ area.template_count }} modelli</span>
           <span class="badge text-bg-light border">{{ area.branche|length }} branche</span>
           <span class="badge text-bg-light border">{{ area.documenti_obbligatori }} documenti obbligatori</span>
           <span class="badge text-bg-light border">{{ area.critici_count }} controlli critici</span>
@@ -148,7 +148,7 @@
               aria-controls="checklist-area-{{ area_idx }}-collapse-{{ branca_idx }}"
             >
               <span class="checklist-branch__title">{{ branca.nome }}</span>
-              <span class="badge text-bg-light border ms-auto me-2">{{ branca.template_count }} template</span>
+              <span class="badge text-bg-light border ms-auto me-2">{{ branca.template_count }} modelli</span>
             </button>
           </h3>
           <div
@@ -165,7 +165,7 @@
                     <div class="checklist-subbranch__eyebrow">Sottobranca</div>
                     <h4 class="h6 mb-0">{{ sottobranca.nome }}</h4>
                   </div>
-                  <span class="badge text-bg-light border">{{ sottobranca.template_count }} template</span>
+                  <span class="badge text-bg-light border">{{ sottobranca.template_count }} modelli</span>
                 </div>
                 <div class="row g-3">
                   {% for t in sottobranca.templates %}

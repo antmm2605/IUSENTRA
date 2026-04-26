@@ -6,10 +6,11 @@
   <section class="tm-hero">
     <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
       <div>
-        <div class="small text-uppercase fw-semibold opacity-75 mb-2">Core unico, canali distinti</div>
+        <div class="small text-uppercase fw-semibold opacity-75 mb-2">Un presidio unico per i portali telematici</div>
         <h1 class="h3 mb-2">Centro Servizi Telematici</h1>
         <p class="mb-0 opacity-90 tm-hero__copy">
-          Gestione unificata di PST, PDP, PAT/SIGA e PTT/SIGIT
+          PST/PolisWeb, SIGP, PDP Penale, PAT/SIGA e PTT/SIGIT in un'unica regia operativa: accessi,
+          acquisizioni, fascicoli importati, controlli e prossime attività.
         </p>
       </div>
       <div class="d-flex gap-2 flex-wrap">
@@ -36,9 +37,9 @@
 
   <section class="tm-stats">
     <div class="tm-stat">
-      <div class="small tm-muted mb-2">Casi telematici censiti</div>
+      <div class="small tm-muted mb-2">Pratiche telematiche</div>
       <div class="tm-stat-value">{{ stats.totale or 0 }}</div>
-      <div class="small tm-muted mt-2">Core unificato alimentato dai fascicoli già sincronizzati.</div>
+      <div class="small tm-muted mt-2">Regia telematica alimentata dai fascicoli già sincronizzati.</div>
     </div>
     <div class="tm-stat">
       <div class="small tm-muted mb-2">PST / PDP</div>
@@ -61,7 +62,7 @@
     <div class="tm-card-body">
       <div class="d-flex justify-content-between align-items-center gap-2 mb-3 flex-wrap">
         <div>
-          <div class="small text-uppercase tm-muted fw-semibold">Control Tower</div>
+          <div class="small text-uppercase tm-muted fw-semibold">Regia telematica</div>
           <h2 class="h5 mb-0">Regia telematica operativa</h2>
         </div>
         <span class="badge text-bg-light border">warning {{ control_tower.summary.warnings }} · bloccati {{ control_tower.summary.blocked }}</span>
@@ -85,7 +86,7 @@
             </div>
             {% else %}
             <div class="tm-list-item">
-              <div class="small tm-muted">Nessun canale ancora popolato nel core telematico.</div>
+              <div class="small tm-muted">Nessun portale ancora popolato nella regia telematica.</div>
             </div>
             {% endfor %}
           </div>
@@ -146,7 +147,7 @@
         <div class="d-flex justify-content-between align-items-center gap-2 mb-3">
           <div>
             <div class="small text-uppercase tm-muted fw-semibold">Canali ufficiali</div>
-            <h2 class="h5 mb-0">Connessioni e accesso</h2>
+            <h2 class="h5 mb-0">Accesso ai portali</h2>
           </div>
           <span class="badge text-bg-light border">Desktop, tablet e mobile</span>
         </div>
@@ -187,10 +188,10 @@
               </div>
               <div class="d-flex gap-2 flex-wrap">
                 <a href="{{ card.home_url }}" class="btn btn-outline-{{ card.spec.color }} btn-sm">
-                  <i class="bi bi-box-arrow-up-right me-1"></i>Apri canale
+                  <i class="bi bi-box-arrow-up-right me-1"></i>Apri portale
                 </a>
                 <a href="{{ card.acquisizione_url }}" class="btn btn-{{ card.spec.color }} btn-sm">
-                  <i class="bi bi-diagram-3 me-1"></i>Acquisizione guidata
+                  <i class="bi bi-diagram-3 me-1"></i>Importa da portale
                 </a>
               </div>
             </div>
@@ -204,7 +205,7 @@
       <div class="tm-card-body">
         <div class="d-flex justify-content-between align-items-center gap-2 mb-3">
           <div>
-            <div class="small text-uppercase tm-muted fw-semibold">Timeline</div>
+            <div class="small text-uppercase tm-muted fw-semibold">Cronologia</div>
             <h2 class="h5 mb-0">Attività telematiche recenti</h2>
           </div>
           <span class="badge text-bg-light border">{{ recent_events|length }} eventi</span>
@@ -242,7 +243,7 @@
       <div class="d-flex justify-content-between align-items-center gap-2 mb-3 flex-wrap">
         <div>
           <div class="small text-uppercase tm-muted fw-semibold">Pratiche recenti</div>
-          <h2 class="h5 mb-0">Casi nel core telematico</h2>
+          <h2 class="h5 mb-0">Pratiche telematiche</h2>
         </div>
         <span class="badge text-bg-light border">{{ recent_cases|length }} righe</span>
       </div>
@@ -284,7 +285,7 @@
         {% else %}
         <div class="tm-list-item">
           <div class="fw-semibold">Nessun caso ancora sincronizzato</div>
-          <div class="small tm-muted mt-1">Usa una delle acquisizioni guidate per popolare il core telematico comune.</div>
+          <div class="small tm-muted mt-1">Usa l'importazione da portale per popolare la regia telematica comune.</div>
         </div>
         {% endfor %}
       </div>

@@ -1,6 +1,6 @@
 {% extends "base.html" %}
-{% block title %}Attività Studio{% endblock %}
-{% block page_title %}Attività Studio{% endblock %}
+{% block title %}Regia Operativa dello Studio{% endblock %}
+{% block page_title %}Regia Operativa dello Studio{% endblock %}
 
 {% block content %}
 <div class="workspace-page">
@@ -8,13 +8,13 @@
     <div class="d-flex flex-column flex-xl-row gap-4 justify-content-between align-items-xl-center">
       <div class="pe-xl-4">
         <div class="d-flex flex-wrap gap-2 align-items-center mb-3">
-          <span class="wi-chip"><i class="bi bi-stars"></i>Centro operativo dello studio</span>
+          <span class="wi-chip"><i class="bi bi-stars"></i>Quadro operativo dello studio</span>
           <span class="wi-chip"><i class="bi bi-arrow-repeat"></i>Aggiornamento del {{ overview.generated_at|fmt_data }} alle {{ overview.generated_at|fmt_ora }}</span>
         </div>
-        <h1 class="h2 mb-2">Tutte le attività essenziali dello studio in un solo pannello.</h1>
+        <h1 class="h2 mb-2">Regia Operativa dello Studio</h1>
         <p class="mb-0 wi-hero-copy">
-          Scadenze, appuntamenti, sincronizzazioni, fascicoli e giurisprudenza vengono raccolti in un'unica vista
-          per aiutarti a individuare subito ciò che richiede attenzione e la prossima attività da svolgere.
+          Scadenze, agenda, fascicoli, sincronizzazioni e attività prioritarie raccolte in un unico quadro operativo.
+          Tutte le priorità dello studio in un unico quadro operativo, per individuare subito cosa presidiare.
         </p>
       </div>
       <div class="d-grid gap-2 wi-hero-actions">
@@ -75,7 +75,7 @@
       <div class="small wi-muted">reminder agenda + avvisi scadenze</div>
     </div>
     <div class="wi-kpi">
-      <div class="small text-muted mb-1">Fascicoli attenzionati</div>
+      <div class="small text-muted mb-1">Fascicoli da presidiare</div>
       <div class="fs-3 fw-bold">{{ overview.summary.fascicoli_attenzionati }}</div>
       <div class="small wi-muted">{{ overview.summary.profili_sync_da_verificare }} sincronizzazioni da verificare</div>
     </div>
@@ -96,10 +96,10 @@
     data-horizon-days="{{ horizon_days }}">
     <div class="d-flex justify-content-between align-items-center gap-3 flex-wrap mb-3 hacs-local-ai-toolbar">
       <div>
-        <h2 class="h5 mb-1">Assistente operativo locale</h2>
+        <h2 class="h5 mb-1">Lex Operativo</h2>
         <div class="small text-muted">Domande contestuali su agenda, scadenze, fascicoli e documenti già presenti nel gestionale.</div>
       </div>
-      <div id="workspace-ai-status" class="small text-muted hacs-local-ai-runtime">Assistente locale in attesa di verifica</div>
+      <div id="workspace-ai-status" class="small text-muted hacs-local-ai-runtime">Motore locale in attesa di verifica</div>
     </div>
     <div class="row g-3 hacs-local-ai-grid">
       <div class="col-lg-8">
@@ -107,10 +107,10 @@
       </div>
       <div class="col-lg-4 d-grid gap-2">
         <button type="button" class="btn btn-primary" id="workspace-ai-ask-btn" onclick="askWorkspaceAi()">
-          <i class="bi bi-stars me-2"></i>Analizza attività studio
+          <i class="bi bi-stars me-2"></i>Analizza regia operativa
         </button>
         <button type="button" class="btn btn-outline-secondary hacs-local-ai-secondary-btn" onclick="refreshWorkspaceAiRuntime()">
-          <i class="bi bi-arrow-repeat me-2"></i>Aggiorna stato runtime
+          <i class="bi bi-arrow-repeat me-2"></i>Aggiorna stato servizio
         </button>
       </div>
     </div>
@@ -123,7 +123,7 @@
   <div class="wi-panel p-4 mb-4">
     <div class="d-flex justify-content-between align-items-center gap-3 flex-wrap mb-3">
       <div>
-        <h2 class="h5 mb-1">Regia automatica</h2>
+        <h2 class="h5 mb-1">Prossime azioni suggerite</h2>
         <div class="small text-muted">Le prossime azioni utili vengono proposte direttamente a partire dai dati già presenti nel gestionale.</div>
       </div>
     </div>
@@ -269,7 +269,7 @@
   <div class="wi-panel p-4 mb-4">
     <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap mb-3">
       <div>
-        <h2 class="h5 mb-1">Fascicoli attenzionati</h2>
+        <h2 class="h5 mb-1">Fascicoli da presidiare</h2>
         <div class="small text-muted">Le pratiche vengono ordinate per pressione operativa: scadenze, udienze, agenda e giurisprudenza utile.</div>
       </div>
       <a href="{{ url_for('lista_fascicoli') }}" class="btn btn-sm btn-outline-primary">Apri fascicoli</a>

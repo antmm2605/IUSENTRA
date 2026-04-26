@@ -222,21 +222,21 @@ def _rassegna_rows(snapshot: dict) -> dict:
 def _quick_links() -> list:
     return [
         {
-            "title": "Strumenti Legali",
+            "title": "Strumenti Forensi",
             "text": "Calcoli operativi, interessi, TFR, danni, successioni e moduli professionali.",
             "url": url_for("strumenti_legali.index"),
             "icon": "bi-grid-1x2",
             "accent": "primary",
         },
         {
-            "title": "Ricerca Legale",
+            "title": "Ricerca giuridica",
             "text": "Rassegna, fonti ufficiali, monitor normativi e registro mediazione.",
             "url": url_for("legal_intelligence.index"),
             "icon": "bi-diagram-3",
             "accent": "danger",
         },
         {
-            "title": "Archivio Sentenze",
+            "title": "Archivio Giurisprudenza",
             "text": "Schede giurisprudenziali, massime, orientamenti e recupero assistito dalle fonti presidiate.",
             "url": url_for("giurisprudenza.index"),
             "icon": "bi-bank2",
@@ -250,22 +250,22 @@ def _quick_links() -> list:
             "accent": "dark",
         },
         {
-            "title": "Template Atti",
+            "title": "Redazione Atti",
             "text": "Modelli, procure, relazioni, note e schemi riusabili del gestionale.",
             "url": url_for("template_atti.catalogo"),
             "icon": "bi-file-earmark-richtext",
             "accent": "secondary",
         },
         {
-            "title": "Fatturazione",
+            "title": "Parcelle e Fatture",
             "text": "Parcelle, fatture, compensi, documenti economici e avanzamento clienti.",
             "url": url_for("fatturazione.lista"),
             "icon": "bi-receipt",
             "accent": "success",
         },
         {
-            "title": "Preventivi",
-            "text": "Wizard guidati per preventivi civili e attivita stragiudiziali.",
+            "title": "Preventivi e Incarichi",
+            "text": "Percorsi guidati per preventivi civili e attivita stragiudiziali.",
             "url": url_for("preventivi.wizard"),
             "icon": "bi-calculator",
             "accent": "warning",

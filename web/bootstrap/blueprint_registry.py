@@ -63,6 +63,7 @@ BLUEPRINT_REGISTRY: tuple[BlueprintRegistration, ...] = (
     BlueprintRegistration("studio_site_builder", "web.blueprints.studio_site_builder", "studio_site_builder", ""),
     BlueprintRegistration("studio_site_public", "web.blueprints.studio_site_public", "studio_site_public", ""),
     BlueprintRegistration("global_search", "web.blueprints.global_search", "global_search", ""),
+    BlueprintRegistration("terminology_aliases", "web.blueprints.terminology_aliases", "terminology_aliases", ""),
     BlueprintRegistration("legal_coverage_admin", "web.blueprints.legal_coverage_admin", "legal_coverage_admin", "/admin/copertura-ai"),
     BlueprintRegistration("legal_updates_admin", "web.blueprints.legal_updates_admin", "legal_updates_admin", "/admin/aggiornamenti-legali"),
     BlueprintRegistration("impostazioni", "web.blueprints.impostazioni", "impostazioni", "/impostazioni"),

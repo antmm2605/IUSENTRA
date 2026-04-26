@@ -24,7 +24,7 @@ SUITE_GROUP_LABELS: dict[str, str] = {
 
 QUICK_FILTERS = [
     ("Modelli operativi", "fonte_catalogo", "compilatore"),
-    ("Catalogo master", "fonte_catalogo", "master"),
+    ("Catalogo professionale", "fonte_catalogo", "master"),
     ("Civile", "materia", "Diritto civile"),
     ("Giudice di Pace", "canale_deposito", "PST_GDP"),
     ("Decreto ingiuntivo", "procedimento", "Procedimento monitorio"),
@@ -36,7 +36,7 @@ QUICK_FILTERS = [
     ("Amministrativo", "canale_deposito", "PAT"),
     ("Stragiudiziale", "natura_atto", "stragiudiziale"),
     ("Atti interni", "canale_deposito", "NESSUNO"),
-    ("Preventivi", "query", "preventivo"),
+    ("Preventivi e Incarichi", "query", "preventivo"),
     ("Incarichi", "query", "incarico"),
     ("Deposito telematico", "depositabile", "true"),
     ("Firma obbligatoria", "richiede_firma_digitale", "true"),
@@ -427,21 +427,21 @@ def _compiler_catalog_items() -> list[dict[str, Any]]:
                 "titolo": title,
                 "slug": code.lower().replace("_", "-"),
                 "descrizione": _clean(model.get("summary"))
-                or f"Modello operativo del compilatore atti per {area_label}.",
+                or f"Modello operativo con redazione guidata per {area_label}.",
                 "versione": "operativo",
                 "categoria_suite": "modelli_operativi",
-                "categoria_suite_label": "Modelli operativi compilatore",
+                "categoria_suite_label": "Modelli operativi con redazione guidata",
                 "modulo_professionale": area_label,
                 "modulo_codice": area_key,
                 "famiglia": area_label,
                 "area": area_label,
                 "macro_area": area_label,
                 "materia": area_label,
-                "sottobranca": _clean(model.get("renderer")) or "Compilatore guidato",
+                "sottobranca": _clean(model.get("renderer")) or "Redazione guidata",
                 "procedimento": title,
                 "variante": "",
                 "rito": area_label,
-                "fase": "Compilazione guidata",
+                "fase": "Redazione guidata",
                 "autorita": "Da pratica / fascicolo",
                 "tipo_atto": title,
                 "natura_atto": natura,
@@ -479,7 +479,7 @@ def _compiler_catalog_items() -> list[dict[str, Any]]:
                 "output_previsti": _output_previsti({}, canale, depositabile),
                 "stato": "pronto",
                 "priorita": area_order.get(area_key, 99) * 1000 + index,
-                "tags": [area_label, "Compilatore atti", "Operativo"],
+                "tags": [area_label, "Redazione guidata", "Operativo"],
                 "created_at": "",
                 "updated_at": "",
                 "search_text": " ".join(_clean(value).lower() for value in keywords if _clean(value)),
@@ -553,7 +553,7 @@ def build_template_catalog_items() -> list[dict[str, Any]]:
                 **item,
                 "codice": template_id,
                 "descrizione": (
-                    f"{_clean(item.get('titolo'))}: template master {item.get('versione')} "
+                    f"{_clean(item.get('titolo'))}: modello del catalogo professionale {item.get('versione')} "
                     f"per {_clean(item.get('famiglia'))}, rito {_clean(item.get('rito'))}."
                 ),
                 "categoria_suite": split_meta.get("categoria_suite", ""),
@@ -643,10 +643,10 @@ def build_suite_summary(items: list[dict[str, Any]]) -> dict[str, Any]:
         "canali": dict(sorted(canali.items())),
         "categorie": dict(sorted(groups.items())),
         "badges": [
-            "Compilatore atti",
+            "Redazione guidata",
             "Controlli deposito",
             "Normativa vigente",
-            "Pre-verifica conformita",
+            "Pre-verifica conformità",
         ],
     }
 

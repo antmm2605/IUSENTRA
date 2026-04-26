@@ -99,8 +99,8 @@ def test_checklist_route_renderizza_catalogo_professionale_completo(tmp_path: Pa
 
     assert response.status_code == 200
     html = response.get_data(as_text=True)
-    assert "Checklist Atti professionale per aree, branche e sottobranche" in html
-    assert "Copertura Template Atti" in html
+    assert "Controlli Atti professionali per aree, branche e sottobranche" in html
+    assert "Copertura Redazione Atti" in html
     assert "Immigrazione" in html
     assert "Societario" in html
     assert "Procure e deleghe" in html

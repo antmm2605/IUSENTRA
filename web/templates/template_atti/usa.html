@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Genera - {{ t.titolo }}{% endblock %}
+{% block title %}Crea bozza - {{ t.titolo }}{% endblock %}
 
 {% block content %}
 <style>
@@ -43,10 +43,10 @@
 <div class="act-use-page">
   <section class="act-use-hero">
     <div>
-      <div class="small text-uppercase fw-bold text-secondary">Generazione guidata</div>
+      <div class="small text-uppercase fw-bold text-secondary">Redazione guidata</div>
       <h1 class="act-use-title">{{ t.titolo }}</h1>
       <p class="act-use-sub">
-        Compila i dati essenziali della pratica, integra le variabili specifiche dell'atto e genera una bozza pronta per la revisione finale in editor.
+        Compila i dati essenziali della pratica, integra le variabili specifiche dell'atto e crea una bozza pronta per la revisione finale in editor.
       </p>
       <div class="act-use-badges">
         {% if t.codice %}<span>{{ t.codice }}</span>{% endif %}
@@ -58,14 +58,14 @@
     </div>
     <div class="act-use-actions">
       <a href="{{ url_for('template_atti.lista') }}" class="btn btn-outline-secondary">
-        <i class="bi bi-arrow-left me-1"></i>Workspace
+        <i class="bi bi-arrow-left me-1"></i>Redazione Atti
       </a>
       <a href="{{ url_for('template_atti.scheda', id_template=t.id) }}" class="btn btn-outline-primary">
         <i class="bi bi-info-circle me-1"></i>Scheda modello
       </a>
       {% if t.link_compilatore_code %}
       <a href="{{ url_for('template_atti.compila', model_code=t.link_compilatore_code) }}" class="btn btn-primary">
-        <i class="bi bi-bezier2 me-1"></i>Compilatore guidato
+        <i class="bi bi-bezier2 me-1"></i>Redazione guidata
       </a>
       {% endif %}
     </div>
@@ -74,7 +74,7 @@
   <form method="post" action="{{ url_for('template_atti.usa', id_template=t.id) }}">
     <div class="act-use-layout">
       <section class="act-use-card">
-        <h2><i class="bi bi-magic me-2"></i>Dati di generazione</h2>
+        <h2><i class="bi bi-magic me-2"></i>Dati per la bozza</h2>
 
         <div class="act-use-section">
           <div class="act-use-section-title">Cliente e pratica</div>
@@ -133,7 +133,7 @@
 
         <div class="act-use-submit mt-3">
           <button type="submit" class="btn btn-primary flex-grow-1">
-            <i class="bi bi-stars me-2"></i>Genera bozza
+            <i class="bi bi-stars me-2"></i>Crea bozza
           </button>
           <button type="button" class="btn btn-outline-secondary" onclick="window.scrollTo({ top: 0, behavior: 'smooth' })">
             <i class="bi bi-arrow-up"></i>

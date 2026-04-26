@@ -145,7 +145,7 @@
     <div class="app-hero-grid">
       <div>
         <div class="app-hero-meta mb-3">
-          <a href="{{ url_for('applicazioni.index') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-2"></i>Torna al workspace</a>
+          <a href="{{ url_for('applicazioni.index') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-2"></i>Torna agli strumenti operativi</a>
           {% if section %}
           <span class="app-tag"><i class="bi {{ section.icon }}"></i>{{ section.title }}</span>
           {% endif %}
@@ -173,7 +173,7 @@
     <div class="app-panel-body">
       <div class="app-panel-head">
         <div>
-          <h2 class="h4 mb-1">Azioni workspace</h2>
+          <h2 class="h4 mb-1">Azioni operative</h2>
           <div class="text-muted">Azioni compatte per lavorare sul modulo, tornare all’area o filtrare moduli simili.</div>
         </div>
       </div>
@@ -182,7 +182,7 @@
         <article class="app-action-card">
           <div class="small text-muted">Azione</div>
           <div class="fw-semibold">{{ action.label }}</div>
-          <div class="small text-muted">Percorso rapido dal workspace senza perdere il contesto del modulo.</div>
+          <div class="small text-muted">Percorso rapido dall'area operativa senza perdere il contesto del modulo.</div>
           <a href="{{ action.url }}" class="btn btn-{{ action.variant }}"><i class="bi {{ action.icon }} me-2"></i>{{ action.label }}</a>
         </article>
         {% endfor %}
@@ -196,7 +196,7 @@
         <div class="app-panel-head">
           <div>
             <h2 class="h4 mb-1">Profilo operativo</h2>
-            <div class="text-muted">Come usare questa voce dentro IUSENTRA e qual è il suo ruolo nel workspace.</div>
+            <div class="text-muted">Come usare questa voce dentro IUSENTRA e qual è il suo ruolo nell'area operativa.</div>
           </div>
         </div>
         <div class="app-info-grid">
@@ -221,7 +221,7 @@
         <div class="mt-4">
           <div class="fw-semibold mb-2">Uso nel gestionale</div>
           <p class="text-muted mb-0">
-            Questa voce è stata organizzata come modulo di lavoro del workspace applicazioni: non resta isolata
+            Questa voce è stata organizzata come modulo di lavoro dell'area strumenti operativi: non resta isolata
             in un catalogo piatto, ma mantiene collegamenti rapidi all’area, ai moduli simili e al percorso
             operativo più utile oggi disponibile nel gestionale.
           </p>

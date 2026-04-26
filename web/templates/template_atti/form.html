@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% from "template_atti/_editor_macros.html" import professional_editor with context %}
-{% block title %}{{ 'Modifica' if t else 'Nuovo' }} Template{% endblock %}
+{% block title %}{{ 'Modifica' if t else 'Nuovo' }} modello di studio{% endblock %}
 
 {% block content %}
 {% set template_variable_groups = [
@@ -21,7 +21,7 @@
   <a href="{{ url_for('template_atti.lista') }}" class="btn btn-sm btn-outline-secondary">
     <i class="bi bi-arrow-left"></i>
   </a>
-  <h4 class="mb-0 fw-bold">{{ 'Modifica template' if t else 'Nuovo template' }}</h4>
+  <h4 class="mb-0 fw-bold">{{ 'Modifica modello di studio' if t else 'Nuovo modello di studio' }}</h4>
 </div>
 
 <form method="post" id="templateForm">
@@ -53,7 +53,7 @@
                 <span class="badge bg-secondary ms-1" style="font-size:.65rem;">Editor Professionale</span>
               </label>
               <label for="importa-doc-input" class="btn btn-sm btn-outline-secondary mb-0" id="btn-importa-doc"
-                      title="Importa un documento esistente (DOCX, PDF, TXT, HTML) e usalo come base del template"
+                      title="Importa un documento esistente (DOCX, PDF, TXT, HTML) e usalo come base del modello"
                       style="cursor:pointer;">
                 <i class="bi bi-file-earmark-arrow-up me-1"></i>Importa documento
               </label>
@@ -64,14 +64,14 @@
               'corpo',
               form.get('corpo', ''),
               editor_id='template-body-editor',
-              placeholder="Scrivi il template dell'atto e inserisci le variabili disponibili",
+              placeholder="Scrivi il modello dell'atto e inserisci le variabili disponibili",
               min_height='560px',
               layout=editor_preferences
             ) }}
 
             <div class="form-text mt-2">
               <i class="bi bi-info-circle me-1"></i>
-              Usa la toolbar per formattare e dare al template una struttura piu vicina a un vero atto professionale.
+              Usa la barra strumenti per formattare e dare al modello una struttura piu vicina a un vero atto professionale.
               Le variabili {{ '{{' }}...{{ '}}' }} saranno preservate in anteprima e nel PDF, e dalla sezione "Impaginazione" puoi salvare il tuo layout predefinito.
             </div>
           </div>
@@ -86,7 +86,7 @@
 
       <div class="d-flex gap-2">
         <button type="submit" class="btn btn-primary">
-          <i class="bi bi-floppy me-2"></i>{{ 'Salva modifiche' if t else 'Crea template' }}
+          <i class="bi bi-floppy me-2"></i>{{ 'Salva modifiche' if t else 'Crea modello' }}
         </button>
         <a href="{{ url_for('template_atti.lista') }}" class="btn btn-outline-secondary">Annulla</a>
       </div>
@@ -151,7 +151,7 @@
             <i class="bi bi-info-circle me-1"></i>
             Anteprima del documento importato. Puoi scegliere di <strong>sostituire</strong> il contenuto attuale
             o <strong>aggiungere in fondo</strong>. Puoi anche sostituire qui i dati fissi con le variabili
-            disponibili del template prima di importarlo nell'editor.
+            disponibili del modello prima di importarlo nell'editor.
           </div>
           <div id="importa-doc-preview-box" class="border rounded p-3 bg-light"
                contenteditable="true"

@@ -60,14 +60,14 @@
     </div>
     <div class="acts-sheet-actions">
       <a href="{{ url_for('template_atti.lista') }}" class="btn btn-outline-secondary">
-        <i class="bi bi-arrow-left me-1"></i>Workspace
+        <i class="bi bi-arrow-left me-1"></i>Redazione Atti
       </a>
       <a href="{{ url_for('template_atti.usa', id_template=t.id) }}" class="btn btn-primary">
-        <i class="bi bi-magic me-1"></i>Genera atto
+        <i class="bi bi-magic me-1"></i>Crea bozza
       </a>
       {% if t.link_compilatore_code %}
       <a href="{{ url_for('template_atti.compila', model_code=t.link_compilatore_code) }}" class="btn btn-outline-primary">
-        <i class="bi bi-bezier2 me-1"></i>Compilatore guidato
+        <i class="bi bi-bezier2 me-1"></i>Redazione guidata
       </a>
       {% endif %}
     </div>

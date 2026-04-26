@@ -88,10 +88,10 @@ def test_applicazioni_index_renderizza_workspace_operativo_reale(tmp_path: Path)
 
     assert response.status_code == 200
     assert "Cabina applicativa unificata" in body
-    assert "Applicazioni vere nello stesso workspace operativo" in body
+    assert "Strumenti operativi dello studio" in body
     assert "Tutte le voci filtrate" in body
     assert "Primo piano operativo" in body
-    assert "Apri nel workspace" in body
+    assert "Apri nell&#39;area operativa" in body or "Apri nell'area operativa" in body
     assert "Workspace applicazioni professionali" not in body
 
 
@@ -160,9 +160,9 @@ def test_applicazioni_workspace_template_mostra_template_e_checklist(tmp_path: P
         body = response.get_data(as_text=True)
 
     assert response.status_code == 200
-    assert "Template compatibili" in body
+    assert "Modelli compatibili" in body
     assert "Checklist correlate" in body
-    assert "Apri checklist atti" in body
+    assert "Apri Controlli Atti" in body
 
 
 def test_applicazioni_workspace_telematico_ed_economico_espongono_pannelli_reali(tmp_path: Path):
@@ -196,7 +196,7 @@ def test_sidebar_studio_include_link_applicazioni(tmp_path: Path):
         body = response.get_data(as_text=True)
 
     assert response.status_code == 200
-    assert ">Applicazioni</span>" in body
+    assert ">Strumenti Operativi</span>" in body
 
 
 def test_template_applicazioni_workspace_usa_componenti_coerenti():
@@ -205,4 +205,4 @@ def test_template_applicazioni_workspace_usa_componenti_coerenti():
     assert "Cabina applicativa unificata" in index_html
     assert "apps-workspace" in index_html
     assert "apps-module-grid" in index_html
-    assert "Apri nel workspace" in index_html
+    assert "Apri nell'area operativa" in index_html

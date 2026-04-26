@@ -96,12 +96,12 @@ def test_catalogo_template_route_mostra_master_versionato(tmp_path: Path):
     html = response.get_data(as_text=True)
     assert "Suite professionale completa" in html
     assert "192 modelli operativi funzionanti" in html
-    assert "420 template master" in html
+    assert "420 modelli del catalogo professionale" in html
     assert "22 moduli professionali" in html
     assert "7 canali telematici" in html
-    assert "Compilatore atti" in html
+    assert "Redazione guidata" in html
     assert "Controlli deposito" in html
-    assert "Pre-verifica conformita" in html
+    assert "Pre-verifica conformità" in html
     assert "Master professionale" not in html
     assert 'id="viewMasterCatalog"' not in html
     assert 'data-master-card="true"' not in html
@@ -126,9 +126,9 @@ def test_catalogo_template_route_mostra_master_versionato(tmp_path: Path):
         "STD_003",
     ]:
         assert codice in html
-    assert "Compila" in html
-    assert "Verifica deposito" in html
-    assert "Dettagli normativa" in html
+    assert "Redigi atto" in html
+    assert "Controlli deposito" in html
+    assert "Riferimenti normativi" in html
     assert "PST_GDP" in html
     assert "PST / Procedure concorsuali" in html
     assert 'data-catalog-filter="materia"' in html

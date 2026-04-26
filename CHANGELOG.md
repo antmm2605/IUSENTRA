@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.188.4 - 2026-04-26
+
+- Aggiornata la terminologia visibile dell'applicativo con etichette piu' forensi e comprensibili per studi legali: `Redazione Atti`, `Catalogo Atti e Modelli`, `Regia Operativa`, `Servizi Telematici`, `Parcelle e Fatture`, `Preventivi e Incarichi`, `Compensi Forensi`, `Strumenti Operativi` e `Sito Studio`.
+- Allineati menu, titoli pagina, sottotitoli, CTA, badge e microcopy nelle aree Redazione Atti, Controlli Atti, Regia Operativa, Centro Servizi Telematici, Strumenti Operativi e Sito Studio senza rinominare route o blueprint storici.
+- Aggiunti alias URL conservativi per `/redazione-atti`, `/redazione-atti/catalogo`, `/redazione-atti/redigi/<codice>`, `/servizi-telematici`, `/regia-operativa`, `/ricerca-studio`, `/strumenti-operativi` e `/compensi-forensi`.
+- Aggiornati i test di regressione sulle stringhe visibili e aggiunti smoke test sugli alias professionali.
+
 ## 2.188.1 - 2026-04-26
 
 - Aggiunto il workflow Lex `giurisprudenza` con prompt dedicato all'analisi di sentenze, massime e pronunce, senza aperture conversazionali generiche.

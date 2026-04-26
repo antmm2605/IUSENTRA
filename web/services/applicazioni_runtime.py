@@ -329,7 +329,7 @@ def _utility_result(entry: Mapping[str, Any], form: Mapping[str, Any]) -> Dict[s
             _metric("Richiesta", query or entry.get("title", "")),
             _metric("Stato", "Presidio operativo attivo"),
         ]
-        notes.append("Il workspace ha preso in carico la voce e la collega ai moduli reali del dominio corretto.")
+        notes.append("L'area operativa ha preso in carico la voce e la collega ai moduli reali del dominio corretto.")
     return {"metrics": metrics, "notes": notes, "tables": [], "preview_text": ""}
 
 
@@ -427,20 +427,20 @@ def _template_panel(entry: Mapping[str, Any]) -> Dict[str, Any]:
     checklists = _matching_checklists(entry)
     counts = Counter(row["categoria"] for row in matches)
     metrics = [
-        _metric("Template compatibili", str(len(matches))),
+        _metric("Modelli compatibili", str(len(matches))),
         _metric("Checklist correlate", str(len(checklists))),
         _metric("Categorie coperte", str(len(counts))),
     ]
     return {
         "kind": "template_atti",
         "title": entry.get("title"),
-        "subtitle": "Template, checklist e percorsi di compilazione coerenti con la voce selezionata.",
+        "subtitle": "Modelli, controlli e percorsi di redazione coerenti con la voce selezionata.",
         "metrics": metrics,
         "matches": matches,
         "checklists": checklists,
         "actions": [
-            {"label": "Apri catalogo template", "url": url_for("template_atti.catalogo"), "variant": "primary"},
-            {"label": "Apri checklist atti", "url": url_for("checklist_atti"), "variant": "outline-secondary"},
+            {"label": "Apri Catalogo Atti e Modelli", "url": url_for("template_atti.catalogo"), "variant": "primary"},
+            {"label": "Apri Controlli Atti", "url": url_for("checklist_atti"), "variant": "outline-secondary"},
         ],
     }
 
@@ -495,7 +495,7 @@ def _scadenze_panel(entry: Mapping[str, Any]) -> Dict[str, Any]:
         "rows": rows,
         "actions": [
             {"label": "Apri scadenziario", "url": url_for("scadenziario"), "variant": "primary"},
-            {"label": "Apri checklist atti", "url": url_for("checklist_atti"), "variant": "outline-secondary"},
+            {"label": "Apri Controlli Atti", "url": url_for("checklist_atti"), "variant": "outline-secondary"},
         ],
     }
 
@@ -522,8 +522,8 @@ def _economico_panel(entry: Mapping[str, Any]) -> Dict[str, Any]:
         "preventivi": recent_preventivi,
         "conferimenti": recent_conferimenti,
         "actions": [
-            {"label": "Apri fatturazione", "url": url_for("fatturazione.lista"), "variant": "primary"},
-            {"label": "Apri preventivi", "url": url_for("preventivi.wizard"), "variant": "outline-secondary"},
+            {"label": "Apri Parcelle e Fatture", "url": url_for("fatturazione.lista"), "variant": "primary"},
+            {"label": "Apri Preventivi e Incarichi", "url": url_for("preventivi.wizard"), "variant": "outline-secondary"},
         ],
     }
 
@@ -638,7 +638,7 @@ def _patrimonio_panel(entry: Mapping[str, Any]) -> Dict[str, Any]:
     intelligence = get_legal_intelligence()
     stats = intelligence.statistiche_repository()
     metrics = [
-        _metric("Template collegati", str(len(templates))),
+        _metric("Modelli collegati", str(len(templates))),
         _metric("Fonti ufficiali", str(stats.get("legal_sources_repository", 0) or stats.get("legal_sources", 0) or 0)),
         _metric("Motori legali", str(stats.get("legal_engines_repository", 0) or stats.get("legal_engines", 0) or 0)),
     ]
@@ -649,8 +649,8 @@ def _patrimonio_panel(entry: Mapping[str, Any]) -> Dict[str, Any]:
         "metrics": metrics,
         "matches": templates,
         "actions": [
-            {"label": "Apri Strumenti legali", "url": url_for("strumenti_legali.index"), "variant": "primary"},
-            {"label": "Apri Template atti", "url": url_for("template_atti.catalogo"), "variant": "outline-secondary"},
+            {"label": "Apri Strumenti Forensi", "url": url_for("strumenti_legali.index"), "variant": "primary"},
+            {"label": "Apri Redazione Atti", "url": url_for("template_atti.catalogo"), "variant": "outline-secondary"},
         ],
     }
 
@@ -660,9 +660,9 @@ def _catalogo_operativo_panel(entry: Mapping[str, Any]) -> Dict[str, Any]:
     return {
         "kind": "catalogo_operativo",
         "title": entry.get("title"),
-        "subtitle": "Voce riallineata al dominio operativo corretto, con modulo, template e percorso di lavoro coerenti.",
+        "subtitle": "Voce riallineata al dominio operativo corretto, con modulo, modello e percorso di lavoro coerenti.",
         "metrics": [
-            _metric("Template trovati", str(len(matches))),
+            _metric("Modelli trovati", str(len(matches))),
             _metric("Area", str(entry.get("section_title") or "")),
         ],
         "matches": matches,
@@ -701,7 +701,7 @@ def build_active_panel(entry: Mapping[str, Any], fascicolo_sel=None, cliente_sel
         return {
             "kind": "utility",
             "title": entry.get("title"),
-            "subtitle": "Utility operativa con verifica o calcolo inline dentro il workspace.",
+            "subtitle": "Utility operativa con verifica o calcolo direttamente nell'area operativa.",
             "fields": fields,
             **_utility_result(entry, request.form if request.method == "POST" else request.args),
         }

@@ -37,6 +37,16 @@ BLOCK_TYPES_PRO: list[tuple[str, str]] = [
     ("newsletter", "Newsletter"),
     ("footer_rich", "Footer ricco"),
     ("privacy_notice", "Avviso privacy"),
+    ("hero_slider", "Hero scorrevole"),
+    ("image_text_slider", "Testo e immagini scorrevoli"),
+    ("gallery_grid", "Galleria immagini"),
+    ("image_text_split", "Immagine e testo"),
+    ("logo_strip", "Loghi e appartenenze"),
+    ("text_ticker", "Testi scorrevoli"),
+    ("featured_services_carousel", "Servizi in evidenza"),
+    ("article_carousel", "Articoli in evidenza"),
+    ("quote_banner", "Citazione istituzionale"),
+    ("contact_cta_split", "Contatto con immagine"),
 ]
 
 BLOCK_TYPE_CODES = {code for code, _label in BLOCK_TYPES_PRO}
@@ -122,6 +132,90 @@ BLOCK_DEFAULTS: dict[str, dict[str, Any]] = {
     "newsletter": {"title": "Ricevi aggiornamenti"},
     "footer_rich": {"title": "Informazioni dello studio"},
     "privacy_notice": {"title": "Privacy e correttezza informativa"},
+    "hero_slider": {
+        "title": "Studio legale",
+        "subtitle": "Assistenza professionale con un percorso chiaro e verificabile.",
+        "button_text": "Contatta lo studio",
+        "style_variant": "slider",
+        "items": [
+            {
+                "title": "Ascolto e metodo",
+                "text": "Inquadriamo il caso, i documenti e le priorita operative.",
+                "image_url": "",
+                "image_alt": "Studio legale con documenti ordinati",
+                "button_text": "Richiedi informazioni",
+                "button_url": "",
+            },
+            {
+                "title": "Gestione digitale della pratica",
+                "text": "Scadenze, documenti e comunicazioni restano organizzati.",
+                "image_url": "",
+                "image_alt": "Scrivania professionale con fascicolo digitale",
+                "button_text": "Prenota un appuntamento",
+                "button_url": "",
+            },
+        ],
+    },
+    "image_text_slider": {
+        "title": "Percorsi di assistenza",
+        "subtitle": "Sezioni scorrevoli con testo e immagine.",
+        "items": [
+            {"title": "Analisi iniziale", "text": "Valutazione dei documenti e dei primi passaggi.", "image_url": "", "image_alt": "Analisi documentale"},
+            {"title": "Strategia operativa", "text": "Definizione delle attivita e delle scadenze.", "image_url": "", "image_alt": "Pianificazione legale"},
+        ],
+    },
+    "gallery_grid": {
+        "title": "Lo studio",
+        "subtitle": "Immagini dello studio o elementi istituzionali generici.",
+        "items": [
+            {"title": "Sala riunioni", "image_url": "", "image_alt": "Sala riunioni dello studio"},
+            {"title": "Biblioteca", "image_url": "", "image_alt": "Biblioteca giuridica"},
+            {"title": "Accoglienza", "image_url": "", "image_alt": "Ambiente professionale dello studio"},
+        ],
+    },
+    "image_text_split": {
+        "title": "Un metodo ordinato per ogni pratica",
+        "text": "La relazione con il cliente viene gestita con passaggi chiari, documenti tracciati e comunicazioni verificabili.",
+        "image_url": "",
+        "image_alt": "Documenti e agenda di studio",
+        "button_text": "Scopri il metodo",
+    },
+    "logo_strip": {
+        "title": "Presidi e strumenti dello studio",
+        "items": [
+            {"title": "PCT", "text": "Deposito telematico civile"},
+            {"title": "PEC", "text": "Comunicazioni e notifiche"},
+            {"title": "Agenda", "text": "Scadenze presidiate"},
+        ],
+    },
+    "text_ticker": {
+        "title": "Avvisi rapidi",
+        "items": [
+            {"text": "Prenotazioni su appuntamento"},
+            {"text": "Documenti caricabili prima del colloquio"},
+            {"text": "Riscontro alle richieste tramite canali ufficiali"},
+        ],
+    },
+    "featured_services_carousel": {
+        "title": "Servizi in evidenza",
+        "subtitle": "Aree selezionate dallo studio.",
+    },
+    "article_carousel": {
+        "title": "Approfondimenti recenti",
+        "subtitle": "Articoli pubblicati dallo studio dopo revisione interna.",
+    },
+    "quote_banner": {
+        "title": "Un approccio prudente e documentato",
+        "text": "Ogni pratica richiede ascolto, verifica dei fatti e valutazione delle opzioni concretamente percorribili.",
+        "style_variant": "istituzionale",
+    },
+    "contact_cta_split": {
+        "title": "Vuoi parlare con lo studio?",
+        "text": "Invia una richiesta con i dati essenziali: lo studio valuterà il primo contatto e ti indicherà i passaggi successivi.",
+        "button_text": "Richiedi contatto",
+        "image_url": "",
+        "image_alt": "Contatto con lo studio legale",
+    },
 }
 
 

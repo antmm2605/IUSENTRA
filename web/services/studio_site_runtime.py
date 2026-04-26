@@ -52,7 +52,12 @@ def studio_site_repository() -> StudioSiteRepository:
 
 
 def studio_site_assets_root() -> Path:
-    root = Path(str(current_app.config.get("SITE_STUDIO_ASSETS_DIR") or "")).resolve()
+    configured = str(current_app.config.get("SITE_STUDIO_ASSETS_DIR") or "").strip()
+    if configured:
+        root = Path(configured).resolve()
+    else:
+        db_path = Path(str(current_app.config.get("SITE_STUDIO_DB") or current_app.instance_path or "data")).resolve()
+        root = (db_path.parent / "site_assets").resolve()
     root.mkdir(parents=True, exist_ok=True)
     return root
 

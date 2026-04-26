@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.189.0 - 2026-04-26
+
+- Reso operativo `/sito-studio/builder`: selezione pagina, modifica home diretta, palette blocchi collegata, editor visuale, salvataggio AJAX, pubblicazione modifiche, anteprima responsive e ripristino revisioni.
+- Aggiunti blocchi professionali per home page e contenuti: slider hero, slider immagine/testo, galleria, split immagine/testo, loghi, testi scorrevoli, caroselli servizi/articoli, citazione istituzionale e CTA contatto.
+- Introdotta la libreria immagini del sito con tabella `site_asset`, upload/lista/eliminazione, validazione formato/dimensione e obbligo del testo alternativo.
+- Esteso il rendering pubblico dei nuovi blocchi con Bootstrap, mantenendo il vincolo di un solo sito per studio/tenant e senza servizi esterni.
+- Aggiunta la sezione `Redazione AI Sito Studio`: genera bozze articolo, SEO, checklist rischi e prompt immagine, con pubblicazione sempre manuale dopo revisione dello studio.
+- Predisposto il layer `lex.image_providers` con provider locale stub e adapter configurabili per ComfyUI, Stable Diffusion e OpenAI Images, senza chiamate esterne automatiche.
+- Aggiunti test su blocchi builder, API, asset, rendering pubblico, Redazione AI in bozza e isolamento tenant.
+
 ## 2.188.4 - 2026-04-26
 
 - Aggiornata la terminologia visibile dell'applicativo con etichette piu' forensi e comprensibili per studi legali: `Redazione Atti`, `Catalogo Atti e Modelli`, `Regia Operativa`, `Servizi Telematici`, `Parcelle e Fatture`, `Preventivi e Incarichi`, `Compensi Forensi`, `Strumenti Operativi` e `Sito Studio`.

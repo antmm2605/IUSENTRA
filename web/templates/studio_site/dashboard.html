@@ -12,7 +12,8 @@
     </div>
     <div class="d-flex flex-wrap gap-2">
       <a class="btn btn-outline-dark" href="{{ payload.public_url }}" target="_blank" rel="noopener">Apri sito pubblico</a>
-      <a class="btn btn-success" href="{{ url_for('studio_site_builder.builder') }}">Personalizza grafica</a>
+      <a class="btn btn-success" href="{{ url_for('studio_site_builder.builder') }}">Apri Builder Pro</a>
+      <a class="btn btn-outline-primary" href="{{ url_for('studio_site_builder.ai_redazione') }}">Redazione AI</a>
       <a class="btn btn-primary" href="{{ url_for('studio_site.settings_form') }}">Impostazioni sito</a>
     </div>
   </div>
@@ -25,6 +26,7 @@
     </div>
     <div class="d-flex flex-wrap gap-2">
       <a class="btn btn-light" href="{{ url_for('studio_site_builder.builder') }}">Crea sito automaticamente</a>
+      <a class="btn btn-outline-light" href="{{ url_for('studio_site_builder.ai_redazione') }}">Redazione AI articoli</a>
       <a class="btn btn-outline-light" href="{{ url_for('studio_site_builder.preview') }}">Anteprima desktop/tablet/mobile</a>
     </div>
   </div>
@@ -106,7 +108,10 @@
       <div class="studio-site-panel">
         <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
           <div><h2 class="h5 mb-1">Articoli</h2><p class="text-muted mb-0">Editoriale del sito studio e approfondimenti pubblicabili.</p></div>
-          <a class="btn btn-sm btn-primary" href="{{ url_for('studio_site.new_article_form') }}">Nuovo articolo</a>
+          <div class="d-flex flex-wrap gap-2">
+            <a class="btn btn-sm btn-outline-primary" href="{{ url_for('studio_site_builder.ai_redazione') }}">Redazione AI</a>
+            <a class="btn btn-sm btn-primary" href="{{ url_for('studio_site.new_article_form') }}">Nuovo articolo</a>
+          </div>
         </div>
         <div class="table-responsive">
           <table class="table align-middle">

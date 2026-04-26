@@ -174,6 +174,47 @@ class StudioSiteRepository:
                 )
                 """
             )
+            conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS site_asset (
+                    id BIGSERIAL PRIMARY KEY,
+                    site_id BIGINT NOT NULL REFERENCES site_studio(id) ON DELETE CASCADE,
+                    filename TEXT NOT NULL,
+                    original_filename TEXT NOT NULL DEFAULT '',
+                    url TEXT NOT NULL,
+                    title TEXT NOT NULL DEFAULT '',
+                    alt_text TEXT NOT NULL DEFAULT '',
+                    caption TEXT NOT NULL DEFAULT '',
+                    category TEXT NOT NULL DEFAULT 'generale',
+                    size_bytes BIGINT NOT NULL DEFAULT 0,
+                    mime_type TEXT NOT NULL DEFAULT '',
+                    width INTEGER NOT NULL DEFAULT 0,
+                    height INTEGER NOT NULL DEFAULT 0,
+                    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+                )
+                """
+            )
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_site_asset_site ON site_asset(site_id, created_at)")
+            conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS site_ai_article_job (
+                    id BIGSERIAL PRIMARY KEY,
+                    site_id BIGINT NOT NULL REFERENCES site_studio(id) ON DELETE CASCADE,
+                    topic TEXT NOT NULL DEFAULT '',
+                    payload_json JSONB NOT NULL DEFAULT '{}'::jsonb,
+                    result_json JSONB NOT NULL DEFAULT '{}'::jsonb,
+                    risk_checklist_json JSONB NOT NULL DEFAULT '[]'::jsonb,
+                    status TEXT NOT NULL DEFAULT 'draft_generated',
+                    article_id BIGINT NOT NULL DEFAULT 0,
+                    image_prompt TEXT NOT NULL DEFAULT '',
+                    image_asset_id BIGINT NOT NULL DEFAULT 0,
+                    created_by TEXT NOT NULL DEFAULT '',
+                    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+                )
+                """
+            )
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_site_ai_article_job_site ON site_ai_article_job(site_id, created_at)")
         else:
             existing = {row["name"] for row in conn.execute("PRAGMA table_info(site_studio)").fetchall()}
             for column_name, ddl in SITE_BUILDER_COLUMNS_SQLITE.items():
@@ -209,6 +250,49 @@ class StudioSiteRepository:
                 )
                 """
             )
+            conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS site_asset (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    site_id INTEGER NOT NULL,
+                    filename TEXT NOT NULL,
+                    original_filename TEXT NOT NULL DEFAULT '',
+                    url TEXT NOT NULL,
+                    title TEXT NOT NULL DEFAULT '',
+                    alt_text TEXT NOT NULL DEFAULT '',
+                    caption TEXT NOT NULL DEFAULT '',
+                    category TEXT NOT NULL DEFAULT 'generale',
+                    size_bytes INTEGER NOT NULL DEFAULT 0,
+                    mime_type TEXT NOT NULL DEFAULT '',
+                    width INTEGER NOT NULL DEFAULT 0,
+                    height INTEGER NOT NULL DEFAULT 0,
+                    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (site_id) REFERENCES site_studio(id) ON DELETE CASCADE
+                )
+                """
+            )
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_site_asset_site ON site_asset(site_id, created_at)")
+            conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS site_ai_article_job (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    site_id INTEGER NOT NULL,
+                    topic TEXT NOT NULL DEFAULT '',
+                    payload_json TEXT NOT NULL DEFAULT '{}',
+                    result_json TEXT NOT NULL DEFAULT '{}',
+                    risk_checklist_json TEXT NOT NULL DEFAULT '[]',
+                    status TEXT NOT NULL DEFAULT 'draft_generated',
+                    article_id INTEGER NOT NULL DEFAULT 0,
+                    image_prompt TEXT NOT NULL DEFAULT '',
+                    image_asset_id INTEGER NOT NULL DEFAULT 0,
+                    created_by TEXT NOT NULL DEFAULT '',
+                    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (site_id) REFERENCES site_studio(id) ON DELETE CASCADE
+                )
+                """
+            )
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_site_ai_article_job_site ON site_ai_article_job(site_id, created_at)")
         self._seed_builtin_theme_presets(conn)
 
     def _seed_builtin_theme_presets(self, conn: Any) -> None:
@@ -279,9 +363,12 @@ class StudioSiteRepository:
             "tokens_json",
             "blocks_seed_json",
             "snapshot_json",
+            "payload_json",
+            "result_json",
+            "risk_checklist_json",
         ):
             if field in payload:
-                default = [] if field == "blocks_seed_json" else {}
+                default = [] if field in {"blocks_seed_json", "risk_checklist_json"} else {}
                 payload[field] = _json_load(payload.get(field), default)
         return payload
 
@@ -678,6 +765,25 @@ class StudioSiteRepository:
             ).fetchone()
         return self._row_to_dict(row)
 
+    def restore_design_revision(self, site_id: int, revision_id: int) -> dict[str, Any]:
+        revision = self.get_design_revision(site_id, revision_id)
+        if revision is None:
+            raise ValueError("Revisione non trovata per lo studio corrente.")
+        snapshot = revision.get("snapshot_json") or {}
+        site_payload = dict((snapshot.get("site") or {}) if isinstance(snapshot, dict) else {})
+        if site_payload:
+            self.save_site(site_id, site_payload)
+        pages = snapshot.get("pages") if isinstance(snapshot, dict) else []
+        if isinstance(pages, list):
+            for page in pages:
+                if not isinstance(page, dict) or not page.get("id"):
+                    continue
+                current = self.get_page(site_id, int(page["id"]))
+                if current is None:
+                    continue
+                self.save_page(site_id, page, page_id=int(page["id"]))
+        return self.snapshot_site_design(site_id)
+
     def snapshot_site_design(self, site_id: int) -> dict[str, Any]:
         site = self.get_site_by_id(site_id) or {}
         return {
@@ -694,6 +800,121 @@ class StudioSiteRepository:
             },
             "pages": self.list_pages(site_id),
         }
+
+    def list_assets(self, site_id: int, *, limit: int | None = 120) -> list[dict[str, Any]]:
+        return self._list_rows(
+            "site_asset",
+            site_id=site_id,
+            order_by="created_at DESC, id DESC",
+            limit=limit,
+        )
+
+    def get_asset(self, site_id: int, asset_id: int) -> dict[str, Any] | None:
+        return self._get_row("site_asset", site_id=site_id, row_id=asset_id)
+
+    def create_asset(self, site_id: int, payload: dict[str, Any]) -> dict[str, Any]:
+        with self._connect() as conn:
+            asset_id = self._insert_returning_id(
+                conn,
+                """
+                INSERT INTO site_asset (
+                    site_id, filename, original_filename, url, title, alt_text, caption,
+                    category, size_bytes, mime_type, width, height
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    int(site_id),
+                    clean_text(payload.get("filename")),
+                    clean_text(payload.get("original_filename")),
+                    clean_text(payload.get("url")),
+                    clean_text(payload.get("title")),
+                    clean_text(payload.get("alt_text")),
+                    clean_text(payload.get("caption")),
+                    clean_text(payload.get("category") or "generale"),
+                    int(payload.get("size_bytes") or 0),
+                    clean_text(payload.get("mime_type")),
+                    int(payload.get("width") or 0),
+                    int(payload.get("height") or 0),
+                ),
+            )
+            conn.commit()
+        return self.get_asset(site_id, asset_id) or {}
+
+    def delete_asset(self, site_id: int, asset_id: int) -> None:
+        self._delete_row("site_asset", site_id=site_id, row_id=asset_id)
+
+    def create_ai_article_job(self, site_id: int, payload: dict[str, Any]) -> dict[str, Any]:
+        result = payload.get("result_json") or {}
+        risks = payload.get("risk_checklist_json") or []
+        with self._connect() as conn:
+            job_id = self._insert_returning_id(
+                conn,
+                """
+                INSERT INTO site_ai_article_job (
+                    site_id, topic, payload_json, result_json, risk_checklist_json,
+                    status, article_id, image_prompt, image_asset_id, created_by, updated_at
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                """,
+                (
+                    int(site_id),
+                    clean_text(payload.get("topic")),
+                    _json_dump(payload.get("payload_json") or {}),
+                    _json_dump(result),
+                    _json_dump(risks),
+                    clean_text(payload.get("status") or "draft_generated"),
+                    int(payload.get("article_id") or 0),
+                    clean_text(payload.get("image_prompt") or result.get("image_prompt")),
+                    int(payload.get("image_asset_id") or 0),
+                    clean_text(payload.get("created_by")),
+                ),
+            )
+            conn.commit()
+        return self.get_ai_article_job(site_id, job_id) or {}
+
+    def list_ai_article_jobs(self, site_id: int, *, limit: int | None = 30) -> list[dict[str, Any]]:
+        return self._list_rows(
+            "site_ai_article_job",
+            site_id=site_id,
+            order_by="created_at DESC, id DESC",
+            json_fields=("payload_json", "result_json", "risk_checklist_json"),
+            limit=limit,
+        )
+
+    def get_ai_article_job(self, site_id: int, job_id: int) -> dict[str, Any] | None:
+        return self._get_row(
+            "site_ai_article_job",
+            site_id=site_id,
+            row_id=job_id,
+            json_fields=("payload_json", "result_json", "risk_checklist_json"),
+        )
+
+    def update_ai_article_job(self, site_id: int, job_id: int, payload: dict[str, Any]) -> dict[str, Any] | None:
+        current = self.get_ai_article_job(site_id, job_id)
+        if current is None:
+            return None
+        with self._connect() as conn:
+            conn.execute(
+                """
+                UPDATE site_ai_article_job
+                SET result_json = ?, risk_checklist_json = ?, status = ?, article_id = ?,
+                    image_prompt = ?, image_asset_id = ?, updated_at = CURRENT_TIMESTAMP
+                WHERE site_id = ? AND id = ?
+                """,
+                (
+                    _json_dump(payload.get("result_json", current.get("result_json") or {})),
+                    _json_dump(payload.get("risk_checklist_json", current.get("risk_checklist_json") or [])),
+                    clean_text(payload.get("status") or current.get("status")),
+                    int(payload.get("article_id", current.get("article_id") or 0) or 0),
+                    clean_text(payload.get("image_prompt") or current.get("image_prompt")),
+                    int(payload.get("image_asset_id", current.get("image_asset_id") or 0) or 0),
+                    int(site_id),
+                    int(job_id),
+                ),
+            )
+            conn.commit()
+        return self.get_ai_article_job(site_id, job_id)
 
     def _list_rows(
         self,

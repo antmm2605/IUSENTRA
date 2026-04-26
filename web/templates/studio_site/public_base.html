@@ -113,6 +113,12 @@
         {% if payload.site.city %}<div>{{ payload.site.city }}{% if payload.site.province %} ({{ payload.site.province }}){% endif %}</div>{% endif %}
         {% if payload.site.contact_phone %}<div>{{ payload.site.contact_phone }}</div>{% endif %}
         {% if payload.site.contact_email %}<div>{{ payload.site.contact_email }}</div>{% endif %}
+        <div class="studio-site-social-links mt-2">
+          {% if payload.site.whatsapp_number %}<a class="text-white-50" href="https://wa.me/{{ payload.site.whatsapp_number|replace('+','')|replace(' ','') }}" target="_blank" rel="noopener">WhatsApp</a>{% endif %}
+          {% if payload.site.facebook_url %}<a class="text-white-50" href="{{ payload.site.facebook_url }}" target="_blank" rel="noopener">Facebook</a>{% endif %}
+          {% if payload.site.instagram_url %}<a class="text-white-50" href="{{ payload.site.instagram_url }}" target="_blank" rel="noopener">Instagram</a>{% endif %}
+          {% if payload.site.linkedin_url %}<a class="text-white-50" href="{{ payload.site.linkedin_url }}" target="_blank" rel="noopener">LinkedIn</a>{% endif %}
+        </div>
         {% if payload.site.privacy_url %}<div><a class="text-white-50" href="{{ payload.site.privacy_url }}">Privacy policy</a></div>{% endif %}
         {% if payload.site.cookie_policy_url %}<div><a class="text-white-50" href="{{ payload.site.cookie_policy_url }}">Cookie policy</a></div>{% endif %}
         {% if payload.site.accessibility_statement_url %}<div><a class="text-white-50" href="{{ payload.site.accessibility_statement_url }}">Accessibilita</a></div>{% endif %}

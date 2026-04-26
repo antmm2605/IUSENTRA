@@ -1,24 +1,59 @@
 {% extends "base.html" %}
 
-{% block title %}Sito Studio{% endblock %}
+{% block title %}Sito Studio Builder Pro{% endblock %}
 {% block pct_modulo %}sito_studio{% endblock %}
 {% block content %}
-<div class="container-fluid py-3 studio-site-admin studio-site-builder">
+{% set active_page = payload.active_page or {} %}
+<div class="container-fluid py-3 studio-site-admin studio-site-builder"
+     data-site-builder
+     data-active-page-id="{{ active_page.id or '' }}"
+     data-save-url="{{ url_for('studio_site_builder.save_page_blocks_api', page_id=active_page.id or 0) }}"
+     data-publish-url="{{ url_for('studio_site_builder.publish_page_blocks_api', page_id=active_page.id or 0) }}"
+     data-preview-url="{{ payload.active_preview_url or payload.public_url }}">
   <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
     <div>
-      <div class="text-muted small">Sito web dello studio legale</div>
-      <h1 class="h3 mb-1">Sito Studio</h1>
-      <p class="text-muted mb-0">Un solo sito per studio: modelli grafici, blocchi, SEO, privacy e controlli deontologici governati.</p>
+      <div class="text-muted small">Website Studio Legale</div>
+      <h1 class="h3 mb-1">Sito Studio Builder Pro</h1>
+      <p class="text-muted mb-0">Un solo sito per studio: home, pagine, blocchi, immagini, SEO, privacy e controlli deontologici governati.</p>
     </div>
     <div class="d-flex flex-wrap gap-2">
       <a class="btn btn-outline-dark" href="{{ payload.public_url }}" target="_blank" rel="noopener">Apri sito pubblico</a>
+      <a class="btn btn-outline-primary" href="{{ url_for('studio_site_builder.ai_redazione') }}">Redazione AI</a>
       <a class="btn btn-outline-primary" href="{{ url_for('studio_site.dashboard') }}">Panoramica</a>
-      <a class="btn btn-primary" href="{{ url_for('studio_site_builder.preview') }}">Anteprima responsive</a>
+      <button class="btn btn-outline-secondary" type="button" data-builder-action="save">Salva bozza</button>
+      <button class="btn btn-primary" type="button" data-builder-action="publish">Pubblica modifiche</button>
     </div>
   </div>
 
-  <div class="studio-builder-shell">
-    <aside class="studio-builder-sidebar">
+  <div class="studio-builder-workspace">
+    <aside class="studio-builder-sidebar studio-site-panel">
+      <div class="d-flex justify-content-between align-items-center gap-2 mb-3">
+        <div>
+          <h2 class="h6 text-uppercase text-muted mb-1">Pagine</h2>
+          <div class="small text-muted">Seleziona cosa modificare.</div>
+        </div>
+        <a class="btn btn-sm btn-outline-primary" href="{{ url_for('studio_site.new_page_form') }}">Nuova</a>
+      </div>
+      <div class="studio-builder-page-list">
+        {% for page in payload.pages %}
+          <a class="studio-builder-page-link {% if page.id == active_page.id %}is-active{% endif %}"
+             href="{{ url_for('studio_site_builder.builder', page_id=page.id) }}">
+            <span>{{ page.title }}</span>
+            <small>{{ 'Home' if page.is_home else page.status }}</small>
+          </a>
+        {% endfor %}
+      </div>
+
+      <hr>
+      <h2 class="h6 text-uppercase text-muted">Blocchi disponibili</h2>
+      <p class="text-muted small">Clicca un blocco per aggiungerlo alla pagina selezionata.</p>
+      <div class="studio-block-palette">
+        {% for block in payload.block_presets %}
+          <button class="studio-block-chip" type="button" data-block-preset='{{ block.defaults|tojson }}'>{{ block.label }}</button>
+        {% endfor %}
+      </div>
+
+      <hr>
       <h2 class="h6 text-uppercase text-muted">Modelli grafici</h2>
       <div class="studio-template-list">
         {% for template in payload.templates %}
@@ -34,29 +69,111 @@
       </div>
     </aside>
 
-    <section class="studio-builder-canvas">
-      <div class="studio-builder-toolbar">
-        <div>
-          <strong>Canvas responsive</strong>
-          <span class="text-muted small d-block">Desktop, tablet e mobile usano lo stesso sito dello studio.</span>
+    <main class="studio-builder-canvas">
+      <div class="studio-site-panel mb-3">
+        <div class="studio-builder-toolbar">
+          <div>
+            <strong>{{ active_page.title or 'Pagina non selezionata' }}</strong>
+            <span class="text-muted small d-block">Stato: {{ active_page.status or 'bozza' }} - Blocchi: <span data-block-count>{{ payload.active_blocks|length }}</span></span>
+          </div>
+          <div class="d-flex flex-wrap gap-2 align-items-center">
+            <div class="btn-group" role="group" aria-label="Anteprima responsive">
+              <button class="btn btn-outline-secondary active" type="button" data-preview-size="desktop">Desktop</button>
+              <button class="btn btn-outline-secondary" type="button" data-preview-size="tablet">Tablet</button>
+              <button class="btn btn-outline-secondary" type="button" data-preview-size="mobile">Mobile</button>
+            </div>
+            <button class="btn btn-outline-primary" type="button" data-builder-action="refresh-preview">Aggiorna anteprima</button>
+          </div>
         </div>
-        <div class="btn-group" role="group" aria-label="Anteprima responsive">
-          <button class="btn btn-outline-secondary active" type="button" data-preview-size="desktop">Desktop</button>
-          <button class="btn btn-outline-secondary" type="button" data-preview-size="tablet">Tablet</button>
-          <button class="btn btn-outline-secondary" type="button" data-preview-size="mobile">Mobile</button>
+
+        <input type="hidden" data-blocks-json-field value='{{ payload.active_blocks|tojson }}'>
+        <div class="studio-block-editor-list" data-block-editor-list></div>
+        <div class="studio-builder-empty" data-builder-empty>
+          <strong>Nessun blocco nella pagina.</strong>
+          <span>Aggiungi un blocco dalla palette a sinistra: comparir&agrave; qui e potrai modificarlo subito.</span>
         </div>
       </div>
-      <div class="studio-builder-preview-frame" data-preview-frame>
-        <iframe src="{{ payload.public_url }}" title="Anteprima sito studio"></iframe>
+
+      <div class="studio-site-panel">
+        <div class="studio-builder-toolbar">
+          <div>
+            <strong>Anteprima live</strong>
+            <span class="text-muted small d-block">L'anteprima legge il sito pubblico in modalit&agrave; bozza per gli amministratori.</span>
+          </div>
+          <a class="btn btn-outline-dark" href="{{ payload.active_preview_url or payload.public_url }}" target="_blank" rel="noopener">Apri in nuova scheda</a>
+        </div>
+        <div class="studio-builder-preview-frame is-desktop" data-preview-frame>
+          <iframe src="{{ payload.active_preview_url or payload.public_url }}" title="Anteprima sito studio"></iframe>
+        </div>
       </div>
-    </section>
+    </main>
 
     <aside class="studio-builder-properties">
+      <div class="studio-site-panel mb-3">
+        <h2 class="h5">Propriet&agrave; blocco</h2>
+        <p class="text-muted small">Seleziona un blocco nel canvas per modificare testi, immagini, CTA e visibilit&agrave;.</p>
+        <div data-block-properties>
+          <div class="text-muted">Nessun blocco selezionato.</div>
+        </div>
+      </div>
+
+      <div class="studio-site-panel mb-3">
+        <h2 class="h5">Libreria immagini</h2>
+        <form data-asset-upload-form enctype="multipart/form-data">
+          <label class="form-label">Immagine</label>
+          <input class="form-control" type="file" name="file" accept="image/*">
+          <label class="form-label mt-2">Testo alternativo</label>
+          <input class="form-control" name="alt_text" required placeholder="Descrivi l'immagine per accessibilit&agrave;">
+          <input class="form-control mt-2" name="title" placeholder="Titolo immagine">
+          <input class="form-control mt-2" name="category" placeholder="Categoria">
+          <button class="btn btn-outline-primary w-100 mt-2" type="submit">Carica immagine</button>
+        </form>
+        <div class="studio-asset-list mt-3" data-asset-list>
+          {% for asset in payload.assets[:8] %}
+            <button class="studio-asset-item" type="button" data-asset-url="{{ asset.url }}" data-asset-alt="{{ asset.alt_text }}">
+              <span>{{ asset.title or asset.original_filename }}</span>
+              <small>{{ asset.alt_text }}</small>
+            </button>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="studio-site-panel mb-3">
+        <h2 class="h5">Controlli professionali</h2>
+        {% for group, rows in payload.validation.items() if group != 'generated_at' %}
+          <div class="studio-validation-group">
+            <strong>{{ group|capitalize }}</strong>
+            {% if rows %}
+              {% for row in rows[:5] %}<div class="small text-muted">{{ row.message }}</div>{% endfor %}
+            {% else %}
+              <div class="small text-success">Nessun rilievo immediato.</div>
+            {% endif %}
+          </div>
+        {% endfor %}
+        <form method="post" action="{{ url_for('studio_site_builder.validate_builder') }}" class="mt-3">
+          <button class="btn btn-outline-primary w-100" type="submit">Riesegui validazione</button>
+        </form>
+      </div>
+
+      <div class="studio-site-panel mb-3">
+        <h2 class="h5">Revisioni</h2>
+        {% if payload.revisions %}
+          <div class="studio-revision-list">
+            {% for revision in payload.revisions[:6] %}
+              <form method="post" action="{{ url_for('studio_site_builder.restore_revision_api', revision_id=revision.id) }}" data-restore-revision>
+                <button class="btn btn-sm btn-outline-secondary w-100" type="submit">{{ revision.label or 'Revisione' }} - {{ revision.created_at }}</button>
+              </form>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="text-muted small">Nessuna revisione disponibile.</div>
+        {% endif %}
+      </div>
+
       <form method="post" action="{{ url_for('studio_site_builder.save_design') }}" class="studio-site-panel">
         <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
         <input type="hidden" name="theme_template" value="{{ payload.site.theme_template or 'classic_legal' }}">
         <h2 class="h5">Parametri grafici</h2>
-        <p class="text-muted small">Colori, font, dimensioni, spaziature ed effetti salvati nel database.</p>
         <div class="row g-2">
           {% for key, label in [('primary','Primario'),('secondary','Secondario'),('accent','Accento'),('bg','Sfondo'),('surface','Superficie'),('text','Testo')] %}
             <div class="col-6">
@@ -72,68 +189,13 @@
               {% endfor %}
             </select>
           </div>
-          <div class="col-6"><label class="form-label">Dimensione base</label><input class="form-control" name="font_size_base" value="{{ payload.theme.tokens.font_size_base }}"></div>
-          <div class="col-6"><label class="form-label">Interlinea</label><input class="form-control" name="line_height" value="{{ payload.theme.tokens.line_height }}"></div>
-          <div class="col-6"><label class="form-label">Animazione</label><select class="form-select" name="animation"><option value="fade-up">Fade up</option><option value="soft-reveal">Soft reveal</option><option value="none">Nessuna</option></select></div>
-          <div class="col-6"><label class="form-label">Velocita</label><input class="form-control" name="animation_speed" value="{{ payload.theme.tokens.animation_speed }}"></div>
-          <div class="col-12"><label class="form-label">CSS personalizzato limitato</label><textarea class="form-control" name="custom_css" rows="4">{{ payload.theme.custom_css }}</textarea></div>
         </div>
-        <hr>
-        <h3 class="h6">Privacy e cookie</h3>
-        <div class="form-check"><input class="form-check-input" type="checkbox" name="cookie_banner_enabled" value="1" id="cookieBanner" {% if payload.site.cookie_banner_enabled %}checked{% endif %}><label class="form-check-label" for="cookieBanner">Abilita banner cookie</label></div>
-        <div class="form-check"><input class="form-check-input" type="checkbox" name="analytics_enabled" value="1" id="analyticsEnabled" {% if payload.site.analytics_enabled %}checked{% endif %}><label class="form-check-label" for="analyticsEnabled">Abilita analytics solo dopo consenso</label></div>
-        <input class="form-control mt-2" name="analytics_provider" placeholder="Provider analytics" value="{{ payload.site.analytics_provider or '' }}">
-        <input class="form-control mt-2" name="analytics_id" placeholder="ID analytics" value="{{ payload.site.analytics_id or '' }}">
-        <input class="form-control mt-2" name="privacy_url" placeholder="URL privacy policy" value="{{ payload.site.privacy_url or '' }}">
-        <input class="form-control mt-2" name="cookie_policy_url" placeholder="URL cookie policy" value="{{ payload.site.cookie_policy_url or '' }}">
-        <textarea class="form-control mt-2" name="legal_disclaimer" rows="3" placeholder="Disclaimer legale">{{ payload.site.legal_disclaimer or '' }}</textarea>
         <button class="btn btn-primary w-100 mt-3" type="submit">Salva design</button>
       </form>
     </aside>
   </div>
 
-  <div class="row g-3 mt-3">
-    <div class="col-lg-7">
-      <div class="studio-site-panel">
-        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
-          <div>
-            <h2 class="h5 mb-1">Blocchi disponibili</h2>
-            <p class="text-muted mb-0">Usali nelle pagine senza scrivere JSON manuale. Ogni blocco resta modificabile e riordinabile.</p>
-          </div>
-          <form method="post" action="{{ url_for('studio_site_builder.generate_auto') }}">
-            <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
-            <input type="hidden" name="template" value="{{ payload.site.theme_template or 'classic_legal' }}">
-            <input type="hidden" name="site_type" value="generalista">
-            <input type="hidden" name="style" value="sobrio">
-            <button class="btn btn-success" type="submit">Crea sito automaticamente</button>
-          </form>
-        </div>
-        <div class="studio-block-palette">
-          {% for block in payload.block_presets %}
-            <button class="studio-block-chip" type="button" data-block-preset='{{ block.defaults|tojson }}'>{{ block.label }}</button>
-          {% endfor %}
-        </div>
-      </div>
-    </div>
-    <div class="col-lg-5">
-      <div class="studio-site-panel">
-        <h2 class="h5">Controlli professionali</h2>
-        {% for group, rows in payload.validation.items() if group != 'generated_at' %}
-          <div class="studio-validation-group">
-            <strong>{{ group|capitalize }}</strong>
-            {% if rows %}
-              {% for row in rows[:4] %}<div class="small text-muted">{{ row.message }}</div>{% endfor %}
-            {% else %}
-              <div class="small text-success">Nessun rilievo immediato.</div>
-            {% endif %}
-          </div>
-        {% endfor %}
-        <form method="post" action="{{ url_for('studio_site_builder.validate_builder') }}" class="mt-3">
-          <button class="btn btn-outline-primary w-100" type="submit">Riesegui validazione</button>
-        </form>
-      </div>
-    </div>
-  </div>
+  <div class="studio-builder-status" data-builder-status role="status" aria-live="polite"></div>
 </div>
 <script src="{{ url_for('static', filename='js/studio_site_builder.js') }}?v={{ app_version }}"></script>
 {% endblock %}

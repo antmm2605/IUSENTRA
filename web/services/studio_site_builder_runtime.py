@@ -53,24 +53,44 @@ def _site_home_page(site_id: int) -> dict[str, Any] | None:
     )
 
 
-def build_builder_payload() -> dict[str, Any]:
+def _page_public_url(site: dict[str, Any], page: dict[str, Any] | None) -> str:
+    if not page or page.get("is_home"):
+        return url_for("studio_site_public.home", public_slug=site["public_slug"])
+    return url_for(
+        "studio_site_public.page_detail",
+        public_slug=site["public_slug"],
+        page_slug=page.get("slug") or "home",
+    )
+
+
+def build_builder_payload(*, page_id: int | None = None) -> dict[str, Any]:
     site = get_site_for_current_tenant()
     repo = studio_site_repository()
     site_id = int(site["id"])
+    pages = repo.list_pages(site_id)
+    active_page = None
+    if page_id:
+        active_page = repo.get_page(site_id, int(page_id))
+    if active_page is None:
+        active_page = next((row for row in pages if row.get("is_home")), None) or (pages[0] if pages else None)
     validation = validate_site_builder(site=site)
     return {
         "site": site,
         "theme": theme_snapshot(site),
         "templates": list_theme_templates(),
         "block_presets": block_presets(),
-        "pages": repo.list_pages(site_id),
+        "pages": pages,
+        "active_page": active_page,
+        "active_blocks": normalize_blocks((active_page or {}).get("body_json") or []),
         "articles": repo.list_articles(site_id, limit=8),
         "services": repo.list_services(site_id),
         "professionals": repo.list_professionals(site_id),
         "offices": repo.list_offices(site_id),
+        "assets": repo.list_assets(site_id, limit=120),
         "revisions": repo.list_design_revisions(site_id),
         "validation": validation,
         "public_url": url_for("studio_site_public.home", public_slug=site["public_slug"]),
+        "active_preview_url": _page_public_url(site, active_page),
         "preview_url": url_for("studio_site_builder.preview"),
         "tenant_scope": "studio",
     }
@@ -242,10 +262,50 @@ def _ensure_generated_page(site_id: int, title: str, slug: str, excerpt: str, *,
 
 def save_page_blocks(page_id: int, blocks: Any) -> dict[str, Any]:
     site = get_site_for_current_tenant()
-    updated = studio_site_repository().save_page_blocks(int(site["id"]), int(page_id), normalize_blocks(blocks))
+    repo = studio_site_repository()
+    repo.save_design_revision(
+        int(site["id"]),
+        label="Prima del salvataggio blocchi pagina",
+        snapshot=repo.snapshot_site_design(int(site["id"])),
+        created_by=_current_operator_label(),
+    )
+    updated = repo.save_page_blocks(int(site["id"]), int(page_id), normalize_blocks(blocks))
     if updated is None:
         raise ValueError("Pagina non trovata per lo studio corrente.")
     return updated
+
+
+def publish_page_blocks(page_id: int, blocks: Any) -> dict[str, Any]:
+    site = get_site_for_current_tenant()
+    repo = studio_site_repository()
+    page = save_page_blocks(page_id, blocks)
+    updated = repo.save_page(
+        int(site["id"]),
+        {
+            **page,
+            "status": "published",
+            "body_json": normalize_blocks(blocks),
+        },
+        page_id=int(page_id),
+    )
+    repo.save_site(int(site["id"]), {"is_published": True, "is_active": True})
+    audit_studio_site_action(
+        "sito_studio.pubblica_builder",
+        resource_id=str(page_id),
+        details="Pubblicate modifiche pagina da Builder Pro.",
+    )
+    return updated
+
+
+def restore_design_revision(revision_id: int) -> dict[str, Any]:
+    site = get_site_for_current_tenant()
+    snapshot = studio_site_repository().restore_design_revision(int(site["id"]), int(revision_id))
+    audit_studio_site_action(
+        "sito_studio.ripristina_revisione",
+        resource_id=str(revision_id),
+        details="Ripristinata revisione design/contenuto dal Builder Pro.",
+    )
+    return snapshot
 
 
 def validate_site_builder(*, site: dict[str, Any] | None = None) -> dict[str, Any]:
@@ -255,9 +315,17 @@ def validate_site_builder(*, site: dict[str, Any] | None = None) -> dict[str, An
     blocks = []
     for page in pages:
         blocks.extend(normalize_blocks(page.get("body_json") or []))
+    accessibility = validate_accessibility(blocks)
+    if not any(block.get("type") in {"contact_form", "booking_cta", "contact_cta_split"} for block in blocks):
+        accessibility.append(
+            {
+                "severity": "warning",
+                "message": "Il sito non contiene ancora un blocco contatti, prenotazione o invito al contatto.",
+            }
+        )
     return {
         "seo": validate_seo(site, pages),
-        "accessibility": validate_accessibility(blocks),
+        "accessibility": accessibility,
         "privacy": validate_privacy(site),
         "deontology": validate_deontology(blocks),
         "generated_at": datetime.now().replace(microsecond=0).isoformat(),
@@ -283,6 +351,19 @@ def validate_accessibility(blocks: list[dict[str, Any]]) -> list[dict[str, str]]
     for index, block in enumerate(blocks, start=1):
         if clean_text(block.get("image_url")) and not clean_text(block.get("image_alt")):
             warnings.append({"severity": "warning", "message": f"Blocco {index}: immagine senza testo alternativo."})
+        if block.get("type") in {"hero_slider", "image_text_slider", "gallery_grid"}:
+            for item_index, item in enumerate(block.get("items") or [], start=1):
+                if clean_text(item.get("image_url")) and not clean_text(item.get("image_alt")):
+                    warnings.append(
+                        {
+                            "severity": "warning",
+                            "message": f"Blocco {index}, elemento {item_index}: immagine senza testo alternativo.",
+                        }
+                    )
+        if block.get("type") == "hero_slider" and len(block.get("items") or []) < 2:
+            warnings.append({"severity": "warning", "message": f"Blocco {index}: lo slider hero richiede almeno due slide."})
+        if block.get("type") in {"hero", "hero_split", "hero_centered", "hero_slider"} and not clean_text(block.get("button_text")):
+            warnings.append({"severity": "warning", "message": f"Blocco {index}: hero senza invito all'azione."})
         if block.get("type") == "contact_form":
             warnings.append({"severity": "info", "message": "Modulo contatti: verificare sempre label e consenso privacy."})
     return warnings
@@ -308,6 +389,9 @@ def validate_deontology(blocks: list[dict[str, Any]]) -> list[dict[str, str]]:
             clean_text(block.get(key)).lower()
             for key in ("title", "subtitle", "text", "button_text")
         )
+        for item in block.get("items") or []:
+            if isinstance(item, dict):
+                haystack = f"{haystack} " + " ".join(clean_text(item.get(key)).lower() for key in ("title", "text", "button_text"))
         for phrase, reason in DEONTOLOGY_PATTERNS:
             if phrase in haystack:
                 warnings.append(

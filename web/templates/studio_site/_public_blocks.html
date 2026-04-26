@@ -71,6 +71,197 @@
           </div>
         </div>
       </section>
+    {% elif block.type == 'hero_slider' %}
+      {% set carousel_id = 'hero-slider-' ~ loop.index %}
+      <section class="studio-site-hero studio-site-hero-slider{{ visibility_class }}">
+        <div class="container">
+          <div id="{{ carousel_id }}" class="carousel slide" data-bs-ride="carousel">
+            <div class="carousel-inner">
+              {% for item in block.get('items', []) %}
+                <div class="carousel-item {% if loop.first %}active{% endif %}">
+                  <div class="row align-items-center g-4">
+                    <div class="col-lg-7">
+                      <span class="studio-site-pill">Studio legale</span>
+                      <h1>{{ item.title or block.title or payload.site.site_name }}</h1>
+                      <p class="lead">{{ item.text or block.subtitle or payload.site.site_description }}</p>
+                      <a class="btn btn-primary btn-lg" href="{{ item.button_url or block.button_url or url_for('studio_site_public.contacts', public_slug=payload.site.public_slug) }}">{{ item.button_text or block.button_text or 'Contatta lo studio' }}</a>
+                    </div>
+                    <div class="col-lg-5">
+                      <div class="studio-site-hero-card">
+                        {% if item.image_url or block.image_url %}
+                          <img src="{{ item.image_url or block.image_url }}" alt="{{ item.image_alt or block.image_alt or item.title or block.title }}" class="img-fluid rounded-4">
+                        {% else %}
+                          <div class="studio-site-hero-placeholder"><i class="bi bi-bank"></i></div>
+                        {% endif %}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+            {% if (block.get('items', [])|length) > 1 %}
+              <button class="carousel-control-prev" type="button" data-bs-target="#{{ carousel_id }}" data-bs-slide="prev"><span class="carousel-control-prev-icon" aria-hidden="true"></span><span class="visually-hidden">Precedente</span></button>
+              <button class="carousel-control-next" type="button" data-bs-target="#{{ carousel_id }}" data-bs-slide="next"><span class="carousel-control-next-icon" aria-hidden="true"></span><span class="visually-hidden">Successivo</span></button>
+            {% endif %}
+          </div>
+        </div>
+      </section>
+    {% elif block.type == 'image_text_slider' %}
+      {% set carousel_id = 'image-text-slider-' ~ loop.index %}
+      <section class="studio-site-section{{ visibility_class }}">
+        <div class="container">
+          {% if block.title %}<h2>{{ block.title }}</h2>{% endif %}
+          {% if block.subtitle %}<p class="text-muted">{{ block.subtitle }}</p>{% endif %}
+          <div id="{{ carousel_id }}" class="carousel slide studio-site-card" data-bs-ride="carousel">
+            <div class="carousel-inner">
+              {% for item in block.get('items', []) %}
+                <div class="carousel-item {% if loop.first %}active{% endif %}">
+                  <div class="row align-items-center g-4">
+                    <div class="col-md-5">
+                      {% if item.image_url %}<img class="studio-site-cover mb-0" src="{{ item.image_url }}" alt="{{ item.image_alt or item.title }}" loading="lazy">{% else %}<div class="studio-site-hero-placeholder"><i class="bi bi-journal-text"></i></div>{% endif %}
+                    </div>
+                    <div class="col-md-7">
+                      <h3>{{ item.title }}</h3>
+                      <p>{{ item.text }}</p>
+                    </div>
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+            {% if (block.get('items', [])|length) > 1 %}
+              <button class="carousel-control-prev" type="button" data-bs-target="#{{ carousel_id }}" data-bs-slide="prev"><span class="carousel-control-prev-icon" aria-hidden="true"></span><span class="visually-hidden">Precedente</span></button>
+              <button class="carousel-control-next" type="button" data-bs-target="#{{ carousel_id }}" data-bs-slide="next"><span class="carousel-control-next-icon" aria-hidden="true"></span><span class="visually-hidden">Successivo</span></button>
+            {% endif %}
+          </div>
+        </div>
+      </section>
+    {% elif block.type == 'gallery_grid' %}
+      <section class="studio-site-section{{ visibility_class }}">
+        <div class="container">
+          <h2>{{ block.title or 'Galleria dello studio' }}</h2>
+          {% if block.subtitle %}<p class="text-muted">{{ block.subtitle }}</p>{% endif %}
+          <div class="row g-3">
+            {% for item in block.get('items', []) %}
+              <div class="col-md-6 col-xl-4">
+                <article class="studio-site-card h-100">
+                  {% if item.image_url %}<img class="studio-site-cover" src="{{ item.image_url }}" alt="{{ item.image_alt or item.title }}" loading="lazy">{% endif %}
+                  <h3>{{ item.title }}</h3>
+                  {% if item.text %}<p>{{ item.text }}</p>{% endif %}
+                </article>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      </section>
+    {% elif block.type == 'image_text_split' %}
+      <section class="studio-site-section{{ visibility_class }}">
+        <div class="container">
+          <div class="row align-items-center g-4">
+            <div class="col-lg-6">
+              {% if block.image_url %}<img class="studio-site-cover mb-0" src="{{ block.image_url }}" alt="{{ block.image_alt or block.title }}" loading="lazy">{% else %}<div class="studio-site-hero-placeholder"><i class="bi bi-folder2-open"></i></div>{% endif %}
+            </div>
+            <div class="col-lg-6">
+              <h2>{{ block.title }}</h2>
+              {% if block.subtitle %}<p class="lead">{{ block.subtitle }}</p>{% endif %}
+              {% if block.text %}<div class="studio-site-copy">{{ block.text|replace('\n\n','</p><p>')|replace('\n','<br>')|safe }}</div>{% endif %}
+              {% if block.button_text %}<a class="btn btn-primary" href="{{ block.button_url or url_for('studio_site_public.contacts', public_slug=payload.site.public_slug) }}">{{ block.button_text }}</a>{% endif %}
+            </div>
+          </div>
+        </div>
+      </section>
+    {% elif block.type == 'logo_strip' %}
+      <section class="studio-site-section studio-site-section-compact{{ visibility_class }}">
+        <div class="container">
+          {% if block.title %}<h2 class="h4">{{ block.title }}</h2>{% endif %}
+          <div class="studio-site-logo-strip">
+            {% for item in block.get('items', []) %}
+              <div><strong>{{ item.title }}</strong><span>{{ item.text }}</span></div>
+            {% endfor %}
+          </div>
+        </div>
+      </section>
+    {% elif block.type == 'text_ticker' %}
+      <section class="studio-site-section-compact{{ visibility_class }}">
+        <div class="studio-site-ticker" aria-label="{{ block.title or 'Avvisi dello studio' }}">
+          <div>
+            {% for item in block.get('items', []) %}<span>{{ item.text or item.title }}</span>{% endfor %}
+          </div>
+        </div>
+      </section>
+    {% elif block.type == 'featured_services_carousel' %}
+      {% set carousel_id = 'service-carousel-' ~ loop.index %}
+      <section class="studio-site-section{{ visibility_class }}">
+        <div class="container">
+          <h2>{{ block.title or 'Servizi in evidenza' }}</h2>
+          {% if block.subtitle %}<p class="text-muted">{{ block.subtitle }}</p>{% endif %}
+          <div id="{{ carousel_id }}" class="carousel slide" data-bs-ride="carousel">
+            <div class="carousel-inner">
+              {% for item in payload.services %}
+                <div class="carousel-item {% if loop.first %}active{% endif %}">
+                  <article class="studio-site-card">
+                    <div class="studio-site-card-icon"><i class="bi {{ item.icon or 'bi-briefcase' }}"></i></div>
+                    <h3>{{ item.title }}</h3>
+                    <p>{{ item.short_description }}</p>
+                  </article>
+                </div>
+              {% endfor %}
+            </div>
+            {% if payload.services|length > 1 %}
+              <button class="carousel-control-prev" type="button" data-bs-target="#{{ carousel_id }}" data-bs-slide="prev"><span class="carousel-control-prev-icon" aria-hidden="true"></span><span class="visually-hidden">Precedente</span></button>
+              <button class="carousel-control-next" type="button" data-bs-target="#{{ carousel_id }}" data-bs-slide="next"><span class="carousel-control-next-icon" aria-hidden="true"></span><span class="visually-hidden">Successivo</span></button>
+            {% endif %}
+          </div>
+        </div>
+      </section>
+    {% elif block.type == 'article_carousel' %}
+      {% set carousel_id = 'article-carousel-' ~ loop.index %}
+      <section class="studio-site-section{{ visibility_class }}">
+        <div class="container">
+          <h2>{{ block.title or 'Articoli in evidenza' }}</h2>
+          {% if block.subtitle %}<p class="text-muted">{{ block.subtitle }}</p>{% endif %}
+          <div id="{{ carousel_id }}" class="carousel slide" data-bs-ride="carousel">
+            <div class="carousel-inner">
+              {% for item in payload.latest_articles %}
+                <div class="carousel-item {% if loop.first %}active{% endif %}">
+                  <article class="studio-site-card">
+                    {% if item.cover_url %}<img class="studio-site-cover" src="{{ item.cover_url }}" alt="{{ item.title }}" loading="lazy">{% endif %}
+                    <div class="studio-site-small-label">{{ item.category or 'Approfondimento' }}</div>
+                    <h3>{{ item.title }}</h3>
+                    <p>{{ item.excerpt }}</p>
+                    <a class="btn btn-link p-0" href="{{ url_for('studio_site_public.article_detail', public_slug=payload.site.public_slug, article_slug=item.slug) }}">Leggi l'articolo</a>
+                  </article>
+                </div>
+              {% endfor %}
+            </div>
+            {% if payload.latest_articles|length > 1 %}
+              <button class="carousel-control-prev" type="button" data-bs-target="#{{ carousel_id }}" data-bs-slide="prev"><span class="carousel-control-prev-icon" aria-hidden="true"></span><span class="visually-hidden">Precedente</span></button>
+              <button class="carousel-control-next" type="button" data-bs-target="#{{ carousel_id }}" data-bs-slide="next"><span class="carousel-control-next-icon" aria-hidden="true"></span><span class="visually-hidden">Successivo</span></button>
+            {% endif %}
+          </div>
+        </div>
+      </section>
+    {% elif block.type == 'quote_banner' %}
+      <section class="studio-site-section{{ visibility_class }}">
+        <div class="container">
+          <blockquote class="studio-site-quote-banner">
+            <p>{{ block.text }}</p>
+            {% if block.title %}<footer>{{ block.title }}</footer>{% endif %}
+          </blockquote>
+        </div>
+      </section>
+    {% elif block.type == 'contact_cta_split' %}
+      <section class="studio-site-section{{ visibility_class }}">
+        <div class="container">
+          <div class="studio-site-contact-split">
+            <div>
+              <h2>{{ block.title }}</h2>
+              <p>{{ block.text }}</p>
+              <a class="btn btn-light btn-lg" href="{{ block.button_url or url_for('studio_site_public.contacts', public_slug=payload.site.public_slug) }}">{{ block.button_text or 'Contatta lo studio' }}</a>
+            </div>
+            {% if block.image_url %}<img src="{{ block.image_url }}" alt="{{ block.image_alt or block.title }}" loading="lazy">{% endif %}
+          </div>
+        </div>
+      </section>
     {% elif block.type == 'trust_bar' %}
       <section class="studio-site-section studio-site-section-compact{{ visibility_class }}">
         <div class="container">

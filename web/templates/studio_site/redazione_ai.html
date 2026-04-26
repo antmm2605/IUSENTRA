@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+
+{% block title %}Redazione AI Sito Studio{% endblock %}
+{% block pct_modulo %}sito_studio{% endblock %}
+{% block content %}
+<div class="container-fluid py-3 studio-site-admin studio-site-ai">
+  <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
+    <div>
+      <div class="text-muted small">Sito Studio</div>
+      <h1 class="h3 mb-1">Redazione AI Sito Studio</h1>
+      <p class="text-muted mb-0">Genera bozze articolo, SEO e prompt immagine. La pubblicazione resta sempre manuale dopo revisione dello studio.</p>
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+      <a class="btn btn-outline-primary" href="{{ url_for('studio_site_builder.builder') }}">Builder</a>
+      <a class="btn btn-outline-dark" href="{{ url_for('studio_site.dashboard') }}">Panoramica</a>
+    </div>
+  </div>
+
+  <div class="row g-3">
+    <div class="col-xl-5">
+      <form class="studio-site-panel" method="post" action="{{ url_for('studio_site_builder.ai_generate_article') }}">
+        <h2 class="h5">Nuova bozza articolo</h2>
+        <p class="text-muted small">Inserisci un tema reale: Lex prepara una bozza prudente, non pubblicata.</p>
+        <label class="form-label">Argomento articolo</label>
+        <input class="form-control" name="argomento" required placeholder="Es. separazione consensuale: documenti necessari">
+        <div class="row g-2 mt-1">
+          <div class="col-md-6">
+            <label class="form-label">Area di diritto</label>
+            <input class="form-control" name="area_diritto" placeholder="Famiglia, lavoro, civile...">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Servizio collegato</label>
+            <input class="form-control" name="servizio_collegato" placeholder="Consulenza famiglia">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Pubblico destinatario</label>
+            <select class="form-select" name="pubblico_destinatario">
+              <option>Privati</option>
+              <option>Imprese</option>
+              <option>Famiglie</option>
+              <option>Lavoratori</option>
+              <option>Amministratori</option>
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Tono</label>
+            <select class="form-select" name="tono">
+              <option>divulgativo</option>
+              <option>tecnico</option>
+              <option>istituzionale</option>
+              <option>sintetico</option>
+              <option>approfondito</option>
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Lunghezza</label>
+            <select class="form-select" name="lunghezza">
+              <option>media</option>
+              <option>breve</option>
+              <option>lunga</option>
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Parole chiave SEO</label>
+            <input class="form-control" name="parole_chiave_seo" placeholder="separate da virgola">
+          </div>
+          <div class="col-12">
+            <label class="form-label">Call to action finale</label>
+            <input class="form-control" name="call_to_action" placeholder="Invita a contattare lo studio senza promettere risultati">
+          </div>
+          <div class="col-12">
+            <label class="form-label">Fonte normativa o giurisprudenziale indicata</label>
+            <input class="form-control" name="fonte_manual" placeholder="Facoltativa, da verificare prima della pubblicazione">
+          </div>
+          <div class="col-12">
+            <label class="form-label">Note interne dello studio</label>
+            <textarea class="form-control" name="note_interne" rows="3"></textarea>
+          </div>
+        </div>
+        <button class="btn btn-primary w-100 mt-3" type="submit">Genera bozza AI</button>
+      </form>
+    </div>
+
+    <div class="col-xl-7">
+      <div class="studio-site-panel mb-3">
+        <h2 class="h5">Lavori AI recenti</h2>
+        {% if jobs %}
+          <div class="studio-site-list">
+            {% for job in jobs %}
+              {% set result = job.result_json or {} %}
+              <article class="studio-site-list-row align-items-start">
+                <div>
+                  <strong>{{ result.title or job.topic }}</strong>
+                  <div class="text-muted small">{{ job.status }} · {{ job.created_at }}</div>
+                  <p class="mb-2">{{ result.excerpt }}</p>
+                  {% for risk in job.risk_checklist_json or [] %}
+                    <span class="badge text-bg-warning">{{ risk.area }}: {{ risk.severity }}</span>
+                  {% endfor %}
+                </div>
+                <div class="d-flex flex-column gap-2">
+                  {% if not job.article_id %}
+                    <form method="post" action="{{ url_for('studio_site_builder.ai_create_draft', job_id=job.id) }}">
+                      <button class="btn btn-sm btn-success" type="submit">Crea bozza</button>
+                    </form>
+                  {% else %}
+                    <a class="btn btn-sm btn-outline-primary" href="{{ url_for('studio_site.edit_article_form', article_id=job.article_id) }}">Apri articolo</a>
+                  {% endif %}
+                </div>
+              </article>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="text-muted">Nessuna bozza AI generata.</div>
+        {% endif %}
+      </div>
+
+      <div class="studio-site-panel">
+        <h2 class="h5">Articoli in bozza o pubblicati</h2>
+        {% if articles %}
+          <div class="studio-site-list">
+            {% for article in articles %}
+              <article class="studio-site-list-row align-items-start">
+                <div>
+                  <strong>{{ article.title }}</strong>
+                  <div class="text-muted small">{{ article.status }} · {{ article.category or 'Senza categoria' }}</div>
+                  <p class="mb-0">{{ article.excerpt }}</p>
+                </div>
+                <div class="d-flex flex-wrap gap-2 justify-content-end">
+                  <a class="btn btn-sm btn-outline-primary" href="{{ url_for('studio_site.edit_article_form', article_id=article.id) }}">Modifica</a>
+                  <form method="post" action="{{ url_for('studio_site_builder.ai_generate_image', article_id=article.id) }}">
+                    <button class="btn btn-sm btn-outline-secondary" type="submit">Immagine</button>
+                  </form>
+                  {% if article.status != 'published' %}
+                    <form method="post" action="{{ url_for('studio_site_builder.ai_publish_article', article_id=article.id) }}">
+                      <button class="btn btn-sm btn-success" type="submit">Pubblica</button>
+                    </form>
+                  {% endif %}
+                </div>
+              </article>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="text-muted">Nessun articolo presente.</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

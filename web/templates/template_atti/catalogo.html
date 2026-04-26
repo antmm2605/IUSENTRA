@@ -27,11 +27,13 @@
       <div class="cat-suite-title">{{ suite_summary.titolo }}</div>
       <div class="cat-suite-version">{{ suite_summary.versione }}</div>
       <div class="cat-suite-inline-summary">
+        {{ suite_summary.template_operativi }} modelli operativi funzionanti -
         {{ suite_summary.totale_template }} template master -
         {{ suite_summary.moduli_professionali }} moduli professionali -
         {{ suite_summary.canali_governati }} canali telematici governati
       </div>
       <div class="cat-suite-metrics">
+        <div><strong>{{ suite_summary.template_operativi }}</strong><span>modelli operativi</span></div>
         <div><strong>{{ suite_summary.totale_template }}</strong><span>template master</span></div>
         <div><strong>{{ suite_summary.moduli_professionali }}</strong><span>moduli professionali</span></div>
         <div><strong>{{ suite_summary.canali_governati }}</strong><span>canali telematici</span></div>
@@ -73,7 +75,7 @@
         <i class="bi bi-search" aria-hidden="true"></i>
         <input type="search" id="catSearch" class="cat-search-input form-control" placeholder="Cerca codice, titolo, rito, portale, allegato..." autocomplete="off">
       </div>
-      <span class="cat-count-badge" id="catCount">{{ suite_summary.totale_template }} template master</span>
+      <span class="cat-count-badge" id="catCount">{{ suite_summary.totale_catalogo }} modelli totali</span>
       <button type="button" class="btn btn-sm btn-outline-secondary" id="catResetFilters">
         <i class="bi bi-arrow-counterclockwise me-1"></i>Reset filtri
       </button>
@@ -101,7 +103,8 @@
         'procedimento': 'Procedimento',
         'tipo_atto': 'Tipologia atto',
         'natura_atto': 'Natura atto',
-        'stato': 'Stato template'
+        'stato': 'Stato template',
+        'fonte_catalogo': 'Sorgente'
       } %}
       {% for key, label in filter_labels.items() %}
       <label class="cat-filter-field">
@@ -201,6 +204,7 @@
         data-portale_deposito="{{ t.portale_deposito }}"
         data-stato="{{ t.stato }}"
         data-natura_atto="{{ t.natura_atto }}"
+        data-fonte_catalogo="{{ t.fonte_catalogo }}"
         data-depositabile="{{ 'true' if t.depositabile else 'false' }}"
         data-richiede_firma_digitale="{{ 'true' if t.richiede_firma_digitale else 'false' }}"
         data-richiede_pdfa="{{ 'true' if t.richiede_pdfa else 'false' }}"
@@ -234,6 +238,11 @@
         </div>
 
         <div class="cat-card-badges">
+          {% if t.fonte_catalogo == 'compilatore' %}
+          <span class="cat-card-area-badge">Operativo compilatore</span>
+          {% else %}
+          <span class="cat-card-area-badge">Catalogo master v1.1.0</span>
+          {% endif %}
           <span class="cat-card-area-badge">{{ t.categoria_suite_label }}</span>
           <span class="cat-card-area-badge">{{ t.materia }}</span>
           <span class="cat-card-area-badge">{{ t.rito }}</span>
@@ -298,23 +307,37 @@
         </div>
 
         <div class="cat-card-footer cat-card-actions">
+          {% if t.link_compilatore_code %}
+          <a href="{{ url_for('template_atti.compila', model_code=t.link_compilatore_code) }}" class="btn btn-sm btn-primary">
+            <i class="bi bi-play-circle me-1"></i>Compila atto
+          </a>
+          {% else %}
           <a href="{{ url_for('template_atti.usa', id_template=t.codice) }}" class="btn btn-sm btn-primary">
             <i class="bi bi-magic me-1"></i>Compila
           </a>
+          {% endif %}
+          {% if t.fonte_catalogo == 'compilatore' %}
+          <a href="{{ url_for('template_atti.compila', model_code=t.codice) }}" class="btn btn-sm btn-outline-secondary">
+            <i class="bi bi-eye me-1"></i>Anteprima guidata
+          </a>
+          {% else %}
           <a href="{{ url_for('template_atti.scheda', id_template=t.codice) }}" class="btn btn-sm btn-outline-secondary">
             <i class="bi bi-eye me-1"></i>Anteprima
           </a>
+          {% endif %}
           <button type="button" class="btn btn-sm btn-outline-success" data-compliance-url="{{ url_for('template_atti.template_compliance', codice=t.codice) }}">
             <i class="bi bi-shield-check me-1"></i>Verifica deposito
           </button>
           <button type="button" class="btn btn-sm btn-outline-primary" data-compliance-url="{{ url_for('template_atti.template_compliance', codice=t.codice) }}" data-detail-mode="normativa">
             <i class="bi bi-journal-text me-1"></i>Dettagli normativa
           </button>
+          {% if t.fonte_catalogo != 'compilatore' %}
           <form method="post" action="{{ url_for('template_atti.clona', id_template=t.codice) }}">
             <button type="submit" class="btn btn-sm btn-outline-secondary">
               <i class="bi bi-files me-1"></i>Duplica
             </button>
           </form>
+          {% endif %}
         </div>
       </article>
       {% endfor %}
@@ -382,7 +405,7 @@
 (function () {
   'use strict';
 
-  const totalTemplates = {{ suite_summary.totale_template|int }};
+  const totalTemplates = {{ suite_summary.totale_catalogo|int }};
   const viewCatalogo = document.getElementById('viewCatalogo');
   const viewPratiche = document.getElementById('viewPratiche');
   const toolbar = document.getElementById('catalogToolbar');
@@ -428,8 +451,8 @@
       if (match) visible += 1;
     });
     countEl.textContent = visible === totalTemplates
-      ? `${totalTemplates} template master`
-      : `${visible} su ${totalTemplates} template master`;
+      ? `${totalTemplates} modelli totali`
+      : `${visible} su ${totalTemplates} modelli totali`;
     emptyState.hidden = visible !== 0;
   }
 

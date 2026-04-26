@@ -95,6 +95,7 @@ def test_catalogo_template_route_mostra_master_versionato(tmp_path: Path):
     assert response.status_code == 200
     html = response.get_data(as_text=True)
     assert "Suite professionale completa" in html
+    assert "192 modelli operativi funzionanti" in html
     assert "420 template master" in html
     assert "22 moduli professionali" in html
     assert "7 canali telematici" in html
@@ -104,7 +105,12 @@ def test_catalogo_template_route_mostra_master_versionato(tmp_path: Path):
     assert "Master professionale" not in html
     assert 'id="viewMasterCatalog"' not in html
     assert 'data-master-card="true"' not in html
-    assert html.count('class="cat-card cat-template-card"') == 420
+    assert html.count('class="cat-card cat-template-card"') == 612
+    assert "STR_DIFF_001" in html
+    assert "CIV_CIT_001" in html
+    assert "/template-atti/compila/STR_DIFF_001" in html
+    assert "/template-atti/compila/CIV_CIT_001" in html
+    assert "/template-atti/CIV_ORD_001/usa" not in html
     for codice in [
         "CIV_ORD_001",
         "GDP_001",
@@ -120,7 +126,6 @@ def test_catalogo_template_route_mostra_master_versionato(tmp_path: Path):
         "STD_003",
     ]:
         assert codice in html
-    assert "/template-atti/CIV_ORD_001/usa" in html
     assert "Compila" in html
     assert "Verifica deposito" in html
     assert "Dettagli normativa" in html
@@ -148,11 +153,16 @@ def test_catalogo_service_arricchisce_template_e_filtri():
     assert context["suite_summary"]["titolo"] == "Suite professionale completa"
     assert context["suite_summary"]["versione"] == "v1.1.0"
     assert context["suite_summary"]["totale_template"] == 420
+    assert context["suite_summary"]["template_operativi"] == 192
+    assert context["suite_summary"]["template_master"] == 420
+    assert context["suite_summary"]["totale_catalogo"] == 612
     assert context["suite_summary"]["moduli_professionali"] == 22
     assert context["suite_summary"]["canali_governati"] == 7
     assert len(context["suite_groups"]) == 4
     assert {"materia", "categoria_suite", "portale_deposito", "canale_deposito", "rito", "fase", "stato"} <= set(context["template_filters"])
     assert {
+        "STR_DIFF_001",
+        "CIV_CIT_001",
         "CIV_ORD_001",
         "GDP_001",
         "MON_001",
@@ -174,6 +184,20 @@ def test_catalogo_service_arricchisce_template_e_filtri():
     assert civile["richiede_firma_digitale"] is True
     assert civile["richiede_dati_atto_xml"] is True
     assert civile["controlli_deposito_disponibili"] > 0
+    assert civile["link_compilatore_code"] == "CIV_CIT_001"
+
+    operativo = get_template_catalog_item("STR_DIFF_001")
+    assert operativo
+    assert operativo["fonte_catalogo"] == "compilatore"
+    assert operativo["link_compilatore_code"] == "STR_DIFF_001"
+
+    master_items = [item for item in context["template_suite"] if item["fonte_catalogo"] == "master"]
+    assert len(master_items) == 420
+    assert all(item["link_compilatore_code"] for item in master_items)
+    assert get_template_catalog_item("PEN_001")["link_compilatore_code"] == "PEN_NOM_001"
+    assert get_template_catalog_item("TRI_001")["link_compilatore_code"] == "TRIB_RIC_001"
+    assert get_template_catalog_item("AMM_001")["link_compilatore_code"] == "AMM_RIC_001"
+    assert get_template_catalog_item("STD_001")["link_compilatore_code"] == "STR_INC_001"
 
 
 def test_catalogo_endpoint_data_filters_e_compliance(tmp_path: Path):
@@ -217,7 +241,14 @@ def test_catalogo_endpoint_data_filters_e_compliance(tmp_path: Path):
     data_payload = data_response.get_json()
     assert data_payload["ok"] is True
     assert data_payload["suite"]["totale_template"] == 420
-    assert len(data_payload["templates"]) == 420
+    assert data_payload["suite"]["template_operativi"] == 192
+    assert data_payload["suite"]["totale_catalogo"] == 612
+    assert len(data_payload["templates"]) == 612
+    assert all(
+        item["link_compilatore_code"]
+        for item in data_payload["templates"]
+        if item["fonte_catalogo"] == "master"
+    )
     assert "Diritto civile" in data_payload["filters"]["materia"]
     assert "PDP Penale" in data_payload["filters"]["portale_deposito"]
 

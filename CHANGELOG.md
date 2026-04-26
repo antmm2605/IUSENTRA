@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.184.23 - 2026-04-26
+
+- Ripristinati nella pagina `/template-atti/catalogo` i 192 modelli operativi del compilatore atti, che aprono di nuovo il flusso reale `/template-atti/compila/<codice>`.
+- Mantenuto il catalogo master v1.1.0 da 420 template nella stessa pagina, senza tab o pagina separata, distinguendo chiaramente sorgente `compilatore` e sorgente `master`.
+- Adeguate card, filtri, chip rapidi ed endpoint dati/compliance alla logica unica: tutti i 420 master risolvono un modello compilatore operativo, con binding esatto quando disponibile e fallback professionale per canale/modulo/titolo.
+- Aggiunti test anti-regressione per impedire che i 192 modelli funzionanti vengano nuovamente nascosti o sostituiti dal catalogo master e per verificare che nessun master resti senza `link_compilatore_code`.
+
 ## 2.184.22 - 2026-04-26
 
 - Stabilizzato il wizard `Importa pratica da PST`: la visualizzazione del fascicolo usa una sola sessione PST `view` riutilizzata tra ricerca, anteprima, selezione, mappatura e verifica.

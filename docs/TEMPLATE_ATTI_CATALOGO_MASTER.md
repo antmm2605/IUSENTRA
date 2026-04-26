@@ -39,12 +39,14 @@ Il campo `canale_telematico` distingue il canale operativo reale:
 
 ## Esposizione UI
 
-La route `/template-atti/catalogo` deve mostrare il master come superficie autonoma, non solo come riepilogo:
+La route `/template-atti/catalogo` deve mostrare il master dentro la superficie unica del catalogo template atti, senza creare tab o pagine separate:
 
-- tab `Master professionale` sempre visibile accanto a `Per modello` e `Da pratica`;
+- nessun tab `Master professionale`;
+- 192 modelli operativi del compilatore sempre visibili e non sostituibili dal master;
 - ricerca per titolo, ID, area, famiglia, tag e canale telematico;
 - filtri per gruppi `core`, `advanced`, `specialist`, `studio_interno`;
-- 420 card reali con pulsante `Genera dal master` collegato all'ID governato del template.
+- 420 card master reali con pulsante `Compila` collegato a un modello operativo del compilatore guidato tramite `link_compilatore_code`;
+- binding esatto quando disponibile, fallback governato per canale/modulo/titolo quando il titolo master non coincide con un vecchio modello.
 
 ## Guardrail
 
@@ -54,4 +56,5 @@ I test in `tests/test_template_atti_master_catalog.py` verificano che:
 - tutti i template abbiano lo schema obbligatorio;
 - gli split sommino il totale master;
 - il workspace `Template Atti` importi il master senza perdere i template legacy con compilatore guidato;
-- la route `/template-atti/catalogo` esponga tutte le 420 card master all'utente.
+- la route `/template-atti/catalogo` esponga tutte le 420 card master all'utente;
+- nessun master resti senza collegamento alla logica compilatore funzionante.

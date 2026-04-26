@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from contextlib import contextmanager
 import hashlib
 import json
 import sqlite3
@@ -243,13 +244,23 @@ class GestioneTemplateRepository:
         conn.execute("PRAGMA synchronous = NORMAL")
         return conn
 
+    @contextmanager
+    def _connection(self):
+        conn = self._connect()
+        try:
+            with conn:
+                yield conn
+        finally:
+            if self._postgres_backend is None:
+                conn.close()
+
     def _ensure_schema(self) -> None:
         schema_sql = (
             self.postgres_schema_path.read_text(encoding="utf-8")
             if self._postgres_backend is not None
             else self.schema_path.read_text(encoding="utf-8")
         )
-        with self._connect() as conn:
+        with self._connection() as conn:
             if hasattr(conn, "executescript"):
                 conn.executescript(schema_sql)
             else:  # pragma: no cover - compat difensiva
@@ -257,7 +268,7 @@ class GestioneTemplateRepository:
             conn.commit()
 
     def _get_meta(self, key: str) -> str:
-        with self._connect() as conn:
+        with self._connection() as conn:
             row = conn.execute(
                 "SELECT meta_value FROM template_repository_meta WHERE meta_key = ?",
                 (_clean_spaces(key),),
@@ -289,7 +300,7 @@ class GestioneTemplateRepository:
         )
         counts: dict[str, Any] = {"db_path": self.db_path, "json_path": self.json_path}
         counts["backend_kind"] = self.backend_kind
-        with self._connect() as conn:
+        with self._connection() as conn:
             for table_name in tables:
                 counts[table_name] = int(
                     conn.execute(f"SELECT COUNT(*) FROM {table_name}").fetchone()[0]
@@ -302,7 +313,7 @@ class GestioneTemplateRepository:
         return counts
 
     def load_runtime_state(self) -> list[dict[str, Any]]:
-        with self._connect() as conn:
+        with self._connection() as conn:
             row = conn.execute(
                 "SELECT templates_json FROM template_runtime_state WHERE state_id = ?",
                 ("templates",),
@@ -316,7 +327,7 @@ class GestioneTemplateRepository:
 
     def save_runtime_state(self, templates: list[dict[str, Any]]) -> None:
         payload = json.dumps(list(templates or []), ensure_ascii=False)
-        with self._connect() as conn:
+        with self._connection() as conn:
             conn.execute(
                 """
                 INSERT INTO template_runtime_state (state_id, templates_json, updated_at)
@@ -330,7 +341,7 @@ class GestioneTemplateRepository:
             conn.commit()
 
     def load_editor_preferences(self) -> dict[str, Any] | None:
-        with self._connect() as conn:
+        with self._connection() as conn:
             row = conn.execute(
                 "SELECT layout_json FROM template_editor_preferences WHERE prefs_id = ?",
                 ("default",),
@@ -344,7 +355,7 @@ class GestioneTemplateRepository:
 
     def save_editor_preferences(self, layout: dict[str, Any]) -> None:
         payload = json.dumps(dict(layout or {}), ensure_ascii=False)
-        with self._connect() as conn:
+        with self._connection() as conn:
             conn.execute(
                 """
                 INSERT INTO template_editor_preferences (prefs_id, layout_json, updated_at)
@@ -372,7 +383,7 @@ class GestioneTemplateRepository:
         return self.storage_stats()
 
     def rebuild_from_payload(self, templates: list[dict[str, Any]], *, source_label: str = "template_repository") -> None:
-        with self._connect() as conn:
+        with self._connection() as conn:
             conn.execute("DELETE FROM template_blocks")
             conn.execute("DELETE FROM template_fields")
             conn.execute("DELETE FROM template_checks")
@@ -528,7 +539,7 @@ class GestioneTemplateRepository:
         return self.storage_stats()
 
     def list_templates(self) -> list[dict[str, Any]]:
-        with self._connect() as conn:
+        with self._connection() as conn:
             return [
                 dict(row)
                 for row in conn.execute(
@@ -544,7 +555,7 @@ class GestioneTemplateRepository:
         template_key = _clean_spaces(template_id)
         if not template_key:
             return None
-        with self._connect() as conn:
+        with self._connection() as conn:
             row = conn.execute(
                 "SELECT * FROM template_repository WHERE template_id = ?",
                 (template_key,),

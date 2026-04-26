@@ -4,8 +4,12 @@ from __future__ import annotations
 from collections import Counter
 from copy import deepcopy
 from datetime import datetime
+from functools import lru_cache
+import unicodedata
 from typing import Any
 
+from pct.compilatore_atti import AREA_LABELS, AREA_ORDINE, MODELS, get_essential_docs
+from pct.template_atti_compiler_bindings import compiler_binding_map_by_title
 from pct.template_atti_master_catalog import catalogo_master_stats, load_catalogo_master, load_split_catalogs
 from pct.template_deposit_rules import compliance_template_summary, normalizza_canale, portale_deposito_label
 
@@ -19,6 +23,8 @@ SUITE_GROUP_LABELS: dict[str, str] = {
 
 
 QUICK_FILTERS = [
+    ("Modelli operativi", "fonte_catalogo", "compilatore"),
+    ("Catalogo master", "fonte_catalogo", "master"),
     ("Civile", "materia", "Diritto civile"),
     ("Giudice di Pace", "canale_deposito", "PST_GDP"),
     ("Decreto ingiuntivo", "procedimento", "Procedimento monitorio"),
@@ -40,6 +46,11 @@ QUICK_FILTERS = [
 
 def _clean(value: Any) -> str:
     return " ".join(str(value or "").split()).strip()
+
+
+def _normalizza_testo(value: Any) -> str:
+    normalized = unicodedata.normalize("NFKD", _clean(value).lower())
+    return "".join(char for char in normalized if not unicodedata.combining(char))
 
 
 def _template_prefix(template_id: str, module_codes: list[str]) -> str:
@@ -113,6 +124,13 @@ def _requires_contributo(item: dict[str, Any], canale: str, depositabile: bool) 
     return any(token in title for token in ("ricorso", "citazione", "appello", "opposizione", "sfratto"))
 
 
+def _requires_contributo_from_title(title: str, canale: str, depositabile: bool) -> bool:
+    if not depositabile or canale not in {"PST", "PST_GDP", "PAT", "PTT"}:
+        return False
+    clean_title = _clean(title).lower()
+    return any(token in clean_title for token in ("ricorso", "citazione", "appello", "opposizione", "sfratto"))
+
+
 def _output_previsti(item: dict[str, Any], canale: str, depositabile: bool) -> list[str]:
     outputs = ["docx", "pdf"]
     if _requires_pdfa(canale, depositabile):
@@ -124,16 +142,369 @@ def _output_previsti(item: dict[str, Any], canale: str, depositabile: bool) -> l
     return outputs
 
 
+def _compiler_canale(area_key: str, model: dict[str, Any]) -> tuple[str, bool]:
+    area = _clean(area_key).upper()
+    title = _clean(model.get("name")).lower()
+    if area == "PENALE":
+        return "PDP", True
+    if area == "AMMINISTRATIVO":
+        return "PAT", True
+    if area == "TRIBUTARIO":
+        return "PTT", True
+    if area == "STRAGIUDIZIALE":
+        return "PEC", False
+    if "giudice di pace" in title:
+        return "PST_GDP", True
+    return "PST", True
+
+
+def _compiler_natura_atto(area_key: str, model: dict[str, Any], canale: str) -> str:
+    title = _clean(model.get("name")).lower()
+    area = _clean(area_key).upper()
+    if area == "STRAGIUDIZIALE" or canale == "PEC":
+        return "stragiudiziale"
+    if any(token in title for token in ("appello", "cassazione", "reclamo", "opposizione")):
+        return "impugnazione"
+    if any(token in title for token in ("precetto", "pignoramento", "esecuzione", "assegnazione", "vendita")):
+        return "esecuzione"
+    if any(token in title for token in ("istanza", "memoria", "note", "deposito", "osservazioni")):
+        return "istanza"
+    return "giudiziale"
+
+
+@lru_cache(maxsize=1)
+def _compiler_code_set() -> frozenset[str]:
+    return frozenset(_clean(model.get("code")) for model in MODELS if _clean(model.get("code")))
+
+
+def _first_compiler_code(*candidates: str) -> str:
+    available = _compiler_code_set()
+    for candidate in candidates:
+        code = _clean(candidate)
+        if code in available:
+            return code
+    return "CIV_MEM_001"
+
+
+def _contains_any(text: str, *tokens: str) -> bool:
+    return any(_normalizza_testo(token) in text for token in tokens)
+
+
+def _master_compiler_code(
+    item: dict[str, Any],
+    *,
+    module_code: str,
+    canale: str,
+    natura: str,
+    binding: dict[str, Any] | None,
+) -> str:
+    if binding:
+        bound_code = _clean(binding.get("compiler_code"))
+        if bound_code in _compiler_code_set():
+            return bound_code
+
+    text = _normalizza_testo(
+        " ".join(
+            _clean(value)
+            for value in (
+                item.get("id"),
+                item.get("titolo"),
+                item.get("famiglia"),
+                item.get("area"),
+                item.get("macro_area"),
+                item.get("sottobranca"),
+                item.get("procedimento"),
+                item.get("rito"),
+                item.get("fase"),
+                natura,
+                module_code,
+            )
+            if _clean(value)
+        )
+    )
+    module = _clean(module_code).upper()
+
+    if canale == "PDP" or module.startswith("PEN") or "penale" in text:
+        if _contains_any(text, "querela", "denuncia"):
+            return _first_compiler_code("PEN_SEGNBASE_001", "PEN_IST_001")
+        if _contains_any(text, "nomina", "revoca", "rinuncia mandato", "difensore"):
+            return _first_compiler_code("PEN_NOM_001", "PEN_IST_001")
+        if _contains_any(text, "parte civile", "costituzione"):
+            return _first_compiler_code("PEN_PARTECIVBASE_001", "PEN_IST_001")
+        if _contains_any(text, "lista testi", "testi"):
+            return _first_compiler_code("PEN_LISTATESTI_001", "PEN_IST_001")
+        if _contains_any(text, "appello", "cassazione", "riesame", "opposizione"):
+            return _first_compiler_code("PEN_IMP_001", "PEN_OPPDP_001", "PEN_IST_001")
+        if _contains_any(text, "copie", "accesso fascicolo"):
+            return _first_compiler_code("PEN_COPIE_001", "PEN_IST_001")
+        if _contains_any(text, "sequestro", "dissequestro", "restituzione beni"):
+            return _first_compiler_code("PEN_DISSEQ_001", "PEN_IST_001")
+        if _contains_any(text, "memoria", "note"):
+            return _first_compiler_code("PEN_MEM_001", "PEN_NOTEUD_001", "PEN_IST_001")
+        if _contains_any(text, "rinvio", "legittimo impedimento"):
+            return _first_compiler_code("PEN_RINV_001", "PEN_IST_001")
+        return _first_compiler_code("PEN_IST_001")
+
+    if canale == "PAT" or module.startswith("AMM") or _contains_any(
+        text,
+        "diritto amministrativo",
+        "contenzioso amministrativo",
+        "ricorso al tar",
+        "tribunale amministrativo",
+        "giustizia amministrativa",
+    ):
+        if _contains_any(text, "motivi aggiunti"):
+            return _first_compiler_code("AMM_MOTAGG_001", "AMM_RIC_001")
+        if _contains_any(text, "cautelare", "sospensione"):
+            return _first_compiler_code("AMM_ICAUT_001", "AMM_RIC_001")
+        if _contains_any(text, "appello", "consiglio di stato"):
+            return _first_compiler_code("AMM_APPCDS_001", "AMM_RIC_001")
+        if _contains_any(text, "memoria", "replica"):
+            return _first_compiler_code("AMM_MEM_001", "AMM_RIC_001")
+        if _contains_any(text, "deposito", "documenti", "accesso", "istanza", "oscuramento"):
+            return _first_compiler_code("AMM_DEPDOC_001", "AMM_SEG_001", "AMM_RIC_001")
+        return _first_compiler_code("AMM_RIC_001")
+
+    if canale == "PTT" or module.startswith("TRI") or "tribut" in text:
+        if _contains_any(text, "appello"):
+            return _first_compiler_code("TRIB_APP_001", "TRIB_RIC_001")
+        if _contains_any(text, "controdeduzioni"):
+            return _first_compiler_code("TRIB_CONTRO_001", "TRIB_RIC_001")
+        if _contains_any(text, "sospensione", "cautelare"):
+            return _first_compiler_code("TRIB_SOSP_001", "TRIB_RIC_001")
+        if _contains_any(text, "memoria", "illustrativa"):
+            return _first_compiler_code("TRIB_MEMILL_001", "TRIB_RIC_001")
+        if _contains_any(text, "deposito", "documenti"):
+            return _first_compiler_code("TRIB_DEPDOC_001", "TRIB_IST_001", "TRIB_RIC_001")
+        if _contains_any(text, "istanza", "rinvio", "pubblica udienza", "conciliazione"):
+            return _first_compiler_code("TRIB_IST_001", "TRIB_RIC_001")
+        return _first_compiler_code("TRIB_RIC_001")
+
+    if canale == "NESSUNO" or module.startswith("STD") or "studio interno" in text:
+        if _contains_any(text, "preventivo", "proforma", "fondo spese", "parcella"):
+            return _first_compiler_code("STR_PREV_001", "STR_COM_001")
+        if _contains_any(text, "incarico", "mandato", "accettazione preventivo"):
+            return _first_compiler_code("STR_INC_001", "STR_COM_001")
+        if _contains_any(text, "procura"):
+            return _first_compiler_code("CIV_PROC_001", "STR_INC_001")
+        return _first_compiler_code("STR_COM_001")
+
+    if canale == "PEC" or "stragiudiziale" in text or "adr" in text:
+        if _contains_any(text, "preventivo"):
+            return _first_compiler_code("STR_PREV_001", "STR_COM_001")
+        if _contains_any(text, "incarico"):
+            return _first_compiler_code("STR_INC_001", "STR_COM_001")
+        if _contains_any(text, "messa in mora", "mora"):
+            return _first_compiler_code("STR_MM_001", "STR_DIFF_001")
+        if _contains_any(text, "sollecito"):
+            return _first_compiler_code("STR_SOLL_001", "STR_DIFF_001")
+        if _contains_any(text, "diffida ad adempiere"):
+            return _first_compiler_code("STR_INVAD_001", "STR_DIFF_001")
+        if _contains_any(text, "diffida", "reclamo", "richiesta", "contestazione"):
+            return _first_compiler_code("STR_DIFF_001", "STR_CONTEST_001", "STR_COM_001")
+        if _contains_any(text, "transazione", "saldo", "stralcio", "accordo"):
+            return _first_compiler_code("STR_PTR_001", "STR_ATR_001", "STR_COM_001")
+        return _first_compiler_code("STR_COM_001")
+
+    if module.startswith("FAM") or module.startswith("VGS") or "famiglia" in text or "volontaria giurisdizione" in text:
+        if _contains_any(text, "separazione consensuale"):
+            return _first_compiler_code("FAM_SEPC_001", "FAM_MEMO_001")
+        if _contains_any(text, "separazione giudiziale"):
+            return _first_compiler_code("FAM_SEPG_001", "FAM_MEMO_001")
+        if _contains_any(text, "divorzio congiunto"):
+            return _first_compiler_code("FAM_DIVC_001", "FAM_MEMO_001")
+        if _contains_any(text, "divorzio giudiziale"):
+            return _first_compiler_code("FAM_DIVG_001", "FAM_MEMO_001")
+        if _contains_any(text, "amministrazione di sostegno", "ads"):
+            return _first_compiler_code("FAM_ADS_001", "FAM_TUT_001")
+        if _contains_any(text, "tutore", "curatore", "giudice tutelare", "autorizzazione", "eredita"):
+            return _first_compiler_code("FAM_TUT_001", "FAM_VG_003", "FAM_MEMO_001")
+        if _contains_any(text, "affidamento", "figli", "minore", "protezione", "responsabilita genitoriale"):
+            return _first_compiler_code("FAM_AFF_001", "FAM_MEMO_001")
+        if _contains_any(text, "modifica", "revisione", "mantenimento", "revoca", "riduzione"):
+            return _first_compiler_code("FAM_MOD_001", "FAM_MEMO_001")
+        return _first_compiler_code("FAM_MEMO_001", "FAM_TUT_001")
+
+    if module.startswith("LAV") or "lavoro" in text or "previdenza" in text:
+        if _contains_any(text, "appello", "reclamo"):
+            return _first_compiler_code("LAV_APP_001", "LAV_RIC_001")
+        if _contains_any(text, "memoria", "difensiva"):
+            return _first_compiler_code("LAV_MEM_001", "LAV_RIC_001")
+        if _contains_any(text, "diffida", "messa in mora"):
+            return _first_compiler_code("STR_DIFF_001", "STR_MM_001")
+        if _contains_any(text, "previdenziale", "inps", "invalidita", "accompagnamento"):
+            return _first_compiler_code("LAV_PREV_001", "LAV_RIC_001")
+        return _first_compiler_code("LAV_RIC_001")
+
+    if module.startswith("LOC") or "locazioni" in text or "condominio" in text or "immobili" in text:
+        if _contains_any(text, "sfratto", "licenza", "rilascio"):
+            return _first_compiler_code("CIV_SFRINT_001", "CIV_CONVSFR_001", "CIV_CIT_001")
+        if _contains_any(text, "diffida"):
+            return _first_compiler_code("STR_DIFF_001", "STR_COM_001")
+        if _contains_any(text, "ricorso monitorio", "canoni"):
+            return _first_compiler_code("CIV_RDI_001", "CIV_CIT_001")
+        return _first_compiler_code("CIV_CIT_001")
+
+    if module.startswith("MON") or "monitorio" in text or "decreto ingiuntivo" in text:
+        if _contains_any(text, "opposizione"):
+            return _first_compiler_code("CIV_OPPDI_001", "CIV_COM_001")
+        if _contains_any(text, "precetto"):
+            return _first_compiler_code("CIV_PREC_001", "CIV_RDI_001")
+        if _contains_any(text, "istanza"):
+            return _first_compiler_code("CIV_IST_001", "CIV_RDI_001")
+        return _first_compiler_code("CIV_RDI_001")
+
+    if module.startswith("ESE") or "esecuzione" in text or "pignoramento" in text or "precetto" in text:
+        if _contains_any(text, "precetto"):
+            return _first_compiler_code("CIV_PREC_001", "CIV_PIGBASE_001")
+        if _contains_any(text, "pignoramento"):
+            return _first_compiler_code("CIV_PIGBASE_001", "CIV_ESE_001")
+        if _contains_any(text, "opposizione"):
+            return _first_compiler_code("CIV_OPESE_001", "CIV_IST_001")
+        return _first_compiler_code("CIV_IST_001")
+
+    if module.startswith("GDP") or canale == "PST_GDP" or "giudice di pace" in text:
+        if _contains_any(text, "opposizione"):
+            return _first_compiler_code("CIV_CIT_001", "CIV_OPPDI_001")
+        if _contains_any(text, "comparsa"):
+            return _first_compiler_code("CIV_COM_001", "CIV_CIT_001")
+        if _contains_any(text, "memoria", "nota conclusiva"):
+            return _first_compiler_code("CIV_MEM_001", "CIV_CONCL_001")
+        if _contains_any(text, "istanza"):
+            return _first_compiler_code("CIV_IST_001", "CIV_CIT_001")
+        return _first_compiler_code("CIV_CIT_001")
+
+    if _contains_any(text, "ricorso ex art. 700", "cautelare", "sequestro", "atp", "possesso", "inibitorio"):
+        return _first_compiler_code("CIV_RCAUT_001", "CIV_IST_001")
+    if _contains_any(text, "appello", "cassazione", "reclamo", "revocazione"):
+        return _first_compiler_code("CIV_APP_001", "CIV_COM_001")
+    if _contains_any(text, "comparsa"):
+        return _first_compiler_code("CIV_COM_001", "CIV_CIT_001")
+    if _contains_any(text, "memoria", "note", "conclusionale", "replica"):
+        return _first_compiler_code("CIV_MEM_001", "CIV_CONCL_001", "CIV_REPL_001")
+    if _contains_any(text, "istanza", "deposito documenti", "ordine di esibizione", "ctu"):
+        return _first_compiler_code("CIV_IST_001", "CIV_DEPDOC_001")
+    if _contains_any(text, "ricorso"):
+        return _first_compiler_code("CIV_CIT_001", "CIV_RCAUT_001")
+    return _first_compiler_code("CIV_CIT_001")
+
+
+def _compiler_catalog_items() -> list[dict[str, Any]]:
+    items: list[dict[str, Any]] = []
+    area_order = {area: index for index, area in enumerate(AREA_ORDINE, start=1)}
+    for index, model in enumerate(MODELS, start=1):
+        code = _clean(model.get("code"))
+        if not code:
+            continue
+        area_key = _clean(model.get("area")).upper()
+        area_label = AREA_LABELS.get(area_key, area_key.title())
+        title = _clean(model.get("name")) or code
+        canale, depositabile = _compiler_canale(area_key, model)
+        compliance = compliance_template_summary(canale, [])
+        essential_docs = [_clean(value) for value in get_essential_docs(code) if _clean(value)]
+        required_fields = [_clean(value) for value in model.get("required_extra_fields") or [] if _clean(value)]
+        keywords = [
+            code,
+            title,
+            area_key,
+            area_label,
+            _clean(model.get("summary")),
+            canale,
+            portale_deposito_label(canale),
+            *essential_docs,
+            *required_fields,
+            *[_clean(value) for value in model.get("sections") or [] if _clean(value)],
+        ]
+        natura = _compiler_natura_atto(area_key, model, canale)
+        richiede_pdfa = _requires_pdfa(canale, depositabile)
+        richiede_firma = _requires_signature(canale, depositabile)
+        richiede_dati_atto = _requires_dati_atto(canale, depositabile)
+        richiede_contributo = _requires_contributo_from_title(title, canale, depositabile)
+        items.append(
+            {
+                "id": code,
+                "codice": code,
+                "titolo": title,
+                "slug": code.lower().replace("_", "-"),
+                "descrizione": _clean(model.get("summary"))
+                or f"Modello operativo del compilatore atti per {area_label}.",
+                "versione": "operativo",
+                "categoria_suite": "modelli_operativi",
+                "categoria_suite_label": "Modelli operativi compilatore",
+                "modulo_professionale": area_label,
+                "modulo_codice": area_key,
+                "famiglia": area_label,
+                "area": area_label,
+                "macro_area": area_label,
+                "materia": area_label,
+                "sottobranca": _clean(model.get("renderer")) or "Compilatore guidato",
+                "procedimento": title,
+                "variante": "",
+                "rito": area_label,
+                "fase": "Compilazione guidata",
+                "autorita": "Da pratica / fascicolo",
+                "tipo_atto": title,
+                "natura_atto": natura,
+                "canale_deposito": canale,
+                "canale_telematico": canale,
+                "portale_deposito": portale_deposito_label(canale),
+                "depositabile": depositabile,
+                "normativa_riferimento": [
+                    {
+                        "fonte": rule["fonte_normativa"],
+                        "versione": rule["versione_regola"],
+                        "data_ultimo_aggiornamento": rule["data_ultimo_aggiornamento"],
+                    }
+                    for rule in compliance["regole"][:3]
+                ],
+                "controlli_conformita": [
+                    _clean(rule.get("codice") or rule.get("label"))
+                    for rule in compliance["regole"]
+                    if _clean(rule.get("codice") or rule.get("label"))
+                ],
+                "controlli_conformita_dettaglio": compliance["regole"],
+                "controlli_deposito_disponibili": compliance["totale"],
+                "controlli_completi": compliance["completo"],
+                "allegati_obbligatori": essential_docs,
+                "allegati_facoltativi": [
+                    _clean(value) for value in model.get("suggested_attachments") or [] if _clean(value)
+                ][:5],
+                "dati_obbligatori": required_fields,
+                "blocchi_guidati": [_clean(value) for value in model.get("sections") or [] if _clean(value)],
+                "richiede_pdfa": richiede_pdfa,
+                "richiede_firma_digitale": richiede_firma,
+                "richiede_dati_atto_xml": richiede_dati_atto,
+                "richiede_contributo_unificato": richiede_contributo,
+                "richiede_marca_bollo": False,
+                "output_previsti": _output_previsti({}, canale, depositabile),
+                "stato": "pronto",
+                "priorita": area_order.get(area_key, 99) * 1000 + index,
+                "tags": [area_label, "Compilatore atti", "Operativo"],
+                "created_at": "",
+                "updated_at": "",
+                "search_text": " ".join(_clean(value).lower() for value in keywords if _clean(value)),
+                "compliance_summary": compliance,
+                "fonte_catalogo": "compilatore",
+                "is_compiler_model": True,
+                "link_compilatore_code": code,
+            }
+        )
+    return sorted(items, key=lambda row: (row["priorita"], row["codice"]))
+
+
 def build_template_catalog_items() -> list[dict[str, Any]]:
     payload = load_catalogo_master()
     split_index = _build_split_index()
     modules = _module_index(payload)
     module_codes = list(modules)
-    items: list[dict[str, Any]] = []
+    compiler_links = compiler_binding_map_by_title()
+    items: list[dict[str, Any]] = _compiler_catalog_items()
 
     for raw in payload.get("template") or []:
         item = deepcopy(raw)
         template_id = _clean(item.get("id"))
+        title = _clean(item.get("titolo"))
+        binding = compiler_links.get(title)
         canale = normalizza_canale(item.get("canale_telematico"))
         depositabile = bool(item.get("depositabile"))
         module_code = _template_prefix(template_id, module_codes)
@@ -145,6 +516,13 @@ def build_template_catalog_items() -> list[dict[str, Any]]:
         allegati_obbligatori = [_clean(value) for value in item.get("allegati_essenziali") or [] if _clean(value)]
         tags = [_clean(value) for value in item.get("tags") or [] if _clean(value)]
         natura = _derive_natura_atto(item)
+        compiler_code = _master_compiler_code(
+            item,
+            module_code=module_code,
+            canale=canale,
+            natura=natura,
+            binding=binding,
+        )
         richiede_pdfa = _requires_pdfa(canale, depositabile)
         richiede_firma = _requires_signature(canale, depositabile)
         richiede_dati_atto = _requires_dati_atto(canale, depositabile)
@@ -163,6 +541,7 @@ def build_template_catalog_items() -> list[dict[str, Any]]:
             canale,
             portale_deposito_label(canale),
             natura,
+            compiler_code,
             module.get("nome"),
             split_meta.get("categoria_suite_label"),
             *tags,
@@ -214,6 +593,10 @@ def build_template_catalog_items() -> list[dict[str, Any]]:
                 "updated_at": "",
                 "search_text": " ".join(_clean(value).lower() for value in search_parts if _clean(value)),
                 "compliance_summary": compliance,
+                "fonte_catalogo": "master",
+                "is_compiler_model": False,
+                "link_compilatore_code": compiler_code,
+                "link_compilatore_tipo": "binding" if binding else "fallback",
             }
         )
     return sorted(items, key=lambda row: (row["priorita"], row["codice"]))
@@ -238,17 +621,23 @@ def build_template_catalog_filters(items: list[dict[str, Any]]) -> dict[str, lis
         "portale_deposito": _filter_values(items, "portale_deposito"),
         "stato": _filter_values(items, "stato"),
         "natura_atto": _filter_values(items, "natura_atto"),
+        "fonte_catalogo": _filter_values(items, "fonte_catalogo"),
     }
 
 
 def build_suite_summary(items: list[dict[str, Any]]) -> dict[str, Any]:
     stats = catalogo_master_stats()
-    canali = Counter(item["canale_deposito"] for item in items)
-    groups = Counter(item["categoria_suite_label"] for item in items)
+    master_items = [item for item in items if item.get("fonte_catalogo") == "master"]
+    compiler_items = [item for item in items if item.get("fonte_catalogo") == "compilatore"]
+    canali = Counter(item["canale_deposito"] for item in master_items)
+    groups = Counter(item["categoria_suite_label"] for item in master_items)
     return {
         "titolo": "Suite professionale completa",
         "versione": f"v{stats.get('versione')}",
-        "totale_template": len(items),
+        "totale_template": int(stats.get("totale_template") or len(master_items)),
+        "totale_catalogo": len(items),
+        "template_operativi": len(compiler_items),
+        "template_master": len(master_items),
         "moduli_professionali": int(stats.get("moduli") or 0),
         "canali_governati": len(canali),
         "canali": dict(sorted(canali.items())),

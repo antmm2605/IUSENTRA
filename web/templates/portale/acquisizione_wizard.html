@@ -196,7 +196,7 @@
     </div></div></section>
 
     <section class="aw-pane" data-step="7"><div class="card shadow-sm border-0"><div class="card-body p-4">
-      <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-3"><div><h2 class="h5 mb-1">Step 7 — Importazione finale</h2><p class="text-muted mb-0">Conferma l’acquisizione, importa i file reali e apri subito il quadro della pratica importata.</p></div><button class="btn btn-{{ spec.color }}" type="button" id="awImport">Importa</button></div>
+      <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-3"><div><h2 class="h5 mb-1">Step 7 — Importazione finale</h2><p class="text-muted mb-0">Conferma l’acquisizione: IUSENTRA scarica i file reali disponibili, li smista nelle sezioni del fascicolo e apre subito la pratica importata.</p></div><button class="btn btn-{{ spec.color }}" type="button" id="awImport">Importa tutto</button></div>
       <div class="aw-box bg-light-subtle mb-3">
         <div class="form-check form-switch mb-3">
           <input class="form-check-input" type="checkbox" id="scarica_originale_portale" {% if wizard_portale != 'pst' %}checked{% endif %}>
@@ -280,7 +280,7 @@
           </div>
         </div>
         <div class="alert alert-light border rounded-4 mt-3 mb-0 small" id="awManualUploadSummary">
-          Nessun file manuale selezionato. In assenza di upload, IUSENTRA prova a recuperare i file gia scaricati dal browser ufficiale o dal Local Signer.
+          Nessun file manuale selezionato. In assenza di upload, il pulsante <strong>Importa tutto</strong> prova automaticamente a recuperare i file reali dal Local Signer o dai download del browser ufficiale.
         </div>
       </div>
       <div class="alert alert-light border rounded-4" id="awImportState">Pronto per l’importazione finale.</div>
@@ -2088,6 +2088,50 @@ function awRenderPreview() {
         </div>`).join('') : '<div class="aw-box text-muted">Nessun documento disponibile dal portale per questo fascicolo.</div>'}
     </div>`;
 }
+async function awApplyLocalSignerDocumentsToPreview(documenti, { tab = 'documenti', refreshAnalysis = true } = {}) {
+  const selection = AW_STATE.selection;
+  if (!selection) throw new Error('Seleziona prima un fascicolo PST/SIGP.');
+  const currentIndex = AW_STATE.results.findIndex(row => row.external_id === selection.external_id);
+  let cleanSelection = selection;
+  const safeDocuments = Array.isArray(documenti) ? documenti : [];
+  if (safeDocuments.length) {
+    cleanSelection = awClearManualSelection(selection);
+    awStoreSelection(currentIndex, cleanSelection);
+  }
+  const data = await awJson(AW_BOOT.previewUrl, {
+    method: 'POST',
+    body: JSON.stringify({ selection: cleanSelection, documenti: safeDocuments }),
+  });
+  if (!data.ok) throw awBuildPortaleError(data, 'Anteprima documenti non disponibile');
+  AW_STATE.preview = data.preview || null;
+  AW_STATE.previewTab = tab;
+  AW_STATE.analysis = null;
+  AW_STATE.downloadedFiles = [];
+  AW_STATE.downloadSummary = null;
+  AW_STATE.downloadCacheKey = '';
+  awRenderResults();
+  awRenderPreview();
+  awPostProcessPreviewDom();
+  awRenderSelectionOptions();
+  awRenderAnalysis();
+  awRenderSidebar();
+  if (refreshAnalysis) await awWarmAnalysis();
+  return safeDocuments;
+}
+async function awEnsurePstPreviewDocumentCatalog({ force = false } = {}) {
+  if (AW_BOOT.portale !== 'pst') return awSelectedPreviewDocuments().length;
+  const options = awCurrentOptions();
+  if (!awShouldImportPortalFiles(options)) return 0;
+  const currentDocs = awSelectedPreviewDocuments(options);
+  if (!force && currentDocs.length) return currentDocs.length;
+  if (!awCanPreviewPstViaBrowser(AW_STATE.selection)) return currentDocs.length;
+  if (!AW_STATE.status.demo_mode) await awRefreshStatus({ force: true, probeSigner: true, light: true });
+  await awEnsureLocalSignerReachable({ light: true });
+  const documenti = await awPreviewViaLocalSigner(AW_STATE.selection);
+  if (!Array.isArray(documenti) || !documenti.length) return 0;
+  await awApplyLocalSignerDocumentsToPreview(documenti, { tab: 'documenti', refreshAnalysis: true });
+  return awSelectedPreviewDocuments(options).length;
+}
 async function awLoadDocumentsFromLocalSigner() {
   const btn = document.getElementById('awLoadDocuments');
   const selection = AW_STATE.selection;
@@ -2108,27 +2152,7 @@ async function awLoadDocumentsFromLocalSigner() {
     if (!AW_STATE.status.demo_mode) await awRefreshStatus({ force: true, probeSigner: true, light: true });
     await awEnsureLocalSignerReachable({ light: true });
     const documenti = await awPreviewViaLocalSigner(selection);
-    const currentIndex = AW_STATE.results.findIndex(row => row.external_id === selection.external_id);
-    let cleanSelection = selection;
-    if (Array.isArray(documenti) && documenti.length) {
-      cleanSelection = awClearManualSelection(selection);
-      awStoreSelection(currentIndex, cleanSelection);
-    }
-    const data = await awJson(AW_BOOT.previewUrl, {
-      method: 'POST',
-      body: JSON.stringify({ selection: cleanSelection, documenti: Array.isArray(documenti) ? documenti : [] }),
-    });
-    if (!data.ok) throw awBuildPortaleError(data, 'Anteprima documenti non disponibile');
-    AW_STATE.preview = data.preview || null;
-    AW_STATE.previewTab = 'documenti';
-    AW_STATE.analysis = null;
-    awRenderResults();
-    awRenderPreview();
-    awPostProcessPreviewDom();
-    awRenderSelectionOptions();
-    awRenderAnalysis();
-    awRenderSidebar();
-    await awWarmAnalysis();
+    await awApplyLocalSignerDocumentsToPreview(documenti, { tab: 'documenti', refreshAnalysis: true });
     if (!Array.isArray(documenti) || !documenti.length) {
       document.getElementById('awPreview').insertAdjacentHTML(
         'afterbegin',
@@ -2384,6 +2408,10 @@ async function awStartImport() {
   let downloadSummary = null;
   let selectedDocsCount = 0;
   try {
+    if (!manualAuthorizedPayload && AW_BOOT.portale === 'pst' && awShouldImportPortalFiles(options)) {
+      state.innerHTML = 'Verifico il catalogo documenti PST e preparo il download reale dal Local Signer...';
+      await awEnsurePstPreviewDocumentCatalog();
+    }
     selectedDocsCount = AW_STATE.preview ? awSelectedPreviewDocuments(options).length : 0;
     if (manualUploadedFiles.length && awShouldImportPortalFiles(options) && selectedDocsCount > 0) {
       downloadedFiles = manualUploadedFiles;
@@ -2401,8 +2429,9 @@ async function awStartImport() {
       downloadSummary = await awEnsurePstDownloadedFiles();
       downloadedFiles = Array.isArray(downloadSummary.files) ? downloadSummary.files : [];
       if (AW_STATE.downloadWarning) {
-        state.innerHTML = `<span class="text-warning"><i class="bi bi-exclamation-triangle me-1"></i>${awEscape(AW_STATE.downloadWarning)}</span><br><small class="text-muted">Importazione in corso con i file disponibili...</small>`;
-        await new Promise(r => setTimeout(r, 2000));
+        importBtn.disabled = false;
+        state.innerHTML = `<span class="text-danger"><i class="bi bi-x-circle me-1"></i>${awEscape(AW_STATE.downloadWarning)}</span><br><small class="text-muted">Importazione interrotta: per PST devono essere scaricati tutti i documenti selezionati prima di aggiornare il fascicolo.</small>`;
+        return;
       } else {
         state.innerHTML = `<i class="bi bi-check-circle text-success me-1"></i>Download completato: ${downloadedFiles.length}/${downloadSummary.documenti_richiesti || downloadedFiles.length} allegati scaricati. Importazione in corso...`;
       }
@@ -2422,15 +2451,9 @@ async function awStartImport() {
     awHideDownloadProgress();
     if (AW_BOOT.portale === 'pst' && awShouldImportPortalFiles(options) && selectedDocsCount > 0) {
       downloadedFiles = [];
-      downloadSummary = {
-        ok: false,
-        files: [],
-        failures: [{ errore: awErrorMessage(err) }],
-        documenti_richiesti: selectedDocsCount,
-        documenti_scaricati: 0,
-        collection_mode: 'catalog-only',
-      };
-      state.innerHTML = `<span class="text-warning"><i class="bi bi-exclamation-triangle me-1"></i>Download file non completato: ${awEscape(awErrorMessage(err))}</span><br><small class="text-muted">Procedo comunque salvando nel fascicolo il catalogo ufficiale dei documenti e delle buste.</small>`;
+      importBtn.disabled = false;
+      state.innerHTML = `<span class="text-danger"><i class="bi bi-x-circle me-1"></i>Download file non completato: ${awEscape(awErrorMessage(err))}</span><br><small class="text-muted">Importazione interrotta: non salvo il fascicolo solo come metadati quando sono stati selezionati documenti reali. Verifica Local Signer/sessione PST e premi di nuovo <strong>Importa tutto</strong>.</small>`;
+      return;
     } else {
       importBtn.disabled = false;
       state.innerHTML = `<span class="text-danger"><i class="bi bi-x-circle me-1"></i>${awEscape(awErrorMessage(err))}</span>`;
@@ -2503,6 +2526,14 @@ async function awStartImport() {
     ['Apri timeline', AW_STATE.importResult?.timeline_url, 'outline-' + AW_BOOT.spec.color],
     ['Apri scadenziario', AW_STATE.importResult?.scadenziario_url, 'outline-' + AW_BOOT.spec.color],
   ].filter(([, url]) => !!url).map(([label, url, cls]) => `<a class="btn btn-${cls}" href="${url}">${label}</a>`).join('');
+  const autoOpenUrl = AW_STATE.importResult?.documenti_url || AW_STATE.importResult?.dettaglio_url || AW_STATE.importResult?.quadro_url || '';
+  if (autoOpenUrl) {
+    state.insertAdjacentHTML(
+      'beforeend',
+      '<div class="small mt-2 text-muted"><i class="bi bi-arrow-right-circle me-1"></i>Apro automaticamente il fascicolo nella sezione corretta...</div>',
+    );
+    window.setTimeout(() => { window.location.href = autoOpenUrl; }, 900);
+  }
   awRenderSidebar();
 }
 function awSidebarPortalModeLabel(options) {

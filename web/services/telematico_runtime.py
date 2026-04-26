@@ -2063,6 +2063,21 @@ def build_telematico_runtime(
                     decoded_items,
                     original=scarica_originale_portale,
                 )
+            if not files:
+                raise ValueError(
+                    "Importazione PST interrotta: il fascicolo espone documenti, ma non sono arrivati "
+                    "file reali dal Local Signer. IUSENTRA non importa piu' solo catalogo o metadati."
+                )
+            if not decoded_items:
+                raise ValueError(
+                    "Importazione PST interrotta: il lotto scaricato non contiene file documentali "
+                    "riconducibili al catalogo del fascicolo."
+                )
+            if len(decoded_items) < documenti_attesi:
+                raise ValueError(
+                    f"Importazione PST interrotta: scaricati {len(decoded_items)} documenti su "
+                    f"{documenti_attesi}. Il fascicolo viene aggiornato solo quando il lotto e' completo."
+                )
 
         log_id = _append_portale_import_log(
             {

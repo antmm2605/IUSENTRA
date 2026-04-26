@@ -3288,8 +3288,11 @@ def test_acquisizione_wizard_pst_carica_documenti_local_signer_anche_in_modalita
     assert "return !selection?.manual_mode && awShouldUseLocalSigner();" in template
     assert "payload.documenti = await awPreviewViaLocalSigner(selection)" in template
     assert "document.getElementById('awLoadDocuments').addEventListener('click', awLoadDocumentsFromLocalSigner)" in template
-    assert "collection_mode: 'catalog-only'" in template
-    assert "Procedo comunque salvando nel fascicolo il catalogo ufficiale" in template
+    assert "function awEnsurePstPreviewDocumentCatalog" in template
+    assert "await awEnsurePstPreviewDocumentCatalog()" in template
+    assert "Importazione interrotta: non salvo il fascicolo solo come metadati" in template
+    assert "window.location.href = autoOpenUrl" in template
+    assert "Importa tutto" in template
     assert "awFormatDate(identity.data_iscrizione)" in template
     assert "awEscape(dep.data_deposito || 'n.d.')" not in template
 
@@ -4619,7 +4622,7 @@ def test_api_portale_acquisizione_import_pst_importa_file_reali_e_salva_albero(t
     )
 
 
-def test_api_portale_acquisizione_import_pst_salva_catalogo_anche_senza_file(tmp_path):
+def test_api_portale_acquisizione_import_pst_blocca_catalogo_senza_file(tmp_path):
     from pct.auth import GestioneUtenti, RuoloUtente
     from web.app import create_app
 
@@ -4774,11 +4777,9 @@ def test_api_portale_acquisizione_import_pst_salva_catalogo_anche_senza_file(tmp
 
     data = response.get_json()
     assert response.status_code == 200
-    assert data["ok"] is True
-    assert data["result"]["summary"]["documenti"] == 0
-    assert data["result"]["summary"]["documenti_catalogo"] == 1
-    assert data["result"]["summary"]["depositi"] == 1
-    assert data["result"]["summary"]["catalogo_solo_metadati"] is True
+    assert data["ok"] is False
+    assert "non sono arrivati file reali" in data["errore"]
+    assert "solo catalogo o metadati" in data["errore"]
 
     gestione_fascicoli_reload = GestioneFascicoli(
         db_path=cfg["FASCICOLI_DB"],
@@ -4788,11 +4789,7 @@ def test_api_portale_acquisizione_import_pst_salva_catalogo_anche_senza_file(tmp
     fascicolo_reload = gestione_fascicoli_reload.get(fascicolo.id)
     assert fascicolo_reload is not None
     assert len(fascicolo_reload.documenti) == 0
-    assert len(fascicolo_reload.depositi_pct) == 1
-    assert fascicolo_reload.depositi_pct[0].documenti_portale
-    assert fascicolo_reload.depositi_pct[0].documenti_portale[0]["id_documento"] == "DOC-VERBALE-1"
-    assert fascicolo_reload.depositi_pct[0].documenti_portale[0]["tipo_atto"] == "VerbaleUdienza"
-    assert fascicolo_reload.depositi_pct[0].servizio_portale == "DocumentiFascicolo"
+    assert len(fascicolo_reload.depositi_pct) == 0
 
 
 def test_api_portale_acquisizione_import_pst_arricchisce_file_locali_con_metadati_preview(tmp_path):

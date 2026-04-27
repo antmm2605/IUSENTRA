@@ -13,7 +13,7 @@
   {% if payload.site.favicon_url %}<link rel="icon" href="{{ payload.site.favicon_url }}">{% endif %}
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
-  <link href="/static/css/app.css?v={{ app_version }}" rel="stylesheet">
+  <link href="/static/css/studio_site_public.css?v={{ app_version }}" rel="stylesheet">
   <style>
     :root {
       --studio-site-primary: {{ payload.site.primary_color or '#1d4ed8' }};
@@ -45,46 +45,78 @@
 </head>
 <body class="studio-site-public studio-site-template-{{ payload.theme.template_code if payload.theme else 'classic_legal' }}">
   <a class="studio-site-skip-link" href="#contenuto-principale">Salta al contenuto principale</a>
+
+  {# Backdrop del menu mobile — cliccabile per chiudere il drawer #}
+  <div class="studio-site-nav-backdrop" id="studioSiteNavBackdrop" aria-hidden="true"></div>
+
   <header class="studio-site-header">
-    <div class="container py-3">
-      <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
-        <a href="{{ url_for('studio_site_public.home', public_slug=payload.site.public_slug) }}" class="studio-site-brand text-decoration-none">
-          {% if payload.site.logo_url %}
-            <img src="{{ payload.site.logo_url }}" alt="{{ payload.site.site_name }}" class="studio-site-brand-logo">
-          {% else %}
-            <span class="studio-site-brand-mark">{{ (payload.site.site_name or 'S')[:1] }}</span>
-          {% endif %}
-          <span>
-            <strong>{{ payload.site.site_name }}</strong>
-            <small>{{ payload.site.city }}{% if payload.site.province %} - {{ payload.site.province }}{% endif %}</small>
-          </span>
+    <div class="container">
+      <a href="{{ url_for('studio_site_public.home', public_slug=payload.site.public_slug) }}" class="studio-site-brand">
+        {% if payload.site.logo_url %}
+          <img src="{{ payload.site.logo_url }}" alt="{{ payload.site.site_name }}" class="studio-site-brand-logo">
+        {% else %}
+          <span class="studio-site-brand-mark">{{ (payload.site.site_name or 'S')[:1] }}</span>
+        {% endif %}
+        <span>
+          <strong>{{ payload.site.site_name }}</strong>
+          <small>{{ payload.site.city }}{% if payload.site.province %} - {{ payload.site.province }}{% endif %}</small>
+        </span>
+      </a>
+
+      <nav class="studio-site-nav" id="studioSiteNav" aria-label="Navigazione principale">
+        {# Intestazione drawer (visibile solo su mobile/tablet) #}
+        <div class="studio-site-nav-drawer-header d-none" id="studioSiteNavHeader">
+          <strong>{{ payload.site.site_name }}</strong>
+          <button type="button" class="btn btn-sm btn-outline-secondary studio-site-nav-close"
+                  aria-label="Chiudi menu">
+            <i class="bi bi-x-lg"></i>
+          </button>
+        </div>
+
+        <a href="{{ url_for('studio_site_public.home', public_slug=payload.site.public_slug) }}">
+          <i class="bi bi-house me-2"></i>Home
         </a>
-        <button class="studio-site-nav-toggle" type="button" aria-controls="studioSiteNav" aria-expanded="false">
-          <i class="bi bi-list"></i><span>Menu</span>
-        </button>
-        <nav class="studio-site-nav" id="studioSiteNav">
-          <a href="{{ url_for('studio_site_public.home', public_slug=payload.site.public_slug) }}">Home</a>
-          {% for page in payload.menu_pages %}
-            <a href="{{ url_for('studio_site_public.page_detail', public_slug=payload.site.public_slug, page_slug=page.slug) }}">{{ page.title }}</a>
-          {% endfor %}
-          {% if payload.articles %}
-            <a href="{{ url_for('studio_site_public.articles', public_slug=payload.site.public_slug) }}">Articoli</a>
-          {% endif %}
-          {% if payload.booking_enabled %}
-            <a href="{{ url_for('studio_site_public.booking', public_slug=payload.site.public_slug) }}">Prenota</a>
-          {% endif %}
-          <a href="{{ url_for('studio_site_public.contacts', public_slug=payload.site.public_slug) }}">Contatti</a>
-          {% if payload.show_legal_tools %}
-            <a href="{{ url_for('studio_site_public.legal_tools', public_slug=payload.site.public_slug) }}">Strumenti legali</a>
-          {% endif %}
-          {% if payload.show_applications %}
-            <a href="{{ url_for('studio_site_public.applications', public_slug=payload.site.public_slug) }}">Applicazioni</a>
-          {% endif %}
-          {% if payload.show_legal_news %}
-            <a href="{{ url_for('studio_site_public.legal_news', public_slug=payload.site.public_slug) }}">News giuridiche</a>
-          {% endif %}
-        </nav>
-      </div>
+        {% for page in payload.menu_pages %}
+          <a href="{{ url_for('studio_site_public.page_detail', public_slug=payload.site.public_slug, page_slug=page.slug) }}">
+            {{ page.title }}
+          </a>
+        {% endfor %}
+        {% if payload.articles %}
+          <a href="{{ url_for('studio_site_public.articles', public_slug=payload.site.public_slug) }}">
+            <i class="bi bi-newspaper me-2"></i>Articoli
+          </a>
+        {% endif %}
+        {% if payload.booking_enabled %}
+          <a href="{{ url_for('studio_site_public.booking', public_slug=payload.site.public_slug) }}">
+            <i class="bi bi-calendar-check me-2"></i>Prenota
+          </a>
+        {% endif %}
+        <a href="{{ url_for('studio_site_public.contacts', public_slug=payload.site.public_slug) }}">
+          <i class="bi bi-envelope me-2"></i>Contatti
+        </a>
+        {% if payload.show_legal_tools %}
+          <a href="{{ url_for('studio_site_public.legal_tools', public_slug=payload.site.public_slug) }}">
+            <i class="bi bi-calculator me-2"></i>Strumenti legali
+          </a>
+        {% endif %}
+        {% if payload.show_applications %}
+          <a href="{{ url_for('studio_site_public.applications', public_slug=payload.site.public_slug) }}">
+            <i class="bi bi-grid me-2"></i>Applicazioni
+          </a>
+        {% endif %}
+        {% if payload.show_legal_news %}
+          <a href="{{ url_for('studio_site_public.legal_news', public_slug=payload.site.public_slug) }}">
+            <i class="bi bi-globe me-2"></i>News giuridiche
+          </a>
+        {% endif %}
+      </nav>
+
+      <button class="studio-site-nav-toggle" type="button"
+              aria-controls="studioSiteNav"
+              aria-expanded="false"
+              aria-label="Apri menu di navigazione">
+        <i class="bi bi-list"></i><span>Menu</span>
+      </button>
     </div>
   </header>
 

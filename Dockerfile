@@ -65,6 +65,7 @@ RUN mkdir -p /out && /tmp/dart-sass/sass --no-source-map --style=compressed \
       editor-word.scss:/out/editor-word.css \
       mobile.scss:/out/mobile.css \
       portal.scss:/out/portal.css \
+      studio_site_public.scss:/out/studio_site_public.css \
       theme.scss:/out/theme.css
 
 
@@ -74,7 +75,7 @@ RUN mkdir -p /out && /tmp/dart-sass/sass --no-source-map --style=compressed \
 FROM python:3.12-slim
 
 LABEL org.opencontainers.image.title="IUSENTRA" \
-      org.opencontainers.image.version="2.190.0" \
+      org.opencontainers.image.version="2.191.0" \
       org.opencontainers.image.description="Gestionale PCT per studi legali italiani" \
       org.opencontainers.image.created="2026-03-18"
 

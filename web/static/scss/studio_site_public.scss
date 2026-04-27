@@ -1,0 +1,9 @@
+// ================================================================
+//  IUSENTRA — Sito Studio Pubblico — Entrypoint CSS standalone
+//  Compila → web/static/css/studio_site_public.css
+//
+//  Questo foglio di stile è usato SOLO dalle pagine pubbliche del
+//  sito dello studio (public_base.html).  Non include nulla
+//  dell'app shell interna (sidebar, topbar, #main, ecc.).
+// ================================================================
+@use 'pages/studio-site-public';

@@ -450,6 +450,7 @@
                 <button type="submit" class="btn btn-sm btn-primary"
                         data-open-pst="1"
                         data-acquire-all="1"
+                        data-preserve-original-tree="1"
                         title="Importa il fascicolo e avvia subito l'acquisizione completa dei documenti ufficiali">
                   <i class="bi bi-cloud-arrow-down me-1"></i>Importa + acquisisci fascicolo
                 </button>
@@ -2972,7 +2973,7 @@ async function wizEseguiRicerca() {
               <i class="bi bi-diagram-3 me-1"></i>Importa + Naviga PST
             </button>
             <button type="button" class="btn btn-xs btn-primary btn-sm"
-                    onclick='wizImporta(${idx}, { openPst: true, acquireAll: true })'
+                    onclick='wizImporta(${idx}, { openPst: true, acquireAll: true, preserveOriginalTree: true })'
                     title="Importa il fascicolo e avvia subito l'acquisizione completa dei documenti ufficiali">
               <i class="bi bi-cloud-arrow-down me-1"></i>Importa + acquisisci fascicolo
             </button>
@@ -3132,11 +3133,18 @@ async function _submitImportaPolisWeb(form, fascicolo, button = null, cert = nul
   _appendHiddenToForm(form, 'apri_portale', openPst ? '1' : '0');
   _appendHiddenToForm(form, 'acquisisci_portale', acquireAll ? '1' : '0');
   _appendHiddenToForm(form, 'mantieni_albero_originale', preserveOriginalTree ? '1' : '0');
-  _setImportButtonLoading(button, 'Preimportazione completa...');
-  try {
-    await _precaricaDocumentiImportazione(form, fascicolo, cert);
-  } finally {
-    _restoreImportButtonLoading(button);
+
+  // Precarica i documenti PST solo se l'utente ha richiesto
+  // acquisizione completa E mantenimento dell'albero originale PST.
+  const shouldPrefetchDocuments = acquireAll && preserveOriginalTree;
+
+  if (shouldPrefetchDocuments) {
+    _setImportButtonLoading(button, 'Preimportazione completa...');
+    try {
+      await _precaricaDocumentiImportazione(form, fascicolo, cert);
+    } finally {
+      _restoreImportButtonLoading(button);
+    }
   }
   form.submit();
 }
@@ -3148,6 +3156,7 @@ async function wizImporta(indice, options = {}) {
   const fascicolo = _wizUltimiFascicoli[indice] || {};
   const acquireAll = !!(options.acquireAll);
   const openPst = !!(options.openPst || acquireAll);
+  const preserveOriginalTree = !!(options.preserveOriginalTree);
   const form = document.createElement('form');
   form.method = 'POST';
   form.action = '{{ url_for("polisWeb_importa") }}';
@@ -3168,13 +3177,15 @@ async function wizImporta(indice, options = {}) {
     ['demo_mode', '0'],
     ['apri_portale', openPst ? '1' : '0'],
     ['acquisisci_portale', acquireAll ? '1' : '0'],
-    ['mantieni_albero_originale', options.preserveOriginalTree ? '1' : '0'],
+    ['mantieni_albero_originale', preserveOriginalTree ? '1' : '0'],
     ['id_fasc', '{{ id_fasc or "" }}'],
   ].forEach(([k, v]) => _appendHiddenToForm(form, k, v));
   document.body.appendChild(form);
 
-  if (acquireAll) {
-    // Mostra step 4 con barra di avanzamento prima di inviare il form
+  if (acquireAll && preserveOriginalTree) {
+    // Mostra step 4 con barra di avanzamento prima di inviare il form.
+    // L'acquisizione documentale PST parte solo se l'utente ha richiesto
+    // sia acquisisci_portale che mantieni_albero_originale.
     _wizStep = 4;
     _wizAggiornaDot();
     _wizMostraStep(4);

@@ -2,10 +2,11 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from flask import Blueprint, Response, abort, flash, g, jsonify, redirect, render_template, request, send_from_directory, url_for
+from flask import Blueprint, Response, abort, current_app, flash, g, jsonify, redirect, render_template, request, send_from_directory, url_for
 
 from web.services.studio_site_runtime import (
     build_public_site_payload,
+    create_lead_cliente_from_submission,
     site_assets_dir,
     studio_site_repository,
     validate_public_booking_payload,
@@ -108,7 +109,20 @@ def submit_contact(public_slug: str):
     payload = _public_payload_or_404(public_slug)
     try:
         data = validate_public_contact_payload(request.form.to_dict())
-        studio_site_repository().create_contact_submission(int(payload["site"]["id"]), data)
+        repo = studio_site_repository()
+        site_id = int(payload["site"]["id"])
+        submission = repo.create_contact_submission(site_id, data)
+        if submission:
+            # Crea automaticamente il cliente potenziale in IUSENTRA.
+            # Il fallimento non blocca la conferma all'utente.
+            try:
+                cliente_id = create_lead_cliente_from_submission(submission)
+                repo.update_contact_submission_lead(site_id, int(submission["id"]), cliente_id)
+            except Exception:
+                current_app.logger.exception(
+                    "Sito Studio: creazione cliente potenziale non riuscita per submission %s",
+                    submission.get("id"),
+                )
         flash("Richiesta inviata correttamente allo studio.", "success")
     except Exception as exc:
         flash(f"Invio richiesta non riuscito: {exc}", "danger")

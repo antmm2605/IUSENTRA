@@ -191,6 +191,7 @@ CREATE TABLE IF NOT EXISTS site_contact_submission (
     subject TEXT NOT NULL DEFAULT '',
     message TEXT NOT NULL,
     privacy_accepted BOOLEAN NOT NULL DEFAULT FALSE,
+    lead_cliente_id TEXT NOT NULL DEFAULT '',
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 

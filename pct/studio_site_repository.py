@@ -146,6 +146,9 @@ class StudioSiteRepository:
             for column_name, ddl in SITE_BUILDER_COLUMNS_POSTGRES.items():
                 conn.execute(f"ALTER TABLE site_studio ADD COLUMN IF NOT EXISTS {column_name} {ddl}")
             conn.execute(
+                "ALTER TABLE site_contact_submission ADD COLUMN IF NOT EXISTS lead_cliente_id TEXT NOT NULL DEFAULT ''"
+            )
+            conn.execute(
                 """
                 CREATE TABLE IF NOT EXISTS site_theme_preset (
                     id BIGSERIAL PRIMARY KEY,
@@ -220,6 +223,10 @@ class StudioSiteRepository:
             for column_name, ddl in SITE_BUILDER_COLUMNS_SQLITE.items():
                 if column_name not in existing:
                     conn.execute(f"ALTER TABLE site_studio ADD COLUMN {column_name} {ddl}")
+            # Migrazione: colonna lead_cliente_id su installazioni esistenti
+            existing_contact = {row["name"] for row in conn.execute("PRAGMA table_info(site_contact_submission)").fetchall()}
+            if "lead_cliente_id" not in existing_contact:
+                conn.execute("ALTER TABLE site_contact_submission ADD COLUMN lead_cliente_id TEXT NOT NULL DEFAULT ''")
             conn.execute(
                 """
                 CREATE TABLE IF NOT EXISTS site_theme_preset (
@@ -1563,6 +1570,14 @@ class StudioSiteRepository:
                 (int(submission_id), int(site_id)),
             ).fetchone()
         return self._row_to_dict(row)
+
+    def update_contact_submission_lead(self, site_id: int, submission_id: int, lead_cliente_id: str) -> None:
+        with self._connect() as conn:
+            conn.execute(
+                "UPDATE site_contact_submission SET lead_cliente_id = ? WHERE id = ? AND site_id = ?",
+                (clean_text(lead_cliente_id), int(submission_id), int(site_id)),
+            )
+            conn.commit()
 
     def site_stats(self, site_id: int) -> dict[str, Any]:
         tables = {

@@ -7,25 +7,60 @@
   <div class="d-flex justify-content-between align-items-start gap-3 mb-4">
     <div>
       <h1 class="h3 mb-1">Richieste contatto dal sito</h1>
-      <p class="text-muted mb-0">Messaggi inviati dal modulo pubblico contatti.</p>
+      <p class="text-muted mb-0">
+        Messaggi inviati dal modulo pubblico. Ogni richiesta crea automaticamente un cliente potenziale
+        in IUSENTRA, convertibile in cliente attivo con un click.
+      </p>
     </div>
     <a class="btn btn-outline-dark" href="{{ url_for('studio_site.dashboard') }}">Torna alla dashboard</a>
   </div>
   <div class="studio-site-panel">
     <div class="table-responsive">
       <table class="table align-middle">
-        <thead><tr><th>Nome</th><th>Email</th><th>Oggetto</th><th>Messaggio</th><th>Data</th></tr></thead>
+        <thead>
+          <tr>
+            <th>Mittente</th>
+            <th>Email</th>
+            <th>Oggetto</th>
+            <th>Messaggio</th>
+            <th>Data</th>
+            <th>Cliente potenziale</th>
+          </tr>
+        </thead>
         <tbody>
           {% for item in payload.contact_submissions %}
             <tr>
-              <td><strong>{{ item.full_name }}</strong>{% if item.phone %}<div class="small text-muted">{{ item.phone }}</div>{% endif %}</td>
+              <td>
+                <strong>{{ item.full_name }}</strong>
+                {% if item.phone %}<div class="small text-muted">{{ item.phone }}</div>{% endif %}
+              </td>
               <td>{{ item.email }}</td>
               <td>{{ item.subject or '-' }}</td>
-              <td class="small">{{ item.message }}</td>
-              <td>{{ item.created_at|fmt_dataora }}</td>
+              <td class="small" style="max-width:260px;white-space:normal">{{ item.message }}</td>
+              <td class="text-nowrap">{{ item.created_at|fmt_dataora }}</td>
+              <td class="text-nowrap">
+                {% if item.lead_cliente_id %}
+                  <a class="btn btn-sm btn-outline-success"
+                     href="{{ url_for('cartella_cliente', id_cliente=item.lead_cliente_id) }}">
+                    <i class="bi bi-person-check me-1"></i>Vedi cliente
+                  </a>
+                {% else %}
+                  <form method="post"
+                        action="{{ url_for('studio_site.create_client_from_contact', submission_id=item.id) }}"
+                        onsubmit="return confirm('Creare il cliente potenziale per {{ item.full_name|e }}?')">
+                    <button type="submit" class="btn btn-sm btn-outline-primary">
+                      <i class="bi bi-person-plus me-1"></i>Crea cliente
+                    </button>
+                  </form>
+                {% endif %}
+              </td>
             </tr>
           {% else %}
-            <tr><td colspan="5" class="text-center text-muted py-4">Nessuna richiesta contatto ricevuta.</td></tr>
+            <tr>
+              <td colspan="6" class="text-center text-muted py-4">
+                Nessuna richiesta contatto ricevuta.
+              </td>
+            </tr>
           {% endfor %}
         </tbody>
       </table>

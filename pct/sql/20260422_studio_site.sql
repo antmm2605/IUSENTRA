@@ -200,6 +200,7 @@ CREATE TABLE IF NOT EXISTS site_contact_submission (
     subject TEXT NOT NULL DEFAULT '',
     message TEXT NOT NULL,
     privacy_accepted INTEGER NOT NULL DEFAULT 0,
+    lead_cliente_id TEXT NOT NULL DEFAULT '',
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (site_id) REFERENCES site_studio(id) ON DELETE CASCADE
 );

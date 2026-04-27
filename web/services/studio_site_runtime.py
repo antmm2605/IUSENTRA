@@ -486,6 +486,47 @@ def approve_booking_request_for_current_site(booking_request_id: int) -> dict[st
     return updated or booking
 
 
+def create_lead_cliente_from_submission(submission: dict[str, Any]) -> str:
+    """Crea un Cliente con stato=POTENZIALE dall'anagrafica di una richiesta contatto.
+
+    Restituisce l'id del cliente creato. Solleva ValueError se i dati non sono
+    sufficienti o se il flusso non è disponibile nel contesto corrente.
+    """
+    from pct.clienti import GestioneClienti, Recapiti, StatoCliente, TipoCliente
+    from web.helpers import get_clienti
+
+    full_name = clean_text(submission.get("full_name") or "")
+    if not full_name:
+        raise ValueError("Nome mittente mancante: impossibile creare il cliente potenziale.")
+
+    parts = full_name.split(None, 1)
+    nome = parts[0]
+    cognome = parts[1] if len(parts) > 1 else ""
+
+    note_lead_parts = ["Richiesta contatto ricevuta via sito studio."]
+    subject = clean_text(submission.get("subject") or "")
+    message = clean_text(submission.get("message") or "")
+    if subject:
+        note_lead_parts.append(f"Oggetto: {subject}")
+    if message:
+        note_lead_parts.append(f"Messaggio: {message}")
+
+    email = clean_text(submission.get("email") or "")
+    phone = clean_text(submission.get("phone") or "")
+
+    clienti: GestioneClienti = get_clienti()
+    cliente = clienti.nuovo(
+        tipo=TipoCliente.PERSONA_FISICA,
+        nome=nome,
+        cognome=cognome,
+        stato=StatoCliente.POTENZIALE,
+        provenienza="sito_web",
+        note="\n".join(note_lead_parts),
+        recapiti=Recapiti(email=email, cellulare=phone),
+    )
+    return cliente.id
+
+
 def reject_booking_request_for_current_site(booking_request_id: int) -> dict[str, Any]:
     site = get_site_for_current_tenant()
     booking = studio_site_repository().update_booking_request(

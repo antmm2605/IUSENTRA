@@ -11,6 +11,7 @@ from web.services.studio_site_runtime import (
     approve_booking_request_for_current_site,
     audit_studio_site_action,
     build_studio_site_dashboard_payload,
+    create_lead_cliente_from_submission,
     get_site_for_current_tenant,
     reject_booking_request_for_current_site,
     save_site_asset,
@@ -585,3 +586,32 @@ def reject_booking_request(booking_request_id: int):
 def contact_submissions():
     payload = build_studio_site_dashboard_payload()
     return render_template("studio_site/contact_submissions.html", payload=payload)
+
+
+@studio_site.post("/contatti/<int:submission_id>/crea-cliente")
+@site_admin_required
+def create_client_from_contact(submission_id: int):
+    site = get_site_for_current_tenant()
+    repo = studio_site_repository()
+    site_id = int(site["id"])
+    rows = repo.list_contact_submissions(site_id, limit=1000)
+    submission = next((r for r in rows if int(r.get("id") or 0) == submission_id), None)
+    if submission is None:
+        flash("Richiesta contatto non trovata.", "warning")
+        return redirect(url_for("studio_site.contact_submissions"))
+    if submission.get("lead_cliente_id"):
+        flash("Cliente potenziale già creato per questa richiesta.", "info")
+        return redirect(url_for("cartella_cliente", id_cliente=submission["lead_cliente_id"]))
+    try:
+        cliente_id = create_lead_cliente_from_submission(submission)
+        repo.update_contact_submission_lead(site_id, submission_id, cliente_id)
+        audit_studio_site_action(
+            "sito_studio.crea_lead_cliente",
+            resource_id=str(submission_id),
+            details=f"Cliente potenziale {cliente_id} creato dalla richiesta contatto {submission_id}.",
+        )
+        flash("Cliente potenziale creato con successo.", "success")
+        return redirect(url_for("cartella_cliente", id_cliente=cliente_id))
+    except Exception as exc:
+        flash(f"Creazione cliente non riuscita: {exc}", "danger")
+    return redirect(url_for("studio_site.contact_submissions"))

@@ -9,6 +9,8 @@ from threading import Lock
 
 from flask import Flask, jsonify, request
 
+_REDIS_STORAGE_PREFIXES = ("redis://", "rediss://", "unix://")
+
 
 @dataclass(frozen=True)
 class RateLimitRule:
@@ -41,10 +43,40 @@ def parse_rule(value: str) -> RateLimitRule:
     return RateLimitRule(amount, seconds)
 
 
+def _redis_storage_available(storage_uri: str) -> bool:
+    try:
+        import redis
+
+        client = redis.Redis.from_url(storage_uri, socket_connect_timeout=0.25, socket_timeout=0.25)
+        try:
+            client.ping()
+        finally:
+            try:
+                client.close()
+            except Exception:
+                pass
+        return True
+    except Exception:
+        return False
+
+
+def _resolve_storage_uri(app: Flask, storage_uri: str) -> str:
+    if not storage_uri.lower().startswith(_REDIS_STORAGE_PREFIXES):
+        return storage_uri
+    if _redis_storage_available(storage_uri):
+        return storage_uri
+    app.logger.warning(
+        "Redis rate limiter non raggiungibile (%s): uso storage memory:// per evitare blocchi applicativi.",
+        storage_uri,
+    )
+    return "memory://"
+
+
 def register_rate_limiter(app: Flask) -> None:
     if not app.config.get("RATELIMIT_ENABLED", False):
         return
     storage_uri = str(app.config.get("RATELIMIT_STORAGE_URI") or app.config.get("REDIS_URL") or "memory://")
+    storage_uri = _resolve_storage_uri(app, storage_uri)
     try:
         from flask_limiter import Limiter
         from flask_limiter.util import get_remote_address
@@ -55,7 +87,7 @@ def register_rate_limiter(app: Flask) -> None:
             default_limits=[str(app.config.get("RATELIMIT_DEFAULT") or "120/minute")],
             storage_uri=storage_uri,
         )
-        app.extensions["iusentra_rate_limiter_backend"] = "flask-limiter"
+        app.extensions["iusentra_rate_limiter_backend"] = f"flask-limiter:{storage_uri}"
         return
     except Exception as exc:
         app.logger.warning("Flask-Limiter non disponibile, uso fallback in memoria: %s", exc)

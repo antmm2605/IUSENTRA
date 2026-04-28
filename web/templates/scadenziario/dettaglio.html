@@ -37,10 +37,10 @@
       <div class="card-body">
         <div class="row g-3">
           <div class="col-md-4"><div class="border rounded-3 p-3 h-100"><div class="small text-muted">Scadenza legale</div><div class="fw-semibold">{{ sc.legal_due_at|fmt_dataora if sc.legal_due_at else sc.data_scadenza|fmt_data }}</div></div></div>
-          <div class="col-md-4"><div class="border rounded-3 p-3 h-100"><div class="small text-muted">Scadenza operativa</div><div class="fw-semibold">{{ sc.operational_due_at|fmt_dataora if sc.operational_due_at else '&mdash;' }}</div></div></div>
+          <div class="col-md-4"><div class="border rounded-3 p-3 h-100"><div class="small text-muted">Scadenza operativa</div><div class="fw-semibold">{{ sc.operational_due_at|fmt_dataora if sc.operational_due_at else 'Non impostata' }}</div></div></div>
           <div class="col-md-4"><div class="border rounded-3 p-3 h-100"><div class="small text-muted">Modalita ufficio nel giorno finale</div><div class="fw-semibold">{{ sc.office_mode_label }}</div></div></div>
-          <div class="col-md-4"><div class="border rounded-3 p-3 h-100"><div class="small text-muted">Scadenza grezza</div><div class="fw-semibold">{{ sc.raw_due_at|fmt_dataora if sc.raw_due_at else '&mdash;' }}</div></div></div>
-          <div class="col-md-4"><div class="border rounded-3 p-3 h-100"><div class="small text-muted">Giorni alla scadenza</div><div class="fw-semibold text-{{ pcol.get(sc.priorita.value,'secondary') }}">{{ 'OGGI' if g == 0 else (g|string + ' gg' if g is not none else '&mdash;') }}</div></div></div>
+          <div class="col-md-4"><div class="border rounded-3 p-3 h-100"><div class="small text-muted">Scadenza grezza</div><div class="fw-semibold">{{ sc.raw_due_at|fmt_dataora if sc.raw_due_at else 'Non disponibile' }}</div></div></div>
+          <div class="col-md-4"><div class="border rounded-3 p-3 h-100"><div class="small text-muted">Giorni alla scadenza</div><div class="fw-semibold text-{{ pcol.get(sc.priorita.value,'secondary') }}">{{ 'OGGI' if g == 0 else (g|string + ' gg' if g is not none else 'Non disponibile') }}</div></div></div>
           <div class="col-md-4"><div class="border rounded-3 p-3 h-100"><div class="small text-muted">Profilo termine</div><div class="fw-semibold">{{ profilo.label if profilo else (sc.deadline_profile_code or 'Manuale') }}</div></div></div>
         </div>
       </div>
@@ -61,7 +61,7 @@
             {% endif %}
           </dd>
           <dt class="col-sm-4">Ufficio giudiziario</dt>
-          <dd class="col-sm-8">{{ sc.judicial_office_name or 'Non impostato' }}</dd>
+          <dd class="col-sm-8">{{ judicial_office_label or 'Non impostato' }}</dd>
           <dt class="col-sm-4">Patrono ufficio</dt>
           <dd class="col-sm-8">
             {% if sc.judicial_office_patron_name and sc.judicial_office_patron_day and sc.judicial_office_patron_month %}
@@ -73,27 +73,33 @@
           <dt class="col-sm-4">Modalita patrono ufficio</dt>
           <dd class="col-sm-8">{{ office_mode_labels.get(sc.judicial_office_operating_mode, 'Aperto') }}</dd>
           <dt class="col-sm-4">Fonte ufficio</dt>
-          <dd class="col-sm-8">{% if sc.judicial_office_source_url %}<a href="{{ sc.judicial_office_source_url }}" target="_blank" rel="noopener">{{ sc.judicial_office_source_url }}</a>{% else %}&mdash;{% endif %}</dd>
+          <dd class="col-sm-8">{% if sc.judicial_office_source_url %}<a href="{{ sc.judicial_office_source_url }}" target="_blank" rel="noopener">{{ sc.judicial_office_source_url }}</a>{% else %}Non disponibile{% endif %}</dd>
           <dt class="col-sm-4">Ultima verifica</dt>
-          <dd class="col-sm-8">{{ sc.judicial_office_verified_at|fmt_data if sc.judicial_office_verified_at else '&mdash;' }}</dd>
+          <dd class="col-sm-8">{{ sc.judicial_office_verified_at|fmt_data if sc.judicial_office_verified_at else 'Non verificata' }}</dd>
           <dt class="col-sm-4">Evento origine</dt>
-          <dd class="col-sm-8">{{ sc.source_event_type_label }}{% if sc.source_event_at %} &middot; {{ sc.source_event_at|fmt_dataora }}{% elif sc.data_decorrenza %} &middot; {{ sc.data_decorrenza|fmt_data }}{% endif %}</dd>
+          <dd class="col-sm-8">{{ event_context.titolo or sc.source_event_type_label }}{% if sc.source_event_at %} &middot; {{ sc.source_event_at|fmt_dataora }}{% elif sc.data_decorrenza %} &middot; {{ sc.data_decorrenza|fmt_data }}{% endif %}</dd>
           <dt class="col-sm-4">Anticipo operativo</dt>
-          <dd class="col-sm-8">{{ sc.operational_lead_business_days }} giorno{% if sc.operational_lead_business_days != 1 %}i{% endif %} lavorativo{% if sc.operational_lead_business_days != 1 %}i{% endif %}</dd>
-          <dt class="col-sm-4">4 ottobre</dt>
+          <dd class="col-sm-8">
+            {% if sc.operational_lead_business_days %}
+              {{ sc.operational_lead_business_days }} {{ 'giorno lavorativo' if sc.operational_lead_business_days == 1 else 'giorni lavorativi' }}
+            {% else %}
+              Nessun anticipo operativo impostato
+            {% endif %}
+          </dd>
+          <dt class="col-sm-4">Regola 4 ottobre</dt>
           <dd class="col-sm-8">{{ 'Osservanza bloccante' if sc.october_observance_blocks else 'Osservanza non bloccante' }}</dd>
         </dl>
       </div>
     </div>
 
     <div class="card shadow-sm">
-      <div class="card-header fw-semibold"><i class="bi bi-list-check me-2 text-primary"></i>Trace del calcolo</div>
+      <div class="card-header fw-semibold"><i class="bi bi-list-check me-2 text-primary"></i>Traccia del calcolo</div>
       <div class="card-body">
         <ol class="small ps-3 mb-0">
-          {% for item in sc.trace %}
+          {% for item in trace_operativo %}
           <li>{{ item }}</li>
           {% else %}
-          <li class="text-muted">Nessun trace disponibile: scadenza manuale o dati legacy.</li>
+          <li class="text-muted">Nessuna traccia disponibile: scadenza manuale o dati legacy.</li>
           {% endfor %}
         </ol>
       </div>
@@ -104,11 +110,18 @@
     <div class="card shadow-sm mb-3">
       <div class="card-header fw-semibold"><i class="bi bi-journal-text me-2 text-primary"></i>Dati scadenza</div>
       <div class="card-body small">
-        <div class="mb-2"><strong>Descrizione:</strong> {{ sc.descrizione or '&mdash;' }}</div>
-        <div class="mb-2"><strong>Fascicolo:</strong> {{ sc.id_fascicolo or '&mdash;' }}</div>
-        <div class="mb-2"><strong>Responsabile:</strong> {{ sc.id_utente_responsabile or '&mdash;' }}</div>
-        <div class="mb-2"><strong>Preavvisi:</strong> {{ sc.giorni_preavviso|join(', ') if sc.giorni_preavviso else '&mdash;' }}</div>
-        <div class="mb-0"><strong>Note:</strong> {{ sc.note or '&mdash;' }}</div>
+        <div class="mb-2"><strong>Descrizione:</strong> {{ descrizione_label or 'Non disponibile' }}</div>
+        <div class="mb-2">
+          <strong>Fascicolo:</strong>
+          {% if fascicolo_ctx %}
+          <a href="{{ url_for('dettaglio_fascicolo', id_fasc=fascicolo_ctx.id) }}">{{ fascicolo_label }}</a>
+          {% else %}
+          {{ fascicolo_label or 'Non collegato' }}
+          {% endif %}
+        </div>
+        <div class="mb-2"><strong>Responsabile:</strong> {{ responsabile_label or 'Non assegnato' }}</div>
+        <div class="mb-2"><strong>Preavvisi:</strong> {{ sc.giorni_preavviso|join(', ') if sc.giorni_preavviso else 'Non impostati' }}</div>
+        <div class="mb-0"><strong>Note:</strong> {{ sc.note or 'Nessuna nota' }}</div>
       </div>
     </div>
 

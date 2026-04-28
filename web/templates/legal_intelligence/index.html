@@ -81,6 +81,141 @@ document.addEventListener('DOMContentLoaded', function() {
   </div>
 
   <div class="li-card">
+    <div class="li-card__body">
+      <div class="li-section-head align-items-start">
+        <div>
+          <div class="li-section-title">
+            <i class="bi bi-calendar2-check me-2 text-primary"></i>Motore giornaliero fonti ufficiali
+          </div>
+          <div class="small li-muted">
+            Controllo reale con memoria, ETag/Last-Modified, hash SHA-256, diff e audit applicativo. Gli aggiornamenti normativi restano in revisione manuale.
+          </div>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+          <form method="post" action="{{ url_for('legal_intelligence.esegui_daily_sync') }}">
+            <button class="btn btn-primary">
+              <i class="bi bi-arrow-clockwise me-2"></i>Esegui controllo ora
+            </button>
+          </form>
+          <form method="post" action="{{ url_for('legal_intelligence.rigenera_indice_ai_daily') }}">
+            <button class="btn btn-outline-primary">
+              <i class="bi bi-cpu me-2"></i>Rigenera indice AI
+            </button>
+          </form>
+        </div>
+      </div>
+
+      {% if daily_snapshot.error %}
+      <div class="alert alert-warning mt-3 mb-0">
+        Il motore giornaliero non ha restituito lo snapshot: {{ daily_snapshot.error }}
+      </div>
+      {% endif %}
+
+      <div class="li-kpi-grid mt-3">
+        <div class="li-kpi-card">
+          <div class="li-kpi-label">Ultimo controllo reale</div>
+          <div class="li-kpi-value fs-6">
+            {% if daily_snapshot.last_run %}
+              {{ daily_snapshot.last_run.finished_at|fmt_dataora if daily_snapshot.last_run.finished_at else daily_snapshot.last_run.started_at|fmt_dataora }}
+            {% else %}
+              Non ancora eseguito
+            {% endif %}
+          </div>
+        </div>
+        <div class="li-kpi-card">
+          <div class="li-kpi-label">Fonti governate</div>
+          <div class="li-kpi-value">{{ daily_snapshot.counts.sources|default(0) }}</div>
+        </div>
+        <div class="li-kpi-card">
+          <div class="li-kpi-label">Aggiornamenti rilevati</div>
+          <div class="li-kpi-value text-primary">{{ daily_snapshot.counts.updates|default(0) }}</div>
+        </div>
+        <div class="li-kpi-card">
+          <div class="li-kpi-label">Applicati</div>
+          <div class="li-kpi-value text-success">{{ daily_snapshot.counts.applied|default(0) }}</div>
+        </div>
+        <div class="li-kpi-card">
+          <div class="li-kpi-label">In revisione</div>
+          <div class="li-kpi-value text-warning">{{ daily_snapshot.counts.pending|default(0) }}</div>
+        </div>
+        <div class="li-kpi-card">
+          <div class="li-kpi-label">Errori fonti</div>
+          <div class="li-kpi-value {% if daily_snapshot.counts.errors|default(0) %}text-danger{% else %}text-success{% endif %}">
+            {{ daily_snapshot.counts.errors|default(0) }}
+          </div>
+        </div>
+      </div>
+
+      <div class="row g-3 mt-1">
+        <div class="col-xl-5">
+          <div class="li-soft-card h-100">
+            <div class="fw-semibold mb-2">Fonti controllate</div>
+            <div class="li-soft-stack">
+              {% for source in daily_snapshot.sources %}
+              <div class="d-flex align-items-start justify-content-between gap-2 border-bottom pb-2 mb-2">
+                <div>
+                  <div class="fw-semibold small">{{ source.name }}</div>
+                  <div class="small li-muted">
+                    {{ source.category }} · {{ source.apply_mode == 'auto' and 'applicazione tecnica controllata' or 'revisione manuale' }}
+                  </div>
+                  {% if source.last_error %}
+                  <div class="small text-danger">{{ source.last_error }}</div>
+                  {% endif %}
+                </div>
+                <span class="badge {% if source.last_status == 'ok' %}text-bg-success{% elif source.last_status == 'errore' %}text-bg-danger{% elif source.last_status == 'invariata' %}text-bg-info{% else %}text-bg-secondary{% endif %}">
+                  {{ source.last_status|replace('_', ' ') }}
+                </span>
+              </div>
+              {% else %}
+              <div class="small li-muted">Le fonti verranno inizializzate al primo controllo giornaliero.</div>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+        <div class="col-xl-7">
+          <div class="li-soft-card h-100">
+            <div class="fw-semibold mb-2">Variazioni e applicazioni</div>
+            <div class="li-soft-stack">
+              {% for update in daily_snapshot.updates %}
+              <div class="border-bottom pb-2 mb-2">
+                <div class="d-flex align-items-start justify-content-between gap-2">
+                  <div>
+                    <div class="fw-semibold">{{ update.title }}</div>
+                    <div class="small li-muted">{{ update.summary }}</div>
+                    <div class="d-flex flex-wrap gap-1 mt-1">
+                      {% for area in update.impact_areas %}
+                      <span class="badge text-bg-light">{{ area }}</span>
+                      {% endfor %}
+                    </div>
+                  </div>
+                  <span class="badge {% if update.status == 'applied' %}text-bg-success{% elif update.status == 'pending_review' %}text-bg-warning{% else %}text-bg-secondary{% endif %}">
+                    {{ update.status|replace('_', ' ') }}
+                  </span>
+                </div>
+                <div class="d-flex flex-wrap gap-2 mt-2">
+                  <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('legal_intelligence.diff_daily_update', update_id=update.id) }}">
+                    <i class="bi bi-file-diff me-1"></i>Vedi diff
+                  </a>
+                  {% if update.status == 'pending_review' %}
+                  <form method="post" action="{{ url_for('legal_intelligence.approva_daily_update', update_id=update.id) }}">
+                    <button class="btn btn-sm btn-outline-success">
+                      <i class="bi bi-check2-circle me-1"></i>Approva applicazione
+                    </button>
+                  </form>
+                  {% endif %}
+                </div>
+              </div>
+              {% else %}
+              <div class="small li-muted">Nessuna variazione registrata. Il prossimo controllo manterra traccia di hash, diff e stato fonte.</div>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="li-card">
     <div class="li-card__body d-flex flex-column flex-lg-row align-items-start align-items-lg-center justify-content-between gap-3">
       <div>
         <div class="li-section-title mb-1"><i class="bi bi-lightning-charge me-2 text-primary"></i>Iusentra Update Intelligence</div>
@@ -489,5 +624,4 @@ document.addEventListener('DOMContentLoaded', function() {
   </div>
 </div>
 {% endblock %}
-
 

@@ -1306,6 +1306,8 @@ class GestionePreventivi:
         studio_piva: str = "",
         studio_cf: str = "",
         studio_indirizzo: str = "",
+        numero_iscrizione_albo: str = "",
+        ordine_avvocati: str = "",
     ) -> ConferimentoIncarico:
         preventivo = self._preventivi.get(id_preventivo)
         if not preventivo:
@@ -1328,6 +1330,8 @@ class GestionePreventivi:
             tipo_compenso=preventivo.tipo_compenso,
             tipo_procedimento=preventivo.tipo_procedimento,
             tariffa_oraria=preventivo.tariffa_oraria,
+            numero_iscrizione_albo=numero_iscrizione_albo,
+            ordine_avvocati=ordine_avvocati,
             criterio_arrotondamento_orario=preventivo.criterio_arrotondamento_orario,
             massimale_ore=preventivo.massimale_ore,
             soglia_preapprovazione_ore=preventivo.soglia_preapprovazione_ore,
@@ -1358,6 +1362,8 @@ class GestionePreventivi:
         studio_piva: str = "",
         studio_cf: str = "",
         studio_indirizzo: str = "",
+        numero_iscrizione_albo: str = "",
+        ordine_avvocati: str = "",
     ) -> tuple[Preventivo, Optional["ConferimentoIncarico"]]:
         p = self._preventivi[id_preventivo]
         p.workflow_channel = _normalize_workflow_channel(workflow_channel)
@@ -1378,6 +1384,8 @@ class GestionePreventivi:
                 studio_piva=studio_piva,
                 studio_cf=studio_cf,
                 studio_indirizzo=studio_indirizzo,
+                numero_iscrizione_albo=numero_iscrizione_albo,
+                ordine_avvocati=ordine_avvocati,
                 note=(
                     "Conferimento creato automaticamente dal workflow commerciale "
                     "dopo accettazione del preventivo."

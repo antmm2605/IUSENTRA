@@ -28,6 +28,7 @@ from pct.scadenziario import (
 )
 from pct.auth import GestioneUtenti
 from pct.config_studio import GestioneConfigStudio
+from pct.fascicoli import GestioneFascicoli, TipoFascicolo
 from web.app import create_app
 
 
@@ -728,3 +729,54 @@ def test_dettaglio_scadenza_mostra_studio_e_contesto(tmp_path):
     assert "Solo atti urgenti" in body
     assert "Osservanza bloccante" in body
     assert "Notifica" in body
+
+
+def test_dettaglio_scadenza_propaga_fascicolo_responsabile_e_placeholder_puliti(tmp_path):
+    cfg = _cfg_web(tmp_path)
+    utenti = GestioneUtenti(
+        db_path=cfg["AUTH_DB"],
+        audit_path=cfg["AUDIT_DB"],
+        secret_key="test",
+        bootstrap_admin_password="admin",
+    )
+    responsabile = utenti.get_by_username("admin")
+    responsabile_id = responsabile.id if responsabile else "admin"
+    gf = GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+    )
+    fascicolo = gf.nuovo(
+        titolo="Azione civile da portale",
+        tipo=TipoFascicolo.CIVILE,
+        tribunale="Giudice di Pace - Palmi",
+        numero_rg="466",
+        anno_rg=2023,
+        oggetto="Risarcimento danno",
+        avvocato_referente="Avv. Studio",
+    )
+    gs = GestioneScadenziario(db_path=cfg["SCADENZIARIO_DB"])
+    sc = gs.nuova(
+        titolo="Udienza da portale",
+        tipo=TipoTermine.UDIENZA,
+        data_scadenza="2023-06-08",
+        id_fascicolo=fascicolo.id,
+        id_utente_responsabile=responsabile_id,
+        source_event_type="udienza",
+    )
+    app = create_app(cfg)
+    client = app.test_client()
+    login = client.post("/login", data={"username": "admin", "password": "admin"}, follow_redirects=True)
+    assert login.status_code == 200
+
+    response = client.get(f"/scadenziario/{sc.id}")
+    body = response.get_data(as_text=True)
+
+    assert response.status_code == 200
+    assert "RG 466/2023 - Risarcimento danno" in body
+    assert any(label in body for label in ("Amministratore", "Avv. Studio", "Super Amministratore"))
+    assert "Giudice di Pace - Palmi" in body
+    assert "Nessun anticipo operativo impostato" in body
+    assert "&amp;mdash;" not in body
+    assert "&mdash;" not in body
+    assert "giornoi lavorativoi" not in body

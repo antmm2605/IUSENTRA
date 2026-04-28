@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Diff fonte ufficiale{% endblock %}
+
+{% block content %}
+<div class="legal-intelligence-page">
+  <div class="ds-ph">
+    <div class="ds-ph-icon"><i class="bi bi-file-diff"></i></div>
+    <div class="ds-ph-body">
+      <h1 class="ds-ph-title">Diff fonte ufficiale</h1>
+      <p class="ds-ph-sub">Confronto tracciato tra ultimo snapshot noto e nuova versione acquisita dal motore giornaliero.</p>
+    </div>
+    <div class="ds-ph-actions">
+      <a href="{{ url_for('legal_intelligence.index') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-2"></i>Torna ai Motori Legali
+      </a>
+      {% if update.status == 'pending_review' %}
+      <form method="post" action="{{ url_for('legal_intelligence.approva_daily_update', update_id=update.id) }}">
+        <button class="btn btn-success">
+          <i class="bi bi-check2-circle me-2"></i>Approva applicazione
+        </button>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="li-card">
+    <div class="li-card__body">
+      <div class="d-flex flex-wrap justify-content-between gap-3 mb-3">
+        <div>
+          <div class="li-section-title">{{ update.title }}</div>
+          <div class="small li-muted">{{ update.summary }}</div>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+          <span class="badge text-bg-light">{{ update.apply_mode }}</span>
+          <span class="badge {% if update.status == 'applied' %}text-bg-success{% elif update.status == 'pending_review' %}text-bg-warning{% else %}text-bg-secondary{% endif %}">
+            {{ update.status|replace('_', ' ') }}
+          </span>
+          <span class="badge text-bg-light">{{ update.severity }}</span>
+        </div>
+      </div>
+      <div class="small li-muted mb-2">
+        Hash precedente: <code>{{ update.old_sha256 or 'primo snapshot' }}</code><br>
+        Nuovo hash: <code>{{ update.new_sha256 }}</code>
+      </div>
+      <pre class="bg-light border rounded p-3 small overflow-auto">{{ update.diff_text or 'Diff non disponibile per questo aggiornamento.' }}</pre>
+    </div>
+  </div>
+</div>
+{% endblock %}

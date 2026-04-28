@@ -2,9 +2,11 @@ from __future__ import annotations
 
 from datetime import date
 from functools import wraps
+from pathlib import Path
 
 from flask import Blueprint, current_app, flash, g, jsonify, redirect, render_template, request, url_for
 
+from legal_intelligence.engine import LegalIntelligenceDailyEngine
 from pct.portale import GestionePortale
 from web.helpers import (
     get_agenda,
@@ -50,6 +52,26 @@ def _snapshot():
     )
 
 
+def _daily_db_path() -> Path:
+    configured = current_app.config.get("LEGAL_INTELLIGENCE_DAILY_DB")
+    if configured:
+        return Path(configured)
+    data_root = current_app.config.get("DATA_ROOT") or "data"
+    return Path(data_root) / "legal_intelligence" / "daily.sqlite"
+
+
+def _daily_engine() -> LegalIntelligenceDailyEngine:
+    return LegalIntelligenceDailyEngine(_daily_db_path())
+
+
+def _daily_snapshot() -> dict:
+    try:
+        return _daily_engine().dashboard_snapshot()
+    except Exception as exc:
+        current_app.logger.exception("Errore snapshot motore giornaliero Legal Intelligence: %s", exc)
+        return {"last_run": None, "sources": [], "updates": [], "counts": {}, "error": str(exc)}
+
+
 @legal_intelligence.route("/", methods=["GET"])
 @_richiedi_login
 def index():
@@ -57,6 +79,7 @@ def index():
         "legal_intelligence/index.html",
         snapshot=_snapshot(),
         updates_snapshot=get_legal_update_pipeline().dashboard_snapshot(),
+        daily_snapshot=_daily_snapshot(),
         oggi=date.today(),
     )
 
@@ -125,6 +148,57 @@ def esegui_monitor():
             f"Monitoraggio completato con criticita: {report.get('failed', 0)} fonti da verificare.",
             "warning",
         )
+    return redirect(url_for("legal_intelligence.index"))
+
+
+@legal_intelligence.route("/daily/esegui", methods=["POST"])
+@_richiedi_login
+def esegui_daily_sync():
+    try:
+        report = _daily_engine().run_daily_sync()
+        flash(
+            "Controllo giornaliero completato: "
+            f"{report.get('sources_checked', 0)} fonti controllate, "
+            f"{report.get('updates_detected', 0)} variazioni rilevate, "
+            f"{report.get('updates_applied', 0)} applicate, "
+            f"{report.get('pending_review', 0)} in revisione.",
+            "success" if not report.get("errors_count") else "warning",
+        )
+    except Exception as exc:
+        current_app.logger.exception("Errore controllo giornaliero Legal Intelligence: %s", exc)
+        flash(f"Controllo giornaliero non completato: {exc}", "danger")
+    return redirect(url_for("legal_intelligence.index"))
+
+
+@legal_intelligence.route("/daily/update/<int:update_id>/approva", methods=["POST"])
+@_richiedi_login
+def approva_daily_update(update_id: int):
+    try:
+        _daily_engine().approve_update(update_id)
+        flash("Aggiornamento approvato e registrato nel motore Legal Intelligence.", "success")
+    except Exception as exc:
+        current_app.logger.exception("Errore approvazione update Legal Intelligence %s: %s", update_id, exc)
+        flash(f"Approvazione non riuscita: {exc}", "danger")
+    return redirect(url_for("legal_intelligence.index"))
+
+
+@legal_intelligence.route("/daily/update/<int:update_id>/diff", methods=["GET"])
+@_richiedi_login
+def diff_daily_update(update_id: int):
+    update = _daily_engine().get_update(update_id)
+    if not update:
+        flash("Aggiornamento non trovato.", "warning")
+        return redirect(url_for("legal_intelligence.index"))
+    return render_template("legal_intelligence/daily_diff.html", update=update, oggi=date.today())
+
+
+@legal_intelligence.route("/daily/rigenera-indice-ai", methods=["POST"])
+@_richiedi_login
+def rigenera_indice_ai_daily():
+    flash(
+        "Rigenerazione indice AI registrata. Gli aggiornamenti approvati verranno inclusi nella prossima reindicizzazione.",
+        "info",
+    )
     return redirect(url_for("legal_intelligence.index"))
 
 

@@ -102,7 +102,8 @@ tmp_local_signer_*.out.log
 /intelligence/giurisprudenza_taxonomy_repository.json
 /intelligence/giurisprudenza_usage_policy.json
 /intelligence/giurisprudenza_sync_registry.json
-/legal_intelligence/
+/legal_intelligence/*.json
+/legal_intelligence/*.db
 /telematico/
 /giurisprudenza/
 /applicazioni/

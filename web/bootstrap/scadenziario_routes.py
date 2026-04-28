@@ -8,7 +8,6 @@ from datetime import date
 from typing import Any
 
 from flask import Flask, flash, jsonify, redirect, render_template, request, url_for, g
-
 from pct.scadenziario import (
     PRESET_TERMINI,
     GestioneScadenziario,
@@ -25,13 +24,12 @@ from pct.scadenziario import (
     è_giorno_lavorativo,
 )
 
-
 from web.services.scadenziario_views import (
     label_vista_scadenziario,
     normalizza_vista_scadenziario,
+    scadenza_detail_context,
     scadenze_per_vista,
 )
-
 
 def register_scadenziario_routes(
     app: Flask,
@@ -298,12 +296,12 @@ def register_scadenziario_routes(
         if not sc:
             flash("Scadenza non trovata.", "warning")
             return redirect(url_for("scadenziario"))
-        return render_template(
-            "scadenziario/dettaglio.html",
-            sc=sc,
-            studio_cfg=get_config_studio().config.studio,
+        context = scadenza_detail_context(
+            sc, gestione_fascicoli=get_fascicoli(), gestione_utenti=get_utenti(),
+            gestione_agenda=get_agenda(), studio_cfg=get_config_studio().config.studio,
             profili_termine=profili_termine_builtin(),
         )
+        return render_template("scadenziario/dettaglio.html", **context)
 
     @app.route("/scadenziario/<id_sc>/modifica", methods=["GET", "POST"])
     def modifica_scadenza(id_sc):

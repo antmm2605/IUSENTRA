@@ -109,6 +109,13 @@ def _url_completa_cliente(id_cliente: str, *, next_url: str = "") -> str:
     return url_for("modifica_cliente", id_cliente=id_cliente, **params)
 
 
+def _url_nuovo_conferimento_preventivo(id_preventivo: str, id_cliente: str = "") -> str:
+    params = {"id_preventivo": id_preventivo, "from_page": "preventivo"}
+    if id_cliente:
+        return url_for("preventivi.nuovo_conferimento", id_cliente=id_cliente, **params)
+    return url_for("preventivi.nuovo_conferimento", **params)
+
+
 def _cliente_da_completare(cliente) -> bool:
     return bool(cliente and not getattr(cliente, "profilo_completo_per_conferimento", True))
 
@@ -731,7 +738,8 @@ def dettaglio_preventivo(id_preventivo: str):
     gp = _get_gp()
     p = gp.get_preventivo(id_preventivo)
     if not p:
-        abort(404)
+        flash("Preventivo non trovato o non piu' disponibile.", "warning")
+        return redirect(url_for("preventivi.lista"))
     cliente = get_clienti().get(p.id_cliente)
     fascicolo = get_fascicoli().get(p.id_fascicolo) if p.id_fascicolo else None
     conferimenti = gp.conferimenti_per_preventivo(id_preventivo)
@@ -799,21 +807,44 @@ def dettaglio_preventivo(id_preventivo: str):
 
 # ================================================================ CAMBIA STATO PREVENTIVO
 
-@preventivi.route("/p/<id_preventivo>/stato", methods=["POST"])
+@preventivi.route("/p/<id_preventivo>/stato", methods=["GET", "POST"])
 @_richiedi_login
 def cambia_stato_preventivo(id_preventivo: str):
     from pct.preventivi import StatoPreventivo
     gp = _get_gp()
     p = gp.get_preventivo(id_preventivo)
     if not p:
-        abort(404)
+        flash("Preventivo non trovato o non piu' disponibile.", "warning")
+        return redirect(url_for("preventivi.lista"))
+    if request.method == "GET":
+        flash("Per aggiornare lo stato usa i pulsanti del dettaglio preventivo.", "info")
+        return redirect(url_for("preventivi.dettaglio_preventivo", id_preventivo=id_preventivo))
     stato_str = request.form.get("stato", "")
     try:
         nuovo_stato = StatoPreventivo(stato_str)
     except ValueError:
         flash("Stato non valido.", "danger")
         return redirect(url_for("preventivi.dettaglio_preventivo", id_preventivo=id_preventivo))
-    gp.cambia_stato_preventivo(id_preventivo, nuovo_stato)
+    try:
+        if nuovo_stato == StatoPreventivo.ACCETTATO:
+            gp.registra_accettazione_preventivo(
+                id_preventivo,
+                workflow_channel=p.workflow_channel or "STUDIO",
+                via="STUDIO",
+                ip=request.remote_addr or "",
+                user_agent=request.headers.get("User-Agent", ""),
+                creato_da=getattr(g.get("utente_corrente"), "username", ""),
+                auto_crea_conferimento=False,
+            )
+        else:
+            gp.cambia_stato_preventivo(id_preventivo, nuovo_stato)
+    except Exception as exc:
+        current_app.logger.exception("Errore cambio stato preventivo %s: %s", id_preventivo, exc)
+        flash(
+            "Non ho potuto aggiornare lo stato del preventivo. Riprova dal dettaglio o dalla scheda cliente.",
+            "danger",
+        )
+        return redirect(url_for("preventivi.dettaglio_preventivo", id_preventivo=id_preventivo))
     flash(f"Stato aggiornato: {nuovo_stato.value}.", "success")
     if nuovo_stato == StatoPreventivo.ACCETTATO:
         flash(
@@ -863,6 +894,14 @@ def workflow_accetta_studio(id_preventivo: str):
         gp.cambia_stato_preventivo(id_preventivo, StatoPreventivo.ACCETTATO)
         flash("Preventivo già accettato: il conferimento è pronto per la firma cliente.", "success")
         return redirect(url_for("preventivi.dettaglio_conferimento", id_conferimento=conferimento_esistente.id))
+    if not cliente:
+        gp.cambia_stato_preventivo(id_preventivo, StatoPreventivo.ACCETTATO)
+        flash(
+            "Preventivo accettato, ma il cliente collegato non e' piu' disponibile: "
+            "riallinea l'anagrafica prima del conferimento.",
+            "warning",
+        )
+        return redirect(_url_nuovo_conferimento_preventivo(id_preventivo, p.id_cliente))
     if _cliente_da_completare(cliente):
         gp.cambia_stato_preventivo(id_preventivo, StatoPreventivo.ACCETTATO)
         missing = ", ".join(_campi_cliente_mancanti(cliente)) or "dati anagrafici obbligatori"
@@ -883,19 +922,35 @@ def workflow_accetta_studio(id_preventivo: str):
             )
         )
 
-    _, conferimento = gp.registra_accettazione_preventivo(
-        id_preventivo,
-        workflow_channel="STUDIO",
-        via="STUDIO",
-        ip=request.remote_addr or "",
-        user_agent=request.headers.get("User-Agent", ""),
-        creato_da=getattr(g.get("utente_corrente"), "username", ""),
-        avvocato_referente=_avvocato_referente_workflow(cliente=cliente, preventivo=p),
-        auto_crea_conferimento=True,
-        studio_piva=current_app.config.get("STUDIO_PIVA", ""),
-        studio_cf=current_app.config.get("STUDIO_CF", ""),
-        studio_indirizzo=current_app.config.get("STUDIO_INDIRIZZO", ""),
-    )
+    studio_forense = _studio_forense_context()
+    try:
+        _, conferimento = gp.registra_accettazione_preventivo(
+            id_preventivo,
+            workflow_channel="STUDIO",
+            via="STUDIO",
+            ip=request.remote_addr or "",
+            user_agent=request.headers.get("User-Agent", ""),
+            creato_da=getattr(g.get("utente_corrente"), "username", ""),
+            avvocato_referente=_avvocato_referente_workflow(cliente=cliente, preventivo=p),
+            auto_crea_conferimento=True,
+            studio_piva=current_app.config.get("STUDIO_PIVA", ""),
+            studio_cf=current_app.config.get("STUDIO_CF", ""),
+            studio_indirizzo=current_app.config.get("STUDIO_INDIRIZZO", ""),
+            numero_iscrizione_albo=studio_forense.get("numero_iscrizione_albo", ""),
+            ordine_avvocati=studio_forense.get("ordine_avvocati", ""),
+        )
+    except Exception as exc:
+        current_app.logger.exception("Errore accettazione preventivo %s: %s", id_preventivo, exc)
+        try:
+            gp.cambia_stato_preventivo(id_preventivo, StatoPreventivo.ACCETTATO)
+        except Exception:
+            current_app.logger.debug("Impossibile marcare il preventivo come accettato", exc_info=True)
+        flash(
+            "Accettazione registrata. Non ho potuto creare automaticamente il conferimento, "
+            "ma ho aperto la maschera guidata con i dati disponibili gia' precompilati.",
+            "warning",
+        )
+        return redirect(_url_nuovo_conferimento_preventivo(id_preventivo, p.id_cliente))
     flash("Accettazione cliente registrata in studio.", "success")
     if conferimento:
         flash("Conferimento creato automaticamente. Il prossimo passo è la firma del cliente.", "success")

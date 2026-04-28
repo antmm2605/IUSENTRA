@@ -2,22 +2,132 @@
 
 {% block title %}Strumenti legali - {{ payload.site.site_name }}{% endblock %}
 {% block content %}
-  <section class="studio-site-section">
-    <div class="container">
-      <h1>Strumenti legali</h1>
-      <p class="lead text-muted">Sezione pubblica attivata dall'amministratore del sito studio.</p>
-      <div class="row g-4">
-        {% for item in payload.legal_tools %}
-          <div class="col-md-6 col-xl-4">
-            <article class="studio-site-card h-100">
-              <div class="studio-site-card-icon"><i class="bi {{ item.icon }}"></i></div>
-              <h3>{{ item.title }}</h3>
-              <p>{{ item.subtitle }}</p>
-              {% if item.category %}<div class="studio-site-small-label">{{ item.category }}</div>{% endif %}
-            </article>
+<section class="studio-site-section">
+  <div class="container">
+    <div class="mb-4">
+      <div class="studio-site-pill mb-3">Calcolatori professionali</div>
+      <h1 class="mb-2">Strumenti legali</h1>
+      <p class="lead text-muted mb-0">
+        Calcolatori e strumenti operativi messi a disposizione dallo studio.
+        Accedi con le tue credenziali per utilizzarli direttamente.
+      </p>
+    </div>
+
+    {% if payload.legal_tools %}
+      {# Raggruppa per categoria #}
+      {% set categorie = [] %}
+      {% for item in payload.legal_tools %}
+        {% if item.category and item.category not in categorie %}
+          {% set _ = categorie.append(item.category) %}
+        {% endif %}
+      {% endfor %}
+
+      {% if categorie %}
+        {% for cat in categorie %}
+          <h2 class="h6 fw-bold text-uppercase text-muted mb-3 mt-4"
+              style="letter-spacing:.06em;font-size:.75rem">
+            {{ cat }}
+          </h2>
+          <div class="row g-3 mb-2">
+            {% for item in payload.legal_tools if item.category == cat %}
+              <div class="col-sm-6 col-xl-4">
+                <a href="{{ item.tool_url }}"
+                   class="studio-site-card h-100 d-flex flex-column text-decoration-none"
+                   style="transition:box-shadow .2s,transform .2s"
+                   onmouseover="this.style.boxShadow='0 8px 24px rgba(15,23,42,.13)';this.style.transform='translateY(-2px)'"
+                   onmouseout="this.style.boxShadow='';this.style.transform=''">
+                  <div class="d-flex align-items-start gap-3 mb-2">
+                    <div class="studio-site-card-icon flex-shrink-0">
+                      <i class="bi {{ item.icon }}"></i>
+                    </div>
+                    <div class="min-width-0">
+                      <h3 class="mb-1" style="font-size:1rem;color:#0f172a">{{ item.title }}</h3>
+                      <p class="mb-0 small text-muted" style="line-height:1.4">{{ item.subtitle }}</p>
+                    </div>
+                  </div>
+                  <div class="mt-auto pt-3 border-top d-flex align-items-center justify-content-between">
+                    <span class="small text-muted">{{ item.category }}</span>
+                    <span class="small fw-semibold" style="color:var(--studio-site-primary)">
+                      Apri strumento <i class="bi bi-arrow-right"></i>
+                    </span>
+                  </div>
+                </a>
+              </div>
+            {% endfor %}
           </div>
         {% endfor %}
+
+        {# Strumenti senza categoria #}
+        {% set senza_cat = payload.legal_tools | selectattr('category', 'equalto', '') | list %}
+        {% if senza_cat %}
+          <div class="row g-3 mt-2">
+            {% for item in senza_cat %}
+              <div class="col-sm-6 col-xl-4">
+                <a href="{{ item.tool_url }}"
+                   class="studio-site-card h-100 d-flex flex-column text-decoration-none"
+                   style="transition:box-shadow .2s,transform .2s"
+                   onmouseover="this.style.boxShadow='0 8px 24px rgba(15,23,42,.13)';this.style.transform='translateY(-2px)'"
+                   onmouseout="this.style.boxShadow='';this.style.transform=''">
+                  <div class="d-flex align-items-start gap-3 mb-2">
+                    <div class="studio-site-card-icon flex-shrink-0">
+                      <i class="bi {{ item.icon }}"></i>
+                    </div>
+                    <div>
+                      <h3 class="mb-1" style="font-size:1rem;color:#0f172a">{{ item.title }}</h3>
+                      <p class="mb-0 small text-muted">{{ item.subtitle }}</p>
+                    </div>
+                  </div>
+                  <div class="mt-auto pt-3 border-top text-end">
+                    <span class="small fw-semibold" style="color:var(--studio-site-primary)">
+                      Apri strumento <i class="bi bi-arrow-right"></i>
+                    </span>
+                  </div>
+                </a>
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+
+      {% else %}
+        {# Nessuna categoria — griglia piatta #}
+        <div class="row g-3">
+          {% for item in payload.legal_tools %}
+            <div class="col-sm-6 col-xl-4">
+              <a href="{{ item.tool_url }}"
+                 class="studio-site-card h-100 d-flex flex-column text-decoration-none">
+                <div class="studio-site-card-icon"><i class="bi {{ item.icon }}"></i></div>
+                <h3 style="font-size:1rem;color:#0f172a">{{ item.title }}</h3>
+                <p class="small text-muted mb-0">{{ item.subtitle }}</p>
+                <div class="mt-auto pt-3 border-top text-end">
+                  <span class="small fw-semibold" style="color:var(--studio-site-primary)">
+                    Apri <i class="bi bi-arrow-right"></i>
+                  </span>
+                </div>
+              </a>
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+    {% else %}
+      <div class="studio-site-card text-center py-5">
+        <i class="bi bi-tools fs-1 text-muted d-block mb-3"></i>
+        <p class="text-muted mb-0">Nessuno strumento attivo al momento.</p>
       </div>
+    {% endif %}
+
+    {# CTA accesso #}
+    <div class="studio-site-cta mt-5">
+      <div>
+        <h2 class="h5 mb-1 text-white">Hai già un account?</h2>
+        <p class="mb-0" style="color:rgba(255,255,255,.75);font-size:.9rem">
+          Accedi per utilizzare tutti gli strumenti con i dati del tuo fascicolo precompilati.
+        </p>
+      </div>
+      <a href="/auth/login" class="btn btn-light flex-shrink-0">
+        <i class="bi bi-box-arrow-in-right me-2"></i>Accedi
+      </a>
     </div>
-  </section>
+  </div>
+</section>
 {% endblock %}

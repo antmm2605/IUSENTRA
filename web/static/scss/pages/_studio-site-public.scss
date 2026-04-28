@@ -186,10 +186,10 @@ $sp-header-h: 64px;
 
   // ================================================================
   //  NAV DRAWER OVERLAY (mobile/tablet)
-  //  Il drawer appare da destra su tablet, dal basso su mobile
+  //  Il drawer appare da destra, inizia sotto l'header sticky
   // ================================================================
   .studio-site-nav-backdrop {
-    background: rgba(15, 23, 42, .52);
+    background: rgba(15, 23, 42, .48);
     bottom: 0;
     left: 0;
     opacity: 0;
@@ -198,12 +198,17 @@ $sp-header-h: 64px;
     right: 0;
     top: 0;
     transition: opacity $sp-transition;
-    z-index: 1039;
+    z-index: 1038;
 
     &.is-open {
       opacity: 1;
       pointer-events: auto;
     }
+  }
+
+  // Intestazione drawer: visibile solo nel drawer mobile/tablet
+  .studio-site-nav-drawer-header {
+    display: none;
   }
 
   // ================================================================
@@ -499,7 +504,7 @@ $sp-header-h: 64px;
 
   // ================================================================
   //  TABLET — 768 ≤ w < 992px
-  //  Menu drawer compatto da destra
+  //  Menu drawer da destra, parte sotto l'header sticky
   // ================================================================
   @media (max-width: 991.98px) {
     .studio-site-header {
@@ -514,59 +519,64 @@ $sp-header-h: 64px;
       display: inline-flex;
     }
 
-    // Drawer dal lato destro su tablet
+    // Intestazione interna del drawer
+    .studio-site-nav-drawer-header {
+      align-items: center;
+      border-bottom: 1px solid rgba(15, 23, 42, .08);
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 1rem;
+      padding-bottom: 1rem;
+
+      strong {
+        color: #0f172a;
+        font-size: .92rem;
+        font-weight: 700;
+      }
+    }
+
+    // Drawer dal lato destro — inizia SOTTO l'header (top: $sp-header-h)
     .studio-site-nav {
       background: #fff;
-      border-left: 1px solid rgba(15, 23, 42, .1);
+      border-left: 1px solid rgba(15, 23, 42, .08);
       bottom: 0;
-      box-shadow: -8px 0 32px rgba(15, 23, 42, .16);
+      box-shadow: -6px 0 28px rgba(15, 23, 42, .14);
       display: flex;
       flex-direction: column;
-      gap: .25rem;
+      gap: .15rem;
       overflow-y: auto;
-      padding: 1.5rem 1rem 2rem;
+      padding: 1.25rem 1rem 2.5rem;
       position: fixed;
       right: 0;
-      top: 0;
+      top: $sp-header-h;           // ← inizia sotto l'header sticky
       transform: translateX(100%);
       transition: transform $sp-transition;
       width: $sp-drawer-w-tablet;
-      z-index: 1045;
+      z-index: 1039;               // stesso layer del backdrop — drawer è sopra perché viene dopo
 
       &.is-open {
         transform: translateX(0);
       }
 
-      // Intestazione del drawer (logo + chiudi)
-      .studio-site-nav-drawer-header {
-        align-items: center;
-        display: flex;
-        justify-content: space-between;
-        margin-bottom: 1.25rem;
-        padding-bottom: 1rem;
-        border-bottom: 1px solid rgba(15, 23, 42, .07);
-
-        strong {
-          color: #0f172a;
-          font-size: 1rem;
-        }
-      }
-
       a {
-        border-radius: .85rem;
+        align-items: center;
+        border-radius: .75rem;
         color: #1e293b;
-        font-size: 1rem;
+        display: flex;
+        font-size: .95rem;
         font-weight: 600;
-        padding: .75rem 1rem;
+        gap: .5rem;
+        padding: .7rem .9rem;
         text-decoration: none;
         transition: background $sp-transition, color $sp-transition;
-        display: block;
-        width: 100%;
+
+        i { font-size: 1rem; opacity: .7; }
 
         &:hover,
         &.is-active {
           background: rgba(29, 78, 216, .07);
           color: var(--studio-site-primary);
+          i { opacity: 1; }
         }
       }
     }
@@ -608,7 +618,7 @@ $sp-header-h: 64px;
     .studio-site-brand small  { font-size: .72rem; }
 
     .studio-site-nav {
-      width: min(92vw, 320px);   // quasi full-width ma con visibilità dello sfondo
+      width: min(88vw, 300px);
     }
 
     .studio-site-hero {

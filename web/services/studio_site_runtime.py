@@ -286,11 +286,11 @@ def build_public_site_payload(public_slug: str, *, include_drafts: bool = False)
     }
     if site.get("show_legal_tools"):
         payload["legal_tools"] = public_legal_tools_catalog(
-            limit=8,
+            limit=20,
             normative_db_path=str(current_app.config.get("NORMATIVE_TABLES_DB") or ""),
         )
     if site.get("show_applications"):
-        payload["applications"] = public_applications_catalog(limit=8)
+        payload["applications"] = public_applications_catalog(limit=15)
     if site.get("show_legal_news"):
         payload["legal_news"] = load_public_legal_news(str(site.get("tenant_slug") or ""), limit=12)
     return payload

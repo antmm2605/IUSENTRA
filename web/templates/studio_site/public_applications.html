@@ -2,23 +2,131 @@
 
 {% block title %}Applicazioni - {{ payload.site.site_name }}{% endblock %}
 {% block content %}
-  <section class="studio-site-section">
-    <div class="container">
-      <h1>Applicazioni</h1>
-      <p class="lead text-muted">Strumenti e moduli visibili sul sito solo per scelta esplicita dello studio.</p>
-      <div class="row g-4">
-        {% for item in payload.applications %}
-          <div class="col-md-6 col-xl-4">
-            <article class="studio-site-card h-100">
-              <div class="studio-site-card-icon"><i class="bi {{ item.icon }}"></i></div>
-              <div class="studio-site-small-label">{{ item.section_title }}</div>
-              <h3>{{ item.title }}</h3>
-              <p>{{ item.summary }}</p>
-              {% if item.badge %}<span class="badge text-bg-light">{{ item.badge }}</span>{% endif %}
-            </article>
-          </div>
-        {% endfor %}
+<section class="studio-site-section">
+  <div class="container">
+    <div class="mb-4">
+      <div class="studio-site-pill mb-3">Area clienti</div>
+      <h1 class="mb-2">Applicazioni dello studio</h1>
+      <p class="lead text-muted mb-0">
+        Moduli e strumenti operativi accessibili con le tue credenziali.
+        Contatta lo studio per richiedere l'accesso.
+      </p>
+    </div>
+
+    {% if payload.applications %}
+      {# Raggruppa per sezione #}
+      {% set sezioni = [] %}
+      {% for item in payload.applications %}
+        {% if item.section_title and item.section_title not in sezioni %}
+          {% set _ = sezioni.append(item.section_title) %}
+        {% endif %}
+      {% endfor %}
+
+      {% for sez in sezioni %}
+        <h2 class="h6 fw-bold text-uppercase text-muted mb-3 mt-4"
+            style="letter-spacing:.06em;font-size:.75rem">
+          <i class="bi bi-grid me-1"></i>{{ sez }}
+        </h2>
+        <div class="row g-3 mb-2">
+          {% for item in payload.applications if item.section_title == sez %}
+            <div class="col-sm-6 col-xl-4">
+              <div class="studio-site-card h-100 d-flex flex-column">
+                <div class="d-flex align-items-start gap-3 mb-2">
+                  <div class="studio-site-card-icon flex-shrink-0">
+                    <i class="bi {{ item.icon }}"></i>
+                  </div>
+                  <div class="min-width-0">
+                    <div class="d-flex align-items-center gap-2 flex-wrap mb-1">
+                      <h3 class="mb-0" style="font-size:.95rem;color:#0f172a">{{ item.title }}</h3>
+                      {% if item.badge %}
+                        <span class="badge rounded-pill"
+                              style="background:rgba(29,78,216,.1);color:#1d4ed8;font-size:.68rem">
+                          {{ item.badge }}
+                        </span>
+                      {% endif %}
+                    </div>
+                    <p class="mb-0 small text-muted" style="line-height:1.4">{{ item.summary }}</p>
+                  </div>
+                </div>
+                <div class="mt-auto pt-3 border-top d-flex align-items-center justify-content-between">
+                  <span class="small text-muted">
+                    {% if item.access_mode == 'diretta' %}
+                      <i class="bi bi-lightning-charge-fill text-warning me-1"></i>Accesso diretto
+                    {% elif item.access_mode == 'guidata' %}
+                      <i class="bi bi-signpost me-1 text-info"></i>Procedura guidata
+                    {% else %}
+                      <i class="bi bi-grid me-1"></i>Catalogo
+                    {% endif %}
+                  </span>
+                  <a href="/auth/login"
+                     class="btn btn-sm"
+                     style="background:rgba(29,78,216,.08);color:#1d4ed8;border:none;font-weight:600">
+                    Accedi <i class="bi bi-arrow-right"></i>
+                  </a>
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      {% endfor %}
+
+      {# App senza sezione #}
+      {% set senza_sez = payload.applications | selectattr('section_title', 'equalto', '') | list %}
+      {% if senza_sez %}
+        <div class="row g-3 mt-2">
+          {% for item in senza_sez %}
+            <div class="col-sm-6 col-xl-4">
+              <div class="studio-site-card h-100 d-flex flex-column">
+                <div class="studio-site-card-icon"><i class="bi {{ item.icon }}"></i></div>
+                <h3 style="font-size:.95rem;color:#0f172a">{{ item.title }}</h3>
+                <p class="small text-muted mb-0">{{ item.summary }}</p>
+                <div class="mt-auto pt-3 border-top text-end">
+                  <a href="/auth/login" class="btn btn-sm"
+                     style="background:rgba(29,78,216,.08);color:#1d4ed8;border:none;font-weight:600">
+                    Accedi <i class="bi bi-arrow-right"></i>
+                  </a>
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+    {% else %}
+      <div class="studio-site-card text-center py-5">
+        <i class="bi bi-grid fs-1 text-muted d-block mb-3"></i>
+        <p class="text-muted mb-0">Nessuna applicazione attiva al momento.</p>
+      </div>
+    {% endif %}
+
+    {# CTA contatto #}
+    <div class="row g-4 mt-4">
+      <div class="col-md-6">
+        <div class="studio-site-card h-100">
+          <div class="studio-site-card-icon"><i class="bi bi-person-plus"></i></div>
+          <h3 style="font-size:1rem">Non hai ancora un account?</h3>
+          <p class="small text-muted">
+            Contatta lo studio per richiedere le credenziali di accesso all'area clienti.
+          </p>
+          <a href="{{ url_for('studio_site_public.contacts', public_slug=payload.site.public_slug) }}"
+             class="btn btn-outline-dark btn-sm">
+            <i class="bi bi-envelope me-1"></i>Contattaci
+          </a>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="studio-site-card h-100">
+          <div class="studio-site-card-icon"><i class="bi bi-box-arrow-in-right"></i></div>
+          <h3 style="font-size:1rem">Hai già un account?</h3>
+          <p class="small text-muted">
+            Accedi direttamente all'area clienti con le tue credenziali.
+          </p>
+          <a href="/auth/login" class="btn btn-dark btn-sm">
+            <i class="bi bi-box-arrow-in-right me-1"></i>Accedi ora
+          </a>
+        </div>
       </div>
     </div>
-  </section>
+  </div>
+</section>
 {% endblock %}

@@ -64,11 +64,11 @@
       </a>
 
       <nav class="studio-site-nav" id="studioSiteNav" aria-label="Navigazione principale">
-        {# Intestazione drawer (visibile solo su mobile/tablet) #}
-        <div class="studio-site-nav-drawer-header d-none" id="studioSiteNavHeader">
+        {# Intestazione interna del drawer — visibile solo su mobile/tablet via CSS #}
+        <div class="studio-site-nav-drawer-header">
           <strong>{{ payload.site.site_name }}</strong>
           <button type="button" class="btn btn-sm btn-outline-secondary studio-site-nav-close"
-                  aria-label="Chiudi menu">
+                  aria-label="Chiudi menu di navigazione">
             <i class="bi bi-x-lg"></i>
           </button>
         </div>

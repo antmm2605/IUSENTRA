@@ -529,23 +529,25 @@ def booking_slots_for_date(
     return slots
 
 
-def public_legal_tools_catalog(*, limit: int = 6, normative_db_path: str = "") -> list[dict[str, Any]]:
+def public_legal_tools_catalog(*, limit: int = 20, normative_db_path: str = "") -> list[dict[str, Any]]:
     gestore = GestioneStrumentiLegali(normative_db_path or "./intelligence/tabelle_normative.json")
     rows = []
     for item in gestore.catalogo_moduli()[:limit]:
+        tool_id = clean_text(item.get("id"))
         rows.append(
             {
-                "id": clean_text(item.get("id")),
+                "id": tool_id,
                 "title": clean_text(item.get("title")),
                 "subtitle": clean_text(item.get("subtitle")),
                 "icon": clean_text(item.get("icon")) or "bi-tools",
                 "category": clean_text(item.get("categoria")),
+                "tool_url": f"/strumenti-legali/?tool={tool_id}",
             }
         )
     return rows
 
 
-def public_applications_catalog(*, limit: int = 6) -> list[dict[str, Any]]:
+def public_applications_catalog(*, limit: int = 15) -> list[dict[str, Any]]:
     rows = []
     for item in applicazioni_primo_piano(limit=limit):
         rows.append(
@@ -556,6 +558,7 @@ def public_applications_catalog(*, limit: int = 6) -> list[dict[str, Any]]:
                 "section_title": clean_text(item.get("section_title")),
                 "icon": clean_text(item.get("icon")) or "bi-grid-1x2",
                 "badge": clean_text(item.get("status_label") or item.get("status")),
+                "access_mode": clean_text(item.get("access_mode")),
             }
         )
     return rows

@@ -11,13 +11,8 @@
   const toggle   = document.querySelector(".studio-site-nav-toggle");
   const nav      = document.getElementById("studioSiteNav");
   const backdrop = document.getElementById("studioSiteNavBackdrop");
-  const navHeader = document.getElementById("studioSiteNavHeader");
 
   const MOBILE_BP = 992; // px — breakpoint tablet/desktop
-
-  function isMobile() {
-    return window.innerWidth < MOBILE_BP;
-  }
 
   function openNav() {
     if (!nav || !toggle) return;
@@ -29,15 +24,10 @@
       backdrop.classList.add("is-open");
       backdrop.removeAttribute("aria-hidden");
     }
-    // Mostra intestazione drawer e icone nel menu solo su mobile/tablet
-    if (navHeader) navHeader.classList.remove("d-none");
-    // Blocca scroll body solo su mobile
-    if (isMobile()) {
-      document.body.style.overflow = "hidden";
-    }
-    // Focus al primo link del menu per accessibilità
+    document.body.style.overflow = "hidden";
+    // Focus al primo link per accessibilità
     const firstLink = nav.querySelector("a");
-    if (firstLink) firstLink.focus();
+    if (firstLink) setTimeout(() => firstLink.focus(), 50);
   }
 
   function closeNav() {
@@ -50,7 +40,6 @@
       backdrop.classList.remove("is-open");
       backdrop.setAttribute("aria-hidden", "true");
     }
-    // Ripristina scroll body
     document.body.style.overflow = "";
   }
 

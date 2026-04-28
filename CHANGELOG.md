@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.195.5 - 2026-04-28
+
+- Estratta la logica delle viste dello scadenziario in un servizio dedicato, mantenendo invariato il comportamento utente e riportando il modulo route sotto i limiti di governance CI.
+
 ## 2.195.4 - 2026-04-28
 
 - Corretto il flusso di creazione del conferimento da preventivo: il redirect al login conserva ora `id_preventivo` e `from_page`, evitando la perdita del contesto e il 500 in produzione.

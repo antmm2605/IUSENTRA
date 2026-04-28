@@ -1,0 +1,21 @@
+{
+  "title": "IUSENTRA Production Hardening",
+  "schemaVersion": 39,
+  "panels": [
+    {
+      "type": "stat",
+      "title": "Stato salute",
+      "targets": [{"expr": "iusentra_health_status"}]
+    },
+    {
+      "type": "timeseries",
+      "title": "Richieste HTTP",
+      "targets": [{"expr": "sum(iusentra_http_requests_total)"}]
+    },
+    {
+      "type": "timeseries",
+      "title": "Latenza media HTTP",
+      "targets": [{"expr": "avg(iusentra_http_request_avg_ms)"}]
+    }
+  ]
+}

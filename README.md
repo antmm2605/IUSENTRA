@@ -576,6 +576,7 @@ python -m pytest tests/test_pdp_penale_web.py -q
 - [docs/QUICKSTART.md](docs/QUICKSTART.md) — avvio rapido locale, bootstrap admin e verifiche iniziali.
 - [docs/DEPLOY.md](docs/DEPLOY.md) — release, Docker locale, Railway, CI e controlli finali.
 - [docs/STORAGE_MATRIX.md](docs/STORAGE_MATRIX.md) — matrice esplicita dei backend storage per modulo e stato di maturità.
+- [docs/production-hardening.md](docs/production-hardening.md) — hardening produzione: JSON -> DB, Redis, RQ, Gunicorn, sicurezza, health, backup e monitoring.
 - [docs/DEMO_STUDIO_REALE.md](docs/DEMO_STUDIO_REALE.md) — percorso ufficiale `cliente -> incasso`, check operativo e demo mentale in meno di 5 minuti.
 - [docs/CHECKLIST_ATTI.md](docs/CHECKLIST_ATTI.md) — catalogo professionale delle checklist atti con aree, branche, sottobranche, canali di deposito e naming cartelle in formato italiano.
 - [docs/RELEASE_PROCESS.md](docs/RELEASE_PROCESS.md) — checklist di release, tagging, changelog e sincronizzazione ambienti.

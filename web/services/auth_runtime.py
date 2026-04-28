@@ -45,6 +45,10 @@ def register_auth_runtime(
         "polis_local_signer_setup_windows_exe",
         "polis_local_signer_setup_macos",
         "polis_local_signer_setup_linux",
+        "health_live",
+        "health_ready",
+        "health_dependencies",
+        "prometheus_metrics",
     }
     password_change_routes = {
         "profilo",

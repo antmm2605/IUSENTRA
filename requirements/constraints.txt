@@ -20,6 +20,10 @@ PyYAML<7
 click<9
 jinja2<4
 flask-sock<1
+redis<6
+rq<3
+Flask-Limiter<4
+prometheus-client<1
 pypdf<7
 pytest<9
 pytest-cov<7

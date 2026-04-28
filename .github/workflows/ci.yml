@@ -56,11 +56,14 @@ jobs:
         run: |
           shopt -s nullglob
           targets=(
+            core
             pct
             web
             lex
             tests
             tools/*.py
+            worker.py
+            gunicorn.conf.py
             vercel_app.py
             visible_signature.py
             wsgi.py
@@ -119,7 +122,7 @@ jobs:
 
           paths = []
           paths.extend(sorted(Path("tools").glob("*.py")))
-          for filename in ("vercel_app.py", "visible_signature.py", "wsgi.py"):
+          for filename in ("worker.py", "gunicorn.conf.py", "vercel_app.py", "visible_signature.py", "wsgi.py"):
             path = Path(filename)
             if path.exists():
               paths.append(path)
@@ -128,6 +131,13 @@ jobs:
             py_compile.compile(str(path), doraise=True)
             print(f"Compiled {path}")
           PY
+
+      - name: Gate anti-regressione CI 100%
+        run: |
+          python -m pytest -q tests/test_ci_no_regression_contract.py \
+            --cov=tests.test_ci_no_regression_contract \
+            --cov-report=term-missing \
+            --cov-fail-under=100
 
   governance:
     name: Governance repo
@@ -399,7 +409,7 @@ jobs:
             --cov-config=config/coverage-critical.ini \
             --cov-report=term-missing \
             --cov-report=xml \
-            --cov-fail-under=65
+            --cov-fail-under=70
 
   e2e-smoke:
     name: E2E smoke

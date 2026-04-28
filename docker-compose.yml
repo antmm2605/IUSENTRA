@@ -56,6 +56,7 @@ services:
       PCT_HTTPS: "false"
       PCT_STORAGE_MODE: "SQLITE"
       # Percorsi dati (ridondanti rispetto al Dockerfile, ma espliciti qui)
+      PCT_DATA_ROOT:      /data
       PCT_AGENDA_DB:        /data/agenda/appuntamenti.json
       PCT_CLIENTI_DB:       /data/clienti/anagrafica.json
       PCT_CONDIVISIONI_DB:  /data/clienti/condivisioni.json
@@ -85,11 +86,19 @@ services:
       PCT_TENANTS_REGISTRY: /data/tenants.json
       PCT_STUDIO_CONFIG:    /data/config/studio.json
       PCT_MULTI_TENANT:     "1"
+      DATABASE_URL:         ${DATABASE_URL:-sqlite:////data/iusentra.sqlite}
+      REDIS_URL:            ${REDIS_URL:-redis://redis:6379/0}
+      RATELIMIT_STORAGE_URI: ${RATELIMIT_STORAGE_URI:-redis://redis:6379/1}
+      PROMETHEUS_ENABLED:   ${PROMETHEUS_ENABLED:-1}
       PCT_LOCAL_AI_BASE_URL: ${PCT_LOCAL_AI_BASE_URL:-http://host.docker.internal:11434/api}
       PCT_HOST_PLATFORM:    ${OS:-}
       PCT_HOST_MACHINE:     ${PROCESSOR_ARCHITECTURE:-}
       # PKCS#11 — percorso libreria OpenSC nel container (auto-rilevato se non impostato)
       PCT_PKCS11_LIBRARY:   /usr/lib/x86_64-linux-gnu/opensc-pkcs11.so
+
+    depends_on:
+      redis:
+        condition: service_healthy
 
     healthcheck:
       test: ["CMD", "python", "-c",
@@ -134,6 +143,7 @@ services:
 
     environment:
       PCT_HTTPS: "false"
+      PCT_DATA_ROOT: /data
       PCT_MULTI_TENANT: "1"
       PCT_STORAGE_MODE: "SQLITE"
       PCT_SQLITE_MODE: "1"
@@ -174,6 +184,7 @@ services:
 
     environment:
       PCT_HTTPS: "false"
+      PCT_DATA_ROOT: /data
       PCT_MULTI_TENANT: "1"
       PCT_STORAGE_MODE: "SQLITE"
       PCT_SQLITE_MODE: "1"
@@ -187,6 +198,66 @@ services:
       timeout: 10s
       retries: 3
       start_period: 20s
+
+  redis:
+    image: redis:7-alpine
+    container_name: iusentra-redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - ./data/redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  rq-worker:
+    profiles: ["hardening"]
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: iusentra-rq-worker
+    restart: unless-stopped
+    command: ["python", "worker.py"]
+    depends_on:
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./data:/data
+    env_file:
+      - .env
+    environment:
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      RQ_QUEUES: ${RQ_QUEUES:-default,documents,email,ocr,imports}
+
+  prometheus:
+    profiles: ["monitoring"]
+    image: prom/prometheus:latest
+    container_name: iusentra-prometheus
+    restart: unless-stopped
+    command: ["--config.file=/etc/prometheus/prometheus.yml"]
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./data/prometheus:/prometheus
+    ports:
+      - "9090:9090"
+    depends_on:
+      app:
+        condition: service_healthy
+
+  grafana:
+    profiles: ["monitoring"]
+    image: grafana/grafana:latest
+    container_name: iusentra-grafana
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./data/grafana:/var/lib/grafana
+      - ./monitoring:/etc/grafana/provisioning/dashboards:ro
+    depends_on:
+      - prometheus
 
   ollama:
     profiles: ["ollama-sidecar"]

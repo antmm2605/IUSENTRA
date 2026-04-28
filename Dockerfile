@@ -1,4 +1,4 @@
-#  version: 2.194.4
+#  version: 2.195.0
 #  IUSENTRA | Dockerfile produzione
 
 #  Build multi-stage:
@@ -75,7 +75,7 @@ RUN mkdir -p /out && /tmp/dart-sass/sass --no-source-map --style=compressed \
 FROM python:3.12-slim
 
 LABEL org.opencontainers.image.title="IUSENTRA" \
-      org.opencontainers.image.version="2.194.4" \
+      org.opencontainers.image.version="2.195.0" \
       org.opencontainers.image.description="Gestionale PCT per studi legali italiani" \
       org.opencontainers.image.created="2026-03-18"
 
@@ -129,6 +129,7 @@ ENV PYTHONPATH=/app
 # Su Railway/Render monta un volume su /data
 # In locale:  docker run -v $(pwd)/data:/data ... oppure usa docker-compose
 ENV PCT_AGENDA_DB=/data/agenda/appuntamenti.json \
+    PCT_DATA_ROOT=/data \
     PCT_STORAGE_MODE=SQLITE \
     PCT_SQLITE_MODE=1 \
     PCT_CALENDAR_SYNC_DB=/data/agenda/calendar_sync.json \
@@ -185,5 +186,5 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
 
 ENTRYPOINT ["python", "/usr/local/bin/iusentra-entrypoint.py"]
 
-# Gunicorn: worker gevent per SSE/long-polling, timeout 120s per PDF/ZIP grandi
-CMD ["sh", "-c", "gunicorn --bind 0.0.0.0:${PORT:-8080} --worker-class gevent --workers ${WEB_CONCURRENCY:-1} --worker-connections 100 --timeout 120 --access-logfile - --error-logfile - wsgi:app"]
+# Gunicorn: configurazione governata in gunicorn.conf.py, con bind derivato da PORT.
+CMD ["gunicorn", "--config", "gunicorn.conf.py", "wsgi:app"]

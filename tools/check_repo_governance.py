@@ -546,6 +546,7 @@ def main() -> int:
         "name: Smoke scheduler worker",
         "from pct.scheduler_worker import start_scheduler_worker",
         "name: Pytest core",
+        "name: Gate anti-regressione CI 100%",
         "tests/test_storage_strategy.py",
         "tests/test_observability_runtime.py",
         "tests/test_ocr_worker.py",

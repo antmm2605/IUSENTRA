@@ -9,6 +9,8 @@ from urllib.parse import urlparse
 
 from flask import Flask, abort, request, session
 
+from core.security.headers import apply_security_headers as apply_core_security_headers
+
 
 _INSECURE_SECRET_MARKERS = (
     "dev-secret-pct-2024",
@@ -131,20 +133,7 @@ def register_security_runtime(app: Flask) -> None:
     def apply_security_headers(response):
         if not app.config.get("ENABLE_SECURITY_HEADERS", True):
             return response
-        response.headers.setdefault("X-Frame-Options", "SAMEORIGIN")
-        response.headers.setdefault("X-Content-Type-Options", "nosniff")
-        response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
-        response.headers.setdefault(
-            "Permissions-Policy",
-            "camera=(), microphone=(), geolocation=(), payment=()",
-        )
-        response.headers.setdefault("Cross-Origin-Opener-Policy", "same-origin")
-        if app.config.get("SESSION_COOKIE_SECURE"):
-            response.headers.setdefault(
-                "Strict-Transport-Security",
-                "max-age=31536000; includeSubDomains",
-            )
-        return response
+        return apply_core_security_headers(response, app)
 
 
 def _same_origin_request() -> bool:

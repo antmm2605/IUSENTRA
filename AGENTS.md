@@ -160,6 +160,16 @@ Regole chiave:
 - **Inventario sempre presente nel contesto**: quando Lex AI risponde su un fascicolo deve ricevere almeno l'inventario completo di documenti e sezioni, anche se il testo integrale viene poi selezionato con ranking. In questo modo Lex sa che esistono 50, 60 o 70 documenti e non ragiona solo sui primi risultati.
 - **Test anti-regressione obbligatori**: ogni modifica a RAG, OCR, assistente fascicolo o reindicizzazione deve includere test con più di 8 documenti e più di 3 elementi per sezione, verificando che nessun elemento venga eliminato dal contesto per limiti hard-coded.
 
+## Regola obbligatoria — CI, coverage e anti-regressione definitiva
+
+- Nessun commit, push o merge deve disattivare, indebolire o aggirare i job `Lint + syntax`, `Governance repo`, `Pytest core`, `Coverage moduli critici`, `CI Quality Overlay / quality-gates`, `Performance Nightly`, `CodeQL` e i workflow di sicurezza supply-chain.
+- Prima di considerare conclusa una tranche, il blocco CI equivalente locale deve passare almeno su: packaging sync, baseline Python, lint/syntax, smoke Flask, `Pytest core`, coverage critica e quality gates pertinenti.
+- La coverage critica non puo' essere abbassata senza motivazione tecnica documentata in `CHANGELOG.md`, aggiornamento dei test e approvazione esplicita dell'utente. Ogni nuovo modulo critico deve portare test dedicati o essere escluso solo con motivazione scritta e temporanea.
+- Il Gate anti-regressione al 100% sui contratti CI deve restare attivo: se vengono modificati workflow, bounded context Lex, coverage, quality overlay, performance nightly o regole operative, i test anti-regressione devono fallire in assenza dei controlli richiesti.
+- E' vietato correggere un problema CI eliminando il test che lo intercetta, marcandolo `skip`, riducendo soglie o spostando codice fuori dal perimetro di controllo senza sostituire il presidio con uno equivalente o piu' forte.
+- Le regressioni gia' chiuse su payload bounded Lex, orchestrazione RAG, quality overlay, performance nightly, mojibake/terminologia, packaging sync, coverage critica e `Pytest core` sono release-blocking: se ricompaiono, il lavoro non puo' essere pushato come completato.
+- Dopo ogni push, i branch gemelli `claude/legal-electronic-filing-kIxcV` e `Codex/legal-electronic-filing-kIxcV` devono risultare sullo stesso commit e con gli stessi job obbligatori verdi su GitHub Actions.
+
 ## Script di simulazione e test — Riferimento rapido
 
 Tutti gli script sono nella directory `tests/` ed eseguibili con `python -m pytest tests/<file> -v`.

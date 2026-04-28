@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.195.0 - 2026-04-28
+
+- Introdotto il primo presidio production hardening: moduli `core` per configurazione, database, cache Redis con fallback, worker RQ, health check, metriche Prometheus, shutdown, security headers, rate limiting, upload validator, audit HMAC, secrets Fernet, circuit breaker e migrazione JSON -> SQL.
+- Aggiunti script operativi per migrazione idempotente JSON -> DB, backup database/storage e verifica integrita' backup.
+- Aggiornati Docker Compose, Gunicorn, Prometheus, Grafana, `.env.example` e documentazione `docs/production-hardening.md` per Redis, worker, health check, metriche e backup.
+- Rafforzata la CI: coverage critica alzata a soglia 70 e nuovo gate anti-regressione CI al 100% sui contratti che impediscono di rimuovere `Pytest core`, coverage governata e quality gates.
+- Aggiunti test dedicati per upload security, audit HMAC, circuit breaker, cache, job queue, migrazione DB/FTS, health check, rate limit, security headers, secrets manager e metriche.
+
 ## 2.194.4 - 2026-04-28
 
 - Ripristinata la compatibilita' dell'endpoint `/api/assistente/context` quando Lex usa i workflow bounded per normativa e giurisprudenza: il payload espone di nuovo prompt diagnostico, `language_mode` e flag di ricerca web/follow-up.

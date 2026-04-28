@@ -46,9 +46,73 @@
 <body class="studio-site-public studio-site-template-{{ payload.theme.template_code if payload.theme else 'classic_legal' }}">
   <a class="studio-site-skip-link" href="#contenuto-principale">Salta al contenuto principale</a>
 
-  {# Backdrop del menu mobile — cliccabile per chiudere il drawer #}
+  {#
+    ARCHITETTURA HEADER + NAV
+    ─────────────────────────
+    La <nav> è un fratello dell'<header>, NON un figlio.
+    Motivo: backdrop-filter sull'header crea un "containing block" per
+    position:fixed, facendo sì che right:0/top:0 siano calcolati rispetto
+    all'header e non al viewport. Con la nav fuori, position:fixed funziona
+    correttamente rispetto al viewport su tutti i browser.
+
+    Desktop  (≥992px): nav appare come barra links fissa in alto a destra,
+                        visivamente "dentro" l'header grazie al z-index.
+    Mobile (<992px):   nav è il drawer a destra che si apre con l'hamburger.
+  #}
+
+  {# Backdrop semitrasparente — cliccabile per chiudere il drawer #}
   <div class="studio-site-nav-backdrop" id="studioSiteNavBackdrop" aria-hidden="true"></div>
 
+  {# Nav FUORI dall'header — posizionato via position:fixed nel CSS #}
+  <nav class="studio-site-nav" id="studioSiteNav" aria-label="Navigazione principale">
+    {# Intestazione del drawer — visibile solo su mobile/tablet via CSS #}
+    <div class="studio-site-nav-drawer-header">
+      <span class="studio-site-nav-drawer-title">{{ payload.site.site_name }}</span>
+      <button type="button" class="studio-site-nav-close" aria-label="Chiudi menu">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+
+    <a href="{{ url_for('studio_site_public.home', public_slug=payload.site.public_slug) }}">
+      <i class="bi bi-house"></i><span>Home</span>
+    </a>
+    {% for page in payload.menu_pages %}
+      <a href="{{ url_for('studio_site_public.page_detail', public_slug=payload.site.public_slug, page_slug=page.slug) }}">
+        <span>{{ page.title }}</span>
+      </a>
+    {% endfor %}
+    {% if payload.articles %}
+      <a href="{{ url_for('studio_site_public.articles', public_slug=payload.site.public_slug) }}">
+        <i class="bi bi-newspaper"></i><span>Articoli</span>
+      </a>
+    {% endif %}
+    {% if payload.booking_enabled %}
+      <a href="{{ url_for('studio_site_public.booking', public_slug=payload.site.public_slug) }}">
+        <i class="bi bi-calendar-check"></i><span>Prenota</span>
+      </a>
+    {% endif %}
+    <a href="{{ url_for('studio_site_public.contacts', public_slug=payload.site.public_slug) }}">
+      <i class="bi bi-envelope"></i><span>Contatti</span>
+    </a>
+    {% if payload.show_legal_tools %}
+      <a href="{{ url_for('studio_site_public.legal_tools', public_slug=payload.site.public_slug) }}">
+        <i class="bi bi-calculator"></i><span>Strumenti legali</span>
+      </a>
+    {% endif %}
+    {% if payload.show_applications %}
+      <a href="{{ url_for('studio_site_public.applications', public_slug=payload.site.public_slug) }}">
+        <i class="bi bi-grid"></i><span>Applicazioni</span>
+      </a>
+    {% endif %}
+    {% if payload.show_legal_news %}
+      <a href="{{ url_for('studio_site_public.legal_news', public_slug=payload.site.public_slug) }}">
+        <i class="bi bi-globe"></i><span>News giuridiche</span>
+      </a>
+    {% endif %}
+  </nav>
+
+  {# Header: solo brand + pulsante hamburger.
+     NON contiene la nav per evitare il problema del containing block. #}
   <header class="studio-site-header">
     <div class="container">
       <a href="{{ url_for('studio_site_public.home', public_slug=payload.site.public_slug) }}" class="studio-site-brand">
@@ -63,54 +127,6 @@
         </span>
       </a>
 
-      <nav class="studio-site-nav" id="studioSiteNav" aria-label="Navigazione principale">
-        {# Intestazione interna del drawer — visibile solo su mobile/tablet via CSS #}
-        <div class="studio-site-nav-drawer-header">
-          <strong>{{ payload.site.site_name }}</strong>
-          <button type="button" class="btn btn-sm btn-outline-secondary studio-site-nav-close"
-                  aria-label="Chiudi menu di navigazione">
-            <i class="bi bi-x-lg"></i>
-          </button>
-        </div>
-
-        <a href="{{ url_for('studio_site_public.home', public_slug=payload.site.public_slug) }}">
-          <i class="bi bi-house me-2"></i>Home
-        </a>
-        {% for page in payload.menu_pages %}
-          <a href="{{ url_for('studio_site_public.page_detail', public_slug=payload.site.public_slug, page_slug=page.slug) }}">
-            {{ page.title }}
-          </a>
-        {% endfor %}
-        {% if payload.articles %}
-          <a href="{{ url_for('studio_site_public.articles', public_slug=payload.site.public_slug) }}">
-            <i class="bi bi-newspaper me-2"></i>Articoli
-          </a>
-        {% endif %}
-        {% if payload.booking_enabled %}
-          <a href="{{ url_for('studio_site_public.booking', public_slug=payload.site.public_slug) }}">
-            <i class="bi bi-calendar-check me-2"></i>Prenota
-          </a>
-        {% endif %}
-        <a href="{{ url_for('studio_site_public.contacts', public_slug=payload.site.public_slug) }}">
-          <i class="bi bi-envelope me-2"></i>Contatti
-        </a>
-        {% if payload.show_legal_tools %}
-          <a href="{{ url_for('studio_site_public.legal_tools', public_slug=payload.site.public_slug) }}">
-            <i class="bi bi-calculator me-2"></i>Strumenti legali
-          </a>
-        {% endif %}
-        {% if payload.show_applications %}
-          <a href="{{ url_for('studio_site_public.applications', public_slug=payload.site.public_slug) }}">
-            <i class="bi bi-grid me-2"></i>Applicazioni
-          </a>
-        {% endif %}
-        {% if payload.show_legal_news %}
-          <a href="{{ url_for('studio_site_public.legal_news', public_slug=payload.site.public_slug) }}">
-            <i class="bi bi-globe me-2"></i>News giuridiche
-          </a>
-        {% endif %}
-      </nav>
-
       <button class="studio-site-nav-toggle" type="button"
               aria-controls="studioSiteNav"
               aria-expanded="false"
@@ -120,7 +136,7 @@
     </div>
   </header>
 
-  <main class="pb-5" id="contenuto-principale">
+  <main class="studio-site-main" id="contenuto-principale">
     <div class="container pt-3">
       {% with messages = get_flashed_messages(with_categories=true) %}
         {% for cat, msg in messages %}
@@ -175,10 +191,7 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   {% if payload.site.analytics_enabled and payload.site.analytics_provider and payload.site.analytics_id %}
     <script type="application/json" id="studioSiteAnalyticsConfig">
-      {{ {
-        "provider": payload.site.analytics_provider,
-        "id": payload.site.analytics_id
-      }|tojson }}
+      {{ {"provider": payload.site.analytics_provider, "id": payload.site.analytics_id}|tojson }}
     </script>
   {% endif %}
   <script src="{{ url_for('static', filename='js/studio_site_public.js') }}?v={{ app_version }}"></script>

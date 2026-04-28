@@ -4,106 +4,86 @@
 {% block content %}
 <section class="studio-site-section">
   <div class="container">
-    <div class="mb-4">
+
+    <div class="mb-5">
       <div class="studio-site-pill mb-3">Calcolatori professionali</div>
       <h1 class="mb-2">Strumenti legali</h1>
-      <p class="lead text-muted mb-0">
-        Calcolatori e strumenti operativi messi a disposizione dallo studio.
-        Accedi con le tue credenziali per utilizzarli direttamente.
+      <p class="lead text-muted mb-0" style="max-width:600px">
+        Calcolatori e strumenti operativi che lo studio mette a disposizione.
+        Seleziona lo strumento di interesse e contattaci per una consulenza personalizzata.
       </p>
     </div>
 
     {% if payload.legal_tools %}
-      {# Raggruppa per categoria #}
-      {% set categorie = [] %}
+
+      {# Raccoglie le categorie nell'ordine di prima apparizione #}
+      {% set categorie = namespace(lista=[]) %}
       {% for item in payload.legal_tools %}
-        {% if item.category and item.category not in categorie %}
-          {% set _ = categorie.append(item.category) %}
+        {% if item.category and item.category not in categorie.lista %}
+          {% set categorie.lista = categorie.lista + [item.category] %}
         {% endif %}
       {% endfor %}
 
-      {% if categorie %}
-        {% for cat in categorie %}
-          <h2 class="h6 fw-bold text-uppercase text-muted mb-3 mt-4"
-              style="letter-spacing:.06em;font-size:.75rem">
-            {{ cat }}
-          </h2>
-          <div class="row g-3 mb-2">
-            {% for item in payload.legal_tools if item.category == cat %}
-              <div class="col-sm-6 col-xl-4">
-                <a href="{{ item.tool_url }}"
-                   class="studio-site-card h-100 d-flex flex-column text-decoration-none"
-                   style="transition:box-shadow .2s,transform .2s"
-                   onmouseover="this.style.boxShadow='0 8px 24px rgba(15,23,42,.13)';this.style.transform='translateY(-2px)'"
-                   onmouseout="this.style.boxShadow='';this.style.transform=''">
-                  <div class="d-flex align-items-start gap-3 mb-2">
-                    <div class="studio-site-card-icon flex-shrink-0">
-                      <i class="bi {{ item.icon }}"></i>
-                    </div>
-                    <div class="min-width-0">
-                      <h3 class="mb-1" style="font-size:1rem;color:#0f172a">{{ item.title }}</h3>
-                      <p class="mb-0 small text-muted" style="line-height:1.4">{{ item.subtitle }}</p>
-                    </div>
-                  </div>
-                  <div class="mt-auto pt-3 border-top d-flex align-items-center justify-content-between">
-                    <span class="small text-muted">{{ item.category }}</span>
-                    <span class="small fw-semibold" style="color:var(--studio-site-primary)">
-                      Apri strumento <i class="bi bi-arrow-right"></i>
-                    </span>
-                  </div>
-                </a>
-              </div>
-            {% endfor %}
-          </div>
-        {% endfor %}
-
-        {# Strumenti senza categoria #}
-        {% set senza_cat = payload.legal_tools | selectattr('category', 'equalto', '') | list %}
-        {% if senza_cat %}
-          <div class="row g-3 mt-2">
-            {% for item in senza_cat %}
-              <div class="col-sm-6 col-xl-4">
-                <a href="{{ item.tool_url }}"
-                   class="studio-site-card h-100 d-flex flex-column text-decoration-none"
-                   style="transition:box-shadow .2s,transform .2s"
-                   onmouseover="this.style.boxShadow='0 8px 24px rgba(15,23,42,.13)';this.style.transform='translateY(-2px)'"
-                   onmouseout="this.style.boxShadow='';this.style.transform=''">
-                  <div class="d-flex align-items-start gap-3 mb-2">
-                    <div class="studio-site-card-icon flex-shrink-0">
-                      <i class="bi {{ item.icon }}"></i>
-                    </div>
-                    <div>
-                      <h3 class="mb-1" style="font-size:1rem;color:#0f172a">{{ item.title }}</h3>
-                      <p class="mb-0 small text-muted">{{ item.subtitle }}</p>
-                    </div>
-                  </div>
-                  <div class="mt-auto pt-3 border-top text-end">
-                    <span class="small fw-semibold" style="color:var(--studio-site-primary)">
-                      Apri strumento <i class="bi bi-arrow-right"></i>
-                    </span>
-                  </div>
-                </a>
-              </div>
-            {% endfor %}
-          </div>
-        {% endif %}
-
-      {% else %}
-        {# Nessuna categoria — griglia piatta #}
+      {% for cat in categorie.lista %}
+        <h2 class="h6 text-uppercase text-muted fw-bold mt-5 mb-3"
+            style="font-size:.72rem;letter-spacing:.07em">
+          {{ cat }}
+        </h2>
         <div class="row g-3">
-          {% for item in payload.legal_tools %}
-            <div class="col-sm-6 col-xl-4">
-              <a href="{{ item.tool_url }}"
-                 class="studio-site-card h-100 d-flex flex-column text-decoration-none">
-                <div class="studio-site-card-icon"><i class="bi {{ item.icon }}"></i></div>
-                <h3 style="font-size:1rem;color:#0f172a">{{ item.title }}</h3>
-                <p class="small text-muted mb-0">{{ item.subtitle }}</p>
-                <div class="mt-auto pt-3 border-top text-end">
-                  <span class="small fw-semibold" style="color:var(--studio-site-primary)">
-                    Apri <i class="bi bi-arrow-right"></i>
-                  </span>
+          {% for item in payload.legal_tools if item.category == cat %}
+            <div class="col-sm-6 col-lg-4">
+              <div class="studio-site-card h-100 d-flex flex-column studio-site-tool-card">
+                <div class="d-flex gap-3 align-items-start mb-3">
+                  <div class="studio-site-card-icon flex-shrink-0" style="margin-bottom:0">
+                    <i class="bi {{ item.icon }}"></i>
+                  </div>
+                  <div class="min-width-0">
+                    <h3 class="mb-1" style="font-size:.95rem;font-weight:700;color:#0f172a;line-height:1.3">
+                      {{ item.title }}
+                    </h3>
+                    <p class="mb-0 small text-muted" style="line-height:1.45;font-size:.82rem">
+                      {{ item.subtitle }}
+                    </p>
+                  </div>
                 </div>
-              </a>
+                <div class="mt-auto pt-3" style="border-top:1px solid rgba(15,23,42,.06)">
+                  <a href="{{ url_for('studio_site_public.contacts', public_slug=payload.site.public_slug) }}?oggetto={{ item.title|urlencode }}"
+                     class="btn btn-sm w-100"
+                     style="background:rgba(29,78,216,.07);border:1px solid rgba(29,78,216,.15);color:#1d4ed8;font-weight:600">
+                    <i class="bi bi-chat-dots me-1"></i>Richiedi consulenza
+                  </a>
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      {% endfor %}
+
+      {# Strumenti senza categoria #}
+      {% set senza_cat = [] %}
+      {% for item in payload.legal_tools %}{% if not item.category %}{% set _ = senza_cat.append(item) %}{% endif %}{% endfor %}
+      {% if senza_cat %}
+        <div class="row g-3 mt-2">
+          {% for item in senza_cat %}
+            <div class="col-sm-6 col-lg-4">
+              <div class="studio-site-card h-100 d-flex flex-column studio-site-tool-card">
+                <div class="d-flex gap-3 align-items-start mb-3">
+                  <div class="studio-site-card-icon flex-shrink-0" style="margin-bottom:0">
+                    <i class="bi {{ item.icon }}"></i>
+                  </div>
+                  <div>
+                    <h3 class="mb-1" style="font-size:.95rem;font-weight:700;color:#0f172a">{{ item.title }}</h3>
+                    <p class="mb-0 small text-muted" style="font-size:.82rem">{{ item.subtitle }}</p>
+                  </div>
+                </div>
+                <div class="mt-auto pt-3" style="border-top:1px solid rgba(15,23,42,.06)">
+                  <a href="{{ url_for('studio_site_public.contacts', public_slug=payload.site.public_slug) }}"
+                     class="btn btn-sm w-100"
+                     style="background:rgba(29,78,216,.07);border:1px solid rgba(29,78,216,.15);color:#1d4ed8;font-weight:600">
+                    <i class="bi bi-chat-dots me-1"></i>Richiedi consulenza
+                  </a>
+                </div>
+              </div>
             </div>
           {% endfor %}
         </div>
@@ -112,22 +92,34 @@
     {% else %}
       <div class="studio-site-card text-center py-5">
         <i class="bi bi-tools fs-1 text-muted d-block mb-3"></i>
-        <p class="text-muted mb-0">Nessuno strumento attivo al momento.</p>
+        <p class="text-muted mb-0">Nessuno strumento disponibile al momento.</p>
       </div>
     {% endif %}
 
-    {# CTA accesso #}
-    <div class="studio-site-cta mt-5">
+    {# Banner contatto in fondo #}
+    <div class="studio-site-quote-banner mt-5 d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
       <div>
-        <h2 class="h5 mb-1 text-white">Hai già un account?</h2>
-        <p class="mb-0" style="color:rgba(255,255,255,.75);font-size:.9rem">
-          Accedi per utilizzare tutti gli strumenti con i dati del tuo fascicolo precompilati.
+        <p class="mb-1" style="font-size:1.05rem;font-weight:700">Hai bisogno di assistenza professionale?</p>
+        <p class="mb-0" style="font-size:.9rem;color:rgba(255,255,255,.78)">
+          Il nostro team è a disposizione per analizzare il tuo caso e fornirti una consulenza su misura.
         </p>
       </div>
-      <a href="/auth/login" class="btn btn-light flex-shrink-0">
-        <i class="bi bi-box-arrow-in-right me-2"></i>Accedi
+      <a href="{{ url_for('studio_site_public.contacts', public_slug=payload.site.public_slug) }}"
+         class="btn btn-light flex-shrink-0">
+        <i class="bi bi-envelope me-2"></i>Contattaci
       </a>
     </div>
+
   </div>
 </section>
+
+<style>
+.studio-site-tool-card {
+  transition: box-shadow .2s, transform .2s;
+}
+.studio-site-tool-card:hover {
+  box-shadow: 0 8px 28px rgba(15,23,42,.12);
+  transform: translateY(-2px);
+}
+</style>
 {% endblock %}

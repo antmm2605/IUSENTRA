@@ -6,6 +6,7 @@ from .citation_guard import CitationGuard
 from .grounding import GroundingGuard
 from .hallucination_guard import HallucinationGuard
 from .legal_reference_guard import LegalReferenceGuard
+from .legal_answer_quality_guard import LegalAnswerQualityGuard
 from .orchestrator import GuardOrchestrator
 from .output_guard import OutputGuard
 from .permission_guard import PermissionGuard
@@ -23,6 +24,7 @@ __all__ = [
     "GroundingGuard",
     "HallucinationGuard",
     "LegalReferenceGuard",
+    "LegalAnswerQualityGuard",
     "OutputGuard",
     "PermissionGuard",
     "PrivacyGuard",

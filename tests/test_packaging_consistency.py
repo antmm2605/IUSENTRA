@@ -82,14 +82,15 @@ def test_flat_requirements_sono_generati_dal_manifest():
 def test_docker_runtime_ha_healthcheck_railway_compatibile_e_entrypoint_hardened():
     docker_text = (REPO_ROOT / "Dockerfile").read_text(encoding="utf-8")
     compose_text = (REPO_ROOT / "docker-compose.yml").read_text(encoding="utf-8")
+    gunicorn_text = (REPO_ROOT / "gunicorn.conf.py").read_text(encoding="utf-8")
     railway_text = (REPO_ROOT / "railway.toml").read_text(encoding="utf-8")
 
     assert "HEALTHCHECK" in docker_text
     assert 'VOLUME ["/data"]' not in docker_text
     assert "RUN mkdir -p /data" in docker_text
     assert "/api/pronto" in docker_text
-    assert "${PORT:-8080}" in docker_text
-    assert "${WEB_CONCURRENCY:-1}" in docker_text
+    assert "os.getenv('PORT', '8080')" in gunicorn_text
+    assert 'os.getenv("WEB_CONCURRENCY", "1")' in gunicorn_text
     assert "os.getenv('PORT', '8080')" in docker_text
     assert 'adduser --system --ingroup iusentra' in docker_text
     assert "COPY pyproject.toml ." in docker_text
@@ -120,7 +121,9 @@ def test_ci_include_packaging_check_coverage_ed_e2e_smoke():
     assert "python tools/check_python_baseline.py" in ci_text
     assert "requirements/constraints.txt" in ci_text
     assert "--cov=" in ci_text
-    assert "--cov-fail-under=65" in ci_text
+    thresholds = [int(value) for value in re.findall(r"--cov-fail-under=(\d+)", ci_text)]
+    assert max(thresholds) >= 100
+    assert any(value >= 70 for value in thresholds)
     assert "tests/e2e/test_studio_reale_flow.py" in ci_text
     assert "tests/e2e/test_ai_pipeline_full.py" in nightly_text
     assert "tests/e2e/test_tenant_migration_full.py" in nightly_text

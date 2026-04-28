@@ -4,6 +4,7 @@ from lex.contracts import GuardVerdict
 
 from .citation_guard import CitationGuard
 from .hallucination_guard import HallucinationGuard
+from .legal_answer_quality_guard import LegalAnswerQualityGuard
 from .legal_reference_guard import LegalReferenceGuard
 from .output_schema_guard import OutputSchemaGuard
 from .permission_guard import PermissionGuard
@@ -23,6 +24,7 @@ class GuardOrchestrator:
             CitationGuard(),
             LegalReferenceGuard(),
             HallucinationGuard(),
+            LegalAnswerQualityGuard(),
             TelematicoGuard(),
             OutputSchemaGuard(),
         ]

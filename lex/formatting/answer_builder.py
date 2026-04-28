@@ -58,6 +58,7 @@ class AnswerBuilder:
         draft_metadata = dict(getattr(draft, "metadata", {}) or {})
         case_law_warnings = list(draft_metadata.get("case_law_warnings") or [])
         case_law_fallback_used = bool(draft_metadata.get("case_law_fallback_used"))
+        legal_quality_warnings = list(draft_metadata.get("legal_quality_warnings") or [])
         retrieval_cache = dict((evidence or {}).get("cache") or {})
         requested_registry_sources = list(evidence_pack.get("metadata", {}).get("source_registry_requested") or [])
         restricted_registry_sources = list(evidence_pack.get("metadata", {}).get("source_registry_restricted") or [])
@@ -87,6 +88,8 @@ class AnswerBuilder:
             confidence = min(confidence, 0.68)
         elif workflow == "giurisprudenza" and case_law_warnings:
             confidence = min(confidence, 0.74)
+        if legal_quality_warnings:
+            confidence = min(confidence, 0.69)
         if not strict_workflow:
             if evidence_sufficient and evidence_count:
                 confidence = max(confidence, 0.82 if workflow == "economico" else 0.72)
@@ -131,8 +134,31 @@ class AnswerBuilder:
         )
         next_actions = self._unique_strings([*next_actions, *professional.next_actions])
         warnings = self._unique_strings(
-            [*list(getattr(verdict, "warnings", []) or []), *case_law_warnings, *professional.warnings]
+            [
+                *list(getattr(verdict, "warnings", []) or []),
+                *case_law_warnings,
+                *legal_quality_warnings,
+                *professional.warnings,
+            ]
         )
+        try:
+            from lex.telemetry.provenance import build_provenance_envelope
+
+            provenance_envelope = build_provenance_envelope(
+                query=str(getattr(request, "query", "") or ""),
+                answer=professional.answer,
+                workflow=workflow,
+                provider_metadata=draft_metadata,
+                evidence_items=list((evidence or {}).get("items") or []),
+                citations=citations,
+                parameters={
+                    "confidence": confidence,
+                    "answer_mode": answer_mode,
+                    "risk_level": str(getattr(verdict, "risk_level", "low") or "low"),
+                },
+            )
+        except Exception:
+            provenance_envelope = {}
 
         return WorkflowLexResponse(
             answer=professional.answer,
@@ -162,6 +188,8 @@ class AnswerBuilder:
                 "case_law_guard_applied": bool(draft_metadata.get("case_law_guard_applied")),
                 "case_law_fallback_used": case_law_fallback_used,
                 "case_law_warnings": case_law_warnings,
+                "legal_quality_guard_applied": bool(draft_metadata.get("legal_quality_guard_applied")),
+                "legal_quality_warnings": legal_quality_warnings,
                 "evidence_count": evidence_count,
                 "official_sources": official_sources,
                 "trusted_sources": trusted_sources,
@@ -177,6 +205,7 @@ class AnswerBuilder:
                 "confidence": confidence,
                 "answer_mode": answer_mode,
                 "professional_answer": professional.metadata,
+                "provenance": provenance_envelope,
             },
         )
 

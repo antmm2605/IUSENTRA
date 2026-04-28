@@ -25,6 +25,16 @@ _FALLBACK_SYSTEM_PROMPT = (
     "dati mancanti e suggerisci la verifica presso le fonti ufficiali."
 )
 
+_LEGAL_AI_RESPONSE_CONTRACT = (
+    "Contratto qualita' Lex AI:\n"
+    "- Non aprire con saluti o preamboli quando la richiesta e' tecnica o giuridica.\n"
+    "- Non usare frasi vaghe come 'iniziamo', 'ci sono diversi aspetti' o 'consulta un avvocato'.\n"
+    "- Distingui sempre dato certo, sintesi ricavata dalle fonti, punto da verificare ed effetto pratico.\n"
+    "- Se mancano fonti verificabili, scrivi 'non determinabile con le fonti disponibili' e indica cosa acquisire.\n"
+    "- Quando usi fonti, rendi riconoscibili titolo, provenienza, data o URL/path se presenti.\n"
+    "- Mantieni tono diretto, professionale e operativo per uno studio legale italiano."
+)
+
 _META_RESPONSE_MARKERS = (
     "ecco un esempio di risposta",
     "motivazione:",
@@ -86,6 +96,8 @@ def _build_system_prompt(workflow: str, context: Any) -> str:
     if not base:
         base = _FALLBACK_SYSTEM_PROMPT
     parts.append(base)
+    if _LEGAL_AI_RESPONSE_CONTRACT not in base:
+        parts.append(_LEGAL_AI_RESPONSE_CONTRACT)
 
     specialized = _workflow_specialized_prompt(workflow)
     if specialized and specialized not in base:

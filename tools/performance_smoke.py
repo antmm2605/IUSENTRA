@@ -83,6 +83,12 @@ def run_performance_smoke() -> dict[str, object]:
         fascicolo_id="FASC-001",
         document_id="DOC-001",
         workflow_hint="chat",
+        allow_external_research=False,
+        metadata={
+            "benchmark_mode": "performance_smoke",
+            "disable_official_web": True,
+            "lightweight_context": True,
+        },
     )
     with app.app_context():
         context_builder = LexContextBuilder()

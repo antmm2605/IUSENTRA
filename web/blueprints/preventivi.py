@@ -878,6 +878,7 @@ def nuovo_conferimento(id_cliente: str = ""):
         if not id_cliente:
             flash("Seleziona un cliente.", "danger")
             return redirect(request.url)
+        cliente_corrente = gc.get(id_cliente)
 
         oggetto = f.get("oggetto", "").strip()
         if not oggetto:

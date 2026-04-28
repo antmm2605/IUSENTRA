@@ -29,6 +29,15 @@ class LexContextBuilder:
     def __init__(self, *, privacy_guard: PrivacyGuard | None = None) -> None:
         self._privacy_guard = privacy_guard or PrivacyGuard()
 
+    @staticmethod
+    def _lightweight_context_requested(request) -> bool:
+        metadata = dict(getattr(request, "metadata", {}) or {})
+        return bool(
+            metadata.get("lightweight_context")
+            or metadata.get("performance_smoke")
+            or metadata.get("benchmark_mode") == "performance_smoke"
+        )
+
     def _safe_section(self, loader, *, fallback, **kwargs):
         try:
             return loader(**kwargs)
@@ -48,12 +57,16 @@ class LexContextBuilder:
                 "runtime": build_runtime_context(request),
                 "agenda": self._safe_section(load_agenda_context, fallback=[], pratica_id=pratica_id),
                 "scadenziario": self._safe_section(load_scadenze_context, fallback=[], pratica_id=pratica_id),
-                "studio_operativo": self._safe_section(
+                "studio_operativo": {}
+                if self._lightweight_context_requested(request)
+                else self._safe_section(
                     load_studio_operational_context,
                     fallback={},
                     question=question,
                 ),
-                "economico": self._safe_section(
+                "economico": {}
+                if self._lightweight_context_requested(request)
+                else self._safe_section(
                     load_economic_context,
                     fallback={},
                     question=question,

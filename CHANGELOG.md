@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.194.1 - 2026-04-28
+
+- Corretto il gate CI `Lint + syntax` definendo correttamente il cliente corrente nel flusso di creazione conferimento.
+- Corretto il gate `Governance` rimuovendo il testo mojibake dal catalogo atti.
+- Stabilizzato il nightly `Performance Smoke`: il benchmark Lex usa un contesto leggero deterministico, senza ricerca web esterna e senza caricare sezioni economiche/operative pesanti non necessarie al controllo.
+- Rafforzati i test del budget performance per impedire regressioni su rete esterna e contesto non deterministico.
+
 ## 2.194.0 - 2026-04-28
 
 - Aggiunto `tokens.json` come sorgente canonica dei design token IUSENTRA, con palette legale, tipografia, spaziature, raggi, ombre, motion e dimensioni minime dei target interattivi.

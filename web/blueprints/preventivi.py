@@ -184,6 +184,55 @@ def _clausola_controversie_form_state(source=None) -> dict:
     }
 
 
+def _risolvi_prefill_conferimento(gc, gp, id_cliente: str = "", id_preventivo: str = "") -> dict:
+    """Allinea il form conferimento al cliente realmente collegato al preventivo.
+
+    Il link può arrivare da vecchie pagine, email o sessioni con un id cliente
+    non più valido. In quel caso il preventivo resta la fonte autorevole del
+    rapporto commerciale e impediamo che il form parta con dati incoerenti.
+    """
+    requested_cliente_id = (id_cliente or "").strip()
+    id_preventivo = (id_preventivo or "").strip()
+    preventivo_pre = gp.get_preventivo(id_preventivo) if id_preventivo else None
+
+    resolved_cliente_id = requested_cliente_id
+    cliente_sel = gc.get(resolved_cliente_id) if resolved_cliente_id else None
+    warning = ""
+
+    if id_preventivo and not preventivo_pre:
+        warning = (
+            "Il preventivo indicato non è più disponibile. "
+            "Puoi comunque creare un conferimento selezionando il cliente corretto."
+        )
+
+    preventivo_cliente_id = ""
+    if preventivo_pre:
+        preventivo_cliente_id = str(getattr(preventivo_pre, "id_cliente", "") or "").strip()
+
+    redirect_needed = False
+    if preventivo_cliente_id and (
+        not resolved_cliente_id
+        or resolved_cliente_id != preventivo_cliente_id
+        or cliente_sel is None
+    ):
+        resolved_cliente_id = preventivo_cliente_id
+        cliente_sel = gc.get(resolved_cliente_id)
+        redirect_needed = requested_cliente_id != resolved_cliente_id
+        if requested_cliente_id and requested_cliente_id != resolved_cliente_id:
+            warning = (
+                "Ho riallineato il conferimento al cliente collegato al preventivo, "
+                "evitando un collegamento anagrafico non coerente."
+            )
+
+    return {
+        "id_cliente": resolved_cliente_id,
+        "cliente": cliente_sel,
+        "preventivo": preventivo_pre,
+        "redirect_needed": redirect_needed,
+        "warning": warning,
+    }
+
+
 def _contesto_fascicolo_wizard(fascicolo) -> dict:
     if not fascicolo:
         return {}
@@ -977,17 +1026,30 @@ def nuovo_conferimento(id_cliente: str = ""):
             return redirect(url_for("cartella_cliente", id_cliente=id_cliente))
         return redirect(url_for("preventivi.dettaglio_conferimento", id_conferimento=c.id))
 
+    id_preventivo_pre = request.args.get("id_preventivo", "")
+    from_page = request.args.get("from_page", "")
+    id_fascicolo_pre = request.args.get("id_fascicolo", "")
+    prefill = _risolvi_prefill_conferimento(gc, gp, id_cliente, id_preventivo_pre)
+    id_cliente = prefill["id_cliente"]
+    cliente_sel = prefill["cliente"]
+    preventivo_pre = prefill["preventivo"]
+    if prefill["warning"]:
+        flash(prefill["warning"], "warning")
+    if prefill["redirect_needed"] and id_cliente:
+        return redirect(
+            url_for(
+                "preventivi.nuovo_conferimento",
+                id_cliente=id_cliente,
+                **request.args.to_dict(flat=True),
+            )
+        )
+
     # GET
     clienti = gc.tutti()
-    cliente_sel = gc.get(id_cliente) if id_cliente else None
     fascicoli = []
     if cliente_sel:
         fascicoli = [f for f in get_fascicoli().tutti() if f.id_cliente == id_cliente]
 
-    id_preventivo_pre = request.args.get("id_preventivo", "")
-    preventivo_pre = gp.get_preventivo(id_preventivo_pre) if id_preventivo_pre else None
-    from_page = request.args.get("from_page", "")
-    id_fascicolo_pre = request.args.get("id_fascicolo", "")
     cliente_da_completare = _cliente_da_completare(cliente_sel)
     campi_cliente_mancanti = _campi_cliente_mancanti(cliente_sel)
     url_completa_cliente = ""

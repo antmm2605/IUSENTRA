@@ -396,6 +396,7 @@ jobs:
             --cov=pct.storage_postgres \
             --cov=pct.telematico_repository \
             --cov=pct.telematico_workflow \
+            --cov-config=config/coverage-critical.ini \
             --cov-report=term-missing \
             --cov-report=xml \
             --cov-fail-under=65

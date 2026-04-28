@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.194.3 - 2026-04-28
+
+- Reso stabile il gate `Coverage moduli critici`: la copertura continua a misurare i moduli core Lex/PCT, ma usa una configurazione dedicata che esclude adapter opzionali, connettori esterni, tool wrapper e runtime non caricati dalla suite critica.
+- Aggiunto un test di regressione per impedire che il workflow torni a misurare l'intero albero Lex invece dei soli moduli governati dal gate critico.
+
 ## 2.194.2 - 2026-04-28
 
 - Corretto in modo puntuale il gate CI `Lint + syntax` allineando l'ordinamento import dei moduli `lex.retrieval` controllati da Ruff nel workflow GitHub.

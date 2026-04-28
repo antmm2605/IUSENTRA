@@ -123,7 +123,7 @@
         </button>
         <div class="studio-block-editor-actions">
           <button class="btn btn-sm btn-outline-secondary" type="button" data-action="up">Su</button>
-          <button class="btn btn-sm btn-outline-secondary" type="button" data-action="down">Giu</button>
+          <button class="btn btn-sm btn-outline-secondary" type="button" data-action="down">Gi&ugrave;</button>
           <button class="btn btn-sm btn-outline-primary" type="button" data-action="duplicate">Duplica</button>
           <button class="btn btn-sm btn-outline-danger" type="button" data-action="delete">Elimina</button>
         </div>
@@ -223,12 +223,12 @@
         ${inputField(`item-title-${itemIndex}`, "Titolo elemento", item.title || "")}
         ${textareaField(`item-text-${itemIndex}`, "Testo elemento", item.text || "")}
         ${inputField(`item-image-${itemIndex}`, "URL immagine", item.image_url || "")}
-        ${inputField(`item-alt-${itemIndex}`, "Alt immagine", item.image_alt || "")}
+        ${inputField(`item-alt-${itemIndex}`, "Testo alternativo immagine", item.image_alt || "")}
         ${inputField(`item-button-${itemIndex}`, "Testo pulsante", item.button_text || "")}
         ${inputField(`item-url-${itemIndex}`, "URL pulsante", item.button_url || "")}
         <div class="d-flex flex-wrap gap-2">
           <button class="btn btn-sm btn-outline-secondary" type="button" data-item-action="up">Su</button>
-          <button class="btn btn-sm btn-outline-secondary" type="button" data-item-action="down">Giu</button>
+          <button class="btn btn-sm btn-outline-secondary" type="button" data-item-action="down">Gi&ugrave;</button>
           <button class="btn btn-sm btn-outline-primary" type="button" data-item-action="duplicate">Duplica</button>
           <button class="btn btn-sm btn-outline-danger" type="button" data-item-action="delete">Elimina</button>
         </div>

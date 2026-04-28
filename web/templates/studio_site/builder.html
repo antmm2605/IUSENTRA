@@ -4,6 +4,8 @@
 {% block pct_modulo %}sito_studio{% endblock %}
 {% block content %}
 {% set active_page = payload.active_page or {} %}
+{% set page_status_labels = {'published': 'Pubblicata', 'draft': 'Bozza', 'archived': 'Archiviata'} %}
+{% set active_status_label = page_status_labels.get(active_page.status, active_page.status or 'Bozza') %}
 <div class="container-fluid py-3 studio-site-admin studio-site-builder"
      data-site-builder
      data-active-page-id="{{ active_page.id or '' }}"
@@ -12,7 +14,7 @@
      data-preview-url="{{ payload.active_preview_url or payload.public_url }}">
   <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
     <div>
-      <div class="text-muted small">Website Studio Legale</div>
+      <div class="text-muted small">Sito web dello studio</div>
       <h1 class="h3 mb-1">Sito Studio Builder Pro</h1>
       <p class="text-muted mb-0">Un solo sito per studio: home, pagine, blocchi, immagini, SEO, privacy e controlli deontologici governati.</p>
     </div>
@@ -37,9 +39,9 @@
       <div class="studio-builder-page-list">
         {% for page in payload.pages %}
           <a class="studio-builder-page-link {% if page.id == active_page.id %}is-active{% endif %}"
-             href="{{ url_for('studio_site_builder.builder', page_id=page.id) }}">
+            href="{{ url_for('studio_site_builder.builder', page_id=page.id) }}">
             <span>{{ page.title }}</span>
-            <small>{{ 'Home' if page.is_home else page.status }}</small>
+            <small>{{ 'Home' if page.is_home else page_status_labels.get(page.status, page.status or 'Bozza') }}</small>
           </a>
         {% endfor %}
       </div>
@@ -74,7 +76,7 @@
         <div class="studio-builder-toolbar">
           <div>
             <strong>{{ active_page.title or 'Pagina non selezionata' }}</strong>
-            <span class="text-muted small d-block">Stato: {{ active_page.status or 'bozza' }} - Blocchi: <span data-block-count>{{ payload.active_blocks|length }}</span></span>
+            <span class="text-muted small d-block">Stato: {{ active_status_label }} - Blocchi: <span data-block-count>{{ payload.active_blocks|length }}</span></span>
           </div>
           <div class="d-flex flex-wrap gap-2 align-items-center">
             <div class="btn-group" role="group" aria-label="Anteprima responsive">

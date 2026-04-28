@@ -22,15 +22,39 @@ def apply_security_headers(response: Response, app: Flask) -> Response:
 
 def build_csp(app: Flask | None = None) -> str:
     testing = bool(app and app.config.get("TESTING"))
-    script_src = "'self' 'unsafe-inline'" if testing else "'self' 'unsafe-inline'"
+    script_src = (
+        "'self' 'unsafe-inline' "
+        "https://cdn.jsdelivr.net "
+        "https://esm.sh "
+        "https://gateway.sumup.com"
+    )
+    style_src = (
+        "'self' 'unsafe-inline' "
+        "https://cdn.jsdelivr.net "
+        "https://fonts.googleapis.com "
+        "https://esm.sh"
+    )
+    font_src = "'self' data: https://cdn.jsdelivr.net https://fonts.gstatic.com"
+    img_src = "'self' data: blob: https:"
+    connect_src = (
+        "'self' "
+        "http://127.0.0.1:* "
+        "http://localhost:* "
+        "https://cdn.jsdelivr.net "
+        "https://esm.sh "
+        "https://gateway.sumup.com"
+    )
+    if testing:
+        connect_src += " ws://127.0.0.1:* ws://localhost:*"
     return "; ".join(
         [
             "default-src 'self'",
             f"script-src {script_src}",
-            "style-src 'self' 'unsafe-inline'",
-            "img-src 'self' data: blob:",
-            "font-src 'self' data:",
-            "connect-src 'self' http://127.0.0.1:* http://localhost:*",
+            f"style-src {style_src}",
+            f"img-src {img_src}",
+            f"font-src {font_src}",
+            f"connect-src {connect_src}",
+            "worker-src 'self' blob: https://cdn.jsdelivr.net",
             "frame-ancestors 'self'",
             "base-uri 'self'",
             "form-action 'self'",

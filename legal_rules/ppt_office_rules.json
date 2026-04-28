@@ -1,0 +1,49 @@
+{
+  "schema_version": "1.0",
+  "default": {
+    "pdp_signature_preference": "either",
+    "cades_severity": "info",
+    "local_office_rule_source": "Regole tecniche PDP/PST nazionali: PAdES e CAdES ammessi; eventuali preferenze locali sono configurate per ufficio."
+  },
+  "offices": [
+    {
+      "office_key": "tribunale_palmi",
+      "match": ["tribunale di palmi", "palmi"],
+      "channel": "pdp_penale",
+      "pdp_signature_preference": "pades",
+      "cades_severity": "warning_strong",
+      "local_office_rule_source": "Comunicazione operativa locale COA/Tribunale di Palmi acquisita dallo studio: raccomandata firma PAdES per deposito penale; CAdES non dichiarato illegittimo.",
+      "message": "Per l'ufficio di Palmi il gestionale raccomanda firma PAdES (.pdf) e segnala criticita operative sui file CAdES (.p7m). Le specifiche PDP nazionali restano configurate come ammissive per PAdES e CAdES."
+    },
+    {
+      "office_key": "procura_locri",
+      "match": ["procura di locri", "procura della repubblica presso il tribunale di locri", "tribunale di locri"],
+      "channel": "pdp_penale",
+      "pdp_signature_preference": "either",
+      "cades_severity": "info",
+      "local_office_rule_source": "Pagina ufficiale Procura di Locri: Portale deposito atti penali, tipologie di firma ammesse PAdES e CAdES.",
+      "source_url": "https://procura-locri.giustizia.it/it/portale_deposito_atti_penali.page",
+      "message": "Per Locri risultano ammesse entrambe le firme PAdES e CAdES; nessun avviso forte locale configurato."
+    },
+    {
+      "office_key": "procura_taranto",
+      "match": ["procura di taranto", "procura della repubblica presso il tribunale di taranto", "tribunale di taranto"],
+      "channel": "pdp_penale",
+      "pdp_signature_preference": "either",
+      "cades_severity": "info",
+      "local_office_rule_source": "Pagina ufficiale Procura di Taranto: Depositi telematici atti penali, tipologie di firma ammesse PAdES e CAdES.",
+      "source_url": "https://procura-taranto.giustizia.it/it/deposito_atti_portale.page",
+      "message": "Per Taranto risultano ammesse entrambe le firme PAdES e CAdES; nessun avviso forte locale configurato."
+    },
+    {
+      "office_key": "procura_bari",
+      "match": ["procura di bari", "procura della repubblica presso il tribunale di bari", "tribunale di bari"],
+      "channel": "pdp_penale",
+      "pdp_signature_preference": "either",
+      "cades_severity": "info",
+      "local_office_rule_source": "Pagina ufficiale Procura di Bari: deposito atti per avvocati, atti firmati digitalmente PAdES o CAdES; PEC residuale solo se PDP inagibile.",
+      "source_url": "https://procura-bari.giustizia.it/it/deposito__avvocati.page",
+      "message": "Per Bari risultano ammesse entrambe le firme PAdES e CAdES; il PDP resta il canale ordinario quando disponibile."
+    }
+  ]
+}

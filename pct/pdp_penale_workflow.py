@@ -21,7 +21,7 @@ import sqlite3
 import uuid
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any, Iterable, Mapping
+from typing import Any, Mapping
 
 
 SCHEMA_SQL_PDP_PENALE = """
@@ -50,7 +50,9 @@ CREATE TABLE IF NOT EXISTS criminal_cases (
     import_status TEXT NOT NULL DEFAULT 'not_started'
         CHECK (import_status IN ('not_started', 'waiting_download', 'downloaded', 'partial_import', 'completed', 'failed')),
     current_ministry_status TEXT
-        CHECK (current_ministry_status IN ('INVIATO', 'IN_TRANSITO', 'ACCETTATO', 'IN_VERIFICA', 'RIFIUTATO', 'ERRORE_TECNICO')),
+        CHECK (current_ministry_status IN ('INVIATO', 'IN_TRANSITO', 'ACCETTATO', 'IN_VERIFICA', 'RIFIUTATO', 'ERRORE_TECNICO', 'IN_FASE_DI_VERIFICA', 'ACCOLTO', 'RIGETTATO')),
+    current_ministry_status_canonical TEXT,
+    local_office_rule_source TEXT,
     pec_password_received INTEGER NOT NULL DEFAULT 0 CHECK (pec_password_received IN (0,1)),
     download_available_until TEXT,
     last_download_at TEXT,
@@ -150,7 +152,8 @@ CREATE TABLE IF NOT EXISTS criminal_access_requests (
     download_available_until TEXT,
     downloaded_at TEXT,
     ministry_status TEXT
-        CHECK (ministry_status IN ('INVIATO', 'IN_TRANSITO', 'ACCETTATO', 'IN_VERIFICA', 'RIFIUTATO', 'ERRORE_TECNICO')),
+        CHECK (ministry_status IN ('INVIATO', 'IN_TRANSITO', 'ACCETTATO', 'IN_VERIFICA', 'RIFIUTATO', 'ERRORE_TECNICO', 'IN_FASE_DI_VERIFICA', 'ACCOLTO', 'RIGETTATO')),
+    ministry_status_canonical TEXT,
     notes TEXT,
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
     updated_at TEXT NOT NULL DEFAULT (datetime('now')),
@@ -300,6 +303,22 @@ FROM criminal_cases cc;
 
 def ensure_pdp_penale_schema(conn: sqlite3.Connection) -> None:
     conn.executescript(SCHEMA_SQL_PDP_PENALE)
+    _ensure_column(conn, "criminal_cases", "current_ministry_status_canonical", "TEXT")
+    _ensure_column(conn, "criminal_cases", "local_office_rule_source", "TEXT")
+    _ensure_column(conn, "criminal_access_requests", "ministry_status_canonical", "TEXT")
+
+
+def _ensure_column(
+    conn: sqlite3.Connection,
+    table_name: str,
+    column_name: str,
+    definition: str,
+) -> None:
+    rows = conn.execute(f"PRAGMA table_info({table_name})").fetchall()
+    existing = {str(row[1]) for row in rows}
+    if column_name not in existing:
+        conn.execute(f"ALTER TABLE {table_name} ADD COLUMN {column_name} {definition}")
+        conn.commit()
 
 
 def _row_to_dict(row: sqlite3.Row | None) -> dict[str, Any] | None:
@@ -448,6 +467,8 @@ class PDPPenaleWorkflowRepository:
         "access_status",
         "import_status",
         "current_ministry_status",
+        "current_ministry_status_canonical",
+        "local_office_rule_source",
         "pec_password_received",
         "download_available_until",
         "last_download_at",
@@ -475,6 +496,7 @@ class PDPPenaleWorkflowRepository:
         "download_available_until",
         "downloaded_at",
         "ministry_status",
+        "ministry_status_canonical",
         "notes",
     }
 

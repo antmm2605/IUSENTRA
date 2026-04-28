@@ -18,6 +18,13 @@ from pct.pdp_penale_workflow import (
     pdp_penale_estrai_password,
     pdp_penale_estrai_scadenza_download,
 )
+from legal_deposit.office_rules import resolve_office_rule
+from legal_deposit.penal_rules import (
+    legacy_pdp_ministry_status,
+    normalize_pdp_ministry_status,
+    pdp_ministry_statuses,
+)
+from legal_deposit.policies import get_channel_profile
 
 
 def build_pdp_penale_runtime(
@@ -48,6 +55,7 @@ def build_pdp_penale_runtime(
     _archivia_staging_documenti_portale = archivia_staging_documenti_portale
     _normalizza_nome_match_portale = normalizza_nome_match_portale
     _fascicolo_text = fascicolo_text
+    _pdp_ministry_statuses = pdp_ministry_statuses()
 
     def _normalize_portale_match_text(value: Any) -> str:
         text = str(value or "").strip().upper()
@@ -167,21 +175,14 @@ def build_pdp_penale_runtime(
         cliente = get_clienti().get(fasc.id_cliente) if fasc.id_cliente else None
         defaults = _pdp_penale_case_defaults(fasc, cliente)
         payload = dict(selection.get("payload") or {})
-        identity = dict(preview.get("identity") or {})
         repository = get_pdp_penale()
         minister_status = str(
             payload.get("ministry_status")
             or selection.get("current_ministry_status")
             or ""
         ).strip().upper()
-        if minister_status not in {
-            "INVIATO",
-            "IN_TRANSITO",
-            "ACCETTATO",
-            "IN_VERIFICA",
-            "RIFIUTATO",
-            "ERRORE_TECNICO",
-        }:
+        minister_status = normalize_pdp_ministry_status(minister_status)
+        if minister_status not in _pdp_ministry_statuses:
             minister_status = ""
         case_payload = dict(defaults)
         case_payload.update(
@@ -216,7 +217,8 @@ def build_pdp_penale_runtime(
                     if (selection.get("parti") or [defaults["assisted_party_name"]])
                     else defaults["assisted_party_name"]
                 ).strip(),
-                "current_ministry_status": minister_status or None,
+                "current_ministry_status": legacy_pdp_ministry_status(minister_status) or None,
+                "current_ministry_status_canonical": minister_status or None,
             }
         )
         available_docs = int(preview.get("counts", {}).get("documenti", 0) or 0)
@@ -345,6 +347,11 @@ def build_pdp_penale_runtime(
                     "percorso": str(percorso),
                     "dimensione_bytes": int(getattr(doc, "dimensione_bytes", 0) or 0),
                     "firmato": bool(getattr(doc, "firmato_digitalmente", False)),
+                    "signature_type": (
+                        "CADES_BES"
+                        if str(doc.nome or "").lower().endswith(".p7m")
+                        else ("PADES" if bool(getattr(doc, "firmato_digitalmente", False)) else "")
+                    ),
                     "hash_sha256": str(getattr(doc, "hash_sha256", "") or "").strip(),
                     "role_suggestion": ruolo,
                     "data_documento": str(getattr(doc, "data_documento", "") or "").strip(),
@@ -424,6 +431,56 @@ def build_pdp_penale_runtime(
             if doc.get("firmato") or doc.get("role_suggestion") in {"access_request", "defense_brief", "nomination"}
         ]
         return candidati or list(local_documents or [])
+
+    def _pdp_penale_build_predeposit_policy(
+        case_row: dict[str, Any],
+        deposit_documents: list[dict[str, Any]],
+    ) -> dict[str, Any]:
+        profile = get_channel_profile("pdp_penale")
+        office_name = str(case_row.get("office_name") or "").strip()
+        rule = resolve_office_rule(office_name)
+        cades_docs = [
+            doc
+            for doc in deposit_documents
+            if str(doc.get("nome") or "").lower().endswith(".p7m")
+            or str(doc.get("signature_type") or "").upper().startswith("CADES")
+        ]
+        warnings: list[dict[str, str]] = []
+        if rule and cades_docs and str(rule.get("cades_severity") or "") == "warning_strong":
+            warnings.append(
+                {
+                    "severity": "warning_strong",
+                    "code": "PALMI_PREFERS_PADES",
+                    "message": (
+                        "Per il Tribunale di Palmi e' raccomandata la firma PAdES su PDF. "
+                        "Il file CAdES .p7m resta tecnicamente ammesso dalle specifiche PDP, "
+                        "ma puo' creare criticita' operative lato ufficio/APP."
+                    ),
+                    "source": str(rule.get("source") or ""),
+                }
+            )
+        if not cades_docs and rule and str(rule.get("pdp_signature_preference") or "").lower() == "pades":
+            warnings.append(
+                {
+                    "severity": "info",
+                    "code": "PALMI_PADES_OK",
+                    "message": "Regola locale Palmi: preferenza PAdES rilevata; i PDF firmati PAdES sono coerenti.",
+                    "source": str(rule.get("source") or ""),
+                }
+            )
+        return {
+            "channel": profile.id,
+            "channel_name": profile.name,
+            "defender_channel_note": profile.defender_channel_note,
+            "internal_office_system_note": profile.internal_office_system_note,
+            "requires_pdfa": profile.requires_pdfa,
+            "max_single_file_size_mb": profile.max_single_file_size_mb,
+            "max_total_size_mb": profile.max_total_size_mb,
+            "accepted_signature_formats": list(profile.accepted_signature_formats),
+            "pdp_statuses": list(_pdp_ministry_statuses),
+            "office_rule": rule,
+            "warnings": warnings,
+        }
 
     def _pdp_penale_request_reference(case_row: dict[str, Any]) -> str:
         numero = re.sub(r"[^A-Za-z0-9]+", "", str(case_row.get("register_number") or "").upper()) or "CASE"
@@ -621,11 +678,11 @@ def build_pdp_penale_runtime(
             password = pdp_penale_estrai_password(testo, getattr(email_row, "oggetto", ""))
             scadenza = pdp_penale_estrai_scadenza_download(testo, getattr(email_row, "data", ""))
             if any(token in testo_search for token in ("rifiutat", "rigettat", "dinieg")):
-                detected_ministry_status = "RIFIUTATO"
+                detected_ministry_status = "RIGETTATO"
             elif "in verifica" in testo_search:
-                detected_ministry_status = "IN_VERIFICA"
+                detected_ministry_status = "IN_FASE_DI_VERIFICA"
             elif any(token in testo_search for token in ("accettat", "autorizzat")) or password:
-                detected_ministry_status = "ACCETTATO"
+                detected_ministry_status = "ACCOLTO"
             elif "in transito" in testo_search:
                 detected_ministry_status = "IN_TRANSITO"
             repo.register_pec_message(
@@ -662,10 +719,11 @@ def build_pdp_penale_runtime(
             case_changes["pec_password_received"] = 1
         if matched:
             if detected_ministry_status:
-                case_changes["current_ministry_status"] = detected_ministry_status
-                if detected_ministry_status == "RIFIUTATO":
+                case_changes["current_ministry_status"] = legacy_pdp_ministry_status(detected_ministry_status)
+                case_changes["current_ministry_status_canonical"] = detected_ministry_status
+                if detected_ministry_status == "RIGETTATO":
                     case_changes["access_status"] = "denied"
-                elif detected_ministry_status == "IN_VERIFICA":
+                elif detected_ministry_status == "IN_FASE_DI_VERIFICA":
                     case_changes["access_status"] = "waiting_authorization"
             repo.update_case(str(case_row.get("id") or ""), **case_changes)
             request = _pdp_penale_primary_access_request(access_requests)
@@ -675,12 +733,13 @@ def build_pdp_penale_runtime(
                     "download_link_available": 1 if latest_deadline else int(bool(request.get("download_link_available"))),
                 }
                 if detected_ministry_status:
-                    request_changes["ministry_status"] = detected_ministry_status
+                    request_changes["ministry_status"] = legacy_pdp_ministry_status(detected_ministry_status)
+                    request_changes["ministry_status_canonical"] = detected_ministry_status
                 if latest_deadline:
                     request_changes["download_available_until"] = latest_deadline
                     if str(request.get("request_status") or "") in {"submitted", "in_review", "prepared"}:
                         request_changes["request_status"] = "authorized"
-                elif detected_ministry_status == "RIFIUTATO":
+                elif detected_ministry_status == "RIGETTATO":
                     request_changes["request_status"] = "denied"
                 repo.update_access_request(str(request["id"]), **request_changes)
             repo.add_event(
@@ -879,6 +938,10 @@ def build_pdp_penale_runtime(
                 return "success"
             return "warning" if warning else "secondary"
 
+        canonical_ministry_status = normalize_pdp_ministry_status(
+            active_case.get("current_ministry_status_canonical")
+            or active_case.get("current_ministry_status")
+        )
         return [
             {
                 "title": "Verifica prerequisiti",
@@ -907,11 +970,11 @@ def build_pdp_penale_runtime(
             {
                 "title": "Monitoraggio esito ministeriale",
                 "variant": _step(
-                    str(active_case.get("current_ministry_status") or "") in {"ACCETTATO", "IN_VERIFICA"},
-                    warning=bool(active_case.get("current_ministry_status")),
+                    canonical_ministry_status in {"ACCOLTO", "IN_FASE_DI_VERIFICA"},
+                    warning=bool(canonical_ministry_status),
                 ),
-                "done": str(active_case.get("current_ministry_status") or "") in {"ACCETTATO", "IN_VERIFICA"},
-                "detail": f"Stato tecnico: {_pdp_penale_status_label(active_case.get('current_ministry_status'))}",
+                "done": canonical_ministry_status in {"ACCOLTO", "IN_FASE_DI_VERIFICA"},
+                "detail": f"Stato tecnico: {_pdp_penale_status_label(canonical_ministry_status)}",
             },
             {
                 "title": "PEC, password e finestra download",
@@ -964,6 +1027,8 @@ def build_pdp_penale_runtime(
             access_requests,
             pec_messages,
         )
+        deposit_documents = _pdp_penale_build_deposit_documents(local_documents)
+        predeposit_policy = _pdp_penale_build_predeposit_policy(active_case or case_form, deposit_documents)
         return {
             "cases": cases,
             "active_case": active_case,
@@ -977,7 +1042,8 @@ def build_pdp_penale_runtime(
             "tasks": tasks,
             "open_tasks": open_tasks,
             "wizard_checklist": checklist,
-            "deposit_documents": _pdp_penale_build_deposit_documents(local_documents),
+            "deposit_documents": deposit_documents,
+            "predeposit_policy": predeposit_policy,
             "password_available": password_available,
             "download_available_until": download_until,
             "download_state": _pdp_penale_download_state(download_until),

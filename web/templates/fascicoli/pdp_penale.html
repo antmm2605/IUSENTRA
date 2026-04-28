@@ -14,6 +14,7 @@
 {% set tasks = workspace.tasks or [] %}
 {% set events = workspace.events or [] %}
 {% set deposit_documents = workspace.deposit_documents or [] %}
+{% set predeposit_policy = workspace.predeposit_policy or {} %}
 {% set password_available = workspace.password_available or false %}
 {% set download_available_until = workspace.download_available_until or '' %}
 {% set download_state = workspace.download_state or 'missing' %}
@@ -31,7 +32,8 @@
 } %}
 {% set status_ministry = {
   'INVIATO':'primary','IN_TRANSITO':'info','ACCETTATO':'success','IN_VERIFICA':'warning',
-  'RIFIUTATO':'danger','ERRORE_TECNICO':'danger'
+  'RIFIUTATO':'danger','ERRORE_TECNICO':'danger','IN_FASE_DI_VERIFICA':'warning',
+  'ACCOLTO':'success','RIGETTATO':'danger'
 } %}
 
 {% block content %}
@@ -161,9 +163,10 @@
             <span class="badge bg-{{ status_import.get(active_case.import_status, 'secondary') }}">
               Import: {{ (active_case.import_status or 'not_started').replace('_', ' ') }}
             </span>
-            {% if active_case.current_ministry_status %}
-            <span class="badge bg-{{ status_ministry.get(active_case.current_ministry_status, 'secondary') }}">
-              Ministero: {{ active_case.current_ministry_status.replace('_', ' ') }}
+            {% set ministry_display = active_case.current_ministry_status_canonical or active_case.current_ministry_status %}
+            {% if ministry_display %}
+            <span class="badge bg-{{ status_ministry.get(ministry_display, 'secondary') }}">
+              Ministero: {{ ministry_display.replace('_', ' ') }}
             </span>
             {% endif %}
           </div>
@@ -277,8 +280,8 @@
               <label class="form-label fw-semibold">Stato ministeriale</label>
               <select name="current_ministry_status" class="form-select">
                 <option value="">-</option>
-                {% for value in ['INVIATO', 'IN_TRANSITO', 'ACCETTATO', 'IN_VERIFICA', 'RIFIUTATO', 'ERRORE_TECNICO'] %}
-                <option value="{{ value }}" {{ 'selected' if case_form.current_ministry_status == value }}>{{ value.replace('_', ' ') }}</option>
+                {% for value in predeposit_policy.pdp_statuses or ['INVIATO', 'IN_TRANSITO', 'IN_FASE_DI_VERIFICA', 'ACCOLTO', 'RIGETTATO', 'ERRORE_TECNICO'] %}
+                <option value="{{ value }}" {{ 'selected' if (case_form.current_ministry_status_canonical or case_form.current_ministry_status) == value }}>{{ value.replace('_', ' ') }}</option>
                 {% endfor %}
               </select>
             </div>
@@ -421,7 +424,7 @@
                       <label class="form-label small fw-semibold">Stato ministeriale</label>
                       <select name="ministry_status" class="form-select form-select-sm">
                         <option value="">-</option>
-                        {% for value in ['INVIATO', 'IN_TRANSITO', 'ACCETTATO', 'IN_VERIFICA', 'RIFIUTATO', 'ERRORE_TECNICO'] %}
+                        {% for value in predeposit_policy.pdp_statuses or ['INVIATO', 'IN_TRANSITO', 'IN_FASE_DI_VERIFICA', 'ACCOLTO', 'RIGETTATO', 'ERRORE_TECNICO'] %}
                         <option value="{{ value }}">{{ value.replace('_', ' ') }}</option>
                         {% endfor %}
                       </select>
@@ -463,6 +466,27 @@
             </h2>
             <div id="accDepositPdp" class="accordion-collapse collapse" data-bs-parent="#accPdpQuickActions">
               <div class="accordion-body">
+                <div class="alert alert-light border small">
+                  <div class="fw-semibold mb-1">
+                    <i class="bi bi-shield-check me-1 text-primary"></i>Policy canale: {{ predeposit_policy.channel_name or 'PDP Penale' }}
+                  </div>
+                  <div>{{ predeposit_policy.defender_channel_note or "PDP/PST e' canale del difensore; il deposito resta soggetto a verifica finale dell'avvocato." }}</div>
+                  {% if predeposit_policy.internal_office_system_note %}
+                  <div class="text-muted mt-1">{{ predeposit_policy.internal_office_system_note }}</div>
+                  {% endif %}
+                  <div class="mt-2">
+                    Limiti operativi: {{ predeposit_policy.max_single_file_size_mb or 50 }} MB per file,
+                    {{ predeposit_policy.max_total_size_mb or 500 }} MB per deposito.
+                    Formati firma ammessi: {{ (predeposit_policy.accepted_signature_formats or ['PADES', 'CADES_BES'])|join(', ') }}.
+                  </div>
+                </div>
+                {% for warning in predeposit_policy.warnings or [] %}
+                <div class="alert {% if warning.severity == 'warning_strong' %}alert-warning{% else %}alert-info{% endif %} small">
+                  <div class="fw-semibold">{{ warning.code }}{% if warning.severity == 'warning_strong' %} - avviso forte{% endif %}</div>
+                  <div>{{ warning.message }}</div>
+                  {% if warning.source %}<div class="text-muted mt-1">Fonte regola locale: {{ warning.source }}</div>{% endif %}
+                </div>
+                {% endfor %}
                 <form method="post" action="{{ url_for('pdp_penale_deposit_request', id_fasc=fascicolo.id, case_id=active_case.id) }}">
                   <div class="row g-2">
                     <div class="col-12">
@@ -488,8 +512,14 @@
                              value="Richiesta accesso atti - {{ active_case.register_type or 'RGNR' }} {{ active_case.register_number }}/{{ active_case.register_year }}">
                     </div>
                   </div>
+                  <div class="form-check mt-3">
+                    <input class="form-check-input" type="checkbox" value="1" id="confirm_lawyer_review_pdp" name="confirm_lawyer_review" required>
+                    <label class="form-check-label small" for="confirm_lawyer_review_pdp">
+                      Dichiaro di aver verificato contenuto della busta, ufficio, RG, atto, allegati, firma e canale PDP; autorizzo la firma/invio telematico.
+                    </label>
+                  </div>
                   <button type="submit" class="btn btn-sm btn-primary mt-3" {% if not deposit_documents %}disabled{% endif %}>
-                    <i class="bi bi-cloud-upload me-1"></i>Deposita atto
+                    <i class="bi bi-shield-check me-1"></i>Verifica, firma e invia
                   </button>
                 </form>
               </div>

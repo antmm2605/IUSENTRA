@@ -2,16 +2,20 @@
 
 from __future__ import annotations
 
-import os
 from collections.abc import Callable
 from datetime import date, datetime
-from pathlib import Path
 from typing import Any
 
 from flask import Flask, flash, g, redirect, render_template, request, url_for
 
+from legal_deposit.office_rules import resolve_office_rule
+from legal_deposit.penal_rules import (
+    legacy_pdp_ministry_status,
+    normalize_pdp_ministry_status,
+)
 from pct.fascicoli import TipoDocumento
 from pct.pdp_penale_workflow import pdp_penale_estrai_password, pdp_penale_estrai_scadenza_download
+from web.bootstrap.fascicoli_pdp_deposit_routes import register_fascicoli_pdp_deposit_routes
 
 
 def register_fascicoli_pdp_routes(
@@ -51,6 +55,22 @@ def register_fascicoli_pdp_routes(
 ) -> None:
     """Register the PDP Penale workspace routes."""
 
+    register_fascicoli_pdp_deposit_routes(
+        app,
+        get_fascicoli=get_fascicoli,
+        get_pdp_penale=get_pdp_penale,
+        audit=audit,
+        sync_pubblica=sync_pubblica,
+        require_pdp_penale_fascicolo=require_pdp_penale_fascicolo,
+        require_pdp_penale_case=require_pdp_penale_case,
+        pdp_penale_request_reference=pdp_penale_request_reference,
+        pdp_penale_primary_access_request=pdp_penale_primary_access_request,
+        pdp_penale_find_case_local_document=pdp_penale_find_case_local_document,
+        decrypt_doc=decrypt_doc,
+        resolve_ufficio_destinatario=resolve_ufficio_destinatario,
+        polis_demo_mode=polis_demo_mode,
+    )
+
     @app.route("/fascicoli/<id_fasc>/penale/pdp")
     def pdp_penale_workspace(id_fasc: str):
         try:
@@ -78,12 +98,17 @@ def register_fascicoli_pdp_routes(
             defaults = pdp_penale_case_defaults(fascicolo, cliente)
             form = request.form
             case_id = str(form.get("case_id") or "").strip()
+            canonical_ministry_status = normalize_pdp_ministry_status(
+                str(form.get("current_ministry_status") or "").strip()
+            )
+            office_name = str(form.get("office_name") or defaults["office_name"]).strip()
+            office_rule = resolve_office_rule(office_name)
             payload = {
                 "practice_id": fascicolo.id,
                 "minister_case_ref": str(
                     form.get("minister_case_ref") or defaults["minister_case_ref"]
                 ).strip(),
-                "office_name": str(form.get("office_name") or defaults["office_name"]).strip(),
+                "office_name": office_name,
                 "office_type": str(form.get("office_type") or defaults["office_type"]).strip(),
                 "district": str(form.get("district") or defaults["district"]).strip(),
                 "register_type": str(form.get("register_type") or defaults["register_type"]).strip()
@@ -121,7 +146,12 @@ def register_fascicoli_pdp_routes(
                 "nomination_status": str(form.get("nomination_status") or "missing").strip(),
                 "access_status": str(form.get("access_status") or "draft").strip(),
                 "import_status": str(form.get("import_status") or "not_started").strip(),
-                "current_ministry_status": str(form.get("current_ministry_status") or "").strip()
+                "current_ministry_status": legacy_pdp_ministry_status(canonical_ministry_status)
+                or None,
+                "current_ministry_status_canonical": canonical_ministry_status or None,
+                "local_office_rule_source": str(
+                    office_rule.get("local_office_rule_source") or office_rule.get("source") or ""
+                ).strip()
                 or None,
                 "download_available_until": str(
                     form.get("download_available_until") or ""
@@ -263,7 +293,8 @@ def register_fascicoli_pdp_routes(
             require_pdp_penale_case(repo, case_id, fascicolo.id)
             form = request.form
             request_status = str(form.get("request_status") or "prepared").strip()
-            ministry_status = str(form.get("ministry_status") or "").strip() or None
+            ministry_status_canonical = normalize_pdp_ministry_status(form.get("ministry_status") or "")
+            ministry_status = legacy_pdp_ministry_status(ministry_status_canonical) or None
             download_until = str(form.get("download_available_until") or "").strip() or None
             request_reference = str(form.get("request_reference") or "").strip() or pdp_penale_request_reference(
                 repo.get_case(case_id)
@@ -288,11 +319,13 @@ def register_fascicoli_pdp_routes(
                 download_available_until=download_until,
                 downloaded_at=str(form.get("downloaded_at") or "").strip() or None,
                 ministry_status=ministry_status,
+                ministry_status_canonical=ministry_status_canonical or None,
                 notes=str(form.get("notes") or "").strip() or None,
             )
             case_changes: dict[str, Any] = {
                 "access_status": pdp_penale_access_status_from_request_status(request_status),
                 "current_ministry_status": ministry_status,
+                "current_ministry_status_canonical": ministry_status_canonical or None,
             }
             if download_until:
                 case_changes["download_available_until"] = download_until
@@ -310,7 +343,7 @@ def register_fascicoli_pdp_routes(
                 payload_json={
                     "access_request_id": access_request["id"],
                     "request_status": request_status,
-                    "ministry_status": ministry_status or "",
+                    "ministry_status": ministry_status_canonical or ministry_status or "",
                 },
                 created_by_user_id=getattr(g.utente_corrente, "id", ""),
             )
@@ -449,172 +482,6 @@ def register_fascicoli_pdp_routes(
         except Exception as exc:
             app.logger.exception(
                 "Errore pdp_penale_generate_access_request(%s, %s): %s",
-                id_fasc,
-                case_id,
-                exc,
-            )
-            flash(str(exc), "danger")
-            return redirect(url_for("pdp_penale_workspace", id_fasc=id_fasc, case_id=case_id))
-
-    @app.route("/fascicoli/<id_fasc>/penale/pdp/case/<case_id>/deposit", methods=["POST"])
-    def pdp_penale_deposit_request(id_fasc: str, case_id: str):
-        import tempfile
-
-        try:
-            fascicolo = require_pdp_penale_fascicolo(id_fasc)
-            repo = get_pdp_penale()
-            case_row = require_pdp_penale_case(repo, case_id, fascicolo.id)
-            local_doc_id = str(request.form.get("local_doc_id") or "").strip()
-            if not local_doc_id:
-                raise ValueError("Seleziona il documento da depositare.")
-            documento = pdp_penale_find_case_local_document(fascicolo, local_doc_id)
-            if not documento:
-                raise ValueError("Documento locale non trovato.")
-            demo_mode = polis_demo_mode()
-            if not demo_mode and not bool(getattr(documento, "firmato_digitalmente", False)):
-                raise ValueError(
-                    "Il deposito reale PDP richiede un file firmato. Firma prima il PDF e poi riprova."
-                )
-            gestore_fascicoli = get_fascicoli()
-            percorso = gestore_fascicoli.percorso_documento(fascicolo.id, documento.id)
-            payload = decrypt_doc(Path(percorso).read_bytes())
-            suffix = "".join(Path(documento.nome).suffixes) or Path(documento.nome).suffix or ".pdf"
-            with tempfile.NamedTemporaryFile(prefix="pdp_", suffix=suffix, delete=False) as tmp_file:
-                tmp_file.write(payload)
-                tmp_path = tmp_file.name
-            try:
-                office = resolve_ufficio_destinatario(str(case_row.get("office_name") or ""))
-                codice_ufficio = str(
-                    (office or {}).get("codice") or case_row.get("office_name") or ""
-                ).strip()
-                tipo_atto = str(request.form.get("tipo_atto") or "RICHIESTA").strip().upper()
-                oggetto = str(
-                    request.form.get("oggetto")
-                    or (
-                        "Richiesta accesso atti - "
-                        f"{case_row.get('register_type') or 'RGNR'} "
-                        f"{case_row.get('register_number')}/{case_row.get('register_year')}"
-                    )
-                ).strip()
-                from pct.pdp import crea_client_pdp
-
-                client = crea_client_pdp(demo=demo_mode)
-                esito = client.deposita_atto(
-                    codice_ufficio=codice_ufficio,
-                    tipo_atto=tipo_atto,
-                    atto_path=tmp_path,
-                    numero_rg=str(case_row.get("register_number") or "").strip(),
-                    anno_rg=int(case_row.get("register_year") or 0),
-                    oggetto=oggetto,
-                )
-            finally:
-                try:
-                    os.unlink(tmp_path)
-                except OSError:
-                    pass
-
-            codice_esito = str(esito.get("codiceEsito") or "").strip()
-            stato = str(esito.get("stato") or "").strip() or (
-                "INVIATO" if codice_esito in {"0", "1"} else ""
-            )
-            success = codice_esito in {"0", "1"} and stato != "ERRORE"
-            existing_requests = repo.list_access_requests(case_id)
-            request_row = pdp_penale_primary_access_request(existing_requests)
-            submitted_at = str(esito.get("dataDeposito") or datetime.now().isoformat(timespec="minutes"))
-            if request_row and request_row.get("id"):
-                repo.update_access_request(
-                    str(request_row["id"]),
-                    request_status="submitted" if success else "technical_error",
-                    request_reference=str(
-                        esito.get("idDeposito")
-                        or request_row.get("request_reference")
-                        or pdp_penale_request_reference(case_row)
-                    ),
-                    submitted_at=submitted_at,
-                    ministry_status=stato or None,
-                    notes=str(esito.get("descrizioneEsito") or "").strip() or None,
-                )
-            else:
-                request_row = repo.create_access_request(
-                    case_id,
-                    request_type="access_to_case_file",
-                    request_reference=str(
-                        esito.get("idDeposito") or pdp_penale_request_reference(case_row)
-                    ),
-                    request_status="submitted" if success else "technical_error",
-                    submitted_at=submitted_at,
-                    ministry_status=stato or None,
-                    notes=str(esito.get("descrizioneEsito") or "").strip() or None,
-                )
-            repo.update_case(
-                case_id,
-                access_status="submitted" if success else "technical_error",
-                current_ministry_status=(
-                    stato
-                    if stato
-                    in {
-                        "INVIATO",
-                        "IN_TRANSITO",
-                        "ACCETTATO",
-                        "IN_VERIFICA",
-                        "RIFIUTATO",
-                        "ERRORE_TECNICO",
-                    }
-                    else None
-                ),
-                notes=str(esito.get("descrizioneEsito") or case_row.get("notes") or "").strip()
-                or None,
-            )
-            repo.add_event(
-                case_id,
-                event_type="deposit_submitted" if success else "deposit_failed",
-                event_source="ministry" if success else "system",
-                title="Deposito PDP inviato" if success else "Deposito PDP non riuscito",
-                description=str(esito.get("descrizioneEsito") or "").strip() or oggetto,
-                payload_json=esito,
-                created_by_user_id=getattr(g.utente_corrente, "id", ""),
-            )
-            if success:
-                existing_tasks = repo.list_tasks(case_id, only_open=True)
-                if not any(str(task.get("task_type") or "") == "check_pec" for task in existing_tasks):
-                    repo.create_task(
-                        case_id,
-                        task_type="check_pec",
-                        title="Controllare la PEC per password ed esiti PDP",
-                        description="Il deposito e stato inviato. Attendere PEC con esiti e password.",
-                        priority="high",
-                        status="open",
-                        assigned_user_id=getattr(g.utente_corrente, "id", "") or None,
-                    )
-                if not any(
-                    str(task.get("task_type") or "") == "wait_office_response"
-                    for task in existing_tasks
-                ):
-                    repo.create_task(
-                        case_id,
-                        task_type="wait_office_response",
-                        title="Monitorare autorizzazione ufficio PDP",
-                        description="Verificare stato inviato / in verifica / accettato / rifiutato.",
-                        priority="medium",
-                        status="open",
-                        assigned_user_id=getattr(g.utente_corrente, "id", "") or None,
-                    )
-            audit(
-                "fascicoli.pdp_penale.deposit",
-                "fascicolo",
-                id_fasc,
-                dettagli=f"Deposito PDP case {case_id}: {stato or codice_esito}",
-            )
-            sync_pubblica("modifica", "fascicoli", id_fasc)
-            flash(
-                "Deposito PDP registrato: "
-                + str(esito.get("descrizioneEsito") or stato or "esito non disponibile"),
-                "success" if success else "warning",
-            )
-            return redirect(url_for("pdp_penale_workspace", id_fasc=id_fasc, case_id=case_id))
-        except Exception as exc:
-            app.logger.exception(
-                "Errore pdp_penale_deposit_request(%s, %s): %s",
                 id_fasc,
                 case_id,
                 exc,

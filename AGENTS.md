@@ -49,6 +49,20 @@
 
 Ogni nuova funzione, refactor o correzione deve essere considerata **completata solo quando copre tutta la filiera applicativa interessata**, non solo un singolo file, una singola route o una sola vista.
 
+## Regola obbligatoria — Nessuna semplificazione riduttiva dei requisiti
+
+- Quando l'utente fornisce una lista di passaggi, requisiti, criteri di accettazione o file da analizzare, **non e' ammesso ridurre, saltare o semplificare il perimetro per chiudere piu' velocemente il task**.
+- Il lavoro deve seguire i passaggi richiesti nell'ordine piu' sicuro possibile, adattandoli solo quando la struttura reale della repo lo impone; ogni adattamento deve mantenere o aumentare la qualita' del risultato, non diminuirla.
+- Se un requisito richiede piu' moduli, storage, UI, test, documentazione, versioning o deploy, va completata tutta la catena applicativa interessata prima di dichiarare il lavoro concluso.
+- Se il risultato dipende da norme, specifiche tecniche, prassi di uffici giudiziari, fonti ufficiali o comportamento di servizi esterni, bisogna **fare ricerca/verifica su fonti attendibili** quando il dato non e' gia' presente e certo nella repo.
+- In caso di incertezza tecnica o normativa, il comportamento corretto e':
+  - implementare una soluzione configurabile e non hardcoded;
+  - distinguere dato certo, prassi locale, fallback prudente e punto da verificare;
+  - aggiungere warning professionali invece di blocchi non supportati;
+  - documentare il limite residuo e i passaggi necessari per validarlo.
+- La consegna deve puntare a un risultato **almeno pari e preferibilmente piu' professionale** di quanto richiesto, senza scorciatoie, placeholder invisibili o funzioni scollegate dalla UI reale.
+- I test non devono coprire solo il caso felice: ogni requisito critico deve avere almeno un test o una verifica di regressione coerente con il rischio.
+
 Checklist minima obbligatoria per dichiarare conclusa una feature:
 
 - **Dominio e persistenza**

@@ -45,7 +45,7 @@ def register_clienti_routes(
         utente = g.utente_corrente
         testo = request.args.get("q", "").strip()
         tipo_f = request.args.get("tipo")
-        stato_f = request.args.get("stato", "ATTIVO")
+        stato_f = request.args.get("stato", "")
 
         tipo = TipoCliente(tipo_f) if tipo_f else None
         stato = StatoCliente(stato_f) if stato_f else None

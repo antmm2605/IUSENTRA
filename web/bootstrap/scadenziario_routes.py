@@ -15,6 +15,7 @@ from pct.scadenziario import (
     PrioritaTermine,
     ProfiloTermine,
     Scadenza,
+    StatoTermine,
     TipoTermine,
     calcola_termine,
     profilo_da_preset,
@@ -154,11 +155,70 @@ def register_scadenziario_routes(
         filtro_perentorio = request.args.get("perentorio", "")
         filtro_avanzate = request.args.get("avanzate", "")
         filtro_operative = request.args.get("operative", "")
-        scadenze = gs.tutte(
-            tipo=TipoTermine(filtro_tipo) if filtro_tipo else None,
-            priorita=PrioritaTermine(filtro_priorita) if filtro_priorita else None,
-            id_fascicolo=id_fascicolo,
-        )
+        filtro_vista = request.args.get("vista", "aperte").strip() or "aperte"
+        viste_ammesse = {
+            "aperte",
+            "critiche",
+            "alte",
+            "completate",
+            "scadute",
+            "imminenti",
+            "avanzate",
+            "operative",
+            "da_presidiare",
+            "tutte",
+        }
+        if filtro_vista not in viste_ammesse:
+            filtro_vista = "aperte"
+
+        # Aggiorna prima gli stati scaduti, così contatori e viste sono coerenti.
+        gs.scadute()
+
+        tipo_obj = TipoTermine(filtro_tipo) if filtro_tipo else None
+        priorita_obj = PrioritaTermine(filtro_priorita) if filtro_priorita else None
+
+        def _base(solo_aperte: bool = True, stato: StatoTermine | None = None) -> list[Scadenza]:
+            return gs.tutte(
+                stato=stato,
+                tipo=tipo_obj,
+                priorita=priorita_obj,
+                id_fascicolo=id_fascicolo,
+                solo_aperte=solo_aperte,
+            )
+
+        if filtro_vista == "completate":
+            scadenze = _base(solo_aperte=False, stato=StatoTermine.COMPLETATO)
+        elif filtro_vista == "scadute":
+            scadenze = _base(solo_aperte=False, stato=StatoTermine.SCADUTO)
+        elif filtro_vista == "critiche":
+            scadenze = _base(solo_aperte=True, stato=StatoTermine.APERTO)
+            scadenze = [s for s in scadenze if s.priorita == PrioritaTermine.CRITICA]
+        elif filtro_vista == "alte":
+            scadenze = _base(solo_aperte=True, stato=StatoTermine.APERTO)
+            scadenze = [s for s in scadenze if s.priorita == PrioritaTermine.ALTA]
+        elif filtro_vista == "imminenti":
+            scadenze = gs.imminenti(entro_giorni=7)
+            if tipo_obj:
+                scadenze = [s for s in scadenze if s.tipo == tipo_obj]
+            if priorita_obj:
+                scadenze = [s for s in scadenze if s.priorita == priorita_obj]
+            if id_fascicolo:
+                scadenze = [s for s in scadenze if s.id_fascicolo == id_fascicolo]
+        elif filtro_vista == "avanzate":
+            scadenze = [s for s in _base(solo_aperte=False) if s.ha_calcolo_avanzato]
+        elif filtro_vista == "operative":
+            scadenze = [s for s in _base(solo_aperte=False) if bool(s.operational_due_at)]
+        elif filtro_vista == "da_presidiare":
+            scadenze = [
+                s for s in _base(solo_aperte=False)
+                if s.stato == StatoTermine.SCADUTO
+                or (s.stato == StatoTermine.APERTO and s.priorita == PrioritaTermine.CRITICA)
+            ]
+        elif filtro_vista == "tutte":
+            scadenze = _base(solo_aperte=False)
+        else:
+            scadenze = _base(solo_aperte=True, stato=StatoTermine.APERTO)
+
         if q:
             ql = q.lower()
             scadenze = [
@@ -176,10 +236,22 @@ def register_scadenziario_routes(
             scadenze = [s for s in scadenze if s.ha_calcolo_avanzato]
         if filtro_operative:
             scadenze = [s for s in scadenze if bool(s.operational_due_at)]
-        scadute = gs.scadute()
+        scadute = gs.tutte(stato=StatoTermine.SCADUTO, solo_aperte=False)
         scadenze_critiche = gs.imminenti(entro_giorni=3)
         imminenti = gs.imminenti(entro_giorni=7)
         stats = gs.statistiche()
+        vista_labels = {
+            "aperte": "scadenze aperte",
+            "critiche": "scadenze critiche",
+            "alte": "scadenze ad alta priorità",
+            "completate": "scadenze completate",
+            "scadute": "scadenze scadute",
+            "imminenti": "scadenze entro 7 giorni",
+            "avanzate": "scadenze con calcolo avanzato",
+            "operative": "scadenze operative",
+            "da_presidiare": "scadenze da presidiare",
+            "tutte": "scadenze totali",
+        }
         return render_template(
             "scadenziario/lista.html",
             scadenze=scadenze,
@@ -198,6 +270,8 @@ def register_scadenziario_routes(
             filtro_perentorio=filtro_perentorio,
             filtro_avanzate=filtro_avanzate,
             filtro_operative=filtro_operative,
+            filtro_vista=filtro_vista,
+            vista_label=vista_labels.get(filtro_vista, "scadenze"),
         )
 
     @app.route("/scadenziario/nuova", methods=["GET", "POST"])
@@ -430,7 +504,6 @@ def register_scadenziario_routes(
         try:
             gs = get_scadenziario()
             alerts = []
-            oggi = date.today()
             scadute = [
                 s
                 for s in gs.imminenti(entro_giorni=0)

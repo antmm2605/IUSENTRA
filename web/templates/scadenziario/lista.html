@@ -81,42 +81,51 @@
 
 {# ── Stats ── #}
 <div class="ds-stats">
-  <span class="ds-stat-pill">
+  <a class="ds-stat-pill text-decoration-none {{ 'active' if filtro_vista == 'aperte' else '' }}"
+     href="{{ url_for('scadenziario', vista='aperte') }}">
     <i class="bi bi-calendar2-check text-primary"></i>
     <span class="num">{{ stats.aperte }}</span> aperte
-  </span>
-  <span class="ds-stat-pill">
+  </a>
+  <a class="ds-stat-pill text-decoration-none {{ 'active' if filtro_vista == 'critiche' else '' }}"
+     href="{{ url_for('scadenziario', vista='critiche') }}">
     <i class="bi bi-exclamation-triangle text-danger"></i>
     <span class="num">{{ stats.critiche }}</span> critiche
-  </span>
-  <span class="ds-stat-pill">
+  </a>
+  <a class="ds-stat-pill text-decoration-none {{ 'active' if filtro_vista == 'alte' else '' }}"
+     href="{{ url_for('scadenziario', vista='alte') }}">
     <i class="bi bi-arrow-up-circle text-warning"></i>
     <span class="num">{{ stats.alte }}</span> alta priorità
-  </span>
-  <span class="ds-stat-pill">
+  </a>
+  <a class="ds-stat-pill text-decoration-none {{ 'active' if filtro_vista == 'completate' else '' }}"
+     href="{{ url_for('scadenziario', vista='completate') }}">
     <i class="bi bi-check-circle text-success"></i>
     <span class="num">{{ stats.completate }}</span> completate
-  </span>
-  <span class="ds-stat-pill">
+  </a>
+  <a class="ds-stat-pill text-decoration-none {{ 'active' if filtro_vista == 'scadute' else '' }}"
+     href="{{ url_for('scadenziario', vista='scadute') }}">
     <i class="bi bi-clock-history text-secondary"></i>
     <span class="num">{{ stats.scadute }}</span> scadute
-  </span>
-  <span class="ds-stat-pill">
+  </a>
+  <a class="ds-stat-pill text-decoration-none {{ 'active' if filtro_vista == 'imminenti' else '' }}"
+     href="{{ url_for('scadenziario', vista='imminenti') }}">
     <i class="bi bi-alarm text-info"></i>
     <span class="num">{{ stats.imminenti_7gg }}</span> entro 7 gg
-  </span>
-  <span class="ds-stat-pill">
+  </a>
+  <a class="ds-stat-pill text-decoration-none {{ 'active' if filtro_vista == 'avanzate' else '' }}"
+     href="{{ url_for('scadenziario', vista='avanzate') }}">
     <i class="bi bi-gear-wide-connected text-secondary"></i>
     <span class="num">{{ stats.avanzate }}</span> avanzate
-  </span>
-  <span class="ds-stat-pill">
+  </a>
+  <a class="ds-stat-pill text-decoration-none {{ 'active' if filtro_vista == 'operative' else '' }}"
+     href="{{ url_for('scadenziario', vista='operative') }}">
     <i class="bi bi-chevron-double-left text-dark"></i>
     <span class="num">{{ stats.con_anticipo_operativo }}</span> operative
-  </span>
+  </a>
 </div>
 
 {# ── Filtri ── #}
 <form method="get" class="ds-search-bar mb-3">
+  <input type="hidden" name="vista" value="{{ filtro_vista }}">
   <input type="search" name="q" class="ds-search-input"
          placeholder="Cerca per titolo, descrizione…"
          value="{{ q|default('') }}" autocomplete="off">
@@ -139,7 +148,7 @@
   <button type="submit" class="ds-btn ds-btn-outline">
     <i class="bi bi-funnel"></i>Filtra
   </button>
-  {% if q|default('') or filtro_tipo or filtro_priorita or filtro_dal or filtro_al or filtro_perentorio or filtro_avanzate or filtro_operative %}
+  {% if q|default('') or filtro_tipo or filtro_priorita or filtro_dal or filtro_al or filtro_perentorio or filtro_avanzate or filtro_operative or filtro_vista != 'aperte' %}
   <a href="{{ url_for('scadenziario') }}" class="ds-btn ds-btn-ghost">
     <i class="bi bi-x-circle"></i>Reset
   </a>
@@ -161,6 +170,7 @@
       <input type="hidden" name="q" value="{{ q|default('') }}">
       <input type="hidden" name="tipo" value="{{ filtro_tipo }}">
       <input type="hidden" name="priorita" value="{{ filtro_priorita }}">
+      <input type="hidden" name="vista" value="{{ filtro_vista }}">
       <div class="ds-filter-row">
         <div class="form-group">
           <label for="filtro-dal">Dal</label>
@@ -219,13 +229,15 @@
 <div class="card border-0 shadow-sm" style="border-radius:var(--ds-r-lg, 14px); overflow:hidden;">
   <div class="card-header d-flex justify-content-between align-items-center gap-2 flex-wrap">
     <div class="d-flex align-items-center gap-2">
-      <span class="fw-semibold text-muted small">{{ scadenze|length }} scadenze</span>
+      <span class="fw-semibold text-muted small">{{ scadenze|length }} {{ vista_label }}</span>
+      {% if filtro_vista != 'completate' %}
       <button type="submit" id="btn-bulk-completa"
               class="ds-btn ds-btn-outline btn-sm d-none"
               title="Completa le scadenze selezionate">
         <i class="bi bi-check2-all me-1"></i>Completa selezionate
         <span class="badge bg-success ms-1" id="bulk-count">0</span>
       </button>
+      {% endif %}
     </div>
     <select id="page-size-scadenze" class="form-select form-select-sm" style="width:auto">
       <option value="25">25 per pagina</option>
@@ -328,6 +340,7 @@
                    class="btn btn-outline-secondary btn-sm" title="Dettaglio"><i class="bi bi-eye"></i></a>
                 <a href="{{ url_for('modifica_scadenza', id_sc=s.id) }}"
                    class="btn btn-outline-primary btn-sm" title="Modifica"><i class="bi bi-pencil"></i></a>
+                {% if s.stato.value != 'COMPLETATO' %}
                 <button
                   hx-post="{{ url_for('completa_scadenza', id_sc=s.id) }}"
                   hx-target="#sc-{{ s.id }}"
@@ -340,6 +353,7 @@
                   <span class="htmx-indicator spinner-border spinner-border-sm ms-1"
                         role="status" aria-hidden="true"></span>
                 </button>
+                {% endif %}
                 <form method="post" action="{{ url_for('elimina_scadenza', id_sc=s.id) }}"
                       onsubmit="return confirm('Eliminare la scadenza «{{ s.titolo }}»?')">
                   <button type="submit" class="btn btn-outline-danger btn-sm" title="Elimina">
@@ -364,6 +378,7 @@
   var countEl = document.getElementById('bulk-count');
 
   function aggiornaContatore() {
+    if (!btnBulk || !countEl) return;
     var sel = document.querySelectorAll('.bulk-cb:checked').length;
     countEl.textContent = sel;
     btnBulk.classList.toggle('d-none', sel === 0);
@@ -394,15 +409,15 @@
 {% else %}
 <div class="ds-empty">
   <i class="bi bi-calendar-check ds-empty-icon"></i>
-  <div class="ds-empty-title">Nessuna scadenza aperta</div>
+  <div class="ds-empty-title">Nessuna {{ vista_label }}</div>
   <div class="ds-empty-sub">
-    {% if filtro_tipo or filtro_priorita %}
+    {% if q|default('') or filtro_tipo or filtro_priorita or filtro_dal or filtro_al or filtro_perentorio or filtro_avanzate or filtro_operative %}
       Nessun risultato per i filtri selezionati.
     {% else %}
       Aggiungi scadenze e termini processuali per tenere tutto sotto controllo.
     {% endif %}
   </div>
-  {% if not filtro_tipo and not filtro_priorita %}
+  {% if filtro_vista == 'aperte' and not q|default('') and not filtro_tipo and not filtro_priorita %}
   <a href="{{ url_for('nuova_scadenza') }}" class="ds-btn ds-btn-primary mt-3">
     <i class="bi bi-plus-lg"></i>Nuova scadenza
   </a>

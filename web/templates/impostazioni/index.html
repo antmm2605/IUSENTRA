@@ -70,6 +70,18 @@
           <input type="text" name="avvocato" class="form-control"
                  value="{{ cfg.studio.avvocato }}" placeholder="Avv. Mario Rossi">
         </div>
+        <div class="col-md-3">
+          <label class="form-label fw-semibold">N. iscrizione Albo</label>
+          <input type="text" name="numero_iscrizione_albo" class="form-control"
+                 value="{{ cfg.studio.numero_iscrizione_albo }}" placeholder="Es. 1234">
+          <div class="form-text">Usato nei conferimenti di incarico.</div>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label fw-semibold">Ordine degli Avvocati</label>
+          <input type="text" name="ordine_avvocati" class="form-control"
+                 value="{{ cfg.studio.ordine_avvocati }}" placeholder="Es. Ordine di Milano">
+          <div class="form-text">Precompila gli atti di incarico.</div>
+        </div>
         <div class="col-md-4">
           <label class="form-label fw-semibold">Partita IVA</label>
           <input type="text" name="piva" class="form-control font-monospace"

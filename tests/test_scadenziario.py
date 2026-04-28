@@ -606,6 +606,75 @@ def test_route_scadenziario_filtra_avanzate_e_operative(tmp_path):
     assert "Solo con anticipo operativo" in body
 
 
+def test_route_scadenziario_card_completate_mostra_lista_e_azioni(tmp_path):
+    cfg = _cfg_web(tmp_path)
+    GestioneUtenti(
+        db_path=cfg["AUTH_DB"],
+        audit_path=cfg["AUDIT_DB"],
+        secret_key="test",
+        bootstrap_admin_password="admin",
+    )
+    gs = GestioneScadenziario(db_path=cfg["SCADENZIARIO_DB"])
+    completata = gs.nuova(
+        titolo="Termine completato visibile",
+        tipo=TipoTermine.ALTRO,
+        data_scadenza=(date.today() - timedelta(days=2)).isoformat(),
+    )
+    gs.completa(completata.id)
+    gs.nuova(
+        titolo="Termine aperto da non mostrare",
+        tipo=TipoTermine.ALTRO,
+        data_scadenza=(date.today() + timedelta(days=10)).isoformat(),
+    )
+    app = create_app(cfg)
+    client = app.test_client()
+    login = client.post("/login", data={"username": "admin", "password": "admin"}, follow_redirects=True)
+    assert login.status_code == 200
+
+    response = client.get("/scadenziario?vista=completate")
+    body = response.get_data(as_text=True)
+
+    assert response.status_code == 200
+    assert "Termine completato visibile" in body
+    assert "Termine aperto da non mostrare" not in body
+    assert f"/scadenziario/{completata.id}/modifica" in body
+    assert f"/scadenziario/{completata.id}/elimina" in body
+
+
+def test_route_scadenziario_card_scadute_mostra_lista_e_azioni(tmp_path):
+    cfg = _cfg_web(tmp_path)
+    GestioneUtenti(
+        db_path=cfg["AUTH_DB"],
+        audit_path=cfg["AUDIT_DB"],
+        secret_key="test",
+        bootstrap_admin_password="admin",
+    )
+    gs = GestioneScadenziario(db_path=cfg["SCADENZIARIO_DB"])
+    scaduta = gs.nuova(
+        titolo="Termine scaduto visibile",
+        tipo=TipoTermine.ALTRO,
+        data_scadenza=(date.today() - timedelta(days=1)).isoformat(),
+    )
+    gs.nuova(
+        titolo="Termine futuro da non mostrare",
+        tipo=TipoTermine.ALTRO,
+        data_scadenza=(date.today() + timedelta(days=10)).isoformat(),
+    )
+    app = create_app(cfg)
+    client = app.test_client()
+    login = client.post("/login", data={"username": "admin", "password": "admin"}, follow_redirects=True)
+    assert login.status_code == 200
+
+    response = client.get("/scadenziario?vista=scadute")
+    body = response.get_data(as_text=True)
+
+    assert response.status_code == 200
+    assert "Termine scaduto visibile" in body
+    assert "Termine futuro da non mostrare" not in body
+    assert f"/scadenziario/{scaduta.id}/modifica" in body
+    assert f"/scadenziario/{scaduta.id}/elimina" in body
+
+
 def test_dettaglio_scadenza_mostra_studio_e_contesto(tmp_path):
     cfg = _cfg_web(tmp_path)
     GestioneUtenti(

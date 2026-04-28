@@ -278,24 +278,25 @@ async function caricaKPI() {
     return;
   }
 
+  const scadenzePresidio = (data.scadenze?.critiche || 0) + (data.scadenze?.scadute || 0);
   const kpi = [
-    { label: 'Clienti totali',   val: data.clienti?.totale || 0,          icon: 'bi-people-fill',           color: PRIMARY },
-    { label: 'Fascicoli attivi', val: data.fascicoli?.attivi || data.fascicoli?.aperti || 0, icon: 'bi-folder2-open', color: '#2563eb' },
-    { label: 'Fatturato lordo',  val: eur(data.fatturato?.fatturato_lordo),icon: 'bi-cash-stack',            color: '#16a34a' },
-    { label: 'Da incassare',     val: eur(data.fatturato?.da_incassare),   icon: 'bi-hourglass-split',       color: ACCENT },
-    { label: 'Incassato',        val: eur(data.fatturato?.incassato),      icon: 'bi-check2-circle',         color: '#059669' },
-    { label: 'App. oggi',        val: data.oggi?.appuntamenti || 0,        icon: 'bi-calendar-check',        color: '#7c3aed' },
-    { label: 'Scadenze aperte',  val: data.scadenze?.aperte || 0,         icon: 'bi-clock-history',         color: '#ea580c' },
-    { label: 'Scadenze urgenti', val: data.scadenze?.critiche || data.scadenze?.scadute || 0, icon: 'bi-exclamation-triangle-fill', color: '#dc2626' },
+    { label: 'Clienti totali',   val: data.clienti?.totale || 0,          icon: 'bi-people-fill',           color: PRIMARY, href: '/clienti' },
+    { label: 'Fascicoli attivi', val: data.fascicoli?.attivi || data.fascicoli?.aperti || 0, icon: 'bi-folder2-open', color: '#2563eb', href: '/fascicoli' },
+    { label: 'Fatturato lordo',  val: eur(data.fatturato?.fatturato_lordo),icon: 'bi-cash-stack',            color: '#16a34a', href: '/fatturazione' },
+    { label: 'Da incassare',     val: eur(data.fatturato?.da_incassare),   icon: 'bi-hourglass-split',       color: ACCENT, href: '/fatturazione' },
+    { label: 'Incassato',        val: eur(data.fatturato?.incassato),      icon: 'bi-check2-circle',         color: '#059669', href: '/pagamenti' },
+    { label: 'App. oggi',        val: data.oggi?.appuntamenti || 0,        icon: 'bi-calendar-check',        color: '#7c3aed', href: '/agenda' },
+    { label: 'Scadenze aperte',  val: data.scadenze?.aperte || 0,         icon: 'bi-clock-history',         color: '#ea580c', href: '/scadenziario?vista=aperte' },
+    { label: 'Scadenze da presidiare', val: scadenzePresidio, icon: 'bi-exclamation-triangle-fill', color: '#dc2626', href: '/scadenziario?vista=da_presidiare' },
   ];
 
   document.getElementById('kpi-cards').innerHTML = kpi.map(k => `
     <div class="col-6 col-sm-4 col-lg-3 col-xl">
-      <div class="stat-kpi-card" style="--kpi-color:${k.color}">
+      <a class="stat-kpi-card text-decoration-none text-reset d-block" href="${k.href}" style="--kpi-color:${k.color}">
         <div class="stat-kpi-icon"><i class="bi ${k.icon}"></i></div>
         <div class="stat-kpi-val">${k.val}</div>
         <div class="stat-kpi-label">${k.label}</div>
-      </div>
+      </a>
     </div>`).join('');
 }
 

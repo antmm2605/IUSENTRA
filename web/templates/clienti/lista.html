@@ -38,13 +38,25 @@
 
 {# ── Stats ── #}
 <div class="ds-stats">
-  <span class="ds-stat-pill">
+  <a class="ds-stat-pill text-decoration-none {{ 'active' if not stato_filtro else '' }}"
+     href="{{ url_for('lista_clienti') }}">
     <span class="num">{{ stats.totale }}</span> totali
-  </span>
-  <span class="ds-stat-pill">
+  </a>
+  <a class="ds-stat-pill text-decoration-none {{ 'active' if stato_filtro == 'ATTIVO' else '' }}"
+     href="{{ url_for('lista_clienti', stato='ATTIVO') }}">
     <i class="bi bi-person-check text-success"></i>
     <span class="num">{{ stats.per_stato.ATTIVO }}</span> attivi
-  </span>
+  </a>
+  <a class="ds-stat-pill text-decoration-none {{ 'active' if stato_filtro == 'POTENZIALE' else '' }}"
+     href="{{ url_for('lista_clienti', stato='POTENZIALE') }}">
+    <i class="bi bi-person-lines-fill text-warning"></i>
+    <span class="num">{{ stats.per_stato.POTENZIALE }}</span> potenziali
+  </a>
+  <a class="ds-stat-pill text-decoration-none {{ 'active' if stato_filtro == 'ARCHIVIATO' else '' }}"
+     href="{{ url_for('lista_clienti', stato='ARCHIVIATO') }}">
+    <i class="bi bi-archive text-secondary"></i>
+    <span class="num">{{ stats.per_stato.ARCHIVIATO }}</span> archiviati
+  </a>
   <span class="ds-stat-pill">
     <i class="bi bi-file-earmark-text text-primary"></i>
     <span class="num">{{ stats.con_procedimenti_attivi }}</span> con procedimenti

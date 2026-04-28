@@ -16,7 +16,6 @@ from flask import (Blueprint, abort, flash, g, redirect,
 
 from web.helpers import get_clienti, get_fascicoli, get_scadenziario, get_preventivi as _shared_get_preventivi
 from pct.economico_context import (
-    carica_log_calcolo,
     costruisci_contesto_economico,
     dump_log_calcolo,
     riepilogo_contesto_economico,
@@ -69,6 +68,29 @@ def _get_portale_mgr():
     )
 
 
+def _studio_forense_context() -> dict:
+    """Dati dell'avvocato titolare usati per precompilare incarichi e atti."""
+    dati = {
+        "avvocato": current_app.config.get("STUDIO_AVVOCATO", ""),
+        "numero_iscrizione_albo": current_app.config.get("STUDIO_NUMERO_ISCRIZIONE_ALBO", ""),
+        "ordine_avvocati": current_app.config.get("STUDIO_ORDINE_AVVOCATI", ""),
+    }
+    try:
+        from pct.config_studio import GestioneConfigStudio
+
+        studio = GestioneConfigStudio(
+            config_path=current_app.config.get("STUDIO_CONFIG", "./config/studio.json")
+        ).config.studio
+        dati["avvocato"] = getattr(studio, "avvocato", "") or dati["avvocato"]
+        dati["numero_iscrizione_albo"] = (
+            getattr(studio, "numero_iscrizione_albo", "") or dati["numero_iscrizione_albo"]
+        )
+        dati["ordine_avvocati"] = getattr(studio, "ordine_avvocati", "") or dati["ordine_avvocati"]
+    except Exception:
+        current_app.logger.debug("Dati forensi studio non disponibili per il prefill", exc_info=True)
+    return dati
+
+
 def _url_onboarding_fascicolo(id_cliente: str, *, id_preventivo: str = "", id_conferimento: str = "", from_page: str = "") -> str:
     params = {"id_cliente": id_cliente}
     if id_preventivo:
@@ -99,9 +121,11 @@ def _campi_cliente_mancanti(cliente) -> list[str]:
 
 def _avvocato_referente_workflow(cliente=None, preventivo=None, conferimento=None) -> str:
     utente = g.get("utente_corrente")
+    studio_forense = _studio_forense_context()
     return (
         getattr(conferimento, "avvocato_referente", "")
         or getattr(cliente, "avvocato_referente", "")
+        or studio_forense.get("avvocato", "")
         or getattr(utente, "nome_completo", "")
         or getattr(utente, "username", "")
         or getattr(preventivo, "creato_da", "")
@@ -486,7 +510,7 @@ def _richiedi_login(f):
     @wraps(f)
     def wrapper(*args, **kwargs):
         if not g.get("utente_corrente"):
-            return redirect(url_for("login"))
+            return redirect(url_for("login", next=request.full_path.rstrip("?")))
         return f(*args, **kwargs)
     return wrapper
 
@@ -578,7 +602,6 @@ def nuovo_preventivo(id_cliente: str = ""):
         if not id_cliente:
             flash("Seleziona un cliente.", "danger")
             return redirect(request.url)
-        cliente_corrente = gc.get(id_cliente)
 
         oggetto = f.get("oggetto", "").strip()
         if not oggetto:
@@ -923,6 +946,7 @@ def nuovo_conferimento(id_cliente: str = ""):
 
     if request.method == "POST":
         f = request.form
+        studio_forense = _studio_forense_context()
         id_cliente = f.get("id_cliente", "").strip()
         if not id_cliente:
             flash("Seleziona un cliente.", "danger")
@@ -934,7 +958,7 @@ def nuovo_conferimento(id_cliente: str = ""):
             flash("Inserisci l'oggetto dell'incarico.", "danger")
             return redirect(request.url)
 
-        avvocato = f.get("avvocato_referente", "").strip()
+        avvocato = f.get("avvocato_referente", "").strip() or studio_forense.get("avvocato", "")
         if not avvocato:
             flash("Inserisci il nome dell'avvocato referente.", "danger")
             return redirect(request.url)
@@ -971,8 +995,14 @@ def nuovo_conferimento(id_cliente: str = ""):
             note=f.get("note", "").strip(),
             id_pratica=f.get("id_pratica", "").strip(),
             area_pratica=f.get("area_pratica", "").strip(),
-            numero_iscrizione_albo=f.get("numero_iscrizione_albo", "").strip(),
-            ordine_avvocati=f.get("ordine_avvocati", "").strip(),
+            numero_iscrizione_albo=(
+                f.get("numero_iscrizione_albo", "").strip()
+                or studio_forense.get("numero_iscrizione_albo", "")
+            ),
+            ordine_avvocati=(
+                f.get("ordine_avvocati", "").strip()
+                or studio_forense.get("ordine_avvocati", "")
+            ),
             tipo_compenso=f.get("tipo_compenso", "").strip(),
             tipo_procedimento=f.get("tipo_procedimento", "").strip(),
             tariffa_oraria=tariffa_oraria_c,
@@ -1045,6 +1075,7 @@ def nuovo_conferimento(id_cliente: str = ""):
         )
 
     # GET
+    studio_forense = _studio_forense_context()
     clienti = gc.tutti()
     fascicoli = []
     if cliente_sel:
@@ -1079,6 +1110,7 @@ def nuovo_conferimento(id_cliente: str = ""):
         oggi=date.today(),
         from_page=from_page,
         id_fascicolo_pre=id_fascicolo_pre,
+        studio_forense=studio_forense,
         apri_fascicolo_default=bool(preventivo_pre and not id_fascicolo_pre and not preventivo_pre.id_fascicolo),
     )
 
@@ -2025,7 +2057,7 @@ def _genera_pdf_preventivo(p, cliente, fascicolo, config) -> io.BytesIO:
         from reportlab.platypus import (SimpleDocTemplate, Paragraph, Spacer,
                                         Table, TableStyle, HRFlowable)
         from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-        from reportlab.lib.enums import TA_RIGHT, TA_CENTER, TA_LEFT
+        from reportlab.lib.enums import TA_RIGHT, TA_CENTER
     except ImportError:
         buf = io.BytesIO()
         buf.write(f"Preventivo {p.numero}\nTotale: € {p.totale:.2f}".encode())
@@ -2033,7 +2065,6 @@ def _genera_pdf_preventivo(p, cliente, fascicolo, config) -> io.BytesIO:
         return buf
 
     PRIMARY   = colors.HexColor("#1a3a5c")
-    ACCENT    = colors.HexColor("#c8972b")
     LIGHT_BG  = colors.HexColor("#f4f6fa")
     GRAY_TEXT = colors.HexColor("#6b7280")
 
@@ -2301,7 +2332,7 @@ def _genera_pdf_conferimento(c, cliente, fascicolo, preventivo, config) -> io.By
         from reportlab.platypus import (SimpleDocTemplate, Paragraph, Spacer,
                                         Table, TableStyle, HRFlowable)
         from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-        from reportlab.lib.enums import TA_RIGHT, TA_CENTER, TA_LEFT, TA_JUSTIFY
+        from reportlab.lib.enums import TA_RIGHT, TA_CENTER, TA_JUSTIFY
     except ImportError:
         buf = io.BytesIO()
         buf.write(f"Conferimento Incarico {c.numero}".encode())

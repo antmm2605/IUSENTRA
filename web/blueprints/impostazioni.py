@@ -118,6 +118,8 @@ def _applica_ad_app(cfg):
     # Dati studio
     app.config["STUDIO_NOME"]      = s.nome
     app.config["STUDIO_AVVOCATO"]  = s.avvocato
+    app.config["STUDIO_NUMERO_ISCRIZIONE_ALBO"] = s.numero_iscrizione_albo
+    app.config["STUDIO_ORDINE_AVVOCATI"] = s.ordine_avvocati
     app.config["STUDIO_PIVA"]      = s.piva
     app.config["STUDIO_CF"]        = s.cf
     app.config["STUDIO_INDIRIZZO"] = s.indirizzo
@@ -217,6 +219,8 @@ def index():
                 cfg.studio = ConfigDatiStudio(
                     nome=f.get("nome", "").strip(),
                     avvocato=f.get("avvocato", "").strip(),
+                    numero_iscrizione_albo=f.get("numero_iscrizione_albo", "").strip(),
+                    ordine_avvocati=f.get("ordine_avvocati", "").strip(),
                     piva=f.get("piva", "").strip(),
                     cf=f.get("cf", "").strip(),
                     indirizzo=f.get("indirizzo", "").strip(),

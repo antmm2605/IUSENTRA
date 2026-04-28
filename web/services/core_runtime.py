@@ -268,6 +268,10 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
     app.config["STUDIO_INDIRIZZO"] = os.getenv("PCT_STUDIO_INDIRIZZO", "")
     app.config["STUDIO_IBAN"]      = os.getenv("PCT_STUDIO_IBAN", "")
     app.config["STUDIO_AVVOCATO"]  = os.getenv("PCT_STUDIO_AVVOCATO", "")
+    app.config["STUDIO_NUMERO_ISCRIZIONE_ALBO"] = os.getenv(
+        "PCT_STUDIO_NUMERO_ISCRIZIONE_ALBO", ""
+    )
+    app.config["STUDIO_ORDINE_AVVOCATI"] = os.getenv("PCT_STUDIO_ORDINE_AVVOCATI", "")
     app.config["TEMPLATE_ATTI_DB"] = cfg.get(
         "TEMPLATE_ATTI_DB", os.getenv("PCT_TEMPLATE_ATTI_DB", "./template_atti/templates.json")
     )

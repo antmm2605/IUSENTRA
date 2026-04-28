@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.195.4 - 2026-04-28
+
+- Corretto il flusso di creazione del conferimento da preventivo: il redirect al login conserva ora `id_preventivo` e `from_page`, evitando la perdita del contesto e il 500 in produzione.
+- Aggiunti in Impostazioni Studio i dati forensi `N. iscrizione Albo` e `Ordine degli Avvocati`, usati insieme ad `Avvocato titolare` per precompilare il nuovo conferimento di incarico.
+- Resi navigabili i conteggi di clienti, statistiche e scadenziario: le card/pill aprono ora le liste filtrate per clienti totali, scadenze completate, scadute e da presidiare, con azioni di dettaglio, modifica ed eliminazione.
+
 ## 2.195.0 - 2026-04-28
 
 - Introdotto il primo presidio production hardening: moduli `core` per configurazione, database, cache Redis con fallback, worker RQ, health check, metriche Prometheus, shutdown, security headers, rate limiting, upload validator, audit HMAC, secrets Fernet, circuit breaker e migrazione JSON -> SQL.

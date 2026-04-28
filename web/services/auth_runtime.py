@@ -312,7 +312,7 @@ def register_auth_runtime(
                 delta = datetime.now() - datetime.fromisoformat(last)
                 if delta.total_seconds() > 8 * 3600:
                     session.clear()
-                    return redirect(url_for("login", next=request.path, timeout=1))
+                    return redirect(url_for("login", next=request.full_path.rstrip("?"), timeout=1))
             except ValueError:
                 pass
 
@@ -420,7 +420,7 @@ def register_auth_runtime(
         if request.endpoint and request.endpoint.startswith(("api_", "portale")):
             return None
         if g.utente_corrente is None:
-            return redirect(url_for("login", next=request.path))
+            return redirect(url_for("login", next=request.full_path.rstrip("?")))
         if (
             not app.testing
             and getattr(g.utente_corrente, "must_change_password", False)
@@ -525,6 +525,8 @@ def register_auth_runtime(
                     )
                     return redirect(url_for("profilo", password_obbligatoria=1))
                 next_url = request.args.get("next")
+                if next_url and not next_url.startswith("/"):
+                    next_url = ""
                 if not next_url:
                     next_url = (
                         url_for("admin.dashboard")

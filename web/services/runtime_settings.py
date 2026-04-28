@@ -195,6 +195,12 @@ def apply_persistent_studio_overrides(app: Flask) -> None:
         if studio_cfg.studio.nome:
             app.config["STUDIO_NOME"] = studio_cfg.studio.nome
             app.config["STUDIO_AVVOCATO"] = studio_cfg.studio.avvocato
+            app.config["STUDIO_NUMERO_ISCRIZIONE_ALBO"] = getattr(
+                studio_cfg.studio, "numero_iscrizione_albo", ""
+            )
+            app.config["STUDIO_ORDINE_AVVOCATI"] = getattr(
+                studio_cfg.studio, "ordine_avvocati", ""
+            )
             app.config["STUDIO_PIVA"] = studio_cfg.studio.piva
             app.config["STUDIO_CF"] = studio_cfg.studio.cf
             app.config["STUDIO_INDIRIZZO"] = studio_cfg.studio.indirizzo

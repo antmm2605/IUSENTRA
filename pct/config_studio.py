@@ -23,6 +23,8 @@ import base64
 import hashlib
 import json
 import os
+import smtplib as _smtplib
+import socket as _socket_mod
 from dataclasses import dataclass, field, asdict
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -90,6 +92,8 @@ def _applica_cifratura(d: Dict[str, Any], f, cifra: bool) -> Dict[str, Any]:
 class ConfigDatiStudio:
     nome: str = "IUSENTRA"
     avvocato: str = ""
+    numero_iscrizione_albo: str = ""
+    ordine_avvocati: str = ""
     piva: str = ""
     cf: str = ""
     indirizzo: str = ""
@@ -421,6 +425,8 @@ class GestioneConfigStudio:
             studio=ConfigDatiStudio(
                 nome=os.getenv("PCT_STUDIO_NOME", "IUSENTRA"),
                 avvocato=os.getenv("PCT_STUDIO_AVVOCATO", ""),
+                numero_iscrizione_albo=os.getenv("PCT_STUDIO_NUMERO_ISCRIZIONE_ALBO", ""),
+                ordine_avvocati=os.getenv("PCT_STUDIO_ORDINE_AVVOCATI", ""),
                 piva=os.getenv("PCT_STUDIO_PIVA", ""),
                 cf=os.getenv("PCT_STUDIO_CF", ""),
                 indirizzo=os.getenv("PCT_STUDIO_INDIRIZZO", ""),
@@ -575,7 +581,8 @@ def risolvi_config_firma_corrente(config_path: str | None = None) -> Dict[str, s
     try:
         from visible_signature import normalize_visible_signature_mode as _normalizza_firma_visibile
     except Exception:
-        _normalizza_firma_visibile = lambda value: "laterale"  # type: ignore[assignment]
+        def _normalizza_firma_visibile(value: str) -> str:
+            return "laterale"
 
     return {
         "config_path": path,
@@ -597,9 +604,6 @@ def risolvi_config_firma_corrente(config_path: str | None = None) -> Dict[str, s
 
 
 # ──────────────────────────────────────────────────────────── test connessioni
-
-import smtplib as _smtplib
-import socket as _socket_mod
 
 
 def _resolve_ipv4(hostname: str, port: int) -> str | None:
@@ -702,7 +706,6 @@ def _msg_errore_rete(e: Exception, prefisso: str) -> str:
 
 def test_pec_smtp(cfg: ConfigPEC) -> Dict[str, Any]:
     """Testa la connessione SMTP PEC. Restituisce {'ok': bool, 'messaggio': str}."""
-    import smtplib
     import ssl as _ssl
     try:
         ctx = _ssl.create_default_context()
@@ -734,7 +737,6 @@ def test_pec_imap(cfg: ConfigPEC) -> Dict[str, Any]:
 
 def test_smtp_email(cfg: ConfigSMTP) -> Dict[str, Any]:
     """Testa la connessione SMTP email normale."""
-    import smtplib
     import ssl as _ssl
     if not cfg.host:
         return {"ok": False, "messaggio": "Host SMTP non configurato. Vai in Impostazioni → Email SMTP e inserisci l'indirizzo del server (es. smtp.gmail.com)."}

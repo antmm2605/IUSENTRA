@@ -41,7 +41,9 @@
 
 {% set tipo_compenso_sel = preventivo_pre.tipo_compenso if preventivo_pre and preventivo_pre.tipo_compenso else 'Compenso fisso' %}
 {% set tipo_proc_sel = preventivo_pre.tipo_procedimento if preventivo_pre and preventivo_pre.tipo_procedimento else 'Civile - fase di cognizione' %}
-{% set avvocato_default = preventivo_pre.creato_da if preventivo_pre and preventivo_pre.creato_da else (cliente_sel.avvocato_referente if cliente_sel and cliente_sel.avvocato_referente else '') %}
+{% set avvocato_default = studio_forense.avvocato if studio_forense and studio_forense.avvocato else (cliente_sel.avvocato_referente if cliente_sel and cliente_sel.avvocato_referente else (preventivo_pre.creato_da if preventivo_pre and preventivo_pre.creato_da else '')) %}
+{% set numero_albo_default = studio_forense.numero_iscrizione_albo if studio_forense else '' %}
+{% set ordine_avvocati_default = studio_forense.ordine_avvocati if studio_forense else '' %}
 
 <form method="post" id="formConferimento">
   <input type="hidden" name="from_page" value="{{ from_page }}">
@@ -137,11 +139,13 @@
             </div>
             <div class="col-md-3">
               <label class="form-label">N. iscrizione Albo</label>
-              <input type="text" name="numero_iscrizione_albo" class="form-control" placeholder="Es. 1234">
+              <input type="text" name="numero_iscrizione_albo" class="form-control"
+                     value="{{ numero_albo_default }}" placeholder="Es. 1234">
             </div>
             <div class="col-md-6">
               <label class="form-label">Ordine degli Avvocati</label>
-              <input type="text" name="ordine_avvocati" class="form-control" placeholder="Es. Ordine degli Avvocati di Milano">
+              <input type="text" name="ordine_avvocati" class="form-control"
+                     value="{{ ordine_avvocati_default }}" placeholder="Es. Ordine degli Avvocati di Milano">
             </div>
             <div class="col-md-6">
               <label class="form-label">Tipo di compenso <span class="text-danger">*</span>

@@ -7,7 +7,7 @@ scadenze per priorità, appuntamenti per tipo, trend depositi, produttività.
 """
 from __future__ import annotations
 
-from datetime import date, datetime, timedelta
+from datetime import date, datetime
 from collections import defaultdict
 
 from flask import Blueprint, g, jsonify, redirect, render_template, url_for, current_app
@@ -181,7 +181,8 @@ def api_riepilogo():
         stats_scadenze = gs.statistiche()
         stats_fatt = gfatt.statistiche()
         apps_oggi = len(ag.per_giorno(oggi))
-        sc_oggi = sum(1 for s in gs.tutte() if s.scadenza == oggi)
+        oggi_iso = oggi.isoformat()
+        sc_oggi = sum(1 for s in gs.tutte() if getattr(s, "data_scadenza", "") == oggi_iso)
 
         return jsonify({
             "clienti": stats_clienti,
@@ -273,20 +274,22 @@ def api_produttivita():
                     except (ValueError, TypeError):
                         pass
 
-        scadenze = list(gs.tutte())
+        scadenze = list(gs.tutte(solo_aperte=False))
         sc_totale = len(scadenze)
         sc_completate = 0
         sc_rispettate = 0
         sc_scadute = 0
         for s in scadenze:
-            completata = getattr(s, "completata", False)
+            stato_value = getattr(getattr(s, "stato", None), "value", str(getattr(s, "stato", ""))).upper()
+            completata = stato_value == "COMPLETATO"
+            data_scadenza = getattr(s, "data_scadenza", "")
             if completata:
                 sc_completate += 1
-                data_comp = getattr(s, "data_completamento", None)
-                if data_comp and s.scadenza:
+                data_comp = getattr(s, "completata_il", None) or getattr(s, "data_completamento", None)
+                if data_comp and data_scadenza:
                     try:
                         d_comp = datetime.fromisoformat(str(data_comp)[:10]).date()
-                        d_scad = s.scadenza if isinstance(s.scadenza, date) else datetime.fromisoformat(str(s.scadenza)[:10]).date()
+                        d_scad = datetime.fromisoformat(str(data_scadenza)[:10]).date()
                         if d_comp <= d_scad:
                             sc_rispettate += 1
                     except (ValueError, TypeError):
@@ -294,9 +297,12 @@ def api_produttivita():
                 else:
                     sc_rispettate += 1
             else:
-                scad = s.scadenza if isinstance(s.scadenza, date) else None
-                if scad and scad < oggi:
-                    sc_scadute += 1
+                try:
+                    scad = datetime.fromisoformat(str(data_scadenza)[:10]).date() if data_scadenza else None
+                    if scad and scad < oggi:
+                        sc_scadute += 1
+                except (ValueError, TypeError):
+                    pass
 
         durata_media = round(sum(durate) / len(durate)) if durate else 0
         tasso_chiusura = round(chiusi / totale_fasc * 100) if totale_fasc else 0

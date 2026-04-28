@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.194.4 - 2026-04-28
+
+- Ripristinata la compatibilita' dell'endpoint `/api/assistente/context` quando Lex usa i workflow bounded per normativa e giurisprudenza: il payload espone di nuovo prompt diagnostico, `language_mode` e flag di ricerca web/follow-up.
+- Stabilizzati i test core Lex che verificano fonti ufficiali, ricerca web sentenze e policy fonti senza rinunciare al workflow giuridico strutturato.
+
 ## 2.194.3 - 2026-04-28
 
 - Reso stabile il gate `Coverage moduli critici`: la copertura continua a misurare i moduli core Lex/PCT, ma usa una configurazione dedicata che esclude adapter opzionali, connettori esterni, tool wrapper e runtime non caricati dalla suite critica.

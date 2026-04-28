@@ -196,20 +196,6 @@ def build_context_response(
         )
         return payload, 200
 
-    bounded_payload = build_bounded_http_payload(
-        user=user,
-        studio=studio,
-        data=data,
-        current_user_message=current_user_message,
-        resolved_effective_question=resolved_effective_question,
-        studio_context=studio_context,
-        attachments=attachments,
-    )
-    if bounded_payload:
-        bounded_payload["routing"] = routing_payload(routing)
-        bounded_payload["followup_resolution"] = followup_resolution_payload(followup)
-        return bounded_payload, 200
-
     prompt_question = resolved_effective_question
     web_execution_requested = bool(studio_context.get("web_execution_requested")) or bool(followup.is_web_request)
     language_guidance = orchestrator.dependencies.build_language_guidance(
@@ -248,6 +234,41 @@ def build_context_response(
     )
     if attachments:
         prompt += "\n\n" + orchestrator.dependencies.build_attachment_prompt_block(attachments)
+
+    bounded_payload = build_bounded_http_payload(
+        user=user,
+        studio=studio,
+        data=data,
+        current_user_message=current_user_message,
+        resolved_effective_question=resolved_effective_question,
+        studio_context=studio_context,
+        attachments=attachments,
+    )
+    if bounded_payload:
+        bounded_payload["routing"] = routing_payload(routing)
+        bounded_payload["followup_resolution"] = followup_resolution_payload(followup)
+        context_sources = [dict(item) for item in list(studio_context.get("sources") or []) if isinstance(item, dict)]
+        if context_sources:
+            bounded_payload["sources"] = context_sources
+        context_citations = [clean_spaces(item) for item in list(studio_context.get("citations") or []) if clean_spaces(item)]
+        if context_citations:
+            merged_citations = list(context_citations)
+            for citation in list(bounded_payload.get("citations") or []):
+                clean_citation = clean_spaces(citation)
+                if clean_citation and clean_citation not in merged_citations:
+                    merged_citations.append(clean_citation)
+            bounded_payload["citations"] = merged_citations
+        bounded_payload["prompt"] = clean_spaces(bounded_payload.get("prompt")) or prompt
+        bounded_payload["language_mode"] = str(language_guidance.mode or "").strip()
+        bounded_payload["opening_line"] = opening_line
+        bounded_payload["web_execution_requested"] = web_execution_requested
+        bounded_payload["web_fallback_used"] = bool(bounded_payload.get("web_fallback_used")) or web_fallback_used
+        bounded_payload["social_kind"] = routing.social_kind
+        bounded_payload["social_prefix"] = str(social_prefix or "").strip()
+        bounded_payload["daily_overview_lead"] = opening_line
+        bounded_payload["structured_context"] = studio_context.get("structured_context") or {}
+        bounded_payload["retrieval_sources"] = bounded_payload.get("retrieval_sources") or []
+        return bounded_payload, 200
 
     retrieval_sources = orchestrator.search_ranker.collect_and_rank(
         pratica_id=str(data.get("pratica_id") or ""),

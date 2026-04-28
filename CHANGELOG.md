@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.194.0 - 2026-04-28
+
+- Aggiunto `tokens.json` come sorgente canonica dei design token IUSENTRA, con palette legale, tipografia, spaziature, raggi, ombre, motion e dimensioni minime dei target interattivi.
+- Esportati i token in CSS custom properties tramite `web/static/scss/_design-tokens.scss`, incluso nei bundle ufficiali `app.css` e `design-system.css`.
+- Aggiunta icona master SVG store-ready in `assets/icon/app.svg`, con `viewBox 0 0 1024 1024`, pochi path e senza trasformazioni annidate.
+- Documentata la strategia in `docs/DESIGN_TOKENS.md` e introdotti test automatici su contrasto WCAG, touch target, motion, elevation, CSS vars e qualita' SVG.
+
 ## 2.189.0 - 2026-04-26
 
 - Reso operativo `/sito-studio/builder`: selezione pagina, modifica home diretta, palette blocchi collegata, editor visuale, salvataggio AJAX, pubblicazione modifiche, anteprima responsive e ripristino revisioni.

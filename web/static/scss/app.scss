@@ -3,6 +3,7 @@
 //  Compila → web/static/css/app.css
 // ================================================================
 @use 'variables' as v;
+@use 'design-tokens';
 @use 'components/app-shell';
 @use 'components/compact-panels';
 @use 'components/feedback';

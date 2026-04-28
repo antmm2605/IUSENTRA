@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-labelledby="title desc">
+  <title id="title">IUSENTRA</title>
+  <desc id="desc">Icona applicazione IUSENTRA per studio legale digitale.</desc>
+  <rect width="1024" height="1024" rx="192" fill="#0B1B3A"/>
+  <path fill="#0EA5E9" d="M272 328h480c26.5 0 48 21.5 48 48v360c0 26.5-21.5 48-48 48H272c-26.5 0-48-21.5-48-48V376c0-26.5 21.5-48 48-48Zm70 92v272h340V420H342Z"/>
+  <path fill="#FFFFFF" d="M410 250c0-44.2 35.8-80 80-80h44c44.2 0 80 35.8 80 80v78h-72v-70c0-13.3-10.7-24-24-24h-12c-13.3 0-24 10.7-24 24v70h-72v-78Z"/>
+  <path fill="#FFFFFF" d="M512 446c46.4 0 84 37.6 84 84s-37.6 84-84 84-84-37.6-84-84 37.6-84 84-84Zm0 48c-19.9 0-36 16.1-36 36s16.1 36 36 36 36-16.1 36-36-16.1-36-36-36Z"/>
+  <path fill="#22C55E" d="M512 632c83.9 0 154.9 54.9 179.2 130H332.8C357.1 686.9 428.1 632 512 632Z"/>
+</svg>

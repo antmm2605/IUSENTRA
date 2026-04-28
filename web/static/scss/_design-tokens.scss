@@ -1,0 +1,92 @@
+/* IUSENTRA design tokens: CSS custom properties generated from tokens.json. */
+:root {
+  --color-brand-primary: #0B1B3A;
+  --color-brand-primary-variant: #123C7A;
+  --color-accent: #0EA5E9;
+  --color-surface: #FFFFFF;
+  --color-surface-contrast: #0B1B3A;
+  --color-text-primary: #0B1B3A;
+  --color-text-secondary: #455468;
+  --color-text-inverse: #FFFFFF;
+  --color-text-muted: #6B778C;
+
+  --neutral-0: #FFFFFF;
+  --neutral-1: #F7F8FA;
+  --neutral-2: #EEF1F5;
+  --neutral-3: #E2E8F0;
+  --neutral-4: #CBD5E1;
+  --neutral-5: #94A3B8;
+  --neutral-6: #64748B;
+  --neutral-7: #475569;
+  --neutral-8: #334155;
+  --neutral-9: #0F172A;
+
+  --status-success: #22C55E;
+  --status-warning: #F59E0B;
+  --status-danger: #EF4444;
+  --status-info: #0EA5E9;
+
+  --type-family-base: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --type-family-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+  --type-scale-xs: 12px;
+  --type-scale-s: 14px;
+  --type-scale-m: 16px;
+  --type-scale-l: 18px;
+  --type-scale-xl: 20px;
+  --lh-tight: 1.25;
+  --lh-normal: 1.5;
+  --lh-relaxed: 1.7;
+
+  --radius-s: 6px;
+  --radius-m: 10px;
+  --space-xs: 4px;
+  --space-s: 8px;
+  --space-m: 12px;
+  --space-l: 16px;
+  --space-xl: 24px;
+  --size-touch-min: 44px;
+
+  --elevation-level0: none;
+  --elevation-level1: 0 1px 2px rgba(0,0,0,.08), 0 1px 1px rgba(0,0,0,.06);
+  --elevation-level2: 0 2px 6px rgba(0,0,0,.10), 0 2px 2px rgba(0,0,0,.07);
+  --elevation-level3: 0 4px 12px rgba(0,0,0,.12), 0 2px 4px rgba(0,0,0,.08);
+  --elevation-level4: 0 8px 24px rgba(0,0,0,.16), 0 4px 8px rgba(0,0,0,.10);
+
+  --motion-duration-short: 120ms;
+  --motion-duration-medium: 200ms;
+  --motion-duration-long: 320ms;
+  --motion-easing-standard: cubic-bezier(0.2, 0, 0, 1);
+}
+
+.iusentra-touch-target {
+  min-height: var(--size-touch-min);
+  min-width: var(--size-touch-min);
+}
+
+.iusentra-token-button {
+  font-family: var(--type-family-base);
+  font-size: var(--type-scale-m);
+  color: var(--color-text-inverse);
+  background: var(--color-brand-primary);
+  border-radius: var(--radius-m);
+  box-shadow: var(--elevation-level1);
+  transition:
+    transform var(--motion-duration-short) var(--motion-easing-standard),
+    box-shadow var(--motion-duration-short) var(--motion-easing-standard);
+}
+
+.iusentra-token-button:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--elevation-level2);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}

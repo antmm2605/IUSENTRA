@@ -25,6 +25,7 @@ tools/.iexpress-build/
 .venv-*/
 venv/
 node_modules/
+*.tsbuildinfo
 .mypy_cache/
 .pytest_cache/
 .ruff_cache/

@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.195.9 - 2026-04-28
+
+- Avviata la migrazione progressiva Flask + React con shell separata `/app-v2`, build Vite servita da Flask e API ponte protette sotto `/api/v1/ui/*`.
+- Aggiunta documentazione master plan per migrare pagina per pagina senza sostituire la UI Jinja finché non passano parità funzionale, responsive, accessibilità, tenant/RBAC e rollback.
+- Collegata la dashboard React a dati runtime reali e aggiunto un guardrail frontend che blocca dati demo/mock operativi prima della build.
+
 ## 2.195.5 - 2026-04-28
 
 - Estratta la logica delle viste dello scadenziario in un servizio dedicato, mantenendo invariato il comportamento utente e riportando il modulo route sotto i limiti di governance CI.

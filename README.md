@@ -42,6 +42,7 @@ La repo oggi non è più solo un tool CLI per il Processo Civile Telematico: con
 - Assistenza remota cliente sempre da `SUPERADMIN`, con schermo WebRTC, microfono opzionale, chat tecnica, audit, consensi ed escalation governata al controllo remoto avanzato esterno.
 - `Sito Studio` nativo per ogni tenant: pagine a blocchi, articoli, servizi, professionisti, sedi, contatti, agenda appuntamenti pubblica e sito web pubblicabile senza WordPress esterno.
 - Le sezioni pubbliche `Strumenti legali`, `Applicazioni` e `News giuridiche strutturate` non sono esposte in automatico: compaiono sul sito dello studio solo se l'amministratore del sito attiva i flag dedicati da `Sito Studio -> Impostazioni`.
+- Migrazione React progressiva: la shell `/app-v2` convive con la UI Jinja attuale e usa API Flask reali sotto `/api/v1/ui/*`; nessuna route storica viene sostituita senza test di parita', responsive, accessibilita', tenant/RBAC e rollback.
 
 ## Architettura
 
@@ -77,6 +78,7 @@ Per il catalogo master dei template atti vedi [docs/TEMPLATE_ATTI_CATALOGO_MASTE
 Per la Suite professionale integrata nel catalogo template atti vedi [docs/template_atti_catalogo_professionale.md](docs/template_atti_catalogo_professionale.md).
 Per il modulo SIGP Giudice di Pace vedi [docs/SIGP_GIUDICE_DI_PACE.md](docs/SIGP_GIUDICE_DI_PACE.md).
 Per l'acquisizione guidata dei portali vedi [docs/PORTALI_ACQUISIZIONE_GUIDATA.md](docs/PORTALI_ACQUISIZIONE_GUIDATA.md).
+Per il piano di migrazione React vedi [docs/REACT_MIGRATION_MASTER_PLAN.md](docs/REACT_MIGRATION_MASTER_PLAN.md).
 
 ## Packaging e deploy coerenti
 

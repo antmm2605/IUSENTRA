@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.194.2 - 2026-04-28
+
+- Corretto in modo puntuale il gate CI `Lint + syntax` allineando l'ordinamento import dei moduli `lex.retrieval` controllati da Ruff nel workflow GitHub.
+
 ## 2.194.1 - 2026-04-28
 
 - Corretto il gate CI `Lint + syntax` definendo correttamente il cliente corrente nel flusso di creazione conferimento.

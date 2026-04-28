@@ -5,7 +5,6 @@ import sqlite3
 from pathlib import Path
 from typing import Any
 
-
 DEFAULT_OFFICIAL_DB = Path("data/fonti_ufficiali/lex_sources.sqlite")
 DEFAULT_NORMATTIVA_DB = Path("data/normativa/normattiva.sqlite")
 DEFAULT_OFFICIAL_JSONL = Path("data/fonti_ufficiali/index/lex_sources_chunks.jsonl")

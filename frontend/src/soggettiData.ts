@@ -59,7 +59,7 @@ const emptySummary = {
 export const emptySoggettiPage: SoggettiPageData = {
   source: 'vuoto',
   generatedAt: '',
-  contracts: { mock_fallback: false, read_only: false, writes: 'legacy_routes', route_owner: 'react_shell' },
+  contracts: { mock_fallback: false, read_only: false, writes: 'operational_routes', route_owner: 'react_shell' },
   summary: emptySummary,
   items: [],
   facets: {

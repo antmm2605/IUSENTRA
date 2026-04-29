@@ -1,12 +1,22 @@
 # Changelog
 
+## 2.197.0 - 2026-04-29
+
+- Completato il primo blocco React operativo: Panoramica, Regia Operativa, Ricerca Studio, Agenda, Fascicoli, Clienti e Anagrafiche, Soggetti e Parti, Email PEC e Messaggi ora vivono nella shell React o sulle route GET ufficiali promosse.
+- Promosse a React le route ufficiali `GET /email/`, `GET /messaggi` e `GET /messaggi/nuovo`, conservando i POST e le azioni sensibili sui servizi Flask auditati.
+- Aggiunti i bridge reali `/api/v1/ui/email`, `/api/v1/ui/messaggi` e `/api/v1/ui/messaggi/nuovo`, senza mock operativi, con KPI, cartelle PEC, filtri, stato canali e contesto Lex.
+- Corretta la sincronizzazione IMAP PEC: le cartelle Inviati e Cestino non vengono piu' salvate come INBOX, ma mappate correttamente da alias comuni (`Sent`, `Sent Items`, `Posta inviata`, `Trash`, `Deleted Items`, `Posta eliminata`).
+- Ripuliti copy e contratti React del primo blocco eliminando riferimenti visibili a UI storica, rollback o scorciatoie Jinja; la vista classica resta disponibile solo come parametro tecnico `_legacy=1` per verifica e assistenza.
+- Introdotto code-splitting sulle pagine React del primo blocco: la build Vite non produce piu' warning sul chunk principale oltre 500 kB.
+- Estesi test React, Email PEC, Messaggi e route ufficiali per verificare API reali, mapping IMAP, GET React, vista classica tecnica, typecheck e contratti frontend.
+
 ## 2.196.0 - 2026-04-29
 
 - Promosse a React le route ufficiali `Clienti e Anagrafiche` e `Soggetti e Parti`: i GET `/clienti`, `/clienti/nuovo`, `/soggetti` e `/soggetti/nuovo` servono ora la shell React con URL storiche immutate.
-- Conservato il backend Flask storico per i POST di creazione cliente e soggetto, cosi' validazioni, tenant, audit e workflow collegati restano un'unica source of truth.
-- Aggiunto fallback governato `_legacy=1` per aprire le vecchie viste Jinja senza rollback deploy, utile per verifica operativa e assistenza.
-- Aggiornati contratti `/api/v1/ui/clienti*` e `/api/v1/ui/soggetti` con `read_only=false`, `writes=legacy_routes` e `route_owner=react_shell`.
-- Estesi test route/API/React per garantire che le URL ufficiali servano React, che le viste legacy restino raggiungibili e che i POST continuino a usare il backend storico.
+- Conservato il backend Flask operativo per i POST di creazione cliente e soggetto, cosi' validazioni, tenant, audit e workflow collegati restano un'unica source of truth.
+- Aggiunta vista classica tecnica `_legacy=1` per aprire le viste Jinja senza rollback deploy, utile per verifica operativa e assistenza.
+- Aggiornati contratti `/api/v1/ui/clienti*` e `/api/v1/ui/soggetti` con `read_only=false`, `writes=operational_routes` e `route_owner=react_shell`.
+- Estesi test route/API/React per garantire che le URL ufficiali servano React, che le viste classiche restino raggiungibili e che i POST continuino a usare il backend operativo.
 
 ## 2.195.30 - 2026-04-29
 

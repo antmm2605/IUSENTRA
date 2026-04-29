@@ -25,6 +25,7 @@ from pct.timesheet import StatoTimesheet
 from pct.workspace_intelligente import WorkspaceIntelligenteService
 from web.services.react_agenda_bridge import build_react_agenda_payload
 from web.services.react_clienti_bridge import build_react_clienti_nuovo_payload, build_react_clienti_payload
+from web.services.react_email_bridge import build_react_email_payload
 from web.services.react_fascicoli_bridge import (
     build_react_archivio_payload,
     build_react_fascicoli_export_payload,
@@ -32,6 +33,7 @@ from web.services.react_fascicoli_bridge import (
     build_react_fascicolo_detail_payload,
     build_react_fascicolo_form_payload,
 )
+from web.services.react_messaggi_bridge import build_react_messaggi_nuovo_payload, build_react_messaggi_payload
 from web.services.react_soggetti_bridge import build_react_soggetti_payload
 from web.helpers import (
     get_agenda,
@@ -249,7 +251,7 @@ def _messaggi_tutti() -> list[Messaggio]:
             payloads = raw.values() if isinstance(raw, dict) else raw if isinstance(raw, list) else []
             return [Messaggio.from_dict(item) for item in payloads if isinstance(item, dict)]
         except Exception:
-            current_app.logger.exception("Dashboard React: storico messaggi legacy non leggibile.")
+            current_app.logger.exception("Dashboard React: storico messaggi operativo non leggibile.")
             return []
 
 
@@ -271,7 +273,7 @@ def _email_rows(limit: int = 5) -> tuple[list[dict[str, Any]], list[dict[str, An
             subtitle,
             time=_format_time(getattr(email, "timestamp", "")),
             unread=unread,
-            href="/email",
+            href="/email/",
         )
         if is_pec and len(pec_rows) < limit:
             pec_rows.append(row)
@@ -666,7 +668,7 @@ def _metrics(
             "value": pec_unread,
             "tag": "OGGI" if pec_unread else "",
             "tone": "primary",
-            "href": "/email",
+            "href": "/email/",
             "actionLabel": "Apri PEC",
         },
         {
@@ -749,6 +751,8 @@ def bootstrap():
                 "replace_sito_studio": False,
                 "replace_clienti": True,
                 "replace_soggetti": True,
+                "replace_email": True,
+                "replace_messaggi": True,
             },
         }
     )
@@ -767,7 +771,7 @@ def clienti_react_list():
             "contracts": {
                 "mock_fallback": False,
                 "read_only": False,
-                "writes": "legacy_routes",
+                "writes": "operational_routes",
                 "route_owner": "react_shell",
             },
             "summary": {
@@ -805,6 +809,45 @@ def soggetti_react_list():
     return jsonify(build_react_soggetti_payload(
         get_soggetti=get_soggetti,
         get_clienti=get_clienti,
+    ))
+
+
+@api_v1_react.get("/email")
+@_richiedi_auth
+def email_react_list():
+    return jsonify(build_react_email_payload(
+        db_path=_cfg_value("EMAIL_CASELLA_DB", "./email/casella.json"),
+        messaggi_db=_cfg_value("MESSAGGI_DB", "./messaggi/storico.json"),
+        folder=request.args.get("cartella", "INBOX"),
+        query=request.args.get("q", "").strip(),
+        stato=request.args.get("stato", "").strip().upper(),
+        solo_pst=request.args.get("pst") == "1",
+        con_allegati=request.args.get("con_allegati") == "1",
+        stato_pct=request.args.get("stato_pct", "").strip().upper(),
+        origine=request.args.get("origine", "").strip().upper(),
+        data_da=request.args.get("data_da", "").strip(),
+        data_a=request.args.get("data_a", "").strip(),
+    ))
+
+
+@api_v1_react.get("/messaggi")
+@_richiedi_auth
+def messaggi_react_list():
+    return jsonify(build_react_messaggi_payload(
+        get_messaggi=_messaggi_manager,
+        get_clienti=get_clienti,
+        query=request.args,
+        config=current_app.config,
+    ))
+
+
+@api_v1_react.get("/messaggi/nuovo")
+@_richiedi_auth
+def messaggi_react_nuovo():
+    return jsonify(build_react_messaggi_nuovo_payload(
+        get_clienti=get_clienti,
+        query=request.args,
+        config=current_app.config,
     ))
 
 
@@ -985,7 +1028,7 @@ def dashboard():
                 "economic": [],
                 "lex_suggestions": [],
                 "contracts": {"empty_sections_are_real_empty_state": True, "mock_fallback": False},
-                "warning": "Dati non disponibili. La UI storica resta la fonte operativa.",
+                "warning": "Dati non disponibili. Resta disponibile il modulo operativo originale.",
             }
         ), 200
 

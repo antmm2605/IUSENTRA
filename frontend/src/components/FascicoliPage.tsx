@@ -415,7 +415,7 @@ function FascicoliListPage() {
 
       <section className="iu-fas-status-line">
         <span className={loading ? '' : 'is-ok'}>{loading ? 'Sincronizzazione fascicoli...' : `Dati aggiornati - ${data.source}`}</span>
-        <small><ShieldCheck size={14}/> React gestisce la vista; salvataggi e audit restano sulle route storiche.</small>
+        <small><ShieldCheck size={14}/> React gestisce la vista; salvataggi e audit restano sui servizi backend già governati.</small>
         {selectedVisible ? <small className="iu-fas-selected">{selectedVisible} selezionati</small> : null}
       </section>
 
@@ -478,7 +478,7 @@ function ArchivePage() {
       </section>
       <section className="iu-fas-stats"><StatCard icon={<Archive size={19}/>} label="Archiviati" value={data.summary.archived || data.items.length} note="in archivio" tone="neutral"/><StatCard icon={<FileArchive size={19}/>} label="ZIP" value={data.items.filter((item) => item.archive?.zipAvailable).length} note="archivi scaricabili" tone="primary"/><StatCard icon={<BadgeCheck size={19}/>} label="Esiti" value={data.items.filter((item) => item.archive?.outcome).length} note="con esito finale" tone="success"/></section>
       <section className="iu-fas-toolbar"><label className="iu-fas-search"><Search size={17}/><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Cerca per numero, titolo, cliente..."/></label></section>
-      <section className="iu-fas-status-line"><span className={loading ? '' : 'is-ok'}>{loading ? 'Caricamento archivio...' : `Archivio aggiornato - ${data.source}`}</span><small><RotateCcw size={14}/> Il ripristino usa la route storica con audit.</small></section>
+      <section className="iu-fas-status-line"><span className={loading ? '' : 'is-ok'}>{loading ? 'Caricamento archivio...' : `Archivio aggiornato - ${data.source}`}</span><small><RotateCcw size={14}/> Il ripristino usa il servizio operativo con audit.</small></section>
       <FascicoliTable items={visible} selected={selected} onToggle={toggle} onToggleAll={toggleAll} archive/>
       <FloatingLex context="archivio-fascicoli" title="Lex AI archivio" body="Posso aiutarti a controllare fascicoli archiviati, ZIP mancanti, esiti finali e criteri di conservazione." primaryHref="/lex?context=archivio-fascicoli" primaryLabel="Apri Lex archivio" secondaryHref="/app-v2/fascicoli" secondaryLabel="Fascicoli attivi" />
     </main>
@@ -606,7 +606,7 @@ function DetailPage({ id }:{id:string}) {
   const [loading, setLoading] = useState(true)
   useEffect(() => { let active = true; getFascicoloDetail(id).then((payload) => { if (active) setData(payload) }).finally(() => { if (active) setLoading(false) }); return () => { active = false } }, [id])
   const f = data.fascicolo
-  const legacyHref = f.legacyHref || `/fascicoli/${encodeURIComponent(f.id || id)}`
+  const operationalHref = f.operationalHref || `/fascicoli/${encodeURIComponent(f.id || id)}`
   const quadroHref = `/app-v2/fascicoli/${encodeURIComponent(f.id || id)}/quadro`
   const detailReturnHref = `/app-v2/fascicoli/${encodeURIComponent(f.id || id)}#conformita`
   if (!loading && data.notFound) return <main className="iu-content iu-fascicoli-page"><EmptyState icon={<FolderOpen size={34}/>} title="Fascicolo non trovato" action={<Button href="/app-v2/fascicoli">Torna ai fascicoli</Button>}>Il fascicolo non è disponibile o non hai i permessi per aprirlo.</EmptyState></main>
@@ -614,13 +614,13 @@ function DetailPage({ id }:{id:string}) {
     <main id="fascicolo-top" className="iu-content iu-fascicoli-page iu-fascicolo-detail-page">
       <section className="iu-fas-hero iu-fas-detail-hero">
         <div><span className="iu-fas-eyebrow"><FolderOpen size={16}/> Fascicolo</span><h1>{f.title}</h1><p><Badge tone={f.tone}>{formatFascicoloStatus(f.status)}</Badge><Badge tone="neutral">{formatFascicoloType(f.type)}</Badge>{f.archiveReady ? <Badge tone="warning">Pronto per archivio</Badge> : null}<span>{f.object || f.subtitle}</span></p></div>
-        <div className="iu-fas-hero__actions"><Button href="/app-v2/fascicoli"><ArrowLeft size={15}/> Fascicoli</Button><Button href={f.editHref}><Edit3 size={15}/> Modifica</Button><Button href={quadroHref}><Gauge size={15}/> Quadro</Button><Button href={`${legacyHref}/copertina`}><FileText size={15}/> Copertina</Button><Button variant="primary" href={data.actions.exportPdf || f.exportPdfHref}><FileDown size={15}/> PDF</Button></div>
+        <div className="iu-fas-hero__actions"><Button href="/app-v2/fascicoli"><ArrowLeft size={15}/> Fascicoli</Button><Button href={f.editHref}><Edit3 size={15}/> Modifica</Button><Button href={quadroHref}><Gauge size={15}/> Quadro</Button><Button href={`${operationalHref}/copertina`}><FileText size={15}/> Copertina</Button><Button variant="primary" href={data.actions.exportPdf || f.exportPdfHref}><FileDown size={15}/> PDF</Button></div>
       </section>
       <section className="iu-fas-case-strip"><strong>{f.ref}</strong><span>Rif. interno {f.internalRef}</span><span>{f.client}</span><span>{f.court}</span><span>{loading ? 'Caricamento...' : `Dati aggiornati - ${data.source}`}</span></section>
       <nav className="iu-fas-section-nav" aria-label="Sezioni fascicolo"><a href="#profilo">Profilo <b>{data.quickCounts.profilo || 0}</b></a><a href="#documenti">Documenti <b>{data.documents.length}</b></a><a href="#attivita">Attività <b>{data.activities.length}</b></a><a href="#udienze">Udienze / scadenze <b>{data.deadlines.length + data.appointments.length}</b></a><a href="#cancelleria">Cancelleria <b>{data.deposits.length}</b></a><a href="#istanze">Istanze <b>{data.requests.length}</b></a><a href="#gestione">Gestione</a><a href="#economia">Economia</a><a href="#conformita">Conformità</a><a href="#soggetti">Soggetti <b>{data.parties.length}</b></a></nav>
       <section className="iu-fas-detail-grid">
         <div className="iu-fas-detail-main">
-          <section className="iu-fas-cockpit"><StatCard icon={<FileText size={19}/>} label="Documenti" value={data.documents.length} note="acquisiti o da portale" tone="primary"/><StatCard icon={<CalendarDays size={19}/>} label="Scadenze" value={data.deadlines.length} note="aperte e storiche" tone="warning"/><StatCard icon={<ListChecks size={19}/>} label="Attività" value={data.activities.length} note="timeline processuale" tone="success"/><StatCard icon={<WalletCards size={19}/>} label="Economia" value={data.economics.length} note="preventivi, parcelle, tempo" tone="purple"/></section>
+          <section className="iu-fas-cockpit"><StatCard icon={<FileText size={19}/>} label="Documenti" value={data.documents.length} note="acquisiti o da portale" tone="primary"/><StatCard icon={<CalendarDays size={19}/>} label="Scadenze" value={data.deadlines.length} note="aperte e concluse" tone="warning"/><StatCard icon={<ListChecks size={19}/>} label="Attività" value={data.activities.length} note="timeline processuale" tone="success"/><StatCard icon={<WalletCards size={19}/>} label="Economia" value={data.economics.length} note="preventivi, parcelle, tempo" tone="purple"/></section>
           <DetailSection id="profilo" title="Profilo fascicolo" icon={<BadgeCheck size={17}/>}><KvGrid items={data.profile}/>{f.notes ? <div className="iu-fas-note"><strong>Note</strong><p>{f.notes}</p></div> : null}</DetailSection>
           <DetailSection id="documenti" title="Documenti fascicolo" icon={<FileText size={17}/>} count={data.documents.length}>
             <form className="iu-fas-upload" method="post" action={data.actions.uploadDocument} encType="multipart/form-data"><input type="file" name="file"/><select name="tipo_doc" defaultValue="ALTRO">{data.options.documentTypes.map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}</select><input type="date" name="data_documento"/><input name="tags" placeholder="tag separati da virgola"/><input name="note" placeholder="note documento"/><label><input type="checkbox" name="firmato" value="1"/> Firmato</label><button type="submit"><UploadCloud size={15}/> Carica</button></form>
@@ -664,7 +664,7 @@ function moneyFrom(data: FascicoloDetailData, id: string, fallback = 'EUR 0,00')
 }
 
 function workflowFrom(data: FascicoloDetailData, matcher: RegExp, fallbackLabel: string) {
-  return data.workflow.find((item) => matcher.test(item.label)) || { label: fallbackLabel, value: 'Non collegato', note: 'Collega la fase storica auditata quando serve.', tone: 'neutral' as const, href: '#' }
+  return data.workflow.find((item) => matcher.test(item.label)) || { label: fallbackLabel, value: 'Non collegato', note: 'Collega la fase operativa auditata quando serve.', tone: 'neutral' as const, href: '#' }
 }
 
 function QuadroMiniCard({ label, value, note, tone = 'neutral', href }:{label:string; value:string|number; note?:string; tone?:FascicoloRow['tone']; href?:string}) {
@@ -691,7 +691,7 @@ function QuadroPage({ id }:{id:string}) {
   useEffect(() => { let active = true; getFascicoloDetail(id).then((payload) => { if (active) setData(payload) }).finally(() => { if (active) setLoading(false) }); return () => { active = false } }, [id])
   const f = data.fascicolo
   const encodedId = encodeURIComponent(f.id || id)
-  const legacyHref = f.legacyHref || `/fascicoli/${encodedId}`
+  const operationalHref = f.operationalHref || `/fascicoli/${encodedId}`
   const detailHref = f.href || `/app-v2/fascicoli/${encodedId}`
   const preventivo = workflowFrom(data, /preventiv/i, 'Preventivo')
   const conferimento = workflowFrom(data, /conferiment|incaric/i, 'Conferimento')
@@ -711,7 +711,7 @@ function QuadroPage({ id }:{id:string}) {
     <main id="fascicolo-quadro-top" className="iu-content iu-fascicoli-page iu-fascicolo-quadro-page">
       <section className="iu-fas-hero iu-fas-quadro-hero">
         <div><span className="iu-fas-eyebrow"><Gauge size={16}/> Quadro fascicolo</span><h1>{f.ref} - {f.title}</h1><p><Badge tone={f.tone}>{formatFascicoloStatus(f.status)}</Badge><Badge tone="neutral">{formatFascicoloType(f.type)}</Badge><span>{f.object || f.subtitle || 'Vista sinottica della pratica'}</span></p></div>
-        <div className="iu-fas-hero__actions"><Button href={detailHref}><FolderOpen size={15}/> Dettaglio</Button><Button href={f.editHref}><Edit3 size={15}/> Modifica</Button><Button href={`${legacyHref}/copertina`}><FileText size={15}/> Copertina</Button><Button variant="primary" href={data.actions.exportPdf || f.exportPdfHref}><FileDown size={15}/> PDF</Button></div>
+        <div className="iu-fas-hero__actions"><Button href={detailHref}><FolderOpen size={15}/> Dettaglio</Button><Button href={f.editHref}><Edit3 size={15}/> Modifica</Button><Button href={`${operationalHref}/copertina`}><FileText size={15}/> Copertina</Button><Button variant="primary" href={data.actions.exportPdf || f.exportPdfHref}><FileDown size={15}/> PDF</Button></div>
       </section>
       <section className="iu-fas-quadro-strip"><strong>{f.rg}</strong><span>{f.court}</span><span>{f.client}</span><span>{loading ? 'Caricamento quadro...' : `Dati aggiornati - ${data.source}`}</span></section>
       <section className="iu-fas-quadro-kpis" aria-label="Indicatori quadro fascicolo">
@@ -753,7 +753,7 @@ function ExportPage() {
   const href = `/fascicoli/export.${format === 'csv' ? 'csv' : 'pdf'}${params.toString() ? `?${params.toString()}` : ''}`
   return (
     <main className="iu-content iu-fascicoli-page iu-fas-export-page">
-      <section className="iu-fas-hero"><div><span className="iu-fas-eyebrow"><Download size={16}/> Esporta</span><h1>Esporta fascicoli</h1><p>PDF lista, CSV operativo, PDF fascicolo singolo e ZIP archivio, usando le route storiche già auditate.</p></div><div className="iu-fas-hero__actions"><Button href="/app-v2/fascicoli"><FolderOpen size={15}/> Fascicoli</Button><Button href="/app-v2/fascicoli/archivio"><Archive size={15}/> Archivio</Button></div></section>
+      <section className="iu-fas-hero"><div><span className="iu-fas-eyebrow"><Download size={16}/> Esporta</span><h1>Esporta fascicoli</h1><p>PDF lista, CSV operativo, PDF fascicolo singolo e ZIP archivio, usando servizi già auditati.</p></div><div className="iu-fas-hero__actions"><Button href="/app-v2/fascicoli"><FolderOpen size={15}/> Fascicoli</Button><Button href="/app-v2/fascicoli/archivio"><Archive size={15}/> Archivio</Button></div></section>
       <section className="iu-fas-stats"><StatCard icon={<FolderOpen size={19}/>} label="Totali" value={data.summary.total} note="nel repository" tone="primary"/><StatCard icon={<Archive size={19}/>} label="Archiviati" value={data.summary.archived} note="da conservare" tone="neutral"/><StatCard icon={<FileText size={19}/>} label="Documenti" value={data.summary.documents} note="conteggio fascicoli" tone="purple"/></section>
       <section className="iu-fas-export-layout"><Panel title="Builder export" subtitle={loading ? 'Caricamento...' : `Sorgente ${data.source}`} icon={<FileDown size={17}/>}><div className="iu-fas-export-builder"><label><span>Formato</span><select value={format} onChange={(event) => setFormat(event.target.value)}><option value="pdf">PDF lista</option><option value="csv">CSV</option></select></label><label><span>Ricerca</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="numero, titolo, cliente..."/></label><label><span>Tipo</span><select value={type} onChange={(event) => setType(event.target.value as FascicoloTipo)}>{data.facets.types.map((facet) => <option value={facet.value} key={facet.value}>{facet.label}</option>)}</select></label><label><span>Stato</span><select value={status} onChange={(event) => setStatus(event.target.value as FascicoloStato)}>{data.facets.statuses.map((facet) => <option value={facet.value} key={facet.value}>{facet.label}</option>)}</select></label><a className="iu-fas-download-main" href={href}><Download size={16}/> Scarica export</a></div></Panel><Panel title="Campi inclusi" icon={<ListChecks size={17}/>}><div className="iu-fas-export-fields">{data.fields.map((field) => <label key={field.key}><input type="checkbox" defaultChecked={field.checked} readOnly/> {field.label}</label>)}</div></Panel><Panel title="Preset rapidi" icon={<Sparkles size={17}/>}><div className="iu-fas-side-cards">{data.presets.map((preset) => <a href={preset.href} key={preset.label}><Badge tone={preset.tone}>{preset.label}</Badge><span>{preset.description}</span></a>)}</div></Panel></section>
       <Panel title="Fascicoli recenti esportabili singolarmente" icon={<FolderOpen size={17}/>} count={data.recent.length}><div className="iu-fas-export-recent">{data.recent.map((item) => <a href={item.exportPdfHref} key={item.id}><FileDown size={15}/><strong>{item.ref}</strong><span>{item.title}</span></a>)}</div></Panel>

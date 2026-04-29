@@ -317,7 +317,7 @@ function StatsStrip({ data }:{data: ClientiNuovoData}) {
 function ClientForm({ data }:{data: ClientiNuovoData}) {
   const [values, setValues] = useState<ClientFormState>({...initialClient})
   const [cfStatus, setCfStatus] = useState('')
-  const action = data.actions.legacyClientForm
+  const action = data.actions.operationalClientForm
   const isPhysical = values.tipo === 'PERSONA_FISICA'
   const nextUrl = data.query.nextUrl
 
@@ -443,7 +443,7 @@ function ClientForm({ data }:{data: ClientiNuovoData}) {
         </div>
       </Card>
 
-      <Card title={isPhysical ? 'Residenza e domicilio' : 'Sede legale'} icon={<Home size={18}/>} note="Prefissi legacy rispettati">
+      <Card title={isPhysical ? 'Residenza e domicilio' : 'Sede legale'} icon={<Home size={18}/>} note="Campi coerenti con il modello anagrafico dello studio">
         <div className="iu-cln-grid">
           <Field label={isPhysical ? 'Via residenza' : 'Via sede'} name={isPhysical ? 'via' : 'sl_via'} value={asInputValue(values[isPhysical ? 'via' : 'sl_via'])} onChange={change}/>
           <Field label="Civico" name={isPhysical ? 'civico' : 'sl_civico'} value={asInputValue(values[isPhysical ? 'civico' : 'sl_civico'])} onChange={change}/>
@@ -461,7 +461,7 @@ function ClientForm({ data }:{data: ClientiNuovoData}) {
         </div>
       </Card>
 
-      <Card title="Documento e studio" icon={<FileText size={18}/>} note="Documento salvato nella route storica estesa">
+      <Card title="Documento e studio" icon={<FileText size={18}/>} note="Documento salvato dal servizio anagrafico esteso">
         <div className="iu-cln-grid">
           <SelectField label="Tipo documento" name="doc_tipo" value={asInputValue(values.doc_tipo)} options={data.options.documentTypes} onChange={change}/>
           <Field label="Numero documento" name="doc_numero" value={asInputValue(values.doc_numero)} mono onChange={change}/>
@@ -492,7 +492,7 @@ function ClientForm({ data }:{data: ClientiNuovoData}) {
 function SubjectForm({ data }:{data: ClientiNuovoData}) {
   const [values, setValues] = useState<SubjectFormState>({...initialSubject})
   const [cfStatus, setCfStatus] = useState('')
-  const action = data.actions.legacySubjectForm
+  const action = data.actions.operationalSubjectForm
   const isLegal = subjectLegalTypes.has(values.tipo)
 
   useEffect(() => {
@@ -612,7 +612,7 @@ function SubjectForm({ data }:{data: ClientiNuovoData}) {
         </div>
       </Card>
 
-      <Card title="Recapiti e indirizzo" icon={<Mail size={18}/>} note="Compatibile con la vista storica soggetti">
+      <Card title="Recapiti e indirizzo" icon={<Mail size={18}/>} note="Compatibile con il modello soggetti e parti">
         <div className="iu-cln-grid">
           <Field label="Telefono" name="telefono" value={values.telefono} onChange={change}/>
           <Field label="Cellulare" name="cellulare" value={values.cellulare} onChange={change}/>
@@ -700,8 +700,8 @@ export function NuovoClientePage() {
           <p>{heroText}</p>
         </div>
         <div className="iu-cln-hero__actions">
-          <a href="/clienti/nuovo?_legacy=1">Vista storica cliente</a>
-          <a href="/soggetti/nuovo?_legacy=1">Vista storica soggetto</a>
+          <a href="/clienti">Anagrafiche</a>
+          <a href="/soggetti">Soggetti e parti</a>
         </div>
       </section>
 

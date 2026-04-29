@@ -28,9 +28,9 @@ export type FascicoloRow = {
   closedAt: string
   updatedAt: string
   href: string
-  legacyHref: string
+  operationalHref: string
   editHref: string
-  legacyEditHref: string
+  operationalEditHref: string
   exportPdfHref: string
   archiveZipHref: string
   restoreAction: string
@@ -63,7 +63,7 @@ export type FascicoliSummary = {
 export type FascicoliPageData = {
   source: string
   generatedAt: string
-  contracts: { mock_fallback: boolean; read_only: boolean; writes: 'legacy_routes' | 'api' }
+  contracts: { mock_fallback: boolean; read_only: boolean; writes: 'operational_routes' | 'api' }
   summary: FascicoliSummary
   items: FascicoloRow[]
   facets: {
@@ -199,7 +199,7 @@ export type FascicoloFull = FascicoloRow & {
 export type FascicoloDetailData = {
   source: string
   generatedAt: string
-  contracts: { mock_fallback: boolean; read_only: boolean; writes: 'legacy_routes' | 'api' }
+  contracts: { mock_fallback: boolean; read_only: boolean; writes: 'operational_routes' | 'api' }
   notFound?: boolean
   fascicolo: FascicoloFull
   quickCounts: Record<string, number>
@@ -283,7 +283,7 @@ const emptySummary: FascicoliSummary = {
 export const emptyFascicoliPage: FascicoliPageData = {
   source: 'vuoto',
   generatedAt: '',
-  contracts: { mock_fallback: false, read_only: true, writes: 'legacy_routes' },
+  contracts: { mock_fallback: false, read_only: true, writes: 'operational_routes' },
   summary: emptySummary,
   items: [],
   facets: {
@@ -296,11 +296,11 @@ export const emptyFascicoliPage: FascicoliPageData = {
 export const emptyFascicoloDetail: FascicoloDetailData = {
   source: 'vuoto',
   generatedAt: '',
-  contracts: { mock_fallback: false, read_only: true, writes: 'legacy_routes' },
+  contracts: { mock_fallback: false, read_only: true, writes: 'operational_routes' },
   fascicolo: {
     id: '', ref: 'n.d.', internalRef: 'n.d.', title: 'Fascicolo non trovato', subtitle: '', type: 'altro', client: 'n.d.', court: 'n.d.', rg: 'n.d.',
     nextDeadline: 'n.d.', nextDeadlineIso: '', status: 'aperto', documents: 0, unreadCommunications: 0, alerts: 0, openedAt: '', closedAt: '', updatedAt: '',
-    href: '/app-v2/fascicoli', legacyHref: '/fascicoli', editHref: '/app-v2/fascicoli', legacyEditHref: '/fascicoli', exportPdfHref: '', archiveZipHref: '', restoreAction: '', tone: 'neutral',
+    href: '/app-v2/fascicoli', operationalHref: '/fascicoli', editHref: '/app-v2/fascicoli', operationalEditHref: '/fascicoli', exportPdfHref: '', archiveZipHref: '', restoreAction: '', tone: 'neutral',
     object: '', counterparty: '', counterpartyTaxCode: '', judge: '', section: '', leadLawyer: '', dominus: '', value: '', quotedValue: '', agreedFee: '',
     procedureType: '', practiceId: '', practiceArea: '', firstHearing: '', citationNotification: '', nextHearing: '', notes: '', reservedNotes: '',
     source: '', sourceExternalId: '', lastSyncAt: '', syncStatus: '', importLogId: '', hasConflicts: false, documentSyncEnabled: false,
@@ -425,9 +425,9 @@ export function normalizeItem(value: unknown, index: number): FascicoloRow {
     closedAt: text(item.closedAt ?? item.data_chiusura),
     updatedAt: text(item.updatedAt ?? item.modificato_il),
     href: text(item.href, `/app-v2/fascicoli/${encodeURIComponent(id)}`),
-    legacyHref: text(item.legacyHref ?? item.legacy_href, `/fascicoli/${encodeURIComponent(id)}`),
+    operationalHref: text(item.operationalHref ?? item.operational_href, `/fascicoli/${encodeURIComponent(id)}`),
     editHref: text(item.editHref ?? item.edit_href, `/app-v2/fascicoli/${encodeURIComponent(id)}/modifica`),
-    legacyEditHref: text(item.legacyEditHref ?? item.legacy_edit_href, `/fascicoli/${encodeURIComponent(id)}/modifica`),
+    operationalEditHref: text(item.operationalEditHref ?? item.operational_edit_href, `/fascicoli/${encodeURIComponent(id)}/modifica`),
     exportPdfHref: text(item.exportPdfHref ?? item.export_pdf_href, `/fascicoli/${encodeURIComponent(id)}/pdf`),
     archiveZipHref: text(item.archiveZipHref ?? item.archive_zip_href, `/fascicoli/${encodeURIComponent(id)}/archivio/scarica`),
     restoreAction: text(item.restoreAction ?? item.restore_action, `/fascicoli/${encodeURIComponent(id)}/ripristina`),
@@ -493,8 +493,8 @@ function normalizePagePayload(payload: unknown): FascicoliPageData {
     contracts: isRecord(payload.contracts) ? {
       mock_fallback: bool(payload.contracts.mock_fallback),
       read_only: payload.contracts.read_only !== false,
-      writes: text(payload.contracts.writes, 'legacy_routes') as 'legacy_routes' | 'api',
-    } : { mock_fallback: false, read_only: true, writes: 'legacy_routes' },
+      writes: text(payload.contracts.writes, 'operational_routes') as 'operational_routes' | 'api',
+    } : { mock_fallback: false, read_only: true, writes: 'operational_routes' },
     summary: normalizeSummary(payload.summary, items),
     items,
     facets: normalizeFacets(payload.facets, items),
@@ -569,7 +569,7 @@ function normalizeDetailPayload(payload: unknown): FascicoloDetailData {
     source: text(payload.source, 'repository_reali'),
     generatedAt: text(payload.generatedAt ?? payload.generated_at),
     contracts: isRecord(payload.contracts) ? {
-      mock_fallback: bool(payload.contracts.mock_fallback), read_only: payload.contracts.read_only !== false, writes: text(payload.contracts.writes, 'legacy_routes') as 'legacy_routes' | 'api',
+      mock_fallback: bool(payload.contracts.mock_fallback), read_only: payload.contracts.read_only !== false, writes: text(payload.contracts.writes, 'operational_routes') as 'operational_routes' | 'api',
     } : emptyFascicoloDetail.contracts,
     notFound: bool(payload.notFound ?? payload.not_found),
     fascicolo: full,

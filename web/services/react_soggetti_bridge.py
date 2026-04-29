@@ -1,7 +1,7 @@
 """Bridge dati per la pagina React Soggetti e Parti.
 
 La superficie React usa i repository reali per lista, conteggi e collegamenti;
-le scritture passano ancora dalle route Flask storiche per non duplicare logica.
+le scritture passano dai servizi Flask operativi per non duplicare logica.
 """
 
 from __future__ import annotations
@@ -145,7 +145,7 @@ def build_react_soggetti_payload(
         "contracts": {
             "mock_fallback": False,
             "read_only": False,
-            "writes": "legacy_routes",
+            "writes": "operational_routes",
             "route_owner": "react_shell",
         },
         "summary": _summary(items),

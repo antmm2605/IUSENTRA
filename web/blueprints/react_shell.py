@@ -1,8 +1,7 @@
 """Shell React progressiva per IUSENTRA.
 
-La shell vive sotto ``/app-v2`` e non sostituisce le viste Jinja esistenti.
-Serve come superficie di prova controllata per migrare una pagina alla volta
-con rollback immediato verso la UI storica.
+La shell vive sotto ``/app-v2`` e governa le superfici già migrate mantenendo
+separati i servizi Flask di scrittura, audit e validazione.
 """
 
 from __future__ import annotations
@@ -65,7 +64,7 @@ def _vite_entry() -> dict[str, Any]:
 @react_shell.get("/app-v2/")
 @react_shell.get("/app-v2/<path:spa_path>")
 def react_app(spa_path: str = ""):
-    """Serve la shell SPA React senza alterare le route storiche."""
+    """Serve la shell SPA React per le superfici migrate."""
 
     return render_react_shell_response(spa_path)
 
@@ -73,8 +72,8 @@ def react_app(spa_path: str = ""):
 def render_react_shell_response(spa_path: str = ""):
     """Render condiviso per le superfici migrate a React.
 
-    Alcune route storiche restano operative come URL ufficiali ma, in GET,
-    mostrano la shell React. I POST continuano a passare dalle route legacy.
+    Alcune route operative ufficiali, in GET, mostrano la shell React.
+    I POST continuano a passare dai servizi Flask già auditati.
     """
 
     response = make_response(render_template(

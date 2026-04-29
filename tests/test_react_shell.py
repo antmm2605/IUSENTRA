@@ -34,7 +34,7 @@ def test_react_blueprints_registered(tmp_path: Path):
     assert any(entry.name == "api_v1_react" for entry in BLUEPRINT_REGISTRY)
 
 
-def test_react_shell_non_sostituisce_ui_storica_e_richiede_login(tmp_path: Path):
+def test_react_shell_primo_blocco_richiede_login(tmp_path: Path):
     app = _app(tmp_path)
     client = app.test_client()
 
@@ -172,7 +172,7 @@ def test_react_agenda_pagina_separata_collegata_nav_e_api():
     assert "prefers-reduced-motion" in css
 
 
-def test_react_nuovo_appuntamento_pagina_separata_con_backend_storico():
+def test_react_nuovo_appuntamento_pagina_separata_con_backend_operativo():
     app_source = Path("frontend/src/App.tsx").read_text(encoding="utf-8")
     appointment_page = Path("frontend/src/components/NuovoAppuntamentoPage.tsx").read_text(encoding="utf-8")
     appointment_css = Path("frontend/src/components/NuovoAppuntamentoPage.css").read_text(encoding="utf-8")
@@ -251,7 +251,7 @@ def test_react_clienti_bridge_usa_repository_reali(tmp_path: Path):
     assert payload["source"] == "repository_reali"
     assert payload["contracts"]["mock_fallback"] is False
     assert payload["contracts"]["read_only"] is False
-    assert payload["contracts"]["writes"] == "legacy_routes"
+    assert payload["contracts"]["writes"] == "operational_routes"
     assert payload["contracts"]["route_owner"] == "react_shell"
     assert payload["summary"]["total"] >= 1
     assert payload["items"][0]["name"] == "Moscato Marco"
@@ -261,7 +261,7 @@ def test_react_clienti_bridge_usa_repository_reali(tmp_path: Path):
     assert payload["items"][0]["href"] == f"/clienti/{cliente.id}"
 
 
-def test_route_ufficiali_clienti_e_soggetti_servono_react_con_fallback_legacy(tmp_path: Path):
+def test_route_ufficiali_clienti_e_soggetti_servono_react_con_vista_classica_tecnica(tmp_path: Path):
     app = _app(tmp_path)
     _crea_operatore(app)
 
@@ -275,20 +275,20 @@ def test_route_ufficiali_clienti_e_soggetti_servono_react_con_fallback_legacy(tm
             assert '<html lang="it" class="react-shell-document">' in html
             assert 'id="root"' in html
 
-        legacy_clienti = client.get("/clienti?_legacy=1")
-        legacy_cliente_form = client.get("/clienti/nuovo?_legacy=1")
-        legacy_soggetti = client.get("/soggetti?_legacy=1")
-        legacy_soggetto_form = client.get("/soggetti/nuovo?_legacy=1")
+        classic_clienti = client.get("/clienti?_legacy=1")
+        classic_cliente_form = client.get("/clienti/nuovo?_legacy=1")
+        classic_soggetti = client.get("/soggetti?_legacy=1")
+        classic_soggetto_form = client.get("/soggetti/nuovo?_legacy=1")
 
-    assert legacy_clienti.status_code == 200
-    assert legacy_cliente_form.status_code == 200
-    assert legacy_soggetti.status_code == 200
-    assert legacy_soggetto_form.status_code == 200
-    assert 'id="root"' not in legacy_clienti.get_data(as_text=True)
-    assert 'id="modalScanner"' in legacy_cliente_form.get_data(as_text=True)
+    assert classic_clienti.status_code == 200
+    assert classic_cliente_form.status_code == 200
+    assert classic_soggetti.status_code == 200
+    assert classic_soggetto_form.status_code == 200
+    assert 'id="root"' not in classic_clienti.get_data(as_text=True)
+    assert 'id="modalScanner"' in classic_cliente_form.get_data(as_text=True)
 
 
-def test_route_post_clienti_e_soggetti_restano_su_backend_storico(tmp_path: Path):
+def test_route_post_clienti_e_soggetti_restano_su_backend_operativo(tmp_path: Path):
     app = _app(tmp_path)
     _crea_operatore(app)
 
@@ -386,6 +386,110 @@ def test_react_api_bootstrap_espone_flag_senza_switch(tmp_path: Path):
     assert payload["route_flags"]["replace_telematico"] is False
     assert payload["route_flags"]["replace_clienti"] is True
     assert payload["route_flags"]["replace_soggetti"] is True
+    assert payload["route_flags"]["replace_email"] is True
+    assert payload["route_flags"]["replace_messaggi"] is True
+
+
+def test_react_comunicazioni_email_messaggi_collegate_nav_e_shell():
+    app_source = Path("frontend/src/App.tsx").read_text(encoding="utf-8")
+    email_page = Path("frontend/src/components/EmailPecPage.tsx").read_text(encoding="utf-8")
+    email_data = Path("frontend/src/emailData.ts").read_text(encoding="utf-8")
+    messaggi_page = Path("frontend/src/components/MessaggiPage.tsx").read_text(encoding="utf-8")
+    messaggi_data = Path("frontend/src/messaggiData.ts").read_text(encoding="utf-8")
+    api_source = Path("web/blueprints/api_v1_react.py").read_text(encoding="utf-8")
+
+    assert "{ label: 'Email PEC', icon: Mail, href: '/email/', badge: 'PEC' }" in app_source
+    assert "{ label: 'Messaggi', icon: MessageCircle, href: '/messaggi' }" in app_source
+    assert "{ label: 'Nuovo SMS/WA', icon: Send, href: '/messaggi/nuovo' }" in app_source
+    assert "isEmailPage?<EmailPecPage/>" in app_source
+    assert "isNewMessagePage?<NuovoMessaggioPage/>" in app_source
+    assert "isMessagesPage?<MessaggiPage/>" in app_source
+    assert "Casella PEC dello studio" in email_page
+    assert "Cartelle PEC" in email_page
+    assert "getEmailPecPage" in email_data
+    assert "/api/v1/ui/email" in email_data
+    assert "Nuovo messaggio" in messaggi_page
+    assert "getMessaggiData" in messaggi_data
+    assert "sendEndpoint" in messaggi_data
+    assert "/api/v1/ui/messaggi" in messaggi_data
+    assert '@api_v1_react.get("/email")' in api_source
+    assert '@api_v1_react.get("/messaggi")' in api_source
+    assert '@api_v1_react.get("/messaggi/nuovo")' in api_source
+
+
+def test_route_ufficiali_email_messaggi_servono_react_con_vista_classica_tecnica(tmp_path: Path):
+    app = _app(tmp_path)
+    _crea_operatore(app)
+
+    with app.test_client() as client:
+        _login(client)
+
+        for path in ("/email/", "/messaggi", "/messaggi/nuovo"):
+            response = client.get(path)
+            html = response.get_data(as_text=True)
+            assert response.status_code == 200, path
+            assert '<html lang="it" class="react-shell-document">' in html
+            assert 'id="root"' in html
+
+        classic_email = client.get("/email/?_legacy=1")
+        classic_messages = client.get("/messaggi?_legacy=1")
+        classic_new_message = client.get("/messaggi/nuovo?_legacy=1")
+
+    assert classic_email.status_code == 200
+    assert classic_messages.status_code == 200
+    assert classic_new_message.status_code == 200
+    assert 'id="root"' not in classic_email.get_data(as_text=True)
+    assert 'id="root"' not in classic_messages.get_data(as_text=True)
+
+
+def test_react_messaggi_bridge_usa_repository_reali(tmp_path: Path):
+    app = _app(tmp_path)
+    client = app.test_client()
+    cliente_repo = GestioneClienti(db_path=app.config["CLIENTI_DB"])
+    cliente = cliente_repo.nuovo(
+        TipoCliente.PERSONA_FISICA,
+        nome="Marco",
+        cognome="Moscato",
+        codice_fiscale="MSCMRC75E26L063G",
+    )
+    cliente_repo.aggiorna_recapiti(cliente.id, email="marco@example.it", cellulare="+393331234567")
+    messaggi = GestioneMessaggi(ConfigMessaggistica(), db_path=app.config["MESSAGGI_DB"])
+    msg = Messaggio(
+        id="msg-react-1",
+        id_cliente=cliente.id,
+        canale=CanaleMsggio.WHATSAPP,
+        stato=StatoMessaggio.IN_CODA,
+        nome_destinatario=cliente.nome_completo,
+        telefono_destinatario="+393331234567",
+        corpo="Promemoria documenti",
+        sid_esterno="https://wa.me/393331234567?text=Promemoria",
+        creato_il=datetime.now().isoformat(timespec="seconds"),
+    )
+    messaggi._messaggi[msg.id] = msg
+    messaggi._salva()
+
+    list_response = client.get("/api/v1/ui/messaggi", headers={"X-API-Key": "react-test-key"})
+    new_response = client.get(
+        "/api/v1/ui/messaggi/nuovo",
+        query_string={"id_cliente": cliente.id, "canale": "WHATSAPP"},
+        headers={"X-API-Key": "react-test-key"},
+    )
+    list_payload = list_response.get_json()
+    new_payload = new_response.get_json()
+
+    assert list_response.status_code == 200
+    assert new_response.status_code == 200
+    assert list_payload["source"] == "repository_reali"
+    assert list_payload["contracts"]["writes"] == "operational_routes"
+    assert list_payload["summary"]["total"] == 1
+    assert list_payload["summary"]["manualWhatsapp"] == 1
+    assert list_payload["items"][0]["channel"] == "WHATSAPP"
+    assert list_payload["items"][0]["clientLabel"] == "Moscato Marco"
+    assert list_payload["items"][0]["whatsappLink"].startswith("https://wa.me/")
+    assert new_payload["contracts"]["writes"] == "operational_routes"
+    assert new_payload["query"]["channel"] == "WHATSAPP"
+    assert new_payload["clientOptions"][0]["phone"] == "+393331234567"
+    assert new_payload["actions"]["sendEndpoint"] == "/messaggi/nuovo"
 
 
 def test_react_dashboard_usa_bridge_reale_senza_mock(tmp_path: Path):
@@ -646,14 +750,14 @@ def test_react_fascicoli_suite_completa_route_componenti_e_lex():
         assert name in page_source
     for endpoint in ("/api/v1/ui/fascicoli", "/api/v1/ui/fascicoli/archivio", "/api/v1/ui/fascicoli/export"):
         assert endpoint in data_source
-    for legacy_action in ("/documenti/carica", "/documenti/importa-portale", "/attivita/aggiungi", "/definisci", "/archivia", "/ripristina"):
-        assert legacy_action in bridge
-    assert "Vista storica" not in page_source
+    for service_action in ("/documenti/carica", "/documenti/importa-portale", "/attivita/aggiungi", "/definisci", "/archivia", "/ripristina"):
+        assert service_action in bridge
+    assert "Vista classica" not in page_source
     assert "kind: 'quadro'" in page_source
     assert "parts[1] === 'quadro'" in page_source
     assert "quadroHref" in page_source
     assert "fascicolo-quadro" in page_source
-    assert "legacyHref}/copertina" in page_source
+    assert "operationalHref}/copertina" in page_source
     assert "<details id={id}" in page_source
     assert "fascicolo-top" in page_source
     assert "iu-fas-compliance-toggle" in page_source
@@ -815,14 +919,14 @@ def test_react_clienti_nuovo_e_soggetti_api_usa_repository_reali(tmp_path: Path)
     assert subjects_response.status_code == 200
     assert new_payload["source"] == "repository_reali"
     assert new_payload["contracts"]["mock_fallback"] is False
-    assert new_payload["contracts"]["writes"] == "legacy_routes"
+    assert new_payload["contracts"]["writes"] == "operational_routes"
     assert new_payload["stats"]["totalClients"] == 1
     assert new_payload["stats"]["totalSubjects"] == 1
     assert new_payload["clientOptions"][0]["id"] == cliente.id
     assert any(item["value"] == "GARANTE" for item in new_payload["options"]["subjectRoles"])
     assert subjects_payload["source"] == "repository_reali"
     assert subjects_payload["contracts"]["read_only"] is False
-    assert subjects_payload["contracts"]["writes"] == "legacy_routes"
+    assert subjects_payload["contracts"]["writes"] == "operational_routes"
     assert subjects_payload["contracts"]["route_owner"] == "react_shell"
     assert subjects_payload["summary"]["total"] == 1
     assert subjects_payload["items"][0]["id"] == soggetto.id

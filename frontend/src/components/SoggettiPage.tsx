@@ -225,7 +225,7 @@ export function SoggettiPage() {
         </div>
         <div className="iu-sogg-hero__actions">
           <a href="/soggetti/nuovo"><UserPlus size={16}/>Nuovo Soggetto</a>
-          <a href="/soggetti?_legacy=1">Vista storica</a>
+          <a href="/clienti">Clienti e anagrafiche</a>
         </div>
       </section>
 

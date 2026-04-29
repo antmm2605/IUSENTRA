@@ -12,12 +12,14 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from pct.config_studio import ConfigPEC, GestioneConfigStudio
 from pct.auth import GestioneUtenti
 from pct.email_client import (
+    CartellaEmail,
     EmailRicevuta,
     GestioneEmailRicevute,
     StatoEmail,
     _trova_fascicolo_da_email,
     aggiorna_comunicazioni_cancelleria_da_email,
     aggiorna_esiti_da_email,
+    cartelle_imap_standard,
 )
 from pct.fascicoli import GestioneFascicoli, TipoAttivita, TipoFascicolo
 from pct.runtime_resilience import clear_runtime_circuit_breakers
@@ -102,7 +104,7 @@ def test_email_casella_filtri_avanzati_e_flag_letto(tmp_path):
         _autentica_admin_session(app, client, cfg)
 
         response = client.get(
-            "/email/?cartella=INBOX&stato=LETTA&pst=1&con_allegati=1&stato_pct=ACCETTATO_PEC&data_da=2026-04-01&data_a=2026-04-30"
+            "/email/?_legacy=1&cartella=INBOX&stato=LETTA&pst=1&con_allegati=1&stato_pct=ACCETTATO_PEC&data_da=2026-04-01&data_a=2026-04-30"
         )
 
         body = response.get_data(as_text=True)
@@ -115,6 +117,73 @@ def test_email_casella_filtri_avanzati_e_flag_letto(tmp_path):
 
     ge_reload = GestioneEmailRicevute(cfg["EMAIL_CASELLA_DB"])
     assert ge_reload.get("MAIL-1").stato == StatoEmail.NON_LETTA
+
+
+def test_email_route_ufficiale_serve_react_e_api_distingue_inviati_cestino(tmp_path):
+    from web.app import create_app
+
+    cfg = _cfg_web(tmp_path)
+    ge = GestioneEmailRicevute(cfg["EMAIL_CASELLA_DB"])
+    ge.aggiungi(
+        EmailRicevuta(
+            id="MAIL-IN",
+            cartella=CartellaEmail.INBOX,
+            stato=StatoEmail.NON_LETTA,
+            mittente="cancelleria@giustiziapec.it",
+            oggetto="Comunicazione in arrivo",
+            data="2026-04-08T09:00:00",
+            corpo_testo="Arrivo",
+            stato_pct="ACCETTATO_PEC",
+        )
+    )
+    ge.aggiungi(
+        EmailRicevuta(
+            id="MAIL-SENT",
+            cartella=CartellaEmail.INVIATI,
+            stato=StatoEmail.LETTA,
+            destinatari="cliente@example.it",
+            oggetto="PEC inviata",
+            data="2026-04-08T10:00:00",
+            corpo_testo="Invio",
+            origine="INVIATA",
+        )
+    )
+    ge.aggiungi(
+        EmailRicevuta(
+            id="MAIL-TRASH",
+            cartella=CartellaEmail.CESTINO,
+            stato=StatoEmail.CESTINO,
+            mittente="archivio@example.it",
+            oggetto="PEC cestinata",
+            data="2026-04-08T11:00:00",
+            corpo_testo="Cestino",
+        )
+    )
+
+    app = create_app(cfg)
+    app.config["API_KEY"] = "react-test-key"
+    with app.test_client() as client:
+        _autentica_admin_session(app, client, cfg)
+
+        react = client.get("/email/")
+        classic = client.get("/email/?_legacy=1&cartella=INBOX")
+        sent_api = client.get("/api/v1/ui/email", query_string={"cartella": "INVIATI"}, headers={"X-API-Key": "react-test-key"})
+        trash_api = client.get("/api/v1/ui/email", query_string={"cartella": "CESTINO"}, headers={"X-API-Key": "react-test-key"})
+
+    sent_payload = sent_api.get_json()
+    trash_payload = trash_api.get_json()
+
+    assert react.status_code == 200
+    assert '<html lang="it" class="react-shell-document">' in react.get_data(as_text=True)
+    assert classic.status_code == 200
+    assert 'id="root"' not in classic.get_data(as_text=True)
+    assert sent_api.status_code == 200
+    assert trash_api.status_code == 200
+    assert sent_payload["source"] == "repository_reali"
+    assert sent_payload["summary"]["sent"] == 1
+    assert sent_payload["items"][0]["folder"] == CartellaEmail.INVIATI
+    assert trash_payload["summary"]["trash"] == 1
+    assert trash_payload["items"][0]["folder"] == CartellaEmail.CESTINO
 
 
 def test_email_dettaglio_visualizza_e_scarica_allegato_salvato(tmp_path):
@@ -252,6 +321,70 @@ def test_sincronizza_imap_ripara_allegati_storici_senza_file(tmp_path, monkeypat
     for idx in range(3):
         assert ge_reload.percorso_allegato(em, idx) is not None
     assert ge_reload.percorso_allegato(em, 0).read_bytes().startswith(b"%PDF")
+
+
+def test_sincronizza_imap_mappa_inviati_e_cestino_da_cartelle_reali(tmp_path, monkeypatch):
+    import pct.email_client as email_runtime
+
+    def _raw_message(subject: str, sender: str, recipient: str) -> bytes:
+        msg = EmailMessage()
+        msg["Subject"] = subject
+        msg["From"] = sender
+        msg["To"] = recipient
+        msg["Date"] = "Thu, 09 Apr 2026 17:51:00 +0200"
+        msg["Message-ID"] = f"<{subject.replace(' ', '-').lower()}@example.test>"
+        msg.set_content(subject)
+        return msg.as_bytes()
+
+    messages = {
+        "INBOX": _raw_message("PEC in arrivo", "ufficio@example.it", "studio@example.pec.it"),
+        "Sent": _raw_message("PEC inviata reale", "studio@example.pec.it", "cliente@example.it"),
+        "Trash": _raw_message("PEC cestinata reale", "ufficio@example.it", "studio@example.pec.it"),
+    }
+
+    class _FakeIMAP:
+        selected = "INBOX"
+
+        def login(self, username, password):
+            return "OK", []
+
+        def select(self, mailbox, readonly=True):
+            self.selected = mailbox
+            if mailbox in messages:
+                return "OK", [b"1"]
+            return "NO", []
+
+        def search(self, charset, criteria):
+            return "OK", [b"1"]
+
+        def fetch(self, uid, query):
+            return "OK", [(b"1 (RFC822)", messages[self.selected])]
+
+        def logout(self):
+            return "OK", []
+
+    monkeypatch.setattr(email_runtime.imaplib, "IMAP4_SSL", lambda *a, **k: _FakeIMAP())
+
+    ge = GestioneEmailRicevute(str(tmp_path / "casella.json"))
+    report = ge.sincronizza_imap(
+        imap_host="imaps.pec.aruba.it",
+        imap_port=993,
+        username="studio@example.pec.it",
+        password="segreta",
+        use_ssl=True,
+        cartelle_imap=["INBOX", "Sent", "Trash"],
+        limite=10,
+    )
+    rows = {email.oggetto: email for email in GestioneEmailRicevute(str(tmp_path / "casella.json"))._carica().values()}
+
+    assert report["nuove"] == 3
+    assert rows["PEC in arrivo"].cartella == CartellaEmail.INBOX
+    assert rows["PEC in arrivo"].stato == StatoEmail.NON_LETTA
+    assert rows["PEC inviata reale"].cartella == CartellaEmail.INVIATI
+    assert rows["PEC inviata reale"].stato == StatoEmail.LETTA
+    assert rows["PEC cestinata reale"].cartella == CartellaEmail.CESTINO
+    assert rows["PEC cestinata reale"].stato == StatoEmail.CESTINO
+    assert {"INBOX", "Sent", "Sent Items", "Posta inviata", "Trash", "Deleted Items", "Posta eliminata"}.issubset(set(cartelle_imap_standard()))
 
 
 def test_email_dettaglio_visualizza_anche_xml_ed_eml(tmp_path):

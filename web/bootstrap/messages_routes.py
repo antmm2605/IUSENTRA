@@ -8,6 +8,11 @@ from flask import Flask, flash, jsonify, redirect, render_template, request, url
 
 from pct.clienti import GestioneClienti
 from pct.messaggi import CanaleMsggio, StatoMessaggio, TipoAutomazione
+from web.blueprints.react_shell import render_react_shell_response
+
+
+def _richiede_vista_classica() -> bool:
+    return request.args.get("_legacy") == "1"
 
 
 def register_messages_routes(
@@ -20,6 +25,9 @@ def register_messages_routes(
 
     @app.route("/messaggi")
     def lista_messaggi():
+        if not _richiede_vista_classica():
+            return render_react_shell_response("messaggi")
+
         gm = get_messaggi()
         canale = request.args.get("canale", "")
         stato = request.args.get("stato", "")
@@ -51,6 +59,9 @@ def register_messages_routes(
 
     @app.route("/messaggi/nuovo", methods=["GET", "POST"])
     def nuovo_messaggio():
+        if request.method == "GET" and not _richiede_vista_classica():
+            return render_react_shell_response("messaggi/nuovo")
+
         gm = get_messaggi()
         gc = get_clienti()
         clienti = gc.tutti()

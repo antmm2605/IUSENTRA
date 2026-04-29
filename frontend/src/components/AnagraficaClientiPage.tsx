@@ -252,7 +252,7 @@ function InsightPanel({ data, visible }:{data: ClientiPageData; visible: Cliente
           <article>
             <span>Clienti collegati</span>
             <strong>{withProcedures} clienti con procedimenti visibili</strong>
-            <small>La UI React e' attiva: salvataggi e audit passano dalle route backend storiche.</small>
+            <small>La UI React è attiva: salvataggi e audit passano dai servizi backend già governati.</small>
           </article>
         </div>
       </Panel>
@@ -354,7 +354,7 @@ export function AnagraficaClientiPage() {
         </div>
         <div className="iu-cli-hero__actions">
           <Button href="/clienti/esporta"><Download size={15}/> Esporta</Button>
-          <Button href="/clienti?_legacy=1&stato=ARCHIVIATO"><Archive size={15}/> Archivio storico</Button>
+          <Button href="/clienti?stato=ARCHIVIATO"><Archive size={15}/> Archivio clienti</Button>
           <Button variant="primary" href="/clienti/nuovo"><UserPlus size={16}/> Nuovo cliente</Button>
         </div>
       </section>

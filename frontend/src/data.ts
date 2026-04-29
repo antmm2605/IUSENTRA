@@ -22,7 +22,7 @@ export type DashboardData = {
 
 const emptyMetrics: Metric[] = [
   {id:'urgent',label:'Azioni urgenti',value:0,tag:'',tone:'danger',href:'/workspace-intelligente',actionLabel:'Vai alle azioni'},
-  {id:'pec',label:'PEC da leggere',value:0,tag:'',tone:'primary',href:'/email',actionLabel:'Apri PEC'},
+  {id:'pec',label:'PEC da leggere',value:0,tag:'',tone:'primary',href:'/email/',actionLabel:'Apri PEC'},
   {id:'messages',label:'Messaggi clienti',value:0,tag:'',tone:'success',href:'/messaggi',actionLabel:'Vai ai messaggi'},
   {id:'quotes',label:'Preventivi in scadenza',value:0,tag:'',tone:'purple',href:'/preventivi',actionLabel:'Apri preventivi'},
   {id:'engagements',label:'Conferimenti mancanti',value:0,tag:'',tone:'orange',href:'/preventivi',actionLabel:'Completa ora'}

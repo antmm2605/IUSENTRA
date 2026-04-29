@@ -1,4 +1,4 @@
-import { Component, useEffect, useState, type ReactNode } from 'react'
+import { Component, Suspense, lazy, useEffect, useState, type ReactNode } from 'react'
 import {
   AlertTriangle,
   Archive,
@@ -51,14 +51,18 @@ import {
 } from 'lucide-react'
 import { DashboardData, Row, Tone, emptyDashboard, getDashboard } from './data'
 import { Badge, DossierCard, KpiCard, Panel, SourceCard } from './components/dashboard'
-import { AgendaPage } from './components/AgendaPage'
-import { NuovoAppuntamentoPage } from './components/NuovoAppuntamentoPage'
-import { RicercaStudioPage } from './components/RicercaStudioPage'
-import { FascicoliPage } from './components/FascicoliPage'
-import { AnagraficaClientiPage } from './components/AnagraficaClientiPage'
-import { NuovoClientePage } from './components/NuovoClientePage'
-import { SoggettiPage } from './components/SoggettiPage'
 import './index.css'
+
+const AgendaPage = lazy(() => import('./components/AgendaPage').then((module) => ({ default: module.AgendaPage })))
+const NuovoAppuntamentoPage = lazy(() => import('./components/NuovoAppuntamentoPage').then((module) => ({ default: module.NuovoAppuntamentoPage })))
+const RicercaStudioPage = lazy(() => import('./components/RicercaStudioPage').then((module) => ({ default: module.RicercaStudioPage })))
+const FascicoliPage = lazy(() => import('./components/FascicoliPage').then((module) => ({ default: module.FascicoliPage })))
+const AnagraficaClientiPage = lazy(() => import('./components/AnagraficaClientiPage').then((module) => ({ default: module.AnagraficaClientiPage })))
+const NuovoClientePage = lazy(() => import('./components/NuovoClientePage').then((module) => ({ default: module.NuovoClientePage })))
+const SoggettiPage = lazy(() => import('./components/SoggettiPage').then((module) => ({ default: module.SoggettiPage })))
+const EmailPecPage = lazy(() => import('./components/EmailPecPage').then((module) => ({ default: module.EmailPecPage })))
+const MessaggiPage = lazy(() => import('./components/MessaggiPage').then((module) => ({ default: module.MessaggiPage })))
+const NuovoMessaggioPage = lazy(() => import('./components/MessaggiPage').then((module) => ({ default: module.NuovoMessaggioPage })))
 
 const toneColor: Record<Tone,string> = { danger:'var(--iu-danger-500)', warning:'var(--iu-warning-500)', primary:'var(--iu-blue-600)', success:'var(--iu-success-500)', info:'var(--iu-sky-500)', purple:'var(--iu-purple-500)', orange:'var(--iu-warning-500)', neutral:'var(--iu-slate-300)' }
 const metricIcon = { danger: AlertTriangle, primary: Mail, success: MessageCircle, purple: Clock3, orange: UsersRound, warning: AlertTriangle, info: Mail, neutral: Clock3 }
@@ -81,8 +85,8 @@ class AppErrorBoundary extends Component<{ children: ReactNode }, { hasError: bo
         <div>
           <AlertTriangle size={24}/>
           <h1>Pagina temporaneamente non disponibile</h1>
-          <p>La shell React ha intercettato un errore di interfaccia. Ricarica la pagina o torna alla vista storica senza perdere i dati dello studio.</p>
-          <a href="/agenda">Apri agenda storica</a>
+          <p>La shell React ha intercettato un errore di interfaccia. Ricarica la pagina o apri il modulo operativo dal menu senza perdere i dati dello studio.</p>
+          <a href="/agenda">Apri agenda operativa</a>
           <button type="button" onClick={() => window.location.reload()}>Ricarica</button>
         </div>
       </main>
@@ -174,7 +178,7 @@ const navSections: NavSection[] = [
     label: 'Comunicazioni',
     icon: MessageCircle,
     items: [
-      { label: 'Email', icon: Mail, href: '/email/', badge: '109' },
+      { label: 'Email PEC', icon: Mail, href: '/email/', badge: 'PEC' },
       { label: 'Messaggi', icon: MessageCircle, href: '/messaggi' },
       { label: 'Nuovo SMS/WA', icon: Send, href: '/messaggi/nuovo' }
     ]
@@ -320,6 +324,20 @@ function Empty({ children='Nessun elemento da presidiare.' }:{children?:string})
   return <p className="iu-empty">{children}</p>
 }
 
+function PageLoading() {
+  return (
+    <main className="iu-content">
+      <div className="iu-page-heading">
+        <div>
+          <h1>Caricamento modulo</h1>
+          <p>Preparazione della superficie React operativa.</p>
+        </div>
+        <span className="iu-sync">Sincronizzazione...</span>
+      </div>
+    </main>
+  )
+}
+
 function List({ rows, avatar=false, href='/' }:{rows:Row[]; avatar?:boolean; href?:string}) {
   if (!rows.length) return <Empty/>
   return <div className="iu-list">{rows.map(r=><a className="iu-row" href={r.href||href} key={r.id}>{avatar?<Avatar label={r.avatar||r.title}/>:<i className={r.unread?'is-on':''}/>}<div><strong>{r.title}</strong><span>{r.subtitle}</span></div><time>{r.time}</time>{r.badge&&!avatar?<b className="iu-red-dot">{r.badge}</b>:null}</a>)}</div>
@@ -387,7 +405,7 @@ function RegiaOperativaPage({ data, loading }:{data:DashboardData; loading:boole
       </div>
       <section className="iu-metrics">{priorityMetrics.map(m=><KpiCard item={m} icon={metricIcon[m.tone] || Sparkles} key={m.id}/>)}</section>
       <section className="iu-grid">
-        <div className="span4"><Panel title="Azioni operative" icon={<Sparkles size={17}/>} count={data.operations.length}>{data.operations.length?<div className="iu-compact">{data.operations.map(action=><a className="iu-compact-row" href={action.href||'/workspace-intelligente'} key={action.id}><div><strong>{action.title}</strong><span>{action.subtitle}</span></div>{action.badge?<Badge tone={action.tone||'neutral'}>{action.badge}</Badge>:null}</a>)}</div>:<Empty>Nessuna azione operativa urgente.</Empty>}<a className="iu-link" href="/workspace-intelligente">Vai alla regia storica -&gt;</a></Panel></div>
+        <div className="span4"><Panel title="Azioni operative" icon={<Sparkles size={17}/>} count={data.operations.length}>{data.operations.length?<div className="iu-compact">{data.operations.map(action=><a className="iu-compact-row" href={action.href||'/workspace-intelligente'} key={action.id}><div><strong>{action.title}</strong><span>{action.subtitle}</span></div>{action.badge?<Badge tone={action.tone||'neutral'}>{action.badge}</Badge>:null}</a>)}</div>:<Empty>Nessuna azione operativa urgente.</Empty>}<a className="iu-link" href="/workspace-intelligente">Vai alla regia completa -&gt;</a></Panel></div>
         <div className="span4"><Panel title="Agenda da presidiare" icon={<CalendarDays size={17}/>} count={agendaRows.length}><List rows={agendaRows} href="/app-v2/agenda"/><a className="iu-link" href="/app-v2/agenda">Apri agenda React -&gt;</a></Panel></div>
         <div className="span4"><Panel title="Fascicoli prioritari" icon={<BriefcaseBusiness size={17}/>} count={matterRows.length}>{matterRows.length?<div className="iu-compact">{matterRows.map(row=><a className="iu-compact-row" href={row.href||'/app-v2/fascicoli'} key={row.id}><div><strong>{row.title}</strong><span>{row.subtitle}</span></div>{row.badge?<Badge tone={row.tone||'neutral'}>{row.badge}</Badge>:null}</a>)}</div>:<Empty>Nessun fascicolo ad alta priorita.</Empty>}<a className="iu-link" href="/app-v2/fascicoli">Vai ai fascicoli -&gt;</a></Panel></div>
         <div className="span6"><Panel title="Comunicazioni recenti" icon={<MessageCircle size={17}/>} count={data.messages.length}><List rows={data.messages} avatar href="/messaggi"/><a className="iu-link" href="/messaggi">Vai ai messaggi -&gt;</a></Panel></div>
@@ -409,8 +427,8 @@ function DashboardPage({ data, loading }:{data:DashboardData; loading:boolean}) 
       </div>
       <section className="iu-metrics">{data.metrics.map(m=><KpiCard item={m} icon={metricIcon[m.tone] || AlertTriangle} key={m.id}/>)}</section>
       <section className="iu-grid">
-        <div className="span3"><Panel title="Ultime PEC ricevute" icon={<Mail size={17}/>} count={data.pec.length}><List rows={data.pec} href="/email"/><a className="iu-link" href="/email">Vai alla casella PEC -&gt;</a></Panel></div>
-        <div className="span3"><Panel title="Email recenti" icon={<Mail size={17}/>} count={data.emails.length}><List rows={data.emails} avatar href="/email"/><a className="iu-link" href="/email">Vai alla posta -&gt;</a></Panel></div>
+        <div className="span3"><Panel title="Ultime PEC ricevute" icon={<Mail size={17}/>} count={data.pec.length}><List rows={data.pec} href="/email/"/><a className="iu-link" href="/email/">Vai alla casella PEC -&gt;</a></Panel></div>
+        <div className="span3"><Panel title="Email recenti" icon={<Mail size={17}/>} count={data.emails.length}><List rows={data.emails} avatar href="/email/"/><a className="iu-link" href="/email/">Vai alla posta -&gt;</a></Panel></div>
         <div className="span3"><Panel title="Messaggi recenti dai clienti" icon={<MessageCircle size={17}/>} count={data.messages.length}><List rows={data.messages} avatar href="/messaggi"/><a className="iu-link" href="/messaggi">Vai ai messaggi -&gt;</a></Panel></div>
         <div className="span3"><Agenda data={data}/></div>
         <div className="span3"><Completion data={data}/></div>
@@ -438,8 +456,11 @@ export default function App() {
   const isNewSubjectPage = routePath === '/soggetti/nuovo'
   const isClientiPage = !isNewClientPage && routePath === '/clienti'
   const isSoggettiPage = !isNewSubjectPage && routePath === '/soggetti'
-  const isDashboardPage = !isSearchPage && !isAgendaPage && !isNewAppointmentPage && !isRegiaPage && !isFascicoliPage && !isClientiPage && !isNewClientPage && !isSoggettiPage && !isNewSubjectPage
-  const isStandalonePage = isSearchPage || isAgendaPage || isNewAppointmentPage || isFascicoliPage || isClientiPage || isNewClientPage || isSoggettiPage || isNewSubjectPage
+  const isEmailPage = routePath === '/email'
+  const isNewMessagePage = routePath === '/messaggi/nuovo'
+  const isMessagesPage = !isNewMessagePage && routePath === '/messaggi'
+  const isDashboardPage = !isSearchPage && !isAgendaPage && !isNewAppointmentPage && !isRegiaPage && !isFascicoliPage && !isClientiPage && !isNewClientPage && !isSoggettiPage && !isNewSubjectPage && !isEmailPage && !isMessagesPage && !isNewMessagePage
+  const isStandalonePage = isSearchPage || isAgendaPage || isNewAppointmentPage || isFascicoliPage || isClientiPage || isNewClientPage || isSoggettiPage || isNewSubjectPage || isEmailPage || isMessagesPage || isNewMessagePage
   const initialSearchQuery = new URLSearchParams(window.location.search).get('q') ?? ''
   const [data,setData]=useState<DashboardData>(emptyDashboard)
   const [loading,setLoading]=useState(!isStandalonePage)
@@ -453,13 +474,16 @@ export default function App() {
         {mobileMenuOpen?<button className="iu-sidebar-scrim" type="button" aria-label="Chiudi menu" onClick={()=>setMobileMenuOpen(false)}/>:null}
         <div className="iu-main">
           <Topbar onOpenMenu={()=>setMobileMenuOpen(true)}/>
-          {isSearchPage?<RicercaStudioPage initialQuery={initialSearchQuery}/>:isNewAppointmentPage?<NuovoAppuntamentoPage/>:isAgendaPage?<AgendaPage/>:isRegiaPage?<RegiaOperativaPage data={data} loading={loading}/>:isFascicoliPage?<FascicoliPage/>:isNewClientPage||isNewSubjectPage?<NuovoClientePage/>:isClientiPage?<AnagraficaClientiPage/>:isSoggettiPage?<SoggettiPage/>:<DashboardPage data={data} loading={loading}/>}
+          <Suspense fallback={<PageLoading/>}>
+            {isSearchPage?<RicercaStudioPage initialQuery={initialSearchQuery}/>:isNewAppointmentPage?<NuovoAppuntamentoPage/>:isAgendaPage?<AgendaPage/>:isRegiaPage?<RegiaOperativaPage data={data} loading={loading}/>:isFascicoliPage?<FascicoliPage/>:isNewClientPage||isNewSubjectPage?<NuovoClientePage/>:isClientiPage?<AnagraficaClientiPage/>:isSoggettiPage?<SoggettiPage/>:isEmailPage?<EmailPecPage/>:isNewMessagePage?<NuovoMessaggioPage/>:isMessagesPage?<MessaggiPage/>:<DashboardPage data={data} loading={loading}/>}
+          </Suspense>
         </div>
         <nav className="iu-mobile">
           <a className={isDashboardPage?'active':''} href="/app-v2"><LayoutDashboard size={18}/>Panoramica</a>
           <a className={isSearchPage?'active':''} href="/app-v2/ricerca-studio"><Search size={18}/>Ricerca</a>
           <a className={isFascicoliPage?'active':''} href="/app-v2/fascicoli"><BriefcaseBusiness size={18}/>Fascicoli</a>
           <a className={isClientiPage||isNewClientPage||isSoggettiPage||isNewSubjectPage?'active':''} href="/clienti"><UsersRound size={18}/>Clienti</a>
+          <a className={isEmailPage||isMessagesPage||isNewMessagePage?'active':''} href="/email/"><Mail size={18}/>PEC</a>
           <a className={isAgendaPage||isNewAppointmentPage?'active':''} href="/app-v2/agenda"><CalendarDays size={18}/>Agenda</a>
           <a className={isRegiaPage?'active':''} href="/app-v2/regia-operativa"><Sparkles size={18}/>Regia</a>
         </nav>

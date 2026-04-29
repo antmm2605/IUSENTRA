@@ -2,237 +2,97 @@
 
 ## Principio operativo
 
-La migrazione a React non sostituisce la UI Jinja in blocco. Flask resta backend,
-source of truth, motore di permessi, tenant, audit e repository. React entra come
-shell separata su `/app-v2` e ogni pagina viene attivata solo dopo parità
-funzionale verificata.
+React diventa la superficie operativa progressiva dell'applicativo, mentre Flask resta backend, source of truth, motore di permessi, tenant, audit e repository. Le scritture sensibili continuano a passare dai servizi Flask gia' auditati fino a quando non esiste una API React equivalente, testata e governata.
 
-Regola di rilascio: una pagina React può sostituire la pagina storica solo se
-supera API reali, test backend, test frontend, test responsive desktop/tablet/mobile,
-accessibilità, tenant/RBAC e rollback immediato.
+La vista Jinja classica non viene eliminata finche' la parita' funzionale non e' verificata. Quando una route GET ufficiale viene promossa a React, la vista classica resta raggiungibile solo come percorso tecnico di assistenza tramite `_legacy=1`; non deve comparire nella UI React come scorciatoia o rollback visibile.
 
-## Fase 0 - Baseline
+## Stato primo blocco React
 
-- Inventariare route Jinja, blueprint, API, menu e flussi critici.
-- Salvare screenshot baseline per desktop `1440px`, tablet `768px`, mobile `390px`.
-- Eseguire smoke test autenticati su Panoramica, Regia Operativa, Ricerca Studio,
-  Fascicoli, Scadenziario, Preventivi, Fatturazione, Servizi Telematici, Lex e
-  Impostazioni.
-- Bloccare l'uso di dati demo nella shell React.
+Il primo blocco e' considerato operativo sulle seguenti superfici:
 
-## Fase 1 - Shell dormiente
+- Panoramica: `/app-v2`
+- Regia Operativa: `/app-v2/regia-operativa`
+- Ricerca Studio: `/app-v2/ricerca-studio`
+- Agenda: `/app-v2/agenda` e `/app-v2/agenda/nuovo`
+- Fascicoli: `/app-v2/fascicoli`, archivio, nuovo/modifica, dettaglio, quadro ed export
+- Clienti e Anagrafiche: `GET /clienti` e `GET /clienti/nuovo`
+- Soggetti e Parti: `GET /soggetti` e `GET /soggetti/nuovo`
+- Comunicazioni: `GET /email/`, `GET /messaggi`, `GET /messaggi/nuovo`
 
-- Integrare `frontend/` con Vite, React e TypeScript.
-- Servire la build sotto `web/static/react`.
-- Esporre `/app-v2` senza modificare le route esistenti.
-- Esporre API ponte sotto `/api/v1/ui/*`, protette da sessione o API key.
-- Mantenere i flag di sostituzione route a `false` finche' la singola superficie
-  non supera i gate. Le superfici Clienti/Soggetti sono le prime promosse su
-  URL ufficiali con fallback `_legacy=1`.
+Le pagine del blocco usano dati reali, API bridge sotto `/api/v1/ui/*`, testi visibili in italiano, stati vuoti espliciti e Lex AI contestuale dove previsto. Non sono ammessi mock operativi o copy che presenti la UI React come prototipo temporaneo.
 
-## Fase 2 - API contract
-
-Ogni pagina React deve avere prima un contratto API stabile:
+## Contratti API attivi
 
 - `GET /api/v1/ui/bootstrap`
 - `GET /api/v1/ui/dashboard`
-- API dominio per fascicoli, clienti, scadenze, documenti, preventivi, parcelle,
-  pagamenti, telematico, Lex e impostazioni.
+- `GET /api/v1/ui/agenda`
+- `GET /api/v1/ui/fascicoli*`
+- `GET /api/v1/ui/clienti`
+- `GET /api/v1/ui/clienti/nuovo`
+- `GET /api/v1/ui/soggetti`
+- `GET /api/v1/ui/email`
+- `GET /api/v1/ui/messaggi`
+- `GET /api/v1/ui/messaggi/nuovo`
 
-React non legge file JSON e non accede direttamente allo storage. Tutto passa da
-servizi Flask già tenant-aware.
+I contratti devono dichiarare `mock_fallback=false`. Le superfici che inviano a servizi Flask esistenti dichiarano `writes=operational_routes`.
 
-## Fase 3 - Design system
+## Comunicazioni: Email PEC e Messaggi
 
-- Usare i design token IUSENTRA già presenti in `tokens.json`.
+Email PEC e Messaggi sono stati promossi nel primo blocco:
+
+- `GET /email/` serve la shell React Email PEC;
+- `GET /messaggi` serve la lista React Messaggi;
+- `GET /messaggi/nuovo` serve la composizione React multicanale;
+- `POST /messaggi/nuovo` resta sul servizio Flask operativo;
+- le azioni PEC restano sui servizi Flask esistenti: sync, auto-esiti, lettura, cestino, ripristino, dettaglio e risposta.
+
+La sincronizzazione IMAP PEC deve distinguere le cartelle operative:
+
+- `INBOX` -> `INBOX`
+- `Sent`, `Sent Items`, `Posta inviata` e alias compatibili -> `INVIATI`
+- `Trash`, `Deleted Items`, `Posta eliminata` e alias compatibili -> `CESTINO`
+
+Questa distinzione e' coperta da test per evitare regressioni sulla visibilita' di Inviati e Cestino.
+
+## Design system e performance
+
+- Usare i design token IUSENTRA presenti in `tokens.json`.
 - Mantenere testi visibili in italiano.
 - Target touch minimo: `44px`.
-- Verificare contrasto, focus visibile, heading order, navigazione tastiera e
-  `prefers-reduced-motion`.
+- Garantire responsive desktop, tablet e mobile.
+- Verificare contrasto, focus visibile, heading order, navigazione tastiera e `prefers-reduced-motion`.
 - Nessun caricamento esterno non necessario senza consenso.
-
-### Stato Panoramica `/app-v2`
-
-La prima pagina React usa la shell enterprise collegata a `/api/v1/ui/dashboard`:
-
-- sidebar desktop con navigazione lunga scrollabile e drawer sotto `980px`;
-- topbar con ricerca, azioni rapide e comandi principali;
-- token CSS e TypeScript per colori, spacing, radius, shadow e typography;
-- componenti riusabili `Panel`, `KpiCard`, `DossierCard`, `SourceCard`, `Badge`
-  e `Button`;
-- array dati separati in `frontend/src/data.ts` per KPI, agenda, operativita',
-  fascicoli, fonti, scadenze, economia e suggerimenti Lex;
-- niente mock operativo: le sezioni leggono i dati reali disponibili e usano
-  stati vuoti espliciti quando il repository non contiene record.
-
-### Stato Ricerca Studio `/app-v2/ricerca-studio`
-
-La seconda pagina React e' una route separata dalla Panoramica e riusa la shell
-globale senza annidarsi nel contenuto dashboard:
-
-- dati collegati all'indice reale `/api/global-search`;
-- filtri per fascicoli, clienti, scadenze, documenti, comunicazioni, economia e
-  telematico;
-- stato indice con totale elementi, FTS5 e ultimo sync;
-- azione `Reindicizza` collegata al backend esistente;
-- anteprima risultato con azioni contestuali `Apri`, `Chiedi a Lex`, `Vai al
-  fascicolo` e `Copia link`;
-- shortcut `Ctrl/Cmd + K`, `Esc`, frecce e `Invio`;
-- nessun `mockResults` nella pagina React.
-
-### Stato Regia Operativa `/app-v2/regia-operativa`
-
-La Regia Operativa e' una pagina React autonoma, collegata alla voce primaria
-della nav e separata dalla Panoramica:
-
-- usa i dati reali già esposti dal bridge dashboard;
-- mostra azioni operative, agenda da presidiare, fascicoli prioritari,
-  comunicazioni recenti e suggerimenti Lex;
-- mantiene il link alla regia storica `/workspace-intelligente` come versione
-  completa e fallback operativo;
-- non reinserisce pannelli di regia dentro la Panoramica React.
-
-### Stato Agenda `/app-v2/agenda`
-
-La pagina Agenda React e' collegata alla nav della shell, ma non sostituisce la
-pagina storica `/agenda`:
-
-- dati reali da `/api/v1/ui/agenda`, normalizzati da agenda e scadenziario;
-- contratto in sola lettura con `mock_fallback=false` e route storiche ancora attive
-  per dettagli, creazione, import ed export;
-- filtri per tipologia, ricerca testuale, vista giorno/settimana/mese
-  e KPI su oggi, settimana, udienze, scadenze e alert;
-- calendario responsive con slot orari cliccabili in giorno/settimana, griglia
-  mese cliccabile e drag & drop con salvataggio sugli appuntamenti agenda reali
-  tramite `/api/agenda/<id>/sposta`;
-- briefing operativo, salute sincronizzazione calendari e widget Lex
-  trascinabile e apribile anche su mobile;
-- collegamento nav su `/app-v2/agenda` per ogni accesso React alla pagina.
-
-### Stato Nuovo Appuntamento `/app-v2/agenda/nuovo`
-
-La pagina React di creazione appuntamento resta separata dall'Agenda e usa il
-backend storico come punto di scrittura:
-
-- salvataggio nativo su `POST /agenda/nuovo`, senza nuova API obbligatoria;
-- precompilazione da query `data`, `ora`, `id_cliente` e `from_cliente`;
-- autocomplete clienti da `/api/clienti` e dettaglio cliente da
-  `/api/clienti/<id_cliente>`;
-- normalizzazione del codice fiscale in maiuscolo;
-- preset rapidi per udienza, consultazione, riunione, deposito, scadenza e
-  altro, chip uffici giudiziari, anteprima e checklist qualita';
-- controllo sovrapposizioni su `/api/agenda`;
-- Lex AI contestuale con icona flottante, posizione persistita e azione
-  `Completa titolo`.
-
-### Stato Clienti e Anagrafiche `/clienti`
-
-La pagina Clienti React e' collegata alla nav della shell e sostituisce il GET
-ufficiale `/clienti` senza cambiare le route tecniche interne:
-
-- dati reali da `/api/v1/ui/clienti`, normalizzati dai repository `GestioneClienti`
-  e `GestioneFascicoli`;
-- contratto `mock_fallback=false`, `read_only=false`, `writes=legacy_routes`:
-  la UI React e' ufficiale, ma salvataggi, dettaglio, modifica, export e
-  cartella cliente restano sulle route Flask storiche gia' auditate;
-- fallback governato alla vista storica con `/clienti?_legacy=1`;
-- KPI su totali, attivi, potenziali, archiviati, procedimenti collegati, dati
-  mancanti, recapiti assenti, privacy e documenti scaduti;
-- ricerca full-text, filtri tipo/stato, filtri avanzati per referente,
-  completezza, recapiti e ordinamento;
-- tabella desktop, card mobile, bulk bar locale, insight laterali e Lex AI
-  contestuale `clienti`.
-
-### Stato Nuovo Cliente e Soggetti `/clienti/nuovo`, `/soggetti`
-
-La migrazione anagrafica e' stata estesa alle superfici operative successive:
-
-- `Nuovo Cliente` vive sul GET ufficiale `/clienti/nuovo`, ma salva ancora su
-  `POST /clienti/nuovo` per riusare validazioni, audit e workflow storici;
-- `Nuovo Soggetto` vive sul GET ufficiale `/soggetti/nuovo` e riusa lo stesso form React
-  in tab soggetto, salvando su `POST /soggetti/nuovo`;
-- `Soggetti e Parti -> Anagrafica` vive sul GET ufficiale `/soggetti`, alimentata dal
-  bridge reale `/api/v1/ui/soggetti`;
-- le vecchie viste restano accessibili con `_legacy=1`, per esempio
-  `/clienti/nuovo?_legacy=1` e `/soggetti?_legacy=1`;
-- il bridge `/api/v1/ui/clienti/nuovo` espone opzioni enum, conteggi reali,
-  clienti collegabili, ruoli processuali e azioni legacy senza mock operativi;
-- il codice fiscale viene calcolato server-side con `/api/cf/calcola` usando la
-  tabella Belfiore locale, mentre `/api/cf/decodifica` compila automaticamente
-  sesso, data, luogo e provincia di nascita quando il CF e' gia disponibile;
-- il modello soggetti ora persiste `provincia_nascita`; la creazione cliente
-  storica salva anche i dati documento ricevuti dalla UI React;
-- Lex AI e' contestualizzato su `clienti-nuovo` e `soggetti`, con icona
-  flottante gia riusata dalla shell.
-
-### Stato Fascicoli `/app-v2/fascicoli`
-
-La pagina Fascicoli React resta in sola lettura e non sostituisce ancora le route storiche:
-
-- dati da `/api/v1/ui/fascicoli`, normalizzati dai repository reali fascicoli e scadenziario;
-- KPI su attivi, in corso, da archiviare, archiviati, prossime scadenze e documenti da classificare;
-- ricerca, filtri per tipo/stato, filtri avanzati per ufficio, alert e ordinamento;
-- tabella desktop e card mobile responsive, con azioni Apri/Modifica sulle route storiche;
-- pannello operativo con controlli qualità, alert, integrazioni telematiche e Lex AI trascinabile.
-
-
-### Stato Fascicoli Suite `/app-v2/fascicoli`
-
-La suite Fascicoli React ricostruisce le superfici storiche senza sostituire ancora le route Jinja:
-
-- `Tutti i Fascicoli`, con KPI, ricerca, filtri tipo/stato, filtri avanzati, scadenze imminenti, tabella desktop e card mobile;
-- `Nuovo Fascicolo` e `Modifica`, con gli stessi campi del form storico: dati principali, parti, ufficio, RG, anno, sezione, giudice, valore, workflow preventivo/conferimento, avvocati, note e contesto correzione;
-- `Archivio`, con ricerca, esito, data archiviazione, ZIP, dettaglio e ripristino;
-- `Apri Fascicolo`, con cabina completa: profilo, documenti, import portale, attività, udienze/scadenze, depositi/cancelleria, istanze, avanzamento, gestione stato, definizione, archiviazione, ripristino, PDF, ZIP, Copertina, economico, conformita, telematico, cliente e soggetti; le finestre operative sono collassabili e la cabina React non espone più il comando `Vista storica`;
-- `Quadro Fascicolo`, su `/app-v2/fascicoli/:id/quadro`, con vista sinottica React sui cinque assi storici: Commerciale, Operativo, Conformita, Economico e Documenti, alimentata dagli stessi dati reali del dettaglio;
-- `Esporta`, con builder per PDF/CSV, preset e collegamenti ai PDF singoli;
-- Lex AI flottante e trascinabile in ogni superficie della suite.
-
-Tutte le azioni di scrittura restano instradate alle route Flask storiche già auditate, mentre le API React `/api/v1/ui/fascicoli*` sono in sola lettura e consapevoli di tenant e sessione.
-
-## Fase 4 - Ordine di migrazione
-
-1. Panoramica e shell globale.
-2. Ricerca Studio.
-3. Regia Operativa.
-4. Agenda.
-5. Nuovo Appuntamento.
-6. Scadenziario.
-7. Clienti e Anagrafiche.
-8. Fascicoli in sola lettura.
-9. Documenti e upload.
-10. Preventivi e Conferimenti.
-11. Parcelle, Fatture, Incassi e Pagamenti.
-12. Lex AI.
-13. Sito Studio Builder.
-14. Servizi Telematici, PDP/PST/PAT/PTT, Local Signer e PEC.
-15. Admin e Impostazioni.
-
-Le aree telematiche e di firma restano ultime perché hanno vincoli di compliance,
-Local Signer, audit, canali separati e conferma consapevole dell'avvocato.
+- Le pagine React del primo blocco sono caricate con code-splitting tramite `React.lazy` e `Suspense`, cosi' il bundle iniziale resta governabile.
 
 ## Gate per ogni pagina
 
 - API con dati reali, nessun mock operativo.
-- UI in sola lettura prima delle azioni di scrittura.
+- UI responsive desktop/tablet/mobile.
 - Azioni di scrittura protette da CSRF/sessione, tenant e RBAC.
 - Test unitari backend.
-- Test frontend `npm run test`, `npm run typecheck`, `npm run build`.
-- Test e2e/smoke desktop, tablet e mobile.
-- Verifica accessibilità.
-- Flag di rollback.
-- Documentazione aggiornata.
+- Test frontend: `npm run test`, `npm run typecheck`, `npm run build`.
+- Smoke route autenticato su GET ufficiali e API bridge.
+- Verifica accessibilita' di base.
+- Vista classica disponibile solo come percorso tecnico `_legacy=1`, non come CTA della UI React.
+- Documentazione e changelog aggiornati nella stessa tranche.
 
-## Rollback
+## Prossime wave
 
-Le route Jinja storiche restano sempre disponibili. Lo switch a React avviene solo
-via feature flag e può essere disattivato senza migrazione dati.
+1. Scadenziario e Termini.
+2. Preventivi e Conferimenti.
+3. Parcelle, Fatture, Incassi e Pagamenti.
+4. Documenti, allegati e upload.
+5. Lex AI avanzata.
+6. Sito Studio Builder.
+7. Servizi Telematici, PDP/PST/PAT/PTT, Local Signer e PEC avanzata.
+8. Admin e Impostazioni.
 
-## Comandi
+Le aree telematiche e di firma restano in wave dedicate perche' hanno vincoli di compliance, Local Signer, audit, canali separati e conferma consapevole dell'avvocato.
+
+## Comandi di verifica
 
 ```powershell
 cd D:\legale\IUSENTRA\frontend
-npm ci
 npm run test
 npm run typecheck
 npm run build
@@ -240,5 +100,5 @@ npm run build
 
 ```powershell
 cd D:\legale\IUSENTRA
-python -m pytest tests/test_react_shell.py -q
+python -m pytest tests/test_react_shell.py tests/test_email_client.py tests/test_messaggi.py tests/test_web_bootstrap.py -q
 ```

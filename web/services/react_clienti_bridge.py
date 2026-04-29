@@ -1,8 +1,9 @@
 """Bridge dati per la pagina Anagrafica Clienti della shell React.
 
 Normalizza i repository esistenti senza introdurre una seconda source of truth
-frontend. La lista e i form React usano le route storiche per le scritture,
-cosi audit, tenant e validazioni restano governati da un'unica source of truth.
+frontend. La lista e i form React usano i servizi Flask operativi per le
+scritture, cosi audit, tenant e validazioni restano governati da un'unica
+source of truth.
 """
 
 from __future__ import annotations
@@ -236,7 +237,7 @@ def build_react_clienti_payload(*, get_clienti: Callable[[], Any], get_fascicoli
         "contracts": {
             "mock_fallback": False,
             "read_only": False,
-            "writes": "legacy_routes",
+            "writes": "operational_routes",
             "route_owner": "react_shell",
         },
         "summary": _summary(items),
@@ -335,7 +336,7 @@ def build_react_clienti_nuovo_payload(
         "contracts": {
             "mock_fallback": False,
             "read_only": False,
-            "writes": "legacy_routes",
+            "writes": "operational_routes",
             "route_owner": "react_shell",
         },
         "stats": _clienti_nuovo_stats(clienti, soggetti),
@@ -365,8 +366,8 @@ def build_react_clienti_nuovo_payload(
             "newSubject": "/soggetti/nuovo",
             "clientsList": "/clienti",
             "subjectsList": "/soggetti",
-            "legacyClientForm": "/clienti/nuovo",
-            "legacySubjectForm": "/soggetti/nuovo",
+            "operationalClientForm": "/clienti/nuovo",
+            "operationalSubjectForm": "/soggetti/nuovo",
         },
         "query": {
             "tab": _text(query.get("tab") or query.get("tipo")),
@@ -376,6 +377,6 @@ def build_react_clienti_nuovo_payload(
         "insights": [
             "Prima del salvataggio controlla CF/P.IVA per prevenire duplicati.",
             "Per il conferimento incarico servono dati fiscali, recapiti e indirizzo.",
-            "Il soggetto processuale usa il campo qualifica per restare compatibile con la UI storica.",
+            "Il soggetto processuale usa il campo qualifica per restare compatibile con il modello soggetti e parti.",
         ],
     }

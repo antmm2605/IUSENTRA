@@ -1,9 +1,7 @@
-"""Bridge dati per la migrazione React delle superfici Fascicoli.
+"""Bridge dati per le superfici React Fascicoli.
 
-Il modulo normalizza le stesse informazioni già usate dalle pagine Jinja
-``fascicoli/lista.html``, ``form.html``, ``archivio.html`` e
-``dettaglio.html``. React resta una shell progressiva: lettura tramite API,
-scritture demandate alle route storiche Flask già auditate.
+Il modulo normalizza repository, azioni e metadati del dominio Fascicoli:
+lettura tramite API React, scritture demandate ai servizi Flask già auditati.
 """
 
 from __future__ import annotations
@@ -244,9 +242,9 @@ def _item(fascicolo: Any, *, scadenze_by_fasc: dict[str, list[Any]] | None = Non
         "closedAt": _text(getattr(fascicolo, "data_chiusura", "")),
         "updatedAt": _text(getattr(fascicolo, "modificato_il", "")),
         "href": f"/app-v2/fascicoli/{fid}",
-        "legacyHref": f"/fascicoli/{fid}",
+        "operationalHref": f"/fascicoli/{fid}",
         "editHref": f"/app-v2/fascicoli/{fid}/modifica",
-        "legacyEditHref": f"/fascicoli/{fid}/modifica",
+        "operationalEditHref": f"/fascicoli/{fid}/modifica",
         "exportPdfHref": f"/fascicoli/{fid}/pdf",
         "archiveZipHref": f"/fascicoli/{fid}/archivio/scarica",
         "restoreAction": f"/fascicoli/{fid}/ripristina",
@@ -346,7 +344,7 @@ def _deadline_rows(get_scadenziario: Callable[[], Any], items_by_id: dict[str, d
 
 
 def _contracts() -> dict[str, Any]:
-    return {"mock_fallback": False, "read_only": True, "writes": "legacy_routes"}
+    return {"mock_fallback": False, "read_only": True, "writes": "operational_routes"}
 
 
 def build_react_fascicoli_payload(*, get_fascicoli: Callable[[], Any], get_scadenziario: Callable[[], Any]) -> dict[str, Any]:

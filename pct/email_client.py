@@ -89,6 +89,45 @@ _STATI_PCT_ORDINE = {
     "ERRORE": 4,
 }
 
+_SENT_FOLDER_HINTS = ("sent", "inviat", "posta inviata", "sent items")
+_TRASH_FOLDER_HINTS = ("trash", "deleted", "eliminat", "cestin")
+
+
+def cartelle_imap_standard() -> list[str]:
+    """Cartelle IMAP comuni da tentare senza rendere la sync aggressiva."""
+    return [
+        "INBOX",
+        "Sent",
+        "Sent Items",
+        "INVIATI",
+        "Posta inviata",
+        "INBOX.Sent",
+        "INBOX.Sent Items",
+        "Trash",
+        "Deleted Items",
+        "CESTINO",
+        "Posta eliminata",
+        "INBOX.Trash",
+        "INBOX.Deleted Items",
+    ]
+
+
+def _cartella_interna_da_imap(cartella_imap: str) -> str:
+    raw = str(cartella_imap or "").strip().lower()
+    if any(hint in raw for hint in _SENT_FOLDER_HINTS):
+        return CartellaEmail.INVIATI
+    if any(hint in raw for hint in _TRASH_FOLDER_HINTS):
+        return CartellaEmail.CESTINO
+    return CartellaEmail.INBOX
+
+
+def _stato_iniziale_da_cartella(cartella_interna: str) -> str:
+    if cartella_interna == CartellaEmail.CESTINO:
+        return StatoEmail.CESTINO
+    if cartella_interna == CartellaEmail.INVIATI:
+        return StatoEmail.LETTA
+    return StatoEmail.NON_LETTA
+
 
 # ------------------------------------------------------------------ Dataclass
 
@@ -643,15 +682,12 @@ class GestioneEmailRicevute:
                     else:
                         corpo_testo = testo
 
-            cartella_interna = (
-                CartellaEmail.INBOX if "inbox" in cartella_imap.lower() or cartella_imap == "INBOX"
-                else CartellaEmail.INBOX
-            )
+            cartella_interna = _cartella_interna_da_imap(cartella_imap)
 
             return EmailRicevuta(
                 id=em_id,
                 cartella=cartella_interna,
-                stato=StatoEmail.NON_LETTA,
+                stato=_stato_iniziale_da_cartella(cartella_interna),
                 mittente=mittente_addr,
                 mittente_nome=mittente_nome,
                 destinatari=destinatari,
@@ -662,7 +698,7 @@ class GestioneEmailRicevute:
                 allegati=allegati,
                 message_id=msg.get("Message-ID", "").strip(),
                 uid_imap=uid_str,
-                origine="IMAP",
+                origine="IMAP" if cartella_interna == CartellaEmail.INBOX else cartella_interna,
             )
         except Exception:
             return None
@@ -1081,7 +1117,7 @@ def sincronizza_pec_e_fascicoli(
         username=config_pec.indirizzo,
         password=config_pec.password,
         use_ssl=bool(getattr(config_pec, "use_ssl", True)),
-        cartelle_imap=["INBOX"],
+        cartelle_imap=cartelle_imap_standard(),
         limite=limite,
         timeout_seconds=timeout_s,
     )

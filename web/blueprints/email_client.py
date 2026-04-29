@@ -26,6 +26,7 @@ from flask import (
     redirect, render_template, request, send_file, url_for, Response,
 )
 from pct.config_studio import _SMTPv4, _SMTP_SSLv4
+from web.blueprints.react_shell import render_react_shell_response
 
 email_client = Blueprint("email_client", __name__, url_prefix="/email")
 
@@ -39,6 +40,10 @@ def _login_required(f):
             return redirect(url_for("login"))
         return f(*a, **kw)
     return w
+
+
+def _richiede_vista_classica() -> bool:
+    return request.args.get("_legacy") == "1"
 
 
 def _get_gestore():
@@ -109,6 +114,9 @@ def _audit(azione: str, dettagli: str = ""):
 @_login_required
 def casella():
     """Vista principale della casella email."""
+    if not _richiede_vista_classica():
+        return render_react_shell_response("email")
+
     ge = _get_gestore()
     cartella = request.args.get("cartella", "INBOX")
     q = request.args.get("q", "").strip()
@@ -399,13 +407,15 @@ def sincronizza():
             auto_summary = _riassunto_auto_esiti_route(ge, log_esiti)
             poll_report = workflow.get("poll", {}) or poll_report
         else:
+            from pct.email_client import cartelle_imap_standard
+
             ris = ge.sincronizza_imap(
                 imap_host=imap_host,
                 imap_port=int(imap_port or 993),
                 username=username,
                 password=password,
                 use_ssl=bool(use_ssl),
-                cartelle_imap=["INBOX"],
+                cartelle_imap=cartelle_imap_standard(),
                 limite=100,
                 timeout_seconds=15,
             )

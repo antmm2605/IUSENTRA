@@ -51,8 +51,8 @@ export type ClientiNuovoData = {
     newSubject: string
     clientsList: string
     subjectsList: string
-    legacyClientForm: string
-    legacySubjectForm: string
+    operationalClientForm: string
+    operationalSubjectForm: string
   }
   query: {
     tab: string
@@ -154,7 +154,7 @@ const qualificationHints: RegistryOption[] = [
 export const emptyClientiNuovoData: ClientiNuovoData = {
   source: 'vuoto',
   generatedAt: '',
-  contracts: { mock_fallback: false, read_only: false, writes: 'legacy_routes' },
+  contracts: { mock_fallback: false, read_only: false, writes: 'operational_routes' },
   stats: {
     totalClients: 0,
     physicalClients: 0,
@@ -182,14 +182,14 @@ export const emptyClientiNuovoData: ClientiNuovoData = {
     newSubject: '/soggetti/nuovo',
     clientsList: '/clienti',
     subjectsList: '/soggetti',
-    legacyClientForm: '/clienti/nuovo',
-    legacySubjectForm: '/soggetti/nuovo',
+    operationalClientForm: '/clienti/nuovo',
+    operationalSubjectForm: '/soggetti/nuovo',
   },
   query: { tab: '', nextUrl: '', idCliente: '' },
   insights: [
     'Verifica codice fiscale o partita IVA prima del salvataggio.',
     'Completa almeno un recapito utile per conferimento e notifiche.',
-    'Il soggetto processuale usa il campo qualifica per mantenere compatibilita con la vista storica.',
+    'Il soggetto processuale usa il campo qualifica per mantenere compatibilità con il modello soggetti e parti.',
   ],
 }
 
@@ -272,8 +272,8 @@ function mergePayload(payload: unknown): ClientiNuovoData {
         newSubject: text(payload.actions.newSubject ?? payload.actions.new_subject, emptyClientiNuovoData.actions.newSubject),
         clientsList: text(payload.actions.clientsList ?? payload.actions.clients_list, emptyClientiNuovoData.actions.clientsList),
         subjectsList: text(payload.actions.subjectsList ?? payload.actions.subjects_list, emptyClientiNuovoData.actions.subjectsList),
-        legacyClientForm: text(payload.actions.legacyClientForm ?? payload.actions.legacy_client_form, emptyClientiNuovoData.actions.legacyClientForm),
-        legacySubjectForm: text(payload.actions.legacySubjectForm ?? payload.actions.legacy_subject_form, emptyClientiNuovoData.actions.legacySubjectForm),
+        operationalClientForm: text(payload.actions.operationalClientForm ?? payload.actions.operational_client_form, emptyClientiNuovoData.actions.operationalClientForm),
+        operationalSubjectForm: text(payload.actions.operationalSubjectForm ?? payload.actions.operational_subject_form, emptyClientiNuovoData.actions.operationalSubjectForm),
       }
       : emptyClientiNuovoData.actions,
     query: isRecord(payload.query)

@@ -66,7 +66,7 @@ const emptySummary: ClientiSummary = {
 export const emptyClientiPage: ClientiPageData = {
   source: 'vuoto',
   generatedAt: '',
-  contracts: { mock_fallback: false, read_only: false, writes: 'legacy_routes', route_owner: 'react_shell' },
+  contracts: { mock_fallback: false, read_only: false, writes: 'operational_routes', route_owner: 'react_shell' },
   summary: emptySummary,
   items: [],
   facets: {

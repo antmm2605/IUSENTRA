@@ -524,6 +524,13 @@ def test_react_fascicoli_suite_completa_route_componenti_e_lex():
         assert endpoint in data_source
     for legacy_action in ("/documenti/carica", "/documenti/importa-portale", "/attivita/aggiungi", "/definisci", "/archivia", "/ripristina"):
         assert legacy_action in bridge
+    assert "Vista storica" not in page_source
+    assert "legacyHref}/quadro" in page_source
+    assert "legacyHref}/copertina" in page_source
+    assert "<details id={id}" in page_source
+    assert "fascicolo-top" in page_source
+    assert "iu-fas-compliance-toggle" in page_source
+    assert 'name="next"' in page_source
     assert "context=\"fascicoli\"" in page_source
     assert "localStorage" in floating_lex
     assert "onPointerDown" in floating_lex
@@ -532,6 +539,9 @@ def test_react_fascicoli_suite_completa_route_componenti_e_lex():
     assert ".iu-fascicolo-detail-page" in css
     assert ".iu-fascicolo-form-page" in css
     assert ".iu-fas-export-page" in css
+    assert ".iu-fas-back-top" in css
+    assert ".iu-fas-detail-section__summary" in css
+    assert ".iu-fas-compliance-toggle" in css
     assert "@media(max-width:760px)" in css
 
 

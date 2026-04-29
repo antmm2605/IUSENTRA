@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.195.27 - 2026-04-29
+
+- Rifinita la cabina fascicolo React: le finestre Profilo, Documenti, Attivita, Udienze/scadenze, Cancelleria, Istanze e i pannelli laterali sono ora collassabili.
+- Rimossa l'azione `Vista storica` dal dettaglio `/app-v2/fascicoli/:id` e aggiunti i comandi `Quadro` e `Copertina` accanto a Fascicoli, Modifica e PDF.
+- Aggiunta la freccia `Torna su` nella cabina fascicolo per rientrare rapidamente all'intestazione.
+- Sostituito il pulsante non leggibile `Disattiva controlli` con un interruttore leggibile per `Conformita e qualita`, collegato alla route storica auditata e con ritorno alla pagina React.
+- Aggiornati test shell React e asset frontend per presidiare layout collassabile, rimozione vista storica, link Quadro/Copertina e toggle conformita.
+
 ## 2.195.26 - 2026-04-29
 
 - Estesa la migrazione React dei fascicoli a suite completa sotto `/app-v2/fascicoli`, con lista, nuovo/modifica, archivio, dettaglio cabina fascicolo ed export.

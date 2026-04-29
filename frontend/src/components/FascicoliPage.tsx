@@ -9,6 +9,7 @@ import {
   CalendarDays,
   CheckCircle2,
   ChevronDown,
+  ChevronUp,
   ClipboardCheck,
   Clock3,
   Download,
@@ -474,7 +475,7 @@ function ArchivePage() {
         <div className="iu-fas-hero__actions"><Button href="/app-v2/fascicoli"><FolderOpen size={15}/> Fascicoli attivi</Button><Button href="/app-v2/fascicoli/esporta"><Download size={15}/> Esporta</Button></div>
       </section>
       <section className="iu-fas-stats"><StatCard icon={<Archive size={19}/>} label="Archiviati" value={data.summary.archived || data.items.length} note="in archivio" tone="neutral"/><StatCard icon={<FileArchive size={19}/>} label="ZIP" value={data.items.filter((item) => item.archive?.zipAvailable).length} note="archivi scaricabili" tone="primary"/><StatCard icon={<BadgeCheck size={19}/>} label="Esiti" value={data.items.filter((item) => item.archive?.outcome).length} note="con esito finale" tone="success"/></section>
-      <section className="iu-fas-toolbar"><label className="iu-fas-search"><Search size={17}/><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Cerca per numero, titolo, cliente..."/></label><a className="iu-fas-filter-btn" href="/fascicoli/archivio"><Eye size={16}/> Vista storica</a></section>
+      <section className="iu-fas-toolbar"><label className="iu-fas-search"><Search size={17}/><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Cerca per numero, titolo, cliente..."/></label></section>
       <section className="iu-fas-status-line"><span className={loading ? '' : 'is-ok'}>{loading ? 'Caricamento archivio...' : `Archivio aggiornato - ${data.source}`}</span><small><RotateCcw size={14}/> Il ripristino usa la route storica con audit.</small></section>
       <FascicoliTable items={visible} selected={selected} onToggle={toggle} onToggleAll={toggleAll} archive/>
       <FloatingLex context="archivio-fascicoli" title="Lex AI archivio" body="Posso aiutarti a controllare fascicoli archiviati, ZIP mancanti, esiti finali e criteri di conservazione." primaryHref="/lex?context=archivio-fascicoli" primaryLabel="Apri Lex archivio" secondaryHref="/app-v2/fascicoli" secondaryLabel="Fascicoli attivi" />
@@ -549,7 +550,17 @@ function KvGrid({ items }:{items:KeyValue[]}) {
 }
 
 function DetailSection({ id, title, icon, count, children }:{id:string; title:string; icon:ReactNode; count?:number; children:ReactNode}) {
-  return <section id={id} className="iu-fas-detail-section"><Panel title={title} icon={icon} count={count}>{children}</Panel></section>
+  return (
+    <details id={id} className="iu-fas-detail-section" open>
+      <summary className="iu-fas-detail-section__summary">
+        <span className="iu-fas-detail-section__icon">{icon}</span>
+        <span className="iu-fas-detail-section__title">{title}</span>
+        {typeof count === 'number' ? <span className="iu-fas-detail-section__count">{count}</span> : null}
+        <ChevronDown className="iu-fas-detail-section__chevron" size={17}/>
+      </summary>
+      <div className="iu-fas-detail-section__body">{children}</div>
+    </details>
+  )
 }
 
 function DocumentRow({ doc }:{doc:FascicoloDocument}) {
@@ -593,12 +604,14 @@ function DetailPage({ id }:{id:string}) {
   const [loading, setLoading] = useState(true)
   useEffect(() => { let active = true; getFascicoloDetail(id).then((payload) => { if (active) setData(payload) }).finally(() => { if (active) setLoading(false) }); return () => { active = false } }, [id])
   const f = data.fascicolo
+  const legacyHref = f.legacyHref || `/fascicoli/${encodeURIComponent(f.id || id)}`
+  const detailReturnHref = `/app-v2/fascicoli/${encodeURIComponent(f.id || id)}#conformita`
   if (!loading && data.notFound) return <main className="iu-content iu-fascicoli-page"><EmptyState icon={<FolderOpen size={34}/>} title="Fascicolo non trovato" action={<Button href="/app-v2/fascicoli">Torna ai fascicoli</Button>}>Il fascicolo non è disponibile o non hai i permessi per aprirlo.</EmptyState></main>
   return (
-    <main className="iu-content iu-fascicoli-page iu-fascicolo-detail-page">
+    <main id="fascicolo-top" className="iu-content iu-fascicoli-page iu-fascicolo-detail-page">
       <section className="iu-fas-hero iu-fas-detail-hero">
         <div><span className="iu-fas-eyebrow"><FolderOpen size={16}/> Fascicolo</span><h1>{f.title}</h1><p><Badge tone={f.tone}>{formatFascicoloStatus(f.status)}</Badge><Badge tone="neutral">{formatFascicoloType(f.type)}</Badge>{f.archiveReady ? <Badge tone="warning">Pronto per archivio</Badge> : null}<span>{f.object || f.subtitle}</span></p></div>
-        <div className="iu-fas-hero__actions"><Button href="/app-v2/fascicoli"><ArrowLeft size={15}/> Fascicoli</Button><Button href={f.editHref}><Edit3 size={15}/> Modifica</Button><Button href={data.actions.exportPdf || f.exportPdfHref}><FileDown size={15}/> PDF</Button><Button variant="primary" href={f.legacyHref}><Eye size={15}/> Vista storica</Button></div>
+        <div className="iu-fas-hero__actions"><Button href="/app-v2/fascicoli"><ArrowLeft size={15}/> Fascicoli</Button><Button href={f.editHref}><Edit3 size={15}/> Modifica</Button><Button href={`${legacyHref}/quadro`}><Gauge size={15}/> Quadro</Button><Button href={`${legacyHref}/copertina`}><FileText size={15}/> Copertina</Button><Button variant="primary" href={data.actions.exportPdf || f.exportPdfHref}><FileDown size={15}/> PDF</Button></div>
       </section>
       <section className="iu-fas-case-strip"><strong>{f.ref}</strong><span>Rif. interno {f.internalRef}</span><span>{f.client}</span><span>{f.court}</span><span>{loading ? 'Caricamento...' : `Dati aggiornati - ${data.source}`}</span></section>
       <nav className="iu-fas-section-nav" aria-label="Sezioni fascicolo"><a href="#profilo">Profilo <b>{data.quickCounts.profilo || 0}</b></a><a href="#documenti">Documenti <b>{data.documents.length}</b></a><a href="#attivita">Attività <b>{data.activities.length}</b></a><a href="#udienze">Udienze / scadenze <b>{data.deadlines.length + data.appointments.length}</b></a><a href="#cancelleria">Cancelleria <b>{data.deposits.length}</b></a><a href="#istanze">Istanze <b>{data.requests.length}</b></a><a href="#gestione">Gestione</a><a href="#economia">Economia</a><a href="#conformita">Conformità</a><a href="#soggetti">Soggetti <b>{data.parties.length}</b></a></nav>
@@ -631,12 +644,13 @@ function DetailPage({ id }:{id:string}) {
           </DetailSection>
           <DetailSection id="economia" title="Controllo economico" icon={<WalletCards size={17}/>} count={data.economics.length}><div className="iu-fas-side-cards">{data.economics.map((item) => <a href={item.href} key={item.id}><Badge tone={item.tone}>{item.label}</Badge><strong>{item.value}</strong><span>{item.note}</span></a>)}{!data.economics.length ? <p className="iu-empty">Nessun dato economico collegato.</p> : null}</div></DetailSection>
           <DetailSection id="workflow" title="Workflow cliente → incasso" icon={<Sparkles size={17}/>} count={data.workflow.length}><div className="iu-fas-side-cards">{data.workflow.map((item) => <a href={item.href || '#'} key={item.label}><Badge tone={item.tone}>{item.label}</Badge><strong>{item.value}</strong><span>{item.note}</span></a>)}</div></DetailSection>
-          <DetailSection id="conformita" title="Conformità e qualità" icon={<ShieldCheck size={17}/>} count={data.quality.length}><div className="iu-fas-quality-list">{data.quality.map((item) => <span key={item.label}><Badge tone={item.tone}>{item.ok ? 'OK' : 'Verifica'}</Badge><strong>{item.label}</strong><small>{item.value}</small></span>)}</div><div className="iu-fas-action-stack"><form method="post" action={f.complianceControlsEnabled ? data.actions.complianceOff : data.actions.complianceOn}><input type="hidden" name="enabled" value={f.complianceControlsEnabled ? '0' : '1'}/><button className="iu-fas-post iu-fas-post--secondary" type="submit">{f.complianceControlsEnabled ? 'Disattiva controlli' : 'Attiva controlli'}</button></form></div></DetailSection>
+          <DetailSection id="conformita" title="Conformità e qualità" icon={<ShieldCheck size={17}/>} count={data.quality.length}><div className="iu-fas-quality-list">{data.quality.map((item) => <span key={item.label}><Badge tone={item.tone}>{item.ok ? 'OK' : 'Verifica'}</Badge><strong>{item.label}</strong><small>{item.value}</small></span>)}</div><form className={`iu-fas-compliance-toggle ${f.complianceControlsEnabled ? 'is-on' : 'is-off'}`} method="post" action={f.complianceControlsEnabled ? data.actions.complianceOff : data.actions.complianceOn}><input type="hidden" name="enabled" value={f.complianceControlsEnabled ? '0' : '1'}/><input type="hidden" name="next" value={detailReturnHref}/><button type="submit" aria-pressed={f.complianceControlsEnabled}><span className="iu-fas-compliance-toggle__switch" aria-hidden="true"><i/></span><span><strong>{f.complianceControlsEnabled ? 'Controlli automatici attivi' : 'Controlli automatici disattivati'}</strong><small>{f.complianceControlsEnabled ? 'Disattiva i controlli qualità sul fascicolo' : 'Riattiva i controlli qualità sul fascicolo'}</small></span></button></form></DetailSection>
           <DetailSection id="telematico" title="Servizi telematici" icon={<Send size={17}/>} count={data.telematic.length}><div className="iu-fas-side-cards">{data.telematic.map((item) => <a href={item.href} key={item.label}><Badge tone={item.tone}>{item.label}</Badge><strong>{item.value}</strong><span>{item.note}</span></a>)}</div></DetailSection>
           <DetailSection id="cliente" title="Cliente" icon={<UserRound size={17}/>} count={data.client ? 1 : 0}>{data.client ? <KvGrid items={[{ label: 'Nome', value: data.client.name, href: data.client.href }, { label: 'Codice fiscale', value: data.client.taxCode, mono: true }, { label: 'P. IVA', value: data.client.vat, mono: true }, { label: 'Email', value: data.client.email }, { label: 'PEC', value: data.client.pec }, { label: 'Telefono', value: data.client.phone }, { label: 'Indirizzo', value: data.client.address }]}/> : <p className="iu-empty">Cliente non collegato.</p>}</DetailSection>
           <DetailSection id="soggetti" title="Soggetti e parti" icon={<UsersRound size={17}/>} count={data.parties.length}><div className="iu-fas-party-list">{data.parties.map((party) => <a href={party.href} key={party.id}><strong>{party.name}</strong><span>{party.role || 'Soggetto'} · {party.taxCode || 'C.F. n.d.'}</span><small>{party.email || party.pec || party.phone}</small></a>)}{!data.parties.length ? <p className="iu-empty">Nessun soggetto collegato.</p> : null}</div><a className="iu-fas-inline-link" href={`/soggetti/nuovo?id_fascicolo=${encodeURIComponent(f.id)}`}><Plus size={14}/> Nuovo soggetto</a></DetailSection>
         </aside>
       </section>
+      <a className="iu-fas-back-top" href="#fascicolo-top" aria-label="Torna su" title="Torna su"><ChevronUp size={18}/></a>
       <FloatingLex context="fascicolo-dettaglio" title="Lex AI fascicolo" body="Posso sintetizzare profilo, documenti, attività, scadenze, depositi, parti e prossime azioni del fascicolo aperto." primaryHref={`/lex?context=fascicolo&id_fasc=${encodeURIComponent(f.id)}`} primaryLabel="Apri Lex sul fascicolo" secondaryHref={`/app-v2/ricerca-studio?q=${encodeURIComponent(f.ref)}`} secondaryLabel="Cerca collegati" />
     </main>
   )

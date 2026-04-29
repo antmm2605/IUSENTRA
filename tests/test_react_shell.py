@@ -179,6 +179,12 @@ def test_react_nuovo_appuntamento_pagina_separata_con_backend_storico():
     assert 'action="/agenda/nuovo"' in appointment_page
     assert "params.get('ora')" in appointment_page
     assert "/api/clienti" in appointment_page
+    assert "safeJson" in appointment_page
+    assert "normaliseClientSuggestion" in appointment_page
+    assert "clientSuggestionsFromPayload" in appointment_page
+    assert "Array.isArray(payload)" in appointment_page
+    assert "Array.isArray(payload.data)" in appointment_page
+    assert ".catch(() =>" in appointment_page
     assert "/api/agenda?da=" in appointment_page
     assert "toUpperCase" in appointment_page
     assert "Completa titolo" in appointment_page

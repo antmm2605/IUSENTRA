@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.195.18 - 2026-04-29
+
+- Corretto l'autocomplete clienti della pagina React `/app-v2/agenda/nuovo`: la ricerca ora normalizza payload array, wrapper `data/items/clienti`, record incompleti e risposte non JSON senza mandare in errore il render.
+- Aggiunta una guardia di regressione nei contratti React e in `tests/test_react_shell.py` per evitare nuove schermate bianche quando `/api/clienti` risponde in modo inatteso in produzione.
+
 ## 2.195.17 - 2026-04-29
 
 - Collegata la voce `Regia Operativa` della nav React a `/app-v2/regia-operativa`, mantenendo la Panoramica separata e la regia storica raggiungibile come versione completa.

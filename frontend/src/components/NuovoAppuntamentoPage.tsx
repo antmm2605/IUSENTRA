@@ -56,6 +56,25 @@ type ClientSuggestion = {
   email?: string
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value && typeof value === 'object' && !Array.isArray(value))
+}
+
+function asText(value: unknown): string {
+  if (typeof value === 'string' || typeof value === 'number') return String(value).trim()
+  return ''
+}
+
+async function safeJson(response: Response): Promise<unknown> {
+  const contentType = response.headers.get('content-type') || ''
+  if (!contentType.toLowerCase().includes('application/json')) return null
+  try {
+    return await response.json() as unknown
+  } catch {
+    return null
+  }
+}
+
 type AgendaApiItem = {
   id: string
   titolo: string
@@ -177,6 +196,36 @@ function clientName(client: ClientSuggestion): string {
     client.ragione_sociale ||
     ''
   )
+}
+
+function normaliseClientSuggestion(value: unknown): ClientSuggestion | null {
+  if (!isRecord(value)) return null
+  const suggestion: ClientSuggestion = {
+    id: asText(value.id),
+    nome: asText(value.nome),
+    cognome: asText(value.cognome),
+    ragione_sociale: asText(value.ragione_sociale),
+    nome_completo: asText(value.nome_completo) || asText(value.nomeCompleto),
+    codice_fiscale: asText(value.codice_fiscale) || asText(value.codiceFiscale) || asText(value.cf_cliente),
+    email: asText(value.email),
+  }
+  return clientName(suggestion) || suggestion.id ? suggestion : null
+}
+
+function clientSuggestionsFromPayload(payload: unknown): ClientSuggestion[] {
+  const source = Array.isArray(payload)
+    ? payload
+    : isRecord(payload) && Array.isArray(payload.data)
+      ? payload.data
+      : isRecord(payload) && Array.isArray(payload.items)
+        ? payload.items
+        : isRecord(payload) && Array.isArray(payload.clienti)
+          ? payload.clienti
+          : []
+  return source
+    .map((item) => normaliseClientSuggestion(item))
+    .filter((item): item is ClientSuggestion => Boolean(item))
+    .slice(0, 8)
 }
 
 function minutesFromTime(value: string): number | null {
@@ -366,8 +415,9 @@ export function NuovoAppuntamentoPage() {
       credentials: 'same-origin',
       headers: { Accept: 'application/json' },
     })
-      .then((response) => response.ok ? response.json() : null)
-      .then((client: ClientSuggestion | null) => {
+      .then((response) => response.ok ? safeJson(response) : null)
+      .then((payload) => normaliseClientSuggestion(payload))
+      .then((client) => {
         if (!alive || !client) return
         setForm((current) => ({
           ...current,
@@ -396,10 +446,15 @@ export function NuovoAppuntamentoPage() {
         credentials: 'same-origin',
         headers: { Accept: 'application/json' },
       })
-        .then((response) => response.ok ? response.json() : [])
-        .then((data: ClientSuggestion[]) => {
+        .then((response) => response.ok ? safeJson(response) : [])
+        .then((data) => {
           if (!alive) return
-          setClientMatches(Array.isArray(data) ? data.slice(0, 8) : [])
+          setClientMatches(clientSuggestionsFromPayload(data))
+          setClientDropdownOpen(true)
+        })
+        .catch(() => {
+          if (!alive) return
+          setClientMatches([])
           setClientDropdownOpen(true)
         })
         .finally(() => {
@@ -425,9 +480,12 @@ export function NuovoAppuntamentoPage() {
       credentials: 'same-origin',
       headers: { Accept: 'application/json' },
     })
-      .then((response) => response.ok ? response.json() : [])
-      .then((data: AgendaApiItem[]) => {
+      .then((response) => response.ok ? safeJson(response) : [])
+      .then((data) => {
         if (alive) setDayEvents(Array.isArray(data) ? data : [])
+      })
+      .catch(() => {
+        if (alive) setDayEvents([])
       })
       .finally(() => {
         if (alive) setAgendaLoading(false)
@@ -440,9 +498,10 @@ export function NuovoAppuntamentoPage() {
 
   const selectClient = (client: ClientSuggestion) => {
     const name = clientName(client)
+    if (!name && !client.id) return
     setForm((current) => ({
       ...current,
-      cliente: name,
+      cliente: name || current.cliente,
       id_cliente: client.id || current.id_cliente,
       cf_cliente: (client.codice_fiscale || current.cf_cliente || '').toUpperCase(),
     }))

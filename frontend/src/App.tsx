@@ -1,5 +1,55 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import { AlertTriangle, Bell, BriefcaseBusiness, CalendarDays, CircleHelp, Clock3, Crosshair, Home, LayoutDashboard, Mail, MessageCircle, PanelLeftClose, PanelLeftOpen, Plus, Search, Settings2, ShieldCheck, Sparkles, UsersRound } from 'lucide-react'
+import {
+  AlertTriangle,
+  Archive,
+  Banknote,
+  Bell,
+  BookOpen,
+  BriefcaseBusiness,
+  Building2,
+  CalendarCheck,
+  CalendarDays,
+  CalendarPlus,
+  CalendarSync,
+  ChartColumn,
+  ChevronDown,
+  CircleHelp,
+  CirclePlus,
+  ClipboardCheck,
+  ClipboardList,
+  Clock3,
+  CloudUpload,
+  CreditCard,
+  Crosshair,
+  Database,
+  Earth,
+  FilePenLine,
+  FileText,
+  Folder,
+  FolderOpen,
+  FolderPlus,
+  Home,
+  Landmark,
+  LayoutDashboard,
+  ListChecks,
+  LogOut,
+  Mail,
+  MessageCircle,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Plus,
+  Search,
+  Send,
+  Settings2,
+  ShieldCheck,
+  Sparkles,
+  Table,
+  UserPlus,
+  UserRound,
+  UsersRound,
+  Wrench,
+  type LucideIcon
+} from 'lucide-react'
 import { DashboardData, Metric, Row, Tone, emptyDashboard, getDashboard } from './data'
 import './index.css'
 
@@ -19,23 +69,165 @@ function Logo() {
   return <svg width="46" height="46" viewBox="0 0 64 64" fill="none"><rect width="64" height="64" rx="16" fill="url(#g)"/><path d="M23.5 18.5h13.8c5 0 8.7 3.8 8.7 8.7v17.3H18V24c0-3 2.5-5.5 5.5-5.5Z" fill="url(#f)"/><rect x="29.2" y="26" width="5.8" height="15.5" rx="2.2" fill="#071329" opacity=".85"/><circle cx="48.2" cy="18.4" r="3.2" fill="#2F80ED"/><defs><linearGradient id="g" x1="8" x2="57" y1="4" y2="60"><stop stopColor="#F4B21B"/><stop offset="1" stopColor="#D49205"/></linearGradient><linearGradient id="f" x1="18" x2="47" y1="18" y2="45"><stop stopColor="#FCE7A3"/><stop offset="1" stopColor="#D4A017"/></linearGradient></defs></svg>
 }
 
+type NavItem = {
+  label: string
+  href: string
+  icon: LucideIcon
+  badge?: string
+  active?: boolean
+}
+
+type NavSection = {
+  id: string
+  label?: string
+  icon?: LucideIcon
+  items: NavItem[]
+  tone?: 'admin'
+}
+
+const primaryNav: NavItem[] = [
+  { label: 'Panoramica', icon: LayoutDashboard, href: '/app-v2', active: true },
+  { label: 'Regia Operativa', icon: Sparkles, href: '/workspace-intelligente' },
+  { label: 'Ricerca Studio', icon: Search, href: '/global-search' }
+]
+
+const navSections: NavSection[] = [
+  {
+    id: 'recenti',
+    label: 'Recenti',
+    icon: FolderOpen,
+    items: [
+      { label: '2026/004 - N.RG 139/2023 —...', icon: FolderOpen, href: '/fascicoli' }
+    ]
+  },
+  {
+    id: 'agenda',
+    label: 'Agenda',
+    icon: CalendarCheck,
+    items: [
+      { label: 'Calendario', icon: CalendarDays, href: '/agenda' },
+      { label: 'Nuovo Appuntamento', icon: CirclePlus, href: '/agenda/nuovo' },
+      { label: 'Timesheet', icon: Clock3, href: '/timesheet' }
+    ]
+  },
+  {
+    id: 'fascicoli',
+    label: 'Fascicoli',
+    icon: Folder,
+    items: [
+      { label: 'Tutti i Fascicoli', icon: FolderOpen, href: '/fascicoli' },
+      { label: 'Nuovo Fascicolo', icon: FolderPlus, href: '/fascicoli/nuovo' },
+      { label: 'Archivio', icon: Archive, href: '/fascicoli/archivio' }
+    ]
+  },
+  {
+    id: 'clienti',
+    label: 'Clienti e Anagrafiche',
+    icon: UsersRound,
+    items: [
+      { label: 'Anagrafica', icon: UsersRound, href: '/clienti' },
+      { label: 'Nuovo Cliente', icon: UserPlus, href: '/clienti/nuovo' },
+      { label: 'Cartelle Condivise', icon: FolderPlus, href: '/cartelle-condivise' }
+    ]
+  },
+  {
+    id: 'soggetti',
+    label: 'Soggetti e Parti',
+    icon: FileText,
+    items: [
+      { label: 'Anagrafica', icon: UsersRound, href: '/soggetti' },
+      { label: 'Nuovo Soggetto', icon: UserPlus, href: '/soggetti/nuovo' }
+    ]
+  },
+  {
+    id: 'comunicazioni',
+    label: 'Comunicazioni',
+    icon: MessageCircle,
+    items: [
+      { label: 'Email', icon: Mail, href: '/email/', badge: '109' },
+      { label: 'Messaggi', icon: MessageCircle, href: '/messaggi' },
+      { label: 'Nuovo SMS/WA', icon: Send, href: '/messaggi/nuovo' }
+    ]
+  },
+  {
+    id: 'scadenze',
+    label: 'Scadenze e Termini',
+    icon: Clock3,
+    items: [
+      { label: 'Scadenziario', icon: CalendarDays, href: '/scadenziario' },
+      { label: 'Nuova Scadenza', icon: CalendarPlus, href: '/scadenziario/nuova' },
+      { label: 'Preparazione Udienza Guidata', icon: Building2, href: '/agenda' },
+      { label: 'Controlli Atti', icon: ClipboardCheck, href: '/deposito/checklist' },
+      { label: 'Lex - Assistente Legale', icon: Sparkles, href: '/lex' }
+    ]
+  },
+  {
+    id: 'telematici',
+    label: 'Servizi Telematici',
+    icon: Send,
+    items: [
+      { label: 'Centro Servizi Telematici', icon: BriefcaseBusiness, href: '/telematico' },
+      { label: 'PolisWeb / PST', icon: FileText, href: '/polisWeb' },
+      { label: 'SIGP - Giudice di Pace', icon: Landmark, href: '/polisWeb' },
+      { label: 'PDP Penale', icon: ShieldCheck, href: '/pdp' },
+      { label: 'PAT Amministrativo', icon: FileText, href: '/pat' },
+      { label: 'PTT Tributario', icon: FileText, href: '/sigit/ricerca' },
+      { label: 'Tribunali / PEC', icon: Landmark, href: '/tribunali' },
+      { label: 'Checklist deposito', icon: ListChecks, href: '/deposito/checklist' },
+      { label: 'Guida firma digitale', icon: BookOpen, href: '/guida/firma-digitale' }
+    ]
+  },
+  {
+    id: 'studio',
+    label: 'Studio',
+    icon: ChartColumn,
+    items: [
+      { label: 'Parcelle e Fatture', icon: FileText, href: '/fatturazione/' },
+      { label: 'Preventivi e Incarichi', icon: FileText, href: '/preventivi/' },
+      { label: 'Compensi Forensi', icon: Banknote, href: '/compensi-forensi' },
+      { label: 'Redazione Atti', icon: FilePenLine, href: '/redazione-atti' },
+      { label: 'Statistiche', icon: ChartColumn, href: '/statistiche/' },
+      { label: 'Ricerca Legale', icon: Building2, href: '/ricerca-studio' },
+      { label: 'Archivio Giurisprudenza', icon: Landmark, href: '/giurisprudenza/' },
+      { label: 'Strumenti Forensi', icon: Wrench, href: '/strumenti-legali/' },
+      { label: 'Strumenti Operativi', icon: Table, href: '/strumenti-operativi' },
+      { label: 'Sito Studio', icon: Earth, href: '/sito-studio/' },
+      { label: 'Notifiche WhatsApp', icon: MessageCircle, href: '/impostazioni/test/whatsapp' },
+      { label: 'Incassi e Pagamenti', icon: CreditCard, href: '/impostazioni/pagamenti' },
+      { label: 'Backup', icon: CloudUpload, href: '/backup' },
+      { label: 'Impostazioni Studio', icon: Settings2, href: '/impostazioni' },
+      { label: 'Sincronizzazione Calendari', icon: CalendarSync, href: '/impostazioni/calendario' }
+    ]
+  },
+  {
+    id: 'amministrazione',
+    label: 'Amministrazione',
+    icon: ShieldCheck,
+    tone: 'admin',
+    items: [
+      { label: 'Utenti', icon: UsersRound, href: '/utenti' },
+      { label: 'Profili e Permessi', icon: Table, href: '/profili' },
+      { label: 'Registro Attività', icon: ClipboardList, href: '/admin/osservabilita' },
+      { label: 'Database', icon: Database, href: '/admin/database' },
+      { label: 'Registro GDPR', icon: FileText, href: '/privacy/registro' }
+    ]
+  }
+]
+
+function NavLink({ item, collapsed }:{item:NavItem; collapsed:boolean}) {
+  const Icon = item.icon
+  return (
+    <a className={`iu-nav-link ${item.active?'is-active':''}`} href={item.href} title={collapsed?item.label:undefined}>
+      <Icon size={17}/>
+      <span>{item.label}</span>
+      {item.badge?<b className="iu-nav-badge">{item.badge}</b>:null}
+    </a>
+  )
+}
+
 function Sidebar({ collapsed, mobileOpen, onToggle }:{collapsed:boolean; mobileOpen:boolean; onToggle:()=>void}) {
-  const items = [
-    ['Panoramica',LayoutDashboard,'/app-v2',true],
-    ['Regia Operativa',Sparkles,'/workspace-intelligente'],
-    ['Ricerca Studio',Search,'/global-search'],
-    ['Agenda',CalendarDays,'/agenda'],
-    ['Fascicoli',BriefcaseBusiness,'/fascicoli'],
-    ['Clienti e Anagrafiche',UsersRound,'/clienti'],
-    ['Soggetti e Parti',UsersRound,'/soggetti'],
-    ['Comunicazioni',MessageCircle,'/messaggi'],
-    ['Scadenze e Termini',Bell,'/scadenziario'],
-    ['Controlli Atti',ShieldCheck,'/checklist-atti'],
-    ['Lex - Assistente Legale',Sparkles,'/lex'],
-    ['Servizi Telematici',Mail,'/telematico'],
-    ['Studio',Home,'/applicazioni'],
-    ['Amministrazione',ShieldCheck,'/admin']
-  ] as const
+  const [openSections,setOpenSections]=useState<Record<string,boolean>>(()=>Object.fromEntries(navSections.map(section=>[section.id,true])))
+  const toggleSection=(id:string)=>setOpenSections(current=>({...current,[id]:!current[id]}))
   const ToggleIcon = collapsed ? PanelLeftOpen : PanelLeftClose
   return (
     <aside className={`iu-sidebar ${collapsed?'iu-sidebar--collapsed':''} ${mobileOpen?'iu-sidebar--mobile-open':''}`}>
@@ -45,9 +237,24 @@ function Sidebar({ collapsed, mobileOpen, onToggle }:{collapsed:boolean; mobileO
         <button className="iu-sidebar__toggle" type="button" onClick={onToggle} aria-label={collapsed?'Espandi menu':'Comprimi menu'} title={collapsed?'Espandi menu':'Comprimi menu'}><ToggleIcon size={18}/></button>
       </div>
       <nav className="iu-sidebar__nav" aria-label="Navigazione principale">
-        {items.map(([label,Icon,href,active],i)=><a key={label} className={`iu-nav-link ${active?'is-active':''} ${(i===3||i===5||i===8||i===11||i===13)?'has-gap':''}`} href={href} title={collapsed?label:undefined}><Icon size={18}/><span>{label}</span></a>)}
+        <div className="iu-nav-primary">
+          {primaryNav.map(item=><NavLink key={item.label} item={item} collapsed={collapsed}/>)}
+        </div>
+        {navSections.map(section=>{
+          const SectionIcon = section.icon || Folder
+          const open = openSections[section.id] !== false
+          return (
+            <section className={`iu-nav-section ${section.tone==='admin'?'iu-nav-section--admin':''}`} key={section.id}>
+              <button className="iu-nav-section__head" type="button" onClick={()=>toggleSection(section.id)} aria-expanded={open}>
+                <span><SectionIcon size={14}/>{section.label}</span>
+                <ChevronDown size={13}/>
+              </button>
+              {open?<div className="iu-nav-section__items">{section.items.map(item=><NavLink key={`${section.id}-${item.label}`} item={item} collapsed={collapsed}/>)}</div>:null}
+            </section>
+          )
+        })}
       </nav>
-      <div className="iu-sidebar__user"><span>RR</span><div><strong>Avv. Roberto Rossi</strong><small>AMMINISTRATORE</small></div></div>
+      <div className="iu-sidebar__user"><span>R</span><div><strong>Avv. Roberto Rossi</strong><small>AMMINISTRATORE</small></div><a href="/profilo" aria-label="Profilo" title="Profilo"><UserRound size={16}/></a><a href="/logout" aria-label="Esci" title="Esci"><LogOut size={16}/></a></div>
     </aside>
   )
 }

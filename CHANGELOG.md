@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.195.13 - 2026-04-29
+
+- Compattata la versione mobile di `/app-v2` con KPI, pannelli, righe operative, grafici e barra inferiore piu' densi e leggibili su schermi piccoli.
+- Ripristinato lo scroll verticale della pagina React mobile isolando la shell `/app-v2` dalle regole legacy che bloccavano `html` e `body` in overflow nascosto.
+- Ricostruita la sidebar React enterprise con navigazione completa a sezioni scrollabili: recenti, agenda, fascicoli, clienti, soggetti, comunicazioni, scadenze, servizi telematici, studio e amministrazione.
+
 ## 2.195.12 - 2026-04-29
 
 - Collegata la panoramica React `/app-v2` ai repository operativi reali per PEC/email, messaggi clienti, agenda, scadenziario, fascicoli prioritari, anagrafiche incomplete, preventivi/conferimenti, fatturazione e timesheet.

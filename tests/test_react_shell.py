@@ -42,6 +42,48 @@ def test_react_shell_non_sostituisce_ui_storica_e_richiede_login(tmp_path: Path)
     assert "/login" in response.headers["Location"]
 
 
+def test_react_shell_mobile_sblocca_scroll_e_compatta_card():
+    template = Path("web/templates/react_shell.html").read_text(encoding="utf-8")
+    css = Path("frontend/src/index.css").read_text(encoding="utf-8")
+
+    assert '<html lang="it" class="react-shell-document">' in template
+    assert "body.react-shell-page .iu-shell" in css
+    assert "overflow-y:auto!important" in css
+    assert ".iu-metrics{\n    grid-template-columns:repeat(2,minmax(0,1fr));" in css
+    assert ".iu-metric{\n    min-height:74px;" in css
+
+
+def test_react_sidebar_contiene_navigazione_enterprise_completa():
+    source = Path("frontend/src/App.tsx").read_text(encoding="utf-8")
+    css = Path("frontend/src/index.css").read_text(encoding="utf-8")
+
+    for label in (
+        "Recenti",
+        "Calendario",
+        "Nuovo Appuntamento",
+        "Timesheet",
+        "Tutti i Fascicoli",
+        "Nuovo Fascicolo",
+        "Cartelle Condivise",
+        "Nuovo SMS/WA",
+        "Preparazione Udienza Guidata",
+        "Centro Servizi Telematici",
+        "SIGP - Giudice di Pace",
+        "Guida firma digitale",
+        "Parcelle e Fatture",
+        "Preventivi e Incarichi",
+        "Archivio Giurisprudenza",
+        "Sincronizzazione Calendari",
+        "Profili e Permessi",
+        "Registro Attività",
+        "Registro GDPR",
+    ):
+        assert label in source
+
+    assert ".iu-nav-section__head" in css
+    assert ".iu-sidebar__nav{min-height:0;scrollbar-width:thin" in css
+
+
 def test_react_api_bridge_richiede_autenticazione(tmp_path: Path):
     app = _app(tmp_path)
     client = app.test_client()

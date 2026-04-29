@@ -32,6 +32,129 @@
 .iu-empty{margin:10px 0;color:var(--iu-slate-500);font-size:12px;font-weight:750;line-height:1.45}
 .iu-agenda .iu-empty{margin:4px 0 2px;padding:4px 0}
 
+.iu-nav-primary{
+  display:grid;
+  gap:5px;
+  padding:2px 0 12px;
+}
+.iu-nav-section{
+  margin-top:12px;
+}
+.iu-nav-section__head{
+  width:100%;
+  min-height:30px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  padding:0 8px 0 7px;
+  border:0;
+  background:transparent;
+  color:rgba(203,213,225,.72);
+  cursor:pointer;
+  text-transform:uppercase;
+  letter-spacing:.14em;
+  font-size:10px;
+  font-weight:850;
+}
+.iu-nav-section__head span{
+  min-width:0;
+  display:flex;
+  align-items:center;
+  gap:9px;
+}
+.iu-nav-section__head svg{
+  flex:0 0 auto;
+}
+.iu-nav-section__head>svg{
+  transition:transform .16s ease;
+}
+.iu-nav-section__head[aria-expanded="false"]>svg{
+  transform:rotate(-90deg);
+}
+.iu-nav-section--admin .iu-nav-section__head{
+  color:#f97316;
+}
+.iu-nav-section__items{
+  display:grid;
+  gap:4px;
+}
+.iu-nav-link{
+  position:relative;
+  min-height:39px;
+  padding:0 10px 0 12px;
+  border-radius:10px;
+  line-height:1.2;
+}
+.iu-nav-link svg{
+  flex:0 0 auto;
+}
+.iu-nav-link span{
+  min-width:0;
+  white-space:normal;
+}
+.iu-nav-badge{
+  margin-left:auto;
+  min-width:32px;
+  height:20px;
+  display:grid;
+  place-items:center;
+  border-radius:999px;
+  background:var(--iu-blue-600);
+  color:#fff;
+  font-size:10px;
+  font-weight:900;
+  letter-spacing:0;
+}
+.iu-sidebar__user{
+  margin-top:12px;
+  gap:8px;
+}
+.iu-sidebar__user>div{
+  flex:1;
+  min-width:0;
+}
+.iu-sidebar__user strong{
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.iu-sidebar__user a{
+  width:30px;
+  height:30px;
+  flex:0 0 30px;
+  display:grid;
+  place-items:center;
+  border:1px solid rgba(255,255,255,.22);
+  border-radius:7px;
+  color:#fff;
+}
+.iu-sidebar__user a:hover{
+  background:rgba(255,255,255,.1);
+}
+.iu-sidebar--collapsed .iu-nav-primary{
+  padding-bottom:8px;
+}
+.iu-sidebar--collapsed .iu-nav-section{
+  margin-top:8px;
+}
+.iu-sidebar--collapsed .iu-nav-section__head{
+  min-height:16px;
+  justify-content:center;
+  padding:0;
+  font-size:0;
+}
+.iu-sidebar--collapsed .iu-nav-section__head span{
+  gap:0;
+}
+.iu-sidebar--collapsed .iu-nav-section__head>svg{
+  display:none;
+}
+.iu-sidebar--collapsed .iu-nav-badge,
+.iu-sidebar--collapsed .iu-sidebar__user a{
+  display:none;
+}
+
 @media(max-width:1180px){
   .iu-menu-mobile{display:grid;flex:0 0 auto}
   .iu-sidebar{z-index:70;transform:translateX(-105%);width:min(286px,86vw)}
@@ -40,5 +163,243 @@
   .iu-sidebar.iu-sidebar--mobile-open .iu-nav-link span,
   .iu-sidebar.iu-sidebar--mobile-open .iu-sidebar__user div{display:block}
   .iu-sidebar.iu-sidebar--mobile-open .iu-nav-link{justify-content:flex-start;gap:12px;padding:0 13px}
+  .iu-sidebar.iu-sidebar--mobile-open .iu-nav-section__head{
+    min-height:30px;
+    justify-content:space-between;
+    padding:0 8px 0 7px;
+    font-size:10px;
+  }
+  .iu-sidebar.iu-sidebar--mobile-open .iu-nav-section__head span{gap:9px}
+  .iu-sidebar.iu-sidebar--mobile-open .iu-nav-section__head>svg{display:block}
+  .iu-sidebar.iu-sidebar--mobile-open .iu-nav-badge,
+  .iu-sidebar.iu-sidebar--mobile-open .iu-sidebar__user a{display:grid}
   .iu-sidebar-scrim{position:fixed;inset:0;z-index:60;display:block;border:0;background:rgba(15,23,42,.42);backdrop-filter:blur(2px)}
+}
+
+html.react-shell-document,
+html.react-shell-document body.react-shell-page{
+  height:auto!important;
+  min-height:100%;
+  overflow-x:hidden!important;
+  overflow-y:auto!important;
+  overscroll-behavior-y:auto!important;
+}
+body.react-shell-page #root{
+  min-height:100dvh;
+  overflow:visible;
+}
+
+@media(max-width:640px){
+  html.react-shell-document,
+  html.react-shell-document body.react-shell-page{
+    position:static!important;
+    touch-action:pan-y;
+    -webkit-overflow-scrolling:touch;
+  }
+  body.react-shell-page .iu-shell,
+  body.react-shell-page .iu-main,
+  body.react-shell-page .iu-content{
+    height:auto!important;
+    min-height:0;
+    overflow:visible!important;
+  }
+  body.react-shell-page .iu-shell{
+    display:block;
+    min-height:100dvh;
+    padding-bottom:calc(74px + env(safe-area-inset-bottom, 0px));
+  }
+  .iu-topbar{
+    min-height:58px;
+    gap:8px;
+    padding:8px 10px;
+  }
+  .iu-search{
+    min-height:38px;
+    padding:0 11px;
+    border-radius:10px;
+  }
+  .iu-search input::placeholder{font-size:12px}
+  .iu-icon{width:38px;height:38px;border-radius:10px}
+  .iu-new{width:38px;min-height:38px;border-radius:10px}
+  .iu-content{
+    padding:12px 10px calc(88px + env(safe-area-inset-bottom, 0px));
+  }
+  .iu-page-heading{
+    gap:4px;
+    margin-bottom:10px;
+  }
+  .iu-page-heading h1{
+    font-size:22px;
+    letter-spacing:0;
+  }
+  .iu-page-heading p{
+    margin-top:2px;
+    font-size:12px;
+  }
+  .iu-metrics{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:8px;
+    margin-bottom:10px;
+  }
+  .iu-metric{
+    min-height:74px;
+    gap:8px;
+    padding:9px;
+    border-radius:12px;
+    box-shadow:0 6px 16px rgba(15,23,42,.055);
+  }
+  .iu-metric__icon{
+    width:34px;
+    height:34px;
+    flex:0 0 34px;
+  }
+  .iu-metric__icon svg{width:17px;height:17px}
+  .iu-metric__top{
+    align-items:flex-start;
+    gap:4px;
+  }
+  .iu-metric__top strong{
+    font-size:20px;
+  }
+  .iu-metric__label{
+    margin-top:2px;
+    font-size:11.5px;
+    line-height:1.18;
+  }
+  .iu-metric .iu-link{display:none}
+  .iu-badge{
+    min-height:16px;
+    padding:0 5px;
+    border-radius:5px;
+    font-size:8px;
+  }
+  .iu-grid{gap:10px}
+  .iu-panel{
+    border-radius:12px;
+    overflow:visible;
+  }
+  .iu-panel>header{
+    min-height:38px;
+    padding:0 10px;
+  }
+  .iu-panel>header>div{
+    gap:8px;
+    font-size:12.5px;
+  }
+  .iu-panel>header>span{
+    min-width:22px;
+    height:20px;
+    font-size:11px;
+  }
+  .iu-panel__body{padding:8px 10px 10px}
+  .iu-row{
+    grid-template-columns:22px minmax(0,1fr) auto auto;
+    gap:7px;
+    min-height:38px;
+    padding:3px 0;
+  }
+  .iu-row>i{width:8px;height:8px}
+  .iu-avatar{
+    width:24px;
+    height:24px;
+    font-size:9px;
+  }
+  .iu-row strong,
+  .iu-compact-row strong,
+  .iu-agenda-row strong,
+  .iu-op strong{font-size:12px}
+  .iu-row span,
+  .iu-compact-row span,
+  .iu-agenda-row span,
+  .iu-op span{font-size:11px}
+  .iu-row time,
+  .iu-agenda-row time{font-size:11px}
+  .iu-link{
+    margin-top:8px;
+    font-size:12px;
+  }
+  .iu-agenda{gap:4px}
+  .iu-agenda-row{
+    grid-template-columns:42px minmax(0,1fr) auto;
+    gap:7px;
+    padding:3px 0;
+  }
+  .iu-op{
+    grid-template-columns:24px minmax(0,1fr);
+    gap:7px;
+    padding:3px 0;
+  }
+  .iu-op>i{
+    width:22px;
+    height:22px;
+    border-radius:7px;
+  }
+  .iu-op>i:after{inset:6px}
+  .iu-op a{
+    grid-column:2;
+    min-width:82px;
+    width:max-content;
+    height:26px;
+    font-size:11px;
+  }
+  .iu-completion,
+  .iu-deadlines{
+    gap:12px;
+    min-height:auto;
+  }
+  .iu-ring{
+    width:88px;
+    height:88px;
+  }
+  .iu-ring>div{
+    width:72px;
+    height:72px;
+  }
+  .iu-ring strong{font-size:18px}
+  .iu-legend{gap:7px}
+  .iu-compact-row{
+    min-height:38px;
+    padding:3px 0;
+  }
+  .iu-donut{
+    width:92px;
+    height:92px;
+  }
+  .iu-donut>div{
+    width:58px;
+    height:58px;
+  }
+  .iu-donut strong{font-size:17px}
+  .iu-deadlines__legend{gap:6px}
+  .iu-economy{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:8px;
+  }
+  .iu-money{
+    min-height:74px;
+    gap:5px;
+    padding:9px;
+    border-radius:10px;
+  }
+  .iu-money span{font-size:11px}
+  .iu-money strong{font-size:14px}
+  .iu-money small{font-size:10px}
+  .iu-mobile{
+    left:8px;
+    right:8px;
+    bottom:8px;
+    min-height:54px;
+    padding:5px;
+    border-radius:18px;
+  }
+  .iu-mobile a{
+    gap:2px;
+    border-radius:13px;
+    font-size:9px;
+  }
+}
+
+@media(max-width:360px){
+  .iu-metrics{grid-template-columns:1fr}
+  .iu-metric{min-height:64px}
 }

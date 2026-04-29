@@ -54,6 +54,7 @@ import { Badge, DossierCard, KpiCard, Panel, SourceCard } from './components/das
 import { AgendaPage } from './components/AgendaPage'
 import { NuovoAppuntamentoPage } from './components/NuovoAppuntamentoPage'
 import { RicercaStudioPage } from './components/RicercaStudioPage'
+import { FascicoliPage } from './components/FascicoliPage'
 import './index.css'
 
 const toneColor: Record<Tone,string> = { danger:'var(--iu-danger-500)', warning:'var(--iu-warning-500)', primary:'var(--iu-blue-600)', success:'var(--iu-success-500)', info:'var(--iu-sky-500)', purple:'var(--iu-purple-500)', orange:'var(--iu-warning-500)', neutral:'var(--iu-slate-300)' }
@@ -123,7 +124,7 @@ const navSections: NavSection[] = [
     label: 'Recenti',
     icon: FolderOpen,
     items: [
-      { label: '2026/004 - N.RG 139/2023 —...', icon: FolderOpen, href: '/fascicoli' }
+      { label: '2026/004 - N.RG 139/2023 —...', icon: FolderOpen, href: '/app-v2/fascicoli' }
     ]
   },
   {
@@ -141,7 +142,7 @@ const navSections: NavSection[] = [
     label: 'Fascicoli',
     icon: Folder,
     items: [
-      { label: 'Tutti i Fascicoli', icon: FolderOpen, href: '/fascicoli' },
+      { label: 'Tutti i Fascicoli', icon: FolderOpen, href: '/app-v2/fascicoli' },
       { label: 'Nuovo Fascicolo', icon: FolderPlus, href: '/fascicoli/nuovo' },
       { label: 'Archivio', icon: Archive, href: '/fascicoli/archivio' }
     ]
@@ -355,7 +356,7 @@ function Lex({ data }:{data:DashboardData}) {
 }
 
 function Dossiers({ data }:{data:DashboardData}) {
-  return <Panel title="Fascicoli da presidiare" subtitle="Array dossier derivato dai fascicoli reali ad alta priorita." icon={<BriefcaseBusiness size={17}/>} count={data.dossiers.length}>{data.dossiers.length?<div className="iu-dossier-grid">{data.dossiers.map(dossier=><DossierCard dossier={dossier} key={dossier.id}/>)}</div>:<Empty>Nessun fascicolo prioritario nell'orizzonte operativo.</Empty>}<a className="iu-link" href="/fascicoli">Apri tutti i fascicoli -&gt;</a></Panel>
+  return <Panel title="Fascicoli da presidiare" subtitle="Array dossier derivato dai fascicoli reali ad alta priorita." icon={<BriefcaseBusiness size={17}/>} count={data.dossiers.length}>{data.dossiers.length?<div className="iu-dossier-grid">{data.dossiers.map(dossier=><DossierCard dossier={dossier} key={dossier.id}/>)}</div>:<Empty>Nessun fascicolo prioritario nell'orizzonte operativo.</Empty>}<a className="iu-link" href="/app-v2/fascicoli">Apri tutti i fascicoli -&gt;</a></Panel>
 }
 
 function Sources({ data }:{data:DashboardData}) {
@@ -379,7 +380,7 @@ function RegiaOperativaPage({ data, loading }:{data:DashboardData; loading:boole
       <section className="iu-grid">
         <div className="span4"><Panel title="Azioni operative" icon={<Sparkles size={17}/>} count={data.operations.length}>{data.operations.length?<div className="iu-compact">{data.operations.map(action=><a className="iu-compact-row" href={action.href||'/workspace-intelligente'} key={action.id}><div><strong>{action.title}</strong><span>{action.subtitle}</span></div>{action.badge?<Badge tone={action.tone||'neutral'}>{action.badge}</Badge>:null}</a>)}</div>:<Empty>Nessuna azione operativa urgente.</Empty>}<a className="iu-link" href="/workspace-intelligente">Vai alla regia storica -&gt;</a></Panel></div>
         <div className="span4"><Panel title="Agenda da presidiare" icon={<CalendarDays size={17}/>} count={agendaRows.length}><List rows={agendaRows} href="/app-v2/agenda"/><a className="iu-link" href="/app-v2/agenda">Apri agenda React -&gt;</a></Panel></div>
-        <div className="span4"><Panel title="Fascicoli prioritari" icon={<BriefcaseBusiness size={17}/>} count={matterRows.length}>{matterRows.length?<div className="iu-compact">{matterRows.map(row=><a className="iu-compact-row" href={row.href||'/fascicoli'} key={row.id}><div><strong>{row.title}</strong><span>{row.subtitle}</span></div>{row.badge?<Badge tone={row.tone||'neutral'}>{row.badge}</Badge>:null}</a>)}</div>:<Empty>Nessun fascicolo ad alta priorita.</Empty>}<a className="iu-link" href="/fascicoli">Vai ai fascicoli -&gt;</a></Panel></div>
+        <div className="span4"><Panel title="Fascicoli prioritari" icon={<BriefcaseBusiness size={17}/>} count={matterRows.length}>{matterRows.length?<div className="iu-compact">{matterRows.map(row=><a className="iu-compact-row" href={row.href||'/fascicoli'} key={row.id}><div><strong>{row.title}</strong><span>{row.subtitle}</span></div>{row.badge?<Badge tone={row.tone||'neutral'}>{row.badge}</Badge>:null}</a>)}</div>:<Empty>Nessun fascicolo ad alta priorita.</Empty>}<a className="iu-link" href="/app-v2/fascicoli">Vai ai fascicoli -&gt;</a></Panel></div>
         <div className="span6"><Panel title="Comunicazioni recenti" icon={<MessageCircle size={17}/>} count={data.messages.length}><List rows={data.messages} avatar href="/messaggi"/><a className="iu-link" href="/messaggi">Vai ai messaggi -&gt;</a></Panel></div>
         <div className="span6"><Lex data={data}/></div>
       </section>
@@ -405,7 +406,7 @@ function DashboardPage({ data, loading }:{data:DashboardData; loading:boolean}) 
         <div className="span3"><Agenda data={data}/></div>
         <div className="span3"><Completion data={data}/></div>
         <div className="span3"><Compact title="Conferimenti incarico mancanti" icon={<UsersRound size={17}/>} count={data.engagements.length} rows={data.engagements} href="/preventivi"/></div>
-        <div className="span2"><Compact title="Fascicoli con priorita alta" icon={<BriefcaseBusiness size={17}/>} count={data.matters.length} rows={data.matters} href="/fascicoli"/></div>
+        <div className="span2"><Compact title="Fascicoli con priorita alta" icon={<BriefcaseBusiness size={17}/>} count={data.matters.length} rows={data.matters} href="/app-v2/fascicoli"/></div>
         <div className="span4"><Donut data={data}/></div>
         <div className="span5"><Economic data={data}/></div>
         <div className="span3"><Lex data={data}/></div>
@@ -422,8 +423,9 @@ export default function App() {
   const isNewAppointmentPage = activePath === '/app-v2/agenda/nuovo' || activePath.startsWith('/app-v2/agenda/nuovo/')
   const isAgendaPage = !isNewAppointmentPage && (activePath === '/app-v2/agenda' || activePath.startsWith('/app-v2/agenda/'))
   const isRegiaPage = activePath === '/app-v2/regia-operativa' || activePath.startsWith('/app-v2/regia-operativa/')
-  const isDashboardPage = !isSearchPage && !isAgendaPage && !isNewAppointmentPage && !isRegiaPage
-  const isStandalonePage = isSearchPage || isAgendaPage || isNewAppointmentPage
+  const isFascicoliPage = activePath === '/app-v2/fascicoli' || activePath.startsWith('/app-v2/fascicoli/')
+  const isDashboardPage = !isSearchPage && !isAgendaPage && !isNewAppointmentPage && !isRegiaPage && !isFascicoliPage
+  const isStandalonePage = isSearchPage || isAgendaPage || isNewAppointmentPage || isFascicoliPage
   const initialSearchQuery = new URLSearchParams(window.location.search).get('q') ?? ''
   const [data,setData]=useState<DashboardData>(emptyDashboard)
   const [loading,setLoading]=useState(!isStandalonePage)
@@ -437,12 +439,12 @@ export default function App() {
         {mobileMenuOpen?<button className="iu-sidebar-scrim" type="button" aria-label="Chiudi menu" onClick={()=>setMobileMenuOpen(false)}/>:null}
         <div className="iu-main">
           <Topbar onOpenMenu={()=>setMobileMenuOpen(true)}/>
-          {isSearchPage?<RicercaStudioPage initialQuery={initialSearchQuery}/>:isNewAppointmentPage?<NuovoAppuntamentoPage/>:isAgendaPage?<AgendaPage/>:isRegiaPage?<RegiaOperativaPage data={data} loading={loading}/>:<DashboardPage data={data} loading={loading}/>}
+          {isSearchPage?<RicercaStudioPage initialQuery={initialSearchQuery}/>:isNewAppointmentPage?<NuovoAppuntamentoPage/>:isAgendaPage?<AgendaPage/>:isRegiaPage?<RegiaOperativaPage data={data} loading={loading}/>:isFascicoliPage?<FascicoliPage/>:<DashboardPage data={data} loading={loading}/>}
         </div>
         <nav className="iu-mobile">
           <a className={isDashboardPage?'active':''} href="/app-v2"><LayoutDashboard size={18}/>Home</a>
           <a className={isSearchPage?'active':''} href="/app-v2/ricerca-studio"><Search size={18}/>Ricerca</a>
-          <a href="/fascicoli"><BriefcaseBusiness size={18}/>Fascicoli</a>
+          <a className={isFascicoliPage?'active':''} href="/app-v2/fascicoli"><BriefcaseBusiness size={18}/>Fascicoli</a>
           <a className={isAgendaPage||isNewAppointmentPage?'active':''} href="/app-v2/agenda"><CalendarDays size={18}/>Agenda</a>
           <a className={isRegiaPage?'active':''} href="/app-v2/regia-operativa"><Sparkles size={18}/>Regia</a>
         </nav>

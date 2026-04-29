@@ -123,6 +123,16 @@ backend storico come punto di scrittura:
 - Lex AI contestuale con icona flottante, posizione persistita e azione
   `Completa titolo`.
 
+### Stato Fascicoli `/app-v2/fascicoli`
+
+La pagina Fascicoli React resta in sola lettura e non sostituisce ancora le route storiche:
+
+- dati da `/api/v1/ui/fascicoli`, normalizzati dai repository reali fascicoli e scadenziario;
+- KPI su attivi, in corso, da archiviare, archiviati, prossime scadenze e documenti da classificare;
+- ricerca, filtri per tipo/stato, filtri avanzati per ufficio, alert e ordinamento;
+- tabella desktop e card mobile responsive, con azioni Apri/Modifica sulle route storiche;
+- pannello operativo con controlli qualità, alert, integrazioni telematiche e Lex AI trascinabile.
+
 ## Fase 4 - Ordine di migrazione
 
 1. Panoramica e shell globale.
@@ -132,7 +142,7 @@ backend storico come punto di scrittura:
 5. Nuovo Appuntamento.
 6. Scadenziario.
 7. Clienti e Anagrafiche.
-8. Fascicoli read-only.
+8. Fascicoli in sola lettura.
 9. Documenti e upload.
 10. Preventivi e Conferimenti.
 11. Parcelle, Fatture, Incassi e Pagamenti.
@@ -147,7 +157,7 @@ Local Signer, audit, canali separati e conferma consapevole dell'avvocato.
 ## Gate per ogni pagina
 
 - API con dati reali, nessun mock operativo.
-- UI read-only prima delle azioni di scrittura.
+- UI in sola lettura prima delle azioni di scrittura.
 - Azioni di scrittura protette da CSRF/sessione, tenant e RBAC.
 - Test unitari backend.
 - Test frontend `npm run test`, `npm run typecheck`, `npm run build`.

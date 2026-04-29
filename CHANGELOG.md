@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.195.25 - 2026-04-29
+
+- Aggiunta la pagina React in sola lettura `/app-v2/fascicoli`, collegata alla nav desktop e mobile senza sostituire le route storiche dei fascicoli.
+- Introdotto il bridge `/api/v1/ui/fascicoli`, alimentato dai repository reali di fascicoli e scadenziario con contratto `mock_fallback=false` e `read_only=true`.
+- Integrata la vista Fascicoli con KPI, ricerca, filtri tipo/stato/ufficio, ordinamento, tabella desktop, card mobile, bulk bar locale e Lex AI contestuale trascinabile.
+- Mantenute le azioni `Nuovo`, `Archivio`, `Apri`, `Modifica` ed `Esporta` sulle route storiche, coerentemente con la migrazione progressiva pagina per pagina.
+- Aggiornati piano migrazione React e test di regressione per nav, API reale e contratto di sola lettura.
+
 ## 2.195.24 - 2026-04-29
 
 - Aggiunto il ponte PEC locale nel Local Signer: `POST /pec/smtp/test` verifica l'SMTP dal PC dello studio e `POST /pec/send` prepara l'invio locale con allegati base64.

@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from datetime import date, datetime, timedelta
 from pathlib import Path
@@ -438,3 +438,68 @@ def test_react_dashboard_legge_repository_operativi(tmp_path: Path):
     assert payload["agenda"][0]["title"] == "Udienza civile"
     assert payload["missing_engagements"][0]["title"] == "Rossi Mario"
     assert payload["high_priority_matters"][0]["title"].startswith(f"RG 123/{today.year}")
+def test_react_fascicoli_page_collegata_nav_api_e_lex():
+    app_source = Path("frontend/src/App.tsx").read_text(encoding="utf-8")
+    page_source = Path("frontend/src/components/FascicoliPage.tsx").read_text(encoding="utf-8")
+    data_source = Path("frontend/src/fascicoliData.ts").read_text(encoding="utf-8")
+    css = Path("frontend/src/components/FascicoliPage.css").read_text(encoding="utf-8")
+    floating_lex = Path("frontend/src/components/FloatingLex.tsx").read_text(encoding="utf-8")
+
+    assert "/app-v2/fascicoli" in app_source
+    assert "isFascicoliPage?<FascicoliPage" in app_source
+    assert 'href="/app-v2/fascicoli"><BriefcaseBusiness size={18}/>Fascicoli' in app_source
+    assert "getFascicoliPage" in data_source
+    assert "/api/v1/ui/fascicoli" in data_source
+    assert "FascicoliPage" in page_source
+    assert "FloatingLex" in page_source
+    assert "context=\"fascicoli\"" in page_source
+    assert "localStorage" in floating_lex
+    assert "onPointerDown" in floating_lex
+    assert "Math.hypot" in floating_lex
+    assert ".iu-fascicoli-page" in css
+    assert "@media(max-width:760px)" in css
+
+
+def test_react_fascicoli_bridge_usa_repository_reali(tmp_path: Path):
+    app = _app(tmp_path)
+    client = app.test_client()
+    today = date.today()
+
+    cliente = GestioneClienti(db_path=app.config["CLIENTI_DB"]).nuovo(
+        TipoCliente.PERSONA_FISICA,
+        nome="Marco",
+        cognome="Moscato",
+    )
+    fascicoli = GestioneFascicoli(
+        db_path=app.config["FASCICOLI_DB"],
+        documents_dir=app.config["FASCICOLI_DOCS"],
+        archive_dir=app.config["FASCICOLI_ARCH"],
+    )
+    fascicolo = fascicoli.nuovo(
+        "Appello civile",
+        TipoFascicolo.CIVILE,
+        id_cliente=cliente.id,
+        nome_cliente=cliente.nome_completo,
+        tribunale="Corte d'Appello di Milano",
+        numero_rg="001",
+        anno_rg=today.year,
+    )
+    GestioneScadenziario(db_path=app.config["SCADENZIARIO_DB"]).nuova(
+        "Deposito comparsa conclusionale",
+        TipoTermine.DEPOSITO_MEMORIA,
+        (today + timedelta(days=10)).isoformat(),
+        id_fascicolo=fascicolo.id,
+    )
+
+    response = client.get("/api/v1/ui/fascicoli", headers={"X-API-Key": "react-test-key"})
+    payload = response.get_json()
+
+    assert response.status_code == 200
+    assert payload["source"] == "repository_reali"
+    assert payload["contracts"]["mock_fallback"] is False
+    assert payload["contracts"]["read_only"] is True
+    assert payload["summary"]["total"] >= 1
+    assert payload["items"][0]["title"] == "Appello civile"
+    assert payload["items"][0]["type"] == "civile"
+    assert payload["items"][0]["client"] == "Moscato Marco"
+    assert payload["items"][0]["nextDeadline"] != "n.d."

@@ -3,6 +3,16 @@ import { Grip, MessageCircle, Sparkles, X } from 'lucide-react'
 
 type Position = { x: number; y: number }
 
+type FloatingLexProps = {
+  context?: string
+  title?: string
+  body?: string
+  primaryHref?: string
+  primaryLabel?: string
+  secondaryHref?: string
+  secondaryLabel?: string
+}
+
 const STORAGE_KEY = 'iusentra.lex.floating.position'
 
 function defaultPosition(): Position {
@@ -31,7 +41,15 @@ function readPosition(): Position {
   return defaultPosition()
 }
 
-export function FloatingLex() {
+export function FloatingLex({
+  context = 'agenda',
+  title = 'Lex AI',
+  body = 'Posso preparare il briefing della giornata, controllare scadenze collegate e suggerire il prossimo passo operativo.',
+  primaryHref = '/lex?context=agenda',
+  primaryLabel = 'Apri Lex completo',
+  secondaryHref = '/workspace-intelligente',
+  secondaryLabel = 'Regia operativa',
+}: FloatingLexProps = {}) {
   const [open, setOpen] = useState(false)
   const [position, setPosition] = useState<Position>(() => readPosition())
   const drag = useRef({
@@ -99,15 +117,15 @@ export function FloatingLex() {
   return (
     <div className="iu-lex-float" style={{ left: position.x, top: position.y }}>
       {open ? (
-        <section className="iu-lex-float__panel" aria-label="Lex AI agenda">
+        <section className="iu-lex-float__panel" aria-label={`${title} ${context}`}>
           <header>
-            <span><Sparkles size={16}/> Lex AI</span>
+            <span><Sparkles size={16}/> {title}</span>
             <button type="button" onClick={() => setOpen(false)} aria-label="Chiudi Lex"><X size={16}/></button>
           </header>
-          <p>Posso preparare il briefing della giornata, controllare scadenze collegate e suggerire il prossimo passo operativo.</p>
+          <p>{body}</p>
           <div>
-            <a href="/lex?context=agenda">Apri Lex completo</a>
-            <a href="/workspace-intelligente">Regia operativa</a>
+            <a href={primaryHref}>{primaryLabel}</a>
+            <a href={secondaryHref}>{secondaryLabel}</a>
           </div>
         </section>
       ) : null}
@@ -123,8 +141,8 @@ export function FloatingLex() {
           }
         }}
         aria-expanded={open}
-        aria-label="Apri Lex AI, icona trascinabile"
-        title="Lex AI - trascina per spostare"
+        aria-label={`Apri ${title}, icona trascinabile`}
+        title={`${title} - trascina per spostare`}
       >
         <Grip className="iu-lex-float__grip" size={12}/>
         <MessageCircle size={23}/>

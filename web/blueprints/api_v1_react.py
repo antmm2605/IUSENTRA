@@ -24,6 +24,7 @@ from pct.scadenziario import PrioritaTermine, StatoTermine
 from pct.timesheet import StatoTimesheet
 from pct.workspace_intelligente import WorkspaceIntelligenteService
 from web.services.react_agenda_bridge import build_react_agenda_payload
+from web.services.react_fascicoli_bridge import build_react_fascicoli_payload
 from web.helpers import (
     get_agenda,
     get_calendar_sync,
@@ -741,6 +742,16 @@ def bootstrap():
             },
         }
     )
+
+
+@api_v1_react.get("/fascicoli")
+@_richiedi_auth
+def fascicoli():
+    payload = build_react_fascicoli_payload(
+        get_fascicoli=get_fascicoli,
+        get_scadenziario=get_scadenziario,
+    )
+    return jsonify(payload)
 
 
 @api_v1_react.get("/dashboard")

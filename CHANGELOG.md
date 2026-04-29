@@ -1,5 +1,21 @@
 # Changelog
 
+## 2.195.12 - 2026-04-29
+
+- Collegata la panoramica React `/app-v2` ai repository operativi reali per PEC/email, messaggi clienti, agenda, scadenziario, fascicoli prioritari, anagrafiche incomplete, preventivi/conferimenti, fatturazione e timesheet.
+- Rimosso il fallback mock del kit dalla dashboard React: le sezioni vuote ora mostrano stati vuoti espliciti e il contratto `/api/v1/ui/dashboard` dichiara `mock_fallback=false`.
+- Aggiunti test di regressione che seminano dati reali nei repository locali e verificano che il payload React li esponga senza usare dati dimostrativi.
+
+## 2.195.11 - 2026-04-29
+
+- Resa collassabile la sidebar enterprise di `/app-v2`, con pulsante accessibile, stato compatto a icone, tooltip nativi sui link e navigazione interna scrollabile per menu lunghi.
+- Aggiunto lo script frontend `npm run typecheck` allineato al prompt pack enterprise, mantenendo la build Vite servita da Flask.
+
+## 2.195.10 - 2026-04-29
+
+- Integrata in `/app-v2` la prima pagina `Panoramica` del React Token UI Kit: sidebar navy enterprise, topbar, KPI cards e pannelli operativi responsive per PEC, email, messaggi clienti, agenda, anagrafiche, conferimenti, fascicoli prioritari, scadenze, economico rapido e suggerimenti Lex AI.
+- Mantenuto il ponte `/api/v1/ui/dashboard`: la nuova UI usa i dati reali gia' disponibili e conserva fallback controllati per le sezioni che verranno collegate nella prossima tranche a PEC, email, messaggi, conferimenti, scadenze ed economia reali.
+
 ## 2.195.9 - 2026-04-28
 
 - Avviata la migrazione progressiva Flask + React con shell separata `/app-v2`, build Vite servita da Flask e API ponte protette sotto `/api/v1/ui/*`.

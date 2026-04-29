@@ -42,7 +42,7 @@ La repo oggi non è più solo un tool CLI per il Processo Civile Telematico: con
 - Assistenza remota cliente sempre da `SUPERADMIN`, con schermo WebRTC, microfono opzionale, chat tecnica, audit, consensi ed escalation governata al controllo remoto avanzato esterno.
 - `Sito Studio` nativo per ogni tenant: pagine a blocchi, articoli, servizi, professionisti, sedi, contatti, agenda appuntamenti pubblica e sito web pubblicabile senza WordPress esterno.
 - Le sezioni pubbliche `Strumenti legali`, `Applicazioni` e `News giuridiche strutturate` non sono esposte in automatico: compaiono sul sito dello studio solo se l'amministratore del sito attiva i flag dedicati da `Sito Studio -> Impostazioni`.
-- Migrazione React progressiva: la shell `/app-v2` convive con la UI Jinja attuale e usa API Flask reali sotto `/api/v1/ui/*`; nessuna route storica viene sostituita senza test di parita', responsive, accessibilita', tenant/RBAC e rollback.
+- Migrazione React progressiva: la shell `/app-v2` convive con la UI Jinja attuale e usa API Flask reali sotto `/api/v1/ui/*`; la prima pagina `Panoramica` usa il React Token UI Kit enterprise collegato ai repository reali per PEC/email, messaggi, agenda, anagrafiche, conferimenti, fascicoli, scadenze, economia e timesheet. Le sezioni senza record mostrano stati vuoti espliciti, non dati dimostrativi. Nessuna route storica viene sostituita senza test di parita', responsive, accessibilita', tenant/RBAC e rollback.
 
 ## Architettura
 

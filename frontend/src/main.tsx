@@ -1,13 +1,9 @@
-import React from "react";
-import ReactDOM from "react-dom/client";
-import { BrowserRouter } from "react-router-dom";
-import App from "./App";
-import "./styles/globals.css";
+import React from 'react'
+import ReactDOM from 'react-dom/client'
+import App from './App'
+import './index.css'
 
-ReactDOM.createRoot(document.getElementById("root")!).render(
-  <React.StrictMode>
-    <BrowserRouter basename="/app-v2">
-      <App />
-    </BrowserRouter>
-  </React.StrictMode>
-);
+const root = document.getElementById('root') ?? document.getElementById('iusentra-react-root')
+if (!root) throw new Error('Elemento #root non trovato.')
+
+ReactDOM.createRoot(root).render(<React.StrictMode><App /></React.StrictMode>)

@@ -1,11 +1,11 @@
 {
-  "src/main.tsx": {
-    "file": "assets/main-ClDCr55y.js",
-    "name": "main",
-    "src": "src/main.tsx",
+  "index.html": {
+    "file": "assets/index-DAiSS4xp.js",
+    "name": "index",
+    "src": "index.html",
     "isEntry": true,
     "css": [
-      "assets/main-Bjw3v7hp.css"
+      "assets/index-CIUGQfvU.css"
     ]
   }
 }

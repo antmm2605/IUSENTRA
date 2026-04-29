@@ -82,6 +82,12 @@ def test_react_sidebar_contiene_navigazione_enterprise_completa():
 
     assert ".iu-nav-section__head" in css
     assert ".iu-sidebar__nav{min-height:0;scrollbar-width:thin" in css
+    assert "useState<Record<string,boolean>>({})" in source
+    assert "openSections[section.id] === true" in source
+    assert "onCloseMobile" in source
+    assert "onNavigate={onCloseMobile}" in source
+    assert "mobileOpen ? 'Chiudi menu'" in source
+    assert ".iu-sidebar.iu-sidebar--mobile-open .iu-sidebar__toggle" in css
 
 
 def test_react_ui_pack_componenti_token_e_array_operativi():
@@ -124,6 +130,28 @@ def test_react_ricerca_studio_e_pagina_separata_senza_mock():
     assert "ArrowDown" in search_component
     assert ".iu-search-page" in css
     assert "@media(max-width:720px)" in css
+
+
+def test_react_agenda_pagina_separata_collegata_nav_e_api():
+    app_source = Path("frontend/src/App.tsx").read_text(encoding="utf-8")
+    agenda_page = Path("frontend/src/components/AgendaPage.tsx").read_text(encoding="utf-8")
+    agenda_data = Path("frontend/src/agendaData.ts").read_text(encoding="utf-8")
+    floating_lex = Path("frontend/src/components/FloatingLex.tsx").read_text(encoding="utf-8")
+    css = Path("frontend/src/index.css").read_text(encoding="utf-8")
+
+    assert "/app-v2/agenda" in app_source
+    assert "isAgendaPage?<AgendaPage/>" in app_source
+    assert "{ label: 'Calendario', icon: CalendarDays, href: '/app-v2/agenda' }" in app_source
+    assert "AgendaPage" in agenda_page
+    assert "getAgendaPage" in agenda_data
+    assert "/api/v1/ui/agenda" in agenda_data
+    assert "/api/v1/agenda" in agenda_data
+    assert "moveEventToDay" in agenda_data
+    assert "localStorage" in floating_lex
+    assert "onPointerDown" in floating_lex
+    assert ".iu-agenda-page" in css
+    assert "@media(max-width:760px)" in css
+    assert "prefers-reduced-motion" in css
 
 
 def test_react_api_bridge_richiede_autenticazione(tmp_path: Path):
@@ -189,6 +217,49 @@ def test_react_dashboard_usa_bridge_reale_senza_mock(tmp_path: Path):
         "lex_suggestions",
     ):
         assert key in payload
+
+
+def test_react_agenda_bridge_usa_agenda_e_scadenziario_reali(tmp_path: Path):
+    app = _app(tmp_path)
+    client = app.test_client()
+    today = date.today()
+
+    GestioneClienti(db_path=app.config["CLIENTI_DB"]).nuovo(
+        TipoCliente.PERSONA_FISICA,
+        nome="Mario",
+        cognome="Rossi",
+    )
+    Agenda(db_path=app.config["AGENDA_DB"]).aggiungi(
+        "Udienza civile",
+        TipoAppuntamento.UDIENZA,
+        datetime.combine(today, datetime.min.time()).replace(hour=10).isoformat(timespec="minutes"),
+        luogo="Aula 1",
+        cliente="Mario Rossi",
+        procedimento=f"RG 123/{today.year}",
+        tribunale="Tribunale di Milano",
+    )
+    scadenziario = GestioneScadenziario(db_path=app.config["SCADENZIARIO_DB"])
+    scadenziario.nuova(
+        "Deposito memoria",
+        TipoTermine.DEPOSITO_MEMORIA,
+        today.isoformat(),
+        id_fascicolo="fasc-test",
+    )
+
+    response = client.get(
+        "/api/v1/ui/agenda",
+        query_string={"from": today.isoformat(), "to": today.isoformat()},
+        headers={"X-API-Key": "react-test-key"},
+    )
+    payload = response.get_json()
+
+    assert response.status_code == 200
+    assert payload["source"] == "repository_reali"
+    assert payload["contracts"]["mock_fallback"] is False
+    assert payload["contracts"]["read_only"] is True
+    assert {item["source"] for item in payload["events"]} == {"agenda", "scadenziario"}
+    assert any(item["title"] == "Udienza civile" for item in payload["events"])
+    assert any(item["title"] == "Deposito memoria" for item in payload["events"])
 
 
 def test_react_dashboard_legge_repository_operativi(tmp_path: Path):

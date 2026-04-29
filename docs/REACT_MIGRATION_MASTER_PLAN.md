@@ -78,20 +78,36 @@ globale senza annidarsi nel contenuto dashboard:
 - shortcut `Ctrl/Cmd + K`, `Esc`, frecce e `Invio`;
 - nessun `mockResults` nella pagina React.
 
+### Stato Agenda `/app-v2/agenda`
+
+La terza pagina React e' collegata alla nav della shell, ma non sostituisce la
+pagina storica `/agenda`:
+
+- dati reali da `/api/v1/ui/agenda`, normalizzati da agenda e scadenziario;
+- contratto read-only con `mock_fallback=false` e route storiche ancora attive
+  per dettagli, creazione, import ed export;
+- filtri per tipologia, ricerca testuale, vista giorno/settimana/mese compatta
+  e KPI su oggi, settimana, udienze, scadenze e alert;
+- calendario responsive con colonne giorno e spostamento provvisorio in vista;
+- briefing operativo, salute sincronizzazione calendari e widget Lex
+  trascinabile;
+- collegamento nav su `/app-v2/agenda` per ogni accesso React alla pagina.
+
 ## Fase 4 - Ordine di migrazione
 
 1. Panoramica e shell globale.
 2. Ricerca Studio.
-3. Scadenziario.
-4. Clienti e Anagrafiche.
-5. Fascicoli read-only.
-6. Documenti e upload.
-7. Preventivi e Conferimenti.
-8. Parcelle, Fatture, Incassi e Pagamenti.
-9. Lex AI.
-10. Sito Studio Builder.
-11. Servizi Telematici, PDP/PST/PAT/PTT, Local Signer e PEC.
-12. Admin e Impostazioni.
+3. Agenda.
+4. Scadenziario.
+5. Clienti e Anagrafiche.
+6. Fascicoli read-only.
+7. Documenti e upload.
+8. Preventivi e Conferimenti.
+9. Parcelle, Fatture, Incassi e Pagamenti.
+10. Lex AI.
+11. Sito Studio Builder.
+12. Servizi Telematici, PDP/PST/PAT/PTT, Local Signer e PEC.
+13. Admin e Impostazioni.
 
 Le aree telematiche e di firma restano ultime perché hanno vincoli di compliance,
 Local Signer, audit, canali separati e conferma consapevole dell'avvocato.

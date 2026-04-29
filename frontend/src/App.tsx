@@ -51,6 +51,7 @@ import {
 } from 'lucide-react'
 import { DashboardData, Row, Tone, emptyDashboard, getDashboard } from './data'
 import { Badge, DossierCard, KpiCard, Panel, SourceCard } from './components/dashboard'
+import { AgendaPage } from './components/AgendaPage'
 import { RicercaStudioPage } from './components/RicercaStudioPage'
 import './index.css'
 
@@ -102,7 +103,7 @@ const navSections: NavSection[] = [
     label: 'Agenda',
     icon: CalendarCheck,
     items: [
-      { label: 'Calendario', icon: CalendarDays, href: '/agenda' },
+      { label: 'Calendario', icon: CalendarDays, href: '/app-v2/agenda' },
       { label: 'Nuovo Appuntamento', icon: CirclePlus, href: '/agenda/nuovo' },
       { label: 'Timesheet', icon: Clock3, href: '/timesheet' }
     ]
@@ -218,11 +219,11 @@ function isActiveHref(href: string, activePath: string): boolean {
   return cleanPath === cleanHref || cleanPath.startsWith(`${cleanHref}/`)
 }
 
-function NavLink({ item, collapsed, activePath }:{item:NavItem; collapsed:boolean; activePath:string}) {
+function NavLink({ item, collapsed, activePath, onNavigate }:{item:NavItem; collapsed:boolean; activePath:string; onNavigate?:()=>void}) {
   const Icon = item.icon
   const active = item.active || isActiveHref(item.href, activePath)
   return (
-    <a className={`iu-nav-link ${active?'is-active':''}`} href={item.href} title={collapsed?item.label:undefined}>
+    <a className={`iu-nav-link ${active?'is-active':''}`} href={item.href} title={collapsed?item.label:undefined} onClick={onNavigate}>
       <Icon size={17}/>
       <span>{item.label}</span>
       {item.badge?<b className="iu-nav-badge">{item.badge}</b>:null}
@@ -230,31 +231,39 @@ function NavLink({ item, collapsed, activePath }:{item:NavItem; collapsed:boolea
   )
 }
 
-function Sidebar({ collapsed, mobileOpen, activePath, onToggle }:{collapsed:boolean; mobileOpen:boolean; activePath:string; onToggle:()=>void}) {
-  const [openSections,setOpenSections]=useState<Record<string,boolean>>(()=>Object.fromEntries(navSections.map(section=>[section.id,true])))
+function Sidebar({ collapsed, mobileOpen, activePath, onToggle, onCloseMobile }:{collapsed:boolean; mobileOpen:boolean; activePath:string; onToggle:()=>void; onCloseMobile:()=>void}) {
+  const [openSections,setOpenSections]=useState<Record<string,boolean>>({})
   const toggleSection=(id:string)=>setOpenSections(current=>({...current,[id]:!current[id]}))
-  const ToggleIcon = collapsed ? PanelLeftOpen : PanelLeftClose
+  const ToggleIcon = mobileOpen ? PanelLeftClose : collapsed ? PanelLeftOpen : PanelLeftClose
+  const toggleLabel = mobileOpen ? 'Chiudi menu' : collapsed ? 'Espandi menu' : 'Comprimi menu'
+  const handleToggle = () => {
+    if (mobileOpen) {
+      onCloseMobile()
+      return
+    }
+    onToggle()
+  }
   return (
     <aside className={`iu-sidebar ${collapsed?'iu-sidebar--collapsed':''} ${mobileOpen?'iu-sidebar--mobile-open':''}`}>
       <div className="iu-sidebar__brand">
         <Logo/>
         <div><strong>IUSENTRA</strong><span>Lo studio legale, in un unico sistema</span></div>
-        <button className="iu-sidebar__toggle" type="button" onClick={onToggle} aria-label={collapsed?'Espandi menu':'Comprimi menu'} title={collapsed?'Espandi menu':'Comprimi menu'}><ToggleIcon size={18}/></button>
+        <button className="iu-sidebar__toggle" type="button" onClick={handleToggle} aria-label={toggleLabel} title={toggleLabel}><ToggleIcon size={18}/></button>
       </div>
       <nav className="iu-sidebar__nav" aria-label="Navigazione principale">
         <div className="iu-nav-primary">
-          {primaryNav.map(item=><NavLink key={item.label} item={item} collapsed={collapsed} activePath={activePath}/>)}
+          {primaryNav.map(item=><NavLink key={item.label} item={item} collapsed={collapsed} activePath={activePath} onNavigate={onCloseMobile}/>)}
         </div>
         {navSections.map(section=>{
           const SectionIcon = section.icon || Folder
-          const open = openSections[section.id] !== false
+          const open = openSections[section.id] === true
           return (
             <section className={`iu-nav-section ${section.tone==='admin'?'iu-nav-section--admin':''}`} key={section.id}>
               <button className="iu-nav-section__head" type="button" onClick={()=>toggleSection(section.id)} aria-expanded={open}>
                 <span><SectionIcon size={14}/>{section.label}</span>
                 <ChevronDown size={13}/>
               </button>
-              {open?<div className="iu-nav-section__items">{section.items.map(item=><NavLink key={`${section.id}-${item.label}`} item={item} collapsed={collapsed} activePath={activePath}/>)}</div>:null}
+              {open?<div className="iu-nav-section__items">{section.items.map(item=><NavLink key={`${section.id}-${item.label}`} item={item} collapsed={collapsed} activePath={activePath} onNavigate={onCloseMobile}/>)}</div>:null}
             </section>
           )
         })}
@@ -289,7 +298,7 @@ function Agenda({ data }:{data:DashboardData}) {
   const todayRows = data.agenda.filter(a=>a.badge==='OGGI')
   const tomorrowRows = data.agenda.filter(a=>a.badge==='DOMANI')
   const otherRows = data.agenda.filter(a=>a.badge!=='OGGI' && a.badge!=='DOMANI')
-  return <Panel title="Agenda e udienze" icon={<CalendarDays size={17}/>} count={data.agenda.length}><div className="iu-agenda"><p>{italianDay(0)}</p>{todayRows.length?todayRows.map(a=><a className="iu-agenda-row" href={a.href||'/agenda'} key={a.id}><time>{a.time}</time><div><strong>{a.title}</strong><span>{a.subtitle}</span></div>{a.badge?<Badge tone="warning">{a.badge}</Badge>:null}</a>):<Empty>Nessun impegno per oggi.</Empty>}<p className="next">{italianDay(1)}</p>{[...tomorrowRows,...otherRows].length?[...tomorrowRows,...otherRows].map(a=><a className="iu-agenda-row" href={a.href||'/agenda'} key={a.id}><time>{a.time}</time><div><strong>{a.title}</strong><span>{a.subtitle}</span></div>{a.badge?<Badge tone="primary">{a.badge}</Badge>:null}</a>):<Empty>Nessun impegno programmato.</Empty>}</div><a className="iu-link" href="/agenda">Vai all'agenda completa -&gt;</a></Panel>
+  return <Panel title="Agenda e udienze" icon={<CalendarDays size={17}/>} count={data.agenda.length}><div className="iu-agenda"><p>{italianDay(0)}</p>{todayRows.length?todayRows.map(a=><a className="iu-agenda-row" href={a.href||'/agenda'} key={a.id}><time>{a.time}</time><div><strong>{a.title}</strong><span>{a.subtitle}</span></div>{a.badge?<Badge tone="warning">{a.badge}</Badge>:null}</a>):<Empty>Nessun impegno per oggi.</Empty>}<p className="next">{italianDay(1)}</p>{[...tomorrowRows,...otherRows].length?[...tomorrowRows,...otherRows].map(a=><a className="iu-agenda-row" href={a.href||'/agenda'} key={a.id}><time>{a.time}</time><div><strong>{a.title}</strong><span>{a.subtitle}</span></div>{a.badge?<Badge tone="primary">{a.badge}</Badge>:null}</a>):<Empty>Nessun impegno programmato.</Empty>}</div><a className="iu-link" href="/app-v2/agenda">Vai all'agenda completa -&gt;</a></Panel>
 }
 
 function Completion({ data }:{data:DashboardData}) {
@@ -357,11 +366,13 @@ function DashboardPage({ data, loading }:{data:DashboardData; loading:boolean}) 
 export default function App() {
   const activePath = window.location.pathname.replace(/\/+$/, '') || '/app-v2'
   const isSearchPage = activePath.includes('/app-v2/ricerca-studio')
+  const isAgendaPage = activePath === '/app-v2/agenda' || activePath.startsWith('/app-v2/agenda/')
+  const isStandalonePage = isSearchPage || isAgendaPage
   const initialSearchQuery = new URLSearchParams(window.location.search).get('q') ?? ''
   const [data,setData]=useState<DashboardData>(emptyDashboard)
-  const [loading,setLoading]=useState(!isSearchPage)
+  const [loading,setLoading]=useState(!isStandalonePage)
   const [sidebarCollapsed,setSidebarCollapsed]=useState(false)
   const [mobileMenuOpen,setMobileMenuOpen]=useState(false)
-  useEffect(()=>{if(isSearchPage)return; let ok=true; getDashboard().then(d=>{if(ok)setData(d)}).finally(()=>{if(ok)setLoading(false)}); return()=>{ok=false}},[isSearchPage])
-  return <div className={`iu-shell ${sidebarCollapsed?'iu-shell--collapsed':''}`}><Sidebar collapsed={sidebarCollapsed} mobileOpen={mobileMenuOpen} activePath={activePath} onToggle={()=>setSidebarCollapsed(v=>!v)}/>{mobileMenuOpen?<button className="iu-sidebar-scrim" type="button" aria-label="Chiudi menu" onClick={()=>setMobileMenuOpen(false)}/>:null}<div className="iu-main"><Topbar onOpenMenu={()=>setMobileMenuOpen(true)}/>{isSearchPage?<RicercaStudioPage initialQuery={initialSearchQuery}/>:<DashboardPage data={data} loading={loading}/>}</div><nav className="iu-mobile"><a className={!isSearchPage?'active':''} href="/app-v2"><LayoutDashboard size={18}/>Home</a><a className={isSearchPage?'active':''} href="/app-v2/ricerca-studio"><Search size={18}/>Ricerca</a><a href="/fascicoli"><BriefcaseBusiness size={18}/>Fascicoli</a><a href="/agenda"><CalendarDays size={18}/>Agenda</a><a href="/lex"><Sparkles size={18}/>Lex</a></nav></div>
+  useEffect(()=>{if(isStandalonePage)return; let ok=true; getDashboard().then(d=>{if(ok)setData(d)}).finally(()=>{if(ok)setLoading(false)}); return()=>{ok=false}},[isStandalonePage])
+  return <div className={`iu-shell ${sidebarCollapsed?'iu-shell--collapsed':''}`}><Sidebar collapsed={sidebarCollapsed} mobileOpen={mobileMenuOpen} activePath={activePath} onToggle={()=>setSidebarCollapsed(v=>!v)} onCloseMobile={()=>setMobileMenuOpen(false)}/>{mobileMenuOpen?<button className="iu-sidebar-scrim" type="button" aria-label="Chiudi menu" onClick={()=>setMobileMenuOpen(false)}/>:null}<div className="iu-main"><Topbar onOpenMenu={()=>setMobileMenuOpen(true)}/>{isSearchPage?<RicercaStudioPage initialQuery={initialSearchQuery}/>:isAgendaPage?<AgendaPage/>:<DashboardPage data={data} loading={loading}/>}</div><nav className="iu-mobile"><a className={!isStandalonePage?'active':''} href="/app-v2"><LayoutDashboard size={18}/>Home</a><a className={isSearchPage?'active':''} href="/app-v2/ricerca-studio"><Search size={18}/>Ricerca</a><a href="/fascicoli"><BriefcaseBusiness size={18}/>Fascicoli</a><a className={isAgendaPage?'active':''} href="/app-v2/agenda"><CalendarDays size={18}/>Agenda</a><a href="/lex"><Sparkles size={18}/>Lex</a></nav></div>
 }

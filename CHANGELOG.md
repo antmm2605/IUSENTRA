@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.195.16 - 2026-04-29
+
+- Aggiunta la pagina React separata `/app-v2/agenda`, collegata alla nav della shell senza sostituire la pagina storica `/agenda`.
+- Introdotto il bridge read-only `/api/v1/ui/agenda`, alimentato dai repository reali di agenda e scadenziario con contratto `mock_fallback=false`.
+- Integrata la vista Agenda responsive con filtri, KPI, calendario settimanale/giornaliero, briefing, salute sincronizzazione, azioni operative e widget Lex trascinabile.
+- Chiuse di default tutte le sezioni della nav enterprise e corretto il drawer mobile: il pulsante nel brand chiude il menu, lo scrim resta operativo e i link chiudono la navigazione dopo la scelta.
+
 ## 2.195.15 - 2026-04-29
 
 - Aggiunta la pagina React separata `/app-v2/ricerca-studio`, collegata all'indice reale `/api/global-search` senza `mockResults`.

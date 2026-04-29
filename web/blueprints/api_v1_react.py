@@ -23,6 +23,7 @@ from pct.preventivi import StatoPreventivo
 from pct.scadenziario import PrioritaTermine, StatoTermine
 from pct.timesheet import StatoTimesheet
 from pct.workspace_intelligente import WorkspaceIntelligenteService
+from web.services.react_agenda_bridge import build_react_agenda_payload
 from web.helpers import (
     get_agenda,
     get_calendar_sync,
@@ -852,6 +853,18 @@ def dashboard():
                 "warning": "Dati non disponibili. La UI storica resta la fonte operativa.",
             }
         ), 200
+
+
+@api_v1_react.get("/agenda")
+@_richiedi_auth
+def agenda():
+    payload = build_react_agenda_payload(
+        get_agenda,
+        get_scadenziario,
+        from_value=request.args.get("from", ""),
+        to_value=request.args.get("to", ""),
+    )
+    return jsonify(payload)
 
 
 @api_v1_react.get("/fascicoli/<id_fascicolo>")

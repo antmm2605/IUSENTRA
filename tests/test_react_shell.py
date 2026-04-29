@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from datetime import date, datetime, timedelta
 from pathlib import Path
@@ -82,6 +82,29 @@ def test_react_sidebar_contiene_navigazione_enterprise_completa():
 
     assert ".iu-nav-section__head" in css
     assert ".iu-sidebar__nav{min-height:0;scrollbar-width:thin" in css
+
+
+def test_react_ui_pack_componenti_token_e_array_operativi():
+    app_source = Path("frontend/src/App.tsx").read_text(encoding="utf-8")
+    data_source = Path("frontend/src/data.ts").read_text(encoding="utf-8")
+    component_source = Path("frontend/src/components/dashboard.tsx").read_text(encoding="utf-8")
+    css = Path("frontend/src/index.css").read_text(encoding="utf-8")
+    tokens = Path("frontend/src/design-system/tokens.ts").read_text(encoding="utf-8")
+
+    for component in ("Panel", "KpiCard", "DossierCard", "SourceCard", "Badge", "Button"):
+        assert f"function {component}" in component_source
+        assert component in app_source or component in component_source
+
+    assert "export type Dossier" in data_source
+    assert "export type Source" in data_source
+    assert "dossiers: asDossiers(payload)" in data_source
+    assert "sources: asSources(payload, dashboard)" in data_source
+    assert "@media(max-width:980px)" in css
+    assert "--iu-space-4" in css
+    assert "--iu-radius-md" in css
+    assert "--iu-shadow-drawer" in css
+    assert "spacing:" in tokens
+    assert "typography:" in tokens
 
 
 def test_react_api_bridge_richiede_autenticazione(tmp_path: Path):

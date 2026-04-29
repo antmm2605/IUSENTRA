@@ -49,6 +49,20 @@ servizi Flask già tenant-aware.
   `prefers-reduced-motion`.
 - Nessun caricamento esterno non necessario senza consenso.
 
+### Stato Panoramica `/app-v2`
+
+La prima pagina React usa la shell enterprise collegata a `/api/v1/ui/dashboard`:
+
+- sidebar desktop con navigazione lunga scrollabile e drawer sotto `980px`;
+- topbar con ricerca, azioni rapide e comandi principali;
+- token CSS e TypeScript per colori, spacing, radius, shadow e typography;
+- componenti riusabili `Panel`, `KpiCard`, `DossierCard`, `SourceCard`, `Badge`
+  e `Button`;
+- array dati separati in `frontend/src/data.ts` per KPI, agenda, operativita',
+  fascicoli, fonti, scadenze, economia e suggerimenti Lex;
+- niente mock operativo: le sezioni leggono i dati reali disponibili e usano
+  stati vuoti espliciti quando il repository non contiene record.
+
 ## Fase 4 - Ordine di migrazione
 
 1. Panoramica e shell globale.

@@ -50,15 +50,12 @@ import {
   Wrench,
   type LucideIcon
 } from 'lucide-react'
-import { DashboardData, Metric, Row, Tone, emptyDashboard, getDashboard } from './data'
+import { DashboardData, Row, Tone, emptyDashboard, getDashboard } from './data'
+import { Badge, DossierCard, KpiCard, Panel, SourceCard } from './components/dashboard'
 import './index.css'
 
 const toneColor: Record<Tone,string> = { danger:'var(--iu-danger-500)', warning:'var(--iu-warning-500)', primary:'var(--iu-blue-600)', success:'var(--iu-success-500)', info:'var(--iu-sky-500)', purple:'var(--iu-purple-500)', orange:'var(--iu-warning-500)', neutral:'var(--iu-slate-300)' }
 const metricIcon = { danger: AlertTriangle, primary: Mail, success: MessageCircle, purple: Clock3, orange: UsersRound, warning: AlertTriangle, info: Mail, neutral: Clock3 }
-
-function Badge({ tone='neutral', children }:{tone?:Tone; children:ReactNode}) {
-  return <span className={`iu-badge iu-badge--${tone}`}>{children}</span>
-}
 
 function Avatar({ label }:{label:string}) {
   const initials = label.split(' ').map(x=>x[0]).join('').slice(0,2).toUpperCase()
@@ -264,15 +261,6 @@ function Topbar({ onOpenMenu }:{onOpenMenu:()=>void}) {
   return <header className="iu-topbar"><button className="iu-icon iu-menu-mobile" type="button" onClick={onOpenMenu} aria-label="Apri menu"><PanelLeftOpen size={18}/></button><label className="iu-search"><Search size={18}/><input placeholder="Cerca fascicolo, cliente, pratica, scadenza..."/></label><div className="iu-topbar__actions"><button className="iu-date">{today} <CalendarDays size={16}/></button><button className="iu-icon notify"><Bell size={18}/><span>8</span></button><button className="iu-icon"><Settings2 size={18}/></button><button className="iu-icon"><CircleHelp size={18}/></button><button className="iu-new"><Plus size={16}/>Nuovo</button></div></header>
 }
 
-function MetricCard({ item }:{item:Metric}) {
-  const Icon = metricIcon[item.tone] || AlertTriangle
-  return <a href={item.href||'#'} className={`iu-metric iu-metric--${item.tone}`}><div className="iu-metric__icon"><Icon size={25}/></div><div className="iu-metric__content"><div className="iu-metric__top"><strong>{item.value}</strong>{item.tag?<Badge tone={item.tone}>{item.tag}</Badge>:null}</div><div className="iu-metric__label">{item.label}</div><div className="iu-link">{item.actionLabel||'Apri'} -&gt;</div></div></a>
-}
-
-function Panel({ title, icon, count, children }:{title:string; icon:ReactNode; count?:number|string; children:ReactNode}) {
-  return <section className="iu-panel"><header><div>{icon}<strong>{title}</strong></div>{count!==undefined?<span>{count}</span>:null}</header><div className="iu-panel__body">{children}</div></section>
-}
-
 function Empty({ children='Nessun elemento da presidiare.' }:{children?:string}) {
   return <p className="iu-empty">{children}</p>
 }
@@ -325,11 +313,19 @@ function Lex({ data }:{data:DashboardData}) {
   return <Panel title="Suggerimenti Lex AI" icon={<Sparkles size={17}/>} count={data.lex.length}>{data.lex.length?<div className="iu-lex">{data.lex.map(s=><div key={s}><Sparkles size={15}/><span>{s}</span></div>)}</div>:<Empty>Nessun suggerimento prioritario.</Empty>}<a className="iu-link" href="/lex">Apri Lex AI -&gt;</a></Panel>
 }
 
+function Dossiers({ data }:{data:DashboardData}) {
+  return <Panel title="Fascicoli da presidiare" subtitle="Array dossier derivato dai fascicoli reali ad alta priorita." icon={<BriefcaseBusiness size={17}/>} count={data.dossiers.length}>{data.dossiers.length?<div className="iu-dossier-grid">{data.dossiers.map(dossier=><DossierCard dossier={dossier} key={dossier.id}/>)}</div>:<Empty>Nessun fascicolo prioritario nell'orizzonte operativo.</Empty>}<a className="iu-link" href="/fascicoli">Apri tutti i fascicoli -&gt;</a></Panel>
+}
+
+function Sources({ data }:{data:DashboardData}) {
+  return <Panel title="Fonti operative collegate" subtitle="Array fonti pronto per API/store e alimentato dai conteggi reali." icon={<BookOpen size={17}/>} count={data.sources.length}>{data.sources.length?<div className="iu-source-grid">{data.sources.map(source=><SourceCard source={source} key={source.id}/>)}</div>:<Empty>Nessuna fonte operativa disponibile.</Empty>}</Panel>
+}
+
 export default function App() {
   const [data,setData]=useState<DashboardData>(emptyDashboard)
   const [loading,setLoading]=useState(true)
   const [sidebarCollapsed,setSidebarCollapsed]=useState(false)
   const [mobileMenuOpen,setMobileMenuOpen]=useState(false)
   useEffect(()=>{let ok=true; getDashboard().then(d=>{if(ok)setData(d)}).finally(()=>{if(ok)setLoading(false)}); return()=>{ok=false}},[])
-  return <div className={`iu-shell ${sidebarCollapsed?'iu-shell--collapsed':''}`}><Sidebar collapsed={sidebarCollapsed} mobileOpen={mobileMenuOpen} onToggle={()=>setSidebarCollapsed(v=>!v)}/>{mobileMenuOpen?<button className="iu-sidebar-scrim" type="button" aria-label="Chiudi menu" onClick={()=>setMobileMenuOpen(false)}/>:null}<div className="iu-main"><Topbar onOpenMenu={()=>setMobileMenuOpen(true)}/><main className="iu-content"><div className="iu-page-heading"><div><h1>Panoramica</h1><p>Centro operativo dello studio</p></div><span className={`iu-sync ${loading?'':'ok'}`}>{loading?'Sincronizzazione dati...':'Dati aggiornati'}</span></div><section className="iu-metrics">{data.metrics.map(m=><MetricCard item={m} key={m.id}/>)}</section><section className="iu-grid"><div className="span3"><Panel title="Ultime PEC ricevute" icon={<Mail size={17}/>} count={data.pec.length}><List rows={data.pec} href="/email"/><a className="iu-link" href="/email">Vai alla casella PEC -&gt;</a></Panel></div><div className="span3"><Panel title="Email recenti" icon={<Mail size={17}/>} count={data.emails.length}><List rows={data.emails} avatar href="/email"/><a className="iu-link" href="/email">Vai alla posta -&gt;</a></Panel></div><div className="span3"><Panel title="Messaggi recenti dai clienti" icon={<MessageCircle size={17}/>} count={data.messages.length}><List rows={data.messages} avatar href="/messaggi"/><a className="iu-link" href="/messaggi">Vai ai messaggi -&gt;</a></Panel></div><div className="span3"><Agenda data={data}/></div><div className="span4"><Operations data={data}/></div><div className="span3"><Completion data={data}/></div><div className="span3"><Compact title="Conferimenti incarico mancanti" icon={<UsersRound size={17}/>} count={data.engagements.length} rows={data.engagements} href="/preventivi"/></div><div className="span2"><Compact title="Fascicoli con priorita alta" icon={<BriefcaseBusiness size={17}/>} count={data.matters.length} rows={data.matters} href="/fascicoli"/></div><div className="span4"><Donut data={data}/></div><div className="span5"><Economic data={data}/></div><div className="span3"><Lex data={data}/></div></section></main></div><nav className="iu-mobile"><a className="active" href="/app-v2"><LayoutDashboard size={18}/>Home</a><a href="/fascicoli"><BriefcaseBusiness size={18}/>Fascicoli</a><a href="/agenda"><CalendarDays size={18}/>Agenda</a><a href="/messaggi"><MessageCircle size={18}/>Messaggi</a><a href="/lex"><Sparkles size={18}/>Lex</a></nav></div>
+  return <div className={`iu-shell ${sidebarCollapsed?'iu-shell--collapsed':''}`}><Sidebar collapsed={sidebarCollapsed} mobileOpen={mobileMenuOpen} onToggle={()=>setSidebarCollapsed(v=>!v)}/>{mobileMenuOpen?<button className="iu-sidebar-scrim" type="button" aria-label="Chiudi menu" onClick={()=>setMobileMenuOpen(false)}/>:null}<div className="iu-main"><Topbar onOpenMenu={()=>setMobileMenuOpen(true)}/><main className="iu-content"><div className="iu-page-heading"><div><h1>Panoramica</h1><p>Centro operativo dello studio</p></div><span className={`iu-sync ${loading?'':'ok'}`}>{loading?'Sincronizzazione dati...':'Dati aggiornati'}</span></div><section className="iu-metrics">{data.metrics.map(m=><KpiCard item={m} icon={metricIcon[m.tone] || AlertTriangle} key={m.id}/>)}</section><section className="iu-grid"><div className="span3"><Panel title="Ultime PEC ricevute" icon={<Mail size={17}/>} count={data.pec.length}><List rows={data.pec} href="/email"/><a className="iu-link" href="/email">Vai alla casella PEC -&gt;</a></Panel></div><div className="span3"><Panel title="Email recenti" icon={<Mail size={17}/>} count={data.emails.length}><List rows={data.emails} avatar href="/email"/><a className="iu-link" href="/email">Vai alla posta -&gt;</a></Panel></div><div className="span3"><Panel title="Messaggi recenti dai clienti" icon={<MessageCircle size={17}/>} count={data.messages.length}><List rows={data.messages} avatar href="/messaggi"/><a className="iu-link" href="/messaggi">Vai ai messaggi -&gt;</a></Panel></div><div className="span3"><Agenda data={data}/></div><div className="span4"><Operations data={data}/></div><div className="span3"><Completion data={data}/></div><div className="span3"><Compact title="Conferimenti incarico mancanti" icon={<UsersRound size={17}/>} count={data.engagements.length} rows={data.engagements} href="/preventivi"/></div><div className="span2"><Compact title="Fascicoli con priorita alta" icon={<BriefcaseBusiness size={17}/>} count={data.matters.length} rows={data.matters} href="/fascicoli"/></div><div className="span4"><Donut data={data}/></div><div className="span5"><Economic data={data}/></div><div className="span3"><Lex data={data}/></div><div className="span6"><Dossiers data={data}/></div><div className="span6"><Sources data={data}/></div></section></main></div><nav className="iu-mobile"><a className="active" href="/app-v2"><LayoutDashboard size={18}/>Home</a><a href="/fascicoli"><BriefcaseBusiness size={18}/>Fascicoli</a><a href="/agenda"><CalendarDays size={18}/>Agenda</a><a href="/messaggi"><MessageCircle size={18}/>Messaggi</a><a href="/lex"><Sparkles size={18}/>Lex</a></nav></div>
 }

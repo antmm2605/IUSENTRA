@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.195.14 - 2026-04-29
+
+- Integrato il pack `iusentra-react-ui` nella shell `/app-v2` mantenendo i dati reali gia' collegati: componenti React riusabili `Panel`, `KpiCard`, `DossierCard`, `SourceCard`, `Badge` e `Button`.
+- Separati in `data.ts` gli array operativi pronti per API/store (`metrics`, `agenda`, `operations`, `dossiers`, `sources`, fascicoli, fonti, economia e suggerimenti Lex) senza reintrodurre mock.
+- Estesi token CSS/TypeScript per colori, spacing, radius, shadow e typography; la sidebar resta desktop e diventa drawer sotto `980px`.
+
 ## 2.195.13 - 2026-04-29
 
 - Compattata la versione mobile di `/app-v2` con KPI, pannelli, righe operative, grafici e barra inferiore piu' densi e leggibili su schermi piccoli.

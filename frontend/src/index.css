@@ -403,3 +403,207 @@ body.react-shell-page #root{
   .iu-metrics{grid-template-columns:1fr}
   .iu-metric{min-height:64px}
 }
+
+:root{
+  --iu-font-family-base:Inter,ui-sans-serif,system-ui,sans-serif;
+  --iu-font-size-xs:12px;
+  --iu-font-size-sm:13px;
+  --iu-font-size-md:14px;
+  --iu-font-size-lg:18px;
+  --iu-space-1:4px;
+  --iu-space-2:8px;
+  --iu-space-3:12px;
+  --iu-space-4:16px;
+  --iu-space-5:20px;
+  --iu-space-6:24px;
+  --iu-radius-sm:10px;
+  --iu-radius-md:14px;
+  --iu-radius-lg:18px;
+  --iu-radius-pill:999px;
+  --iu-shadow-drawer:0 24px 80px rgba(15,23,42,.32);
+}
+
+.span6{grid-column:span 6}
+
+.iu-panel>header>div>span{
+  min-width:0;
+  display:grid;
+  gap:2px;
+}
+.iu-panel>header>div>span>strong{
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.iu-panel>header>div>span>small{
+  max-width:54ch;
+  color:var(--iu-slate-500);
+  font-size:11px;
+  font-weight:650;
+  line-height:1.25;
+}
+.iu-panel__action{
+  flex:0 0 auto;
+}
+.iu-button{
+  min-height:32px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  padding:0 12px;
+  border:1px solid var(--iu-border);
+  border-radius:9px;
+  background:#fff;
+  color:var(--iu-navy-900);
+  font-size:12px;
+  font-weight:850;
+  white-space:nowrap;
+  transition:.16s ease;
+}
+.iu-button:hover{
+  transform:translateY(-1px);
+  border-color:rgba(37,99,235,.25);
+  box-shadow:0 6px 16px rgba(15,23,42,.07);
+}
+.iu-button--primary{
+  border-color:transparent;
+  background:linear-gradient(135deg,var(--iu-navy-900),var(--iu-navy-800));
+  color:#fff;
+}
+.iu-button--ghost{
+  border-color:transparent;
+  background:transparent;
+}
+.iu-button--full{width:100%}
+
+.iu-dossier-grid,
+.iu-source-grid{
+  display:grid;
+  gap:10px;
+}
+.iu-dossier-grid{
+  grid-template-columns:repeat(2,minmax(0,1fr));
+}
+.iu-source-grid{
+  grid-template-columns:repeat(2,minmax(0,1fr));
+}
+.iu-dossier-card,
+.iu-source-card{
+  min-width:0;
+  border:1px solid var(--iu-border);
+  border-radius:12px;
+  background:#fff;
+  box-shadow:0 6px 16px rgba(15,23,42,.045);
+}
+.iu-dossier-card{
+  display:flex;
+  flex-direction:column;
+  min-height:214px;
+  padding:12px;
+}
+.iu-dossier-card__topline,
+.iu-source-card__head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:10px;
+}
+.iu-dossier-card__topline>strong{
+  min-width:34px;
+  height:34px;
+  display:grid;
+  place-items:center;
+  border-radius:12px;
+  background:var(--iu-slate-100);
+  color:#111827;
+  font-size:16px;
+}
+.iu-dossier-card__title{
+  margin-top:9px;
+  color:var(--iu-blue-600);
+  font-size:13px;
+  font-weight:900;
+  line-height:1.25;
+}
+.iu-dossier-card p,
+.iu-source-card p{
+  margin:5px 0 10px;
+  color:var(--iu-slate-500);
+  font-size:12px;
+  font-weight:650;
+  line-height:1.42;
+}
+.iu-dossier-card h3,
+.iu-source-card h3{
+  margin:0;
+  color:#1f2937;
+  font-size:12px;
+  font-weight:900;
+}
+.iu-dossier-card ul{
+  margin:0;
+  padding-left:17px;
+  color:var(--iu-slate-600);
+  font-size:11.5px;
+  font-weight:650;
+  line-height:1.38;
+}
+.iu-dossier-card__actions{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin-top:auto;
+  padding-top:12px;
+}
+.iu-source-card{
+  min-height:132px;
+  padding:12px;
+}
+.iu-source-card a{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  color:var(--iu-blue-600);
+  font-size:12px;
+  font-weight:850;
+}
+
+@media(min-width:981px) and (max-width:1180px){
+  .iu-shell,
+  .iu-shell.iu-shell--collapsed{grid-template-columns:var(--iu-sidebar-w) 1fr}
+  .iu-shell.iu-shell--collapsed{grid-template-columns:84px 1fr}
+  .iu-sidebar{transform:none;width:var(--iu-sidebar-w)}
+  .iu-sidebar--collapsed{width:84px}
+  .iu-main{grid-column:2}
+  .iu-menu-mobile{display:none}
+}
+
+@media(max-width:980px){
+  .iu-shell,
+  .iu-shell.iu-shell--collapsed{grid-template-columns:1fr}
+  .iu-sidebar{transform:translateX(-105%);box-shadow:var(--iu-shadow-drawer)}
+  .iu-sidebar.iu-sidebar--mobile-open{transform:translateX(0)}
+  .iu-main{grid-column:1}
+  .iu-menu-mobile{display:grid}
+}
+
+@media(max-width:1480px){
+  .span6{grid-column:span 6}
+}
+
+@media(max-width:920px){
+  .span6{grid-column:span 6}
+}
+
+@media(max-width:740px){
+  .iu-dossier-grid,
+  .iu-source-grid{grid-template-columns:1fr}
+}
+
+@media(max-width:640px){
+  .span6{grid-column:span 1}
+  .iu-panel>header>div>span>small{display:none}
+  .iu-dossier-card{min-height:178px;padding:10px}
+  .iu-dossier-card__actions .iu-button{flex:1 1 130px}
+}

@@ -67,6 +67,16 @@ def _vite_entry() -> dict[str, Any]:
 def react_app(spa_path: str = ""):
     """Serve la shell SPA React senza alterare le route storiche."""
 
+    return render_react_shell_response(spa_path)
+
+
+def render_react_shell_response(spa_path: str = ""):
+    """Render condiviso per le superfici migrate a React.
+
+    Alcune route storiche restano operative come URL ufficiali ma, in GET,
+    mostrano la shell React. I POST continuano a passare dalle route legacy.
+    """
+
     response = make_response(render_template(
         "react_shell.html",
         react_assets=_vite_entry(),

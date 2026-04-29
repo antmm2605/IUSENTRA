@@ -155,8 +155,8 @@ const navSections: NavSection[] = [
     label: 'Clienti e Anagrafiche',
     icon: UsersRound,
     items: [
-      { label: 'Anagrafica', icon: UsersRound, href: '/app-v2/clienti' },
-      { label: 'Nuovo Cliente', icon: UserPlus, href: '/app-v2/clienti/nuovo' },
+      { label: 'Anagrafica', icon: UsersRound, href: '/clienti' },
+      { label: 'Nuovo Cliente', icon: UserPlus, href: '/clienti/nuovo' },
       { label: 'Cartelle Condivise', icon: FolderPlus, href: '/cartelle-condivise' }
     ]
   },
@@ -165,8 +165,8 @@ const navSections: NavSection[] = [
     label: 'Soggetti e Parti',
     icon: FileText,
     items: [
-      { label: 'Anagrafica', icon: UsersRound, href: '/app-v2/soggetti' },
-      { label: 'Nuovo Soggetto', icon: UserPlus, href: '/app-v2/soggetti/nuovo' }
+      { label: 'Anagrafica', icon: UsersRound, href: '/soggetti' },
+      { label: 'Nuovo Soggetto', icon: UserPlus, href: '/soggetti/nuovo' }
     ]
   },
   {
@@ -244,10 +244,16 @@ const navSections: NavSection[] = [
   }
 ]
 
+function normaliseRoutePath(path: string): string {
+  const clean = (path || '/').replace(/\/+$/, '') || '/'
+  if (clean === '/app-v2') return '/'
+  return clean.startsWith('/app-v2/') ? clean.slice('/app-v2'.length) || '/' : clean
+}
+
 function isActiveHref(href: string, activePath: string): boolean {
-  const cleanPath = activePath.replace(/\/+$/, '') || '/app-v2'
-  const cleanHref = href.replace(/\/+$/, '') || href
-  if (cleanHref === '/app-v2') return cleanPath === '/app-v2'
+  const cleanPath = normaliseRoutePath(activePath)
+  const cleanHref = normaliseRoutePath(href)
+  if (cleanHref === '/') return cleanPath === '/'
   return cleanPath === cleanHref || cleanPath.startsWith(`${cleanHref}/`)
 }
 
@@ -335,7 +341,7 @@ function Agenda({ data }:{data:DashboardData}) {
 
 function Completion({ data }:{data:DashboardData}) {
   const c=data.completion
-  return <Panel title="Anagrafiche ancora da completare" icon={<Home size={17}/>} count={c.totalMissing}><div className="iu-completion"><div className="iu-ring" style={{background:`conic-gradient(var(--iu-blue-600) ${c.percent}%, var(--iu-slate-100) 0)`}}><div><strong>{c.percent}%</strong><span>Completate</span></div></div><div className="iu-legend"><strong>Da completare: {c.totalMissing}</strong>{c.items.map(x=><span key={x.label}><i/>{x.label}<b>{x.count}</b></span>)}</div></div><a className="iu-link" href="/app-v2/clienti">Vai alle anagrafiche -&gt;</a></Panel>
+  return <Panel title="Anagrafiche ancora da completare" icon={<Home size={17}/>} count={c.totalMissing}><div className="iu-completion"><div className="iu-ring" style={{background:`conic-gradient(var(--iu-blue-600) ${c.percent}%, var(--iu-slate-100) 0)`}}><div><strong>{c.percent}%</strong><span>Completate</span></div></div><div className="iu-legend"><strong>Da completare: {c.totalMissing}</strong>{c.items.map(x=><span key={x.label}><i/>{x.label}<b>{x.count}</b></span>)}</div></div><a className="iu-link" href="/clienti">Vai alle anagrafiche -&gt;</a></Panel>
 }
 
 function Compact({ title, icon, count, rows, href }:{title:string; icon:ReactNode; count:number; rows:Row[]; href:string}) {
@@ -422,15 +428,16 @@ function DashboardPage({ data, loading }:{data:DashboardData; loading:boolean}) 
 
 export default function App() {
   const activePath = window.location.pathname.replace(/\/+$/, '') || '/app-v2'
+  const routePath = normaliseRoutePath(activePath)
   const isSearchPage = activePath.includes('/app-v2/ricerca-studio')
   const isNewAppointmentPage = activePath === '/app-v2/agenda/nuovo' || activePath.startsWith('/app-v2/agenda/nuovo/')
   const isAgendaPage = !isNewAppointmentPage && (activePath === '/app-v2/agenda' || activePath.startsWith('/app-v2/agenda/'))
   const isRegiaPage = activePath === '/app-v2/regia-operativa' || activePath.startsWith('/app-v2/regia-operativa/')
   const isFascicoliPage = activePath === '/app-v2/fascicoli' || activePath.startsWith('/app-v2/fascicoli/')
-  const isNewClientPage = activePath === '/app-v2/clienti/nuovo' || activePath.startsWith('/app-v2/clienti/nuovo/')
-  const isNewSubjectPage = activePath === '/app-v2/soggetti/nuovo' || activePath.startsWith('/app-v2/soggetti/nuovo/')
-  const isClientiPage = !isNewClientPage && (activePath === '/app-v2/clienti' || activePath.startsWith('/app-v2/clienti/'))
-  const isSoggettiPage = !isNewSubjectPage && (activePath === '/app-v2/soggetti' || activePath.startsWith('/app-v2/soggetti/'))
+  const isNewClientPage = routePath === '/clienti/nuovo'
+  const isNewSubjectPage = routePath === '/soggetti/nuovo'
+  const isClientiPage = !isNewClientPage && routePath === '/clienti'
+  const isSoggettiPage = !isNewSubjectPage && routePath === '/soggetti'
   const isDashboardPage = !isSearchPage && !isAgendaPage && !isNewAppointmentPage && !isRegiaPage && !isFascicoliPage && !isClientiPage && !isNewClientPage && !isSoggettiPage && !isNewSubjectPage
   const isStandalonePage = isSearchPage || isAgendaPage || isNewAppointmentPage || isFascicoliPage || isClientiPage || isNewClientPage || isSoggettiPage || isNewSubjectPage
   const initialSearchQuery = new URLSearchParams(window.location.search).get('q') ?? ''
@@ -452,7 +459,7 @@ export default function App() {
           <a className={isDashboardPage?'active':''} href="/app-v2"><LayoutDashboard size={18}/>Panoramica</a>
           <a className={isSearchPage?'active':''} href="/app-v2/ricerca-studio"><Search size={18}/>Ricerca</a>
           <a className={isFascicoliPage?'active':''} href="/app-v2/fascicoli"><BriefcaseBusiness size={18}/>Fascicoli</a>
-          <a className={isClientiPage||isNewClientPage||isSoggettiPage||isNewSubjectPage?'active':''} href="/app-v2/clienti"><UsersRound size={18}/>Clienti</a>
+          <a className={isClientiPage||isNewClientPage||isSoggettiPage||isNewSubjectPage?'active':''} href="/clienti"><UsersRound size={18}/>Clienti</a>
           <a className={isAgendaPage||isNewAppointmentPage?'active':''} href="/app-v2/agenda"><CalendarDays size={18}/>Agenda</a>
           <a className={isRegiaPage?'active':''} href="/app-v2/regia-operativa"><Sparkles size={18}/>Regia</a>
         </nav>

@@ -26,7 +26,9 @@ accessibilità, tenant/RBAC e rollback immediato.
 - Servire la build sotto `web/static/react`.
 - Esporre `/app-v2` senza modificare le route esistenti.
 - Esporre API ponte sotto `/api/v1/ui/*`, protette da sessione o API key.
-- Mantenere tutti i flag di sostituzione route a `false`.
+- Mantenere i flag di sostituzione route a `false` finche' la singola superficie
+  non supera i gate. Le superfici Clienti/Soggetti sono le prime promosse su
+  URL ufficiali con fallback `_legacy=1`.
 
 ## Fase 2 - API contract
 
@@ -123,15 +125,17 @@ backend storico come punto di scrittura:
 - Lex AI contestuale con icona flottante, posizione persistita e azione
   `Completa titolo`.
 
-### Stato Clienti e Anagrafiche `/app-v2/clienti`
+### Stato Clienti e Anagrafiche `/clienti`
 
-La pagina Clienti React e' collegata alla nav della shell e non sostituisce
-ancora le route storiche `/clienti`:
+La pagina Clienti React e' collegata alla nav della shell e sostituisce il GET
+ufficiale `/clienti` senza cambiare le route tecniche interne:
 
 - dati reali da `/api/v1/ui/clienti`, normalizzati dai repository `GestioneClienti`
   e `GestioneFascicoli`;
-- contratto in sola lettura con `mock_fallback=false`, mentre scheda, modifica,
-  nuovo cliente, export e cartella cliente restano sulle route Flask storiche;
+- contratto `mock_fallback=false`, `read_only=false`, `writes=legacy_routes`:
+  la UI React e' ufficiale, ma salvataggi, dettaglio, modifica, export e
+  cartella cliente restano sulle route Flask storiche gia' auditate;
+- fallback governato alla vista storica con `/clienti?_legacy=1`;
 - KPI su totali, attivi, potenziali, archiviati, procedimenti collegati, dati
   mancanti, recapiti assenti, privacy e documenti scaduti;
 - ricerca full-text, filtri tipo/stato, filtri avanzati per referente,
@@ -139,16 +143,18 @@ ancora le route storiche `/clienti`:
 - tabella desktop, card mobile, bulk bar locale, insight laterali e Lex AI
   contestuale `clienti`.
 
-### Stato Nuovo Cliente e Soggetti `/app-v2/clienti/nuovo`, `/app-v2/soggetti`
+### Stato Nuovo Cliente e Soggetti `/clienti/nuovo`, `/soggetti`
 
 La migrazione anagrafica e' stata estesa alle superfici operative successive:
 
-- `Nuovo Cliente` vive su `/app-v2/clienti/nuovo`, ma salva ancora su
+- `Nuovo Cliente` vive sul GET ufficiale `/clienti/nuovo`, ma salva ancora su
   `POST /clienti/nuovo` per riusare validazioni, audit e workflow storici;
-- `Nuovo Soggetto` vive su `/app-v2/soggetti/nuovo` e riusa lo stesso form React
+- `Nuovo Soggetto` vive sul GET ufficiale `/soggetti/nuovo` e riusa lo stesso form React
   in tab soggetto, salvando su `POST /soggetti/nuovo`;
-- `Soggetti e Parti -> Anagrafica` vive su `/app-v2/soggetti`, alimentata dal
+- `Soggetti e Parti -> Anagrafica` vive sul GET ufficiale `/soggetti`, alimentata dal
   bridge reale `/api/v1/ui/soggetti`;
+- le vecchie viste restano accessibili con `_legacy=1`, per esempio
+  `/clienti/nuovo?_legacy=1` e `/soggetti?_legacy=1`;
 - il bridge `/api/v1/ui/clienti/nuovo` espone opzioni enum, conteggi reali,
   clienti collegabili, ruoli processuali e azioni legacy senza mock operativi;
 - il codice fiscale viene calcolato server-side con `/api/cf/calcola` usando la

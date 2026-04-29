@@ -481,7 +481,7 @@ def test_nuovo_cliente_renderizza_il_form_prima_del_modal_scanner(tmp_path: Path
         )
         assert login.status_code == 302
 
-        response = client.get("/clienti/nuovo")
+        response = client.get("/clienti/nuovo?_legacy=1")
 
     assert response.status_code == 200
     html = response.get_data(as_text=True)

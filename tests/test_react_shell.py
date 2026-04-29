@@ -11,6 +11,7 @@ from pct.messaggi import CanaleMsggio, ConfigMessaggistica, GestioneMessaggi, Me
 from pct.preventivi import GestionePreventivi, StatoPreventivo, VocePreventivo
 from pct.scadenziario import GestioneScadenziario, PrioritaTermine, TipoTermine
 from pct.soggetti import GestioneSoggetti, TipoSoggetto
+from tests.test_applicazioni import _crea_operatore, _login
 from web.app import create_app
 from web.bootstrap.blueprint_registry import BLUEPRINT_REGISTRY
 
@@ -211,9 +212,9 @@ def test_react_clienti_page_collegata_nav_api_e_lex():
     floating_lex = Path("frontend/src/components/FloatingLex.tsx").read_text(encoding="utf-8")
     api_source = Path("web/blueprints/api_v1_react.py").read_text(encoding="utf-8")
 
-    assert "/app-v2/clienti" in app_source
+    assert "/clienti" in app_source
     assert "isClientiPage?<AnagraficaClientiPage" in app_source
-    assert "{ label: 'Anagrafica', icon: UsersRound, href: '/app-v2/clienti' }" in app_source
+    assert "{ label: 'Anagrafica', icon: UsersRound, href: '/clienti' }" in app_source
     assert "getClientiPage" in data_source
     assert "/api/v1/ui/clienti" in data_source
     assert '@api_v1_react.get("/clienti")' in api_source
@@ -249,13 +250,78 @@ def test_react_clienti_bridge_usa_repository_reali(tmp_path: Path):
     assert response.status_code == 200
     assert payload["source"] == "repository_reali"
     assert payload["contracts"]["mock_fallback"] is False
-    assert payload["contracts"]["read_only"] is True
+    assert payload["contracts"]["read_only"] is False
+    assert payload["contracts"]["writes"] == "legacy_routes"
+    assert payload["contracts"]["route_owner"] == "react_shell"
     assert payload["summary"]["total"] >= 1
     assert payload["items"][0]["name"] == "Moscato Marco"
     assert payload["items"][0]["type"] == "pf"
     assert payload["items"][0]["email"] == "antmm2605@gmail.com"
     assert payload["items"][0]["phone"] == "+393474940097"
     assert payload["items"][0]["href"] == f"/clienti/{cliente.id}"
+
+
+def test_route_ufficiali_clienti_e_soggetti_servono_react_con_fallback_legacy(tmp_path: Path):
+    app = _app(tmp_path)
+    _crea_operatore(app)
+
+    with app.test_client() as client:
+        _login(client)
+
+        for path in ("/clienti", "/clienti/nuovo", "/soggetti", "/soggetti/nuovo"):
+            response = client.get(path)
+            html = response.get_data(as_text=True)
+            assert response.status_code == 200, path
+            assert '<html lang="it" class="react-shell-document">' in html
+            assert 'id="root"' in html
+
+        legacy_clienti = client.get("/clienti?_legacy=1")
+        legacy_cliente_form = client.get("/clienti/nuovo?_legacy=1")
+        legacy_soggetti = client.get("/soggetti?_legacy=1")
+        legacy_soggetto_form = client.get("/soggetti/nuovo?_legacy=1")
+
+    assert legacy_clienti.status_code == 200
+    assert legacy_cliente_form.status_code == 200
+    assert legacy_soggetti.status_code == 200
+    assert legacy_soggetto_form.status_code == 200
+    assert 'id="root"' not in legacy_clienti.get_data(as_text=True)
+    assert 'id="modalScanner"' in legacy_cliente_form.get_data(as_text=True)
+
+
+def test_route_post_clienti_e_soggetti_restano_su_backend_storico(tmp_path: Path):
+    app = _app(tmp_path)
+    _crea_operatore(app)
+
+    with app.test_client() as client:
+        _login(client)
+
+        created_client = client.post(
+            "/clienti/nuovo",
+            data={
+                "tipo": "PERSONA_FISICA",
+                "nome": "Giulia",
+                "cognome": "Bianchi",
+                "codice_fiscale": "BNCGLI80A41H501C",
+                "telefono": "+390600000000",
+            },
+            follow_redirects=False,
+        )
+        created_subject = client.post(
+            "/soggetti/nuovo",
+            data={
+                "tipo": "PERSONA_FISICA",
+                "nome": "Luca",
+                "cognome": "Verdi",
+                "codice_fiscale": "VRDLCU80A01H501M",
+                "qualifica": "CONTROPARTE",
+            },
+            follow_redirects=False,
+        )
+
+    assert created_client.status_code == 302
+    assert created_subject.status_code == 302
+    assert created_client.headers["Location"].startswith("/clienti/")
+    assert created_subject.headers["Location"].startswith("/soggetti/")
 
 
 def test_react_autocomplete_clienti_usa_payload_minimale_sicuro(tmp_path: Path):
@@ -318,6 +384,8 @@ def test_react_api_bootstrap_espone_flag_senza_switch(tmp_path: Path):
     assert payload["mounted_at"] == "/app-v2"
     assert payload["route_flags"]["replace_dashboard"] is False
     assert payload["route_flags"]["replace_telematico"] is False
+    assert payload["route_flags"]["replace_clienti"] is True
+    assert payload["route_flags"]["replace_soggetti"] is True
 
 
 def test_react_dashboard_usa_bridge_reale_senza_mock(tmp_path: Path):
@@ -685,14 +753,14 @@ def test_react_clienti_nuovo_e_soggetti_collegati_nav_api_lex_cf():
     clienti_routes = Path("web/bootstrap/clienti_routes.py").read_text(encoding="utf-8")
     soggetti_model = Path("pct/soggetti.py").read_text(encoding="utf-8")
 
-    assert "/app-v2/clienti/nuovo" in app_source
-    assert "/app-v2/soggetti" in app_source
-    assert "/app-v2/soggetti/nuovo" in app_source
+    assert "/clienti/nuovo" in app_source
+    assert "/soggetti" in app_source
+    assert "/soggetti/nuovo" in app_source
     assert "isNewClientPage||isNewSubjectPage?<NuovoClientePage/>" in app_source
     assert "isSoggettiPage?<SoggettiPage/>" in app_source
-    assert "{ label: 'Nuovo Cliente', icon: UserPlus, href: '/app-v2/clienti/nuovo' }" in app_source
-    assert "{ label: 'Anagrafica', icon: UsersRound, href: '/app-v2/soggetti' }" in app_source
-    assert "{ label: 'Nuovo Soggetto', icon: UserPlus, href: '/app-v2/soggetti/nuovo' }" in app_source
+    assert "{ label: 'Nuovo Cliente', icon: UserPlus, href: '/clienti/nuovo' }" in app_source
+    assert "{ label: 'Anagrafica', icon: UsersRound, href: '/soggetti' }" in app_source
+    assert "{ label: 'Nuovo Soggetto', icon: UserPlus, href: '/soggetti/nuovo' }" in app_source
     assert "/api/v1/ui/clienti/nuovo" in new_data
     assert "/api/v1/ui/soggetti" in soggetti_data
     assert "/api/cf/calcola" in new_page
@@ -753,7 +821,9 @@ def test_react_clienti_nuovo_e_soggetti_api_usa_repository_reali(tmp_path: Path)
     assert new_payload["clientOptions"][0]["id"] == cliente.id
     assert any(item["value"] == "GARANTE" for item in new_payload["options"]["subjectRoles"])
     assert subjects_payload["source"] == "repository_reali"
-    assert subjects_payload["contracts"]["read_only"] is True
+    assert subjects_payload["contracts"]["read_only"] is False
+    assert subjects_payload["contracts"]["writes"] == "legacy_routes"
+    assert subjects_payload["contracts"]["route_owner"] == "react_shell"
     assert subjects_payload["summary"]["total"] == 1
     assert subjects_payload["items"][0]["id"] == soggetto.id
     assert subjects_payload["items"][0]["clientName"] == cliente.nome_completo

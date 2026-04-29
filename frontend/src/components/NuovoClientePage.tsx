@@ -126,7 +126,7 @@ function initialTab(): Tab {
   if (typeof window === 'undefined') return 'cliente'
   const path = window.location.pathname
   const params = new URLSearchParams(window.location.search)
-  if (path.includes('/app-v2/soggetti/nuovo')) return 'soggetto'
+  if (path.includes('/soggetti/nuovo')) return 'soggetto'
   return (params.get('tab') || params.get('tipo')) === 'soggetto' ? 'soggetto' : 'cliente'
 }
 
@@ -483,7 +483,7 @@ function ClientForm({ data }:{data: ClientiNuovoData}) {
 
       <div className="iu-cln-actions">
         <button className="iu-cln-submit" type="submit"><CheckCircle2 size={17}/>Salva cliente</button>
-        <a className="iu-cln-secondary" href="/app-v2/clienti">Annulla</a>
+        <a className="iu-cln-secondary" href="/clienti">Annulla</a>
       </div>
     </form>
   )
@@ -630,7 +630,7 @@ function SubjectForm({ data }:{data: ClientiNuovoData}) {
 
       <div className="iu-cln-actions">
         <button className="iu-cln-submit" type="submit"><CheckCircle2 size={17}/>Salva soggetto</button>
-        <a className="iu-cln-secondary" href="/app-v2/soggetti">Annulla</a>
+        <a className="iu-cln-secondary" href="/soggetti">Annulla</a>
       </div>
     </form>
   )
@@ -656,8 +656,8 @@ function QualityRail({ data, activeTab }:{data: ClientiNuovoData; activeTab: Tab
       </Panel>
       <Panel title="Azioni collegate" icon={<Sparkles size={17}/>}>
         <div className="iu-cln-shortcuts">
-          <a href="/app-v2/clienti"><UsersRound size={15}/>Anagrafica clienti</a>
-          <a href="/app-v2/soggetti"><UserCheck size={15}/>Soggetti e parti</a>
+          <a href="/clienti"><UsersRound size={15}/>Anagrafica clienti</a>
+          <a href="/soggetti"><UserCheck size={15}/>Soggetti e parti</a>
           <a href="/app-v2/ricerca-studio?tipo=clienti"><ScanLine size={15}/>Cerca duplicati</a>
           <a href="/preventivi/"><CreditCard size={15}/>Preventivi e incarichi</a>
         </div>
@@ -694,14 +694,14 @@ export function NuovoClientePage() {
     <main className="iu-content iu-clienti-new-page">
       <section className="iu-cln-hero">
         <div>
-          <a className="iu-cln-back" href={tab === 'cliente' ? '/app-v2/clienti' : '/app-v2/soggetti'}><ArrowLeft size={15}/>Torna all'anagrafica</a>
-          <span className="iu-cln-eyebrow"><Sparkles size={14}/>Migrazione React progressiva</span>
+          <a className="iu-cln-back" href={tab === 'cliente' ? '/clienti' : '/soggetti'}><ArrowLeft size={15}/>Torna all'anagrafica</a>
+          <span className="iu-cln-eyebrow"><Sparkles size={14}/>Superficie React ufficiale</span>
           <h1>{tab === 'cliente' ? 'Nuovo Cliente' : 'Nuovo Soggetto'}</h1>
           <p>{heroText}</p>
         </div>
         <div className="iu-cln-hero__actions">
-          <a href="/clienti/nuovo">Vista storica cliente</a>
-          <a href="/soggetti/nuovo">Vista storica soggetto</a>
+          <a href="/clienti/nuovo?_legacy=1">Vista storica cliente</a>
+          <a href="/soggetti/nuovo?_legacy=1">Vista storica soggetto</a>
         </div>
       </section>
 
@@ -710,7 +710,7 @@ export function NuovoClientePage() {
       <div className="iu-cln-tabs" role="tablist" aria-label="Scelta anagrafica">
         <button type="button" className={tab === 'cliente' ? 'is-active' : ''} onClick={() => setTab('cliente')}><UserPlus size={17}/>Nuovo Cliente</button>
         <button type="button" className={tab === 'soggetto' ? 'is-active' : ''} onClick={() => setTab('soggetto')}><UsersRound size={17}/>Nuovo Soggetto</button>
-        <span>{loading ? 'Caricamento dati...' : `${data.source} - scritture legacy`}</span>
+        <span>{loading ? 'Caricamento dati...' : `${data.source} - salvataggio backend storico`}</span>
       </div>
 
       {data.query.idCliente ? (

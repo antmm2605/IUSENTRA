@@ -10,6 +10,7 @@ from flask import Flask, flash, g, jsonify, redirect, render_template, request, 
 
 from pct.clienti import RiferimentoProcedimento, StatoCliente, TipoCliente, TipoDocumento as TipoDocumentoCliente
 from pct.condivisione import RuoloCondivisione
+from web.blueprints.react_shell import render_react_shell_response
 
 
 def _text(value: Any) -> str:
@@ -31,6 +32,10 @@ def _cliente_autocomplete_dict(cliente: Any) -> dict[str, str]:
         ),
         "email": _text(getattr(recapiti, "email", "")),
     }
+
+
+def _richiede_vista_legacy() -> bool:
+    return (request.args.get("_legacy") or "").strip().lower() in {"1", "true", "si", "yes", "on"}
 
 
 def _salva_indirizzo(gc: Any, id_cliente: str, tipo: str, form: Any, prefix: str = "") -> None:
@@ -62,6 +67,9 @@ def register_clienti_routes(
 
     @app.route("/clienti")
     def lista_clienti():
+        if not _richiede_vista_legacy():
+            return render_react_shell_response("clienti")
+
         gc = get_clienti()
         utente = g.utente_corrente
         testo = request.args.get("q", "").strip()
@@ -91,6 +99,9 @@ def register_clienti_routes(
     @app.route("/clienti/nuovo", methods=["GET", "POST"])
     def nuovo_cliente():
         gc = get_clienti()
+        if request.method == "GET" and not _richiede_vista_legacy():
+            return render_react_shell_response("clienti/nuovo")
+
         if request.method == "POST":
             form = request.form
             next_url = form.get("next_url", "").strip()

@@ -1,7 +1,8 @@
 """Bridge dati per la pagina Anagrafica Clienti della shell React.
 
 Normalizza i repository esistenti senza introdurre una seconda source of truth
-frontend. La pagina resta in sola lettura durante la migrazione progressiva.
+frontend. La lista e i form React usano le route storiche per le scritture,
+cosi audit, tenant e validazioni restano governati da un'unica source of truth.
 """
 
 from __future__ import annotations
@@ -232,7 +233,12 @@ def build_react_clienti_payload(*, get_clienti: Callable[[], Any], get_fascicoli
     return {
         "source": "repository_reali",
         "generated_at": _iso_now(),
-        "contracts": {"mock_fallback": False, "read_only": True},
+        "contracts": {
+            "mock_fallback": False,
+            "read_only": False,
+            "writes": "legacy_routes",
+            "route_owner": "react_shell",
+        },
         "summary": _summary(items),
         "items": items,
         "facets": {"types": _facet_rows(items, "type", type_labels, "Tutti i tipi"), "statuses": _facet_rows(items, "status", status_labels, "Tutti gli stati")},
@@ -326,7 +332,12 @@ def build_react_clienti_nuovo_payload(
     return {
         "source": "repository_reali",
         "generated_at": _iso_now(),
-        "contracts": {"mock_fallback": False, "read_only": True, "writes": "legacy_routes"},
+        "contracts": {
+            "mock_fallback": False,
+            "read_only": False,
+            "writes": "legacy_routes",
+            "route_owner": "react_shell",
+        },
         "stats": _clienti_nuovo_stats(clienti, soggetti),
         "options": {
             "clientTypes": [
@@ -352,8 +363,8 @@ def build_react_clienti_nuovo_payload(
         "actions": {
             "newClient": "/clienti/nuovo",
             "newSubject": "/soggetti/nuovo",
-            "clientsList": "/app-v2/clienti",
-            "subjectsList": "/app-v2/soggetti",
+            "clientsList": "/clienti",
+            "subjectsList": "/soggetti",
             "legacyClientForm": "/clienti/nuovo",
             "legacySubjectForm": "/soggetti/nuovo",
         },

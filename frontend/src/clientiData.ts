@@ -42,7 +42,7 @@ export type ClientiSummary = {
 export type ClientiPageData = {
   source: string
   generatedAt: string
-  contracts: { mock_fallback: boolean; read_only: boolean }
+  contracts: { mock_fallback: boolean; read_only: boolean; writes?: string; route_owner?: string }
   summary: ClientiSummary
   items: ClienteRow[]
   facets: {
@@ -66,7 +66,7 @@ const emptySummary: ClientiSummary = {
 export const emptyClientiPage: ClientiPageData = {
   source: 'vuoto',
   generatedAt: '',
-  contracts: { mock_fallback: false, read_only: true },
+  contracts: { mock_fallback: false, read_only: false, writes: 'legacy_routes', route_owner: 'react_shell' },
   summary: emptySummary,
   items: [],
   facets: {
@@ -218,9 +218,11 @@ function normalisePayload(payload: unknown): ClientiPageData {
     contracts: isRecord(payload.contracts)
       ? {
         mock_fallback: Boolean(payload.contracts.mock_fallback),
-        read_only: payload.contracts.read_only !== false,
+        read_only: payload.contracts.read_only === true,
+        writes: text(payload.contracts.writes),
+        route_owner: text(payload.contracts.route_owner),
       }
-      : { mock_fallback: false, read_only: true },
+      : emptyClientiPage.contracts,
     summary: buildSummary(items, payload.summary),
     items,
     facets: isRecord(payload.facets) && Array.isArray(payload.facets.types) && Array.isArray(payload.facets.statuses)

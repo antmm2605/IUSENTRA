@@ -252,7 +252,7 @@ function InsightPanel({ data, visible }:{data: ClientiPageData; visible: Cliente
           <article>
             <span>Clienti collegati</span>
             <strong>{withProcedures} clienti con procedimenti visibili</strong>
-            <small>La vista resta in sola lettura: modifiche e creazioni passano dalle route storiche.</small>
+            <small>La UI React e' attiva: salvataggi e audit passano dalle route backend storiche.</small>
           </article>
         </div>
       </Panel>
@@ -354,7 +354,7 @@ export function AnagraficaClientiPage() {
         </div>
         <div className="iu-cli-hero__actions">
           <Button href="/clienti/esporta"><Download size={15}/> Esporta</Button>
-          <Button href="/clienti?stato=ARCHIVIATO"><Archive size={15}/> Archivio</Button>
+          <Button href="/clienti?_legacy=1&stato=ARCHIVIATO"><Archive size={15}/> Archivio storico</Button>
           <Button variant="primary" href="/clienti/nuovo"><UserPlus size={16}/> Nuovo cliente</Button>
         </div>
       </section>
@@ -390,7 +390,7 @@ export function AnagraficaClientiPage() {
 
       <section className="iu-cli-status-line">
         <span className={loading ? '' : 'is-ok'}>{loading ? 'Sincronizzazione anagrafiche...' : 'Dati aggiornati'}</span>
-        <small><ShieldCheck size={14}/> Vista in sola lettura: creazione e modifica restano sulle route storiche.</small>
+        <small><ShieldCheck size={14}/> UI React attiva: dettaglio, modifica e POST usano il backend storico senza duplicare dati.</small>
         {selectedVisible ? <small className="iu-cli-selected">{selectedVisible} selezionati</small> : null}
       </section>
 

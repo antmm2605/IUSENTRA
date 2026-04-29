@@ -27,7 +27,7 @@ export type SoggettoRow = {
 export type SoggettiPageData = {
   source: string
   generatedAt: string
-  contracts: { mock_fallback: boolean; read_only: boolean }
+  contracts: { mock_fallback: boolean; read_only: boolean; writes?: string; route_owner?: string }
   summary: {
     total: number
     physical: number
@@ -59,7 +59,7 @@ const emptySummary = {
 export const emptySoggettiPage: SoggettiPageData = {
   source: 'vuoto',
   generatedAt: '',
-  contracts: { mock_fallback: false, read_only: true },
+  contracts: { mock_fallback: false, read_only: false, writes: 'legacy_routes', route_owner: 'react_shell' },
   summary: emptySummary,
   items: [],
   facets: {
@@ -138,7 +138,9 @@ function normalizePayload(payload: unknown): SoggettiPageData {
     contracts: isRecord(payload.contracts)
       ? {
         mock_fallback: Boolean(payload.contracts.mock_fallback),
-        read_only: payload.contracts.read_only !== false,
+        read_only: payload.contracts.read_only === true,
+        writes: text(payload.contracts.writes),
+        route_owner: text(payload.contracts.route_owner),
       }
       : emptySoggettiPage.contracts,
     summary: {

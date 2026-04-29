@@ -8,6 +8,11 @@ from datetime import date
 from flask import Flask, abort, flash, jsonify, redirect, render_template, request, url_for
 
 from pct.soggetti import RuoloSoggetto, TipoSoggetto
+from web.blueprints.react_shell import render_react_shell_response
+
+
+def _richiede_vista_legacy() -> bool:
+    return (request.args.get("_legacy") or "").strip().lower() in {"1", "true", "si", "yes", "on"}
 
 
 def register_soggetti_routes(
@@ -22,6 +27,9 @@ def register_soggetti_routes(
 
     @app.route("/soggetti")
     def lista_soggetti():
+        if not _richiede_vista_legacy():
+            return render_react_shell_response("soggetti")
+
         query = request.args.get("q", "").strip()
         tipo_filtro = request.args.get("tipo", "").strip()
         soggetti = get_soggetti().cerca(q=query, tipo=tipo_filtro)
@@ -37,6 +45,9 @@ def register_soggetti_routes(
     def nuovo_soggetto():
         soggetti = get_soggetti()
         clienti = get_clienti().tutti()
+        if request.method == "GET" and not _richiede_vista_legacy():
+            return render_react_shell_response("soggetti/nuovo")
+
         if request.method == "POST":
             tipo_val = request.form.get("tipo", "PERSONA_FISICA")
             try:

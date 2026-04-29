@@ -154,7 +154,7 @@ const qualificationHints: RegistryOption[] = [
 export const emptyClientiNuovoData: ClientiNuovoData = {
   source: 'vuoto',
   generatedAt: '',
-  contracts: { mock_fallback: false, read_only: true, writes: 'legacy_routes' },
+  contracts: { mock_fallback: false, read_only: false, writes: 'legacy_routes' },
   stats: {
     totalClients: 0,
     physicalClients: 0,
@@ -180,8 +180,8 @@ export const emptyClientiNuovoData: ClientiNuovoData = {
   actions: {
     newClient: '/clienti/nuovo',
     newSubject: '/soggetti/nuovo',
-    clientsList: '/app-v2/clienti',
-    subjectsList: '/app-v2/soggetti',
+    clientsList: '/clienti',
+    subjectsList: '/soggetti',
     legacyClientForm: '/clienti/nuovo',
     legacySubjectForm: '/soggetti/nuovo',
   },
@@ -240,7 +240,7 @@ function mergePayload(payload: unknown): ClientiNuovoData {
     contracts: isRecord(payload.contracts)
       ? {
         mock_fallback: Boolean(payload.contracts.mock_fallback),
-        read_only: payload.contracts.read_only !== false,
+        read_only: payload.contracts.read_only === true,
         writes: text(payload.contracts.writes, emptyClientiNuovoData.contracts.writes),
       }
       : emptyClientiNuovoData.contracts,

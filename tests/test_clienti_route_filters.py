@@ -32,7 +32,7 @@ def test_lista_clienti_default_mostra_tutti_gli_stati(tmp_path):
 
     with app.test_client() as client:
         _login(client)
-        response = client.get("/clienti")
+        response = client.get("/clienti?_legacy=1")
         body = response.get_data(as_text=True)
 
     assert response.status_code == 200

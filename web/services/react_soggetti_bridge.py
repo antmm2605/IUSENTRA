@@ -1,7 +1,7 @@
 """Bridge dati per la pagina React Soggetti e Parti.
 
-La superficie React resta progressiva e read-only: usa i repository reali per
-lista, conteggi e collegamenti, mentre le scritture restano nelle route Flask.
+La superficie React usa i repository reali per lista, conteggi e collegamenti;
+le scritture passano ancora dalle route Flask storiche per non duplicare logica.
 """
 
 from __future__ import annotations
@@ -142,7 +142,12 @@ def build_react_soggetti_payload(
     return {
         "source": "repository_reali",
         "generated_at": _iso_now(),
-        "contracts": {"mock_fallback": False, "read_only": True},
+        "contracts": {
+            "mock_fallback": False,
+            "read_only": False,
+            "writes": "legacy_routes",
+            "route_owner": "react_shell",
+        },
         "summary": _summary(items),
         "items": items,
         "facets": _facets(items),

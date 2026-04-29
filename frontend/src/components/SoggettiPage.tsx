@@ -115,7 +115,7 @@ function SoggettiTable({ items }:{items: SoggettoRow[]}) {
     <section className="iu-sogg-table-card" aria-label="Elenco soggetti e parti">
       <div className="iu-sogg-table-head">
         <strong>{items.length} soggetti</strong>
-        <span>Route storiche per dettaglio e modifica</span>
+        <span>Dettaglio e modifica restano sul backend storico</span>
       </div>
       <div className="iu-sogg-table-wrap">
         <table className="iu-sogg-table">
@@ -181,7 +181,7 @@ function EmptyState() {
       <UsersRound size={26}/>
       <h2>Nessun soggetto trovato</h2>
       <p>Modifica ricerca e filtri oppure crea un nuovo soggetto processuale.</p>
-      <a href="/app-v2/soggetti/nuovo"><UserPlus size={16}/>Nuovo Soggetto</a>
+      <a href="/soggetti/nuovo"><UserPlus size={16}/>Nuovo Soggetto</a>
     </section>
   )
 }
@@ -221,11 +221,11 @@ export function SoggettiPage() {
         <div>
           <span><UsersRound size={15}/>Soggetti e Parti</span>
           <h1>Anagrafica soggetti</h1>
-          <p>Persone, enti, controparti, difensori, testimoni e soggetti collegati ai fascicoli, in una superficie React separata.</p>
+          <p>Persone, enti, controparti, difensori, testimoni e soggetti collegati ai fascicoli nella nuova superficie React ufficiale.</p>
         </div>
         <div className="iu-sogg-hero__actions">
-          <a href="/app-v2/soggetti/nuovo"><UserPlus size={16}/>Nuovo Soggetto</a>
-          <a href="/soggetti">Vista storica</a>
+          <a href="/soggetti/nuovo"><UserPlus size={16}/>Nuovo Soggetto</a>
+          <a href="/soggetti?_legacy=1">Vista storica</a>
         </div>
       </section>
 
@@ -259,9 +259,9 @@ export function SoggettiPage() {
           </Panel>
           <Panel title="Accessi rapidi" icon={<Sparkles size={17}/>}>
             <div className="iu-sogg-shortcuts">
-              <a href="/app-v2/soggetti/nuovo"><UserPlus size={15}/>Nuovo soggetto React</a>
-              <a href="/app-v2/clienti/nuovo?tab=soggetto"><UsersRound size={15}/>Form unificato</a>
-              <a href="/app-v2/clienti"><UserRound size={15}/>Clienti e anagrafiche</a>
+              <a href="/soggetti/nuovo"><UserPlus size={15}/>Nuovo soggetto</a>
+              <a href="/clienti/nuovo?tab=soggetto"><UsersRound size={15}/>Form unificato</a>
+              <a href="/clienti"><UserRound size={15}/>Clienti e anagrafiche</a>
             </div>
           </Panel>
         </aside>
@@ -275,7 +275,7 @@ export function SoggettiPage() {
         body="Posso aiutarti a individuare duplicati, ruoli processuali incoerenti, soggetti senza cliente collegato e dati fiscali mancanti."
         primaryHref="/lex?context=soggetti"
         primaryLabel="Apri Lex soggetti"
-        secondaryHref="/app-v2/soggetti/nuovo"
+        secondaryHref="/soggetti/nuovo"
         secondaryLabel="Nuovo soggetto"
       />
     </main>

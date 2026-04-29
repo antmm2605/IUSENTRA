@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.196.0 - 2026-04-29
+
+- Promosse a React le route ufficiali `Clienti e Anagrafiche` e `Soggetti e Parti`: i GET `/clienti`, `/clienti/nuovo`, `/soggetti` e `/soggetti/nuovo` servono ora la shell React con URL storiche immutate.
+- Conservato il backend Flask storico per i POST di creazione cliente e soggetto, cosi' validazioni, tenant, audit e workflow collegati restano un'unica source of truth.
+- Aggiunto fallback governato `_legacy=1` per aprire le vecchie viste Jinja senza rollback deploy, utile per verifica operativa e assistenza.
+- Aggiornati contratti `/api/v1/ui/clienti*` e `/api/v1/ui/soggetti` con `read_only=false`, `writes=legacy_routes` e `route_owner=react_shell`.
+- Estesi test route/API/React per garantire che le URL ufficiali servano React, che le viste legacy restino raggiungibili e che i POST continuino a usare il backend storico.
+
 ## 2.195.30 - 2026-04-29
 
 - Aggiunta la nuova pagina React `/app-v2/clienti/nuovo`, con form cliente e form soggetto separati, UI responsive, checklist qualita e Lex AI contestuale.

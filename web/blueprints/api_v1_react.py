@@ -747,6 +747,8 @@ def bootstrap():
                 "replace_telematico": False,
                 "replace_preventivi": False,
                 "replace_sito_studio": False,
+                "replace_clienti": True,
+                "replace_soggetti": True,
             },
         }
     )
@@ -762,7 +764,12 @@ def clienti_react_list():
         return jsonify({
             "source": "errore_controllato",
             "generated_at": _iso_now(),
-            "contracts": {"mock_fallback": False, "read_only": True},
+            "contracts": {
+                "mock_fallback": False,
+                "read_only": False,
+                "writes": "legacy_routes",
+                "route_owner": "react_shell",
+            },
             "summary": {
                 "total": 0,
                 "active": 0,

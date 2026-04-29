@@ -609,10 +609,10 @@ def risolvi_config_firma_corrente(config_path: str | None = None) -> Dict[str, s
 def _resolve_ipv4(hostname: str, port: int) -> str | None:
     """Risolve hostname in IPv4 usando il resolver DNS di sistema.
 
-    Usa direttamente socket.getaddrinfo() con il resolver DNS di Railway/sistema.
+    Usa direttamente socket.getaddrinfo() con il resolver DNS di sistema.
     Il tentativo DoH via IP diretto (1.1.1.1, 8.8.8.8) è stato rimosso perché
-    Railway blocca le connessioni HTTPS verso quegli IP e restituiva IP errati
-    (es. IP Google invece di server Brevo), causando timeout di rete.
+    alcuni ambienti hosted possono bloccare le connessioni HTTPS verso quei resolver
+    o restituire percorsi non coerenti, causando timeout di rete.
 
     Se necessario, impostare PCT_DNS_SERVERS=8.8.8.8,1.1.1.1 per DNS custom
     (riservato a uso futuro — per ora il resolver di sistema è sufficiente).
@@ -670,6 +670,12 @@ def _msg_errore_rete(e: Exception, prefisso: str) -> str:
     import errno as _errno
     import socket
     codice = getattr(e, "errno", None)
+    outbound_ip = (
+        os.getenv("PCT_PUBLIC_OUTBOUND_IP", "")
+        or os.getenv("IUSENTRA_PUBLIC_IP", "")
+        or os.getenv("SERVER_PUBLIC_IP", "")
+    ).strip()
+    outbound_hint = f" IP pubblico del server: {outbound_ip}." if outbound_ip else ""
     # DNS failure: hostname non trovato o non risolvibile
     if isinstance(e, socket.gaierror):
         host_info = ""
@@ -685,21 +691,24 @@ def _msg_errore_rete(e: Exception, prefisso: str) -> str:
     if codice == _errno.ENETUNREACH:
         return (
             f"{prefisso}: server SMTP non raggiungibile via IPv4. "
-            "Cause comuni su Railway/cloud: (1) il provider SMTP blocca IP di hosting "
-            "per anti-spam — richiedere whitelist o usare relay cloud-friendly "
-            "(Brevo, SendGrid, Mailgun, Amazon SES); "
+            "Cause comuni su server cloud o dedicati: (1) il provider SMTP blocca "
+            "l'IP pubblico del server per policy anti-spam — richiedere whitelist "
+            "o usare un relay SMTP autorizzato compatibile con hosting server; "
             "(2) porta chiusa — verificare 587 STARTTLS o 465 SSL."
+            f"{outbound_hint}"
         )
     if codice == _errno.ECONNREFUSED:
         return f"{prefisso}: connessione rifiutata — host o porta errati, o il server non è in ascolto."
     if codice == _errno.ETIMEDOUT or isinstance(e, TimeoutError):
         return (
             f"{prefisso}: timeout di rete — il server non risponde entro il tempo limite. "
-            "Su Railway/cloud il problema più comune NON è la porta 25 (se stai già usando 587/465), "
-            "ma un blocco anti-spam dell'IP di hosting lato provider SMTP. "
+            "Su server cloud o dedicati il problema più comune NON è la porta 25 "
+            "(se stai già usando 587/465), ma un blocco anti-spam dell'IP pubblico "
+            "del server lato provider SMTP. "
             "Verificare host/porta, provare 587 (STARTTLS) o 465 (SSL), "
-            "ed eventualmente usare un relay cloud-friendly (Brevo/SendGrid/Mailgun/SES) "
+            "ed eventualmente usare un relay SMTP autorizzato compatibile con hosting server "
             "o richiedere whitelist dell'IP."
+            f"{outbound_hint}"
         )
     return f"{prefisso}: {e}"
 
@@ -740,11 +749,12 @@ def test_smtp_email(cfg: ConfigSMTP) -> Dict[str, Any]:
     import ssl as _ssl
     if not cfg.host:
         return {"ok": False, "messaggio": "Host SMTP non configurato. Vai in Impostazioni → Email SMTP e inserisci l'indirizzo del server (es. smtp.gmail.com)."}
-    # Porta 25 è bloccata da GCP/Railway/AWS outbound (anti-spam) → timeout garantito
+    # Porta 25 è spesso bloccata o filtrata dagli ambienti hosted per policy anti-spam.
     if cfg.port == 25:
         return {"ok": False, "messaggio": (
-            "Porta 25 bloccata: Railway/GCP blocca outbound porta 25 per prevenire spam. "
-            "Usare porta 587 (STARTTLS) o 465 (SSL diretto)."
+            "Porta 25 non consigliata: molti provider cloud o dedicati filtrano "
+            "l'uscita SMTP su porta 25 per prevenire spam. Usare porta 587 "
+            "(STARTTLS) o 465 (SSL diretto)."
         )}
     # Risolvi IPv4 con lo stesso metodo usato dalla connessione (resolver DNS di sistema)
     _resolved_ip = _resolve_ipv4(cfg.host, cfg.port)

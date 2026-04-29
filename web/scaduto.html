@@ -495,30 +495,25 @@ function switchFirmaFmt(fmt) {
     <p class="text-muted mb-4" style="font-size:.82rem;">
       Usata per promemoria, avvisi ai clienti, invio parcelle. <strong>Diversa dalla PEC</strong>
       (che è certificata). Puoi usare Gmail, Outlook, Aruba, o qualsiasi provider SMTP.
-      Su Railway/cloud usa <strong>Brevo</strong> (piano gratuito, funziona sempre da hosting).
     </p>
 
     {# Provider quick-select #}
     <div class="row g-2 mb-4">
       {% set providers_smtp = [
-        ('Brevo', 'smtp-relay.brevo.com', '587', '1', True),
-        ('Gmail', 'smtp.gmail.com', '587', '1', False),
-        ('Outlook/Office365', 'smtp.office365.com', '587', '1', False),
-        ('Aruba', 'smtps.aruba.it', '465', '1', False),
-        ('IONOS', 'smtp.ionos.it', '587', '1', False),
+        ('Gmail', 'smtp.gmail.com', '587', '1'),
+        ('Outlook/Office365', 'smtp.office365.com', '587', '1'),
+        ('Aruba', 'smtps.aruba.it', '465', '1'),
+        ('IONOS', 'smtp.ionos.it', '587', '1'),
       ] %}
-      {% for nome, host, porta, tls, cloud in providers_smtp %}
+      {% for nome, host, porta, tls in providers_smtp %}
       <div class="col-6 col-md-auto">
-        <div class="card h-100 {{ 'border-success' if cloud else 'border' }}"
-             style="border-radius:12px; cursor:pointer; {{ 'background:#f0fdf4;' if cloud else '' }}"
+        <div class="card h-100 border"
+             style="border-radius:12px; cursor:pointer;"
              onclick="fillSMTP('{{ host }}','{{ porta }}','{{ tls }}')"
              title="Precompila parametri {{ nome }}">
           <div class="card-body p-2 text-center">
-            {% if cloud %}
-            <span class="badge bg-success mb-1" style="font-size:.6rem;">&#9729; Cloud-friendly</span><br>
-            {% endif %}
-            <div class="fw-semibold {{ 'text-success' if cloud else '' }}" style="font-size:.8rem;">{{ nome }}</div>
-            <div class="{{ 'text-success' if cloud else 'text-muted' }} font-monospace" style="font-size:.68rem;">{{ host }}:{{ porta }}</div>
+            <div class="fw-semibold" style="font-size:.8rem;">{{ nome }}</div>
+            <div class="text-muted font-monospace" style="font-size:.68rem;">{{ host }}:{{ porta }}</div>
           </div>
         </div>
       </div>
@@ -589,22 +584,6 @@ function switchFirmaFmt(fmt) {
           <label class="form-label fw-semibold">Nome mittente</label>
           <input type="text" name="smtp_from_name" class="form-control"
                  value="{{ cfg.smtp.from_name }}" placeholder="Studio Legale Rossi">
-        </div>
-
-        {# Guida Brevo — visibile solo quando l'host è smtp-relay.brevo.com #}
-        <div class="col-12" id="brevo-guide" style="display:none;">
-          <div class="alert alert-success py-2 mb-0" style="font-size:.82rem;">
-            <strong><i class="bi bi-cloud-check me-1"></i>Brevo (ex Sendinblue) — istruzioni rapide:</strong>
-            <ol class="mb-1 mt-1 ps-3">
-              <li>Registrati su <strong>brevo.com</strong> (piano Free: 300 email/giorno gratuito)</li>
-              <li><strong>Verifica l'email</strong> di conferma — l'SMTP non funziona finché l'account non è attivato</li>
-              <li>Vai su <em>SMTP &amp; API → SMTP</em> e copia le credenziali</li>
-              <li><strong>Username</strong>: il tuo indirizzo email Brevo</li>
-              <li><strong>Password</strong>: la <em>Master password SMTP</em> (non la password dell'account)</li>
-            </ol>
-            <i class="bi bi-exclamation-triangle-fill text-warning me-1"></i>
-            <strong>Timeout?</strong> L'account potrebbe non essere ancora attivato oppure il dominio mittente non verificato. Accedi a brevo.com e controlla eventuali avvisi nella dashboard.
-          </div>
         </div>
 
         <div class="col-12">
@@ -873,22 +852,7 @@ function fillSMTP(host, port, tls) {
   set('smtp_host', host);
   set('smtp_port', port);
   chk('smtp_use_tls', tls);
-  _toggleBrevoGuide(host);
 }
-
-function _toggleBrevoGuide(host) {
-  const guide = document.getElementById('brevo-guide');
-  if (guide) guide.style.display = (host === 'smtp-relay.brevo.com') ? '' : 'none';
-}
-
-/* Mostra guida Brevo se già salvato come host */
-document.addEventListener('DOMContentLoaded', function() {
-  const smtpHostEl = document.getElementById('smtp_host');
-  if (smtpHostEl) {
-    _toggleBrevoGuide(smtpHostEl.value);
-    smtpHostEl.addEventListener('input', () => _toggleBrevoGuide(smtpHostEl.value));
-  }
-});
 
 /* ── AJAX connection test ── */
 async function testConn(tipo, btnId, resId) {

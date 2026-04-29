@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.195.23 - 2026-04-29
+
+- Aggiornati i messaggi SMTP/PEC per il runtime Hetzner: non citano piu' Railway e guidano l'utente su server cloud o dedicati, whitelist dell'IP pubblico e relay SMTP compatibili.
+- Aggiunto `PCT_PUBLIC_OUTBOUND_IP` al profilo Hetzner per mostrare l'IP del server nei timeout SMTP e facilitare le richieste di sblocco al provider PEC.
+- Riallineati i testi visibili nelle impostazioni Email SMTP e AI locale eliminando riferimenti operativi al vecchio server Railway.
+- Rimossi dalle impostazioni SMTP il preset e la guida del relay esterno non piu' usato dallo studio.
+
 ## 2.195.22 - 2026-04-29
 
 - Completata la migrazione del volume dati Railway `/data` su Hetzner e verificata la shell HTTPS temporanea `app.116.203.45.57.sslip.io`.

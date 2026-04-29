@@ -35,18 +35,10 @@
     setFieldValue('pec_imap_port', imapPort);
   }
 
-  function toggleBrevoGuide(host) {
-    const guide = document.getElementById('brevo-guide');
-    if (guide) {
-      guide.style.display = host === 'smtp-relay.brevo.com' ? '' : 'none';
-    }
-  }
-
   function fillSMTP(host, port, tls) {
     setFieldValue('smtp_host', host);
     setFieldValue('smtp_port', port);
     setCheckboxValue('smtp_use_tls', tls === '1');
-    toggleBrevoGuide(host);
   }
 
   function collectValue(id, fallback) {
@@ -122,18 +114,6 @@
       button.disabled = false;
     }
   }
-
-  document.addEventListener('DOMContentLoaded', function () {
-    const smtpHost = document.getElementById('smtp_host');
-    if (!smtpHost) {
-      return;
-    }
-
-    toggleBrevoGuide(smtpHost.value);
-    smtpHost.addEventListener('input', function () {
-      toggleBrevoGuide(smtpHost.value);
-    });
-  });
 
   window.togglePwd = togglePwd;
   window.fillPEC = fillPEC;

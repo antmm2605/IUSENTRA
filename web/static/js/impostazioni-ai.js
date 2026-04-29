@@ -501,7 +501,7 @@
       'warning',
       'Preparazione motore in corso',
       config.remoteHosted
-        ? 'Sto chiedendo al servizio locale di verificare Ollama e i modelli su questo dispositivo, senza coinvolgere il server Railway.'
+        ? 'Sto chiedendo al servizio locale di verificare Ollama e i modelli su questo dispositivo, senza coinvolgere il server cloud.'
         : 'Sto verificando la strategia corretta per questa macchina e la disponibilita\' dei modelli locali.'
     );
 

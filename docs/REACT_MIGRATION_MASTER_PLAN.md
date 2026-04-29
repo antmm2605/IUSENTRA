@@ -83,7 +83,7 @@ globale senza annidarsi nel contenuto dashboard:
 La Regia Operativa e' una pagina React autonoma, collegata alla voce primaria
 della nav e separata dalla Panoramica:
 
-- usa i dati reali gia' esposti dal bridge dashboard;
+- usa i dati reali già esposti dal bridge dashboard;
 - mostra azioni operative, agenda da presidiare, fascicoli prioritari,
   comunicazioni recenti e suggerimenti Lex;
 - mantiene il link alla regia storica `/workspace-intelligente` come versione
@@ -96,7 +96,7 @@ La pagina Agenda React e' collegata alla nav della shell, ma non sostituisce la
 pagina storica `/agenda`:
 
 - dati reali da `/api/v1/ui/agenda`, normalizzati da agenda e scadenziario;
-- contratto read-only con `mock_fallback=false` e route storiche ancora attive
+- contratto in sola lettura con `mock_fallback=false` e route storiche ancora attive
   per dettagli, creazione, import ed export;
 - filtri per tipologia, ricerca testuale, vista giorno/settimana/mese
   e KPI su oggi, settimana, udienze, scadenze e alert;
@@ -132,6 +132,20 @@ La pagina Fascicoli React resta in sola lettura e non sostituisce ancora le rout
 - ricerca, filtri per tipo/stato, filtri avanzati per ufficio, alert e ordinamento;
 - tabella desktop e card mobile responsive, con azioni Apri/Modifica sulle route storiche;
 - pannello operativo con controlli qualità, alert, integrazioni telematiche e Lex AI trascinabile.
+
+
+### Stato Fascicoli Suite `/app-v2/fascicoli`
+
+La suite Fascicoli React ricostruisce le superfici storiche senza sostituire ancora le route Jinja:
+
+- `Tutti i Fascicoli`, con KPI, ricerca, filtri tipo/stato, filtri avanzati, scadenze imminenti, tabella desktop e card mobile;
+- `Nuovo Fascicolo` e `Modifica`, con gli stessi campi del form storico: dati principali, parti, ufficio, RG, anno, sezione, giudice, valore, workflow preventivo/conferimento, avvocati, note e contesto correzione;
+- `Archivio`, con ricerca, esito, data archiviazione, ZIP, dettaglio e ripristino;
+- `Apri Fascicolo`, con cabina completa: profilo, documenti, import portale, attività, udienze/scadenze, depositi/cancelleria, istanze, avanzamento, gestione stato, definizione, archiviazione, ripristino, PDF, ZIP, economico, conformita, telematico, cliente e soggetti;
+- `Esporta`, con builder per PDF/CSV, preset e collegamenti ai PDF singoli;
+- Lex AI flottante e trascinabile in ogni superficie della suite.
+
+Tutte le azioni di scrittura restano instradate alle route Flask storiche già auditate, mentre le API React `/api/v1/ui/fascicoli*` sono in sola lettura e consapevoli di tenant e sessione.
 
 ## Fase 4 - Ordine di migrazione
 

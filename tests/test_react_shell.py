@@ -503,3 +503,99 @@ def test_react_fascicoli_bridge_usa_repository_reali(tmp_path: Path):
     assert payload["items"][0]["type"] == "civile"
     assert payload["items"][0]["client"] == "Moscato Marco"
     assert payload["items"][0]["nextDeadline"] != "n.d."
+
+
+
+def test_react_fascicoli_suite_completa_route_componenti_e_lex():
+    app_source = Path("frontend/src/App.tsx").read_text(encoding="utf-8")
+    page_source = Path("frontend/src/components/FascicoliPage.tsx").read_text(encoding="utf-8")
+    data_source = Path("frontend/src/fascicoliData.ts").read_text(encoding="utf-8")
+    css = Path("frontend/src/components/FascicoliPage.css").read_text(encoding="utf-8")
+    floating_lex = Path("frontend/src/components/FloatingLex.tsx").read_text(encoding="utf-8")
+    bridge = Path("web/services/react_fascicoli_bridge.py").read_text(encoding="utf-8")
+
+    assert "/app-v2/fascicoli" in app_source
+    assert "/app-v2/fascicoli/nuovo" in app_source
+    assert "/app-v2/fascicoli/archivio" in app_source
+    assert "isFascicoliPage?<FascicoliPage" in app_source
+    for name in ("FascicoliListPage", "ArchivePage", "FascicoloFormPage", "DetailPage", "ExportPage"):
+        assert name in page_source
+    for endpoint in ("/api/v1/ui/fascicoli", "/api/v1/ui/fascicoli/archivio", "/api/v1/ui/fascicoli/export"):
+        assert endpoint in data_source
+    for legacy_action in ("/documenti/carica", "/documenti/importa-portale", "/attivita/aggiungi", "/definisci", "/archivia", "/ripristina"):
+        assert legacy_action in bridge
+    assert "context=\"fascicoli\"" in page_source
+    assert "localStorage" in floating_lex
+    assert "onPointerDown" in floating_lex
+    assert "Math.hypot" in floating_lex
+    assert ".iu-fascicoli-page" in css
+    assert ".iu-fascicolo-detail-page" in css
+    assert ".iu-fascicolo-form-page" in css
+    assert ".iu-fas-export-page" in css
+    assert "@media(max-width:760px)" in css
+
+
+def test_react_fascicoli_api_suite_richiede_auth(tmp_path: Path):
+    app = _app(tmp_path)
+    client = app.test_client()
+
+    assert client.get("/api/v1/ui/fascicoli").status_code == 401
+    assert client.get("/api/v1/ui/fascicoli/archivio").status_code == 401
+    assert client.get("/api/v1/ui/fascicoli/nuovo").status_code == 401
+    assert client.get("/api/v1/ui/fascicoli/export").status_code == 401
+
+
+def test_react_fascicoli_api_suite_usa_repository_reali(tmp_path: Path):
+    app = _app(tmp_path)
+    client = app.test_client()
+    today = date.today()
+
+    cliente = GestioneClienti(db_path=app.config["CLIENTI_DB"]).nuovo(
+        TipoCliente.PERSONA_FISICA,
+        nome="Marco",
+        cognome="Moscato",
+    )
+    fascicoli = GestioneFascicoli(
+        db_path=app.config["FASCICOLI_DB"],
+        documents_dir=app.config["FASCICOLI_DOCS"],
+        archive_dir=app.config["FASCICOLI_ARCH"],
+    )
+    fascicolo = fascicoli.nuovo(
+        "Appello civile",
+        TipoFascicolo.CIVILE,
+        id_cliente=cliente.id,
+        nome_cliente=cliente.nome_completo,
+        tribunale="Corte d'Appello di Milano",
+        numero_rg="001",
+        anno_rg=today.year,
+    )
+    GestioneScadenziario(db_path=app.config["SCADENZIARIO_DB"]).nuova(
+        "Deposito comparsa conclusionale",
+        TipoTermine.DEPOSITO_MEMORIA,
+        (today + timedelta(days=10)).isoformat(),
+        id_fascicolo=fascicolo.id,
+    )
+
+    list_response = client.get("/api/v1/ui/fascicoli", headers={"X-API-Key": "react-test-key"})
+    detail_response = client.get(f"/api/v1/ui/fascicoli/{fascicolo.id}", headers={"X-API-Key": "react-test-key"})
+    form_response = client.get(f"/api/v1/ui/fascicoli/{fascicolo.id}/modifica", headers={"X-API-Key": "react-test-key"})
+    export_response = client.get("/api/v1/ui/fascicoli/export", headers={"X-API-Key": "react-test-key"})
+
+    payload = list_response.get_json()
+    detail = detail_response.get_json()
+    form = form_response.get_json()
+    export_payload = export_response.get_json()
+
+    assert list_response.status_code == 200
+    assert detail_response.status_code == 200
+    assert form_response.status_code == 200
+    assert export_response.status_code == 200
+    assert payload["source"] == "repository_reali"
+    assert payload["contracts"]["mock_fallback"] is False
+    assert payload["contracts"]["read_only"] is True
+    assert payload["summary"]["total"] >= 1
+    assert any(item["title"] == "Appello civile" for item in payload["items"])
+    assert detail["fascicolo"]["title"] == "Appello civile"
+    assert detail["actions"]["uploadDocument"].endswith("/documenti/carica")
+    assert form["mode"] == "edit"
+    assert export_payload["formats"][0]["href"] == "/fascicoli/export.pdf"

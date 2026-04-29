@@ -24,7 +24,13 @@ from pct.scadenziario import PrioritaTermine, StatoTermine
 from pct.timesheet import StatoTimesheet
 from pct.workspace_intelligente import WorkspaceIntelligenteService
 from web.services.react_agenda_bridge import build_react_agenda_payload
-from web.services.react_fascicoli_bridge import build_react_fascicoli_payload
+from web.services.react_fascicoli_bridge import (
+    build_react_archivio_payload,
+    build_react_fascicoli_export_payload,
+    build_react_fascicoli_payload,
+    build_react_fascicolo_detail_payload,
+    build_react_fascicolo_form_payload,
+)
 from web.helpers import (
     get_agenda,
     get_calendar_sync,
@@ -744,14 +750,74 @@ def bootstrap():
     )
 
 
+# IUSENTRA_REACT_FASCICOLI_ROUTES_START
 @api_v1_react.get("/fascicoli")
 @_richiedi_auth
-def fascicoli():
-    payload = build_react_fascicoli_payload(
+def fascicoli_react_list():
+    return jsonify(build_react_fascicoli_payload(
         get_fascicoli=get_fascicoli,
         get_scadenziario=get_scadenziario,
-    )
-    return jsonify(payload)
+    ))
+
+
+@api_v1_react.get("/fascicoli/archivio")
+@_richiedi_auth
+def fascicoli_react_archivio():
+    return jsonify(build_react_archivio_payload(
+        get_fascicoli=get_fascicoli,
+        get_scadenziario=get_scadenziario,
+        query=request.args.get("q", ""),
+    ))
+
+
+@api_v1_react.get("/fascicoli/export")
+@_richiedi_auth
+def fascicoli_react_export():
+    return jsonify(build_react_fascicoli_export_payload(
+        get_fascicoli=get_fascicoli,
+        get_scadenziario=get_scadenziario,
+    ))
+
+
+@api_v1_react.get("/fascicoli/nuovo")
+@_richiedi_auth
+def fascicolo_react_nuovo():
+    return jsonify(build_react_fascicolo_form_payload(
+        get_fascicoli=get_fascicoli,
+        get_clienti=get_clienti,
+        id_fasc=None,
+        query=dict(request.args),
+        correction_context={"active": False, "title": "", "help": "", "highlight": ""},
+    ))
+
+
+@api_v1_react.get("/fascicoli/<id_fasc>/modifica")
+@_richiedi_auth
+def fascicolo_react_modifica(id_fasc: str):
+    return jsonify(build_react_fascicolo_form_payload(
+        get_fascicoli=get_fascicoli,
+        get_clienti=get_clienti,
+        id_fasc=id_fasc,
+        query=dict(request.args),
+        correction_context={"active": False, "title": "", "help": "", "highlight": ""},
+    ))
+
+
+@api_v1_react.get("/fascicoli/<id_fasc>")
+@_richiedi_auth
+def fascicolo_react_dettaglio(id_fasc: str):
+    return jsonify(build_react_fascicolo_detail_payload(
+        get_fascicoli=get_fascicoli,
+        get_clienti=get_clienti,
+        get_agenda=get_agenda,
+        get_scadenziario=get_scadenziario,
+        get_soggetti=get_soggetti,
+        get_preventivi=get_preventivi,
+        get_fatturazione=get_fatturazione,
+        get_timesheet=get_timesheet,
+        id_fasc=id_fasc,
+    ))
+# IUSENTRA_REACT_FASCICOLI_ROUTES_END
 
 
 @api_v1_react.get("/dashboard")
@@ -877,14 +943,6 @@ def agenda():
     )
     return jsonify(payload)
 
-
-@api_v1_react.get("/fascicoli/<id_fascicolo>")
-@_richiedi_auth
-def fascicolo(id_fascicolo: str):
-    fasc = get_fascicoli().get(id_fascicolo)
-    if not fasc:
-        return jsonify({"errore": "Fascicolo non trovato.", "codice": 404}), 404
-    return jsonify(fasc.to_dict())
 
 
 @api_v1_react.post("/lex/chat")

@@ -1,7 +1,12 @@
 import type { Tone } from './data'
 
-export type FascicoloTipo = 'tutti' | 'civile' | 'penale' | 'amministrativo' | 'tributario' | 'stragiudiziale' | 'altro'
+export type FascicoloTipo = 'tutti' | 'civile' | 'penale' | 'amministrativo' | 'tributario' | 'stragiudiziale' | 'consulenza' | 'lavoro' | 'famiglia' | 'successioni' | 'altro'
 export type FascicoloStato = 'tutti' | 'aperto' | 'in_corso' | 'definito' | 'da_archiviare' | 'archiviato' | 'sospeso'
+
+export type Facet<T extends string> = { value: T; label: string; count: number }
+export type SelectOption = { value: string; label: string }
+export type ActionLink = { label: string; href: string; tone?: Tone; method?: 'get' | 'post'; confirm?: string }
+export type KeyValue = { label: string; value: string; mono?: boolean; href?: string; tone?: Tone }
 
 export type FascicoloRow = {
   id: string
@@ -19,9 +24,26 @@ export type FascicoloRow = {
   documents: number
   unreadCommunications: number
   alerts: number
+  openedAt: string
+  closedAt: string
+  updatedAt: string
   href: string
+  legacyHref: string
   editHref: string
+  legacyEditHref: string
+  exportPdfHref: string
+  archiveZipHref: string
+  restoreAction: string
   tone: Tone
+  archive?: {
+    outcome: string
+    archivedAt: string
+    reason: string
+    notes: string
+    zipAvailable: boolean
+    zipSize: string
+    hash: string
+  }
 }
 
 export type FascicoliSummary = {
@@ -30,7 +52,10 @@ export type FascicoliSummary = {
   inProgress: number
   toArchive: number
   archived: number
+  suspended: number
+  deadlines7: number
   deadlines30: number
+  documents: number
   documentsToClassify: number
   unreadCommunications: number
 }
@@ -38,13 +63,207 @@ export type FascicoliSummary = {
 export type FascicoliPageData = {
   source: string
   generatedAt: string
-  contracts: { mock_fallback: boolean; read_only: boolean }
+  contracts: { mock_fallback: boolean; read_only: boolean; writes: 'legacy_routes' | 'api' }
   summary: FascicoliSummary
   items: FascicoloRow[]
   facets: {
-    types: Array<{ value: FascicoloTipo; label: string; count: number }>
-    statuses: Array<{ value: FascicoloStato; label: string; count: number }>
+    types: Array<Facet<FascicoloTipo>>
+    statuses: Array<Facet<FascicoloStato>>
   }
+  deadlines: Array<{ id: string; matterId: string; matterRef: string; title: string; date: string; dateIso: string; href: string; tone: Tone }>
+}
+
+export type FascicoloDocument = {
+  id: string
+  name: string
+  type: string
+  size: string
+  uploadedAt: string
+  documentDate: string
+  notes: string
+  tags: string[]
+  signed: boolean
+  source: string
+  portalName: string
+  portalClass: string
+  portalSender: string
+  portalDate: string
+  hash: string
+  actions: {
+    preview: string
+    download: string
+    edit: string
+    sign: string
+    pdfa: string
+    attest: string
+    metadata: string
+    delete: string
+  }
+}
+
+export type FascicoloActivity = {
+  id: string
+  type: string
+  title: string
+  date: string
+  description: string
+  result: string
+  place: string
+  notes: string
+  lawyer: string
+  documentId: string
+  depositId: string
+  updateAction: string
+  deleteAction: string
+  tone: Tone
+}
+
+export type FascicoloDeadline = {
+  id: string
+  title: string
+  date: string
+  dateIso: string
+  type: string
+  priority: string
+  status: string
+  peremptory: boolean
+  notes: string
+  href: string
+  tone: Tone
+}
+
+export type FascicoloAppointment = {
+  id: string
+  title: string
+  date: string
+  time: string
+  place: string
+  court: string
+  type: string
+  href: string
+  tone: Tone
+}
+
+export type FascicoloDeposit = {
+  id: string
+  timestamp: string
+  status: string
+  actType: string
+  pec: string
+  message: string
+  checks: string
+  source: string
+  externalId: string
+  mainFile: string
+  documentsCount: number
+  portalDocuments: Array<{ name: string; type: string; date: string; sender: string; imported: boolean; available: boolean }>
+  tone: Tone
+}
+
+export type FascicoloParty = { id: string; name: string; role: string; taxCode: string; email: string; pec: string; phone: string; href: string }
+export type FascicoloHistory = { date: string; description: string; from: string; to: string; notes: string; lawyer: string }
+export type FascicoloMoney = { id: string; label: string; value: string; note: string; href: string; tone: Tone }
+export type FascicoloPerson = { id: string; name: string; taxCode: string; vat: string; email: string; pec: string; phone: string; address: string; href: string }
+
+export type FascicoloFull = FascicoloRow & {
+  object: string
+  counterparty: string
+  counterpartyTaxCode: string
+  judge: string
+  section: string
+  leadLawyer: string
+  dominus: string
+  value: string
+  quotedValue: string
+  agreedFee: string
+  procedureType: string
+  practiceId: string
+  practiceArea: string
+  firstHearing: string
+  citationNotification: string
+  nextHearing: string
+  notes: string
+  reservedNotes: string
+  source: string
+  sourceExternalId: string
+  lastSyncAt: string
+  syncStatus: string
+  importLogId: string
+  hasConflicts: boolean
+  documentSyncEnabled: boolean
+  eventsSyncEnabled: boolean
+  complianceControlsEnabled: boolean
+  archiveReady: boolean
+}
+
+export type FascicoloDetailData = {
+  source: string
+  generatedAt: string
+  contracts: { mock_fallback: boolean; read_only: boolean; writes: 'legacy_routes' | 'api' }
+  notFound?: boolean
+  fascicolo: FascicoloFull
+  quickCounts: Record<string, number>
+  profile: KeyValue[]
+  documents: FascicoloDocument[]
+  activities: FascicoloActivity[]
+  deadlines: FascicoloDeadline[]
+  appointments: FascicoloAppointment[]
+  deposits: FascicoloDeposit[]
+  requests: FascicoloActivity[]
+  parties: FascicoloParty[]
+  history: FascicoloHistory[]
+  client?: FascicoloPerson
+  economics: FascicoloMoney[]
+  workflow: Array<{ label: string; value: string; note: string; tone: Tone; href: string }>
+  telematic: Array<{ label: string; value: string; note: string; href: string; tone: Tone }>
+  quality: Array<{ label: string; value: string; ok: boolean; tone: Tone }>
+  actions: {
+    changeState: string
+    define: string
+    archive: string
+    restore: string
+    delete: string
+    uploadDocument: string
+    importPortal: string
+    addActivity: string
+    complianceOn: string
+    complianceOff: string
+    exportPdf: string
+    archiveZip: string
+  }
+  options: {
+    states: SelectOption[]
+    documentTypes: SelectOption[]
+    activityTypes: SelectOption[]
+    activityResults: SelectOption[]
+  }
+}
+
+export type FascicoloFormData = {
+  source: string
+  generatedAt: string
+  mode: 'new' | 'edit'
+  action: string
+  backHref: string
+  detailHref: string
+  query: Record<string, string>
+  clients: Array<{ id: string; label: string; taxCode: string }>
+  types: SelectOption[]
+  states: SelectOption[]
+  fascicolo?: Partial<FascicoloFull> & Record<string, string | number | boolean | undefined>
+  workflow?: { title: string; badges: string[]; summary: string; checklist: string[]; values: KeyValue[] }
+  correction?: { active: boolean; title: string; help: string; highlight: string }
+}
+
+export type FascicoliExportData = {
+  source: string
+  generatedAt: string
+  summary: FascicoliSummary
+  formats: Array<{ id: string; label: string; description: string; href: string; tone: Tone }>
+  fields: Array<{ key: string; label: string; checked: boolean }>
+  presets: Array<{ label: string; description: string; href: string; tone: Tone }>
+  recent: FascicoloRow[]
+  facets: FascicoliPageData['facets']
 }
 
 const emptySummary: FascicoliSummary = {
@@ -53,7 +272,10 @@ const emptySummary: FascicoliSummary = {
   inProgress: 0,
   toArchive: 0,
   archived: 0,
+  suspended: 0,
+  deadlines7: 0,
   deadlines30: 0,
+  documents: 0,
   documentsToClassify: 0,
   unreadCommunications: 0,
 }
@@ -61,35 +283,59 @@ const emptySummary: FascicoliSummary = {
 export const emptyFascicoliPage: FascicoliPageData = {
   source: 'vuoto',
   generatedAt: '',
-  contracts: { mock_fallback: false, read_only: true },
+  contracts: { mock_fallback: false, read_only: true, writes: 'legacy_routes' },
   summary: emptySummary,
   items: [],
   facets: {
     types: [{ value: 'tutti', label: 'Tutti i tipi', count: 0 }],
     statuses: [{ value: 'tutti', label: 'Tutti gli stati', count: 0 }],
   },
+  deadlines: [],
+}
+
+export const emptyFascicoloDetail: FascicoloDetailData = {
+  source: 'vuoto',
+  generatedAt: '',
+  contracts: { mock_fallback: false, read_only: true, writes: 'legacy_routes' },
+  fascicolo: {
+    id: '', ref: 'n.d.', internalRef: 'n.d.', title: 'Fascicolo non trovato', subtitle: '', type: 'altro', client: 'n.d.', court: 'n.d.', rg: 'n.d.',
+    nextDeadline: 'n.d.', nextDeadlineIso: '', status: 'aperto', documents: 0, unreadCommunications: 0, alerts: 0, openedAt: '', closedAt: '', updatedAt: '',
+    href: '/app-v2/fascicoli', legacyHref: '/fascicoli', editHref: '/app-v2/fascicoli', legacyEditHref: '/fascicoli', exportPdfHref: '', archiveZipHref: '', restoreAction: '', tone: 'neutral',
+    object: '', counterparty: '', counterpartyTaxCode: '', judge: '', section: '', leadLawyer: '', dominus: '', value: '', quotedValue: '', agreedFee: '',
+    procedureType: '', practiceId: '', practiceArea: '', firstHearing: '', citationNotification: '', nextHearing: '', notes: '', reservedNotes: '',
+    source: '', sourceExternalId: '', lastSyncAt: '', syncStatus: '', importLogId: '', hasConflicts: false, documentSyncEnabled: false,
+    eventsSyncEnabled: false, complianceControlsEnabled: true, archiveReady: false,
+  },
+  quickCounts: {}, profile: [], documents: [], activities: [], deadlines: [], appointments: [], deposits: [], requests: [], parties: [], history: [],
+  economics: [], workflow: [], telematic: [], quality: [],
+  actions: { changeState: '', define: '', archive: '', restore: '', delete: '', uploadDocument: '', importPortal: '', addActivity: '', complianceOn: '', complianceOff: '', exportPdf: '', archiveZip: '' },
+  options: { states: [], documentTypes: [], activityTypes: [], activityResults: [] },
+}
+
+export const emptyFascicoloForm: FascicoloFormData = {
+  source: 'vuoto', generatedAt: '', mode: 'new', action: '/fascicoli/nuovo', backHref: '/app-v2/fascicoli', detailHref: '/app-v2/fascicoli',
+  query: {}, clients: [], types: [], states: [],
+}
+
+export const emptyFascicoliExport: FascicoliExportData = {
+  source: 'vuoto', generatedAt: '', summary: emptySummary, formats: [], fields: [], presets: [], recent: [], facets: emptyFascicoliPage.facets,
 }
 
 const typeLabels: Record<Exclude<FascicoloTipo, 'tutti'>, string> = {
-  civile: 'Civile',
-  penale: 'Penale',
-  amministrativo: 'Amministrativo',
-  tributario: 'Tributario',
-  stragiudiziale: 'Stragiudiziale',
-  altro: 'Altro',
+  civile: 'Civile', penale: 'Penale', amministrativo: 'Amministrativo', tributario: 'Tributario', stragiudiziale: 'Stragiudiziale',
+  consulenza: 'Consulenza', lavoro: 'Lavoro', famiglia: 'Famiglia', successioni: 'Successioni', altro: 'Altro',
 }
 
 const statusLabels: Record<Exclude<FascicoloStato, 'tutti'>, string> = {
-  aperto: 'Aperto',
-  in_corso: 'In corso',
-  definito: 'Definito',
-  da_archiviare: 'Da archiviare',
-  archiviato: 'Archiviato',
-  sospeso: 'Sospeso',
+  aperto: 'Aperto', in_corso: 'In corso', definito: 'Definito', da_archiviare: 'Da archiviare', archiviato: 'Archiviato', sospeso: 'Sospeso',
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value && typeof value === 'object' && !Array.isArray(value))
+}
+
+function asArray(value: unknown): unknown[] {
+  return Array.isArray(value) ? value : []
 }
 
 function text(value: unknown, fallback = ''): string {
@@ -101,6 +347,10 @@ function number(value: unknown): number {
   return Number.isFinite(parsed) ? parsed : 0
 }
 
+function bool(value: unknown): boolean {
+  return value === true || value === 'true' || value === '1' || value === 1
+}
+
 function normaliseType(value: unknown): Exclude<FascicoloTipo, 'tutti'> {
   const raw = text(value).toLowerCase()
   if (raw.includes('civ')) return 'civile'
@@ -108,20 +358,24 @@ function normaliseType(value: unknown): Exclude<FascicoloTipo, 'tutti'> {
   if (raw.includes('amm') || raw.includes('tar') || raw.includes('consiglio')) return 'amministrativo'
   if (raw.includes('trib') || raw.includes('sigit') || raw.includes('ptt')) return 'tributario'
   if (raw.includes('stragiud') || raw.includes('mediazione') || raw.includes('negoziazione')) return 'stragiudiziale'
+  if (raw.includes('consul')) return 'consulenza'
+  if (raw.includes('lavor')) return 'lavoro'
+  if (raw.includes('fam')) return 'famiglia'
+  if (raw.includes('success')) return 'successioni'
   return 'altro'
 }
 
 function normaliseStatus(value: unknown): Exclude<FascicoloStato, 'tutti'> {
   const raw = text(value).toLowerCase().replace(/\s+/g, '_')
+  if (raw.includes('da_arch') || raw.includes('archiviare')) return 'da_archiviare'
   if (raw.includes('archivi')) return 'archiviato'
   if (raw.includes('defin') || raw.includes('chius')) return 'definito'
   if (raw.includes('sosp')) return 'sospeso'
   if (raw.includes('corso')) return 'in_corso'
-  if (raw.includes('da_arch') || raw.includes('archiviare')) return 'da_archiviare'
   return 'aperto'
 }
 
-function statusTone(status: FascicoloRow['status']): Tone {
+export function statusTone(status: FascicoloRow['status']): Tone {
   if (status === 'definito') return 'info'
   if (status === 'in_corso') return 'success'
   if (status === 'da_archiviare') return 'warning'
@@ -130,7 +384,20 @@ function statusTone(status: FascicoloRow['status']): Tone {
   return 'primary'
 }
 
-function normalizeItem(value: unknown, index: number): FascicoloRow {
+function normalizeArchive(value: unknown): FascicoloRow['archive'] | undefined {
+  if (!isRecord(value)) return undefined
+  return {
+    outcome: text(value.outcome ?? value.esito_finale),
+    archivedAt: text(value.archivedAt ?? value.data_archiviazione),
+    reason: text(value.reason ?? value.motivo),
+    notes: text(value.notes ?? value.note_archivio),
+    zipAvailable: bool(value.zipAvailable ?? value.zip_available),
+    zipSize: text(value.zipSize ?? value.dimensione_zip),
+    hash: text(value.hash ?? value.hash_zip),
+  }
+}
+
+export function normalizeItem(value: unknown, index: number): FascicoloRow {
   const item = isRecord(value) ? value : {}
   const id = text(item.id, `fascicolo-${index}`)
   const type = normaliseType(item.type ?? item.tipo)
@@ -143,7 +410,7 @@ function normalizeItem(value: unknown, index: number): FascicoloRow {
     ref: text(item.ref ?? item.riferimento ?? item.numero, rg || id),
     internalRef: text(item.internalRef ?? item.internal_ref ?? item.interno, 'n.d.'),
     title,
-    subtitle: text(item.subtitle ?? item.sottotitolo ?? item.descrizione, ''),
+    subtitle: text(item.subtitle ?? item.sottotitolo ?? item.descrizione ?? item.object, ''),
     type,
     client,
     court: text(item.court ?? item.tribunale ?? item.ufficio, 'Ufficio non impostato'),
@@ -154,13 +421,56 @@ function normalizeItem(value: unknown, index: number): FascicoloRow {
     documents: number(item.documents ?? item.docs ?? item.documenti),
     unreadCommunications: number(item.unreadCommunications ?? item.comunicazioni_non_lette ?? item.unread_communications),
     alerts: number(item.alerts ?? item.alert ?? item.criticita),
-    href: text(item.href, `/fascicoli/${encodeURIComponent(id)}`),
-    editHref: text(item.editHref ?? item.edit_href, `/fascicoli/${encodeURIComponent(id)}/modifica`),
-    tone: statusTone(status),
+    openedAt: text(item.openedAt ?? item.data_apertura),
+    closedAt: text(item.closedAt ?? item.data_chiusura),
+    updatedAt: text(item.updatedAt ?? item.modificato_il),
+    href: text(item.href, `/app-v2/fascicoli/${encodeURIComponent(id)}`),
+    legacyHref: text(item.legacyHref ?? item.legacy_href, `/fascicoli/${encodeURIComponent(id)}`),
+    editHref: text(item.editHref ?? item.edit_href, `/app-v2/fascicoli/${encodeURIComponent(id)}/modifica`),
+    legacyEditHref: text(item.legacyEditHref ?? item.legacy_edit_href, `/fascicoli/${encodeURIComponent(id)}/modifica`),
+    exportPdfHref: text(item.exportPdfHref ?? item.export_pdf_href, `/fascicoli/${encodeURIComponent(id)}/pdf`),
+    archiveZipHref: text(item.archiveZipHref ?? item.archive_zip_href, `/fascicoli/${encodeURIComponent(id)}/archivio/scarica`),
+    restoreAction: text(item.restoreAction ?? item.restore_action, `/fascicoli/${encodeURIComponent(id)}/ripristina`),
+    tone: (text(item.tone) as Tone) || statusTone(status),
+    archive: normalizeArchive(item.archive ?? item.archivio),
   }
 }
 
-function buildFacets(items: FascicoloRow[]): FascicoliPageData['facets'] {
+function normalizeSummary(value: unknown, items: FascicoloRow[]): FascicoliSummary {
+  if (isRecord(value)) {
+    return {
+      total: number(value.total ?? items.length),
+      active: number(value.active ?? value.attivi),
+      inProgress: number(value.inProgress ?? value.in_corso),
+      toArchive: number(value.toArchive ?? value.da_archiviare),
+      archived: number(value.archived ?? value.archiviati),
+      suspended: number(value.suspended ?? value.sospesi),
+      deadlines7: number(value.deadlines7 ?? value.scadenze_7),
+      deadlines30: number(value.deadlines30 ?? value.scadenze_30),
+      documents: number(value.documents ?? value.documenti),
+      documentsToClassify: number(value.documentsToClassify ?? value.documenti_da_classificare),
+      unreadCommunications: number(value.unreadCommunications ?? value.comunicazioni_non_lette),
+    }
+  }
+  return {
+    total: items.length,
+    active: items.filter((item) => item.status !== 'archiviato').length,
+    inProgress: items.filter((item) => item.status === 'in_corso').length,
+    toArchive: items.filter((item) => item.status === 'definito' || item.status === 'da_archiviare').length,
+    archived: items.filter((item) => item.status === 'archiviato').length,
+    suspended: items.filter((item) => item.status === 'sospeso').length,
+    deadlines7: items.filter((item) => item.nextDeadlineIso).length,
+    deadlines30: items.filter((item) => item.nextDeadlineIso).length,
+    documents: items.reduce((total, item) => total + item.documents, 0),
+    documentsToClassify: items.reduce((total, item) => total + item.alerts, 0),
+    unreadCommunications: items.reduce((total, item) => total + item.unreadCommunications, 0),
+  }
+}
+
+function normalizeFacets(value: unknown, items: FascicoloRow[]): FascicoliPageData['facets'] {
+  if (isRecord(value) && Array.isArray(value.types) && Array.isArray(value.statuses)) {
+    return value as FascicoliPageData['facets']
+  }
   const typeCounts = new Map<FascicoloTipo, number>([['tutti', items.length]])
   const statusCounts = new Map<FascicoloStato, number>([['tutti', items.length]])
   items.forEach((item) => {
@@ -168,60 +478,174 @@ function buildFacets(items: FascicoloRow[]): FascicoliPageData['facets'] {
     statusCounts.set(item.status, (statusCounts.get(item.status) || 0) + 1)
   })
   return {
-    types: [
-      { value: 'tutti', label: 'Tutti i tipi', count: typeCounts.get('tutti') || 0 },
-      ...Object.entries(typeLabels).map(([value, label]) => ({ value: value as FascicoloTipo, label, count: typeCounts.get(value as FascicoloTipo) || 0 })),
-    ],
-    statuses: [
-      { value: 'tutti', label: 'Tutti gli stati', count: statusCounts.get('tutti') || 0 },
-      ...Object.entries(statusLabels).map(([value, label]) => ({ value: value as FascicoloStato, label, count: statusCounts.get(value as FascicoloStato) || 0 })),
-    ],
+    types: [{ value: 'tutti', label: 'Tutti i tipi', count: items.length }, ...Object.entries(typeLabels).map(([value, label]) => ({ value: value as FascicoloTipo, label, count: typeCounts.get(value as FascicoloTipo) || 0 }))],
+    statuses: [{ value: 'tutti', label: 'Tutti gli stati', count: items.length }, ...Object.entries(statusLabels).map(([value, label]) => ({ value: value as FascicoloStato, label, count: statusCounts.get(value as FascicoloStato) || 0 }))],
   }
 }
 
-function buildSummary(items: FascicoloRow[], payloadSummary?: unknown): FascicoliSummary {
-  if (isRecord(payloadSummary)) {
-    return {
-      total: number(payloadSummary.total ?? items.length),
-      active: number(payloadSummary.active ?? payloadSummary.attivi),
-      inProgress: number(payloadSummary.inProgress ?? payloadSummary.in_corso),
-      toArchive: number(payloadSummary.toArchive ?? payloadSummary.da_archiviare),
-      archived: number(payloadSummary.archived ?? payloadSummary.archiviati),
-      deadlines30: number(payloadSummary.deadlines30 ?? payloadSummary.scadenze_30),
-      documentsToClassify: number(payloadSummary.documentsToClassify ?? payloadSummary.documenti_da_classificare),
-      unreadCommunications: number(payloadSummary.unreadCommunications ?? payloadSummary.comunicazioni_non_lette),
-    }
-  }
-  return {
-    total: items.length,
-    active: items.filter((item) => item.status !== 'archiviato').length,
-    inProgress: items.filter((item) => item.status === 'in_corso').length,
-    toArchive: items.filter((item) => item.status === 'da_archiviare' || item.status === 'definito').length,
-    archived: items.filter((item) => item.status === 'archiviato').length,
-    deadlines30: items.filter((item) => item.nextDeadlineIso || item.nextDeadline !== 'n.d.').length,
-    documentsToClassify: items.reduce((total, item) => total + Math.max(0, item.alerts), 0),
-    unreadCommunications: items.reduce((total, item) => total + item.unreadCommunications, 0),
-  }
-}
-
-function normalisePayload(payload: unknown): FascicoliPageData {
+function normalizePagePayload(payload: unknown): FascicoliPageData {
   if (!isRecord(payload)) return emptyFascicoliPage
   const rawItems = Array.isArray(payload.items) ? payload.items : Array.isArray(payload.fascicoli) ? payload.fascicoli : []
   const items = rawItems.map(normalizeItem)
   return {
     source: text(payload.source, 'repository_reali'),
     generatedAt: text(payload.generatedAt ?? payload.generated_at, ''),
-    contracts: isRecord(payload.contracts)
-      ? {
-        mock_fallback: Boolean(payload.contracts.mock_fallback),
-        read_only: payload.contracts.read_only !== false,
-      }
-      : { mock_fallback: false, read_only: true },
-    summary: buildSummary(items, payload.summary),
+    contracts: isRecord(payload.contracts) ? {
+      mock_fallback: bool(payload.contracts.mock_fallback),
+      read_only: payload.contracts.read_only !== false,
+      writes: text(payload.contracts.writes, 'legacy_routes') as 'legacy_routes' | 'api',
+    } : { mock_fallback: false, read_only: true, writes: 'legacy_routes' },
+    summary: normalizeSummary(payload.summary, items),
     items,
-    facets: isRecord(payload.facets) && Array.isArray(payload.facets.types) && Array.isArray(payload.facets.statuses)
-      ? payload.facets as FascicoliPageData['facets']
-      : buildFacets(items),
+    facets: normalizeFacets(payload.facets, items),
+    deadlines: asArray(payload.deadlines).map((entry, index) => {
+      const row = isRecord(entry) ? entry : {}
+      return {
+        id: text(row.id, `deadline-${index}`),
+        matterId: text(row.matterId ?? row.id_fascicolo),
+        matterRef: text(row.matterRef ?? row.fascicolo),
+        title: text(row.title ?? row.titolo, 'Scadenza'),
+        date: text(row.date ?? row.data, 'n.d.'),
+        dateIso: text(row.dateIso ?? row.date_iso ?? row.data_scadenza),
+        href: text(row.href, '/scadenziario'),
+        tone: (text(row.tone, 'warning') as Tone),
+      }
+    }),
+  }
+}
+
+function normalizeKeyValues(value: unknown): KeyValue[] {
+  return asArray(value).map((entry) => {
+    const row = isRecord(entry) ? entry : {}
+    return { label: text(row.label), value: text(row.value, 'n.d.'), mono: bool(row.mono), href: text(row.href), tone: (text(row.tone, 'neutral') as Tone) }
+  }).filter((row) => row.label)
+}
+
+function normalizeOptions(value: unknown): SelectOption[] {
+  return asArray(value).map((entry) => {
+    const row = isRecord(entry) ? entry : {}
+    return { value: text(row.value), label: text(row.label ?? row.value) }
+  }).filter((row) => row.value)
+}
+
+function normalizeDetailPayload(payload: unknown): FascicoloDetailData {
+  if (!isRecord(payload)) return emptyFascicoloDetail
+  const base = normalizeItem(payload.fascicolo ?? {}, 0)
+  const fullPayload = isRecord(payload.fascicolo) ? payload.fascicolo : {}
+  const full: FascicoloFull = {
+    ...emptyFascicoloDetail.fascicolo,
+    ...base,
+    object: text(fullPayload.object ?? fullPayload.oggetto),
+    counterparty: text(fullPayload.counterparty ?? fullPayload.controparte),
+    counterpartyTaxCode: text(fullPayload.counterpartyTaxCode ?? fullPayload.cf_controparte),
+    judge: text(fullPayload.judge ?? fullPayload.giudice),
+    section: text(fullPayload.section ?? fullPayload.sezione),
+    leadLawyer: text(fullPayload.leadLawyer ?? fullPayload.avvocato_referente),
+    dominus: text(fullPayload.dominus ?? fullPayload.avvocato_dominus),
+    value: text(fullPayload.value ?? fullPayload.valore_causa),
+    quotedValue: text(fullPayload.quotedValue ?? fullPayload.valore_preventivato),
+    agreedFee: text(fullPayload.agreedFee ?? fullPayload.compenso_pattuito),
+    procedureType: text(fullPayload.procedureType ?? fullPayload.tipo_procedimento),
+    practiceId: text(fullPayload.practiceId ?? fullPayload.id_pratica),
+    practiceArea: text(fullPayload.practiceArea ?? fullPayload.area_pratica),
+    firstHearing: text(fullPayload.firstHearing ?? fullPayload.data_prima_udienza),
+    citationNotification: text(fullPayload.citationNotification ?? fullPayload.data_notifica_citazione),
+    nextHearing: text(fullPayload.nextHearing ?? fullPayload.data_prossima_udienza),
+    notes: text(fullPayload.notes ?? fullPayload.note),
+    reservedNotes: text(fullPayload.reservedNotes ?? fullPayload.note_riservate),
+    source: text(fullPayload.source),
+    sourceExternalId: text(fullPayload.sourceExternalId ?? fullPayload.source_external_id),
+    lastSyncAt: text(fullPayload.lastSyncAt ?? fullPayload.last_sync_at),
+    syncStatus: text(fullPayload.syncStatus ?? fullPayload.sync_status),
+    importLogId: text(fullPayload.importLogId ?? fullPayload.import_log_id),
+    hasConflicts: bool(fullPayload.hasConflicts ?? fullPayload.has_conflicts),
+    documentSyncEnabled: bool(fullPayload.documentSyncEnabled ?? fullPayload.document_sync_enabled),
+    eventsSyncEnabled: bool(fullPayload.eventsSyncEnabled ?? fullPayload.events_sync_enabled),
+    complianceControlsEnabled: fullPayload.complianceControlsEnabled === undefined ? true : bool(fullPayload.complianceControlsEnabled ?? fullPayload.compliance_controls_enabled),
+    archiveReady: bool(fullPayload.archiveReady ?? fullPayload.archivio_pronto),
+  }
+  const options = isRecord(payload.options) ? payload.options : {}
+  return {
+    source: text(payload.source, 'repository_reali'),
+    generatedAt: text(payload.generatedAt ?? payload.generated_at),
+    contracts: isRecord(payload.contracts) ? {
+      mock_fallback: bool(payload.contracts.mock_fallback), read_only: payload.contracts.read_only !== false, writes: text(payload.contracts.writes, 'legacy_routes') as 'legacy_routes' | 'api',
+    } : emptyFascicoloDetail.contracts,
+    notFound: bool(payload.notFound ?? payload.not_found),
+    fascicolo: full,
+    quickCounts: isRecord(payload.quickCounts ?? payload.quick_counts) ? payload.quickCounts as Record<string, number> : {},
+    profile: normalizeKeyValues(payload.profile),
+    documents: asArray(payload.documents).map((entry, index) => {
+      const row = isRecord(entry) ? entry : {}
+      const actions = isRecord(row.actions) ? row.actions : {}
+      return {
+        id: text(row.id, `doc-${index}`), name: text(row.name ?? row.nome, 'Documento'), type: text(row.type ?? row.tipo, 'ALTRO'), size: text(row.size ?? row.dimensione, ''),
+        uploadedAt: text(row.uploadedAt ?? row.data_caricamento), documentDate: text(row.documentDate ?? row.data_documento), notes: text(row.notes ?? row.note),
+        tags: asArray(row.tags).map((tag) => text(tag)).filter(Boolean), signed: bool(row.signed ?? row.firmato), source: text(row.source ?? row.fonte_documento),
+        portalName: text(row.portalName ?? row.nome_portale), portalClass: text(row.portalClass ?? row.classificazione_portale), portalSender: text(row.portalSender ?? row.mittente_portale),
+        portalDate: text(row.portalDate ?? row.data_deposito_portale), hash: text(row.hash ?? row.hash_sha256),
+        actions: {
+          preview: text(actions.preview), download: text(actions.download), edit: text(actions.edit), sign: text(actions.sign), pdfa: text(actions.pdfa), attest: text(actions.attest), metadata: text(actions.metadata), delete: text(actions.delete),
+        },
+      }
+    }),
+    activities: asArray(payload.activities).map(normalizeActivity),
+    deadlines: asArray(payload.deadlines).map((entry, index) => {
+      const row = isRecord(entry) ? entry : {}
+      return { id: text(row.id, `scad-${index}`), title: text(row.title ?? row.titolo, 'Scadenza'), date: text(row.date ?? row.data, 'n.d.'), dateIso: text(row.dateIso ?? row.data_scadenza), type: text(row.type ?? row.tipo), priority: text(row.priority ?? row.priorita), status: text(row.status ?? row.stato), peremptory: bool(row.peremptory ?? row.perentorio), notes: text(row.notes ?? row.note), href: text(row.href, '/scadenziario'), tone: text(row.tone, 'warning') as Tone }
+    }),
+    appointments: asArray(payload.appointments).map((entry, index) => {
+      const row = isRecord(entry) ? entry : {}
+      return { id: text(row.id, `app-${index}`), title: text(row.title ?? row.titolo, 'Appuntamento'), date: text(row.date ?? row.data), time: text(row.time ?? row.ora), place: text(row.place ?? row.luogo), court: text(row.court ?? row.tribunale), type: text(row.type ?? row.tipo), href: text(row.href, '/agenda'), tone: text(row.tone, 'primary') as Tone }
+    }),
+    deposits: asArray(payload.deposits).map((entry, index) => {
+      const row = isRecord(entry) ? entry : {}
+      return { id: text(row.id, `dep-${index}`), timestamp: text(row.timestamp), status: text(row.status ?? row.stato), actType: text(row.actType ?? row.tipo_atto), pec: text(row.pec ?? row.pec_destinatario), message: text(row.message ?? row.messaggio), checks: text(row.checks ?? row.esito_controlli), source: text(row.source ?? row.fonte_portale), externalId: text(row.externalId ?? row.id_deposito_esterno), mainFile: text(row.mainFile ?? row.nome_atto_principale), documentsCount: number(row.documentsCount ?? row.documenti_count), portalDocuments: asArray(row.portalDocuments ?? row.documenti_portale).map((doc) => { const d = isRecord(doc) ? doc : {}; return { name: text(d.name ?? d.nome, 'Documento'), type: text(d.type ?? d.tipo), date: text(d.date ?? d.data), sender: text(d.sender ?? d.mittente), imported: bool(d.imported ?? d.gia_importato), available: d.available === undefined ? true : bool(d.available ?? d.disponibile) } }), tone: text(row.tone, 'primary') as Tone }
+    }),
+    requests: asArray(payload.requests).map(normalizeActivity),
+    parties: asArray(payload.parties).map((entry, index) => { const row = isRecord(entry) ? entry : {}; return { id: text(row.id, `party-${index}`), name: text(row.name ?? row.nome, 'Soggetto'), role: text(row.role ?? row.ruolo), taxCode: text(row.taxCode ?? row.codice_fiscale), email: text(row.email), pec: text(row.pec), phone: text(row.phone ?? row.telefono), href: text(row.href, '/soggetti') } }),
+    history: asArray(payload.history).map((entry) => { const row = isRecord(entry) ? entry : {}; return { date: text(row.date ?? row.data), description: text(row.description ?? row.descrizione), from: text(row.from ?? row.stato_precedente), to: text(row.to ?? row.stato_nuovo), notes: text(row.notes ?? row.note), lawyer: text(row.lawyer ?? row.avvocato) } }),
+    client: isRecord(payload.client) ? { id: text(payload.client.id), name: text(payload.client.name ?? payload.client.nome, 'Cliente'), taxCode: text(payload.client.taxCode ?? payload.client.codice_fiscale), vat: text(payload.client.vat ?? payload.client.partita_iva), email: text(payload.client.email), pec: text(payload.client.pec), phone: text(payload.client.phone ?? payload.client.telefono), address: text(payload.client.address ?? payload.client.indirizzo), href: text(payload.client.href, '/clienti') } : undefined,
+    economics: asArray(payload.economics).map((entry, index) => { const row = isRecord(entry) ? entry : {}; return { id: text(row.id, `money-${index}`), label: text(row.label), value: text(row.value), note: text(row.note), href: text(row.href, '/fatturazione'), tone: text(row.tone, 'neutral') as Tone } }),
+    workflow: asArray(payload.workflow).map((entry) => { const row = isRecord(entry) ? entry : {}; return { label: text(row.label), value: text(row.value), note: text(row.note), tone: text(row.tone, 'neutral') as Tone, href: text(row.href) } }),
+    telematic: asArray(payload.telematic).map((entry) => { const row = isRecord(entry) ? entry : {}; return { label: text(row.label), value: text(row.value), note: text(row.note), tone: text(row.tone, 'neutral') as Tone, href: text(row.href) } }),
+    quality: asArray(payload.quality).map((entry) => { const row = isRecord(entry) ? entry : {}; return { label: text(row.label), value: text(row.value), ok: bool(row.ok), tone: text(row.tone, 'neutral') as Tone } }),
+    actions: isRecord(payload.actions) ? {
+      changeState: text(payload.actions.changeState), define: text(payload.actions.define), archive: text(payload.actions.archive), restore: text(payload.actions.restore), delete: text(payload.actions.delete), uploadDocument: text(payload.actions.uploadDocument), importPortal: text(payload.actions.importPortal), addActivity: text(payload.actions.addActivity), complianceOn: text(payload.actions.complianceOn), complianceOff: text(payload.actions.complianceOff), exportPdf: text(payload.actions.exportPdf), archiveZip: text(payload.actions.archiveZip),
+    } : emptyFascicoloDetail.actions,
+    options: { states: normalizeOptions(options.states), documentTypes: normalizeOptions(options.documentTypes), activityTypes: normalizeOptions(options.activityTypes), activityResults: normalizeOptions(options.activityResults) },
+  }
+}
+
+function normalizeActivity(entry: unknown, index: number): FascicoloActivity {
+  const row = isRecord(entry) ? entry : {}
+  return { id: text(row.id, `att-${index}`), type: text(row.type ?? row.tipo), title: text(row.title ?? row.titolo, 'Attività'), date: text(row.date ?? row.data), description: text(row.description ?? row.descrizione), result: text(row.result ?? row.esito), place: text(row.place ?? row.luogo), notes: text(row.notes ?? row.note), lawyer: text(row.lawyer ?? row.avvocato), documentId: text(row.documentId ?? row.id_documento), depositId: text(row.depositId ?? row.id_deposito_pct), updateAction: text(row.updateAction ?? row.update_action), deleteAction: text(row.deleteAction ?? row.delete_action), tone: text(row.tone, 'neutral') as Tone }
+}
+
+function normalizeFormPayload(payload: unknown): FascicoloFormData {
+  if (!isRecord(payload)) return emptyFascicoloForm
+  return {
+    source: text(payload.source, 'repository_reali'), generatedAt: text(payload.generatedAt ?? payload.generated_at), mode: text(payload.mode, 'new') === 'edit' ? 'edit' : 'new',
+    action: text(payload.action, '/fascicoli/nuovo'), backHref: text(payload.backHref ?? payload.back_href, '/app-v2/fascicoli'), detailHref: text(payload.detailHref ?? payload.detail_href, '/app-v2/fascicoli'),
+    query: isRecord(payload.query) ? Object.fromEntries(Object.entries(payload.query).map(([key, value]) => [key, text(value)])) : {},
+    clients: asArray(payload.clients).map((entry) => { const row = isRecord(entry) ? entry : {}; return { id: text(row.id), label: text(row.label ?? row.name), taxCode: text(row.taxCode ?? row.codice_fiscale) } }).filter((row) => row.id),
+    types: normalizeOptions(payload.types), states: normalizeOptions(payload.states),
+    fascicolo: isRecord(payload.fascicolo) ? payload.fascicolo as FascicoloFormData['fascicolo'] : undefined,
+    workflow: isRecord(payload.workflow) ? { title: text(payload.workflow.title), badges: asArray(payload.workflow.badges).map((badge) => text(badge)).filter(Boolean), summary: text(payload.workflow.summary), checklist: asArray(payload.workflow.checklist).map((item) => text(item)).filter(Boolean), values: normalizeKeyValues(payload.workflow.values) } : undefined,
+    correction: isRecord(payload.correction) ? { active: bool(payload.correction.active), title: text(payload.correction.title), help: text(payload.correction.help), highlight: text(payload.correction.highlight) } : undefined,
+  }
+}
+
+function normalizeExportPayload(payload: unknown): FascicoliExportData {
+  if (!isRecord(payload)) return emptyFascicoliExport
+  const recent = asArray(payload.recent).map(normalizeItem)
+  return {
+    source: text(payload.source, 'repository_reali'), generatedAt: text(payload.generatedAt ?? payload.generated_at), summary: normalizeSummary(payload.summary, recent),
+    formats: asArray(payload.formats).map((entry) => { const row = isRecord(entry) ? entry : {}; return { id: text(row.id), label: text(row.label), description: text(row.description), href: text(row.href), tone: text(row.tone, 'primary') as Tone } }),
+    fields: asArray(payload.fields).map((entry) => { const row = isRecord(entry) ? entry : {}; return { key: text(row.key), label: text(row.label), checked: row.checked === undefined ? true : bool(row.checked) } }),
+    presets: asArray(payload.presets).map((entry) => { const row = isRecord(entry) ? entry : {}; return { label: text(row.label), description: text(row.description), href: text(row.href), tone: text(row.tone, 'primary') as Tone } }),
+    recent,
+    facets: normalizeFacets(payload.facets, recent),
   }
 }
 
@@ -233,12 +657,33 @@ export function formatFascicoloStatus(value: FascicoloRow['status']): string {
   return statusLabels[value] || 'Aperto'
 }
 
-export async function getFascicoliPage(): Promise<FascicoliPageData> {
+async function safeFetch<T>(url: string, normalizer: (payload: unknown) => T, fallback: T): Promise<T> {
   try {
-    const response = await fetch('/api/v1/ui/fascicoli', { credentials: 'same-origin', headers: { Accept: 'application/json' } })
-    if (!response.ok) return emptyFascicoliPage
-    return normalisePayload(await response.json())
+    const response = await fetch(url, { credentials: 'same-origin', headers: { Accept: 'application/json' } })
+    if (!response.ok) return fallback
+    return normalizer(await response.json())
   } catch {
-    return emptyFascicoliPage
+    return fallback
   }
+}
+
+export function getFascicoliPage(): Promise<FascicoliPageData> {
+  return safeFetch('/api/v1/ui/fascicoli', normalizePagePayload, emptyFascicoliPage)
+}
+
+export function getFascicoliArchive(): Promise<FascicoliPageData> {
+  return safeFetch('/api/v1/ui/fascicoli/archivio', normalizePagePayload, emptyFascicoliPage)
+}
+
+export function getFascicoloDetail(id: string): Promise<FascicoloDetailData> {
+  return safeFetch(`/api/v1/ui/fascicoli/${encodeURIComponent(id)}`, normalizeDetailPayload, emptyFascicoloDetail)
+}
+
+export function getFascicoloForm(id?: string, query = ''): Promise<FascicoloFormData> {
+  const path = id ? `/api/v1/ui/fascicoli/${encodeURIComponent(id)}/modifica` : '/api/v1/ui/fascicoli/nuovo'
+  return safeFetch(`${path}${query}`, normalizeFormPayload, emptyFascicoloForm)
+}
+
+export function getFascicoliExport(): Promise<FascicoliExportData> {
+  return safeFetch('/api/v1/ui/fascicoli/export', normalizeExportPayload, emptyFascicoliExport)
 }

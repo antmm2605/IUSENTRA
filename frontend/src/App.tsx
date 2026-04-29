@@ -124,7 +124,7 @@ const navSections: NavSection[] = [
     label: 'Recenti',
     icon: FolderOpen,
     items: [
-      { label: '2026/004 - N.RG 139/2023 —...', icon: FolderOpen, href: '/app-v2/fascicoli' }
+      { label: '2026/004 - N.RG 139/2023 - ...', icon: FolderOpen, href: '/app-v2/fascicoli' }
     ]
   },
   {
@@ -143,8 +143,8 @@ const navSections: NavSection[] = [
     icon: Folder,
     items: [
       { label: 'Tutti i Fascicoli', icon: FolderOpen, href: '/app-v2/fascicoli' },
-      { label: 'Nuovo Fascicolo', icon: FolderPlus, href: '/fascicoli/nuovo' },
-      { label: 'Archivio', icon: Archive, href: '/fascicoli/archivio' }
+      { label: 'Nuovo Fascicolo', icon: FolderPlus, href: '/app-v2/fascicoli/nuovo' },
+      { label: 'Archivio', icon: Archive, href: '/app-v2/fascicoli/archivio' }
     ]
   },
   {
@@ -380,7 +380,7 @@ function RegiaOperativaPage({ data, loading }:{data:DashboardData; loading:boole
       <section className="iu-grid">
         <div className="span4"><Panel title="Azioni operative" icon={<Sparkles size={17}/>} count={data.operations.length}>{data.operations.length?<div className="iu-compact">{data.operations.map(action=><a className="iu-compact-row" href={action.href||'/workspace-intelligente'} key={action.id}><div><strong>{action.title}</strong><span>{action.subtitle}</span></div>{action.badge?<Badge tone={action.tone||'neutral'}>{action.badge}</Badge>:null}</a>)}</div>:<Empty>Nessuna azione operativa urgente.</Empty>}<a className="iu-link" href="/workspace-intelligente">Vai alla regia storica -&gt;</a></Panel></div>
         <div className="span4"><Panel title="Agenda da presidiare" icon={<CalendarDays size={17}/>} count={agendaRows.length}><List rows={agendaRows} href="/app-v2/agenda"/><a className="iu-link" href="/app-v2/agenda">Apri agenda React -&gt;</a></Panel></div>
-        <div className="span4"><Panel title="Fascicoli prioritari" icon={<BriefcaseBusiness size={17}/>} count={matterRows.length}>{matterRows.length?<div className="iu-compact">{matterRows.map(row=><a className="iu-compact-row" href={row.href||'/fascicoli'} key={row.id}><div><strong>{row.title}</strong><span>{row.subtitle}</span></div>{row.badge?<Badge tone={row.tone||'neutral'}>{row.badge}</Badge>:null}</a>)}</div>:<Empty>Nessun fascicolo ad alta priorita.</Empty>}<a className="iu-link" href="/app-v2/fascicoli">Vai ai fascicoli -&gt;</a></Panel></div>
+        <div className="span4"><Panel title="Fascicoli prioritari" icon={<BriefcaseBusiness size={17}/>} count={matterRows.length}>{matterRows.length?<div className="iu-compact">{matterRows.map(row=><a className="iu-compact-row" href={row.href||'/app-v2/fascicoli'} key={row.id}><div><strong>{row.title}</strong><span>{row.subtitle}</span></div>{row.badge?<Badge tone={row.tone||'neutral'}>{row.badge}</Badge>:null}</a>)}</div>:<Empty>Nessun fascicolo ad alta priorita.</Empty>}<a className="iu-link" href="/app-v2/fascicoli">Vai ai fascicoli -&gt;</a></Panel></div>
         <div className="span6"><Panel title="Comunicazioni recenti" icon={<MessageCircle size={17}/>} count={data.messages.length}><List rows={data.messages} avatar href="/messaggi"/><a className="iu-link" href="/messaggi">Vai ai messaggi -&gt;</a></Panel></div>
         <div className="span6"><Lex data={data}/></div>
       </section>
@@ -442,7 +442,7 @@ export default function App() {
           {isSearchPage?<RicercaStudioPage initialQuery={initialSearchQuery}/>:isNewAppointmentPage?<NuovoAppuntamentoPage/>:isAgendaPage?<AgendaPage/>:isRegiaPage?<RegiaOperativaPage data={data} loading={loading}/>:isFascicoliPage?<FascicoliPage/>:<DashboardPage data={data} loading={loading}/>}
         </div>
         <nav className="iu-mobile">
-          <a className={isDashboardPage?'active':''} href="/app-v2"><LayoutDashboard size={18}/>Home</a>
+          <a className={isDashboardPage?'active':''} href="/app-v2"><LayoutDashboard size={18}/>Panoramica</a>
           <a className={isSearchPage?'active':''} href="/app-v2/ricerca-studio"><Search size={18}/>Ricerca</a>
           <a className={isFascicoliPage?'active':''} href="/app-v2/fascicoli"><BriefcaseBusiness size={18}/>Fascicoli</a>
           <a className={isAgendaPage||isNewAppointmentPage?'active':''} href="/app-v2/agenda"><CalendarDays size={18}/>Agenda</a>

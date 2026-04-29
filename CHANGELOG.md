@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.195.26 - 2026-04-29
+
+- Estesa la migrazione React dei fascicoli a suite completa sotto `/app-v2/fascicoli`, con lista, nuovo/modifica, archivio, dettaglio cabina fascicolo ed export.
+- Aggiunti i bridge in sola lettura `/api/v1/ui/fascicoli*` per lista, archivio, form, dettaglio ed export, alimentati dai repository reali e con scritture ancora instradate alle route Flask storiche.
+- Integrata la cabina fascicolo React con profilo, documenti, import portale, attivita, udienze/scadenze, depositi, istanze, avanzamento, gestione, economico, conformita, telematico, cliente e soggetti.
+- Reso riusabile Lex AI flottante e trascinabile nelle superfici fascicoli, con posizione persistita in `localStorage` e contesto specifico per lista, archivio, form, dettaglio ed export.
+- Aggiornati nav React, piano migrazione, test shell/backend e asset React compilati per presidiare route, API reali, contratti `mock_fallback=false` e rollback immediato sulle viste storiche.
+
 ## 2.195.25 - 2026-04-29
 
 - Aggiunta la pagina React in sola lettura `/app-v2/fascicoli`, collegata alla nav desktop e mobile senza sostituire le route storiche dei fascicoli.

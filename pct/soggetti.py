@@ -116,6 +116,7 @@ class Soggetto:
     codice_fiscale:   str = ""
     data_nascita:     str = ""   # YYYY-MM-DD
     luogo_nascita:    str = ""
+    provincia_nascita: str = ""
     sesso:            str = ""   # M / F
 
     # --- Persona giuridica

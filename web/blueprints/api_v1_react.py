@@ -24,7 +24,7 @@ from pct.scadenziario import PrioritaTermine, StatoTermine
 from pct.timesheet import StatoTimesheet
 from pct.workspace_intelligente import WorkspaceIntelligenteService
 from web.services.react_agenda_bridge import build_react_agenda_payload
-from web.services.react_clienti_bridge import build_react_clienti_payload
+from web.services.react_clienti_bridge import build_react_clienti_nuovo_payload, build_react_clienti_payload
 from web.services.react_fascicoli_bridge import (
     build_react_archivio_payload,
     build_react_fascicoli_export_payload,
@@ -32,6 +32,7 @@ from web.services.react_fascicoli_bridge import (
     build_react_fascicolo_detail_payload,
     build_react_fascicolo_form_payload,
 )
+from web.services.react_soggetti_bridge import build_react_soggetti_payload
 from web.helpers import (
     get_agenda,
     get_calendar_sync,
@@ -779,6 +780,25 @@ def clienti_react_list():
                 "statuses": [{"value": "tutti", "label": "Tutti gli stati", "count": 0}],
             },
         })
+
+
+@api_v1_react.get("/clienti/nuovo")
+@_richiedi_auth
+def clienti_react_nuovo():
+    return jsonify(build_react_clienti_nuovo_payload(
+        get_clienti=get_clienti,
+        get_soggetti=get_soggetti,
+        query=request.args,
+    ))
+
+
+@api_v1_react.get("/soggetti")
+@_richiedi_auth
+def soggetti_react_list():
+    return jsonify(build_react_soggetti_payload(
+        get_soggetti=get_soggetti,
+        get_clienti=get_clienti,
+    ))
 
 
 # IUSENTRA_REACT_FASCICOLI_ROUTES_START

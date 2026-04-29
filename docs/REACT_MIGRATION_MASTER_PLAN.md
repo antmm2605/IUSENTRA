@@ -139,6 +139,26 @@ ancora le route storiche `/clienti`:
 - tabella desktop, card mobile, bulk bar locale, insight laterali e Lex AI
   contestuale `clienti`.
 
+### Stato Nuovo Cliente e Soggetti `/app-v2/clienti/nuovo`, `/app-v2/soggetti`
+
+La migrazione anagrafica e' stata estesa alle superfici operative successive:
+
+- `Nuovo Cliente` vive su `/app-v2/clienti/nuovo`, ma salva ancora su
+  `POST /clienti/nuovo` per riusare validazioni, audit e workflow storici;
+- `Nuovo Soggetto` vive su `/app-v2/soggetti/nuovo` e riusa lo stesso form React
+  in tab soggetto, salvando su `POST /soggetti/nuovo`;
+- `Soggetti e Parti -> Anagrafica` vive su `/app-v2/soggetti`, alimentata dal
+  bridge reale `/api/v1/ui/soggetti`;
+- il bridge `/api/v1/ui/clienti/nuovo` espone opzioni enum, conteggi reali,
+  clienti collegabili, ruoli processuali e azioni legacy senza mock operativi;
+- il codice fiscale viene calcolato server-side con `/api/cf/calcola` usando la
+  tabella Belfiore locale, mentre `/api/cf/decodifica` compila automaticamente
+  sesso, data, luogo e provincia di nascita quando il CF e' gia disponibile;
+- il modello soggetti ora persiste `provincia_nascita`; la creazione cliente
+  storica salva anche i dati documento ricevuti dalla UI React;
+- Lex AI e' contestualizzato su `clienti-nuovo` e `soggetti`, con icona
+  flottante gia riusata dalla shell.
+
 ### Stato Fascicoli `/app-v2/fascicoli`
 
 La pagina Fascicoli React resta in sola lettura e non sostituisce ancora le route storiche:

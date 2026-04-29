@@ -176,6 +176,27 @@ def register_reference_lookup_routes(
             app.logger.exception("Errore api_cf_decodifica: %s", exc)
             return jsonify({"errore": str(exc)}), 200
 
+    @app.route("/api/cf/calcola")
+    def api_cf_calcola():
+        """Calcola un codice fiscale ordinario dai dati anagrafici minimi."""
+        try:
+            from pct.codice_fiscale import calcola
+
+            risultato = calcola(
+                cognome=request.args.get("cognome", "").strip(),
+                nome=request.args.get("nome", "").strip(),
+                sesso=request.args.get("sesso", "").strip(),
+                data_nascita=request.args.get("data_nascita", "").strip(),
+                luogo_nascita=request.args.get("luogo_nascita", "").strip(),
+                provincia_nascita=request.args.get("provincia_nascita", "").strip(),
+            )
+            if risultato is None:
+                return jsonify({"errore": "Dati insufficienti per calcolare il codice fiscale."}), 200
+            return jsonify(risultato)
+        except Exception as exc:
+            app.logger.exception("Errore api_cf_calcola: %s", exc)
+            return jsonify({"errore": str(exc)}), 200
+
     @app.route("/tribunali")
     def tribunali():
         reginde = ClientReGINde()

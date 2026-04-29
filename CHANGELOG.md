@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.195.30 - 2026-04-29
+
+- Aggiunta la nuova pagina React `/app-v2/clienti/nuovo`, con form cliente e form soggetto separati, UI responsive, checklist qualita e Lex AI contestuale.
+- Collegati `Nuovo Cliente`, `Soggetti e Parti -> Anagrafica` e `Nuovo Soggetto` alla shell `/app-v2`, mantenendo i salvataggi sulle route Flask storiche `/clienti/nuovo` e `/soggetti/nuovo`.
+- Introdotto il bridge reale `/api/v1/ui/clienti/nuovo` e la lista React `/app-v2/soggetti` alimentata da `/api/v1/ui/soggetti`, entrambi senza mock operativi.
+- Aggiunto calcolo server-side del codice fiscale ordinario tramite tabella Belfiore gia presente e API `/api/cf/calcola`; la React decodifica inoltre il CF con `/api/cf/decodifica` per compilare data, luogo e provincia di nascita.
+- Estesa la persistenza soggetti con `provincia_nascita` e salvato il documento identita anche nella creazione cliente storica quando arriva dal form React.
+- Aggiornati test React/backend, versioning e asset frontend per presidiare route, API, Lex draggable, CF automatico e migrazione progressiva di Soggetti e Parti.
+
 ## 2.195.29 - 2026-04-29
 
 - Aggiunta la pagina React `/app-v2/clienti` per Clienti e Anagrafiche, collegata alla sidebar enterprise e alla barra mobile della shell app-v2.

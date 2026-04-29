@@ -129,11 +129,20 @@ def register_clienti_routes(
                     fax=form.get("fax", ""),
                     sito_web=form.get("sito_web", ""),
                 )
+                if any(form.get(key, "") for key in ("doc_numero", "doc_rilasciato_da", "doc_data_rilascio", "doc_data_scadenza")):
+                    gc.aggiorna_documento(
+                        cliente.id,
+                        tipo=TipoDocumentoCliente(form.get("doc_tipo", TipoDocumentoCliente.CARTA_IDENTITA.value)),
+                        numero=form.get("doc_numero", ""),
+                        rilasciato_da=form.get("doc_rilasciato_da", ""),
+                        data_rilascio=form.get("doc_data_rilascio", ""),
+                        data_scadenza=form.get("doc_data_scadenza", ""),
+                    )
                 flash(f"Cliente '{cliente.nome_completo}' aggiunto.", "success")
                 sync_pubblica("crea", "clienti", cliente.id)
                 if next_url:
                     return redirect(next_url)
-                if form.get("crea_preventivo_iniziale", "1") == "1":
+                if "1" in form.getlist("crea_preventivo_iniziale"):
                     return redirect(
                         url_for(
                             "preventivi.wizard",

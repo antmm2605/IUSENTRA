@@ -8,7 +8,10 @@ from __future__ import annotations
 
 from collections import Counter, defaultdict
 from datetime import date, datetime, timezone
-from typing import Any, Callable
+from typing import Any, Callable, Mapping
+
+from pct.clienti import StatoCliente, TipoCliente, TipoDocumento
+from pct.soggetti import RuoloSoggetto, TipoSoggetto
 
 
 def _enum_value(value: Any) -> str:
@@ -233,4 +236,135 @@ def build_react_clienti_payload(*, get_clienti: Callable[[], Any], get_fascicoli
         "summary": _summary(items),
         "items": items,
         "facets": {"types": _facet_rows(items, "type", type_labels, "Tutti i tipi"), "statuses": _facet_rows(items, "status", status_labels, "Tutti gli stati")},
+    }
+
+
+def _option(value: Any, *, label: str = "", subtitle: str = "", tone: str = "neutral", count: int | None = None) -> dict[str, Any]:
+    raw = _enum_value(value)
+    payload: dict[str, Any] = {
+        "value": raw,
+        "label": label or raw.replace("_", " ").title(),
+        "tone": tone,
+    }
+    if subtitle:
+        payload["subtitle"] = subtitle
+    if count is not None:
+        payload["count"] = count
+    return payload
+
+
+def _subject_type_tone(value: TipoSoggetto) -> str:
+    return {
+        TipoSoggetto.PERSONA_FISICA: "primary",
+        TipoSoggetto.PERSONA_GIURIDICA: "purple",
+        TipoSoggetto.PUBBLICA_AMMINISTRAZIONE: "info",
+        TipoSoggetto.ENTE: "neutral",
+        TipoSoggetto.CONDOMINIO: "orange",
+        TipoSoggetto.ASSOCIAZIONE: "success",
+        TipoSoggetto.PROFESSIONISTA: "primary",
+    }.get(value, "neutral")
+
+
+def _role_tone(value: RuoloSoggetto) -> str:
+    return {
+        RuoloSoggetto.ASSISTITO: "success",
+        RuoloSoggetto.CONTROPARTE: "danger",
+        RuoloSoggetto.DIFENSORE_CONTROPARTE: "danger",
+        RuoloSoggetto.TESTIMONE: "warning",
+        RuoloSoggetto.PERITO_CTP: "info",
+        RuoloSoggetto.PERITO_CTU: "info",
+        RuoloSoggetto.CORRISPONDENTE: "primary",
+        RuoloSoggetto.NOTAIO: "purple",
+        RuoloSoggetto.MEDIATORE: "success",
+        RuoloSoggetto.GARANTE: "warning",
+        RuoloSoggetto.INTERVENIENTE: "info",
+        RuoloSoggetto.CREDITORE: "primary",
+        RuoloSoggetto.DEBITORE: "danger",
+    }.get(value, "neutral")
+
+
+def _client_options(clienti: list[Any]) -> list[dict[str, str]]:
+    rows: list[dict[str, str]] = []
+    for cliente in clienti:
+        recapiti = getattr(cliente, "recapiti", None)
+        item_id = _text(getattr(cliente, "id", ""))
+        if not item_id:
+            continue
+        rows.append({
+            "id": item_id,
+            "label": _text(getattr(cliente, "nome_completo", "")) or "Cliente senza nome",
+            "taxCode": _fiscal_id(cliente),
+            "email": _text(getattr(recapiti, "email", "")),
+            "type": _enum_value(getattr(cliente, "tipo", "")),
+        })
+    return rows
+
+
+def _clienti_nuovo_stats(clienti: list[Any], soggetti: list[Any]) -> dict[str, int]:
+    return {
+        "totalClients": len(clienti),
+        "physicalClients": sum(1 for item in clienti if getattr(item, "tipo", None) == TipoCliente.PERSONA_FISICA),
+        "legalClients": sum(1 for item in clienti if getattr(item, "tipo", None) == TipoCliente.PERSONA_GIURIDICA),
+        "activeClients": sum(1 for item in clienti if getattr(item, "stato", None) == StatoCliente.ATTIVO),
+        "potentialClients": sum(1 for item in clienti if getattr(item, "stato", None) == StatoCliente.POTENZIALE),
+        "missingRegistry": sum(1 for item in clienti if _missing_fields(item)),
+        "expiredDocuments": sum(1 for item in clienti if _document_expired(item)),
+        "totalSubjects": len(soggetti),
+        "subjectsWithoutClient": sum(1 for item in soggetti if not _text(getattr(item, "id_cliente", ""))),
+    }
+
+
+def build_react_clienti_nuovo_payload(
+    *,
+    get_clienti: Callable[[], Any],
+    get_soggetti: Callable[[], Any],
+    query: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    clienti = _safe("clienti", lambda: get_clienti().tutti(), [])
+    soggetti = _safe("soggetti", lambda: get_soggetti().tutti(), [])
+    query = query or {}
+    return {
+        "source": "repository_reali",
+        "generated_at": _iso_now(),
+        "contracts": {"mock_fallback": False, "read_only": True, "writes": "legacy_routes"},
+        "stats": _clienti_nuovo_stats(clienti, soggetti),
+        "options": {
+            "clientTypes": [
+                _option(TipoCliente.PERSONA_FISICA, label="Persona fisica", subtitle="Privato, professionista o assistito", tone="primary"),
+                _option(TipoCliente.PERSONA_GIURIDICA, label="Persona giuridica", subtitle="Societa, ente o organizzazione", tone="purple"),
+            ],
+            "clientStatuses": [_option(item, tone={"ATTIVO": "success", "POTENZIALE": "warning", "INATTIVO": "orange"}.get(item.value, "neutral")) for item in StatoCliente],
+            "documentTypes": [_option(item) for item in TipoDocumento],
+            "cieGenerations": [
+                {"value": "elettronica", "label": "Elettronica dal 2016 con MRZ", "tone": "primary"},
+                {"value": "plastificata", "label": "Plastificata 2000-2016", "tone": "neutral"},
+                {"value": "cartacea", "label": "Cartacea pre-2000", "tone": "neutral"},
+            ],
+            "subjectTypes": [_option(item, tone=_subject_type_tone(item)) for item in TipoSoggetto],
+            "subjectRoles": [_option(item, label=item.label, tone=_role_tone(item)) for item in RuoloSoggetto],
+            "legalForms": [
+                {"value": "", "label": "-"},
+                *[{"value": item, "label": item} for item in ["Srl", "SpA", "Sas", "Snc", "Ss", "Impresa individuale", "Cooperativa", "Associazione", "Fondazione", "Ente pubblico", "Altro"]],
+            ],
+            "qualificationHints": [{"value": item, "label": item} for item in ["Avvocato", "Procuratore", "Notaio", "Geometra", "Ingegnere", "Architetto", "Medico", "Perito industriale", "Commercialista", "Consulente del lavoro", "Mediatore", "Curatore fallimentare", "Liquidatore", "Magistrato", "Pubblico Ministero"]],
+        },
+        "clientOptions": _client_options(clienti),
+        "actions": {
+            "newClient": "/clienti/nuovo",
+            "newSubject": "/soggetti/nuovo",
+            "clientsList": "/app-v2/clienti",
+            "subjectsList": "/app-v2/soggetti",
+            "legacyClientForm": "/clienti/nuovo",
+            "legacySubjectForm": "/soggetti/nuovo",
+        },
+        "query": {
+            "tab": _text(query.get("tab") or query.get("tipo")),
+            "nextUrl": _text(query.get("next_url") or query.get("next")),
+            "idCliente": _text(query.get("id_cliente")),
+        },
+        "insights": [
+            "Prima del salvataggio controlla CF/P.IVA per prevenire duplicati.",
+            "Per il conferimento incarico servono dati fiscali, recapiti e indirizzo.",
+            "Il soggetto processuale usa il campo qualifica per restare compatibile con la UI storica.",
+        ],
     }

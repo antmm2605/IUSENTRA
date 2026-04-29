@@ -10,6 +10,7 @@ from pct.fascicoli import GestioneFascicoli, TipoFascicolo
 from pct.messaggi import CanaleMsggio, ConfigMessaggistica, GestioneMessaggi, Messaggio, StatoMessaggio
 from pct.preventivi import GestionePreventivi, StatoPreventivo, VocePreventivo
 from pct.scadenziario import GestioneScadenziario, PrioritaTermine, TipoTermine
+from pct.soggetti import GestioneSoggetti, TipoSoggetto
 from web.app import create_app
 from web.bootstrap.blueprint_registry import BLUEPRINT_REGISTRY
 
@@ -670,3 +671,115 @@ def test_react_fascicoli_api_suite_usa_repository_reali(tmp_path: Path):
     assert detail["actions"]["uploadDocument"].endswith("/documenti/carica")
     assert form["mode"] == "edit"
     assert export_payload["formats"][0]["href"] == "/fascicoli/export.pdf"
+
+
+def test_react_clienti_nuovo_e_soggetti_collegati_nav_api_lex_cf():
+    app_source = Path("frontend/src/App.tsx").read_text(encoding="utf-8")
+    new_page = Path("frontend/src/components/NuovoClientePage.tsx").read_text(encoding="utf-8")
+    new_data = Path("frontend/src/clientiNuovoData.ts").read_text(encoding="utf-8")
+    new_css = Path("frontend/src/components/NuovoClientePage.css").read_text(encoding="utf-8")
+    soggetti_page = Path("frontend/src/components/SoggettiPage.tsx").read_text(encoding="utf-8")
+    soggetti_data = Path("frontend/src/soggettiData.ts").read_text(encoding="utf-8")
+    soggetti_css = Path("frontend/src/components/SoggettiPage.css").read_text(encoding="utf-8")
+    api_source = Path("web/blueprints/api_v1_react.py").read_text(encoding="utf-8")
+    clienti_routes = Path("web/bootstrap/clienti_routes.py").read_text(encoding="utf-8")
+    soggetti_model = Path("pct/soggetti.py").read_text(encoding="utf-8")
+
+    assert "/app-v2/clienti/nuovo" in app_source
+    assert "/app-v2/soggetti" in app_source
+    assert "/app-v2/soggetti/nuovo" in app_source
+    assert "isNewClientPage||isNewSubjectPage?<NuovoClientePage/>" in app_source
+    assert "isSoggettiPage?<SoggettiPage/>" in app_source
+    assert "{ label: 'Nuovo Cliente', icon: UserPlus, href: '/app-v2/clienti/nuovo' }" in app_source
+    assert "{ label: 'Anagrafica', icon: UsersRound, href: '/app-v2/soggetti' }" in app_source
+    assert "{ label: 'Nuovo Soggetto', icon: UserPlus, href: '/app-v2/soggetti/nuovo' }" in app_source
+    assert "/api/v1/ui/clienti/nuovo" in new_data
+    assert "/api/v1/ui/soggetti" in soggetti_data
+    assert "/api/cf/calcola" in new_page
+    assert "/api/cf/decodifica" in new_page
+    assert "Genera CF" in new_page
+    assert 'name="provincia_nascita"' in new_page
+    assert 'name="crea_preventivo_iniziale"' in new_page
+    assert 'name="qualifica"' in new_page
+    assert "Tipo soggetto processuale" in new_page
+    assert "FloatingLex" in new_page
+    assert 'context="clienti-nuovo"' in new_page
+    assert "SoggettiPage" in soggetti_page
+    assert 'context="soggetti"' in soggetti_page
+    assert '@api_v1_react.get("/clienti/nuovo")' in api_source
+    assert '@api_v1_react.get("/soggetti")' in api_source
+    assert '"1" in form.getlist("crea_preventivo_iniziale")' in clienti_routes
+    assert "provincia_nascita: str = \"\"" in soggetti_model
+    assert ".iu-clienti-new-page" in new_css
+    assert ".iu-cln-process-grid" in new_css
+    assert ".iu-soggetti-page" in soggetti_css
+    assert ".iu-sogg-table" in soggetti_css
+    assert "@media(max-width:760px)" in new_css
+    assert "@media(max-width:760px)" in soggetti_css
+
+
+def test_react_clienti_nuovo_e_soggetti_api_usa_repository_reali(tmp_path: Path):
+    app = _app(tmp_path)
+    client = app.test_client()
+    cliente = GestioneClienti(db_path=app.config["CLIENTI_DB"]).nuovo(
+        TipoCliente.PERSONA_FISICA,
+        nome="Mario",
+        cognome="Rossi",
+        codice_fiscale="RSSMRA80A01H501U",
+    )
+    soggetti = GestioneSoggetti(app.config["SOGGETTI_DB"], app.config["SOGGETTI_PARTI_DB"])
+    soggetto = soggetti.crea(
+        TipoSoggetto.PERSONA_FISICA,
+        nome="Luigi",
+        cognome="Bianchi",
+        codice_fiscale="BNCLGU80A01H501B",
+        provincia_nascita="RM",
+        qualifica="CONTROPARTE",
+        id_cliente=cliente.id,
+    )
+
+    new_response = client.get("/api/v1/ui/clienti/nuovo", headers={"X-API-Key": "react-test-key"})
+    subjects_response = client.get("/api/v1/ui/soggetti", headers={"X-API-Key": "react-test-key"})
+    new_payload = new_response.get_json()
+    subjects_payload = subjects_response.get_json()
+
+    assert new_response.status_code == 200
+    assert subjects_response.status_code == 200
+    assert new_payload["source"] == "repository_reali"
+    assert new_payload["contracts"]["mock_fallback"] is False
+    assert new_payload["contracts"]["writes"] == "legacy_routes"
+    assert new_payload["stats"]["totalClients"] == 1
+    assert new_payload["stats"]["totalSubjects"] == 1
+    assert new_payload["clientOptions"][0]["id"] == cliente.id
+    assert any(item["value"] == "GARANTE" for item in new_payload["options"]["subjectRoles"])
+    assert subjects_payload["source"] == "repository_reali"
+    assert subjects_payload["contracts"]["read_only"] is True
+    assert subjects_payload["summary"]["total"] == 1
+    assert subjects_payload["items"][0]["id"] == soggetto.id
+    assert subjects_payload["items"][0]["clientName"] == cliente.nome_completo
+
+
+def test_codice_fiscale_calcolo_e_decodifica_api_react(tmp_path: Path):
+    app = _app(tmp_path)
+    client = app.test_client()
+
+    calculated = client.get(
+        "/api/cf/calcola",
+        query_string={
+            "cognome": "Rossi",
+            "nome": "Mario",
+            "sesso": "M",
+            "data_nascita": "1980-01-01",
+            "luogo_nascita": "Roma",
+            "provincia_nascita": "RM",
+        },
+    )
+    payload = calculated.get_json()
+    decoded = client.get("/api/cf/decodifica", query_string={"cf": payload["codice_fiscale"]}).get_json()
+
+    assert calculated.status_code == 200
+    assert payload["codice_fiscale"] == "RSSMRA80A01H501U"
+    assert payload["belfiore"] == "H501"
+    assert decoded["data_nascita"] == "1980-01-01"
+    assert decoded["luogo_nascita"] == "Roma"
+    assert decoded["provincia_nascita"] == "RM"

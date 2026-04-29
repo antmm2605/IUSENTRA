@@ -56,6 +56,8 @@ import { NuovoAppuntamentoPage } from './components/NuovoAppuntamentoPage'
 import { RicercaStudioPage } from './components/RicercaStudioPage'
 import { FascicoliPage } from './components/FascicoliPage'
 import { AnagraficaClientiPage } from './components/AnagraficaClientiPage'
+import { NuovoClientePage } from './components/NuovoClientePage'
+import { SoggettiPage } from './components/SoggettiPage'
 import './index.css'
 
 const toneColor: Record<Tone,string> = { danger:'var(--iu-danger-500)', warning:'var(--iu-warning-500)', primary:'var(--iu-blue-600)', success:'var(--iu-success-500)', info:'var(--iu-sky-500)', purple:'var(--iu-purple-500)', orange:'var(--iu-warning-500)', neutral:'var(--iu-slate-300)' }
@@ -154,7 +156,7 @@ const navSections: NavSection[] = [
     icon: UsersRound,
     items: [
       { label: 'Anagrafica', icon: UsersRound, href: '/app-v2/clienti' },
-      { label: 'Nuovo Cliente', icon: UserPlus, href: '/clienti/nuovo' },
+      { label: 'Nuovo Cliente', icon: UserPlus, href: '/app-v2/clienti/nuovo' },
       { label: 'Cartelle Condivise', icon: FolderPlus, href: '/cartelle-condivise' }
     ]
   },
@@ -163,8 +165,8 @@ const navSections: NavSection[] = [
     label: 'Soggetti e Parti',
     icon: FileText,
     items: [
-      { label: 'Anagrafica', icon: UsersRound, href: '/soggetti' },
-      { label: 'Nuovo Soggetto', icon: UserPlus, href: '/soggetti/nuovo' }
+      { label: 'Anagrafica', icon: UsersRound, href: '/app-v2/soggetti' },
+      { label: 'Nuovo Soggetto', icon: UserPlus, href: '/app-v2/soggetti/nuovo' }
     ]
   },
   {
@@ -425,9 +427,12 @@ export default function App() {
   const isAgendaPage = !isNewAppointmentPage && (activePath === '/app-v2/agenda' || activePath.startsWith('/app-v2/agenda/'))
   const isRegiaPage = activePath === '/app-v2/regia-operativa' || activePath.startsWith('/app-v2/regia-operativa/')
   const isFascicoliPage = activePath === '/app-v2/fascicoli' || activePath.startsWith('/app-v2/fascicoli/')
-  const isClientiPage = activePath === '/app-v2/clienti' || activePath.startsWith('/app-v2/clienti/')
-  const isDashboardPage = !isSearchPage && !isAgendaPage && !isNewAppointmentPage && !isRegiaPage && !isFascicoliPage && !isClientiPage
-  const isStandalonePage = isSearchPage || isAgendaPage || isNewAppointmentPage || isFascicoliPage || isClientiPage
+  const isNewClientPage = activePath === '/app-v2/clienti/nuovo' || activePath.startsWith('/app-v2/clienti/nuovo/')
+  const isNewSubjectPage = activePath === '/app-v2/soggetti/nuovo' || activePath.startsWith('/app-v2/soggetti/nuovo/')
+  const isClientiPage = !isNewClientPage && (activePath === '/app-v2/clienti' || activePath.startsWith('/app-v2/clienti/'))
+  const isSoggettiPage = !isNewSubjectPage && (activePath === '/app-v2/soggetti' || activePath.startsWith('/app-v2/soggetti/'))
+  const isDashboardPage = !isSearchPage && !isAgendaPage && !isNewAppointmentPage && !isRegiaPage && !isFascicoliPage && !isClientiPage && !isNewClientPage && !isSoggettiPage && !isNewSubjectPage
+  const isStandalonePage = isSearchPage || isAgendaPage || isNewAppointmentPage || isFascicoliPage || isClientiPage || isNewClientPage || isSoggettiPage || isNewSubjectPage
   const initialSearchQuery = new URLSearchParams(window.location.search).get('q') ?? ''
   const [data,setData]=useState<DashboardData>(emptyDashboard)
   const [loading,setLoading]=useState(!isStandalonePage)
@@ -441,13 +446,13 @@ export default function App() {
         {mobileMenuOpen?<button className="iu-sidebar-scrim" type="button" aria-label="Chiudi menu" onClick={()=>setMobileMenuOpen(false)}/>:null}
         <div className="iu-main">
           <Topbar onOpenMenu={()=>setMobileMenuOpen(true)}/>
-          {isSearchPage?<RicercaStudioPage initialQuery={initialSearchQuery}/>:isNewAppointmentPage?<NuovoAppuntamentoPage/>:isAgendaPage?<AgendaPage/>:isRegiaPage?<RegiaOperativaPage data={data} loading={loading}/>:isFascicoliPage?<FascicoliPage/>:isClientiPage?<AnagraficaClientiPage/>:<DashboardPage data={data} loading={loading}/>}
+          {isSearchPage?<RicercaStudioPage initialQuery={initialSearchQuery}/>:isNewAppointmentPage?<NuovoAppuntamentoPage/>:isAgendaPage?<AgendaPage/>:isRegiaPage?<RegiaOperativaPage data={data} loading={loading}/>:isFascicoliPage?<FascicoliPage/>:isNewClientPage||isNewSubjectPage?<NuovoClientePage/>:isClientiPage?<AnagraficaClientiPage/>:isSoggettiPage?<SoggettiPage/>:<DashboardPage data={data} loading={loading}/>}
         </div>
         <nav className="iu-mobile">
           <a className={isDashboardPage?'active':''} href="/app-v2"><LayoutDashboard size={18}/>Panoramica</a>
           <a className={isSearchPage?'active':''} href="/app-v2/ricerca-studio"><Search size={18}/>Ricerca</a>
           <a className={isFascicoliPage?'active':''} href="/app-v2/fascicoli"><BriefcaseBusiness size={18}/>Fascicoli</a>
-          <a className={isClientiPage?'active':''} href="/app-v2/clienti"><UsersRound size={18}/>Clienti</a>
+          <a className={isClientiPage||isNewClientPage||isSoggettiPage||isNewSubjectPage?'active':''} href="/app-v2/clienti"><UsersRound size={18}/>Clienti</a>
           <a className={isAgendaPage||isNewAppointmentPage?'active':''} href="/app-v2/agenda"><CalendarDays size={18}/>Agenda</a>
           <a className={isRegiaPage?'active':''} href="/app-v2/regia-operativa"><Sparkles size={18}/>Regia</a>
         </nav>

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-IUSENTRA Local Signer - v1.6.20
+IUSENTRA Local Signer - v1.6.21
 
 Servizio HTTP locale (localhost:27272) che firma documenti con smart card e token CNS/CIE
 (o qualsiasi token PKCS#11) e consente l'accesso autenticato al PST.
@@ -44,7 +44,7 @@ API:
 Note sicurezza:
     - Ascolta SOLO su 127.0.0.1 (non accessibile da rete)
     - CORS abilitato per origini localhost/127.0.0.1 e per il dominio
-      ufficiale IUSENTRA https://studio-legale-pct-production.up.railway.app
+      ufficiale IUSENTRA https://app.iusentra.it
     - Il PIN viene usato solo per la firma, mai salvato né loggato
     - La selezione certificato usa la dialog nativa Windows: il PIN
       è gestito dal sistema operativo durante la sessione TLS
@@ -104,11 +104,12 @@ from local_signer_mod.security import (  # noqa: E402
     is_loopback_origin,
     normalize_origin,
 )
+from local_signer_mod.pec_bridge import send_pec_local, test_pec_smtp_local  # noqa: E402
 from local_signer_mod.server_bootstrap import print_startup_banner  # noqa: E402
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.6.20"
+VERSION = "1.6.21"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
@@ -124,6 +125,7 @@ PST_SESSION_TTL_SECONDS = max(
 )
 PST_SESSION_MAX_ACTIVE = max(int(os.getenv("HACS_SIGNER_PST_SESSION_MAX_ACTIVE", "6")), 1)
 _DEFAULT_HACS_ALLOWED_ORIGINS = (
+    "https://app.iusentra.it",
     "https://studio-legale-pct-production.up.railway.app",
 )
 LOCAL_SIGNER_ALLOWED_ORIGINS = os.getenv(
@@ -5784,6 +5786,8 @@ class _Handler(BaseHTTPRequestHandler):
             "/pat/documenti",
             "/ptt/ricerca",
             "/ptt/documenti",
+            "/pec/smtp/test",
+            "/pec/send",
         }:
             log.info("HTTP POST %s", path)
         if path == "/ai/bootstrap":
@@ -5830,6 +5834,10 @@ class _Handler(BaseHTTPRequestHandler):
             self._pst_download_documenti_batch()
         elif path == "/downloads/raccogli":
             self._downloads_raccogli()
+        elif path == "/pec/smtp/test":
+            self._pec_smtp_test()
+        elif path == "/pec/send":
+            self._pec_send()
         else:
             self._send_json({"errore": "Not found"}, 404)
 
@@ -5858,6 +5866,12 @@ class _Handler(BaseHTTPRequestHandler):
 
     def _ai_embed(self):
         self._ai_facade().embed()
+
+    def _pec_smtp_test(self):
+        self._send_json(test_pec_smtp_local(self._read_json()))
+
+    def _pec_send(self):
+        self._send_json(send_pec_local(self._read_json()))
 
     def _ping(self):
         lib = _trova_libreria()

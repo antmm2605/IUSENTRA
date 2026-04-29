@@ -11,6 +11,7 @@ _LOCAL_SIGNER_MOD_FILES = {
     "__init__.py",
     "ai_cache.py",
     "ai_handlers.py",
+    "pec_bridge.py",
     "security.py",
     "server_bootstrap.py",
 }
@@ -44,6 +45,20 @@ def register_telematico_local_signer_routes(
     get_base_url: Callable[[], str],
 ) -> None:
     """Register Local Signer package download and installer routes."""
+
+    def _send_windows_exe():
+        exe_path = local_signer_windows_exe_path()
+        if not exe_path.exists():
+            return (
+                "Installer Windows .exe non ancora generato. Rigenerare i pacchetti Local Signer.",
+                404,
+            )
+        return send_file(
+            exe_path,
+            as_attachment=True,
+            download_name=local_signer_windows_exe_name(),
+            mimetype="application/octet-stream",
+        )
 
     @app.route("/polisWeb/local-signer/download")
     def polis_local_signer_download():
@@ -149,72 +164,18 @@ def register_telematico_local_signer_routes(
     @app.route("/polisWeb/local-signer/setup/windows-exe")
     def polis_local_signer_setup_windows_exe():
         try:
-            cmd_path = local_signer_windows_cmd_path()
-            if cmd_path.exists():
-                return send_file(
-                    cmd_path,
-                    as_attachment=True,
-                    download_name=local_signer_windows_cmd_name(),
-                    mimetype="application/octet-stream",
-                )
-            exe_path = local_signer_windows_exe_path()
-            if not exe_path.exists():
-                return (
-                    "Installer Windows non ancora generato. Usare temporaneamente l'installer PowerShell.",
-                    404,
-                )
-            return send_file(
-                exe_path,
-                as_attachment=True,
-                download_name=local_signer_windows_exe_name(),
-                mimetype="application/octet-stream",
-            )
+            return _send_windows_exe()
         except Exception as exc:
             return str(exc), 500
 
     @app.route("/polisWeb/local-signer/setup/windows")
     def polis_local_signer_setup_windows():
-        base_url = get_base_url()
-        cmd_path = local_signer_windows_cmd_path()
-        if cmd_path.exists():
-            return send_file(
-                cmd_path,
-                as_attachment=True,
-                download_name=local_signer_windows_cmd_name(),
-                mimetype="application/octet-stream",
-            )
-        exe_path = local_signer_windows_exe_path()
-        if exe_path.exists():
-            return send_file(
-                exe_path,
-                as_attachment=True,
-                download_name=local_signer_windows_exe_name(),
-                mimetype="application/octet-stream",
-            )
-        offline_ps1 = local_signer_windows_offline_ps1_path()
-        if offline_ps1.exists():
-            return send_file(
-                offline_ps1,
-                as_attachment=True,
-                download_name=local_signer_windows_offline_ps1_name(),
-                mimetype="text/plain; charset=utf-8",
-            )
-        return Response(
-            render_local_signer_windows_ps1(base_url),
-            mimetype="text/plain; charset=utf-8",
-            headers={"Content-Disposition": f'attachment; filename="{local_signer_windows_ps1_name()}"'},
-        )
+        return _send_windows_exe()
 
     @app.route("/polisWeb/local-signer/installa-windows")
     def polis_local_signer_installa():
         try:
-            return Response(
-                render_local_signer_windows_ps1(get_base_url()),
-                mimetype="text/plain; charset=utf-8",
-                headers={
-                    "Content-Disposition": f'attachment; filename="{local_signer_windows_ps1_name()}"',
-                },
-            )
+            return _send_windows_exe()
         except Exception as exc:
             app.logger.exception("Errore generazione script installer: %s", exc)
             return str(exc), 500

@@ -63,7 +63,14 @@ def test_write_windows_support_files_copia_i_file_necessari(monkeypatch, tmp_pat
     visible_signature.write_text("def apply_visible_signature_stamp(data):\n    return data\n", encoding="utf-8")
     reqs.write_text("cryptography\n", encoding="utf-8")
     uffici.write_text('{"uffici":[]}', encoding="utf-8")
-    for name in ["__init__.py", "ai_cache.py", "ai_handlers.py", "security.py", "server_bootstrap.py"]:
+    for name in [
+        "__init__.py",
+        "ai_cache.py",
+        "ai_handlers.py",
+        "pec_bridge.py",
+        "security.py",
+        "server_bootstrap.py",
+    ]:
         (module_dir / name).write_text(f"# {name}\n", encoding="utf-8")
 
     monkeypatch.setattr(build_dist, "LS_PY", ls_py)
@@ -88,6 +95,7 @@ def test_write_windows_support_files_copia_i_file_necessari(monkeypatch, tmp_pat
         "__init__.py",
         "ai_cache.py",
         "ai_handlers.py",
+        "pec_bridge.py",
         "security.py",
         "server_bootstrap.py",
     }

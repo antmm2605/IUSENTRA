@@ -494,6 +494,7 @@ def test_cors_consentito_per_loopback_locale():
 def test_cors_consentito_per_origine_hacs_default():
     module = _load_local_signer()
 
+    assert module._origin_cors_consentita("https://app.iusentra.it") is True
     assert (
         module._origin_cors_consentita("https://studio-legale-pct-production.up.railway.app")
         is True
@@ -540,6 +541,69 @@ def test_cors_preflight_private_network_risponde_header_atteso():
     assert ("Access-Control-Allow-Origin", "https://studio-legale-pct-production.up.railway.app") in captured
     assert ("Access-Control-Allow-Private-Network", "true") in captured
     assert ("Access-Control-Allow-Headers", "Content-Type, X-Signer-Token, X-Requested-With") in captured
+
+
+def test_endpoint_pec_locale_viene_dispatchato_dal_local_signer():
+    module = _load_local_signer()
+    captured = {}
+    original = module.test_pec_smtp_local
+
+    def _fake_test(payload):
+        captured["payload"] = payload
+        return {"ok": True, "messaggio": "ok locale"}
+
+    class _FakeHandler:
+        path = "/pec/smtp/test"
+
+        def _cors_ok(self):
+            return True
+
+        def _read_json(self):
+            return {"smtp_host": "smtp.example.test"}
+
+        def _send_json(self, data, status=200):
+            captured["data"] = data
+            captured["status"] = status
+
+        def _pec_smtp_test(self):
+            module._Handler._pec_smtp_test(self)
+
+    try:
+        module.test_pec_smtp_local = _fake_test
+        module._Handler.do_POST(_FakeHandler())
+    finally:
+        module.test_pec_smtp_local = original
+
+    assert captured["status"] == 200
+    assert captured["payload"]["smtp_host"] == "smtp.example.test"
+    assert captured["data"]["ok"] is True
+
+
+def test_ui_pec_locale_auto_avvia_signer_e_mostra_pacchetto():
+    root = Path(__file__).resolve().parents[1]
+    template = (root / "web" / "templates" / "impostazioni" / "index.html").read_text(
+        encoding="utf-8"
+    )
+    script = (root / "web" / "static" / "js" / "impostazioni-common.js").read_text(
+        encoding="utf-8"
+    )
+    firma_script = (root / "web" / "static" / "js" / "impostazioni-firma.js").read_text(
+        encoding="utf-8"
+    )
+    ai_script = (root / "web" / "static" / "js" / "impostazioni-ai.js").read_text(
+        encoding="utf-8"
+    )
+
+    assert "btn-test-smtp-locale" in template
+    assert "data-windows-url" in template
+    assert "testPecSmtpLocale" in script
+    assert "hacs-local-signer://restart" in script
+    assert "hacs-local-signer://restart" in firma_script
+    assert "hacs-local-signer://restart" in ai_script
+    assert "localSignerMissingMessage" in firma_script
+    assert "ensureLocalSignerCompanionStarted" in ai_script
+    assert "Local Signer non rilevato" in script
+    assert "Scarica Local Signer per Windows" in script
 
 
 def test_ai_status_bridge_locale_restituisce_snapshot():
@@ -1948,7 +2012,7 @@ def _cfg_web(tmp_path):
     }
 
 
-def test_installer_local_signer_e_scaricabile_senza_login(tmp_path):
+def test_installer_local_signer_windows_legacy_restituisce_exe_senza_login(tmp_path):
     from web.app import create_app
 
     version = _local_signer_version()
@@ -1958,17 +2022,10 @@ def test_installer_local_signer_e_scaricabile_senza_login(tmp_path):
 
     assert r.status_code == 200
     assert (
-        f'attachment; filename="InstallaLocalSigner-{version}.ps1"'
+        f'attachment; filename=SetupLocalSigner-{version}.exe'
         in r.headers.get("Content-Disposition", "")
     )
-    body = r.data.decode("utf-8")
-    assert f"IUSENTRA Local Signer v{version}" in body
-    assert "Invoke-WebRequest" in body
-    assert "/polisWeb/local-signer/download" in body
-    assert "/polisWeb/local-signer/download/local-signer-mod/ai_handlers.py" in body
-    assert "hacs-local-signer" in body
-    assert "127.0.0.1:27272/ping" in body
-    assert "zeep" in body
+    assert r.data.startswith(b"MZ")
 
 
 def test_api_portale_acquisizione_preview_pst_espone_id_documento_come_idcat(tmp_path):
@@ -2102,12 +2159,16 @@ def test_download_moduli_local_signer_e_pubblico(tmp_path):
     app = create_app(_cfg_web(tmp_path))
     with app.test_client() as c:
         r = c.get("/polisWeb/local-signer/download/local-signer-mod/ai_handlers.py")
+        pec = c.get("/polisWeb/local-signer/download/local-signer-mod/pec_bridge.py")
         forbidden = c.get("/polisWeb/local-signer/download/local-signer-mod/../local_signer.py")
 
     assert r.status_code == 200
     assert "attachment" in r.headers.get("Content-Disposition", "")
     assert "ai_handlers.py" in r.headers.get("Content-Disposition", "")
     assert "class LocalAiHandlerFacade" in r.data.decode("utf-8")
+    assert pec.status_code == 200
+    assert "pec_bridge.py" in pec.headers.get("Content-Disposition", "")
+    assert "send_pec_local" in pec.data.decode("utf-8")
     assert forbidden.status_code == 404
 
 
@@ -2122,11 +2183,9 @@ def test_installer_local_signer_windows_setup_route_e_pubblica(tmp_path):
     assert r.status_code == 200
     disposition = r.headers.get("Content-Disposition", "")
     assert "attachment;" in disposition
-    assert (
-        f"SetupLocalSigner-{version}.cmd" in disposition
-        or f"SetupLocalSigner-{version}.exe" in disposition
-        or f"InstallaLocalSigner-{version}.ps1" in disposition
-    )
+    assert f"SetupLocalSigner-{version}.exe" in disposition
+    assert ".cmd" not in disposition
+    assert ".ps1" not in disposition
 
 
 def test_installer_local_signer_windows_exe_route_se_bundle_presente(tmp_path):
@@ -2137,13 +2196,11 @@ def test_installer_local_signer_windows_exe_route_se_bundle_presente(tmp_path):
     with app.test_client() as c:
         r = c.get("/polisWeb/local-signer/setup/windows-exe")
 
-    assert r.status_code in (200, 404)
-    if r.status_code == 200:
-        disp = r.headers.get("Content-Disposition", "")
-        assert (
-            f"SetupLocalSigner-{version}.cmd" in disp
-            or f"SetupLocalSigner-{version}.exe" in disp
-        )
+    assert r.status_code == 200
+    disp = r.headers.get("Content-Disposition", "")
+    assert f"SetupLocalSigner-{version}.exe" in disp
+    assert ".cmd" not in disp
+    assert ".ps1" not in disp
 
 
 def test_installer_local_signer_macos_e_pubblico(tmp_path):

@@ -46,7 +46,7 @@ VISIBLE_SIGNATURE_PY = REPO_DIR / "visible_signature.py"
 IEXPRESS_STUB  = TOOLS_DIR / "iexpress_stub.bin"
 WINDOWS_NATIVE_BUILDER = TOOLS_DIR / "build_local_signer_windows_exe.ps1"
 
-BASE_URL_DEFAULT  = "https://studio-legale-pct-production.up.railway.app"
+BASE_URL_DEFAULT  = "https://app.iusentra.it"
 DOWNLOAD_PAGE     = f"{BASE_URL_DEFAULT}/impostazioni?tab=firma"
 
 CAB_BLOCK_SIZE = 32768  # dimensione massima blocco CFDATA (non compresso)
@@ -69,7 +69,14 @@ def _local_signer_mod_files() -> list[Path]:
     if not LOCAL_SIGNER_MOD_DIR.exists():
         raise FileNotFoundError(f"Modulo Local Signer non trovato: {LOCAL_SIGNER_MOD_DIR}")
     files = sorted(LOCAL_SIGNER_MOD_DIR.glob("*.py"))
-    required = {"__init__.py", "ai_cache.py", "ai_handlers.py", "security.py", "server_bootstrap.py"}
+    required = {
+        "__init__.py",
+        "ai_cache.py",
+        "ai_handlers.py",
+        "pec_bridge.py",
+        "security.py",
+        "server_bootstrap.py",
+    }
     found = {path.name for path in files}
     missing = sorted(required - found)
     if missing:
@@ -297,6 +304,7 @@ def build_macos_command(version: str, base_url: str) -> str:
     allowed_origins = ",".join(sorted({
         base_url.rstrip("/"),
         BASE_URL_DEFAULT,
+        "https://studio-legale-pct-production.up.railway.app",
     }))
     return textwrap.dedent(f"""\
         #!/bin/bash
@@ -368,6 +376,7 @@ def build_linux_run(version: str, base_url: str) -> str:
     allowed_origins = ",".join(sorted({
         base_url.rstrip("/"),
         BASE_URL_DEFAULT,
+        "https://studio-legale-pct-production.up.railway.app",
     }))
     return textwrap.dedent(f"""\
         #!/usr/bin/env bash
@@ -439,6 +448,7 @@ def build_release_note(version: str) -> str:
         f"Versione: {version}\n"
         f"Generato: {now}\n"
         f"Piattaforme: Windows (EXE offline), macOS (.command), Linux (.run)\n"
+        f"Ponte PEC locale: test SMTP e invio dal PC dello studio\n"
         f"Ricerca diretta via signer di default: PDP, PAT, PTT/SIGIT\n"
         f"Raccolta file browser ufficiale: PDP, PAT, PTT/SIGIT dai download locali\n"
         f"Proxy PST allineato a Documentazione servizi web v1.69 / A1 WSDL Catalog v1.52\n"

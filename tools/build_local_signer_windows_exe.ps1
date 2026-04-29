@@ -16,9 +16,9 @@ $localSignerPy = Join-Path $toolsDir "local_signer.py"
 $visibleSignaturePy = Join-Path $repoDir "visible_signature.py"
 $localSignerModDir = Join-Path $repoDir "local_signer_mod"
 $ufficiJson = Join-Path $repoDir "pct\data\uffici_ministero.json"
-$baseUrl = "https://studio-legale-pct-production.up.railway.app"
+$baseUrl = "https://app.iusentra.it"
 $downloadPage = "$baseUrl/impostazioni?tab=firma"
-$allowedOrigins = $baseUrl
+$allowedOrigins = "$baseUrl,https://studio-legale-pct-production.up.railway.app"
 $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
 
 function Write-Utf8TextFile {
@@ -87,6 +87,7 @@ $moduleFiles = @(
     "__init__.py",
     "ai_cache.py",
     "ai_handlers.py",
+    "pec_bridge.py",
     "security.py",
     "server_bootstrap.py"
 )
@@ -103,6 +104,7 @@ IUSENTRA Local Signer
 Versione: $version
 Pacchetto generato: $(Get-Date -Format "yyyy-MM-dd HH:mm:ss")
 Piattaforme generate contestualmente: Windows, macOS, Linux
+Ponte PEC locale: test SMTP e invio dal PC dello studio
 Punto ufficiale download: $downloadPage
 "@
 Write-Utf8TextFile -Path $buildReleaseTxt -Content $releaseText
@@ -151,6 +153,7 @@ SourceFiles0=$escapedSource
 %FILE10%=
 %FILE11%=
 %FILE12%=
+%FILE13%=
 [Strings]
 FILE0=installa_local_signer_locale.ps1
 FILE1=local_signer.py
@@ -163,8 +166,9 @@ FILE7=local_signer_release.txt
 FILE8=local_signer_mod____init__.py
 FILE9=local_signer_mod__ai_cache.py
 FILE10=local_signer_mod__ai_handlers.py
-FILE11=local_signer_mod__security.py
-FILE12=local_signer_mod__server_bootstrap.py
+FILE11=local_signer_mod__pec_bridge.py
+FILE12=local_signer_mod__security.py
+FILE13=local_signer_mod__server_bootstrap.py
 "@
 
 Set-Content -Path $sedFile -Value $sed -Encoding ASCII
@@ -213,6 +217,7 @@ curl -fsSL "$BASE_URL/polisWeb/local-signer/download/uffici" -o "$DATA_DIR/uffic
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/__init__.py" -o "$MOD_DIR/__init__.py"
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/ai_cache.py" -o "$MOD_DIR/ai_cache.py"
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/ai_handlers.py" -o "$MOD_DIR/ai_handlers.py"
+curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/pec_bridge.py" -o "$MOD_DIR/pec_bridge.py"
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/security.py" -o "$MOD_DIR/security.py"
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/server_bootstrap.py" -o "$MOD_DIR/server_bootstrap.py"
 python3 -m venv "$VENV"
@@ -299,6 +304,7 @@ curl -fsSL "$BASE_URL/polisWeb/local-signer/download/uffici" -o "$DATA_DIR/uffic
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/__init__.py" -o "$MOD_DIR/__init__.py"
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/ai_cache.py" -o "$MOD_DIR/ai_cache.py"
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/ai_handlers.py" -o "$MOD_DIR/ai_handlers.py"
+curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/pec_bridge.py" -o "$MOD_DIR/pec_bridge.py"
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/security.py" -o "$MOD_DIR/security.py"
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/server_bootstrap.py" -o "$MOD_DIR/server_bootstrap.py"
 python3 -m venv "$VENV"

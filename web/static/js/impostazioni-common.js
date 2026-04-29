@@ -55,7 +55,121 @@
       '<i class="bi ' +
       (success ? 'bi-check-circle-fill' : 'bi-x-circle-fill') +
       ' me-1"></i>' +
-      message;
+      escapeHtml(message);
+  }
+
+  function escapeHtml(value) {
+    return String(value || '').replace(/[&<>"']/g, function (char) {
+      return {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;',
+      }[char];
+    });
+  }
+
+  function renderTestResultHtml(container, success, html) {
+    container.className = success ? 'test-result test-ok' : 'test-result test-fail';
+    container.innerHTML =
+      '<i class="bi ' +
+      (success ? 'bi-check-circle-fill' : 'bi-x-circle-fill') +
+      ' me-1"></i>' +
+      html;
+  }
+
+  function localSignerMeta() {
+    const meta = document.getElementById('pec-local-signer-meta');
+    return {
+      base: meta?.dataset.localSignerBase || 'http://127.0.0.1:27272',
+      windows: meta?.dataset.windowsUrl || '/polisWeb/local-signer/setup/windows',
+      macos: meta?.dataset.macosUrl || '/polisWeb/local-signer/setup/macos',
+      linux: meta?.dataset.linuxUrl || '/polisWeb/local-signer/setup/linux',
+    };
+  }
+
+  function localSignerInstallUrl() {
+    const meta = localSignerMeta();
+    const ua = window.navigator.userAgent || '';
+    if (/Macintosh|Mac OS X/i.test(ua)) {
+      return { label: 'Scarica Local Signer per macOS', url: meta.macos };
+    }
+    if (/Linux/i.test(ua) && !/Android/i.test(ua)) {
+      return { label: 'Scarica Local Signer per Linux', url: meta.linux };
+    }
+    return { label: 'Scarica Local Signer per Windows', url: meta.windows };
+  }
+
+  function localSignerMissingHtml() {
+    const install = localSignerInstallUrl();
+    return (
+      'Local Signer non rilevato. Ho provato ad avviarlo automaticamente: ' +
+      '<a href="' +
+      escapeHtml(install.url) +
+      '" target="_blank" rel="noopener">' +
+      escapeHtml(install.label) +
+      '</a>.'
+    );
+  }
+
+  function sleep(ms) {
+    return new Promise(function (resolve) {
+      window.setTimeout(resolve, ms);
+    });
+  }
+
+  async function fetchJsonWithTimeout(url, options, timeoutMs) {
+    const controller = new AbortController();
+    const timer = window.setTimeout(function () {
+      controller.abort();
+    }, timeoutMs || 4000);
+    try {
+      const response = await fetch(url, {
+        ...(options || {}),
+        signal: controller.signal,
+      });
+      return await response.json();
+    } finally {
+      window.clearTimeout(timer);
+    }
+  }
+
+  async function pingLocalSigner() {
+    try {
+      const meta = localSignerMeta();
+      const data = await fetchJsonWithTimeout(meta.base + '/ping?light=1', { method: 'GET' }, 2500);
+      return Boolean(data && data.ok);
+    } catch (error) {
+      return false;
+    }
+  }
+
+  function requestLocalSignerStart() {
+    const iframe = document.createElement('iframe');
+    iframe.style.display = 'none';
+    iframe.src = 'hacs-local-signer://restart';
+    document.body.appendChild(iframe);
+    window.setTimeout(function () {
+      iframe.remove();
+    }, 2500);
+  }
+
+  async function ensureLocalSignerReady(result) {
+    if (await pingLocalSigner()) {
+      return true;
+    }
+    result.className = 'test-result test-spin';
+    result.innerHTML = '<i class="bi bi-arrow-repeat spin me-1"></i>Avvio Local Signer...';
+    requestLocalSignerStart();
+    for (let attempt = 0; attempt < 10; attempt += 1) {
+      await sleep(900);
+      if (await pingLocalSigner()) {
+        return true;
+      }
+    }
+    renderTestResultHtml(result, false, localSignerMissingHtml());
+    return false;
   }
 
   async function testConn(tipo, btnId, resId) {
@@ -115,8 +229,68 @@
     }
   }
 
+  function collectPecPayload() {
+    return {
+      indirizzo: collectValue('pec_indirizzo', ''),
+      username: collectValue('pec_indirizzo', ''),
+      password: collectValue('pec_password', ''),
+      smtp_host: collectValue('pec_smtp_host', ''),
+      smtp_port: parseInt(collectValue('pec_smtp_port', '465'), 10) || 465,
+      use_ssl: document.getElementById('pec_use_ssl')?.checked ?? true,
+    };
+  }
+
+  async function testPecSmtpLocale(btnId, resId) {
+    const button = document.getElementById(btnId);
+    const result = document.getElementById(resId);
+    if (!button || !result) {
+      return;
+    }
+
+    const payload = collectPecPayload();
+    if (!payload.password) {
+      renderTestResult(
+        result,
+        false,
+        'Inserisci la password PEC per il test locale: resta sul PC e non viene salvata dal server.'
+      );
+      return;
+    }
+
+    button.disabled = true;
+    result.className = 'test-result test-spin';
+    result.innerHTML = '<i class="bi bi-arrow-repeat spin me-1"></i>Verifica Local Signer...';
+
+    try {
+      if (!(await ensureLocalSignerReady(result))) {
+        return;
+      }
+      const meta = localSignerMeta();
+      result.className = 'test-result test-spin';
+      result.innerHTML = '<i class="bi bi-arrow-repeat spin me-1"></i>Test SMTP locale in corso...';
+      const data = await fetchJsonWithTimeout(
+        meta.base + '/pec/smtp/test',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+          },
+          body: JSON.stringify(payload),
+        },
+        35000
+      );
+      renderTestResult(result, Boolean(data.ok), data.messaggio || 'Verifica locale completata.');
+    } catch (error) {
+      renderTestResultHtml(result, false, localSignerMissingHtml());
+    } finally {
+      button.disabled = false;
+    }
+  }
+
   window.togglePwd = togglePwd;
   window.fillPEC = fillPEC;
   window.fillSMTP = fillSMTP;
   window.testConn = testConn;
+  window.testPecSmtpLocale = testPecSmtpLocale;
 })();

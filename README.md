@@ -31,6 +31,7 @@ La repo oggi non è più solo un tool CLI per il Processo Civile Telematico: con
 - Workspace/applicazioni, portali di acquisizione, privacy e audit.
 - Registro audit storico spiegabile: se un fascicolo e' stato migrato, ricreato o rimosso, la UI segnala se l'evento e' attivo, riconciliato verso il fascicolo corrente oppure solo storico.
 - Runtime AI locale con Lex come strato linguistico sopra motori deterministici.
+- Local Signer come ponte operativo locale per firma digitale, AI locale e test/invio PEC dal PC dello studio: se il servizio non risponde, la UI prova ad avviarlo e propone il pacchetto da installare.
 - Lex espone anche un gateway provider local-first con privacy guard: i dati sensibili restano sui runtime locali e gli esterni sono utilizzabili solo con policy esplicita.
 - Lex dispone ora del `Centro Fonti Ufficiali`: Normattiva e Gazzetta Ufficiale alimentano un archivio locale SQLite/JSONL interrogabile dal retrieval, con registro fonti disabilitabile e predisposizione per Ministero Giustizia, PST/PCT, PAT/SIGA, PTT/SIGIT, PDP, CNF, Agenzia Entrate, Garante Privacy, EUR-Lex e authority.
 - Lex usa ora fast-path deterministici per i casi operativi, fallback automatico a fonti ufficiali quando il retrieval interno non basta, cache TTL tenant-aware sul retrieval e guardrail che degradano o bloccano le risposte legali senza riferimenti verificati, esponendo sempre `official_sources`, `coverage_gaps`, `fallback_triggered`, `retrieval_cache` e confronto fonti nella risposta finale.
@@ -74,6 +75,7 @@ Per il Centro Fonti Ufficiali Lex vedi [docs/CENTRO_FONTI_UFFICIALI_LEX.md](docs
 Per il workflow giurisprudenziale di Lex vedi [docs/LEX_GIURISPRUDENZA.md](docs/LEX_GIURISPRUDENZA.md).
 Per l'assistenza remota cliente vedi [docs/ASSISTENZA_REMOTA.md](docs/ASSISTENZA_REMOTA.md).
 Per il modulo `Sito Studio` vedi [docs/SITO_STUDIO.md](docs/SITO_STUDIO.md).
+Per il ponte PEC locale tramite Local Signer vedi [docs/LOCAL_PEC_CONNECTOR.md](docs/LOCAL_PEC_CONNECTOR.md).
 Per la `Ricerca Studio` globale vedi [docs/RICERCA_STUDIO.md](docs/RICERCA_STUDIO.md).
 Per il catalogo master dei template atti vedi [docs/TEMPLATE_ATTI_CATALOGO_MASTER.md](docs/TEMPLATE_ATTI_CATALOGO_MASTER.md).
 Per la Suite professionale integrata nel catalogo template atti vedi [docs/template_atti_catalogo_professionale.md](docs/template_atti_catalogo_professionale.md).

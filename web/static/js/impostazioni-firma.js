@@ -14,6 +14,92 @@
     });
   }
 
+  function escapeHtml(value) {
+    return String(value || '').replace(/[&<>"']/g, function (char) {
+      return {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;',
+      }[char];
+    });
+  }
+
+  function sleep(ms) {
+    return new Promise(function (resolve) {
+      window.setTimeout(resolve, ms);
+    });
+  }
+
+  function localSignerDownloadLink() {
+    const userAgent = (navigator.userAgent || '').toLowerCase();
+    let id = 'btn-local-signer-windows';
+    let label = 'Scarica Local Signer per Windows';
+    if (userAgent.includes('mac os') || userAgent.includes('macintosh')) {
+      id = 'btn-local-signer-macos';
+      label = 'Scarica Local Signer per macOS';
+    } else if (userAgent.includes('linux') && !userAgent.includes('android')) {
+      id = 'btn-local-signer-linux';
+      label = 'Scarica Local Signer per Linux';
+    }
+    const link = document.getElementById(id);
+    return {
+      label,
+      url: link?.getAttribute('href') || '/polisWeb/local-signer/setup/windows',
+    };
+  }
+
+  function localSignerMissingMessage() {
+    const download = localSignerDownloadLink();
+    return (
+      '<span class="text-danger"><i class="bi bi-x-circle me-1"></i>' +
+      'Local Signer non rilevato. Ho provato ad avviarlo automaticamente. ' +
+      '<a href="' +
+      escapeHtml(download.url) +
+      '" target="_blank" rel="noopener">' +
+      escapeHtml(download.label) +
+      '</a> e riprova.</span>'
+    );
+  }
+
+  function requestLocalSignerStart() {
+    const iframe = document.createElement('iframe');
+    iframe.style.display = 'none';
+    iframe.src = 'hacs-local-signer://restart';
+    document.body.appendChild(iframe);
+    window.setTimeout(function () {
+      iframe.remove();
+    }, 2500);
+  }
+
+  async function pingLocalSigner() {
+    try {
+      const response = await fetchJsonWithTimeout(LOCAL_SIGNER_BASE + '/ping?light=1', 2500);
+      const payload = await response.json();
+      return Boolean(payload && payload.ok);
+    } catch (error) {
+      return false;
+    }
+  }
+
+  async function ensureLocalSignerReady(risultato) {
+    if (await pingLocalSigner()) {
+      return true;
+    }
+    risultato.innerHTML =
+      '<span class="text-muted"><i class="bi bi-hourglass-split me-1"></i>Avvio Local Signer...</span>';
+    requestLocalSignerStart();
+    for (let attempt = 0; attempt < 10; attempt += 1) {
+      await sleep(900);
+      if (await pingLocalSigner()) {
+        return true;
+      }
+    }
+    risultato.innerHTML = localSignerMissingMessage();
+    return false;
+  }
+
   function scegliModalita(formato) {
     document.querySelectorAll('input[name="firma_formato"]').forEach(function (radio) {
       radio.checked = radio.value === formato;
@@ -79,7 +165,7 @@
     });
   }
 
-  function testaPkcs11() {
+  async function testaPkcs11() {
     const bottone = document.getElementById('btnTestPkcs11');
     const risultato = document.getElementById('pkcs11TestResult');
     if (!bottone || !risultato) {
@@ -88,6 +174,11 @@
 
     bottone.disabled = true;
     risultato.innerHTML = '<span class="text-muted"><i class="bi bi-hourglass-split me-1"></i>Verifica in corso...</span>';
+
+    if (!(await ensureLocalSignerReady(risultato))) {
+      bottone.disabled = false;
+      return;
+    }
 
     fetchJsonWithTimeout(LOCAL_SIGNER_BASE + '/ping', 4000)
       .then(function (response) {
@@ -122,9 +213,7 @@
           ? 'Timeout di collegamento al Local Signer.'
           : 'Local Signer non raggiungibile su questo PC.';
         risultato.innerHTML =
-          '<span class="text-danger"><i class="bi bi-x-circle me-1"></i>' +
-          dettaglio +
-          ' Avvialo o installalo con il pacchetto qui sopra e riprova.</span>';
+          localSignerMissingMessage().replace('Local Signer non rilevato.', escapeHtml(dettaglio));
       })
       .finally(function () {
         bottone.disabled = false;

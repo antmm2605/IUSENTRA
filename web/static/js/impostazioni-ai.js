@@ -161,6 +161,50 @@
     };
   }
 
+  function sleep(ms) {
+    return new Promise(function (resolve) {
+      window.setTimeout(resolve, ms);
+    });
+  }
+
+  function requestLocalSignerStart() {
+    const iframe = document.createElement('iframe');
+    iframe.style.display = 'none';
+    iframe.src = 'hacs-local-signer://restart';
+    document.body.appendChild(iframe);
+    window.setTimeout(function () {
+      iframe.remove();
+    }, 2500);
+  }
+
+  async function pingLocalSignerCompanion() {
+    const config = aiUiConfig();
+    try {
+      const response = await fetch(config.localSignerUrl + '/ping?light=1', {
+        method: 'GET',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+      });
+      const payload = await response.json();
+      return Boolean(payload && payload.ok);
+    } catch (error) {
+      return false;
+    }
+  }
+
+  async function ensureLocalSignerCompanionStarted() {
+    if (await pingLocalSignerCompanion()) {
+      return true;
+    }
+    requestLocalSignerStart();
+    for (let attempt = 0; attempt < 10; attempt += 1) {
+      await sleep(900);
+      if (await pingLocalSignerCompanion()) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   function currentAiSettings() {
     const baseUrlField = document.getElementById('ai_base_url');
     const config = aiUiConfig();
@@ -424,6 +468,11 @@
 
   async function fetchCompanionStatus() {
     const config = aiUiConfig();
+    if (!(await ensureLocalSignerCompanionStarted())) {
+      const error = new Error('Local Signer non rilevato dopo il tentativo di avvio automatico.');
+      error.localSignerMissing = true;
+      throw error;
+    }
     const params = new URLSearchParams(currentAiSettings());
     const response = await fetch(config.localSignerUrl + '/ai/status?' + params.toString(), {
       method: 'GET',
@@ -462,7 +511,7 @@
     } catch (error) {
       if (config.remoteHosted) {
         const payload = companionUnavailablePayload(
-          'Servizio locale non raggiungibile dal browser su http://127.0.0.1:27272.',
+          'Servizio locale non raggiungibile dal browser su http://127.0.0.1:27272 dopo il tentativo di avvio automatico.',
           Number(error.httpStatus || 0) === 404
         );
         renderLocalAiStatus(payload);
@@ -471,7 +520,7 @@
           Number(error.httpStatus || 0) === 404 ? 'Aggiornamento richiesto' : 'Servizio locale non raggiungibile',
           Number(error.httpStatus || 0) === 404
             ? 'Il Local Signer risponde ma non supporta ancora il bridge AI locale. Aggiornalo da questo dispositivo e poi ripeti il controllo.'
-            : 'La web app online non puo\' leggere Ollama direttamente dal server. Installa o avvia il Local Signer su questo dispositivo e poi ripeti il controllo.'
+            : 'Ho provato ad avviare automaticamente Local Signer. Se resta non raggiungibile, installa il pacchetto indicato su questo dispositivo e poi ripeti il controllo.'
         );
         return;
       }
@@ -508,6 +557,11 @@
     try {
       let payload;
       if (config.remoteHosted) {
+        if (!(await ensureLocalSignerCompanionStarted())) {
+          const error = new Error('Local Signer non rilevato dopo il tentativo di avvio automatico.');
+          error.localSignerMissing = true;
+          throw error;
+        }
         const response = await fetch(config.localSignerUrl + '/ai/bootstrap', {
           method: 'POST',
           headers: {
@@ -541,14 +595,14 @@
     } catch (error) {
       if (config.remoteHosted) {
         const payload = companionUnavailablePayload(
-          'Il browser non riesce a raggiungere il Local Signer su questo dispositivo.',
+          'Il browser non riesce a raggiungere il Local Signer su questo dispositivo dopo il tentativo di avvio automatico.',
           Number(error.httpStatus || 0) === 404
         );
         renderLocalAiStatus(payload);
         showAiFeedback(
           'warning',
           'Servizio locale necessario',
-          'Per la versione online di IUSENTRA la preparazione AI deve passare dal Local Signer sul dispositivo cliente. Installa o aggiorna il servizio locale e poi ripeti la procedura.'
+          'Ho provato ad avviare automaticamente Local Signer. Se resta non raggiungibile, installa o aggiorna il pacchetto indicato e poi ripeti la procedura.'
         );
       } else {
         setAiBadge('Preparazione fallita', 'danger');

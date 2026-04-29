@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.195.24 - 2026-04-29
+
+- Aggiunto il ponte PEC locale nel Local Signer: `POST /pec/smtp/test` verifica l'SMTP dal PC dello studio e `POST /pec/send` prepara l'invio locale con allegati base64.
+- Collegata la scheda `Impostazioni -> PEC` al test `Testa SMTP dal PC`, con auto-avvio `hacs-local-signer://restart` e messaggio che propone direttamente il pacchetto Local Signer da installare se il servizio non viene rilevato.
+- Esteso lo stesso auto-avvio alla verifica token in `Impostazioni -> Firma Digitale` e al pannello `AI Locale`, evitando messaggi ciechi quando il servizio locale non e' ancora partito.
+- Aggiornati installer, origini CORS e download Local Signer per il dominio `https://app.iusentra.it`, mantenendo compatibile l'origine Railway storica.
+- Reso obbligatorio il pacchetto Windows `.exe` nelle route pubbliche Local Signer: `/setup/windows`, `/setup/windows-exe` e la route legacy `/installa-windows` servono tutte `SetupLocalSigner-<versione>.exe`.
+- Documentato il flusso operativo in `docs/LOCAL_PEC_CONNECTOR.md` e aggiunti test di regressione su ponte PEC, CORS, dispatch endpoint e UX di auto-avvio.
+
 ## 2.195.23 - 2026-04-29
 
 - Aggiornati i messaggi SMTP/PEC per il runtime Hetzner: non citano piu' Railway e guidano l'utente su server cloud o dedicati, whitelist dell'IP pubblico e relay SMTP compatibili.

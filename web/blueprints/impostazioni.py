@@ -62,26 +62,18 @@ def _local_signer_meta() -> dict[str, str]:
     version = match.group(1) if match else "n.d."
 
     # Determina il filename Windows mostrato in UI.
-    # L'eseguibile .exe resta il pacchetto ufficiale pubblicato per Windows.
-    win_cmd  = dist_dir / f"SetupLocalSigner-{version}.cmd"
+    # L'eseguibile .exe e' l'unico pacchetto Windows proposto all'utente.
     win_exe  = dist_dir / f"SetupLocalSigner-{version}.exe"
-    win_ps1  = dist_dir / f"SetupLocalSigner-{version}.ps1"
     if win_exe.exists():
         windows_filename = win_exe.name
         windows_tipo     = "exe"
-    elif win_cmd.exists():
-        windows_filename = win_exe.name
-        windows_tipo     = "exe_pending"
-    elif win_ps1.exists():
-        windows_filename = win_exe.name
-        windows_tipo     = "ps1_offline"
     else:
         windows_filename = f"SetupLocalSigner-{version}.exe"
         windows_tipo     = "exe_pending"
 
     return {
         "version": version,
-        "download_page": "https://studio-legale-pct-production.up.railway.app/impostazioni?tab=firma",
+        "download_page": "https://app.iusentra.it/impostazioni?tab=firma",
         "windows_filename": windows_filename,
         "windows_tipo": windows_tipo,
         "windows_script_filename": f"InstallaLocalSigner-{version}.ps1",

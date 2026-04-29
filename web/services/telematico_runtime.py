@@ -2660,6 +2660,7 @@ def build_telematico_runtime(
         configured = os.getenv("PCT_BASE_URL", "").rstrip("/")
         if configured:
             origini.add(configured)
+        origini.add("https://app.iusentra.it")
         origini.add("https://studio-legale-pct-production.up.railway.app")
         return ",".join(sorted(o for o in origini if o))
 
@@ -2668,7 +2669,7 @@ def build_telematico_runtime(
         version = _local_signer_version()
         return f"""# IUSENTRA Local Signer v{version} - Installazione automatica Windows
 # Eseguire in PowerShell come utente normale (non richiede amministratore)
-# Punto ufficiale download: https://studio-legale-pct-production.up.railway.app/impostazioni?tab=firma
+# Punto ufficiale download: https://app.iusentra.it/impostazioni?tab=firma
 
 $ErrorActionPreference = 'Stop'
 $dir    = "$env:APPDATA\\IUSENTRA\\LocalSigner"
@@ -2707,6 +2708,7 @@ Write-Host "  Scarico moduli interni Local Signer..."
 Invoke-WebRequest "{base_url}/polisWeb/local-signer/download/local-signer-mod/__init__.py" -OutFile "$moduleDir\\__init__.py" -UseBasicParsing
 Invoke-WebRequest "{base_url}/polisWeb/local-signer/download/local-signer-mod/ai_cache.py" -OutFile "$moduleDir\\ai_cache.py" -UseBasicParsing
 Invoke-WebRequest "{base_url}/polisWeb/local-signer/download/local-signer-mod/ai_handlers.py" -OutFile "$moduleDir\\ai_handlers.py" -UseBasicParsing
+Invoke-WebRequest "{base_url}/polisWeb/local-signer/download/local-signer-mod/pec_bridge.py" -OutFile "$moduleDir\\pec_bridge.py" -UseBasicParsing
 Invoke-WebRequest "{base_url}/polisWeb/local-signer/download/local-signer-mod/security.py" -OutFile "$moduleDir\\security.py" -UseBasicParsing
 Invoke-WebRequest "{base_url}/polisWeb/local-signer/download/local-signer-mod/server_bootstrap.py" -OutFile "$moduleDir\\server_bootstrap.py" -UseBasicParsing
 
@@ -2898,6 +2900,7 @@ curl -fsSL "$BASE_URL/polisWeb/local-signer/download/uffici" -o "$DATA_DIR/uffic
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/__init__.py" -o "$MOD_DIR/__init__.py"
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/ai_cache.py" -o "$MOD_DIR/ai_cache.py"
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/ai_handlers.py" -o "$MOD_DIR/ai_handlers.py"
+curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/pec_bridge.py" -o "$MOD_DIR/pec_bridge.py"
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/security.py" -o "$MOD_DIR/security.py"
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/server_bootstrap.py" -o "$MOD_DIR/server_bootstrap.py"
 python3 -m venv "$VENV"
@@ -2938,7 +2941,7 @@ launchctl kickstart -k "gui/$(id -u)/it.hacs.local-signer"
 echo
 echo "Installazione completata. Local Signer v$VERSION pronto."
 echo "Local Signer attivo su http://127.0.0.1:27272"
-echo "Pacchetto ufficiale sempre disponibile su: https://studio-legale-pct-production.up.railway.app/impostazioni?tab=firma"
+echo "Pacchetto ufficiale sempre disponibile su: https://app.iusentra.it/impostazioni?tab=firma"
 echo "Tornare su IUSENTRA e cliccare Riverifica."
 read -r -p "Premi Invio per chiudere..." _
 """
@@ -2978,6 +2981,7 @@ curl -fsSL "$BASE_URL/polisWeb/local-signer/download/uffici" -o "$DATA_DIR/uffic
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/__init__.py" -o "$MOD_DIR/__init__.py"
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/ai_cache.py" -o "$MOD_DIR/ai_cache.py"
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/ai_handlers.py" -o "$MOD_DIR/ai_handlers.py"
+curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/pec_bridge.py" -o "$MOD_DIR/pec_bridge.py"
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/security.py" -o "$MOD_DIR/security.py"
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/local-signer-mod/server_bootstrap.py" -o "$MOD_DIR/server_bootstrap.py"
 python3 -m venv "$VENV"
@@ -3006,7 +3010,7 @@ systemctl --user enable --now hacs-local-signer.service
 echo
 echo "Installazione completata. Local Signer v$VERSION pronto."
 echo "Local Signer attivo su http://127.0.0.1:27272"
-echo "Pacchetto ufficiale sempre disponibile su: https://studio-legale-pct-production.up.railway.app/impostazioni?tab=firma"
+echo "Pacchetto ufficiale sempre disponibile su: https://app.iusentra.it/impostazioni?tab=firma"
 echo "Tornare su IUSENTRA e cliccare Riverifica."
 read -r -p "Premi Invio per chiudere..." _
 """

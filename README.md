@@ -43,6 +43,7 @@ La repo oggi non è più solo un tool CLI per il Processo Civile Telematico: con
 - `Sito Studio` nativo per ogni tenant: pagine a blocchi, articoli, servizi, professionisti, sedi, contatti, agenda appuntamenti pubblica e sito web pubblicabile senza WordPress esterno.
 - Le sezioni pubbliche `Strumenti legali`, `Applicazioni` e `News giuridiche strutturate` non sono esposte in automatico: compaiono sul sito dello studio solo se l'amministratore del sito attiva i flag dedicati da `Sito Studio -> Impostazioni`.
 - Migrazione React progressiva: la shell `/app-v2` convive con la UI Jinja attuale e usa API Flask reali; la `Panoramica` resta la prima pagina dashboard, mentre `Regia Operativa`, `Ricerca Studio`, `Agenda` e `Nuovo Appuntamento` vivono rispettivamente in `/app-v2/regia-operativa`, `/app-v2/ricerca-studio`, `/app-v2/agenda` e `/app-v2/agenda/nuovo` senza sostituire subito le route storiche. Ogni pagina migrata viene collegata alla nav React e nessuna pagina React viene annidata dentro un'altra durante la migrazione pagina per pagina.
+- Deploy Hetzner CPX42: il profilo [deploy/hetzner](deploy/hetzner/README.md) prepara un server Ubuntu con Docker Compose, Caddy HTTPS, Redis, worker scheduler/OCR, backup e restore su `/opt/iusentra/data`, così Railway può restare fase transitoria o fallback.
 
 ## Architettura
 

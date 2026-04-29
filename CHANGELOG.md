@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.195.21 - 2026-04-29
+
+- Aggiunto il profilo di deploy Hetzner CPX42 con Docker Compose dedicato, Caddy HTTPS, Redis, worker scheduler/OCR, healthcheck, firewall bootstrap, backup e restore dati `/data`.
+- Preparata la guida operativa `deploy/hetzner/README.md` per migrazione da Railway a server Ubuntu `116.203.45.57`, con dominio, secrets, ripristino backup e verifiche post-deploy.
+- Attivato l'accesso SSH operativo al server Hetzner e completato il bootstrap Ubuntu con Docker, Compose plugin, OpenSC/pcscd e UFW.
+
 ## 2.195.20 - 2026-04-29
 
 - Stabilizzata definitivamente la pagina React `/app-v2/agenda/nuovo`: autocomplete clienti, anteprima e controllo sovrapposizioni ora normalizzano anche payload annidati, record incompleti e campi non-stringa prima del render.

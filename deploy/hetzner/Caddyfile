@@ -1,0 +1,47 @@
+{
+	email {$ACME_EMAIL}
+}
+
+{$IUSENTRA_DOMAIN} {
+	encode zstd gzip
+	request_body {
+		max_size 200MB
+	}
+
+	header {
+		X-Frame-Options "SAMEORIGIN"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "camera=(), microphone=(), geolocation=()"
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+	}
+
+	@static path /static/*
+	header @static Cache-Control "public, max-age=604800"
+
+	@react_shell path /app-v2*
+	header @react_shell Cache-Control "no-store, no-cache, must-revalidate, max-age=0"
+
+	@sw path /static/sw.js
+	header @sw Cache-Control "no-store, no-cache, must-revalidate, max-age=0"
+	header @sw Service-Worker-Allowed "/"
+
+	@sse path /api/eventi
+	reverse_proxy @sse app:8080 {
+		flush_interval -1
+		transport http {
+			read_timeout 1h
+			write_timeout 1h
+		}
+	}
+
+	@support_ws path /support/ws/*
+	reverse_proxy @support_ws app:8080
+
+	reverse_proxy app:8080 {
+		header_up Host {host}
+		header_up X-Real-IP {remote_host}
+		header_up X-Forwarded-For {remote_host}
+		header_up X-Forwarded-Proto {scheme}
+	}
+}

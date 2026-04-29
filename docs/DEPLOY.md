@@ -2,7 +2,7 @@
 
 ## Obiettivo
 
-Questa guida allinea codice, CI, Docker locale e produzione Railway in un flusso di release verificabile.
+Questa guida allinea codice, CI, Docker locale e produzione Railway/Hetzner in un flusso di release verificabile.
 
 ## Versioning obbligatorio
 
@@ -91,6 +91,25 @@ Quando il fix tocca deploy, storage, AI locale, Local Signer bridge, SMTP o port
 - controlla log applicativi e volume `/data`
 - verifica la route reale online coinvolta
 - conferma la versione effettiva del servizio remoto
+
+## Produzione Hetzner
+
+Il profilo server dedicato vive in [deploy/hetzner](../deploy/hetzner/README.md) e copre il nodo CPX42 Ubuntu `116.203.45.57`.
+
+Componenti:
+
+- Docker Compose con `app`, `redis`, `scheduler-worker`, `ocr-worker` e `caddy`.
+- HTTPS automatico tramite Caddy, con cache controllata per `/app-v2`.
+- dati persistenti in `/opt/iusentra/data`;
+- backup e restore governati da `deploy/hetzner/backup.sh` e `deploy/hetzner/restore_data.sh`.
+
+Controlli minimi dopo deploy Hetzner:
+
+```bash
+docker compose --env-file /opt/iusentra/.env.hetzner -f deploy/hetzner/docker-compose.hetzner.yml ps
+curl -fsS https://<dominio>/api/pronto
+curl -I https://<dominio>/app-v2/agenda/nuovo
+```
 
 ## Storage strategy e rollout ambienti
 

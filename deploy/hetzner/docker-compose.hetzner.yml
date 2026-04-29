@@ -1,0 +1,165 @@
+name: iusentra
+
+x-iusentra-env: &iusentra-env
+  PCT_HTTPS: "true"
+  PCT_DATA_ROOT: /data
+  PCT_MULTI_TENANT: "1"
+  PCT_STORAGE_MODE: SQLITE
+  PCT_SQLITE_MODE: "1"
+  DATABASE_URL: ${DATABASE_URL:-sqlite:////data/iusentra.sqlite}
+  REDIS_URL: redis://redis:6379/0
+  RATELIMIT_STORAGE_URI: redis://redis:6379/1
+  PROMETHEUS_ENABLED: ${PROMETHEUS_ENABLED:-1}
+  WEB_CONCURRENCY: ${WEB_CONCURRENCY:-4}
+  GUNICORN_THREADS: ${GUNICORN_THREADS:-2}
+  GUNICORN_TIMEOUT: ${GUNICORN_TIMEOUT:-180}
+  PCT_LOCAL_AI_BASE_URL: ${PCT_LOCAL_AI_BASE_URL:-http://host.docker.internal:11434/api}
+  PCT_STUDIO_NOME: ${PCT_STUDIO_NOME:-IUSENTRA}
+  PCT_AGENDA_DB: /data/agenda/appuntamenti.json
+  PCT_CLIENTI_DB: /data/clienti/anagrafica.json
+  PCT_CONDIVISIONI_DB: /data/clienti/condivisioni.json
+  PCT_SOGGETTI_DB: /data/soggetti/anagrafica.json
+  PCT_SOGGETTI_PARTI_DB: /data/soggetti/parti.json
+  PCT_FASCICOLI_DB: /data/fascicoli/fascicoli.json
+  PCT_FASCICOLI_DOCS: /data/fascicoli/documenti
+  PCT_FASCICOLI_ARCH: /data/fascicoli/archivio
+  PCT_MESSAGGI_DB: /data/messaggi/storico.json
+  PCT_EMAIL_DB: /data/email/casella.json
+  PCT_BACKUP_DIR: /data/backup
+  PCT_AUTH_DB: /data/auth/utenti.json
+  PCT_AUDIT_DB: /data/auth/audit.json
+  PCT_SUPPORT_DB: /data/support/assistenza_remota.db
+  PCT_SCADENZIARIO_DB: /data/scadenziario/scadenze.json
+  PCT_SEARCH_INDEX: /data/search/index.db
+  PCT_OCR_QUEUE_DB: /data/search/ocr_jobs.db
+  PCT_PRIVACY_DB: /data/privacy/registro.json
+  PCT_PORTALE_DB: /data/portale/portali.json
+  PCT_PORTALE_UPLOADS: /data/portale/uploads
+  PCT_PORTALE_IMPORT_LOG_DB: /data/portale/import_log.json
+  PCT_FATTURAZIONE_DB: /data/fatturazione/parcelle.json
+  PCT_PREVENTIVI_DB: /data/preventivi/preventivi.json
+  PCT_NOTIFICHE_LOG: /data/notifiche/log.json
+  PCT_GIURISPRUDENZA_DB: /data/intelligence/giurisprudenza.json
+  PCT_WORKSPACE_INTELLIGENCE_DB: /data/intelligence/workspace_intelligence.json
+  PCT_LEGAL_INTELLIGENCE_DB: /data/intelligence/motori.json
+  PCT_NORMATIVE_TABLES_DB: /data/intelligence/tabelle_normative.json
+  PCT_VALIDATION_RUNS_DB: /data/intelligence/validation_runs.json
+  PCT_REDACTION_ASSISTANT_DB: /data/intelligence/assistente_redazionale.json
+  PCT_TELEMATICO_DB: /data/telematico/workflow.db
+  PCT_TEMPLATE_ATTI_DB: /data/template_atti/templates.json
+  PCT_TEMPLATE_ATTI_PREFS_DB: /data/template_atti/editor_layout.json
+  PCT_PAGAMENTI_DIR: /data/pagamenti
+  PCT_UFFICI_DB: /data/uffici/uffici_giudiziari.json
+  PCT_TENANTS_REGISTRY: /data/tenants.json
+  PCT_STUDIO_CONFIG: /data/config/studio.json
+
+services:
+  app:
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file:
+      - ${IUSENTRA_ENV_FILE:-/opt/iusentra/.env.hetzner}
+    environment:
+      <<: *iusentra-env
+    volumes:
+      - ${IUSENTRA_DATA_DIR:-/opt/iusentra/data}:/data
+      - /run/pcscd:/run/pcscd
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/api/pronto', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 25s
+
+  scheduler-worker:
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    command: ["python", "-m", "pct.scheduler_worker"]
+    env_file:
+      - ${IUSENTRA_ENV_FILE:-/opt/iusentra/.env.hetzner}
+    environment:
+      <<: *iusentra-env
+    volumes:
+      - ${IUSENTRA_DATA_DIR:-/opt/iusentra/data}:/data
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      app:
+        condition: service_healthy
+
+  ocr-worker:
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    command: ["python", "-m", "pct.ocr_worker"]
+    env_file:
+      - ${IUSENTRA_ENV_FILE:-/opt/iusentra/.env.hetzner}
+    environment:
+      <<: *iusentra-env
+      PCT_OCR_WORKERS: ${PCT_OCR_WORKERS:-2}
+    volumes:
+      - ${IUSENTRA_DATA_DIR:-/opt/iusentra/data}:/data
+    depends_on:
+      app:
+        condition: service_healthy
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - ${IUSENTRA_DATA_DIR:-/opt/iusentra/data}/redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  caddy:
+    image: caddy:2.8-alpine
+    restart: unless-stopped
+    env_file:
+      - ${IUSENTRA_ENV_FILE:-/opt/iusentra/.env.hetzner}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ${IUSENTRA_CADDY_DATA_DIR:-/opt/iusentra/caddy_data}:/data
+      - ${IUSENTRA_CADDY_CONFIG_DIR:-/opt/iusentra/caddy_config}:/config
+    depends_on:
+      app:
+        condition: service_healthy
+
+  prometheus:
+    profiles: ["monitoring"]
+    image: prom/prometheus:latest
+    restart: unless-stopped
+    volumes:
+      - ../../prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ${IUSENTRA_DATA_DIR:-/opt/iusentra/data}/prometheus:/prometheus
+    depends_on:
+      app:
+        condition: service_healthy
+
+  grafana:
+    profiles: ["monitoring"]
+    image: grafana/grafana:latest
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3000:3000"
+    volumes:
+      - ${IUSENTRA_DATA_DIR:-/opt/iusentra/data}/grafana:/var/lib/grafana
+      - ../../monitoring:/etc/grafana/provisioning/dashboards:ro
+    depends_on:
+      - prometheus

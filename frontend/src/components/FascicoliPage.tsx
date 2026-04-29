@@ -76,6 +76,7 @@ type Route =
   | { kind: 'new' }
   | { kind: 'export' }
   | { kind: 'detail'; id: string }
+  | { kind: 'quadro'; id: string }
   | { kind: 'edit'; id: string }
 
 const sortLabels: Record<SortKey, string> = {
@@ -95,6 +96,7 @@ function parseRoute(): Route {
   if (rest === 'nuovo') return { kind: 'new' }
   if (rest === 'esporta' || rest === 'export') return { kind: 'export' }
   const parts = rest.split('/').filter(Boolean)
+  if (parts.length >= 2 && parts[1] === 'quadro') return { kind: 'quadro', id: decodeURIComponent(parts[0]) }
   if (parts.length >= 2 && parts[1] === 'modifica') return { kind: 'edit', id: decodeURIComponent(parts[0]) }
   return { kind: 'detail', id: decodeURIComponent(parts[0] || '') }
 }
@@ -605,13 +607,14 @@ function DetailPage({ id }:{id:string}) {
   useEffect(() => { let active = true; getFascicoloDetail(id).then((payload) => { if (active) setData(payload) }).finally(() => { if (active) setLoading(false) }); return () => { active = false } }, [id])
   const f = data.fascicolo
   const legacyHref = f.legacyHref || `/fascicoli/${encodeURIComponent(f.id || id)}`
+  const quadroHref = `/app-v2/fascicoli/${encodeURIComponent(f.id || id)}/quadro`
   const detailReturnHref = `/app-v2/fascicoli/${encodeURIComponent(f.id || id)}#conformita`
   if (!loading && data.notFound) return <main className="iu-content iu-fascicoli-page"><EmptyState icon={<FolderOpen size={34}/>} title="Fascicolo non trovato" action={<Button href="/app-v2/fascicoli">Torna ai fascicoli</Button>}>Il fascicolo non è disponibile o non hai i permessi per aprirlo.</EmptyState></main>
   return (
     <main id="fascicolo-top" className="iu-content iu-fascicoli-page iu-fascicolo-detail-page">
       <section className="iu-fas-hero iu-fas-detail-hero">
         <div><span className="iu-fas-eyebrow"><FolderOpen size={16}/> Fascicolo</span><h1>{f.title}</h1><p><Badge tone={f.tone}>{formatFascicoloStatus(f.status)}</Badge><Badge tone="neutral">{formatFascicoloType(f.type)}</Badge>{f.archiveReady ? <Badge tone="warning">Pronto per archivio</Badge> : null}<span>{f.object || f.subtitle}</span></p></div>
-        <div className="iu-fas-hero__actions"><Button href="/app-v2/fascicoli"><ArrowLeft size={15}/> Fascicoli</Button><Button href={f.editHref}><Edit3 size={15}/> Modifica</Button><Button href={`${legacyHref}/quadro`}><Gauge size={15}/> Quadro</Button><Button href={`${legacyHref}/copertina`}><FileText size={15}/> Copertina</Button><Button variant="primary" href={data.actions.exportPdf || f.exportPdfHref}><FileDown size={15}/> PDF</Button></div>
+        <div className="iu-fas-hero__actions"><Button href="/app-v2/fascicoli"><ArrowLeft size={15}/> Fascicoli</Button><Button href={f.editHref}><Edit3 size={15}/> Modifica</Button><Button href={quadroHref}><Gauge size={15}/> Quadro</Button><Button href={`${legacyHref}/copertina`}><FileText size={15}/> Copertina</Button><Button variant="primary" href={data.actions.exportPdf || f.exportPdfHref}><FileDown size={15}/> PDF</Button></div>
       </section>
       <section className="iu-fas-case-strip"><strong>{f.ref}</strong><span>Rif. interno {f.internalRef}</span><span>{f.client}</span><span>{f.court}</span><span>{loading ? 'Caricamento...' : `Dati aggiornati - ${data.source}`}</span></section>
       <nav className="iu-fas-section-nav" aria-label="Sezioni fascicolo"><a href="#profilo">Profilo <b>{data.quickCounts.profilo || 0}</b></a><a href="#documenti">Documenti <b>{data.documents.length}</b></a><a href="#attivita">Attività <b>{data.activities.length}</b></a><a href="#udienze">Udienze / scadenze <b>{data.deadlines.length + data.appointments.length}</b></a><a href="#cancelleria">Cancelleria <b>{data.deposits.length}</b></a><a href="#istanze">Istanze <b>{data.requests.length}</b></a><a href="#gestione">Gestione</a><a href="#economia">Economia</a><a href="#conformita">Conformità</a><a href="#soggetti">Soggetti <b>{data.parties.length}</b></a></nav>
@@ -656,6 +659,85 @@ function DetailPage({ id }:{id:string}) {
   )
 }
 
+function moneyFrom(data: FascicoloDetailData, id: string, fallback = 'EUR 0,00') {
+  return data.economics.find((item) => item.id === id)?.value || fallback
+}
+
+function workflowFrom(data: FascicoloDetailData, matcher: RegExp, fallbackLabel: string) {
+  return data.workflow.find((item) => matcher.test(item.label)) || { label: fallbackLabel, value: 'Non collegato', note: 'Collega la fase storica auditata quando serve.', tone: 'neutral' as const, href: '#' }
+}
+
+function QuadroMiniCard({ label, value, note, tone = 'neutral', href }:{label:string; value:string|number; note?:string; tone?:FascicoloRow['tone']; href?:string}) {
+  const body = <><Badge tone={tone}>{label}</Badge><strong>{value}</strong>{note ? <span>{note}</span> : null}</>
+  return href && href !== '#' ? <a className="iu-fas-quadro-mini" href={href}>{body}</a> : <article className="iu-fas-quadro-mini">{body}</article>
+}
+
+function QuadroAxis({ id, title, icon, status, tone = 'primary', children }:{id:string; title:string; icon:ReactNode; status:string; tone?:FascicoloRow['tone']; children:ReactNode}) {
+  return (
+    <section id={id} className="iu-fas-quadro-axis">
+      <header>
+        <span>{icon}</span>
+        <div><strong>{title}</strong><small>{status}</small></div>
+        <Badge tone={tone}>{status}</Badge>
+      </header>
+      <div className="iu-fas-quadro-axis__body">{children}</div>
+    </section>
+  )
+}
+
+function QuadroPage({ id }:{id:string}) {
+  const [data, setData] = useState<FascicoloDetailData>(emptyFascicoloDetail)
+  const [loading, setLoading] = useState(true)
+  useEffect(() => { let active = true; getFascicoloDetail(id).then((payload) => { if (active) setData(payload) }).finally(() => { if (active) setLoading(false) }); return () => { active = false } }, [id])
+  const f = data.fascicolo
+  const encodedId = encodeURIComponent(f.id || id)
+  const legacyHref = f.legacyHref || `/fascicoli/${encodedId}`
+  const detailHref = f.href || `/app-v2/fascicoli/${encodedId}`
+  const preventivo = workflowFrom(data, /preventiv/i, 'Preventivo')
+  const conferimento = workflowFrom(data, /conferiment|incaric/i, 'Conferimento')
+  const signedDocuments = data.documents.filter((doc) => doc.signed).length
+  const unsignedDocuments = Math.max(0, data.documents.length - signedDocuments)
+  const qualityOk = data.quality.filter((item) => item.ok).length
+  const qualityIssues = Math.max(0, data.quality.length - qualityOk + f.alerts)
+  const qualityStatus = qualityIssues ? `${qualityIssues} verifiche` : 'OK'
+  const nextDeadline = data.deadlines[0]
+  const nextAppointment = data.appointments[0]
+  const valore = moneyFrom(data, 'valore', f.value || 'EUR 0,00')
+  const compenso = moneyFrom(data, 'compenso', f.agreedFee || f.quotedValue || 'EUR 0,00')
+  const parcelle = moneyFrom(data, 'parcelle')
+  const tempo = moneyFrom(data, 'tempo', '0 h')
+  if (!loading && data.notFound) return <main className="iu-content iu-fascicoli-page"><EmptyState icon={<Gauge size={34}/>} title="Quadro non disponibile" action={<Button href="/app-v2/fascicoli">Torna ai fascicoli</Button>}>Il fascicolo non è disponibile o non hai i permessi per aprire il quadro.</EmptyState></main>
+  return (
+    <main id="fascicolo-quadro-top" className="iu-content iu-fascicoli-page iu-fascicolo-quadro-page">
+      <section className="iu-fas-hero iu-fas-quadro-hero">
+        <div><span className="iu-fas-eyebrow"><Gauge size={16}/> Quadro fascicolo</span><h1>{f.ref} - {f.title}</h1><p><Badge tone={f.tone}>{formatFascicoloStatus(f.status)}</Badge><Badge tone="neutral">{formatFascicoloType(f.type)}</Badge><span>{f.object || f.subtitle || 'Vista sinottica della pratica'}</span></p></div>
+        <div className="iu-fas-hero__actions"><Button href={detailHref}><FolderOpen size={15}/> Dettaglio</Button><Button href={f.editHref}><Edit3 size={15}/> Modifica</Button><Button href={`${legacyHref}/copertina`}><FileText size={15}/> Copertina</Button><Button variant="primary" href={data.actions.exportPdf || f.exportPdfHref}><FileDown size={15}/> PDF</Button></div>
+      </section>
+      <section className="iu-fas-quadro-strip"><strong>{f.rg}</strong><span>{f.court}</span><span>{f.client}</span><span>{loading ? 'Caricamento quadro...' : `Dati aggiornati - ${data.source}`}</span></section>
+      <section className="iu-fas-quadro-kpis" aria-label="Indicatori quadro fascicolo">
+        <StatCard icon={<FileText size={19}/>} label="Documenti" value={data.documents.length} note={`${signedDocuments} firmati`} tone="primary"/>
+        <StatCard icon={<FileCheck2 size={19}/>} label="Da firmare" value={unsignedDocuments} note="firma / verifica" tone={unsignedDocuments ? 'warning' : 'success'}/>
+        <StatCard icon={<Send size={19}/>} label="Depositi PCT" value={data.deposits.length} note={data.deposits[0]?.status || 'nessun deposito'} tone="purple"/>
+        <StatCard icon={<Clock3 size={19}/>} label="Scadenze aperte" value={data.deadlines.length + data.appointments.length} note={nextDeadline?.date || nextAppointment?.date || 'nessuna data'} tone="info"/>
+        <StatCard icon={<WalletCards size={19}/>} label="Parcelle" value={parcelle} note={`valore ${valore}`} tone="orange"/>
+        <StatCard icon={<ShieldCheck size={19}/>} label="Conformità" value={qualityStatus} note={qualityIssues ? 'da verificare' : 'nessun blocco critico'} tone={qualityIssues ? 'warning' : 'success'}/>
+      </section>
+      <section className="iu-fas-quadro-client">
+        <Panel title="Cliente e dati processuali" icon={<UserRound size={17}/>} count={data.client ? 1 : 0}><KvGrid items={[{ label: 'Cliente', value: f.client, href: data.client?.href }, { label: 'Tribunale', value: f.court }, { label: 'RG', value: f.rg, mono: true }, { label: 'Giudice', value: f.judge || 'n.d.' }, { label: 'Sezione', value: f.section || 'n.d.' }, { label: 'Valore', value: valore }]}/></Panel>
+      </section>
+      <section className="iu-fas-quadro-grid">
+        <QuadroAxis id="commerciale" title="Commerciale" icon={<BriefcaseBusiness size={18}/>} status={conferimento.value !== 'Non collegato' && conferimento.value !== '0' ? 'Conferito' : preventivo.value !== 'Non collegato' && preventivo.value !== '0' ? 'Da conferire' : 'Da creare'} tone={conferimento.value !== 'Non collegato' && conferimento.value !== '0' ? 'success' : 'warning'}><div className="iu-fas-quadro-flow"><QuadroMiniCard label="Preventivo" value={preventivo.value} note={preventivo.note} tone={preventivo.tone} href={preventivo.href}/><QuadroMiniCard label="Conferimento" value={conferimento.value} note={conferimento.note} tone={conferimento.tone} href={conferimento.href}/><QuadroMiniCard label="Compenso" value={compenso} note="dato contrattuale del fascicolo" tone="purple" href="/preventivi/"/></div><a className="iu-fas-inline-link" href="/preventivi/"><Plus size={14}/> Gestisci preventivi e incarichi</a></QuadroAxis>
+        <QuadroAxis id="operativo" title="Operativo" icon={<ClipboardCheck size={18}/>} status={formatFascicoloStatus(f.status)} tone={f.tone}><div className="iu-fas-quadro-flow"><QuadroMiniCard label="Stato" value={formatFascicoloStatus(f.status)} note={f.nextDeadline || 'nessuna prossima scadenza'} tone={f.tone} href={detailHref}/><QuadroMiniCard label="Udienze / scadenze" value={data.deadlines.length + data.appointments.length} note={nextDeadline?.title || nextAppointment?.title || 'nessun evento aperto'} tone="info" href={`${detailHref}#udienze`}/><QuadroMiniCard label="Depositi" value={data.deposits.length} note={data.deposits[0]?.status || 'nessun deposito registrato'} tone="purple" href={`${detailHref}#cancelleria`}/></div></QuadroAxis>
+        <QuadroAxis id="conformita" title="Conformità" icon={<ShieldCheck size={18}/>} status={qualityStatus} tone={qualityIssues ? 'warning' : 'success'}><div className="iu-fas-quadro-quality">{data.quality.map((item) => <span key={item.label}><Badge tone={item.tone}>{item.ok ? 'OK' : 'Verifica'}</Badge><strong>{item.label}</strong><small>{item.value}</small></span>)}{!data.quality.length ? <p className="iu-empty">Nessuna verifica registrata.</p> : null}</div><a className="iu-fas-inline-link" href={`${detailHref}#conformita`}><ShieldCheck size={14}/> Apri controlli qualità</a></QuadroAxis>
+        <QuadroAxis id="economico" title="Economico" icon={<WalletCards size={18}/>} status={parcelle === 'EUR 0,00' ? 'Da valorizzare' : 'Valorizzato'} tone={parcelle === 'EUR 0,00' ? 'warning' : 'success'}><div className="iu-fas-quadro-flow"><QuadroMiniCard label="Valore causa" value={valore} note="profilo fascicolo" tone="primary" href={`${detailHref}#profilo`}/><QuadroMiniCard label="Parcelle" value={parcelle} note="documenti economici collegati" tone="success" href="/fatturazione/"/><QuadroMiniCard label="Tempo" value={tempo} note="voci timesheet valorizzabili" tone="info" href="/app-v2/timesheet"/></div></QuadroAxis>
+        <QuadroAxis id="documenti" title="Documenti" icon={<FileText size={18}/>} status={unsignedDocuments ? `${unsignedDocuments} da firmare` : 'Completi'} tone={unsignedDocuments ? 'warning' : 'success'}><div className="iu-fas-quadro-flow"><QuadroMiniCard label="Totale" value={data.documents.length} note="documenti fascicolo" tone="primary" href={`${detailHref}#documenti`}/><QuadroMiniCard label="Firmati" value={signedDocuments} note="depositabili / verificati" tone="success" href={`${detailHref}#documenti`}/><QuadroMiniCard label="Da firmare" value={unsignedDocuments} note="controllo operativo" tone={unsignedDocuments ? 'warning' : 'success'} href={`${detailHref}#documenti`}/></div></QuadroAxis>
+      </section>
+      <a className="iu-fas-back-top" href="#fascicolo-quadro-top" aria-label="Torna su" title="Torna su"><ChevronUp size={18}/></a>
+      <FloatingLex context="fascicolo-quadro" title="Lex AI quadro" body="Posso leggere il quadro della pratica, riassumere commerciale, operativo, conformità, economico e documenti, e suggerire la prossima azione utile." primaryHref={`/lex?context=fascicolo-quadro&id_fasc=${encodedId}`} primaryLabel="Apri Lex sul quadro" secondaryHref={detailHref} secondaryLabel="Apri dettaglio" />
+    </main>
+  )
+}
+
 function ExportPage() {
   const [data, setData] = useState<FascicoliExportData>(emptyFascicoliExport)
   const [loading, setLoading] = useState(true)
@@ -685,6 +767,7 @@ export function FascicoliPage() {
   if (route.kind === 'archive') return <ArchivePage/>
   if (route.kind === 'new') return <FascicoloFormPage mode="new"/>
   if (route.kind === 'export') return <ExportPage/>
+  if (route.kind === 'quadro') return <QuadroPage id={route.id}/>
   if (route.kind === 'edit') return <FascicoloFormPage mode="edit" id={route.id}/>
   if (route.kind === 'detail') return <DetailPage id={route.id}/>
   return <FascicoliListPage/>

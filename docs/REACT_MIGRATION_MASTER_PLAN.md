@@ -141,7 +141,8 @@ La suite Fascicoli React ricostruisce le superfici storiche senza sostituire anc
 - `Tutti i Fascicoli`, con KPI, ricerca, filtri tipo/stato, filtri avanzati, scadenze imminenti, tabella desktop e card mobile;
 - `Nuovo Fascicolo` e `Modifica`, con gli stessi campi del form storico: dati principali, parti, ufficio, RG, anno, sezione, giudice, valore, workflow preventivo/conferimento, avvocati, note e contesto correzione;
 - `Archivio`, con ricerca, esito, data archiviazione, ZIP, dettaglio e ripristino;
-- `Apri Fascicolo`, con cabina completa: profilo, documenti, import portale, attività, udienze/scadenze, depositi/cancelleria, istanze, avanzamento, gestione stato, definizione, archiviazione, ripristino, PDF, ZIP, Quadro, Copertina, economico, conformita, telematico, cliente e soggetti; le finestre operative sono collassabili e la cabina React non espone più il comando `Vista storica`;
+- `Apri Fascicolo`, con cabina completa: profilo, documenti, import portale, attività, udienze/scadenze, depositi/cancelleria, istanze, avanzamento, gestione stato, definizione, archiviazione, ripristino, PDF, ZIP, Copertina, economico, conformita, telematico, cliente e soggetti; le finestre operative sono collassabili e la cabina React non espone più il comando `Vista storica`;
+- `Quadro Fascicolo`, su `/app-v2/fascicoli/:id/quadro`, con vista sinottica React sui cinque assi storici: Commerciale, Operativo, Conformita, Economico e Documenti, alimentata dagli stessi dati reali del dettaglio;
 - `Esporta`, con builder per PDF/CSV, preset e collegamenti ai PDF singoli;
 - Lex AI flottante e trascinabile in ogni superficie della suite.
 

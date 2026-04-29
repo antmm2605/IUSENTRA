@@ -518,14 +518,17 @@ def test_react_fascicoli_suite_completa_route_componenti_e_lex():
     assert "/app-v2/fascicoli/nuovo" in app_source
     assert "/app-v2/fascicoli/archivio" in app_source
     assert "isFascicoliPage?<FascicoliPage" in app_source
-    for name in ("FascicoliListPage", "ArchivePage", "FascicoloFormPage", "DetailPage", "ExportPage"):
+    for name in ("FascicoliListPage", "ArchivePage", "FascicoloFormPage", "DetailPage", "QuadroPage", "ExportPage"):
         assert name in page_source
     for endpoint in ("/api/v1/ui/fascicoli", "/api/v1/ui/fascicoli/archivio", "/api/v1/ui/fascicoli/export"):
         assert endpoint in data_source
     for legacy_action in ("/documenti/carica", "/documenti/importa-portale", "/attivita/aggiungi", "/definisci", "/archivia", "/ripristina"):
         assert legacy_action in bridge
     assert "Vista storica" not in page_source
-    assert "legacyHref}/quadro" in page_source
+    assert "kind: 'quadro'" in page_source
+    assert "parts[1] === 'quadro'" in page_source
+    assert "quadroHref" in page_source
+    assert "fascicolo-quadro" in page_source
     assert "legacyHref}/copertina" in page_source
     assert "<details id={id}" in page_source
     assert "fascicolo-top" in page_source
@@ -542,6 +545,9 @@ def test_react_fascicoli_suite_completa_route_componenti_e_lex():
     assert ".iu-fas-back-top" in css
     assert ".iu-fas-detail-section__summary" in css
     assert ".iu-fas-compliance-toggle" in css
+    assert ".iu-fascicolo-quadro-page" in css
+    assert ".iu-fas-quadro-axis" in css
+    assert ".iu-fas-quadro-kpis" in css
     assert "@media(max-width:760px)" in css
 
 

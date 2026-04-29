@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.195.28 - 2026-04-29
+
+- Aggiunta la nuova pagina React `/app-v2/fascicoli/:id/quadro`, alimentata dal bridge reale `getFascicoloDetail` senza mock operativi.
+- Collegato il pulsante `Quadro` del dettaglio fascicolo alla nuova route app-v2, mantenendo `Copertina` e `PDF` sulle route storiche auditabili.
+- Ricostruito il quadro su cinque assi: Commerciale, Operativo, Conformita, Economico e Documenti, con KPI e dati processuali del fascicolo.
+- Integrato Lex AI contestuale nel Quadro fascicolo, con icona flottante e ritorno al dettaglio React.
+- Aggiornati test React, documentazione di migrazione e asset compilati per presidiare route, componenti e layout responsive del Quadro.
+
 ## 2.195.27 - 2026-04-29
 
 - Rifinita la cabina fascicolo React: le finestre Profilo, Documenti, Attivita, Udienze/scadenze, Cancelleria, Istanze e i pannelli laterali sono ora collassabili.

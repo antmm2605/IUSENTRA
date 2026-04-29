@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
 import { Grip, MessageCircle, Sparkles, X } from 'lucide-react'
 
 type Position = { x: number; y: number }
@@ -34,7 +34,15 @@ function readPosition(): Position {
 export function FloatingLex() {
   const [open, setOpen] = useState(false)
   const [position, setPosition] = useState<Position>(() => readPosition())
-  const drag = useRef({ active: false, moved: false, dx: 0, dy: 0, latest: position })
+  const drag = useRef({
+    active: false,
+    moved: false,
+    dx: 0,
+    dy: 0,
+    startX: 0,
+    startY: 0,
+    latest: position,
+  })
 
   useEffect(() => {
     drag.current.latest = position
@@ -44,6 +52,8 @@ export function FloatingLex() {
     if (typeof window === 'undefined') return undefined
     const handleMove = (event: PointerEvent) => {
       if (!drag.current.active) return
+      const distance = Math.hypot(event.clientX - drag.current.startX, event.clientY - drag.current.startY)
+      if (distance < 5 && !drag.current.moved) return
       const next = {
         x: Math.max(12, Math.min(window.innerWidth - 72, event.clientX - drag.current.dx)),
         y: Math.max(12, Math.min(window.innerHeight - 72, event.clientY - drag.current.dy)),
@@ -54,8 +64,10 @@ export function FloatingLex() {
     }
     const handleUp = () => {
       if (!drag.current.active) return
+      const shouldToggle = !drag.current.moved
       drag.current.active = false
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(drag.current.latest))
+      if (shouldToggle) setOpen((value) => !value)
     }
     window.addEventListener('pointermove', handleMove)
     window.addEventListener('pointerup', handleUp)
@@ -67,21 +79,20 @@ export function FloatingLex() {
     }
   }, [])
 
-  const startDrag = (event: React.PointerEvent<HTMLButtonElement>) => {
+  const startDrag = (event: ReactPointerEvent<HTMLButtonElement>) => {
+    event.currentTarget.setPointerCapture?.(event.pointerId)
     drag.current = {
       active: true,
       moved: false,
       dx: event.clientX - position.x,
       dy: event.clientY - position.y,
+      startX: event.clientX,
+      startY: event.clientY,
       latest: position,
     }
   }
 
-  const toggle = () => {
-    if (drag.current.moved) {
-      drag.current.moved = false
-      return
-    }
+  const toggleFromKeyboard = () => {
     setOpen((value) => !value)
   }
 
@@ -104,7 +115,14 @@ export function FloatingLex() {
         className="iu-lex-float__button"
         type="button"
         onPointerDown={startDrag}
-        onClick={toggle}
+        onClick={(event) => event.preventDefault()}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault()
+            toggleFromKeyboard()
+          }
+        }}
+        aria-expanded={open}
         aria-label="Apri Lex AI, icona trascinabile"
         title="Lex AI - trascina per spostare"
       >

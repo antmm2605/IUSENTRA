@@ -30,11 +30,14 @@ import { FloatingLex } from './FloatingLex'
 import type { AgendaEvent, AgendaKind, AgendaView } from '../agendaData'
 import {
   addDays,
+  addMonths,
+  agendaRange,
   buildAgendaPageData,
   eventHeightPixels,
   eventTopPercent,
   getAgendaPage,
   moveEventToDay,
+  moveEventToDateTime,
   rangeLabel,
   startOfWeek,
   toDateKey,
@@ -56,7 +59,10 @@ const viewLabels: Record<AgendaView, string> = {
   month: 'Mese',
 }
 
-const timelineHours = Array.from({ length: 12 }, (_, index) => `${String(index + 8).padStart(2, '0')}:00`)
+const timelineSlots = Array.from({ length: 24 }, (_, index) => {
+  const minutes = 8 * 60 + index * 30
+  return `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`
+})
 
 function isSameText(event: AgendaEvent, query: string): boolean {
   if (!query.trim()) return true
@@ -83,13 +89,33 @@ function Kpi({ icon, label, value, note }:{icon:ReactNode; label:string; value:s
   )
 }
 
+function createAppointmentHref(dayIso: string, time = '09:00'): string {
+  const params = new URLSearchParams({ data: dayIso, ora: time })
+  return `/app-v2/agenda/nuovo?${params.toString()}`
+}
+
+function localDateTimePayload(value: string): string {
+  const parsed = new Date(value)
+  if (Number.isNaN(parsed.getTime())) return value
+  const pad = (part: number) => String(part).padStart(2, '0')
+  return `${parsed.getFullYear()}-${pad(parsed.getMonth() + 1)}-${pad(parsed.getDate())}T${pad(parsed.getHours())}:${pad(parsed.getMinutes())}:00`
+}
+
+function isWritableAgendaEvent(event: AgendaEvent): boolean {
+  return event.source === 'agenda'
+}
+
 function EventCard({ event }:{event:AgendaEvent}) {
   return (
     <a
       className={`iu-ag-event iu-ag-event--${event.tone}`}
       draggable
       href={event.href || '/agenda'}
-      onDragStart={(dragEvent) => dragEvent.dataTransfer.setData('text/plain', event.id)}
+      onDragStart={(dragEvent) => {
+        dragEvent.dataTransfer.effectAllowed = 'move'
+        dragEvent.dataTransfer.setData('text/plain', event.id)
+        dragEvent.dataTransfer.setData('application/x-iusentra-agenda-event', event.id)
+      }}
       style={{ top: `${eventTopPercent(event)}%`, minHeight: eventHeightPixels(event) }}
     >
       <span className="iu-ag-event__time">{event.timeLabel}</span>
@@ -100,14 +126,67 @@ function EventCard({ event }:{event:AgendaEvent}) {
   )
 }
 
-function DayColumn({ day, onDropEvent }:{day:ReturnType<typeof buildAgendaPageData>['days'][number]; onDropEvent:(eventId:string, dayIso:string)=>void}) {
+function MonthEventChip({ event }:{event:AgendaEvent}) {
+  return (
+    <a
+      className={`iu-ag-month-event iu-ag-event--${event.tone}`}
+      draggable
+      href={event.href || '/agenda'}
+      onDragStart={(dragEvent) => {
+        dragEvent.dataTransfer.effectAllowed = 'move'
+        dragEvent.dataTransfer.setData('text/plain', event.id)
+        dragEvent.dataTransfer.setData('application/x-iusentra-agenda-event', event.id)
+      }}
+    >
+      <span>{event.timeLabel}</span>
+      <strong>{event.title}</strong>
+    </a>
+  )
+}
+
+function DayColumn({
+  day,
+  view,
+  onCreateSlot,
+  onDropEvent,
+}:{
+  day:ReturnType<typeof buildAgendaPageData>['days'][number]
+  view:AgendaView
+  onCreateSlot:(dayIso:string, time:string)=>void
+  onDropEvent:(eventId:string, dayIso:string, time?:string)=>void
+}) {
+  if (view === 'month') {
+    return (
+      <section
+        className={`iu-ag-day iu-ag-day--month ${day.isToday ? 'is-today' : ''} ${day.isWeekend ? 'is-weekend' : ''} ${day.isOutsideMonth ? 'is-outside-month' : ''}`}
+        onDragOver={(event) => event.preventDefault()}
+        onDrop={(event) => {
+          event.preventDefault()
+          const eventId = event.dataTransfer.getData('application/x-iusentra-agenda-event') || event.dataTransfer.getData('text/plain')
+          if (eventId) onDropEvent(eventId, day.iso)
+        }}
+      >
+        <button className="iu-ag-month-head" type="button" onClick={() => onCreateSlot(day.iso, '09:00')} aria-label={`Nuovo appuntamento il ${day.iso}`}>
+          <span>{day.weekday}</span>
+          <strong>{day.label}</strong>
+          <small>{day.month}</small>
+        </button>
+        <div className="iu-ag-month-events">
+          {day.events.slice(0, 4).map((event) => <MonthEventChip event={event} key={event.id}/>)}
+          {day.events.length > 4 ? <a className="iu-ag-more" href={`/agenda?data=${day.iso}`}>+{day.events.length - 4} altri</a> : null}
+          {!day.events.length ? <button className="iu-ag-month-empty" type="button" onClick={() => onCreateSlot(day.iso, '09:00')}><Move size={14}/> Nuovo alle 09:00</button> : null}
+        </div>
+      </section>
+    )
+  }
+
   return (
     <section
       className={`iu-ag-day ${day.isToday ? 'is-today' : ''} ${day.isWeekend ? 'is-weekend' : ''}`}
       onDragOver={(event) => event.preventDefault()}
       onDrop={(event) => {
         event.preventDefault()
-        const eventId = event.dataTransfer.getData('text/plain')
+        const eventId = event.dataTransfer.getData('application/x-iusentra-agenda-event') || event.dataTransfer.getData('text/plain')
         if (eventId) onDropEvent(eventId, day.iso)
       }}
     >
@@ -117,9 +196,26 @@ function DayColumn({ day, onDropEvent }:{day:ReturnType<typeof buildAgendaPageDa
         <small>{day.month}</small>
       </header>
       <div className="iu-ag-day__body">
-        {timelineHours.map((hour) => <i key={hour}><span>{hour}</span></i>)}
+        {timelineSlots.map((slot) => (
+          <button
+            className="iu-ag-slot"
+            type="button"
+            key={slot}
+            onClick={() => onCreateSlot(day.iso, slot)}
+            onDragOver={(event) => event.preventDefault()}
+            onDrop={(event) => {
+              event.preventDefault()
+              event.stopPropagation()
+              const eventId = event.dataTransfer.getData('application/x-iusentra-agenda-event') || event.dataTransfer.getData('text/plain')
+              if (eventId) onDropEvent(eventId, day.iso, slot)
+            }}
+            aria-label={`Nuovo appuntamento il ${day.iso} alle ${slot}`}
+          >
+            <span>{slot.endsWith(':00') ? slot : ''}</span>
+          </button>
+        ))}
         {day.events.map((event) => <EventCard event={event} key={event.id}/>)}
-        {!day.events.length ? <div className="iu-ag-drop"><Move size={15}/> Spazio disponibile</div> : null}
+        {!day.events.length ? <button className="iu-ag-drop" type="button" onClick={() => onCreateSlot(day.iso, '09:00')}><Move size={15}/> Spazio disponibile</button> : null}
       </div>
     </section>
   )
@@ -139,7 +235,7 @@ function AgendaInspector({ events, nextEvent, unsynced }:{events:AgendaEvent[]; 
             </article>
           ) : <p className="iu-empty">Nessun impegno imminente.</p>}
           <div className="iu-ag-quick-actions">
-            <Button variant="primary" href="/agenda/nuovo"><CalendarPlus size={15}/> Nuovo</Button>
+            <Button variant="primary" href="/app-v2/agenda/nuovo"><CalendarPlus size={15}/> Nuovo</Button>
             <Button href="/impostazioni/calendario"><CalendarSync size={15}/> Calendari</Button>
           </div>
         </div>
@@ -177,10 +273,11 @@ export function AgendaPage() {
   const [query, setQuery] = useState('')
   const [loading, setLoading] = useState(true)
   const [events, setEvents] = useState<AgendaEvent[]>([])
+  const [moveStatus, setMoveStatus] = useState('')
 
   const refresh = () => {
     setLoading(true)
-    getAgendaPage(anchorDate).then((payload) => {
+    getAgendaPage(anchorDate, view).then((payload) => {
       setEvents(payload.events)
     }).finally(() => setLoading(false))
   }
@@ -188,30 +285,68 @@ export function AgendaPage() {
   useEffect(() => {
     let active = true
     setLoading(true)
-    getAgendaPage(anchorDate).then((payload) => {
+    getAgendaPage(anchorDate, view).then((payload) => {
       if (active) setEvents(payload.events)
     }).finally(() => {
       if (active) setLoading(false)
     })
     return () => { active = false }
-  }, [anchorDate])
+  }, [anchorDate, view])
 
   const filteredEvents = useMemo(() => events.filter((event) => {
     const kindOk = kind === 'tutti' || event.kind === kind
     return kindOk && isSameText(event, query)
   }), [events, kind, query])
 
-  const agenda = useMemo(() => buildAgendaPageData(filteredEvents, anchorDate), [filteredEvents, anchorDate])
+  const agenda = useMemo(() => buildAgendaPageData(filteredEvents, anchorDate, 'client', view), [filteredEvents, anchorDate, view])
   const weekStart = startOfWeek(anchorDate)
   const weekEnd = addDays(weekStart, 6)
+  const visibleRange = agendaRange(anchorDate, view)
   const today = new Date()
-  const displayDays = view === 'day'
-    ? agenda.days.filter((day) => day.iso === toDateKey(anchorDate))
-    : agenda.days
+  const displayDays = agenda.days
   const sourceLabel = loading ? 'Sincronizzazione agenda...' : 'Dati agenda aggiornati'
+  const dateLabel = view === 'day'
+    ? anchorDate.toLocaleDateString('it-IT')
+    : view === 'month'
+      ? anchorDate.toLocaleDateString('it-IT', { month: 'long', year: 'numeric' })
+      : rangeLabel(weekStart, weekEnd)
 
-  const moveEvent = (eventId: string, dayIso: string) => {
-    setEvents((current) => current.map((event) => event.id === eventId ? moveEventToDay(event, dayIso) : event))
+  const shiftPeriod = (direction: -1 | 1) => {
+    setAnchorDate((current) => view === 'month'
+      ? addMonths(current, direction)
+      : addDays(current, view === 'day' ? direction : direction * 7))
+  }
+
+  const openNewAppointment = (dayIso: string, time: string) => {
+    window.location.href = createAppointmentHref(dayIso, time)
+  }
+
+  const persistMove = async (event: AgendaEvent) => {
+    if (!isWritableAgendaEvent(event)) {
+      setMoveStatus('Spostamento applicato solo alla vista: la fonte non e modificabile da Agenda.')
+      return
+    }
+    try {
+      const response = await fetch(`/api/agenda/${encodeURIComponent(event.id)}/sposta`, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({ data_ora: localDateTimePayload(event.start) }),
+      })
+      if (!response.ok) throw new Error('spostamento non salvato')
+      setMoveStatus('Spostamento salvato nell agenda reale.')
+    } catch {
+      setMoveStatus('Spostamento preparato nella vista, ma il salvataggio non e riuscito.')
+    }
+  }
+
+  const moveEvent = (eventId: string, dayIso: string, time?: string) => {
+    const sourceEvent = events.find((event) => event.id === eventId)
+    if (!sourceEvent) return
+    const movedEvent = time ? moveEventToDateTime(sourceEvent, dayIso, time) : moveEventToDay(sourceEvent, dayIso)
+    setEvents((current) => current.map((event) => event.id === eventId ? movedEvent : event))
+    setMoveStatus(`Spostato a ${movedEvent.timeLabel} del ${new Date(`${dayIso}T12:00:00`).toLocaleDateString('it-IT')}.`)
+    void persistMove(movedEvent)
   }
 
   return (
@@ -223,9 +358,9 @@ export function AgendaPage() {
           <p>Appuntamenti, udienze, scadenze, sincronizzazioni e priorita dello studio in una vista unica.</p>
         </div>
         <div className="iu-ag-hero__actions">
-          <Button href="/workspace-intelligente"><Sparkles size={15}/> Cabina</Button>
+          <Button href="/app-v2/regia-operativa"><Sparkles size={15}/> Regia</Button>
           <Button href="/impostazioni/calendario"><CalendarSync size={15}/> Calendari</Button>
-          <Button variant="primary" href="/agenda/nuovo"><Plus size={16}/> Nuovo appuntamento</Button>
+          <Button variant="primary" href="/app-v2/agenda/nuovo"><Plus size={16}/> Nuovo appuntamento</Button>
         </div>
       </section>
 
@@ -236,10 +371,10 @@ export function AgendaPage() {
           ))}
         </div>
         <div className="iu-ag-date-nav">
-          <button type="button" onClick={() => setAnchorDate(addDays(anchorDate, view === 'day' ? -1 : -7))} aria-label="Periodo precedente"><ChevronLeft size={16}/></button>
+          <button type="button" onClick={() => shiftPeriod(-1)} aria-label="Periodo precedente"><ChevronLeft size={16}/></button>
           <button type="button" onClick={() => setAnchorDate(today)}>Oggi</button>
-          <button type="button" onClick={() => setAnchorDate(addDays(anchorDate, view === 'day' ? 1 : 7))} aria-label="Periodo successivo"><ChevronRight size={16}/></button>
-          <strong>{view === 'day' ? anchorDate.toLocaleDateString('it-IT') : rangeLabel(weekStart, weekEnd)}</strong>
+          <button type="button" onClick={() => shiftPeriod(1)} aria-label="Periodo successivo"><ChevronRight size={16}/></button>
+          <strong>{dateLabel}</strong>
         </div>
         <label className="iu-ag-search">
           <Search size={17}/>
@@ -258,7 +393,8 @@ export function AgendaPage() {
 
       <section className="iu-ag-status-line">
         <span className={loading ? '' : 'is-ok'}>{sourceLabel}</span>
-        <small><Move size={14}/> Trascina nella vista per preparare uno spostamento provvisorio.</small>
+        <small><Move size={14}/> Orari cliccabili e drag & drop su giorno, settimana e mese.</small>
+        {moveStatus ? <small className="iu-ag-move-status">{moveStatus}</small> : null}
       </section>
 
       <section className="iu-ag-kpis">
@@ -274,15 +410,15 @@ export function AgendaPage() {
           <header>
             <div>
               <strong>{view === 'day' ? 'Vista giorno' : view === 'month' ? 'Vista mese compatta' : 'Vista settimana'}</strong>
-              <span>{displayDays.length} giorni visibili - {filteredEvents.length} elementi</span>
+              <span>{rangeLabel(visibleRange.from, visibleRange.to)} - {displayDays.length} giorni visibili - {filteredEvents.length} elementi</span>
             </div>
             <div>
               <Badge tone={agenda.summary.unsynced ? 'warning' : 'success'}>{agenda.summary.unsynced ? `${agenda.summary.unsynced} da sincronizzare` : 'allineata'}</Badge>
               <a href="/impostazioni/calendario"><Settings2 size={16}/> Preferenze</a>
             </div>
           </header>
-          <div className="iu-ag-week" style={{ gridTemplateColumns: `repeat(${displayDays.length}, minmax(188px, 1fr))` }}>
-            {displayDays.map((day) => <DayColumn day={day} key={day.id} onDropEvent={moveEvent}/>)}
+          <div className={`iu-ag-week ${view === 'month' ? 'iu-ag-week--month' : ''}`} style={{ gridTemplateColumns: view === 'month' ? undefined : `repeat(${displayDays.length}, minmax(188px, 1fr))` }}>
+            {displayDays.map((day) => <DayColumn day={day} key={day.id} view={view} onCreateSlot={openNewAppointment} onDropEvent={moveEvent}/>)}
           </div>
         </div>
         <AgendaInspector events={filteredEvents} nextEvent={agenda.summary.nextEvent} unsynced={agenda.summary.unsynced}/>

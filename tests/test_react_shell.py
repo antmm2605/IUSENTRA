@@ -87,6 +87,8 @@ def test_react_sidebar_contiene_navigazione_enterprise_completa():
     assert "onCloseMobile" in source
     assert "onNavigate={onCloseMobile}" in source
     assert "mobileOpen ? 'Chiudi menu'" in source
+    assert "{ label: 'Regia Operativa', icon: Sparkles, href: '/app-v2/regia-operativa' }" in source
+    assert "{ label: 'Nuovo Appuntamento', icon: CirclePlus, href: '/app-v2/agenda/nuovo' }" in source
     assert ".iu-sidebar.iu-sidebar--mobile-open .iu-sidebar__toggle" in css
 
 
@@ -147,11 +149,53 @@ def test_react_agenda_pagina_separata_collegata_nav_e_api():
     assert "/api/v1/ui/agenda" in agenda_data
     assert "/api/v1/agenda" in agenda_data
     assert "moveEventToDay" in agenda_data
+    assert "moveEventToDateTime" in agenda_data
+    assert "agendaRange" in agenda_data
+    assert "createAppointmentHref" in agenda_page
+    assert "onCreateSlot" in agenda_page
+    assert "iu-ag-slot" in agenda_page
+    assert "iu-ag-week--month" in agenda_page
+    assert "/api/agenda/${encodeURIComponent(event.id)}/sposta" in agenda_page
     assert "localStorage" in floating_lex
     assert "onPointerDown" in floating_lex
+    assert "Math.hypot" in floating_lex
+    assert "aria-expanded" in floating_lex
     assert ".iu-agenda-page" in css
+    assert ".iu-ag-slot" in css
+    assert ".iu-ag-week--month" in css
+    assert ".iu-lex-float{display:none}" not in css
     assert "@media(max-width:760px)" in css
     assert "prefers-reduced-motion" in css
+
+
+def test_react_nuovo_appuntamento_pagina_separata_con_backend_storico():
+    app_source = Path("frontend/src/App.tsx").read_text(encoding="utf-8")
+    appointment_page = Path("frontend/src/components/NuovoAppuntamentoPage.tsx").read_text(encoding="utf-8")
+    appointment_css = Path("frontend/src/components/NuovoAppuntamentoPage.css").read_text(encoding="utf-8")
+
+    assert "/app-v2/agenda/nuovo" in app_source
+    assert "isNewAppointmentPage?<NuovoAppuntamentoPage" in app_source
+    assert "{ label: 'Nuovo Appuntamento', icon: CirclePlus, href: '/app-v2/agenda/nuovo' }" in app_source
+    assert 'action="/agenda/nuovo"' in appointment_page
+    assert "params.get('ora')" in appointment_page
+    assert "/api/clienti" in appointment_page
+    assert "/api/agenda?da=" in appointment_page
+    assert "toUpperCase" in appointment_page
+    assert "Completa titolo" in appointment_page
+    assert "localStorage" in appointment_page
+    assert ".iu-appointment-page" in appointment_css
+    assert ".iu-appt-lex-float" in appointment_css
+    assert "@media(max-width:760px)" in appointment_css
+
+
+def test_react_regia_operativa_e_pagina_separata_non_in_panorama():
+    app_source = Path("frontend/src/App.tsx").read_text(encoding="utf-8")
+
+    assert "/app-v2/regia-operativa" in app_source
+    assert "isRegiaPage?<RegiaOperativaPage" in app_source
+    assert "{ label: 'Regia Operativa', icon: Sparkles, href: '/app-v2/regia-operativa' }" in app_source
+    assert "Azioni operative" in app_source
+    assert "Centro operativo di oggi" not in app_source
 
 
 def test_react_api_bridge_richiede_autenticazione(tmp_path: Path):

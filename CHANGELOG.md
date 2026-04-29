@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.195.17 - 2026-04-29
+
+- Collegata la voce `Regia Operativa` della nav React a `/app-v2/regia-operativa`, mantenendo la Panoramica separata e la regia storica raggiungibile come versione completa.
+- Aggiunta la pagina React separata `/app-v2/agenda/nuovo`, con salvataggio nativo su `/agenda/nuovo`, precompilazione da query `data`/`ora`, autocomplete clienti, controllo sovrapposizioni e Lex contestuale.
+- Resa operativa l'Agenda React: slot orari cliccabili in vista giorno/settimana, griglia mese cliccabile, drag & drop con orario e salvataggio su `/api/agenda/<id>/sposta` per gli eventi agenda reali.
+- Migliorato il widget Lex flottante dell'Agenda: l'icona resta disponibile anche su mobile, distingue click da trascinamento e conserva la posizione senza bloccare l'apertura del pannello.
+
 ## 2.195.16 - 2026-04-29
 
 - Aggiunta la pagina React separata `/app-v2/agenda`, collegata alla nav della shell senza sostituire la pagina storica `/agenda`.

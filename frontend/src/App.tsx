@@ -52,6 +52,7 @@ import {
 import { DashboardData, Row, Tone, emptyDashboard, getDashboard } from './data'
 import { Badge, DossierCard, KpiCard, Panel, SourceCard } from './components/dashboard'
 import { AgendaPage } from './components/AgendaPage'
+import { NuovoAppuntamentoPage } from './components/NuovoAppuntamentoPage'
 import { RicercaStudioPage } from './components/RicercaStudioPage'
 import './index.css'
 
@@ -85,7 +86,7 @@ type NavSection = {
 
 const primaryNav: NavItem[] = [
   { label: 'Panoramica', icon: LayoutDashboard, href: '/app-v2' },
-  { label: 'Regia Operativa', icon: Sparkles, href: '/workspace-intelligente' },
+  { label: 'Regia Operativa', icon: Sparkles, href: '/app-v2/regia-operativa' },
   { label: 'Ricerca Studio', icon: Search, href: '/app-v2/ricerca-studio' }
 ]
 
@@ -104,7 +105,7 @@ const navSections: NavSection[] = [
     icon: CalendarCheck,
     items: [
       { label: 'Calendario', icon: CalendarDays, href: '/app-v2/agenda' },
-      { label: 'Nuovo Appuntamento', icon: CirclePlus, href: '/agenda/nuovo' },
+      { label: 'Nuovo Appuntamento', icon: CirclePlus, href: '/app-v2/agenda/nuovo' },
       { label: 'Timesheet', icon: Clock3, href: '/timesheet' }
     ]
   },
@@ -334,6 +335,31 @@ function Sources({ data }:{data:DashboardData}) {
   return <Panel title="Fonti operative collegate" subtitle="Array fonti pronto per API/store e alimentato dai conteggi reali." icon={<BookOpen size={17}/>} count={data.sources.length}>{data.sources.length?<div className="iu-source-grid">{data.sources.map(source=><SourceCard source={source} key={source.id}/>)}</div>:<Empty>Nessuna fonte operativa disponibile.</Empty>}</Panel>
 }
 
+function RegiaOperativaPage({ data, loading }:{data:DashboardData; loading:boolean}) {
+  const priorityMetrics = data.metrics.filter((metric)=>['urgent','pec','messages'].includes(metric.id))
+  const agendaRows = data.agenda.slice(0,5)
+  const matterRows = data.matters.slice(0,5)
+  return (
+    <main className="iu-content iu-regia-page">
+      <div className="iu-page-heading">
+        <div>
+          <h1>Regia Operativa</h1>
+          <p>Azioni, comunicazioni e priorita da lavorare fuori dalla Panoramica.</p>
+        </div>
+        <a className={`iu-sync ${loading?'':'ok'}`} href="/workspace-intelligente">{loading?'Sincronizzazione dati...':'Apri versione completa'}</a>
+      </div>
+      <section className="iu-metrics">{priorityMetrics.map(m=><KpiCard item={m} icon={metricIcon[m.tone] || Sparkles} key={m.id}/>)}</section>
+      <section className="iu-grid">
+        <div className="span4"><Panel title="Azioni operative" icon={<Sparkles size={17}/>} count={data.operations.length}>{data.operations.length?<div className="iu-compact">{data.operations.map(action=><a className="iu-compact-row" href={action.href||'/workspace-intelligente'} key={action.id}><div><strong>{action.title}</strong><span>{action.subtitle}</span></div>{action.badge?<Badge tone={action.tone||'neutral'}>{action.badge}</Badge>:null}</a>)}</div>:<Empty>Nessuna azione operativa urgente.</Empty>}<a className="iu-link" href="/workspace-intelligente">Vai alla regia storica -&gt;</a></Panel></div>
+        <div className="span4"><Panel title="Agenda da presidiare" icon={<CalendarDays size={17}/>} count={agendaRows.length}><List rows={agendaRows} href="/app-v2/agenda"/><a className="iu-link" href="/app-v2/agenda">Apri agenda React -&gt;</a></Panel></div>
+        <div className="span4"><Panel title="Fascicoli prioritari" icon={<BriefcaseBusiness size={17}/>} count={matterRows.length}>{matterRows.length?<div className="iu-compact">{matterRows.map(row=><a className="iu-compact-row" href={row.href||'/fascicoli'} key={row.id}><div><strong>{row.title}</strong><span>{row.subtitle}</span></div>{row.badge?<Badge tone={row.tone||'neutral'}>{row.badge}</Badge>:null}</a>)}</div>:<Empty>Nessun fascicolo ad alta priorita.</Empty>}<a className="iu-link" href="/fascicoli">Vai ai fascicoli -&gt;</a></Panel></div>
+        <div className="span6"><Panel title="Comunicazioni recenti" icon={<MessageCircle size={17}/>} count={data.messages.length}><List rows={data.messages} avatar href="/messaggi"/><a className="iu-link" href="/messaggi">Vai ai messaggi -&gt;</a></Panel></div>
+        <div className="span6"><Lex data={data}/></div>
+      </section>
+    </main>
+  )
+}
+
 function DashboardPage({ data, loading }:{data:DashboardData; loading:boolean}) {
   return (
     <main className="iu-content">
@@ -366,13 +392,16 @@ function DashboardPage({ data, loading }:{data:DashboardData; loading:boolean}) 
 export default function App() {
   const activePath = window.location.pathname.replace(/\/+$/, '') || '/app-v2'
   const isSearchPage = activePath.includes('/app-v2/ricerca-studio')
-  const isAgendaPage = activePath === '/app-v2/agenda' || activePath.startsWith('/app-v2/agenda/')
-  const isStandalonePage = isSearchPage || isAgendaPage
+  const isNewAppointmentPage = activePath === '/app-v2/agenda/nuovo' || activePath.startsWith('/app-v2/agenda/nuovo/')
+  const isAgendaPage = !isNewAppointmentPage && (activePath === '/app-v2/agenda' || activePath.startsWith('/app-v2/agenda/'))
+  const isRegiaPage = activePath === '/app-v2/regia-operativa' || activePath.startsWith('/app-v2/regia-operativa/')
+  const isDashboardPage = !isSearchPage && !isAgendaPage && !isNewAppointmentPage && !isRegiaPage
+  const isStandalonePage = isSearchPage || isAgendaPage || isNewAppointmentPage
   const initialSearchQuery = new URLSearchParams(window.location.search).get('q') ?? ''
   const [data,setData]=useState<DashboardData>(emptyDashboard)
   const [loading,setLoading]=useState(!isStandalonePage)
   const [sidebarCollapsed,setSidebarCollapsed]=useState(false)
   const [mobileMenuOpen,setMobileMenuOpen]=useState(false)
   useEffect(()=>{if(isStandalonePage)return; let ok=true; getDashboard().then(d=>{if(ok)setData(d)}).finally(()=>{if(ok)setLoading(false)}); return()=>{ok=false}},[isStandalonePage])
-  return <div className={`iu-shell ${sidebarCollapsed?'iu-shell--collapsed':''}`}><Sidebar collapsed={sidebarCollapsed} mobileOpen={mobileMenuOpen} activePath={activePath} onToggle={()=>setSidebarCollapsed(v=>!v)} onCloseMobile={()=>setMobileMenuOpen(false)}/>{mobileMenuOpen?<button className="iu-sidebar-scrim" type="button" aria-label="Chiudi menu" onClick={()=>setMobileMenuOpen(false)}/>:null}<div className="iu-main"><Topbar onOpenMenu={()=>setMobileMenuOpen(true)}/>{isSearchPage?<RicercaStudioPage initialQuery={initialSearchQuery}/>:isAgendaPage?<AgendaPage/>:<DashboardPage data={data} loading={loading}/>}</div><nav className="iu-mobile"><a className={!isStandalonePage?'active':''} href="/app-v2"><LayoutDashboard size={18}/>Home</a><a className={isSearchPage?'active':''} href="/app-v2/ricerca-studio"><Search size={18}/>Ricerca</a><a href="/fascicoli"><BriefcaseBusiness size={18}/>Fascicoli</a><a className={isAgendaPage?'active':''} href="/app-v2/agenda"><CalendarDays size={18}/>Agenda</a><a href="/lex"><Sparkles size={18}/>Lex</a></nav></div>
+  return <div className={`iu-shell ${sidebarCollapsed?'iu-shell--collapsed':''}`}><Sidebar collapsed={sidebarCollapsed} mobileOpen={mobileMenuOpen} activePath={activePath} onToggle={()=>setSidebarCollapsed(v=>!v)} onCloseMobile={()=>setMobileMenuOpen(false)}/>{mobileMenuOpen?<button className="iu-sidebar-scrim" type="button" aria-label="Chiudi menu" onClick={()=>setMobileMenuOpen(false)}/>:null}<div className="iu-main"><Topbar onOpenMenu={()=>setMobileMenuOpen(true)}/>{isSearchPage?<RicercaStudioPage initialQuery={initialSearchQuery}/>:isNewAppointmentPage?<NuovoAppuntamentoPage/>:isAgendaPage?<AgendaPage/>:isRegiaPage?<RegiaOperativaPage data={data} loading={loading}/>:<DashboardPage data={data} loading={loading}/>}</div><nav className="iu-mobile"><a className={isDashboardPage?'active':''} href="/app-v2"><LayoutDashboard size={18}/>Home</a><a className={isSearchPage?'active':''} href="/app-v2/ricerca-studio"><Search size={18}/>Ricerca</a><a href="/fascicoli"><BriefcaseBusiness size={18}/>Fascicoli</a><a className={isAgendaPage||isNewAppointmentPage?'active':''} href="/app-v2/agenda"><CalendarDays size={18}/>Agenda</a><a className={isRegiaPage?'active':''} href="/app-v2/regia-operativa"><Sparkles size={18}/>Regia</a></nav></div>
 }

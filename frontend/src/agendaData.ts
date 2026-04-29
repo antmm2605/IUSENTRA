@@ -37,6 +37,7 @@ export type AgendaDay = {
   month: string
   isToday: boolean
   isWeekend: boolean
+  isOutsideMonth: boolean
   events: AgendaEvent[]
 }
 
@@ -108,6 +109,25 @@ export function addDays(value: Date, days: number): Date {
   const copy = new Date(value)
   copy.setDate(copy.getDate() + days)
   return copy
+}
+
+export function addMonths(value: Date, months: number): Date {
+  const copy = new Date(value)
+  copy.setMonth(copy.getMonth() + months)
+  return copy
+}
+
+export function agendaRange(anchor = new Date(), view: AgendaView = 'week'): { from: Date; to: Date } {
+  const day = new Date(anchor)
+  day.setHours(0, 0, 0, 0)
+  if (view === 'day') return { from: day, to: day }
+  if (view === 'month') {
+    const firstOfMonth = new Date(day.getFullYear(), day.getMonth(), 1)
+    const gridStart = startOfWeek(firstOfMonth)
+    return { from: gridStart, to: addDays(gridStart, 41) }
+  }
+  const weekStart = startOfWeek(day)
+  return { from: weekStart, to: addDays(weekStart, 6) }
 }
 
 export function rangeLabel(start: Date, end: Date): string {
@@ -216,13 +236,13 @@ export function normalizeAgendaEvent(item: unknown, index = 0): AgendaEvent | nu
   }
 }
 
-export function buildAgendaPageData(events: AgendaEvent[], anchor = new Date(), source = 'api'): AgendaPageData {
+export function buildAgendaPageData(events: AgendaEvent[], anchor = new Date(), source = 'api', view: AgendaView = 'week'): AgendaPageData {
   const todayKey = toDateKey(new Date())
-  const weekStart = startOfWeek(anchor)
-  const weekEnd = addDays(weekStart, 6)
+  const range = agendaRange(anchor, view)
+  const totalDays = Math.max(1, Math.round((range.to.getTime() - range.from.getTime()) / 86400000) + 1)
   const ordered = [...events].sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime())
-  const days: AgendaDay[] = Array.from({ length: 7 }, (_, index) => {
-    const day = addDays(weekStart, index)
+  const days: AgendaDay[] = Array.from({ length: totalDays }, (_, index) => {
+    const day = addDays(range.from, index)
     const iso = toDateKey(day)
     return {
       id: iso,
@@ -232,10 +252,11 @@ export function buildAgendaPageData(events: AgendaEvent[], anchor = new Date(), 
       month: IT_MONTH.format(day).replace('.', ''),
       isToday: iso === todayKey,
       isWeekend: day.getDay() === 0 || day.getDay() === 6,
+      isOutsideMonth: view === 'month' && day.getMonth() !== anchor.getMonth(),
       events: ordered.filter((event) => event.date === iso),
     }
   })
-  const weekEvents = ordered.filter((event) => event.date >= toDateKey(weekStart) && event.date <= toDateKey(weekEnd))
+  const periodEvents = ordered.filter((event) => event.date >= toDateKey(range.from) && event.date <= toDateKey(range.to))
   return {
     generatedAt: new Date().toISOString(),
     source,
@@ -243,11 +264,11 @@ export function buildAgendaPageData(events: AgendaEvent[], anchor = new Date(), 
     events: ordered,
     summary: {
       today: ordered.filter((event) => event.date === todayKey).length,
-      week: weekEvents.length,
-      hearings: weekEvents.filter((event) => event.kind === 'udienza').length,
-      deadlines: weekEvents.filter((event) => event.kind === 'scadenza' || event.kind === 'deposito').length,
-      unsynced: weekEvents.filter((event) => event.syncStatus !== 'sincronizzato').length,
-      critical: weekEvents.filter((event) => event.priority === 'critica' || event.priority === 'alta').length,
+      week: periodEvents.length,
+      hearings: periodEvents.filter((event) => event.kind === 'udienza').length,
+      deadlines: periodEvents.filter((event) => event.kind === 'scadenza' || event.kind === 'deposito').length,
+      unsynced: periodEvents.filter((event) => event.syncStatus !== 'sincronizzato').length,
+      critical: periodEvents.filter((event) => event.priority === 'critica' || event.priority === 'alta').length,
       nextEvent: ordered.find((event) => new Date(event.start).getTime() >= Date.now()),
     },
   }
@@ -264,6 +285,14 @@ export function eventHeightPixels(event: AgendaEvent): number {
   const end = parseDate(event.end) ?? new Date(start.getTime() + 60 * 60000)
   const minutes = Math.max(30, Math.round((end.getTime() - start.getTime()) / 60000))
   return Math.max(54, Math.min(132, Math.round((minutes / 60) * 70)))
+}
+
+function timeParts(value: string): { hours: number; minutes: number } | null {
+  const [hourRaw, minuteRaw] = value.split(':')
+  const hours = Number(hourRaw)
+  const minutes = Number(minuteRaw)
+  if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return null
+  return { hours, minutes }
 }
 
 function endpointUrl(path: string, from: string, to: string): string {
@@ -290,33 +319,41 @@ async function fetchAgendaEndpoint(path: string, from: string, to: string): Prom
   return { items: asArray(payload), source }
 }
 
-export async function getAgendaPage(anchor = new Date()): Promise<AgendaPageData> {
-  const from = toDateKey(startOfWeek(anchor))
-  const to = toDateKey(addDays(startOfWeek(anchor), 6))
+export async function getAgendaPage(anchor = new Date(), view: AgendaView = 'week'): Promise<AgendaPageData> {
+  const range = agendaRange(anchor, view)
+  const from = toDateKey(range.from)
+  const to = toDateKey(range.to)
   try {
     const result = await fetchAgendaEndpoint('/api/v1/ui/agenda', from, to)
       ?? await fetchAgendaEndpoint('/api/v1/agenda', from, to)
       ?? { items: [], source: 'empty' }
     const events = result.items.map((item, index) => normalizeAgendaEvent(item, index)).filter(Boolean) as AgendaEvent[]
-    return buildAgendaPageData(events, anchor, result.source)
+    return buildAgendaPageData(events, anchor, result.source, view)
   } catch {
-    return buildAgendaPageData([], anchor, 'errore_controllato')
+    return buildAgendaPageData([], anchor, 'errore_controllato', view)
   }
 }
 
 export function moveEventToDay(event: AgendaEvent, dayIso: string): AgendaEvent {
+  return moveEventToDateTime(event, dayIso)
+}
+
+export function moveEventToDateTime(event: AgendaEvent, dayIso: string, time?: string): AgendaEvent {
   const start = parseDate(event.start) ?? new Date()
   const end = parseDate(event.end) ?? new Date(start.getTime() + 60 * 60000)
   const target = parseDate(dayIso) ?? new Date()
+  const targetTime = time ? timeParts(time) : null
   const movedStart = new Date(target)
-  movedStart.setHours(start.getHours(), start.getMinutes(), 0, 0)
-  const movedEnd = new Date(target)
-  movedEnd.setHours(end.getHours(), end.getMinutes(), 0, 0)
+  movedStart.setHours(targetTime?.hours ?? start.getHours(), targetTime?.minutes ?? start.getMinutes(), 0, 0)
+  const durationMs = Math.max(15 * 60000, end.getTime() - start.getTime())
+  const movedEnd = new Date(movedStart.getTime() + durationMs)
   return {
     ...event,
     date: dayIso,
     start: movedStart.toISOString(),
     end: movedEnd.toISOString(),
+    timeLabel: formatTime(movedStart),
+    durationLabel: durationLabel(movedStart, movedEnd),
     syncStatus: 'da_sincronizzare',
   }
 }

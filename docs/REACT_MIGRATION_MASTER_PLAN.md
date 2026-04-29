@@ -78,36 +78,68 @@ globale senza annidarsi nel contenuto dashboard:
 - shortcut `Ctrl/Cmd + K`, `Esc`, frecce e `Invio`;
 - nessun `mockResults` nella pagina React.
 
+### Stato Regia Operativa `/app-v2/regia-operativa`
+
+La Regia Operativa e' una pagina React autonoma, collegata alla voce primaria
+della nav e separata dalla Panoramica:
+
+- usa i dati reali gia' esposti dal bridge dashboard;
+- mostra azioni operative, agenda da presidiare, fascicoli prioritari,
+  comunicazioni recenti e suggerimenti Lex;
+- mantiene il link alla regia storica `/workspace-intelligente` come versione
+  completa e fallback operativo;
+- non reinserisce pannelli di regia dentro la Panoramica React.
+
 ### Stato Agenda `/app-v2/agenda`
 
-La terza pagina React e' collegata alla nav della shell, ma non sostituisce la
+La pagina Agenda React e' collegata alla nav della shell, ma non sostituisce la
 pagina storica `/agenda`:
 
 - dati reali da `/api/v1/ui/agenda`, normalizzati da agenda e scadenziario;
 - contratto read-only con `mock_fallback=false` e route storiche ancora attive
   per dettagli, creazione, import ed export;
-- filtri per tipologia, ricerca testuale, vista giorno/settimana/mese compatta
+- filtri per tipologia, ricerca testuale, vista giorno/settimana/mese
   e KPI su oggi, settimana, udienze, scadenze e alert;
-- calendario responsive con colonne giorno e spostamento provvisorio in vista;
+- calendario responsive con slot orari cliccabili in giorno/settimana, griglia
+  mese cliccabile e drag & drop con salvataggio sugli appuntamenti agenda reali
+  tramite `/api/agenda/<id>/sposta`;
 - briefing operativo, salute sincronizzazione calendari e widget Lex
-  trascinabile;
+  trascinabile e apribile anche su mobile;
 - collegamento nav su `/app-v2/agenda` per ogni accesso React alla pagina.
+
+### Stato Nuovo Appuntamento `/app-v2/agenda/nuovo`
+
+La pagina React di creazione appuntamento resta separata dall'Agenda e usa il
+backend storico come punto di scrittura:
+
+- salvataggio nativo su `POST /agenda/nuovo`, senza nuova API obbligatoria;
+- precompilazione da query `data`, `ora`, `id_cliente` e `from_cliente`;
+- autocomplete clienti da `/api/clienti` e dettaglio cliente da
+  `/api/clienti/<id_cliente>`;
+- normalizzazione del codice fiscale in maiuscolo;
+- preset rapidi per udienza, consultazione, riunione, deposito, scadenza e
+  altro, chip uffici giudiziari, anteprima e checklist qualita';
+- controllo sovrapposizioni su `/api/agenda`;
+- Lex AI contestuale con icona flottante, posizione persistita e azione
+  `Completa titolo`.
 
 ## Fase 4 - Ordine di migrazione
 
 1. Panoramica e shell globale.
 2. Ricerca Studio.
-3. Agenda.
-4. Scadenziario.
-5. Clienti e Anagrafiche.
-6. Fascicoli read-only.
-7. Documenti e upload.
-8. Preventivi e Conferimenti.
-9. Parcelle, Fatture, Incassi e Pagamenti.
-10. Lex AI.
-11. Sito Studio Builder.
-12. Servizi Telematici, PDP/PST/PAT/PTT, Local Signer e PEC.
-13. Admin e Impostazioni.
+3. Regia Operativa.
+4. Agenda.
+5. Nuovo Appuntamento.
+6. Scadenziario.
+7. Clienti e Anagrafiche.
+8. Fascicoli read-only.
+9. Documenti e upload.
+10. Preventivi e Conferimenti.
+11. Parcelle, Fatture, Incassi e Pagamenti.
+12. Lex AI.
+13. Sito Studio Builder.
+14. Servizi Telematici, PDP/PST/PAT/PTT, Local Signer e PEC.
+15. Admin e Impostazioni.
 
 Le aree telematiche e di firma restano ultime perché hanno vincoli di compliance,
 Local Signer, audit, canali separati e conferma consapevole dell'avvocato.

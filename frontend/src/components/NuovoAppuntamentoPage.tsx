@@ -189,11 +189,12 @@ function initialForm(): AppointmentForm {
   }
 }
 
-function clientName(client: ClientSuggestion): string {
+function clientName(client: Partial<ClientSuggestion> | null | undefined): string {
+  if (!client) return ''
   return (
-    client.nome_completo ||
-    [client.nome, client.cognome].filter(Boolean).join(' ').trim() ||
-    client.ragione_sociale ||
+    asText(client.nome_completo) ||
+    [asText(client.nome), asText(client.cognome)].filter(Boolean).join(' ').trim() ||
+    asText(client.ragione_sociale) ||
     ''
   )
 }
@@ -442,7 +443,8 @@ export function NuovoAppuntamentoPage() {
     let alive = true
     const timer = window.setTimeout(() => {
       setClientLoading(true)
-      fetch(`/api/clienti?q=${encodeURIComponent(query)}`, {
+      const params = new URLSearchParams({ q: query, autocomplete: '1', limit: '8' })
+      fetch(`/api/clienti?${params.toString()}`, {
         credentials: 'same-origin',
         headers: { Accept: 'application/json' },
       })
@@ -497,13 +499,15 @@ export function NuovoAppuntamentoPage() {
   }, [form.data])
 
   const selectClient = (client: ClientSuggestion) => {
-    const name = clientName(client)
-    if (!name && !client.id) return
+    const safeClient = normaliseClientSuggestion(client)
+    if (!safeClient) return
+    const name = clientName(safeClient)
+    if (!name && !safeClient.id) return
     setForm((current) => ({
       ...current,
       cliente: name || current.cliente,
-      id_cliente: client.id || current.id_cliente,
-      cf_cliente: (client.codice_fiscale || current.cf_cliente || '').toUpperCase(),
+      id_cliente: safeClient.id || current.id_cliente,
+      cf_cliente: (safeClient.codice_fiscale || current.cf_cliente || '').toUpperCase(),
     }))
     setClientDropdownOpen(false)
   }
@@ -703,17 +707,18 @@ export function NuovoAppuntamentoPage() {
                     <div className="iu-appt-client-menu">
                       {clientLoading ? <span>Ricerca clienti...</span> : null}
                       {!clientLoading && !clientMatches.length ? <span>Nessun cliente trovato</span> : null}
-                      {clientMatches.map((client) => {
+                      {clientMatches.map((client, index) => {
                         const name = clientName(client)
+                        const detail = asText(client.codice_fiscale) || asText(client.email) || 'Anagrafica studio'
                         return (
                           <button
-                            key={client.id || name}
+                            key={client.id || name || `cliente-${index}`}
                             type="button"
                             onMouseDown={(event) => event.preventDefault()}
                             onClick={() => selectClient(client)}
                           >
-                            <strong>{name}</strong>
-                            <small>{client.codice_fiscale || client.email || 'Anagrafica studio'}</small>
+                            <strong>{name || 'Cliente senza nome'}</strong>
+                            <small>{detail}</small>
                           </button>
                         )
                       })}

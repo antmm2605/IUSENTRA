@@ -90,6 +90,8 @@ def test_react_sidebar_contiene_navigazione_enterprise_completa():
     assert "{ label: 'Regia Operativa', icon: Sparkles, href: '/app-v2/regia-operativa' }" in source
     assert "{ label: 'Nuovo Appuntamento', icon: CirclePlus, href: '/app-v2/agenda/nuovo' }" in source
     assert ".iu-sidebar.iu-sidebar--mobile-open .iu-sidebar__toggle" in css
+    assert "AppErrorBoundary" in source
+    assert ".iu-react-error" in css
 
 
 def test_react_ui_pack_componenti_token_e_array_operativi():
@@ -180,11 +182,13 @@ def test_react_nuovo_appuntamento_pagina_separata_con_backend_storico():
     assert "params.get('ora')" in appointment_page
     assert "/api/clienti" in appointment_page
     assert "safeJson" in appointment_page
+    assert "autocomplete: '1'" in appointment_page
     assert "normaliseClientSuggestion" in appointment_page
     assert "clientSuggestionsFromPayload" in appointment_page
     assert "Array.isArray(payload)" in appointment_page
     assert "Array.isArray(payload.data)" in appointment_page
     assert ".catch(() =>" in appointment_page
+    assert "Cliente senza nome" in appointment_page
     assert "/api/agenda?da=" in appointment_page
     assert "toUpperCase" in appointment_page
     assert "Completa titolo" in appointment_page
@@ -192,6 +196,33 @@ def test_react_nuovo_appuntamento_pagina_separata_con_backend_storico():
     assert ".iu-appointment-page" in appointment_css
     assert ".iu-appt-lex-float" in appointment_css
     assert "@media(max-width:760px)" in appointment_css
+
+
+def test_react_autocomplete_clienti_usa_payload_minimale_sicuro(tmp_path: Path):
+    app = _app(tmp_path)
+    client = app.test_client()
+    cliente = GestioneClienti(db_path=app.config["CLIENTI_DB"]).nuovo(
+        TipoCliente.PERSONA_FISICA,
+        nome="Mario",
+        cognome="Rossi",
+        codice_fiscale="RSSMRA80A01H501Z",
+    )
+
+    response = client.get("/api/clienti", query_string={"q": "rossi", "autocomplete": "1", "limit": "8"})
+    payload = response.get_json()
+
+    assert response.status_code == 200
+    assert payload == [
+        {
+            "id": cliente.id,
+            "nome": "Mario",
+            "cognome": "Rossi",
+            "ragione_sociale": "",
+            "nome_completo": "Rossi Mario",
+            "codice_fiscale": "RSSMRA80A01H501Z",
+            "email": "",
+        }
+    ]
 
 
 def test_react_regia_operativa_e_pagina_separata_non_in_panorama():

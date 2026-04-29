@@ -11,7 +11,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from flask import Blueprint, current_app, render_template
+from flask import Blueprint, current_app, make_response, render_template
 
 react_shell = Blueprint("react_shell", __name__)
 
@@ -67,8 +67,11 @@ def _vite_entry() -> dict[str, Any]:
 def react_app(spa_path: str = ""):
     """Serve la shell SPA React senza alterare le route storiche."""
 
-    return render_template(
+    response = make_response(render_template(
         "react_shell.html",
         react_assets=_vite_entry(),
         react_spa_path=spa_path,
-    )
+    ))
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    response.headers["Pragma"] = "no-cache"
+    return response

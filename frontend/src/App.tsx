@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { Component, useEffect, useState, type ReactNode } from 'react'
 import {
   AlertTriangle,
   Archive,
@@ -58,6 +58,33 @@ import './index.css'
 
 const toneColor: Record<Tone,string> = { danger:'var(--iu-danger-500)', warning:'var(--iu-warning-500)', primary:'var(--iu-blue-600)', success:'var(--iu-success-500)', info:'var(--iu-sky-500)', purple:'var(--iu-purple-500)', orange:'var(--iu-warning-500)', neutral:'var(--iu-slate-300)' }
 const metricIcon = { danger: AlertTriangle, primary: Mail, success: MessageCircle, purple: Clock3, orange: UsersRound, warning: AlertTriangle, info: Mail, neutral: Clock3 }
+
+class AppErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
+  state = { hasError: false }
+
+  static getDerivedStateFromError() {
+    return { hasError: true }
+  }
+
+  componentDidCatch(error: unknown) {
+    console.error('Errore React shell IUSENTRA', error)
+  }
+
+  render() {
+    if (!this.state.hasError) return this.props.children
+    return (
+      <main className="iu-content iu-react-error" role="alert">
+        <div>
+          <AlertTriangle size={24}/>
+          <h1>Pagina temporaneamente non disponibile</h1>
+          <p>La shell React ha intercettato un errore di interfaccia. Ricarica la pagina o torna alla vista storica senza perdere i dati dello studio.</p>
+          <a href="/agenda">Apri agenda storica</a>
+          <button type="button" onClick={() => window.location.reload()}>Ricarica</button>
+        </div>
+      </main>
+    )
+  }
+}
 
 function Avatar({ label }:{label:string}) {
   const initials = label.split(' ').map(x=>x[0]).join('').slice(0,2).toUpperCase()
@@ -403,5 +430,23 @@ export default function App() {
   const [sidebarCollapsed,setSidebarCollapsed]=useState(false)
   const [mobileMenuOpen,setMobileMenuOpen]=useState(false)
   useEffect(()=>{if(isStandalonePage)return; let ok=true; getDashboard().then(d=>{if(ok)setData(d)}).finally(()=>{if(ok)setLoading(false)}); return()=>{ok=false}},[isStandalonePage])
-  return <div className={`iu-shell ${sidebarCollapsed?'iu-shell--collapsed':''}`}><Sidebar collapsed={sidebarCollapsed} mobileOpen={mobileMenuOpen} activePath={activePath} onToggle={()=>setSidebarCollapsed(v=>!v)} onCloseMobile={()=>setMobileMenuOpen(false)}/>{mobileMenuOpen?<button className="iu-sidebar-scrim" type="button" aria-label="Chiudi menu" onClick={()=>setMobileMenuOpen(false)}/>:null}<div className="iu-main"><Topbar onOpenMenu={()=>setMobileMenuOpen(true)}/>{isSearchPage?<RicercaStudioPage initialQuery={initialSearchQuery}/>:isNewAppointmentPage?<NuovoAppuntamentoPage/>:isAgendaPage?<AgendaPage/>:isRegiaPage?<RegiaOperativaPage data={data} loading={loading}/>:<DashboardPage data={data} loading={loading}/>}</div><nav className="iu-mobile"><a className={isDashboardPage?'active':''} href="/app-v2"><LayoutDashboard size={18}/>Home</a><a className={isSearchPage?'active':''} href="/app-v2/ricerca-studio"><Search size={18}/>Ricerca</a><a href="/fascicoli"><BriefcaseBusiness size={18}/>Fascicoli</a><a className={isAgendaPage||isNewAppointmentPage?'active':''} href="/app-v2/agenda"><CalendarDays size={18}/>Agenda</a><a className={isRegiaPage?'active':''} href="/app-v2/regia-operativa"><Sparkles size={18}/>Regia</a></nav></div>
+  return (
+    <AppErrorBoundary>
+      <div className={`iu-shell ${sidebarCollapsed?'iu-shell--collapsed':''}`}>
+        <Sidebar collapsed={sidebarCollapsed} mobileOpen={mobileMenuOpen} activePath={activePath} onToggle={()=>setSidebarCollapsed(v=>!v)} onCloseMobile={()=>setMobileMenuOpen(false)}/>
+        {mobileMenuOpen?<button className="iu-sidebar-scrim" type="button" aria-label="Chiudi menu" onClick={()=>setMobileMenuOpen(false)}/>:null}
+        <div className="iu-main">
+          <Topbar onOpenMenu={()=>setMobileMenuOpen(true)}/>
+          {isSearchPage?<RicercaStudioPage initialQuery={initialSearchQuery}/>:isNewAppointmentPage?<NuovoAppuntamentoPage/>:isAgendaPage?<AgendaPage/>:isRegiaPage?<RegiaOperativaPage data={data} loading={loading}/>:<DashboardPage data={data} loading={loading}/>}
+        </div>
+        <nav className="iu-mobile">
+          <a className={isDashboardPage?'active':''} href="/app-v2"><LayoutDashboard size={18}/>Home</a>
+          <a className={isSearchPage?'active':''} href="/app-v2/ricerca-studio"><Search size={18}/>Ricerca</a>
+          <a href="/fascicoli"><BriefcaseBusiness size={18}/>Fascicoli</a>
+          <a className={isAgendaPage||isNewAppointmentPage?'active':''} href="/app-v2/agenda"><CalendarDays size={18}/>Agenda</a>
+          <a className={isRegiaPage?'active':''} href="/app-v2/regia-operativa"><Sparkles size={18}/>Regia</a>
+        </nav>
+      </div>
+    </AppErrorBoundary>
+  )
 }

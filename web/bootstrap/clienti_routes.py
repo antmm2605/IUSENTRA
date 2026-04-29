@@ -12,6 +12,27 @@ from pct.clienti import RiferimentoProcedimento, StatoCliente, TipoCliente, Tipo
 from pct.condivisione import RuoloCondivisione
 
 
+def _text(value: Any) -> str:
+    return str(value or "").strip()
+
+
+def _cliente_autocomplete_dict(cliente: Any) -> dict[str, str]:
+    recapiti = getattr(cliente, "recapiti", None)
+    return {
+        "id": _text(getattr(cliente, "id", "")),
+        "nome": _text(getattr(cliente, "nome", "")),
+        "cognome": _text(getattr(cliente, "cognome", "")),
+        "ragione_sociale": _text(getattr(cliente, "ragione_sociale", "")),
+        "nome_completo": _text(getattr(cliente, "nome_completo", "")),
+        "codice_fiscale": _text(
+            getattr(cliente, "codice_fiscale", "")
+            or getattr(cliente, "partita_iva", "")
+            or getattr(cliente, "identificativo_fiscale", "")
+        ),
+        "email": _text(getattr(recapiti, "email", "")),
+    }
+
+
 def _salva_indirizzo(gc: Any, id_cliente: str, tipo: str, form: Any, prefix: str = "") -> None:
     gc.aggiorna_indirizzo(
         id_cliente,
@@ -286,6 +307,12 @@ def register_clienti_routes(
             gc = get_clienti()
             query = request.args.get("q", "")
             clienti = gc.cerca(testo=query) if query else gc.tutti()
+            if request.args.get("autocomplete") in {"1", "true", "si", "sì"}:
+                try:
+                    limit = max(1, min(int(request.args.get("limit", 8)), 20))
+                except (TypeError, ValueError):
+                    limit = 8
+                return jsonify([_cliente_autocomplete_dict(cliente) for cliente in clienti[:limit]])
             return jsonify([cliente.to_dict() for cliente in clienti])
         except Exception as exc:
             app.logger.exception("Errore api_clienti: %s", exc)

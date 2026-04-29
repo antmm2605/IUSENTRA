@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.195.19 - 2026-04-29
+
+- Rafforzato l'autocomplete clienti della pagina React `/app-v2/agenda/nuovo`: ora usa il payload minimale `/api/clienti?autocomplete=1`, normalizzato lato Flask, invece del JSON anagrafico completo.
+- Aggiunta una barriera anti-schermata-bianca nella shell React con fallback visibile e link alla vista storica, più header `no-store` sulla shell `/app-v2` per evitare HTML SPA vecchio dopo deploy.
+- Estesi contratti e test backend/UI per verificare il payload sicuro dell'autocomplete clienti e il fallback React.
+
 ## 2.195.18 - 2026-04-29
 
 - Corretto l'autocomplete clienti della pagina React `/app-v2/agenda/nuovo`: la ricerca ora normalizza payload array, wrapper `data/items/clienti`, record incompleti e risposte non JSON senza mandare in errore il render.

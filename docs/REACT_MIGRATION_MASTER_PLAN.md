@@ -63,6 +63,21 @@ La prima pagina React usa la shell enterprise collegata a `/api/v1/ui/dashboard`
 - niente mock operativo: le sezioni leggono i dati reali disponibili e usano
   stati vuoti espliciti quando il repository non contiene record.
 
+### Stato Ricerca Studio `/app-v2/ricerca-studio`
+
+La seconda pagina React e' una route separata dalla Panoramica e riusa la shell
+globale senza annidarsi nel contenuto dashboard:
+
+- dati collegati all'indice reale `/api/global-search`;
+- filtri per fascicoli, clienti, scadenze, documenti, comunicazioni, economia e
+  telematico;
+- stato indice con totale elementi, FTS5 e ultimo sync;
+- azione `Reindicizza` collegata al backend esistente;
+- anteprima risultato con azioni contestuali `Apri`, `Chiedi a Lex`, `Vai al
+  fascicolo` e `Copia link`;
+- shortcut `Ctrl/Cmd + K`, `Esc`, frecce e `Invio`;
+- nessun `mockResults` nella pagina React.
+
 ## Fase 4 - Ordine di migrazione
 
 1. Panoramica e shell globale.

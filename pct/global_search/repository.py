@@ -241,11 +241,20 @@ class GlobalSearchRepository:
             (tenant_id,),
         ).fetchall()
         per_type = {row["entity_type"]: int(row["total"]) for row in rows}
+        last = self._conn.execute(
+            """
+            SELECT MAX(indexed_at) AS last_indexed_at
+            FROM global_search_index
+            WHERE tenant_id = ?
+            """,
+            (tenant_id,),
+        ).fetchone()
         return {
             "tenant_id": tenant_id,
             "total": sum(per_type.values()),
             "per_type": per_type,
             "fts_enabled": self.fts_enabled,
+            "last_indexed_at": str(last["last_indexed_at"] or "") if last else "",
         }
 
     def audit(self, tenant_id: str, action: str, details: dict[str, Any] | None = None) -> None:

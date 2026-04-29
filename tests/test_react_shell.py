@@ -107,6 +107,25 @@ def test_react_ui_pack_componenti_token_e_array_operativi():
     assert "typography:" in tokens
 
 
+def test_react_ricerca_studio_e_pagina_separata_senza_mock():
+    app_source = Path("frontend/src/App.tsx").read_text(encoding="utf-8")
+    search_component = Path("frontend/src/components/RicercaStudioPage.tsx").read_text(encoding="utf-8")
+    search_data = Path("frontend/src/searchData.ts").read_text(encoding="utf-8")
+    css = Path("frontend/src/index.css").read_text(encoding="utf-8")
+
+    assert "/app-v2/ricerca-studio" in app_source
+    assert "isSearchPage?<RicercaStudioPage" in app_source
+    assert "Centro operativo di oggi" not in app_source
+    assert "mockResults" not in search_component
+    assert "searchStudio(" in search_data
+    assert "/api/global-search" in search_data
+    assert "reindexStudioSearch" in search_data
+    assert "Ctrl K" in search_component
+    assert "ArrowDown" in search_component
+    assert ".iu-search-page" in css
+    assert "@media(max-width:720px)" in css
+
+
 def test_react_api_bridge_richiede_autenticazione(tmp_path: Path):
     app = _app(tmp_path)
     client = app.test_client()

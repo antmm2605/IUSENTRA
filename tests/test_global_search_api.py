@@ -93,6 +93,8 @@ def test_api_global_search_restituisce_json_e_pagina_renderizza(tmp_path):
         payload = response.get_json()
         assert payload["ok"] is True
         assert payload["results"][0]["entity_type"] == "cliente"
+        assert payload["stats"]["fts_enabled"] is True
+        assert payload["stats"]["last_indexed_at"]
 
         page = client.get("/global-search?q=Rossi")
         assert page.status_code == 200

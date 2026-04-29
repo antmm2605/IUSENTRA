@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.195.15 - 2026-04-29
+
+- Aggiunta la pagina React separata `/app-v2/ricerca-studio`, collegata all'indice reale `/api/global-search` senza `mockResults`.
+- Integrato il layout Ricerca Studio con filtri, stato indice FTS5, reindicizzazione, anteprima contestuale, shortcut `Ctrl/Cmd + K`, `Esc`, frecce e azioni `Apri`, `Chiedi a Lex`, `Vai al fascicolo`, `Copia link`.
+- Rimossa la Regia Operativa dalla Panoramica React: resta voce di navigazione separata, coerente con la migrazione pagina per pagina.
+
 ## 2.195.14 - 2026-04-29
 
 - Integrato il pack `iusentra-react-ui` nella shell `/app-v2` mantenendo i dati reali gia' collegati: componenti React riusabili `Panel`, `KpiCard`, `DossierCard`, `SourceCard`, `Badge` e `Button`.

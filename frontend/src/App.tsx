@@ -20,7 +20,6 @@ import {
   Clock3,
   CloudUpload,
   CreditCard,
-  Crosshair,
   Database,
   Earth,
   FilePenLine,
@@ -52,6 +51,7 @@ import {
 } from 'lucide-react'
 import { DashboardData, Row, Tone, emptyDashboard, getDashboard } from './data'
 import { Badge, DossierCard, KpiCard, Panel, SourceCard } from './components/dashboard'
+import { RicercaStudioPage } from './components/RicercaStudioPage'
 import './index.css'
 
 const toneColor: Record<Tone,string> = { danger:'var(--iu-danger-500)', warning:'var(--iu-warning-500)', primary:'var(--iu-blue-600)', success:'var(--iu-success-500)', info:'var(--iu-sky-500)', purple:'var(--iu-purple-500)', orange:'var(--iu-warning-500)', neutral:'var(--iu-slate-300)' }
@@ -83,9 +83,9 @@ type NavSection = {
 }
 
 const primaryNav: NavItem[] = [
-  { label: 'Panoramica', icon: LayoutDashboard, href: '/app-v2', active: true },
+  { label: 'Panoramica', icon: LayoutDashboard, href: '/app-v2' },
   { label: 'Regia Operativa', icon: Sparkles, href: '/workspace-intelligente' },
-  { label: 'Ricerca Studio', icon: Search, href: '/global-search' }
+  { label: 'Ricerca Studio', icon: Search, href: '/app-v2/ricerca-studio' }
 ]
 
 const navSections: NavSection[] = [
@@ -211,10 +211,18 @@ const navSections: NavSection[] = [
   }
 ]
 
-function NavLink({ item, collapsed }:{item:NavItem; collapsed:boolean}) {
+function isActiveHref(href: string, activePath: string): boolean {
+  const cleanPath = activePath.replace(/\/+$/, '') || '/app-v2'
+  const cleanHref = href.replace(/\/+$/, '') || href
+  if (cleanHref === '/app-v2') return cleanPath === '/app-v2'
+  return cleanPath === cleanHref || cleanPath.startsWith(`${cleanHref}/`)
+}
+
+function NavLink({ item, collapsed, activePath }:{item:NavItem; collapsed:boolean; activePath:string}) {
   const Icon = item.icon
+  const active = item.active || isActiveHref(item.href, activePath)
   return (
-    <a className={`iu-nav-link ${item.active?'is-active':''}`} href={item.href} title={collapsed?item.label:undefined}>
+    <a className={`iu-nav-link ${active?'is-active':''}`} href={item.href} title={collapsed?item.label:undefined}>
       <Icon size={17}/>
       <span>{item.label}</span>
       {item.badge?<b className="iu-nav-badge">{item.badge}</b>:null}
@@ -222,7 +230,7 @@ function NavLink({ item, collapsed }:{item:NavItem; collapsed:boolean}) {
   )
 }
 
-function Sidebar({ collapsed, mobileOpen, onToggle }:{collapsed:boolean; mobileOpen:boolean; onToggle:()=>void}) {
+function Sidebar({ collapsed, mobileOpen, activePath, onToggle }:{collapsed:boolean; mobileOpen:boolean; activePath:string; onToggle:()=>void}) {
   const [openSections,setOpenSections]=useState<Record<string,boolean>>(()=>Object.fromEntries(navSections.map(section=>[section.id,true])))
   const toggleSection=(id:string)=>setOpenSections(current=>({...current,[id]:!current[id]}))
   const ToggleIcon = collapsed ? PanelLeftOpen : PanelLeftClose
@@ -235,7 +243,7 @@ function Sidebar({ collapsed, mobileOpen, onToggle }:{collapsed:boolean; mobileO
       </div>
       <nav className="iu-sidebar__nav" aria-label="Navigazione principale">
         <div className="iu-nav-primary">
-          {primaryNav.map(item=><NavLink key={item.label} item={item} collapsed={collapsed}/>)}
+          {primaryNav.map(item=><NavLink key={item.label} item={item} collapsed={collapsed} activePath={activePath}/>)}
         </div>
         {navSections.map(section=>{
           const SectionIcon = section.icon || Folder
@@ -246,7 +254,7 @@ function Sidebar({ collapsed, mobileOpen, onToggle }:{collapsed:boolean; mobileO
                 <span><SectionIcon size={14}/>{section.label}</span>
                 <ChevronDown size={13}/>
               </button>
-              {open?<div className="iu-nav-section__items">{section.items.map(item=><NavLink key={`${section.id}-${item.label}`} item={item} collapsed={collapsed}/>)}</div>:null}
+              {open?<div className="iu-nav-section__items">{section.items.map(item=><NavLink key={`${section.id}-${item.label}`} item={item} collapsed={collapsed} activePath={activePath}/>)}</div>:null}
             </section>
           )
         })}
@@ -258,7 +266,7 @@ function Sidebar({ collapsed, mobileOpen, onToggle }:{collapsed:boolean; mobileO
 
 function Topbar({ onOpenMenu }:{onOpenMenu:()=>void}) {
   const today = new Date().toLocaleDateString('it-IT')
-  return <header className="iu-topbar"><button className="iu-icon iu-menu-mobile" type="button" onClick={onOpenMenu} aria-label="Apri menu"><PanelLeftOpen size={18}/></button><label className="iu-search"><Search size={18}/><input placeholder="Cerca fascicolo, cliente, pratica, scadenza..."/></label><div className="iu-topbar__actions"><button className="iu-date">{today} <CalendarDays size={16}/></button><button className="iu-icon notify"><Bell size={18}/><span>8</span></button><button className="iu-icon"><Settings2 size={18}/></button><button className="iu-icon"><CircleHelp size={18}/></button><button className="iu-new"><Plus size={16}/>Nuovo</button></div></header>
+  return <header className="iu-topbar"><button className="iu-icon iu-menu-mobile" type="button" onClick={onOpenMenu} aria-label="Apri menu"><PanelLeftOpen size={18}/></button><label className="iu-search"><Search size={18}/><input placeholder="Cerca fascicolo, cliente, pratica, scadenza..." onKeyDown={(event)=>{if(event.key==='Enter'){const value=event.currentTarget.value.trim(); window.location.href=value?`/app-v2/ricerca-studio?q=${encodeURIComponent(value)}`:'/app-v2/ricerca-studio'}}}/></label><div className="iu-topbar__actions"><button className="iu-date">{today} <CalendarDays size={16}/></button><button className="iu-icon notify"><Bell size={18}/><span>8</span></button><button className="iu-icon"><Settings2 size={18}/></button><button className="iu-icon"><CircleHelp size={18}/></button><button className="iu-new"><Plus size={16}/>Nuovo</button></div></header>
 }
 
 function Empty({ children='Nessun elemento da presidiare.' }:{children?:string}) {
@@ -282,10 +290,6 @@ function Agenda({ data }:{data:DashboardData}) {
   const tomorrowRows = data.agenda.filter(a=>a.badge==='DOMANI')
   const otherRows = data.agenda.filter(a=>a.badge!=='OGGI' && a.badge!=='DOMANI')
   return <Panel title="Agenda e udienze" icon={<CalendarDays size={17}/>} count={data.agenda.length}><div className="iu-agenda"><p>{italianDay(0)}</p>{todayRows.length?todayRows.map(a=><a className="iu-agenda-row" href={a.href||'/agenda'} key={a.id}><time>{a.time}</time><div><strong>{a.title}</strong><span>{a.subtitle}</span></div>{a.badge?<Badge tone="warning">{a.badge}</Badge>:null}</a>):<Empty>Nessun impegno per oggi.</Empty>}<p className="next">{italianDay(1)}</p>{[...tomorrowRows,...otherRows].length?[...tomorrowRows,...otherRows].map(a=><a className="iu-agenda-row" href={a.href||'/agenda'} key={a.id}><time>{a.time}</time><div><strong>{a.title}</strong><span>{a.subtitle}</span></div>{a.badge?<Badge tone="primary">{a.badge}</Badge>:null}</a>):<Empty>Nessun impegno programmato.</Empty>}</div><a className="iu-link" href="/agenda">Vai all'agenda completa -&gt;</a></Panel>
-}
-
-function Operations({ data }:{data:DashboardData}) {
-  return <Panel title="Centro operativo di oggi" icon={<Crosshair size={17}/>} count={data.operations.length}>{data.operations.length?<div className="iu-ops">{data.operations.map(op=><div className="iu-op" key={op.id}><i className={`tone-${op.tone||'primary'}`}/><div><strong>{op.title}</strong><span>{op.subtitle}</span></div><a href={op.href||'#'}>{op.badge||'Apri'}</a></div>)}</div>:<Empty/>}<a className="iu-link" href="/workspace-intelligente">Vai alla regia operativa -&gt;</a></Panel>
 }
 
 function Completion({ data }:{data:DashboardData}) {
@@ -321,11 +325,43 @@ function Sources({ data }:{data:DashboardData}) {
   return <Panel title="Fonti operative collegate" subtitle="Array fonti pronto per API/store e alimentato dai conteggi reali." icon={<BookOpen size={17}/>} count={data.sources.length}>{data.sources.length?<div className="iu-source-grid">{data.sources.map(source=><SourceCard source={source} key={source.id}/>)}</div>:<Empty>Nessuna fonte operativa disponibile.</Empty>}</Panel>
 }
 
+function DashboardPage({ data, loading }:{data:DashboardData; loading:boolean}) {
+  return (
+    <main className="iu-content">
+      <div className="iu-page-heading">
+        <div>
+          <h1>Panoramica</h1>
+          <p>Centro operativo dello studio</p>
+        </div>
+        <span className={`iu-sync ${loading?'':'ok'}`}>{loading?'Sincronizzazione dati...':'Dati aggiornati'}</span>
+      </div>
+      <section className="iu-metrics">{data.metrics.map(m=><KpiCard item={m} icon={metricIcon[m.tone] || AlertTriangle} key={m.id}/>)}</section>
+      <section className="iu-grid">
+        <div className="span3"><Panel title="Ultime PEC ricevute" icon={<Mail size={17}/>} count={data.pec.length}><List rows={data.pec} href="/email"/><a className="iu-link" href="/email">Vai alla casella PEC -&gt;</a></Panel></div>
+        <div className="span3"><Panel title="Email recenti" icon={<Mail size={17}/>} count={data.emails.length}><List rows={data.emails} avatar href="/email"/><a className="iu-link" href="/email">Vai alla posta -&gt;</a></Panel></div>
+        <div className="span3"><Panel title="Messaggi recenti dai clienti" icon={<MessageCircle size={17}/>} count={data.messages.length}><List rows={data.messages} avatar href="/messaggi"/><a className="iu-link" href="/messaggi">Vai ai messaggi -&gt;</a></Panel></div>
+        <div className="span3"><Agenda data={data}/></div>
+        <div className="span3"><Completion data={data}/></div>
+        <div className="span3"><Compact title="Conferimenti incarico mancanti" icon={<UsersRound size={17}/>} count={data.engagements.length} rows={data.engagements} href="/preventivi"/></div>
+        <div className="span2"><Compact title="Fascicoli con priorita alta" icon={<BriefcaseBusiness size={17}/>} count={data.matters.length} rows={data.matters} href="/fascicoli"/></div>
+        <div className="span4"><Donut data={data}/></div>
+        <div className="span5"><Economic data={data}/></div>
+        <div className="span3"><Lex data={data}/></div>
+        <div className="span6"><Dossiers data={data}/></div>
+        <div className="span6"><Sources data={data}/></div>
+      </section>
+    </main>
+  )
+}
+
 export default function App() {
+  const activePath = window.location.pathname.replace(/\/+$/, '') || '/app-v2'
+  const isSearchPage = activePath.includes('/app-v2/ricerca-studio')
+  const initialSearchQuery = new URLSearchParams(window.location.search).get('q') ?? ''
   const [data,setData]=useState<DashboardData>(emptyDashboard)
-  const [loading,setLoading]=useState(true)
+  const [loading,setLoading]=useState(!isSearchPage)
   const [sidebarCollapsed,setSidebarCollapsed]=useState(false)
   const [mobileMenuOpen,setMobileMenuOpen]=useState(false)
-  useEffect(()=>{let ok=true; getDashboard().then(d=>{if(ok)setData(d)}).finally(()=>{if(ok)setLoading(false)}); return()=>{ok=false}},[])
-  return <div className={`iu-shell ${sidebarCollapsed?'iu-shell--collapsed':''}`}><Sidebar collapsed={sidebarCollapsed} mobileOpen={mobileMenuOpen} onToggle={()=>setSidebarCollapsed(v=>!v)}/>{mobileMenuOpen?<button className="iu-sidebar-scrim" type="button" aria-label="Chiudi menu" onClick={()=>setMobileMenuOpen(false)}/>:null}<div className="iu-main"><Topbar onOpenMenu={()=>setMobileMenuOpen(true)}/><main className="iu-content"><div className="iu-page-heading"><div><h1>Panoramica</h1><p>Centro operativo dello studio</p></div><span className={`iu-sync ${loading?'':'ok'}`}>{loading?'Sincronizzazione dati...':'Dati aggiornati'}</span></div><section className="iu-metrics">{data.metrics.map(m=><KpiCard item={m} icon={metricIcon[m.tone] || AlertTriangle} key={m.id}/>)}</section><section className="iu-grid"><div className="span3"><Panel title="Ultime PEC ricevute" icon={<Mail size={17}/>} count={data.pec.length}><List rows={data.pec} href="/email"/><a className="iu-link" href="/email">Vai alla casella PEC -&gt;</a></Panel></div><div className="span3"><Panel title="Email recenti" icon={<Mail size={17}/>} count={data.emails.length}><List rows={data.emails} avatar href="/email"/><a className="iu-link" href="/email">Vai alla posta -&gt;</a></Panel></div><div className="span3"><Panel title="Messaggi recenti dai clienti" icon={<MessageCircle size={17}/>} count={data.messages.length}><List rows={data.messages} avatar href="/messaggi"/><a className="iu-link" href="/messaggi">Vai ai messaggi -&gt;</a></Panel></div><div className="span3"><Agenda data={data}/></div><div className="span4"><Operations data={data}/></div><div className="span3"><Completion data={data}/></div><div className="span3"><Compact title="Conferimenti incarico mancanti" icon={<UsersRound size={17}/>} count={data.engagements.length} rows={data.engagements} href="/preventivi"/></div><div className="span2"><Compact title="Fascicoli con priorita alta" icon={<BriefcaseBusiness size={17}/>} count={data.matters.length} rows={data.matters} href="/fascicoli"/></div><div className="span4"><Donut data={data}/></div><div className="span5"><Economic data={data}/></div><div className="span3"><Lex data={data}/></div><div className="span6"><Dossiers data={data}/></div><div className="span6"><Sources data={data}/></div></section></main></div><nav className="iu-mobile"><a className="active" href="/app-v2"><LayoutDashboard size={18}/>Home</a><a href="/fascicoli"><BriefcaseBusiness size={18}/>Fascicoli</a><a href="/agenda"><CalendarDays size={18}/>Agenda</a><a href="/messaggi"><MessageCircle size={18}/>Messaggi</a><a href="/lex"><Sparkles size={18}/>Lex</a></nav></div>
+  useEffect(()=>{if(isSearchPage)return; let ok=true; getDashboard().then(d=>{if(ok)setData(d)}).finally(()=>{if(ok)setLoading(false)}); return()=>{ok=false}},[isSearchPage])
+  return <div className={`iu-shell ${sidebarCollapsed?'iu-shell--collapsed':''}`}><Sidebar collapsed={sidebarCollapsed} mobileOpen={mobileMenuOpen} activePath={activePath} onToggle={()=>setSidebarCollapsed(v=>!v)}/>{mobileMenuOpen?<button className="iu-sidebar-scrim" type="button" aria-label="Chiudi menu" onClick={()=>setMobileMenuOpen(false)}/>:null}<div className="iu-main"><Topbar onOpenMenu={()=>setMobileMenuOpen(true)}/>{isSearchPage?<RicercaStudioPage initialQuery={initialSearchQuery}/>:<DashboardPage data={data} loading={loading}/>}</div><nav className="iu-mobile"><a className={!isSearchPage?'active':''} href="/app-v2"><LayoutDashboard size={18}/>Home</a><a className={isSearchPage?'active':''} href="/app-v2/ricerca-studio"><Search size={18}/>Ricerca</a><a href="/fascicoli"><BriefcaseBusiness size={18}/>Fascicoli</a><a href="/agenda"><CalendarDays size={18}/>Agenda</a><a href="/lex"><Sparkles size={18}/>Lex</a></nav></div>
 }

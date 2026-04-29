@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.195.22 - 2026-04-29
+
+- Completata la migrazione del volume dati Railway `/data` su Hetzner e verificata la shell HTTPS temporanea `app.116.203.45.57.sslip.io`.
+- Aggiunta la variabile `PCT_TIMESHEET_DB` al profilo Docker/Hetzner per impedire fallback relativi a `./timesheet/entries.json` nei runtime container.
+- Disattivato l'healthcheck HTTP ereditato sui worker scheduler/OCR del profilo Hetzner: i worker non espongono `/api/pronto`, mentre l'app resta controllata dal proprio healthcheck.
+
 ## 2.195.21 - 2026-04-29
 
 - Aggiunto il profilo di deploy Hetzner CPX42 con Docker Compose dedicato, Caddy HTTPS, Redis, worker scheduler/OCR, healthcheck, firewall bootstrap, backup e restore dati `/data`.

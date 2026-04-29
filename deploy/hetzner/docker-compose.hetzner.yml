@@ -30,6 +30,7 @@ x-iusentra-env: &iusentra-env
   PCT_AUDIT_DB: /data/auth/audit.json
   PCT_SUPPORT_DB: /data/support/assistenza_remota.db
   PCT_SCADENZIARIO_DB: /data/scadenziario/scadenze.json
+  PCT_TIMESHEET_DB: /data/timesheet/entries.json
   PCT_SEARCH_INDEX: /data/search/index.db
   PCT_OCR_QUEUE_DB: /data/search/ocr_jobs.db
   PCT_PRIVACY_DB: /data/privacy/registro.json
@@ -95,6 +96,8 @@ services:
     depends_on:
       app:
         condition: service_healthy
+    healthcheck:
+      disable: true
 
   ocr-worker:
     build:
@@ -112,6 +115,8 @@ services:
     depends_on:
       app:
         condition: service_healthy
+    healthcheck:
+      disable: true
 
   redis:
     image: redis:7-alpine

@@ -202,6 +202,61 @@ def test_react_nuovo_appuntamento_pagina_separata_con_backend_storico():
     assert "@media(max-width:760px)" in appointment_css
 
 
+def test_react_clienti_page_collegata_nav_api_e_lex():
+    app_source = Path("frontend/src/App.tsx").read_text(encoding="utf-8")
+    page_source = Path("frontend/src/components/AnagraficaClientiPage.tsx").read_text(encoding="utf-8")
+    data_source = Path("frontend/src/clientiData.ts").read_text(encoding="utf-8")
+    css = Path("frontend/src/components/AnagraficaClientiPage.css").read_text(encoding="utf-8")
+    floating_lex = Path("frontend/src/components/FloatingLex.tsx").read_text(encoding="utf-8")
+    api_source = Path("web/blueprints/api_v1_react.py").read_text(encoding="utf-8")
+
+    assert "/app-v2/clienti" in app_source
+    assert "isClientiPage?<AnagraficaClientiPage" in app_source
+    assert "{ label: 'Anagrafica', icon: UsersRound, href: '/app-v2/clienti' }" in app_source
+    assert "getClientiPage" in data_source
+    assert "/api/v1/ui/clienti" in data_source
+    assert '@api_v1_react.get("/clienti")' in api_source
+    assert "AnagraficaClientiPage" in page_source
+    assert "FloatingLex" in page_source
+    assert 'context="clienti"' in page_source
+    assert "Senza recapiti" in page_source
+    assert "Privacy" in page_source
+    assert "Documenti scaduti" in page_source
+    assert "localStorage" in floating_lex
+    assert "onPointerDown" in floating_lex
+    assert "Math.hypot" in floating_lex
+    assert ".iu-clienti-page" in css
+    assert ".iu-cli-table" in css
+    assert "@media(max-width:760px)" in css
+
+
+def test_react_clienti_bridge_usa_repository_reali(tmp_path: Path):
+    app = _app(tmp_path)
+    client = app.test_client()
+    cliente_repo = GestioneClienti(db_path=app.config["CLIENTI_DB"])
+    cliente = cliente_repo.nuovo(
+        TipoCliente.PERSONA_FISICA,
+        nome="Marco",
+        cognome="Moscato",
+        codice_fiscale="MSCMRC75E26L063G",
+    )
+    cliente_repo.aggiorna_recapiti(cliente.id, email="antmm2605@gmail.com", cellulare="+393474940097")
+
+    response = client.get("/api/v1/ui/clienti", headers={"X-API-Key": "react-test-key"})
+    payload = response.get_json()
+
+    assert response.status_code == 200
+    assert payload["source"] == "repository_reali"
+    assert payload["contracts"]["mock_fallback"] is False
+    assert payload["contracts"]["read_only"] is True
+    assert payload["summary"]["total"] >= 1
+    assert payload["items"][0]["name"] == "Moscato Marco"
+    assert payload["items"][0]["type"] == "pf"
+    assert payload["items"][0]["email"] == "antmm2605@gmail.com"
+    assert payload["items"][0]["phone"] == "+393474940097"
+    assert payload["items"][0]["href"] == f"/clienti/{cliente.id}"
+
+
 def test_react_autocomplete_clienti_usa_payload_minimale_sicuro(tmp_path: Path):
     app = _app(tmp_path)
     client = app.test_client()

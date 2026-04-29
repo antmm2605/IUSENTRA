@@ -55,6 +55,7 @@ import { AgendaPage } from './components/AgendaPage'
 import { NuovoAppuntamentoPage } from './components/NuovoAppuntamentoPage'
 import { RicercaStudioPage } from './components/RicercaStudioPage'
 import { FascicoliPage } from './components/FascicoliPage'
+import { AnagraficaClientiPage } from './components/AnagraficaClientiPage'
 import './index.css'
 
 const toneColor: Record<Tone,string> = { danger:'var(--iu-danger-500)', warning:'var(--iu-warning-500)', primary:'var(--iu-blue-600)', success:'var(--iu-success-500)', info:'var(--iu-sky-500)', purple:'var(--iu-purple-500)', orange:'var(--iu-warning-500)', neutral:'var(--iu-slate-300)' }
@@ -152,7 +153,7 @@ const navSections: NavSection[] = [
     label: 'Clienti e Anagrafiche',
     icon: UsersRound,
     items: [
-      { label: 'Anagrafica', icon: UsersRound, href: '/clienti' },
+      { label: 'Anagrafica', icon: UsersRound, href: '/app-v2/clienti' },
       { label: 'Nuovo Cliente', icon: UserPlus, href: '/clienti/nuovo' },
       { label: 'Cartelle Condivise', icon: FolderPlus, href: '/cartelle-condivise' }
     ]
@@ -332,7 +333,7 @@ function Agenda({ data }:{data:DashboardData}) {
 
 function Completion({ data }:{data:DashboardData}) {
   const c=data.completion
-  return <Panel title="Anagrafiche ancora da completare" icon={<Home size={17}/>} count={c.totalMissing}><div className="iu-completion"><div className="iu-ring" style={{background:`conic-gradient(var(--iu-blue-600) ${c.percent}%, var(--iu-slate-100) 0)`}}><div><strong>{c.percent}%</strong><span>Completate</span></div></div><div className="iu-legend"><strong>Da completare: {c.totalMissing}</strong>{c.items.map(x=><span key={x.label}><i/>{x.label}<b>{x.count}</b></span>)}</div></div><a className="iu-link" href="/clienti">Vai alle anagrafiche -&gt;</a></Panel>
+  return <Panel title="Anagrafiche ancora da completare" icon={<Home size={17}/>} count={c.totalMissing}><div className="iu-completion"><div className="iu-ring" style={{background:`conic-gradient(var(--iu-blue-600) ${c.percent}%, var(--iu-slate-100) 0)`}}><div><strong>{c.percent}%</strong><span>Completate</span></div></div><div className="iu-legend"><strong>Da completare: {c.totalMissing}</strong>{c.items.map(x=><span key={x.label}><i/>{x.label}<b>{x.count}</b></span>)}</div></div><a className="iu-link" href="/app-v2/clienti">Vai alle anagrafiche -&gt;</a></Panel>
 }
 
 function Compact({ title, icon, count, rows, href }:{title:string; icon:ReactNode; count:number; rows:Row[]; href:string}) {
@@ -424,8 +425,9 @@ export default function App() {
   const isAgendaPage = !isNewAppointmentPage && (activePath === '/app-v2/agenda' || activePath.startsWith('/app-v2/agenda/'))
   const isRegiaPage = activePath === '/app-v2/regia-operativa' || activePath.startsWith('/app-v2/regia-operativa/')
   const isFascicoliPage = activePath === '/app-v2/fascicoli' || activePath.startsWith('/app-v2/fascicoli/')
-  const isDashboardPage = !isSearchPage && !isAgendaPage && !isNewAppointmentPage && !isRegiaPage && !isFascicoliPage
-  const isStandalonePage = isSearchPage || isAgendaPage || isNewAppointmentPage || isFascicoliPage
+  const isClientiPage = activePath === '/app-v2/clienti' || activePath.startsWith('/app-v2/clienti/')
+  const isDashboardPage = !isSearchPage && !isAgendaPage && !isNewAppointmentPage && !isRegiaPage && !isFascicoliPage && !isClientiPage
+  const isStandalonePage = isSearchPage || isAgendaPage || isNewAppointmentPage || isFascicoliPage || isClientiPage
   const initialSearchQuery = new URLSearchParams(window.location.search).get('q') ?? ''
   const [data,setData]=useState<DashboardData>(emptyDashboard)
   const [loading,setLoading]=useState(!isStandalonePage)
@@ -439,12 +441,13 @@ export default function App() {
         {mobileMenuOpen?<button className="iu-sidebar-scrim" type="button" aria-label="Chiudi menu" onClick={()=>setMobileMenuOpen(false)}/>:null}
         <div className="iu-main">
           <Topbar onOpenMenu={()=>setMobileMenuOpen(true)}/>
-          {isSearchPage?<RicercaStudioPage initialQuery={initialSearchQuery}/>:isNewAppointmentPage?<NuovoAppuntamentoPage/>:isAgendaPage?<AgendaPage/>:isRegiaPage?<RegiaOperativaPage data={data} loading={loading}/>:isFascicoliPage?<FascicoliPage/>:<DashboardPage data={data} loading={loading}/>}
+          {isSearchPage?<RicercaStudioPage initialQuery={initialSearchQuery}/>:isNewAppointmentPage?<NuovoAppuntamentoPage/>:isAgendaPage?<AgendaPage/>:isRegiaPage?<RegiaOperativaPage data={data} loading={loading}/>:isFascicoliPage?<FascicoliPage/>:isClientiPage?<AnagraficaClientiPage/>:<DashboardPage data={data} loading={loading}/>}
         </div>
         <nav className="iu-mobile">
           <a className={isDashboardPage?'active':''} href="/app-v2"><LayoutDashboard size={18}/>Panoramica</a>
           <a className={isSearchPage?'active':''} href="/app-v2/ricerca-studio"><Search size={18}/>Ricerca</a>
           <a className={isFascicoliPage?'active':''} href="/app-v2/fascicoli"><BriefcaseBusiness size={18}/>Fascicoli</a>
+          <a className={isClientiPage?'active':''} href="/app-v2/clienti"><UsersRound size={18}/>Clienti</a>
           <a className={isAgendaPage||isNewAppointmentPage?'active':''} href="/app-v2/agenda"><CalendarDays size={18}/>Agenda</a>
           <a className={isRegiaPage?'active':''} href="/app-v2/regia-operativa"><Sparkles size={18}/>Regia</a>
         </nav>

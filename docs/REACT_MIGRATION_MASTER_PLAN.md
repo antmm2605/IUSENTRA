@@ -123,6 +123,22 @@ backend storico come punto di scrittura:
 - Lex AI contestuale con icona flottante, posizione persistita e azione
   `Completa titolo`.
 
+### Stato Clienti e Anagrafiche `/app-v2/clienti`
+
+La pagina Clienti React e' collegata alla nav della shell e non sostituisce
+ancora le route storiche `/clienti`:
+
+- dati reali da `/api/v1/ui/clienti`, normalizzati dai repository `GestioneClienti`
+  e `GestioneFascicoli`;
+- contratto in sola lettura con `mock_fallback=false`, mentre scheda, modifica,
+  nuovo cliente, export e cartella cliente restano sulle route Flask storiche;
+- KPI su totali, attivi, potenziali, archiviati, procedimenti collegati, dati
+  mancanti, recapiti assenti, privacy e documenti scaduti;
+- ricerca full-text, filtri tipo/stato, filtri avanzati per referente,
+  completezza, recapiti e ordinamento;
+- tabella desktop, card mobile, bulk bar locale, insight laterali e Lex AI
+  contestuale `clienti`.
+
 ### Stato Fascicoli `/app-v2/fascicoli`
 
 La pagina Fascicoli React resta in sola lettura e non sostituisce ancora le route storiche:

@@ -24,6 +24,7 @@ from pct.scadenziario import PrioritaTermine, StatoTermine
 from pct.timesheet import StatoTimesheet
 from pct.workspace_intelligente import WorkspaceIntelligenteService
 from web.services.react_agenda_bridge import build_react_agenda_payload
+from web.services.react_clienti_bridge import build_react_clienti_payload
 from web.services.react_fascicoli_bridge import (
     build_react_archivio_payload,
     build_react_fascicoli_export_payload,
@@ -748,6 +749,36 @@ def bootstrap():
             },
         }
     )
+
+
+@api_v1_react.get("/clienti")
+@_richiedi_auth
+def clienti_react_list():
+    try:
+        return jsonify(build_react_clienti_payload(get_clienti=get_clienti, get_fascicoli=get_fascicoli))
+    except Exception:
+        current_app.logger.exception("Clienti React: bridge non disponibile.")
+        return jsonify({
+            "source": "errore_controllato",
+            "generated_at": _iso_now(),
+            "contracts": {"mock_fallback": False, "read_only": True},
+            "summary": {
+                "total": 0,
+                "active": 0,
+                "potential": 0,
+                "archived": 0,
+                "withMatters": 0,
+                "incomplete": 0,
+                "withoutContacts": 0,
+                "privacyMissing": 0,
+                "documentsExpired": 0,
+            },
+            "items": [],
+            "facets": {
+                "types": [{"value": "tutti", "label": "Tutti i tipi", "count": 0}],
+                "statuses": [{"value": "tutti", "label": "Tutti gli stati", "count": 0}],
+            },
+        })
 
 
 # IUSENTRA_REACT_FASCICOLI_ROUTES_START

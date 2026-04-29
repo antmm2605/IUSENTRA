@@ -936,6 +936,12 @@ body.react-shell-page #root{
   .iu-lex-float__button{width:52px;height:52px;border-radius:19px}
   .iu-lex-float__panel{width:min(292px,calc(100vw - 22px));bottom:62px}
 }
+
+@media(max-width:920px){
+  .iu-mobile{
+    grid-template-columns:repeat(6,1fr);
+  }
+}
 @media(prefers-reduced-motion:reduce){
   .iu-ag-event,.iu-ag-view-switch button,.iu-lex-float__button{transition:none!important}
 }

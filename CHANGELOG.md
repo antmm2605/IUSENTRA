@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.195.29 - 2026-04-29
+
+- Aggiunta la pagina React `/app-v2/clienti` per Clienti e Anagrafiche, collegata alla sidebar enterprise e alla barra mobile della shell app-v2.
+- Introdotto il bridge reale `/api/v1/ui/clienti`, in sola lettura e senza mock operativi, alimentato da `GestioneClienti` e dai fascicoli collegati.
+- Integrata la UI anagrafica con KPI, ricerca, filtri avanzati, tabella desktop, card mobile, bulk bar locale, insight laterali e Lex AI contestuale.
+- Evidenziati qualita dati, clienti senza recapiti, privacy da verificare, documenti scaduti e collegamento procedimenti direttamente dalla lista.
+- Aggiornati test React/backend, piano migrazione, versioning e asset frontend per presidiare la nuova route progressiva.
+
 ## 2.195.28 - 2026-04-29
 
 - Aggiunta la nuova pagina React `/app-v2/fascicoli/:id/quadro`, alimentata dal bridge reale `getFascicoloDetail` senza mock operativi.

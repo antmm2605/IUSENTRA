@@ -185,8 +185,12 @@ def test_react_nuovo_appuntamento_pagina_separata_con_backend_storico():
     assert "autocomplete: '1'" in appointment_page
     assert "normaliseClientSuggestion" in appointment_page
     assert "clientSuggestionsFromPayload" in appointment_page
+    assert "firstText" in appointment_page
+    assert "safeClientMatches" in appointment_page
     assert "Array.isArray(payload)" in appointment_page
     assert "Array.isArray(payload.data)" in appointment_page
+    assert "agendaItemsFromPayload" in appointment_page
+    assert "const itemDataOra = asText(item.data_ora)" in appointment_page
     assert ".catch(() =>" in appointment_page
     assert "Cliente senza nome" in appointment_page
     assert "/api/agenda?da=" in appointment_page

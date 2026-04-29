@@ -56,13 +56,56 @@ type ClientSuggestion = {
   email?: string
 }
 
+const textKeys = [
+  'nome_completo',
+  'nomeCompleto',
+  'denominazione',
+  'ragione_sociale',
+  'ragioneSociale',
+  'titolo',
+  'title',
+  'label',
+  'name',
+  'value',
+] as const
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value && typeof value === 'object' && !Array.isArray(value))
 }
 
-function asText(value: unknown): string {
-  if (typeof value === 'string' || typeof value === 'number') return String(value).trim()
-  return ''
+function asText(value: unknown, fallback = ''): string {
+  try {
+    if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') return String(value).trim()
+    if (Array.isArray(value)) {
+      return value
+        .map((item) => asText(item))
+        .filter(Boolean)
+        .join(' ')
+        .trim() || fallback
+    }
+    if (isRecord(value)) {
+      for (const key of textKeys) {
+        const text = asText(value[key])
+        if (text) return text
+      }
+    }
+  } catch {
+    return fallback
+  }
+  return fallback
+}
+
+function firstText(record: Record<string, unknown>, keys: string[], fallback = ''): string {
+  for (const key of keys) {
+    const text = asText(record[key])
+    if (text) return text
+  }
+  return fallback
+}
+
+function nestedRecord(record: Record<string, unknown>, key: string): Record<string, unknown> {
+  const value = record[key]
+  return isRecord(value) ? value : {}
 }
 
 async function safeJson(response: Response): Promise<unknown> {
@@ -201,14 +244,17 @@ function clientName(client: Partial<ClientSuggestion> | null | undefined): strin
 
 function normaliseClientSuggestion(value: unknown): ClientSuggestion | null {
   if (!isRecord(value)) return null
+  const cliente = isRecord(value.cliente) ? value.cliente : value
+  const recapiti = nestedRecord(cliente, 'recapiti')
+  const contatti = nestedRecord(cliente, 'contatti')
   const suggestion: ClientSuggestion = {
-    id: asText(value.id),
-    nome: asText(value.nome),
-    cognome: asText(value.cognome),
-    ragione_sociale: asText(value.ragione_sociale),
-    nome_completo: asText(value.nome_completo) || asText(value.nomeCompleto),
-    codice_fiscale: asText(value.codice_fiscale) || asText(value.codiceFiscale) || asText(value.cf_cliente),
-    email: asText(value.email),
+    id: firstText(cliente, ['id', 'uuid', 'pk', 'id_cliente', 'idCliente']),
+    nome: firstText(cliente, ['nome', 'first_name', 'firstName']),
+    cognome: firstText(cliente, ['cognome', 'last_name', 'lastName']),
+    ragione_sociale: firstText(cliente, ['ragione_sociale', 'ragioneSociale', 'denominazione']),
+    nome_completo: firstText(cliente, ['nome_completo', 'nomeCompleto', 'display_name', 'displayName', 'label', 'name']),
+    codice_fiscale: firstText(cliente, ['codice_fiscale', 'codiceFiscale', 'cf_cliente', 'partita_iva', 'partitaIva', 'identificativo_fiscale']),
+    email: firstText(cliente, ['email', 'mail']) || firstText(recapiti, ['email', 'mail']) || firstText(contatti, ['email', 'mail']),
   }
   return clientName(suggestion) || suggestion.id ? suggestion : null
 }
@@ -222,11 +268,46 @@ function clientSuggestionsFromPayload(payload: unknown): ClientSuggestion[] {
         ? payload.items
         : isRecord(payload) && Array.isArray(payload.clienti)
           ? payload.clienti
-          : []
+          : isRecord(payload) && Array.isArray(payload.results)
+            ? payload.results
+            : isRecord(payload) && Array.isArray(payload.rows)
+              ? payload.rows
+              : isRecord(payload)
+                ? [payload]
+                : []
   return source
     .map((item) => normaliseClientSuggestion(item))
     .filter((item): item is ClientSuggestion => Boolean(item))
     .slice(0, 8)
+}
+
+function normaliseAgendaApiItem(value: unknown, index: number): AgendaApiItem | null {
+  if (!isRecord(value)) return null
+  const dataOra = firstText(value, ['data_ora', 'dataOra', 'datetime', 'inizio', 'start', 'data'])
+  if (!dataOra) return null
+  return {
+    id: firstText(value, ['id', 'uuid', 'pk'], `agenda-${index}`),
+    titolo: firstText(value, ['titolo', 'title', 'oggetto', 'name'], 'Appuntamento'),
+    data_ora: dataOra.includes('T') ? dataOra : `${dataOra}T00:00:00`,
+    durata_minuti: Number(value.durata_minuti ?? value.durataMinuti ?? value.duration ?? 60),
+    stato: firstText(value, ['stato', 'status']),
+    luogo: firstText(value, ['luogo', 'location', 'aula']),
+  }
+}
+
+function agendaItemsFromPayload(payload: unknown): AgendaApiItem[] {
+  const source = Array.isArray(payload)
+    ? payload
+    : isRecord(payload) && Array.isArray(payload.data)
+      ? payload.data
+      : isRecord(payload) && Array.isArray(payload.items)
+        ? payload.items
+        : isRecord(payload) && Array.isArray(payload.events)
+          ? payload.events
+          : []
+  return source
+    .map((item, index) => normaliseAgendaApiItem(item, index))
+    .filter((item): item is AgendaApiItem => Boolean(item))
 }
 
 function minutesFromTime(value: string): number | null {
@@ -287,11 +368,11 @@ function buildSuggestedTitle(form: AppointmentForm): string {
 
 function formatAgendaItemRange(item: AgendaApiItem): string {
   try {
-    const start = new Date(item.data_ora)
+    const start = new Date(asText(item.data_ora))
     const end = new Date(start.getTime() + Math.max(Number(item.durata_minuti ?? 60), 1) * 60000)
     return `${start.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })} - ${end.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}`
   } catch {
-    return item.data_ora
+    return asText(item.data_ora, 'Orario non disponibile')
   }
 }
 
@@ -392,8 +473,9 @@ export function NuovoAppuntamentoPage() {
 
     return dayEvents.filter((item) => {
       if (item.stato === 'ANNULLATO' || item.stato === 'COMPLETATO') return false
-      const itemDate = item.data_ora?.slice(0, 10)
-      const itemTime = item.data_ora?.slice(11, 16)
+      const itemDataOra = asText(item.data_ora)
+      const itemDate = itemDataOra.slice(0, 10)
+      const itemTime = itemDataOra.slice(11, 16)
       if (itemDate !== form.data || !itemTime) return false
       const itemStart = minutesFromTime(itemTime)
       if (itemStart === null) return false
@@ -401,6 +483,11 @@ export function NuovoAppuntamentoPage() {
       return itemStart < end && itemEnd > start
     })
   }, [dayEvents, form.data, form.durata, form.ora])
+
+  const safeClientMatches = useMemo(
+    () => clientSuggestionsFromPayload(clientMatches),
+    [clientMatches],
+  )
 
   const canSubmit = requiredOk && conflicts.length === 0
   const cancelHref = form.from_cliente || form.id_cliente ? `/clienti/${form.from_cliente || form.id_cliente}` : '/agenda'
@@ -484,7 +571,7 @@ export function NuovoAppuntamentoPage() {
     })
       .then((response) => response.ok ? safeJson(response) : [])
       .then((data) => {
-        if (alive) setDayEvents(Array.isArray(data) ? data : [])
+        if (alive) setDayEvents(agendaItemsFromPayload(data))
       })
       .catch(() => {
         if (alive) setDayEvents([])
@@ -706,8 +793,8 @@ export function NuovoAppuntamentoPage() {
                   {clientDropdownOpen ? (
                     <div className="iu-appt-client-menu">
                       {clientLoading ? <span>Ricerca clienti...</span> : null}
-                      {!clientLoading && !clientMatches.length ? <span>Nessun cliente trovato</span> : null}
-                      {clientMatches.map((client, index) => {
+                      {!clientLoading && !safeClientMatches.length ? <span>Nessun cliente trovato</span> : null}
+                      {safeClientMatches.map((client, index) => {
                         const name = clientName(client)
                         const detail = asText(client.codice_fiscale) || asText(client.email) || 'Anagrafica studio'
                         return (
@@ -843,7 +930,7 @@ export function NuovoAppuntamentoPage() {
                 <>
                   <strong><AlertTriangle size={15} /> Sovrapposizione rilevata</strong>
                   {conflicts.map((item) => (
-                    <span key={item.id}>{formatAgendaItemRange(item)} · {item.titolo}</span>
+                    <span key={asText(item.id)}>{formatAgendaItemRange(item)} - {asText(item.titolo, 'Appuntamento')}</span>
                   ))}
                 </>
               ) : (

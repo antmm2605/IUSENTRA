@@ -307,7 +307,8 @@ def register_clienti_routes(
             gc = get_clienti()
             query = request.args.get("q", "")
             clienti = gc.cerca(testo=query) if query else gc.tutti()
-            if request.args.get("autocomplete") in {"1", "true", "si", "sì"}:
+            autocomplete_flag = (request.args.get("autocomplete") or "").strip().lower()
+            if autocomplete_flag in {"1", "true", "si", "yes", "on"}:
                 try:
                     limit = max(1, min(int(request.args.get("limit", 8)), 20))
                 except (TypeError, ValueError):

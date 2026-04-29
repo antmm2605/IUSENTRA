@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.195.20 - 2026-04-29
+
+- Stabilizzata definitivamente la pagina React `/app-v2/agenda/nuovo`: autocomplete clienti, anteprima e controllo sovrapposizioni ora normalizzano anche payload annidati, record incompleti e campi non-stringa prima del render.
+- Rafforzata la lettura di `/api/agenda` nella pagina nuovo appuntamento per evitare crash React quando un evento reale ha date, titoli o durate in formato inatteso.
+- Estesi i contratti React e il test shell per presidiare dropdown clienti sanitizzata, normalizzazione agenda e parsing difensivo.
+
 ## 2.195.19 - 2026-04-29
 
 - Rafforzato l'autocomplete clienti della pagina React `/app-v2/agenda/nuovo`: ora usa il payload minimale `/api/clienti?autocomplete=1`, normalizzato lato Flask, invece del JSON anagrafico completo.

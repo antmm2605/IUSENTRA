@@ -19,6 +19,7 @@ Il primo blocco e' considerato operativo sulle seguenti superfici:
 - Soggetti e Parti: `GET /soggetti` e `GET /soggetti/nuovo`
 - Comunicazioni: `GET /email/`, `GET /messaggi`, `GET /messaggi/nuovo`
 - Servizi Telematici: `GET /telematico` e `/app-v2/telematico`, con fallback tecnico `_legacy=1`
+- Superfici telematiche di secondo livello: `GET /polisWeb`, `GET /pdp`, `GET /pat`, `GET /sigit`, `GET /tribunali`, `GET /deposito/checklist` e `GET /guida/firma-digitale`, con fallback tecnico `_legacy=1`
 
 Le pagine del blocco usano dati reali, API bridge sotto `/api/v1/ui/*`, testi visibili in italiano, stati vuoti espliciti e Lex AI contestuale dove previsto. Non sono ammessi mock operativi o copy che presenti la UI React come prototipo temporaneo.
 
@@ -35,8 +36,18 @@ Le pagine del blocco usano dati reali, API bridge sotto `/api/v1/ui/*`, testi vi
 - `GET /api/v1/ui/messaggi`
 - `GET /api/v1/ui/messaggi/nuovo`
 - `GET /api/v1/ui/telematico`
+- `GET /api/v1/ui/telematico/surface/<surface>`
 
 I contratti devono dichiarare `mock_fallback=false`. Le superfici che inviano a servizi Flask esistenti dichiarano `writes=operational_routes`.
+
+## Servizi telematici: superfici di secondo livello
+
+Le superfici telematiche React sono pagine operative reali, non mock:
+
+- `PolisWeb / PST`, `PDP`, `PAT` e `PTT` filtrano casi, esiti, import incompleti, controlli predeposito ed eventi dal repository telematico reale.
+- `Tribunali / PEC` legge la cache uffici giudiziari reale, espone ricerca e copia PEC, e mantiene le azioni di refresh/report sulle route Flask operative.
+- `Checklist deposito` e `Guida firma digitale` salvano solo spunte locali nel browser; le verifiche effettive restano sui servizi Flask e sul Local Signer browser-locale.
+- Nessuna superficie scarica autonomamente documenti dai portali o legge HTML dei portali: i collegamenti ufficiali aprono il portale all'utente, mentre l'import resta guidato da file o canali autorizzati.
 
 ## Comunicazioni: Email PEC e Messaggi
 

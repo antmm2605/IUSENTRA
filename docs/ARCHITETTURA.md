@@ -206,6 +206,8 @@ Questo mantiene coerenti compose locale, container web e logica di risoluzione r
 4. monitoraggio fonti e alert in `legal_intelligence.py`
 5. risposta Lex solo sopra stato e regole già verificate
 
+6. superfici React di canale via `/api/v1/ui/telematico/surface/<surface>`, con GET ufficiali React e fallback tecnico `_legacy=1`
+
 ### Giurisprudenza
 
 1. ingestione/sync sorgenti in `giurisprudenza.py`

@@ -45,7 +45,11 @@ from web.services.react_scadenziario_bridge import (
     build_react_scadenziario_payload,
 )
 from web.services.react_soggetti_bridge import build_react_soggetti_payload
-from web.services.react_telematico_bridge import build_react_telematico_payload
+from web.services.react_telematico_bridge import (
+    build_react_telematico_payload,
+    build_react_telematico_surface_payload,
+    build_react_tribunali_payload,
+)
 from web.services.react_wizard_pro_bridge import build_react_wizard_pro_payload
 from web.helpers import (
     get_agenda,
@@ -808,6 +812,10 @@ def bootstrap():
                 "replace_fascicoli": True,
                 "replace_scadenziario": True,
                 "replace_telematico": True,
+                "replace_telematico_surfaces": True,
+                "replace_tribunali_pec": True,
+                "replace_checklist_deposito": True,
+                "replace_guida_firma_digitale": True,
                 "replace_preventivi": False,
                 "replace_sito_studio": False,
                 "replace_clienti": True,
@@ -996,6 +1004,23 @@ def wizard_pro_react_dashboard():
 def telematico_react_dashboard():
     return jsonify(
         build_react_telematico_payload(
+            get_telematico=_telematico_loader(),
+            get_fascicoli=get_fascicoli,
+            build_access_status_payload=_telematico_runtime_func("build_access_status_payload"),
+            logger=current_app.logger,
+        )
+    )
+
+
+@api_v1_react.get("/telematico/surface/<surface>")
+@_richiedi_auth
+def telematico_react_surface(surface: str):
+    normalized = (surface or "").strip().lower()
+    if normalized in {"tribunali", "tribunali-pec"}:
+        return jsonify(build_react_tribunali_payload())
+    return jsonify(
+        build_react_telematico_surface_payload(
+            surface=surface,
             get_telematico=_telematico_loader(),
             get_fascicoli=get_fascicoli,
             build_access_status_payload=_telematico_runtime_func("build_access_status_payload"),

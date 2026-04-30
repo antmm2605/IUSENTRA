@@ -542,6 +542,89 @@ def test_react_telematico_bridge_payload_minimo(tmp_path: Path):
     assert "controlTower" in payload
 
 
+def test_react_superfici_telematiche_collegate_nav_api_css():
+    app_source = Path("frontend/src/App.tsx").read_text(encoding="utf-8")
+    page_source = Path("frontend/src/components/TelematicoSurfacePage.tsx").read_text(encoding="utf-8")
+    data_source = Path("frontend/src/telematicoSurfacesData.ts").read_text(encoding="utf-8")
+    css = Path("frontend/src/components/TelematicoSurfacePage.css").read_text(encoding="utf-8")
+    api_source = Path("web/blueprints/api_v1_react.py").read_text(encoding="utf-8")
+    polisweb_routes = Path("web/bootstrap/polisweb_routes.py").read_text(encoding="utf-8")
+    portali_routes = Path("web/bootstrap/telematico_portali_routes.py").read_text(encoding="utf-8")
+    deposito_routes = Path("web/bootstrap/deposito_routes.py").read_text(encoding="utf-8")
+    lookup_routes = Path("web/bootstrap/reference_lookup_routes.py").read_text(encoding="utf-8")
+
+    assert "const TelematicoSurfacePage" in app_source
+    assert "isTelematicoSurfacePage" in app_source
+    assert "isTelematicoSurfacePage?<TelematicoSurfacePage/>" in app_source
+    assert "{ label: 'PTT Tributario', icon: FileText, href: '/sigit' }" in app_source
+    assert "getTelematicoSurfacePage" in data_source
+    assert "/api/v1/ui/telematico/surface/" in data_source
+    assert "OfficeDirectory" in page_source
+    assert "Checklist operativa" in page_source
+    assert '@api_v1_react.get("/telematico/surface/<surface>")' in api_source
+    assert "build_react_telematico_surface_payload" in api_source
+    assert "build_react_tribunali_payload" in api_source
+    assert 'render_react_shell_response("polisWeb")' in polisweb_routes
+    assert 'render_react_shell_response("pdp")' in portali_routes
+    assert 'render_react_shell_response("pat")' in portali_routes
+    assert 'render_react_shell_response("sigit")' in portali_routes
+    assert 'render_react_shell_response("deposito/checklist")' in deposito_routes
+    assert 'render_react_shell_response("guida/firma-digitale")' in deposito_routes
+    assert 'render_react_shell_response("tribunali")' in lookup_routes
+    assert ".iu-tel-surface-page" in css
+    assert ".iu-tel-offices" in css
+    assert "@media(max-width:860px)" in css
+
+
+def test_route_ufficiali_superfici_telematiche_servono_react_con_legacy(tmp_path: Path):
+    app = _app(tmp_path)
+    _crea_operatore(app)
+
+    with app.test_client() as client:
+        _login(client)
+        for path in ("/polisWeb", "/pdp", "/pat", "/sigit", "/tribunali", "/deposito/checklist", "/guida/firma-digitale"):
+            response = client.get(path)
+            html = response.get_data(as_text=True)
+            assert response.status_code == 200, path
+            assert '<html lang="it" class="react-shell-document">' in html
+            assert 'id="root"' in html
+
+        for path in ("/polisWeb?_legacy=1", "/pdp?_legacy=1", "/pat?_legacy=1", "/sigit?_legacy=1", "/tribunali?_legacy=1", "/deposito/checklist?_legacy=1", "/guida/firma-digitale?_legacy=1"):
+            response = client.get(path)
+            assert response.status_code == 200, path
+            assert 'id="root"' not in response.get_data(as_text=True)
+
+
+def test_react_superfici_telematiche_api_payload_reale(tmp_path: Path):
+    app = _app(tmp_path)
+    client = app.test_client()
+
+    checklist = client.get("/api/v1/ui/telematico/surface/checklist", headers={"X-API-Key": "react-test-key"})
+    firma = client.get("/api/v1/ui/telematico/surface/firma", headers={"X-API-Key": "react-test-key"})
+    polisweb = client.get("/api/v1/ui/telematico/surface/polisweb", headers={"X-API-Key": "react-test-key"})
+    tribunali = client.get("/api/v1/ui/telematico/surface/tribunali", headers={"X-API-Key": "react-test-key"})
+
+    checklist_payload = checklist.get_json()
+    firma_payload = firma.get_json()
+    polisweb_payload = polisweb.get_json()
+    tribunali_payload = tribunali.get_json()
+
+    assert checklist.status_code == 200
+    assert checklist_payload["source"] == "repository_reali"
+    assert checklist_payload["contracts"]["mock_fallback"] is False
+    assert checklist_payload["surface"]["id"] == "checklist"
+    assert checklist_payload["checklistGroups"]
+    assert firma.status_code == 200
+    assert firma_payload["surface"]["id"] == "firma"
+    assert any("Local Signer" in group["title"] for group in firma_payload["checklistGroups"])
+    assert polisweb.status_code == 200
+    assert polisweb_payload["surface"]["id"] == "polisweb"
+    assert polisweb_payload["surface"]["portal"] == "pst"
+    assert tribunali.status_code == 200
+    assert tribunali_payload["surface"]["id"] == "tribunali"
+    assert tribunali_payload["officeSummary"]["perType"] is not None
+
+
 def test_route_ufficiali_primo_blocco_servono_react_con_vista_classica_tecnica(tmp_path: Path):
     app = _app(tmp_path)
     _crea_operatore(app)

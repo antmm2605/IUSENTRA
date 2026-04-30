@@ -38,6 +38,103 @@ PORTAL_DESCRIPTIONS = {
 PORTAL_TONES = {"pst": "primary", "pdp": "danger", "pat": "success", "ptt": "warning"}
 PORTAL_HOME_ENDPOINTS = {"pst": "polisWeb_home", "pdp": "pdp_home", "pat": "pat_home", "ptt": "sigit_home"}
 PORTAL_HOME_FALLBACKS = {"pst": "/polisWeb", "pdp": "/pdp", "pat": "/pat", "ptt": "/sigit/ricerca"}
+PORTAL_IMPORT_FALLBACKS = {
+    "pst": "/portali/pst/acquisizione",
+    "pdp": "/portali/pdp/acquisizione",
+    "pat": "/portali/pat/acquisizione",
+    "ptt": "/portali/ptt/acquisizione",
+}
+PORTAL_OFFICIAL_URLS = {
+    "pst": "https://pst.giustizia.it/PST/it/services.page",
+    "pdp": "https://appweb.giustizia.it/snt",
+    "pat": "https://www.giustizia-amministrativa.it/portale-avvocato",
+    "ptt": "https://sigit.giustiziatributaria.gov.it/Sigit/index.do",
+}
+SURFACE_ALIASES = {
+    "polisweb": "polisweb",
+    "polisweb-pst": "polisweb",
+    "pst": "polisweb",
+    "sigp": "polisweb",
+    "pdp": "pdp",
+    "pat": "pat",
+    "ptt": "ptt",
+    "sigit": "ptt",
+    "tributario": "ptt",
+    "tribunali": "tribunali",
+    "tribunali-pec": "tribunali",
+    "checklist": "checklist",
+    "deposito-checklist": "checklist",
+    "firma": "firma",
+    "firma-digitale": "firma",
+}
+SURFACE_SPECS = {
+    "polisweb": {
+        "id": "polisweb",
+        "portal": "pst",
+        "title": "PolisWeb / PST",
+        "eyebrow": "Consultazione civile e SIGP",
+        "subtitle": (
+            "Ricerca fascicoli, acquisizione guidata e import autorizzato dal Portale "
+            "Servizi Telematici, senza scraping e senza credenziali salvate nel cloud."
+        ),
+        "tone": "primary",
+    },
+    "pdp": {
+        "id": "pdp",
+        "portal": "pdp",
+        "title": "PDP Penale",
+        "eyebrow": "Deposito e fascicolo penale",
+        "subtitle": (
+            "Workflow penale con accesso browser-guided, import fascicolo, ricevute, "
+            "task operativi e collegamento alla cabina fascicolo."
+        ),
+        "tone": "danger",
+    },
+    "pat": {
+        "id": "pat",
+        "portal": "pat",
+        "title": "PAT Amministrativo",
+        "eyebrow": "Portale Avvocato / SIGA",
+        "subtitle": (
+            "Presidio del fascicolo amministrativo, import dei file gia scaricati e "
+            "controllo di ricevute, provvedimenti ed esiti."
+        ),
+        "tone": "success",
+    },
+    "ptt": {
+        "id": "ptt",
+        "portal": "ptt",
+        "title": "PTT Tributario",
+        "eyebrow": "SIGIT e Telecontenzioso",
+        "subtitle": (
+            "Preparazione del fascicolo tributario interno, acquisizione guidata da "
+            "SIGIT e presidio di ricevute, NIR, provvedimenti e scadenze."
+        ),
+        "tone": "warning",
+    },
+    "checklist": {
+        "id": "checklist",
+        "portal": "",
+        "title": "Checklist deposito",
+        "eyebrow": "Controlli prima dell'invio",
+        "subtitle": (
+            "Checklist operativa token-based per PCT, PDP, PAT e PTT con stato locale "
+            "salvato nel browser e collegamenti alle superfici operative."
+        ),
+        "tone": "purple",
+    },
+    "firma": {
+        "id": "firma",
+        "portal": "",
+        "title": "Guida firma digitale",
+        "eyebrow": "Local Signer, token e certificati",
+        "subtitle": (
+            "Percorso guidato per usare Local Signer, token USB, P12/PEM e pacchetti "
+            "installabili senza confondere token locale e backend server."
+        ),
+        "tone": "info",
+    },
+}
 
 
 def _iso_now() -> str:
@@ -113,6 +210,16 @@ def _channel_badges(payload: dict[str, Any]) -> list[str]:
     return badges
 
 
+def _app_v2_href(path: str) -> str:
+    clean = "/" + str(path or "").strip().lstrip("/")
+    return f"/app-v2{clean}"
+
+
+def _surface_id(value: str) -> str:
+    raw = _text(value).strip().lower().replace("_", "-").replace("/", "-")
+    return SURFACE_ALIASES.get(raw, raw)
+
+
 def _build_channel(portal: str, stats: dict[str, Any], access_payload: dict[str, Any]) -> dict[str, Any]:
     spec = dict(access_payload.get("spec") or {})
     service_stats = dict((stats.get("per_service") or {}).get(SERVICE_MAP[portal]) or {})
@@ -147,9 +254,9 @@ def _build_channel(portal: str, stats: dict[str, Any], access_payload: dict[str,
         "pkcs11Mode": bool(access_payload.get("pkcs11_mode")),
         "badges": _channel_badges(access_payload),
         "quickActions": [
-            {"label": "Apri portale", "href": home_href, "tone": PORTAL_TONES[portal]},
+            {"label": "Apri portale", "href": _app_v2_href(portal if portal != "ptt" else "ptt"), "tone": PORTAL_TONES[portal]},
             {"label": "Importa da portale", "href": import_href, "tone": "primary"},
-            {"label": "Presidia", "href": f"/telematico?focus={portal}", "tone": "warning"},
+            {"label": "Presidia", "href": f"/app-v2/telematico?focus={portal}", "tone": "warning"},
         ],
     }
 
@@ -259,6 +366,533 @@ def _lex_suggestions(summary: dict[str, int], channels: list[dict[str, Any]]) ->
     if any(channel.get("demoMode") or channel.get("browserChannelRequired") for channel in channels):
         suggestions.append("Per i canali browser-guided apri il portale ufficiale e importa solo payload o file autorizzati.")
     return suggestions[:4]
+
+
+def _surface_action(
+    action_id: str,
+    label: str,
+    href: str,
+    *,
+    tone: str = "primary",
+    method: str = "GET",
+    external: bool = False,
+) -> dict[str, Any]:
+    return {
+        "id": action_id,
+        "label": label,
+        "href": href,
+        "tone": tone,
+        "method": method,
+        "external": external,
+    }
+
+
+def _surface_card(
+    card_id: str,
+    title: str,
+    body: str,
+    *,
+    tone: str = "primary",
+    icon: str = "workflow",
+    actions: list[dict[str, Any]] | None = None,
+    metrics: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    return {
+        "id": card_id,
+        "title": title,
+        "body": body,
+        "tone": tone,
+        "icon": icon,
+        "actions": actions or [],
+        "metrics": metrics or [],
+    }
+
+
+def _portal_operation_cards(surface_id: str, portal: str, channel: dict[str, Any] | None) -> list[dict[str, Any]]:
+    channel = dict(channel or {})
+    tone = PORTAL_TONES.get(portal, "primary")
+    home_href = channel.get("homeHref") or PORTAL_HOME_FALLBACKS.get(portal, "/telematico")
+    import_href = channel.get("importHref") or PORTAL_IMPORT_FALLBACKS.get(portal, "/portali/pst/acquisizione")
+    official_href = PORTAL_OFFICIAL_URLS.get(portal, "")
+    return [
+        _surface_card(
+            "workspace",
+            "Cabina del canale",
+            "Apri la vista React dedicata, controlla stato canale, casi collegati e prossima azione.",
+            tone=tone,
+            icon="monitor",
+            actions=[
+                _surface_action("open-react", "Apri superficie", _app_v2_href(surface_id), tone=tone),
+                _surface_action("open-center", "Centro telematico", "/app-v2/telematico", tone="secondary"),
+            ],
+            metrics=[
+                {"label": "Pratiche", "value": channel.get("cases", 0)},
+                {"label": "Import completi", "value": channel.get("importCompleted", 0)},
+                {"label": "Da presidiare", "value": channel.get("attentionNeeded", 0)},
+            ],
+        ),
+        _surface_card(
+            "acquisizione",
+            "Acquisizione guidata",
+            "Importa nel fascicolo interno solo payload, file o cataloghi ottenuti da canali autorizzati.",
+            tone="primary",
+            icon="download",
+            actions=[
+                _surface_action("import", "Avvia acquisizione", import_href, tone="primary"),
+                _surface_action("fascicoli", "Fascicoli collegati", "/app-v2/fascicoli", tone="secondary"),
+            ],
+        ),
+        _surface_card(
+            "operativo",
+            "Modulo operativo storico",
+            "Mantiene disponibili le funzioni gia auditate mentre la UI React viene completata per livelli.",
+            tone="neutral",
+            icon="external",
+            actions=[
+                _surface_action("legacy", "Apri modulo operativo", home_href, tone="neutral"),
+                _surface_action("official", "Portale ufficiale", official_href, tone=tone, external=True),
+            ],
+        ),
+        _surface_card(
+            "controlli",
+            "Controlli e qualita",
+            "Verifica connessioni, Local Signer, PEC, esiti in attesa e blocchi predeposito.",
+            tone="warning",
+            icon="shield",
+            actions=[
+                _surface_action("status", "Stato connessioni", "/api/telematico/connection-status", tone="warning"),
+                _surface_action("checklist", "Checklist deposito", "/app-v2/deposito/checklist", tone="purple"),
+            ],
+        ),
+    ]
+
+
+def _portal_checklist_groups(portal: str) -> list[dict[str, Any]]:
+    common = [
+        {
+            "id": "identita",
+            "title": "Identita e accesso",
+            "items": [
+                {"id": "certificato", "label": "Certificato o Local Signer verificato", "description": "Il controllo reale del token USB avviene sul PC locale, non sul server cloud.", "critical": True},
+                {"id": "ufficio", "label": "Ufficio e registro coerenti", "description": "Codice ufficio, RG, anno e rito devono corrispondere al fascicolo reale.", "critical": True},
+                {"id": "parti", "label": "Parti e anagrafiche riallineate", "description": "Nessun soggetto essenziale deve restare incompleto prima dell'import o deposito.", "critical": False},
+            ],
+        },
+        {
+            "id": "documenti",
+            "title": "Documenti e ricevute",
+            "items": [
+                {"id": "catalogo", "label": "Catalogo documenti acquisito", "description": "Le buste devono mantenere id deposito, tipo atto, data e mittente.", "critical": True},
+                {"id": "ricevute", "label": "Ricevute ed esiti collegati", "description": "Accettazione, consegna, controlli ed esiti vanno archiviati nel fascicolo.", "critical": False},
+                {"id": "naming", "label": "Nomi file leggibili", "description": "File e allegati devono restare riconoscibili nella cabina fascicolo.", "critical": False},
+            ],
+        },
+    ]
+    if portal == "ptt":
+        common.append(
+            {
+                "id": "ptt",
+                "title": "Passaggi tributari",
+                "items": [
+                    {"id": "nir", "label": "NIR e allegati controllati", "description": "La nota iscrizione a ruolo e i file scaricati da SIGIT devono essere importati in modo tracciabile.", "critical": True},
+                    {"id": "telecontenzioso", "label": "Telecontenzioso presidiato", "description": "Consultazione e download restano sul portale ufficiale, con import successivo nel gestionale.", "critical": False},
+                ],
+            }
+        )
+    if portal == "pdp":
+        common.append(
+            {
+                "id": "pdp",
+                "title": "Passaggi penali",
+                "items": [
+                    {"id": "registro", "label": "Registro penale corretto", "description": "RGNR, GIP/GUP o dibattimento devono essere selezionati senza ambiguita.", "critical": True},
+                    {"id": "review", "label": "Manual review completata", "description": "Ogni richiesta di accesso o deposito deve restare validata dall'avvocato.", "critical": True},
+                ],
+            }
+        )
+    return common
+
+
+def _deposit_checklist_groups() -> list[dict[str, Any]]:
+    return [
+        {
+            "id": "kit-base",
+            "title": "Kit base",
+            "items": [
+                {"id": "firma", "label": "Firma digitale attiva", "description": "Certificato valido, PIN disponibile e Local Signer o software di firma funzionante.", "critical": True},
+                {"id": "pec", "label": "PEC operativa", "description": "Casella capiente e canale di invio coerente con configurazione server o Local Signer.", "critical": True},
+                {"id": "pdf", "label": "PDF e allegati verificati", "description": "Documenti leggibili, non corrotti e collegati al fascicolo corretto.", "critical": True},
+                {"id": "ricevute", "label": "Ricevute da controllare dopo invio", "description": "Accettazione, consegna, controlli automatici ed esito ufficio.", "critical": False},
+            ],
+        },
+        {
+            "id": "pct",
+            "title": "PCT civile",
+            "items": [
+                {"id": "atto-principale", "label": "Atto principale selezionato", "description": "L'atto principale deve essere quello effettivo da inserire in busta.", "critical": True},
+                {"id": "ufficio-pct", "label": "Ufficio abilitato verificato", "description": "Controlla codice ufficio e PEC destinataria prima dell'invio.", "critical": True},
+                {"id": "busta", "label": "Busta e allegati coerenti", "description": "Metadati, registro, RG, anno, oggetto e allegati devono combaciare.", "critical": True},
+            ],
+        },
+        {
+            "id": "pdp-pat-ptt",
+            "title": "PDP, PAT e PTT",
+            "items": [
+                {"id": "canale", "label": "Canale corretto per il rito", "description": "Penale su PDP, amministrativo su PAT/SIGA, tributario su PTT/SIGIT.", "critical": True},
+                {"id": "portale", "label": "Portale ufficiale aperto dall'utente", "description": "La consultazione avviene nel browser ufficiale o via Local Signer autorizzato.", "critical": True},
+                {"id": "import", "label": "File importati nel fascicolo", "description": "Ricevute, provvedimenti ed esiti vanno collegati al fascicolo interno.", "critical": False},
+            ],
+        },
+    ]
+
+
+def _firma_checklist_groups() -> list[dict[str, Any]]:
+    return [
+        {
+            "id": "local-signer",
+            "title": "Local Signer",
+            "items": [
+                {"id": "installato", "label": "Local Signer installato sul PC", "description": "Il servizio deve rispondere su http://127.0.0.1:27272 dal browser dell'avvocato.", "critical": True},
+                {"id": "origine", "label": "Origine HTTPS autorizzata", "description": "L'origine app.iusentra.it deve poter dialogare con il loopback locale.", "critical": True},
+                {"id": "pacchetto", "label": "Pacchetto aggiornato scaricato", "description": "Su Windows il pacchetto utente resta un eseguibile .exe versionato.", "critical": False},
+            ],
+        },
+        {
+            "id": "certificato",
+            "title": "Certificato e token",
+            "items": [
+                {"id": "token", "label": "Token USB controllato localmente", "description": "Non mostrare errori server-side PKCS#11 se il canale previsto e' browser-locale.", "critical": True},
+                {"id": "p12", "label": "P12/PEM solo se realmente server-side", "description": "Usare file certificato sul server solo per installazioni che lo prevedono.", "critical": False},
+                {"id": "scadenza", "label": "Scadenza certificato presidiata", "description": "Il certificato va verificato prima di firma e deposito.", "critical": True},
+            ],
+        },
+    ]
+
+
+def _surface_checklist(surface_id: str, portal: str = "") -> list[dict[str, Any]]:
+    if surface_id == "checklist":
+        return _deposit_checklist_groups()
+    if surface_id == "firma":
+        return _firma_checklist_groups()
+    if portal:
+        return _portal_checklist_groups(portal)
+    return []
+
+
+def _filter_by_portal(items: list[dict[str, Any]], portal: str) -> list[dict[str, Any]]:
+    if not portal:
+        return items
+    return [item for item in items if item.get("portal") == portal]
+
+
+def _surface_controls(base_control: dict[str, Any], portal: str) -> dict[str, Any]:
+    return {
+        "pendingOutcomes": _filter_by_portal(list(base_control.get("pendingOutcomes") or []), portal),
+        "incompleteImports": _filter_by_portal(list(base_control.get("incompleteImports") or []), portal),
+        "warnings": _filter_by_portal(list(base_control.get("warnings") or []), portal),
+        "blockedCases": _filter_by_portal(list(base_control.get("blockedCases") or []), portal),
+        "predeposito": _filter_by_portal(list(base_control.get("predeposito") or []), portal),
+    }
+
+
+def _surface_links(surface_id: str, portal: str = "") -> list[dict[str, Any]]:
+    links = [
+        {"label": "Centro Servizi Telematici", "href": "/app-v2/telematico", "kind": "react"},
+        {"label": "Checklist deposito", "href": "/app-v2/deposito/checklist", "kind": "react"},
+        {"label": "Guida firma digitale", "href": "/app-v2/guida/firma-digitale", "kind": "react"},
+        {"label": "Tribunali / PEC", "href": "/app-v2/tribunali", "kind": "react"},
+    ]
+    if portal:
+        links.insert(1, {"label": "Acquisizione guidata", "href": PORTAL_IMPORT_FALLBACKS[portal], "kind": "operativo"})
+        links.append({"label": "Portale ufficiale", "href": PORTAL_OFFICIAL_URLS[portal], "kind": "esterno"})
+    if surface_id == "firma":
+        links.extend(
+            [
+                {"label": "Installer Windows .exe", "href": "/polisWeb/local-signer/setup/windows", "kind": "download"},
+                {"label": "Installer macOS", "href": "/polisWeb/local-signer/setup/macos", "kind": "download"},
+                {"label": "Installer Linux", "href": "/polisWeb/local-signer/setup/linux", "kind": "download"},
+                {"label": "Impostazioni firma", "href": "/impostazioni?tab=firma", "kind": "operativo"},
+            ]
+        )
+    return links
+
+
+def build_react_telematico_surface_payload(
+    *,
+    surface: str,
+    get_telematico: Callable[[], Any],
+    get_fascicoli: Callable[[], Any],
+    build_access_status_payload: Callable[[str], dict[str, Any]],
+    logger: Any | None = None,
+) -> dict[str, Any]:
+    """Payload per le superfici React di secondo livello dei servizi telematici."""
+
+    surface_id = _surface_id(surface)
+    if surface_id not in SURFACE_SPECS:
+        surface_id = "polisweb"
+    spec = dict(SURFACE_SPECS[surface_id])
+    portal = str(spec.get("portal") or "")
+    base = build_react_telematico_payload(
+        get_telematico=get_telematico,
+        get_fascicoli=get_fascicoli,
+        build_access_status_payload=build_access_status_payload,
+        logger=logger,
+    )
+    channel = next((item for item in base["channels"] if item.get("id") == portal), None) if portal else None
+    controls = _surface_controls(dict(base.get("controlTower") or {}), portal)
+    recent_cases = _filter_by_portal(list(base.get("recentCases") or []), portal) if portal else list(base.get("recentCases") or [])
+    recent_events = _filter_by_portal(list(base.get("recentEvents") or []), portal) if portal else list(base.get("recentEvents") or [])
+    attention = sum(len(list(controls.get(key) or [])) for key in controls)
+    operation_cards = (
+        _portal_operation_cards(surface_id, portal, channel)
+        if portal
+        else [
+            _surface_card(
+                "centro",
+                "Centro Servizi Telematici",
+                "Torna alla cabina che aggrega PST, PDP, PAT, PTT, esiti e import.",
+                tone="primary",
+                icon="monitor",
+                actions=[_surface_action("centro", "Apri centro", "/app-v2/telematico", tone="primary")],
+            ),
+            _surface_card(
+                "fascicoli",
+                "Fascicoli collegati",
+                "Usa la suite fascicoli React per preparare atti, documenti, scadenze e depositi.",
+                tone="success",
+                icon="folder",
+                actions=[_surface_action("fascicoli", "Apri fascicoli", "/app-v2/fascicoli", tone="success")],
+            ),
+        ]
+    )
+    if surface_id == "checklist":
+        operation_cards.extend(
+            [
+                _surface_card(
+                    "firma",
+                    "Firma digitale",
+                    "Controlla Local Signer, token e certificato prima di proseguire.",
+                    tone="info",
+                    icon="shield",
+                    actions=[_surface_action("firma", "Apri guida", "/app-v2/guida/firma-digitale", tone="info")],
+                ),
+                _surface_card(
+                    "pec",
+                    "PEC ed esiti",
+                    "Leggi ricevute e comunicazioni collegate al deposito.",
+                    tone="warning",
+                    icon="mail",
+                    actions=[_surface_action("pec", "Apri PEC", "/app-v2/email", tone="warning")],
+                ),
+            ]
+        )
+    if surface_id == "firma":
+        operation_cards = [
+            _surface_card(
+                "windows",
+                "Pacchetto Windows",
+                "Scarica l'eseguibile versionato per avviare Local Signer sul PC dell'avvocato.",
+                tone="primary",
+                icon="download",
+                actions=[_surface_action("windows", "Scarica .exe", "/polisWeb/local-signer/setup/windows", tone="primary")],
+            ),
+            _surface_card(
+                "monitor",
+                "Verifica Local Signer",
+                "Il browser controlla il servizio locale su 127.0.0.1:27272 e non il token dal server cloud.",
+                tone="success",
+                icon="shield",
+                actions=[_surface_action("settings", "Impostazioni firma", "/impostazioni?tab=firma", tone="success")],
+            ),
+            _surface_card(
+                "pacchetti",
+                "Pacchetti macOS e Linux",
+                "Restano disponibili per postazioni non Windows, con installatori eseguibili dedicati.",
+                tone="neutral",
+                icon="download",
+                actions=[
+                    _surface_action("macos", "macOS", "/polisWeb/local-signer/setup/macos", tone="neutral"),
+                    _surface_action("linux", "Linux", "/polisWeb/local-signer/setup/linux", tone="neutral"),
+                ],
+            ),
+        ]
+    summary = {
+        "total": int(channel.get("cases") or 0) if channel else int((base.get("summary") or {}).get("total") or 0),
+        "imports": int(channel.get("importCompleted") or 0) if channel else int((base.get("summary") or {}).get("incompleteImports") or 0),
+        "attention": int(channel.get("attentionNeeded") or 0) + attention if channel else attention,
+        "blocked": len(list(controls.get("blockedCases") or [])),
+        "warnings": len(list(controls.get("warnings") or [])),
+    }
+    return {
+        "source": "repository_reali",
+        "generatedAt": _iso_now(),
+        "contracts": {
+            "mock_fallback": False,
+            "read_only": True,
+            "writes": "operational_routes",
+            "route_owner": "react_shell",
+        },
+        "surface": {
+            **spec,
+            "portal": portal,
+            "appHref": _app_v2_href(surface_id),
+            "legacyHref": PORTAL_HOME_FALLBACKS.get(portal, ""),
+            "officialHref": PORTAL_OFFICIAL_URLS.get(portal, ""),
+        },
+        "summary": summary,
+        "channel": channel,
+        "operationCards": operation_cards,
+        "checklistGroups": _surface_checklist(surface_id, portal),
+        "controlTower": controls,
+        "recentCases": recent_cases,
+        "recentEvents": recent_events,
+        "links": _surface_links(surface_id, portal),
+        "notices": list(base.get("notices") or []),
+        "lexSuggestions": list(base.get("lexSuggestions") or []),
+        "offices": [],
+        "officeSummary": {},
+    }
+
+
+def _office_text(row: dict[str, Any], *keys: str) -> str:
+    for key in keys:
+        value = str(row.get(key) or "").strip()
+        if value:
+            return value
+    return ""
+
+
+def build_react_tribunali_payload() -> dict[str, Any]:
+    """Payload React per Tribunali / PEC, usando la cache uffici reale."""
+
+    from collections import Counter
+
+    from pct.uffici_giudiziari import get_gestore
+
+    gestore = get_gestore()
+    uffici = list(gestore.carica())
+    stato = gestore.stato()
+    per_tipo = Counter(str(row.get("tipo") or "ALTRO") for row in uffici)
+    offices = []
+    for index, row in enumerate(uffici):
+        offices.append(
+            {
+                "id": _office_text(row, "codice", "codice_ministero") or f"ufficio-{index}",
+                "codice": _office_text(row, "codice", "codice_ministero"),
+                "nome": _office_text(row, "nome", "descrizione_ministero", "denominazione"),
+                "tipo": _office_text(row, "tipo", "tipo_ministero_descrizione"),
+                "distretto": _office_text(row, "distretto", "distretto_ministero"),
+                "pec": _office_text(row, "pec", "email_pec"),
+                "regione": _office_text(row, "regione_ministero", "regione"),
+                "provincia": _office_text(row, "provincia_ministero", "provincia"),
+                "comune": _office_text(row, "comune_ministero", "comune"),
+            }
+        )
+    pec_count = sum(1 for item in offices if item["pec"])
+    return {
+        "source": "repository_reali",
+        "generatedAt": _iso_now(),
+        "contracts": {
+            "mock_fallback": False,
+            "read_only": False,
+            "writes": "operational_routes",
+            "route_owner": "react_shell",
+        },
+        "surface": {
+            "id": "tribunali",
+            "portal": "",
+            "title": "Tribunali / PEC",
+            "eyebrow": "Uffici giudiziari e indirizzi",
+            "subtitle": "Ricerca uffici, PEC, codici e stato della cache collegata a ReGINdE/PST.",
+            "tone": "primary",
+            "appHref": "/app-v2/tribunali",
+            "legacyHref": "/tribunali",
+            "officialHref": "https://pst.giustizia.it/PST/it/services.page",
+        },
+        "summary": {
+            "total": len(offices),
+            "imports": pec_count,
+            "attention": 1 if stato.get("scaduta") else 0,
+            "blocked": 0,
+            "warnings": 1 if stato.get("scaduta") else 0,
+        },
+        "channel": None,
+        "operationCards": [
+            _surface_card(
+                "ricerca",
+                "Ricerca uffici",
+                "Filtra per denominazione, distretto, tipo, codice o indirizzo PEC.",
+                tone="primary",
+                icon="search",
+                metrics=[
+                    {"label": "Uffici", "value": len(offices)},
+                    {"label": "PEC censite", "value": pec_count},
+                ],
+            ),
+            _surface_card(
+                "aggiorna",
+                "Aggiorna cache",
+                "Forza il refresh della cache uffici quando devi verificare variazioni o nuovi indirizzi.",
+                tone="warning",
+                icon="refresh",
+                actions=[_surface_action("aggiorna", "Aggiorna", "/api/uffici/aggiorna", tone="warning", method="POST")],
+            ),
+            _surface_card(
+                "variazioni",
+                "Verifica variazioni",
+                "Consulta o avvia il report di variazione uffici senza lasciare la superficie React.",
+                tone="success",
+                icon="shield",
+                actions=[
+                    _surface_action("report", "Report", "/api/uffici/variazioni", tone="success"),
+                    _surface_action("esegui", "Esegui verifica", "/api/uffici/variazioni/esegui", tone="warning", method="POST"),
+                ],
+            ),
+            _surface_card(
+                "legacy",
+                "Vista operativa storica",
+                "Resta disponibile per confronto tecnico durante la migrazione progressiva.",
+                tone="neutral",
+                icon="external",
+                actions=[_surface_action("legacy", "Apri storico", "/tribunali?_legacy=1", tone="neutral")],
+            ),
+        ],
+        "checklistGroups": [],
+        "controlTower": {
+            "pendingOutcomes": [],
+            "incompleteImports": [],
+            "warnings": [],
+            "blockedCases": [],
+            "predeposito": [],
+        },
+        "recentCases": [],
+        "recentEvents": [],
+        "links": [
+            {"label": "API ricerca uffici", "href": "/api/uffici", "kind": "api"},
+            {"label": "Stato cache", "href": "/api/uffici/stato", "kind": "api"},
+            {"label": "Centro telematico", "href": "/app-v2/telematico", "kind": "react"},
+            {"label": "Checklist deposito", "href": "/app-v2/deposito/checklist", "kind": "react"},
+        ],
+        "notices": [
+            {
+                "tone": "warning" if stato.get("scaduta") else "success",
+                "title": "Stato cache uffici",
+                "body": f"Sorgente: {stato.get('sorgente', 'bundle')} - aggiornato il {stato.get('aggiornato_il', '')}.",
+            }
+        ],
+        "lexSuggestions": [
+            "Prima del deposito verifica sempre codice ufficio e PEC destinataria.",
+            "Se la cache risulta scaduta, aggiorna o controlla il report variazioni.",
+        ],
+        "offices": offices,
+        "officeSummary": {
+            "source": stato.get("sorgente", "bundle"),
+            "updatedAt": stato.get("aggiornato_il", ""),
+            "cachePath": stato.get("cache_path", ""),
+            "expired": bool(stato.get("scaduta")),
+            "perType": dict(sorted(per_tipo.items())),
+        },
+    }
 
 
 def build_react_telematico_payload(

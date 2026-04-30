@@ -1,0 +1,382 @@
+import type { Tone } from './data'
+import type {
+  TelematicoCase,
+  TelematicoChannel,
+  TelematicoControlTower,
+  TelematicoEvent,
+} from './telematicoData'
+
+export type TelematicoSurfaceId =
+  | 'polisweb'
+  | 'pdp'
+  | 'pat'
+  | 'ptt'
+  | 'tribunali'
+  | 'checklist'
+  | 'firma'
+
+export type SurfaceAction = {
+  id: string
+  label: string
+  href: string
+  tone: Tone
+  method: 'GET' | 'POST'
+  external: boolean
+}
+
+export type SurfaceCard = {
+  id: string
+  title: string
+  body: string
+  tone: Tone
+  icon: string
+  actions: SurfaceAction[]
+  metrics: Array<{ label: string; value: number | string }>
+}
+
+export type ChecklistItem = {
+  id: string
+  label: string
+  description: string
+  critical: boolean
+}
+
+export type ChecklistGroup = {
+  id: string
+  title: string
+  items: ChecklistItem[]
+}
+
+export type OfficeRow = {
+  id: string
+  codice: string
+  nome: string
+  tipo: string
+  distretto: string
+  pec: string
+  regione: string
+  provincia: string
+  comune: string
+}
+
+export type TelematicoSurfaceData = {
+  source: string
+  generatedAt: string
+  contracts: {
+    mock_fallback: boolean
+    read_only: boolean
+    writes: string
+    route_owner: string
+  }
+  surface: {
+    id: TelematicoSurfaceId
+    portal: string
+    title: string
+    eyebrow: string
+    subtitle: string
+    tone: Tone
+    appHref: string
+    legacyHref: string
+    officialHref: string
+  }
+  summary: {
+    total: number
+    imports: number
+    attention: number
+    blocked: number
+    warnings: number
+  }
+  channel: TelematicoChannel | null
+  operationCards: SurfaceCard[]
+  checklistGroups: ChecklistGroup[]
+  controlTower: TelematicoControlTower
+  recentCases: TelematicoCase[]
+  recentEvents: TelematicoEvent[]
+  links: Array<{ label: string; href: string; kind: string }>
+  notices: Array<{ tone: Tone; title: string; body: string }>
+  lexSuggestions: string[]
+  offices: OfficeRow[]
+  officeSummary: {
+    source: string
+    updatedAt: string
+    cachePath: string
+    expired: boolean
+    perType: Record<string, number>
+  }
+}
+
+const emptyControlTower: TelematicoControlTower = {
+  pendingOutcomes: [],
+  incompleteImports: [],
+  warnings: [],
+  blockedCases: [],
+  predeposito: [],
+}
+
+export const emptyTelematicoSurface: TelematicoSurfaceData = {
+  source: 'vuoto',
+  generatedAt: '',
+  contracts: {
+    mock_fallback: false,
+    read_only: true,
+    writes: 'operational_routes',
+    route_owner: 'react_shell',
+  },
+  surface: {
+    id: 'polisweb',
+    portal: 'pst',
+    title: 'PolisWeb / PST',
+    eyebrow: 'Servizi telematici',
+    subtitle: 'Superficie React in caricamento.',
+    tone: 'primary',
+    appHref: '/app-v2/polisweb',
+    legacyHref: '/polisWeb',
+    officialHref: '',
+  },
+  summary: { total: 0, imports: 0, attention: 0, blocked: 0, warnings: 0 },
+  channel: null,
+  operationCards: [],
+  checklistGroups: [],
+  controlTower: emptyControlTower,
+  recentCases: [],
+  recentEvents: [],
+  links: [],
+  notices: [],
+  lexSuggestions: [],
+  offices: [],
+  officeSummary: { source: '', updatedAt: '', cachePath: '', expired: false, perType: {} },
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value && typeof value === 'object' && !Array.isArray(value))
+}
+
+function text(value: unknown, fallback = ''): string {
+  return String(value ?? fallback).trim()
+}
+
+function number(value: unknown): number {
+  const parsed = Number(value ?? 0)
+  return Number.isFinite(parsed) ? parsed : 0
+}
+
+function bool(value: unknown): boolean {
+  return value === true || value === 'true' || value === 1 || value === '1'
+}
+
+function asList(value: unknown): unknown[] {
+  return Array.isArray(value) ? value : []
+}
+
+function tone(value: unknown, fallback: Tone = 'neutral'): Tone {
+  const raw = text(value).toLowerCase()
+  if (['danger', 'warning', 'primary', 'success', 'info', 'purple', 'orange', 'neutral'].includes(raw)) {
+    return raw as Tone
+  }
+  return fallback
+}
+
+function method(value: unknown): 'GET' | 'POST' {
+  return text(value).toUpperCase() === 'POST' ? 'POST' : 'GET'
+}
+
+function surfaceId(value: unknown): TelematicoSurfaceId {
+  const raw = text(value).toLowerCase()
+  if (['polisweb', 'pdp', 'pat', 'ptt', 'tribunali', 'checklist', 'firma'].includes(raw)) {
+    return raw as TelematicoSurfaceId
+  }
+  return 'polisweb'
+}
+
+function normaliseAction(value: unknown, index: number): SurfaceAction {
+  const item = isRecord(value) ? value : {}
+  return {
+    id: text(item.id, `azione-${index}`),
+    label: text(item.label, 'Apri'),
+    href: text(item.href, '#'),
+    tone: tone(item.tone, 'primary'),
+    method: method(item.method),
+    external: bool(item.external),
+  }
+}
+
+function normaliseCard(value: unknown, index: number): SurfaceCard {
+  const item = isRecord(value) ? value : {}
+  return {
+    id: text(item.id, `card-${index}`),
+    title: text(item.title, 'Azione operativa'),
+    body: text(item.body, ''),
+    tone: tone(item.tone, 'primary'),
+    icon: text(item.icon, 'workflow'),
+    actions: asList(item.actions).map(normaliseAction),
+    metrics: asList(item.metrics).map((metric, metricIndex) => {
+      const row = isRecord(metric) ? metric : {}
+      return {
+        label: text(row.label, `Indicatore ${metricIndex + 1}`),
+        value: typeof row.value === 'string' ? row.value : number(row.value),
+      }
+    }),
+  }
+}
+
+function normaliseChecklistGroup(value: unknown, index: number): ChecklistGroup {
+  const item = isRecord(value) ? value : {}
+  return {
+    id: text(item.id, `gruppo-${index}`),
+    title: text(item.title, 'Checklist'),
+    items: asList(item.items).map((raw, itemIndex) => {
+      const row = isRecord(raw) ? raw : {}
+      return {
+        id: text(row.id, `item-${index}-${itemIndex}`),
+        label: text(row.label, 'Controllo'),
+        description: text(row.description, ''),
+        critical: bool(row.critical),
+      }
+    }),
+  }
+}
+
+function normaliseOffice(value: unknown, index: number): OfficeRow {
+  const item = isRecord(value) ? value : {}
+  return {
+    id: text(item.id, `ufficio-${index}`),
+    codice: text(item.codice),
+    nome: text(item.nome, 'Ufficio giudiziario'),
+    tipo: text(item.tipo, 'ALTRO'),
+    distretto: text(item.distretto),
+    pec: text(item.pec),
+    regione: text(item.regione),
+    provincia: text(item.provincia),
+    comune: text(item.comune),
+  }
+}
+
+function normaliseControlItem(value: unknown, index: number, fallbackBadge: string) {
+  const item = isRecord(value) ? value : {}
+  return {
+    id: text(item.id, `control-${fallbackBadge}-${index}`),
+    portal: text(item.portal) as 'pst' | 'pdp' | 'pat' | 'ptt' | 'altro',
+    title: text(item.title, 'Elemento da presidiare'),
+    subtitle: text(item.subtitle ?? item.description),
+    href: text(item.href, '/app-v2/telematico'),
+    tone: tone(item.tone, 'warning'),
+    badge: text(item.badge, fallbackBadge),
+  }
+}
+
+function normaliseControlTower(value: unknown): TelematicoControlTower {
+  const item = isRecord(value) ? value : {}
+  return {
+    pendingOutcomes: asList(item.pendingOutcomes).map((row, index) => normaliseControlItem(row, index, 'esito')),
+    incompleteImports: asList(item.incompleteImports).map((row, index) => normaliseControlItem(row, index, 'import')),
+    warnings: asList(item.warnings).map((row, index) => normaliseControlItem(row, index, 'warning')),
+    blockedCases: asList(item.blockedCases).map((row, index) => normaliseControlItem(row, index, 'bloccato')),
+    predeposito: asList(item.predeposito).map((row, index) => normaliseControlItem(row, index, 'predeposito')),
+  }
+}
+
+function normaliseCase(value: unknown, index: number): TelematicoCase {
+  const item = isRecord(value) ? value : {}
+  return {
+    id: text(item.id, `case-${index}`),
+    portal: text(item.portal, 'altro') as TelematicoCase['portal'],
+    portalLabel: text(item.portalLabel, 'Telematico'),
+    title: text(item.title, 'Pratica telematica'),
+    subtitle: text(item.subtitle, ''),
+    subject: text(item.subject),
+    statusText: text(item.statusText, 'Da verificare'),
+    documentsCount: number(item.documentsCount),
+    openTasks: number(item.openTasks),
+    syncedAt: text(item.syncedAt),
+    href: text(item.href, '/app-v2/telematico'),
+    tone: tone(item.tone, 'neutral'),
+    badges: asList(item.badges).map((badge) => text(badge)).filter(Boolean),
+  }
+}
+
+function normaliseEvent(value: unknown, index: number): TelematicoEvent {
+  const item = isRecord(value) ? value : {}
+  return {
+    id: text(item.id, `event-${index}`),
+    portal: text(item.portal, 'altro') as TelematicoEvent['portal'],
+    title: text(item.title, 'Attivita telematica'),
+    subtitle: text(item.subtitle, ''),
+    timestamp: text(item.timestamp),
+    href: text(item.href, '/app-v2/telematico'),
+    tone: tone(item.tone, 'primary'),
+    badge: text(item.badge),
+  }
+}
+
+function normaliseSurfacePayload(payload: unknown): TelematicoSurfaceData {
+  if (!isRecord(payload)) return emptyTelematicoSurface
+  const surface = isRecord(payload.surface) ? payload.surface : {}
+  const contracts = isRecord(payload.contracts) ? payload.contracts : {}
+  const summary = isRecord(payload.summary) ? payload.summary : {}
+  const officeSummary = isRecord(payload.officeSummary) ? payload.officeSummary : {}
+  const perType = isRecord(officeSummary.perType) ? officeSummary.perType : {}
+  return {
+    source: text(payload.source, 'repository_reali'),
+    generatedAt: text(payload.generatedAt ?? payload.generated_at),
+    contracts: {
+      mock_fallback: bool(contracts.mock_fallback),
+      read_only: contracts.read_only !== false,
+      writes: text(contracts.writes, 'operational_routes'),
+      route_owner: text(contracts.route_owner, 'react_shell'),
+    },
+    surface: {
+      id: surfaceId(surface.id),
+      portal: text(surface.portal),
+      title: text(surface.title, 'Servizi telematici'),
+      eyebrow: text(surface.eyebrow, 'IUSENTRA'),
+      subtitle: text(surface.subtitle),
+      tone: tone(surface.tone, 'primary'),
+      appHref: text(surface.appHref, '/app-v2/telematico'),
+      legacyHref: text(surface.legacyHref),
+      officialHref: text(surface.officialHref),
+    },
+    summary: {
+      total: number(summary.total),
+      imports: number(summary.imports),
+      attention: number(summary.attention),
+      blocked: number(summary.blocked),
+      warnings: number(summary.warnings),
+    },
+    channel: isRecord(payload.channel) ? payload.channel as TelematicoChannel : null,
+    operationCards: asList(payload.operationCards).map(normaliseCard),
+    checklistGroups: asList(payload.checklistGroups).map(normaliseChecklistGroup),
+    controlTower: normaliseControlTower(payload.controlTower),
+    recentCases: asList(payload.recentCases).map(normaliseCase),
+    recentEvents: asList(payload.recentEvents).map(normaliseEvent),
+    links: asList(payload.links).map((link) => {
+      const item = isRecord(link) ? link : {}
+      return { label: text(item.label, 'Link'), href: text(item.href, '#'), kind: text(item.kind, 'link') }
+    }),
+    notices: asList(payload.notices).map((notice) => {
+      const item = isRecord(notice) ? notice : {}
+      return { tone: tone(item.tone, 'warning'), title: text(item.title, 'Avviso'), body: text(item.body) }
+    }),
+    lexSuggestions: asList(payload.lexSuggestions).map((item) => text(item)).filter(Boolean),
+    offices: asList(payload.offices).map(normaliseOffice),
+    officeSummary: {
+      source: text(officeSummary.source),
+      updatedAt: text(officeSummary.updatedAt),
+      cachePath: text(officeSummary.cachePath),
+      expired: bool(officeSummary.expired),
+      perType: Object.fromEntries(Object.entries(perType).map(([key, value]) => [key, number(value)])),
+    },
+  }
+}
+
+export async function getTelematicoSurfacePage(surface: TelematicoSurfaceId): Promise<TelematicoSurfaceData> {
+  try {
+    const response = await fetch(`/api/v1/ui/telematico/surface/${encodeURIComponent(surface)}`, {
+      credentials: 'same-origin',
+      headers: { Accept: 'application/json' },
+    })
+    if (!response.ok) return emptyTelematicoSurface
+    return normaliseSurfacePayload(await response.json())
+  } catch {
+    return emptyTelematicoSurface
+  }
+}

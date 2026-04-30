@@ -8,6 +8,7 @@ from collections.abc import Callable
 from flask import Flask, g, jsonify, render_template, request
 
 from pct.reginde import ClientReGINde
+from web.blueprints.react_shell import render_react_shell_response
 
 
 def register_reference_lookup_routes(
@@ -199,6 +200,8 @@ def register_reference_lookup_routes(
 
     @app.route("/tribunali")
     def tribunali():
+        if (request.args.get("_legacy") or "").strip().lower() not in {"1", "true", "si", "yes", "on"}:
+            return render_react_shell_response("tribunali")
         reginde = ClientReGINde()
         uffici = reginde.elenca_uffici()
         return render_template("tribunali.html", uffici=uffici)

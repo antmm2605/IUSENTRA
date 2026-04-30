@@ -8,6 +8,7 @@ from typing import Any
 
 from flask import Flask, flash, g, redirect, render_template, request, url_for
 
+from web.blueprints.react_shell import render_react_shell_response
 from web.bootstrap.telematico_portali_common import (
     group_documenti_per_deposito,
     resolve_nome_ufficio,
@@ -32,6 +33,8 @@ def register_polisweb_routes(
         import traceback as _tb
 
         try:
+            if (request.args.get("_legacy") or "").strip().lower() not in {"1", "true", "si", "yes", "on"}:
+                return render_react_shell_response("polisWeb")
             auth_mode = polis_auth_mode()
             demo_mode = auth_mode == "demo"
             server_demo_mode = auth_mode != "reale"

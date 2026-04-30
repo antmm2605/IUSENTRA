@@ -9,10 +9,15 @@ from typing import Any
 
 from flask import Flask, flash, g, redirect, render_template, request, url_for
 
+from web.blueprints.react_shell import render_react_shell_response
 from web.bootstrap.telematico_portali_common import (
     group_documenti_per_deposito,
     resolve_nome_ufficio,
 )
+
+
+def _richiede_vista_classica() -> bool:
+    return (request.args.get("_legacy") or "").strip().lower() in {"1", "true", "si", "yes", "on"}
 
 
 def register_telematico_portali_routes(
@@ -36,6 +41,8 @@ def register_telematico_portali_routes(
 
     @app.route("/pdp", methods=["GET"])
     def pdp_home():
+        if not _richiede_vista_classica():
+            return render_react_shell_response("pdp")
         demo_mode = portale_demo_mode("pdp")
         id_fasc = request.args.get("id_fasc", "")
         fascicolo_ctx = get_fascicoli().get(id_fasc) if id_fasc else None
@@ -169,6 +176,8 @@ def register_telematico_portali_routes(
 
     @app.route("/pat", methods=["GET"])
     def pat_home():
+        if not _richiede_vista_classica():
+            return render_react_shell_response("pat")
         demo_mode = portale_demo_mode("pat")
         id_fasc = request.args.get("id_fasc", "")
         fascicolo_ctx = get_fascicoli().get(id_fasc) if id_fasc else None
@@ -276,6 +285,8 @@ def register_telematico_portali_routes(
 
     @app.route("/sigit", methods=["GET"])
     def sigit_home():
+        if not _richiede_vista_classica():
+            return render_react_shell_response("sigit")
         demo_mode = portale_demo_mode("ptt")
         id_fasc = request.args.get("id_fasc", "")
         fascicolo = get_fascicoli().get(id_fasc) if id_fasc else None

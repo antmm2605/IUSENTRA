@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.198.9 - 2026-04-30
+
+- Promosse a React le superfici telematiche di secondo livello: `PolisWeb / PST`, `PDP`, `PAT`, `PTT`, `Tribunali / PEC`, `Checklist deposito` e `Guida firma digitale` ora servono la shell React dalle URL ufficiali, mantenendo la vista storica solo con `_legacy=1`.
+- Aggiunto il bridge `/api/v1/ui/telematico/surface/<surface>` con payload reali, checklist operative, card azione, controllo Local Signer browser-locale e directory uffici/PEC alimentata dalla cache uffici.
+- Collegata la navigazione React alle nuove superfici e aggiunti CSS responsive dedicati con test anti-regressione su route, API, contratti e fallback tecnico.
+
 ## 2.198.8 - 2026-04-30
 
 - Corretto il flusso `Testa SMTP dal PC` nelle impostazioni PEC: il pulsante locale non ricade piu' sul test SMTP server-side e non usa piu' la password salvata dal server, evitando timeout e blocchi IP del cloud.

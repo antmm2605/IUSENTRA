@@ -52,6 +52,7 @@ import {
 import { DashboardData, Row, Tone, emptyDashboard, getDashboard } from './data'
 import { Badge, DossierCard, KpiCard, Panel, SourceCard } from './components/dashboard'
 import { FloatingLex } from './components/FloatingLex'
+import { findStudioModule, isStudioModuleRoute } from './studioModuleData'
 import './index.css'
 
 const AgendaPage = lazy(() => import('./components/AgendaPage').then((module) => ({ default: module.AgendaPage })))
@@ -70,6 +71,7 @@ const NuovaScadenzaPage = lazy(() => import('./components/NuovaScadenzaPage').th
 const WizardProPage = lazy(() => import('./components/WizardProPage').then((module) => ({ default: module.WizardProPage })))
 const TelematicoPage = lazy(() => import('./components/TelematicoPage').then((module) => ({ default: module.TelematicoPage })))
 const TelematicoSurfacePage = lazy(() => import('./components/TelematicoSurfacePage').then((module) => ({ default: module.TelematicoSurfacePage })))
+const StudioModulePage = lazy(() => import('./components/StudioModulePage').then((module) => ({ default: module.StudioModulePage })))
 
 const toneColor: Record<Tone,string> = { danger:'var(--iu-danger-500)', warning:'var(--iu-warning-500)', primary:'var(--iu-blue-600)', success:'var(--iu-success-500)', info:'var(--iu-sky-500)', purple:'var(--iu-purple-500)', orange:'var(--iu-warning-500)', neutral:'var(--iu-slate-300)' }
 const metricIcon = { danger: AlertTriangle, primary: Mail, success: MessageCircle, purple: Clock3, orange: UsersRound, warning: AlertTriangle, info: Mail, neutral: Clock3 }
@@ -223,21 +225,22 @@ const navSections: NavSection[] = [
     label: 'Studio',
     icon: ChartColumn,
     items: [
+      { label: 'Studio', icon: Building2, href: '/studio' },
       { label: 'Parcelle e Fatture', icon: FileText, href: '/fatturazione/' },
       { label: 'Preventivi e Incarichi', icon: FileText, href: '/preventivi/' },
       { label: 'Compensi Forensi', icon: Banknote, href: '/compensi-forensi' },
       { label: 'Redazione Atti', icon: FilePenLine, href: '/redazione-atti' },
       { label: 'Statistiche', icon: ChartColumn, href: '/statistiche/' },
-      { label: 'Ricerca Legale', icon: Building2, href: '/ricerca-studio' },
+      { label: 'Ricerca Legale', icon: Building2, href: '/ricerca-legale' },
       { label: 'Archivio Giurisprudenza', icon: Landmark, href: '/giurisprudenza/' },
       { label: 'Strumenti Forensi', icon: Wrench, href: '/strumenti-legali/' },
       { label: 'Strumenti Operativi', icon: Table, href: '/strumenti-operativi' },
       { label: 'Sito Studio', icon: Earth, href: '/sito-studio/' },
-      { label: 'Notifiche WhatsApp', icon: MessageCircle, href: '/impostazioni/test/whatsapp' },
-      { label: 'Incassi e Pagamenti', icon: CreditCard, href: '/impostazioni/pagamenti' },
+      { label: 'Notifiche WhatsApp', icon: MessageCircle, href: '/notifiche-whatsapp' },
+      { label: 'Incassi e Pagamenti', icon: CreditCard, href: '/incassi-pagamenti' },
       { label: 'Backup', icon: CloudUpload, href: '/backup' },
-      { label: 'Impostazioni Studio', icon: Settings2, href: '/impostazioni' },
-      { label: 'Sincronizzazione Calendari', icon: CalendarSync, href: '/impostazioni/calendario' }
+      { label: 'Impostazioni Studio', icon: Settings2, href: '/impostazioni-studio' },
+      { label: 'Sincronizzazione Calendari', icon: CalendarSync, href: '/sincronizzazione-calendari' }
     ]
   },
   {
@@ -248,9 +251,9 @@ const navSections: NavSection[] = [
     items: [
       { label: 'Utenti', icon: UsersRound, href: '/utenti' },
       { label: 'Profili e Permessi', icon: Table, href: '/profili' },
-      { label: 'Registro Attività', icon: ClipboardList, href: '/admin/osservabilita' },
+      { label: 'Registro Attività', icon: ClipboardList, href: '/registro-attivita' },
       { label: 'Database', icon: Database, href: '/admin/database' },
-      { label: 'Registro GDPR', icon: FileText, href: '/privacy/registro' }
+      { label: 'Registro GDPR', icon: FileText, href: '/registro-gdpr' }
     ]
   }
 ]
@@ -388,6 +391,18 @@ function resolveLexPageContext(routePath: string): GlobalLexConfig {
       primaryLabel: 'Apri Lex telematico',
       secondaryHref: '/telematico',
       secondaryLabel: 'Centro telematico',
+    }
+  }
+  const studioModule = findStudioModule(route)
+  if (studioModule) {
+    return {
+      context: studioModule.lexContext,
+      title: `Lex AI ${studioModule.title}`,
+      body: studioModule.lexLabel,
+      primaryHref: `/lex?context=${encodeURIComponent(studioModule.lexContext)}`,
+      primaryLabel: 'Apri Lex',
+      secondaryHref: studioModule.routes[0],
+      secondaryLabel: studioModule.title,
     }
   }
   return {
@@ -625,8 +640,9 @@ export default function App() {
   const isWizardProPage = routeKey === '/wizard-pro' || routeKey.startsWith('/wizard-pro/')
   const isTelematicoPage = routeKey === '/telematico' || routeKey === '/telematici'
   const isTelematicoSurfacePage = routeKey === '/polisweb' || routeKey === '/pdp' || routeKey === '/pat' || routeKey === '/sigit' || routeKey === '/sigit/ricerca' || routeKey === '/ptt' || routeKey === '/tribunali' || routeKey === '/deposito/checklist' || routeKey === '/guida/firma-digitale'
-  const isDashboardPage = !isSearchPage && !isAgendaPage && !isNewAppointmentPage && !isAppointmentEditPage && !isRegiaPage && !isFascicoliPage && !isClientiPage && !isClientFolderPage && !isClientEditPage && !isNewClientPage && !isSoggettiPage && !isNewSubjectPage && !isSubjectEditPage && !isEmailPage && !isMessagesPage && !isNewMessagePage && !isScadenziarioPage && !isNewDeadlinePage && !isDeadlineEditPage && !isWizardProPage && !isTelematicoPage && !isTelematicoSurfacePage
-  const isStandalonePage = isSearchPage || isAgendaPage || isNewAppointmentPage || isAppointmentEditPage || isFascicoliPage || isClientiPage || isClientFolderPage || isClientEditPage || isNewClientPage || isSoggettiPage || isNewSubjectPage || isSubjectEditPage || isEmailPage || isMessagesPage || isNewMessagePage || isScadenziarioPage || isNewDeadlinePage || isDeadlineEditPage || isWizardProPage || isTelematicoPage || isTelematicoSurfacePage
+  const isStudioModulePage = isStudioModuleRoute(routeKey)
+  const isDashboardPage = !isSearchPage && !isAgendaPage && !isNewAppointmentPage && !isAppointmentEditPage && !isRegiaPage && !isFascicoliPage && !isClientiPage && !isClientFolderPage && !isClientEditPage && !isNewClientPage && !isSoggettiPage && !isNewSubjectPage && !isSubjectEditPage && !isEmailPage && !isMessagesPage && !isNewMessagePage && !isScadenziarioPage && !isNewDeadlinePage && !isDeadlineEditPage && !isWizardProPage && !isTelematicoPage && !isTelematicoSurfacePage && !isStudioModulePage
+  const isStandalonePage = isSearchPage || isAgendaPage || isNewAppointmentPage || isAppointmentEditPage || isFascicoliPage || isClientiPage || isClientFolderPage || isClientEditPage || isNewClientPage || isSoggettiPage || isNewSubjectPage || isSubjectEditPage || isEmailPage || isMessagesPage || isNewMessagePage || isScadenziarioPage || isNewDeadlinePage || isDeadlineEditPage || isWizardProPage || isTelematicoPage || isTelematicoSurfacePage || isStudioModulePage
   const initialSearchQuery = new URLSearchParams(window.location.search).get('q') ?? ''
   const lexConfig = resolveLexPageContext(routeKey)
   const needsShellLexContext = !routePublishesLexContext(routeKey)
@@ -644,7 +660,7 @@ export default function App() {
         <div className="iu-main">
           <Topbar onOpenMenu={()=>setMobileMenuOpen(true)}/>
           <Suspense fallback={<PageLoading/>}>
-            {isSearchPage?<RicercaStudioPage initialQuery={initialSearchQuery}/>:isNewAppointmentPage||isAppointmentEditPage?<NuovoAppuntamentoPage/>:isAgendaPage?<AgendaPage/>:isRegiaPage?<RegiaOperativaPage data={data} loading={loading}/>:isFascicoliPage?<FascicoliPage/>:isNewClientPage||isNewSubjectPage||isClientEditPage||isSubjectEditPage?<NuovoClientePage/>:isClientFolderPage?<CartellaClientePage/>:isClientiPage?<AnagraficaClientiPage/>:isSoggettiPage?<SoggettiPage/>:isEmailPage?<EmailPecPage/>:isNewMessagePage?<NuovoMessaggioPage/>:isMessagesPage?<MessaggiPage/>:isNewDeadlinePage||isDeadlineEditPage?<NuovaScadenzaPage/>:isScadenziarioPage?<ScadenziarioPage/>:isWizardProPage?<WizardProPage/>:isTelematicoPage?<TelematicoPage/>:isTelematicoSurfacePage?<TelematicoSurfacePage/>:<DashboardPage data={data} loading={loading}/>}
+            {isSearchPage?<RicercaStudioPage initialQuery={initialSearchQuery}/>:isNewAppointmentPage||isAppointmentEditPage?<NuovoAppuntamentoPage/>:isAgendaPage?<AgendaPage/>:isRegiaPage?<RegiaOperativaPage data={data} loading={loading}/>:isFascicoliPage?<FascicoliPage/>:isNewClientPage||isNewSubjectPage||isClientEditPage||isSubjectEditPage?<NuovoClientePage/>:isClientFolderPage?<CartellaClientePage/>:isClientiPage?<AnagraficaClientiPage/>:isSoggettiPage?<SoggettiPage/>:isEmailPage?<EmailPecPage/>:isNewMessagePage?<NuovoMessaggioPage/>:isMessagesPage?<MessaggiPage/>:isNewDeadlinePage||isDeadlineEditPage?<NuovaScadenzaPage/>:isScadenziarioPage?<ScadenziarioPage/>:isWizardProPage?<WizardProPage/>:isTelematicoPage?<TelematicoPage/>:isTelematicoSurfacePage?<TelematicoSurfacePage/>:isStudioModulePage?<StudioModulePage/>:<DashboardPage data={data} loading={loading}/>}
           </Suspense>
         </div>
         <nav className={`iu-mobile ${mobileNavCollapsed?'is-collapsed':''}`} aria-label="Navigazione mobile">

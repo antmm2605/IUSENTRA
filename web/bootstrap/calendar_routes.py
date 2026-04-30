@@ -10,6 +10,7 @@ from urllib.parse import quote
 from flask import Flask, Response, flash, jsonify, redirect, render_template, request, url_for
 
 from pct.agenda import TipoAppuntamento
+from web.blueprints.react_shell import render_react_shell_response
 
 
 def register_calendar_routes(
@@ -42,6 +43,9 @@ def register_calendar_routes(
         if base.startswith("http://"):
             base = "https://" + base[len("http://") :]
         return base
+
+    def _richiede_vista_classica() -> bool:
+        return request.args.get("_legacy") == "1"
 
     @app.route("/agenda/export.ics")
     def agenda_ical():
@@ -140,6 +144,8 @@ def register_calendar_routes(
     def impostazioni_calendario():
         from pct.cal_token import get_token
 
+        if not _richiede_vista_classica():
+            return render_react_shell_response("sincronizzazione-calendari")
         token_data = get_token(_cal_token_dir())
         token = token_data["token"]
         base = _get_base_url()

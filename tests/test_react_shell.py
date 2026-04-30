@@ -104,6 +104,136 @@ def test_react_sidebar_contiene_navigazione_enterprise_completa():
     assert ".iu-react-error" in css
 
 
+def test_react_blocco_finale_studio_admin_completo():
+    app_source = Path("frontend/src/App.tsx").read_text(encoding="utf-8")
+    module_source = Path("frontend/src/studioModuleData.ts").read_text(encoding="utf-8")
+    page_source = Path("frontend/src/components/StudioModulePage.tsx").read_text(encoding="utf-8")
+    page_css = Path("frontend/src/components/StudioModulePage.css").read_text(encoding="utf-8")
+    contracts = Path("frontend/scripts/check-react-contracts.mjs").read_text(encoding="utf-8")
+    final_routes = Path("web/bootstrap/react_final_block_routes.py").read_text(encoding="utf-8")
+
+    expected_routes = (
+        "/studio",
+        "/fatturazione",
+        "/preventivi",
+        "/compensi-forensi",
+        "/redazione-atti",
+        "/statistiche",
+        "/ricerca-legale",
+        "/giurisprudenza",
+        "/strumenti-legali",
+        "/strumenti-operativi",
+        "/sito-studio",
+        "/notifiche-whatsapp",
+        "/incassi-pagamenti",
+        "/backup",
+        "/impostazioni-studio",
+        "/sincronizzazione-calendari",
+        "/amministrazione",
+        "/utenti",
+        "/profili",
+        "/registro-attivita",
+        "/admin/database",
+        "/registro-gdpr",
+    )
+    for route in expected_routes:
+        assert route in module_source
+
+    for label in (
+        "Studio",
+        "Parcelle e Fatture",
+        "Preventivi e Incarichi",
+        "Compensi Forensi",
+        "Redazione Atti",
+        "Statistiche",
+        "Ricerca Legale",
+        "Archivio Giurisprudenza",
+        "Strumenti Forensi",
+        "Strumenti Operativi",
+        "Sito Studio",
+        "Notifiche WhatsApp",
+        "Incassi e Pagamenti",
+        "Backup",
+        "Impostazioni Studio",
+        "Sincronizzazione Calendari",
+        "Amministrazione",
+        "Utenti",
+        "Profili e Permessi",
+        "Registro Attività",
+        "Database",
+        "Registro GDPR",
+    ):
+        assert label in module_source
+
+    assert "StudioModulePage" in app_source
+    assert "isStudioModulePage?<StudioModulePage/>" in app_source
+    assert "findStudioModule(route)" in app_source
+    assert "render_react_shell_response" in final_routes
+    assert "iusentra:open-floating-lex" in page_source
+    assert "iusentra:lex-context" in page_source
+    assert "_legacy=1" in module_source
+    assert ".iu-sm-cards" in page_css
+    assert ".iu-sm-hero aside{\n    display:none;" in page_css
+    assert "clamp(" not in page_css
+    assert "letter-spacing:-" not in page_css
+    assert "studioModuleData" in contracts
+
+
+def test_react_blocco_finale_route_reali_e_vista_classica(tmp_path: Path):
+    app = _app(tmp_path)
+    _crea_operatore(app)
+
+    react_routes = (
+        "/studio",
+        "/fatturazione/",
+        "/preventivi/",
+        "/compensi-forensi",
+        "/redazione-atti",
+        "/statistiche/",
+        "/ricerca-legale",
+        "/legal-intelligence/",
+        "/giurisprudenza/",
+        "/strumenti-legali/",
+        "/strumenti-operativi",
+        "/sito-studio/",
+        "/notifiche-whatsapp",
+        "/notifiche/",
+        "/incassi-pagamenti",
+        "/impostazioni/pagamenti",
+        "/backup",
+        "/impostazioni-studio",
+        "/sincronizzazione-calendari",
+        "/impostazioni/calendario",
+        "/amministrazione",
+        "/utenti",
+        "/profili",
+        "/registro-attivita",
+        "/admin/database",
+        "/database",
+        "/registro-gdpr",
+        "/privacy/registro",
+    )
+
+    with app.test_client() as client:
+        _login(client)
+        for route in react_routes:
+            response = client.get(route)
+            assert response.status_code == 200, route
+            html = response.get_data(as_text=True)
+            assert "IUSENTRA - React Shell" in html
+            assert 'id="root"' in html
+
+        for route in (
+            "/fatturazione/?_legacy=1",
+            "/preventivi/?_legacy=1",
+            "/statistiche/?_legacy=1",
+            "/backup?_legacy=1",
+        ):
+            response = client.get(route)
+            assert response.status_code == 200, route
+            assert "IUSENTRA - React Shell" not in response.get_data(as_text=True)
+
+
 def test_react_ui_pack_componenti_token_e_array_operativi():
     app_source = Path("frontend/src/App.tsx").read_text(encoding="utf-8")
     data_source = Path("frontend/src/data.ts").read_text(encoding="utf-8")

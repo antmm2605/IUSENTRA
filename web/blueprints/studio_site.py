@@ -18,6 +18,7 @@ from web.services.studio_site_runtime import (
     site_admin_identity_or_403,
     studio_site_repository,
 )
+from web.blueprints.react_shell import render_react_shell_response
 
 
 studio_site = Blueprint("studio_site", __name__, url_prefix="/sito-studio")
@@ -34,6 +35,10 @@ def site_admin_required(fn):
 
 def _site_id() -> int:
     return int(get_site_for_current_tenant()["id"])
+
+
+def _richiede_vista_classica() -> bool:
+    return request.args.get("_legacy") == "1"
 
 
 def _redirect_dashboard(anchor: str = ""):
@@ -105,6 +110,8 @@ def _booking_rule_payload_from_form() -> dict[str, object]:
 @studio_site.get("/")
 @site_admin_required
 def dashboard():
+    if not _richiede_vista_classica():
+        return render_react_shell_response("sito-studio")
     payload = build_studio_site_dashboard_payload()
     return render_template("studio_site/dashboard.html", payload=payload, weekday_labels=WEEKDAY_LABELS)
 

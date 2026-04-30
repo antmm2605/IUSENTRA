@@ -15,6 +15,7 @@ from flask import (Blueprint, abort, flash, g, redirect,
                    render_template, request, send_file, url_for, current_app)
 
 from web.helpers import get_clienti, get_fascicoli, get_scadenziario, get_preventivi as _shared_get_preventivi
+from web.blueprints.react_shell import render_react_shell_response
 from pct.economico_context import (
     costruisci_contesto_economico,
     dump_log_calcolo,
@@ -58,6 +59,10 @@ def _parse_numero(value, default: float = 0.0) -> float:
 
 def _get_gp():
     return _shared_get_preventivi()
+
+
+def _richiede_vista_classica() -> bool:
+    return request.args.get("_legacy") == "1"
 
 
 def _get_portale_mgr():
@@ -527,6 +532,8 @@ def _richiedi_login(f):
 @preventivi.route("/", methods=["GET"])
 @_richiedi_login
 def lista():
+    if not _richiede_vista_classica():
+        return render_react_shell_response("preventivi")
     gp = _get_gp()
     gp.aggiorna_scaduti()
 

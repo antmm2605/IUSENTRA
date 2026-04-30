@@ -17,6 +17,7 @@ from pct.auth import (
     totp_uri,
     verifica_totp,
 )
+from web.blueprints.react_shell import render_react_shell_response
 from web.services.audit_surface import build_audit_view
 
 
@@ -30,6 +31,9 @@ def register_auth_management_routes(
 
     def _auth_manager() -> GestioneUtenti:
         return getattr(g, "utente_auth_manager", None) or get_utenti()
+
+    def _richiede_vista_classica() -> bool:
+        return request.args.get("_legacy") == "1"
 
     def _ruoli_gestibili_legacy() -> list[RuoloUtente]:
         return [ruolo for ruolo in RuoloUtente if ruolo != RuoloUtente.SUPERADMIN]
@@ -147,6 +151,8 @@ def register_auth_management_routes(
         platform_redirect = _redirect_superadmin_piattaforma()
         if platform_redirect is not None:
             return platform_redirect
+        if not _richiede_vista_classica():
+            return render_react_shell_response("utenti")
         gu = _auth_manager()
         utenti = gu.tutti()
         stats = gu.statistiche()
@@ -317,6 +323,8 @@ def register_auth_management_routes(
         platform_redirect = _redirect_superadmin_piattaforma()
         if platform_redirect is not None:
             return platform_redirect
+        if not _richiede_vista_classica():
+            return render_react_shell_response("profili")
         gu = _auth_manager()
         ruoli = _ruoli_gestibili_legacy()
         utenti_per_ruolo = {r: gu.per_ruolo(r) for r in ruoli}

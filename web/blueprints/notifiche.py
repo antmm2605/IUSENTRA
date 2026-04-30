@@ -16,6 +16,7 @@ from flask import (Blueprint, flash, g, jsonify, redirect,
                    render_template, request, url_for, current_app)
 
 from web.helpers import get_clienti, get_agenda
+from web.blueprints.react_shell import render_react_shell_response
 
 notifiche = Blueprint("notifiche", __name__, url_prefix="/notifiche")
 
@@ -28,6 +29,10 @@ def _richiedi_login(f):
             return redirect(url_for("login"))
         return f(*args, **kwargs)
     return wrapper
+
+
+def _richiede_vista_classica() -> bool:
+    return request.args.get("_legacy") == "1"
 
 
 def _config_wa():
@@ -77,6 +82,8 @@ def _leggi_log() -> list:
 @notifiche.route("/", methods=["GET"])
 @_richiedi_login
 def pannello():
+    if not _richiede_vista_classica():
+        return render_react_shell_response("notifiche-whatsapp")
     config = _config_wa()
     clienti = get_clienti().tutti()
     clienti_by_id = {c.id: c for c in clienti}

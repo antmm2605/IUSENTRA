@@ -40,6 +40,9 @@ const cartellaCliente = read('src/components/CartellaClientePage.tsx')
 const cartellaClienteData = read('src/clientiCartellaData.ts')
 const telematico = read('src/components/TelematicoPage.tsx')
 const telematicoData = read('src/telematicoData.ts')
+const studioModules = read('src/studioModuleData.ts')
+const studioModulePage = read('src/components/StudioModulePage.tsx')
+const studioModuleCss = read('src/components/StudioModulePage.css')
 const css = read('src/index.css')
 const reactShell = read('../web/templates/react_shell.html')
 
@@ -57,6 +60,9 @@ assertContains(app, "CartellaClientePage", 'route cartella cliente')
 assertContains(app, "ScadenziarioPage", 'route scadenziario')
 assertContains(app, "NuovaScadenzaPage", 'route nuova scadenza')
 assertContains(app, "TelematicoPage", 'route telematico')
+assertContains(app, "StudioModulePage", 'route blocco finale studio')
+assertContains(app, "isStudioModulePage?<StudioModulePage/>", 'render blocco finale studio')
+assertContains(app, "findStudioModule(route)", 'contesto lex blocco finale')
 assertContains(app, "isSearchPage?<RicercaStudioPage", 'route ricerca studio')
 assertContains(app, "isNewAppointmentPage||isAppointmentEditPage?<NuovoAppuntamentoPage", 'route nuovo/modifica appuntamento')
 assertContains(app, "isAgendaPage?<AgendaPage/>", 'route agenda')
@@ -175,6 +181,66 @@ assertContains(telematico, 'FloatingLex', 'lex telematico')
 assertContains(telematico, 'context="telematico"', 'contesto lex telematico')
 assertContains(telematicoData, '/api/v1/ui/telematico', 'api telematico react')
 assertContains(telematicoData, 'mock_fallback: false', 'contratto telematico senza mock')
+
+for (const label of [
+  'Studio',
+  'Parcelle e Fatture',
+  'Preventivi e Incarichi',
+  'Compensi Forensi',
+  'Redazione Atti',
+  'Statistiche',
+  'Ricerca Legale',
+  'Archivio Giurisprudenza',
+  'Strumenti Forensi',
+  'Strumenti Operativi',
+  'Sito Studio',
+  'Notifiche WhatsApp',
+  'Incassi e Pagamenti',
+  'Backup',
+  'Impostazioni Studio',
+  'Sincronizzazione Calendari',
+  'Amministrazione',
+  'Utenti',
+  'Profili e Permessi',
+  'Registro Attività',
+  'Database',
+  'Registro GDPR',
+]) {
+  assertContains(studioModules, label, `blocco finale ${label}`)
+}
+for (const route of [
+  '/studio',
+  '/fatturazione',
+  '/preventivi',
+  '/compensi-forensi',
+  '/redazione-atti',
+  '/statistiche',
+  '/ricerca-legale',
+  '/giurisprudenza',
+  '/strumenti-legali',
+  '/strumenti-operativi',
+  '/sito-studio',
+  '/notifiche-whatsapp',
+  '/incassi-pagamenti',
+  '/backup',
+  '/impostazioni-studio',
+  '/sincronizzazione-calendari',
+  '/amministrazione',
+  '/utenti',
+  '/profili',
+  '/registro-attivita',
+  '/admin/database',
+  '/registro-gdpr',
+]) {
+  assertContains(studioModules, route, `route blocco finale ${route}`)
+}
+assertContains(studioModules, '_legacy=1', 'handoff viste classiche')
+assertContains(studioModulePage, 'iusentra:open-floating-lex', 'lex contestuale blocco finale')
+assertContains(studioModulePage, 'iusentra:lex-context', 'contesto lex blocco finale')
+assertContains(studioModuleCss, '.iu-sm-cards', 'stili card operative blocco finale')
+assertContains(studioModuleCss, '.iu-sm-hero aside{\n    display:none;', 'lex nascosto tablet mobile blocco finale')
+assertNotContains(studioModuleCss, 'clamp(', 'font blocco finale senza scala viewport')
+assertNotContains(studioModuleCss, 'letter-spacing:-', 'tracking blocco finale non negativo')
 
 assertContains(css, '.iu-search-page', 'stili ricerca studio')
 assertContains(css, '.iu-agenda-page', 'stili agenda')

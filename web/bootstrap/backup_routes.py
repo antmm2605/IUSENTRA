@@ -8,6 +8,11 @@ from pathlib import Path
 from flask import Flask, flash, jsonify, redirect, render_template, request, send_file, url_for
 
 from pct.backup import StatoBackup, TipoBackup
+from web.blueprints.react_shell import render_react_shell_response
+
+
+def _richiede_vista_classica() -> bool:
+    return request.args.get("_legacy") == "1"
 
 
 def register_backup_routes(
@@ -19,6 +24,8 @@ def register_backup_routes(
 
     @app.route("/backup")
     def lista_backup():
+        if not _richiede_vista_classica():
+            return render_react_shell_response("backup")
         gb = get_backup()
         backup_list = gb.tutti()
         stats = gb.statistiche()

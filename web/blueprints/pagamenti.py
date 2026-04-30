@@ -13,6 +13,7 @@ from __future__ import annotations
 from flask import (Blueprint, abort, flash, g, jsonify, redirect,
                    render_template, request, url_for, current_app)
 from web.helpers import get_fatturazione as _shared_get_fatturazione, get_pagamenti as _shared_get_pagamenti
+from web.blueprints.react_shell import render_react_shell_response
 
 pagamenti = Blueprint("pagamenti", __name__)
 
@@ -33,6 +34,10 @@ def _richiedi_login(f):
     return w
 
 
+def _richiede_vista_classica() -> bool:
+    return request.args.get("_legacy") == "1"
+
+
 def _update_parcella_pagata(id_parcella: str, metodo: str):
     """Segna la parcella come PAGATA nel modulo fatturazione."""
     try:
@@ -51,6 +56,9 @@ def impostazioni_pagamenti():
     from pct.pagamenti import (ConfigPagamenti, StripeConfig, PayPalConfig,
                                 SatispayConfig, SumUpConfig, BonificoConfig)
     gp = _get_gp()
+
+    if request.method == "GET" and not _richiede_vista_classica():
+        return render_react_shell_response("incassi-pagamenti")
 
     if request.method == "POST":
         f = request.form

@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.198.16 - 2026-04-30
+
+- Completato il blocco finale della migrazione React per Studio, economico, redazione, ricerca, strumenti, sito studio, notifiche, pagamenti, backup, calendario e amministrazione.
+- Aggiunta la pagina React `StudioModulePage`, basata su token e card operative, con handoff `_legacy=1` alle funzioni classiche reali e Lex AI contestuale unico su desktop.
+- Promosse le route dirette delle superfici residue alla React Shell, mantenendo permessi e viste classiche tecniche per utenti, audit, database, GDPR, fatturazione, preventivi, statistiche, giurisprudenza, sito studio e pagamenti.
+- Estesi contratti React e test di regressione route per verificare che il blocco finale non ricada sulla grafica legacy.
+
 ## 2.198.15 - 2026-04-30
 
 - Unificato Lex nelle pagine React: la shell React include il widget Lex ufficiale completo e i componenti React pubblicano solo il contesto pagina, evitando varianti mini o fallback visibili differenti.

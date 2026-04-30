@@ -16,6 +16,7 @@ from flask import (Blueprint, abort, current_app, flash, g, jsonify,
                    redirect, render_template, request, send_file, url_for)
 
 from web.helpers import get_clienti, get_fascicoli, get_soggetti, get_utenti
+from web.blueprints.react_shell import render_react_shell_response
 
 template_atti = Blueprint("template_atti", __name__, url_prefix="/template-atti")
 
@@ -70,6 +71,10 @@ def _richiedi_login(f):
             return redirect(url_for("login"))
         return f(*a, **kw)
     return w
+
+
+def _richiede_vista_classica() -> bool:
+    return request.args.get("_legacy") == "1"
 
 
 def _variabili_base(config):
@@ -351,6 +356,8 @@ def _build_assistant_analysis(model_code: str, *, payload: dict, selected_client
 @template_atti.route("/", methods=["GET"])
 @_richiedi_login
 def lista():
+    if not _richiede_vista_classica():
+        return render_react_shell_response("redazione-atti")
     gt = _get_gt()
     templates = gt.tutti()
     from pct.template_atti import CATEGORIE

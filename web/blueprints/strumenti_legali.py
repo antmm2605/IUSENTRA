@@ -7,6 +7,7 @@ from flask import Blueprint, current_app, flash, g, jsonify, redirect, render_te
 
 from pct.strumenti_legali import GestioneStrumentiLegali
 from web.helpers import get_clienti, get_fascicoli
+from web.blueprints.react_shell import render_react_shell_response
 
 strumenti_legali = Blueprint("strumenti_legali", __name__, url_prefix="/strumenti-legali")
 
@@ -57,6 +58,10 @@ def _studio_context() -> dict:
     }
 
 
+def _richiede_vista_classica() -> bool:
+    return request.args.get("_legacy") == "1"
+
+
 def _gestore_strumenti() -> GestioneStrumentiLegali:
     return GestioneStrumentiLegali(
         normative_db_path=current_app.config.get("NORMATIVE_TABLES_DB", "./intelligence/tabelle_normative.json")
@@ -86,6 +91,8 @@ def _json_result(fn_name: str):
 @strumenti_legali.route("/", methods=["GET", "POST"])
 @_richiedi_login
 def index():
+    if request.method == "GET" and not _richiede_vista_classica():
+        return render_react_shell_response("strumenti-legali")
     gestore = _gestore_strumenti()
     fascicoli, clienti_map, fascicolo_sel, cliente_sel = _resolve_context()
     studio = _studio_context()

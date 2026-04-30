@@ -30,6 +30,7 @@ from web.bootstrap.lex_operational_routes import register_lex_operational_routes
 from web.bootstrap.messages_routes import register_messages_routes
 from web.bootstrap.privacy_routes import register_privacy_routes
 from web.bootstrap.pwa_routes import register_pwa_routes
+from web.bootstrap.react_final_block_routes import register_react_final_block_routes
 from web.bootstrap.scadenziario_routes import register_scadenziario_routes
 from web.bootstrap.search_routes import register_search_routes
 from web.bootstrap.soggetti_routes import register_soggetti_routes
@@ -206,6 +207,7 @@ def register_core_surfaces(
         sync_manager=core["sync_manager"],
     )
     register_backup_routes(app, get_backup=core["get_backup"])
+    register_react_final_block_routes(app)
     register_health_routes(
         app,
         get_clienti=core["get_clienti"],

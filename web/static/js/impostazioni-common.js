@@ -1,4 +1,7 @@
 (function () {
+  const PEC_PASSWORD_CACHE_KEY = 'iusentra.pec.localSignerPassword.once';
+  let pecPasswordMemory = '';
+
   function setFieldValue(id, value) {
     const field = document.getElementById(id);
     if (field) {
@@ -47,6 +50,84 @@
       return fallback || '';
     }
     return field.value;
+  }
+
+  function collectNamedValue(name, fallback) {
+    const fields = Array.from(document.querySelectorAll('[name="' + name + '"]'));
+    for (const field of fields) {
+      if (field && typeof field.value === 'string' && field.value.length > 0) {
+        return field.value;
+      }
+    }
+    return fallback || '';
+  }
+
+  function readCachedPecPassword() {
+    try {
+      const raw = window.sessionStorage.getItem(PEC_PASSWORD_CACHE_KEY);
+      if (!raw) {
+        return '';
+      }
+      const payload = JSON.parse(raw);
+      if (!payload || Date.now() > Number(payload.expiresAt || 0)) {
+        window.sessionStorage.removeItem(PEC_PASSWORD_CACHE_KEY);
+        return '';
+      }
+      return String(payload.value || '');
+    } catch (error) {
+      return '';
+    }
+  }
+
+  function rememberPecPassword(value, persistForReload) {
+    const cleaned = String(value || '');
+    if (!cleaned) {
+      return;
+    }
+    pecPasswordMemory = cleaned;
+    if (!persistForReload) {
+      return;
+    }
+    try {
+      window.sessionStorage.setItem(
+        PEC_PASSWORD_CACHE_KEY,
+        JSON.stringify({
+          value: cleaned,
+          expiresAt: Date.now() + 15 * 60 * 1000,
+        })
+      );
+    } catch (error) {
+      // Browser storage non disponibile: resta comunque la memoria JS della pagina corrente.
+    }
+  }
+
+  function collectPecPasswordForLocalSigner() {
+    const direct = collectValue('pec_password', '') || collectNamedValue('pec_password', '');
+    if (direct) {
+      rememberPecPassword(direct, false);
+      return direct;
+    }
+    return pecPasswordMemory || readCachedPecPassword();
+  }
+
+  function bindPecPasswordBridge() {
+    const passwordField = document.getElementById('pec_password');
+    const form = document.getElementById('form-pec');
+    if (!passwordField) {
+      return;
+    }
+    ['input', 'change', 'keyup', 'paste'].forEach(function (eventName) {
+      passwordField.addEventListener(eventName, function () {
+        window.setTimeout(function () {
+          rememberPecPassword(passwordField.value, false);
+        }, 0);
+      });
+    });
+    if (form) {
+      form.addEventListener('submit', function () {
+        rememberPecPassword(passwordField.value, true);
+      });
+    }
   }
 
   function renderTestResult(container, success, message) {
@@ -293,7 +374,7 @@
     return {
       indirizzo: collectValue('pec_indirizzo', ''),
       username: collectValue('pec_indirizzo', ''),
-      password: collectValue('pec_password', ''),
+      password: collectPecPasswordForLocalSigner(),
       smtp_host: collectValue('pec_smtp_host', ''),
       smtp_port: parseInt(collectValue('pec_smtp_port', '465'), 10) || 465,
       use_ssl: document.getElementById('pec_use_ssl')?.checked ?? true,
@@ -340,7 +421,11 @@
         },
         35000
       );
-      renderTestResult(result, Boolean(data.ok), data.messaggio || 'Verifica locale completata.');
+      renderTestResult(
+        result,
+        Boolean(data.ok),
+        data.ok ? 'Connessione SMTP PEC riuscita.' : data.messaggio || 'Verifica locale completata.'
+      );
     } catch (error) {
       renderTestResultHtml(result, false, localSignerMissingHtml());
     } finally {
@@ -353,4 +438,10 @@
   window.fillSMTP = fillSMTP;
   window.testConn = testConn;
   window.testPecSmtpLocale = testPecSmtpLocale;
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', bindPecPasswordBridge);
+  } else {
+    bindPecPasswordBridge();
+  }
 })();

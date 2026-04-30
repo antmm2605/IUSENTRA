@@ -45,13 +45,13 @@ def _service_runtime_cards(product_pack: dict[str, Any], observability: dict[str
         service_id = str(entry.get("service_id") or "")
         status = "ok"
         detail = str(entry.get("responsibility") or "")
-        if service_id == "hacs-lex" and not ai_ready:
+        if service_id == "iusentra-lex" and not ai_ready:
             status = "warning"
             detail = "Runtime Lex presente nel Product Pack ma AI locale non ancora pronta nel runtime corrente."
-        elif service_id == "hacs-embed" and not auto_index:
+        elif service_id == "iusentra-embed" and not auto_index:
             status = "warning"
             detail = "Servizio embeddings installato, ma indicizzazione automatica documenti non attiva nelle impostazioni correnti."
-        elif service_id == "hacs-updater" and not updater_ready:
+        elif service_id == "iusentra-updater" and not updater_ready:
             status = "warning"
             detail = "Updater presente, ma il manifest update corrente non risulta ancora firmato."
         items.append(

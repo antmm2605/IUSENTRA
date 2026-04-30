@@ -37,12 +37,12 @@ Percorsi runtime:
 
 Servizi locali governati:
 
-- `hacs-web`
-- `hacs-lex`
-- `hacs-embed`
-- `hacs-jobs`
-- `hacs-telematico`
-- `hacs-updater`
+- `iusentra-web`
+- `iusentra-lex`
+- `iusentra-embed`
+- `iusentra-jobs`
+- `iusentra-telematico`
+- `iusentra-updater`
 
 ## Studio Local Pack
 

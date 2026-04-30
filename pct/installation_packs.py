@@ -18,37 +18,37 @@ from pct.tenant import GestioneTenant, StudioLegale
 
 SYSTEM_SERVICE_DEFINITIONS: tuple[dict[str, str], ...] = (
     {
-        "service_id": "hacs-web",
+        "service_id": "iusentra-web",
         "label": "Cabina web locale",
         "scope": "product",
         "responsibility": "Interfaccia web locale o LAN studio.",
     },
     {
-        "service_id": "hacs-lex",
+        "service_id": "iusentra-lex",
         "label": "Orchestratore Lex",
         "scope": "product",
         "responsibility": "Routing AI, guardrail, retrieval e policy di risposta.",
     },
     {
-        "service_id": "hacs-embed",
+        "service_id": "iusentra-embed",
         "label": "Indicizzazione embeddings",
         "scope": "product",
         "responsibility": "Embedding, chunking e reindex locale.",
     },
     {
-        "service_id": "hacs-jobs",
+        "service_id": "iusentra-jobs",
         "label": "Job scheduler locale",
         "scope": "product",
         "responsibility": "OCR, ingestione, housekeeping, backup e autotest.",
     },
     {
-        "service_id": "hacs-telematico",
+        "service_id": "iusentra-telematico",
         "label": "Connettore telematico",
         "scope": "product",
         "responsibility": "PST, PAT, PTT, PDP e adapter di acquisizione.",
     },
     {
-        "service_id": "hacs-updater",
+        "service_id": "iusentra-updater",
         "label": "Updater governato",
         "scope": "product",
         "responsibility": "Aggiornamenti firmati, migrazioni e refresh knowledge pubblica.",

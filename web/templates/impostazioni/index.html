@@ -306,7 +306,7 @@
           <div class="d-flex gap-2 flex-wrap align-items-center mt-1">
             <button type="button" class="btn btn-outline-success btn-sm" id="btn-test-smtp-locale"
                     onclick="testPecSmtpLocale('btn-test-smtp-locale','res-test-smtp-locale')">
-              <i class="bi bi-pc-display-horizontal me-1"></i>Testa SMTP dal PC
+              <i class="bi bi-pc-display-horizontal me-1"></i>Testa SMTP
             </button>
             <button type="button" class="btn btn-outline-secondary btn-sm" id="btn-test-smtp"
                     onclick="testConn('pec-smtp','btn-test-smtp','res-test-smtp')">
@@ -331,7 +331,8 @@
             <i class="bi bi-pc-display-horizontal text-success me-1"></i>
             L'invio PEC reale deve passare dal PC locale tramite Local Signer: il test locale avvia
             automaticamente il servizio se non è già attivo, verifica la versione {{ local_signer.version }}
-            e usa la password digitata solo su questo dispositivo. La diagnostica server serve solo a capire
+            e usa la password digitata solo su questo dispositivo. Se salvi la configurazione e poi testi subito,
+            IUSENTRA conserva la password solo nella sessione del browser per completare il test locale. La diagnostica server serve solo a capire
             eventuali blocchi del provider sul cloud e non è il canale operativo di invio PEC.
           </div>
         </div>

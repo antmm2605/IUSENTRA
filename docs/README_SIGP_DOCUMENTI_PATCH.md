@@ -27,7 +27,7 @@ Il `pst_session_id` restituito dal Local Signer viene tenuto in `sessionStorage`
 
 Il payload inviato per il download imposta sempre `original=false` se il flag manca, cosi' il comportamento predefinito resta la copia informatica/di consultazione del portale con annotazioni ministeriali. Il duplicato senza coccarda richiede scelta esplicita tramite il pulsante `Scarica duplicato senza coccarda`, che passa `original=true` fino al Local Signer.
 
-Il Local Signer `1.6.16` usa un timeout dedicato ai download reali PST/SIGP (`HACS_SIGNER_PST_DOWNLOAD_MAX_TIME`, default 300 secondi) invece del timeout SOAP leggero da 90 secondi, per evitare che `downloadAtto` venga interrotto mentre il portale prepara il file.
+Il Local Signer `1.6.16` usa un timeout dedicato ai download reali PST/SIGP (`IUSENTRA_SIGNER_PST_DOWNLOAD_MAX_TIME`, compatibile anche con la variabile legacy, default 300 secondi) invece del timeout SOAP leggero da 90 secondi, per evitare che `downloadAtto` venga interrotto mentre il portale prepara il file.
 
 ## Test anti-regressione
 

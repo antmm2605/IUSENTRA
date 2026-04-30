@@ -387,6 +387,147 @@ def test_sincronizza_imap_mappa_inviati_e_cestino_da_cartelle_reali(tmp_path, mo
     assert {"INBOX", "Sent", "Sent Items", "Posta inviata", "Trash", "Deleted Items", "Posta eliminata"}.issubset(set(cartelle_imap_standard()))
 
 
+def test_sincronizza_imap_usa_uid_stabili_e_non_salta_pec_recenti(tmp_path, monkeypatch):
+    import pct.email_client as email_runtime
+
+    ge = GestioneEmailRicevute(str(tmp_path / "casella.json"))
+    ge.aggiungi(
+        EmailRicevuta(
+            id="MAIL-LEGACY-200",
+            cartella="INBOX",
+            stato=StatoEmail.LETTA,
+            mittente="vecchia@example.test",
+            oggetto="Vecchia PEC con sequenza non stabile",
+            data="2026-04-10T09:00:00",
+            corpo_testo="Gia salvata con numero di sequenza IMAP legacy.",
+            uid_imap="INBOX:200",
+            message_id="<legacy-200@example.test>",
+        )
+    )
+
+    def _raw_message(uid: str, subject: str, message_id: str) -> bytes:
+        msg = EmailMessage()
+        msg["Subject"] = subject
+        msg["From"] = "posta-certificata@pec.aruba.it"
+        msg["To"] = "studio@example.pec.it"
+        msg["Date"] = f"Thu, 30 Apr 2026 1{uid[-1]}:15:00 +0200"
+        msg["Message-ID"] = message_id
+        msg.set_content(f"PEC recente UID {uid}")
+        return msg.as_bytes()
+
+    messages = {
+        "150": _raw_message("150", "PEC ricevuta oggi UID 150", "<today-150@example.test>"),
+        "200": _raw_message("200", "PEC ricevuta oggi UID 200", "<today-200@example.test>"),
+        "8": _raw_message("8", "PEC vecchia UID 8", "<old-8@example.test>"),
+    }
+
+    class _FakeIMAP:
+        def login(self, username, password):
+            return "OK", []
+
+        def select(self, mailbox, readonly=True):
+            return "OK", [b"3"]
+
+        def uid(self, command, *args):
+            if command == "SEARCH":
+                return "OK", [b"8 200 150"]
+            if command == "FETCH":
+                uid = str(args[0])
+                return "OK", [(f"{uid} (RFC822)".encode(), messages[uid])]
+            return "NO", []
+
+        def search(self, charset, criteria):
+            raise AssertionError("Il sync deve usare UID SEARCH quando disponibile")
+
+        def fetch(self, uid, query):
+            raise AssertionError("Il sync deve usare UID FETCH quando disponibile")
+
+        def logout(self):
+            return "OK", []
+
+    monkeypatch.setattr(email_runtime.imaplib, "IMAP4_SSL", lambda *a, **k: _FakeIMAP())
+
+    report = ge.sincronizza_imap(
+        imap_host="imaps.pec.aruba.it",
+        imap_port=993,
+        username="studio@example.pec.it",
+        password="segreta",
+        use_ssl=True,
+        cartelle_imap=["INBOX"],
+        limite=2,
+    )
+
+    rows = {email.oggetto: email for email in GestioneEmailRicevute(str(tmp_path / "casella.json"))._carica().values()}
+    assert report["nuove"] == 3
+    assert "PEC ricevuta oggi UID 150" in rows
+    assert "PEC ricevuta oggi UID 200" in rows
+    assert "PEC vecchia UID 8" in rows
+    assert rows["PEC ricevuta oggi UID 200"].uid_imap == "INBOX:UID:200"
+    assert rows["Vecchia PEC con sequenza non stabile"].uid_imap == "INBOX:200"
+
+
+def test_sincronizza_imap_migra_riferimenti_legacy_tramite_message_id(tmp_path, monkeypatch):
+    import pct.email_client as email_runtime
+
+    ge = GestioneEmailRicevute(str(tmp_path / "casella.json"))
+    ge.aggiungi(
+        EmailRicevuta(
+            id="MAIL-LEGACY-42",
+            cartella="INBOX",
+            stato=StatoEmail.LETTA,
+            mittente="posta-certificata@pec.aruba.it",
+            oggetto="PEC gia presente",
+            data="2026-04-09T17:51:00+02:00",
+            corpo_testo="Messaggio gia importato.",
+            uid_imap="INBOX:42",
+            message_id="<same-message@example.test>",
+        )
+    )
+
+    msg = EmailMessage()
+    msg["Subject"] = "PEC gia presente"
+    msg["From"] = "posta-certificata@pec.aruba.it"
+    msg["To"] = "studio@example.pec.it"
+    msg["Date"] = "Thu, 09 Apr 2026 17:51:00 +0200"
+    msg["Message-ID"] = "<same-message@example.test>"
+    msg.set_content("Messaggio gia importato.")
+    raw_message = msg.as_bytes()
+
+    class _FakeIMAP:
+        def login(self, username, password):
+            return "OK", []
+
+        def select(self, mailbox, readonly=True):
+            return "OK", [b"1"]
+
+        def uid(self, command, *args):
+            if command == "SEARCH":
+                return "OK", [b"142"]
+            if command == "FETCH":
+                return "OK", [(b"142 (RFC822)", raw_message)]
+            return "NO", []
+
+        def logout(self):
+            return "OK", []
+
+    monkeypatch.setattr(email_runtime.imaplib, "IMAP4_SSL", lambda *a, **k: _FakeIMAP())
+
+    report = ge.sincronizza_imap(
+        imap_host="imaps.pec.aruba.it",
+        imap_port=993,
+        username="studio@example.pec.it",
+        password="segreta",
+        use_ssl=True,
+        cartelle_imap=["INBOX"],
+        limite=1,
+    )
+
+    rows = GestioneEmailRicevute(str(tmp_path / "casella.json"))._carica()
+    assert report["nuove"] == 0
+    assert len(rows) == 1
+    assert rows["MAIL-LEGACY-42"].uid_imap == "INBOX:UID:142"
+
+
 def test_email_dettaglio_visualizza_anche_xml_ed_eml(tmp_path):
     from web.app import create_app
 

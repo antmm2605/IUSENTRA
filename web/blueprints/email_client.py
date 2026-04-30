@@ -400,7 +400,7 @@ def sincronizza():
                 gestione_fascicoli=gf,
                 config_pec=pec_cfg,
                 state_path=_pec_state_path(),
-                limite=100,
+                limite=500,
             )
             ris = workflow.get("sync", {})
             log_esiti = workflow.get("auto_esiti", []) or []
@@ -416,7 +416,7 @@ def sincronizza():
                 password=password,
                 use_ssl=bool(use_ssl),
                 cartelle_imap=cartelle_imap_standard(),
-                limite=100,
+                limite=500,
                 timeout_seconds=15,
             )
             if ris.get("pst_trovate", 0) > 0:

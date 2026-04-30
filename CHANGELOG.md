@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.198.14 - 2026-04-30
+
+- Corretto il test `Impostazioni -> PEC -> Testa SMTP`: il pulsante primario e' ora il test dal PC via Local Signer e restituisce `Connessione SMTP PEC riuscita.` quando il login SMTP locale va a buon fine.
+- Il browser mantiene per 15 minuti, solo nella sessione locale e mai sul server, la password PEC appena digitata prima del salvataggio della configurazione: dopo il redirect il test locale non si blocca piu' sul falso messaggio di password mancante.
+- Corretto il motore di sincronizzazione IMAP PEC: ora usa UID IMAP stabili, migra i vecchi riferimenti basati su sequenza, deduplica tramite `Message-ID` e amplia la finestra di aggiornamento a 500 messaggi per cartella.
+- Sistemata la nav mobile React: la barra inferiore e' richiudibile e i link scorrono orizzontalmente senza occupare due righe o coprire la lista PEC.
+- Rinominati i servizi governati del Product Pack da `hacs-*` a `iusentra-*` nelle superfici prodotto, nei manifest nuovi e nella documentazione.
+
 ## 2.198.13 - 2026-04-30
 
 - Aggiunto nello `/scadenziario` il calcolatore termini processuali spiegabile: template versionati, computo giorni/mesi, sospensione feriale parametrica, sabato configurabile, termini liberi/a ritroso con revisione professionale e creazione di scadenze auditabili.

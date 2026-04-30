@@ -484,6 +484,7 @@ export default function App() {
   const [loading,setLoading]=useState(!isStandalonePage)
   const [sidebarCollapsed,setSidebarCollapsed]=useState(false)
   const [mobileMenuOpen,setMobileMenuOpen]=useState(false)
+  const [mobileNavCollapsed,setMobileNavCollapsed]=useState(false)
   useEffect(()=>{if(isStandalonePage)return; let ok=true; getDashboard().then(d=>{if(ok)setData(d)}).finally(()=>{if(ok)setLoading(false)}); return()=>{ok=false}},[isStandalonePage])
   return (
     <AppErrorBoundary>
@@ -496,14 +497,26 @@ export default function App() {
             {isSearchPage?<RicercaStudioPage initialQuery={initialSearchQuery}/>:isNewAppointmentPage||isAppointmentEditPage?<NuovoAppuntamentoPage/>:isAgendaPage?<AgendaPage/>:isRegiaPage?<RegiaOperativaPage data={data} loading={loading}/>:isFascicoliPage?<FascicoliPage/>:isNewClientPage||isNewSubjectPage||isClientEditPage||isSubjectEditPage?<NuovoClientePage/>:isClientFolderPage?<CartellaClientePage/>:isClientiPage?<AnagraficaClientiPage/>:isSoggettiPage?<SoggettiPage/>:isEmailPage?<EmailPecPage/>:isNewMessagePage?<NuovoMessaggioPage/>:isMessagesPage?<MessaggiPage/>:isNewDeadlinePage||isDeadlineEditPage?<NuovaScadenzaPage/>:isScadenziarioPage?<ScadenziarioPage/>:isWizardProPage?<WizardProPage/>:isTelematicoPage?<TelematicoPage/>:isTelematicoSurfacePage?<TelematicoSurfacePage/>:<DashboardPage data={data} loading={loading}/>}
           </Suspense>
         </div>
-        <nav className="iu-mobile">
-          <a className={isDashboardPage?'active':''} href="/"><LayoutDashboard size={18}/>Panoramica</a>
-          <a className={isSearchPage?'active':''} href="/global-search"><Search size={18}/>Ricerca</a>
-          <a className={isFascicoliPage?'active':''} href="/fascicoli"><BriefcaseBusiness size={18}/>Fascicoli</a>
-          <a className={isClientiPage||isClientFolderPage||isClientEditPage||isNewClientPage||isSoggettiPage||isNewSubjectPage||isSubjectEditPage?'active':''} href="/clienti"><UsersRound size={18}/>Clienti</a>
-          <a className={isEmailPage||isMessagesPage||isNewMessagePage?'active':''} href="/email/"><Mail size={18}/>PEC</a>
-          <a className={isAgendaPage||isNewAppointmentPage||isAppointmentEditPage||isScadenziarioPage||isNewDeadlinePage||isDeadlineEditPage||isWizardProPage?'active':''} href="/agenda"><CalendarDays size={18}/>Agenda</a>
-          <a className={isRegiaPage?'active':''} href="/workspace-intelligente"><Sparkles size={18}/>Regia</a>
+        <nav className={`iu-mobile ${mobileNavCollapsed?'is-collapsed':''}`} aria-label="Navigazione mobile">
+          <button
+            type="button"
+            className="iu-mobile__toggle"
+            aria-controls="iu-mobile-links"
+            aria-expanded={!mobileNavCollapsed}
+            onClick={()=>setMobileNavCollapsed(v=>!v)}
+          >
+            <ChevronDown size={17}/>
+            <span>{mobileNavCollapsed?'Menu':'Chiudi'}</span>
+          </button>
+          <div id="iu-mobile-links" className="iu-mobile__rail" hidden={mobileNavCollapsed}>
+            <a className={isDashboardPage?'active':''} href="/"><LayoutDashboard size={18}/>Panoramica</a>
+            <a className={isSearchPage?'active':''} href="/global-search"><Search size={18}/>Ricerca</a>
+            <a className={isFascicoliPage?'active':''} href="/fascicoli"><BriefcaseBusiness size={18}/>Fascicoli</a>
+            <a className={isClientiPage||isClientFolderPage||isClientEditPage||isNewClientPage||isSoggettiPage||isNewSubjectPage||isSubjectEditPage?'active':''} href="/clienti"><UsersRound size={18}/>Clienti</a>
+            <a className={isEmailPage||isMessagesPage||isNewMessagePage?'active':''} href="/email/"><Mail size={18}/>PEC</a>
+            <a className={isAgendaPage||isNewAppointmentPage||isAppointmentEditPage||isScadenziarioPage||isNewDeadlinePage||isDeadlineEditPage||isWizardProPage?'active':''} href="/agenda"><CalendarDays size={18}/>Agenda</a>
+            <a className={isRegiaPage?'active':''} href="/workspace-intelligente"><Sparkles size={18}/>Regia</a>
+          </div>
         </nav>
         {needsGlobalLex ? <FloatingLex context={isRegiaPage ? 'regia-operativa' : isSearchPage ? 'ricerca-studio' : 'panoramica'} title="Lex AI" body="Posso aiutarti a collegare dati di studio, scadenze, fascicoli e comunicazioni senza uscire dalla nuova interfaccia." primaryHref="/workspace-intelligente" primaryLabel="Regia operativa" secondaryHref="/global-search" secondaryLabel="Ricerca Studio" /> : null}
       </div>

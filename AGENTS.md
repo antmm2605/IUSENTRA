@@ -9,21 +9,21 @@
 
 ## Igiene repository — Regola obbligatoria
 
-- Sulla macchina locale deve esistere **una sola copia attiva del progetto**: `D:\legale\hacs`.
+- Sulla macchina locale deve esistere **una sola copia attiva del progetto**: `D:\legale\IUSENTRA`.
 - **Worktree, cartelle duplicate, cloni temporanei e versioni parallele** del repository devono essere rimossi a fine lavoro.
 - I **soli branch ammessi**, sia locali sia remoti, sono:
   - `Codex/legal-electronic-filing-kIxcV`
   - `claude/legal-electronic-filing-kIxcV`
 - Non creare branch aggiuntivi per task temporanei. Tutto il lavoro deve confluire nel branch di sviluppo corrente e venire sincronizzato anche sul branch gemello.
 - A fine implementazione verificare sempre che:
-  - `git worktree list` mostri solo `D:\legale\hacs`
+  - `git worktree list` mostri solo `D:\legale\IUSENTRA`
   - `git branch --all` mostri solo i due branch ammessi più `origin/HEAD`
   - i due branch locali e i due branch remoti puntino allo **stesso commit**
 - Per enforcement e cleanup usare lo script: `scripts/repo_hygiene.ps1`
 
 ## Progetto
 
-**HACS** — gestionale per studi legali (Python/Flask).
+**IUSENTRA** — gestionale per studi legali (Python/Flask).
 
 - Backend: `pct/` — modelli dati e logica di business
 - Frontend: `web/app.py` (route Flask) + `web/templates/` (Jinja2) + `web/static/`
@@ -309,7 +309,7 @@ python -m pytest tests/ -v
 
 ## AI locale — REGOLA OBBLIGATORIA
 
-- Il runtime AI locale (`Ollama`) va sempre trattato come **runtime sullo stesso host che esegue HACS**, non come componente da distribuire al browser del cliente.
+- Il runtime AI locale (`Ollama`) va sempre trattato come **runtime sullo stesso host che esegue IUSENTRA**, non come componente da distribuire al browser del cliente.
 - La strategia preferita è:
   - Windows self-hosted → provisioning automatico del pacchetto standalone ufficiale sullo stesso host
   - altri host/server → guida chiara e non bloccante, senza installazioni opache dal browser
@@ -391,7 +391,7 @@ python -m pytest tests/ -v
 **Deploy — Docker locale (REGOLA OBBLIGATORIA):**
 - Dopo ogni bump di versione, ricostruire e riavviare il Docker locale con:
   ```bash
-  cd /home/user/hacs
+  cd /opt/iusentra/repo
   docker compose build --no-cache
   docker compose up -d
   ```

@@ -133,7 +133,7 @@ Da questa cabina il `SUPERADMIN` puo' vedere e rigenerare:
 - manifest degli `Studio Local Pack` tenant-aware
 - manifest dell'`Update Pack`
 - repository SQL/PostgreSQL dei manifest
-- servizi locali previsti sul nodo (`hacs-web`, `hacs-lex`, `hacs-embed`, `hacs-jobs`, `hacs-telematico`, `hacs-updater`)
+- servizi locali previsti sul nodo (`iusentra-web`, `iusentra-lex`, `iusentra-embed`, `iusentra-jobs`, `iusentra-telematico`, `iusentra-updater`)
 
 ## Assistenza remota cliente
 

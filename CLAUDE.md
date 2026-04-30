@@ -27,7 +27,7 @@ Regole:
 
 ## Igiene repository — Regola obbligatoria
 
-- Sulla macchina locale deve esistere **una sola copia attiva del progetto**: `D:\legale\hacs`.
+- Sulla macchina locale deve esistere **una sola copia attiva del progetto**: `D:\legale\IUSENTRA`.
 - I **soli branch ammessi**, sia locali sia remoti, sono:
   - `claude/legal-electronic-filing-kIxcV`
   - `Codex/legal-electronic-filing-kIxcV`
@@ -37,7 +37,7 @@ Regole:
 
 ## Progetto
 
-**HACS** — gestionale per studi legali (Python/Flask).
+**IUSENTRA** — gestionale per studi legali (Python/Flask).
 
 - Backend: `pct/` — modelli dati e logica di business (61 moduli)
 - Frontend: `web/app.py` (210+ route Flask) + `web/templates/` (177 template Jinja2) + `web/static/`
@@ -69,7 +69,7 @@ Regole:
 
 ## AI locale — Regola obbligatoria
 
-- Il runtime AI locale (`Ollama`) va sempre trattato come **runtime sullo stesso host che esegue HACS**, non come componente distribuito al browser del cliente.
+- Il runtime AI locale (`Ollama`) va sempre trattato come **runtime sullo stesso host che esegue IUSENTRA**, non come componente distribuito al browser del cliente.
 - Strategia preferita:
   - Windows self-hosted → provisioning automatico del pacchetto standalone ufficiale sullo stesso host
   - altri host/server → guida chiara e non bloccante, senza installazioni opache dal browser
@@ -90,7 +90,7 @@ Regole:
 ## Architettura del progetto
 
 ```
-hacs/
+iusentra/
 ├── pct/                    # Pacchetto Python core (logica di business)
 ├── web/
 │   ├── app.py              # Flask app (210+ route, ~9200 righe)
@@ -332,7 +332,7 @@ python -m pytest tests/test_fascicoli.py -v
 ### Come rigenerare gli eseguibili
 
 ```bash
-cd /home/user/hacs
+cd /opt/iusentra/repo
 python3 tools/build_dist.py
 ```
 
@@ -367,7 +367,7 @@ Dopo la rigenerazione, committare tutti i file in `tools/dist/` insieme alla mod
 **Linux:**
 > Scarica `InstallaLocalSigner-X.Y.Z.run`, apri un terminale nella stessa cartella ed esegui: `bash InstallaLocalSigner-X.Y.Z.run`
 
-Dopo l'installazione su tutte le piattaforme: tornare su HACS → Impostazioni → Firma digitale e cliccare **"Riverifica"**.
+Dopo l'installazione su tutte le piattaforme: tornare su IUSENTRA → Impostazioni → Firma digitale e cliccare **"Riverifica"**.
 
 ## Convenzioni
 
@@ -413,7 +413,7 @@ Dopo l'installazione su tutte le piattaforme: tornare su HACS → Impostazioni �
 **Deploy — Docker locale (REGOLA OBBLIGATORIA):**
 - Dopo ogni bump di versione, ricostruire e riavviare il Docker locale con:
   ```bash
-  cd /home/user/hacs
+  cd /opt/iusentra/repo
   docker compose build --no-cache
   docker compose up -d
   ```

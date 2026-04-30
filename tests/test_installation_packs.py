@@ -4,7 +4,11 @@ from pathlib import Path
 
 from pct import __version__
 from pct.installation_pack_repository import InstallationPackRepository
-from pct.installation_packs import bootstrap_pack_governance, resolve_system_pack_root
+from pct.installation_packs import (
+    SYSTEM_SERVICE_DEFINITIONS,
+    bootstrap_pack_governance,
+    resolve_system_pack_root,
+)
 from pct.tenant import GestioneTenant
 from tests.test_web_bootstrap import _cfg_web, _write_studio_config
 from web.app import create_app
@@ -12,6 +16,20 @@ from web.services.installation_pack_surface import build_installation_pack_surfa
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+
+
+def test_manifest_servizi_usa_nome_iusentra():
+    service_ids = [service["service_id"] for service in SYSTEM_SERVICE_DEFINITIONS]
+
+    assert service_ids == [
+        "iusentra-web",
+        "iusentra-lex",
+        "iusentra-embed",
+        "iusentra-jobs",
+        "iusentra-telematico",
+        "iusentra-updater",
+    ]
+    assert all(not service_id.startswith("hacs-") for service_id in service_ids)
 
 
 def test_bootstrap_pack_governance_crea_manifest_macchina_e_studio(tmp_path: Path):

@@ -107,8 +107,24 @@ async function postMailAction(url: string, label: string): Promise<string> {
   if (!response.ok) throw new Error(`${label}: operazione non completata`)
   const contentType = response.headers.get('content-type') || ''
   if (!contentType.includes('application/json')) return `${label}: operazione eseguita.`
-  const payload = await response.json() as { ok?: boolean; messaggio?: string; errore?: string; warning?: boolean }
+  const payload = await response.json() as {
+    ok?: boolean
+    messaggio?: string
+    errore?: string
+    sync_errore?: string
+    warning?: boolean
+    nuove?: number
+    allegati_salvati?: number
+  }
   if (payload.ok === false) throw new Error(payload.errore || `${label}: errore operativo`)
+  if (payload.warning && payload.sync_errore) {
+    return `${payload.messaggio || `${label}: completata con avvisi.`} ${payload.sync_errore}`
+  }
+  if (label === 'Sincronizzazione PEC') {
+    const nuove = Number(payload.nuove || 0)
+    const allegati = Number(payload.allegati_salvati || 0)
+    if (nuove || allegati) return `Sincronizzazione PEC completata: ${nuove} nuove PEC, ${allegati} allegati recuperati.`
+  }
   return payload.messaggio || `${label}: operazione eseguita.`
 }
 

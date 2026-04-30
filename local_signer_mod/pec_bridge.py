@@ -153,9 +153,8 @@ def test_pec_smtp_local(
         return {
             "ok": True,
             "canale": "locale",
-            "messaggio": (
-                f"SMTP PEC locale riuscito da questo PC verso {config['host']}:{config['port']}."
-            ),
+            "messaggio": "Connessione SMTP PEC riuscita.",
+            "endpoint": f"{config['host']}:{config['port']}",
         }
     except Exception as exc:
         return {

@@ -313,6 +313,80 @@ class GestioneEmailRicevute:
             target.message_id = parsed.message_id
         return max(0, nuovi_salvati - vecchi_salvati)
 
+    @staticmethod
+    def _message_id_key(value: str) -> str:
+        return str(value or "").strip().strip("<>").lower()
+
+    @staticmethod
+    def _fingerprint_email(em: EmailRicevuta) -> tuple[str, str, str, str]:
+        return (
+            str(em.cartella or "").strip().upper(),
+            str(em.oggetto or "").strip().lower(),
+            str(em.mittente or "").strip().lower(),
+            str(em.data or "")[:19],
+        )
+
+    def _trova_email_esistente(
+        self,
+        db: Dict[str, EmailRicevuta],
+        email_per_uid: Dict[str, EmailRicevuta],
+        uid_str: str,
+        parsed: EmailRicevuta,
+    ) -> Optional[EmailRicevuta]:
+        exact = email_per_uid.get(uid_str)
+        if exact:
+            return exact
+
+        msg_key = self._message_id_key(parsed.message_id)
+        if msg_key:
+            for candidate in db.values():
+                if self._message_id_key(candidate.message_id) == msg_key:
+                    return candidate
+
+        fingerprint = self._fingerprint_email(parsed)
+        if all(fingerprint):
+            for candidate in db.values():
+                if self._fingerprint_email(candidate) == fingerprint:
+                    return candidate
+        return None
+
+    @staticmethod
+    def _imap_tokens(data: Any) -> List[str]:
+        if not data or not data[0]:
+            return []
+        raw = data[0]
+        if isinstance(raw, bytes):
+            raw = raw.decode(errors="ignore")
+        return [token for token in str(raw).split() if token]
+
+    @staticmethod
+    def _imap_token_sort_key(token: str) -> tuple[int, str]:
+        try:
+            return int(str(token)), str(token)
+        except ValueError:
+            return 0, str(token)
+
+    def _imap_search_all(self, mail) -> tuple[List[str], bool]:
+        try:
+            status, data = mail.uid("SEARCH", None, "ALL")
+            tokens = self._imap_tokens(data)
+            if status == "OK" and tokens:
+                return tokens, True
+        except (AttributeError, imaplib.IMAP4.error, TypeError):
+            pass
+
+        _, data = mail.search(None, "ALL")
+        return self._imap_tokens(data), False
+
+    @staticmethod
+    def _imap_fetch_message(mail, token: str, *, use_uid: bool):
+        if use_uid:
+            try:
+                return mail.uid("FETCH", token, "(RFC822)")
+            except (AttributeError, imaplib.IMAP4.error, TypeError):
+                pass
+        return mail.fetch(token, "(RFC822)")
+
     # ---- Query ----
 
     def tutte(
@@ -487,28 +561,28 @@ class GestioneEmailRicevute:
                     if status != "OK":
                         continue
 
-                    # Cerca ultime N email
-                    _, data = mail.search(None, "ALL")
-                    if not data or not data[0]:
+                    uid_list_all, usa_uid_stabile = self._imap_search_all(mail)
+                    if not uid_list_all:
                         continue
 
-                    uid_list_all = data[0].decode().split()
-                    uid_list = uid_list_all[-limite:]  # ultimi N
+                    uid_list_all = sorted(uid_list_all, key=self._imap_token_sort_key)
+                    finestra_sync = max(int(limite or 0), 500)
+                    uid_list = uid_list_all[-finestra_sync:]
 
                     # Le PEC storiche gia' presenti ma senza file allegati non devono
                     # restare fuori solo perche' non sono tra gli ultimi messaggi.
                     prefix_cartella = f"{cartella_imap}:"
                     uid_da_riparare = [
-                        uid_key.split(":", 1)[1]
+                        uid_key.rsplit(":", 1)[1]
                         for uid_key, em_storica in email_per_uid.items()
                         if uid_key.startswith(prefix_cartella)
-                        and uid_key.split(":", 1)[1] in uid_list_all
+                        and uid_key.rsplit(":", 1)[1] in uid_list_all
                         and self._email_ha_allegati_da_salvare(em_storica)
                     ]
                     uid_list = list(dict.fromkeys(uid_list + uid_da_riparare))
 
                     for uid in reversed(uid_list):
-                        uid_str = f"{cartella_imap}:{uid}"
+                        uid_str = f"{cartella_imap}:UID:{uid}" if usa_uid_stabile else f"{cartella_imap}:{uid}"
                         email_esistente = email_per_uid.get(uid_str)
                         ripara_allegati = bool(
                             email_esistente and self._email_ha_allegati_da_salvare(email_esistente)
@@ -517,7 +591,7 @@ class GestioneEmailRicevute:
                             continue
 
                         try:
-                            _, msg_data = mail.fetch(uid, "(RFC822)")
+                            _, msg_data = self._imap_fetch_message(mail, uid, use_uid=usa_uid_stabile)
                             if not msg_data or not msg_data[0]:
                                 continue
 
@@ -533,7 +607,19 @@ class GestioneEmailRicevute:
                                 email_id=email_esistente.id if email_esistente else None,
                             )
                             if em:
+                                if not email_esistente:
+                                    email_esistente = self._trova_email_esistente(db, email_per_uid, uid_str, em)
+                                    ripara_allegati = bool(
+                                        email_esistente and self._email_ha_allegati_da_salvare(email_esistente)
+                                    )
+
                                 if email_esistente:
+                                    if uid_str and email_esistente.uid_imap != uid_str:
+                                        old_uid = email_esistente.uid_imap
+                                        email_esistente.uid_imap = uid_str
+                                        if old_uid in email_per_uid:
+                                            email_per_uid.pop(old_uid, None)
+                                        email_per_uid[uid_str] = email_esistente
                                     salvati = self._merge_allegati_salvati(email_esistente, em)
                                     risultato["allegati_salvati"] += salvati
                                 else:

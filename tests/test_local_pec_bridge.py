@@ -57,7 +57,9 @@ def test_smtp_locale_usa_configurazione_e_non_espone_password():
 
     assert result["ok"] is True
     assert result["canale"] == "locale"
+    assert result["messaggio"] == "Connessione SMTP PEC riuscita."
     assert "segreta" not in str(result)
+    assert result["endpoint"] == "smtp.example.test:465"
     assert _FakeSmtp.instances[0].logged_in == ("studio@example.test", "segreta")
     assert _FakeSmtp.instances[0].quit_called is True
 

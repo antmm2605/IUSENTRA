@@ -260,6 +260,54 @@ def test_email_route_ufficiale_serve_react_e_api_distingue_inviati_cestino(tmp_p
     assert trash_payload["items"][0]["folder"] == CartellaEmail.CESTINO
 
 
+def test_dashboard_ultime_pec_usa_inbox_completa_e_invalida_cache(tmp_path):
+    from web.app import create_app
+
+    cfg = _cfg_web(tmp_path)
+    ge = GestioneEmailRicevute(cfg["EMAIL_CASELLA_DB"])
+    ge.aggiungi(
+        EmailRicevuta(
+            id="PEC-OLD",
+            cartella=CartellaEmail.INBOX,
+            stato=StatoEmail.NON_LETTA,
+            mittente="protocollo@pec.cittametropolitana.rc.it",
+            oggetto="Verbale precedente",
+            data="2026-04-09T10:00:00",
+            corpo_testo="Messaggio PEC gia presente.",
+        )
+    )
+
+    app = create_app(cfg)
+    app.config["API_KEY"] = "react-test-key"
+    headers = {"X-API-Key": "react-test-key"}
+
+    with app.test_client() as client:
+        first = client.get("/api/v1/ui/dashboard", headers=headers)
+        assert first.status_code == 200
+        assert first.get_json()["pec"][0]["id"] == "PEC-OLD"
+
+        ge.aggiungi(
+            EmailRicevuta(
+                id="PEC-GIUSTIZIACERT-NEW",
+                cartella=CartellaEmail.INBOX,
+                stato=StatoEmail.NON_LETTA,
+                mittente="tribunale.palmi@civile.ptel.giustiziacert.it",
+                oggetto="Notifica ai sensi del D.L. 179/2012",
+                data="2026-04-30T11:42:10+02:00",
+                corpo_testo="Messaggio PEC ministeriale piu recente.",
+            )
+        )
+        second = client.get("/api/v1/ui/dashboard", headers=headers)
+
+    payload = second.get_json()
+    assert second.status_code == 200
+    assert second.headers["Cache-Control"] == "no-store, max-age=0"
+    assert second.headers["X-IUSENTRA-Cache"] == "MISS"
+    assert payload["pec"][0]["id"] == "PEC-GIUSTIZIACERT-NEW"
+    assert payload["stats"]["pecUnread"] == 2
+    assert payload["emails"] == []
+
+
 def test_email_dettaglio_visualizza_e_scarica_allegato_salvato(tmp_path):
     from web.app import create_app
 

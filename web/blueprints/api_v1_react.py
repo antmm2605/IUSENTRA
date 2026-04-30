@@ -325,14 +325,16 @@ def _messaggi_tutti() -> list[Messaggio]:
 
 def _email_rows(limit: int = 5) -> tuple[list[dict[str, Any]], list[dict[str, Any]], int]:
     emails = _safe("email", lambda: _email_manager().tutte(cartella=CartellaEmail.INBOX), [])
+    emails = sorted(
+        emails,
+        key=lambda email: _parse_datetime(getattr(email, "timestamp", "")) or datetime.min,
+        reverse=True,
+    )
     pec_rows: list[dict[str, Any]] = []
     mail_rows: list[dict[str, Any]] = []
-    pec_unread = 0
+    pec_unread = sum(1 for email in emails if getattr(email, "stato", "") == StatoEmail.NON_LETTA)
     for email in emails:
         unread = getattr(email, "stato", "") == StatoEmail.NON_LETTA
-        is_pec = bool(getattr(email, "e_pst", False)) or "pec" in str(getattr(email, "mittente", "")).lower()
-        if is_pec and unread:
-            pec_unread += 1
         title = getattr(email, "mittente_nome", "") or getattr(email, "mittente", "") or "Mittente non indicato"
         subtitle = getattr(email, "oggetto", "") or getattr(email, "anteprima", "") or "Email senza oggetto"
         row = _row(
@@ -343,7 +345,7 @@ def _email_rows(limit: int = 5) -> tuple[list[dict[str, Any]], list[dict[str, An
             unread=unread,
             href="/email/",
         )
-        if is_pec and len(pec_rows) < limit:
+        if len(pec_rows) < limit:
             pec_rows.append(row)
         # La sezione "Email recenti" e' riservata alla futura posta ordinaria:
         # non pubblichiamo PEC duplicate in quel riquadro.
@@ -1271,7 +1273,14 @@ def _dashboard_cache_key() -> str:
     tenant = str(g.get("tenant_slug", "") or g.get("auth_tenant_slug", "") or "studio")
     data_paths = getattr(g, "data_paths", {}) or {}
     email_db = str(data_paths.get("EMAIL_CASELLA_DB") or current_app.config.get("EMAIL_CASELLA_DB", ""))
-    return "|".join([APP_VERSION, tenant, user_id, email_db])
+    email_stamp = ""
+    if email_db:
+        try:
+            stat = Path(email_db).stat()
+            email_stamp = f"{stat.st_mtime_ns}:{stat.st_size}"
+        except OSError:
+            email_stamp = "missing"
+    return "|".join([APP_VERSION, tenant, user_id, email_db, email_stamp])
 
 
 def _build_dashboard_payload() -> dict[str, Any]:
@@ -1398,11 +1407,13 @@ def dashboard():
         )
         response = jsonify(payload)
         response.headers["X-IUSENTRA-Cache"] = "HIT" if cache_hit else "MISS"
+        response.headers["Cache-Control"] = "no-store, max-age=0"
         return response
     except Exception as exc:
         current_app.logger.exception("Errore dashboard React bridge: %s", exc)
         response = jsonify(_dashboard_error_payload())
         response.headers["X-IUSENTRA-Cache"] = "BYPASS"
+        response.headers["Cache-Control"] = "no-store, max-age=0"
         return response, 200
 
 

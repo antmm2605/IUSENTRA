@@ -58,6 +58,7 @@ Email PEC e Messaggi sono stati promossi nel primo blocco:
 - `GET /messaggi/nuovo` serve la composizione React multicanale;
 - `POST /messaggi/nuovo` resta sul servizio Flask operativo;
 - le azioni PEC restano sui servizi Flask esistenti: sync, auto-esiti, lettura, cestino, ripristino, dettaglio e risposta.
+- la Panoramica React (`GET /api/v1/ui/dashboard`) deve usare la stessa casella PEC tenant-aware della pagina `/email/`, ordinare le righe `Ultime PEC ricevute` per data reale decrescente e non filtrare solo su `stato_pct`: le PEC ministeriali prive di esito PCT sono comunque messaggi PEC ricevuti da mostrare fra le ultime.
 
 La sincronizzazione IMAP PEC deve distinguere le cartelle operative:
 

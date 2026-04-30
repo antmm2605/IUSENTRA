@@ -174,7 +174,13 @@ function asSources(payload: Record<string, unknown>, dashboard: Omit<DashboardDa
 
 export async function getDashboard(): Promise<DashboardData> {
   try {
-    const res = await fetch('/api/v1/ui/dashboard', { credentials:'same-origin', headers:{Accept:'application/json'} })
+    const query = new URLSearchParams()
+    query.set('_ts', String(Date.now()))
+    const res = await fetch(`/api/v1/ui/dashboard?${query.toString()}`, {
+      credentials:'same-origin',
+      cache:'no-store',
+      headers:{Accept:'application/json'}
+    })
     if (!res.ok) return emptyDashboard
     const payload = await res.json() as Record<string, unknown>
     const dashboard = {

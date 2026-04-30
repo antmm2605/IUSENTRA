@@ -586,6 +586,8 @@ def test_react_comunicazioni_email_messaggi_collegate_nav_e_shell():
     assert "/api/v1/ui/email" in email_data
     assert "cache: 'no-store'" in email_data
     assert "query.set('_ts', String(Date.now()))" in email_data
+    assert "/api/v1/ui/dashboard?" in Path("frontend/src/data.ts").read_text(encoding="utf-8")
+    assert "cache:'no-store'" in Path("frontend/src/data.ts").read_text(encoding="utf-8")
     assert "Nuovo messaggio" in messaggi_page
     assert "getMessaggiData" in messaggi_data
     assert "sendEndpoint" in messaggi_data

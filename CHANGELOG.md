@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.198.21 - 2026-04-30
+
+- Corretto il riquadro `Ultime PEC ricevute` della Panoramica React: ora legge le ultime email reali in `INBOX`, ordinate per data effettiva, senza escludere le PEC ministeriali `giustiziacert.it` prive di `stato_pct`.
+- La cache breve della Panoramica include anche `mtime` e dimensione del file casella PEC e la risposta `/api/v1/ui/dashboard` e' servita con `no-store`, cosi' dopo una sincronizzazione la home non resta sui messaggi precedenti.
+- Il client React della Panoramica usa `cache: no-store` e cache-busting come la pagina `/email/`, allineando la card home alla casella PEC operativa.
+
+## 2.198.20 - 2026-04-30
+
+- Corretto l'accesso tenant-aware alla casella PEC e alla configurazione studio nelle route Email, Sync Runtime e Impostazioni, eliminando la lettura della casella globale che manteneva la UI ferma sui vecchi 104 messaggi.
+- Aggiunto il payload locale `/impostazioni/pec/local-smtp-payload`: il test SMTP dal PC usa la password digitata oppure quella salvata del tenant per il Local Signer, senza bloccare il flusso sul falso messaggio di password mancante.
+- Nella pagina Impostazioni e' stata nascosta la navigazione legacy quando la pagina moderna e' attiva, e il vecchio Lex inline e' stato disabilitato per lasciare un solo widget Lex ufficiale.
+
 ## 2.198.19 - 2026-04-30
 
 - Corretto il sync IMAP PEC per cartelle Legalmail con spazi nel nome, come `160925 SPEDITE`: la selezione IMAP ora quota correttamente il mailbox e importa anche quegli archivi invece di saltarli.

@@ -68,6 +68,13 @@ export function FloatingLex({
 
   useEffect(() => {
     if (typeof window === 'undefined') return undefined
+    const handleOpen = () => setOpen(true)
+    window.addEventListener('iusentra:open-floating-lex', handleOpen)
+    return () => window.removeEventListener('iusentra:open-floating-lex', handleOpen)
+  }, [])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined
     const handleMove = (event: PointerEvent) => {
       if (!drag.current.active) return
       const distance = Math.hypot(event.clientX - drag.current.startX, event.clientY - drag.current.startY)

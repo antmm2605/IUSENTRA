@@ -20,7 +20,9 @@ export type AgendaEvent = {
   location: string
   court: string
   matter: string
+  matterId: string
   client: string
+  clientId: string
   owner: string
   status: string
   source: string
@@ -208,7 +210,9 @@ export function normalizeAgendaEvent(item: unknown, index = 0): AgendaEvent | nu
   const title = asString(pickFirst(item, ['title', 'titolo', 'oggetto', 'name']), 'Appuntamento')
   const court = asString(pickFirst(item, ['court', 'tribunale', 'ufficio']))
   const matter = asString(pickFirst(item, ['matter', 'procedimento', 'fascicolo', 'rg']))
+  const matterId = asString(pickFirst(item, ['matterId', 'id_fascicolo', 'fascicolo_id']))
   const client = asString(pickFirst(item, ['client', 'cliente', 'nome_cliente', 'parte']))
+  const clientId = asString(pickFirst(item, ['clientId', 'id_cliente', 'cliente_id']))
   const location = asString(pickFirst(item, ['location', 'luogo', 'aula', 'indirizzo']))
   const subtitle = [matter, court, location].filter(Boolean).join(' - ') || asString(pickFirst(item, ['subtitle', 'descrizione', 'note']))
   return {
@@ -226,7 +230,9 @@ export function normalizeAgendaEvent(item: unknown, index = 0): AgendaEvent | nu
     location,
     court,
     matter,
+    matterId,
     client,
+    clientId,
     owner: asString(pickFirst(item, ['owner', 'responsabile', 'avvocato']), 'Studio'),
     status: asString(pickFirst(item, ['status', 'stato']), 'programmato'),
     source: asString(pickFirst(item, ['source', 'fonte']), 'agenda studio'),

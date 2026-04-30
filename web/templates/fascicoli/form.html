@@ -269,7 +269,7 @@
             <div class="col-md-6">
               <label class="form-label fw-semibold">Avvocato referente</label>
               <input type="text" id="field-avvocato_referente" name="avvocato_referente" class="form-control {% if correction_highlight == 'avvocato_referente' %}border-primary shadow-sm{% endif %}"
-                     value="{{ fascicolo.avvocato_referente if fascicolo else (workflow_prefill.avvocato_referente if workflow_prefill else '') }}"
+                     value="{{ fascicolo.avvocato_referente if fascicolo and fascicolo.avvocato_referente else (workflow_prefill.avvocato_referente if workflow_prefill and workflow_prefill.avvocato_referente else studio_avvocato_titolare|default('')) }}"
                      placeholder="Avv. Mario Rossi">
             </div>
             <div class="col-md-6">

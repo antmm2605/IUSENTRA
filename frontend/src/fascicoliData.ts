@@ -83,6 +83,8 @@ export type FascicoloDocument = {
   notes: string
   tags: string[]
   signed: boolean
+  statusLabel: string
+  statusTone: Tone
   source: string
   portalName: string
   portalClass: string
@@ -239,6 +241,28 @@ export type FascicoloDetailData = {
   }
 }
 
+export type FascicoloFormGuardrailIssue = {
+  code: string
+  message: string
+  field?: string
+}
+
+export type FascicoloFormGuardrails = {
+  available: boolean
+  title: string
+  portal: 'PCT' | 'PDP' | 'PAT' | 'PTT' | string
+  channel: string
+  channelLabel: string
+  mode: 'opening' | 'deposit' | string
+  blocking: FascicoloFormGuardrailIssue[]
+  warnings: FascicoloFormGuardrailIssue[]
+  requiredOpeningFields: string[]
+  nextStep?: {
+    label: string
+    href: string
+  }
+}
+
 export type FascicoloFormData = {
   source: string
   generatedAt: string
@@ -253,6 +277,7 @@ export type FascicoloFormData = {
   fascicolo?: Partial<FascicoloFull> & Record<string, string | number | boolean | undefined>
   workflow?: { title: string; badges: string[]; summary: string; checklist: string[]; values: KeyValue[] }
   correction?: { active: boolean; title: string; help: string; highlight: string }
+  guardrails?: FascicoloFormGuardrails
 }
 
 export type FascicoliExportData = {
@@ -581,7 +606,10 @@ function normalizeDetailPayload(payload: unknown): FascicoloDetailData {
       return {
         id: text(row.id, `doc-${index}`), name: text(row.name ?? row.nome, 'Documento'), type: text(row.type ?? row.tipo, 'ALTRO'), size: text(row.size ?? row.dimensione, ''),
         uploadedAt: text(row.uploadedAt ?? row.data_caricamento), documentDate: text(row.documentDate ?? row.data_documento), notes: text(row.notes ?? row.note),
-        tags: asArray(row.tags).map((tag) => text(tag)).filter(Boolean), signed: bool(row.signed ?? row.firmato), source: text(row.source ?? row.fonte_documento),
+        tags: asArray(row.tags).map((tag) => text(tag)).filter(Boolean), signed: bool(row.signed ?? row.firmato),
+        statusLabel: text(row.statusLabel ?? row.status_label, bool(row.signed ?? row.firmato) ? 'Firmato' : 'Da firmare'),
+        statusTone: text(row.statusTone ?? row.status_tone, bool(row.signed ?? row.firmato) ? 'success' : 'warning') as Tone,
+        source: text(row.source ?? row.fonte_documento),
         portalName: text(row.portalName ?? row.nome_portale), portalClass: text(row.portalClass ?? row.classificazione_portale), portalSender: text(row.portalSender ?? row.mittente_portale),
         portalDate: text(row.portalDate ?? row.data_deposito_portale), hash: text(row.hash ?? row.hash_sha256),
         actions: {
@@ -624,6 +652,11 @@ function normalizeActivity(entry: unknown, index: number): FascicoloActivity {
 
 function normalizeFormPayload(payload: unknown): FascicoloFormData {
   if (!isRecord(payload)) return emptyFascicoloForm
+  const guardrails = isRecord(payload.guardrails) ? payload.guardrails : undefined
+  const guardrailNextStepSource = guardrails ? guardrails.nextStep ?? guardrails.next_step : undefined
+  const guardrailNextStep = isRecord(guardrailNextStepSource)
+    ? { label: text(guardrailNextStepSource.label), href: text(guardrailNextStepSource.href) }
+    : undefined
   return {
     source: text(payload.source, 'repository_reali'), generatedAt: text(payload.generatedAt ?? payload.generated_at), mode: text(payload.mode, 'new') === 'edit' ? 'edit' : 'new',
     action: text(payload.action, '/fascicoli/nuovo'), backHref: text(payload.backHref ?? payload.back_href, '/fascicoli'), detailHref: text(payload.detailHref ?? payload.detail_href, '/fascicoli'),
@@ -633,6 +666,18 @@ function normalizeFormPayload(payload: unknown): FascicoloFormData {
     fascicolo: isRecord(payload.fascicolo) ? payload.fascicolo as FascicoloFormData['fascicolo'] : undefined,
     workflow: isRecord(payload.workflow) ? { title: text(payload.workflow.title), badges: asArray(payload.workflow.badges).map((badge) => text(badge)).filter(Boolean), summary: text(payload.workflow.summary), checklist: asArray(payload.workflow.checklist).map((item) => text(item)).filter(Boolean), values: normalizeKeyValues(payload.workflow.values) } : undefined,
     correction: isRecord(payload.correction) ? { active: bool(payload.correction.active), title: text(payload.correction.title), help: text(payload.correction.help), highlight: text(payload.correction.highlight) } : undefined,
+    guardrails: guardrails ? {
+      available: guardrails.available === undefined ? true : bool(guardrails.available),
+      title: text(guardrails.title, 'Guardrail deposito telematico'),
+      portal: text(guardrails.portal, 'PCT'),
+      channel: text(guardrails.channel, 'PCT_TELEMATICO'),
+      channelLabel: text(guardrails.channelLabel ?? guardrails.channel_label, 'PCT / PST Civile'),
+      mode: text(guardrails.mode, 'opening'),
+      blocking: asArray(guardrails.blocking).map((entry) => { const row = isRecord(entry) ? entry : {}; return { code: text(row.code), message: text(row.message), field: text(row.field) } }).filter((issue) => issue.message),
+      warnings: asArray(guardrails.warnings).map((entry) => { const row = isRecord(entry) ? entry : {}; return { code: text(row.code), message: text(row.message), field: text(row.field) } }).filter((issue) => issue.message),
+      requiredOpeningFields: asArray(guardrails.requiredOpeningFields ?? guardrails.required_opening_fields).map((item) => text(item)).filter(Boolean),
+      nextStep: guardrailNextStep,
+    } : undefined,
   }
 }
 

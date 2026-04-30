@@ -8,9 +8,11 @@ from __future__ import annotations
 
 from collections import Counter
 from datetime import date, datetime, timedelta, timezone
+import re
 from typing import Any, Callable, Iterable
 
 from pct.fascicoli import EsitoAttivita, StatoFascicolo, TipoAttivita, TipoDocumento, TipoFascicolo
+from pct.fascicolo_workspace import build_fascicolo_workspace
 
 MONTHS_SHORT = ["gen", "feb", "mar", "apr", "mag", "giu", "lug", "ago", "set", "ott", "nov", "dic"]
 
@@ -33,6 +35,32 @@ def _enum_value(value: Any) -> str:
 def _text(value: Any, default: str = "") -> str:
     text = str(value if value is not None else default).strip()
     return text if text else default
+
+
+def _looks_like_technical_user_label(value: str) -> bool:
+    text = _text(value)
+    if not text:
+        return False
+    if "@" in text:
+        return True
+    has_separator = any(separator in text for separator in (".", "_", "-"))
+    has_space = any(ch.isspace() for ch in text)
+    return has_separator and not has_space and text == text.lower()
+
+
+def _humanize_technical_user_label(value: str) -> str:
+    text = _text(value)
+    if not _looks_like_technical_user_label(text):
+        return text
+    return " ".join(part.capitalize() for part in re.split(r"[._-]+", text) if part)
+
+
+def _lead_lawyer_label(stored_value: Any, studio_avvocato_titolare: str = "") -> str:
+    stored = _text(stored_value)
+    studio = _text(studio_avvocato_titolare)
+    if studio and (not stored or _looks_like_technical_user_label(stored)):
+        return studio
+    return _humanize_technical_user_label(stored) or studio
 
 
 def _short(value: Any, limit: int = 120) -> str:
@@ -69,26 +97,94 @@ def _parse_date(value: Any) -> date | None:
     parsed = _parse_datetime(value)
     if parsed:
         return parsed.date()
-    try:
-        return date.fromisoformat(_text(value)[:10])
-    except ValueError:
-        return None
+    raw = _text(value)
+    for sample, fmt in (
+        (raw[:10], "%Y-%m-%d"),
+        (raw[:10], "%d/%m/%Y"),
+        (raw[:10], "%d-%m-%Y"),
+        (raw[:10], "%d.%m.%Y"),
+    ):
+        try:
+            return datetime.strptime(sample, fmt).date()
+        except ValueError:
+            continue
+    return None
 
 
 def _date_label(value: Any) -> str:
     parsed = _parse_date(value)
     if not parsed:
         return _text(value, "n.d.")
-    today = date.today()
-    if parsed == today:
-        return "oggi"
-    if parsed == today + timedelta(days=1):
-        return "domani"
-    if parsed == today - timedelta(days=1):
-        return "ieri"
-    if parsed.year == today.year:
-        return f"{parsed.day} {MONTHS_SHORT[parsed.month - 1]}"
     return parsed.strftime("%d/%m/%Y")
+
+
+_ISO_DATE_IN_TEXT_RE = re.compile(r"\b(\d{4})-(\d{2})-(\d{2})(?:[T\s]\d{2}:\d{2}(?::\d{2})?)?\b")
+
+
+def _italian_dates_in_text(value: Any) -> str:
+    text = _text(value)
+    if not text:
+        return ""
+
+    def _replace(match: re.Match[str]) -> str:
+        year, month, day = match.group(1), match.group(2), match.group(3)
+        try:
+            return date(int(year), int(month), int(day)).strftime("%d/%m/%Y")
+        except ValueError:
+            return match.group(0)
+
+    return _ISO_DATE_IN_TEXT_RE.sub(_replace, text)
+
+
+def _closure_date_value(fascicolo: Any) -> str:
+    direct = _text(getattr(fascicolo, "data_chiusura", ""))
+    if direct:
+        return direct
+    archivio = getattr(fascicolo, "archivio", None)
+    archived_at = _text(getattr(archivio, "data_archiviazione", "") if archivio else "")
+    if archived_at:
+        return archived_at
+    closed_states = {StatoFascicolo.DEFINITO.value, StatoFascicolo.ARCHIVIATO.value}
+    if _enum_value(getattr(fascicolo, "stato", "")) in closed_states:
+        for step in reversed(getattr(fascicolo, "avanzamento", []) or []):
+            if _enum_value(getattr(step, "stato_nuovo", "")) in closed_states:
+                return _text(getattr(step, "data", ""))
+    return ""
+
+
+def _activity_is_hearing(activity: Any) -> bool:
+    raw_type = _enum_value(getattr(activity, "tipo", "")).upper()
+    title = _text(getattr(activity, "titolo", "")).upper()
+    return "UDIENZA" in raw_type or "UDIENZA" in title
+
+
+def _next_hearing_value(fascicolo: Any, apps: Iterable[Any] | None = None) -> str:
+    direct = _text(getattr(fascicolo, "data_prossima_udienza", ""))
+    if direct:
+        return direct
+    today = date.today()
+    future_dates: list[date] = []
+    past_dates: list[date] = []
+    for activity in getattr(fascicolo, "attivita", []) or []:
+        if not _activity_is_hearing(activity):
+            continue
+        parsed = _parse_date(getattr(activity, "data", ""))
+        if not parsed:
+            continue
+        (future_dates if parsed >= today else past_dates).append(parsed)
+    for app in apps or []:
+        label = f"{_text(getattr(app, 'titolo', ''))} {_text(getattr(app, 'tipo', ''))}".upper()
+        if "UDIENZA" not in label:
+            continue
+        parsed = _parse_date(getattr(app, "data_ora", "") or getattr(app, "data", ""))
+        if not parsed:
+            continue
+        (future_dates if parsed >= today else past_dates).append(parsed)
+    if future_dates:
+        return min(future_dates).isoformat()
+    if past_dates:
+        return max(past_dates).isoformat()
+    return ""
 
 
 def _time_label(value: Any) -> str:
@@ -208,12 +304,28 @@ def _next_deadline(fascicolo: Any, scadenze_by_fasc: dict[str, list[Any]] | None
     return dated[0] if dated else None
 
 
+def _workspace_counts(fascicolo: Any) -> dict[str, int]:
+    data = _safe("workspace_counts", lambda: build_fascicolo_workspace(fascicolo).get("counts", {}), {})
+    return data if isinstance(data, dict) else {}
+
+
+def _governed_documents_count(fascicolo: Any) -> int:
+    counts = _workspace_counts(fascicolo)
+    value = counts.get("documenti_governati")
+    if value is None:
+        value = counts.get("documenti")
+    try:
+        return int(value or 0)
+    except (TypeError, ValueError):
+        return len(getattr(fascicolo, "documenti", []) or [])
+
+
 def _item(fascicolo: Any, *, scadenze_by_fasc: dict[str, list[Any]] | None = None, archived: bool | None = None) -> dict[str, Any]:
     fid = _text(getattr(fascicolo, "id", ""))
     stato = _enum_value(getattr(fascicolo, "stato", StatoFascicolo.APERTO.value))
     n_scadenza = _next_deadline(fascicolo, scadenze_by_fasc)
     n_date = _text(getattr(n_scadenza, "data_scadenza", "") or getattr(n_scadenza, "data", "")) if n_scadenza else ""
-    docs = len(getattr(fascicolo, "documenti", []) or [])
+    docs = _governed_documents_count(fascicolo)
     deposits = getattr(fascicolo, "depositi_pct", []) or []
     unread = sum(1 for dep in deposits if _enum_value(getattr(dep, "stato", "")).upper() in {"WARN_CONTROLLI", "ERRORE_CONTROLLI", "RIFIUTATO_CANCELLERIA", "ERRORE"})
     alerts = unread
@@ -253,7 +365,7 @@ def _item(fascicolo: Any, *, scadenze_by_fasc: dict[str, list[Any]] | None = Non
             "outcome": _text(getattr(archive, "esito_finale", "")),
             "archivedAt": _text(getattr(archive, "data_archiviazione", "")),
             "reason": _text(getattr(archive, "motivo", "")),
-            "notes": _text(getattr(archive, "note_archivio", "")),
+            "notes": _italian_dates_in_text(getattr(archive, "note_archivio", "")),
             "zipAvailable": bool(_text(getattr(archive, "percorso_zip", ""))),
             "zipSize": _bytes_label(getattr(archive, "dimensione_zip", 0)),
             "hash": _text(getattr(archive, "hash_zip", "")),
@@ -403,9 +515,14 @@ def _client_options(get_clienti: Callable[[], Any]) -> list[dict[str, str]]:
     return out
 
 
-def _form_fascicolo_payload(fascicolo: Any | None) -> dict[str, Any] | None:
+def _form_fascicolo_payload(
+    fascicolo: Any | None,
+    *,
+    studio_avvocato_titolare: str = "",
+) -> dict[str, Any] | None:
     if not fascicolo:
         return None
+    lead_lawyer = _lead_lawyer_label(getattr(fascicolo, "avvocato_referente", ""), studio_avvocato_titolare)
     base = _item(fascicolo)
     base.update(
         {
@@ -414,7 +531,8 @@ def _form_fascicolo_payload(fascicolo: Any | None) -> dict[str, Any] | None:
             "counterpartyTaxCode": _text(getattr(fascicolo, "cf_controparte", "")),
             "judge": _text(getattr(fascicolo, "giudice", "")),
             "section": _text(getattr(fascicolo, "sezione", "")),
-            "leadLawyer": _text(getattr(fascicolo, "avvocato_referente", "")),
+            "leadLawyer": lead_lawyer,
+            "studioLeadLawyer": _text(studio_avvocato_titolare),
             "dominus": _text(getattr(fascicolo, "avvocato_dominus", "")),
             "value": str(getattr(fascicolo, "valore_causa", "") or ""),
             "quotedValue": str(getattr(fascicolo, "valore_preventivato", "") or ""),
@@ -422,14 +540,14 @@ def _form_fascicolo_payload(fascicolo: Any | None) -> dict[str, Any] | None:
             "procedureType": _text(getattr(fascicolo, "tipo_procedimento", "")),
             "practiceId": _text(getattr(fascicolo, "id_pratica", "")),
             "practiceArea": _text(getattr(fascicolo, "area_pratica", "")),
-            "firstHearing": _text(getattr(fascicolo, "data_prima_udienza", "")),
-            "citationNotification": _text(getattr(fascicolo, "data_notifica_citazione", "")),
-            "nextHearing": _text(getattr(fascicolo, "data_prossima_udienza", "")),
-            "notes": _text(getattr(fascicolo, "note", "")),
-            "reservedNotes": _text(getattr(fascicolo, "note_riservate", "")),
+            "firstHearing": _date_label(getattr(fascicolo, "data_prima_udienza", "")),
+            "citationNotification": _date_label(getattr(fascicolo, "data_notifica_citazione", "")),
+            "nextHearing": _date_label(getattr(fascicolo, "data_prossima_udienza", "")),
+            "notes": _italian_dates_in_text(getattr(fascicolo, "note", "")),
+            "reservedNotes": _italian_dates_in_text(getattr(fascicolo, "note_riservate", "")),
             "source": _text(getattr(fascicolo, "source", "")),
             "sourceExternalId": _text(getattr(fascicolo, "source_external_id", "")),
-            "lastSyncAt": _text(getattr(fascicolo, "last_sync_at", "")),
+            "lastSyncAt": _date_label(getattr(fascicolo, "last_sync_at", "")),
             "syncStatus": _text(getattr(fascicolo, "sync_status", "")),
             "importLogId": _text(getattr(fascicolo, "import_log_id", "")),
             "hasConflicts": bool(getattr(fascicolo, "has_conflicts", False)),
@@ -457,6 +575,46 @@ def _form_fascicolo_payload(fascicolo: Any | None) -> dict[str, Any] | None:
     return base
 
 
+def _deposit_channel_for_type(tipo: str) -> dict[str, str]:
+    raw = str(tipo or "").strip().upper()
+    if raw == "PENALE":
+        return {"channel": "PDP_PENALE", "portal": "PDP", "label": "PDP Penale"}
+    if raw == "AMMINISTRATIVO":
+        return {"channel": "PAT_AMMINISTRATIVO", "portal": "PAT", "label": "PAT Amministrativo"}
+    if raw == "TRIBUTARIO":
+        return {"channel": "PTT_TRIBUTARIO", "portal": "PTT", "label": "PTT / SIGIT Tributario"}
+    return {"channel": "PCT_TELEMATICO", "portal": "PCT", "label": "PCT / PST Civile"}
+
+
+def _new_fascicolo_guardrails(query: dict[str, str], fascicolo: Any | None = None) -> dict[str, Any]:
+    tipo = query.get("tipo") or _enum_value(getattr(fascicolo, "tipo", "")) or "CIVILE"
+    channel = _deposit_channel_for_type(tipo)
+    return {
+        "available": True,
+        "title": "Guardrail deposito telematico",
+        "portal": channel["portal"],
+        "channel": channel["channel"],
+        "channelLabel": channel["label"],
+        "mode": "opening",
+        "blocking": [],
+        "warnings": [
+            {
+                "code": "DOCUMENTI_PREDEPOSITO_DOPO_CREAZIONE",
+                "message": (
+                    "Il fascicolo puo' essere aperto ora. Atto principale, procura, prova notifica "
+                    "e contributo saranno verificati nel pre-deposito con il motore deposito guidato."
+                ),
+                "field": "documenti",
+            }
+        ],
+        "requiredOpeningFields": ["titolo", "tipo", "oggetto", "tribunale"],
+        "nextStep": {
+            "label": "Dopo la creazione apri il fascicolo e completa documenti / pre-deposito",
+            "href": "/deposito/checklist",
+        },
+    }
+
+
 def build_react_fascicolo_form_payload(
     *,
     get_fascicoli: Callable[[], Any],
@@ -464,12 +622,14 @@ def build_react_fascicolo_form_payload(
     id_fasc: str | None = None,
     query: dict[str, Any] | None = None,
     correction_context: dict[str, Any] | None = None,
+    studio_avvocato_titolare: str = "",
 ) -> dict[str, Any]:
     query = {str(k): _text(v) for k, v in (query or {}).items()}
     fascicolo = _safe("fascicolo", lambda: get_fascicoli().get(id_fasc), None) if id_fasc else None
     mode = "edit" if id_fasc else "new"
     action = f"/fascicoli/{id_fasc}/modifica" if id_fasc else "/fascicoli/nuovo"
     detail = f"/fascicoli/{id_fasc}" if id_fasc else "/fascicoli"
+    guardrails = _new_fascicolo_guardrails(query, fascicolo)
     workflow = None
     if query.get("source_preventivo") or query.get("source_conferimento"):
         workflow = {
@@ -497,9 +657,19 @@ def build_react_fascicolo_form_payload(
         "clients": _client_options(get_clienti),
         "types": _select_options(TipoFascicolo),
         "states": _select_options(StatoFascicolo),
-        "fascicolo": _form_fascicolo_payload(fascicolo),
+        "studio": {
+            "leadLawyer": _text(studio_avvocato_titolare),
+        },
+        "fascicolo": _form_fascicolo_payload(
+            fascicolo,
+            studio_avvocato_titolare=studio_avvocato_titolare,
+        ) or {
+            "leadLawyer": _text(studio_avvocato_titolare),
+            "studioLeadLawyer": _text(studio_avvocato_titolare),
+        },
         "workflow": workflow,
         "correction": correction_context or {"active": False, "title": "", "help": "", "highlight": ""},
+        "guardrails": guardrails,
     }
 
 
@@ -531,7 +701,7 @@ def _client_payload(cliente: Any) -> dict[str, Any] | None:
     }
 
 
-def _profile(fascicolo: Any) -> list[dict[str, Any]]:
+def _profile(fascicolo: Any, *, apps: Iterable[Any] | None = None, studio_avvocato_titolare: str = "") -> list[dict[str, Any]]:
     rows = [
         ("Cliente", getattr(fascicolo, "nome_cliente", ""), False, f"/clienti/{_text(getattr(fascicolo, 'id_cliente', ''))}" if _text(getattr(fascicolo, "id_cliente", "")) else ""),
         ("Controparte", getattr(fascicolo, "controparte", ""), False, ""),
@@ -540,14 +710,14 @@ def _profile(fascicolo: Any) -> list[dict[str, Any]]:
         ("Rif. interno", getattr(fascicolo, "numero", ""), True, ""),
         ("Sezione", getattr(fascicolo, "sezione", ""), False, ""),
         ("Giudice", getattr(fascicolo, "giudice", ""), False, ""),
-        ("Avv. referente", getattr(fascicolo, "avvocato_referente", ""), False, ""),
+        ("Avv. referente", _lead_lawyer_label(getattr(fascicolo, "avvocato_referente", ""), studio_avvocato_titolare), False, ""),
         ("Avv. dominus", getattr(fascicolo, "avvocato_dominus", ""), False, ""),
         ("Valore causa", _euro(getattr(fascicolo, "valore_causa", 0)), False, ""),
         ("Compenso pattuito", _euro(getattr(fascicolo, "compenso_pattuito", 0)), False, ""),
         ("Apertura", _date_label(getattr(fascicolo, "data_apertura", "")), False, ""),
         ("Prima udienza", _date_label(getattr(fascicolo, "data_prima_udienza", "")), False, ""),
-        ("Prossima udienza", _date_label(getattr(fascicolo, "data_prossima_udienza", "")), False, ""),
-        ("Chiusura", _date_label(getattr(fascicolo, "data_chiusura", "")), False, ""),
+        ("Prossima udienza", _date_label(_next_hearing_value(fascicolo, apps)), False, ""),
+        ("Chiusura", _date_label(_closure_date_value(fascicolo)), False, ""),
         ("Fonte portale", getattr(fascicolo, "source", ""), False, ""),
         ("Ultimo sync", _date_label(getattr(fascicolo, "last_sync_at", "")), False, ""),
     ]
@@ -561,10 +731,40 @@ def _profile(fascicolo: Any) -> list[dict[str, Any]]:
 def _documents(fascicolo: Any) -> list[dict[str, Any]]:
     fid = _text(getattr(fascicolo, "id", ""))
     out = []
+    local_doc_ids = set()
+    local_portal_refs: set[tuple[str, str]] = set()
+
+    def _empty_actions() -> dict[str, str]:
+        return {
+            "preview": "",
+            "download": "",
+            "edit": "",
+            "sign": "",
+            "pdfa": "",
+            "attest": "",
+            "metadata": "",
+            "delete": "",
+        }
+
+    def _portal_ref(field: str, value: Any) -> tuple[str, str] | None:
+        text = _text(value)
+        return (field, text) if text else None
+
     for doc in getattr(fascicolo, "documenti", []) or []:
         did = _text(getattr(doc, "id", ""))
         name = _text(getattr(doc, "nome", ""), "Documento")
         signed = bool(getattr(doc, "firmato", False) or getattr(doc, "firmato_digitalmente", False) or name.lower().endswith(".p7m"))
+        if did:
+            local_doc_ids.add(did)
+        for ref in (
+            _portal_ref("id_documento", getattr(doc, "id_documento_portale", "")),
+            _portal_ref("id_cat", getattr(doc, "id_cat_portale", "")),
+            _portal_ref("id_repeatto", getattr(doc, "id_repeatto_portale", "")),
+            _portal_ref("msg_id", getattr(doc, "msg_id_portale", "")),
+            _portal_ref("nome", getattr(doc, "nome_portale", "") or getattr(doc, "nome_originale", "")),
+        ):
+            if ref:
+                local_portal_refs.add(ref)
         out.append(
             {
                 "id": did,
@@ -573,9 +773,11 @@ def _documents(fascicolo: Any) -> list[dict[str, Any]]:
                 "size": _bytes_label(getattr(doc, "dimensione_bytes", 0)),
                 "uploadedAt": _date_label(getattr(doc, "data_caricamento", "")),
                 "documentDate": _date_label(getattr(doc, "data_documento", "")),
-                "notes": _short(getattr(doc, "note", ""), 180),
+                "notes": _short(_italian_dates_in_text(getattr(doc, "note", "")), 180),
                 "tags": list(getattr(doc, "tags", []) or []),
                 "signed": signed,
+                "statusLabel": "Firmato" if signed else "Da firmare",
+                "statusTone": "success" if signed else "warning",
                 "source": _text(getattr(doc, "fonte_documento", ""), "CARICAMENTO_STUDIO"),
                 "portalName": _text(getattr(doc, "nome_portale", "")),
                 "portalClass": _text(getattr(doc, "classificazione_portale", "")),
@@ -594,6 +796,59 @@ def _documents(fascicolo: Any) -> list[dict[str, Any]]:
                 },
             }
         )
+
+    seen_portal_docs: set[tuple[str, str, str]] = set()
+    for dep in getattr(fascicolo, "depositi_pct", []) or []:
+        dep_id = _text(getattr(dep, "id", ""))
+        imported_doc_ids = {_text(value) for value in (getattr(dep, "documenti_ids", []) or []) if _text(value)}
+        for index, row in enumerate(getattr(dep, "documenti_portale", []) or []):
+            if not isinstance(row, dict):
+                continue
+            ref_candidates = [
+                _portal_ref("id_documento", row.get("id_documento")),
+                _portal_ref("id_cat", row.get("id_cat")),
+                _portal_ref("id_repeatto", row.get("id_repeatto")),
+                _portal_ref("msg_id", row.get("msg_id")),
+                _portal_ref("nome", row.get("nome")),
+            ]
+            refs = {ref for ref in ref_candidates if ref}
+            if refs & local_portal_refs:
+                continue
+            if imported_doc_ids and imported_doc_ids.issubset(local_doc_ids) and len(imported_doc_ids) >= 1:
+                continue
+            name = _text(row.get("nome"), "Documento ufficiale")
+            portal_identifier = _text(row.get("id_documento") or row.get("id_cat") or row.get("id_repeatto") or row.get("msg_id"))
+            key = (
+                portal_identifier,
+                "" if portal_identifier else _text(row.get("id_deposito") or getattr(dep, "id_deposito_esterno", "") or dep_id),
+                name.casefold(),
+            )
+            if key in seen_portal_docs:
+                continue
+            seen_portal_docs.add(key)
+            source = _text(getattr(dep, "fonte_portale", "")) or _text(getattr(dep, "servizio_portale", ""), "Portale")
+            out.append(
+                {
+                    "id": f"portale-{dep_id or 'deposito'}-{index}",
+                    "name": name,
+                    "type": _text(row.get("tipo") or row.get("tipo_atto"), "Documento ufficiale"),
+                    "size": _bytes_label(row.get("dimensione_bytes", 0)),
+                    "uploadedAt": "",
+                    "documentDate": _date_label(row.get("data_deposito") or row.get("data_documento")),
+                    "notes": "Documento censito dal portale ufficiale. Il file va acquisito tramite sessione autenticata o Local Signer, senza download server autonomo.",
+                    "tags": ["Catalogo portale", source],
+                    "signed": False,
+                    "statusLabel": "Da acquisire",
+                    "statusTone": "info",
+                    "source": source,
+                    "portalName": name,
+                    "portalClass": _text(row.get("tipo_atto") or row.get("tipo")),
+                    "portalSender": _text(row.get("mittente")),
+                    "portalDate": _date_label(row.get("data_deposito") or row.get("data_documento")),
+                    "hash": "",
+                    "actions": _empty_actions(),
+                }
+            )
     return out
 
 
@@ -609,10 +864,10 @@ def _activities(fascicolo: Any) -> list[dict[str, Any]]:
                 "type": _enum_value(getattr(att, "tipo", "ALTRO")).replace("_", " "),
                 "title": _short(getattr(att, "titolo", ""), 120) or "Attivita",
                 "date": _date_label(getattr(att, "data", "")),
-                "description": _short(getattr(att, "descrizione", ""), 220),
+                "description": _short(_italian_dates_in_text(getattr(att, "descrizione", "")), 220),
                 "result": result.replace("_", " "),
                 "place": _text(getattr(att, "luogo", "")),
-                "notes": _short(getattr(att, "note", ""), 180),
+                "notes": _short(_italian_dates_in_text(getattr(att, "note", "")), 180),
                 "lawyer": _text(getattr(att, "avvocato", "")),
                 "documentId": _text(getattr(att, "id_documento", "")),
                 "depositId": _text(getattr(att, "id_deposito_pct", "")),
@@ -639,7 +894,7 @@ def _deadlines(scadenze: Iterable[Any]) -> list[dict[str, Any]]:
                 "priority": _enum_value(getattr(item, "priorita", "")).replace("_", " "),
                 "status": _enum_value(getattr(item, "stato", "")).replace("_", " "),
                 "peremptory": bool(getattr(item, "perentorio", False)),
-                "notes": _short(getattr(item, "note", ""), 160),
+                "notes": _short(_italian_dates_in_text(getattr(item, "note", "")), 160),
                 "href": f"/scadenziario?focus={sid}",
                 "tone": _deadline_tone(item),
             }
@@ -695,7 +950,7 @@ def _deposits(fascicolo: Any) -> list[dict[str, Any]]:
                 "status": status.replace("_", " "),
                 "actType": _enum_value(getattr(dep, "tipo_atto", "")).replace("_", " "),
                 "pec": _text(getattr(dep, "pec_destinatario", "")),
-                "message": _short(getattr(dep, "messaggio", ""), 200),
+                "message": _short(_italian_dates_in_text(getattr(dep, "messaggio", "")), 200),
                 "checks": _enum_value(getattr(dep, "esito_controlli", "")),
                 "source": _text(getattr(dep, "fonte_portale", "")) or _text(getattr(dep, "servizio_portale", "")),
                 "externalId": _text(getattr(dep, "id_deposito_esterno", "")),
@@ -734,10 +989,10 @@ def _history(fascicolo: Any) -> list[dict[str, str]]:
         out.append(
             {
                 "date": _date_label(getattr(item, "data", "")),
-                "description": _short(getattr(item, "descrizione", ""), 160),
+                "description": _short(_italian_dates_in_text(getattr(item, "descrizione", "")), 160),
                 "from": _text(getattr(item, "stato_precedente", "")),
                 "to": _text(getattr(item, "stato_nuovo", "")),
-                "notes": _short(getattr(item, "note", ""), 180),
+                "notes": _short(_italian_dates_in_text(getattr(item, "note", "")), 180),
                 "lawyer": _text(getattr(item, "avvocato", "")),
             }
         )
@@ -761,7 +1016,7 @@ def _workflow(preventivi: list[Any], conferimenti: list[Any], parcelle: list[Any
         {"label": "Cliente", "value": "OK" if cliente else "Da collegare", "note": "anagrafica fascicolo", "tone": "success" if cliente else "warning", "href": "/clienti"},
         {"label": "Preventivo", "value": str(len(preventivi)), "note": "offerte collegate", "tone": "success" if preventivi else "neutral", "href": "/preventivi/"},
         {"label": "Conferimento", "value": str(len(conferimenti)), "note": "incarichi collegati", "tone": "success" if conferimenti else "warning", "href": "/preventivi/"},
-        {"label": "Attivita", "value": str(len(timesheet_entries)), "note": "voci valorizzabili", "tone": "primary" if timesheet_entries else "neutral", "href": "/timesheet"},
+        {"label": "Attività", "value": str(len(timesheet_entries)), "note": "voci valorizzabili", "tone": "primary" if timesheet_entries else "neutral", "href": "/timesheet"},
         {"label": "Parcelle", "value": str(len(parcelle)), "note": "fino all'incasso", "tone": "success" if parcelle else "neutral", "href": "/fatturazione/"},
     ]
 
@@ -779,19 +1034,26 @@ def _telematic(fascicolo: Any) -> list[dict[str, Any]]:
 
 
 def _quality(fascicolo: Any, cliente: Any, scadenze: list[Any], parti: list[Any]) -> list[dict[str, Any]]:
+    governed_documents = _governed_documents_count(fascicolo)
+    physical_documents = len(getattr(fascicolo, "documenti", []) or [])
+    documents_label = f"{governed_documents} elementi"
+    if governed_documents != physical_documents:
+        documents_label = f"{governed_documents} elementi, {physical_documents} file acquisiti"
     return [
         {"label": "Dati principali", "value": "titolo, tipo, ufficio", "ok": bool(getattr(fascicolo, "titolo", "") and getattr(fascicolo, "tipo", "")), "tone": "success"},
         {"label": "Cliente", "value": _text(getattr(fascicolo, "nome_cliente", ""), "non collegato"), "ok": bool(cliente), "tone": "success" if cliente else "warning"},
         {"label": "Parti", "value": f"{len(parti)} soggetti", "ok": bool(parti or getattr(fascicolo, "controparte", "")), "tone": "success" if parti else "warning"},
-        {"label": "Documenti", "value": f"{len(getattr(fascicolo, 'documenti', []) or [])} file", "ok": bool(getattr(fascicolo, "documenti", [])), "tone": "primary"},
+        {"label": "Documenti", "value": documents_label, "ok": bool(governed_documents), "tone": "primary"},
         {"label": "Scadenze", "value": f"{len(scadenze)} termini", "ok": bool(scadenze), "tone": "warning" if scadenze else "neutral"},
         {"label": "Controlli conformita", "value": "attivi" if getattr(fascicolo, "compliance_controls_enabled", True) else "disattivati", "ok": bool(getattr(fascicolo, "compliance_controls_enabled", True)), "tone": "success" if getattr(fascicolo, "compliance_controls_enabled", True) else "orange"},
         {"label": "Sync portale", "value": _text(getattr(fascicolo, "sync_status", ""), "locale"), "ok": not bool(getattr(fascicolo, "has_conflicts", False)), "tone": "danger" if getattr(fascicolo, "has_conflicts", False) else "success"},
     ]
 
 
-def _full_fascicolo(fascicolo: Any) -> dict[str, Any]:
+def _full_fascicolo(fascicolo: Any, *, apps: Iterable[Any] | None = None, studio_avvocato_titolare: str = "") -> dict[str, Any]:
     base = _item(fascicolo)
+    next_hearing = _next_hearing_value(fascicolo, apps)
+    closure_date = _closure_date_value(fascicolo)
     base.update(
         {
             "object": _text(getattr(fascicolo, "oggetto", "")),
@@ -799,7 +1061,8 @@ def _full_fascicolo(fascicolo: Any) -> dict[str, Any]:
             "counterpartyTaxCode": _text(getattr(fascicolo, "cf_controparte", "")),
             "judge": _text(getattr(fascicolo, "giudice", "")),
             "section": _text(getattr(fascicolo, "sezione", "")),
-            "leadLawyer": _text(getattr(fascicolo, "avvocato_referente", "")),
+            "leadLawyer": _lead_lawyer_label(getattr(fascicolo, "avvocato_referente", ""), studio_avvocato_titolare),
+            "studioLeadLawyer": _text(studio_avvocato_titolare),
             "dominus": _text(getattr(fascicolo, "avvocato_dominus", "")),
             "value": _euro(getattr(fascicolo, "valore_causa", 0)),
             "quotedValue": _euro(getattr(fascicolo, "valore_preventivato", 0)),
@@ -809,9 +1072,10 @@ def _full_fascicolo(fascicolo: Any) -> dict[str, Any]:
             "practiceArea": _text(getattr(fascicolo, "area_pratica", "")),
             "firstHearing": _date_label(getattr(fascicolo, "data_prima_udienza", "")),
             "citationNotification": _date_label(getattr(fascicolo, "data_notifica_citazione", "")),
-            "nextHearing": _date_label(getattr(fascicolo, "data_prossima_udienza", "")),
-            "notes": _text(getattr(fascicolo, "note", "")),
-            "reservedNotes": _text(getattr(fascicolo, "note_riservate", "")),
+            "nextHearing": _date_label(next_hearing),
+            "closedAt": _date_label(closure_date),
+            "notes": _italian_dates_in_text(getattr(fascicolo, "note", "")),
+            "reservedNotes": _italian_dates_in_text(getattr(fascicolo, "note_riservate", "")),
             "source": _text(getattr(fascicolo, "source", "")),
             "sourceExternalId": _text(getattr(fascicolo, "source_external_id", "")),
             "lastSyncAt": _date_label(getattr(fascicolo, "last_sync_at", "")),
@@ -832,7 +1096,8 @@ def _full_fascicolo(fascicolo: Any) -> dict[str, Any]:
             "agreedFeeRaw": str(getattr(fascicolo, "compenso_pattuito", "") or ""),
             "firstHearingIso": _text(getattr(fascicolo, "data_prima_udienza", "")),
             "citationNotificationIso": _text(getattr(fascicolo, "data_notifica_citazione", "")),
-            "nextHearingIso": _text(getattr(fascicolo, "data_prossima_udienza", "")),
+            "nextHearingIso": _text(next_hearing),
+            "closedAtIso": _text(closure_date),
         }
     )
     return base
@@ -849,6 +1114,7 @@ def build_react_fascicolo_detail_payload(
     get_fatturazione: Callable[[], Any],
     get_timesheet: Callable[[], Any],
     id_fasc: str,
+    studio_avvocato_titolare: str = "",
 ) -> dict[str, Any]:
     fascicolo = _safe("fascicolo", lambda: get_fascicoli().get(id_fasc), None)
     if not fascicolo:
@@ -865,7 +1131,7 @@ def build_react_fascicolo_detail_payload(
     activities = _activities(fascicolo)
     requests = [item for item in activities if "ISTAN" in item["type"].upper() or "ISTAN" in item["title"].upper()]
     quick_counts = {
-        "profilo": len(_profile(fascicolo)),
+        "profilo": len(_profile(fascicolo, apps=apps, studio_avvocato_titolare=studio_avvocato_titolare)),
         "documenti": len(getattr(fascicolo, "documenti", []) or []),
         "attivita": len(activities),
         "udienze_scadenze": len(scadenze) + len(apps),
@@ -877,9 +1143,9 @@ def build_react_fascicolo_detail_payload(
         "source": "repository_reali",
         "generatedAt": _now(),
         "contracts": _contracts(),
-        "fascicolo": _full_fascicolo(fascicolo),
+        "fascicolo": _full_fascicolo(fascicolo, apps=apps, studio_avvocato_titolare=studio_avvocato_titolare),
         "quickCounts": quick_counts,
-        "profile": _profile(fascicolo),
+        "profile": _profile(fascicolo, apps=apps, studio_avvocato_titolare=studio_avvocato_titolare),
         "documents": _documents(fascicolo),
         "activities": activities,
         "deadlines": _deadlines(scadenze),

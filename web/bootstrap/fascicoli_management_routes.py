@@ -39,6 +39,21 @@ def register_fascicoli_management_routes(
 ) -> None:
     """Register management, archive, and API routes for fascicoli."""
 
+    def _avvocato_titolare_studio() -> str:
+        try:
+            config_manager = get_config_studio()
+            studio = getattr(getattr(config_manager, "config", None), "studio", None)
+            avvocato = str(getattr(studio, "avvocato", "") or "").strip()
+            if avvocato:
+                return avvocato
+        except Exception:
+            pass
+        return str(
+            app.config.get("STUDIO_AVVOCATO")
+            or app.config.get("PCT_STUDIO_AVVOCATO")
+            or ""
+        ).strip()
+
     @app.route("/fascicoli/<id_fasc>/copertina")
     def copertina_fascicolo(id_fasc: str):
         try:
@@ -117,6 +132,11 @@ def register_fascicoli_management_routes(
                 cliente = gc.get(id_cliente)
                 nome_cliente = cliente.nome_completo if cliente else nome_cliente
             try:
+                avvocato_referente = (
+                    form.get("avvocato_referente", "").strip()
+                    or _avvocato_titolare_studio()
+                    or str(getattr(fascicolo, "avvocato_referente", "") or "").strip()
+                )
                 gf.aggiorna(
                     id_fasc,
                     titolo=form.get("titolo", fascicolo.titolo),
@@ -131,7 +151,7 @@ def register_fascicoli_management_routes(
                     sezione=form.get("sezione", ""),
                     data_prima_udienza=form.get("data_prima_udienza", ""),
                     data_notifica_citazione=form.get("data_notifica_citazione", ""),
-                    avvocato_referente=form.get("avvocato_referente", ""),
+                    avvocato_referente=avvocato_referente,
                     avvocato_dominus=form.get("avvocato_dominus", ""),
                     oggetto=form.get("oggetto", ""),
                     valore_causa=float(form.get("valore_causa") or 0),
@@ -150,6 +170,7 @@ def register_fascicoli_management_routes(
             tipi=list(TipoFascicolo),
             stati=list(StatoFascicolo),
             id_cliente_pre="",
+            studio_avvocato_titolare=_avvocato_titolare_studio(),
             correction_context=fascicolo_form_correction_context(),
             oggi=date.today(),
         )

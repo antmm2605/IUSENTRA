@@ -45,6 +45,7 @@ from web.services.react_scadenziario_bridge import (
     build_react_scadenziario_payload,
 )
 from web.services.react_soggetti_bridge import build_react_soggetti_payload
+from web.services.react_telematico_bridge import build_react_telematico_payload
 from web.services.react_wizard_pro_bridge import build_react_wizard_pro_payload
 from web.helpers import (
     get_agenda,
@@ -79,6 +80,51 @@ def _richiedi_auth(func: Callable[..., Any]) -> Callable[..., Any]:
         return jsonify({"errore": "Autenticazione richiesta.", "codice": 401}), 401
 
     return wrapper
+
+
+def _studio_avvocato_titolare() -> str:
+    core_runtime = current_app.extensions.get("core_runtime", {}) or {}
+    config_loader = core_runtime.get("get_config_studio")
+    if callable(config_loader):
+        try:
+            config_manager = config_loader()
+            studio = getattr(getattr(config_manager, "config", None), "studio", None)
+            avvocato = str(getattr(studio, "avvocato", "") or "").strip()
+            if avvocato:
+                return avvocato
+        except Exception:
+            pass
+    return str(
+        current_app.config.get("STUDIO_AVVOCATO")
+        or current_app.config.get("PCT_STUDIO_AVVOCATO")
+        or ""
+    ).strip()
+
+
+def _telematico_loader() -> Callable[[], Any]:
+    core_runtime = current_app.extensions.get("core_runtime", {}) or {}
+    loader = core_runtime.get("get_telematico")
+    if callable(loader):
+        return loader
+
+    def _missing_telematico() -> Any:
+        raise RuntimeError("Runtime telematico non disponibile")
+
+    return _missing_telematico
+
+
+def _telematico_runtime_func(name: str) -> Callable[..., Any]:
+    bundle = current_app.extensions.get("application_runtime_bundle")
+    runtime = getattr(bundle, "telematico", {}) if bundle else {}
+    func = dict(runtime or {}).get(name)
+    if callable(func):
+        return func
+
+    def _missing_runtime(*_args: Any, **_kwargs: Any) -> dict[str, Any]:
+        current_app.logger.warning("Runtime telematico non espone %s.", name)
+        return {}
+
+    return _missing_runtime
 
 
 def _iso_now() -> str:
@@ -761,7 +807,7 @@ def bootstrap():
                 "replace_agenda": True,
                 "replace_fascicoli": True,
                 "replace_scadenziario": True,
-                "replace_telematico": False,
+                "replace_telematico": True,
                 "replace_preventivi": False,
                 "replace_sito_studio": False,
                 "replace_clienti": True,
@@ -945,6 +991,19 @@ def wizard_pro_react_dashboard():
     ))
 
 
+@api_v1_react.get("/telematico")
+@_richiedi_auth
+def telematico_react_dashboard():
+    return jsonify(
+        build_react_telematico_payload(
+            get_telematico=_telematico_loader(),
+            get_fascicoli=get_fascicoli,
+            build_access_status_payload=_telematico_runtime_func("build_access_status_payload"),
+            logger=current_app.logger,
+        )
+    )
+
+
 # IUSENTRA_REACT_FASCICOLI_ROUTES_START
 @api_v1_react.get("/fascicoli")
 @_richiedi_auth
@@ -983,6 +1042,7 @@ def fascicolo_react_nuovo():
         id_fasc=None,
         query=dict(request.args),
         correction_context={"active": False, "title": "", "help": "", "highlight": ""},
+        studio_avvocato_titolare=_studio_avvocato_titolare(),
     ))
 
 
@@ -995,6 +1055,7 @@ def fascicolo_react_modifica(id_fasc: str):
         id_fasc=id_fasc,
         query=dict(request.args),
         correction_context={"active": False, "title": "", "help": "", "highlight": ""},
+        studio_avvocato_titolare=_studio_avvocato_titolare(),
     ))
 
 
@@ -1011,6 +1072,7 @@ def fascicolo_react_dettaglio(id_fasc: str):
         get_fatturazione=get_fatturazione,
         get_timesheet=get_timesheet,
         id_fasc=id_fasc,
+        studio_avvocato_titolare=_studio_avvocato_titolare(),
     ))
 # IUSENTRA_REACT_FASCICOLI_ROUTES_END
 

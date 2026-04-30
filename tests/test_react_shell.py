@@ -6,7 +6,7 @@ from pathlib import Path
 from pct.agenda import Agenda, TipoAppuntamento
 from pct.clienti import GestioneClienti, TipoCliente
 from pct.email_client import CartellaEmail, EmailRicevuta, GestioneEmailRicevute, StatoEmail
-from pct.fascicoli import GestioneFascicoli, TipoFascicolo
+from pct.fascicoli import GestioneFascicoli, StatoFascicolo, TipoAttivita, TipoFascicolo
 from pct.messaggi import CanaleMsggio, ConfigMessaggistica, GestioneMessaggi, Messaggio, StatoMessaggio
 from pct.preventivi import GestionePreventivi, StatoPreventivo, VocePreventivo
 from pct.scadenziario import GestioneScadenziario, PrioritaTermine, TipoTermine
@@ -168,10 +168,17 @@ def test_react_agenda_pagina_separata_collegata_nav_e_api():
     assert "iu-ag-slot" in agenda_page
     assert "iu-ag-week--month" in agenda_page
     assert "/api/agenda/${encodeURIComponent(event.id)}/sposta" in agenda_page
+    assert "messageReminderHref" in agenda_page
+    assert "linkedDeadlineHref" in agenda_page
+    assert 'action="/timesheet/nuovo"' in agenda_page
+    assert "iusentra:open-floating-lex" in agenda_page
+    assert 'href="/timesheet"' not in agenda_page
+    assert 'href="/lex?context=agenda"' not in agenda_page
     assert "localStorage" in floating_lex
     assert "onPointerDown" in floating_lex
     assert "Math.hypot" in floating_lex
     assert "aria-expanded" in floating_lex
+    assert "iusentra:open-floating-lex" in floating_lex
     assert ".iu-agenda-page" in css
     assert ".iu-ag-slot" in css
     assert ".iu-ag-week--month" in css
@@ -428,7 +435,7 @@ def test_react_api_bootstrap_espone_flag_primo_blocco_ufficiale(tmp_path: Path):
     assert payload["route_flags"]["replace_soggetti"] is True
     assert payload["route_flags"]["replace_email"] is True
     assert payload["route_flags"]["replace_messaggi"] is True
-    assert payload["route_flags"]["replace_telematico"] is False
+    assert payload["route_flags"]["replace_telematico"] is True
 
 
 def test_react_comunicazioni_email_messaggi_collegate_nav_e_shell():
@@ -483,6 +490,58 @@ def test_route_ufficiali_email_messaggi_servono_react_con_vista_classica_tecnica
     assert 'id="root"' not in classic_messages.get_data(as_text=True)
 
 
+def test_react_telematico_collegato_nav_api_e_lex():
+    app_source = Path("frontend/src/App.tsx").read_text(encoding="utf-8")
+    page_source = Path("frontend/src/components/TelematicoPage.tsx").read_text(encoding="utf-8")
+    data_source = Path("frontend/src/telematicoData.ts").read_text(encoding="utf-8")
+    css = Path("frontend/src/components/TelematicoPage.css").read_text(encoding="utf-8")
+    api_source = Path("web/blueprints/api_v1_react.py").read_text(encoding="utf-8")
+
+    assert "const TelematicoPage" in app_source
+    assert "isTelematicoPage" in app_source
+    assert "Centro Servizi Telematici" in app_source
+    assert "getTelematicoPage" in data_source
+    assert "/api/v1/ui/telematico" in data_source
+    assert '@api_v1_react.get("/telematico")' in api_source
+    assert "FloatingLex" in page_source
+    assert 'context="telematico"' in page_source
+    assert ".iu-telematico-page" in css
+    assert "@media(max-width:760px)" in css
+
+
+def test_route_telematico_serve_react_con_vista_classica_tecnica(tmp_path: Path):
+    app = _app(tmp_path)
+    _crea_operatore(app)
+
+    with app.test_client() as client:
+        _login(client)
+        response = client.get("/telematico")
+        html = response.get_data(as_text=True)
+        classic = client.get("/telematico?_legacy=1")
+
+    assert response.status_code == 200
+    assert '<html lang="it" class="react-shell-document">' in html
+    assert 'id="root"' in html
+    assert classic.status_code == 200
+    assert 'id="root"' not in classic.get_data(as_text=True)
+
+
+def test_react_telematico_bridge_payload_minimo(tmp_path: Path):
+    app = _app(tmp_path)
+    client = app.test_client()
+
+    response = client.get("/api/v1/ui/telematico", headers={"X-API-Key": "react-test-key"})
+    payload = response.get_json()
+
+    assert response.status_code == 200
+    assert payload["source"] == "repository_reali"
+    assert payload["contracts"]["mock_fallback"] is False
+    assert payload["contracts"]["route_owner"] == "react_shell"
+    assert {card["id"] for card in payload["channels"]} == {"pst", "pdp", "pat", "ptt"}
+    assert "summary" in payload
+    assert "controlTower" in payload
+
+
 def test_route_ufficiali_primo_blocco_servono_react_con_vista_classica_tecnica(tmp_path: Path):
     app = _app(tmp_path)
     _crea_operatore(app)
@@ -520,6 +579,7 @@ def test_route_ufficiali_primo_blocco_servono_react_con_vista_classica_tecnica(t
             f"/fascicoli/{fascicolo.id}",
             f"/fascicoli/{fascicolo.id}/modifica",
             f"/fascicoli/{fascicolo.id}/quadro",
+            "/telematico",
         ):
             response = client.get(path)
             html = response.get_data(as_text=True)
@@ -532,14 +592,17 @@ def test_route_ufficiali_primo_blocco_servono_react_con_vista_classica_tecnica(t
         classic_search = client.get("/global-search?_legacy=1")
         classic_agenda = client.get("/agenda?_legacy=1")
         classic_fascicoli = client.get("/fascicoli?_legacy=1")
+        classic_telematico = client.get("/telematico?_legacy=1")
 
     assert classic_dashboard.status_code == 200
     assert classic_workspace.status_code == 200
     assert classic_search.status_code == 200
     assert classic_agenda.status_code == 200
     assert classic_fascicoli.status_code == 200
+    assert classic_telematico.status_code == 200
     assert 'id="root"' not in classic_dashboard.get_data(as_text=True)
     assert 'id="root"' not in classic_fascicoli.get_data(as_text=True)
+    assert 'id="root"' not in classic_telematico.get_data(as_text=True)
 
 
 def test_react_messaggi_bridge_usa_repository_reali(tmp_path: Path):
@@ -864,6 +927,20 @@ def test_react_fascicoli_suite_completa_route_componenti_e_lex():
     assert "fascicolo-quadro" in page_source
     assert "operationalHref}/copertina" in page_source
     assert "<details id={id}" in page_source
+    assert 'className="iu-fas-detail-section" open' not in page_source
+    assert "Quadro intelligente" in page_source
+    assert "FascicoloGuardrailsPanel" in page_source
+    assert "data.guardrails" in page_source
+    assert "Guardrail deposito telematico" in page_source
+    assert "FascicoloFormGuardrails" in data_source
+    assert "guardrails: guardrails ?" in data_source
+    assert "_new_fascicolo_guardrails" in bridge
+    assert "_deposit_channel_for_type" in bridge
+    assert "PDP_PENALE" in bridge
+    assert "PAT_AMMINISTRATIVO" in bridge
+    assert "PTT_TRIBUTARIO" in bridge
+    assert "label=\"Attività\"" in page_source
+    assert "Conformità" in page_source
     assert "fascicolo-top" in page_source
     assert "iu-fas-compliance-toggle" in page_source
     assert 'name="next"' in page_source
@@ -877,11 +954,32 @@ def test_react_fascicoli_suite_completa_route_componenti_e_lex():
     assert ".iu-fas-export-page" in css
     assert ".iu-fas-back-top" in css
     assert ".iu-fas-detail-section__summary" in css
+    assert ".iu-fas-smart-board" in css
+    assert ".iu-fas-action-stack .iu-fas-post" in css
     assert ".iu-fas-compliance-toggle" in css
     assert ".iu-fascicolo-quadro-page" in css
     assert ".iu-fas-quadro-axis" in css
     assert ".iu-fas-quadro-kpis" in css
     assert "@media(max-width:760px)" in css
+
+
+def test_react_fascicoli_detail_nav_lessico_e_referente_studio_presidiati():
+    app_source = Path("frontend/src/App.tsx").read_text(encoding="utf-8")
+    page_source = Path("frontend/src/components/FascicoliPage.tsx").read_text(encoding="utf-8")
+    css = Path("frontend/src/components/FascicoliPage.css").read_text(encoding="utf-8")
+    base = Path("web/templates/base.html").read_text(encoding="utf-8")
+    bridge = Path("web/services/react_fascicoli_bridge.py").read_text(encoding="utf-8")
+
+    assert "Lex - Assistente Legale" not in app_source
+    assert "Lex – Assistente Legale" not in base
+    assert "false and g.utente_corrente" not in base
+    assert "_lead_lawyer_label" in bridge
+    assert "_next_hearing_value" in bridge
+    assert "_closure_date_value" in bridge
+    assert 'className="iu-fas-detail-section" open' not in page_source
+    assert "Quadro intelligente" in page_source
+    assert ".iu-fas-action-stack .iu-fas-post" in css
+    assert ".iu-fas-smart-board" in css
 
 
 def test_react_fascicoli_api_suite_richiede_auth(tmp_path: Path):
@@ -928,16 +1026,23 @@ def test_react_fascicoli_api_suite_usa_repository_reali(tmp_path: Path):
     list_response = client.get("/api/v1/ui/fascicoli", headers={"X-API-Key": "react-test-key"})
     detail_response = client.get(f"/api/v1/ui/fascicoli/{fascicolo.id}", headers={"X-API-Key": "react-test-key"})
     form_response = client.get(f"/api/v1/ui/fascicoli/{fascicolo.id}/modifica", headers={"X-API-Key": "react-test-key"})
+    new_form_response = client.get(
+        "/api/v1/ui/fascicoli/nuovo",
+        query_string={"tipo": "PENALE"},
+        headers={"X-API-Key": "react-test-key"},
+    )
     export_response = client.get("/api/v1/ui/fascicoli/export", headers={"X-API-Key": "react-test-key"})
 
     payload = list_response.get_json()
     detail = detail_response.get_json()
     form = form_response.get_json()
+    new_form = new_form_response.get_json()
     export_payload = export_response.get_json()
 
     assert list_response.status_code == 200
     assert detail_response.status_code == 200
     assert form_response.status_code == 200
+    assert new_form_response.status_code == 200
     assert export_response.status_code == 200
     assert payload["source"] == "repository_reali"
     assert payload["contracts"]["mock_fallback"] is False
@@ -953,8 +1058,141 @@ def test_react_fascicoli_api_suite_usa_repository_reali(tmp_path: Path):
     assert form["mode"] == "edit"
     assert form["detailHref"] == f"/fascicoli/{fascicolo.id}"
     assert form["backHref"] == f"/fascicoli/{fascicolo.id}"
+    assert form["studio"]["leadLawyer"] == "Avv. Refactor"
+    assert form["fascicolo"]["leadLawyer"] == "Avv. Refactor"
+    assert form["guardrails"]["channel"] == "PCT_TELEMATICO"
+    assert form["guardrails"]["requiredOpeningFields"] == ["titolo", "tipo", "oggetto", "tribunale"]
+    assert new_form["guardrails"]["channel"] == "PDP_PENALE"
+    assert new_form["guardrails"]["channelLabel"] == "PDP Penale"
+    assert new_form["guardrails"]["warnings"][0]["code"] == "DOCUMENTI_PREDEPOSITO_DOPO_CREAZIONE"
     assert export_payload["formats"][0]["href"] == "/fascicoli/export.pdf"
     assert export_payload["presets"][-1]["href"] == "/fascicoli/archivio"
+
+
+def test_react_fascicolo_dettaglio_normalizza_referente_udienza_e_chiusura(tmp_path: Path):
+    app = _app(tmp_path)
+    client = app.test_client()
+    imported_at = "2026-04-25"
+    imported_at_it = "25/04/2026"
+    with app.app_context():
+        fascicoli = app.extensions["core_runtime"]["get_fascicoli"]()
+        udienza_passata = (date.today() - timedelta(days=21)).isoformat()
+        fascicolo = fascicoli.nuovo(
+            "RG 466/2023 - Azioni di competenza GdP",
+            TipoFascicolo.CIVILE,
+            avvocato_referente="roberto.montagnese",
+            data_prima_udienza=(date.today() - timedelta(days=60)).isoformat(),
+            last_sync_at=imported_at,
+            note=f"Importato da PolisWeb il {imported_at}",
+        )
+        fascicoli.aggiungi_attivita(
+            fascicolo.id,
+            TipoAttivita.UDIENZA,
+            udienza_passata,
+            "Udienza importata da PolisWeb",
+            note=f"Evento acquisito il {imported_at}",
+        )
+        fascicoli.cambia_stato(fascicolo.id, StatoFascicolo.DEFINITO, avvocato="roberto.montagnese")
+
+    response = client.get(
+        f"/api/v1/ui/fascicoli/{fascicolo.id}",
+        headers={"X-API-Key": "react-test-key"},
+    )
+    payload = response.get_json()
+    profile = {item["label"]: item["value"] for item in payload["profile"]}
+
+    assert response.status_code == 200
+    assert payload["fascicolo"]["leadLawyer"] == "Avv. Refactor"
+    assert profile["Avv. referente"] == "Avv. Refactor"
+    assert profile["Prossima udienza"] != "n.d."
+    assert profile["Chiusura"] != "n.d."
+    assert profile["Ultimo sync"] == imported_at_it
+    assert payload["fascicolo"]["notes"] == f"Importato da PolisWeb il {imported_at_it}"
+    assert payload["activities"][0]["notes"] == f"Evento acquisito il {imported_at_it}"
+    assert imported_at not in str(payload)
+
+
+def test_react_fascicoli_bridge_formatta_date_e_referenti_visibili():
+    from web.services.react_fascicoli_bridge import (
+        _date_label,
+        _italian_dates_in_text,
+        _lead_lawyer_label,
+    )
+
+    assert _date_label("2026-04-25") == "25/04/2026"
+    assert _date_label("25/04/2026") == "25/04/2026"
+    assert _italian_dates_in_text("Importato da PolisWeb il 2026-04-25") == "Importato da PolisWeb il 25/04/2026"
+    assert _italian_dates_in_text("Errore 2026-99-99 non valido") == "Errore 2026-99-99 non valido"
+    assert _lead_lawyer_label("roberto.montagnese", "Avv. Roberto Montagnese") == "Avv. Roberto Montagnese"
+    assert _lead_lawyer_label("roberto.montagnese") == "Roberto Montagnese"
+
+
+def test_fascicolo_form_react_preserva_referente_salvato_su_titolare_studio(tmp_path: Path):
+    app = _app(tmp_path)
+    client = app.test_client()
+    with app.app_context():
+        fascicoli = app.extensions["core_runtime"]["get_fascicoli"]()
+        fascicolo = fascicoli.nuovo(
+            "Opposizione a decreto",
+            TipoFascicolo.CIVILE,
+            avvocato_referente="Avv. Referente Salvato",
+        )
+
+    response = client.get(
+        f"/api/v1/ui/fascicoli/{fascicolo.id}/modifica",
+        headers={"X-API-Key": "react-test-key"},
+    )
+    payload = response.get_json()
+
+    assert response.status_code == 200
+    assert payload["studio"]["leadLawyer"] == "Avv. Refactor"
+    assert payload["fascicolo"]["leadLawyer"] == "Avv. Referente Salvato"
+
+
+def test_post_modifica_fascicolo_salva_avvocato_titolare_se_referente_vuoto(tmp_path: Path):
+    app = _app(tmp_path)
+    _crea_operatore(app)
+    fascicoli = GestioneFascicoli(
+        db_path=app.config["FASCICOLI_DB"],
+        documents_dir=app.config["FASCICOLI_DOCS"],
+        archive_dir=app.config["FASCICOLI_ARCH"],
+    )
+    fascicolo = fascicoli.nuovo("Monitorio", TipoFascicolo.CIVILE)
+
+    with app.test_client() as client:
+        _login(client)
+        response = client.post(
+            f"/fascicoli/{fascicolo.id}/modifica",
+            data={
+                "titolo": "Monitorio aggiornato",
+                "tipo": TipoFascicolo.CIVILE.value,
+                "id_cliente": "",
+                "controparte": "",
+                "tribunale": "",
+                "numero_rg": "",
+                "anno_rg": "",
+                "giudice": "",
+                "sezione": "",
+                "data_prima_udienza": "",
+                "data_notifica_citazione": "",
+                "avvocato_referente": "",
+                "avvocato_dominus": "",
+                "oggetto": "",
+                "valore_causa": "",
+                "note": "",
+            },
+            follow_redirects=False,
+        )
+
+    aggiornato = GestioneFascicoli(
+        db_path=app.config["FASCICOLI_DB"],
+        documents_dir=app.config["FASCICOLI_DOCS"],
+        archive_dir=app.config["FASCICOLI_ARCH"],
+    ).get(fascicolo.id)
+
+    assert response.status_code in {302, 303}
+    assert aggiornato is not None
+    assert aggiornato.avvocato_referente == "Avv. Refactor"
 
 
 def test_react_clienti_nuovo_e_soggetti_collegati_nav_api_lex_cf():

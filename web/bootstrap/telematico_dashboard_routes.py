@@ -5,9 +5,14 @@ from __future__ import annotations
 from collections.abc import Callable
 from datetime import date
 
-from flask import Flask, jsonify, render_template, url_for
+from flask import Flask, jsonify, render_template, request, url_for
 
+from web.blueprints.react_shell import render_react_shell_response
 from web.services.telematico_control_tower import build_telematico_control_tower
+
+
+def _richiede_vista_classica() -> bool:
+    return (request.args.get("_legacy") or "").strip().lower() in {"1", "true", "si", "yes", "on"}
 
 
 def register_telematico_dashboard_routes(
@@ -48,6 +53,8 @@ def register_telematico_dashboard_routes(
 
     @app.route("/telematico", methods=["GET"])
     def telematico_dashboard():
+        if not _richiede_vista_classica():
+            return render_react_shell_response("telematico")
         try:
             backfill_summary = {"processed": 0, "failed": 0}
             dashboard_notices = []

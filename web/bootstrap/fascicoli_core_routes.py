@@ -58,6 +58,21 @@ def register_fascicoli_core_routes(
             section = default_section
         return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc) + f"#{section}")
 
+    def _avvocato_titolare_studio() -> str:
+        try:
+            config_manager = get_config_studio()
+            studio = getattr(getattr(config_manager, "config", None), "studio", None)
+            avvocato = str(getattr(studio, "avvocato", "") or "").strip()
+            if avvocato:
+                return avvocato
+        except Exception:
+            pass
+        return str(
+            app.config.get("STUDIO_AVVOCATO")
+            or app.config.get("PCT_STUDIO_AVVOCATO")
+            or ""
+        ).strip()
+
     @app.route("/fascicoli")
     def lista_fascicoli():
         if not _richiede_vista_classica():
@@ -135,6 +150,7 @@ def register_fascicoli_core_routes(
                 cliente = gestore_clienti.get(id_cliente)
                 nome_cliente = cliente.nome_completo if cliente else ""
             try:
+                avvocato_referente = form.get("avvocato_referente", "").strip() or _avvocato_titolare_studio()
                 fascicolo = gestore_fascicoli.nuovo(
                     titolo=form["titolo"],
                     tipo=TipoFascicolo(form["tipo"]),
@@ -148,7 +164,7 @@ def register_fascicoli_core_routes(
                     sezione=form.get("sezione", ""),
                     data_prima_udienza=form.get("data_prima_udienza", ""),
                     data_notifica_citazione=form.get("data_notifica_citazione", ""),
-                    avvocato_referente=form.get("avvocato_referente", ""),
+                    avvocato_referente=avvocato_referente,
                     avvocato_dominus=form.get("avvocato_dominus", ""),
                     oggetto=form.get("oggetto", ""),
                     valore_causa=float(form.get("valore_causa") or 0),
@@ -183,7 +199,7 @@ def register_fascicoli_core_routes(
                             if onboarding_sources
                             else ""
                         ),
-                        avvocato=form.get("avvocato_referente", ""),
+                        avvocato=avvocato_referente,
                     )
                 flash(f"Fascicolo {fascicolo.numero} creato.", "success")
                 sync_pubblica("crea", "fascicoli", fascicolo.id)
@@ -232,6 +248,7 @@ def register_fascicoli_core_routes(
             source_preventivo=source_preventivo,
             source_conferimento=source_conferimento,
             from_page=from_page,
+            studio_avvocato_titolare=_avvocato_titolare_studio(),
             correction_context=fascicolo_form_correction_context(),
             oggi=date.today(),
         )

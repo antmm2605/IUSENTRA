@@ -911,8 +911,10 @@ body.react-shell-page #root{
 .iu-ag-checks span{display:flex;align-items:center;gap:8px;padding:10px;border:1px solid var(--iu-border);border-radius:11px;background:#fff;color:var(--iu-slate-700);font-size:12px;font-weight:850}
 .iu-ag-checks svg{color:var(--iu-blue-600)}
 .iu-ag-automations{grid-template-columns:repeat(2,minmax(0,1fr))}
-.iu-ag-automations a{min-height:40px;display:flex;align-items:center;justify-content:center;padding:0 10px;border:1px solid var(--iu-border);border-radius:11px;background:#fff;color:var(--iu-navy-900);font-size:12px;font-weight:900;text-align:center}
-.iu-ag-automations a:hover{background:rgba(37,99,235,.07);color:var(--iu-blue-700)}
+.iu-ag-automations a,.iu-ag-automations button{min-height:40px;display:flex;align-items:center;justify-content:center;width:100%;padding:0 10px;border:1px solid var(--iu-border);border-radius:11px;background:#fff;color:var(--iu-navy-900);font-size:12px;font-weight:900;text-align:center;cursor:pointer}
+.iu-ag-automations form{margin:0}
+.iu-ag-automations a:hover,.iu-ag-automations button:hover{background:rgba(37,99,235,.07);color:var(--iu-blue-700)}
+.iu-ag-automations button.is-disabled{cursor:not-allowed;background:var(--iu-slate-100);color:var(--iu-slate-500)}
 .iu-lex-float{position:fixed;z-index:120;touch-action:none}
 .iu-lex-float__button{position:relative;width:58px;height:58px;display:grid;place-items:center;border:1px solid rgba(255,255,255,.35);border-radius:22px;background:linear-gradient(135deg,var(--iu-navy-900),var(--iu-blue-700));color:#fff;box-shadow:0 24px 52px rgba(15,23,42,.28);cursor:grab}
 .iu-lex-float__button:active{cursor:grabbing}

@@ -51,6 +51,7 @@ import {
 } from 'lucide-react'
 import { DashboardData, Row, Tone, emptyDashboard, getDashboard } from './data'
 import { Badge, DossierCard, KpiCard, Panel, SourceCard } from './components/dashboard'
+import { FloatingLex } from './components/FloatingLex'
 import './index.css'
 
 const AgendaPage = lazy(() => import('./components/AgendaPage').then((module) => ({ default: module.AgendaPage })))
@@ -67,6 +68,7 @@ const NuovoMessaggioPage = lazy(() => import('./components/MessaggiPage').then((
 const ScadenziarioPage = lazy(() => import('./components/ScadenziarioPage').then((module) => ({ default: module.ScadenziarioPage })))
 const NuovaScadenzaPage = lazy(() => import('./components/NuovaScadenzaPage').then((module) => ({ default: module.NuovaScadenzaPage })))
 const WizardProPage = lazy(() => import('./components/WizardProPage').then((module) => ({ default: module.WizardProPage })))
+const TelematicoPage = lazy(() => import('./components/TelematicoPage').then((module) => ({ default: module.TelematicoPage })))
 
 const toneColor: Record<Tone,string> = { danger:'var(--iu-danger-500)', warning:'var(--iu-warning-500)', primary:'var(--iu-blue-600)', success:'var(--iu-success-500)', info:'var(--iu-sky-500)', purple:'var(--iu-purple-500)', orange:'var(--iu-warning-500)', neutral:'var(--iu-slate-300)' }
 const metricIcon = { danger: AlertTriangle, primary: Mail, success: MessageCircle, purple: Clock3, orange: UsersRound, warning: AlertTriangle, info: Mail, neutral: Clock3 }
@@ -195,8 +197,7 @@ const navSections: NavSection[] = [
       { label: 'Scadenziario', icon: CalendarDays, href: '/scadenziario' },
       { label: 'Nuova Scadenza', icon: CalendarPlus, href: '/scadenziario/nuova' },
       { label: 'Preparazione Udienza Guidata', icon: Building2, href: '/wizard-pro/' },
-      { label: 'Controlli Atti', icon: ClipboardCheck, href: '/deposito/checklist' },
-      { label: 'Lex - Assistente Legale', icon: Sparkles, href: '/lex' }
+      { label: 'Controlli Atti', icon: ClipboardCheck, href: '/deposito/checklist' }
     ]
   },
   {
@@ -471,9 +472,11 @@ export default function App() {
   const isDeadlineEditPage = /^\/scadenziario\/[^/]+\/modifica$/.test(routePath)
   const isScadenziarioPage = !isNewDeadlinePage && !isDeadlineEditPage && (routePath === '/scadenziario' || routePath.startsWith('/scadenziario/'))
   const isWizardProPage = routePath === '/wizard-pro' || routePath.startsWith('/wizard-pro/')
-  const isDashboardPage = !isSearchPage && !isAgendaPage && !isNewAppointmentPage && !isAppointmentEditPage && !isRegiaPage && !isFascicoliPage && !isClientiPage && !isClientFolderPage && !isClientEditPage && !isNewClientPage && !isSoggettiPage && !isNewSubjectPage && !isSubjectEditPage && !isEmailPage && !isMessagesPage && !isNewMessagePage && !isScadenziarioPage && !isNewDeadlinePage && !isDeadlineEditPage && !isWizardProPage
-  const isStandalonePage = isSearchPage || isAgendaPage || isNewAppointmentPage || isAppointmentEditPage || isFascicoliPage || isClientiPage || isClientFolderPage || isClientEditPage || isNewClientPage || isSoggettiPage || isNewSubjectPage || isSubjectEditPage || isEmailPage || isMessagesPage || isNewMessagePage || isScadenziarioPage || isNewDeadlinePage || isDeadlineEditPage || isWizardProPage
+  const isTelematicoPage = routePath === '/telematico' || routePath === '/telematici'
+  const isDashboardPage = !isSearchPage && !isAgendaPage && !isNewAppointmentPage && !isAppointmentEditPage && !isRegiaPage && !isFascicoliPage && !isClientiPage && !isClientFolderPage && !isClientEditPage && !isNewClientPage && !isSoggettiPage && !isNewSubjectPage && !isSubjectEditPage && !isEmailPage && !isMessagesPage && !isNewMessagePage && !isScadenziarioPage && !isNewDeadlinePage && !isDeadlineEditPage && !isWizardProPage && !isTelematicoPage
+  const isStandalonePage = isSearchPage || isAgendaPage || isNewAppointmentPage || isAppointmentEditPage || isFascicoliPage || isClientiPage || isClientFolderPage || isClientEditPage || isNewClientPage || isSoggettiPage || isNewSubjectPage || isSubjectEditPage || isEmailPage || isMessagesPage || isNewMessagePage || isScadenziarioPage || isNewDeadlinePage || isDeadlineEditPage || isWizardProPage || isTelematicoPage
   const initialSearchQuery = new URLSearchParams(window.location.search).get('q') ?? ''
+  const needsGlobalLex = isDashboardPage || isRegiaPage || isSearchPage
   const [data,setData]=useState<DashboardData>(emptyDashboard)
   const [loading,setLoading]=useState(!isStandalonePage)
   const [sidebarCollapsed,setSidebarCollapsed]=useState(false)
@@ -487,7 +490,7 @@ export default function App() {
         <div className="iu-main">
           <Topbar onOpenMenu={()=>setMobileMenuOpen(true)}/>
           <Suspense fallback={<PageLoading/>}>
-            {isSearchPage?<RicercaStudioPage initialQuery={initialSearchQuery}/>:isNewAppointmentPage||isAppointmentEditPage?<NuovoAppuntamentoPage/>:isAgendaPage?<AgendaPage/>:isRegiaPage?<RegiaOperativaPage data={data} loading={loading}/>:isFascicoliPage?<FascicoliPage/>:isNewClientPage||isNewSubjectPage||isClientEditPage||isSubjectEditPage?<NuovoClientePage/>:isClientFolderPage?<CartellaClientePage/>:isClientiPage?<AnagraficaClientiPage/>:isSoggettiPage?<SoggettiPage/>:isEmailPage?<EmailPecPage/>:isNewMessagePage?<NuovoMessaggioPage/>:isMessagesPage?<MessaggiPage/>:isNewDeadlinePage||isDeadlineEditPage?<NuovaScadenzaPage/>:isScadenziarioPage?<ScadenziarioPage/>:isWizardProPage?<WizardProPage/>:<DashboardPage data={data} loading={loading}/>}
+            {isSearchPage?<RicercaStudioPage initialQuery={initialSearchQuery}/>:isNewAppointmentPage||isAppointmentEditPage?<NuovoAppuntamentoPage/>:isAgendaPage?<AgendaPage/>:isRegiaPage?<RegiaOperativaPage data={data} loading={loading}/>:isFascicoliPage?<FascicoliPage/>:isNewClientPage||isNewSubjectPage||isClientEditPage||isSubjectEditPage?<NuovoClientePage/>:isClientFolderPage?<CartellaClientePage/>:isClientiPage?<AnagraficaClientiPage/>:isSoggettiPage?<SoggettiPage/>:isEmailPage?<EmailPecPage/>:isNewMessagePage?<NuovoMessaggioPage/>:isMessagesPage?<MessaggiPage/>:isNewDeadlinePage||isDeadlineEditPage?<NuovaScadenzaPage/>:isScadenziarioPage?<ScadenziarioPage/>:isWizardProPage?<WizardProPage/>:isTelematicoPage?<TelematicoPage/>:<DashboardPage data={data} loading={loading}/>}
           </Suspense>
         </div>
         <nav className="iu-mobile">
@@ -499,6 +502,7 @@ export default function App() {
           <a className={isAgendaPage||isNewAppointmentPage||isAppointmentEditPage||isScadenziarioPage||isNewDeadlinePage||isDeadlineEditPage||isWizardProPage?'active':''} href="/agenda"><CalendarDays size={18}/>Agenda</a>
           <a className={isRegiaPage?'active':''} href="/workspace-intelligente"><Sparkles size={18}/>Regia</a>
         </nav>
+        {needsGlobalLex ? <FloatingLex context={isRegiaPage ? 'regia-operativa' : isSearchPage ? 'ricerca-studio' : 'panoramica'} title="Lex AI" body="Posso aiutarti a collegare dati di studio, scadenze, fascicoli e comunicazioni senza uscire dalla nuova interfaccia." primaryHref="/workspace-intelligente" primaryLabel="Regia operativa" secondaryHref="/global-search" secondaryLabel="Ricerca Studio" /> : null}
       </div>
     </AppErrorBoundary>
   )

@@ -95,6 +95,23 @@ function createAppointmentHref(dayIso: string, time = '09:00'): string {
   return `/agenda/nuovo?${params.toString()}`
 }
 
+function messageReminderHref(event?: AgendaEvent): string {
+  const params = new URLSearchParams()
+  params.set('from', 'agenda')
+  params.set('oggetto', event ? `Promemoria: ${event.title}` : 'Promemoria agenda')
+  if (event?.clientId) params.set('id_cliente', event.clientId)
+  if (event?.client) params.set('destinatario_nome', event.client)
+  return `/messaggi/nuovo?${params.toString()}`
+}
+
+function linkedDeadlineHref(event?: AgendaEvent): string {
+  const params = new URLSearchParams()
+  if (event?.matterId) params.set('id_fascicolo', event.matterId)
+  if (event?.title) params.set('titolo', `Scadenza collegata - ${event.title}`)
+  if (event?.date) params.set('data', event.date)
+  return `/scadenziario/nuova${params.toString() ? `?${params.toString()}` : ''}`
+}
+
 function routeAgendaId(): string {
   const match = window.location.pathname.match(/^\/agenda\/([^/]+)/)
   if (!match || ['nuovo', 'importa'].includes(match[1])) return ''
@@ -361,6 +378,9 @@ export function AgendaPage() {
     : view === 'month'
       ? anchorDate.toLocaleDateString('it-IT', { month: 'long', year: 'numeric' })
       : rangeLabel(weekStart, weekEnd)
+  const automationTarget = selectedEvent || agenda.summary.nextEvent || filteredEvents[0]
+  const automationDate = automationTarget?.date || toDateKey(anchorDate)
+  const canCreateTimesheet = Boolean(automationTarget?.matterId)
 
   const shiftPeriod = (direction: -1 | 1) => {
     setAnchorDate((current) => view === 'month'
@@ -487,10 +507,25 @@ export function AgendaPage() {
         </Panel>
         <Panel title="Automazioni consigliate" subtitle="Azioni utili per l'agenda professionale" icon={<Sparkles size={17}/>}>
           <div className="iu-ag-automations">
-            <a href="/messaggi/nuovo">Promemoria cliente</a>
-            <a href="/timesheet">Crea voce timesheet</a>
-            <a href="/scadenziario/nuova">Genera scadenza collegata</a>
-            <a href="/lex?context=agenda">Brief Lex sul fascicolo</a>
+            <a href={messageReminderHref(automationTarget)}>Promemoria cliente</a>
+            {canCreateTimesheet ? (
+              <form method="post" action="/timesheet/nuovo">
+                <input type="hidden" name="from_page" value="fascicolo"/>
+                <input type="hidden" name="focus" value="workflow"/>
+                <input type="hidden" name="id_fascicolo" value={automationTarget?.matterId || ''}/>
+                <input type="hidden" name="descrizione" value={`Attività agenda - ${automationTarget?.title || 'impegno'}`}/>
+                <input type="hidden" name="data_attivita" value={automationDate}/>
+                <input type="hidden" name="minuti" value="30"/>
+                <input type="hidden" name="valore_unitario" value="80"/>
+                <input type="hidden" name="fatturabile" value="1"/>
+                <input type="hidden" name="contesto" value="agenda-react"/>
+                <button type="submit">Crea voce timesheet</button>
+              </form>
+            ) : (
+              <button type="button" className="is-disabled" aria-disabled="true" title="Seleziona un evento collegato a un fascicolo per creare il timesheet.">Crea voce timesheet</button>
+            )}
+            <a href={linkedDeadlineHref(automationTarget)}>Genera scadenza collegata</a>
+            <button type="button" onClick={() => window.dispatchEvent(new CustomEvent('iusentra:open-floating-lex'))}>Brief Lex sul fascicolo</button>
           </div>
         </Panel>
       </section>

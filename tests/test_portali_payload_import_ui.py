@@ -208,7 +208,11 @@ def test_payload_autorizzato_portali_arriva_nella_ui_fascicolo(tmp_path: Path, p
         id_fasc = data["id_fascicolo"]
 
         detail = client.get(f"/fascicoli/{id_fasc}", follow_redirects=True)
-        html = detail.get_data(as_text=True)
+        react_detail = client.get(
+            f"/api/v1/ui/fascicoli/{id_fasc}",
+            headers={"X-API-Key": "react-test-key"},
+        )
+        react_payload = react_detail.get_json()
 
     fascicoli = GestioneFascicoli(
         db_path=cfg["FASCICOLI_DB"],
@@ -220,15 +224,21 @@ def test_payload_autorizzato_portali_arriva_nella_ui_fascicolo(tmp_path: Path, p
     workspace = build_fascicolo_workspace(fasc)
 
     assert detail.status_code == 200
-    assert workspace["counts"]["documenti"] >= 1
+    assert react_detail.status_code == 200
+    assert workspace["counts"]["documenti"] == 0
+    assert workspace["counts"]["documenti_governati"] >= 1
+    assert workspace["counts"]["documenti_catalogo_portale"] >= 1
     assert workspace["counts"]["attivita"] >= 1
     assert workspace["counts"]["udienze_scadenze"] >= 1
     assert workspace["counts"]["comunicazioni"] >= 1
     assert workspace["counts"]["istanze"] >= 1
-    assert f"{portale}_atto_introduttivo.pdf" in html
-    assert "Documenti fascicolo" in html
-    assert "Comunicazioni di cancelleria" in html
-    assert "Udienze e scadenze" in html
+    documents = react_payload["documents"]
+    portal_document = next(item for item in documents if item["name"] == f"{portale}_atto_introduttivo.pdf")
+    assert portal_document["statusLabel"] == "Da acquisire"
+    assert portal_document["statusTone"] == "info"
+    assert portal_document["portalDate"] == "04/04/2026"
+    assert any(deposito["portalDocuments"] for deposito in react_payload["deposits"])
+    assert any(item["label"] == "Documenti" and "elementi" in item["value"] for item in react_payload["quality"])
 
 
 def test_wizard_portali_espone_upload_payload_json_e_portali_ufficiali(tmp_path: Path):

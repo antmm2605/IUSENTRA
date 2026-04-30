@@ -72,7 +72,9 @@ def _agenda_event(item: Any) -> dict[str, Any] | None:
         "location": str(getattr(item, "luogo", "") or ""),
         "court": str(getattr(item, "tribunale", "") or ""),
         "matter": str(getattr(item, "procedimento", "") or ""),
+        "matterId": str(getattr(item, "id_fascicolo", "") or ""),
         "client": str(getattr(item, "cliente", "") or ""),
+        "clientId": str(getattr(item, "id_cliente", "") or ""),
         "owner": str(getattr(item, "avvocato", "") or "Studio"),
         "source": "agenda",
         "syncStatus": _sync_status(item),
@@ -114,12 +116,14 @@ def _deadline_event(item: Any) -> dict[str, Any] | None:
         "location": "",
         "court": "",
         "matter": str(getattr(item, "id_fascicolo", "") or ""),
+        "matterId": str(getattr(item, "id_fascicolo", "") or ""),
         "client": "",
+        "clientId": str(getattr(item, "id_cliente", "") or ""),
         "owner": str(getattr(item, "id_utente_responsabile", "") or "Studio"),
         "source": "scadenziario",
         "syncStatus": "locale",
         "notes": str(getattr(item, "descrizione", "") or getattr(item, "note", "") or ""),
-        "href": "/scadenziario",
+        "href": f"/scadenziario/{item_id}" if item_id else "/scadenziario",
     }
 
 

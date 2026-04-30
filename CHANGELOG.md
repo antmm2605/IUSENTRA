@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.198.5 - 2026-04-30
+
+- Promossa la superficie `Servizi Telematici` alla shell React ufficiale su `/telematico`, con bridge `/api/v1/ui/telematico` alimentato dai runtime reali e vista classica disponibile solo come `_legacy=1`.
+- Agganciati i guardrail di deposito al form React fascicolo: `/fascicoli/nuovo` espone canale PCT/PDP/PAT/PTT suggerito dal backend, senza duplicare regole legali nel frontend.
+- Corretto il dettaglio fascicolo React: sezioni collassate all'apertura, quadro intelligente ripristinato, card operative, azioni agenda non piu' instradate alla vecchia grafica e Lex flottante nuovamente disponibile.
+- Normalizzate le date visibili del fascicolo in formato italiano `gg/mm/aaaa`, incluse note importate da portale, ultimo sync, attivita', scadenze, cronologia e documenti.
+- Riallineati i documenti censiti dai portali ufficiali: il catalogo portale viene mostrato in React come `Da acquisire`, deduplicato per identificativo portale e conteggiato come elemento governato senza fingere un file fisico gia' scaricato.
+- Rimossa la voce visibile `Lex - Assistente Legale` dalla navigazione React e legacy, mantenendo solo il widget contestuale operativo.
+- Estesi i test React, fascicoli e portali per presidiare route ufficiali React, fallback tecnico `_legacy=1`, guardrail, deduplica documenti portale, referente studio, date italiane e contratti frontend.
+
 ## 2.198.4 - 2026-04-30
 
 - Corretto l'instradamento dei dettagli fascicolo nella shell React: i link operativi generati dal bridge tornano alle route ufficiali `/fascicoli/...` e il componente normalizza comunque eventuali URL storici `/app-v2/fascicoli/...`, evitando il ritorno accidentale alla lista.

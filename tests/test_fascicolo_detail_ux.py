@@ -88,17 +88,27 @@ def test_dettaglio_fascicolo_espone_ux_documenti_e_cabina_collassabile(fascicolo
     with app.test_client() as client:
         _login(client)
         response = client.get(f"/fascicoli/{fascicolo.id}")
+        legacy_response = client.get(f"/fascicoli/{fascicolo.id}?_legacy=1")
+        react_response = client.get(f"/api/v1/ui/fascicoli/{fascicolo.id}")
 
     body = response.data.decode("utf-8")
+    legacy_body = legacy_response.data.decode("utf-8")
+    react_payload = react_response.get_json()
     assert response.status_code == 200
-    assert 'id="docBulkDeleteForm"' in body
-    assert 'id="modalConfermaAzioneFascicolo"' in body
-    assert "_prepareFascicoloDeleteForms" in body
-    assert 'data-bs-target="#collapse-sezione-cabina-fascicolo"' in body
-    assert 'class="collapse show" id="collapse-sezione-cabina-fascicolo"' in body
-    assert 'data-bs-target="#modalDettaglioAttivita' in body
-    assert "elimina_attivita_fascicolo" not in body
-    assert "/attivita/" in body and "/elimina" in body
+    assert legacy_response.status_code == 200
+    assert react_response.status_code == 200
+    assert '<div id="root"></div>' in body
+    assert 'id="docBulkDeleteForm"' in legacy_body
+    assert 'id="modalConfermaAzioneFascicolo"' in legacy_body
+    assert "_prepareFascicoloDeleteForms" in legacy_body
+    assert 'data-bs-target="#collapse-sezione-cabina-fascicolo"' in legacy_body
+    assert 'class="collapse show" id="collapse-sezione-cabina-fascicolo"' in legacy_body
+    assert 'data-bs-target="#modalDettaglioAttivita' in legacy_body
+    assert "elimina_attivita_fascicolo" not in legacy_body
+    assert "/attivita/" in legacy_body and "/elimina" in legacy_body
+    assert react_payload["fascicolo"]["title"] == "RG 1025/2024"
+    assert react_payload["documents"][0]["name"] == "atto.pdf"
+    assert react_payload["activities"][0]["title"] == "Udienza di trattazione"
 
 
 def test_elimina_documento_resta_nella_sezione_documenti(fascicolo_ux):
@@ -241,13 +251,24 @@ def test_catalogo_portale_non_viene_contato_come_documento_acquisito(fascicolo_u
     with app.test_client() as client:
         _login(client)
         response = client.get(f"/fascicoli/{fascicolo.id}")
+        legacy_response = client.get(f"/fascicoli/{fascicolo.id}?_legacy=1")
+        react_response = client.get(f"/api/v1/ui/fascicoli/{fascicolo.id}")
 
     body = response.data.decode("utf-8")
+    legacy_body = legacy_response.data.decode("utf-8")
+    react_payload = react_response.get_json()
     assert response.status_code == 200
-    assert "Nessun documento caricato" in body
-    assert "Non sono file salvati nel fascicolo" in body
-    assert "Catalogo portale 1" in body
-    assert "1 metadato" in body
-    assert "Metadati portale 1" in body
-    assert "0/1 file acquisiti" in body
-    assert "2 metadati" not in body
+    assert legacy_response.status_code == 200
+    assert react_response.status_code == 200
+    assert '<div id="root"></div>' in body
+    assert "Nessun documento caricato" in legacy_body
+    assert "Non sono file salvati nel fascicolo" in legacy_body
+    assert "Catalogo portale 1" in legacy_body
+    assert "1 metadato" in legacy_body
+    assert "Metadati portale 1" in legacy_body
+    assert "0/1 file acquisiti" in legacy_body
+    assert "2 metadati" not in legacy_body
+    assert len(react_payload["documents"]) == 1
+    assert react_payload["documents"][0]["name"] == "VerbaleUdienza_32970605.pdf"
+    assert react_payload["documents"][0]["statusLabel"] == "Da acquisire"
+    assert react_payload["documents"][0]["portalDate"] == "25/04/2026"

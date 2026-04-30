@@ -18,6 +18,7 @@ Il primo blocco e' considerato operativo sulle seguenti superfici:
 - Clienti e Anagrafiche: `GET /clienti` e `GET /clienti/nuovo`
 - Soggetti e Parti: `GET /soggetti` e `GET /soggetti/nuovo`
 - Comunicazioni: `GET /email/`, `GET /messaggi`, `GET /messaggi/nuovo`
+- Servizi Telematici: `GET /telematico` e `/app-v2/telematico`, con fallback tecnico `_legacy=1`
 
 Le pagine del blocco usano dati reali, API bridge sotto `/api/v1/ui/*`, testi visibili in italiano, stati vuoti espliciti e Lex AI contestuale dove previsto. Non sono ammessi mock operativi o copy che presenti la UI React come prototipo temporaneo.
 
@@ -33,6 +34,7 @@ Le pagine del blocco usano dati reali, API bridge sotto `/api/v1/ui/*`, testi vi
 - `GET /api/v1/ui/email`
 - `GET /api/v1/ui/messaggi`
 - `GET /api/v1/ui/messaggi/nuovo`
+- `GET /api/v1/ui/telematico`
 
 I contratti devono dichiarare `mock_fallback=false`. Le superfici che inviano a servizi Flask esistenti dichiarano `writes=operational_routes`.
 
@@ -78,16 +80,15 @@ Questa distinzione e' coperta da test per evitare regressioni sulla visibilita' 
 
 ## Prossime wave
 
-1. Scadenziario e Termini.
-2. Preventivi e Conferimenti.
-3. Parcelle, Fatture, Incassi e Pagamenti.
-4. Documenti, allegati e upload.
-5. Lex AI avanzata.
-6. Sito Studio Builder.
-7. Servizi Telematici, PDP/PST/PAT/PTT, Local Signer e PEC avanzata.
-8. Admin e Impostazioni.
+1. Preventivi e Conferimenti.
+2. Parcelle, Fatture, Incassi e Pagamenti.
+3. Documenti, allegati e upload.
+4. Lex AI avanzata.
+5. Sito Studio Builder.
+6. Firma digitale, Local Signer e portali avanzati.
+7. Admin e Impostazioni.
 
-Le aree telematiche e di firma restano in wave dedicate perche' hanno vincoli di compliance, Local Signer, audit, canali separati e conferma consapevole dell'avvocato.
+Firma digitale, Local Signer e automazioni avanzate dei portali restano in wave dedicate perche' hanno vincoli di compliance, audit, canali separati e conferma consapevole dell'avvocato.
 
 ## Comandi di verifica
 

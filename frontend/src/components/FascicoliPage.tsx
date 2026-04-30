@@ -88,7 +88,8 @@ const sortLabels: Record<SortKey, string> = {
 }
 
 function parseRoute(): Route {
-  const path = window.location.pathname.replace(/\/+$/, '')
+  const rawPath = window.location.pathname.replace(/\/+$/, '') || '/'
+  const path = rawPath.startsWith('/app-v2/fascicoli') ? rawPath.slice('/app-v2'.length) || '/fascicoli' : rawPath
   const prefix = '/fascicoli'
   const rest = path.startsWith(prefix) ? path.slice(prefix.length).replace(/^\//, '') : ''
   if (!rest) return { kind: 'list' }

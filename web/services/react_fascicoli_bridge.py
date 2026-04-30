@@ -241,9 +241,9 @@ def _item(fascicolo: Any, *, scadenze_by_fasc: dict[str, list[Any]] | None = Non
         "openedAt": _text(getattr(fascicolo, "data_apertura", "")),
         "closedAt": _text(getattr(fascicolo, "data_chiusura", "")),
         "updatedAt": _text(getattr(fascicolo, "modificato_il", "")),
-        "href": f"/app-v2/fascicoli/{fid}",
+        "href": f"/fascicoli/{fid}",
         "operationalHref": f"/fascicoli/{fid}",
-        "editHref": f"/app-v2/fascicoli/{fid}/modifica",
+        "editHref": f"/fascicoli/{fid}/modifica",
         "operationalEditHref": f"/fascicoli/{fid}/modifica",
         "exportPdfHref": f"/fascicoli/{fid}/pdf",
         "archiveZipHref": f"/fascicoli/{fid}/archivio/scarica",
@@ -469,7 +469,7 @@ def build_react_fascicolo_form_payload(
     fascicolo = _safe("fascicolo", lambda: get_fascicoli().get(id_fasc), None) if id_fasc else None
     mode = "edit" if id_fasc else "new"
     action = f"/fascicoli/{id_fasc}/modifica" if id_fasc else "/fascicoli/nuovo"
-    detail = f"/app-v2/fascicoli/{id_fasc}" if id_fasc else "/app-v2/fascicoli"
+    detail = f"/fascicoli/{id_fasc}" if id_fasc else "/fascicoli"
     workflow = None
     if query.get("source_preventivo") or query.get("source_conferimento"):
         workflow = {
@@ -491,7 +491,7 @@ def build_react_fascicolo_form_payload(
         "generatedAt": _now(),
         "mode": mode,
         "action": action,
-        "backHref": f"/app-v2/fascicoli/{id_fasc}" if id_fasc else "/app-v2/fascicoli",
+        "backHref": f"/fascicoli/{id_fasc}" if id_fasc else "/fascicoli",
         "detailHref": detail,
         "query": query,
         "clients": _client_options(get_clienti),
@@ -942,7 +942,7 @@ def build_react_fascicoli_export_payload(*, get_fascicoli: Callable[[], Any], ge
             {"label": "Attivi", "description": "Tutti i fascicoli non archiviati", "href": "/fascicoli/export.pdf", "tone": "primary"},
             {"label": "Da archiviare", "description": "Fascicoli definiti pronti per conservazione", "href": "/fascicoli/export.pdf?stato=DEFINITO", "tone": "warning"},
             {"label": "CSV completo", "description": "Base dati per controllo di studio", "href": "/fascicoli/export.csv", "tone": "success"},
-            {"label": "Archivio", "description": "Controllo fascicoli chiusi", "href": "/app-v2/fascicoli/archivio", "tone": "neutral"},
+            {"label": "Archivio", "description": "Controllo fascicoli chiusi", "href": "/fascicoli/archivio", "tone": "neutral"},
         ],
         "recent": recent,
         "facets": page["facets"],

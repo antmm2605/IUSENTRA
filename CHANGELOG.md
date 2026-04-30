@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.198.4 - 2026-04-30
+
+- Corretto l'instradamento dei dettagli fascicolo nella shell React: i link operativi generati dal bridge tornano alle route ufficiali `/fascicoli/...` e il componente normalizza comunque eventuali URL storici `/app-v2/fascicoli/...`, evitando il ritorno accidentale alla lista.
+- Aggiunti test anti-regressione sui link profondi fascicolo, sulle azioni di modifica e sui preset archivio per impedire nuove commistioni tra route ufficiali e URL tecnici `/app-v2`.
+
 ## 2.198.3 - 2026-04-30
 
 - Eliminato in modo definitivo lo scroll orizzontale della navigazione laterale: la sidebar React e la sidebar legacy bloccano l'overflow laterale, mantengono solo lo scroll verticale e gestiscono etichette lunghe senza allargare il menu.

@@ -779,6 +779,7 @@ def test_react_fascicoli_page_collegata_nav_api_e_lex():
     assert "getFascicoliPage" in data_source
     assert "/api/v1/ui/fascicoli" in data_source
     assert "FascicoliPage" in page_source
+    assert "rawPath.startsWith('/app-v2/fascicoli')" in page_source
     assert "FloatingLex" in page_source
     assert "context=\"fascicoli\"" in page_source
     assert "localStorage" in floating_lex
@@ -831,6 +832,9 @@ def test_react_fascicoli_bridge_usa_repository_reali(tmp_path: Path):
     assert payload["items"][0]["type"] == "civile"
     assert payload["items"][0]["client"] == "Moscato Marco"
     assert payload["items"][0]["nextDeadline"] != "n.d."
+    assert payload["items"][0]["href"] == f"/fascicoli/{fascicolo.id}"
+    assert payload["items"][0]["editHref"] == f"/fascicoli/{fascicolo.id}/modifica"
+    assert not payload["items"][0]["href"].startswith("/app-v2/")
 
 
 
@@ -854,6 +858,7 @@ def test_react_fascicoli_suite_completa_route_componenti_e_lex():
         assert service_action in bridge
     assert "Vista classica" not in page_source
     assert "kind: 'quadro'" in page_source
+    assert "rawPath.startsWith('/app-v2/fascicoli')" in page_source
     assert "parts[1] === 'quadro'" in page_source
     assert "quadroHref" in page_source
     assert "fascicolo-quadro" in page_source
@@ -939,10 +944,17 @@ def test_react_fascicoli_api_suite_usa_repository_reali(tmp_path: Path):
     assert payload["contracts"]["read_only"] is True
     assert payload["summary"]["total"] >= 1
     assert any(item["title"] == "Appello civile" for item in payload["items"])
+    row = next(item for item in payload["items"] if item["title"] == "Appello civile")
+    assert row["href"] == f"/fascicoli/{fascicolo.id}"
+    assert row["editHref"] == f"/fascicoli/{fascicolo.id}/modifica"
+    assert not row["href"].startswith("/app-v2/")
     assert detail["fascicolo"]["title"] == "Appello civile"
     assert detail["actions"]["uploadDocument"].endswith("/documenti/carica")
     assert form["mode"] == "edit"
+    assert form["detailHref"] == f"/fascicoli/{fascicolo.id}"
+    assert form["backHref"] == f"/fascicoli/{fascicolo.id}"
     assert export_payload["formats"][0]["href"] == "/fascicoli/export.pdf"
+    assert export_payload["presets"][-1]["href"] == "/fascicoli/archivio"
 
 
 def test_react_clienti_nuovo_e_soggetti_collegati_nav_api_lex_cf():

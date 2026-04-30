@@ -49,6 +49,21 @@ def test_schema_uffici_giudiziari_pec_presidia_sqlite_e_postgres():
         assert "'IPA'" in schema
 
 
+def test_schema_termini_processuali_presidia_audit_sqlite_e_postgres():
+    sqlite_schema = Path("pct/sql/20260430_termini_processuali.sql").read_text(encoding="utf-8")
+    postgres_schema = Path("pct/sql/20260430_termini_processuali_postgres.sql").read_text(encoding="utf-8")
+
+    for schema in (sqlite_schema, postgres_schema):
+        assert "CREATE TABLE IF NOT EXISTS deadline_templates" in schema
+        assert "CREATE TABLE IF NOT EXISTS deadline_audit_logs" in schema
+        assert "CREATE TABLE IF NOT EXISTS official_holidays" in schema
+        assert "CREATE TABLE IF NOT EXISTS calendar_versions" in schema
+        assert "CREATE TABLE IF NOT EXISTS deadline_notification_logs" in schema
+        assert "ferial_suspension_policy" in schema
+        assert "immutable_hash" in schema
+        assert "idx_deadline_audit_deadline" in schema
+
+
 def test_programma_migrazione_formalizza_fasi_e_fallback():
     payload = build_migration_program_payload()
 

@@ -7,6 +7,7 @@ La repo oggi non è più solo un tool CLI per il Processo Civile Telematico: con
 ## Cosa fa oggi
 
 - Gestione fascicoli, clienti, soggetti, agenda e scadenziario.
+- Lo `/scadenziario` include un calcolatore termini processuali spiegabile con template versionati, sospensione feriale parametrica, sabato configurabile, audit SHA-256, import calendario ufficiale e creazione di scadenze con promemoria PEC pianificabili.
 - Deposito telematico civile, penale e dashboard servizi telematici.
 - Modulo separato `Integrazione SIGP - Giudice di Pace` per generazione XML, predeposito, validazione XSD ufficiale e UI `/sigp-sync/` di sincronizzazione fascicolo telematico tramite soli canali autorizzati PST/PdA/Model Office o Local Connector, senza scraping HTML.
 - Acquisizione guidata dei portali PST/SIGP, PDP, PAT e PTT/SIGIT: se il canale tecnico non consente lettura diretta, IUSENTRA accompagna l'utente al portale ufficiale, importa file/ZIP/cartelle o payload JSON autorizzati e smista tutto nelle sezioni reali del fascicolo (`Documenti`, `Attivita`, `Udienze`, `Comunicazioni`, `Istanze`).
@@ -83,6 +84,7 @@ Per la Suite professionale integrata nel catalogo template atti vedi [docs/templ
 Per il modulo SIGP Giudice di Pace vedi [docs/SIGP_GIUDICE_DI_PACE.md](docs/SIGP_GIUDICE_DI_PACE.md).
 Per l'acquisizione guidata dei portali vedi [docs/PORTALI_ACQUISIZIONE_GUIDATA.md](docs/PORTALI_ACQUISIZIONE_GUIDATA.md).
 Per il registro `Tribunali / PEC` vedi [docs/UFFICI_GIUDIZIARI_PEC.md](docs/UFFICI_GIUDIZIARI_PEC.md).
+Per il calcolatore termini processuali vedi [docs/TERMINI_PROCESSUALI_SCADENZIARIO.md](docs/TERMINI_PROCESSUALI_SCADENZIARIO.md).
 Per il piano di migrazione React vedi [docs/REACT_MIGRATION_MASTER_PLAN.md](docs/REACT_MIGRATION_MASTER_PLAN.md).
 
 ## Packaging e deploy coerenti

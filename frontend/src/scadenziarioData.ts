@@ -85,6 +85,67 @@ export type ScadenziarioActionCard = {
   }
 }
 
+export type DeadlineCalculatorTemplate = {
+  code: string
+  name: string
+  matter_type: string
+  base_value: number
+  period_type: 'days' | 'months'
+  direction: 'forward' | 'backward'
+  suspend_august: boolean
+  ferial_suspension_policy: 'applies' | 'excluded' | 'partial' | 'manual_review'
+  free_term: boolean
+  urgent: boolean
+  extend_saturday: boolean
+  extend_holiday: boolean
+  reference_law: string
+  cartabia_compliant: boolean
+  metadata: Record<string, unknown>
+  version: number
+}
+
+export type DeadlineCalculatorResult = {
+  calculationId: string
+  deadline: string
+  rawDeadline: string
+  inputDate: string
+  direction: 'forward' | 'backward'
+  confidence: string
+  requiresLegalReview: boolean
+  template: DeadlineCalculatorTemplate
+  templateVersion: number
+  rulesetVersion: string
+  calendarVersion: string
+  engineVersion: string
+  rulesApplied: string[]
+  steps: { code: string; label: string; date: string }[]
+  explanation: string
+  resultHash: string
+  audit?: { id: string; createdAt: string; immutableHash: string; isOverride: boolean }
+  notificationPlan: { daysLeft: number; date: string; channel: string; status: string; idempotencyKey: string }[]
+}
+
+export type DeadlineCalculatorState = {
+  templates: DeadlineCalculatorTemplate[]
+  engineVersion: string
+  rulesetVersion: string
+  calendarVersion: string
+  legalSources: { code: string; label: string; url: string }[]
+  endpoints: {
+    calculate: string
+    explain: string
+    validate: string
+    audit: string
+    override: string
+    createDeadline: string
+  }
+  scheduler: {
+    thresholds: number[]
+    channel: string
+    mode: string
+  }
+}
+
 export type ScadenziarioPageData = {
   generatedAt: string
   source: string
@@ -110,6 +171,7 @@ export type ScadenziarioPageData = {
   overduePreview: ScadenziarioRow[]
   nextItems: ScadenziarioRow[]
   operativeCards: ScadenziarioActionCard[]
+  calculator: DeadlineCalculatorState
   facets: {
     views: ScadenziarioFacet[]
     types: ScadenziarioFacet[]
@@ -176,6 +238,26 @@ export const emptyScadenziarioPage: ScadenziarioPageData = {
   overduePreview: [],
   nextItems: [],
   operativeCards: [],
+  calculator: {
+    templates: [],
+    engineVersion: '',
+    rulesetVersion: '',
+    calendarVersion: '',
+    legalSources: [],
+    endpoints: {
+      calculate: '/api/v1/ui/scadenziario/termini/calculate',
+      explain: '/api/v1/ui/scadenziario/termini/explain',
+      validate: '/api/v1/ui/scadenziario/termini/validate',
+      audit: '/api/v1/ui/scadenziario/termini/audit',
+      override: '/api/v1/ui/scadenziario/termini/override',
+      createDeadline: '/api/v1/ui/scadenziario/termini/crea-scadenza',
+    },
+    scheduler: {
+      thresholds: [30, 15, 7, 1, 0],
+      channel: 'PEC',
+      mode: 'pianificazione_idempotente_con_audit',
+    },
+  },
   facets: {
     views: [
       { value: 'aperte', label: 'Aperte', count: 0 },
@@ -367,6 +449,94 @@ function normalizeCards(value: unknown): ScadenziarioActionCard[] {
   return asArray(value).map(normalizeCard).filter(Boolean) as ScadenziarioActionCard[]
 }
 
+function normalizeTemplate(value: unknown): DeadlineCalculatorTemplate | null {
+  if (!isRecord(value)) return null
+  const period = asString(value.period_type, 'days')
+  const direction = asString(value.direction, 'forward')
+  const policy = asString(value.ferial_suspension_policy, 'applies')
+  return {
+    code: asString(value.code),
+    name: asString(value.name, 'Termine processuale'),
+    matter_type: asString(value.matter_type, 'civil'),
+    base_value: asNumber(value.base_value, 30),
+    period_type: period === 'months' ? 'months' : 'days',
+    direction: direction === 'backward' ? 'backward' : 'forward',
+    suspend_august: asBoolean(value.suspend_august),
+    ferial_suspension_policy: (['applies', 'excluded', 'partial', 'manual_review'].includes(policy) ? policy : 'applies') as DeadlineCalculatorTemplate['ferial_suspension_policy'],
+    free_term: asBoolean(value.free_term),
+    urgent: asBoolean(value.urgent),
+    extend_saturday: value.extend_saturday === undefined ? true : asBoolean(value.extend_saturday),
+    extend_holiday: value.extend_holiday === undefined ? true : asBoolean(value.extend_holiday),
+    reference_law: asString(value.reference_law),
+    cartabia_compliant: value.cartabia_compliant === undefined ? true : asBoolean(value.cartabia_compliant),
+    metadata: isRecord(value.metadata) ? value.metadata : {},
+    version: asNumber(value.version, 1),
+  }
+}
+
+function normalizeCalculator(value: unknown): DeadlineCalculatorState {
+  const payload = isRecord(value) ? value : {}
+  const endpoints = isRecord(payload.endpoints) ? payload.endpoints : {}
+  const scheduler = isRecord(payload.scheduler) ? payload.scheduler : {}
+  return {
+    templates: asArray(payload.templates).map(normalizeTemplate).filter(Boolean) as DeadlineCalculatorTemplate[],
+    engineVersion: asString(payload.engineVersion),
+    rulesetVersion: asString(payload.rulesetVersion),
+    calendarVersion: asString(payload.calendarVersion),
+    legalSources: asArray(payload.legalSources).filter(isRecord).map((source) => ({
+      code: asString(source.code),
+      label: asString(source.label),
+      url: asString(source.url),
+    })),
+    endpoints: {
+      calculate: asString(endpoints.calculate, emptyScadenziarioPage.calculator.endpoints.calculate),
+      explain: asString(endpoints.explain, emptyScadenziarioPage.calculator.endpoints.explain),
+      validate: asString(endpoints.validate, emptyScadenziarioPage.calculator.endpoints.validate),
+      audit: asString(endpoints.audit, emptyScadenziarioPage.calculator.endpoints.audit),
+      override: asString(endpoints.override, emptyScadenziarioPage.calculator.endpoints.override),
+      createDeadline: asString(endpoints.createDeadline, emptyScadenziarioPage.calculator.endpoints.createDeadline),
+    },
+    scheduler: {
+      thresholds: asArray(scheduler.thresholds).map((item) => asNumber(item)).filter((item) => item >= 0),
+      channel: asString(scheduler.channel, 'PEC'),
+      mode: asString(scheduler.mode, 'pianificazione_idempotente_con_audit'),
+    },
+  }
+}
+
+function normalizeCalculationResult(value: unknown): DeadlineCalculatorResult | null {
+  const payload = isRecord(value) ? value : {}
+  const template = normalizeTemplate(payload.template)
+  if (!template) return null
+  const audit = isRecord(payload.audit) ? payload.audit : undefined
+  return {
+    calculationId: asString(payload.calculationId),
+    deadline: asString(payload.deadline),
+    rawDeadline: asString(payload.rawDeadline),
+    inputDate: asString(payload.inputDate),
+    direction: asString(payload.direction, 'forward') === 'backward' ? 'backward' : 'forward',
+    confidence: asString(payload.confidence, 'media'),
+    requiresLegalReview: asBoolean(payload.requiresLegalReview),
+    template,
+    templateVersion: asNumber(payload.templateVersion, template.version),
+    rulesetVersion: asString(payload.rulesetVersion),
+    calendarVersion: asString(payload.calendarVersion),
+    engineVersion: asString(payload.engineVersion),
+    rulesApplied: asArray(payload.rulesApplied).map((item) => asString(item)).filter(Boolean),
+    steps: asArray(payload.steps).filter(isRecord).map((step) => ({ code: asString(step.code), label: asString(step.label), date: asString(step.date) })),
+    explanation: asString(payload.explanation),
+    resultHash: asString(payload.resultHash),
+    audit: audit ? { id: asString(audit.id), createdAt: asString(audit.createdAt), immutableHash: asString(audit.immutableHash), isOverride: asBoolean(audit.isOverride) } : undefined,
+    notificationPlan: asArray(payload.notificationPlan).filter(isRecord).map((row) => ({
+      daysLeft: asNumber(row.daysLeft),
+      date: asString(row.date),
+      channel: asString(row.channel, 'PEC'),
+      status: asString(row.status),
+      idempotencyKey: asString(row.idempotencyKey),
+    })),
+  }
+}
+
 function queryParams(query: ScadenziarioQuery): string {
   const params = new URLSearchParams()
   if (query.view) params.set('vista', query.view)
@@ -419,6 +589,7 @@ export async function getScadenziarioPage(query: ScadenziarioQuery = {}): Promis
       overduePreview: asArray(payload.overduePreview).map(normalizeRow),
       nextItems: asArray(payload.nextItems).map(normalizeRow),
       operativeCards: normalizeCards(payload.operativeCards),
+      calculator: normalizeCalculator(payload.calculator),
       facets: {
         views: normalizeFacets(facets.views, emptyScadenziarioPage.facets.views),
         types: normalizeFacets(facets.types, emptyScadenziarioPage.facets.types),
@@ -438,5 +609,45 @@ export async function getScadenziarioPage(query: ScadenziarioQuery = {}): Promis
     }
   } catch {
     return emptyScadenziarioPage
+  }
+}
+
+export async function calculateProcessDeadline(endpoint: string, body: Record<string, unknown>): Promise<DeadlineCalculatorResult> {
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+      'X-Requested-With': 'XMLHttpRequest',
+    },
+    body: JSON.stringify(body),
+  })
+  const payload = await response.json() as unknown
+  const record = isRecord(payload) ? payload : {}
+  if (!response.ok || record.ok === false) throw new Error(asString(record.errore, 'Calcolo termine non riuscito'))
+  const result = normalizeCalculationResult(record.result)
+  if (!result) throw new Error('Risposta calcolo non valida')
+  return result
+}
+
+export async function createProcessDeadline(endpoint: string, body: Record<string, unknown>): Promise<{ id: string; href: string; messaggio: string }> {
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+      'X-Requested-With': 'XMLHttpRequest',
+    },
+    body: JSON.stringify(body),
+  })
+  const payload = await response.json() as unknown
+  const record = isRecord(payload) ? payload : {}
+  if (!response.ok || record.ok === false) throw new Error(asString(record.errore, 'Creazione scadenza non riuscita'))
+  return {
+    id: asString(record.id),
+    href: asString(record.href, '/scadenziario'),
+    messaggio: asString(record.messaggio, 'Scadenza creata.'),
   }
 }

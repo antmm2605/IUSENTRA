@@ -19,6 +19,7 @@ Legenda:
 | Core operativo | Fascicoli e documenti | R/W | R/W | R/W | parita' completa | Wave 2 - core operativo | documenti sempre su filesystem tenant |
 | Programmazione | Agenda e sincronizzazione calendario | R/W | R/W | R/W | parita' completa | Wave 2 - core operativo | SQLite resta fallback dichiarato solo prima del cutover |
 | Programmazione | Scadenziario | R/W | R/W | R/W | parita' completa | Wave 2 - core operativo | JSON solo in bootstrap o fallback locale dichiarato |
+| Programmazione | Calcolatore termini processuali e audit | R/W | R/W | R/W | parita' completa | Wave 2 - core operativo | template, audit SHA-256, calendario e promemoria PEC hanno schema JSON/SQLite/PostgreSQL; JSON solo bootstrap controllato |
 | Produzione atti | Template atti e preferenze editor | R/W | R/W | R/W | parita' completa | Wave 3 - workspace professionali | JSON come export/bootstrap controllato dei layout editor |
 | Operativita' | Timesheet e valorizzazione attivita' | R/W | R/W | R/W | parita' completa | Wave 4 - economico | JSON solo come bootstrap o import storico |
 | Commerciale | Preventivi e workflow commerciale | R/W | R/W | R/W | parita' completa | Wave 4 - economico | SQLite/PostgreSQL tenant-aware; JSON solo come ponte di migrazione |
@@ -57,6 +58,7 @@ Legenda:
 - clienti, codici fiscali ed email univoci invariati
 - fascicoli, riferimenti cliente e metadati documentali coerenti
 - appuntamenti, scadenze e riferimenti forti invariati
+- template termini processuali, versioni regole/calendario e audit hashati invariati
 - timesheet, preventivi, conferimenti, parcelle e link pagamento coerenti tra cliente e fascicolo
 - fonti, staging, review queue, news, normative, giurisprudenza e prassi di `Update Intelligence` coerenti tra SQL locale e PostgreSQL
 - snapshot, gap queue, draft e publish history di `Coverage AI` coerenti tra `studio.db` e PostgreSQL tenant-aware

@@ -25,16 +25,13 @@ from pct.scadenziario import (
     è_giorno_lavorativo,
 )
 
-from web.services.scadenziario_views import (
-    label_vista_scadenziario,
-    normalizza_vista_scadenziario,
-    scadenza_detail_context,
-    scadenze_per_vista,
-)
+from web.services.scadenziario_views import label_vista_scadenziario, normalizza_vista_scadenziario, scadenza_detail_context, scadenze_per_vista
+from web.services.scadenziario_shell_bootstrap import scadenza_detail_shell_texts, scadenziario_shell_texts
 
 
 def _richiede_vista_classica() -> bool:
     return (request.args.get("_legacy") or "").strip().lower() in {"1", "true", "si", "yes", "on"}
+
 
 def register_scadenziario_routes(
     app: Flask,
@@ -155,9 +152,6 @@ def register_scadenziario_routes(
 
     @app.route("/scadenziario")
     def scadenziario():
-        if not _richiede_vista_classica():
-            return render_react_shell_response("scadenziario")
-
         gs = get_scadenziario()
         filtro_tipo = request.args.get("tipo", "")
         filtro_priorita = request.args.get("priorita", "")
@@ -198,6 +192,9 @@ def register_scadenziario_routes(
             scadenze = [s for s in scadenze if s.ha_calcolo_avanzato]
         if filtro_operative:
             scadenze = [s for s in scadenze if bool(s.operational_due_at)]
+        if not _richiede_vista_classica():
+            texts = scadenziario_shell_texts(scadenze, avanzate=filtro_avanzate, operative=filtro_operative)
+            return render_react_shell_response("scadenziario", bootstrap_texts=texts)
         scadute = gs.tutte(stato=StatoTermine.SCADUTO, solo_aperte=False)
         scadenze_critiche = gs.imminenti(entro_giorni=3)
         imminenti = gs.imminenti(entro_giorni=7)
@@ -307,13 +304,13 @@ def register_scadenziario_routes(
         if not sc:
             flash("Scadenza non trovata.", "warning")
             return redirect(url_for("scadenziario"))
-        if not _richiede_vista_classica():
-            return render_react_shell_response(f"scadenziario/{id_sc}")
         context = scadenza_detail_context(
             sc, gestione_fascicoli=get_fascicoli(), gestione_utenti=get_utenti(),
             gestione_agenda=get_agenda(), studio_cfg=get_config_studio().config.studio,
             profili_termine=profili_termine_builtin(),
         )
+        if not _richiede_vista_classica():
+            return render_react_shell_response(f"scadenziario/{id_sc}", bootstrap_texts=scadenza_detail_shell_texts(context))
         return render_template("scadenziario/dettaglio.html", **context)
 
     @app.route("/scadenziario/<id_sc>/modifica", methods=["GET", "POST"])

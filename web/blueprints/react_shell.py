@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any
+from typing import Any, Iterable
 
 from flask import Blueprint, current_app, make_response, render_template
 
@@ -69,7 +69,7 @@ def react_app(spa_path: str = ""):
     return render_react_shell_response(spa_path)
 
 
-def render_react_shell_response(spa_path: str = ""):
+def render_react_shell_response(spa_path: str = "", *, bootstrap_texts: Iterable[Any] | None = None):
     """Render condiviso per le superfici migrate a React.
 
     Alcune route operative ufficiali, in GET, mostrano la shell React.
@@ -80,6 +80,7 @@ def render_react_shell_response(spa_path: str = ""):
         "react_shell.html",
         react_assets=_vite_entry(),
         react_spa_path=spa_path,
+        react_bootstrap_texts=[str(item) for item in (bootstrap_texts or []) if str(item or "").strip()],
     ))
     response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
     response.headers["Pragma"] = "no-cache"

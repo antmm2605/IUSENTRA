@@ -20,7 +20,12 @@ from pct.email_client import CartellaEmail, GestioneEmailRicevute, StatoEmail
 from pct.fatturazione import StatoParcella
 from pct.messaggi import CanaleMsggio, ConfigMessaggistica, GestioneMessaggi, Messaggio, StatoMessaggio
 from pct.preventivi import StatoPreventivo
-from pct.scadenziario import PrioritaTermine, StatoTermine
+from pct.scadenziario import PrioritaTermine, StatoTermine, TipoTermine
+from pct.termini_processuali import (
+    DeadlinePracticeRepository,
+    LEGAL_SOURCES,
+    calculate_and_audit,
+)
 from pct.timesheet import StatoTimesheet
 from pct.workspace_intelligente import WorkspaceIntelligenteService
 from web.services.react_agenda_bridge import build_react_agenda_payload
@@ -989,6 +994,163 @@ def scadenziario_react_nuova():
         scadenziario_loader=get_scadenziario,
         id_scadenza=request.args.get("id_scadenza", "").strip(),
     ))
+
+
+def _termini_processuali_repository() -> DeadlinePracticeRepository:
+    anchor = Path(_cfg_value("SCADENZIARIO_DB", "./scadenziario/scadenze.json"))
+    return DeadlinePracticeRepository.json(anchor.with_name("termini_processuali.json"))
+
+
+def _current_user_id() -> str:
+    utente = g.get("utente_corrente") or {}
+    if isinstance(utente, dict):
+        return str(utente.get("id") or utente.get("username") or "").strip()
+    return str(getattr(utente, "id", "") or getattr(utente, "username", "") or "").strip()
+
+
+def _json_body() -> dict[str, Any]:
+    payload = request.get_json(silent=True)
+    return dict(payload) if isinstance(payload, dict) else {}
+
+
+@api_v1_react.get("/scadenziario/termini/templates")
+@_richiedi_auth
+def scadenziario_termini_templates():
+    repo = _termini_processuali_repository()
+    return jsonify({
+        "templates": repo.list_templates(),
+        "legalSources": list(LEGAL_SOURCES),
+        "endpoints": {
+            "calculate": "/api/v1/ui/scadenziario/termini/calculate",
+            "explain": "/api/v1/ui/scadenziario/termini/explain",
+            "validate": "/api/v1/ui/scadenziario/termini/validate",
+            "audit": "/api/v1/ui/scadenziario/termini/audit",
+            "override": "/api/v1/ui/scadenziario/termini/override",
+        },
+    })
+
+
+@api_v1_react.post("/scadenziario/termini/calculate")
+@_richiedi_auth
+def scadenziario_termini_calculate():
+    try:
+        result = calculate_and_audit(
+            _json_body(),
+            repository=_termini_processuali_repository(),
+            user_id=_current_user_id(),
+        )
+        return jsonify({"ok": True, "result": result})
+    except Exception as exc:
+        current_app.logger.exception("Calcolo termine processuale non riuscito: %s", exc)
+        return jsonify({"ok": False, "errore": str(exc)}), 400
+
+
+@api_v1_react.post("/scadenziario/termini/explain")
+@_richiedi_auth
+def scadenziario_termini_explain():
+    return scadenziario_termini_calculate()
+
+
+@api_v1_react.post("/scadenziario/termini/validate")
+@_richiedi_auth
+def scadenziario_termini_validate():
+    payload = _json_body()
+    warnings: list[str] = []
+    if not str(payload.get("input_date") or payload.get("inputDate") or "").strip():
+        warnings.append("Inserire la data evento generatore.")
+    if str(payload.get("ferial_suspension_policy") or "").strip() in {"partial", "manual_review"}:
+        warnings.append("La sospensione feriale richiede verifica professionale.")
+    if str(payload.get("direction") or "").strip() == "backward":
+        warnings.append("Il calcolo a ritroso richiede conferma dell'atto o dell'udienza di riferimento.")
+    if bool(payload.get("urgent")):
+        warnings.append("Materia urgente: verificare la deroga settoriale prima del deposito.")
+    return jsonify({
+        "ok": not warnings,
+        "warnings": warnings,
+        "requiresLegalReview": bool(warnings),
+    })
+
+
+@api_v1_react.get("/scadenziario/termini/audit")
+@_richiedi_auth
+def scadenziario_termini_audit():
+    limit = max(1, min(int(request.args.get("limit", 20) or 20), 100))
+    return jsonify({"items": _termini_processuali_repository().list_audit(limit=limit)})
+
+
+@api_v1_react.post("/scadenziario/termini/override")
+@_richiedi_auth
+def scadenziario_termini_override():
+    payload = _json_body()
+    reason = str(payload.get("override_reason") or payload.get("overrideReason") or "").strip()
+    if not reason:
+        return jsonify({"ok": False, "errore": "Motivazione override obbligatoria."}), 400
+    try:
+        result = calculate_and_audit(
+            payload,
+            repository=_termini_processuali_repository(),
+            user_id=_current_user_id(),
+            is_override=True,
+            override_reason=reason,
+        )
+        return jsonify({"ok": True, "result": result})
+    except Exception as exc:
+        current_app.logger.exception("Override termine processuale non riuscito: %s", exc)
+        return jsonify({"ok": False, "errore": str(exc)}), 400
+
+
+@api_v1_react.post("/scadenziario/termini/crea-scadenza")
+@_richiedi_auth
+def scadenziario_termini_crea_scadenza():
+    payload = _json_body()
+    try:
+        repo = _termini_processuali_repository()
+        user_id = _current_user_id()
+        result = calculate_and_audit(
+            payload,
+            repository=repo,
+            user_id=user_id,
+        )
+        template = result["template"]
+        title = str(payload.get("title") or payload.get("titolo") or template["name"]).strip()
+        scadenza = get_scadenziario().nuova(
+            titolo=title,
+            tipo=TipoTermine.TERMINE_PERENTORIO,
+            data_scadenza=str(result["deadline"]),
+            id_fascicolo=str(payload.get("id_fascicolo") or payload.get("fascicoloId") or ""),
+            descrizione=str(payload.get("description") or result["explanation"] or ""),
+            data_decorrenza=str(result["inputDate"]),
+            perentorio=True,
+            id_utente_responsabile=user_id,
+            note=(
+                "Calcolo termini processuali audit "
+                + result["audit"]["immutableHash"]
+            ),
+            source_event_type=str(template.get("metadata", {}).get("source_event") or "evento"),
+            source_event_at=str(result["inputDate"]),
+            deadline_profile_code=str(template["code"]),
+            raw_due_at=str(result["rawDeadline"]),
+            legal_due_at=str(result["deadline"]),
+            trace_json=json.dumps([step["label"] for step in result["steps"]], ensure_ascii=False),
+            giorni_preavviso=[30, 15, 7, 1, 0],
+        )
+        notifications = repo.save_notification_plan(
+            deadline_id=scadenza.id,
+            case_reference=str(result.get("caseReference") or payload.get("case_reference") or ""),
+            user_id=user_id,
+            notification_plan=result.get("notificationPlan") or [],
+        )
+        return jsonify({
+            "ok": True,
+            "messaggio": "Scadenza processuale creata con audit del calcolo.",
+            "id": scadenza.id,
+            "href": f"/scadenziario/{scadenza.id}",
+            "audit": result["audit"],
+            "notificationsPlanned": notifications,
+        })
+    except Exception as exc:
+        current_app.logger.exception("Creazione scadenza da calcolo non riuscita: %s", exc)
+        return jsonify({"ok": False, "errore": str(exc)}), 400
 
 
 @api_v1_react.get("/wizard-pro")

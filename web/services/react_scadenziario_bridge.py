@@ -19,6 +19,13 @@ from pct.scadenziario import (
     TipoTermine,
     profili_termine_builtin,
 )
+from pct.termini_processuali import (
+    CALENDAR_VERSION,
+    ENGINE_VERSION,
+    LEGAL_SOURCES,
+    RULESET_VERSION,
+    DEFAULT_TEMPLATES,
+)
 from web.services.scadenziario_views import (
     VISTA_LABEL_SCADENZIARIO,
     normalizza_vista_scadenziario,
@@ -517,6 +524,26 @@ def build_react_scadenziario_payload(
         "overduePreview": overdue_preview,
         "nextItems": next_items,
         "operativeCards": _operative_cards(summary),
+        "calculator": {
+            "templates": [template.to_dict() for template in DEFAULT_TEMPLATES],
+            "engineVersion": ENGINE_VERSION,
+            "rulesetVersion": RULESET_VERSION,
+            "calendarVersion": CALENDAR_VERSION,
+            "legalSources": list(LEGAL_SOURCES),
+            "endpoints": {
+                "calculate": "/api/v1/ui/scadenziario/termini/calculate",
+                "explain": "/api/v1/ui/scadenziario/termini/explain",
+                "validate": "/api/v1/ui/scadenziario/termini/validate",
+                "audit": "/api/v1/ui/scadenziario/termini/audit",
+                "override": "/api/v1/ui/scadenziario/termini/override",
+                "createDeadline": "/api/v1/ui/scadenziario/termini/crea-scadenza",
+            },
+            "scheduler": {
+                "thresholds": [30, 15, 7, 1, 0],
+                "channel": "PEC",
+                "mode": "pianificazione_idempotente_con_audit",
+            },
+        },
         "facets": _facets(all_items, summary),
         "actions": {
             "new": "/scadenziario/nuova",

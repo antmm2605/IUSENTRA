@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.198.13 - 2026-04-30
+
+- Aggiunto nello `/scadenziario` il calcolatore termini processuali spiegabile: template versionati, computo giorni/mesi, sospensione feriale parametrica, sabato configurabile, termini liberi/a ritroso con revisione professionale e creazione di scadenze auditabili.
+- Introdotto il modulo dominio `pct.termini_processuali` con audit SHA-256 su JSON canonico, versioni `template/ruleset/calendar/engine`, piano promemoria PEC idempotente e import CSV delle festivita ufficiali con checksum.
+- Aggiunti schemi SQLite/PostgreSQL per `deadline_templates`, `deadline_audit_logs`, `official_holidays`, `calendar_versions` e `deadline_notification_logs`, con matrice storage aggiornata.
+- Estesa la shell React dello scadenziario con bootstrap verificabile per i test di regressione della migrazione SPA, mantenendo i dati reali serviti dalle API Flask.
+
 ## 2.198.12 - 2026-04-30
 
 - Corretto il link principale della nav React `PolisWeb / PST`: ora apre direttamente il wizard reale `/portali/pst/acquisizione`, invece della panoramica `/polisWeb`.

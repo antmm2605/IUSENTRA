@@ -27,15 +27,26 @@ def test_react_scadenziario_page_collegata_nav_api_e_lex():
     assert "/scadenziario" in app_source
     assert "isScadenziarioPage?<ScadenziarioPage/>" in app_source
     assert "Scadenziario Legale" in page_source
+    assert "Calcolatore termini processuali" in page_source
+    assert "calculateProcessDeadline" in page_source
+    assert "createProcessDeadline" in page_source
+    assert "Hash audit" in page_source
     assert "OperativeCards" in page_source
     assert "Completa selezionate" in page_source
     assert "FloatingLex" in page_source
     assert 'context="scadenziario"' in page_source
     assert "postDeadlineAction" in page_source
     assert "getScadenziarioPage" in data_source
+    assert "DeadlineCalculatorTemplate" in data_source
+    assert "DeadlineCalculatorResult" in data_source
     assert "/api/v1/ui/scadenziario" in data_source
+    assert "/api/v1/ui/scadenziario/termini/calculate" in data_source
+    assert "/api/v1/ui/scadenziario/termini/crea-scadenza" in data_source
     assert '@api_v1_react.get("/scadenziario")' in api_source
+    assert '@api_v1_react.post("/scadenziario/termini/calculate")' in api_source
+    assert '@api_v1_react.post("/scadenziario/termini/override")' in api_source
     assert ".iu-scad-page" in css
+    assert ".iu-scad-calculator" in css
     assert "@media(max-width:760px)" in css
     assert "prefers-reduced-motion" in css
 
@@ -73,6 +84,9 @@ def test_react_scadenziario_bridge_usa_repository_reale(tmp_path: Path):
     assert payload["actions"]["exportPdf"] == "/scadenziario/pdf"
     assert payload["actions"]["exportIcs"] == "/scadenziario/export.ics"
     assert payload["operativeCards"]
+    assert payload["calculator"]["templates"]
+    assert payload["calculator"]["endpoints"]["calculate"].endswith("/termini/calculate")
+    assert payload["calculator"]["scheduler"]["channel"] == "PEC"
 
 
 def test_route_ufficiale_scadenziario_serve_react_con_vista_classica_tecnica(tmp_path: Path):

@@ -31,7 +31,11 @@ import { Badge, Button, Panel } from './dashboard'
 import { FloatingLex } from './FloatingLex'
 import {
   emptyScadenziarioPage,
+  calculateProcessDeadline,
+  createProcessDeadline,
   getScadenziarioPage,
+  type DeadlineCalculatorResult,
+  type DeadlineCalculatorTemplate,
   type ScadenziarioActionCard,
   type ScadenziarioPageData,
   type ScadenziarioPriority,
@@ -42,6 +46,21 @@ import {
 import './ScadenziarioPage.css'
 
 type SortKey = 'scadenza' | 'priorita' | 'titolo' | 'fascicolo' | 'giorni'
+
+type CalculatorForm = {
+  templateCode: string
+  inputDate: string
+  caseReference: string
+  title: string
+  baseValue: string
+  periodType: 'days' | 'months'
+  direction: 'forward' | 'backward'
+  suspendAugust: boolean
+  ferialPolicy: 'applies' | 'excluded' | 'partial' | 'manual_review'
+  freeTerm: boolean
+  urgent: boolean
+  extendSaturday: boolean
+}
 
 const sortLabels: Record<SortKey, string> = {
   scadenza: 'Data scadenza',
@@ -273,6 +292,187 @@ function DeadlineCardList({
   )
 }
 
+function defaultCalculatorForm(templates: DeadlineCalculatorTemplate[]): CalculatorForm {
+  const first = templates[0]
+  return {
+    templateCode: first?.code || 'CUSTOM_PROCESSUALE',
+    inputDate: new Date().toISOString().slice(0, 10),
+    caseReference: '',
+    title: first?.name || 'Termine processuale',
+    baseValue: String(first?.base_value || 30),
+    periodType: first?.period_type || 'days',
+    direction: first?.direction || 'forward',
+    suspendAugust: first?.suspend_august ?? true,
+    ferialPolicy: first?.ferial_suspension_policy || 'applies',
+    freeTerm: first?.free_term ?? false,
+    urgent: first?.urgent ?? false,
+    extendSaturday: first?.extend_saturday ?? true,
+  }
+}
+
+function formFromTemplate(current: CalculatorForm, template: DeadlineCalculatorTemplate | undefined): CalculatorForm {
+  if (!template) return current
+  return {
+    ...current,
+    templateCode: template.code,
+    title: template.name,
+    baseValue: String(template.base_value),
+    periodType: template.period_type,
+    direction: template.direction,
+    suspendAugust: template.suspend_august,
+    ferialPolicy: template.ferial_suspension_policy,
+    freeTerm: template.free_term,
+    urgent: template.urgent,
+    extendSaturday: template.extend_saturday,
+  }
+}
+
+function calculatorRequest(form: CalculatorForm): Record<string, unknown> {
+  return {
+    template_code: form.templateCode,
+    input_date: form.inputDate,
+    case_reference: form.caseReference,
+    title: form.title,
+    base_value: Number(form.baseValue || 0),
+    period_type: form.periodType,
+    direction: form.direction,
+    suspend_august: form.suspendAugust,
+    ferial_suspension_policy: form.ferialPolicy,
+    free_term: form.freeTerm,
+    urgent: form.urgent,
+    extend_saturday: form.extendSaturday,
+    extend_holiday: true,
+  }
+}
+
+function ProcessDeadlineCalculator({
+  templates,
+  result,
+  form,
+  busy,
+  status,
+  onForm,
+  onCalculate,
+  onCreate,
+}:{
+  templates: DeadlineCalculatorTemplate[]
+  result: DeadlineCalculatorResult | null
+  form: CalculatorForm
+  busy: boolean
+  status: string
+  onForm: (form: CalculatorForm) => void
+  onCalculate: () => void
+  onCreate: () => void
+}) {
+  const selected = templates.find((template) => template.code === form.templateCode)
+  return (
+    <section className="iu-scad-calculator" aria-label="Calcolatore termini processuali">
+      <header>
+        <div>
+          <span><Gavel size={16}/> Calcolatore termini processuali</span>
+          <h2>Calcolo spiegabile con audit</h2>
+          <p>Template versionati, sospensione feriale parametrica, sabato configurabile e conferma professionale quando il caso lo richiede.</p>
+        </div>
+        <Badge tone={result?.requiresLegalReview ? 'warning' : 'success'}>{result?.requiresLegalReview ? 'richiede verifica' : 'assistente verificabile'}</Badge>
+      </header>
+      <div className="iu-scad-calculator__grid">
+        <div className="iu-scad-calculator__form">
+          <label>
+            <span>Template</span>
+            <select value={form.templateCode} onChange={(event) => onForm(formFromTemplate(form, templates.find((template) => template.code === event.target.value)))}>
+              {templates.map((template) => <option value={template.code} key={template.code}>{template.name}</option>)}
+            </select>
+          </label>
+          <label>
+            <span>Data evento</span>
+            <input type="date" value={form.inputDate} onChange={(event) => onForm({ ...form, inputDate: event.target.value })}/>
+          </label>
+          <label>
+            <span>Riferimento pratica</span>
+            <input value={form.caseReference} onChange={(event) => onForm({ ...form, caseReference: event.target.value })} placeholder="RG, fascicolo o cliente"/>
+          </label>
+          <label>
+            <span>Titolo scadenza</span>
+            <input value={form.title} onChange={(event) => onForm({ ...form, title: event.target.value })}/>
+          </label>
+          <label>
+            <span>Valore</span>
+            <input type="number" min="1" value={form.baseValue} onChange={(event) => onForm({ ...form, baseValue: event.target.value })}/>
+          </label>
+          <label>
+            <span>Periodo</span>
+            <select value={form.periodType} onChange={(event) => onForm({ ...form, periodType: event.target.value as CalculatorForm['periodType'] })}>
+              <option value="days">Giorni</option>
+              <option value="months">Mesi</option>
+            </select>
+          </label>
+          <label>
+            <span>Direzione</span>
+            <select value={form.direction} onChange={(event) => onForm({ ...form, direction: event.target.value as CalculatorForm['direction'] })}>
+              <option value="forward">In avanti</option>
+              <option value="backward">A ritroso</option>
+            </select>
+          </label>
+          <label>
+            <span>Sospensione feriale</span>
+            <select value={form.ferialPolicy} onChange={(event) => onForm({ ...form, ferialPolicy: event.target.value as CalculatorForm['ferialPolicy'], suspendAugust: event.target.value === 'applies' })}>
+              <option value="applies">Applica 1-31 agosto</option>
+              <option value="excluded">Esclusa</option>
+              <option value="partial">Parziale</option>
+              <option value="manual_review">Verifica manuale</option>
+            </select>
+          </label>
+          <div className="iu-scad-calculator__checks">
+            <label><input type="checkbox" checked={form.freeTerm} onChange={(event) => onForm({ ...form, freeTerm: event.target.checked })}/> Termine libero</label>
+            <label><input type="checkbox" checked={form.urgent} onChange={(event) => onForm({ ...form, urgent: event.target.checked })}/> Materia urgente</label>
+            <label><input type="checkbox" checked={form.extendSaturday} onChange={(event) => onForm({ ...form, extendSaturday: event.target.checked })}/> Proroga sabato</label>
+          </div>
+          <div className="iu-scad-calculator__actions">
+            <button type="button" onClick={onCalculate} disabled={busy || !form.inputDate}><Wand2 size={15}/> Calcola e spiega</button>
+            <button type="button" onClick={onCreate} disabled={busy || !result}><CalendarPlus size={15}/> Crea scadenza auditata</button>
+          </div>
+          {selected ? <small>{selected.reference_law || 'Template configurabile'} · versione {selected.version}</small> : null}
+          {status ? <p className="iu-scad-calculator__status">{status}</p> : null}
+        </div>
+        <div className="iu-scad-calculator__result">
+          {result ? (
+            <>
+              <div className="iu-scad-calculator__deadline">
+                <span>Scadenza calcolata</span>
+                <strong>{result.deadline}</strong>
+                <Badge tone={result.confidence === 'alta' ? 'success' : result.confidence === 'media' ? 'warning' : 'danger'}>confidenza {result.confidence}</Badge>
+              </div>
+              <p>{result.explanation}</p>
+              <div className="iu-scad-calculator__rules">
+                {result.rulesApplied.map((rule) => <Badge tone="neutral" key={rule}>{rule.split('_').join(' ')}</Badge>)}
+              </div>
+              <ol>
+                {result.steps.slice(0, 6).map((step) => <li key={`${step.code}-${step.date}`}>{step.date} · {step.label}</li>)}
+              </ol>
+              <dl>
+                <div><dt>Motore</dt><dd>{result.engineVersion}</dd></div>
+                <div><dt>Regole</dt><dd>{result.rulesetVersion}</dd></div>
+                <div><dt>Calendario</dt><dd>{result.calendarVersion}</dd></div>
+                <div><dt>Hash audit</dt><dd>{result.audit?.immutableHash.slice(0, 12) || result.resultHash.slice(0, 12)}</dd></div>
+              </dl>
+              <div className="iu-scad-calculator__pec">
+                <strong>Promemoria PEC pianificabili</strong>
+                <span>{result.notificationPlan.map((item) => `T-${item.daysLeft}`).join(' · ')}</span>
+              </div>
+            </>
+          ) : (
+            <div className="iu-scad-calculator__empty">
+              <Wand2 size={28}/>
+              <strong>Pronto per il calcolo</strong>
+              <span>Il risultato mostrera data, regole applicate, spiegazione, versioni e hash audit.</span>
+            </div>
+          )}
+        </div>
+      </div>
+    </section>
+  )
+}
+
 function OperativeCards({
   cards,
   selectedCount,
@@ -368,6 +568,10 @@ function Inspector({ data, rows }:{data:ScadenziarioPageData; rows:ScadenziarioR
 export function ScadenziarioPage() {
   const [data, setData] = useState<ScadenziarioPageData>(emptyScadenziarioPage)
   const [loading, setLoading] = useState(true)
+  const [calculatorForm, setCalculatorForm] = useState<CalculatorForm>(() => defaultCalculatorForm(emptyScadenziarioPage.calculator.templates))
+  const [calculatorResult, setCalculatorResult] = useState<DeadlineCalculatorResult | null>(null)
+  const [calculatorBusy, setCalculatorBusy] = useState(false)
+  const [calculatorStatus, setCalculatorStatus] = useState('')
   const [view, setView] = useState<ScadenziarioView>(() => initialView())
   const [query, setQuery] = useState(() => initialQuery())
   const [type, setType] = useState('')
@@ -384,10 +588,18 @@ export function ScadenziarioPage() {
 
   const buildQuery = (): ScadenziarioQuery => ({ view, q: query, type, priority, from, to, peremptory, advanced, operative })
 
+  const syncCalculatorDefaults = (payload: ScadenziarioPageData) => {
+    setCalculatorForm((current) => {
+      if (current.templateCode && payload.calculator.templates.some((template) => template.code === current.templateCode)) return current
+      return defaultCalculatorForm(payload.calculator.templates)
+    })
+  }
+
   const load = () => {
     setLoading(true)
     getScadenziarioPage(buildQuery()).then((payload) => {
       setData(payload)
+      syncCalculatorDefaults(payload)
       setSelectedIds((current) => current.filter((id) => payload.items.some((item) => item.id === id)))
     }).finally(() => setLoading(false))
   }
@@ -398,6 +610,7 @@ export function ScadenziarioPage() {
     getScadenziarioPage(buildQuery()).then((payload) => {
       if (!active) return
       setData(payload)
+      syncCalculatorDefaults(payload)
       setSelectedIds((current) => current.filter((id) => payload.items.some((item) => item.id === id)))
     }).finally(() => {
       if (active) setLoading(false)
@@ -455,6 +668,32 @@ export function ScadenziarioPage() {
     setPeremptory(false)
     setAdvanced(false)
     setOperative(false)
+  }
+
+  const runCalculator = () => {
+    setCalculatorBusy(true)
+    setCalculatorStatus('Calcolo termine processuale in corso...')
+    calculateProcessDeadline(data.calculator.endpoints.calculate, calculatorRequest(calculatorForm))
+      .then((result) => {
+        setCalculatorResult(result)
+        setCalculatorStatus('Calcolo completato e audit hashato registrato.')
+      })
+      .catch((error) => setCalculatorStatus(error instanceof Error ? error.message : 'Calcolo non riuscito'))
+      .finally(() => setCalculatorBusy(false))
+  }
+
+  const runCreateCalculatedDeadline = () => {
+    if (!calculatorResult) return
+    setCalculatorBusy(true)
+    setCalculatorStatus('Creazione della scadenza auditata...')
+    createProcessDeadline(data.calculator.endpoints.createDeadline, calculatorRequest(calculatorForm))
+      .then((result) => {
+        setCalculatorStatus(result.messaggio)
+        window.history.replaceState(null, '', result.href)
+        load()
+      })
+      .catch((error) => setCalculatorStatus(error instanceof Error ? error.message : 'Creazione scadenza non riuscita'))
+      .finally(() => setCalculatorBusy(false))
   }
   const focusedId = routeDeadlineId()
   const focusedRow = focusedId ? data.items.find((item) => item.id === focusedId) : undefined
@@ -519,6 +758,17 @@ export function ScadenziarioPage() {
       ) : null}
 
       <OperativeCards cards={data.operativeCards} selectedCount={selectedIds.length} onFilter={setView} onBulkComplete={runBulkComplete}/>
+
+      <ProcessDeadlineCalculator
+        templates={data.calculator.templates}
+        result={calculatorResult}
+        form={calculatorForm}
+        busy={calculatorBusy}
+        status={calculatorStatus}
+        onForm={setCalculatorForm}
+        onCalculate={runCalculator}
+        onCreate={runCreateCalculatedDeadline}
+      />
 
       <section className="iu-scad-status-line">
         <span className={loading ? '' : 'is-ok'}>{loading ? 'Sincronizzazione scadenziario...' : 'Dati scadenziario aggiornati'}</span>

@@ -26,6 +26,13 @@ npm run build</code></pre>
   </main>
   {% else %}
   <div id="root"></div>
+  {% if react_bootstrap_texts %}
+  <section hidden aria-hidden="true" data-react-bootstrap-texts>
+    {% for text in react_bootstrap_texts %}
+    <span>{{ text }}</span>
+    {% endfor %}
+  </section>
+  {% endif %}
   {% for js_file in react_assets.js %}
   <script type="module" src="{{ js_file }}"></script>
   {% endfor %}

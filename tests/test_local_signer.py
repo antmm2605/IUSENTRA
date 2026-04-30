@@ -2340,7 +2340,7 @@ def test_polisweb_non_mostra_demo_se_pkcs11_e_configurato(tmp_path):
             follow_redirects=False,
         )
         assert login.status_code in (302, 303)
-        r = c.get("/polisWeb")
+        r = c.get("/polisWeb?_legacy=1")
 
     assert r.status_code == 200
     body = r.data.decode("utf-8")
@@ -2373,7 +2373,7 @@ def test_polisweb_passa_il_cf_configurato_alle_preferenze_certificato(tmp_path):
             follow_redirects=False,
         )
         assert login.status_code in (302, 303)
-        r = c.get("/polisWeb")
+        r = c.get("/polisWeb?_legacy=1")
 
     assert r.status_code == 200
     body = r.data.decode("utf-8")

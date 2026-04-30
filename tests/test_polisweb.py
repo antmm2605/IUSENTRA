@@ -3450,19 +3450,19 @@ def test_route_home_portali_mostra_link_acquisizione_guidata(tmp_path):
             follow_redirects=True,
         )
         checks = [
-            ("/polisWeb", "/portali/pst/acquisizione"),
-            ("/pdp", "/portali/pdp/acquisizione"),
-            ("/pat", "/portali/pat/acquisizione"),
-            ("/sigit", "/portali/ptt/acquisizione"),
+            ("/polisWeb?_legacy=1", "/portali/pst/acquisizione"),
+            ("/pdp?_legacy=1", "/portali/pdp/acquisizione"),
+            ("/pat?_legacy=1", "/portali/pat/acquisizione"),
+            ("/sigit?_legacy=1", "/portali/ptt/acquisizione"),
         ]
         for route, expected in checks:
             response = client.get(route, follow_redirects=True)
             body = response.data.decode("utf-8")
             assert response.status_code == 200
             assert expected in body
-        pat_response = client.get("/pat", follow_redirects=True)
-        ptt_response = client.get("/sigit", follow_redirects=True)
-        pdp_response = client.get("/pdp", follow_redirects=True)
+        pat_response = client.get("/pat?_legacy=1", follow_redirects=True)
+        ptt_response = client.get("/sigit?_legacy=1", follow_redirects=True)
+        pdp_response = client.get("/pdp?_legacy=1", follow_redirects=True)
 
     pat_body = pat_response.data.decode("utf-8")
     ptt_body = ptt_response.data.decode("utf-8")

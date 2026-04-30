@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.198.10 - 2026-04-30
+
+- Ripristinata la visibilita' operativa di `Importa pratica da PST` nella superficie React `PolisWeb / PST`: la prima card e l'azione rapida puntano di nuovo al wizard reale `/portali/pst/acquisizione`.
+- Aggiunta nella navigazione React la voce esplicita `Importa pratica da PST`, separata dalla pagina informativa `PolisWeb / PST`, cosi' il flusso di acquisizione non resta nascosto dietro copy generico.
+- Corretto il riquadro destro delle hero `PDP`, `PAT` e `PTT`: il collegamento al portale ufficiale non viene piu' reso come rettangolo bianco illeggibile, ma come pulsante scuro leggibile dentro la testata.
+- Estesi i test anti-regressione su payload React, nav e route `/portali/pst/acquisizione` per verificare che il wizard PST resti raggiungibile anche dopo la promozione React.
+
 ## 2.198.9 - 2026-04-30
 
 - Promosse a React le superfici telematiche di secondo livello: `PolisWeb / PST`, `PDP`, `PAT`, `PTT`, `Tribunali / PEC`, `Checklist deposito` e `Guida firma digitale` ora servono la shell React dalle URL ufficiali, mantenendo la vista storica solo con `_legacy=1`.

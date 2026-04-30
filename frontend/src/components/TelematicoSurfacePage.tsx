@@ -413,17 +413,17 @@ export function TelematicoSurfacePage() {
     <main className={`iu-content iu-tel-surface-page iu-tel-surface-page--${data.surface.id}`}>
       <section className={`iu-tel-surface-hero iu-tel-surface-hero--${tone}`}>
         <div>
-          <span><ShieldCheck size={16}/> {data.surface.eyebrow}</span>
+          <span className="iu-tel-surface-hero__eyebrow"><ShieldCheck size={16}/> {data.surface.eyebrow}</span>
           <h1>{title}</h1>
           <p>{data.surface.subtitle}</p>
-          <div>
+          <div className="iu-tel-surface-hero__badges">
             <Badge tone="primary">Superficie operativa</Badge>
             <Badge tone="success">Dati aggiornati</Badge>
             <Badge tone="warning">Import autorizzato</Badge>
             <Badge tone="purple">Lex AI</Badge>
           </div>
         </div>
-        <aside>
+        <aside className="iu-tel-surface-hero__meta">
           <strong>{loading ? 'Sincronizzazione...' : 'Dati aggiornati'}</strong>
           <small>{generatedAt || 'Aggiornamento in corso'}</small>
           {data.surface.officialHref ? <a href={data.surface.officialHref} target="_blank" rel="noreferrer"><ExternalLink size={15}/> Portale ufficiale</a> : null}

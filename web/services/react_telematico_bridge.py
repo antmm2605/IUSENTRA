@@ -44,6 +44,22 @@ PORTAL_IMPORT_FALLBACKS = {
     "pat": "/portali/pat/acquisizione",
     "ptt": "/portali/ptt/acquisizione",
 }
+PORTAL_IMPORT_LABELS = {
+    "pst": "Importa pratica da PST",
+    "pdp": "Importa pratica da PDP",
+    "pat": "Importa pratica da PAT",
+    "ptt": "Importa pratica da PTT",
+}
+PORTAL_IMPORT_DESCRIPTIONS = {
+    "pst": (
+        "Avvia il wizard operativo per acquisire nel fascicolo interno i dati e i file "
+        "ottenuti dal Portale Servizi Telematici o da PolisWeb, senza scraping e senza "
+        "credenziali salvate nel cloud."
+    ),
+    "pdp": "Avvia il wizard operativo per acquisire nel fascicolo penale file, cataloghi ed esiti ottenuti dal PDP.",
+    "pat": "Avvia il wizard operativo per acquisire documenti, provvedimenti ed esiti dal Portale Avvocato / SIGA.",
+    "ptt": "Avvia il wizard operativo per acquisire fascicoli, ricevute e provvedimenti tributari da SIGIT.",
+}
 PORTAL_OFFICIAL_URLS = {
     "pst": "https://pst.giustizia.it/PST/it/services.page",
     "pdp": "https://appweb.giustizia.it/snt",
@@ -255,7 +271,7 @@ def _build_channel(portal: str, stats: dict[str, Any], access_payload: dict[str,
         "badges": _channel_badges(access_payload),
         "quickActions": [
             {"label": "Apri portale", "href": _app_v2_href(portal if portal != "ptt" else "ptt"), "tone": PORTAL_TONES[portal]},
-            {"label": "Importa da portale", "href": import_href, "tone": "primary"},
+            {"label": PORTAL_IMPORT_LABELS.get(portal, "Importa da portale"), "href": import_href, "tone": "primary"},
             {"label": "Presidia", "href": f"/app-v2/telematico?focus={portal}", "tone": "warning"},
         ],
     }
@@ -414,11 +430,27 @@ def _portal_operation_cards(surface_id: str, portal: str, channel: dict[str, Any
     home_href = channel.get("homeHref") or PORTAL_HOME_FALLBACKS.get(portal, "/telematico")
     import_href = channel.get("importHref") or PORTAL_IMPORT_FALLBACKS.get(portal, "/portali/pst/acquisizione")
     official_href = PORTAL_OFFICIAL_URLS.get(portal, "")
+    import_label = PORTAL_IMPORT_LABELS.get(portal, "Importa pratica da portale")
+    import_body = PORTAL_IMPORT_DESCRIPTIONS.get(
+        portal,
+        "Avvia il wizard operativo per acquisire nel fascicolo interno payload, file o cataloghi ottenuti da canali autorizzati.",
+    )
     return [
         _surface_card(
+            "importa-pratica",
+            import_label,
+            import_body,
+            tone="primary",
+            icon="download",
+            actions=[
+                _surface_action("import", import_label, import_href, tone="primary"),
+                _surface_action("fascicoli", "Fascicoli collegati", "/app-v2/fascicoli", tone="secondary"),
+            ],
+        ),
+        _surface_card(
             "workspace",
-            "Cabina del canale",
-            "Apri la vista React dedicata, controlla stato canale, casi collegati e prossima azione.",
+            f"Cabina {PORTAL_LABELS.get(portal, 'del canale')}",
+            "Controlla stato canale, casi collegati, blocchi e prossima azione senza uscire dalla superficie telematica.",
             tone=tone,
             icon="monitor",
             actions=[
@@ -429,17 +461,6 @@ def _portal_operation_cards(surface_id: str, portal: str, channel: dict[str, Any
                 {"label": "Pratiche", "value": channel.get("cases", 0)},
                 {"label": "Import completi", "value": channel.get("importCompleted", 0)},
                 {"label": "Da presidiare", "value": channel.get("attentionNeeded", 0)},
-            ],
-        ),
-        _surface_card(
-            "acquisizione",
-            "Acquisizione guidata",
-            "Importa nel fascicolo interno solo payload, file o cataloghi ottenuti da canali autorizzati.",
-            tone="primary",
-            icon="download",
-            actions=[
-                _surface_action("import", "Avvia acquisizione", import_href, tone="primary"),
-                _surface_action("fascicoli", "Fascicoli collegati", "/app-v2/fascicoli", tone="secondary"),
             ],
         ),
         _surface_card(
@@ -603,7 +624,7 @@ def _surface_links(surface_id: str, portal: str = "") -> list[dict[str, Any]]:
         {"label": "Tribunali / PEC", "href": "/app-v2/tribunali", "kind": "react"},
     ]
     if portal:
-        links.insert(1, {"label": "Acquisizione guidata", "href": PORTAL_IMPORT_FALLBACKS[portal], "kind": "operativo"})
+        links.insert(1, {"label": PORTAL_IMPORT_LABELS[portal], "href": PORTAL_IMPORT_FALLBACKS[portal], "kind": "operativo"})
         links.append({"label": "Portale ufficiale", "href": PORTAL_OFFICIAL_URLS[portal], "kind": "esterno"})
     if surface_id == "firma":
         links.extend(

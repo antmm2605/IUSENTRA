@@ -548,6 +548,7 @@ def test_react_superfici_telematiche_collegate_nav_api_css():
     data_source = Path("frontend/src/telematicoSurfacesData.ts").read_text(encoding="utf-8")
     css = Path("frontend/src/components/TelematicoSurfacePage.css").read_text(encoding="utf-8")
     api_source = Path("web/blueprints/api_v1_react.py").read_text(encoding="utf-8")
+    bridge_source = Path("web/services/react_telematico_bridge.py").read_text(encoding="utf-8")
     polisweb_routes = Path("web/bootstrap/polisweb_routes.py").read_text(encoding="utf-8")
     portali_routes = Path("web/bootstrap/telematico_portali_routes.py").read_text(encoding="utf-8")
     deposito_routes = Path("web/bootstrap/deposito_routes.py").read_text(encoding="utf-8")
@@ -557,10 +558,15 @@ def test_react_superfici_telematiche_collegate_nav_api_css():
     assert "isTelematicoSurfacePage" in app_source
     assert "isTelematicoSurfacePage?<TelematicoSurfacePage/>" in app_source
     assert "{ label: 'PTT Tributario', icon: FileText, href: '/sigit' }" in app_source
+    assert "{ label: 'Importa pratica da PST', icon: CloudUpload, href: '/portali/pst/acquisizione' }" in app_source
     assert "getTelematicoSurfacePage" in data_source
     assert "/api/v1/ui/telematico/surface/" in data_source
     assert "OfficeDirectory" in page_source
     assert "Checklist operativa" in page_source
+    assert "iu-tel-surface-hero__meta" in page_source
+    assert "iu-tel-surface-hero__eyebrow" in page_source
+    assert '"pst": "Importa pratica da PST"' in bridge_source
+    assert '"importa-pratica"' in bridge_source
     assert '@api_v1_react.get("/telematico/surface/<surface>")' in api_source
     assert "build_react_telematico_surface_payload" in api_source
     assert "build_react_tribunali_payload" in api_source
@@ -572,6 +578,8 @@ def test_react_superfici_telematiche_collegate_nav_api_css():
     assert 'render_react_shell_response("guida/firma-digitale")' in deposito_routes
     assert 'render_react_shell_response("tribunali")' in lookup_routes
     assert ".iu-tel-surface-page" in css
+    assert ".iu-tel-surface-hero__meta a" in css
+    assert "background:rgba(255,255,255,.16)" in css
     assert ".iu-tel-offices" in css
     assert "@media(max-width:860px)" in css
 
@@ -620,9 +628,31 @@ def test_react_superfici_telematiche_api_payload_reale(tmp_path: Path):
     assert polisweb.status_code == 200
     assert polisweb_payload["surface"]["id"] == "polisweb"
     assert polisweb_payload["surface"]["portal"] == "pst"
+    assert polisweb_payload["operationCards"][0]["id"] == "importa-pratica"
+    assert polisweb_payload["operationCards"][0]["title"] == "Importa pratica da PST"
+    assert polisweb_payload["operationCards"][0]["actions"][0]["href"] == "/portali/pst/acquisizione"
+    assert polisweb_payload["links"][1]["label"] == "Importa pratica da PST"
+    assert polisweb_payload["channel"]["quickActions"][1]["label"] == "Importa pratica da PST"
     assert tribunali.status_code == 200
     assert tribunali_payload["surface"]["id"] == "tribunali"
     assert tribunali_payload["officeSummary"]["perType"] is not None
+
+
+def test_route_importa_pratica_pst_resta_raggiungibile_dalla_nav(tmp_path: Path):
+    app = _app(tmp_path)
+    _crea_operatore(app)
+
+    with app.test_client() as client:
+        _login(client)
+        response = client.get("/portali/pst/acquisizione")
+        shortcut = client.get("/polisWeb/acquisizione")
+
+    html = response.get_data(as_text=True)
+    assert response.status_code == 200
+    assert "Importa pratica da PST" in html
+    assert "/api/portali/pst/acquisizione/search" in html
+    assert shortcut.status_code in {302, 303}
+    assert shortcut.headers["Location"].endswith("/portali/pst/acquisizione")
 
 
 def test_route_ufficiali_primo_blocco_servono_react_con_vista_classica_tecnica(tmp_path: Path):

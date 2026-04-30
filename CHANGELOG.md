@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.198.7 - 2026-04-30
+
+- Riallineato il quadro fascicolo React: nella route `/fascicoli/<id>/quadro` la card `Documenti` viene mostrata sotto la card `Economico` nella griglia responsive, con test anti-regressione dedicato.
+- Completato il quadro con assi operativi aggiuntivi per `Soggetti e parti`, `Cancelleria e istanze` e `Servizi telematici`, alimentati dal payload reale del fascicolo.
+- Corretto il bridge `Soggetti e parti`: le parti processuali strutturate vengono lette dalla tupla `(ParteProcessuale, Soggetto)` e, se mancano, il quadro usa comunque cliente e controparte presenti nel fascicolo.
+- Ripulito il copy tecnico `repository_reali` dalle etichette visibili `Dati aggiornati` e corretto il link `Indietro` della copertina fascicolo verso il dettaglio ufficiale `/fascicoli/<id>`.
+
 ## 2.198.6 - 2026-04-30
 
 - Introdotto il controllo globale browser-local del Local Signer dopo il login: verifica `127.0.0.1:27272`, tenta l'avvio via protocollo locale, confronta la versione installata con quella rilasciata e propone il pacchetto ufficiale aggiornato per Windows, macOS o Linux con riverifica post-installazione.

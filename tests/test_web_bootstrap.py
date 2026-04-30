@@ -730,6 +730,9 @@ def test_template_principali_usano_copy_italiana_e_date_localizzate():
     assert "{{ oggi|fmt_data }}" in base_content
     telematico_content = (REPO_ROOT / "web/templates/telematico_dashboard.html").read_text(encoding="utf-8")
     assert "|fmt_dataora" in telematico_content
+    copertina_content = (REPO_ROOT / "web/templates/fascicoli/copertina.html").read_text(encoding="utf-8")
+    assert 'url_for(\'dettaglio_fascicolo\', id_fasc=fascicolo.id)' in copertina_content
+    assert "javascript:history.back()" not in copertina_content
 
 
 def test_lex_frontend_allinea_smalltalk_e_guardie_legali():

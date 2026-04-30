@@ -10,7 +10,7 @@ from pct.fascicoli import GestioneFascicoli, StatoFascicolo, TipoAttivita, TipoF
 from pct.messaggi import CanaleMsggio, ConfigMessaggistica, GestioneMessaggi, Messaggio, StatoMessaggio
 from pct.preventivi import GestionePreventivi, StatoPreventivo, VocePreventivo
 from pct.scadenziario import GestioneScadenziario, PrioritaTermine, TipoTermine
-from pct.soggetti import GestioneSoggetti, TipoSoggetto
+from pct.soggetti import GestioneSoggetti, RuoloSoggetto, TipoSoggetto
 from tests.test_applicazioni import _crea_operatore, _login
 from web.app import create_app
 from web.bootstrap.blueprint_registry import BLUEPRINT_REGISTRY
@@ -872,10 +872,18 @@ def test_react_fascicoli_bridge_usa_repository_reali(tmp_path: Path):
         TipoFascicolo.CIVILE,
         id_cliente=cliente.id,
         nome_cliente=cliente.nome_completo,
+        controparte="Zurich Ass.ni",
         tribunale="Corte d'Appello di Milano",
         numero_rg="001",
         anno_rg=today.year,
     )
+    soggetti = GestioneSoggetti(app.config["SOGGETTI_DB"], app.config["SOGGETTI_PARTI_DB"])
+    controparte = soggetti.crea(
+        TipoSoggetto.PERSONA_GIURIDICA,
+        ragione_sociale="Zurich Ass.ni",
+        partita_iva="12345678901",
+    )
+    soggetti.aggiungi_parte(fascicolo.id, controparte.id, RuoloSoggetto.CONTROPARTE)
     GestioneScadenziario(db_path=app.config["SCADENZIARIO_DB"]).nuova(
         "Deposito comparsa conclusionale",
         TipoTermine.DEPOSITO_MEMORIA,
@@ -929,6 +937,10 @@ def test_react_fascicoli_suite_completa_route_componenti_e_lex():
     assert "<details id={id}" in page_source
     assert 'className="iu-fas-detail-section" open' not in page_source
     assert "Quadro intelligente" in page_source
+    assert "Dati aggiornati - ${data.source}" not in page_source
+    assert 'title="Soggetti e parti"' in page_source
+    assert 'title="Cancelleria e istanze"' in page_source
+    assert 'title="Servizi telematici"' in page_source
     assert "FascicoloGuardrailsPanel" in page_source
     assert "data.guardrails" in page_source
     assert "Guardrail deposito telematico" in page_source
@@ -960,6 +972,10 @@ def test_react_fascicoli_suite_completa_route_componenti_e_lex():
     assert ".iu-fascicolo-quadro-page" in css
     assert ".iu-fas-quadro-axis" in css
     assert ".iu-fas-quadro-kpis" in css
+    assert ".iu-fas-quadro-grid .iu-fas-quadro-axis#economico{order:2}" in css
+    assert ".iu-fas-quadro-grid .iu-fas-quadro-axis#documenti{order:4}" in css
+    assert ".iu-fas-quadro-grid .iu-fas-quadro-axis#soggetti{order:5}" in css
+    assert ".iu-fas-quadro-grid .iu-fas-quadro-axis#conformita{order:8}" in css
     assert "@media(max-width:760px)" in css
 
 
@@ -1012,10 +1028,18 @@ def test_react_fascicoli_api_suite_usa_repository_reali(tmp_path: Path):
         TipoFascicolo.CIVILE,
         id_cliente=cliente.id,
         nome_cliente=cliente.nome_completo,
+        controparte="Zurich Ass.ni",
         tribunale="Corte d'Appello di Milano",
         numero_rg="001",
         anno_rg=today.year,
     )
+    soggetti = GestioneSoggetti(app.config["SOGGETTI_DB"], app.config["SOGGETTI_PARTI_DB"])
+    controparte = soggetti.crea(
+        TipoSoggetto.PERSONA_GIURIDICA,
+        ragione_sociale="Zurich Ass.ni",
+        partita_iva="12345678901",
+    )
+    soggetti.aggiungi_parte(fascicolo.id, controparte.id, RuoloSoggetto.CONTROPARTE)
     GestioneScadenziario(db_path=app.config["SCADENZIARIO_DB"]).nuova(
         "Deposito comparsa conclusionale",
         TipoTermine.DEPOSITO_MEMORIA,
@@ -1054,6 +1078,9 @@ def test_react_fascicoli_api_suite_usa_repository_reali(tmp_path: Path):
     assert row["editHref"] == f"/fascicoli/{fascicolo.id}/modifica"
     assert not row["href"].startswith("/app-v2/")
     assert detail["fascicolo"]["title"] == "Appello civile"
+    assert any(party["name"] == "Zurich Ass.ni" and party["role"] == "Controparte" for party in detail["parties"])
+    assert any(party["name"] == "Moscato Marco" and party["role"] == "Cliente / assistito" for party in detail["parties"])
+    assert any(item["label"] == "Parti" and item["value"] == f"{len(detail['parties'])} soggetti" for item in detail["quality"])
     assert detail["actions"]["uploadDocument"].endswith("/documenti/carica")
     assert form["mode"] == "edit"
     assert form["detailHref"] == f"/fascicoli/{fascicolo.id}"

@@ -963,22 +963,83 @@ def _deposits(fascicolo: Any) -> list[dict[str, Any]]:
     return out
 
 
-def _parties(parti: Iterable[Any]) -> list[dict[str, str]]:
+def _party_role_label(value: Any) -> str:
+    label = _text(getattr(value, "label", ""))
+    if label:
+        return label
+    raw = _enum_value(value)
+    return raw.replace("_", " ").title() if raw else ""
+
+
+def _parties(parti: Iterable[Any], *, fascicolo: Any | None = None, cliente: Any | None = None) -> list[dict[str, str]]:
     out = []
-    for item in parti:
-        sid = _text(getattr(item, "id", ""), f"soggetto-{len(out)}")
-        recapiti = getattr(item, "recapiti", None)
+    seen_ids: set[str] = set()
+    seen_names: set[str] = set()
+
+    def add_party(*, sid: str, name: str, role: str, tax_code: str = "", email: str = "", pec: str = "", phone: str = "", href: str = "") -> None:
+        clean_name = _text(name)
+        if not clean_name or clean_name in {"-", "—"}:
+            return
+        clean_sid = _text(sid, f"soggetto-{len(out)}")
+        name_key = clean_name.casefold()
+        if clean_sid in seen_ids or name_key in seen_names:
+            return
+        seen_ids.add(clean_sid)
+        seen_names.add(name_key)
         out.append(
             {
-                "id": sid,
-                "name": _text(getattr(item, "nome_completo", ""), "Soggetto"),
-                "role": _enum_value(getattr(item, "ruolo", "")),
-                "taxCode": _text(getattr(item, "codice_fiscale", "") or getattr(item, "identificativo", "")),
-                "email": _text(getattr(recapiti, "email", "") or getattr(item, "email", "")),
-                "pec": _text(getattr(recapiti, "pec", "") or getattr(item, "pec", "")),
-                "phone": _text(getattr(recapiti, "telefono", "") or getattr(item, "telefono", "")),
-                "href": f"/soggetti/{sid}",
+                "id": clean_sid,
+                "name": clean_name,
+                "role": _text(role, "Soggetto"),
+                "taxCode": _text(tax_code),
+                "email": _text(email),
+                "pec": _text(pec),
+                "phone": _text(phone),
+                "href": _text(href, "/soggetti"),
             }
+        )
+
+    for item in parti:
+        parte = None
+        soggetto = item
+        if isinstance(item, (list, tuple)) and len(item) >= 2:
+            parte, soggetto = item[0], item[1]
+        sid = _text(getattr(soggetto, "id", ""), getattr(parte, "id_soggetto", "") if parte else f"soggetto-{len(out)}")
+        recapiti = getattr(soggetto, "recapiti", None)
+        add_party(
+            sid=sid,
+            name=_text(getattr(soggetto, "nome_completo", "")),
+            role=_party_role_label(getattr(parte, "ruolo", "")) if parte else _party_role_label(getattr(soggetto, "ruolo", "")),
+            tax_code=_text(getattr(soggetto, "codice_fiscale", "") or getattr(soggetto, "identificativo", "") or getattr(soggetto, "partita_iva", "")),
+            email=_text(getattr(recapiti, "email", "") or getattr(soggetto, "email", "")),
+            pec=_text(getattr(recapiti, "pec", "") or getattr(soggetto, "pec", "")),
+            phone=_text(getattr(recapiti, "telefono", "") or getattr(soggetto, "telefono", "")),
+            href=f"/soggetti/{sid}",
+        )
+
+    if cliente is not None:
+        client_id = _text(getattr(cliente, "id", ""))
+        recapiti = getattr(cliente, "recapiti", None)
+        add_party(
+            sid=f"cliente-{client_id}" if client_id else "cliente-fascicolo",
+            name=_text(getattr(cliente, "nome_completo", "") or getattr(fascicolo, "nome_cliente", "")),
+            role="Cliente / assistito",
+            tax_code=_text(getattr(cliente, "codice_fiscale", "") or getattr(cliente, "partita_iva", "")),
+            email=_text(getattr(recapiti, "email", "") or getattr(cliente, "email", "")),
+            pec=_text(getattr(recapiti, "pec", "") or getattr(cliente, "pec", "")),
+            phone=_text(getattr(recapiti, "telefono", "") or getattr(cliente, "telefono", "")),
+            href=f"/clienti/{client_id}/cartella" if client_id else "/clienti",
+        )
+
+    counterparty = _text(getattr(fascicolo, "controparte", "") if fascicolo is not None else "")
+    if counterparty:
+        fid = _text(getattr(fascicolo, "id", "") if fascicolo is not None else "")
+        add_party(
+            sid=f"controparte-{fid}" if fid else "controparte-fascicolo",
+            name=counterparty,
+            role="Controparte",
+            tax_code=_text(getattr(fascicolo, "cf_controparte", "") if fascicolo is not None else ""),
+            href=f"/soggetti/nuovo?id_fascicolo={fid}&ruolo=CONTROPARTE" if fid else "/soggetti/nuovo",
         )
     return out
 
@@ -1123,6 +1184,7 @@ def build_react_fascicolo_detail_payload(
     apps = _safe("agenda", lambda: get_agenda().cerca(testo=getattr(fascicolo, "numero_rg", "")) if getattr(fascicolo, "numero_rg", "") else [], [])
     scadenze = _safe("scadenziario", lambda: get_scadenziario().tutte(id_fascicolo=id_fasc, solo_aperte=False), [])
     parti = _safe("soggetti", lambda: get_soggetti().parti_fascicolo(id_fasc), [])
+    parties = _parties(parti, fascicolo=fascicolo, cliente=cliente)
     preventivi_repo = _safe("preventivi_repo", lambda: get_preventivi(), None)
     preventivi = _safe("preventivi", lambda: preventivi_repo.preventivi_per_fascicolo(id_fasc), []) if preventivi_repo else []
     conferimenti = _safe("conferimenti", lambda: preventivi_repo.conferimenti_per_fascicolo(id_fasc), []) if preventivi_repo else []
@@ -1152,13 +1214,13 @@ def build_react_fascicolo_detail_payload(
         "appointments": _appointments(apps),
         "deposits": _deposits(fascicolo),
         "requests": requests,
-        "parties": _parties(parti),
+        "parties": parties,
         "history": _history(fascicolo),
         "client": _client_payload(cliente),
         "economics": _economics(preventivi, conferimenti, parcelle, timesheet_entries, fascicolo),
         "workflow": _workflow(preventivi, conferimenti, parcelle, timesheet_entries, cliente),
         "telematic": _telematic(fascicolo),
-        "quality": _quality(fascicolo, cliente, scadenze, parti),
+        "quality": _quality(fascicolo, cliente, scadenze, parties),
         "actions": {
             "changeState": f"/fascicoli/{fid}/stato",
             "define": f"/fascicoli/{fid}/definisci",

@@ -178,6 +178,14 @@
 .iu-fas-quadro-kpis{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px}
 .iu-fas-quadro-client .iu-panel{height:100%}
 .iu-fas-quadro-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;align-items:start}
+.iu-fas-quadro-grid .iu-fas-quadro-axis#commerciale{order:1}
+.iu-fas-quadro-grid .iu-fas-quadro-axis#economico{order:2}
+.iu-fas-quadro-grid .iu-fas-quadro-axis#operativo{order:3}
+.iu-fas-quadro-grid .iu-fas-quadro-axis#documenti{order:4}
+.iu-fas-quadro-grid .iu-fas-quadro-axis#soggetti{order:5}
+.iu-fas-quadro-grid .iu-fas-quadro-axis#cancelleria{order:6}
+.iu-fas-quadro-grid .iu-fas-quadro-axis#telematico{order:7}
+.iu-fas-quadro-grid .iu-fas-quadro-axis#conformita{order:8}
 .iu-fas-quadro-axis{min-width:0;border:1px solid var(--iu-border);border-radius:18px;background:var(--iu-bg-card);box-shadow:var(--iu-shadow-soft);overflow:hidden}
 .iu-fas-quadro-axis>header{min-height:62px;display:grid;grid-template-columns:40px minmax(0,1fr) auto;gap:12px;align-items:center;padding:12px 14px;border-bottom:1px solid var(--iu-border);background:linear-gradient(180deg,#fff,#f8fafc)}
 .iu-fas-quadro-axis>header>span:first-child{width:40px;height:40px;display:grid;place-items:center;border-radius:13px;background:rgba(37,99,235,.09);color:var(--iu-blue-700)}

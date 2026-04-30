@@ -46,10 +46,27 @@ def _richiede_vista_classica() -> bool:
     return request.args.get("_legacy") == "1"
 
 
+def _cfg_path(key: str, default: str = "", *aliases: str) -> str:
+    paths = getattr(g, "data_paths", {}) or {}
+    for candidate in (key, *aliases):
+        value = paths.get(candidate)
+        if value:
+            return str(value)
+    for candidate in (key, *aliases):
+        value = current_app.config.get(candidate)
+        if value:
+            return str(value)
+    return str(default or "")
+
+
+def _studio_config_path() -> str:
+    return _cfg_path("STUDIO_CONFIG", "./config/studio.json", "CONFIG_STUDIO_DB")
+
+
 def _get_gestore():
     """Ritorna GestioneEmailRicevute con path configurato."""
     from pct.email_client import GestioneEmailRicevute
-    db_path = current_app.config.get(
+    db_path = _cfg_path(
         "EMAIL_CASELLA_DB",
         os.environ.get("PCT_EMAIL_DB", "./email/casella.json"),
     )
@@ -60,7 +77,7 @@ def _get_config_email():
     """Ritorna ConfigSMTP (campo smtp) dallo studio config."""
     try:
         from pct.config_studio import GestioneConfigStudio
-        cfg_path = current_app.config.get("STUDIO_CONFIG", "./config/studio.json")
+        cfg_path = _studio_config_path()
         cfg = GestioneConfigStudio(config_path=cfg_path).config
         return cfg.smtp if cfg and hasattr(cfg, "smtp") else None
     except Exception:
@@ -71,7 +88,7 @@ def _get_config_pec():
     """Ritorna ConfigPEC dallo studio config."""
     try:
         from pct.config_studio import GestioneConfigStudio
-        cfg_path = current_app.config.get("STUDIO_CONFIG", "./config/studio.json")
+        cfg_path = _studio_config_path()
         cfg = GestioneConfigStudio(config_path=cfg_path).config
         return cfg.pec if cfg and hasattr(cfg, "pec") else None
     except Exception:
@@ -79,7 +96,7 @@ def _get_config_pec():
 
 
 def _pec_state_path() -> str:
-    fascicoli_db = current_app.config.get("FASCICOLI_DB", "./fascicoli/fascicoli.json")
+    fascicoli_db = _cfg_path("FASCICOLI_DB", "./fascicoli/fascicoli.json")
     return os.path.join(
         os.path.dirname(os.path.abspath(fascicoli_db)),
         "pec_cancelleria_state.json",
@@ -100,8 +117,8 @@ def _audit(azione: str, dettagli: str = ""):
         if not u:
             return
         gu = GestioneUtenti(
-            db_path=current_app.config.get("AUTH_DB", "./auth/utenti.json"),
-            audit_path=current_app.config.get("AUDIT_DB", "./auth/audit.json"),
+            db_path=_cfg_path("AUTH_DB", "./auth/utenti.json"),
+            audit_path=_cfg_path("AUDIT_DB", "./auth/audit.json"),
         )
         gu.registra_audit(u.id, azione, dettagli=dettagli)
     except Exception:
@@ -259,7 +276,7 @@ def scrivi():
         try:
             from pct.clienti import GestioneClienti
             gc = GestioneClienti(
-                db_path=current_app.config.get("CLIENTI_DB", "./clienti/anagrafica.json")
+                db_path=_cfg_path("CLIENTI_DB", "./clienti/anagrafica.json")
             )
             clienti = gc.tutti()
         except Exception:
@@ -285,9 +302,9 @@ def scrivi():
     try:
         from pct.messaggi import GestioneMessaggi
         from pct.config_studio import GestioneConfigStudio
-        cfg_path = current_app.config.get("STUDIO_CONFIG", "./config/studio.json")
+        cfg_path = _studio_config_path()
         cfg = GestioneConfigStudio(config_path=cfg_path).config
-        db_path = current_app.config.get("MESSAGGI_DB", "./messaggi/storico.json")
+        db_path = _cfg_path("MESSAGGI_DB", "./messaggi/storico.json")
         gm = GestioneMessaggi(
             config=None,
             db_path=db_path,
@@ -501,7 +518,7 @@ def auto_esiti():
 def impostazioni():
     """Configurazione account email e IMAP."""
     from pct.config_studio import GestioneConfigStudio
-    cfg_path = current_app.config.get("STUDIO_CONFIG", "./config/studio.json")
+    cfg_path = _studio_config_path()
     gs = GestioneConfigStudio(config_path=cfg_path)
 
     if request.method == "POST":
@@ -564,7 +581,7 @@ def impostazioni():
 def reset_smtp():
     """Azzera la configurazione SMTP e salva i valori di default."""
     from pct.config_studio import GestioneConfigStudio, ConfigSMTP
-    cfg_path = current_app.config.get("STUDIO_CONFIG", "./config/studio.json")
+    cfg_path = _studio_config_path()
     gs = GestioneConfigStudio(config_path=cfg_path)
     cfg = gs.config
 
@@ -598,9 +615,9 @@ def _sync_inviati(ge) -> None:
     try:
         from pct.messaggi import GestioneMessaggi, CanaleMsggio
         from pct.config_studio import GestioneConfigStudio
-        cfg_path = current_app.config.get("STUDIO_CONFIG", "./config/studio.json")
+        cfg_path = _studio_config_path()
         cfg = GestioneConfigStudio(config_path=cfg_path).config
-        db_path = current_app.config.get("MESSAGGI_DB", "./messaggi/storico.json")
+        db_path = _cfg_path("MESSAGGI_DB", "./messaggi/storico.json")
         gm = GestioneMessaggi(config=None, db_path=db_path)
         inviati = [
             m for m in gm.tutti(canale=CanaleMsggio.EMAIL)

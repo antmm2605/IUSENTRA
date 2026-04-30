@@ -31,6 +31,18 @@ def register_sync_runtime_routes(
         except Exception:
             return None
 
+    def _cfg_path(key: str, default: str = "", *aliases: str) -> str:
+        paths = getattr(g, "data_paths", {}) or {}
+        for candidate in (key, *aliases):
+            value = paths.get(candidate)
+            if value:
+                return str(value)
+        for candidate in (key, *aliases):
+            value = app.config.get(candidate)
+            if value:
+                return str(value)
+        return str(default or "")
+
     @app.route("/api/eventi")
     def api_eventi():
         utente = _current_user()
@@ -61,11 +73,11 @@ def register_sync_runtime_routes(
                 {
                     "connessi": sync_manager.n_connessi,
                     "versioni": {
-                        "clienti": sync_manager.versione_file(app.config["CLIENTI_DB"]),
-                        "fascicoli": sync_manager.versione_file(app.config["FASCICOLI_DB"]),
-                        "scadenze": sync_manager.versione_file(app.config["SCADENZIARIO_DB"]),
-                        "agenda": sync_manager.versione_file(app.config["AGENDA_DB"]),
-                        "messaggi": sync_manager.versione_file(app.config["MESSAGGI_DB"]),
+                        "clienti": sync_manager.versione_file(_cfg_path("CLIENTI_DB", "./clienti/anagrafica.json")),
+                        "fascicoli": sync_manager.versione_file(_cfg_path("FASCICOLI_DB", "./fascicoli/fascicoli.json")),
+                        "scadenze": sync_manager.versione_file(_cfg_path("SCADENZIARIO_DB", "./scadenze/scadenze.json")),
+                        "agenda": sync_manager.versione_file(_cfg_path("AGENDA_DB", "./agenda/eventi.json")),
+                        "messaggi": sync_manager.versione_file(_cfg_path("MESSAGGI_DB", "./messaggi/storico.json")),
                     },
                 }
             )
@@ -103,7 +115,7 @@ def register_sync_runtime_routes(
             if not utente or not utente.ha_permesso("fascicoli.scrivi"):
                 return jsonify({"ok": False, "errore": "Non autorizzato"}), 403
 
-            fascicoli_db = app.config.get("FASCICOLI_DB", "./fascicoli/fascicoli.json")
+            fascicoli_db = _cfg_path("FASCICOLI_DB", "./fascicoli/fascicoli.json")
             if not os.path.exists(fascicoli_db):
                 return jsonify({"ok": False, "errore": "Database fascicoli non trovato"}), 404
 
@@ -112,10 +124,7 @@ def register_sync_runtime_routes(
 
             config_pec = None
             try:
-                config_studio_db = app.config.get("STUDIO_CONFIG") or app.config.get(
-                    "CONFIG_STUDIO_DB",
-                    "./config/studio.json",
-                )
+                config_studio_db = _cfg_path("STUDIO_CONFIG", "./config/studio.json", "CONFIG_STUDIO_DB")
                 cfg_studio = GestioneConfigStudio(config_path=config_studio_db)
                 config_pec = getattr(cfg_studio.config, "pec", None)
                 if config_pec and (
@@ -136,7 +145,7 @@ def register_sync_runtime_routes(
 
             gf = get_fascicoli()
             ge = GestioneEmailRicevute(
-                db_path=app.config.get(
+                db_path=_cfg_path(
                     "EMAIL_CASELLA_DB",
                     os.environ.get("PCT_EMAIL_DB", "./email/casella.json"),
                 )

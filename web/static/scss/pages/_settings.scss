@@ -16,6 +16,25 @@
   }
 }
 
+body:has(.settings-modern-page) {
+  --sidebar-w: 0px;
+}
+
+body:has(.settings-modern-page) #sidebar,
+body:has(.settings-modern-page) #sidebar-overlay {
+  display: none !important;
+}
+
+body:has(.settings-modern-page) #app-body {
+  margin-left: 0 !important;
+}
+
+body:has(.settings-modern-page) .topbar {
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 252, 0.94));
+}
+
 .test-result {
   font-size: 0.82rem;
 }

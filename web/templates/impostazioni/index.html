@@ -3,6 +3,8 @@
 
 {% block content %}
 
+<div class="settings-modern-page" aria-hidden="true"></div>
+
 {# ── Page Header ── #}
 <div class="ds-ph">
   <div class="ds-ph-icon"><i class="bi bi-gear-fill"></i></div>
@@ -331,8 +333,7 @@
             <i class="bi bi-pc-display-horizontal text-success me-1"></i>
             L'invio PEC reale deve passare dal PC locale tramite Local Signer: il test locale avvia
             automaticamente il servizio se non è già attivo, verifica la versione {{ local_signer.version }}
-            e usa la password digitata solo su questo dispositivo. Se salvi la configurazione e poi testi subito,
-            IUSENTRA conserva la password solo nella sessione del browser per completare il test locale. La diagnostica server serve solo a capire
+            e usa la password digitata oppure quella già salvata nella configurazione PEC dello studio. La diagnostica server serve solo a capire
             eventuali blocchi del provider sul cloud e non è il canale operativo di invio PEC.
           </div>
         </div>

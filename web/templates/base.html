@@ -1819,7 +1819,7 @@ if ('serviceWorker' in navigator) {
    Assistente virtuale PCT — Lex
    Floating chat widget (visibile solo agli utenti autenticati)
    ═══════════════════════════════════════════════════════════════ #}
-{% if g.utente_corrente %}
+{% if g.utente_corrente and request.endpoint == '__legacy_lex_disabled__' %}
 <!-- Pulsante FAB -->
 <button id="pct-ai-fab" class="pct-ai-fab" title="Assistente PCT — Lex"
         onclick="pctAI.toggle()" aria-label="Apri assistente virtuale">

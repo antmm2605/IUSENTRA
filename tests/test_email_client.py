@@ -7,9 +7,11 @@ from email.message import EmailMessage
 from pathlib import Path
 from types import SimpleNamespace
 
+from flask import g
+
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from pct.config_studio import ConfigPEC, GestioneConfigStudio
+from pct.config_studio import ConfigPEC, ConfigStudio, GestioneConfigStudio
 from pct.auth import GestioneUtenti
 from pct.email_client import (
     CartellaEmail,
@@ -63,6 +65,78 @@ def _autentica_admin_session(app, client, cfg: dict) -> None:
         session_data["auth_scope"] = "platform"
         session_data["auth_tenant_slug"] = ""
         session_data["last_activity"] = datetime.now().isoformat()
+
+
+def test_email_blueprint_usa_storage_tenant_per_sincronizzazione(tmp_path):
+    from web.app import create_app
+    import web.blueprints.email_client as email_routes
+
+    cfg = _cfg_web(tmp_path / "root")
+    tenant_root = tmp_path / "tenant"
+    tenant_email_db = tenant_root / "email" / "casella.json"
+    tenant_config = tenant_root / "config" / "studio.json"
+    root_email_db = Path(cfg["EMAIL_CASELLA_DB"])
+    root_config = Path(cfg["STUDIO_CONFIG"])
+    GestioneConfigStudio(str(root_config)).aggiorna(ConfigStudio(pec=ConfigPEC(indirizzo="root@example.it")))
+    GestioneConfigStudio(str(tenant_config)).aggiorna(ConfigStudio(pec=ConfigPEC(indirizzo="tenant@example.it")))
+
+    app = create_app(cfg)
+    with app.test_request_context("/email/sincronizza", method="POST"):
+        g.data_paths = {
+            "EMAIL_CASELLA_DB": str(tenant_email_db),
+            "STUDIO_CONFIG": str(tenant_config),
+        }
+        gestore = email_routes._get_gestore()
+        pec = email_routes._get_config_pec()
+
+    assert gestore.db_path == tenant_email_db
+    assert pec is not None
+    assert pec.indirizzo == "tenant@example.it"
+    assert gestore.db_path != root_email_db
+
+
+def test_impostazioni_payload_smtp_locale_usa_password_pec_salvata_del_tenant(tmp_path):
+    from web.app import create_app
+    import web.blueprints.impostazioni as impostazioni_routes
+
+    cfg = _cfg_web(tmp_path / "root")
+    tenant_config = tmp_path / "tenant" / "config" / "studio.json"
+    GestioneConfigStudio(str(tenant_config)).aggiorna(
+        ConfigStudio(
+            pec=ConfigPEC(
+                indirizzo="studio@pec.example.it",
+                password="segreta",
+                smtp_host="smtp.pec.example.it",
+                smtp_port=465,
+                use_ssl=True,
+            )
+        )
+    )
+
+    app = create_app(cfg)
+    with app.test_request_context(
+        "/impostazioni/pec/local-smtp-payload",
+        method="POST",
+        json={"smtp_host": "smtp.override.example.it", "smtp_port": 587, "use_ssl": False},
+    ):
+        g.utente_corrente = SimpleNamespace(id="u1")
+        g.data_paths = {"STUDIO_CONFIG": str(tenant_config)}
+        response = impostazioni_routes.pec_local_smtp_payload()
+
+    payload = response.get_json()
+    assert payload["ok"] is True
+    assert payload["payload"]["indirizzo"] == "studio@pec.example.it"
+    assert payload["payload"]["password"] == "segreta"
+    assert payload["payload"]["smtp_host"] == "smtp.override.example.it"
+    assert payload["payload"]["smtp_port"] == 587
+    assert payload["payload"]["use_ssl"] is False
+
+
+def test_base_template_non_renderizza_vecchio_lex_duplicato():
+    template = Path("web/templates/base.html").read_text(encoding="utf-8")
+    assert "__legacy_lex_disabled__" in template
+    assert "false and g.utente_corrente" not in template
+    assert template.count('include "components/pct_ai_widget.html"') == 1
 
 
 def test_email_casella_filtri_avanzati_e_flag_letto(tmp_path):

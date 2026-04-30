@@ -381,6 +381,53 @@
     };
   }
 
+  async function collectPecPayloadForLocalSmtp() {
+    const payload = collectPecPayload();
+    if (payload.password) {
+      return payload;
+    }
+    const meta = localSignerMeta();
+    if (!meta.hasSavedPassword) {
+      return payload;
+    }
+    try {
+      const response = await fetch('/impostazioni/pec/local-smtp-payload', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest',
+        },
+        body: JSON.stringify({
+          indirizzo: payload.indirizzo,
+          smtp_host: payload.smtp_host,
+          smtp_port: payload.smtp_port,
+          use_ssl: payload.use_ssl,
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok || !data.ok || !data.payload) {
+        return {
+          ...payload,
+          _errorePassword: data.errore || 'Password PEC salvata non disponibile per il test locale.',
+        };
+      }
+      return {
+        ...payload,
+        ...data.payload,
+        indirizzo: payload.indirizzo || data.payload.indirizzo || '',
+        username: payload.indirizzo || data.payload.username || data.payload.indirizzo || '',
+        smtp_host: payload.smtp_host || data.payload.smtp_host || '',
+        smtp_port: payload.smtp_port || data.payload.smtp_port || 465,
+        use_ssl: payload.use_ssl,
+      };
+    } catch (error) {
+      return {
+        ...payload,
+        _errorePassword: 'Impossibile recuperare la configurazione PEC salvata per il test locale.',
+      };
+    }
+  }
+
   async function testPecSmtpLocale(btnId, resId) {
     const button = document.getElementById(btnId);
     const result = document.getElementById(resId);
@@ -389,17 +436,22 @@
     }
 
     const meta = localSignerMeta();
-    const payload = collectPecPayload();
+    button.disabled = true;
+    result.className = 'test-result test-spin';
+    result.innerHTML = '<i class="bi bi-arrow-repeat spin me-1"></i>Preparazione test SMTP locale...';
+
+    const payload = await collectPecPayloadForLocalSmtp();
     if (!payload.password) {
       renderTestResult(
         result,
         false,
-        'Inserisci la password PEC nel campo sopra per usare il PC locale: resta nel browser, viene inviata solo al Local Signer su questo dispositivo e non viene salvata dal server.'
+        payload._errorePassword ||
+          'Password PEC non disponibile per il test locale. Inseriscila nel campo PEC oppure salva la configurazione prima di riprovare.'
       );
+      button.disabled = false;
       return;
     }
 
-    button.disabled = true;
     result.className = 'test-result test-spin';
     result.innerHTML = '<i class="bi bi-arrow-repeat spin me-1"></i>Verifica Local Signer...';
 

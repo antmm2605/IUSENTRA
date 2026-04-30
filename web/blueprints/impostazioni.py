@@ -40,15 +40,30 @@ def _richiedi_login(f):
     return w
 
 
+def _cfg_path(key: str, default: str = "", *aliases: str) -> str:
+    paths = getattr(g, "data_paths", {}) or {}
+    for candidate in (key, *aliases):
+        value = paths.get(candidate)
+        if value:
+            return str(value)
+    for candidate in (key, *aliases):
+        value = current_app.config.get(candidate)
+        if value:
+            return str(value)
+    return str(default or "")
+
+
+def _studio_config_path() -> str:
+    return _cfg_path("STUDIO_CONFIG", "./config/studio.json", "CONFIG_STUDIO_DB")
+
+
 def _get_gestore():
     from pct.config_studio import GestioneConfigStudio
-    return GestioneConfigStudio(
-        config_path=current_app.config.get("STUDIO_CONFIG", "./config/studio.json")
-    )
+    return GestioneConfigStudio(config_path=_studio_config_path())
 
 
 def _firma_upload_dir() -> Path:
-    cfg_path = Path(current_app.config.get("STUDIO_CONFIG", "./config/studio.json"))
+    cfg_path = Path(_studio_config_path())
     return cfg_path.parent / "firma_uploads"
 
 
@@ -353,6 +368,39 @@ def test_pec_smtp():
         use_ssl=data.get("use_ssl", cfg_pec.use_ssl),
     )
     return jsonify(_test(pec))
+
+
+@impostazioni.route("/impostazioni/pec/local-smtp-payload", methods=["POST"])
+@_richiedi_login
+def pec_local_smtp_payload():
+    """Prepara il payload SMTP locale usando la configurazione salvata del tenant."""
+    data = request.get_json(silent=True) or {}
+    gs = _get_gestore()
+    cfg_pec = gs.config.pec
+    password = str(getattr(cfg_pec, "password", "") or "")
+    if not password:
+        return jsonify(
+            {
+                "ok": False,
+                "errore": (
+                    "Password PEC salvata non disponibile. Inseriscila nel campo PEC "
+                    "per completare il test locale."
+                ),
+            }
+        ), 400
+    return jsonify(
+        {
+            "ok": True,
+            "payload": {
+                "indirizzo": data.get("indirizzo") or cfg_pec.indirizzo,
+                "username": data.get("indirizzo") or cfg_pec.indirizzo,
+                "password": password,
+                "smtp_host": data.get("smtp_host") or cfg_pec.smtp_host,
+                "smtp_port": int(data.get("smtp_port") or cfg_pec.smtp_port or 465),
+                "use_ssl": data.get("use_ssl", cfg_pec.use_ssl),
+            },
+        }
+    )
 
 
 @impostazioni.route("/impostazioni/test/pec-imap", methods=["POST"])

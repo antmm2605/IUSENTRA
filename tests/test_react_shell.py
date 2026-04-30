@@ -174,15 +174,13 @@ def test_react_agenda_pagina_separata_collegata_nav_e_api():
     assert "iusentra:open-floating-lex" in agenda_page
     assert 'href="/timesheet"' not in agenda_page
     assert 'href="/lex?context=agenda"' not in agenda_page
-    assert "localStorage" in floating_lex
-    assert "onPointerDown" in floating_lex
-    assert "Math.hypot" in floating_lex
-    assert "aria-expanded" in floating_lex
-    assert "iusentra:open-floating-lex" in floating_lex
+    assert "IUSENTRA_LEX_CONTEXT" in floating_lex
+    assert "iusentra:lex-context" in floating_lex
+    assert "return null" in floating_lex
     assert ".iu-agenda-page" in css
     assert ".iu-ag-slot" in css
     assert ".iu-ag-week--month" in css
-    assert ".iu-lex-float{display:none}" not in css
+    assert ".iu-lex-float{display:none!important}" in css
     assert "@media(max-width:760px)" in css
     assert "prefers-reduced-motion" in css
 
@@ -216,9 +214,9 @@ def test_react_nuovo_appuntamento_pagina_separata_con_backend_operativo():
     assert "/api/agenda?da=" in appointment_page
     assert "toUpperCase" in appointment_page
     assert "Completa titolo" in appointment_page
-    assert "localStorage" in appointment_page
+    assert "Contesto appuntamento pronto per Lex" in appointment_page
     assert ".iu-appointment-page" in appointment_css
-    assert ".iu-appt-lex-float" in appointment_css
+    assert ".iu-appt-lex-float" not in appointment_css
     assert "@media(max-width:760px)" in appointment_css
 
 
@@ -242,9 +240,9 @@ def test_react_clienti_page_collegata_nav_api_e_lex():
     assert "Senza recapiti" in page_source
     assert "Privacy" in page_source
     assert "Documenti scaduti" in page_source
-    assert "localStorage" in floating_lex
-    assert "onPointerDown" in floating_lex
-    assert "Math.hypot" in floating_lex
+    assert "IUSENTRA_LEX_CONTEXT" in floating_lex
+    assert "iusentra:lex-context" in floating_lex
+    assert "return null" in floating_lex
     assert ".iu-clienti-page" in css
     assert ".iu-cli-table" in css
     assert "@media(max-width:760px)" in css
@@ -966,9 +964,9 @@ def test_react_fascicoli_page_collegata_nav_api_e_lex():
     assert "rawPath.startsWith('/app-v2/fascicoli')" in page_source
     assert "FloatingLex" in page_source
     assert "context=\"fascicoli\"" in page_source
-    assert "localStorage" in floating_lex
-    assert "onPointerDown" in floating_lex
-    assert "Math.hypot" in floating_lex
+    assert "IUSENTRA_LEX_CONTEXT" in floating_lex
+    assert "iusentra:lex-context" in floating_lex
+    assert "return null" in floating_lex
     assert ".iu-fascicoli-page" in css
     assert "@media(max-width:760px)" in css
 
@@ -1078,9 +1076,9 @@ def test_react_fascicoli_suite_completa_route_componenti_e_lex():
     assert "iu-fas-compliance-toggle" in page_source
     assert 'name="next"' in page_source
     assert "context=\"fascicoli\"" in page_source
-    assert "localStorage" in floating_lex
-    assert "onPointerDown" in floating_lex
-    assert "Math.hypot" in floating_lex
+    assert "IUSENTRA_LEX_CONTEXT" in floating_lex
+    assert "iusentra:lex-context" in floating_lex
+    assert "return null" in floating_lex
     assert ".iu-fascicoli-page" in css
     assert ".iu-fascicolo-detail-page" in css
     assert ".iu-fascicolo-form-page" in css

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type FormEvent, type PointerEvent, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import {
   AlertTriangle,
   ArrowLeft,
@@ -9,9 +9,7 @@ import {
   CheckCircle2,
   ChevronRight,
   Clock3,
-  ExternalLink,
   FileText,
-  GripVertical,
   Info,
   Landmark,
   MapPin,
@@ -1035,175 +1033,12 @@ export function NuovoAppuntamentoPage() {
               <li><ChevronRight size={14} /> Autocomplete clienti da <code>/api/clienti</code></li>
               <li><ChevronRight size={14} /> Controllo sovrapposizioni da <code>/api/agenda</code></li>
               <li><ChevronRight size={14} /> Feed WebCal/iCal gia compatibili con l agenda</li>
-              <li><ChevronRight size={14} /> Lex AI mobile, trascinabile e contestuale</li>
+              <li><ChevronRight size={14} /> Contesto appuntamento pronto per Lex e regia operativa</li>
             </ul>
           </section>
         </aside>
       </div>
 
-      <DraggableLex
-        form={form}
-        checks={qualityChecks}
-        conflicts={conflicts}
-        onApplySuggestedTitle={applySuggestedTitle}
-      />
     </main>
-  )
-}
-
-function defaultLexPosition() {
-  return {
-    x: Math.max(16, window.innerWidth - 92),
-    y: Math.max(88, window.innerHeight - 112),
-  }
-}
-
-function loadLexPosition() {
-  try {
-    const saved = localStorage.getItem('iusentra.lex.appointment.position')
-    if (!saved) return defaultLexPosition()
-    const parsed = JSON.parse(saved) as { x?: number; y?: number }
-    return {
-      x: Math.min(Math.max(12, Number(parsed.x ?? 0)), Math.max(12, window.innerWidth - 74)),
-      y: Math.min(Math.max(76, Number(parsed.y ?? 0)), Math.max(76, window.innerHeight - 74)),
-    }
-  } catch {
-    return defaultLexPosition()
-  }
-}
-
-function DraggableLex({
-  form,
-  checks,
-  conflicts,
-  onApplySuggestedTitle,
-}: {
-  form: AppointmentForm
-  checks: CompletionCheck[]
-  conflicts: AgendaApiItem[]
-  onApplySuggestedTitle: () => void
-}) {
-  const [open, setOpen] = useState(false)
-  const [position, setPosition] = useState(() => loadLexPosition())
-  const dragRef = useRef<{ offsetX: number; offsetY: number; startX: number; startY: number; moved: boolean } | null>(null)
-  const positionRef = useRef(position)
-
-  useEffect(() => {
-    positionRef.current = position
-  }, [position])
-
-  const missingRequired = checks.filter((check) => check.required && !check.ok)
-  const lexQuery = encodeURIComponent(
-    [
-      'Nuovo appuntamento',
-      form.tipo,
-      form.titolo || buildSuggestedTitle(form),
-      form.cliente,
-      form.procedimento,
-      form.tribunale,
-    ].filter(Boolean).join(' '),
-  )
-
-  const hints = [
-    conflicts.length ? `Attenzione: ${conflicts.length} sovrapposizione/i nell'orario scelto.` : '',
-    missingRequired.length ? `Mancano: ${missingRequired.map((item) => item.label).join(', ')}.` : '',
-    form.tipo === 'UDIENZA' && !form.tribunale ? 'Per una udienza indica sempre ufficio giudiziario e, se possibile, aula.' : '',
-    form.cliente && !form.cf_cliente ? 'Il codice fiscale cliente migliora aggancio anagrafico e ricerca.' : '',
-    !conflicts.length && !missingRequired.length ? 'La scheda e pronta: controlla solo note e luogo prima del salvataggio.' : '',
-  ].filter(Boolean)
-
-  const persist = (next: { x: number; y: number }) => {
-    localStorage.setItem('iusentra.lex.appointment.position', JSON.stringify(next))
-  }
-
-  const moveTo = (x: number, y: number) => {
-    const next = {
-      x: Math.min(Math.max(12, x), Math.max(12, window.innerWidth - 74)),
-      y: Math.min(Math.max(76, y), Math.max(76, window.innerHeight - 74)),
-    }
-    positionRef.current = next
-    setPosition(next)
-    return next
-  }
-
-  const handlePointerDown = (event: PointerEvent<HTMLButtonElement>) => {
-    if (event.button !== 0) return
-    dragRef.current = {
-      offsetX: event.clientX - position.x,
-      offsetY: event.clientY - position.y,
-      startX: event.clientX,
-      startY: event.clientY,
-      moved: false,
-    }
-    event.currentTarget.setPointerCapture(event.pointerId)
-  }
-
-  const handlePointerMove = (event: PointerEvent<HTMLButtonElement>) => {
-    const drag = dragRef.current
-    if (!drag) return
-    moveTo(event.clientX - drag.offsetX, event.clientY - drag.offsetY)
-    drag.moved = drag.moved || Math.abs(event.clientX - drag.startX) > 4 || Math.abs(event.clientY - drag.startY) > 4
-  }
-
-  const handlePointerUp = () => {
-    const drag = dragRef.current
-    dragRef.current = null
-    persist(positionRef.current)
-    if (!drag?.moved) setOpen((value) => !value)
-  }
-
-  const resetPosition = () => {
-    const next = defaultLexPosition()
-    setPosition(next)
-    persist(next)
-  }
-
-  return (
-    <div className={`iu-appt-lex-float ${open ? 'is-open' : ''}`} style={{ left: position.x, top: position.y }}>
-      {open ? (
-        <section className="iu-appt-lex-panel" aria-label="Lex AI per nuovo appuntamento">
-          <header>
-            <span><Sparkles size={16} /> Lex AI</span>
-            <button type="button" onClick={() => setOpen(false)} aria-label="Chiudi Lex AI">
-              <X size={15} />
-            </button>
-          </header>
-          <p>Controllo rapido della scheda appuntamento, senza modificare i dati finche non confermi tu.</p>
-          <div className="iu-appt-lex-panel__hints">
-            {hints.map((hint) => (
-              <span key={hint}>{hint}</span>
-            ))}
-          </div>
-          <div className="iu-appt-lex-panel__actions">
-            <button type="button" onClick={onApplySuggestedTitle}>
-              <Sparkles size={14} />
-              Completa titolo
-            </button>
-            <a href={`/lex?q=${lexQuery}`}>
-              <ExternalLink size={14} />
-              Chiedi a Lex
-            </a>
-            <button type="button" onClick={resetPosition}>
-              <GripVertical size={14} />
-              Reset icona
-            </button>
-          </div>
-        </section>
-      ) : null}
-
-      <button
-        type="button"
-        className="iu-appt-lex-button"
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerUp}
-        aria-label="Lex AI trascinabile"
-        title="Lex AI - trascina o apri"
-      >
-        <GripVertical size={13} />
-        <Sparkles size={23} />
-        <span>Lex</span>
-      </button>
-    </div>
   )
 }

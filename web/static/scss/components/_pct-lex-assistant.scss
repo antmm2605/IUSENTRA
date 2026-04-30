@@ -754,6 +754,12 @@
   }
 }
 
+@media (max-width: 1180px) {
+  .pct-ai-widget {
+    display: none !important;
+  }
+}
+
 @media (max-width: 991.98px) {
   .pct-ai-widget {
     left: 0.5rem;

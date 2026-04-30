@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.198.15 - 2026-04-30
+
+- Unificato Lex nelle pagine React: la shell React include il widget Lex ufficiale completo e i componenti React pubblicano solo il contesto pagina, evitando varianti mini o fallback visibili differenti.
+- Lex resta nascosto su tablet e mobile, come richiesto, ma su desktop riceve `context_label`, `page_context` e `page_path` anche nel prompt backend per rispondere in base alla pagina aperta.
+- Corretto il comportamento apertura/chiusura della navigazione mobile: il comando non occupa piu' la prima voce della barra, resta compatto a destra e la rail dei link rimane scorrevole.
+- Rimossi i mini-widget Lex dedicati dai form React di appuntamento e scadenza, mantenendo le azioni operative interne e il collegamento al Lex completo.
+
 ## 2.198.14 - 2026-04-30
 
 - Corretto il test `Impostazioni -> PEC -> Testa SMTP`: il pulsante primario e' ora il test dal PC via Local Signer e restituisce `Connessione SMTP PEC riuscita.` quando il login SMTP locale va a buon fine.

@@ -10,12 +10,14 @@
   data-server-attachments-url="{{ url_for('assistente.assistente_attachments') }}"
   data-export-document-url="{{ url_for('assistente.assistente_documento') }}"
   data-local-signer-url="http://127.0.0.1:27272"
+  data-page-path="{{ request.path }}"
+  data-page-endpoint="{{ request.endpoint or '' }}"
   data-local-signer-download-page="{{ url_for('impostazioni.index', tab='firma', _external=True) }}"
   data-local-signer-setup-windows="{{ url_for('polis_local_signer_setup_windows') }}"
   data-local-signer-setup-macos="{{ url_for('polis_local_signer_setup_macos') }}"
   data-local-signer-setup-linux="{{ url_for('polis_local_signer_setup_linux') }}"
   data-lex-icon-url="{{ url_for('static', filename='img/lex-mark.png') }}?v={{ app_version }}"
-  data-storage-key="hacs-pct-ai-layout-v1"
+  data-storage-key="iusentra-pct-ai-layout-v1"
 >
   <button
     id="pct-ai-fab"

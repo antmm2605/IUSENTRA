@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type FormEvent, type PointerEvent, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import {
   AlertTriangle,
   ArrowLeft,
@@ -14,7 +14,6 @@ import {
   Clock3,
   ExternalLink,
   FileText,
-  GripVertical,
   Info,
   Landmark,
   ListChecks,
@@ -23,7 +22,6 @@ import {
   ShieldCheck,
   Sparkles,
   UserRound,
-  X,
 } from 'lucide-react'
 import type { Tone } from '../data'
 import { Badge } from './dashboard'
@@ -382,99 +380,6 @@ function OperationalCard({
   )
   if (disabled) return <span className="iu-deadline-op-card is-disabled">{body}</span>
   return <a className="iu-deadline-op-card" href={href}>{body}</a>
-}
-
-function LexDeadlineAssistant({
-  form,
-  canSuggestTitle,
-  onSuggestTitle,
-}: {
-  form: DeadlineForm
-  canSuggestTitle: boolean
-  onSuggestTitle: () => void
-}) {
-  const [open, setOpen] = useState(false)
-  const [pos, setPos] = useState(() => {
-    try {
-      const saved = JSON.parse(localStorage.getItem('iusentra.lex.deadline.pos') || '{}') as { x?: number; y?: number }
-      if (Number.isFinite(saved.x) && Number.isFinite(saved.y)) return { x: saved.x || 0, y: saved.y || 0 }
-    } catch {
-      // ignore
-    }
-    return {
-      x: Math.max(window.innerWidth - 92, 18),
-      y: Math.max(window.innerHeight - 108, 118),
-    }
-  })
-  const dragRef = useRef<{ dx: number; dy: number; moved: boolean } | null>(null)
-
-  const clamp = (x: number, y: number) => ({
-    x: Math.max(10, Math.min(window.innerWidth - 74, x)),
-    y: Math.max(78, Math.min(window.innerHeight - 74, y)),
-  })
-
-  const onPointerDown = (event: PointerEvent<HTMLButtonElement>) => {
-    event.currentTarget.setPointerCapture(event.pointerId)
-    dragRef.current = { dx: event.clientX - pos.x, dy: event.clientY - pos.y, moved: false }
-  }
-
-  const onPointerMove = (event: PointerEvent<HTMLButtonElement>) => {
-    if (!dragRef.current) return
-    const next = clamp(event.clientX - dragRef.current.dx, event.clientY - dragRef.current.dy)
-    if (Math.abs(next.x - pos.x) > 3 || Math.abs(next.y - pos.y) > 3) dragRef.current.moved = true
-    setPos(next)
-  }
-
-  const onPointerUp = (event: PointerEvent<HTMLButtonElement>) => {
-    event.currentTarget.releasePointerCapture(event.pointerId)
-    const moved = dragRef.current?.moved
-    dragRef.current = null
-    localStorage.setItem('iusentra.lex.deadline.pos', JSON.stringify(pos))
-    if (!moved) setOpen((current) => !current)
-  }
-
-  const hints = [
-    form.perentorio ? 'Termine perentorio: controlla fonte, evento origine e trace prima del salvataggio.' : 'Per i termini sensibili conviene indicare se il termine è perentorio.',
-    form.id_fascicolo ? 'Fascicolo collegato: Lex potrà leggere il contesto operativo dopo il salvataggio.' : 'Collega un fascicolo per rendere la scadenza rintracciabile da cabina fascicolo e ricerca studio.',
-    form.source_event_at ? 'Evento origine presente: usa il calcolo professionale per evitare inserimenti manuali incoerenti.' : 'Inserisci evento origine e preset per generare scadenza grezza, legale e operativa.',
-  ]
-
-  return (
-    <div className="iu-deadline-lex-float" style={{ left: pos.x, top: pos.y }}>
-      <button
-        className="iu-deadline-lex-button"
-        type="button"
-        aria-label="Lex AI scadenziario"
-        onPointerDown={onPointerDown}
-        onPointerMove={onPointerMove}
-        onPointerUp={onPointerUp}
-      >
-        <GripVertical size={14} />
-        <Sparkles size={25} />
-        <span>Lex</span>
-      </button>
-      {open ? (
-        <section className="iu-deadline-lex-panel">
-          <header>
-            <span><Sparkles size={16} /> Lex AI operativo</span>
-            <button type="button" onClick={() => setOpen(false)} aria-label="Chiudi Lex"><X size={15} /></button>
-          </header>
-          <p>Assistente contestuale per titolo, fascicolo, calcolo termine, perentorietà e controlli prima del salvataggio.</p>
-          <div className="iu-deadline-lex-panel__hints">
-            {hints.map((hint) => <span key={hint}>{hint}</span>)}
-          </div>
-          <div className="iu-deadline-lex-panel__actions">
-            <button type="button" onClick={onSuggestTitle} disabled={!canSuggestTitle}>
-              <Sparkles size={15} /> Completa titolo
-            </button>
-            <a href={`/lex?context=scadenziario-nuova&draft=${encodeURIComponent(form.titolo || form.tipo)}`}>
-              <ExternalLink size={15} /> Apri Lex completo
-            </a>
-          </div>
-        </section>
-      ) : null}
-    </div>
-  )
 }
 
 export function NuovaScadenzaPage() {
@@ -1124,7 +1029,6 @@ export function NuovaScadenzaPage() {
         </aside>
       </div>
 
-      <LexDeadlineAssistant form={form} canSuggestTitle={Boolean(form.tipo)} onSuggestTitle={applySuggestedTitle} />
     </main>
   )
 }

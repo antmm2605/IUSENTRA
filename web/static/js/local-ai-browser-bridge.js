@@ -283,7 +283,7 @@
     return readJsonResponse(response);
   }
 
-  window.HacsLocalAiBrowserBridge = {
+  window.IusentraLocalAiBrowserBridge = {
     rootConfig,
     readJsonResponse,
     fetchRuntimeStatus,

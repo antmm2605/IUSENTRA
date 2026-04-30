@@ -463,24 +463,6 @@
 .iu-deadline-context-list dt{color:var(--iu-slate-500);font-size:11px;font-weight:950;text-transform:uppercase;letter-spacing:.08em}
 .iu-deadline-context-list dd{min-width:0;margin:0;color:#111827;font-size:12.5px;font-weight:850;overflow-wrap:anywhere}
 
-.iu-deadline-lex-float{position:fixed;z-index:95;width:max-content;pointer-events:none}
-.iu-deadline-lex-button{pointer-events:auto;position:relative;width:64px;height:64px;display:grid;place-items:center;border:1px solid rgba(255,255,255,.22);border-radius:22px;background:radial-gradient(circle at 35% 20%,rgba(56,189,248,.34),transparent 34%),linear-gradient(135deg,var(--iu-navy-900),var(--iu-navy-950));color:#fff;box-shadow:0 24px 55px rgba(7,19,41,.34);cursor:grab;touch-action:none}
-.iu-deadline-lex-button:active{cursor:grabbing}
-.iu-deadline-lex-button svg:first-child{position:absolute;top:7px;left:7px;color:rgba(255,255,255,.62)}
-.iu-deadline-lex-button span{position:absolute;bottom:9px;color:#fde68a;font-size:10px;font-weight:950;letter-spacing:.06em;text-transform:uppercase}
-.iu-deadline-lex-panel{pointer-events:auto;position:absolute;right:0;bottom:76px;width:min(370px,calc(100vw - 28px));overflow:hidden;border:1px solid rgba(15,23,42,.12);border-radius:20px;background:rgba(255,255,255,.96);box-shadow:0 28px 80px rgba(15,23,42,.24);backdrop-filter:blur(20px)}
-.iu-deadline-lex-panel header{min-height:48px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 14px;border-bottom:1px solid var(--iu-border);background:linear-gradient(135deg,rgba(7,19,41,.96),rgba(16,42,76,.94));color:#fff}
-.iu-deadline-lex-panel header span{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:950}
-.iu-deadline-lex-panel header button{width:30px;height:30px;display:grid;place-items:center;border:1px solid rgba(255,255,255,.18);border-radius:10px;background:rgba(255,255,255,.08);color:#fff;cursor:pointer}
-.iu-deadline-lex-panel p{margin:12px 14px;color:var(--iu-slate-600);font-size:12px;font-weight:750;line-height:1.45}
-.iu-deadline-lex-panel__hints{display:grid;gap:7px;padding:0 14px 12px}
-.iu-deadline-lex-panel__hints span{padding:9px 10px;border-radius:12px;background:rgba(37,99,235,.07);color:var(--iu-slate-700);font-size:12px;font-weight:800;line-height:1.35}
-.iu-deadline-lex-panel__actions{display:grid;gap:8px;padding:12px 14px 14px;border-top:1px solid var(--iu-border);background:rgba(248,250,252,.72)}
-.iu-deadline-lex-panel__actions a,
-.iu-deadline-lex-panel__actions button{min-height:38px;display:flex;align-items:center;justify-content:center;gap:8px;border:1px solid var(--iu-border);border-radius:12px;background:#fff;color:var(--iu-slate-700);font-size:12px;font-weight:950;cursor:pointer}
-.iu-deadline-lex-panel__actions button:first-child{border-color:rgba(168,85,247,.22);background:rgba(168,85,247,.08);color:#7e22ce}
-.iu-deadline-lex-panel__actions button:disabled{opacity:.52;cursor:not-allowed}
-
 .iu-spin{animation:iu-spin 1s linear infinite}
 @keyframes iu-spin{to{transform:rotate(360deg)}}
 
@@ -507,8 +489,6 @@
   .iu-deadline-side{grid-template-columns:1fr}
   .iu-deadline-summary-grid{grid-template-columns:1fr}
   .iu-deadline-context-list div{grid-template-columns:1fr;gap:3px}
-  .iu-deadline-lex-panel{right:auto;left:0;bottom:74px;width:min(350px,calc(100vw - 22px))}
-  .iu-deadline-lex-button{width:58px;height:58px;border-radius:20px}
 }
 
 @media(prefers-reduced-motion:reduce){

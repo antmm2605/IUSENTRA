@@ -23,6 +23,26 @@ def clean_spaces(value: Any) -> str:
     return " ".join(str(value or "").split()).strip()
 
 
+def page_context_prompt_block(data: dict[str, Any]) -> str:
+    label = clean_spaces(data.get("context_label"))
+    page_context = clean_spaces(data.get("page_context"))
+    page_path = clean_spaces(data.get("page_path"))
+    if not (label or page_context or page_path):
+        return ""
+    parts: list[str] = []
+    if label:
+        parts.append(f"contesto dichiarato={label}")
+    if page_context and page_context != label:
+        parts.append(f"chiave pagina={page_context}")
+    if page_path:
+        parts.append(f"percorso={page_path}")
+    return (
+        "Contesto UI attivo: "
+        + "; ".join(parts)
+        + ". Usa questo contesto per dare priorita' alla pagina aperta dall'utente, senza inventare dati non presenti nelle fonti."
+    )
+
+
 def build_context_payload(
     orchestrator,
     *,
@@ -216,6 +236,7 @@ def build_context_response(
         block
         for block in [
             studio_prompt_block,
+            page_context_prompt_block(data),
             routing_prompt_block(routing, opening_line=opening_line),
             followup_prompt_block(followup),
             str(language_guidance.prompt_block or "").strip(),
@@ -517,6 +538,7 @@ def chat_response(
         block
         for block in [
             studio_prompt_block,
+            page_context_prompt_block(data),
             routing_prompt_block(routing, opening_line=stream_opening_line),
             followup_prompt_block(followup),
             str(language_guidance.prompt_block or "").strip(),

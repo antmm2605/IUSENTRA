@@ -262,10 +262,158 @@ function normaliseRoutePath(path: string): string {
 }
 
 function isActiveHref(href: string, activePath: string): boolean {
-  const cleanPath = normaliseRoutePath(activePath)
-  const cleanHref = normaliseRoutePath(href)
+  const cleanPath = normaliseRoutePath(activePath).toLowerCase()
+  const cleanHref = normaliseRoutePath(href).toLowerCase()
   if (cleanHref === '/') return cleanPath === '/'
   return cleanPath === cleanHref || cleanPath.startsWith(`${cleanHref}/`)
+}
+
+type GlobalLexConfig = {
+  context: string
+  title: string
+  body: string
+  primaryHref: string
+  primaryLabel: string
+  secondaryHref: string
+  secondaryLabel: string
+}
+
+function resolveLexPageContext(routePath: string): GlobalLexConfig {
+  const route = normaliseRoutePath(routePath).toLowerCase()
+  if (route === '/global-search' || route === '/ricerca-studio') {
+    return {
+      context: 'ricerca-studio',
+      title: 'Lex AI ricerca',
+      body: 'Legge il contesto della ricerca e collega fascicoli, clienti, scadenze, PEC e documenti pertinenti.',
+      primaryHref: '/lex?context=ricerca-studio',
+      primaryLabel: 'Apri Lex ricerca',
+      secondaryHref: '/global-search',
+      secondaryLabel: 'Ricerca Studio',
+    }
+  }
+  if (route === '/workspace-intelligente' || route === '/regia-operativa' || route.startsWith('/regia-operativa/')) {
+    return {
+      context: 'regia-operativa',
+      title: 'Lex AI regia',
+      body: 'Legge priorita, PEC, scadenze e fascicoli da presidiare per suggerire il prossimo passo operativo.',
+      primaryHref: '/lex?context=regia-operativa',
+      primaryLabel: 'Apri Lex regia',
+      secondaryHref: '/workspace-intelligente',
+      secondaryLabel: 'Regia operativa',
+    }
+  }
+  if (route === '/agenda/nuovo' || route.startsWith('/agenda/nuovo/') || /^\/agenda\/[^/]+\/modifica$/.test(route)) {
+    return {
+      context: 'agenda-appuntamento',
+      title: 'Lex AI appuntamento',
+      body: 'Legge cliente, fascicolo, orario e note per aiutarti a preparare agenda, promemoria e attivita collegate.',
+      primaryHref: '/lex?context=agenda-appuntamento',
+      primaryLabel: 'Apri Lex agenda',
+      secondaryHref: '/agenda',
+      secondaryLabel: 'Agenda',
+    }
+  }
+  if (route === '/scadenziario/nuova' || /^\/scadenziario\/[^/]+\/modifica$/.test(route)) {
+    return {
+      context: 'scadenza-form',
+      title: 'Lex AI scadenza',
+      body: 'Legge materia, fascicolo e termine indicato per aiutarti a controllare decorrenza, avvisi e prossima azione.',
+      primaryHref: '/lex?context=scadenza-form',
+      primaryLabel: 'Apri Lex termini',
+      secondaryHref: '/scadenziario',
+      secondaryLabel: 'Scadenziario',
+    }
+  }
+  if (route.startsWith('/fascicoli')) {
+    return {
+      context: 'fascicoli',
+      title: 'Lex AI fascicoli',
+      body: 'Legge il contesto del fascicolo, documenti, attivita, scadenze e canali telematici collegati.',
+      primaryHref: '/lex?context=fascicoli',
+      primaryLabel: 'Apri Lex fascicoli',
+      secondaryHref: '/fascicoli',
+      secondaryLabel: 'Fascicoli',
+    }
+  }
+  if (route.startsWith('/clienti') || route.startsWith('/soggetti')) {
+    return {
+      context: 'anagrafiche',
+      title: 'Lex AI anagrafiche',
+      body: 'Legge anagrafiche, parti, recapiti, fascicoli collegati e dati mancanti da completare.',
+      primaryHref: '/lex?context=anagrafiche',
+      primaryLabel: 'Apri Lex anagrafiche',
+      secondaryHref: '/clienti',
+      secondaryLabel: 'Clienti',
+    }
+  }
+  if (route === '/email' || route.startsWith('/messaggi')) {
+    return {
+      context: 'comunicazioni',
+      title: 'Lex AI comunicazioni',
+      body: 'Legge PEC, messaggi, mittenti, allegati ed esiti per aiutarti a collegare comunicazioni e fascicoli.',
+      primaryHref: '/lex?context=comunicazioni',
+      primaryLabel: 'Apri Lex PEC',
+      secondaryHref: '/email/',
+      secondaryLabel: 'Casella PEC',
+    }
+  }
+  if (route.startsWith('/scadenziario')) {
+    return {
+      context: 'scadenziario',
+      title: 'Lex AI scadenziario',
+      body: 'Legge scadenze, termini, urgenze e blocchi operativi per presidiare il calendario processuale.',
+      primaryHref: '/lex?context=scadenziario',
+      primaryLabel: 'Apri Lex termini',
+      secondaryHref: '/scadenziario',
+      secondaryLabel: 'Scadenziario',
+    }
+  }
+  if (route.startsWith('/wizard-pro')) {
+    return {
+      context: 'preparazione-udienza',
+      title: 'Lex AI udienza',
+      body: 'Legge attivita, documenti, parti e udienza per preparare checklist, note e prossime azioni.',
+      primaryHref: '/lex?context=preparazione-udienza',
+      primaryLabel: 'Apri Lex udienza',
+      secondaryHref: '/wizard-pro/',
+      secondaryLabel: 'Wizard udienza',
+    }
+  }
+  if (route === '/telematico' || route === '/telematici' || route === '/polisweb' || route === '/pdp' || route === '/pat' || route === '/sigit' || route === '/sigit/ricerca' || route === '/ptt' || route === '/tribunali' || route === '/deposito/checklist' || route === '/guida/firma-digitale') {
+    return {
+      context: 'telematico',
+      title: 'Lex AI telematico',
+      body: 'Legge canale, uffici, checklist, ricevute, import e stato del deposito nella pagina telematica aperta.',
+      primaryHref: '/lex?context=telematico',
+      primaryLabel: 'Apri Lex telematico',
+      secondaryHref: '/telematico',
+      secondaryLabel: 'Centro telematico',
+    }
+  }
+  return {
+    context: 'panoramica',
+    title: 'Lex AI',
+    body: 'Legge il contesto della pagina e collega dati di studio, scadenze, fascicoli e comunicazioni.',
+    primaryHref: '/lex?context=panoramica',
+    primaryLabel: 'Apri Lex',
+    secondaryHref: '/workspace-intelligente',
+    secondaryLabel: 'Regia operativa',
+  }
+}
+
+function routePublishesLexContext(routePath: string): boolean {
+  const route = normaliseRoutePath(routePath).toLowerCase()
+  const isNewAppointment = route === '/agenda/nuovo' || route.startsWith('/agenda/nuovo/')
+  const isAppointmentEdit = /^\/agenda\/[^/]+\/modifica$/.test(route)
+  const isNewDeadline = route === '/scadenziario/nuova'
+  const isDeadlineEdit = /^\/scadenziario\/[^/]+\/modifica$/.test(route)
+  if (route === '/agenda' || (route.startsWith('/agenda/') && !isNewAppointment && !isAppointmentEdit)) return true
+  if (route.startsWith('/fascicoli')) return true
+  if (route.startsWith('/clienti') || route.startsWith('/soggetti')) return true
+  if (route === '/email' || route.startsWith('/messaggi')) return true
+  if (route.startsWith('/scadenziario') && !isNewDeadline && !isDeadlineEdit) return true
+  if (route.startsWith('/wizard-pro')) return true
+  return route === '/telematico' || route === '/telematici' || route === '/polisweb' || route === '/pdp' || route === '/pat' || route === '/sigit' || route === '/sigit/ricerca' || route === '/ptt' || route === '/tribunali' || route === '/deposito/checklist' || route === '/guida/firma-digitale'
 }
 
 function NavLink({ item, collapsed, activePath, onNavigate }:{item:NavItem; collapsed:boolean; activePath:string; onNavigate?:()=>void}) {
@@ -454,32 +602,34 @@ function DashboardPage({ data, loading }:{data:DashboardData; loading:boolean}) 
 export default function App() {
   const activePath = window.location.pathname.replace(/\/+$/, '') || '/'
   const routePath = normaliseRoutePath(activePath)
-  const isSearchPage = routePath === '/global-search' || routePath === '/ricerca-studio'
-  const isNewAppointmentPage = routePath === '/agenda/nuovo' || routePath.startsWith('/agenda/nuovo/')
-  const isAppointmentEditPage = /^\/agenda\/[^/]+\/modifica$/.test(routePath)
-  const isAgendaPage = !isNewAppointmentPage && !isAppointmentEditPage && (routePath === '/agenda' || routePath.startsWith('/agenda/'))
-  const isRegiaPage = routePath === '/workspace-intelligente' || routePath === '/regia-operativa' || routePath.startsWith('/regia-operativa/')
-  const isFascicoliPage = routePath === '/fascicoli' || routePath.startsWith('/fascicoli/')
-  const isNewClientPage = routePath === '/clienti/nuovo'
-  const isNewSubjectPage = routePath === '/soggetti/nuovo'
-  const isClientEditPage = /^\/clienti\/[^/]+\/modifica$/.test(routePath)
-  const isSubjectEditPage = /^\/soggetti\/[^/]+\/modifica$/.test(routePath)
-  const isClientFolderPage = /^\/clienti\/[^/]+(\/cartella)?$/.test(routePath)
-  const isClientiPage = !isNewClientPage && !isClientFolderPage && routePath === '/clienti'
-  const isSoggettiPage = !isNewSubjectPage && !isSubjectEditPage && (routePath === '/soggetti' || routePath.startsWith('/soggetti/'))
-  const isEmailPage = routePath === '/email'
-  const isNewMessagePage = routePath === '/messaggi/nuovo'
-  const isMessagesPage = !isNewMessagePage && (routePath === '/messaggi' || routePath.startsWith('/messaggi/'))
-  const isNewDeadlinePage = routePath === '/scadenziario/nuova'
-  const isDeadlineEditPage = /^\/scadenziario\/[^/]+\/modifica$/.test(routePath)
-  const isScadenziarioPage = !isNewDeadlinePage && !isDeadlineEditPage && (routePath === '/scadenziario' || routePath.startsWith('/scadenziario/'))
-  const isWizardProPage = routePath === '/wizard-pro' || routePath.startsWith('/wizard-pro/')
-  const isTelematicoPage = routePath === '/telematico' || routePath === '/telematici'
-  const isTelematicoSurfacePage = routePath === '/polisweb' || routePath === '/pdp' || routePath === '/pat' || routePath === '/sigit' || routePath === '/sigit/ricerca' || routePath === '/ptt' || routePath === '/tribunali' || routePath === '/deposito/checklist' || routePath === '/guida/firma-digitale'
+  const routeKey = routePath.toLowerCase()
+  const isSearchPage = routeKey === '/global-search' || routeKey === '/ricerca-studio'
+  const isNewAppointmentPage = routeKey === '/agenda/nuovo' || routeKey.startsWith('/agenda/nuovo/')
+  const isAppointmentEditPage = /^\/agenda\/[^/]+\/modifica$/.test(routeKey)
+  const isAgendaPage = !isNewAppointmentPage && !isAppointmentEditPage && (routeKey === '/agenda' || routeKey.startsWith('/agenda/'))
+  const isRegiaPage = routeKey === '/workspace-intelligente' || routeKey === '/regia-operativa' || routeKey.startsWith('/regia-operativa/')
+  const isFascicoliPage = routeKey === '/fascicoli' || routeKey.startsWith('/fascicoli/')
+  const isNewClientPage = routeKey === '/clienti/nuovo'
+  const isNewSubjectPage = routeKey === '/soggetti/nuovo'
+  const isClientEditPage = /^\/clienti\/[^/]+\/modifica$/.test(routeKey)
+  const isSubjectEditPage = /^\/soggetti\/[^/]+\/modifica$/.test(routeKey)
+  const isClientFolderPage = /^\/clienti\/[^/]+(\/cartella)?$/.test(routeKey)
+  const isClientiPage = !isNewClientPage && !isClientFolderPage && routeKey === '/clienti'
+  const isSoggettiPage = !isNewSubjectPage && !isSubjectEditPage && (routeKey === '/soggetti' || routeKey.startsWith('/soggetti/'))
+  const isEmailPage = routeKey === '/email'
+  const isNewMessagePage = routeKey === '/messaggi/nuovo'
+  const isMessagesPage = !isNewMessagePage && (routeKey === '/messaggi' || routeKey.startsWith('/messaggi/'))
+  const isNewDeadlinePage = routeKey === '/scadenziario/nuova'
+  const isDeadlineEditPage = /^\/scadenziario\/[^/]+\/modifica$/.test(routeKey)
+  const isScadenziarioPage = !isNewDeadlinePage && !isDeadlineEditPage && (routeKey === '/scadenziario' || routeKey.startsWith('/scadenziario/'))
+  const isWizardProPage = routeKey === '/wizard-pro' || routeKey.startsWith('/wizard-pro/')
+  const isTelematicoPage = routeKey === '/telematico' || routeKey === '/telematici'
+  const isTelematicoSurfacePage = routeKey === '/polisweb' || routeKey === '/pdp' || routeKey === '/pat' || routeKey === '/sigit' || routeKey === '/sigit/ricerca' || routeKey === '/ptt' || routeKey === '/tribunali' || routeKey === '/deposito/checklist' || routeKey === '/guida/firma-digitale'
   const isDashboardPage = !isSearchPage && !isAgendaPage && !isNewAppointmentPage && !isAppointmentEditPage && !isRegiaPage && !isFascicoliPage && !isClientiPage && !isClientFolderPage && !isClientEditPage && !isNewClientPage && !isSoggettiPage && !isNewSubjectPage && !isSubjectEditPage && !isEmailPage && !isMessagesPage && !isNewMessagePage && !isScadenziarioPage && !isNewDeadlinePage && !isDeadlineEditPage && !isWizardProPage && !isTelematicoPage && !isTelematicoSurfacePage
   const isStandalonePage = isSearchPage || isAgendaPage || isNewAppointmentPage || isAppointmentEditPage || isFascicoliPage || isClientiPage || isClientFolderPage || isClientEditPage || isNewClientPage || isSoggettiPage || isNewSubjectPage || isSubjectEditPage || isEmailPage || isMessagesPage || isNewMessagePage || isScadenziarioPage || isNewDeadlinePage || isDeadlineEditPage || isWizardProPage || isTelematicoPage || isTelematicoSurfacePage
   const initialSearchQuery = new URLSearchParams(window.location.search).get('q') ?? ''
-  const needsGlobalLex = isDashboardPage || isRegiaPage || isSearchPage
+  const lexConfig = resolveLexPageContext(routeKey)
+  const needsShellLexContext = !routePublishesLexContext(routeKey)
   const [data,setData]=useState<DashboardData>(emptyDashboard)
   const [loading,setLoading]=useState(!isStandalonePage)
   const [sidebarCollapsed,setSidebarCollapsed]=useState(false)
@@ -498,16 +648,6 @@ export default function App() {
           </Suspense>
         </div>
         <nav className={`iu-mobile ${mobileNavCollapsed?'is-collapsed':''}`} aria-label="Navigazione mobile">
-          <button
-            type="button"
-            className="iu-mobile__toggle"
-            aria-controls="iu-mobile-links"
-            aria-expanded={!mobileNavCollapsed}
-            onClick={()=>setMobileNavCollapsed(v=>!v)}
-          >
-            <ChevronDown size={17}/>
-            <span>{mobileNavCollapsed?'Menu':'Chiudi'}</span>
-          </button>
           <div id="iu-mobile-links" className="iu-mobile__rail" hidden={mobileNavCollapsed}>
             <a className={isDashboardPage?'active':''} href="/"><LayoutDashboard size={18}/>Panoramica</a>
             <a className={isSearchPage?'active':''} href="/global-search"><Search size={18}/>Ricerca</a>
@@ -517,8 +657,19 @@ export default function App() {
             <a className={isAgendaPage||isNewAppointmentPage||isAppointmentEditPage||isScadenziarioPage||isNewDeadlinePage||isDeadlineEditPage||isWizardProPage?'active':''} href="/agenda"><CalendarDays size={18}/>Agenda</a>
             <a className={isRegiaPage?'active':''} href="/workspace-intelligente"><Sparkles size={18}/>Regia</a>
           </div>
+          <button
+            type="button"
+            className="iu-mobile__toggle"
+            aria-controls="iu-mobile-links"
+            aria-expanded={!mobileNavCollapsed}
+            aria-label={mobileNavCollapsed?'Apri navigazione mobile':'Chiudi navigazione mobile'}
+            onClick={()=>setMobileNavCollapsed(v=>!v)}
+          >
+            <ChevronDown size={17}/>
+            <span>{mobileNavCollapsed?'Menu':'Chiudi'}</span>
+          </button>
         </nav>
-        {needsGlobalLex ? <FloatingLex context={isRegiaPage ? 'regia-operativa' : isSearchPage ? 'ricerca-studio' : 'panoramica'} title="Lex AI" body="Posso aiutarti a collegare dati di studio, scadenze, fascicoli e comunicazioni senza uscire dalla nuova interfaccia." primaryHref="/workspace-intelligente" primaryLabel="Regia operativa" secondaryHref="/global-search" secondaryLabel="Ricerca Studio" /> : null}
+        {needsShellLexContext ? <FloatingLex {...lexConfig} /> : null}
       </div>
     </AppErrorBoundary>
   )

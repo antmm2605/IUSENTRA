@@ -1132,7 +1132,7 @@ def test_ai_operativa_usa_bridge_browser_e_template_senza_logica_inline():
     assert "async function askWorkspaceAi" not in workspace_template
     assert "async function refreshWorkspaceAiRuntime" not in workspace_template
 
-    assert "window.HacsLocalAiBrowserBridge" in bridge_js
+    assert "window.IusentraLocalAiBrowserBridge" in bridge_js
     assert "/ai/rag/query" in bridge_js
     assert "/ai/rag/query/stream" in bridge_js
     assert "/ai/attachments/parse" in bridge_js
@@ -1157,6 +1157,7 @@ def test_ai_operativa_usa_bridge_browser_e_template_senza_logica_inline():
 
 def test_lex_assistant_usa_componente_esterno_e_posizione_persistente():
     base_template = (REPO_ROOT / "web/templates/base.html").read_text(encoding="utf-8")
+    react_shell_template = (REPO_ROOT / "web/templates/react_shell.html").read_text(encoding="utf-8")
     widget_template = (REPO_ROOT / "web/templates/components/pct_ai_widget.html").read_text(encoding="utf-8")
     widget_docs_js = (REPO_ROOT / "web/static/js/pct-lex-assistant-documents.js").read_text(encoding="utf-8")
     widget_voice_js = (REPO_ROOT / "web/static/js/pct-lex-assistant-voice.js").read_text(encoding="utf-8")
@@ -1169,6 +1170,9 @@ def test_lex_assistant_usa_componente_esterno_e_posizione_persistente():
     assert "/static/js/pct-lex-assistant-documents.js?v={{ app_version }}" in base_template
     assert "/static/js/pct-lex-assistant-voice.js?v={{ app_version }}" in base_template
     assert "/static/js/pct-lex-assistant.js?v={{ app_version }}" in base_template
+    assert '{% include "components/pct_ai_widget.html" %}' in react_shell_template
+    assert "/static/js/local-ai-browser-bridge.js?v={{ app_version }}" in react_shell_template
+    assert "/static/js/pct-lex-assistant.js?v={{ app_version }}" in react_shell_template
 
     assert 'data-chat-url="{{ url_for(\'assistente.assistente_chat\') }}"' in widget_template
     assert 'data-status-url="{{ url_for(\'assistente.assistente_stato\') }}"' in widget_template
@@ -1177,7 +1181,10 @@ def test_lex_assistant_usa_componente_esterno_e_posizione_persistente():
     assert 'data-server-attachments-url="{{ url_for(\'assistente.assistente_attachments\') }}"' in widget_template
     assert 'data-export-document-url="{{ url_for(\'assistente.assistente_documento\') }}"' in widget_template
     assert 'data-local-signer-url="http://127.0.0.1:27272"' in widget_template
+    assert 'data-page-path="{{ request.path }}"' in widget_template
+    assert 'data-page-endpoint="{{ request.endpoint or \'\' }}"' in widget_template
     assert 'data-lex-icon-url="{{ url_for(\'static\', filename=\'img/lex-mark.png\') }}?v={{ app_version }}"' in widget_template
+    assert 'data-storage-key="iusentra-pct-ai-layout-v1"' in widget_template
     assert "data-local-signer-setup-windows" in widget_template
     assert 'data-ai-mode="{{ \'local\' if request.host.split(\':\')[0] in [\'localhost\', \'127.0.0.1\'] else \'remote\' }}"' in widget_template
     assert 'data-pct-ai-drag-handle="true"' in widget_template
@@ -1213,6 +1220,11 @@ def test_lex_assistant_usa_componente_esterno_e_posizione_persistente():
     assert "window.setTimeout(speakNext, 80)" in widget_voice_js
     assert "window.localStorage" in widget_js
     assert "window.sessionStorage" in widget_js
+    assert "DESKTOP_MEDIA = '(min-width: 1181px)'" in widget_js
+    assert "IUSENTRA_LEX_CONTEXT" in widget_js
+    assert "iusentra:lex-context" in widget_js
+    assert "page_context" in widget_js
+    assert "page_path" in widget_js
     assert "renderPresetPills" in widget_js
     assert "runPreset" in widget_js
     assert "SURFACE_PRESETS" in widget_js
@@ -1305,6 +1317,8 @@ def test_lex_assistant_usa_componente_esterno_e_posizione_persistente():
     assert ".pct-ai-action-pill" in widget_scss
 
     assert ".pct-ai-widget" in widget_scss
+    assert "@media (max-width: 1180px)" in widget_scss
+    assert "display: none !important;" in widget_scss
     assert ".pct-ai-brand-mark" in widget_scss
     assert ".pct-ai-widget--custom" in widget_scss
     assert ".pct-ai-drag-hint" in widget_scss
@@ -1357,6 +1371,9 @@ def test_contesto_lex_compatta_le_sezioni_e_limita_le_fonti():
     assert "def _should_force_web_fallback" in context_service
     assert "def _has_specific_local_context" in context_service
     assert "resolve_conversation_focus" in context_service
+    assert "def page_context_prompt_block" in lex_orchestrator_http
+    assert "Contesto UI attivo" in lex_orchestrator_http
+    assert "page_context_prompt_block(data)" in lex_orchestrator_http
     assert "_DEFAULT_DETAIL_SECTION_TITLES" in context_service
     assert "_CHAT_DETAIL_SECTION_TITLES" in context_service
     assert "_SECTION_KEYWORDS" in context_service

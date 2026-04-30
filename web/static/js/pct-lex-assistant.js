@@ -1,10 +1,10 @@
 ﻿(function () {
   'use strict';
 
-  var STORAGE_FALLBACK = 'hacs-pct-ai-layout-v1';
+  var STORAGE_FALLBACK = 'iusentra-pct-ai-layout-v1';
   var SESSION_STORAGE_SUFFIX = ':session';
   var HISTORY_LIMIT = 12;
-  var DESKTOP_MEDIA = '(min-width: 992px)';
+  var DESKTOP_MEDIA = '(min-width: 1181px)';
   var DRAG_MARGIN = 12;
   var MIN_WIDGET_WIDTH = 368;
   var MIN_WIDGET_HEIGHT = 520;
@@ -29,6 +29,7 @@
     runtimeStatusChecked: false,
     runtimeStatusPromise: null,
     contextPrimed: false,
+    pageContext: null,
   };
 
   var widget;
@@ -151,7 +152,7 @@
   }
 
   function browserBridge() {
-    return window.HacsLocalAiBrowserBridge || null;
+    return window.IusentraLocalAiBrowserBridge || null;
   }
 
   function documentsHelper() {
@@ -1131,6 +1132,116 @@
     return ctx && !ctx.hidden && ctxLabel ? String(ctxLabel.textContent || '').trim() : '';
   }
 
+  function cleanRoutePath(path) {
+    var route = String(path || '').replace(/\/+$/, '') || '/';
+    route = route.toLowerCase();
+    if (route === '/app-v2') {
+      return '/';
+    }
+    if (route.indexOf('/app-v2/') === 0) {
+      return route.slice('/app-v2'.length) || '/';
+    }
+    return route;
+  }
+
+  function contextLabelForKey(contextKey, path) {
+    var key = String(contextKey || '').trim().toLowerCase();
+    var route = cleanRoutePath(path || (widget && widget.dataset ? widget.dataset.pagePath : '') || window.location.pathname);
+    var labels = {
+      'panoramica': 'Contesto panoramica',
+      'regia-operativa': 'Contesto regia operativa',
+      'ricerca-studio': 'Contesto ricerca studio',
+      'agenda': 'Contesto agenda',
+      'agenda-appuntamento': 'Contesto appuntamento',
+      'fascicoli': 'Contesto fascicoli',
+      'fascicolo': 'Contesto fascicolo attivo',
+      'fascicolo-dettaglio': 'Contesto fascicolo attivo',
+      'fascicolo-form': 'Contesto fascicolo',
+      'cartella-cliente': 'Contesto cartella cliente',
+      'anagrafiche': 'Contesto anagrafiche',
+      'clienti': 'Contesto clienti',
+      'clienti-nuovo': 'Contesto anagrafiche',
+      'soggetti': 'Contesto soggetti',
+      'email-pec': 'Contesto PEC',
+      'comunicazioni': 'Contesto comunicazioni',
+      'messaggi': 'Contesto messaggi',
+      'nuovo-messaggio': 'Contesto invio messaggio',
+      'scadenziario': 'Contesto scadenziario',
+      'scadenza-form': 'Contesto scadenza',
+      'preparazione-udienza': 'Contesto preparazione udienza',
+      'telematico': 'Contesto telematico',
+      'telematico-polisweb': 'Contesto PolisWeb / PST',
+      'telematico-pdp': 'Contesto PDP Penale',
+      'telematico-pat': 'Contesto PAT Amministrativo',
+      'telematico-ptt': 'Contesto PTT Tributario',
+      'telematico-tribunali': 'Contesto Tribunali / PEC',
+      'telematico-checklist': 'Contesto checklist deposito',
+      'telematico-firma': 'Contesto firma digitale',
+    };
+    if (labels[key]) {
+      return labels[key];
+    }
+    if (route.indexOf('/fascicoli') === 0) return 'Contesto fascicoli';
+    if (route.indexOf('/clienti') === 0 || route.indexOf('/soggetti') === 0) return 'Contesto anagrafiche';
+    if (route === '/email' || route.indexOf('/messaggi') === 0) return 'Contesto comunicazioni';
+    if (route.indexOf('/agenda') === 0) return 'Contesto agenda';
+    if (route.indexOf('/scadenziario') === 0) return 'Contesto scadenziario';
+    if (route.indexOf('/wizard-pro') === 0) return 'Contesto preparazione udienza';
+    if (route === '/telematico' || route === '/telematici' || route === '/polisweb' || route === '/pdp' || route === '/pat' || route === '/sigit' || route === '/ptt' || route === '/tribunali' || route === '/deposito/checklist' || route === '/guida/firma-digitale') {
+      return 'Contesto telematico';
+    }
+    if (route === '/global-search' || route === '/ricerca-studio') return 'Contesto ricerca studio';
+    if (route === '/workspace-intelligente' || route.indexOf('/regia-operativa') === 0) return 'Contesto regia operativa';
+    return 'Contesto pagina corrente';
+  }
+
+  function readExternalLexContext() {
+    var external = window.IUSENTRA_LEX_CONTEXT;
+    if (external && typeof external === 'object') {
+      return external;
+    }
+    return null;
+  }
+
+  function applyLexPageContext(config, options) {
+    config = config && typeof config === 'object' ? config : {};
+    options = options || {};
+    var contextKey = String(config.context || '').trim();
+    var pagePath = String(config.pagePath || (widget && widget.dataset ? widget.dataset.pagePath : '') || window.location.pathname || '').trim();
+    var label = String(config.contextLabel || config.label || '').trim() || contextLabelForKey(contextKey, pagePath);
+    var previous = state.pageContext && state.pageContext.context + '|' + state.pageContext.label + '|' + state.pageContext.pagePath;
+    state.pageContext = {
+      context: contextKey || cleanRoutePath(pagePath).replace(/^\//, '') || 'pagina',
+      label: label,
+      pagePath: pagePath,
+    };
+    if (widget && widget.dataset) {
+      widget.dataset.lexContext = state.pageContext.context;
+      widget.dataset.pagePath = state.pageContext.pagePath;
+    }
+    if (ctx && ctxLabel && label) {
+      ctx.hidden = false;
+      ctxLabel.textContent = label;
+    }
+    if (previous && previous !== state.pageContext.context + '|' + state.pageContext.label + '|' + state.pageContext.pagePath) {
+      state.contextWarmStarted = false;
+      state.contextPrimed = false;
+    }
+    saveConversationMemory();
+    if (options.open) {
+      setOpen(true);
+    }
+  }
+
+  function currentPageContextPayload() {
+    var context = state.pageContext || {};
+    return {
+      context_label: conversationContextLabel(),
+      page_context: String(context.context || ''),
+      page_path: String(context.pagePath || (widget && widget.dataset ? widget.dataset.pagePath : '') || window.location.pathname || ''),
+    };
+  }
+
   function saveConversationMemory() {
     try {
       if (!window.sessionStorage) {
@@ -1150,6 +1261,7 @@
           sessionId: state.sessionId,
           fascId: state.fascId || '',
           contextLabel: conversationContextLabel(),
+          pageContext: state.pageContext || null,
           history: state.history.slice(-HISTORY_LIMIT),
           attachments: state.attachments.slice(0, 4),
           savedAt: new Date().toISOString(),
@@ -1179,6 +1291,9 @@
       if (!state.fascId && parsed && parsed.contextLabel && ctx && ctxLabel) {
         ctx.hidden = false;
         ctxLabel.textContent = String(parsed.contextLabel);
+      }
+      if (parsed && parsed.pageContext && typeof parsed.pageContext === 'object') {
+        state.pageContext = parsed.pageContext;
       }
       return Boolean(state.history.length || state.attachments.length);
     } catch (error) {
@@ -1367,10 +1482,14 @@
         content: entry.content,
       };
     });
+    var pageContext = currentPageContextPayload();
     return {
       session_id: state.sessionId || generateSessionId(),
       messages: chatMessages,
       fascicolo_id: state.fascId || '',
+      context_label: pageContext.context_label,
+      page_context: pageContext.page_context,
+      page_path: pageContext.page_path,
     };
   }
 
@@ -1412,6 +1531,8 @@
         session_id: state.sessionId,
         question: warmQuestion,
         context_label: conversationContextLabel(),
+        page_context: currentPageContextPayload().page_context,
+        page_path: currentPageContextPayload().page_path,
       }),
       }).catch(function () {
       state.contextWarmStarted = false;
@@ -1446,6 +1567,9 @@
         session_id: payload.session_id,
         messages: payload.messages,
         fascicolo_id: payload.fascicolo_id,
+        context_label: payload.context_label,
+        page_context: payload.page_context,
+        page_path: payload.page_path,
         attachments: state.attachments.slice(),
       }),
     }).then(function (response) {
@@ -1563,6 +1687,9 @@
         }),
         fascicolo_id: state.fascId || '',
         session_id: state.sessionId || generateSessionId(),
+        context_label: currentPageContextPayload().context_label,
+        page_context: currentPageContextPayload().page_context,
+        page_path: currentPageContextPayload().page_path,
       })
       .then(function (prepared) {
         if (prepared && Object.prototype.hasOwnProperty.call(prepared, 'focus_label')) {
@@ -2112,6 +2239,12 @@
 
   function bindEvents() {
     fab.addEventListener('click', toggle);
+    window.addEventListener('iusentra:lex-context', function (event) {
+      applyLexPageContext(event && event.detail ? event.detail : {}, { open: false });
+    });
+    window.addEventListener('iusentra:open-floating-lex', function (event) {
+      applyLexPageContext(event && event.detail ? event.detail : readExternalLexContext() || {}, { open: true });
+    });
     sendButton.addEventListener('click', send);
     query('pct-ai-close').addEventListener('click', closeAssistant);
     query('pct-ai-clear').addEventListener('click', clearHistory);
@@ -2272,6 +2405,11 @@
   function initContext() {
     var match = window.location.pathname.match(/\/fascicoli\/([^/]+)/);
     state.fascId = (match && match[1]) || window.pctAiFascicoloId || null;
+    var externalContext = readExternalLexContext();
+    applyLexPageContext(externalContext || {
+      context: state.fascId ? 'fascicolo' : '',
+      pagePath: window.location.pathname,
+    }, { open: false });
     if (state.fascId && ctx && ctxLabel) {
       ctx.hidden = false;
       ctxLabel.textContent = 'Contesto fascicolo attivo';

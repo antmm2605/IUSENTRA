@@ -36,6 +36,7 @@ from web.services.react_clienti_bridge import (
     build_react_clienti_payload,
     build_react_soggetto_modifica_payload,
 )
+from web.services.react_dashboard_cache import get_dashboard_payload_cached
 from web.services.react_email_bridge import build_react_email_payload
 from web.services.react_fascicoli_bridge import (
     build_react_archivio_payload,
@@ -344,10 +345,8 @@ def _email_rows(limit: int = 5) -> tuple[list[dict[str, Any]], list[dict[str, An
         )
         if is_pec and len(pec_rows) < limit:
             pec_rows.append(row)
-        elif not is_pec and len(mail_rows) < limit:
-            mail_rows.append({**row, "avatar": _initials(title)})
-        if len(pec_rows) >= limit and len(mail_rows) >= limit:
-            break
+        # La sezione "Email recenti" e' riservata alla futura posta ordinaria:
+        # non pubblichiamo PEC duplicate in quel riquadro.
     return pec_rows, mail_rows, pec_unread
 
 
@@ -1264,116 +1263,145 @@ def fascicolo_react_dettaglio(id_fasc: str):
 # IUSENTRA_REACT_FASCICOLI_ROUTES_END
 
 
+def _dashboard_cache_key() -> str:
+    utente = g.get("utente_corrente")
+    user_id = str(getattr(utente, "id", "") or getattr(utente, "username", "") or "api-key")
+    tenant = str(g.get("tenant_slug", "") or g.get("auth_tenant_slug", "") or "studio")
+    data_paths = getattr(g, "data_paths", {}) or {}
+    email_db = str(data_paths.get("EMAIL_CASELLA_DB") or current_app.config.get("EMAIL_CASELLA_DB", ""))
+    return "|".join([APP_VERSION, tenant, user_id, email_db])
+
+
+def _build_dashboard_payload() -> dict[str, Any]:
+    overview = _safe("workspace_intelligente", _workspace_overview, {})
+    summary = dict(overview.get("summary") or {})
+
+    pec_rows, email_rows, pec_unread = _email_rows()
+    message_rows, client_messages_count = _client_message_rows()
+    agenda_rows = _agenda_rows()
+    operations = _today_operations(overview)
+    completion = _incomplete_registry()
+    engagement_rows, missing_engagements_count = _missing_engagements()
+    matter_rows = _high_priority_matters()
+
+    urgent_actions = len(operations)
+    expiring_quotes = _expiring_quotes_count()
+    deadline_distribution = _deadline_distribution()
+    economic = _economic_rows()
+    lex = _lex_suggestions(
+        urgent_actions=urgent_actions,
+        incomplete_registry=completion,
+        missing_engagements_count=missing_engagements_count,
+        high_priority_matters=matter_rows,
+    )
+
+    stats = {
+        "todayAppointments": _count_agenda_oggi(),
+        "urgentDeadlines": int(summary.get("scadenze_urgenti") or 0),
+        "openMatters": _count_fascicoli_attivi(),
+        "unpaidAmount": _euro(_parcelle_da_incassare()),
+        "documentsToReview": int(summary.get("notifiche_scadenze") or 0),
+        "urgentActions": urgent_actions,
+        "pecUnread": pec_unread,
+        "clientMessages": client_messages_count,
+        "expiringQuotes": expiring_quotes,
+        "missingAssignments": missing_engagements_count,
+    }
+    return {
+        "source": "repository_reali",
+        "generated_at": overview.get("generated_at") or _iso_now(),
+        "stats": stats,
+        "metrics": _metrics(
+            urgent_actions=urgent_actions,
+            pec_unread=pec_unread,
+            client_messages=client_messages_count,
+            expiring_quotes=expiring_quotes,
+            missing_engagements_count=missing_engagements_count,
+        ),
+        "actions": list(overview.get("actions") or []),
+        "fascicoli": _fascicoli_preview(),
+        "pec": pec_rows,
+        "emails": email_rows,
+        "client_messages": message_rows,
+        "agenda": agenda_rows,
+        "today_operations": operations,
+        "incomplete_registry": completion,
+        "missing_engagements": engagement_rows,
+        "high_priority_matters": matter_rows,
+        "deadline_distribution": deadline_distribution,
+        "economic": economic,
+        "lex_suggestions": lex,
+        "contracts": {
+            "empty_sections_are_real_empty_state": True,
+            "mock_fallback": False,
+            "ordinary_email_recent_disabled": True,
+        },
+    }
+
+
+def _dashboard_error_payload() -> dict[str, Any]:
+    return {
+        "source": "errore_controllato",
+        "generated_at": _iso_now(),
+        "stats": {
+            "todayAppointments": 0,
+            "urgentDeadlines": 0,
+            "openMatters": 0,
+            "unpaidAmount": _euro(0),
+            "documentsToReview": 0,
+            "urgentActions": 0,
+            "pecUnread": 0,
+            "clientMessages": 0,
+            "expiringQuotes": 0,
+            "missingAssignments": 0,
+        },
+        "metrics": _metrics(
+            urgent_actions=0,
+            pec_unread=0,
+            client_messages=0,
+            expiring_quotes=0,
+            missing_engagements_count=0,
+        ),
+        "actions": [],
+        "fascicoli": [],
+        "pec": [],
+        "emails": [],
+        "client_messages": [],
+        "agenda": [],
+        "today_operations": [],
+        "incomplete_registry": {"percent": 100, "totalMissing": 0, "items": []},
+        "missing_engagements": [],
+        "high_priority_matters": [],
+        "deadline_distribution": [],
+        "economic": [],
+        "lex_suggestions": [],
+        "contracts": {
+            "empty_sections_are_real_empty_state": True,
+            "mock_fallback": False,
+            "ordinary_email_recent_disabled": True,
+        },
+        "warning": "Dati non disponibili. Resta disponibile il modulo operativo originale.",
+    }
+
+
 @api_v1_react.get("/dashboard")
 @_richiedi_auth
 def dashboard():
     try:
-        overview = _safe("workspace_intelligente", _workspace_overview, {})
-        summary = dict(overview.get("summary") or {})
-
-        pec_rows, email_rows, pec_unread = _email_rows()
-        message_rows, client_messages_count = _client_message_rows()
-        agenda_rows = _agenda_rows()
-        operations = _today_operations(overview)
-        completion = _incomplete_registry()
-        engagement_rows, missing_engagements_count = _missing_engagements()
-        matter_rows = _high_priority_matters()
-
-        urgent_actions = len(operations)
-        expiring_quotes = _expiring_quotes_count()
-        deadline_distribution = _deadline_distribution()
-        economic = _economic_rows()
-        lex = _lex_suggestions(
-            urgent_actions=urgent_actions,
-            incomplete_registry=completion,
-            missing_engagements_count=missing_engagements_count,
-            high_priority_matters=matter_rows,
+        refresh = str(request.args.get("refresh", "") or "").lower() in {"1", "true", "si", "yes"}
+        payload, cache_hit = get_dashboard_payload_cached(
+            _dashboard_cache_key(),
+            _build_dashboard_payload,
+            refresh=refresh,
         )
-
-        stats = {
-            "todayAppointments": _count_agenda_oggi(),
-            "urgentDeadlines": int(summary.get("scadenze_urgenti") or 0),
-            "openMatters": _count_fascicoli_attivi(),
-            "unpaidAmount": _euro(_parcelle_da_incassare()),
-            "documentsToReview": int(summary.get("notifiche_scadenze") or 0),
-            "urgentActions": urgent_actions,
-            "pecUnread": pec_unread,
-            "clientMessages": client_messages_count,
-            "expiringQuotes": expiring_quotes,
-            "missingAssignments": missing_engagements_count,
-        }
-        payload = {
-            "source": "repository_reali",
-            "generated_at": overview.get("generated_at") or _iso_now(),
-            "stats": stats,
-            "metrics": _metrics(
-                urgent_actions=urgent_actions,
-                pec_unread=pec_unread,
-                client_messages=client_messages_count,
-                expiring_quotes=expiring_quotes,
-                missing_engagements_count=missing_engagements_count,
-            ),
-            "actions": list(overview.get("actions") or []),
-            "fascicoli": _fascicoli_preview(),
-            "pec": pec_rows,
-            "emails": email_rows,
-            "client_messages": message_rows,
-            "agenda": agenda_rows,
-            "today_operations": operations,
-            "incomplete_registry": completion,
-            "missing_engagements": engagement_rows,
-            "high_priority_matters": matter_rows,
-            "deadline_distribution": deadline_distribution,
-            "economic": economic,
-            "lex_suggestions": lex,
-            "contracts": {
-                "empty_sections_are_real_empty_state": True,
-                "mock_fallback": False,
-            },
-        }
-        return jsonify(payload)
+        response = jsonify(payload)
+        response.headers["X-IUSENTRA-Cache"] = "HIT" if cache_hit else "MISS"
+        return response
     except Exception as exc:
         current_app.logger.exception("Errore dashboard React bridge: %s", exc)
-        return jsonify(
-            {
-                "source": "errore_controllato",
-                "generated_at": _iso_now(),
-                "stats": {
-                    "todayAppointments": 0,
-                    "urgentDeadlines": 0,
-                    "openMatters": 0,
-                    "unpaidAmount": _euro(0),
-                    "documentsToReview": 0,
-                    "urgentActions": 0,
-                    "pecUnread": 0,
-                    "clientMessages": 0,
-                    "expiringQuotes": 0,
-                    "missingAssignments": 0,
-                },
-                "metrics": _metrics(
-                    urgent_actions=0,
-                    pec_unread=0,
-                    client_messages=0,
-                    expiring_quotes=0,
-                    missing_engagements_count=0,
-                ),
-                "actions": [],
-                "fascicoli": [],
-                "pec": [],
-                "emails": [],
-                "client_messages": [],
-                "agenda": [],
-                "today_operations": [],
-                "incomplete_registry": {"percent": 100, "totalMissing": 0, "items": []},
-                "missing_engagements": [],
-                "high_priority_matters": [],
-                "deadline_distribution": [],
-                "economic": [],
-                "lex_suggestions": [],
-                "contracts": {"empty_sections_are_real_empty_state": True, "mock_fallback": False},
-                "warning": "Dati non disponibili. Resta disponibile il modulo operativo originale.",
-            }
-        ), 200
+        response = jsonify(_dashboard_error_payload())
+        response.headers["X-IUSENTRA-Cache"] = "BYPASS"
+        return response, 200
 
 
 @api_v1_react.get("/agenda")

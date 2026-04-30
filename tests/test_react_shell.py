@@ -944,6 +944,45 @@ def test_react_dashboard_usa_bridge_reale_senza_mock(tmp_path: Path):
         assert key in payload
 
 
+def test_react_dashboard_cache_breve_e_email_recenti_ordinarie_disabilitate(tmp_path: Path):
+    app = _app(tmp_path)
+    client = app.test_client()
+
+    GestioneEmailRicevute(app.config["EMAIL_CASELLA_DB"]).aggiungi(
+        EmailRicevuta(
+            id="mail-ordinaria",
+            cartella=CartellaEmail.INBOX,
+            stato=StatoEmail.NON_LETTA,
+            mittente="cliente@example.it",
+            mittente_nome="Cliente ordinario",
+            oggetto="Email ordinaria da non pubblicare in Panoramica",
+            data=datetime.now().isoformat(timespec="seconds"),
+        )
+    )
+
+    first = client.get(
+        "/api/v1/ui/dashboard",
+        query_string={"refresh": "1"},
+        headers={"X-API-Key": "react-test-key"},
+    )
+    second = client.get("/api/v1/ui/dashboard", headers={"X-API-Key": "react-test-key"})
+    refreshed = client.get(
+        "/api/v1/ui/dashboard",
+        query_string={"refresh": "1"},
+        headers={"X-API-Key": "react-test-key"},
+    )
+
+    payload = first.get_json()
+    assert first.status_code == 200
+    assert second.status_code == 200
+    assert refreshed.status_code == 200
+    assert first.headers["X-IUSENTRA-Cache"] == "MISS"
+    assert second.headers["X-IUSENTRA-Cache"] == "HIT"
+    assert refreshed.headers["X-IUSENTRA-Cache"] == "MISS"
+    assert payload["emails"] == []
+    assert payload["contracts"]["ordinary_email_recent_disabled"] is True
+
+
 def test_react_agenda_bridge_usa_agenda_e_scadenziario_reali(tmp_path: Path):
     app = _app(tmp_path)
     client = app.test_client()

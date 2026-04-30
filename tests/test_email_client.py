@@ -384,7 +384,19 @@ def test_sincronizza_imap_mappa_inviati_e_cestino_da_cartelle_reali(tmp_path, mo
     assert rows["PEC inviata reale"].stato == StatoEmail.LETTA
     assert rows["PEC cestinata reale"].cartella == CartellaEmail.CESTINO
     assert rows["PEC cestinata reale"].stato == StatoEmail.CESTINO
-    assert {"INBOX", "Sent", "Sent Items", "Posta inviata", "Trash", "Deleted Items", "Posta eliminata"}.issubset(set(cartelle_imap_standard()))
+    assert {
+        "INBOX",
+        "Sent",
+        "Sent Items",
+        "Posta inviata",
+        "INBOX/Spedite",
+        "Trash",
+        "Deleted Items",
+        "Posta eliminata",
+        "INBOX/Trash",
+        "INBOX/Draft",
+        "INBOX/Posta Indesiderata",
+    }.issubset(set(cartelle_imap_standard()))
 
 
 def test_sincronizza_imap_usa_uid_stabili_e_non_salta_pec_recenti(tmp_path, monkeypatch):
@@ -526,6 +538,85 @@ def test_sincronizza_imap_migra_riferimenti_legacy_tramite_message_id(tmp_path, 
     assert report["nuove"] == 0
     assert len(rows) == 1
     assert rows["MAIL-LEGACY-42"].uid_imap == "INBOX:UID:142"
+
+
+def test_sincronizza_imap_non_fonde_uid_stabili_con_stesso_message_id(tmp_path, monkeypatch):
+    import pct.email_client as email_runtime
+
+    ge = GestioneEmailRicevute(str(tmp_path / "casella.json"))
+    ge.aggiungi(
+        EmailRicevuta(
+            id="MAIL-UID-10",
+            cartella=CartellaEmail.INBOX,
+            stato=StatoEmail.NON_LETTA,
+            mittente="posta-certificata@pec.legalmail.it",
+            oggetto="CONSEGNA: primo duplicato Legalmail",
+            data="2026-04-29T10:00:00+02:00",
+            corpo_testo="Primo messaggio gia importato.",
+            uid_imap="INBOX:UID:10",
+            message_id="<legalmail-same-id@example.test>",
+        )
+    )
+
+    def _raw_message(uid: str, subject: str) -> bytes:
+        msg = EmailMessage()
+        msg["Subject"] = subject
+        msg["From"] = "posta-certificata@pec.legalmail.it"
+        msg["To"] = "studio@example.pec.it"
+        msg["Date"] = f"Thu, 30 Apr 2026 10:{int(uid):02d}:00 +0200"
+        msg["Message-ID"] = "<legalmail-same-id@example.test>"
+        msg.set_content(f"Messaggio Legalmail con UID stabile {uid}.")
+        return msg.as_bytes()
+
+    messages = {
+        "10": _raw_message("10", "CONSEGNA: primo duplicato Legalmail"),
+        "11": _raw_message("11", "CONSEGNA: secondo duplicato Legalmail"),
+    }
+
+    class _FakeIMAP:
+        def login(self, username, password):
+            return "OK", []
+
+        def select(self, mailbox, readonly=True):
+            return "OK", [b"2"]
+
+        def uid(self, command, *args):
+            if command == "SEARCH":
+                return "OK", [b"10 11"]
+            if command == "FETCH":
+                uid = str(args[0])
+                return "OK", [(f"{uid} (RFC822)".encode(), messages[uid])]
+            return "NO", []
+
+        def search(self, charset, criteria):
+            raise AssertionError("Il sync deve usare UID SEARCH quando disponibile")
+
+        def fetch(self, uid, query):
+            raise AssertionError("Il sync deve usare UID FETCH quando disponibile")
+
+        def logout(self):
+            return "OK", []
+
+    monkeypatch.setattr(email_runtime.imaplib, "IMAP4_SSL", lambda *a, **k: _FakeIMAP())
+
+    report = ge.sincronizza_imap(
+        imap_host="mbox.cert.legalmail.it",
+        imap_port=993,
+        username="studio@example.pec.it",
+        password="segreta",
+        use_ssl=True,
+        cartelle_imap=["INBOX"],
+        limite=10,
+    )
+
+    rows = GestioneEmailRicevute(str(tmp_path / "casella.json"))._carica()
+    uids = {email.uid_imap for email in rows.values()}
+    subjects = {email.oggetto for email in rows.values()}
+
+    assert report["nuove"] == 1
+    assert len(rows) == 2
+    assert {"INBOX:UID:10", "INBOX:UID:11"} == uids
+    assert "CONSEGNA: secondo duplicato Legalmail" in subjects
 
 
 def test_email_dettaglio_visualizza_anche_xml_ed_eml(tmp_path):

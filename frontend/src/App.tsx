@@ -598,7 +598,7 @@ function DashboardPage({ data, loading }:{data:DashboardData; loading:boolean}) 
       <section className="iu-metrics">{data.metrics.map(m=><KpiCard item={m} icon={metricIcon[m.tone] || AlertTriangle} key={m.id}/>)}</section>
       <section className="iu-grid">
         <div className="span3"><Panel title="Ultime PEC ricevute" icon={<Mail size={17}/>} count={data.pec.length}><List rows={data.pec} href="/email/"/><a className="iu-link" href="/email/">Vai alla casella PEC -&gt;</a></Panel></div>
-        <div className="span3"><Panel title="Email recenti" icon={<Mail size={17}/>} count={data.emails.length}><List rows={data.emails} avatar href="/email/"/><a className="iu-link" href="/email/">Vai alla posta -&gt;</a></Panel></div>
+        <div className="span3"><Panel title="Email recenti" icon={<Mail size={17}/>} count={0}><Empty>Nessuna email ordinaria da mostrare.</Empty></Panel></div>
         <div className="span3"><Panel title="Messaggi recenti dai clienti" icon={<MessageCircle size={17}/>} count={data.messages.length}><List rows={data.messages} avatar href="/messaggi"/><a className="iu-link" href="/messaggi">Vai ai messaggi -&gt;</a></Panel></div>
         <div className="span3"><Agenda data={data}/></div>
         <div className="span3"><Completion data={data}/></div>

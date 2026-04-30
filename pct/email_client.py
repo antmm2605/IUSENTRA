@@ -91,6 +91,7 @@ _STATI_PCT_ORDINE = {
 
 _SENT_FOLDER_HINTS = ("sent", "inviat", "posta inviata", "sent items")
 _TRASH_FOLDER_HINTS = ("trash", "deleted", "eliminat", "cestin")
+_DRAFT_FOLDER_HINTS = ("draft", "bozz")
 
 
 def cartelle_imap_standard() -> list[str]:
@@ -101,14 +102,20 @@ def cartelle_imap_standard() -> list[str]:
         "Sent Items",
         "INVIATI",
         "Posta inviata",
+        "INBOX/Spedite",
+        "INBOX/Posta Inviata",
         "INBOX.Sent",
         "INBOX.Sent Items",
         "Trash",
         "Deleted Items",
         "CESTINO",
         "Posta eliminata",
+        "INBOX/Trash",
+        "INBOX/Posta eliminata",
         "INBOX.Trash",
         "INBOX.Deleted Items",
+        "INBOX/Draft",
+        "INBOX/Posta Indesiderata",
     ]
 
 
@@ -118,6 +125,8 @@ def _cartella_interna_da_imap(cartella_imap: str) -> str:
         return CartellaEmail.INVIATI
     if any(hint in raw for hint in _TRASH_FOLDER_HINTS):
         return CartellaEmail.CESTINO
+    if any(hint in raw for hint in _DRAFT_FOLDER_HINTS):
+        return CartellaEmail.BOZZE
     return CartellaEmail.INBOX
 
 
@@ -126,6 +135,8 @@ def _stato_iniziale_da_cartella(cartella_interna: str) -> str:
         return StatoEmail.CESTINO
     if cartella_interna == CartellaEmail.INVIATI:
         return StatoEmail.LETTA
+    if cartella_interna == CartellaEmail.BOZZE:
+        return StatoEmail.BOZZA
     return StatoEmail.NON_LETTA
 
 
@@ -326,6 +337,22 @@ class GestioneEmailRicevute:
             str(em.data or "")[:19],
         )
 
+    @staticmethod
+    def _uid_imap_stabile(uid_imap: str) -> bool:
+        return ":UID:" in str(uid_imap or "").upper()
+
+    @classmethod
+    def _uid_stabile_diverso(cls, candidate: EmailRicevuta, uid_str: str) -> bool:
+        candidate_uid = str(getattr(candidate, "uid_imap", "") or "").strip()
+        current_uid = str(uid_str or "").strip()
+        return bool(
+            candidate_uid
+            and current_uid
+            and candidate_uid != current_uid
+            and cls._uid_imap_stabile(candidate_uid)
+            and cls._uid_imap_stabile(current_uid)
+        )
+
     def _trova_email_esistente(
         self,
         db: Dict[str, EmailRicevuta],
@@ -340,12 +367,16 @@ class GestioneEmailRicevute:
         msg_key = self._message_id_key(parsed.message_id)
         if msg_key:
             for candidate in db.values():
+                if self._uid_stabile_diverso(candidate, uid_str):
+                    continue
                 if self._message_id_key(candidate.message_id) == msg_key:
                     return candidate
 
         fingerprint = self._fingerprint_email(parsed)
         if all(fingerprint):
             for candidate in db.values():
+                if self._uid_stabile_diverso(candidate, uid_str):
+                    continue
                 if self._fingerprint_email(candidate) == fingerprint:
                     return candidate
         return None
@@ -557,7 +588,10 @@ class GestioneEmailRicevute:
         try:
             for cartella_imap in cartelle_imap:
                 try:
-                    status, _ = mail.select(cartella_imap, readonly=True)
+                    try:
+                        status, _ = mail.select(cartella_imap, readonly=True)
+                    except imaplib.IMAP4.error:
+                        continue
                     if status != "OK":
                         continue
 

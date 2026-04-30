@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.198.17 - 2026-04-30
+
+- Corretto l'import PEC Legalmail: messaggi distinti con UID IMAP stabile diverso non vengono piu' fusi solo perche' condividono lo stesso `Message-ID`, mantenendo pero' la migrazione dei vecchi riferimenti non stabili.
+- Estese le cartelle IMAP standard alle nomenclature Legalmail (`INBOX/Spedite`, `INBOX/Trash`, bozze e posta indesiderata) e reso non bloccante il tentativo su cartelle non presenti.
+- La Panoramica React usa una cache breve lato server per rendere piu' rapido il caricamento ripetuto della pagina principale, con refresh forzabile.
+- Il riquadro `Email recenti` resta vuoto e non pubblica piu' PEC: e' riservato alla futura posta ordinaria separata dalla casella PEC.
+
 ## 2.198.16 - 2026-04-30
 
 - Completato il blocco finale della migrazione React per Studio, economico, redazione, ricerca, strumenti, sito studio, notifiche, pagamenti, backup, calendario e amministrazione.

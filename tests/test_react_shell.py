@@ -562,6 +562,8 @@ def test_react_superfici_telematiche_collegate_nav_api_css():
     assert "getTelematicoSurfacePage" in data_source
     assert "/api/v1/ui/telematico/surface/" in data_source
     assert "OfficeDirectory" in page_source
+    assert "SurfaceSidePanels" in page_source
+    assert "iu-tel-tribunali-workspace" in page_source
     assert "Checklist operativa" in page_source
     assert "iu-tel-surface-hero__meta" in page_source
     assert "iu-tel-surface-hero__eyebrow" in page_source
@@ -581,6 +583,8 @@ def test_react_superfici_telematiche_collegate_nav_api_css():
     assert ".iu-tel-surface-hero__meta a" in css
     assert "background:rgba(255,255,255,.16)" in css
     assert ".iu-tel-offices" in css
+    assert ".iu-tel-tribunali-workspace" in css
+    assert "grid-template-columns:minmax(0,1fr) 360px" in css
     assert "@media(max-width:860px)" in css
 
 
@@ -636,6 +640,9 @@ def test_react_superfici_telematiche_api_payload_reale(tmp_path: Path):
     assert tribunali.status_code == 200
     assert tribunali_payload["surface"]["id"] == "tribunali"
     assert tribunali_payload["officeSummary"]["perType"] is not None
+    assert tribunali_payload["officeSummary"]["sources"]
+    assert "PEC di deposito" in tribunali_payload["officeSummary"]["policy"]
+    assert any(row["indirizziTelematici"] for row in tribunali_payload["offices"] if row["pec"])
 
 
 def test_route_importa_pratica_pst_resta_raggiungibile_dalla_nav(tmp_path: Path):

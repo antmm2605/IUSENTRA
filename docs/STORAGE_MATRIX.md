@@ -28,6 +28,7 @@ Legenda:
 | Motori legali | Update Intelligence, news e archivio normativo assistito | R/W | R/W | R/W | parita' completa | Wave 5 - intelligence | repository SQL/PostgreSQL dedicato, JSON solo come export amministrativo |
 | Motori legali | Coverage AI, gap queue, draft v2 e publish SQL | - | R/W | R/W | parita' completa | Wave 5 - intelligence | pipeline SQL reale su `studio.db` o PostgreSQL tenant-aware, senza fallback fittizi |
 | Telematico | PST, PDP, PAT e PTT/SIGIT | R/W | R/W | R/W | parita' completa | Wave 3 - workspace professionali | metadati e repository su SQL/PostgreSQL, file e buste sempre su filesystem tenant |
+| Telematico | Uffici giudiziari e PEC | R/W | R | R | schema governato, runtime cache JSON-first | Wave 3 - workspace professionali | cache JSON esplicita per continuita'; SQL/PostgreSQL predisposti in `pct/sql/20260430_uffici_giudiziari_pec*.sql`, senza fallback invisibile quando verra' attivato il repository tenant-aware |
 | Telematico | SIGP - Giudice di Pace | - | R/W | R/W | snapshot fascicolo e validazione XSD governati | Wave 3 - workspace professionali | sync autorizzata fascicolo/parti/eventi/udienze/documenti/comunicazioni su SQL; file XSD e future buste su filesystem tenant |
 | Cabina intelligente | Workspace intelligence e cockpit | R/W | R/W | R/W | parita' completa | Wave 5 - intelligence | snapshot SQL/PostgreSQL con JSON come export derivato |
 | Piattaforma | Assistenza remota cliente e audit sessioni | - | R/W | R/W | parita' completa | Wave piattaforma | repository SQL/PostgreSQL dedicato, nessun fallback invisibile |
@@ -48,6 +49,7 @@ Legenda:
 - anche `Update Intelligence` e `Coverage AI` rientrano nello stesso programma ufficiale di migrazione, con repository SQL locale e replica PostgreSQL tenant-aware.
 - l'`Assistenza remota cliente` e' un dominio di piattaforma: sessioni, eventi, consensi ed escalation vivono nel repository SQL dedicato e non degradano su JSON.
 - `Sito Studio` usa un repository SQL dedicato per tenant, mentre immagini e asset restano su filesystem tenant-aware; `strumenti legali`, `applicazioni` e `news giuridiche strutturate` vengono pubblicati solo quando il flag amministrativo del sito e' attivo.
+- `Uffici giudiziari e PEC` resta runtime JSON-first per la cache storica degli uffici, ma ora ha schema SQLite/PostgreSQL esplicito e report di verifica con fonti PST/IPA distinte; il cutover R/W SQL richiede repository tenant-aware e job schedulato dedicato.
 
 ## Check di consistenza minimi
 

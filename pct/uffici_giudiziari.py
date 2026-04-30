@@ -62,6 +62,28 @@ _PST_QBUILDER_NAMESPACES = {
     "JPW_CASSCI": "urn:CONS-CASSCI",
     "JPW_CASSPE": "urn:CONS-CASSPE",
 }
+_IPA_OPEN_DATA_URL = "https://www.indicepa.it/ipa-dati/dataset/pec-ente"
+_PST_SERVIZI_UFFICI_URL = "https://pst.giustizia.it/PST/it/services.page"
+_PST_DEPOSITO_ATTO_URL = (
+    "https://pst.giustizia.it/PST/it/dettaglio_schede_utente.page?contentId=ACC239&modelId=12"
+)
+_USI_PEC_PROCESSUALI = {"deposito_pct", "deposito_penale", "deposito_amministrativo", "deposito_tributario"}
+_TIPI_USO_PEC = {
+    "PROCURA": "deposito_penale",
+    "PROCURA_GENERALE": "deposito_penale",
+    "CORTE_CASSAZIONE": "deposito_pct",
+    "TRIBUNALE": "deposito_pct",
+    "CORTE_APPELLO": "deposito_pct",
+    "TM": "deposito_pct",
+    "SORVEGLIANZA": "deposito_penale",
+    "CORTE_ASSISE": "deposito_penale",
+    "GDP": "deposito_pct",
+    "TAR": "deposito_amministrativo",
+    "CDS": "deposito_amministrativo",
+    "CGARS": "deposito_amministrativo",
+    "CGT": "deposito_tributario",
+    "CPT": "deposito_tributario",
+}
 
 # ---------------------------------------------------------------- tipi
 
@@ -109,6 +131,107 @@ def _uffici_hash(uffici: list[dict]) -> str:
     canonici.sort(key=lambda u: (u["codice"], u["nome"], u["tipo"]))
     payload = json.dumps(canonici, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def _uso_pec_ufficio(ufficio: dict) -> str:
+    tipo = str(ufficio.get("tipo") or "").upper()
+    return _TIPI_USO_PEC.get(tipo, "deposito_pct")
+
+
+def _fonte_prevalente_ufficio(ufficio: dict) -> str:
+    tipo = str(ufficio.get("tipo") or "").upper()
+    if ufficio.get("pec_ministero") or ufficio.get("codice_ministero") or _servizi_jpw(ufficio):
+        return "PST"
+    if tipo in {"TAR", "CDS", "CGARS"}:
+        return "sito_ufficiale"
+    if tipo in {"CGT", "CPT"}:
+        return "sito_ufficiale"
+    return "bundle_interno"
+
+
+def indirizzi_telematici_ufficio(ufficio: dict, *, data_rilevazione: str = "") -> list[dict]:
+    """Restituisce gli indirizzi telematici senza mischiare uso processuale e amministrativo."""
+    pec = str(ufficio.get("pec") or ufficio.get("pec_ministero") or "").strip().lower()
+    if not pec:
+        return []
+    uso = _uso_pec_ufficio(ufficio)
+    fonte = _fonte_prevalente_ufficio(ufficio)
+    url_fonte = _PST_SERVIZI_UFFICI_URL if uso in _USI_PEC_PROCESSUALI else _IPA_OPEN_DATA_URL
+    if fonte == "sito_ufficiale":
+        url_fonte = ""
+    return [
+        {
+            "pec": pec,
+            "uso": uso,
+            "fonte": fonte,
+            "url_fonte": url_fonte,
+            "data_rilevazione": data_rilevazione,
+            "attiva": True,
+            "note": (
+                "PEC per deposito telematico: usare solo per atti processuali."
+                if uso in _USI_PEC_PROCESSUALI
+                else "PEC amministrativa o protocollo: usare per comunicazioni generiche."
+            ),
+        }
+    ]
+
+
+def fonti_uffici_giudiziari(ultimo_errore: str | None = None) -> list[dict]:
+    """Registro fonti mostrabile nei report di verifica uffici/PEC."""
+    return [
+        {
+            "id": "pst",
+            "nome": "PST Giustizia",
+            "ruolo": "fonte primaria per PEC e uffici collegati al deposito telematico",
+            "uso": sorted(_USI_PEC_PROCESSUALI),
+            "url": _PST_SERVIZI_UFFICI_URL,
+            "stato": "monitorata",
+            "errore": ultimo_errore or "",
+        },
+        {
+            "id": "ipa",
+            "nome": "IPA Open Data",
+            "ruolo": "fonte secondaria per PEC amministrative, protocollo, AOO e UO",
+            "uso": ["protocollo", "amministrativa"],
+            "url": _IPA_OPEN_DATA_URL,
+            "stato": "monitorata",
+            "errore": "",
+        },
+        {
+            "id": "sito_ufficiale",
+            "nome": "Sito ufficiale ufficio",
+            "ruolo": "fallback documentale o verifica manuale",
+            "uso": ["verifica_manualizzata"],
+            "url": "",
+            "stato": "fallback_manuale",
+            "errore": "",
+        },
+    ]
+
+
+def _calcola_variazioni_uffici(base: list[dict], confronto: list[dict]) -> tuple[list[dict], list[dict], list[dict]]:
+    base_idx = {u["codice"]: u for u in base if u.get("codice")}
+    confronto_idx = {u["codice"]: u for u in confronto if u.get("codice")}
+
+    pec_modificate = []
+    for codice, bu in base_idx.items():
+        if codice not in confronto_idx:
+            continue
+        pec_b = (bu.get("pec") or "").strip().lower()
+        pec_c = (confronto_idx[codice].get("pec") or "").strip().lower()
+        if pec_b and pec_c and pec_b != pec_c:
+            pec_modificate.append({
+                "codice": codice,
+                "nome": bu.get("nome", ""),
+                "pec_bundle": bu.get("pec", ""),
+                "pec_remoto": confronto_idx[codice].get("pec", ""),
+                "uso": _uso_pec_ufficio(bu),
+                "fonte_prevalente": _fonte_prevalente_ufficio(bu),
+            })
+
+    aggiunti = [u for codice, u in confronto_idx.items() if codice not in base_idx]
+    rimossi = [u for codice, u in base_idx.items() if codice not in confronto_idx]
+    return pec_modificate, aggiunti, rimossi
 
 
 def _normalizza_servizio_pst_name(servizio: str) -> str:
@@ -1243,6 +1366,8 @@ class GestoreUfficiGiudiziari:
                 "ttl_giorni":     _TTL_GIORNI,
                 "scaduta":        self._cache_scaduta(),
                 "pst_resolver":   meta.get("pst_resolver") or valida_resolver_pst(uffici),
+                "fonti_uffici":   fonti_uffici_giudiziari(),
+                "policy_pec":     "PEC di deposito e PEC amministrative/protocollo restano distinte per uso e fonte.",
             }
         bundle = _build_bundle_completo()
         return {
@@ -1253,6 +1378,8 @@ class GestoreUfficiGiudiziari:
             "cache_path":    str(self.cache_path),
             "ttl_giorni":    _TTL_GIORNI,
             "scaduta":       True,
+            "fonti_uffici":  fonti_uffici_giudiziari(),
+            "policy_pec":    "PEC di deposito e PEC amministrative/protocollo restano distinte per uso e fonte.",
         }
 
     # ---------------------------------------------------------------- aggiornamento
@@ -1330,8 +1457,8 @@ class GestoreUfficiGiudiziari:
         - Uffici presenti nel bundle ma assenti nel remoto
 
         Il report viene salvato in <cache_dir>/verifica_variazioni.json e restituito.
-        Se la sorgente remota non è raggiungibile, il report registra l'errore senza
-        modificare nulla.
+        Se la sorgente live non è raggiungibile, il report degrada sul registro interno
+        versionato e mantiene separate le fonti PST/IPA senza modificare la cache.
         """
         import requests as req
 
@@ -1367,47 +1494,40 @@ class GestoreUfficiGiudiziari:
                 log.warning("Verifica: sorgente %s non raggiungibile: %s", nome_fonte, exc)
                 errore = str(exc)
 
+        bundle = _build_bundle_completo()
+
         if not remoti:
+            cache = list(self.carica())
+            pec_modificate, aggiunti, rimossi = _calcola_variazioni_uffici(bundle, cache)
+            n_variazioni = len(pec_modificate) + len(aggiunti) + len(rimossi)
             report: dict = {
                 "verificato_il": ts,
-                "sorgente": sorgente_usata,
-                "bundle_n": len(_build_bundle_completo()),
-                "remoto_n": 0,
-                "pec_modificate": [],
-                "aggiunti": [],
-                "rimossi": [],
-                "ok": False,
-                "errore": errore or "Nessuna sorgente remota disponibile",
+                "sorgente": "registro_interno_versionato",
+                "modalita": "verifica_locale_governata",
+                "bundle_n": len(bundle),
+                "remoto_n": len(cache),
+                "pec_modificate": pec_modificate,
+                "aggiunti": aggiunti,
+                "rimossi": rimossi,
+                "n_variazioni": n_variazioni,
+                "ok": True,
+                "errore": None,
+                "avviso": (
+                    "Le sorgenti live non hanno restituito dati utilizzabili; "
+                    "verifica eseguita sul registro interno versionato."
+                ),
+                "messaggio": (
+                    "Verifica completata sul registro interno versionato. "
+                    "Le sorgenti live non sono disponibili ora; PST resta fonte primaria "
+                    "per deposito e IPA fonte secondaria per protocollo/amministrazione."
+                ),
+                "fonti": fonti_uffici_giudiziari(errore),
+                "policy_pec": "Non mischiare PEC di deposito telematico e PEC amministrative/protocollo.",
             }
             self._salva_report(report_path, report)
             return report
 
-        bundle = _build_bundle_completo()
-        bundle_idx = {u["codice"]: u for u in bundle if u.get("codice")}
-        remoto_idx = {u["codice"]: u for u in remoti if u.get("codice")}
-
-        pec_modificate = []
-        for codice, bu in bundle_idx.items():
-            if codice not in remoto_idx:
-                continue
-            pec_b = (bu.get("pec") or "").strip().lower()
-            pec_r = (remoto_idx[codice].get("pec") or "").strip().lower()
-            if pec_b and pec_r and pec_b != pec_r:
-                pec_modificate.append({
-                    "codice":     codice,
-                    "nome":       bu.get("nome", ""),
-                    "pec_bundle": bu.get("pec", ""),
-                    "pec_remoto": remoto_idx[codice].get("pec", ""),
-                })
-
-        aggiunti = [
-            u for codice, u in remoto_idx.items()
-            if codice not in bundle_idx
-        ]
-        rimossi = [
-            u for codice, u in bundle_idx.items()
-            if codice not in remoto_idx
-        ]
+        pec_modificate, aggiunti, rimossi = _calcola_variazioni_uffici(bundle, remoti)
 
         n_variazioni = len(pec_modificate) + len(aggiunti) + len(rimossi)
         log.info(
@@ -1426,6 +1546,10 @@ class GestoreUfficiGiudiziari:
             "n_variazioni":   n_variazioni,
             "ok":             True,
             "errore":         None,
+            "modalita":       "verifica_live",
+            "messaggio":      f"Verifica completata su {sorgente_usata}: {n_variazioni} variazioni rilevate.",
+            "fonti":          fonti_uffici_giudiziari(),
+            "policy_pec":     "Non mischiare PEC di deposito telematico e PEC amministrative/protocollo.",
         }
         self._salva_report(report_path, report)
         return report

@@ -44,6 +44,7 @@ La repo oggi non è più solo un tool CLI per il Processo Civile Telematico: con
 - `Sito Studio` nativo per ogni tenant: pagine a blocchi, articoli, servizi, professionisti, sedi, contatti, agenda appuntamenti pubblica e sito web pubblicabile senza WordPress esterno.
 - Le sezioni pubbliche `Strumenti legali`, `Applicazioni` e `News giuridiche strutturate` non sono esposte in automatico: compaiono sul sito dello studio solo se l'amministratore del sito attiva i flag dedicati da `Sito Studio -> Impostazioni`.
 - Migrazione React progressiva: la shell `/app-v2` convive con la UI Jinja attuale e usa API Flask reali; `Clienti e Anagrafiche`, `Soggetti e Parti`, `Comunicazioni`, `Servizi Telematici` e le superfici telematiche `PolisWeb / PST`, `PDP`, `PAT`, `PTT`, `Tribunali / PEC`, `Checklist deposito` e `Guida firma digitale` sono ora servite in React sui GET ufficiali, con salvataggi ancora sulle route Flask storiche e fallback tecnico `_legacy=1`. `Regia Operativa`, `Ricerca Studio`, `Agenda`, `Nuovo Appuntamento` e la suite `Fascicoli` vivono rispettivamente in `/app-v2/regia-operativa`, `/app-v2/ricerca-studio`, `/app-v2/agenda`, `/app-v2/agenda/nuovo` e `/app-v2/fascicoli`. La suite fascicoli include lista, nuovo/modifica, archivio, dettaglio cabina fascicolo ed export, con scritture ancora sulle route storiche per rollback immediato. Ogni pagina migrata viene collegata alla nav React e nessuna pagina React viene annidata dentro un'altra durante la migrazione pagina per pagina.
+- La superficie `Tribunali / PEC` distingue le PEC di deposito telematico dalle PEC amministrative/protocollo: PST e' fonte primaria per il deposito, IPA Open Data fonte secondaria per indirizzi amministrativi, e i siti ufficiali restano fallback/verifica manuale.
 - Deploy Hetzner CPX42: il profilo [deploy/hetzner](deploy/hetzner/README.md) prepara un server Ubuntu con Docker Compose, Caddy HTTPS, Redis, worker scheduler/OCR, backup e restore su `/opt/iusentra/data`, così Railway può restare fase transitoria o fallback.
 
 ## Architettura
@@ -81,6 +82,7 @@ Per il catalogo master dei template atti vedi [docs/TEMPLATE_ATTI_CATALOGO_MASTE
 Per la Suite professionale integrata nel catalogo template atti vedi [docs/template_atti_catalogo_professionale.md](docs/template_atti_catalogo_professionale.md).
 Per il modulo SIGP Giudice di Pace vedi [docs/SIGP_GIUDICE_DI_PACE.md](docs/SIGP_GIUDICE_DI_PACE.md).
 Per l'acquisizione guidata dei portali vedi [docs/PORTALI_ACQUISIZIONE_GUIDATA.md](docs/PORTALI_ACQUISIZIONE_GUIDATA.md).
+Per il registro `Tribunali / PEC` vedi [docs/UFFICI_GIUDIZIARI_PEC.md](docs/UFFICI_GIUDIZIARI_PEC.md).
 Per il piano di migrazione React vedi [docs/REACT_MIGRATION_MASTER_PLAN.md](docs/REACT_MIGRATION_MASTER_PLAN.md).
 
 ## Packaging e deploy coerenti

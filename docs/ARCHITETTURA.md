@@ -207,6 +207,7 @@ Questo mantiene coerenti compose locale, container web e logica di risoluzione r
 5. risposta Lex solo sopra stato e regole già verificate
 
 6. superfici React di canale via `/api/v1/ui/telematico/surface/<surface>`, con GET ufficiali React e fallback tecnico `_legacy=1`
+7. registro `Tribunali / PEC` con fonti PST/IPA distinte, verifica live o locale governata e schema SQL/PostgreSQL in `pct/sql/20260430_uffici_giudiziari_pec*.sql`
 
 ### Giurisprudenza
 

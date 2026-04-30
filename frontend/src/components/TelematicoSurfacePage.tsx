@@ -357,6 +357,17 @@ function LinksPanel({ data }:{ data:TelematicoSurfaceData }) {
   )
 }
 
+function SurfaceSidePanels({ data }:{ data:TelematicoSurfaceData }) {
+  return (
+    <>
+      <ControlList title="Esiti in attesa" items={data.controlTower.pendingOutcomes} empty="Nessun esito in attesa."/>
+      <ControlList title="Import incompleti" items={data.controlTower.incompleteImports} empty="Nessun import incompleto."/>
+      <ControlList title="Controlli predeposito" items={[...data.controlTower.blockedCases, ...data.controlTower.predeposito]} empty="Nessun blocco predeposito."/>
+      <LinksPanel data={data}/>
+    </>
+  )
+}
+
 function LexPanel({ data }:{ data:TelematicoSurfaceData }) {
   return (
     <Panel title="Suggerimenti Lex AI" icon={<Sparkles size={17}/>} count={data.lexSuggestions.length}>
@@ -454,20 +465,24 @@ export function TelematicoSurfacePage() {
         {data.operationCards.map((card) => <OperationCard card={card} onPost={postAction} key={card.id}/>)}
       </section>
 
-      {data.surface.id === 'tribunali' ? <OfficeDirectory data={data}/> : null}
-
-      <section className="iu-tel-surface-grid">
-        <div className="iu-tel-surface-main">
-          <ChecklistPanel groups={data.checklistGroups} surfaceId={data.surface.id}/>
-          {data.surface.id !== 'tribunali' ? <CasesPanel data={data}/> : null}
-        </div>
-        <aside>
-          <ControlList title="Esiti in attesa" items={data.controlTower.pendingOutcomes} empty="Nessun esito in attesa."/>
-          <ControlList title="Import incompleti" items={data.controlTower.incompleteImports} empty="Nessun import incompleto."/>
-          <ControlList title="Controlli predeposito" items={[...data.controlTower.blockedCases, ...data.controlTower.predeposito]} empty="Nessun blocco predeposito."/>
-          <LinksPanel data={data}/>
-        </aside>
-      </section>
+      {data.surface.id === 'tribunali' ? (
+        <section className="iu-tel-tribunali-workspace">
+          <OfficeDirectory data={data}/>
+          <aside className="iu-tel-tribunali-side">
+            <SurfaceSidePanels data={data}/>
+          </aside>
+        </section>
+      ) : (
+        <section className="iu-tel-surface-grid">
+          <div className="iu-tel-surface-main">
+            <ChecklistPanel groups={data.checklistGroups} surfaceId={data.surface.id}/>
+            <CasesPanel data={data}/>
+          </div>
+          <aside>
+            <SurfaceSidePanels data={data}/>
+          </aside>
+        </section>
+      )}
 
       <section className="iu-tel-surface-bottom">
         <EventsPanel data={data}/>

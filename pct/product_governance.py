@@ -290,6 +290,32 @@ STORAGE_PARITY_REGISTRY: tuple[StorageParityEntry, ...] = (
         test_refs=("tests/test_polisweb.py", "tests/test_simulazione_deposito.py"),
     ),
     StorageParityEntry(
+        module_id="uffici_giudiziari_pec",
+        domain="Telematico",
+        label="Uffici giudiziari e PEC",
+        source_of_truth="GestoreUfficiGiudiziari JSON cache + schema uffici/PEC governato",
+        json_read=True,
+        json_write=True,
+        sqlite_read=True,
+        sqlite_write=False,
+        postgres_read=True,
+        postgres_write=False,
+        parity_note=(
+            "Schema SQLite/PostgreSQL disponibile per uffici, indirizzi telematici, "
+            "verifiche e variazioni; runtime ancora JSON-first fino al repository tenant-aware."
+        ),
+        migration_wave="Wave 3 - workspace professionali",
+        fallback_mode=(
+            "Cache JSON dichiarata come runtime legacy; nessun fallback invisibile quando "
+            "verra' attivato il repository SQL/PostgreSQL."
+        ),
+        consistency_checks=(
+            "PEC di deposito e PEC amministrative/protocollo restano distinte per uso e fonte.",
+            "Report verifica registra sorgente, modalita' e variazioni rilevate.",
+        ),
+        test_refs=("tests/test_reginde.py", "tests/test_react_shell.py"),
+    ),
+    StorageParityEntry(
         module_id="workspace_intelligence",
         domain="Cabina intelligente",
         label="Workspace intelligence e cockpit operativi",

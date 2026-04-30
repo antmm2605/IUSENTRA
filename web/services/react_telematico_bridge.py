@@ -788,7 +788,7 @@ def build_react_tribunali_payload() -> dict[str, Any]:
 
     from collections import Counter
 
-    from pct.uffici_giudiziari import get_gestore
+    from pct.uffici_giudiziari import get_gestore, indirizzi_telematici_ufficio
 
     gestore = get_gestore()
     uffici = list(gestore.carica())
@@ -807,6 +807,10 @@ def build_react_tribunali_payload() -> dict[str, Any]:
                 "regione": _office_text(row, "regione_ministero", "regione"),
                 "provincia": _office_text(row, "provincia_ministero", "provincia"),
                 "comune": _office_text(row, "comune_ministero", "comune"),
+                "indirizziTelematici": indirizzi_telematici_ufficio(
+                    row,
+                    data_rilevazione=str(stato.get("aggiornato_il") or ""),
+                ),
             }
         )
     pec_count = sum(1 for item in offices if item["pec"])
@@ -912,6 +916,8 @@ def build_react_tribunali_payload() -> dict[str, Any]:
             "cachePath": stato.get("cache_path", ""),
             "expired": bool(stato.get("scaduta")),
             "perType": dict(sorted(per_tipo.items())),
+            "sources": stato.get("fonti_uffici", []),
+            "policy": stato.get("policy_pec", ""),
         },
     }
 

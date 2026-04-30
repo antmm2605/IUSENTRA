@@ -7,6 +7,8 @@ from pct.uffici_giudiziari import (
     GestoreUfficiGiudiziari,
     _build_bundle_completo,
     _uffici_hash,
+    fonti_uffici_giudiziari,
+    indirizzi_telematici_ufficio,
     risolvi_codice_ministero,
     risolvi_base_pst,
     risolvi_servizio_pst,
@@ -260,3 +262,43 @@ def test_gestore_cerca_supporta_cgarsi():
 
     assert risultati
     assert all(item["tipo"] == "CGARS" for item in risultati)
+
+
+def test_indirizzi_telematici_distinguono_uso_e_fonte():
+    tribunale = risolvi_ufficio("0580010")
+    procura = risolvi_ufficio("0580010".replace("0580010", "0581010")) or {
+        "tipo": "PROCURA",
+        "nome": "Procura della Repubblica di Milano",
+        "pec": "procura.milano@giustiziapec.it",
+        "codice": "0581010",
+    }
+
+    indirizzi_tribunale = indirizzi_telematici_ufficio(tribunale, data_rilevazione="2026-04-30T12:00:00")
+    indirizzi_procura = indirizzi_telematici_ufficio(procura, data_rilevazione="2026-04-30T12:00:00")
+
+    assert indirizzi_tribunale[0]["uso"] == "deposito_pct"
+    assert indirizzi_tribunale[0]["fonte"] == "PST"
+    assert indirizzi_procura[0]["uso"] == "deposito_penale"
+    assert "deposito telematico" in indirizzi_tribunale[0]["note"]
+    assert {fonte["id"] for fonte in fonti_uffici_giudiziari()} == {"pst", "ipa", "sito_ufficiale"}
+
+
+def test_verifica_variazioni_degrada_su_registro_interno_senza_errore_remoto(tmp_path, monkeypatch):
+    import requests
+
+    def _raise_unreachable(*args, **kwargs):
+        raise requests.RequestException("rete non disponibile")
+
+    monkeypatch.setattr(requests, "get", _raise_unreachable)
+    cache_path = tmp_path / "uffici" / "uffici_giudiziari.json"
+
+    report = GestoreUfficiGiudiziari(str(cache_path)).verifica_variazioni()
+
+    assert report["ok"] is True
+    assert report["modalita"] == "verifica_locale_governata"
+    assert report["sorgente"] == "registro_interno_versionato"
+    assert report["errore"] is None
+    assert "Nessuna sorgente remota disponibile" not in report["messaggio"]
+    assert "PST" in report["messaggio"]
+    assert "IPA" in report["messaggio"]
+    assert report["fonti"]

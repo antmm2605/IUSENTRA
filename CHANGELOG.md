@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.198.11 - 2026-04-30
+
+- Ridisegnata la superficie React `Tribunali / PEC`: l'elenco `Tribunali e indirizzi PEC` e' ora un pannello scrollabile affiancato alle card `Esiti in attesa`, `Import incompleti`, `Controlli predeposito` e `Collegamenti rapidi`, con altezza coordinata e layout responsive.
+- Corretto `Esegui verifica`: quando la sorgente live non restituisce dati utilizzabili, il report usa il registro interno versionato e mostra un esito governato invece del messaggio bloccante `Nessuna sorgente remota disponibile`.
+- Introdotta la distinzione strutturata fra PEC di deposito telematico e PEC amministrative/protocollo, con fonti PST/IPA/sito ufficiale, policy nel payload React e metadati `indirizziTelematici` per ogni ufficio con PEC censita.
+- Aggiunti schema SQLite/PostgreSQL e documentazione del modulo `Uffici giudiziari e PEC`, inclusa la matrice storage JSON/SQLite/PostgreSQL e i test di regressione su UI, payload e verifica fallback.
+
 ## 2.198.10 - 2026-04-30
 
 - Ripristinata la visibilita' operativa di `Importa pratica da PST` nella superficie React `PolisWeb / PST`: la prima card e l'azione rapida puntano di nuovo al wizard reale `/portali/pst/acquisizione`.

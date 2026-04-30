@@ -27,7 +27,26 @@ def test_storage_parity_payload_mostra_domini_e_stato_postgres():
     assert payload["summary"]["fallback_ready"] >= 5
     assert any(row["module_id"] == "auth_audit" for row in payload["rows"])
     assert any(row["module_id"] == "telematico" for row in payload["rows"])
+    uffici_row = next(row for row in payload["rows"] if row["module_id"] == "uffici_giudiziari_pec")
+    assert uffici_row["sqlite_mode"] == "R"
+    assert uffici_row["postgres_mode"] == "R"
+    assert "PEC di deposito" in " ".join(uffici_row["consistency_checks"])
     assert all("postgres_parity" in row for row in payload["rows"])
+
+
+def test_schema_uffici_giudiziari_pec_presidia_sqlite_e_postgres():
+    sqlite_schema = Path("pct/sql/20260430_uffici_giudiziari_pec.sql").read_text(encoding="utf-8")
+    postgres_schema = Path("pct/sql/20260430_uffici_giudiziari_pec_postgres.sql").read_text(encoding="utf-8")
+
+    for schema in (sqlite_schema, postgres_schema):
+        assert "CREATE TABLE IF NOT EXISTS uffici_giudiziari" in schema
+        assert "CREATE TABLE IF NOT EXISTS indirizzi_telematici" in schema
+        assert "uffici_giudiziari_verifiche" in schema
+        assert "uffici_giudiziari_variazioni" in schema
+        assert "'deposito_pct'" in schema
+        assert "'protocollo'" in schema
+        assert "'PST'" in schema
+        assert "'IPA'" in schema
 
 
 def test_programma_migrazione_formalizza_fasi_e_fallback():

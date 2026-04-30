@@ -14,7 +14,12 @@ from pct.fascicoli import EsitoAttivita, StatoFascicolo, TipoAttivita, TipoDocum
 from pct.reginde import ClientReGINde
 from pct.soggetti import RuoloSoggetto
 from pct.workflow_pipeline import build_fascicolo_workflow_pipeline
+from web.blueprints.react_shell import render_react_shell_response
 from web.services.telematico_document_catalog import sync_official_catalog_on_fascicolo
+
+
+def _richiede_vista_classica() -> bool:
+    return (request.args.get("_legacy") or "").strip().lower() in {"1", "true", "si", "yes", "on"}
 
 
 def register_fascicoli_core_routes(
@@ -55,6 +60,9 @@ def register_fascicoli_core_routes(
 
     @app.route("/fascicoli")
     def lista_fascicoli():
+        if not _richiede_vista_classica():
+            return render_react_shell_response("fascicoli")
+
         gestore_fascicoli = get_fascicoli()
         testo = request.args.get("q", "").strip()
         stato_filtro = request.args.get("stato", "")
@@ -90,6 +98,9 @@ def register_fascicoli_core_routes(
 
     @app.route("/fascicoli/archivio")
     def lista_archivio():
+        if not _richiede_vista_classica():
+            return render_react_shell_response("fascicoli/archivio")
+
         testo = request.args.get("q", "").strip()
         fascicoli = get_fascicoli().cerca(
             testo=testo,
@@ -98,6 +109,12 @@ def register_fascicoli_core_routes(
         )
         return render_template("fascicoli/archivio.html", fascicoli=fascicoli, q=testo)
 
+    @app.route("/fascicoli/esporta")
+    def esporta_fascicoli_view():
+        if not _richiede_vista_classica():
+            return render_react_shell_response("fascicoli/esporta")
+        return redirect(url_for("lista_fascicoli"))
+
     @app.route("/fascicoli/nuovo", methods=["GET", "POST"])
     def nuovo_fascicolo():
         from pct.workflow_onboarding import build_fascicolo_onboarding
@@ -105,6 +122,9 @@ def register_fascicoli_core_routes(
         gestore_clienti = get_clienti()
         gestore_fascicoli = get_fascicoli()
         gestore_preventivi = get_preventivi()
+        if request.method == "GET" and not _richiede_vista_classica():
+            return render_react_shell_response("fascicoli/nuovo")
+
         if request.method == "POST":
             form = request.form
             id_cliente = form.get("id_cliente", "")
@@ -218,6 +238,9 @@ def register_fascicoli_core_routes(
 
     @app.route("/fascicoli/<id_fasc>")
     def dettaglio_fascicolo(id_fasc: str):
+        if not _richiede_vista_classica():
+            return render_react_shell_response(f"fascicoli/{id_fasc}")
+
         from pct.checklist_atti import TUTTI_I_TEMPLATE
 
         gestore_fascicoli = get_fascicoli()

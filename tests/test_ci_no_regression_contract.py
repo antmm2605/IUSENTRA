@@ -28,7 +28,7 @@ def test_ci_keeps_core_and_coverage_gates() -> None:
     thresholds = [int(value) for value in re.findall(r"--cov-fail-under=(\d+)", workflow)]
     assert thresholds
     assert max(thresholds) >= 100
-    assert any(value >= 70 for value in thresholds)
+    assert any(value >= 71 for value in thresholds)
 
 
 def test_agents_documents_ci_no_regression_rule() -> None:
@@ -38,6 +38,7 @@ def test_agents_documents_ci_no_regression_rule() -> None:
         "Pytest core",
         "Coverage moduli critici",
         "Gate anti-regressione al 100%",
+        "71,49%",
         "release-blocking",
     )
     for snippet in required:

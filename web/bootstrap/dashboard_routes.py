@@ -1,16 +1,17 @@
 """Dashboard and agenda routes extracted from web.app."""
-
 from __future__ import annotations
 
 from collections.abc import Callable
 from datetime import date, datetime, timedelta
-
 from flask import Flask, flash, jsonify, redirect, render_template, request, url_for, g
-
 from pct.agenda import Agenda, StatoAppuntamento, TipoAppuntamento
 from pct.economic_dashboard import build_studio_economic_dashboard
 from pct.studio_demo import build_studio_demo_snapshot
+from web.blueprints.react_shell import render_react_shell_response
 
+
+def _richiede_vista_classica() -> bool:
+    return (request.args.get("_legacy") or "").strip().lower() in {"1", "true", "si", "yes", "on"}
 
 def register_dashboard_routes(
     app: Flask,
@@ -31,9 +32,10 @@ def register_dashboard_routes(
     track_recente: Callable[[str, str, str, str, str], None],
 ) -> None:
     """Register dashboard, agenda, calendar import, and agenda API routes."""
-
     @app.route("/")
     def dashboard():
+        if not _richiede_vista_classica():
+            return render_react_shell_response("")
         agenda = get_agenda()
         oggi = date.today()
         apps_oggi = agenda.per_giorno(oggi)
@@ -111,9 +113,10 @@ def register_dashboard_routes(
             economic_overview=economic_overview,
             studio_demo_snapshot=studio_demo_snapshot,
         )
-
     @app.route("/agenda")
     def agenda_view():
+        if not _richiede_vista_classica():
+            return render_react_shell_response("agenda")
         agenda = get_agenda()
         vista = request.args.get("vista", "settimana")
         oggi = date.today()
@@ -125,14 +128,12 @@ def register_dashboard_routes(
             return render_template(
                 "agenda.html",
                 vista=vista,
-                apps=apps,
-                giorno=giorno,
-                offset=offset,
-            )
-
+            apps=apps,
+            giorno=giorno,
+            offset=offset,
+        )
         if vista == "mese":
             import calendar
-
             anno = oggi.year
             mese = oggi.month + offset
             while mese > 12:
@@ -157,7 +158,6 @@ def register_dashboard_routes(
                 offset=offset,
                 nomi_mesi=["", "Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno", "Luglio", "Agosto", "Settembre", "Ottobre", "Novembre", "Dicembre"],
             )
-
         inizio = oggi + timedelta(weeks=offset) - timedelta(days=oggi.weekday())
         fine = inizio + timedelta(days=6)
         apps = agenda.per_settimana(inizio)
@@ -173,9 +173,10 @@ def register_dashboard_routes(
             fine=fine,
             offset=offset,
         )
-
     @app.route("/agenda/nuovo", methods=["GET", "POST"])
     def nuovo_appuntamento():
+        if request.method == "GET" and not _richiede_vista_classica():
+            return render_react_shell_response("agenda/nuovo")
         if request.method == "POST":
             agenda = get_agenda()
             data = request.form.get("data", "")

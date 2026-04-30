@@ -658,7 +658,7 @@ function QualityRail({ data, activeTab }:{data: ClientiNuovoData; activeTab: Tab
         <div className="iu-cln-shortcuts">
           <a href="/clienti"><UsersRound size={15}/>Anagrafica clienti</a>
           <a href="/soggetti"><UserCheck size={15}/>Soggetti e parti</a>
-          <a href="/app-v2/ricerca-studio?tipo=clienti"><ScanLine size={15}/>Cerca duplicati</a>
+          <a href="/global-search?tipo=clienti"><ScanLine size={15}/>Cerca duplicati</a>
           <a href="/preventivi/"><CreditCard size={15}/>Preventivi e incarichi</a>
         </div>
       </Panel>
@@ -735,7 +735,7 @@ export function NuovoClientePage() {
         body="Posso controllare dati minimi, suggerire ruolo processuale, verificare recapiti mancanti e preparare il passaggio a preventivo, fascicolo o conferimento."
         primaryHref={`/lex?context=${tab === 'cliente' ? 'nuovo-cliente' : 'nuovo-soggetto'}`}
         primaryLabel="Apri Lex anagrafica"
-        secondaryHref="/app-v2/ricerca-studio?tipo=clienti"
+        secondaryHref="/global-search?tipo=clienti"
         secondaryLabel="Cerca duplicati"
       />
     </main>

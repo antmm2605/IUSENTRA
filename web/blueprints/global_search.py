@@ -22,8 +22,13 @@ from web.helpers import (
     get_soggetti,
     tenant_corrente,
 )
+from web.blueprints.react_shell import render_react_shell_response
 
 global_search = Blueprint("global_search", __name__)
+
+
+def _richiede_vista_classica() -> bool:
+    return (request.args.get("_legacy") or "").strip().lower() in {"1", "true", "si", "yes", "on"}
 
 
 def _richiedi_login(fn):
@@ -113,6 +118,9 @@ def _types_from_request() -> list[str] | None:
 @global_search.get("/global-search")
 @_richiedi_login
 def index():
+    if not _richiede_vista_classica():
+        return render_react_shell_response("ricerca-studio")
+
     q = request.args.get("q", "").strip()
     active_type = request.args.get("type", "tutto").strip() or "tutto"
     service = _service()

@@ -12,7 +12,12 @@ from typing import Any
 from flask import Flask, flash, jsonify, redirect, render_template, request, send_file, session, url_for
 
 from pct.fascicoli import StatoFascicolo, TipoFascicolo
+from web.blueprints.react_shell import render_react_shell_response
 from web.services.fascicoli_management_runtime import build_quadro_fascicolo_context
+
+
+def _richiede_vista_classica() -> bool:
+    return (request.args.get("_legacy") or "").strip().lower() in {"1", "true", "si", "yes", "on"}
 
 
 def register_fascicoli_management_routes(
@@ -62,6 +67,9 @@ def register_fascicoli_management_routes(
 
     @app.route("/fascicoli/<id_fasc>/quadro")
     def quadro_fascicolo(id_fasc: str):
+        if not _richiede_vista_classica():
+            return render_react_shell_response(f"fascicoli/{id_fasc}/quadro")
+
         gf = get_fascicoli()
         gc = get_clienti()
         fascicolo = gf.get(id_fasc)
@@ -91,6 +99,9 @@ def register_fascicoli_management_routes(
 
     @app.route("/fascicoli/<id_fasc>/modifica", methods=["GET", "POST"])
     def modifica_fascicolo(id_fasc: str):
+        if request.method == "GET" and not _richiede_vista_classica():
+            return render_react_shell_response(f"fascicoli/{id_fasc}/modifica")
+
         gf = get_fascicoli()
         gc = get_clienti()
         fascicolo = gf.get(id_fasc)

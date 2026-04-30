@@ -409,7 +409,7 @@ jobs:
             --cov-config=config/coverage-critical.ini \
             --cov-report=term-missing \
             --cov-report=xml \
-            --cov-fail-under=70
+            --cov-fail-under=71
 
   e2e-smoke:
     name: E2E smoke

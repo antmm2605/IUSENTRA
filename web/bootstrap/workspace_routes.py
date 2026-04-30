@@ -6,6 +6,12 @@ from collections.abc import Callable
 
 from flask import Flask, jsonify, render_template, request
 
+from web.blueprints.react_shell import render_react_shell_response
+
+
+def _richiede_vista_classica() -> bool:
+    return (request.args.get("_legacy") or "").strip().lower() in {"1", "true", "si", "yes", "on"}
+
 
 def register_workspace_routes(
     app: Flask,
@@ -17,6 +23,9 @@ def register_workspace_routes(
 
     @app.route("/workspace-intelligente")
     def workspace_intelligente():
+        if not _richiede_vista_classica():
+            return render_react_shell_response("regia-operativa")
+
         try:
             horizon_days = max(int(request.args.get("giorni", 14) or 14), 1)
         except ValueError:

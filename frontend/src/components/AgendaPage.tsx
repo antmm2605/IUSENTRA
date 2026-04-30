@@ -91,7 +91,7 @@ function Kpi({ icon, label, value, note }:{icon:ReactNode; label:string; value:s
 
 function createAppointmentHref(dayIso: string, time = '09:00'): string {
   const params = new URLSearchParams({ data: dayIso, ora: time })
-  return `/app-v2/agenda/nuovo?${params.toString()}`
+  return `/agenda/nuovo?${params.toString()}`
 }
 
 function localDateTimePayload(value: string): string {
@@ -235,7 +235,7 @@ function AgendaInspector({ events, nextEvent, unsynced }:{events:AgendaEvent[]; 
             </article>
           ) : <p className="iu-empty">Nessun impegno imminente.</p>}
           <div className="iu-ag-quick-actions">
-            <Button variant="primary" href="/app-v2/agenda/nuovo"><CalendarPlus size={15}/> Nuovo</Button>
+            <Button variant="primary" href="/agenda/nuovo"><CalendarPlus size={15}/> Nuovo</Button>
             <Button href="/impostazioni/calendario"><CalendarSync size={15}/> Calendari</Button>
           </div>
         </div>
@@ -358,9 +358,9 @@ export function AgendaPage() {
           <p>Appuntamenti, udienze, scadenze, sincronizzazioni e priorita dello studio in una vista unica.</p>
         </div>
         <div className="iu-ag-hero__actions">
-          <Button href="/app-v2/regia-operativa"><Sparkles size={15}/> Regia</Button>
+          <Button href="/workspace-intelligente"><Sparkles size={15}/> Regia</Button>
           <Button href="/impostazioni/calendario"><CalendarSync size={15}/> Calendari</Button>
-          <Button variant="primary" href="/app-v2/agenda/nuovo"><Plus size={16}/> Nuovo appuntamento</Button>
+          <Button variant="primary" href="/agenda/nuovo"><Plus size={16}/> Nuovo appuntamento</Button>
         </div>
       </section>
 

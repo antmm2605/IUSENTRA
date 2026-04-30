@@ -178,7 +178,7 @@ export function MessaggiPage() {
     if (channel) params.set('canale', channel)
     if (status) params.set('stato', status)
     const suffix = params.toString() ? `?${params.toString()}` : ''
-    window.location.href = `/app-v2/messaggi${suffix}`
+    window.location.href = `/messaggi${suffix}`
   }
 
   return (
@@ -208,7 +208,7 @@ export function MessaggiPage() {
               {data.facets.statuses.map((option) => <option value={option.value} key={`stato-${option.value || 'all'}`}>{option.label}{option.count !== undefined ? ` (${option.count})` : ''}</option>)}
             </select>
             <button type="submit"><Filter size={15}/>Filtra</button>
-            {(query || channel || status) ? <a href="/app-v2/messaggi">Reset</a> : null}
+            {(query || channel || status) ? <a href="/messaggi">Reset</a> : null}
           </form>
 
           <Panel title="Storico messaggi" subtitle={loading ? 'Caricamento...' : `${filtered.length} risultati visibili`} icon={<MessageCircle size={17}/>} action={<a className="iu-msg-panel-action" href={data.actions.newMessage}><Plus size={14}/>Nuovo</a>}>
@@ -231,7 +231,7 @@ export function MessaggiPage() {
           <Panel title="Canali disponibili" subtitle="Configurazione e alternative operative" icon={<AtSign size={17}/>}>
             <ChannelHealth data={data}/>
           </Panel>
-          <Panel title="Lex AI" subtitle="Controllo prima dell’invio" icon={<Sparkles size={17}/>}>
+          <Panel title="Lex AI" subtitle="Controllo prima dellâ€™invio" icon={<Sparkles size={17}/>}>
             <div className="iu-msg-lex-list">
               {data.lex.map((item) => <p key={item}><Sparkles size={14}/>{item}</p>)}
             </div>
@@ -244,7 +244,7 @@ export function MessaggiPage() {
         title="Lex AI messaggi"
         body="Posso controllare tono, dati mancanti, canale corretto e rischio di inviare una comunicazione incompleta al cliente."
         primaryHref="/lex?context=messaggi"
-        secondaryHref="/app-v2/messaggi/nuovo"
+        secondaryHref="/messaggi/nuovo"
         secondaryLabel="Nuovo messaggio"
       />
     </main>
@@ -294,7 +294,7 @@ function Preview({ values, info, client }:{ values: ComposeState; info: ChannelI
         {values.oggetto && values.canale === 'EMAIL' ? <strong>{values.oggetto}</strong> : null}
         <p>{values.testo || 'Scrivi il testo del messaggio...'}</p>
       </div>
-      {tooLong ? <p className="iu-msg-warning"><Clock3 size={14}/>Il testo supera la lunghezza standard SMS: potrebbe essere diviso in più messaggi.</p> : null}
+      {tooLong ? <p className="iu-msg-warning"><Clock3 size={14}/>Il testo supera la lunghezza standard SMS: potrebbe essere diviso in piÃ¹ messaggi.</p> : null}
     </section>
   )
 }
@@ -343,13 +343,13 @@ export function NuovoMessaggioPage() {
     <main className="iu-msg-page iu-msg-compose-page">
       <section className="iu-msg-hero iu-msg-hero--compose">
         <div>
-          <a className="iu-msg-back" href="/app-v2/messaggi"><ArrowLeft size={14}/>Messaggi</a>
+          <a className="iu-msg-back" href="/messaggi"><ArrowLeft size={14}/>Messaggi</a>
           <span className="iu-msg-eyebrow"><Send size={14}/>Invio guidato</span>
           <h1>Nuovo messaggio</h1>
           <p>Email, SMS e WhatsApp con cliente collegato, compilazione assistita e invio governato dai servizi operativi dello studio.</p>
         </div>
         <div className="iu-msg-hero__actions">
-          <a href="/app-v2/messaggi"><MessageCircle size={16}/>Storico</a>
+          <a href="/messaggi"><MessageCircle size={16}/>Storico</a>
           <a href="/impostazioni"><AtSign size={16}/>Configura canali</a>
         </div>
       </section>
@@ -358,7 +358,7 @@ export function NuovoMessaggioPage() {
         <form className="iu-msg-compose" method="post" action={data.actions.sendEndpoint}>
           <input type="hidden" name="from_cliente" value={data.query.fromCliente}/>
 
-          <Panel title="Canale" subtitle="Scegli il mezzo più adatto" icon={<MessageCircle size={17}/>}>
+          <Panel title="Canale" subtitle="Scegli il mezzo piÃ¹ adatto" icon={<MessageCircle size={17}/>}>
             <div className="iu-msg-channel-picker">
               {data.channelInfo.map((channel) => (
                 <label className={`iu-msg-channel-card ${values.canale === channel.value ? 'is-active' : ''}`} key={channel.value}>
@@ -376,8 +376,8 @@ export function NuovoMessaggioPage() {
             <div className="iu-msg-compose-grid">
               <ComposeField label="Cliente" wide>
                 <select name="id_cliente" value={values.id_cliente} onChange={(event) => changeClient(event.currentTarget.value)}>
-                  <option value="">— Nessun cliente —</option>
-                  {data.clientOptions.map((client) => <option value={client.id} key={client.id}>{client.label}{client.fiscalId ? ` — ${client.fiscalId}` : ''}</option>)}
+                  <option value="">â€” Nessun cliente â€”</option>
+                  {data.clientOptions.map((client) => <option value={client.id} key={client.id}>{client.label}{client.fiscalId ? ` â€” ${client.fiscalId}` : ''}</option>)}
                 </select>
               </ComposeField>
               <ComposeField label={values.canale === 'EMAIL' ? 'Email destinatario' : 'Telefono destinatario'} required wide>
@@ -405,18 +405,18 @@ export function NuovoMessaggioPage() {
 
           <div className="iu-msg-submitbar">
             <button type="submit"><Send size={17}/>Invia</button>
-            <a href="/app-v2/messaggi">Annulla</a>
+            <a href="/messaggi">Annulla</a>
             <span>{loading ? 'Caricamento dati...' : 'Salvataggio su /messaggi/nuovo'}</span>
           </div>
         </form>
 
         <aside className="iu-msg-compose-side">
           <Preview values={values} info={info} client={selectedClient}/>
-          <Panel title="Checklist qualità" subtitle="Prima di inviare" icon={<CheckCircle2 size={17}/>}>
+          <Panel title="Checklist qualitÃ " subtitle="Prima di inviare" icon={<CheckCircle2 size={17}/>}>
             <div className="iu-msg-checklist">
               <p><CheckCircle2 size={15}/>Destinatario compilato e coerente con il canale.</p>
               <p><CheckCircle2 size={15}/>Cliente collegato quando la comunicazione riguarda una pratica.</p>
-              <p><CheckCircle2 size={15}/>Per WhatsApp senza Twilio verrà generato un link manuale.</p>
+              <p><CheckCircle2 size={15}/>Per WhatsApp senza Twilio verrÃ  generato un link manuale.</p>
             </div>
           </Panel>
           <Panel title="Canali" subtitle="Stato configurazione" icon={<AtSign size={17}/>}>
@@ -428,9 +428,9 @@ export function NuovoMessaggioPage() {
       <FloatingLex
         context="nuovo-messaggio"
         title="Lex AI invio messaggio"
-        body="Posso aiutarti a rendere il testo più chiaro, professionale e coerente con cliente, canale e pratica."
+        body="Posso aiutarti a rendere il testo piÃ¹ chiaro, professionale e coerente con cliente, canale e pratica."
         primaryHref="/lex?context=nuovo-messaggio"
-        secondaryHref="/app-v2/messaggi"
+        secondaryHref="/messaggi"
         secondaryLabel="Storico messaggi"
       />
     </main>

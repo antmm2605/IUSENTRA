@@ -743,8 +743,11 @@ def bootstrap():
                 "role": _enum_value(getattr(utente, "ruolo", "")) if utente else "api",
             },
             "route_flags": {
-                "replace_dashboard": False,
-                "replace_fascicoli": False,
+                "replace_dashboard": True,
+                "replace_regia_operativa": True,
+                "replace_global_search": True,
+                "replace_agenda": True,
+                "replace_fascicoli": True,
                 "replace_scadenziario": False,
                 "replace_telematico": False,
                 "replace_preventivi": False,

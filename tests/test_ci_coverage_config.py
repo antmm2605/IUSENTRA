@@ -4,6 +4,7 @@ from pathlib import Path
 def test_critical_coverage_gate_uses_governed_config():
     workflow = Path(".github/workflows/ci.yml").read_text(encoding="utf-8")
     assert "--cov-config=config/coverage-critical.ini" in workflow
+    assert "--cov-fail-under=71" in workflow
 
 
 def test_critical_coverage_config_excludes_optional_lex_adapters():

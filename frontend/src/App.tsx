@@ -120,9 +120,9 @@ type NavSection = {
 }
 
 const primaryNav: NavItem[] = [
-  { label: 'Panoramica', icon: LayoutDashboard, href: '/app-v2' },
-  { label: 'Regia Operativa', icon: Sparkles, href: '/app-v2/regia-operativa' },
-  { label: 'Ricerca Studio', icon: Search, href: '/app-v2/ricerca-studio' }
+  { label: 'Panoramica', icon: LayoutDashboard, href: '/' },
+  { label: 'Regia Operativa', icon: Sparkles, href: '/workspace-intelligente' },
+  { label: 'Ricerca Studio', icon: Search, href: '/global-search' }
 ]
 
 const navSections: NavSection[] = [
@@ -131,7 +131,7 @@ const navSections: NavSection[] = [
     label: 'Recenti',
     icon: FolderOpen,
     items: [
-      { label: '2026/004 - N.RG 139/2023 - ...', icon: FolderOpen, href: '/app-v2/fascicoli' }
+      { label: '2026/004 - N.RG 139/2023 - ...', icon: FolderOpen, href: '/fascicoli' }
     ]
   },
   {
@@ -139,8 +139,8 @@ const navSections: NavSection[] = [
     label: 'Agenda',
     icon: CalendarCheck,
     items: [
-      { label: 'Calendario', icon: CalendarDays, href: '/app-v2/agenda' },
-      { label: 'Nuovo Appuntamento', icon: CirclePlus, href: '/app-v2/agenda/nuovo' },
+      { label: 'Calendario', icon: CalendarDays, href: '/agenda' },
+      { label: 'Nuovo Appuntamento', icon: CirclePlus, href: '/agenda/nuovo' },
       { label: 'Timesheet', icon: Clock3, href: '/timesheet' }
     ]
   },
@@ -149,9 +149,9 @@ const navSections: NavSection[] = [
     label: 'Fascicoli',
     icon: Folder,
     items: [
-      { label: 'Tutti i Fascicoli', icon: FolderOpen, href: '/app-v2/fascicoli' },
-      { label: 'Nuovo Fascicolo', icon: FolderPlus, href: '/app-v2/fascicoli/nuovo' },
-      { label: 'Archivio', icon: Archive, href: '/app-v2/fascicoli/archivio' }
+      { label: 'Tutti i Fascicoli', icon: FolderOpen, href: '/fascicoli' },
+      { label: 'Nuovo Fascicolo', icon: FolderPlus, href: '/fascicoli/nuovo' },
+      { label: 'Archivio', icon: Archive, href: '/fascicoli/archivio' }
     ]
   },
   {
@@ -241,7 +241,7 @@ const navSections: NavSection[] = [
     items: [
       { label: 'Utenti', icon: UsersRound, href: '/utenti' },
       { label: 'Profili e Permessi', icon: Table, href: '/profili' },
-      { label: 'Registro Attività', icon: ClipboardList, href: '/admin/osservabilita' },
+      { label: 'Registro AttivitÃ ', icon: ClipboardList, href: '/admin/osservabilita' },
       { label: 'Database', icon: Database, href: '/admin/database' },
       { label: 'Registro GDPR', icon: FileText, href: '/privacy/registro' }
     ]
@@ -317,7 +317,7 @@ function Sidebar({ collapsed, mobileOpen, activePath, onToggle, onCloseMobile }:
 
 function Topbar({ onOpenMenu }:{onOpenMenu:()=>void}) {
   const today = new Date().toLocaleDateString('it-IT')
-  return <header className="iu-topbar"><button className="iu-icon iu-menu-mobile" type="button" onClick={onOpenMenu} aria-label="Apri menu"><PanelLeftOpen size={18}/></button><label className="iu-search"><Search size={18}/><input placeholder="Cerca fascicolo, cliente, pratica, scadenza..." onKeyDown={(event)=>{if(event.key==='Enter'){const value=event.currentTarget.value.trim(); window.location.href=value?`/app-v2/ricerca-studio?q=${encodeURIComponent(value)}`:'/app-v2/ricerca-studio'}}}/></label><div className="iu-topbar__actions"><button className="iu-date">{today} <CalendarDays size={16}/></button><button className="iu-icon notify"><Bell size={18}/><span>8</span></button><button className="iu-icon"><Settings2 size={18}/></button><button className="iu-icon"><CircleHelp size={18}/></button><button className="iu-new"><Plus size={16}/>Nuovo</button></div></header>
+  return <header className="iu-topbar"><button className="iu-icon iu-menu-mobile" type="button" onClick={onOpenMenu} aria-label="Apri menu"><PanelLeftOpen size={18}/></button><label className="iu-search"><Search size={18}/><input placeholder="Cerca fascicolo, cliente, pratica, scadenza..." onKeyDown={(event)=>{if(event.key==='Enter'){const value=event.currentTarget.value.trim(); window.location.href=value?`/global-search?q=${encodeURIComponent(value)}`:'/global-search'}}}/></label><div className="iu-topbar__actions"><button className="iu-date">{today} <CalendarDays size={16}/></button><button className="iu-icon notify"><Bell size={18}/><span>8</span></button><button className="iu-icon"><Settings2 size={18}/></button><button className="iu-icon"><CircleHelp size={18}/></button><button className="iu-new"><Plus size={16}/>Nuovo</button></div></header>
 }
 
 function Empty({ children='Nessun elemento da presidiare.' }:{children?:string}) {
@@ -354,7 +354,7 @@ function Agenda({ data }:{data:DashboardData}) {
   const todayRows = data.agenda.filter(a=>a.badge==='OGGI')
   const tomorrowRows = data.agenda.filter(a=>a.badge==='DOMANI')
   const otherRows = data.agenda.filter(a=>a.badge!=='OGGI' && a.badge!=='DOMANI')
-  return <Panel title="Agenda e udienze" icon={<CalendarDays size={17}/>} count={data.agenda.length}><div className="iu-agenda"><p>{italianDay(0)}</p>{todayRows.length?todayRows.map(a=><a className="iu-agenda-row" href={a.href||'/agenda'} key={a.id}><time>{a.time}</time><div><strong>{a.title}</strong><span>{a.subtitle}</span></div>{a.badge?<Badge tone="warning">{a.badge}</Badge>:null}</a>):<Empty>Nessun impegno per oggi.</Empty>}<p className="next">{italianDay(1)}</p>{[...tomorrowRows,...otherRows].length?[...tomorrowRows,...otherRows].map(a=><a className="iu-agenda-row" href={a.href||'/agenda'} key={a.id}><time>{a.time}</time><div><strong>{a.title}</strong><span>{a.subtitle}</span></div>{a.badge?<Badge tone="primary">{a.badge}</Badge>:null}</a>):<Empty>Nessun impegno programmato.</Empty>}</div><a className="iu-link" href="/app-v2/agenda">Vai all'agenda completa -&gt;</a></Panel>
+  return <Panel title="Agenda e udienze" icon={<CalendarDays size={17}/>} count={data.agenda.length}><div className="iu-agenda"><p>{italianDay(0)}</p>{todayRows.length?todayRows.map(a=><a className="iu-agenda-row" href={a.href||'/agenda'} key={a.id}><time>{a.time}</time><div><strong>{a.title}</strong><span>{a.subtitle}</span></div>{a.badge?<Badge tone="warning">{a.badge}</Badge>:null}</a>):<Empty>Nessun impegno per oggi.</Empty>}<p className="next">{italianDay(1)}</p>{[...tomorrowRows,...otherRows].length?[...tomorrowRows,...otherRows].map(a=><a className="iu-agenda-row" href={a.href||'/agenda'} key={a.id}><time>{a.time}</time><div><strong>{a.title}</strong><span>{a.subtitle}</span></div>{a.badge?<Badge tone="primary">{a.badge}</Badge>:null}</a>):<Empty>Nessun impegno programmato.</Empty>}</div><a className="iu-link" href="/agenda">Vai all'agenda completa -&gt;</a></Panel>
 }
 
 function Completion({ data }:{data:DashboardData}) {
@@ -383,7 +383,7 @@ function Lex({ data }:{data:DashboardData}) {
 }
 
 function Dossiers({ data }:{data:DashboardData}) {
-  return <Panel title="Fascicoli da presidiare" subtitle="Array dossier derivato dai fascicoli reali ad alta priorita." icon={<BriefcaseBusiness size={17}/>} count={data.dossiers.length}>{data.dossiers.length?<div className="iu-dossier-grid">{data.dossiers.map(dossier=><DossierCard dossier={dossier} key={dossier.id}/>)}</div>:<Empty>Nessun fascicolo prioritario nell'orizzonte operativo.</Empty>}<a className="iu-link" href="/app-v2/fascicoli">Apri tutti i fascicoli -&gt;</a></Panel>
+  return <Panel title="Fascicoli da presidiare" subtitle="Array dossier derivato dai fascicoli reali ad alta priorita." icon={<BriefcaseBusiness size={17}/>} count={data.dossiers.length}>{data.dossiers.length?<div className="iu-dossier-grid">{data.dossiers.map(dossier=><DossierCard dossier={dossier} key={dossier.id}/>)}</div>:<Empty>Nessun fascicolo prioritario nell'orizzonte operativo.</Empty>}<a className="iu-link" href="/fascicoli">Apri tutti i fascicoli -&gt;</a></Panel>
 }
 
 function Sources({ data }:{data:DashboardData}) {
@@ -406,8 +406,8 @@ function RegiaOperativaPage({ data, loading }:{data:DashboardData; loading:boole
       <section className="iu-metrics">{priorityMetrics.map(m=><KpiCard item={m} icon={metricIcon[m.tone] || Sparkles} key={m.id}/>)}</section>
       <section className="iu-grid">
         <div className="span4"><Panel title="Azioni operative" icon={<Sparkles size={17}/>} count={data.operations.length}>{data.operations.length?<div className="iu-compact">{data.operations.map(action=><a className="iu-compact-row" href={action.href||'/workspace-intelligente'} key={action.id}><div><strong>{action.title}</strong><span>{action.subtitle}</span></div>{action.badge?<Badge tone={action.tone||'neutral'}>{action.badge}</Badge>:null}</a>)}</div>:<Empty>Nessuna azione operativa urgente.</Empty>}<a className="iu-link" href="/workspace-intelligente">Vai alla regia completa -&gt;</a></Panel></div>
-        <div className="span4"><Panel title="Agenda da presidiare" icon={<CalendarDays size={17}/>} count={agendaRows.length}><List rows={agendaRows} href="/app-v2/agenda"/><a className="iu-link" href="/app-v2/agenda">Apri agenda React -&gt;</a></Panel></div>
-        <div className="span4"><Panel title="Fascicoli prioritari" icon={<BriefcaseBusiness size={17}/>} count={matterRows.length}>{matterRows.length?<div className="iu-compact">{matterRows.map(row=><a className="iu-compact-row" href={row.href||'/app-v2/fascicoli'} key={row.id}><div><strong>{row.title}</strong><span>{row.subtitle}</span></div>{row.badge?<Badge tone={row.tone||'neutral'}>{row.badge}</Badge>:null}</a>)}</div>:<Empty>Nessun fascicolo ad alta priorita.</Empty>}<a className="iu-link" href="/app-v2/fascicoli">Vai ai fascicoli -&gt;</a></Panel></div>
+        <div className="span4"><Panel title="Agenda da presidiare" icon={<CalendarDays size={17}/>} count={agendaRows.length}><List rows={agendaRows} href="/agenda"/><a className="iu-link" href="/agenda">Apri agenda -&gt;</a></Panel></div>
+        <div className="span4"><Panel title="Fascicoli prioritari" icon={<BriefcaseBusiness size={17}/>} count={matterRows.length}>{matterRows.length?<div className="iu-compact">{matterRows.map(row=><a className="iu-compact-row" href={row.href||'/fascicoli'} key={row.id}><div><strong>{row.title}</strong><span>{row.subtitle}</span></div>{row.badge?<Badge tone={row.tone||'neutral'}>{row.badge}</Badge>:null}</a>)}</div>:<Empty>Nessun fascicolo ad alta priorita.</Empty>}<a className="iu-link" href="/fascicoli">Vai ai fascicoli -&gt;</a></Panel></div>
         <div className="span6"><Panel title="Comunicazioni recenti" icon={<MessageCircle size={17}/>} count={data.messages.length}><List rows={data.messages} avatar href="/messaggi"/><a className="iu-link" href="/messaggi">Vai ai messaggi -&gt;</a></Panel></div>
         <div className="span6"><Lex data={data}/></div>
       </section>
@@ -433,7 +433,7 @@ function DashboardPage({ data, loading }:{data:DashboardData; loading:boolean}) 
         <div className="span3"><Agenda data={data}/></div>
         <div className="span3"><Completion data={data}/></div>
         <div className="span3"><Compact title="Conferimenti incarico mancanti" icon={<UsersRound size={17}/>} count={data.engagements.length} rows={data.engagements} href="/preventivi"/></div>
-        <div className="span2"><Compact title="Fascicoli con priorita alta" icon={<BriefcaseBusiness size={17}/>} count={data.matters.length} rows={data.matters} href="/app-v2/fascicoli"/></div>
+        <div className="span2"><Compact title="Fascicoli con priorita alta" icon={<BriefcaseBusiness size={17}/>} count={data.matters.length} rows={data.matters} href="/fascicoli"/></div>
         <div className="span4"><Donut data={data}/></div>
         <div className="span5"><Economic data={data}/></div>
         <div className="span3"><Lex data={data}/></div>
@@ -445,13 +445,13 @@ function DashboardPage({ data, loading }:{data:DashboardData; loading:boolean}) 
 }
 
 export default function App() {
-  const activePath = window.location.pathname.replace(/\/+$/, '') || '/app-v2'
+  const activePath = window.location.pathname.replace(/\/+$/, '') || '/'
   const routePath = normaliseRoutePath(activePath)
-  const isSearchPage = activePath.includes('/app-v2/ricerca-studio')
-  const isNewAppointmentPage = activePath === '/app-v2/agenda/nuovo' || activePath.startsWith('/app-v2/agenda/nuovo/')
-  const isAgendaPage = !isNewAppointmentPage && (activePath === '/app-v2/agenda' || activePath.startsWith('/app-v2/agenda/'))
-  const isRegiaPage = activePath === '/app-v2/regia-operativa' || activePath.startsWith('/app-v2/regia-operativa/')
-  const isFascicoliPage = activePath === '/app-v2/fascicoli' || activePath.startsWith('/app-v2/fascicoli/')
+  const isSearchPage = routePath === '/global-search' || routePath === '/ricerca-studio'
+  const isNewAppointmentPage = routePath === '/agenda/nuovo' || routePath.startsWith('/agenda/nuovo/')
+  const isAgendaPage = !isNewAppointmentPage && (routePath === '/agenda' || routePath.startsWith('/agenda/'))
+  const isRegiaPage = routePath === '/workspace-intelligente' || routePath === '/regia-operativa' || routePath.startsWith('/regia-operativa/')
+  const isFascicoliPage = routePath === '/fascicoli' || routePath.startsWith('/fascicoli/')
   const isNewClientPage = routePath === '/clienti/nuovo'
   const isNewSubjectPage = routePath === '/soggetti/nuovo'
   const isClientiPage = !isNewClientPage && routePath === '/clienti'
@@ -479,13 +479,13 @@ export default function App() {
           </Suspense>
         </div>
         <nav className="iu-mobile">
-          <a className={isDashboardPage?'active':''} href="/app-v2"><LayoutDashboard size={18}/>Panoramica</a>
-          <a className={isSearchPage?'active':''} href="/app-v2/ricerca-studio"><Search size={18}/>Ricerca</a>
-          <a className={isFascicoliPage?'active':''} href="/app-v2/fascicoli"><BriefcaseBusiness size={18}/>Fascicoli</a>
+          <a className={isDashboardPage?'active':''} href="/"><LayoutDashboard size={18}/>Panoramica</a>
+          <a className={isSearchPage?'active':''} href="/global-search"><Search size={18}/>Ricerca</a>
+          <a className={isFascicoliPage?'active':''} href="/fascicoli"><BriefcaseBusiness size={18}/>Fascicoli</a>
           <a className={isClientiPage||isNewClientPage||isSoggettiPage||isNewSubjectPage?'active':''} href="/clienti"><UsersRound size={18}/>Clienti</a>
           <a className={isEmailPage||isMessagesPage||isNewMessagePage?'active':''} href="/email/"><Mail size={18}/>PEC</a>
-          <a className={isAgendaPage||isNewAppointmentPage?'active':''} href="/app-v2/agenda"><CalendarDays size={18}/>Agenda</a>
-          <a className={isRegiaPage?'active':''} href="/app-v2/regia-operativa"><Sparkles size={18}/>Regia</a>
+          <a className={isAgendaPage||isNewAppointmentPage?'active':''} href="/agenda"><CalendarDays size={18}/>Agenda</a>
+          <a className={isRegiaPage?'active':''} href="/workspace-intelligente"><Sparkles size={18}/>Regia</a>
         </nav>
       </div>
     </AppErrorBoundary>

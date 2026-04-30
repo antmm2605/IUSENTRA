@@ -153,7 +153,7 @@ export const defaultChannelInfo: ChannelInfo[] = [
     available: true,
     configured: false,
     destinationPlaceholder: '+39 333 1234567',
-    destinationHelp: 'Se Twilio non è configurato viene generato un link WhatsApp Web',
+    destinationHelp: 'Se Twilio non Ã¨ configurato viene generato un link WhatsApp Web',
     subjectVisible: false,
   },
 ]
@@ -164,21 +164,21 @@ export const defaultTemplates: MessageTemplate[] = [
     label: 'Aggiornamento pratica',
     channel: 'ALL',
     subject: 'Aggiornamento sulla pratica',
-    body: 'Gentile {nome},\n\nla informiamo che la Sua pratica è stata aggiornata. Restiamo a disposizione per ogni chiarimento.\n\nCordiali saluti',
+    body: 'Gentile {nome},\n\nla informiamo che la Sua pratica Ã¨ stata aggiornata. Restiamo a disposizione per ogni chiarimento.\n\nCordiali saluti',
   },
   {
     id: 'richiesta-documenti',
     label: 'Richiesta documenti',
     channel: 'ALL',
     subject: 'Richiesta documentazione',
-    body: 'Gentile {nome},\n\nper proseguire abbiamo necessità della seguente documentazione:\n- documento di identità\n- codice fiscale\n- documenti relativi alla pratica\n\nPuò inviarli rispondendo a questo messaggio.',
+    body: 'Gentile {nome},\n\nper proseguire abbiamo necessitÃ  della seguente documentazione:\n- documento di identitÃ \n- codice fiscale\n- documenti relativi alla pratica\n\nPuÃ² inviarli rispondendo a questo messaggio.',
   },
   {
     id: 'promemoria-appuntamento',
     label: 'Promemoria appuntamento',
     channel: 'ALL',
     subject: 'Promemoria appuntamento',
-    body: 'Gentile {nome},\n\nle ricordiamo l’appuntamento presso lo Studio. Per modifiche o conferme può rispondere a questo messaggio.\n\nGrazie',
+    body: 'Gentile {nome},\n\nle ricordiamo lâ€™appuntamento presso lo Studio. Per modifiche o conferme puÃ² rispondere a questo messaggio.\n\nGrazie',
   },
 ]
 
@@ -193,10 +193,10 @@ export const emptyMessaggiData: MessaggiData = {
     statuses: [{ value: '', label: 'Tutti gli stati', count: 0 }],
   },
   filters: { q: '', channel: '', status: '' },
-  actions: { newMessage: '/app-v2/messaggi/nuovo', sendEndpoint: '/messaggi/nuovo', settings: '/impostazioni', emailSettings: '/email/impostazioni' },
+  actions: { newMessage: '/messaggi/nuovo', sendEndpoint: '/messaggi/nuovo', settings: '/impostazioni', emailSettings: '/email/impostazioni' },
   channelInfo: defaultChannelInfo,
   lex: [
-    'Prima dell’invio controlla destinatario, cliente collegato e canale corretto.',
+    'Prima dellâ€™invio controlla destinatario, cliente collegato e canale corretto.',
     'Per WhatsApp senza Twilio usa il link manuale e verifica che il messaggio risulti in coda.',
   ],
 }
@@ -209,7 +209,7 @@ export const emptyNuovoMessaggioData: NuovoMessaggioData = {
   clientOptions: [],
   templates: defaultTemplates,
   query: { channel: 'EMAIL', idCliente: '', fromCliente: '' },
-  actions: { messagesList: '/app-v2/messaggi', sendEndpoint: '/messaggi/nuovo', clientFolder: '' },
+  actions: { messagesList: '/messaggi', sendEndpoint: '/messaggi/nuovo', clientFolder: '' },
   insights: [
     'Il form React invia tramite il servizio operativo /messaggi/nuovo per mantenere validazioni, audit e alternativa WhatsApp Web.',
     'Se selezioni un cliente, email o telefono vengono precompilati in base al canale.',

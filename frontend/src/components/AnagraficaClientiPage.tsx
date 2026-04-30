@@ -252,7 +252,7 @@ function InsightPanel({ data, visible }:{data: ClientiPageData; visible: Cliente
           <article>
             <span>Clienti collegati</span>
             <strong>{withProcedures} clienti con procedimenti visibili</strong>
-            <small>La UI React è attiva: salvataggi e audit passano dai servizi backend già governati.</small>
+            <small>La UI React Ã¨ attiva: salvataggi e audit passano dai servizi backend giÃ  governati.</small>
           </article>
         </div>
       </Panel>
@@ -433,7 +433,7 @@ export function AnagraficaClientiPage() {
         body="Posso controllare quali clienti bloccano conferimento, privacy, preventivo o fascicolo, e preparare una checklist di completamento senza modificare i dati."
         primaryHref="/lex?context=clienti"
         primaryLabel="Apri Lex sui clienti"
-        secondaryHref="/app-v2/ricerca-studio?tipo=clienti"
+        secondaryHref="/global-search?tipo=clienti"
         secondaryLabel="Cerca nello studio"
       />
     </main>

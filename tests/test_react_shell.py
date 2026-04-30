@@ -77,7 +77,7 @@ def test_react_sidebar_contiene_navigazione_enterprise_completa():
         "Archivio Giurisprudenza",
         "Sincronizzazione Calendari",
         "Profili e Permessi",
-        "Registro Attività",
+        "Registro AttivitÃ ",
         "Registro GDPR",
     ):
         assert label in source
@@ -89,8 +89,8 @@ def test_react_sidebar_contiene_navigazione_enterprise_completa():
     assert "onCloseMobile" in source
     assert "onNavigate={onCloseMobile}" in source
     assert "mobileOpen ? 'Chiudi menu'" in source
-    assert "{ label: 'Regia Operativa', icon: Sparkles, href: '/app-v2/regia-operativa' }" in source
-    assert "{ label: 'Nuovo Appuntamento', icon: CirclePlus, href: '/app-v2/agenda/nuovo' }" in source
+    assert "{ label: 'Regia Operativa', icon: Sparkles, href: '/workspace-intelligente' }" in source
+    assert "{ label: 'Nuovo Appuntamento', icon: CirclePlus, href: '/agenda/nuovo' }" in source
     assert ".iu-sidebar.iu-sidebar--mobile-open .iu-sidebar__toggle" in css
     assert "AppErrorBoundary" in source
     assert ".iu-react-error" in css
@@ -125,7 +125,7 @@ def test_react_ricerca_studio_e_pagina_separata_senza_mock():
     search_data = Path("frontend/src/searchData.ts").read_text(encoding="utf-8")
     css = Path("frontend/src/index.css").read_text(encoding="utf-8")
 
-    assert "/app-v2/ricerca-studio" in app_source
+    assert "/global-search" in app_source
     assert "isSearchPage?<RicercaStudioPage" in app_source
     assert "Centro operativo di oggi" not in app_source
     assert "mockResults" not in search_component
@@ -145,9 +145,9 @@ def test_react_agenda_pagina_separata_collegata_nav_e_api():
     floating_lex = Path("frontend/src/components/FloatingLex.tsx").read_text(encoding="utf-8")
     css = Path("frontend/src/index.css").read_text(encoding="utf-8")
 
-    assert "/app-v2/agenda" in app_source
+    assert "/agenda" in app_source
     assert "isAgendaPage?<AgendaPage/>" in app_source
-    assert "{ label: 'Calendario', icon: CalendarDays, href: '/app-v2/agenda' }" in app_source
+    assert "{ label: 'Calendario', icon: CalendarDays, href: '/agenda' }" in app_source
     assert "AgendaPage" in agenda_page
     assert "getAgendaPage" in agenda_data
     assert "/api/v1/ui/agenda" in agenda_data
@@ -177,9 +177,9 @@ def test_react_nuovo_appuntamento_pagina_separata_con_backend_operativo():
     appointment_page = Path("frontend/src/components/NuovoAppuntamentoPage.tsx").read_text(encoding="utf-8")
     appointment_css = Path("frontend/src/components/NuovoAppuntamentoPage.css").read_text(encoding="utf-8")
 
-    assert "/app-v2/agenda/nuovo" in app_source
+    assert "/agenda/nuovo" in app_source
     assert "isNewAppointmentPage?<NuovoAppuntamentoPage" in app_source
-    assert "{ label: 'Nuovo Appuntamento', icon: CirclePlus, href: '/app-v2/agenda/nuovo' }" in app_source
+    assert "{ label: 'Nuovo Appuntamento', icon: CirclePlus, href: '/agenda/nuovo' }" in app_source
     assert 'action="/agenda/nuovo"' in appointment_page
     assert "params.get('ora')" in appointment_page
     assert "/api/clienti" in appointment_page
@@ -354,9 +354,9 @@ def test_react_autocomplete_clienti_usa_payload_minimale_sicuro(tmp_path: Path):
 def test_react_regia_operativa_e_pagina_separata_non_in_panorama():
     app_source = Path("frontend/src/App.tsx").read_text(encoding="utf-8")
 
-    assert "/app-v2/regia-operativa" in app_source
+    assert "/workspace-intelligente" in app_source
     assert "isRegiaPage?<RegiaOperativaPage" in app_source
-    assert "{ label: 'Regia Operativa', icon: Sparkles, href: '/app-v2/regia-operativa' }" in app_source
+    assert "{ label: 'Regia Operativa', icon: Sparkles, href: '/workspace-intelligente' }" in app_source
     assert "Azioni operative" in app_source
     assert "Centro operativo di oggi" not in app_source
 
@@ -371,7 +371,7 @@ def test_react_api_bridge_richiede_autenticazione(tmp_path: Path):
     assert response.get_json()["errore"] == "Autenticazione richiesta."
 
 
-def test_react_api_bootstrap_espone_flag_senza_switch(tmp_path: Path):
+def test_react_api_bootstrap_espone_flag_primo_blocco_ufficiale(tmp_path: Path):
     app = _app(tmp_path)
     client = app.test_client()
 
@@ -382,12 +382,16 @@ def test_react_api_bootstrap_espone_flag_senza_switch(tmp_path: Path):
     assert payload["product"] == "IUSENTRA"
     assert payload["shell"] == "react"
     assert payload["mounted_at"] == "/app-v2"
-    assert payload["route_flags"]["replace_dashboard"] is False
-    assert payload["route_flags"]["replace_telematico"] is False
+    assert payload["route_flags"]["replace_dashboard"] is True
+    assert payload["route_flags"]["replace_regia_operativa"] is True
+    assert payload["route_flags"]["replace_global_search"] is True
+    assert payload["route_flags"]["replace_agenda"] is True
+    assert payload["route_flags"]["replace_fascicoli"] is True
     assert payload["route_flags"]["replace_clienti"] is True
     assert payload["route_flags"]["replace_soggetti"] is True
     assert payload["route_flags"]["replace_email"] is True
     assert payload["route_flags"]["replace_messaggi"] is True
+    assert payload["route_flags"]["replace_telematico"] is False
 
 
 def test_react_comunicazioni_email_messaggi_collegate_nav_e_shell():
@@ -440,6 +444,65 @@ def test_route_ufficiali_email_messaggi_servono_react_con_vista_classica_tecnica
     assert classic_new_message.status_code == 200
     assert 'id="root"' not in classic_email.get_data(as_text=True)
     assert 'id="root"' not in classic_messages.get_data(as_text=True)
+
+
+def test_route_ufficiali_primo_blocco_servono_react_con_vista_classica_tecnica(tmp_path: Path):
+    app = _app(tmp_path)
+    _crea_operatore(app)
+
+    cliente_repo = GestioneClienti(db_path=app.config["CLIENTI_DB"])
+    cliente = cliente_repo.nuovo(TipoCliente.PERSONA_FISICA, nome="Mario", cognome="Rossi")
+    fascicoli = GestioneFascicoli(
+        db_path=app.config["FASCICOLI_DB"],
+        documents_dir=app.config["FASCICOLI_DOCS"],
+        archive_dir=app.config["FASCICOLI_ARCH"],
+    )
+    fascicolo = fascicoli.nuovo(
+        "Primo blocco React",
+        TipoFascicolo.CIVILE,
+        id_cliente=cliente.id,
+        nome_cliente=cliente.nome_completo,
+        tribunale="Tribunale di Milano",
+        numero_rg="123",
+        anno_rg=date.today().year,
+    )
+
+    with app.test_client() as client:
+        _login(client)
+
+        for path in (
+            "/",
+            "/workspace-intelligente",
+            "/global-search",
+            "/agenda",
+            "/agenda/nuovo",
+            "/fascicoli",
+            "/fascicoli/archivio",
+            "/fascicoli/esporta",
+            "/fascicoli/nuovo",
+            f"/fascicoli/{fascicolo.id}",
+            f"/fascicoli/{fascicolo.id}/modifica",
+            f"/fascicoli/{fascicolo.id}/quadro",
+        ):
+            response = client.get(path)
+            html = response.get_data(as_text=True)
+            assert response.status_code == 200, path
+            assert '<html lang="it" class="react-shell-document">' in html
+            assert 'id="root"' in html
+
+        classic_dashboard = client.get("/?_legacy=1")
+        classic_workspace = client.get("/workspace-intelligente?_legacy=1")
+        classic_search = client.get("/global-search?_legacy=1")
+        classic_agenda = client.get("/agenda?_legacy=1")
+        classic_fascicoli = client.get("/fascicoli?_legacy=1")
+
+    assert classic_dashboard.status_code == 200
+    assert classic_workspace.status_code == 200
+    assert classic_search.status_code == 200
+    assert classic_agenda.status_code == 200
+    assert classic_fascicoli.status_code == 200
+    assert 'id="root"' not in classic_dashboard.get_data(as_text=True)
+    assert 'id="root"' not in classic_fascicoli.get_data(as_text=True)
 
 
 def test_react_messaggi_bridge_usa_repository_reali(tmp_path: Path):
@@ -673,9 +736,9 @@ def test_react_fascicoli_page_collegata_nav_api_e_lex():
     css = Path("frontend/src/components/FascicoliPage.css").read_text(encoding="utf-8")
     floating_lex = Path("frontend/src/components/FloatingLex.tsx").read_text(encoding="utf-8")
 
-    assert "/app-v2/fascicoli" in app_source
+    assert "/fascicoli" in app_source
     assert "isFascicoliPage?<FascicoliPage" in app_source
-    assert 'href="/app-v2/fascicoli"><BriefcaseBusiness size={18}/>Fascicoli' in app_source
+    assert 'href="/fascicoli"><BriefcaseBusiness size={18}/>Fascicoli' in app_source
     assert "getFascicoliPage" in data_source
     assert "/api/v1/ui/fascicoli" in data_source
     assert "FascicoliPage" in page_source
@@ -742,9 +805,9 @@ def test_react_fascicoli_suite_completa_route_componenti_e_lex():
     floating_lex = Path("frontend/src/components/FloatingLex.tsx").read_text(encoding="utf-8")
     bridge = Path("web/services/react_fascicoli_bridge.py").read_text(encoding="utf-8")
 
-    assert "/app-v2/fascicoli" in app_source
-    assert "/app-v2/fascicoli/nuovo" in app_source
-    assert "/app-v2/fascicoli/archivio" in app_source
+    assert "/fascicoli" in app_source
+    assert "/fascicoli/nuovo" in app_source
+    assert "/fascicoli/archivio" in app_source
     assert "isFascicoliPage?<FascicoliPage" in app_source
     for name in ("FascicoliListPage", "ArchivePage", "FascicoloFormPage", "DetailPage", "QuadroPage", "ExportPage"):
         assert name in page_source

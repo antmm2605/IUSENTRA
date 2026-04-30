@@ -300,7 +300,7 @@ export const emptyFascicoloDetail: FascicoloDetailData = {
   fascicolo: {
     id: '', ref: 'n.d.', internalRef: 'n.d.', title: 'Fascicolo non trovato', subtitle: '', type: 'altro', client: 'n.d.', court: 'n.d.', rg: 'n.d.',
     nextDeadline: 'n.d.', nextDeadlineIso: '', status: 'aperto', documents: 0, unreadCommunications: 0, alerts: 0, openedAt: '', closedAt: '', updatedAt: '',
-    href: '/app-v2/fascicoli', operationalHref: '/fascicoli', editHref: '/app-v2/fascicoli', operationalEditHref: '/fascicoli', exportPdfHref: '', archiveZipHref: '', restoreAction: '', tone: 'neutral',
+    href: '/fascicoli', operationalHref: '/fascicoli', editHref: '/fascicoli', operationalEditHref: '/fascicoli', exportPdfHref: '', archiveZipHref: '', restoreAction: '', tone: 'neutral',
     object: '', counterparty: '', counterpartyTaxCode: '', judge: '', section: '', leadLawyer: '', dominus: '', value: '', quotedValue: '', agreedFee: '',
     procedureType: '', practiceId: '', practiceArea: '', firstHearing: '', citationNotification: '', nextHearing: '', notes: '', reservedNotes: '',
     source: '', sourceExternalId: '', lastSyncAt: '', syncStatus: '', importLogId: '', hasConflicts: false, documentSyncEnabled: false,
@@ -313,7 +313,7 @@ export const emptyFascicoloDetail: FascicoloDetailData = {
 }
 
 export const emptyFascicoloForm: FascicoloFormData = {
-  source: 'vuoto', generatedAt: '', mode: 'new', action: '/fascicoli/nuovo', backHref: '/app-v2/fascicoli', detailHref: '/app-v2/fascicoli',
+  source: 'vuoto', generatedAt: '', mode: 'new', action: '/fascicoli/nuovo', backHref: '/fascicoli', detailHref: '/fascicoli',
   query: {}, clients: [], types: [], states: [],
 }
 
@@ -424,9 +424,9 @@ export function normalizeItem(value: unknown, index: number): FascicoloRow {
     openedAt: text(item.openedAt ?? item.data_apertura),
     closedAt: text(item.closedAt ?? item.data_chiusura),
     updatedAt: text(item.updatedAt ?? item.modificato_il),
-    href: text(item.href, `/app-v2/fascicoli/${encodeURIComponent(id)}`),
+    href: text(item.href, `/fascicoli/${encodeURIComponent(id)}`),
     operationalHref: text(item.operationalHref ?? item.operational_href, `/fascicoli/${encodeURIComponent(id)}`),
-    editHref: text(item.editHref ?? item.edit_href, `/app-v2/fascicoli/${encodeURIComponent(id)}/modifica`),
+    editHref: text(item.editHref ?? item.edit_href, `/fascicoli/${encodeURIComponent(id)}/modifica`),
     operationalEditHref: text(item.operationalEditHref ?? item.operational_edit_href, `/fascicoli/${encodeURIComponent(id)}/modifica`),
     exportPdfHref: text(item.exportPdfHref ?? item.export_pdf_href, `/fascicoli/${encodeURIComponent(id)}/pdf`),
     archiveZipHref: text(item.archiveZipHref ?? item.archive_zip_href, `/fascicoli/${encodeURIComponent(id)}/archivio/scarica`),
@@ -619,14 +619,14 @@ function normalizeDetailPayload(payload: unknown): FascicoloDetailData {
 
 function normalizeActivity(entry: unknown, index: number): FascicoloActivity {
   const row = isRecord(entry) ? entry : {}
-  return { id: text(row.id, `att-${index}`), type: text(row.type ?? row.tipo), title: text(row.title ?? row.titolo, 'Attività'), date: text(row.date ?? row.data), description: text(row.description ?? row.descrizione), result: text(row.result ?? row.esito), place: text(row.place ?? row.luogo), notes: text(row.notes ?? row.note), lawyer: text(row.lawyer ?? row.avvocato), documentId: text(row.documentId ?? row.id_documento), depositId: text(row.depositId ?? row.id_deposito_pct), updateAction: text(row.updateAction ?? row.update_action), deleteAction: text(row.deleteAction ?? row.delete_action), tone: text(row.tone, 'neutral') as Tone }
+  return { id: text(row.id, `att-${index}`), type: text(row.type ?? row.tipo), title: text(row.title ?? row.titolo, 'AttivitÃ '), date: text(row.date ?? row.data), description: text(row.description ?? row.descrizione), result: text(row.result ?? row.esito), place: text(row.place ?? row.luogo), notes: text(row.notes ?? row.note), lawyer: text(row.lawyer ?? row.avvocato), documentId: text(row.documentId ?? row.id_documento), depositId: text(row.depositId ?? row.id_deposito_pct), updateAction: text(row.updateAction ?? row.update_action), deleteAction: text(row.deleteAction ?? row.delete_action), tone: text(row.tone, 'neutral') as Tone }
 }
 
 function normalizeFormPayload(payload: unknown): FascicoloFormData {
   if (!isRecord(payload)) return emptyFascicoloForm
   return {
     source: text(payload.source, 'repository_reali'), generatedAt: text(payload.generatedAt ?? payload.generated_at), mode: text(payload.mode, 'new') === 'edit' ? 'edit' : 'new',
-    action: text(payload.action, '/fascicoli/nuovo'), backHref: text(payload.backHref ?? payload.back_href, '/app-v2/fascicoli'), detailHref: text(payload.detailHref ?? payload.detail_href, '/app-v2/fascicoli'),
+    action: text(payload.action, '/fascicoli/nuovo'), backHref: text(payload.backHref ?? payload.back_href, '/fascicoli'), detailHref: text(payload.detailHref ?? payload.detail_href, '/fascicoli'),
     query: isRecord(payload.query) ? Object.fromEntries(Object.entries(payload.query).map(([key, value]) => [key, text(value)])) : {},
     clients: asArray(payload.clients).map((entry) => { const row = isRecord(entry) ? entry : {}; return { id: text(row.id), label: text(row.label ?? row.name), taxCode: text(row.taxCode ?? row.codice_fiscale) } }).filter((row) => row.id),
     types: normalizeOptions(payload.types), states: normalizeOptions(payload.states),

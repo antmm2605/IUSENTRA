@@ -98,4 +98,10 @@ def test_api_global_search_restituisce_json_e_pagina_renderizza(tmp_path):
 
         page = client.get("/global-search?q=Rossi")
         assert page.status_code == 200
-        assert "Ricerca Studio" in page.get_data(as_text=True)
+        html = page.get_data(as_text=True)
+        assert '<html lang="it" class="react-shell-document">' in html
+        assert 'id="root"' in html
+
+        classic_page = client.get("/global-search?q=Rossi&_legacy=1")
+        assert classic_page.status_code == 200
+        assert "Ricerca Studio" in classic_page.get_data(as_text=True)

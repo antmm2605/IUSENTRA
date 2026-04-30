@@ -1,8 +1,16 @@
 # Changelog
 
+## 2.198.0 - 2026-04-30
+
+- Corretto il gap del primo blocco React: le route ufficiali `GET /`, `GET /workspace-intelligente`, `GET /global-search`, `GET /agenda`, `GET /agenda/nuovo` e le principali route `GET /fascicoli/*` servono ora la shell React senza passare da URL tecnici `/app-v2`.
+- Conservate le viste Jinja storiche solo come percorso tecnico esplicito `_legacy=1`, utile per assistenza e verifica, senza mostrarle come esperienza principale dell'utente.
+- Aggiornata la navigazione React desktop/mobile per puntare alle URL ufficiali dell'applicativo, evitando messaggi o link che suggeriscano rollback o scorciatoie verso la vecchia grafica.
+- Aggiunti test di regressione sulle route ufficiali del primo blocco per verificare React shell, fallback tecnico `_legacy=1` e coerenza dei flag `/api/v1/ui/bootstrap`.
+- Rafforzate le regole CI/coverage: la coverage critica locale e' stata portata a 71,49%, il workflow `Coverage moduli critici` ora blocca sotto 71% e `AGENTS.md` impone confronto baseline prima di dichiarare concluso un lavoro.
+
 ## 2.197.0 - 2026-04-29
 
-- Completato il primo blocco React operativo: Panoramica, Regia Operativa, Ricerca Studio, Agenda, Fascicoli, Clienti e Anagrafiche, Soggetti e Parti, Email PEC e Messaggi ora vivono nella shell React o sulle route GET ufficiali promosse.
+- Avanzato il primo blocco React operativo con Email PEC, Messaggi, Clienti e Anagrafiche e Soggetti e Parti sulle route ufficiali; le restanti route ufficiali del blocco sono state riallineate nella release successiva.
 - Promosse a React le route ufficiali `GET /email/`, `GET /messaggi` e `GET /messaggi/nuovo`, conservando i POST e le azioni sensibili sui servizi Flask auditati.
 - Aggiunti i bridge reali `/api/v1/ui/email`, `/api/v1/ui/messaggi` e `/api/v1/ui/messaggi/nuovo`, senza mock operativi, con KPI, cartelle PEC, filtri, stato canali e contesto Lex.
 - Corretta la sincronizzazione IMAP PEC: le cartelle Inviati e Cestino non vengono piu' salvate come INBOX, ma mappate correttamente da alias comuni (`Sent`, `Sent Items`, `Posta inviata`, `Trash`, `Deleted Items`, `Posta eliminata`).
@@ -979,7 +987,3 @@
 - Contesto Lex arricchito con l’headline del cockpit `Motori Legali`, così l’assistente riceve anche il quadro operativo del dominio legale.
 - Packaging dipendenze riorganizzato sotto `requirements/` con separazione tra runtime base e sviluppo.
 - Documentazione di prodotto completata con matrice storage, disciplina di release e changelog.
-
-
-
-

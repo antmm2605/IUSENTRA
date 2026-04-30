@@ -921,7 +921,7 @@ def client_admin(tmp_path):
 
 
 def test_admin_database_get(client_admin):
-    r = client_admin.get("/admin/database")
+    r = client_admin.get("/admin/database?_legacy=1")
     assert r.status_code == 200
     assert b"Database" in r.data
 
@@ -935,7 +935,7 @@ def test_admin_database_get_rileva_ultimo_sqlite_migrato(client_admin):
     conn.commit()
     conn.close()
 
-    r = client_admin.get("/admin/database")
+    r = client_admin.get("/admin/database?_legacy=1")
 
     assert r.status_code == 200
     html = r.get_data(as_text=True)

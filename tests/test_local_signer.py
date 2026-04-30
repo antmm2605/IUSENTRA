@@ -596,10 +596,16 @@ def test_ui_pec_locale_auto_avvia_signer_e_mostra_pacchetto():
 
     assert "btn-test-smtp-locale" in template
     assert "data-windows-url" in template
+    assert "data-latest-version" in template
+    assert "data-has-saved-password" in template
     assert "testPecSmtpLocale" in script
     assert "hacs-local-signer://restart" in script
     assert "hacs-local-signer://restart" in firma_script
     assert "hacs-local-signer://restart" in ai_script
+    assert "localSignerOutdatedHtml" in script
+    assert "compareVersions" in script
+    assert "Uso la password PEC salvata senza esporla al browser" in script
+    assert "fetch('/impostazioni/test/pec-smtp'" in script
     assert "localSignerMissingMessage" in firma_script
     assert "ensureLocalSignerCompanionStarted" in ai_script
     assert "Local Signer non rilevato" in script

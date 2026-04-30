@@ -38,6 +38,8 @@ def test_agents_documents_ci_no_regression_rule() -> None:
         "Pytest core",
         "Coverage moduli critici",
         "Gate anti-regressione al 100%",
+        "target richiesto dall'utente per chiudere definitivamente la coverage critica e' **100%**",
+        "vietato dichiarare che il problema coverage sia chiuso",
         "71,49%",
         "release-blocking",
     )

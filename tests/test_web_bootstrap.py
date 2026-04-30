@@ -387,6 +387,33 @@ def test_pwa_routes_and_error_handlers_restano_registrati(tmp_path: Path):
     assert missing.status_code == 404
 
 
+def test_impostazioni_pec_espone_controllo_local_signer_e_password_salvata(tmp_path: Path):
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    app = create_app(_cfg_web(tmp_path))
+    studio, tenant_admin = _seed_tenant_admin(app)
+
+    with app.test_client() as client:
+        client.post(
+            "/login",
+            data={
+                "username": tenant_admin.username,
+                "password": "PasswordSicura!123",
+                "studio_slug": studio.slug,
+            },
+            follow_redirects=False,
+        )
+        response = client.get("/impostazioni?tab=pec")
+
+    html = response.get_data(as_text=True)
+    assert response.status_code == 200
+    assert 'id="iusentra-local-signer-monitor"' in html
+    assert 'data-local-signer-url="http://127.0.0.1:27272"' in html
+    assert 'data-has-saved-password="1"' in html
+    assert 'data-latest-version="' in html
+    assert "/static/js/local-signer-monitor.js?v=" in html
+    assert "Testa SMTP dal PC" in html
+
+
 def test_route_domini_estratti_restano_operativi(tmp_path: Path):
     _write_studio_config(tmp_path / "config" / "studio.json")
     app = create_app(_cfg_web(tmp_path))
@@ -979,6 +1006,25 @@ def test_impostazioni_js_e_esterno_e_senza_duplicazioni():
     assert 'data-local-signer-url="http://127.0.0.1:27272"' in template
     assert "data-local-signer-setup-windows" in template
     assert "Quando IUSENTRA e' online" in template
+
+
+def test_local_signer_monitor_globale_verifica_versione_e_installer():
+    base = (REPO_ROOT / "web/templates/base.html").read_text(encoding="utf-8")
+    monitor_js = (REPO_ROOT / "web/static/js/local-signer-monitor.js").read_text(encoding="utf-8")
+
+    assert 'id="iusentra-local-signer-monitor"' in base
+    assert 'data-local-signer-url="{{ local_signer_release.browser_url }}"' in base
+    assert 'data-latest-version="{{ local_signer_release.version }}"' in base
+    assert "/static/js/local-signer-monitor.js?v={{ app_version }}" in base
+
+    assert "http://127.0.0.1:27272" in monitor_js
+    assert "hacs-local-signer://restart" in monitor_js
+    assert "compareVersions" in monitor_js
+    assert "Fase 1: provo ad avviare" in monitor_js
+    assert "Fase 2: versione rilevata" in monitor_js
+    assert "Fase 3: installa il pacchetto" in monitor_js
+    assert "Fase 4 completata" in monitor_js
+    assert "autoOpenInstallerOnce" in monitor_js
 
 
 def test_local_signer_distribution_include_bridge_ai(tmp_path: Path):

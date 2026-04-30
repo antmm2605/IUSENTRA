@@ -23,6 +23,7 @@ from web.services.ui_localization import (
     format_short_weekday_date,
     format_time_only,
 )
+from web.services.local_signer_release import latest_local_signer_release
 
 
 def register_template_runtime(
@@ -88,4 +89,5 @@ def register_template_runtime(
             "n_operatori_connessi": connected_operators(),
             "recenti": session.get("recenti", []),
             "app_version": app_version,
+            "local_signer_release": latest_local_signer_release(),
         }

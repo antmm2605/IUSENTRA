@@ -2120,7 +2120,18 @@ document.addEventListener('DOMContentLoaded', function () { window.pctAI.init();
 {% endif %}
 {% include "components/pct_ai_widget.html" %}
 {% if g.utente_corrente %}
+<div id="iusentra-local-signer-monitor"
+     class="d-none"
+     data-enabled="1"
+     data-local-signer-url="{{ local_signer_release.browser_url }}"
+     data-latest-version="{{ local_signer_release.version }}"
+     data-download-page="{{ url_for('impostazioni.index', tab='firma') }}"
+     data-setup-windows="{{ url_for('polis_local_signer_setup_windows') }}"
+     data-setup-macos="{{ url_for('polis_local_signer_setup_macos') }}"
+     data-setup-linux="{{ url_for('polis_local_signer_setup_linux') }}"
+     data-auto-installer-prompt="1"></div>
 <script src="/static/js/support_launch.js?v={{ app_version }}" defer></script>
+<script src="/static/js/local-signer-monitor.js?v={{ app_version }}" defer></script>
 <script src="/static/js/local-ai-browser-bridge.js?v={{ app_version }}" defer></script>
 <script src="/static/js/pct-lex-assistant-documents.js?v={{ app_version }}" defer></script>
 <script src="/static/js/pct-lex-assistant-voice.js?v={{ app_version }}" defer></script>

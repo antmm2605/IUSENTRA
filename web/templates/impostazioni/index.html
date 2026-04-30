@@ -323,12 +323,14 @@
           <div class="alert alert-light border small mt-3 mb-0"
                id="pec-local-signer-meta"
                data-local-signer-base="http://127.0.0.1:27272"
+               data-latest-version="{{ local_signer.version }}"
+               data-has-saved-password="{{ '1' if cfg.pec.password else '0' }}"
                data-windows-url="{{ url_for('polis_local_signer_setup_windows') }}"
                data-macos-url="{{ url_for('polis_local_signer_setup_macos') }}"
                data-linux-url="{{ url_for('polis_local_signer_setup_linux') }}">
             <i class="bi bi-pc-display-horizontal text-success me-1"></i>
-            Il test locale avvia automaticamente Local Signer se non è già attivo. Se non viene rilevato,
-            IUSENTRA mostra il pacchetto da installare su questo computer.
+            Il test locale avvia automaticamente Local Signer se non è già attivo, verifica la versione
+            {{ local_signer.version }} e propone il pacchetto aggiornato su questo computer.
           </div>
         </div>
       </div>

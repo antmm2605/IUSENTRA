@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.198.6 - 2026-04-30
+
+- Introdotto il controllo globale browser-local del Local Signer dopo il login: verifica `127.0.0.1:27272`, tenta l'avvio via protocollo locale, confronta la versione installata con quella rilasciata e propone il pacchetto ufficiale aggiornato per Windows, macOS o Linux con riverifica post-installazione.
+- Corretto il test `Testa SMTP dal PC` nella scheda PEC: se la password e' gia' salvata non viene piu' richiesta inutilmente; il sistema verifica il Local Signer e usa il test sicuro server-side senza esporre la credenziale al browser.
+- Rafforzata la regola anti-confusione coverage: il gate minimo CI verde non puo' piu' essere comunicato come target coverage 100% raggiunto.
+- Aggiunti test anti-regressione per metadati Local Signer, controllo versione, installer e fallback password PEC salvata.
+
 ## 2.198.5 - 2026-04-30
 
 - Promossa la superficie `Servizi Telematici` alla shell React ufficiale su `/telematico`, con bridge `/api/v1/ui/telematico` alimentato dai runtime reali e vista classica disponibile solo come `_legacy=1`.

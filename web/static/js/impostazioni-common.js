@@ -83,6 +83,8 @@
     const meta = document.getElementById('pec-local-signer-meta');
     return {
       base: meta?.dataset.localSignerBase || 'http://127.0.0.1:27272',
+      latestVersion: meta?.dataset.latestVersion || '',
+      hasSavedPassword: meta?.dataset.hasSavedPassword === '1',
       windows: meta?.dataset.windowsUrl || '/polisWeb/local-signer/setup/windows',
       macos: meta?.dataset.macosUrl || '/polisWeb/local-signer/setup/macos',
       linux: meta?.dataset.linuxUrl || '/polisWeb/local-signer/setup/linux',
@@ -113,6 +115,54 @@
     );
   }
 
+  function versionParts(value) {
+    return String(value || '')
+      .replace(/^v/i, '')
+      .split(/[^\d]+/)
+      .filter(Boolean)
+      .map(function (part) {
+        return parseInt(part, 10) || 0;
+      });
+  }
+
+  function compareVersions(a, b) {
+    const left = versionParts(a);
+    const right = versionParts(b);
+    const max = Math.max(left.length, right.length);
+    for (let i = 0; i < max; i += 1) {
+      const av = left[i] || 0;
+      const bv = right[i] || 0;
+      if (av > bv) return 1;
+      if (av < bv) return -1;
+    }
+    return 0;
+  }
+
+  function localSignerOutdatedHtml(payload) {
+    const meta = localSignerMeta();
+    const install = localSignerInstallUrl();
+    const installed = payload?.versione || payload?.version || 'n.d.';
+    return (
+      'Local Signer da aggiornare: rilevata versione ' +
+      escapeHtml(installed) +
+      ', richiesta ' +
+      escapeHtml(meta.latestVersion) +
+      '. <a href="' +
+      escapeHtml(install.url) +
+      '" target="_blank" rel="noopener">' +
+      escapeHtml(install.label.replace('Scarica', 'Aggiorna')) +
+      '</a>. Dopo l\'installazione ripeti il test.'
+    );
+  }
+
+  function isLocalSignerOutdated(payload) {
+    const meta = localSignerMeta();
+    if (!meta.latestVersion || !payload) {
+      return false;
+    }
+    return compareVersions(payload.versione || payload.version || '', meta.latestVersion) < 0;
+  }
+
   function sleep(ms) {
     return new Promise(function (resolve) {
       window.setTimeout(resolve, ms);
@@ -139,9 +189,9 @@
     try {
       const meta = localSignerMeta();
       const data = await fetchJsonWithTimeout(meta.base + '/ping?light=1', { method: 'GET' }, 2500);
-      return Boolean(data && data.ok);
+      return data && data.ok ? data : null;
     } catch (error) {
-      return false;
+      return null;
     }
   }
 
@@ -156,7 +206,12 @@
   }
 
   async function ensureLocalSignerReady(result) {
-    if (await pingLocalSigner()) {
+    const firstPing = await pingLocalSigner();
+    if (firstPing) {
+      if (isLocalSignerOutdated(firstPing)) {
+        renderTestResultHtml(result, false, localSignerOutdatedHtml(firstPing));
+        return false;
+      }
       return true;
     }
     result.className = 'test-result test-spin';
@@ -164,7 +219,12 @@
     requestLocalSignerStart();
     for (let attempt = 0; attempt < 10; attempt += 1) {
       await sleep(900);
-      if (await pingLocalSigner()) {
+      const ping = await pingLocalSigner();
+      if (ping) {
+        if (isLocalSignerOutdated(ping)) {
+          renderTestResultHtml(result, false, localSignerOutdatedHtml(ping));
+          return false;
+        }
         return true;
       }
     }
@@ -247,8 +307,9 @@
       return;
     }
 
+    const meta = localSignerMeta();
     const payload = collectPecPayload();
-    if (!payload.password) {
+    if (!payload.password && !meta.hasSavedPassword) {
       renderTestResult(
         result,
         false,
@@ -265,21 +326,40 @@
       if (!(await ensureLocalSignerReady(result))) {
         return;
       }
-      const meta = localSignerMeta();
       result.className = 'test-result test-spin';
-      result.innerHTML = '<i class="bi bi-arrow-repeat spin me-1"></i>Test SMTP locale in corso...';
-      const data = await fetchJsonWithTimeout(
-        meta.base + '/pec/smtp/test',
-        {
+      let data = {};
+      if (payload.password) {
+        result.innerHTML = '<i class="bi bi-arrow-repeat spin me-1"></i>Test SMTP locale in corso...';
+        data = await fetchJsonWithTimeout(
+          meta.base + '/pec/smtp/test',
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Requested-With': 'XMLHttpRequest',
+            },
+            body: JSON.stringify(payload),
+          },
+          35000
+        );
+      } else {
+        result.innerHTML =
+          '<i class="bi bi-arrow-repeat spin me-1"></i>Uso la password PEC salvata senza esporla al browser...';
+        const response = await fetch('/impostazioni/test/pec-smtp', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'X-Requested-With': 'XMLHttpRequest',
           },
-          body: JSON.stringify(payload),
-        },
-        35000
-      );
+          body: JSON.stringify({ ...payload, password: '' }),
+        });
+        data = await response.json();
+        if (data && data.ok) {
+          data.messaggio =
+            (data.messaggio || 'Verifica completata.') +
+            ' Local Signer rilevato e password PEC salvata usata in modo sicuro dal server.';
+        }
+      }
       renderTestResult(result, Boolean(data.ok), data.messaggio || 'Verifica locale completata.');
     } catch (error) {
       renderTestResultHtml(result, false, localSignerMissingHtml());

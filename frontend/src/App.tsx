@@ -207,8 +207,8 @@ const navSections: NavSection[] = [
     icon: Send,
     items: [
       { label: 'Centro Servizi Telematici', icon: BriefcaseBusiness, href: '/telematico' },
-      { label: 'PolisWeb / PST', icon: FileText, href: '/polisWeb' },
-      { label: 'Importa pratica da PST', icon: CloudUpload, href: '/portali/pst/acquisizione' },
+      { label: 'PolisWeb / PST', icon: CloudUpload, href: '/portali/pst/acquisizione' },
+      { label: 'Panoramica PST', icon: FileText, href: '/polisWeb' },
       { label: 'SIGP - Giudice di Pace', icon: Landmark, href: '/polisWeb' },
       { label: 'PDP Penale', icon: ShieldCheck, href: '/pdp' },
       { label: 'PAT Amministrativo', icon: FileText, href: '/pat' },

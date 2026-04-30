@@ -558,7 +558,8 @@ def test_react_superfici_telematiche_collegate_nav_api_css():
     assert "isTelematicoSurfacePage" in app_source
     assert "isTelematicoSurfacePage?<TelematicoSurfacePage/>" in app_source
     assert "{ label: 'PTT Tributario', icon: FileText, href: '/sigit' }" in app_source
-    assert "{ label: 'Importa pratica da PST', icon: CloudUpload, href: '/portali/pst/acquisizione' }" in app_source
+    assert "{ label: 'PolisWeb / PST', icon: CloudUpload, href: '/portali/pst/acquisizione' }" in app_source
+    assert "{ label: 'Panoramica PST', icon: FileText, href: '/polisWeb' }" in app_source
     assert "getTelematicoSurfacePage" in data_source
     assert "/api/v1/ui/telematico/surface/" in data_source
     assert "OfficeDirectory" in page_source

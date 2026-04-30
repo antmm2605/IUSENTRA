@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.198.12 - 2026-04-30
+
+- Corretto il link principale della nav React `PolisWeb / PST`: ora apre direttamente il wizard reale `/portali/pst/acquisizione`, invece della panoramica `/polisWeb`.
+- Mantenuta la panoramica come voce separata `Panoramica PST`, cosi' il percorso informativo resta disponibile ma non intercetta piu' il flusso di import.
+
 ## 2.198.11 - 2026-04-30
 
 - Ridisegnata la superficie React `Tribunali / PEC`: l'elenco `Tribunali e indirizzi PEC` e' ora un pannello scrollabile affiancato alle card `Esiti in attesa`, `Import incompleti`, `Controlli predeposito` e `Collegamenti rapidi`, con altezza coordinata e layout responsive.

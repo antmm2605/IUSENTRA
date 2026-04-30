@@ -7,7 +7,8 @@ from collections.abc import Callable
 from datetime import date
 from typing import Any
 
-from flask import Flask, flash, jsonify, redirect, render_template, request, url_for, g
+from web.blueprints.react_shell import render_react_shell_response
+from flask import Flask, flash, g, jsonify, redirect, render_template, request, url_for
 from pct.scadenziario import (
     PRESET_TERMINI,
     GestioneScadenziario,
@@ -30,6 +31,10 @@ from web.services.scadenziario_views import (
     scadenza_detail_context,
     scadenze_per_vista,
 )
+
+
+def _richiede_vista_classica() -> bool:
+    return (request.args.get("_legacy") or "").strip().lower() in {"1", "true", "si", "yes", "on"}
 
 def register_scadenziario_routes(
     app: Flask,
@@ -150,6 +155,9 @@ def register_scadenziario_routes(
 
     @app.route("/scadenziario")
     def scadenziario():
+        if not _richiede_vista_classica():
+            return render_react_shell_response("scadenziario")
+
         gs = get_scadenziario()
         filtro_tipo = request.args.get("tipo", "")
         filtro_priorita = request.args.get("priorita", "")
@@ -218,6 +226,9 @@ def register_scadenziario_routes(
 
     @app.route("/scadenziario/nuova", methods=["GET", "POST"])
     def nuova_scadenza():
+        if request.method == "GET" and not _richiede_vista_classica():
+            return render_react_shell_response("scadenziario/nuova")
+
         if request.method == "POST":
             gs = get_scadenziario()
             form = request.form
@@ -296,6 +307,8 @@ def register_scadenziario_routes(
         if not sc:
             flash("Scadenza non trovata.", "warning")
             return redirect(url_for("scadenziario"))
+        if not _richiede_vista_classica():
+            return render_react_shell_response(f"scadenziario/{id_sc}")
         context = scadenza_detail_context(
             sc, gestione_fascicoli=get_fascicoli(), gestione_utenti=get_utenti(),
             gestione_agenda=get_agenda(), studio_cfg=get_config_studio().config.studio,
@@ -310,6 +323,8 @@ def register_scadenziario_routes(
         if not sc:
             flash("Scadenza non trovata.", "warning")
             return redirect(url_for("scadenziario"))
+        if request.method == "GET" and not _richiede_vista_classica():
+            return render_react_shell_response(f"scadenziario/{id_sc}/modifica")
         if request.method == "POST":
             form = request.form
             try:

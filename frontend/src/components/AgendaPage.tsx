@@ -7,6 +7,7 @@ import {
   CalendarDays,
   CalendarPlus,
   CalendarSync,
+  CheckCircle2,
   ChevronLeft,
   ChevronRight,
   Clock3,
@@ -92,6 +93,12 @@ function Kpi({ icon, label, value, note }:{icon:ReactNode; label:string; value:s
 function createAppointmentHref(dayIso: string, time = '09:00'): string {
   const params = new URLSearchParams({ data: dayIso, ora: time })
   return `/agenda/nuovo?${params.toString()}`
+}
+
+function routeAgendaId(): string {
+  const match = window.location.pathname.match(/^\/agenda\/([^/]+)/)
+  if (!match || ['nuovo', 'importa'].includes(match[1])) return ''
+  return decodeURIComponent(match[1])
 }
 
 function localDateTimePayload(value: string): string {
@@ -266,6 +273,48 @@ function AgendaInspector({ events, nextEvent, unsynced }:{events:AgendaEvent[]; 
   )
 }
 
+function AgendaFocus({ event }:{event:AgendaEvent}) {
+  const isDeadline = event.source === 'scadenziario' || event.id.startsWith('scadenza-')
+  const editHref = isDeadline ? event.href : `/agenda/${encodeURIComponent(event.id)}/modifica`
+  const completeHref = isDeadline ? event.href : `/agenda/${encodeURIComponent(event.id)}/stato`
+  return (
+    <section className="iu-ag-focus">
+      <div>
+        <a href="/agenda"><ArrowLeftIcon/>Torna all'agenda</a>
+        <span>Elemento selezionato</span>
+        <h2>{event.title}</h2>
+        <p>{event.subtitle || event.notes || event.location || 'Impegno agenda senza note aggiuntive.'}</p>
+      </div>
+      <dl>
+        <div><dt>Data</dt><dd>{new Date(event.start).toLocaleDateString('it-IT')}</dd></div>
+        <div><dt>Orario</dt><dd>{event.timeLabel} · {event.durationLabel}</dd></div>
+        <div><dt>Cliente</dt><dd>{event.client || 'Non collegato'}</dd></div>
+        <div><dt>Fonte</dt><dd>{event.source}</dd></div>
+      </dl>
+      <div className="iu-ag-focus__actions">
+        <a href={editHref}><Settings2 size={15}/>Modifica</a>
+        <a href={event.href || '/agenda'}><CalendarDays size={15}/>Apri origine</a>
+        <a href={`/messaggi/nuovo?oggetto=${encodeURIComponent(event.title)}`}><MessageCircleIcon/>Avvisa cliente</a>
+        <a href={`/lex?context=agenda&evento=${encodeURIComponent(event.title)}`}><Sparkles size={15}/>Chiedi a Lex</a>
+        {!isDeadline ? (
+          <form method="post" action={completeHref}>
+            <input type="hidden" name="stato" value="COMPLETATO"/>
+            <button type="submit"><CheckCircle2 size={15}/>Segna completato</button>
+          </form>
+        ) : null}
+      </div>
+    </section>
+  )
+}
+
+function ArrowLeftIcon() {
+  return <ChevronLeft size={15}/>
+}
+
+function MessageCircleIcon() {
+  return <Bell size={15}/>
+}
+
 export function AgendaPage() {
   const [anchorDate, setAnchorDate] = useState(() => new Date())
   const [view, setView] = useState<AgendaView>('week')
@@ -274,6 +323,7 @@ export function AgendaPage() {
   const [loading, setLoading] = useState(true)
   const [events, setEvents] = useState<AgendaEvent[]>([])
   const [moveStatus, setMoveStatus] = useState('')
+  const selectedId = routeAgendaId()
 
   const refresh = () => {
     setLoading(true)
@@ -299,6 +349,7 @@ export function AgendaPage() {
   }), [events, kind, query])
 
   const agenda = useMemo(() => buildAgendaPageData(filteredEvents, anchorDate, 'client', view), [filteredEvents, anchorDate, view])
+  const selectedEvent = selectedId ? events.find((event) => event.id === selectedId || event.id === `scadenza-${selectedId}`) : undefined
   const weekStart = startOfWeek(anchorDate)
   const weekEnd = addDays(weekStart, 6)
   const visibleRange = agendaRange(anchorDate, view)
@@ -396,6 +447,8 @@ export function AgendaPage() {
         <small><Move size={14}/> Orari cliccabili e drag & drop su giorno, settimana e mese.</small>
         {moveStatus ? <small className="iu-ag-move-status">{moveStatus}</small> : null}
       </section>
+
+      {selectedEvent ? <AgendaFocus event={selectedEvent}/> : null}
 
       <section className="iu-ag-kpis">
         <Kpi icon={<Clock3 size={19}/>} label="Oggi" value={agenda.summary.today} note="impegni in giornata"/>

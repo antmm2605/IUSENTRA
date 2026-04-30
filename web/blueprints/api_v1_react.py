@@ -24,7 +24,13 @@ from pct.scadenziario import PrioritaTermine, StatoTermine
 from pct.timesheet import StatoTimesheet
 from pct.workspace_intelligente import WorkspaceIntelligenteService
 from web.services.react_agenda_bridge import build_react_agenda_payload
-from web.services.react_clienti_bridge import build_react_clienti_nuovo_payload, build_react_clienti_payload
+from web.services.react_clienti_bridge import (
+    build_react_cliente_cartella_payload,
+    build_react_cliente_modifica_payload,
+    build_react_clienti_nuovo_payload,
+    build_react_clienti_payload,
+    build_react_soggetto_modifica_payload,
+)
 from web.services.react_email_bridge import build_react_email_payload
 from web.services.react_fascicoli_bridge import (
     build_react_archivio_payload,
@@ -34,7 +40,12 @@ from web.services.react_fascicoli_bridge import (
     build_react_fascicolo_form_payload,
 )
 from web.services.react_messaggi_bridge import build_react_messaggi_nuovo_payload, build_react_messaggi_payload
+from web.services.react_scadenziario_bridge import (
+    build_react_scadenziario_nuova_payload,
+    build_react_scadenziario_payload,
+)
 from web.services.react_soggetti_bridge import build_react_soggetti_payload
+from web.services.react_wizard_pro_bridge import build_react_wizard_pro_payload
 from web.helpers import (
     get_agenda,
     get_calendar_sync,
@@ -46,6 +57,7 @@ from web.helpers import (
     get_scadenziario,
     get_soggetti,
     get_timesheet,
+    get_utenti,
     studio_nome,
 )
 
@@ -748,7 +760,7 @@ def bootstrap():
                 "replace_global_search": True,
                 "replace_agenda": True,
                 "replace_fascicoli": True,
-                "replace_scadenziario": False,
+                "replace_scadenziario": True,
                 "replace_telematico": False,
                 "replace_preventivi": False,
                 "replace_sito_studio": False,
@@ -806,6 +818,38 @@ def clienti_react_nuovo():
     ))
 
 
+@api_v1_react.get("/clienti/<id_cliente>/cartella")
+@_richiedi_auth
+def cliente_cartella_react(id_cliente: str):
+    try:
+        return jsonify(build_react_cliente_cartella_payload(
+            get_clienti=get_clienti,
+            get_fascicoli=get_fascicoli,
+            get_agenda=get_agenda,
+            get_messaggi=_messaggi_manager,
+            get_scadenziario=get_scadenziario,
+            get_preventivi=get_preventivi,
+            get_fatturazione=get_fatturazione,
+            id_cliente=id_cliente,
+        ))
+    except KeyError:
+        return jsonify({"errore": "Cliente non trovato.", "codice": 404}), 404
+
+
+@api_v1_react.get("/clienti/<id_cliente>/modifica")
+@_richiedi_auth
+def cliente_modifica_react(id_cliente: str):
+    try:
+        return jsonify(build_react_cliente_modifica_payload(
+            get_clienti=get_clienti,
+            get_soggetti=get_soggetti,
+            id_cliente=id_cliente,
+            query=request.args,
+        ))
+    except KeyError:
+        return jsonify({"errore": "Cliente non trovato.", "codice": 404}), 404
+
+
 @api_v1_react.get("/soggetti")
 @_richiedi_auth
 def soggetti_react_list():
@@ -813,6 +857,20 @@ def soggetti_react_list():
         get_soggetti=get_soggetti,
         get_clienti=get_clienti,
     ))
+
+
+@api_v1_react.get("/soggetti/<id_soggetto>/modifica")
+@_richiedi_auth
+def soggetto_modifica_react(id_soggetto: str):
+    try:
+        return jsonify(build_react_soggetto_modifica_payload(
+            get_clienti=get_clienti,
+            get_soggetti=get_soggetti,
+            id_soggetto=id_soggetto,
+            query=request.args,
+        ))
+    except KeyError:
+        return jsonify({"errore": "Soggetto non trovato.", "codice": 404}), 404
 
 
 @api_v1_react.get("/email")
@@ -851,6 +909,39 @@ def messaggi_react_nuovo():
         get_clienti=get_clienti,
         query=request.args,
         config=current_app.config,
+    ))
+
+
+@api_v1_react.get("/scadenziario")
+@_richiedi_auth
+def scadenziario_react_list():
+    return jsonify(build_react_scadenziario_payload(
+        gestione_scadenziario=get_scadenziario(),
+        gestione_fascicoli=get_fascicoli(),
+        gestione_utenti=get_utenti(),
+        query_args=request.args,
+    ))
+
+
+@api_v1_react.get("/scadenziario/nuova")
+@_richiedi_auth
+def scadenziario_react_nuova():
+    core_runtime = current_app.extensions.get("core_runtime", {}) or {}
+    config_loader = core_runtime.get("get_config_studio")
+    return jsonify(build_react_scadenziario_nuova_payload(
+        fascicoli_loader=get_fascicoli,
+        utenti_loader=get_utenti,
+        config_loader=config_loader if callable(config_loader) else None,
+        scadenziario_loader=get_scadenziario,
+        id_scadenza=request.args.get("id_scadenza", "").strip(),
+    ))
+
+
+@api_v1_react.get("/wizard-pro")
+@_richiedi_auth
+def wizard_pro_react_dashboard():
+    return jsonify(build_react_wizard_pro_payload(
+        selected_fascicolo_id=request.args.get("id_fascicolo", "").strip(),
     ))
 
 
@@ -1044,6 +1135,7 @@ def agenda():
         get_scadenziario,
         from_value=request.args.get("from", ""),
         to_value=request.args.get("to", ""),
+        selected_id=request.args.get("selected_id", "").strip(),
     )
     return jsonify(payload)
 

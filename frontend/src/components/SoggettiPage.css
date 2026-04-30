@@ -19,6 +19,19 @@
 .iu-sogg-toolbar button{border:1px solid var(--iu-border);border-radius:12px;background:#fff;color:#0f172a;font-weight:900;cursor:pointer}
 .iu-sogg-toolbar button.is-active{border-color:rgba(245,158,11,.35);background:rgba(245,158,11,.12);color:#92400e}
 
+.iu-sogg-focus{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(260px,.8fr);gap:14px;align-items:start;margin-bottom:14px;padding:18px;border:1px solid rgba(37,99,235,.18);border-radius:20px;background:linear-gradient(135deg,#fff,#eff6ff);box-shadow:var(--iu-shadow-soft)}
+.iu-sogg-back{display:inline-flex;align-items:center;gap:7px;margin-bottom:8px;color:var(--iu-blue-700);font-size:12px;font-weight:950;text-decoration:none}
+.iu-sogg-focus__eyebrow{display:block;color:#475569;font-size:11px;font-weight:950;text-transform:uppercase;letter-spacing:.08em}
+.iu-sogg-focus h2{margin:5px 0 5px;color:#0f172a;font-size:25px;line-height:1.08}
+.iu-sogg-focus p{margin:0;color:#475569;font-size:13px;font-weight:750}
+.iu-sogg-focus dl{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:0}
+.iu-sogg-focus dt{color:#64748b;font-size:11px;font-weight:950;text-transform:uppercase}
+.iu-sogg-focus dd{margin:2px 0 0;color:#0f172a;font-size:13px;font-weight:900}
+.iu-sogg-focus__actions{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:9px}
+.iu-sogg-focus__actions a{min-height:40px;display:inline-flex;align-items:center;gap:8px;padding:0 12px;border:1px solid var(--iu-border);border-radius:12px;background:#fff;color:#0f172a;text-decoration:none;font-size:12px;font-weight:950}
+.iu-sogg-focus__actions a:first-child{background:#0f172a;color:#fff}
+.iu-sogg-focus small{grid-column:1/-1;display:inline-flex;align-items:center;gap:6px;color:#64748b;font-size:12px;font-weight:750}
+
 .iu-sogg-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(300px,360px);gap:16px;align-items:start}
 .iu-sogg-table-card{border:1px solid var(--iu-border);border-radius:18px;background:#fff;box-shadow:var(--iu-shadow-soft);overflow:hidden}
 .iu-sogg-table-head{min-height:54px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 16px;border-bottom:1px solid var(--iu-border)}
@@ -70,6 +83,7 @@
   .iu-sogg-hero{grid-template-columns:1fr;border-radius:20px}
   .iu-sogg-hero__actions{justify-content:flex-start}
   .iu-sogg-stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .iu-sogg-focus{grid-template-columns:1fr}
 }
 
 @media(max-width:760px){

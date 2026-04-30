@@ -77,13 +77,20 @@ def test_react_sidebar_contiene_navigazione_enterprise_completa():
         "Archivio Giurisprudenza",
         "Sincronizzazione Calendari",
         "Profili e Permessi",
-        "Registro Attivit?",
+        "Registro Attività",
         "Registro GDPR",
     ):
         assert label in source
 
     assert ".iu-nav-section__head" in css
-    assert ".iu-sidebar__nav{min-height:0;scrollbar-width:thin" in css
+    assert ".iu-sidebar__nav{min-height:0;overflow-x:hidden;scrollbar-width:thin" in css
+    assert "overflow-x:hidden;" in css
+    assert ".iu-sidebar{\n  overflow-x:hidden;" in css
+    assert ".iu-nav-link:hover{\n  transform:none;" in css
+    assert "overflow-wrap:anywhere;" in css
+    legacy_css = Path("web/static/scss/app.scss").read_text(encoding="utf-8")
+    assert "#sidebar .sb-scroll {\n  overflow-x: hidden;" in legacy_css
+    assert "#sidebar .sb-link,\n#sidebar .sb-link:hover {\n  transform: none;" in legacy_css
     assert "useState<Record<string,boolean>>({})" in source
     assert "openSections[section.id] === true" in source
     assert "onCloseMobile" in source
@@ -91,6 +98,7 @@ def test_react_sidebar_contiene_navigazione_enterprise_completa():
     assert "mobileOpen ? 'Chiudi menu'" in source
     assert "{ label: 'Regia Operativa', icon: Sparkles, href: '/workspace-intelligente' }" in source
     assert "{ label: 'Nuovo Appuntamento', icon: CirclePlus, href: '/agenda/nuovo' }" in source
+    assert "{ label: 'Preparazione Udienza Guidata', icon: Building2, href: '/wizard-pro/' }" in source
     assert ".iu-sidebar.iu-sidebar--mobile-open .iu-sidebar__toggle" in css
     assert "AppErrorBoundary" in source
     assert ".iu-react-error" in css
@@ -178,9 +186,12 @@ def test_react_nuovo_appuntamento_pagina_separata_con_backend_operativo():
     appointment_css = Path("frontend/src/components/NuovoAppuntamentoPage.css").read_text(encoding="utf-8")
 
     assert "/agenda/nuovo" in app_source
-    assert "isNewAppointmentPage?<NuovoAppuntamentoPage" in app_source
+    assert "isNewAppointmentPage||isAppointmentEditPage?<NuovoAppuntamentoPage" in app_source
     assert "{ label: 'Nuovo Appuntamento', icon: CirclePlus, href: '/agenda/nuovo' }" in app_source
-    assert 'action="/agenda/nuovo"' in appointment_page
+    assert "const isEditMode = Boolean(editId)" in appointment_page
+    assert "const formAction = isEditMode ? `/agenda/${encodeURIComponent(editId)}/modifica` : '/agenda/nuovo'" in appointment_page
+    assert "action={formAction}" in appointment_page
+    assert "Salva modifiche" in appointment_page
     assert "params.get('ora')" in appointment_page
     assert "/api/clienti" in appointment_page
     assert "safeJson" in appointment_page
@@ -230,6 +241,32 @@ def test_react_clienti_page_collegata_nav_api_e_lex():
     assert ".iu-clienti-page" in css
     assert ".iu-cli-table" in css
     assert "@media(max-width:760px)" in css
+
+
+def test_react_clienti_cartella_profonda_collegata_route_api_e_card_operative():
+    app_source = Path("frontend/src/App.tsx").read_text(encoding="utf-8")
+    page_source = Path("frontend/src/components/CartellaClientePage.tsx").read_text(encoding="utf-8")
+    data_source = Path("frontend/src/clientiCartellaData.ts").read_text(encoding="utf-8")
+    css = Path("frontend/src/components/CartellaClientePage.css").read_text(encoding="utf-8")
+    api_source = Path("web/blueprints/api_v1_react.py").read_text(encoding="utf-8")
+    route_source = Path("web/bootstrap/clienti_workspace_routes.py").read_text(encoding="utf-8")
+    clienti_routes = Path("web/bootstrap/clienti_routes.py").read_text(encoding="utf-8")
+
+    assert "CartellaClientePage" in app_source
+    assert "isClientFolderPage?<CartellaClientePage/>" in app_source
+    assert "isNewClientPage||isNewSubjectPage||isClientEditPage||isSubjectEditPage?<NuovoClientePage/>" in app_source
+    assert '@api_v1_react.get("/clienti/<id_cliente>/cartella")' in api_source
+    assert '@api_v1_react.get("/clienti/<id_cliente>/modifica")' in api_source
+    assert 'render_react_shell_response(f"clienti/{id_cliente}/cartella")' in route_source
+    assert 'render_react_shell_response(f"clienti/{id_cliente}")' in clienti_routes
+    assert 'render_react_shell_response(f"clienti/{id_cliente}/modifica")' in clienti_routes
+    assert "data.actions.newDeadline" in page_source
+    assert "data.actions.newMatter" in page_source
+    assert "data.actions.newMessage" in page_source
+    assert "FloatingLex" in page_source
+    assert "/api/v1/ui/clienti/${encodeURIComponent(idCliente)}/cartella" in data_source
+    assert ".iu-cartella-cliente-page" in css
+    assert ".iu-cart-actions" in css
 
 
 def test_react_clienti_bridge_usa_repository_reali(tmp_path: Path):
@@ -923,12 +960,16 @@ def test_react_clienti_nuovo_e_soggetti_collegati_nav_api_lex_cf():
     assert "/clienti/nuovo" in app_source
     assert "/soggetti" in app_source
     assert "/soggetti/nuovo" in app_source
-    assert "isNewClientPage||isNewSubjectPage?<NuovoClientePage/>" in app_source
+    assert "isNewClientPage||isNewSubjectPage||isClientEditPage||isSubjectEditPage?<NuovoClientePage/>" in app_source
+    assert "isSubjectEditPage" in app_source
     assert "isSoggettiPage?<SoggettiPage/>" in app_source
     assert "{ label: 'Nuovo Cliente', icon: UserPlus, href: '/clienti/nuovo' }" in app_source
     assert "{ label: 'Anagrafica', icon: UsersRound, href: '/soggetti' }" in app_source
     assert "{ label: 'Nuovo Soggetto', icon: UserPlus, href: '/soggetti/nuovo' }" in app_source
     assert "/api/v1/ui/clienti/nuovo" in new_data
+    assert "/api/v1/ui/clienti/${encodeURIComponent(decodeURIComponent(editMatch[1]))}/modifica" in new_data
+    assert "/api/v1/ui/soggetti/${encodeURIComponent(decodeURIComponent(subjectEditMatch[1]))}/modifica" in new_data
+    assert "edit_subject" in new_data
     assert "/api/v1/ui/soggetti" in soggetti_data
     assert "/api/cf/calcola" in new_page
     assert "/api/cf/decodifica" in new_page
@@ -942,6 +983,8 @@ def test_react_clienti_nuovo_e_soggetti_collegati_nav_api_lex_cf():
     assert "SoggettiPage" in soggetti_page
     assert 'context="soggetti"' in soggetti_page
     assert '@api_v1_react.get("/clienti/nuovo")' in api_source
+    assert '@api_v1_react.get("/clienti/<id_cliente>/modifica")' in api_source
+    assert '@api_v1_react.get("/soggetti/<id_soggetto>/modifica")' in api_source
     assert '@api_v1_react.get("/soggetti")' in api_source
     assert '"1" in form.getlist("crea_preventivo_iniziale")' in clienti_routes
     assert "provincia_nascita: str = \"\"" in soggetti_model
@@ -1020,3 +1063,45 @@ def test_codice_fiscale_calcolo_e_decodifica_api_react(tmp_path: Path):
     assert decoded["data_nascita"] == "1980-01-01"
     assert decoded["luogo_nascita"] == "Roma"
     assert decoded["provincia_nascita"] == "RM"
+
+
+def test_react_wizard_pro_nav_route_api_e_card_operative(tmp_path: Path):
+    app_source = Path("frontend/src/App.tsx").read_text(encoding="utf-8")
+    page_source = Path("frontend/src/components/WizardProPage.tsx").read_text(encoding="utf-8")
+    data_source = Path("frontend/src/wizardProData.ts").read_text(encoding="utf-8")
+    css = Path("frontend/src/components/WizardProPage.css").read_text(encoding="utf-8")
+    api_source = Path("web/blueprints/api_v1_react.py").read_text(encoding="utf-8")
+    route_source = Path("web/blueprints/wizard_pro.py").read_text(encoding="utf-8")
+
+    assert "{ label: 'Preparazione Udienza Guidata', icon: Building2, href: '/wizard-pro/' }" in app_source
+    assert "isWizardProPage?<WizardProPage/>" in app_source
+    assert "WizardProPage" in app_source
+    assert "getWizardProPage" in data_source
+    assert "/api/v1/ui/wizard-pro" in data_source
+    assert '@api_v1_react.get("/wizard-pro")' in api_source
+    assert "build_react_wizard_pro_payload" in api_source
+    assert "render_react_shell_response(\"wizard-pro\")" in route_source
+    assert "Vista classica tecnica" in page_source
+    assert 'method="post"' in page_source
+    assert "item.startHref" in page_source
+    assert "Termini collegati" in page_source
+    assert "Chiedi a Lex" in page_source
+    assert ".iu-wiz-page" in css
+    assert "@media(max-width:980px)" in css
+
+    app = _app(tmp_path)
+    _crea_operatore(app)
+    with app.test_client() as client:
+        _login(client)
+        response = client.get("/wizard-pro/")
+        legacy = client.get("/wizard-pro/?_legacy=1")
+        api_response = client.get("/api/v1/ui/wizard-pro", headers={"X-API-Key": "react-test-key"})
+
+    assert response.status_code == 200
+    assert '<html lang="it" class="react-shell-document">' in response.get_data(as_text=True)
+    assert legacy.status_code == 200
+    assert 'id="root"' not in legacy.get_data(as_text=True)
+    assert api_response.status_code == 200
+    payload = api_response.get_json()
+    assert payload["source"] == "repository_reali"
+    assert payload["contracts"]["writes"] == "operational_routes"

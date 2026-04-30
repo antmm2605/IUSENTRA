@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.198.3 - 2026-04-30
+
+- Eliminato in modo definitivo lo scroll orizzontale della navigazione laterale: la sidebar React e la sidebar legacy bloccano l'overflow laterale, mantengono solo lo scroll verticale e gestiscono etichette lunghe senza allargare il menu.
+- Aggiunto test di regressione CSS per impedire il ritorno di `overflow-x` o trasformazioni laterali nella nav principale.
+
+## 2.198.2 - 2026-04-30
+
+- Corretta la navigazione React di `Preparazione Udienza Guidata`: la voce ora apre `/wizard-pro/` e il cruscotto ufficiale serve la shell React, con vista classica disponibile solo come percorso tecnico `_legacy=1`.
+- Aggiunti bridge e pagina React per `/wizard-pro/`, alimentati dai repository reali del cruscotto udienza e con card operative collegate a ripresa sessione, avvio wizard, fascicolo, agenda, scadenziario e Lex.
+- Eliminato lo scroll orizzontale dalla sidebar React, mantenendo solo lo scroll verticale del menu e contenendo testi/link lunghi nella nav.
+- Estesi test React/API/route per presidiare il link corretto, la shell `/wizard-pro/`, il bridge `/api/v1/ui/wizard-pro`, le card operative e il divieto di regressione sulla nav.
+
 ## 2.198.1 - 2026-04-30
 
 - Corretto il mojibake nei testi React del primo blocco e nei test di route, ripristinando accenti italiani e simboli senza indebolire il gate governance.

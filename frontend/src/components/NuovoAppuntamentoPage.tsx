@@ -232,6 +232,11 @@ function initialForm(): AppointmentForm {
   }
 }
 
+function editAppointmentId(): string {
+  const match = window.location.pathname.match(/^\/agenda\/([^/]+)\/modifica$/)
+  return match ? decodeURIComponent(match[1]) : ''
+}
+
 function clientName(client: Partial<ClientSuggestion> | null | undefined): string {
   if (!client) return ''
   return (
@@ -308,6 +313,43 @@ function agendaItemsFromPayload(payload: unknown): AgendaApiItem[] {
   return source
     .map((item, index) => normaliseAgendaApiItem(item, index))
     .filter((item): item is AgendaApiItem => Boolean(item))
+}
+
+function recordsFromPayload(payload: unknown): Record<string, unknown>[] {
+  const source = Array.isArray(payload)
+    ? payload
+    : isRecord(payload) && Array.isArray(payload.data)
+      ? payload.data
+      : isRecord(payload) && Array.isArray(payload.items)
+        ? payload.items
+        : isRecord(payload) && Array.isArray(payload.events)
+          ? payload.events
+          : []
+  return source.filter(isRecord)
+}
+
+function formFromAgendaRecord(record: Record<string, unknown>, current: AppointmentForm): AppointmentForm {
+  const dataOra = firstText(record, ['data_ora', 'dataOra', 'datetime', 'inizio', 'start', 'data'])
+  const safeDataOra = dataOra.includes('T') ? dataOra : dataOra ? `${dataOra}T${current.ora}:00` : ''
+  const tipo = firstText(record, ['tipo', 'kind', 'type'], current.tipo).toUpperCase()
+  const allowedType = appointmentTypes.some((item) => item.value === tipo) ? tipo as AppointmentType : current.tipo
+  return {
+    ...current,
+    titolo: firstText(record, ['titolo', 'title', 'oggetto', 'name'], current.titolo),
+    tipo: allowedType,
+    data: safeDataOra.slice(0, 10) || current.data,
+    ora: safeDataOra.slice(11, 16) || current.ora,
+    durata: String(record.durata_minuti ?? record.durataMinuti ?? record.duration ?? current.durata),
+    reminder: String(record.reminder_minuti ?? record.reminderMinuti ?? current.reminder),
+    luogo: firstText(record, ['luogo', 'location', 'aula'], current.luogo),
+    cliente: firstText(record, ['cliente', 'client', 'nome_cliente'], current.cliente),
+    cf_cliente: firstText(record, ['cf_cliente', 'codice_fiscale'], current.cf_cliente).toUpperCase(),
+    id_cliente: firstText(record, ['id_cliente', 'client_id'], current.id_cliente),
+    procedimento: firstText(record, ['procedimento', 'matter', 'rg'], current.procedimento),
+    tribunale: firstText(record, ['tribunale', 'court', 'ufficio'], current.tribunale),
+    avvocato: firstText(record, ['avvocato', 'owner', 'responsabile'], current.avvocato),
+    note: firstText(record, ['note', 'notes', 'descrizione'], current.note),
+  }
 }
 
 function minutesFromTime(value: string): number | null {
@@ -402,6 +444,7 @@ function Field({
 }
 
 export function NuovoAppuntamentoPage() {
+  const editId = editAppointmentId()
   const [form, setForm] = useState<AppointmentForm>(() => initialForm())
   const [clientMatches, setClientMatches] = useState<ClientSuggestion[]>([])
   const [clientDropdownOpen, setClientDropdownOpen] = useState(false)
@@ -413,6 +456,8 @@ export function NuovoAppuntamentoPage() {
 
   const typeMeta = appointmentTypes.find((item) => item.value === form.tipo) ?? appointmentTypes[0]
   const suggestedTitle = useMemo(() => buildSuggestedTitle(form), [form])
+  const isEditMode = Boolean(editId)
+  const formAction = isEditMode ? `/agenda/${encodeURIComponent(editId)}/modifica` : '/agenda/nuovo'
 
   const qualityChecks = useMemo<CompletionCheck[]>(() => [
     {
@@ -495,6 +540,25 @@ export function NuovoAppuntamentoPage() {
   const update = (field: keyof AppointmentForm, value: string) => {
     setForm((current) => ({ ...current, [field]: value }))
   }
+
+  useEffect(() => {
+    if (!editId) return
+    let alive = true
+    fetch('/api/agenda', {
+      credentials: 'same-origin',
+      headers: { Accept: 'application/json' },
+    })
+      .then((response) => response.ok ? safeJson(response) : [])
+      .then((payload) => {
+        if (!alive) return
+        const record = recordsFromPayload(payload).find((item) => firstText(item, ['id', 'uuid', 'pk']) === editId)
+        if (record) setForm((current) => formFromAgendaRecord(record, current))
+      })
+      .catch(() => undefined)
+    return () => {
+      alive = false
+    }
+  }, [editId])
 
   useEffect(() => {
     if (!form.id_cliente) return
@@ -633,15 +697,15 @@ export function NuovoAppuntamentoPage() {
   }
 
   return (
-    <main className="iu-appointment-page" aria-label="Nuovo appuntamento">
+    <main className="iu-appointment-page" aria-label={isEditMode ? 'Modifica appuntamento' : 'Nuovo appuntamento'}>
       <section className="iu-appt-hero">
         <div className="iu-appt-hero__main">
           <span className="iu-appt-eyebrow">
             <CalendarPlus size={16} />
             Agenda studio
           </span>
-          <h1>Nuovo appuntamento</h1>
-          <p>Inserimento rapido, leggibile e controllato per udienze, consultazioni, riunioni, depositi e scadenze.</p>
+          <h1>{isEditMode ? 'Modifica appuntamento' : 'Nuovo appuntamento'}</h1>
+          <p>{isEditMode ? 'Aggiorna l’impegno mantenendo controlli, sovrapposizioni e route operativa originale.' : 'Inserimento rapido, leggibile e controllato per udienze, consultazioni, riunioni, depositi e scadenze.'}</p>
         </div>
         <div className="iu-appt-hero__actions">
           <a className="iu-appt-ghost" href="/agenda">
@@ -656,7 +720,7 @@ export function NuovoAppuntamentoPage() {
       </section>
 
       <div className="iu-appt-layout">
-        <form className="iu-appt-form" method="post" action="/agenda/nuovo" onSubmit={handleSubmit}>
+        <form className="iu-appt-form" method="post" action={formAction} onSubmit={handleSubmit}>
           <input type="hidden" name="id_cliente" value={form.id_cliente} />
           <input type="hidden" name="from_cliente" value={form.from_cliente} />
 
@@ -888,7 +952,7 @@ export function NuovoAppuntamentoPage() {
               </button>
               <button className="iu-appt-submit" type="submit" disabled={!canSubmit}>
                 <Send size={16} />
-                Aggiungi appuntamento
+                {isEditMode ? 'Salva modifiche' : 'Aggiungi appuntamento'}
               </button>
             </div>
           </section>

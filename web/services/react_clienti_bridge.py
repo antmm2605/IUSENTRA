@@ -13,6 +13,8 @@ from datetime import date, datetime, timezone
 from typing import Any, Callable, Mapping
 
 from pct.clienti import StatoCliente, TipoCliente, TipoDocumento
+from pct.fascicoli import StatoFascicolo
+from pct.scadenziario import StatoTermine
 from pct.soggetti import RuoloSoggetto, TipoSoggetto
 
 
@@ -54,6 +56,26 @@ def _parse_date(value: Any) -> date | None:
 
 def _iso_now() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+
+
+def _date_label(value: Any) -> str:
+    parsed = _parse_date(value)
+    if not parsed:
+        return ""
+    return parsed.strftime("%d/%m/%Y")
+
+
+def _enum_label(value: Any) -> str:
+    return _enum_value(value).replace("_", " ").title()
+
+
+def _amount(value: Any) -> str:
+    try:
+        amount = float(value or 0.0)
+    except (TypeError, ValueError):
+        amount = 0.0
+    text = f"{amount:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+    return f"EUR {text}"
 
 
 def _status(cliente: Any) -> str:
@@ -246,6 +268,258 @@ def build_react_clienti_payload(*, get_clienti: Callable[[], Any], get_fascicoli
     }
 
 
+def _fascicolo_archiviato(fascicolo: Any) -> bool:
+    stato = getattr(fascicolo, "stato", None)
+    raw = _enum_value(stato).lower()
+    return bool(
+        stato in {StatoFascicolo.ARCHIVIATO, StatoFascicolo.DEFINITO}
+        or getattr(fascicolo, "archiviato", False)
+        or "archiv" in raw
+        or "definit" in raw
+    )
+
+
+def _matter_card(fascicolo: Any) -> dict[str, Any]:
+    item_id = _text(getattr(fascicolo, "id", ""))
+    tipo = _enum_label(getattr(fascicolo, "tipo", ""))
+    stato = _enum_label(getattr(fascicolo, "stato", ""))
+    numero_rg = _text(getattr(fascicolo, "numero_rg", ""))
+    anno_rg = _text(getattr(fascicolo, "anno_rg", ""))
+    rg = f"RG {numero_rg}/{anno_rg}" if numero_rg or anno_rg else ""
+    tribunale = _text(getattr(fascicolo, "tribunale", ""))
+    subtitle = " - ".join(part for part in [rg, tribunale, tipo] if part)
+    return {
+        "id": item_id,
+        "title": _text(getattr(fascicolo, "titolo", "")) or _text(getattr(fascicolo, "numero", "")) or "Fascicolo",
+        "subtitle": subtitle,
+        "status": stato or "Aperto",
+        "type": tipo,
+        "counterparty": _text(getattr(fascicolo, "controparte", "")),
+        "documents": int(getattr(fascicolo, "documenti_count", 0) or len(getattr(fascicolo, "documenti", []) or [])),
+        "activities": int(getattr(fascicolo, "attivita_count", 0) or len(getattr(fascicolo, "attivita", []) or [])),
+        "href": f"/fascicoli/{item_id}",
+        "editHref": f"/fascicoli/{item_id}/modifica",
+        "tone": "neutral" if _fascicolo_archiviato(fascicolo) else "primary",
+    }
+
+
+def _deadline_card(scadenza: Any, fascicolo: Any | None = None) -> dict[str, Any]:
+    item_id = _text(getattr(scadenza, "id", ""))
+    data = _text(getattr(scadenza, "data_scadenza", "") or getattr(scadenza, "data", ""))
+    parsed = _parse_date(data)
+    days = (parsed - date.today()).days if parsed else None
+    raw_priority = _enum_value(getattr(scadenza, "priorita", "")).lower()
+    tone = "danger" if days is not None and days < 0 else "warning" if raw_priority in {"alta", "critica"} else "primary"
+    return {
+        "id": item_id,
+        "title": _text(getattr(scadenza, "titolo", "")) or "Scadenza",
+        "subtitle": _text(getattr(scadenza, "descrizione", "")) or (_text(getattr(fascicolo, "titolo", "")) if fascicolo else ""),
+        "date": _date_label(data),
+        "days": days,
+        "priority": _enum_label(getattr(scadenza, "priorita", "")),
+        "status": _enum_label(getattr(scadenza, "stato", "")),
+        "href": f"/scadenziario/{item_id}",
+        "editHref": f"/scadenziario/{item_id}/modifica",
+        "completeHref": f"/scadenziario/{item_id}/completa",
+        "tone": tone,
+    }
+
+
+def _appointment_card(item: Any) -> dict[str, Any]:
+    item_id = _text(getattr(item, "id", ""))
+    when = _text(getattr(item, "data_ora", "") or getattr(item, "data", ""))
+    return {
+        "id": item_id,
+        "title": _text(getattr(item, "titolo", "")) or "Appuntamento",
+        "subtitle": " - ".join(part for part in [_text(getattr(item, "luogo", "")), _text(getattr(item, "tribunale", ""))] if part),
+        "date": _date_label(when),
+        "time": when[11:16] if len(when) >= 16 else "",
+        "href": f"/agenda/{item_id}" if item_id else "/agenda",
+        "tone": "primary",
+    }
+
+
+def _message_card(item: Any) -> dict[str, Any]:
+    item_id = _text(getattr(item, "id", ""))
+    canale = _enum_label(getattr(item, "canale", ""))
+    stato = _enum_label(getattr(item, "stato", ""))
+    return {
+        "id": item_id,
+        "title": _text(getattr(item, "oggetto", "")) or canale or "Comunicazione",
+        "subtitle": _short(getattr(item, "corpo", ""), 140) or _text(getattr(item, "destinatario", "")),
+        "date": _date_label(getattr(item, "creato_il", "")),
+        "status": stato,
+        "channel": canale,
+        "href": f"/messaggi/{item_id}" if item_id else "/messaggi",
+        "tone": "warning" if "Coda" in stato else "danger" if "Fallito" in stato else "neutral",
+    }
+
+
+def _quote_card(item: Any) -> dict[str, Any]:
+    item_id = _text(getattr(item, "id", ""))
+    total = getattr(item, "totale_documento", None)
+    if total is None:
+        total = getattr(item, "totale", 0.0)
+    return {
+        "id": item_id,
+        "title": _text(getattr(item, "oggetto", "")) or _text(getattr(item, "numero", "")) or "Preventivo",
+        "subtitle": _text(getattr(item, "numero", "")),
+        "date": _date_label(getattr(item, "data_emissione", "")),
+        "amount": _amount(total),
+        "status": _enum_label(getattr(item, "stato", "")),
+        "href": f"/preventivi/{item_id}",
+        "tone": "success" if "Accett" in _enum_label(getattr(item, "stato", "")) else "primary",
+    }
+
+
+def _engagement_card(item: Any) -> dict[str, Any]:
+    item_id = _text(getattr(item, "id", ""))
+    return {
+        "id": item_id,
+        "title": _text(getattr(item, "oggetto", "")) or _text(getattr(item, "numero", "")) or "Conferimento incarico",
+        "subtitle": _text(getattr(item, "numero", "")),
+        "date": _date_label(getattr(item, "data_incarico", "")),
+        "status": _enum_label(getattr(item, "stato", "")),
+        "href": f"/preventivi/conferimenti/{item_id}",
+        "tone": "success",
+    }
+
+
+def _invoice_card(item: Any) -> dict[str, Any]:
+    item_id = _text(getattr(item, "id", ""))
+    total = getattr(item, "netto_a_pagare", None)
+    if total is None:
+        total = getattr(item, "totale", 0.0)
+    return {
+        "id": item_id,
+        "title": _text(getattr(item, "numero", "")) or "Parcella",
+        "subtitle": _date_label(getattr(item, "data_emissione", "")),
+        "amount": _amount(total),
+        "status": _enum_label(getattr(item, "stato", "")),
+        "href": f"/fatturazione/parcelle/{item_id}",
+        "tone": "success" if "Pagata" in _enum_label(getattr(item, "stato", "")) else "warning",
+    }
+
+
+def _timeline_from_fascicoli(fascicoli: list[Any], limit: int = 12) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for fascicolo in fascicoli:
+        fascicolo_id = _text(getattr(fascicolo, "id", ""))
+        for attivita in getattr(fascicolo, "attivita", []) or []:
+            rows.append({
+                "id": f"{fascicolo_id}-{_text(getattr(attivita, 'id', 'attivita'))}",
+                "title": _text(getattr(attivita, "titolo", "")) or _text(getattr(attivita, "descrizione", "")) or "Attivita",
+                "subtitle": _text(getattr(fascicolo, "titolo", "")),
+                "date": _date_label(getattr(attivita, "data", "")),
+                "href": f"/fascicoli/{fascicolo_id}",
+                "tone": "neutral",
+            })
+    return sorted(rows, key=lambda row: row.get("date") or "", reverse=True)[:limit]
+
+
+def build_react_cliente_cartella_payload(
+    *,
+    get_clienti: Callable[[], Any],
+    get_fascicoli: Callable[[], Any],
+    get_agenda: Callable[[], Any],
+    get_messaggi: Callable[[], Any],
+    get_scadenziario: Callable[[], Any],
+    get_preventivi: Callable[[], Any],
+    get_fatturazione: Callable[[], Any],
+    id_cliente: str,
+) -> dict[str, Any]:
+    cliente = get_clienti().get(id_cliente)
+    if not cliente:
+        raise KeyError(id_cliente)
+
+    fascicoli = _safe("fascicoli cliente", lambda: get_fascicoli().cerca(id_cliente=id_cliente, archiviati=True), [])
+    fascicoli_attivi = [item for item in fascicoli if not _fascicolo_archiviato(item)]
+    fascicoli_archiviati = [item for item in fascicoli if _fascicolo_archiviato(item)]
+    fascicoli_by_id = {_text(getattr(item, "id", "")): item for item in fascicoli}
+    fascicolo_ids = {item_id for item_id in fascicoli_by_id if item_id}
+
+    scadenze = _safe(
+        "scadenze cliente",
+        lambda: [item for item in get_scadenziario().tutte(solo_aperte=False) if _text(getattr(item, "id_fascicolo", "")) in fascicolo_ids],
+        [],
+    )
+    scadenze_aperte = [item for item in scadenze if getattr(item, "stato", None) == StatoTermine.APERTO]
+    scadenze_scadute = [item for item in scadenze_aperte if (_parse_date(getattr(item, "data_scadenza", "")) or date.max) < date.today()]
+    appuntamenti = _safe(
+        "appuntamenti cliente",
+        lambda: get_agenda().per_cliente(id_cliente) or get_agenda().cerca(cliente=getattr(cliente, "nome_completo", "")),
+        [],
+    )
+    messaggi = _safe("messaggi cliente", lambda: get_messaggi().per_cliente(id_cliente), [])
+    preventivi = _safe("preventivi cliente", lambda: get_preventivi().preventivi_per_cliente(id_cliente), [])
+    conferimenti = _safe("conferimenti cliente", lambda: get_preventivi().conferimenti_per_cliente(id_cliente), [])
+    parcelle = _safe("parcelle cliente", lambda: get_fatturazione().per_cliente(id_cliente), [])
+    phone, email, pec = _recapiti(cliente)
+
+    return {
+        "source": "repository_reali",
+        "generated_at": _iso_now(),
+        "contracts": {
+            "mock_fallback": False,
+            "read_only": False,
+            "writes": "operational_routes",
+            "route_owner": "react_shell",
+            "legacy_route": f"/clienti/{id_cliente}/cartella?_legacy=1",
+        },
+        "cliente": {
+            "id": id_cliente,
+            "name": _text(getattr(cliente, "nome_completo", "")) or "Cliente senza nome",
+            "subtitle": _subtitle(cliente),
+            "type": _type(cliente),
+            "status": _status(cliente),
+            "fiscalId": _fiscal_id(cliente),
+            "phone": phone,
+            "email": email,
+            "pec": pec,
+            "attorney": _text(getattr(cliente, "avvocato_referente", "")) or "-",
+            "privacyOk": bool(getattr(cliente, "consenso_trattamento", False)),
+            "missingFields": _missing_fields(cliente),
+            "documentExpired": _document_expired(cliente),
+            "href": f"/clienti/{id_cliente}",
+            "editHref": f"/clienti/{id_cliente}/modifica",
+            "folderHref": f"/clienti/{id_cliente}/cartella",
+        },
+        "summary": {
+            "activeMatters": len(fascicoli_attivi),
+            "archivedMatters": len(fascicoli_archiviati),
+            "documents": sum(int(getattr(item, "documenti_count", 0) or len(getattr(item, "documenti", []) or [])) for item in fascicoli),
+            "deadlines": len(scadenze_aperte),
+            "overdueDeadlines": len(scadenze_scadute),
+            "appointments": len(appuntamenti),
+            "messages": len(messaggi),
+            "quotes": len(preventivi),
+            "engagements": len(conferimenti),
+            "invoices": len(parcelle),
+        },
+        "matters": {
+            "active": [_matter_card(item) for item in fascicoli_attivi],
+            "archived": [_matter_card(item) for item in fascicoli_archiviati[:12]],
+        },
+        "deadlines": [_deadline_card(item, fascicoli_by_id.get(_text(getattr(item, "id_fascicolo", "")))) for item in scadenze_aperte[:12]],
+        "appointments": [_appointment_card(item) for item in appuntamenti[:8]],
+        "messages": [_message_card(item) for item in messaggi[:8]],
+        "quotes": [_quote_card(item) for item in preventivi[:8]],
+        "engagements": [_engagement_card(item) for item in conferimenti[:8]],
+        "invoices": [_invoice_card(item) for item in parcelle[:8]],
+        "timeline": _timeline_from_fascicoli(fascicoli),
+        "actions": {
+            "editClient": f"/clienti/{id_cliente}/modifica",
+            "newMatter": f"/fascicoli/nuovo?id_cliente={id_cliente}",
+            "newDeadline": f"/scadenziario/nuova?id_cliente={id_cliente}&from_cliente=cartella",
+            "newAppointment": f"/agenda/nuovo?id_cliente={id_cliente}",
+            "newMessage": f"/messaggi/nuovo?id_cliente={id_cliente}",
+            "newQuote": f"/preventivi/nuovo?id_cliente={id_cliente}",
+            "exportFolder": f"/clienti/{id_cliente}/esporta",
+            "legacy": f"/clienti/{id_cliente}/cartella?_legacy=1",
+        },
+    }
+
+
 def _option(value: Any, *, label: str = "", subtitle: str = "", tone: str = "neutral", count: int | None = None) -> dict[str, Any]:
     raw = _enum_value(value)
     payload: dict[str, Any] = {
@@ -321,6 +595,99 @@ def _clienti_nuovo_stats(clienti: list[Any], soggetti: list[Any]) -> dict[str, i
     }
 
 
+def _indirizzo_values(cliente: Any, attr: str, prefix: str = "") -> dict[str, str]:
+    indirizzi = getattr(cliente, "indirizzi", {}) or {}
+    address = indirizzi.get(attr) if isinstance(indirizzi, dict) else getattr(indirizzi, attr, None)
+    if address is None:
+        address = getattr(cliente, attr, None)
+    return {
+        f"{prefix}via": _text(getattr(address, "via", "")),
+        f"{prefix}civico": _text(getattr(address, "civico", "")),
+        f"{prefix}cap": _text(getattr(address, "cap", "")),
+        f"{prefix}comune": _text(getattr(address, "comune", "")),
+        f"{prefix}provincia": _text(getattr(address, "provincia", "")),
+        f"{prefix}nazione": _text(getattr(address, "nazione", "")) or "Italia",
+    }
+
+
+def _cliente_form_values(cliente: Any) -> dict[str, Any]:
+    recapiti = getattr(cliente, "recapiti", None)
+    documento = getattr(cliente, "documento", None)
+    values: dict[str, Any] = {
+        "tipo": _enum_value(getattr(cliente, "tipo", "")) or TipoCliente.PERSONA_FISICA.value,
+        "nome": _text(getattr(cliente, "nome", "")),
+        "cognome": _text(getattr(cliente, "cognome", "")),
+        "ragione_sociale": _text(getattr(cliente, "ragione_sociale", "")),
+        "codice_fiscale": _text(getattr(cliente, "codice_fiscale", "")),
+        "partita_iva": _text(getattr(cliente, "partita_iva", "")),
+        "forma_giuridica": _text(getattr(cliente, "forma_giuridica", "")),
+        "data_nascita": _text(getattr(cliente, "data_nascita", "")),
+        "luogo_nascita": _text(getattr(cliente, "luogo_nascita", "")),
+        "provincia_nascita": _text(getattr(cliente, "provincia_nascita", "")),
+        "sesso": _text(getattr(cliente, "sesso", "")),
+        "nazionalita": _text(getattr(cliente, "nazionalita", "")) or "Italiana",
+        "rappresentante_legale": _text(getattr(cliente, "rappresentante_legale", "")),
+        "cf_rappresentante": _text(getattr(cliente, "cf_rappresentante", "")),
+        "telefono": _text(getattr(recapiti, "telefono", "")),
+        "cellulare": _text(getattr(recapiti, "cellulare", "")),
+        "email": _text(getattr(recapiti, "email", "")),
+        "pec": _text(getattr(recapiti, "pec", "")),
+        "fax": _text(getattr(recapiti, "fax", "")),
+        "sito_web": _text(getattr(recapiti, "sito_web", "")),
+        "doc_tipo": _enum_value(getattr(documento, "tipo", "")) or TipoDocumento.CARTA_IDENTITA.value,
+        "doc_numero": _text(getattr(documento, "numero", "")),
+        "doc_rilasciato_da": _text(getattr(documento, "rilasciato_da", "")),
+        "doc_data_rilascio": _text(getattr(documento, "data_rilascio", "")),
+        "doc_data_scadenza": _text(getattr(documento, "data_scadenza", "")),
+        "avvocato_referente": _text(getattr(cliente, "avvocato_referente", "")),
+        "provenienza": _text(getattr(cliente, "provenienza", "")),
+        "note": _text(getattr(cliente, "note", "")),
+        "stato": _enum_value(getattr(cliente, "stato", "")) or StatoCliente.ATTIVO.value,
+        "crea_preventivo_iniziale": False,
+    }
+    values.update(_indirizzo_values(cliente, "residenza"))
+    values.update(_indirizzo_values(cliente, "domicilio", "dom_"))
+    values.update(_indirizzo_values(cliente, "sede_legale", "sl_"))
+    return values
+
+
+def _soggetto_form_values(soggetto: Any) -> dict[str, str]:
+    indirizzo = getattr(soggetto, "indirizzo", None)
+    recapiti = getattr(soggetto, "recapiti", None)
+    return {
+        "tipo": _enum_value(getattr(soggetto, "tipo", "PERSONA_FISICA")) or "PERSONA_FISICA",
+        "nome": _text(getattr(soggetto, "nome", "")),
+        "cognome": _text(getattr(soggetto, "cognome", "")),
+        "ragione_sociale": _text(getattr(soggetto, "ragione_sociale", "")),
+        "codice_fiscale": _text(getattr(soggetto, "codice_fiscale", "")),
+        "partita_iva": _text(getattr(soggetto, "partita_iva", "")),
+        "forma_giuridica": _text(getattr(soggetto, "forma_giuridica", "")),
+        "data_nascita": _text(getattr(soggetto, "data_nascita", "")),
+        "luogo_nascita": _text(getattr(soggetto, "luogo_nascita", "")),
+        "provincia_nascita": _text(getattr(soggetto, "provincia_nascita", "")),
+        "sesso": _text(getattr(soggetto, "sesso", "")),
+        "rappresentante_legale": _text(getattr(soggetto, "rappresentante_legale", "")),
+        "qualifica": _text(getattr(soggetto, "qualifica", "CONTROPARTE")) or "CONTROPARTE",
+        "ordine": _text(getattr(soggetto, "ordine", "")),
+        "numero_iscrizione": _text(getattr(soggetto, "numero_iscrizione", "")),
+        "id_cliente": _text(getattr(soggetto, "id_cliente", "")),
+        "telefono": _text(getattr(recapiti, "telefono", "")),
+        "cellulare": _text(getattr(recapiti, "cellulare", "")),
+        "email": _text(getattr(recapiti, "email", "")),
+        "pec": _text(getattr(recapiti, "pec", "")),
+        "fax": _text(getattr(recapiti, "fax", "")),
+        "sito_web": _text(getattr(recapiti, "sito_web", "")),
+        "via": _text(getattr(indirizzo, "via", "")),
+        "civico": _text(getattr(indirizzo, "civico", "")),
+        "cap": _text(getattr(indirizzo, "cap", "")),
+        "comune": _text(getattr(indirizzo, "comune", "")),
+        "provincia": _text(getattr(indirizzo, "provincia", "")),
+        "nazione": _text(getattr(indirizzo, "nazione", "Italia")) or "Italia",
+        "note": _text(getattr(soggetto, "note", "")),
+        "tag": ", ".join(str(item) for item in (getattr(soggetto, "tag", None) or []) if str(item).strip()),
+    }
+
+
 def build_react_clienti_nuovo_payload(
     *,
     get_clienti: Callable[[], Any],
@@ -330,7 +697,7 @@ def build_react_clienti_nuovo_payload(
     clienti = _safe("clienti", lambda: get_clienti().tutti(), [])
     soggetti = _safe("soggetti", lambda: get_soggetti().tutti(), [])
     query = query or {}
-    return {
+    payload = {
         "source": "repository_reali",
         "generated_at": _iso_now(),
         "contracts": {
@@ -380,3 +747,53 @@ def build_react_clienti_nuovo_payload(
             "Il soggetto processuale usa il campo qualifica per restare compatibile con il modello soggetti e parti.",
         ],
     }
+    return payload
+
+
+def build_react_cliente_modifica_payload(
+    *,
+    get_clienti: Callable[[], Any],
+    get_soggetti: Callable[[], Any],
+    id_cliente: str,
+    query: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    payload = build_react_clienti_nuovo_payload(get_clienti=get_clienti, get_soggetti=get_soggetti, query=query)
+    cliente = get_clienti().get(id_cliente)
+    if not cliente:
+        raise KeyError(id_cliente)
+    payload["mode"] = "edit"
+    payload["initialClient"] = _cliente_form_values(cliente)
+    payload["actions"]["operationalClientForm"] = f"/clienti/{id_cliente}/modifica"
+    payload["actions"]["clientsList"] = f"/clienti/{id_cliente}/cartella"
+    payload["query"]["idCliente"] = id_cliente
+    payload["insights"] = [
+        "Stai modificando l'anagrafica reale: i collegamenti a fascicoli, preventivi e conferimenti restano sullo stesso id cliente.",
+        "Completa recapiti, documento e indirizzo prima di generare o firmare il conferimento incarico.",
+        "La vista classica resta disponibile solo con ?_legacy=1 per verifica tecnica.",
+    ]
+    return payload
+
+
+def build_react_soggetto_modifica_payload(
+    *,
+    get_clienti: Callable[[], Any],
+    get_soggetti: Callable[[], Any],
+    id_soggetto: str,
+    query: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    payload = build_react_clienti_nuovo_payload(get_clienti=get_clienti, get_soggetti=get_soggetti, query=query)
+    soggetto = get_soggetti().get(id_soggetto)
+    if not soggetto:
+        raise KeyError(id_soggetto)
+    payload["mode"] = "edit_subject"
+    payload["initialSubject"] = _soggetto_form_values(soggetto)
+    payload["actions"]["operationalSubjectForm"] = f"/soggetti/{id_soggetto}/modifica"
+    payload["actions"]["subjectsList"] = f"/soggetti/{id_soggetto}"
+    payload["query"]["tab"] = "soggetto"
+    payload["query"]["idSoggetto"] = id_soggetto
+    payload["insights"] = [
+        "Stai modificando un soggetto o una parte processuale reale: i collegamenti ai fascicoli restano sullo stesso id.",
+        "Ruolo, recapiti, identificativo fiscale e collegamento cliente alimentano Ricerca Studio e schede fascicolo.",
+        "La vista classica resta disponibile solo con ?_legacy=1 per verifica tecnica.",
+    ]
+    return payload

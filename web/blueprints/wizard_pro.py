@@ -38,12 +38,17 @@ from pct.wizard_pro import (
     STEP_ICONS,
     ESITI,
 )
+from web.blueprints.react_shell import render_react_shell_response
 from web.helpers import get_agenda, get_fascicoli, get_wizard_pro
 from web.services.hearing_preparation_dashboard import build_hearing_preparation_dashboard
 
 wizard_pro_bp = Blueprint("wizard_pro", __name__, url_prefix="/wizard-pro")
 
 N_STEP = 5
+
+
+def _richiede_vista_classica() -> bool:
+    return str(request.args.get("_legacy", "")).strip().lower() in {"1", "true", "si", "sì", "yes"}
 
 
 # ─────────────────────────────────────────────────── helpers interni
@@ -107,6 +112,8 @@ def _checklist_da_fascicolo(fascicolo) -> list:
 @wizard_pro_bp.route("/", methods=["GET"])
 @_richiedi_login
 def index():
+    if not _richiede_vista_classica():
+        return render_react_shell_response("wizard-pro")
     return render_template(
         "wizard_pro/index.html",
         dashboard=build_hearing_preparation_dashboard(

@@ -185,6 +185,8 @@ def register_clienti_routes(
         if not cliente_accessibile(id_cliente):
             flash("Non hai accesso a questa cartella cliente.", "danger")
             return redirect(url_for("lista_clienti"))
+        if not _richiede_vista_legacy():
+            return render_react_shell_response(f"clienti/{id_cliente}")
 
         agenda = get_agenda()
         apps_cliente = agenda.cerca(cliente=cliente.nome_completo)
@@ -228,6 +230,8 @@ def register_clienti_routes(
         if not cliente_accessibile(id_cliente, RuoloCondivisione.SCRITTURA):
             flash("Non hai permesso di modificare questa cartella cliente.", "danger")
             return redirect(url_for("dettaglio_cliente", id_cliente=id_cliente))
+        if request.method == "GET" and not _richiede_vista_legacy():
+            return render_react_shell_response(f"clienti/{id_cliente}/modifica")
 
         if request.method == "POST":
             form = request.form

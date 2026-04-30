@@ -58,11 +58,15 @@ const NuovoAppuntamentoPage = lazy(() => import('./components/NuovoAppuntamentoP
 const RicercaStudioPage = lazy(() => import('./components/RicercaStudioPage').then((module) => ({ default: module.RicercaStudioPage })))
 const FascicoliPage = lazy(() => import('./components/FascicoliPage').then((module) => ({ default: module.FascicoliPage })))
 const AnagraficaClientiPage = lazy(() => import('./components/AnagraficaClientiPage').then((module) => ({ default: module.AnagraficaClientiPage })))
+const CartellaClientePage = lazy(() => import('./components/CartellaClientePage').then((module) => ({ default: module.CartellaClientePage })))
 const NuovoClientePage = lazy(() => import('./components/NuovoClientePage').then((module) => ({ default: module.NuovoClientePage })))
 const SoggettiPage = lazy(() => import('./components/SoggettiPage').then((module) => ({ default: module.SoggettiPage })))
 const EmailPecPage = lazy(() => import('./components/EmailPecPage').then((module) => ({ default: module.EmailPecPage })))
 const MessaggiPage = lazy(() => import('./components/MessaggiPage').then((module) => ({ default: module.MessaggiPage })))
 const NuovoMessaggioPage = lazy(() => import('./components/MessaggiPage').then((module) => ({ default: module.NuovoMessaggioPage })))
+const ScadenziarioPage = lazy(() => import('./components/ScadenziarioPage').then((module) => ({ default: module.ScadenziarioPage })))
+const NuovaScadenzaPage = lazy(() => import('./components/NuovaScadenzaPage').then((module) => ({ default: module.NuovaScadenzaPage })))
+const WizardProPage = lazy(() => import('./components/WizardProPage').then((module) => ({ default: module.WizardProPage })))
 
 const toneColor: Record<Tone,string> = { danger:'var(--iu-danger-500)', warning:'var(--iu-warning-500)', primary:'var(--iu-blue-600)', success:'var(--iu-success-500)', info:'var(--iu-sky-500)', purple:'var(--iu-purple-500)', orange:'var(--iu-warning-500)', neutral:'var(--iu-slate-300)' }
 const metricIcon = { danger: AlertTriangle, primary: Mail, success: MessageCircle, purple: Clock3, orange: UsersRound, warning: AlertTriangle, info: Mail, neutral: Clock3 }
@@ -190,7 +194,7 @@ const navSections: NavSection[] = [
     items: [
       { label: 'Scadenziario', icon: CalendarDays, href: '/scadenziario' },
       { label: 'Nuova Scadenza', icon: CalendarPlus, href: '/scadenziario/nuova' },
-      { label: 'Preparazione Udienza Guidata', icon: Building2, href: '/agenda' },
+      { label: 'Preparazione Udienza Guidata', icon: Building2, href: '/wizard-pro/' },
       { label: 'Controlli Atti', icon: ClipboardCheck, href: '/deposito/checklist' },
       { label: 'Lex - Assistente Legale', icon: Sparkles, href: '/lex' }
     ]
@@ -241,7 +245,7 @@ const navSections: NavSection[] = [
     items: [
       { label: 'Utenti', icon: UsersRound, href: '/utenti' },
       { label: 'Profili e Permessi', icon: Table, href: '/profili' },
-      { label: 'Registro Attivit?', icon: ClipboardList, href: '/admin/osservabilita' },
+      { label: 'Registro Attività', icon: ClipboardList, href: '/admin/osservabilita' },
       { label: 'Database', icon: Database, href: '/admin/database' },
       { label: 'Registro GDPR', icon: FileText, href: '/privacy/registro' }
     ]
@@ -371,7 +375,7 @@ function Donut({ data }:{data:DashboardData}) {
   const parts=data.deadlines.filter(d=>d.percent>0).map(d=>{const s=cur; cur+=d.percent; return `${toneColor[d.tone]} ${s}% ${cur}%`})
   const total=data.deadlines.reduce((a,b)=>a+b.count,0)
   const chart=parts.length?`conic-gradient(${parts.join(',')})`:'conic-gradient(var(--iu-slate-100) 0 100%)'
-  return <Panel title="Scadenze per priorita" icon={<Sparkles size={17}/>} count={total}><div className="iu-deadlines"><div className="iu-donut" style={{background:chart}}><div><strong>{total}</strong><span>Totali</span></div></div><div className="iu-deadlines__legend">{data.deadlines.map(d=><span key={d.label}><i style={{background:toneColor[d.tone]}}/>{d.label}<b>{d.percent}%</b></span>)}</div></div><a className="iu-link" href="/scadenziario">Vai a Scadenze e Termini -&gt;</a></Panel>
+  return <Panel title="Scadenze per priorità" icon={<Sparkles size={17}/>} count={total}><div className="iu-deadlines"><div className="iu-donut" style={{background:chart}}><div><strong>{total}</strong><span>Totali</span></div></div><div className="iu-deadlines__legend">{data.deadlines.map(d=><span key={d.label}><i style={{background:toneColor[d.tone]}}/>{d.label}<b>{d.percent}%</b></span>)}</div></div><a className="iu-link" href="/scadenziario">Vai a Scadenze e Termini -&gt;</a></Panel>
 }
 
 function Economic({ data }:{data:DashboardData}) {
@@ -383,7 +387,7 @@ function Lex({ data }:{data:DashboardData}) {
 }
 
 function Dossiers({ data }:{data:DashboardData}) {
-  return <Panel title="Fascicoli da presidiare" subtitle="Array dossier derivato dai fascicoli reali ad alta priorita." icon={<BriefcaseBusiness size={17}/>} count={data.dossiers.length}>{data.dossiers.length?<div className="iu-dossier-grid">{data.dossiers.map(dossier=><DossierCard dossier={dossier} key={dossier.id}/>)}</div>:<Empty>Nessun fascicolo prioritario nell'orizzonte operativo.</Empty>}<a className="iu-link" href="/fascicoli">Apri tutti i fascicoli -&gt;</a></Panel>
+  return <Panel title="Fascicoli da presidiare" subtitle="Array dossier derivato dai fascicoli reali ad alta priorità." icon={<BriefcaseBusiness size={17}/>} count={data.dossiers.length}>{data.dossiers.length?<div className="iu-dossier-grid">{data.dossiers.map(dossier=><DossierCard dossier={dossier} key={dossier.id}/>)}</div>:<Empty>Nessun fascicolo prioritario nell'orizzonte operativo.</Empty>}<a className="iu-link" href="/fascicoli">Apri tutti i fascicoli -&gt;</a></Panel>
 }
 
 function Sources({ data }:{data:DashboardData}) {
@@ -399,7 +403,7 @@ function RegiaOperativaPage({ data, loading }:{data:DashboardData; loading:boole
       <div className="iu-page-heading">
         <div>
           <h1>Regia Operativa</h1>
-          <p>Azioni, comunicazioni e priorita da lavorare fuori dalla Panoramica.</p>
+          <p>Azioni, comunicazioni e priorità da lavorare fuori dalla Panoramica.</p>
         </div>
         <a className={`iu-sync ${loading?'':'ok'}`} href="/workspace-intelligente">{loading?'Sincronizzazione dati...':'Apri versione completa'}</a>
       </div>
@@ -407,7 +411,7 @@ function RegiaOperativaPage({ data, loading }:{data:DashboardData; loading:boole
       <section className="iu-grid">
         <div className="span4"><Panel title="Azioni operative" icon={<Sparkles size={17}/>} count={data.operations.length}>{data.operations.length?<div className="iu-compact">{data.operations.map(action=><a className="iu-compact-row" href={action.href||'/workspace-intelligente'} key={action.id}><div><strong>{action.title}</strong><span>{action.subtitle}</span></div>{action.badge?<Badge tone={action.tone||'neutral'}>{action.badge}</Badge>:null}</a>)}</div>:<Empty>Nessuna azione operativa urgente.</Empty>}<a className="iu-link" href="/workspace-intelligente">Vai alla regia completa -&gt;</a></Panel></div>
         <div className="span4"><Panel title="Agenda da presidiare" icon={<CalendarDays size={17}/>} count={agendaRows.length}><List rows={agendaRows} href="/agenda"/><a className="iu-link" href="/agenda">Apri agenda -&gt;</a></Panel></div>
-        <div className="span4"><Panel title="Fascicoli prioritari" icon={<BriefcaseBusiness size={17}/>} count={matterRows.length}>{matterRows.length?<div className="iu-compact">{matterRows.map(row=><a className="iu-compact-row" href={row.href||'/fascicoli'} key={row.id}><div><strong>{row.title}</strong><span>{row.subtitle}</span></div>{row.badge?<Badge tone={row.tone||'neutral'}>{row.badge}</Badge>:null}</a>)}</div>:<Empty>Nessun fascicolo ad alta priorita.</Empty>}<a className="iu-link" href="/fascicoli">Vai ai fascicoli -&gt;</a></Panel></div>
+        <div className="span4"><Panel title="Fascicoli prioritari" icon={<BriefcaseBusiness size={17}/>} count={matterRows.length}>{matterRows.length?<div className="iu-compact">{matterRows.map(row=><a className="iu-compact-row" href={row.href||'/fascicoli'} key={row.id}><div><strong>{row.title}</strong><span>{row.subtitle}</span></div>{row.badge?<Badge tone={row.tone||'neutral'}>{row.badge}</Badge>:null}</a>)}</div>:<Empty>Nessun fascicolo ad alta priorità.</Empty>}<a className="iu-link" href="/fascicoli">Vai ai fascicoli -&gt;</a></Panel></div>
         <div className="span6"><Panel title="Comunicazioni recenti" icon={<MessageCircle size={17}/>} count={data.messages.length}><List rows={data.messages} avatar href="/messaggi"/><a className="iu-link" href="/messaggi">Vai ai messaggi -&gt;</a></Panel></div>
         <div className="span6"><Lex data={data}/></div>
       </section>
@@ -433,7 +437,7 @@ function DashboardPage({ data, loading }:{data:DashboardData; loading:boolean}) 
         <div className="span3"><Agenda data={data}/></div>
         <div className="span3"><Completion data={data}/></div>
         <div className="span3"><Compact title="Conferimenti incarico mancanti" icon={<UsersRound size={17}/>} count={data.engagements.length} rows={data.engagements} href="/preventivi"/></div>
-        <div className="span2"><Compact title="Fascicoli con priorita alta" icon={<BriefcaseBusiness size={17}/>} count={data.matters.length} rows={data.matters} href="/fascicoli"/></div>
+        <div className="span2"><Compact title="Fascicoli con priorità alta" icon={<BriefcaseBusiness size={17}/>} count={data.matters.length} rows={data.matters} href="/fascicoli"/></div>
         <div className="span4"><Donut data={data}/></div>
         <div className="span5"><Economic data={data}/></div>
         <div className="span3"><Lex data={data}/></div>
@@ -449,18 +453,26 @@ export default function App() {
   const routePath = normaliseRoutePath(activePath)
   const isSearchPage = routePath === '/global-search' || routePath === '/ricerca-studio'
   const isNewAppointmentPage = routePath === '/agenda/nuovo' || routePath.startsWith('/agenda/nuovo/')
-  const isAgendaPage = !isNewAppointmentPage && (routePath === '/agenda' || routePath.startsWith('/agenda/'))
+  const isAppointmentEditPage = /^\/agenda\/[^/]+\/modifica$/.test(routePath)
+  const isAgendaPage = !isNewAppointmentPage && !isAppointmentEditPage && (routePath === '/agenda' || routePath.startsWith('/agenda/'))
   const isRegiaPage = routePath === '/workspace-intelligente' || routePath === '/regia-operativa' || routePath.startsWith('/regia-operativa/')
   const isFascicoliPage = routePath === '/fascicoli' || routePath.startsWith('/fascicoli/')
   const isNewClientPage = routePath === '/clienti/nuovo'
   const isNewSubjectPage = routePath === '/soggetti/nuovo'
-  const isClientiPage = !isNewClientPage && routePath === '/clienti'
-  const isSoggettiPage = !isNewSubjectPage && routePath === '/soggetti'
+  const isClientEditPage = /^\/clienti\/[^/]+\/modifica$/.test(routePath)
+  const isSubjectEditPage = /^\/soggetti\/[^/]+\/modifica$/.test(routePath)
+  const isClientFolderPage = /^\/clienti\/[^/]+(\/cartella)?$/.test(routePath)
+  const isClientiPage = !isNewClientPage && !isClientFolderPage && routePath === '/clienti'
+  const isSoggettiPage = !isNewSubjectPage && !isSubjectEditPage && (routePath === '/soggetti' || routePath.startsWith('/soggetti/'))
   const isEmailPage = routePath === '/email'
   const isNewMessagePage = routePath === '/messaggi/nuovo'
-  const isMessagesPage = !isNewMessagePage && routePath === '/messaggi'
-  const isDashboardPage = !isSearchPage && !isAgendaPage && !isNewAppointmentPage && !isRegiaPage && !isFascicoliPage && !isClientiPage && !isNewClientPage && !isSoggettiPage && !isNewSubjectPage && !isEmailPage && !isMessagesPage && !isNewMessagePage
-  const isStandalonePage = isSearchPage || isAgendaPage || isNewAppointmentPage || isFascicoliPage || isClientiPage || isNewClientPage || isSoggettiPage || isNewSubjectPage || isEmailPage || isMessagesPage || isNewMessagePage
+  const isMessagesPage = !isNewMessagePage && (routePath === '/messaggi' || routePath.startsWith('/messaggi/'))
+  const isNewDeadlinePage = routePath === '/scadenziario/nuova'
+  const isDeadlineEditPage = /^\/scadenziario\/[^/]+\/modifica$/.test(routePath)
+  const isScadenziarioPage = !isNewDeadlinePage && !isDeadlineEditPage && (routePath === '/scadenziario' || routePath.startsWith('/scadenziario/'))
+  const isWizardProPage = routePath === '/wizard-pro' || routePath.startsWith('/wizard-pro/')
+  const isDashboardPage = !isSearchPage && !isAgendaPage && !isNewAppointmentPage && !isAppointmentEditPage && !isRegiaPage && !isFascicoliPage && !isClientiPage && !isClientFolderPage && !isClientEditPage && !isNewClientPage && !isSoggettiPage && !isNewSubjectPage && !isSubjectEditPage && !isEmailPage && !isMessagesPage && !isNewMessagePage && !isScadenziarioPage && !isNewDeadlinePage && !isDeadlineEditPage && !isWizardProPage
+  const isStandalonePage = isSearchPage || isAgendaPage || isNewAppointmentPage || isAppointmentEditPage || isFascicoliPage || isClientiPage || isClientFolderPage || isClientEditPage || isNewClientPage || isSoggettiPage || isNewSubjectPage || isSubjectEditPage || isEmailPage || isMessagesPage || isNewMessagePage || isScadenziarioPage || isNewDeadlinePage || isDeadlineEditPage || isWizardProPage
   const initialSearchQuery = new URLSearchParams(window.location.search).get('q') ?? ''
   const [data,setData]=useState<DashboardData>(emptyDashboard)
   const [loading,setLoading]=useState(!isStandalonePage)
@@ -475,16 +487,16 @@ export default function App() {
         <div className="iu-main">
           <Topbar onOpenMenu={()=>setMobileMenuOpen(true)}/>
           <Suspense fallback={<PageLoading/>}>
-            {isSearchPage?<RicercaStudioPage initialQuery={initialSearchQuery}/>:isNewAppointmentPage?<NuovoAppuntamentoPage/>:isAgendaPage?<AgendaPage/>:isRegiaPage?<RegiaOperativaPage data={data} loading={loading}/>:isFascicoliPage?<FascicoliPage/>:isNewClientPage||isNewSubjectPage?<NuovoClientePage/>:isClientiPage?<AnagraficaClientiPage/>:isSoggettiPage?<SoggettiPage/>:isEmailPage?<EmailPecPage/>:isNewMessagePage?<NuovoMessaggioPage/>:isMessagesPage?<MessaggiPage/>:<DashboardPage data={data} loading={loading}/>}
+            {isSearchPage?<RicercaStudioPage initialQuery={initialSearchQuery}/>:isNewAppointmentPage||isAppointmentEditPage?<NuovoAppuntamentoPage/>:isAgendaPage?<AgendaPage/>:isRegiaPage?<RegiaOperativaPage data={data} loading={loading}/>:isFascicoliPage?<FascicoliPage/>:isNewClientPage||isNewSubjectPage||isClientEditPage||isSubjectEditPage?<NuovoClientePage/>:isClientFolderPage?<CartellaClientePage/>:isClientiPage?<AnagraficaClientiPage/>:isSoggettiPage?<SoggettiPage/>:isEmailPage?<EmailPecPage/>:isNewMessagePage?<NuovoMessaggioPage/>:isMessagesPage?<MessaggiPage/>:isNewDeadlinePage||isDeadlineEditPage?<NuovaScadenzaPage/>:isScadenziarioPage?<ScadenziarioPage/>:isWizardProPage?<WizardProPage/>:<DashboardPage data={data} loading={loading}/>}
           </Suspense>
         </div>
         <nav className="iu-mobile">
           <a className={isDashboardPage?'active':''} href="/"><LayoutDashboard size={18}/>Panoramica</a>
           <a className={isSearchPage?'active':''} href="/global-search"><Search size={18}/>Ricerca</a>
           <a className={isFascicoliPage?'active':''} href="/fascicoli"><BriefcaseBusiness size={18}/>Fascicoli</a>
-          <a className={isClientiPage||isNewClientPage||isSoggettiPage||isNewSubjectPage?'active':''} href="/clienti"><UsersRound size={18}/>Clienti</a>
+          <a className={isClientiPage||isClientFolderPage||isClientEditPage||isNewClientPage||isSoggettiPage||isNewSubjectPage||isSubjectEditPage?'active':''} href="/clienti"><UsersRound size={18}/>Clienti</a>
           <a className={isEmailPage||isMessagesPage||isNewMessagePage?'active':''} href="/email/"><Mail size={18}/>PEC</a>
-          <a className={isAgendaPage||isNewAppointmentPage?'active':''} href="/agenda"><CalendarDays size={18}/>Agenda</a>
+          <a className={isAgendaPage||isNewAppointmentPage||isAppointmentEditPage||isScadenziarioPage||isNewDeadlinePage||isDeadlineEditPage||isWizardProPage?'active':''} href="/agenda"><CalendarDays size={18}/>Agenda</a>
           <a className={isRegiaPage?'active':''} href="/workspace-intelligente"><Sparkles size={18}/>Regia</a>
         </nav>
       </div>

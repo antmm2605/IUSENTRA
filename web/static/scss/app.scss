@@ -246,6 +246,37 @@ body {
 #sidebar .sb-link.active::before { width: 22px; opacity: 1; }
 #sidebar .sb-link.active i { color: var(--accent); transform: scale(1.05); }
 
+/* La navigazione laterale non deve mai generare scroll orizzontale:
+   le etichette lunghe vanno a capo/ellipsis, mentre lo scroll resta solo verticale. */
+#sidebar,
+#sidebar .sb-scroll,
+#sidebar .collapse,
+#sidebar .sb-toggle,
+#sidebar .sb-link {
+  max-width: 100%;
+  min-width: 0;
+}
+#sidebar {
+  overflow-x: hidden;
+}
+#sidebar .sb-scroll {
+  overflow-x: hidden;
+  overscroll-behavior-x: none;
+}
+#sidebar .sb-toggle,
+#sidebar .sb-link {
+  contain: inline-size;
+}
+#sidebar .sb-toggle span,
+#sidebar .sb-link .sb-txt {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+#sidebar .sb-link,
+#sidebar .sb-link:hover {
+  transform: none;
+}
+
 /* Top-level links (Dashboard, Ricerca) */
 #sidebar .sb-top {
   margin: 4px 9px;

@@ -300,12 +300,20 @@ function endpointUrl(path: string, from: string, to: string): string {
   if (path.includes('/api/v1/ui/agenda')) {
     params.set('from', from)
     params.set('to', to)
+    const selectedId = currentAgendaRouteId()
+    if (selectedId) params.set('selected_id', selectedId)
   } else {
     params.set('data_inizio', from)
     params.set('data_fine', to)
     params.set('per_page', '200')
   }
   return `${path}?${params.toString()}`
+}
+
+function currentAgendaRouteId(): string {
+  const match = window.location.pathname.match(/^\/agenda\/([^/]+)/)
+  if (!match || ['nuovo', 'importa'].includes(match[1])) return ''
+  return decodeURIComponent(match[1])
 }
 
 async function fetchAgendaEndpoint(path: string, from: string, to: string): Promise<{ items: unknown[]; source: string } | null> {

@@ -19,6 +19,7 @@ export type ClientOption = {
 export type ClientiNuovoData = {
   source: string
   generatedAt: string
+  mode: 'new' | 'edit' | 'edit_subject'
   contracts: {
     mock_fallback: boolean
     read_only: boolean
@@ -58,7 +59,10 @@ export type ClientiNuovoData = {
     tab: string
     nextUrl: string
     idCliente: string
+    idSoggetto: string
   }
+  initialClient: Record<string, string | boolean>
+  initialSubject: Record<string, string>
   insights: string[]
 }
 
@@ -154,6 +158,7 @@ const qualificationHints: RegistryOption[] = [
 export const emptyClientiNuovoData: ClientiNuovoData = {
   source: 'vuoto',
   generatedAt: '',
+  mode: 'new',
   contracts: { mock_fallback: false, read_only: false, writes: 'operational_routes' },
   stats: {
     totalClients: 0,
@@ -185,7 +190,9 @@ export const emptyClientiNuovoData: ClientiNuovoData = {
     operationalClientForm: '/clienti/nuovo',
     operationalSubjectForm: '/soggetti/nuovo',
   },
-  query: { tab: '', nextUrl: '', idCliente: '' },
+  query: { tab: '', nextUrl: '', idCliente: '', idSoggetto: '' },
+  initialClient: {},
+  initialSubject: {},
   insights: [
     'Verifica codice fiscale o partita IVA prima del salvataggio.',
     'Completa almeno un recapito utile per conferimento e notifiche.',
@@ -237,6 +244,7 @@ function mergePayload(payload: unknown): ClientiNuovoData {
     ...emptyClientiNuovoData,
     source: text(payload.source, emptyClientiNuovoData.source),
     generatedAt: text(payload.generatedAt ?? payload.generated_at),
+    mode: text(payload.mode) === 'edit_subject' ? 'edit_subject' : text(payload.mode) === 'edit' ? 'edit' : 'new',
     contracts: isRecord(payload.contracts)
       ? {
         mock_fallback: Boolean(payload.contracts.mock_fallback),
@@ -281,8 +289,15 @@ function mergePayload(payload: unknown): ClientiNuovoData {
         tab: text(payload.query.tab),
         nextUrl: text(payload.query.nextUrl ?? payload.query.next_url),
         idCliente: text(payload.query.idCliente ?? payload.query.id_cliente),
+        idSoggetto: text(payload.query.idSoggetto ?? payload.query.id_soggetto),
       }
       : emptyClientiNuovoData.query,
+    initialClient: isRecord(payload.initialClient ?? payload.initial_client)
+      ? Object.fromEntries(Object.entries((payload.initialClient ?? payload.initial_client) as Record<string, unknown>).map(([key, value]) => [key, typeof value === 'boolean' ? value : text(value)]))
+      : {},
+    initialSubject: isRecord(payload.initialSubject ?? payload.initial_subject)
+      ? Object.fromEntries(Object.entries((payload.initialSubject ?? payload.initial_subject) as Record<string, unknown>).map(([key, value]) => [key, text(value)]))
+      : {},
     insights: Array.isArray(payload.insights) ? payload.insights.map((item) => text(item)).filter(Boolean) : emptyClientiNuovoData.insights,
   }
 }
@@ -290,7 +305,15 @@ function mergePayload(payload: unknown): ClientiNuovoData {
 export async function getClientiNuovoData(): Promise<ClientiNuovoData> {
   try {
     const search = typeof window !== 'undefined' ? window.location.search : ''
-    const response = await fetch(`/api/v1/ui/clienti/nuovo${search}`, { credentials: 'same-origin', headers: { Accept: 'application/json' } })
+    const path = typeof window !== 'undefined' ? window.location.pathname.replace(/\/+$/, '') : '/clienti/nuovo'
+    const editMatch = path.match(/^\/clienti\/([^/]+)\/modifica$/)
+    const subjectEditMatch = path.match(/^\/soggetti\/([^/]+)\/modifica$/)
+    const endpoint = editMatch
+      ? `/api/v1/ui/clienti/${encodeURIComponent(decodeURIComponent(editMatch[1]))}/modifica${search}`
+      : subjectEditMatch
+        ? `/api/v1/ui/soggetti/${encodeURIComponent(decodeURIComponent(subjectEditMatch[1]))}/modifica${search}`
+        : `/api/v1/ui/clienti/nuovo${search}`
+    const response = await fetch(endpoint, { credentials: 'same-origin', headers: { Accept: 'application/json' } })
     if (!response.ok) return emptyClientiNuovoData
     return mergePayload(await response.json())
   } catch {

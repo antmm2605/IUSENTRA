@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import {
   AlertTriangle,
+  ArrowLeft,
   BadgeCheck,
   BriefcaseBusiness,
   Building2,
+  ChevronRight,
   Eye,
   Filter,
   Mail,
@@ -79,6 +81,12 @@ function sortRows(rows: SoggettoRow[], sort: SortKey): SoggettoRow[] {
   return copy.sort((a, b) => a.name.localeCompare(b.name, 'it'))
 }
 
+function routeSubjectId(): string {
+  const match = window.location.pathname.match(/^\/soggetti\/([^/]+)/)
+  if (!match || match[1] === 'nuovo') return ''
+  return decodeURIComponent(match[1])
+}
+
 function StatCard({ icon, label, value, note }:{icon: ReactNode; label: string; value: number; note: string}) {
   return (
     <article className="iu-sogg-stat">
@@ -115,7 +123,7 @@ function SoggettiTable({ items }:{items: SoggettoRow[]}) {
     <section className="iu-sogg-table-card" aria-label="Elenco soggetti e parti">
       <div className="iu-sogg-table-head">
         <strong>{items.length} soggetti</strong>
-        <span>Dettaglio e modifica restano sul backend storico</span>
+        <span>Dettaglio e modifica aprono la nuova superficie React, con scritture sulle route operative auditabili</span>
       </div>
       <div className="iu-sogg-table-wrap">
         <table className="iu-sogg-table">
@@ -186,6 +194,32 @@ function EmptyState() {
   )
 }
 
+function SelectedSubjectPanel({ item }:{item:SoggettoRow}) {
+  return (
+    <section className="iu-sogg-focus">
+      <div>
+        <a className="iu-sogg-back" href="/soggetti"><ArrowLeft size={15}/>Torna a Soggetti e Parti</a>
+        <span className="iu-sogg-focus__eyebrow">Scheda soggetto selezionato</span>
+        <h2>{item.name}</h2>
+        <p>{item.role.replaceAll('_', ' ')} - {item.identifier || 'Identificativo non presente'}</p>
+      </div>
+      <dl>
+        <div><dt>Tipo</dt><dd>{item.typeLabel}</dd></div>
+        <div><dt>Cliente collegato</dt><dd>{item.clientName || 'Non collegato'}</dd></div>
+        <div><dt>Fascicoli</dt><dd>{item.matters}</dd></div>
+        <div><dt>Qualità</dt><dd><Badge tone={qualityTone(item)}>{qualityLabel(item)}</Badge></dd></div>
+      </dl>
+      <div className="iu-sogg-focus__actions">
+        <a href={item.editHref}><PencilLine size={16}/>Modifica dati</a>
+        {item.clientId ? <a href={`/clienti/${encodeURIComponent(item.clientId)}/cartella`}><UsersRound size={16}/>Apri cliente</a> : <a href={`/clienti/nuovo?from_soggetto=${encodeURIComponent(item.id)}`}><UserPlus size={16}/>Crea cliente</a>}
+        <a href={`/messaggi/nuovo?destinatario=${encodeURIComponent(item.email || item.phone || item.pec || '')}`}><Mail size={16}/>Scrivi comunicazione</a>
+        <a href={`/fascicoli/nuovo?id_soggetto=${encodeURIComponent(item.id)}`}><BriefcaseBusiness size={16}/>Nuovo fascicolo</a>
+      </div>
+      <small><ChevronRight size={14}/>Le scritture restano sulle route operative esistenti, la scheda è servita dalla nuova grafica React.</small>
+    </section>
+  )
+}
+
 export function SoggettiPage() {
   const [data, setData] = useState<SoggettiPageData>(emptySoggettiPage)
   const [loading, setLoading] = useState(true)
@@ -194,6 +228,7 @@ export function SoggettiPage() {
   const [roleFilter, setRoleFilter] = useState('tutti')
   const [qualityOnly, setQualityOnly] = useState(false)
   const [sort, setSort] = useState<SortKey>('nome')
+  const selectedId = routeSubjectId()
 
   useEffect(() => {
     let alive = true
@@ -214,6 +249,7 @@ export function SoggettiPage() {
     if (qualityOnly && !item.missingFields.length && !hasNoContacts(item)) return false
     return true
   }), sort), [data.items, query, typeFilter, roleFilter, qualityOnly, sort])
+  const selectedSubject = selectedId ? data.items.find((item) => item.id === selectedId) : undefined
 
   return (
     <main className="iu-content iu-soggetti-page">
@@ -243,6 +279,8 @@ export function SoggettiPage() {
         <label><BadgeCheck size={15}/><select value={sort} onChange={(event) => setSort(event.currentTarget.value as SortKey)}>{Object.entries(sortLabels).map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select></label>
         <button className={qualityOnly ? 'is-active' : ''} type="button" onClick={() => setQualityOnly((value) => !value)}>Solo da completare</button>
       </section>
+
+      {selectedSubject ? <SelectedSubjectPanel item={selectedSubject}/> : null}
 
       <section className="iu-sogg-layout">
         <div>

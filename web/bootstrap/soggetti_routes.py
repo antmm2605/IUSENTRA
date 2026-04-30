@@ -129,6 +129,8 @@ def register_soggetti_routes(
         soggetto = get_soggetti().get(id_soggetto)
         if not soggetto:
             abort(404)
+        if not _richiede_vista_legacy():
+            return render_react_shell_response(f"soggetti/{id_soggetto}")
         ids_fascicoli = get_soggetti().fascicoli_con_soggetto(id_soggetto)
         fascicoli_collegati = [fascicolo for fascicolo in (get_fascicoli().get(item) for item in ids_fascicoli) if fascicolo]
         cliente_collegato = get_clienti().get(soggetto.id_cliente) if soggetto.id_cliente else None
@@ -147,6 +149,8 @@ def register_soggetti_routes(
         if not soggetto:
             abort(404)
         clienti = get_clienti().tutti()
+        if request.method == "GET" and not _richiede_vista_legacy():
+            return render_react_shell_response(f"soggetti/{id_soggetto}/modifica")
         if request.method == "POST":
             tipo_val = request.form.get("tipo", soggetto.tipo.value)
             try:

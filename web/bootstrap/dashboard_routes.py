@@ -230,6 +230,7 @@ def register_dashboard_routes(
         if not app_item:
             flash("Appuntamento non trovato.", "warning")
             return redirect(url_for("agenda_view"))
+        if not _richiede_vista_classica(): return render_react_shell_response(f"agenda/{id_app}")
         track_recente(
             "appuntamento",
             id_app,
@@ -246,6 +247,7 @@ def register_dashboard_routes(
         if not app_item:
             flash("Appuntamento non trovato.", "warning")
             return redirect(url_for("agenda_view"))
+        if request.method == "GET" and not _richiede_vista_classica(): return render_react_shell_response(f"agenda/{id_app}/modifica")
 
         if request.method == "POST":
             data = request.form.get("data", "")
@@ -303,6 +305,7 @@ def register_dashboard_routes(
 
     @app.route("/agenda/importa", methods=["GET", "POST"])
     def importa_calendario():
+        if request.method == "GET" and not _richiede_vista_classica(): return render_react_shell_response("agenda/importa")
         import json as _json
 
         from pct.agenda import TipoAppuntamento

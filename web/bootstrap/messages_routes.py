@@ -137,6 +137,8 @@ def register_messages_routes(
         if not msg:
             flash("Messaggio non trovato.", "warning")
             return redirect(url_for("lista_messaggi"))
+        if not _richiede_vista_classica():
+            return render_react_shell_response(f"messaggi/{id_msg}")
         return render_template("messaggi/dettaglio.html", msg=msg)
 
     @app.route("/messaggi/<id_msg>/elimina", methods=["POST"])

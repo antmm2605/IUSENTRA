@@ -126,7 +126,7 @@ function initialTab(): Tab {
   if (typeof window === 'undefined') return 'cliente'
   const path = window.location.pathname
   const params = new URLSearchParams(window.location.search)
-  if (path.includes('/soggetti/nuovo')) return 'soggetto'
+  if (path.includes('/soggetti/nuovo') || /^\/soggetti\/[^/]+\/modifica$/.test(path)) return 'soggetto'
   return (params.get('tab') || params.get('tipo')) === 'soggetto' ? 'soggetto' : 'cliente'
 }
 
@@ -322,6 +322,11 @@ function ClientForm({ data }:{data: ClientiNuovoData}) {
   const nextUrl = data.query.nextUrl
 
   useEffect(() => {
+    if (data.mode !== 'edit') return
+    setValues({...initialClient, ...data.initialClient})
+  }, [data])
+
+  useEffect(() => {
     if (nextUrl) setValues((current) => ({...current, next_url: nextUrl}))
   }, [nextUrl])
 
@@ -401,7 +406,7 @@ function ClientForm({ data }:{data: ClientiNuovoData}) {
   return (
     <form className="iu-cln-form" method="post" action={action}>
       <input type="hidden" name="next_url" value={asInputValue(values.next_url)}/>
-      <Card title="Tipo cliente" icon={<UserCheck size={18}/>} note="Scrittura su /clienti/nuovo">
+      <Card title="Tipo cliente" icon={<UserCheck size={18}/>} note={data.mode === 'edit' ? 'Aggiornamento anagrafica esistente' : 'Scrittura su /clienti/nuovo'}>
         <ChoiceGrid name="tipo" value={asInputValue(values.tipo)} options={data.options.clientTypes} onChange={change}/>
       </Card>
 
@@ -474,16 +479,18 @@ function ClientForm({ data }:{data: ClientiNuovoData}) {
         </div>
       </Card>
 
-      <label className="iu-cln-switch">
-        <input type="checkbox" name="crea_preventivo_iniziale" value="1" checked={Boolean(values.crea_preventivo_iniziale)} onChange={checkbox}/>
-        <span><i/></span>
-        <strong>Crea preventivo iniziale dopo il salvataggio</strong>
-        <small>Segue il workflow storico preventivo - conferimento - fascicolo.</small>
-      </label>
+      {data.mode === 'edit' ? null : (
+        <label className="iu-cln-switch">
+          <input type="checkbox" name="crea_preventivo_iniziale" value="1" checked={Boolean(values.crea_preventivo_iniziale)} onChange={checkbox}/>
+          <span><i/></span>
+          <strong>Crea preventivo iniziale dopo il salvataggio</strong>
+          <small>Segue il workflow storico preventivo - conferimento - fascicolo.</small>
+        </label>
+      )}
 
       <div className="iu-cln-actions">
-        <button className="iu-cln-submit" type="submit"><CheckCircle2 size={17}/>Salva cliente</button>
-        <a className="iu-cln-secondary" href="/clienti">Annulla</a>
+        <button className="iu-cln-submit" type="submit"><CheckCircle2 size={17}/>{data.mode === 'edit' ? 'Salva modifiche' : 'Salva cliente'}</button>
+        <a className="iu-cln-secondary" href={data.mode === 'edit' && data.query.idCliente ? `/clienti/${encodeURIComponent(data.query.idCliente)}/cartella` : '/clienti'}>Annulla</a>
       </div>
     </form>
   )
@@ -496,8 +503,12 @@ function SubjectForm({ data }:{data: ClientiNuovoData}) {
   const isLegal = subjectLegalTypes.has(values.tipo)
 
   useEffect(() => {
+    if (data.mode === 'edit_subject') {
+      setValues({ ...initialSubject, ...data.initialSubject })
+      return
+    }
     if (data.query.idCliente) setValues((current) => ({...current, id_cliente: data.query.idCliente}))
-  }, [data.query.idCliente])
+  }, [data.mode, data.initialSubject, data.query.idCliente])
 
   useEffect(() => {
     const code = text(values.codice_fiscale).replace(/\s/g, '').toUpperCase()
@@ -564,11 +575,11 @@ function SubjectForm({ data }:{data: ClientiNuovoData}) {
 
   return (
     <form className="iu-cln-form" method="post" action={action}>
-      <Card title="Tipo soggetto" icon={<UsersRound size={18}/>} note="Anagrafica soggetto processuale">
+      <Card title="Tipo soggetto" icon={<UsersRound size={18}/>} note={data.mode === 'edit_subject' ? 'Aggiornamento soggetto processuale esistente' : 'Anagrafica soggetto processuale'}>
         <ChoiceGrid name="tipo" value={values.tipo} options={data.options.subjectTypes} columns="subject" onChange={change}/>
       </Card>
 
-      <Card title={isLegal ? 'Dati ente o parte giuridica' : 'Dati persona fisica'} icon={isLegal ? <Landmark size={18}/> : <UserRound size={18}/>} note="Scrittura su /soggetti/nuovo">
+      <Card title={isLegal ? 'Dati ente o parte giuridica' : 'Dati persona fisica'} icon={isLegal ? <Landmark size={18}/> : <UserRound size={18}/>} note={data.mode === 'edit_subject' ? 'Scrittura sulla route operativa di modifica' : 'Scrittura su /soggetti/nuovo'}>
         {isLegal ? (
           <div className="iu-cln-grid">
             <Field label="Ragione sociale" name="ragione_sociale" value={values.ragione_sociale} required onChange={change}/>
@@ -629,8 +640,8 @@ function SubjectForm({ data }:{data: ClientiNuovoData}) {
       </Card>
 
       <div className="iu-cln-actions">
-        <button className="iu-cln-submit" type="submit"><CheckCircle2 size={17}/>Salva soggetto</button>
-        <a className="iu-cln-secondary" href="/soggetti">Annulla</a>
+        <button className="iu-cln-submit" type="submit"><CheckCircle2 size={17}/>{data.mode === 'edit_subject' ? 'Salva modifiche' : 'Salva soggetto'}</button>
+        <a className="iu-cln-secondary" href={data.mode === 'edit_subject' && data.query.idSoggetto ? `/soggetti/${encodeURIComponent(data.query.idSoggetto)}` : '/soggetti'}>Annulla</a>
       </div>
     </form>
   )
@@ -685,10 +696,13 @@ export function NuovoClientePage() {
     }
   }, [])
 
-  const heroText = useMemo(() => tab === 'cliente'
-    ? 'Nuova anagrafica cliente con dati fiscali, recapiti, documento, indirizzi e onboarding preventivo.'
-    : 'Nuovo soggetto o parte processuale con ruolo, collegamento cliente e dati anagrafici completi.',
-  [tab])
+  const heroText = useMemo(() => {
+    if (data.mode === 'edit') return 'Modifica anagrafica cliente mantenendo invariati id, collegamenti, fascicoli, preventivi e conferimenti.'
+    if (data.mode === 'edit_subject') return 'Modifica soggetto o parte processuale mantenendo invariati collegamenti a cliente e fascicoli.'
+    return tab === 'cliente'
+      ? 'Nuova anagrafica cliente con dati fiscali, recapiti, documento, indirizzi e onboarding preventivo.'
+      : 'Nuovo soggetto o parte processuale con ruolo, collegamento cliente e dati anagrafici completi.'
+  }, [data.mode, tab])
 
   return (
     <main className="iu-content iu-clienti-new-page">
@@ -696,7 +710,7 @@ export function NuovoClientePage() {
         <div>
           <a className="iu-cln-back" href={tab === 'cliente' ? '/clienti' : '/soggetti'}><ArrowLeft size={15}/>Torna all'anagrafica</a>
           <span className="iu-cln-eyebrow"><Sparkles size={14}/>Superficie React ufficiale</span>
-          <h1>{tab === 'cliente' ? 'Nuovo Cliente' : 'Nuovo Soggetto'}</h1>
+          <h1>{data.mode === 'edit' ? 'Modifica Cliente' : data.mode === 'edit_subject' ? 'Modifica Soggetto' : tab === 'cliente' ? 'Nuovo Cliente' : 'Nuovo Soggetto'}</h1>
           <p>{heroText}</p>
         </div>
         <div className="iu-cln-hero__actions">
@@ -708,8 +722,8 @@ export function NuovoClientePage() {
       <StatsStrip data={data}/>
 
       <div className="iu-cln-tabs" role="tablist" aria-label="Scelta anagrafica">
-        <button type="button" className={tab === 'cliente' ? 'is-active' : ''} onClick={() => setTab('cliente')}><UserPlus size={17}/>Nuovo Cliente</button>
-        <button type="button" className={tab === 'soggetto' ? 'is-active' : ''} onClick={() => setTab('soggetto')}><UsersRound size={17}/>Nuovo Soggetto</button>
+        <button type="button" className={tab === 'cliente' ? 'is-active' : ''} onClick={() => setTab('cliente')} disabled={data.mode === 'edit_subject'}><UserPlus size={17}/>{data.mode === 'edit' ? 'Cliente' : 'Nuovo Cliente'}</button>
+        <button type="button" className={tab === 'soggetto' ? 'is-active' : ''} onClick={() => setTab('soggetto')} disabled={data.mode === 'edit'}><UsersRound size={17}/>{data.mode === 'edit_subject' ? 'Soggetto' : 'Nuovo Soggetto'}</button>
         <span>{loading ? 'Caricamento dati...' : `${data.source} - salvataggio backend storico`}</span>
       </div>
 

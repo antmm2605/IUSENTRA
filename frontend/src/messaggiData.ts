@@ -153,7 +153,7 @@ export const defaultChannelInfo: ChannelInfo[] = [
     available: true,
     configured: false,
     destinationPlaceholder: '+39 333 1234567',
-    destinationHelp: 'Se Twilio non ? configurato viene generato un link WhatsApp Web',
+    destinationHelp: 'Se Twilio non è configurato viene generato un link WhatsApp Web',
     subjectVisible: false,
   },
 ]
@@ -164,14 +164,14 @@ export const defaultTemplates: MessageTemplate[] = [
     label: 'Aggiornamento pratica',
     channel: 'ALL',
     subject: 'Aggiornamento sulla pratica',
-    body: 'Gentile {nome},\n\nla informiamo che la Sua pratica ? stata aggiornata. Restiamo a disposizione per ogni chiarimento.\n\nCordiali saluti',
+    body: 'Gentile {nome},\n\nla informiamo che la Sua pratica è stata aggiornata. Restiamo a disposizione per ogni chiarimento.\n\nCordiali saluti',
   },
   {
     id: 'richiesta-documenti',
     label: 'Richiesta documenti',
     channel: 'ALL',
     subject: 'Richiesta documentazione',
-    body: 'Gentile {nome},\n\nper proseguire abbiamo necessit? della seguente documentazione:\n- documento di identit?\n- codice fiscale\n- documenti relativi alla pratica\n\nPu? inviarli rispondendo a questo messaggio.',
+    body: 'Gentile {nome},\n\nper proseguire abbiamo necessità della seguente documentazione:\n- documento di identità\n- codice fiscale\n- documenti relativi alla pratica\n\nPuò inviarli rispondendo a questo messaggio.',
   },
   {
     id: 'promemoria-appuntamento',

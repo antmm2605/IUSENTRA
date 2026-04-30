@@ -149,12 +149,47 @@ function filterItems(items: MessageItem[], q: string, channel: string, status: s
   })
 }
 
+function routeMessageId(): string {
+  const match = window.location.pathname.match(/^\/messaggi\/([^/]+)/)
+  if (!match || match[1] === 'nuovo') return ''
+  return decodeURIComponent(match[1])
+}
+
+function MessageFocus({ item }:{item: MessageItem}) {
+  return (
+    <section className="iu-msg-focus">
+      <div>
+        <a href="/messaggi"><ArrowLeft size={15}/>Torna ai messaggi</a>
+        <span>Messaggio selezionato</span>
+        <h2>{item.subject || item.recipient}</h2>
+        <p>{item.preview || item.body || 'Messaggio senza anteprima.'}</p>
+      </div>
+      <dl>
+        <div><dt>Canale</dt><dd><ChannelBadge channel={item.channel} label={item.channelLabel}/></dd></div>
+        <div><dt>Destinatario</dt><dd>{item.recipient || item.destination}</dd></div>
+        <div><dt>Stato</dt><dd><MessageStatus item={item}/></dd></div>
+        <div><dt>Creato</dt><dd>{item.createdLabel || item.createdAt || '-'}</dd></div>
+      </dl>
+      <div className="iu-msg-focus__actions">
+        <a href={`/messaggi/nuovo?canale=${encodeURIComponent(item.channel)}&destinatario=${encodeURIComponent(item.destination)}&oggetto=${encodeURIComponent(`Re: ${item.subject || ''}`)}`}><Send size={15}/>Rispondi</a>
+        {item.clientHref ? <a href={item.clientHref}><UsersRound size={15}/>Apri cliente</a> : null}
+        {item.manualWhatsapp && item.whatsappLink ? <a href={item.whatsappLink} target="_blank" rel="noreferrer"><ExternalLink size={15}/>WhatsApp Web</a> : null}
+        <a href={`/lex?context=messaggi&id=${encodeURIComponent(item.id)}`}><Sparkles size={15}/>Chiedi a Lex</a>
+        <form method="post" action={`/messaggi/${encodeURIComponent(item.id)}/elimina`} onSubmit={(event) => { if (!window.confirm('Eliminare il messaggio?')) event.preventDefault() }}>
+          <button type="submit"><Trash2 size={15}/>Elimina</button>
+        </form>
+      </div>
+    </section>
+  )
+}
+
 export function MessaggiPage() {
   const [data, setData] = useState<MessaggiData>(emptyMessaggiData)
   const [loading, setLoading] = useState(true)
   const [query, setQuery] = useState('')
   const [channel, setChannel] = useState('')
   const [status, setStatus] = useState('')
+  const selectedId = routeMessageId()
 
   useEffect(() => {
     let cancelled = false
@@ -170,6 +205,7 @@ export function MessaggiPage() {
   }, [])
 
   const filtered = useMemo(() => filterItems(data.items, query, channel, status), [data.items, query, channel, status])
+  const selectedMessage = selectedId ? data.items.find((item) => item.id === selectedId) : undefined
 
   const applyFilters = (event: FormEvent) => {
     event.preventDefault()
@@ -196,6 +232,8 @@ export function MessaggiPage() {
       </section>
 
       <StatStrip data={data}/>
+
+      {selectedMessage ? <MessageFocus item={selectedMessage}/> : null}
 
       <section className="iu-msg-layout">
         <div className="iu-msg-maincol">

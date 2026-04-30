@@ -17,7 +17,12 @@ from pct.economic_dashboard import build_cliente_economic_dashboard
 from pct.fascicoli import StatoFascicolo, TipoFascicolo
 from pct.reports import faldone_pdf
 from pct.workflow_pipeline import build_cliente_workflow_pipeline
+from web.blueprints.react_shell import render_react_shell_response
 from web.services.clienti_faldone_runtime import carica_note_faldone, salva_note_faldone
+
+
+def _richiede_vista_legacy() -> bool:
+    return (request.args.get("_legacy") or "").strip().lower() in {"1", "true", "si", "yes", "on"}
 
 
 def _get_portale_mgr(app: Flask):
@@ -58,6 +63,8 @@ def register_clienti_workspace_routes(
         if not cliente_accessibile(id_cliente):
             flash("Non hai accesso a questa cartella cliente.", "danger")
             return redirect(url_for("lista_clienti"))
+        if not _richiede_vista_legacy():
+            return render_react_shell_response(f"clienti/{id_cliente}/cartella")
         try:
             tutti = gf.cerca(id_cliente=id_cliente, archiviati=True)
             stati_chiusi = {StatoFascicolo.ARCHIVIATO, StatoFascicolo.DEFINITO}

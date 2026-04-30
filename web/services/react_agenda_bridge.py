@@ -128,6 +128,7 @@ def build_react_agenda_payload(
     deadlines_loader: Callable[[], Any],
     from_value: Any = "",
     to_value: Any = "",
+    selected_id: str = "",
 ) -> dict[str, Any]:
     """Return agenda and deadline rows normalized for the React shell."""
 
@@ -146,6 +147,15 @@ def build_react_agenda_payload(
         event = _agenda_event(item)
         if event:
             events.append(event)
+    if selected_id:
+        try:
+            selected = agenda_repo.get(selected_id)
+        except Exception:
+            selected = None
+        if selected is not None:
+            event = _agenda_event(selected)
+            if event and not any(str(row.get("id") or "") == str(event.get("id") or "") for row in events):
+                events.append(event)
     for item in deadlines:
         event = _deadline_event(item)
         if event:
@@ -160,6 +170,7 @@ def build_react_agenda_payload(
         "from": start.isoformat(),
         "to": end.isoformat(),
         "events": events,
+        "selected_id": selected_id,
         "contracts": {
             "mock_fallback": False,
             "read_only": True,

@@ -19,6 +19,19 @@
 .iu-msg-stat strong{font-size:28px;font-weight:950;color:#0f172a;line-height:1}
 .iu-msg-stat small{color:var(--iu-slate-500);font-size:12px;font-weight:750;line-height:1.35}
 
+.iu-msg-focus{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(260px,.8fr);gap:14px;align-items:start;margin-bottom:14px;padding:17px;border:1px solid rgba(37,99,235,.18);border-radius:20px;background:linear-gradient(135deg,#fff,#eff6ff);box-shadow:var(--iu-shadow-soft)}
+.iu-msg-focus>div:first-child>a{display:inline-flex;align-items:center;gap:6px;margin-bottom:8px;color:var(--iu-blue-700);font-size:12px;font-weight:950;text-decoration:none}
+.iu-msg-focus span{display:block;color:var(--iu-slate-500);font-size:11px;font-weight:950;text-transform:uppercase;letter-spacing:.06em}
+.iu-msg-focus h2{margin:5px 0;color:#0f172a;font-size:24px;line-height:1.12}
+.iu-msg-focus p{margin:0;color:var(--iu-slate-600);font-size:13px;font-weight:700;line-height:1.45}
+.iu-msg-focus dl{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:0}
+.iu-msg-focus dt{color:var(--iu-slate-500);font-size:11px;font-weight:950;text-transform:uppercase}
+.iu-msg-focus dd{margin:2px 0 0;color:#0f172a;font-size:13px;font-weight:900}
+.iu-msg-focus__actions{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:8px}
+.iu-msg-focus__actions a,.iu-msg-focus__actions button{min-height:38px;display:inline-flex;align-items:center;gap:7px;padding:0 12px;border:1px solid var(--iu-border);border-radius:12px;background:#fff;color:#0f172a;text-decoration:none;font-size:12px;font-weight:950;cursor:pointer}
+.iu-msg-focus__actions a:first-child{background:#0f2442;color:#fff}
+.iu-msg-focus__actions form{margin:0}
+
 .iu-msg-layout{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:14px;align-items:start}
 .iu-msg-maincol,.iu-msg-sidecol{min-width:0;display:grid;gap:14px}
 .iu-msg-filters{display:grid;grid-template-columns:minmax(240px,1fr) minmax(160px,220px) minmax(160px,220px) auto auto;gap:9px;padding:10px;border:1px solid var(--iu-border);border-radius:18px;background:rgba(255,255,255,.94);box-shadow:var(--iu-shadow-soft);backdrop-filter:blur(18px)}
@@ -107,6 +120,7 @@
   .iu-msg-stats{grid-template-columns:repeat(2,minmax(0,1fr))}
   .iu-msg-filters{grid-template-columns:1fr 1fr}
   .iu-msg-filters label{grid-column:1/-1}
+  .iu-msg-focus{grid-template-columns:1fr}
   .iu-msg-channel-picker{grid-template-columns:1fr}
   .iu-msg-compose-grid{grid-template-columns:1fr}
 }

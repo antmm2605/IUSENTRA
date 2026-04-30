@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.198.1 - 2026-04-30
+
+- Corretto il mojibake nei testi React del primo blocco e nei test di route, ripristinando accenti italiani e simboli senza indebolire il gate governance.
+- Ricompilati gli asset Vite distribuiti da Flask dopo la correzione dei testi, cosi' il bundle pubblico passa lo stesso controllo `tools/check_repo_governance.py` della CI.
+
 ## 2.198.0 - 2026-04-30
 
 - Corretto il gap del primo blocco React: le route ufficiali `GET /`, `GET /workspace-intelligente`, `GET /global-search`, `GET /agenda`, `GET /agenda/nuovo` e le principali route `GET /fascicoli/*` servono ora la shell React senza passare da URL tecnici `/app-v2`.

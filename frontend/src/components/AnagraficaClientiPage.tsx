@@ -252,7 +252,7 @@ function InsightPanel({ data, visible }:{data: ClientiPageData; visible: Cliente
           <article>
             <span>Clienti collegati</span>
             <strong>{withProcedures} clienti con procedimenti visibili</strong>
-            <small>La UI React Ã¨ attiva: salvataggi e audit passano dai servizi backend giÃ  governati.</small>
+            <small>La UI React ? attiva: salvataggi e audit passano dai servizi backend gi? governati.</small>
           </article>
         </div>
       </Panel>

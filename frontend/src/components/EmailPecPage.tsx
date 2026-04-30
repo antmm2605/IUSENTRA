@@ -39,7 +39,7 @@ import './EmailPecPage.css'
 type SortKey = 'recenti' | 'mittente' | 'oggetto' | 'pct'
 
 const sortLabels: Record<SortKey, string> = {
-  recenti: 'PiÃ¹ recenti',
+  recenti: 'Pi? recenti',
   mittente: 'Mittente / destinatario',
   oggetto: 'Oggetto',
   pct: 'Esito PCT',
@@ -154,7 +154,7 @@ function EmailPreview({ item, onAction }:{item?:EmailPecRow; onAction:(url:strin
       <section className="iu-mail-preview-card iu-mail-preview-empty">
         <Mail size={38}/>
         <h2>Seleziona una PEC</h2>
-        <p>La lettura rapida comparirÃ  qui, con esiti PCT, allegati e azioni operative.</p>
+        <p>La lettura rapida comparir? qui, con esiti PCT, allegati e azioni operative.</p>
       </section>
     )
   }
@@ -163,7 +163,7 @@ function EmailPreview({ item, onAction }:{item?:EmailPecRow; onAction:(url:strin
     <section className="iu-mail-preview-card">
       <header>
         <div>
-          <span className="iu-mail-preview-eyebrow">{folderIcon(item.folder)} {folderLabel(item.folder)} Â· {item.origin || 'casella PEC'}</span>
+          <span className="iu-mail-preview-eyebrow">{folderIcon(item.folder)} {folderLabel(item.folder)} · {item.origin || 'casella PEC'}</span>
           <h2>{item.subject || '(nessun oggetto)'}</h2>
         </div>
         <div className="iu-mail-preview-status">
@@ -182,7 +182,7 @@ function EmailPreview({ item, onAction }:{item?:EmailPecRow; onAction:(url:strin
           <ShieldCheck size={18}/>
           <div>
             <strong>Esito telematico rilevato: {item.pctStatus}</strong>
-            <span>Lex puÃ² aiutarti a collegare questa PEC a fascicolo, deposito, comunicazione cancelleria o prossima azione.</span>
+            <span>Lex pu? aiutarti a collegare questa PEC a fascicolo, deposito, comunicazione cancelleria o prossima azione.</span>
           </div>
         </div>
       ) : null}
@@ -216,7 +216,7 @@ function Inspector({ data, rows }:{data:EmailPecPageData; rows:EmailPecRow[]}) {
           <article>
             <span>Auto-collegate</span>
             <strong>{data.summary.autoLinked}</strong>
-            <small>Esiti o comunicazioni giÃ  registrati nei fascicoli.</small>
+            <small>Esiti o comunicazioni gi? registrati nei fascicoli.</small>
           </article>
         </div>
       </Panel>
@@ -360,14 +360,14 @@ export function EmailPecPage() {
 
       <section className="iu-mail-status-line">
         <span className={loading ? '' : 'is-ok'}>{loading ? 'Sincronizzazione vista PEC...' : 'Dati PEC aggiornati'}</span>
-        <small><Clock3 size={14}/> Le azioni di invio, sincronizzazione e fascicolazione restano sui servizi Flask giÃ  auditati.</small>
+        <small><Clock3 size={14}/> Le azioni di invio, sincronizzazione e fascicolazione restano sui servizi Flask gi? auditati.</small>
         {statusLine ? <small className="iu-mail-operation-status">{statusLine}</small> : null}
       </section>
 
       <section className="iu-mail-layout">
         <div className="iu-mail-list-card">
           <header>
-            <div><strong>{visible.length} messaggi</strong><span>{folderLabel(folder)} Â· {data.source}</span></div>
+            <div><strong>{visible.length} messaggi</strong><span>{folderLabel(folder)} · {data.source}</span></div>
             <a href={`/email/?cartella=${folder}`}><Download size={15}/> Apri cartella</a>
           </header>
           <div className="iu-mail-list">
@@ -386,7 +386,7 @@ export function EmailPecPage() {
       </section>
 
       <section className="iu-mail-lower-grid">
-        <Panel title="QualitÃ  PEC" subtitle="Controlli prima di deposito, cancelleria e fascicolo" icon={<ShieldCheck size={17}/>}>
+        <Panel title="Qualit? PEC" subtitle="Controlli prima di deposito, cancelleria e fascicolo" icon={<ShieldCheck size={17}/>}>
           <div className="iu-mail-checklist">
             <span><CheckCircle2 size={16}/> In arrivo, inviate e cestino restano visibili come cartelle distinte.</span>
             <span><FileCheck2 size={16}/> PEC/PST ed esiti PCT sono evidenziati senza aprire ogni messaggio.</span>

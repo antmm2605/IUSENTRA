@@ -619,7 +619,7 @@ function normalizeDetailPayload(payload: unknown): FascicoloDetailData {
 
 function normalizeActivity(entry: unknown, index: number): FascicoloActivity {
   const row = isRecord(entry) ? entry : {}
-  return { id: text(row.id, `att-${index}`), type: text(row.type ?? row.tipo), title: text(row.title ?? row.titolo, 'AttivitÃ '), date: text(row.date ?? row.data), description: text(row.description ?? row.descrizione), result: text(row.result ?? row.esito), place: text(row.place ?? row.luogo), notes: text(row.notes ?? row.note), lawyer: text(row.lawyer ?? row.avvocato), documentId: text(row.documentId ?? row.id_documento), depositId: text(row.depositId ?? row.id_deposito_pct), updateAction: text(row.updateAction ?? row.update_action), deleteAction: text(row.deleteAction ?? row.delete_action), tone: text(row.tone, 'neutral') as Tone }
+  return { id: text(row.id, `att-${index}`), type: text(row.type ?? row.tipo), title: text(row.title ?? row.titolo, 'Attivit?'), date: text(row.date ?? row.data), description: text(row.description ?? row.descrizione), result: text(row.result ?? row.esito), place: text(row.place ?? row.luogo), notes: text(row.notes ?? row.note), lawyer: text(row.lawyer ?? row.avvocato), documentId: text(row.documentId ?? row.id_documento), depositId: text(row.depositId ?? row.id_deposito_pct), updateAction: text(row.updateAction ?? row.update_action), deleteAction: text(row.deleteAction ?? row.delete_action), tone: text(row.tone, 'neutral') as Tone }
 }
 
 function normalizeFormPayload(payload: unknown): FascicoloFormData {

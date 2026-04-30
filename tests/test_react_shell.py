@@ -77,7 +77,7 @@ def test_react_sidebar_contiene_navigazione_enterprise_completa():
         "Archivio Giurisprudenza",
         "Sincronizzazione Calendari",
         "Profili e Permessi",
-        "Registro AttivitÃ ",
+        "Registro Attivit?",
         "Registro GDPR",
     ):
         assert label in source

@@ -153,7 +153,7 @@ export const defaultChannelInfo: ChannelInfo[] = [
     available: true,
     configured: false,
     destinationPlaceholder: '+39 333 1234567',
-    destinationHelp: 'Se Twilio non Ã¨ configurato viene generato un link WhatsApp Web',
+    destinationHelp: 'Se Twilio non ? configurato viene generato un link WhatsApp Web',
     subjectVisible: false,
   },
 ]
@@ -164,21 +164,21 @@ export const defaultTemplates: MessageTemplate[] = [
     label: 'Aggiornamento pratica',
     channel: 'ALL',
     subject: 'Aggiornamento sulla pratica',
-    body: 'Gentile {nome},\n\nla informiamo che la Sua pratica Ã¨ stata aggiornata. Restiamo a disposizione per ogni chiarimento.\n\nCordiali saluti',
+    body: 'Gentile {nome},\n\nla informiamo che la Sua pratica ? stata aggiornata. Restiamo a disposizione per ogni chiarimento.\n\nCordiali saluti',
   },
   {
     id: 'richiesta-documenti',
     label: 'Richiesta documenti',
     channel: 'ALL',
     subject: 'Richiesta documentazione',
-    body: 'Gentile {nome},\n\nper proseguire abbiamo necessitÃ  della seguente documentazione:\n- documento di identitÃ \n- codice fiscale\n- documenti relativi alla pratica\n\nPuÃ² inviarli rispondendo a questo messaggio.',
+    body: 'Gentile {nome},\n\nper proseguire abbiamo necessit? della seguente documentazione:\n- documento di identit?\n- codice fiscale\n- documenti relativi alla pratica\n\nPu? inviarli rispondendo a questo messaggio.',
   },
   {
     id: 'promemoria-appuntamento',
     label: 'Promemoria appuntamento',
     channel: 'ALL',
     subject: 'Promemoria appuntamento',
-    body: 'Gentile {nome},\n\nle ricordiamo lâ€™appuntamento presso lo Studio. Per modifiche o conferme puÃ² rispondere a questo messaggio.\n\nGrazie',
+    body: 'Gentile {nome},\n\nle ricordiamo l’appuntamento presso lo Studio. Per modifiche o conferme può rispondere a questo messaggio.\n\nGrazie',
   },
 ]
 
@@ -196,7 +196,7 @@ export const emptyMessaggiData: MessaggiData = {
   actions: { newMessage: '/messaggi/nuovo', sendEndpoint: '/messaggi/nuovo', settings: '/impostazioni', emailSettings: '/email/impostazioni' },
   channelInfo: defaultChannelInfo,
   lex: [
-    'Prima dellâ€™invio controlla destinatario, cliente collegato e canale corretto.',
+    'Prima dell’invio controlla destinatario, cliente collegato e canale corretto.',
     'Per WhatsApp senza Twilio usa il link manuale e verifica che il messaggio risulti in coda.',
   ],
 }

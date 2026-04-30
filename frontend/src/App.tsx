@@ -241,7 +241,7 @@ const navSections: NavSection[] = [
     items: [
       { label: 'Utenti', icon: UsersRound, href: '/utenti' },
       { label: 'Profili e Permessi', icon: Table, href: '/profili' },
-      { label: 'Registro AttivitÃ ', icon: ClipboardList, href: '/admin/osservabilita' },
+      { label: 'Registro Attivit?', icon: ClipboardList, href: '/admin/osservabilita' },
       { label: 'Database', icon: Database, href: '/admin/database' },
       { label: 'Registro GDPR', icon: FileText, href: '/privacy/registro' }
     ]

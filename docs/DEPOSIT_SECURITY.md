@@ -18,9 +18,13 @@ Le integrazioni reali devono rispettare questi flag:
 - `SIGNATURE_ENABLED`
 - `DEPOSIT_SANDBOX_MODE`
 
-In sviluppo e test, l'invio reale resta disabilitato se `PEC_SEND_ENABLED` non e' impostato esplicitamente a `true`.
+In sviluppo, test e deploy cloud l'invio PEC reale lato server resta disabilitato se
+`PEC_SEND_ENABLED` non e' impostato esplicitamente a `true`. Il canale operativo
+predefinito e' il PC dell'avvocato tramite Local Signer (`http://127.0.0.1:27272`):
+il server prepara la busta e il browser la consegna al Local Signer, che usa la
+password PEC digitata localmente senza salvarla nel server. Il test SMTP server-side
+rimane solo diagnostico per capire blocchi IP/provider e non e' il canale di invio reale.
 
 ## Audit
 
 Ogni precontrollo fallito, avviso forte, invio, ricevuta e scarto viene registrato nella timeline del fascicolo PDP o nelle tabelle `deposit_*` quando il workflow generico e' usato.
-

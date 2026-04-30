@@ -304,13 +304,13 @@
         {# Test connection buttons #}
         <div class="col-12">
           <div class="d-flex gap-2 flex-wrap align-items-center mt-1">
-            <button type="button" class="btn btn-outline-primary btn-sm" id="btn-test-smtp"
-                    onclick="testConn('pec-smtp','btn-test-smtp','res-test-smtp')">
-              <i class="bi bi-send-check me-1"></i>Testa SMTP
-            </button>
             <button type="button" class="btn btn-outline-success btn-sm" id="btn-test-smtp-locale"
                     onclick="testPecSmtpLocale('btn-test-smtp-locale','res-test-smtp-locale')">
               <i class="bi bi-pc-display-horizontal me-1"></i>Testa SMTP dal PC
+            </button>
+            <button type="button" class="btn btn-outline-secondary btn-sm" id="btn-test-smtp"
+                    onclick="testConn('pec-smtp','btn-test-smtp','res-test-smtp')">
+              <i class="bi bi-cloud-slash me-1"></i>Diagnostica server (non invio reale)
             </button>
             <button type="button" class="btn btn-outline-primary btn-sm" id="btn-test-imap"
                     onclick="testConn('pec-imap','btn-test-imap','res-test-imap')">
@@ -329,8 +329,10 @@
                data-macos-url="{{ url_for('polis_local_signer_setup_macos') }}"
                data-linux-url="{{ url_for('polis_local_signer_setup_linux') }}">
             <i class="bi bi-pc-display-horizontal text-success me-1"></i>
-            Il test locale avvia automaticamente Local Signer se non è già attivo, verifica la versione
-            {{ local_signer.version }} e propone il pacchetto aggiornato su questo computer.
+            L'invio PEC reale deve passare dal PC locale tramite Local Signer: il test locale avvia
+            automaticamente il servizio se non è già attivo, verifica la versione {{ local_signer.version }}
+            e usa la password digitata solo su questo dispositivo. La diagnostica server serve solo a capire
+            eventuali blocchi del provider sul cloud e non è il canale operativo di invio PEC.
           </div>
         </div>
       </div>

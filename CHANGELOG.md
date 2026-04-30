@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.198.8 - 2026-04-30
+
+- Corretto il flusso `Testa SMTP dal PC` nelle impostazioni PEC: il pulsante locale non ricade piu' sul test SMTP server-side e non usa piu' la password salvata dal server, evitando timeout e blocchi IP del cloud.
+- Chiarito nella UI che l'invio PEC reale deve passare dal PC locale tramite Local Signer; la diagnostica SMTP dal server resta separata e indicata come controllo non operativo.
+- Protette le route di deposito PEC: salvo `PEC_SEND_ENABLED=true`, il server prepara la busta ma l'invio reale viene completato dal browser contro `Local Signer` su `127.0.0.1:27272`, senza tentativi SMTP dal cloud.
+
 ## 2.198.7 - 2026-04-30
 
 - Riallineato il quadro fascicolo React: nella route `/fascicoli/<id>/quadro` la card `Documenti` viene mostrata sotto la card `Economico` nella griglia responsive, con test anti-regressione dedicato.

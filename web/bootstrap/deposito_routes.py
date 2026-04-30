@@ -9,6 +9,14 @@ from typing import Any
 
 from flask import Flask, flash, g, jsonify, redirect, render_template, request, send_file, url_for
 
+from web.bootstrap.deposito_receipt_routes import register_deposito_receipt_routes
+from web.services.local_pec_runtime import (
+    deposito_pec_subject,
+    local_pec_required_response,
+    local_pec_confirmation_result,
+    pec_server_send_enabled,
+)
+
 
 def register_deposito_routes(
     app: Flask,
@@ -25,6 +33,13 @@ def register_deposito_routes(
     polis_demo_mode: Callable[[], bool],
 ) -> None:
     """Register deposito guide pages and deposito workflow routes."""
+
+    register_deposito_receipt_routes(
+        app,
+        get_fascicoli=get_fascicoli,
+        get_config_studio=get_config_studio,
+        audit=audit,
+    )
 
     def _ufficio_da_nome(nome_ufficio: str) -> dict[str, Any] | None:
         if not nome_ufficio:
@@ -475,7 +490,7 @@ def register_deposito_routes(
             gestore_config = _GCS(app.config.get("STUDIO_CONFIG", "./config/studio.json"))
             studio_cfg = gestore_config.config
             pec_cfg = studio_cfg.pec if studio_cfg else None
-            if not pec_cfg or not pec_cfg.indirizzo or not pec_cfg.password:
+            if not pec_cfg or not pec_cfg.indirizzo:
                 modalita_demo = True
                 pec_cfg = None
         except Exception:
@@ -502,8 +517,14 @@ def register_deposito_routes(
             app.logger.exception("Errore creazione busta %s: %s", id_fasc, exc)
             return jsonify({"ok": False, "errore": f"Errore creazione busta: {exc}"}), 500
 
-        id_dep = busta.id_busta[:8].upper()
+        id_dep = form.get("local_pec_id_deposito", "").strip() or busta.id_busta[:8].upper()
         timestamp = _dt.now().isoformat()
+        oggetto_pec = deposito_pec_subject(
+            tipo_atto=tipo_atto,
+            numero_rg=numero_rg,
+            anno_rg=anno_rg,
+            tribunale=fascicolo.tribunale or "",
+        )
 
         if modalita_demo:
             fake_mid = _hl.md5(f"{id_dep}{timestamp}".encode()).hexdigest()[:16].upper()
@@ -513,6 +534,25 @@ def register_deposito_routes(
                 "demo": True,
             }
             app.logger.info("Deposito DEMO %s - busta creata, invio PEC simulato", id_dep)
+        elif form.get("local_pec_confirmed") == "1":
+            try:
+                ris = local_pec_confirmation_result(form.get("local_pec_message_id", ""))
+            except ValueError as exc:
+                return jsonify({"ok": False, "errore": str(exc)}), 400
+            app.logger.info("Deposito %s confermato da invio PEC Local Signer", id_dep)
+        elif not pec_server_send_enabled():
+            return jsonify(
+                local_pec_required_response(
+                    pec_cfg=pec_cfg,
+                    pec_dest=pec_dest,
+                    tipo_atto=tipo_atto,
+                    id_deposito=id_dep,
+                    timestamp=timestamp,
+                    oggetto_pec=oggetto_pec,
+                    attachment_path=enc_path,
+                    validation=validation,
+                )
+            )
         else:
             try:
                 config_pec = PecCfg(
@@ -525,11 +565,6 @@ def register_deposito_routes(
                     use_ssl=getattr(pec_cfg, "use_ssl", True),
                 )
                 client_pec = ClientPEC(config_pec)
-                oggetto_pec = (
-                    f"DEPOSITO TELEMATICO - {tipo_atto} - RG {numero_rg}/{anno_rg}"
-                    if numero_rg and anno_rg
-                    else f"DEPOSITO TELEMATICO - {tipo_atto} - {fascicolo.tribunale}"
-                )
                 ris = client_pec.invia_busta(
                     destinatario_pec=pec_dest,
                     busta_path=enc_path,
@@ -664,6 +699,7 @@ def register_deposito_routes(
     @app.route("/fascicoli/<id_fasc>/deposito/invia", methods=["POST"])
     def deposito_invia(id_fasc):
         """Crea la busta telematica e la invia via PEC all'ufficio giudiziario."""
+        import tempfile as _tmp
         import uuid as _uuid
         from datetime import datetime as _dt
 
@@ -715,7 +751,7 @@ def register_deposito_routes(
             return redirect(url_for("deposito_prepara", id_fasc=id_fasc))
 
         anno_rg = int(anno_rg_str) if anno_rg_str.isdigit() else (fascicolo.anno_rg or 0)
-        id_dep = _uuid.uuid4().hex[:8].upper()
+        id_dep = form.get("local_pec_id_deposito", "").strip() or _uuid.uuid4().hex[:8].upper()
         timestamp = _dt.now().isoformat()
 
         if demo_mode:
@@ -735,7 +771,7 @@ def register_deposito_routes(
         else:
             try:
                 from pct.busta import Allegato as AllegatoBusta
-                from pct.busta import DatiBusta
+                from pct.busta import BustaTelematica, DatiBusta
                 from pct.deposito import DepositoCivile
                 from pct.firma import crea_signer_da_config
                 from pct.pec import ConfigPEC
@@ -801,7 +837,7 @@ def register_deposito_routes(
                         except Exception as exc:
                             app.logger.warning("Signer non inizializzato: %s", exc)
 
-                output_dir = os.getenv("PCT_DEPOSITI_DIR", "/data/depositi")
+                output_dir = os.getenv("PCT_DEPOSITI_DIR", _tmp.gettempdir())
                 deposito_civile = DepositoCivile(config_pec=config_pec, firma=firma, output_dir=output_dir)
 
                 pec_dest = tribunale_pec
@@ -828,26 +864,69 @@ def register_deposito_routes(
                         "Verifica la selezione o imposta manualmente la PEC."
                     )
 
-                esito_dep = deposito_civile.deposita(
-                    dati=dati,
-                    tribunale=codice_ufficio or tribunale_nome,
-                    attendi_ricevute=False,
-                )
-                deposito_civile.salva_esito(esito_dep)
-
-                esito = EsitoDepositoPCT(
-                    id=esito_dep.id_deposito,
-                    timestamp=esito_dep.timestamp,
-                    stato=esito_dep.stato,
+                oggetto_pec = deposito_pec_subject(
                     tipo_atto=tipo_atto,
-                    pec_destinatario=esito_dep.pec_destinatario,
-                    messaggio=esito_dep.messaggio,
-                    ricevuta_accettazione=esito_dep.ricevuta_accettazione or "",
-                    ricevuta_consegna=esito_dep.ricevuta_consegna or "",
-                    note=note,
-                    registrato_da=utente.username if utente else "",
-                    busta_path=esito_dep.busta_path,
+                    numero_rg=numero_rg or None,
+                    anno_rg=anno_rg or None,
+                    tribunale=tribunale_nome,
                 )
+                if not pec_server_send_enabled():
+                    from pathlib import Path as _Path
+
+                    output_dir = os.getenv("PCT_DEPOSITI_DIR", _tmp.gettempdir())
+                    busta_dir = _Path(output_dir) / id_dep
+                    busta = BustaTelematica(dati)
+                    busta_path = busta.crea_busta(str(busta_dir))
+                    if form.get("local_pec_confirmed") != "1":
+                        return jsonify(
+                            local_pec_required_response(
+                                pec_cfg=pec_cfg,
+                                pec_dest=pec_dest,
+                                tipo_atto=tipo_atto,
+                                id_deposito=id_dep,
+                                timestamp=timestamp,
+                                oggetto_pec=oggetto_pec,
+                                attachment_path=busta_path,
+                                validation=validation,
+                            )
+                        )
+
+                    ris_locale = local_pec_confirmation_result(form.get("local_pec_message_id", ""))
+                    esito = EsitoDepositoPCT(
+                        id=id_dep,
+                        timestamp=timestamp,
+                        stato="INVIATO",
+                        tipo_atto=tipo_atto,
+                        pec_destinatario=pec_dest,
+                        messaggio=(
+                            f"Busta {id_dep} inviata via PEC dal PC locale tramite Local Signer. "
+                            f"Message-ID: {ris_locale.get('message_id', '')}"
+                        ),
+                        note=note,
+                        registrato_da=utente.username if utente else "",
+                        busta_path=busta_path,
+                    )
+                else:
+                    esito_dep = deposito_civile.deposita(
+                        dati=dati,
+                        tribunale=codice_ufficio or tribunale_nome,
+                        attendi_ricevute=False,
+                    )
+                    deposito_civile.salva_esito(esito_dep)
+
+                    esito = EsitoDepositoPCT(
+                        id=esito_dep.id_deposito,
+                        timestamp=esito_dep.timestamp,
+                        stato=esito_dep.stato,
+                        tipo_atto=tipo_atto,
+                        pec_destinatario=esito_dep.pec_destinatario,
+                        messaggio=esito_dep.messaggio,
+                        ricevuta_accettazione=esito_dep.ricevuta_accettazione or "",
+                        ricevuta_consegna=esito_dep.ricevuta_consegna or "",
+                        note=note,
+                        registrato_da=utente.username if utente else "",
+                        busta_path=esito_dep.busta_path,
+                    )
             except Exception as exc:
                 app.logger.exception("Errore deposito_invia %s: %s", id_fasc, exc)
                 flash(f"Errore durante il deposito: {exc}", "danger")
@@ -856,7 +935,13 @@ def register_deposito_routes(
         try:
             from datetime import datetime as _dtnow
 
+            documenti_deposito_ids = [atto_id] + [aid for aid in allegati_ids if aid and aid != atto_id]
+            if not getattr(esito, "documenti_ids", None):
+                esito.documenti_ids = documenti_deposito_ids
             fascicolo.depositi_pct.append(esito)
+            for documento in fascicolo.documenti:
+                if documento.id in documenti_deposito_ids:
+                    documento.id_deposito_pct = esito.id
             fascicolo.modificato_il = _dtnow.now().isoformat()
             gestore_fascicoli._salva()
             audit(
@@ -881,101 +966,3 @@ def register_deposito_routes(
             flash(f"Deposito inviato ma errore nel salvataggio: {exc}", "warning")
 
         return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
-
-    @app.route("/api/fascicoli/<id_fasc>/depositi/<id_dep>/controlla", methods=["POST"])
-    def deposito_controlla_ricevute(id_fasc, id_dep):
-        """Controlla via IMAP se sono arrivate nuove ricevute PEC per un deposito."""
-        gestore_fascicoli = get_fascicoli()
-        fascicolo = gestore_fascicoli.get(id_fasc)
-        if not fascicolo:
-            return jsonify({"errore": "Fascicolo non trovato"}), 200
-
-        deposito = next((item for item in fascicolo.depositi_pct if item.id == id_dep), None)
-        if not deposito:
-            return jsonify({"errore": "Deposito non trovato"}), 200
-
-        try:
-            cfg_studio = get_config_studio().config
-            pec_cfg = cfg_studio.pec if cfg_studio and hasattr(cfg_studio, "pec") else None
-            if not pec_cfg or not pec_cfg.imap_host:
-                return jsonify(
-                    {
-                        "stato": deposito.stato,
-                        "ricevuta_accettazione": bool(deposito.ricevuta_accettazione),
-                        "ricevuta_consegna": bool(deposito.ricevuta_consegna),
-                        "info": "IMAP non configurato - verifica manuale necessaria.",
-                    }
-                )
-
-            from pct.pec import ClientPEC, ConfigPEC
-
-            config_pec = ConfigPEC(
-                indirizzo=pec_cfg.indirizzo,
-                password=pec_cfg.password,
-                smtp_host=getattr(pec_cfg, "smtp_host", ""),
-                imap_host=pec_cfg.imap_host,
-                imap_port=getattr(pec_cfg, "imap_port", 993),
-            )
-            client_pec = ClientPEC(config_pec)
-            ricevute = client_pec.attendi_ricevute(timeout=15)
-            aggiornato = False
-
-            if ricevute.get("accettazione") and not deposito.ricevuta_accettazione:
-                deposito.ricevuta_accettazione = ricevute["accettazione"]
-                if deposito.stato in ("INVIATO",):
-                    deposito.stato = "ACCETTATO_PEC"
-                aggiornato = True
-
-            if ricevute.get("consegna") and not deposito.ricevuta_consegna:
-                deposito.ricevuta_consegna = ricevute["consegna"]
-                if deposito.stato not in (
-                    "WARN_CONTROLLI",
-                    "ERRORE_CONTROLLI",
-                    "ACCETTATO_CANCELLERIA",
-                    "RIFIUTATO_CANCELLERIA",
-                ):
-                    deposito.stato = "CONSEGNATO"
-                aggiornato = True
-
-            if ricevute.get("controlli") and not deposito.ricevuta_controlli_automatici:
-                deposito.ricevuta_controlli_automatici = ricevute["controlli"]
-                esito_controlli = str(ricevute.get("esito_controlli", "OK")).upper()
-                deposito.esito_controlli = esito_controlli
-                if esito_controlli == "ERROR":
-                    deposito.stato = "ERRORE_CONTROLLI"
-                elif esito_controlli == "WARN":
-                    deposito.stato = "WARN_CONTROLLI"
-                aggiornato = True
-
-            if ricevute.get("cancelleria") and not deposito.ricevuta_cancelleria:
-                deposito.ricevuta_cancelleria = ricevute["cancelleria"]
-                deposito.stato = (
-                    "ACCETTATO_CANCELLERIA"
-                    if ricevute.get("cancelleria_accettato", True)
-                    else "RIFIUTATO_CANCELLERIA"
-                )
-                aggiornato = True
-
-            if aggiornato:
-                gestore_fascicoli._salva()
-                audit(
-                    "fascicoli.deposito.ricevute",
-                    "fascicolo",
-                    id_fasc,
-                    dettagli=f"Deposito {id_dep} aggiornato a {deposito.stato}",
-                )
-
-            return jsonify(
-                {
-                    "stato": deposito.stato,
-                    "ricevuta_accettazione": bool(deposito.ricevuta_accettazione),
-                    "ricevuta_consegna": bool(deposito.ricevuta_consegna),
-                    "ricevuta_controlli": bool(deposito.ricevuta_controlli_automatici),
-                    "esito_controlli": deposito.esito_controlli,
-                    "ricevuta_cancelleria": bool(deposito.ricevuta_cancelleria),
-                    "aggiornato": aggiornato,
-                }
-            )
-        except Exception as exc:
-            app.logger.exception("deposito_controlla_ricevute %s/%s: %s", id_fasc, id_dep, exc)
-            return jsonify({"errore": str(exc), "stato": deposito.stato})

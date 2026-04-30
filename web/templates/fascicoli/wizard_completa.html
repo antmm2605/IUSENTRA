@@ -817,7 +817,60 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
-  btnPec.addEventListener('click', function () {
+  const LS_BASE = 'http://127.0.0.1:27272';
+  const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+  async function ensureLocalPecSigner() {
+    const ping = async () => {
+      const response = await fetch(LS_BASE + '/ping', { signal: AbortSignal.timeout(2200) });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data.ok) throw new Error('Local Signer non disponibile.');
+      return data;
+    };
+    try {
+      return await ping();
+    } catch (_) {
+      window.location.href = 'hacs-local-signer://restart';
+      await sleep(2600);
+      return await ping();
+    }
+  }
+
+  async function inviaPecLocale(data) {
+    const localPec = data.local_pec || {};
+    const password = window.prompt(
+      'Inserisci la password PEC per inviare dal PC locale tramite Local Signer. ' +
+      'La password resta nel browser e non viene salvata dal server.'
+    );
+    if (!password) throw new Error('Password PEC non inserita: invio locale annullato.');
+    await ensureLocalPecSigner();
+    const response = await fetch(localPec.endpoint || (LS_BASE + '/pec/send'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...(localPec.payload || {}), password }),
+      signal: AbortSignal.timeout(90000),
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok || !result.ok) {
+      throw new Error(result.messaggio || result.errore || 'Invio PEC locale non riuscito.');
+    }
+    return result;
+  }
+
+  async function postInvioPec(fd) {
+    const response = await fetch('{{ url_for("deposito_invia_pec", id_fasc=fascicolo.id) }}', {
+      method: 'POST',
+      body: fd,
+      headers: { 'X-Requested-With': 'XMLHttpRequest' },
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok && !data.requires_local_pec) {
+      throw new Error(data.errore || 'Errore di invio del deposito.');
+    }
+    return data;
+  }
+
+  btnPec.addEventListener('click', async function () {
     const form = document.getElementById('formGeneraBusta');
     if (!form.reportValidity()) return;
 
@@ -845,7 +898,16 @@ document.addEventListener('DOMContentLoaded', function () {
       headers: { 'X-Requested-With': 'XMLHttpRequest' },
     })
     .then(r => r.json())
-    .then(data => {
+    .then(async data => {
+      if (data.requires_local_pec) {
+        const localResult = await inviaPecLocale(data);
+        const fdConfirm = new FormData();
+        fd.forEach((value, key) => fdConfirm.append(key, value));
+        fdConfirm.append('local_pec_confirmed', '1');
+        fdConfirm.append('local_pec_message_id', localResult.message_id || '');
+        fdConfirm.append('local_pec_id_deposito', data.id_deposito || '');
+        data = await postInvioPec(fdConfirm);
+      }
       riquadro.classList.remove('d-none');
       if (data.ok) {
         if (data.demo) {
@@ -867,7 +929,7 @@ document.addEventListener('DOMContentLoaded', function () {
           ok.querySelector('.fw-bold').textContent =
             canaleDeposito === 'PTT_TRIBUTARIO'
               ? 'Deposito SIGIT registrato'
-              : 'Deposito inviato via PEC';
+              : 'Deposito inviato via PEC dal PC locale';
         }
         /* Pre-compila tab Esito */
         if (inpTipo) inpTipo.value = data.tipo_atto || '';

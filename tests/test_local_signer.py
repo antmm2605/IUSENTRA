@@ -604,8 +604,10 @@ def test_ui_pec_locale_auto_avvia_signer_e_mostra_pacchetto():
     assert "hacs-local-signer://restart" in ai_script
     assert "localSignerOutdatedHtml" in script
     assert "compareVersions" in script
-    assert "Uso la password PEC salvata senza esporla al browser" in script
-    assert "fetch('/impostazioni/test/pec-smtp'" in script
+    assert "viene inviata solo al Local Signer su questo dispositivo" in script
+    assert "fetch('/impostazioni/test/pec-smtp'" not in script
+    assert "Diagnostica server (non invio reale)" in template
+    assert "L'invio PEC reale deve passare dal PC locale tramite Local Signer" in template
     assert "localSignerMissingMessage" in firma_script
     assert "ensureLocalSignerCompanionStarted" in ai_script
     assert "Local Signer non rilevato" in script

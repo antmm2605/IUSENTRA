@@ -412,6 +412,8 @@ def test_impostazioni_pec_espone_controllo_local_signer_e_password_salvata(tmp_p
     assert 'data-latest-version="' in html
     assert "/static/js/local-signer-monitor.js?v=" in html
     assert "Testa SMTP dal PC" in html
+    assert "Diagnostica server (non invio reale)" in html
+    assert "L'invio PEC reale deve passare dal PC locale tramite Local Signer" in html
 
 
 def test_route_domini_estratti_restano_operativi(tmp_path: Path):

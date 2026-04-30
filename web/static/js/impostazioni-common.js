@@ -309,11 +309,11 @@
 
     const meta = localSignerMeta();
     const payload = collectPecPayload();
-    if (!payload.password && !meta.hasSavedPassword) {
+    if (!payload.password) {
       renderTestResult(
         result,
         false,
-        'Inserisci la password PEC per il test locale: resta sul PC e non viene salvata dal server.'
+        'Inserisci la password PEC nel campo sopra per usare il PC locale: resta nel browser, viene inviata solo al Local Signer su questo dispositivo e non viene salvata dal server.'
       );
       return;
     }
@@ -327,39 +327,19 @@
         return;
       }
       result.className = 'test-result test-spin';
-      let data = {};
-      if (payload.password) {
-        result.innerHTML = '<i class="bi bi-arrow-repeat spin me-1"></i>Test SMTP locale in corso...';
-        data = await fetchJsonWithTimeout(
-          meta.base + '/pec/smtp/test',
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'X-Requested-With': 'XMLHttpRequest',
-            },
-            body: JSON.stringify(payload),
-          },
-          35000
-        );
-      } else {
-        result.innerHTML =
-          '<i class="bi bi-arrow-repeat spin me-1"></i>Uso la password PEC salvata senza esporla al browser...';
-        const response = await fetch('/impostazioni/test/pec-smtp', {
+      result.innerHTML = '<i class="bi bi-arrow-repeat spin me-1"></i>Test SMTP locale in corso...';
+      const data = await fetchJsonWithTimeout(
+        meta.base + '/pec/smtp/test',
+        {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'X-Requested-With': 'XMLHttpRequest',
           },
-          body: JSON.stringify({ ...payload, password: '' }),
-        });
-        data = await response.json();
-        if (data && data.ok) {
-          data.messaggio =
-            (data.messaggio || 'Verifica completata.') +
-            ' Local Signer rilevato e password PEC salvata usata in modo sicuro dal server.';
-        }
-      }
+          body: JSON.stringify(payload),
+        },
+        35000
+      );
       renderTestResult(result, Boolean(data.ok), data.messaggio || 'Verifica locale completata.');
     } catch (error) {
       renderTestResultHtml(result, false, localSignerMissingHtml());

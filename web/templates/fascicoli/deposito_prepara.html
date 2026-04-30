@@ -1485,6 +1485,65 @@ function _eseguiGeneraBusta() {
   document.getElementById('formGeneraBusta').submit();
 }
 
+function _sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function _ensureLocalPecSigner() {
+  const ping = async () => {
+    const response = await fetch(_LS_BASE + '/ping', { signal: AbortSignal.timeout(2200) });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || !data.ok) throw new Error('Local Signer non disponibile.');
+    return data;
+  };
+  try {
+    return await ping();
+  } catch (_) {
+    window.location.href = 'hacs-local-signer://restart';
+    await _sleep(2600);
+    return await ping();
+  }
+}
+
+async function _inviaPecDaPcLocale(data) {
+  const localPec = data.local_pec || {};
+  const password = window.prompt(
+    'Inserisci la password PEC per inviare dal PC locale tramite Local Signer. ' +
+    'La password resta nel browser e non viene salvata dal server.'
+  );
+  if (!password) throw new Error('Password PEC non inserita: invio locale annullato.');
+  await _ensureLocalPecSigner();
+  const payload = { ...(localPec.payload || {}), password };
+  const response = await fetch(localPec.endpoint || (_LS_BASE + '/pec/send'), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+    signal: AbortSignal.timeout(90000),
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok || !result.ok) {
+    throw new Error(result.messaggio || result.errore || 'Invio PEC locale non riuscito.');
+  }
+  return result;
+}
+
+async function _postInvioPec(fd) {
+  const response = await fetch("{{ url_for('deposito_invia', id_fasc=fascicolo.id) }}", {
+    method: 'POST',
+    body: fd,
+    headers: {'X-Requested-With': 'XMLHttpRequest'},
+  });
+  if (response.redirected) {
+    window.location = response.url;
+    return null;
+  }
+  const data = await response.json().catch(() => null);
+  if (!response.ok || !data) {
+    throw new Error((data && data.errore) || 'Errore di invio del deposito.');
+  }
+  return data;
+}
+
 function setMainDoc(id) {
   if (allegatiSet.has(id)) { allegatiSet.delete(id); _resetAllBtn(id); }
   if (mainDocId && mainDocId !== id) {
@@ -1577,11 +1636,12 @@ function avviaInvioPec(demo) {
   _eseguiInvioPec();
 }
 
-document.getElementById('btnConfermaInvio')?.addEventListener('click', function() {
+document.getElementById('btnConfermaInvio')?.addEventListener('click', async function() {
   const btn = this;
   const d = _raccogliDati();
   btn.disabled = true;
   document.getElementById('invioProgress').style.display = 'block';
+  const progressText = document.getElementById('invioProgressTxt');
 
   const fd = new FormData();
   fd.append('tipo_atto', d.tipoAtto);
@@ -1597,23 +1657,30 @@ document.getElementById('btnConfermaInvio')?.addEventListener('click', function(
   allegatiSet.forEach(aid => fd.append('allegati_ids', aid));
   fd.append('demo_mode', _invioDemo ? '1' : '0');
 
-  fetch("{{ url_for('deposito_invia', id_fasc=fascicolo.id) }}", {
-    method: 'POST', body: fd,
-    headers: {'X-Requested-With': 'XMLHttpRequest'},
-  })
-  .then(async r => {
-    if (r.redirected) { window.location = r.url; return; }
-    const data = await r.json().catch(() => null);
-    if (!r.ok || (data && data.ok === false)) {
-      throw new Error((data && data.errore) || 'Errore di invio del deposito.');
+  try {
+    let data = await _postInvioPec(fd);
+    if (!data) return;
+    if (data.requires_local_pec) {
+      if (progressText) progressText.textContent = 'Invio PEC dal PC locale tramite Local Signer...';
+      const localResult = await _inviaPecDaPcLocale(data);
+      const fdConfirm = new FormData();
+      fd.forEach((value, key) => fdConfirm.append(key, value));
+      fdConfirm.append('local_pec_confirmed', '1');
+      fdConfirm.append('local_pec_message_id', localResult.message_id || '');
+      fdConfirm.append('local_pec_id_deposito', data.id_deposito || '');
+      data = await _postInvioPec(fdConfirm);
+      if (!data) return;
+    }
+    if (data.ok === false) {
+      throw new Error(data.errore || 'Errore di invio del deposito.');
     }
     window.location = "{{ url_for('dettaglio_fascicolo', id_fasc=fascicolo.id) }}";
-  })
-  .catch(err => {
+  } catch (err) {
     alert('Errore: ' + String(err?.message || err));
     btn.disabled = false;
     document.getElementById('invioProgress').style.display = 'none';
-  });
+    if (progressText) progressText.textContent = 'Invio in corso — attendere…';
+  }
 });
 
 function avviaGeneraBusta() {

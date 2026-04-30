@@ -444,6 +444,7 @@ def test_sincronizza_imap_scopre_cartelle_legalmail_e_corregge_spedite(tmp_path,
 
     class _FakeIMAP:
         selected = "INBOX"
+        selected_raw = []
 
         def login(self, username, password):
             return "OK", []
@@ -457,9 +458,11 @@ def test_sincronizza_imap_scopre_cartelle_legalmail_e_corregge_spedite(tmp_path,
             ]
 
         def select(self, mailbox, readonly=True):
-            self.selected = mailbox
-            if mailbox in messages:
-                return "OK", [str(len(messages[mailbox])).encode()]
+            self.selected_raw.append(mailbox)
+            normalized = str(mailbox or "").strip().strip('"').replace(r"\"", '"').replace(r"\\", "\\")
+            self.selected = normalized
+            if normalized in messages:
+                return "OK", [str(len(messages[normalized])).encode()]
             return "NO", []
 
         def uid(self, command, *args):
@@ -490,6 +493,7 @@ def test_sincronizza_imap_scopre_cartelle_legalmail_e_corregge_spedite(tmp_path,
 
     assert report["nuove"] == 3
     assert report["cartelle_corrette"] == 1
+    assert '"160925 SPEDITE"' in _FakeIMAP.selected_raw
     assert by_subject["PEC in arrivo"].cartella == CartellaEmail.INBOX
     assert by_subject["PEC inviata gia importata male"].cartella == CartellaEmail.INVIATI
     assert by_subject["PEC inviata gia importata male"].stato == StatoEmail.LETTA

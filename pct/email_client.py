@@ -421,6 +421,20 @@ class GestioneEmailRicevute:
         return mail.fetch(token, "(RFC822)")
 
     @staticmethod
+    def _imap_mailbox_select_arg(mailbox: str) -> str:
+        name = str(mailbox or "").strip()
+        if not name or (name.startswith('"') and name.endswith('"')):
+            return name
+        if any(char.isspace() for char in name) or '"' in name:
+            escaped = name.replace("\\", "\\\\").replace('"', '\\"')
+            return f'"{escaped}"'
+        return name
+
+    @classmethod
+    def _imap_select_folder(cls, mail: Any, mailbox: str):
+        return mail.select(cls._imap_mailbox_select_arg(mailbox), readonly=True)
+
+    @staticmethod
     def _imap_mailbox_from_list_line(line: Any) -> str:
         raw = line.decode(errors="ignore") if isinstance(line, bytes) else str(line or "")
         raw = raw.strip()
@@ -652,7 +666,7 @@ class GestioneEmailRicevute:
             for cartella_imap in self._cartelle_imap_effettive(mail, cartelle_imap):
                 try:
                     try:
-                        status, _ = mail.select(cartella_imap, readonly=True)
+                        status, _ = self._imap_select_folder(mail, cartella_imap)
                     except imaplib.IMAP4.error:
                         continue
                     if status != "OK":

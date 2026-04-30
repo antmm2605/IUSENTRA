@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.198.19 - 2026-04-30
+
+- Corretto il sync IMAP PEC per cartelle Legalmail con spazi nel nome, come `160925 SPEDITE`: la selezione IMAP ora quota correttamente il mailbox e importa anche quegli archivi invece di saltarli.
+- Aggiunto test di regressione sul discovery Legalmail con cartelle `Spedite` e archivi storici con spazio, mantenendo la riclassificazione corretta fra `In arrivo`, `Inviati` e `Cestino`.
+
 ## 2.198.18 - 2026-04-30
 
 - Corretto il conteggio della pagina React `Email PEC`: le cartelle Legalmail `Spedite` vengono ora riconosciute come `Inviati` e non finiscono piu' in `In arrivo`.

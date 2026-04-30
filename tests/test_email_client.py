@@ -399,6 +399,104 @@ def test_sincronizza_imap_mappa_inviati_e_cestino_da_cartelle_reali(tmp_path, mo
     }.issubset(set(cartelle_imap_standard()))
 
 
+def test_sincronizza_imap_scopre_cartelle_legalmail_e_corregge_spedite(tmp_path, monkeypatch):
+    import pct.email_client as email_runtime
+
+    ge = GestioneEmailRicevute(str(tmp_path / "casella.json"))
+    ge.aggiungi(
+        EmailRicevuta(
+            id="MAIL-SPEDITE-35",
+            cartella=CartellaEmail.INBOX,
+            stato=StatoEmail.NON_LETTA,
+            mittente="studio@example.pec.it",
+            destinatari="cliente@example.it",
+            oggetto="PEC inviata gia importata male",
+            data="2026-04-15T10:00:00+02:00",
+            uid_imap="INBOX/Spedite:UID:35",
+            message_id="<sent-35@example.test>",
+        )
+    )
+
+    def _raw_message(subject: str, sender: str, recipient: str, message_id: str) -> bytes:
+        msg = EmailMessage()
+        msg["Subject"] = subject
+        msg["From"] = sender
+        msg["To"] = recipient
+        msg["Date"] = "Thu, 30 Apr 2026 10:12:00 +0200"
+        msg["Message-ID"] = message_id
+        msg.set_content(subject)
+        return msg.as_bytes()
+
+    messages = {
+        "INBOX": {
+            "1": _raw_message("PEC in arrivo", "ufficio@example.it", "studio@example.pec.it", "<inbox-1@example.test>"),
+        },
+        "INBOX/Spedite": {
+            "35": _raw_message("PEC inviata gia importata male", "studio@example.pec.it", "cliente@example.it", "<sent-35@example.test>"),
+        },
+        "160925 SPEDITE": {
+            "10": _raw_message("PEC inviata archivio Legalmail", "studio@example.pec.it", "cliente@example.it", "<sent-10@example.test>"),
+        },
+        "INBOX/Trash": {
+            "3": _raw_message("PEC cestinata Legalmail", "ufficio@example.it", "studio@example.pec.it", "<trash-3@example.test>"),
+        },
+    }
+
+    class _FakeIMAP:
+        selected = "INBOX"
+
+        def login(self, username, password):
+            return "OK", []
+
+        def list(self):
+            return "OK", [
+                b'(\\HasNoChildren) "/" "INBOX"',
+                b'(\\HasNoChildren) "/" "INBOX/Spedite"',
+                b'(\\HasNoChildren) "/" "160925 SPEDITE"',
+                b'(\\HasNoChildren) "/" "INBOX/Trash"',
+            ]
+
+        def select(self, mailbox, readonly=True):
+            self.selected = mailbox
+            if mailbox in messages:
+                return "OK", [str(len(messages[mailbox])).encode()]
+            return "NO", []
+
+        def uid(self, command, *args):
+            if command == "SEARCH":
+                return "OK", [" ".join(messages[self.selected]).encode()]
+            if command == "FETCH":
+                uid = str(args[0])
+                return "OK", [(f"{uid} (RFC822)".encode(), messages[self.selected][uid])]
+            return "NO", []
+
+        def logout(self):
+            return "OK", []
+
+    monkeypatch.setattr(email_runtime.imaplib, "IMAP4_SSL", lambda *a, **k: _FakeIMAP())
+
+    report = ge.sincronizza_imap(
+        imap_host="mbox.cert.legalmail.it",
+        imap_port=993,
+        username="studio@example.pec.it",
+        password="segreta",
+        use_ssl=True,
+        cartelle_imap=["INBOX"],
+        limite=10,
+    )
+
+    rows = GestioneEmailRicevute(str(tmp_path / "casella.json"))._carica()
+    by_subject = {email.oggetto: email for email in rows.values()}
+
+    assert report["nuove"] == 3
+    assert report["cartelle_corrette"] == 1
+    assert by_subject["PEC in arrivo"].cartella == CartellaEmail.INBOX
+    assert by_subject["PEC inviata gia importata male"].cartella == CartellaEmail.INVIATI
+    assert by_subject["PEC inviata gia importata male"].stato == StatoEmail.LETTA
+    assert by_subject["PEC inviata archivio Legalmail"].cartella == CartellaEmail.INVIATI
+    assert by_subject["PEC cestinata Legalmail"].cartella == CartellaEmail.CESTINO
+
+
 def test_sincronizza_imap_usa_uid_stabili_e_non_salta_pec_recenti(tmp_path, monkeypatch):
     import pct.email_client as email_runtime
 

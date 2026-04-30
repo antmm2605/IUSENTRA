@@ -263,9 +263,10 @@ export async function getEmailPecPage(params: EmailPecParams = {}): Promise<Emai
   if (params.pst) query.set('pst', '1')
   if (params.conAllegati) query.set('con_allegati', '1')
   if (params.statoPct) query.set('stato_pct', params.statoPct)
+  query.set('_ts', String(Date.now()))
   try {
     const url = `/api/v1/ui/email${query.toString() ? `?${query.toString()}` : ''}`
-    const response = await fetch(url, { credentials: 'same-origin', headers: { Accept: 'application/json' } })
+    const response = await fetch(url, { credentials: 'same-origin', cache: 'no-store', headers: { Accept: 'application/json' } })
     if (!response.ok) return emptyEmailPecPage
     return normalisePayload(await response.json())
   } catch {

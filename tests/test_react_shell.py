@@ -584,11 +584,14 @@ def test_react_comunicazioni_email_messaggi_collegate_nav_e_shell():
     assert "Cartelle PEC" in email_page
     assert "getEmailPecPage" in email_data
     assert "/api/v1/ui/email" in email_data
+    assert "cache: 'no-store'" in email_data
+    assert "query.set('_ts', String(Date.now()))" in email_data
     assert "Nuovo messaggio" in messaggi_page
     assert "getMessaggiData" in messaggi_data
     assert "sendEndpoint" in messaggi_data
     assert "/api/v1/ui/messaggi" in messaggi_data
     assert '@api_v1_react.get("/email")' in api_source
+    assert 'response.headers["Cache-Control"] = "no-store, max-age=0"' in api_source
     assert '@api_v1_react.get("/messaggi")' in api_source
     assert '@api_v1_react.get("/messaggi/nuovo")' in api_source
 

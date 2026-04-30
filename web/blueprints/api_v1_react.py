@@ -934,7 +934,7 @@ def soggetto_modifica_react(id_soggetto: str):
 @api_v1_react.get("/email")
 @_richiedi_auth
 def email_react_list():
-    return jsonify(build_react_email_payload(
+    response = jsonify(build_react_email_payload(
         db_path=_cfg_value("EMAIL_CASELLA_DB", "./email/casella.json"),
         messaggi_db=_cfg_value("MESSAGGI_DB", "./messaggi/storico.json"),
         folder=request.args.get("cartella", "INBOX"),
@@ -947,6 +947,8 @@ def email_react_list():
         data_da=request.args.get("data_da", "").strip(),
         data_a=request.args.get("data_a", "").strip(),
     ))
+    response.headers["Cache-Control"] = "no-store, max-age=0"
+    return response
 
 
 @api_v1_react.get("/messaggi")

@@ -89,7 +89,7 @@ _STATI_PCT_ORDINE = {
     "ERRORE": 4,
 }
 
-_SENT_FOLDER_HINTS = ("sent", "inviat", "posta inviata", "sent items")
+_SENT_FOLDER_HINTS = ("sent", "inviat", "spedit", "posta inviata", "sent items")
 _TRASH_FOLDER_HINTS = ("trash", "deleted", "eliminat", "cestin")
 _DRAFT_FOLDER_HINTS = ("draft", "bozz")
 
@@ -101,6 +101,8 @@ def cartelle_imap_standard() -> list[str]:
         "Sent",
         "Sent Items",
         "INVIATI",
+        "Spedite",
+        "SPEDITE",
         "Posta inviata",
         "INBOX/Spedite",
         "INBOX/Posta Inviata",
@@ -418,6 +420,60 @@ class GestioneEmailRicevute:
                 pass
         return mail.fetch(token, "(RFC822)")
 
+    @staticmethod
+    def _imap_mailbox_from_list_line(line: Any) -> str:
+        raw = line.decode(errors="ignore") if isinstance(line, bytes) else str(line or "")
+        raw = raw.strip()
+        if not raw:
+            return ""
+        quoted = re.findall(r'"((?:[^"\\]|\\.)*)"', raw)
+        if quoted:
+            return quoted[-1].replace(r"\"", '"').strip()
+        return raw.rsplit(" ", 1)[-1].strip().strip('"')
+
+    @classmethod
+    def _cartelle_imap_effettive(cls, mail: Any, richieste: List[str]) -> List[str]:
+        cartelle: list[str] = []
+
+        def _add(value: Any) -> None:
+            name = str(value or "").strip()
+            if name and name not in cartelle:
+                cartelle.append(name)
+
+        for cartella in richieste:
+            _add(cartella)
+
+        try:
+            status, data = mail.list()
+        except (AttributeError, imaplib.IMAP4.error, TypeError):
+            return cartelle
+        if status != "OK":
+            return cartelle
+
+        for line in data or []:
+            mailbox = cls._imap_mailbox_from_list_line(line)
+            if not mailbox:
+                continue
+            folder = _cartella_interna_da_imap(mailbox)
+            if folder in {CartellaEmail.INBOX, CartellaEmail.INVIATI, CartellaEmail.CESTINO}:
+                _add(mailbox)
+        return cartelle
+
+    @staticmethod
+    def _allinea_cartella_da_imap(email_obj: EmailRicevuta, cartella_imap: str) -> bool:
+        expected = _cartella_interna_da_imap(cartella_imap)
+        if expected == CartellaEmail.INBOX:
+            return False
+        expected_status = _stato_iniziale_da_cartella(expected)
+        changed = False
+        if email_obj.cartella != expected:
+            email_obj.cartella = expected
+            changed = True
+        if email_obj.stato != expected_status:
+            email_obj.stato = expected_status
+            changed = True
+        return changed
+
     # ---- Query ----
 
     def tutte(
@@ -558,9 +614,16 @@ class GestioneEmailRicevute:
         Scarica le email più recenti via IMAP e le salva nel database locale.
 
         Returns:
-            {"nuove": int, "errori": int, "pst_trovate": int, "allegati_salvati": int, "errore": str}
+            {"nuove": int, "errori": int, "pst_trovate": int, "allegati_salvati": int, "cartelle_corrette": int, "errore": str}
         """
-        risultato = {"nuove": 0, "errori": 0, "pst_trovate": 0, "allegati_salvati": 0, "errore": ""}
+        risultato = {
+            "nuove": 0,
+            "errori": 0,
+            "pst_trovate": 0,
+            "allegati_salvati": 0,
+            "cartelle_corrette": 0,
+            "errore": "",
+        }
         cartelle_imap = cartelle_imap or ["INBOX"]
         timeout_s = resolve_imap_timeout_seconds(timeout_seconds)
 
@@ -586,7 +649,7 @@ class GestioneEmailRicevute:
         email_per_uid = {e.uid_imap: e for e in db.values() if e.uid_imap}
 
         try:
-            for cartella_imap in cartelle_imap:
+            for cartella_imap in self._cartelle_imap_effettive(mail, cartelle_imap):
                 try:
                     try:
                         status, _ = mail.select(cartella_imap, readonly=True)
@@ -622,6 +685,8 @@ class GestioneEmailRicevute:
                             email_esistente and self._email_ha_allegati_da_salvare(email_esistente)
                         )
                         if email_esistente and not ripara_allegati:
+                            if self._allinea_cartella_da_imap(email_esistente, cartella_imap):
+                                risultato["cartelle_corrette"] += 1
                             continue
 
                         try:
@@ -654,6 +719,8 @@ class GestioneEmailRicevute:
                                         if old_uid in email_per_uid:
                                             email_per_uid.pop(old_uid, None)
                                         email_per_uid[uid_str] = email_esistente
+                                    if self._allinea_cartella_da_imap(email_esistente, cartella_imap):
+                                        risultato["cartelle_corrette"] += 1
                                     salvati = self._merge_allegati_salvati(email_esistente, em)
                                     risultato["allegati_salvati"] += salvati
                                 else:

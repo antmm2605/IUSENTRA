@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.198.18 - 2026-04-30
+
+- Corretto il conteggio della pagina React `Email PEC`: le cartelle Legalmail `Spedite` vengono ora riconosciute come `Inviati` e non finiscono piu' in `In arrivo`.
+- La sincronizzazione IMAP scopre automaticamente le cartelle reali esposte dal server Legalmail, inclusi archivi come `160925 SPEDITE`, e riallinea le email gia' importate nella cartella sbagliata.
+- Il payload React `/api/v1/ui/email` e il client `emailData` disattivano la cache browser con `no-store` e cache-busting, cosi' la pagina non resta ferma sui vecchi 104 messaggi.
+
 ## 2.198.17 - 2026-04-30
 
 - Corretto l'import PEC Legalmail: messaggi distinti con UID IMAP stabile diverso non vengono piu' fusi solo perche' condividono lo stesso `Message-ID`, mantenendo pero' la migrazione dei vecchi riferimenti non stabili.

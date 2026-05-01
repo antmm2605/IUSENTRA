@@ -779,6 +779,15 @@ def test_docker_compose_prevede_runtime_ollama_sulla_stessa_macchina():
     assert 'host.docker.internal:host-gateway' in compose
 
 
+def test_docker_compose_hetzner_allinea_email_ordinaria_e_ai_locale():
+    compose = (REPO_ROOT / "deploy/hetzner/docker-compose.hetzner.yml").read_text(encoding="utf-8")
+
+    assert "PCT_EMAIL_DB: /data/email/casella.json" in compose
+    assert "PCT_EMAIL_ORDINARIA_DB: /data/email/ordinaria.json" in compose
+    assert "PCT_LOCAL_AI_BASE_URL: ${PCT_LOCAL_AI_BASE_URL:-http://host.docker.internal:11434/api/version}" in compose
+    assert "${IUSENTRA_DATA_DIR:-/opt/iusentra/data}:/data" in compose
+
+
 def test_bootstrap_pubblico_resta_allineato_a_password_temporanee_e_ci_reale():
     compose = (REPO_ROOT / "docker-compose.yml").read_text(encoding="utf-8")
     env_example = (REPO_ROOT / ".env.example").read_text(encoding="utf-8")

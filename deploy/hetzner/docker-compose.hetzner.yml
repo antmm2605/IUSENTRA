@@ -13,7 +13,7 @@ x-iusentra-env: &iusentra-env
   WEB_CONCURRENCY: ${WEB_CONCURRENCY:-4}
   GUNICORN_THREADS: ${GUNICORN_THREADS:-2}
   GUNICORN_TIMEOUT: ${GUNICORN_TIMEOUT:-180}
-  PCT_LOCAL_AI_BASE_URL: ${PCT_LOCAL_AI_BASE_URL:-http://host.docker.internal:11434/api}
+  PCT_LOCAL_AI_BASE_URL: ${PCT_LOCAL_AI_BASE_URL:-http://host.docker.internal:11434/api/version}
   PCT_STUDIO_NOME: ${PCT_STUDIO_NOME:-IUSENTRA}
   PCT_AGENDA_DB: /data/agenda/appuntamenti.json
   PCT_CLIENTI_DB: /data/clienti/anagrafica.json
@@ -25,6 +25,7 @@ x-iusentra-env: &iusentra-env
   PCT_FASCICOLI_ARCH: /data/fascicoli/archivio
   PCT_MESSAGGI_DB: /data/messaggi/storico.json
   PCT_EMAIL_DB: /data/email/casella.json
+  PCT_EMAIL_ORDINARIA_DB: /data/email/ordinaria.json
   PCT_BACKUP_DIR: /data/backup
   PCT_AUTH_DB: /data/auth/utenti.json
   PCT_AUDIT_DB: /data/auth/audit.json

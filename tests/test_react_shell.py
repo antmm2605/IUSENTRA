@@ -8,6 +8,7 @@ from pct.clienti import GestioneClienti, TipoCliente
 from pct.email_client import CartellaEmail, EmailRicevuta, GestioneEmailRicevute, StatoEmail
 from pct.fascicoli import GestioneFascicoli, StatoFascicolo, TipoAttivita, TipoFascicolo
 from pct.messaggi import CanaleMsggio, ConfigMessaggistica, GestioneMessaggi, Messaggio, StatoMessaggio
+from pct.privacy import GestioneTrattamenti
 from pct.preventivi import GestionePreventivi, StatoPreventivo, VocePreventivo
 from pct.scadenziario import GestioneScadenziario, PrioritaTermine, TipoTermine
 from pct.soggetti import GestioneSoggetti, RuoloSoggetto, TipoSoggetto
@@ -22,6 +23,7 @@ def _app(tmp_path: Path):
     _write_studio_config(tmp_path / "config" / "studio.json")
     app = create_app(_cfg_web(tmp_path))
     app.config["API_KEY"] = "react-test-key"
+    app.config["PRIVACY_DB"] = str(tmp_path / "privacy" / "registro.json")
     return app
 
 
@@ -355,7 +357,6 @@ def test_react_blocco_finale_route_reali_e_vista_classica(tmp_path: Path):
             ("/profili", "Profili", False),
             ("/registro-attivita", "Registro", True),
             ("/admin/database", "Database", False),
-            ("/registro-gdpr", "GDPR", True),
         )
         for route, marker, follow_redirects in operational_routes:
             response = client.get(route, follow_redirects=True)
@@ -363,6 +364,13 @@ def test_react_blocco_finale_route_reali_e_vista_classica(tmp_path: Path):
             html = response.get_data(as_text=True)
             assert "IUSENTRA - React Shell" not in html
             assert marker in html
+
+        for route in ("/privacy/registro", "/privacy/registro/nuovo", "/registro-gdpr"):
+            response = client.get(route, follow_redirects=True)
+            assert response.status_code == 200, route
+            html = response.get_data(as_text=True)
+            assert "IUSENTRA - React Shell" in html
+            assert 'id="root"' in html
 
         for route in (
             "/fatturazione/?_legacy=1",
@@ -455,8 +463,6 @@ def test_blocco_telematico_studio_admin_resta_legacy_first():
         "/registro-attivita",
         "/database",
         "/admin/database",
-        "/registro-gdpr",
-        "/privacy/registro",
     )
 
     for prefix in legacy_first_prefixes:
@@ -1404,13 +1410,100 @@ def test_route_gate_non_promuove_moduli_studio_telematico_admin_incompleti():
         "/database",
         "/admin/database",
         "/admin/osservabilita",
-        "/registro-gdpr",
-        "/privacy/registro",
     }
 
     for raw in sorted(legacy_first_routes):
         path = _normalise_path(raw)
         assert _excluded(path), path
+
+    assert not _excluded(_normalise_path("/privacy/registro"))
+    assert not _excluded(_normalise_path("/privacy/registro/nuovo"))
+    assert _excluded(_normalise_path("/privacy/registro/ABC123/elimina"))
+
+
+def test_react_privacy_registro_operativo_secondo_pattern_oss(tmp_path: Path):
+    """La pagina GDPR puo' essere React solo se il flusso e' completo.
+
+    Il test riflette il protocollo in REACT_MIGRATION_PATTERNS_FROM_OSS:
+    API tipizzata, form reali, POST legacy auditati, card non decorative e
+    fallback tecnico `_legacy=1`.
+    """
+
+    app = _app(tmp_path)
+    _crea_operatore(app)
+    registro = GestioneTrattamenti(app.config["PRIVACY_DB"])
+    extra = registro.nuovo(
+        nome="Test trasferimento extra UE",
+        finalita="Verifica migrazione React",
+        categoria_dati="Dati identificativi",
+        base_giuridica="Contratto (art. 6.1.b GDPR)",
+        soggetti_interessati="Clienti",
+        destinatari="Provider cloud",
+        trasferimento_extra_ue=True,
+        paese_destinazione="Stati Uniti",
+    )
+
+    app_source = Path("frontend/src/App.tsx").read_text(encoding="utf-8")
+    data_source = Path("frontend/src/privacyRegistroData.ts").read_text(encoding="utf-8")
+    page_source = Path("frontend/src/components/PrivacyRegistroPage.tsx").read_text(encoding="utf-8")
+    css_source = Path("frontend/src/components/PrivacyRegistroPage.css").read_text(encoding="utf-8")
+    bridge_source = Path("web/services/react_privacy_bridge.py").read_text(encoding="utf-8")
+    patterns = Path("docs/REACT_MIGRATION_PATTERNS_FROM_OSS.md").read_text(encoding="utf-8")
+    plan = Path("docs/REACT_MIGRATION_MASTER_PLAN.md").read_text(encoding="utf-8")
+
+    assert "const PrivacyRegistroPage" in app_source
+    assert "isPrivacyRegistroPage?<PrivacyRegistroPage/>" in app_source
+    assert "/api/v1/ui/privacy/registro" in data_source
+    assert "mock_fallback" in data_source
+    assert "method=\"post\" action={data.actions.create}" in page_source
+    assert "action={item.deleteAction}" in page_source
+    assert "window.confirm" in page_source
+    assert "_legacy=1" not in page_source
+    assert ".iu-privacy-page" in css_source
+    assert "@media(max-width:860px)" in css_source
+    assert "BASE_GIURIDICA_OPTIONS" in bridge_source
+    assert "Solo `react_operational_complete`" in plan
+    assert "Protocollo obbligatorio pagina-per-pagina" in patterns
+
+    with app.test_client() as client:
+        _login(client)
+        shell = client.get("/privacy/registro")
+        new_shell = client.get("/privacy/registro/nuovo")
+        legacy = client.get("/privacy/registro?_legacy=1")
+        payload_response = client.get("/api/v1/ui/privacy/registro", headers={"X-API-Key": "react-test-key"})
+        post_response = client.post(
+            "/privacy/registro/nuovo",
+            data={
+                "nome": "Registro React POST",
+                "finalita": "Controllo scrittura auditata",
+                "categoria_dati": "Dati anagrafici",
+                "base_giuridica": "Obbligo legale (art. 6.1.c GDPR)",
+                "soggetti_interessati": "Clienti",
+                "destinatari": "Studio",
+                "termine_conservazione": "10 anni",
+                "misure_sicurezza": "Backup e accesso profilato",
+            },
+            follow_redirects=False,
+        )
+
+    payload = payload_response.get_json()
+    assert shell.status_code == 200
+    assert "IUSENTRA - React Shell" in shell.get_data(as_text=True)
+    assert new_shell.status_code == 200
+    assert "IUSENTRA - React Shell" in new_shell.get_data(as_text=True)
+    assert legacy.status_code == 200
+    assert "IUSENTRA - React Shell" not in legacy.get_data(as_text=True)
+    assert payload_response.status_code == 200
+    assert payload["source"] == "repository_reali"
+    assert payload["contracts"]["mock_fallback"] is False
+    assert payload["contracts"]["writes"] == "operational_routes"
+    assert payload["actions"]["create"] == "/privacy/registro/nuovo"
+    assert payload["actions"]["exportAuditCsv"] == "/audit/esporta.csv"
+    assert any(item["id"] == extra.id and item["extraEuTransfer"] for item in payload["treatments"])
+    assert payload["summary"]["extraEu"] >= 1
+    assert payload["summary"]["warnings"] >= 1
+    assert post_response.status_code in {302, 303}
+    assert post_response.headers["Location"].endswith("/privacy/registro")
 
 
 def test_pst_acquisizione_usa_lookup_uffici_reali_importati(tmp_path: Path):
@@ -1847,13 +1940,16 @@ def test_react_migration_matrice_completa_route_api_e_card_operative(tmp_path: P
         "Profili e Permessi": "/profili",
         "Registro Attività": "/registro-attivita",
         "Database": "/admin/database",
-        "Registro GDPR": "/registro-gdpr",
     }
 
     with app.test_client() as client:
         _login(client)
         for label, path in first_block_routes.items():
             _assert_react_shell(client, label, path)
+
+        _assert_react_shell(client, "Registro GDPR", "/privacy/registro")
+        _assert_react_shell(client, "Nuovo trattamento GDPR", "/privacy/registro/nuovo")
+        _assert_react_shell(client, "Alias Registro GDPR", "/registro-gdpr")
 
         for label, path in {**telematico_routes, **studio_admin_routes}.items():
             response = client.get(path, follow_redirects=True)
@@ -1886,6 +1982,7 @@ def test_react_migration_matrice_completa_route_api_e_card_operative(tmp_path: P
             "PTT Tributario": "/api/v1/ui/telematico/surface/ptt",
             "Tribunali / PEC": "/api/v1/ui/telematico/surface/tribunali",
             "Guida firma digitale": "/api/v1/ui/telematico/surface/firma",
+            "Registro GDPR": "/api/v1/ui/privacy/registro",
             "Ricerca Studio": "/api/global-search?q=matrice&limit=5",
         }.items():
             _assert_payload_operativo(client, label, path, require_links=label != "Ricerca Studio")

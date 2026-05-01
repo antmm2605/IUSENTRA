@@ -99,7 +99,6 @@ _REACT_EXACT = {
     "/profili",
     "/redazione-atti",
     "/registro-attivita",
-    "/registro-gdpr",
     "/ricerca-legale",
     "/servizi-telematici",
     "/sincronizzazione-calendari",
@@ -188,11 +187,9 @@ _LEGACY_OPERATIONAL_PREFIXES = (
     "/polisweb",
     "/portali",
     "/preventivi",
-    "/privacy/registro",
     "/profili",
     "/redazione-atti",
     "/registro-attivita",
-    "/registro-gdpr",
     "/ricerca-legale",
     "/servizi-telematici",
     "/sigit",
@@ -239,6 +236,8 @@ def _excluded(path: str) -> bool:
     # Il tariffario/compensi forensi contiene il motore di calcolo completo:
     # non deve essere mascherato da una card React non equivalente.
     if lower in {"/tariffario", "/compensi-forensi"}:
+        return True
+    if lower.startswith("/privacy/registro/") and lower != "/privacy/registro/nuovo":
         return True
     if lower == "/impostazioni" and has_request_context():
         tab = (request.args.get("tab") or "").strip().lower()

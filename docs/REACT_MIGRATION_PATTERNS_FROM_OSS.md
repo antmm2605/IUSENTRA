@@ -142,3 +142,13 @@ Solo `react_operational_complete` puo' diventare route React ufficiale senza amb
 ## Regola pratica per IUSENTRA
 
 La migrazione React non deve essere misurata in "pagine visualizzate", ma in "flussi operativi completati". Una pagina e' migrata solo quando l'avvocato puo' completare nello stesso modo, o meglio, il lavoro che completava nella vista precedente.
+
+## Applicazione corrente: Registro GDPR
+
+La tranche `privacy/registro` applica questo protocollo come caso pilota dopo la stabilizzazione delle promozioni React:
+
+- inventario delle route legacy `GET /privacy/registro`, `GET/POST /privacy/registro/nuovo`, `POST /privacy/registro/<id>/elimina` e alias `/registro-gdpr`;
+- bridge tipizzato `GET /api/v1/ui/privacy/registro` con dati reali dal repository privacy e `mock_fallback=false`;
+- UI React responsive con form reale, card trattamento e azioni operative collegate;
+- fallback tecnico `_legacy=1` mantenuto ma non esposto come scorciatoia visibile;
+- test route/API/card che impediscono di dichiarare completa una pagina solo perche' risponde `200`.

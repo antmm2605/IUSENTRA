@@ -46,6 +46,7 @@ from web.services.react_fascicoli_bridge import (
     build_react_fascicolo_form_payload,
 )
 from web.services.react_messaggi_bridge import build_react_messaggi_nuovo_payload, build_react_messaggi_payload
+from web.services.react_privacy_bridge import build_react_privacy_registro_payload
 from web.services.react_scadenziario_bridge import (
     build_react_scadenziario_nuova_payload,
     build_react_scadenziario_payload,
@@ -1277,6 +1278,46 @@ def studio_module_react_payload(module_id: str):
         get_config_studio=_core_runtime_func("get_config_studio"),
         get_trattamenti=get_trattamenti,
         query=dict(request.args),
+    ))
+
+
+@api_v1_react.get("/privacy/registro")
+@_richiedi_auth
+def privacy_registro_react_payload():
+    get_trattamenti = _core_runtime_func("get_trattamenti")
+    if not callable(get_trattamenti):
+        return jsonify({
+            "source": "errore_controllato",
+            "generatedAt": _iso_now(),
+            "summary": {
+                "total": 0,
+                "active": 0,
+                "inactive": 0,
+                "extraEu": 0,
+                "missingSecurity": 0,
+                "missingRetention": 0,
+                "warnings": 0,
+            },
+            "treatments": [],
+            "actions": {
+                "create": "/privacy/registro/nuovo",
+                "list": "/privacy/registro",
+                "audit": "/audit",
+                "exportAuditCsv": "/audit/esporta.csv",
+                "clienti": "/clienti",
+                "settings": "/impostazioni",
+                "lex": "/lex?context=registro-gdpr",
+            },
+            "contracts": {
+                "mock_fallback": False,
+                "writes": "operational_routes",
+                "route_owner": "react_shell",
+            },
+            "warning": "Repository privacy non disponibile nel runtime corrente.",
+        })
+    return jsonify(build_react_privacy_registro_payload(
+        get_trattamenti,
+        path=request.args.get("path", "/privacy/registro"),
     ))
 
 

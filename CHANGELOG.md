@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.198.36 - 2026-05-01
+
+- Migrato `GET /privacy/registro`, `GET /privacy/registro/nuovo` e alias `/registro-gdpr` nella shell React solo dopo contratto operativo completo: API reale `/api/v1/ui/privacy/registro`, dati dal repository privacy, form POST Flask auditato e cancellazione trattamento sulle route esistenti.
+- Aggiunta UI React responsive del Registro GDPR Art. 30 con indicatori, filtri, schede trattamento, warning su conservazione/misure/extra UE, azioni reali verso audit, clienti e impostazioni, senza link `_legacy=1` visibili.
+- Aggiornati i gate di migrazione e i test secondo `REACT_MIGRATION_MASTER_PLAN.md` e `REACT_MIGRATION_PATTERNS_FROM_OSS.md`: una pagina viene promossa solo se rispetta lo stato `react_operational_complete`.
+
 ## 2.198.35 - 2026-05-01
 
 - Allineato il profilo `deploy/hetzner` alla nuova separazione fra Email PEC e posta ordinaria, aggiungendo `PCT_EMAIL_ORDINARIA_DB` e il default AI locale `/api/version`.

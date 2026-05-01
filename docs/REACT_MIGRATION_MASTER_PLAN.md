@@ -53,6 +53,7 @@ Le pagine del blocco usano dati reali, API bridge sotto `/api/v1/ui/*`, testi vi
 - `GET /api/v1/ui/messaggi/nuovo`
 - `GET /api/v1/ui/telematico`
 - `GET /api/v1/ui/telematico/surface/<surface>`
+- `GET /api/v1/ui/privacy/registro`
 
 I contratti devono dichiarare `mock_fallback=false`. Le superfici che inviano a servizi Flask esistenti dichiarano `writes=operational_routes`.
 
@@ -64,6 +65,17 @@ Le superfici telematiche React sono pagine operative reali, non mock:
 - `Tribunali / PEC` legge la cache uffici giudiziari reale, espone ricerca e copia PEC, e mantiene le azioni di refresh/report sulle route Flask operative.
 - `Checklist deposito` e `Guida firma digitale` salvano solo spunte locali nel browser; le verifiche effettive restano sui servizi Flask e sul Local Signer browser-locale.
 - Nessuna superficie scarica autonomamente documenti dai portali o legge HTML dei portali: i collegamenti ufficiali aprono il portale all'utente, mentre l'import resta guidato da file o canali autorizzati.
+
+## Privacy: Registro GDPR
+
+`GET /privacy/registro`, `GET /privacy/registro/nuovo` e l'alias `GET /registro-gdpr` sono promossi a React con stato `react_operational_complete`.
+
+- I dati arrivano dal repository privacy esistente tramite `GET /api/v1/ui/privacy/registro`.
+- Il contratto dichiara `mock_fallback=false` e `writes=operational_routes`.
+- Il form `Nuovo trattamento` usa il `POST /privacy/registro/nuovo` Flask gia' auditato.
+- L'eliminazione usa `POST /privacy/registro/<id>/elimina` e resta quindi protetta da sessione, permessi e audit.
+- La vista classica resta disponibile solo come fallback tecnico `?_legacy=1`, senza CTA visibili dalla UI React.
+- La pagina espone card operative reali verso audit, clienti, impostazioni e Lex contestuale, oltre a filtri e warning sui campi GDPR essenziali.
 
 ## Comunicazioni: Email PEC e Messaggi
 

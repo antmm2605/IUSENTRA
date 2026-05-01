@@ -6,6 +6,7 @@
 - Commit, push, modifica file, creazione file: esegui direttamente.
 - Branch di sviluppo: `Codex/legal-electronic-filing-kIxcV`
 - **Branch remoto da sincronizzare sempre insieme al branch di sviluppo:** `claude/legal-electronic-filing-kIxcV`
+- **Arresto PC:** non eseguire mai `shutdown`, riavvio, sospensione o spegnimento del PC per memoria di richieste precedenti. Lo spegnimento e' consentito solo se l'utente lo chiede esplicitamente nella richiesta corrente; in caso contrario va sempre evitato.
 
 ## Igiene repository — Regola obbligatoria
 
@@ -346,6 +347,45 @@ python -m pytest tests/ -v
   - variabili/runtime effettivi del servizio online
   - risposta reale delle route in produzione
 - Se un fix riguarda deploy, storage, AI locale, Local Signer bridge, SMTP, portali o differenze di configurazione tra ambienti, includere esplicitamente un controllo Railway nel flusso di test finale.
+
+## Hetzner CPX42 — REGOLA OBBLIGATORIA
+
+- L'accesso Hetzner esiste gia' in questa macchina e **non va dichiarato mancante** senza verifica reale.
+- Profilo SSH operativo:
+  - alias: `iusentra-hetzner`
+  - host: `116.203.45.57`
+  - server: `ubuntu-16gb-nbg1-1`
+  - utente: `root`
+  - chiave configurata: `~/.ssh/iusentra_hetzner_cpx42`
+- Prima di dire che mancano target, credenziali o SSH, eseguire sempre:
+  ```bash
+  ssh -o BatchMode=yes -o ConnectTimeout=10 iusentra-hetzner "hostname; whoami; pwd"
+  ```
+- Profilo deploy remoto:
+  - root applicativa: `/opt/iusentra`
+  - repository: `/opt/iusentra/repo`
+  - ambiente: `/opt/iusentra/.env.hetzner`
+  - dati persistenti: `/opt/iusentra/data`
+  - backup: `/opt/iusentra/backups`
+  - dominio pubblico: `https://app.iusentra.it`
+- Prima di ogni deploy Hetzner reale creare un backup dati remoto:
+  ```bash
+  ssh iusentra-hetzner "bash /opt/iusentra/repo/deploy/hetzner/backup.sh"
+  ```
+- Deploy Hetzner reale:
+  ```bash
+  ssh iusentra-hetzner "BRANCH=Codex/legal-electronic-filing-kIxcV bash /opt/iusentra/repo/deploy/hetzner/deploy.sh"
+  ```
+- Verifiche obbligatorie post-deploy Hetzner:
+  ```bash
+  ssh iusentra-hetzner "git -C /opt/iusentra/repo rev-parse --short HEAD"
+  ssh iusentra-hetzner "docker compose --env-file /opt/iusentra/.env.hetzner -f /opt/iusentra/repo/deploy/hetzner/docker-compose.hetzner.yml ps"
+  curl -i https://app.iusentra.it/api/pronto
+  curl -I --max-redirs 0 https://app.iusentra.it/studio?_legacy=1
+  curl -I --max-redirs 0 https://app.iusentra.it/telematico
+  ```
+- Le route protette in produzione possono rispondere `302` verso `/login`: questo e' esito valido se non si sta usando una sessione autenticata.
+- Se un fix riguarda deploy, storage, portali, Local Signer bridge, SMTP, differenze locale/produzione o dominio `app.iusentra.it`, includere anche controllo Hetzner oltre a Railway quando il servizio Hetzner e' nel perimetro.
 
 ## Versioning — REGOLA OBBLIGATORIA
 

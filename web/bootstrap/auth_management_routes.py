@@ -172,6 +172,9 @@ def register_auth_management_routes(
         platform_redirect = _redirect_superadmin_piattaforma()
         if platform_redirect is not None:
             return platform_redirect
+        if request.method == "GET" and not _richiede_vista_classica():
+            return render_react_shell_response("utenti/nuovo")
+
         if request.method == "POST":
             gu = _auth_manager()
             try:
@@ -277,6 +280,9 @@ def register_auth_management_routes(
         platform_redirect = _redirect_superadmin_piattaforma()
         if platform_redirect is not None:
             return platform_redirect
+        if not _richiede_vista_classica():
+            return render_react_shell_response("audit")
+
         gu = _auth_manager()
         id_utente = request.args.get("id_utente", "")
         azione = request.args.get("azione", "")

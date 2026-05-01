@@ -177,6 +177,9 @@ def lista():
 @fatturazione.route("/nuova/<id_cliente>", methods=["GET", "POST"])
 @_richiedi_login
 def nuova(id_cliente: str = ""):
+    if request.method == "GET" and not _richiede_vista_classica():
+        return render_react_shell_response("fatturazione/nuova")
+
     gc = get_clienti()
     gf_parc = _get_gf()
     gp_prev = _get_gp()

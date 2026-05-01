@@ -53,6 +53,7 @@ from web.services.product_governance_surface import build_product_governance_sur
 from web.services.studio_installation_status import build_studio_installation_status
 from web.services.system_health_surface import build_system_health_surface
 from web.services.system_health_surface import build_system_health_api_payload
+from web.blueprints.react_shell import render_react_shell_response
 
 admin_bp = Blueprint("admin", __name__, url_prefix="/admin")
 
@@ -526,8 +527,16 @@ def sposta_utente_piattaforma_nello_studio(uid: str):
 
 
 @admin_bp.route("/osservabilita")
-@superadmin_required
 def osservabilita():
+    utente = getattr(g, "utente_corrente", None)
+    if not utente:
+        return redirect(url_for("login", next=request.full_path.rstrip("?")))
+    if request.args.get("_legacy") != "1":
+        if not utente.ha_permesso("audit.leggi"):
+            abort(403)
+        return render_react_shell_response("admin/osservabilita")
+    if not utente.is_superadmin:
+        abort(403)
     payload = build_observability_payload(current_app._get_current_object())
     return render_template("admin/osservabilita.html", payload=payload)
 

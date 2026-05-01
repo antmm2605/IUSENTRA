@@ -605,6 +605,9 @@ def lista():
 @preventivi.route("/nuovo/<id_cliente>", methods=["GET", "POST"])
 @_richiedi_login
 def nuovo_preventivo(id_cliente: str = ""):
+    if request.method == "GET" and not _richiede_vista_classica():
+        return render_react_shell_response("preventivi/nuovo")
+
     gc = get_clienti()
     gp = _get_gp()
 
@@ -1003,6 +1006,9 @@ def pdf_preventivo(id_preventivo: str):
 @preventivi.route("/conferimento/nuovo/<id_cliente>", methods=["GET", "POST"])
 @_richiedi_login
 def nuovo_conferimento(id_cliente: str = ""):
+    if request.method == "GET" and not _richiede_vista_classica():
+        return render_react_shell_response("preventivi/conferimento/nuovo")
+
     gc = get_clienti()
     gp = _get_gp()
 
@@ -1546,6 +1552,9 @@ def ajax_parametri_dm55():
 @_richiedi_login
 def wizard():
     """Wizard step-by-step per la costruzione guidata del preventivo."""
+    if not _richiede_vista_classica():
+        return render_react_shell_response("preventivi/wizard")
+
     from pct.motore_preventivo import AREE_WIZARD, catalogo_wizard
     gc = get_clienti()
     gf = get_fascicoli()

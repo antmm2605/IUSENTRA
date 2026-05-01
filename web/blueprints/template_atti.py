@@ -451,6 +451,9 @@ def scheda(id_template: str):
 @template_atti.route("/catalogo", methods=["GET"])
 @_richiedi_login
 def catalogo():
+    if not _richiede_vista_classica():
+        return render_react_shell_response("template-atti/catalogo")
+
     from pct.compilatore_atti import MODELS, AREA_LABELS, AREA_ORDINE, get_essential_docs
     from pct.template_catalog_service import build_template_catalog_page_context
 
@@ -583,6 +586,9 @@ def api_modelli_per_pratica(id_pratica: str):
 @_richiedi_login
 def nuovo():
     from pct.template_atti import CATEGORIE
+    if request.method == "GET" and not _richiede_vista_classica():
+        return render_react_shell_response("template-atti/nuovo")
+
     if request.method == "POST":
         gt = _get_gt()
         titolo   = request.form.get("titolo", "").strip()

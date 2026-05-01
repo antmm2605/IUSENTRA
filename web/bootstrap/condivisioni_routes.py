@@ -8,6 +8,7 @@ from typing import Any
 from flask import Flask, flash, g, jsonify, redirect, render_template, request, url_for
 
 from pct.condivisione import RuoloCondivisione
+from web.blueprints.react_shell import render_react_shell_response
 
 
 def register_condivisioni_routes(
@@ -24,8 +25,14 @@ def register_condivisioni_routes(
 ) -> None:
     """Register sharing routes for clienti and fascicoli."""
 
+    def _richiede_vista_classica() -> bool:
+        return request.args.get("_legacy") == "1"
+
     @app.route("/cartelle-condivise")
     def cartelle_condivise():
+        if not _richiede_vista_classica():
+            return render_react_shell_response("cartelle-condivise")
+
         utente = g.utente_corrente
         gcd = get_condivisioni()
         gc = get_clienti()

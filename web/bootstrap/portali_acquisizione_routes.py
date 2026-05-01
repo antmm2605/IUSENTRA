@@ -8,6 +8,8 @@ from typing import Any
 
 from flask import Flask, flash, jsonify, redirect, render_template, request, url_for
 
+from web.blueprints.react_shell import render_react_shell_response
+
 
 def register_portali_acquisizione_routes(
     app: Flask,
@@ -27,6 +29,12 @@ def register_portali_acquisizione_routes(
 ) -> None:
     """Register guided acquisition routes for PST, PDP, PAT, and PTT."""
 
+    def _richiede_vista_classica() -> bool:
+        return request.args.get("_legacy") == "1"
+
+    def _vista_classica_args() -> dict[str, str]:
+        return {"_legacy": "1"} if _richiede_vista_classica() else {}
+
     @app.route("/portali/<portale>/acquisizione", methods=["GET"])
     def portale_acquisizione_wizard(portale: str):
         try:
@@ -34,6 +42,9 @@ def register_portali_acquisizione_routes(
         except KeyError:
             flash("Portale non supportato.", "warning")
             return redirect(url_for("dashboard"))
+        if not _richiede_vista_classica():
+            return render_react_shell_response(f"portali/{portale}/acquisizione")
+
         id_fasc = str(request.args.get("id_fasc") or "").strip()
         wizard_focus = str(request.args.get("focus") or "").strip().lower()
         linked_fascicolo = get_fascicoli().get(id_fasc) if id_fasc else None
@@ -67,19 +78,19 @@ def register_portali_acquisizione_routes(
 
     @app.route("/polisWeb/acquisizione", methods=["GET"])
     def polisweb_acquisizione_redirect():
-        return redirect(url_for("portale_acquisizione_wizard", portale="pst"))
+        return redirect(url_for("portale_acquisizione_wizard", portale="pst", **_vista_classica_args()))
 
     @app.route("/pdp/acquisizione", methods=["GET"])
     def pdp_acquisizione_redirect():
-        return redirect(url_for("portale_acquisizione_wizard", portale="pdp"))
+        return redirect(url_for("portale_acquisizione_wizard", portale="pdp", **_vista_classica_args()))
 
     @app.route("/pat/acquisizione", methods=["GET"])
     def pat_acquisizione_redirect():
-        return redirect(url_for("portale_acquisizione_wizard", portale="pat"))
+        return redirect(url_for("portale_acquisizione_wizard", portale="pat", **_vista_classica_args()))
 
     @app.route("/sigit/acquisizione", methods=["GET"])
     def sigit_acquisizione_redirect():
-        return redirect(url_for("portale_acquisizione_wizard", portale="ptt"))
+        return redirect(url_for("portale_acquisizione_wizard", portale="ptt", **_vista_classica_args()))
 
     @app.route("/api/portali/<portale>/acquisizione/status", methods=["GET"])
     def api_portale_acquisizione_status(portale: str):

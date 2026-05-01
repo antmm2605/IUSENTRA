@@ -158,6 +158,9 @@ def index():
 @giurisprudenza.route("/nuova", methods=["GET", "POST"])
 @_richiedi_login
 def nuova():
+    if request.method == "GET" and not _richiede_vista_classica():
+        return render_react_shell_response("giurisprudenza/nuova")
+
     gestore = get_giurisprudenza()
     if request.method == "POST":
         try:

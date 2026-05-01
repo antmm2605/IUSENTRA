@@ -188,11 +188,14 @@ for (const label of [
   'Preventivi e Incarichi',
   'Compensi Forensi',
   'Redazione Atti',
+  'Importa pratica da PST',
   'Statistiche',
   'Ricerca Legale',
   'Archivio Giurisprudenza',
   'Strumenti Forensi',
   'Strumenti Operativi',
+  'Timesheet',
+  'Cartelle Condivise',
   'Sito Studio',
   'Notifiche WhatsApp',
   'Incassi e Pagamenti',
@@ -211,15 +214,29 @@ for (const label of [
 for (const route of [
   '/studio',
   '/fatturazione',
+  '/fatturazione/nuova',
   '/preventivi',
+  '/preventivi/nuovo',
+  '/preventivi/wizard',
+  '/preventivi/conferimento/nuovo',
   '/compensi-forensi',
   '/redazione-atti',
+  '/template-atti/catalogo',
+  '/template-atti/nuovo',
+  '/portali/pst/acquisizione',
   '/statistiche',
   '/ricerca-legale',
+  '/legal-intelligence/news',
+  '/legal-intelligence/mediazione',
   '/giurisprudenza',
+  '/giurisprudenza/nuova',
   '/strumenti-legali',
   '/strumenti-operativi',
+  '/timesheet',
+  '/cartelle-condivise',
   '/sito-studio',
+  '/sito-studio/builder',
+  '/sito-studio/contatti',
   '/notifiche-whatsapp',
   '/incassi-pagamenti',
   '/backup',
@@ -227,14 +244,23 @@ for (const route of [
   '/sincronizzazione-calendari',
   '/amministrazione',
   '/utenti',
+  '/utenti/nuovo',
   '/profili',
   '/registro-attivita',
+  '/audit',
+  '/admin/osservabilita',
   '/admin/database',
   '/registro-gdpr',
+  '/privacy/registro/nuovo',
 ]) {
   assertContains(studioModules, route, `route blocco finale ${route}`)
 }
 assertContains(studioModules, '_legacy=1', 'handoff viste classiche')
+assertContains(studioModules, "route === candidate || route.startsWith(`${candidate}/`)", 'matching moduli react annidati')
+assertNotContains(studioModules, "href: legacy('/fatturazione", 'nav reale fatturazione senza legacy')
+assertNotContains(studioModules, "href: legacy('/preventivi", 'nav reale preventivi senza legacy')
+assertNotContains(studioModules, "href: legacy('/utenti", 'nav reale utenti senza legacy')
+assertContains(studioModules, "href: legacy('/portali/pst/acquisizione')", 'vista tecnica PST esplicita')
 assertContains(studioModulePage, 'iusentra:open-floating-lex', 'lex contestuale blocco finale')
 assertContains(studioModulePage, 'iusentra:lex-context', 'contesto lex blocco finale')
 assertContains(studioModuleCss, '.iu-sm-cards', 'stili card operative blocco finale')

@@ -33,6 +33,7 @@ from web.services.mediazione_dm150_runtime import (
     is_mediazione_practice,
     mediazione_odm_context_for_prefill,
 )
+from web.blueprints.react_shell import render_react_shell_response
 
 
 def _switch_from_form(form, key: str, *, default: bool = False) -> bool:
@@ -74,8 +75,14 @@ def _log_tariffario_story(evento: str, **context) -> None:
 def register_tariffario_routes(app: Flask) -> None:
     """Register tariffario route and keep its runtime isolated from web.app."""
 
+    def _richiede_vista_classica() -> bool:
+        return request.args.get("_legacy") == "1"
+
     @app.route("/tariffario", methods=["GET", "POST"])
     def tariffario():
+        if request.method == "GET" and not _richiede_vista_classica():
+            return render_react_shell_response("tariffario")
+
         from pct.economico_context import costruisci_contesto_economico, dump_log_calcolo
         from pct.motore_preventivo import catalogo_wizard, get_tipo_pratica, motore_calcola
         from web.helpers import get_normative_tables

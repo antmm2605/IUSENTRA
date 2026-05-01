@@ -41,6 +41,9 @@ def register_privacy_routes(
         utente = g.utente_corrente
         if not utente or not utente.ha_permesso("utenti.leggi"):
             abort(403)
+        if request.method == "GET" and not _richiede_vista_classica():
+            return render_react_shell_response("privacy/registro/nuovo")
+
         if request.method == "POST":
             form = request.form
             get_trattamenti().nuovo(

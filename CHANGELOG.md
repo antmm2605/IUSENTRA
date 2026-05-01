@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.198.22 - 2026-05-01
+
+- Completato l'ultimo blocco di migrazione React per le rotte studio/economico/admin richieste: parcelle, preventivi, tariffario, redazione atti, PST, statistiche, ricerca legale, giurisprudenza, strumenti, timesheet, cartelle condivise, sito studio, utenti, audit, osservabilita' e GDPR ora aprono la shell React di default.
+- `?_legacy=1` resta solo come vista tecnica/classica esplicita: la navigazione React e le card operative usano URL puliti, con regressioni dedicate per impedire il ritorno di link legacy nella nav reale.
+- Aggiornati i contratti React e il presidio Lex unico contestuale, mantenendo il widget globale spostabile e senza duplicazioni sulle pagine del blocco finale.
+
 ## 2.198.21 - 2026-04-30
 
 - Corretto il riquadro `Ultime PEC ricevute` della Panoramica React: ora legge le ultime email reali in `INBOX`, ordinate per data effettiva, senza escludere le PEC ministeriali `giustiziacert.it` prive di `stato_pct`.

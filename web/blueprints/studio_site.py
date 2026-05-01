@@ -591,6 +591,9 @@ def reject_booking_request(booking_request_id: int):
 @studio_site.get("/contatti")
 @site_admin_required
 def contact_submissions():
+    if not _richiede_vista_classica():
+        return render_react_shell_response("sito-studio/contatti")
+
     payload = build_studio_site_dashboard_payload()
     return render_template("studio_site/contact_submissions.html", payload=payload)
 

@@ -142,7 +142,7 @@ export function StudioModulePage() {
           <div className="iu-sm-section-head">
             <div>
               <h2>Funzioni operative</h2>
-              <p>Ogni card apre una funzione reale già collegata nel gestionale.</p>
+              <p>Ogni card apre una funzione React reale gia collegata nel gestionale.</p>
             </div>
             <span>React UI</span>
           </div>

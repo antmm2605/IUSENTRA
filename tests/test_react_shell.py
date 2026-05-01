@@ -115,15 +115,29 @@ def test_react_blocco_finale_studio_admin_completo():
     expected_routes = (
         "/studio",
         "/fatturazione",
+        "/fatturazione/nuova",
         "/preventivi",
+        "/preventivi/nuovo",
+        "/preventivi/wizard",
+        "/preventivi/conferimento/nuovo",
         "/compensi-forensi",
         "/redazione-atti",
+        "/template-atti/catalogo",
+        "/template-atti/nuovo",
+        "/portali/pst/acquisizione",
         "/statistiche",
         "/ricerca-legale",
+        "/legal-intelligence/news",
+        "/legal-intelligence/mediazione",
         "/giurisprudenza",
+        "/giurisprudenza/nuova",
         "/strumenti-legali",
         "/strumenti-operativi",
+        "/timesheet",
+        "/cartelle-condivise",
         "/sito-studio",
+        "/sito-studio/builder",
+        "/sito-studio/contatti",
         "/notifiche-whatsapp",
         "/incassi-pagamenti",
         "/backup",
@@ -131,10 +145,14 @@ def test_react_blocco_finale_studio_admin_completo():
         "/sincronizzazione-calendari",
         "/amministrazione",
         "/utenti",
+        "/utenti/nuovo",
         "/profili",
         "/registro-attivita",
+        "/audit",
+        "/admin/osservabilita",
         "/admin/database",
         "/registro-gdpr",
+        "/privacy/registro/nuovo",
     )
     for route in expected_routes:
         assert route in module_source
@@ -145,11 +163,14 @@ def test_react_blocco_finale_studio_admin_completo():
         "Preventivi e Incarichi",
         "Compensi Forensi",
         "Redazione Atti",
+        "Importa pratica da PST",
         "Statistiche",
         "Ricerca Legale",
         "Archivio Giurisprudenza",
         "Strumenti Forensi",
         "Strumenti Operativi",
+        "Timesheet",
+        "Cartelle Condivise",
         "Sito Studio",
         "Notifiche WhatsApp",
         "Incassi e Pagamenti",
@@ -172,6 +193,13 @@ def test_react_blocco_finale_studio_admin_completo():
     assert "iusentra:open-floating-lex" in page_source
     assert "iusentra:lex-context" in page_source
     assert "_legacy=1" in module_source
+    assert "route === candidate || route.startsWith(`${candidate}/`)" in module_source
+    assert "href: legacy('/fatturazione" not in module_source
+    assert "href: legacy('/preventivi" not in module_source
+    assert "href: legacy('/utenti" not in module_source
+    assert "href: legacy('/portali/pst/acquisizione')" in module_source
+    assert "data-pct-ai-drag-handle" in Path("web/templates/components/pct_ai_widget.html").read_text(encoding="utf-8")
+    assert "iusentra:open-floating-lex" in Path("web/static/js/pct-lex-assistant.js").read_text(encoding="utf-8")
     assert ".iu-sm-cards" in page_css
     assert ".iu-sm-hero aside{\n    display:none;" in page_css
     assert "clamp(" not in page_css
@@ -186,16 +214,32 @@ def test_react_blocco_finale_route_reali_e_vista_classica(tmp_path: Path):
     react_routes = (
         "/studio",
         "/fatturazione/",
+        "/fatturazione/nuova",
         "/preventivi/",
+        "/preventivi/nuovo",
+        "/preventivi/wizard?id_cliente=&from_page=",
+        "/preventivi/conferimento/nuovo",
         "/compensi-forensi",
         "/redazione-atti",
+        "/template-atti/catalogo",
+        "/template-atti/nuovo",
+        "/portali/pst/acquisizione",
         "/statistiche/",
         "/ricerca-legale",
         "/legal-intelligence/",
+        "/legal-intelligence/news",
+        "/legal-intelligence/mediazione",
         "/giurisprudenza/",
+        "/giurisprudenza/nuova",
         "/strumenti-legali/",
+        "/strumenti-legali/?tool=contributo_unificato",
+        "/strumenti-legali/?tool=onorari_forensi",
         "/strumenti-operativi",
+        "/timesheet",
+        "/cartelle-condivise",
         "/sito-studio/",
+        "/sito-studio/builder",
+        "/sito-studio/contatti",
         "/notifiche-whatsapp",
         "/notifiche/",
         "/incassi-pagamenti",
@@ -206,12 +250,16 @@ def test_react_blocco_finale_route_reali_e_vista_classica(tmp_path: Path):
         "/impostazioni/calendario",
         "/amministrazione",
         "/utenti",
+        "/utenti/nuovo",
         "/profili",
         "/registro-attivita",
+        "/audit",
+        "/admin/osservabilita",
         "/admin/database",
         "/database",
         "/registro-gdpr",
         "/privacy/registro",
+        "/privacy/registro/nuovo",
     )
 
     with app.test_client() as client:
@@ -225,12 +273,46 @@ def test_react_blocco_finale_route_reali_e_vista_classica(tmp_path: Path):
 
         for route in (
             "/fatturazione/?_legacy=1",
+            "/fatturazione/nuova?_legacy=1",
             "/preventivi/?_legacy=1",
+            "/preventivi/nuovo?_legacy=1",
+            "/preventivi/wizard?_legacy=1",
+            "/preventivi/conferimento/nuovo?_legacy=1",
+            "/tariffario?_legacy=1",
+            "/strumenti-legali/?tool=contributo_unificato&_legacy=1",
+            "/strumenti-legali/?tool=onorari_forensi&_legacy=1",
+            "/timesheet?_legacy=1",
+            "/cartelle-condivise?_legacy=1",
+            "/portali/pst/acquisizione?_legacy=1",
             "/statistiche/?_legacy=1",
+            "/legal-intelligence/news?_legacy=1",
+            "/legal-intelligence/mediazione?_legacy=1",
+            "/giurisprudenza/nuova?_legacy=1",
+            "/sito-studio/builder?_legacy=1",
+            "/sito-studio/contatti?_legacy=1",
+            "/template-atti/catalogo?_legacy=1",
+            "/template-atti/nuovo?_legacy=1",
+            "/notifiche/?_legacy=1",
+            "/utenti/nuovo?_legacy=1",
+            "/audit?_legacy=1",
+            "/privacy/registro/nuovo?_legacy=1",
             "/backup?_legacy=1",
         ):
             response = client.get(route)
             assert response.status_code == 200, route
+            assert "IUSENTRA - React Shell" not in response.get_data(as_text=True)
+
+        shortcut = client.get("/polisWeb/acquisizione?_legacy=1")
+        assert shortcut.status_code in {302, 303}
+        assert shortcut.headers["Location"].endswith("/portali/pst/acquisizione?_legacy=1")
+
+        for route in (
+            "/statistiche/api/produttivita?_legacy=1",
+            "/statistiche/api/depositi-trend?_legacy=1",
+        ):
+            response = client.get(route)
+            assert response.status_code == 200, route
+            assert response.is_json
             assert "IUSENTRA - React Shell" not in response.get_data(as_text=True)
 
 
@@ -786,12 +868,17 @@ def test_route_importa_pratica_pst_resta_raggiungibile_dalla_nav(tmp_path: Path)
     with app.test_client() as client:
         _login(client)
         response = client.get("/portali/pst/acquisizione")
+        legacy = client.get("/portali/pst/acquisizione?_legacy=1")
         shortcut = client.get("/polisWeb/acquisizione")
 
     html = response.get_data(as_text=True)
     assert response.status_code == 200
-    assert "Importa pratica da PST" in html
-    assert "/api/portali/pst/acquisizione/search" in html
+    assert "IUSENTRA - React Shell" in html
+    assert "Importa pratica da PST" in Path("frontend/src/studioModuleData.ts").read_text(encoding="utf-8")
+    legacy_html = legacy.get_data(as_text=True)
+    assert legacy.status_code == 200
+    assert "/api/portali/pst/acquisizione/search" in legacy_html
+    assert "IUSENTRA - React Shell" not in legacy_html
     assert shortcut.status_code in {302, 303}
     assert shortcut.headers["Location"].endswith("/portali/pst/acquisizione")
 

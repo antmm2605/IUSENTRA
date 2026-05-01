@@ -94,6 +94,9 @@ def index():
 @legal_intelligence.route("/news", methods=["GET"])
 @_richiedi_login
 def news():
+    if not _richiede_vista_classica():
+        return render_react_shell_response("legal-intelligence/news")
+
     pipeline = get_legal_update_pipeline()
     return render_template(
         "legal_intelligence/news.html",
@@ -128,6 +131,9 @@ def dettaglio_news(slug: str):
 @legal_intelligence.route("/mediazione", methods=["GET"])
 @_richiedi_login
 def registro_mediazione():
+    if not _richiede_vista_classica():
+        return render_react_shell_response("legal-intelligence/mediazione")
+
     return render_template(
         "legal_intelligence/mediazione.html",
         snapshot=_snapshot(),

@@ -10,6 +10,7 @@ from flask import Flask, flash, g, redirect, render_template, request, url_for
 
 from pct.economic_pipeline import build_timesheet_billing_summary, genera_parcella_da_timesheet
 from pct.timesheet import StatoTimesheet
+from web.blueprints.react_shell import render_react_shell_response
 
 
 def register_timesheet_routes(
@@ -23,8 +24,14 @@ def register_timesheet_routes(
 ) -> None:
     """Registra la superficie timesheet in modo indipendente dal resto del core."""
 
+    def _richiede_vista_classica() -> bool:
+        return request.args.get("_legacy") == "1"
+
     @app.route("/timesheet")
     def timesheet_lista():
+        if not _richiede_vista_classica():
+            return render_react_shell_response("timesheet")
+
         gestore = get_timesheet()
         id_cliente = str(request.args.get("id_cliente", "") or "").strip()
         id_fascicolo = str(request.args.get("id_fascicolo", "") or "").strip()

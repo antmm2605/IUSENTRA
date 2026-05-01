@@ -1812,7 +1812,7 @@ def test_audit_log_riconcilia_eventi_storici_con_fascicolo_corrente(tmp_path: Pa
             follow_redirects=False,
         )
         assert login.status_code == 302
-        response = client.get("/audit")
+        response = client.get("/audit?_legacy=1")
 
     html = response.get_data(as_text=True)
 

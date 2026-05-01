@@ -38,10 +38,19 @@
     setFieldValue('pec_imap_port', imapPort);
   }
 
-  function fillSMTP(host, port, tls) {
+  function fillSMTP(host, port, tls, imapHost, imapPort, imapSsl) {
     setFieldValue('smtp_host', host);
     setFieldValue('smtp_port', port);
     setCheckboxValue('smtp_use_tls', tls === '1');
+    if (imapHost !== undefined) {
+      setFieldValue('smtp_imap_host', imapHost);
+    }
+    if (imapPort !== undefined) {
+      setFieldValue('smtp_imap_port', imapPort);
+    }
+    if (imapSsl !== undefined) {
+      setCheckboxValue('smtp_imap_use_ssl', imapSsl === '1');
+    }
   }
 
   function collectValue(id, fallback) {
@@ -358,6 +367,14 @@
         username: collectValue('smtp_username', ''),
         password: collectValue('smtp_password', ''),
         use_tls: document.getElementById('smtp_use_tls')?.checked ?? true,
+      };
+    } else if (tipo === 'smtp-imap') {
+      payload = {
+        imap_host: collectValue('smtp_imap_host', ''),
+        imap_port: parseInt(collectValue('smtp_imap_port', '993'), 10) || 993,
+        username: collectValue('smtp_username', ''),
+        password: collectValue('smtp_password', ''),
+        imap_use_ssl: document.getElementById('smtp_imap_use_ssl')?.checked ?? true,
       };
     } else if (tipo === 'whatsapp') {
       payload = {

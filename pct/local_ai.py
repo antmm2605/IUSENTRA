@@ -62,7 +62,11 @@ def _clean_spaces(value: Any) -> str:
 
 
 def _normalize_api_base_url(value: str) -> str:
-    raw = str(value or "http://127.0.0.1:11434/api").strip().rstrip("/")
+    raw = str(value or "http://127.0.0.1:11434/api/version").strip().rstrip("/")
+    if raw.endswith("/api/version"):
+        return raw[: -len("/version")]
+    if raw.endswith("/version"):
+        return raw[: -len("/version")]
     if raw.endswith("/api"):
         return raw
     return f"{raw}/api"
@@ -85,11 +89,15 @@ def _resolve_runtime_guardrail_int(
 
 def strip_api_suffix(value: str) -> str:
     raw = str(value or "").strip().rstrip("/")
+    if raw.endswith("/api/version"):
+        return raw[: -len("/api/version")]
+    if raw.endswith("/version"):
+        return raw[: -len("/version")]
     return raw[:-4] if raw.endswith("/api") else raw
 
 
 def get_ollama_circuit_breaker(base_url: str | None = None):
-    normalized = _normalize_api_base_url(base_url or "http://127.0.0.1:11434/api")
+    normalized = _normalize_api_base_url(base_url or "http://127.0.0.1:11434/api/version")
     return get_runtime_circuit_breaker(
         f"ollama_runtime:{normalized}",
         component="Runtime AI locale",

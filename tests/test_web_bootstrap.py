@@ -48,6 +48,9 @@ def _write_studio_config(path: Path) -> None:
                 "smtp": {
                     "host": "smtp.office365.com",
                     "port": 587,
+                    "imap_host": "outlook.office365.com",
+                    "imap_port": 993,
+                    "imap_use_ssl": True,
                     "username": "studio.refactor@example.it",
                     "from_address": "studio.refactor@example.it",
                     "from_name": "Studio Refactor",
@@ -59,7 +62,7 @@ def _write_studio_config(path: Path) -> None:
                 },
                 "ai": {
                     "enabled": True,
-                    "base_url": "http://127.0.0.1:11434/api",
+                    "base_url": "http://127.0.0.1:11434/api/version",
                     "auto_bootstrap": True,
                     "chat_model": "gemma3:1b",
                     "embed_model": "embeddinggemma:300m",
@@ -90,6 +93,7 @@ def _cfg_web(tmp_path: Path) -> dict:
         "SCADENZIARIO_DB": str(tmp_path / "scadenziario" / "scadenze.json"),
         "MESSAGGI_DB": str(tmp_path / "messaggi" / "storico.json"),
         "EMAIL_CASELLA_DB": str(tmp_path / "email" / "casella.json"),
+        "EMAIL_ORDINARIA_DB": str(tmp_path / "email" / "ordinaria.json"),
         "SEARCH_INDEX": str(tmp_path / "search" / "index.db"),
         "SOGGETTI_DB": str(tmp_path / "soggetti" / "anagrafica.json"),
         "SOGGETTI_PARTI_DB": str(tmp_path / "soggetti" / "parti.json"),
@@ -423,8 +427,9 @@ def test_impostazioni_pec_espone_controllo_local_signer_e_password_salvata(tmp_p
     assert 'id="pec-local-signer-meta"' in legacy_html
     assert 'data-has-saved-password="1"' in legacy_html
     assert "Testa SMTP" in legacy_html
-    assert "Diagnostica server (non invio reale)" in legacy_html
-    assert "L'invio PEC reale deve passare dal PC locale tramite Local Signer" in legacy_html
+    assert "Diagnostica server (non invio reale)" not in legacy_html
+    assert "L'invio PEC reale deve passare dal PC locale tramite Local Signer" not in legacy_html
+    assert 'class="d-none"' in legacy_html
 
 
 def test_route_domini_estratti_restano_operativi(tmp_path: Path):
@@ -767,7 +772,7 @@ def test_docker_compose_prevede_runtime_ollama_sulla_stessa_macchina():
     assert 'command: ["python", "-m", "pct.ocr_worker"]' in compose
     assert 'profiles: ["ollama-sidecar"]' in compose
     assert "image: ollama/ollama:latest" in compose
-    assert "PCT_LOCAL_AI_BASE_URL: ${PCT_LOCAL_AI_BASE_URL:-http://host.docker.internal:11434/api}" in compose
+    assert "PCT_LOCAL_AI_BASE_URL: ${PCT_LOCAL_AI_BASE_URL:-http://host.docker.internal:11434/api/version}" in compose
     assert "PCT_OCR_QUEUE_DB: /data/search/ocr_jobs.db" in compose
     assert 'PCT_STORAGE_MODE: "SQLITE"' in compose
     assert 'PCT_SQLITE_MODE: "1"' in compose

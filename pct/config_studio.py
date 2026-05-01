@@ -303,6 +303,9 @@ class ConfigFirma:
 class ConfigSMTP:
     host: str = ""
     port: int = 587
+    imap_host: str = ""
+    imap_port: int = 993
+    imap_use_ssl: bool = True
     username: str = ""
     password: str = ""
     from_address: str = ""
@@ -329,7 +332,7 @@ class ConfigScheduler:
 @dataclass
 class ConfigLocalAI:
     enabled: bool = True
-    base_url: str = "http://127.0.0.1:11434/api"
+    base_url: str = "http://127.0.0.1:11434/api/version"
     auto_bootstrap: bool = True
     chat_model: str = ""
     embed_model: str = ""
@@ -462,6 +465,9 @@ class GestioneConfigStudio:
             smtp=ConfigSMTP(
                 host=os.getenv("PCT_SMTP_HOST", ""),
                 port=int(os.getenv("PCT_SMTP_PORT", "587")),
+                imap_host=os.getenv("PCT_SMTP_IMAP_HOST", ""),
+                imap_port=int(os.getenv("PCT_SMTP_IMAP_PORT", "993")),
+                imap_use_ssl=os.getenv("PCT_SMTP_IMAP_USE_SSL", "1").lower() not in {"0", "false", "no"},
                 username=os.getenv("PCT_SMTP_USER", ""),
                 password=os.getenv("PCT_SMTP_PASS", ""),
                 from_address=os.getenv("PCT_SMTP_FROM", ""),
@@ -479,7 +485,7 @@ class GestioneConfigStudio:
             ),
             ai=ConfigLocalAI(
                 enabled=os.getenv("PCT_LOCAL_AI_ENABLED", "1").lower() not in {"0", "false", "no"},
-                base_url=os.getenv("PCT_LOCAL_AI_BASE_URL", "http://127.0.0.1:11434/api"),
+                base_url=os.getenv("PCT_LOCAL_AI_BASE_URL", "http://127.0.0.1:11434/api/version"),
                 auto_bootstrap=os.getenv("PCT_LOCAL_AI_AUTO_BOOTSTRAP", "1").lower() not in {"0", "false", "no"},
                 chat_model=os.getenv("PCT_LOCAL_AI_CHAT_MODEL", ""),
                 embed_model=os.getenv("PCT_LOCAL_AI_EMBED_MODEL", ""),
@@ -775,6 +781,45 @@ def test_smtp_email(cfg: ConfigSMTP) -> Dict[str, Any]:
         return {"ok": True, "messaggio": f"Connessione SMTP email riuscita{_ip_tag}."}
     except Exception as e:
         return {"ok": False, "messaggio": _msg_errore_rete(e, f"Errore SMTP email{_ip_tag}")}
+
+
+def test_smtp_imap(cfg: ConfigSMTP) -> Dict[str, Any]:
+    """Testa la connessione IMAP della casella email ordinaria."""
+    import imaplib
+    import ssl as _ssl
+
+    if not cfg.imap_host:
+        return {
+            "ok": False,
+            "messaggio": (
+                "Host IMAP non configurato. Vai in Impostazioni → Email SMTP "
+                "e inserisci il server di ricezione della casella ordinaria."
+            ),
+        }
+    if not cfg.username:
+        return {
+            "ok": False,
+            "messaggio": "Username email ordinaria non configurato.",
+        }
+    mail = None
+    try:
+        ctx = _ssl.create_default_context()
+        if cfg.imap_use_ssl:
+            mail = imaplib.IMAP4_SSL(cfg.imap_host, cfg.imap_port, ssl_context=ctx)
+        else:
+            mail = imaplib.IMAP4(cfg.imap_host, cfg.imap_port)
+            if hasattr(mail, "starttls"):
+                mail.starttls(ssl_context=ctx)
+        mail.login(cfg.username, cfg.password)
+        return {"ok": True, "messaggio": "Connessione IMAP email ordinaria riuscita."}
+    except Exception as e:
+        return {"ok": False, "messaggio": _msg_errore_rete(e, "Errore IMAP email ordinaria")}
+    finally:
+        try:
+            if mail is not None:
+                mail.logout()
+        except Exception:
+            pass
 
 
 def test_whatsapp(cfg: ConfigWhatsApp) -> Dict[str, Any]:

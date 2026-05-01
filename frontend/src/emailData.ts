@@ -117,6 +117,28 @@ export const emptyEmailPecPage: EmailPecPageData = {
   },
 }
 
+export const emptyEmailOrdinariaPage: EmailPecPageData = {
+  source: 'vuoto',
+  generatedAt: '',
+  contracts: { mock_fallback: false, read_only: true },
+  summary: emptySummary,
+  items: [],
+  facets: {
+    folders: emptyEmailPecPage.facets.folders,
+    statuses: emptyEmailPecPage.facets.statuses,
+    pctStatuses: [{ value: '', label: 'Nessun esito telematico', count: 0 }],
+  },
+  actions: {
+    compose: '/email/scrivi',
+    settings: '/impostazioni?tab=smtp',
+    sync: '/email-ordinaria/sincronizza',
+    autoEsiti: '',
+    operationalInbox: '/email-ordinaria/',
+    localPecTest: '/impostazioni?tab=smtp',
+    lex: '/lex?context=email-ordinaria',
+  },
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value && typeof value === 'object' && !Array.isArray(value))
 }
@@ -149,7 +171,7 @@ function normaliseTone(value: unknown, item?: Record<string, unknown>): Tone {
   return 'neutral'
 }
 
-function rowFromPayload(value: unknown, index: number): EmailPecRow {
+function rowFromPayload(value: unknown, index: number, fallbackBasePath = '/email'): EmailPecRow {
   const item = isRecord(value) ? value : {}
   const id = text(item.id, `email-${index}`)
   const folder = normaliseFolder(item.folder ?? item.cartella)
@@ -171,14 +193,14 @@ function rowFromPayload(value: unknown, index: number): EmailPecRow {
     pctStatus,
     attachmentCount: number(item.attachmentCount ?? item.attachment_count ?? item.allegati_count),
     origin: text(item.origin ?? item.origine),
-    detailHref: text(item.detailHref ?? item.detail_href, `/email/messaggio/${encodeURIComponent(id)}`),
-    operationalHref: text(item.operationalHref ?? item.operational_href, `/email/?cartella=${folder}&id=${encodeURIComponent(id)}`),
+    detailHref: text(item.detailHref ?? item.detail_href, `${fallbackBasePath}/messaggio/${encodeURIComponent(id)}`),
+    operationalHref: text(item.operationalHref ?? item.operational_href, `${fallbackBasePath}/?cartella=${folder}&id=${encodeURIComponent(id)}`),
     replyHref: text(item.replyHref ?? item.reply_href, `/email/scrivi?oggetto=${encodeURIComponent(`Re: ${text(item.subject ?? item.oggetto)}`)}`),
-    trashHref: text(item.trashHref ?? item.trash_href, `/email/${encodeURIComponent(id)}/cestino`),
-    restoreHref: text(item.restoreHref ?? item.restore_href, `/email/${encodeURIComponent(id)}/ripristina`),
-    deleteHref: text(item.deleteHref ?? item.delete_href, `/email/${encodeURIComponent(id)}/elimina`),
-    markReadHref: text(item.markReadHref ?? item.mark_read_href, `/email/${encodeURIComponent(id)}/segna-letta`),
-    markUnreadHref: text(item.markUnreadHref ?? item.mark_unread_href, `/email/${encodeURIComponent(id)}/segna-non-letta`),
+    trashHref: text(item.trashHref ?? item.trash_href, `${fallbackBasePath}/${encodeURIComponent(id)}/cestino`),
+    restoreHref: text(item.restoreHref ?? item.restore_href, `${fallbackBasePath}/${encodeURIComponent(id)}/ripristina`),
+    deleteHref: text(item.deleteHref ?? item.delete_href, `${fallbackBasePath}/${encodeURIComponent(id)}/elimina`),
+    markReadHref: text(item.markReadHref ?? item.mark_read_href, `${fallbackBasePath}/${encodeURIComponent(id)}/segna-letta`),
+    markUnreadHref: text(item.markUnreadHref ?? item.mark_unread_href, `${fallbackBasePath}/${encodeURIComponent(id)}/segna-non-letta`),
     tone: normaliseTone(item.tone, item),
   }
 }
@@ -211,12 +233,13 @@ function normaliseFacet<T extends string>(value: unknown, fallback: Array<{ valu
   }).filter((item) => item.value && item.label)
 }
 
-function normalisePayload(payload: unknown): EmailPecPageData {
-  if (!isRecord(payload)) return emptyEmailPecPage
+function normalisePayload(payload: unknown, fallback = emptyEmailPecPage): EmailPecPageData {
+  if (!isRecord(payload)) return fallback
   const rawItems = Array.isArray(payload.items) ? payload.items : Array.isArray(payload.emails) ? payload.emails : []
-  const items = rawItems.map(rowFromPayload)
-  const facets = isRecord(payload.facets) ? payload.facets : {}
   const actions = isRecord(payload.actions) ? payload.actions : {}
+  const fallbackBasePath = text(actions.operationalInbox ?? actions.operational_inbox, fallback.actions.operationalInbox).replace(/\/+$/, '') || '/email'
+  const items = rawItems.map((item, index) => rowFromPayload(item, index, fallbackBasePath))
+  const facets = isRecord(payload.facets) ? payload.facets : {}
   return {
     source: text(payload.source, 'repository_reali'),
     generatedAt: text(payload.generatedAt ?? payload.generated_at),
@@ -229,18 +252,18 @@ function normalisePayload(payload: unknown): EmailPecPageData {
     summary: summaryFromPayload(payload, items),
     items,
     facets: {
-      folders: normaliseFacet<EmailFolder>(facets.folders, emptyEmailPecPage.facets.folders),
-      statuses: normaliseFacet<EmailStatus>(facets.statuses, emptyEmailPecPage.facets.statuses),
-      pctStatuses: normaliseFacet<string>(facets.pctStatuses ?? facets.pct_statuses, emptyEmailPecPage.facets.pctStatuses),
+      folders: normaliseFacet<EmailFolder>(facets.folders, fallback.facets.folders),
+      statuses: normaliseFacet<EmailStatus>(facets.statuses, fallback.facets.statuses),
+      pctStatuses: normaliseFacet<string>(facets.pctStatuses ?? facets.pct_statuses, fallback.facets.pctStatuses),
     },
     actions: {
-      compose: text(actions.compose, emptyEmailPecPage.actions.compose),
-      settings: text(actions.settings, emptyEmailPecPage.actions.settings),
-      sync: text(actions.sync, emptyEmailPecPage.actions.sync),
-      autoEsiti: text(actions.autoEsiti ?? actions.auto_esiti, emptyEmailPecPage.actions.autoEsiti),
-      operationalInbox: text(actions.operationalInbox ?? actions.operational_inbox, emptyEmailPecPage.actions.operationalInbox),
-      localPecTest: text(actions.localPecTest ?? actions.local_pec_test, emptyEmailPecPage.actions.localPecTest),
-      lex: text(actions.lex, emptyEmailPecPage.actions.lex),
+      compose: text(actions.compose, fallback.actions.compose),
+      settings: text(actions.settings, fallback.actions.settings),
+      sync: text(actions.sync, fallback.actions.sync),
+      autoEsiti: text(actions.autoEsiti ?? actions.auto_esiti, fallback.actions.autoEsiti),
+      operationalInbox: text(actions.operationalInbox ?? actions.operational_inbox, fallback.actions.operationalInbox),
+      localPecTest: text(actions.localPecTest ?? actions.local_pec_test, fallback.actions.localPecTest),
+      lex: text(actions.lex, fallback.actions.lex),
     },
   }
 }
@@ -255,7 +278,7 @@ export function folderParam(value: EmailFolder): string {
   return value
 }
 
-export async function getEmailPecPage(params: EmailPecParams = {}): Promise<EmailPecPageData> {
+async function fetchEmailPage(endpoint: string, fallback: EmailPecPageData, params: EmailPecParams = {}): Promise<EmailPecPageData> {
   const query = new URLSearchParams()
   if (params.folder) query.set('cartella', folderParam(params.folder))
   if (params.q?.trim()) query.set('q', params.q.trim())
@@ -265,11 +288,19 @@ export async function getEmailPecPage(params: EmailPecParams = {}): Promise<Emai
   if (params.statoPct) query.set('stato_pct', params.statoPct)
   query.set('_ts', String(Date.now()))
   try {
-    const url = `/api/v1/ui/email${query.toString() ? `?${query.toString()}` : ''}`
+    const url = `${endpoint}${query.toString() ? `?${query.toString()}` : ''}`
     const response = await fetch(url, { credentials: 'same-origin', cache: 'no-store', headers: { Accept: 'application/json' } })
-    if (!response.ok) return emptyEmailPecPage
-    return normalisePayload(await response.json())
+    if (!response.ok) return fallback
+    return normalisePayload(await response.json(), fallback)
   } catch {
-    return emptyEmailPecPage
+    return fallback
   }
+}
+
+export async function getEmailPecPage(params: EmailPecParams = {}): Promise<EmailPecPageData> {
+  return fetchEmailPage('/api/v1/ui/email', emptyEmailPecPage, params)
+}
+
+export async function getEmailOrdinariaPage(params: EmailPecParams = {}): Promise<EmailPecPageData> {
+  return fetchEmailPage('/api/v1/ui/email-ordinaria', emptyEmailOrdinariaPage, params)
 }

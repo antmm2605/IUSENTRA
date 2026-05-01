@@ -307,6 +307,10 @@ def _email_manager() -> GestioneEmailRicevute:
     return GestioneEmailRicevute(_cfg_value("EMAIL_CASELLA_DB", "./email/casella.json"))
 
 
+def _ordinary_email_manager() -> GestioneEmailRicevute:
+    return GestioneEmailRicevute(_cfg_value("EMAIL_ORDINARIA_DB", "./email/ordinaria.json"))
+
+
 def _messaggi_manager() -> GestioneMessaggi:
     return GestioneMessaggi(
         ConfigMessaggistica(studio_nome=studio_nome()),
@@ -331,16 +335,22 @@ def _messaggi_tutti() -> list[Messaggio]:
 
 
 def _email_rows(limit: int = 5) -> tuple[list[dict[str, Any]], list[dict[str, Any]], int]:
-    emails = _safe("email", lambda: _email_manager().tutte(cartella=CartellaEmail.INBOX), [])
-    emails = sorted(
-        emails,
+    pec_emails = _safe("pec", lambda: _email_manager().tutte(cartella=CartellaEmail.INBOX), [])
+    ordinary_emails = _safe("email_ordinaria", lambda: _ordinary_email_manager().tutte(cartella=CartellaEmail.INBOX), [])
+    pec_emails = sorted(
+        pec_emails,
+        key=lambda email: _parse_datetime(getattr(email, "timestamp", "")) or datetime.min,
+        reverse=True,
+    )
+    ordinary_emails = sorted(
+        ordinary_emails,
         key=lambda email: _parse_datetime(getattr(email, "timestamp", "")) or datetime.min,
         reverse=True,
     )
     pec_rows: list[dict[str, Any]] = []
     mail_rows: list[dict[str, Any]] = []
-    pec_unread = sum(1 for email in emails if getattr(email, "stato", "") == StatoEmail.NON_LETTA)
-    for email in emails:
+    pec_unread = sum(1 for email in pec_emails if getattr(email, "stato", "") == StatoEmail.NON_LETTA)
+    for email in pec_emails:
         unread = getattr(email, "stato", "") == StatoEmail.NON_LETTA
         title = getattr(email, "mittente_nome", "") or getattr(email, "mittente", "") or "Mittente non indicato"
         subtitle = getattr(email, "oggetto", "") or getattr(email, "anteprima", "") or "Email senza oggetto"
@@ -354,8 +364,22 @@ def _email_rows(limit: int = 5) -> tuple[list[dict[str, Any]], list[dict[str, An
         )
         if len(pec_rows) < limit:
             pec_rows.append(row)
-        # La sezione "Email recenti" e' riservata alla futura posta ordinaria:
-        # non pubblichiamo PEC duplicate in quel riquadro.
+    for email in ordinary_emails:
+        unread = getattr(email, "stato", "") == StatoEmail.NON_LETTA
+        title = getattr(email, "mittente_nome", "") or getattr(email, "mittente", "") or "Mittente non indicato"
+        subtitle = getattr(email, "oggetto", "") or getattr(email, "anteprima", "") or "Email senza oggetto"
+        if len(mail_rows) >= limit:
+            break
+        mail_rows.append(
+            _row(
+                getattr(email, "id", ""),
+                title,
+                subtitle,
+                time=_format_time(getattr(email, "timestamp", "") or getattr(email, "data", "")),
+                unread=unread,
+                href="/email-ordinaria/",
+            )
+        )
     return pec_rows, mail_rows, pec_unread
 
 
@@ -946,12 +970,48 @@ def email_react_list():
     response = jsonify(build_react_email_payload(
         db_path=_cfg_value("EMAIL_CASELLA_DB", "./email/casella.json"),
         messaggi_db=_cfg_value("MESSAGGI_DB", "./messaggi/storico.json"),
+        base_path="/email",
+        compose_path="/email/scrivi",
+        settings_path="/impostazioni?tab=pec",
+        sync_path="/email/sincronizza",
+        auto_esiti_path="/email/auto-esiti",
+        local_test_path="/impostazioni?tab=pec",
+        lex_context="email-pec",
+        include_telematic=True,
         folder=request.args.get("cartella", "INBOX"),
         query=request.args.get("q", "").strip(),
         stato=request.args.get("stato", "").strip().upper(),
         solo_pst=request.args.get("pst") == "1",
         con_allegati=request.args.get("con_allegati") == "1",
         stato_pct=request.args.get("stato_pct", "").strip().upper(),
+        origine=request.args.get("origine", "").strip().upper(),
+        data_da=request.args.get("data_da", "").strip(),
+        data_a=request.args.get("data_a", "").strip(),
+    ))
+    response.headers["Cache-Control"] = "no-store, max-age=0"
+    return response
+
+
+@api_v1_react.get("/email-ordinaria")
+@_richiedi_auth
+def email_ordinaria_react_list():
+    response = jsonify(build_react_email_payload(
+        db_path=_cfg_value("EMAIL_ORDINARIA_DB", "./email/ordinaria.json"),
+        messaggi_db=_cfg_value("MESSAGGI_DB", "./messaggi/storico.json"),
+        base_path="/email-ordinaria",
+        compose_path="/email/scrivi",
+        settings_path="/impostazioni?tab=smtp",
+        sync_path="/email-ordinaria/sincronizza",
+        auto_esiti_path="",
+        local_test_path="/impostazioni?tab=smtp",
+        lex_context="email-ordinaria",
+        include_telematic=False,
+        folder=request.args.get("cartella", "INBOX"),
+        query=request.args.get("q", "").strip(),
+        stato=request.args.get("stato", "").strip().upper(),
+        solo_pst=False,
+        con_allegati=request.args.get("con_allegati") == "1",
+        stato_pct="",
         origine=request.args.get("origine", "").strip().upper(),
         data_da=request.args.get("data_da", "").strip(),
         data_a=request.args.get("data_a", "").strip(),
@@ -1299,6 +1359,7 @@ def _dashboard_cache_key() -> str:
     tenant = str(g.get("tenant_slug", "") or g.get("auth_tenant_slug", "") or "studio")
     data_paths = getattr(g, "data_paths", {}) or {}
     email_db = str(data_paths.get("EMAIL_CASELLA_DB") or current_app.config.get("EMAIL_CASELLA_DB", ""))
+    ordinary_email_db = str(data_paths.get("EMAIL_ORDINARIA_DB") or current_app.config.get("EMAIL_ORDINARIA_DB", ""))
     email_stamp = ""
     if email_db:
         try:
@@ -1306,7 +1367,14 @@ def _dashboard_cache_key() -> str:
             email_stamp = f"{stat.st_mtime_ns}:{stat.st_size}"
         except OSError:
             email_stamp = "missing"
-    return "|".join([APP_VERSION, tenant, user_id, email_db, email_stamp])
+    ordinary_email_stamp = ""
+    if ordinary_email_db:
+        try:
+            stat = Path(ordinary_email_db).stat()
+            ordinary_email_stamp = f"{stat.st_mtime_ns}:{stat.st_size}"
+        except OSError:
+            ordinary_email_stamp = "missing"
+    return "|".join([APP_VERSION, tenant, user_id, email_db, email_stamp, ordinary_email_db, ordinary_email_stamp])
 
 
 def _build_dashboard_payload() -> dict[str, Any]:
@@ -1371,7 +1439,8 @@ def _build_dashboard_payload() -> dict[str, Any]:
         "contracts": {
             "empty_sections_are_real_empty_state": True,
             "mock_fallback": False,
-            "ordinary_email_recent_disabled": True,
+            "ordinary_email_recent_enabled": True,
+            "pec_and_ordinary_email_separated": True,
         },
     }
 
@@ -1415,7 +1484,8 @@ def _dashboard_error_payload() -> dict[str, Any]:
         "contracts": {
             "empty_sections_are_real_empty_state": True,
             "mock_fallback": False,
-            "ordinary_email_recent_disabled": True,
+            "ordinary_email_recent_enabled": True,
+            "pec_and_ordinary_email_separated": True,
         },
         "warning": "Dati non disponibili. Resta disponibile il modulo operativo originale.",
     }

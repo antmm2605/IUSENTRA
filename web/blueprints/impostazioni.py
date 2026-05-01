@@ -135,6 +135,9 @@ def _applica_ad_app(cfg):
     # SMTP
     app.config["SMTP_HOST"]      = cfg.smtp.host
     app.config["SMTP_PORT"]      = cfg.smtp.port
+    app.config["SMTP_IMAP_HOST"] = getattr(cfg.smtp, "imap_host", "")
+    app.config["SMTP_IMAP_PORT"] = getattr(cfg.smtp, "imap_port", 993)
+    app.config["SMTP_IMAP_USE_SSL"] = getattr(cfg.smtp, "imap_use_ssl", True)
     app.config["SMTP_USER"]      = cfg.smtp.username
     app.config["SMTP_PASS"]      = cfg.smtp.password
     app.config["SMTP_FROM"]      = cfg.smtp.from_address
@@ -300,6 +303,9 @@ def index():
                 cfg.smtp = ConfigSMTP(
                     host=f.get("smtp_host", "").strip(),
                     port=int(f.get("smtp_port", 587)),
+                    imap_host=f.get("smtp_imap_host", "").strip(),
+                    imap_port=int(f.get("smtp_imap_port", 993)),
+                    imap_use_ssl=bool(f.get("smtp_imap_use_ssl")),
                     username=f.get("smtp_username", "").strip(),
                     password=pwd if pwd else cfg.smtp.password,
                     from_address=f.get("smtp_from_address", "").strip(),
@@ -324,7 +330,7 @@ def index():
             elif tab == "ai":
                 cfg.ai = ConfigLocalAI(
                     enabled=bool(f.get("ai_enabled")),
-                    base_url=f.get("ai_base_url", "http://127.0.0.1:11434/api").strip(),
+                    base_url=f.get("ai_base_url", "http://127.0.0.1:11434/api/version").strip(),
                     auto_bootstrap=bool(f.get("ai_auto_bootstrap")),
                     chat_model=f.get("ai_chat_model", "").strip(),
                     embed_model=f.get("ai_embed_model", "").strip(),
@@ -438,6 +444,28 @@ def test_smtp():
         from_address=cfg_smtp.from_address,
         from_name=cfg_smtp.from_name,
         use_tls=data.get("use_tls", cfg_smtp.use_tls),
+    )
+    return jsonify(_test(smtp))
+
+
+@impostazioni.route("/impostazioni/test/smtp-imap", methods=["POST"])
+@_richiedi_login
+def test_smtp_imap():
+    from pct.config_studio import ConfigSMTP, test_smtp_imap as _test
+    data = request.get_json(force=True) or {}
+    gs = _get_gestore()
+    cfg_smtp = gs.config.smtp
+    smtp = ConfigSMTP(
+        host=cfg_smtp.host,
+        port=cfg_smtp.port,
+        imap_host=data.get("imap_host") or getattr(cfg_smtp, "imap_host", ""),
+        imap_port=int(data.get("imap_port") or getattr(cfg_smtp, "imap_port", 993)),
+        imap_use_ssl=data.get("imap_use_ssl", getattr(cfg_smtp, "imap_use_ssl", True)),
+        username=data.get("username") or cfg_smtp.username,
+        password=data.get("password") or cfg_smtp.password,
+        from_address=cfg_smtp.from_address,
+        from_name=cfg_smtp.from_name,
+        use_tls=cfg_smtp.use_tls,
     )
     return jsonify(_test(smtp))
 

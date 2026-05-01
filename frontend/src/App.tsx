@@ -64,6 +64,7 @@ const CartellaClientePage = lazy(() => import('./components/CartellaClientePage'
 const NuovoClientePage = lazy(() => import('./components/NuovoClientePage').then((module) => ({ default: module.NuovoClientePage })))
 const SoggettiPage = lazy(() => import('./components/SoggettiPage').then((module) => ({ default: module.SoggettiPage })))
 const EmailPecPage = lazy(() => import('./components/EmailPecPage').then((module) => ({ default: module.EmailPecPage })))
+const EmailOrdinariaPage = lazy(() => import('./components/EmailPecPage').then((module) => ({ default: module.EmailOrdinariaPage })))
 const MessaggiPage = lazy(() => import('./components/MessaggiPage').then((module) => ({ default: module.MessaggiPage })))
 const NuovoMessaggioPage = lazy(() => import('./components/MessaggiPage').then((module) => ({ default: module.NuovoMessaggioPage })))
 const ScadenziarioPage = lazy(() => import('./components/ScadenziarioPage').then((module) => ({ default: module.ScadenziarioPage })))
@@ -188,6 +189,7 @@ const navSections: NavSection[] = [
     icon: MessageCircle,
     items: [
       { label: 'Email PEC', icon: Mail, href: '/email/', badge: 'PEC' },
+      { label: 'Email ordinaria', icon: Mail, href: '/email-ordinaria/', badge: 'SMTP' },
       { label: 'Messaggi', icon: MessageCircle, href: '/messaggi' },
       { label: 'Nuovo SMS/WA', icon: Send, href: '/messaggi/nuovo' }
     ]
@@ -410,15 +412,15 @@ function resolveLexPageContext(routePath: string): GlobalLexConfig {
       secondaryLabel: 'Clienti',
     }
   }
-  if (route === '/email' || route.startsWith('/messaggi')) {
+  if (route === '/email' || route === '/email-ordinaria' || route.startsWith('/messaggi')) {
     return {
       context: 'comunicazioni',
       title: 'Lex AI comunicazioni',
-      body: 'Legge PEC, messaggi, mittenti, allegati ed esiti per aiutarti a collegare comunicazioni e fascicoli.',
+      body: 'Legge PEC, email ordinarie, messaggi, mittenti, allegati ed esiti per aiutarti a collegare comunicazioni e fascicoli.',
       primaryHref: '/lex?context=comunicazioni',
-      primaryLabel: 'Apri Lex PEC',
-      secondaryHref: '/email/',
-      secondaryLabel: 'Casella PEC',
+      primaryLabel: 'Apri Lex comunicazioni',
+      secondaryHref: route === '/email-ordinaria' ? '/email-ordinaria/' : '/email/',
+      secondaryLabel: route === '/email-ordinaria' ? 'Email ordinaria' : 'Casella PEC',
     }
   }
   if (route.startsWith('/scadenziario')) {
@@ -486,7 +488,7 @@ function routePublishesLexContext(routePath: string): boolean {
   if (route === '/agenda' || (route.startsWith('/agenda/') && !isNewAppointment && !isAppointmentEdit)) return true
   if (route.startsWith('/fascicoli')) return true
   if (route.startsWith('/clienti') || route.startsWith('/soggetti')) return true
-  if (route === '/email' || route.startsWith('/messaggi')) return true
+  if (route === '/email' || route === '/email-ordinaria' || route.startsWith('/messaggi')) return true
   if (route.startsWith('/scadenziario') && !isNewDeadline && !isDeadlineEdit) return true
   if (route.startsWith('/wizard-pro')) return true
   return route === '/telematico' || route === '/telematici' || isTelematicoSurfaceRoute(route)
@@ -659,7 +661,7 @@ function DashboardPage({ data, loading }:{data:DashboardData; loading:boolean}) 
       <section className="iu-metrics">{data.metrics.map(m=><KpiCard item={m} icon={metricIcon[m.tone] || AlertTriangle} key={m.id}/>)}</section>
       <section className="iu-grid">
         <div className="span3"><Panel title="Ultime PEC ricevute" icon={<Mail size={17}/>} count={data.pec.length}><List rows={data.pec} href="/email/"/><a className="iu-link" href="/email/">Vai alla casella PEC -&gt;</a></Panel></div>
-        <div className="span3"><Panel title="Email recenti" icon={<Mail size={17}/>} count={0}><Empty>Nessuna email ordinaria da mostrare.</Empty></Panel></div>
+        <div className="span3"><Panel title="Email recenti" icon={<Mail size={17}/>} count={data.emails.length}><List rows={data.emails} href="/email-ordinaria/"/><a className="iu-link" href="/email-ordinaria/">Vai alle email ordinarie -&gt;</a></Panel></div>
         <div className="span3"><Panel title="Messaggi recenti dai clienti" icon={<MessageCircle size={17}/>} count={data.messages.length}><List rows={data.messages} avatar href="/messaggi"/><a className="iu-link" href="/messaggi">Vai ai messaggi -&gt;</a></Panel></div>
         <div className="span3"><Agenda data={data}/></div>
         <div className="span3"><Completion data={data}/></div>
@@ -698,6 +700,7 @@ export default function App() {
   const isClientiPage = !isNewClientPage && !isClientFolderPage && routeKey === '/clienti'
   const isSoggettiPage = !isNewSubjectPage && !isSubjectEditPage && (routeKey === '/soggetti' || routeKey.startsWith('/soggetti/'))
   const isEmailPage = routeKey === '/email' || routeKey.startsWith('/email/')
+  const isEmailOrdinariaPage = routeKey === '/email-ordinaria' || routeKey.startsWith('/email-ordinaria/')
   const isNewMessagePage = routeKey === '/messaggi/nuovo'
   const isMessagesPage = !isNewMessagePage && (routeKey === '/messaggi' || routeKey.startsWith('/messaggi/'))
   const isNewDeadlinePage = routeKey === '/scadenziario/nuova'
@@ -707,8 +710,8 @@ export default function App() {
   const isTelematicoPage = routeKey === '/telematico' || routeKey === '/telematici' || routeKey === '/servizi-telematici'
   const isTelematicoSurfacePage = isTelematicoSurfaceRoute(routeKey)
   const isStudioModulePage = isStudioModuleRoute(routeKey)
-  const isDashboardPage = !isSearchPage && !isAgendaPage && !isNewAppointmentPage && !isAppointmentEditPage && !isRegiaPage && !isFascicoliPage && !isClientiPage && !isClientFolderPage && !isClientEditPage && !isNewClientPage && !isSoggettiPage && !isNewSubjectPage && !isSubjectEditPage && !isEmailPage && !isMessagesPage && !isNewMessagePage && !isScadenziarioPage && !isNewDeadlinePage && !isDeadlineEditPage && !isWizardProPage && !isTelematicoPage && !isTelematicoSurfacePage && !isStudioModulePage
-  const isStandalonePage = isSearchPage || isAgendaPage || isNewAppointmentPage || isAppointmentEditPage || isFascicoliPage || isClientiPage || isClientFolderPage || isClientEditPage || isNewClientPage || isSoggettiPage || isNewSubjectPage || isSubjectEditPage || isEmailPage || isMessagesPage || isNewMessagePage || isScadenziarioPage || isNewDeadlinePage || isDeadlineEditPage || isWizardProPage || isTelematicoPage || isTelematicoSurfacePage || isStudioModulePage
+  const isDashboardPage = !isSearchPage && !isAgendaPage && !isNewAppointmentPage && !isAppointmentEditPage && !isRegiaPage && !isFascicoliPage && !isClientiPage && !isClientFolderPage && !isClientEditPage && !isNewClientPage && !isSoggettiPage && !isNewSubjectPage && !isSubjectEditPage && !isEmailPage && !isEmailOrdinariaPage && !isMessagesPage && !isNewMessagePage && !isScadenziarioPage && !isNewDeadlinePage && !isDeadlineEditPage && !isWizardProPage && !isTelematicoPage && !isTelematicoSurfacePage && !isStudioModulePage
+  const isStandalonePage = isSearchPage || isAgendaPage || isNewAppointmentPage || isAppointmentEditPage || isFascicoliPage || isClientiPage || isClientFolderPage || isClientEditPage || isNewClientPage || isSoggettiPage || isNewSubjectPage || isSubjectEditPage || isEmailPage || isEmailOrdinariaPage || isMessagesPage || isNewMessagePage || isScadenziarioPage || isNewDeadlinePage || isDeadlineEditPage || isWizardProPage || isTelematicoPage || isTelematicoSurfacePage || isStudioModulePage
   const initialSearchQuery = new URLSearchParams(window.location.search).get('q') ?? ''
   const lexConfig = resolveLexPageContext(routeKey)
   const needsShellLexContext = !routePublishesLexContext(routeKey)
@@ -726,7 +729,7 @@ export default function App() {
         <div className="iu-main">
           <Topbar onOpenMenu={()=>setMobileMenuOpen(true)}/>
           <Suspense fallback={<PageLoading/>}>
-            {isSearchPage?<RicercaStudioPage initialQuery={initialSearchQuery}/>:isNewAppointmentPage||isAppointmentEditPage?<NuovoAppuntamentoPage/>:isAgendaPage?<AgendaPage/>:isRegiaPage?<RegiaOperativaPage data={data} loading={loading}/>:isFascicoliPage?<FascicoliPage/>:isNewClientPage||isNewSubjectPage||isClientEditPage||isSubjectEditPage?<NuovoClientePage/>:isClientFolderPage?<CartellaClientePage/>:isClientiPage?<AnagraficaClientiPage/>:isSoggettiPage?<SoggettiPage/>:isEmailPage?<EmailPecPage/>:isNewMessagePage?<NuovoMessaggioPage/>:isMessagesPage?<MessaggiPage/>:isNewDeadlinePage||isDeadlineEditPage?<NuovaScadenzaPage/>:isScadenziarioPage?<ScadenziarioPage/>:isWizardProPage?<WizardProPage/>:isTelematicoPage?<TelematicoPage/>:isTelematicoSurfacePage?<TelematicoSurfacePage/>:isStudioModulePage?<StudioModulePage/>:<DashboardPage data={data} loading={loading}/>}
+            {isSearchPage?<RicercaStudioPage initialQuery={initialSearchQuery}/>:isNewAppointmentPage||isAppointmentEditPage?<NuovoAppuntamentoPage/>:isAgendaPage?<AgendaPage/>:isRegiaPage?<RegiaOperativaPage data={data} loading={loading}/>:isFascicoliPage?<FascicoliPage/>:isNewClientPage||isNewSubjectPage||isClientEditPage||isSubjectEditPage?<NuovoClientePage/>:isClientFolderPage?<CartellaClientePage/>:isClientiPage?<AnagraficaClientiPage/>:isSoggettiPage?<SoggettiPage/>:isEmailOrdinariaPage?<EmailOrdinariaPage/>:isEmailPage?<EmailPecPage/>:isNewMessagePage?<NuovoMessaggioPage/>:isMessagesPage?<MessaggiPage/>:isNewDeadlinePage||isDeadlineEditPage?<NuovaScadenzaPage/>:isScadenziarioPage?<ScadenziarioPage/>:isWizardProPage?<WizardProPage/>:isTelematicoPage?<TelematicoPage/>:isTelematicoSurfacePage?<TelematicoSurfacePage/>:isStudioModulePage?<StudioModulePage/>:<DashboardPage data={data} loading={loading}/>}
           </Suspense>
         </div>
         <nav className={`iu-mobile ${mobileNavCollapsed?'is-collapsed':''}`} aria-label="Navigazione mobile">
@@ -735,7 +738,7 @@ export default function App() {
             <a className={isSearchPage?'active':''} href="/global-search"><Search size={18}/>Ricerca</a>
             <a className={isFascicoliPage?'active':''} href="/fascicoli"><BriefcaseBusiness size={18}/>Fascicoli</a>
             <a className={isClientiPage||isClientFolderPage||isClientEditPage||isNewClientPage||isSoggettiPage||isNewSubjectPage||isSubjectEditPage?'active':''} href="/clienti"><UsersRound size={18}/>Clienti</a>
-            <a className={isEmailPage||isMessagesPage||isNewMessagePage?'active':''} href="/email/"><Mail size={18}/>PEC</a>
+            <a className={isEmailPage||isEmailOrdinariaPage||isMessagesPage||isNewMessagePage?'active':''} href="/email/"><Mail size={18}/>Posta</a>
             <a className={isAgendaPage||isNewAppointmentPage||isAppointmentEditPage||isScadenziarioPage||isNewDeadlinePage||isDeadlineEditPage||isWizardProPage?'active':''} href="/agenda"><CalendarDays size={18}/>Agenda</a>
             <a className={isRegiaPage?'active':''} href="/workspace-intelligente"><Sparkles size={18}/>Regia</a>
           </div>

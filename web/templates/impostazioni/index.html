@@ -310,32 +310,21 @@
                     onclick="testPecSmtpLocale('btn-test-smtp-locale','res-test-smtp-locale')">
               <i class="bi bi-pc-display-horizontal me-1"></i>Testa SMTP
             </button>
-            <button type="button" class="btn btn-outline-secondary btn-sm" id="btn-test-smtp"
-                    onclick="testConn('pec-smtp','btn-test-smtp','res-test-smtp')">
-              <i class="bi bi-cloud-slash me-1"></i>Diagnostica server (non invio reale)
-            </button>
             <button type="button" class="btn btn-outline-primary btn-sm" id="btn-test-imap"
                     onclick="testConn('pec-imap','btn-test-imap','res-test-imap')">
               <i class="bi bi-inbox-fill me-1"></i>Testa IMAP
             </button>
-            <span id="res-test-smtp" class="test-result"></span>
             <span id="res-test-smtp-locale" class="test-result"></span>
             <span id="res-test-imap" class="test-result"></span>
           </div>
-          <div class="alert alert-light border small mt-3 mb-0"
+          <div class="d-none"
                id="pec-local-signer-meta"
                data-local-signer-base="http://127.0.0.1:27272"
                data-latest-version="{{ local_signer.version }}"
                data-has-saved-password="{{ '1' if cfg.pec.password else '0' }}"
                data-windows-url="{{ url_for('polis_local_signer_setup_windows') }}"
                data-macos-url="{{ url_for('polis_local_signer_setup_macos') }}"
-               data-linux-url="{{ url_for('polis_local_signer_setup_linux') }}">
-            <i class="bi bi-pc-display-horizontal text-success me-1"></i>
-            L'invio PEC reale deve passare dal PC locale tramite Local Signer: il test locale avvia
-            automaticamente il servizio se non è già attivo, verifica la versione {{ local_signer.version }}
-            e usa la password digitata oppure quella già salvata nella configurazione PEC dello studio. La diagnostica server serve solo a capire
-            eventuali blocchi del provider sul cloud e non è il canale operativo di invio PEC.
-          </div>
+               data-linux-url="{{ url_for('polis_local_signer_setup_linux') }}"></div>
         </div>
       </div>
 
@@ -687,16 +676,16 @@
     {# Provider quick-select #}
     <div class="row g-2 mb-4">
       {% set providers_smtp = [
-        ('Gmail', 'smtp.gmail.com', '587', '1'),
-        ('Outlook/Office365', 'smtp.office365.com', '587', '1'),
-        ('Aruba', 'smtps.aruba.it', '465', '1'),
-        ('IONOS', 'smtp.ionos.it', '587', '1'),
+        ('Gmail', 'smtp.gmail.com', '587', '1', 'imap.gmail.com', '993', '1'),
+        ('Outlook/Office365', 'smtp.office365.com', '587', '1', 'outlook.office365.com', '993', '1'),
+        ('Aruba', 'smtps.aruba.it', '465', '1', 'imaps.aruba.it', '993', '1'),
+        ('IONOS', 'smtp.ionos.it', '587', '1', 'imap.ionos.it', '993', '1'),
       ] %}
-      {% for nome, host, porta, tls in providers_smtp %}
+      {% for nome, host, porta, tls, imap_host, imap_port, imap_ssl in providers_smtp %}
       <div class="col-6 col-md-auto">
         <div class="card h-100 border"
              style="border-radius:12px; cursor:pointer;"
-             onclick="fillSMTP('{{ host }}','{{ porta }}','{{ tls }}')"
+             onclick="fillSMTP('{{ host }}','{{ porta }}','{{ tls }}','{{ imap_host }}','{{ imap_port }}','{{ imap_ssl }}')"
              title="Precompila parametri {{ nome }}">
           <div class="card-body p-2 text-center">
             <div class="fw-semibold" style="font-size:.8rem;">{{ nome }}</div>
@@ -732,6 +721,28 @@
                       data-bs-title="STARTTLS"
                       data-bs-content="Abilita se il provider usa STARTTLS su porta 587 (Gmail, Outlook, IONOS). Disabilita se usa SSL diretto su porta 465 (Aruba). Se la connessione di test fallisce, prova a invertire questa impostazione.">?</button>
             </label>
+          </div>
+        </div>
+        <div class="col-12 mt-2">
+          <hr class="my-1">
+          <span class="fw-semibold" style="font-size:.82rem;"><i class="bi bi-inbox me-1 text-primary"></i>IMAP (ricezione email ordinaria)</span>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Host IMAP</label>
+          <input type="text" name="smtp_imap_host" id="smtp_imap_host" class="form-control font-monospace"
+                 value="{{ cfg.smtp.imap_host }}" placeholder="imap.gmail.com">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label fw-semibold">Porta IMAP</label>
+          <input type="number" name="smtp_imap_port" id="smtp_imap_port" class="form-control"
+                 value="{{ cfg.smtp.imap_port }}" min="1" max="65535">
+        </div>
+        <div class="col-md-3 d-flex align-items-end">
+          <div class="form-check form-switch mb-2">
+            <input class="form-check-input" type="checkbox" role="switch"
+                   name="smtp_imap_use_ssl" id="smtp_imap_use_ssl" value="1"
+                   {{ 'checked' if cfg.smtp.imap_use_ssl }}>
+            <label class="form-check-label fw-semibold" for="smtp_imap_use_ssl">SSL IMAP</label>
           </div>
         </div>
         <div class="col-md-6">
@@ -774,12 +785,17 @@
         </div>
 
         <div class="col-12">
-          <div class="d-flex gap-2 align-items-center">
+          <div class="d-flex gap-2 align-items-center flex-wrap">
             <button type="button" class="btn btn-outline-primary btn-sm" id="btn-test-email"
                     onclick="testConn('smtp','btn-test-email','res-test-email')">
               <i class="bi bi-send-check me-1"></i>Testa connessione SMTP
             </button>
+            <button type="button" class="btn btn-outline-primary btn-sm" id="btn-test-email-imap"
+                    onclick="testConn('smtp-imap','btn-test-email-imap','res-test-email-imap')">
+              <i class="bi bi-inbox-fill me-1"></i>Testa connessione IMAP
+            </button>
             <span id="res-test-email" class="test-result"></span>
+            <span id="res-test-email-imap" class="test-result"></span>
           </div>
         </div>
 
@@ -1004,6 +1020,10 @@
 {% endif %}
 
 {% if tab_attivo == 'ai' %}
+{% set ai_base_url_value = cfg.ai.base_url or 'http://127.0.0.1:11434/api/version' %}
+{% if ai_base_url_value.endswith('/api') %}
+  {% set ai_base_url_value = ai_base_url_value ~ '/version' %}
+{% endif %}
 <div class="row g-4 settings-ai-layout" id="ai-panel-root"
      data-ai-mode="{{ 'local' if request.host.split(':')[0] in ['localhost', '127.0.0.1'] else 'remote' }}"
      data-local-signer-url="http://127.0.0.1:27272"
@@ -1067,8 +1087,8 @@
             <div class="col-12">
               <label class="form-label fw-semibold">Indirizzo del motore locale</label>
               <input type="text" name="ai_base_url" id="ai_base_url" class="form-control font-monospace"
-                     value="{{ cfg.ai.base_url }}" placeholder="http://127.0.0.1:11434/api">
-              <div class="form-text">Questo campo indica l'indirizzo usato da IUSENTRA per parlare con il motore locale, non una pagina da aprire nel browser. Sul dispositivo cliente il valore consigliato resta <span class="font-monospace">http://127.0.0.1:11434/api</span>. Nelle installazioni locali containerizzate puo' essere utile <span class="font-monospace">http://host.docker.internal:11434/api</span>. Se apri la sola root <span class="font-monospace">/api</span> e vedi <span class="font-monospace">404 page not found</span>, e' normale: il controllo corretto va fatto su <span class="font-monospace">/api/version</span>.</div>
+                     value="{{ ai_base_url_value }}" placeholder="http://127.0.0.1:11434/api/version">
+              <div class="form-text">Questo campo indica l'indirizzo usato da IUSENTRA per verificare il motore locale. Il valore consigliato resta <span class="font-monospace">http://127.0.0.1:11434/api/version</span>. Nelle installazioni locali containerizzate puo' essere utile <span class="font-monospace">http://host.docker.internal:11434/api/version</span>.</div>
               <div class="form-text text-break" id="ai-version-check-hint">Controllo consigliato: <span class="font-monospace">http://127.0.0.1:11434/api/version</span></div>
             </div>
             <div class="col-md-6">

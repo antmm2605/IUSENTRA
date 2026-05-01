@@ -90,7 +90,7 @@ services:
       REDIS_URL:            ${REDIS_URL:-redis://redis:6379/0}
       RATELIMIT_STORAGE_URI: ${RATELIMIT_STORAGE_URI:-redis://redis:6379/1}
       PROMETHEUS_ENABLED:   ${PROMETHEUS_ENABLED:-1}
-      PCT_LOCAL_AI_BASE_URL: ${PCT_LOCAL_AI_BASE_URL:-http://host.docker.internal:11434/api}
+      PCT_LOCAL_AI_BASE_URL: ${PCT_LOCAL_AI_BASE_URL:-http://host.docker.internal:11434/api/version}
       PCT_HOST_PLATFORM:    ${OS:-}
       PCT_HOST_MACHINE:     ${PROCESSOR_ARCHITECTURE:-}
       # PKCS#11 — percorso libreria OpenSC nel container (auto-rilevato se non impostato)
@@ -147,7 +147,7 @@ services:
       PCT_MULTI_TENANT: "1"
       PCT_STORAGE_MODE: "SQLITE"
       PCT_SQLITE_MODE: "1"
-      PCT_LOCAL_AI_BASE_URL: ${PCT_LOCAL_AI_BASE_URL:-http://host.docker.internal:11434/api}
+      PCT_LOCAL_AI_BASE_URL: ${PCT_LOCAL_AI_BASE_URL:-http://host.docker.internal:11434/api/version}
       PCT_HOST_PLATFORM: ${OS:-}
       PCT_HOST_MACHINE: ${PROCESSOR_ARCHITECTURE:-}
 

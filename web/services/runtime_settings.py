@@ -68,7 +68,7 @@ def apply_runtime_settings(
         "PCT_LOCAL_AI_ENABLED", "1"
     ).lower() not in ("0", "false", "no")
     app.config["LOCAL_AI_BASE_URL"] = os.getenv(
-        "PCT_LOCAL_AI_BASE_URL", "http://127.0.0.1:11434/api"
+        "PCT_LOCAL_AI_BASE_URL", "http://127.0.0.1:11434/api/version"
     )
     app.config["LOCAL_AI_AUTO_BOOTSTRAP"] = os.getenv(
         "PCT_LOCAL_AI_AUTO_BOOTSTRAP", "1"
@@ -219,7 +219,7 @@ def apply_persistent_studio_overrides(app: Flask) -> None:
 
         app.config["LOCAL_AI_ENABLED"] = bool(getattr(studio_cfg.ai, "enabled", True))
         app.config["LOCAL_AI_BASE_URL"] = getattr(
-            studio_cfg.ai, "base_url", "http://127.0.0.1:11434/api"
+            studio_cfg.ai, "base_url", "http://127.0.0.1:11434/api/version"
         )
         app.config["LOCAL_AI_AUTO_BOOTSTRAP"] = bool(
             getattr(studio_cfg.ai, "auto_bootstrap", True)

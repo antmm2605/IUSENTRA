@@ -11,7 +11,7 @@ from flask import g
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from pct.config_studio import ConfigPEC, ConfigStudio, GestioneConfigStudio
+from pct.config_studio import ConfigPEC, ConfigSMTP, ConfigStudio, GestioneConfigStudio
 from pct.auth import GestioneUtenti
 from pct.email_client import (
     CartellaEmail,
@@ -47,6 +47,7 @@ def _cfg_web(tmp_path: Path) -> dict:
         "SOGGETTI_DB": str(tmp_path / "soggetti.json"),
         "SOGGETTI_PARTI_DB": str(tmp_path / "parti.json"),
         "EMAIL_CASELLA_DB": str(tmp_path / "casella.json"),
+        "EMAIL_ORDINARIA_DB": str(tmp_path / "ordinaria.json"),
         "STUDIO_CONFIG": str(tmp_path / "config" / "studio.json"),
     }
 
@@ -260,6 +261,132 @@ def test_email_route_ufficiale_serve_react_e_api_distingue_inviati_cestino(tmp_p
     assert trash_payload["items"][0]["folder"] == CartellaEmail.CESTINO
 
 
+def test_email_ordinaria_route_react_api_e_repository_separato_da_pec(tmp_path):
+    from web.app import create_app
+
+    cfg = _cfg_web(tmp_path)
+    pec = GestioneEmailRicevute(cfg["EMAIL_CASELLA_DB"])
+    ordinaria = GestioneEmailRicevute(cfg["EMAIL_ORDINARIA_DB"])
+    pec.aggiungi(
+        EmailRicevuta(
+            id="PEC-1",
+            cartella=CartellaEmail.INBOX,
+            stato=StatoEmail.NON_LETTA,
+            mittente="cancelleria@giustiziapec.it",
+            oggetto="PEC da non mostrare nella posta ordinaria",
+            data="2026-04-08T09:00:00",
+            stato_pct="ACCETTATO_PEC",
+        )
+    )
+    ordinaria.aggiungi(
+        EmailRicevuta(
+            id="MAIL-ORD-1",
+            cartella=CartellaEmail.INBOX,
+            stato=StatoEmail.NON_LETTA,
+            mittente="cliente@example.it",
+            mittente_nome="Cliente Ordinario",
+            oggetto="Email ordinaria da lavorare",
+            data="2026-04-08T10:00:00",
+            corpo_testo="Richiesta informazioni pratica.",
+        )
+    )
+
+    app = create_app(cfg)
+    app.config["API_KEY"] = "react-test-key"
+    with app.test_client() as client:
+        _autentica_admin_session(app, client, cfg)
+        react = client.get("/email-ordinaria/")
+        payload_response = client.get(
+            "/api/v1/ui/email-ordinaria",
+            headers={"X-API-Key": "react-test-key"},
+        )
+        pec_payload_response = client.get(
+            "/api/v1/ui/email",
+            headers={"X-API-Key": "react-test-key"},
+        )
+
+    payload = payload_response.get_json()
+    pec_payload = pec_payload_response.get_json()
+    assert react.status_code == 200
+    assert '<html lang="it" class="react-shell-document">' in react.get_data(as_text=True)
+    assert payload_response.status_code == 200
+    assert payload["actions"]["sync"] == "/email-ordinaria/sincronizza"
+    assert payload["actions"]["settings"] == "/impostazioni?tab=smtp"
+    assert payload["summary"]["pst"] == 0
+    assert payload["summary"]["autoLinked"] == 0
+    assert payload["items"][0]["id"] == "MAIL-ORD-1"
+    assert payload["items"][0]["isPst"] is False
+    assert payload["items"][0]["pctStatus"] == ""
+    assert pec_payload["items"][0]["id"] == "PEC-1"
+
+
+def test_email_ordinaria_sincronizza_usa_imap_smtp_dalle_impostazioni(tmp_path, monkeypatch):
+    from web.app import create_app
+    import pct.email_client as email_runtime
+
+    cfg = _cfg_web(tmp_path)
+    GestioneConfigStudio(cfg["STUDIO_CONFIG"]).aggiorna(
+        ConfigStudio(
+            smtp=ConfigSMTP(
+                host="smtp.example.it",
+                port=587,
+                imap_host="imap.ordinaria.example.it",
+                imap_port=993,
+                imap_use_ssl=True,
+                username="studio@example.it",
+                password="segreta",
+                from_address="studio@example.it",
+                from_name="Studio",
+                use_tls=True,
+            )
+        )
+    )
+    osservato = {}
+
+    def _fake_sync(self, **kwargs):
+        osservato.update(kwargs)
+        return {"nuove": 1, "allegati_salvati": 0, "errore": ""}
+
+    monkeypatch.setattr(email_runtime.GestioneEmailRicevute, "sincronizza_imap", _fake_sync)
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        _autentica_admin_session(app, client, cfg)
+        response = client.post("/email-ordinaria/sincronizza")
+
+    data = response.get_json()
+    assert response.status_code == 200
+    assert data["ok"] is True
+    assert data["messaggio"] == "Sincronizzazione email ordinaria completata."
+    assert osservato["imap_host"] == "imap.ordinaria.example.it"
+    assert osservato["imap_port"] == 993
+    assert osservato["username"] == "studio@example.it"
+    assert osservato["password"] == "segreta"
+    assert osservato["use_ssl"] is True
+
+
+def test_impostazioni_smtp_espone_imap_ordinario_e_pec_non_mostra_diagnostica_server(tmp_path):
+    from web.app import create_app
+
+    cfg = _cfg_web(tmp_path)
+    app = create_app(cfg)
+    with app.test_client() as client:
+        _autentica_admin_session(app, client, cfg)
+        smtp = client.get("/impostazioni?tab=smtp&_legacy=1")
+        pec = client.get("/impostazioni?tab=pec&_legacy=1")
+        ai = client.get("/impostazioni?tab=ai&_legacy=1")
+
+    smtp_html = smtp.get_data(as_text=True)
+    pec_html = pec.get_data(as_text=True)
+    ai_html = ai.get_data(as_text=True)
+    assert "smtp_imap_host" in smtp_html
+    assert "smtp_imap_port" in smtp_html
+    assert "Testa connessione IMAP" in smtp_html
+    assert "Diagnostica server (non invio reale)" not in pec_html
+    assert "L'invio PEC reale deve passare dal PC locale tramite Local Signer" not in pec_html
+    assert "http://127.0.0.1:11434/api/version" in ai_html
+
+
 def test_dashboard_ultime_pec_usa_inbox_completa_e_invalida_cache(tmp_path):
     from web.app import create_app
 
@@ -339,7 +466,7 @@ def test_email_dettaglio_visualizza_e_scarica_allegato_salvato(tmp_path):
     with app.test_client() as client:
         _autentica_admin_session(app, client, cfg)
 
-        dettaglio = client.get("/email/messaggio/MAIL-ATT-1", follow_redirects=True)
+        dettaglio = client.get("/email/messaggio/MAIL-ATT-1?_legacy=1", follow_redirects=True)
         body = dettaglio.get_data(as_text=True)
         assert "Visualizza" in body
         assert "Scarica" in body
@@ -883,7 +1010,7 @@ def test_email_dettaglio_visualizza_anche_xml_ed_eml(tmp_path):
     with app.test_client() as client:
         _autentica_admin_session(app, client, cfg)
 
-        dettaglio = client.get("/email/messaggio/MAIL-ATT-XML", follow_redirects=True)
+        dettaglio = client.get("/email/messaggio/MAIL-ATT-XML?_legacy=1", follow_redirects=True)
         body = dettaglio.get_data(as_text=True)
         assert body.count("Visualizza") >= 2
 

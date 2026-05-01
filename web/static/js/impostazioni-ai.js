@@ -210,10 +210,10 @@
     const config = aiUiConfig();
     let baseUrl = baseUrlField ? String(baseUrlField.value || '').trim() : '';
     if (!baseUrl) {
-      baseUrl = 'http://127.0.0.1:11434/api';
+      baseUrl = 'http://127.0.0.1:11434/api/version';
     }
     if (config.remoteHosted && baseUrl.includes('host.docker.internal')) {
-      baseUrl = 'http://127.0.0.1:11434/api';
+      baseUrl = 'http://127.0.0.1:11434/api/version';
     }
     return {
       enabled: Boolean(document.getElementById('ai_enabled')?.checked),
@@ -231,6 +231,12 @@
     if (!raw) {
       return 'http://127.0.0.1:11434/api';
     }
+    if (raw.endsWith('/api/version')) {
+      return raw.slice(0, -'/version'.length);
+    }
+    if (raw.endsWith('/version')) {
+      return raw.slice(0, -'/version'.length);
+    }
     if (raw.endsWith('/api')) {
       return raw;
     }
@@ -238,6 +244,10 @@
   }
 
   function buildLocalAiVersionUrl(baseUrl) {
+    const raw = String(baseUrl || '').trim().replace(/\/+$/, '');
+    if (raw.endsWith('/api/version') || raw.endsWith('/version')) {
+      return raw;
+    }
     return normalizeAiApiPrefix(baseUrl) + '/version';
   }
 
@@ -306,7 +316,8 @@
     const hostPlatform = installerData.host_platform || installerData.platform || 'n.d.';
     const executionPlatform = installerData.execution_platform || installerData.platform || 'n.d.';
     const executionLabel = installerData.containerized ? 'container ' + executionPlatform : executionPlatform;
-    const detectedExecutable = installerData.detected_executable || 'Non ancora rilevato';
+    const executableMissing = !installerData.detected_executable;
+    const detectedExecutable = installerData.detected_executable || 'Eseguibile non rilevato';
     const statusMeta = aiStatusMeta(runtimeStatus);
     const chatModelValue = resolvedModels.chat || 'n.d.';
     const embedModelValue = resolvedModels.embed || 'n.d.';
@@ -380,13 +391,16 @@
       '<div class="settings-ai-installer__item"><div class="settings-ai-installer__label">Host reale</div><div class="settings-ai-installer__value">' + escapeHtml(hostPlatform) + '</div><div class="settings-ai-installer__meta">Architettura ' + escapeHtml(installerData.host_machine || installerData.machine || 'n.d.') + '</div></div>' +
       '<div class="settings-ai-installer__item"><div class="settings-ai-installer__label">Ambiente IUSENTRA</div><div class="settings-ai-installer__value">' + escapeHtml(executionLabel) + '</div><div class="settings-ai-installer__meta">' + (installerData.containerized ? 'Motore applicativo in container' : 'Motore applicativo nativo') + '</div></div>' +
       '<div class="settings-ai-installer__item settings-ai-installer__item--full"><div class="settings-ai-installer__label">Eseguibile rilevato</div><div class="settings-ai-installer__value settings-ai-installer__value--mono">' + escapeHtml(detectedExecutable) + '</div></div>' +
+      (executableMissing && installerData.asset_download_url
+        ? '<div class="settings-ai-installer__item settings-ai-installer__item--full"><div class="settings-ai-installer__label">Installazione richiesta</div><div class="settings-ai-installer__body">Eseguibile non rilevato: <a href="' + escapeHtml(installerData.asset_download_url) + '" target="_blank" rel="noreferrer">scarica installer ufficiale</a>, completa l\'installazione e poi aggiorna lo stato operativo.</div></div>'
+        : '') +
       '<div class="settings-ai-installer__item settings-ai-installer__item--full"><div class="settings-ai-installer__label">Ambito di distribuzione</div><div class="settings-ai-installer__body">' + escapeHtml(installerData.distribution_scope || '') + '</div></div>' +
       (installerData.post_install_note
         ? '<div class="settings-ai-installer__item settings-ai-installer__item--full"><div class="settings-ai-installer__label">Dopo l\'installazione</div><div class="settings-ai-installer__body">' + escapeHtml(installerData.post_install_note) + '</div></div>'
         : '') +
       '</div>' +
       (installerData.asset_download_url
-        ? '<a class="btn btn-sm btn-outline-primary mt-3" href="' + escapeHtml(installerData.asset_download_url) + '" target="_blank" rel="noreferrer"><i class="bi bi-box-arrow-up-right me-2"></i>' + escapeHtml(installerData.asset_cta_label || 'Apri il download ufficiale') + '</a>'
+        ? '<a class="btn btn-sm btn-outline-primary mt-3" href="' + escapeHtml(installerData.asset_download_url) + '" target="_blank" rel="noreferrer"><i class="bi bi-box-arrow-up-right me-2"></i>' + escapeHtml(executableMissing ? 'scarica installer ufficiale' : (installerData.asset_cta_label || 'Apri il download ufficiale')) + '</a>'
         : '') +
       installerActionsHtml(installerData.install_actions);
 

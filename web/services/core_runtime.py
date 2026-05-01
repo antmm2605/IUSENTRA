@@ -104,6 +104,10 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
     app.config["EMAIL_CASELLA_DB"] = cfg.get(
         "EMAIL_CASELLA_DB", os.getenv("PCT_EMAIL_DB", "./email/casella.json")
     )
+    app.config["EMAIL_ORDINARIA_DB"] = cfg.get(
+        "EMAIL_ORDINARIA_DB",
+        os.getenv("PCT_EMAIL_ORDINARIA_DB", "./email/ordinaria.json"),
+    )
     app.config["BACKUP_DIR"] = cfg.get(
         "BACKUP_DIR", os.getenv("PCT_BACKUP_DIR", "./backup")
     )
@@ -335,6 +339,7 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
             "messaggi": _cfg_data_path("MESSAGGI_DB"),
             "notifiche": _cfg_data_path("NOTIFICHE_LOG"),
             "email_casella": _cfg_data_path("EMAIL_CASELLA_DB"),
+            "email_ordinaria": _cfg_data_path("EMAIL_ORDINARIA_DB"),
             "utenti": _cfg_data_path("AUTH_DB"),
             "audit": _cfg_data_path("AUDIT_DB"),
             "privacy": _cfg_data_path("PRIVACY_DB"),

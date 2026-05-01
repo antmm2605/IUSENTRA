@@ -1,7 +1,7 @@
-"""Bridge dati per la pagina React Email PEC.
+"""Bridge dati per le pagine React Email PEC ed email ordinaria.
 
 La funzione costruisce payload in sola lettura sopra GestioneEmailRicevute,
-riusando la casella locale e i servizi Flask auditati per le azioni operative.
+riusando le caselle locali e i servizi Flask auditati per le azioni operative.
 """
 
 from __future__ import annotations
@@ -76,15 +76,15 @@ def _normalise_folder(value: Any) -> str:
     return CartellaEmail.INBOX
 
 
-def _tone(email_obj: Any) -> str:
+def _tone(email_obj: Any, *, include_telematic: bool = True) -> str:
     pct = str(getattr(email_obj, "stato_pct", "") or "").upper()
-    if any(marker in pct for marker in ("RIFIUT", "ERRORE")):
+    if include_telematic and any(marker in pct for marker in ("RIFIUT", "ERRORE")):
         return "danger"
-    if any(marker in pct for marker in ("WARN", "ANOMALIA")):
+    if include_telematic and any(marker in pct for marker in ("WARN", "ANOMALIA")):
         return "warning"
-    if pct:
+    if include_telematic and pct:
         return "primary"
-    if getattr(email_obj, "e_pst", False):
+    if include_telematic and getattr(email_obj, "e_pst", False):
         return "purple"
     if _normalise_folder(getattr(email_obj, "cartella", "")) == CartellaEmail.INVIATI:
         return "success"
@@ -110,7 +110,7 @@ def _sync_inviati_da_messaggi(gestore: GestioneEmailRicevute, messaggi_db: str) 
         return
 
 
-def _email_row(email_obj: Any) -> dict[str, Any]:
+def _email_row(email_obj: Any, *, base_path: str = "/email", include_telematic: bool = True) -> dict[str, Any]:
     email_id = str(getattr(email_obj, "id", "") or "")
     folder = _normalise_folder(getattr(email_obj, "cartella", ""))
     timestamp = str(getattr(email_obj, "timestamp", "") or getattr(email_obj, "data", "") or getattr(email_obj, "ricevuta_il", "") or "")
@@ -120,6 +120,9 @@ def _email_row(email_obj: Any) -> dict[str, Any]:
     subject = _safe_text(getattr(email_obj, "oggetto", ""), "(nessun oggetto)")
     status = _enum_value(getattr(email_obj, "stato", ""))
     encoded_id = quote(email_id, safe="")
+    base = "/" + str(base_path or "/email").strip("/")
+    is_pst = bool(getattr(email_obj, "e_pst", False)) if include_telematic else False
+    pct_status = _safe_text(getattr(email_obj, "stato_pct", "")) if include_telematic else ""
     return {
         "id": email_id,
         "folder": folder,
@@ -132,19 +135,19 @@ def _email_row(email_obj: Any) -> dict[str, Any]:
         "timestamp": timestamp,
         "timeLabel": _format_time(timestamp),
         "unread": status == StatoEmail.NON_LETTA,
-        "isPst": bool(getattr(email_obj, "e_pst", False)),
-        "pctStatus": _safe_text(getattr(email_obj, "stato_pct", "")),
+        "isPst": is_pst,
+        "pctStatus": pct_status,
         "attachmentCount": len(list(getattr(email_obj, "allegati", []) or [])),
         "origin": _safe_text(getattr(email_obj, "origine", "")),
-        "detailHref": f"/email/messaggio/{encoded_id}",
-        "operationalHref": f"/email/?cartella={folder}&id={encoded_id}",
+        "detailHref": f"{base}/messaggio/{encoded_id}",
+        "operationalHref": f"{base}/?cartella={folder}&id={encoded_id}",
         "replyHref": f"/email/scrivi?a={quote(sender, safe='')}&oggetto={quote('Re: ' + subject, safe='')}",
-        "trashHref": f"/email/{encoded_id}/cestino",
-        "restoreHref": f"/email/{encoded_id}/ripristina",
-        "deleteHref": f"/email/{encoded_id}/elimina",
-        "markReadHref": f"/email/{encoded_id}/segna-letta",
-        "markUnreadHref": f"/email/{encoded_id}/segna-non-letta",
-        "tone": _tone(email_obj),
+        "trashHref": f"{base}/{encoded_id}/cestino",
+        "restoreHref": f"{base}/{encoded_id}/ripristina",
+        "deleteHref": f"{base}/{encoded_id}/elimina",
+        "markReadHref": f"{base}/{encoded_id}/segna-letta",
+        "markUnreadHref": f"{base}/{encoded_id}/segna-non-letta",
+        "tone": _tone(email_obj, include_telematic=include_telematic),
     }
 
 
@@ -156,6 +159,14 @@ def build_react_email_payload(
     *,
     db_path: str,
     messaggi_db: str = "",
+    base_path: str = "/email",
+    compose_path: str = "/email/scrivi",
+    settings_path: str = "/impostazioni?tab=pec",
+    sync_path: str | None = None,
+    auto_esiti_path: str = "/email/auto-esiti",
+    local_test_path: str = "/impostazioni?tab=pec",
+    lex_context: str = "email-pec",
+    include_telematic: bool = True,
     folder: str = CartellaEmail.INBOX,
     query: str = "",
     stato: str = "",
@@ -168,6 +179,8 @@ def build_react_email_payload(
 ) -> dict[str, Any]:
     gestore = GestioneEmailRicevute(db_path=db_path)
     _sync_inviati_da_messaggi(gestore, messaggi_db)
+    base = "/" + str(base_path or "/email").strip("/")
+    sync_href = sync_path or f"{base}/sincronizza"
 
     folder_valida = _normalise_folder(folder)
     emails = gestore.tutte(
@@ -175,24 +188,28 @@ def build_react_email_payload(
         solo_non_lette=stato == StatoEmail.NON_LETTA,
         q=query,
         stato_lettura=stato if stato in {StatoEmail.NON_LETTA, StatoEmail.LETTA} else "",
-        solo_pst=solo_pst,
+        solo_pst=solo_pst if include_telematic else False,
         con_allegati=con_allegati,
-        stato_pct=stato_pct,
+        stato_pct=stato_pct if include_telematic else "",
         origine=origine,
         data_da=data_da,
         data_a=data_a,
     )
     all_emails = list(gestore._carica().values())  # noqa: SLF001 - bridge read-only su repository operativa
     stats = gestore.statistiche()
-    rows = [_email_row(email_obj) for email_obj in emails]
-    pct_counts = Counter(str(getattr(email_obj, "stato_pct", "") or "") for email_obj in all_emails if getattr(email_obj, "stato_pct", ""))
+    rows = [_email_row(email_obj, base_path=base, include_telematic=include_telematic) for email_obj in emails]
+    pct_counts = Counter(
+        str(getattr(email_obj, "stato_pct", "") or "")
+        for email_obj in all_emails
+        if include_telematic and getattr(email_obj, "stato_pct", "")
+    )
 
     attachments_total = sum(len(list(getattr(email_obj, "allegati", []) or [])) for email_obj in all_emails)
-    auto_linked = sum(1 for email_obj in all_emails if bool(getattr(email_obj, "auto_registrata", False)))
+    auto_linked = sum(1 for email_obj in all_emails if include_telematic and bool(getattr(email_obj, "auto_registrata", False)))
     warning_total = sum(
         1
         for email_obj in all_emails
-        if any(marker in str(getattr(email_obj, "stato_pct", "") or "").upper() for marker in ("RIFIUT", "ERRORE", "WARN"))
+        if include_telematic and any(marker in str(getattr(email_obj, "stato_pct", "") or "").upper() for marker in ("RIFIUT", "ERRORE", "WARN"))
     )
 
     return {
@@ -206,7 +223,7 @@ def build_react_email_payload(
             "unread": stats.get("non_lette", 0),
             "sent": stats.get("inviati", 0),
             "trash": stats.get("cestino", 0),
-            "pst": stats.get("pst", 0),
+            "pst": stats.get("pst", 0) if include_telematic else 0,
             "attachments": attachments_total,
             "autoLinked": auto_linked,
             "warnings": warning_total,
@@ -225,17 +242,17 @@ def build_react_email_payload(
                 _facet(StatoEmail.CESTINO, "Nel cestino", int(stats.get("cestino", 0))),
             ],
             "pctStatuses": [
-                _facet("", "Tutti gli esiti", int(stats.get("pst", 0))),
+                _facet("", "Tutti gli esiti", int(stats.get("pst", 0)) if include_telematic else 0),
                 *[_facet(value, value, count) for value, count in sorted(pct_counts.items())],
             ],
         },
         "actions": {
-            "compose": "/email/scrivi",
-            "settings": "/email/impostazioni",
-            "sync": "/email/sincronizza",
-            "autoEsiti": "/email/auto-esiti",
-            "operationalInbox": "/email/",
-            "localPecTest": "/email/impostazioni",
-            "lex": "/lex?context=email-pec",
+            "compose": compose_path,
+            "settings": settings_path,
+            "sync": sync_href,
+            "autoEsiti": auto_esiti_path if include_telematic else "",
+            "operationalInbox": f"{base}/",
+            "localPecTest": local_test_path,
+            "lex": f"/lex?context={quote(lex_context, safe='')}",
         },
     }

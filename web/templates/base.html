@@ -171,7 +171,8 @@
     {# ---- Sezione: Comunicazioni ---- #}
     {% set _cm = request.endpoint in ('lista_messaggi','nuovo_messaggio','dettaglio_messaggio',
                                       'email_client.casella','email_client.dettaglio',
-                                      'email_client.scrivi','email_client.impostazioni') %}
+                                      'email_client.scrivi','email_client.impostazioni',
+                                      'email_ordinaria.casella','email_ordinaria.dettaglio') %}
     <button class="sb-toggle {% if _cm %}open{% endif %}"
             data-bs-toggle="collapse" data-bs-target="#sb-comunicazioni" aria-expanded="{{ 'true' if _cm else 'false' }}">
       <span><i class="bi bi-chat-dots"></i>Comunicazioni</span>
@@ -180,9 +181,13 @@
     <div class="collapse {% if _cm %}show{% endif %}" id="sb-comunicazioni">
       <a href="{{ url_for('email_client.casella') }}"
          class="nav-link sb-link {% if request.endpoint and request.endpoint.startswith('email_client.') %}active{% endif %}">
-        <i class="bi bi-envelope"></i><span class="sb-txt">Email</span>
+        <i class="bi bi-envelope-at"></i><span class="sb-txt">Email PEC</span>
         {# Badge non lette — caricato via JS per evitare query ad ogni render #}
         <span class="badge bg-primary rounded-pill ms-auto d-none" id="badgeEmailNonLette"></span>
+      </a>
+      <a href="{{ url_for('email_ordinaria.casella') }}"
+         class="nav-link sb-link {% if request.endpoint and request.endpoint.startswith('email_ordinaria.') %}active{% endif %}">
+        <i class="bi bi-envelope"></i><span class="sb-txt">Email ordinaria</span>
       </a>
       <a href="{{ url_for('lista_messaggi') }}"
          class="nav-link sb-link {% if request.endpoint in ('lista_messaggi','dettaglio_messaggio') %}active{% endif %}">

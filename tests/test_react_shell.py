@@ -813,15 +813,21 @@ def test_react_comunicazioni_email_messaggi_collegate_nav_e_shell():
     api_source = Path("web/blueprints/api_v1_react.py").read_text(encoding="utf-8")
 
     assert "{ label: 'Email PEC', icon: Mail, href: '/email/', badge: 'PEC' }" in app_source
+    assert "{ label: 'Email ordinaria', icon: Mail, href: '/email-ordinaria/', badge: 'SMTP' }" in app_source
     assert "{ label: 'Messaggi', icon: MessageCircle, href: '/messaggi' }" in app_source
     assert "{ label: 'Nuovo SMS/WA', icon: Send, href: '/messaggi/nuovo' }" in app_source
+    assert "isEmailOrdinariaPage?<EmailOrdinariaPage/>" in app_source
     assert "isEmailPage?<EmailPecPage/>" in app_source
     assert "isNewMessagePage?<NuovoMessaggioPage/>" in app_source
     assert "isMessagesPage?<MessaggiPage/>" in app_source
     assert "Casella PEC dello studio" in email_page
+    assert "Casella email ordinaria dello studio" in email_page
     assert "Cartelle PEC" in email_page
+    assert "Cartelle email ordinaria" in email_page
     assert "getEmailPecPage" in email_data
+    assert "getEmailOrdinariaPage" in email_data
     assert "/api/v1/ui/email" in email_data
+    assert "/api/v1/ui/email-ordinaria" in email_data
     assert "cache: 'no-store'" in email_data
     assert "query.set('_ts', String(Date.now()))" in email_data
     assert "/api/v1/ui/dashboard?" in Path("frontend/src/data.ts").read_text(encoding="utf-8")
@@ -831,6 +837,7 @@ def test_react_comunicazioni_email_messaggi_collegate_nav_e_shell():
     assert "sendEndpoint" in messaggi_data
     assert "/api/v1/ui/messaggi" in messaggi_data
     assert '@api_v1_react.get("/email")' in api_source
+    assert '@api_v1_react.get("/email-ordinaria")' in api_source
     assert 'response.headers["Cache-Control"] = "no-store, max-age=0"' in api_source
     assert '@api_v1_react.get("/messaggi")' in api_source
     assert '@api_v1_react.get("/messaggi/nuovo")' in api_source
@@ -843,7 +850,7 @@ def test_route_ufficiali_email_messaggi_servono_react_con_vista_classica_tecnica
     with app.test_client() as client:
         _login(client)
 
-        for path in ("/email/", "/messaggi", "/messaggi/nuovo"):
+        for path in ("/email/", "/email-ordinaria/", "/email-ordinaria/messaggio/test-ordinaria", "/messaggi", "/messaggi/nuovo"):
             response = client.get(path)
             html = response.get_data(as_text=True)
             assert response.status_code == 200, path
@@ -851,10 +858,12 @@ def test_route_ufficiali_email_messaggi_servono_react_con_vista_classica_tecnica
             assert 'id="root"' in html
 
         classic_email = client.get("/email/?_legacy=1")
+        classic_ordinary = client.get("/email-ordinaria/?_legacy=1")
         classic_messages = client.get("/messaggi?_legacy=1")
         classic_new_message = client.get("/messaggi/nuovo?_legacy=1")
 
     assert classic_email.status_code == 200
+    assert classic_ordinary.status_code in {200, 302}
     assert classic_messages.status_code == 200
     assert classic_new_message.status_code == 200
     assert 'id="root"' not in classic_email.get_data(as_text=True)
@@ -1289,6 +1298,7 @@ def test_react_route_gate_copre_rotte_profonde_e_preserva_contratti_operativi(tm
             f"/scadenziario/{scadenza.id}/modifica",
             f"/soggetti/{soggetto.id}",
             "/email/messaggio/test-pec",
+            "/email-ordinaria/messaggio/test-ordinaria",
         ):
             response = client.get(path)
             html = response.get_data(as_text=True)
@@ -1703,6 +1713,7 @@ def test_react_migration_matrice_completa_route_api_e_card_operative(tmp_path: P
         "Soggetti e Parti",
         "Nuovo Soggetto",
         "Email PEC",
+        "Email ordinaria",
         "PEC",
         "Messaggi",
         "Nuovo SMS/WA",
@@ -1792,6 +1803,7 @@ def test_react_migration_matrice_completa_route_api_e_card_operative(tmp_path: P
         "Soggetti e Parti": "/soggetti",
         "Nuovo Soggetto": "/soggetti/nuovo",
         "Email PEC": "/email/",
+        "Email ordinaria": "/email-ordinaria/",
         "Messaggi": "/messaggi",
         "Nuovo SMS/WA": "/messaggi/nuovo",
         "Scadenziario": "/scadenziario",
@@ -1860,6 +1872,7 @@ def test_react_migration_matrice_completa_route_api_e_card_operative(tmp_path: P
             "Cartella Cliente": f"/api/v1/ui/clienti/{cliente.id}/cartella",
             "Soggetti": "/api/v1/ui/soggetti",
             "Email PEC": "/api/v1/ui/email",
+            "Email ordinaria": "/api/v1/ui/email-ordinaria",
             "Messaggi": "/api/v1/ui/messaggi",
             "Nuovo SMS/WA": "/api/v1/ui/messaggi/nuovo",
             "Scadenziario": "/api/v1/ui/scadenziario",
@@ -1995,18 +2008,30 @@ def test_react_dashboard_usa_bridge_reale_senza_mock(tmp_path: Path):
         assert key in payload
 
 
-def test_react_dashboard_cache_breve_e_email_recenti_ordinarie_disabilitate(tmp_path: Path):
+def test_react_dashboard_cache_breve_e_email_recenti_ordinarie_separate_da_pec(tmp_path: Path):
     app = _app(tmp_path)
     client = app.test_client()
 
     GestioneEmailRicevute(app.config["EMAIL_CASELLA_DB"]).aggiungi(
         EmailRicevuta(
-            id="mail-ordinaria",
+            id="pec-dashboard",
+            cartella=CartellaEmail.INBOX,
+            stato=StatoEmail.NON_LETTA,
+            mittente="cancelleria@giustiziapec.it",
+            mittente_nome="Cancelleria PEC",
+            oggetto="PEC da mostrare solo nella card PEC",
+            data=datetime.now().isoformat(timespec="seconds"),
+            stato_pct="ACCETTATO_PEC",
+        )
+    )
+    GestioneEmailRicevute(app.config["EMAIL_ORDINARIA_DB"]).aggiungi(
+        EmailRicevuta(
+            id="mail-ordinaria-dashboard",
             cartella=CartellaEmail.INBOX,
             stato=StatoEmail.NON_LETTA,
             mittente="cliente@example.it",
             mittente_nome="Cliente ordinario",
-            oggetto="Email ordinaria da non pubblicare in Panoramica",
+            oggetto="Email ordinaria da mostrare in Panoramica",
             data=datetime.now().isoformat(timespec="seconds"),
         )
     )
@@ -2030,8 +2055,11 @@ def test_react_dashboard_cache_breve_e_email_recenti_ordinarie_disabilitate(tmp_
     assert first.headers["X-IUSENTRA-Cache"] == "MISS"
     assert second.headers["X-IUSENTRA-Cache"] == "HIT"
     assert refreshed.headers["X-IUSENTRA-Cache"] == "MISS"
-    assert payload["emails"] == []
-    assert payload["contracts"]["ordinary_email_recent_disabled"] is True
+    assert payload["pec"][0]["id"] == "pec-dashboard"
+    assert payload["emails"][0]["id"] == "mail-ordinaria-dashboard"
+    assert payload["emails"][0]["href"] == "/email-ordinaria/"
+    assert payload["contracts"]["ordinary_email_recent_enabled"] is True
+    assert payload["contracts"]["pec_and_ordinary_email_separated"] is True
 
 
 def test_react_agenda_bridge_usa_agenda_e_scadenziario_reali(tmp_path: Path):

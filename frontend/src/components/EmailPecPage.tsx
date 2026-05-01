@@ -26,8 +26,10 @@ import {
 import { Badge, Button, Panel } from './dashboard'
 import { FloatingLex } from './FloatingLex'
 import {
+  emptyEmailOrdinariaPage,
   emptyEmailPecPage,
   folderLabel,
+  getEmailOrdinariaPage,
   getEmailPecPage,
   type EmailFolder,
   type EmailPecPageData,
@@ -36,6 +38,7 @@ import {
 } from '../emailData'
 import './EmailPecPage.css'
 
+type MailboxMode = 'pec' | 'ordinaria'
 type SortKey = 'recenti' | 'mittente' | 'oggetto' | 'pct'
 
 const sortLabels: Record<SortKey, string> = {
@@ -45,13 +48,95 @@ const sortLabels: Record<SortKey, string> = {
   pct: 'Esito PCT',
 }
 
-function sourceLabel(source: string): string {
-  if (source === 'repository_reali') return 'dati applicativi'
-  if (source === 'errore_controllato') return 'dati parziali'
-  return source || 'casella PEC'
+const mailboxCopy: Record<MailboxMode, {
+  mode: MailboxMode
+  includeTelematic: boolean
+  emptyData: EmailPecPageData
+  title: string
+  eyebrow: string
+  heroTitle: string
+  heroText: string
+  openLabel: string
+  composeLabel: string
+  syncLabel: string
+  syncingLabel: string
+  updatedLabel: string
+  folderAria: string
+  filtersAria: string
+  statsAria: string
+  emptyTitle: string
+  emptyText: string
+  previewEmptyTitle: string
+  previewEmptyText: string
+  sourceFallback: string
+  lexContext: string
+  lexTitle: string
+  lexBody: string
+  lexPrimaryLabel: string
+}> = {
+  pec: {
+    mode: 'pec',
+    includeTelematic: true,
+    emptyData: emptyEmailPecPage,
+    title: 'Email PEC',
+    eyebrow: 'Email PEC',
+    heroTitle: 'Casella PEC dello studio',
+    heroText: 'Posta certificata, messaggi PST, allegati, esiti PCT e comunicazioni di cancelleria in una vista professionale unica.',
+    openLabel: 'Apri casella',
+    composeLabel: 'Componi PEC',
+    syncLabel: 'Sincronizzazione PEC',
+    syncingLabel: 'Sincronizzazione vista PEC...',
+    updatedLabel: 'Dati PEC aggiornati',
+    folderAria: 'Cartelle PEC',
+    filtersAria: 'Filtri casella PEC',
+    statsAria: 'Indicatori email PEC',
+    emptyTitle: 'Nessuna PEC nella vista corrente',
+    emptyText: 'Prova ad aggiornare IMAP, cambiare cartella o rimuovere i filtri.',
+    previewEmptyTitle: 'Seleziona una PEC',
+    previewEmptyText: 'La lettura rapida comparirà qui, con esiti PCT, allegati e azioni operative.',
+    sourceFallback: 'casella PEC',
+    lexContext: 'email-pec',
+    lexTitle: 'Lex AI PEC',
+    lexBody: 'Posso leggere il contesto della PEC selezionata, preparare risposta, estrarre RG, suggerire fascicolo e verificare esito PCT o comunicazione di cancelleria.',
+    lexPrimaryLabel: 'Apri Lex sulla PEC',
+  },
+  ordinaria: {
+    mode: 'ordinaria',
+    includeTelematic: false,
+    emptyData: emptyEmailOrdinariaPage,
+    title: 'Email ordinaria',
+    eyebrow: 'Email ordinaria',
+    heroTitle: 'Casella email ordinaria dello studio',
+    heroText: 'Messaggi ordinari ricevuti e inviati tramite la configurazione SMTP/IMAP dello studio, separati dalla PEC e consultabili senza confondere gli esiti telematici.',
+    openLabel: 'Apri email',
+    composeLabel: 'Componi email',
+    syncLabel: 'Sincronizzazione email ordinaria',
+    syncingLabel: 'Sincronizzazione vista email...',
+    updatedLabel: 'Email ordinaria aggiornata',
+    folderAria: 'Cartelle email ordinaria',
+    filtersAria: 'Filtri email ordinaria',
+    statsAria: 'Indicatori email ordinaria',
+    emptyTitle: 'Nessuna email nella vista corrente',
+    emptyText: 'Prova ad aggiornare IMAP, cambiare cartella o rimuovere i filtri.',
+    previewEmptyTitle: 'Seleziona una email',
+    previewEmptyText: 'La lettura rapida comparirà qui, con allegati, mittente, destinatari e azioni operative.',
+    sourceFallback: 'casella email ordinaria',
+    lexContext: 'email-ordinaria',
+    lexTitle: 'Lex AI Email',
+    lexBody: 'Posso aiutarti a preparare risposta, estrarre riferimenti cliente o fascicolo, riassumere il messaggio e proporre la prossima azione.',
+    lexPrimaryLabel: 'Apri Lex sulla email',
+  },
 }
 
-function StatCard({ icon, label, value, note, tone = 'primary' }:{ icon:ReactNode; label:string; value:number|string; note:string; tone?:EmailPecRow['tone'] }) {
+type MailboxCopy = (typeof mailboxCopy)[MailboxMode]
+
+function sourceLabel(source: string, fallback: string): string {
+  if (source === 'repository_reali') return 'dati applicativi'
+  if (source === 'errore_controllato') return 'dati parziali'
+  return source || fallback
+}
+
+function StatCard({ icon, label, value, note, tone = 'primary' }: { icon: ReactNode; label: string; value: number | string; note: string; tone?: EmailPecRow['tone'] }) {
   return (
     <article className={`iu-mail-stat iu-mail-stat--${tone}`}>
       <div>{icon}</div>
@@ -67,9 +152,9 @@ function normaliseText(value: string): string {
 }
 
 function folderIcon(folder: EmailFolder) {
-  if (folder === 'INVIATI') return <Send size={15}/>
-  if (folder === 'CESTINO') return <Trash2 size={15}/>
-  return <Inbox size={15}/>
+  if (folder === 'INVIATI') return <Send size={15} />
+  if (folder === 'CESTINO') return <Trash2 size={15} />
+  return <Inbox size={15} />
 }
 
 function rowPerson(item: EmailPecRow): string {
@@ -77,9 +162,9 @@ function rowPerson(item: EmailPecRow): string {
   return item.senderName || item.sender || 'Mittente non indicato'
 }
 
-function initials(value: string): string {
+function initials(value: string, fallback: string): string {
   const parts = value.replace(/[<>@.]/g, ' ').split(/\s+/).filter(Boolean)
-  return parts.slice(0, 2).map((part) => part[0]?.toUpperCase()).join('') || 'PEC'
+  return parts.slice(0, 2).map((part) => part[0]?.toUpperCase()).join('') || fallback
 }
 
 function isInsideQuery(item: EmailPecRow, query: string): boolean {
@@ -105,6 +190,7 @@ function sortRows(rows: EmailPecRow[], sort: SortKey): EmailPecRow[] {
 }
 
 async function postMailAction(url: string, label: string): Promise<string> {
+  if (!url) throw new Error(`${label}: percorso operativo non configurato`)
   const response = await fetch(url, {
     method: 'POST',
     credentials: 'same-origin',
@@ -126,22 +212,23 @@ async function postMailAction(url: string, label: string): Promise<string> {
   if (payload.warning && payload.sync_errore) {
     return `${payload.messaggio || `${label}: completata con avvisi.`} ${payload.sync_errore}`
   }
-  if (label === 'Sincronizzazione PEC') {
+  if (label.startsWith('Sincronizzazione')) {
     const nuove = Number(payload.nuove || 0)
     const allegati = Number(payload.allegati_salvati || 0)
-    if (nuove || allegati) return `Sincronizzazione PEC completata: ${nuove} nuove PEC, ${allegati} allegati recuperati.`
+    if (nuove || allegati) return `${label} completata: ${nuove} nuovi messaggi, ${allegati} allegati recuperati.`
   }
   return payload.messaggio || `${label}: operazione eseguita.`
 }
 
-function routeEmailId(): string {
-  const match = window.location.pathname.match(/^\/(?:app-v2\/)?email\/messaggio\/([^/]+)/i)
+function routeEmailId(mode: MailboxMode): string {
+  const segment = mode === 'ordinaria' ? 'email-ordinaria' : 'email'
+  const match = window.location.pathname.match(new RegExp(`^/(?:app-v2/)?${segment}/messaggio/([^/]+)`, 'i'))
   return match ? decodeURIComponent(match[1]) : ''
 }
 
-function FolderTabs({ data, folder, onChange }:{data:EmailPecPageData; folder:EmailFolder; onChange:(folder:EmailFolder)=>void}) {
+function FolderTabs({ data, folder, onChange, ariaLabel }: { data: EmailPecPageData; folder: EmailFolder; onChange: (folder: EmailFolder) => void; ariaLabel: string }) {
   return (
-    <div className="iu-mail-folders" role="tablist" aria-label="Cartelle PEC">
+    <div className="iu-mail-folders" role="tablist" aria-label={ariaLabel}>
       {data.facets.folders.map((facet) => (
         <button className={folder === facet.value ? 'is-active' : ''} type="button" onClick={() => onChange(facet.value)} key={facet.value}>
           {folderIcon(facet.value)}
@@ -153,11 +240,11 @@ function FolderTabs({ data, folder, onChange }:{data:EmailPecPageData; folder:Em
   )
 }
 
-function EmailListRow({ item, selected, onSelect }:{item:EmailPecRow; selected:boolean; onSelect:()=>void}) {
+function EmailListRow({ item, selected, onSelect, includeTelematic, fallbackInitials }: { item: EmailPecRow; selected: boolean; onSelect: () => void; includeTelematic: boolean; fallbackInitials: string }) {
   const person = rowPerson(item)
   return (
     <button className={`iu-mail-row ${selected ? 'is-selected' : ''} ${item.unread ? 'is-unread' : ''}`} type="button" onClick={onSelect}>
-      <span className="iu-mail-avatar">{initials(person)}</span>
+      <span className="iu-mail-avatar">{initials(person, fallbackInitials)}</span>
       <span className="iu-mail-main">
         <span className="iu-mail-row__top">
           <strong>{person}</strong>
@@ -166,36 +253,37 @@ function EmailListRow({ item, selected, onSelect }:{item:EmailPecRow; selected:b
         <span className="iu-mail-subject">{item.subject || '(nessun oggetto)'}</span>
         <span className="iu-mail-preview">{item.preview || 'Nessuna anteprima disponibile.'}</span>
         <span className="iu-mail-tags">
-          {item.isPst ? <Badge tone="primary"><ShieldCheck size={12}/> PST</Badge> : null}
-          {item.pctStatus ? <Badge tone={item.pctStatus.includes('RIFIUT') || item.pctStatus.includes('ERRORE') ? 'danger' : 'warning'}>{item.pctStatus}</Badge> : null}
-          {item.attachmentCount ? <em><Paperclip size={12}/> {item.attachmentCount}</em> : null}
+          {includeTelematic && item.isPst ? <Badge tone="primary"><ShieldCheck size={12} /> PST</Badge> : null}
+          {includeTelematic && item.pctStatus ? <Badge tone={item.pctStatus.includes('RIFIUT') || item.pctStatus.includes('ERRORE') ? 'danger' : 'warning'}>{item.pctStatus}</Badge> : null}
+          {item.attachmentCount ? <em><Paperclip size={12} /> {item.attachmentCount}</em> : null}
         </span>
       </span>
     </button>
   )
 }
 
-function EmailPreview({ item, onAction }:{item?:EmailPecRow; onAction:(url:string,label:string)=>void}) {
+function EmailPreview({ item, onAction, copy }: { item?: EmailPecRow; onAction: (url: string, label: string) => void; copy: MailboxCopy }) {
   if (!item) {
     return (
       <section className="iu-mail-preview-card iu-mail-preview-empty">
-        <Mail size={38}/>
-        <h2>Seleziona una PEC</h2>
-        <p>La lettura rapida comparirà qui, con esiti PCT, allegati e azioni operative.</p>
+        <Mail size={38} />
+        <h2>{copy.previewEmptyTitle}</h2>
+        <p>{copy.previewEmptyText}</p>
       </section>
     )
   }
   const person = rowPerson(item)
+  const hasTelematicBanner = copy.includeTelematic && (item.pctStatus || item.isPst)
   return (
     <section className="iu-mail-preview-card">
       <header>
         <div>
-          <span className="iu-mail-preview-eyebrow">{folderIcon(item.folder)} {folderLabel(item.folder)} · {item.origin || 'casella PEC'}</span>
+          <span className="iu-mail-preview-eyebrow">{folderIcon(item.folder)} {folderLabel(item.folder)} · {item.origin || copy.sourceFallback}</span>
           <h2>{item.subject || '(nessun oggetto)'}</h2>
         </div>
         <div className="iu-mail-preview-status">
           {item.unread ? <Badge tone="primary">Non letta</Badge> : <Badge tone="success">Letta</Badge>}
-          {item.isPst ? <Badge tone="primary"><ShieldCheck size={12}/> PST</Badge> : null}
+          {copy.includeTelematic && item.isPst ? <Badge tone="primary"><ShieldCheck size={12} /> PST</Badge> : null}
         </div>
       </header>
       <div className="iu-mail-meta">
@@ -204,36 +292,36 @@ function EmailPreview({ item, onAction }:{item?:EmailPecRow; onAction:(url:strin
         <div><span>Data</span><strong>{item.timeLabel || item.timestamp || '-'}</strong></div>
         <div><span>Allegati</span><strong>{item.attachmentCount || 0}</strong></div>
       </div>
-      {item.pctStatus ? (
+      {hasTelematicBanner ? (
         <div className="iu-mail-pct-banner">
-          <ShieldCheck size={18}/>
+          <ShieldCheck size={18} />
           <div>
-            <strong>Esito telematico rilevato: {item.pctStatus}</strong>
+            <strong>{item.pctStatus ? `Esito telematico rilevato: ${item.pctStatus}` : 'Comunicazione PST rilevata'}</strong>
             <span>Lex può aiutarti a collegare questa PEC a fascicolo, deposito, comunicazione cancelleria o prossima azione.</span>
           </div>
         </div>
       ) : null}
       <p className="iu-mail-body-preview">{item.preview || 'Nessuna anteprima testuale disponibile. Apri la vista completa per leggere HTML e allegati.'}</p>
       <footer>
-        <Button variant="primary" href={item.detailHref}><Eye size={15}/> Apri</Button>
-        {item.folder !== 'CESTINO' ? <Button href={item.replyHref}><Reply size={15}/> Rispondi</Button> : null}
+        <Button variant="primary" href={item.detailHref}><Eye size={15} /> Apri</Button>
+        {item.folder !== 'CESTINO' ? <Button href={item.replyHref}><Reply size={15} /> Rispondi</Button> : null}
         {item.folder !== 'CESTINO'
-          ? <button type="button" onClick={() => onAction(item.trashHref, 'Sposta nel cestino')}><Trash2 size={15}/> Cestino</button>
-          : <button type="button" onClick={() => onAction(item.restoreHref, 'Ripristina')}><Undo2 size={15}/> Ripristina</button>}
+          ? <button type="button" onClick={() => onAction(item.trashHref, 'Sposta nel cestino')}><Trash2 size={15} /> Cestino</button>
+          : <button type="button" onClick={() => onAction(item.restoreHref, 'Ripristina')}><Undo2 size={15} /> Ripristina</button>}
         {item.unread
-          ? <button type="button" onClick={() => onAction(item.markReadHref, 'Segna letta')}><MailCheck size={15}/> Letta</button>
-          : <button type="button" onClick={() => onAction(item.markUnreadHref, 'Segna non letta')}><Mail size={15}/> Non letta</button>}
+          ? <button type="button" onClick={() => onAction(item.markReadHref, 'Segna letta')}><MailCheck size={15} /> Letta</button>
+          : <button type="button" onClick={() => onAction(item.markUnreadHref, 'Segna non letta')}><Mail size={15} /> Non letta</button>}
       </footer>
     </section>
   )
 }
 
-function Inspector({ data, rows }:{data:EmailPecPageData; rows:EmailPecRow[]}) {
+function PecInspector({ data, rows }: { data: EmailPecPageData; rows: EmailPecRow[] }) {
   const pstWaiting = rows.filter((item) => item.isPst && !item.pctStatus).slice(0, 4)
   const pctAlerts = rows.filter((item) => item.pctStatus && (item.pctStatus.includes('RIFIUT') || item.pctStatus.includes('ERRORE') || item.pctStatus.includes('WARN'))).slice(0, 4)
   return (
     <aside className="iu-mail-inspector">
-      <Panel title="Cabina PEC" subtitle="Controlli utili per studio legale" icon={<ShieldCheck size={17}/>}>
+      <Panel title="Cabina PEC" subtitle="Controlli utili per studio legale" icon={<ShieldCheck size={17} />}>
         <div className="iu-mail-briefing">
           <article>
             <span>PEC/PST riconosciute</span>
@@ -247,7 +335,7 @@ function Inspector({ data, rows }:{data:EmailPecPageData; rows:EmailPecRow[]}) {
           </article>
         </div>
       </Panel>
-      <Panel title="Esiti da presidiare" icon={<AlertTriangle size={17}/>} count={pctAlerts.length}>
+      <Panel title="Esiti da presidiare" icon={<AlertTriangle size={17} />} count={pctAlerts.length}>
         {pctAlerts.length ? (
           <div className="iu-mail-alerts">
             {pctAlerts.map((item) => (
@@ -260,7 +348,7 @@ function Inspector({ data, rows }:{data:EmailPecPageData; rows:EmailPecRow[]}) {
           </div>
         ) : <p className="iu-empty">Nessun esito critico nella cartella visibile.</p>}
       </Panel>
-      <Panel title="PST in attesa" icon={<FileCheck2 size={17}/>} count={pstWaiting.length}>
+      <Panel title="PST in attesa" icon={<FileCheck2 size={17} />} count={pstWaiting.length}>
         {pstWaiting.length ? (
           <div className="iu-mail-alerts">
             {pstWaiting.map((item) => (
@@ -273,20 +361,105 @@ function Inspector({ data, rows }:{data:EmailPecPageData; rows:EmailPecRow[]}) {
           </div>
         ) : <p className="iu-empty">Nessuna PEC PST in attesa nella vista corrente.</p>}
       </Panel>
-      <Panel title="Azioni rapide" icon={<Sparkles size={17}/>}>
+      <Panel title="Azioni rapide" icon={<Sparkles size={17} />}>
         <div className="iu-mail-quick-actions">
-          <a href={data.actions.compose}><Send size={15}/> Nuova PEC</a>
-          <a href={data.actions.settings}><Settings2 size={15}/> Parametri PEC</a>
-          <a href={data.actions.localPecTest}><Wrench size={15}/> Test SMTP dal PC</a>
-          <a href={data.actions.lex}><Sparkles size={15}/> Chiedi a Lex</a>
+          <a href={data.actions.compose}><Send size={15} /> Nuova PEC</a>
+          <a href={data.actions.settings}><Settings2 size={15} /> Parametri PEC</a>
+          <a href={data.actions.localPecTest}><Wrench size={15} /> Test SMTP dal PC</a>
+          <a href={data.actions.lex}><Sparkles size={15} /> Chiedi a Lex</a>
         </div>
       </Panel>
     </aside>
   )
 }
 
-export function EmailPecPage() {
-  const [data, setData] = useState<EmailPecPageData>(emptyEmailPecPage)
+function OrdinaryInspector({ data, rows }: { data: EmailPecPageData; rows: EmailPecRow[] }) {
+  const unread = rows.filter((item) => item.unread).slice(0, 4)
+  const withAttachments = rows.filter((item) => item.attachmentCount > 0).slice(0, 4)
+  return (
+    <aside className="iu-mail-inspector">
+      <Panel title="Cabina email" subtitle="Posta ordinaria separata dalla PEC" icon={<Mail size={17} />}>
+        <div className="iu-mail-briefing">
+          <article>
+            <span>Da leggere</span>
+            <strong>{data.summary.unread}</strong>
+            <small>Messaggi ordinari non ancora lavorati.</small>
+          </article>
+          <article>
+            <span>Allegati</span>
+            <strong>{data.summary.attachments}</strong>
+            <small>File recuperati dalla casella ordinaria.</small>
+          </article>
+        </div>
+      </Panel>
+      <Panel title="Email da leggere" icon={<MailCheck size={17} />} count={unread.length}>
+        {unread.length ? (
+          <div className="iu-mail-alerts">
+            {unread.map((item) => (
+              <a href={item.detailHref} key={item.id}>
+                <Badge tone="primary">non letta</Badge>
+                <strong>{item.subject}</strong>
+                <span>{rowPerson(item)}</span>
+              </a>
+            ))}
+          </div>
+        ) : <p className="iu-empty">Nessuna email ordinaria non letta nella vista corrente.</p>}
+      </Panel>
+      <Panel title="Allegati recenti" icon={<Paperclip size={17} />} count={withAttachments.length}>
+        {withAttachments.length ? (
+          <div className="iu-mail-alerts">
+            {withAttachments.map((item) => (
+              <a href={item.detailHref} key={item.id}>
+                <Badge tone="orange">{item.attachmentCount} allegati</Badge>
+                <strong>{item.subject}</strong>
+                <span>{item.timeLabel}</span>
+              </a>
+            ))}
+          </div>
+        ) : <p className="iu-empty">Nessun allegato nella vista corrente.</p>}
+      </Panel>
+      <Panel title="Azioni rapide" icon={<Sparkles size={17} />}>
+        <div className="iu-mail-quick-actions">
+          <a href={data.actions.compose}><Send size={15} /> Nuova email</a>
+          <a href={data.actions.settings}><Settings2 size={15} /> Parametri SMTP/IMAP</a>
+          <a href={data.actions.sync}><RefreshCw size={15} /> Aggiorna casella</a>
+          <a href={data.actions.lex}><Sparkles size={15} /> Chiedi a Lex</a>
+        </div>
+      </Panel>
+    </aside>
+  )
+}
+
+function MailboxStats({ data, mode }: { data: EmailPecPageData; mode: MailboxMode }) {
+  if (mode === 'ordinaria') {
+    return (
+      <section className="iu-mail-stats" aria-label={mailboxCopy.ordinaria.statsAria}>
+        <StatCard icon={<Mail size={19} />} label="Totali" value={data.summary.total} note="email ordinarie archiviate" tone="primary" />
+        <StatCard icon={<Inbox size={19} />} label="In arrivo" value={data.summary.inbox} note="ricevute via IMAP" tone="info" />
+        <StatCard icon={<MailCheck size={19} />} label="Non lette" value={data.summary.unread} note="da lavorare" tone={data.summary.unread ? 'warning' : 'success'} />
+        <StatCard icon={<Send size={19} />} label="Inviate" value={data.summary.sent} note="email inviate dallo studio" tone="success" />
+        <StatCard icon={<Trash2 size={19} />} label="Cestino" value={data.summary.trash} note="spostate localmente" tone="neutral" />
+        <StatCard icon={<Paperclip size={19} />} label="Allegati" value={data.summary.attachments} note="file recuperati" tone="orange" />
+      </section>
+    )
+  }
+  return (
+    <section className="iu-mail-stats" aria-label={mailboxCopy.pec.statsAria}>
+      <StatCard icon={<Mail size={19} />} label="Totali" value={data.summary.total} note="messaggi archiviati" tone="primary" />
+      <StatCard icon={<Inbox size={19} />} label="In arrivo" value={data.summary.inbox} note="ricevute in casella" tone="info" />
+      <StatCard icon={<MailCheck size={19} />} label="Non lette" value={data.summary.unread} note="da lavorare" tone={data.summary.unread ? 'warning' : 'success'} />
+      <StatCard icon={<Send size={19} />} label="Inviate" value={data.summary.sent} note="PEC inviate dallo studio" tone="success" />
+      <StatCard icon={<Trash2 size={19} />} label="Cestino" value={data.summary.trash} note="spostate localmente" tone="neutral" />
+      <StatCard icon={<ShieldCheck size={19} />} label="PST/PCT" value={data.summary.pst} note="messaggi telematici" tone="purple" />
+      <StatCard icon={<Paperclip size={19} />} label="Allegati" value={data.summary.attachments} note="file recuperati" tone="orange" />
+      <StatCard icon={<CheckCircle2 size={19} />} label="Collegate" value={data.summary.autoLinked} note="auto-esiti registrati" tone="success" />
+    </section>
+  )
+}
+
+function EmailMailboxPage({ mode }: { mode: MailboxMode }) {
+  const copy = mailboxCopy[mode]
+  const [data, setData] = useState<EmailPecPageData>(copy.emptyData)
   const [loading, setLoading] = useState(true)
   const [folder, setFolder] = useState<EmailFolder>('INBOX')
   const [query, setQuery] = useState('')
@@ -296,12 +469,22 @@ export function EmailPecPage() {
   const [onlyAttachments, setOnlyAttachments] = useState(false)
   const [pctStatus, setPctStatus] = useState('')
   const [advancedOpen, setAdvancedOpen] = useState(false)
-  const [selectedId, setSelectedId] = useState(routeEmailId())
+  const [selectedId, setSelectedId] = useState(routeEmailId(mode))
   const [statusLine, setStatusLine] = useState('')
+
+  const fetchPage = mode === 'ordinaria' ? getEmailOrdinariaPage : getEmailPecPage
+  const fetchParams = {
+    folder,
+    q: query,
+    stato: status,
+    pst: copy.includeTelematic ? onlyPst : false,
+    conAllegati: onlyAttachments,
+    statoPct: copy.includeTelematic ? pctStatus : '',
+  }
 
   const load = () => {
     setLoading(true)
-    getEmailPecPage({ folder, q: query, stato: status, pst: onlyPst, conAllegati: onlyAttachments, statoPct: pctStatus })
+    fetchPage(fetchParams)
       .then(setData)
       .finally(() => setLoading(false))
   }
@@ -309,7 +492,7 @@ export function EmailPecPage() {
   useEffect(() => {
     let active = true
     setLoading(true)
-    getEmailPecPage({ folder, q: query, stato: status, pst: onlyPst, conAllegati: onlyAttachments, statoPct: pctStatus })
+    fetchPage(fetchParams)
       .then((payload) => { if (active) setData(payload) })
       .finally(() => { if (active) setLoading(false) })
     return () => { active = false }
@@ -323,13 +506,13 @@ export function EmailPecPage() {
       setSelectedId('')
       return
     }
-    const routeId = routeEmailId()
+    const routeId = routeEmailId(mode)
     if (routeId && visible.some((item) => item.id === routeId)) {
       setSelectedId(routeId)
       return
     }
     if (!visible.some((item) => item.id === selectedId)) setSelectedId(visible[0].id)
-  }, [selectedId, visible])
+  }, [mode, selectedId, visible])
 
   const runAction = (url: string, label: string) => {
     setStatusLine(`${label} in corso...`)
@@ -341,109 +524,111 @@ export function EmailPecPage() {
       .catch((error) => setStatusLine(error instanceof Error ? error.message : `${label}: errore operativo`))
   }
 
-  const runSync = () => runAction(data.actions.sync, 'Sincronizzazione PEC')
-  const runAutoEsiti = () => runAction(data.actions.autoEsiti, 'Auto-esiti')
+  const runSync = () => runAction(data.actions.sync, copy.syncLabel)
+  const runAutoEsiti = () => {
+    if (data.actions.autoEsiti) runAction(data.actions.autoEsiti, 'Auto-esiti')
+  }
+  const sortOptions = (copy.includeTelematic ? Object.keys(sortLabels) : ['recenti', 'mittente', 'oggetto']) as SortKey[]
 
   return (
     <main className="iu-content iu-email-page">
       <section className="iu-mail-hero">
         <div>
-          <span className="iu-mail-eyebrow"><ShieldCheck size={16}/> Email PEC</span>
-          <h1>Casella PEC dello studio</h1>
-          <p>Posta certificata, messaggi PST, allegati, esiti PCT e comunicazioni di cancelleria in una vista professionale unica.</p>
+          <span className="iu-mail-eyebrow">{copy.includeTelematic ? <ShieldCheck size={16} /> : <Mail size={16} />} {copy.eyebrow}</span>
+          <h1>{copy.heroTitle}</h1>
+          <p>{copy.heroText}</p>
         </div>
         <div className="iu-mail-hero__actions">
-          <Button href={data.actions.operationalInbox}><Archive size={15}/> Apri casella</Button>
-          <Button href={data.actions.settings}><Settings2 size={15}/> Impostazioni</Button>
-          <button type="button" onClick={runAutoEsiti}><Sparkles size={15}/> Auto-esiti</button>
-          <button type="button" onClick={runSync}><RefreshCw size={15}/> Aggiorna</button>
-          <Button variant="primary" href={data.actions.compose}><Send size={16}/> Componi PEC</Button>
+          <Button href={data.actions.operationalInbox}><Archive size={15} /> {copy.openLabel}</Button>
+          <Button href={data.actions.settings}><Settings2 size={15} /> Impostazioni</Button>
+          {data.actions.autoEsiti ? <button type="button" onClick={runAutoEsiti}><Sparkles size={15} /> Auto-esiti</button> : null}
+          <button type="button" onClick={runSync}><RefreshCw size={15} /> Aggiorna</button>
+          <Button variant="primary" href={data.actions.compose}><Send size={16} /> {copy.composeLabel}</Button>
         </div>
       </section>
 
-      <section className="iu-mail-stats" aria-label="Indicatori email PEC">
-        <StatCard icon={<Mail size={19}/>} label="Totali" value={data.summary.total} note="messaggi archiviati" tone="primary"/>
-        <StatCard icon={<Inbox size={19}/>} label="In arrivo" value={data.summary.inbox} note="ricevute in casella" tone="info"/>
-        <StatCard icon={<MailCheck size={19}/>} label="Non lette" value={data.summary.unread} note="da lavorare" tone={data.summary.unread ? 'warning' : 'success'}/>
-        <StatCard icon={<Send size={19}/>} label="Inviate" value={data.summary.sent} note="PEC inviate dallo studio" tone="success"/>
-        <StatCard icon={<Trash2 size={19}/>} label="Cestino" value={data.summary.trash} note="spostate localmente" tone="neutral"/>
-        <StatCard icon={<ShieldCheck size={19}/>} label="PST/PCT" value={data.summary.pst} note="messaggi telematici" tone="purple"/>
-        <StatCard icon={<Paperclip size={19}/>} label="Allegati" value={data.summary.attachments} note="file recuperati" tone="orange"/>
-        <StatCard icon={<CheckCircle2 size={19}/>} label="Collegate" value={data.summary.autoLinked} note="auto-esiti registrati" tone="success"/>
-      </section>
+      <MailboxStats data={data} mode={mode} />
 
-      <section className="iu-mail-toolbar" aria-label="Filtri casella PEC">
-        <FolderTabs data={data} folder={folder} onChange={setFolder}/>
-        <label className="iu-mail-search"><Search size={17}/><input value={query} onChange={(event) => setQuery(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') load() }} placeholder="Cerca mittente, destinatario, oggetto, RG, esito..."/></label>
-        <button className="iu-mail-filter-btn" type="button" onClick={() => setAdvancedOpen((value) => !value)} aria-expanded={advancedOpen}><SlidersHorizontal size={16}/> Filtri</button>
-        <button className="iu-mail-icon-btn" type="button" onClick={load} aria-label="Aggiorna vista"><RefreshCw size={17}/></button>
+      <section className="iu-mail-toolbar" aria-label={copy.filtersAria}>
+        <FolderTabs data={data} folder={folder} onChange={setFolder} ariaLabel={copy.folderAria} />
+        <label className="iu-mail-search"><Search size={17} /><input value={query} onChange={(event) => setQuery(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') load() }} placeholder="Cerca mittente, destinatario, oggetto, riferimento..." /></label>
+        <button className="iu-mail-filter-btn" type="button" onClick={() => setAdvancedOpen((value) => !value)} aria-expanded={advancedOpen}><SlidersHorizontal size={16} /> Filtri</button>
+        <button className="iu-mail-icon-btn" type="button" onClick={load} aria-label="Aggiorna vista"><RefreshCw size={17} /></button>
       </section>
 
       {advancedOpen ? (
-        <section className="iu-mail-advanced" aria-label="Filtri avanzati email PEC">
+        <section className="iu-mail-advanced" aria-label={`Filtri avanzati ${copy.title}`}>
           <label><span>Stato lettura</span><select value={status} onChange={(event) => setStatus(event.target.value as EmailStatus)}>{data.facets.statuses.map((facet) => <option value={facet.value} key={facet.value}>{facet.label} ({facet.count})</option>)}</select></label>
-          <label><span>Esito PCT</span><select value={pctStatus} onChange={(event) => setPctStatus(event.target.value)}>{data.facets.pctStatuses.map((facet) => <option value={facet.value} key={facet.value || 'all'}>{facet.label} ({facet.count})</option>)}</select></label>
-          <label><span>Ordinamento</span><select value={sort} onChange={(event) => setSort(event.target.value as SortKey)}>{(Object.keys(sortLabels) as SortKey[]).map((item) => <option value={item} key={item}>{sortLabels[item]}</option>)}</select></label>
-          <label className="iu-mail-check"><input type="checkbox" checked={onlyPst} onChange={(event) => setOnlyPst(event.target.checked)}/><span>Solo PEC/PST</span></label>
-          <label className="iu-mail-check"><input type="checkbox" checked={onlyAttachments} onChange={(event) => setOnlyAttachments(event.target.checked)}/><span>Solo con allegati</span></label>
+          {copy.includeTelematic ? <label><span>Esito PCT</span><select value={pctStatus} onChange={(event) => setPctStatus(event.target.value)}>{data.facets.pctStatuses.map((facet) => <option value={facet.value} key={facet.value || 'all'}>{facet.label} ({facet.count})</option>)}</select></label> : null}
+          <label><span>Ordinamento</span><select value={sort} onChange={(event) => setSort(event.target.value as SortKey)}>{sortOptions.map((item) => <option value={item} key={item}>{sortLabels[item]}</option>)}</select></label>
+          {copy.includeTelematic ? <label className="iu-mail-check"><input type="checkbox" checked={onlyPst} onChange={(event) => setOnlyPst(event.target.checked)} /><span>Solo PEC/PST</span></label> : null}
+          <label className="iu-mail-check"><input type="checkbox" checked={onlyAttachments} onChange={(event) => setOnlyAttachments(event.target.checked)} /><span>Solo con allegati</span></label>
           <button type="button" onClick={() => { setStatus('tutti'); setOnlyPst(false); setOnlyAttachments(false); setPctStatus(''); setQuery('') }}>Reset</button>
         </section>
       ) : null}
 
       <section className="iu-mail-status-line">
-        <span className={loading ? '' : 'is-ok'}>{loading ? 'Sincronizzazione vista PEC...' : 'Dati PEC aggiornati'}</span>
-        <small><Clock3 size={14}/> Le azioni di invio, sincronizzazione e fascicolazione restano sui servizi backend già auditati.</small>
+        <span className={loading ? '' : 'is-ok'}>{loading ? copy.syncingLabel : copy.updatedLabel}</span>
+        <small><Clock3 size={14} /> Le azioni restano sui servizi backend già auditati e separati per PEC/email ordinaria.</small>
         {statusLine ? <small className="iu-mail-operation-status">{statusLine}</small> : null}
       </section>
 
       <section className="iu-mail-layout">
         <div className="iu-mail-list-card">
           <header>
-            <div><strong>{visible.length} messaggi</strong><span>{folderLabel(folder)} · {sourceLabel(data.source)}</span></div>
-            <a href={`/email/?cartella=${folder}`}><Download size={15}/> Apri cartella</a>
+            <div><strong>{visible.length} messaggi</strong><span>{folderLabel(folder)} · {sourceLabel(data.source, copy.sourceFallback)}</span></div>
+            <a href={`${data.actions.operationalInbox}?cartella=${folder}`}><Download size={15} /> Apri cartella</a>
           </header>
           <div className="iu-mail-list">
-            {visible.map((item) => <EmailListRow item={item} selected={selected?.id === item.id} onSelect={() => setSelectedId(item.id)} key={item.id}/>) }
+            {visible.map((item) => <EmailListRow item={item} selected={selected?.id === item.id} onSelect={() => setSelectedId(item.id)} includeTelematic={copy.includeTelematic} fallbackInitials={mode === 'pec' ? 'PEC' : 'EM'} key={item.id} />)}
             {!visible.length ? (
               <div className="iu-mail-empty">
-                <Mail size={34}/>
-                <strong>Nessuna PEC nella vista corrente</strong>
-                <span>Prova ad aggiornare IMAP, cambiare cartella o rimuovere i filtri.</span>
+                <Mail size={34} />
+                <strong>{copy.emptyTitle}</strong>
+                <span>{copy.emptyText}</span>
               </div>
             ) : null}
           </div>
         </div>
-        <EmailPreview item={selected} onAction={runAction}/>
-        <Inspector data={data} rows={visible}/>
+        <EmailPreview item={selected} onAction={runAction} copy={copy} />
+        {mode === 'pec' ? <PecInspector data={data} rows={visible} /> : <OrdinaryInspector data={data} rows={visible} />}
       </section>
 
       <section className="iu-mail-lower-grid">
-        <Panel title="Qualità PEC" subtitle="Controlli prima di deposito, cancelleria e fascicolo" icon={<ShieldCheck size={17}/>}>
+        <Panel title={mode === 'pec' ? 'Qualità PEC' : 'Qualità email'} subtitle={mode === 'pec' ? 'Controlli prima di deposito, cancelleria e fascicolo' : 'Controlli su casella ordinaria, allegati e risposte'} icon={<ShieldCheck size={17} />}>
           <div className="iu-mail-checklist">
-            <span><CheckCircle2 size={16}/> In arrivo, inviate e cestino restano visibili come cartelle distinte.</span>
-            <span><FileCheck2 size={16}/> PEC/PST ed esiti PCT sono evidenziati senza aprire ogni messaggio.</span>
-            <span><Paperclip size={16}/> Allegati e anteprima restano accessibili dalla vista rapida.</span>
+            <span><CheckCircle2 size={16} /> In arrivo, inviate e cestino restano visibili come cartelle distinte.</span>
+            <span><FileCheck2 size={16} /> {mode === 'pec' ? 'PEC/PST ed esiti PCT sono evidenziati senza aprire ogni messaggio.' : 'La posta ordinaria resta separata dalla PEC e dalla telematica.'}</span>
+            <span><Paperclip size={16} /> Allegati e anteprima restano accessibili dalla vista rapida.</span>
           </div>
         </Panel>
-        <Panel title="Integrazioni operative" subtitle="Fascicoli, comunicazioni e Lex" icon={<Sparkles size={17}/>}>
+        <Panel title="Integrazioni operative" subtitle="Fascicoli, comunicazioni e Lex" icon={<Sparkles size={17} />}>
           <div className="iu-mail-integrations">
             <a href="/fascicoli">Fascicoli</a>
-            <a href="/telematico">Servizi telematici</a>
-            <a href="/deposito/checklist">Checklist deposito</a>
-            <a href="/lex?context=email-pec">Lex su PEC</a>
+            <a href={mode === 'pec' ? '/telematico' : '/messaggi'}>{mode === 'pec' ? 'Servizi telematici' : 'Messaggi'}</a>
+            <a href={mode === 'pec' ? '/deposito/checklist' : '/clienti'}>{mode === 'pec' ? 'Checklist deposito' : 'Clienti'}</a>
+            <a href={data.actions.lex}>Lex su {mode === 'pec' ? 'PEC' : 'email'}</a>
           </div>
         </Panel>
       </section>
 
       <FloatingLex
-        context="email-pec"
-        title="Lex AI PEC"
-        body="Posso leggere il contesto della PEC selezionata, preparare risposta, estrarre RG, suggerire fascicolo e verificare esito PCT o comunicazione di cancelleria."
-        primaryHref="/lex?context=email-pec"
-        primaryLabel="Apri Lex sulla PEC"
+        context={copy.lexContext}
+        title={copy.lexTitle}
+        body={copy.lexBody}
+        primaryHref={data.actions.lex}
+        primaryLabel={copy.lexPrimaryLabel}
         secondaryHref="/fascicoli"
         secondaryLabel="Vai ai fascicoli"
       />
     </main>
   )
+}
+
+export function EmailPecPage() {
+  return <EmailMailboxPage mode="pec" />
+}
+
+export function EmailOrdinariaPage() {
+  return <EmailMailboxPage mode="ordinaria" />
 }

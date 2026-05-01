@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.198.32 - 2026-05-01
+
+- Limitato il controllo Local Signer ai soli PC desktop Windows, macOS e Linux: su mobile e tablet il monitor globale post-login non esegue ping verso `127.0.0.1`, non tenta il protocollo `hacs-local-signer://restart` e non mostra prompt di installazione.
+- Aggiornate le schermate Impostazioni PEC/Firma e il wizard telematico React per bloccare il controllo Local Signer su dispositivi mobile/tablet con messaggio chiaro e senza tentativi di avvio locale.
+- Aggiunti test di regressione su monitor globale, Impostazioni e wizard telematico per impedire il ritorno del falso controllo Local Signer su mobile/tablet.
+
 ## 2.198.29 - 2026-05-01
 
 - Ripristinato il comportamento corretto dei tab operativi `Impostazioni -> Firma Digitale` e `Impostazioni -> PEC`: il gate React non li intercetta finche' download Local Signer, verifica browser-locale e test PEC locale non sono migrati integralmente in React.

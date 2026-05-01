@@ -1110,8 +1110,11 @@ def test_react_wizard_pst_verifica_local_signer_dal_browser():
     assert "data.localSigner.browserUrl" in source
     assert "/ping?light=1" in source
     assert "hacs-local-signer://restart" in source
+    assert "isDesktopLocalSignerHost" in source
+    assert "portalNeedsLocalSigner && !localSignerDesktopSupported" in source
+    assert "Da mobile o tablet il controllo non viene eseguito" in source
     assert "Local Signer non rilevato su questo PC" in source
-    assert "disabled={!localSigner.ok}" in source
+    assert "disabled={localSigner.checking || localSigner.unsupported}" in source
 
 
 def test_react_wizard_acquisizione_portale_usa_endpoint_operativi_reali(tmp_path: Path):

@@ -606,6 +606,10 @@ def test_ui_pec_locale_auto_avvia_signer_e_mostra_pacchetto():
     assert "hacs-local-signer://restart" in script
     assert "hacs-local-signer://restart" in firma_script
     assert "hacs-local-signer://restart" in ai_script
+    assert "isDesktopLocalSignerHost" in script
+    assert "isDesktopLocalSignerHost" in firma_script
+    assert "Da mobile o tablet il controllo non viene eseguito" in script
+    assert "Da mobile o tablet il controllo non viene eseguito" in firma_script
     assert "localSignerOutdatedHtml" in script
     assert "compareVersions" in script
     assert "viene inviata solo al Local Signer su questo dispositivo" in script

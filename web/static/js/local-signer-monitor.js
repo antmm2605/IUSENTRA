@@ -50,6 +50,14 @@
     return 'windows';
   }
 
+  function isDesktopLocalSignerHost() {
+    const ua = String(window.navigator.userAgent || '').toLowerCase();
+    const platformName = String(window.navigator.platform || '').toLowerCase();
+    const isMobileOrTablet = /android|iphone|ipad|ipod|mobile|tablet|silk|kindle/.test(ua);
+    const isIpadDesktopMode = platformName.includes('mac') && Number(window.navigator.maxTouchPoints || 0) > 1;
+    return !isMobileOrTablet && !isIpadDesktopMode;
+  }
+
   function installerFor(cfg) {
     const current = platform();
     if (current === 'macos') {
@@ -244,6 +252,10 @@
     if (!cfg.enabled || !cfg.latestVersion) {
       return { ok: false, reason: 'disabled' };
     }
+    if (!isDesktopLocalSignerHost()) {
+      hideBanner();
+      return { ok: false, reason: 'unsupported_mobile_tablet' };
+    }
 
     const installer = installerFor(cfg);
     let payload = await ping(cfg);
@@ -323,6 +335,7 @@
     run: run,
     compareVersions: compareVersions,
     installerFor: installerFor,
+    isDesktopLocalSignerHost: isDesktopLocalSignerHost,
   };
 
   document.addEventListener('DOMContentLoaded', function () {

@@ -32,6 +32,14 @@
     });
   }
 
+  function isDesktopLocalSignerHost() {
+    const userAgent = String(window.navigator.userAgent || '').toLowerCase();
+    const platformName = String(window.navigator.platform || '').toLowerCase();
+    const isMobileOrTablet = /android|iphone|ipad|ipod|mobile|tablet|silk|kindle/.test(userAgent);
+    const isIpadDesktopMode = platformName.includes('mac') && Number(window.navigator.maxTouchPoints || 0) > 1;
+    return !isMobileOrTablet && !isIpadDesktopMode;
+  }
+
   function localSignerDownloadLink() {
     const userAgent = (navigator.userAgent || '').toLowerCase();
     let id = 'btn-local-signer-windows';
@@ -84,6 +92,13 @@
   }
 
   async function ensureLocalSignerReady(risultato) {
+    if (!isDesktopLocalSignerHost()) {
+      risultato.innerHTML =
+        '<span class="text-warning"><i class="bi bi-exclamation-triangle me-1"></i>' +
+        'Local Signer disponibile solo su PC desktop Windows, macOS o Linux. Da mobile o tablet il controllo non viene eseguito.' +
+        '</span>';
+      return false;
+    }
     if (await pingLocalSigner()) {
       return true;
     }

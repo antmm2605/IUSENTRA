@@ -1035,6 +1035,9 @@ def test_local_signer_monitor_globale_verifica_versione_e_installer():
 
     assert "http://127.0.0.1:27272" in monitor_js
     assert "hacs-local-signer://restart" in monitor_js
+    assert "isDesktopLocalSignerHost" in monitor_js
+    assert "unsupported_mobile_tablet" in monitor_js
+    assert "hideBanner();" in monitor_js
     assert "compareVersions" in monitor_js
     assert "Fase 1: provo ad avviare" in monitor_js
     assert "Fase 2: versione rilevata" in monitor_js

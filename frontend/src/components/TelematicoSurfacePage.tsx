@@ -136,6 +136,7 @@ type BrowserLocalSignerStatus = {
   checking: boolean
   ok: boolean
   outdated: boolean
+  unsupported: boolean
   version: string
   tokenLabel: string
   message: string
@@ -636,7 +637,17 @@ function localSignerInstallHref(data: TelematicoSurfaceData): string {
   return data.localSigner.windowsUrl
 }
 
+function isDesktopLocalSignerHost(): boolean {
+  if (typeof navigator === 'undefined') return true
+  const userAgent = String(navigator.userAgent || '').toLowerCase()
+  const platformName = String(navigator.platform || '').toLowerCase()
+  const isMobileOrTablet = /android|iphone|ipad|ipod|mobile|tablet|silk|kindle/.test(userAgent)
+  const isIpadDesktopMode = platformName.includes('mac') && Number(navigator.maxTouchPoints || 0) > 1
+  return !isMobileOrTablet && !isIpadDesktopMode
+}
+
 function requestLocalSignerStart() {
+  if (!isDesktopLocalSignerHost()) return
   const iframe = document.createElement('iframe')
   iframe.hidden = true
   iframe.src = 'hacs-local-signer://restart'
@@ -818,14 +829,18 @@ function AcquisitionWizard({
     grado: '',
   })
   const [officeTypeFilter, setOfficeTypeFilter] = useState('tutti')
+  const localSignerDesktopSupported = useMemo(() => isDesktopLocalSignerHost(), [])
   const [localSigner, setLocalSigner] = useState<BrowserLocalSignerStatus>({
     checked: false,
     checking: false,
     ok: false,
     outdated: false,
+    unsupported: !isDesktopLocalSignerHost(),
     version: '',
     tokenLabel: '',
-    message: 'Controllo Local Signer non ancora eseguito su questo PC.',
+    message: isDesktopLocalSignerHost()
+      ? 'Controllo Local Signer non ancora eseguito su questo PC.'
+      : 'Local Signer disponibile solo su PC desktop Windows, macOS o Linux. Da mobile o tablet il controllo non viene eseguito.',
   })
 
   useEffect(() => {
@@ -843,6 +858,19 @@ function AcquisitionWizard({
   }, [portal, visible])
 
   const checkLocalSigner = async (tryStart = false) => {
+    if (!localSignerDesktopSupported) {
+      setLocalSigner({
+        checked: true,
+        checking: false,
+        ok: false,
+        outdated: false,
+        unsupported: true,
+        version: '',
+        tokenLabel: '',
+        message: 'Local Signer disponibile solo su PC desktop Windows, macOS o Linux. Da mobile o tablet il controllo non viene eseguito.',
+      })
+      return
+    }
     if (tryStart) requestLocalSignerStart()
     setLocalSigner((current) => ({
       ...current,
@@ -869,6 +897,7 @@ function AcquisitionWizard({
         checking: false,
         ok: response.ok && Boolean(payload.ok !== false) && !outdated,
         outdated,
+        unsupported: false,
         version,
         tokenLabel,
         message: outdated
@@ -883,6 +912,7 @@ function AcquisitionWizard({
         checking: false,
         ok: false,
         outdated: false,
+        unsupported: false,
         version: '',
         tokenLabel: '',
         message: 'Local Signer non rilevato su questo PC. Avvialo o installa il pacchetto aggiornato, poi ripeti la verifica.',
@@ -895,7 +925,8 @@ function AcquisitionWizard({
   const updateQuery = (key: keyof AcquisitionQuery, value: string) => setQuery((current) => ({ ...current, [key]: value }))
   const updateOption = (key: keyof AcquisitionOptions, value: boolean) => setOptions((current) => ({ ...current, [key]: value }))
   const updateMapping = (key: keyof AcquisitionMapping, value: string) => setMapping((current) => ({ ...current, [key]: value }))
-  const requiresBrowserLocalSigner = ['pst', 'pdp', 'pat', 'ptt'].includes(portal)
+  const portalNeedsLocalSigner = ['pst', 'pdp', 'pat', 'ptt'].includes(portal)
+  const requiresBrowserLocalSigner = portalNeedsLocalSigner && localSignerDesktopSupported
 
   const officeTypes = useMemo(() => ['tutti', ...Array.from(new Set(data.offices.map((office) => office.tipo).filter(Boolean))).sort()], [data.offices])
   const officeMatches = useMemo(() => {
@@ -953,6 +984,11 @@ function AcquisitionWizard({
   })
 
   const runSearch = async () => {
+    if (portalNeedsLocalSigner && !localSignerDesktopSupported) {
+      setStep(1)
+      setMessage('Il canale Local Signer è disponibile solo da PC desktop Windows, macOS o Linux. Da mobile o tablet il controllo non viene eseguito.')
+      return
+    }
     if (requiresBrowserLocalSigner && !localSigner.ok) {
       setStep(1)
       setMessage('Local Signer non pronto sul PC: avvialo o aggiornalo, poi premi di nuovo Cerca fascicolo.')
@@ -1129,15 +1165,15 @@ function AcquisitionWizard({
               <div className="iu-tel-acq-status">
                 <span><strong>Canale</strong>{portalLabel(portal)}</span>
                 <span><strong>Stato</strong>{asText(status.status_text || status.label || status.mode, 'Da verificare')}</span>
-                <span><strong>Local Signer</strong>{localSigner.ok ? 'Rilevato sul PC' : localSigner.outdated ? 'Da aggiornare' : 'Da verificare dal browser'}</span>
-                <button type="button" disabled={localSigner.checking} onClick={() => checkLocalSigner(false)}>
+                <span><strong>Local Signer</strong>{localSigner.unsupported ? 'Solo desktop' : localSigner.ok ? 'Rilevato sul PC' : localSigner.outdated ? 'Da aggiornare' : 'Da verificare dal browser'}</span>
+                <button type="button" disabled={localSigner.checking || localSigner.unsupported} onClick={() => checkLocalSigner(false)}>
                   <RefreshCw size={15}/> {localSigner.checking ? 'Verifica...' : 'Verifica Local Signer'}
                 </button>
               </div>
               <div className={`iu-tel-local-signer-card ${localSigner.ok ? 'is-ok' : localSigner.outdated ? 'is-warning' : 'is-missing'}`}>
                 <ShieldCheck size={18}/>
                 <div>
-                  <strong>{localSigner.ok ? 'Local Signer pronto' : localSigner.outdated ? 'Aggiornamento richiesto' : 'Controllo locale richiesto'}</strong>
+                  <strong>{localSigner.unsupported ? 'Disponibile solo su desktop' : localSigner.ok ? 'Local Signer pronto' : localSigner.outdated ? 'Aggiornamento richiesto' : 'Controllo locale richiesto'}</strong>
                   <span>{localSigner.message}</span>
                   <small>
                     Endpoint browser: {data.localSigner.browserUrl}
@@ -1148,8 +1184,8 @@ function AcquisitionWizard({
                 </div>
               </div>
               <div className="iu-tel-acq-actions">
-                <button type="button" onClick={() => checkLocalSigner(true)}><RefreshCw size={15}/> Avvia e verifica</button>
-                <a href={localSignerInstallHref(data)}><Download size={15}/> Installa o aggiorna</a>
+                <button type="button" disabled={localSigner.unsupported} onClick={() => checkLocalSigner(true)}><RefreshCw size={15}/> Avvia e verifica</button>
+                {localSigner.unsupported ? null : <a href={localSignerInstallHref(data)}><Download size={15}/> Installa o aggiorna</a>}
                 <button type="button" disabled={!localSigner.ok} onClick={() => setStep(2)}><ArrowRight size={15}/> Vai alla ricerca</button>
               </div>
             </Panel>
@@ -1157,7 +1193,12 @@ function AcquisitionWizard({
 
           {step === 2 ? (
             <Panel title="Step 2 - Ricerca fascicolo" subtitle="Cerca l'ufficio mentre scrivi e usa i filtri del portale" icon={<Search size={17}/>}>
-              {requiresBrowserLocalSigner && !localSigner.ok ? (
+              {portalNeedsLocalSigner && !localSignerDesktopSupported ? (
+                <div className="iu-tel-local-signer-inline">
+                  <ShieldCheck size={16}/>
+                  <span>Local Signer è disponibile solo da PC desktop Windows, macOS o Linux. Da mobile o tablet il controllo non viene eseguito.</span>
+                </div>
+              ) : requiresBrowserLocalSigner && !localSigner.ok ? (
                 <div className="iu-tel-local-signer-inline">
                   <ShieldCheck size={16}/>
                   <span>Local Signer non pronto sul PC. Avvialo o aggiornalo, poi ripeti la ricerca.</span>
@@ -1211,7 +1252,7 @@ function AcquisitionWizard({
                 <label className="iu-tel-acq-form__wide"><span>Oggetto / materia</span><input value={query.oggetto} onChange={(event) => updateQuery('oggetto', event.currentTarget.value)} placeholder="Oggetto, materia, reato, rito..."/></label>
               </div>
               <div className="iu-tel-acq-actions">
-                <button type="button" disabled={busy === 'search' || (requiresBrowserLocalSigner && !localSigner.ok)} onClick={runSearch}><Search size={15}/> Cerca fascicolo</button>
+                <button type="button" disabled={busy === 'search' || (portalNeedsLocalSigner && (!localSignerDesktopSupported || !localSigner.ok))} onClick={runSearch}><Search size={15}/> Cerca fascicolo</button>
                 <button type="button" disabled={!selection || busy === 'preview'} onClick={runPreview}><FileText size={15}/> Carica anteprima</button>
               </div>
               <div className="iu-tel-acq-results">

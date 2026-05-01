@@ -38,11 +38,12 @@ PORTAL_DESCRIPTIONS = {
 PORTAL_TONES = {"pst": "primary", "pdp": "danger", "pat": "success", "ptt": "warning"}
 PORTAL_HOME_ENDPOINTS = {"pst": "polisWeb_home", "pdp": "pdp_home", "pat": "pat_home", "ptt": "sigit_home"}
 PORTAL_HOME_FALLBACKS = {"pst": "/polisWeb", "pdp": "/pdp", "pat": "/pat", "ptt": "/sigit/ricerca"}
+PORTAL_SURFACE_IDS = {"pst": "polisweb", "pdp": "pdp", "pat": "pat", "ptt": "ptt"}
 PORTAL_IMPORT_FALLBACKS = {
-    "pst": "/portali/pst/acquisizione",
-    "pdp": "/portali/pdp/acquisizione",
-    "pat": "/portali/pat/acquisizione",
-    "ptt": "/portali/ptt/acquisizione",
+    "pst": "/app-v2/polisweb#acquisizione-portale",
+    "pdp": "/app-v2/pdp#acquisizione-portale",
+    "pat": "/app-v2/pat#acquisizione-portale",
+    "ptt": "/app-v2/ptt#acquisizione-portale",
 }
 PORTAL_IMPORT_LABELS = {
     "pst": "Importa pratica da PST",
@@ -231,6 +232,11 @@ def _app_v2_href(path: str) -> str:
     return f"/app-v2{clean}"
 
 
+def _portal_surface_href(portal: str, fragment: str = "") -> str:
+    surface_id = PORTAL_SURFACE_IDS.get(portal, portal)
+    return f"{_app_v2_href(surface_id)}{fragment}"
+
+
 def _surface_id(value: str) -> str:
     raw = _text(value).strip().lower().replace("_", "-").replace("/", "-")
     return SURFACE_ALIASES.get(raw, raw)
@@ -239,12 +245,8 @@ def _surface_id(value: str) -> str:
 def _build_channel(portal: str, stats: dict[str, Any], access_payload: dict[str, Any]) -> dict[str, Any]:
     spec = dict(access_payload.get("spec") or {})
     service_stats = dict((stats.get("per_service") or {}).get(SERVICE_MAP[portal]) or {})
-    home_href = _safe_url(PORTAL_HOME_ENDPOINTS[portal], PORTAL_HOME_FALLBACKS[portal])
-    import_href = _safe_url(
-        "portale_acquisizione_wizard",
-        f"/portali/{portal}/acquisizione",
-        portale=portal,
-    )
+    home_href = _portal_surface_href(portal)
+    import_href = _portal_surface_href(portal, "#acquisizione-portale")
     status_text = _text(access_payload.get("status_text"), "Da configurare")
     attention_needed = _int(service_stats.get("attention_needed"))
     tone = "warning" if attention_needed else PORTAL_TONES[portal]
@@ -270,9 +272,9 @@ def _build_channel(portal: str, stats: dict[str, Any], access_payload: dict[str,
         "pkcs11Mode": bool(access_payload.get("pkcs11_mode")),
         "badges": _channel_badges(access_payload),
         "quickActions": [
-            {"label": "Apri portale", "href": _app_v2_href(portal if portal != "ptt" else "ptt"), "tone": PORTAL_TONES[portal]},
+            {"label": "Apri superficie", "href": home_href, "tone": PORTAL_TONES[portal]},
             {"label": PORTAL_IMPORT_LABELS.get(portal, "Importa da portale"), "href": import_href, "tone": "primary"},
-            {"label": "Presidia", "href": f"/app-v2/telematico?focus={portal}", "tone": "warning"},
+            {"label": "Checklist", "href": f"{home_href}#checklist-operativa", "tone": "warning"},
         ],
     }
 
@@ -427,8 +429,8 @@ def _surface_card(
 def _portal_operation_cards(surface_id: str, portal: str, channel: dict[str, Any] | None) -> list[dict[str, Any]]:
     channel = dict(channel or {})
     tone = PORTAL_TONES.get(portal, "primary")
-    home_href = channel.get("homeHref") or PORTAL_HOME_FALLBACKS.get(portal, "/telematico")
-    import_href = channel.get("importHref") or PORTAL_IMPORT_FALLBACKS.get(portal, "/portali/pst/acquisizione")
+    home_href = channel.get("homeHref") or _portal_surface_href(portal)
+    import_href = channel.get("importHref") or PORTAL_IMPORT_FALLBACKS.get(portal, "/app-v2/polisweb#acquisizione-portale")
     official_href = PORTAL_OFFICIAL_URLS.get(portal, "")
     import_label = PORTAL_IMPORT_LABELS.get(portal, "Importa pratica da portale")
     import_body = PORTAL_IMPORT_DESCRIPTIONS.get(
@@ -464,13 +466,13 @@ def _portal_operation_cards(surface_id: str, portal: str, channel: dict[str, Any
             ],
         ),
         _surface_card(
-            "operativo",
-            "Modulo operativo storico",
-            "Mantiene disponibili le funzioni gia auditate mentre la UI React viene completata per livelli.",
+            "presidio-react",
+            "Presidio operativo React",
+            "Lavora su checklist, stato canale e portale ufficiale senza uscire dalla nuova superficie.",
             tone="neutral",
             icon="external",
             actions=[
-                _surface_action("legacy", "Apri modulo operativo", home_href, tone="neutral"),
+                _surface_action("surface", "Apri superficie", home_href, tone="neutral"),
                 _surface_action("official", "Portale ufficiale", official_href, tone=tone, external=True),
             ],
         ),
@@ -874,12 +876,12 @@ def build_react_tribunali_payload() -> dict[str, Any]:
                 ],
             ),
             _surface_card(
-                "legacy",
-                "Vista operativa storica",
-                "Resta disponibile per confronto tecnico durante la migrazione progressiva.",
+                "centro-react",
+                "Centro telematico React",
+                "Rientra nella cabina React che coordina PST, PDP, PAT, PTT, controlli e firma digitale.",
                 tone="neutral",
                 icon="external",
-                actions=[_surface_action("legacy", "Apri storico", "/tribunali?_legacy=1", tone="neutral")],
+                actions=[_surface_action("centro", "Apri centro", "/app-v2/telematico", tone="neutral")],
             ),
         ],
         "checklistGroups": [],

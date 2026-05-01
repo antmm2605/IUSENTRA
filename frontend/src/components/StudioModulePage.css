@@ -196,6 +196,7 @@
 }
 
 .iu-sm-card{
+  scroll-margin-top:96px;
   min-height:154px;
   display:grid;
   grid-template-columns:46px minmax(0,1fr);

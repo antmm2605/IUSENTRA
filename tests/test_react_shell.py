@@ -197,7 +197,14 @@ def test_react_blocco_finale_studio_admin_completo():
     assert "href: legacy('/fatturazione" not in module_source
     assert "href: legacy('/preventivi" not in module_source
     assert "href: legacy('/utenti" not in module_source
-    assert "href: legacy('/portali/pst/acquisizione')" in module_source
+    assert "href: '/app-v2/polisweb#acquisizione-portale'" in module_source
+    assert "href: '/app-v2/polisweb#checklist-operativa'" in module_source
+    assert "href: '/impostazioni-studio#dati-studio'" in module_source
+    assert "href: '/impostazioni-studio#pec-e-smtp'" in module_source
+    assert "href: '/impostazioni-studio#firma-digitale'" in module_source
+    assert "href: '/impostazioni-studio#ai-locale'" in module_source
+    assert "anchorForCard" in page_source
+    assert "scrollIntoView({ behavior: 'smooth', block: 'center' })" in page_source
     assert "data-pct-ai-drag-handle" in Path("web/templates/components/pct_ai_widget.html").read_text(encoding="utf-8")
     assert "iusentra:open-floating-lex" in Path("web/static/js/pct-lex-assistant.js").read_text(encoding="utf-8")
     assert ".iu-sm-cards" in page_css
@@ -772,14 +779,22 @@ def test_react_superfici_telematiche_collegate_nav_api_css():
     assert "const TelematicoSurfacePage" in app_source
     assert "isTelematicoSurfacePage" in app_source
     assert "isTelematicoSurfacePage?<TelematicoSurfacePage/>" in app_source
-    assert "{ label: 'PTT Tributario', icon: FileText, href: '/sigit' }" in app_source
-    assert "{ label: 'PolisWeb / PST', icon: CloudUpload, href: '/portali/pst/acquisizione' }" in app_source
-    assert "{ label: 'Panoramica PST', icon: FileText, href: '/polisWeb' }" in app_source
+    assert "function isTelematicoSurfaceRoute" in app_source
+    assert "route.startsWith('/portali/pst')" in app_source
+    assert "route.startsWith('/portali/pdp')" in app_source
+    assert "{ label: 'PTT Tributario', icon: FileText, href: '/app-v2/ptt' }" in app_source
+    assert "{ label: 'PolisWeb / PST', icon: CloudUpload, href: '/app-v2/polisweb' }" in app_source
+    assert "{ label: 'Panoramica PST', icon: FileText, href: '/app-v2/polisweb' }" in app_source
     assert "getTelematicoSurfacePage" in data_source
     assert "/api/v1/ui/telematico/surface/" in data_source
+    assert "route.startsWith('/portali/pdp')" in page_source
+    assert "route.startsWith('/portali/pst')" in page_source
     assert "OfficeDirectory" in page_source
     assert "SurfaceSidePanels" in page_source
     assert "iu-tel-tribunali-workspace" in page_source
+    assert 'id="acquisizione-portale"' in page_source
+    assert 'id="checklist-operativa"' in page_source
+    assert "scrollIntoView({ behavior: 'smooth', block: 'start' })" in page_source
     assert "Checklist operativa" in page_source
     assert "iu-tel-surface-hero__meta" in page_source
     assert "iu-tel-surface-hero__eyebrow" in page_source
@@ -810,7 +825,21 @@ def test_route_ufficiali_superfici_telematiche_servono_react_con_legacy(tmp_path
 
     with app.test_client() as client:
         _login(client)
-        for path in ("/polisWeb", "/pdp", "/pat", "/sigit", "/tribunali", "/deposito/checklist", "/guida/firma-digitale"):
+        for path in (
+            "/polisWeb",
+            "/app-v2/polisweb",
+            "/portali/pst/acquisizione",
+            "/pdp",
+            "/app-v2/pdp",
+            "/portali/pdp/acquisizione",
+            "/pat",
+            "/app-v2/pat",
+            "/sigit",
+            "/app-v2/ptt",
+            "/tribunali",
+            "/deposito/checklist",
+            "/guida/firma-digitale",
+        ):
             response = client.get(path)
             html = response.get_data(as_text=True)
             assert response.status_code == 200, path
@@ -850,9 +879,22 @@ def test_react_superfici_telematiche_api_payload_reale(tmp_path: Path):
     assert polisweb_payload["surface"]["portal"] == "pst"
     assert polisweb_payload["operationCards"][0]["id"] == "importa-pratica"
     assert polisweb_payload["operationCards"][0]["title"] == "Importa pratica da PST"
-    assert polisweb_payload["operationCards"][0]["actions"][0]["href"] == "/portali/pst/acquisizione"
+    assert polisweb_payload["operationCards"][0]["actions"][0]["href"] == "/app-v2/polisweb#acquisizione-portale"
     assert polisweb_payload["links"][1]["label"] == "Importa pratica da PST"
+    assert polisweb_payload["links"][1]["href"] == "/app-v2/polisweb#acquisizione-portale"
     assert polisweb_payload["channel"]["quickActions"][1]["label"] == "Importa pratica da PST"
+    assert polisweb_payload["channel"]["quickActions"][1]["href"] == "/app-v2/polisweb#acquisizione-portale"
+    for surface, expected_href in (
+        ("pdp", "/app-v2/pdp#acquisizione-portale"),
+        ("pat", "/app-v2/pat#acquisizione-portale"),
+        ("ptt", "/app-v2/ptt#acquisizione-portale"),
+    ):
+        payload = client.get(
+            f"/api/v1/ui/telematico/surface/{surface}",
+            headers={"X-API-Key": "react-test-key"},
+        ).get_json()
+        assert payload["operationCards"][0]["actions"][0]["href"] == expected_href
+        assert payload["channel"]["quickActions"][1]["href"] == expected_href
     assert tribunali.status_code == 200
     assert tribunali_payload["surface"]["id"] == "tribunali"
     assert tribunali_payload["officeSummary"]["perType"] is not None

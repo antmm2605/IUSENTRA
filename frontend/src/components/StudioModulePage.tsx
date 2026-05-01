@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import {
   Archive,
   Banknote,
@@ -94,10 +95,19 @@ function openLexContext(module: StudioModuleConfig) {
   window.dispatchEvent(new CustomEvent('iusentra:open-floating-lex'))
 }
 
+function anchorForCard(card: StudioModuleCard): string {
+  return card.title
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+}
+
 function ModuleCard({ card }: { card: StudioModuleCard }) {
   const Icon = iconFor(card.icon)
   return (
-    <a className={`iu-sm-card iu-sm-card--${card.tone}`} href={card.href}>
+    <a id={anchorForCard(card)} className={`iu-sm-card iu-sm-card--${card.tone}`} href={card.href}>
       <span className="iu-sm-card__icon"><Icon size={20}/></span>
       <span className="iu-sm-card__copy">
         <span className="iu-sm-card__meta">{card.meta || toneLabel[card.tone]}</span>
@@ -111,6 +121,14 @@ function ModuleCard({ card }: { card: StudioModuleCard }) {
 
 export function StudioModulePage() {
   const module = currentModule()
+  useEffect(() => {
+    if (!window.location.hash) return
+    const targetId = decodeURIComponent(window.location.hash.slice(1))
+    window.requestAnimationFrame(() => {
+      document.getElementById(targetId)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    })
+  }, [module.id])
+
   return (
     <main className="iu-content iu-studio-module">
       <section className={`iu-sm-hero iu-sm-hero--${module.kpis[0]?.tone || 'primary'}`}>

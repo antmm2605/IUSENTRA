@@ -208,16 +208,16 @@ const navSections: NavSection[] = [
     label: 'Servizi Telematici',
     icon: Send,
     items: [
-      { label: 'Centro Servizi Telematici', icon: BriefcaseBusiness, href: '/telematico' },
-      { label: 'PolisWeb / PST', icon: CloudUpload, href: '/portali/pst/acquisizione' },
-      { label: 'Panoramica PST', icon: FileText, href: '/polisWeb' },
-      { label: 'SIGP - Giudice di Pace', icon: Landmark, href: '/polisWeb' },
-      { label: 'PDP Penale', icon: ShieldCheck, href: '/pdp' },
-      { label: 'PAT Amministrativo', icon: FileText, href: '/pat' },
-      { label: 'PTT Tributario', icon: FileText, href: '/sigit' },
-      { label: 'Tribunali / PEC', icon: Landmark, href: '/tribunali' },
-      { label: 'Checklist deposito', icon: ListChecks, href: '/deposito/checklist' },
-      { label: 'Guida firma digitale', icon: BookOpen, href: '/guida/firma-digitale' }
+      { label: 'Centro Servizi Telematici', icon: BriefcaseBusiness, href: '/app-v2/telematico' },
+      { label: 'PolisWeb / PST', icon: CloudUpload, href: '/app-v2/polisweb' },
+      { label: 'Panoramica PST', icon: FileText, href: '/app-v2/polisweb' },
+      { label: 'SIGP - Giudice di Pace', icon: Landmark, href: '/app-v2/polisweb?focus=sigp' },
+      { label: 'PDP Penale', icon: ShieldCheck, href: '/app-v2/pdp' },
+      { label: 'PAT Amministrativo', icon: FileText, href: '/app-v2/pat' },
+      { label: 'PTT Tributario', icon: FileText, href: '/app-v2/ptt' },
+      { label: 'Tribunali / PEC', icon: Landmark, href: '/app-v2/tribunali' },
+      { label: 'Checklist deposito', icon: ListChecks, href: '/app-v2/deposito/checklist' },
+      { label: 'Guida firma digitale', icon: BookOpen, href: '/app-v2/guida/firma-digitale' }
     ]
   },
   {
@@ -269,6 +269,35 @@ function isActiveHref(href: string, activePath: string): boolean {
   const cleanHref = normaliseRoutePath(href).toLowerCase()
   if (cleanHref === '/') return cleanPath === '/'
   return cleanPath === cleanHref || cleanPath.startsWith(`${cleanHref}/`)
+}
+
+function isTelematicoSurfaceRoute(path: string): boolean {
+  const route = normaliseRoutePath(path).toLowerCase()
+  return (
+    route === '/polisweb' ||
+    route === '/pst' ||
+    route.startsWith('/polisweb/') ||
+    route.startsWith('/pst/') ||
+    route === '/pdp' ||
+    route.startsWith('/pdp/') ||
+    route === '/pat' ||
+    route.startsWith('/pat/') ||
+    route === '/ptt' ||
+    route.startsWith('/ptt/') ||
+    route === '/sigit' ||
+    route.startsWith('/sigit/') ||
+    route === '/tribunali' ||
+    route.startsWith('/tribunali/') ||
+    route === '/deposito/checklist' ||
+    route.startsWith('/deposito/checklist/') ||
+    route === '/guida/firma-digitale' ||
+    route.startsWith('/guida/firma-digitale/') ||
+    route.startsWith('/portali/pst') ||
+    route.startsWith('/portali/pdp') ||
+    route.startsWith('/portali/pat') ||
+    route.startsWith('/portali/ptt') ||
+    route.startsWith('/portali/sigit')
+  )
 }
 
 type GlobalLexConfig = {
@@ -382,7 +411,7 @@ function resolveLexPageContext(routePath: string): GlobalLexConfig {
       secondaryLabel: 'Wizard udienza',
     }
   }
-  if (route === '/telematico' || route === '/telematici' || route === '/polisweb' || route === '/pdp' || route === '/pat' || route === '/sigit' || route === '/sigit/ricerca' || route === '/ptt' || route === '/tribunali' || route === '/deposito/checklist' || route === '/guida/firma-digitale') {
+  if (route === '/telematico' || route === '/telematici' || isTelematicoSurfaceRoute(route)) {
     return {
       context: 'telematico',
       title: 'Lex AI telematico',
@@ -428,7 +457,7 @@ function routePublishesLexContext(routePath: string): boolean {
   if (route === '/email' || route.startsWith('/messaggi')) return true
   if (route.startsWith('/scadenziario') && !isNewDeadline && !isDeadlineEdit) return true
   if (route.startsWith('/wizard-pro')) return true
-  return route === '/telematico' || route === '/telematici' || route === '/polisweb' || route === '/pdp' || route === '/pat' || route === '/sigit' || route === '/sigit/ricerca' || route === '/ptt' || route === '/tribunali' || route === '/deposito/checklist' || route === '/guida/firma-digitale'
+  return route === '/telematico' || route === '/telematici' || isTelematicoSurfaceRoute(route)
 }
 
 function NavLink({ item, collapsed, activePath, onNavigate }:{item:NavItem; collapsed:boolean; activePath:string; onNavigate?:()=>void}) {
@@ -639,7 +668,7 @@ export default function App() {
   const isScadenziarioPage = !isNewDeadlinePage && !isDeadlineEditPage && (routeKey === '/scadenziario' || routeKey.startsWith('/scadenziario/'))
   const isWizardProPage = routeKey === '/wizard-pro' || routeKey.startsWith('/wizard-pro/')
   const isTelematicoPage = routeKey === '/telematico' || routeKey === '/telematici'
-  const isTelematicoSurfacePage = routeKey === '/polisweb' || routeKey === '/pdp' || routeKey === '/pat' || routeKey === '/sigit' || routeKey === '/sigit/ricerca' || routeKey === '/ptt' || routeKey === '/tribunali' || routeKey === '/deposito/checklist' || routeKey === '/guida/firma-digitale'
+  const isTelematicoSurfacePage = isTelematicoSurfaceRoute(routeKey)
   const isStudioModulePage = isStudioModuleRoute(routeKey)
   const isDashboardPage = !isSearchPage && !isAgendaPage && !isNewAppointmentPage && !isAppointmentEditPage && !isRegiaPage && !isFascicoliPage && !isClientiPage && !isClientFolderPage && !isClientEditPage && !isNewClientPage && !isSoggettiPage && !isNewSubjectPage && !isSubjectEditPage && !isEmailPage && !isMessagesPage && !isNewMessagePage && !isScadenziarioPage && !isNewDeadlinePage && !isDeadlineEditPage && !isWizardProPage && !isTelematicoPage && !isTelematicoSurfacePage && !isStudioModulePage
   const isStandalonePage = isSearchPage || isAgendaPage || isNewAppointmentPage || isAppointmentEditPage || isFascicoliPage || isClientiPage || isClientFolderPage || isClientEditPage || isNewClientPage || isSoggettiPage || isNewSubjectPage || isSubjectEditPage || isEmailPage || isMessagesPage || isNewMessagePage || isScadenziarioPage || isNewDeadlinePage || isDeadlineEditPage || isWizardProPage || isTelematicoPage || isTelematicoSurfacePage || isStudioModulePage

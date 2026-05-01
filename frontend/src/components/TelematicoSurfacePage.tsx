@@ -61,12 +61,13 @@ const surfaceFallbacks: Record<TelematicoSurfaceId, { title: string; context: st
 function surfaceFromCurrentPath(): TelematicoSurfaceId {
   const raw = window.location.pathname.replace(/\/+$/, '') || '/'
   const route = raw.toLowerCase().startsWith('/app-v2/') ? raw.slice('/app-v2'.length).toLowerCase() : raw.toLowerCase()
-  if (route.startsWith('/pdp')) return 'pdp'
-  if (route.startsWith('/pat')) return 'pat'
-  if (route.startsWith('/ptt') || route.startsWith('/sigit')) return 'ptt'
+  if (route.startsWith('/pdp') || route.startsWith('/portali/pdp')) return 'pdp'
+  if (route.startsWith('/pat') || route.startsWith('/portali/pat')) return 'pat'
+  if (route.startsWith('/ptt') || route.startsWith('/sigit') || route.startsWith('/portali/ptt') || route.startsWith('/portali/sigit')) return 'ptt'
   if (route.startsWith('/tribunali')) return 'tribunali'
   if (route.startsWith('/deposito/checklist')) return 'checklist'
   if (route.startsWith('/guida/firma-digitale')) return 'firma'
+  if (route.startsWith('/polisweb') || route.startsWith('/pst') || route.startsWith('/portali/pst')) return 'polisweb'
   return 'polisweb'
 }
 
@@ -181,37 +182,39 @@ function ChecklistPanel({
   if (!groups.length) return null
 
   return (
-    <Panel title="Checklist operativa" subtitle="Le spunte restano salvate sul browser della postazione" icon={<ClipboardCheck size={17}/>} count={`${done}/${total}`}>
-      <div className="iu-tel-checklist">
-        {groups.map((group) => (
-          <section key={group.id}>
-            <h3>{group.title}</h3>
-            {group.items.map((item) => {
-              const itemId = `${surfaceId}-${group.id}-${item.id}`
-              return (
-                <label className="iu-tel-check-item" htmlFor={itemId} key={item.id}>
-                  <input
-                    id={itemId}
-                    type="checkbox"
-                    checked={Boolean(checked[item.id])}
-                    onChange={(event) => {
-                      const value = event.currentTarget.checked
-                      setChecked((current) => ({ ...current, [item.id]: value }))
-                      window.localStorage.setItem(`${storagePrefix}${item.id}`, value ? '1' : '0')
-                    }}
-                  />
-                  <span>
-                    <strong>{item.label}</strong>
-                    <small>{item.description}</small>
-                  </span>
-                  {item.critical ? <Badge tone="danger">Critico</Badge> : null}
-                </label>
-              )
-            })}
-          </section>
-        ))}
-      </div>
-    </Panel>
+    <section id="checklist-operativa" className="iu-tel-anchor-target">
+      <Panel title="Checklist operativa" subtitle="Le spunte restano salvate sul browser della postazione" icon={<ClipboardCheck size={17}/>} count={`${done}/${total}`}>
+        <div className="iu-tel-checklist">
+          {groups.map((group) => (
+            <section key={group.id}>
+              <h3>{group.title}</h3>
+              {group.items.map((item) => {
+                const itemId = `${surfaceId}-${group.id}-${item.id}`
+                return (
+                  <label className="iu-tel-check-item" htmlFor={itemId} key={item.id}>
+                    <input
+                      id={itemId}
+                      type="checkbox"
+                      checked={Boolean(checked[item.id])}
+                      onChange={(event) => {
+                        const value = event.currentTarget.checked
+                        setChecked((current) => ({ ...current, [item.id]: value }))
+                        window.localStorage.setItem(`${storagePrefix}${item.id}`, value ? '1' : '0')
+                      }}
+                    />
+                    <span>
+                      <strong>{item.label}</strong>
+                      <small>{item.description}</small>
+                    </span>
+                    {item.critical ? <Badge tone="danger">Critico</Badge> : null}
+                  </label>
+                )
+              })}
+            </section>
+          ))}
+        </div>
+      </Panel>
+    </section>
   )
 }
 
@@ -395,6 +398,14 @@ export function TelematicoSurfacePage() {
     return () => { active = false }
   }, [surfaceId])
 
+  useEffect(() => {
+    if (loading || !window.location.hash) return
+    const targetId = decodeURIComponent(window.location.hash.slice(1))
+    window.requestAnimationFrame(() => {
+      document.getElementById(targetId)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    })
+  }, [data.surface.id, loading])
+
   const postAction = async (action: SurfaceAction) => {
     setActionMessage(`Esecuzione: ${action.label}...`)
     try {
@@ -461,7 +472,7 @@ export function TelematicoSurfacePage() {
         <Stat label="Avvisi" value={data.summary.warnings} tone={data.summary.warnings ? 'warning' : 'neutral'} icon={<FileCheck2 size={19}/>}/>
       </section>
 
-      <section className="iu-tel-op-grid">
+      <section id="acquisizione-portale" className="iu-tel-op-grid iu-tel-anchor-target">
         {data.operationCards.map((card) => <OperationCard card={card} onPost={postAction} key={card.id}/>)}
       </section>
 

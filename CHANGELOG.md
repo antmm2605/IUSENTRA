@@ -1,8 +1,15 @@
 # Changelog
 
+## 2.198.33 - 2026-05-01
+
+- Corretto il protocollo operativo del Local Signer: il browser e gli installer usano ora `iusentra-local-signer://restart`.
+- Formalizzato il rilascio Windows esclusivamente in formato `.exe`: la UI e le route pubbliche propongono `SetupLocalSigner-<versione>.exe` e l'eventuale `.ps1` resta solo artefatto interno di build.
+- Rafforzata l'installazione Windows del Local Signer: oltre all'attivita' pianificata al login viene creato un fallback nella cartella Startup dell'utente, cosi' l'avvio resta permanente anche se Task Scheduler non viene registrato correttamente.
+- Aggiornato il bootstrap locale per riusare un'installazione gia' presente in `%APPDATA%\IUSENTRA\LocalSigner` senza rilanciare l'installer quando basta avviare il servizio locale.
+
 ## 2.198.32 - 2026-05-01
 
-- Limitato il controllo Local Signer ai soli PC desktop Windows, macOS e Linux: su mobile e tablet il monitor globale post-login non esegue ping verso `127.0.0.1`, non tenta il protocollo `hacs-local-signer://restart` e non mostra prompt di installazione.
+- Limitato il controllo Local Signer ai soli PC desktop Windows, macOS e Linux: su mobile e tablet il monitor globale post-login non esegue ping verso `127.0.0.1`, non tenta il protocollo locale e non mostra prompt di installazione.
 - Aggiornate le schermate Impostazioni PEC/Firma e il wizard telematico React per bloccare il controllo Local Signer su dispositivi mobile/tablet con messaggio chiaro e senza tentativi di avvio locale.
 - Aggiunti test di regressione su monitor globale, Impostazioni e wizard telematico per impedire il ritorno del falso controllo Local Signer su mobile/tablet.
 
@@ -11,7 +18,7 @@
 - Ripristinato il comportamento corretto dei tab operativi `Impostazioni -> Firma Digitale` e `Impostazioni -> PEC`: il gate React non li intercetta finche' download Local Signer, verifica browser-locale e test PEC locale non sono migrati integralmente in React.
 - Reso nuovamente intuitivo il flusso React PST/PolisWeb: l'acquisizione mostra un wizard progressivo a 7 step, un solo pannello operativo alla volta, riepilogo sempre visibile, lookup reale degli uffici giudiziari importati e niente card duplicate sopra al wizard.
 - Corretto il crash del campo "Ufficio giudiziario" nel wizard PST: la ricerca veloce ora accetta la digitazione, mostra i risultati del catalogo uffici e non manda piu' la shell React nella pagina di errore.
-- Sostituito il messaggio statico "usa il Local Signer dal browser" con una verifica reale browser-locale: ping a `127.0.0.1:27272`, tentativo di avvio protocollo `hacs-local-signer://restart`, link installer aggiornato e blocco del passaggio alla ricerca finche' il canale locale non e' pronto.
+- Sostituito il messaggio statico "usa il Local Signer dal browser" con una verifica reale browser-locale: ping a `127.0.0.1:27272`, tentativo di avvio protocollo `iusentra-local-signer://restart`, link installer aggiornato e blocco del passaggio alla ricerca finche' il canale locale non e' pronto.
 - Le card "Accesso ai portali" danno priorita' all'azione operativa di acquisizione (`Importa pratica da PST/PDP/PAT/PTT`) invece di aprire prima superfici decorative o percorsi secondari.
 - Versionati anche gli asset CSS della React shell, evitando cache stale di `app.css` che poteva far esplodere graficamente Lex/logo e lasciare la pagina senza stili corretti dopo il deploy.
 - Rafforzato il profilo `deploy/hetzner` per CPX42: bootstrap con `zstd/unzip`, deploy con secrets produzione obbligatori, backup con verifica checksum e restore con controllo `.sha256` prima dell'estrazione.
@@ -263,7 +270,7 @@
 ## 2.195.24 - 2026-04-29
 
 - Aggiunto il ponte PEC locale nel Local Signer: `POST /pec/smtp/test` verifica l'SMTP dal PC dello studio e `POST /pec/send` prepara l'invio locale con allegati base64.
-- Collegata la scheda `Impostazioni -> PEC` al test `Testa SMTP dal PC`, con auto-avvio `hacs-local-signer://restart` e messaggio che propone direttamente il pacchetto Local Signer da installare se il servizio non viene rilevato.
+- Collegata la scheda `Impostazioni -> PEC` al test `Testa SMTP dal PC`, con auto-avvio `iusentra-local-signer://restart` e messaggio che propone direttamente il pacchetto Local Signer da installare se il servizio non viene rilevato.
 - Esteso lo stesso auto-avvio alla verifica token in `Impostazioni -> Firma Digitale` e al pannello `AI Locale`, evitando messaggi ciechi quando il servizio locale non e' ancora partito.
 - Aggiornati installer, origini CORS e download Local Signer per il dominio `https://app.iusentra.it`, mantenendo compatibile l'origine Railway storica.
 - Reso obbligatorio il pacchetto Windows `.exe` nelle route pubbliche Local Signer: `/setup/windows`, `/setup/windows-exe` e la route legacy `/installa-windows` servono tutte `SetupLocalSigner-<versione>.exe`.

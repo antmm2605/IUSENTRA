@@ -319,6 +319,9 @@ python -m pytest tests/ -v
 ## Local Signer / PKCS#11 — REGOLA OBBLIGATORIA
 
 - **PKCS#11 server-side e Local Signer browser-locale non sono la stessa cosa** e non vanno mai confusi.
+- Il nome operativo corretto e' **IUSENTRA Local Signer**. Il vecchio prefisso/protocollo `hacs-local-signer` non deve piu' essere usato in nuove UI, installer, script, messaggi, documentazione o test: il protocollo browser-locale primario deve essere `iusentra-local-signer://restart`.
+- Eventuali riferimenti legacy `hacs` sono ammessi solo come migrazione tecnica esplicitamente commentata per disinstallare/bonificare installazioni vecchie, mai come comportamento principale o testo visibile.
+- Il rilascio Windows del Local Signer deve essere sempre proposto all'utente come **file `.exe`** (`SetupLocalSigner-<versione>.exe` e alias `SetupLocalSigner.exe`). Il `.ps1` e' ammesso solo come sorgente/build artifact interno e non deve diventare CTA, download principale o istruzione operativa per l'utente finale.
 - Se l'utente seleziona `Token USB (Aruba Key)` in UI, il sistema deve distinguere sempre:
   - **backend server-side**: libreria/token visibili al processo Python o al container;
   - **canale operativo locale**: `Local Signer` attivo sul PC dell'avvocato tramite `http://127.0.0.1:27272`.

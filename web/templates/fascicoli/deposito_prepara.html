@@ -1499,7 +1499,7 @@ async function _ensureLocalPecSigner() {
   try {
     return await ping();
   } catch (_) {
-    window.location.href = 'hacs-local-signer://restart';
+    window.location.href = 'iusentra-local-signer://restart';
     await _sleep(2600);
     return await ping();
   }

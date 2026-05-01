@@ -1,6 +1,0 @@
-HACS Local Signer
-Versione: 1.5.34
-Generato: 2026-04-11 20:34 UTC
-Piattaforme: Windows (EXE offline), macOS (.command), Linux (.run)
-Ricerca diretta via signer di default: PDP, PAT, PTT/SIGIT
-Punto ufficiale download: https://studio-legale-pct-production.up.railway.app/impostazioni?tab=firma

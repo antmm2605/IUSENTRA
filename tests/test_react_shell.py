@@ -1109,7 +1109,7 @@ def test_react_wizard_pst_verifica_local_signer_dal_browser():
     source = Path("frontend/src/components/TelematicoSurfacePage.tsx").read_text(encoding="utf-8")
     assert "data.localSigner.browserUrl" in source
     assert "/ping?light=1" in source
-    assert "hacs-local-signer://restart" in source
+    assert "iusentra-local-signer://restart" in source
     assert "isDesktopLocalSignerHost" in source
     assert "portalNeedsLocalSigner && !localSignerDesktopSupported" in source
     assert "Da mobile o tablet il controllo non viene eseguito" in source

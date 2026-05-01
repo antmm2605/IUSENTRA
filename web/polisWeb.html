@@ -1467,7 +1467,7 @@ function eseguiVerificaVariazioni() {
 // ── Local Signer: verifica disponibilità e gestione PST ────────────────────
 // Gira SEMPRE (non condizionale lato server) — il server non sa della Aruba Key Windows
 const _LS_BASE_PW = 'http://127.0.0.1:27272';
-const _LS_PROTOCOL_URI = 'hacs-local-signer://start';
+const _LS_PROTOCOL_URI = 'iusentra-local-signer://start';
 const _PW_PKCS11_MODE = {{ 'true' if pkcs11_mode else 'false' }};
 const _WIZ_CERT_PREFERENCES = {
   auto: {{ 'true' if cert_preferences.auto else 'false' }},

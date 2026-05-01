@@ -1,8 +1,0 @@
-IUSENTRA Local Signer
-Versione: 1.6.12
-Generato: 2026-04-24 22:05 UTC
-Piattaforme: Windows (EXE offline), macOS (.command), Linux (.run)
-Ricerca diretta via signer di default: PDP, PAT, PTT/SIGIT
-Raccolta file browser ufficiale: PDP, PAT, PTT/SIGIT dai download locali
-Proxy PST allineato a Documentazione servizi web v1.69 / A1 WSDL Catalog v1.52
-Punto ufficiale download: https://studio-legale-pct-production.up.railway.app/impostazioni?tab=firma

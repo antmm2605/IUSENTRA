@@ -603,9 +603,9 @@ def test_ui_pec_locale_auto_avvia_signer_e_mostra_pacchetto():
     assert "iusentra.pec.localSignerPassword.once" in script
     assert "collectPecPasswordForLocalSigner" in script
     assert "Connessione SMTP PEC riuscita." in script
-    assert "hacs-local-signer://restart" in script
-    assert "hacs-local-signer://restart" in firma_script
-    assert "hacs-local-signer://restart" in ai_script
+    assert "iusentra-local-signer://restart" in script
+    assert "iusentra-local-signer://restart" in firma_script
+    assert "iusentra-local-signer://restart" in ai_script
     assert "isDesktopLocalSignerHost" in script
     assert "isDesktopLocalSignerHost" in firma_script
     assert "Da mobile o tablet il controllo non viene eseguito" in script
@@ -620,6 +620,18 @@ def test_ui_pec_locale_auto_avvia_signer_e_mostra_pacchetto():
     assert "ensureLocalSignerCompanionStarted" in ai_script
     assert "Local Signer non rilevato" in script
     assert "Scarica Local Signer per Windows" in script
+
+
+def test_metadata_impostazioni_windows_pubblica_solo_exe():
+    from web.blueprints.impostazioni import _local_signer_meta
+
+    meta = _local_signer_meta()
+
+    assert meta["windows_filename"].startswith("SetupLocalSigner-")
+    assert meta["windows_filename"].endswith(".exe")
+    assert meta["windows_script_filename"] == meta["windows_filename"]
+    assert meta["windows_installer_filename"] == meta["windows_filename"]
+    assert not meta["windows_script_filename"].endswith(".ps1")
 
 
 def test_ai_status_bridge_locale_restituisce_snapshot():
@@ -1001,6 +1013,12 @@ def test_local_signer_launcher_windows_usa_avvio_silenzioso():
     assert 'set "SILENT_MODE=0"' in installer
     assert 'powershell -NoProfile -WindowStyle Hidden -Command "Start-Process -WindowStyle Hidden -FilePath $env:PYW -ArgumentList @($env:PY)"' in installer
     assert 'if "%SILENT_MODE%"=="1" exit /b 0' in installer
+    assert "Register-LocalSignerScheduledTask" in installer
+    assert "Register-LocalSignerStartupShortcut" in installer
+    assert "IUSENTRA Local Signer.lnk" in installer
+    assert "iusentra-local-signer://restart" in installer
+    assert "Invoke-Pip" in installer
+    assert "PIP_NO_CACHE_DIR" in installer
     assert 'set "SILENT_MODE=0"' in launcher
     assert 'if "%SILENT_MODE%"=="1" exit /b 0' in launcher
 
@@ -2495,7 +2513,8 @@ def test_installer_locale_windows_registra_protocollo_e_attesa_ping():
         / "installa_local_signer_locale.ps1"
     ).read_text(encoding="utf-8")
 
-    assert "hacs-local-signer" in script
+    assert "iusentra-local-signer" in script
+    assert "hacs-local-signer" not in script
     assert "Wait-LocalSigner" in script
     assert "start_local_signer.cmd" in script
     assert "Stop-LocalSignerProcesses" in script

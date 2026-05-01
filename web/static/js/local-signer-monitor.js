@@ -124,7 +124,7 @@
     const iframe = document.createElement('iframe');
     iframe.className = 'd-none';
     iframe.setAttribute('aria-hidden', 'true');
-    iframe.src = 'hacs-local-signer://restart';
+    iframe.src = 'iusentra-local-signer://restart';
     document.body.appendChild(iframe);
     window.setTimeout(function () {
       iframe.remove();

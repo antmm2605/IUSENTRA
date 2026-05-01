@@ -248,9 +248,10 @@ def _excluded(path: str) -> bool:
             return True
     # I wizard deposito interni al fascicolo restano sui template operativi
     # finche' il relativo flusso React non copre l'intera procedura.
+    if lower.startswith("/fascicoli/") and "/wizard/" in lower:
+        return True
     if lower.startswith("/fascicoli/") and (
-        "/wizard/" in lower
-        or "/deposito/" in lower
+        "/deposito/" in lower
         or "/penale/pdp" in lower
     ):
         return True

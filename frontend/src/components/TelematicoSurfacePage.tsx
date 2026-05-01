@@ -650,7 +650,7 @@ function requestLocalSignerStart() {
   if (!isDesktopLocalSignerHost()) return
   const iframe = document.createElement('iframe')
   iframe.hidden = true
-  iframe.src = 'hacs-local-signer://restart'
+  iframe.src = 'iusentra-local-signer://restart'
   document.body.appendChild(iframe)
   window.setTimeout(() => iframe.remove(), 3000)
 }

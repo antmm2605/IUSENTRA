@@ -1034,7 +1034,7 @@ def test_local_signer_monitor_globale_verifica_versione_e_installer():
     assert "/static/js/local-signer-monitor.js?v={{ app_version }}" in base
 
     assert "http://127.0.0.1:27272" in monitor_js
-    assert "hacs-local-signer://restart" in monitor_js
+    assert "iusentra-local-signer://restart" in monitor_js
     assert "isDesktopLocalSignerHost" in monitor_js
     assert "unsupported_mobile_tablet" in monitor_js
     assert "hideBanner();" in monitor_js
@@ -1604,7 +1604,7 @@ def test_modal_firma_deposito_prevede_riavvio_local_signer():
     helper_js = (REPO_ROOT / "web/static/js/firma-visibile-mode.js").read_text(encoding="utf-8")
 
     assert "Riavvia Local Signer" in dettaglio
-    assert "hacs-local-signer://restart" in dettaglio
+    assert "iusentra-local-signer://restart" in dettaglio
     assert "riavvio_signer_consigliato" in dettaglio
     assert "sincronizzazione in tempo reale" in dettaglio
     assert "spazio limitato IUSENTRA ha sostituito la copia precedente" in dettaglio

@@ -320,7 +320,7 @@ def build_macos_command(version: str, base_url: str) -> str:
         MOD_DIR="$DIR/local_signer_mod"
         VENV="$DIR/.venv"
         PY="$VENV/bin/python3"
-        PLIST="$HOME/Library/LaunchAgents/it.hacs.local-signer.plist"
+        PLIST="$HOME/Library/LaunchAgents/it.iusentra.local-signer.plist"
 
         echo "IUSENTRA Local Signer v$VERSION - Installazione macOS"
         echo "Scarico da: $BASE_URL"
@@ -347,7 +347,7 @@ curl -fsSL "$BASE_URL/polisWeb/local-signer/download/uffici" -o "$DATA_DIR/uffic
         <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
         <plist version="1.0">
         <dict>
-          <key>Label</key><string>it.hacs.local-signer</string>
+          <key>Label</key><string>it.iusentra.local-signer</string>
           <key>ProgramArguments</key>
           <array><string>$PY</string><string>$DIR/local_signer.py</string></array>
           <key>EnvironmentVariables</key>
@@ -363,7 +363,7 @@ curl -fsSL "$BASE_URL/polisWeb/local-signer/download/uffici" -o "$DATA_DIR/uffic
 
         launchctl bootout "gui/$(id -u)" "$PLIST" >/dev/null 2>&1 || true
         launchctl bootstrap "gui/$(id -u)" "$PLIST"
-        launchctl kickstart -k "gui/$(id -u)/it.hacs.local-signer"
+        launchctl kickstart -k "gui/$(id -u)/it.iusentra.local-signer"
 
         echo
         echo "Installazione completata. Local Signer v$VERSION pronto su http://127.0.0.1:27272"
@@ -393,7 +393,7 @@ def build_linux_run(version: str, base_url: str) -> str:
         VENV="$DIR/.venv"
         PY="$VENV/bin/python"
         SERVICE_DIR="${{XDG_CONFIG_HOME:-$HOME/.config}}/systemd/user"
-        SERVICE="$SERVICE_DIR/hacs-local-signer.service"
+        SERVICE="$SERVICE_DIR/iusentra-local-signer.service"
 
         echo "IUSENTRA Local Signer v$VERSION - Installazione Linux"
         echo "Scarico da: $BASE_URL"
@@ -432,7 +432,7 @@ curl -fsSL "$BASE_URL/polisWeb/local-signer/download/uffici" -o "$DATA_DIR/uffic
         EOF
 
         systemctl --user daemon-reload
-        systemctl --user enable --now hacs-local-signer.service
+        systemctl --user enable --now iusentra-local-signer.service
 
         echo
         echo "Installazione completata. Local Signer v$VERSION pronto su http://127.0.0.1:27272"

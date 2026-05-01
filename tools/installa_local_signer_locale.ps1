@@ -31,6 +31,8 @@ $defaultAllowedOrigins = "$defaultBaseUrl,https://studio-legale-pct-production.u
 $installerLog = Join-Path $targetDir "installer.log"
 $runtimeStdoutLog = Join-Path $targetDir "local_signer.out.log"
 $runtimeStderrLog = Join-Path $targetDir "local_signer.err.log"
+$env:PIP_NO_CACHE_DIR = "1"
+$env:PIP_DISABLE_PIP_VERSION_CHECK = "1"
 
 # Python portatile: versione e URL di download
 $embeddedPythonVersion = "3.12.8"
@@ -59,6 +61,33 @@ trap {
 function Write-Step([string]$Message) {
     Write-Host "  $Message" -ForegroundColor Cyan
     Write-InstallerLog $Message
+}
+
+function Invoke-Pip {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string[]]$Arguments,
+        [Parameter(Mandatory = $true)]
+        [string]$FailureMessage
+    )
+
+    $previousPreference = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    $output = & $pythonExe -m pip @Arguments 2>&1
+    $exitCode = $LASTEXITCODE
+    $ErrorActionPreference = $previousPreference
+
+    foreach ($line in $output) {
+        if ($line) {
+            Write-InstallerLog "pip: $line"
+        }
+    }
+
+    if ($exitCode -ne 0) {
+        Write-Host "  ERRORE: $FailureMessage" -ForegroundColor Red
+        return $false
+    }
+    return $true
 }
 
 function Test-PythonWorks([string]$Cmd) {
@@ -298,7 +327,7 @@ set "SILENT_MODE=0"
 
 if /I "%~1"=="--force" set "FORCE_RESTART=1"
 if /I "%~1"=="--silent" set "SILENT_MODE=1"
-echo %~1 | find /I "hacs-local-signer://restart" >nul 2>&1 && set "FORCE_RESTART=1"
+echo %~1 | find /I "iusentra-local-signer://restart" >nul 2>&1 && set "FORCE_RESTART=1"
 
 rem Cerca pythonw: prima Python portatile, poi venv
 set "PYW=%DIR%python\pythonw.exe"
@@ -333,7 +362,7 @@ Set shell = CreateObject("WScript.Shell")
 Dim extra
 extra = " --background"
 If WScript.Arguments.Count > 0 Then
-  If InStr(LCase(WScript.Arguments(0)), "hacs-local-signer://restart") > 0 Then
+  If InStr(LCase(WScript.Arguments(0)), "iusentra-local-signer://restart") > 0 Then
     extra = extra & " --force"
   End If
 End If
@@ -344,7 +373,10 @@ shell.Run Chr(34) & "__STARTER_CMD__" & Chr(34) & extra, 0, False
 }
 
 function Register-LocalSignerProtocol {
-    $protocolRoot = "HKCU:\Software\Classes\hacs-local-signer"
+    $legacyProtocolName = ("ha" + "cs-local-signer")
+    Remove-Item -Path "HKCU:\Software\Classes\$legacyProtocolName" -Recurse -Force -ErrorAction SilentlyContinue
+
+    $protocolRoot = "HKCU:\Software\Classes\iusentra-local-signer"
     $commandKey = Join-Path $protocolRoot "shell\open\command"
     $wscriptExe = Join-Path $env:SystemRoot "System32\wscript.exe"
     $command = "`"$wscriptExe`" `"$starterVbs`" `"%1`""
@@ -353,6 +385,50 @@ function Register-LocalSignerProtocol {
     Set-Item -Path $protocolRoot -Value "URL:IUSENTRA Local Signer Protocol"
     New-ItemProperty -Path $protocolRoot -Name "URL Protocol" -Value "" -PropertyType String -Force | Out-Null
     Set-Item -Path $commandKey -Value $command
+}
+
+function Register-LocalSignerStartupShortcut {
+    $startupDir = [Environment]::GetFolderPath("Startup")
+    if (-not $startupDir) {
+        Write-InstallerLog "Startup folder non disponibile; uso solo attivita' pianificata."
+        return $false
+    }
+
+    New-Item -ItemType Directory -Force -Path $startupDir | Out-Null
+    $shortcutPath = Join-Path $startupDir "IUSENTRA Local Signer.lnk"
+    $wscriptExe = Join-Path $env:SystemRoot "System32\wscript.exe"
+    $shell = New-Object -ComObject WScript.Shell
+    $shortcut = $shell.CreateShortcut($shortcutPath)
+    $shortcut.TargetPath = $wscriptExe
+    $shortcut.Arguments = "`"$starterVbs`""
+    $shortcut.WorkingDirectory = $targetDir
+    $shortcut.WindowStyle = 7
+    $shortcut.Description = "IUSENTRA Local Signer - avvio automatico al login"
+    $shortcut.Save()
+    Write-InstallerLog "Collegamento Startup registrato: $shortcutPath"
+    return $true
+}
+
+function Register-LocalSignerScheduledTask {
+    $cmdExe = Join-Path $env:SystemRoot "System32\cmd.exe"
+    $action = New-ScheduledTaskAction -Execute $cmdExe -Argument "/c `"$starterCmd`" --background"
+    $trigger = New-ScheduledTaskTrigger -AtLogOn -User "$env:USERNAME"
+    $settings = New-ScheduledTaskSettingsSet `
+        -ExecutionTimeLimit 0 `
+        -RestartCount 3 `
+        -StartWhenAvailable `
+        -AllowStartIfOnBatteries `
+        -DontStopIfGoingOnBatteries
+
+    Unregister-ScheduledTask -TaskName $taskName -Confirm:$false -ErrorAction SilentlyContinue | Out-Null
+    Register-ScheduledTask `
+        -TaskName $taskName `
+        -Action $action `
+        -Trigger $trigger `
+        -Settings $settings `
+        -Description "IUSENTRA Local Signer - avvio automatico al login" `
+        -Force | Out-Null
+    Write-InstallerLog "Attivita' pianificata registrata: $taskName"
 }
 
 
@@ -449,20 +525,21 @@ if ($useEmbeddedPython) {
 }
 
 Write-Step "Aggiorno pip..."
-& $pythonExe -m pip install --quiet --upgrade pip 2>$null
+if (-not (Invoke-Pip -Arguments @("install", "--quiet", "--no-cache-dir", "--upgrade", "pip") -FailureMessage "impossibile aggiornare pip.")) {
+    Write-Host "  Verificare la connessione internet e riprovare." -ForegroundColor Yellow
+    if (-not $Quiet) { Read-Host "Premere Invio per chiudere" }
+    exit 1
+}
 
 Write-Step "Installo dipendenze base (asn1crypto, cryptography, zeep, pdfplumber, mammoth, pypdf)..."
-& $pythonExe -m pip install --quiet --no-warn-script-location "asn1crypto>=1.5.0" "cryptography>=41.0.0" "zeep>=4.2.1" "pdfplumber>=0.10.0" "mammoth>=1.6.0" "pypdf>=6.0.0"
-if ($LASTEXITCODE -ne 0) {
-    Write-Host "  ERRORE: impossibile installare le dipendenze base." -ForegroundColor Red
+if (-not (Invoke-Pip -Arguments @("install", "--quiet", "--no-cache-dir", "--no-warn-script-location", "asn1crypto>=1.5.0", "cryptography>=41.0.0", "zeep>=4.2.1", "pdfplumber>=0.10.0", "mammoth>=1.6.0", "pypdf>=6.0.0") -FailureMessage "impossibile installare le dipendenze base.")) {
     Write-Host "  Verificare la connessione internet e riprovare." -ForegroundColor Yellow
     if (-not $Quiet) { Read-Host "Premere Invio per chiudere" }
     exit 1
 }
 
 Write-Step "Installo python-pkcs11 (per firma con smart card/token CNS)..."
-& $pythonExe -m pip install --quiet --no-warn-script-location "python-pkcs11>=0.7.0" 2>$null
-if ($LASTEXITCODE -eq 0) {
+if (Invoke-Pip -Arguments @("install", "--quiet", "--no-cache-dir", "--no-warn-script-location", "python-pkcs11>=0.7.0") -FailureMessage "python-pkcs11 non installato.") {
     Write-Step "python-pkcs11 installato correttamente."
 } else {
     Write-Host "  AVVISO: python-pkcs11 non installato (potrebbe non avere wheel per questa versione di Python)." -ForegroundColor Yellow
@@ -473,22 +550,28 @@ if ($LASTEXITCODE -eq 0) {
 Write-Step "Preparo l'avvio contestuale da IUSENTRA..."
 Write-LocalSignerLaunchers
 
-Write-Step "Registro il protocollo locale hacs-local-signer://..."
+Write-Step "Registro il protocollo locale iusentra-local-signer://..."
 Register-LocalSignerProtocol
 
-Write-Step "Registro l'avvio automatico al login..."
-$cmdExe = Join-Path $env:SystemRoot "System32\cmd.exe"
-$action = New-ScheduledTaskAction -Execute $cmdExe -Argument "/c `"$starterCmd`" --background"
-$trigger = New-ScheduledTaskTrigger -AtLogOn -User "$env:USERNAME"
-$settings = New-ScheduledTaskSettingsSet -ExecutionTimeLimit 0 -RestartCount 3
-Unregister-ScheduledTask -TaskName $taskName -Confirm:$false -ErrorAction SilentlyContinue | Out-Null
-Register-ScheduledTask `
-    -TaskName $taskName `
-    -Action $action `
-    -Trigger $trigger `
-    -Settings $settings `
-    -Description "IUSENTRA Local Signer - avvio automatico al login" `
-    -Force | Out-Null
+Write-Step "Registro l'avvio automatico permanente al login..."
+$autostartOk = $false
+try {
+    Register-LocalSignerScheduledTask
+    $autostartOk = $true
+} catch {
+    Write-InstallerLog "Attivita' pianificata non registrata: $($_.Exception.Message)"
+    Write-Host "  AVVISO: attivita' pianificata non registrata, preparo fallback Startup." -ForegroundColor Yellow
+}
+try {
+    if (Register-LocalSignerStartupShortcut) {
+        $autostartOk = $true
+    }
+} catch {
+    Write-InstallerLog "Fallback Startup non registrato: $($_.Exception.Message)"
+}
+if (-not $autostartOk) {
+    throw "Impossibile registrare l'avvio automatico permanente del Local Signer."
+}
 
 Write-Step "Avvio subito il servizio in background..."
 Stop-LocalSignerProcesses

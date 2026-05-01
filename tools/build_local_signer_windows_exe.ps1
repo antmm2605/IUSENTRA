@@ -196,7 +196,7 @@ DATA_DIR="$DIR/data"
 MOD_DIR="$DIR/local_signer_mod"
 VENV="$DIR/.venv"
 PY="$VENV/bin/python3"
-PLIST="$HOME/Library/LaunchAgents/it.hacs.local-signer.plist"
+PLIST="$HOME/Library/LaunchAgents/it.iusentra.local-signer.plist"
 
 echo "IUSENTRA Local Signer v$VERSION - Installazione macOS"
 echo "Punto ufficiale download: __DOWNLOAD_PAGE__"
@@ -230,7 +230,7 @@ cat > "$PLIST" <<EOF
 <plist version="1.0">
 <dict>
   <key>Label</key>
-  <string>it.hacs.local-signer</string>
+  <string>it.iusentra.local-signer</string>
   <key>ProgramArguments</key>
   <array>
     <string>$PY</string>
@@ -253,7 +253,7 @@ EOF
 
 launchctl bootout "gui/$(id -u)" "$PLIST" >/dev/null 2>&1 || true
 launchctl bootstrap "gui/$(id -u)" "$PLIST"
-launchctl kickstart -k "gui/$(id -u)/it.hacs.local-signer"
+launchctl kickstart -k "gui/$(id -u)/it.iusentra.local-signer"
 
 echo
 echo "Installazione completata. Local Signer v$VERSION pronto."
@@ -277,13 +277,13 @@ set -euo pipefail
 BASE_URL="__BASE_URL__"
 ALLOWED_ORIGINS="__ALLOWED_ORIGINS__"
 VERSION="__VERSION__"
-DIR="${XDG_DATA_HOME:-$HOME/.local/share}/hacs/local-signer"
+DIR="${XDG_DATA_HOME:-$HOME/.local/share}/iusentra/local-signer"
 DATA_DIR="$DIR/data"
 MOD_DIR="$DIR/local_signer_mod"
 VENV="$DIR/.venv"
 PY="$VENV/bin/python"
 SERVICE_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user"
-SERVICE="$SERVICE_DIR/hacs-local-signer.service"
+SERVICE="$SERVICE_DIR/iusentra-local-signer.service"
 
 echo "IUSENTRA Local Signer v$VERSION - Installazione Linux"
 echo "Punto ufficiale download: __DOWNLOAD_PAGE__"
@@ -328,7 +328,7 @@ WantedBy=default.target
 EOF
 
 systemctl --user daemon-reload
-systemctl --user enable --now hacs-local-signer.service
+systemctl --user enable --now iusentra-local-signer.service
 
 echo
 echo "Installazione completata. Local Signer v$VERSION pronto."

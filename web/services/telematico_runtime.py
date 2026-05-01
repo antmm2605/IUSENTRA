@@ -2778,7 +2778,7 @@ set "SILENT_MODE=0"
 
 if /I "%~1"=="--force" set "FORCE_RESTART=1"
 if /I "%~1"=="--silent" set "SILENT_MODE=1"
-echo %~1 | find /I "hacs-local-signer://restart" >nul 2>&1 && set "FORCE_RESTART=1"
+echo %~1 | find /I "iusentra-local-signer://restart" >nul 2>&1 && set "FORCE_RESTART=1"
 
 if "%FORCE_RESTART%"=="0" (
 powershell -NoProfile -WindowStyle Hidden -Command "try {{ $r = Invoke-RestMethod 'http://127.0.0.1:27272/ping' -UseBasicParsing -TimeoutSec 2; if ($r.ok) {{ exit 0 }} }} catch {{}}; exit 1" >nul 2>&1
@@ -2808,7 +2808,7 @@ Set shell = CreateObject("WScript.Shell")
 Dim extra
 extra = " --background"
 If WScript.Arguments.Count > 0 Then
-  If InStr(LCase(WScript.Arguments(0)), "hacs-local-signer://restart") > 0 Then
+  If InStr(LCase(WScript.Arguments(0)), "iusentra-local-signer://restart") > 0 Then
     extra = extra & " --force"
   End If
 End If
@@ -2816,8 +2816,8 @@ shell.Run Chr(34) & "$starterCmd" & Chr(34) & extra, 0, False
 "@
 Set-Content -Path $starterVbs -Value $vbs -Encoding ASCII
 
-Write-Host "  Registro il protocollo locale hacs-local-signer://..."
-$protocolRoot = "HKCU:\\Software\\Classes\\hacs-local-signer"
+Write-Host "  Registro il protocollo locale iusentra-local-signer://..."
+$protocolRoot = "HKCU:\\Software\\Classes\\iusentra-local-signer"
 $commandKey = Join-Path $protocolRoot "shell\\open\\command"
 $wscriptExe = Join-Path $env:SystemRoot "System32\\wscript.exe"
 $command = "`"$wscriptExe`" `"$starterVbs`" `"%1`""
@@ -2826,20 +2826,59 @@ Set-Item -Path $protocolRoot -Value "URL:IUSENTRA Local Signer Protocol"
 New-ItemProperty -Path $protocolRoot -Name "URL Protocol" -Value "" -PropertyType String -Force | Out-Null
 Set-Item -Path $commandKey -Value $command
 
-Write-Host "  Registro il servizio nel Task Scheduler..."
+function Register-LocalSignerStartupShortcut {{
+    $startupDir = [Environment]::GetFolderPath("Startup")
+    if (-not $startupDir) {{
+        return $false
+    }}
+    New-Item -ItemType Directory -Force -Path $startupDir | Out-Null
+    $shortcutPath = Join-Path $startupDir "IUSENTRA Local Signer.lnk"
+    $shell = New-Object -ComObject WScript.Shell
+    $shortcut = $shell.CreateShortcut($shortcutPath)
+    $shortcut.TargetPath = $wscriptExe
+    $shortcut.Arguments = "`"$starterVbs`""
+    $shortcut.WorkingDirectory = $dir
+    $shortcut.WindowStyle = 7
+    $shortcut.Description = "IUSENTRA Local Signer - avvio automatico al login"
+    $shortcut.Save()
+    return $true
+}}
+
+Write-Host "  Registro l'avvio automatico permanente..."
 $taskName = "IUSENTRA Local Signer"
 $cmdExe   = Join-Path $env:SystemRoot "System32\\cmd.exe"
 $action   = New-ScheduledTaskAction -Execute $cmdExe -Argument "/c `"$starterCmd`" --background"
 $trigger  = New-ScheduledTaskTrigger -AtLogOn -User "$env:USERNAME"
-$settings = New-ScheduledTaskSettingsSet -ExecutionTimeLimit 0 -RestartCount 3
-Unregister-ScheduledTask -TaskName $taskName -Confirm:$false -ErrorAction SilentlyContinue | Out-Null
-Register-ScheduledTask `
-    -TaskName $taskName `
-    -Action $action `
-    -Trigger $trigger `
-    -Settings $settings `
-    -Description "IUSENTRA Local Signer - firma documenti con smart card e token CNS/CIE" `
-    -Force | Out-Null
+$settings = New-ScheduledTaskSettingsSet `
+    -ExecutionTimeLimit 0 `
+    -RestartCount 3 `
+    -StartWhenAvailable `
+    -AllowStartIfOnBatteries `
+    -DontStopIfGoingOnBatteries
+$autostartOk = $false
+try {{
+    Unregister-ScheduledTask -TaskName $taskName -Confirm:$false -ErrorAction SilentlyContinue | Out-Null
+    Register-ScheduledTask `
+        -TaskName $taskName `
+        -Action $action `
+        -Trigger $trigger `
+        -Settings $settings `
+        -Description "IUSENTRA Local Signer - firma documenti con smart card e token CNS/CIE" `
+        -Force | Out-Null
+    $autostartOk = $true
+}} catch {{
+    Write-Host "  AVVISO: Task Scheduler non registrato, uso fallback Startup." -ForegroundColor Yellow
+}}
+try {{
+    if (Register-LocalSignerStartupShortcut) {{
+        $autostartOk = $true
+    }}
+}} catch {{
+    Write-Host "  AVVISO: fallback Startup non registrato." -ForegroundColor Yellow
+}}
+if (-not $autostartOk) {{
+    throw "Impossibile registrare l'avvio automatico permanente del Local Signer."
+}}
 
 Write-Host "  Avvio Local Signer..."
 Stop-LocalSignerProcesses
@@ -2890,7 +2929,7 @@ DATA_DIR="$DIR/data"
 MOD_DIR="$DIR/local_signer_mod"
 VENV="$DIR/.venv"
 PY="$VENV/bin/python3"
-PLIST="$HOME/Library/LaunchAgents/it.hacs.local-signer.plist"
+PLIST="$HOME/Library/LaunchAgents/it.iusentra.local-signer.plist"
 
 echo "IUSENTRA Local Signer v$VERSION - Installazione macOS"
 
@@ -2923,7 +2962,7 @@ cat > "$PLIST" <<EOF
 <plist version="1.0">
 <dict>
   <key>Label</key>
-  <string>it.hacs.local-signer</string>
+  <string>it.iusentra.local-signer</string>
   <key>ProgramArguments</key>
   <array>
     <string>$PY</string>
@@ -2946,7 +2985,7 @@ EOF
 
 launchctl bootout "gui/$(id -u)" "$PLIST" >/dev/null 2>&1 || true
 launchctl bootstrap "gui/$(id -u)" "$PLIST"
-launchctl kickstart -k "gui/$(id -u)/it.hacs.local-signer"
+launchctl kickstart -k "gui/$(id -u)/it.iusentra.local-signer"
 
 echo
 echo "Installazione completata. Local Signer v$VERSION pronto."
@@ -2965,13 +3004,13 @@ set -euo pipefail
 BASE_URL="{base_url}"
 ALLOWED_ORIGINS="{allowed_origins}"
 VERSION="{version}"
-DIR="${{XDG_DATA_HOME:-$HOME/.local/share}}/hacs/local-signer"
+DIR="${{XDG_DATA_HOME:-$HOME/.local/share}}/iusentra/local-signer"
 DATA_DIR="$DIR/data"
 MOD_DIR="$DIR/local_signer_mod"
 VENV="$DIR/.venv"
 PY="$VENV/bin/python"
 SERVICE_DIR="${{XDG_CONFIG_HOME:-$HOME/.config}}/systemd/user"
-SERVICE="$SERVICE_DIR/hacs-local-signer.service"
+SERVICE="$SERVICE_DIR/iusentra-local-signer.service"
 
 echo "IUSENTRA Local Signer v$VERSION - Installazione Linux"
 
@@ -3015,7 +3054,7 @@ WantedBy=default.target
 EOF
 
 systemctl --user daemon-reload
-systemctl --user enable --now hacs-local-signer.service
+systemctl --user enable --now iusentra-local-signer.service
 
 echo
 echo "Installazione completata. Local Signer v$VERSION pronto."

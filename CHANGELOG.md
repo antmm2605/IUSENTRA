@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.198.23 - 2026-05-01
+
+- Stabilizzati i contratti CI dopo la migrazione React finale: la pagina amministrativa di osservabilita' resta React di default e la vista classica viene testata solo tramite `?_legacy=1`.
+- Aggiornato il messaggio reale del pulsante `Testa SMTP`: quando manca la password PEC chiarisce che resta nel browser, viene inviata solo al Local Signer del dispositivo e non viene salvata dal server.
+- Mantenuta la separazione prodotto tra nav React pulita e viste tecniche/classiche esplicite, senza far entrare `_legacy=1` nei percorsi operativi.
+
 ## 2.198.22 - 2026-05-01
 
 - Completato l'ultimo blocco di migrazione React per le rotte studio/economico/admin richieste: parcelle, preventivi, tariffario, redazione atti, PST, statistiche, ricerca legale, giurisprudenza, strumenti, timesheet, cartelle condivise, sito studio, utenti, audit, osservabilita' e GDPR ora aprono la shell React di default.

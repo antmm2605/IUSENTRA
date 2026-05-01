@@ -446,7 +446,7 @@
         result,
         false,
         payload._errorePassword ||
-          'Password PEC non disponibile per il test locale. Inseriscila nel campo PEC oppure salva la configurazione prima di riprovare.'
+          'Password PEC non disponibile per il test locale. Inseriscila nel campo PEC: resta nel browser, viene inviata solo al Local Signer su questo dispositivo e non viene salvata dal server.'
       );
       button.disabled = false;
       return;

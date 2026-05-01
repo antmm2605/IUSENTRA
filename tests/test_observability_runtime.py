@@ -96,7 +96,7 @@ def test_admin_osservabilita_page_e_accessibile_al_superadmin(tmp_path):
     with app.test_client() as client:
         client.get("/login")
         client.post("/login", data={"username": "admin", "password": "admin"}, follow_redirects=True)
-        response = client.get("/admin/osservabilita")
+        response = client.get("/admin/osservabilita?_legacy=1")
 
     assert response.status_code == 200
     html = response.get_data(as_text=True)
@@ -126,7 +126,7 @@ def test_admin_osservabilita_page_mostra_alert_operativi(tmp_path, monkeypatch):
 
     with app.test_client() as client:
         client.post("/login", data={"username": "admin", "password": "admin"}, follow_redirects=True)
-        response = client.get("/admin/osservabilita")
+        response = client.get("/admin/osservabilita?_legacy=1")
 
     assert response.status_code == 200
     html = response.get_data(as_text=True)

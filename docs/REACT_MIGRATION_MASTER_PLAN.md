@@ -6,6 +6,22 @@ React diventa la superficie operativa progressiva dell'applicativo, mentre Flask
 
 La vista Jinja classica non viene eliminata finche' la parita' funzionale non e' verificata. Quando una route GET ufficiale viene promossa a React, la vista classica resta raggiungibile solo come percorso tecnico di assistenza tramite `_legacy=1`; non deve comparire nella UI React come scorciatoia o rollback visibile.
 
+## Pattern OSS adottati come metodo, non come codice
+
+La migrazione progressiva deve seguire il playbook interno [REACT_MIGRATION_PATTERNS_FROM_OSS.md](REACT_MIGRATION_PATTERNS_FROM_OSS.md), ricavato dallo studio temporaneo di Apache Superset, Mattermost e p5.js Web Editor.
+
+Le repo esterne possono essere usate solo come riferimento tecnico per routing, TypeScript incrementale, test, CI e scomposizione dei moduli. Non si importa codice esterno dentro IUSENTRA senza verifica licenza, adattamento al dominio legale e test dedicati.
+
+Ogni pagina deve dichiarare uno stato operativo esplicito:
+
+- `legacy_only`: vista classica completa, nessun React operativo.
+- `react_nav_only`: shell/nav React, contenuto operativo classico.
+- `react_readonly`: React legge dati reali ma non copre tutte le azioni.
+- `react_operational_partial`: React copre azioni reali con limiti documentati.
+- `react_operational_complete`: React copre lettura, card, form, download/API, route profonde e test.
+
+Solo `react_operational_complete` puo' essere comunicato come pagina migrata.
+
 ## Stato primo blocco React
 
 Il primo blocco e' considerato operativo sulle seguenti superfici:

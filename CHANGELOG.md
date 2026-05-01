@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.198.35 - 2026-05-01
+
+- Allineato il profilo `deploy/hetzner` alla nuova separazione fra Email PEC e posta ordinaria, aggiungendo `PCT_EMAIL_ORDINARIA_DB` e il default AI locale `/api/version`.
+- Eseguito deploy reale su Hetzner CPX42 con backup remoto verificato e servizi app, Redis, scheduler, OCR e Caddy attivi su `app.iusentra.it`.
+- Documentati i pattern OSS utili alla migrazione React/TypeScript incrementale studiando Apache Superset, Mattermost e p5.js Web Editor, trasformandoli in regole operative IUSENTRA pagina-per-pagina.
+
 ## 2.198.33 - 2026-05-01
 
 - Corretto il protocollo operativo del Local Signer: il browser e gli installer usano ora `iusentra-local-signer://restart`.

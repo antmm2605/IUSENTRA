@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useState, type MouseEvent, type ReactNode } from 'react'
 import {
   AlertTriangle,
   ArrowRight,
@@ -58,6 +58,16 @@ const surfaceFallbacks: Record<TelematicoSurfaceId, { title: string; context: st
   firma: { title: 'Guida firma digitale', context: 'telematico-firma' },
 }
 
+const surfaceAppPaths: Record<TelematicoSurfaceId, string> = {
+  polisweb: '/app-v2/polisweb',
+  pdp: '/app-v2/pdp',
+  pat: '/app-v2/pat',
+  ptt: '/app-v2/ptt',
+  tribunali: '/app-v2/tribunali',
+  checklist: '/app-v2/deposito/checklist',
+  firma: '/app-v2/guida/firma-digitale',
+}
+
 function surfaceFromCurrentPath(): TelematicoSurfaceId {
   const raw = window.location.pathname.replace(/\/+$/, '') || '/'
   const route = raw.toLowerCase().startsWith('/app-v2/') ? raw.slice('/app-v2'.length).toLowerCase() : raw.toLowerCase()
@@ -67,7 +77,13 @@ function surfaceFromCurrentPath(): TelematicoSurfaceId {
   if (route.startsWith('/tribunali')) return 'tribunali'
   if (route.startsWith('/deposito/checklist')) return 'checklist'
   if (route.startsWith('/guida/firma-digitale')) return 'firma'
-  if (route.startsWith('/polisweb') || route.startsWith('/pst') || route.startsWith('/portali/pst')) return 'polisweb'
+  if (
+    route.startsWith('/polisweb') ||
+    route.startsWith('/pst') ||
+    route.startsWith('/sigp') ||
+    route.startsWith('/sigp-sync') ||
+    route.startsWith('/portali/pst')
+  ) return 'polisweb'
   return 'polisweb'
 }
 
@@ -100,6 +116,35 @@ function linkKindLabel(kind: string) {
   return labels[kind] || 'Link'
 }
 
+function sameOriginUrl(href: string): URL | null {
+  try {
+    const url = new URL(href, window.location.origin)
+    return url.origin === window.location.origin ? url : null
+  } catch {
+    return null
+  }
+}
+
+function normalizeAppPath(pathname: string): string {
+  const clean = pathname.replace(/\/+$/, '').toLowerCase() || '/'
+  return clean.startsWith('/app-v2/') ? clean.slice('/app-v2'.length) || '/' : clean
+}
+
+function isSameSurfaceAction(surfaceId: TelematicoSurfaceId, action: SurfaceAction): boolean {
+  if (action.method === 'POST' || action.external) return false
+  const url = sameOriginUrl(action.href)
+  if (!url) return false
+  const actionPath = normalizeAppPath(url.pathname)
+  const currentSurfacePath = normalizeAppPath(surfaceAppPaths[surfaceId])
+  const aliases: Partial<Record<TelematicoSurfaceId, string[]>> = {
+    polisweb: ['/polisweb', '/pst', '/portali/pst', '/portali/pst/acquisizione'],
+    pdp: ['/pdp', '/portali/pdp', '/portali/pdp/acquisizione'],
+    pat: ['/pat', '/portali/pat', '/portali/pat/acquisizione'],
+    ptt: ['/ptt', '/sigit', '/portali/ptt', '/portali/sigit', '/portali/ptt/acquisizione'],
+  }
+  return actionPath === currentSurfacePath || Boolean(aliases[surfaceId]?.some((alias) => actionPath === alias || actionPath.startsWith(`${alias}/`)))
+}
+
 function statToneClass(tone: Tone) {
   return `iu-tel-surface-stat iu-tel-surface-stat--${tone}`
 }
@@ -114,7 +159,15 @@ function Stat({ label, value, tone = 'primary', icon }:{ label:string; value:num
   )
 }
 
-function ActionLink({ action, onPost }:{ action:SurfaceAction; onPost:(action:SurfaceAction)=>void }) {
+function ActionLink({
+  action,
+  onPost,
+  onNavigate,
+}:{
+  action:SurfaceAction
+  onPost:(action:SurfaceAction)=>void
+  onNavigate:(event: MouseEvent<HTMLAnchorElement>, action:SurfaceAction)=>void
+}) {
   if (action.method === 'POST') {
     return (
       <button type="button" onClick={() => onPost(action)}>
@@ -123,16 +176,26 @@ function ActionLink({ action, onPost }:{ action:SurfaceAction; onPost:(action:Su
     )
   }
   return (
-    <a href={action.href} target={action.external ? '_blank' : undefined} rel={action.external ? 'noreferrer' : undefined}>
+    <a href={action.href} onClick={(event) => onNavigate(event, action)} target={action.external ? '_blank' : undefined} rel={action.external ? 'noreferrer' : undefined}>
       {action.external ? <ExternalLink size={15}/> : <ArrowRight size={15}/>} {action.label}
     </a>
   )
 }
 
-function OperationCard({ card, onPost }:{ card:SurfaceCard; onPost:(action:SurfaceAction)=>void }) {
+function OperationCard({
+  card,
+  selected,
+  onPost,
+  onNavigate,
+}:{
+  card:SurfaceCard
+  selected:boolean
+  onPost:(action:SurfaceAction)=>void
+  onNavigate:(event: MouseEvent<HTMLAnchorElement>, card:SurfaceCard, action:SurfaceAction)=>void
+}) {
   const Icon = iconMap[card.icon] || ClipboardCheck
   return (
-    <article className={`iu-tel-op-card iu-tel-op-card--${card.tone}`}>
+    <article className={`iu-tel-op-card iu-tel-op-card--${card.tone} ${selected ? 'is-selected' : ''}`}>
       <header>
         <div><Icon size={20}/></div>
         <span>{card.title}</span>
@@ -150,10 +213,54 @@ function OperationCard({ card, onPost }:{ card:SurfaceCard; onPost:(action:Surfa
       ) : null}
       {card.actions.length ? (
         <footer>
-          {card.actions.map((action) => <ActionLink action={action} onPost={onPost} key={action.id}/>)}
+          {card.actions.map((action) => (
+            <ActionLink
+              action={action}
+              onPost={onPost}
+              onNavigate={(event, selectedAction) => onNavigate(event, card, selectedAction)}
+              key={action.id}
+            />
+          ))}
         </footer>
       ) : null}
     </article>
+  )
+}
+
+function ActiveOperationPanel({
+  surfaceId,
+  title,
+  card,
+  action,
+  onLex,
+}:{
+  surfaceId: TelematicoSurfaceId
+  title:string
+  card:SurfaceCard
+  action:SurfaceAction
+  onLex:()=>void
+}) {
+  const Icon = iconMap[card.icon] || ClipboardCheck
+  const checklistHref = surfaceId === 'checklist' ? surfaceAppPaths.checklist : `${surfaceAppPaths[surfaceId]}#checklist-operativa`
+  return (
+    <section id="operazione-attiva" className={`iu-tel-active-op iu-tel-active-op--${card.tone}`}>
+      <div className="iu-tel-active-op__icon"><Icon size={23}/></div>
+      <div className="iu-tel-active-op__copy">
+        <span>Operazione pronta</span>
+        <h2>{action.label || card.title}</h2>
+        <p>{card.body}</p>
+        <dl>
+          <div><dt>Superficie</dt><dd>{title}</dd></div>
+          <div><dt>Modalità</dt><dd>React operativa</dd></div>
+          <div><dt>Canale</dt><dd>{surfaceId === 'polisweb' ? 'PST / PolisWeb' : surfaceId.toUpperCase()}</dd></div>
+        </dl>
+      </div>
+      <div className="iu-tel-active-op__actions">
+        <a href="/app-v2/fascicoli">Scegli fascicolo</a>
+        <a href={checklistHref}>Controlli</a>
+        <button type="button" onClick={onLex}>Chiedi a Lex</button>
+      </div>
+    </section>
   )
 }
 
@@ -388,9 +495,11 @@ export function TelematicoSurfacePage() {
   const [data, setData] = useState<TelematicoSurfaceData>(emptyTelematicoSurface)
   const [loading, setLoading] = useState(true)
   const [actionMessage, setActionMessage] = useState('')
+  const [activeOperation, setActiveOperation] = useState<{ cardId:string; actionId:string } | null>(null)
 
   useEffect(() => {
     let active = true
+    setActiveOperation(null)
     setLoading(true)
     getTelematicoSurfacePage(surfaceId)
       .then((payload) => { if (active) setData(payload) })
@@ -405,6 +514,18 @@ export function TelematicoSurfacePage() {
       document.getElementById(targetId)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
     })
   }, [data.surface.id, loading])
+
+  useEffect(() => {
+    if (!data.operationCards.length) return
+    const hash = window.location.hash
+    const card = hash
+      ? data.operationCards.find((item) => item.actions.some((action) => action.href.includes(hash))) || data.operationCards[0]
+      : data.operationCards[0]
+    const action = card.actions.find((item) => hash && item.href.includes(hash)) || card.actions[0]
+    if (card && action) {
+      setActiveOperation((current) => current || { cardId: card.id, actionId: action.id })
+    }
+  }, [data.operationCards])
 
   const postAction = async (action: SurfaceAction) => {
     setActionMessage(`Esecuzione: ${action.label}...`)
@@ -430,6 +551,38 @@ export function TelematicoSurfacePage() {
   const title = data.surface.title || surfaceFallbacks[surfaceId].title
   const tone = data.surface.tone || 'primary'
   const generatedAt = formatGeneratedAt(data.generatedAt)
+  const selectedCard = data.operationCards.find((card) => card.id === activeOperation?.cardId) || data.operationCards[0]
+  const selectedAction = selectedCard?.actions.find((action) => action.id === activeOperation?.actionId) || selectedCard?.actions[0]
+
+  const openSurfaceLex = () => {
+    window.dispatchEvent(new CustomEvent('iusentra:lex-context', {
+      detail: {
+        context: surfaceFallbacks[data.surface.id]?.context || surfaceFallbacks[surfaceId].context,
+        title: `Lex AI - ${title}`,
+        body: selectedCard?.body || 'Contesto telematico operativo',
+        page_path: window.location.pathname,
+        context_label: title,
+      },
+    }))
+    window.dispatchEvent(new CustomEvent('iusentra:open-floating-lex'))
+  }
+
+  const navigateAction = (event: MouseEvent<HTMLAnchorElement>, card: SurfaceCard, action: SurfaceAction) => {
+    if (!isSameSurfaceAction(surfaceId, action)) return
+    event.preventDefault()
+    setActiveOperation({ cardId: card.id, actionId: action.id })
+    const url = sameOriginUrl(action.href)
+    if (url) {
+      const nextUrl = `${url.pathname}${url.search}${url.hash}`
+      const currentUrl = `${window.location.pathname}${window.location.search}${window.location.hash}`
+      if (nextUrl !== currentUrl) {
+        window.history.pushState({ telematicoSurface: surfaceId, card: card.id, action: action.id }, '', nextUrl)
+      }
+    }
+    window.requestAnimationFrame(() => {
+      document.getElementById('operazione-attiva')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    })
+  }
 
   return (
     <main className={`iu-content iu-tel-surface-page iu-tel-surface-page--${data.surface.id}`}>
@@ -473,8 +626,26 @@ export function TelematicoSurfacePage() {
       </section>
 
       <section id="acquisizione-portale" className="iu-tel-op-grid iu-tel-anchor-target">
-        {data.operationCards.map((card) => <OperationCard card={card} onPost={postAction} key={card.id}/>)}
+        {data.operationCards.map((card) => (
+          <OperationCard
+            card={card}
+            selected={selectedCard?.id === card.id}
+            onPost={postAction}
+            onNavigate={navigateAction}
+            key={card.id}
+          />
+        ))}
       </section>
+
+      {selectedCard && selectedAction ? (
+        <ActiveOperationPanel
+          surfaceId={data.surface.id}
+          title={title}
+          card={selectedCard}
+          action={selectedAction}
+          onLex={openSurfaceLex}
+        />
+      ) : null}
 
       {data.surface.id === 'tribunali' ? (
         <section className="iu-tel-tribunali-workspace">

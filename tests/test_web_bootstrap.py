@@ -403,17 +403,23 @@ def test_impostazioni_pec_espone_controllo_local_signer_e_password_salvata(tmp_p
             follow_redirects=False,
         )
         response = client.get("/impostazioni?tab=pec")
+        legacy = client.get("/impostazioni?tab=pec&_legacy=1")
 
     html = response.get_data(as_text=True)
+    legacy_html = legacy.get_data(as_text=True)
     assert response.status_code == 200
+    assert "IUSENTRA - React Shell" in html
     assert 'id="iusentra-local-signer-monitor"' in html
     assert 'data-local-signer-url="http://127.0.0.1:27272"' in html
-    assert 'data-has-saved-password="1"' in html
     assert 'data-latest-version="' in html
     assert "/static/js/local-signer-monitor.js?v=" in html
-    assert "Testa SMTP" in html
-    assert "Diagnostica server (non invio reale)" in html
-    assert "L'invio PEC reale deve passare dal PC locale tramite Local Signer" in html
+    assert legacy.status_code == 200
+    assert "IUSENTRA - React Shell" not in legacy_html
+    assert 'id="pec-local-signer-meta"' in legacy_html
+    assert 'data-has-saved-password="1"' in legacy_html
+    assert "Testa SMTP" in legacy_html
+    assert "Diagnostica server (non invio reale)" in legacy_html
+    assert "L'invio PEC reale deve passare dal PC locale tramite Local Signer" in legacy_html
 
 
 def test_route_domini_estratti_restano_operativi(tmp_path: Path):
@@ -1571,9 +1577,16 @@ def test_preparazione_udienza_guidata_reindirizza_la_vecchia_route_nuovo(tmp_pat
             follow_redirects=True,
         )
         response = client.get("/wizard-pro/nuovo?id_fascicolo=FASC001")
+        legacy = client.get("/wizard-pro/nuovo?id_fascicolo=FASC001&_legacy=1")
+        api_response = client.get("/api/v1/ui/wizard-pro?id_fascicolo=FASC001")
 
-    assert response.status_code == 302
-    assert response.headers["Location"].endswith("/wizard-pro/?id_fascicolo=FASC001")
+    html = response.get_data(as_text=True)
+    assert response.status_code == 200
+    assert "IUSENTRA - React Shell" in html
+    assert legacy.status_code == 302
+    assert legacy.headers["Location"].endswith("/wizard-pro/?id_fascicolo=FASC001")
+    assert api_response.status_code == 200
+    assert api_response.is_json
 
 
 def test_modal_firma_deposito_prevede_riavvio_local_signer():

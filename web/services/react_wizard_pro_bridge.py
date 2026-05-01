@@ -123,7 +123,6 @@ def build_react_wizard_pro_payload(selected_fascicolo_id: str = "") -> dict[str,
         "filters": dashboard.get("filter_options", {}),
         "actions": {
             "start": "/wizard-pro/nuovo",
-            "legacy": "/wizard-pro/?_legacy=1",
             "agenda": "/agenda",
             "deadlines": "/scadenziario",
             "newDeadline": "/scadenziario/nuova",

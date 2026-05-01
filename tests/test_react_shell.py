@@ -192,11 +192,13 @@ def test_react_blocco_finale_studio_admin_completo():
     assert "render_react_shell_response" in final_routes
     assert "iusentra:open-floating-lex" in page_source
     assert "iusentra:lex-context" in page_source
-    assert "_legacy=1" in module_source
+    assert "_legacy=1" not in module_source
     assert "route === candidate || route.startsWith(`${candidate}/`)" in module_source
     assert "href: legacy('/fatturazione" not in module_source
     assert "href: legacy('/preventivi" not in module_source
     assert "href: legacy('/utenti" not in module_source
+    assert "legacy(" not in module_source
+    assert "/lex-operativo" not in module_source
     assert "href: '/app-v2/polisweb#acquisizione-portale'" in module_source
     assert "href: '/app-v2/polisweb#checklist-operativa'" in module_source
     assert "href: '/impostazioni-studio#dati-studio'" in module_source
@@ -204,10 +206,16 @@ def test_react_blocco_finale_studio_admin_completo():
     assert "href: '/impostazioni-studio#firma-digitale'" in module_source
     assert "href: '/impostazioni-studio#ai-locale'" in module_source
     assert "anchorForCard" in page_source
+    assert "handleActivateCard" in page_source
+    assert "isSameModuleHref" in page_source
+    assert 'id="funzione-operativa"' in page_source
+    assert "window.history.pushState" in page_source
     assert "scrollIntoView({ behavior: 'smooth', block: 'center' })" in page_source
     assert "data-pct-ai-drag-handle" in Path("web/templates/components/pct_ai_widget.html").read_text(encoding="utf-8")
     assert "iusentra:open-floating-lex" in Path("web/static/js/pct-lex-assistant.js").read_text(encoding="utf-8")
     assert ".iu-sm-cards" in page_css
+    assert ".iu-sm-card.is-selected" in page_css
+    assert ".iu-sm-focus" in page_css
     assert ".iu-sm-hero aside{\n    display:none;" in page_css
     assert "clamp(" not in page_css
     assert "letter-spacing:-" not in page_css
@@ -794,6 +802,10 @@ def test_react_superfici_telematiche_collegate_nav_api_css():
     assert "iu-tel-tribunali-workspace" in page_source
     assert 'id="acquisizione-portale"' in page_source
     assert 'id="checklist-operativa"' in page_source
+    assert 'id="operazione-attiva"' in page_source
+    assert "navigateAction" in page_source
+    assert "isSameSurfaceAction" in page_source
+    assert "window.history.pushState" in page_source
     assert "scrollIntoView({ behavior: 'smooth', block: 'start' })" in page_source
     assert "Checklist operativa" in page_source
     assert "iu-tel-surface-hero__meta" in page_source
@@ -811,6 +823,8 @@ def test_react_superfici_telematiche_collegate_nav_api_css():
     assert 'render_react_shell_response("guida/firma-digitale")' in deposito_routes
     assert 'render_react_shell_response("tribunali")' in lookup_routes
     assert ".iu-tel-surface-page" in css
+    assert ".iu-tel-op-card.is-selected" in css
+    assert ".iu-tel-active-op" in css
     assert ".iu-tel-surface-hero__meta a" in css
     assert "background:rgba(255,255,255,.16)" in css
     assert ".iu-tel-offices" in css
@@ -836,6 +850,8 @@ def test_route_ufficiali_superfici_telematiche_servono_react_con_legacy(tmp_path
             "/app-v2/pat",
             "/sigit",
             "/app-v2/ptt",
+            "/sigp/",
+            "/sigp-sync/",
             "/tribunali",
             "/deposito/checklist",
             "/guida/firma-digitale",
@@ -912,6 +928,7 @@ def test_route_importa_pratica_pst_resta_raggiungibile_dalla_nav(tmp_path: Path)
         response = client.get("/portali/pst/acquisizione")
         legacy = client.get("/portali/pst/acquisizione?_legacy=1")
         shortcut = client.get("/polisWeb/acquisizione")
+        legacy_shortcut = client.get("/polisWeb/acquisizione?_legacy=1")
 
     html = response.get_data(as_text=True)
     assert response.status_code == 200
@@ -921,8 +938,11 @@ def test_route_importa_pratica_pst_resta_raggiungibile_dalla_nav(tmp_path: Path)
     assert legacy.status_code == 200
     assert "/api/portali/pst/acquisizione/search" in legacy_html
     assert "IUSENTRA - React Shell" not in legacy_html
-    assert shortcut.status_code in {302, 303}
-    assert shortcut.headers["Location"].endswith("/portali/pst/acquisizione")
+    shortcut_html = shortcut.get_data(as_text=True)
+    assert shortcut.status_code == 200
+    assert "IUSENTRA - React Shell" in shortcut_html
+    assert legacy_shortcut.status_code in {302, 303}
+    assert legacy_shortcut.headers["Location"].endswith("/portali/pst/acquisizione?_legacy=1")
 
 
 def test_route_ufficiali_primo_blocco_servono_react_con_vista_classica_tecnica(tmp_path: Path):
@@ -986,6 +1006,468 @@ def test_route_ufficiali_primo_blocco_servono_react_con_vista_classica_tecnica(t
     assert 'id="root"' not in classic_dashboard.get_data(as_text=True)
     assert 'id="root"' not in classic_fascicoli.get_data(as_text=True)
     assert 'id="root"' not in classic_telematico.get_data(as_text=True)
+
+
+def test_react_route_gate_copre_rotte_profonde_e_preserva_contratti_operativi(tmp_path: Path):
+    app = _app(tmp_path)
+    _crea_operatore(app)
+
+    cliente_repo = GestioneClienti(db_path=app.config["CLIENTI_DB"])
+    cliente = cliente_repo.nuovo(TipoCliente.PERSONA_FISICA, nome="Giulia", cognome="Bianchi")
+    soggetti = GestioneSoggetti(app.config["SOGGETTI_DB"], app.config["SOGGETTI_PARTI_DB"])
+    soggetto = soggetti.crea(TipoSoggetto.PERSONA_FISICA, nome="Mario", cognome="Verdi")
+    fascicoli = GestioneFascicoli(
+        db_path=app.config["FASCICOLI_DB"],
+        documents_dir=app.config["FASCICOLI_DOCS"],
+        archive_dir=app.config["FASCICOLI_ARCH"],
+    )
+    fascicolo = fascicoli.nuovo(
+        "Rotta profonda React",
+        TipoFascicolo.CIVILE,
+        id_cliente=cliente.id,
+        nome_cliente=cliente.nome_completo,
+        tribunale="Tribunale di Milano",
+    )
+    scadenza = GestioneScadenziario(db_path=app.config["SCADENZIARIO_DB"]).nuova(
+        "Deposito nota",
+        TipoTermine.DEPOSITO_MEMORIA,
+        date.today().isoformat(),
+        id_fascicolo=fascicolo.id,
+    )
+
+    with app.test_client() as client:
+        _login(client)
+        for path in (
+            f"/clienti/{cliente.id}",
+            f"/clienti/{cliente.id}/cartella",
+            f"/clienti/{cliente.id}/faldone",
+            f"/clienti/{cliente.id}/portale",
+            f"/fascicoli/{fascicolo.id}/copertina",
+            f"/fascicoli/{fascicolo.id}/quadro",
+            f"/fascicoli/{fascicolo.id}/deposito/prepara",
+            f"/fascicoli/{fascicolo.id}/penale/pdp",
+            f"/scadenziario/{scadenza.id}",
+            f"/scadenziario/{scadenza.id}/modifica",
+            f"/soggetti/{soggetto.id}",
+            "/email/messaggio/test-pec",
+            "/preventivi/p/test-preventivo/stato",
+            "/fatturazione/test-parcella",
+            "/giurisprudenza/test-sentenza",
+            "/template-atti/scheda/test-template",
+            "/template-atti/test-template/compliance",
+            "/checklist/test-template",
+            "/applicazioni/fascicoli",
+            "/impostazioni?tab=pec",
+            "/servizi-telematici",
+            "/tribunali",
+            "/guida/firma-digitale",
+            "/sigp/",
+            "/sigp-sync/",
+            "/portali/pat/acquisizione",
+        ):
+            response = client.get(path)
+            html = response.get_data(as_text=True)
+            assert response.status_code == 200, path
+            assert '<html lang="it" class="react-shell-document">' in html, path
+            assert 'id="root"' in html, path
+
+        legacy = client.get("/impostazioni?tab=pec&_legacy=1")
+        api = client.get("/api/v1/ui/dashboard", headers={"X-API-Key": "react-test-key"})
+        csv = client.get("/fascicoli/export.csv")
+        ics = client.get("/agenda/export.ics")
+        visualizza = client.get(f"/fascicoli/{fascicolo.id}/documenti/documento-assente/visualizza")
+        post = client.post(
+            f"/fascicoli/{fascicolo.id}/stato",
+            data={"stato": StatoFascicolo.ARCHIVIATO.value},
+            follow_redirects=False,
+        )
+
+    assert legacy.status_code == 200
+    assert 'id="root"' not in legacy.get_data(as_text=True)
+    assert api.status_code == 200
+    assert api.is_json
+    assert "IUSENTRA - React Shell" not in api.get_data(as_text=True)
+    assert csv.status_code == 200
+    assert "IUSENTRA - React Shell" not in csv.get_data(as_text=True)
+    assert ics.status_code == 200
+    assert "IUSENTRA - React Shell" not in ics.get_data(as_text=True)
+    assert "IUSENTRA - React Shell" not in visualizza.get_data(as_text=True)
+    assert post.status_code in {302, 303}
+
+
+def test_react_route_gate_copre_tutti_i_moduli_react_dichiarati():
+    import re
+
+    from web.bootstrap.react_route_gate import _excluded, _is_react_route, _normalise_path
+
+    source = Path("frontend/src/studioModuleData.ts").read_text(encoding="utf-8")
+    route_literals: set[str] = set()
+    for block in re.findall(r"routes:\s*\[([^\]]+)\]", source):
+        route_literals.update(re.findall(r"'([^']+)'", block))
+
+    expected_aliases = {
+        "/cerca",
+        "/servizi-telematici",
+        "/guida/firma-digitale",
+        "/sigp",
+        "/sigp-sync",
+        "/tribunali",
+    }
+    route_literals.update(expected_aliases)
+
+    assert route_literals
+    for raw in sorted(route_literals):
+        if raw.startswith("/app-v2"):
+            continue
+        path = _normalise_path(raw.split("?", 1)[0].split("#", 1)[0])
+        assert not _excluded(path), path
+        assert _is_react_route(path), path
+
+
+def test_react_studio_module_card_e_runtime_non_sono_decorativi(tmp_path: Path):
+    import re
+    from urllib.parse import urlparse
+
+    from web.bootstrap.react_route_gate import _excluded, _is_react_route, _normalise_path
+
+    source = Path("frontend/src/studioModuleData.ts").read_text(encoding="utf-8")
+    app = _app(tmp_path)
+    _crea_operatore(app)
+
+    assert "legacy(" not in source
+    assert "_legacy=1" not in source
+    assert "/lex-operativo" not in source
+
+    hrefs = re.findall(r"href:\s*'([^']+)'", source)
+    module_ids = sorted(set(re.findall(r"id:\s*'([^']+)'", source)))
+    assert hrefs
+    assert module_ids
+
+    for href in hrefs:
+        assert href.strip(), href
+        assert href != "#", href
+        if href.startswith(("http://", "https://")):
+            continue
+        path = _normalise_path(urlparse(href).path or "/")
+        if path.startswith("/app-v2"):
+            continue
+        if _excluded(path):
+            continue
+        assert _is_react_route(path), href
+
+    with app.test_client() as client:
+        _login(client)
+        for module_id in module_ids:
+            response = client.get(f"/api/v1/ui/studio-modules/{module_id}", headers={"X-API-Key": "react-test-key"})
+            assert response.status_code == 200, module_id
+            payload = response.get_json()
+            assert payload["source"] == "repository_reali"
+            assert payload["contracts"]["mock_fallback"] is False
+            assert payload["contracts"]["writes"] == "operational_routes"
+            assert payload["operations"], module_id
+            for operation in payload["operations"]:
+                actions = operation.get("actions") or []
+                records = operation.get("records") or []
+                form = operation.get("form") or {}
+                has_action = any((action.get("href") or "").strip() and action.get("href") != "#" for action in actions)
+                has_record = any((record.get("href") or "").strip() and record.get("href") != "#" for record in records)
+                has_form = bool((form.get("action") or "").strip() and form.get("action") != "#")
+                assert has_action or has_record or has_form, f"{module_id}:{operation.get('id')}"
+                for action in actions:
+                    href = (action.get("href") or "").strip()
+                    assert href and href != "#", f"{module_id}:{operation.get('id')}"
+                    method = (action.get("method") or "GET").upper()
+                    if method != "GET" or href.startswith(("http://", "https://")):
+                        continue
+                    path = _normalise_path(urlparse(href).path or "/")
+                    if path.startswith("/app-v2") or path.startswith("/api"):
+                        continue
+                    if _excluded(path):
+                        continue
+                    assert _is_react_route(path), href
+
+
+def test_react_migration_matrice_completa_route_api_e_card_operative(tmp_path: Path):
+    """Gate finale: ogni voce richiesta deve servire React e avere azioni reali.
+
+    Questo test copre il primo blocco, i servizi telematici, studio e
+    amministrazione. Le route di scrittura, download e API restano fuori dal
+    gate HTML, ma le card React devono puntare a href/form/endpoint effettivi.
+    """
+
+    def _collect_links(value):
+        links = []
+        if isinstance(value, dict):
+            for key, item in value.items():
+                key_norm = str(key).lower()
+                if isinstance(item, str) and (
+                    key_norm == "action"
+                    or key_norm == "href"
+                    or key_norm.endswith("href")
+                    or key_norm.endswith("endpoint")
+                    or key_norm in {"list", "detail", "sync", "settings", "compose"}
+                    or item.startswith("/")
+                    or item.startswith("http://")
+                    or item.startswith("https://")
+                ):
+                    links.append(item)
+                else:
+                    links.extend(_collect_links(item))
+        elif isinstance(value, list):
+            for item in value:
+                links.extend(_collect_links(item))
+        return links
+
+    def _assert_react_shell(client, label: str, path: str):
+        response = client.get(path)
+        html = response.get_data(as_text=True)
+        assert response.status_code == 200, f"{label}: {path}"
+        assert '<html lang="it" class="react-shell-document">' in html, f"{label}: {path}"
+        assert 'id="root"' in html, f"{label}: {path}"
+
+    def _assert_payload_operativo(client, label: str, path: str, *, require_links: bool = True):
+        response = client.get(path, headers={"X-API-Key": "react-test-key"})
+        assert response.status_code == 200, f"{label}: {path}"
+        assert response.is_json, f"{label}: {path}"
+        payload = response.get_json()
+        assert isinstance(payload, dict), label
+        if "source" in payload:
+            assert payload["source"] in {"repository_reali", "errore_controllato"}, label
+        contracts = payload.get("contracts") or {}
+        if contracts:
+            assert contracts.get("mock_fallback") is False, label
+        links = [
+            link
+            for link in _collect_links(payload)
+            if isinstance(link, str)
+            and link.strip()
+            and link.strip() != "#"
+            and not link.strip().startswith("javascript:")
+        ]
+        assert all("_legacy=1" not in link for link in links), label
+        if require_links:
+            assert links, label
+        return payload
+
+    app_source = Path("frontend/src/App.tsx").read_text(encoding="utf-8")
+    studio_source = Path("frontend/src/studioModuleData.ts").read_text(encoding="utf-8")
+    assert "_legacy=1" not in studio_source
+    assert "legacy(" not in studio_source
+
+    expected_visible_labels = (
+        "Panoramica",
+        "Regia Operativa",
+        "Ricerca Studio",
+        "Recenti",
+        "2026/004 - N.RG 139/2023 - ...",
+        "Calendario",
+        "Nuovo Appuntamento",
+        "Timesheet",
+        "Tutti i Fascicoli",
+        "Nuovo Fascicolo",
+        "Archivio",
+        "Clienti e Anagrafiche",
+        "Nuovo Cliente",
+        "Cartelle Condivise",
+        "Soggetti e Parti",
+        "Nuovo Soggetto",
+        "Email PEC",
+        "PEC",
+        "Messaggi",
+        "Nuovo SMS/WA",
+        "Scadenziario",
+        "Nuova Scadenza",
+        "Preparazione Udienza Guidata",
+        "Controlli Atti",
+        "Centro Servizi Telematici",
+        "PolisWeb / PST",
+        "Panoramica PST",
+        "SIGP - Giudice di Pace",
+        "PDP Penale",
+        "PAT Amministrativo",
+        "PTT Tributario",
+        "Tribunali / PEC",
+        "Checklist deposito",
+        "Guida firma digitale",
+        "Parcelle e Fatture",
+        "Preventivi e Incarichi",
+        "Compensi Forensi",
+        "Redazione Atti",
+        "Statistiche",
+        "Ricerca Legale",
+        "Archivio Giurisprudenza",
+        "Strumenti Forensi",
+        "Strumenti Operativi",
+        "Sito Studio",
+        "Notifiche WhatsApp",
+        "Incassi e Pagamenti",
+        "Backup",
+        "Impostazioni Studio",
+        "Sincronizzazione Calendari",
+        "Amministrazione",
+        "Utenti",
+        "Profili e Permessi",
+        "Registro Attività",
+        "Database",
+        "Registro GDPR",
+    )
+    for label in expected_visible_labels:
+        assert label in app_source or label in studio_source, label
+
+    app = _app(tmp_path)
+    _crea_operatore(app)
+    cliente_repo = GestioneClienti(db_path=app.config["CLIENTI_DB"])
+    cliente = cliente_repo.nuovo(TipoCliente.PERSONA_FISICA, nome="Matrice", cognome="React")
+    soggetto = GestioneSoggetti(app.config["SOGGETTI_DB"], app.config["SOGGETTI_PARTI_DB"]).crea(
+        TipoSoggetto.PERSONA_FISICA,
+        nome="Parte",
+        cognome="Verificata",
+    )
+    fascicoli = GestioneFascicoli(
+        db_path=app.config["FASCICOLI_DB"],
+        documents_dir=app.config["FASCICOLI_DOCS"],
+        archive_dir=app.config["FASCICOLI_ARCH"],
+    )
+    fascicolo = fascicoli.nuovo(
+        "Matrice React completa",
+        TipoFascicolo.CIVILE,
+        id_cliente=cliente.id,
+        nome_cliente=cliente.nome_completo,
+        tribunale="Tribunale di Milano",
+        numero_rg="139",
+        anno_rg=2023,
+    )
+    scadenza = GestioneScadenziario(db_path=app.config["SCADENZIARIO_DB"]).nuova(
+        "Deposito memoria",
+        TipoTermine.DEPOSITO_MEMORIA,
+        date.today().isoformat(),
+        id_fascicolo=fascicolo.id,
+    )
+
+    first_block_routes = {
+        "Panoramica": "/",
+        "Regia Operativa": "/workspace-intelligente",
+        "Ricerca Studio": "/global-search",
+        "Recenti": f"/fascicoli/{fascicolo.id}",
+        "Calendario": "/agenda",
+        "Nuovo Appuntamento": "/agenda/nuovo",
+        "Timesheet": "/timesheet",
+        "Tutti i Fascicoli": "/fascicoli",
+        "Nuovo Fascicolo": "/fascicoli/nuovo",
+        "Archivio": "/fascicoli/archivio",
+        "Clienti e Anagrafiche": "/clienti",
+        "Nuovo Cliente": "/clienti/nuovo",
+        "Cartelle Condivise": "/cartelle-condivise",
+        "Soggetti e Parti": "/soggetti",
+        "Nuovo Soggetto": "/soggetti/nuovo",
+        "Email PEC": "/email/",
+        "Messaggi": "/messaggi",
+        "Nuovo SMS/WA": "/messaggi/nuovo",
+        "Scadenziario": "/scadenziario",
+        "Nuova Scadenza": "/scadenziario/nuova",
+        "Preparazione Udienza Guidata": "/wizard-pro/",
+        "Controlli Atti": "/deposito/checklist",
+        "Dettaglio Cliente": f"/clienti/{cliente.id}/cartella",
+        "Dettaglio Soggetto": f"/soggetti/{soggetto.id}",
+        "Dettaglio Scadenza": f"/scadenziario/{scadenza.id}",
+    }
+    telematico_routes = {
+        "Servizi Telematici": "/telematico",
+        "Centro Servizi Telematici": "/servizi-telematici",
+        "PolisWeb / PST": "/polisWeb",
+        "Panoramica PST": "/app-v2/polisweb",
+        "SIGP - Giudice di Pace": "/sigp/",
+        "PDP Penale": "/pdp",
+        "PAT Amministrativo": "/pat",
+        "PTT Tributario": "/sigit",
+        "Tribunali / PEC": "/tribunali",
+        "Checklist deposito": "/deposito/checklist",
+        "Guida firma digitale": "/guida/firma-digitale",
+    }
+    studio_admin_routes = {
+        "Studio": "/studio",
+        "Parcelle e Fatture": "/fatturazione/",
+        "Preventivi e Incarichi": "/preventivi/",
+        "Compensi Forensi": "/compensi-forensi",
+        "Redazione Atti": "/redazione-atti",
+        "Statistiche": "/statistiche/",
+        "Ricerca Legale": "/ricerca-legale",
+        "Archivio Giurisprudenza": "/giurisprudenza/",
+        "Strumenti Forensi": "/strumenti-legali/",
+        "Strumenti Operativi": "/strumenti-operativi",
+        "Sito Studio": "/sito-studio/",
+        "Notifiche WhatsApp": "/notifiche-whatsapp",
+        "Incassi e Pagamenti": "/incassi-pagamenti",
+        "Backup": "/backup",
+        "Impostazioni Studio": "/impostazioni-studio",
+        "Sincronizzazione Calendari": "/sincronizzazione-calendari",
+        "Utenti": "/utenti",
+        "Profili e Permessi": "/profili",
+        "Registro Attività": "/registro-attivita",
+        "Database": "/admin/database",
+        "Registro GDPR": "/registro-gdpr",
+    }
+
+    with app.test_client() as client:
+        _login(client)
+        for label, path in {**first_block_routes, **telematico_routes, **studio_admin_routes}.items():
+            _assert_react_shell(client, label, path)
+
+        for label, path in {
+            "Panoramica": "/api/v1/ui/dashboard",
+            "Regia Operativa": "/api/v1/ui/dashboard?refresh=1",
+            "Agenda": "/api/v1/ui/agenda",
+            "Fascicoli": "/api/v1/ui/fascicoli",
+            "Nuovo Fascicolo": "/api/v1/ui/fascicoli/nuovo",
+            "Archivio Fascicoli": "/api/v1/ui/fascicoli/archivio",
+            "Clienti": "/api/v1/ui/clienti",
+            "Nuovo Cliente": "/api/v1/ui/clienti/nuovo",
+            "Cartella Cliente": f"/api/v1/ui/clienti/{cliente.id}/cartella",
+            "Soggetti": "/api/v1/ui/soggetti",
+            "Email PEC": "/api/v1/ui/email",
+            "Messaggi": "/api/v1/ui/messaggi",
+            "Nuovo SMS/WA": "/api/v1/ui/messaggi/nuovo",
+            "Scadenziario": "/api/v1/ui/scadenziario",
+            "Nuova Scadenza": "/api/v1/ui/scadenziario/nuova",
+            "Preparazione Udienza Guidata": "/api/v1/ui/wizard-pro",
+            "Controlli Atti": "/api/v1/ui/telematico/surface/checklist",
+            "Centro Servizi Telematici": "/api/v1/ui/telematico",
+            "PolisWeb / PST": "/api/v1/ui/telematico/surface/polisweb",
+            "PDP Penale": "/api/v1/ui/telematico/surface/pdp",
+            "PAT Amministrativo": "/api/v1/ui/telematico/surface/pat",
+            "PTT Tributario": "/api/v1/ui/telematico/surface/ptt",
+            "Tribunali / PEC": "/api/v1/ui/telematico/surface/tribunali",
+            "Guida firma digitale": "/api/v1/ui/telematico/surface/firma",
+            "Ricerca Studio": "/api/global-search?q=matrice&limit=5",
+        }.items():
+            _assert_payload_operativo(client, label, path, require_links=label != "Ricerca Studio")
+
+        for module_id in (
+            "studio",
+            "fatturazione",
+            "preventivi",
+            "compensi-forensi",
+            "redazione-atti",
+            "statistiche",
+            "ricerca-legale",
+            "giurisprudenza",
+            "strumenti-forensi",
+            "strumenti-operativi",
+            "sito-studio",
+            "notifiche-whatsapp",
+            "incassi-pagamenti",
+            "backup",
+            "impostazioni-studio",
+            "sincronizzazione-calendari",
+            "amministrazione",
+            "utenti",
+            "profili",
+            "registro-attivita",
+            "database",
+            "gdpr",
+        ):
+            payload = _assert_payload_operativo(client, module_id, f"/api/v1/ui/studio-modules/{module_id}")
+            assert payload.get("operations"), module_id
 
 
 def test_react_messaggi_bridge_usa_repository_reali(tmp_path: Path):

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useState, type MouseEvent, type ReactNode } from 'react'
 import {
   AlertTriangle,
   ArrowRight,
@@ -64,10 +64,48 @@ function portalBadge(portal: TelematicoChannelId | 'altro') {
   return <Badge tone={portal === 'pdp' ? 'danger' : portal === 'pat' ? 'success' : portal === 'ptt' ? 'warning' : 'primary'}>{portalToneLabel[portal]}</Badge>
 }
 
-function ChannelCard({ channel }:{channel:TelematicoChannel}) {
+function sourceLabel(source: string): string {
+  return source === 'repository_reali' ? 'dati applicativi' : 'servizio applicativo'
+}
+
+function sameTelematicoPage(href: string): boolean {
+  try {
+    const url = new URL(href, window.location.origin)
+    if (url.origin !== window.location.origin) return false
+    const path = url.pathname.replace(/\/+$/, '').toLowerCase() || '/'
+    return path === '/telematico' || path === '/app-v2/telematico'
+  } catch {
+    return false
+  }
+}
+
+function ChannelCard({
+  channel,
+  selected,
+  onSelect,
+  onAction,
+}:{
+  channel:TelematicoChannel
+  selected:boolean
+  onSelect:(channel:TelematicoChannel)=>void
+  onAction:(event:MouseEvent<HTMLAnchorElement>, channel:TelematicoChannel, actionIndex:number)=>void
+}) {
   const attention = channel.attentionNeeded > 0
   return (
-    <article className={`iu-tel-channel iu-tel-channel--${channel.tone}`}>
+    <article
+      className={`iu-tel-channel iu-tel-channel--${channel.tone} ${selected ? 'is-selected' : ''}`}
+      tabIndex={0}
+      onClick={(event) => {
+        if ((event.target as HTMLElement).closest('a,button')) return
+        onSelect(channel)
+      }}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault()
+          onSelect(channel)
+        }
+      }}
+    >
       <header>
         <div className="iu-tel-channel__icon">{portalIcon[channel.id]}</div>
         <div>
@@ -88,12 +126,44 @@ function ChannelCard({ channel }:{channel:TelematicoChannel}) {
       <small className="iu-tel-channel__sync">{channel.lastSyncAt ? `Ultimo allineamento: ${channel.lastSyncAt}` : channel.environmentLabel || 'Nessun allineamento ancora registrato.'}</small>
       <footer>
         {channel.quickActions.slice(0, 3).map((action, index) => (
-          <a className={index === 1 ? 'is-primary' : ''} href={action.href} key={`${channel.id}-${action.label}`}>
+          <a className={index === 1 ? 'is-primary' : ''} href={action.href} onClick={(event) => onAction(event, channel, index)} key={`${channel.id}-${action.label}`}>
             {index === 0 ? <ExternalLink size={15}/> : index === 1 ? <UploadCloud size={15}/> : <FolderOpen size={15}/>} {action.label}
           </a>
         ))}
       </footer>
     </article>
+  )
+}
+
+function ActiveChannelPanel({
+  channel,
+  actionIndex,
+}:{
+  channel:TelematicoChannel
+  actionIndex:number
+}) {
+  const action = channel.quickActions[actionIndex] || channel.quickActions[0]
+  const importAction = channel.quickActions[1] || action
+  const checkAction = channel.quickActions[2] || action
+  return (
+    <section id="canale-attivo" className={`iu-tel-active-channel iu-tel-active-channel--${channel.tone}`}>
+      <div className="iu-tel-active-channel__icon">{portalIcon[channel.id]}</div>
+      <div className="iu-tel-active-channel__copy">
+        <span>Canale pronto</span>
+        <h2>{action?.label || channel.title}</h2>
+        <p>{channel.description}</p>
+        <dl>
+          <div><dt>Canale</dt><dd>{channel.title}</dd></div>
+          <div><dt>Stato</dt><dd>{channel.statusText}</dd></div>
+          <div><dt>Pratiche</dt><dd>{channel.cases}</dd></div>
+        </dl>
+      </div>
+      <div className="iu-tel-active-channel__actions">
+        <a href={importAction.href}>Importa pratica</a>
+        <a href={channel.homeHref}>Apri superficie</a>
+        <a href={checkAction.href}>Controlli</a>
+      </div>
+    </section>
   )
 }
 
@@ -182,6 +252,7 @@ export function TelematicoPage() {
   const [data, setData] = useState<TelematicoPageData>(emptyTelematicoPage)
   const [loading, setLoading] = useState(true)
   const [query, setQuery] = useState('')
+  const [activeChannel, setActiveChannel] = useState<{ id:TelematicoChannelId; actionIndex:number }>({ id: 'pst', actionIndex: 0 })
 
   const load = () => {
     setLoading(true)
@@ -217,6 +288,27 @@ export function TelematicoPage() {
     ...data.controlTower.incompleteImports,
     ...data.controlTower.warnings,
   ].slice(0, 6)
+  const selectedChannel = data.channels.find((channel) => channel.id === activeChannel.id) || data.channels[0]
+
+  const selectChannel = (channel: TelematicoChannel, actionIndex = 0) => {
+    setActiveChannel({ id: channel.id, actionIndex })
+    window.requestAnimationFrame(() => {
+      document.getElementById('canale-attivo')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    })
+  }
+
+  const handleChannelAction = (event: MouseEvent<HTMLAnchorElement>, channel: TelematicoChannel, actionIndex: number) => {
+    const action = channel.quickActions[actionIndex]
+    if (!action || !sameTelematicoPage(action.href)) return
+    event.preventDefault()
+    selectChannel(channel, actionIndex)
+    const url = new URL(action.href, window.location.origin)
+    const nextUrl = `${url.pathname}${url.search}${url.hash}`
+    const currentUrl = `${window.location.pathname}${window.location.search}${window.location.hash}`
+    if (nextUrl !== currentUrl) {
+      window.history.pushState({ telematicoChannel: channel.id, action: actionIndex }, '', nextUrl)
+    }
+  }
 
   return (
     <main className="iu-content iu-telematico-page">
@@ -263,12 +355,22 @@ export function TelematicoPage() {
           <span>Canali ufficiali</span>
           <h2>Accesso ai portali</h2>
         </div>
-        <small>{loading ? 'Sincronizzazione dati telematici...' : `Dati aggiornati · ${data.source}`}</small>
+        <small>{loading ? 'Sincronizzazione dati telematici...' : `Dati aggiornati · ${sourceLabel(data.source)}`}</small>
       </section>
 
       <section className="iu-tel-channel-grid">
-        {data.channels.map((channel) => <ChannelCard channel={channel} key={channel.id}/>) }
+        {data.channels.map((channel) => (
+          <ChannelCard
+            channel={channel}
+            selected={selectedChannel?.id === channel.id}
+            onSelect={selectChannel}
+            onAction={handleChannelAction}
+            key={channel.id}
+          />
+        )) }
       </section>
+
+      {selectedChannel ? <ActiveChannelPanel channel={selectedChannel} actionIndex={activeChannel.actionIndex}/> : null}
 
       <section className="iu-tel-command-grid">
         <div className="iu-tel-command-main">

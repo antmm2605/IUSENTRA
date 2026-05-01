@@ -39,10 +39,16 @@ import './EmailPecPage.css'
 type SortKey = 'recenti' | 'mittente' | 'oggetto' | 'pct'
 
 const sortLabels: Record<SortKey, string> = {
-  recenti: 'Pi? recenti',
+  recenti: 'Più recenti',
   mittente: 'Mittente / destinatario',
   oggetto: 'Oggetto',
   pct: 'Esito PCT',
+}
+
+function sourceLabel(source: string): string {
+  if (source === 'repository_reali') return 'dati applicativi'
+  if (source === 'errore_controllato') return 'dati parziali'
+  return source || 'casella PEC'
 }
 
 function StatCard({ icon, label, value, note, tone = 'primary' }:{ icon:ReactNode; label:string; value:number|string; note:string; tone?:EmailPecRow['tone'] }) {
@@ -128,6 +134,11 @@ async function postMailAction(url: string, label: string): Promise<string> {
   return payload.messaggio || `${label}: operazione eseguita.`
 }
 
+function routeEmailId(): string {
+  const match = window.location.pathname.match(/^\/(?:app-v2\/)?email\/messaggio\/([^/]+)/i)
+  return match ? decodeURIComponent(match[1]) : ''
+}
+
 function FolderTabs({ data, folder, onChange }:{data:EmailPecPageData; folder:EmailFolder; onChange:(folder:EmailFolder)=>void}) {
   return (
     <div className="iu-mail-folders" role="tablist" aria-label="Cartelle PEC">
@@ -170,7 +181,7 @@ function EmailPreview({ item, onAction }:{item?:EmailPecRow; onAction:(url:strin
       <section className="iu-mail-preview-card iu-mail-preview-empty">
         <Mail size={38}/>
         <h2>Seleziona una PEC</h2>
-        <p>La lettura rapida comparir? qui, con esiti PCT, allegati e azioni operative.</p>
+        <p>La lettura rapida comparirà qui, con esiti PCT, allegati e azioni operative.</p>
       </section>
     )
   }
@@ -198,7 +209,7 @@ function EmailPreview({ item, onAction }:{item?:EmailPecRow; onAction:(url:strin
           <ShieldCheck size={18}/>
           <div>
             <strong>Esito telematico rilevato: {item.pctStatus}</strong>
-            <span>Lex pu? aiutarti a collegare questa PEC a fascicolo, deposito, comunicazione cancelleria o prossima azione.</span>
+            <span>Lex può aiutarti a collegare questa PEC a fascicolo, deposito, comunicazione cancelleria o prossima azione.</span>
           </div>
         </div>
       ) : null}
@@ -232,7 +243,7 @@ function Inspector({ data, rows }:{data:EmailPecPageData; rows:EmailPecRow[]}) {
           <article>
             <span>Auto-collegate</span>
             <strong>{data.summary.autoLinked}</strong>
-            <small>Esiti o comunicazioni gi? registrati nei fascicoli.</small>
+            <small>Esiti o comunicazioni già registrati nei fascicoli.</small>
           </article>
         </div>
       </Panel>
@@ -285,7 +296,7 @@ export function EmailPecPage() {
   const [onlyAttachments, setOnlyAttachments] = useState(false)
   const [pctStatus, setPctStatus] = useState('')
   const [advancedOpen, setAdvancedOpen] = useState(false)
-  const [selectedId, setSelectedId] = useState('')
+  const [selectedId, setSelectedId] = useState(routeEmailId())
   const [statusLine, setStatusLine] = useState('')
 
   const load = () => {
@@ -310,6 +321,11 @@ export function EmailPecPage() {
   useEffect(() => {
     if (!visible.length) {
       setSelectedId('')
+      return
+    }
+    const routeId = routeEmailId()
+    if (routeId && visible.some((item) => item.id === routeId)) {
+      setSelectedId(routeId)
       return
     }
     if (!visible.some((item) => item.id === selectedId)) setSelectedId(visible[0].id)
@@ -376,14 +392,14 @@ export function EmailPecPage() {
 
       <section className="iu-mail-status-line">
         <span className={loading ? '' : 'is-ok'}>{loading ? 'Sincronizzazione vista PEC...' : 'Dati PEC aggiornati'}</span>
-        <small><Clock3 size={14}/> Le azioni di invio, sincronizzazione e fascicolazione restano sui servizi Flask gi? auditati.</small>
+        <small><Clock3 size={14}/> Le azioni di invio, sincronizzazione e fascicolazione restano sui servizi backend già auditati.</small>
         {statusLine ? <small className="iu-mail-operation-status">{statusLine}</small> : null}
       </section>
 
       <section className="iu-mail-layout">
         <div className="iu-mail-list-card">
           <header>
-            <div><strong>{visible.length} messaggi</strong><span>{folderLabel(folder)} · {data.source}</span></div>
+            <div><strong>{visible.length} messaggi</strong><span>{folderLabel(folder)} · {sourceLabel(data.source)}</span></div>
             <a href={`/email/?cartella=${folder}`}><Download size={15}/> Apri cartella</a>
           </header>
           <div className="iu-mail-list">
@@ -402,7 +418,7 @@ export function EmailPecPage() {
       </section>
 
       <section className="iu-mail-lower-grid">
-        <Panel title="Qualit? PEC" subtitle="Controlli prima di deposito, cancelleria e fascicolo" icon={<ShieldCheck size={17}/>}>
+        <Panel title="Qualità PEC" subtitle="Controlli prima di deposito, cancelleria e fascicolo" icon={<ShieldCheck size={17}/>}>
           <div className="iu-mail-checklist">
             <span><CheckCircle2 size={16}/> In arrivo, inviate e cestino restano visibili come cartelle distinte.</span>
             <span><FileCheck2 size={16}/> PEC/PST ed esiti PCT sono evidenziati senza aprire ogni messaggio.</span>

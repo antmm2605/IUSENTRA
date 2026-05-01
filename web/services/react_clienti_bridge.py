@@ -464,7 +464,6 @@ def build_react_cliente_cartella_payload(
             "read_only": False,
             "writes": "operational_routes",
             "route_owner": "react_shell",
-            "legacy_route": f"/clienti/{id_cliente}/cartella?_legacy=1",
         },
         "cliente": {
             "id": id_cliente,
@@ -515,7 +514,6 @@ def build_react_cliente_cartella_payload(
             "newMessage": f"/messaggi/nuovo?id_cliente={id_cliente}",
             "newQuote": f"/preventivi/nuovo?id_cliente={id_cliente}",
             "exportFolder": f"/clienti/{id_cliente}/esporta",
-            "legacy": f"/clienti/{id_cliente}/cartella?_legacy=1",
         },
     }
 
@@ -769,7 +767,7 @@ def build_react_cliente_modifica_payload(
     payload["insights"] = [
         "Stai modificando l'anagrafica reale: i collegamenti a fascicoli, preventivi e conferimenti restano sullo stesso id cliente.",
         "Completa recapiti, documento e indirizzo prima di generare o firmare il conferimento incarico.",
-        "La vista classica resta disponibile solo con ?_legacy=1 per verifica tecnica.",
+        "Salvataggio, fascicoli collegati e ricerca restano agganciati ai repository operativi dello studio.",
     ]
     return payload
 
@@ -794,6 +792,6 @@ def build_react_soggetto_modifica_payload(
     payload["insights"] = [
         "Stai modificando un soggetto o una parte processuale reale: i collegamenti ai fascicoli restano sullo stesso id.",
         "Ruolo, recapiti, identificativo fiscale e collegamento cliente alimentano Ricerca Studio e schede fascicolo.",
-        "La vista classica resta disponibile solo con ?_legacy=1 per verifica tecnica.",
+        "Salvataggio, collegamenti e ricerca restano agganciati ai repository operativi dello studio.",
     ]
     return payload

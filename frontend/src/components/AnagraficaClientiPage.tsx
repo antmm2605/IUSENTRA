@@ -40,7 +40,7 @@ type SortKey = 'nome' | 'recenti' | 'pratiche' | 'completezza'
 const sortLabels: Record<SortKey, string> = {
   nome: 'Nome cliente',
   recenti: 'Aggiornati di recente',
-  pratiche: 'Piu procedimenti',
+  pratiche: 'Più procedimenti',
   completezza: 'Da completare prima',
 }
 
@@ -204,7 +204,7 @@ function ClientiTable({
               <th>Contatti</th>
               <th>Avv. referente</th>
               <th>Pratiche</th>
-              <th>Qualita</th>
+              <th>Qualità</th>
               <th>Stato</th>
               <th>Azioni</th>
             </tr>
@@ -252,7 +252,7 @@ function InsightPanel({ data, visible }:{data: ClientiPageData; visible: Cliente
           <article>
             <span>Clienti collegati</span>
             <strong>{withProcedures} clienti con procedimenti visibili</strong>
-            <small>La UI React ? attiva: salvataggi e audit passano dai servizi backend gi? governati.</small>
+            <small>La nuova interfaccia è attiva: salvataggi e audit passano dai servizi backend già governati.</small>
           </article>
         </div>
       </Panel>
@@ -267,13 +267,13 @@ function InsightPanel({ data, visible }:{data: ClientiPageData; visible: Cliente
                   {item.missingFields.length
                     ? `Mancano: ${item.missingFields.slice(0, 3).join(', ')}`
                     : item.documentExpired
-                      ? 'Documento di identita scaduto'
+                      ? 'Documento di identità scaduto'
                       : 'Consenso privacy o recapiti da verificare'}
                 </span>
               </a>
             ))}
           </div>
-        ) : <p className="iu-empty">Nessuna criticita sulle anagrafiche visibili.</p>}
+        ) : <p className="iu-empty">Nessuna criticità sulle anagrafiche visibili.</p>}
       </Panel>
       <Panel title="Azioni rapide" icon={<Sparkles size={17}/>}>
         <div className="iu-cli-quick-actions">
@@ -350,7 +350,7 @@ export function AnagraficaClientiPage() {
         <div>
           <span className="iu-cli-eyebrow"><UsersRound size={16}/> Clienti e anagrafiche</span>
           <h1>Anagrafica Clienti</h1>
-          <p>Persone fisiche e giuridiche assistite dallo studio, con stato, recapiti, procedimenti, qualita dati e privacy sempre leggibili.</p>
+          <p>Persone fisiche e giuridiche assistite dallo studio, con stato, recapiti, procedimenti, qualità dati e privacy sempre leggibili.</p>
         </div>
         <div className="iu-cli-hero__actions">
           <Button href="/clienti/esporta"><Download size={15}/> Esporta</Button>
@@ -368,7 +368,7 @@ export function AnagraficaClientiPage() {
         <StatCard icon={<AlertTriangle size={19}/>} label="Da completare" value={data.summary.incomplete} note="dati mancanti" tone="orange"/>
         <StatCard icon={<Phone size={19}/>} label="Senza recapiti" value={data.summary.withoutContacts} note="telefono, email o PEC assenti" tone="warning"/>
         <StatCard icon={<ShieldCheck size={19}/>} label="Privacy" value={data.summary.privacyMissing} note="consenso da verificare" tone="purple"/>
-        <StatCard icon={<FileText size={19}/>} label="Documenti scaduti" value={data.summary.documentsExpired} note="identita da aggiornare" tone="danger"/>
+        <StatCard icon={<FileText size={19}/>} label="Documenti scaduti" value={data.summary.documentsExpired} note="identità da aggiornare" tone="danger"/>
       </section>
 
       <section className="iu-cli-toolbar" aria-label="Filtri clienti">
@@ -390,7 +390,7 @@ export function AnagraficaClientiPage() {
 
       <section className="iu-cli-status-line">
         <span className={loading ? '' : 'is-ok'}>{loading ? 'Sincronizzazione anagrafiche...' : 'Dati aggiornati'}</span>
-        <small><ShieldCheck size={14}/> UI React attiva: dettaglio, modifica e POST usano il backend storico senza duplicare dati.</small>
+        <small><ShieldCheck size={14}/> Dettaglio, modifica e invii usano il backend storico senza duplicare dati.</small>
         {selectedVisible ? <small className="iu-cli-selected">{selectedVisible} selezionati</small> : null}
       </section>
 
@@ -410,7 +410,7 @@ export function AnagraficaClientiPage() {
       </section>
 
       <section className="iu-cli-lower-grid">
-        <Panel title="Qualita dati anagrafici" subtitle="Informazioni da tenere pulite prima di incarico, atto e fattura" icon={<BadgeCheck size={17}/>}>
+        <Panel title="Qualità dati anagrafici" subtitle="Informazioni da tenere pulite prima di incarico, atto e fattura" icon={<BadgeCheck size={17}/>}>
           <div className="iu-cli-checklist">
             <span><CheckCircle2 size={16}/> C.F. / P.IVA e recapiti sempre visibili nella lista</span>
             <span><ShieldCheck size={16}/> Privacy e documenti segnalati senza aprire la scheda</span>

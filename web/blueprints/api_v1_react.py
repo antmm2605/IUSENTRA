@@ -51,6 +51,7 @@ from web.services.react_scadenziario_bridge import (
     build_react_scadenziario_payload,
 )
 from web.services.react_soggetti_bridge import build_react_soggetti_payload
+from web.services.react_studio_module_bridge import build_react_studio_module_payload
 from web.services.react_telematico_bridge import (
     build_react_telematico_payload,
     build_react_telematico_surface_payload,
@@ -135,6 +136,12 @@ def _telematico_runtime_func(name: str) -> Callable[..., Any]:
         return {}
 
     return _missing_runtime
+
+
+def _core_runtime_func(name: str) -> Callable[..., Any] | None:
+    core_runtime = current_app.extensions.get("core_runtime", {}) or {}
+    func = core_runtime.get(name)
+    return func if callable(func) else None
 
 
 def _iso_now() -> str:
@@ -1192,6 +1199,21 @@ def telematico_react_surface(surface: str):
             logger=current_app.logger,
         )
     )
+
+
+@api_v1_react.get("/studio-modules/<module_id>")
+@_richiedi_auth
+def studio_module_react_payload(module_id: str):
+    get_trattamenti = _core_runtime_func("get_trattamenti")
+    return jsonify(build_react_studio_module_payload(
+        module_id=module_id,
+        config=current_app.config,
+        get_utenti=get_utenti,
+        get_fatturazione=get_fatturazione,
+        get_clienti=get_clienti,
+        get_fascicoli=get_fascicoli,
+        get_trattamenti=get_trattamenti,
+    ))
 
 
 # IUSENTRA_REACT_FASCICOLI_ROUTES_START

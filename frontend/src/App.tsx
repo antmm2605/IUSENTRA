@@ -278,6 +278,10 @@ function isTelematicoSurfaceRoute(path: string): boolean {
     route === '/pst' ||
     route.startsWith('/polisweb/') ||
     route.startsWith('/pst/') ||
+    route === '/sigp' ||
+    route.startsWith('/sigp/') ||
+    route === '/sigp-sync' ||
+    route.startsWith('/sigp-sync/') ||
     route === '/pdp' ||
     route.startsWith('/pdp/') ||
     route === '/pat' ||
@@ -312,7 +316,7 @@ type GlobalLexConfig = {
 
 function resolveLexPageContext(routePath: string): GlobalLexConfig {
   const route = normaliseRoutePath(routePath).toLowerCase()
-  if (route === '/global-search' || route === '/ricerca-studio') {
+  if (route === '/global-search' || route === '/ricerca-studio' || route === '/cerca') {
     return {
       context: 'ricerca-studio',
       title: 'Lex AI ricerca',
@@ -327,7 +331,7 @@ function resolveLexPageContext(routePath: string): GlobalLexConfig {
     return {
       context: 'regia-operativa',
       title: 'Lex AI regia',
-      body: 'Legge priorita, PEC, scadenze e fascicoli da presidiare per suggerire il prossimo passo operativo.',
+      body: 'Legge priorità, PEC, scadenze e fascicoli da presidiare per suggerire il prossimo passo operativo.',
       primaryHref: '/lex?context=regia-operativa',
       primaryLabel: 'Apri Lex regia',
       secondaryHref: '/workspace-intelligente',
@@ -338,7 +342,7 @@ function resolveLexPageContext(routePath: string): GlobalLexConfig {
     return {
       context: 'agenda-appuntamento',
       title: 'Lex AI appuntamento',
-      body: 'Legge cliente, fascicolo, orario e note per aiutarti a preparare agenda, promemoria e attivita collegate.',
+      body: 'Legge cliente, fascicolo, orario e note per aiutarti a preparare agenda, promemoria e attività collegate.',
       primaryHref: '/lex?context=agenda-appuntamento',
       primaryLabel: 'Apri Lex agenda',
       secondaryHref: '/agenda',
@@ -360,7 +364,7 @@ function resolveLexPageContext(routePath: string): GlobalLexConfig {
     return {
       context: 'fascicoli',
       title: 'Lex AI fascicoli',
-      body: 'Legge il contesto del fascicolo, documenti, attivita, scadenze e canali telematici collegati.',
+      body: 'Legge il contesto del fascicolo, documenti, attività, scadenze e canali telematici collegati.',
       primaryHref: '/lex?context=fascicoli',
       primaryLabel: 'Apri Lex fascicoli',
       secondaryHref: '/fascicoli',
@@ -404,14 +408,14 @@ function resolveLexPageContext(routePath: string): GlobalLexConfig {
     return {
       context: 'preparazione-udienza',
       title: 'Lex AI udienza',
-      body: 'Legge attivita, documenti, parti e udienza per preparare checklist, note e prossime azioni.',
+      body: 'Legge attività, documenti, parti e udienza per preparare checklist, note e prossime azioni.',
       primaryHref: '/lex?context=preparazione-udienza',
       primaryLabel: 'Apri Lex udienza',
       secondaryHref: '/wizard-pro/',
       secondaryLabel: 'Wizard udienza',
     }
   }
-  if (route === '/telematico' || route === '/telematici' || isTelematicoSurfaceRoute(route)) {
+  if (route === '/telematico' || route === '/telematici' || route === '/servizi-telematici' || isTelematicoSurfaceRoute(route)) {
     return {
       context: 'telematico',
       title: 'Lex AI telematico',
@@ -582,11 +586,11 @@ function Lex({ data }:{data:DashboardData}) {
 }
 
 function Dossiers({ data }:{data:DashboardData}) {
-  return <Panel title="Fascicoli da presidiare" subtitle="Array dossier derivato dai fascicoli reali ad alta priorità." icon={<BriefcaseBusiness size={17}/>} count={data.dossiers.length}>{data.dossiers.length?<div className="iu-dossier-grid">{data.dossiers.map(dossier=><DossierCard dossier={dossier} key={dossier.id}/>)}</div>:<Empty>Nessun fascicolo prioritario nell'orizzonte operativo.</Empty>}<a className="iu-link" href="/fascicoli">Apri tutti i fascicoli -&gt;</a></Panel>
+  return <Panel title="Fascicoli da presidiare" subtitle="Fascicoli reali ad alta priorità da seguire nel quadro operativo." icon={<BriefcaseBusiness size={17}/>} count={data.dossiers.length}>{data.dossiers.length?<div className="iu-dossier-grid">{data.dossiers.map(dossier=><DossierCard dossier={dossier} key={dossier.id}/>)}</div>:<Empty>Nessun fascicolo prioritario nell'orizzonte operativo.</Empty>}<a className="iu-link" href="/fascicoli">Apri tutti i fascicoli -&gt;</a></Panel>
 }
 
 function Sources({ data }:{data:DashboardData}) {
-  return <Panel title="Fonti operative collegate" subtitle="Array fonti pronto per API/store e alimentato dai conteggi reali." icon={<BookOpen size={17}/>} count={data.sources.length}>{data.sources.length?<div className="iu-source-grid">{data.sources.map(source=><SourceCard source={source} key={source.id}/>)}</div>:<Empty>Nessuna fonte operativa disponibile.</Empty>}</Panel>
+  return <Panel title="Fonti operative collegate" subtitle="Fonti applicative alimentate dai conteggi reali dello studio." icon={<BookOpen size={17}/>} count={data.sources.length}>{data.sources.length?<div className="iu-source-grid">{data.sources.map(source=><SourceCard source={source} key={source.id}/>)}</div>:<Empty>Nessuna fonte operativa disponibile.</Empty>}</Panel>
 }
 
 function RegiaOperativaPage({ data, loading }:{data:DashboardData; loading:boolean}) {
@@ -647,7 +651,7 @@ export default function App() {
   const activePath = window.location.pathname.replace(/\/+$/, '') || '/'
   const routePath = normaliseRoutePath(activePath)
   const routeKey = routePath.toLowerCase()
-  const isSearchPage = routeKey === '/global-search' || routeKey === '/ricerca-studio'
+  const isSearchPage = routeKey === '/global-search' || routeKey === '/ricerca-studio' || routeKey === '/cerca'
   const isNewAppointmentPage = routeKey === '/agenda/nuovo' || routeKey.startsWith('/agenda/nuovo/')
   const isAppointmentEditPage = /^\/agenda\/[^/]+\/modifica$/.test(routeKey)
   const isAgendaPage = !isNewAppointmentPage && !isAppointmentEditPage && (routeKey === '/agenda' || routeKey.startsWith('/agenda/'))
@@ -657,17 +661,17 @@ export default function App() {
   const isNewSubjectPage = routeKey === '/soggetti/nuovo'
   const isClientEditPage = /^\/clienti\/[^/]+\/modifica$/.test(routeKey)
   const isSubjectEditPage = /^\/soggetti\/[^/]+\/modifica$/.test(routeKey)
-  const isClientFolderPage = /^\/clienti\/[^/]+(\/cartella)?$/.test(routeKey)
+  const isClientFolderPage = /^\/clienti\/[^/]+(\/(cartella|faldone|portale))?$/.test(routeKey)
   const isClientiPage = !isNewClientPage && !isClientFolderPage && routeKey === '/clienti'
   const isSoggettiPage = !isNewSubjectPage && !isSubjectEditPage && (routeKey === '/soggetti' || routeKey.startsWith('/soggetti/'))
-  const isEmailPage = routeKey === '/email'
+  const isEmailPage = routeKey === '/email' || routeKey.startsWith('/email/')
   const isNewMessagePage = routeKey === '/messaggi/nuovo'
   const isMessagesPage = !isNewMessagePage && (routeKey === '/messaggi' || routeKey.startsWith('/messaggi/'))
   const isNewDeadlinePage = routeKey === '/scadenziario/nuova'
   const isDeadlineEditPage = /^\/scadenziario\/[^/]+\/modifica$/.test(routeKey)
   const isScadenziarioPage = !isNewDeadlinePage && !isDeadlineEditPage && (routeKey === '/scadenziario' || routeKey.startsWith('/scadenziario/'))
   const isWizardProPage = routeKey === '/wizard-pro' || routeKey.startsWith('/wizard-pro/')
-  const isTelematicoPage = routeKey === '/telematico' || routeKey === '/telematici'
+  const isTelematicoPage = routeKey === '/telematico' || routeKey === '/telematici' || routeKey === '/servizi-telematici'
   const isTelematicoSurfacePage = isTelematicoSurfaceRoute(routeKey)
   const isStudioModulePage = isStudioModuleRoute(routeKey)
   const isDashboardPage = !isSearchPage && !isAgendaPage && !isNewAppointmentPage && !isAppointmentEditPage && !isRegiaPage && !isFascicoliPage && !isClientiPage && !isClientFolderPage && !isClientEditPage && !isNewClientPage && !isSoggettiPage && !isNewSubjectPage && !isSubjectEditPage && !isEmailPage && !isMessagesPage && !isNewMessagePage && !isScadenziarioPage && !isNewDeadlinePage && !isDeadlineEditPage && !isWizardProPage && !isTelematicoPage && !isTelematicoSurfacePage && !isStudioModulePage

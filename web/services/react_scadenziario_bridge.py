@@ -788,7 +788,6 @@ def build_react_scadenziario_nuova_payload(
             scadenza = None
     mode = "edit" if scadenza is not None else "new"
     write_endpoint = f"/scadenziario/{id_scadenza}/modifica" if mode == "edit" else "/scadenziario/nuova"
-    legacy_fallback = f"{write_endpoint}?_legacy=1"
 
     return {
         "source": "repository_reali",
@@ -829,7 +828,6 @@ def build_react_scadenziario_nuova_payload(
         "actions": {
             "write_endpoint": write_endpoint,
             "calculate_endpoint": "/scadenziario/calcola-termine",
-            "legacy_fallback": legacy_fallback,
             "detail": f"/scadenziario/{id_scadenza}" if mode == "edit" else "/scadenziario",
             "list": "/scadenziario",
         },
@@ -837,6 +835,5 @@ def build_react_scadenziario_nuova_payload(
             "mock_fallback": False,
             "write_endpoint": write_endpoint,
             "calculate_endpoint": "/scadenziario/calcola-termine",
-            "legacy_fallback": legacy_fallback,
         },
     }

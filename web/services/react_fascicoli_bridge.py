@@ -459,6 +459,15 @@ def _contracts() -> dict[str, Any]:
     return {"mock_fallback": False, "read_only": True, "writes": "operational_routes"}
 
 
+def _list_actions() -> dict[str, str]:
+    return {
+        "list": "/fascicoli",
+        "new": "/fascicoli/nuovo",
+        "archive": "/fascicoli/archivio",
+        "exportCsv": "/fascicoli/export.csv",
+    }
+
+
 def build_react_fascicoli_payload(*, get_fascicoli: Callable[[], Any], get_scadenziario: Callable[[], Any]) -> dict[str, Any]:
     gf = get_fascicoli()
     scadenze_by_fasc = _all_scadenze_by_fasc(get_scadenziario)
@@ -475,6 +484,7 @@ def build_react_fascicoli_payload(*, get_fascicoli: Callable[[], Any], get_scade
         "items": items,
         "facets": _facets(items),
         "deadlines": _deadline_rows(get_scadenziario, items_by_id, days=7),
+        "actions": _list_actions(),
     }
 
 
@@ -494,6 +504,7 @@ def build_react_archivio_payload(*, get_fascicoli: Callable[[], Any], get_scaden
         "items": items,
         "facets": _facets(items),
         "deadlines": [],
+        "actions": _list_actions(),
     }
 
 

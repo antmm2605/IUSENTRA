@@ -81,6 +81,7 @@ Questa distinzione e' coperta da test per evitare regressioni sulla visibilita' 
 ## Gate per ogni pagina
 
 - API con dati reali, nessun mock operativo.
+- Card e CTA non decorative: ogni card React deve puntare a una route servita, a un download esplicito o a un endpoint/form operativo; sono vietati `#`, `_legacy=1` e link a superfici non migrate nella UI utente.
 - UI responsive desktop/tablet/mobile.
 - Azioni di scrittura protette da CSRF/sessione, tenant e RBAC.
 - Test unitari backend.

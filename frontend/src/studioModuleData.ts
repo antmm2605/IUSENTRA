@@ -43,8 +43,6 @@ export type StudioModuleConfig = {
   links: StudioModuleLink[]
 }
 
-const legacy = (path: string) => `${path}${path.includes('?') ? '&' : '?'}_legacy=1`
-
 const commonStudioLinks: StudioModuleLink[] = [
   { label: 'Panoramica', href: '/' },
   { label: 'Regia operativa', href: '/workspace-intelligente' },
@@ -69,7 +67,7 @@ export const studioModules: StudioModuleConfig[] = [
       { title: 'Dati studio', body: 'Anagrafica, titolare, recapiti, albo, coordinate e dati usati in atti, parcelle e depositi.', href: '/impostazioni-studio#dati-studio', action: 'Apri dati studio', icon: 'building', tone: 'primary', meta: 'Impostazioni' },
       { title: 'Comunicazioni', body: 'Configura PEC, posta ordinaria, SMTP e canali WhatsApp senza perdere il presidio locale.', href: '/impostazioni-studio#pec-e-smtp', action: 'Apri canali', icon: 'mail', tone: 'success', meta: 'PEC / SMTP' },
       { title: 'Sito Studio', body: 'Gestisci contenuti, richieste contatto, prenotazioni e anteprima pubblica dello studio.', href: '/sito-studio', action: 'Apri sito', icon: 'earth', tone: 'purple', meta: 'Presenza digitale' },
-      { title: 'Backup e continuita', body: 'Verifica copie, integrita, ripristino tecnico e politica di conservazione dei dati.', href: '/backup', action: 'Apri backup', icon: 'backup', tone: 'warning', meta: 'Operativo' },
+      { title: 'Backup e continuità', body: 'Verifica copie, integrità, ripristino tecnico e politica di conservazione dei dati.', href: '/backup', action: 'Apri backup', icon: 'backup', tone: 'warning', meta: 'Operativo' },
     ],
     workflow: ['Completa dati studio', 'Verifica canali PEC e SMTP', 'Aggiorna sito pubblico', 'Controlla backup e audit'],
     links: [...commonStudioLinks, { label: 'Impostazioni Studio', href: '/impostazioni-studio' }, { label: 'Registro GDPR', href: '/registro-gdpr' }],
@@ -123,9 +121,9 @@ export const studioModules: StudioModuleConfig[] = [
     routes: ['/compensi-forensi', '/tariffario'],
     title: 'Compensi Forensi',
     section: 'Calcolo compensi',
-    subtitle: 'Accesso professionale ai parametri forensi, fasi, complessita e generazione del preventivo collegato.',
+    subtitle: 'Accesso professionale ai parametri forensi, fasi, complessità e generazione del preventivo collegato.',
     lexContext: 'compensi-forensi',
-    lexLabel: 'Lex aiuta a verificare fase, valore, complessita e coerenza del compenso.',
+    lexLabel: 'Lex aiuta a verificare fase, valore, complessità e coerenza del compenso.',
     kpis: [
       { label: 'Fonte calcolo', value: 'Parametri', note: 'tariffario e wizard già presenti', tone: 'primary' },
       { label: 'Output', value: 'Preventivo', note: 'riuso diretto nel workflow incarichi', tone: 'success' },
@@ -141,7 +139,7 @@ export const studioModules: StudioModuleConfig[] = [
   },
   {
     id: 'redazione-atti',
-    routes: ['/redazione-atti', '/template-atti', '/template-atti/catalogo', '/template-atti/nuovo'],
+    routes: ['/redazione-atti', '/template-atti', '/template-atti/catalogo', '/template-atti/nuovo', '/checklist'],
     title: 'Redazione Atti',
     section: 'Document automation',
     subtitle: 'Punto di ingresso React per template, catalogo atti, compilatore e assistente redazionale.',
@@ -159,7 +157,7 @@ export const studioModules: StudioModuleConfig[] = [
       { title: 'Fascicoli', body: 'Seleziona pratica, parti e documenti da usare nella redazione.', href: '/fascicoli', action: 'Apri fascicoli', icon: 'folder', tone: 'neutral', meta: 'Contesto' },
     ],
     workflow: ['Scegli modello', 'Aggancia fascicolo e parti', 'Compila e verifica', 'Produci PDF o deposito'],
-    links: [{ label: 'Checklist atti', href: '/deposito/checklist' }, { label: 'Fascicoli', href: '/fascicoli' }, { label: 'Lex Operativo', href: '/lex-operativo' }],
+    links: [{ label: 'Checklist atti', href: '/deposito/checklist' }, { label: 'Fascicoli', href: '/fascicoli' }, { label: 'Ricerca Studio', href: '/global-search' }],
   },
   {
     id: 'pst-acquisizione',
@@ -188,17 +186,17 @@ export const studioModules: StudioModuleConfig[] = [
     routes: ['/statistiche'],
     title: 'Statistiche',
     section: 'Analisi studio',
-    subtitle: 'Cruscotto React per andamento economico, fascicoli, clienti, scadenze, depositi e produttivita.',
+    subtitle: 'Cruscotto React per andamento economico, fascicoli, clienti, scadenze, depositi e produttività.',
     lexContext: 'statistiche',
     lexLabel: 'Lex interpreta indicatori e segnala anomalie operative.',
     kpis: [
-      { label: 'Dataset', value: '7', note: 'economico, fascicoli, clienti, scadenze, agenda, depositi, produttivita', tone: 'primary' },
+      { label: 'Dataset', value: '7', note: 'economico, fascicoli, clienti, scadenze, agenda, depositi, produttività', tone: 'primary' },
       { label: 'API', value: 'Pronte', note: 'endpoint statistiche già disponibili', tone: 'success' },
       { label: 'Uso', value: 'Direzione', note: 'lettura gestionale e controllo studio', tone: 'purple' },
     ],
     cards: [
       { title: 'Dashboard grafici', body: 'Apri grafici, KPI e riepilogo operativo completo.', href: '/statistiche/', action: 'Apri dashboard', icon: 'chart', tone: 'primary', meta: 'Grafici' },
-      { title: 'Produttivita', body: 'Analizza attivita, timesheet e volume operativo dello studio.', href: '/statistiche/?view=produttivita', action: 'Vedi analisi', icon: 'table', tone: 'success', meta: 'React' },
+      { title: 'Produttività', body: 'Analizza attività, timesheet e volume operativo dello studio.', href: '/statistiche/?view=produttivita', action: 'Vedi analisi', icon: 'table', tone: 'success', meta: 'React' },
       { title: 'Depositi trend', body: 'Controlla andamento depositi e canali telematici.', href: '/statistiche/?view=depositi', action: 'Trend depositi', icon: 'send', tone: 'warning', meta: 'Telematico' },
     ],
     workflow: ['Aggiorna dati', 'Leggi KPI', 'Isola anomalie', 'Apri modulo operativo collegato'],
@@ -271,23 +269,23 @@ export const studioModules: StudioModuleConfig[] = [
     id: 'timesheet',
     routes: ['/timesheet'],
     title: 'Timesheet',
-    section: 'Tempo e produttivita',
-    subtitle: 'Superficie React per registrare attivita, validare ore, collegare clienti e generare parcelle.',
+    section: 'Tempo e produttività',
+    subtitle: 'Superficie React per registrare attività, validare ore, collegare clienti e generare parcelle.',
     lexContext: 'timesheet',
-    lexLabel: 'Lex legge attivita, cliente, fascicolo, stato fatturabile e prossima azione economica.',
+    lexLabel: 'Lex legge attività, cliente, fascicolo, stato fatturabile e prossima azione economica.',
     kpis: [
-      { label: 'Registrazione', value: 'Ore', note: 'attivita manuali e collegate ai fascicoli', tone: 'primary' },
+      { label: 'Registrazione', value: 'Ore', note: 'attività manuali e collegate ai fascicoli', tone: 'primary' },
       { label: 'Validazione', value: 'Stati', note: 'bozza, validato, fatturato e non fatturabile', tone: 'success' },
       { label: 'Output', value: 'Parcella', note: 'generazione da voci validate', tone: 'orange' },
     ],
     cards: [
       { title: 'Cruscotto tempi', body: 'Apri riepilogo, filtri per cliente, fascicolo, stato e utente.', href: '/timesheet', action: 'Apri timesheet', icon: 'clock', tone: 'primary', meta: 'React' },
-      { title: 'Nuova attivita', body: 'Registra una voce tempo da cliente o fascicolo con importo fatturabile.', href: '/agenda', action: 'Aggancia agenda', icon: 'calendar', tone: 'success', meta: 'Workflow' },
+      { title: 'Nuova attività', body: 'Registra una voce tempo da cliente o fascicolo con importo fatturabile.', href: '/agenda', action: 'Aggancia agenda', icon: 'calendar', tone: 'success', meta: 'Workflow' },
       { title: 'Genera parcella', body: 'Consolida le voci validate e prepara il documento economico.', href: '/fatturazione/nuova', action: 'Crea parcella', icon: 'file', tone: 'orange', meta: 'Economico' },
-      { title: 'Produttivita', body: 'Leggi indicatori e andamento operativo dello studio.', href: '/statistiche/?view=produttivita', action: 'Vedi KPI', icon: 'chart', tone: 'purple', meta: 'React' },
+      { title: 'Produttività', body: 'Leggi indicatori e andamento operativo dello studio.', href: '/statistiche/?view=produttivita', action: 'Vedi KPI', icon: 'chart', tone: 'purple', meta: 'React' },
     ],
-    workflow: ['Registra attivita', 'Valida le voci', 'Filtra per cliente o fascicolo', 'Genera parcella e controlla audit'],
-    links: [{ label: 'Agenda', href: '/agenda' }, { label: 'Parcelle', href: '/fatturazione' }, { label: 'Vista tecnica', href: legacy('/timesheet') }],
+    workflow: ['Registra attività', 'Valida le voci', 'Filtra per cliente o fascicolo', 'Genera parcella e controlla audit'],
+    links: [{ label: 'Agenda', href: '/agenda' }, { label: 'Parcelle', href: '/fatturazione' }, { label: 'Statistiche', href: '/statistiche/?view=produttivita' }],
   },
   {
     id: 'cartelle-condivise',
@@ -305,14 +303,14 @@ export const studioModules: StudioModuleConfig[] = [
     cards: [
       { title: 'Cartelle condivise', body: 'Apri elenco accessi gestiti e cartelle ricevute.', href: '/cartelle-condivise', action: 'Apri cartelle', icon: 'folder', tone: 'primary', meta: 'React' },
       { title: 'Clienti', body: 'Seleziona cliente e gestisci collaboratori dalla cartella.', href: '/clienti', action: 'Apri clienti', icon: 'users', tone: 'success', meta: 'Anagrafiche' },
-      { title: 'Registro attivita', body: 'Controlla aperture, modifiche e condivisioni sensibili.', href: '/audit', action: 'Apri audit', icon: 'clipboard', tone: 'warning', meta: 'Audit' },
+      { title: 'Registro attività', body: 'Controlla aperture, modifiche e condivisioni sensibili.', href: '/audit', action: 'Apri audit', icon: 'clipboard', tone: 'warning', meta: 'Audit' },
     ],
     workflow: ['Scegli cliente', 'Assegna collaboratore e ruolo', 'Imposta scadenza', 'Verifica audit e privacy'],
-    links: [{ label: 'Clienti', href: '/clienti' }, { label: 'Registro GDPR', href: '/registro-gdpr' }, { label: 'Vista tecnica', href: legacy('/cartelle-condivise') }],
+    links: [{ label: 'Clienti', href: '/clienti' }, { label: 'Registro GDPR', href: '/registro-gdpr' }, { label: 'Registro attività', href: '/registro-attivita' }],
   },
   {
     id: 'strumenti-operativi',
-    routes: ['/strumenti-operativi'],
+    routes: ['/strumenti-operativi', '/applicazioni'],
     title: 'Strumenti Operativi',
     section: 'Operatività studio',
     subtitle: 'Raccolta React di strumenti trasversali per agenda, messaggi, condivisioni, export e automazioni.',
@@ -324,7 +322,7 @@ export const studioModules: StudioModuleConfig[] = [
       { label: 'Automazioni', value: 'Presidio', note: 'scheduler e promemoria', tone: 'purple' },
     ],
     cards: [
-      { title: 'Timesheet', body: 'Registra attivita e genera parcelle dalle ore lavorate.', href: '/timesheet', action: 'Apri timesheet', icon: 'clock', tone: 'primary', meta: 'Tempo' },
+      { title: 'Timesheet', body: 'Registra attività e genera parcelle dalle ore lavorate.', href: '/timesheet', action: 'Apri timesheet', icon: 'clock', tone: 'primary', meta: 'Tempo' },
       { title: 'Export dati', body: 'Scarica dati studio per controlli, backup esterni e analisi.', href: '/export/fatturazione.csv', action: 'Esporta', icon: 'download', tone: 'success', meta: 'CSV' },
       { title: 'Condivisioni', body: 'Gestisci cartelle condivise e accesso documentale dei clienti.', href: '/cartelle-condivise', action: 'Apri condivisioni', icon: 'folder', tone: 'warning', meta: 'Clienti' },
       { title: 'Regia operativa', body: 'Torna alla cabina con priorità e prossime azioni.', href: '/workspace-intelligente', action: 'Apri regia', icon: 'spark', tone: 'purple', meta: 'AI' },
@@ -343,7 +341,7 @@ export const studioModules: StudioModuleConfig[] = [
     kpis: [
       { label: 'Contenuti', value: 'CMS', note: 'servizi, professionisti, sedi e blocchi', tone: 'primary' },
       { label: 'Lead', value: 'Contatti', note: 'richieste convertibili in clienti', tone: 'success' },
-      { label: 'Booking', value: 'Slot', note: 'regole e disponibilita appuntamenti', tone: 'warning' },
+      { label: 'Booking', value: 'Slot', note: 'regole e disponibilità appuntamenti', tone: 'warning' },
     ],
     cards: [
       { title: 'Dashboard sito', body: 'Apri controllo contenuti, richieste, prenotazioni e stato pubblicazione.', href: '/sito-studio/', action: 'Apri dashboard', icon: 'earth', tone: 'primary', meta: 'CMS' },
@@ -400,7 +398,7 @@ export const studioModules: StudioModuleConfig[] = [
     routes: ['/backup'],
     title: 'Backup',
     section: 'Continuita operativa',
-    subtitle: 'Superficie React per backup, verifica integrita, download, ripristino tecnico e policy scheduler.',
+    subtitle: 'Superficie React per backup, verifica integrità, download, ripristino tecnico e policy scheduler.',
     lexContext: 'backup',
     lexLabel: 'Lex legge stato copie, rischi e prossime verifiche consigliate.',
     kpis: [
@@ -413,12 +411,12 @@ export const studioModules: StudioModuleConfig[] = [
       { title: 'Scheduler backup', body: 'Configura orario backup e promemoria automatici dello studio.', href: '/impostazioni-studio#scheduler', action: 'Apri scheduler', icon: 'clock', tone: 'success', meta: 'Automazione' },
       { title: 'Database', body: 'Verifica storage, SQLite/PostgreSQL e snapshot tecnici.', href: '/admin/database', action: 'Apri database', icon: 'database', tone: 'purple', meta: 'Tecnico' },
     ],
-    workflow: ['Verifica ultimo backup', 'Controlla integrita', 'Scarica se necessario', 'Documenta ripristino tecnico'],
+    workflow: ['Verifica ultimo backup', 'Controlla integrità', 'Scarica se necessario', 'Documenta ripristino tecnico'],
     links: [{ label: 'Database', href: '/admin/database' }, { label: 'Registro Attività', href: '/registro-attivita' }],
   },
   {
     id: 'impostazioni-studio',
-    routes: ['/impostazioni-studio'],
+    routes: ['/impostazioni-studio', '/impostazioni'],
     title: 'Impostazioni Studio',
     section: 'Configurazione',
     subtitle: 'Indice React delle impostazioni sensibili: dati studio, PEC, firma, SMTP, WhatsApp, scheduler e AI locale.',
@@ -541,7 +539,7 @@ export const studioModules: StudioModuleConfig[] = [
     cards: [
       { title: 'Audit utenti', body: 'Apri registro con azioni e filtri.', href: '/audit', action: 'Apri audit', icon: 'clipboard', tone: 'primary', meta: 'Registro' },
       { title: 'Esporta audit', body: 'Scarica CSV per controlli interni e compliance.', href: '/audit/esporta.csv', action: 'Esporta CSV', icon: 'download', tone: 'success', meta: 'CSV' },
-      { title: 'Osservabilità', body: 'Apri superficie amministrativa runtime e telemetria.', href: '/admin/osservabilita', action: 'Apri osservabilita', icon: 'chart', tone: 'purple', meta: 'Admin' },
+      { title: 'Osservabilità', body: 'Apri superficie amministrativa runtime e telemetria.', href: '/admin/osservabilita', action: 'Apri osservabilità', icon: 'chart', tone: 'purple', meta: 'Admin' },
     ],
     workflow: ['Filtra evento', 'Verifica utente e risorsa', 'Esporta se necessario', 'Azione correttiva'],
     links: [{ label: 'Utenti', href: '/utenti' }, { label: 'Database', href: '/admin/database' }],
@@ -572,7 +570,7 @@ export const studioModules: StudioModuleConfig[] = [
     routes: ['/registro-gdpr', '/privacy/registro', '/privacy/registro/nuovo'],
     title: 'Registro GDPR',
     section: 'Privacy e compliance',
-    subtitle: 'Registro React per trattamenti, basi giuridiche, misure, portabilita e audit privacy.',
+    subtitle: 'Registro React per trattamenti, basi giuridiche, misure, portabilità e audit privacy.',
     lexContext: 'gdpr',
     lexLabel: 'Lex legge trattamenti, dati personali e punti di verifica GDPR.',
     kpis: [
@@ -582,7 +580,7 @@ export const studioModules: StudioModuleConfig[] = [
     ],
     cards: [
       { title: 'Registro trattamenti', body: 'Apri registro privacy e trattamenti gestiti.', href: '/privacy/registro', action: 'Apri registro', icon: 'shield', tone: 'primary', meta: 'GDPR' },
-      { title: 'Nuovo trattamento', body: 'Registra finalita, base giuridica, dati e misure.', href: '/privacy/registro/nuovo', action: 'Nuovo trattamento', icon: 'plus', tone: 'success', meta: 'Compliance' },
+      { title: 'Nuovo trattamento', body: 'Registra finalità, base giuridica, dati e misure.', href: '/privacy/registro/nuovo', action: 'Nuovo trattamento', icon: 'plus', tone: 'success', meta: 'Compliance' },
       { title: 'Audit privacy', body: 'Esporta e verifica attività collegate a dati personali.', href: '/audit/esporta.csv', action: 'Esporta audit', icon: 'download', tone: 'warning', meta: 'CSV' },
     ],
     workflow: ['Censisci trattamento', 'Verifica base giuridica', 'Collega misure', 'Mantieni prova audit'],

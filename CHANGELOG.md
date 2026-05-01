@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.198.26 - 2026-05-01
+
+- Rafforzato il gate React per le route profonde: le GET HTML migrate vengono servite dalla shell React, mentre POST, API, download e `?_legacy=1` restano sui percorsi Flask operativi.
+- Aggiunto un test di contratto card-per-card per il blocco React Studio: nessuna card puo' puntare a `#`, `_legacy=1` o superfici non migrate, e ogni runtime `/api/v1/ui/studio-modules/<modulo>` deve esporre azioni, form o record apribili.
+- Rimosse dalle card React scorciatoie visibili verso viste legacy o `Lex Operativo` non migrato, normalizzando i testi italiani e rendendo operative le azioni dei moduli Studio, economico, redazione, sito, notifiche, backup, GDPR e amministrazione.
+
 ## 2.198.23 - 2026-05-01
 
 - Stabilizzati i contratti CI dopo la migrazione React finale: la pagina amministrativa di osservabilita' resta React di default e la vista classica viene testata solo tramite `?_legacy=1`.

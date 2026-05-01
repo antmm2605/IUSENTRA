@@ -6,7 +6,7 @@ dati reali e invia le scritture ai POST già auditati dal backend storico.
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import Any, Callable
 
@@ -45,7 +45,9 @@ def _euro(value: Any) -> str:
         amount = float(value or 0)
     except (TypeError, ValueError):
         amount = 0.0
+    return "EUR " + f"{amount:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
     text = f"{amount:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+    return f"€ {text}"
     return f"€ {text}"
 
 
@@ -126,6 +128,92 @@ def _roles_options() -> list[dict[str, str]]:
         {"value": "PRATICANTE", "label": "Praticante"},
         {"value": "SEGRETERIA", "label": "Segreteria"},
         {"value": "CONTABILE", "label": "Contabile"},
+    ]
+
+
+def _option(value: Any, label: Any | None = None) -> dict[str, str]:
+    raw = _text(value)
+    return {"value": raw, "label": _text(label, raw)}
+
+
+def _cliente_options(clienti: list[Any]) -> list[dict[str, str]]:
+    return [
+        _option(getattr(cliente, "id", ""), getattr(cliente, "nome_completo", "") or getattr(cliente, "nome", ""))
+        for cliente in clienti
+        if getattr(cliente, "id", "")
+    ][:120]
+
+
+def _fascicolo_options(fascicoli: list[Any]) -> list[dict[str, str]]:
+    return [
+        _option(
+            getattr(fascicolo, "id", ""),
+            " - ".join(
+                part
+                for part in [
+                    getattr(fascicolo, "numero_rg", ""),
+                    getattr(fascicolo, "titolo", ""),
+                    getattr(fascicolo, "tribunale", ""),
+                ]
+                if _text(part)
+            ) or getattr(fascicolo, "titolo", "") or getattr(fascicolo, "id", ""),
+        )
+        for fascicolo in fascicoli
+        if getattr(fascicolo, "id", "")
+    ][:120]
+
+
+def _studio_forense(config: dict[str, Any], get_config_studio: Callable[[], Any] | None = None) -> dict[str, str]:
+    data = {
+        "avvocato": _text(config.get("STUDIO_AVVOCATO") or config.get("PCT_STUDIO_AVVOCATO")),
+        "numero_iscrizione_albo": _text(config.get("STUDIO_NUMERO_ISCRIZIONE_ALBO")),
+        "ordine_avvocati": _text(config.get("STUDIO_ORDINE_AVVOCATI")),
+    }
+    if callable(get_config_studio):
+        try:
+            studio = getattr(getattr(get_config_studio(), "config", None), "studio", None)
+            data["avvocato"] = _text(getattr(studio, "avvocato", ""), data["avvocato"])
+            data["numero_iscrizione_albo"] = _text(
+                getattr(studio, "numero_iscrizione_albo", ""),
+                data["numero_iscrizione_albo"],
+            )
+            data["ordine_avvocati"] = _text(getattr(studio, "ordine_avvocati", ""), data["ordine_avvocati"])
+        except Exception:
+            pass
+    return data
+
+
+def _current_path(query: dict[str, Any] | None) -> str:
+    return _text((query or {}).get("path"))
+
+
+def _query_value(query: dict[str, Any] | None, key: str, fallback: str = "") -> str:
+    value = (query or {}).get(key)
+    if isinstance(value, list):
+        value = value[0] if value else ""
+    return _text(value, fallback)
+
+
+def _compenso_options() -> list[dict[str, str]]:
+    return [
+        _option("Compenso fisso"),
+        _option("Compenso orario"),
+        _option("Per fasi processuali (D.M. 55/2014)"),
+        _option("Forfettario onnicomprensivo"),
+        _option("Misto (fisso + quota sul risultato)"),
+        _option("A liquidazione (parametri D.M. 55/2014)"),
+    ]
+
+
+def _procedimento_options() -> list[dict[str, str]]:
+    return [
+        _option("Civile - fase di cognizione"),
+        _option("Civile - fase esecutiva"),
+        _option("Penale"),
+        _option("Amministrativo (TAR/CdS)"),
+        _option("Stragiudiziale / Consulenza"),
+        _option("Mediazione / Negoziazione assistita"),
+        _option("Arbitrato"),
     ]
 
 
@@ -262,6 +350,253 @@ def _build_fatturazione(get_fatturazione: Callable[[], Any], get_clienti: Callab
     }
 
 
+def _build_preventivi(
+    get_preventivi: Callable[[], Any],
+    get_clienti: Callable[[], Any],
+    get_fascicoli: Callable[[], Any],
+    config: dict[str, Any],
+    *,
+    query: dict[str, Any] | None = None,
+    get_config_studio: Callable[[], Any] | None = None,
+) -> dict[str, Any]:
+    manager = get_preventivi()
+    preventivi = _safe("preventivi", lambda: manager.tutti_preventivi(), [])
+    conferimenti = _safe("conferimenti", lambda: manager.tutti_conferimenti(), [])
+    clienti = _safe("clienti", lambda: get_clienti().tutti(), [])
+    fascicoli = _safe("fascicoli", lambda: get_fascicoli().tutti(), [])
+    clienti_by_id = {str(getattr(cliente, "id", "")): cliente for cliente in clienti}
+    fascicoli_by_id = {str(getattr(fascicolo, "id", "")): fascicolo for fascicolo in fascicoli}
+    studio = _studio_forense(config, get_config_studio)
+
+    id_preventivo = _query_value(query, "id_preventivo")
+    preventivo_pre = _safe("preventivo prefill", lambda: manager.get_preventivo(id_preventivo), None) if id_preventivo else None
+    id_cliente_path = ""
+    path = _current_path(query)
+    marker = "/preventivi/conferimento/nuovo/"
+    if marker in path:
+        id_cliente_path = path.split(marker, 1)[1].split("/", 1)[0]
+    cliente_default = (
+        _text(getattr(preventivo_pre, "id_cliente", ""))
+        or _query_value(query, "id_cliente")
+        or id_cliente_path
+    )
+    fascicolo_default = _text(getattr(preventivo_pre, "id_fascicolo", "")) or _query_value(query, "id_fascicolo")
+    oggetto_default = _text(getattr(preventivo_pre, "oggetto", ""))
+    compenso_default = _text(getattr(preventivo_pre, "totale", "") or getattr(preventivo_pre, "totale_preventivo", ""))
+
+    preventivo_options = [
+        _option(
+            getattr(item, "id", ""),
+            f"{getattr(item, 'numero', 'Preventivo')} - {_text(getattr(clienti_by_id.get(str(getattr(item, 'id_cliente', ''))), 'nome_completo', '')) or 'Cliente'}",
+        )
+        for item in preventivi
+        if getattr(item, "id", "")
+    ][:120]
+
+    preventivi_records = [
+        _record(
+            getattr(item, "id", ""),
+            getattr(item, "numero", "Preventivo"),
+            getattr(clienti_by_id.get(str(getattr(item, "id_cliente", ""))), "nome_completo", "Cliente non collegato"),
+            badge=_enum(getattr(item, "stato", "")),
+            href=f"/preventivi/p/{getattr(item, 'id', '')}",
+            meta=_euro(getattr(item, "totale", 0)),
+        )
+        for item in preventivi[:30]
+    ]
+    conferimenti_records = [
+        _record(
+            getattr(item, "id", ""),
+            getattr(item, "numero", "Conferimento"),
+            getattr(clienti_by_id.get(str(getattr(item, "id_cliente", ""))), "nome_completo", "Cliente non collegato"),
+            badge=_enum(getattr(item, "stato", "")),
+            href=f"/preventivi/conferimento/{getattr(item, 'id', '')}",
+            meta=_date_it(getattr(item, "data_incarico", "")),
+        )
+        for item in conferimenti[:30]
+    ]
+    scaduti = sum(1 for item in preventivi if _enum(getattr(item, "stato", "")) == "SCADUTO")
+    accettati_senza_incarico = 0
+    incarichi_by_preventivo = {str(getattr(item, "id_preventivo", "")) for item in conferimenti if getattr(item, "id_preventivo", "")}
+    for item in preventivi:
+        if _enum(getattr(item, "stato", "")) == "ACCETTATO" and str(getattr(item, "id", "")) not in incarichi_by_preventivo:
+            accettati_senza_incarico += 1
+
+    from_page = _query_value(query, "from_page", "react")
+    today = date.today()
+    in_30_days = today + timedelta(days=30)
+    return {
+        "metrics": [
+            _metric("Preventivi", len(preventivi)),
+            _metric("Conferimenti", len(conferimenti)),
+            _metric("Da incarico", accettati_senza_incarico, "preventivi accettati senza conferimento"),
+            _metric("Scaduti", scaduti),
+        ],
+        "operations": [
+            _operation(
+                "archivio-preventivi",
+                "Archivio preventivi",
+                "Preventivi e conferimenti reali con stato, cliente, importo e azioni operative.",
+                records=preventivi_records,
+                metrics=[_metric("Preventivi", len(preventivi)), _metric("Conferimenti", len(conferimenti))],
+                actions=[_action("Aggiorna archivio", "/preventivi"), _action("Nuovo preventivo", "/preventivi/nuovo")],
+            ),
+            _operation(
+                "nuovo-preventivo",
+                "Nuovo preventivo",
+                "Crea una proposta economica usando il POST operativo esistente, senza duplicare la logica fiscale nel frontend.",
+                form={
+                    "action": "/preventivi/nuovo",
+                    "method": "POST",
+                    "submitLabel": "Crea preventivo",
+                    "fields": [
+                        _field("from_page", "Origine", "hidden", value=from_page),
+                        _field("id_cliente", "Cliente", "select", required=True, options=_cliente_options(clienti), value=cliente_default),
+                        _field("id_fascicolo", "Fascicolo", "select", options=_fascicolo_options(fascicoli), value=fascicolo_default),
+                        _field("oggetto", "Oggetto incarico", required=True, value=oggetto_default),
+                        _field("data_emissione", "Data emissione", "date", value=today.isoformat()),
+                        _field("data_scadenza", "Data scadenza", "date", value=in_30_days.isoformat()),
+                        _field("tipo_compenso", "Tipo compenso", "select", options=_compenso_options(), value="Compenso fisso"),
+                        _field("tipo_procedimento", "Tipo procedimento", "select", options=_procedimento_options(), value="Civile - fase di cognizione"),
+                        _field("valore_controversia", "Valore controversia", "number", value="0"),
+                        _field("complessita", "Complessità e note di stima", "textarea"),
+                        _field("voce_descr[]", "Voce prestazione", required=True, value="Compenso professionale"),
+                        _field("voce_tipo[]", "Tipo voce", "select", options=[_option("ONORARIO"), _option("ANTICIPAZIONE"), _option("SPESE")], value="ONORARIO"),
+                        _field("voce_importo[]", "Importo voce", "number", required=True, value="0.00"),
+                        _field("applica_cassa", "Applica Cassa Forense", "checkbox", value="1"),
+                        _field("applica_iva", "Applica IVA", "checkbox", value="1"),
+                        _field("anticipazioni_art15", "Anticipazioni art. 15", "number", value="0.00"),
+                        _field("note", "Note", "textarea"),
+                    ],
+                },
+                warnings=["Il calcolo finale resta nel backend storico: React invia i campi al POST già auditato."],
+            ),
+            _operation(
+                "conferimento-incarico",
+                "Conferimento incarico",
+                "Predisponi l'incarico con dati studio precompilati da Impostazioni Studio e collegamento al preventivo.",
+                records=conferimenti_records,
+                form={
+                    "action": "/preventivi/conferimento/nuovo",
+                    "method": "POST",
+                    "submitLabel": "Crea conferimento",
+                    "fields": [
+                        _field("from_page", "Origine", "hidden", value=from_page or "preventivo"),
+                        _field("id_cliente", "Cliente", "select", required=True, options=_cliente_options(clienti), value=cliente_default),
+                        _field("id_fascicolo", "Fascicolo", "select", options=_fascicolo_options(fascicoli), value=fascicolo_default),
+                        _field("id_preventivo", "Preventivo collegato", "select", options=preventivo_options, value=id_preventivo),
+                        _field("oggetto", "Oggetto incarico", required=True, value=oggetto_default),
+                        _field("avvocato_referente", "Avvocato referente", required=True, value=studio["avvocato"]),
+                        _field("numero_iscrizione_albo", "N. iscrizione Albo", value=studio["numero_iscrizione_albo"]),
+                        _field("ordine_avvocati", "Ordine degli Avvocati", value=studio["ordine_avvocati"]),
+                        _field("data_incarico", "Data incarico", "date", value=today.isoformat()),
+                        _field("tipo_compenso", "Tipo compenso", "select", options=_compenso_options(), value=_text(getattr(preventivo_pre, "tipo_compenso", ""), "Compenso fisso")),
+                        _field("tipo_procedimento", "Tipo procedimento", "select", options=_procedimento_options(), value=_text(getattr(preventivo_pre, "tipo_procedimento", ""), "Civile - fase di cognizione")),
+                        _field("compenso_pattuito", "Compenso pattuito", "number", value=compenso_default or "0.00"),
+                        _field("informativa_art13_resa", "Informativa privacy resa", "checkbox", value="1"),
+                        _field("clausola_adr_resa", "Clausola ADR resa", "checkbox", value="1"),
+                        _field("apri_fascicolo_guidato", "Apri fascicolo guidato dopo il salvataggio", "checkbox", value="0"),
+                        _field("note", "Note incarico", "textarea", value=_text(getattr(preventivo_pre, "note", ""))),
+                    ],
+                },
+                warnings=[
+                    "Il conferimento resta bozza operativa: l'avvocato verifica e firma prima dell'uso.",
+                    "N. iscrizione Albo e Ordine vengono letti da Impostazioni Studio quando disponibili.",
+                ],
+            ),
+            _operation(
+                "wizard-compensi",
+                "Wizard compensi",
+                "Calcolo guidato compensi forensi collegato a cliente, fascicolo e conferimento.",
+                actions=[_action("Apri wizard", "/preventivi/wizard"), _action("Compensi Forensi", "/compensi-forensi")],
+            ),
+        ],
+    }
+
+
+def _build_timesheet(
+    get_timesheet: Callable[[], Any],
+    get_clienti: Callable[[], Any],
+    get_fascicoli: Callable[[], Any],
+) -> dict[str, Any]:
+    manager = get_timesheet()
+    entries = _safe("timesheet", lambda: manager.tutte(), [])
+    stats = _safe("statistiche timesheet", lambda: manager.statistiche(entries), {})
+    clienti = _safe("clienti", lambda: get_clienti().tutti(), [])
+    fascicoli = _safe("fascicoli", lambda: get_fascicoli().tutti(), [])
+    clienti_by_id = {str(getattr(cliente, "id", "")): cliente for cliente in clienti}
+    fascicoli_by_id = {str(getattr(fascicolo, "id", "")): fascicolo for fascicolo in fascicoli}
+    records = [
+        _record(
+            getattr(item, "id", ""),
+            getattr(item, "descrizione", "Voce timesheet"),
+            " - ".join(
+                part
+                for part in [
+                    getattr(clienti_by_id.get(str(getattr(item, "id_cliente", ""))), "nome_completo", ""),
+                    getattr(fascicoli_by_id.get(str(getattr(item, "id_fascicolo", ""))), "numero_rg", ""),
+                ]
+                if _text(part)
+            ) or "Voce non collegata",
+            badge=_enum(getattr(item, "stato", "")),
+            href="/timesheet",
+            meta=f"{getattr(item, 'minuti', 0)} min · {_euro(getattr(item, 'valore_totale', 0))}",
+        )
+        for item in entries[:30]
+    ]
+    return {
+        "metrics": [
+            _metric("Ore", str(stats.get("totale_ore", 0) if isinstance(stats, dict) else 0)),
+            _metric("Valore", _euro(stats.get("valore_totale", 0) if isinstance(stats, dict) else 0)),
+            _metric("Aperte", stats.get("aperte", 0) if isinstance(stats, dict) else 0),
+            _metric("Validate", stats.get("validate", 0) if isinstance(stats, dict) else 0),
+        ],
+        "operations": [
+            _operation(
+                "cruscotto-tempi",
+                "Cruscotto tempi",
+                "Registro reale delle lavorazioni per cliente, fascicolo, stato e valore economico.",
+                records=records,
+                actions=[_action("Filtra registro", "/timesheet")],
+            ),
+            _operation(
+                "nuova-attivita",
+                "Nuova attività",
+                "Registra una voce tempo sul POST operativo esistente.",
+                form={
+                    "action": "/timesheet/nuovo",
+                    "method": "POST",
+                    "submitLabel": "Registra tempo",
+                    "fields": [
+                        _field("from_page", "Origine", "hidden", value="timesheet"),
+                        _field("descrizione", "Descrizione", "textarea", required=True),
+                        _field("data_attivita", "Data attività", "date", value=date.today().isoformat()),
+                        _field("minuti", "Minuti", "number", required=True, value="30"),
+                        _field("id_cliente", "Cliente", "select", options=_cliente_options(clienti)),
+                        _field("id_fascicolo", "Fascicolo", "select", options=_fascicolo_options(fascicoli)),
+                        _field("valore_unitario", "Valore orario", "number", value="80"),
+                        _field("fatturabile", "Fatturabile", "select", options=[_option("1", "Fatturabile"), _option("0", "Non fatturabile")], value="1"),
+                        _field("note", "Note operative"),
+                    ],
+                },
+            ),
+            _operation(
+                "genera-parcella",
+                "Genera parcella",
+                "Trasforma le voci validate in parcella usando il flusso economico già presente.",
+                actions=[_action("Apri parcelle", "/fatturazione/nuova"), _action("Apri registro tempi", "/timesheet")],
+                records=[record for record in records if record["badge"] == "VALIDATO"],
+            ),
+            _operation(
+                "produttivita",
+                "Produttività",
+                "Leggi gli indicatori operativi collegati al lavoro registrato.",
+                actions=[_action("Vedi statistiche", "/statistiche/?view=produttivita")],
+            ),
+        ],
+    }
+
+
 def _build_audit(get_utenti: Callable[[], Any]) -> dict[str, Any]:
     manager = get_utenti()
     events = _safe("audit", lambda: manager.audit_log(limit=50), [])
@@ -385,8 +720,8 @@ _GENERIC_OPERATION_CATALOG: dict[str, list[tuple[str, str, str, list[tuple[str, 
         ("fascicoli", "Fascicoli", "Seleziona pratica, parti e documenti per la redazione.", [("Apri fascicoli", "/fascicoli", "GET")]),
     ],
     "pst-acquisizione": [
-        ("acquisizione-pst", "Acquisizione PST", "Apre il presidio React per import autorizzato da PST.", [("Apri acquisizione", "/app-v2/polisweb#acquisizione-portale", "GET")]),
-        ("checklist-import-pst", "Checklist import PST", "Porta ai prerequisiti operativi del flusso PST.", [("Verifica flusso", "/app-v2/polisweb#checklist-operativa", "GET")]),
+        ("acquisizione-pst", "Acquisizione PST", "Apre il wizard guidato per import autorizzato da PST.", [("Apri acquisizione", "/portali/pst/acquisizione", "GET")]),
+        ("checklist-import-pst", "Checklist import PST", "Porta ai prerequisiti operativi del flusso PST.", [("Verifica flusso", "/portali/pst/acquisizione#checklist-operativa", "GET")]),
         ("fascicoli", "Fascicoli", "Controlla o crea la pratica locale prima dell'import.", [("Apri fascicoli", "/fascicoli", "GET")]),
         ("centro-telematico", "Centro telematico", "Rientra nel quadro unico dei servizi telematici.", [("Apri centro", "/app-v2/telematico", "GET")]),
     ],
@@ -523,13 +858,28 @@ def build_react_studio_module_payload(
     get_fatturazione: Callable[[], Any],
     get_clienti: Callable[[], Any],
     get_fascicoli: Callable[[], Any],
+    get_preventivi: Callable[[], Any] | None = None,
+    get_timesheet: Callable[[], Any] | None = None,
+    get_config_studio: Callable[[], Any] | None = None,
     get_trattamenti: Callable[[], Any] | None = None,
+    query: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     normalized = _text(module_id).lower()
     if normalized == "utenti":
         data = _build_utenti(get_utenti)
     elif normalized == "fatturazione":
         data = _build_fatturazione(get_fatturazione, get_clienti)
+    elif normalized == "preventivi" and get_preventivi:
+        data = _build_preventivi(
+            get_preventivi,
+            get_clienti,
+            get_fascicoli,
+            config,
+            query=query,
+            get_config_studio=get_config_studio,
+        )
+    elif normalized == "timesheet" and get_timesheet:
+        data = _build_timesheet(get_timesheet, get_clienti, get_fascicoli)
     elif normalized in {"registro-attivita", "audit"}:
         data = _build_audit(get_utenti)
     elif normalized == "database":

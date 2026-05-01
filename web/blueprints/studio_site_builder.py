@@ -25,7 +25,6 @@ from web.services.studio_site_builder_runtime import (
     validate_site_builder,
 )
 from web.services.studio_site_runtime import get_site_for_current_tenant, site_admin_identity_or_403, studio_site_repository
-from web.blueprints.react_shell import render_react_shell_response
 
 
 studio_site_builder = Blueprint("studio_site_builder", __name__, url_prefix="/sito-studio")
@@ -40,16 +39,9 @@ def site_admin_required(fn):
     return wrapper
 
 
-def _richiede_vista_classica() -> bool:
-    return request.args.get("_legacy") == "1"
-
-
 @studio_site_builder.get("/builder")
 @site_admin_required
 def builder():
-    if not _richiede_vista_classica():
-        return render_react_shell_response("sito-studio/builder")
-
     return render_template(
         "studio_site/builder.html",
         payload=build_builder_payload(page_id=request.args.get("page_id", type=int)),

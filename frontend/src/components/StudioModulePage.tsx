@@ -144,11 +144,11 @@ function resolveSelectedCard(module: StudioModuleConfig): StudioModuleCard | und
     const url = localUrl(card.href)
     if (!url) return false
     const cardPath = normalizeRoute(url.pathname)
-    return cardPath === currentPath && (
-      Boolean(url.hash && url.hash === currentHash) ||
-      Boolean(url.search && url.search === currentSearch) ||
-      Boolean(!url.hash && !url.search)
-    )
+    const samePath = cardPath === currentPath || currentPath.startsWith(`${cardPath}/`)
+    if (!samePath) return false
+    if (url.hash && currentHash) return url.hash === currentHash
+    if (url.search && currentSearch) return url.search === currentSearch
+    return true
   }) || module.cards[0]
 }
 
@@ -191,13 +191,26 @@ function ModuleCard({
 }
 
 function RuntimeField({ field }: { field: StudioRuntimeField }) {
-  const commonProps = {
-    name: field.name,
-    required: field.required,
-    defaultValue: field.value,
+  if (field.type === 'hidden') {
+    return <input name={field.name} type="hidden" defaultValue={field.value}/>
+  }
+  if (field.type === 'checkbox') {
+    const checkedValues = new Set(['1', 'true', 'si', 'sì', 'yes', 'on'])
+    return (
+      <input
+        name={field.name}
+        type="checkbox"
+        value="1"
+        defaultChecked={checkedValues.has(field.value.toLowerCase())}
+        required={field.required}
+      />
+    )
+  }
+  if (field.type === 'file') {
+    return <input name={field.name} type="file" required={field.required}/>
   }
   if (field.type === 'textarea') {
-    return <textarea {...commonProps} rows={3}/>
+    return <textarea name={field.name} required={field.required} defaultValue={field.value} rows={3}/>
   }
   if (field.type === 'select') {
     return (
@@ -207,7 +220,7 @@ function RuntimeField({ field }: { field: StudioRuntimeField }) {
       </select>
     )
   }
-  return <input {...commonProps} type={field.type}/>
+  return <input name={field.name} required={field.required} defaultValue={field.value} type={field.type}/>
 }
 
 function ActiveFunctionPanel({
@@ -269,10 +282,15 @@ function ActiveFunctionPanel({
           </div>
         ) : null}
         {operation?.form ? (
-          <form className="iu-sm-focus__form" action={operation.form.action} method={operation.form.method.toLowerCase()}>
+          <form
+            className="iu-sm-focus__form"
+            action={operation.form.action}
+            method={operation.form.method.toLowerCase()}
+            encType={operation.form.enctype || undefined}
+          >
             {operation.form.fields.map((field) => (
-              <label key={`${operation.id}-${field.name}`}>
-                <span>{field.label}{field.required ? ' *' : ''}</span>
+              <label className={field.type === 'hidden' ? 'iu-sm-field--hidden' : ''} key={`${operation.id}-${field.name}`}>
+                {field.type !== 'hidden' ? <span>{field.label}{field.required ? ' *' : ''}</span> : null}
                 <RuntimeField field={field}/>
               </label>
             ))}
@@ -374,9 +392,9 @@ export function StudioModulePage() {
           <div className="iu-sm-section-head">
             <div>
               <h2>Funzioni operative</h2>
-              <p>Ogni card apre una funzione React reale già collegata nel gestionale.</p>
+              <p>Ogni card apre una funzione collegata a dati, form o azioni reali del gestionale.</p>
             </div>
-            <span>React UI</span>
+            <span>Operativo</span>
           </div>
           {selectedCard ? (
             <ActiveFunctionPanel

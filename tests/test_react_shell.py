@@ -193,14 +193,14 @@ def test_react_blocco_finale_studio_admin_completo():
     assert "iusentra:open-floating-lex" in page_source
     assert "iusentra:lex-context" in page_source
     assert "_legacy=1" not in module_source
-    assert "route === candidate || route.startsWith(`${candidate}/`)" in module_source
+    assert "clean.length > best.length" in module_source
     assert "href: legacy('/fatturazione" not in module_source
     assert "href: legacy('/preventivi" not in module_source
     assert "href: legacy('/utenti" not in module_source
     assert "legacy(" not in module_source
     assert "/lex-operativo" not in module_source
-    assert "href: '/app-v2/polisweb#acquisizione-portale'" in module_source
-    assert "href: '/app-v2/polisweb#checklist-operativa'" in module_source
+    assert "href: '/portali/pst/acquisizione'" in module_source
+    assert "href: '/portali/pst/acquisizione#checklist-operativa'" in module_source
     assert "href: '/impostazioni-studio#dati-studio'" in module_source
     assert "href: '/impostazioni-studio#pec-e-smtp'" in module_source
     assert "href: '/impostazioni-studio#firma-digitale'" in module_source
@@ -220,6 +220,31 @@ def test_react_blocco_finale_studio_admin_completo():
     assert "clamp(" not in page_css
     assert "letter-spacing:-" not in page_css
     assert "studioModuleData" in contracts
+
+
+def test_react_firma_documento_profonda_non_degrada_a_dettaglio_generico():
+    source = Path("frontend/src/components/FascicoliPage.tsx").read_text(encoding="utf-8")
+    css = Path("frontend/src/components/FascicoliPage.css").read_text(encoding="utf-8")
+    signature_routes = Path("web/bootstrap/fascicoli_signature_routes.py").read_text(encoding="utf-8")
+    gate_source = Path("web/bootstrap/react_route_gate.py").read_text(encoding="utf-8")
+
+    assert 'kind: \'signature\'' in source
+    assert "parts[1] === 'documenti' && parts[3] === 'firma'" in source
+    assert "return <SignaturePage id={route.id} documentId={route.documentId}/>" in source
+    assert "http://127.0.0.1:27272/ping" in source
+    assert "http://127.0.0.1:27272/firma" in source
+    assert "Attenzione: documento già firmato." in source
+    assert "confirm_resign" in source
+    assert "alreadySigned && !confirmResign" in source
+    assert "method=\"post\" action={firmaUrl} encType=\"multipart/form-data\"" in source
+    assert "/api/fascicoli/${encodedId}/documenti/${encodedDocId}/info-firma" in source
+    assert 'methods=["GET", "POST"]' in signature_routes
+    assert "requires_confirm_resign" in signature_routes
+    assert 'render_react_shell_response(f"fascicoli/{id_fasc}/documenti/{id_doc}/firma")' in signature_routes
+    assert 'lower.startswith("/fascicoli/") and "/wizard/" in lower' in gate_source
+    assert ".iu-fascicolo-signature-page" in css
+    assert ".iu-fas-signature-grid" in css
+    assert ".iu-fas-resign-confirm" in css
 
 
 def test_react_blocco_finale_route_reali_e_vista_classica(tmp_path: Path):
@@ -801,6 +826,16 @@ def test_react_superfici_telematiche_collegate_nav_api_css():
     assert "SurfaceSidePanels" in page_source
     assert "iu-tel-tribunali-workspace" in page_source
     assert 'id="acquisizione-portale"' in page_source
+    assert "function AcquisitionWizard" in page_source
+    assert "portalJson(portal, 'search'" in page_source
+    assert "portalJson(portal, 'preview'" in page_source
+    assert "portalJson(portal, 'analyze'" in page_source
+    assert "portalJson(portal, 'import'" in page_source
+    assert "portalJson(portal, 'importa-payload'" in page_source
+    assert "collectAcquisitionFiles" in page_source
+    assert "downloaded_files" in page_source
+    assert "Local Signer" in page_source
+    assert "Default PST: copia di consultazione" in page_source
     assert 'id="checklist-operativa"' in page_source
     assert 'id="operazione-attiva"' in page_source
     assert "navigateAction" in page_source
@@ -825,6 +860,10 @@ def test_react_superfici_telematiche_collegate_nav_api_css():
     assert ".iu-tel-surface-page" in css
     assert ".iu-tel-op-card.is-selected" in css
     assert ".iu-tel-active-op" in css
+    assert ".iu-tel-acquisition" in css
+    assert ".iu-tel-acq-form" in css
+    assert ".iu-tel-acq-results" in css
+    assert ".iu-tel-acq-import-result" in css
     assert ".iu-tel-surface-hero__meta a" in css
     assert "background:rgba(255,255,255,.16)" in css
     assert ".iu-tel-offices" in css
@@ -895,15 +934,15 @@ def test_react_superfici_telematiche_api_payload_reale(tmp_path: Path):
     assert polisweb_payload["surface"]["portal"] == "pst"
     assert polisweb_payload["operationCards"][0]["id"] == "importa-pratica"
     assert polisweb_payload["operationCards"][0]["title"] == "Importa pratica da PST"
-    assert polisweb_payload["operationCards"][0]["actions"][0]["href"] == "/app-v2/polisweb#acquisizione-portale"
+    assert polisweb_payload["operationCards"][0]["actions"][0]["href"] == "/portali/pst/acquisizione"
     assert polisweb_payload["links"][1]["label"] == "Importa pratica da PST"
-    assert polisweb_payload["links"][1]["href"] == "/app-v2/polisweb#acquisizione-portale"
+    assert polisweb_payload["links"][1]["href"] == "/portali/pst/acquisizione"
     assert polisweb_payload["channel"]["quickActions"][1]["label"] == "Importa pratica da PST"
-    assert polisweb_payload["channel"]["quickActions"][1]["href"] == "/app-v2/polisweb#acquisizione-portale"
+    assert polisweb_payload["channel"]["quickActions"][1]["href"] == "/portali/pst/acquisizione"
     for surface, expected_href in (
-        ("pdp", "/app-v2/pdp#acquisizione-portale"),
-        ("pat", "/app-v2/pat#acquisizione-portale"),
-        ("ptt", "/app-v2/ptt#acquisizione-portale"),
+        ("pdp", "/portali/pdp/acquisizione"),
+        ("pat", "/portali/pat/acquisizione"),
+        ("ptt", "/portali/ptt/acquisizione"),
     ):
         payload = client.get(
             f"/api/v1/ui/telematico/surface/{surface}",
@@ -917,6 +956,45 @@ def test_react_superfici_telematiche_api_payload_reale(tmp_path: Path):
     assert tribunali_payload["officeSummary"]["sources"]
     assert "PEC di deposito" in tribunali_payload["officeSummary"]["policy"]
     assert any(row["indirizziTelematici"] for row in tribunali_payload["offices"] if row["pec"])
+
+
+def test_react_wizard_acquisizione_portale_usa_endpoint_operativi_reali(tmp_path: Path):
+    """Il wizard React deve poter chiamare la stessa filiera del vecchio wizard.
+
+    Il test non finge il download dal portale: verifica invece che ogni endpoint
+    operativo resti raggiungibile e risponda JSON controllato, anche quando il
+    canale non ha una sessione Local Signer o una selezione valida.
+    """
+
+    app = _app(tmp_path)
+    _crea_operatore(app)
+
+    with app.test_client() as client:
+        _login(client)
+        status = client.get("/api/portali/pst/acquisizione/status")
+        search = client.post(
+            "/api/portali/pst/acquisizione/search",
+            json={"ufficio": "Tribunale di Milano", "numero": "139", "anno": "2023"},
+        )
+        preview = client.post("/api/portali/pst/acquisizione/preview", json={})
+        analyze = client.post("/api/portali/pst/acquisizione/analyze", json={})
+        import_response = client.post("/api/portali/pst/acquisizione/import", json={})
+        import_payload = client.post(
+            "/api/portali/pst/acquisizione/importa-payload",
+            json={"payload": {"selection": {}, "preview": {}}},
+        )
+
+    for response in (status, search, preview, analyze, import_response, import_payload):
+        assert response.status_code == 200
+        assert response.is_json
+
+    assert status.get_json()["ok"] is True
+    assert "status" in status.get_json()
+    assert "results" in search.get_json()
+    assert "preview" in preview.get_json()
+    assert "analysis" in analyze.get_json()
+    assert "errore" in import_response.get_json()
+    assert "errore" in import_payload.get_json()
 
 
 def test_route_importa_pratica_pst_resta_raggiungibile_dalla_nav(tmp_path: Path):
@@ -1185,6 +1263,127 @@ def test_react_studio_module_card_e_runtime_non_sono_decorativi(tmp_path: Path):
                     if _excluded(path):
                         continue
                     assert _is_react_route(path), href
+
+
+def test_react_studio_module_card_href_interni_raggiungibili(tmp_path: Path):
+    """Ogni href dichiarato nelle card Studio deve aprire una route reale.
+
+    Il controllo evita la regressione piu' pericolosa della migrazione React:
+    card apparentemente operative che portano a 404, 500 o superfici non montate.
+    Download, API e link esterni restano esclusi perche' hanno contratti diversi.
+    """
+
+    import re
+    from urllib.parse import urlparse
+
+    source = Path("frontend/src/studioModuleData.ts").read_text(encoding="utf-8")
+    hrefs = sorted(set(re.findall(r"href:\s*'([^']+)'", source)))
+    app = _app(tmp_path)
+    _crea_operatore(app)
+
+    checked: list[str] = []
+    failures: list[tuple[str, int]] = []
+    with app.test_client() as client:
+        _login(client)
+        for href in hrefs:
+            if not href or href == "#" or href.startswith(("http://", "https://", "mailto:", "tel:")):
+                continue
+            path = urlparse(href).path or "/"
+            if path.startswith("/api"):
+                continue
+            if any(token in path for token in ("<", ">", "${")):
+                continue
+            if path.endswith((".csv", ".pdf", ".zip", ".ics", ".xlsx")):
+                continue
+            checked.append(href)
+            response = client.get(href, follow_redirects=False)
+            if response.status_code == 404 or response.status_code >= 500:
+                failures.append((href, response.status_code))
+
+    assert len(checked) >= 60
+    assert failures == []
+
+
+def test_react_studio_module_deep_runtime_preventivi_conferimento_e_timesheet(tmp_path: Path):
+    app = _app(tmp_path)
+    _crea_operatore(app)
+    cliente_repo = GestioneClienti(db_path=app.config["CLIENTI_DB"])
+    cliente = cliente_repo.nuovo(TipoCliente.PERSONA_FISICA, nome="Roberto", cognome="Alessi")
+    fascicoli = GestioneFascicoli(
+        db_path=app.config["FASCICOLI_DB"],
+        documents_dir=app.config["FASCICOLI_DOCS"],
+        archive_dir=app.config["FASCICOLI_ARCH"],
+    )
+    fascicolo = fascicoli.nuovo(
+        "Danno da sinistro",
+        TipoFascicolo.CIVILE,
+        id_cliente=cliente.id,
+        nome_cliente=cliente.nome_completo,
+        tribunale="Giudice di Pace - Palmi",
+    )
+    preventivi = GestionePreventivi(app.config["PREVENTIVI_DB"])
+    preventivo = preventivi.crea_preventivo(
+        id_cliente=cliente.id,
+        id_fascicolo=fascicolo.id,
+        oggetto="Azione risarcitoria",
+        voci=[VocePreventivo("Compenso professionale", 1200.0)],
+    )
+    preventivi.cambia_stato_preventivo(preventivo.id, StatoPreventivo.ACCETTATO)
+
+    with app.test_client() as client:
+        _login(client)
+        preventivi_response = client.get(
+            "/api/v1/ui/studio-modules/preventivi",
+            query_string={
+                "path": f"/preventivi/conferimento/nuovo/{cliente.id}",
+                "id_preventivo": preventivo.id,
+                "from_page": "preventivo",
+            },
+            headers={"X-API-Key": "react-test-key"},
+        )
+        timesheet_response = client.get(
+            "/api/v1/ui/studio-modules/timesheet",
+            query_string={"path": "/timesheet"},
+            headers={"X-API-Key": "react-test-key"},
+        )
+
+    preventivi_payload = preventivi_response.get_json()
+    timesheet_payload = timesheet_response.get_json()
+    conferimento = next(item for item in preventivi_payload["operations"] if item["id"] == "conferimento-incarico")
+    nuovo_preventivo = next(item for item in preventivi_payload["operations"] if item["id"] == "nuovo-preventivo")
+    timesheet_form = next(item for item in timesheet_payload["operations"] if item["id"] == "nuova-attivita")["form"]
+
+    assert preventivi_response.status_code == 200
+    assert preventivi_payload["source"] == "repository_reali"
+    assert conferimento["form"]["action"] == "/preventivi/conferimento/nuovo"
+    fields = {field["name"]: field for field in conferimento["form"]["fields"]}
+    assert fields["id_cliente"]["value"] == cliente.id
+    assert fields["id_fascicolo"]["value"] == fascicolo.id
+    assert fields["id_preventivo"]["value"] == preventivo.id
+    assert fields["avvocato_referente"]["required"] is True
+    assert "numero_iscrizione_albo" in fields
+    assert "ordine_avvocati" in fields
+    new_fields = {field["name"]: field for field in nuovo_preventivo["form"]["fields"]}
+    assert "voce_descr[]" in new_fields
+    assert "voce_importo[]" in new_fields
+    assert new_fields["applica_cassa"]["type"] == "checkbox"
+    assert new_fields["applica_iva"]["type"] == "checkbox"
+    assert timesheet_response.status_code == 200
+    assert timesheet_form["action"] == "/timesheet/nuovo"
+    assert any(field["name"] == "id_fascicolo" for field in timesheet_form["fields"])
+
+
+def test_react_studio_module_frontend_supporta_rotte_profonde_e_form_reali():
+    page_source = Path("frontend/src/components/StudioModulePage.tsx").read_text(encoding="utf-8")
+    runtime_source = Path("frontend/src/studioModuleRuntime.ts").read_text(encoding="utf-8")
+
+    assert "currentPath.startsWith(`${cardPath}/`)" in page_source
+    assert "field.type === 'hidden'" in page_source
+    assert "field.type === 'checkbox'" in page_source
+    assert "field.type === 'file'" in page_source
+    assert "encType={operation.form.enctype || undefined}" in page_source
+    assert "params.set('path', window.location.pathname)" in runtime_source
+    assert "current.forEach((value, key) => params.append(key, value))" in runtime_source
 
 
 def test_react_migration_matrice_completa_route_api_e_card_operative(tmp_path: Path):

@@ -456,6 +456,10 @@
   gap:6px;
 }
 
+.iu-sm-focus__form .iu-sm-field--hidden{
+  display:none;
+}
+
 .iu-sm-focus__form label:has(textarea),
 .iu-sm-focus__form label:has(select[name="id_cliente"]),
 .iu-sm-focus__form label:has(select[name="ruolo"]){

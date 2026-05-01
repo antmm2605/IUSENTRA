@@ -1212,7 +1212,11 @@ def studio_module_react_payload(module_id: str):
         get_fatturazione=get_fatturazione,
         get_clienti=get_clienti,
         get_fascicoli=get_fascicoli,
+        get_preventivi=get_preventivi,
+        get_timesheet=get_timesheet,
+        get_config_studio=_core_runtime_func("get_config_studio"),
         get_trattamenti=get_trattamenti,
+        query=dict(request.args),
     ))
 
 

@@ -40,10 +40,10 @@ PORTAL_HOME_ENDPOINTS = {"pst": "polisWeb_home", "pdp": "pdp_home", "pat": "pat_
 PORTAL_HOME_FALLBACKS = {"pst": "/polisWeb", "pdp": "/pdp", "pat": "/pat", "ptt": "/sigit/ricerca"}
 PORTAL_SURFACE_IDS = {"pst": "polisweb", "pdp": "pdp", "pat": "pat", "ptt": "ptt"}
 PORTAL_IMPORT_FALLBACKS = {
-    "pst": "/app-v2/polisweb#acquisizione-portale",
-    "pdp": "/app-v2/pdp#acquisizione-portale",
-    "pat": "/app-v2/pat#acquisizione-portale",
-    "ptt": "/app-v2/ptt#acquisizione-portale",
+    "pst": "/portali/pst/acquisizione",
+    "pdp": "/portali/pdp/acquisizione",
+    "pat": "/portali/pat/acquisizione",
+    "ptt": "/portali/ptt/acquisizione",
 }
 PORTAL_IMPORT_LABELS = {
     "pst": "Importa pratica da PST",
@@ -246,7 +246,7 @@ def _build_channel(portal: str, stats: dict[str, Any], access_payload: dict[str,
     spec = dict(access_payload.get("spec") or {})
     service_stats = dict((stats.get("per_service") or {}).get(SERVICE_MAP[portal]) or {})
     home_href = _portal_surface_href(portal)
-    import_href = _portal_surface_href(portal, "#acquisizione-portale")
+    import_href = PORTAL_IMPORT_FALLBACKS.get(portal, _portal_surface_href(portal, "#acquisizione-portale"))
     status_text = _text(access_payload.get("status_text"), "Da configurare")
     attention_needed = _int(service_stats.get("attention_needed"))
     tone = "warning" if attention_needed else PORTAL_TONES[portal]
@@ -430,7 +430,7 @@ def _portal_operation_cards(surface_id: str, portal: str, channel: dict[str, Any
     channel = dict(channel or {})
     tone = PORTAL_TONES.get(portal, "primary")
     home_href = channel.get("homeHref") or _portal_surface_href(portal)
-    import_href = channel.get("importHref") or PORTAL_IMPORT_FALLBACKS.get(portal, "/app-v2/polisweb#acquisizione-portale")
+    import_href = channel.get("importHref") or PORTAL_IMPORT_FALLBACKS.get(portal, "/portali/pst/acquisizione")
     official_href = PORTAL_OFFICIAL_URLS.get(portal, "")
     import_label = PORTAL_IMPORT_LABELS.get(portal, "Importa pratica da portale")
     import_body = PORTAL_IMPORT_DESCRIPTIONS.get(

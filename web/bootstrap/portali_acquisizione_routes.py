@@ -8,8 +8,6 @@ from typing import Any
 
 from flask import Flask, flash, jsonify, redirect, render_template, request, url_for
 
-from web.blueprints.react_shell import render_react_shell_response
-
 
 def register_portali_acquisizione_routes(
     app: Flask,
@@ -42,8 +40,6 @@ def register_portali_acquisizione_routes(
         except KeyError:
             flash("Portale non supportato.", "warning")
             return redirect(url_for("dashboard"))
-        if not _richiede_vista_classica():
-            return render_react_shell_response(f"portali/{portale}/acquisizione")
 
         id_fasc = str(request.args.get("id_fasc") or "").strip()
         wizard_focus = str(request.args.get("focus") or "").strip().lower()

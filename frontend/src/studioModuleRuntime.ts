@@ -23,7 +23,7 @@ export type StudioRuntimeAction = {
 export type StudioRuntimeField = {
   name: string
   label: string
-  type: 'text' | 'email' | 'password' | 'number' | 'date' | 'textarea' | 'select'
+  type: 'text' | 'email' | 'password' | 'number' | 'date' | 'textarea' | 'select' | 'hidden' | 'checkbox' | 'file'
   required: boolean
   value: string
   options: Array<{ value: string; label: string }>
@@ -32,6 +32,7 @@ export type StudioRuntimeField = {
 export type StudioRuntimeForm = {
   action: string
   method: 'GET' | 'POST'
+  enctype: string
   submitLabel: string
   fields: StudioRuntimeField[]
 }
@@ -124,7 +125,7 @@ function normaliseAction(value: unknown): StudioRuntimeAction {
 function normaliseField(value: unknown): StudioRuntimeField {
   const item = isRecord(value) ? value : {}
   const rawType = text(item.type, 'text')
-  const fieldType = ['text', 'email', 'password', 'number', 'date', 'textarea', 'select'].includes(rawType)
+  const fieldType = ['text', 'email', 'password', 'number', 'date', 'textarea', 'select', 'hidden', 'checkbox', 'file'].includes(rawType)
     ? rawType as StudioRuntimeField['type']
     : 'text'
   return {
@@ -145,6 +146,7 @@ function normaliseForm(value: unknown): StudioRuntimeForm | null {
   return {
     action: text(value.action, '#'),
     method: method(value.method),
+    enctype: text(value.enctype),
     submitLabel: text(value.submitLabel, 'Salva'),
     fields: list(value.fields).map(normaliseField).filter((field) => field.name),
   }
@@ -192,7 +194,14 @@ function normaliseRuntime(payload: unknown): StudioModuleRuntime {
 
 export async function getStudioModuleRuntime(moduleId: string): Promise<StudioModuleRuntime> {
   try {
-    const response = await fetch(`/api/v1/ui/studio-modules/${encodeURIComponent(moduleId)}`, {
+    const params = new URLSearchParams()
+    if (typeof window !== 'undefined') {
+      params.set('path', window.location.pathname)
+      const current = new URLSearchParams(window.location.search)
+      current.forEach((value, key) => params.append(key, value))
+    }
+    const query = params.toString()
+    const response = await fetch(`/api/v1/ui/studio-modules/${encodeURIComponent(moduleId)}${query ? `?${query}` : ''}`, {
       credentials: 'same-origin',
       headers: { Accept: 'application/json' },
     })

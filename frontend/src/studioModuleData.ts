@@ -55,7 +55,7 @@ export const studioModules: StudioModuleConfig[] = [
     routes: ['/studio'],
     title: 'Studio',
     section: 'Direzione studio',
-    subtitle: 'Centro React per dati, assetti organizzativi, canali, controlli e moduli amministrativi dello studio.',
+    subtitle: 'Centro operativo per dati, assetti organizzativi, canali, controlli e moduli amministrativi dello studio.',
     lexContext: 'studio',
     lexLabel: 'Lex legge dati studio, ruoli, canali, impostazioni e moduli collegati.',
     kpis: [
@@ -77,7 +77,7 @@ export const studioModules: StudioModuleConfig[] = [
     routes: ['/fatturazione', '/fatturazione/nuova'],
     title: 'Parcelle e Fatture',
     section: 'Economico',
-    subtitle: 'Superficie iniziale React per parcelle, fatture, PDF, XML, scadenze di pagamento e incassi collegati.',
+    subtitle: 'Superficie operativa per parcelle, fatture, PDF, XML, scadenze di pagamento e incassi collegati.',
     lexContext: 'fatturazione',
     lexLabel: 'Lex collega parcelle, clienti, fascicoli, pagamenti e stati di incasso.',
     kpis: [
@@ -86,7 +86,7 @@ export const studioModules: StudioModuleConfig[] = [
       { label: 'Scadenze', value: 'Monitor', note: 'controllo incassi e parcelle scadute', tone: 'warning' },
     ],
     cards: [
-      { title: 'Elenco parcelle', body: 'Apri archivio completo, filtra per anno, stato, cliente o testo e genera PDF/XML.', href: '/fatturazione/', action: 'Apri archivio', icon: 'file', tone: 'primary', meta: 'Archivio React' },
+      { title: 'Elenco parcelle', body: 'Apri archivio completo, filtra per anno, stato, cliente o testo e genera PDF/XML.', href: '/fatturazione/', action: 'Apri archivio', icon: 'file', tone: 'primary', meta: 'Archivio operativo' },
       { title: 'Nuova parcella', body: 'Crea una parcella da cliente, fascicolo o preventivo con voci e calcoli fiscali.', href: '/fatturazione/nuova', action: 'Crea parcella', icon: 'plus', tone: 'success', meta: 'Nuovo documento' },
       { title: 'Incassi e pagamenti', body: 'Gestisci provider, link di pagamento e stato operativo dei canali di incasso.', href: '/incassi-pagamenti', action: 'Apri pagamenti', icon: 'card', tone: 'orange', meta: 'Provider' },
       { title: 'Esporta contabilita', body: 'Scarica dati contabili e prepara controlli di studio su fatturato e incassato.', href: '/export/fatturazione.csv', action: 'Esporta CSV', icon: 'download', tone: 'neutral', meta: 'CSV' },
@@ -99,7 +99,7 @@ export const studioModules: StudioModuleConfig[] = [
     routes: ['/preventivi', '/preventivi/nuovo', '/preventivi/wizard', '/preventivi/conferimento/nuovo'],
     title: 'Preventivi e Incarichi',
     section: 'Acquisizione mandato',
-    subtitle: 'Controllo React per preventivi, conferimenti, workflow di accettazione e conversione in parcella.',
+    subtitle: 'Controllo operativo per preventivi, conferimenti, workflow di accettazione e conversione in parcella.',
     lexContext: 'preventivi',
     lexLabel: 'Lex legge preventivo, conferimento, cliente e fascicolo collegato.',
     kpis: [
@@ -108,7 +108,7 @@ export const studioModules: StudioModuleConfig[] = [
       { label: 'Conversione', value: 'Parcella', note: 'passaggio a fatturazione già previsto', tone: 'success' },
     ],
     cards: [
-      { title: 'Archivio preventivi', body: 'Filtra bozze, inviati, accettati e pratiche senza conferimento.', href: '/preventivi/', action: 'Apri archivio', icon: 'file', tone: 'primary', meta: 'Lista React' },
+      { title: 'Archivio preventivi', body: 'Filtra bozze, inviati, accettati e pratiche senza conferimento.', href: '/preventivi/', action: 'Apri archivio', icon: 'file', tone: 'primary', meta: 'Archivio operativo' },
       { title: 'Nuovo preventivo', body: 'Crea proposta economica con cliente, fascicolo, voci e condizioni.', href: '/preventivi/nuovo', action: 'Crea preventivo', icon: 'plus', tone: 'success', meta: 'Nuovo' },
       { title: 'Conferimento incarico', body: 'Predisponi l’incarico e collega accettazione, firma e fascicolo.', href: '/preventivi/conferimento/nuovo', action: 'Crea incarico', icon: 'shield', tone: 'warning', meta: 'Mandato' },
       { title: 'Wizard compensi', body: 'Calcola e genera preventivo con parametri forensi e dati pratica.', href: '/preventivi/wizard', action: 'Apri wizard', icon: 'spark', tone: 'purple', meta: 'Guidato' },
@@ -142,7 +142,7 @@ export const studioModules: StudioModuleConfig[] = [
     routes: ['/redazione-atti', '/template-atti', '/template-atti/catalogo', '/template-atti/nuovo', '/checklist'],
     title: 'Redazione Atti',
     section: 'Document automation',
-    subtitle: 'Punto di ingresso React per template, catalogo atti, compilatore e assistente redazionale.',
+    subtitle: 'Punto di ingresso operativo per modelli, catalogo atti, redazione guidata e assistente redazionale.',
     lexContext: 'redazione-atti',
     lexLabel: 'Lex legge modello, fascicolo, parti, documenti e checklist di deposito.',
     kpis: [
@@ -164,7 +164,7 @@ export const studioModules: StudioModuleConfig[] = [
     routes: ['/portali/pst/acquisizione', '/polisweb/acquisizione'],
     title: 'Importa pratica da PST',
     section: 'PolisWeb / PST',
-    subtitle: 'Superficie React per acquisire pratiche da PST con Local Connector, file autorizzati e wizard tecnico governato.',
+    subtitle: 'Superficie operativa per acquisire pratiche da PST con Local Connector, file autorizzati e wizard tecnico governato.',
     lexContext: 'pst-acquisizione',
     lexLabel: 'Lex legge canale PST, fascicolo locale, mapping documenti e stato del connettore locale.',
     kpis: [
@@ -173,20 +173,20 @@ export const studioModules: StudioModuleConfig[] = [
       { label: 'Audit', value: 'Import', note: 'mapping fascicolo e documenti tracciati', tone: 'warning' },
     ],
     cards: [
-      { title: 'Acquisizione PST', body: 'Apri il presidio React del flusso PolisWeb / PST e verifica i passaggi prima dell import.', href: '/app-v2/polisweb#acquisizione-portale', action: 'Apri acquisizione', icon: 'upload', tone: 'primary', meta: 'React' },
-      { title: 'Checklist import PST', body: 'Controlla prerequisiti, mapping fascicolo e documenti prima di usare la vista tecnica.', href: '/app-v2/polisweb#checklist-operativa', action: 'Verifica flusso', icon: 'briefcase', tone: 'success', meta: 'Presidio' },
+      { title: 'Acquisizione PST', body: 'Apri il wizard guidato del flusso PolisWeb / PST e verifica tutti i passaggi di import.', href: '/portali/pst/acquisizione', action: 'Apri acquisizione', icon: 'upload', tone: 'primary', meta: 'Wizard operativo' },
+      { title: 'Checklist import PST', body: 'Controlla prerequisiti, mapping fascicolo e documenti prima dell importazione.', href: '/portali/pst/acquisizione#checklist-operativa', action: 'Verifica flusso', icon: 'briefcase', tone: 'success', meta: 'Presidio' },
       { title: 'Fascicoli', body: 'Controlla o crea la pratica locale prima di collegare documenti e buste.', href: '/fascicoli', action: 'Apri fascicoli', icon: 'folder', tone: 'warning', meta: 'Mapping' },
       { title: 'Centro telematico', body: 'Rientra nel quadro generale di PST, PDP, PAT e PTT.', href: '/app-v2/telematico', action: 'Apri centro', icon: 'send', tone: 'purple', meta: 'Portali' },
     ],
     workflow: ['Verifica accesso locale', 'Seleziona fascicolo PST', 'Riconcilia documenti', 'Importa e controlla audit'],
-    links: [{ label: 'Panoramica PST', href: '/app-v2/polisweb' }, { label: 'Centro telematico', href: '/app-v2/telematico' }, { label: 'Acquisizione React', href: '/app-v2/polisweb#acquisizione-portale' }],
+    links: [{ label: 'Panoramica PST', href: '/app-v2/polisweb' }, { label: 'Centro telematico', href: '/app-v2/telematico' }, { label: 'Acquisizione guidata', href: '/portali/pst/acquisizione' }],
   },
   {
     id: 'statistiche',
     routes: ['/statistiche'],
     title: 'Statistiche',
     section: 'Analisi studio',
-    subtitle: 'Cruscotto React per andamento economico, fascicoli, clienti, scadenze, depositi e produttività.',
+    subtitle: 'Cruscotto operativo per andamento economico, fascicoli, clienti, scadenze, depositi e produttività.',
     lexContext: 'statistiche',
     lexLabel: 'Lex interpreta indicatori e segnala anomalie operative.',
     kpis: [
@@ -196,7 +196,7 @@ export const studioModules: StudioModuleConfig[] = [
     ],
     cards: [
       { title: 'Dashboard grafici', body: 'Apri grafici, KPI e riepilogo operativo completo.', href: '/statistiche/', action: 'Apri dashboard', icon: 'chart', tone: 'primary', meta: 'Grafici' },
-      { title: 'Produttività', body: 'Analizza attività, timesheet e volume operativo dello studio.', href: '/statistiche/?view=produttivita', action: 'Vedi analisi', icon: 'table', tone: 'success', meta: 'React' },
+      { title: 'Produttività', body: 'Analizza attività, timesheet e volume operativo dello studio.', href: '/statistiche/?view=produttivita', action: 'Vedi analisi', icon: 'table', tone: 'success', meta: 'Analisi' },
       { title: 'Depositi trend', body: 'Controlla andamento depositi e canali telematici.', href: '/statistiche/?view=depositi', action: 'Trend depositi', icon: 'send', tone: 'warning', meta: 'Telematico' },
     ],
     workflow: ['Aggiorna dati', 'Leggi KPI', 'Isola anomalie', 'Apri modulo operativo collegato'],
@@ -249,7 +249,7 @@ export const studioModules: StudioModuleConfig[] = [
     routes: ['/strumenti-legali'],
     title: 'Strumenti Forensi',
     section: 'Calcolatori professionali',
-    subtitle: 'Suite React di accesso a calcoli forensi, interessi, rivalutazione, CU, onorari e utility operative.',
+    subtitle: 'Suite operativa di accesso a calcoli forensi, interessi, rivalutazione, CU, onorari e utility operative.',
     lexContext: 'strumenti-forensi',
     lexLabel: 'Lex aiuta a scegliere strumento, dati necessari e risultato da allegare al fascicolo.',
     kpis: [
@@ -270,7 +270,7 @@ export const studioModules: StudioModuleConfig[] = [
     routes: ['/timesheet'],
     title: 'Timesheet',
     section: 'Tempo e produttività',
-    subtitle: 'Superficie React per registrare attività, validare ore, collegare clienti e generare parcelle.',
+    subtitle: 'Superficie operativa per registrare attività, validare ore, collegare clienti e generare parcelle.',
     lexContext: 'timesheet',
     lexLabel: 'Lex legge attività, cliente, fascicolo, stato fatturabile e prossima azione economica.',
     kpis: [
@@ -279,10 +279,10 @@ export const studioModules: StudioModuleConfig[] = [
       { label: 'Output', value: 'Parcella', note: 'generazione da voci validate', tone: 'orange' },
     ],
     cards: [
-      { title: 'Cruscotto tempi', body: 'Apri riepilogo, filtri per cliente, fascicolo, stato e utente.', href: '/timesheet', action: 'Apri timesheet', icon: 'clock', tone: 'primary', meta: 'React' },
+      { title: 'Cruscotto tempi', body: 'Apri riepilogo, filtri per cliente, fascicolo, stato e utente.', href: '/timesheet', action: 'Apri timesheet', icon: 'clock', tone: 'primary', meta: 'Operativo' },
       { title: 'Nuova attività', body: 'Registra una voce tempo da cliente o fascicolo con importo fatturabile.', href: '/agenda', action: 'Aggancia agenda', icon: 'calendar', tone: 'success', meta: 'Workflow' },
       { title: 'Genera parcella', body: 'Consolida le voci validate e prepara il documento economico.', href: '/fatturazione/nuova', action: 'Crea parcella', icon: 'file', tone: 'orange', meta: 'Economico' },
-      { title: 'Produttività', body: 'Leggi indicatori e andamento operativo dello studio.', href: '/statistiche/?view=produttivita', action: 'Vedi KPI', icon: 'chart', tone: 'purple', meta: 'React' },
+      { title: 'Produttività', body: 'Leggi indicatori e andamento operativo dello studio.', href: '/statistiche/?view=produttivita', action: 'Vedi KPI', icon: 'chart', tone: 'purple', meta: 'Analisi' },
     ],
     workflow: ['Registra attività', 'Valida le voci', 'Filtra per cliente o fascicolo', 'Genera parcella e controlla audit'],
     links: [{ label: 'Agenda', href: '/agenda' }, { label: 'Parcelle', href: '/fatturazione' }, { label: 'Statistiche', href: '/statistiche/?view=produttivita' }],
@@ -292,7 +292,7 @@ export const studioModules: StudioModuleConfig[] = [
     routes: ['/cartelle-condivise'],
     title: 'Cartelle Condivise',
     section: 'Collaborazione clienti',
-    subtitle: 'Superficie React per accessi condivisi, collaboratori, scadenze permessi e cartelle clienti.',
+    subtitle: 'Superficie operativa per accessi condivisi, collaboratori, scadenze permessi e cartelle clienti.',
     lexContext: 'cartelle-condivise',
     lexLabel: 'Lex legge cliente, collaboratori, ruolo assegnato, scadenza accesso e rischi privacy.',
     kpis: [
@@ -301,7 +301,7 @@ export const studioModules: StudioModuleConfig[] = [
       { label: 'Privacy', value: 'Audit', note: 'scadenze e tracciamento condivisioni', tone: 'warning' },
     ],
     cards: [
-      { title: 'Cartelle condivise', body: 'Apri elenco accessi gestiti e cartelle ricevute.', href: '/cartelle-condivise', action: 'Apri cartelle', icon: 'folder', tone: 'primary', meta: 'React' },
+      { title: 'Cartelle condivise', body: 'Apri elenco accessi gestiti e cartelle ricevute.', href: '/cartelle-condivise', action: 'Apri cartelle', icon: 'folder', tone: 'primary', meta: 'Operativo' },
       { title: 'Clienti', body: 'Seleziona cliente e gestisci collaboratori dalla cartella.', href: '/clienti', action: 'Apri clienti', icon: 'users', tone: 'success', meta: 'Anagrafiche' },
       { title: 'Registro attività', body: 'Controlla aperture, modifiche e condivisioni sensibili.', href: '/audit', action: 'Apri audit', icon: 'clipboard', tone: 'warning', meta: 'Audit' },
     ],
@@ -313,7 +313,7 @@ export const studioModules: StudioModuleConfig[] = [
     routes: ['/strumenti-operativi', '/applicazioni'],
     title: 'Strumenti Operativi',
     section: 'Operatività studio',
-    subtitle: 'Raccolta React di strumenti trasversali per agenda, messaggi, condivisioni, export e automazioni.',
+    subtitle: 'Raccolta operativa di strumenti trasversali per agenda, messaggi, condivisioni, export e automazioni.',
     lexContext: 'strumenti-operativi',
     lexLabel: 'Lex legge il contesto operativo e propone il modulo più utile.',
     kpis: [
@@ -335,7 +335,7 @@ export const studioModules: StudioModuleConfig[] = [
     routes: ['/sito-studio', '/sito-studio/builder', '/sito-studio/contatti'],
     title: 'Sito Studio',
     section: 'Presenza digitale',
-    subtitle: 'Pannello React per sito pubblico, contenuti, servizi, professionisti, sedi, richieste e prenotazioni.',
+    subtitle: 'Pannello operativo per sito pubblico, contenuti, servizi, professionisti, sedi, richieste e prenotazioni.',
     lexContext: 'sito-studio',
     lexLabel: 'Lex legge contenuti del sito, richieste e conversione in clienti.',
     kpis: [
@@ -356,7 +356,7 @@ export const studioModules: StudioModuleConfig[] = [
     routes: ['/notifiche-whatsapp', '/notifiche'],
     title: 'Notifiche WhatsApp',
     section: 'Comunicazioni automatiche',
-    subtitle: 'Presidio React per promemoria, messaggi WhatsApp, configurazione provider e link rapidi ai clienti.',
+    subtitle: 'Presidio operativo per promemoria, messaggi WhatsApp, configurazione provider e link rapidi ai clienti.',
     lexContext: 'notifiche-whatsapp',
     lexLabel: 'Lex legge destinatario, pratica, scadenza e tono del messaggio.',
     kpis: [
@@ -377,7 +377,7 @@ export const studioModules: StudioModuleConfig[] = [
     routes: ['/incassi-pagamenti', '/impostazioni/pagamenti'],
     title: 'Incassi e Pagamenti',
     section: 'Payment operations',
-    subtitle: 'Controllo React per provider pagamento, link incasso, stato parcelle e configurazione canali.',
+    subtitle: 'Controllo operativo per provider pagamento, link incasso, stato parcelle e configurazione canali.',
     lexContext: 'incassi-pagamenti',
     lexLabel: 'Lex collega pagamento, parcella, cliente e sollecito.',
     kpis: [
@@ -398,7 +398,7 @@ export const studioModules: StudioModuleConfig[] = [
     routes: ['/backup'],
     title: 'Backup',
     section: 'Continuita operativa',
-    subtitle: 'Superficie React per backup, verifica integrità, download, ripristino tecnico e policy scheduler.',
+    subtitle: 'Superficie operativa per backup, verifica integrità, download, ripristino tecnico e policy scheduler.',
     lexContext: 'backup',
     lexLabel: 'Lex legge stato copie, rischi e prossime verifiche consigliate.',
     kpis: [
@@ -419,7 +419,7 @@ export const studioModules: StudioModuleConfig[] = [
     routes: ['/impostazioni-studio', '/impostazioni'],
     title: 'Impostazioni Studio',
     section: 'Configurazione',
-    subtitle: 'Indice React delle impostazioni sensibili: dati studio, PEC, firma, SMTP, WhatsApp, scheduler e AI locale.',
+    subtitle: 'Indice operativo delle impostazioni sensibili: dati studio, PEC, firma, SMTP, WhatsApp, scheduler e AI locale.',
     lexContext: 'impostazioni-studio',
     lexLabel: 'Lex legge configurazione e guida ai controlli senza esporre credenziali.',
     kpis: [
@@ -464,7 +464,7 @@ export const studioModules: StudioModuleConfig[] = [
     routes: ['/amministrazione'],
     title: 'Amministrazione',
     section: 'Governance',
-    subtitle: 'Indice React per utenti, permessi, audit, database, GDPR e console amministrative.',
+    subtitle: 'Indice operativo per utenti, permessi, audit, database, GDPR e console amministrative.',
     lexContext: 'amministrazione',
     lexLabel: 'Lex legge ruoli, permessi, audit e rischi di governance.',
     kpis: [
@@ -486,7 +486,7 @@ export const studioModules: StudioModuleConfig[] = [
     routes: ['/utenti', '/utenti/nuovo'],
     title: 'Utenti',
     section: 'Accessi studio',
-    subtitle: 'Gestione React iniziale per operatori, ruoli, stato, permessi e accesso alla piattaforma.',
+    subtitle: 'Gestione operativa per operatori, ruoli, stato, permessi e accesso alla piattaforma.',
     lexContext: 'utenti',
     lexLabel: 'Lex legge ruoli, permessi e anomalie di accesso.',
     kpis: [
@@ -507,7 +507,7 @@ export const studioModules: StudioModuleConfig[] = [
     routes: ['/profili'],
     title: 'Profili e Permessi',
     section: 'RBAC',
-    subtitle: 'Matrice React per ruoli, permessi, override utente e controlli di autorizzazione.',
+    subtitle: 'Matrice operativa per ruoli, permessi, override utente e controlli di autorizzazione.',
     lexContext: 'profili-permessi',
     lexLabel: 'Lex legge profili e segnala permessi critici da verificare.',
     kpis: [
@@ -528,7 +528,7 @@ export const studioModules: StudioModuleConfig[] = [
     routes: ['/registro-attivita', '/audit', '/admin/osservabilita'],
     title: 'Registro Attività',
     section: 'Audit e osservabilità',
-    subtitle: 'Registro React per eventi applicativi, audit utenti, esportazione e osservabilità amministrativa.',
+    subtitle: 'Registro operativo per eventi applicativi, audit utenti, esportazione e osservabilità amministrativa.',
     lexContext: 'registro-attivita',
     lexLabel: 'Lex legge eventi e aiuta a individuare anomalie operative.',
     kpis: [
@@ -549,7 +549,7 @@ export const studioModules: StudioModuleConfig[] = [
     routes: ['/admin/database', '/database'],
     title: 'Database',
     section: 'Storage e migrazioni',
-    subtitle: 'Controllo React per stato storage, SQLite/PostgreSQL, snapshot, migrazione e consistenza dati.',
+    subtitle: 'Controllo operativo per stato storage, SQLite/PostgreSQL, snapshot, migrazione e consistenza dati.',
     lexContext: 'database',
     lexLabel: 'Lex legge stato storage, migrazioni e rischi di coerenza.',
     kpis: [
@@ -570,7 +570,7 @@ export const studioModules: StudioModuleConfig[] = [
     routes: ['/registro-gdpr', '/privacy/registro', '/privacy/registro/nuovo'],
     title: 'Registro GDPR',
     section: 'Privacy e compliance',
-    subtitle: 'Registro React per trattamenti, basi giuridiche, misure, portabilità e audit privacy.',
+    subtitle: 'Registro operativo per trattamenti, basi giuridiche, misure, portabilità e audit privacy.',
     lexContext: 'gdpr',
     lexLabel: 'Lex legge trattamenti, dati personali e punti di verifica GDPR.',
     kpis: [
@@ -596,9 +596,16 @@ function normalize(path: string): string {
 
 export function findStudioModule(path: string): StudioModuleConfig | undefined {
   const route = normalize(path).toLowerCase()
-  return studioModules.find((module) =>
-    module.routes.some((candidate) => route === candidate || route.startsWith(`${candidate}/`)),
-  )
+  let best: { module: StudioModuleConfig; length: number } | undefined
+  studioModules.forEach((module) => {
+    module.routes.forEach((candidate) => {
+      const clean = candidate.toLowerCase()
+      if (route === clean || route.startsWith(`${clean}/`)) {
+        if (!best || clean.length > best.length) best = { module, length: clean.length }
+      }
+    })
+  })
+  return best?.module
 }
 
 export function isStudioModuleRoute(path: string): boolean {

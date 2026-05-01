@@ -483,8 +483,13 @@ def register_fascicoli_signature_routes(
             app.logger.exception("Errore api_pkcs11_firma_documenti_batch: %s", exc)
             return jsonify({"ok": False, "messaggio": signature_storage_error_message(exc)})
 
-    @app.route("/fascicoli/<id_fasc>/documenti/<id_doc>/firma", methods=["POST"])
+    @app.route("/fascicoli/<id_fasc>/documenti/<id_doc>/firma", methods=["GET", "POST"])
     def firma_documento(id_fasc, id_doc):
+        if request.method == "GET":
+            from web.blueprints.react_shell import render_react_shell_response
+
+            return render_react_shell_response(f"fascicoli/{id_fasc}/documenti/{id_doc}/firma")
+
         gestore_fascicoli = get_fascicoli()
         utente = g.utente_corrente
         richiesta_ajax = request.headers.get("X-Requested-With") == "XMLHttpRequest"
@@ -498,6 +503,37 @@ def register_fascicoli_signature_routes(
             return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
 
         try:
+            fascicolo_corrente = gestore_fascicoli.get(id_fasc)
+            documento_corrente = next((doc for doc in getattr(fascicolo_corrente, "documenti", []) if doc.id == id_doc), None)
+            if documento_corrente is None:
+                raise KeyError("Documento non trovato.")
+            nome_corrente = str(getattr(documento_corrente, "nome", "") or "")
+            gia_firmato = bool(
+                getattr(documento_corrente, "firmato_digitalmente", False)
+                or getattr(documento_corrente, "firmato", False)
+                or nome_corrente.lower().endswith((".p7m", ".sig", ".pkcs7"))
+            )
+            conferma_rifirma = str(request.form.get("confirm_resign") or "").strip().lower() in {
+                "1",
+                "true",
+                "si",
+                "sì",
+                "yes",
+            }
+            if gia_firmato and not conferma_rifirma:
+                return _chiudi_risposta(
+                    False,
+                    (
+                        "Attenzione: documento già firmato. Se continui rischi di corrompere il file "
+                        "o di creare una versione firmata non valida. Conferma esplicitamente la nuova firma "
+                        "solo se devi sostituire consapevolmente il file firmato."
+                    ),
+                    "warning",
+                    status=409,
+                    already_signed=True,
+                    requires_confirm_resign=True,
+                )
+
             if "file" in request.files and request.files["file"].filename:
                 from pct.firma import busta_cades_valida
 

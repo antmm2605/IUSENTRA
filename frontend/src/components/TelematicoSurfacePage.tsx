@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type MouseEvent, type ReactNode } from 'react'
+import { useEffect, useMemo, useState, type ChangeEvent, type MouseEvent, type ReactNode } from 'react'
 import {
   AlertTriangle,
   ArrowRight,
@@ -19,7 +19,7 @@ import {
   ShieldCheck,
   Sparkles,
   UploadCloud,
-  type LucideIcon,
+type LucideIcon,
 } from 'lucide-react'
 import { Badge, Panel } from './dashboard'
 import { FloatingLex } from './FloatingLex'
@@ -68,6 +68,67 @@ const surfaceAppPaths: Record<TelematicoSurfaceId, string> = {
   firma: '/app-v2/guida/firma-digitale',
 }
 
+const surfacePortals: Partial<Record<TelematicoSurfaceId, 'pst' | 'pdp' | 'pat' | 'ptt'>> = {
+  polisweb: 'pst',
+  pdp: 'pdp',
+  pat: 'pat',
+  ptt: 'ptt',
+}
+
+type JsonRecord = Record<string, unknown>
+
+type AcquisitionQuery = {
+  ufficio: string
+  numero: string
+  anno: string
+  assistito: string
+  controparte: string
+  cf: string
+  oggetto: string
+}
+
+type AcquisitionFile = {
+  nome: string
+  nome_file_originale: string
+  contenuto_b64: string
+  payload_json: JsonRecord | null
+  origine: string
+  data_documento: string
+  content_type: string
+  id_documento_portale: string
+  id_deposito_esterno: string
+  id_deposito_pct: string
+  tipo_atto: string
+  tipo: string
+  original_documento_portale: boolean
+  modalita_documento_portale: 'originale' | 'copia'
+}
+
+type AcquisitionResult = {
+  id: string
+  title: string
+  subtitle: string
+  badge: string
+  meta: string
+  raw: JsonRecord
+}
+
+type AcquisitionOptions = {
+  scarica_originale_portale: boolean
+  mantieni_albero_originale: boolean
+  importa_documenti: boolean
+  importa_eventi: boolean
+  importa_parti: boolean
+}
+
+type AcquisitionMapping = {
+  mode: 'create_new' | 'attach_existing' | 'update_existing'
+  target_fascicolo_id: string
+  procedimento: string
+  materia: string
+  grado: string
+}
+
 function surfaceFromCurrentPath(): TelematicoSurfaceId {
   const raw = window.location.pathname.replace(/\/+$/, '') || '/'
   const route = raw.toLowerCase().startsWith('/app-v2/') ? raw.slice('/app-v2'.length).toLowerCase() : raw.toLowerCase()
@@ -89,6 +150,51 @@ function surfaceFromCurrentPath(): TelematicoSurfaceId {
 
 function normaliseSearch(value: string) {
   return value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+}
+
+function isRecord(value: unknown): value is JsonRecord {
+  return Boolean(value && typeof value === 'object' && !Array.isArray(value))
+}
+
+function asText(value: unknown, fallback = ''): string {
+  const raw = String(value ?? fallback).trim()
+  return raw || fallback
+}
+
+function asNumber(value: unknown): number {
+  const parsed = Number(value ?? 0)
+  return Number.isFinite(parsed) ? parsed : 0
+}
+
+function asRecord(value: unknown): JsonRecord {
+  return isRecord(value) ? value : {}
+}
+
+function asList(value: unknown): unknown[] {
+  return Array.isArray(value) ? value : []
+}
+
+function italianDate(value: unknown): string {
+  const raw = asText(value)
+  if (!raw) return 'n.d.'
+  const iso = raw.match(/^(\d{4})-(\d{2})-(\d{2})(?:[T\s](\d{2}):(\d{2}))?/)
+  if (iso) {
+    const [, year, month, day, hour, minute] = iso
+    return hour && minute ? `${day}/${month}/${year} ${hour}:${minute}` : `${day}/${month}/${year}`
+  }
+  return raw
+}
+
+function portalFromSurface(surfaceId: TelematicoSurfaceId, data: TelematicoSurfaceData): 'pst' | 'pdp' | 'pat' | 'ptt' | '' {
+  const fromPayload = data.surface.portal
+  if (fromPayload === 'pst' || fromPayload === 'pdp' || fromPayload === 'pat' || fromPayload === 'ptt') return fromPayload
+  return surfacePortals[surfaceId] || ''
+}
+
+function isAcquisitionPath(portal: string): boolean {
+  if (!portal) return false
+  const route = normalizeAppPath(window.location.pathname)
+  return route === `/portali/${portal}/acquisizione` || route.startsWith(`/portali/${portal}/acquisizione/`)
 }
 
 function formatGeneratedAt(value: string) {
@@ -490,6 +596,494 @@ function LexPanel({ data }:{ data:TelematicoSurfaceData }) {
   )
 }
 
+function portalLabel(portal: string): string {
+  const labels: Record<string, string> = {
+    pst: 'PST / PolisWeb',
+    pdp: 'PDP Penale',
+    pat: 'PAT / SIGA',
+    ptt: 'PTT / SIGIT',
+  }
+  return labels[portal] || 'Portale'
+}
+
+function officialPortalHref(portal: string): string {
+  const urls: Record<string, string> = {
+    pst: 'https://pst.giustizia.it/PST/it/services.page',
+    pdp: 'https://appweb.giustizia.it/snt',
+    pat: 'https://www.giustizia-amministrativa.it/portale-avvocato',
+    ptt: 'https://sigit.giustiziatributaria.gov.it/Sigit/index.do',
+  }
+  return urls[portal] || ''
+}
+
+async function portalJson(portal: string, endpoint: string, body?: JsonRecord): Promise<JsonRecord> {
+  const response = await fetch(`/api/portali/${encodeURIComponent(portal)}/acquisizione/${endpoint}`, {
+    method: body ? 'POST' : 'GET',
+    credentials: 'same-origin',
+    headers: body ? { Accept: 'application/json', 'Content-Type': 'application/json' } : { Accept: 'application/json' },
+    body: body ? JSON.stringify(body) : undefined,
+  })
+  const payload = await response.json().catch(() => ({}))
+  return isRecord(payload) ? payload : {}
+}
+
+function normaliseAcquisitionResult(value: unknown, index: number): AcquisitionResult {
+  const row = asRecord(value)
+  const title = asText(row.title || row.titolo || row.numero_rg || row.rg || row.numero, `Fascicolo ${index + 1}`)
+  const office = asText(row.ufficio || row.tribunale || row.office_name || row.court)
+  const party = asText(row.assistito || row.cliente || row.parte || row.ricorrente || row.imputato)
+  const counterparty = asText(row.controparte || row.resistente || row.parte_offesa)
+  return {
+    id: asText(row.id || row.id_fascicolo || row.practice_id || row.numero_rg || row.numero, `result-${index}`),
+    title,
+    subtitle: [office, party, counterparty].filter(Boolean).join(' - ') || 'Risultato dal canale autorizzato',
+    badge: asText(row.stato || row.status || row.registro || row.tipo, 'Fascicolo'),
+    meta: italianDate(row.data || row.data_iscrizione || row.updated_at || row.last_sync_at),
+    raw: row,
+  }
+}
+
+function previewCount(preview: JsonRecord, key: string): number {
+  const value = preview[key]
+  if (Array.isArray(value)) return value.length
+  if (isRecord(value)) return Object.keys(value).length
+  return 0
+}
+
+function previewIdentity(preview: JsonRecord): JsonRecord {
+  return asRecord(preview.identity || preview.fascicolo || preview.procedimento || preview.ricorso || preview.controversia)
+}
+
+function issueRows(analysis: JsonRecord, key: string): JsonRecord[] {
+  const direct = asList(analysis[key]).map(asRecord)
+  if (direct.length) return direct
+  const grouped = asRecord(analysis.issues)
+  return asList(grouped[key]).map(asRecord)
+}
+
+function importSummary(result: JsonRecord): JsonRecord {
+  return asRecord(result.summary || result.result || result)
+}
+
+function fileDate(value: number): string {
+  if (!value) return ''
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return ''
+  return date.toISOString().slice(0, 10)
+}
+
+function readFileAsDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onerror = () => reject(new Error(`Impossibile leggere il file ${file.name}`))
+    reader.onload = () => resolve(String(reader.result || ''))
+    reader.readAsDataURL(file)
+  })
+}
+
+function readFileAsText(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onerror = () => reject(new Error(`Impossibile leggere il file ${file.name}`))
+    reader.onload = () => resolve(String(reader.result || ''))
+    reader.readAsText(file)
+  })
+}
+
+async function collectAcquisitionFiles(files: FileList | null, originalMode: boolean): Promise<AcquisitionFile[]> {
+  const rows = Array.from(files || []).filter((file) => file.name)
+  const collected: AcquisitionFile[] = []
+  for (const file of rows) {
+    const dataUrl = await readFileAsDataUrl(file)
+    const [, content = dataUrl] = dataUrl.split(',', 2)
+    let payloadJson: JsonRecord | null = null
+    if (/\.json$/i.test(file.name)) {
+      const parsed = JSON.parse(await readFileAsText(file)) as unknown
+      payloadJson = isRecord(parsed) ? parsed : null
+    }
+    const path = asText((file as File & { webkitRelativePath?: string }).webkitRelativePath)
+    collected.push({
+      nome: file.name,
+      nome_file_originale: file.name,
+      contenuto_b64: content,
+      payload_json: payloadJson,
+      origine: path ? `upload-cartella:${path}` : `upload:${file.name}`,
+      data_documento: fileDate(file.lastModified),
+      content_type: asText(file.type),
+      id_documento_portale: '',
+      id_deposito_esterno: '',
+      id_deposito_pct: '',
+      tipo_atto: '',
+      tipo: '',
+      original_documento_portale: originalMode,
+      modalita_documento_portale: originalMode ? 'originale' : 'copia',
+    })
+  }
+  return collected
+}
+
+function authorisedPayload(files: AcquisitionFile[]): JsonRecord | null {
+  for (const file of files) {
+    const payload = file.payload_json
+    if (!payload) continue
+    const nested = payload.payload || payload.raw_payload
+    if (isRecord(nested)) return nested
+    if (payload.selection || payload.preview || payload.fascicolo || payload.procedimento || payload.ricorso || payload.controversia) {
+      return payload
+    }
+  }
+  return null
+}
+
+function AcquisitionWizard({
+  surfaceId,
+  data,
+}:{
+  surfaceId: TelematicoSurfaceId
+  data: TelematicoSurfaceData
+}) {
+  const portal = portalFromSurface(surfaceId, data)
+  const visible = isAcquisitionPath(portal)
+  const [step, setStep] = useState(1)
+  const [busy, setBusy] = useState('')
+  const [message, setMessage] = useState('')
+  const [status, setStatus] = useState<JsonRecord>({})
+  const [query, setQuery] = useState<AcquisitionQuery>({
+    ufficio: '',
+    numero: '',
+    anno: String(new Date().getFullYear()),
+    assistito: '',
+    controparte: '',
+    cf: '',
+    oggetto: '',
+  })
+  const [results, setResults] = useState<AcquisitionResult[]>([])
+  const [selection, setSelection] = useState<AcquisitionResult | null>(null)
+  const [preview, setPreview] = useState<JsonRecord>({})
+  const [analysis, setAnalysis] = useState<JsonRecord>({})
+  const [files, setFiles] = useState<AcquisitionFile[]>([])
+  const [importResult, setImportResult] = useState<JsonRecord>({})
+  const [options, setOptions] = useState<AcquisitionOptions>({
+    scarica_originale_portale: portal !== 'pst',
+    mantieni_albero_originale: false,
+    importa_documenti: true,
+    importa_eventi: true,
+    importa_parti: true,
+  })
+  const [mapping, setMapping] = useState<AcquisitionMapping>({
+    mode: 'create_new',
+    target_fascicolo_id: new URLSearchParams(window.location.search).get('id_fasc') || '',
+    procedimento: '',
+    materia: '',
+    grado: '',
+  })
+
+  useEffect(() => {
+    if (!visible || !portal) return
+    let active = true
+    portalJson(portal, 'status')
+      .then((payload) => {
+        if (!active) return
+        setStatus(asRecord(payload.status))
+      })
+      .catch((error: unknown) => {
+        if (active) setMessage(asText(error, 'Stato canale non disponibile.'))
+      })
+    return () => { active = false }
+  }, [portal, visible])
+
+  if (!visible || !portal) return null
+
+  const updateQuery = (key: keyof AcquisitionQuery, value: string) => setQuery((current) => ({ ...current, [key]: value }))
+  const updateOption = (key: keyof AcquisitionOptions, value: boolean) => setOptions((current) => ({ ...current, [key]: value }))
+  const updateMapping = (key: keyof AcquisitionMapping, value: string) => setMapping((current) => ({ ...current, [key]: value }))
+
+  const searchPayload = () => ({
+    ufficio_codice: query.ufficio,
+    ufficio: query.ufficio,
+    numero: query.numero,
+    anno: query.anno,
+    assistito: query.assistito,
+    controparte: query.controparte,
+    cf: query.cf,
+    oggetto: query.oggetto,
+    materia: query.oggetto,
+    registro: '',
+    quick_filter: '',
+  })
+
+  const runSearch = async () => {
+    setBusy('search')
+    setMessage('')
+    setImportResult({})
+    try {
+      const payload = await portalJson(portal, 'search', searchPayload())
+      if (payload.ok === false) throw new Error(asText(payload.errore, 'Ricerca non completata.'))
+      const rows = asList(payload.results || payload.fascicoli).map(normaliseAcquisitionResult)
+      setResults(rows)
+      setSelection(rows[0] || null)
+      setStep(2)
+      setMessage(rows.length ? `${rows.length} risultati trovati.` : 'Nessun fascicolo trovato con questi filtri.')
+    } catch (error: unknown) {
+      setMessage(asText(error instanceof Error ? error.message : error, 'Ricerca non disponibile.'))
+    } finally {
+      setBusy('')
+    }
+  }
+
+  const runPreview = async () => {
+    if (!selection) {
+      setMessage('Seleziona prima un fascicolo dal risultato della ricerca.')
+      return
+    }
+    setBusy('preview')
+    try {
+      const payload = await portalJson(portal, 'preview', { selection: selection.raw })
+      if (payload.ok === false) throw new Error(asText(payload.errore, 'Anteprima non completata.'))
+      setPreview(asRecord(payload.preview))
+      setStep(3)
+      setMessage('Anteprima caricata: verifica dati, parti, eventi e documenti prima della mappatura.')
+    } catch (error: unknown) {
+      setMessage(asText(error instanceof Error ? error.message : error, 'Anteprima non disponibile.'))
+    } finally {
+      setBusy('')
+    }
+  }
+
+  const runAnalysis = async () => {
+    if (!selection || !Object.keys(preview).length) {
+      setMessage('Carica prima l’anteprima del fascicolo.')
+      return
+    }
+    setBusy('analysis')
+    try {
+      const payload = await portalJson(portal, 'analyze', {
+        selection: selection.raw,
+        preview,
+        options,
+        mapping,
+      })
+      if (payload.ok === false) throw new Error(asText(payload.errore, 'Analisi non completata.'))
+      setAnalysis(asRecord(payload.analysis))
+      setStep(4)
+      setMessage('Analisi completata: controlla blocchi, warning e corrispondenze prima dell’importazione.')
+    } catch (error: unknown) {
+      setMessage(asText(error instanceof Error ? error.message : error, 'Analisi non disponibile.'))
+    } finally {
+      setBusy('')
+    }
+  }
+
+  const onFiles = async (event: ChangeEvent<HTMLInputElement>) => {
+    setBusy('files')
+    setMessage('Preparazione dei file selezionati...')
+    try {
+      const collected = await collectAcquisitionFiles(event.currentTarget.files, options.scarica_originale_portale)
+      setFiles(collected)
+      setMessage(collected.length ? `${collected.length} file pronti per l’importazione manuale.` : 'Nessun file selezionato.')
+    } catch (error: unknown) {
+      setFiles([])
+      setMessage(asText(error instanceof Error ? error.message : error, 'File non leggibile.'))
+    } finally {
+      setBusy('')
+    }
+  }
+
+  const runImport = async () => {
+    if (!selection || !Object.keys(preview).length) {
+      setMessage('Import bloccato: selezione e anteprima sono obbligatorie.')
+      return
+    }
+    setBusy('import')
+    try {
+      const payloadJson = authorisedPayload(files)
+      const downloadedFiles = files.filter((file) => !file.payload_json)
+      const payload = payloadJson
+        ? await portalJson(portal, 'importa-payload', {
+            payload: payloadJson,
+            options,
+            mapping,
+            fascicolo_locale_id: mapping.target_fascicolo_id,
+            downloaded_files: downloadedFiles,
+          })
+        : await portalJson(portal, 'import', {
+            selection: selection.raw,
+            preview,
+            options,
+            mapping,
+            downloaded_files: downloadedFiles,
+          })
+      if (payload.ok === false) throw new Error(asText(payload.errore, 'Importazione non completata.'))
+      setImportResult(payload)
+      setStep(5)
+      setMessage('Importazione completata o presa in carico dal backend operativo.')
+    } catch (error: unknown) {
+      setMessage(asText(error instanceof Error ? error.message : error, 'Importazione non disponibile.'))
+    } finally {
+      setBusy('')
+    }
+  }
+
+  const identity = previewIdentity(preview)
+  const blockers = issueRows(analysis, 'blockers')
+  const warnings = issueRows(analysis, 'warnings')
+  const oks = issueRows(analysis, 'ok')
+  const summary = importSummary(importResult)
+  const official = officialPortalHref(portal)
+
+  return (
+    <section className="iu-tel-acquisition" id="wizard-acquisizione">
+      <header className="iu-tel-acquisition__head">
+        <div>
+          <span><Download size={16}/> Acquisizione guidata</span>
+          <h2>Importa fascicolo da {portalLabel(portal)}</h2>
+          <p>Ricerca, anteprima, analisi conflitti e import usano gli endpoint reali del gestionale. Le credenziali del portale restano sul canale ufficiale o sul Local Signer.</p>
+        </div>
+        <aside>
+          <strong>Step {step}/5</strong>
+          <span>{busy ? 'Operazione in corso...' : 'Pronto'}</span>
+          {official ? <a href={official} target="_blank" rel="noreferrer"><ExternalLink size={14}/> Portale ufficiale</a> : null}
+        </aside>
+      </header>
+
+      <div className="iu-tel-acquisition__steps" aria-label="Passaggi acquisizione">
+        {['Accesso', 'Ricerca', 'Anteprima', 'Verifica', 'Import'].map((label, index) => (
+          <button type="button" className={step === index + 1 ? 'is-active' : step > index + 1 ? 'is-done' : ''} onClick={() => setStep(index + 1)} key={label}>
+            <span>{index + 1}</span>{label}
+          </button>
+        ))}
+      </div>
+
+      {message ? <div className="iu-tel-acquisition__message"><AlertTriangle size={17}/>{message}</div> : null}
+
+      <div className="iu-tel-acquisition__grid">
+        <div className="iu-tel-acquisition__main">
+          <Panel title="1. Accesso e canale" subtitle="Stato tecnico del canale autorizzato" icon={<MonitorCheck size={17}/>}>
+            <div className="iu-tel-acq-status">
+              <span><strong>Canale</strong>{portalLabel(portal)}</span>
+              <span><strong>Stato</strong>{asText(status.status_text || status.label || status.mode, 'Da verificare')}</span>
+              <span><strong>Local Signer</strong>{status.pkcs11_mode || status.browser_channel_required ? 'Canale locale richiesto' : 'Non richiesto dal payload'}</span>
+              <button type="button" onClick={() => portalJson(portal, 'status').then((payload) => setStatus(asRecord(payload.status)))}>Aggiorna stato</button>
+            </div>
+          </Panel>
+
+          <Panel title="2. Ricerca fascicolo" subtitle="Filtri operativi del portale" icon={<Search size={17}/>}>
+            <div className="iu-tel-acq-form">
+              <label><span>Ufficio giudiziario</span><input value={query.ufficio} onChange={(event) => updateQuery('ufficio', event.currentTarget.value)} placeholder="Tribunale, ufficio o codice"/></label>
+              <label><span>Numero</span><input value={query.numero} onChange={(event) => updateQuery('numero', event.currentTarget.value)} placeholder="Es. 466"/></label>
+              <label><span>Anno</span><input value={query.anno} onChange={(event) => updateQuery('anno', event.currentTarget.value)} inputMode="numeric"/></label>
+              <label><span>Parte assistita</span><input value={query.assistito} onChange={(event) => updateQuery('assistito', event.currentTarget.value)} placeholder="Cliente, imputato, ricorrente..."/></label>
+              <label><span>Controparte</span><input value={query.controparte} onChange={(event) => updateQuery('controparte', event.currentTarget.value)} placeholder="Controparte, resistente, parte offesa..."/></label>
+              <label><span>CF / P.IVA</span><input value={query.cf} onChange={(event) => updateQuery('cf', event.currentTarget.value)} placeholder="Codice fiscale o partita IVA"/></label>
+              <label className="iu-tel-acq-form__wide"><span>Oggetto / materia</span><input value={query.oggetto} onChange={(event) => updateQuery('oggetto', event.currentTarget.value)} placeholder="Oggetto, materia, reato, rito..."/></label>
+            </div>
+            <div className="iu-tel-acq-actions">
+              <button type="button" disabled={busy === 'search'} onClick={runSearch}><Search size={15}/> Cerca fascicolo</button>
+              <button type="button" disabled={!selection || busy === 'preview'} onClick={runPreview}><FileText size={15}/> Carica anteprima</button>
+            </div>
+            <div className="iu-tel-acq-results">
+              {results.map((result) => (
+                <button type="button" className={selection?.id === result.id ? 'is-selected' : ''} onClick={() => setSelection(result)} key={result.id}>
+                  <strong>{result.title}</strong>
+                  <span>{result.subtitle}</span>
+                  <em>{result.badge} {result.meta ? `- ${result.meta}` : ''}</em>
+                </button>
+              ))}
+            </div>
+          </Panel>
+
+          <Panel title="3. Anteprima e mappatura" subtitle="Dati che entreranno nel fascicolo interno" icon={<FileCheck2 size={17}/>}>
+            {Object.keys(preview).length ? (
+              <div className="iu-tel-acq-preview">
+                <article><span>Procedimento</span><strong>{asText(identity.numero_rg || identity.rg || identity.numero || selection?.title, 'n.d.')}</strong><small>{asText(identity.ufficio || identity.tribunale || identity.court, 'Ufficio non indicato')}</small></article>
+                <article><span>Parti</span><strong>{previewCount(preview, 'parti')}</strong><small>Parti/anagrafiche rilevate</small></article>
+                <article><span>Documenti</span><strong>{previewCount(preview, 'documenti') + previewCount(preview, 'depositi')}</strong><small>Documenti o buste disponibili</small></article>
+                <article><span>Eventi</span><strong>{previewCount(preview, 'eventi')}</strong><small>Cronologia importabile</small></article>
+              </div>
+            ) : <p className="iu-empty">Carica l’anteprima dopo aver selezionato il fascicolo.</p>}
+            <div className="iu-tel-acq-form iu-tel-acq-form--mapping">
+              <label><span>Modalità</span><select value={mapping.mode} onChange={(event) => updateMapping('mode', event.currentTarget.value)}>
+                <option value="create_new">Crea nuova pratica</option>
+                <option value="attach_existing">Collega a pratica esistente</option>
+                <option value="update_existing">Aggiorna pratica esistente</option>
+              </select></label>
+              <label><span>Fascicolo locale target</span><select value={mapping.target_fascicolo_id} onChange={(event) => updateMapping('target_fascicolo_id', event.currentTarget.value)}>
+                <option value="">Seleziona se necessario</option>
+                {data.recentCases.map((item) => <option value={item.id} key={item.id}>{item.title}</option>)}
+              </select></label>
+              <label><span>Procedimento</span><input value={mapping.procedimento} onChange={(event) => updateMapping('procedimento', event.currentTarget.value)}/></label>
+              <label><span>Materia</span><input value={mapping.materia} onChange={(event) => updateMapping('materia', event.currentTarget.value)}/></label>
+              <label><span>Grado</span><input value={mapping.grado} onChange={(event) => updateMapping('grado', event.currentTarget.value)}/></label>
+            </div>
+            <div className="iu-tel-acq-actions">
+              <button type="button" disabled={busy === 'analysis'} onClick={runAnalysis}><ShieldCheck size={15}/> Analizza conflitti</button>
+            </div>
+          </Panel>
+
+          <Panel title="4. Controllo e file" subtitle="Opzioni, warning e upload autorizzato" icon={<ClipboardCheck size={17}/>}>
+            <div className="iu-tel-acq-switches">
+              <label><input type="checkbox" checked={options.importa_documenti} onChange={(event) => updateOption('importa_documenti', event.currentTarget.checked)}/> Importa documenti</label>
+              <label><input type="checkbox" checked={options.importa_eventi} onChange={(event) => updateOption('importa_eventi', event.currentTarget.checked)}/> Importa eventi</label>
+              <label><input type="checkbox" checked={options.importa_parti} onChange={(event) => updateOption('importa_parti', event.currentTarget.checked)}/> Importa parti</label>
+              <label><input type="checkbox" checked={options.scarica_originale_portale} onChange={(event) => updateOption('scarica_originale_portale', event.currentTarget.checked)}/> Originale portale</label>
+              <label><input type="checkbox" checked={options.mantieni_albero_originale} onChange={(event) => updateOption('mantieni_albero_originale', event.currentTarget.checked)}/> Mantieni albero tecnico</label>
+            </div>
+            {portal === 'pst' ? <p className="iu-tel-acq-note">Default PST: copia di consultazione con annotazioni ministeriali. L’originale si usa solo se selezionato espressamente.</p> : null}
+            <label className="iu-tel-acq-file">
+              <span>File, ZIP o payload JSON autorizzato</span>
+              <input type="file" multiple accept=".zip,.pdf,.p7m,.eml,.msg,.xml,.json,.html,.htm,.txt" onChange={onFiles}/>
+            </label>
+            <div className="iu-tel-acq-results iu-tel-acq-results--compact">
+              {files.map((file) => <span key={`${file.nome}-${file.contenuto_b64.length}`}>{file.nome}{file.payload_json ? ' - payload JSON' : ''}</span>)}
+            </div>
+            {Object.keys(analysis).length ? (
+              <div className="iu-tel-acq-analysis">
+                <article><span>Punteggio</span><strong>{asText(analysis.score || analysis.punteggio, 'n.d.')}</strong></article>
+                <article><span>Blocchi</span><strong>{blockers.length}</strong></article>
+                <article><span>Avvisi</span><strong>{warnings.length}</strong></article>
+                <article><span>OK</span><strong>{oks.length}</strong></article>
+              </div>
+            ) : null}
+            {[...blockers, ...warnings].slice(0, 8).map((issue, index) => (
+              <p className="iu-tel-acq-issue" key={`${asText(issue.code, 'issue')}-${index}`}>
+                <strong>{asText(issue.code || issue.title || issue.categoria, 'Controllo')}</strong>
+                <span>{asText(issue.message || issue.human_message || issue.detail || issue.descrizione, 'Verifica richiesta')}</span>
+              </p>
+            ))}
+          </Panel>
+
+          <Panel title="5. Importazione finale" subtitle="Scrittura nel gestionale tramite backend" icon={<UploadCloud size={17}/>}>
+            <p className="iu-tel-acq-note">L’importazione non scarica dati dai portali in modo nascosto: usa payload autorizzati, file selezionati dall’utente o canale Local Signer quando disponibile.</p>
+            <div className="iu-tel-acq-actions">
+              <button type="button" disabled={busy === 'import'} onClick={runImport}><UploadCloud size={15}/> Importa nel gestionale</button>
+            </div>
+            {Object.keys(importResult).length ? (
+              <div className="iu-tel-acq-import-result">
+                <strong>Import completato</strong>
+                <span>{asText(summary.numero_pratica || summary.fascicolo_id || summary.id_fascicolo || summary.message, 'Risultato registrato dal backend.')}</span>
+                {asText(summary.fascicolo_url || summary.redirect_url || summary.url) ? <a href={asText(summary.fascicolo_url || summary.redirect_url || summary.url)}>Apri fascicolo importato</a> : null}
+              </div>
+            ) : null}
+          </Panel>
+        </div>
+
+        <aside className="iu-tel-acquisition__side">
+          <Panel title="Riepilogo" icon={<BadgeCheck size={17}/>} count={selection ? '1' : '0'}>
+            <div className="iu-tel-acq-summary">
+              <span><strong>Portale</strong>{portalLabel(portal)}</span>
+              <span><strong>Selezione</strong>{selection?.title || 'Nessun fascicolo selezionato'}</span>
+              <span><strong>File manuali</strong>{files.length}</span>
+              <span><strong>Mapping</strong>{mapping.mode.replace('_', ' ')}</span>
+              <span><strong>Documenti</strong>{previewCount(preview, 'documenti') + previewCount(preview, 'depositi')}</span>
+              <span><strong>Eventi</strong>{previewCount(preview, 'eventi')}</span>
+            </div>
+          </Panel>
+        </aside>
+      </div>
+    </section>
+  )
+}
+
 export function TelematicoSurfacePage() {
   const surfaceId = surfaceFromCurrentPath()
   const [data, setData] = useState<TelematicoSurfaceData>(emptyTelematicoSurface)
@@ -646,6 +1240,8 @@ export function TelematicoSurfacePage() {
           onLex={openSurfaceLex}
         />
       ) : null}
+
+      <AcquisitionWizard surfaceId={surfaceId} data={data}/>
 
       {data.surface.id === 'tribunali' ? (
         <section className="iu-tel-tribunali-workspace">

@@ -15,7 +15,6 @@ from flask import (Blueprint, abort, flash, g, redirect,
                    render_template, request, send_file, url_for, current_app)
 
 from web.helpers import get_clienti, get_fascicoli, get_scadenziario, get_preventivi as _shared_get_preventivi
-from web.blueprints.react_shell import render_react_shell_response
 from pct.economico_context import (
     costruisci_contesto_economico,
     dump_log_calcolo,
@@ -59,10 +58,6 @@ def _parse_numero(value, default: float = 0.0) -> float:
 
 def _get_gp():
     return _shared_get_preventivi()
-
-
-def _richiede_vista_classica() -> bool:
-    return request.args.get("_legacy") == "1"
 
 
 def _get_portale_mgr():
@@ -532,8 +527,6 @@ def _richiedi_login(f):
 @preventivi.route("/", methods=["GET"])
 @_richiedi_login
 def lista():
-    if not _richiede_vista_classica():
-        return render_react_shell_response("preventivi")
     gp = _get_gp()
     gp.aggiorna_scaduti()
 
@@ -605,9 +598,6 @@ def lista():
 @preventivi.route("/nuovo/<id_cliente>", methods=["GET", "POST"])
 @_richiedi_login
 def nuovo_preventivo(id_cliente: str = ""):
-    if request.method == "GET" and not _richiede_vista_classica():
-        return render_react_shell_response("preventivi/nuovo")
-
     gc = get_clienti()
     gp = _get_gp()
 
@@ -1006,9 +996,6 @@ def pdf_preventivo(id_preventivo: str):
 @preventivi.route("/conferimento/nuovo/<id_cliente>", methods=["GET", "POST"])
 @_richiedi_login
 def nuovo_conferimento(id_cliente: str = ""):
-    if request.method == "GET" and not _richiede_vista_classica():
-        return render_react_shell_response("preventivi/conferimento/nuovo")
-
     gc = get_clienti()
     gp = _get_gp()
 
@@ -1552,9 +1539,6 @@ def ajax_parametri_dm55():
 @_richiedi_login
 def wizard():
     """Wizard step-by-step per la costruzione guidata del preventivo."""
-    if not _richiede_vista_classica():
-        return render_react_shell_response("preventivi/wizard")
-
     from pct.motore_preventivo import AREE_WIZARD, catalogo_wizard
     gc = get_clienti()
     gf = get_fascicoli()

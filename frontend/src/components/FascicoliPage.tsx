@@ -78,6 +78,7 @@ type Route =
   | { kind: 'export' }
   | { kind: 'detail'; id: string }
   | { kind: 'quadro'; id: string }
+  | { kind: 'signature'; id: string; documentId: string }
   | { kind: 'edit'; id: string }
 
 const sortLabels: Record<SortKey, string> = {
@@ -98,6 +99,9 @@ function parseRoute(): Route {
   if (rest === 'nuovo') return { kind: 'new' }
   if (rest === 'esporta' || rest === 'export') return { kind: 'export' }
   const parts = rest.split('/').filter(Boolean)
+  if (parts.length >= 4 && parts[1] === 'documenti' && parts[3] === 'firma') {
+    return { kind: 'signature', id: decodeURIComponent(parts[0]), documentId: decodeURIComponent(parts[2]) }
+  }
   if (parts.length >= 2 && parts[1] === 'quadro') return { kind: 'quadro', id: decodeURIComponent(parts[0]) }
   if (parts.length >= 2 && parts[1] === 'modifica') return { kind: 'edit', id: decodeURIComponent(parts[0]) }
   return { kind: 'detail', id: decodeURIComponent(parts[0] || '') }
@@ -604,6 +608,273 @@ function DocumentRow({ doc }:{doc:FascicoloDocument}) {
   )
 }
 
+type LocalSignerToken = { slot_id?: number | string; label?: string; manufacturer?: string }
+type LocalSignerStatus = { ok?: boolean; token?: LocalSignerToken[]; versione?: string; version?: string; messaggio?: string; error?: string }
+type FirmaInfo = {
+  firme?: unknown[]
+  nome?: string
+  errore?: string
+  signed_status?: Record<string, unknown>
+  signed_ui?: { label?: string; tone?: FascicoloRow['tone']; detail?: string }
+}
+
+function arrayBufferToBase64(buffer: ArrayBuffer): string {
+  const bytes = new Uint8Array(buffer)
+  let binary = ''
+  const chunkSize = 0x8000
+  for (let index = 0; index < bytes.length; index += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(index, index + chunkSize))
+  }
+  return btoa(binary)
+}
+
+function base64ToUint8Array(value: string): Uint8Array {
+  const binary = atob(value)
+  const bytes = new Uint8Array(binary.length)
+  for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index)
+  return bytes
+}
+
+function SignaturePage({ id, documentId }:{id:string; documentId:string}) {
+  const [data, setData] = useState<FascicoloDetailData>(emptyFascicoloDetail)
+  const [loading, setLoading] = useState(true)
+  const [info, setInfo] = useState<FirmaInfo | null>(null)
+  const [localSigner, setLocalSigner] = useState<LocalSignerStatus | null>(null)
+  const [checkingSigner, setCheckingSigner] = useState(false)
+  const [pin, setPin] = useState('')
+  const [confirmResign, setConfirmResign] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const [message, setMessage] = useState('')
+  const [error, setError] = useState('')
+
+  const encodedId = encodeURIComponent(id)
+  const encodedDocId = encodeURIComponent(documentId)
+  const firmaUrl = `/fascicoli/${encodedId}/documenti/${encodedDocId}/firma`
+  const infoUrl = `/api/fascicoli/${encodedId}/documenti/${encodedDocId}/info-firma`
+  const detailUrl = `/fascicoli/${encodedId}#documenti`
+  const doc = data.documents.find((item) => item.id === documentId)
+  const token = localSigner?.token?.[0]
+  const signatureCount = info?.firme?.length || 0
+  const alreadySigned = Boolean(doc?.signed || signatureCount > 0 || doc?.name.toLowerCase().match(/\.(p7m|sig|pkcs7)$/))
+
+  const refreshInfo = () => {
+    fetch(infoUrl, { credentials: 'same-origin', headers: { Accept: 'application/json' } })
+      .then((response) => response.json())
+      .then((payload) => setInfo(payload as FirmaInfo))
+      .catch(() => setInfo({ errore: 'Stato firma non disponibile.' }))
+  }
+
+  const checkLocalSigner = () => {
+    setCheckingSigner(true)
+    const controller = new AbortController()
+    const timeout = window.setTimeout(() => controller.abort(), 2500)
+    fetch('http://127.0.0.1:27272/ping', { signal: controller.signal })
+      .then((response) => response.json())
+      .then((payload) => setLocalSigner(payload as LocalSignerStatus))
+      .catch(() => setLocalSigner({ ok: false, messaggio: 'Local Signer non rilevato su questo PC.' }))
+      .finally(() => {
+        window.clearTimeout(timeout)
+        setCheckingSigner(false)
+      })
+  }
+
+  useEffect(() => {
+    let active = true
+    setLoading(true)
+    getFascicoloDetail(id).then((payload) => { if (active) setData(payload) }).finally(() => { if (active) setLoading(false) })
+    return () => { active = false }
+  }, [id])
+
+  useEffect(() => {
+    refreshInfo()
+    checkLocalSigner()
+  }, [infoUrl])
+
+  const firmaConLocalSigner = async () => {
+    if (!doc) return
+    if (!token?.slot_id && token?.slot_id !== 0) {
+      setError('Local Signer non ha restituito un token utilizzabile.')
+      return
+    }
+    if (!pin.trim()) {
+      setError('Inserisci il PIN nel pannello Local Signer. Il PIN resta sul PC e non viene salvato.')
+      return
+    }
+    setBusy(true)
+    setError('')
+    setMessage('Firma in corso tramite Local Signer...')
+    try {
+      const downloadResponse = await fetch(doc.actions.download, { credentials: 'same-origin' })
+      if (!downloadResponse.ok) throw new Error(`Download documento non riuscito: HTTP ${downloadResponse.status}`)
+      const sourceBuffer = await downloadResponse.arrayBuffer()
+      const signResponse = await fetch('http://127.0.0.1:27272/firma', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          documento: arrayBufferToBase64(sourceBuffer),
+          pin,
+          slot_id: token.slot_id,
+          visible_signature_mode: 'nessuna',
+          visible_signature_place: '',
+        }),
+      })
+      const signedPayload = await signResponse.json()
+      if (!signResponse.ok || !signedPayload.ok) {
+        throw new Error(String(signedPayload.errore || signedPayload.messaggio || `Firma non riuscita: HTTP ${signResponse.status}`))
+      }
+      const signedBytes = base64ToUint8Array(String(signedPayload.firmato_b64 || ''))
+      if (!signedBytes.length) throw new Error('Local Signer non ha restituito il file firmato.')
+      const form = new FormData()
+      const signedName = doc.name.toLowerCase().endsWith('.p7m') ? doc.name : `${doc.name}.p7m`
+      const signedBuffer = new ArrayBuffer(signedBytes.byteLength)
+      new Uint8Array(signedBuffer).set(signedBytes)
+      form.append('file', new File([signedBuffer], signedName, { type: 'application/pkcs7-mime' }))
+      form.append('note', 'Versione firmata tramite Local Signer')
+      if (alreadySigned && confirmResign) form.append('confirm_resign', '1')
+      const uploadResponse = await fetch(firmaUrl, {
+        method: 'POST',
+        body: form,
+        credentials: 'same-origin',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+      })
+      const uploadPayload = await uploadResponse.json().catch(() => ({}))
+      if (!uploadResponse.ok || uploadPayload.ok === false) {
+        throw new Error(String(uploadPayload.messaggio || `Caricamento firma non riuscito: HTTP ${uploadResponse.status}`))
+      }
+      setPin('')
+      setMessage(String(uploadPayload.messaggio || 'Documento firmato e registrato correttamente.'))
+      refreshInfo()
+      getFascicoloDetail(id).then(setData)
+    } catch (exc) {
+      setError(exc instanceof Error ? exc.message : String(exc))
+      setMessage('')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  if (!loading && data.notFound) {
+    return (
+      <main className="iu-content iu-fascicoli-page">
+        <EmptyState icon={<ShieldCheck size={34}/>} title="Fascicolo non disponibile" action={<Button href="/fascicoli">Torna ai fascicoli</Button>}>
+          Il fascicolo non e' disponibile o non hai i permessi per aprire la firma del documento.
+        </EmptyState>
+      </main>
+    )
+  }
+
+  if (!loading && !doc) {
+    return (
+      <main className="iu-content iu-fascicoli-page">
+        <EmptyState icon={<FileText size={34}/>} title="Documento non trovato" action={<Button href={detailUrl}>Torna ai documenti</Button>}>
+          Il documento richiesto non risulta collegato al fascicolo.
+        </EmptyState>
+      </main>
+    )
+  }
+
+  return (
+    <main className="iu-content iu-fascicoli-page iu-fascicolo-signature-page">
+      <section className="iu-fas-hero iu-fas-detail-hero">
+        <div>
+          <span className="iu-fas-eyebrow"><ShieldCheck size={16}/> Firma documento</span>
+          <h1>{doc?.name || 'Documento in caricamento'}</h1>
+          <p><Badge tone={doc?.signed ? 'success' : 'warning'}>{doc?.signed ? 'Firmato' : 'Da firmare'}</Badge><span>{data.fascicolo.ref} - {data.fascicolo.client}</span></p>
+        </div>
+        <div className="iu-fas-hero__actions">
+          <Button href={detailUrl}><ArrowLeft size={15}/> Torna al fascicolo</Button>
+          {doc?.actions.preview ? <Button href={doc.actions.preview}><Eye size={15}/> Anteprima</Button> : null}
+          {doc?.actions.download ? <Button variant="primary" href={doc.actions.download}><Download size={15}/> Scarica originale</Button> : null}
+        </div>
+      </section>
+
+      {message ? <section className="iu-fas-signature-alert iu-fas-signature-alert--ok"><CheckCircle2 size={18}/><span>{message}</span></section> : null}
+      {error ? <section className="iu-fas-signature-alert iu-fas-signature-alert--error"><ShieldCheck size={18}/><span>{error}</span></section> : null}
+      {alreadySigned ? (
+        <section className="iu-fas-signature-alert iu-fas-signature-alert--warning">
+          <ShieldCheck size={18}/>
+          <span>
+            <strong>Attenzione: documento già firmato.</strong> Se continui rischi di corrompere il file o di creare
+            una versione firmata non valida. Procedi solo se devi sostituire consapevolmente il file firmato.
+          </span>
+        </section>
+      ) : null}
+
+      <section className="iu-fas-signature-grid">
+        <Panel title="Documento" subtitle="Dati operativi del fascicolo" icon={<FileText size={17}/>}>
+          <KvGrid items={[
+            { label: 'Nome', value: doc?.name || 'n.d.' },
+            { label: 'Tipo', value: doc?.type || 'n.d.' },
+            { label: 'Dimensione', value: doc?.size || 'n.d.' },
+            { label: 'Data documento', value: doc?.documentDate || doc?.uploadedAt || 'n.d.' },
+            { label: 'Hash', value: doc?.hash || 'n.d.', mono: true },
+            { label: 'Fonte', value: doc?.source || 'Studio' },
+          ]}/>
+        </Panel>
+
+        <Panel title="Firma con Local Signer" subtitle="Controllo e firma sul PC dell'avvocato" icon={<ShieldCheck size={17}/>} action={<button className="iu-fas-mini-action" type="button" onClick={checkLocalSigner} disabled={checkingSigner}><RefreshCw size={14}/> Riverifica</button>}>
+          <div className="iu-fas-signature-box">
+            <div className={`iu-fas-signer-status ${token ? 'is-ok' : 'is-warn'}`}>
+              <strong>{token ? 'Local Signer rilevato' : checkingSigner ? 'Verifica Local Signer...' : 'Local Signer non rilevato'}</strong>
+              <span>{token ? `${token.label || token.manufacturer || 'Token USB'} - slot ${token.slot_id}` : localSigner?.messaggio || localSigner?.error || 'Avvia Local Signer sul PC e riprova.'}</span>
+              {localSigner?.versione || localSigner?.version ? <small>Versione {localSigner.versione || localSigner.version}</small> : null}
+            </div>
+            <label className="iu-fas-field">
+              <span>PIN token <b>*</b></span>
+              <input type="password" value={pin} onChange={(event) => setPin(event.target.value)} autoComplete="off" placeholder="Il PIN non viene salvato"/>
+            </label>
+            {alreadySigned ? (
+              <label className="iu-fas-resign-confirm">
+                <input type="checkbox" checked={confirmResign} onChange={(event) => setConfirmResign(event.target.checked)}/>
+                <span>Ho verificato che il documento è già firmato e autorizzo una nuova firma/sostituzione del file.</span>
+              </label>
+            ) : null}
+            <button className="iu-fas-submit" type="button" disabled={busy || !token || (alreadySigned && !confirmResign)} onClick={firmaConLocalSigner}>
+              <ShieldCheck size={16}/> {busy ? 'Firma in corso...' : 'Firma tramite Local Signer'}
+            </button>
+            <p className="iu-fas-signature-help">La firma integrata passa da <code>127.0.0.1:27272</code>. IUSENTRA non salva PIN, password o credenziali del token.</p>
+          </div>
+        </Panel>
+
+        <Panel title="Firma esterna" subtitle="ArubaSign, Dike o altro software di firma" icon={<UploadCloud size={17}/>}>
+          <form className="iu-fas-signature-form" method="post" action={firmaUrl} encType="multipart/form-data">
+            <p>Scarica il documento, firmalo in CAdES/PAdES secondo la policy del canale, poi carica qui il file firmato.</p>
+            <label className="iu-fas-field">
+              <span>File firmato <b>*</b></span>
+              <input type="file" name="file" accept=".p7m,.sig,.pkcs7,.pdf" required/>
+            </label>
+            <label className="iu-fas-field">
+              <span>Note operative</span>
+              <input type="text" name="note" defaultValue="Versione firmata per deposito"/>
+            </label>
+            {alreadySigned ? (
+              <label className="iu-fas-resign-confirm">
+                <input type="checkbox" checked={confirmResign} onChange={(event) => setConfirmResign(event.target.checked)}/>
+                <span>Ho verificato che il documento è già firmato e autorizzo una nuova firma/sostituzione del file.</span>
+              </label>
+            ) : null}
+            {alreadySigned && confirmResign ? <input type="hidden" name="confirm_resign" value="1"/> : null}
+            <button className="iu-fas-submit" type="submit" disabled={alreadySigned && !confirmResign}><UploadCloud size={16}/> Carica file firmato</button>
+          </form>
+        </Panel>
+
+        <Panel title="Verifica firma" subtitle="Esito letto dal documento salvato" icon={<FileCheck2 size={17}/>} count={info?.firme?.length || 0}>
+          <div className="iu-fas-signature-box">
+            {info?.errore ? <p className="iu-empty">{info.errore}</p> : null}
+            <KvGrid items={[
+              { label: 'Nome verificato', value: info?.nome || doc?.name || 'n.d.' },
+              { label: 'Firme rilevate', value: String(info?.firme?.length || 0) },
+              { label: 'Stato UI', value: info?.signed_ui?.label || doc?.statusLabel || 'n.d.' },
+            ]}/>
+            <button className="iu-fas-mini-action" type="button" onClick={refreshInfo}><RefreshCw size={14}/> Aggiorna verifica</button>
+          </div>
+        </Panel>
+      </section>
+      <FloatingLex context="firma-documento" title="Lex AI firma" body="Posso spiegare differenze tra CAdES, PAdES, firma locale e controlli predeposito, senza sostituire la verifica tecnica." primaryHref={`/lex?context=firma-documento&id_fasc=${encodedId}&id_doc=${encodedDocId}`} primaryLabel="Chiedi a Lex" secondaryHref={detailUrl} secondaryLabel="Torna ai documenti" />
+    </main>
+  )
+}
+
 function ActivityRow({ activity }:{activity:FascicoloActivity}) {
   return (
     <article className="iu-fas-activity-row">
@@ -811,6 +1082,7 @@ export function FascicoliPage() {
   if (route.kind === 'new') return <FascicoloFormPage mode="new"/>
   if (route.kind === 'export') return <ExportPage/>
   if (route.kind === 'quadro') return <QuadroPage id={route.id}/>
+  if (route.kind === 'signature') return <SignaturePage id={route.id} documentId={route.documentId}/>
   if (route.kind === 'edit') return <FascicoloFormPage mode="edit" id={route.id}/>
   if (route.kind === 'detail') return <DetailPage id={route.id}/>
   return <FascicoliListPage/>

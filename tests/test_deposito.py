@@ -469,6 +469,109 @@ def test_firma_documento_blocca_pdf_pades_con_backend_pkcs11(tmp_path):
     assert fascicolo_reload.documenti[0].firmato_digitalmente is False
 
 
+def test_firma_documento_get_apre_shell_react_senza_405(tmp_path):
+    cfg = _cfg_web(tmp_path)
+    cfg["STUDIO_CONFIG"] = str(tmp_path / "studio.json")
+    GestioneConfigStudio(cfg["STUDIO_CONFIG"]).aggiorna(ConfigStudio(firma=ConfigFirma()))
+
+    gu = GestioneUtenti(
+        db_path=cfg["AUTH_DB"],
+        audit_path=cfg["AUDIT_DB"],
+        secret_key="test",
+    )
+    gu.crea(
+        username="firma-react-admin",
+        password="Admin1234!",
+        ruolo=RuoloUtente.AMMINISTRATORE,
+        email="admin@example.com",
+    )
+
+    gf = GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+    )
+    fascicolo = gf.nuovo(titolo="Fascicolo firma React", tipo=TipoFascicolo.CIVILE)
+    doc = gf.aggiungi_documento(
+        fascicolo.id,
+        "atto.pdf",
+        TipoDocumento.ATTO_GIUDIZIARIO,
+        b"%PDF-ORIG%",
+    )
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        client.post(
+            "/login",
+            data={"username": "firma-react-admin", "password": "Admin1234!"},
+            follow_redirects=True,
+        )
+        response = client.get(f"/fascicoli/{fascicolo.id}/documenti/{doc.id}/firma")
+
+    assert response.status_code == 200
+    assert b"Method Not Allowed" not in response.data
+    assert b"IUSENTRA React Shell" in response.data or b'id="root"' in response.data
+
+
+def test_firma_documento_blocca_rifirma_senza_conferma_esplicita(tmp_path):
+    cfg = _cfg_web(tmp_path)
+    cfg["STUDIO_CONFIG"] = str(tmp_path / "studio.json")
+    GestioneConfigStudio(cfg["STUDIO_CONFIG"]).aggiorna(ConfigStudio(firma=ConfigFirma()))
+
+    gu = GestioneUtenti(
+        db_path=cfg["AUTH_DB"],
+        audit_path=cfg["AUDIT_DB"],
+        secret_key="test",
+    )
+    gu.crea(
+        username="firma-guard-admin",
+        password="Admin1234!",
+        ruolo=RuoloUtente.AMMINISTRATORE,
+        email="admin@example.com",
+    )
+
+    gf = GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+    )
+    fascicolo = gf.nuovo(titolo="Fascicolo guardia firma", tipo=TipoFascicolo.CIVILE)
+    doc = gf.aggiungi_documento(
+        fascicolo.id,
+        "atto.pdf.p7m",
+        TipoDocumento.ATTO_GIUDIZIARIO,
+        b"PKCS7",
+        firmato=True,
+    )
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        client.post(
+            "/login",
+            data={"username": "firma-guard-admin", "password": "Admin1234!"},
+            follow_redirects=True,
+        )
+        response = client.post(
+            f"/fascicoli/{fascicolo.id}/documenti/{doc.id}/firma",
+            data={"note": "Tentativo rifirma"},
+            headers={"X-Requested-With": "XMLHttpRequest"},
+        )
+        confirmed = client.post(
+            f"/fascicoli/{fascicolo.id}/documenti/{doc.id}/firma",
+            data={"note": "Rifirma confermata", "confirm_resign": "1"},
+            headers={"X-Requested-With": "XMLHttpRequest"},
+        )
+
+    assert response.status_code == 409
+    payload = response.get_json()
+    assert payload["ok"] is False
+    assert payload["already_signed"] is True
+    assert payload["requires_confirm_resign"] is True
+    assert "documento già firmato" in payload["messaggio"]
+    assert confirmed.status_code == 200
+    assert confirmed.get_json()["ok"] is True
+
+
 def test_api_pkcs11_firma_documento_blocca_pades(tmp_path):
     cfg = _cfg_web(tmp_path)
     cfg["STUDIO_CONFIG"] = str(tmp_path / "studio.json")

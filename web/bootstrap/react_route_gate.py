@@ -2,7 +2,7 @@
 
 Le route Flask storiche restano disponibili con ``?_legacy=1`` e tutte le
 scritture continuano a passare dai POST esistenti. Questo gate intercetta solo
-GET HTML di aree gia' migrate, evitando API, download e allegati.
+GET HTML di aree migrate, evitando API, download e allegati.
 """
 
 from __future__ import annotations
@@ -177,6 +177,10 @@ def _normalise_path(path: str) -> str:
 
 def _excluded(path: str) -> bool:
     lower = path.lower()
+    # I wizard deposito interni al fascicolo restano sui template operativi
+    # finche' il relativo flusso React non copre l'intera procedura.
+    if lower.startswith("/fascicoli/") and "/wizard/" in lower:
+        return True
     if any(lower == prefix or lower.startswith(prefix) for prefix in _EXCLUDED_PREFIXES):
         return True
     if lower.endswith(_EXCLUDED_SUFFIXES):

@@ -1,5 +1,19 @@
 # Changelog
 
+## 2.198.28 - 2026-05-01
+
+- Corretto il deep-link `/fascicoli/<id>/documenti/<id_doc>/firma`: la `GET` apre ora la shell React operativa invece di produrre `405 Method Not Allowed`, mentre la `POST` resta l'unica azione di firma/caricamento.
+- Aggiunta la pagina React di firma documento con stato firme, anteprima/scarico, firma tramite Local Signer locale e caricamento manuale del file firmato.
+- Introdotta una guardia anti-rifirma: se il documento risulta gia' firmato, UI e backend avvisano del rischio di corruzione/versione non valida e richiedono conferma esplicita `confirm_resign`.
+- Protetto il gate React dai wizard deposito interni al fascicolo non ancora migrati integralmente, evitando che un flusso tributario/PCT operativo venga sostituito da una shell vuota.
+
+## 2.198.27 - 2026-05-01
+
+- Portato il wizard React di acquisizione `/portali/<portale>/acquisizione` su endpoint operativi reali: stato canale, ricerca, anteprima, analisi conflitti, import e import payload autorizzato.
+- Rafforzato il runtime React dei moduli economici: Preventivi/Conferimenti gestisce route profonde con `id_preventivo`, precompilazione cliente/fascicolo/dati studio e POST operativo; Timesheet espone il form reale verso `/timesheet/nuovo`.
+- Aggiunti gate anti-regressione card-per-card: gli href interni dichiarati dai moduli React vengono aperti in test autenticato e non possono produrre 404 o 500.
+- Documentato il criterio di audit operativo React in `docs/REACT_OPERATIONAL_AUDIT.md`, distinguendo route servita, API reali, form reali e limiti residui.
+
 ## 2.198.26 - 2026-05-01
 
 - Rafforzato il gate React per le route profonde: le GET HTML migrate vengono servite dalla shell React, mentre POST, API, download e `?_legacy=1` restano sui percorsi Flask operativi.
